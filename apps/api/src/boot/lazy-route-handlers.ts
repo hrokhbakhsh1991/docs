@@ -4,6 +4,7 @@ import type { ProvisioningService } from "../internal/provisioning.service";
 import type { MapEnrichRouteDeps } from "../routes/api-v2/map-enrich.routes";
 import type { ToursRouteDeps } from "../tours/tours.routes";
 import type { FinanceRouteDeps } from "../denali-finance/finance.routes";
+import type { UrbanProductRouteDeps } from "../urban/urban.routes";
 
 type LazyRouteHandlers = {
   readonly handleInternalMetrics: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
@@ -49,6 +50,22 @@ type LazyRouteHandlers = {
   ) => Promise<void>;
   readonly handleGetUrbanSettings: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
   readonly handlePatchUrbanSettings: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
+  readonly handleGetUrbanCatalog: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: UrbanProductRouteDeps
+  ) => Promise<void>;
+  readonly handleGetUrbanCatalogTour: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    tourId: string,
+    deps: UrbanProductRouteDeps
+  ) => Promise<void>;
+  readonly handlePostUrbanRegistration: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: UrbanProductRouteDeps
+  ) => Promise<void>;
   readonly handleFinanceSummary: (
     req: IncomingMessage,
     res: ServerResponse,
@@ -116,6 +133,7 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
       import("../routes/internal/outbox-replay"),
       import("../tours/tours.routes"),
       import("../urban/urban-settings.routes"),
+      import("../urban/urban.routes"),
       import("../denali-finance/finance.routes"),
     ]).then(
       ([
@@ -128,6 +146,7 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         outboxReplay,
         tours,
         urbanSettings,
+        urbanProduct,
         finance,
       ]) => ({
         handleInternalMetrics: metrics.handleInternalMetrics,
@@ -143,6 +162,9 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         handlePatchTour: tours.handlePatchTour,
         handleGetUrbanSettings: urbanSettings.handleGetUrbanSettings,
         handlePatchUrbanSettings: urbanSettings.handlePatchUrbanSettings,
+        handleGetUrbanCatalog: urbanProduct.handleGetUrbanCatalog,
+        handleGetUrbanCatalogTour: urbanProduct.handleGetUrbanCatalogTour,
+        handlePostUrbanRegistration: urbanProduct.handlePostUrbanRegistration,
         handleFinanceSummary: finance.handleFinanceSummary,
         handleFinanceOpenPayments: finance.handleFinanceOpenPayments,
         handleFinanceLedgerEvents: finance.handleFinanceLedgerEvents,

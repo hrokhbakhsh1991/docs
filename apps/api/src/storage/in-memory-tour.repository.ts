@@ -14,6 +14,7 @@ import type {
 const CROSS_TENANT_SAVE = "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT";
 
 const URBAN_PHASE81_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
+const URBAN_PHASE82_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000411";
 const URBAN_PHASE81_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 
 function assertTenantId(tenantId: string): void {
@@ -30,33 +31,60 @@ export class InMemoryTourRepository implements TourStorageRepository {
   private readonly byId = new Map<string, Tour>();
   private readonly idsByTenant = new Map<string, Set<string>>();
 
-  /** Phase 8.1 TPG fixture — published tour for urban publish-field gate specs. */
+  /** Phase 8.1 TPG + 8.2 catalog fixtures — published + draft urban tours. */
   ensureUrbanPhase81PublishedTour(): void {
-    if (this.byId.has(URBAN_PHASE81_PUBLISHED_TOUR_ID)) {
-      return;
-    }
-    const tour: Tour = {
-      id: URBAN_PHASE81_PUBLISHED_TOUR_ID,
-      tenantId: URBAN_PHASE81_TENANT_ID,
-      rowVersion: 1,
-      createdAt: new Date(0).toISOString(),
-      canonical: {
-        schemaVersion: 1,
-        roots: ["tour"],
-        data: {
-          tour: {
-            title: "Urban published fixture",
-            city: "Tehran",
-            venueName: "Main Hall",
-            startDate: "2026-07-01",
-            endDate: "2026-07-02",
-            capacity: 100,
-            status: "draft",
+    if (!this.byId.has(URBAN_PHASE81_PUBLISHED_TOUR_ID)) {
+      const published: Tour = {
+        id: URBAN_PHASE81_PUBLISHED_TOUR_ID,
+        tenantId: URBAN_PHASE81_TENANT_ID,
+        rowVersion: 1,
+        createdAt: new Date(0).toISOString(),
+        canonical: {
+          schemaVersion: 1,
+          roots: ["tour"],
+          data: {
+            tour: {
+              title: "Urban published fixture",
+              city: "Tehran",
+              venueName: "Main Hall",
+              startDate: "2026-07-01",
+              endDate: "2026-07-02",
+              capacity: 100,
+              status: "published",
+              publishStatus: "published",
+              publishedAt: "2026-06-01T12:00:00.000Z",
+              catalogSummary: "Summer city nights",
+            },
           },
         },
-      },
-    };
-    this.indexTour(tour);
+      };
+      this.indexTour(published);
+    }
+    if (!this.byId.has(URBAN_PHASE82_DRAFT_TOUR_ID)) {
+      const draft: Tour = {
+        id: URBAN_PHASE82_DRAFT_TOUR_ID,
+        tenantId: URBAN_PHASE81_TENANT_ID,
+        rowVersion: 1,
+        createdAt: new Date(1).toISOString(),
+        canonical: {
+          schemaVersion: 1,
+          roots: ["tour"],
+          data: {
+            tour: {
+              title: "Urban draft fixture",
+              city: "Tehran",
+              venueName: "Side Hall",
+              startDate: "2026-08-01",
+              endDate: "2026-08-02",
+              capacity: 50,
+              status: "draft",
+              publishStatus: "draft",
+            },
+          },
+        },
+      };
+      this.indexTour(draft);
+    }
   }
 
   private globalCount(): number {

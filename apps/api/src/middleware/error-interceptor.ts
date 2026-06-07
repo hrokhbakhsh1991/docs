@@ -66,6 +66,14 @@ import {
   isUrbanOwnerRequiredError,
   URBAN_OWNER_REQUIRED,
 } from "../urban/urban-owner-required.error";
+import {
+  isUrbanRegistrationDuplicateError,
+  URBAN_REGISTRATION_DUPLICATE,
+} from "../urban/urban-registration-conflict.error";
+import {
+  isUrbanWorkspaceRequiredError,
+  URBAN_WORKSPACE_REQUIRED,
+} from "../urban/urban-workspace-required.error";
 import { DbCircuitOpenError } from "../db/transient-db-error";
 import { ProxyCircuitOpenError } from "../proxy/proxy-upstream-circuit";
 import {
@@ -148,6 +156,8 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("FORBIDDEN_")) return 403;
   if (message.startsWith("INVALID_TENANT_AUTH_CONTEXT")) return 401;
   if (message.startsWith("ZOD_VALIDATION_FAILED")) return 400;
+  if (message.startsWith("URBAN_REGISTRATION_INVALID")) return 400;
+  if (message.startsWith("URBAN_REGISTRATION_INVALID")) return 400;
   if (message.startsWith("CANONICAL_VALIDATION_FAILED")) return 400;
   if (message.startsWith("SCHEMA_VERSION_MISMATCH")) return 400;
   if (message.startsWith("WORKSPACE_PLUGIN_NOT_BOUND")) return 400;
@@ -392,6 +402,26 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
       res,
       403,
       { error: URBAN_OWNER_REQUIRED, code: URBAN_OWNER_REQUIRED },
+      correlationId
+    );
+    return;
+  }
+
+  if (isUrbanWorkspaceRequiredError(error)) {
+    sendHttpError(
+      res,
+      404,
+      { error: URBAN_WORKSPACE_REQUIRED, code: URBAN_WORKSPACE_REQUIRED },
+      correlationId
+    );
+    return;
+  }
+
+  if (isUrbanRegistrationDuplicateError(error)) {
+    sendHttpError(
+      res,
+      409,
+      { error: URBAN_REGISTRATION_DUPLICATE, code: URBAN_REGISTRATION_DUPLICATE },
       correlationId
     );
     return;

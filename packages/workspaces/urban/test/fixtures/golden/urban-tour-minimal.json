@@ -10,7 +10,8 @@
       "endDate": "2026-07-02",
       "capacity": 120,
       "description": "Starter-plus urban golden fixture",
-      "status": "draft"
+      "status": "draft",
+      "publishStatus": "draft"
     }
   }
 }

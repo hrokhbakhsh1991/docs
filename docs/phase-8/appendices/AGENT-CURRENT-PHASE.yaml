@@ -1,7 +1,7 @@
 # Phase 8 — Machine snapshot: «الان کجاییم?» (sync with IMPLEMENTATION-TRUTH)
 # Authority: BOOT-MANIFEST detect_current_subphase · Sprint A + 8.1 impl
 
-snapshot_version: "2026-06-08-v2"
+snapshot_version: "2026-06-08-v3"
 sync_source: ../audits/IMPLEMENTATION-TRUTH.md
 roadmap: ../../../TEMP/phase8-doc-95plus-plan.md
 navigator: ../AGENT-NAVIGATOR.md

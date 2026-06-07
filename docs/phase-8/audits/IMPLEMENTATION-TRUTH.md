@@ -1,16 +1,17 @@
 # Phase 8 — Implementation truth (honesty ledger)
 
 ```yaml
-truth_version: "2026-06-08-v3"
+truth_version: "2026-06-08-v4"
 repo_snapshot: "2026-06-08"
 doc_pack: VERIFIED_SCAFFOLD
-behavioral: PARTIAL_8_1
+behavioral: PARTIAL_8_2_API
 subphase_8_0: VERIFIED_ENTRY
 subphase_8_1: VERIFIED_BEHAVIORAL
+subphase_8_2_api: VERIFIED_BEHAVIORAL
 implementation_mode:
-  doc_ready_subphase: "8.1"
-  behavioral_active_subphase: "8.1"
-  next_subphase_after_8_1: "8.2"
+  doc_ready_subphase: "8.2"
+  behavioral_active_subphase: "8.2"
+  next_subphase_after_8_2: "8.2-web"
   spec_compile_status: ON_TRUNK
   blockers: []
   entry_ledger: reports/phase-8-entry-verified.yaml
