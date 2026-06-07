@@ -29,6 +29,7 @@ pnpm run test:changed               # git-aware unit tests (origin/main...HEAD, 
 pnpm run test:full                  # phase-3:gate + phase-4:gate (RLS when DATABASE_URL set)
 pnpm run db:test-reset              # TRUNCATE tenant data — fast between integration runs
 pnpm run ci:integrity               # phase-0→3 + phase-4 guard + evolution — CI / PR (not pre-commit)
+pnpm run phase-7:adversarial-gate   # 7.8 P0 — prefer GHA workflow phase-7-gate (parallel jobs)
 pnpm run phase-3:gate               # apps/starter integration + doc-gate (inside ci:integrity / test:full)
 pnpm run phase-4:gate               # full Phase 4 closure (includes phase-3:gate)
 pnpm run check:node-engine  # Node 24 required (.nvmrc / engines)
