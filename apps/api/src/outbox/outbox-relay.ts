@@ -25,6 +25,7 @@ import {
   tryAcquireOutboxRelayTenantSlot,
 } from "./outbox-relay-tenant-budget";
 import { recordOutboxRelayTickResult } from "./outbox-relay-tick-monitor";
+import { processDenaliFinanceTourCreatedRow } from "../denali-finance/process-denali-finance-outbox";
 
 export type ClaimedOutboxRow = {
   readonly id: string;
@@ -354,6 +355,17 @@ export async function publishClaimedOutboxRow(row: ClaimedOutboxRow): Promise<vo
       occurredAt: row.createdAt.toISOString(),
     });
   });
+
+  if (row.eventType === "TourCreated") {
+    await processDenaliFinanceTourCreatedRow({
+      tenantId: row.tenantId,
+      domainEventId: row.domainEventId,
+      eventType: row.eventType,
+      aggregateType: row.aggregateType,
+      aggregateId: row.aggregateId,
+      payload: row.payload,
+    });
+  }
 
   await markOutboxDoneWithRetry(row);
 }

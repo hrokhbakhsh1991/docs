@@ -13,4 +13,7 @@ export {
 export type { DenaliOutboxDomainEvent, OutboxReader } from "./outbox-reader.port";
 export type { FinanceLedgerOutboxEnqueueInput, OutboxWriter } from "./outbox-writer.port";
 export { postDoubleEntryJournal } from "./post-double-entry-journal";
-export { handleTourCreatedLedgerEvent } from "./handlers/tour-created-ledger";
+export {
+  handleTourCreatedLedgerEvent,
+  type TourCreatedLedgerPayload,
+} from "./handlers/tour-created-ledger";

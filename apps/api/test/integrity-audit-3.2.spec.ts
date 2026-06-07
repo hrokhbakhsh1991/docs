@@ -37,6 +37,7 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "canonical/assert-tour-capacity-in-tx.ts",
   "canonical/migrate-canonical-denali.service.ts",
   "outbox/",
+  "denali-finance/",
   "audit/",
   "events/processed-domain-event-log.ts",
   "events/tour-created-envelope-guard.ts",

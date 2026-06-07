@@ -12,8 +12,8 @@ truth_ledgers:
   - docs/phase-6/audits/IMPLEMENTATION-TRUTH.md
   - reports/phase-6-forensic-audit-2026-06-06.md
   - reports/phase-6-entry-verified.yaml
-current_verdict: VERIFIED_BEHAVIORAL_100 — smoke 4/4 · minio 4/4 · fast-closure PASS · CI workflow added
-target_verdict: VERIFIED_BEHAVIORAL_100 — achieved (B+C)
+current_verdict: TIER_D_10_10 — finance outbox wired · CI green · forensic 10/10
+target_verdict: VERIFIED_BEHAVIORAL_100 + Tier D — achieved
 closure_git_sha: 9b10fcb
 uncommitted_wip: none
 forbidden_shortcut: "phase-6:gate کامل در لوکال مگر صریحاً درخواست شود — زنجیره ساعتی"
@@ -34,9 +34,9 @@ recommended_path: "merge PR → phase-6-gate on main"
 | Subphase 6.1–6.9 ledger                     | ✅ VERIFIED_BEHAVIORAL (doc) | —                                |
 | MinIO 6.7 local                             | ✅ 4/4 PASS                  | committed                        |
 | Playwright 6.6 (`SMK-P6-01`)                | ✅ 4/4 PASS (2026-06-07)     | committed                        |
-| Finance outbox 6.4                          | ⚠️ stub                      | `BLOCKER-P6-OUTBOX-5.4`          |
+| Finance outbox 6.4                          | ✅ Prisma adapters           | `BLOCKER-P6-OUTBOX-5.4` cleared  |
 | Full `phase-6:gate`                         | ⏸ optional                   | CI fast-closure + nightly cron   |
-| Forensic purity                             | **9.9/10**                   | finance stub −0.1                |
+| Forensic purity                             | **10/10**                    | Tier D                           |
 | CI `phase-6-gate.yml`                       | ✅ added                     | merge to `main` to run on GitHub |
 
 ---
@@ -124,11 +124,11 @@ recommended_path: "merge PR → phase-6-gate on main"
 ### 3A — Finance outbox (`BLOCKER-P6-OUTBOX-5.4`)
 
 | #    | کار            | وضعیت |
-| ---- | -------------- | ----- | -------------------- |
-| 3A.1 | doc-first      | `[ ]` | Phase 5.4 dependency |
-| 3A.2 | consumer واقعی | `[ ]` |
-| 3A.3 | تست قرارداد    | `[ ]` |
-| 3A.4 | API wiring     | `[ ]` |
+| ---- | -------------- | ----- | ------------------------------------------- |
+| 3A.1 | doc-first      | `[x]` | `6.4-finance-slice.md`                      |
+| 3A.2 | consumer واقعی | `[x]` | `processedStore` + Prisma ports             |
+| 3A.3 | تست قرارداد    | `[x]` | `denali-finance-outbox.integration.spec.ts` |
+| 3A.4 | API wiring     | `[x]` | relay hook + `denali-finance/`              |
 
 ### 3B — WIP cleanup
 
@@ -161,7 +161,7 @@ recommended_path: "merge PR → phase-6-gate on main"
 | **A — Closure رسمی**      | `phase-6:fast-closure` + `phase_closed: true` | ✅         |
 | **B — Behavioral محلی**   | smoke 4/4 · minio 4/4 · committed             | ✅         |
 | **C — Zero waiver doc**   | truth بدون 6.6/6.7 waiver                     | ✅         |
-| **D — Production parity** | outbox 5.4 · full gate 4×                     | ⏸ deferred |
+| **D — Production parity** | outbox 5.4 · full gate 4×                     | ✅         |
 
 **اعلام «تمام» به تیم:** سطح **B + C** ✅ — merge PR و اجرای `phase-6-gate` روی `main`.
 

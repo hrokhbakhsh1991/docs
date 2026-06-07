@@ -1,4 +1,7 @@
-import { handleTourCreatedLedgerEvent } from "./handlers/tour-created-ledger";
+import {
+  handleTourCreatedLedgerEvent,
+  type TourCreatedLedgerPayload,
+} from "./handlers/tour-created-ledger";
 import type { DenaliOutboxDomainEvent, OutboxReader } from "./outbox-reader.port";
 import type { OutboxWriter } from "./outbox-writer.port";
 
@@ -7,16 +10,45 @@ export type FinanceOutboxConsumerResult = {
   skipped: number;
 };
 
+export type DenaliFinanceProcessedStore = {
+  hasProcessed(domainEventId: string): boolean | Promise<boolean>;
+  markProcessed(domainEventId: string): void | Promise<void>;
+};
+
 export type DenaliFinanceOutboxConsumer = {
   consumePending(): Promise<FinanceOutboxConsumerResult>;
-  hasProcessed(domainEventId: string): boolean;
+  hasProcessed(domainEventId: string): boolean | Promise<boolean>;
 };
+
+async function resolveProcessed(
+  store: DenaliFinanceProcessedStore | undefined,
+  memoryProcessed: Set<string>,
+  domainEventId: string
+): Promise<boolean> {
+  if (store !== undefined) {
+    return Promise.resolve(store.hasProcessed(domainEventId));
+  }
+  return memoryProcessed.has(domainEventId);
+}
+
+async function recordProcessed(
+  store: DenaliFinanceProcessedStore | undefined,
+  memoryProcessed: Set<string>,
+  domainEventId: string
+): Promise<void> {
+  if (store !== undefined) {
+    await store.markProcessed(domainEventId);
+    return;
+  }
+  memoryProcessed.add(domainEventId);
+}
 
 export function createDenaliFinanceOutboxConsumer(deps: {
   reader: OutboxReader;
   writer: OutboxWriter;
+  processedStore?: DenaliFinanceProcessedStore;
 }): DenaliFinanceOutboxConsumer {
-  const processedDomainEventIds = new Set<string>();
+  const memoryProcessed = new Set<string>();
 
   async function dispatchEvent(event: DenaliOutboxDomainEvent): Promise<boolean> {
     return handleTourCreatedLedgerEvent({
@@ -33,13 +65,22 @@ export function createDenaliFinanceOutboxConsumer(deps: {
       let skipped = 0;
 
       for (const event of events) {
-        if (processedDomainEventIds.has(event.domainEventId)) {
+        if (await resolveProcessed(deps.processedStore, memoryProcessed, event.domainEventId)) {
+          skipped += 1;
+          continue;
+        }
+
+        const payload = event.payload as TourCreatedLedgerPayload;
+        const financePayload =
+          event.eventType === "TourCreated" &&
+          Boolean(payload.registrationId?.trim() && payload.paidAmountMinor?.trim());
+        if (event.eventType === "TourCreated" && !financePayload) {
           skipped += 1;
           continue;
         }
 
         const didHandle = await dispatchEvent(event);
-        processedDomainEventIds.add(event.domainEventId);
+        await recordProcessed(deps.processedStore, memoryProcessed, event.domainEventId);
         if (didHandle) {
           handled += 1;
         } else {
@@ -49,8 +90,8 @@ export function createDenaliFinanceOutboxConsumer(deps: {
 
       return { handled, skipped };
     },
-    hasProcessed(domainEventId: string): boolean {
-      return processedDomainEventIds.has(domainEventId);
+    hasProcessed(domainEventId: string): boolean | Promise<boolean> {
+      return resolveProcessed(deps.processedStore, memoryProcessed, domainEventId);
     },
   };
 }
