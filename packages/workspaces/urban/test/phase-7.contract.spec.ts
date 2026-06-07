@@ -15,6 +15,9 @@ const REPO_ROOT = join(PACKAGE_ROOT, "../../..");
 const BASELINE_YAML = join(REPO_ROOT, "reports/phase-7-genericity-baseline.yaml");
 const PLATFORM_CORE = join(REPO_ROOT, "packages/platform-core");
 
+/** Bump when REQ-P7-007 proof algorithm changes (CI triage — must be ≥3 on branch). */
+const PHASE_7_GENERICITY_PROOF_REV = 3;
+
 /** Ephemeral dirs — never part of genericity baseline (see .gitignore coverage/). */
 const PLATFORM_CORE_SKIP_DIRS = new Set(["node_modules", "dist", "coverage"]);
 
@@ -105,7 +108,7 @@ function assertPlatformCoreMatchesTreeDigest(): void {
   assert.equal(
     currentDigest,
     expectedDigest,
-    "platform-core tree digest drift since 7.2 baseline — urban must not touch core"
+    `platform-core tree digest drift since 7.2 baseline (proof rev ${PHASE_7_GENERICITY_PROOF_REV}) — urban must not touch core`
   );
 }
 

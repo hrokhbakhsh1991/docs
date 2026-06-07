@@ -78,6 +78,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify Phase 7 genericity proof revision
+        run: |
+          echo "HEAD $(git rev-parse HEAD)"
+          grep -q 'PHASE_7_GENERICITY_PROOF_REV = 3' packages/workspaces/urban/test/phase-7.contract.spec.ts
+          grep -q platform_core_tree_digest reports/phase-7-genericity-baseline.yaml
+
       - name: Phase 0 integration gate (trunk integrity)
         run: pnpm run phase-0:integration-gate
 
