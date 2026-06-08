@@ -1,25 +1,24 @@
 # Phase 8 — Machine snapshot: «الان کجاییم?» (sync with IMPLEMENTATION-TRUTH)
-# Authority: BOOT-MANIFEST detect_current_subphase · Sprint A + 8.1 impl
+# Authority: BOOT-MANIFEST detect_current_subphase · Sprint A + 8.4 impl
 
-snapshot_version: "2026-06-08-v4"
+snapshot_version: "2026-06-08-v7"
 sync_source: ../audits/IMPLEMENTATION-TRUTH.md
 roadmap: ../../../TEMP/phase8-doc-95plus-plan.md
 navigator: ../AGENT-NAVIGATOR.md
 scaffold_sot: ../../../TEMP/phase8-wip-specs/README.md
 
-doc_ready_subphase: "8.2"
-behavioral_active_subphase: "8.3"
-next_subphase_after_8_2: "8.3"
+doc_ready_subphase: "8.4"
+behavioral_active_subphase: "8.5"
+next_subphase_after_8_4: "8.5"
 
-partial_subphases: []
-
-blockers: []
+partial_subphases:
+  - "8.5"
 
 guard_attestation:
   command: pnpm run phase-8:guard
   charter_gates: 25
   passed: 25
-  note: "8.2 VERIFIED_BEHAVIORAL — urban product port API+web+prisma"
+  note: "8.5 contract 4/4 — full phase-8:gate + hooks re-enable PENDING"
 
 entry_ledger:
   path: reports/phase-8-entry-verified.yaml
@@ -27,44 +26,31 @@ entry_ledger:
   subphase_8_0: VERIFIED_ENTRY
   subphase_8_1: VERIFIED_BEHAVIORAL
   subphase_8_2: VERIFIED_BEHAVIORAL
+  subphase_8_3: VERIFIED_BEHAVIORAL
+  subphase_8_4: VERIFIED_BEHAVIORAL
 
 next_read:
   - docs/phase-8/AGENT-NAVIGATOR.md
-  - docs/phase-8/subphases/8.3-silo-tier.md
-  - docs/phase-8/subphases/8.4-e2e-integrity.md
+  - docs/phase-8/subphases/8.5-platform-dod.md
 
 next_prove_with:
-  - path: apps/api/test/urban-catalog-registration.spec.ts
+  - path: apps/api/test/phase-8.contract.spec.ts
     status: ON_TRUNK
-  - path: apps/web/test/urban-catalog-access.spec.ts
+  - path: docs/audits/phase-8-zero-debt-forensic-audit.mdoc
     status: ON_TRUNK
-  - path: packages/workspace-sdk/test/urban-owner-ability.spec.ts
-    status: ON_TRUNK
-    wip_source: TEMP/phase8-wip-specs/workspace-sdk/urban-owner-ability.spec.ts
-  - path: apps/api/test/urban-owner-ability.spec.ts
-    status: ON_TRUNK
-    wip_source: TEMP/phase8-wip-specs/urban-owner-ability.spec.ts
-  - path: apps/api/test/urban-settings-patch.spec.ts
-    status: ON_TRUNK
-    wip_source: TEMP/phase8-wip-specs/urban-settings-patch.spec.ts
-  - path: apps/api/test/urban-redis-fallback.spec.ts
-    status: ON_TRUNK
-    wip_source: TEMP/phase8-wip-specs/urban-redis-fallback.spec.ts
-  - path: apps/api/test/urban-tours-bypass-gate.spec.ts
-    status: ON_TRUNK
-    wip_source: TEMP/phase8-wip-specs/urban-tours-bypass-gate.spec.ts
-  - path: apps/web/test/urban-owner-access.spec.ts
-    status: ON_TRUNK
-    wip_source: TEMP/phase9-wip-specs/web/urban-owner-access.spec.ts
+
+blockers:
+  - id: BL-P8-02
+    note: "Run pnpm run phase-8:gate at closure; delete PHASE-8-HOOKS-SUSPENSION.yaml"
 
 forbidden_until_blocker_clear:
-  - "8.2+ product routes before subphase_8_1 VERIFIED_BEHAVIORAL (TG-P8-002)"
   - "packages/platform-core diff for urban product work (INV-P8-001)"
   - "Runtime import from legacy/ in trunk apps (INV-P8-004)"
+  - "Phase 8 closed / phase_8_closed claim before phase-8:gate exit 0"
 
 detect_algorithm: |
   1. Read IMPLEMENTATION-TRUTH implementation_mode + subphase ledger.
   2. If phase_7_gate != PASS → cap at 8.0 (TG-P8-001).
-  3. If 8.1 VERIFIED_BEHAVIORAL → doc_ready 8.2.
+  3. If 8.4 VERIFIED_BEHAVIORAL → doc_ready 8.4 · behavioral_active 8.5.
   4. Next subphase in DAG after highest VERIFIED_BEHAVIORAL row.
   5. This file must match truth after every Sprint A+ doc PR.

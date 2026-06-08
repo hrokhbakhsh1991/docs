@@ -1,17 +1,19 @@
 # Phase 8 — Implementation truth (honesty ledger)
 
 ```yaml
-truth_version: "2026-06-08-v5"
+truth_version: "2026-06-08-v8"
 repo_snapshot: "2026-06-08"
 doc_pack: VERIFIED_SCAFFOLD
-behavioral: VERIFIED_8_2
+behavioral: VERIFIED_8_4
 subphase_8_0: VERIFIED_ENTRY
 subphase_8_1: VERIFIED_BEHAVIORAL
 subphase_8_2: VERIFIED_BEHAVIORAL
+subphase_8_3: VERIFIED_BEHAVIORAL
+subphase_8_4: VERIFIED_BEHAVIORAL
 implementation_mode:
-  doc_ready_subphase: "8.2"
-  behavioral_active_subphase: "8.3"
-  next_subphase_after_8_2: "8.3"
+  doc_ready_subphase: "8.4"
+  behavioral_active_subphase: "8.5"
+  next_subphase_after_8_4: "8.5"
   spec_compile_status: ON_TRUNK
   blockers: []
   entry_ledger: reports/phase-8-entry-verified.yaml
@@ -26,7 +28,7 @@ closure_git_sha: d487666
 phase_8_1_guard_report: reports/phase-8-gate-2026-06-08.json
 ```
 
-> **Agents:** Read this before any Phase 8 implementation claim. **8.0–8.2** are **VERIFIED_BEHAVIORAL** (owner auth + urban product port API/web). **doc_ready** is **8.3**; subphases **8.3–8.5** remain **SPEC_ONLY** or **ABSENT** until behavioral proof lands. Do not claim Product Parity DoD from this doc pack alone.
+> **Agents:** Read this before any Phase 8 implementation claim. **8.0–8.4** are **VERIFIED_BEHAVIORAL** (owner auth + urban product port + silo tier + E2E smoke SMK-P8-01..04). **8.5** contract spec is **VERIFIED_BEHAVIORAL** locally; **Product Parity DoD** remains **PENDING** until `pnpm run phase-8:gate` exits 0 and Husky suspension lifts. Do not claim Phase 8 closed from contract spec alone.
 
 ---
 
@@ -37,9 +39,9 @@ phase_8_1_guard_report: reports/phase-8-gate-2026-06-08.json
 | **8.0**  | [`subphases/8.0-entry.md`](../subphases/8.0-entry.md)                         | Entry gate — Phase 7 + MAP §22                   | `reports/phase-8-entry-verified.yaml`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | **VERIFIED_ENTRY**      | `phase_7_gate.status: PASS` · `verified_at` set · BL-P8-01 closed                                       |
 | **8.1**  | [`subphases/8.1-single-owner-auth.md`](../subphases/8.1-single-owner-auth.md) | Single-Owner CASL — owner-only settings/admin    | [`CASL-URBAN-OWNER-SPEC.md`](../appendices/CASL-URBAN-OWNER-SPEC.md) · [`URBAN-ROUTE-MATRIX.md`](../appendices/URBAN-ROUTE-MATRIX.md) · [`TRACEABILITY-MATRIX-8.1.md`](../appendices/TRACEABILITY-MATRIX-8.1.md) · [`erip/8.1-cop-auth-isolation.md`](../appendices/erip/8.1-cop-auth-isolation.md) · [`schemas/URBAN-THEME-JSONB.schema.json`](../appendices/schemas/URBAN-THEME-JSONB.schema.json) · [`schemas/URBAN-SETTINGS-PATCH.zod.ts`](../appendices/schemas/URBAN-SETTINGS-PATCH.zod.ts) · [`URBAN-THEME-MERGE-ALGORITHM.md`](../appendices/URBAN-THEME-MERGE-ALGORITHM.md) · [`AGENT-STATE-MAP-8.1.yaml`](../appendices/AGENT-STATE-MAP-8.1.yaml) · [`TOURS-PUBLISH-FIELD-GATE.md`](../appendices/TOURS-PUBLISH-FIELD-GATE.md) · [`CANLOAD-URBAN-SETTINGS.contract.ts`](../appendices/CANLOAD-URBAN-SETTINGS.contract.ts) | **VERIFIED_BEHAVIORAL** | `apps/api/src/urban/**` · GET/PATCH `/urban/settings` · TPG publish-field gate · 6 specs ON_TRUNK green |
 | **8.2**  | [`subphases/8.2-urban-features.md`](../subphases/8.2-urban-features.md)       | Urban product port — catalog, register, settings | `packages/workspaces/urban/` · `apps/api/src/urban/urban.routes.ts` · `apps/web/app/(public)/catalog/**` · `apps/web/app/(app)/settings/urban/page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | **VERIFIED_BEHAVIORAL** | API+web catalog/register/settings shell · `urban-catalog-registration.spec.ts` + `urban-catalog-access.spec.ts` green · Prisma `20260608100000_urban_product_delta` |
-| **8.3**  | [`subphases/8.3-silo-tier.md`](../subphases/8.3-silo-tier.md)                 | Silo tier — `TenantConnectionRouter`             | `packages/tenant-kernel/` · `infra/sql/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | **SPEC_ONLY**           | Parallel after 8.2 · Option E                                                                           |
-| **8.4**  | [`subphases/8.4-e2e-integrity.md`](../subphases/8.4-e2e-integrity.md)         | E2E — catalog → register → owner settings        | `apps/web/tests/e2e/urban-*`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | **ABSENT**              | SMK-P8-01..04 · parallel after 8.2                                                                      |
-| **8.5**  | [`subphases/8.5-platform-dod.md`](../subphases/8.5-platform-dod.md)           | Product Parity DoD gate                          | `phase-8.contract.spec.ts` · gate JSON                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | **ABSENT**              | `phase-8:gate` not wired                                                                                |
+| **8.3**  | [`subphases/8.3-silo-tier.md`](../subphases/8.3-silo-tier.md)                 | Silo tier — `TenantConnectionRouter`             | `packages/tenant-kernel/` · `apps/api/src/tenant/resolve-tenant-database-url.ts` · `apps/api/test/urban-silo-fixture.spec.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | **VERIFIED_BEHAVIORAL** | Router inject + silo enterprise fixture · `urban-silo-fixture.spec.ts` 6/6 green · ERIP 8.3 COP        |
+| **8.4**  | [`subphases/8.4-e2e-integrity.md`](../subphases/8.4-e2e-integrity.md)         | E2E — catalog → register → owner settings        | `apps/web/tests/e2e/urban-e2e-integrity.spec.ts` · `apps/api/test/urban-e2e-http.spec.ts` · `playwright.urban.config.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | **VERIFIED_BEHAVIORAL** | SMK-P8-01..04 green · `test:e2e:urban` + HTTP chain · owner/member host profiles                        |
+| **8.5**  | [`subphases/8.5-platform-dod.md`](../subphases/8.5-platform-dod.md)           | Product Parity DoD gate                          | `phase-8.contract.spec.ts` · gate JSON · forensic mdoc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | **PARTIAL_BEHAVIORAL**  | Contract 4/4 green · full `phase-8:gate` + hooks re-enable **PENDING**                                |
 
 ---
 
@@ -51,8 +53,8 @@ phase_8_1_guard_report: reports/phase-8-gate-2026-06-08.json
 | `packages/workspaces/denali`  | **VERIFIED_BEHAVIORAL** | —        | Phase 6 Tier D — not expanded in Phase 8              |
 | `packages/workspaces/starter` | **VERIFIED_BEHAVIORAL** | —        | Reference pattern                                     |
 | `packages/platform-core`      | **VERIFIED_BEHAVIORAL** | 8.x      | **Zero-diff invariant** — INV-P8-001                  |
-| `packages/tenant-kernel`      | **VERIFIED_BEHAVIORAL** | 7.7      | `TenantConnectionRouter` — silo URL wiring in **8.3** |
-| `TenantConnectionRouter`      | **VERIFIED_BEHAVIORAL** | 7.7      | Tier resolution — silo URL wiring in **8.3**          |
+| `packages/tenant-kernel`      | **VERIFIED_BEHAVIORAL** | 8.3      | `TenantConnectionRouter` — API `resolveTenantDatabaseUrl` + silo fixture |
+| `TenantConnectionRouter`      | **VERIFIED_BEHAVIORAL** | 8.3      | Tier resolution wired in `bind-request-context` + urban silo spec        |
 
 ---
 
@@ -66,7 +68,8 @@ phase_8_1_guard_report: reports/phase-8-gate-2026-06-08.json
 | Urban tenant settings panels             | **VERIFIED_BEHAVIORAL** | 8.2 (UI) · 8.1 (auth)               |
 | `resolveWorkspacePluginForType("urban")` | **VERIFIED_BEHAVIORAL** | 7.3 — prerequisite satisfied at 8.0 |
 | `lazy-urban-plugin.ts` (web)             | **VERIFIED_BEHAVIORAL** | 7.3                                 | Sole dynamic `@app-tour/workspace-urban` import — `apps/web/src/bootstrap/lazy-urban-plugin.ts` (Phase 7.3; mirror `lazy-denali-plugin.ts`) |
-| `phase-8.contract.spec.ts`               | **ABSENT**              | 8.5                                 |
+| `phase-8.contract.spec.ts`               | **VERIFIED_BEHAVIORAL** | 8.5                                 | 4/4 contract cases green locally                                                                          |
+| `docs/audits/phase-8-zero-debt-forensic-audit.mdoc` | **VERIFIED_SCAFFOLD** | 8.5 | Rubric scaffold — verdict PENDING until gate                                                               |
 | `scripts/guards/phase-8-guard.mjs`       | **VERIFIED_SCAFFOLD**   | 8.5                                 | Tier 1 guard wired — `pnpm run phase-8:guard`                                                                                               |
 | `pnpm run phase-8:gate`                  | **VERIFIED_SCAFFOLD**   | 8.5                                 | Script in `package.json` — nested `phase-7:gate`                                                                                            |
 
@@ -79,7 +82,7 @@ phase_8_1_guard_report: reports/phase-8-gate-2026-06-08.json
 | `phase-7:gate`                   | **PASS** — GHA platform-dod + guards | 8.0 **VERIFIED_ENTRY**                |
 | `phase-7.contract.spec.ts`       | **VERIFIED_BEHAVIORAL**              | Genericity baseline for 8.2           |
 | Urban E2E create → publish (7.4) | **VERIFIED_BEHAVIORAL**              | Baseline for 8.1 auth rail            |
-| `TenantConnectionRouter` (7.7)   | **VERIFIED_BEHAVIORAL**              | 8.3 silo URL wiring deferred          |
+| `TenantConnectionRouter` (7.7)   | **VERIFIED_BEHAVIORAL**              | 8.3 silo URL wiring via router module |
 | MAP §22 platform checklist       | **REVIEWED**                         | `map_22_reviewed: true` in entry yaml |
 
 ---
@@ -120,7 +123,7 @@ forbidden_claims:
 | ------------------------------- | --------------------- | --------------------- |
 | Charter + BOOT-MANIFEST + TRUTH | **VERIFIED_SCAFFOLD** | PEK doc pack only     |
 | Score target (when guard wired) | ≥ 96                  | **0%** product parity |
-| Subphases VERIFIED_BEHAVIORAL   | 0 / 6                 | —                     |
+| Subphases VERIFIED_BEHAVIORAL   | 5 / 6 (8.5 partial)   | Contract on trunk     |
 
 **Do not claim Product Parity DoD from documentation guard alone.** MAP §12 R2 applies.
 
