@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="en">
       <body data-tenant-id={resolved.context.tenantId}>
         <AppProviders bootstrap={bootstrap}>
-          <AppShell>{children}</AppShell>
+          <AppShell pluginId={bootstrap.pluginId}>{children}</AppShell>
         </AppProviders>
       </body>
     </html>

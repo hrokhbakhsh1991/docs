@@ -115,12 +115,29 @@ export function resolveBootstrapAppSessionForHost(host: string): ResolvedBootstr
   return resolveBootstrapAppSession(withProfile, host);
 }
 
+/** Phase 8.4 SMK-P8-03/04 — sync with apps/api/test/fixtures/urban-smoke-e2e-tenant.ts */
+const URBAN_SMOKE_E2E_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";
+const URBAN_SMOKE_E2E_OWNER_USER_ID = "00000000-0000-4000-8000-000000000401";
+const URBAN_SMOKE_E2E_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000402";
+
 /** Dev-only host profiles for EC-33 e2e (single server, multiple session shapes). */
 const DEV_HOST_SESSION_PROFILES: Readonly<Record<string, Partial<TenantKernelResolveInput>>> = {
   "deny-theme": {
     userId: "deny-theme-user",
     role: "member",
     status: "SUSPENDED",
+  },
+  "urban-owner": {
+    userId: URBAN_SMOKE_E2E_OWNER_USER_ID,
+    workspaceId: URBAN_SMOKE_E2E_WORKSPACE_ID,
+    role: "owner",
+    status: "ACTIVE",
+  },
+  "urban-member": {
+    userId: URBAN_SMOKE_E2E_MEMBER_USER_ID,
+    workspaceId: URBAN_SMOKE_E2E_WORKSPACE_ID,
+    role: "member",
+    status: "ACTIVE",
   },
 };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@app-tour/ui-primitives/input";
 import { useActionState } from "react";
 
 import {
@@ -49,23 +50,23 @@ export function UrbanRegistrationForm({ tenantId, tourId, submitted }: FormProps
 
   return (
     <form action={formAction} data-urban-registration-form>
-      <input type="hidden" name="tenantId" value={tenantId} />
-      <input type="hidden" name="tourId" value={tourId} />
+      <Input type="hidden" name="tenantId" value={tenantId} />
+      <Input type="hidden" name="tourId" value={tourId} />
       <label>
         Email
-        <input name="email" type="email" required maxLength={320} />
+        <Input name="email" type="email" required maxLength={320} />
       </label>
       <label>
         Full name
-        <input name="fullName" type="text" required maxLength={200} />
+        <Input name="fullName" type="text" required maxLength={200} />
       </label>
       <label>
         Phone (optional)
-        <input name="phone" type="tel" maxLength={32} />
+        <Input name="phone" type="tel" maxLength={32} />
       </label>
       <label>
         Party size (optional)
-        <input name="partySize" type="number" min={1} />
+        <Input name="partySize" type="number" min={1} />
       </label>
       <label>
         Notes (optional)
