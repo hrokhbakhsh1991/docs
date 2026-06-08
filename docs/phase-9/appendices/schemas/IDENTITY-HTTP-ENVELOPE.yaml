@@ -1,0 +1,29 @@
+contract_id: IDENTITY-HTTP-ENVELOPE
+version: "2026-06-08-v1"
+subphase: "9.1"
+authority: CASL-OPERATOR-SPEC.md · identity-api-dispatch-addendum.md
+
+error_responses:
+  IDENTITY_REQUIRED:
+    http_status: 401
+    required_fields: [code, message, metadata.correlationId]
+  OPERATOR_FORBIDDEN:
+    http_status: 403
+    required_fields: [code, message, metadata.correlationId]
+  OTP_INVALID:
+    http_status: 401
+    required_fields: [code, message]
+  MEMBERSHIP_INACTIVE:
+    http_status: 403
+    required_fields: [code, message]
+
+session_response_get_auth_session:
+  required_fields: [userId, tenantId, role, workspaceType]
+  role_source: database_user_tenant_row
+
+request_otp_response:
+  required_fields: [challengeId, expiresAt]
+
+verify_otp_response:
+  required_fields: [sessionEstablished]
+  side_effect: Set-Cookie HttpOnly

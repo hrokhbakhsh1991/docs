@@ -1,0 +1,92 @@
+contract_id: AGENT-STATE-MAP-9.1
+version: "2026-06-08-v1"
+subphase: "9.1"
+surfaces:
+  - POST /auth/request-otp
+  - POST /auth/verify-otp
+  - GET /auth/session
+  - GET /tours
+middleware_pipeline:
+  - resolveTenantContextFromRequest
+  - parseSessionCookie
+  - hydrateMembershipFromDb
+  - buildTenantAuthz
+  - requireOperatorSession
+  - runWithHttpRequestContext
+  - handlerBody
+states:
+  - id: ASM-9.1-001
+    route: POST /auth/request-otp
+    input_state: anonymous_valid_mobile
+    actor_role: anonymous
+    middleware_step: handlerBody
+    http_status: 200
+    body_error_code: null
+    handler_entered: true
+
+  - id: ASM-9.1-002
+    route: POST /auth/verify-otp
+    input_state: anonymous_valid_challenge_and_code
+    actor_role: anonymous
+    middleware_step: handlerBody
+    http_status: 200
+    body_error_code: null
+    handler_entered: true
+    side_effect: session_cookie_set
+
+  - id: ASM-9.1-003
+    route: POST /auth/verify-otp
+    input_state: anonymous_wrong_code
+    actor_role: anonymous
+    middleware_step: handlerBody
+    http_status: 401
+    body_error_code: OTP_INVALID
+    handler_entered: true
+
+  - id: ASM-9.1-004
+    route: GET /auth/session
+    input_state: session_valid_owner_active
+    actor_role: owner
+    middleware_step: handlerBody
+    http_status: 200
+    body_error_code: null
+    handler_entered: true
+    membership_source: database
+
+  - id: ASM-9.1-005
+    route: GET /auth/session
+    input_state: missing_cookie
+    actor_role: anonymous
+    middleware_step: requireOperatorSession
+    http_status: 401
+    body_error_code: IDENTITY_REQUIRED
+    handler_entered: false
+
+  - id: ASM-9.1-006
+    route: GET /tours
+    input_state: session_valid_member_active
+    actor_role: member
+    middleware_step: handlerBody
+    http_status: 200
+    body_error_code: null
+    handler_entered: true
+
+  - id: ASM-9.1-007
+    route: GET /tours
+    input_state: missing_cookie
+    actor_role: anonymous
+    middleware_step: requireOperatorSession
+    http_status: 401
+    body_error_code: IDENTITY_REQUIRED
+    handler_entered: false
+
+  - id: ASM-9.1-008
+    route: PATCH /urban/settings
+    input_state: session_valid_admin_denali_tenant_on_urban_host
+    actor_role: admin
+    workspaceType: urban
+    middleware_step: assertWorkspaceOwner
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    handler_entered: false
+    note: Phase 8 regression — admin must not pass urban owner gate

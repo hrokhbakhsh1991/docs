@@ -1,8 +1,14 @@
 # Phase 9.0 entry ledger — scaffold
 # Authority: docs/phase-9/subphases/9.0-entry.md · TG-P9-001
-ledger_version: "2026-06-08-v2"
-verified_at: null
-map_35_reviewed: false
+ledger_version: "2026-06-08-v3"
+verified_at: "2026-06-08"
+map_35_reviewed: true
+map_35_attestation:
+  decision: DEC-P9-001
+  scope: "Admin-Panel + operator flows in apps/web (app)/ single shell"
+  authority: docs/phase-9/appendices/IMPLEMENTATION-DECISIONS.md
+  reviewed_by: architect
+entry_closure_git_sha: 0a9f2fb
 phase_8_gate:
   command: pnpm run phase-8:gate
   status: PASS
@@ -29,5 +35,5 @@ no_legacy_runtime_import:
   attested_at: "2026-06-08"
   note: "p8_no_legacy_runtime_import charter gate green"
 note: >
-  TG-P9-001 cleared — phase_8_gate.status PASS. CP-9.0-01 may proceed to VERIFIED_ENTRY
-  after map_35_reviewed and verified_at set.
+  Phase 9.0 VERIFIED_ENTRY — phase_8_gate PASS (GHA #27130859957) · map_35_reviewed true
+  (DEC-P9-001) · import_boundary PASS · no legacy runtime import. Unblocks 9.1 behavioral.

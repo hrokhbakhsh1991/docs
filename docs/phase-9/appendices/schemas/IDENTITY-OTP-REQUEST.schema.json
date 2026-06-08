@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.dev/schemas/identity-otp-request.json",
+  "title": "IdentityOtpRequest",
+  "description": "POST /auth/request-otp body — Phase 9.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mobile"],
+  "properties": {
+    "mobile": {
+      "type": "string",
+      "pattern": "^\\+[1-9]\\d{6,14}$",
+      "description": "E.164 mobile number"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.dev/schemas/phase-9/PAYMENT-SCHEDULE-ITEM.schema.json",
+  "title": "PaymentScheduleItem",
+  "description": "Installment row for registration payment schedule — DEC-P9-016",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "registrationId",
+    "sequence",
+    "label",
+    "dueAt",
+    "amountMinor",
+    "paidMinor",
+    "status"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "registrationId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "sequence": { "type": "integer", "minimum": 0, "maximum": 99 },
+    "label": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "dueAt": { "type": "string", "format": "date-time" },
+    "amountMinor": { "type": "string", "pattern": "^\\d+$" },
+    "paidMinor": { "type": "string", "pattern": "^\\d+$" },
+    "status": {
+      "type": "string",
+      "enum": ["scheduled", "due", "partial", "paid", "overdue", "waived"]
+    },
+    "linkedPaymentId": { "type": ["string", "null"], "format": "uuid" },
+    "graceDays": { "type": "integer", "minimum": 0, "maximum": 90 },
+    "currency": { "type": "string", "minLength": 3, "maxLength": 8 }
+  }
+}

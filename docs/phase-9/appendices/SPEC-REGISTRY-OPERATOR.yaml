@@ -1,0 +1,115 @@
+contract_id: SPEC-REGISTRY-OPERATOR
+version: "2026-06-08-v6"
+authority:
+  - docs/phase-9/appendices/SPEC-REGISTRY-9.1.yaml
+  - docs/phase-9/subphases/9.2-admin-shell.md
+  - docs/phase-9/subphases/9.8-operator-dod-gate.md
+purpose: Unified prove_with registry for subphases 9.1–9.8
+
+scaffold_policy:
+  wip_root: TEMP/phase9-wip-specs/
+  readme: TEMP/phase9-wip-specs/README.md
+  guard_known_fail: null
+  promote_first: null
+
+# Normative trunk targets (guard expects these paths eventually)
+specs_9_1:
+  - apps/api/test/identity-otp.spec.ts
+  - apps/api/test/identity-session.spec.ts
+  - packages/workspace-sdk/test/operator-ability.spec.ts
+  - apps/web/test/auth-login-access.spec.ts
+
+specs_9_2:
+  - apps/web/test/admin-shell-access.spec.ts
+  - apps/web/test/dashboard-smoke.spec.ts
+
+specs_9_3:
+  - apps/api/test/tours-operator.spec.ts
+  - apps/web/test/tours-list.spec.ts
+  - apps/web/test/tours-operator.spec.ts
+  - packages/workspaces/denali/test/tour-list-projection.spec.ts
+
+specs_9_4:
+  - apps/api/test/identity-users.spec.ts
+  - apps/web/test/users-directory.spec.ts
+
+specs_9_5:
+  - packages/workspace-sdk/test/bookings-ops-manifest.spec.ts
+  - packages/workspaces/denali/test/bookings-ops-manifest.spec.ts
+  - apps/api/test/bookings-ops.spec.ts
+  - apps/api/test/bookings-create.spec.ts
+  - apps/web/test/bookings-approve.spec.ts
+  - apps/web/test/bookings-command-center.spec.ts
+
+specs_9_6:
+  - apps/api/test/settings-modules.spec.ts
+  - apps/api/test/settings-resources.spec.ts
+  - apps/api/test/settings-config-version.spec.ts
+  - apps/api/test/settings-audit-trail.spec.ts
+  - apps/web/test/settings-template.spec.ts
+  - apps/web/test/settings-generic-crud.spec.ts
+  - packages/workspace-sdk/test/settings-manifest.spec.ts
+  - packages/workspaces/denali/test/settings-manifest.spec.ts
+
+specs_9_7:
+  - packages/workspaces/denali/test/finance-admin.spec.ts
+  - apps/api/test/finance-ops.spec.ts
+  - apps/web/test/finance-page.spec.ts
+
+specs_9_8:
+  - apps/web/test/phase-9.contract.spec.ts
+  - apps/web/test/operator-smoke.spec.ts
+
+on_trunk:
+  specs_9_1:
+    - apps/api/test/identity-otp.spec.ts
+    - apps/api/test/identity-session.spec.ts
+    - packages/workspace-sdk/test/operator-ability.spec.ts
+    - apps/web/test/auth-login-access.spec.ts
+    - apps/web/test/auth-login-flow.spec.ts
+    - apps/web/test/admin-shell-access.spec.ts
+  specs_9_2:
+    - apps/web/test/dashboard-smoke.spec.ts
+  specs_9_3:
+    - apps/api/test/tours-operator.spec.ts
+    - apps/web/test/tours-list.spec.ts
+    - apps/web/test/tours-operator.spec.ts
+    - packages/workspaces/denali/test/tour-list-projection.spec.ts
+  specs_9_4:
+    - apps/api/test/identity-users.spec.ts
+    - apps/web/test/users-directory.spec.ts
+  specs_9_5:
+    - packages/workspace-sdk/test/bookings-ops-manifest.spec.ts
+    - packages/workspaces/denali/test/bookings-ops-manifest.spec.ts
+    - apps/api/test/bookings-ops.spec.ts
+    - apps/api/test/bookings-create.spec.ts
+    - apps/web/test/bookings-approve.spec.ts
+    - apps/web/test/bookings-command-center.spec.ts
+  specs_9_6:
+    - apps/api/test/settings-modules.spec.ts
+    - apps/api/test/settings-resources.spec.ts
+    - apps/api/test/settings-config-version.spec.ts
+    - apps/api/test/settings-audit-trail.spec.ts
+    - apps/web/test/settings-template.spec.ts
+    - apps/web/test/settings-generic-crud.spec.ts
+    - packages/workspace-sdk/test/settings-manifest.spec.ts
+    - packages/workspaces/denali/test/settings-manifest.spec.ts
+  specs_9_7:
+    - packages/workspaces/denali/test/finance-admin.spec.ts
+    - apps/api/test/finance-ops.spec.ts
+    - apps/web/test/finance-page.spec.ts
+  specs_9_8:
+    - apps/web/test/phase-9.contract.spec.ts
+    - apps/web/test/operator-smoke.spec.ts
+
+wip_only:
+  note: "Promote train T-9.1..T-9.8 complete — TEMP retains README + DEPRECATED + Phase 8 urban regression only"
+
+prove_with_commands:
+  phase_9_guard: pnpm run phase-9:guard
+  phase_9_gate: pnpm run phase-9:gate
+  operator_e2e: pnpm --filter @apps/web exec node --import tsx --test test/operator-smoke.spec.ts
+
+verification:
+  - pnpm run phase-9:guard → p9_prove_with_operator_registry
+  - docs/phase-9/appendices/BOOT-MANIFEST.yaml subphases prove_with aligned

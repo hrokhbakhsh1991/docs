@@ -1,0 +1,289 @@
+# Phase 9 — Authoritative agent boot manifest (Operator Admin PEK)
+
+manifest_version: "2026-06-08-v2"
+phase_id: "9"
+phase_name: "Operator Admin Parity"
+doc_execution_system_target: 96
+sole_execution_entry: ../phase-9-agent-router.md
+fail_token: FAIL
+pek_reference: ../phase-9-charter.md
+charter: ../phase-9-charter.md
+implementation_truth: ../audits/IMPLEMENTATION-TRUTH.md
+covenant: "../../MIGRATION-MAP.md#۱۲-the-zero-debt-covenant-mandatory-enforcement"
+operator_dod: "../../MIGRATION-MAP.md#۳۵-application-structure"
+
+epic:
+  primary: "Option B — Operator Admin Panel"
+  secondary: "Option F — Identity production (9.1)"
+
+boot_sequence_T0:
+  - id: boot-0
+    read: ../audits/IMPLEMENTATION-TRUTH.md
+  - id: boot-1
+    read: ../phase-9-charter.md
+  - id: boot-2
+    read: ../../phase-8/audits/IMPLEMENTATION-TRUTH.md
+    note: "Phase 8 closure honesty before Phase 9 claims"
+  - id: boot-3
+    read: ../appendices/LEGACY-ADMIN-REFERENCE.md
+  - id: boot-4
+    read: ../appendices/OPERATOR-PRODUCT-SCOPE.md
+  - id: boot-5
+    read: ../../appendices/PLATFORM-CONTINUITY-0-7.md
+  - id: boot-6
+    assert: reading phase-9-agent-router.md
+  - id: boot-7
+    run: pnpm run phase-8:gate
+    expect_exit: 0
+    when_subphase_gte: "9.0"
+  - id: boot-8
+    algorithm: detect_current_subphase
+  - id: boot-8b
+    read: ../appendices/AGENT-CURRENT-PHASE.yaml
+    note: "Machine snapshot — must match IMPLEMENTATION-TRUTH after doc PRs"
+  - id: boot-9
+    load: subphases/{current_subphase}.md
+
+repo_status_enum:
+  - SPEC_ONLY
+  - PARTIAL
+  - PARTIAL_R1
+  - VERIFIED_SCAFFOLD
+  - VERIFIED_BEHAVIORAL
+  - VERIFIED_ENTRY
+  - READY_FOR_IMPLEMENTATION
+  - BLOCKED
+  - ABSENT
+  - NOT_BOUND
+
+subphases:
+  "9.0":
+    title: Entry Gate
+    spec: ../subphases/9.0-entry.md
+    prerequisites: []
+    blocks: ["9.1"]
+    parallelizable: false
+    primary_artifact: reports/phase-9-entry-verified.yaml
+    prove_with:
+      - pnpm run phase-8:gate
+      - docs/MIGRATION-MAP.md §3.5 reviewed
+  "9.1":
+    title: Identity & Session Production
+    spec: ../subphases/9.1-identity-session.md
+    authority:
+      - ../appendices/OPERATOR-LOGIN-FLOW.md
+      - ../appendices/identity-web-bff-addendum.md
+    prerequisites: ["9.0"]
+    blocks: ["9.2"]
+    parallelizable: false
+    primary_artifact: docs/phase-9/appendices/IDENTITY-PORT-SCOPE.md
+    prove_with:
+      - apps/api/test/identity-otp.spec.ts
+      - apps/api/test/identity-session.spec.ts
+      - packages/workspace-sdk/test/operator-ability.spec.ts
+      - apps/web/test/auth-login-access.spec.ts
+      - apps/web/test/auth-login-flow.spec.ts
+  "9.2":
+    title: Admin Web Shell
+    spec: ../subphases/9.2-admin-shell.md
+    authority:
+      - ../appendices/ADMIN-SHELL-UX.md
+    prerequisites: ["9.1"]
+    blocks: ["9.3"]
+    parallelizable: false
+    primary_artifact: apps/web/app/(app)/layout.tsx
+    prove_with:
+      - apps/web/test/admin-shell-access.spec.ts
+      - apps/web/test/dashboard-smoke.spec.ts
+  "9.3":
+    title: Tours Operator Surface
+    spec: ../subphases/9.3-tours-operator.md
+    authority:
+      - ../appendices/TOURS-LIST-UX.md
+      - ../appendices/tours-operator-api-dispatch-addendum.md
+    prerequisites: ["9.2"]
+    blocks: ["9.4"]
+    parallelizable: false
+    primary_artifact: apps/web/app/(app)/tours/
+    prove_with:
+      - apps/api/test/tours-operator.spec.ts
+      - apps/web/test/tours-list.spec.ts
+      - apps/web/test/tours-operator.spec.ts
+      - packages/workspaces/denali/test/tour-list-projection.spec.ts
+  "9.4":
+    title: Users Invites & RBAC
+    spec: ../subphases/9.4-users-rbac.md
+    authority:
+      - ../appendices/USERS-DIRECTORY-UX.md
+    prerequisites: ["9.3"]
+    blocks: ["9.5"]
+    parallelizable: false
+    prove_with:
+      - apps/api/test/identity-users.spec.ts
+      - apps/web/test/users-directory.spec.ts
+  "9.5":
+    title: Bookings & Registration Ops
+    spec: ../subphases/9.5-bookings-ops.md
+    authority:
+      - ../appendices/BOOKINGS-OPS-UX.md
+    prerequisites: ["9.4"]
+    blocks: ["9.6"]
+    parallelizable: false
+    prove_with:
+      - packages/workspace-sdk/test/bookings-ops-manifest.spec.ts
+      - packages/workspaces/denali/test/bookings-ops-manifest.spec.ts
+      - apps/api/test/bookings-ops.spec.ts
+      - apps/api/test/bookings-create.spec.ts
+      - apps/web/test/bookings-approve.spec.ts
+      - apps/web/test/bookings-command-center.spec.ts
+  "9.6":
+    title: Settings Module Registry
+    spec: ../subphases/9.6-settings-templates.md
+    authority:
+      - ../appendices/SETTINGS-MODULE-REGISTRY.md
+      - ../appendices/SETTINGS-RISK-REGISTER-P9.md
+    prerequisites: ["9.5"]
+    blocks: ["9.7"]
+    parallelizable: false
+    prove_with:
+      - packages/workspace-sdk/test/settings-manifest.spec.ts
+      - packages/workspaces/denali/test/settings-manifest.spec.ts
+      - apps/api/test/settings-modules.spec.ts
+      - apps/api/test/settings-resources.spec.ts
+      - apps/api/test/settings-config-version.spec.ts
+      - apps/api/test/settings-audit-trail.spec.ts
+      - apps/web/test/settings-template.spec.ts
+      - apps/web/test/settings-generic-crud.spec.ts
+  "9.7":
+    title: Finance Command Center
+    spec: ../subphases/9.7-finance-denali.md
+    authority:
+      - ../appendices/FINANCE-OPS-UX.md
+    prerequisites: ["9.6"]
+    blocks: ["9.8"]
+    parallelizable: false
+    prove_with:
+      - packages/workspaces/denali/test/finance-admin.spec.ts
+      - apps/api/test/finance-ops.spec.ts
+      - apps/web/test/finance-page.spec.ts
+  "9.8":
+    title: Operator Admin DoD Gate
+    spec: ../subphases/9.8-operator-dod-gate.md
+    prerequisites: ["9.1", "9.2", "9.3", "9.4", "9.5", "9.6", "9.7"]
+    blocks: []
+    parallelizable: false
+    prove_with:
+      - pnpm run phase-9:gate
+      - apps/web/test/phase-9.contract.spec.ts
+      - apps/web/test/operator-smoke.spec.ts
+      - docs/audits/phase-9-zero-debt-forensic-audit.mdoc
+
+dependency_graph:
+  "9.0": ["9.1"]
+  "9.1": ["9.2"]
+  "9.2": ["9.3"]
+  "9.3": ["9.4"]
+  "9.4": ["9.5"]
+  "9.5": ["9.6"]
+  "9.6": ["9.7"]
+  "9.7": ["9.8"]
+  "9.8": []
+
+parallel_groups:
+  note: "Phase 9 operator rail is sequential 9.0→9.8 — no parallel subphases until 9.8 regression bundle"
+
+detect_current_subphase:
+  version: "2026-06-08-v2"
+  doc_ready_subphase: "9.1"
+  behavioral_active_subphase: "9.0"
+  partial_subphases:
+    - id: "9.7"
+      status: PARTIAL_R1
+  snapshot: ../appendices/AGENT-CURRENT-PHASE.yaml
+  algorithm: |
+    1. Read IMPLEMENTATION-TRUTH subphase ledger + implementation_mode block.
+    2. Highest subphase with VERIFIED_BEHAVIORAL or PARTIAL_R1 on trunk → behavioral anchor.
+    3. Next subphase in DAG → doc_ready if specs on disk and transition_guards allow.
+    4. If phase_8_gate != PASS → cap doc_ready at 9.0 (TG-P9-001).
+    5. Sync appendices/AGENT-CURRENT-PHASE.yaml with steps 1–4 after every doc PR.
+
+transition_guards:
+  TG-P9-001:
+    blocks: ["9.1"]
+    until: "phase_8_gate.status PASS in entry yaml"
+  TG-P9-002:
+    blocks: ["9.2"]
+    until: "9.1 VERIFIED_BEHAVIORAL"
+  TG-P9-003:
+    blocks: ["9.3"]
+    until: "9.2 VERIFIED_BEHAVIORAL"
+  TG-P9-004:
+    blocks: ["9.4", "9.5", "9.6", "9.7", "9.8"]
+    until: "prior sequential subphase VERIFIED_BEHAVIORAL"
+  TG-P9-005:
+    blocks: "9.8"
+    until: "9.1-9.7 all VERIFIED_BEHAVIORAL — 9.7 PARTIAL_R1 does not satisfy (R4 closure per DEC-P9-016 required)"
+
+out_of_scope:
+  phase_10_plus:
+    - id: OOS-P9-001
+      item: apps/marketing separate deploy
+      owner_phase: "10"
+    - id: OOS-P9-002
+      item: SEO / blog / public Marketing CMS
+      owner_phase: "10"
+    - id: OOS-P9-003
+      item: Three-repo deploy split (Marketing/Portal/Admin)
+      authority: phase-5/appendices/phase-boundaries.md
+      owner_phase: "10+"
+    - id: OOS-P9-004
+      item: CDC / data warehouse
+      owner_phase: "10+"
+    - id: OOS-P9-005
+      item: Urban public catalog expansion (if deferred from 8.x)
+      note: "Not operator admin — Marketing phase"
+      owner_phase: "10 or 8.x carryover"
+  phase_9_forbidden:
+    - id: FORB-P9-001
+      item: Runtime import from legacy/
+      authority: INV-P9-004
+    - id: FORB-P9-002
+      item: packages/platform-core diff for admin features
+      authority: INV-P9-001
+    - id: FORB-P9-003
+      item: Finance in workspace-urban
+      authority: INV-P9-006
+      cross_ref: DEC-P9-002
+    - id: FORB-P9-004
+      item: isAdminOrOwner on Urban owner surfaces
+      authority: INV-P8-007 regression
+
+gate_chain:
+  phase-9:guard:
+    runner: scripts/guards/phase-9-guard.mjs
+    charter_gates: 32
+  phase-9:gate:
+    expands:
+      - pnpm build
+      - pnpm test
+      - pnpm run phase-8:gate
+      - pnpm run phase-9:guard
+
+hot_paths:
+  identity: apps/api/src/identity/
+  admin_web: apps/web/app/(app)/
+  auth_web: apps/web/app/auth/
+  tours_api: apps/api/src/tours/
+  tours_web: apps/web/app/(app)/tours/
+  users_api: apps/api/src/identity/users.routes.ts
+  bookings_api: apps/api/src/bookings/
+  settings_web: apps/web/app/(app)/settings/
+  denali_finance: packages/workspaces/denali/src/finance/
+  finance_interim: apps/web/app/finance/ # R1 interim (DEC-P9-017) — active on trunk
+  finance_web: apps/web/app/finance/ # alias of finance_interim
+  finance_web_target: apps/web/app/(app)/finance/ # migrate when 9.2 shell lands (CP-9.2-11)
+  api_denali_finance: apps/api/src/denali-finance/
+  operator_specs: docs/phase-9/appendices/SPEC-REGISTRY-OPERATOR.yaml
+  traceability: docs/phase-9/appendices/TRACEABILITY-MAP.md
+  boundary_matrix: docs/phase-9/appendices/PHASE-BOUNDARY-MATRIX.md
+  wizard_root: apps/web/app/tours/new/

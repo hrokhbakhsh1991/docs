@@ -1,0 +1,71 @@
+contract_id: AGENT-STATE-MAP-9.8
+version: "2026-06-08-v1"
+subphase: "9.8"
+surfaces:
+  - pnpm run phase-9:guard
+  - pnpm run phase-9:gate
+  - apps/web/test/operator-smoke.spec.ts
+  - apps/web/test/phase-9.contract.spec.ts
+transition_guards:
+  - TG-P9-005
+forbidden_ids:
+  - P9-F-009
+states:
+  - id: ASM-9.8-001
+    route: phase-9:guard
+    input_state: guard_27_of_32_or_less
+    actor_role: agent
+    http_status: null
+    body_error_code: null
+    handler_entered: true
+    gate_result: partial
+    note: doc pack may pass before full behavioral closure
+
+  - id: ASM-9.8-002
+    route: phase-9:guard
+    input_state: guard_32_of_32
+    actor_role: agent
+    http_status: null
+    body_error_code: null
+    handler_entered: true
+    gate_result: pass
+    prerequisite_for: phase-9:gate
+
+  - id: ASM-9.8-003
+    route: phase-9:gate
+    input_state: doc_guard_only_no_build_test
+    actor_role: agent
+    http_status: null
+    body_error_code: P9-F-009
+    handler_entered: false
+    gate_result: fail
+    note: AH-9.8-01 — must chain build + test + phase-8:gate
+
+  - id: ASM-9.8-004
+    route: operator-smoke.spec.ts
+    input_state: smk_p9_01..08_pass
+    actor_role: owner
+    http_status: 200
+    body_error_code: null
+    handler_entered: true
+    smoke_ids:
+      [SMK-P9-01, SMK-P9-02, SMK-P9-03, SMK-P9-04, SMK-P9-05, SMK-P9-06, SMK-P9-07, SMK-P9-08]
+
+  - id: ASM-9.8-005
+    route: phase-9.contract.spec.ts
+    input_state: platform_core_diff_nonempty
+    actor_role: agent
+    http_status: null
+    body_error_code: INV-P9-001
+    handler_entered: false
+    gate_result: fail
+
+  - id: ASM-9.8-006
+    route: closure
+    input_state: subphase_9_7_partial_r1_only
+    actor_role: agent
+    http_status: null
+    body_error_code: TG-P9-005
+    handler_entered: false
+    gate_result: blocked
+    note: 9.7 PARTIAL_R1 does not satisfy 9.8 until DEC-P9-016 R4 closure

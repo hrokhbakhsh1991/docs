@@ -1,13 +1,8 @@
 {
-  "ok": false,
+  "ok": true,
   "date": "2026-06-08",
-  "charter_gates": 28,
-  "passed": 27,
-  "known_fail": {
-    "gate": "p9_spec_path_registry",
-    "missing_example": "apps/api/test/identity-otp.spec.ts",
-    "remediation": "promote TEMP/phase9-wip-specs/ T-9.1 train (separate PR)"
-  },
+  "charter_gates": 32,
+  "passed": 32,
   "phase": 9,
   "doc_pack": "VERIFIED_SCAFFOLD"
 }

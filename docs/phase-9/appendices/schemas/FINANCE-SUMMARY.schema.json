@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.dev/schemas/phase-9/FINANCE-SUMMARY.schema.json",
+  "title": "FinanceReportsSummary",
+  "description": "GET /finance/reports/summary — workspace KPI strip (legacy parity)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pendingManualPayments", "pendingReceiptReviews", "paidPayments", "failedPayments"],
+  "properties": {
+    "pendingManualPayments": { "type": "integer", "minimum": 0 },
+    "pendingReceiptReviews": { "type": "integer", "minimum": 0 },
+    "paidPayments": { "type": "integer", "minimum": 0 },
+    "failedPayments": { "type": "integer", "minimum": 0 },
+    "overdueInstallments": { "type": "integer", "minimum": 0 },
+    "totalBalanceDueMinor": { "type": "string", "pattern": "^\\d+$" }
+  }
+}

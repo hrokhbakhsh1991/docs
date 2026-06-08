@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.dev/schemas/phase-9/TOURS-LIST-PROJECTION.schema.json",
+  "title": "TourListProjection",
+  "description": "Operator list row for GET /tours?view=operator — no full canonical blob (DEC-P9-014 · DEC-129)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "tenantId",
+    "createdAt",
+    "updatedAt",
+    "rowVersion",
+    "title",
+    "listStatus",
+    "uiStatus",
+    "acceptedCount"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "rowVersion": { "type": "integer", "minimum": 0 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "shortDescription": { "type": ["string", "null"], "maxLength": 2000 },
+    "listStatus": {
+      "type": "string",
+      "enum": ["draft", "open", "published", "closed", "cancelled", "archived"]
+    },
+    "uiStatus": {
+      "type": "string",
+      "enum": ["draft", "active", "archived"]
+    },
+    "priceAmount": { "type": ["number", "null"] },
+    "priceCurrency": { "type": ["string", "null"], "minLength": 3, "maxLength": 3 },
+    "totalCapacity": { "type": ["integer", "null"], "minimum": 0 },
+    "acceptedCount": { "type": "integer", "minimum": 0 },
+    "category": { "type": ["string", "null"] },
+    "coverImageUrl": { "type": ["string", "null"], "format": "uri" },
+    "departureAt": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

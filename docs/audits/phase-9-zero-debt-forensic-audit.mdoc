@@ -1,0 +1,65 @@
+---
+title: Phase 9 Zero-Debt Forensic Audit
+verdict: PENDING
+audit_date: 2026-06-08
+phase: 9
+weighted_score: null
+target_score: 8.0
+rubric: docs/phase-9/appendices/FORENSIC-RUBRIC-P9.md
+closure_command: pnpm run phase-9:gate
+---
+
+# Phase 9 — Operator Admin Parity forensic audit
+
+```yaml
+audit_version: "2026-06-08-v2"
+status: SCAFFOLD_PENDING_CLOSURE
+closure_subphase: "9.8"
+req_id: REQ-P9-083
+action_id: P9-8-A03
+```
+
+> **Honesty:** `verdict: PENDING` is correct until behavioral closure. Doc pack defines rubric only — do not set PASS without `phase-9:gate` exit 0.
+
+---
+
+## Dimensions (100-point weighted → normalize ≥ 8.0)
+
+| #   | Dimension                     | Weight | Evidence target                             | Score (0–10) | Weighted |
+| --- | ----------------------------- | ------ | ------------------------------------------- | ------------ | -------- |
+| 1   | Identity production (9.1)     | 15     | identity-otp + identity-session specs green | —            | —        |
+| 2   | Admin shell fail-closed (9.2) | 10     | admin-shell-access.spec.ts                  | —            | —        |
+| 3   | Tours operator (9.3)          | 15     | tours-operator · SMK-P9-02 · DEC-P9-007     | —            | —        |
+| 4   | Users + invites (9.4)         | 10     | identity-users · P9-F-005                   | —            | —        |
+| 5   | Bookings ops (9.5)            | 10     | bookings-ops · outbox transaction           | —            | —        |
+| 6   | Settings + template (9.6)     | 10     | settings-template · SMK-P9-05               | —            | —        |
+| 7   | Finance Denali-only (9.7)     | 5      | finance-admin · no Nest finance tree        | —            | —        |
+| 8   | E2E integrity (9.8)           | 15     | SMK-P9-01..05                               | —            | —        |
+| 9   | Urban owner regression        | 10     | urban-settings-patch admin 403              | —            | —        |
+| 10  | Genericity platform-core      | 5      | phase-9.contract zero-diff                  | —            | —        |
+| 11  | Doc truth sync                | 5      | TRUTH 9.1–9.7 behavioral                    | —            | —        |
+
+**Sum:** _pending_ / 100 → normalized: _pending_ (target ≥ 8.0)
+
+---
+
+## P0 adversarial rows (auto-fail if red at audit)
+
+| ID        | Check                                      | Status  |
+| --------- | ------------------------------------------ | ------- |
+| ADV-P9-01 | Admin PATCH `/urban/settings` → 403        | PENDING |
+| ADV-P9-02 | Anonymous `(app)/dashboard` → redirect/401 | PENDING |
+| ADV-P9-03 | platform-core git diff empty               | PENDING |
+| ADV-P9-04 | No legacy runtime import                   | PENDING |
+
+---
+
+## Closure checklist (9.8)
+
+- [ ] `pnpm run phase-9:gate` exit 0
+- [ ] All dimension scores recorded above
+- [ ] Normalized score ≥ 8.0
+- [ ] Architect sign-off date set
+- [ ] Update front-matter: `verdict: PASS` · `weighted_score: <n>`
+
+**Verdict:** `PENDING` until checklist complete.

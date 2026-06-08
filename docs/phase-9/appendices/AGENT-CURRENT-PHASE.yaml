@@ -1,0 +1,69 @@
+# Phase 9 — Machine snapshot: «الان کجاییم؟» (sync with IMPLEMENTATION-TRUTH)
+# Authority: BOOT-MANIFEST detect_current_subphase v2 · Sprint A (P2)
+
+snapshot_version: "2026-06-08-v6"
+sync_source: ../audits/IMPLEMENTATION-TRUTH.md
+roadmap: ../../../TEMP/phase9-doc-95plus-roadmap.md
+navigator: ../AGENT-NAVIGATOR.md
+scaffold_sot: ../appendices/SPEC-REGISTRY-OPERATOR.yaml
+
+doc_ready_subphase: "9.1"
+behavioral_active_subphase: "9.1"
+
+partial_subphases:
+  - id: "9.7"
+    status: PARTIAL_R1
+    repo_status: PARTIAL_R1
+    r1_trunk_complete: true
+    r2_r4_pending: true
+    note: "Finance API + interim app/finance — not 9.7 behavioral closure (DEC-P9-016 R2–R4)"
+  - id: "9.5"
+    status: PARTIAL_R0
+    repo_status: MANIFEST_ON_TRUNK
+    note: "RegistrationOpsManifest + SDK validate — API/UI pending S9.5-R1"
+  - id: "9.6"
+    status: PARTIAL_R0
+    repo_status: MANIFEST_ON_TRUNK
+    note: "Settings module inventory + SDK validate — routers pending S9.6-R1"
+  - id: "9.3"
+    status: PARTIAL_R0
+    repo_status: PROJECTION_ON_TRUNK
+    note: "Denali extractTourListProjection — listToursOperator API pending S9.3-L-R1"
+
+blockers: []
+entry_status: VERIFIED_ENTRY
+
+guard_attestation:
+  command: pnpm run phase-9:guard
+  charter_gates: 32
+  passed: 32
+  promote_train_completed: T-9.1..T-9.8
+
+next_read:
+  - docs/phase-9/AGENT-NAVIGATOR.md
+  - docs/phase-9/subphases/9.0-entry.md
+  - docs/phase-9/subphases/9.1-identity-session.md
+  - docs/phase-9/appendices/IDENTITY-PORT-SCOPE.md
+  - docs/phase-9/appendices/erip/9.1-cop-identity-port.md
+
+next_prove_with:
+  - path: apps/api/test/identity-otp.spec.ts
+    status: ON_TRUNK
+    behavioral: SCAFFOLD
+  - path: packages/workspaces/denali/test/bookings-ops-manifest.spec.ts
+    status: ON_TRUNK
+    behavioral: MANIFEST_R0
+  - path: packages/workspaces/denali/test/settings-manifest.spec.ts
+    status: ON_TRUNK
+    behavioral: MANIFEST_R0
+
+forbidden_until_blocker_clear:
+  - "Claim 9.7 closed — PARTIAL_R1 only; reconciliation + prepayment R2–R4 pending"
+  - "9.1+ code without doc-first update to identity COP / IDENTITY-PORT-SCOPE"
+
+detect_algorithm: |
+  1. Read IMPLEMENTATION-TRUTH implementation_mode + subphase ledger.
+  2. Highest subphase with VERIFIED_BEHAVIORAL or PARTIAL_R1 on trunk → behavioral anchor.
+  3. Next subphase in DAG → doc_ready if specs on disk and transition_guards allow.
+  4. If phase_8_gate != PASS → cap doc_ready at 9.0 (TG-P9-001); else anchor at 9.1+.
+  5. This file must match truth after every Sprint A+ doc PR.

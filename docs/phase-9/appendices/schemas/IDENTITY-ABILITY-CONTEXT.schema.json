@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.dev/schemas/phase-9/identity-ability-context.json",
+  "title": "IdentityAbilityContextResponse",
+  "description": "GET /auth/ability-context — legacy membership-ability-context parity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["userId", "tenantId", "role", "capabilities"],
+  "properties": {
+    "userId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "format": "uuid" },
+    "role": { "type": "string", "enum": ["owner", "admin", "member"] },
+    "labels": { "type": "array", "items": { "type": "string" } },
+    "capabilities": { "type": "array", "items": { "type": "string" } },
+    "tenantModules": { "type": "array", "items": { "type": "string" } }
+  }
+}

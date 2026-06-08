@@ -1,7 +1,8 @@
-baseline_sha: "64d9fea"
+baseline_sha: "0a9f2fb"
 baseline_source: reports/phase-7-genericity-baseline.yaml
 phase: 9
 recorded_at: "2026-06-08"
+post_phase_8_closure: true
 note: >
   Phase 9 operator admin work must keep packages/platform-core diff empty (INV-P9-001).
-  Inherit Phase 7 baseline until Phase 9.0 records post-8.x sha.
+  Baseline pinned at Phase 8 closure merge on main (0a9f2fb).

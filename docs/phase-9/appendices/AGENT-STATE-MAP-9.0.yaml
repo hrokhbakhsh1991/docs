@@ -1,0 +1,50 @@
+contract_id: AGENT-STATE-MAP-9.0
+version: "2026-06-08-v1"
+subphase: "9.0"
+surfaces:
+  - pnpm run phase-8:gate
+  - reports/phase-9-entry-verified.yaml
+  - pnpm run guard:import-boundary
+transition_guards:
+  - TG-P9-001
+states:
+  - id: ASM-9.0-001
+    route: phase-8:gate
+    input_state: phase_8_not_run
+    actor_role: architect
+    http_status: null
+    body_error_code: null
+    handler_entered: false
+    gate_result: blocked
+    blocks: ["9.1", "9.2", "9.3", "9.4", "9.5", "9.6", "9.7", "9.8"]
+    next_read: docs/phase-9/subphases/9.0-entry.md
+
+  - id: ASM-9.0-002
+    route: phase-8:gate
+    input_state: phase_8_exit_0
+    actor_role: architect
+    http_status: null
+    body_error_code: null
+    handler_entered: true
+    gate_result: pass
+    unblocks: TG-P9-001
+    next_read: docs/phase-9/subphases/9.1-identity-session.md
+
+  - id: ASM-9.0-003
+    route: entry yaml
+    input_state: phase_8_gate_pending_in_yaml
+    actor_role: agent
+    http_status: null
+    body_error_code: BL-P9-01
+    handler_entered: false
+    note: entry ledger exists but phase_8_gate.status != PASS — honesty not VERIFIED_ENTRY
+
+  - id: ASM-9.0-004
+    route: guard:import-boundary
+    input_state: legacy_runtime_import_detected
+    actor_role: agent
+    http_status: null
+    body_error_code: INV-P9-004
+    handler_entered: false
+    gate_result: fail
+    detection: rg "from ['\"]legacy/" apps/api apps/web

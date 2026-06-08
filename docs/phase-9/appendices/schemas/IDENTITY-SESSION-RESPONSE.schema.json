@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.dev/schemas/phase-9/identity-session-response.json",
+  "title": "IdentitySessionResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["userId", "tenantId", "role", "workspaceType"],
+  "properties": {
+    "userId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "format": "uuid" },
+    "role": { "type": "string", "enum": ["owner", "admin", "member"] },
+    "workspaceType": { "type": "string", "enum": ["starter", "denali", "urban"] }
+  }
+}

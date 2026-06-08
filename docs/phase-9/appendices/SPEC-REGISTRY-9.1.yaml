@@ -1,0 +1,26 @@
+contract_id: SPEC-REGISTRY-9.1
+version: "2026-06-08-v2"
+authority:
+  - docs/phase-9/subphases/9.1-identity-session.md
+  - scripts/guards/lib/phase-9-hardening-artifacts.mjs
+purpose: Single source of truth for Phase 9.1 behavioral spec paths
+
+specs:
+  - apps/api/test/identity-otp.spec.ts
+  - apps/api/test/identity-session.spec.ts
+  - packages/workspace-sdk/test/operator-ability.spec.ts
+  - apps/web/test/auth-login-access.spec.ts
+  - apps/web/test/auth-login-flow.spec.ts
+  - apps/web/test/admin-shell-access.spec.ts
+
+prove_with_commands:
+  api_otp: pnpm --filter @apps/api exec node --import tsx --test test/identity-otp.spec.ts
+  api_session: pnpm --filter @apps/api exec node --import tsx --test test/identity-session.spec.ts
+  sdk: pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/operator-ability.spec.ts
+  web_login: pnpm --filter @apps/web exec node --import tsx --test test/auth-login-access.spec.ts
+  web_login_flow: pnpm --filter @apps/web exec node --import tsx --test test/auth-login-flow.spec.ts
+  web_shell: pnpm --filter @apps/web exec node --import tsx --test test/admin-shell-access.spec.ts
+
+verification:
+  - pnpm run phase-9:guard → p9_prove_with_parity
+  - diff against REQUIRED_PHASE9_9_1_SPEC_REGISTRY in phase-9-hardening-artifacts.mjs
