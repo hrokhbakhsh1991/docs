@@ -9,7 +9,8 @@
       "startDate": "2026-08-01",
       "endDate": "2026-08-02",
       "capacity": 80,
-      "status": "draft"
+      "status": "draft",
+      "publishStatus": "draft"
     },
     "tripDetails": {
       "itinerary": {
