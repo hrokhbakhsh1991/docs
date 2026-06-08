@@ -23,6 +23,14 @@ All `dispatchRequest` routes are **undocumented** in machine-readable OpenAPI �
 
 Route inventory is the **single SoT** for shadow count; `app.ts` must wire every inventory entry (guard enforces).
 
+### Phase 8 urban routes (8.1–8.2)
+
+Inventory includes `/urban/settings`, `/urban/catalog`, `/urban/catalog/{tourId}`, `/urban/registrations`. Regenerate `openapi/openapi.json` in the same PR that adds dispatch wiring.
+
+### Finance routes (Phase 9 — not in trunk inventory)
+
+`/finance/*` handlers live in WIP `denali-finance/` and are **excluded** from `DISPATCH_ROUTES` until Phase 9 lands wired routes in `app.ts`. Adding finance rows to the inventory before dispatch wiring breaks `guard:openapi-dispatch-parity`.
+
 ## Verification
 
 ```bash
