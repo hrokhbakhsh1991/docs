@@ -1,0 +1,336 @@
+# Phase 8 — Product Parity DoD on GitHub runners (Postgres + urban regression + optional full gate).
+# Local dev: phase-8:guard + test:changed — heavy chain stays on GHA.
+# Authority: docs/phase-8/subphases/8.5-platform-dod.md · docs/dev/tiered-testing.md
+
+name: phase-8-gate
+
+on:
+  push:
+    branches:
+      - main
+      - "phase-8/**"
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "packages/workspaces/urban/**"
+      - "packages/tenant-kernel/**"
+      - "docs/phase-8/**"
+      - "scripts/guards/phase-8-guard.mjs"
+      - "scripts/guards/p8-boundary-diff.mjs"
+      - ".github/workflows/phase-8-gate.yml"
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "packages/workspaces/urban/**"
+      - "packages/tenant-kernel/**"
+      - "docs/phase-8/**"
+      - "scripts/guards/phase-8-guard.mjs"
+      - "scripts/guards/p8-boundary-diff.mjs"
+      - ".github/workflows/phase-8-gate.yml"
+  workflow_dispatch:
+    inputs:
+      run_ci_integrity:
+        description: Run ci:integrity (parallel with urban regression)
+        type: boolean
+        default: true
+      run_urban_e2e:
+        description: Run Playwright urban E2E (SMK-P8-01..04)
+        type: boolean
+        default: true
+      run_full_phase_8_gate:
+        description: Run full pnpm run phase-8:gate (nested phase-7 chain — slow)
+        type: boolean
+        default: false
+
+concurrency:
+  group: phase-8-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    name: Phase 8 guard (doc + boundary)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Import boundary
+        run: pnpm run guard:import-boundary
+
+      - name: Phase 8 boundary diff
+        run: pnpm run guard:p8-boundary-diff
+
+      - name: Phase 8 guard (25 charter gates)
+        run: pnpm run phase-8:guard
+
+      - name: Upload phase-8 guard report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-8-guard-reports
+          path: reports/phase-8-gate-*.json
+          if-no-files-found: ignore
+
+  urban-regression:
+    name: Phase 8 urban regression (memory + contract)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: guard
+
+    env:
+      NODE_ENV: test
+      STORAGE_DRIVER: memory
+      OUTBOX_RELAY_ENABLED: "false"
+      PROJECTION_AUTO_RECONCILE_ENABLED: "false"
+      AUTH_ALLOW_DEV_BEARER: "true"
+      URBAN_TEST_WORKSPACE_TYPE: urban
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace dist
+        run: pnpm run build
+
+      - name: Urban workspace package tests
+        run: pnpm --filter @app-tour/workspace-urban run test
+
+      - name: Phase 8 contract + urban proof bundle
+        working-directory: apps/api
+        run: |
+          node --import tsx --import ./test/bootstrap-outbox-test-env.ts --test --test-force-exit \
+            test/phase-8.contract.spec.ts \
+            test/urban-owner-ability.spec.ts \
+            test/urban-catalog-registration.spec.ts \
+            test/urban-silo-fixture.spec.ts \
+            test/urban-e2e-http.spec.ts
+
+      - name: Web urban catalog access
+        run: pnpm --filter @apps/web run test -- test/urban-catalog-access.spec.ts
+
+  urban-e2e:
+    name: Phase 8 urban Playwright E2E (SMK-P8)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: guard
+    if: >-
+      github.event_name != 'workflow_dispatch' || inputs.run_urban_e2e
+
+    env:
+      CI: "true"
+      NODE_ENV: test
+      STORAGE_DRIVER: memory
+      URBAN_SMOKE_E2E_SEED: "1"
+      AUTH_ALLOW_DEV_BEARER: "true"
+      URBAN_TEST_WORKSPACE_TYPE: urban
+      PW_NO_REUSE_SERVER: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace (smoke servers)
+        run: pnpm run build
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @apps/web run test:e2e:urban:install
+
+      - name: Urban E2E integrity (SMK-P8-01..04)
+        run: pnpm --filter @apps/web run test:e2e:urban
+
+  ci-integrity:
+    name: Phase 8 ci:integrity (cross-phase 0→3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    needs: guard
+    if: github.event_name != 'workflow_dispatch' || inputs.run_ci_integrity
+
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client ripgrep
+
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - name: Prisma migrate deploy (DEC-124)
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: ci:integrity
+        run: pnpm run ci:integrity
+
+  phase-8-gate-full:
+    name: Phase 8 full gate (phase-8:gate + Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    needs: [urban-regression, urban-e2e, ci-integrity]
+    if: >-
+      always() &&
+      needs.urban-regression.result == 'success' &&
+      needs.urban-e2e.result == 'success' &&
+      needs.ci-integrity.result == 'success' &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_dispatch' && inputs.run_full_phase_8_gate)
+      )
+
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: mirror.gcr.io/library/redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      REDIS_URL: redis://127.0.0.1:6379
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
+      OUTBOX_RELAY_ENABLED: "false"
+      PROJECTION_AUTO_RECONCILE_ENABLED: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client ripgrep
+
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - name: Prisma migrate deploy (DEC-124)
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: Phase 8 Product Parity gate
+        run: pnpm run phase-8:gate
+
+      - name: Upload closure reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-8-closure-reports
+          path: reports/phase-8-gate-*.json
+          if-no-files-found: ignore
