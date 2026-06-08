@@ -181,7 +181,22 @@ forbidden_patterns_in_8_1_pr:
   - Prisma migration adding urban_registrations table in 8.1 PR
   - implementing SDK-8.1-04 as HTTP route instead of canPerformUrbanOwnerMutation unit test
 
+subphase_8_5_closure:
+  description: Product Parity closure PR (8.1–8.4 combined) — forbid platform-core / Phase 9 WIP only
+  mode: forbidden_only
+  npm_env: P8_BOUNDARY_SUBPHASE=8.5
+  forbidden_write_paths:
+    - packages/platform-core/**
+    - legacy/**
+    - apps/api/src/denali-finance/**
+    - apps/web/app/finance/**
+    - apps/web/src/finance/**
+    - docs/phase-9/**
+    - scripts/guards/phase-9-guard.mjs
+  note: CI sets P8_BOUNDARY_SUBPHASE=8.5 in phase-8-gate.yml — not the 8.1 allowlist
+
 verification:
   - rg 'REJECT_PR_IMMEDIATELY' docs/phase-8/appendices/PHASE-BOUNDARY-MATRIX.yaml
   - manual review 8.1 PR diff against rules subphase 8.1 allowed_write_paths and forbidden_write_paths
   - cross-check AH-8.1-04 in docs/phase-8/subphases/8.1-single-owner-auth.md
+  - closure PR — pnpm run guard:p8-boundary-diff with P8_BOUNDARY_SUBPHASE=8.5
