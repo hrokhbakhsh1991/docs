@@ -46,3 +46,14 @@ blocks_cleared:
   - BL-P8-01
 next_subphase: "8.1"
 next_note: "Single-Owner CASL — spec scaffolds on disk; implementation ABSENT until prove_with specs green"
+
+urban_silo_fixture:
+  subphase: "8.3"
+  tenant_id: "00000000-0000-4000-8000-000000000406"
+  published_tour_id: "00000000-0000-4000-8000-000000000412"
+  tier: silo
+  database_url_fixture: "postgresql://silo-enterprise:5432/urban_dedicated"
+  prove_with:
+    - apps/api/test/fixtures/urban-silo-enterprise-tenant.ts
+    - apps/api/test/urban-silo-fixture.spec.ts
+  note: "Enterprise urban silo tenant — router lookup only; no SILO_DATABASE_URL in handlers"
