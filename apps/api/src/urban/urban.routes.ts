@@ -15,14 +15,25 @@ export type UrbanProductRouteDeps = {
   readonly tourStore?: TourStorageRepository;
 };
 
+function isStorageLayerTourRepo(
+  store: TourStorageRepository
+): store is TourStorageRepository & { listByTenantPage: unknown } {
+  return typeof (store as { listByTenantPage?: unknown }).listByTenantPage === "function";
+}
+
 async function resolveTourStore(deps: UrbanProductRouteDeps): Promise<TourStorageRepository> {
-  if (deps.tourStore !== undefined) {
-    return deps.tourStore;
-  }
   const [{ TourStorageDbAdapter }, { createTourStorageRepository }] = await Promise.all([
     import("../db/tour-storage.adapter"),
     import("../storage/create-tour-storage"),
   ]);
+  if (deps.tourStore !== undefined) {
+    if (isStorageLayerTourRepo(deps.tourStore)) {
+      return new TourStorageDbAdapter(
+        deps.tourStore as ConstructorParameters<typeof TourStorageDbAdapter>[0]
+      );
+    }
+    return deps.tourStore;
+  }
   return new TourStorageDbAdapter(createTourStorageRepository());
 }
 

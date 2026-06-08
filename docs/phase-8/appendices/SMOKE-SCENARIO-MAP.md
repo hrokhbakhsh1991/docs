@@ -6,7 +6,7 @@ subphase: "8.4"
 req_ids: [REQ-P8-040, REQ-P8-041, REQ-P8-042]
 invariants: [INV-P8-007, INV-P8-005]
 authority: subphases/8.4-e2e-integrity.md · URBAN-ROUTE-MATRIX.md · CASL-URBAN-OWNER-SPEC.md
-behavioral_status: ABSENT
+behavioral_status: VERIFIED_BEHAVIORAL
 ```
 
 > **Agents:** Targets below are **implementation contracts** — files are **not on trunk** until 8.2 (product) + 8.4 (E2E) land. Do not stub `test.skip` or empty bodies; each scenario must assert HTTP status, DOM surface, or JSON `code` per block.

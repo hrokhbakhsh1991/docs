@@ -20,10 +20,10 @@ export async function listUrbanCatalog(params: {
   }
 
   const limit = Math.min(Math.max(params.limit ?? 20, 1), 50);
-  const page = await params.store.listByTenantPage({
-    tenantId: params.tenantId,
-    limit: Number.MAX_SAFE_INTEGER,
-  });
+  const page = await params.store.listPage(
+    { tenantId: params.tenantId },
+    { limit: Number.MAX_SAFE_INTEGER }
+  );
 
   let published = page.items.filter((tour) => isUrbanTourPublished(tour.canonical));
   if (params.city !== undefined && params.city.trim().length > 0) {
@@ -65,7 +65,7 @@ export async function getUrbanCatalogTour(params: {
   if (params.workspaceType !== "urban") {
     throw new UrbanWorkspaceRequiredError();
   }
-  const tour = await params.store.getById(params.tourId, params.tenantId);
+  const tour = await params.store.findFirst({ tenantId: params.tenantId, id: params.tourId });
   if (tour === null || !isUrbanTourPublished(tour.canonical)) {
     return null;
   }

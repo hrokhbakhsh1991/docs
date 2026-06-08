@@ -18,7 +18,7 @@ export default async function UrbanSettingsPage() {
     resolved.session.pluginId === CANLOAD_URBAN_SETTINGS_PLUGIN_ID ? "urban" : "starter";
 
   const branch = resolveUrbanSettingsPageBranch({
-    authz: resolved.scopedAuthz,
+    authz: resolved.scopedAuthz.authz,
     tenantId: resolved.context.tenantId,
     workspaceId: resolved.context.workspaceId,
     workspaceType,

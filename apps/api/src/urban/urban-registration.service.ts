@@ -30,7 +30,10 @@ export async function createUrbanRegistration(params: {
     throw new UrbanWorkspaceRequiredError();
   }
 
-  const tour = await params.store.getById(params.body.tourId, params.tenantId);
+  const tour = await params.store.findFirst({
+    tenantId: params.tenantId,
+    id: params.body.tourId,
+  });
   if (tour === null || !isUrbanTourPublished(tour.canonical)) {
     const err = new Error("ZOD_VALIDATION_FAILED");
     (err as Error & { details?: unknown }).details = { tourId: ["TOUR_NOT_PUBLISHED"] };
