@@ -147,7 +147,7 @@ SDK specs and web guards diverged on **where** urban owner checks live: standalo
 
 1. **`canPerformUrbanOwnerMutation` is a `TenantAuthz` instance method only** — signature `(tenantId, surface, workspaceType)` inside `buildTenantAuthz`. **No** standalone exported function.
 2. **`isWorkspaceOwner(context: TenantAuthContext)`** lives in `packages/workspace-sdk/src/auth/tenant-auth-grants.ts` only.
-3. **Web module** `apps/web/src/urban/urban-settings-access.ts` is a thin wrapper re-exporting [`CANLOAD-URBAN-SETTINGS.contract.ts`](CANLOAD-URBAN-SETTINGS.contract.ts) — single authority for `canLoadUrbanSettings` until UI lands.
+3. **Web module** `apps/web/src/urban/urban-settings-access.ts` is a thin wrapper re-exporting [`CANLOAD-URBAN-SETTINGS.contract.ts`](CANLOAD-URBAN-SETTINGS.contract.ts) — single authority for `canLoadUrbanSettings` until UI lands. The contract types `authz` as structural **`UrbanOwnerAuthz`** (not `import type` from `@app-tour/workspace-sdk`) so `apps/web` `tsc --noEmit` can compile the re-export without resolving workspace package paths from `docs/`.
 4. **Middleware name** is `assertWorkspaceOwner` everywhere — not `assertUrbanOwner`.
 
 **Verification:** `pnpm run phase-8:guard` → `p8_api_surface_alignment` · `packages/workspace-sdk/test/urban-owner-ability.spec.ts` uses `authz.canPerformUrbanOwnerMutation` · guard forbids stale router path.
