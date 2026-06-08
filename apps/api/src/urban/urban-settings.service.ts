@@ -6,8 +6,6 @@ import { isStaticTenantRegistryAllowed } from "../tenant/tenant-registry";
 import { isPersistedTenantUuid } from "../tenant/tenant-id-format";
 import { setCachedTenantThemeById } from "../tenant/tenant-registry-cache";
 import { updateTenantRegistryRow } from "../tenant/update-tenant-registry-row";
-import type { Prisma } from "@prisma/client";
-
 import type { UrbanSettingsPatchBody } from "./schemas/urban-settings-patch.schema";
 
 const DEFAULT_URBAN_CATALOG = { publicEnabled: true, slug: "catalog" } as const;
@@ -169,7 +167,9 @@ async function persistMergedTheme(
     !isStaticTenantRegistryAllowed()
   ) {
     await updateTenantRegistryRow(normalized, {
-      theme: JSON.parse(JSON.stringify(mergedTheme)) as Prisma.InputJsonValue,
+      theme: JSON.parse(JSON.stringify(mergedTheme)) as Parameters<
+        typeof updateTenantRegistryRow
+      >[1]["theme"],
     });
   }
 }
