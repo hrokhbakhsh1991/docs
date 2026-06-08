@@ -5,14 +5,21 @@
  * Implementation law: apps/web/src/urban/urban-settings-access.ts MUST re-export this module
  * (or identical signatures) — do not duplicate canLoadUrbanSettings logic in web.
  */
-import type { TenantAuthz } from "@app-tour/workspace-sdk";
+/** Structural slice of `TenantAuthz` — no workspace-sdk import (web tsc compiles this file via re-export). */
+export type UrbanOwnerAuthz = {
+  canPerformUrbanOwnerMutation(
+    tenantId: string,
+    surface: string,
+    workspaceType: string
+  ): boolean;
+};
 
 export const CANLOAD_URBAN_SETTINGS_PLUGIN_ID = "urban" as const;
 
 export const CANLOAD_URBAN_SETTINGS_SURFACE = "urban.settings.read" as const;
 
 export type CanLoadUrbanSettingsParams = {
-  readonly authz: TenantAuthz;
+  readonly authz: UrbanOwnerAuthz;
   readonly tenantId: string;
   readonly workspaceId: string | undefined;
   readonly workspaceType: string;

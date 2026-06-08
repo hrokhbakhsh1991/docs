@@ -26,7 +26,9 @@ export type UrbanCatalogDetailResponse = {
   readonly data?: UrbanCatalogCard;
 };
 
-export async function fetchUrbanCatalogList(tenantId: string): Promise<UrbanCatalogCard[]> {
+export async function fetchUrbanCatalogList(
+  tenantId: string
+): Promise<readonly UrbanCatalogCard[]> {
   const res = await fetch(`${resolveUrbanApiBaseUrl()}/urban/catalog`, {
     method: "GET",
     headers: buildUrbanPublicTenantHeaders(tenantId),
