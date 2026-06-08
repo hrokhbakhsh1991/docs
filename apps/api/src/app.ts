@@ -3,7 +3,6 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ProvisioningService } from "./internal/provisioning.service";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
-import { resolveLazyFinanceService } from "./boot/lazy-finance-service";
 import { handleHealth } from "./health/health.routes";
 import { resolveTraceIdFromHeaders } from "./observability/resolve-trace-id";
 import { runWithTraceContext } from "./observability/trace-request-context";
@@ -12,11 +11,9 @@ import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
 import type { MapEnrichRouteDeps } from "./routes/api-v2/map-enrich.routes";
 import type { TourStorageRepository } from "./db/tour.repository";
 import type { ToursRouteDeps } from "./tours/tours.routes";
-import type { FinanceRouteDeps } from "./denali-finance/finance.routes";
 import type { UrbanProductRouteDeps } from "./urban/urban.routes";
 
 export type AppDeps = Partial<ToursRouteDeps> &
-  Partial<FinanceRouteDeps> &
   Partial<UrbanProductRouteDeps> &
   MapEnrichRouteDeps & {
     readonly provisioningService?: ProvisioningService;
@@ -126,56 +123,6 @@ async function dispatchRequest(
 
   if (method === "POST" && url.pathname === "/urban/registrations") {
     await handlers.handlePostUrbanRegistration(req, res, urbanProductDeps);
-    return;
-  }
-
-  const financeService = await resolveLazyFinanceService(deps.financeService);
-  const financeDeps: FinanceRouteDeps = { financeService };
-
-  if (method === "GET" && url.pathname === "/finance/reports/summary") {
-    await handlers.handleFinanceSummary(req, res, financeDeps);
-    return;
-  }
-
-  if (method === "GET" && url.pathname === "/finance/reports/open-payments") {
-    await handlers.handleFinanceOpenPayments(req, res, financeDeps);
-    return;
-  }
-
-  if (method === "GET" && url.pathname === "/finance/reports/ledger-events") {
-    await handlers.handleFinanceLedgerEvents(req, res, financeDeps);
-    return;
-  }
-
-  if (method === "GET" && url.pathname === "/finance/payments") {
-    await handlers.handleFinanceListPayments(req, res, financeDeps);
-    return;
-  }
-
-  if (method === "POST" && url.pathname === "/finance/payments/manual") {
-    await handlers.handleFinanceCreateManualPayment(req, res, financeDeps);
-    return;
-  }
-
-  if (method === "GET" && url.pathname === "/finance/receipts/pending") {
-    await handlers.handleFinancePendingReceipts(req, res, financeDeps);
-    return;
-  }
-
-  if (method === "POST" && url.pathname === "/finance/receipts") {
-    await handlers.handleFinanceSubmitReceipt(req, res, financeDeps);
-    return;
-  }
-
-  const receiptReviewMatch = url.pathname.match(/^\/finance\/receipts\/([^/]+)\/review$/);
-  if (method === "PATCH" && receiptReviewMatch) {
-    await handlers.handleFinanceReviewReceipt(req, res, financeDeps, receiptReviewMatch[1]!);
-    return;
-  }
-
-  const receiptUrlMatch = url.pathname.match(/^\/finance\/receipts\/([^/]+)\/url$/);
-  if (method === "GET" && receiptUrlMatch) {
-    await handlers.handleFinanceReceiptUrl(req, res, financeDeps, receiptUrlMatch[1]!);
     return;
   }
 

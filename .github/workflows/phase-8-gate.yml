@@ -75,8 +75,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build workspace dist (import-boundary scans platform-core dist)
-        run: pnpm run build
+      - name: Build workspace dist for import-boundary
+        run: pnpm --filter @app-tour/workspace-sdk run build && pnpm --filter @app-tour/platform-core run build
 
       - name: Import boundary
         run: pnpm run guard:import-boundary

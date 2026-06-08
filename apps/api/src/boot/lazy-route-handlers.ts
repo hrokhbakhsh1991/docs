@@ -3,7 +3,6 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ProvisioningService } from "../internal/provisioning.service";
 import type { MapEnrichRouteDeps } from "../routes/api-v2/map-enrich.routes";
 import type { ToursRouteDeps } from "../tours/tours.routes";
-import type { FinanceRouteDeps } from "../denali-finance/finance.routes";
 import type { UrbanProductRouteDeps } from "../urban/urban.routes";
 
 type LazyRouteHandlers = {
@@ -66,53 +65,6 @@ type LazyRouteHandlers = {
     res: ServerResponse,
     deps: UrbanProductRouteDeps
   ) => Promise<void>;
-  readonly handleFinanceSummary: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: FinanceRouteDeps
-  ) => Promise<void>;
-  readonly handleFinanceOpenPayments: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: FinanceRouteDeps
-  ) => Promise<void>;
-  readonly handleFinanceLedgerEvents: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: FinanceRouteDeps
-  ) => Promise<void>;
-  readonly handleFinanceListPayments: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: FinanceRouteDeps
-  ) => Promise<void>;
-  readonly handleFinanceCreateManualPayment: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: FinanceRouteDeps
-  ) => Promise<void>;
-  readonly handleFinanceSubmitReceipt: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: FinanceRouteDeps
-  ) => Promise<void>;
-  readonly handleFinanceReviewReceipt: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: FinanceRouteDeps,
-    receiptId: string
-  ) => Promise<void>;
-  readonly handleFinanceReceiptUrl: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: FinanceRouteDeps,
-    receiptId: string
-  ) => Promise<void>;
-  readonly handleFinancePendingReceipts: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: FinanceRouteDeps
-  ) => Promise<void>;
 };
 
 let handlersPromise: Promise<LazyRouteHandlers> | null = null;
@@ -134,7 +86,6 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
       import("../tours/tours.routes"),
       import("../urban/urban-settings.routes"),
       import("../urban/urban.routes"),
-      import("../denali-finance/finance.routes"),
     ]).then(
       ([
         metrics,
@@ -147,7 +98,6 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         tours,
         urbanSettings,
         urbanProduct,
-        finance,
       ]) => ({
         handleInternalMetrics: metrics.handleInternalMetrics,
         handleCacheInvalidate: cacheInvalidate.handleCacheInvalidate,
@@ -165,15 +115,6 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         handleGetUrbanCatalog: urbanProduct.handleGetUrbanCatalog,
         handleGetUrbanCatalogTour: urbanProduct.handleGetUrbanCatalogTour,
         handlePostUrbanRegistration: urbanProduct.handlePostUrbanRegistration,
-        handleFinanceSummary: finance.handleFinanceSummary,
-        handleFinanceOpenPayments: finance.handleFinanceOpenPayments,
-        handleFinanceLedgerEvents: finance.handleFinanceLedgerEvents,
-        handleFinanceListPayments: finance.handleFinanceListPayments,
-        handleFinanceCreateManualPayment: finance.handleFinanceCreateManualPayment,
-        handleFinanceSubmitReceipt: finance.handleFinanceSubmitReceipt,
-        handleFinanceReviewReceipt: finance.handleFinanceReviewReceipt,
-        handleFinanceReceiptUrl: finance.handleFinanceReceiptUrl,
-        handleFinancePendingReceipts: finance.handleFinancePendingReceipts,
       })
     );
   }
