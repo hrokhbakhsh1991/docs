@@ -88,4 +88,36 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     summary: "Patch tour (optimistic lock)",
     operationId: "patchTour",
   },
+  // Phase 8.1 — urban owner settings (INV-P8-007)
+  {
+    method: "GET",
+    path: "/urban/settings",
+    summary: "Read urban workspace owner settings (tenants.theme.urban)",
+    operationId: "getUrbanSettings",
+  },
+  {
+    method: "PATCH",
+    path: "/urban/settings",
+    summary: "Patch urban workspace owner settings (tenants.theme.urban)",
+    operationId: "patchUrbanSettings",
+  },
+  // Phase 8.2 — public catalog + registration intake
+  {
+    method: "GET",
+    path: "/urban/catalog",
+    summary: "List published urban catalog tours (anonymous)",
+    operationId: "getUrbanCatalog",
+  },
+  {
+    method: "GET",
+    path: "/urban/catalog/{tourId}",
+    summary: "Get published urban catalog tour detail (anonymous)",
+    operationId: "getUrbanCatalogTour",
+  },
+  {
+    method: "POST",
+    path: "/urban/registrations",
+    summary: "Public urban registration intake (anonymous)",
+    operationId: "postUrbanRegistration",
+  },
 ] as const;

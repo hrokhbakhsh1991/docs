@@ -11,10 +11,44 @@
 | **Pre-commit dry-run**           | `pnpm run pre-commit:fast`           | Before commit                               | Same as Husky fast path                                                                                                                                |
 | **Full**                         | `pnpm run test:full`                 | Before PR / Phase 4 closure                 | `phase-3:gate` + `phase-4:gate` (includes build, full `pnpm test`, guards, doc-gate, `p4_rls_integration_tests` when env set)                          |
 | **CI integrity**                 | `pnpm run ci:integrity`              | GitHub / explicit local                     | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — **not** Husky default                                                                           |
+| **Phase 8 guard (fast)**         | `pnpm run phase-8:guard`             | PR / local                                  | 25 doc + boundary charter gates — under 10s                                                                                                              |
+| **Phase 8 urban regression**     | GHA job `urban-regression`           | GitHub PR (`phase-8-gate.yml`)              | Contract + urban proof bundle (memory driver)                                                                                                          |
+| **Phase 8 urban E2E**            | `pnpm --filter @apps/web run test:e2e:urban` | GHA job `urban-e2e`                 | Playwright SMK-P8-01..04                                                                                                                               |
+| **Phase 8 full closure**         | `pnpm run phase-8:gate`              | GHA `phase-8-gate-full` on **main** or `workflow_dispatch` | build + full `pnpm test` + nested `phase-7:gate` + `phase-8:guard` (~90–150 min)                                                          |
 | **Nightly (API probes)**         | `pnpm run test:nightly`              | Scheduled / pre-release                     | `APPS_API_TEST_TIER=nightly` — backlog 1000-row, noise-neighbor HTTP, 10k relay leak; includes `test:nightly:soak` when `RUN_SOAK=1`                   |
 | **Nightly (cold-start enforce)** | `pnpm run test:nightly:cold-start`   | Scheduled (`api-nightly.yml`) / pre-release | `build` + `cold-start-readiness-gate` with `COLD_START_READINESS_ENFORCE=true` — hard-fail when compiled p95 > 500 ms                                  |
 
 Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the new default; full path is **on demand**.
+
+## Phase 8 hook suspension (temporary)
+
+While [`docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml`](../phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml) has `active: true`, Husky **pre-commit exits immediately** (no `guard-docs`, eslint, prettier, or `test-changed`). This is the **only** supported suspend path during Phase 8 implementation (8.1→8.4).
+
+| Action | Command / file |
+| ------ | -------------- |
+| **Suspended** (current) | Marker present + `active: true` |
+| **Manual verify** (recommended per subphase PR) | `pnpm run phase-8:guard` + targeted urban specs |
+| **Re-enable** (mandatory at **8.5**) | Delete marker file; run `pnpm run pre-commit:fast`, `pnpm run test:full`, `pnpm run phase-8:gate`, `pnpm run ci:integrity` |
+
+Detector: `bash scripts/phase-8-hooks-suspended.sh` (exit 0 = suspended).
+
+## Phase 8 GitHub Actions (`.github/workflows/phase-8-gate.yml`)
+
+Heavy verification runs on **ubuntu-latest** with service containers — not on the developer laptop.
+
+| Job | When | Services | Command |
+| --- | ---- | -------- | ------- |
+| `guard` | Every PR / push (path filter) | — | `phase-8:guard` + `guard:p8-boundary-diff` |
+| `urban-regression` | After guard green | — | `phase-8.contract` + urban API proof specs + `workspace-urban` test |
+| `urban-e2e` | After guard green | — | Playwright `test:e2e:urban` |
+| `ci-integrity` | **main** push or `workflow_dispatch` | Postgres 16 | `pnpm run ci:integrity` |
+| `phase-8-gate-full` | **main** push or manual `run_full_phase_8_gate` | Postgres + Redis | `pnpm run phase-8:gate` |
+
+**PR fast path (typical):** guard → urban-regression → urban-e2e (~15–45 min on GHA).
+
+**Closure path (8.5):** merge to `main` triggers `ci-integrity` + `phase-8-gate-full`, or run **Actions → phase-8-gate → Run workflow** with `run_full_phase_8_gate: true`.
+
+Postgres bootstrap in CI always uses `DATABASE_URL_ADMIN` (postgres role) for `pnpm run db:migrate:deploy` — never migrate with `app_tour` alone (DEC-124).
 
 ## `test-changed` behavior
 

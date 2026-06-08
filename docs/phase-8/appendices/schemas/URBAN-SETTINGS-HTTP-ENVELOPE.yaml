@@ -1,0 +1,208 @@
+contract_id: URBAN-SETTINGS-HTTP-ENVELOPE
+version: "2026-06-07-v1"
+subphase: "8.1"
+route: GET /urban/settings
+operation_id: getUrbanSettings
+http_status: 200
+content_type: application/json
+authority:
+  - docs/phase-8/appendices/schemas/URBAN-THEME-JSONB.schema.json
+  - docs/phase-8/appendices/URBAN-THEME-MERGE-ALGORITHM.md
+  - docs/phase-5/appendices/trace-request-context.md
+source_column: tenants.theme
+source_read_path: prisma.tenant.theme
+handler_module: apps/api/src/urban/urban-settings.routes.ts
+handler_symbol: handleGetUrbanSettings
+emitter: sendJson
+
+response_envelope:
+  type: object
+  additional_properties: false
+  required:
+    - success
+    - data
+    - metadata
+  properties:
+    success:
+      json_type: boolean
+      const: true
+      description: Success discriminator for owner read tier responses
+    data:
+      json_type: object
+      additional_properties: false
+      required:
+        - urban
+      properties:
+        urban:
+          json_type: object
+          additional_properties: false
+          required:
+            - catalog
+            - registration
+          properties:
+            catalog:
+              json_type: object
+              additional_properties: false
+              required:
+                - publicEnabled
+                - slug
+              properties:
+                publicEnabled:
+                  json_type: boolean
+                slug:
+                  json_type: string
+                  pattern: "^[a-z0-9-]{1,64}$"
+            registration:
+              json_type: object
+              additional_properties: false
+              required:
+                - policy
+              properties:
+                policy:
+                  json_type: string
+                  enum:
+                    - open
+                    - waitlist
+                    - closed
+                requirePhone:
+                  json_type: boolean
+                  presence: optional
+                confirmationMessage:
+                  json_type: string
+                  max_length: 1000
+                  presence: optional
+      source_mapping:
+        urban: tenants.theme.urban
+    metadata:
+      json_type: object
+      additional_properties: false
+      required:
+        - tenantId
+        - workspaceId
+        - workspaceType
+        - correlationId
+        - primaryColor
+        - featureFlags
+        - rateLimitRps
+      properties:
+        tenantId:
+          json_type: string
+          format: uuid
+          source: auth.tenantId
+        workspaceId:
+          json_type: string
+          format: uuid
+          source: auth.workspaceId
+        workspaceType:
+          json_type: string
+          const: urban
+          source: resolveWorkspaceTypeForTenant(auth.tenantId)
+        correlationId:
+          json_type: string
+          min_length: 1
+          source: requireActiveTraceId()
+          authority: docs/phase-5/appendices/trace-request-context.md
+        primaryColor:
+          json_type: string
+          min_length: 1
+          max_length: 32
+          nullable: true
+          source: tenants.theme.primaryColor
+          phase_5_sibling: true
+        featureFlags:
+          json_type: object
+          additional_properties: false
+          nullable: true
+          source: tenants.theme.featureFlags
+          phase_5_sibling: true
+          properties:
+            advancedRuleEngine:
+              json_type: boolean
+              presence: optional
+            rateLimitRps:
+              json_type: integer
+              minimum: 1
+              maximum: 100000
+              presence: optional
+        rateLimitRps:
+          json_type: integer
+          minimum: 1
+          maximum: 100000
+          nullable: true
+          source: tenants.theme.rateLimitRps
+          phase_5_sibling: true
+
+phase_5_sibling_keys:
+  description: Keys at tenants.theme root that are siblings of urban per URBAN-THEME-JSONB.schema.json
+  mandatory_in_metadata: true
+  forbidden_in_data: true
+  keys:
+    - primaryColor
+    - featureFlags
+    - rateLimitRps
+
+urban_subtree_keys:
+  description: Keys under tenants.theme.urban mirrored exclusively in data.urban
+  mandatory_in_data: true
+  forbidden_in_metadata: true
+  keys:
+    - catalog
+    - registration
+
+deterministic_rules:
+  - success MUST equal true on HTTP 200
+  - data MUST contain exactly one top-level key urban
+  - data.urban.catalog MUST deep-equal tenants.theme.urban.catalog after read
+  - data.urban.registration MUST deep-equal tenants.theme.urban.registration after read
+  - metadata.primaryColor MUST equal tenants.theme.primaryColor when present else null
+  - metadata.featureFlags MUST deep-equal tenants.theme.featureFlags when present else null
+  - metadata.rateLimitRps MUST equal tenants.theme.rateLimitRps when present else null
+  - metadata MUST NOT include urban subtree keys
+  - data MUST NOT include primaryColor featureFlags rateLimitRps
+  - response root MUST NOT include keys outside success data metadata
+
+golden_example:
+  http_status: 200
+  body:
+    success: true
+    data:
+      urban:
+        catalog:
+          publicEnabled: true
+          slug: catalog
+        registration:
+          policy: open
+          requirePhone: false
+    metadata:
+      tenantId: "00000000-0000-4000-8000-000000000004"
+      workspaceId: "00000000-0000-4000-8000-000000000403"
+      workspaceType: urban
+      correlationId: "7f3c2a1b-9e4d-4c8a-b2f1-6d5e4a3b2c1d"
+      primaryColor: "#0d9488"
+      featureFlags: null
+      rateLimitRps: null
+
+forbidden:
+  - return bare { urban: theme.urban } without success data metadata envelope on GET
+  - return full tenants.theme object at response root
+  - place catalog or registration under metadata
+  - place primaryColor featureFlags rateLimitRps under data
+  - omit metadata.primaryColor metadata.featureFlags metadata.rateLimitRps keys
+  - invent response keys not declared in this contract
+  - additionalProperties true at any envelope level
+
+verification:
+  spec_file: apps/api/test/urban-settings-patch.spec.ts
+  asm_state: ASM-8.1-001
+  assertions:
+    - response.status === 200
+    - response.body.success === true
+    - typeof response.body.data.urban.catalog === object
+    - typeof response.body.data.urban.registration === object
+    - response.body.metadata.tenantId === auth.tenantId
+    - response.body.metadata.workspaceId === auth.workspaceId
+    - response.body.metadata.workspaceType === urban
+    - typeof response.body.metadata.correlationId === string
+    - Object.prototype.hasOwnProperty.call(response.body.metadata, primaryColor)
+    - Object.prototype.hasOwnProperty.call(response.body.metadata, featureFlags)
+    - Object.prototype.hasOwnProperty.call(response.body.metadata, rateLimitRps)

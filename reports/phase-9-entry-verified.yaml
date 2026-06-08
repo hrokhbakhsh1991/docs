@@ -1,0 +1,19 @@
+# Phase 9.0 entry ledger — scaffold
+# Authority: docs/phase-9/subphases/9.0-entry.md · TG-P9-001
+# Do NOT set phase_8_gate.status: PASS until pnpm run phase-8:gate exits 0
+ledger_version: "2026-06-08-v1"
+verified_at: null
+map_35_reviewed: false
+phase_8_gate:
+  command: pnpm run phase-8:gate
+  status: PENDING
+  exit_code: null
+  report_path: null
+import_boundary:
+  command: pnpm run guard:import-boundary
+  status: PENDING
+no_legacy_runtime_import:
+  status: PENDING
+note: >
+  Scaffold artifact — CP-9.0-01 requires phase_8_gate.status PASS and exit_code 0
+  before subphase 9.0 → VERIFIED_ENTRY and before 9.1 trunk identity (TG-P9-001).

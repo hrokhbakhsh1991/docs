@@ -4,6 +4,7 @@ export {
   cannotAccessWorkspaceTheme,
   canAccessWorkspaceThemeScoped,
   type TenantAuthz,
+  type UrbanOwnerSurface,
   type CanAccessWorkspaceThemeAuthzParams,
 } from "./tenant-authz";
 
@@ -30,6 +31,7 @@ export {
   type AuthContextErrorCode,
 } from "./validate-auth-context";
 export { AbilityUsageError, type AbilityUsageErrorCode } from "./ability-usage-error";
+export { isWorkspaceOwner } from "./tenant-auth-grants";
 export {
   canonicalDocumentSubject,
   pluginSubject,

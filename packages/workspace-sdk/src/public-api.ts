@@ -94,6 +94,7 @@ export {
   buildTenantAuthz,
   canAccessWorkspaceTheme,
   createTenantAuthz,
+  isWorkspaceOwner,
   parseTenantAuthContext,
 } from "./auth/index";
 export type {
@@ -101,6 +102,7 @@ export type {
   MembershipStatus,
   TenantAuthContext,
   TenantAuthz,
+  UrbanOwnerSurface,
   ScopedTenantAuthz,
   CanAccessWorkspaceThemeAuthzParams,
   WorkspaceThemeSubject,

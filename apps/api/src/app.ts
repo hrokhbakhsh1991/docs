@@ -9,11 +9,15 @@ import { runWithTraceContext } from "./observability/trace-request-context";
 import { handleHttpError, sendHttpError } from "./middleware/error-interceptor";
 import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
 import type { MapEnrichRouteDeps } from "./routes/api-v2/map-enrich.routes";
+import type { TourStorageRepository } from "./db/tour.repository";
 import type { ToursRouteDeps } from "./tours/tours.routes";
+import type { UrbanProductRouteDeps } from "./urban/urban.routes";
 
 export type AppDeps = Partial<ToursRouteDeps> &
+  Partial<UrbanProductRouteDeps> &
   MapEnrichRouteDeps & {
     readonly provisioningService?: ProvisioningService;
+    readonly tourStore?: TourStorageRepository;
   };
 
 async function dispatchRequest(
@@ -91,6 +95,34 @@ async function dispatchRequest(
 
   if (method === "PATCH" && tourMatch) {
     await handlers.handlePatchTour(req, res, tourDeps, tourMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/urban/settings") {
+    await handlers.handleGetUrbanSettings(req, res);
+    return;
+  }
+
+  if (method === "PATCH" && url.pathname === "/urban/settings") {
+    await handlers.handlePatchUrbanSettings(req, res);
+    return;
+  }
+
+  const urbanProductDeps = { tourStore: deps.tourStore };
+
+  if (method === "GET" && url.pathname === "/urban/catalog") {
+    await handlers.handleGetUrbanCatalog(req, res, urbanProductDeps);
+    return;
+  }
+
+  const urbanCatalogTourMatch = url.pathname.match(/^\/urban\/catalog\/([^/]+)$/);
+  if (method === "GET" && urbanCatalogTourMatch) {
+    await handlers.handleGetUrbanCatalogTour(req, res, urbanCatalogTourMatch[1]!, urbanProductDeps);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/urban/registrations") {
+    await handlers.handlePostUrbanRegistration(req, res, urbanProductDeps);
     return;
   }
 

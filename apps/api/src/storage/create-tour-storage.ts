@@ -18,6 +18,8 @@ export type TourStorageImplementation = TourStorageRepository & {
   createTour(data: { tenantId: string; canonical: Tour["canonical"] }): Promise<Tour>;
 };
 
+let urbanSmokeMemoryStore: InMemoryTourRepository | undefined;
+
 /**
  * DI factory — `STORAGE_DRIVER=memory|prisma` or NODE_ENV default (test→memory, production→prisma).
  * Production refuses memory driver and missing DATABASE_URL before constructing a repository.
@@ -31,6 +33,13 @@ export function createTourStorageRepository(): TourStorageImplementation {
       throw new Error("STORAGE_DRIVER=prisma requires DATABASE_URL");
     }
     return new PrismaTourRepository();
+  }
+  if (process.env.URBAN_SMOKE_E2E_SEED === "1") {
+    if (urbanSmokeMemoryStore === undefined) {
+      urbanSmokeMemoryStore = new InMemoryTourRepository();
+      urbanSmokeMemoryStore.ensureUrbanPhase81PublishedTour();
+    }
+    return urbanSmokeMemoryStore;
   }
   return new InMemoryTourRepository();
 }

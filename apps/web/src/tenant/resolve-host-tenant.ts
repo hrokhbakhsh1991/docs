@@ -12,6 +12,8 @@ const PHASE_43_HOST_TENANT_IDS: Record<string, string> = {
   "tenant-b": "00000000-0000-4000-8000-000000000002",
   denali: DENALI_SMOKE_TENANT_ID,
   urban: URBAN_SMOKE_TENANT_ID,
+  "urban-owner": URBAN_SMOKE_TENANT_ID,
+  "urban-member": URBAN_SMOKE_TENANT_ID,
 };
 
 /**

@@ -1,7 +1,7 @@
 {
   "gate": "phase-7-adversarial",
   "date": "2026-06-07",
-  "gitSha": "5e0f1f5",
+  "gitSha": "1a99537",
   "ok": true,
   "databaseUrl": true,
   "checks": [

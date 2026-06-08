@@ -22,7 +22,68 @@ export const URBAN_REGISTRY_CANONICAL_PATHS = [
   "tour.capacity",
   "tour.description",
   "tour.status",
+  "tour.catalogSummary",
+  "tour.coverImageUrl",
+  "tour.publishStatus",
+  "tour.publishedAt",
 ] as const;
+
+export type UrbanRegistrationPayload = {
+  readonly contact: {
+    readonly email: string;
+    readonly fullName: string;
+    readonly phone?: string;
+  };
+  readonly partySize?: number;
+  readonly notes?: string;
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const COVER_URL_PATTERN = /^https?:\/\//;
+const PHONE_PATTERN = /^[\d+\-().\s]*$/;
+
+export function validateUrbanRegistrationPayload(
+  payload: UrbanRegistrationPayload,
+  context: { readonly capacity: number | null }
+): void {
+  const email = payload.contact.email.trim();
+  if (email.length < 3 || email.length > 320 || !EMAIL_PATTERN.test(email)) {
+    throw new Error("URBAN_REGISTRATION_INVALID");
+  }
+  const fullName = payload.contact.fullName.trim();
+  if (fullName.length < 1 || fullName.length > 200) {
+    throw new Error("URBAN_REGISTRATION_INVALID");
+  }
+  if (payload.contact.phone !== undefined) {
+    const phone = payload.contact.phone.trim();
+    if (phone.length > 32 || !PHONE_PATTERN.test(phone)) {
+      throw new Error("URBAN_REGISTRATION_INVALID");
+    }
+  }
+  if (payload.partySize !== undefined) {
+    if (!Number.isInteger(payload.partySize) || payload.partySize < 1) {
+      throw new Error("URBAN_REGISTRATION_INVALID");
+    }
+    if (context.capacity !== null && payload.partySize > context.capacity) {
+      throw new Error("URBAN_REGISTRATION_INVALID");
+    }
+  }
+  if (payload.notes !== undefined && payload.notes.trim().length > 2000) {
+    throw new Error("URBAN_REGISTRATION_INVALID");
+  }
+}
+
+export function validateUrbanCatalogFieldValue(path: string, value: unknown): WorkspaceViolation | null {
+  if (path === "tour.coverImageUrl" && typeof value === "string" && value.length > 0) {
+    if (!COVER_URL_PATTERN.test(value)) {
+      return { code: "URBAN_COVER_URL_INVALID", message: "tour.coverImageUrl must be http(s) URL" };
+    }
+  }
+  if (path === "tour.catalogSummary" && typeof value === "string" && value.length > 500) {
+    return { code: "URBAN_CATALOG_SUMMARY_TOO_LONG", message: "tour.catalogSummary max 500" };
+  }
+  return null;
+}
 
 export const URBAN_FORBIDDEN_CANONICAL_PREFIXES = [
   "tripDetails.itinerary.",
@@ -105,6 +166,39 @@ export const URBAN_FIELD_REGISTRY = deepFreezeValue({
       kind: "enum" as const,
       required: true,
       enumOptions: ["draft", "published"],
+    },
+    {
+      id: "tour.catalogSummary",
+      canonicalPath: "tour.catalogSummary",
+      stepId: "tour",
+      kind: "text" as const,
+      required: false,
+      tags: ["catalog"],
+    },
+    {
+      id: "tour.coverImageUrl",
+      canonicalPath: "tour.coverImageUrl",
+      stepId: "tour",
+      kind: "text" as const,
+      required: false,
+      tags: ["catalog"],
+    },
+    {
+      id: "tour.publishStatus",
+      canonicalPath: "tour.publishStatus",
+      stepId: "tour",
+      kind: "enum" as const,
+      required: true,
+      enumOptions: ["draft", "published", "archived"],
+      tags: ["catalog"],
+    },
+    {
+      id: "tour.publishedAt",
+      canonicalPath: "tour.publishedAt",
+      stepId: "tour",
+      kind: "date" as const,
+      required: false,
+      tags: ["catalog"],
     },
   ],
 });

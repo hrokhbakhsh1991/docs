@@ -43,7 +43,7 @@ pnpm run phase-3:doc-scaffold  # alias for doc-gate
 
 ## Pre-commit (Husky)
 
-After `pnpm install`, Husky runs **`pnpm run pre-commit:fast`** (eslint + prettier on diff, `test-changed` only). Full integration: **`pnpm run test:full`** before PR or Phase 4 work. See [`docs/dev/tiered-testing.md`](docs/dev/tiered-testing.md). Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` are rejected). To reinstall hooks: `pnpm run prepare`.
+After `pnpm install`, Husky runs **`pnpm run pre-commit:fast`** (eslint + prettier on diff, `test-changed` only). **Phase 8 exception:** while [`docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml`](docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml) has `active: true`, pre-commit is a no-op until **subphase 8.5** — run gates manually (`phase-8:guard`, targeted specs). Full integration: **`pnpm run test:full`** before PR closure / Phase 8.5. See [`docs/dev/tiered-testing.md`](docs/dev/tiered-testing.md). Hooks cannot be bypassed via `HUSKY=0` / `SKIP_HOOKS` (rejected). To reinstall hooks: `pnpm run prepare`.
 
 ## Migration plan
 

@@ -1,10 +1,10 @@
 # Phase 7 — Implementation truth (honesty ledger)
 
 ```yaml
-truth_version: "2026-06-07-v7"
-repo_snapshot: "2026-06-07"
+truth_version: "2026-06-08-v1"
+repo_snapshot: "2026-06-08"
 doc_pack: VERIFIED_SCAFFOLD
-behavioral: PARTIAL_7_9
+behavioral: CLOSED_7_9
 subphase_7_0: VERIFIED_ENTRY
 subphase_7_3: VERIFIED_BEHAVIORAL
 subphase_7_4: VERIFIED_BEHAVIORAL
@@ -12,9 +12,10 @@ subphase_7_5: VERIFIED_BEHAVIORAL
 subphase_7_6: VERIFIED_BEHAVIORAL
 subphase_7_7: VERIFIED_BEHAVIORAL
 subphase_7_8: VERIFIED_BEHAVIORAL
-subphase_7_9: IN_PROGRESS
+subphase_7_9: VERIFIED_BEHAVIORAL
 entry_verified_at: "2026-06-07"
-closure_git_sha: 2fd3866
+closure_git_sha: d487666
+phase_8_entry: AUTHORIZED
 ```
 
 > **Agents:** Read this before any Phase 7 implementation claim. **7.0–7.7** behavioral per specs below.
@@ -45,12 +46,12 @@ closure_git_sha: 2fd3866
 
 ## Absent / SPEC_ONLY (anti-hollow honesty)
 
-| Item                                 | Status        | Note                                                      |
-| ------------------------------------ | ------------- | --------------------------------------------------------- |
-| Silo dedicated DB in `withTenantRls` | **ABSENT**    | `TenantConnectionRouter` resolves tier; pool URL only     |
-| `SET LOCAL search_path` hook         | **ABSENT**    | schema-per-tenant connect — post-7.7 deferred             |
-| Phase 7 forensic verdict PASS        | **SPEC_ONLY** | `phase-7-zero-debt-forensic-audit.mdoc` PENDING until 7.9 |
-| `reports/phase-7-platform-gate-*`    | **ABSENT**    | until GHA `platform-dod` job green                        |
+| Item                                 | Status                  | Note                                                         |
+| ------------------------------------ | ----------------------- | ------------------------------------------------------------ |
+| Silo dedicated DB in `withTenantRls` | **ABSENT**              | `TenantConnectionRouter` resolves tier; pool URL only        |
+| `SET LOCAL search_path` hook         | **ABSENT**              | schema-per-tenant connect — post-7.7 deferred                |
+| Phase 7 forensic verdict PASS        | **SPEC_ONLY**           | `phase-7-zero-debt-forensic-audit.mdoc` PENDING until 7.9    |
+| `reports/phase-7-platform-gate-*`    | **VERIFIED_BEHAVIORAL** | GHA `platform-dod` · `phase-7-platform-gate-2026-06-07.json` |
 
 ## Deferred (honest)
 
@@ -79,6 +80,6 @@ See [`appendices/blockers.md`](../appendices/blockers.md).
 
 | Metric       | Doc pack | Repo behavioral                                       |
 | ------------ | -------- | ----------------------------------------------------- |
-| Score target | ≥96      | 7.1–7.8 behavioral closed; 7.9 platform-dod in flight |
+| Score target | ≥96      | 7.9 platform gate closed · Phase 8.0 entry authorized |
 
 **Do not claim Platform DoD from documentation guard alone.**

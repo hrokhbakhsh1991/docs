@@ -33,8 +33,9 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 | ---------------------------------- | --------- | ------------------------------------------------------------- |
 | `20260605200000_outbox_last_error` | Phase 5   | Outbox `last_error` column                                    |
 | `20260607100000_tenant_routes`     | Phase 7.7 | `tenant_routes` DDL for `TenantConnectionRouter` (REQ-P7-021) |
+| `20260608100000_urban_product_delta` | Phase 8.2 | Urban `publish_status` + registration intake columns |
 
-Current head: **`20260607100000_tenant_routes`** — must move in lockstep with `prisma/migrations/`.
+Current head: **`20260608100000_urban_product_delta`** — must move in lockstep with `prisma/migrations/`.
 
 ## Verification
 
