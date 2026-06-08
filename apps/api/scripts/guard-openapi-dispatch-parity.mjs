@@ -78,6 +78,23 @@ function appWiresRoute(route) {
       app.includes("/tours/") && app.includes("handleGetTour") && app.includes("handlePatchTour")
     );
   }
+  if (route.path === "/urban/settings") {
+    if (route.method === "GET") {
+      return app.includes('"/urban/settings"') && app.includes("handleGetUrbanSettings");
+    }
+    return app.includes('"/urban/settings"') && app.includes("handlePatchUrbanSettings");
+  }
+  if (route.path === "/urban/catalog") {
+    return app.includes('"/urban/catalog"') && app.includes("handleGetUrbanCatalog");
+  }
+  if (route.path === "/urban/catalog/{tourId}") {
+    return (
+      app.includes("handleGetUrbanCatalogTour") && app.includes("urbanCatalogTourMatch")
+    );
+  }
+  if (route.path === "/urban/registrations") {
+    return app.includes('"/urban/registrations"') && app.includes("handlePostUrbanRegistration");
+  }
   return false;
 }
 

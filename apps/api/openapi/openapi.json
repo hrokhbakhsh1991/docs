@@ -431,6 +431,179 @@
           }
         }
       }
+    },
+    "/urban/settings": {
+      "get": {
+        "operationId": "getUrbanSettings",
+        "summary": "Read urban workspace owner settings (tenants.theme.urban)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patchUrbanSettings",
+        "summary": "Patch urban workspace owner settings (tenants.theme.urban)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/urban/catalog": {
+      "get": {
+        "operationId": "getUrbanCatalog",
+        "summary": "List published urban catalog tours (anonymous)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/urban/catalog/{tourId}": {
+      "get": {
+        "operationId": "getUrbanCatalogTour",
+        "summary": "Get published urban catalog tour detail (anonymous)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/urban/registrations": {
+      "post": {
+        "operationId": "postUrbanRegistration",
+        "summary": "Public urban registration intake (anonymous)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
     }
   }
 }
