@@ -6,6 +6,8 @@ import { isStaticTenantRegistryAllowed } from "../tenant/tenant-registry";
 import { isPersistedTenantUuid } from "../tenant/tenant-id-format";
 import { setCachedTenantThemeById } from "../tenant/tenant-registry-cache";
 import { updateTenantRegistryRow } from "../tenant/update-tenant-registry-row";
+import type { Prisma } from "@prisma/client";
+
 import type { UrbanSettingsPatchBody } from "./schemas/urban-settings-patch.schema";
 
 const DEFAULT_URBAN_CATALOG = { publicEnabled: true, slug: "catalog" } as const;
@@ -107,7 +109,7 @@ function normalizeUrbanSubtree(existingUrban: unknown): UrbanSettingsUrban {
         : DEFAULT_URBAN_CATALOG.publicEnabled,
     slug: typeof catalogRaw.slug === "string" ? catalogRaw.slug : DEFAULT_URBAN_CATALOG.slug,
   };
-  const registrationRaw = isPlainObject(base.registration)
+  const registrationRaw: Record<string, unknown> = isPlainObject(base.registration)
     ? base.registration
     : cloneJson(DEFAULT_URBAN_REGISTRATION);
   const policy =
@@ -122,10 +124,10 @@ function normalizeUrbanSubtree(existingUrban: unknown): UrbanSettingsUrban {
       typeof registrationRaw.requirePhone === "boolean"
         ? registrationRaw.requirePhone
         : DEFAULT_URBAN_REGISTRATION.requirePhone,
+    ...(typeof registrationRaw.confirmationMessage === "string"
+      ? { confirmationMessage: registrationRaw.confirmationMessage }
+      : {}),
   };
-  if (typeof registrationRaw.confirmationMessage === "string") {
-    registration.confirmationMessage = registrationRaw.confirmationMessage;
-  }
   return { catalog, registration };
 }
 
@@ -166,7 +168,9 @@ async function persistMergedTheme(
     isPersistedTenantUuid(normalized) &&
     !isStaticTenantRegistryAllowed()
   ) {
-    await updateTenantRegistryRow(normalized, { theme: mergedTheme });
+    await updateTenantRegistryRow(normalized, {
+      theme: JSON.parse(JSON.stringify(mergedTheme)) as Prisma.InputJsonValue,
+    });
   }
 }
 
