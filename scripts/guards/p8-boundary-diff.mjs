@@ -18,6 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
 const BOUNDARY_REL = "docs/phase-8/appendices/PHASE-BOUNDARY-MATRIX.yaml";
 const DEFAULT_SUBPHASE = process.env.P8_BOUNDARY_SUBPHASE ?? "8.1";
+const CLOSURE_SUBPHASES = new Set(["8.5", "closure"]);
 
 /**
  * @param {string} globPattern
@@ -79,6 +80,15 @@ function loadBoundaryRules(subphase) {
 }
 
 /**
+ * @returns {string[]}
+ */
+function loadClosureForbiddenPaths() {
+  const raw = fs.readFileSync(path.join(REPO_ROOT, BOUNDARY_REL), "utf8");
+  const block = raw.slice(raw.indexOf("subphase_8_5_closure:"));
+  return parseYamlList(block, "forbidden_write_paths");
+}
+
+/**
  * @param {string} relPath
  * @param {string[]} patterns
  * @returns {boolean}
@@ -111,19 +121,32 @@ function resolveChangedFilesFromArgs() {
     .filter(Boolean);
 }
 
-function main() {
-  const subphase = DEFAULT_SUBPHASE;
-  if (subphase !== "8.1") {
-    console.log(`p8-boundary-diff: SKIP — only subphase 8.1 rules implemented (got ${subphase})`);
-    process.exit(0);
+function runClosureMode(subphase, files) {
+  const forbidden = loadClosureForbiddenPaths();
+  /** @type {string[]} */
+  const violations = [];
+
+  for (const file of files) {
+    const rel = file.split(path.sep).join("/");
+    if (matchesAny(rel, forbidden)) {
+      violations.push(`${rel} matches forbidden_write_paths (closure ${subphase})`);
+    }
   }
 
-  const files = resolveChangedFilesFromArgs();
-  if (files.length === 0) {
-    console.log("p8-boundary-diff: PASS (no changed files)");
-    process.exit(0);
+  if (violations.length > 0) {
+    console.error("p8-boundary-diff: FAIL");
+    for (const v of violations) {
+      console.error(`  ${v}`);
+    }
+    process.exit(1);
   }
 
+  console.log(
+    `p8-boundary-diff: PASS (${files.length} file(s) checked · closure mode · subphase ${subphase})`
+  );
+}
+
+function runSubphase81Mode(subphase, files) {
   const { allowed, forbidden, extendedAllowed, extendedForbidden } = loadBoundaryRules(subphase);
   const allAllowed = [...allowed, ...extendedAllowed];
   const allForbidden = [...forbidden, ...extendedForbidden];
@@ -166,6 +189,27 @@ function main() {
   }
 
   console.log(`p8-boundary-diff: PASS (${files.length} file(s) checked · subphase ${subphase})`);
+}
+
+function main() {
+  const subphase = DEFAULT_SUBPHASE;
+  const files = resolveChangedFilesFromArgs();
+  if (files.length === 0) {
+    console.log("p8-boundary-diff: PASS (no changed files)");
+    process.exit(0);
+  }
+
+  if (CLOSURE_SUBPHASES.has(subphase)) {
+    runClosureMode(subphase, files);
+    return;
+  }
+
+  if (subphase !== "8.1") {
+    console.log(`p8-boundary-diff: SKIP — unknown subphase ${subphase} (use 8.1 or 8.5)`);
+    process.exit(0);
+  }
+
+  runSubphase81Mode(subphase, files);
 }
 
 main();
