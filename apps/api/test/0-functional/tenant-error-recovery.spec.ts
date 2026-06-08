@@ -147,17 +147,26 @@ async function requestRaw(
   });
 }
 
+/** UUID correlationId hex may contain substrings like 5434 — exclude from leak scan. */
+function bodyForLeakScan(raw: string): string {
+  return raw.replace(/"correlationId"\s*:\s*"[^"]*"/gi, '"correlationId":"[redacted]"');
+}
+
+const DB_CONNECTION_LEAK =
+  /(?:postgres(?:ql)?:\/\/|:5434\b|\btour_db\b|connection string)/i;
+
 function assertNoInternalLeak(result: HttpResult, label: string): void {
+  const scan = bodyForLeakScan(result.raw);
   for (const pattern of LEAK_PATTERNS) {
     assert.doesNotMatch(
-      result.raw,
+      scan,
       pattern,
       `${label}: response must not match leak pattern ${pattern}`
     );
   }
   assert.doesNotMatch(
-    result.raw,
-    /(postgres|5434|tour_db|connection string)/i,
+    scan,
+    DB_CONNECTION_LEAK,
     `${label}: response must not expose database connection details`
   );
 }
