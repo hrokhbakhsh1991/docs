@@ -141,22 +141,19 @@ pnpm build \
 
 ---
 
-## CI pipeline integration (recommended)
+## CI pipeline integration (wired)
 
-```yaml
-# Illustrative — wire in .github/workflows when Phase 8 behavioral work starts
-phase-8-doc-guard:
-  if: contains(files, 'docs/phase-8/') || contains(files, 'packages/workspaces/urban/')
-  run: pnpm run phase-8:guard
+Workflow: [`.github/workflows/phase-8-gate.yml`](../../.github/workflows/phase-8-gate.yml)
 
-phase-8-urban-boundary:
-  if: contains(files, 'apps/api/src/urban/') || contains(files, 'apps/web/src/urban/')
-  run: pnpm run guard:p8-boundary-diff
+| Job | Trigger | Purpose |
+| --- | ------- | ------- |
+| `guard` | PR + `phase-8/**` push (path filter) | `phase-8:guard` · `guard:p8-boundary-diff` · `guard:import-boundary` |
+| `urban-regression` | After guard | Contract + 8.1–8.4 proof bundle (memory) |
+| `urban-e2e` | After guard | Playwright SMK-P8-01..04 |
+| `ci-integrity` | `main` push or manual | Cross-phase 0→3 integrity |
+| `phase-8-gate-full` | `main` push or manual `run_full_phase_8_gate` | Full `pnpm run phase-8:gate` with Postgres + Redis |
 
-phase-8-closure:
-  if: github.ref == 'refs/heads/main' && contains(commit_message, 'phase-8.5')
-  run: pnpm run phase-8:gate && pnpm run ci:integrity
-```
+Manual full gate: **Actions → phase-8-gate → Run workflow** → enable `run_full_phase_8_gate`.
 
 | PR type                      | Minimum guard                                                                                                                                                                            |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

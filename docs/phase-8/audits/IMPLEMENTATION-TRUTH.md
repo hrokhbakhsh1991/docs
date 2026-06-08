@@ -1,7 +1,7 @@
 # Phase 8 — Implementation truth (honesty ledger)
 
 ```yaml
-truth_version: "2026-06-08-v8"
+truth_version: "2026-06-08-v9"
 repo_snapshot: "2026-06-08"
 doc_pack: VERIFIED_SCAFFOLD
 behavioral: VERIFIED_8_4
@@ -71,7 +71,8 @@ phase_8_1_guard_report: reports/phase-8-gate-2026-06-08.json
 | `phase-8.contract.spec.ts`               | **VERIFIED_BEHAVIORAL** | 8.5                                 | 4/4 contract cases green locally                                                                          |
 | `docs/audits/phase-8-zero-debt-forensic-audit.mdoc` | **VERIFIED_SCAFFOLD** | 8.5 | Rubric scaffold — verdict PENDING until gate                                                               |
 | `scripts/guards/phase-8-guard.mjs`       | **VERIFIED_SCAFFOLD**   | 8.5                                 | Tier 1 guard wired — `pnpm run phase-8:guard`                                                                                               |
-| `pnpm run phase-8:gate`                  | **VERIFIED_SCAFFOLD**   | 8.5                                 | Script in `package.json` — nested `phase-7:gate`                                                                                            |
+| `pnpm run phase-8:gate`                  | **VERIFIED_SCAFFOLD**   | 8.5                                 | Script in `package.json` — nested `phase-7:gate` · GHA `.github/workflows/phase-8-gate.yml` wired — first green run **PENDING**            |
+| `.github/workflows/phase-8-gate.yml`     | **VERIFIED_SCAFFOLD**   | 8.5                                 | Jobs: guard · urban-regression · urban-e2e · ci-integrity · phase-8-gate-full                                                              |
 
 ---
 
