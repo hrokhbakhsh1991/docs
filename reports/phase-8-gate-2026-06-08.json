@@ -1,7 +1,7 @@
 {
   "gate": "phase-8",
   "date": "2026-06-08",
-  "gitSha": "482b72f",
+  "gitSha": "d9f6abf",
   "ok": true,
   "fail_token": null,
   "active_subphase": "8.5",
