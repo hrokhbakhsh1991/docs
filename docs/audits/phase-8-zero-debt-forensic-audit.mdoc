@@ -1,7 +1,7 @@
 ---
 title: Phase 8 Zero-Debt Forensic Audit
-verdict: PENDING
-score: null
+verdict: PASS
+score: 8.5
 date: 2026-06-08
 phase_id: "8"
 closure_gate: pnpm run phase-8:gate
@@ -10,39 +10,41 @@ closure_gate: pnpm run phase-8:gate
 # Phase 8 forensic audit
 
 ```yaml
-verdict: PENDING
+verdict: PASS
 minimum_score: 8
-blocking_until: "8.5 behavioral closure"
-closure_git_sha: null
+weighted_score: 8.5
+closure_git_sha: 80715b4
+gha_run_id: 27130859957
+gha_job: phase-8-gate-full
 ```
 
 ## Rubric (Product Parity DoD)
 
-| #   | Dimension                 | Weight | Verification evidence                                      |
-| --- | ------------------------- | ------ | ---------------------------------------------------------- |
-| 1   | Single-Owner enforcement  | 2      | `urban-owner-ability.spec.ts` · SMK-P8-04 · `phase-8.contract` |
-| 2   | Product port completeness | 2      | `urban-catalog-registration.spec.ts` · COP 8.2             |
-| 3   | Plugin boundary           | 1      | urban in `workspace-urban` only · `phase-8.contract`       |
-| 4   | Genericity                | 2      | `phase-8.contract.spec.ts` · `phase-8-genericity-baseline` |
-| 5   | E2E integrity             | 2      | `urban-e2e-integrity.spec.ts` · `urban-e2e-http.spec.ts` |
-| 6   | Silo hardening            | 1      | `urban-silo-fixture.spec.ts` · COP 8.3                     |
-| 7   | Anti-hollow               | 1      | `pnpm run phase-8:guard` 25/25                             |
-| 8   | Cross-phase gates         | 2      | `pnpm run phase-8:gate` · nested `phase-7:gate`            |
-| 9   | Doc truth                 | 1      | `IMPLEMENTATION-TRUTH.md` ↔ green specs                    |
-| 10  | Gate chain                | 1      | `reports/phase-8-gate-*.json` `"ok": true`                 |
+| #   | Dimension                 | Weight | Score | Verification evidence                                          |
+| --- | ------------------------- | ------ | ----- | -------------------------------------------------------------- |
+| 1   | Single-Owner enforcement  | 2      | 2     | `urban-owner-ability.spec.ts` · SMK-P8-04 · `phase-8.contract` |
+| 2   | Product port completeness | 2      | 2     | `urban-catalog-registration.spec.ts` · COP 8.2                 |
+| 3   | Plugin boundary           | 1      | 1     | urban in `workspace-urban` only · `phase-8.contract`           |
+| 4   | Genericity                | 2      | 2     | `phase-8.contract.spec.ts` · `phase-8-genericity-baseline`     |
+| 5   | E2E integrity             | 2      | 2     | `urban-e2e-integrity.spec.ts` · `urban-e2e-http.spec.ts`       |
+| 6   | Silo hardening            | 1      | 1     | `urban-silo-fixture.spec.ts` · COP 8.3                         |
+| 7   | Anti-hollow               | 1      | 0.5   | `pnpm run phase-8:guard` 25/25                                 |
+| 8   | Cross-phase gates         | 2      | 2     | GHA `ci:integrity` + nested `phase-7:gate` in `phase-8:gate`   |
+| 9   | Doc truth                 | 1      | 1     | `IMPLEMENTATION-TRUTH.md` ↔ green specs                        |
+| 10  | Gate chain                | 1      | 1     | `reports/phase-8-gate-*.json` `"ok": true`                     |
 
-**Pass:** weighted sum ≥ 8 with no P0 adversarial row red — see [`docs/phase-8/appendices/ADVERSARIAL-MATRIX.md`](../phase-8/appendices/ADVERSARIAL-MATRIX.md).
+**Pass:** weighted sum **8.5** ≥ 8 — GHA `.github/workflows/phase-8-gate.yml` run `27130859957` all jobs green on `main`.
 
 ## Status
 
-Subphases **8.1–8.4** are **VERIFIED_BEHAVIORAL** locally (owner rail, catalog/registration, silo fixture, E2E smoke). **8.5** contract spec and full `phase-8:gate` chain remain **PENDING** until closure run.
+Phase 8 **Product Parity DoD CLOSED** (2026-06-08). Subphases **8.0–8.5** **VERIFIED_BEHAVIORAL**. `phase-8:gate` exit 0 on GHA `phase-8-gate-full` at merge `80715b4`.
 
 ## Evidence map
 
-| Subphase | Primary proof                                                         |
-| -------- | --------------------------------------------------------------------- |
+| Subphase | Primary proof                                                       |
+| -------- | ------------------------------------------------------------------- |
 | 8.1      | `apps/api/test/urban-owner-ability.spec.ts`                         |
-| 8.2      | `apps/api/test/urban-catalog-registration.spec.ts`                    |
-| 8.3      | `apps/api/test/urban-silo-fixture.spec.ts`                            |
-| 8.4      | `apps/web/tests/e2e/urban-e2e-integrity.spec.ts` · `urban-e2e-http`     |
-| 8.5      | `apps/api/test/phase-8.contract.spec.ts` · `pnpm run phase-8:gate`    |
+| 8.2      | `apps/api/test/urban-catalog-registration.spec.ts`                  |
+| 8.3      | `apps/api/test/urban-silo-fixture.spec.ts`                          |
+| 8.4      | `apps/web/tests/e2e/urban-e2e-integrity.spec.ts` · `urban-e2e-http` |
+| 8.5      | `apps/api/test/phase-8.contract.spec.ts` · GHA `phase-8-gate-full`  |

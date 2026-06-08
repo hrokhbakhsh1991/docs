@@ -1,19 +1,33 @@
 # Phase 9.0 entry ledger — scaffold
 # Authority: docs/phase-9/subphases/9.0-entry.md · TG-P9-001
-# Do NOT set phase_8_gate.status: PASS until pnpm run phase-8:gate exits 0
-ledger_version: "2026-06-08-v1"
+ledger_version: "2026-06-08-v2"
 verified_at: null
 map_35_reviewed: false
 phase_8_gate:
   command: pnpm run phase-8:gate
-  status: PENDING
-  exit_code: null
-  report_path: null
+  status: PASS
+  exit_code: 0
+  report_path: reports/phase-8-gate-2026-06-08.json
+  gha_workflow: .github/workflows/phase-8-gate.yml
+  gha_run_id: 27130859957
+  gha_job: phase-8-gate-full
+  closure_git_sha: 80715b4
+  attested_at: "2026-06-08"
+phase_8_guard:
+  command: pnpm run phase-8:guard
+  status: PASS
+  exit_code: 0
+  attested_at: "2026-06-08"
+  note: "Charter 25/25 — closure attested with phase-8:gate PASS"
 import_boundary:
   command: pnpm run guard:import-boundary
-  status: PENDING
+  status: PASS
+  exit_code: 0
+  attested_at: "2026-06-08"
 no_legacy_runtime_import:
-  status: PENDING
+  status: PASS
+  attested_at: "2026-06-08"
+  note: "p8_no_legacy_runtime_import charter gate green"
 note: >
-  Scaffold artifact — CP-9.0-01 requires phase_8_gate.status PASS and exit_code 0
-  before subphase 9.0 → VERIFIED_ENTRY and before 9.1 trunk identity (TG-P9-001).
+  TG-P9-001 cleared — phase_8_gate.status PASS. CP-9.0-01 may proceed to VERIFIED_ENTRY
+  after map_35_reviewed and verified_at set.

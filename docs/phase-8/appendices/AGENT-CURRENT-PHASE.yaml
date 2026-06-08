@@ -1,24 +1,28 @@
 # Phase 8 — Machine snapshot: «الان کجاییم?» (sync with IMPLEMENTATION-TRUTH)
-# Authority: BOOT-MANIFEST detect_current_subphase · Sprint A + 8.4 impl
+# Authority: BOOT-MANIFEST detect_current_subphase · Phase 8 CLOSED
 
-snapshot_version: "2026-06-08-v8"
+snapshot_version: "2026-06-08-v9"
 sync_source: ../audits/IMPLEMENTATION-TRUTH.md
-roadmap: ../../../TEMP/phase8-doc-95plus-plan.md
+roadmap: ../../../TEMP/phase8-closure-checklist.md
 navigator: ../AGENT-NAVIGATOR.md
-scaffold_sot: ../../../TEMP/phase8-wip-specs/README.md
 
-doc_ready_subphase: "8.4"
+doc_ready_subphase: "8.5"
 behavioral_active_subphase: "8.5"
-next_subphase_after_8_4: "8.5"
+phase_8_closed: true
+closure_git_sha: 80715b4
 
-partial_subphases:
-  - "8.5"
+partial_subphases: []
 
 guard_attestation:
   command: pnpm run phase-8:guard
   charter_gates: 25
   passed: 25
-  note: "GHA phase-8-gate.yml wired — await first green run then hooks re-enable"
+
+phase_8_gate:
+  command: pnpm run phase-8:gate
+  status: PASS
+  gha_run_id: 27130859957
+  gha_job: phase-8-gate-full
 
 entry_ledger:
   path: reports/phase-8-entry-verified.yaml
@@ -28,31 +32,18 @@ entry_ledger:
   subphase_8_2: VERIFIED_BEHAVIORAL
   subphase_8_3: VERIFIED_BEHAVIORAL
   subphase_8_4: VERIFIED_BEHAVIORAL
+  subphase_8_5: VERIFIED_BEHAVIORAL
+
+blockers: []
 
 next_read:
-  - docs/phase-8/AGENT-NAVIGATOR.md
-  - docs/phase-8/subphases/8.5-platform-dod.md
+  - docs/phase-9/README.md
+  - docs/phase-9/subphases/9.0-entry.md
+  - reports/phase-9-entry-verified.yaml
 
-next_prove_with:
-  - path: apps/api/test/phase-8.contract.spec.ts
-    status: ON_TRUNK
-  - path: docs/audits/phase-8-zero-debt-forensic-audit.mdoc
-    status: ON_TRUNK
-
-blockers:
-  - id: BL-P8-02
-    note: "GHA phase-8-gate-full green on main; then delete PHASE-8-HOOKS-SUSPENSION.yaml"
-  - id: BL-P8-03
-    note: "Merge phase-8/8.4-e2e-integrity PR to main after GHA green"
-
-forbidden_until_blocker_clear:
-  - "packages/platform-core diff for urban product work (INV-P8-001)"
-  - "Runtime import from legacy/ in trunk apps (INV-P8-004)"
-  - "Phase 8 closed / phase_8_closed claim before phase-8:gate exit 0"
+forbidden_until_blocker_clear: []
 
 detect_algorithm: |
-  1. Read IMPLEMENTATION-TRUTH implementation_mode + subphase ledger.
-  2. If phase_7_gate != PASS → cap at 8.0 (TG-P8-001).
-  3. If 8.4 VERIFIED_BEHAVIORAL → doc_ready 8.4 · behavioral_active 8.5.
-  4. Next subphase in DAG after highest VERIFIED_BEHAVIORAL row.
-  5. This file must match truth after every Sprint A+ doc PR.
+  1. Read IMPLEMENTATION-TRUTH — phase_8_closed: true → Phase 9 entry rail.
+  2. Do not claim Phase 8 open work — use Phase 9 agent router.
+  3. This file must match truth after closure PR.
