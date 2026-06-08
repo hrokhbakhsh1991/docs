@@ -16,6 +16,8 @@ const CROSS_TENANT_SAVE = "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT";
 const URBAN_PHASE81_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
 const URBAN_PHASE82_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000411";
 const URBAN_PHASE81_TENANT_ID = "00000000-0000-4000-8000-000000000004";
+const URBAN_SILO_ENTERPRISE_TENANT_ID = "00000000-0000-4000-8000-000000000406";
+const URBAN_SILO_ENTERPRISE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000412";
 
 function assertTenantId(tenantId: string): void {
   if (typeof tenantId !== "string" || tenantId.trim().length === 0) {
@@ -44,9 +46,9 @@ export class InMemoryTourRepository implements TourStorageRepository {
           roots: ["tour"],
           data: {
             tour: {
-              title: "Urban published fixture",
-              city: "Tehran",
-              venueName: "Main Hall",
+              title: "Berlin city highlights",
+              city: "Berlin",
+              venueName: "Alexanderplatz",
               startDate: "2026-07-01",
               endDate: "2026-07-02",
               capacity: 100,
@@ -84,6 +86,37 @@ export class InMemoryTourRepository implements TourStorageRepository {
         },
       };
       this.indexTour(draft);
+    }
+  }
+
+  /** Phase 8.3 silo enterprise fixture — published catalog tour on dedicated tenant id. */
+  ensureUrbanSiloEnterpriseCatalogFixture(): void {
+    if (!this.byId.has(URBAN_SILO_ENTERPRISE_PUBLISHED_TOUR_ID)) {
+      const published: Tour = {
+        id: URBAN_SILO_ENTERPRISE_PUBLISHED_TOUR_ID,
+        tenantId: URBAN_SILO_ENTERPRISE_TENANT_ID,
+        rowVersion: 1,
+        createdAt: new Date(2).toISOString(),
+        canonical: {
+          schemaVersion: 1,
+          roots: ["tour"],
+          data: {
+            tour: {
+              title: "Urban silo enterprise fixture",
+              city: "Berlin",
+              venueName: "Enterprise Hall",
+              startDate: "2026-09-01",
+              endDate: "2026-09-02",
+              capacity: 200,
+              status: "published",
+              publishStatus: "published",
+              publishedAt: "2026-06-08T12:00:00.000Z",
+              catalogSummary: "Dedicated silo tier catalog",
+            },
+          },
+        },
+      };
+      this.indexTour(published);
     }
   }
 
