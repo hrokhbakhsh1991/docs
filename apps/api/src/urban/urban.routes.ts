@@ -1,6 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import type { TourStorageRepository } from "../db/tour.repository";
+import type { TourStorageRepository as DbTourStorageRepository } from "../db/tour.repository";
+import type {
+  Tour,
+  TourStorageRepository as StorageTourStorageRepository,
+} from "../storage/tour-storage.interface";
 import { runWithHttpRequestContext } from "../http/bind-request-context";
 import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
@@ -11,28 +15,36 @@ import { readUrbanRegistrationRequestBody } from "./read-urban-registration-requ
 import { parseUrbanRegistrationPostBody } from "./schemas/urban-registration-post.schema";
 import { createUrbanRegistration } from "./urban-registration.service";
 
+type StorageLayerTourRepo = StorageTourStorageRepository & {
+  createTour(data: { tenantId: string; canonical: Tour["canonical"] }): Promise<Tour>;
+  updateIfRowVersion(input: {
+    tenantId: string;
+    id: string;
+    canonical: Tour["canonical"];
+    expectedRowVersion: number;
+  }): Promise<Tour>;
+};
+
 export type UrbanProductRouteDeps = {
-  readonly tourStore?: TourStorageRepository;
+  readonly tourStore?: DbTourStorageRepository | StorageTourStorageRepository;
 };
 
 function isStorageLayerTourRepo(
-  store: TourStorageRepository
-): store is TourStorageRepository & { listByTenantPage: unknown } {
-  return typeof (store as { listByTenantPage?: unknown }).listByTenantPage === "function";
+  store: DbTourStorageRepository | StorageTourStorageRepository
+): store is StorageLayerTourRepo {
+  return typeof (store as StorageTourStorageRepository).listByTenant === "function";
 }
 
-async function resolveTourStore(deps: UrbanProductRouteDeps): Promise<TourStorageRepository> {
+async function resolveTourStore(deps: UrbanProductRouteDeps): Promise<DbTourStorageRepository> {
   const [{ TourStorageDbAdapter }, { createTourStorageRepository }] = await Promise.all([
     import("../db/tour-storage.adapter"),
     import("../storage/create-tour-storage"),
   ]);
   if (deps.tourStore !== undefined) {
     if (isStorageLayerTourRepo(deps.tourStore)) {
-      return new TourStorageDbAdapter(
-        deps.tourStore as ConstructorParameters<typeof TourStorageDbAdapter>[0]
-      );
+      return new TourStorageDbAdapter(deps.tourStore);
     }
-    return deps.tourStore;
+    return deps.tourStore as DbTourStorageRepository;
   }
   return new TourStorageDbAdapter(createTourStorageRepository());
 }
