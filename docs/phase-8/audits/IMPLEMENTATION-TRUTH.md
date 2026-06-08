@@ -135,7 +135,7 @@ forbidden_claims:
 | ID       | Blocker                                   | Blocks | Mitigation                                                                                                                                                                 |
 | -------- | ----------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | BL-P8-01 | ~~Phase 7 gate not closed~~               | —      | **CLOSED** — `phase_7_gate.status: PASS` · `d487666`                                                                                                                       |
-| BL-P8-02 | `phase-8:gate` behavioral chain not green | 8.5    | Run full `phase-8:gate` at closure only                                                                                                                                    |
+| BL-P8-02 | `phase-8:gate` behavioral chain not green on GHA | 8.5 | Push branch · open PR · run `phase-8-gate` workflow · merge after `phase-8-gate-full` green on `main`                                                                    |
 | BL-P8-04 | ~~Phase 7.7 router absent~~               | —      | **CLOSED** — `TenantConnectionRouter` **VERIFIED_BEHAVIORAL** (7.7) · silo URL deferred to **8.3**                                                                         |
 | BL-P8-05 | Legacy urban web not inventoried          | 8.1    | Mitigated for 8.1 auth — [`SMOKE-SCENARIO-MAP.md`](../appendices/SMOKE-SCENARIO-MAP.md) · [`urban-api-dispatch-addendum.md`](../appendices/urban-api-dispatch-addendum.md) |
 

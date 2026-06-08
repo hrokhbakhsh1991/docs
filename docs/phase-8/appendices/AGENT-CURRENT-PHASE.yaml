@@ -18,7 +18,7 @@ guard_attestation:
   command: pnpm run phase-8:guard
   charter_gates: 25
   passed: 25
-  note: "8.5 contract 4/4 — full phase-8:gate + hooks re-enable PENDING"
+  note: "GHA phase-8-gate.yml wired — await first green run then hooks re-enable"
 
 entry_ledger:
   path: reports/phase-8-entry-verified.yaml
@@ -41,7 +41,9 @@ next_prove_with:
 
 blockers:
   - id: BL-P8-02
-    note: "Run pnpm run phase-8:gate at closure; delete PHASE-8-HOOKS-SUSPENSION.yaml"
+    note: "GHA phase-8-gate-full green on main; then delete PHASE-8-HOOKS-SUSPENSION.yaml"
+  - id: BL-P8-03
+    note: "Merge phase-8/8.4-e2e-integrity PR to main after GHA green"
 
 forbidden_until_blocker_clear:
   - "packages/platform-core diff for urban product work (INV-P8-001)"
