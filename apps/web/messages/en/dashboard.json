@@ -1,0 +1,84 @@
+{
+  "pageTitle": "Dashboard",
+  "metadata": {
+    "description": "Workspace operator overview"
+  },
+  "pageSubtitle": "Welcome back — {brandName} overview",
+  "pageSubtitleOwner": "Good to see you again — your {brandName} snapshot is here",
+  "welcome": {
+    "title": "Hello {displayName}, welcome!",
+    "titleOwner": "Welcome back, {displayName}!",
+    "subtitle": "Welcome to the {workspaceLabel} operator panel.",
+    "subtitleOwner": "Good to see you again — {workspaceLabel} is your panel; everything runs from here.",
+    "lead": "Check your snapshot, start a new tour, or review bookings — jump in when you're ready.",
+    "primaryCta": "Let's create a new tour",
+    "later": "Show me the dashboard first",
+    "bullets": {
+      "dashboard": "Dashboard — tours, bookings, and registrations in one place",
+      "wizard": "Denali wizard — build your next tour step by step",
+      "team": "Team and brand — workspace settings are yours to shape"
+    }
+  },
+  "quickActions": {
+    "newTour": "New tour",
+    "allTours": "All tours",
+    "bookings": "Bookings"
+  },
+  "overview": {
+    "title": "Overview",
+    "description": "{brandName} snapshot",
+    "openBookings": "Open bookings command center"
+  },
+  "tours": {
+    "title": "Tours",
+    "loading": "Loading tours…",
+    "count": "{count, plural, one {# tour} other {# tours}} · {brandName}",
+    "empty": "No tours yet — create your first tour.",
+    "viewAll": "View all tours"
+  },
+  "bookings": {
+    "title": "Bookings",
+    "description": "Registration pipeline KPIs",
+    "openCommandCenter": "Open bookings command center"
+  },
+  "registrations": {
+    "title": "Registrations",
+    "loading": "Loading queue…",
+    "pendingCount": "{count, number} pending approval",
+    "empty": "No pending registrations.",
+    "pendingOnTour": "{count, number} pending",
+    "reviewPending": "Review pending registrations"
+  },
+  "kpi": {
+    "active-tours": "Active tours",
+    "pending-bookings": "Pending bookings",
+    "approved-today": "Approved today",
+    "departures-7d": "Departures 7d",
+    "pending": "Pending",
+    "waitlist": "Waitlist"
+  },
+  "tourStatus": {
+    "draft": "Draft",
+    "active": "Active",
+    "archived": "Archived"
+  },
+  "errors": {
+    "DASHBOARD_OVERVIEW_FAILED": "Failed to load dashboard overview.",
+    "DASHBOARD_TOURS_FAILED": "Failed to load tours widget.",
+    "DASHBOARD_TOURS_HTTP_ERROR": "Failed to load tours widget (HTTP {status}).",
+    "DASHBOARD_BOOKINGS_FAILED": "Failed to load bookings widget.",
+    "DASHBOARD_BOOKINGS_SUMMARY_HTTP_ERROR": "Failed to load bookings summary (HTTP {status}).",
+    "DASHBOARD_REGISTRATIONS_FAILED": "Failed to load registrations widget.",
+    "DASHBOARD_REGISTRATIONS_HTTP_ERROR": "Failed to load registrations widget (HTTP {status})."
+  },
+  "finance": {
+    "title": "Finance",
+    "description": "{brandName} finance KPIs",
+    "openCommandCenter": "Open Finance Command Center",
+    "kpi": {
+      "pending-manual": "Pending manual payments",
+      "pending-receipts": "Receipts awaiting review",
+      "paid-payments": "Paid payments"
+    }
+  }
+}

@@ -14,6 +14,8 @@ const PHASE_43_HOST_TENANT_IDS: Record<string, string> = {
   urban: URBAN_SMOKE_TENANT_ID,
   "urban-owner": URBAN_SMOKE_TENANT_ID,
   "urban-member": URBAN_SMOKE_TENANT_ID,
+  /** Phase 9.8 operator smoke — sync OPERATOR_SMOKE.tenantId */
+  operator: "00000000-0000-4000-8000-000000000014",
 };
 
 /**

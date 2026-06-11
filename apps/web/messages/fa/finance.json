@@ -1,0 +1,143 @@
+{
+  "commandCenter": {
+    "title": "مرکز مالی",
+    "subtitle": "پرداخت‌ها، رسیدها، پیش‌پرداخت‌ها و حسابرسی دفتر برای اپراتورهای Denali",
+    "tabsAria": "تب‌های مالی",
+    "tabs": {
+      "overview": "خلاصه",
+      "payments": "پرداخت‌ها",
+      "receipts": "رسیدها",
+      "prepayments": "پیش‌پرداخت‌ها",
+      "installments": "اقساط",
+      "ledger": "دفتر"
+    }
+  },
+  "common": {
+    "refresh": "بروزرسانی",
+    "approve": "تأیید",
+    "reject": "رد",
+    "registrationId": "شناسه ثبت‌نام",
+    "currency": "ارز",
+    "lines": "{count, number} سطر",
+    "noItems": "موردی نیست",
+    "loading": "در حال بارگذاری…",
+    "optionalNote": "یادداشت (اختیاری)",
+    "reviewNote": "یادداشت بررسی (اختیاری)",
+    "amountMinor": "مبلغ (واحد جزئی)",
+    "due": "سررسید {date}",
+    "paidPercent": "{percent, number}٪ پرداخت‌شده",
+    "exportCsv": "خروجی CSV",
+    "journal": "دفتر {id}"
+  },
+  "kpi": {
+    "pending-manual": "پرداخت‌های دستی در انتظار",
+    "pending-receipts": "رسیدهای در انتظار بررسی",
+    "overdue-installments": "اقساط معوق",
+    "paid-payments": "پرداخت‌های انجام‌شده"
+  },
+  "overview": {
+    "title": "خلاصه",
+    "viewDetails": "مشاهده جزئیات",
+    "createManualPayment": "ثبت پرداخت دستی",
+    "openReconciliation": "باز کردن اولویت‌بندی تطبیق",
+    "recentLedger": "رویدادهای اخیر دفتر",
+    "noLedger": "هنوز رویداد دفتری ثبت نشده است.",
+    "viewFullLedger": "مشاهده دفتر کامل"
+  },
+  "payments": {
+    "createManual": "ثبت پرداخت دستی",
+    "submitReceipt": "ارسال رسید پرداخت",
+    "paymentId": "شناسه پرداخت",
+    "fileKey": "کلید فایل",
+    "fileKeyPlaceholder": "receipts/{paymentId}/proof.jpg",
+    "creating": "در حال ثبت…",
+    "createButton": "ثبت پرداخت دستی",
+    "submitting": "در حال ارسال…",
+    "submitButton": "ارسال رسید",
+    "listTitle": "پرداخت‌های دستی",
+    "empty": "هنوز پرداخت دستی ثبت نشده است.",
+    "status": {
+      "Paid": "پرداخت‌شده",
+      "Pending": "در انتظار",
+      "Failed": "ناموفق",
+      "Manual": "دستی"
+    }
+  },
+  "receipts": {
+    "listTitle": "صف بررسی رسید",
+    "empty": "رسیدی در انتظار بررسی نیست.",
+    "reviewPlaceholder": "انتقال بانکی تأییدشده",
+    "status": {
+      "Pending": "در انتظار",
+      "Approved": "تأییدشده",
+      "Rejected": "ردشده"
+    }
+  },
+  "prepayments": {
+    "invoiceBalance": "مانده فاکتور ثبت‌نام",
+    "lookupBalance": "استعلام مانده",
+    "invoiceTotal": "جمع فاکتور",
+    "paid": "پرداخت‌شده",
+    "balanceDue": "مانده بدهی",
+    "recordTitle": "ثبت پیش‌پرداخت",
+    "method": "روش",
+    "recording": "در حال ثبت…",
+    "recordButton": "ثبت پیش‌پرداخت",
+    "recentTitle": "پیش‌پرداخت‌های اخیر",
+    "empty": "هنوز پیش‌پرداختی ثبت نشده است."
+  },
+  "installments": {
+    "generateTitle": "تولید برنامه اقساط",
+    "invoiceTotalMinor": "جمع فاکتور (جزئی)",
+    "depositPercent": "درصد پیش‌پرداخت",
+    "installmentCount": "تعداد اقساط",
+    "firstDue": "اولین سررسید",
+    "generating": "در حال تولید…",
+    "generateButton": "تولید برنامه",
+    "boardTitle": "تابلوی اقساط",
+    "board": {
+      "overdue": "معوق",
+      "due_this_week": "سررسید این هفته",
+      "upcoming": "پیش‌رو",
+      "paid": "پرداخت‌شده"
+    },
+    "status": {
+      "scheduled": "برنامه‌ریزی‌شده",
+      "due": "سررسید",
+      "partial": "جزئی",
+      "paid": "پرداخت‌شده",
+      "overdue": "معوق",
+      "waived": "بخشوده"
+    }
+  },
+  "ledger": {
+    "title": "دفتر",
+    "eventsTitle": "رویدادهای روزنامه outbox",
+    "empty": "هنوز رویداد دفتری ثبت نشده است."
+  },
+  "validation": {
+    "REGISTRATION_ID_INVALID": "شناسه ثبت‌نام باید UUID معتبر باشد.",
+    "PAYMENT_ID_INVALID": "شناسه پرداخت باید UUID معتبر باشد.",
+    "AMOUNT_POSITIVE_INTEGER": "مبلغ باید عدد صحیح مثبت (واحد جزئی) باشد.",
+    "CURRENCY_LENGTH": "ارز باید ۳ تا ۸ کاراکتر باشد.",
+    "FILE_KEY_REQUIRED": "کلید فایل الزامی است (حداکثر ۵۱۲ کاراکتر).",
+    "NOTE_MAX_LENGTH": "یادداشت حداکثر ۲۰۰۰ کاراکتر مجاز است.",
+    "PAYMENT_METHOD_REQUIRED": "روش پرداخت الزامی است (حداکثر ۶۴ کاراکتر).",
+    "INVOICE_TOTAL_POSITIVE": "جمع فاکتور باید عدد صحیح مثبت (واحد جزئی) باشد.",
+    "DEPOSIT_PERCENT_RANGE": "درصد پیش‌پرداخت باید بین ۰ تا ۱۰۰ باشد.",
+    "INSTALLMENT_COUNT_RANGE": "تعداد اقساط باید ۱ تا ۲۴ باشد.",
+    "FIRST_DUE_INVALID": "تاریخ اولین سررسید نامعتبر است.",
+    "REVIEW_NOTE_MAX": "یادداشت بررسی حداکثر ۲۰۰۰ کاراکتر مجاز است.",
+    "DECISION_INVALID": "تصمیم باید تأیید یا رد باشد."
+  },
+  "errors": {
+    "OVERVIEW_FETCH_FAILED": "بارگذاری خلاصه مالی ناموفق بود.",
+    "FINANCE_SUMMARY_FAILED": "بارگذاری شاخص‌های مالی ناموفق بود.",
+    "MANUAL_PAYMENT_FAILED": "ثبت پرداخت دستی ناموفق بود.",
+    "SUBMIT_RECEIPT_FAILED": "ارسال رسید ناموفق بود.",
+    "RECORD_PREPAYMENT_FAILED": "ثبت پیش‌پرداخت ناموفق بود.",
+    "GENERATE_SCHEDULE_FAILED": "تولید برنامه اقساط ناموفق بود.",
+    "REVIEW_RECEIPT_FAILED": "بررسی رسید ناموفق بود.",
+    "LEDGER_FETCH_FAILED": "بارگذاری دفتر ناموفق بود."
+  }
+}

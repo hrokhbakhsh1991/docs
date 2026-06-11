@@ -1,0 +1,37 @@
+{
+  "loading": "Loading…",
+  "save": "Save",
+  "cancel": "Cancel",
+  "back": "Back",
+  "continue": "Continue",
+  "add": "Add",
+  "name": "Name",
+  "retry": "Retry",
+  "previous": "Previous",
+  "next": "Next",
+  "saving": "Saving…",
+  "draftSync": {
+    "idle": "Saved",
+    "syncing": "Saving…",
+    "dirty": "Unsaved changes",
+    "error": "Sync failed",
+    "draftAvailable": "Draft available",
+    "conflictResolving": "Resolving conflict…",
+    "retry": "Retry",
+    "applyServer": "Load server version",
+    "discardLocal": "Keep editing locally"
+  },
+  "slug": "Slug",
+  "optional": "optional",
+  "remove": "Remove",
+  "description": "Description",
+  "calendar": {
+    "pickDate": "Pick a date",
+    "today": "Today",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "timeLabel": "Time",
+    "hour": "Hour",
+    "minute": "Minute"
+  }
+}

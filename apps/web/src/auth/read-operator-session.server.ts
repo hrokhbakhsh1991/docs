@@ -1,0 +1,35 @@
+import { cookies } from "next/headers";
+
+import type { OperatorSessionContext } from "@/admin/require-operator-session";
+import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { validateSessionToken } from "@/auth/validate-session-token";
+
+function normalizeRole(
+  role: string | undefined
+): OperatorSessionContext["role"] | null {
+  if (role === "owner" || role === "admin" || role === "member") {
+    return role;
+  }
+  return null;
+}
+
+export async function readOperatorSessionFromCookies(): Promise<OperatorSessionContext | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_TOKEN_COOKIE)?.value;
+  const validation = validateSessionToken(token);
+  if (validation.status !== "valid") {
+    return null;
+  }
+
+  const role = normalizeRole(validation.role);
+  if (role === null) {
+    return null;
+  }
+
+  return {
+    userId: validation.userId,
+    tenantId: validation.tenantId,
+    role,
+    workspaceType: "denali",
+  };
+}

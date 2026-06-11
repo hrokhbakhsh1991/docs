@@ -29,11 +29,30 @@ export function getCanonicalStringValue(draft: TourWizardDraft, canonicalPath: s
   return String(current);
 }
 
-/** Write a string at a dot-separated canonical path; returns a new draft (immutable update). */
-export function setCanonicalStringValue(
+/** Read any JSON value at a dot-separated canonical path (missing → undefined). */
+export function getCanonicalValue(draft: TourWizardDraft, canonicalPath: string): unknown {
+  if (!canonicalPath) {
+    return undefined;
+  }
+
+  const segments = canonicalPath.split(".");
+  let current: unknown = draft.data;
+
+  for (const segment of segments) {
+    if (!isRecord(current) || !(segment in current)) {
+      return undefined;
+    }
+    current = current[segment];
+  }
+
+  return current;
+}
+
+/** Write any JSON value at a dot-separated canonical path; returns a new draft (immutable update). */
+export function setCanonicalValue(
   draft: TourWizardDraft,
   canonicalPath: string,
-  value: string,
+  value: unknown,
 ): TourWizardDraft {
   if (!canonicalPath) {
     return draft;
@@ -55,4 +74,13 @@ export function setCanonicalStringValue(
   cursor[leafKey] = value;
 
   return { data: data as TourWizardDraft["data"] };
+}
+
+/** Write a string at a dot-separated canonical path; returns a new draft (immutable update). */
+export function setCanonicalStringValue(
+  draft: TourWizardDraft,
+  canonicalPath: string,
+  value: string,
+): TourWizardDraft {
+  return setCanonicalValue(draft, canonicalPath, value);
 }

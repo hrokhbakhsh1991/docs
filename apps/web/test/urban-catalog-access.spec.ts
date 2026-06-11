@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 
 import {
   buildUrbanPublicTenantHeaders,
-  resolveUrbanApiBaseUrl,
+  resolveTourOpsApiBaseUrl,
 } from "../src/urban/urban-api-base";
 import {
   URBAN_CATALOG_PAGE_PATH,
@@ -36,10 +36,10 @@ describe("Phase 8.2 web urban catalog access", () => {
     assert.equal(sample.data?.items.length, 1);
   });
 
-  it("WEB-8.2-04 resolveUrbanApiBaseUrl requires TOUR_OPS_API_URL", () => {
+  it("WEB-8.2-04 resolveTourOpsApiBaseUrl requires TOUR_OPS_API_URL", () => {
     const prior = process.env.TOUR_OPS_API_URL;
     delete process.env.TOUR_OPS_API_URL;
-    assert.throws(() => resolveUrbanApiBaseUrl(), /TOUR_OPS_API_URL_NOT_CONFIGURED/);
+    assert.throws(() => resolveTourOpsApiBaseUrl(), /TOUR_OPS_API_URL_NOT_CONFIGURED/);
     if (prior !== undefined) {
       process.env.TOUR_OPS_API_URL = prior;
     }

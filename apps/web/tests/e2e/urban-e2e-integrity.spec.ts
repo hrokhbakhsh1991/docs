@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  CATALOG_DEV_OTP,
+  completeCatalogRegistrationIntake,
+  fillCatalogOtp,
+} from "./fixtures/catalog-registration-otp";
+import {
   URBAN_MEMBER_E2E_BASE_URL,
   URBAN_MEMBER_SETTINGS_PATH,
 } from "./fixtures/urban-member-session";
@@ -10,30 +15,46 @@ import {
 } from "./fixtures/urban-owner-session";
 
 const URBAN_PUBLIC_BASE_URL = process.env.SMOKE_WEB_BASE_URL ?? "http://urban.localhost:3000";
+const URBAN_PORTAL_BASE_URL = process.env.SMOKE_PORTAL_BASE_URL ?? "http://urban.localhost:3003";
+const URBAN_MARKETING_BASE_URL =
+  process.env.SMOKE_MARKETING_BASE_URL ?? "http://shop.urban.localhost:3002";
 const PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
 const PUBLISHED_TOUR_TITLE = "Berlin city highlights";
 const REGISTRATION_EMAIL = `smk-p8-02-${Date.now()}@urban-smoke.local`;
+const DEV_PHONE = `+1555${String(Date.now()).slice(-7)}`;
 
 test("SMK-P8-01 public catalog browse (anonymous)", async ({ page, context }) => {
   const cookies = await context.cookies();
   expect(cookies.some((c) => c.name.toLowerCase().includes("session"))).toBe(false);
 
-  await page.goto(`${URBAN_PUBLIC_BASE_URL}/catalog`);
-  await expect(page.locator("[data-urban-public-catalog]")).toBeVisible({ timeout: 60_000 });
+  await page.goto(`${URBAN_MARKETING_BASE_URL}/tours`);
+  await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(PUBLISHED_TOUR_TITLE)).toBeVisible();
   await expect(page.locator("[data-workspace-wizard-forbidden]")).toHaveCount(0);
 });
 
-test("SMK-P8-02 public registration intake", async ({ page }) => {
-  await page.goto(`${URBAN_PUBLIC_BASE_URL}/catalog/${PUBLISHED_TOUR_ID}/register`);
-  await expect(page.locator("[data-urban-registration-form]")).toBeVisible({ timeout: 60_000 });
+test("SMK-P8-02 public registration intake (OTP + tour intake)", async ({ page }) => {
+  await page.goto(`${URBAN_PORTAL_BASE_URL}/catalog/${PUBLISHED_TOUR_ID}/register`);
+  await expect(page.locator("[data-public-registration-phone]")).toBeVisible({ timeout: 60_000 });
 
-  await page.locator('input[name="email"]').fill(REGISTRATION_EMAIL);
-  await page.locator('input[name="fullName"]').fill("Smoke Tester");
-  await page.locator('input[name="partySize"]').fill("2");
-  await page.locator("[data-urban-registration-form] button[type=submit]").click();
+  await page.getByLabel(/Mobile|موبایل/).fill(DEV_PHONE);
+  await page.locator('[data-action="send-code"]').click();
+  await expect(page.locator("[data-public-registration-otp]")).toBeVisible({ timeout: 60_000 });
 
-  await expect(page.locator("[data-urban-registration-success]")).toBeVisible({
+  await fillCatalogOtp(page, CATALOG_DEV_OTP);
+  await page.locator('[data-action="verify-otp"]').click();
+
+  await expect(page.locator("[data-public-registration-intake]")).toBeVisible({
+    timeout: 60_000,
+  });
+
+  await completeCatalogRegistrationIntake(page, {
+    email: REGISTRATION_EMAIL,
+    fullName: "Smoke Tester",
+    partySize: "2",
+  });
+
+  await expect(page.locator("[data-public-registration-success]")).toBeVisible({
     timeout: 60_000,
   });
 });

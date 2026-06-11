@@ -1,0 +1,191 @@
+{
+  "metadata": {
+    "title": "Users",
+    "description": "Workspace team directory"
+  },
+  "title": "Users",
+  "subtitle": "Workspace team directory",
+  "exportCsv": "Export CSV",
+  "inviteButton": "Invite",
+  "tabs": {
+    "active": "Team",
+    "pending": "Invites"
+  },
+  "searchPlaceholder": "Search by name or phone…",
+  "roles": {
+    "all": "All",
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Member",
+    "viewer": "Viewer"
+  },
+  "status": {
+    "suspended": "Suspended",
+    "active": "Active",
+    "removed": "Removed"
+  },
+  "statusFilter": {
+    "all": "All statuses",
+    "active": "Active",
+    "suspended": "Suspended"
+  },
+  "inviteForm": {
+    "title": "Invite teammate",
+    "phone": "Phone",
+    "phonePlaceholder": "+15550001234",
+    "role": "Role",
+    "nameNote": "Name note (optional)",
+    "sending": "Sending…",
+    "send": "Send invite",
+    "preview": {
+      "admin": {
+        "line1": "Operations access for tours, bookings, and settings when the future admin panel ships.",
+        "line2": "No access to this owner panel — team role is stored for later."
+      },
+      "member": {
+        "line1": "View tours and manage own bookings.",
+        "line2": "Cannot invite teammates or change roles."
+      },
+      "viewer": {
+        "line1": "Read-only access to tours and bookings.",
+        "line2": "Cannot invite, change roles, or edit settings."
+      }
+    }
+  },
+  "empty": {
+    "pending": "No pending invites. Send an invite to grow your team.",
+    "active": "No team members yet. Invite your first teammate."
+  },
+  "counts": {
+    "members": "{count, number} members",
+    "pendingInvites": "{count, number} pending invites"
+  },
+  "rewards": {
+    "title": "Rewards — {name}",
+    "discountLabel": "Permanent discount (%)",
+    "discountPlaceholder": "0–100",
+    "loyaltyTierLabel": "Loyalty tier",
+    "loyaltyNone": "None",
+    "loyaltyVip": "VIP",
+    "loyaltyGold": "GOLD",
+    "labelsLabel": "Labels",
+    "labelsPlaceholder": "New label…",
+    "labelsAdd": "Add",
+    "labelsEmpty": "No labels yet.",
+    "selectableLeader": "Selectable tour leader",
+    "leaderBuddyToggle": "Leader buddy badge",
+    "rowLeaderBadge": "Leader",
+    "leaderBuddyBadge": "Buddy",
+    "saving": "Saving…",
+    "save": "Save rewards"
+  },
+  "actions": {
+    "openRowMenu": "Row actions",
+    "details": "Details",
+    "resend": "Resend",
+    "revoke": "Revoke",
+    "setRole": "Set {role}",
+    "rewards": "Rewards",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "remove": "Remove",
+    "removeConfirm": "Remove this teammate from the organization?",
+    "suspendConfirm": "Suspend this teammate? Their access will be revoked."
+  },
+  "sort": {
+    "name_asc": "Name A→Z",
+    "name_desc": "Name Z→A",
+    "email_asc": "Contact A→Z",
+    "email_desc": "Contact Z→A"
+  },
+  "table": {
+    "name": "Name",
+    "phone": "Phone",
+    "role": "Role",
+    "status": "Status",
+    "badges": "Badges",
+    "lastActive": "Last active",
+    "actions": "Actions"
+  },
+  "loadingMore": "Loading more…",
+  "bulk": {
+    "selectAll": "Select all rows",
+    "selectRow": "Select {name}",
+    "selectedCount": "{count, plural, one {# selected} other {# selected}}",
+    "changeRoleLabel": "Role",
+    "applyRole": "Apply role",
+    "suspend": "Suspend selected",
+    "reactivate": "Reactivate selected",
+    "remove": "Remove selected",
+    "clearSelection": "Clear selection",
+    "suspendConfirm": "Suspend selected teammates? Their access will be revoked.",
+    "removeConfirm": "Remove selected teammates from the organization?"
+  },
+  "memberDetail": {
+    "tabs": {
+      "history": "Activity",
+      "trips": "Trips"
+    },
+    "loading": "Loading member context…",
+    "historyEmpty": "No activity recorded yet.",
+    "tripsEmpty": "No bookings submitted by this teammate.",
+    "roleChange": "{oldRole} → {newRole}",
+    "statusChange": "{previous} → {next}",
+    "rewardsChange": "Rewards updated",
+    "memberRemoved": "Removed from organization ({role})",
+    "byActor": "By {actor}",
+    "totalTrips": "{count} trips",
+    "completedTrips": "{count} completed",
+    "cancelledTrips": "{count} cancelled",
+    "tripMeta": "{status} · {partySize} guests · {departure}"
+  },
+  "ownershipTransfer": {
+    "title": "Transfer ownership",
+    "description": "Assign organization ownership to an active admin or member. After transfer, your role becomes admin and you will leave this panel.",
+    "loading": "Loading candidates…",
+    "empty": "No active admin or member is available for ownership transfer.",
+    "selectLabel": "New owner",
+    "selectPlaceholder": "Select teammate…",
+    "preview": "{name} ({role}) will become owner; you will become admin.",
+    "confirm": "Transfer ownership to {name}? This cannot be undone and you will be signed out.",
+    "submit": "Transfer ownership",
+    "submitting": "Transferring…"
+  },
+  "locked": {
+    "title": "Directory access restricted",
+    "detail": "Only the organization owner can view the team directory."
+  },
+  "errors": {
+    "discountRange": "Discount must be an integer from 0 to 100",
+    "USERS_DIRECTORY_FORBIDDEN": "Users directory access is not allowed.",
+    "USERS_LIST_HTTP_ERROR": "Failed to load users (HTTP {status}).",
+    "USERS_LIST_FAILED": "Failed to load users.",
+    "USERS_PENDING_HTTP_ERROR": "Failed to load pending invites (HTTP {status}).",
+    "USERS_PENDING_FAILED": "Failed to load pending invites.",
+    "USERS_INVITE_HTTP_ERROR": "Invite failed (HTTP {status}).",
+    "USERS_INVITE_FAILED": "Invite failed.",
+    "USERS_REVOKE_HTTP_ERROR": "Revoke invite failed (HTTP {status}).",
+    "USERS_REVOKE_FAILED": "Revoke invite failed.",
+    "USERS_RESEND_HTTP_ERROR": "Resend invite failed (HTTP {status}).",
+    "USERS_RESEND_FAILED": "Resend invite failed.",
+    "OTP_RATE_LIMITED": "Too many invite codes sent. Try again in a few minutes.",
+    "USERS_ROLE_HTTP_ERROR": "Role update failed (HTTP {status}).",
+    "USERS_ROLE_FAILED": "Role update failed.",
+    "USERS_REMOVE_HTTP_ERROR": "Remove user failed (HTTP {status}).",
+    "USERS_REMOVE_FAILED": "Remove user failed.",
+    "USERS_SUSPEND_HTTP_ERROR": "Suspend user failed (HTTP {status}).",
+    "USERS_SUSPEND_FAILED": "Suspend user failed.",
+    "USERS_REACTIVATE_HTTP_ERROR": "Reactivate user failed (HTTP {status}).",
+    "USERS_REACTIVATE_FAILED": "Reactivate user failed.",
+    "USERS_REWARDS_HTTP_ERROR": "Save rewards failed (HTTP {status}).",
+    "USERS_REWARDS_FAILED": "Save rewards failed.",
+    "OWNERSHIP_TRANSFER_HTTP_ERROR": "Ownership transfer failed (HTTP {status}).",
+    "OWNERSHIP_TRANSFER_FAILED": "Ownership transfer failed.",
+    "OWNERSHIP_TRANSFER_INVALID_RESPONSE": "Ownership transfer returned an invalid response.",
+    "USERS_MEMBER_DETAIL_FAILED": "Failed to load member details.",
+    "USERS_MEMBER_DETAIL_HTTP_ERROR": "Failed to load member details (HTTP error).",
+    "USERS_BULK_HTTP_ERROR": "Bulk action failed (HTTP {status}).",
+    "USERS_BULK_FAILED": "Bulk action failed.",
+    "USERS_BULK_PARTIAL_FAILED": "Some selected teammates could not be updated."
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "pageTitle": "ثبت‌نام — {tourTitle}",
+  "backToTour": "بازگشت به تور",
+  "phone": {
+    "title": "ورود یا ثبت‌نام",
+    "description": "شماره موبایل خود را وارد کنید.",
+    "label": "موبایل",
+    "existingHint": "خوش آمدید — کد تأیید برای شما ارسال می‌شود.",
+    "newHint": "کاربر جدید هستید — بعد از تأیید نام شما پرسیده می‌شود.",
+    "sendCode": "ارسال کد",
+    "sending": "در حال ارسال…"
+  },
+  "otp": {
+    "title": "کد تأیید را وارد کنید",
+    "sentTo": "کد به {phone} ارسال شد",
+    "verify": "تأیید",
+    "verifying": "در حال تأیید…",
+    "resend": "ارسال مجدد کد",
+    "resendIn": "ارسال مجدد ({seconds} ثانیه)",
+    "changePhone": "تغییر شماره",
+    "devHint": "کد توسعه: {code}"
+  },
+  "profile": {
+    "title": "تکمیل پروفایل",
+    "description": "نام اجباری است. ایمیل اختیاری.",
+    "nameLabel": "نام",
+    "emailLabel": "ایمیل (اختیاری)",
+    "continue": "ادامه",
+    "saving": "در حال ذخیره…"
+  },
+  "intake": {
+    "title": "ثبت‌نام برای این تور",
+    "nameLabel": "نام",
+    "emailLabel": "ایمیل",
+    "partySizeLabel": "تعداد نفرات",
+    "notesLabel": "یادداشت (اختیاری)",
+    "submit": "ثبت درخواست",
+    "submitting": "در حال ارسال…",
+    "emailRequired": "برای ثبت‌نام تور ایمیل الزامی است.",
+    "partySizeInvalid": "تعداد نفرات معتبر وارد کنید."
+  },
+  "success": {
+    "message": "درخواست شما برای {tourTitle} ثبت شد. متشکریم!",
+    "backToTour": "بازگشت به تور"
+  },
+  "errors": {
+    "MOBILE_REQUIRED": "شماره موبایل معتبر وارد کنید.",
+    "MOBILE_INVALID": "شماره موبایل معتبر وارد کنید.",
+    "OTP_INVALID": "کد نامعتبر یا منقضی است. دوباره تلاش کنید.",
+    "OTP_EXPIRED": "کد نامعتبر یا منقضی است. دوباره تلاش کنید.",
+    "OTP_CHALLENGE_INVALID": "کد نامعتبر یا منقضی است. دوباره تلاش کنید.",
+    "OTP_RATE_LIMITED": "تلاش زیاد بود. کمی صبر کنید.",
+    "DISPLAY_NAME_REQUIRED": "نام الزامی است.",
+    "ONBOARDING_TOKEN_INVALID": "نشست منقضی شد. دوباره با شماره موبایل شروع کنید.",
+    "PUBLIC_CATALOG_TENANT_UNRESOLVED": "ثبت‌نام در این سایت موقتاً در دسترس نیست.",
+    "URBAN_REGISTRATION_DUPLICATE": "با این ایمیل قبلاً برای این تور ثبت‌نام کرده‌اید.",
+    "URBAN_REGISTRATION_CLOSED": "ثبت‌نام در این workspace بسته است.",
+    "DENALI_REGISTRATION_DUPLICATE": "با این ایمیل قبلاً برای این تور ثبت‌نام کرده‌اید.",
+    "network": "خطایی رخ داد. دوباره تلاش کنید."
+  }
+}

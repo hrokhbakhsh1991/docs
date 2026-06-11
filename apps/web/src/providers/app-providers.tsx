@@ -4,10 +4,8 @@ import { useMemo, type ReactNode } from "react";
 
 import { ThemeProviderChain } from "@app-tour/theme-react";
 
-import {
-  hydrateBootstrapSession,
-  type SerializableBootstrap,
-} from "@/tenant/tenant-kernel";
+import { hydrateBootstrapSession } from "@/tenant/hydrate-bootstrap-session.client";
+import type { SerializableBootstrap } from "@/tenant/tenant-kernel.types";
 
 import { AppSessionProvider } from "./app-session-context";
 

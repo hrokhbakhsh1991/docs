@@ -10,6 +10,8 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const webDir = path.join(repoRoot, "apps/web");
+const marketingDir = path.join(repoRoot, "apps/marketing");
+const portalDir = path.join(repoRoot, "apps/portal");
 
 const urbanSmokeTenantId =
   process.env.URBAN_SMOKE_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000004";
@@ -51,6 +53,7 @@ const apiEnv = {
   URBAN_TEST_WORKSPACE_TYPE: "urban",
   PORT: "3001",
   TENANT_RATE_LIMIT_ENABLED: "false",
+  AUTH_ALLOW_DEV_STATIC_OTP: "true",
 };
 
 const webEnv = {
@@ -67,6 +70,25 @@ const webEnv = {
   PORT: "3000",
 };
 
+const marketingEnv = {
+  ...process.env,
+  NODE_ENV: "development",
+  ALLOW_DEV_WEB_SESSION: "true",
+  TOUR_OPS_API_URL: "http://127.0.0.1:3001",
+  TOUR_OPS_DEV_TENANT_ID: urbanSmokeTenantId,
+};
+
+const portalEnv = {
+  ...process.env,
+  NODE_ENV: "development",
+  ALLOW_DEV_WEB_SESSION: "true",
+  TOUR_OPS_API_URL: "http://127.0.0.1:3001",
+  API_INTERNAL_URL: "http://127.0.0.1:3001",
+  TOUR_OPS_DEV_TENANT_ID: urbanSmokeTenantId,
+  TOUR_OPS_DEV_WORKSPACE_ID: "00000000-0000-4000-8000-000000000403",
+  PORTAL_DEV_PORT: "3003",
+};
+
 const api = spawn("pnpm", ["--filter", "@apps/api", "run", "dev"], {
   cwd: repoRoot,
   env: apiEnv,
@@ -74,6 +96,8 @@ const api = spawn("pnpm", ["--filter", "@apps/api", "run", "dev"], {
 });
 
 let web;
+let marketing;
+let portal;
 
 void waitForUrl("http://127.0.0.1:3001/health")
   .then(() => {
@@ -82,6 +106,21 @@ void waitForUrl("http://127.0.0.1:3001/health")
       env: webEnv,
       stdio: "inherit",
     });
+    marketing = spawn("pnpm", ["exec", "next", "dev", "--port", "3002"], {
+      cwd: marketingDir,
+      env: marketingEnv,
+      stdio: "inherit",
+    });
+    portal = spawn("pnpm", ["exec", "next", "dev", "--port", "3003"], {
+      cwd: portalDir,
+      env: portalEnv,
+      stdio: "inherit",
+    });
+    return Promise.all([
+      waitForUrl("http://127.0.0.1:3000/"),
+      waitForUrl("http://127.0.0.1:3002/"),
+      waitForUrl("http://127.0.0.1:3003/health"),
+    ]);
   })
   .catch((error) => {
     console.error(error);
@@ -93,6 +132,12 @@ const shutdown = (signal) => {
   api.kill(signal);
   if (web) {
     web.kill(signal);
+  }
+  if (marketing) {
+    marketing.kill(signal);
+  }
+  if (portal) {
+    portal.kill(signal);
   }
   process.exit(0);
 };

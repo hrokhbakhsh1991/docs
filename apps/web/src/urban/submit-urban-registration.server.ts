@@ -1,6 +1,9 @@
 "use server";
 
-import { buildUrbanPublicTenantHeaders, resolveUrbanApiBaseUrl } from "./urban-api-base";
+import { buildCatalogRegistrationHeaders } from "@/catalog/build-catalog-registration-headers.server";
+
+import { buildUrbanIntakeIdempotencyKey } from "./build-urban-intake-idempotency-key";
+import { resolveTourOpsApiBaseUrl } from "./urban-api-base";
 
 export type SubmitUrbanRegistrationInput = {
   readonly tenantId: string;
@@ -19,11 +22,21 @@ export type SubmitUrbanRegistrationResult =
 export async function submitUrbanRegistrationAction(
   input: SubmitUrbanRegistrationInput
 ): Promise<SubmitUrbanRegistrationResult> {
-  const res = await fetch(`${resolveUrbanApiBaseUrl()}/urban/registrations`, {
+  const catalogHeaders = await buildCatalogRegistrationHeaders(input.tenantId);
+  const actorUserId = catalogHeaders["x-user-id"] ?? "anonymous";
+  const idempotencyKey = buildUrbanIntakeIdempotencyKey({
+    tenantId: input.tenantId,
+    tourId: input.tourId,
+    email: input.email,
+    actorUserId,
+  });
+
+  const res = await fetch(`${resolveTourOpsApiBaseUrl()}/urban/registrations`, {
     method: "POST",
     headers: {
-      ...buildUrbanPublicTenantHeaders(input.tenantId),
+      ...catalogHeaders,
       "content-type": "application/json",
+      "Idempotency-Key": idempotencyKey,
     },
     body: JSON.stringify({
       tourId: input.tourId,

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
@@ -10,8 +10,9 @@ const SRC_DIR = join(WEB_ROOT, "src");
 const APP_DIR = join(WEB_ROOT, "app");
 
 const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
-  join(SRC_DIR, "bootstrap", "lazy-denali-plugin.ts"),
-  join(SRC_DIR, "bootstrap", "lazy-urban-plugin.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-plugin-loaders.generated.ts"),
+  join(SRC_DIR, "bootstrap", "denali-wizard-rules.ts"),
+  join(SRC_DIR, "bootstrap", "denali-wizard-template-preset.ts"),
 ]);
 
 const FORBIDDEN_IMPORT = [
@@ -47,6 +48,16 @@ describe("Phase 3.3 workspace boundary", () => {
     }
     assert.ok(!("@app-tour/workspace-denali" in (pkg.dependencies ?? {})));
     assert.ok(!("@app-tour/workspace-urban" in (pkg.dependencies ?? {})));
+  });
+
+  it("deprecated lazy-denali/urban plugin shims are removed", () => {
+    const deprecated = [
+      join(SRC_DIR, "bootstrap", "lazy-denali-plugin.ts"),
+      join(SRC_DIR, "bootstrap", "lazy-urban-plugin.ts"),
+    ];
+    for (const file of deprecated) {
+      assert.ok(!existsSync(file), `deprecated shim still present: ${file}`);
+    }
   });
 
   it("source tree contains no product workspace imports outside lazy loaders", () => {

@@ -36,6 +36,17 @@ test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
     await expect(page.locator("[data-wizard-step]").first()).toBeVisible();
 
     expect(consoleErrors, "SMK-P6-02: no console errors").toEqual([]);
+
+    const primary = await page.locator("body").evaluate((el) =>
+      getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
+    );
+    expect(primary).toBe("#0f766e");
+
+    const continueBtn = page.getByTestId("workspace-wizard-step-next");
+    if (await continueBtn.isVisible().catch(() => false)) {
+      const btnBg = await continueBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(btnBg).toBe("rgb(15, 118, 110)");
+    }
   });
 
   test("SMK-P6-03: denali smoke tenant is provisioned with workspace_type=denali", async ({

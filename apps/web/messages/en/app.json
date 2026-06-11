@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "title": "Tour Ops",
+    "description": "Platform tour operations web shell"
+  },
+  "brand": "Tour Ops",
+  "skipToMain": "Skip to content",
+  "openMenu": "Open menu",
+  "closeMenu": "Close menu",
+  "toggleTheme": "Toggle theme",
+  "accountMenu": "Account menu",
+  "roleLabel": "Role: {role}",
+  "workspaceLabel": "Workspace: {workspace}",
+  "profile": "Profile",
+  "logout": "Logout",
+  "newTour": "New tour",
+  "operatorNav": "Operator navigation",
+  "operatorWorkspace": "Operator workspace",
+  "denaliTagline": "Outdoor adventure & mountaineering",
+  "mobileNav": "Mobile navigation",
+  "themeMode": "Theme mode",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "workspaceSwitcherTitle": "Multi-workspace switching lands in Phase 10",
+  "stubComingSoon": "Coming soon — {subphase}.",
+  "workspaces": {
+    "denali": "Denali",
+    "urban": "Urban",
+    "default": "Operator panel"
+  }
+}

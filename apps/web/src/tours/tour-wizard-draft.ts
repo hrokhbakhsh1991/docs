@@ -13,7 +13,21 @@ export const emptyTourWizardDraft = (): TourWizardDraft => ({
 });
 
 export function tourWizardDraftToPayload(draft: TourWizardDraft) {
+  const basics = draft.data.basics;
+  const coercedBasics =
+    basics === undefined
+      ? undefined
+      : {
+          ...basics,
+          ...(basics.featured !== undefined
+            ? { featured: basics.featured === true || basics.featured === "true" }
+            : {}),
+        };
+
   return {
-    data: draft.data,
+    data: {
+      ...draft.data,
+      ...(coercedBasics !== undefined ? { basics: coercedBasics } : {}),
+    },
   };
 }

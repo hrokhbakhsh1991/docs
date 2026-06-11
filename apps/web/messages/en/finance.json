@@ -1,0 +1,143 @@
+{
+  "commandCenter": {
+    "title": "Finance Command Center",
+    "subtitle": "Payments, receipts, prepayments, and ledger audit for Denali operators",
+    "tabsAria": "Finance tabs",
+    "tabs": {
+      "overview": "Overview",
+      "payments": "Payments",
+      "receipts": "Receipts",
+      "prepayments": "Prepayments",
+      "installments": "Installments",
+      "ledger": "Ledger"
+    }
+  },
+  "common": {
+    "refresh": "Refresh",
+    "approve": "Approve",
+    "reject": "Reject",
+    "registrationId": "Registration ID",
+    "currency": "Currency",
+    "lines": "{count, number} lines",
+    "noItems": "No items",
+    "loading": "Loading…",
+    "optionalNote": "Note (optional)",
+    "reviewNote": "Review note (optional)",
+    "amountMinor": "Amount (minor units)",
+    "due": "Due {date}",
+    "paidPercent": "{percent, number}% paid",
+    "exportCsv": "Export CSV",
+    "journal": "Journal {id}"
+  },
+  "kpi": {
+    "pending-manual": "Pending manual payments",
+    "pending-receipts": "Receipts awaiting review",
+    "overdue-installments": "Overdue installments",
+    "paid-payments": "Paid payments"
+  },
+  "overview": {
+    "title": "Overview",
+    "viewDetails": "View details",
+    "createManualPayment": "Create manual payment",
+    "openReconciliation": "Open reconciliation triage",
+    "recentLedger": "Recent ledger events",
+    "noLedger": "No ledger events yet.",
+    "viewFullLedger": "View full ledger"
+  },
+  "payments": {
+    "createManual": "Create manual payment",
+    "submitReceipt": "Submit payment receipt",
+    "paymentId": "Payment ID",
+    "fileKey": "File key",
+    "fileKeyPlaceholder": "receipts/{paymentId}/proof.jpg",
+    "creating": "Creating…",
+    "createButton": "Create manual payment",
+    "submitting": "Submitting…",
+    "submitButton": "Submit receipt",
+    "listTitle": "Manual payments",
+    "empty": "No manual payments yet.",
+    "status": {
+      "Paid": "Paid",
+      "Pending": "Pending",
+      "Failed": "Failed",
+      "Manual": "Manual"
+    }
+  },
+  "receipts": {
+    "listTitle": "Receipt review queue",
+    "empty": "No receipts awaiting review.",
+    "reviewPlaceholder": "Verified bank transfer",
+    "status": {
+      "Pending": "Pending",
+      "Approved": "Approved",
+      "Rejected": "Rejected"
+    }
+  },
+  "prepayments": {
+    "invoiceBalance": "Registration invoice balance",
+    "lookupBalance": "Look up balance",
+    "invoiceTotal": "Invoice total",
+    "paid": "Paid",
+    "balanceDue": "Balance due",
+    "recordTitle": "Record prepayment",
+    "method": "Method",
+    "recording": "Recording…",
+    "recordButton": "Record prepayment",
+    "recentTitle": "Recent prepayments",
+    "empty": "No prepayments recorded yet."
+  },
+  "installments": {
+    "generateTitle": "Generate schedule",
+    "invoiceTotalMinor": "Invoice total (minor)",
+    "depositPercent": "Deposit %",
+    "installmentCount": "Installments",
+    "firstDue": "First due",
+    "generating": "Generating…",
+    "generateButton": "Generate schedule",
+    "boardTitle": "Installment board",
+    "board": {
+      "overdue": "Overdue",
+      "due_this_week": "Due this week",
+      "upcoming": "Upcoming",
+      "paid": "Paid"
+    },
+    "status": {
+      "scheduled": "Scheduled",
+      "due": "Due",
+      "partial": "Partial",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "waived": "Waived"
+    }
+  },
+  "ledger": {
+    "title": "Ledger",
+    "eventsTitle": "Outbox journal events",
+    "empty": "No ledger events yet."
+  },
+  "validation": {
+    "REGISTRATION_ID_INVALID": "Registration ID must be a valid UUID.",
+    "PAYMENT_ID_INVALID": "Payment ID must be a valid UUID.",
+    "AMOUNT_POSITIVE_INTEGER": "Amount must be a positive integer (minor units).",
+    "CURRENCY_LENGTH": "Currency must be 3–8 characters.",
+    "FILE_KEY_REQUIRED": "File key is required (max 512 chars).",
+    "NOTE_MAX_LENGTH": "Note must be at most 2000 characters.",
+    "PAYMENT_METHOD_REQUIRED": "Payment method is required (max 64 chars).",
+    "INVOICE_TOTAL_POSITIVE": "Invoice total must be a positive integer (minor units).",
+    "DEPOSIT_PERCENT_RANGE": "Deposit percent must be between 0 and 100.",
+    "INSTALLMENT_COUNT_RANGE": "Installment count must be 1–24.",
+    "FIRST_DUE_INVALID": "First due date is invalid.",
+    "REVIEW_NOTE_MAX": "Review note must be at most 2000 characters.",
+    "DECISION_INVALID": "Decision must be approve or reject."
+  },
+  "errors": {
+    "OVERVIEW_FETCH_FAILED": "Failed to load finance overview.",
+    "FINANCE_SUMMARY_FAILED": "Failed to load finance summary.",
+    "MANUAL_PAYMENT_FAILED": "Manual payment create failed.",
+    "SUBMIT_RECEIPT_FAILED": "Receipt submit failed.",
+    "RECORD_PREPAYMENT_FAILED": "Prepayment record failed.",
+    "GENERATE_SCHEDULE_FAILED": "Schedule generation failed.",
+    "REVIEW_RECEIPT_FAILED": "Receipt review failed.",
+    "LEDGER_FETCH_FAILED": "Failed to load ledger."
+  }
+}

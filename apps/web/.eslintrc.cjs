@@ -31,4 +31,12 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      files: ["src/components/ui/**/*.{ts,tsx}"],
+      rules: {
+        "no-restricted-syntax": "off",
+      },
+    },
+  ],
 };

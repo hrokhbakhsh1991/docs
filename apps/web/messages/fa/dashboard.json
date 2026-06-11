@@ -1,0 +1,84 @@
+{
+  "pageTitle": "داشبورد",
+  "metadata": {
+    "description": "نمای کلی اپراتور workspace"
+  },
+  "pageSubtitle": "خوش آمدید — نمای کلی {brandName}",
+  "pageSubtitleOwner": "خوش برگشتی — نمای کلی {brandName} همین‌جاست",
+  "welcome": {
+    "title": "سلام {displayName}، خوش اومدی!",
+    "titleOwner": "{displayName} عزیز، خوش برگشتی!",
+    "subtitle": "به پنل {workspaceLabel} خوش آمدید.",
+    "subtitleOwner": "خوشحالم دوباره اینجایی — {workspaceLabel} پنل خودته و همه‌چیز از همین‌جا جلو می‌ره.",
+    "lead": "یک نگاه به وضعیت بنداز، تور تازه بساز، یا رزروها رو چک کن — هر وقت آماده بودی شروع کن.",
+    "primaryCta": "بریم تور جدید بسازیم",
+    "later": "اول داشبورد رو ببینم",
+    "bullets": {
+      "dashboard": "داشبورد — تورها، رزروها و ثبت‌نام‌ها یک‌جا",
+      "wizard": "ویزارد دنالی — تور بعدیت رو قدم‌به‌قدم بساز",
+      "team": "تیم و برند — تنظیمات workspace دست خودته"
+    }
+  },
+  "quickActions": {
+    "newTour": "تور جدید",
+    "allTours": "همه تورها",
+    "bookings": "مرکز رزروها"
+  },
+  "overview": {
+    "title": "خلاصه",
+    "description": "وضعیت {brandName}",
+    "openBookings": "باز کردن مرکز رزروها"
+  },
+  "tours": {
+    "title": "تورها",
+    "loading": "در حال بارگذاری تورها…",
+    "count": "{count, plural, one {# تور} other {# تور}} · {brandName}",
+    "empty": "هنوز توری نیست — اولین تور را بسازید.",
+    "viewAll": "مشاهده همه تورها"
+  },
+  "bookings": {
+    "title": "رزروها",
+    "description": "شاخص‌های خط رزرو",
+    "openCommandCenter": "باز کردن مرکز رزروها"
+  },
+  "registrations": {
+    "title": "ثبت‌نام‌ها",
+    "loading": "در حال بارگذاری صف…",
+    "pendingCount": "{count, number} در انتظار تأیید",
+    "empty": "ثبت‌نام در انتظاری نیست.",
+    "pendingOnTour": "{count, number} در انتظار",
+    "reviewPending": "بررسی ثبت‌نام‌های در انتظار"
+  },
+  "kpi": {
+    "active-tours": "تورهای فعال",
+    "pending-bookings": "رزروهای در انتظار",
+    "approved-today": "تأییدشده امروز",
+    "departures-7d": "حرکت ۷ روز آینده",
+    "pending": "در انتظار",
+    "waitlist": "لیست انتظار"
+  },
+  "tourStatus": {
+    "draft": "پیش‌نویس",
+    "active": "فعال",
+    "archived": "بایگانی"
+  },
+  "errors": {
+    "DASHBOARD_OVERVIEW_FAILED": "بارگذاری خلاصه داشبورد ناموفق بود.",
+    "DASHBOARD_TOURS_FAILED": "بارگذاری ویجت تورها ناموفق بود.",
+    "DASHBOARD_TOURS_HTTP_ERROR": "بارگذاری ویجت تورها ناموفق بود (HTTP {status}).",
+    "DASHBOARD_BOOKINGS_FAILED": "بارگذاری ویجت رزروها ناموفق بود.",
+    "DASHBOARD_BOOKINGS_SUMMARY_HTTP_ERROR": "بارگذاری خلاصه رزروها ناموفق بود (HTTP {status}).",
+    "DASHBOARD_REGISTRATIONS_FAILED": "بارگذاری ویجت ثبت‌نام‌ها ناموفق بود.",
+    "DASHBOARD_REGISTRATIONS_HTTP_ERROR": "بارگذاری ویجت ثبت‌نام‌ها ناموفق بود (HTTP {status})."
+  },
+  "finance": {
+    "title": "مالی",
+    "description": "شاخص‌های مالی {brandName}",
+    "openCommandCenter": "باز کردن مرکز مالی",
+    "kpi": {
+      "pending-manual": "پرداخت‌های دستی در انتظار",
+      "pending-receipts": "رسیدهای در انتظار بررسی",
+      "paid-payments": "پرداخت‌های انجام‌شده"
+    }
+  }
+}

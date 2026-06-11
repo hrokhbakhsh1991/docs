@@ -1,0 +1,61 @@
+{
+  "pageTitle": "Register — {tourTitle}",
+  "backToTour": "Back to tour",
+  "phone": {
+    "title": "Sign in or register",
+    "description": "Enter your mobile number to continue.",
+    "label": "Mobile",
+    "existingHint": "Welcome back — we will send you a code.",
+    "newHint": "New here — we will ask for your name after verification.",
+    "sendCode": "Send code",
+    "sending": "Sending…"
+  },
+  "otp": {
+    "title": "Enter verification code",
+    "sentTo": "Code sent to {phone}",
+    "verify": "Verify",
+    "verifying": "Verifying…",
+    "resend": "Resend code",
+    "resendIn": "Resend ({seconds}s)",
+    "changePhone": "Change phone",
+    "devHint": "Dev OTP: {code}"
+  },
+  "profile": {
+    "title": "Complete your profile",
+    "description": "Name is required. Email is optional.",
+    "nameLabel": "Name",
+    "emailLabel": "Email (optional)",
+    "continue": "Continue",
+    "saving": "Saving…"
+  },
+  "intake": {
+    "title": "Register for this tour",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "partySizeLabel": "Party size",
+    "notesLabel": "Notes (optional)",
+    "submit": "Submit registration",
+    "submitting": "Submitting…",
+    "emailRequired": "Email is required for tour registration.",
+    "partySizeInvalid": "Enter a valid party size."
+  },
+  "success": {
+    "message": "Registration received for {tourTitle}. Thank you!",
+    "backToTour": "Back to tour"
+  },
+  "errors": {
+    "MOBILE_REQUIRED": "Enter a valid mobile number.",
+    "MOBILE_INVALID": "Enter a valid mobile number.",
+    "OTP_INVALID": "Invalid or expired code. Try again.",
+    "OTP_EXPIRED": "Invalid or expired code. Try again.",
+    "OTP_CHALLENGE_INVALID": "Invalid or expired code. Try again.",
+    "OTP_RATE_LIMITED": "Too many attempts. Wait and try again.",
+    "DISPLAY_NAME_REQUIRED": "Name is required.",
+    "ONBOARDING_TOKEN_INVALID": "Session expired. Start again with your phone number.",
+    "PUBLIC_CATALOG_TENANT_UNRESOLVED": "Registration is temporarily unavailable for this site.",
+    "URBAN_REGISTRATION_DUPLICATE": "You already registered for this tour with this email.",
+    "URBAN_REGISTRATION_CLOSED": "Registration is closed for this workspace.",
+    "DENALI_REGISTRATION_DUPLICATE": "You already registered for this tour with this email.",
+    "network": "Something went wrong. Try again."
+  }
+}

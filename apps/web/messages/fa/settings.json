@@ -1,0 +1,337 @@
+{
+  "hub": {
+    "title": "تنظیمات",
+    "subtitle": "ماژول‌های ورک‌اسپیس برای تورها، تمپلیت‌ها و عملیات روزانه",
+    "openModule": "باز کردن تنظیمات"
+  },
+  "errors": {
+    "SETTINGS_MODULES_HTTP_ERROR": "بارگذاری ماژول‌های تنظیمات ناموفق بود (HTTP {status}).",
+    "SETTINGS_MODULES_FAILED": "بارگذاری ماژول‌های تنظیمات ناموفق بود.",
+    "BRANDING_HTTP_ERROR": "بارگذاری برند ناموفق بود (HTTP {status}).",
+    "BRANDING_FETCH_FAILED": "بارگذاری برند workspace ناموفق بود.",
+    "BRANDING_PATCH_HTTP_ERROR": "ذخیره نام نمایشی ناموفق بود (HTTP {status}).",
+    "BRANDING_SAVE_FAILED": "ذخیره نام نمایشی ناموفق بود.",
+    "BRANDING_LOGO_UPLOAD_HTTP_ERROR": "آپلود لوگو ناموفق بود (HTTP {status}).",
+    "BRANDING_LOGO_UPLOAD_FAILED": "آپلود لوگو ناموفق بود.",
+    "BRANDING_LOGO_DELETE_HTTP_ERROR": "حذف لوگو ناموفق بود (HTTP {status}).",
+    "BRANDING_LOGO_DELETE_FAILED": "حذف لوگو ناموفق بود.",
+    "BRANDING_LOGO_URL_HTTP_ERROR": "بارگذاری پیش‌نمایش لوگو ناموفق بود (HTTP {status}).",
+    "BRANDING_LOGO_TYPE_INVALID": "لوگو باید PNG، JPEG یا WebP باشد.",
+    "BRANDING_LOGO_TOO_LARGE": "حجم لوگو باید حداکثر ۲ مگابایت باشد.",
+    "BRANDING_LOGO_EMPTY": "یک فایل لوگو انتخاب کنید.",
+    "PROFILE_HTTP_ERROR": "بارگذاری پروفایل ناموفق بود (HTTP {status}).",
+    "PROFILE_FETCH_FAILED": "بارگذاری پروفایل ناموفق بود.",
+    "PROFILE_DISPLAY_NAME_INVALID": "نام نمایشی باید بین ۱ تا ۱۲۰ کاراکتر باشد.",
+    "PROFILE_SAVE_HTTP_ERROR": "ذخیره پروفایل ناموفق بود (HTTP {status}).",
+    "PROFILE_SAVE_FAILED": "ذخیره پروفایل ناموفق بود.",
+    "EQUIPMENT_LIST_HTTP_ERROR": "بارگذاری فهرست تجهیزات ناموفق بود (HTTP {status}).",
+    "EQUIPMENT_HTTP_ERROR": "بارگذاری تجهیزات ناموفق بود (HTTP {status}).",
+    "EQUIPMENT_FETCH_FAILED": "بارگذاری تجهیزات ناموفق بود.",
+    "EQUIPMENT_LOAD_FAILED": "بارگذاری تجهیزات ناموفق بود.",
+    "EQUIPMENT_CREATE_HTTP_ERROR": "افزودن تجهیزات ناموفق بود (HTTP {status}).",
+    "EQUIPMENT_CREATE_FAILED": "افزودن تجهیزات ناموفق بود.",
+    "EQUIPMENT_DELETE_HTTP_ERROR": "حذف تجهیزات ناموفق بود (HTTP {status}).",
+    "EQUIPMENT_DELETE_FAILED": "حذف تجهیزات ناموفق بود.",
+    "GUIDE_LANGUAGES_HTTP_ERROR": "بارگذاری زبان‌های راهنما ناموفق بود (HTTP {status}).",
+    "GUIDE_LANGUAGES_FETCH_FAILED": "بارگذاری زبان‌های راهنما ناموفق بود.",
+    "GUIDE_LANGUAGES_CREATE_HTTP_ERROR": "افزودن زبان راهنما ناموفق بود (HTTP {status}).",
+    "GUIDE_LANGUAGES_CREATE_FAILED": "افزودن زبان راهنما ناموفق بود.",
+    "GUIDE_LANGUAGES_DELETE_HTTP_ERROR": "حذف زبان راهنما ناموفق بود (HTTP {status}).",
+    "GUIDE_LANGUAGES_DELETE_FAILED": "حذف زبان راهنما ناموفق بود.",
+    "TOUR_THEMES_HTTP_ERROR": "بارگذاری تم‌های تور ناموفق بود (HTTP {status}).",
+    "TOUR_THEMES_FETCH_FAILED": "بارگذاری تم‌های تور ناموفق بود.",
+    "TOUR_THEMES_LOAD_FAILED": "بارگذاری تم‌های تور ناموفق بود.",
+    "TOUR_THEMES_CREATE_HTTP_ERROR": "افزودن تم تور ناموفق بود (HTTP {status}).",
+    "TOUR_THEMES_CREATE_FAILED": "افزودن تم تور ناموفق بود.",
+    "TOUR_THEMES_DELETE_HTTP_ERROR": "حذف تم تور ناموفق بود (HTTP {status}).",
+    "TOUR_THEMES_DELETE_FAILED": "حذف تم تور ناموفق بود.",
+    "LOCATIONS_HTTP_ERROR": "بارگذاری مکان‌ها ناموفق بود (HTTP {status}).",
+    "LOCATIONS_FETCH_FAILED": "بارگذاری مکان‌ها ناموفق بود.",
+    "LOCATIONS_LOAD_FAILED": "بارگذاری مکان‌ها ناموفق بود.",
+    "REGION_CREATE_HTTP_ERROR": "افزودن منطقه ناموفق بود (HTTP {status}).",
+    "REGION_CREATE_FAILED": "افزودن منطقه ناموفق بود.",
+    "DESTINATION_CREATE_HTTP_ERROR": "افزودن مقصد ناموفق بود (HTTP {status}).",
+    "DESTINATION_CREATE_FAILED": "افزودن مقصد ناموفق بود.",
+    "LOCATION_DELETE_HTTP_ERROR": "حذف مکان ناموفق بود (HTTP {status}).",
+    "LOCATION_DELETE_FAILED": "حذف مکان ناموفق بود.",
+    "TOUR_PRESETS_HTTP_ERROR": "بارگذاری پریست‌های تور ناموفق بود (HTTP {status}).",
+    "TOUR_PRESETS_FETCH_FAILED": "بارگذاری پریست‌های تور ناموفق بود.",
+    "TOUR_PRESETS_CREATE_HTTP_ERROR": "افزودن پریست تور ناموفق بود (HTTP {status}).",
+    "TOUR_PRESETS_CREATE_FAILED": "افزودن پریست تور ناموفق بود.",
+    "TOUR_PRESETS_DELETE_HTTP_ERROR": "حذف پریست تور ناموفق بود (HTTP {status}).",
+    "TOUR_PRESETS_DELETE_FAILED": "حذف پریست تور ناموفق بود.",
+    "PRESETS_ADVANCED_HTTP_ERROR": "بارگذاری پریست‌های پیشرفته ناموفق بود (HTTP {status}).",
+    "PRESETS_ADVANCED_FETCH_FAILED": "بارگذاری پریست‌های پیشرفته ناموفق بود.",
+    "PRESETS_ADVANCED_SAVE_HTTP_ERROR": "ذخیره پریست‌های پیشرفته ناموفق بود (HTTP {status}).",
+    "PRESETS_ADVANCED_SAVE_FAILED": "ذخیره پریست‌های پیشرفته ناموفق بود.",
+    "AUDIT_TRAIL_HTTP_ERROR": "بارگذاری رد پای حسابرسی ناموفق بود (HTTP {status}).",
+    "AUDIT_TRAIL_FETCH_FAILED": "بارگذاری رد پای حسابرسی ناموفق بود.",
+    "USERS_HTTP_ERROR": "بارگذاری فهرست کاربران ناموفق بود (HTTP {status}).",
+    "USERS_LOAD_FAILED": "بارگذاری فهرست کاربران ناموفق بود."
+  },
+  "backToHub": "بازگشت به تنظیمات",
+  "deleteItem": "حذف {name}",
+  "groups": {
+    "account": "حساب کاربری",
+    "workspace": "ورک‌اسپیس",
+    "templates": "تمپلیت‌ها",
+    "finance_ops": "مالی و عملیات"
+  },
+  "kinds": {
+    "reference_data": "داده مرجع",
+    "tenant_config": "تنظیم ورک‌اسپیس",
+    "readonly_explorer": "نمای فقط‌خواندنی",
+    "account_preference": "ترجیحات حساب"
+  },
+  "modules": {
+    "account_profile": {
+      "title": "پروفایل",
+      "description": "نام نمایشی و ترجیحات حساب شما."
+    },
+    "equipment": {
+      "title": "تجهیزات",
+      "description": "مدیریت تجهیزات و گزینه‌های مورد استفاده در تورها."
+    },
+    "guide_languages": {
+      "title": "زبان‌های راهنما",
+      "description": "زبان‌هایی که راهنماها می‌توانند به آن‌ها تخصیص یابند."
+    },
+    "tour_themes": {
+      "title": "تم‌های تور",
+      "description": "برچسب تم برای دسته‌بندی تورها."
+    },
+    "locations": {
+      "title": "مکان‌ها",
+      "description": "مناطق و مقاصد برای برنامه‌ریزی تور."
+    },
+    "tour_presets": {
+      "title": "پریست‌های تور",
+      "description": "نقطه شروع قابل‌استفاده مجدد برای انواع رایج تور."
+    },
+    "tour_wizard_template": {
+      "title": "تمپلیت فرم تور",
+      "description": "انتخاب فیلدهایی که هنگام ساخت تور جدید نمایش داده می‌شوند و مقادیر پیش‌فرض."
+    },
+    "tour_presets_advanced": {
+      "title": "پریست‌های پیشرفته",
+      "description": "تنظیم دقیق رفتار پریست و بازنویسی‌ها."
+    },
+    "audit_trail": {
+      "title": "رد پای حسابرسی",
+      "description": "بررسی اینکه چه کسی تنظیمات ورک‌اسپیس را و کی تغییر داده است."
+    },
+    "wizard_drafts": {
+      "title": "پیش‌نویس‌های ویزارد",
+      "description": "پیش‌نویس‌های تور در جریان و تاریخچه ذخیره آن‌ها."
+    },
+    "reconciliation_triage": {
+      "title": "اولویت‌بندی تطبیق",
+      "description": "بررسی استثناهای تطبیق پرداخت."
+    },
+    "workspace_branding": {
+      "title": "برند workspace",
+      "description": "لوگوی سازمان و نام نمایشی برای ورود و پنل اپراتور."
+    }
+  },
+  "branding": {
+    "title": "برند workspace",
+    "description": "لوگو و نام نمایشی در ورود، سایدبار و هدر ویزارد تور دیده می‌شوند.",
+    "logoSectionTitle": "لوگوی سازمان",
+    "logoSectionDescription": "PNG، JPEG یا WebP — حداکثر ۲ مگابایت.",
+    "logoPreviewAlt": "پیش‌نمایش لوگو",
+    "uploadLogo": "آپلود لوگو",
+    "uploading": "در حال آپلود…",
+    "removeLogo": "حذف لوگو",
+    "displayNameLabel": "نام نمایشی",
+    "displayNameHelper": "به‌جای نام محصول workspace نمایش داده می‌شود.",
+    "saveDisplayName": "ذخیره نام نمایشی",
+    "saving": "در حال ذخیره…",
+    "saved": "برند به‌روزرسانی شد.",
+    "readOnlyBanner": "می‌توانید برند workspace را ببینید؛ فقط مالک و مدیر می‌توانند آن را تغییر دهند."
+  },
+  "profile": {
+    "title": "پروفایل",
+    "subtitle": "حساب شما در این ورک‌اسپیس",
+    "cardTitle": "حساب",
+    "cardDescription": "ترجیحات شخصی برای {workspaceType}",
+    "displayName": "نام نمایشی",
+    "phone": "شماره موبایل",
+    "role": "نقش",
+    "status": "وضعیت",
+    "saved": "پروفایل ذخیره شد.",
+    "saveButton": "ذخیره پروفایل"
+  },
+  "equipment": {
+    "title": "تجهیزات",
+    "subtitle": "پایلوت CRUD عمومی (SMK-P9-08)",
+    "addTitle": "افزودن تجهیزات",
+    "category": "دسته",
+    "catalogTitle": "فهرست ({count, number})",
+    "empty": "هنوز تجهیزاتی ثبت نشده است.",
+    "deleteItem": "حذف {name}"
+  },
+  "guideLanguages": {
+    "title": "زبان‌های راهنما",
+    "subtitle": "فهرست زبان‌های راهنما در ورک‌اسپیس (فاز ۹.۶ R5)",
+    "addTitle": "افزودن زبان",
+    "slug": "شناسه",
+    "listTitle": "زبان‌ها ({count, number})",
+    "empty": "هنوز زبانی ثبت نشده است."
+  },
+  "tourThemes": {
+    "title": "تم‌های تور",
+    "subtitle": "فهرست تم‌های تور در ورک‌اسپیس (فاز ۹.۶ R4)",
+    "addTitle": "افزودن تم",
+    "listTitle": "تم‌ها ({count, number})",
+    "empty": "هنوز تمی ثبت نشده است."
+  },
+  "locations": {
+    "title": "مکان‌ها",
+    "subtitle": "مناطق و مقاصد (فاز ۹.۶ R4)",
+    "tabs": {
+      "regions": "مناطق",
+      "destinations": "مقاصد"
+    },
+    "addRegion": "افزودن منطقه",
+    "addDestination": "افزودن مقصد",
+    "country": "کشور",
+    "region": "منطقه",
+    "selectRegion": "انتخاب منطقه",
+    "regionsCount": "مناطق ({count, number})",
+    "destinationsCount": "مقاصد ({count, number})",
+    "noRegions": "هنوز منطقه‌ای ثبت نشده است.",
+    "noDestinations": "هنوز مقصدی ثبت نشده است.",
+    "regionLabel": "منطقه: {name}"
+  },
+  "tourPresets": {
+    "title": "پریست‌های تور",
+    "subtitle": "فهرست پریست‌های ساخت تور (فاز ۹.۶ R6)",
+    "addTitle": "افزودن پریست",
+    "theme": "تم",
+    "noTheme": "بدون تم",
+    "listTitle": "پریست‌ها ({count, number})",
+    "empty": "هنوز پریستی ثبت نشده است.",
+    "themeLabel": "تم: {name}"
+  },
+  "presetsAdvanced": {
+    "backToPresets": "بازگشت به پریست‌های تور",
+    "title": "پریست‌های پیشرفته",
+    "subtitle": "تنظیم tenant برای تطبیق خودکار پریست (فاز ۹.۶ R7)",
+    "saved": "پریست‌های پیشرفته ذخیره شد — کش باطل شد (DEC-P9-005).",
+    "matchingRules": {
+      "title": "قوانین تطبیق",
+      "description": "تطبیق خودکار را فعال کنید و در صورت نیاز پریست پیش‌فرض برای تورهای جدید تنظیم کنید"
+    },
+    "autoMatch": "فعال‌سازی تطبیق خودکار پریست",
+    "defaultPresetId": "شناسه پریست پیش‌فرض",
+    "defaultPresetPlaceholder": "preset-uuid (اختیاری)",
+    "rulesTitle": "قوانین تطبیق ({count, number})",
+    "ruleId": "شناسه قانون",
+    "ruleIdPlaceholder": "mountain-default",
+    "addRule": "افزودن قانون",
+    "noRules": "هنوز قانون سفارشی تنظیم نشده است.",
+    "disabled": "(غیرفعال)",
+    "saveButton": "ذخیره پریست‌های پیشرفته"
+  },
+  "wizardTemplate": {
+    "title": "تمپلیت ویزارد تور",
+    "subtitle": "انتخاب فیلدهایی که هنگام ساخت تور جدید نمایش داده می‌شوند.",
+    "cardTitle": "فرم تور جدید",
+    "cardDescription": "فیلدها را از کاتالوگ ورک‌اسپیس انتخاب کنید، پیش‌فرض‌ها را تنظیم کنید و سپس منتشر کنید تا صفحه ساخت تور فعال شود.",
+    "seedLabel": "عنوان پیش‌فرض تور",
+    "seedHelper": "متن جایگزین اختیاری برای فیلد عنوان هنگام باز کردن فرم تور جدید.",
+    "seedPlaceholder": "مثال: تور کوهنوردی تابستان",
+    "publishLabel": "انتشار فرم تور",
+    "publishHelper": "تا زمانی که فرم با حداقل یک فیلد منتشر نشود، پرسنل نمی‌توانند تور بسازند.",
+    "fieldsHeading": "فیلدهای فرم",
+    "fieldsHelper": "فیلدهای چندبخشی در ویزارد تور ویرایشگر تخصصی باز می‌کنند.",
+    "searchPlaceholder": "جستجوی فیلدها…",
+    "selectedCount": "{count, plural, one {# فیلد انتخاب‌شده} other {# فیلد انتخاب‌شده}}",
+    "requiredLabel": "اجباری",
+    "defaultLabel": "مقدار پیش‌فرض",
+    "saveButton": "ذخیره تمپلیت",
+    "loadFullTemplateButton": "بارگذاری تمپلیت کامل Denali",
+    "loadFullTemplateHelper": "جایگزینی انتخاب فیلدها با چیدمان legacy ساخت تور Denali (دسته‌بندی اول، همه فیلدهای رجیستری). بازبینی کنید و ذخیره کنید.",
+    "success": "تمپلیت ذخیره شد. تورهای جدید از آخرین انتخاب فیلدها استفاده می‌کنند.",
+    "readOnlyBanner": "می‌توانید این تمپلیت را ببینید اما فقط مالک و ادمین می‌توانند آن را تغییر دهند.",
+    "compositeHint": "ویرایشگر تخصصی با چند ورودی باز می‌کند.",
+    "noSearchResults": "فیلدی با این جستجو پیدا نشد.",
+    "errors": {
+      "publishNoFields": "قبل از انتشار فرم تور حداقل یک فیلد انتخاب کنید.",
+      "loadFailed": "بارگذاری تمپلیت ویزارد ناموفق بود. صفحه را رفرش کنید.",
+      "saveFailed": "ذخیره تمپلیت ویزارد ناموفق بود. دوباره تلاش کنید.",
+      "loadHttp": "بارگذاری تنظیمات ناموفق بود (پاسخ سرور {status}). صفحه را رفرش کنید.",
+      "saveHttp": "ذخیره تمپلیت ناموفق بود (پاسخ سرور {status}). دوباره تلاش کنید."
+    }
+  },
+  "auditTrail": {
+    "title": "رد پای حسابرسی",
+    "subtitle": "گزارش فعالیت tenant فقط‌خواندنی (فاز ۹.۶ R3)",
+    "eventsTitle": "رویدادها ({count, number})",
+    "empty": "هنوز رویداد حسابرسی ثبت نشده است."
+  },
+  "wizardDrafts": {
+    "title": "پیش‌نویس‌های ویزارد",
+    "subtitle": "تصویر لحظه‌ای ویزاردها و تاریخچه تغییرات",
+    "listTitle": "پیش‌نویس‌ها ({count, number})",
+    "empty": "هنوز پیش‌نویس ویزاردی ذخیره نشده است.",
+    "rowMeta": "نسخه {version, number} · به‌روز {updatedAt}",
+    "showEvents": "نمایش تاریخچه",
+    "hideEvents": "پنهان کردن تاریخچه",
+    "resumeWizard": "ادامه ویزارد",
+    "backToHub": "بازگشت به تنظیمات"
+  },
+  "reconciliation": {
+    "forbidden": "اولویت‌بندی تطبیق فقط برای ادمین یا مالک در دسترس است.",
+    "title": "اولویت‌بندی تطبیق",
+    "subtitle": "یافته‌های مالی باز از گزارش‌ها و برنامه اقساط",
+    "refresh": "بروزرسانی یافته‌ها",
+    "openLedger": "باز کردن تب دفتر",
+    "resolveInFinance": "رفع در بخش مالی",
+    "allClear": {
+      "title": "همه مرتب است",
+      "description": "یافته تطبیق بازی برای این ورک‌اسپیس وجود ندارد."
+    },
+    "severity": {
+      "critical": "بحرانی",
+      "warning": "هشدار",
+      "info": "اطلاع"
+    },
+    "errors": {
+      "SUMMARY_HTTP_ERROR": "بارگذاری خلاصه مالی ناموفق بود (HTTP {status}).",
+      "TRIAGE_FETCH_FAILED": "بارگذاری یافته‌های تطبیق ناموفق بود."
+    },
+    "findings": {
+      "pending-receipt-reviews": {
+        "title": "رسیدهای در انتظار بررسی",
+        "detail": "رسیدهای پرداخت دستی قبل از ثبت در دفتر نیاز به تأیید اپراتور دارند."
+      },
+      "pending-manual-payments": {
+        "title": "پرداخت‌های دستی باز",
+        "detail": "ثبت‌نام‌هایی با قصد پرداخت دستی پرداخت‌نشده."
+      },
+      "failed-payments": {
+        "title": "تراکنش‌های ناموفق",
+        "detail": "قبل از تطبیق مانده دفتر، تراکنش‌های ناموفق را بررسی کنید."
+      },
+      "ledger-journal-gap": {
+        "title": "شکاف دفتر روزنامه",
+        "detail": "پرداخت‌های انجام‌شده بدون رویداد دفتر متناظر — قبل از بستن حساب‌ها relay outbox را بررسی کنید."
+      },
+      "overdue-installments": {
+        "title": "اقساط معوق",
+        "detail": "اقساط گذشته از سررسید نیاز به پیگیری یا زمان‌بندی مجدد دارند."
+      }
+    }
+  },
+  "urban": {
+    "title": "تنظیمات ورک‌اسپیس Urban",
+    "loadError": "بارگذاری تنظیمات Urban ممکن نشد ({status}).",
+    "catalogEnabled": "کاتالوگ فعال",
+    "catalogSlug": "اسلاگ کاتالوگ",
+    "registrationPolicy": "سیاست ثبت‌نام",
+    "yes": "بله",
+    "no": "خیر",
+    "viewCatalog": "مشاهده کاتالوگ عمومی"
+  }
+}

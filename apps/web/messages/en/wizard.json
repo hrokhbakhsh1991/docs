@@ -1,0 +1,69 @@
+{
+  "loading": "Loading tour wizard…",
+  "clone": {
+    "loading": "Loading tour to duplicate…",
+    "error": "Could not load tour to duplicate ({error})."
+  },
+  "notConfigured": {
+    "title": "Tour wizard not configured",
+    "description": "Publish a tour wizard template in Settings before creating tours. The create form is built from your tenant template — not a fixed default.",
+    "configureLink": "Configure wizard template"
+  },
+  "pageTitle": "Create tour",
+  "pageSubtitle": "Complete each step — fields update when you change tour type.",
+  "seedApplied": "Default tour title: {label}",
+  "createButton": "Create tour",
+  "saveDraft": "Save draft",
+  "savingDraft": "Saving draft…",
+  "creating": "Creating tour…",
+  "created": "Tour created: {id}",
+  "submit": {
+    "errorGeneric": "Tour creation failed ({status}: {code})",
+    "validationFailed": "Fix the highlighted fields before creating the tour."
+  },
+  "host": {
+    "loadError": "Wizard failed to load: {error}",
+    "loading": "Loading workspace wizard…",
+    "noFields": "No wizard fields configured for this template.",
+    "contentQuality": {
+      "label": "Content quality — {percent, number}%",
+      "fraction": "{earned, number} / {total, number} pts",
+      "aria": "Tour content quality {percent, number} percent complete",
+      "meterAria": "Content quality progress {percent, number} percent"
+    },
+    "draftIndex": {
+      "summary": "{count, plural, one {# saved draft in this workspace} other {# saved drafts in this workspace}}"
+    },
+    "draftEvents": {
+      "title": "Draft history",
+      "action": {
+        "created": "Draft created",
+        "updated": "Draft saved",
+        "deleted": "Draft cleared"
+      }
+    }
+  },
+  "bridge": {
+    "navAria": "Wizard navigation",
+    "mainAria": "Create tour",
+    "backToTours": "Tours",
+    "backToDashboard": "Dashboard"
+  },
+  "stepShell": {
+    "progressAria": "Tour wizard progress",
+    "stepOf": "Step {current, number} of {total, number}",
+    "stepOfWithLabel": "Step {current, number} of {total, number} — {label}",
+    "back": "Back",
+    "continue": "Continue"
+  },
+  "accessDenied": {
+    "title": "Access denied",
+    "description": "You do not have permission to load this workspace wizard."
+  },
+  "field": {
+    "selectPlaceholder": "Select…",
+    "unsupportedEditor": "uses a specialized editor that is not available in this wizard shell.",
+    "readOnly": "read-only",
+    "emptyValue": "—"
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "pageTitle": "مرکز رزروها",
+  "detailTitle": "جزئیات رزرو",
+  "pageSubtitle": "بررسی، تأیید و مدیریت ثبت‌نام‌ها",
+  "newBooking": "رزرو دستی",
+  "leaderReviewTitle": "صف بررسی راهنما",
+  "leaderReviewNote": "مسیر legacy بررسی راهنما — همان پوسته رزروها",
+  "newRegistration": "ثبت‌نام جدید",
+  "searchPlaceholder": "جستجو…",
+  "status": {
+    "all": "همه",
+    "pending": "در انتظار",
+    "approved": "تأییدشده",
+    "waitlisted": "لیست انتظار",
+    "rejected": "ردشده",
+    "cancelled": "لغوشده"
+  },
+  "allTours": "همه تورها",
+  "kpi": {
+    "pending": "در انتظار",
+    "approvedToday": "تأییدشده امروز",
+    "departures7d": "حرکت ۷ روز آینده",
+    "waitlist": "لیست انتظار"
+  },
+  "bulkApprove": "تأیید انتخاب‌شده‌ها ({count, number})",
+  "lockedTitle": "صف عملیات محدود است",
+  "lockedDescription": "اعضا فقط ثبت‌نام‌های خود را می‌بینند. از منوی حساب به نمای «من» بروید یا با ادمین تماس بگیرید.",
+  "emptyFiltered": "ثبت‌نامی با فیلترهای فعلی پیدا نشد.",
+  "inbox": "صندوق ورودی ({count, number})",
+  "inspection": "بازبینی",
+  "selectRegistration": "یک ثبت‌نام را برای بازبینی انتخاب کنید.",
+  "timeline": {
+    "submitted": "ثبت درخواست",
+    "status": "وضعیت فعلی",
+    "payment": "وضعیت پرداخت",
+    "departure": "تاریخ حرکت",
+    "statusValue": {
+      "pending": "در انتظار تأیید",
+      "approved": "تأییدشده",
+      "waitlisted": "لیست انتظار",
+      "rejected": "ردشده",
+      "cancelled": "لغوشده"
+    },
+    "paymentValue": {
+      "unpaid": "پرداخت‌نشده",
+      "partial": "پرداخت جزئی",
+      "paid": "پرداخت‌شده"
+    }
+  },
+  "fields": {
+    "party": "تعداد نفرات",
+    "departure": "حرکت",
+    "payment": "پرداخت",
+    "status": "وضعیت"
+  },
+  "approve": "تأیید",
+  "reject": "رد",
+  "selectGuest": "انتخاب {guest}",
+  "payment": {
+    "all": "همه پرداخت‌ها",
+    "unpaid": "پرداخت‌نشده",
+    "partial": "جزئی",
+    "paid": "پرداخت‌شده"
+  },
+  "metadata": {
+    "list": {
+      "title": "مرکز رزروها",
+      "description": "مدیریت ثبت‌نام‌های اپراتور"
+    },
+    "create": {
+      "title": "رزرو دستی",
+      "description": "ایجاد دستی ثبت‌نام در انتظار"
+    },
+    "leaderReview": {
+      "title": "صف بررسی راهنما",
+      "description": "مسیر legacy به مرکز رزروها"
+    }
+  },
+  "errors": {
+    "BOOKINGS_OPS_FORBIDDEN": "دسترسی به صف عملیات رزروها مجاز نیست.",
+    "BOOKINGS_LIST_HTTP_ERROR": "بارگذاری رزروها ناموفق بود (HTTP {status}).",
+    "BOOKINGS_FETCH_FAILED": "بارگذاری رزروها ناموفق بود.",
+    "BOOKINGS_BULK_APPROVE_HTTP_ERROR": "تأیید گروهی ناموفق بود (HTTP {status}).",
+    "BOOKINGS_BULK_APPROVE_FAILED": "تأیید گروهی ناموفق بود.",
+    "BOOKINGS_APPROVE_HTTP_ERROR": "تأیید رزرو ناموفق بود (HTTP {status}).",
+    "BOOKINGS_REJECT_HTTP_ERROR": "رد رزرو ناموفق بود (HTTP {status}).",
+    "BOOKINGS_ACTION_FAILED": "عملیات رزرو ناموفق بود."
+  },
+  "create": {
+    "pageTitle": "ثبت‌نام جدید",
+    "pageSubtitle": "ایجاد دستی رزرو در انتظار برای تور مدیریت‌شده",
+    "backAria": "بازگشت به مرکز رزروها",
+    "lockedTitle": "ثبت دستی محدود است",
+    "lockedDescription": "فقط اپراتورهای ادمین و مالک می‌توانند دستی ثبت‌نام ایجاد کنند.",
+    "guestDetails": "مشخصات مهمان",
+    "formDescription": "ثبت‌نام‌های ارسالی در مرکز رزروها به‌صورت در انتظار نمایش داده می‌شوند",
+    "tour": "تور",
+    "selectTour": "انتخاب تور",
+    "scheduledDeparture": "حرکت برنامه‌ریزی‌شده: {date}",
+    "guestName": "نام مهمان",
+    "guestNamePlaceholder": "نام کامل",
+    "partySize": "تعداد نفرات",
+    "departureDate": "تاریخ حرکت",
+    "emailOptional": "ایمیل (اختیاری)",
+    "phoneOptional": "تلفن (اختیاری)",
+    "submit": "ایجاد رزرو در انتظار",
+    "errors": {
+      "TOURS_FETCH_FAILED": "بارگذاری تورها ناموفق بود.",
+      "BOOKING_CREATE_INVALID": "اطلاعات فرم نامعتبر است.",
+      "BOOKING_CREATE_FORBIDDEN": "اجازه ایجاد رزرو ندارید.",
+      "BOOKING_CREATE_FAILED": "ایجاد رزرو ناموفق بود."
+    }
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "pageTitle": "Bookings",
+  "detailTitle": "Booking details",
+  "pageSubtitle": "Review, approve, and manage registrations",
+  "newBooking": "New booking",
+  "leaderReviewTitle": "Leader review queue",
+  "leaderReviewNote": "Legacy leader review alias — shared bookings shell",
+  "newRegistration": "New registration",
+  "searchPlaceholder": "Search…",
+  "status": {
+    "all": "All",
+    "pending": "Pending",
+    "approved": "Approved",
+    "waitlisted": "Waitlist",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled"
+  },
+  "allTours": "All tours",
+  "kpi": {
+    "pending": "Pending",
+    "approvedToday": "Approved today",
+    "departures7d": "Departures 7d",
+    "waitlist": "Waitlist"
+  },
+  "bulkApprove": "Approve selected ({count, number})",
+  "lockedTitle": "Ops queue restricted",
+  "lockedDescription": "Members can only view their own registrations. Switch to mine view from your account menu or contact an admin.",
+  "emptyFiltered": "No registrations match the current filters.",
+  "inbox": "Inbox ({count, number})",
+  "inspection": "Inspection",
+  "selectRegistration": "Select a registration to inspect.",
+  "timeline": {
+    "submitted": "Submitted",
+    "status": "Current status",
+    "payment": "Payment",
+    "departure": "Departure",
+    "statusValue": {
+      "pending": "Pending approval",
+      "approved": "Approved",
+      "waitlisted": "Waitlisted",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "paymentValue": {
+      "unpaid": "Unpaid",
+      "partial": "Partially paid",
+      "paid": "Paid"
+    }
+  },
+  "fields": {
+    "party": "Party",
+    "departure": "Departure",
+    "payment": "Payment",
+    "status": "Status"
+  },
+  "approve": "Approve",
+  "reject": "Reject",
+  "selectGuest": "Select {guest}",
+  "payment": {
+    "all": "All payments",
+    "unpaid": "Unpaid",
+    "partial": "Partial",
+    "paid": "Paid"
+  },
+  "metadata": {
+    "list": {
+      "title": "Bookings",
+      "description": "Operator registration command center"
+    },
+    "create": {
+      "title": "New booking",
+      "description": "Manual pending registration create"
+    },
+    "leaderReview": {
+      "title": "Leader review",
+      "description": "Legacy alias to Registration Command Center"
+    }
+  },
+  "errors": {
+    "BOOKINGS_OPS_FORBIDDEN": "Bookings ops queue access is not allowed.",
+    "BOOKINGS_LIST_HTTP_ERROR": "Failed to load bookings (HTTP {status}).",
+    "BOOKINGS_FETCH_FAILED": "Failed to load bookings.",
+    "BOOKINGS_BULK_APPROVE_HTTP_ERROR": "Bulk approve failed (HTTP {status}).",
+    "BOOKINGS_BULK_APPROVE_FAILED": "Bulk approve failed.",
+    "BOOKINGS_APPROVE_HTTP_ERROR": "Approve booking failed (HTTP {status}).",
+    "BOOKINGS_REJECT_HTTP_ERROR": "Reject booking failed (HTTP {status}).",
+    "BOOKINGS_ACTION_FAILED": "Booking action failed."
+  },
+  "create": {
+    "pageTitle": "New registration",
+    "pageSubtitle": "Manually create a pending booking for an operator-managed tour",
+    "backAria": "Back to bookings",
+    "lockedTitle": "Manual create restricted",
+    "lockedDescription": "Only admin and owner operators can create registrations manually.",
+    "guestDetails": "Guest details",
+    "formDescription": "Submitted bookings appear in the Command Center as pending",
+    "tour": "Tour",
+    "selectTour": "Select a tour",
+    "scheduledDeparture": "Scheduled departure: {date}",
+    "guestName": "Guest name",
+    "guestNamePlaceholder": "Full name",
+    "partySize": "Party size",
+    "departureDate": "Departure date",
+    "emailOptional": "Email (optional)",
+    "phoneOptional": "Phone (optional)",
+    "submit": "Create pending booking",
+    "errors": {
+      "TOURS_FETCH_FAILED": "Failed to load tours.",
+      "BOOKING_CREATE_INVALID": "Invalid form data.",
+      "BOOKING_CREATE_FORBIDDEN": "You are not allowed to create bookings.",
+      "BOOKING_CREATE_FAILED": "Booking create failed."
+    }
+  }
+}

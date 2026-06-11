@@ -1,0 +1,26 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(0 0 0 / 40%);
+  border: none;
+  padding: 0;
+}
+
+.panel {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 50;
+  width: min(85vw, var(--shell-sidebar-width, 17.5rem));
+  background: var(--color-surface, #fff);
+  padding: var(--space-4, 1rem);
+  box-shadow: 0 0 1rem rgb(0 0 0 / 15%);
+}
+
+@media (min-width: 48rem) {
+  .backdrop,
+  .panel {
+    display: none;
+  }
+}

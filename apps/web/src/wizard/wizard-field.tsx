@@ -2,10 +2,27 @@
 
 import type { RenderFieldPlan } from "@app-tour/platform-core";
 import type { WorkspaceFieldKind } from "@app-tour/workspace-sdk/plugin-types";
+import { wizardFieldPathAttributes } from "@app-tour/wizard-navigation";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { Input } from "@app-tour/ui-primitives/input";
 import { Select, type SelectOption } from "@app-tour/ui-primitives/select";
+import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import React, { type ReactNode } from "react";
+
+import { LocalizedDatePicker } from "@/components/i18n/localized-date-picker";
+import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
+import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
+import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
+import { resolveWizardTemplateFieldLabel } from "@/tours/wizard-template-field-labels";
+
+const DenaliCompositeField = dynamic(
+  () => import("./denali/denali-composite-field").then((mod) => mod.DenaliCompositeField),
+  {
+    ssr: false,
+    loading: () => <p data-denali-wizard-composite-loading aria-busy="true" />,
+  }
+);
 
 /** Kinds wired to ui-primitives subpaths in the Phase 3 shell. */
 export const SUPPORTED_WIZARD_FIELD_KINDS = [
@@ -21,11 +38,17 @@ export const DEFERRED_WIZARD_FIELD_KINDS = [
   "composite",
 ] as const satisfies readonly WorkspaceFieldKind[];
 
+function fieldMarkerProps(field: RenderFieldPlan) {
+  return wizardFieldPathAttributes(field.canonicalPath, field.fieldId);
+}
+
 type WizardFieldRendererProps = {
   readonly field: RenderFieldPlan;
   readonly value: string;
   readonly onChange: (next: string) => void;
   readonly label: string;
+  readonly dataTestId?: string;
+  readonly selectPlaceholder: string;
 };
 
 export function parseEnumOptions(field: RenderFieldPlan): readonly SelectOption[] {
@@ -47,12 +70,19 @@ export function parseEnumOptions(field: RenderFieldPlan): readonly SelectOption[
   }
 }
 
-function renderTextField({ field, value, onChange, label }: WizardFieldRendererProps): ReactNode {
+function renderTextField({
+  field,
+  value,
+  onChange,
+  label,
+  dataTestId,
+}: WizardFieldRendererProps): ReactNode {
   return (
-    <label>
+    <label {...fieldMarkerProps(field)}>
       <span>{label}</span>
       <Input
         name={field.fieldId}
+        data-testid={dataTestId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={field.required}
@@ -63,10 +93,16 @@ function renderTextField({ field, value, onChange, label }: WizardFieldRendererP
   );
 }
 
-function renderEnumField({ field, value, onChange, label }: WizardFieldRendererProps): ReactNode {
+function renderEnumField({
+  field,
+  value,
+  onChange,
+  label,
+  selectPlaceholder,
+}: WizardFieldRendererProps): ReactNode {
   const options = parseEnumOptions(field);
   return (
-    <label>
+    <label {...fieldMarkerProps(field)}>
       <span>{label}</span>
       <Select
         name={field.fieldId}
@@ -76,7 +112,7 @@ function renderEnumField({ field, value, onChange, label }: WizardFieldRendererP
         onChange={(event) => onChange(event.target.value)}
         required={field.required}
         aria-required={field.required || undefined}
-        placeholder={field.uiHints?.placeholder ?? "Select…"}
+        placeholder={field.uiHints?.placeholder ?? selectPlaceholder}
       />
     </label>
   );
@@ -90,7 +126,7 @@ function renderBooleanField({
 }: WizardFieldRendererProps): ReactNode {
   const checked = value === "true";
   return (
-    <label>
+    <label {...fieldMarkerProps(field)}>
       <Checkbox
         name={field.fieldId}
         aria-label={label}
@@ -106,13 +142,13 @@ function renderBooleanField({
 
 function renderNumberField({ field, value, onChange, label }: WizardFieldRendererProps): ReactNode {
   return (
-    <label>
+    <label {...fieldMarkerProps(field)}>
       <span>{label}</span>
-      <Input
+      <PrimitiveLocalizedNumericInput
         name={field.fieldId}
-        type="number"
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={onChange}
+        mode="decimal"
         required={field.required}
         aria-required={field.required || undefined}
         placeholder={field.uiHints?.placeholder}
@@ -123,16 +159,16 @@ function renderNumberField({ field, value, onChange, label }: WizardFieldRendere
 
 function renderDateField({ field, value, onChange, label }: WizardFieldRendererProps): ReactNode {
   return (
-    <label>
+    <label {...fieldMarkerProps(field)}>
       <span>{label}</span>
-      <Input
-        name={field.fieldId}
-        type="date"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={field.required}
-        aria-required={field.required || undefined}
-      />
+      <div data-wizard-date-picker>
+        <LocalizedDatePicker
+          value={value}
+          onChange={onChange}
+          required={field.required}
+          aria-label={label}
+        />
+      </div>
     </label>
   );
 }
@@ -151,27 +187,29 @@ export const WIZARD_FIELD_RENDERERS: Readonly<
 function UnsupportedWizardField({
   field,
   value,
+  label,
+  unsupportedEditor,
+  readOnlyLabel,
+  emptyValue,
 }: {
   readonly field: RenderFieldPlan;
   readonly value: string;
+  readonly label: string;
+  readonly unsupportedEditor: string;
+  readonly readOnlyLabel: string;
+  readonly emptyValue: string;
 }) {
-  const label = field.canonicalPath;
-
   return (
     <div
+      {...fieldMarkerProps(field)}
       data-unsupported-kind={field.kind}
-      data-field-id={field.fieldId}
       role="status"
       aria-live="polite"
     >
       <p>
-        <strong>{label}</strong> — not supported in Phase 3 shell ({field.kind})
+        <strong>{label}</strong> {unsupportedEditor}
       </p>
-      <output aria-label={`${label} (read-only)`}>{value || "—"}</output>
-      <p data-unsupported-hint>
-        Supported kinds: {SUPPORTED_WIZARD_FIELD_KINDS.join(", ")}. Deferred:{" "}
-        {DEFERRED_WIZARD_FIELD_KINDS.join(", ")}.
-      </p>
+      <output aria-label={`${label} (${readOnlyLabel})`}>{value || emptyValue}</output>
     </div>
   );
 }
@@ -180,20 +218,70 @@ export function WizardField({
   field,
   value,
   onChange,
+  dataTestId,
+  pluginId,
+  draft,
+  onDraftChange,
+  wizardSessionId,
+  workspaceFormProfile,
 }: {
   readonly field: RenderFieldPlan;
   readonly value: string;
   readonly onChange: (next: string) => void;
+  readonly dataTestId?: string;
+  readonly pluginId?: string;
+  readonly draft?: TourWizardDraft;
+  readonly onDraftChange?: (draft: TourWizardDraft) => void;
+  readonly wizardSessionId?: string;
+  readonly workspaceFormProfile?: string;
 }) {
+  const tDenali = useTranslations("denali");
+  const tField = useTranslations("wizard.field");
+  const label =
+    pluginId === "denali"
+      ? resolveDenaliFieldLabel(tDenali, field.canonicalPath)
+      : resolveWizardTemplateFieldLabel(field.canonicalPath, pluginId);
+
   if (field.hidden) {
     return null;
   }
 
-  const label = field.canonicalPath;
-  const render = WIZARD_FIELD_RENDERERS[field.kind];
-  if (render) {
-    return render({ field, value, onChange, label });
+  if (field.kind === "composite" && pluginId === "denali" && draft !== undefined && onDraftChange) {
+    const compositeId = field.uiHints?.compositeId ?? field.fieldId;
+    if (compositeId.length > 0) {
+      return (
+        <DenaliCompositeField
+          compositeId={compositeId}
+          field={field}
+          draft={draft}
+          onDraftChange={onDraftChange}
+          wizardSessionId={wizardSessionId}
+          workspaceFormProfile={workspaceFormProfile}
+        />
+      );
+    }
   }
 
-  return <UnsupportedWizardField field={field} value={value} />;
+  const render = WIZARD_FIELD_RENDERERS[field.kind];
+  if (render) {
+    return render({
+      field,
+      value,
+      onChange,
+      label,
+      dataTestId,
+      selectPlaceholder: tField("selectPlaceholder"),
+    });
+  }
+
+  return (
+    <UnsupportedWizardField
+      field={field}
+      value={value}
+      label={label}
+      unsupportedEditor={tField("unsupportedEditor")}
+      readOnlyLabel={tField("readOnly")}
+      emptyValue={tField("emptyValue")}
+    />
+  );
 }

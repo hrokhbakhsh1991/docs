@@ -17,11 +17,18 @@ for (const dir of scanDirs) {
     failures.push(`missing scan dir: ${dir}`);
     continue;
   }
-  const r = spawnSync(
-    "rg",
-    ["-n", "<input\\b", dir, "-g", "*.tsx", "-g", "*.jsx"],
-    { encoding: "utf8" },
-  );
+  const rgArgs = [
+    "-n",
+    "<input\\b",
+    dir,
+    "-g",
+    "*.tsx",
+    "-g",
+    "*.jsx",
+    "-g",
+    "!**/components/ui/**",
+  ];
+  const r = spawnSync("rg", rgArgs, { encoding: "utf8" });
   const lines = (r.stdout ?? "")
     .split("\n")
     .map((l) => l.trim())

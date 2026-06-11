@@ -1,0 +1,69 @@
+{
+  "loading": "در حال بارگذاری ویزارد تور…",
+  "clone": {
+    "loading": "در حال بارگذاری تور برای کپی…",
+    "error": "بارگذاری تور برای کپی ناموفق بود ({error})."
+  },
+  "notConfigured": {
+    "title": "ویزارد تور پیکربندی نشده است",
+    "description": "قبل از ساخت تور، تمپلیت ویزارد را در تنظیمات منتشر کنید. فرم ساخت از تمپلیت tenant شما ساخته می‌شود — نه یک پیش‌فرض ثابت.",
+    "configureLink": "پیکربندی تمپلیت ویزارد"
+  },
+  "pageTitle": "ساخت تور",
+  "pageSubtitle": "هر مرحله را تکمیل کنید — با تغییر نوع تور، فیلدها به‌روز می‌شوند.",
+  "seedApplied": "عنوان پیش‌فرض تور: {label}",
+  "createButton": "ساخت تور",
+  "saveDraft": "ذخیره پیش‌نویس",
+  "savingDraft": "در حال ذخیره پیش‌نویس…",
+  "creating": "در حال ساخت تور…",
+  "created": "تور ساخته شد: {id}",
+  "submit": {
+    "errorGeneric": "ساخت تور ناموفق بود ({status}: {code})",
+    "validationFailed": "قبل از ایجاد تور، فیلدهای مشخص‌شده را اصلاح کنید."
+  },
+  "host": {
+    "loadError": "بارگذاری ویزارد ناموفق بود: {error}",
+    "loading": "در حال بارگذاری ویزارد workspace…",
+    "noFields": "فیلدی برای این تمپلیت پیکربندی نشده است.",
+    "contentQuality": {
+      "label": "کیفیت محتوا — {percent, number}٪",
+      "fraction": "{earned, number} / {total, number} امتیاز",
+      "aria": "کیفیت محتوای تور {percent, number} درصد تکمیل شده",
+      "meterAria": "پیشرفت کیفیت محتوا {percent, number} درصد"
+    },
+    "draftIndex": {
+      "summary": "{count, plural, one {# پیش‌نویس ذخیره‌شده در این workspace} other {# پیش‌نویس ذخیره‌شده در این workspace}}"
+    },
+    "draftEvents": {
+      "title": "تاریخچه پیش‌نویس",
+      "action": {
+        "created": "پیش‌نویس ساخته شد",
+        "updated": "پیش‌نویس ذخیره شد",
+        "deleted": "پیش‌نویس پاک شد"
+      }
+    }
+  },
+  "bridge": {
+    "navAria": "ناوبری ویزارد",
+    "mainAria": "ساخت تور",
+    "backToTours": "تورها",
+    "backToDashboard": "داشبورد"
+  },
+  "stepShell": {
+    "progressAria": "پیشرفت ویزارد تور",
+    "stepOf": "مرحله {current, number} از {total, number}",
+    "stepOfWithLabel": "مرحله {current, number} از {total, number} — {label}",
+    "back": "قبلی",
+    "continue": "ادامه"
+  },
+  "accessDenied": {
+    "title": "دسترسی مجاز نیست",
+    "description": "مجوز بارگذاری ویزارد این workspace را ندارید."
+  },
+  "field": {
+    "selectPlaceholder": "انتخاب…",
+    "unsupportedEditor": "از ویرایشگر تخصصی استفاده می‌کند که در این پوسته ویزارد در دسترس نیست.",
+    "readOnly": "فقط‌خواندنی",
+    "emptyValue": "—"
+  }
+}

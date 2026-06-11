@@ -1,0 +1,191 @@
+{
+  "metadata": {
+    "title": "کاربران",
+    "description": "فهرست تیم سازمان"
+  },
+  "title": "کاربران",
+  "subtitle": "مدیریت اعضای تیم",
+  "exportCsv": "خروجی CSV",
+  "inviteButton": "دعوت",
+  "tabs": {
+    "active": "اعضا",
+    "pending": "دعوت‌ها"
+  },
+  "searchPlaceholder": "جستجو با نام یا تلفن…",
+  "roles": {
+    "all": "همه",
+    "owner": "مالک",
+    "admin": "ادمین",
+    "member": "عضو",
+    "viewer": "بیننده"
+  },
+  "status": {
+    "suspended": "معطل",
+    "active": "فعال",
+    "removed": "حذف‌شده"
+  },
+  "statusFilter": {
+    "all": "همه وضعیت‌ها",
+    "active": "فعال",
+    "suspended": "معطل"
+  },
+  "inviteForm": {
+    "title": "دعوت هم‌تیمی",
+    "phone": "تلفن",
+    "phonePlaceholder": "+989121234567",
+    "role": "نقش",
+    "nameNote": "یادداشت نام (اختیاری)",
+    "sending": "در حال ارسال…",
+    "send": "ارسال دعوت",
+    "preview": {
+      "admin": {
+        "line1": "دسترسی عملیاتی به تورها، رزروها و تنظیمات (پنل ادمین آینده).",
+        "line2": "بدون دسترسی به این پنل مالک — نقش تیم برای بعد ذخیره می‌شود."
+      },
+      "member": {
+        "line1": "مشاهده تورها و مدیریت رزروهای خود.",
+        "line2": "بدون دعوت یا تغییر نقش."
+      },
+      "viewer": {
+        "line1": "مشاهدهٔ read-only تورها و رزروها.",
+        "line2": "بدون دعوت، تغییر نقش یا تنظیمات."
+      }
+    }
+  },
+  "empty": {
+    "pending": "دعوتی در انتظار نیست. برای گسترش تیم، دعوت ارسال کنید.",
+    "active": "هنوز عضوی در تیم نیست. اولین هم‌تیمی را دعوت کنید."
+  },
+  "counts": {
+    "members": "{count, number} عضو",
+    "pendingInvites": "{count, number} دعوت در انتظار"
+  },
+  "rewards": {
+    "title": "پاداش — {name}",
+    "discountLabel": "تخفیف دائمی (٪)",
+    "discountPlaceholder": "۰–۱۰۰",
+    "loyaltyTierLabel": "سطح وفاداری",
+    "loyaltyNone": "بدون سطح",
+    "loyaltyVip": "VIP",
+    "loyaltyGold": "GOLD",
+    "labelsLabel": "برچسب‌ها",
+    "labelsPlaceholder": "برچسب جدید…",
+    "labelsAdd": "افزودن",
+    "labelsEmpty": "برچسبی ثبت نشده.",
+    "selectableLeader": "راهنمای قابل انتخاب تور",
+    "leaderBuddyToggle": "نشان Leader buddy",
+    "rowLeaderBadge": "راهنما",
+    "leaderBuddyBadge": "همراه",
+    "saving": "در حال ذخیره…",
+    "save": "ذخیره پاداش"
+  },
+  "actions": {
+    "openRowMenu": "عملیات ردیف",
+    "details": "جزئیات",
+    "resend": "ارسال مجدد",
+    "revoke": "لغو",
+    "setRole": "تنظیم {role}",
+    "rewards": "پاداش",
+    "suspend": "تعلیق",
+    "reactivate": "فعال‌سازی",
+    "remove": "حذف",
+    "removeConfirm": "این هم‌تیمی از سازمان حذف شود؟",
+    "suspendConfirm": "این هم‌تیمی معطل شود؟ دسترسی او لغو می‌شود."
+  },
+  "sort": {
+    "name_asc": "نام A→Z",
+    "name_desc": "نام Z→A",
+    "email_asc": "تماس A→Z",
+    "email_desc": "تماس Z→A"
+  },
+  "table": {
+    "name": "نام",
+    "phone": "تلفن",
+    "role": "نقش",
+    "status": "وضعیت",
+    "badges": "نشان‌ها",
+    "lastActive": "آخرین فعالیت",
+    "actions": "عملیات"
+  },
+  "loadingMore": "در حال بارگذاری…",
+  "bulk": {
+    "selectAll": "انتخاب همه ردیف‌ها",
+    "selectRow": "انتخاب {name}",
+    "selectedCount": "{count, plural, one {# مورد انتخاب‌شده} other {# مورد انتخاب‌شده}}",
+    "changeRoleLabel": "نقش",
+    "applyRole": "اعمال نقش",
+    "suspend": "تعلیق انتخاب‌شده‌ها",
+    "reactivate": "فعال‌سازی انتخاب‌شده‌ها",
+    "remove": "حذف انتخاب‌شده‌ها",
+    "clearSelection": "پاک کردن انتخاب",
+    "suspendConfirm": "هم‌تیمی‌های انتخاب‌شده معطل شوند؟ دسترسی آن‌ها لغو می‌شود.",
+    "removeConfirm": "هم‌تیمی‌های انتخاب‌شده از سازمان حذف شوند؟"
+  },
+  "memberDetail": {
+    "tabs": {
+      "history": "فعالیت",
+      "trips": "سفرها"
+    },
+    "loading": "در حال بارگذاری اطلاعات هم‌تیمی…",
+    "historyEmpty": "هنوز فعالیتی ثبت نشده.",
+    "tripsEmpty": "این هم‌تیمی رزروی ثبت نکرده.",
+    "roleChange": "{oldRole} ← {newRole}",
+    "statusChange": "{previous} ← {next}",
+    "rewardsChange": "پاداش‌ها به‌روزرسانی شد",
+    "memberRemoved": "حذف از سازمان ({role})",
+    "byActor": "توسط {actor}",
+    "totalTrips": "{count} سفر",
+    "completedTrips": "{count} انجام‌شده",
+    "cancelledTrips": "{count} لغوشده",
+    "tripMeta": "{status} · {partySize} نفر · {departure}"
+  },
+  "ownershipTransfer": {
+    "title": "انتقال مالکیت",
+    "description": "مالکیت سازمان را به یک ادمین یا عضو فعال واگذار کنید. پس از انتقال، نقش شما ادمین می‌شود و از این پنل خارج می‌شوید.",
+    "loading": "در حال بارگذاری نامزدها…",
+    "empty": "هیچ ادمین یا عضو فعالی برای انتقال مالکیت وجود ندارد.",
+    "selectLabel": "مالک جدید",
+    "selectPlaceholder": "انتخاب هم‌تیمی…",
+    "preview": "«{name}» ({role}) مالک جدید می‌شود؛ شما ادمین خواهید شد.",
+    "confirm": "مالکیت به «{name}» منتقل شود؟ این عمل برگشت‌ناپذیر است و از پنل خارج می‌شوید.",
+    "submit": "انتقال مالکیت",
+    "submitting": "در حال انتقال…"
+  },
+  "locked": {
+    "title": "دسترسی به فهرست محدود است",
+    "detail": "فقط مالک سازمان می‌تواند فهرست تیم را ببیند."
+  },
+  "errors": {
+    "discountRange": "تخفیف باید عدد صحیح بین ۰ تا ۱۰۰ باشد",
+    "USERS_DIRECTORY_FORBIDDEN": "دسترسی به فهرست کاربران مجاز نیست.",
+    "USERS_LIST_HTTP_ERROR": "بارگذاری فهرست کاربران ناموفق بود (HTTP {status}).",
+    "USERS_LIST_FAILED": "بارگذاری فهرست کاربران ناموفق بود.",
+    "USERS_PENDING_HTTP_ERROR": "بارگذاری دعوت‌های در انتظار ناموفق بود (HTTP {status}).",
+    "USERS_PENDING_FAILED": "بارگذاری دعوت‌های در انتظار ناموفق بود.",
+    "USERS_INVITE_HTTP_ERROR": "ارسال دعوت ناموفق بود (HTTP {status}).",
+    "USERS_INVITE_FAILED": "ارسال دعوت ناموفق بود.",
+    "USERS_REVOKE_HTTP_ERROR": "لغو دعوت ناموفق بود (HTTP {status}).",
+    "USERS_REVOKE_FAILED": "لغو دعوت ناموفق بود.",
+    "USERS_RESEND_HTTP_ERROR": "ارسال مجدد دعوت ناموفق بود (HTTP {status}).",
+    "USERS_RESEND_FAILED": "ارسال مجدد دعوت ناموفق بود.",
+    "OTP_RATE_LIMITED": "تعداد ارسال رمز زیاد است. چند دقیقه بعد دوباره تلاش کنید.",
+    "USERS_ROLE_HTTP_ERROR": "تغییر نقش ناموفق بود (HTTP {status}).",
+    "USERS_ROLE_FAILED": "تغییر نقش ناموفق بود.",
+    "USERS_REMOVE_HTTP_ERROR": "حذف کاربر ناموفق بود (HTTP {status}).",
+    "USERS_REMOVE_FAILED": "حذف کاربر ناموفق بود.",
+    "USERS_SUSPEND_HTTP_ERROR": "تعلیق کاربر ناموفق بود (HTTP {status}).",
+    "USERS_SUSPEND_FAILED": "تعلیق کاربر ناموفق بود.",
+    "USERS_REACTIVATE_HTTP_ERROR": "فعال‌سازی کاربر ناموفق بود (HTTP {status}).",
+    "USERS_REACTIVATE_FAILED": "فعال‌سازی کاربر ناموفق بود.",
+    "USERS_REWARDS_HTTP_ERROR": "ذخیره پاداش ناموفق بود (HTTP {status}).",
+    "USERS_REWARDS_FAILED": "ذخیره پاداش ناموفق بود.",
+    "OWNERSHIP_TRANSFER_HTTP_ERROR": "انتقال مالکیت ناموفق بود (HTTP {status}).",
+    "OWNERSHIP_TRANSFER_FAILED": "انتقال مالکیت ناموفق بود.",
+    "OWNERSHIP_TRANSFER_INVALID_RESPONSE": "پاسخ انتقال مالکیت نامعتبر بود.",
+    "USERS_MEMBER_DETAIL_FAILED": "بارگذاری جزئیات هم‌تیمی ناموفق بود.",
+    "USERS_MEMBER_DETAIL_HTTP_ERROR": "بارگذاری جزئیات هم‌تیمی ناموفق بود (خطای HTTP).",
+    "USERS_BULK_HTTP_ERROR": "عملیات گروهی ناموفق بود (HTTP {status}).",
+    "USERS_BULK_FAILED": "عملیات گروهی ناموفق بود.",
+    "USERS_BULK_PARTIAL_FAILED": "برخی از هم‌تیمی‌های انتخاب‌شده به‌روزرسانی نشدند."
+  }
+}

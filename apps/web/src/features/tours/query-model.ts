@@ -1,0 +1,99 @@
+export type TourListStatusFilter = "all" | "active" | "completed" | "archived";
+
+import {
+  TOUR_CATEGORY_FILTER_ALL,
+  type TourCategoryFilter,
+  isDenaliTourCategory,
+} from "./tour-list-category-logic";
+
+export type TourListQueryModel = {
+  readonly search: string;
+  readonly page: number;
+  readonly limit: number;
+  readonly status: TourListStatusFilter;
+  readonly category: TourCategoryFilter;
+  readonly sortBy: "created_at" | "title" | "price";
+  readonly sortDir: "asc" | "desc";
+};
+
+export const TOURS_LIST_TEST_IDS = {
+  page: "operator-tours-page",
+  list: "operator-tours-list",
+  search: "operator-tours-search",
+  status: "operator-tours-status",
+  sort: "operator-tours-sort",
+  pagination: "operator-tours-pagination",
+  empty: "operator-tours-empty",
+  emptyCatalog: "operator-tours-empty-catalog",
+  duplicate: "operator-tours-duplicate",
+  duplicateServer: "operator-tours-duplicate-server",
+  workspace: "operator-tours-workspace",
+  retry: "operator-tours-retry",
+  category: "operator-tours-category",
+} as const;
+
+export const DEFAULT_TOUR_LIST_QUERY: TourListQueryModel = {
+  search: "",
+  page: 1,
+  limit: 10,
+  status: "all",
+  category: TOUR_CATEGORY_FILTER_ALL,
+  sortBy: "created_at",
+  sortDir: "desc",
+};
+
+export function serializeTourListQuery(query: TourListQueryModel): string {
+  const params = new URLSearchParams();
+  params.set("view", "operator");
+  if (query.search.trim().length > 0) {
+    params.set("search", query.search.trim());
+  }
+  if (query.status !== "all") {
+    params.set("status", query.status);
+  }
+  if (query.category !== TOUR_CATEGORY_FILTER_ALL) {
+    params.set("category", query.category);
+  }
+  if (query.page !== 1) {
+    params.set("page", String(query.page));
+  }
+  if (query.limit !== 10) {
+    params.set("limit", String(query.limit));
+  }
+  if (query.sortBy !== "created_at") {
+    params.set("sort_by", query.sortBy);
+  }
+  if (query.sortDir !== "desc") {
+    params.set("sort_dir", query.sortDir);
+  }
+  return params.toString();
+}
+
+export function parseTourListQuery(searchParams: URLSearchParams): TourListQueryModel {
+  const statusRaw = searchParams.get("status");
+  const status =
+    statusRaw === "active" || statusRaw === "completed" || statusRaw === "archived"
+      ? statusRaw
+      : "all";
+  const sortByRaw = searchParams.get("sort_by");
+  const sortBy =
+    sortByRaw === "title" || sortByRaw === "price" ? sortByRaw : "created_at";
+  const sortDir = searchParams.get("sort_dir") === "asc" ? "asc" : "desc";
+  const pageRaw = Number(searchParams.get("page") ?? "1");
+  const limitRaw = Number(searchParams.get("limit") ?? "10");
+  const categoryRaw = searchParams.get("category");
+  const category =
+    categoryRaw !== null && isDenaliTourCategory(categoryRaw)
+      ? categoryRaw
+      : TOUR_CATEGORY_FILTER_ALL;
+
+  return {
+    search: searchParams.get("search")?.trim() ?? "",
+    page: Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1,
+    limit: Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.floor(limitRaw), 100) : 10,
+    status,
+    category,
+    sortBy,
+    sortDir,
+  };
+}

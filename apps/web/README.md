@@ -2,6 +2,18 @@
 
 Phase **3.3+** thin Next.js shell — **Phase 4** per-request tenant theme fetch ([`phase-4-tenant-kernel.md`](../../docs/phase-4-tenant-kernel.md)).
 
+## Operator admin login
+
+The `(app)/**` operator panel is **invite-only**:
+
+- **Login:** `/auth/login` (alias `/login`) — phone + OTP
+- **No self-registration:** `/auth/register` redirects to login with an invite-only notice
+- **New operators:** owner/admin invite → `/auth/invite/[token]` → sign in
+
+See [`docs/phase-9/appendices/OPERATOR-LOGIN-FLOW.md`](../../docs/phase-9/appendices/OPERATOR-LOGIN-FLOW.md).
+
+**Workspace isolation (dev):** use host-specific URLs — e.g. `http://denali.localhost:3000` for Denali. Session JWT `tenant_id` must match the host; a Denali login cannot open `operator.localhost` or `urban.localhost` admin routes.
+
 ## Central documentation
 
 | Doc | Link |

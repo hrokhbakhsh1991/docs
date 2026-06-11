@@ -18,8 +18,73 @@ function apiBaseUrl(): string {
   return url.replace(/\/$/, "");
 }
 
+function isDenaliCanonicalCreatePayload(payload: CreateTourPayload): boolean {
+  if (Array.isArray(payload.roots) && payload.roots.length > 0) {
+    return payload.roots.some(
+      (root) =>
+        root.startsWith("denali_") ||
+        root === "program" ||
+        root === "transport" ||
+        root === "participants" ||
+        root === "tripDetails"
+    );
+  }
+  const data = payload.data;
+  if (data == null) {
+    return false;
+  }
+  const category = data.category;
+  return typeof category === "string" && category.trim().length > 0;
+}
+
+/**
+ * Starter smoke shim — maps legacy flat Denali title into `basics.title` when roots are absent.
+ * Full Denali canonical payloads (schemaVersion + roots + data) pass through unchanged.
+ */
+function normalizeTourCreatePayload(
+  payload: CreateTourPayload,
+  pluginId: string
+): CreateTourPayload {
+  if (pluginId === "denali" && isDenaliCanonicalCreatePayload(payload)) {
+    return payload;
+  }
+  if (pluginId !== "denali") {
+    return payload;
+  }
+  const data = payload.data as Record<string, unknown>;
+  const title = typeof data.title === "string" ? data.title.trim() : "";
+  if (title.length === 0) {
+    return payload;
+  }
+  const basics = data.basics;
+  const existingTitle =
+    basics !== null &&
+    typeof basics === "object" &&
+    "title" in basics &&
+    typeof (basics as { title?: unknown }).title === "string"
+      ? (basics as { title: string }).title.trim()
+      : "";
+  if (existingTitle.length > 0) {
+    return payload;
+  }
+  const details = data.details;
+  const existingSummary =
+    details !== null &&
+    typeof details === "object" &&
+    "summary" in details &&
+    typeof (details as { summary?: unknown }).summary === "string"
+      ? (details as { summary: string }).summary.trim()
+      : "";
+  return {
+    data: {
+      basics: { title },
+      details: { summary: existingSummary.length > 0 ? existingSummary : title },
+    },
+  };
+}
+
 export async function createTourAction(payload: CreateTourPayload): Promise<CreateTourActionResult> {
-  const { context } = resolveBootstrapAppSession();
+  const { context, session } = resolveBootstrapAppSession();
   if (context.workspaceId === undefined) {
     throw new Error("WEB_SESSION_MISSING_WORKSPACE_ID");
   }
@@ -33,8 +98,9 @@ export async function createTourAction(payload: CreateTourPayload): Promise<Crea
   });
 
   const client = new FetchTourClient(apiBaseUrl());
+  const normalizedPayload = normalizeTourCreatePayload(payload, session.pluginId);
   try {
-    const record = await client.createTour(payload, auth);
+    const record = await client.createTour(normalizedPayload, auth);
     return { ok: true, record };
   } catch (error) {
     if (

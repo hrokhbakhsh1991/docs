@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { DENALI_WORKSPACE_PLUGIN_ID, STARTER_WORKSPACE_PLUGIN_ID } from "@app-tour/workspace-sdk";
+import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-tour/workspace-denali";
+import { STARTER_WORKSPACE_PLUGIN_ID } from "@app-tour/workspace-sdk";
 
 import { resolveWorkspacePlugin } from "../src/bootstrap/workspace-plugin-registry";
 import { loadWorkspacePluginById } from "../src/wizard/load-workspace-plugin";

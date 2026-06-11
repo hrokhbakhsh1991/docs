@@ -1,0 +1,37 @@
+{
+  "loading": "در حال بارگذاری…",
+  "save": "ذخیره",
+  "cancel": "انصراف",
+  "back": "بازگشت",
+  "continue": "ادامه",
+  "add": "افزودن",
+  "name": "نام",
+  "retry": "تلاش مجدد",
+  "previous": "قبلی",
+  "next": "بعدی",
+  "saving": "در حال ذخیره…",
+  "draftSync": {
+    "idle": "ذخیره شد",
+    "syncing": "در حال ذخیره…",
+    "dirty": "تغییرات ذخیره‌نشده",
+    "error": "خطا در همگام‌سازی",
+    "draftAvailable": "پیش‌نویس موجود است",
+    "conflictResolving": "در حال رفع تعارض…",
+    "retry": "تلاش مجدد",
+    "applyServer": "بارگذاری نسخه سرور",
+    "discardLocal": "ادامه ویرایش محلی"
+  },
+  "slug": "شناسه",
+  "optional": "اختیاری",
+  "remove": "حذف",
+  "description": "توضیحات",
+  "calendar": {
+    "pickDate": "انتخاب تاریخ",
+    "today": "امروز",
+    "previousMonth": "ماه قبل",
+    "nextMonth": "ماه بعد",
+    "timeLabel": "ساعت",
+    "hour": "ساعت",
+    "minute": "دقیقه"
+  }
+}

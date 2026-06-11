@@ -1,0 +1,154 @@
+{
+  "pageTitle": "Tours",
+  "pageSubtitle": "Manage and publish workspace tours",
+  "newTour": "New tour",
+  "searchPlaceholder": "Search tours…",
+  "sortLabel": "Sort:",
+  "empty": "No tours in the catalog yet.",
+  "sort": {
+    "created_at": "Date",
+    "title": "Title",
+    "price": "Price"
+  },
+  "categoryFilterLabel": "Tour category",
+  "categoryAll": "All categories",
+  "status": {
+    "all": "All",
+    "draft": "Draft",
+    "active": "Active",
+    "archived": "Archived"
+  },
+  "errors": {
+    "TOURS_LIST_HTTP_ERROR": "Failed to load tours (HTTP {status}).",
+    "TOURS_LIST_FAILED": "Failed to load tours."
+  },
+  "emptyCatalog": "No tours yet. Create your first tour to get started.",
+  "emptyFilter": "No tours match your filters. Try adjusting search or status.",
+  "pagination": "Page {page, number} of {totalPages, number} · {total, number} tours",
+  "card": {
+    "noDescription": "No description",
+    "view": "View",
+    "workspace": "Workspace",
+    "duplicate": "Duplicate (wizard)",
+    "duplicateServer": "Quick copy",
+    "duplicateServerLoading": "Copying…",
+    "duplicateServerError": "Could not copy tour ({code})."
+  },
+  "metadata": {
+    "list": {
+      "title": "Tours",
+      "description": "Operator tours list"
+    },
+    "edit": {
+      "title": "Edit tour",
+      "description": "Operator tour edit"
+    },
+    "register": {
+      "title": "Register guest",
+      "description": "Operator tour guest registration"
+    },
+    "workspace": {
+      "title": "Tour workspace",
+      "description": "Manage registrations, waitlist, and transport for a tour"
+    },
+    "workspaceWaitlist": {
+      "title": "Tour workspace — Waitlist",
+      "description": "Tour waitlist"
+    },
+    "workspaceTransport": {
+      "title": "Tour workspace — Transport",
+      "description": "Approved guest transport roster"
+    }
+  },
+  "shell": {
+    "home": "Home",
+    "catalog": "Catalog",
+    "urbanSettings": "Urban settings"
+  },
+  "nav": {
+    "backToTours": "Back to tours",
+    "tours": "Tours",
+    "workspace": "Workspace",
+    "editTour": "Edit tour",
+    "registerGuest": "Register guest"
+  },
+  "format": {
+    "seatsWithCapacity": "{accepted, number}/{capacity, number} seats",
+    "seatsOpen": "{accepted, number} registered"
+  },
+  "edit": {
+    "notFound": "Tour not found.",
+    "titleLabel": "Title",
+    "readOnlyHint": "Read-only — members cannot edit tours.",
+    "saveChanges": "Save changes",
+    "errors": {
+      "TOUR_NOT_FOUND": "Tour not found.",
+      "TOUR_EDIT_LOAD_FAILED": "Failed to load tour.",
+      "TOUR_EDIT_SAVE_FAILED": "Failed to save changes."
+    }
+  },
+  "register": {
+    "pageTitle": "Register guest",
+    "pageSubtitle": "Create a pending booking for this tour",
+    "lockedTitle": "Registration restricted",
+    "lockedDescription": "Only admin and owner operators can register guests on tours.",
+    "notFound": "Tour not found.",
+    "defaultTourTitle": "Tour",
+    "guestDetails": "Guest details",
+    "guestName": "Guest name",
+    "guestNamePlaceholder": "Full name",
+    "partySize": "Party size",
+    "departureDate": "Departure date",
+    "emailOptional": "Email (optional)",
+    "phoneOptional": "Phone (optional)",
+    "submit": "Create pending registration",
+    "errors": {
+      "TOUR_REGISTER_FETCH_FAILED": "Failed to load tour.",
+      "TOUR_REGISTER_INVALID": "Invalid form data.",
+      "TOUR_REGISTER_FORBIDDEN": "You are not allowed to register guests.",
+      "TOUR_REGISTER_FAILED": "Registration failed."
+    }
+  },
+  "workspace": {
+    "title": "Tour workspace",
+    "subnavAria": "Tour workspace sections",
+    "openCommandCenter": "Open Command Center",
+    "tabs": {
+      "registrations": "Registrations",
+      "waitlist": "Waitlist",
+      "transport": "Transport"
+    },
+    "table": {
+      "guest": "Guest",
+      "party": "Party",
+      "departure": "Departure",
+      "submitted": "Submitted",
+      "actions": "Actions",
+      "status": "Status"
+    },
+    "registrations": {
+      "title": "Registrations",
+      "description": "Pending guest registrations for this tour — approve in Command Center.",
+      "empty": "No pending registrations for this tour.",
+      "registerFirst": "Register first guest"
+    },
+    "waitlist": {
+      "title": "Waitlist",
+      "description": "Guests queued when capacity is full — approve to promote into confirmed registrations.",
+      "empty": "No waitlisted guests for this tour.",
+      "approve": "Approve"
+    },
+    "transport": {
+      "title": "Transport",
+      "description": "Approved guest roster for this tour — vehicle assignment is read-only in Phase 9.3.",
+      "empty": "No approved guests on the transport roster yet."
+    },
+    "errors": {
+      "TOUR_WORKSPACE_FETCH_FAILED": "Failed to load workspace.",
+      "TOUR_REGISTRATIONS_FETCH_FAILED": "Failed to load registrations.",
+      "TOUR_WAITLIST_FETCH_FAILED": "Failed to load waitlist.",
+      "TOUR_WAITLIST_APPROVE_FAILED": "Approval failed.",
+      "TOUR_TRANSPORT_FETCH_FAILED": "Failed to load transport roster."
+    }
+  }
+}

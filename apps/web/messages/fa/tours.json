@@ -1,0 +1,154 @@
+{
+  "pageTitle": "تورها",
+  "pageSubtitle": "مدیریت و انتشار تورهای workspace",
+  "newTour": "تور جدید",
+  "searchPlaceholder": "جستجوی تور…",
+  "sortLabel": "مرتب‌سازی:",
+  "empty": "هنوز توری ثبت نشده است.",
+  "sort": {
+    "created_at": "تاریخ",
+    "title": "عنوان",
+    "price": "قیمت"
+  },
+  "categoryFilterLabel": "دسته تور",
+  "categoryAll": "همه دسته‌ها",
+  "status": {
+    "all": "همه",
+    "draft": "پیش‌نویس",
+    "active": "فعال",
+    "archived": "بایگانی"
+  },
+  "errors": {
+    "TOURS_LIST_HTTP_ERROR": "بارگذاری فهرست تورها ناموفق بود (HTTP {status}).",
+    "TOURS_LIST_FAILED": "بارگذاری فهرست تورها ناموفق بود."
+  },
+  "emptyCatalog": "هنوز توری نیست. اولین تور را بسازید.",
+  "emptyFilter": "توری با این فیلترها پیدا نشد. جستجو یا وضعیت را تغییر دهید.",
+  "pagination": "صفحه {page, number} از {totalPages, number} · {total, number} تور",
+  "card": {
+    "noDescription": "بدون توضیحات",
+    "view": "مشاهده",
+    "workspace": "ورک‌اسپیس",
+    "duplicate": "کپی (ویزارد)",
+    "duplicateServer": "کپی سریع",
+    "duplicateServerLoading": "در حال کپی…",
+    "duplicateServerError": "کپی تور ناموفق بود ({code})."
+  },
+  "metadata": {
+    "list": {
+      "title": "تورها",
+      "description": "فهرست تورهای اپراتور"
+    },
+    "edit": {
+      "title": "ویرایش تور",
+      "description": "ویرایش تور اپراتور"
+    },
+    "register": {
+      "title": "ثبت‌نام مهمان",
+      "description": "ثبت‌نام دستی مهمان روی تور"
+    },
+    "workspace": {
+      "title": "ورک‌اسپیس تور",
+      "description": "مدیریت ثبت‌نام‌ها، لیست انتظار و حمل‌ونقل تور"
+    },
+    "workspaceWaitlist": {
+      "title": "ورک‌اسپیس تور — لیست انتظار",
+      "description": "لیست انتظار مهمانان تور"
+    },
+    "workspaceTransport": {
+      "title": "ورک‌اسپیس تور — حمل‌ونقل",
+      "description": "فهرست حمل‌ونقل مهمانان تأییدشده"
+    }
+  },
+  "shell": {
+    "home": "خانه",
+    "catalog": "کاتالوگ",
+    "urbanSettings": "تنظیمات Urban"
+  },
+  "nav": {
+    "backToTours": "بازگشت به تورها",
+    "tours": "تورها",
+    "workspace": "ورک‌اسپیس",
+    "editTour": "ویرایش تور",
+    "registerGuest": "ثبت‌نام مهمان"
+  },
+  "format": {
+    "seatsWithCapacity": "{accepted, number}/{capacity, number} نفر",
+    "seatsOpen": "{accepted, number} ثبت‌نام"
+  },
+  "edit": {
+    "notFound": "تور پیدا نشد.",
+    "titleLabel": "عنوان",
+    "readOnlyHint": "فقط خواندنی — اعضا نمی‌توانند تور را ویرایش کنند.",
+    "saveChanges": "ذخیره تغییرات",
+    "errors": {
+      "TOUR_NOT_FOUND": "تور پیدا نشد.",
+      "TOUR_EDIT_LOAD_FAILED": "بارگذاری تور ناموفق بود.",
+      "TOUR_EDIT_SAVE_FAILED": "ذخیره تغییرات ناموفق بود."
+    }
+  },
+  "register": {
+    "pageTitle": "ثبت‌نام مهمان",
+    "pageSubtitle": "ایجاد رزرو در انتظار برای این تور",
+    "lockedTitle": "ثبت‌نام محدود است",
+    "lockedDescription": "فقط اپراتورهای ادمین و مالک می‌توانند مهمان ثبت کنند.",
+    "notFound": "تور پیدا نشد.",
+    "defaultTourTitle": "تور",
+    "guestDetails": "مشخصات مهمان",
+    "guestName": "نام مهمان",
+    "guestNamePlaceholder": "نام کامل",
+    "partySize": "تعداد نفرات",
+    "departureDate": "تاریخ حرکت",
+    "emailOptional": "ایمیل (اختیاری)",
+    "phoneOptional": "تلفن (اختیاری)",
+    "submit": "ایجاد ثبت‌نام در انتظار",
+    "errors": {
+      "TOUR_REGISTER_FETCH_FAILED": "بارگذاری تور ناموفق بود.",
+      "TOUR_REGISTER_INVALID": "اطلاعات فرم نامعتبر است.",
+      "TOUR_REGISTER_FORBIDDEN": "اجازه ثبت‌نام ندارید.",
+      "TOUR_REGISTER_FAILED": "ثبت‌نام ناموفق بود."
+    }
+  },
+  "workspace": {
+    "title": "ورک‌اسپیس تور",
+    "subnavAria": "بخش‌های ورک‌اسپیس تور",
+    "openCommandCenter": "باز کردن مرکز رزروها",
+    "tabs": {
+      "registrations": "ثبت‌نام‌ها",
+      "waitlist": "لیست انتظار",
+      "transport": "حمل‌ونقل"
+    },
+    "table": {
+      "guest": "مهمان",
+      "party": "نفرات",
+      "departure": "حرکت",
+      "submitted": "ثبت",
+      "actions": "عملیات",
+      "status": "وضعیت"
+    },
+    "registrations": {
+      "title": "ثبت‌نام‌ها",
+      "description": "ثبت‌نام‌های در انتظار مهمان برای این تور — در مرکز رزروها تأیید کنید.",
+      "empty": "ثبت‌نام در انتظاری برای این تور نیست.",
+      "registerFirst": "ثبت اولین مهمان"
+    },
+    "waitlist": {
+      "title": "لیست انتظار",
+      "description": "مهمانانی که ظرفیت پر است — با تأیید به ثبت‌نام تأییدشده منتقل می‌شوند.",
+      "empty": "مهمان در لیست انتظار این تور نیست.",
+      "approve": "تأیید"
+    },
+    "transport": {
+      "title": "حمل‌ونقل",
+      "description": "فهرست مهمانان تأییدشده — تخصیص وسیله در فاز ۹.۳ فقط خواندنی است.",
+      "empty": "هنوز مهمان تأییدشده‌ای در فهرست حمل‌ونقل نیست."
+    },
+    "errors": {
+      "TOUR_WORKSPACE_FETCH_FAILED": "بارگذاری ورک‌اسپیس ناموفق بود.",
+      "TOUR_REGISTRATIONS_FETCH_FAILED": "بارگذاری ثبت‌نام‌ها ناموفق بود.",
+      "TOUR_WAITLIST_FETCH_FAILED": "بارگذاری لیست انتظار ناموفق بود.",
+      "TOUR_WAITLIST_APPROVE_FAILED": "تأیید ناموفق بود.",
+      "TOUR_TRANSPORT_FETCH_FAILED": "بارگذاری حمل‌ونقل ناموفق بود."
+    }
+  }
+}

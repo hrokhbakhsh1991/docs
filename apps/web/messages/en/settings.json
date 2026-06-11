@@ -1,0 +1,337 @@
+{
+  "hub": {
+    "title": "Settings",
+    "subtitle": "Workspace modules for tours, templates, and day-to-day operations.",
+    "openModule": "Open settings"
+  },
+  "errors": {
+    "SETTINGS_MODULES_HTTP_ERROR": "Failed to load settings modules (HTTP {status}).",
+    "SETTINGS_MODULES_FAILED": "Failed to load settings modules.",
+    "BRANDING_HTTP_ERROR": "Failed to load branding (HTTP {status}).",
+    "BRANDING_FETCH_FAILED": "Failed to load workspace branding.",
+    "BRANDING_PATCH_HTTP_ERROR": "Failed to save display name (HTTP {status}).",
+    "BRANDING_SAVE_FAILED": "Failed to save display name.",
+    "BRANDING_LOGO_UPLOAD_HTTP_ERROR": "Logo upload failed (HTTP {status}).",
+    "BRANDING_LOGO_UPLOAD_FAILED": "Logo upload failed.",
+    "BRANDING_LOGO_DELETE_HTTP_ERROR": "Failed to remove logo (HTTP {status}).",
+    "BRANDING_LOGO_DELETE_FAILED": "Failed to remove logo.",
+    "BRANDING_LOGO_URL_HTTP_ERROR": "Failed to load logo preview (HTTP {status}).",
+    "BRANDING_LOGO_TYPE_INVALID": "Logo must be PNG, JPEG, or WebP.",
+    "BRANDING_LOGO_TOO_LARGE": "Logo must be 2 MB or smaller.",
+    "BRANDING_LOGO_EMPTY": "Choose a logo file to upload.",
+    "PROFILE_HTTP_ERROR": "Failed to load profile (HTTP {status}).",
+    "PROFILE_FETCH_FAILED": "Failed to load profile.",
+    "PROFILE_DISPLAY_NAME_INVALID": "Display name must be between 1 and 120 characters.",
+    "PROFILE_SAVE_HTTP_ERROR": "Failed to save profile (HTTP {status}).",
+    "PROFILE_SAVE_FAILED": "Failed to save profile.",
+    "EQUIPMENT_LIST_HTTP_ERROR": "Failed to load equipment list (HTTP {status}).",
+    "EQUIPMENT_HTTP_ERROR": "Failed to load equipment (HTTP {status}).",
+    "EQUIPMENT_FETCH_FAILED": "Failed to load equipment.",
+    "EQUIPMENT_LOAD_FAILED": "Failed to load equipment.",
+    "EQUIPMENT_CREATE_HTTP_ERROR": "Failed to add equipment (HTTP {status}).",
+    "EQUIPMENT_CREATE_FAILED": "Failed to add equipment.",
+    "EQUIPMENT_DELETE_HTTP_ERROR": "Failed to delete equipment (HTTP {status}).",
+    "EQUIPMENT_DELETE_FAILED": "Failed to delete equipment.",
+    "GUIDE_LANGUAGES_HTTP_ERROR": "Failed to load guide languages (HTTP {status}).",
+    "GUIDE_LANGUAGES_FETCH_FAILED": "Failed to load guide languages.",
+    "GUIDE_LANGUAGES_CREATE_HTTP_ERROR": "Failed to add guide language (HTTP {status}).",
+    "GUIDE_LANGUAGES_CREATE_FAILED": "Failed to add guide language.",
+    "GUIDE_LANGUAGES_DELETE_HTTP_ERROR": "Failed to delete guide language (HTTP {status}).",
+    "GUIDE_LANGUAGES_DELETE_FAILED": "Failed to delete guide language.",
+    "TOUR_THEMES_HTTP_ERROR": "Failed to load tour themes (HTTP {status}).",
+    "TOUR_THEMES_FETCH_FAILED": "Failed to load tour themes.",
+    "TOUR_THEMES_LOAD_FAILED": "Failed to load tour themes.",
+    "TOUR_THEMES_CREATE_HTTP_ERROR": "Failed to add tour theme (HTTP {status}).",
+    "TOUR_THEMES_CREATE_FAILED": "Failed to add tour theme.",
+    "TOUR_THEMES_DELETE_HTTP_ERROR": "Failed to delete tour theme (HTTP {status}).",
+    "TOUR_THEMES_DELETE_FAILED": "Failed to delete tour theme.",
+    "LOCATIONS_HTTP_ERROR": "Failed to load locations (HTTP {status}).",
+    "LOCATIONS_FETCH_FAILED": "Failed to load locations.",
+    "LOCATIONS_LOAD_FAILED": "Failed to load locations.",
+    "REGION_CREATE_HTTP_ERROR": "Failed to add region (HTTP {status}).",
+    "REGION_CREATE_FAILED": "Failed to add region.",
+    "DESTINATION_CREATE_HTTP_ERROR": "Failed to add destination (HTTP {status}).",
+    "DESTINATION_CREATE_FAILED": "Failed to add destination.",
+    "LOCATION_DELETE_HTTP_ERROR": "Failed to delete location (HTTP {status}).",
+    "LOCATION_DELETE_FAILED": "Failed to delete location.",
+    "TOUR_PRESETS_HTTP_ERROR": "Failed to load tour presets (HTTP {status}).",
+    "TOUR_PRESETS_FETCH_FAILED": "Failed to load tour presets.",
+    "TOUR_PRESETS_CREATE_HTTP_ERROR": "Failed to add tour preset (HTTP {status}).",
+    "TOUR_PRESETS_CREATE_FAILED": "Failed to add tour preset.",
+    "TOUR_PRESETS_DELETE_HTTP_ERROR": "Failed to delete tour preset (HTTP {status}).",
+    "TOUR_PRESETS_DELETE_FAILED": "Failed to delete tour preset.",
+    "PRESETS_ADVANCED_HTTP_ERROR": "Failed to load advanced presets (HTTP {status}).",
+    "PRESETS_ADVANCED_FETCH_FAILED": "Failed to load advanced presets.",
+    "PRESETS_ADVANCED_SAVE_HTTP_ERROR": "Failed to save advanced presets (HTTP {status}).",
+    "PRESETS_ADVANCED_SAVE_FAILED": "Failed to save advanced presets.",
+    "AUDIT_TRAIL_HTTP_ERROR": "Failed to load audit trail (HTTP {status}).",
+    "AUDIT_TRAIL_FETCH_FAILED": "Failed to load audit trail.",
+    "USERS_HTTP_ERROR": "Failed to load users (HTTP {status}).",
+    "USERS_LOAD_FAILED": "Failed to load users."
+  },
+  "backToHub": "Back to settings",
+  "deleteItem": "Delete {name}",
+  "groups": {
+    "account": "Account",
+    "workspace": "Workspace",
+    "templates": "Templates",
+    "finance_ops": "Finance & ops"
+  },
+  "kinds": {
+    "reference_data": "Reference data",
+    "tenant_config": "Workspace setting",
+    "readonly_explorer": "Read-only view",
+    "account_preference": "Account preference"
+  },
+  "modules": {
+    "account_profile": {
+      "title": "Profile",
+      "description": "Your display name and account preferences."
+    },
+    "equipment": {
+      "title": "Equipment",
+      "description": "Manage gear and equipment options used on tours."
+    },
+    "guide_languages": {
+      "title": "Guide languages",
+      "description": "Languages your guides can be assigned to."
+    },
+    "tour_themes": {
+      "title": "Tour themes",
+      "description": "Theme tags for categorizing tours."
+    },
+    "locations": {
+      "title": "Locations",
+      "description": "Regions and destinations for tour planning."
+    },
+    "tour_presets": {
+      "title": "Tour presets",
+      "description": "Reusable starting points for common tour types."
+    },
+    "tour_wizard_template": {
+      "title": "Tour form template",
+      "description": "Choose which fields staff see when creating a new tour, plus default values."
+    },
+    "tour_presets_advanced": {
+      "title": "Advanced presets",
+      "description": "Fine-tune preset behavior and overrides."
+    },
+    "audit_trail": {
+      "title": "Audit trail",
+      "description": "Review who changed workspace settings and when."
+    },
+    "wizard_drafts": {
+      "title": "Wizard drafts",
+      "description": "Review in-progress tour wizards and their save history."
+    },
+    "reconciliation_triage": {
+      "title": "Reconciliation triage",
+      "description": "Review payment reconciliation exceptions."
+    },
+    "workspace_branding": {
+      "title": "Workspace branding",
+      "description": "Upload your organization logo and display name for login and admin chrome."
+    }
+  },
+  "branding": {
+    "title": "Workspace branding",
+    "description": "Logo and display name appear on sign-in, sidebar, and the tour wizard header.",
+    "logoSectionTitle": "Organization logo",
+    "logoSectionDescription": "PNG, JPEG, or WebP — max 2 MB. Square or horizontal logos work best.",
+    "logoPreviewAlt": "Organization logo preview",
+    "uploadLogo": "Upload logo",
+    "uploading": "Uploading…",
+    "removeLogo": "Remove logo",
+    "displayNameLabel": "Display name",
+    "displayNameHelper": "Shown instead of the workspace product name when set.",
+    "saveDisplayName": "Save display name",
+    "saving": "Saving…",
+    "saved": "Branding updated.",
+    "readOnlyBanner": "You can view workspace branding, but only owners and admins can change it."
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Your account in this workspace",
+    "cardTitle": "Account",
+    "cardDescription": "Personal preferences for {workspaceType}",
+    "displayName": "Display name",
+    "phone": "Phone",
+    "role": "Role",
+    "status": "Status",
+    "saved": "Profile saved.",
+    "saveButton": "Save profile"
+  },
+  "equipment": {
+    "title": "Equipment",
+    "subtitle": "Generic CRUD pilot (SMK-P9-08)",
+    "addTitle": "Add equipment",
+    "category": "Category",
+    "catalogTitle": "Catalog ({count})",
+    "empty": "No equipment items yet.",
+    "deleteItem": "Delete {name}"
+  },
+  "guideLanguages": {
+    "title": "Guide languages",
+    "subtitle": "Workspace guide language catalog (Phase 9.6 R5)",
+    "addTitle": "Add language",
+    "slug": "Slug",
+    "listTitle": "Languages ({count})",
+    "empty": "No guide languages yet."
+  },
+  "tourThemes": {
+    "title": "Tour themes",
+    "subtitle": "Workspace tour theme catalog (Phase 9.6 R4)",
+    "addTitle": "Add theme",
+    "listTitle": "Themes ({count})",
+    "empty": "No tour themes yet."
+  },
+  "locations": {
+    "title": "Locations",
+    "subtitle": "Regions and destinations (Phase 9.6 R4)",
+    "tabs": {
+      "regions": "Regions",
+      "destinations": "Destinations"
+    },
+    "addRegion": "Add region",
+    "addDestination": "Add destination",
+    "country": "Country",
+    "region": "Region",
+    "selectRegion": "Select region",
+    "regionsCount": "Regions ({count})",
+    "destinationsCount": "Destinations ({count})",
+    "noRegions": "No regions yet.",
+    "noDestinations": "No destinations yet.",
+    "regionLabel": "Region: {name}"
+  },
+  "tourPresets": {
+    "title": "Tour presets",
+    "subtitle": "Creation presets catalog (Phase 9.6 R6)",
+    "addTitle": "Add preset",
+    "theme": "Theme",
+    "noTheme": "No theme",
+    "listTitle": "Presets ({count})",
+    "empty": "No tour presets yet.",
+    "themeLabel": "Theme: {name}"
+  },
+  "presetsAdvanced": {
+    "backToPresets": "Back to tour presets",
+    "title": "Advanced presets",
+    "subtitle": "Tenant config for automatic preset matching (Phase 9.6 R7)",
+    "saved": "Advanced presets saved — cache invalidated (DEC-P9-005).",
+    "matchingRules": {
+      "title": "Matching rules",
+      "description": "Enable auto-match and optionally set a default preset for new tours"
+    },
+    "autoMatch": "Enable automatic preset matching",
+    "defaultPresetId": "Default preset ID",
+    "defaultPresetPlaceholder": "preset-uuid (optional)",
+    "rulesTitle": "Match rules ({count})",
+    "ruleId": "Rule ID",
+    "ruleIdPlaceholder": "mountain-default",
+    "addRule": "Add rule",
+    "noRules": "No custom rules configured yet.",
+    "disabled": "(disabled)",
+    "saveButton": "Save advanced presets"
+  },
+  "wizardTemplate": {
+    "title": "Tour wizard template",
+    "subtitle": "Choose which fields appear when staff create a new tour.",
+    "cardTitle": "New tour form",
+    "cardDescription": "Select fields from your workspace catalog, set defaults, then publish to enable the create-tour page.",
+    "seedLabel": "Default tour title",
+    "seedHelper": "Optional placeholder for the tour title field when staff open the new-tour form.",
+    "seedPlaceholder": "e.g. Summer hiking tour",
+    "publishLabel": "Publish tour form",
+    "publishHelper": "Staff cannot create tours until this form is published with at least one field.",
+    "fieldsHeading": "Form fields",
+    "fieldsHelper": "Fields marked as multi-field widgets open specialized editors in the tour wizard.",
+    "searchPlaceholder": "Search fields…",
+    "selectedCount": "{count, plural, one {# field selected} other {# fields selected}}",
+    "requiredLabel": "Required",
+    "defaultLabel": "Default value",
+    "saveButton": "Save template",
+    "loadFullTemplateButton": "Load full Denali template",
+    "loadFullTemplateHelper": "Replace field choices with the legacy Denali create-tour layout (category first, all registry fields). Review, then save.",
+    "success": "Template saved. New tours will use your latest field choices.",
+    "readOnlyBanner": "You can view this template but only owners and admins can change it.",
+    "compositeHint": "Opens a specialized editor with multiple inputs.",
+    "noSearchResults": "No fields match your search.",
+    "errors": {
+      "publishNoFields": "Select at least one field before publishing the tour form.",
+      "loadFailed": "Could not load the wizard template. Refresh and try again.",
+      "saveFailed": "Could not save the wizard template. Try again.",
+      "loadHttp": "Could not load settings (server responded {status}). Refresh and try again.",
+      "saveHttp": "Could not save the template (server responded {status}). Try again."
+    }
+  },
+  "auditTrail": {
+    "title": "Audit trail",
+    "subtitle": "Read-only tenant activity log (Phase 9.6 R3)",
+    "eventsTitle": "Events ({count})",
+    "empty": "No audit events recorded yet."
+  },
+  "wizardDrafts": {
+    "title": "Wizard drafts",
+    "subtitle": "Workspace wizard snapshots and append-only change history",
+    "listTitle": "Drafts ({count})",
+    "empty": "No wizard drafts saved yet.",
+    "rowMeta": "Version {version} · updated {updatedAt}",
+    "showEvents": "Show history",
+    "hideEvents": "Hide history",
+    "resumeWizard": "Resume wizard",
+    "backToHub": "Back to settings"
+  },
+  "reconciliation": {
+    "forbidden": "Reconciliation triage requires admin or owner access.",
+    "title": "Reconciliation triage",
+    "subtitle": "Open finance findings derived from reports and installment schedules",
+    "refresh": "Refresh findings",
+    "openLedger": "Open ledger tab",
+    "resolveInFinance": "Resolve in Finance",
+    "allClear": {
+      "title": "All clear",
+      "description": "No open reconciliation findings for this workspace."
+    },
+    "severity": {
+      "critical": "Critical",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "errors": {
+      "SUMMARY_HTTP_ERROR": "Failed to load finance summary (HTTP {status}).",
+      "TRIAGE_FETCH_FAILED": "Failed to load reconciliation findings."
+    },
+    "findings": {
+      "pending-receipt-reviews": {
+        "title": "Receipts awaiting review",
+        "detail": "Manual payment receipts need operator approval before ledger posting."
+      },
+      "pending-manual-payments": {
+        "title": "Open manual payments",
+        "detail": "Registrations with unpaid manual payment intents."
+      },
+      "failed-payments": {
+        "title": "Failed payment captures",
+        "detail": "Investigate failed captures before reconciling ledger balances."
+      },
+      "ledger-journal-gap": {
+        "title": "Ledger journal gap",
+        "detail": "Paid payments recorded without matching journal events — verify outbox relay before closing books."
+      },
+      "overdue-installments": {
+        "title": "Overdue installments",
+        "detail": "Payment schedule rows past due date require follow-up or reschedule."
+      }
+    }
+  },
+  "urban": {
+    "title": "Urban workspace settings",
+    "loadError": "Unable to load urban settings ({status}).",
+    "catalogEnabled": "Catalog enabled",
+    "catalogSlug": "Catalog slug",
+    "registrationPolicy": "Registration policy",
+    "yes": "yes",
+    "no": "no",
+    "viewCatalog": "View public catalog"
+  }
+}

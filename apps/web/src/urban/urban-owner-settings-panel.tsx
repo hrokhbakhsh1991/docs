@@ -1,6 +1,7 @@
 import { buildTourAuthHeaders, type TenantAuthContext } from "@app-tour/workspace-sdk";
+import { getTranslations } from "next-intl/server";
 
-import { resolveUrbanApiBaseUrl } from "./urban-api-base";
+import { resolveTourOpsApiBaseUrl } from "./urban-api-base";
 
 type UrbanSettingsEnvelope = {
   readonly success: boolean;
@@ -19,6 +20,7 @@ export async function UrbanOwnerSettingsPanel(props: {
   readonly status: TenantAuthContext["status"];
   readonly workspaceId: string;
 }) {
+  const t = await getTranslations("settings.urban");
   const headers = buildTourAuthHeaders({
     tenantId: props.tenantId,
     userId: props.userId,
@@ -27,7 +29,7 @@ export async function UrbanOwnerSettingsPanel(props: {
     workspaceId: props.workspaceId,
   });
 
-  const res = await fetch(`${resolveUrbanApiBaseUrl()}/urban/settings`, {
+  const res = await fetch(`${resolveTourOpsApiBaseUrl()}/urban/settings`, {
     method: "GET",
     headers,
     cache: "no-store",
@@ -36,7 +38,7 @@ export async function UrbanOwnerSettingsPanel(props: {
   if (!res.ok) {
     return (
       <div role="alert" data-urban-settings-error data-status-code={String(res.status)}>
-        <p>Unable to load urban settings ({res.status}).</p>
+        <p>{t("loadError", { status: res.status })}</p>
       </div>
     );
   }
@@ -46,17 +48,17 @@ export async function UrbanOwnerSettingsPanel(props: {
 
   return (
     <section data-urban-owner-settings-panel>
-      <h1>Urban workspace settings</h1>
+      <h1>{t("title")}</h1>
       <dl>
-        <dt>Catalog enabled</dt>
-        <dd>{urban?.catalog?.publicEnabled === false ? "no" : "yes"}</dd>
-        <dt>Catalog slug</dt>
+        <dt>{t("catalogEnabled")}</dt>
+        <dd>{urban?.catalog?.publicEnabled === false ? t("no") : t("yes")}</dd>
+        <dt>{t("catalogSlug")}</dt>
         <dd>{urban?.catalog?.slug ?? "catalog"}</dd>
-        <dt>Registration policy</dt>
+        <dt>{t("registrationPolicy")}</dt>
         <dd>{urban?.registration?.policy ?? "open"}</dd>
       </dl>
       <p>
-        <a href="/catalog">View public catalog</a>
+        <a href="/catalog">{t("viewCatalog")}</a>
       </p>
     </section>
   );

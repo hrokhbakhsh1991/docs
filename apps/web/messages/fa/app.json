@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "title": "توراپس",
+    "description": "پوسته وب پلتفرم مدیریت تور"
+  },
+  "brand": "توراپس",
+  "skipToMain": "پرش به محتوای اصلی",
+  "openMenu": "باز کردن منو",
+  "closeMenu": "بستن منو",
+  "toggleTheme": "تغییر پوسته",
+  "accountMenu": "منوی حساب کاربری",
+  "roleLabel": "نقش: {role}",
+  "workspaceLabel": "سازمان: {workspace}",
+  "profile": "پروفایل",
+  "logout": "خروج",
+  "newTour": "تور جدید",
+  "operatorNav": "ناوبری اپراتور",
+  "operatorWorkspace": "پنل اپراتور",
+  "denaliTagline": "طبیعت‌گردی و کوهنوردی",
+  "mobileNav": "ناوبری موبایل",
+  "themeMode": "حالت پوسته",
+  "themeLight": "روشن",
+  "themeDark": "تیره",
+  "workspaceSwitcherTitle": "تعویض چند workspace در فاز ۱۰ اضافه می‌شود",
+  "stubComingSoon": "به‌زودی — {subphase}.",
+  "workspaces": {
+    "denali": "دنالی",
+    "urban": "شهری",
+    "default": "پنل اپراتور"
+  }
+}

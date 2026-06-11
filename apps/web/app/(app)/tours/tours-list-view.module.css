@@ -1,0 +1,53 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1rem);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3, 0.75rem);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3, 0.75rem);
+}
+
+.card {
+  border: 1px solid var(--color-border-subtle, var(--color-border, #e5e5e5));
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--space-4, 1rem);
+  background: var(--color-bg-surface, var(--color-surface, #fff));
+}
+
+.cardTitle {
+  margin: 0 0 var(--space-2, 0.5rem);
+  font-size: var(--text-h4-size, 1rem);
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-text-muted, #6b7280);
+  font-size: var(--text-caption-size, 0.75rem);
+}
+
+.footer {
+  margin-top: var(--space-3, 0.75rem);
+  display: flex;
+  gap: var(--space-2, 0.5rem);
+}
+
+@media (min-width: 48rem) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
