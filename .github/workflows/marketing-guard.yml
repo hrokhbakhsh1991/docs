@@ -1,0 +1,64 @@
+# Marketing shell — fast lint + unit tests on PR (MAP §3.5)
+name: marketing-guard
+
+on:
+  pull_request:
+    paths:
+      - "apps/marketing/**"
+      - "apps/web/app/api/public-auth/**"
+      - "apps/web/app/(public)/catalog/**"
+      - "apps/web/src/auth/public-auth-bff-error.ts"
+      - "apps/web/src/auth/resolve-identity-bff-tenant.ts"
+      - "apps/web/src/tenant/resolve-public-catalog-bootstrap.server.ts"
+      - "apps/web/tests/e2e/denali-catalog-registration.spec.ts"
+      - "apps/web/tests/e2e/fixtures/catalog-registration-otp.ts"
+      - "apps/api/src/identity/public-auth*"
+      - "apps/api/src/marketing/**"
+      - "apps/api/test/public-auth*"
+      - "packages/workspaces/urban/src/catalog/**"
+      - "packages/workspaces/urban/src/http/resolve-urban-public-auth.ts"
+      - "packages/workspaces/urban/src/urban.plugin.ts"
+      - "apps/api/src/canonical/canonical-tour.service.ts"
+      - "apps/api/test/marketing-catalog-revalidate.spec.ts"
+      - "docs/workspaces/denali/public-catalog.md"
+      - "packages/workspace-sdk/src/theme/**"
+      - ".github/workflows/marketing-guard.yml"
+  workflow_dispatch:
+
+jobs:
+  marketing-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @app-tour/workspace-sdk run build
+      - run: pnpm --filter @apps/marketing run lint
+      - run: pnpm --filter @apps/marketing run test
+
+  marketing-smoke:
+    name: Marketing Playwright smoke (SMK-MKT-01..03)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @app-tour/workspace-sdk run build
+      - run: pnpm --filter @app-tour/workspace-denali run build
+      - run: pnpm --filter @app-tour/workspace-urban run build
+      - run: pnpm run guard:public-catalog-m17
+      - run: pnpm --filter @apps/marketing exec playwright install --with-deps chromium
+      - name: SMK-MKT-01..03
+        env:
+          CI: "true"
+          STORAGE_DRIVER: memory
+        run: pnpm --filter @apps/marketing run test:smoke

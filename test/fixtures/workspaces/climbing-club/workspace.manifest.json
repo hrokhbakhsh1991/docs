@@ -1,0 +1,14 @@
+{
+  "id": "climbing-club",
+  "version": 1,
+  "package": "@app-tour/workspace-climbing-club",
+  "workspaceTypes": ["climbing-club"],
+  "plugin": {
+    "entry": "./climbing-club.plugin",
+    "export": "getClimbingClubWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./climbing-club.plugin",
+    "export": "getClimbingClubWorkspacePlugin"
+  }
+}

@@ -57,6 +57,11 @@ const LEGACY_IMPORT_PATTERNS = [
   /import\s*\(\s*["']legacy\//,
   /require\s*\(\s*["']legacy\//,
 ];
+/** Generated multi-plugin loader — sole web dynamic import surface (replaces lazy-denali/urban). */
+const URBAN_DENALI_COUPLING_SKIP = new Set([
+  "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts",
+]);
+
 const URBAN_DENALI_COUPLING_PATTERNS = [
   /@app-tour\/workspace-denali/,
   /workspaceType:\s*URBAN_WORKSPACE_TYPE[^}]*pluginId:\s*DENALI_WORKSPACE_PLUGIN_ID/,
@@ -213,29 +218,22 @@ function runP8UrbanNotDenaliRail() {
     }
   }
 
-  const bindingPath = "packages/workspace-sdk/src/plugin/workspace-type-binding.ts";
+  const bindingPath =
+    "packages/workspace-sdk/src/plugin/workspace-manifest-bindings.generated.ts";
   if (fs.existsSync(path.join(REPO_ROOT, bindingPath))) {
     const binding = fs.readFileSync(path.join(REPO_ROOT, bindingPath), "utf8");
-    if (
-      /workspaceType:\s*URBAN_WORKSPACE_TYPE,\s*pluginId:\s*DENALI_WORKSPACE_PLUGIN_ID/.test(
-        binding
-      )
-    ) {
+    if (/workspaceType:\s*"urban"[^}]*pluginId:\s*"denali"/.test(binding)) {
       failures.push(`${bindingPath} maps urban workspace type to denali plugin`);
     }
-    if (
-      !/workspaceType:\s*URBAN_WORKSPACE_TYPE,\s*pluginId:\s*URBAN_WORKSPACE_PLUGIN_ID/.test(
-        binding
-      )
-    ) {
-      failures.push(`${bindingPath} must bind URBAN_WORKSPACE_TYPE → URBAN_WORKSPACE_PLUGIN_ID`);
+    if (!/workspaceType:\s*"urban"[^}]*pluginId:\s*"urban"/.test(binding)) {
+      failures.push(`${bindingPath} must bind "urban" workspace type → "urban" plugin`);
     }
   }
 
   const urbanSourceTargets = [
     "packages/workspaces/urban/src",
     "apps/web/src/urban",
-    "apps/web/src/bootstrap/lazy-urban-plugin.ts",
+    "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts",
   ];
 
   for (const rel of urbanSourceTargets) {
@@ -260,8 +258,11 @@ function runP8UrbanNotDenaliRail() {
     }
 
     for (const abs of files) {
-      const content = fs.readFileSync(abs, "utf8");
       const fileRel = path.relative(REPO_ROOT, abs).split(path.sep).join("/");
+      if (URBAN_DENALI_COUPLING_SKIP.has(fileRel)) {
+        continue;
+      }
+      const content = fs.readFileSync(abs, "utf8");
       for (const pattern of URBAN_DENALI_COUPLING_PATTERNS) {
         if (pattern.test(content)) {
           failures.push(`${fileRel} matches forbidden urban↔denali coupling (${pattern})`);

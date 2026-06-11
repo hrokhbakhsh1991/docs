@@ -760,7 +760,7 @@ export async function verifyFinancePathDual() {
   if (!router.includes("app/finance") || !router.includes("DEC-P9-017")) {
     return { ok: false, detail: "router missing finance interim path or DEC-P9-017" };
   }
-  const boundary = await readRepoFile("docs/phase-9/appendices/PHASE-BOUNDARY-MATRIX.yaml");
+  const boundary = await readRepoFile("docs/phase-9/appendices/PHASE-BOUNDARY-MATRIX.md");
   if (!boundary.includes("apps/web/app/finance/**")) {
     return { ok: false, detail: "PHASE-BOUNDARY-MATRIX missing interim finance path" };
   }

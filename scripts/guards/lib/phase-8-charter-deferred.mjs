@@ -38,9 +38,9 @@ const CASL_8_1_ROUTE_SPEC_BINDINGS = Object.freeze([
     bindings: Object.freeze([
       { caseId: "API-8.1-04", specRel: "apps/api/test/urban-settings-patch.spec.ts" },
       { caseId: "API-8.1-05", specRel: "apps/api/test/urban-settings-patch.spec.ts" },
-      { caseId: "SDK-8.1-01", specRel: "packages/workspace-sdk/test/urban-owner-ability.spec.ts" },
-      { caseId: "SDK-8.1-02", specRel: "packages/workspace-sdk/test/urban-owner-ability.spec.ts" },
-      { caseId: "SDK-8.1-03", specRel: "packages/workspace-sdk/test/urban-owner-ability.spec.ts" },
+      { caseId: "SDK-8.1-01", specRel: "packages/workspaces/urban/test/urban-owner-ability.spec.ts" },
+      { caseId: "SDK-8.1-02", specRel: "packages/workspaces/urban/test/urban-owner-ability.spec.ts" },
+      { caseId: "SDK-8.1-03", specRel: "packages/workspaces/urban/test/urban-owner-ability.spec.ts" },
     ]),
   },
   {
@@ -211,7 +211,7 @@ export async function verifyVerificationMatrixHydrated() {
     {
       reqId: "REQ-P8-010",
       specPattern: /CASL-URBAN-OWNER-SPEC/,
-      testPaths: Object.freeze(["packages/workspace-sdk/test/urban-owner-ability.spec.ts"]),
+      testPaths: Object.freeze(["packages/workspaces/urban/test/urban-owner-ability.spec.ts"]),
     },
     {
       reqId: "REQ-P8-011",

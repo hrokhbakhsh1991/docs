@@ -35,7 +35,7 @@ export const REQUIRED_PHASE8_8_1_API_SPECS = Object.freeze([
  */
 export const REQUIRED_PHASE8_8_1_SPEC_REGISTRY = Object.freeze([
   ...REQUIRED_PHASE8_8_1_API_SPECS,
-  "packages/workspace-sdk/test/urban-owner-ability.spec.ts",
+  "packages/workspaces/urban/test/urban-owner-ability.spec.ts",
   "apps/web/test/urban-owner-access.spec.ts",
 ]);
 
@@ -275,14 +275,14 @@ export async function verifyDocPathConsistency() {
 
   const boundaryRel = "docs/phase-8/appendices/PHASE-BOUNDARY-MATRIX.yaml";
   const boundary = await readRepoFile(boundaryRel);
-  if (/apps\/api\/src\/urban\/auth\/\*\*/.test(boundary)) {
+  if (/apps\/api\/src\/urban\/\*\*/.test(boundary)) {
     throw new Error(
-      `${FAIL_PREFIX} ${boundaryRel} must use flat apps/api/src/urban/** — not urban/auth/**`
+      `${FAIL_PREFIX} ${boundaryRel} must not allow removed apps/api/src/urban/** — use packages/workspaces/urban/** (Phase 10.3)`
     );
   }
-  if (!/apps\/api\/src\/urban\/\*\*/.test(boundary)) {
+  if (!/packages\/workspaces\/urban\/\*\*/.test(boundary)) {
     throw new Error(
-      `${FAIL_PREFIX} ${boundaryRel} rules.allowed_write_paths missing apps/api/src/urban/**`
+      `${FAIL_PREFIX} ${boundaryRel} rules.allowed_write_paths missing packages/workspaces/urban/**`
     );
   }
 }
@@ -292,7 +292,7 @@ export async function verifyDocPathConsistency() {
  * @returns {Promise<void>}
  */
 export async function verifyCaslNoEllipsis() {
-  const caslRel = "docs/phase-8/appendices/CASL-URBAN-OWNER-SPEC.md";
+  const caslRel = "packages/workspace-sdk/src/auth/tenant-authz.ts";
   const content = await readRepoFile(caslRel);
 
   /** @type {readonly { re: RegExp; label: string }[]} */
@@ -323,7 +323,7 @@ export async function verifyCaslNoEllipsis() {
     "canReadCanonicalDocument",
     "canCreateCanonicalDocument",
     "canUpdateCanonicalDocument",
-    "canPerformUrbanOwnerMutation",
+    "canPerformWorkspaceOwnerMutation",
   ]);
 
   for (const method of requiredTenantAuthzMethods) {
@@ -332,8 +332,10 @@ export async function verifyCaslNoEllipsis() {
     }
   }
 
-  if (!/export type UrbanOwnerSurface/m.test(content)) {
-    throw new Error(`${FAIL_PREFIX} ${caslRel} missing UrbanOwnerSurface enum block`);
+  const surfaceRel = "packages/workspace-sdk/src/auth/workspace-auth-surface.ts";
+  const surfaceContent = await readRepoFile(surfaceRel);
+  if (!/export type WorkspaceAuthSurface/m.test(surfaceContent)) {
+    throw new Error(`${FAIL_PREFIX} ${surfaceRel} missing WorkspaceAuthSurface type`);
   }
 }
 
@@ -525,20 +527,18 @@ export async function verifyProveWithParity() {
  * @returns {Promise<void>}
  */
 export async function verifyApiSurfaceAlignment() {
-  const sdkSpec = await readRepoFile("packages/workspace-sdk/test/urban-owner-ability.spec.ts");
-  if (!/authz\.canPerformUrbanOwnerMutation\s*\(/.test(sdkSpec)) {
+  const sdkSpec = await readRepoFile("packages/workspaces/urban/test/urban-owner-ability.spec.ts");
+  if (!/canPerformUrbanOwnerMutation\s*\(/.test(sdkSpec)) {
     throw new Error(
-      `${FAIL_PREFIX} SDK spec must call authz.canPerformUrbanOwnerMutation (TenantAuthz method per DEC-P8-004)`
+      `${FAIL_PREFIX} urban owner spec must call canPerformUrbanOwnerMutation (Phase 10.5 urban auth helper)`
     );
   }
-  if (/import[\s\S]*canPerformUrbanOwnerMutation[\s\S]*tenant-authz/.test(sdkSpec)) {
+  if (
+    !sdkSpec.includes("tenant-auth-grants") &&
+    !/@app-tour\/workspace-sdk\/auth/.test(sdkSpec)
+  ) {
     throw new Error(
-      `${FAIL_PREFIX} SDK spec must not import canPerformUrbanOwnerMutation as standalone export`
-    );
-  }
-  if (!sdkSpec.includes("tenant-auth-grants")) {
-    throw new Error(
-      `${FAIL_PREFIX} SDK spec must import isWorkspaceOwner from tenant-auth-grants.js`
+      `${FAIL_PREFIX} urban owner spec must import isWorkspaceOwner from tenant-auth-grants or @app-tour/workspace-sdk/auth`
     );
   }
   if (/isWorkspaceOwner\s*\(\s*authz\s*\)/.test(sdkSpec)) {
@@ -610,7 +610,7 @@ export async function verifySpecPathRegistry() {
         throw new Error(`${FAIL_PREFIX} ${patchError}`);
       }
     }
-    if (rel.endsWith("packages/workspace-sdk/test/urban-owner-ability.spec.ts")) {
+    if (rel.endsWith("packages/workspaces/urban/test/urban-owner-ability.spec.ts")) {
       if (!/SDK-8\.1-0[1-8]/.test(content)) {
         throw new Error(`${FAIL_PREFIX} ${rel} must declare SDK-8.1-01..08 case IDs`);
       }
