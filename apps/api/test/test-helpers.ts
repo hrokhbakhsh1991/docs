@@ -41,14 +41,28 @@ export function createTestToursService(
  */
 export function installMemoryStorageDriverForDescribe(): void {
   const prior = process.env.STORAGE_DRIVER;
+  const priorRelay = process.env.OUTBOX_RELAY_ENABLED;
+  const priorReconcile = process.env.PROJECTION_AUTO_RECONCILE_ENABLED;
   before(() => {
     process.env.STORAGE_DRIVER = "memory";
+    process.env.OUTBOX_RELAY_ENABLED = "false";
+    process.env.PROJECTION_AUTO_RECONCILE_ENABLED = "false";
   });
   after(() => {
     if (prior === undefined) {
       delete process.env.STORAGE_DRIVER;
     } else {
       process.env.STORAGE_DRIVER = prior;
+    }
+    if (priorRelay === undefined) {
+      delete process.env.OUTBOX_RELAY_ENABLED;
+    } else {
+      process.env.OUTBOX_RELAY_ENABLED = priorRelay;
+    }
+    if (priorReconcile === undefined) {
+      delete process.env.PROJECTION_AUTO_RECONCILE_ENABLED;
+    } else {
+      process.env.PROJECTION_AUTO_RECONCILE_ENABLED = priorReconcile;
     }
   });
 }

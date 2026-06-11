@@ -1,11 +1,10 @@
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
-import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
-import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
-import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban";
+
+import { listApiWorkspacePluginsFromManifest } from "./workspace-plugin-registry.generated";
 
 /**
- * API-local plugin registry (Phase 5.2 / 6.5 / 7.3). Eager load bound workspace packages.
+ * API plugin registry — generated from workspace.manifest.json (DEC-P10-001).
  */
 export function listApiWorkspacePlugins(): readonly WorkspacePlugin[] {
-  return [getStarterWorkspacePlugin(), getDenaliWorkspacePlugin(), getUrbanWorkspacePlugin()];
+  return listApiWorkspacePluginsFromManifest();
 }

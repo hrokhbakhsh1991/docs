@@ -7,6 +7,7 @@ import {
   type UrbanRegistrationRepository,
 } from "./in-memory-urban-registration.repository";
 import { UrbanRegistrationDuplicateError } from "./urban-registration-conflict.error";
+import { UrbanRegistrationClosedError } from "@app-tour/workspace-urban/http";
 import type { UrbanRegistrationPostBody } from "./schemas/urban-registration-post.schema";
 import { UrbanWorkspaceRequiredError } from "./urban-workspace-required.error";
 
@@ -25,9 +26,15 @@ export async function createUrbanRegistration(params: {
   readonly body: UrbanRegistrationPostBody;
   readonly store: TourStorageRepository;
   readonly registrationRepo?: UrbanRegistrationRepository;
+  readonly registrationPolicy?: "open" | "waitlist" | "closed";
 }): Promise<{ readonly id: string; readonly status: string }> {
   if (params.workspaceType !== "urban") {
     throw new UrbanWorkspaceRequiredError();
+  }
+
+  const policy = params.registrationPolicy ?? "open";
+  if (policy === "closed") {
+    throw new UrbanRegistrationClosedError();
   }
 
   const tour = await params.store.findFirst({

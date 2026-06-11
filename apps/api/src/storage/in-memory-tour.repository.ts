@@ -18,6 +18,9 @@ const URBAN_PHASE82_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000411";
 const URBAN_PHASE81_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 const URBAN_SILO_ENTERPRISE_TENANT_ID = "00000000-0000-4000-8000-000000000406";
 const URBAN_SILO_ENTERPRISE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000412";
+const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
+const OPERATOR_SMOKE_SEED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211";
 
 function assertTenantId(tenantId: string): void {
   if (typeof tenantId !== "string" || tenantId.trim().length === 0) {
@@ -82,6 +85,53 @@ export class InMemoryTourRepository implements TourStorageRepository {
               status: "draft",
               publishStatus: "draft",
             },
+          },
+        },
+      };
+      this.indexTour(draft);
+    }
+  }
+
+  /** Phase 9.8 smoke — operator tour for manual booking create (SMK-P9-07). */
+  ensureOperatorSmokeSeedTour(): void {
+    if (!this.byId.has(OPERATOR_SMOKE_SEED_TOUR_ID)) {
+      const tour: Tour = {
+        id: OPERATOR_SMOKE_SEED_TOUR_ID,
+        tenantId: OPERATOR_SMOKE_TENANT_ID,
+        rowVersion: 1,
+        createdAt: new Date(0).toISOString(),
+        canonical: {
+          schemaVersion: 1,
+          roots: ["basics"],
+          data: {
+            title: "North Ridge Trek",
+            publishStatus: "active",
+            startDateTime: "2026-07-01T08:00:00.000Z",
+            endDateTime: "2026-07-03T18:00:00.000Z",
+            category: "mountain_day",
+            capacityMax: 12,
+            program: { shortDescription: "Operator smoke catalog tour", difficultyLevel: 6 },
+            pricing: { basePricePerPerson: 2500000 },
+            photos: [{ url: "https://cdn.example/north-ridge.jpg" }],
+            basics: { title: "North Ridge Trek" },
+            details: { summary: "Operator smoke seed tour" },
+          },
+        },
+      };
+      this.indexTour(tour);
+    }
+    if (!this.byId.has(OPERATOR_SMOKE_DRAFT_TOUR_ID)) {
+      const draft: Tour = {
+        id: OPERATOR_SMOKE_DRAFT_TOUR_ID,
+        tenantId: OPERATOR_SMOKE_TENANT_ID,
+        rowVersion: 1,
+        createdAt: new Date(1).toISOString(),
+        canonical: {
+          schemaVersion: 1,
+          roots: ["basics"],
+          data: {
+            title: "Denali draft fixture",
+            publishStatus: "draft",
           },
         },
       };

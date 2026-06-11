@@ -12,13 +12,21 @@ import type { OutboxRelayHandle } from "./outbox/start-outbox-relay";
 type AppRequestListener = (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
 
 async function warmPostListen(): Promise<void> {
-  const [{ startOutboxRelayIfEnabled }, { startProjectionAutoReconcileIfEnabled }] =
-    await Promise.all([
-      import("./outbox/start-outbox-relay"),
-      import("./outbox/start-projection-auto-reconcile"),
-    ]);
+  const [
+    { startOutboxRelayIfEnabled },
+    { startProjectionAutoReconcileIfEnabled },
+    { bootstrapDenaliWizardTemplatesIfNeeded },
+    { bootstrapOperatorSmokeCatalogIfNeeded },
+  ] = await Promise.all([
+    import("./outbox/start-outbox-relay"),
+    import("./outbox/start-projection-auto-reconcile"),
+    import("./settings/bootstrap-denali-wizard-template"),
+    import("./settings/bootstrap-operator-smoke-catalog"),
+  ]);
   startOutboxRelayIfEnabled();
   startProjectionAutoReconcileIfEnabled();
+  await bootstrapDenaliWizardTemplatesIfNeeded();
+  await bootstrapOperatorSmokeCatalogIfNeeded();
 }
 
 function createDeferredAppListener(appDeps: AppDeps): AppRequestListener {

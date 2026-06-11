@@ -4,21 +4,27 @@
  */
 import assert from "node:assert/strict";
 import http from "node:http";
+import { randomUUID } from "node:crypto";
 import { before, beforeEach, describe, it } from "node:test";
 
 import { validateUrbanRegistrationPayload } from "@app-tour/workspace-urban";
 
 import { createRequestListener } from "../src/app";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
+import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
 import { resetUrbanRegistrationRepositoryForTests } from "../src/urban/in-memory-urban-registration.repository";
+import { setCachedTenantThemeById } from "../src/tenant/tenant-registry-cache";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 const URBAN_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 const URBAN_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
 const URBAN_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000411";
 
-function publicHeaders(tenantId = URBAN_TENANT_ID): Record<string, string> {
-  return { "x-tenant-id": tenantId };
+function publicHeaders(
+  tenantId = URBAN_TENANT_ID,
+  idempotencyKey = randomUUID()
+): Record<string, string> {
+  return { "x-tenant-id": tenantId, "Idempotency-Key": idempotencyKey };
 }
 
 async function requestUrban(
@@ -96,6 +102,13 @@ describe("Phase 8.2 — urban catalog + registration HTTP", () => {
 
   beforeEach(() => {
     resetUrbanRegistrationRepositoryForTests();
+    resetHttpIdempotencyMemoryForTests();
+    setCachedTenantThemeById(URBAN_TENANT_ID, {
+      urban: {
+        catalog: { publicEnabled: true, slug: "catalog" },
+        registration: { policy: "open", requirePhone: false },
+      },
+    });
   });
 
   it("UCAT-8.2-01 GET /urban/catalog lists published tours only", async () => {
@@ -174,6 +187,56 @@ describe("Phase 8.2 — urban catalog + registration HTTP", () => {
     });
     assert.equal(second.status, 409);
     assert.equal((second.body as { code?: string }).code, "URBAN_REGISTRATION_DUPLICATE");
+  });
+
+  it("UREG-8.2-05 POST /urban/registrations without Idempotency-Key returns 400", async () => {
+    const response = await requestUrban(listener, "POST", "/urban/registrations", {
+      headers: { "x-tenant-id": URBAN_TENANT_ID },
+      body: {
+        tourId: URBAN_PUBLISHED_TOUR_ID,
+        contact: { email: "missing-idem@example.com", fullName: "No Key" },
+      },
+    });
+    assert.equal(response.status, 400);
+    assert.equal((response.body as { code?: string }).code, "IDEMPOTENCY_KEY_REQUIRED");
+  });
+
+  it("UREG-8.2-06 POST /urban/registrations replay same Idempotency-Key returns same id", async () => {
+    const idempotencyKey = randomUUID();
+    const body = {
+      tourId: URBAN_PUBLISHED_TOUR_ID,
+      contact: { email: "idem@example.com", fullName: "Idem Guest" },
+    };
+    const first = await requestUrban(listener, "POST", "/urban/registrations", {
+      headers: publicHeaders(URBAN_TENANT_ID, idempotencyKey),
+      body,
+    });
+    assert.equal(first.status, 201);
+    const firstId = (first.body as { data?: { id?: string } }).data?.id;
+    const second = await requestUrban(listener, "POST", "/urban/registrations", {
+      headers: publicHeaders(URBAN_TENANT_ID, idempotencyKey),
+      body,
+    });
+    assert.equal(second.status, 201);
+    assert.equal((second.body as { data?: { id?: string } }).data?.id, firstId);
+  });
+
+  it("UREG-8.2-07 POST /urban/registrations rejects when policy is closed", async () => {
+    setCachedTenantThemeById(URBAN_TENANT_ID, {
+      urban: {
+        catalog: { publicEnabled: true, slug: "catalog" },
+        registration: { policy: "closed", requirePhone: false },
+      },
+    });
+    const response = await requestUrban(listener, "POST", "/urban/registrations", {
+      headers: publicHeaders(),
+      body: {
+        tourId: URBAN_PUBLISHED_TOUR_ID,
+        contact: { email: "closed@example.com", fullName: "Closed Guest" },
+      },
+    });
+    assert.equal(response.status, 403);
+    assert.equal((response.body as { code?: string }).code, "URBAN_REGISTRATION_CLOSED");
   });
 
   it("UREG-8.2-04 plugin validateUrbanRegistrationPayload rejects invalid email", () => {

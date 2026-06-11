@@ -17,13 +17,15 @@ export const IDEMPOTENCY_PAYLOAD_MISMATCH = "IDEMPOTENCY_PAYLOAD_MISMATCH";
 export const IDEMPOTENCY_IN_PROGRESS = "IDEMPOTENCY_IN_PROGRESS";
 export const HTTP_IDEMPOTENCY_TENANT_MISMATCH = "HTTP_IDEMPOTENCY_TENANT_MISMATCH";
 
+export const IDEMPOTENCY_KEY_REQUIRED = "IDEMPOTENCY_KEY_REQUIRED";
+
 export type IdempotentCreateTourResponse = {
   readonly id: string;
   readonly tenantId: string;
   readonly canonical: unknown;
 };
 
-type StoredResponse = IdempotentCreateTourResponse;
+type StoredResponse = Record<string, unknown>;
 
 type MemoryEntry = {
   readonly requestHash: string;
@@ -315,17 +317,29 @@ function assertIdempotentCreateTenantAllowed(tenantId: string): void {
 }
 
 /**
+ * Runs a POST mutation once per (tenant, Idempotency-Key); parallel callers receive the same body.
+ */
+export async function runIdempotentHttpMutation<T extends StoredResponse>(
+  tenantId: string,
+  idempotencyKey: string,
+  requestHash: string,
+  execute: () => Promise<T>
+): Promise<T> {
+  assertIdempotentCreateTenantAllowed(tenantId);
+  if (resolveStorageDriver() !== "prisma") {
+    return runWithMemoryIdempotency(tenantId, idempotencyKey, requestHash, execute);
+  }
+  return runWithPrismaIdempotency(tenantId, idempotencyKey, requestHash, execute);
+}
+
+/**
  * Runs POST /tours create once per (tenant, Idempotency-Key); parallel callers receive the same body.
  */
 export async function runIdempotentCreateTour(
   tenantId: string,
   idempotencyKey: string,
   requestHash: string,
-  execute: () => Promise<StoredResponse>
-): Promise<StoredResponse> {
-  assertIdempotentCreateTenantAllowed(tenantId);
-  if (resolveStorageDriver() !== "prisma") {
-    return runWithMemoryIdempotency(tenantId, idempotencyKey, requestHash, execute);
-  }
-  return runWithPrismaIdempotency(tenantId, idempotencyKey, requestHash, execute);
+  execute: () => Promise<IdempotentCreateTourResponse>
+): Promise<IdempotentCreateTourResponse> {
+  return runIdempotentHttpMutation(tenantId, idempotencyKey, requestHash, execute);
 }

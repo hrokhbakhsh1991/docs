@@ -111,7 +111,7 @@ describe("1-functional — GET /tours list (memory driver)", () => {
     const tenantId = integrationTenantId();
     const listener = createRequestListener({ toursService: createTestToursService() });
 
-    const list = await httpJson(listener, tenantId, { method: "GET", path: "/tours" });
+    const list = await httpJson(listener, tenantId, { method: "GET", path: "/tours?view=slim" });
     assert.equal(list.status, 200);
     assert.deepEqual(list.body.items, []);
     assert.equal(list.body.nextCursor, null);
@@ -129,7 +129,7 @@ describe("1-functional — GET /tours list (memory driver)", () => {
     assert.equal(created.status, 201);
     assert.ok(created.body.id);
 
-    const list = await httpJson(listener, tenantId, { method: "GET", path: "/tours" });
+    const list = await httpJson(listener, tenantId, { method: "GET", path: "/tours?view=slim" });
     assert.equal(list.status, 200);
     assert.equal(list.body.items?.length, 1);
     const row = list.body.items![0]!;
@@ -159,7 +159,7 @@ describe("1-functional — GET /tours list (memory driver)", () => {
 
     const page1 = await httpJson(listener, tenantId, {
       method: "GET",
-      path: "/tours?limit=2",
+      path: "/tours?view=slim&limit=2",
     });
     assert.equal(page1.status, 200);
     assert.equal(page1.body.items?.length, 2);
@@ -167,7 +167,7 @@ describe("1-functional — GET /tours list (memory driver)", () => {
 
     const page2 = await httpJson(listener, tenantId, {
       method: "GET",
-      path: `/tours?limit=2&cursor=${encodeURIComponent(page1.body.nextCursor!)}`,
+      path: `/tours?view=slim&limit=2&cursor=${encodeURIComponent(page1.body.nextCursor!)}`,
     });
     assert.equal(page2.status, 200);
     assert.equal(page2.body.items?.length, 1);
@@ -186,7 +186,7 @@ describe("1-functional — GET /tours list (memory driver)", () => {
       body: { data: { basics: { title: "a-only" }, details: { summary: "a" } } },
     });
 
-    const listB = await httpJson(listener, tenantB, { method: "GET", path: "/tours" });
+    const listB = await httpJson(listener, tenantB, { method: "GET", path: "/tours?view=slim" });
     assert.equal(listB.status, 200);
     assert.deepEqual(listB.body.items, []);
   });

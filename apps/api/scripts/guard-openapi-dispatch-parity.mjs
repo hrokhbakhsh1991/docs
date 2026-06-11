@@ -78,25 +78,74 @@ function appWiresRoute(route) {
       app.includes("/tours/") && app.includes("handleGetTour") && app.includes("handlePatchTour")
     );
   }
-  if (route.path === "/urban/settings") {
-    if (route.method === "GET") {
-      return app.includes('"/urban/settings"') && app.includes("handleGetUrbanSettings");
-    }
-    return app.includes('"/urban/settings"') && app.includes("handlePatchUrbanSettings");
+  if (route.path === "/tours/{tourId}/clone") {
+    return app.includes("tourCloneMatch") && app.includes("handleCloneTour");
   }
-  if (route.path === "/urban/catalog") {
-    return app.includes('"/urban/catalog"') && app.includes("handleGetUrbanCatalog");
+  if (route.path === "/tours/clone-photo-remint") {
+    return app.includes('"/tours/clone-photo-remint"') && app.includes("handleClonePhotoRemint");
   }
-  if (route.path === "/urban/catalog/{tourId}") {
-    return (
-      app.includes("handleGetUrbanCatalogTour") && app.includes("urbanCatalogTourMatch")
-    );
+  if (route.path.startsWith("/auth/") || route.path.startsWith("/public/auth/")) {
+    return app.includes(`"${route.path}"`);
   }
-  if (route.path === "/urban/registrations") {
-    return app.includes('"/urban/registrations"') && app.includes("handlePostUrbanRegistration");
+  if (route.path.startsWith("/identity/")) {
+    return app.includes(`"${route.path}"`);
+  }
+  if (
+    route.path.startsWith("/urban/") ||
+    route.path.startsWith("/finance/") ||
+    route.path.startsWith("/denali/")
+  ) {
+    return app.includes("tryDispatchWorkspaceRoutes");
+  }
+  if (
+    route.path === "/public/tenant-branding" ||
+    route.path === "/public/tenant-context" ||
+    route.path.startsWith("/settings/branding")
+  ) {
+    return app.includes(`"${route.path}"`);
+  }
+  if (route.path === "/workspaces/{workspaceId}/drafts") {
+    return app.includes("workspaceDraftListMatch");
+  }
+  if (route.path.startsWith("/workspaces/") && route.path.includes("/drafts/")) {
+    return app.includes("workspaceDraftMatch") && app.includes("handleGetWorkspaceDraft");
   }
   return false;
 }
+
+function manifestCoversWorkspaceRoutes(prefix, manifestRel, label) {
+  const manifestPath = path.join(ROOT, manifestRel);
+  if (!fs.existsSync(manifestPath)) {
+    violations.push(`${label} routes-manifest.ts missing`);
+    return;
+  }
+  const src = fs.readFileSync(manifestPath, "utf8");
+  for (const route of DISPATCH_ROUTES) {
+    if (!route.path.startsWith(prefix)) continue;
+    const staticPath = route.path
+      .replace("{tourId}", ":tourId")
+      .replace("{receiptId}", ":receiptId");
+    if (!src.includes(`"${staticPath}"`) && !src.includes(`'${staticPath}'`)) {
+      violations.push(`${label} manifest missing path ${route.path}`);
+    }
+  }
+}
+
+manifestCoversWorkspaceRoutes(
+  "/urban/",
+  "../../packages/workspaces/urban/src/http/routes-manifest.ts",
+  "urban"
+);
+manifestCoversWorkspaceRoutes(
+  "/finance/",
+  "../../packages/workspaces/denali/src/http/routes-manifest.ts",
+  "denali finance"
+);
+manifestCoversWorkspaceRoutes(
+  "/denali/",
+  "../../packages/workspaces/denali/src/http/routes-manifest.ts",
+  "denali"
+);
 
 for (const route of DISPATCH_ROUTES) {
   if (!appWiresRoute(route)) {

@@ -6,7 +6,13 @@ import { ScopedTourRepository } from "../db/scoped-tour.repository";
 import type { TourRecord } from "../db/tour-record";
 import type { TourStorageRepository } from "../db/tour.repository";
 import type { ListToursQuery, TourListItem, TourListResult } from "../tours/list-tours-query";
+import {
+  listToursOperator,
+  type OperatorListToursQuery,
+  type OperatorTourListResult,
+} from "../tours/list-tours-operator";
 import type { CreateTourBody } from "../tours/create-tour.schema";
+import { mergeCanonicalPatchDataForWorkspace } from "../tours/workspace-tour-write-dispatch";
 import type { UpdateTourBody } from "../tours/update-tour.schema";
 import { useAtomicCanonicalPersist } from "../storage/create-tour-storage";
 import {
@@ -14,32 +20,6 @@ import {
   requireActiveTenantId,
   runWithTenantContext,
 } from "../tenant/tenant-request-context";
-
-function mergeCanonicalPatchData(
-  existing: CreateTourBody["data"],
-  patch: UpdateTourBody["data"] | undefined
-): CreateTourBody["data"] {
-  if (patch === undefined) {
-    return existing;
-  }
-  const merged: Record<string, unknown> = { ...(existing as Record<string, unknown>) };
-  for (const [root, patchRoot] of Object.entries(patch)) {
-    const existingRoot = merged[root];
-    if (
-      patchRoot !== null &&
-      typeof patchRoot === "object" &&
-      !Array.isArray(patchRoot) &&
-      existingRoot !== null &&
-      typeof existingRoot === "object" &&
-      !Array.isArray(existingRoot)
-    ) {
-      merged[root] = { ...(existingRoot as Record<string, unknown>), ...patchRoot };
-      continue;
-    }
-    merged[root] = patchRoot;
-  }
-  return merged as CreateTourBody["data"];
-}
 
 function assertCanonicalWriteTenantAllowed(requestedTenantId: string): void {
   const bound = getActiveTenantId();
@@ -63,6 +43,8 @@ import {
   runPreTransactionValidation,
 } from "./pre-transaction-validation";
 import { PHASE_32_CANONICAL_STORAGE } from "./canonical-storage";
+import { scheduleMarketingCatalogRevalidate } from "../marketing/schedule-marketing-catalog-revalidate";
+import { shouldInvalidateMarketingCatalog } from "../marketing/should-invalidate-marketing-catalog";
 
 export type CanonicalTourWriteInput = {
   readonly ability: ApiAbility;
@@ -129,6 +111,10 @@ export class CanonicalTourService {
         });
       }
 
+      if (shouldInvalidateMarketingCatalog(input.workspaceType, null, record.canonical)) {
+        scheduleMarketingCatalogRevalidate(record.tenantId);
+      }
+
       return record;
     } finally {
       clearPreTransactionValidationGate(input.tenantId);
@@ -176,6 +162,15 @@ export class CanonicalTourService {
     };
   }
 
+  async listToursOperator(
+    ability: ApiAbility,
+    tenantId: string,
+    query: OperatorListToursQuery
+  ): Promise<OperatorTourListResult> {
+    accessibleByTourWhere(ability, "read");
+    return listToursOperator(this.canonicalStore, ability, tenantId, query);
+  }
+
   async updateTour(input: {
     readonly ability: ApiAbility;
     readonly tenantId: string;
@@ -215,10 +210,11 @@ export class CanonicalTourService {
     const mergeBody: CreateTourBody = {
       schemaVersion: input.body.schemaVersion ?? existing.canonical.schemaVersion,
       roots: input.body.roots ?? [...existing.canonical.roots],
-      data:
-        input.workspaceType === "urban"
-          ? mergeCanonicalPatchData(existing.canonical.data, input.body.data)
-          : ((input.body.data ?? existing.canonical.data) as CreateTourBody["data"]),
+      data: mergeCanonicalPatchDataForWorkspace(
+        input.workspaceType,
+        existing.canonical.data as Record<string, unknown>,
+        input.body.data as Record<string, unknown> | undefined
+      ) as CreateTourBody["data"],
     };
 
     const canonical = await runPreTransactionValidation({
@@ -229,6 +225,7 @@ export class CanonicalTourService {
     });
 
     try {
+      let record: TourRecord;
       if (useAtomicCanonicalPersist()) {
         const updated = await persistTourUpdateAtomically({
           tenantId: input.tenantId,
@@ -236,21 +233,33 @@ export class CanonicalTourService {
           canonical,
           expectedRowVersion: input.body.rowVersion,
         });
-        return {
+        record = {
           id: updated.id,
           tenantId: updated.tenantId,
           canonical: updated.canonical,
           createdAt: updated.createdAt,
           rowVersion: updated.rowVersion,
         };
+      } else {
+        record = await scopedRepo.update({
+          tenantId: input.tenantId,
+          id: input.tourId,
+          canonical,
+          expectedRowVersion: input.body.rowVersion,
+        });
       }
 
-      return await scopedRepo.update({
-        tenantId: input.tenantId,
-        id: input.tourId,
-        canonical,
-        expectedRowVersion: input.body.rowVersion,
-      });
+      if (
+        shouldInvalidateMarketingCatalog(
+          input.workspaceType,
+          existing.canonical,
+          record.canonical
+        )
+      ) {
+        scheduleMarketingCatalogRevalidate(record.tenantId);
+      }
+
+      return record;
     } finally {
       clearPreTransactionValidationGate(input.tenantId);
     }

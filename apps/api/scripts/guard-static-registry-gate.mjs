@@ -43,9 +43,11 @@ for (const file of walk(SRC)) {
 
     const windowStart = Math.max(0, i - 6);
     const window = lines.slice(windowStart, i + 1).join("\n");
-    if (!/\bisStaticTenantRegistryAllowed\s*\(/.test(window)) {
+    if (
+      !/\b(isStaticTenantRegistryAllowed|canResolveDevTenantRegistryFallback)\s*\(/.test(window)
+    ) {
       violations.push(
-        `${rel}:${i + 1}: findTenantBy* requires isStaticTenantRegistryAllowed() guard (DEC-039)`
+        `${rel}:${i + 1}: findTenantBy* requires static-registry guard (DEC-039)`
       );
     }
   }

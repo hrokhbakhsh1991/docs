@@ -7,8 +7,13 @@ import {
   resolveTenantFeatureFlags,
   validationVariantForFeatureFlags,
 } from "../tenant/resolve-tenant-feature-flags";
+import { buildCloneTourCreateBody } from "./build-clone-tour-body";
+import type { CloneTourBody } from "./clone-tour.schema";
 import type { CreateTourBody } from "./create-tour.schema";
 import type { ListToursQuery, TourListResult } from "./list-tours-query";
+import type { OperatorListToursQuery, OperatorTourListResult } from "./list-tours-operator";
+import { applyDenaliServerClonePhotoRemint } from "./apply-denali-server-clone-photo-remint";
+import { resolveActiveEquipmentIdsForClone } from "./resolve-clone-equipment-ids";
 import type { UpdateTourBody } from "./update-tour.schema";
 
 /**
@@ -44,6 +49,37 @@ export class ToursService {
   async listTours(auth: TenantAuthContext, query: ListToursQuery): Promise<TourListResult> {
     const ability = createApiAbility(auth);
     return this.canonical.listTours(ability, query);
+  }
+
+  async listToursOperator(
+    auth: TenantAuthContext,
+    query: OperatorListToursQuery
+  ): Promise<OperatorTourListResult> {
+    const ability = createApiAbility(auth);
+    return this.canonical.listToursOperator(ability, auth.tenantId, query);
+  }
+
+  async cloneTour(
+    auth: TenantAuthContext,
+    sourceTourId: string,
+    body: CloneTourBody = {}
+  ): Promise<TourRecord> {
+    const source = await this.getTourById(auth, sourceTourId);
+    if (source === null) {
+      throw new Error("TOUR_NOT_FOUND");
+    }
+
+    const activeEquipmentIds =
+      body.activeEquipmentIds ?? (await resolveActiveEquipmentIdsForClone(auth.tenantId));
+
+    const createBody = await buildCloneTourCreateBody({
+      source,
+      tenantId: auth.tenantId,
+      activeEquipmentIds,
+    });
+
+    const record = await this.createTour(auth, createBody);
+    return applyDenaliServerClonePhotoRemint(this, auth, record);
   }
 
   async updateTour(

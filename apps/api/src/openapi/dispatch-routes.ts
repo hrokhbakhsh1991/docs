@@ -64,6 +64,73 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     internal: true,
     operationId: "replayOutbox",
   },
+  // Phase 9.1 — identity production (INV-P9-007 · DEC-P9-012)
+  {
+    method: "POST",
+    path: "/auth/phone-preflight",
+    summary: "Check whether mobile may receive OTP on this tenant host",
+    operationId: "phonePreflight",
+  },
+  {
+    method: "POST",
+    path: "/auth/request-otp",
+    summary: "Issue mobile OTP challenge",
+    operationId: "requestOtp",
+  },
+  {
+    method: "POST",
+    path: "/auth/verify-otp",
+    summary: "Verify OTP and issue session JWT",
+    operationId: "verifyOtp",
+  },
+  {
+    method: "POST",
+    path: "/public/auth/phone-preflight",
+    summary: "Public catalog — check whether mobile is already registered",
+    operationId: "publicPhonePreflight",
+  },
+  {
+    method: "POST",
+    path: "/public/auth/request-otp",
+    summary: "Public catalog — issue mobile OTP (no invite gate)",
+    operationId: "publicRequestOtp",
+  },
+  {
+    method: "POST",
+    path: "/public/auth/verify-otp",
+    summary: "Public catalog — verify OTP; session or onboarding token",
+    operationId: "publicVerifyOtp",
+  },
+  {
+    method: "POST",
+    path: "/public/auth/register/complete",
+    summary: "Public catalog — complete guest profile and issue session",
+    operationId: "publicRegisterComplete",
+  },
+  {
+    method: "GET",
+    path: "/auth/session",
+    summary: "Hydrate operator session from cookie or bearer",
+    operationId: "getAuthSession",
+  },
+  {
+    method: "GET",
+    path: "/auth/ability-context",
+    summary: "Membership ability context for operator shell",
+    operationId: "getAuthAbilityContext",
+  },
+  {
+    method: "GET",
+    path: "/identity/me",
+    summary: "Read authenticated operator profile",
+    operationId: "getIdentityMe",
+  },
+  {
+    method: "PATCH",
+    path: "/identity/me",
+    summary: "Patch authenticated operator profile",
+    operationId: "patchIdentityMe",
+  },
   {
     method: "POST",
     path: "/tours",
@@ -87,6 +154,18 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     path: "/tours/{tourId}",
     summary: "Patch tour (optimistic lock)",
     operationId: "patchTour",
+  },
+  {
+    method: "POST",
+    path: "/tours/{tourId}/clone",
+    summary: "Clone tour (workspace plugin hydrate + create)",
+    operationId: "cloneTour",
+  },
+  {
+    method: "POST",
+    path: "/tours/clone-photo-remint",
+    summary: "Copy MinIO blobs for wizard clone photo remint plan",
+    operationId: "clonePhotoRemint",
   },
   // Phase 8.1 — urban owner settings (INV-P8-007)
   {
@@ -119,5 +198,97 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     path: "/urban/registrations",
     summary: "Public urban registration intake (anonymous)",
     operationId: "postUrbanRegistration",
+  },
+  {
+    method: "GET",
+    path: "/denali/catalog",
+    summary: "List published denali catalog tours (anonymous)",
+    operationId: "getDenaliCatalog",
+  },
+  {
+    method: "GET",
+    path: "/denali/catalog/{tourId}",
+    summary: "Get published denali catalog tour detail (anonymous)",
+    operationId: "getDenaliCatalogTour",
+  },
+  {
+    method: "POST",
+    path: "/denali/registrations",
+    summary: "Public denali registration intake (anonymous)",
+    operationId: "postDenaliRegistration",
+  },
+  // Phase 9.6 — tenant workspace branding (TENANT-WORKSPACE-BRANDING)
+  {
+    method: "GET",
+    path: "/settings/branding",
+    summary: "Read tenant workspace branding",
+    operationId: "getSettingsBranding",
+  },
+  {
+    method: "PATCH",
+    path: "/settings/branding",
+    summary: "Patch tenant display name (owner/admin)",
+    operationId: "patchSettingsBranding",
+  },
+  {
+    method: "POST",
+    path: "/settings/branding/logo",
+    summary: "Upload tenant brand logo (owner/admin)",
+    operationId: "uploadSettingsBrandLogo",
+  },
+  {
+    method: "DELETE",
+    path: "/settings/branding/logo",
+    summary: "Remove tenant brand logo (owner/admin)",
+    operationId: "deleteSettingsBrandLogo",
+  },
+  {
+    method: "GET",
+    path: "/settings/branding/logo/url",
+    summary: "Signed read URL for tenant brand logo",
+    operationId: "getSettingsBrandLogoUrl",
+  },
+  {
+    method: "GET",
+    path: "/public/tenant-branding",
+    summary: "Public tenant branding by host subdomain",
+    operationId: "getPublicTenantBranding",
+  },
+  {
+    method: "GET",
+    path: "/public/tenant-context",
+    summary: "Public tenant catalog bootstrap by host subdomain",
+    operationId: "getPublicTenantContext",
+  },
+  // Phase 11.2 / 11.9 — workspace draft snapshots (DEC-P11-003)
+  {
+    method: "GET",
+    path: "/workspaces/{workspaceId}/drafts",
+    summary: "List user-scoped workspace draft index rows (no data blobs)",
+    operationId: "listWorkspaceDrafts",
+  },
+  {
+    method: "GET",
+    path: "/workspaces/{workspaceId}/drafts/{namespace}/{key}/events",
+    summary: "List append-only audit events for a workspace draft",
+    operationId: "listWorkspaceDraftEvents",
+  },
+  {
+    method: "GET",
+    path: "/workspaces/{workspaceId}/drafts/{namespace}/{key}",
+    summary: "Read user-scoped workspace draft snapshot",
+    operationId: "getWorkspaceDraft",
+  },
+  {
+    method: "PATCH",
+    path: "/workspaces/{workspaceId}/drafts/{namespace}/{key}",
+    summary: "Patch workspace draft with OCC",
+    operationId: "patchWorkspaceDraft",
+  },
+  {
+    method: "DELETE",
+    path: "/workspaces/{workspaceId}/drafts/{namespace}/{key}",
+    summary: "Delete workspace draft snapshot",
+    operationId: "deleteWorkspaceDraft",
   },
 ] as const;

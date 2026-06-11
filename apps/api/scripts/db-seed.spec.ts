@@ -14,5 +14,6 @@ describe("db-seed logging hygiene (LOG-COL-05)", () => {
     assert.doesNotMatch(source, /tenant\.id/);
     assert.match(source, /event:\s*"db\.seed\.tenant"/);
     assert.match(source, /subdomain:\s*tenant\.subdomain/);
+    assert.match(source, /seedDenaliOperatorIdentity/);
   });
 });

@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   assertDenaliTourPhotoKeyTenantScope,
   buildDenaliTourPhotoObjectKey,
+  buildDenaliWizardDraftPhotoObjectKey,
   getDenaliTourPhotoSignedReadUrl,
   ensureMinioPhotoBucket,
   pingMinioPhotoStorage,
@@ -24,6 +25,16 @@ describe("minio-photo.spec.ts (REQ-P6-016, RULE-P6-009)", () => {
   it("buildDenaliTourPhotoObjectKey uses tenant/tour/photos prefix", () => {
     const key = buildDenaliTourPhotoObjectKey({ tenantId: tenantA, tourId, photoId });
     assert.equal(key, `${tenantA}/tours/${tourId}/photos/${photoId}`);
+  });
+
+  it("buildDenaliWizardDraftPhotoObjectKey uses tenant/wizard-drafts prefix", () => {
+    const sessionId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+    const key = buildDenaliWizardDraftPhotoObjectKey({
+      tenantId: tenantA,
+      sessionId,
+      photoId,
+    });
+    assert.equal(key, `${tenantA}/wizard-drafts/${sessionId}/photos/${photoId}`);
   });
 
   it("assertDenaliTourPhotoKeyTenantScope throws for cross-tenant key", () => {

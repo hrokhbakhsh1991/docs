@@ -12,8 +12,16 @@ export function assertAuthEnvironmentIntegrity(): void {
   if (process.env.AUTH_ALLOW_DEV_BEARER === "true" && process.env.NODE_ENV !== "test") {
     throw new Error(AUTH_DEV_BEARER_FORBIDDEN_OUTSIDE_TEST);
   }
-  if (isProductionAuthMode() && !isJwtVerifyConfigured()) {
-    throw new Error(AUTH_JWT_REQUIRED_IN_PRODUCTION);
+  if (isProductionAuthMode()) {
+    if (!isJwtVerifyConfigured()) {
+      throw new Error(AUTH_JWT_REQUIRED_IN_PRODUCTION);
+    }
+    if (process.env.OTP_FIXTURE_CODE?.trim()) {
+      throw new Error("OTP_FIXTURE_CODE_FORBIDDEN_IN_PRODUCTION");
+    }
+    if (process.env.AUTH_ALLOW_DEV_STATIC_OTP?.trim() === "true") {
+      throw new Error("AUTH_ALLOW_DEV_STATIC_OTP_FORBIDDEN_IN_PRODUCTION");
+    }
   }
 }
 

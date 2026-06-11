@@ -1,6 +1,8 @@
 import { performance } from "node:perf_hooks";
 
-import type { TenantThemeConfig } from "@app-tour/workspace-sdk";
+import { resolveEffectiveTenantBranding, type TenantThemeConfig } from "@app-tour/workspace-sdk";
+
+import { resolveDefaultTenantBranding } from "./workspace-default-tenant-branding";
 
 import { getPrismaAdmin } from "../db/prisma";
 import {
@@ -9,6 +11,7 @@ import {
   recordTenantRegistryCacheMiss,
 } from "./admin-pool-read-monitor";
 import {
+  canResolveDevTenantRegistryFallback,
   findTenantById,
   findTenantBySubdomain,
   isStaticTenantRegistryAllowed,
@@ -34,9 +37,24 @@ function themeFromJson(theme: unknown): TenantThemeConfig {
     record.cssVariables !== null && typeof record.cssVariables === "object"
       ? (record.cssVariables as Record<string, string>)
       : undefined;
+  const displayName = typeof record.displayName === "string" ? record.displayName : undefined;
+  const logoRaw = record.logo;
+  const logo =
+    logoRaw !== null &&
+    typeof logoRaw === "object" &&
+    typeof (logoRaw as Record<string, unknown>).storageKey === "string"
+      ? {
+          storageKey: String((logoRaw as Record<string, unknown>).storageKey),
+          ...(typeof (logoRaw as Record<string, unknown>).contentType === "string"
+            ? { contentType: String((logoRaw as Record<string, unknown>).contentType) }
+            : {}),
+        }
+      : undefined;
   return {
     ...(primaryColor !== undefined ? { primaryColor } : {}),
     ...(cssVariables !== undefined ? { cssVariables } : {}),
+    ...(displayName !== undefined ? { displayName } : {}),
+    ...(logo !== undefined ? { logo } : {}),
   };
 }
 
@@ -50,13 +68,16 @@ function mapPrismaTenant(row: {
     id: row.id,
     subdomain: row.subdomain,
     workspaceType: row.workspaceType,
-    theme: themeFromJson(row.theme),
+    theme: resolveEffectiveTenantBranding(
+      themeFromJson(row.theme),
+      resolveDefaultTenantBranding(row.workspaceType)
+    ),
   };
 }
 
 /**
  * Resolves tenant metadata — Postgres `tenants` row when `DATABASE_URL` is set,
- * else static `DEV_TENANTS` registry when {@link isStaticTenantRegistryAllowed}.
+ * else static `DEV_TENANTS` when {@link isStaticTenantRegistryAllowed} or dev smoke fallback applies.
  */
 export async function resolveRegisteredTenantById(
   tenantId: string
@@ -80,7 +101,7 @@ export async function resolveRegisteredTenantById(
       return mapped;
     }
   }
-  if (isStaticTenantRegistryAllowed()) {
+  if (isStaticTenantRegistryAllowed() || canResolveDevTenantRegistryFallback()) {
     const devTenant = findTenantById(normalized);
     if (devTenant !== null) {
       setCachedTenantById(normalized, devTenant);
@@ -115,7 +136,7 @@ export async function resolveRegisteredTenantBySubdomain(
       return mapped;
     }
   }
-  if (isStaticTenantRegistryAllowed()) {
+  if (isStaticTenantRegistryAllowed() || canResolveDevTenantRegistryFallback()) {
     const devTenant = findTenantBySubdomain(normalized);
     if (devTenant !== null) {
       setCachedTenantBySubdomain(normalized, devTenant);

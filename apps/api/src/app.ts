@@ -1,7 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+import "./http/configure-denali-catalog-http-host";
+import "./http/configure-denali-finance-http-host";
+import "./http/configure-urban-http-host";
 import type { ProvisioningService } from "./internal/provisioning.service";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
+import { buildWorkspaceRouteHandlers } from "./boot/lazy-workspace-finance-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
 import { handleHealth } from "./health/health.routes";
 import { resolveTraceIdFromHeaders } from "./observability/resolve-trace-id";
@@ -11,13 +15,83 @@ import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
 import type { MapEnrichRouteDeps } from "./routes/api-v2/map-enrich.routes";
 import type { TourStorageRepository } from "./db/tour.repository";
 import type { ToursRouteDeps } from "./tours/tours.routes";
+import {
+  handleGetAuthAbilityContext,
+  handleGetAuthSession,
+  handlePhonePreflight,
+  handleRequestOtp,
+  handleVerifyOtp,
+} from "./identity/auth.routes";
+import {
+  handlePublicPhonePreflight,
+  handlePublicRegisterComplete,
+  handlePublicRequestOtp,
+  handlePublicVerifyOtp,
+} from "./identity/public-auth.routes";
+import { handleAcceptInvite } from "./identity/invites.routes";
+import {
+  handleGetIdentityMe,
+  handlePatchIdentityMe,
+} from "./identity/me.routes";
+import {
+  handleBulkPatchUserRole,
+  handleBulkReactivateUsers,
+  handleBulkRemoveUsers,
+  handleBulkSuspendUsers,
+  handleGetUserBookingSummary,
+  handleGetUserRoleHistory,
+  handleInviteUser,
+  handleListPendingInvites,
+  handleListUsers,
+  handlePatchUserRewards,
+  handlePatchUserRole,
+  handleReactivateUser,
+  handleRemoveUser,
+  handleResendInvite,
+  handleRevokeInvite,
+  handleSuspendUser,
+  handleTransferWorkspaceOwnership,
+} from "./identity/users.routes";
+import {
+  handleApproveBooking,
+  handleBulkApproveBookings,
+  handleCreateBooking,
+  handleGetBookingsSummary,
+  handleListBookings,
+  handleRejectBooking,
+} from "./bookings/bookings.routes";
+import {
+  handleCreateSettingsResource,
+  handleDeleteSettingsResource,
+  handleGetSettingsConfig,
+  handleGetSettingsExplore,
+  handleGetTourPresetsAdvancedAlias,
+  handleGetTourWizardTemplateAlias,
+  handleListSettingsModules,
+  handleListSettingsResources,
+  handleMutateSettingsExplore,
+  handlePatchSettingsResource,
+  handlePutSettingsConfig,
+  handlePutTourPresetsAdvancedAlias,
+  handlePutTourWizardTemplateAlias,
+} from "./settings/settings.routes";
+import {
+  handleDeleteWorkspaceDraft,
+  handleGetWorkspaceDraft,
+  handleListWorkspaceDraftEvents,
+  handleListWorkspaceDrafts,
+  handlePatchWorkspaceDraft,
+} from "./workspace-drafts/workspace-drafts.routes";
 import type { UrbanProductRouteDeps } from "./urban/urban.routes";
+import { tryDispatchWorkspaceRoutes } from "./http/workspace-route-registrar";
+import type { FinanceService } from "./denali-finance/finance.service";
 
 export type AppDeps = Partial<ToursRouteDeps> &
   Partial<UrbanProductRouteDeps> &
   MapEnrichRouteDeps & {
     readonly provisioningService?: ProvisioningService;
     readonly tourStore?: TourStorageRepository;
+    readonly financeService?: FinanceService;
   };
 
 async function dispatchRequest(
@@ -74,8 +148,209 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "POST" && url.pathname === "/auth/phone-preflight") {
+    await handlePhonePreflight(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/auth/request-otp") {
+    await handleRequestOtp(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/auth/verify-otp") {
+    await handleVerifyOtp(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/public/auth/phone-preflight") {
+    await handlePublicPhonePreflight(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/public/auth/request-otp") {
+    await handlePublicRequestOtp(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/public/auth/verify-otp") {
+    await handlePublicVerifyOtp(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/public/auth/register/complete") {
+    await handlePublicRegisterComplete(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/auth/session") {
+    await handleGetAuthSession(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/auth/ability-context") {
+    await handleGetAuthAbilityContext(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/identity/me") {
+    await handleGetIdentityMe(req, res);
+    return;
+  }
+
+  if (method === "PATCH" && url.pathname === "/identity/me") {
+    await handlePatchIdentityMe(req, res);
+    return;
+  }
+
+  const inviteAcceptMatch = url.pathname.match(/^\/auth\/invite\/([^/]+)\/accept$/);
+  if (inviteAcceptMatch && method === "POST") {
+    await handleAcceptInvite(req, res, inviteAcceptMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/users") {
+    await handleListUsers(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/users/invite") {
+    await handleInviteUser(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/users/invites") {
+    await handleListPendingInvites(req, res);
+    return;
+  }
+
+  if (method === "PATCH" && url.pathname === "/users/bulk/role") {
+    await handleBulkPatchUserRole(req, res);
+    return;
+  }
+  if (method === "PATCH" && url.pathname === "/users/bulk/suspend") {
+    await handleBulkSuspendUsers(req, res);
+    return;
+  }
+  if (method === "PATCH" && url.pathname === "/users/bulk/reactivate") {
+    await handleBulkReactivateUsers(req, res);
+    return;
+  }
+  if (method === "POST" && url.pathname === "/users/bulk/remove") {
+    await handleBulkRemoveUsers(req, res);
+    return;
+  }
+
+  const usersInviteMatch = url.pathname.match(/^\/users\/invites\/([^/]+)(?:\/(resend))?$/);
+  if (usersInviteMatch) {
+    const inviteId = usersInviteMatch[1]!;
+    const action = usersInviteMatch[2];
+    if (action === "resend" && method === "POST") {
+      await handleResendInvite(req, res, inviteId);
+      return;
+    }
+    if (action === undefined && method === "DELETE") {
+      await handleRevokeInvite(req, res, inviteId);
+      return;
+    }
+  }
+
+  const usersMemberMatch = url.pathname.match(
+    /^\/users\/([^/]+)(?:\/(role|rewards|suspend|reactivate|role-history|booking-summary))?$/
+  );
+  if (usersMemberMatch && usersMemberMatch[1] !== "invite" && usersMemberMatch[1] !== "invites") {
+    const userId = usersMemberMatch[1]!;
+    const action = usersMemberMatch[2];
+    if (action === "role-history" && method === "GET") {
+      await handleGetUserRoleHistory(req, res, userId);
+      return;
+    }
+    if (action === "booking-summary" && method === "GET") {
+      await handleGetUserBookingSummary(req, res, userId);
+      return;
+    }
+    if (action === "role" && method === "PATCH") {
+      await handlePatchUserRole(req, res, userId);
+      return;
+    }
+    if (action === "rewards" && method === "PATCH") {
+      await handlePatchUserRewards(req, res, userId);
+      return;
+    }
+    if (action === "suspend" && method === "PATCH") {
+      await handleSuspendUser(req, res, userId);
+      return;
+    }
+    if (action === "reactivate" && method === "PATCH") {
+      await handleReactivateUser(req, res, userId);
+      return;
+    }
+    if (action === undefined && method === "DELETE") {
+      await handleRemoveUser(req, res, userId);
+      return;
+    }
+  }
+
+  const ownershipTransferMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/ownership-transfer$/
+  );
+  if (ownershipTransferMatch && method === "POST") {
+    await handleTransferWorkspaceOwnership(req, res, ownershipTransferMatch[1]!);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/bookings") {
+    await handleListBookings(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/bookings") {
+    await handleCreateBooking(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/bookings/summary") {
+    await handleGetBookingsSummary(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/bookings/bulk-approve") {
+    await handleBulkApproveBookings(req, res);
+    return;
+  }
+
+  const bookingApproveMatch = url.pathname.match(/^\/bookings\/([^/]+)\/approve$/);
+  if (method === "POST" && bookingApproveMatch) {
+    await handleApproveBooking(req, res, bookingApproveMatch[1]!);
+    return;
+  }
+
+  const bookingRejectMatch = url.pathname.match(/^\/bookings\/([^/]+)\/reject$/);
+  if (method === "POST" && bookingRejectMatch) {
+    await handleRejectBooking(req, res, bookingRejectMatch[1]!);
+    return;
+  }
+
   const toursService = await resolveLazyToursService(deps.toursService);
   const tourDeps: ToursRouteDeps = { toursService };
+
+  if (method === "POST" && url.pathname === "/tours/wizard-photos") {
+    const { handleUploadWizardPhoto } = await import("./tours/tour-wizard-photos.routes");
+    await handleUploadWizardPhoto(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/tours/wizard-photos/url") {
+    const { handleGetWizardPhotoUrl } = await import("./tours/tour-wizard-photos.routes");
+    await handleGetWizardPhotoUrl(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/tours/clone-photo-remint") {
+    const { handleClonePhotoRemint } = await import("./tours/clone-photo-remint.routes");
+    await handleClonePhotoRemint(req, res);
+    return;
+  }
 
   if (method === "POST" && url.pathname === "/tours") {
     await handlers.handleCreateTour(req, res, tourDeps);
@@ -84,6 +359,12 @@ async function dispatchRequest(
 
   if (method === "GET" && url.pathname === "/tours") {
     await handlers.handleListTours(req, res, tourDeps);
+    return;
+  }
+
+  const tourCloneMatch = url.pathname?.match(/^\/tours\/([^/]+)\/clone$/);
+  if (method === "POST" && tourCloneMatch) {
+    await handlers.handleCloneTour(req, res, tourDeps, tourCloneMatch[1]!);
     return;
   }
 
@@ -123,6 +404,181 @@ async function dispatchRequest(
 
   if (method === "POST" && url.pathname === "/urban/registrations") {
     await handlers.handlePostUrbanRegistration(req, res, urbanProductDeps);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/public/tenant-branding") {
+    const { handlePublicTenantBranding } = await import("./tenant/tenant-branding.routes");
+    await handlePublicTenantBranding(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/public/tenant-context") {
+    const { handlePublicTenantContext } = await import("./tenant/tenant-branding.routes");
+    await handlePublicTenantContext(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/settings/branding") {
+    const { handleGetTenantBranding } = await import("./tenant/tenant-branding.routes");
+    await handleGetTenantBranding(req, res);
+    return;
+  }
+
+  if (method === "PATCH" && url.pathname === "/settings/branding") {
+    const { handlePatchTenantBranding } = await import("./tenant/tenant-branding.routes");
+    await handlePatchTenantBranding(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/settings/branding/logo") {
+    const { handleUploadTenantBrandLogo } = await import("./tenant/tenant-branding.routes");
+    await handleUploadTenantBrandLogo(req, res);
+    return;
+  }
+
+  if (method === "DELETE" && url.pathname === "/settings/branding/logo") {
+    const { handleDeleteTenantBrandLogo } = await import("./tenant/tenant-branding.routes");
+    await handleDeleteTenantBrandLogo(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/settings/branding/logo/url") {
+    const { handleGetTenantBrandLogoUrl } = await import("./tenant/tenant-branding.routes");
+    await handleGetTenantBrandLogoUrl(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/settings/modules") {
+    await handleListSettingsModules(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/settings/tour-wizard-template") {
+    await handleGetTourWizardTemplateAlias(req, res);
+    return;
+  }
+
+  if (method === "PUT" && url.pathname === "/settings/tour-wizard-template") {
+    await handlePutTourWizardTemplateAlias(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/settings/tour-presets/advanced") {
+    await handleGetTourPresetsAdvancedAlias(req, res);
+    return;
+  }
+
+  if (method === "PUT" && url.pathname === "/settings/tour-presets/advanced") {
+    await handlePutTourPresetsAdvancedAlias(req, res);
+    return;
+  }
+
+  const settingsExploreMatch = url.pathname.match(/^\/settings\/explore\/([^/]+)$/);
+  if (settingsExploreMatch) {
+    const moduleId = settingsExploreMatch[1]!;
+    if (method === "GET") {
+      await handleGetSettingsExplore(req, res, moduleId);
+      return;
+    }
+    if (method === "PUT" || method === "POST" || method === "PATCH" || method === "DELETE") {
+      await handleMutateSettingsExplore(req, res);
+      return;
+    }
+  }
+
+  const settingsConfigMatch = url.pathname.match(/^\/settings\/config\/([^/]+)$/);
+  if (settingsConfigMatch) {
+    const configKey = settingsConfigMatch[1]!;
+    if (method === "GET") {
+      await handleGetSettingsConfig(req, res, configKey);
+      return;
+    }
+    if (method === "PUT") {
+      await handlePutSettingsConfig(req, res, configKey);
+      return;
+    }
+  }
+
+  const settingsResourceItemMatch = url.pathname.match(
+    /^\/settings\/resources\/([^/]+)\/([^/]+)$/
+  );
+  if (settingsResourceItemMatch) {
+    const moduleId = settingsResourceItemMatch[1]!;
+    const itemId = settingsResourceItemMatch[2]!;
+    if (method === "PATCH") {
+      await handlePatchSettingsResource(req, res, moduleId, itemId);
+      return;
+    }
+    if (method === "DELETE") {
+      await handleDeleteSettingsResource(req, res, moduleId, itemId);
+      return;
+    }
+  }
+
+  const settingsResourceMatch = url.pathname.match(/^\/settings\/resources\/([^/]+)$/);
+  if (settingsResourceMatch) {
+    const moduleId = settingsResourceMatch[1]!;
+    if (method === "GET") {
+      await handleListSettingsResources(req, res, moduleId);
+      return;
+    }
+    if (method === "POST") {
+      await handleCreateSettingsResource(req, res, moduleId);
+      return;
+    }
+  }
+
+  const workspaceDraftListMatch = url.pathname.match(/^\/workspaces\/([^/]+)\/drafts$/);
+  if (workspaceDraftListMatch && method === "GET") {
+    await handleListWorkspaceDrafts(req, res, {
+      workspaceId: decodeURIComponent(workspaceDraftListMatch[1]!),
+    });
+    return;
+  }
+
+  const workspaceDraftEventsMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/drafts\/([^/]+)\/([^/]+)\/events$/
+  );
+  if (workspaceDraftEventsMatch && method === "GET") {
+    await handleListWorkspaceDraftEvents(req, res, {
+      workspaceId: decodeURIComponent(workspaceDraftEventsMatch[1]!),
+      draftNamespace: decodeURIComponent(workspaceDraftEventsMatch[2]!),
+      draftKey: decodeURIComponent(workspaceDraftEventsMatch[3]!),
+    });
+    return;
+  }
+
+  const workspaceDraftMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/drafts\/([^/]+)\/([^/]+)$/
+  );
+  if (workspaceDraftMatch) {
+    const params = {
+      workspaceId: decodeURIComponent(workspaceDraftMatch[1]!),
+      draftNamespace: decodeURIComponent(workspaceDraftMatch[2]!),
+      draftKey: decodeURIComponent(workspaceDraftMatch[3]!),
+    };
+    if (method === "GET") {
+      await handleGetWorkspaceDraft(req, res, params);
+      return;
+    }
+    if (method === "PATCH") {
+      await handlePatchWorkspaceDraft(req, res, params);
+      return;
+    }
+    if (method === "DELETE") {
+      await handleDeleteWorkspaceDraft(req, res, params);
+      return;
+    }
+  }
+
+  const workspaceHandlers = await buildWorkspaceRouteHandlers(handlers);
+  if (
+    await tryDispatchWorkspaceRoutes(method, url.pathname, req, res, workspaceHandlers, {
+      tourStore: deps.tourStore,
+      financeService: deps.financeService,
+    })
+  ) {
     return;
   }
 

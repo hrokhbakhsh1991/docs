@@ -174,6 +174,13 @@ async function persistMergedTheme(
   }
 }
 
+export async function readUrbanRegistrationPolicyForTenant(
+  tenantId: string
+): Promise<"open" | "waitlist" | "closed"> {
+  const theme = await resolveTenantThemeJsonById(tenantId);
+  return readUrbanFromTheme(theme).registration.policy;
+}
+
 export async function getUrbanSettings(
   auth: TenantAuthContext,
   workspaceType: string

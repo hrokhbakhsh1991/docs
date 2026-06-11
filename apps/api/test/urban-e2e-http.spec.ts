@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import http from "node:http";
+import { randomUUID } from "node:crypto";
 import { before, beforeEach, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
@@ -23,8 +24,8 @@ function createUrbanSmokeListener(): ReturnType<typeof createRequestListener> {
   });
 }
 
-function publicHeaders(): Record<string, string> {
-  return { "x-tenant-id": URBAN_SMOKE_E2E.tenantId };
+function publicHeaders(idempotencyKey = randomUUID()): Record<string, string> {
+  return { "x-tenant-id": URBAN_SMOKE_E2E.tenantId, "Idempotency-Key": idempotencyKey };
 }
 
 function ownerBearer(): string {

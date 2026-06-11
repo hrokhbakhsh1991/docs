@@ -24,6 +24,20 @@ model Tenant {
   payments            Payment[]
   paymentReceipts     PaymentReceipt[]
   urbanRegistrations  UrbanRegistration[]
+  userTenants         UserTenant[]
+  operatorPendingInvites OperatorPendingInvite[]
+  operatorRegistrations OperatorRegistration[]
+  tenantConfigs TenantConfig[]
+  workspaceEquipment WorkspaceEquipment[]
+  workspaceTourThemes WorkspaceTourTheme[]
+  workspaceGuideLanguages WorkspaceGuideLanguage[]
+  workspaceTourPresets WorkspaceTourPreset[]
+  workspaceRegions WorkspaceRegion[]
+  workspaceDestinations WorkspaceDestination[]
+  operatorSettingsAuditEvents OperatorSettingsAuditEvent[]
+  operatorUserRoleAudits OperatorUserRoleAudit[]
+  workspaceDraftSnapshots WorkspaceDraftSnapshot[]
+  workspaceDraftEvents    WorkspaceDraftEvent[]
 
   @@map("tenants")
 }
@@ -199,4 +213,278 @@ model PaymentReceipt {
   @@index([tenantId, status])
   @@index([tenantId, paymentId])
   @@map("payment_receipts")
+}
+
+/// Phase 9.1 — global operator identity (mobile login).
+model User {
+  id          String       @id @default(uuid()) @db.Uuid
+  mobile      String       @unique
+  createdAt   DateTime     @default(now()) @map("created_at")
+  memberships UserTenant[]
+
+  @@map("users")
+}
+
+/// Phase 9.1 — tenant membership + JWT sessionVersion invalidation (DEC-P9-012).
+model UserTenant {
+  userId              String   @map("user_id") @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  role                String
+  status              String   @default("ACTIVE")
+  sessionVersion      Int      @default(1) @map("session_version")
+  workspaceId         String?  @map("workspace_id")
+  membershipMetadata  Json     @default("{}") @map("membership_metadata")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, tenantId])
+  @@index([tenantId, status], map: "idx_user_tenants_tenant_status")
+  @@map("user_tenants")
+}
+
+/// Phase 9.1 — OTP challenge store (single-use · 5m TTL in service layer).
+model MobileOtpChallenge {
+  id        String   @id @default(uuid()) @db.Uuid
+  mobile    String
+  purpose   String   @default("login")
+  codeHash  String   @default("") @map("code_hash")
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([mobile, createdAt(sort: Desc)], map: "idx_mobile_otp_mobile_created")
+  @@map("mobile_otp_challenges")
+}
+
+/// Phase 9.1/9.4 — pending workspace invite before UserTenant row exists.
+model OperatorPendingInvite {
+  inviteId        String   @id @default(uuid()) @map("invite_id") @db.Uuid
+  inviteToken     String   @unique @map("invite_token") @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  phone           String
+  role            String
+  status          String   @default("INVITED")
+  nameNote        String?  @map("name_note")
+  invitedByUserId String   @map("invited_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status], map: "idx_operator_pending_invites_tenant_status")
+  @@map("operator_pending_invites")
+}
+
+/// Phase 9.4 R7 — append-only membership audit for users directory.
+model OperatorUserRoleAudit {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  targetUserId String   @map("target_user_id") @db.Uuid
+  actorUserId  String   @map("actor_user_id") @db.Uuid
+  eventKind    String   @default("role_change") @map("event_kind")
+  oldRole      String   @map("old_role")
+  newRole      String   @map("new_role")
+  createdAt    DateTime @default(now()) @map("created_at")
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, targetUserId, createdAt(sort: Desc)], map: "idx_operator_user_role_audit_target")
+  @@map("operator_user_role_audit")
+}
+
+/// Phase 9.5 — operator Command Center registrations (Denali · not urban_registrations).
+model OperatorRegistration {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  tourId             String    @map("tour_id") @db.Uuid
+  tourTitle          String    @map("tour_title")
+  guestLabel         String    @map("guest_label")
+  guestEmail         String?   @map("guest_email")
+  guestPhone         String?   @map("guest_phone")
+  partySize          Int       @map("party_size")
+  status             String    @default("pending")
+  paymentStatus      String    @default("unpaid") @map("payment_status")
+  departureAt        DateTime  @map("departure_at")
+  submittedAt        DateTime  @default(now()) @map("submitted_at")
+  submittedByUserId  String    @map("submitted_by_user_id") @db.Uuid
+  approvedAt         DateTime? @map("approved_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, submittedAt(sort: Desc)], map: "idx_operator_registrations_tenant_status")
+  @@index([tenantId, tourId, submittedAt(sort: Desc)], map: "idx_operator_registrations_tenant_tour")
+  @@map("operator_registrations")
+}
+
+/// Phase 9.6 — versioned tenant config (wizard template · presets advanced).
+model TenantConfig {
+  tenantId      String   @map("tenant_id") @db.Uuid
+  configKey     String   @map("config_key")
+  configVersion Int      @map("config_version")
+  payload       Json     @default("{}")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, configKey])
+  @@map("tenant_config")
+}
+
+/// Phase 9.6 — workspace equipment reference catalog.
+model WorkspaceEquipment {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
+  category  String?
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, sortOrder, name], map: "idx_workspace_equipment_tenant_sort")
+  @@map("workspace_equipment")
+}
+
+/// Phase 9.6 — tour themes catalog.
+model WorkspaceTourTheme {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String
+  slug        String
+  formProfile String?  @map("form_profile")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  presets   WorkspaceTourPreset[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, sortOrder, name], map: "idx_workspace_tour_themes_tenant_sort")
+  @@map("workspace_tour_themes")
+}
+
+/// Phase 9.6 — guide languages catalog.
+model WorkspaceGuideLanguage {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
+  slug      String
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, sortOrder, name], map: "idx_workspace_guide_languages_tenant_sort")
+  @@map("workspace_guide_languages")
+}
+
+/// Phase 9.6 — tour presets catalog.
+model WorkspaceTourPreset {
+  id          String              @id @default(uuid()) @db.Uuid
+  tenantId    String              @map("tenant_id") @db.Uuid
+  name        String
+  description String?
+  themeId     String?             @map("theme_id") @db.Uuid
+  isActive    Boolean             @default(true) @map("is_active")
+  sortOrder   Int                 @default(0) @map("sort_order")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  theme       WorkspaceTourTheme? @relation(fields: [themeId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, sortOrder, name], map: "idx_workspace_tour_presets_tenant_sort")
+  @@map("workspace_tour_presets")
+}
+
+/// Phase 9.6 — location regions.
+model WorkspaceRegion {
+  id           String                @id @default(uuid()) @db.Uuid
+  tenantId     String                @map("tenant_id") @db.Uuid
+  name         String
+  country      String?
+  isActive     Boolean               @default(true) @map("is_active")
+  sortOrder    Int                   @default(0) @map("sort_order")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  destinations WorkspaceDestination[]
+
+  @@index([tenantId, sortOrder, name], map: "idx_workspace_regions_tenant_sort")
+  @@map("workspace_regions")
+}
+
+/// Phase 9.6 — location destinations.
+model WorkspaceDestination {
+  id           String          @id @default(uuid()) @db.Uuid
+  tenantId     String          @map("tenant_id") @db.Uuid
+  regionId     String          @map("region_id") @db.Uuid
+  name         String
+  locationType String?         @map("location_type")
+  altitudeM    Int?            @map("altitude_m")
+  isActive     Boolean         @default(true) @map("is_active")
+  sortOrder    Int             @default(0) @map("sort_order")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  region       WorkspaceRegion @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, regionId, sortOrder, name], map: "idx_workspace_destinations_tenant_region")
+  @@map("workspace_destinations")
+}
+
+/// Phase 9.6 — settings audit explorer (read-only · R-P9-S13).
+model OperatorSettingsAuditEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  occurredAt   DateTime @default(now()) @map("occurred_at")
+  actorUserId  String   @map("actor_user_id") @db.Uuid
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  summary      String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurredAt(sort: Desc)], map: "idx_operator_settings_audit_tenant_occurred")
+  @@map("operator_settings_audit_events")
+}
+
+/// Phase 11.2 — per-user workspace draft snapshots (DEC-P11-003).
+model WorkspaceDraftSnapshot {
+  tenantId        String   @map("tenant_id") @db.Uuid
+  workspaceId     String   @map("workspace_id")
+  userId          String   @map("user_id") @db.Uuid
+  draftNamespace  String   @map("draft_namespace")
+  draftKey        String   @map("draft_key")
+  schemaVersion   Int      @default(1) @map("schema_version")
+  version         Int
+  data            Json     @default("{}")
+  lastModified    BigInt   @map("last_modified")
+  updatedByUserId String   @map("updated_by_user_id") @db.Uuid
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, workspaceId, userId, draftNamespace, draftKey])
+  @@index([tenantId, workspaceId, userId], map: "idx_workspace_draft_snapshots_scope")
+  @@map("workspace_draft_snapshots")
+}
+
+/// Phase 11.9 — append-only audit stream for workspace draft mutations.
+model WorkspaceDraftEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  workspaceId    String   @map("workspace_id")
+  userId         String   @map("user_id") @db.Uuid
+  draftNamespace String   @map("draft_namespace")
+  draftKey       String   @map("draft_key")
+  action         String
+  version        Int?
+  schemaVersion  Int      @map("schema_version")
+  actorUserId    String   @map("actor_user_id") @db.Uuid
+  occurredAt     DateTime @default(now()) @map("occurred_at")
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, workspaceId, userId, draftNamespace, draftKey], map: "idx_workspace_draft_events_scope")
+  @@map("workspace_draft_events")
 }

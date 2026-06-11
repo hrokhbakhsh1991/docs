@@ -14,6 +14,17 @@ import { resetOutboxRelayTenantBudgetForTests } from "../src/outbox/outbox-relay
 
 process.env.OUTBOX_RELAY_ENABLED = "false";
 process.env.PROJECTION_AUTO_RECONCILE_ENABLED = "false";
+process.env.P5_VALIDATION_WORKERS_ENABLED = "false";
+
+/**
+ * Memory trunk specs must not resolve tenant workspace_type via Postgres while storage is in-memory.
+ * Shell `.env` DATABASE_URL would otherwise bind operator-smoke tenant 014 to denali and break
+ * starter-canonical POST /tours bodies in Phase 9.3 memory specs.
+ */
+if (process.env.STORAGE_DRIVER?.trim() === "memory") {
+  delete process.env.DATABASE_URL;
+  delete process.env.DATABASE_URL_ADMIN;
+}
 
 /** Integration suites need headroom for concurrent mixed-tenant specs (DEC-055). */
 if (process.env.DATABASE_URL?.trim() && !process.env.TENANT_MAX_CONCURRENT_DB_OPS?.trim()) {

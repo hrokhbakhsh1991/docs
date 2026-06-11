@@ -19,6 +19,7 @@ export type TourStorageImplementation = TourStorageRepository & {
 };
 
 let urbanSmokeMemoryStore: InMemoryTourRepository | undefined;
+let operatorSmokeMemoryStore: InMemoryTourRepository | undefined;
 
 /**
  * DI factory — `STORAGE_DRIVER=memory|prisma` or NODE_ENV default (test→memory, production→prisma).
@@ -40,6 +41,13 @@ export function createTourStorageRepository(): TourStorageImplementation {
       urbanSmokeMemoryStore.ensureUrbanPhase81PublishedTour();
     }
     return urbanSmokeMemoryStore;
+  }
+  if (process.env.OPERATOR_SMOKE_E2E_SEED === "1") {
+    if (operatorSmokeMemoryStore === undefined) {
+      operatorSmokeMemoryStore = new InMemoryTourRepository();
+      operatorSmokeMemoryStore.ensureOperatorSmokeSeedTour();
+    }
+    return operatorSmokeMemoryStore;
   }
   return new InMemoryTourRepository();
 }

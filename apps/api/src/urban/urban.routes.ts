@@ -6,6 +6,12 @@ import type {
   TourStorageRepository as StorageTourStorageRepository,
 } from "../storage/tour-storage.interface";
 import { runWithHttpRequestContext } from "../http/bind-request-context";
+import {
+  hashIdempotentRequest,
+  IDEMPOTENCY_KEY_REQUIRED,
+  readIdempotencyKey,
+  runIdempotentHttpMutation,
+} from "../http/http-idempotency";
 import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
@@ -13,6 +19,7 @@ import { listUrbanCatalog, getUrbanCatalogTour } from "./urban-catalog.service";
 import { resolveUrbanPublicAuth } from "./resolve-urban-public-auth";
 import { readUrbanRegistrationRequestBody } from "./read-urban-registration-request-body";
 import { parseUrbanRegistrationPostBody } from "./schemas/urban-registration-post.schema";
+import { readUrbanRegistrationPolicyForTenant } from "./urban-settings.service";
 import { createUrbanRegistration } from "./urban-registration.service";
 
 type StorageLayerTourRepo = StorageTourStorageRepository & {
@@ -135,22 +142,47 @@ export async function handlePostUrbanRegistration(
 ): Promise<void> {
   try {
     const auth = resolveUrbanPublicAuth(req);
+    const idempotencyKey = readIdempotencyKey(req);
+    if (idempotencyKey === undefined) {
+      sendHttpError(res, 400, {
+        error: IDEMPOTENCY_KEY_REQUIRED,
+        code: IDEMPOTENCY_KEY_REQUIRED,
+      });
+      return;
+    }
     const rawBody = await readUrbanRegistrationRequestBody(req);
     const body = parseUrbanRegistrationPostBody(rawBody);
     const store = await resolveTourStore(deps);
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+    const registrationPolicy = await readUrbanRegistrationPolicyForTenant(auth.tenantId);
+    const requestHash = hashIdempotentRequest(
+      req.method ?? "POST",
+      "/urban/registrations",
+      rawBody
+    );
 
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const created = await createUrbanRegistration({
-          tenantId: auth.tenantId,
-          workspaceType,
-          body,
-          store,
-        });
-        sendJson(res, 201, { success: true, data: created });
+        const finish = async () => {
+          const created = await createUrbanRegistration({
+            tenantId: auth.tenantId,
+            workspaceType,
+            body,
+            store,
+            registrationPolicy,
+          });
+          return { success: true as const, data: created };
+        };
+
+        const responseBody = await runIdempotentHttpMutation(
+          auth.tenantId,
+          idempotencyKey,
+          requestHash,
+          finish
+        );
+        sendJson(res, 201, responseBody);
       },
       { rateLimit: "write" }
     );

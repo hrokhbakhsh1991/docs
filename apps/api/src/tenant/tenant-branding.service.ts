@@ -1,0 +1,223 @@
+import {
+  DEFAULT_WORKSPACE_TYPE_BINDINGS,
+  resolveWorkspacePluginIdForType,
+  validateTenantTheme,
+  type TenantAuthContext,
+  type TenantThemeConfig,
+  type WorkspaceTypeId,
+} from "@app-tour/workspace-sdk";
+
+import { getPrismaAdmin } from "../db/prisma";
+import { assertWorkspaceBrandingModuleAccess } from "../settings/settings-branding-module-access";
+
+import { resolveRegisteredTenantById } from "./resolve-registered-tenant";
+import { updateTenantRegistryRow } from "./update-tenant-registry-row";
+import {
+  assertTenantBrandLogoUploadContentType,
+  deleteTenantBrandLogoObject,
+  getTenantBrandLogoSignedReadUrl,
+  putTenantBrandLogo,
+} from "./tenant-branding-storage";
+
+function themeRecordFromJson(theme: unknown): Record<string, unknown> {
+  if (theme === null || typeof theme !== "object" || Array.isArray(theme)) {
+    return {};
+  }
+  return { ...(theme as Record<string, unknown>) };
+}
+
+async function readMergedTheme(tenantId: string): Promise<TenantThemeConfig> {
+  const tenant = await resolveRegisteredTenantById(tenantId);
+  if (tenant === null) {
+    throw new Error("TENANT_NOT_FOUND");
+  }
+  return tenant.theme;
+}
+
+export type TenantBrandingResponse = {
+  readonly displayName: string | null;
+  readonly logo: { readonly storageKey: string; readonly contentType: string | null } | null;
+  readonly primaryColor: string | null;
+};
+
+export async function getTenantBranding(auth: TenantAuthContext): Promise<TenantBrandingResponse> {
+  await assertWorkspaceBrandingModuleAccess(auth, "read");
+  const theme = await readMergedTheme(auth.tenantId);
+  return {
+    displayName: theme.displayName?.trim() ?? null,
+    logo: theme.logo?.storageKey
+      ? {
+          storageKey: theme.logo.storageKey,
+          contentType: theme.logo.contentType ?? null,
+        }
+      : null,
+    primaryColor: theme.primaryColor ?? null,
+  };
+}
+
+export async function patchTenantBranding(
+  auth: TenantAuthContext,
+  input: { readonly displayName?: string | null }
+): Promise<TenantBrandingResponse> {
+  await assertWorkspaceBrandingModuleAccess(auth, "mutate");
+  const admin = getPrismaAdmin();
+  const row = await admin.tenant.findUnique({
+    where: { id: auth.tenantId },
+    select: { theme: true, workspaceType: true },
+  });
+  if (row === null) {
+    throw new Error("TENANT_NOT_FOUND");
+  }
+
+  const raw = themeRecordFromJson(row.theme);
+  if (input.displayName === null || input.displayName.trim().length === 0) {
+    delete raw.displayName;
+  } else if (input.displayName !== undefined) {
+    raw.displayName = input.displayName.trim();
+  }
+
+  validateTenantTheme(raw);
+  await updateTenantRegistryRow(auth.tenantId, { theme: raw });
+  return getTenantBranding(auth);
+}
+
+export async function uploadTenantBrandLogo(
+  auth: TenantAuthContext,
+  body: Buffer,
+  contentType: string
+): Promise<TenantBrandingResponse> {
+  await assertWorkspaceBrandingModuleAccess(auth, "mutate");
+  assertTenantBrandLogoUploadContentType(contentType);
+  const admin = getPrismaAdmin();
+  const row = await admin.tenant.findUnique({
+    where: { id: auth.tenantId },
+    select: { theme: true },
+  });
+  if (row === null) {
+    throw new Error("TENANT_NOT_FOUND");
+  }
+
+  const { storageKey } = await putTenantBrandLogo({
+    tenantId: auth.tenantId,
+    body,
+    contentType,
+  });
+
+  const raw = themeRecordFromJson(row.theme);
+  raw.logo = {
+    storageKey,
+    contentType: contentType.trim().toLowerCase(),
+  };
+
+  validateTenantTheme(raw);
+  await updateTenantRegistryRow(auth.tenantId, { theme: raw });
+  return getTenantBranding(auth);
+}
+
+export async function removeTenantBrandLogo(auth: TenantAuthContext): Promise<TenantBrandingResponse> {
+  await assertWorkspaceBrandingModuleAccess(auth, "mutate");
+  const admin = getPrismaAdmin();
+  const row = await admin.tenant.findUnique({
+    where: { id: auth.tenantId },
+    select: { theme: true },
+  });
+  if (row === null) {
+    throw new Error("TENANT_NOT_FOUND");
+  }
+
+  const raw = themeRecordFromJson(row.theme);
+  const existingKey =
+    raw.logo !== null &&
+    typeof raw.logo === "object" &&
+    typeof (raw.logo as Record<string, unknown>).storageKey === "string"
+      ? String((raw.logo as Record<string, unknown>).storageKey)
+      : null;
+
+  if (existingKey !== null) {
+    try {
+      await deleteTenantBrandLogoObject({
+        tenantId: auth.tenantId,
+        storageKey: existingKey,
+      });
+    } catch {
+      // Best-effort — theme row is SoT; orphan object is acceptable in dev.
+    }
+    delete raw.logo;
+  }
+
+  validateTenantTheme(raw);
+  await updateTenantRegistryRow(auth.tenantId, { theme: raw });
+  return getTenantBranding(auth);
+}
+
+export async function resolveTenantBrandLogoUrl(
+  auth: TenantAuthContext
+): Promise<{ readonly url: string; readonly storageKey: string }> {
+  await assertWorkspaceBrandingModuleAccess(auth, "read");
+  const theme = await readMergedTheme(auth.tenantId);
+  const storageKey = theme.logo?.storageKey?.trim() ?? "";
+  if (storageKey.length === 0) {
+    throw new Error("TENANT_BRAND_LOGO_NOT_SET");
+  }
+  const url = await getTenantBrandLogoSignedReadUrl({
+    tenantId: auth.tenantId,
+    storageKey,
+  });
+  return { url, storageKey };
+}
+
+export async function resolvePublicTenantBrandingBySubdomain(subdomain: string): Promise<{
+  readonly displayName: string | null;
+  readonly primaryColor: string | null;
+  readonly logoUrl: string | null;
+  readonly defaultLocale: string | null;
+}> {
+  const { resolveRegisteredTenantBySubdomain } = await import("./resolve-registered-tenant");
+  const tenant = await resolveRegisteredTenantBySubdomain(subdomain);
+  if (tenant === null) {
+    throw new Error("TENANT_NOT_FOUND");
+  }
+  const theme = tenant.theme;
+  let logoUrl: string | null = null;
+  const storageKey = theme.logo?.storageKey?.trim() ?? "";
+  if (storageKey.length > 0) {
+    try {
+      logoUrl = await getTenantBrandLogoSignedReadUrl({
+        tenantId: tenant.id,
+        storageKey,
+      });
+    } catch {
+      logoUrl = null;
+    }
+  }
+  return {
+    displayName: theme.displayName?.trim() ?? null,
+    primaryColor: theme.primaryColor ?? null,
+    logoUrl,
+    defaultLocale: theme.defaultLocale ?? null,
+  };
+}
+
+export async function resolvePublicTenantContextBySubdomain(subdomain: string): Promise<{
+  readonly tenantId: string;
+  readonly workspaceType: string;
+  readonly pluginId: string;
+}> {
+  const { resolveRegisteredTenantBySubdomain } = await import("./resolve-registered-tenant");
+  const tenant = await resolveRegisteredTenantBySubdomain(subdomain);
+  if (tenant === null) {
+    throw new Error("TENANT_NOT_FOUND");
+  }
+  const pluginId = resolveWorkspacePluginIdForType(
+    tenant.workspaceType as WorkspaceTypeId,
+    DEFAULT_WORKSPACE_TYPE_BINDINGS
+  );
+  if (pluginId === null) {
+    throw new Error("WORKSPACE_PLUGIN_UNBOUND");
+  }
+  return {
+    tenantId: tenant.id,
+    workspaceType: tenant.workspaceType,
+    pluginId,
+  };
+}

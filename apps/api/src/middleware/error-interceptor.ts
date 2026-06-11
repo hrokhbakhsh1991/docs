@@ -24,6 +24,7 @@ import { isTourVersionConflictError } from "../tours/tour-version-conflict";
 import { isValidationFailure, type ValidationFailure } from "../canonical/validation-failure";
 import {
   IDEMPOTENCY_IN_PROGRESS,
+  IDEMPOTENCY_KEY_REQUIRED,
   IDEMPOTENCY_PAYLOAD_MISMATCH,
   HTTP_IDEMPOTENCY_TENANT_MISMATCH,
 } from "../http/http-idempotency";
@@ -64,16 +65,23 @@ import {
 } from "./tenant-rate-limiter";
 import {
   isUrbanOwnerRequiredError,
-  URBAN_OWNER_REQUIRED,
-} from "../urban/urban-owner-required.error";
-import {
+  isUrbanRegistrationClosedError,
   isUrbanRegistrationDuplicateError,
-  URBAN_REGISTRATION_DUPLICATE,
-} from "../urban/urban-registration-conflict.error";
-import {
   isUrbanWorkspaceRequiredError,
+  URBAN_OWNER_REQUIRED,
+  URBAN_REGISTRATION_CLOSED,
+  URBAN_REGISTRATION_DUPLICATE,
   URBAN_WORKSPACE_REQUIRED,
-} from "../urban/urban-workspace-required.error";
+} from "@app-tour/workspace-urban/http";
+import {
+  DENALI_REGISTRATION_DUPLICATE,
+  isDenaliRegistrationDuplicateError,
+} from "@app-tour/workspace-denali/http";
+import {
+  isAuthTokenRevokedError,
+  isIdentityRequiredError,
+  isOtpInvalidError,
+} from "../identity/identity.errors";
 import { DbCircuitOpenError } from "../db/transient-db-error";
 import { ProxyCircuitOpenError } from "../proxy/proxy-upstream-circuit";
 import {
@@ -165,6 +173,8 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("CANONICAL_SYNC_VALIDATION_FAILED")) return 409;
   if (message.startsWith("TOUR_VERSION_CONFLICT")) return 409;
   if (message.startsWith("TOUR_NOT_FOUND")) return 404;
+  if (message.startsWith("TOUR_CLONE_UNSUPPORTED")) return 422;
+  if (message.startsWith("DENALI_PHOTO_REMINT_DEST_FORBIDDEN")) return 403;
   if (message.startsWith("FINANCE_WORKSPACE_UNSUPPORTED")) return 404;
   if (message.startsWith("FINANCE_PAYMENT_NOT_FOUND")) return 404;
   if (message.startsWith("FINANCE_RECEIPT_NOT_FOUND")) return 404;
@@ -182,6 +192,10 @@ function mapErrorMessageToStatus(message: string): number {
   if (message === IDEMPOTENCY_PAYLOAD_MISMATCH || message === IDEMPOTENCY_IN_PROGRESS) {
     return 409;
   }
+  if (message === IDEMPOTENCY_KEY_REQUIRED) return 400;
+  if (message === URBAN_REGISTRATION_DUPLICATE) return 409;
+  if (message === URBAN_REGISTRATION_CLOSED) return 403;
+  if (message === DENALI_REGISTRATION_DUPLICATE) return 409;
   if (message === HTTP_IDEMPOTENCY_TENANT_MISMATCH) {
     return 403;
   }
@@ -397,6 +411,21 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
     return;
   }
 
+  if (isIdentityRequiredError(error)) {
+    sendHttpError(res, 401, { error: error.message, code: error.code }, correlationId);
+    return;
+  }
+
+  if (isOtpInvalidError(error)) {
+    sendHttpError(res, 401, { error: error.message, code: error.code }, correlationId);
+    return;
+  }
+
+  if (isAuthTokenRevokedError(error)) {
+    sendHttpError(res, 401, { error: error.message, code: error.code }, correlationId);
+    return;
+  }
+
   if (isUrbanOwnerRequiredError(error)) {
     sendHttpError(
       res,
@@ -422,6 +451,26 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
       res,
       409,
       { error: URBAN_REGISTRATION_DUPLICATE, code: URBAN_REGISTRATION_DUPLICATE },
+      correlationId
+    );
+    return;
+  }
+
+  if (isUrbanRegistrationClosedError(error)) {
+    sendHttpError(
+      res,
+      403,
+      { error: URBAN_REGISTRATION_CLOSED, code: URBAN_REGISTRATION_CLOSED },
+      correlationId
+    );
+    return;
+  }
+
+  if (isDenaliRegistrationDuplicateError(error)) {
+    sendHttpError(
+      res,
+      409,
+      { error: DENALI_REGISTRATION_DUPLICATE, code: DENALI_REGISTRATION_DUPLICATE },
       correlationId
     );
     return;

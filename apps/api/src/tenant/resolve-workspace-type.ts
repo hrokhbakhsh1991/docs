@@ -3,6 +3,7 @@ import { resolveRegisteredTenantById } from "./resolve-registered-tenant";
 /**
  * Loads workspace_type for validation-time plugin resolution (5.2).
  * Postgres `tenants.workspace_type` when present; else static registry; else starter.
+ * Operator smoke (`…000014`) uses registry `denali` — see DEC-P11-001 (Phase 11.0).
  */
 export async function resolveWorkspaceTypeForTenant(tenantId: string): Promise<string> {
   if (process.env.URBAN_TEST_INJECT_WORKSPACE_TYPE_THROW === "1") {

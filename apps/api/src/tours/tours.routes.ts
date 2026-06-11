@@ -8,11 +8,19 @@ import {
 } from "../http/http-idempotency";
 import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
-import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
+import { requireOperatorSession } from "../identity/require-operator-session";
+import {
+  resolveTenantContextFromRequest,
+} from "../tenant-kernel/tenant-kernel";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
-import { assertWorkspaceOwner } from "../urban/require-workspace-owner";
-import { urbanTourPatchTouchesPublishFields } from "../urban/urban-tour-publish-field-gate";
+import { assertWorkspaceOwner } from "@app-tour/workspace-urban/http";
+import {
+  tourPatchTouchesProtectedPublishFields,
+  tourPublishFieldOwnerSurface,
+} from "./workspace-tour-write-dispatch";
+import { parseCloneTourBody } from "./clone-tour.schema";
 import { parseCreateTourBody } from "./create-tour.schema";
+import { getTourOperator } from "./get-tour-operator";
 import { parseListToursQuery } from "./list-tours-query";
 import { readTourRequestBody } from "./read-tour-request-body";
 import type { ToursService } from "./tours.service";
@@ -77,15 +85,22 @@ export async function handlePatchTour(
   try {
     const { parsedBody } = await readTourRequestBody(req);
     const body = parseUpdateTourBody(parsedBody);
-    const auth = await resolveTenantContextFromRequest(req);
+    const auth = await requireOperatorSession(req);
+    if (auth.role === "member") {
+      sendHttpError(res, 403, { error: "forbidden", code: "OPERATOR_TOUR_WRITE_FORBIDDEN" });
+      return;
+    }
 
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
-    if (workspaceType === "urban" && urbanTourPatchTouchesPublishFields(body)) {
-      assertWorkspaceOwner({
-        auth,
-        workspaceType,
-        surface: "urban.tour.publish_fields",
-      });
+    if (tourPatchTouchesProtectedPublishFields(workspaceType, body)) {
+      const surface = tourPublishFieldOwnerSurface(workspaceType);
+      if (surface !== undefined) {
+        assertWorkspaceOwner({
+          auth,
+          workspaceType,
+          surface,
+        });
+      }
     }
 
     await runWithHttpRequestContext(
@@ -113,18 +128,67 @@ export async function handleListTours(
   deps: ToursRouteDeps
 ): Promise<void> {
   try {
-    const auth = await resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const query = parseListToursQuery(url.searchParams);
+
+    if (query.view === "slim") {
+      const auth = await resolveTenantContextFromRequest(req);
+      await runWithHttpRequestContext(
+        req,
+        auth,
+        async () => {
+          const result = await deps.toursService.listTours(auth, query);
+          sendJson(res, 200, result);
+        },
+        { rateLimit: "read" }
+      );
+      return;
+    }
+
+    const auth = await requireOperatorSession(req);
+    const operatorQuery = query.operator;
+    if (operatorQuery === undefined) {
+      sendHttpError(res, 400, { error: "invalid_query", code: "INVALID_OPERATOR_LIST_QUERY" });
+      return;
+    }
 
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const result = await deps.toursService.listTours(auth, query);
+        const result = await deps.toursService.listToursOperator(auth, operatorQuery);
         sendJson(res, 200, result);
       },
       { rateLimit: "read" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleCloneTour(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: ToursRouteDeps,
+  tourId: string
+): Promise<void> {
+  try {
+    const { parsedBody } = await readTourRequestBody(req);
+    const body = parseCloneTourBody(parsedBody);
+    const auth = await requireOperatorSession(req);
+
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const record = await deps.toursService.cloneTour(auth, tourId, body);
+        sendJson(res, 201, {
+          id: record.id,
+          tenantId: record.tenantId,
+          canonical: record.canonical,
+        });
+      },
+      { rateLimit: "write", tourWriteConcurrency: true }
     );
   } catch (error) {
     handleHttpError(res, error);
@@ -138,17 +202,17 @@ export async function handleGetTour(
   tourId: string
 ): Promise<void> {
   try {
-    const auth = await resolveTenantContextFromRequest(req);
+    const auth = await requireOperatorSession(req);
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const record = await deps.toursService.getTourById(auth, tourId);
-        if (!record) {
+        const detail = await getTourOperator(deps.toursService, auth, tourId);
+        if (detail === null) {
           sendHttpError(res, 404, { error: "not_found", code: "TOUR_NOT_FOUND" });
           return;
         }
-        sendJson(res, 200, record);
+        sendJson(res, 200, detail);
       },
       { rateLimit: "read" }
     );

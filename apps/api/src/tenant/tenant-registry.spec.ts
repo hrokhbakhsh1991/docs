@@ -4,6 +4,8 @@ import { afterEach, describe, it } from "node:test";
 import {
   PRODLIKE_DATABASE_URL_REQUIRED_FOR_REGISTRY,
   assertStaticTenantRegistryRuntime,
+  canResolveDevTenantRegistryFallback,
+  findTenantById,
   isStaticTenantRegistryAllowed,
 } from "./tenant-registry";
 
@@ -51,5 +53,19 @@ describe("tenant-registry static gate (DI-REG-01 / DEC-039)", () => {
     process.env.NODE_ENV = "test";
     delete process.env.DATABASE_URL;
     assert.doesNotThrow(() => assertStaticTenantRegistryRuntime());
+  });
+
+  it("DEV_TENANTS includes denali smoke tenant with workspace_type denali", () => {
+    const denali = findTenantById("00000000-0000-4000-8000-000000000003");
+    assert.ok(denali);
+    assert.equal(denali.subdomain, "denali");
+    assert.equal(denali.workspaceType, "denali");
+  });
+
+  it("canResolveDevTenantRegistryFallback is enabled in development", () => {
+    process.env.NODE_ENV = "development";
+    assert.equal(canResolveDevTenantRegistryFallback(), true);
+    process.env.NODE_ENV = "production";
+    assert.equal(canResolveDevTenantRegistryFallback(), false);
   });
 });

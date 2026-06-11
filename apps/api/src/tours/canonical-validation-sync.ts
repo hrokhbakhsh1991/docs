@@ -1,4 +1,5 @@
 import { PlatformWizardEngine } from "@app-tour/platform-core";
+import { resolveDenaliWizardDimensionsFromTourKind } from "@app-tour/workspace-denali";
 import {
   assertCanonicalDocument,
   CanonicalDocumentValidationError,
@@ -14,15 +15,34 @@ import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-pl
 import type { CreateTourBody } from "./create-tour.schema";
 import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks";
 
+function readDenaliTourKindFromCanonicalData(
+  data: Record<string, unknown> | undefined
+): string | undefined {
+  if (data == null) {
+    return undefined;
+  }
+  const category = data.category;
+  if (typeof category === "string" && category.trim().length > 0) {
+    return category.trim();
+  }
+  return undefined;
+}
+
 function resolveValidationDimensions(
   plugin: WorkspacePlugin,
-  validationVariant: "default" | "basic"
+  validationVariant: "default" | "basic",
+  data?: Record<string, unknown>
 ): Record<string, string> {
   const matrix = plugin.ruleSet.matrixDimensions;
   if (matrix.includes("variant")) {
     return { variant: validationVariant };
   }
   if (matrix.includes("category") && matrix.includes("duration")) {
+    if (plugin.id === "denali") {
+      return resolveDenaliWizardDimensionsFromTourKind(
+        readDenaliTourKindFromCanonicalData(data)
+      );
+    }
     return { category: "mountain", duration: "single_day" };
   }
   const defaultCell = plugin.ruleSet.cells.find(
@@ -97,7 +117,13 @@ export function getOrCreateValidationEngine(
     return touchEngineCache(key, hit);
   }
   const plugin = resolveWorkspacePluginForType(workspaceType);
-  return touchEngineCache(key, { engine: PlatformWizardEngine.create(plugin) });
+  const {
+    tourList: _tourList,
+    tourClone: _tourClone,
+    publicCatalog: _publicCatalog,
+    ...pluginForEngine
+  } = plugin;
+  return touchEngineCache(key, { engine: PlatformWizardEngine.create(pluginForEngine) });
 }
 
 function defaultCanonicalData(pluginRoots: readonly string[]): Record<string, unknown> {
@@ -149,7 +175,11 @@ export function validateCanonicalBeforePersistSync(
 
   const result = engine.validateCanonical(document, {
     tenantId: input.tenantId,
-    dimensions: resolveValidationDimensions(plugin, validationVariant),
+    dimensions: resolveValidationDimensions(
+      plugin,
+      validationVariant,
+      document.data as Record<string, unknown>
+    ),
   });
 
   if (!result.ok) {

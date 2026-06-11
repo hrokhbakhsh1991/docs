@@ -29,10 +29,26 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     theme: { primaryColor: "#dc2626", cssVariables: { "--color-primary": "#dc2626" } },
   },
   {
+    id: "00000000-0000-4000-8000-000000000003",
+    subdomain: "denali",
+    workspaceType: "denali",
+    theme: { primaryColor: "#0f766e", cssVariables: { "--color-primary": "#0f766e" } },
+  },
+  {
     id: "00000000-0000-4000-8000-000000000004",
     subdomain: "urban",
     workspaceType: "urban",
-    theme: { primaryColor: "#0d9488", cssVariables: { "--color-primary": "#0d9488" } },
+    theme: {
+      primaryColor: "#0d9488",
+      cssVariables: { "--color-primary": "#0d9488" },
+      defaultLocale: "en",
+    },
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000014",
+    subdomain: "operator",
+    workspaceType: "denali",
+    theme: { primaryColor: "#0f766e", cssVariables: { "--color-primary": "#0f766e" } },
   },
 ];
 
@@ -51,6 +67,18 @@ export function isStaticTenantRegistryAllowed(): boolean {
     return !process.env.DATABASE_URL?.trim();
   }
   return false;
+}
+
+/**
+ * Dev/test only: after a Postgres miss, resolve MAP 4.3 smoke tenants from {@link DEV_TENANTS}.
+ * Keeps DATABASE_URL as the primary source while allowing `denali.localhost` without a DB row.
+ */
+export function canResolveDevTenantRegistryFallback(): boolean {
+  if (isProductionAuthMode()) {
+    return false;
+  }
+  const nodeEnv = process.env.NODE_ENV ?? "development";
+  return nodeEnv === "test" || nodeEnv === "development";
 }
 
 /**

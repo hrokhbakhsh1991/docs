@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 
+import { resolveDefaultTenantBranding } from "../tenant/workspace-default-tenant-branding";
 import { DENALI_SMOKE_SUBDOMAIN, DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
 
 import { appendAuditEvent, AUDIT_ACTION_TENANT_PROVISIONED } from "../audit/audit-logger";
@@ -83,6 +84,16 @@ export class ProvisioningService {
     return this.upsertSeedTenant({
       subdomain: DENALI_SMOKE_SUBDOMAIN,
       tenantId: DENALI_SMOKE_TENANT_ID,
+      workspaceType: "denali",
+    });
+  }
+
+  /** Phase 11.0 — operator smoke tenant (`operator` / `…000014`). */
+  async seedOperatorSmokeTenant(): Promise<ProvisionedTenant> {
+    assertProvisioningDevelopmentOnly();
+    return this.upsertSeedTenant({
+      subdomain: "operator",
+      tenantId: "00000000-0000-4000-8000-000000000014",
       workspaceType: "denali",
     });
   }
@@ -190,11 +201,12 @@ async function createTenantRow(identity: ResolvedTenantIdentity): Promise<Provis
 
 function resolveTenantIdentity(input: ProvisionTenantInput): ResolvedTenantIdentity {
   const subdomain = input.subdomain.trim().toLowerCase();
-  const registered = isStaticTenantRegistryAllowed() ? findTenantBySubdomain(subdomain) : null;
+  const seedManifest = findTenantBySubdomain(subdomain);
+  const registered = isStaticTenantRegistryAllowed() ? seedManifest : null;
   const seedTenantId = isPhase43SeedSubdomain(subdomain)
     ? PHASE_43_SEED_TENANT_IDS[subdomain]
     : undefined;
-  const tenantId = input.tenantId ?? registered?.id ?? seedTenantId;
+  const tenantId = input.tenantId ?? registered?.id ?? seedManifest?.id ?? seedTenantId;
 
   if (tenantId === undefined || tenantId.trim().length === 0) {
     throw new Error("PROVISIONING_TENANT_ID_REQUIRED");
@@ -206,9 +218,11 @@ function resolveTenantIdentity(input: ProvisionTenantInput): ResolvedTenantIdent
     throw new Error("PROVISIONING_TENANT_ID_MISMATCH");
   }
 
-  const workspaceType = input.workspaceType ?? registered?.workspaceType ?? "starter";
+  const workspaceType = input.workspaceType ?? seedManifest?.workspaceType ?? registered?.workspaceType ?? "starter";
   const status = input.status ?? TENANT_STATUS_ACTIVE;
-  const theme: Prisma.InputJsonValue = coerceInputJson(input.theme ?? registered?.theme ?? {});
+  const theme: Prisma.InputJsonValue = coerceInputJson(
+    input.theme ?? seedManifest?.theme ?? resolveDefaultTenantBranding(workspaceType)
+  );
 
   return { tenantId, subdomain, workspaceType, status, theme };
 }

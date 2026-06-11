@@ -47,6 +47,12 @@ type LazyRouteHandlers = {
     deps: ToursRouteDeps,
     tourId: string
   ) => Promise<void>;
+  readonly handleCloneTour: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: ToursRouteDeps,
+    tourId: string
+  ) => Promise<void>;
   readonly handleGetUrbanSettings: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
   readonly handlePatchUrbanSettings: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
   readonly handleGetUrbanCatalog: (
@@ -110,6 +116,7 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         handleListTours: tours.handleListTours,
         handleGetTour: tours.handleGetTour,
         handlePatchTour: tours.handlePatchTour,
+        handleCloneTour: tours.handleCloneTour,
         handleGetUrbanSettings: urbanSettings.handleGetUrbanSettings,
         handlePatchUrbanSettings: urbanSettings.handlePatchUrbanSettings,
         handleGetUrbanCatalog: urbanProduct.handleGetUrbanCatalog,
