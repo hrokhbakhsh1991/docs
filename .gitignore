@@ -20,6 +20,8 @@ legacy/backups/
 legacy/logs/
 legacy/.aider.*
 legacy/apps/web/.next/
+apps/*/.next/
+apps/*/test-results/
 legacy/apps/web/playwright-report/
 legacy/apps/web/test-results/
 legacy/apps/web/storybook-static/
