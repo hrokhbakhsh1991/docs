@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "siteDescription": "مشاهده تورهای منتشرشده {siteName}.",
+    "listDescription": "فهرست تورهای منتشرشده {siteName}.",
+    "notFoundTitle": "تور یافت نشد",
+    "notFoundDescription": "این تور منتشر نشده یا وجود ندارد."
+  },
+  "nav": {
+    "tours": "تورها",
+    "defaultSiteName": "تورها"
+  },
+  "list": {
+    "title": "تورها",
+    "empty": "هنوز تور منتشرشده‌ای وجود ندارد.",
+    "loadMore": "نمایش بیشتر",
+    "cityLabel": "شهر",
+    "cityPlaceholder": "فیلتر بر اساس شهر",
+    "applyFilter": "اعمال",
+    "clearFilter": "حذف فیلتر"
+  },
+  "detail": {
+    "untitled": "تور بدون عنوان",
+    "defaultTourTitle": "تور",
+    "backToTours": "بازگشت به تورها",
+    "register": "ثبت‌نام",
+    "capacity": "ظرفیت: {count}",
+    "spotsRemaining": "{count} جای خالی",
+    "difficulty": "سختی: {level}",
+    "fitness": "توان: {level}",
+    "priceOnRequest": "قیمت پس از استعلام",
+    "datesTba": "تاریخ اعلام می‌شود"
+  },
+  "home": {
+    "title": "بازاریابی",
+    "browseTours": "مشاهده تورها"
+  },
+  "notFound": {
+    "title": "تور یافت نشد",
+    "body": "این تور منتشر نشده یا وجود ندارد.",
+    "back": "بازگشت به تورها"
+  },
+  "locale": {
+    "fa": "فارسی",
+    "en": "English"
+  },
+  "error": {
+    "title": "خطایی رخ داد",
+    "body": "در بارگذاری صفحه مشکلی پیش آمد. دوباره تلاش کنید.",
+    "catalogTitle": "کاتالوگ در دسترس نیست",
+    "catalogBody": "در بارگذاری تورها مشکلی پیش آمد. اتصال یا تنظیمات API را بررسی کنید.",
+    "retry": "تلاش مجدد",
+    "backToTours": "بازگشت به تورها"
+  }
+}

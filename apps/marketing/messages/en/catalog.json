@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "siteDescription": "Browse published tours from {siteName}.",
+    "listDescription": "Published tour catalog for {siteName}.",
+    "notFoundTitle": "Tour not found",
+    "notFoundDescription": "This tour is not published or does not exist."
+  },
+  "nav": {
+    "tours": "Tours",
+    "defaultSiteName": "Tours"
+  },
+  "list": {
+    "title": "Tours",
+    "empty": "No published tours yet.",
+    "loadMore": "Load more",
+    "cityLabel": "City",
+    "cityPlaceholder": "Filter by city",
+    "applyFilter": "Apply",
+    "clearFilter": "Clear"
+  },
+  "detail": {
+    "untitled": "Untitled tour",
+    "defaultTourTitle": "Tour",
+    "backToTours": "Back to tours",
+    "register": "Register",
+    "capacity": "Capacity: {count}",
+    "spotsRemaining": "{count} spots remaining",
+    "difficulty": "Difficulty: {level}",
+    "fitness": "Fitness: {level}",
+    "priceOnRequest": "Price on request",
+    "datesTba": "Dates TBA"
+  },
+  "home": {
+    "title": "Marketing",
+    "browseTours": "Browse tours"
+  },
+  "notFound": {
+    "title": "Tour not found",
+    "body": "This tour is not published or does not exist.",
+    "back": "Back to tours"
+  },
+  "locale": {
+    "fa": "فارسی",
+    "en": "English"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "body": "We could not load this page. Please try again.",
+    "catalogTitle": "Catalog unavailable",
+    "catalogBody": "We could not load tours. Check the API connection or configuration.",
+    "retry": "Try again",
+    "backToTours": "Back to tours"
+  }
+}

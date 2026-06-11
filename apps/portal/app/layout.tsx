@@ -1,0 +1,44 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
+import type { ReactNode } from "react";
+
+import { isAppLocale, resolveTextDirection, routing } from "@/i18n/routing";
+import { PortalProviders } from "@/shell/portal-providers";
+import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+
+import "./globals.css";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Registration",
+  description: "Tour registration",
+};
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const [headerList, localeRaw, messages] = await Promise.all([
+    headers(),
+    getLocale(),
+    getMessages(),
+  ]);
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+  const host = headerList.get("host") ?? "localhost:3003";
+  const branding = await fetchPublicTenantBrandingForHost(host);
+  const theme = {
+    displayName: branding.displayName ?? undefined,
+    primaryColor: branding.primaryColor ?? undefined,
+  };
+  const dir = resolveTextDirection(locale);
+
+  return (
+    <html lang={locale} dir={dir}>
+      <body data-app="portal">
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <PortalProviders theme={theme}>{children}</PortalProviders>
+        </NextIntlClientProvider>
+      </body>
+    </html>
+  );
+}

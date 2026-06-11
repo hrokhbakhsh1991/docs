@@ -1,0 +1,43 @@
+{
+  "name": "@apps/marketing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Public marketing shell — workspace-agnostic tour catalog (MAP §3.5)",
+  "scripts": {
+    "guard:import-boundary": "node ../../scripts/guards/import-boundary-ast.mjs",
+    "predev": "pnpm run guard:import-boundary",
+    "dev": "next dev --port 3002",
+    "prebuild": "pnpm run guard:import-boundary",
+    "build": "next build",
+    "prelint": "pnpm run guard:import-boundary",
+    "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 0 && tsc --noEmit",
+    "test": "node --import tsx --test test/**/*.spec.ts",
+    "test:smoke": "playwright test -c playwright.marketing.config.ts",
+    "test:smoke:install": "playwright install chromium",
+    "start": "next start --port 3002"
+  },
+  "dependencies": {
+    "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/theme-react": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.0",
+    "next": "^15.1.8",
+    "next-intl": "^4.11.1",
+    "postcss": "^8.5.15",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.3.0"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "eslint": "^8.57.1",
+    "@playwright/test": "^1.51.1",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

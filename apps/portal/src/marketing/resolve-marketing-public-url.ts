@@ -1,0 +1,17 @@
+/** Resolve marketing shell URL for portal back-links. */
+export function resolveMarketingPublicBaseUrl(host: string): string {
+  const configured = process.env.MARKETING_PUBLIC_BASE_URL?.trim();
+  if (configured !== undefined && configured.length > 0) {
+    return configured.replace(/\/$/, "");
+  }
+
+  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "localhost";
+  const port = process.env.MARKETING_DEV_PORT?.trim() || "3002";
+  const marketingHost = hostname.startsWith("shop.") ? hostname : `shop.${hostname}`;
+  return `http://${marketingHost}:${port}`;
+}
+
+export function resolveMarketingTourDetailUrl(host: string, tourId: string): string {
+  const base = resolveMarketingPublicBaseUrl(host);
+  return `${base}/tours/${encodeURIComponent(tourId.trim())}`;
+}
