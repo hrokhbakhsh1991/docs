@@ -1,17 +1,19 @@
 # DEPRECATED — phase8-wip-specs
 
 ```yaml
-deprecated: "2026-06-07"
-reason: Block C6 — canonical scaffolds live under apps/api/test/
+deprecated: "2026-06-08"
+reason: T-8.1 promoted ON_TRUNK — WIP spec copies removed
 ```
 
-Duplicate API spec scaffolds were removed from this folder. Use the canonical paths enforced by `p8_hardening_artifacts`:
+All Phase 8.1 scaffolds live on trunk. Do not recreate copies in this folder.
 
-| Former TEMP copy                  | Canonical path                                  |
-| --------------------------------- | ----------------------------------------------- |
-| `urban-owner-ability.spec.ts`     | `apps/api/test/urban-owner-ability.spec.ts`     |
-| `urban-settings-patch.spec.ts`    | `apps/api/test/urban-settings-patch.spec.ts`    |
-| `urban-redis-fallback.spec.ts`    | `apps/api/test/urban-redis-fallback.spec.ts`    |
-| `urban-tours-bypass-gate.spec.ts` | `apps/api/test/urban-tours-bypass-gate.spec.ts` |
+| Concern | Canonical path |
+| ------- | -------------- |
+| Urban owner ability (SDK-8.1) | `packages/workspaces/urban/test/urban-owner-ability.spec.ts` |
+| API owner middleware | `apps/api/test/urban-owner-ability.spec.ts` |
+| Settings PATCH matrix | `apps/api/test/urban-settings-patch.spec.ts` |
+| Redis fallback | `apps/api/test/urban-redis-fallback.spec.ts` |
+| Tour publish-field gate | `apps/api/test/urban-tours-bypass-gate.spec.ts` |
+| Web settings guard | `apps/web/test/urban-owner-access.spec.ts` |
 
-Do not recreate WIP copies here — `pnpm run phase-8:guard` validates disk under `apps/api/test/` only.
+Verify: `pnpm run phase-8:guard` → `p8_spec_path_registry`.

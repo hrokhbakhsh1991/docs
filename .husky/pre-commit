@@ -12,9 +12,15 @@ if [ "${SKIP_HOOKS:-}" != "" ] || [ "${SKIP_HOOK:-}" != "" ]; then
   exit 1
 fi
 
-if bash scripts/phase-8-hooks-suspended.sh; then
-  echo "pre-commit: SUSPENDED for Phase 8 (active marker) — see docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml"
-  echo "pre-commit: re-enable at subphase 8.5 — delete marker + run pre-commit:fast + test:full + phase-8:gate"
+if bash scripts/phase-hooks-suspended.sh; then
+  if [ -f docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml ] \
+    && grep -Eq '^[[:space:]]*active:[[:space:]]*true' docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml; then
+    echo "pre-commit: SUSPENDED for Phase 9 — docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml"
+    echo "pre-commit: re-enable at subphase 9.8 — delete marker + phase-9:guard + test:full + phase-9:gate"
+  else
+    echo "pre-commit: SUSPENDED for Phase 8 — docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml"
+    echo "pre-commit: re-enable at subphase 8.5 — delete marker + pre-commit:fast + test:full + phase-8:gate"
+  fi
   exit 0
 fi
 

@@ -136,7 +136,7 @@ module.exports = {
     {
       name: "apps-web-no-workspaces-except-starter",
       comment:
-        "Web shell: starter always; denali/urban only via lazy-*-plugin.ts (Phase 6.5 / 7.3)",
+        "Web shell: starter always; denali/urban only via workspace-plugin-loaders.generated.ts (Phase 10.2)",
       severity: "error",
       from: { path: "^apps/web" },
       to: { path: "^packages/workspaces/(?!starter|denali|urban)" },
@@ -187,6 +187,20 @@ module.exports = {
       severity: "error",
       from: { path: "^apps/api" },
       to: { path: "^legacy" },
+    },
+    {
+      name: "apps-api-workspace-plugin-registry-only",
+      comment:
+        "Phase 10.2 — eager workspace plugin packages only via workspace-plugin-registry.generated.ts",
+      severity: "error",
+      from: {
+        path: "^apps/api/src",
+        pathNot:
+          "(workspace-plugin-registry\\.generated|\\.spec\\.ts$|denali-finance|urban|canonical|internal/provisioning)",
+      },
+      to: {
+        path: "^packages/workspaces/(starter|denali|urban)(/plugin)?(/|$)",
+      },
     },
     {
       name: "apps-api-allowed-packages",

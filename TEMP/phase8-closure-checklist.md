@@ -42,7 +42,7 @@ target_verdict: phase_8_closed: true · 8.5 VERIFIED_BEHAVIORAL · hooks re-enab
 | **`phase-8:gate` روی GHA** | ❌ PENDING | **BL-P8-02** |
 | Forensic audit | ❌ `verdict: PENDING` | تا gate-full سبز |
 | Husky suspension | ⚠️ `active: true` | تا 8.5 بسته شود |
-| WIP uncommitted | ⚠️ ~198 فایل | فاز ۹/۱۰ — جدا از commit بستن ۸ |
+| WIP uncommitted | ⚠️ **195 فایل** (2026-06-08) | stash pop بعد از بستن ۸ — **روی `main` commit نشده** |
 
 ---
 
@@ -102,11 +102,78 @@ PROVE → لوکال سبک یا GHA سنگین (طبق ستون)
 **DoD فاز A:** می‌دانید commit بعدی فقط `P8-CLOSURE` است یا نه.
 
 ```text
-یادداشت اپراتور:
-- stash شد: ...
-- در commit 8.5 می‌آید: ...
-- بعد از 8.5 برمی‌گردد: ...
+یادداشت اپراتور (به‌روز 2026-06-08):
+
+منبع WIP:
+  stash@{p9-p10} از phase-8/8.4-e2e-integrity (2026-06-08)
+  → بعد از بستن ۸ با git stash pop برگشت (conflict ledger حل شد — نسخه بسته main ماند)
+  → stash drop شد؛ محتوا الان فقط روی working tree است (195 فایل)
+
+main commit‌شده (تمیز — دست نزن):
+  HEAD 0a9f2fb — phase_8_closed: true · forensic PASS · hooks فعال
+  urban هنوز در apps/api/src/urban/** روی remote/main
+
+WIP = کار نیمه‌کاره فاز ۹ + ۱۰ (مهم — پاک نکن):
+  P10 urban migration: حذف apps/api/src/urban/** → packages/workspaces/urban/src/http/**
+  P10 plugin host: workspace manifest codegen، route registrar، outbox dispatcher
+  P9 operator: identity، admin shell، tours، bookings، settings، finance specs+کد
+  P9 doc pack: docs/phase-9/** (~61 فایل untracked)
+  P10 doc pack: docs/phase-10/** (untracked)
+
+آمار (git status):
+  Modified: 69 · Deleted: 26 · Untracked: 100 · جمع: 195
+  urban_api_dir روی دیسک: NO (migration نیمه‌کار — روی main هنوز YES)
+
+اقدام بعدی پیشنهادی (نه الان):
+  commit جدا برای P10.1–10.3 urban pilot، بعد P9 scaffold — نه یک commit بزرگ
+  قبل از commit: pnpm run phase-8:guard (اگر doc path عوض شده)
 ```
+
+---
+
+## ممیزی WIP روی `main` (پس از بستن فاز ۸ — 195 فایل)
+
+> **هشدار:** این فایل‌ها روی `main` **commit نشده‌اند**. فاز ۸ روی remote **بسته است**.  
+> **هیچ‌کدام را بدون خواندن پاک نکن** — بیشترشان کار عمدی فاز ۹/۱۰ است.
+
+### روی `main` commit‌شده (HEAD `0a9f2fb`)
+
+| چه چیزی | وضعیت |
+| -------- | ------ |
+| `IMPLEMENTATION-TRUTH` | `phase_8_closed: true` · 8.5 VERIFIED |
+| `apps/api/src/urban/**` | **هنوز وجود دارد** (Product Parity فاز ۸) |
+| `PHASE-8-HOOKS-SUSPENSION.yaml` | حذف شده — pre-commit فعال |
+| GHA فاز ۰–۸ | سبز (run #15 `80715b4` + re-run ledger) |
+
+### سطل‌های WIP (uncommitted)
+
+| سطل | تقریباً | چیست | کی / چرا |
+| --- | ------- | ---- | -------- |
+| **P10-urban-migration** | ~35 | حذف `apps/api/src/urban/*` · `configure-urban-http-host.ts` · `packages/workspaces/urban/src/http/**` | roadmap فاز ۱۰.۳ · plugin-native host |
+| **P10-infra** | ~25 | `workspace-plugin-registry.generated.ts` · outbox side-effects · route registrar · `generate-workspace-registry.mjs` | فاز ۱۰.۱–۱۰.۲ codegen |
+| **P9-api-tests** | ~20 | `identity-*.spec.ts` · `bookings-*.spec.ts` · `settings-*.spec.ts` · `finance-ops.spec.ts` | scaffold تست اپراتور |
+| **P9-web-tests** | ~15 | `auth-login-*.spec.ts` · `tours-operator.spec.ts` · `app/finance/**` | UI اپراتور |
+| **P9-denali-packages** | ~15 | `denali/src/bookings/` · `settings/` · `list/` · `workspace.manifest.json` | manifest + ماژول‌های 9.5/9.6/9.3 |
+| **P9+P10-docs** | ~80+ | `docs/phase-9/**` · `docs/phase-10/**` · `TEMP/phase9-*` · `TEMP/platform-plugin-native-*` | doc pack فاز ۹/۱۰ |
+| **P8-doc-drift** | 15 | `docs/phase-8/**` pathها به `packages/workspaces/urban` (هنوز commit نشده) | هم‌راستا با P10 — **با بستن ۸ روی main conflict ندارد** |
+| **guards/sdk** | ~35 | `phase-9-guard.mjs` · `phase-10-guard.yml` · `workspace-sdk` operator/auth | guard فاز ۹/۱۰ |
+
+### حذف‌های tracked (D) — معنی‌دار
+
+| مسیر | معنی |
+| ---- | ---- |
+| `apps/api/src/urban/**` (16 فایل) | جابجایی به workspace plugin — **جایگزین untracked در `packages/workspaces/urban/src/http/`** |
+| `lazy-urban-plugin.ts` · `lazy-denali-plugin.ts` | جایگزین: `workspace-plugin-loaders.generated.ts` |
+| `TEMP/phase8-wip-specs/*.spec.ts` | specها به trunk منتقل شده — TEMP دیگر لازم نیست (**بعد از تأیید** قابل حذف) |
+| `packages/workspace-sdk/test/urban-owner-ability.spec.ts` | منتقل به `packages/workspaces/urban/test/` |
+
+### چه چیزی امن است / چه چیزی نیست
+
+| امن | خطرناک |
+| --- | ------ |
+| نگه‌داشتن WIP روی دیسک | `git checkout .` یا `git clean -fd` — **همه P9/P10 از بین می‌رود** |
+| `git stash push` دوباره اگر می‌خواهید main تمیز بماند | commit یک‌جا 195 فایل — gate فاز ۸ می‌شکند |
+| commit تدریجی per subphase | پاک کردن `docs/phase-9/` یا `packages/workspaces/urban/src/http/` |
 
 ---
 

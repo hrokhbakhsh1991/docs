@@ -27,6 +27,9 @@ pnpm run phase-0:gate               # covenant-gate then trunk-gate
 pnpm run pre-commit:fast            # same as Husky fast path (<60s target)
 pnpm run phase-9:guard              # Phase 9 doc pack — 32 charter gates
 pnpm run guard:p9-boundary-diff     # Phase 9 PR boundary allowlist (9.1+)
+pnpm run phase-10:guard             # Phase 10 workspace host invariants (fast)
+pnpm run generate:workspace-registry  # after workspace.manifest.json change
+pnpm run workspace:create -- <id>   # scaffold packages/workspaces/<id>
 pnpm run test:changed               # git-aware unit tests (origin/main...HEAD, cached)
 pnpm run test:full                  # phase-3:gate + phase-4:gate (RLS when DATABASE_URL set)
 pnpm run db:test-reset              # TRUNCATE tenant data — fast between integration runs
@@ -43,7 +46,7 @@ pnpm run phase-3:doc-scaffold  # alias for doc-gate
 
 ## Pre-commit (Husky)
 
-After `pnpm install`, Husky runs **`pnpm run pre-commit:fast`** (eslint + prettier on diff, `test-changed` only). **Phase 8 exception:** while [`docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml`](docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml) has `active: true`, pre-commit is a no-op until **subphase 8.5** — run gates manually (`phase-8:guard`, targeted specs). Full integration: **`pnpm run test:full`** before PR closure / Phase 8.5. See [`docs/dev/tiered-testing.md`](docs/dev/tiered-testing.md). Hooks cannot be bypassed via `HUSKY=0` / `SKIP_HOOKS` (rejected). To reinstall hooks: `pnpm run prepare`.
+After `pnpm install`, Husky runs **`pnpm run pre-commit:fast`** (eslint + prettier on diff, `test-changed` only). **Phase 9 velocity:** while [`docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml`](docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml) has `active: true`, pre-commit is a **no-op** until **subphase 9.8** — iterate on flow/UX; run `phase-9:guard` / targeted specs only when stabilizing a subphase. Full closure: **`pnpm run phase-9:gate`** at 9.8 (Architect YES). See [`docs/dev/tiered-testing.md`](docs/dev/tiered-testing.md). Hooks cannot be bypassed via `HUSKY=0` / `SKIP_HOOKS` (rejected). Detector: `bash scripts/phase-hooks-suspended.sh`. To reinstall hooks: `pnpm run prepare`.
 
 ## Migration plan
 

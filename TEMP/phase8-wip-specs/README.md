@@ -20,19 +20,15 @@ navigator: docs/phase-8/AGENT-NAVIGATOR.md
 
 **Rule:** One train per PR · run `pnpm run phase-8:guard` after promote · update IMPLEMENTATION-TRUTH § scaffold promote table.
 
-**Warning:** WIP specs import `apps/api/src/urban/*` and `apps/web/src/urban/*` targets that are **ABSENT** until 8.1 implementation. Promote without stubs breaks `test:changed` — pair promote with minimal export stubs or implement 8.1 in same PR.
+**Status 2026-06-08:** T-8.1 **promoted ON_TRUNK**. WIP copies are **historical** — do not run import paths verbatim.
+
+**Trunk mapping (Phase 10.3/10.5):** urban HTTP/auth → `packages/workspaces/urban/` · SDK owner spec → `packages/workspaces/urban/test/urban-owner-ability.spec.ts` · API host → `apps/api/src/http/configure-urban-http-host.ts`. Imports of `apps/api/src/urban/*` in this folder are **obsolete**.
 
 ---
 
-## T-8.1 — Single-Owner auth (P0)
+## T-8.1 — Single-Owner auth (P0) — **COMPLETE**
 
-| WIP source                                           | Trunk target                                              | Guard / subphase |
-| ---------------------------------------------------- | --------------------------------------------------------- | ---------------- |
-| `workspace-sdk/urban-owner-ability.spec.ts`          | `packages/workspace-sdk/test/urban-owner-ability.spec.ts` | REQ-P8-010       |
-| `urban-owner-ability.spec.ts`                        | `apps/api/test/urban-owner-ability.spec.ts`               | REQ-P8-012       |
-| `urban-settings-patch.spec.ts`                       | `apps/api/test/urban-settings-patch.spec.ts`              | REQ-P8-012       |
-| `urban-redis-fallback.spec.ts`                       | `apps/api/test/urban-redis-fallback.spec.ts`              | 8.1 bundle       |
-| `urban-tours-bypass-gate.spec.ts`                    | `apps/api/test/urban-tours-bypass-gate.spec.ts`           | TPG-8.1          |
+WIP `.spec.ts` copies **removed** 2026-06-08. See [`DEPRECATED.md`](DEPRECATED.md) for canonical trunk paths.
 | `../phase9-wip-specs/web/urban-owner-access.spec.ts` | `apps/web/test/urban-owner-access.spec.ts`                | REQ-P8-011       |
 
 ```bash

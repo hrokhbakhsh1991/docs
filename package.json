@@ -7,7 +7,7 @@
     "node": ">=24.0.0 <25"
   },
   "scripts": {
-    "build": "pnpm --filter @app-tour/workspace-sdk run build && pnpm --filter @app-tour/platform-core run build && pnpm --filter @app-tour/design-tokens run build && pnpm --filter @app-tour/workspace-starter run build && pnpm --filter @app-tour/workspace-denali run build && pnpm --filter @app-tour/workspace-urban run build && pnpm --filter @app-tour/ui-primitives run build && pnpm --filter @app-tour/theme-react run build && pnpm --filter @app-tour/tenant-kernel run build && pnpm --filter @app-tour/platform-events run build && pnpm --filter @apps/api run build",
+    "build": "pnpm --filter @app-tour/workspace-sdk run build && pnpm --filter @app-tour/platform-core run build && pnpm --filter @app-tour/design-tokens run build && pnpm --filter @app-tour/workspace-starter run build && pnpm --filter @app-tour/workspace-denali run build && pnpm --filter @app-tour/workspace-urban run build && pnpm --filter @app-tour/ui-primitives run build && pnpm --filter @app-tour/theme-react run build && pnpm --filter @app-tour/tenant-kernel run build && pnpm --filter @app-tour/platform-events run build && pnpm --filter @apps/api run build && pnpm --filter @apps/marketing run build && pnpm --filter @apps/portal run build",
     "postbuild": "pnpm run guard:artifact-surface",
     "validate-design-tokens": "node scripts/guards/validate-design-tokens.mjs",
     "lint": "pnpm --filter @app-tour/workspace-sdk run lint && pnpm --filter @app-tour/platform-core run lint && eslint \"packages/workspace-sdk/src/**/*.ts\" \"packages/platform-core/src/**/*.ts\" --ignore-pattern \"**/*.spec.ts\"",
@@ -74,7 +74,12 @@
     "phase-8:gate": "pnpm build && pnpm test && pnpm run phase-7:gate && pnpm run phase-8:guard",
     "phase-9:guard": "node scripts/guards/phase-9-guard.mjs",
     "guard:p9-boundary-diff": "node scripts/guards/p9-boundary-diff.mjs",
-    "phase-9:gate": "pnpm build && pnpm test && pnpm run phase-8:gate && pnpm run phase-9:guard"
+    "phase-9:gate": "pnpm build && pnpm test && pnpm run phase-8:gate && pnpm run phase-9:guard",
+    "generate:workspace-registry": "node scripts/generate-workspace-registry.mjs",
+    "guard:workspace-registry-fresh": "node scripts/generate-workspace-registry.mjs --check",
+    "workspace:create": "node scripts/workspace-create.mjs",
+    "phase-10:guard": "node scripts/guards/phase-10-guard.mjs",
+    "guard:public-catalog-m17": "node scripts/guards/guard-public-catalog-m17.mjs"
   },
   "devDependencies": {
     "@markdoc/markdoc": "^0.5.7",

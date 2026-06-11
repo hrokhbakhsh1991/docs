@@ -1,10 +1,10 @@
 {
   "gate": "phase-8",
   "date": "2026-06-07",
-  "gitSha": "34feb60",
+  "gitSha": "482b72f",
   "ok": true,
   "fail_token": null,
-  "active_subphase": "8.1",
+  "active_subphase": "8.4",
   "platform_core_baseline_sha": "64d9fea",
   "checks": [
     {
@@ -23,7 +23,7 @@
       "id": "p8_erip_cop_present",
       "required": true,
       "ok": true,
-      "detail": "COP valid: 8.1-cop-auth-isolation.md for eripSubphase 8.1 (behavioral 8.1)"
+      "detail": "COP valid: 8.3-cop-silo-tier-integration.md for eripSubphase 8.3 (behavioral 8.4)"
     },
     {
       "id": "p8_platform_core_zero_diff",
