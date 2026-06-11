@@ -1,0 +1,33 @@
+/**
+ * Denali wizard motion — reduced-motion safe.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__card {
+    transition: box-shadow 0.2s ease;
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__card:hover {
+    box-shadow: var(--denali-shadow-card-hover, 0 2px 4px rgb(15 23 42 / 0.06));
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__step {
+    animation: denali-wizard-step-in 0.18s ease-out;
+  }
+}
+
+@keyframes denali-wizard-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__step {
+    animation: none;
+  }
+}

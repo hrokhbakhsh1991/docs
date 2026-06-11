@@ -1,0 +1,122 @@
+/**
+ * Denali wizard stepper — enhanced progress UI (scoped).
+ */
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress {
+  margin-block-end: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-list {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-2, 0.5rem);
+  margin: 0;
+  padding: 0 0 var(--space-1, 0.25rem);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border: 1px solid var(--color-border-default);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: var(--color-bg-surface);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-item[data-wizard-step-state="current"] {
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+  background: color-mix(in oklch, var(--color-primary) 12%, var(--color-bg-page));
+  font-weight: 600;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-item[data-wizard-step-state="complete"] {
+  border-color: color-mix(in oklch, var(--color-primary) 35%, var(--color-border-default));
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-item[data-wizard-step-state="upcoming"] {
+  border-style: dashed;
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-muted);
+  background: color-mix(in oklch, var(--color-bg-muted) 40%, var(--color-bg-surface));
+  opacity: 0.92;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-item[data-wizard-step-state="upcoming"] .workspace-wizard-shell__progress-index {
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-item[data-wizard-step-state="current"] .workspace-wizard-shell__progress-index {
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-item[data-wizard-step-state="complete"] .workspace-wizard-shell__progress-index {
+  background: color-mix(in oklch, var(--color-primary) 20%, var(--color-bg-muted));
+  color: var(--color-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-label {
+  max-width: 9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 768px) {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-list {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-label {
+    max-width: 12rem;
+  }
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-summary {
+  margin: var(--space-2, 0.5rem) 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__card {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius, 0.625rem);
+  background: var(--color-bg-surface);
+  padding: var(--space-6, 1.5rem);
+  box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(15 23 42 / 0.04));
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4, 1rem);
+  padding-top: var(--space-2, 0.5rem);
+}

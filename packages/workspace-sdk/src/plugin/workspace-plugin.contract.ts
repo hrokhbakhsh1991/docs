@@ -6,6 +6,11 @@ import type { WorkspaceTypeId } from "./workspace-type-id";
 import type { WorkspaceValidationHooks } from "./workspace-validation";
 import type { WorkspaceThemeContract } from "../theme/workspace-theme.contract";
 import type { WorkspaceWizardSurface } from "./workspace-wizard-surface";
+import type { OperatorRegistrationOpsSurface } from "../operator/bookings/registration-ops-manifest";
+import type { OperatorSettingsSurface } from "../operator/settings/settings-module-manifest";
+import type { OperatorTourListSurface } from "../tour/tour-list-projection.contract";
+import type { PublicCatalogSurface } from "../tour/public-catalog.contract";
+import type { TourCloneHydrator } from "../tour/tour-clone-hydrator.contract";
 
 /**
  * Workspace plugin contract.
@@ -26,4 +31,14 @@ export interface WorkspacePlugin {
   readonly lifecycle: WorkspaceLifecycleContract;
   /** Optional workspace brand tokens (`--ws-*` CSS variables). */
   readonly theme?: WorkspaceThemeContract;
+  /** Phase 9.5 — Registration Command Center manifest (DEC-P9-011). */
+  readonly registrationOps?: OperatorRegistrationOpsSurface;
+  /** Phase 9.6 — Settings module registry (DEC-P9-009). */
+  readonly operatorSettings?: OperatorSettingsSurface;
+  /** Phase 9.3 — Operator list projection extractor (DEC-P9-014). */
+  readonly tourList?: OperatorTourListSurface;
+  /** Marketing public catalog — publish gate + egress card (ADR-MKT-003). */
+  readonly publicCatalog?: PublicCatalogSurface;
+  /** Phase 11.6 — `?clone=tourId` wizard draft hydrator (DEC-P11-007). */
+  readonly tourClone?: TourCloneHydrator;
 }

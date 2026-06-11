@@ -64,6 +64,18 @@ function freezeTenantTheme(theme: TenantThemeConfig): SealedTenantTheme {
   if (theme.cssVariables !== undefined) {
     sealed.cssVariables = Object.freeze({ ...theme.cssVariables });
   }
+  if (theme.displayName !== undefined) {
+    sealed.displayName = theme.displayName;
+  }
+  if (theme.logo !== undefined) {
+    sealed.logo = Object.freeze({
+      storageKey: theme.logo.storageKey,
+      ...(theme.logo.contentType !== undefined ? { contentType: theme.logo.contentType } : {}),
+    });
+  }
+  if (theme.defaultLocale !== undefined) {
+    sealed.defaultLocale = theme.defaultLocale;
+  }
   return Object.freeze(sealed) as SealedTenantTheme;
 }
 

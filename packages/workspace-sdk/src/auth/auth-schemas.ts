@@ -8,7 +8,7 @@ import {
   type AuthRecordFieldSpec,
 } from "./parse-auth-record";
 
-const ROLES: readonly ActorRole[] = ["owner", "admin", "member", "none"];
+const ROLES: readonly ActorRole[] = ["owner", "admin", "member", "viewer", "none"];
 const STATUSES: readonly MembershipStatus[] = ["ACTIVE", "SUSPENDED"];
 
 function parseRole(value: unknown): ActorRole {

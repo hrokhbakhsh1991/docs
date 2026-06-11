@@ -17,6 +17,17 @@ describe("parseAuthRecord (CT-06)", () => {
     assert.equal(ctx.workspaceId, "ws-1");
   });
 
+  it("parses viewer role (DEC-P9-019)", () => {
+    const ctx = parseTenantAuthContext({
+      userId: "u1",
+      tenantId: "tenant-a",
+      role: "viewer",
+      status: "ACTIVE",
+      workspaceId: "ws-1",
+    });
+    assert.equal(ctx.role, "viewer");
+  });
+
   it("rejects invalid role with typed code", () => {
     assert.throws(
       () =>

@@ -7,6 +7,8 @@ import {
   mapDenaliCanonicalToFormPath,
   mapFormPathToCanonical,
   type DenaliRuleFieldStep,
+  type DenaliRuleSet,
+  type DenaliUIContextOptions,
 } from "./core";
 import { isDenaliFieldRequiredOnStep, isDenaliFieldVisibleOnStep } from "./denaliUIAdapter";
 
@@ -31,11 +33,18 @@ export type EvaluateFormFieldRuleResult = Pick<
  * Evaluates visibility + required for every field on a wizard step using
  * {@link denaliRuleModel} + contextual transport/pricing rules.
  */
+export type EvaluateFormRulesOptions = {
+  readonly uiOptions?: DenaliUIContextOptions;
+  readonly ruleSet?: DenaliRuleSet;
+};
+
 export function evaluateFormRules(
   form: DenaliCreateTourWizardForm,
-  step: DenaliRuleFieldStep | DenaliCreateWizardStepId = "denali_logistics"
+  step: DenaliRuleFieldStep | DenaliCreateWizardStepId = "denali_logistics",
+  options?: EvaluateFormRulesOptions
 ): EvaluatedFormFieldRule[] {
-  const model = resolveDenaliRuleModelFromForm(form);
+  const ruleSet = options?.ruleSet;
+  const model = resolveDenaliRuleModelFromForm(form, ruleSet);
   if (model == null) {
     return [];
   }
@@ -48,8 +57,8 @@ export function evaluateFormRules(
     return {
       canonicalPath: field.path,
       formPath,
-      visible: isDenaliFieldVisibleOnStep(model, step, formPath, form),
-      required: isDenaliFieldRequiredOnStep(model, step, formPath, form),
+      visible: isDenaliFieldVisibleOnStep(model, step, formPath, form, options?.uiOptions),
+      required: isDenaliFieldRequiredOnStep(model, step, formPath, form, options?.uiOptions),
       staticHidden: field.hidden,
       staticRequired: field.required,
     };
@@ -60,9 +69,11 @@ export function evaluateFormRules(
 export function evaluateFormFieldRule(
   form: DenaliCreateTourWizardForm,
   path: string,
-  step: DenaliRuleFieldStep | DenaliCreateWizardStepId = "denali_logistics"
+  step: DenaliRuleFieldStep | DenaliCreateWizardStepId = "denali_logistics",
+  options?: EvaluateFormRulesOptions
 ): EvaluateFormFieldRuleResult {
-  const model = resolveDenaliRuleModelFromForm(form);
+  const ruleSet = options?.ruleSet;
+  const model = resolveDenaliRuleModelFromForm(form, ruleSet);
   const canonicalPath = mapFormPathToCanonical(path);
   const formPath = mapDenaliCanonicalToFormPath(canonicalPath);
   const field = model == null ? undefined : findDenaliRuleField(model, canonicalPath);
@@ -70,8 +81,8 @@ export function evaluateFormFieldRule(
   return {
     canonicalPath,
     formPath,
-    visible: isDenaliFieldVisibleOnStep(model, step, formPath, form),
-    required: isDenaliFieldRequiredOnStep(model, step, formPath, form),
+    visible: isDenaliFieldVisibleOnStep(model, step, formPath, form, options?.uiOptions),
+    required: isDenaliFieldRequiredOnStep(model, step, formPath, form, options?.uiOptions),
     staticHidden: field?.hidden ?? true,
     staticRequired: field?.required ?? false,
   };

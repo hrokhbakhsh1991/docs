@@ -1,0 +1,347 @@
+/**
+ * Denali wizard fields + composites.
+ */
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__step-header {
+  margin-bottom: var(--space-5, 1.25rem);
+  padding-bottom: var(--space-4, 1rem);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__step-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 1.25rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__field label,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-workspace-wizard] label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite[data-denali-wizard-surface="section"] {
+  padding: var(--space-4, 1rem);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 0.375rem);
+  background: color-mix(in oklch, var(--color-bg-muted) 50%, var(--color-bg-surface));
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__subtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__helper {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 0.25rem);
+  font-size: 0.875rem;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  font-size: 0.875rem;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-date-picker] button,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-date-picker] [data-denali-date-picker] {
+  border-color: var(--color-border-default);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-denali-wizard-datetime] {
+  display: grid;
+  gap: var(--space-3, 0.75rem);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-denali-wizard-datetime] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-datetime__time {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-datetime__time-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-datetime__clock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-datetime__clock-separator {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-datetime__clock-digit {
+  width: 3.5rem;
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 0.25rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__error {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__status {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 0.75rem);
+  padding: var(--space-3, 0.75rem);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--color-bg-surface);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 0.375rem);
+  font-size: 0.875rem;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__link {
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__link:hover {
+  text-decoration: underline;
+}
+
+html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard] .denali-wizard-composite[data-denali-wizard-surface="section"],
+body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] .denali-wizard-composite[data-denali-wizard-surface="section"] {
+  background: color-mix(in oklch, var(--color-bg-muted) 70%, var(--color-bg-surface));
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__legend {
+  padding-inline: var(--space-1, 0.25rem);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__field--grow {
+  flex: 1;
+  min-width: 12rem;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__grid-2 {
+  display: grid;
+  gap: var(--space-3, 0.75rem);
+}
+
+@media (min-width: 640px) {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__inline-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__map-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 12rem;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__map-skeleton {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 0.375rem);
+  background: linear-gradient(
+    110deg,
+    var(--color-bg-muted) 8%,
+    color-mix(in oklch, var(--color-bg-surface) 70%, var(--color-bg-muted)) 18%,
+    var(--color-bg-muted) 33%
+  );
+  background-size: 200% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__map-skeleton {
+    animation: denali-wizard-map-shimmer 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes denali-wizard-map-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__map {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 12rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--color-bg-muted);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__photos-layout {
+  display: grid;
+  gap: var(--space-4, 1rem);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__photos-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__photo-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 0.75rem);
+  padding: var(--space-3, 0.75rem);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--color-bg-surface);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__gear-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2, 0.5rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-denali-wizard-file-input] {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-denali-wizard-file-input]::file-selector-button {
+  margin-inline-end: var(--space-2, 0.5rem);
+  padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm, 0.25rem);
+  background: var(--color-bg-muted);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-denali-wizard-file-input]::file-selector-button:hover {
+  border-color: var(--color-primary);
+  background: color-mix(in oklch, var(--color-primary) 8%, var(--color-bg-muted));
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__preview-img {
+  display: block;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  max-height: none;
+  object-fit: cover;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--color-bg-muted);
+}

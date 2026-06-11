@@ -7,13 +7,21 @@ import { sdkErr, type SdkResult } from "../errors/sdk-result.js";
 import { normalizeAndValidateCssMap } from "./css-map-validation";
 import { assertThemeCssValueIsSafe } from "./theme-css-value-safety";
 import { normalizeTenantCssKey } from "./normalize-tenant-css-key";
+import {
+  isTenantBrandLogoContentType,
+  isTenantBrandLogoStorageKey,
+  type TenantBrandLogo,
+} from "./tenant-brand-logo";
 import { sealTenantTheme, type SealedTenantTheme } from "./theme-safety-seal";
-import type { TenantThemeConfig } from "./tenant-theme.contract";
+import type { TenantDefaultLocale, TenantThemeConfig } from "./tenant-theme.contract";
+
+const MAX_TENANT_DISPLAY_NAME_LENGTH = 80;
 
 const MAX_TENANT_CSS_VARIABLES = 64;
 const MAX_TENANT_CSS_VALUE_LENGTH = 4096;
 const MAX_PRIMARY_COLOR_LENGTH = 4096;
 const TENANT_CSS_KEY_PATTERN = /^--color-[a-z0-9-]+$/;
+const TENANT_DEFAULT_LOCALES = new Set<TenantDefaultLocale>(["fa", "en"]);
 
 function fail(code: WorkspaceThemeValidationErrorCode, message: string): never {
   throwWorkspaceValidationError(code, message);
@@ -50,10 +58,64 @@ export function validateTenantTheme(theme: unknown): SealedTenantTheme {
     fail("TENANT_INVALID_SHAPE", "tenant theme must be a plain object");
   }
 
-  const result: { primaryColor?: string; cssVariables?: Record<string, string> } = {};
+  const result: {
+    primaryColor?: string;
+    cssVariables?: Record<string, string>;
+    displayName?: string;
+    logo?: TenantBrandLogo;
+    defaultLocale?: TenantDefaultLocale;
+  } = {};
 
   if (theme.primaryColor !== undefined) {
     result.primaryColor = assertPrimaryColor(theme.primaryColor);
+  }
+
+  if (theme.displayName !== undefined) {
+    if (typeof theme.displayName !== "string") {
+      fail("TENANT_INVALID_SHAPE", "tenant.displayName must be a string");
+    }
+    const trimmed = theme.displayName.trim();
+    if (trimmed.length === 0) {
+      fail("TENANT_INVALID_SHAPE", "tenant.displayName must be non-empty");
+    }
+    if (trimmed.length > MAX_TENANT_DISPLAY_NAME_LENGTH) {
+      fail("TENANT_INVALID_SHAPE", "tenant.displayName exceeds max length");
+    }
+    result.displayName = trimmed;
+  }
+
+  if (theme.logo !== undefined) {
+    if (!isPlainObject(theme.logo)) {
+      fail("TENANT_INVALID_SHAPE", "tenant.logo must be an object");
+    }
+    const storageKey =
+      typeof theme.logo.storageKey === "string" ? theme.logo.storageKey.trim() : "";
+    if (!isTenantBrandLogoStorageKey(storageKey)) {
+      fail("TENANT_INVALID_SHAPE", "tenant.logo.storageKey is invalid");
+    }
+    if (theme.logo.contentType !== undefined) {
+      if (typeof theme.logo.contentType !== "string") {
+        fail("TENANT_INVALID_SHAPE", "tenant.logo.contentType must be a string");
+      }
+      const contentType = theme.logo.contentType.trim().toLowerCase();
+      if (!isTenantBrandLogoContentType(contentType)) {
+        fail("TENANT_INVALID_SHAPE", "tenant.logo.contentType is invalid");
+      }
+      result.logo = { storageKey, contentType };
+    } else {
+      result.logo = { storageKey };
+    }
+  }
+
+  if (theme.defaultLocale !== undefined) {
+    if (typeof theme.defaultLocale !== "string") {
+      fail("TENANT_INVALID_SHAPE", "tenant.defaultLocale must be a string");
+    }
+    const locale = theme.defaultLocale.trim() as TenantDefaultLocale;
+    if (!TENANT_DEFAULT_LOCALES.has(locale)) {
+      fail("TENANT_INVALID_SHAPE", "tenant.defaultLocale must be fa or en");
+    }
+    result.defaultLocale = locale;
   }
 
   if (theme.cssVariables !== undefined) {

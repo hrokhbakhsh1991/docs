@@ -6,6 +6,11 @@ import {
   workspaceThemePresets,
 } from "@app-tour/workspace-sdk";
 
+import {
+  isUrbanTourPublished,
+  toUrbanPublicCatalogCard,
+} from "./catalog/urban-public-catalog-surface";
+
 /** Relative to workspace package root — published via package exports. */
 export const URBAN_THEME_TOKENS_STYLESHEET = "theme/tokens.css" as const;
 
@@ -314,6 +319,10 @@ export function createUrbanWorkspacePlugin(): WorkspacePlugin {
     validation: createUrbanValidationHooks(),
     lifecycle: URBAN_LIFECYCLE,
     theme: deepFreezeValue({ ...urbanTheme }),
+    publicCatalog: deepFreezeValue({
+      isPublished: isUrbanTourPublished,
+      toCatalogCard: toUrbanPublicCatalogCard,
+    }),
   });
 }
 

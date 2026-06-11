@@ -13,7 +13,7 @@ import { listDenaliRegistryCanonicalPaths } from "../src/field-registry/DenaliFi
 import { denaliWizardSteps } from "../src/layout/stepIds";
 import type { DenaliCreateTourWizardForm } from "../src/schemas/denaliCore.schema";
 import { evaluateFormRules } from "../src/rules/evaluateFormRules";
-import { getDenaliWorkspacePlugin } from "../src/denali.plugin";
+import { denaliPluginForWizardEngine, getDenaliWorkspacePlugin } from "../src/denali.plugin";
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GOLDEN_DIR = join(PACKAGE_ROOT, "test/fixtures/golden");
@@ -90,7 +90,7 @@ describe("registry-parity.spec.ts (REQ-P6-006,007,008,015,023)", () => {
 
   it("validateCanonical fails closed on invalid Denali canonical", () => {
     const plugin = getDenaliWorkspacePlugin();
-    const engine = PlatformWizardEngine.create(plugin);
+    const engine = PlatformWizardEngine.create(denaliPluginForWizardEngine(plugin));
     const roots = plugin.wizard.roots;
     const data = buildDenaliCanonicalShell(roots);
     data.title = "";

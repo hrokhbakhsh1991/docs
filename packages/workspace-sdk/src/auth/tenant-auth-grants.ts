@@ -8,13 +8,13 @@ export function isAdminOrOwner(context: TenantAuthContext): boolean {
   return context.role === "admin" || context.role === "owner";
 }
 
-/** Urban Single-Owner (DEC-P8-001) — admin is not elevated on urban owner surfaces. */
+/** Workspace single-owner grant (DEC-P8-001) — admin is not elevated on owner-only surfaces. */
 export function isWorkspaceOwner(context: TenantAuthContext): boolean {
   return isActiveMember(context) && context.role === "owner";
 }
 
 export function memberHasRequiredWorkspaceBinding(context: TenantAuthContext): boolean {
-  if (context.role !== "member") {
+  if (context.role !== "member" && context.role !== "viewer") {
     return true;
   }
   return context.workspaceId !== undefined && context.workspaceId.length > 0;

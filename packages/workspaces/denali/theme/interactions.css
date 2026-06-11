@@ -1,0 +1,103 @@
+/**
+ * Denali operator micro-interactions — motion tokens + press/hover feedback.
+ */
+body[data-workspace-plugin="denali"] {
+  --motion-duration-fast: 150ms;
+  --motion-duration-normal: 220ms;
+  --motion-duration-slow: 320ms;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1.2);
+  --motion-interactive: var(--motion-duration-fast) var(--motion-ease-standard);
+  --motion-surface: var(--motion-duration-normal) var(--motion-ease-standard);
+  --motion-nav-indicator: var(--motion-duration-normal) var(--motion-ease-emphasized);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-workspace-plugin="denali"] {
+    --motion-duration-fast: 0ms;
+    --motion-duration-normal: 0ms;
+    --motion-duration-slow: 0ms;
+  }
+}
+
+body[data-workspace-plugin="denali"] button:not(:disabled),
+body[data-workspace-plugin="denali"] a[role="button"]:not([aria-disabled="true"]) {
+  transition:
+    background-color var(--motion-interactive),
+    color var(--motion-interactive),
+    box-shadow var(--motion-interactive),
+    border-color var(--motion-interactive),
+    transform var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+body[data-workspace-plugin="denali"] button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+body[data-workspace-plugin="denali"] .bg-primary {
+  box-shadow: 0 1px 2px rgb(15 118 110 / 0.2);
+}
+
+body[data-workspace-plugin="denali"] .bg-primary:hover {
+  box-shadow: 0 2px 8px rgb(15 118 110 / 0.25);
+}
+
+html.dark:has(body[data-workspace-plugin="denali"]) .bg-primary,
+body[data-workspace-plugin="denali"] .theme-dark .bg-primary {
+  box-shadow: 0 1px 2px rgb(94 234 212 / 0.2);
+}
+
+html.dark:has(body[data-workspace-plugin="denali"]) .bg-primary:hover,
+body[data-workspace-plugin="denali"] .theme-dark .bg-primary:hover {
+  box-shadow: 0 2px 8px rgb(94 234 212 / 0.28);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-surface="card"] {
+  transition:
+    box-shadow var(--motion-surface),
+    border-color var(--motion-surface);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-surface="card"]:hover {
+  box-shadow: var(--denali-shadow-card-hover);
+  border-color: rgb(15 118 110 / 0.12);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-nav-link] {
+  transition:
+    background-color var(--motion-interactive),
+    color var(--motion-interactive),
+    padding-inline-start var(--motion-nav-indicator);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-nav-indicator] {
+  transition:
+    inset-inline-start var(--motion-nav-indicator),
+    opacity var(--motion-interactive);
+}
+
+body[data-workspace-plugin="denali"] [data-density="compact"] tbody tr {
+  transition: background-color var(--motion-interactive);
+}
+
+body[data-workspace-plugin="denali"] [data-density="compact"] tbody tr:hover {
+  background-color: color-mix(in srgb, var(--color-bg-muted) 50%, transparent);
+}
+
+body[data-workspace-plugin="denali"] [data-density="compact"] [data-booking-row] {
+  transition: background-color var(--motion-interactive), border-color var(--motion-interactive);
+}
+
+body[data-workspace-plugin="denali"] [data-density="compact"] [data-booking-row]:hover {
+  background-color: color-mix(in srgb, var(--color-bg-muted) 55%, transparent);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-header] {
+  transition:
+    box-shadow var(--motion-surface),
+    border-color var(--motion-surface);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-header][data-denali-header-scrolled] {
+  border-color: color-mix(in srgb, var(--color-border-default) 80%, transparent);
+}

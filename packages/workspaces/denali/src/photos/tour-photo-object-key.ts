@@ -12,6 +12,23 @@ export function buildDenaliTourPhotoObjectKey(input: {
   return `${tenantId}/tours/${tourId}/photos/${photoId}`;
 }
 
+/** Wizard create flow — provisional objects until tour id exists (Phase 6.7 / 9). */
+export function buildDenaliWizardDraftPhotoObjectKey(input: {
+  tenantId: string;
+  sessionId: string;
+  photoId: string;
+}): string {
+  const tenantId = input.tenantId.trim();
+  const sessionId = input.sessionId.trim();
+  const photoId = input.photoId.trim();
+  if (!tenantId || !sessionId || !photoId) {
+    throw new Error(
+      "DENALI_PHOTO_KEY_INVALID: tenantId, sessionId, and photoId are required for wizard draft photos"
+    );
+  }
+  return `${tenantId}/wizard-drafts/${sessionId}/photos/${photoId}`;
+}
+
 export function assertDenaliTourPhotoKeyTenantScope(key: string, tenantId: string): void {
   const normalizedTenant = tenantId.trim();
   const prefix = `${normalizedTenant}/`;

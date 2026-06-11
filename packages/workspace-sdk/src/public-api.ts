@@ -45,13 +45,9 @@ export {
   assertWorkspacePlugin,
   assertWorkspaceThemeContract,
   STARTER_WORKSPACE_PLUGIN_ID,
-  DENALI_WORKSPACE_PLUGIN_ID,
-  URBAN_WORKSPACE_PLUGIN_ID,
   DEFAULT_WORKSPACE_TYPE_BINDINGS,
   resolveWorkspacePluginIdForType,
   STARTER_WORKSPACE_TYPE,
-  DENALI_WORKSPACE_TYPE,
-  URBAN_WORKSPACE_TYPE,
   workspaceTypesFromPlugin,
   isWorkspaceTypeId,
   noopWorkspaceValidationHooks,
@@ -81,6 +77,17 @@ export {
   normalizeThemeCssKey,
   normalizeTenantCssKey,
   type TenantThemeConfig,
+  type TenantBrandLogo,
+  assertTenantBrandLogoKeyTenantScope,
+  buildTenantBrandLogoObjectKey,
+  isTenantBrandLogoContentType,
+  isTenantBrandLogoStorageKey,
+  TENANT_BRAND_LOGO_ALLOWED_CONTENT_TYPES,
+  TENANT_BRAND_LOGO_MAX_BYTES,
+  assertTenantBrandLogoBytesMatchContentType,
+  sniffTenantBrandLogoContentType,
+  isTenantBrandingEmpty,
+  resolveEffectiveTenantBranding,
   type WorkspaceThemeContract,
   type SealedTenantTheme,
   type SealedWorkspaceTheme,
@@ -102,7 +109,8 @@ export type {
   MembershipStatus,
   TenantAuthContext,
   TenantAuthz,
-  UrbanOwnerSurface,
+  WorkspaceAuthSurface,
+  WorkspaceOwnerMutationPolicy,
   ScopedTenantAuthz,
   CanAccessWorkspaceThemeAuthzParams,
   WorkspaceThemeSubject,
@@ -116,3 +124,44 @@ export {
   type WorkspaceRuleFieldOverride,
   type WorkspaceRuleSet,
 } from "./registry";
+export {
+  validateRegistrationOpsManifest,
+  type OperatorRegistrationOpsSurface,
+  type RegistrationOpsFilterId,
+  type RegistrationOpsKpiCardId,
+  type RegistrationOpsManifest,
+  type RegistrationOpsViewId,
+} from "./operator/bookings/registration-ops-manifest";
+export {
+  validateSettingsManifest,
+  type OperatorSettingsSurface,
+  type SettingsModuleKind,
+  type SettingsModuleManifest,
+  type SettingsNavGroup,
+} from "./operator/settings/settings-module-manifest";
+export {
+  buildTourListProjection,
+  type OperatorTourListSurface,
+  type TourListProjection,
+  type TourListProjectionFields,
+  type TourListProjectionExtractor,
+  type TourListRowMeta,
+  type TourListStatus,
+  type TourUiStatus,
+} from "./tour/tour-list-projection.contract";
+export {
+  type PublicCatalogCard,
+  type PublicCatalogSurface,
+  type PublicCatalogTourInput,
+} from "./tour/public-catalog.contract";
+export {
+  resolveCatalogListApiPath,
+  resolveCatalogTourApiPath,
+  UnknownCatalogPluginError,
+} from "./catalog/resolve-catalog-api-path";
+export {
+  type DenaliPhotoRemintPlanEntry,
+  type TourCloneHydrationInput,
+  type TourCloneHydrationResult,
+  type TourCloneHydrator,
+} from "./tour/tour-clone-hydrator.contract";

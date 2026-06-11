@@ -1,0 +1,256 @@
+{
+  "steps": {
+    "denali_basic": "اطلاعات پایه",
+    "denali_program": "برنامه",
+    "denali_logistics": "لجستیک و خدمات",
+    "denali_pricing": "هزینه",
+    "denali_legal": "قوانین و شرایط",
+    "denali_photos": "عکس‌ها",
+    "review": "بازبینی و ثبت"
+  },
+  "fields": {
+    "title": "نام تور",
+    "category": "دسته‌بندی",
+    "eventVariant": "نوع رویداد",
+    "duration": "مدت برنامه",
+    "destinationId": "مقصد",
+    "tripDetails": {
+      "overview": {
+        "peakHeight": "ارتفاع قله (متر)",
+        "customServiceLabels": "برچسب سرویس‌های سفارشی",
+        "nonAttendanceDetails": "جزئیات عدم حضور"
+      },
+      "metrics": {
+        "elevationGain": "صعود ارتفاعی (متر)"
+      }
+    },
+    "startDateTime": "شروع برنامه",
+    "endDateTime": "پایان برنامه",
+    "capacityMax": "حداکثر ظرفیت",
+    "capacityMin": "حداقل ظرفیت (اختیاری)",
+    "meetingPoint": "محل تجمع",
+    "startPointLocationText": "محل یا نقطه شروع برنامه",
+    "approximateReturnTime": "زمان تقریبی بازگشت",
+    "leaderUserIds": "راهنمایان / کادر workspace",
+    "requiresLocalGuide": "نیاز به راهنمای محلی",
+    "localGuideName": "نام راهنمای محلی",
+    "requiresManualAdminApproval": "نیاز به تأیید ادمین برای نهایی‌سازی رزرو",
+    "socialMediaLink": "لینک شبکه اجتماعی",
+    "program": {
+      "themeIds": "تم‌ها (اختیاری)",
+      "shortDescription": "توضیح کوتاه",
+      "longDescription": "توضیح کامل",
+      "difficultyLevel": "سطح سختی",
+      "hikingHoursApprox": "مدت تقریبی پیاده‌روی (ساعت)",
+      "hikingGoHours": "ساعت پیمایش رفت (تقریبی)",
+      "hikingReturnHours": "ساعت پیمایش برگشت (تقریبی)",
+      "itinerary": "خلاصه برنامه"
+    },
+    "gatheringPoint": "محل تجمع (ناحیه)",
+    "gatheringPoints": "ایستگاه‌های تجمع",
+    "startPoint": "نقطه شروع",
+    "summitPoint": "قله / نقطه اوج",
+    "campPoint": "محل اردوگاه",
+    "endPoint": "نقطه پایان",
+    "participants": {
+      "gearItems": "تجهیزات الزامی",
+      "nationalIdRequired": "کد ملی در زمان ثبت‌نام الزامی است",
+      "minimumAge": "حداقل سن",
+      "maximumAge": "حداکثر سن",
+      "fitnessLevel": "سطح آمادگی بدنی",
+      "sportsInsuranceRequired": "بیمه ورزشی / کوهنوردی شخصی (شرکت‌کننده)",
+      "fitnessPrerequisiteText": "پیش‌نیاز آمادگی / تجربه",
+      "minRequiredPeaks": "حداقل قله‌های صعودشده (تایید خودکار)"
+    },
+    "transport": {
+      "mode": "نحوه حمل‌ونقل",
+      "transportCost": "هزینه حمل‌ونقل (تومان، به ازای هر نفر)",
+      "allowPersonalCar": "اجازه استفاده از ماشین شخصی",
+      "dongAmount": "مبلغ دنگ — هزینه ماشین شخصی (تومان، به ازای هر نفر)",
+      "transportNotes": "یادداشت حمل‌ونقل",
+      "seatPreference": "ترجیح صندلی",
+      "adminCapacityApproval": "ظرفیت از روی وسیله و صندلی محاسبه شود"
+    },
+    "photos": "آپلود عکس",
+    "pricing": {
+      "requiresPayment": "تور پولی (ثبت‌نام با پرداخت)",
+      "basePricePerPerson": "قیمت به ازای هر نفر (تومان)",
+      "includesTourInsurance": "این تور شامل بیمه مسئولیت گروهی سازمان‌دهنده است"
+    },
+    "policies": {
+      "cancellationDeadlineHours": "مهلت لغو (ساعت قبل از حرکت)",
+      "cancellationPenaltyPercentage": "درصد جریمه داخل مهلت",
+      "policiesText": "قوانین و توضیحات (اختیاری)"
+    }
+  },
+  "fieldKinds": {
+    "text": "متن",
+    "enum": "انتخاب",
+    "boolean": "بله / خیر",
+    "number": "عدد",
+    "date": "تاریخ",
+    "composite": "ویجت چندفیلدی"
+  },
+  "tourKinds": {
+    "mountain_day": "کوهنوردی — تک‌روزه",
+    "mountain_multi": "کوهنوردی — چندروزه",
+    "nature_day": "طبیعت — تک‌روزه",
+    "nature_multi": "طبیعت — چندروزه",
+    "desert_day": "کویر — تک‌روزه",
+    "desert_multi": "کویر — چندروزه",
+    "event_reading": "رویداد — کتابخوانی",
+    "event_cinema": "رویداد — سینما"
+  },
+  "transportModes": {
+    "organizer_vehicle": "وسیله سازمان‌دهنده",
+    "bus": "اتوبوس",
+    "minibus": "مینی‌بوس",
+    "train": "قطار",
+    "shared_cars": "ماشین‌های مشترک (دنگ)",
+    "none": "بدون حمل‌ونقل سازمان‌یافته"
+  },
+  "composites": {
+    "common": {
+      "name": "نام",
+      "label": "برچسب",
+      "address": "آدرس",
+      "latitude": "عرض جغرافیایی",
+      "longitude": "طول جغرافیایی",
+      "title": "عنوان",
+      "description": "توضیح",
+      "day": "روز",
+      "remove": "حذف",
+      "add": "افزودن"
+    },
+    "tourKind": {
+      "placeholder": "انتخاب نوع تور…",
+      "helper": "دسته‌بندی و مدت برنامه تعیین می‌کند کدام فیلدها نمایش داده شوند (ارتفاع، ساعت پیاده‌روی، برنامه روزانه، نقاط مسیر و غیره)."
+    },
+    "datetimeEnd": {
+      "multiDayHint": "برای تورهای چندروزه الزامی است — برای اندازه برنامه روزانه و بخش عکس‌ها استفاده می‌شود.",
+      "singleDayHint": "برای تورهای تک‌روزه اختیاری است."
+    },
+    "difficulty": {
+      "level": "سطح {level}",
+      "helper": "۱ = آسان‌ترین، ۱۰ = سخت‌ترین."
+    },
+    "elevation": {
+      "meters": "متر",
+      "helper": "صعود ارتفاعی کل مسیر (نه ارتفاع قله)."
+    },
+    "approximateReturn": {
+      "helper": "زمان تقریبی بازگشت شرکت‌کنندگان (فرمت ۲۴ ساعته)."
+    },
+    "location": {
+      "zonesHelper": "مختصات هر ناحیه مسیر را تنظیم کنید. از لینک نقشه یا موقعیت دستگاه استفاده کنید و سپس عرض و طول جغرافیایی را دقیق کنید.",
+      "useCurrentLocation": "استفاده از موقعیت فعلی",
+      "mapPreviewTitle": "پیش‌نمایش نقشه",
+      "openFullMapLink": "باز کردن نقشه کامل برای انتخاب مختصات"
+    },
+    "locationTypes": {
+      "startPoint": "نقطه شروع",
+      "summitPoint": "قله / نقطه اوج",
+      "campPoint": "محل اردوگاه",
+      "endPoint": "نقطه پایان"
+    },
+    "gatheringPoints": {
+      "helper": "یک یا چند ایستگاه تجمع اضافه کنید. یکی را به‌عنوان ایستگاه اصلی مشخص کنید.",
+      "station": "ایستگاه {n}",
+      "primary": " (اصلی)",
+      "setPrimary": "تنظیم به‌عنوان اصلی",
+      "removeStation": "حذف ایستگاه",
+      "addStation": "افزودن ایستگاه تجمع"
+    },
+    "photos": {
+      "previewAlt": "پیش‌نمایش عکس تور",
+      "multiDayHelper": "برای هر روز برنامه یک عکس کاور یا گالری آپلود کنید.",
+      "singleDayHelper": "تا {max} عکس کاور / گالری آپلود یا URL وارد کنید.",
+      "noPhotos": "هنوز عکسی نیست.",
+      "uploadImage": "آپلود تصویر",
+      "storedInObjectStorage": "در فضای ذخیره‌سازی شیء ذخیره می‌شود.",
+      "orImageUrl": "یا URL تصویر",
+      "imageUrl": "URL تصویر",
+      "httpsUrlRequired": "آدرس تصویر باید با https:// شروع شود.",
+      "missingPhotoId": "ردیف عکس فاقد شناسه است.",
+      "uploadFailed": "آپلود ناموفق بود",
+      "uploadErrors": {
+        "PHOTO_INVALID_TYPE": "فقط تصاویر JPEG، PNG یا WebP مجاز است.",
+        "PHOTO_FILE_TOO_LARGE": "حجم تصویر باید حداکثر ۵ مگابایت باشد.",
+        "PHOTO_STORAGE_NOT_CONFIGURED": "فضای ذخیره‌سازی عکس پیکربندی نشده است. به‌جای آن URL تصویر وارد کنید.",
+        "PHOTO_UPLOAD_HTTP_ERROR": "آپلود ناموفق بود (HTTP {status}).",
+        "PHOTO_MISSING_STORAGE_KEY": "پاسخ آپلود فاقد کلید ذخیره‌سازی است."
+      },
+      "addPhoto": "افزودن عکس",
+      "removePhoto": "حذف عکس",
+      "multiDayHelperWithMax": "تور چندروزه — هر عکس را به یک روز اختصاص دهید (حداکثر {max} عکس).",
+      "dayOption": "روز {n}",
+      "dayLabel": "روز"
+    },
+    "customServices": {
+      "helper": "برچسب‌های اختیاری سرویس که در صفحه تور نمایش داده می‌شوند.",
+      "empty": "هنوز برچسب سفارشی نیست.",
+      "newLabel": "برچسب جدید",
+      "placeholder": "مثلاً راهنمای عکاسی",
+      "addLabel": "افزودن برچسب"
+    },
+    "itinerary": {
+      "helper": "برنامه روزبه‌روز برای تورهای چندروزه ({count} روز از تاریخ شروع/پایان).",
+      "dayHeading": "روز {n}",
+      "resetRows": "بازنشانی {count} ردیف روز"
+    },
+    "leaders": {
+      "helper": "یک یا چند راهنمای تور از تیم workspace انتخاب کنید.",
+      "loading": "در حال بارگذاری اعضای تیم…",
+      "empty": "عضوی یافت نشد. از Users → دعوت، هم‌تیمی دعوت کنید."
+    },
+    "gear": {
+      "helper": "تجهیزات الزامی را از Settings → Equipment انتخاب کنید. هر مورد را الزامی یا اختیاری علامت بزنید.",
+      "loading": "در حال بارگذاری تجهیزات…",
+      "empty": "فهرست تجهیزات خالی است. از Settings → Equipment مورد اضافه کنید.",
+      "requiredForParticipants": "الزامی برای شرکت‌کنندگان"
+    },
+    "destination": {
+      "loadingPlaceholder": "در حال بارگذاری مقصدها…",
+      "selectPlaceholder": "انتخاب مقصد",
+      "empty": "مقصدی نیست. از Settings → Locations منطقه و مقصد اضافه کنید."
+    },
+    "programContent": {
+      "helper": "تور را با تم‌های Settings → Tour themes برچسب بزنید.",
+      "loading": "در حال بارگذاری تم‌ها…",
+      "empty": "تم فعالی نیست. از Settings → Tour themes تم اضافه کنید."
+    },
+    "pricingParticipants": {
+      "sectionTitle": "الزامات شرکت‌کننده",
+      "fitnessLow": "پایین",
+      "fitnessMedium": "متوسط",
+      "fitnessHigh": "بالا"
+    },
+    "peakExperience": {
+      "placeholder": "حداقل قله را انتخاب کنید…",
+      "helper": "برای تورهای کوهنوردی وقتی تأیید دستی ادمین فعال است نمایش داده می‌شود.",
+      "options": {
+        "0": "بدون حداقل",
+        "1": "حداقل ۱ قله",
+        "2": "حداقل ۲ قله",
+        "3": "حداقل ۳ قله",
+        "4": "حداقل ۴ قله"
+      }
+    },
+    "loading": {
+      "teamMembers": "در حال بارگذاری اعضای تیم…",
+      "equipment": "در حال بارگذاری تجهیزات…",
+      "themes": "در حال بارگذاری تم‌ها…",
+      "destinations": "در حال بارگذاری مقصدها…"
+    }
+  },
+  "review": {
+    "summaryHeading": "خلاصه تور",
+    "validationHeading": "قبل از ایجاد تور این موارد را اصلاح کنید",
+    "validationStepGroup": "{step} — {count, number} مورد",
+    "publishStatus": {
+      "helper": "تور پیش‌نویس تا زمان انتشار فعال، داخلی می‌ماند.",
+      "draft": "پیش‌نویس",
+      "active": "فعال (انتشار)"
+    }
+  }
+}

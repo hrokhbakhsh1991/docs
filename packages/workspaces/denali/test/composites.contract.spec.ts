@@ -13,7 +13,7 @@ import {
   shouldRenderDenaliRegistryField,
 } from "../src/composites";
 import { isPlatformRendererId } from "../src/composites/platform-renderer-ids";
-import { DENALI_THEME_TOKENS_STYLESHEET, getDenaliWorkspacePlugin } from "../src/denali.plugin";
+import { DENALI_THEME_ADMIN_STYLESHEET, DENALI_THEME_TOKENS_STYLESHEET, getDenaliWorkspacePlugin } from "../src/denali.plugin";
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const TOKENS_CSS = join(PACKAGE_ROOT, "theme", "tokens.css");
@@ -63,7 +63,7 @@ describe("composites.contract.spec.ts (REQ-P6-010, RULE-P6-014)", () => {
     assert.match(css, /--ws-color-accent\s*:\s*var\(--color-primary\)/);
     assert.equal(
       getDenaliWorkspacePlugin().theme?.optionalStylesheet,
-      DENALI_THEME_TOKENS_STYLESHEET
+      DENALI_THEME_ADMIN_STYLESHEET
     );
     assert.equal(
       getDenaliWorkspacePlugin().theme?.cssVariables[WORKSPACE_THEME_CSS_VARIABLE.colorAccent],

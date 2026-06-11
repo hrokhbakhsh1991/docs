@@ -47,6 +47,7 @@ const MAX_STRING_LENGTH = 64_000;
 const DOCUMENT_SHIELD_OPTIONS = {
   maxDepth: MAX_DEPTH,
   maxKeysPerObject: MAX_KEYS_PER_OBJECT,
+  allowArrays: true,
   onLeaf(value: unknown, path: string, _depth: number): void {
     if (typeof value === "string" && value.length > MAX_STRING_LENGTH) {
       fail("CANONICAL_INVALID_DATA", `String too long at ${path}`);

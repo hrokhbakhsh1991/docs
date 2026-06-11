@@ -10,7 +10,7 @@ import { createCanonicalDocument } from "@app-tour/workspace-sdk";
 import type { DenaliCreateTourWizardForm } from "../src/schemas/denaliCore.schema";
 import { evaluateFormRules } from "../src/rules/evaluateFormRules";
 import { denaliWizardSteps } from "../src/layout/stepIds";
-import { getDenaliWorkspacePlugin } from "../src/denali.plugin";
+import { denaliPluginForWizardEngine, getDenaliWorkspacePlugin } from "../src/denali.plugin";
 
 const GOLDEN_DIR = join(dirname(fileURLToPath(import.meta.url)), "fixtures/golden");
 
@@ -43,7 +43,7 @@ describe("smoke-golden.spec.ts (SMK-P6-05, SMK-P6-06, REQ-P6-023)", () => {
 
   it("SMK-P6-06: tour-publish-ready golden passes validateCanonical shell", () => {
     const plugin = getDenaliWorkspacePlugin();
-    const engine = PlatformWizardEngine.create(plugin);
+    const engine = PlatformWizardEngine.create(denaliPluginForWizardEngine(plugin));
     const roots = plugin.wizard.roots;
     const data = buildDenaliCanonicalShell(roots);
     data.title = "Publish ready smoke";

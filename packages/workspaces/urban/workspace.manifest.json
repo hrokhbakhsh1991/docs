@@ -1,0 +1,25 @@
+{
+  "id": "urban",
+  "version": 1,
+  "package": "@app-tour/workspace-urban",
+  "workspaceTypes": ["urban"],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getUrbanWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./plugin",
+    "export": "getUrbanWorkspacePlugin"
+  },
+  "http": {
+    "prefix": "/urban",
+    "module": "./http/routes"
+  },
+  "tourWrite": {
+    "module": "./tours",
+    "workspaceTypeExport": "URBAN_WORKSPACE_TYPE",
+    "mergeExport": "mergeUrbanCanonicalPatchData",
+    "publishGateExport": "urbanTourPatchRequiresOwner",
+    "publishSurfaceExport": "URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
+  }
+}

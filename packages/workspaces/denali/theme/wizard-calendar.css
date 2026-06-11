@@ -1,0 +1,49 @@
+/**
+ * Denali wizard calendar — portal-safe (Radix Popover renders on document.body).
+ * @see docs/workspaces/denali/wizard-experience.md § Date picker exception
+ */
+body[data-workspace-plugin="denali"] {
+  --denali-wizard-calendar-primary: var(--denali-forest-600, #0f766e);
+  --denali-wizard-calendar-primary-fg: #ffffff;
+  --denali-wizard-calendar-primary-hover: var(--denali-forest-700, #0f5c4a);
+}
+
+html.dark:has(body[data-workspace-plugin="denali"]),
+body[data-workspace-plugin="denali"] .theme-dark {
+  --denali-wizard-calendar-primary: #5eead4;
+  --denali-wizard-calendar-primary-fg: #0f140f;
+  --denali-wizard-calendar-primary-hover: #99f6e4;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-wizard-calendar-popover] {
+  border-color: var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-wizard-calendar] {
+  --primary: var(--denali-wizard-calendar-primary);
+  --primary-foreground: var(--denali-wizard-calendar-primary-fg);
+  --ring: var(--focus-ring-color);
+  --accent: color-mix(in oklch, var(--denali-wizard-calendar-primary) 10%, var(--color-bg-muted));
+  --accent-foreground: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-wizard-calendar] button[aria-pressed="true"] {
+  background-color: var(--denali-wizard-calendar-primary);
+  color: var(--denali-wizard-calendar-primary-fg);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-wizard-calendar] button[aria-pressed="true"]:hover {
+  background-color: var(--denali-wizard-calendar-primary-hover);
+  color: var(--denali-wizard-calendar-primary-fg);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-wizard-calendar] button[aria-pressed="false"]:hover {
+  background-color: color-mix(
+    in oklch,
+    var(--denali-wizard-calendar-primary) 12%,
+    var(--color-bg-surface)
+  );
+  color: var(--color-text-primary);
+}

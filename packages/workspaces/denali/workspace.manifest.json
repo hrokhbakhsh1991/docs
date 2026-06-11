@@ -1,0 +1,26 @@
+{
+  "id": "denali",
+  "version": 1,
+  "package": "@app-tour/workspace-denali",
+  "workspaceTypes": ["denali"],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getDenaliWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./plugin",
+    "export": "getDenaliWorkspacePlugin"
+  },
+  "events": [
+    {
+      "eventType": "TourCreated",
+      "module": "./finance/tour-created-ledger",
+      "export": "handleTourCreatedLedgerEvent",
+      "workspaceTypes": ["denali"]
+    }
+  ],
+  "http": {
+    "prefix": "/finance",
+    "module": "./http/routes"
+  }
+}

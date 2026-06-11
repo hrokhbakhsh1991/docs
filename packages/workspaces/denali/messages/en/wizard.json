@@ -1,0 +1,256 @@
+{
+  "steps": {
+    "denali_basic": "Basic info",
+    "denali_program": "Program",
+    "denali_logistics": "Logistics & services",
+    "denali_pricing": "Pricing",
+    "denali_legal": "Policies & terms",
+    "denali_photos": "Photos",
+    "review": "Review & submit"
+  },
+  "fields": {
+    "title": "Tour name",
+    "category": "Category",
+    "eventVariant": "Event variant",
+    "duration": "Duration",
+    "destinationId": "Destination",
+    "tripDetails": {
+      "overview": {
+        "peakHeight": "Peak height (m)",
+        "customServiceLabels": "Custom service labels",
+        "nonAttendanceDetails": "Non-attendance details"
+      },
+      "metrics": {
+        "elevationGain": "Elevation gain (m)"
+      }
+    },
+    "startDateTime": "Start date & time",
+    "endDateTime": "End date & time",
+    "capacityMax": "Maximum capacity",
+    "capacityMin": "Minimum capacity (optional)",
+    "meetingPoint": "Meeting point",
+    "startPointLocationText": "Program start location",
+    "approximateReturnTime": "Approximate return time",
+    "leaderUserIds": "Tour leaders / workspace staff",
+    "requiresLocalGuide": "Requires local guide",
+    "localGuideName": "Local guide name",
+    "requiresManualAdminApproval": "Requires admin approval to finalize booking",
+    "socialMediaLink": "Social media link",
+    "program": {
+      "themeIds": "Themes (optional)",
+      "shortDescription": "Short description",
+      "longDescription": "Full description",
+      "difficultyLevel": "Difficulty level",
+      "hikingHoursApprox": "Approximate hiking hours",
+      "hikingGoHours": "Outbound hiking hours (approx.)",
+      "hikingReturnHours": "Return hiking hours (approx.)",
+      "itinerary": "Itinerary summary"
+    },
+    "gatheringPoint": "Gathering area",
+    "gatheringPoints": "Gathering stations",
+    "startPoint": "Start point",
+    "summitPoint": "Summit point",
+    "campPoint": "Camp point",
+    "endPoint": "End point",
+    "participants": {
+      "gearItems": "Required gear",
+      "nationalIdRequired": "National ID required at registration",
+      "minimumAge": "Minimum age",
+      "maximumAge": "Maximum age",
+      "fitnessLevel": "Fitness level",
+      "sportsInsuranceRequired": "Personal sports / mountaineering insurance",
+      "fitnessPrerequisiteText": "Fitness / experience prerequisite",
+      "minRequiredPeaks": "Minimum summits climbed (auto-approval)"
+    },
+    "transport": {
+      "mode": "Transport mode",
+      "transportCost": "Transport cost (per person)",
+      "allowPersonalCar": "Allow personal car",
+      "dongAmount": "Carpool share amount (per person)",
+      "transportNotes": "Transport notes",
+      "seatPreference": "Seat preference",
+      "adminCapacityApproval": "Derive capacity from vehicle seats"
+    },
+    "photos": "Photo upload",
+    "pricing": {
+      "requiresPayment": "Paid tour (registration requires payment)",
+      "basePricePerPerson": "Price per person",
+      "includesTourInsurance": "Tour includes organizer group liability insurance"
+    },
+    "policies": {
+      "cancellationDeadlineHours": "Cancellation deadline (hours before departure)",
+      "cancellationPenaltyPercentage": "In-window cancellation penalty (%)",
+      "policiesText": "Policies & notes (optional)"
+    }
+  },
+  "fieldKinds": {
+    "text": "Text",
+    "enum": "Choice",
+    "boolean": "Yes / no",
+    "number": "Number",
+    "date": "Date",
+    "composite": "Multi-field widget"
+  },
+  "tourKinds": {
+    "mountain_day": "Mountain — single day",
+    "mountain_multi": "Mountain — multi day",
+    "nature_day": "Nature — single day",
+    "nature_multi": "Nature — multi day",
+    "desert_day": "Desert — single day",
+    "desert_multi": "Desert — multi day",
+    "event_reading": "Event — reading",
+    "event_cinema": "Event — cinema"
+  },
+  "transportModes": {
+    "organizer_vehicle": "Organizer vehicle",
+    "bus": "Bus",
+    "minibus": "Minibus",
+    "train": "Train",
+    "shared_cars": "Shared cars (carpool)",
+    "none": "No organized transport"
+  },
+  "composites": {
+    "common": {
+      "name": "Name",
+      "label": "Label",
+      "address": "Address",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "title": "Title",
+      "description": "Description",
+      "day": "Day",
+      "remove": "Remove",
+      "add": "Add"
+    },
+    "tourKind": {
+      "placeholder": "Select tour type…",
+      "helper": "Category and duration drive which fields appear (elevation, hiking hours, itinerary, location zones, and more)."
+    },
+    "datetimeEnd": {
+      "multiDayHint": "Required for multi-day tours — used to size the itinerary and per-day photo sections.",
+      "singleDayHint": "Optional for single-day tours."
+    },
+    "difficulty": {
+      "level": "Level {level}",
+      "helper": "1 = easiest, 10 = most demanding."
+    },
+    "elevation": {
+      "meters": "meters",
+      "helper": "Total route elevation gain (not peak height)."
+    },
+    "approximateReturn": {
+      "helper": "Approximate clock time when participants return (24-hour format)."
+    },
+    "location": {
+      "zonesHelper": "Set coordinates for each route zone. Use the map link or your device location, then fine-tune latitude and longitude.",
+      "useCurrentLocation": "Use current location",
+      "mapPreviewTitle": "Map preview",
+      "openFullMapLink": "Open full map to pick coordinates"
+    },
+    "locationTypes": {
+      "startPoint": "Start point",
+      "summitPoint": "Summit point",
+      "campPoint": "Camp point",
+      "endPoint": "End point"
+    },
+    "gatheringPoints": {
+      "helper": "Add one or more meeting stations. Mark one as primary for the default meeting point.",
+      "station": "Station {n}",
+      "primary": " (primary)",
+      "setPrimary": "Set as primary",
+      "removeStation": "Remove station",
+      "addStation": "Add gathering station"
+    },
+    "photos": {
+      "previewAlt": "Tour photo preview",
+      "multiDayHelper": "Upload a cover or gallery photo for each program day.",
+      "singleDayHelper": "Upload images or paste URLs — up to {max} cover / gallery photos.",
+      "noPhotos": "No photos yet.",
+      "uploadImage": "Upload image",
+      "storedInObjectStorage": "Stored in object storage.",
+      "orImageUrl": "Or image URL",
+      "imageUrl": "Image URL",
+      "httpsUrlRequired": "Image URL must use HTTPS (https://…).",
+      "missingPhotoId": "Photo row is missing an id.",
+      "uploadFailed": "Upload failed",
+      "uploadErrors": {
+        "PHOTO_INVALID_TYPE": "Only JPEG, PNG, or WebP images are allowed.",
+        "PHOTO_FILE_TOO_LARGE": "Image must be 5 MB or smaller.",
+        "PHOTO_STORAGE_NOT_CONFIGURED": "Photo storage is not configured. Use an image URL instead.",
+        "PHOTO_UPLOAD_HTTP_ERROR": "Upload failed (HTTP {status}).",
+        "PHOTO_MISSING_STORAGE_KEY": "Upload response missing storage key."
+      },
+      "addPhoto": "Add photo",
+      "removePhoto": "Remove photo",
+      "multiDayHelperWithMax": "Multi-day tour — assign each photo to a day (up to {max} total).",
+      "dayOption": "Day {n}",
+      "dayLabel": "Day"
+    },
+    "customServices": {
+      "helper": "Optional service tags shown on the tour (workspace custom-services capability).",
+      "empty": "No custom service labels yet.",
+      "newLabel": "New label",
+      "placeholder": "e.g. Photography guide",
+      "addLabel": "Add label"
+    },
+    "itinerary": {
+      "helper": "Day-by-day program for multi-day tours ({count} days from start/end dates).",
+      "dayHeading": "Day {n}",
+      "resetRows": "Reset {count} day rows"
+    },
+    "leaders": {
+      "helper": "Select one or more tour leaders from your workspace team.",
+      "loading": "Loading team members…",
+      "empty": "No team members found. Invite users under Users → Invite."
+    },
+    "gear": {
+      "helper": "Pick required gear from Settings → Equipment. Mark each item as required or optional.",
+      "loading": "Loading equipment…",
+      "empty": "No equipment catalog yet. Add items under Settings → Equipment.",
+      "requiredForParticipants": "Required for participants"
+    },
+    "destination": {
+      "loadingPlaceholder": "Loading destinations…",
+      "selectPlaceholder": "Select destination",
+      "empty": "No destinations yet. Add regions and destinations under Settings → Locations."
+    },
+    "programContent": {
+      "helper": "Tag the tour with themes from Settings → Tour themes.",
+      "loading": "Loading themes…",
+      "empty": "No active tour themes yet. Add themes under Settings → Tour themes."
+    },
+    "pricingParticipants": {
+      "sectionTitle": "Participant requirements",
+      "fitnessLow": "Low",
+      "fitnessMedium": "Medium",
+      "fitnessHigh": "High"
+    },
+    "peakExperience": {
+      "placeholder": "Select minimum summits…",
+      "helper": "Shown for mountaineering tours when manual admin approval is enabled.",
+      "options": {
+        "0": "No minimum",
+        "1": "At least 1 summit",
+        "2": "At least 2 summits",
+        "3": "At least 3 summits",
+        "4": "At least 4 summits"
+      }
+    },
+    "loading": {
+      "teamMembers": "Loading team members…",
+      "equipment": "Loading equipment…",
+      "themes": "Loading themes…",
+      "destinations": "Loading destinations…"
+    }
+  },
+  "review": {
+    "summaryHeading": "Tour summary",
+    "validationHeading": "Fix these issues before creating the tour",
+    "validationStepGroup": "{step} — {count, number} {count, plural, one {issue} other {issues}}",
+    "publishStatus": {
+      "helper": "Draft tours stay internal until you publish as active.",
+      "draft": "Draft",
+      "active": "Active (publish)"
+    }
+  }
+}

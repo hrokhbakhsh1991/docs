@@ -4,9 +4,13 @@ export {
   cannotAccessWorkspaceTheme,
   canAccessWorkspaceThemeScoped,
   type TenantAuthz,
-  type UrbanOwnerSurface,
   type CanAccessWorkspaceThemeAuthzParams,
 } from "./tenant-authz";
+export type {
+  WorkspaceAuthSurface,
+  WorkspaceOwnerMutationPolicy,
+} from "./workspace-auth-surface";
+export { isWorkspaceAuthSurfaceAllowed } from "./workspace-auth-surface";
 
 export {
   createTenantAuthz,
@@ -32,6 +36,8 @@ export {
 } from "./validate-auth-context";
 export { AbilityUsageError, type AbilityUsageErrorCode } from "./ability-usage-error";
 export { isWorkspaceOwner } from "./tenant-auth-grants";
+export type { OperatorSurface, CanPerformOperatorSurfaceOptions } from "./operator-surface";
+export { evaluateOperatorSurfaceGrant } from "./operator-surface";
 export {
   canonicalDocumentSubject,
   pluginSubject,

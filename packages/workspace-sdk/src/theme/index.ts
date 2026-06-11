@@ -1,4 +1,20 @@
-export type { TenantThemeConfig } from "./tenant-theme.contract";
+export type { TenantDefaultLocale, TenantThemeConfig } from "./tenant-theme.contract";
+export {
+  assertTenantBrandLogoKeyTenantScope,
+  buildTenantBrandLogoObjectKey,
+  isTenantBrandLogoContentType,
+  isTenantBrandLogoStorageKey,
+  TENANT_BRAND_LOGO_ALLOWED_CONTENT_TYPES,
+  TENANT_BRAND_LOGO_MAX_BYTES,
+  type TenantBrandLogo,
+  type TenantBrandLogoContentType,
+  assertTenantBrandLogoBytesMatchContentType,
+  sniffTenantBrandLogoContentType,
+} from "./tenant-brand-logo";
+export {
+  isTenantBrandingEmpty,
+  resolveEffectiveTenantBranding,
+} from "./tenant-branding-merge";
 export type { WorkspaceThemeContract } from "./workspace-theme.contract";
 export {
   tryValidateTenantTheme,

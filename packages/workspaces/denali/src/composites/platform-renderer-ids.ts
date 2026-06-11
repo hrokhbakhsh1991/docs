@@ -33,6 +33,7 @@ export const DENALI_COMPOSITE_RENDERER_IDS = [
   "denali.leader-user-ids",
   "denali.elevation-gain",
   "denali.pricing-participants",
+  "denali.pricing-payment",
 ] as const;
 
 export type DenaliCompositeRendererId = (typeof DENALI_COMPOSITE_RENDERER_IDS)[number];

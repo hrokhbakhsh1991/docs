@@ -8,6 +8,7 @@ export const DENALI_COMPOSITE_ANCHOR_BY_ZOD_KIND: Partial<Record<DenaliZodFieldK
   gearItems: "participants.gearItems",
   gatheringPoints: "gatheringPoints",
   itinerary: "program.itinerary",
+  transportMode: "transport.mode",
 };
 
 /** Paths rendered by a composite widget anchored on another registry row. */
@@ -21,10 +22,16 @@ export const DENALI_COMPOSITE_DEPENDENT_PATHS = new Set<string>([
   "endPoint",
   "participants.maximumAge",
   "participants.fitnessLevel",
-  "participants.nationalIdRequired",
   "participants.sportsInsuranceRequired",
   "participants.fitnessPrerequisiteText",
-  "participants.minRequiredPeaks",
+  "transport.transportCost",
+  "transport.allowPersonalCar",
+  "transport.dongAmount",
+  "transport.transportNotes",
+  "transport.seatPreference",
+  "transport.adminCapacityApproval",
+  "pricing.basePricePerPerson",
+  "pricing.includesTourInsurance",
 ]);
 
 export function shouldRenderDenaliRegistryField(field: DenaliFieldDefinition): boolean {

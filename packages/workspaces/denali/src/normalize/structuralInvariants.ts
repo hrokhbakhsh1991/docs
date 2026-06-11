@@ -1,0 +1,184 @@
+import { readDenaliCanonicalBasics } from "../adapters/denaliCanonicalBasicsControl";
+import {
+  computeDenaliTourDayCountFromKind,
+  syncDenaliItineraryRows,
+} from "../adapters/denaliItinerarySync";
+import { getDenaliFormPathValue, setDenaliFormPathValue } from "../adapters/denaliFormPathUtils";
+import { isDenaliAsyncAssetCanonicalPath } from "../field-registry/DenaliFieldRegistry";
+import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
+import type {
+  DenaliGlobalStructuralInvariant,
+  DenaliStructuralInvariant,
+} from "../field-registry/DenaliFieldRegistry.types";
+import { DENALI_GLOBAL_STRUCTURAL_INVARIANTS } from "../registry/denaliGlobalStructuralInvariants";
+import type { DenaliCreateTourWizardForm } from "../schemas/denaliCore.schema";
+import type { DenaliTourKind } from "../types/legacy/repo-types";
+import { mapDenaliCanonicalToFormPath } from "../rules/denaliCanonicalPaths";
+import type { DenaliRuleSet } from "../rules/denaliRuleModel";
+import { denaliRuleSet } from "../rules/denaliRuleModel";
+import type { DenaliInvariantEngineContext } from "../rules/denaliRuleModel.types";
+import {
+  evaluateDenaliContextualVisibility,
+  getDenaliFieldDefinitionByCanonicalPath,
+  isDenaliFieldVisibleInModel,
+  type DenaliUIContextOptions,
+} from "../rules/denaliUIAdapter";
+
+import { normalizeDenaliWizardForm } from "./clearHiddenFormValues";
+import { resolveDenaliRuleModelFromForm } from "./resolveRuleModel";
+
+function cloneDenaliStructuralSections(
+  form: DenaliCreateTourWizardForm
+): DenaliCreateTourWizardForm {
+  return {
+    ...form,
+    basicInfo: { ...form.basicInfo },
+    programNature: { ...form.programNature },
+    transport: { ...form.transport },
+    participantRequirements: { ...form.participantRequirements },
+  };
+}
+
+function clearDenaliCanonicalLeaf(form: DenaliCreateTourWizardForm, canonicalPath: string): void {
+  if (isDenaliAsyncAssetCanonicalPath(canonicalPath)) {
+    return;
+  }
+  setDenaliFormPathValue(form, mapDenaliCanonicalToFormPath(canonicalPath), undefined);
+}
+
+function applyStructuralInvariantRule(
+  form: DenaliCreateTourWizardForm,
+  canonicalPath: string,
+  rule: DenaliStructuralInvariant,
+  ctx: DenaliInvariantEngineContext
+): void {
+  switch (rule.kind) {
+    case "clearWhenNotVisible": {
+      const def = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
+      const visible =
+        ctx.model != null
+          ? isDenaliFieldVisibleInModel(ctx.model, canonicalPath, form, ctx.uiOptions)
+          : def?.contextualVisibility == null
+            ? true
+            : evaluateDenaliContextualVisibility(canonicalPath, form, ctx.uiOptions);
+      if (!visible) {
+        if (canonicalPath === "program.itinerary" || canonicalPath === "photos") {
+          const formPath = mapDenaliCanonicalToFormPath(canonicalPath);
+          const existing = getDenaliFormPathValue(form, formPath);
+          if (Array.isArray(existing) && existing.length > 0) {
+            return;
+          }
+        }
+        clearDenaliCanonicalLeaf(form, canonicalPath);
+      }
+      return;
+    }
+    case "defaultWhenVisible": {
+      if (ctx.model == null) {
+        return;
+      }
+      if (!isDenaliFieldVisibleInModel(ctx.model, canonicalPath, form, ctx.uiOptions)) {
+        return;
+      }
+      const formPath = mapDenaliCanonicalToFormPath(canonicalPath);
+      if (getDenaliFormPathValue(form, formPath) == null) {
+        setDenaliFormPathValue(form, formPath, rule.value);
+      }
+      return;
+    }
+    case "enforceValueWhenCategory": {
+      const basics = readDenaliCanonicalBasics(form.basicInfo.tourType as DenaliTourKind | undefined);
+      if (basics?.category === rule.category) {
+        setDenaliFormPathValue(form, mapDenaliCanonicalToFormPath(canonicalPath), rule.value);
+      }
+      return;
+    }
+    default: {
+      const _exhaustive: never = rule;
+      return _exhaustive;
+    }
+  }
+}
+
+function applyGlobalStructuralInvariant(
+  form: DenaliCreateTourWizardForm,
+  rule: DenaliGlobalStructuralInvariant
+): void {
+  const basics = readDenaliCanonicalBasics(form.basicInfo.tourType as DenaliTourKind | undefined);
+
+  switch (rule.kind) {
+    case "clearFieldWhenTransportMode": {
+      const mode = form.transport.transportMode;
+      if (mode != null && (rule.modes as readonly string[]).includes(mode)) {
+        clearDenaliCanonicalLeaf(form, rule.targetCanonical);
+      }
+      return;
+    }
+    case "syncProgramItineraryToDayCount": {
+      const isMulti = basics?.duration === "multi_day";
+      if (!isMulti) {
+        if (form.programNature.itinerary != null && form.programNature.itinerary.length > 0) {
+          return;
+        }
+        form.programNature.itinerary = [];
+        return;
+      }
+      const dayCount = computeDenaliTourDayCountFromKind(
+        form.basicInfo.tourType as DenaliTourKind | undefined,
+        form.basicInfo.startDateTime ?? "",
+        form.basicInfo.endDateTime
+      );
+      form.programNature.itinerary = syncDenaliItineraryRows(
+        form.programNature.itinerary as Parameters<typeof syncDenaliItineraryRows>[0],
+        dayCount
+      );
+      return;
+    }
+    default: {
+      const _exhaustive: never = rule;
+      return _exhaustive;
+    }
+  }
+}
+
+function buildInvariantEngineContext(
+  form: DenaliCreateTourWizardForm,
+  uiOptions: DenaliUIContextOptions | undefined,
+  ruleSet: DenaliRuleSet
+): DenaliInvariantEngineContext {
+  return {
+    ruleSet,
+    model: resolveDenaliRuleModelFromForm(form, ruleSet),
+    uiOptions,
+  };
+}
+
+export function applyDenaliStructuralInvariants(
+  form: DenaliCreateTourWizardForm,
+  uiOptions?: DenaliUIContextOptions,
+  ruleSet: DenaliRuleSet = denaliRuleSet
+): DenaliCreateTourWizardForm {
+  const next = cloneDenaliStructuralSections(form);
+  const ctx = buildInvariantEngineContext(next, uiOptions, ruleSet);
+
+  for (const def of DENALI_FIELD_DEFINITIONS) {
+    if (def.structuralInvariant == null) {
+      continue;
+    }
+    applyStructuralInvariantRule(next, def.canonicalPath, def.structuralInvariant, ctx);
+  }
+
+  for (const globalRule of DENALI_GLOBAL_STRUCTURAL_INVARIANTS) {
+    applyGlobalStructuralInvariant(next, globalRule);
+  }
+
+  return next;
+}
+
+export function getDenaliSafeFormState(
+  form: DenaliCreateTourWizardForm,
+  uiOptions?: DenaliUIContextOptions,
+  ruleSet: DenaliRuleSet = denaliRuleSet
+): DenaliCreateTourWizardForm {
+  return normalizeDenaliWizardForm(form, uiOptions, ruleSet);
+}

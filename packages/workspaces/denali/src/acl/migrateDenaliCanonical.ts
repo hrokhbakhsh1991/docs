@@ -53,7 +53,7 @@ function buildDenaliCanonicalShell(): Record<string, unknown> {
   return data;
 }
 
-function stripArraysForCanonicalIngress(value: unknown): unknown {
+export function stripArraysForCanonicalIngress(value: unknown): unknown {
   if (Array.isArray(value)) {
     return undefined;
   }
@@ -70,12 +70,25 @@ function stripArraysForCanonicalIngress(value: unknown): unknown {
   return value;
 }
 
-function shouldSkipForCanonicalIngress(canonicalPath: string, value: unknown): boolean {
-  if (!Array.isArray(value)) {
-    return false;
-  }
-  // Platform ingress rejects bare arrays at declared roots — nested composite paths may carry lists later.
-  return !canonicalPath.includes(".");
+/** Maps wizard RHF form → platform canonical `data` (nested roots; arrays retained). */
+export function projectDenaliWizardFormToCanonicalData(
+  form: Record<string, unknown>
+): Record<string, unknown> {
+  return projectLegacyFormToCanonicalData(form);
+}
+
+/** Wizard submit ingress — project form to canonical `data` (arrays retained — Phase 11.10). */
+export function projectDenaliWizardFormToCanonicalIngressData(
+  form: Record<string, unknown>
+): Record<string, unknown> {
+  return projectLegacyFormToCanonicalData(form);
+}
+
+/** 11.10 — operator submit artifact (canonical `data` before `createCanonicalDocument`). */
+export function prepareDenaliSubmitArtifact(
+  form: Record<string, unknown>
+): Record<string, unknown> {
+  return projectDenaliWizardFormToCanonicalIngressData(form);
 }
 
 function projectLegacyFormToCanonicalData(
@@ -85,7 +98,7 @@ function projectLegacyFormToCanonicalData(
 
   for (const def of DENALI_FIELD_DEFINITIONS) {
     const value = readPath(legacyForm, def.zodPath);
-    if (value === undefined || shouldSkipForCanonicalIngress(def.canonicalPath, value)) {
+    if (value === undefined) {
       continue;
     }
     writePath(data, def.canonicalPath, value);
@@ -148,9 +161,7 @@ export function migrateDenaliCanonical(schemaVersion: number, data: unknown): Ca
     throw new Error("MIGRATE_DENALI_LEGACY_SHAPE_UNKNOWN");
   }
 
-  const canonicalData = stripArraysForCanonicalIngress(
-    projectLegacyFormToCanonicalData(legacyForm)
-  ) as Record<string, unknown>;
+  const canonicalData = projectLegacyFormToCanonicalData(legacyForm);
   const roots = buildDenaliWizardRoots();
 
   return createCanonicalDocument({

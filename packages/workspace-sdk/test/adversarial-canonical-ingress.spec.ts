@@ -111,7 +111,24 @@ describe("adversarial canonical ingress", () => {
   });
 });
 
-describe("adversarial canonical ingress — array and array-like rejection", () => {
+describe("adversarial canonical ingress — array policy", () => {
+  it("accepts JSON arrays nested inside composite trees", () => {
+    const doc = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: ["participants"],
+      data: {
+        participants: {
+          gearItems: [
+            { equipmentId: "eq-1", name: "Poles", isRequired: true },
+          ],
+        },
+      },
+    });
+    const participants = doc.data.participants as Record<string, unknown>;
+    assert.ok(Array.isArray(participants.gearItems));
+    assert.equal((participants.gearItems as unknown[]).length, 1);
+  });
+
   it("rejects sparse arrays at document ingress", () => {
     assert.throws(
       () =>
@@ -120,28 +137,6 @@ describe("adversarial canonical ingress — array and array-like rejection", () 
           roots: ["basics"],
           data: {
             basics: [, "gap"],
-          },
-        }),
-      (error: unknown) => {
-        assert.ok(error instanceof CanonicalDocumentValidationError);
-        assert.equal(error.code, "CANONICAL_INVALID_DATA");
-        return true;
-      },
-    );
-  });
-
-  it("rejects array nodes nested inside composite trees", () => {
-    assert.throws(
-      () =>
-        createCanonicalDocument({
-          schemaVersion: 1,
-          roots: ["widget"],
-          data: {
-            widget: {
-              body: {
-                items: ["not", "allowed"],
-              },
-            },
           },
         }),
       (error: unknown) => {

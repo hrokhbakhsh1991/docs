@@ -1,0 +1,14 @@
+{
+  "id": "starter",
+  "version": 1,
+  "package": "@app-tour/workspace-starter",
+  "workspaceTypes": ["starter"],
+  "plugin": {
+    "entry": ".",
+    "export": "getStarterWorkspacePlugin"
+  },
+  "web": {
+    "entry": ".",
+    "export": "getStarterWorkspacePlugin"
+  }
+}

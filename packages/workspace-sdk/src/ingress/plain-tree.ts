@@ -30,6 +30,7 @@ export type IngressSanitizeOptions = {
 export type PlainObjectShieldOptions = {
   readonly maxDepth: number;
   readonly maxKeysPerObject: number;
+  readonly allowArrays?: boolean;
   readonly onLeaf: (value: unknown, path: string, depth: number) => void;
 };
 
@@ -271,8 +272,16 @@ function walkPlainTree(
       }
       failWithMessage(fail, path, "array node", `Arrays are not allowed at ${path}`);
     }
+    for (let index = 0; index < value.length; index += 1) {
+      if (!(index in value)) {
+        failWithMessage(fail, path, "sparse array", `Sparse arrays are not allowed at ${path}`);
+      }
+    }
     if (!policy.clone) {
-      failWithMessage(fail, path, "array node", `Arrays are not allowed at ${path}`);
+      for (const [index, item] of value.entries()) {
+        walkPlainTree(item, `${path}[${index}]`, depth + 1, policy, fail, useIngressCodes);
+      }
+      return value;
     }
     const items = value.map((item, index) =>
       walkPlainTree(item, `${path}[${index}]`, depth + 1, policy, fail, useIngressCodes),
@@ -420,6 +429,17 @@ export function deepCloneFreezeFromStorage<T>(
   );
 }
 
+function shieldPolicyFromOptions(options: PlainObjectShieldOptions, clone: boolean): PlainTreePolicy {
+  return {
+    allowArrays: options.allowArrays ?? false,
+    allowFunctions: false,
+    maxDepth: options.maxDepth,
+    maxKeysPerObject: options.maxKeysPerObject,
+    clone,
+    onLeaf: options.onLeaf,
+  };
+}
+
 export function assertPlainObjectShield(
   value: unknown,
   path: string,
@@ -431,14 +451,7 @@ export function assertPlainObjectShield(
     value,
     path,
     depth,
-    {
-      allowArrays: false,
-      allowFunctions: false,
-      maxDepth: options.maxDepth,
-      maxKeysPerObject: options.maxKeysPerObject,
-      clone: false,
-      onLeaf: options.onLeaf,
-    },
+    shieldPolicyFromOptions(options, false),
     fail,
     false,
   );
@@ -455,14 +468,7 @@ export function clonePlainObjectShield(
     value,
     path,
     depth,
-    {
-      allowArrays: false,
-      allowFunctions: false,
-      maxDepth: options.maxDepth,
-      maxKeysPerObject: options.maxKeysPerObject,
-      clone: true,
-      onLeaf: options.onLeaf,
-    },
+    shieldPolicyFromOptions(options, true),
     fail,
     false,
   );

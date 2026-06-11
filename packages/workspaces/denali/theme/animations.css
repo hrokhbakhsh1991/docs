@@ -1,0 +1,58 @@
+/**
+ * Denali operator entrance animations — reduced-motion safe.
+ */
+@keyframes denali-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes denali-shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+body[data-workspace-plugin="denali"] [data-denali-animate="fade-up"] {
+  animation: denali-fade-up var(--motion-duration-normal, 220ms) var(--motion-ease-standard, ease) both;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-animate-delay="1"] {
+  animation-delay: 50ms;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-animate-delay="2"] {
+  animation-delay: 100ms;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-animate-delay="3"] {
+  animation-delay: 150ms;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-skeleton="shimmer"] {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-muted) 0%,
+    var(--denali-mist-100, #e8efe8) 50%,
+    var(--color-bg-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: denali-shimmer 1.5s ease-in-out infinite !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-workspace-plugin="denali"] [data-denali-animate="fade-up"],
+  body[data-workspace-plugin="denali"] [data-denali-skeleton="shimmer"] {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

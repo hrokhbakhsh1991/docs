@@ -1,5 +1,5 @@
 /** Actor role within a tenant — declarative rules in ability.ts only. */
-export type ActorRole = "owner" | "admin" | "member" | "none";
+export type ActorRole = "owner" | "admin" | "member" | "viewer" | "none";
 
 export type MembershipStatus = "ACTIVE" | "SUSPENDED";
 
@@ -7,7 +7,7 @@ export type MembershipStatus = "ACTIVE" | "SUSPENDED";
  * Pure auth context for {@link defineAbilityFor}.
  * Resolved by apps/api or apps/web — not stored in workspace-sdk.
  *
- * **Workspace binding:** `member` actors MUST set `workspaceId` (fail-closed otherwise).
+ * **Workspace binding:** `member` and `viewer` actors MUST set `workspaceId` (fail-closed otherwise).
  * `owner` / `admin` may omit `workspaceId` for tenant-wide operator scope (use sparingly).
  */
 export type TenantAuthContext = {

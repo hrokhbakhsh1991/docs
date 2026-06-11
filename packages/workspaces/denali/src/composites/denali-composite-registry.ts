@@ -20,6 +20,7 @@ export const DENALI_COMPOSITE_BY_CANONICAL_PATH: Readonly<
   leaderUserIds: "denali.leader-user-ids",
   "tripDetails.metrics.elevationGain": "denali.elevation-gain",
   "participants.minimumAge": "denali.pricing-participants",
+  "pricing.requiresPayment": "denali.pricing-payment",
 };
 
 /** zodKind → composite renderer id (legacy `DENALI_ZOD_KIND_COMPONENTS`). */

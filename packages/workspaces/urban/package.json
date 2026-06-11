@@ -14,6 +14,22 @@
       "types": "./dist/urban.plugin.d.ts",
       "default": "./dist/urban.plugin.js"
     },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "default": "./dist/http/index.js"
+    },
+    "./http/routes": {
+      "types": "./dist/http/routes.d.ts",
+      "default": "./dist/http/routes.js"
+    },
+    "./tours": {
+      "types": "./dist/tours/index.d.ts",
+      "default": "./dist/tours/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "default": "./dist/auth/index.js"
+    },
     "./theme/tokens.css": "./theme/tokens.css"
   },
   "files": [
@@ -28,10 +44,13 @@
   "dependencies": {
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
-    "@app-tour/workspace-sdk": "workspace:*"
+    "@app-tour/tenant-kernel": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"
   }

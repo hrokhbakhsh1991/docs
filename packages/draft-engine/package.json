@@ -1,0 +1,39 @@
+{
+  "name": "@app-tour/draft-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generic OCC draft sync engine — workspace-agnostic (Phase 11.1)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "peerDependencies": {
+    "react": "^18.3.1 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

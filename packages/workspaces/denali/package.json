@@ -14,11 +14,28 @@
       "types": "./dist/denali.plugin.d.ts",
       "default": "./dist/denali.plugin.js"
     },
-    "./theme/tokens.css": "./theme/tokens.css"
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "default": "./dist/http/index.js"
+    },
+    "./http/routes": {
+      "types": "./dist/http/routes.d.ts",
+      "default": "./dist/http/routes.js"
+    },
+    "./theme/tokens.css": "./theme/tokens.css",
+    "./theme/denali-admin.css": "./theme/denali-admin.css",
+    "./theme/admin-skin.css": "./theme/admin-skin.css",
+    "./messages/fa/wizard.json": "./messages/fa/wizard.json",
+    "./messages/en/wizard.json": "./messages/en/wizard.json"
   },
   "files": [
     "dist",
-    "theme/tokens.css"
+    "messages",
+    "theme/tokens.css",
+    "theme/denali-admin.css",
+    "theme/admin-skin.css",
+    "theme/interactions.css",
+    "theme/animations.css"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -30,7 +47,8 @@
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
-    "minio": "^8.0.4"
+    "minio": "^8.0.4",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",

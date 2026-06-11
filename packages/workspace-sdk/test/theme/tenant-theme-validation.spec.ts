@@ -48,6 +48,25 @@ describe("validateTenantTheme", () => {
     );
   });
 
+  it("accepts defaultLocale fa or en", () => {
+    const theme = validateTenantTheme({ defaultLocale: "en" });
+    assert.equal(theme.defaultLocale, "en");
+  });
+
+  it("rejects invalid defaultLocale", () => {
+    assert.throws(
+      () =>
+        validateTenantTheme({
+          defaultLocale: "de",
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof WorkspaceThemeValidationError);
+        assert.equal(error.code, "TENANT_INVALID_SHAPE");
+        return true;
+      }
+    );
+  });
+
   it("rejects unsafe primaryColor", () => {
     assert.throws(
       () =>

@@ -1,5 +1,5 @@
 /**
- * Slim fork — template overlay chain deferred to 6.5+; default rule set for 6.2 parity.
+ * Rule model resolution — matrix + optional settings template overlay (11.8-T6).
  */
 
 import type { DenaliTourKind } from "../types/legacy/repo-types";
@@ -9,15 +9,16 @@ import { denaliWizardSteps, type DenaliCreateWizardStepId } from "../layout/step
 import type { DenaliCreateTourWizardForm } from "../schemas/denaliCore.schema";
 import type { DenaliRuleModel, DenaliRuleSet } from "../rules/denaliRuleModel.types";
 import { denaliRuleSet } from "../rules/denaliRuleModel";
+import { resolveDenaliRuleSetFromOverlay } from "../rules/templateOverlay";
 
 export type { DenaliRuleSet };
 
 export const DENALI_STRUCTURAL_RAIL_STEPS: readonly DenaliCreateWizardStepId[] = ["denali_photos"];
 
 export function resolveDenaliRuleSetFromTemplate(
-  _template: { readonly fieldRulesOverlay?: Readonly<Record<string, unknown>> } | null | undefined
+  template: { readonly fieldRulesOverlay?: Readonly<Record<string, unknown>> } | null | undefined
 ): DenaliRuleSet {
-  return denaliRuleSet;
+  return resolveDenaliRuleSetFromOverlay(template?.fieldRulesOverlay, denaliRuleSet);
 }
 
 export function resolveDenaliRuleModelFromForm(

@@ -1,9 +1,17 @@
 import { Client } from "minio";
 
 import {
+  DENALI_MAX_PHOTO_UPLOAD_BYTES,
+  DENALI_PHOTO_ALLOWED_CONTENT_TYPES,
+  isDenaliPhotoContentType,
+} from "../schemas/denaliFileAssetSchema";
+import {
   assertDenaliTourPhotoKeyTenantScope,
   buildDenaliTourPhotoObjectKey,
+  buildDenaliWizardDraftPhotoObjectKey,
 } from "./tour-photo-object-key";
+
+export { DENALI_MAX_PHOTO_UPLOAD_BYTES, DENALI_PHOTO_ALLOWED_CONTENT_TYPES } from "../schemas/denaliFileAssetSchema";
 
 export type MinioPhotoConfig = {
   endPoint: string;
@@ -67,6 +75,40 @@ export async function ensureMinioPhotoBucket(config: MinioPhotoConfig): Promise<
   }
 }
 
+export function assertDenaliPhotoUploadContentType(contentType: string): void {
+  const normalized = contentType.trim().toLowerCase();
+  if (!isDenaliPhotoContentType(normalized)) {
+    throw new Error(
+      `DENALI_PHOTO_CONTENT_TYPE_INVALID: allowed=${DENALI_PHOTO_ALLOWED_CONTENT_TYPES.join(",")}`
+    );
+  }
+}
+
+export async function putDenaliWizardDraftPhoto(input: {
+  config: MinioPhotoConfig;
+  tenantId: string;
+  sessionId: string;
+  photoId: string;
+  body: Buffer;
+  contentType: string;
+}): Promise<{ key: string }> {
+  assertDenaliPhotoUploadContentType(input.contentType);
+  if (input.body.length > DENALI_MAX_PHOTO_UPLOAD_BYTES) {
+    throw new Error(`DENALI_PHOTO_TOO_LARGE: maxBytes=${DENALI_MAX_PHOTO_UPLOAD_BYTES}`);
+  }
+  const key = buildDenaliWizardDraftPhotoObjectKey({
+    tenantId: input.tenantId,
+    sessionId: input.sessionId,
+    photoId: input.photoId,
+  });
+  assertDenaliTourPhotoKeyTenantScope(key, input.tenantId);
+  const client = createMinioPhotoClient(input.config);
+  await client.putObject(input.config.bucket, key, input.body, input.body.length, {
+    "Content-Type": input.contentType,
+  });
+  return { key };
+}
+
 export async function putDenaliTourPhoto(input: {
   config: MinioPhotoConfig;
   tenantId: string;
@@ -75,6 +117,10 @@ export async function putDenaliTourPhoto(input: {
   body: Buffer;
   contentType: string;
 }): Promise<{ key: string }> {
+  assertDenaliPhotoUploadContentType(input.contentType);
+  if (input.body.length > DENALI_MAX_PHOTO_UPLOAD_BYTES) {
+    throw new Error(`DENALI_PHOTO_TOO_LARGE: maxBytes=${DENALI_MAX_PHOTO_UPLOAD_BYTES}`);
+  }
   const key = buildDenaliTourPhotoObjectKey({
     tenantId: input.tenantId,
     tourId: input.tourId,
@@ -86,6 +132,22 @@ export async function putDenaliTourPhoto(input: {
     "Content-Type": input.contentType,
   });
   return { key };
+}
+
+export async function copyDenaliMinioPhotoObject(input: {
+  config: MinioPhotoConfig;
+  tenantId: string;
+  sourceKey: string;
+  destKey: string;
+}): Promise<void> {
+  assertDenaliTourPhotoKeyTenantScope(input.sourceKey, input.tenantId);
+  assertDenaliTourPhotoKeyTenantScope(input.destKey, input.tenantId);
+  const client = createMinioPhotoClient(input.config);
+  await client.copyObject(
+    input.config.bucket,
+    input.destKey,
+    `/${input.config.bucket}/${input.sourceKey}`
+  );
 }
 
 export async function getDenaliTourPhotoSignedReadUrl(input: {

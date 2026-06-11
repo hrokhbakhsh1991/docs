@@ -9,27 +9,15 @@ import {
   tenantScopeMatches,
   workspaceScopeMatches,
 } from "./tenant-auth-grants";
-
-export type UrbanOwnerSurface =
-  | "urban.settings.read"
-  | "urban.settings.update"
-  | "urban.catalog.admin.read"
-  | "urban.catalog.admin.update"
-  | "urban.catalog.admin.delete"
-  | "urban.catalog.publish"
-  | "urban.catalog.unpublish"
-  | "urban.tour.publish_fields";
-
-const URBAN_OWNER_SURFACE_ALLOWLIST: ReadonlySet<UrbanOwnerSurface> = new Set([
-  "urban.settings.read",
-  "urban.settings.update",
-  "urban.catalog.admin.read",
-  "urban.catalog.admin.update",
-  "urban.catalog.admin.delete",
-  "urban.catalog.publish",
-  "urban.catalog.unpublish",
-  "urban.tour.publish_fields",
-]);
+import type {
+  WorkspaceAuthSurface,
+  WorkspaceOwnerMutationPolicy,
+} from "./workspace-auth-surface";
+import {
+  evaluateOperatorSurfaceGrant,
+  type CanPerformOperatorSurfaceOptions,
+  type OperatorSurface,
+} from "./operator-surface";
 
 export type TenantAuthz = {
   readonly context: Readonly<TenantAuthContext>;
@@ -47,10 +35,15 @@ export type TenantAuthz = {
   canReadCanonicalDocument(subject: CanonicalDocumentSubject): boolean;
   canCreateCanonicalDocument(subject: CanonicalDocumentSubject): boolean;
   canUpdateCanonicalDocument(subject: CanonicalDocumentSubject): boolean;
-  canPerformUrbanOwnerMutation(
+  canPerformWorkspaceOwnerMutation(
     tenantId: string,
-    surface: UrbanOwnerSurface,
-    workspaceType: string
+    surface: WorkspaceAuthSurface,
+    workspaceType: string,
+    policy: WorkspaceOwnerMutationPolicy
+  ): boolean;
+  canPerformOperatorSurface(
+    surface: OperatorSurface | string,
+    options?: CanPerformOperatorSurfaceOptions
   ): boolean;
 };
 
@@ -117,8 +110,8 @@ export function buildTenantAuthz(context: TenantAuthContext): TenantAuthz {
       return granted && tenantScopeMatches(parsed, subject.tenantId);
     },
 
-    canPerformUrbanOwnerMutation(tenantId, surface, workspaceType) {
-      if (workspaceType !== "urban") {
+    canPerformWorkspaceOwnerMutation(tenantId, surface, workspaceType, policy) {
+      if (workspaceType !== policy.requiredWorkspaceType) {
         return false;
       }
       if (!granted || !tenantScopeMatches(parsed, tenantId)) {
@@ -127,7 +120,11 @@ export function buildTenantAuthz(context: TenantAuthContext): TenantAuthz {
       if (!isWorkspaceOwner(parsed)) {
         return false;
       }
-      return URBAN_OWNER_SURFACE_ALLOWLIST.has(surface);
+      return policy.allowedSurfaces.has(surface);
+    },
+
+    canPerformOperatorSurface(surface, options) {
+      return evaluateOperatorSurfaceGrant(parsed, surface, options);
     },
   };
 

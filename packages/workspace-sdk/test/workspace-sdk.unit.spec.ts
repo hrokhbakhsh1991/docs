@@ -113,6 +113,20 @@ describe("CanonicalDocument", () => {
     assert.equal(Object.isFrozen(doc.data.basics), true);
   });
 
+  it("accepts nested arrays in canonical document data (11.10)", () => {
+    const doc = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: ["program", "leaderUserIds"],
+      data: {
+        program: { themeIds: ["theme-a", "theme-b"] },
+        leaderUserIds: ["user-1"],
+      },
+    });
+    const program = doc.data.program as Record<string, unknown>;
+    assert.deepEqual(program.themeIds, ["theme-a", "theme-b"]);
+    assert.deepEqual(doc.data.leaderUserIds, ["user-1"]);
+  });
+
   it("rejects BigInt in document data", () => {
     assert.throws(
       () =>

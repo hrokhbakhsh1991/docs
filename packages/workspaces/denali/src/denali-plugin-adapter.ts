@@ -22,6 +22,16 @@ function buildDenaliFieldIdByCanonicalPath(): Readonly<Record<string, string>> {
 
 const DENALI_FIELD_ID_BY_CANONICAL_PATH = buildDenaliFieldIdByCanonicalPath();
 
+/** INV-WIZ-002 — omitted from Settings wizard-template builder palette (Layer C). */
+export const WIZARD_OVERLAY_EXCLUDE_TAG = "wizard_overlay_exclude" as const;
+
+function denaliFieldRegistryTags(def: (typeof DENALI_FIELD_DEFINITIONS)[number]): readonly string[] | undefined {
+  const surface = def.settingsSurface ?? "section";
+  const tags =
+    surface === "section" ? [...def.tags] : [...def.tags, WIZARD_OVERLAY_EXCLUDE_TAG];
+  return tags.length > 0 ? tags : undefined;
+}
+
 export function denaliFieldIdForCanonicalPath(canonicalPath: string): string {
   return DENALI_FIELD_ID_BY_CANONICAL_PATH[canonicalPath] ?? canonicalPath;
 }
@@ -40,7 +50,7 @@ export function buildDenaliWorkspaceFieldRegistry(): WorkspaceFieldRegistry {
         stepId: def.stepId,
         kind: resolution.kind,
         required: def.ruleDefaults.required,
-        tags: def.tags.length > 0 ? [...def.tags] : undefined,
+        tags: denaliFieldRegistryTags(def),
         ...(resolution.enumOptions != null ? { enumOptions: resolution.enumOptions } : {}),
       }),
     ];

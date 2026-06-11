@@ -3,9 +3,9 @@
  * {@link ./denaliRuleSet.generated.ts} is generated from {@link ../registry/DenaliFieldRegistry.ts}.
  */
 
-import type { TourFormProfile } from "../types/legacy/repo-types";
-
 import type { DenaliCreateWizardStepId } from "../layout/stepIds";
+
+import type { DenaliUIContextOptions } from "./denaliContextualRules";
 
 export const DENALI_RULE_MODEL_CATEGORIES = ["mountain", "nature", "desert", "event"] as const;
 
@@ -42,14 +42,9 @@ export type DenaliRuleModelKey = `${DenaliRuleModelCategory}:${DenaliRuleModelDu
 
 export const DENALI_RULE_MODEL_VERSION = "1.2.0" as const;
 
-/** UI options for invariant engine (mirrors {@link DenaliUIContextOptions} without importing the adapter). */
-export type DenaliInvariantEngineUiOptions = {
-  readonly mainThemeFormProfile?: TourFormProfile;
-};
-
 /** RuleSet + resolved model passed into structural invariant application. */
 export interface DenaliInvariantEngineContext {
   readonly ruleSet: DenaliRuleSet;
   readonly model: DenaliRuleModel | null;
-  readonly uiOptions?: DenaliInvariantEngineUiOptions;
+  readonly uiOptions?: DenaliUIContextOptions;
 }

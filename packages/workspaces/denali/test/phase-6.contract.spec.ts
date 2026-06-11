@@ -15,7 +15,8 @@ import {
   createDenaliFinanceOutboxConsumer,
   DENALI_CURRENT_CANONICAL_SCHEMA_VERSION,
   DENALI_LEGACY_TRIP_DETAILS_SCHEMA_VERSION,
-  DENALI_THEME_TOKENS_STYLESHEET,
+  DENALI_THEME_ADMIN_STYLESHEET,
+  denaliPluginForWizardEngine,
   getDenaliWorkspacePlugin,
   migrateDenaliCanonical,
   resolveDenaliWizardDimensions,
@@ -37,11 +38,11 @@ describe("phase-6.contract scaffold (REQ-P6-004, REQ-P6-005, REQ-P6-027)", () =>
   });
 
   it("theme/tokens.css exists and is referenced by plugin", () => {
-    const cssPath = join(PACKAGE_ROOT, DENALI_THEME_TOKENS_STYLESHEET);
+    const cssPath = join(PACKAGE_ROOT, "theme", "tokens.css");
     assert.ok(readFileSync(cssPath, "utf8").includes("--ws-color-accent"));
     assert.equal(
       getDenaliWorkspacePlugin().theme?.optionalStylesheet,
-      DENALI_THEME_TOKENS_STYLESHEET
+      DENALI_THEME_ADMIN_STYLESHEET
     );
   });
 
@@ -62,7 +63,7 @@ describe("phase-6.contract behavioral (REQ-P6-018, DEC-P6-009)", () => {
   it("REQ-P6-006: field registry is non-empty and wizard engine accepts plugin", () => {
     const plugin = getDenaliWorkspacePlugin();
     assert.ok(plugin.fieldRegistry.fields.length > 0);
-    const engine = PlatformWizardEngine.create(plugin);
+    const engine = PlatformWizardEngine.create(denaliPluginForWizardEngine(plugin));
     assert.equal(typeof engine.validateCanonical, "function");
   });
 
@@ -98,5 +99,15 @@ describe("phase-6.contract behavioral (REQ-P6-018, DEC-P6-009)", () => {
     const dims = resolveDenaliWizardDimensions(plugin);
     assert.equal(dims.category, "mountain");
     assert.equal(dims.duration, "single_day");
+  });
+
+  it("REQ-P6-024b: resolveDenaliWizardDimensions follows tour kind slug", () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const multi = resolveDenaliWizardDimensions(plugin, "default", "mountain_multi");
+    assert.equal(multi.category, "mountain");
+    assert.equal(multi.duration, "multi_day");
+    const nature = resolveDenaliWizardDimensions(plugin, "default", "nature_day");
+    assert.equal(nature.category, "nature");
+    assert.equal(nature.duration, "single_day");
   });
 });

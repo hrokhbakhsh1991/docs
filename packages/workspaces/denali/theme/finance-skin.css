@@ -1,0 +1,72 @@
+/**
+ * Denali finance command center — alpine KPI accents + installments board.
+ */
+body[data-workspace-plugin="denali"] [data-denali-finance-tabs] {
+  border-color: var(--color-border-subtle);
+  background: color-mix(in oklch, var(--color-bg-muted) 65%, var(--color-bg-surface));
+}
+
+body[data-workspace-plugin="denali"] [data-denali-finance-tabs] a[aria-current="page"] {
+  color: var(--denali-alpine-600);
+  box-shadow: var(--denali-shadow-card);
+}
+
+html.dark:has(body[data-workspace-plugin="denali"]) [data-denali-finance-tabs] a[aria-current="page"],
+body[data-workspace-plugin="denali"] .theme-dark [data-denali-finance-tabs] a[aria-current="page"] {
+  color: var(--color-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-finance-kpi] {
+  border-top: 3px solid var(--denali-alpine-600);
+  transition:
+    box-shadow var(--motion-surface),
+    transform var(--motion-surface);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-finance-kpi]:hover {
+  box-shadow: var(--denali-shadow-card-hover);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-finance-board] [data-board-column="overdue"] {
+  border-top: 3px solid var(--color-warning);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-finance-board] [data-board-column="due_this_week"] {
+  border-top: 3px solid var(--denali-alpine-600);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-finance-board] [data-board-column="upcoming"] {
+  border-top: 3px solid var(--denali-forest-500);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-finance-board] [data-board-column="paid"] {
+  border-top: 3px solid var(--color-success);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-finance-progress] {
+  background: color-mix(in oklch, var(--color-bg-muted) 80%, transparent);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-finance-progress] > div {
+  background: linear-gradient(
+    90deg,
+    var(--denali-alpine-600),
+    var(--denali-forest-600)
+  );
+}
+
+body[data-workspace-plugin="denali"] [data-denali-date-picker] button {
+  border-color: var(--color-border-default);
+  background: var(--color-bg-surface);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-date-picker] button:hover:not(:disabled) {
+  border-color: var(--denali-alpine-600);
+  background: color-mix(in oklch, var(--color-info-bg) 40%, var(--color-bg-surface));
+}
+
+body[data-workspace-plugin="denali"] [data-radix-popper-content-wrapper] [data-denali-date-picker] button[data-selected="true"],
+body[data-workspace-plugin="denali"] [data-radix-popper-content-wrapper] .rdp-day_button[data-selected-single="true"] {
+  background: var(--denali-alpine-600);
+  color: #ffffff;
+}
