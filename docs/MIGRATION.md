@@ -12,7 +12,11 @@
 | **3** Starter + apps       | [`phase-3-design-system.md`](phase-3-design-system.md) ✅ · AI-exec: [`phase-3/`](phase-3/README.md)                            |
 | **4** Tenant kernel        | [`phase-4-tenant-kernel.md`](phase-4-tenant-kernel.md) ✅ · AI-exec: [`phase-4/`](phase-4/README.md)                            |
 | **5** Canonical data layer | [`phase-5-canonical-schema.md`](phase-5-canonical-schema.md) · AI-exec: [`phase-5/`](phase-5/README.md)                         |
-| **6** Denali workspace     | [`phase-6-denali-workspace.md`](phase-6-denali-workspace.md) — **active (doc pack)** · AI-exec: [`phase-6/`](phase-6/README.md) |
+| **6** Denali workspace     | [`phase-6-denali-workspace.md`](phase-6-denali-workspace.md) · AI-exec: [`phase-6/`](phase-6/README.md)                         |
+| **7** Urban platform       | [`phase-7/phase-7-charter.md`](phase-7/phase-7-charter.md) · [`phase-7/phase-7-agent-router.md`](phase-7/phase-7-agent-router.md) |
+| **8** Urban Product Parity | [`phase-8/phase-8-charter.md`](phase-8/phase-8-charter.md) · [`phase-8/phase-8-agent-router.md`](phase-8/phase-8-agent-router.md) |
+| **9** Operator Admin Panel | [`phase-9/phase-9-charter.md`](phase-9/phase-9-charter.md) · [`phase-9/phase-9-agent-router.md`](phase-9/phase-9-agent-router.md) |
+| **10** Workspace Host | [`phase-10/phase-10-charter.md`](phase-10/phase-10-charter.md) · plugin-native host **DONE** (10.1–10.7) |
 
 **Cross-phase continuity:** [`appendices/PLATFORM-CONTINUITY-0-6.md`](appendices/PLATFORM-CONTINUITY-0-6.md)
 
@@ -22,16 +26,12 @@ Platform logic = generic · Workspace logic = injectable · Tenant = security bo
 
 ## فاز جاری
 
-**Phase 6** — Denali workspace (plugin port, bootstrap, MinIO, migrateCanonical) — **doc pack active** · agents: [`phase-6/phase-6-agent-router.md`](phase-6/phase-6-agent-router.md)
-
-**Prerequisites:** `phase-5:gate` exit 0 + [`phase-6/subphases/6.0-entry-gate.md`](phase-6/subphases/6.0-entry-gate.md)
+**Phase 10** — Workspace Host (plugin-native) — **implementation DONE**
 
 ```bash
-pnpm run phase-5:gate   # required before Phase 6 work
-pnpm run phase-6:guard  # doc pack (PEK v1)
-pnpm run phase-6:gate   # 6.9 when implementation complete
-pnpm run phase-5:guard
-pnpm build && pnpm test
+pnpm run phase-10:guard             # host invariants (fast)
+pnpm run generate:workspace-registry
+pnpm run workspace:create -- <id>   # new workspace scaffold
 ```
 
 ## Legacy

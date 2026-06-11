@@ -2,16 +2,26 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://app-tour.dev/schemas/phase-9/USERS-DIRECTORY-ROW.schema.json",
   "title": "WorkspaceDirectoryRow",
-  "description": "Operator users directory row for GET /users — tenant-scoped membership projection (DEC-P9-015)",
+  "description": "Operator users directory row for GET /users — tenant-scoped membership projection (DEC-P9-015 · DEC-P9-018 · DEC-P9-019)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["userId", "tenantId", "role", "status", "displayName"],
+  "required": [
+    "userId",
+    "tenantId",
+    "role",
+    "status",
+    "displayName",
+    "permanentDiscountPercentage",
+    "rewardBadges",
+    "isSelectableLeader",
+    "labels"
+  ],
   "properties": {
     "userId": { "type": "string", "format": "uuid" },
     "tenantId": { "type": "string", "minLength": 1 },
     "role": {
       "type": "string",
-      "enum": ["owner", "admin", "member"]
+      "enum": ["owner", "admin", "member", "viewer"]
     },
     "status": {
       "type": "string",
@@ -22,6 +32,25 @@
     "email": { "type": ["string", "null"], "format": "email" },
     "avatarUrl": { "type": ["string", "null"], "format": "uri" },
     "joinedAt": { "type": ["string", "null"], "format": "date-time" },
-    "lastActiveAt": { "type": ["string", "null"], "format": "date-time" }
+    "lastActiveAt": { "type": ["string", "null"], "format": "date-time" },
+    "permanentDiscountPercentage": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "rewardBadges": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["VIP_MEMBER", "GOLD_CLUB", "LEADER_BUDDY"]
+      },
+      "maxItems": 8
+    },
+    "isSelectableLeader": { "type": "boolean" },
+    "labels": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 64 },
+      "maxItems": 32
+    }
   }
 }

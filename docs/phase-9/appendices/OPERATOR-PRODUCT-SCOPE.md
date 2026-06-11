@@ -74,15 +74,19 @@ Phase 6 delivered Denali wizard + finance outbox consumer. Phase 8 delivered Urb
 9.8  full route contract + SMK-P9-01..08 + phase-9.contract.spec.ts
 ```
 
+**Route inventory module:** `apps/web/src/features/operator/operator-route-parity-inventory.ts` — consumed by `phase-9.contract.spec.ts` (landed · alias · deferred).
+
 ---
 
 ## Bookings schema delta (`006_operator_bookings_delta.sql`)
 
 | Table / column                    | Purpose                                                                                                     |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `registrations`                   | Operator-managed booking records (extends or aligns with Phase 8 urban_registrations where workspace=urban) |
+| `operator_registrations`          | Operator-managed booking records (Denali Command Center · distinct from `urban_registrations`)              |
 | `registration_status`             | `pending \| approved \| rejected \| waitlisted \| cancelled`                                                |
-| `idx_registrations_tenant_status` | List queue O(log N)                                                                                         |
+| `idx_operator_registrations_tenant_status` | List queue O(log N)                                                                                |
+
+**Repository wiring:** `PrismaBookingsRepository` when `STORAGE_DRIVER=prisma`; approve/reject uses same TX as `outbox_events` insert (`enqueueOutboxEvent`).
 
 **DEC-P9-006:** Public POST intake = Phase 8; Phase 9 adds **operator transition** APIs and **manual create** (`bookings/new`).
 

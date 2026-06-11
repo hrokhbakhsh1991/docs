@@ -1,37 +1,48 @@
 # Phase 9 — Machine snapshot: «الان کجاییم؟» (sync with IMPLEMENTATION-TRUTH)
 # Authority: BOOT-MANIFEST detect_current_subphase v2 · Sprint A (P2)
 
-snapshot_version: "2026-06-08-v6"
+snapshot_version: "2026-06-09-v33"
 sync_source: ../audits/IMPLEMENTATION-TRUTH.md
 roadmap: ../../../TEMP/phase9-doc-95plus-roadmap.md
 navigator: ../AGENT-NAVIGATOR.md
 scaffold_sot: ../appendices/SPEC-REGISTRY-OPERATOR.yaml
 
-doc_ready_subphase: "9.1"
-behavioral_active_subphase: "9.1"
+doc_ready_subphase: "9.5"
+behavioral_active_subphase: "9.5"
 
 partial_subphases:
   - id: "9.7"
-    status: PARTIAL_R1
-    repo_status: PARTIAL_R1
+    status: PARTIAL_R4
+    repo_status: PARTIAL_R4
     r1_trunk_complete: true
-    r2_r4_pending: true
-    note: "Finance API + interim app/finance — not 9.7 behavioral closure (DEC-P9-016 R2–R4)"
-  - id: "9.5"
-    status: PARTIAL_R0
-    repo_status: MANIFEST_ON_TRUNK
-    note: "RegistrationOpsManifest + SDK validate — API/UI pending S9.5-R1"
+    r2_r3_postgres_specs: true
+    r4_ledger_csv_and_triage_kpi: true
+    ledger_adjust_api_deferred: true
+    note: "R1–R3 + R4 CSV/triage KPI on trunk — reconciliation adjust API still deferred (R-P9-F05)"
   - id: "9.6"
-    status: PARTIAL_R0
-    repo_status: MANIFEST_ON_TRUNK
-    note: "Settings module inventory + SDK validate — routers pending S9.6-R1"
+    status: PARTIAL_R7
+    repo_status: SETTINGS_R7_ON_TRUNK
+    note: "R1–R7 + SMK-P9-05 on trunk — presets_advanced config on trunk · Prisma 007 pending"
   - id: "9.3"
-    status: PARTIAL_R0
-    repo_status: PROJECTION_ON_TRUNK
-    note: "Denali extractTourListProjection — listToursOperator API pending S9.3-L-R1"
+    status: PARTIAL_R5
+    repo_status: REGISTER_R4_ON_TRUNK
+    note: "register R4 on trunk · workspace data tables + 9.3 closure pending"
+  - id: "9.4"
+    status: PARTIAL_R6
+    repo_status: USERS_R6_ON_TRUNK
+    note: "SMK-P9-03 E2E green — Prisma 005 identity delta deferred"
+  - id: "9.5"
+    status: PARTIAL_R6
+    repo_status: BOOKINGS_R6_ON_TRUNK
+    note: "R1–R5 + SMK-P9-04/07 E2E green — leader alias · tour board R4 optional"
 
 blockers: []
 entry_status: VERIFIED_ENTRY
+hooks_suspension:
+  active: true
+  marker: docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml
+  until_subphase: "9.8"
+  dev_mode: flow_ux_first
 
 guard_attestation:
   command: pnpm run phase-9:guard
@@ -39,26 +50,71 @@ guard_attestation:
   passed: 32
   promote_train_completed: T-9.1..T-9.8
 
+partial_subphases_append:
+  - id: "9.1"
+    status: PARTIAL_R1
+    note: "Identity velocity slice — Prisma 005 deferred"
+  - id: "9.2"
+    status: PARTIAL_R3
+    note: "OperatorShell R1–R3 + live dashboard widgets — 9.2 behavioral closure pending"
+
 next_read:
   - docs/phase-9/AGENT-NAVIGATOR.md
-  - docs/phase-9/subphases/9.0-entry.md
-  - docs/phase-9/subphases/9.1-identity-session.md
-  - docs/phase-9/appendices/IDENTITY-PORT-SCOPE.md
-  - docs/phase-9/appendices/erip/9.1-cop-identity-port.md
+  - docs/phase-9/subphases/9.3-tours-operator.md
+  - docs/phase-9/appendices/TOURS-LIST-UX.md
 
 next_prove_with:
+  - path: apps/web/test/admin-shell-access.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R1
+  - path: apps/web/test/dashboard-smoke.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R1
+  - path: apps/api/test/tours-operator.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R1
+  - path: apps/web/test/tours-list.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R1
   - path: apps/api/test/identity-otp.spec.ts
     status: ON_TRUNK
-    behavioral: SCAFFOLD
+    behavioral: PARTIAL_R1
   - path: packages/workspaces/denali/test/bookings-ops-manifest.spec.ts
     status: ON_TRUNK
     behavioral: MANIFEST_R0
   - path: packages/workspaces/denali/test/settings-manifest.spec.ts
     status: ON_TRUNK
     behavioral: MANIFEST_R0
+  - path: apps/api/test/settings-audit-trail.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R3
+  - path: apps/web/test/settings-audit-trail.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R3
+  - path: apps/web/test/settings-themes-locations.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R4
+  - path: apps/web/test/settings-guide-languages.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R5
+  - path: apps/web/test/wizard-template-prefill.spec.ts
+    status: ON_TRUNK
+    behavioral: SMK_P9_05
+  - path: apps/web/test/settings-tour-presets.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R6
+  - path: apps/api/test/identity-users.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R5
+  - path: apps/web/test/users-directory.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R5
+  - path: apps/web/test/invite-accept.spec.ts
+    status: ON_TRUNK
+    behavioral: PARTIAL_R5
 
 forbidden_until_blocker_clear:
-  - "Claim 9.7 closed — PARTIAL_R1 only; reconciliation + prepayment R2–R4 pending"
+  - "Claim 9.7 closed — R4 adjust API + full reconciliation parity still pending"
   - "9.1+ code without doc-first update to identity COP / IDENTITY-PORT-SCOPE"
 
 detect_algorithm: |

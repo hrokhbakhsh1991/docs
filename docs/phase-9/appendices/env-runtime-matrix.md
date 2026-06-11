@@ -33,10 +33,13 @@ req_ids: [REQ-P9-010, REQ-P9-011, REQ-P9-080]
 | `RESEND_API_KEY`                       | string       | unset                 | OTP SMS (optional P1)       | Log-only OTP in dev          |
 | `IDENTITY_PRODUCTION_ENABLED`          | boolean      | false until 9.1 lands | auth routes gate            | 503 when false in staging    |
 | `AUTH_ALLOW_DEV_STATIC_OTP`            | boolean      | true (dev)            | skip challenge row          | prod: false                  |
+| `OTP_FIXTURE_CODE`                     | string       | unset                 | deterministic challenge code (non-prod tests) | **Prod: boot throw if set** |
 | `NEXT_PUBLIC_SESSION_COOKIE_DOMAIN`    | string       | host-only dev         | cookie Domain attr          | prod: tenant root            |
 | `NEXT_PUBLIC_SESSION_COOKIE_SAME_SITE` | enum         | lax (dev)             | cookie SameSite             | prod: none + Secure          |
 | `NEXT_PUBLIC_TENANT_ROOT_DOMAIN`       | string       | unset                 | prod cookie fallback        | —                            |
-| `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY`   | PEM          | dev keypair           | RS256 sign/verify           | boot fail if missing prod    |
+| `AUTH_JWT_PUBLIC_KEY`                  | PEM          | `bootstrap:dev-jwt`   | RS256 verify                | boot fail if missing prod    |
+| `AUTH_JWT_PRIVATE_KEY`                 | PEM          | same script           | RS256 sign                  | OTP login 500 if missing     |
+| `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` | string    | `tour-ops` / `tour-ops-api` | JWT claims            | verify rejects if mismatch   |
 
 ### Dev login fixture (SMK-P9-01)
 

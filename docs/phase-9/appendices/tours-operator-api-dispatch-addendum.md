@@ -34,6 +34,7 @@ extends: docs/phase-5/appendices/tours-list-endpoint.md
 | `view`          | `slim \| operator`                | `operator` when operator session | `slim` = Phase 5 cursor index      |
 | `search`        | string                            | —                                | max 200 · title + shortDescription |
 | `status`        | `active \| completed \| archived` | —                                | legacy lifecycle buckets           |
+| `category`      | Denali tour kind slug             | —                                | exact match on `TourListProjection.category` · invalid slug ignored |
 | `page`          | int ≥1                            | 1                                | offset pagination                  |
 | `limit`         | int                               | 10 (operator) / 50 (slim)        | max 100                            |
 | `sort_by`       | `created_at \| title \| price`    | `created_at`                     |                                    |
@@ -127,3 +128,15 @@ Only add when direct API fetch fails in 9.3-L-R2 integration — not default.
 - No `GET /app/tours/new` or `(app)/tours/new` web route duplication
 - No Nest `legacy/apps/api/src/modules/tours` tree port
 - No full `canonical` in operator list items
+
+---
+
+## Test harness notes (9.3 · memory driver)
+
+| Concern | Trunk behavior |
+| ------- | -------------- |
+| Smoke tenant `00000000-0000-4000-8000-000000000014` | Not in `DEV_TENANTS` → API resolves `workspaceType: starter` for POST `/tours` memory specs |
+| `DATABASE_URL` in shell | Cleared by `bootstrap-outbox-test-env.ts` when `STORAGE_DRIVER=memory` so Postgres tenant rows cannot override starter resolution |
+| POST `/tours` body in `tours-operator.spec.ts` | Starter canonical (`basics.title`, `details.summary`) |
+| Validation engine | `getOrCreateValidationEngine` omits `plugin.tourList`, `plugin.tourClone`, and `plugin.publicCatalog` before `PlatformWizardEngine.create` (callable operator/marketing surfaces are not wizard ingress) |
+| Fast API proof | `pnpm --filter @apps/api run test:file test/tours-operator.spec.ts` |

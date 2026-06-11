@@ -90,8 +90,8 @@ Manifest entries declare `ability: "operator.settings.equipment.mutate"` (exampl
 | ------------------------------------- | --------------------------------------- | ------------------------------------------- |
 | `operator.tours.read`                 | session + active member                 | **allow** read                              |
 | `operator.tours.mutate`               | `isAdminOrOwner`                        | **deny**                                    |
-| `operator.users.read`                 | `isAdminOrOwner`                        | **deny** — locked UI only (DEC-P9-015)      |
-| `operator.users.mutate`               | `isAdminOrOwner`                        | **deny**                                    |
+| `operator.users.read`                 | `isWorkspaceOwner` (DEC-P9-018)         | **deny** — future admin panel separate      |
+| `operator.users.mutate`               | `isWorkspaceOwner` (DEC-P9-018)         | **deny**                                    |
 | `operator.bookings.approve`           | `isAdminOrOwner`                        | **deny**                                    |
 | `operator.settings.mutate`            | `isAdminOrOwner`                        | **deny**                                    |
 | `operator.settings.{moduleId}.read`   | session + manifest `ability` row        | **deny** unless manifest grants member read |
@@ -156,6 +156,32 @@ apps/web/app/(app)/layout.tsx
 | SDK-9.6-01 | denali · admin  | `operator.settings.equipment.mutate` | **true**                                                                                                                       |
 | SDK-9.6-02 | denali · member | `operator.settings.equipment.mutate` | **false**                                                                                                                      |
 | SDK-9.6-03 | denali · member | `operator.settings.audit_trail.read` | **true** when manifest grants read-only                                                                                        |
+| SDK-9.6-04 | denali · member | `operator.settings.workspace_branding.read` | **true** — `workspace_branding` in `MEMBER_READABLE_SETTINGS_MODULE_IDS`                                                  |
+
+---
+
+## Implementation (`packages/workspace-sdk` · Phase 9.1 R2)
+
+**Files:**
+
+| File | Role |
+| ---- | ---- |
+| `src/auth/operator-surface.ts` | `OperatorSurface` union · `evaluateOperatorSurfaceGrant` |
+| `src/auth/tenant-authz.ts` | `TenantAuthz.canPerformOperatorSurface(surface, options?)` |
+
+**Grant rules (Denali operator):**
+
+| Pattern | Grant |
+| ------- | ----- |
+| `operator.tours.read` | `isAuthzGranted` (active member) |
+| `operator.*.mutate` / admin-only surfaces | `isAdminOrOwner` |
+| `operator.settings.{moduleId}.read` | `readonly_explorer` modules → member **allow**; else `isAdminOrOwner` |
+| `operator.settings.{moduleId}.mutate` | `isAdminOrOwner` |
+| `urban.*` | **not** operator surfaces — use `canPerformWorkspaceOwnerMutation` (Urban package) |
+
+**Options:** `canPerformOperatorSurface(surface, { settingsModules })` — when `settingsModules` omitted, built-in member-readable module ids: `audit_trail` (SDK-9.6-03), `workspace_branding` (SDK-9.6-04).
+
+Urban regression (SDK-9.1-04) stays on `canPerformWorkspaceOwnerMutation` / `@app-tour/workspace-urban` — not folded into operator surfaces.
 
 ---
 

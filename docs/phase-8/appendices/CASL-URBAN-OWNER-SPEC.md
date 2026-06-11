@@ -1,13 +1,27 @@
 # CASL / TenantAuthz — Urban Single-Owner enforcement spec
 
 ```yaml
-spec_version: "2026-06-07-v2"
+spec_version: "2026-06-08-v3"
 status: LOCKED
-decisions: [DEC-P8-001, DEC-P8-002]
+decisions: [DEC-P8-001, DEC-P8-002, DEC-P8-004]
 invariants: [INV-P8-007, RULE-P8-004]
 authority: phase-8-agent-router.md §3.2 · URBAN-ROUTE-MATRIX.md
 implementation_phase: "8.1 (auth) before 8.2 (product routes)"
+phase_10_trunk: docs/phase-10/subphases/10.5-sdk-neutral.md
 ```
+
+## Phase 10.5 trunk mapping (authoritative for implementation)
+
+| 8.1 spec symbol | Historical path (8.1 charter) | Trunk path (Phase 10) |
+| --------------- | ----------------------------- | --------------------- |
+| `canPerformUrbanOwnerMutation` | `TenantAuthz` method in `tenant-authz.ts` | `packages/workspaces/urban/src/auth/urban-owner-auth.ts` → `canPerformWorkspaceOwnerMutation` |
+| `UrbanOwnerSurface` | `tenant-authz.ts` | `packages/workspaces/urban/src/auth/urban-owner-surface.ts` |
+| `assertWorkspaceOwner` | `apps/api/src/urban/require-workspace-owner.ts` | `packages/workspaces/urban/src/http/require-workspace-owner.ts` |
+| `UrbanOwnerRequiredError` | `apps/api/src/urban/urban-owner-required.error.ts` | `packages/workspaces/urban/src/http/errors/urban-owner-required.error.ts` |
+| HTTP host wiring | `apps/api/src/urban/*.routes.ts` | `@app-tour/workspace-urban/http` + `apps/api/src/http/configure-urban-http-host.ts` |
+| Owner ability spec | `packages/workspaces/urban/test/urban-owner-ability.spec.ts` | `packages/workspaces/urban/test/urban-owner-ability.spec.ts` |
+
+Sections below retain the **8.1 design narrative**; use the table above when tracing code on trunk.
 
 ## Problem statement
 
@@ -415,7 +429,7 @@ if (isUrbanOwnerRequiredError(error)) {
 
 | Artifact                          | Path                                                      | Proves                                                          |
 | --------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------- |
-| SDK grant + `TenantAuthz` methods | `packages/workspace-sdk/test/urban-owner-ability.spec.ts` | `isWorkspaceOwner` · `canPerformUrbanOwnerMutation` matrix rows |
+| SDK grant + urban owner helper | `packages/workspaces/urban/test/urban-owner-ability.spec.ts` | `isWorkspaceOwner` · `canPerformUrbanOwnerMutation` matrix rows (SDK-8.1-01..08) |
 | API middleware + error code       | `apps/api/test/urban-owner-ability.spec.ts`               | `assertWorkspaceOwner` · **403** + `URBAN_OWNER_REQUIRED` JSON  |
 | HTTP route integration            | `apps/api/test/urban-settings-patch.spec.ts`              | `PATCH /urban/settings` member/admin → 403 · owner → 200        |
 | Web guard                         | `apps/web/test/urban-owner-access.spec.ts`                | `canLoadUrbanSettings` deny/allow                               |
@@ -423,7 +437,7 @@ if (isUrbanOwnerRequiredError(error)) {
 **Commands:**
 
 ```bash
-pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/urban-owner-ability.spec.ts
+pnpm --filter @app-tour/workspace-urban exec node --import tsx --test test/urban-owner-ability.spec.ts
 pnpm --filter @apps/api exec node --import tsx --test test/urban-owner-ability.spec.ts
 pnpm --filter @apps/api exec node --import tsx --test test/urban-settings-patch.spec.ts
 pnpm --filter @apps/web exec node --import tsx --test test/urban-owner-access.spec.ts

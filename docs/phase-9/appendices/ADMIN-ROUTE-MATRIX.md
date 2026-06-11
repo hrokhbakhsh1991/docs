@@ -109,8 +109,8 @@ protected_prefix: (app)
 | GET    | `(app)/dashboard`            | `requireOperatorSession`            | **200** · **redirect /auth/login** if anon               |
 | GET    | `(app)/tours`                | same                                | **200**                                                  |
 | GET    | `(app)/tours/[id]/workspace` | same + tour ACL                     | **200** · **403**                                        |
-| GET    | `(app)/leader/review`        | admin/owner                         | **200** legacy URL alias → Command Center (`DEC-P9-011`) |
-| GET    | `(app)/users`                | `isAdminOrOwner`                    | **200** · **403** member                                 |
+| GET    | `(app)/dashboard` … `(app)/finance` | **owner only** (DEC-P9-018) | admin/member → login `?access=owner-only` |
+| GET    | `(app)/users`                | **owner only**              | member/admin → locked or redirect         |
 | GET    | `(app)/bookings/new`         | `isAdminOrOwner`                    | **200**                                                  |
 | GET    | `(app)/bookings`             | session                             | **200** ops (admin) · mine (member)                      |
 | GET    | `(app)/bookings/[id]`        | session                             | **200** deep link + inspection panel                     |

@@ -39,6 +39,8 @@ legacy_mapping: identity-web-bff-addendum.md
   { method: "POST", path: "/auth/verify-otp", operationId: "verifyOtp" },
   { method: "GET", path: "/auth/session", operationId: "getAuthSession" },
   { method: "GET", path: "/auth/ability-context", operationId: "getAuthAbilityContext" },
+  { method: "GET", path: "/identity/me", operationId: "getIdentityMe" },
+  { method: "PATCH", path: "/identity/me", operationId: "patchIdentityMe" },
   { method: "POST", path: "/auth/phone-preflight", operationId: "phonePreflight" },
   { method: "POST", path: "/auth/register/complete", operationId: "completeRegistration" },
 ```
@@ -55,6 +57,8 @@ legacy_mapping: identity-web-bff-addendum.md
 | `POST /auth/verify-otp`        | `verifyOtp`             | same                      | tenant resolve · issues JWT        |
 | `GET /auth/session`            | `getAuthSession`        | same                      | `requireOperatorSession`           |
 | `GET /auth/ability-context`    | `getAuthAbilityContext` | same                      | `requireOperatorSession`           |
+| `GET /identity/me`             | `getIdentityMe`         | `identity/me.routes.ts`   | `requireOperatorSession`           |
+| `PATCH /identity/me`           | `patchIdentityMe`       | same                      | `requireOperatorSession` · self only |
 | `POST /auth/phone-preflight`   | `phonePreflight`        | same                      | tenant resolve                     |
 | `POST /auth/register/complete` | `completeRegistration`  | same                      | onboarding token validate          |
 

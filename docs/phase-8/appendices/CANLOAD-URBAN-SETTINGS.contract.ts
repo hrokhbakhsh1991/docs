@@ -7,12 +7,21 @@
  */
 /** Structural slice of `TenantAuthz` — no workspace-sdk import (web tsc compiles this file via re-export). */
 export type UrbanOwnerAuthz = {
-  canPerformUrbanOwnerMutation(
+  canPerformWorkspaceOwnerMutation(
     tenantId: string,
     surface: string,
-    workspaceType: string
+    workspaceType: string,
+    policy: {
+      readonly requiredWorkspaceType: string;
+      readonly allowedSurfaces: ReadonlySet<string>;
+    }
   ): boolean;
 };
+
+const URBAN_SETTINGS_READ_POLICY = {
+  requiredWorkspaceType: "urban",
+  allowedSurfaces: new Set<string>(["urban.settings.read"]),
+} as const;
 
 export const CANLOAD_URBAN_SETTINGS_PLUGIN_ID = "urban" as const;
 
@@ -40,10 +49,11 @@ export function canLoadUrbanSettings(
   if (params.tenantId.trim().length === 0) {
     return false;
   }
-  return params.authz.canPerformUrbanOwnerMutation(
+  return params.authz.canPerformWorkspaceOwnerMutation(
     params.tenantId,
     CANLOAD_URBAN_SETTINGS_SURFACE,
-    params.workspaceType
+    params.workspaceType,
+    URBAN_SETTINGS_READ_POLICY
   );
 }
 

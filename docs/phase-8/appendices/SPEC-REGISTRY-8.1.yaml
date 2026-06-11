@@ -6,7 +6,7 @@ authority:
 purpose: Single source of truth for Phase 8.1 behavioral spec paths — consumed by BOOT-MANIFEST, subphase 8.1, IMPLEMENTATION-TRUTH, verification-matrix
 
 specs:
-  - packages/workspace-sdk/test/urban-owner-ability.spec.ts
+  - packages/workspaces/urban/test/urban-owner-ability.spec.ts
   - apps/api/test/urban-owner-ability.spec.ts
   - apps/api/test/urban-settings-patch.spec.ts
   - apps/api/test/urban-redis-fallback.spec.ts
@@ -14,7 +14,7 @@ specs:
   - apps/web/test/urban-owner-access.spec.ts
 
 prove_with_commands:
-  sdk: pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/urban-owner-ability.spec.ts
+  sdk: pnpm --filter @app-tour/workspace-urban exec node --import tsx --test test/urban-owner-ability.spec.ts
   api_owner: pnpm --filter @apps/api exec node --import tsx --test test/urban-owner-ability.spec.ts
   api_settings: pnpm --filter @apps/api exec node --import tsx --test test/urban-settings-patch.spec.ts
   api_redis: pnpm --filter @apps/api exec node --import tsx --test test/urban-redis-fallback.spec.ts

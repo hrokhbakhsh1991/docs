@@ -38,26 +38,29 @@ trunk_baseline:
 | OpenAPI / JSON schema                     | **TOURS-LIST-PROJECTION.schema.json** | List row contract                 |
 | `AGENT-STATE-MAP-9.3.yaml`                | **18 states**                         | filter · URL · slim regression    |
 
-### 1.2 Runtime (trunk)
+### 1.2 Runtime (trunk — 2026-06-08)
 
-| Layer                          | Exists     | Gap                                                  |
-| ------------------------------ | ---------- | ---------------------------------------------------- |
-| `apps/web/app/(app)/tours/`    | ❌         | Full list UI                                         |
-| `GET /tours` slim list         | ✅ Phase 5 | No title/status/price/search/filter                  |
-| `GET /tours` offset pagination | ❌         | Cursor-only today                                    |
-| Legacy lifecycle FSM           | ❌         | Status buckets use canonical projection (DEC-P9-014) |
-| Denali list card extractor     | ❌         | Plugin hook required                                 |
-| `tours-list.spec.ts` (web)     | SCAFFOLD   | Behavioral tests absent                              |
+| Layer                          | Status        | Notes                                                                 |
+| ------------------------------ | ------------- | --------------------------------------------------------------------- |
+| `GET /tours?view=operator`     | ✅ R1         | Projection + search/status/sort/offset — `list-tours-operator.ts`     |
+| `GET /tours?view=slim`         | ✅ Phase 5    | Cursor regression preserved (CP-9.3-L13)                              |
+| Denali list card extractor     | ✅ R1         | `packages/workspaces/denali/src/list/tour-list-projection.ts`         |
+| `(app)/tours` page + BFF       | ✅ R2         | `tours-page-client.tsx` · `/api/tours` proxy                          |
+| Card grid + toolbar (R3)       | ✅ R3         | `tour-card.tsx` · status/sort/pagination · shadcn (DEC-P9-013 R1)     |
+| Empty/duplicate states (R4)    | ✅ R4         | Catalog vs filter empty · clone CTA · member role gates (CP-9.3-L14)  |
+| Legacy lifecycle FSM           | ❌            | Status buckets use canonical projection (DEC-P9-014)                    |
+| `(app)/tours/[id]/edit`        | ❌            | Post-list round — stub navigation target only                         |
+| `tours-list.spec.ts` (web)     | ✅ PARTIAL    | Query model + landmarks; R3/R4 filter/pagination proofs in flight       |
 
 ### 1.3 Legacy parity inventory (list-only)
 
 | Feature            | Legacy                                                  | 9.3 target                                             |
 | ------------------ | ------------------------------------------------------- | ------------------------------------------------------ |
 | Route              | `(app)/tours`                                           | same                                                   |
-| URL-synced filters | `?search=&status=&sort=&page=&limit=`                   | same model                                             |
+| URL-synced filters | `?search=&status=&category=&sort=&page=&limit=`           | same model · `category` Denali-only chip UI (2026-06-10) |
 | Status filter UI   | all · draft · active · archived                         | same labels (fa/en)                                    |
 | Search debounce    | 300ms                                                   | same                                                   |
-| Sort columns       | title · price (+ API: created_at, difficulty, category) | **title · price · createdAt** (MVP); category deferred |
+| Sort columns       | title · price (+ API: created_at, difficulty, category) | **title · price · createdAt** (MVP); category **filter** shipped (sort by category deferred) |
 | Pagination         | offset page/limit                                       | offset (operator UI)                                   |
 | Card grid          | responsive CSS grid                                     | mobile-first 1-col → 2-col → 3-col                     |
 | Row click          | → `/tours/{id}` (detail)                                | → `/tours/{id}/edit` (operator default)                |
@@ -78,7 +81,7 @@ trunk_baseline:
 | **URL as SoT**             | `TourListQueryModel` ↔ `useSearchParams` — shareable/bookmarkable                |
 | **Projection not hydrate** | List API returns `TourListProjection` — never full `canonical` per row (DEC-129) |
 | **Plugin extraction**      | Denali `extractTourListProjection(canonical)` — workspace-specific paths         |
-| **Phase 2 stack**          | `@app-tour/ui-primitives` + CSS Modules (DEC-P9-013)                             |
+| **Operator stack**         | Tailwind v4 + shadcn in `(app)/tours/**` only (DEC-P9-013 R1)                  |
 | **No wizard duplicate**    | Create/clone → `/tours/new` only (DEC-P9-007)                                    |
 | **Tenant scope**           | RLS + CASL on every list row (TQ-P9-004)                                         |
 
@@ -222,7 +225,7 @@ Starter workspace uses `basics.title` — plugin hook keeps API workspace-agnost
 | Denali extractor   | `packages/workspaces/denali/src/list/tour-list-projection.ts`                           | DN-9.3-01                               |
 | Plugin wiring      | `WorkspacePlugin.tourList.extractTourListProjection` on `createDenaliWorkspacePlugin()` | `tour-list-projection.spec.ts`          |
 
-Row metadata (`id`, `tenantId`, `createdAt`, `updatedAt`, `rowVersion`) is merged in `apps/api` when `listToursOperator` lands — the plugin hook returns **canonical-derived fields only** (`TourListProjectionFields`).
+Row metadata (`id`, `tenantId`, `createdAt`, `updatedAt`, `rowVersion`) is merged in `apps/api/src/tours/list-tours-operator.ts` via `buildTourListProjection` — the plugin hook returns **canonical-derived fields only** (`TourListProjectionFields`). `GET /tours` branches on `view=slim` (Phase 5 cursor) vs `view=operator` (session required).
 
 ---
 

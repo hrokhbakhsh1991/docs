@@ -20,17 +20,83 @@
 
 Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the new default; full path is **on demand**.
 
-## Phase 8 hook suspension (temporary)
+## Phase hook suspension (temporary)
 
-While [`docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml`](../phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml) has `active: true`, Husky **pre-commit exits immediately** (no `guard-docs`, eslint, prettier, or `test-changed`). This is the **only** supported suspend path during Phase 8 implementation (8.1→8.4).
+While a phase marker has `active: true`, Husky **pre-commit exits immediately** (no `guard-docs`, eslint, prettier, or `test-changed`). This is the **only** supported suspend path — not `HUSKY=0` or `--no-verify`.
 
-| Action | Command / file |
-| ------ | -------------- |
-| **Suspended** (current) | Marker present + `active: true` |
-| **Manual verify** (recommended per subphase PR) | `pnpm run phase-8:guard` + targeted urban specs |
-| **Re-enable** (mandatory at **8.5**) | Delete marker file; run `pnpm run pre-commit:fast`, `pnpm run test:full`, `pnpm run phase-8:gate`, `pnpm run ci:integrity` |
+| Phase | Marker | Re-enable at |
+| ----- | ------ | ------------ |
+| **9** (current) | [`docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml`](../phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml) | **9.8** — `phase-9:gate` |
+| 8 (closed) | `docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml` (deleted at 8.5) | — |
 
-Detector: `bash scripts/phase-8-hooks-suspended.sh` (exit 0 = suspended).
+| Action | Phase 9 dev loop |
+| ------ | ---------------- |
+| **Suspended** | Marker `active: true` — commit is instant |
+| **Manual verify** (subphase closure only) | Targeted specs + `phase-9:guard` when stabilizing |
+| **Re-enable** (mandatory at **9.8**) | Delete marker; `pre-commit:fast` → `phase-9:guard` → `test:full` → `phase-9:gate` |
+
+Detector: `bash scripts/phase-hooks-suspended.sh` (exit 0 = suspended).
+
+### Phase 9 velocity protocol (while suspended)
+
+1. **Ship flow/UX** — identity BFF, `(app)/` shell, command centers; skip full gates between commits.
+2. **Do not claim DoD** — `IMPLEMENTATION-TRUTH` stays honest; behavioral closure proof deferred to 9.8.
+3. **GHA** still runs on push — defer push or use draft PRs if CI latency blocks you.
+4. **Before 9.8 merge** — delete suspension marker and run the re-enable verify list in the yaml.
+
+### Phase 9 targeted API specs (fast · low memory)
+
+Avoid `pnpm --filter @apps/api exec node --test …` — it skips bootstrap env and often **hangs** after green assertions (keep-alive HTTP servers).
+
+```bash
+# Full Phase 9.6 settings API bundle (~20s, clean exit)
+pnpm --filter @apps/api run test:file \
+  test/settings-modules.spec.ts \
+  test/settings-resources.spec.ts \
+  test/settings-config-version.spec.ts \
+  test/settings-audit-trail.spec.ts \
+  test/settings-urban-regression.spec.ts \
+  test/identity-me.spec.ts
+
+# Phase 9.4–9.5 identity + bookings bundle (~30s)
+pnpm --filter @apps/api run test:file \
+  test/identity-session.spec.ts \
+  test/identity-users.spec.ts \
+  test/bookings-ops.spec.ts \
+  test/bookings-create.spec.ts
+
+# Phase 9.3 tours operator bundle (~15s)
+pnpm --filter @apps/api run test:file test/tours-operator.spec.ts test/finance-route-registrar.spec.ts
+
+# All Phase 9 memory API proofs (~45s)
+pnpm --filter @apps/api run test:file \
+  test/settings-modules.spec.ts test/settings-resources.spec.ts \
+  test/settings-config-version.spec.ts test/settings-audit-trail.spec.ts \
+  test/settings-urban-regression.spec.ts test/identity-me.spec.ts \
+  test/identity-session.spec.ts test/identity-users.spec.ts \
+  test/bookings-ops.spec.ts test/bookings-create.spec.ts \
+  test/tours-operator.spec.ts test/finance-route-registrar.spec.ts
+```
+
+New HTTP specs should use `apps/api/test/http-test-client.ts` (`installHttpTestClient`) — **one server per describe**, `Connection: close`, proper teardown.
+
+`test:file` pins `STORAGE_DRIVER=memory`; bootstrap clears shell `DATABASE_URL` so tenant workspace_type resolves via static registry (operator-smoke → starter for POST `/tours` bodies). Postgres integration specs need an explicit `STORAGE_DRIVER=prisma DATABASE_URL=…` command — not `test:file`.
+
+### Phase 9 Postgres finance + persistence (local · ~15s)
+
+Requires Phase 4 Postgres (`docs/phase-4/dev/docker-compose.yml`) and `pnpm --filter @apps/api run db:migrate:deploy`.
+
+```bash
+export DATABASE_URL="${DATABASE_URL:-postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db}"
+export DATABASE_URL_ADMIN="${DATABASE_URL_ADMIN:-postgresql://postgres:postgres@127.0.0.1:5434/tour_db}"
+export STORAGE_DRIVER=prisma NODE_ENV=test
+
+cd apps/api && node --import tsx --test --test-force-exit --test-concurrency=1 \
+  test/phase-9-persistence.integration.spec.ts \
+  test/finance-prepayments.spec.ts \
+  test/finance-invoice.spec.ts \
+  test/finance-schedules.spec.ts
+```
 
 ## Phase 8 GitHub Actions (`.github/workflows/phase-8-gate.yml`)
 

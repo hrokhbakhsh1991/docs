@@ -64,7 +64,15 @@ Target dispatch registration: `apps/api/src/openapi/dispatch-routes.ts` (Phase 8
 | POST   | `/urban/registrations` | Anonymous | `Create` · `CanonicalDocument` · `{ tenantId }` — body validated by `getUrbanWorkspacePlugin().validationHooks` | **201** + registration id · **400** validation · **409** duplicate email per tour | `ratelimit:{tenantId}:pool:POST:/urban/registrations` — **30 RPM** pool · **60 RPM** silo |
 | POST   | `/urban/registrations` | Member    | Same as Anonymous — registration is **public intake**                                                           | **201** / **400** / **409** — never requires owner                                | Same bucket (not elevated)                                                                |
 
-**Idempotency:** `Idempotency-Key` header required — reuses `HttpIdempotencyRecord` (Phase 5 DEC-006). No new outbox table (TQ-P8-006).
+**Idempotency:** `Idempotency-Key` header **required** — missing → **400** `IDEMPOTENCY_KEY_REQUIRED`. Reuses `HttpIdempotencyRecord` (Phase 5 DEC-006) via `runIdempotentHttpMutation`. Replay same key + same body → same **201** envelope `{ success, data: { id, status } }`.
+
+**Registration policy (`theme.urban.registration.policy`):**
+
+| Policy     | POST `/urban/registrations` behavior                                      |
+| ---------- | ------------------------------------------------------------------------- |
+| `open`     | **201** — row created with `status: waitlist` (default)                   |
+| `waitlist` | **201** — same as `open` (intake is waitlist semantics)                   |
+| `closed`   | **403** `URBAN_REGISTRATION_CLOSED` — no row created                     |
 
 ### C. Workspace settings (owner-only)
 
@@ -130,16 +138,17 @@ Shell: `force-dynamic` on owner settings (TQ-P8-008). Public catalog may use ISR
 | ------ | ---------------------------- | --------- | ------------------------------------------------------ | ------------------------------- | --------------------------- |
 | GET    | `/catalog`                   | Anonymous | Server fetches `GET /urban/catalog` — no owner session | **200** · **404** tenant        | Browser → API public bucket |
 | GET    | `/catalog/[tourId]`          | Anonymous | Server fetches `GET /urban/catalog/{tourId}`           | **200** · **404** draft/missing | Same                        |
-| GET    | `/catalog/[tourId]/register` | Anonymous | Registration form page — no auth                       | **200**                         | Same                        |
+| GET    | `/catalog/[tourId]/register` | Anonymous | M17 OTP + tour intake (`PublicCatalogRegistrationFlow`) | **200**                         | Same                        |
 
 Legacy reference (read-only): `legacy/apps/web/app/(public)/catalog/page.tsx`.
 
 ### H. Registration submit (anonymous)
 
-| METHOD | PATH                         | ACTOR          | CASL / GUARD                                | EXPECTED STATUS                                | RATE LIMIT BOUNDARY     |
-| ------ | ---------------------------- | -------------- | ------------------------------------------- | ---------------------------------------------- | ----------------------- |
-| POST   | `/catalog/[tourId]/register` | Anonymous      | Server action → `POST /urban/registrations` | **303** redirect success · **400** form errors | API registration bucket |
-| POST   | `/catalog/[tourId]/register` | Owner / Member | Public intake — allowed                     | **303** / **400**                              | Same — not owner-gated  |
+| METHOD | PATH                         | ACTOR          | CASL / GUARD                                                                 | EXPECTED STATUS                                | RATE LIMIT BOUNDARY     |
+| ------ | ---------------------------- | -------------- | ---------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------- |
+| POST   | `/api/public-auth/*`         | Anonymous      | BFF → `POST /public/auth/*` (OTP + optional profile)                         | **200** session / onboarding branch            | BFF login rate limit    |
+| POST   | (client intake)              | Anonymous      | Server action after session → `POST /urban/registrations` or denali variant  | **200** success UI · **400** validation        | API registration bucket |
+| POST   | (client intake)              | Owner / Member | Public intake — allowed                                                      | **200** / **400**                              | Same — not owner-gated  |
 
 ### I. Workspace settings (owner-only)
 

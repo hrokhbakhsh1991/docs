@@ -26,7 +26,7 @@ pnpm run phase-8:guard
 ## 8.1 Single-Owner auth
 
 ```bash
-pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/urban-owner-ability.spec.ts
+pnpm --filter @app-tour/workspace-urban exec node --import tsx --test test/urban-owner-ability.spec.ts
 pnpm --filter @apps/api exec node --import tsx --test test/urban-owner-ability.spec.ts
 pnpm --filter @apps/api exec node --import tsx --test test/urban-settings-patch.spec.ts
 pnpm --filter @apps/api exec node --import tsx --test test/urban-redis-fallback.spec.ts

@@ -1,5 +1,6 @@
 contract_id: PHASE-BOUNDARY-MATRIX
-version: "2026-06-07-v2"
+version: "2026-06-08-v3"
+phase_10_note: Urban HTTP/auth lives in packages/workspaces/urban/** — API urban shims removed (P3-T11)
 authority:
   - docs/phase-8/subphases/8.1-single-owner-auth.md
   - docs/phase-8/subphases/8.2-urban-features.md
@@ -16,16 +17,16 @@ ci_hook:
 rules:
   - subphase: "8.1"
     allowed_write_paths:
-      - apps/api/src/urban/**
+      - packages/workspaces/urban/**
+      - apps/api/src/http/configure-urban-http-host.ts
       - docs/phase-8/**
       - apps/api/test/**
     forbidden_write_paths:
-      - apps/api/src/urban/catalog/**
-      - apps/api/src/urban/register/**
-      - apps/api/src/urban/registrations/**
-      - apps/api/src/urban/urban.routes.ts
-      - apps/api/src/urban/urban-catalog*.ts
-      - apps/api/src/urban/urban-register*.ts
+      - packages/workspaces/urban/src/http/product.routes.ts
+      - packages/workspaces/urban/src/http/catalog.service.ts
+      - packages/workspaces/urban/src/http/registration.service.ts
+      - packages/workspaces/urban/src/http/registration.repository.ts
+      - packages/workspaces/urban/src/http/schemas/urban-registration-post.schema.ts
     action_on_violation: REJECT_PR_IMMEDIATELY
 
 subphase_8_1_extended_boundaries:
@@ -33,15 +34,18 @@ subphase_8_1_extended_boundaries:
   allowed_write_paths:
     - packages/workspace-sdk/src/auth/tenant-auth-grants.ts
     - packages/workspace-sdk/src/auth/tenant-authz.ts
+    - packages/workspace-sdk/src/auth/workspace-auth-surface.ts
     - packages/workspace-sdk/src/public-api.ts
-    - packages/workspace-sdk/test/urban-owner-ability.spec.ts
-    - apps/api/src/urban/require-workspace-owner.ts
-    - apps/api/src/urban/urban-owner-required.error.ts
-    - apps/api/src/urban/urban-settings.routes.ts
-    - apps/api/src/urban/urban-settings.service.ts
-    - apps/api/src/urban/schemas/urban-settings-patch.schema.ts
-    - apps/api/src/urban/read-urban-settings-request-body.ts
-    - apps/api/src/urban/urban-tour-publish-field-gate.ts
+    - packages/workspaces/urban/test/urban-owner-ability.spec.ts
+    - packages/workspaces/urban/src/auth/**
+    - packages/workspaces/urban/src/http/require-workspace-owner.ts
+    - packages/workspaces/urban/src/http/errors/urban-owner-required.error.ts
+    - packages/workspaces/urban/src/http/settings.routes.ts
+    - packages/workspaces/urban/src/http/settings.service.ts
+    - packages/workspaces/urban/src/http/schemas/urban-settings-patch.schema.ts
+    - packages/workspaces/urban/src/http/tour-publish-field-gate.ts
+    - packages/workspaces/urban/src/tours/**
+    - apps/api/src/http/configure-urban-http-host.ts
     - apps/api/src/middleware/error-interceptor.ts
     - apps/api/src/openapi/dispatch-routes.ts
     - apps/api/src/app.ts
@@ -51,14 +55,10 @@ subphase_8_1_extended_boundaries:
     - reports/phase-8-gate-*.json
     - scripts/guards/phase-8-guard.mjs
   forbidden_write_paths:
-    - apps/api/src/urban/urban.routes.ts
-    - apps/api/src/urban/urban-catalog-guard.ts
-    - apps/api/src/urban/urban-rate-limit-policy.ts
-    - apps/api/src/urban/urban-catalog*.ts
-    - apps/api/src/urban/urban-register*.ts
-    - apps/api/src/urban/registrations/**
-    - packages/workspaces/urban/**
-    - apps/web/src/bootstrap/lazy-urban-plugin.ts
+    - packages/workspaces/urban/src/http/product.routes.ts
+    - packages/workspaces/urban/src/http/catalog.service.ts
+    - packages/workspaces/urban/src/http/registration.service.ts
+    - apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts
     - apps/web/src/bootstrap/workspace-plugin-registry.ts
     - apps/web/app/(public)/catalog/**
     - apps/web/app/(app)/settings/urban/catalog/**
@@ -83,7 +83,7 @@ catalog_scope_metadata_mapping:
   entries:
     - id: SDK-8.1-04
       layer: packages/workspace-sdk
-      artifact: packages/workspace-sdk/test/urban-owner-ability.spec.ts
+      artifact: packages/workspaces/urban/test/urban-owner-ability.spec.ts
       declaration_type: unit_test_contract
       surface: urban.catalog.publish
       actor_role: owner
@@ -93,7 +93,7 @@ catalog_scope_metadata_mapping:
       operational_route_deferred: POST /urban/catalog/{tourId}/publish
     - id: SDK-8.1-05
       layer: packages/workspace-sdk
-      artifact: packages/workspace-sdk/test/urban-owner-ability.spec.ts
+      artifact: packages/workspaces/urban/test/urban-owner-ability.spec.ts
       declaration_type: unit_test_contract
       surface: urban.catalog.publish
       actor_role: admin
@@ -102,7 +102,7 @@ catalog_scope_metadata_mapping:
       opens_in_subphase: "8.2"
     - id: CASL-URBAN-OWNER-SPEC-allowlist
       layer: packages/workspace-sdk
-      artifact: packages/workspace-sdk/src/auth/tenant-authz.ts
+      artifact: packages/workspaces/urban/src/auth/urban-owner-surface.ts
       declaration_type: UrbanOwnerSurface enum plus URBAN_OWNER_SURFACE_ALLOWLIST Set
       catalog_surfaces:
         - urban.catalog.admin.read
@@ -136,17 +136,15 @@ catalog_scope_metadata_mapping:
         - section B Admin catalog
       compiles_to_routes: false
       opens_in_subphase: "8.2"
-      implementation_target: apps/api/src/urban/urban.routes.ts
+      implementation_target: packages/workspaces/urban/src/http/product.routes.ts
 
 subphase_8_2_opens:
   subphase: "8.2"
   unlocks_write_paths:
-    - apps/api/src/urban/catalog/**
-    - apps/api/src/urban/register/**
-    - apps/api/src/urban/registrations/**
-    - apps/api/src/urban/urban.routes.ts
-    - packages/workspaces/urban/**
-    - apps/web/src/bootstrap/lazy-urban-plugin.ts
+    - packages/workspaces/urban/src/http/product.routes.ts
+    - packages/workspaces/urban/src/http/catalog.service.ts
+    - packages/workspaces/urban/src/http/registration.service.ts
+    - apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts
   prerequisite: subphase_8_1 status VERIFIED_BEHAVIORAL
 
 pr_detection:
@@ -155,10 +153,9 @@ pr_detection:
     - name: forbidden_path_touch
       command: git diff --name-only origin/main...HEAD
       fail_if_any_path_matches:
-        - apps/api/src/urban/catalog/**
-        - apps/api/src/urban/register/**
-        - apps/api/src/urban/urban.routes.ts
-        - packages/workspaces/urban/**
+        - packages/workspaces/urban/src/http/product.routes.ts
+        - packages/workspaces/urban/src/http/catalog.service.ts
+        - packages/workspaces/urban/src/http/registration.service.ts
       when_pr_label: Phase:8.1
       action_on_violation: REJECT_PR_IMMEDIATELY
     - name: forbidden_dispatch_insert
@@ -175,7 +172,7 @@ pr_detection:
 forbidden_patterns_in_8_1_pr:
   - rg pattern match urban-catalog in apps/api/src diff
   - rg pattern match urban-register in apps/api/src diff
-  - rg pattern match lazy-urban-plugin.ts write in 8.1 labeled PR
+  - rg pattern match workspace-plugin-loaders.generated.ts write in 8.1 labeled PR
   - new DISPATCH_ROUTES row with path prefix /urban/catalog
   - new DISPATCH_ROUTES row with path POST /urban/registrations
   - Prisma migration adding urban_registrations table in 8.1 PR

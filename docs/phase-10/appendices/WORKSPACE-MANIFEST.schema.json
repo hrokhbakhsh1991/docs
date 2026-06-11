@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.local/schemas/workspace-manifest/v1",
+  "title": "WorkspaceManifest",
+  "description": "Phase 10 — per-package discovery manifest for plugin host codegen (DEC-P10-001).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "package", "workspaceTypes", "plugin"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Stable plugin id; must match WorkspacePlugin.id"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Manifest schema revision (not npm semver)"
+    },
+    "package": {
+      "type": "string",
+      "pattern": "^@app-tour/workspace-[a-z][a-z0-9-]*$",
+      "description": "pnpm workspace package name"
+    },
+    "workspaceTypes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "uniqueItems": true,
+      "description": "tenant.workspace_type values bound to this plugin"
+    },
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry", "export"],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "description": "package.json exports subpath (e.g. ./plugin or .)"
+        },
+        "export": {
+          "type": "string",
+          "description": "Named export returning WorkspacePlugin singleton"
+        }
+      }
+    },
+    "web": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "type": "string",
+          "description": "package exports subpath for dynamic import in apps/web"
+        },
+        "export": {
+          "type": "string",
+          "description": "Named export (e.g. getDenaliWorkspacePlugin)"
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["eventType", "module", "export"],
+        "properties": {
+          "eventType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "module": {
+            "type": "string",
+            "description": "Relative path under package src (Phase 11+); Phase 1 may use host adapter"
+          },
+          "export": {
+            "type": "string"
+          },
+          "workspaceTypes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Optional filter; omit = all supportedWorkspaceTypes"
+          }
+        }
+      }
+    },
+    "http": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "type": "string",
+          "description": "Relative module exporting WorkspaceHttpRoute[] (Phase 3+)"
+        },
+        "prefix": {
+          "type": "string",
+          "pattern": "^/[a-z0-9/-]*$",
+          "description": "Optional URL prefix for documentation; routes carry full paths"
+        }
+      }
+    },
+    "tourWrite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "workspaceTypeExport", "mergeExport", "publishGateExport", "publishSurfaceExport"],
+      "properties": {
+        "module": {
+          "type": "string",
+          "description": "Package subpath exporting tour PATCH hooks (e.g. ./tours)"
+        },
+        "workspaceTypeExport": {
+          "type": "string",
+          "description": "Named const export for workspace type id (e.g. URBAN_WORKSPACE_TYPE)"
+        },
+        "mergeExport": {
+          "type": "string",
+          "description": "Deep-merge canonical patch for workspace"
+        },
+        "publishGateExport": {
+          "type": "string",
+          "description": "Returns true when PATCH touches owner-gated publish fields"
+        },
+        "publishSurfaceExport": {
+          "type": "string",
+          "description": "CASL surface id string export for owner gate"
+        }
+      }
+    }
+  }
+}

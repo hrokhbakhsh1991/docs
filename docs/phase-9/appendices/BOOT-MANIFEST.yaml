@@ -279,8 +279,8 @@ hot_paths:
   bookings_api: apps/api/src/bookings/
   settings_web: apps/web/app/(app)/settings/
   denali_finance: packages/workspaces/denali/src/finance/
-  finance_interim: apps/web/app/finance/ # R1 interim (DEC-P9-017) — active on trunk
-  finance_web: apps/web/app/finance/ # alias of finance_interim
+  finance_interim: apps/web/app/(app)/finance/ # CP-9.2-11 target path (DEC-P9-017)
+  finance_web: apps/web/app/(app)/finance/ # alias of finance_interim
   finance_web_target: apps/web/app/(app)/finance/ # migrate when 9.2 shell lands (CP-9.2-11)
   api_denali_finance: apps/api/src/denali-finance/
   operator_specs: docs/phase-9/appendices/SPEC-REGISTRY-OPERATOR.yaml

@@ -128,6 +128,174 @@ interface WorkspacePlugin {
 
 `validateSettingsManifest` fails closed on unknown `kind` values before API boot builds the frozen registry `Map`.
 
+### 3.6 Trunk implementation (S9.6-R1 — modules API + equipment pilot)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Settings registry resolver | `apps/api/src/settings/settings-registry.ts` | API-9.6-01 |
+| In-memory resource store | `apps/api/src/settings/in-memory-settings-resources.repository.ts` | API-9.6-RES-02 |
+| Service + routes | `apps/api/src/settings/settings.service.ts` · `settings.routes.ts` | RES-01 · RES-03 |
+| App dispatch | `apps/api/src/app.ts` | dispatch addendum v2 |
+| Settings hub | `apps/web/app/(app)/settings/page.tsx` | WEB-9.6-CRUD-02 |
+| Equipment pilot panel | `apps/web/app/(app)/settings/equipment/` | WEB-9.6-CRUD-01 · SMK-P9-08 |
+| BFF | `apps/web/app/api/settings/modules/route.ts` · `resources/[moduleId]/route.ts` | BFF parity |
+
+**R1 scope:** `GET /settings/modules` · `reference_data` CRUD for **`equipment`** module only (in-memory). Unknown `moduleId` → **404** `SETTINGS_MODULE_UNKNOWN`. Cross-tenant item access → **404**.
+
+**Equipment row shape (R1):**
+
+```typescript
+type EquipmentResource = {
+  id: string;
+  tenantId: string;
+  name: string;
+  category: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+Config router (`tenant_config`) · wizard template · audit explorer deferred to **S9.6-R2+**.
+
+### 3.7 Trunk implementation (S9.6-R2 — tenant config router + wizard template)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| In-memory `tenant_config` store | `apps/api/src/settings/in-memory-settings-config.repository.ts` | API-9.6-CFG-02 |
+| Config service (get/put/migrate) | `apps/api/src/settings/settings-config.service.ts` | API-9.6-CFG-01 |
+| Config routes + legacy alias | `apps/api/src/settings/settings.routes.ts` | CP-9.6-01 |
+| Wizard template UI | `apps/web/app/(app)/settings/tour-wizard-template/` | WEB-9.6-01 · SMK-P9-05 |
+| BFF config + alias | `apps/web/app/api/settings/config/[configKey]/route.ts` · `tour-wizard-template/route.ts` | BFF parity |
+
+**R2 scope:** `GET/PUT /settings/config/{configKey}` for **`wizard_template`** only (in-memory). Legacy alias `GET/PUT /settings/tour-wizard-template` maps to same key.
+
+**Wizard template payload (v1):**
+
+```typescript
+type WizardTemplatePayloadV1 = {
+  seedLabel: string;
+  sections: Array<{ id: string; label: string; enabled: boolean }>;
+};
+```
+
+**Version rules:** PUT `configVersion` must match manifest `configVersion` (currently **1**) — else **400** `SETTINGS_CONFIG_VERSION_UNSUPPORTED`. Read migrates stored v0 rows (missing `seedLabel`) to v1 defaults before response (CFG-02).
+
+Audit explorer · additional reference modules · Prisma 007 deferred to **S9.6-R3+**.
+
+### 3.8 Trunk implementation (S9.6-R3 — audit trail explorer)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Audit event store | `apps/api/src/settings/in-memory-settings-audit.repository.ts` | API-9.6-AUD-01 |
+| Explore service | `apps/api/src/settings/settings-explore.service.ts` | API-9.6-AUD-02 |
+| Explore routes | `apps/api/src/settings/settings.routes.ts` | CP-9.6-06 · R-P9-S13 |
+| Audit explorer UI | `apps/web/app/(app)/settings/audit-trail/` | WEB-9.6-AUD-01 |
+| BFF explore | `apps/web/app/api/settings/explore/[moduleId]/route.ts` | BFF parity |
+
+**R3 scope:** `GET /settings/explore/audit_trail` returns tenant-scoped read-only events. Any **PUT/POST/PATCH/DELETE** on explore paths → **405** `SETTINGS_EXPLORE_READ_ONLY`.
+
+**Audit event shape (R3):**
+
+```typescript
+type AuditTrailEvent = {
+  id: string;
+  tenantId: string;
+  occurredAt: string;
+  actorUserId: string;
+  action: string;
+  resourceType: string;
+  resourceId: string;
+  summary: string;
+};
+```
+
+### 3.9 Trunk implementation (S9.6-R4 — tour themes · locations)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Theme + location stores | `apps/api/src/settings/in-memory-settings-resources.repository.ts` | API-9.6-RES-04 · RES-05 |
+| Resource dispatch | `apps/api/src/settings/settings.service.ts` | `tour_themes` · `locations` moduleId |
+| Tour themes UI | `apps/web/app/(app)/settings/tour-themes/` | WEB-9.6-THM-01 |
+| Locations tabbed UI | `apps/web/app/(app)/settings/locations/` | WEB-9.6-LOC-01 |
+| Hub pilot filter | `apps/web/src/features/settings/settings-hub-logic.ts` | SMK-P9-08 extension |
+
+**R4 scope:**
+
+- `GET/POST/PATCH/DELETE /settings/resources/tour_themes` — tenant-scoped catalog (`name`, `slug`, `isActive`, `sortOrder`).
+- `GET /settings/resources/locations` — composite `{ regions, destinations, total }`.
+- `POST /settings/resources/locations` — body **`entity`**: `"region"` \| `"destination"` (destination requires `regionId` FK).
+- `PATCH/DELETE` by `itemId` resolves region or destination row (tenant RLS).
+- Prisma **007** migration — see [`SETTINGS-PORT-SCOPE.md`](SETTINGS-PORT-SCOPE.md) · `20260609120000_operator_settings_delta`.
+
+### 3.10 Trunk implementation (S9.6-R5 — guide languages)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Guide language store | `apps/api/src/settings/in-memory-settings-resources.repository.ts` | API-9.6-RES-06 |
+| Resource dispatch | `apps/api/src/settings/settings.service.ts` | `guide_languages` moduleId |
+| Guide languages UI | `apps/web/app/(app)/settings/guide-languages/` | WEB-9.6-GLG-01 |
+| Hub pilot filter | `apps/web/src/features/settings/settings-hub-logic.ts` | workspace group |
+
+**R5 scope:** `GET/POST/PATCH/DELETE /settings/resources/guide_languages` — tenant-scoped slug catalog (`name`, `slug`, `isActive`, `sortOrder`). Reorder endpoint deferred.
+
+**Guide language shape (R5):**
+
+```typescript
+type GuideLanguageResource = {
+  id: string;
+  tenantId: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+**Tour theme shape (R4):**
+
+```typescript
+type TourThemeResource = {
+  id: string;
+  tenantId: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+**Locations shape (R4):**
+
+```typescript
+type RegionResource = {
+  id: string;
+  tenantId: string;
+  name: string;
+  country: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type DestinationResource = {
+  id: string;
+  tenantId: string;
+  regionId: string;
+  name: string;
+  locationType: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
 ### 3.4 Registration flow
 
 1. **Build time:** SDK exports types + `validateSettingsManifest(modules)`.
@@ -150,7 +318,7 @@ interface WorkspacePlugin {
 - Single `tenant_reference_items` JSON table for destinations/equipment (loses FK — R-P9-S03).
 - Unversioned JSONB blobs for wizard template (R-P9-S02).
 
-**Migration:** `infra/sql/007_operator_settings_delta.sql` (name TBD at implementation).
+**Migration:** `infra/sql/007_operator_settings_delta.sql` · Prisma `20260609120000_operator_settings_delta` · scope doc [`SETTINGS-PORT-SCOPE.md`](SETTINGS-PORT-SCOPE.md).
 
 ---
 
@@ -200,7 +368,7 @@ Authority: [`settings-api-dispatch-addendum.md`](settings-api-dispatch-addendum.
 | Group         | Modules                                    |
 | ------------- | ------------------------------------------ |
 | `account`     | `/settings/me` only                        |
-| `workspace`   | equipment · locations · themes · languages |
+| `workspace`   | branding · equipment · locations · themes · languages |
 | `templates`   | wizard template · presets                  |
 | `finance_ops` | audit (9.6 read) · reconciliation (9.7)    |
 
@@ -210,6 +378,7 @@ Authority: [`settings-api-dispatch-addendum.md`](settings-api-dispatch-addendum.
 
 | id                      | kind              | entity / configKey                         | route                            |
 | ----------------------- | ----------------- | ------------------------------------------ | -------------------------------- |
+| `workspace_branding`    | readonly_explorer | — (custom UI · tenant logo + displayName)    | `settings/branding`              |
 | `equipment`             | reference_data    | `WorkspaceEquipment`                       | `settings/equipment`             |
 | `guide_languages`       | reference_data    | `WorkspaceGuideLanguage`                   | `settings/guide-languages`       |
 | `tour_themes`           | reference_data    | `WorkspaceTourTheme`                       | `settings/tour-themes`           |
@@ -231,7 +400,179 @@ resolveEffectiveConfig(configKey, tenantId, plugin):
   4. return { value, source: "tenant" | "workspace" }
 ```
 
+### 3.11 Trunk implementation (SMK-P9-05 — wizard template prefill)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Prefill resolver | `apps/web/src/tours/wizard-template-prefill-logic.ts` | WEB-9.6-SMK-P9-05 |
+| Wizard client wire | `apps/web/app/tours/new/new-tour-wizard-client.tsx` | CP-9.6-02 |
+| Seed field test id | `apps/web/src/wizard/wizard-field.tsx` · `basics.title` path | Playwright SMK-P9-05 |
+
+**SMK-P9-05 scope (updated W-track — seed prefill only when published):**
+
+1. On `/tours/new` mount, `GET /api/settings/tour-wizard-template` (`cache: no-store` per DEC-P9-005).
+2. When `payload.published === true` and `payload.seedLabel` is non-empty → prefill title (`basics.title` starter · `title` denali).
+3. When `payload.published !== true` → **empty wizard shell** (no `WorkspaceWizardHost` fields) + CTA to Settings.
+4. Settings PUT still invalidates tenant config before **200** (DEC-P9-005).
+
+### 3.14 Wizard template builder (W-track — tenant overlay on plugin registry)
+
+**Problem:** `/tours/new` rendered the full workspace `fieldRegistry` (~60 Denali fields) regardless of Settings. Legacy intent: admin composes the create-tour form in Settings; trunk had only v1 seed + unused section toggles.
+
+**Enterprise pattern (metadata overlay):** Global **catalog** = `WorkspacePlugin.fieldRegistry` (code). Tenant **overlay** = `tenant_config.wizard_template` (versioned JSON). Admin picks subset/order/required — cannot invent new field types (Salesforce FieldSet / Adobe tenant-container model).
+
+**Plugin capability (all workspaces):**
+
+| Workspace | Catalog source | Default when unpublished |
+| --------- | -------------- | ------------------------ |
+| `denali` | `denaliFieldRegistryData.ts` | empty until `published` |
+| `starter` | SDK reference registry | same |
+| `urban` | urban registry | same (replaces static-only `inactiveFieldGroups` over time) |
+| `starter` | SDK reference registry | `operatorSettings` manifest — `tour_wizard_template` only (W8) |
+
+```text
+WorkspacePlugin.fieldRegistry (frozen catalog)
+  ∩ tenant_config.wizard_template.steps[].fields (admin picks)
+  ∩ PlatformWizardEngine rule matrix (category × duration)
+  → WorkspaceWizardHost render plan
+```
+
+**Payload v1.1 (configVersion still `1` on wire — optional fields):**
+
+```typescript
+type WizardTemplateFieldRef = {
+  canonicalPath: string; // MUST exist in plugin.fieldRegistry
+  required?: boolean;
+  hidden?: boolean;
+  defaultValue?: string;
+};
+
+type WizardTemplateStepRef = {
+  stepId: string;
+  label: string;
+  enabled: boolean;
+  fields: readonly WizardTemplateFieldRef[];
+};
+
+type WizardTemplatePayloadV1_1 = WizardTemplatePayloadV1 & {
+  published?: boolean; // default false — empty wizard until admin publishes
+  steps?: readonly WizardTemplateStepRef[];
+};
+```
+
+**Governance:**
+
+| Rule | Enforcement |
+| ---- | ----------- |
+| INV-WIZ-001 | Unknown `canonicalPath` on PUT → **400** `SETTINGS_WIZARD_UNKNOWN_FIELD` (W4) · starter accepts denali `title` bridge |
+| INV-WIZ-002 | Layer C registry rows excluded from builder palette — `settingsSurface !== "section"` → tag `wizard_overlay_exclude` on denali `fieldRegistry` rows; web catalog + API PUT catalog omit tagged paths |
+| INV-WIZ-003 | `published: false` → `/tours/new` shows empty state · link `(app)/settings/tour-wizard-template` |
+| INV-WIZ-004 | Visibility overlay is UX only; `validateCanonical` + CASL remain server SoT |
+| INV-WIZ-005 | `configVersion: 2` migration deferred — v1.1 optional keys migrate-on-read |
+| INV-WIZ-006 | Render step/field order follows `payload.steps[]` then `step.fields[]` (enabled steps only) |
+| INV-WIZ-007 | `field.required` in template overlay overrides `RenderFieldPlan.required` in host (UX only — INV-WIZ-004) |
+| INV-WIZ-008 | `field.defaultValue` prefills draft when canonical path empty; `seedLabel` wins on title path when both set |
+
+**Trunk artifacts (W-track):**
+
+| Phase | Artifact | Path | Status |
+| ----- | -------- | ---- | ------ |
+| W1 | Empty wizard gate | `wizard-template-gate-logic.ts` | **on trunk** |
+| W2 | Field picker + publish UI | `tour-wizard-template/wizard-template-client.tsx` | **on trunk** |
+| W3 | Render plan filter | `workspace-wizard-host.tsx` | **on trunk** |
+| W4 | PUT catalog validation | `wizard-template-catalog.ts` | **on trunk** |
+| W5 | Plugin catalog loader | `wizard-template-catalog-logic.ts` · all workspaces via `pluginId` | **on trunk** |
+| W6 | Smoke helper + E2E | `test/fixtures/operator-wizard-template-fixture.ts` · `operator-smoke.spec.ts` | **verified** — **13/13** (`pnpm --filter @apps/web run test:e2e:operator`) |
+| W7 | Layer C palette filter | `denali-plugin-adapter.ts` tag · `wizard-template-catalog-logic.ts` · `wizard-template-catalog.ts` | **on trunk** |
+| W8 | Workspace-aware settings registry | `starter-settings.manifest.ts` · `settings-registry.ts` tenant plugin resolution | **on trunk** |
+| W9 | Template render overlay | `applyWizardTemplateToRenderPlan` · required/default UI · defaults prefill | **on trunk** |
+
+**Minimal publish (W2):** When admin checks **Publish wizard** with no `steps` yet, client sends a single-step default: denali `title` @ `denali_basic` · starter `basics.title` @ `basics`. Field picker (checkboxes per `canonicalPath`) is on trunk.
+
+### 3.12 Trunk implementation (S9.6-R6 — tour presets)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Preset store | `apps/api/src/settings/in-memory-settings-resources.repository.ts` | API-9.6-RES-07 |
+| Resource dispatch | `apps/api/src/settings/settings.service.ts` | `tour_presets` moduleId |
+| Presets UI | `apps/web/app/(app)/settings/tour-presets/` | WEB-9.6-PRS-01 |
+| Hub pilot filter | `apps/web/src/features/settings/settings-hub-logic.ts` | templates group |
+
+**R6 scope:** `GET/POST/PATCH/DELETE /settings/resources/tour_presets` — tenant-scoped presets with optional `themeId` FK to `tour_themes`. Invalid `themeId` → **404** `SETTINGS_RESOURCE_NOT_FOUND`. Prisma **007** remain deferred.
+
+### 3.13 Trunk implementation (S9.6-R7 — tour presets advanced)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Config service | `apps/api/src/settings/settings-config.service.ts` | `presets_advanced` branch |
+| Config alias routes | `GET/PUT /settings/tour-presets/advanced` | API-9.6-CFG-04..05 |
+| Advanced UI | `apps/web/app/(app)/settings/tour-presets/advanced/` | WEB-9.6-PRA-01 |
+| Hub pilot filter | `apps/web/src/features/settings/settings-hub-logic.ts` | templates group |
+
+**R7 scope:** tenant config `presets_advanced` v1 — `autoMatchEnabled` · optional `defaultPresetId` · `matchRules[]` for operator-tuned preset matching. Generic `GET/PUT /settings/config/presets_advanced` also supported.
+
+**Tour preset shape (R6):**
+
+```typescript
+type TourPresetResource = {
+  id: string;
+  tenantId: string;
+  name: string;
+  description: string | null;
+  themeId: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
 Wizard `/tours/new` reads via this resolver after 9.6 (SMK-P9-05).
+
+### 3.14 Trunk implementation (S9-R4 — audit on mutation · R-P9-S13)
+
+| Artifact | Path | Behavior |
+| -------- | ---- | -------- |
+| Audit emitter | `apps/api/src/settings/settings-audit-emitter.ts` | `emitSettingsAuditEvent(auth, { action, resourceType, resourceId, summary })` → `operator_settings_audit_events` (Prisma) or in-memory store |
+| Resource wire | `apps/api/src/settings/settings.service.ts` | After successful **create** / **patch** / **delete** on reference_data modules |
+| Config wire | `apps/api/src/settings/settings-config.service.ts` | After successful **PUT** on `wizard_template` · `presets_advanced` (`action: settings.config.put`) |
+| Read path | `settings-explore.service.ts` | Unchanged — **read-only**; no direct POST to audit explorer |
+
+**Action naming:**
+
+```text
+settings.{moduleId}.create | .patch | .delete
+settings.config.put   — resourceId = config_key (wizard_template | presets_advanced)
+```
+
+**Proof:** `settings-audit-trail.spec.ts` API-9.6-AUD-03 (mutation → GET explore lists event).
+
+**Hub nav (web):** `(app)/settings` lists **all** modules from `GET /settings/modules` — no client-side pilot filter.
+
+### 3.15 Trunk implementation (S9-R7 — account profile `/settings/me`)
+
+| Artifact | Path | Behavior |
+| -------- | ---- | -------- |
+| Profile API | `apps/api/src/identity/me.service.ts` | `GET/PATCH /identity/me` — self-scoped; `displayName` in `membership_metadata` |
+| Settings modules inject | `apps/api/src/settings/settings.service.ts` | Appends synthetic `account_profile` module (`kind: account_preference`) to `GET /settings/modules` |
+| Profile UI | `apps/web/app/(app)/settings/me/` | Read-only phone/role + editable display name |
+| BFF | `apps/web/app/api/identity/me/route.ts` | Bearer forward to API |
+| Account menu | `operator-account-menu.tsx` | Links to `/settings/me` |
+
+**Proof:** `identity-me.spec.ts` API-9.6-ME-01..03 · `settings-profile.spec.ts` WEB-9.6-ME-01.
+
+### 3.16 Trunk implementation (S9-R8 — urban filter · reconciliation hub)
+
+| Artifact | Path | Behavior |
+| -------- | ---- | -------- |
+| Workspace guard | `apps/api/src/settings/settings-workspace-guard.ts` | `workspaceType === urban` → Denali modules **403** / hidden from `GET /settings/modules` |
+| Modules filter | `apps/api/src/settings/settings.service.ts` | Urban: `[account_profile]` only · Denali: manifest + account + `reconciliation_triage` |
+| Reconciliation card | `settings/reconciliation-triage` R1 findings board (9.7) | `finance_ops` nav group · Denali-only |
+| Urban regression | `settings-urban-regression.spec.ts` | API-9.6-URB-01..02 |
+
+**RULE-P9-002:** Urban owner uses `/settings/urban` + `/urban/settings` — not Denali equipment/config routers.
+
+**Proof:** `settings-urban-regression.spec.ts` · `reconciliation-triage.spec.ts` WEB-9.7-TRI-01..02 · `operator-smoke.spec.ts` SMK-P9-10 (profile) · SMK-P9-11 (triage).
 
 ---
 

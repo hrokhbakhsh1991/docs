@@ -1,7 +1,7 @@
 # Phase 8 — Smoke scenario map (8.4)
 
 ```yaml
-map_version: "2026-06-07-v1"
+map_version: "2026-06-11-v2"
 subphase: "8.4"
 req_ids: [REQ-P8-040, REQ-P8-041, REQ-P8-042]
 invariants: [INV-P8-007, INV-P8-005]
@@ -16,7 +16,7 @@ behavioral_status: VERIFIED_BEHAVIORAL
 | ID        | Title                             | Playwright target                                                      | API chain target                                                 | Pass signal                                                             |
 | --------- | --------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | SMK-P8-01 | Public catalog browse (anonymous) | `apps/web/tests/e2e/urban-e2e-integrity.spec.ts` · `test('SMK-P8-01')` | `apps/api/test/urban-e2e-http.spec.ts` · `describe('SMK-P8-01')` | **200** catalog page · ≥1 published tour visible · no auth cookie       |
-| SMK-P8-02 | Public registration intake        | same file · `test('SMK-P8-02')`                                        | same API file · `describe('SMK-P8-02')`                          | **201** API · **303** web redirect · row in `urban_registrations`       |
+| SMK-P8-02 | Public registration intake        | same file · `test('SMK-P8-02')`                                        | same API file · `describe('SMK-P8-02')`                          | OTP + intake UI · **201** API · `[data-public-registration-success]`    |
 | SMK-P8-03 | Owner settings load               | same file · `test('SMK-P8-03')`                                        | same API file · `describe('SMK-P8-03')`                          | **200** `/settings/urban` · settings form rendered                      |
 | SMK-P8-04 | Member denied settings            | same file · `test('SMK-P8-04')`                                        | same API file · `describe('SMK-P8-04')`                          | **403** + `URBAN_OWNER_REQUIRED` OR `[data-workspace-wizard-forbidden]` |
 
@@ -31,6 +31,17 @@ behavioral_status: VERIFIED_BEHAVIORAL
 | Web settings route | `apps/web/app/(app)/settings/urban/page.tsx`                                                  | Owner guard → `canLoadUrbanSettings`                          |
 | API dispatch       | `apps/api/src/urban/urban.routes.ts`                                                          | Registered in `apps/api/src/openapi/dispatch-routes.ts` (8.2) |
 | Session helpers    | `apps/web/tests/e2e/fixtures/urban-owner-session.ts` · `urban-member-session.ts`              | Dev web session bootstrap for SMK-P8-03/04                    |
+| M17 OTP fixture    | `apps/web/tests/e2e/fixtures/catalog-registration-otp.ts` · `apps/portal/tests/e2e/fixtures/catalog-registration-otp.ts` | Shared OTP + intake helpers for SMK-P8-02 · SMK-DREG-01 · SMK-PTL-01 |
+
+### Cross-workspace M17 smokes (Denali + marketing)
+
+| ID           | Title                              | Playwright target                                              | Host / notes                                                                 |
+| ------------ | ---------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| SMK-DREG-01  | Denali portal OTP + intake         | `apps/web/tests/e2e/denali-catalog-registration.spec.ts`       | `operator.localhost:3003` · `apps/portal` · `pnpm --filter @apps/web run test:e2e:denali` |
+| SMK-PTL-01   | Portal-owned registration smoke    | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts`        | `operator.localhost:3003` · `pnpm --filter @apps/portal run test:smoke` |
+| SMK-MKT-03   | Marketing CTA → portal OTP → intake | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts`     | `shop.operator.localhost:3002` → portal register · `pnpm --filter @apps/marketing run test:smoke` |
+
+Authority: [`docs/workspaces/denali/public-catalog.md`](../../workspaces/denali/public-catalog.md) · static guard `pnpm run guard:public-catalog-m17`.
 
 ---
 
@@ -180,14 +191,15 @@ Playwright pass DOM anchor: visible text `Berlin city highlights` · **no** `[da
 
 ### Scenario ID & title
 
-**SMK-P8-02** — Anonymous user submits registration form for a **published** tour; persistence round-trips plugin validation.
+**SMK-P8-02** — Anonymous user completes **M17 phone OTP** + **tour intake** for a **published** tour; persistence round-trips plugin validation.
 
 ### Target host / runtime context
 
 | Layer                  | Context                                                                                                                    |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Web**                | `GET http://urban.localhost:3000/catalog/{publishedTourId}/register` → form render                                         |
-| **Web action**         | `POST /catalog/{publishedTourId}/register` (server action) → `POST ${SMOKE_API_URL}/urban/registrations`                   |
+| **Portal**             | `GET http://urban.localhost:3003/catalog/{publishedTourId}/register` → `[data-public-registration-phone]` (DEC-P11-014)      |
+| **Portal OTP**         | `POST /api/public-auth/*` BFF (`apps/portal`) → `POST /public/auth/*` API · dev static OTP `1234`                          |
+| **Portal intake**      | `[data-public-registration-intake]` → `POST /api/catalog/registrations` → `POST ${SMOKE_API_URL}/urban/registrations`        |
 | **API**                | `POST /urban/registrations` · `Idempotency-Key: smk-p8-02-{runId}` header **required** (DEC-006)                           |
 | **Plugin**             | `getUrbanWorkspacePlugin().validationHooks` on `registration.*` paths — [`URBAN-PRODUCT-SCOPE.md`](URBAN-PRODUCT-SCOPE.md) |
 | **Isolation boundary** | Registration row `tenant_id` + `tour_id` scoped — duplicate email → **409**                                                |
@@ -199,8 +211,8 @@ Playwright pass DOM anchor: visible text `Berlin city highlights` · **no** `[da
 | Tenant       | Same as SMK-P8-01 · `theme.urban.registration.policy = open`                                                   |
 | Tour `…0410` | `publish_status = published` · `capacity >= 120`                                                               |
 | Table        | `urban_registrations` migrated (`infra/sql/004_urban_product_delta.sql`)                                       |
-| Form payload | `email: smk-p8-02@urban-smoke.local` · `fullName: Smoke Tester` · `partySize: 2`                               |
-| Auth         | **None** for submit (public intake per INV-P8-007 matrix — member/owner also allowed but smoke uses anonymous) |
+| Form payload | Unique mobile + OTP · intake `email: smk-p8-02-{runId}@urban-smoke.local` · `fullName: Smoke Tester` · `partySize: 2` |
+| Auth         | Public OTP session cookie after verify/profile; tour intake uses guest catalog headers on API                |
 | Idempotency  | Fresh `Idempotency-Key` per run — replay same key → same **201** body                                          |
 
 ### Legacy path reference line
@@ -233,7 +245,9 @@ Rate-limit bucket:
 ratelimit:00000000-0000-4000-8000-000000000004:pool:POST:/urban/registrations
 ```
 
-Web pass: redirect **303** to success URL · API pass: **201** + registration id in JSON.
+Web pass: `[data-public-registration-success]` visible · API pass: **201** + registration id in JSON.
+
+Playwright pass DOM anchors: `[data-public-registration-phone]` → `[data-public-registration-otp]` → (optional `[data-public-registration-profile]`) → `[data-public-registration-intake]` → `[data-public-registration-success]`.
 
 ---
 

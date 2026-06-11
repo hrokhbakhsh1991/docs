@@ -1,6 +1,6 @@
 /**
  * Phase 9.1 contract — canonical source for apps/web/src/admin/require-operator-session.ts
- * Authority: docs/phase-9/appendices/CASL-OPERATOR-SPEC.md · DEC-P9-007
+ * Authority: docs/phase-9/appendices/CASL-OPERATOR-SPEC.md · DEC-P9-007 · DEC-P9-018
  */
 import type { TenantAuthz } from "@app-tour/workspace-sdk";
 
@@ -25,6 +25,8 @@ export const SESSION_LOCAL_STORAGE_PREFIX = "tour_ops_session_token:" as const;
 /** Phase 6 wizard — canonical URL (DEC-P9-007); not under (app)/tours/new */
 export const OPERATOR_WIZARD_PATH = "/tours/new" as const;
 
+export const OPERATOR_OWNER_PANEL_ACCESS_QUERY = "owner-only" as const;
+
 export type OperatorSessionContext = {
   readonly userId: string;
   readonly tenantId: string;
@@ -41,10 +43,20 @@ export type RequireOperatorSessionWebResult =
   | { readonly allowed: true }
   | { readonly allowed: false; readonly redirectTo: string };
 
+export function isOwnerRole(role: OperatorSessionContext["role"]): boolean {
+  return role === "owner";
+}
+
 export function requireOperatorSessionWeb(
   params: RequireOperatorSessionWebParams
 ): RequireOperatorSessionWebResult {
   if (params.session !== null && params.session.userId.trim().length > 0) {
+    if (!isOwnerRole(params.session.role)) {
+      return {
+        allowed: false,
+        redirectTo: `${OPERATOR_LOGIN_PATH}?access=${OPERATOR_OWNER_PANEL_ACCESS_QUERY}`,
+      };
+    }
     return { allowed: true };
   }
   const returnUrl = encodeURIComponent(params.pathname);

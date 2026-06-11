@@ -29,7 +29,18 @@ rules:
       - apps/web/app/api/auth/**
       - apps/web/middleware.ts
       - apps/web/lib/auth/**
+      - apps/web/src/auth/**
+      - apps/web/src/features/auth/**
       - apps/web/test/auth-*.spec.ts
+      - apps/web/test/operator-login*.spec.ts
+      - apps/web/test/operator-smoke.spec.ts
+      - apps/web/test/otp-segment-input.spec.ts
+      - apps/web/test/resolve-login-error.spec.ts
+      - apps/web/test/login-tenant-brand.spec.ts
+      - apps/web/test/bff-login-rate-limit.spec.ts
+      - apps/api/test/phone-login-authorization.spec.ts
+      - apps/api/test/identity-login-*.spec.ts
+      - apps/api/test/phase-9-persistence.integration.spec.ts
       - apps/web/src/admin/require-operator-session.ts
       - infra/sql/005_identity_production_delta.sql
       - packages/workspace-sdk/src/auth/**

@@ -56,7 +56,7 @@ On successful `putSettingsConfig` (including wizard template alias):
 
 ## Urban regression
 
-Routes under `/urban/settings` remain owner-only — **not** replaced by this addendum. Denali `/settings/*` **hidden** on urban host at web shell (manifest filter).
+Routes under `/urban/settings` remain owner-only — **not** replaced by this addendum. Denali `/settings/*` **hidden** on urban host: `GET /settings/modules` returns `account_profile` only; resource/config/explore routers return **403** `SETTINGS_WORKSPACE_FORBIDDEN` (`settings-workspace-guard.ts`).
 
 ## Literal insertion block
 

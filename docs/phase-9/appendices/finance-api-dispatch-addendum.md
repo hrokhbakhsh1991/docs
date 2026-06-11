@@ -24,6 +24,23 @@ Urban → **404** `FINANCE_WORKSPACE_UNSUPPORTED`.
 
 ---
 
+## Host bootstrap (trunk)
+
+`apps/api/src/app.ts` **must** side-effect-import before request dispatch:
+
+```typescript
+import "./http/configure-denali-finance-http-host";
+import "./http/configure-urban-http-host";
+```
+
+Those modules call `configureDenaliFinanceHttpHost` / `configureUrbanHttpHost` at load time, wiring host ports (`resolveFinanceService`, `sendJson`, tenant context). Without them, Denali finance handlers call `getDenaliFinanceHttpHost()` unconfigured and every finance route returns **500** `INTERNAL_ERROR`.
+
+R2 handlers (`handleFinanceListPrepayments`, `handleFinanceRecordPrepayment`, schedule handlers) must be re-exported from `packages/workspaces/denali/src/http/routes.ts` and the package rebuilt (`pnpm --filter @app-tour/workspace-denali run build`) — lazy import in `lazy-workspace-finance-handlers.ts` reads **dist**, not TypeScript source.
+
+Workspace-product routes (urban catalog/settings + Denali finance) dispatch through `tryDispatchWorkspaceRoutes` in `dispatchRequest` — after core identity/bookings/settings routes, before the final 404.
+
+---
+
 ## Dispatch operations — Reports (R1)
 
 | operationId               | Method | Path                             | Handler                                           | Actor       |
@@ -54,9 +71,29 @@ Response schema (summary): [`schemas/FINANCE-SUMMARY.schema.json`](schemas/FINAN
 
 | operationId              | Method | Path                                 | Handler                                        | Actor       |
 | ------------------------ | ------ | ------------------------------------ | ---------------------------------------------- | ----------- |
-| `getRegistrationInvoice` | GET    | `/finance/invoices/{registrationId}` | `denali-finance/invoices.get.handler.ts`       | admin/owner |
-| `recordPrepayment`       | POST   | `/finance/prepayments`               | `denali-finance/prepayments.record.handler.ts` | admin/owner |
-| `listPrepayments`        | GET    | `/finance/prepayments`               | `denali-finance/prepayments.list.handler.ts`   | admin/owner |
+| `getRegistrationInvoice` | GET    | `/finance/invoices/{registrationId}` | `finance.routes.ts` → `handleFinanceGetRegistrationInvoice` | admin/owner |
+| `recordPrepayment`       | POST   | `/finance/prepayments`               | `finance.routes.ts` → `handleFinanceRecordPrepayment`         | admin/owner |
+| `listPrepayments`        | GET    | `/finance/prepayments`               | `finance.routes.ts` → `handleFinanceListPrepayments`          | admin/owner |
+
+Invoice response (derived read model — trunk compiles from schedule sum + wallet credits):
+
+```json
+{
+  "registrationId": "uuid",
+  "currency": "IRR",
+  "invoiceTotalMinor": "10000000",
+  "paidAmountMinor": "3000000",
+  "balanceDueMinor": "7000000",
+  "walletNetMinor": "3000000"
+}
+```
+
+Balance math lives in `apps/api/src/denali-finance/compile-invoice-balances.ts`:
+
+- `walletNetMinor` = sum(prepayment outbox) + sum(paid manual payments)
+- `invoiceTotalMinor` = sum(schedule items) when schedule exists, else sum(all payment amounts)
+- `paidAmountMinor` = `min(walletNetMinor, invoiceTotalMinor)`
+- `balanceDueMinor` = `invoiceTotalMinor − paidAmountMinor`
 
 Prepayment body:
 

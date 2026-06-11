@@ -176,11 +176,12 @@ Phase 8 Urban `POST /urban/registrations` is **anonymous public intake**. Legacy
 | DEC-P9-010 | Hybrid settings storage model             | yes    |
 | DEC-P9-011 | Registration Command Center               | yes    |
 | DEC-P9-012 | Operator login legacy parity              | yes    |
-| DEC-P9-013 | Mobile-first admin shell on Phase 2 stack | yes    |
+| DEC-P9-013 | Mobile-first admin shell — Tailwind+shadcn in operator/auth only (R1) | yes    |
 | DEC-P9-014 | Operator tours list projection API        | yes    |
 | DEC-P9-015 | Three-tier workspace RBAC                 | yes    |
 | DEC-P9-016 | Progressive Finance Command Center        | yes    |
 | DEC-P9-017 | Interim finance route until 9.2 shell     | yes    |
+| DEC-P9-018 | Owner-only operator panel `(app)/`        | yes    |
 
 ## DEC-P9-009 — Settings Module Registry (manifest-driven 9.6)
 
@@ -333,7 +334,7 @@ Legacy admin login (`legacy/apps/web/app/auth/login/`) uses a **two-step phone+O
 
 ### Decision
 
-1. **UX parity:** Two-step login form · post-success redirect **`/dashboard`** · `returnUrl` support · onboarding redirect to `/auth/register`.
+1. **UX parity:** Two-step login form · post-success redirect **`/dashboard`** · `returnUrl` support · **invite-only** (no self-registration UI; `/auth/register` redirects to login).
 2. **BFF mandatory:** Cookie set only in `apps/web/app/api/auth/login-web-session` — see [`identity-web-bff-addendum.md`](identity-web-bff-addendum.md).
 3. **API mapping:** Legacy combined `web/session/otp` → trunk `POST /auth/verify-otp` (verify + JWT issue in one handler).
 4. **Session model:** **Stateless JWT** + `UserTenant.sessionVersion` (`sess_ver`) — **no** primary server session table (DEC-P9-012).
@@ -380,39 +381,39 @@ Phase 6 shipped Denali wizard at `apps/web/app/tours/new` **outside** `(app)/` r
 
 ---
 
-## DEC-P9-013 — Mobile-first operator shell on Phase 2 stack (no Tailwind/shadcn pivot)
+## DEC-P9-013 — Mobile-first operator UI (Tailwind v4 + shadcn · R1 revision 2026-06-08)
 
 ```yaml
 id: DEC-P9-013
 status: APPROVED
+revision: R1
 locked: true
 date: 2026-06-08
-phase: 9.2
+phase: 9.2+
 invariants: [INV-P9-007, TQ-P9-001, TQ-P9-003]
 authority: appendices/ADMIN-SHELL-UX.md
 closes_gaps: [DELTA-P9-SHELL-01]
+supersedes_note: "R0 forbade Tailwind/shadcn install — R1 scopes dual stack to operator surfaces only"
 ```
 
 ### Context
 
-Product requires a **production-grade** operator admin — mobile-first, modern visual language — not an MVP placeholder. Stakeholders asked about shadcn + Tailwind. Phase 2 locked **CSS Modules + `@app-tour/design-tokens`** with explicit **Tailwind ❌**. Trunk `apps/web` uses `@app-tour/ui-primitives` subpath imports with AST guards. Legacy admin uses `@tour/ui` + CSS Modules with mobile drawer at `48rem`. A shadcn install would introduce a second styling system, break theme cascade (platform → tenant → workspace), and force guard rewrites across Phase 2–6 surfaces.
+Product requires **production-grade mobile-first** Denali operator chrome. Stakeholders approved **shadcn + Tailwind** for operator/auth UI while Phase 3 wizard and `(public)/` remain on **design-tokens + ui-primitives** (Phase 2 covenant unchanged outside operator tree).
 
-### Decision
+### Decision (R1)
 
-1. **Stack:** Operator shell built with **CSS Modules + design tokens + `@app-tour/ui-primitives` subpaths** — same as Phase 3 shell covenant.
-2. **Mobile-first:** Author layout for `<768px` first — fixed header, hamburger → drawer overlay, `44px` tap targets (`--layout-min-tap-target`), RTL logical properties.
-3. **Desktop:** Persistent sidebar `≥768px` (280px default); dashboard 2-column widget grid `≥1024px`.
-4. **shadcn reference only:** [sidebar-07](https://ui.shadcn.com/blocks/sidebar-07) and [dashboard-01](https://ui.shadcn.com/blocks/dashboard-01) inform IA — **no** `npx shadcn` install, **no** Tailwind config in `apps/web`.
-5. **Production dashboard in 9.2:** Widget grid with skeleton/empty states — not empty `<h1>Dashboard</h1>` (REQ-P9-020).
-6. **Primitive promotion:** `Card`, `Sheet`, `Avatar` may start in `apps/web/src/admin/`; promote to `@app-tour/ui-primitives` when **≥3 consumers** (9.3+).
-7. **Forbidden:** Tailwind classes in new `(app)/` or `src/admin/**` · `@tour/ui` runtime import · shadcn copy-paste components without token migration.
+1. **Allowed stack (operator only):** `apps/web/app/(app)/**` · `apps/web/app/(auth)/**` · `apps/web/src/admin/**` · `apps/web/src/components/ui/**` — **Tailwind CSS v4** + **shadcn/ui** via MCP-assisted install.
+2. **Forbidden (unchanged):** Tailwind/shadcn in `app/(phase3)/**` · `app/tours/**` wizard · `app/(public)/**` · `@tour/ui` runtime import.
+3. **Mobile-first:** `<768px` Sheet drawer + stacked toolbars; `≥768px` persistent sidebar; `≥1024px` dashboard 2-col grid.
+4. **Theme bridge:** shadcn CSS variables map to `@app-tour/design-tokens` where possible (`--primary` ← `--color-primary`); `ThemeProviderChain` remains root authority.
+5. **MCP:** `shadcn` + `tailwindcss` MCP servers for component browse/install and class validation — see `.cursor/mcp.json`.
+6. **Tests:** preserve `data-testid` contracts (`operator-nav`, `operator-main`, `operator-tours-page`, etc.).
 
 ### Verification
 
 - [`ADMIN-SHELL-UX.md`](ADMIN-SHELL-UX.md)
-- [`TRACEABILITY-MATRIX-9.2.md`](TRACEABILITY-MATRIX-9.2.md)
-- `admin-shell-access.spec.ts` · `dashboard-smoke.spec.ts`
-- Guard: `p9_admin_shell_pack` · `guard:import-boundary`
+- `admin-shell-access.spec.ts` · `dashboard-smoke.spec.ts` · `tours-list.spec.ts`
+- `pnpm --filter @apps/web run build`
 
 ---
 
@@ -506,6 +507,79 @@ Gap: `9.4-users-rbac.md` referenced legacy “Leader access”; trunk `IDENTITY-
 - [`BOOKINGS-OPS-UX.md`](BOOKINGS-OPS-UX.md) §7 CASL matrix
 - [`users-api-dispatch-addendum.md`](users-api-dispatch-addendum.md) v2
 - `identity-users.spec.ts` · `users-directory.spec.ts` · CP-9.4-09..11
+- Guard: `p9_users_directory_pack`
+
+---
+
+## DEC-P9-018 — Owner-only operator panel `(app)/`
+
+```yaml
+id: DEC-P9-018
+status: APPROVED
+locked: true
+date: 2026-06-11
+phase: 9.4
+invariants: [INV-P9-007, DEC-P9-012, DEC-P9-015]
+authority: TEMP/phase9-users-directory-roadmap.md · appendices/USERS-DIRECTORY-UX.md
+supersedes: admin/member login to `(app)/` shell (interim 9.4 R1)
+```
+
+### Context
+
+Product intent (2026-06-11): the current Denali **owner admin panel** (`(app)/` + wizard bridge) is **owner-only**. Team roles `admin`/`member` remain in DB for invites and a **future separate admin panel** — they must not receive a session cookie for this shell.
+
+### Decision
+
+1. **Login BFF:** After successful `verify-otp`, set HttpOnly cookie **only** when JWT `role === owner`. Else **403** `AUTH_OWNER_PANEL_ONLY` — no cookie.
+2. **Middleware + layout:** Protected admin paths require valid session **and** `role === owner`. Non-owner → redirect `/auth/login?access=owner-only` + clear cookie.
+3. **Users directory API:** `GET/POST/PATCH/DELETE /users*` requires **`role=owner`** (not `isAdminOrOwner`).
+4. **Team RBAC unchanged:** Owner still invites/manages admin/member rows — DEC-P9-015 persists.
+5. **Future:** Separate admin panel surface may allow `admin` actors — out of scope for DEC-P9-018.
+
+### Verification
+
+- `auth-owner-panel-access.spec.ts` · `identity-users.spec.ts` (admin GET /users → 403)
+- `OPERATOR-LOGIN-FLOW.md` · `ADMIN-ROUTE-MATRIX.md`
+- SMK-P9-08 (admin OTP blocked)
+
+---
+
+## DEC-P9-019 — Four-tier team roles: restore persisted `viewer` (amends DEC-P9-015)
+
+```yaml
+id: DEC-P9-019
+status: APPROVED
+locked: true
+date: 2026-06-11
+phase: 9.4
+invariants: [INV-P9-003, INV-P9-007, DEC-P9-015, DEC-P9-018]
+authority: TEMP/phase9-users-directory-roadmap.md · appendices/USERS-DIRECTORY-UX.md
+amends: DEC-P9-015 rules 1–2, 6–8
+```
+
+### Context
+
+Roadmap **R3** restores legacy **read-only team tier** `viewer` for directory invite + role PATCH. DEC-P9-015 collapsed legacy five roles to three and mapped DB `viewer` → `member` at hydrate. Product now requires **four persisted operator tiers** for team management while `(app)/` panel access remains **owner-only** (DEC-P9-018).
+
+### Decision
+
+1. **Persisted roles:** `UserTenant.role` ∈ `{ owner, admin, member, viewer }` for Phase 9 team directory.
+2. **Rank:** `owner (4) > admin (3) > member (2) > viewer (1)` — higher rank may manage lower-rank rows per existing rank policy.
+3. **Invite assignable:** `admin` \| `member` \| `viewer` — **forbidden:** `owner` (ownership transfer), `leader`.
+4. **Role PATCH assignable:** same as invite — `admin` \| `member` \| `viewer`; owner row protected.
+5. **Directory filter:** `?role=all|owner|admin|member|viewer`.
+6. **Legacy hydrate:**
+   - `leader` → `admin` (unchanged)
+   - **`viewer` stays `viewer`** — no longer coerced to `member`
+7. **`ActorRole` (workspace-sdk):** add `"viewer"`; `member` and `viewer` require `workspaceId` binding (fail-closed).
+8. **Panel access unchanged:** DEC-P9-018 — only `owner` receives `(app)/` session; `viewer` is a **team row role**, not a panel actor in 9.4.
+9. **Forbidden:** exposing `leader` in invite UI, filters, or API enums.
+
+### Verification
+
+- [`USERS-DIRECTORY-UX.md`](USERS-DIRECTORY-UX.md) §3 · §5
+- [`users-api-dispatch-addendum.md`](users-api-dispatch-addendum.md)
+- `hydrate-membership.spec.ts` · `users-rbac.policy.spec.ts` · `identity-users.spec.ts` · `users-directory.spec.ts`
 - Guard: `p9_users_directory_pack`
 
 ---

@@ -79,7 +79,7 @@ subphases:
     parallelizable: false
     primary_artifact: docs/phase-8/appendices/URBAN-ROUTE-MATRIX.md
     prove_with:
-      - packages/workspace-sdk/test/urban-owner-ability.spec.ts
+      - packages/workspaces/urban/test/urban-owner-ability.spec.ts
       - apps/api/test/urban-owner-ability.spec.ts
       - apps/api/test/urban-settings-patch.spec.ts
       - apps/api/test/urban-redis-fallback.spec.ts

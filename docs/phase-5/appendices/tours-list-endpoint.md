@@ -84,7 +84,8 @@ Invalid or unknown `cursor` → first page (fail-open, same as offset-less APIs)
 | Gap                    | Note                                                                                 |
 | ---------------------- | ------------------------------------------------------------------------------------ |
 | Filter / status        | Legacy `listTours` had status filters — not ported; add when projection index exists |
-| Full canonical in list | Intentionally omitted — use `GET /tours/:id` per row                                 |
+| Operator list (Phase 9) | **Spec ready** — [`docs/phase-9/appendices/TOURS-LIST-UX.md`](../../phase-9/appendices/TOURS-LIST-UX.md) · DEC-P9-014 · `view=operator` |
+| Full canonical in list | Intentionally omitted — use `GET /tours/:id` per row                             |
 
 ## Verification
 

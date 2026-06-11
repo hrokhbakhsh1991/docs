@@ -45,7 +45,7 @@ Subphase 8.1 must ship before 8.2 product routes. Without a frozen decision, imp
 | Single audit matrix for owner vs member vs anonymous         | Product must document that admin is **support** role only on urban tenants          |
 | Aligns with [`URBAN-ROUTE-MATRIX.md`](URBAN-ROUTE-MATRIX.md) | Legacy port must not copy admin-settings panels without owner gate                  |
 
-**Verification:** `packages/workspace-sdk/test/urban-owner-ability.spec.ts` (admin → `canPerformUrbanOwnerMutation` false) · `apps/api/test/urban-owner-ability.spec.ts` (403 payload).
+**Verification:** `packages/workspaces/urban/test/urban-owner-ability.spec.ts` (admin → `canPerformUrbanOwnerMutation` false) · `apps/api/test/urban-owner-ability.spec.ts` (403 payload).
 
 ---
 
@@ -150,7 +150,9 @@ SDK specs and web guards diverged on **where** urban owner checks live: standalo
 3. **Web module** `apps/web/src/urban/urban-settings-access.ts` is a thin wrapper re-exporting [`CANLOAD-URBAN-SETTINGS.contract.ts`](CANLOAD-URBAN-SETTINGS.contract.ts) — single authority for `canLoadUrbanSettings` until UI lands. The contract types `authz` as structural **`UrbanOwnerAuthz`** (not `import type` from `@app-tour/workspace-sdk`) so `apps/web` `tsc --noEmit` can compile the re-export without resolving workspace package paths from `docs/`.
 4. **Middleware name** is `assertWorkspaceOwner` everywhere — not `assertUrbanOwner`.
 
-**Verification:** `pnpm run phase-8:guard` → `p8_api_surface_alignment` · `packages/workspace-sdk/test/urban-owner-ability.spec.ts` uses `authz.canPerformUrbanOwnerMutation` · guard forbids stale router path.
+**Verification (8.1 original):** `pnpm run phase-8:guard` → `p8_api_surface_alignment` · SDK spec uses `authz.canPerformUrbanOwnerMutation` · guard forbids stale router path.
+
+**Superseded by Phase 10.5 (trunk):** `canPerformUrbanOwnerMutation` is a **workspace-package helper** in `packages/workspaces/urban/src/auth/urban-owner-auth.ts` that delegates to generic `TenantAuthz.canPerformWorkspaceOwnerMutation`. `UrbanOwnerSurface` lives in the urban package, not `tenant-authz.ts`. Spec path: `packages/workspaces/urban/test/urban-owner-ability.spec.ts`. DEC-P8-004 item 1 is **historical** — behavioral contract unchanged (owner-only urban surfaces).
 
 ---
 

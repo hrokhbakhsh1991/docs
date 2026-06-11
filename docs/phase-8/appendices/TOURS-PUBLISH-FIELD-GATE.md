@@ -9,11 +9,11 @@ authority: docs/phase-8/appendices/CASL-URBAN-OWNER-SPEC.md L354
 
 ## MODULES
 
-| Symbol                               | Path                                                  |
-| ------------------------------------ | ----------------------------------------------------- |
-| `urbanTourPatchTouchesPublishFields` | `apps/api/src/urban/urban-tour-publish-field-gate.ts` |
-| `assertWorkspaceOwner`               | `apps/api/src/urban/require-workspace-owner.ts`       |
-| `UrbanOwnerRequiredError`            | `apps/api/src/urban/urban-owner-required.error.ts`    |
+| Symbol                               | Path                                                              |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| `urbanTourPatchRequiresOwner`        | `packages/workspaces/urban/src/http/tour-publish-field-gate.ts`   |
+| `assertWorkspaceOwner`               | `packages/workspaces/urban/src/http/require-workspace-owner.ts`   |
+| `UrbanOwnerRequiredError`            | `packages/workspaces/urban/src/http/errors/urban-owner-required.error.ts` |
 | `handlePatchTour`                    | `apps/api/src/tours/tours.routes.ts`                  |
 | `UpdateTourBody`                     | `apps/api/src/tours/update-tour.schema.ts`            |
 

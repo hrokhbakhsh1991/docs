@@ -63,8 +63,8 @@ START
   │    → READ: FINANCE-OPS-UX.md §2.2 gap table · subphases/9.7-finance-denali.md r1_checklist
   │    → INTERIM UI: apps/web/app/finance/** (DEC-P9-017) — NOT only (app)/finance
   │    → API: apps/api/src/denali-finance/** · INV-P9-006 (urban 404)
-  │    → DO NOT claim 9.7 closed — reconciliation DEFERRED · R2–R4 pending
-  │    → PROVE: finance-admin.spec.ts · finance-ops.spec.ts · finance-page.spec.ts (on trunk)
+  │    → DO NOT claim 9.7 closed — R1 reconciliation shipped · R2–R4 prepayment/installments pending
+  │    → PROVE: finance-admin.spec.ts · finance-ops.spec.ts · finance-page.spec.ts · reconciliation-triage.spec.ts · SMK-P9-11
   │
   ├─ ELIF doc_ready_subphase == "9.8"
   │    → READ: subphases/9.8-operator-dod-gate.md · SMOKE-SCENARIO-MAP.md · FORENSIC-RUBRIC-P9.md

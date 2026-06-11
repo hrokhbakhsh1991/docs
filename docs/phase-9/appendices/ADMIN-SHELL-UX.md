@@ -19,7 +19,8 @@ research:
 stack:
   styling: CSS Modules + @app-tour/design-tokens (Phase 2 covenant)
   components: "@app-tour/ui-primitives/* subpath-only"
-  forbidden: [tailwind, shadcn/ui copy-paste, @tour/ui runtime import]
+  operator_stack: [tailwindcss v4, shadcn/ui in src/components/ui, mobile-first]
+  forbidden: [tailwind in phase3 wizard, @tour/ui runtime import]
 ```
 
 > **Problem:** Phase 9 needs a **production-grade** operator chrome — not an MVP placeholder — with **mobile-first** navigation, RTL support, tenant branding, and CASL-filtered nav. Trunk has no `(app)/` tree; legacy uses `@tour/ui` + CSS Modules. A blind shadcn/Tailwind pivot would break Phase 2 guards and the three-level theme cascade.
@@ -36,7 +37,7 @@ stack:
 | **Subpath primitives**    | `@app-tour/ui-primitives/button`, `/input`, `/badge`, `/alert` — TQ-P9-001         |
 | **CASL nav**              | Items filtered by `ability-context` — finance hidden on Urban (ASM-9.2-009)        |
 | **Lazy workspace**        | No static `@app-tour/workspace-denali` in layout — dynamic plugin load (CP-9.2-04) |
-| **Wizard bridge**         | “New tour” links to `/tours/new` (DEC-P9-007) — same session cookie                |
+| **Wizard bridge**         | “New tour” → `/tours/new` (DEC-P9-007); logged-in Denali gets **Wizard Bridge** chrome (compact header, no sidebar) — [`wizard-experience.md`](../../workspaces/denali/wizard-experience.md) |
 | **Reference-only shadcn** | Block layouts (sidebar-07, dashboard-01) inform IA — **no** shadcn install         |
 
 ---
@@ -233,7 +234,7 @@ Not an empty `<h1>Dashboard</h1>`. Ship a **widget grid** with loading/empty sta
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
-│ سلام، {firstName} · {workspaceName}                     │
+│ سلام، {firstName} · {brandName}                         │
 │ Quick actions: [+ تور جدید]  [رزروها (—)]  [کاربران (—)] │
 ├──────────────────────────┬──────────────────────────────┤
 │ Tours snapshot           │ Pending registrations        │
@@ -279,6 +280,24 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
     </OperatorShell>
   );
 }
+```
+
+### 7.3 Tenant brand title (operator chrome)
+
+Operator-facing copy must **not** hardcode English plugin ids (`Denali`) or generic `workspace` jargon when locale is `fa`.
+
+Resolution order (`useTenantBrandTitle` · `TenantBrandingProvider`):
+
+1. Settings **display name** (`tenantTheme.displayName` / branding PATCH)
+2. SSR `initialDisplayName` from layout
+3. Localized fallback from `app.workspaces.{pluginId}` (e.g. fa → **دنالی**)
+4. Context `workspaceLabel` from messages
+
+Used in: header badge · mobile drawer title · sidebar brand · account menu · dashboard subtitle/widgets.
+
+```typescript
+// apps/web/src/tenant/tenant-branding-context.tsx
+useTenantBrandTitle(fallbackDisplayName?, fallbackWorkspaceLabel?)
 ```
 
 ### 7.2 Completion proofs (extended)

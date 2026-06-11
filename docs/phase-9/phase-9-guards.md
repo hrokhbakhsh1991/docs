@@ -16,6 +16,19 @@ runner: scripts/guards/phase-9-guard.mjs
 | `pnpm run guard:p9-boundary-diff` | 9.1 PR boundary allowlist                   |
 | `pnpm run phase-9:gate`           | build + test + phase-8:gate + phase-9:guard |
 
+## Hook suspension (velocity — active)
+
+While [`appendices/PHASE-9-HOOKS-SUSPENSION.yaml`](appendices/PHASE-9-HOOKS-SUSPENSION.yaml) has `active: true`:
+
+| Enforcement | Status |
+| ----------- | ------ |
+| Husky `pre-commit:fast` | **Suspended** — instant commits |
+| `phase-9:guard` / `phase-9:gate` | **Manual** — run at subphase stabilization or 9.8 |
+| `test-changed` / `test:full` | **Manual** |
+| GHA on push | **Unchanged** — defer push or draft PR if needed |
+
+Re-enable: delete marker at **9.8** · see `re_enable.verify` in yaml · `bash scripts/phase-hooks-suspended.sh` (exit 1 = hooks active).
+
 ---
 
 ## Full check matrix (32 gates)

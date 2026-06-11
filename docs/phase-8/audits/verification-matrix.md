@@ -311,7 +311,7 @@ See [`verification-commands.md`](../appendices/verification-commands.md) for gro
 
 | Spec anchor          | Trunk path                                                |
 | -------------------- | --------------------------------------------------------- |
-| REQ-P8-010 SDK       | `packages/workspace-sdk/test/urban-owner-ability.spec.ts` |
+| REQ-P8-010 SDK       | `packages/workspaces/urban/test/urban-owner-ability.spec.ts` |
 | REQ-P8-011 Web       | `apps/web/test/urban-owner-access.spec.ts`                |
 | REQ-P8-012 API owner | `apps/api/test/urban-owner-ability.spec.ts`               |
 | REQ-P8-012 API patch | `apps/api/test/urban-settings-patch.spec.ts`              |

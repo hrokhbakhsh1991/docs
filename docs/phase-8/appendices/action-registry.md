@@ -93,7 +93,7 @@ note: "P8-X-A* not defined in Phase 8 PEK — defer to Block C if needed"
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **Responsible actor**            | Workspace SDK Implementer                                                                                       |
 | **Operational subphase trigger** | 8.1                                                                                                             |
-| **Verification evidence target** | `packages/workspace-sdk/test/urban-owner-ability.spec.ts` exit 0 · TAP output includes SDK-8.1-01..08 pass rows |
+| **Verification evidence target** | `packages/workspaces/urban/test/urban-owner-ability.spec.ts` exit 0 · TAP output includes SDK-8.1-01..08 pass rows |
 
 ### P8-1-A02 — API assertWorkspaceOwner + error mapping
 

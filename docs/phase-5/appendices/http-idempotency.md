@@ -7,8 +7,11 @@
 | Outbox   | `UNIQUE (tenant_id, domain_event_id)`     | Required 5.4                        |
 | Consumer | `processed_domain_events`                 | Required 5.4-S4                     |
 | **HTTP** | `Idempotency-Key` header on `POST /tours` | **P0** — `http_idempotency_records` |
+| **HTTP** | `Idempotency-Key` header on `POST /urban/registrations` | **P1** Phase 8 — required; `runIdempotentHttpMutation` |
 
 When the client sends `Idempotency-Key`, the API must return the **same** `201` body for replays and persist **at most one** tour row per `(tenant_id, idempotency_key)`.
+
+`POST /urban/registrations` stores the full `{ success, data: { id, status } }` envelope. Missing header → **400** `IDEMPOTENCY_KEY_REQUIRED` (Phase 8 route matrix §B).
 
 ## Header
 

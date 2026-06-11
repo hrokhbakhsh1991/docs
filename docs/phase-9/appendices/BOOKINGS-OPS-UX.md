@@ -39,7 +39,7 @@ research:
 ```text
 (app)/bookings                    ← Registration Command Center (ops | mine by CASL)
 (app)/bookings/new                ← Manual create (admin/owner)
-(app)/bookings/[id]               ← Deep link → opens inbox + inspection panel focused
+(app)/bookings/[id]               ← Deep link → `/bookings?bookingId={id}` (inspection panel focus)
 (app)/leader/review               ← Alias → /bookings?view=inbox_table&scope=leader (DEC-P9-011)
 (app)/tours/[id]/workspace/...    ← Registrations tab embeds same component with tourId preset
 ```
@@ -179,6 +179,111 @@ export const denaliRegistrationOpsManifest = {
 | Plugin wiring                                 | `WorkspacePlugin.registrationOps` on `createDenaliWorkspacePlugin()`        | `bookings-ops-manifest.spec.ts` |
 
 Validation rejects any `views[]` entry outside `inbox_table` \| `tour_board` \| `departure_timeline` before plugin registration maps are built.
+
+### 5.2 Trunk implementation (S9.5-R1 — API velocity slice)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Booking row + query types | `apps/api/src/bookings/bookings.types.ts` | `bookings-ops.spec.ts` |
+| In-memory store + atomic outbox | `apps/api/src/bookings/in-memory-bookings.repository.ts` | API-9.5-01 |
+| Service (list/summary/create/approve/reject) | `apps/api/src/bookings/bookings.service.ts` | API-9.5-02 · API-9.5-03 |
+| HTTP handlers | `apps/api/src/bookings/bookings.routes.ts` | dispatch addendum v2 |
+| App dispatch wiring | `apps/api/src/app.ts` | manual route table |
+| Dev/test seed | `apps/api/test/fixtures/operator-bookings-fixture.ts` | `OPERATOR_SMOKE.pendingBookingId` |
+| Smoke dev auto-seed | `in-memory-bookings.repository.ts` `seedOperatorSmokeDevBookingsFixture` | `NODE_ENV=test\|development` mirrors fixture · **SMK-P9-04** |
+| Smoke tour seed | `in-memory-tour.repository.ts` `ensureOperatorSmokeSeedTour` + `OPERATOR_SMOKE_E2E_SEED=1` | `OPERATOR_SMOKE.seedTourId` · **SMK-P9-07** manual create |
+
+**Fail-closed rules (R1):**
+
+| Rule | Enforcement |
+| ---- | ----------- |
+| P9-F-006 | `approveBooking` updates `status=approved` and inserts `registration.approved` outbox row in one repository transaction — partial writes roll back |
+| CP-9.5-04 | `view=ops` with `role=member` → **403** `BOOKINGS_OPS_FORBIDDEN` |
+| CP-9.5-06 | `POST /bookings` (admin/owner) → **201** with `status=pending` |
+| Summary ACL | `GET /bookings/summary` admin/owner only — member **403** |
+
+**In-memory row shape (R1):**
+
+```typescript
+type BookingRecord = {
+  id: string;
+  tenantId: string;
+  tourId: string;
+  tourTitle: string;
+  guestLabel: string;
+  guestEmail: string | null;
+  guestPhone: string | null;
+  partySize: number;
+  status: "pending" | "approved" | "waitlisted" | "rejected" | "cancelled";
+  paymentStatus: "unpaid" | "partial" | "paid";
+  departureAt: string; // ISO
+  submittedAt: string; // ISO
+  submittedByUserId: string; // mine-view filter
+  approvedAt: string | null;
+};
+```
+
+**List query (R1):** `view`, `status`, `tourId`, `q`, `cursor`, `limit` — `from`/`to`/`paymentStatus` deferred to R3.
+
+### 5.3 Trunk implementation (S9.5-R2 — Command Center inbox)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Feature types + test ids | `apps/web/src/features/bookings/bookings-command-center-types.ts` | WEB-9.5-02 |
+| Query + gate helpers | `apps/web/src/features/bookings/bookings-command-center-logic.ts` | WEB-9.5-02 |
+| Page shell | `apps/web/app/(app)/bookings/page.tsx` | CP-9.5-01 |
+| Client inbox + inspection panel | `apps/web/app/(app)/bookings/bookings-page-client.tsx` | WEB-9.5-02 |
+| Member locked panel | `apps/web/app/(app)/bookings/bookings-command-center-gate.ts` | CP-9.5-04 |
+| BFF list + summary | `apps/web/app/api/bookings/route.ts` · `summary/route.ts` | BFF parity |
+| BFF approve/reject | `apps/web/app/api/bookings/[id]/approve/route.ts` · `reject/route.ts` | SMK-P9-04 |
+| Legacy alias | `apps/web/app/(app)/leader/review/page.tsx` → shared shell `view=inbox_table&scope=leader` | WEB-9.5-03 · DEC-P9-011 |
+
+**R2 UX scope:** KPI strip (summary API) · status filter · inbox table with row select · sticky inspection panel with Approve/Reject. Tour chips and bulk select deferred to **S9.5-R3**.
+
+### 5.4 Trunk implementation (S9.5-R3 — tour chips + bulk approve)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Summary `tourChips[]` | `apps/api/src/bookings/bookings.service.ts` | API-9.5-05 |
+| `paymentStatus` list filter | `apps/api/src/bookings/bookings.routes.ts` | WEB-9.5-04 |
+| `POST /bookings/bulk-approve` | `apps/api/src/bookings/bookings.routes.ts` | API-9.5-05 · P9-F-006 |
+| Tour chip bar + bulk select UI | `apps/web/app/(app)/bookings/bookings-page-client.tsx` | WEB-9.5-04 |
+| Chip/bulk helpers | `apps/web/src/features/bookings/bookings-command-center-logic.ts` | WEB-9.5-04 |
+| BFF bulk approve | `apps/web/app/api/bookings/bulk-approve/route.ts` | SMK-P9-04 |
+
+**`tourChips` shape (summary R3):**
+
+```typescript
+type BookingTourChip = {
+  tourId: string;
+  tourTitle: string;
+  pendingCount: number;
+  totalCount: number;
+};
+```
+
+Chips derive from tenant booking rows (not a second tours query). Clicking a chip sets `tourId` URL param; **All tours** clears it.
+
+**Bulk approve (R3):** inbox rows with `status=pending|waitlisted` expose checkboxes; **Approve selected** calls `POST /bookings/bulk-approve` with `ids[]` capped at manifest `maxBatch` (25). Each id writes its own outbox row inside one repository transaction.
+
+**List filters added in R3:** `paymentStatus=unpaid|partial|paid` (query param).
+
+### 5.5 Trunk implementation (S9.5-R5 — manual create UI)
+
+| Artifact | Path | Proof |
+| -------- | ---- | ----- |
+| Form types + test ids | `apps/web/src/features/bookings/bookings-create-types.ts` | WEB-9.5-05 |
+| Validation + payload builder | `apps/web/src/features/bookings/bookings-create-logic.ts` | WEB-9.5-05 |
+| Create page | `apps/web/app/(app)/bookings/new/page.tsx` | SMK-P9-07 |
+| Client form | `apps/web/app/(app)/bookings/new/bookings-create-page-client.tsx` | CP-9.5-06 |
+| Member gate | `apps/web/app/(app)/bookings/new/bookings-create-gate.ts` | CP-9.5-04 |
+| Command Center CTA | `bookings-page-client.tsx` → link `/bookings/new` | SMK-P9-07 |
+
+**Form fields (R5 MVP):** tour select (from `GET /api/tours`) · guest name · party size · departure date · optional email/phone. Submit → `POST /api/bookings` (BFF) → redirect `/bookings?status=pending` on **201**.
+
+**ACL:** admin/owner only — member sees locked panel (same pattern as users directory).
+
+**Leader alias (R5):** already on trunk via `(app)/leader/review` redirect — no second implementation.
 
 ---
 
