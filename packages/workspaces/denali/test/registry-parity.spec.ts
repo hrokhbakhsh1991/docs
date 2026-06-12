@@ -18,7 +18,7 @@ import { denaliPluginForWizardEngine, getDenaliWorkspacePlugin } from "../src/de
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GOLDEN_DIR = join(PACKAGE_ROOT, "test/fixtures/golden");
 
-const LEGACY_FIELD_REGISTRY_COUNT = 60;
+const LEGACY_FIELD_REGISTRY_COUNT = 62;
 
 function loadGoldenForm(filename: string): DenaliCreateTourWizardForm {
   const raw = JSON.parse(readFileSync(join(GOLDEN_DIR, filename), "utf8")) as Record<

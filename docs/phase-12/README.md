@@ -30,6 +30,7 @@ Denali remains the **first reference customer** under a **global multi-workspace
 | 12.6 | [publish-readiness-validation](subphases/12.6-publish-readiness-validation.md) | **DONE** |
 | 12.7 | [publish-transition-audit](subphases/12.7-publish-transition-audit.md) | **DONE** |
 | 12.8 | [urban-starter-wizard-hooks](subphases/12.8-urban-starter-wizard-hooks.md) | **DONE** |
+| 12.9 | [wizard-host-remediation](subphases/12.9-wizard-host-remediation.md) | **DONE** |
 
 ## Product routing (Denali)
 

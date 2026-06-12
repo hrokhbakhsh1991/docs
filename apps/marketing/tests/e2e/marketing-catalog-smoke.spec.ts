@@ -72,3 +72,14 @@ test("SMK-MKT-02 tour detail and back navigation", async ({ page }) => {
   await page.locator("[data-marketing-catalog-tour-detail] a[href='/tours']").click();
   await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
 });
+
+test("SMK-MKT-04 tour detail renders multi-day itinerary and segment photos", async ({ page }) => {
+  await page.goto(`/tours/${OPERATOR_PUBLISHED_TOUR_ID}`);
+  await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.locator("[data-marketing-catalog-itinerary]")).toBeVisible();
+  await expect(page.getByText("Summit push")).toBeVisible();
+  await expect(page.getByText(/Ridge ascent/)).toBeVisible();
+  await expect(page.locator("[data-marketing-catalog-segment-photos] img")).toHaveCount(1);
+});

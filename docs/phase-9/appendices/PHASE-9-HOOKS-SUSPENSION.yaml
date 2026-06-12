@@ -1,0 +1,49 @@
+# Phase 9 — temporary Husky / pre-commit suspension (implementation velocity)
+# Authority: operator decision 2026-06-08 · re-enable mandatory at subphase 9.8
+
+suspension_id: PHASE-9-HOOKS-SUSPENSION
+version: "2026-06-08-v1"
+active: true
+since: "2026-06-08"
+until_subphase: "9.8"
+until_gate: pnpm run phase-9:gate
+
+scope:
+  suspended:
+    - .husky/pre-commit → scripts/pre-commit-fast.sh (entire fast path)
+    - guard-docs on commit
+    - check-node-engine on commit
+    - eslint on diff
+    - prettier on diff
+    - test-changed (pre-commit mode)
+  manual_only_until_re_enable:
+    - pnpm run phase-9:guard
+    - pnpm run phase-8:guard
+    - pnpm run guard:import-boundary
+    - pnpm run test:changed
+    - pnpm run test:full
+    - pnpm run phase-9:gate
+    - pnpm run ci:integrity
+  not_suspended:
+    - GitHub Actions on push (unchanged — use draft PRs or defer push if needed)
+    - explicit local runs when closing a subphase
+
+re_enable:
+  delete_marker: docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml
+  verify:
+    - pnpm run pre-commit:fast
+    - pnpm run phase-9:guard
+    - pnpm run test:changed
+    - pnpm run test:full
+    - pnpm run phase-9:gate
+  ledger: update docs/phase-9/audits/IMPLEMENTATION-TRUTH.md hooks row at 9.8
+
+rationale: |
+  Phase 9 batches operator admin flow + UX across 9.1→9.7. Pre-commit test-changed
+  dominated commit latency (~5–10 min). Suspend hook enforcement to maximize iteration
+  on login flow, shell, and command centers. Charter gates and full gates resume at
+  9.8 Operator DoD closure.
+
+forbidden:
+  - HUSKY=0 or git commit --no-verify as bypass (marker file is the only supported suspend path)
+  - claiming phase-9:gate PASS or 9.8 DoD while this file has active: true

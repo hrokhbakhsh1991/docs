@@ -13,6 +13,11 @@ import {
   readDenaliCanonicalBasics,
 } from "../adapters/denaliCanonicalBasicsControl";
 
+import {
+  collectDenaliItineraryDayValidationIssues,
+  parseDenaliItineraryDays,
+} from "../schemas/denaliItineraryDaySchema";
+
 import { mapDenaliCanonicalToFormPath } from "./denaliCanonicalPaths";
 import type { DenaliUIContextOptions } from "./denaliContextualRules";
 import { isDenaliFieldRequired } from "./denaliFieldGate";
@@ -76,16 +81,17 @@ function collectDenaliItineraryRequiredIssues(
     ];
   }
 
+  const days = parseDenaliItineraryDays(rows);
   const issues: DenaliRuleRequiredIssue[] = [];
-  for (let i = 0; i < rows.length; i += 1) {
-    const row = rows[i] as { activities?: string };
-    if (typeof row?.activities !== "string" || row.activities.trim() === "") {
-      issues.push({
-        code: "custom",
-        path: ["programNature", "itinerary", i, "activities"],
-        message: "حداقل یک فعالیت برای هر روز الزامی است.",
-      });
-    }
+  for (const issue of collectDenaliItineraryDayValidationIssues(days)) {
+    issues.push({
+      code: "custom",
+      path:
+        issue.segmentIndex != null
+          ? ["programNature", "itinerary", issue.dayIndex, "segments", issue.segmentIndex, "title"]
+          : ["programNature", "itinerary", issue.dayIndex, "title"],
+      message: issue.message,
+    });
   }
   return issues;
 }

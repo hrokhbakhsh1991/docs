@@ -68,5 +68,5 @@ export function applyDenaliConditionalFieldRules(
 
       return { ...step, fields };
     })
-    .filter((step) => step.fields.length > 0);
+    .filter((step) => step.fields.length > 0 || step.stepId === "review");
 }

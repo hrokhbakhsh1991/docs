@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { TenantBrandMark } from "@/admin/shell/tenant-brand-mark";
@@ -10,6 +10,14 @@ import { TenantBrandingProvider, useTenantBrandTitle } from "@/tenant/tenant-bra
 
 import { WIZARD_BRIDGE_TEST_IDS } from "./wizard-bridge.types";
 import { WizardBridgeThemeToggle } from "./wizard-bridge-theme-toggle";
+
+export { WIZARD_BRIDGE_TEST_IDS };
+
+function WizardBridgeBackIcon() {
+  const locale = useLocale();
+  const Icon = locale === "fa" ? ChevronRight : ChevronLeft;
+  return <Icon className="wizard-bridge-shell__back-icon" aria-hidden size={16} strokeWidth={2.25} />;
+}
 
 type WizardBridgeShellProps = {
   readonly children: ReactNode;
@@ -74,10 +82,10 @@ function WizardBridgeShellChrome({
         <nav className="wizard-bridge-shell__nav" aria-label={tWizard("navAria")}>
           <Link
             href="/tours"
-            className="wizard-bridge-shell__back"
+            className="wizard-bridge-shell__back wizard-bridge-shell__back--primary"
             data-testid={WIZARD_BRIDGE_TEST_IDS.backTours}
           >
-            <ArrowRight className="wizard-bridge-shell__back-icon" aria-hidden size={14} />
+            <WizardBridgeBackIcon />
             {tWizard("backToTours")}
           </Link>
           <Link

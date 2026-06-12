@@ -12,6 +12,8 @@ export type FocusWizardFieldOptions = {
   readonly root?: ParentNode | null;
   readonly scroll?: boolean;
   readonly scrollBehavior?: ScrollBehavior;
+  readonly scrollBlock?: ScrollLogicalPosition;
+  readonly highlight?: boolean;
 };
 
 export type GoToStepFn = (stepId: string) => void | Promise<void>;

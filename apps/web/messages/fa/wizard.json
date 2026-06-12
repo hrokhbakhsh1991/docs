@@ -15,6 +15,8 @@
   "presetApplied": "پریست تور روی پیش‌نویس اعمال شد.",
   "createButton": "ساخت تور",
   "saveDraft": "ذخیره پیش‌نویس",
+  "clearDraft": "پاک کردن پیش‌نویس",
+  "clearDraftConfirm": "پیش‌نویس فعلی پاک شود و فرم از نو شروع شود؟",
   "savingDraft": "در حال ذخیره پیش‌نویس…",
   "creating": "در حال ساخت تور…",
   "created": "تور ساخته شد: {id}",
@@ -33,7 +35,7 @@
       "meterAria": "پیشرفت کیفیت محتوا {percent, number} درصد"
     },
     "draftIndex": {
-      "summary": "{count, plural, one {# پیش‌نویس ذخیره‌شده در این workspace} other {# پیش‌نویس ذخیره‌شده در این workspace}}"
+      "summary": "{count, plural, one {# پیش‌نویس ذخیره‌شده در {workspaceName}} other {# پیش‌نویس ذخیره‌شده در {workspaceName}}}"
     },
     "draftEvents": {
       "title": "تاریخچه پیش‌نویس",
@@ -42,6 +44,13 @@
         "updated": "پیش‌نویس ذخیره شد",
         "deleted": "پیش‌نویس پاک شد"
       }
+    },
+    "validation": {
+      "heading": "قبل از ادامه این موارد را اصلاح کنید",
+      "count": "{count, number} مورد نیاز به اصلاح",
+      "stepGroup": "{step} — {count, number} مورد",
+      "goToStep": "رفتن به مرحله {step}",
+      "issueAction": "رفتن به فیلد {field}"
     }
   },
   "bridge": {
@@ -54,6 +63,7 @@
     "progressAria": "پیشرفت ویزارد تور",
     "stepOf": "مرحله {current, number} از {total, number}",
     "stepOfWithLabel": "مرحله {current, number} از {total, number} — {label}",
+    "jumpToStep": "رفتن به مرحله {label}",
     "back": "قبلی",
     "continue": "ادامه"
   },

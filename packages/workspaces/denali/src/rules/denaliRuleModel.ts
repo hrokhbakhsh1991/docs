@@ -27,6 +27,11 @@ export {
   denaliRuleModelMountainMultiDay,
 } from "./generated/denaliRuleSet.generated";
 
+export {
+  readDenaliItineraryMatrixState,
+  type DenaliItineraryMatrixState,
+} from "./denali-itinerary-matrix";
+
 import { denaliRuleSet } from "./generated/denaliRuleSet.generated";
 import {
   DENALI_RULE_MODEL_CATEGORIES,

@@ -83,6 +83,8 @@ export function createPlatformWizardHostHooks(
 
   return Object.freeze({
     usesStepValidation: true,
+    validationSurfaceId: "platform",
+    wizardMessageNamespace: "wizard",
     resolveMatrixDimensionsFromDraft: () => dimensions,
     validateDraftSync: (input) => {
       const engine = PlatformWizardEngine.create(stripWizardHostForEngine(input.plugin));

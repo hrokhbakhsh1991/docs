@@ -38,13 +38,16 @@ describe("denali-composite.spec.ts", () => {
       "denali.pricing-participants",
       "denali.approximate-return-time",
       "denali.leader-user-ids",
+      "denali.social-media-link",
       "denali.guide-language-ids",
       "denali.custom-services",
+      "denali.tour-services",
       "denali.photos",
       "denali.itinerary",
     ]);
     assert.equal(isDenaliCompositeImplemented("denali.leader-user-ids"), true);
     assert.equal(isDenaliCompositeImplemented("denali.custom-services"), true);
+    assert.equal(isDenaliCompositeImplemented("denali.tour-services"), true);
     assert.equal(isDenaliCompositeImplemented("denali.approximate-return-time"), true);
   });
 
@@ -70,6 +73,13 @@ describe("denali-composite.spec.ts", () => {
       parseDenaliGearItems([{ equipmentId: "eq-1", name: "Ice axe", isRequired: true }]),
       [{ equipmentId: "eq-1", name: "Ice axe", isRequired: true }]
     );
+    assert.deepEqual(
+      parseDenaliGearItems([{ equipmentId: "eq-2", name: "Rope", isRequired: false }]),
+      [{ equipmentId: "eq-2", name: "Rope", isRequired: false }]
+    );
+    assert.deepEqual(parseDenaliGearItems([{ equipmentId: "eq-3", name: "Helmet" }]), [
+      { equipmentId: "eq-3", name: "Helmet", isRequired: true },
+    ]);
   });
 
   it("WEB-DENALI-COMP-03 writes nested gathering points on draft", () => {
@@ -82,5 +92,13 @@ describe("denali-composite.spec.ts", () => {
     );
     assert.equal(stored.length, 1);
     assert.equal(stored[0]?.name, "Main gate");
+  });
+
+  it("WEB-DENALI-COMP-05 writes tour service buckets on draft", () => {
+    const draft = emptyTourWizardDraft();
+    let next = setCanonicalValue(draft, "tripDetails.logistics.includedServices", ["صبحانه"]);
+    next = setCanonicalValue(next, "tripDetails.logistics.excludedServices", ["ناهار"]);
+    assert.deepEqual(getCanonicalValue(next, "tripDetails.logistics.includedServices"), ["صبحانه"]);
+    assert.deepEqual(getCanonicalValue(next, "tripDetails.logistics.excludedServices"), ["ناهار"]);
   });
 });

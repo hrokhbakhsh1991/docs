@@ -11,12 +11,36 @@ import { mapFormPathToCanonical } from "../rules/denaliCanonicalPaths";
 import type { DenaliUIContextOptions } from "../rules/denaliContextualRules";
 import {
   getCanonicalStringFromDraft,
+  getCanonicalValueFromDraft,
   type CanonicalWizardDraftEnvelope,
 } from "./canonical-draft-access";
+import { resolveDenaliCompositeRendererId } from "../composites/denali-composite-registry";
+import type { DenaliFieldDefinition } from "../field-registry/denaliFieldRegistryData";
+import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
 import { resolveDenaliDimensionsFromDraft } from "./apply-contextual-render-plan";
 import type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 import { tourWizardDraftToDenaliForm } from "./denali-wizard-form-adapter";
 import type { DenaliWizardRuleEvalContext } from "./denali-wizard-rule-eval-context";
+
+const DENALI_COMPOSITE_FIELD_BY_CANONICAL_PATH = new Map<string, DenaliFieldDefinition>(
+  DENALI_FIELD_DEFINITIONS.flatMap((field) => {
+    const compositeId = resolveDenaliCompositeRendererId(field);
+    if (compositeId == null) {
+      return [];
+    }
+    return [
+      [field.canonicalPath, field] as const,
+      [compositeId, field] as const,
+    ];
+  })
+);
+
+/** Composite widgets that persist string[] at the canonical path (not platform composite objects). */
+const DENALI_STRING_ARRAY_CANONICAL_PATHS = new Set([
+  "leaderUserIds",
+  "program.themeIds",
+  "program.guideLanguageIds",
+]);
 
 export type DenaliWizardValidationScope = {
   readonly stepId?: string;
@@ -40,6 +64,86 @@ function pluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
     ...wizardPlugin
   } = plugin;
   return wizardPlugin as WorkspacePlugin;
+}
+
+function isEmptyHiddenShellValue(value: unknown): boolean {
+  if (value === null) {
+    return true;
+  }
+  if (typeof value === "string" && value.trim() === "") {
+    return true;
+  }
+  return (
+    typeof value === "object" &&
+    value != null &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
+  );
+}
+
+function resolveDenaliCompositeCanonicalPath(fieldId: string): string {
+  const field = DENALI_COMPOSITE_FIELD_BY_CANONICAL_PATH.get(fieldId);
+  return field?.canonicalPath ?? fieldId;
+}
+
+function isDenaliHiddenShellPoison(
+  violation: ValidationResult["violations"][number],
+  envelope: CanonicalWizardDraftEnvelope
+): boolean {
+  if (violation.code !== "HIDDEN_FIELD_POISON" || violation.fieldId == null) {
+    return false;
+  }
+  const canonicalPath = resolveDenaliCompositeCanonicalPath(violation.fieldId);
+  const value = getCanonicalValueFromDraft(envelope, canonicalPath);
+  return isEmptyHiddenShellValue(value);
+}
+
+function isDenaliCompositeStorageMismatch(
+  violation: ValidationResult["violations"][number],
+  envelope: CanonicalWizardDraftEnvelope
+): boolean {
+  if (violation.code !== "CANONICAL_TYPE_MISMATCH" || violation.fieldId == null) {
+    return false;
+  }
+  if (DENALI_STRING_ARRAY_CANONICAL_PATHS.has(violation.fieldId)) {
+    const value = getCanonicalValueFromDraft(envelope, violation.fieldId);
+    return value === undefined || Array.isArray(value);
+  }
+  const field = DENALI_COMPOSITE_FIELD_BY_CANONICAL_PATH.get(violation.fieldId);
+  if (field == null) {
+    return false;
+  }
+  const value = getCanonicalValueFromDraft(envelope, field.canonicalPath);
+  if (Array.isArray(value)) {
+    return true;
+  }
+  if (typeof value === "object" && value !== null) {
+    return true;
+  }
+  return (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value == null
+  );
+}
+
+function filterDenaliCompositeStorageViolations(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope
+): ValidationResult {
+  if (result.ok) {
+    return result;
+  }
+  const violations = result.violations.filter(
+    (violation) =>
+      !isDenaliCompositeStorageMismatch(violation, envelope) &&
+      !isDenaliHiddenShellPoison(violation, envelope)
+  );
+  return {
+    ok: violations.length === 0,
+    violations,
+  };
 }
 
 function filterValidationToStep(
@@ -130,10 +234,11 @@ export function validateDenaliWizardDraftSync(
       ? resolveDenaliDimensionsFromDraft(envelope, denaliRules ?? undefined)
       : { category: "mountain", duration: "single_day" };
 
-  const result = engine.validateCanonical(document, {
+  let result = engine.validateCanonical(document, {
     tenantId,
     dimensions,
   });
+  result = filterDenaliCompositeStorageViolations(result, { data: document.data });
 
   if (scope?.stepId == null || scope.visibleSteps == null) {
     return result;

@@ -4,6 +4,7 @@ import { useLocale } from "next-intl";
 import { useCallback, type ChangeEventHandler } from "react";
 
 import {
+  formatGroupedDigitsString,
   normalizeNumericInputValue,
   toLocalizedDigits,
   type NumericInputMode,
@@ -15,6 +16,8 @@ export type UseLocalizedNumericInputOptions = {
   readonly onChange: (asciiValue: string) => void;
   readonly mode?: NumericInputMode;
   readonly maxLength?: number;
+  /** Adds thousand separators for large monetary values (stored value stays plain ASCII digits). */
+  readonly groupThousands?: boolean;
 };
 
 /** Binds a text input: Persian display when locale is fa, ASCII value in state/API. */
@@ -23,9 +26,12 @@ export function useLocalizedNumericInput({
   onChange,
   mode = "digits",
   maxLength,
+  groupThousands = false,
 }: UseLocalizedNumericInputOptions) {
   const locale = useLocale() as AppLocale;
-  const displayValue = toLocalizedDigits(value, locale);
+  const displayValue = groupThousands
+    ? formatGroupedDigitsString(value, locale)
+    : toLocalizedDigits(value, locale);
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {

@@ -83,4 +83,28 @@ describe("denali-tour-clone-hydration.spec.ts — Phase 11.6", () => {
     const gear = hydrated.data.participants as { gearItems: unknown[] };
     assert.equal(gear.gearItems.length, 0);
   });
+
+  it("API-P11-12-02 prepareDenaliServerCloneCanonical prunes orphan segment photoIds", () => {
+    const source = {
+      title: "Photo trek",
+      category: "mountain_multi",
+      photos: [{ id: "p1", label: "Summit" }],
+      program: {
+        itinerary: [
+          {
+            dayNumber: 1,
+            title: "Day one",
+            segments: [
+              { id: "s1", kind: "activity", title: "Hike", photoIds: ["p1", "p-stale"] },
+            ],
+          },
+        ],
+      },
+    };
+    const cloned = prepareDenaliServerCloneCanonical(source);
+    const itinerary = cloned.program as {
+      itinerary: Array<{ segments: Array<{ photoIds?: string[] }> }>;
+    };
+    assert.deepEqual(itinerary.itinerary[0]?.segments[0]?.photoIds, ["p1"]);
+  });
 });

@@ -33,6 +33,7 @@ import {
 } from "./settings.service";
 import { SettingsWorkspaceForbiddenError } from "./settings-workspace-guard";
 import type {
+  CreateEquipmentRequest,
   CreateGuideLanguageRequest,
   CreateLocationResourceRequest,
   CreateTourPresetRequest,
@@ -49,15 +50,33 @@ function readStringField(body: unknown, key: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function parseCreateBody(body: unknown): { name: string; category?: string } | null {
+function readThemeIdsField(body: unknown): string[] | undefined {
+  if (typeof body !== "object" || body === null || !("themeIds" in body)) {
+    return undefined;
+  }
+  const value = (body as Record<string, unknown>).themeIds;
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  return value.filter(
+    (entry): entry is string => typeof entry === "string" && entry.trim().length > 0
+  );
+}
+
+function parseCreateBody(body: unknown): CreateEquipmentRequest | null {
   const name = readStringField(body, "name");
   const category = readStringField(body, "category");
   if (name.length === 0) {
     return null;
   }
+  if (typeof body === "object" && body !== null && "themeIds" in body && !Array.isArray((body as Record<string, unknown>).themeIds)) {
+    return null;
+  }
+  const themeIds = readThemeIdsField(body);
   return {
     name,
     ...(category.length > 0 ? { category } : {}),
+    ...(themeIds !== undefined ? { themeIds } : {}),
   };
 }
 
@@ -83,7 +102,7 @@ function parseCreateBodyForModule(
   moduleId: string,
   body: unknown
 ):
-  | { name: string; category?: string }
+  | CreateEquipmentRequest
   | CreateTourThemeRequest
   | CreateGuideLanguageRequest
   | CreateTourPresetRequest
@@ -201,7 +220,11 @@ function parsePatchBodyForModule(
   return parsePatchBody(body);
 }
 
-function parsePatchBody(body: unknown): { name?: string; category?: string | null } {
+function parsePatchBody(body: unknown): {
+  name?: string;
+  category?: string | null;
+  themeIds?: string[];
+} {
   const name = readStringField(body, "name");
   const hasCategory = typeof body === "object" && body !== null && "category" in body;
   const categoryRaw = hasCategory ? (body as Record<string, unknown>).category : undefined;
@@ -211,10 +234,13 @@ function parsePatchBody(body: unknown): { name?: string; category?: string | nul
       : typeof categoryRaw === "string"
         ? categoryRaw.trim()
         : undefined;
+  const hasThemeIds = typeof body === "object" && body !== null && "themeIds" in body;
+  const themeIds = hasThemeIds ? readThemeIdsField(body) : undefined;
 
   return {
     ...(name.length > 0 ? { name } : {}),
     ...(hasCategory ? { category: category ?? null } : {}),
+    ...(hasThemeIds && themeIds !== undefined ? { themeIds } : {}),
   };
 }
 

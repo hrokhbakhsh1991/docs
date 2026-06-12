@@ -1,4 +1,7 @@
-import { resolveTenantBrandLogoPreviewUrl } from "@/features/settings/tenant-brand-logo-client";
+import {
+  fetchTenantBranding,
+  resolveTenantBrandLogoPreviewUrl,
+} from "@/features/settings/tenant-brand-logo-client";
 
 type LogoCacheListener = () => void;
 
@@ -29,7 +32,13 @@ export async function fetchTenantBrandingLogoShared(): Promise<string | null> {
   if (inflight !== null) {
     return inflight;
   }
-  inflight = resolveTenantBrandLogoPreviewUrl()
+  inflight = fetchTenantBranding()
+    .then(async (branding) => {
+      if (branding.logo === null) {
+        return null;
+      }
+      return resolveTenantBrandLogoPreviewUrl();
+    })
     .then((url) => {
       cachedLogoUrl = url;
       inflight = null;

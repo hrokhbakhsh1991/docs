@@ -3,6 +3,8 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 
+import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
+
 import { resolveWorkspaceDraftIndexCount } from "./workspace-draft-index-logic";
 import type { WorkspaceDraftIndexItem } from "./workspace-draft-types";
 
@@ -22,6 +24,7 @@ export function WorkspaceDraftIndexSummary({
   currentDraftKey,
 }: WorkspaceDraftIndexSummaryProps) {
   const t = useTranslations("wizard.host.draftIndex");
+  const workspaceName = useTenantBrandTitle();
 
   if (loading || items.length === 0) {
     return null;
@@ -34,8 +37,9 @@ export function WorkspaceDraftIndexSummary({
       className="workspace-draft-index-summary"
       data-testid={WORKSPACE_DRAFT_INDEX_TEST_IDS.summary}
       data-workspace-draft-count={count}
+      data-workspace-name={workspaceName}
     >
-      {t("summary", { count })}
+      {t("summary", { count, workspaceName })}
     </p>
   );
 }

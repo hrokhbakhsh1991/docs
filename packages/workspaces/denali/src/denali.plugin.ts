@@ -138,20 +138,32 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
       toCatalogCard: toDenaliCatalogCard,
     }),
     tourClone: deepFreeze({
-      hydrateWizardDraft: ({ canonicalData, activeEquipmentIds, wizardSessionId, tenantId }) =>
+      hydrateWizardDraft: ({
+        canonicalData,
+        activeEquipmentIds,
+        activeDestinationIds,
+        wizardSessionId,
+        tenantId,
+      }) =>
         denaliHydrateTourCloneDraft(canonicalData, {
           activeEquipmentIds,
+          activeDestinationIds,
           wizardSessionId,
           tenantId,
         }),
       prepareServerCloneCreateData: ({
         canonicalData,
         activeEquipmentIds,
+        activeDestinationIds,
       }: {
         canonicalData: Record<string, unknown>;
         activeEquipmentIds?: readonly string[];
+        activeDestinationIds?: readonly string[];
       }) => ({
-        data: prepareDenaliServerCloneCanonical(canonicalData, { activeEquipmentIds }),
+        data: prepareDenaliServerCloneCanonical(canonicalData, {
+          activeEquipmentIds,
+          activeDestinationIds,
+        }),
       }),
     }),
     wizardHost: deepFreeze({ ...denaliWizardHostHooks }),
@@ -201,7 +213,10 @@ export {
   applyOverlayToRuleSet,
   type FieldRuleOverlayPatch,
 } from "./rules/templateOverlay";
-export { readDenaliCanonicalBasics } from "./adapters/canonical-basics";
+export {
+  patchDenaliCanonicalBasics,
+  readDenaliCanonicalBasics,
+} from "./adapters/canonical-basics";
 export {
   buildDenaliTourCreateDefaultValues,
   type DenaliCreateTourWizardForm,

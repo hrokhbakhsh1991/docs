@@ -9,7 +9,13 @@ export const WIZARD_STEP_SHELL_TEST_IDS = {
   next: "workspace-wizard-step-next",
   panel: "workspace-wizard-step-panel",
   progress: "workspace-wizard-step-progress",
+  progressStep: (stepId: string) => `workspace-wizard-step-${stepId}`,
 } as const;
+
+/** Allow jumping back to completed steps or the current step (not forward). */
+export function canNavigateToWizardStepIndex(targetIndex: number, activeIndex: number): boolean {
+  return targetIndex >= 0 && targetIndex <= activeIndex;
+}
 
 export function resolveWizardStepLabel(
   stepId: string,

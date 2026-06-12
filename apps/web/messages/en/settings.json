@@ -106,7 +106,7 @@
     },
     "tour_presets": {
       "title": "Tour presets",
-      "description": "Reusable starting points for common tour types."
+      "description": "Shortcuts to start new tours with a preset title and default theme."
     },
     "tour_wizard_template": {
       "title": "Tour form template",
@@ -166,6 +166,11 @@
     "subtitle": "Generic CRUD pilot (SMK-P9-08)",
     "addTitle": "Add equipment",
     "category": "Category",
+    "themes": "Related tour themes",
+    "themesHint": "Pick from themes defined in settings. Leave empty to make equipment available for all themes.",
+    "noThemes": "Create tour themes first:",
+    "themesLink": "Tour themes",
+    "allThemes": "All themes",
     "catalogTitle": "Catalog ({count})",
     "empty": "No equipment items yet.",
     "deleteItem": "Delete {name}"
@@ -205,14 +210,26 @@
   },
   "tourPresets": {
     "title": "Tour presets",
-    "subtitle": "Creation presets catalog (Phase 9.6 R6)",
+    "subtitle": "Ready-made shortcuts for starting the new-tour wizard faster",
+    "aboutTitle": "What is a tour preset?",
+    "intro": "A preset is a starting template for tour creation. Define one for each tour type your team runs often (for example “3-day trek” or “family nature walk”) so operators do not start from a blank form every time.",
+    "introBulletWizard": "“Start with this preset” opens the new-tour wizard and pre-fills the tour title and default theme (when set) from this preset.",
+    "introBulletDescription": "The description field is for your team only — it is not shown on the public tour form.",
+    "introBulletAdvanced": "To auto-select a preset when creating tours, see",
+    "advancedLink": "advanced preset settings",
     "addTitle": "Add preset",
-    "theme": "Theme",
-    "noTheme": "No theme",
+    "addDescription": "Pick a short name and optionally a default theme.",
+    "nameHint": "Shown in the preset list and suggested as the tour title when the title field is still empty.",
+    "descriptionHint": "Internal note for your team — e.g. “half-day tours around the city” or “spring season only”.",
+    "theme": "Default theme",
+    "themeHint": "From tour themes in settings. Applied when the wizard has no theme selected yet.",
+    "noTheme": "No default theme",
+    "noThemes": "Create themes first:",
+    "themesLink": "Tour themes",
     "listTitle": "Presets ({count})",
-    "empty": "No tour presets yet.",
+    "empty": "No presets yet. Create one for your most common tour type so the team can start new tours faster.",
     "themeLabel": "Theme: {name}",
-    "useInWizard": "Use in wizard"
+    "useInWizard": "Start with this preset"
   },
   "presetsAdvanced": {
     "backToPresets": "Back to tour presets",

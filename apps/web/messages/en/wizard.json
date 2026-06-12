@@ -15,6 +15,8 @@
   "presetApplied": "Tour preset applied to this draft.",
   "createButton": "Create tour",
   "saveDraft": "Save draft",
+  "clearDraft": "Clear draft",
+  "clearDraftConfirm": "Discard the current draft and start over?",
   "savingDraft": "Saving draft…",
   "creating": "Creating tour…",
   "created": "Tour created: {id}",
@@ -33,7 +35,7 @@
       "meterAria": "Content quality progress {percent, number} percent"
     },
     "draftIndex": {
-      "summary": "{count, plural, one {# saved draft in this workspace} other {# saved drafts in this workspace}}"
+      "summary": "{count, plural, one {# saved draft in {workspaceName}} other {# saved drafts in {workspaceName}}}"
     },
     "draftEvents": {
       "title": "Draft history",
@@ -42,6 +44,13 @@
         "updated": "Draft saved",
         "deleted": "Draft cleared"
       }
+    },
+    "validation": {
+      "heading": "Fix these issues before continuing",
+      "count": "{count, number} {count, plural, one {issue} other {issues}} to fix",
+      "stepGroup": "{step} — {count, number} {count, plural, one {issue} other {issues}}",
+      "goToStep": "Go to step {step}",
+      "issueAction": "Go to field {field}"
     }
   },
   "bridge": {
@@ -54,6 +63,7 @@
     "progressAria": "Tour wizard progress",
     "stepOf": "Step {current, number} of {total, number}",
     "stepOfWithLabel": "Step {current, number} of {total, number} — {label}",
+    "jumpToStep": "Go to step {label}",
     "back": "Back",
     "continue": "Continue"
   },

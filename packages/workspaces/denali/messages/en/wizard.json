@@ -22,6 +22,10 @@
       },
       "metrics": {
         "elevationGain": "Elevation gain (m)"
+      },
+      "logistics": {
+        "includedServices": "Included with tour",
+        "excludedServices": "Participant responsibility"
       }
     },
     "startDateTime": "Start date & time",
@@ -31,11 +35,11 @@
     "meetingPoint": "Meeting point",
     "startPointLocationText": "Program start location",
     "approximateReturnTime": "Approximate return time",
-    "leaderUserIds": "Tour leaders / workspace staff",
+    "leaderUserIds": "Tour leaders",
     "requiresLocalGuide": "Requires local guide",
     "localGuideName": "Local guide name",
     "requiresManualAdminApproval": "Requires admin approval to finalize booking",
-    "socialMediaLink": "Social media link",
+    "socialMediaLink": "Social channel / link",
     "program": {
       "themeIds": "Themes (optional)",
       "guideLanguageIds": "Guide languages (optional)",
@@ -99,8 +103,10 @@
     "nature_multi": "Nature — multi day",
     "desert_day": "Desert — single day",
     "desert_multi": "Desert — multi day",
-    "event_reading": "Event — reading",
-    "event_cinema": "Event — cinema"
+    "event_reading": "Event — reading (single day)",
+    "event_reading_multi": "Event — reading (multi-day)",
+    "event_cinema": "Event — cinema (single day)",
+    "event_cinema_multi": "Event — cinema (multi-day)"
   },
   "transportModes": {
     "organizer_vehicle": "Organizer vehicle",
@@ -125,7 +131,21 @@
     },
     "tourKind": {
       "placeholder": "Select tour type…",
-      "helper": "Category and duration drive which fields appear (elevation, hiking hours, itinerary, location zones, and more)."
+      "helper": "Category and duration drive which fields appear (elevation, hiking hours, itinerary, location zones, and more).",
+      "categories": {
+        "mountain": "Mountain",
+        "nature": "Nature",
+        "desert": "Desert",
+        "event": "Event"
+      },
+      "durations": {
+        "single_day": "Single day",
+        "multi_day": "Multi-day"
+      },
+      "eventVariants": {
+        "reading": "Reading",
+        "cinema": "Cinema"
+      }
     },
     "datetimeEnd": {
       "multiDayHint": "Required for multi-day tours — used to size the itinerary and per-day photo sections.",
@@ -133,7 +153,8 @@
     },
     "difficulty": {
       "level": "Level {level}",
-      "helper": "1 = easiest, 10 = most demanding."
+      "helper": "1 to 10 in half steps (e.g. 6.5 or 7). 1 = easiest, 10 = hardest.",
+      "outOf": "of {max}"
     },
     "elevation": {
       "meters": "meters",
@@ -143,10 +164,20 @@
       "helper": "Approximate clock time when participants return (24-hour format)."
     },
     "location": {
-      "zonesHelper": "Set coordinates for each route zone. Use the map link or your device location, then fine-tune latitude and longitude.",
+      "sectionTitle": "Route locations & addresses",
+      "zonesHelper": "Search and pick an address for each route point. The map preview updates automatically when you select a suggestion.",
+      "searchLabel": "Search address",
+      "searchHint": "Type at least 2 characters to see suggestions.",
+      "searchPlaceholder": "e.g. Damavand camp or street name…",
+      "searchNoResults": "No results found.",
+      "searchUnavailable": "Search is temporarily unavailable.",
+      "selectedAddress": "Selected address: {address}",
+      "coordinatesSet": "Coordinates: {lat}, {lng}",
+      "pickFromMapHint": "Search for an address or click on the map to pick a location.",
+      "mapInteractionHint": "Click the map or drag the marker — the address field updates automatically.",
       "useCurrentLocation": "Use current location",
       "mapPreviewTitle": "Map preview",
-      "openFullMapLink": "Open full map to pick coordinates"
+      "openFullMapLink": "Open full map"
     },
     "locationTypes": {
       "startPoint": "Start point",
@@ -156,7 +187,8 @@
     },
     "gatheringPoints": {
       "helper": "Add one or more meeting stations. Mark one as primary for the default meeting point.",
-      "station": "Station {n}",
+      "addressHint": "Search for the meeting address; the map syncs with your selection.",
+      "station": "Station {n, number}",
       "primary": " (primary)",
       "setPrimary": "Set as primary",
       "removeStation": "Remove station",
@@ -165,7 +197,7 @@
     "photos": {
       "previewAlt": "Tour photo preview",
       "multiDayHelper": "Upload a cover or gallery photo for each program day.",
-      "singleDayHelper": "Upload images or paste URLs — up to {max} cover / gallery photos.",
+      "singleDayHelper": "Upload images or paste URLs — up to {max, number} cover / gallery photos.",
       "noPhotos": "No photos yet.",
       "uploadImage": "Upload image",
       "storedInObjectStorage": "Stored in object storage.",
@@ -178,13 +210,13 @@
         "PHOTO_INVALID_TYPE": "Only JPEG, PNG, or WebP images are allowed.",
         "PHOTO_FILE_TOO_LARGE": "Image must be 5 MB or smaller.",
         "PHOTO_STORAGE_NOT_CONFIGURED": "Photo storage is not configured. Use an image URL instead.",
-        "PHOTO_UPLOAD_HTTP_ERROR": "Upload failed (HTTP {status}).",
+        "PHOTO_UPLOAD_HTTP_ERROR": "Upload failed (HTTP {status, number}).",
         "PHOTO_MISSING_STORAGE_KEY": "Upload response missing storage key."
       },
       "addPhoto": "Add photo",
       "removePhoto": "Remove photo",
-      "multiDayHelperWithMax": "Multi-day tour — assign each photo to a day (up to {max} total).",
-      "dayOption": "Day {n}",
+      "multiDayHelperWithMax": "Multi-day tour — assign each photo to a day (up to {max, number} total).",
+      "dayOption": "Day {n, number}",
       "dayLabel": "Day"
     },
     "customServices": {
@@ -194,15 +226,91 @@
       "placeholder": "e.g. Photography guide",
       "addLabel": "Add label"
     },
+    "tourServices": {
+      "title": "Tour services",
+      "helper": "Clarify what the tour provides and what participants must bring or arrange themselves.",
+      "selectedCount": "{count, number} items listed",
+      "includedTitle": "Included with tour",
+      "includedHelper": "Provided by the organizer.",
+      "selfProvidedTitle": "Participant responsibility",
+      "selfProvidedHelper": "Items participants bring or handle on their own.",
+      "addLabel": "Add",
+      "includedPlaceholder": "e.g. Breakfast, transport, insurance",
+      "selfProvidedPlaceholder": "e.g. Lunch, personal gear",
+      "suggestionsLabel": "Quick add",
+      "removeLabel": "Remove {name}",
+      "emptyBucket": "Nothing added yet.",
+      "suggestionsIncluded": [
+        "Breakfast",
+        "Lunch",
+        "Dinner",
+        "Transport",
+        "Accommodation",
+        "Local guide",
+        "Insurance",
+        "4x4 shuttle"
+      ],
+      "suggestionsSelfProvided": [
+        "Lunch",
+        "Dinner",
+        "Snacks",
+        "Personal gear",
+        "Cash",
+        "Warm clothing"
+      ]
+    },
     "itinerary": {
-      "helper": "Day-by-day program for multi-day tours ({count} days from start/end dates).",
-      "dayHeading": "Day {n}",
-      "resetRows": "Reset {count} day rows"
+      "helper": "Day-by-day program for multi-day tours ({count, number} days from start/end dates).",
+      "dayHeading": "Day {n, number}",
+      "dayTitle": "Day title",
+      "daySummary": "Day summary",
+      "segmentsHeading": "Events and program sections",
+      "segmentHeading": "Section {n, number}",
+      "segmentKind": "Type",
+      "startTime": "Start time (optional)",
+      "locationLabel": "Location",
+      "locationPlaceholder": "e.g. Camp 2, main hall",
+      "addSegment": "Add section",
+      "resetRows": "Reset {count, number} day rows",
+      "segmentPhotos": "Photos for this section",
+      "segmentPhotosEmpty": "Upload photos in the Photos step first.",
+      "segmentPhotoToggle": "Select photo {label}",
+      "segmentDestination": "Catalog location",
+      "segmentDestinationPlaceholder": "Select location (optional)",
+      "segmentKinds": {
+        "activity": "Activity",
+        "transport": "Transport",
+        "meal": "Meal",
+        "rest": "Rest",
+        "accommodation": "Accommodation",
+        "free_time": "Free time",
+        "note": "Note"
+      }
+    },
+    "socialMedia": {
+      "helper": "Where participants get tour updates. Telegram needs only a channel name; other networks need a full link.",
+      "telegram": "Telegram",
+      "other": "Other",
+      "telegramFieldLabel": "Channel or username",
+      "urlFieldLabel": "Link",
+      "telegramPlaceholder": "@mychannel",
+      "urlPlaceholder": "https://instagram.com/...",
+      "telegramHint": "No full URL needed — enter @username or channel name only.",
+      "urlHint": "Enter the full link starting with https://",
+      "invalidTelegram": "Enter a valid Telegram channel or username.",
+      "invalidUrl": "Link must start with http:// or https://"
     },
     "leaders": {
-      "helper": "Select one or more tour leaders from your workspace team.",
-      "loading": "Loading team members…",
-      "empty": "No team members found. Invite users under Users → Invite."
+      "helper": "Pick one or more leaders for this tour. Only members tagged as leaders in Users appear here.",
+      "loading": "Loading leaders…",
+      "empty": "No leaders yet. Open Users and enable the leader tag for each guide.",
+      "openUsers": "Open Users",
+      "selectedCount": "{count, number} selected",
+      "leaderBadge": "Leader",
+      "adminBadge": "Admin",
+      "searchLabel": "Search leaders",
+      "searchPlaceholder": "Name or phone…",
+      "searchEmpty": "No leaders match this search."
     },
     "guideLanguages": {
       "helper": "Select languages your guides can offer on this tour.",
@@ -210,10 +318,17 @@
       "empty": "No guide languages yet. Add items under Settings → Guide languages."
     },
     "gear": {
-      "helper": "Pick required gear from Settings → Equipment. Mark each item as required or optional.",
+      "helper": "Choose equipment for your selected themes. Mark each item as required or optional.",
       "loading": "Loading equipment…",
-      "empty": "No equipment catalog yet. Add items under Settings → Equipment.",
-      "requiredForParticipants": "Required for participants"
+      "empty": "No equipment matches the current themes. Add items under Settings → Equipment or pick different themes.",
+      "openEquipment": "Open equipment settings",
+      "selectedCount": "{count, number} items selected",
+      "required": "Required",
+      "optional": "Optional",
+      "requirementGroup": "Requirement for {name}",
+      "searchLabel": "Search equipment",
+      "searchPlaceholder": "Equipment name…",
+      "searchEmpty": "No equipment matches this search."
     },
     "destination": {
       "loadingPlaceholder": "Loading destinations…",
@@ -221,9 +336,11 @@
       "empty": "No destinations yet. Add regions and destinations under Settings → Locations."
     },
     "programContent": {
-      "helper": "Tag the tour with themes from Settings → Tour themes.",
+      "helper": "Pick one or more themes to categorize and present this tour.",
       "loading": "Loading themes…",
-      "empty": "No active tour themes yet. Add themes under Settings → Tour themes."
+      "empty": "No tour themes yet. Add themes under Settings → Tour themes.",
+      "openTourThemes": "Open tour themes",
+      "selectedCount": "{count, number} {count, plural, one {theme} other {themes}} selected"
     },
     "pricingParticipants": {
       "sectionTitle": "Participant requirements",
@@ -250,9 +367,22 @@
     }
   },
   "review": {
+    "intro": "Review everything below before creating the tour.",
+    "loading": "Preparing summary…",
     "summaryHeading": "Tour summary",
+    "untitledTour": "Untitled tour",
+    "yes": "Yes",
+    "no": "No",
+    "gearRequired": "Required",
+    "gearOptional": "Optional",
+    "photoCount": "{count, number} {count, plural, one {photo} other {photos}}",
+    "dayLabel": "Day {day, number}",
+    "primaryGathering": "Primary",
     "validationHeading": "Fix these issues before creating the tour",
+    "validationCount": "{count, number} {count, plural, one {issue} other {issues}} to fix",
     "validationStepGroup": "{step} — {count, number} {count, plural, one {issue} other {issues}}",
+    "validationGoToStep": "Go to step {step}",
+    "validationIssueAction": "Go to {field} and fix this issue",
     "publishStatus": {
       "helper": "Draft tours stay internal until you publish as active.",
       "draft": "Draft",

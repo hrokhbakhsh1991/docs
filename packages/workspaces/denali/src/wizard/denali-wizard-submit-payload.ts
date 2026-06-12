@@ -16,6 +16,8 @@ import type { CanonicalWizardDraftEnvelope } from "./canonical-draft-access";
 import {
   sanitizeGearCatalogRefsOnDraft,
   sanitizeGuideLanguageIdsOnDraft,
+  sanitizeItineraryDestinationIdsOnDraft,
+  sanitizeItineraryPhotoIdsOnDraft,
   sanitizeLeaderUserIdsOnDraft,
   sanitizeThemeIdsOnDraft,
 } from "./denali-wizard-catalog-sanitize";
@@ -35,6 +37,7 @@ export type PrepareDenaliTourCreatePayloadOptions = {
   readonly activeThemeIds?: readonly string[];
   readonly activeGuideLanguageIds?: readonly string[];
   readonly selectableLeaderIds?: readonly string[];
+  readonly activeDestinationIds?: readonly string[];
 };
 
 export type PrepareDenaliTourPatchPayloadOptions = PrepareDenaliTourCreatePayloadOptions & {
@@ -64,6 +67,8 @@ export function prepareDenaliTourCreatePayload(
   envelope = sanitizeThemeIdsOnDraft(envelope, options?.activeThemeIds);
   envelope = sanitizeGuideLanguageIdsOnDraft(envelope, options?.activeGuideLanguageIds);
   envelope = sanitizeLeaderUserIdsOnDraft(envelope, options?.selectableLeaderIds);
+  envelope = sanitizeItineraryPhotoIdsOnDraft(envelope);
+  envelope = sanitizeItineraryDestinationIdsOnDraft(envelope, options?.activeDestinationIds);
   const form = tourWizardDraftToDenaliForm(envelope, rules) as unknown as Record<string, unknown>;
   const document = createCanonicalDocument({
     schemaVersion: DENALI_CURRENT_CANONICAL_SCHEMA_VERSION,
@@ -143,11 +148,20 @@ export function buildDenaliWizardRuleEvalContextFromHostInput(input: {
 export function denaliHydrateTourEditDraftFromHostInput(input: {
   readonly canonicalData: Readonly<Record<string, unknown>>;
   readonly activeEquipmentIds?: readonly string[];
+  readonly activeDestinationIds?: readonly string[];
 }): Record<string, unknown> {
-  return denaliHydrateTourEditDraft(
-    input.canonicalData as Record<string, unknown>,
-    input.activeEquipmentIds !== undefined ? { activeEquipmentIds: input.activeEquipmentIds } : undefined
-  ).data;
+  const options =
+    input.activeEquipmentIds !== undefined || input.activeDestinationIds !== undefined
+      ? {
+          ...(input.activeEquipmentIds !== undefined
+            ? { activeEquipmentIds: input.activeEquipmentIds }
+            : {}),
+          ...(input.activeDestinationIds !== undefined
+            ? { activeDestinationIds: input.activeDestinationIds }
+            : {}),
+        }
+      : undefined;
+  return denaliHydrateTourEditDraft(input.canonicalData as Record<string, unknown>, options).data;
 }
 
 export function prepareDenaliTourPatchPayloadFromHostInput(input: {
@@ -169,5 +183,9 @@ export function prepareDenaliTourPatchPayloadFromHostInput(input: {
   );
 }
 
-export { buildDenaliWizardRuleEvalContext, type DenaliWizardRuleEvalContext };
+export {
+  buildDenaliWizardRuleEvalContext,
+  DENALI_DEFAULT_WORKSPACE_FORM_PROFILE,
+  type DenaliWizardRuleEvalContext,
+} from "./denali-wizard-rule-eval-context";
 export { sanitizeDenaliWizardDraftRecord } from "./denali-wizard-draft-sanitize";

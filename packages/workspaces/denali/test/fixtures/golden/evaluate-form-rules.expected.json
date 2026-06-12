@@ -296,6 +296,22 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "tripDetails.logistics.excludedServices",
+        "formPath": "tripDetails.logistics.excludedServices",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.logistics.includedServices",
+        "formPath": "tripDetails.logistics.includedServices",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "tripDetails.overview.customServiceLabels",
         "formPath": "tripDetails.overview.customServiceLabels",
         "visible": false,
@@ -718,6 +734,22 @@
         "staticRequired": false
       },
       {
+        "canonicalPath": "tripDetails.logistics.excludedServices",
+        "formPath": "tripDetails.logistics.excludedServices",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.logistics.includedServices",
+        "formPath": "tripDetails.logistics.includedServices",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "tripDetails.overview.customServiceLabels",
         "formPath": "tripDetails.overview.customServiceLabels",
         "visible": false,
@@ -1134,6 +1166,22 @@
       {
         "canonicalPath": "transport.transportCost",
         "formPath": "transport.transportCost",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.logistics.excludedServices",
+        "formPath": "tripDetails.logistics.excludedServices",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.logistics.includedServices",
+        "formPath": "tripDetails.logistics.includedServices",
         "visible": true,
         "required": false,
         "staticHidden": false,

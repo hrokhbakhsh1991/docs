@@ -2,6 +2,7 @@ import { configureDenaliProductHttpHost } from "@app-tour/workspace-denali/http"
 import type {
   DenaliProductRouteDeps,
   DenaliPublicBookingPort,
+  DenaliPublicDestinationPort,
 } from "@app-tour/workspace-denali/http";
 
 import {
@@ -11,6 +12,7 @@ import {
 } from "../bookings/bookings.service";
 import type { TourStorageRepository as DbTourStorageRepository } from "../db/tour.repository";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
+import { getSettingsResourcesRepository } from "../settings/create-settings-resources-repository";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import type {
   Tour,
@@ -50,6 +52,35 @@ function resolvePublicBookingPort(deps: DenaliProductRouteDeps): DenaliPublicBoo
     },
     async sumApprovedPartySizeByTourIds(tenantId, tourIds) {
       return sumApprovedPartySizeByTourIds(tenantId, tourIds);
+    },
+  };
+}
+
+function resolvePublicDestinationPort(
+  deps: DenaliProductRouteDeps
+): DenaliPublicDestinationPort | undefined {
+  if (deps.publicDestinationPort !== undefined) {
+    return deps.publicDestinationPort;
+  }
+  return {
+    async getDestinationNamesByIds(tenantId, destinationIds) {
+      if (destinationIds.length === 0) {
+        return {};
+      }
+      const wanted = new Set(destinationIds);
+      const repo = getSettingsResourcesRepository();
+      const destinations = await repo.listDestinations(tenantId);
+      const names: Record<string, string> = {};
+      for (const destination of destinations) {
+        if (destination.isActive === false || !wanted.has(destination.id)) {
+          continue;
+        }
+        const name = destination.name.trim();
+        if (name.length > 0) {
+          names[destination.id] = name;
+        }
+      }
+      return names;
     },
   };
 }
@@ -94,4 +125,5 @@ configureDenaliProductHttpHost({
   resolveTourStore,
   readDenaliRegistrationRequestBody: readJsonBody,
   resolvePublicBookingPort,
+  resolvePublicDestinationPort,
 });

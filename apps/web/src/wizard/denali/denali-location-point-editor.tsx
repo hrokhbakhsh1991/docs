@@ -1,48 +1,45 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import { Input } from "@app-tour/ui-primitives/input";
-
-import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { Button } from "@app-tour/ui-primitives/button";
 import { useTranslations } from "next-intl";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
 
-import { DenaliMapPreview } from "./denali-map-preview";
-import {
-  parseCoordinateInput,
-  parseDenaliLocationData,
-  type DenaliLocationData,
-} from "./denali-location-types";
+import { DenaliLocationAddressPicker } from "./denali-location-address-picker";
+import { fetchReverseGeocodeAddress } from "./denali-reverse-geocode-client";
+import { parseDenaliLocationData, type DenaliLocationData } from "./denali-location-types";
 
 type DenaliLocationPointEditorProps = {
   readonly draft: TourWizardDraft;
   readonly onDraftChange: (draft: TourWizardDraft) => void;
   readonly canonicalPath: string;
   readonly heading: string;
+  readonly testIdKey: string;
 };
-
-function updateLocation(
-  draft: TourWizardDraft,
-  onDraftChange: (draft: TourWizardDraft) => void,
-  canonicalPath: string,
-  patch: Partial<DenaliLocationData>
-): void {
-  const current = parseDenaliLocationData(getCanonicalValue(draft, canonicalPath));
-  onDraftChange(setCanonicalValue(draft, canonicalPath, { ...current, ...patch }));
-}
 
 export function DenaliLocationPointEditor({
   draft,
   onDraftChange,
   canonicalPath,
   heading,
+  testIdKey,
 }: DenaliLocationPointEditorProps) {
   const t = useTranslations("denali.composites.common");
   const tLocation = useTranslations("denali.composites.location");
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+
   const location = parseDenaliLocationData(getCanonicalValue(draft, canonicalPath));
+
+  const updateLocation = (patch: Partial<DenaliLocationData>) => {
+    const current = parseDenaliLocationData(getCanonicalValue(draftRef.current, canonicalPath));
+    const nextDraft = setCanonicalValue(draftRef.current, canonicalPath, { ...current, ...patch });
+    draftRef.current = nextDraft;
+    onDraftChange(nextDraft);
+  };
 
   const useCurrentPosition = () => {
     if (!navigator.geolocation) {
@@ -50,10 +47,16 @@ export function DenaliLocationPointEditor({
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        updateLocation(draft, onDraftChange, canonicalPath, {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        void (async () => {
+          const address = await fetchReverseGeocodeAddress(latitude, longitude);
+          updateLocation({
+            latitude,
+            longitude,
+            ...(address !== null ? { address } : {}),
+          });
+        })();
       },
       () => undefined,
       { enableHighAccuracy: true, timeout: 10_000 }
@@ -61,56 +64,23 @@ export function DenaliLocationPointEditor({
   };
 
   return (
-    <fieldset className="denali-wizard-composite__panel">
-      <legend className="denali-wizard-composite__legend">{heading}</legend>
+    <details className="denali-wizard-composite__panel denali-location-point" open>
+      <summary className="denali-wizard-composite__legend denali-location-point__summary">{heading}</summary>
       <label className="denali-wizard-composite__field">
         <span>{t("label")}</span>
         <Input
           value={location.label ?? ""}
-          onChange={(event) =>
-            updateLocation(draft, onDraftChange, canonicalPath, { label: event.target.value })
-          }
+          onChange={(event) => updateLocation({ label: event.target.value })}
         />
       </label>
-      <label className="denali-wizard-composite__field">
-        <span>{t("address")}</span>
-        <Input
-          value={location.address ?? ""}
-          onChange={(event) =>
-            updateLocation(draft, onDraftChange, canonicalPath, { address: event.target.value })
-          }
-        />
-      </label>
-      <div className="denali-wizard-composite__grid-2">
-        <label className="denali-wizard-composite__field">
-          <span>{t("latitude")}</span>
-          <PrimitiveLocalizedNumericInput
-            mode="decimal"
-            value={location.latitude !== undefined ? String(location.latitude) : ""}
-            onChange={(value) =>
-              updateLocation(draft, onDraftChange, canonicalPath, {
-                latitude: parseCoordinateInput(value),
-              })
-            }
-          />
-        </label>
-        <label className="denali-wizard-composite__field">
-          <span>{t("longitude")}</span>
-          <PrimitiveLocalizedNumericInput
-            mode="decimal"
-            value={location.longitude !== undefined ? String(location.longitude) : ""}
-            onChange={(value) =>
-              updateLocation(draft, onDraftChange, canonicalPath, {
-                longitude: parseCoordinateInput(value),
-              })
-            }
-          />
-        </label>
-      </div>
+      <DenaliLocationAddressPicker
+        testIdKey={testIdKey}
+        value={location}
+        onChange={updateLocation}
+      />
       <Button type="button" variant="secondary" onClick={useCurrentPosition}>
         {tLocation("useCurrentLocation")}
       </Button>
-      <DenaliMapPreview latitude={location.latitude} longitude={location.longitude} />
-    </fieldset>
+    </details>
   );
 }

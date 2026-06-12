@@ -1,5 +1,15 @@
 import type { PublicCatalogCard, PublicCatalogTourInput } from "@app-tour/workspace-sdk";
 
+import { buildDenaliTouristTripJsonLd } from "./build-denali-tourist-trip-jsonld";
+import {
+  projectDenaliCatalogItinerary,
+  readDenaliCatalogDifficultyLevel,
+  readDenaliCatalogFitnessLevel,
+  type ProjectDenaliCatalogItineraryOptions,
+} from "./project-denali-catalog-itinerary";
+
+export type DenaliCatalogCardOptions = ProjectDenaliCatalogItineraryOptions;
+
 const DEFAULT_PRICE_CURRENCY = "IRR";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -49,24 +59,12 @@ function readCoverImageUrl(photos: unknown): string | null {
   return isRecord(first) ? readString(first.url) : null;
 }
 
-/** Map Denali canonical tour row to public marketing card (egress-safe). */
-export function toDenaliCatalogCard(tour: PublicCatalogTourInput): PublicCatalogCard {
-  const data = tour.canonical.data;
-  if (!isRecord(data)) {
-    return Object.freeze({
-      id: tour.id,
-      title: "Untitled tour",
-      shortDescription: null,
-      category: null,
-      departureAt: null,
-      endAt: null,
-      priceAmount: null,
-      priceCurrency: DEFAULT_PRICE_CURRENCY,
-      coverImageUrl: null,
-      totalCapacity: null,
-    });
-  }
-
+function buildBaseCard(
+  tour: PublicCatalogTourInput,
+  data: Record<string, unknown>,
+  options?: DenaliCatalogCardOptions
+): PublicCatalogCard {
+  const itineraryDays = projectDenaliCatalogItinerary(data, options);
   return Object.freeze({
     id: tour.id,
     title: readString(data.title) ?? "Untitled tour",
@@ -78,5 +76,41 @@ export function toDenaliCatalogCard(tour: PublicCatalogTourInput): PublicCatalog
     priceCurrency: DEFAULT_PRICE_CURRENCY,
     coverImageUrl: readCoverImageUrl(data.photos),
     totalCapacity: readInteger(data.capacityMax),
+    difficultyLevel: readDenaliCatalogDifficultyLevel(data),
+    fitnessLevel: readDenaliCatalogFitnessLevel(data),
+    ...(itineraryDays != null ? { itineraryDays } : {}),
   });
+}
+
+function attachStructuredData(card: PublicCatalogCard): PublicCatalogCard {
+  return Object.freeze({
+    ...card,
+    structuredData: buildDenaliTouristTripJsonLd(card) as unknown as Readonly<Record<string, unknown>>,
+  });
+}
+
+/** Map Denali canonical tour row to public marketing card (egress-safe). */
+export function toDenaliCatalogCard(
+  tour: PublicCatalogTourInput,
+  options?: DenaliCatalogCardOptions
+): PublicCatalogCard {
+  const data = tour.canonical.data;
+  if (!isRecord(data)) {
+    return attachStructuredData(
+      Object.freeze({
+        id: tour.id,
+        title: "Untitled tour",
+        shortDescription: null,
+        category: null,
+        departureAt: null,
+        endAt: null,
+        priceAmount: null,
+        priceCurrency: DEFAULT_PRICE_CURRENCY,
+        coverImageUrl: null,
+        totalCapacity: null,
+      })
+    );
+  }
+
+  return attachStructuredData(buildBaseCard(tour, data, options));
 }

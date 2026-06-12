@@ -1,7 +1,10 @@
 import type { WorkspaceFieldRegistry, WorkspaceRuleSet } from "@app-tour/workspace-sdk";
 
 import { DENALI_FIELD_DEFINITIONS } from "./field-registry/denaliFieldRegistryData";
-import { resolveDenaliFieldRenderer } from "./composites/denali-composite-registry";
+import {
+  resolveDenaliCompositeRendererId,
+  resolveDenaliFieldRenderer,
+} from "./composites/denali-composite-registry";
 import {
   DENALI_RULE_MODEL_CATEGORIES,
   DENALI_RULE_MODEL_DURATIONS,
@@ -14,8 +17,7 @@ function buildDenaliFieldIdByCanonicalPath(): Readonly<Record<string, string>> {
   for (const def of DENALI_FIELD_DEFINITIONS) {
     const resolution = resolveDenaliFieldRenderer(def);
     if (resolution == null) continue;
-    map[def.canonicalPath] =
-      resolution.kind === "composite" ? resolution.rendererId : def.canonicalPath;
+    map[def.canonicalPath] = resolveDenaliCompositeRendererId(def) ?? def.canonicalPath;
   }
   return Object.freeze(map);
 }
@@ -41,7 +43,8 @@ export function buildDenaliWorkspaceFieldRegistry(): WorkspaceFieldRegistry {
     const resolution = resolveDenaliFieldRenderer(def);
     if (resolution == null) return [];
 
-    const fieldId = resolution.kind === "composite" ? resolution.rendererId : def.canonicalPath;
+    const compositeRendererId = resolveDenaliCompositeRendererId(def);
+    const fieldId = compositeRendererId ?? def.canonicalPath;
 
     return [
       Object.freeze({
@@ -71,6 +74,20 @@ export function buildDenaliWizardRoots(): readonly string[] {
   }
   return Object.freeze([...roots].sort());
 }
+
+/** Nested canonical containers only — not scalar top-level fields or wizard step ids. */
+export const DENALI_CANONICAL_OBJECT_ROOTS = Object.freeze(
+  new Set([
+    "program",
+    "transport",
+    "pricing",
+    "participants",
+    "policies",
+    "tripDetails",
+    "photos",
+    "gatheringPoints",
+  ])
+);
 
 export function buildDenaliWorkspaceRuleSet(
   source: DenaliRuleSet = denaliRuleSet,

@@ -1,5 +1,6 @@
 import { getRequestConfig } from "next-intl/server";
 
+import { intlFormatsForLocale } from "./intl-formats";
 import { loadAppMessages } from "./load-messages";
 import { resolveRequestLocale } from "./resolve-locale";
 import { isAppLocale, routing, type AppLocale } from "./routing";
@@ -16,12 +17,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
   return {
     locale,
     messages: await loadAppMessages(locale),
-    formats: {
-      number: {
-        default: {
-          numberingSystem: locale === "fa" ? "arabext" : "latn",
-        },
-      },
-    },
+    formats: intlFormatsForLocale(locale),
   };
 });

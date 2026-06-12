@@ -38,7 +38,7 @@ describe("composites.contract.spec.ts (REQ-P6-010, RULE-P6-014)", () => {
     const plugin = getDenaliWorkspacePlugin();
 
     for (const field of plugin.fieldRegistry.fields) {
-      if (field.kind !== "composite") continue;
+      if (!field.id.startsWith("denali.")) continue;
       assert.match(field.id, /^denali\./, `composite field id must be denali.* — got ${field.id}`);
       assert.ok(
         field.id in registry,

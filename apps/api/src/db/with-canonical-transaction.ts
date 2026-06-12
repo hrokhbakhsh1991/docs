@@ -6,6 +6,7 @@ import { withPoolSaturationMapping } from "./pool-saturation";
 import { withTenantDbBudget } from "./tenant-connection-budget";
 import { withTransientTxRetry } from "./with-transient-tx-retry";
 import { getPrisma } from "./prisma";
+import { resolvePrismaTransactionOptions } from "./prisma-transaction-options";
 import { assertActiveTenantMatchesRlsTarget } from "./assert-tenant-rls-alignment";
 import { applyTenantRlsSessionVars } from "./rls-session-vars";
 
@@ -27,10 +28,13 @@ export async function withCanonicalTransaction<T>(
   return withTransientTxRetry(() =>
     withTenantDbBudget(normalized, () =>
       withPoolSaturationMapping(() =>
-        prisma.$transaction(async (tx) => {
-          await applyTenantRlsSessionVars(tx, normalized, getActiveTraceId());
-          return fn(tx);
-        })
+        prisma.$transaction(
+          async (tx) => {
+            await applyTenantRlsSessionVars(tx, normalized, getActiveTraceId());
+            return fn(tx);
+          },
+          resolvePrismaTransactionOptions()
+        )
       )
     )
   );

@@ -20,6 +20,8 @@ export type EquipmentResource = {
   readonly tenantId: string;
   readonly name: string;
   readonly category: string | null;
+  /** Tour theme ids from operator settings (`/settings/tour-themes`). Empty = all themes. */
+  readonly themeIds: readonly string[];
   /** Denali wizard — tour categories compatible with this equipment row (DEC-P12-001 / 12.1). */
   readonly compatibleCategories?: readonly string[];
   readonly sortOrder: number;
@@ -35,11 +37,13 @@ export type SettingsResourceListResponse = {
 export type CreateEquipmentRequest = {
   readonly name: string;
   readonly category?: string;
+  readonly themeIds?: readonly string[];
 };
 
 export type PatchEquipmentRequest = {
   readonly name?: string;
   readonly category?: string | null;
+  readonly themeIds?: readonly string[];
 };
 
 export type WizardTemplateSection = {

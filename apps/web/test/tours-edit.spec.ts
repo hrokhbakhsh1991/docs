@@ -9,6 +9,7 @@ import {
   buildTourTitlePatch,
   canMutateTour,
 } from "../src/features/tours/build-tour-title-patch";
+import { isDenaliOperatorSession } from "../src/admin/require-operator-session";
 import { TOUR_EDIT_TEST_IDS } from "../src/features/tours/operator-tour-detail-types";
 import type { OperatorTourDetailResponse } from "../src/features/tours/operator-tour-detail-types";
 
@@ -71,5 +72,28 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
     assert.equal(canMutateTour("member"), false);
     assert.equal(canMutateTour("admin"), true);
     assert.equal(canMutateTour("owner"), true);
+  });
+
+  it("WEB-9.3-E05 denali operator session routes to flat edit shell", () => {
+    assert.equal(
+      isDenaliOperatorSession({
+        userId: "u1",
+        tenantId: "00000000-0000-4000-8000-000000000014",
+        role: "owner",
+        workspaceType: "denali",
+        pluginId: "denali",
+      }),
+      true
+    );
+    assert.equal(
+      isDenaliOperatorSession({
+        userId: "u1",
+        tenantId: "t1",
+        role: "owner",
+        workspaceType: "starter",
+        pluginId: "starter",
+      }),
+      false
+    );
   });
 });

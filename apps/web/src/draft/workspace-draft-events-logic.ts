@@ -18,8 +18,9 @@ export function sliceWorkspaceDraftEventsForDisplay(
   return items.slice(0, limit);
 }
 
+/** Relative to `useTranslations("wizard.host.draftEvents")`. */
 export function resolveWorkspaceDraftEventMessageKey(
   action: WorkspaceDraftEventAction
-): `host.draftEvents.action.${WorkspaceDraftEventAction}` {
-  return `host.draftEvents.action.${action}`;
+): `action.${WorkspaceDraftEventAction}` {
+  return `action.${action}`;
 }

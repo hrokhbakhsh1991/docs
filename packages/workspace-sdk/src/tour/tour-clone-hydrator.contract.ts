@@ -11,6 +11,7 @@ export type DenaliPhotoRemintPlanEntry = {
 export type TourCloneHydrationInput = {
   readonly canonicalData: Record<string, unknown>;
   readonly activeEquipmentIds?: readonly string[];
+  readonly activeDestinationIds?: readonly string[];
   /** Phase 11.13 — wizard duplicate: remint storage keys under this session. */
   readonly wizardSessionId?: string;
   readonly tenantId?: string;

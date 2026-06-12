@@ -1,4 +1,19 @@
 /** Egress-safe card — workspace APIs extend fields beyond a shared minimum. */
+export type MarketingCatalogItinerarySegment = {
+  readonly title: string;
+  readonly kind?: string;
+  readonly startTime?: string;
+  readonly locationLabel?: string;
+  readonly photoUrls?: readonly string[];
+};
+
+export type MarketingCatalogItineraryDay = {
+  readonly dayNumber: number;
+  readonly title: string;
+  readonly summary?: string;
+  readonly segments: readonly MarketingCatalogItinerarySegment[];
+};
+
 export type MarketingCatalogCard = {
   readonly id: string;
   readonly title?: string | null;
@@ -20,6 +35,8 @@ export type MarketingCatalogCard = {
   readonly endDate?: string | null;
   readonly publishedAt?: string | null;
   readonly publishStatus?: string | null;
+  readonly itineraryDays?: readonly MarketingCatalogItineraryDay[];
+  readonly structuredData?: Readonly<Record<string, unknown>>;
 };
 
 export type MarketingCatalogListResponse = {

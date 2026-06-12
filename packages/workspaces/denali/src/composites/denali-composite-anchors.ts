@@ -32,6 +32,7 @@ export const DENALI_COMPOSITE_DEPENDENT_PATHS = new Set<string>([
   "transport.adminCapacityApproval",
   "pricing.basePricePerPerson",
   "pricing.includesTourInsurance",
+  "tripDetails.logistics.excludedServices",
 ]);
 
 export function shouldRenderDenaliRegistryField(field: DenaliFieldDefinition): boolean {

@@ -1,20 +1,19 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Button } from "@app-tour/ui-primitives/button";
 import { Input } from "@app-tour/ui-primitives/input";
 
-import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { useTranslations } from "next-intl";
 
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
 
-import { DenaliMapPreview } from "./denali-map-preview";
+import { DenaliLocationAddressPicker } from "./denali-location-address-picker";
 import {
   DENALI_COMPOSITE_TEST_IDS,
-  parseCoordinateInput,
+  createEmptyDenaliGatheringPoint,
   parseDenaliGatheringPoints,
   type DenaliGatheringPoint,
 } from "./denali-location-types";
@@ -26,50 +25,69 @@ type DenaliGatheringPointsFieldProps = {
   readonly onDraftChange: (draft: TourWizardDraft) => void;
 };
 
-function updateGatheringPoints(
-  draft: TourWizardDraft,
-  onDraftChange: (draft: TourWizardDraft) => void,
-  next: DenaliGatheringPoint[]
-): void {
-  onDraftChange(setCanonicalValue(draft, GATHERING_POINTS_PATH, next));
-}
-
 export function DenaliGatheringPointsField({
   draft,
   onDraftChange,
 }: DenaliGatheringPointsFieldProps) {
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
+  const seededRef = useRef(false);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+
   const points = parseDenaliGatheringPoints(getCanonicalValue(draft, GATHERING_POINTS_PATH));
   const label = resolveDenaliFieldLabel(t, "gatheringPoints");
 
+  const updateGatheringPoints = (next: DenaliGatheringPoint[]) => {
+    const nextDraft = setCanonicalValue(draftRef.current, GATHERING_POINTS_PATH, next);
+    draftRef.current = nextDraft;
+    onDraftChange(nextDraft);
+  };
+
+  useEffect(() => {
+    if (seededRef.current || points.length > 0) {
+      return;
+    }
+    seededRef.current = true;
+    updateGatheringPoints([createEmptyDenaliGatheringPoint(true)]);
+  }, [points.length]);
+
   const patchPoint = (index: number, patch: Partial<DenaliGatheringPoint>) => {
-    const next = points.map((point, pointIndex) =>
+    const currentPoints = parseDenaliGatheringPoints(
+      getCanonicalValue(draftRef.current, GATHERING_POINTS_PATH)
+    );
+    const next = currentPoints.map((point, pointIndex) =>
       pointIndex === index ? { ...point, ...patch } : point
     );
-    updateGatheringPoints(draft, onDraftChange, next);
+    updateGatheringPoints(next);
   };
 
   const addPoint = () => {
-    updateGatheringPoints(draft, onDraftChange, [
-      ...points,
-      { name: "", isPrimary: points.length === 0 },
+    const currentPoints = parseDenaliGatheringPoints(
+      getCanonicalValue(draftRef.current, GATHERING_POINTS_PATH)
+    );
+    updateGatheringPoints([
+      ...currentPoints,
+      createEmptyDenaliGatheringPoint(currentPoints.length === 0),
     ]);
   };
 
   const removePoint = (index: number) => {
-    updateGatheringPoints(
-      draft,
-      onDraftChange,
-      points.filter((_, pointIndex) => pointIndex !== index)
+    const currentPoints = parseDenaliGatheringPoints(
+      getCanonicalValue(draftRef.current, GATHERING_POINTS_PATH)
     );
+    if (currentPoints.length <= 1) {
+      return;
+    }
+    updateGatheringPoints(currentPoints.filter((_, pointIndex) => pointIndex !== index));
   };
 
   const setPrimary = (index: number) => {
+    const currentPoints = parseDenaliGatheringPoints(
+      getCanonicalValue(draftRef.current, GATHERING_POINTS_PATH)
+    );
     updateGatheringPoints(
-      draft,
-      onDraftChange,
-      points.map((point, pointIndex) => ({ ...point, isPrimary: pointIndex === index }))
+      currentPoints.map((point, pointIndex) => ({ ...point, isPrimary: pointIndex === index }))
     );
   };
 
@@ -92,40 +110,26 @@ export function DenaliGatheringPointsField({
               onChange={(event) => patchPoint(index, { name: event.target.value })}
             />
           </label>
-          <label className="denali-wizard-composite__field">
-            <span>{tCommon("address")}</span>
-            <Input
-              value={point.address ?? ""}
-              onChange={(event) => patchPoint(index, { address: event.target.value })}
-            />
-          </label>
-          <div className="denali-wizard-composite__grid-2">
-            <label className="denali-wizard-composite__field">
-              <span>{tCommon("latitude")}</span>
-              <PrimitiveLocalizedNumericInput
-                mode="decimal"
-                value={point.latitude !== undefined ? String(point.latitude) : ""}
-                onChange={(value) => patchPoint(index, { latitude: parseCoordinateInput(value) })}
-              />
-            </label>
-            <label className="denali-wizard-composite__field">
-              <span>{tCommon("longitude")}</span>
-              <PrimitiveLocalizedNumericInput
-                mode="decimal"
-                value={point.longitude !== undefined ? String(point.longitude) : ""}
-                onChange={(value) => patchPoint(index, { longitude: parseCoordinateInput(value) })}
-              />
-            </label>
-          </div>
+          <DenaliLocationAddressPicker
+            testIdKey={`gathering-${index}`}
+            value={point}
+            onChange={(patch) => patchPoint(index, patch)}
+            label={tCommon("address")}
+            hint={t("composites.gatheringPoints.addressHint")}
+          />
           <div className="denali-wizard-composite__actions">
             <Button type="button" variant="secondary" onClick={() => setPrimary(index)}>
               {t("composites.gatheringPoints.setPrimary")}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => removePoint(index)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => removePoint(index)}
+              disabled={points.length <= 1}
+            >
               {t("composites.gatheringPoints.removeStation")}
             </Button>
           </div>
-          <DenaliMapPreview latitude={point.latitude} longitude={point.longitude} />
         </fieldset>
       ))}
       <Button type="button" onClick={addPoint}>

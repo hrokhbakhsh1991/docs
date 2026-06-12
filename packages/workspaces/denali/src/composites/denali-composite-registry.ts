@@ -18,7 +18,9 @@ export const DENALI_COMPOSITE_BY_CANONICAL_PATH: Readonly<
   "program.themeIds": "denali.program-content",
   "program.guideLanguageIds": "denali.guide-language-ids",
   "tripDetails.overview.customServiceLabels": "denali.custom-services",
+  "tripDetails.logistics.includedServices": "denali.tour-services",
   leaderUserIds: "denali.leader-user-ids",
+  socialMediaLink: "denali.social-media-link",
   "tripDetails.metrics.elevationGain": "denali.elevation-gain",
   "participants.minimumAge": "denali.pricing-participants",
   "pricing.requiresPayment": "denali.pricing-payment",
@@ -67,10 +69,17 @@ function primitiveKindForZodKind(zodKind: DenaliZodFieldKind): WorkspaceFieldKin
     case "title":
     case "stringOptional":
     case "socialMediaLink":
+    case "approximateReturnTime":
+    case "destinationId":
       return "text";
+    case "tourType":
+    case "transportMode":
     case "paymentMode":
     case "publishStatus":
       return "enum";
+    case "isoDateTime":
+    case "isoDateTimeOptional":
+      return "date";
     case "booleanOptional":
     case "adminCapacityApproval":
       return "boolean";
@@ -78,6 +87,7 @@ function primitiveKindForZodKind(zodKind: DenaliZodFieldKind): WorkspaceFieldKin
     case "optionalInt":
     case "optionalPositiveInt":
     case "fitnessLevel":
+    case "difficultyLevel":
       return "number";
     default:
       return "text";
@@ -108,7 +118,13 @@ export function resolveDenaliFieldRenderer(
 
   const compositeId = resolveDenaliCompositeRendererId(field);
   if (compositeId != null) {
-    return { rendererId: compositeId, kind: "composite" };
+    const kind = primitiveKindForZodKind(field.zodKind);
+    const enumOptions = kind === "enum" ? enumOptionsForZodKind(field.zodKind) : undefined;
+    return {
+      rendererId: compositeId,
+      kind,
+      ...(enumOptions != null ? { enumOptions } : {}),
+    };
   }
 
   const kind = primitiveKindForZodKind(field.zodKind);

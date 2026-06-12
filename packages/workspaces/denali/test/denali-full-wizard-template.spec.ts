@@ -41,4 +41,21 @@ describe("denali-full-wizard-template.spec.ts", () => {
     assert.ok(review?.enabled);
     assert.equal(review?.fields[0]?.canonicalPath, "publishStatus");
   });
+
+  it("DN-FULL-TPL-05 logistics step orders transport, gathering, then route locations", () => {
+    const logistics = buildDenaliFullWizardTemplateSteps().find(
+      (step) => step.stepId === "denali_logistics"
+    );
+    assert.deepEqual(
+      logistics?.fields.map((field) => field.canonicalPath),
+      [
+        "transport.mode",
+        "gatheringPoints",
+        "startPoint",
+        "participants.gearItems",
+        "tripDetails.logistics.includedServices",
+        "tripDetails.overview.customServiceLabels",
+      ]
+    );
+  });
 });

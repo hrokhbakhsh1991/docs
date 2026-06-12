@@ -34,7 +34,7 @@ export function FinanceDashboardWidget() {
     void fetch("/api/finance/reports/summary", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error(`FINANCE_SUMMARY_HTTP_${response.status}`);
+          throw new Error("FINANCE_SUMMARY_FAILED");
         }
         return parseDashboardFinanceSummary(await response.json());
       })

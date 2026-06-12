@@ -49,10 +49,23 @@ export type WorkspaceWizardHostHooks = {
   readonly hostRootDataAttributes?: Readonly<Record<string, string>>;
   /** Registry key for workspace-specific review/read-back React surface (Phase 12.1). */
   readonly reviewSurfaceId?: string;
+  /** Registry key for step/review validation summary UI (defaults to reviewSurfaceId when unset). */
+  readonly validationSurfaceId?: string;
   /** Registry key for composite field widgets (Phase 12.1b). */
   readonly compositeSurfaceId?: string;
+  /** next-intl namespace for workspace wizard copy (e.g. Denali `"denali"`). */
+  readonly wizardMessageNamespace?: string;
   /** Registry key for workspace field label resolver (Phase 12.1b). */
   readonly fieldLabelSurfaceId?: string;
+  /**
+   * Infer initial wizard step on first mount (e.g. resume from draft data).
+   * Host calls once when saved step index is 0.
+   */
+  readonly resolveInitialStepIndex?: (input: {
+    readonly draft: Readonly<Record<string, unknown>>;
+    readonly visibleSteps: readonly unknown[];
+    readonly savedStepIndex: number;
+  }) => number;
   /** Synchronous canonical validation — host uses for step Next + review summary. */
   readonly validateDraftSync?: (input: {
     readonly plugin: import("./workspace-plugin.contract").WorkspacePlugin;
@@ -96,6 +109,7 @@ export type WorkspaceWizardHostHooks = {
       readonly activeEquipmentIds?: readonly string[];
       readonly activeThemeIds?: readonly string[];
       readonly activeGuideLanguageIds?: readonly string[];
+      readonly activeDestinationIds?: readonly string[];
       readonly selectableLeaderIds?: readonly string[];
     };
   }) => unknown;
@@ -103,6 +117,7 @@ export type WorkspaceWizardHostHooks = {
   readonly hydrateEditDraft?: (input: {
     readonly canonicalData: Readonly<Record<string, unknown>>;
     readonly activeEquipmentIds?: readonly string[];
+    readonly activeDestinationIds?: readonly string[];
   }) => Readonly<Record<string, unknown>>;
   /** Project draft → UpdateTourPayload before PATCH /tours/{id}. */
   readonly prepareTourPatchPayload?: (input: {
@@ -117,6 +132,7 @@ export type WorkspaceWizardHostHooks = {
       readonly activeEquipmentIds?: readonly string[];
       readonly activeThemeIds?: readonly string[];
       readonly activeGuideLanguageIds?: readonly string[];
+      readonly activeDestinationIds?: readonly string[];
       readonly selectableLeaderIds?: readonly string[];
     };
   }) => unknown;

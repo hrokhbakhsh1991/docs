@@ -335,6 +335,7 @@ model WorkspaceEquipment {
   tenantId  String   @map("tenant_id") @db.Uuid
   name      String
   category  String?
+  themeIds  Json     @default("[]") @map("theme_ids")
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

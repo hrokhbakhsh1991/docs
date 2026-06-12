@@ -8,8 +8,13 @@ export function resolveFinanceErrorMessage(
   if (code === null || code === undefined || code.trim().length === 0) {
     return null;
   }
+  const normalized = code.startsWith("FINANCE_SUMMARY_HTTP_")
+    ? "FINANCE_SUMMARY_FAILED"
+    : code.startsWith("OVERVIEW_HTTP_")
+      ? "OVERVIEW_FETCH_FAILED"
+      : code;
   try {
-    return t(code);
+    return t(normalized);
   } catch {
     return code;
   }

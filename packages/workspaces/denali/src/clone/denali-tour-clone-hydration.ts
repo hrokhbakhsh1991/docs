@@ -1,4 +1,10 @@
 import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "../rules/generated/denaliCanonicalPathMap.generated";
+import {
+  parseDenaliItineraryDays,
+  pruneItinerarySegmentDestinationIds,
+  pruneItinerarySegmentPhotoIds,
+  remapItinerarySegmentPhotoIds,
+} from "../schemas/denaliItineraryDaySchema";
 
 import {
   remintDenaliClonePhotosInCanonical,
@@ -9,6 +15,7 @@ export const DENALI_CLONE_TITLE_SUFFIX = " (Copy)" as const;
 
 export type DenaliTourCloneHydrationOptions = {
   readonly activeEquipmentIds?: readonly string[];
+  readonly activeDestinationIds?: readonly string[];
   readonly wizardSessionId?: string;
   readonly tenantId?: string;
 };
@@ -179,6 +186,77 @@ function applyGearCatalogFilter(
   }
 }
 
+function applyItineraryDestinationFilter(
+  data: Record<string, unknown>,
+  activeDestinationIds: readonly string[] | undefined
+): void {
+  if (activeDestinationIds === undefined) {
+    return;
+  }
+  const rawItinerary = readPath(data, "program.itinerary");
+  const parsed = parseDenaliItineraryDays(rawItinerary);
+  if (parsed.length === 0) {
+    return;
+  }
+  const allowed = new Set(
+    activeDestinationIds.map((id) => id.trim()).filter((id) => id.length > 0)
+  );
+  const pruned = pruneItinerarySegmentDestinationIds(parsed, allowed);
+  if (JSON.stringify(pruned) !== JSON.stringify(parsed)) {
+    writePath(data, "program.itinerary", pruned);
+  }
+}
+
+function collectAllowedPhotoIdsFromData(data: Record<string, unknown>): ReadonlySet<string> {
+  const ids = new Set<string>();
+  const photos = readPath(data, "photos");
+  if (!Array.isArray(photos)) {
+    return ids;
+  }
+  for (const entry of photos) {
+    if (entry == null || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+    const id = String((entry as Record<string, unknown>).id ?? "").trim();
+    if (id.length > 0) {
+      ids.add(id);
+    }
+  }
+  return ids;
+}
+
+function applyItineraryPhotoFilter(data: Record<string, unknown>): void {
+  const rawItinerary = readPath(data, "program.itinerary");
+  const parsed = parseDenaliItineraryDays(rawItinerary);
+  if (parsed.length === 0) {
+    return;
+  }
+  const allowedPhotoIds = collectAllowedPhotoIdsFromData(data);
+  const pruned = pruneItinerarySegmentPhotoIds(parsed, allowedPhotoIds);
+  if (JSON.stringify(pruned) !== JSON.stringify(parsed)) {
+    writePath(data, "program.itinerary", pruned);
+  }
+}
+
+function applyItineraryPhotoRemapFromPlan(
+  data: Record<string, unknown>,
+  plan: readonly DenaliPhotoRemintPlanEntry[]
+): void {
+  if (plan.length === 0) {
+    return;
+  }
+  const rawItinerary = readPath(data, "program.itinerary");
+  const parsed = parseDenaliItineraryDays(rawItinerary);
+  if (parsed.length === 0) {
+    return;
+  }
+  const photoIdByOldId = new Map(plan.map((entry) => [entry.oldPhotoId, entry.newPhotoId]));
+  const remapped = remapItinerarySegmentPhotoIds(parsed, photoIdByOldId);
+  if (JSON.stringify(remapped) !== JSON.stringify(parsed)) {
+    writePath(data, "program.itinerary", remapped);
+  }
+}
+
 function maybeRemintWizardClonePhotos(
   data: Record<string, unknown>,
   options?: DenaliTourCloneHydrationOptions
@@ -186,6 +264,7 @@ function maybeRemintWizardClonePhotos(
   const sessionId = options?.wizardSessionId?.trim() ?? "";
   const tenantId = options?.tenantId?.trim() ?? "";
   if (sessionId.length === 0 || tenantId.length === 0) {
+    applyItineraryPhotoFilter(data);
     return { data };
   }
   const reminted = remintDenaliClonePhotosInCanonical(data, {
@@ -193,6 +272,8 @@ function maybeRemintWizardClonePhotos(
     tenantId,
     sessionId,
   });
+  applyItineraryPhotoRemapFromPlan(reminted.data, reminted.plan);
+  applyItineraryPhotoFilter(reminted.data);
   return {
     data: reminted.data,
     ...(reminted.plan.length > 0 ? { photoRemintPlan: reminted.plan } : {}),
@@ -210,6 +291,7 @@ export function denaliHydrateTourCloneDraft(
   applyCopyTitle(data, readTourTitle(canonicalData));
   writePath(data, "publishStatus", "draft");
   applyGearCatalogFilter(data, options?.activeEquipmentIds);
+  applyItineraryDestinationFilter(data, options?.activeDestinationIds);
   return maybeRemintWizardClonePhotos(data, options);
 }
 
@@ -219,10 +301,12 @@ export function denaliHydrateTourCloneDraft(
  */
 export function denaliHydrateTourEditDraft(
   canonicalData: Record<string, unknown>,
-  options?: Pick<DenaliTourCloneHydrationOptions, "activeEquipmentIds">
+  options?: Pick<DenaliTourCloneHydrationOptions, "activeEquipmentIds" | "activeDestinationIds">
 ): DenaliTourCloneDraft {
   const data = normalizeCanonicalToWizardData(canonicalData);
   applyGearCatalogFilter(data, options?.activeEquipmentIds);
+  applyItineraryDestinationFilter(data, options?.activeDestinationIds);
+  applyItineraryPhotoFilter(data);
   return { data };
 }
 
@@ -242,5 +326,7 @@ export function prepareDenaliServerCloneCanonical(
     writePath(data, "basicInfo.publishStatus", "draft");
   }
   applyGearCatalogFilter(data, options?.activeEquipmentIds);
+  applyItineraryDestinationFilter(data, options?.activeDestinationIds);
+  applyItineraryPhotoFilter(data);
   return data;
 }

@@ -237,6 +237,7 @@ export function FinancePaymentsPanel({ session }: FinancePaymentsPanelProps) {
                 <LocalizedNumericInput
                   id="payment-amount"
                   mode="digits"
+                  groupThousands
                   value={form.amount}
                   onChange={(amount) => setForm((current) => ({ ...current, amount }))}
                 />

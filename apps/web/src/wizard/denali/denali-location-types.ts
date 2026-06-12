@@ -36,9 +36,15 @@ export function parseDenaliLocationData(value: unknown): DenaliLocationData {
     return {};
   }
   const record = value as Record<string, unknown>;
+  const address =
+    typeof record.address === "string"
+      ? record.address
+      : typeof record.addressText === "string"
+        ? record.addressText
+        : undefined;
   return {
     ...(typeof record.label === "string" ? { label: record.label } : {}),
-    ...(typeof record.address === "string" ? { address: record.address } : {}),
+    ...(address !== undefined ? { address } : {}),
     ...(typeof record.latitude === "number" && Number.isFinite(record.latitude)
       ? { latitude: record.latitude }
       : {}),
@@ -48,6 +54,54 @@ export function parseDenaliLocationData(value: unknown): DenaliLocationData {
   };
 }
 
+function readLegacyLocationFields(entry: Record<string, unknown>): Partial<DenaliGatheringPoint> {
+  const location =
+    entry.location !== null && typeof entry.location === "object" && !Array.isArray(entry.location)
+      ? (entry.location as Record<string, unknown>)
+      : null;
+
+  const address =
+    typeof entry.address === "string"
+      ? entry.address
+      : typeof entry.addressText === "string"
+        ? entry.addressText
+        : typeof location?.addressText === "string"
+          ? location.addressText
+          : undefined;
+
+  const latitude =
+    typeof entry.latitude === "number" && Number.isFinite(entry.latitude)
+      ? entry.latitude
+      : typeof location?.latitude === "number" && Number.isFinite(location.latitude)
+        ? location.latitude
+        : undefined;
+
+  const longitude =
+    typeof entry.longitude === "number" && Number.isFinite(entry.longitude)
+      ? entry.longitude
+      : typeof location?.longitude === "number" && Number.isFinite(location.longitude)
+        ? location.longitude
+        : undefined;
+
+  const name =
+    typeof entry.name === "string"
+      ? entry.name
+      : typeof entry.title === "string"
+        ? entry.title
+        : undefined;
+
+  return {
+    ...(name !== undefined ? { name } : {}),
+    ...(address !== undefined ? { address } : {}),
+    ...(latitude !== undefined ? { latitude } : {}),
+    ...(longitude !== undefined ? { longitude } : {}),
+  };
+}
+
+export function createEmptyDenaliGatheringPoint(isPrimary = false): DenaliGatheringPoint {
+  return isPrimary ? { name: "", isPrimary: true } : { name: "" };
+}
+
 export function parseDenaliGatheringPoints(value: unknown): DenaliGatheringPoint[] {
   if (!Array.isArray(value)) {
     return [];
@@ -55,14 +109,7 @@ export function parseDenaliGatheringPoints(value: unknown): DenaliGatheringPoint
   return value
     .filter((entry): entry is Record<string, unknown> => entry !== null && typeof entry === "object")
     .map((entry) => ({
-      ...(typeof entry.name === "string" ? { name: entry.name } : {}),
-      ...(typeof entry.address === "string" ? { address: entry.address } : {}),
-      ...(typeof entry.latitude === "number" && Number.isFinite(entry.latitude)
-        ? { latitude: entry.latitude }
-        : {}),
-      ...(typeof entry.longitude === "number" && Number.isFinite(entry.longitude)
-        ? { longitude: entry.longitude }
-        : {}),
+      ...readLegacyLocationFields(entry),
       ...(entry.isPrimary === true ? { isPrimary: true } : {}),
     }));
 }

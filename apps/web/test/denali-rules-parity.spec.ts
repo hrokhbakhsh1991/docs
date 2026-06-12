@@ -93,11 +93,11 @@ describe("denali-rules-parity.spec.ts", () => {
 
   it("WEB-11.8-04 catalog filters gear by tour category and themes by formProfile", () => {
     assert.equal(
-      isEquipmentCompatibleWithTourCategory({ id: "1", name: "Poles", category: "mountain", sortOrder: 0 }, "mountain"),
+      isEquipmentCompatibleWithTourCategory({ id: "1", name: "Poles", category: "mountain", themeIds: [], sortOrder: 0 }, "mountain"),
       true
     );
     assert.equal(
-      isEquipmentCompatibleWithTourCategory({ id: "1", name: "Poles", category: "mountain", sortOrder: 0 }, "nature"),
+      isEquipmentCompatibleWithTourCategory({ id: "1", name: "Poles", category: "mountain", themeIds: [], sortOrder: 0 }, "nature"),
       false
     );
     assert.equal(

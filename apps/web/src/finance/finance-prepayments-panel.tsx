@@ -243,6 +243,7 @@ export function FinancePrepaymentsPanel({ session }: FinancePrepaymentsPanelProp
                 <LocalizedNumericInput
                   id="prepay-amount"
                   mode="digits"
+                  groupThousands
                   value={form.amountMinor}
                   onChange={(amountMinor) =>
                     setForm((current) => ({ ...current, amountMinor }))

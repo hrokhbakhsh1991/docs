@@ -14,12 +14,14 @@ import {
   SettingsResourceNotFoundError,
   type SettingsResourcesRepository,
 } from "./in-memory-settings-resources.repository";
+import { parseThemeIdsJson } from "./parse-theme-ids";
 
 function toEquipment(row: {
   id: string;
   tenantId: string;
   name: string;
   category: string | null;
+  themeIds: unknown;
   sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
@@ -29,6 +31,7 @@ function toEquipment(row: {
     tenantId: row.tenantId,
     name: row.name,
     category: row.category,
+    themeIds: parseThemeIdsJson(row.themeIds),
     sortOrder: row.sortOrder,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -199,7 +202,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
 
   async createEquipment(
     tenantId: string,
-    input: { name: string; category?: string }
+    input: { name: string; category?: string; themeIds?: readonly string[] }
   ): Promise<EquipmentResource> {
     const existing = await this.listEquipment(tenantId);
     const row = await withTenantRls(tenantId, (tx) =>
@@ -208,6 +211,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
           tenantId,
           name: input.name,
           category: input.category ?? null,
+          themeIds: input.themeIds ?? [],
           sortOrder: existing.length,
         },
       })
@@ -218,7 +222,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
   async patchEquipment(
     tenantId: string,
     itemId: string,
-    input: { name?: string; category?: string | null }
+    input: { name?: string; category?: string | null; themeIds?: readonly string[] }
   ): Promise<EquipmentResource> {
     const current = await this.getEquipment(tenantId, itemId);
     if (current === null) {
@@ -230,6 +234,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
         data: {
           ...(input.name !== undefined ? { name: input.name } : {}),
           ...(input.category !== undefined ? { category: input.category } : {}),
+          ...(input.themeIds !== undefined ? { themeIds: [...input.themeIds] } : {}),
         },
       })
     );
@@ -253,6 +258,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
           tenantId: record.tenantId,
           name: record.name,
           category: record.category,
+          themeIds: [...record.themeIds],
           sortOrder: record.sortOrder,
           createdAt: new Date(record.createdAt),
           updatedAt: new Date(record.updatedAt),
@@ -260,6 +266,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
         update: {
           name: record.name,
           category: record.category,
+          themeIds: [...record.themeIds],
           sortOrder: record.sortOrder,
           updatedAt: new Date(record.updatedAt),
         },

@@ -3,7 +3,6 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 
-import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 
 import { DenaliLocationPointEditor } from "./denali-location-point-editor";
@@ -16,7 +15,7 @@ type DenaliLocationZonesFieldProps = {
 
 export function DenaliLocationZonesField({ draft, onDraftChange }: DenaliLocationZonesFieldProps) {
   const t = useTranslations("denali");
-  const title = resolveDenaliFieldLabel(t, "startPoint");
+  const title = t("composites.location.sectionTitle");
 
   return (
     <div className="denali-wizard-composite" data-denali-wizard-surface="section" data-testid={DENALI_COMPOSITE_TEST_IDS.locationZones}>
@@ -28,7 +27,8 @@ export function DenaliLocationZonesField({ draft, onDraftChange }: DenaliLocatio
           draft={draft}
           onDraftChange={onDraftChange}
           canonicalPath={zone.path}
-          heading={t(`locationTypes.${zone.path}`)}
+          heading={t(`composites.locationTypes.${zone.path}`)}
+          testIdKey={zone.path}
         />
       ))}
     </div>

@@ -1,12 +1,14 @@
 import { denaliTourKindToIsMultiDay, type DenaliTourKind } from "../types/legacy/repo-types";
+import {
+  syncDenaliItineraryRows,
+  type DenaliItineraryDay,
+  type DenaliItineraryDayRow,
+} from "../schemas/denaliItineraryDaySchema";
 
 import { parseIsoToYmdAndTime } from "./denaliDatetime";
 
-export type DenaliItineraryDayRow = {
-  day: number;
-  activities: string;
-  locationText?: string;
-};
+export type { DenaliItineraryDay, DenaliItineraryDayRow };
+export { syncDenaliItineraryRows };
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -40,22 +42,4 @@ export function computeDenaliTourDayCountFromKind(
 ): number {
   if (tourType == null || !denaliTourKindToIsMultiDay(tourType)) return 1;
   return computeDenaliTourDayCount(startIso, endIso, true);
-}
-
-export function syncDenaliItineraryRows(
-  itinerary: DenaliItineraryDayRow[] | undefined,
-  dayCount: number
-): DenaliItineraryDayRow[] {
-  const safeCount = Math.max(1, Math.min(dayCount, 60));
-  const byDay = new Map((itinerary ?? []).map((row) => [row.day, row] as const));
-  const next: DenaliItineraryDayRow[] = [];
-  for (let day = 1; day <= safeCount; day += 1) {
-    const prev = byDay.get(day);
-    next.push({
-      day,
-      activities: prev?.activities ?? "",
-      locationText: prev?.locationText,
-    });
-  }
-  return next;
 }

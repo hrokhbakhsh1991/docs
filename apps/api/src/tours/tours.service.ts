@@ -14,6 +14,7 @@ import type { ListToursQuery, TourListResult } from "./list-tours-query";
 import type { OperatorListToursQuery, OperatorTourListResult } from "./list-tours-operator";
 import { applyDenaliServerClonePhotoRemint } from "./apply-denali-server-clone-photo-remint";
 import { resolveActiveEquipmentIdsForClone } from "./resolve-clone-equipment-ids";
+import { resolveActiveDestinationIdsForClone } from "./resolve-clone-destination-ids";
 import type { UpdateTourBody } from "./update-tour.schema";
 
 /**
@@ -71,11 +72,14 @@ export class ToursService {
 
     const activeEquipmentIds =
       body.activeEquipmentIds ?? (await resolveActiveEquipmentIdsForClone(auth.tenantId));
+    const activeDestinationIds =
+      body.activeDestinationIds ?? (await resolveActiveDestinationIdsForClone(auth.tenantId));
 
     const createBody = await buildCloneTourCreateBody({
       source,
       tenantId: auth.tenantId,
       activeEquipmentIds,
+      activeDestinationIds,
     });
 
     const record = await this.createTour(auth, createBody);

@@ -24,8 +24,9 @@ import { DenaliPhotosField } from "./denali-photos-field";
 import { DenaliPricingParticipantsField } from "./denali-pricing-participants-field";
 import { DenaliPricingPaymentField } from "./denali-pricing-payment-field";
 import { DenaliProgramContentField } from "./denali-program-content-field";
+import { DenaliSocialMediaLinkField } from "./denali-social-media-link-field";
 import { DenaliTourKindField } from "./denali-tour-kind-field";
-import { DENALI_TOUR_KIND_VALUES } from "./denali-tour-kind-labels";
+import { DenaliTourServicesField } from "./denali-tour-services-field";
 import { DenaliTransportModeField } from "./denali-transport-mode-field";
 
 export { DENALI_IMPLEMENTED_COMPOSITE_IDS, isDenaliCompositeImplemented } from "./denali-composite-ids";
@@ -47,7 +48,6 @@ const DENALI_COMPOSITE_RENDERERS: Readonly<Record<DenaliImplementedCompositeId, 
       <DenaliTourKindField
         draft={draft}
         onDraftChange={onDraftChange}
-        tourKindValues={DENALI_TOUR_KIND_VALUES}
         required={field.required}
       />
     ),
@@ -139,11 +139,21 @@ const DENALI_COMPOSITE_RENDERERS: Readonly<Record<DenaliImplementedCompositeId, 
     "denali.leader-user-ids": ({ draft, onDraftChange }) => (
       <DenaliLeaderUserIdsField draft={draft} onDraftChange={onDraftChange} />
     ),
+    "denali.social-media-link": ({ draft, onDraftChange, field }) => (
+      <DenaliSocialMediaLinkField
+        draft={draft}
+        onDraftChange={onDraftChange}
+        required={field.required}
+      />
+    ),
     "denali.guide-language-ids": ({ draft, onDraftChange }) => (
       <DenaliGuideLanguageIdsField draft={draft} onDraftChange={onDraftChange} />
     ),
     "denali.custom-services": ({ draft, onDraftChange }) => (
       <DenaliCustomServicesField draft={draft} onDraftChange={onDraftChange} />
+    ),
+    "denali.tour-services": ({ draft, onDraftChange }) => (
+      <DenaliTourServicesField draft={draft} onDraftChange={onDraftChange} />
     ),
     "denali.photos": ({ draft, onDraftChange, field, wizardSessionId }) => (
       <DenaliPhotosField

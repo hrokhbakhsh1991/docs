@@ -3,6 +3,7 @@ import { z } from "zod";
 export const cloneTourBodySchema = z
   .object({
     activeEquipmentIds: z.array(z.string().min(1)).optional(),
+    activeDestinationIds: z.array(z.string().min(1)).optional(),
   })
   .strict();
 

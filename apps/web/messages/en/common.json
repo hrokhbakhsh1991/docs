@@ -31,6 +31,9 @@
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
     "timeLabel": "Time",
+    "pickTime": "Pick time",
+    "confirmTime": "Confirm",
+    "timePickerHint": "Choose hour and minute from the lists",
     "hour": "Hour",
     "minute": "Minute"
   }

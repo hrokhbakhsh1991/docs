@@ -28,6 +28,7 @@ export async function handleGetDenaliCatalog(
     const query = parseCatalogListQuery(url);
     const store = await host.resolveTourStore(deps);
     const bookingPort = host.resolvePublicBookingPort(deps);
+    const destinationPort = host.resolvePublicDestinationPort(deps);
     const workspaceType = await host.resolveWorkspaceTypeForTenant(auth.tenantId);
 
     await host.runWithHttpRequestContext(
@@ -39,6 +40,7 @@ export async function handleGetDenaliCatalog(
           workspaceType,
           store,
           bookingPort,
+          destinationPort,
           ...query,
         });
         host.sendJson(res, 200, {
@@ -65,6 +67,7 @@ export async function handleGetDenaliCatalogTour(
     const auth = resolveDenaliPublicAuth(req);
     const store = await host.resolveTourStore(deps);
     const bookingPort = host.resolvePublicBookingPort(deps);
+    const destinationPort = host.resolvePublicDestinationPort(deps);
     const workspaceType = await host.resolveWorkspaceTypeForTenant(auth.tenantId);
 
     await host.runWithHttpRequestContext(
@@ -76,6 +79,7 @@ export async function handleGetDenaliCatalogTour(
           workspaceType,
           store,
           bookingPort,
+          destinationPort,
           tourId,
         });
         if (card === null) {

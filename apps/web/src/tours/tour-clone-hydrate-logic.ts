@@ -57,6 +57,7 @@ export function resolveTourCloneHydrator(pluginId: string): TourCloneHydrator | 
 
 export type TourCloneHydrateOptions = {
   readonly activeEquipmentIds?: readonly string[];
+  readonly activeDestinationIds?: readonly string[];
   readonly wizardSessionId?: string;
   readonly tenantId?: string;
 };
@@ -79,6 +80,9 @@ export function hydrateTourCloneDraft(
     canonicalData: detail.canonical.data,
     ...(options?.activeEquipmentIds !== undefined
       ? { activeEquipmentIds: options.activeEquipmentIds }
+      : {}),
+    ...(options?.activeDestinationIds !== undefined
+      ? { activeDestinationIds: options.activeDestinationIds }
       : {}),
     ...(options?.wizardSessionId !== undefined ? { wizardSessionId: options.wizardSessionId } : {}),
     ...(options?.tenantId !== undefined ? { tenantId: options.tenantId } : {}),

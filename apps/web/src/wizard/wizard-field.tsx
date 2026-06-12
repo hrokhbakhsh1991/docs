@@ -243,10 +243,12 @@ export function WizardField({
     return null;
   }
 
-  if (field.kind === "composite" && draft !== undefined && onDraftChange) {
+  const compositeId =
+    field.uiHints?.compositeId ??
+    (field.fieldId.startsWith("denali.") ? field.fieldId : undefined);
+  if (compositeId != null && compositeId.length > 0 && draft !== undefined && onDraftChange) {
     const compositeSurface = resolveWizardCompositeSurface(compositeSurfaceId);
-    const compositeId = field.uiHints?.compositeId ?? field.fieldId;
-    if (compositeSurface != null && compositeId.length > 0) {
+    if (compositeSurface != null) {
       return compositeSurface.renderCompositeField({
         compositeId,
         field,

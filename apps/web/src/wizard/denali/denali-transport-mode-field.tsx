@@ -78,6 +78,7 @@ export function DenaliTransportModeField({
           <span>{resolveDenaliFieldLabel(t, "transport.transportCost")}</span>
           <PrimitiveLocalizedNumericInput
             mode="digits"
+            groupThousands
             value={getCanonicalStringValue(draft, "transport.transportCost")}
             onChange={(value) => setString("transport.transportCost", value)}
           />
@@ -100,6 +101,7 @@ export function DenaliTransportModeField({
           <span>{resolveDenaliFieldLabel(t, "transport.dongAmount")}</span>
           <PrimitiveLocalizedNumericInput
             mode="digits"
+            groupThousands
             value={getCanonicalStringValue(draft, "transport.dongAmount")}
             onChange={(value) => setString("transport.dongAmount", value)}
             required={isDenaliDongAmountRequired(mode, allowPersonalCar)}

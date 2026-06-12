@@ -27,6 +27,9 @@
     "spotsRemaining": "{count} جای خالی",
     "difficulty": "سختی: {level}",
     "fitness": "توان: {level}",
+    "itineraryHeading": "برنامه روزانه",
+    "itineraryDay": "روز {day, number}",
+    "itinerarySegments": "بخش‌های برنامه",
     "priceOnRequest": "قیمت پس از استعلام",
     "datesTba": "تاریخ اعلام می‌شود"
   },

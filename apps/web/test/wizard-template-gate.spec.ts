@@ -138,25 +138,34 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
     );
   });
 
-  it("WEB-9.6-WIZ-07 applyWizardTemplateToRenderPlan applies required overlay", () => {
+  it("WEB-9.6-WIZ-08 applyWizardTemplateToRenderPlan keeps template-only review step", () => {
     const ordered = applyWizardTemplateToRenderPlan(
       [
         {
-          stepId: "basics",
+          stepId: "denali_basic",
           fields: [
-            { canonicalPath: "basics.title", fieldId: "basics.title", kind: "text", required: false },
+            {
+              canonicalPath: "publishStatus",
+              fieldId: "publishStatus",
+              kind: "enum",
+              required: true,
+            },
+            { canonicalPath: "title", fieldId: "title", kind: "text", required: true },
           ],
         },
       ],
       [
         {
-          stepId: "basics",
-          label: "Basics",
+          stepId: "review",
+          label: "Review",
           enabled: true,
-          fields: [{ canonicalPath: "basics.title", required: true }],
+          fields: [{ canonicalPath: "publishStatus", required: true }],
         },
       ]
     );
+    assert.equal(ordered.length, 1);
+    assert.equal(ordered[0]?.stepId, "review");
+    assert.equal(ordered[0]?.fields[0]?.canonicalPath, "publishStatus");
     assert.equal(ordered[0]?.fields[0]?.required, true);
   });
 });

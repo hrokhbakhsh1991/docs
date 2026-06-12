@@ -108,11 +108,51 @@ export class InMemoryTourRepository implements TourStorageRepository {
             publishStatus: "active",
             startDateTime: "2026-07-01T08:00:00.000Z",
             endDateTime: "2026-07-03T18:00:00.000Z",
-            category: "mountain_day",
+            category: "mountain_multi",
             capacityMax: 12,
-            program: { shortDescription: "Operator smoke catalog tour", difficultyLevel: 6 },
+            program: {
+              shortDescription: "Operator smoke catalog tour",
+              difficultyLevel: 6,
+              hikingHoursApprox: 8,
+              itinerary: [
+                {
+                  dayNumber: 1,
+                  title: "Summit push",
+                  summary: "Early alpine start",
+                  segments: [
+                    {
+                      id: "smk-seg-1",
+                      kind: "activity",
+                      title: "Ridge ascent",
+                      startTime: "06:00",
+                      locationLabel: "North Ridge camp",
+                      photoIds: ["smk-photo-1"],
+                    },
+                  ],
+                },
+                {
+                  dayNumber: 2,
+                  title: "Return leg",
+                  segments: [
+                    {
+                      id: "smk-seg-2",
+                      kind: "transport",
+                      title: "Descent to trailhead",
+                    },
+                  ],
+                },
+              ],
+            },
+            participants: { fitnessLevel: "medium" },
             pricing: { basePricePerPerson: 2500000 },
-            photos: [{ url: "https://cdn.example/north-ridge.jpg" }],
+            photos: [
+              {
+                id: "smk-photo-1",
+                url: "https://cdn.example/north-ridge.jpg",
+                label: "Ridge panorama",
+                day: 1,
+              },
+            ],
             basics: { title: "North Ridge Trek" },
             details: { summary: "Operator smoke seed tour" },
           },

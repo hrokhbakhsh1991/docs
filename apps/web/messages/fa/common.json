@@ -31,6 +31,9 @@
     "previousMonth": "ماه قبل",
     "nextMonth": "ماه بعد",
     "timeLabel": "ساعت",
+    "pickTime": "انتخاب ساعت",
+    "confirmTime": "تأیید",
+    "timePickerHint": "ساعت و دقیقه را از لیست انتخاب کنید",
     "hour": "ساعت",
     "minute": "دقیقه"
   }

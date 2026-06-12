@@ -1,64 +1,69 @@
 "use client";
 
-import type { RenderStepPlan } from "@app-tour/platform-core";
-import type { ValidationIssue } from "@app-tour/wizard-navigation";
 import type { ReactNode } from "react";
 
-import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
+import { WorkspaceWizardValidationSummary } from "./workspace-wizard-validation-summary";
+import type {
+  WizardReviewSurface,
+  WizardValidationSurface,
+  WizardValidationSurfaceRenderProps,
+} from "./wizard-surface-types";
 
-import {
-  computeDenaliWizardCompletion,
-  type DenaliWizardCompletionSnapshot,
-} from "./denali/denali-wizard-completion";
-import { DenaliWizardContentQualityHeader } from "./denali/denali-wizard-content-quality-header";
-import { DenaliPublishStatusField } from "./denali/denali-publish-status-field";
-import { DenaliReviewStep } from "./denali/denali-review-step";
-import { DenaliReviewValidationSummary } from "./denali/denali-review-validation-summary";
+import { denaliWizardReviewSurface } from "./denali/denali-wizard-review-surface";
 
-export type WizardReviewSurfaceRenderProps = {
-  readonly draft: TourWizardDraft;
-  readonly onDraftChange: (draft: TourWizardDraft) => void;
-  readonly reviewValidationIssues: readonly ValidationIssue[];
-  readonly stepDescriptors: readonly { readonly stepId: string; readonly label: string }[];
-  readonly onFocusIssue: (stepId: string, path: string) => void;
-};
+function renderPlatformValidationSummary(props: WizardValidationSurfaceRenderProps): ReactNode {
+  return <WorkspaceWizardValidationSummary {...props} />;
+}
 
-export type WizardReviewSurface = {
-  readonly computeCompletion?: (
-    draft: TourWizardDraft,
-    visibleSteps: readonly RenderStepPlan[]
-  ) => DenaliWizardCompletionSnapshot | null;
-  readonly renderCompletionHeader?: (completion: DenaliWizardCompletionSnapshot) => ReactNode;
-  readonly renderReviewChrome?: (props: WizardReviewSurfaceRenderProps) => ReactNode;
-};
-
-const DENALI_REVIEW_SURFACE: WizardReviewSurface = Object.freeze({
-  computeCompletion: computeDenaliWizardCompletion,
-  renderCompletionHeader: (completion) => (
-    <DenaliWizardContentQualityHeader completion={completion} />
-  ),
-  renderReviewChrome: (props) => (
-    <>
-      <DenaliReviewStep draft={props.draft} />
-      <DenaliReviewValidationSummary
-        issues={props.reviewValidationIssues}
-        steps={props.stepDescriptors}
-        onFocusIssue={props.onFocusIssue}
-      />
-      <DenaliPublishStatusField draft={props.draft} onDraftChange={props.onDraftChange} />
-    </>
-  ),
+const platformValidationSurface: WizardValidationSurface = Object.freeze({
+  renderValidationSummary: renderPlatformValidationSummary,
 });
 
 const WIZARD_REVIEW_SURFACE_REGISTRY: Readonly<Record<string, WizardReviewSurface>> = Object.freeze({
-  denali: DENALI_REVIEW_SURFACE,
+  denali: denaliWizardReviewSurface,
+  platform: platformValidationSurface,
 });
 
-export function resolveWizardReviewSurface(
-  surfaceId: string | undefined
-): WizardReviewSurface | null {
+export type {
+  WizardCompletionSnapshot,
+  WizardReviewSurface,
+  WizardReviewSurfaceRenderProps,
+  WizardStepDescriptor,
+  WizardValidationSurfaceRenderProps,
+} from "./wizard-surface-types";
+
+export function resolveWizardReviewSurface(surfaceId: string | undefined): WizardReviewSurface | null {
   if (surfaceId == null || surfaceId.trim().length === 0) {
     return null;
   }
   return WIZARD_REVIEW_SURFACE_REGISTRY[surfaceId] ?? null;
+}
+
+/** Step-nav + review validation UI — falls back to reviewSurfaceId, then platform default. */
+export function resolveWizardValidationSurface(
+  validationSurfaceId: string | undefined,
+  reviewSurfaceId: string | undefined
+): WizardValidationSurface {
+  const surfaceId = validationSurfaceId ?? reviewSurfaceId ?? "platform";
+  const surface = resolveWizardReviewSurface(surfaceId);
+  if (surface?.renderValidationSummary != null) {
+    return surface;
+  }
+  return platformValidationSurface;
+}
+
+export function buildWizardValidationSurfaceProps(input: {
+  readonly issues: readonly WizardValidationSurfaceRenderProps["issues"];
+  readonly stepDescriptors: WizardValidationSurfaceRenderProps["stepDescriptors"];
+  readonly onFocusIssue: WizardValidationSurfaceRenderProps["onFocusIssue"];
+  readonly fieldLabelSurfaceId?: string;
+  readonly translateWorkspaceMessage?: WizardValidationSurfaceRenderProps["translateWorkspaceMessage"];
+}): WizardValidationSurfaceRenderProps {
+  return {
+    issues: input.issues,
+    stepDescriptors: input.stepDescriptors,
+    onFocusIssue: input.onFocusIssue,
+    fieldLabelSurfaceId: input.fieldLabelSurfaceId,
+    translateWorkspaceMessage: input.translateWorkspaceMessage,
+  };
 }

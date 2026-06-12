@@ -32,7 +32,7 @@ export type DenaliMatrixTag =
   | "mountain_participants"
   | "non_mountain_participants_hidden";
 
-/** `null` = matrix not defined (e.g. event multi_day). */
+/** `null` = matrix not defined for unsupported category × duration combinations. */
 export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMatrixTag[] | null> =
   {
     "mountain:single_day": [
@@ -141,7 +141,22 @@ export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMa
       "gear",
       "non_mountain_participants_hidden",
     ],
-    "event:multi_day": null,
+    "event:multi_day": [
+      "core",
+      "optional_basic",
+      "event_variant",
+      "destination",
+      "end_datetime_required",
+      "event_program_hidden",
+      "altitude_hidden",
+      "itinerary_visible",
+      "optional_program",
+      "transport_notes",
+      "policies_pricing",
+      "event_logistics_hidden",
+      "gear",
+      "non_mountain_participants_hidden",
+    ],
   };
 
 export const DENALI_MATRIX_CELLS = Object.keys(DENALI_MATRIX_CELL_TAGS) as DenaliMatrixCell[];

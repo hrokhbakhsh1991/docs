@@ -2,23 +2,15 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-import {
-  applyOperatorThemeMode,
-  readInitialOperatorThemeDark,
-} from "./operator-theme-mode";
 import { OPERATOR_NAV_TEST_IDS } from "./operator-nav.types";
+import { useOperatorThemeToggleState } from "./use-operator-theme-toggle-state";
 
 export function OperatorThemeToggleButton() {
   const t = useTranslations("app");
-  const [dark, setDark] = useState(readInitialOperatorThemeDark);
-
-  useEffect(() => {
-    applyOperatorThemeMode(dark);
-  }, [dark]);
+  const { dark, mounted, toggle } = useOperatorThemeToggleState();
 
   return (
     <Button
@@ -27,9 +19,17 @@ export function OperatorThemeToggleButton() {
       size="icon"
       aria-label={t("toggleTheme")}
       data-testid={OPERATOR_NAV_TEST_IDS.themeToggle}
-      onClick={() => setDark((value) => !value)}
+      onClick={toggle}
     >
-      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      {mounted ? (
+        dark ? (
+          <Sun className="h-4 w-4" />
+        ) : (
+          <Moon className="h-4 w-4" />
+        )
+      ) : (
+        <Moon className="h-4 w-4" />
+      )}
     </Button>
   );
 }

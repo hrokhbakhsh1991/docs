@@ -5,6 +5,7 @@ import type {
   GoToStepFn,
   ValidationIssue,
 } from "./types";
+import { waitForWizardFieldMarker } from "./wait-for-wizard-field";
 
 export async function scrollToFirstIssue(
   issues: readonly ValidationIssue[],
@@ -19,6 +20,9 @@ export async function scrollToFirstIssue(
 
   if (first.stepId !== undefined && goToStep !== undefined) {
     await goToStep(first.stepId);
+    await waitForWizardFieldMarker(first.path, registry, {
+      root: options?.root,
+    });
   }
 
   return focusWizardField(first.path, registry, options);

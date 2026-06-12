@@ -1,7 +1,7 @@
 import { createCanonicalDocument, type CanonicalDocument } from "@app-tour/workspace-sdk";
 
 import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
-import { buildDenaliWizardRoots } from "../denali-plugin-adapter";
+import { DENALI_CANONICAL_OBJECT_ROOTS, buildDenaliWizardRoots } from "../denali-plugin-adapter";
 import {
   normalizeLegacyTripDetails,
   type LegacyTripDetailsBlob,
@@ -48,7 +48,11 @@ function isLegacyTripDetailsForm(value: unknown): value is Record<string, unknow
 function buildDenaliCanonicalShell(): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   for (const root of buildDenaliWizardRoots()) {
-    data[root] = {};
+    if (DENALI_CANONICAL_OBJECT_ROOTS.has(root) || root.startsWith("denali_")) {
+      data[root] = {};
+      continue;
+    }
+    data[root] = null;
   }
   return data;
 }

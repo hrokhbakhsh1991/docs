@@ -42,6 +42,22 @@ export function resolveRuleRow(
     return { required: true, hidden: false };
   }
 
+  if (
+    def.tags.includes("event_program_hidden") &&
+    cellTags.includes("event_program_hidden") &&
+    !cellTags.includes("outdoor_program")
+  ) {
+    return { required: false, hidden: true };
+  }
+
+  if (
+    def.tags.includes("outdoor_logistics_location") &&
+    cellTags.includes("event_logistics_hidden") &&
+    !cellTags.includes("outdoor_logistics_location")
+  ) {
+    return { required: false, hidden: true };
+  }
+
   return def.ruleDefaults;
 }
 

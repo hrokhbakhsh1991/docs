@@ -154,6 +154,8 @@ export {
 } from "./tour/tour-list-projection.contract";
 export {
   type PublicCatalogCard,
+  type PublicCatalogItineraryDay,
+  type PublicCatalogItinerarySegment,
   type PublicCatalogSurface,
   type PublicCatalogTourInput,
 } from "./tour/public-catalog.contract";

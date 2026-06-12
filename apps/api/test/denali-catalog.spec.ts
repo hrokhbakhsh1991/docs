@@ -144,4 +144,23 @@ describe("denali-catalog", () => {
     assert.equal(data?.totalCapacity, 12);
     assert.equal(data?.spotsRemaining, 8);
   });
+
+  it("DCAT-05 GET /denali/catalog/{tourId} includes itineraryDays for multi-day smoke tour", async () => {
+    const response = await requestDenali(
+      listener,
+      "GET",
+      `/denali/catalog/${OPERATOR_SMOKE_PUBLISHED_TOUR_ID}`,
+      { headers: publicHeaders() }
+    );
+    assert.equal(response.status, 200);
+    const data = (response.body as {
+      data?: {
+        itineraryDays?: Array<{ title?: string; segments?: Array<{ title?: string; photoUrls?: string[] }> }>;
+      };
+    }).data;
+    assert.equal(data?.itineraryDays?.length, 2);
+    assert.equal(data?.itineraryDays?.[0]?.title, "Summit push");
+    assert.equal(data?.itineraryDays?.[0]?.segments?.[0]?.title, "Ridge ascent");
+    assert.equal(data?.itineraryDays?.[0]?.segments?.[0]?.photoUrls?.[0], "https://cdn.example/north-ridge.jpg");
+  });
 });

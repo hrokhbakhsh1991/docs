@@ -4,13 +4,10 @@ import React from "react";
 import { PlatformWizardEngine } from "@app-tour/platform-core";
 import type { RenderStepPlan } from "@app-tour/platform-core";
 import type { ScopedTenantAuthz, TenantAuthz, WorkspacePlugin } from "@app-tour/workspace-sdk";
-import { mapValidationResultToIssues, type ValidationIssue } from "@app-tour/wizard-navigation";
+import { mapValidationResultToIssues, wizardFieldPathAttributes, type ValidationIssue } from "@app-tour/wizard-navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { resolveDenaliStepLabel } from "@/i18n/denali-wizard-labels";
-
-import type { DenaliWizardRulesModule } from "@/bootstrap/denali-wizard-rules";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
 import type { WizardTemplateStepRef } from "@/features/settings/wizard-template-types";
@@ -22,6 +19,7 @@ import {
   shouldAttachSeedPrefillTestId,
   WIZARD_TEMPLATE_PREFILL_TEST_IDS,
 } from "@/tours/wizard-template-prefill-logic";
+import { formatWizardTemplateStepLabel } from "@/tours/wizard-template-catalog-logic";
 
 import { canLoadWorkspaceWizard } from "./wizard-access";
 import { WizardAccessDenied } from "./wizard-access-denied";
@@ -34,9 +32,15 @@ import {
 import { WizardStepShell } from "./wizard-step-shell";
 
 import { WizardField } from "./wizard-field";
-import { resolveWizardReviewSurface } from "./wizard-review-surface-registry";
-import { buildFieldStepResolver } from "./denali/denali-wizard-validation";
+import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
+import {
+  buildWizardValidationSurfaceProps,
+  resolveWizardReviewSurface,
+  resolveWizardValidationSurface,
+} from "./wizard-review-surface-registry";
+import { buildFieldStepResolver } from "./wizard-field-step-resolver";
 import { useWizardStepValidation } from "./use-wizard-step-validation";
+import { useWorkspaceWizardTranslator } from "./use-workspace-wizard-translator";
 
 export type WorkspaceWizardHostProps = {
   readonly pluginId: string;
@@ -67,7 +71,7 @@ export type WorkspaceWizardHostProps = {
 function resolveWizardDimensions(
   plugin: WorkspacePlugin,
   draft: TourWizardDraft,
-  rulesModule: DenaliWizardRulesModule | null,
+  rulesModule: unknown,
   validationVariant: "default" | "basic" = "default"
 ): Record<string, string> {
   const hooks = plugin.wizardHost;
@@ -115,7 +119,7 @@ function pluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
 /**
  * Workspace wizard host — CASL gate before plugin load; deny-by-default (no wizard DOM on 403).
  * Field binding follows {@link RenderFieldPlan} from the platform engine (canonicalPath, kind, hidden).
- * Denali: matrix cell follows tour kind; contextual rules filter fields on each draft change.
+ * Workspace wizard host — matrix dimensions and contextual rules come from plugin.wizardHost hooks.
  */
 export function WorkspaceWizardHost({
   pluginId,
@@ -136,11 +140,6 @@ export function WorkspaceWizardHost({
   wizardRuleEvalContext,
 }: WorkspaceWizardHostProps) {
   const tWizard = useTranslations("wizard");
-  const tDenali = useTranslations("denali");
-  const resolveDefaultStepLabel = useCallback(
-    (stepId: string) => resolveDenaliStepLabel(tDenali, stepId),
-    [tDenali]
-  );
   const access = useMemo(
     () => ({ authz, tenantId, pluginId, workspaceId }),
     [authz, tenantId, pluginId, workspaceId]
@@ -150,20 +149,45 @@ export function WorkspaceWizardHost({
 
   const [baseSteps, setBaseSteps] = useState<readonly RenderStepPlan[] | null>(null);
   const [workspacePlugin, setWorkspacePlugin] = useState<WorkspacePlugin | null>(null);
-  const [rulesModule, setRulesModule] = useState<DenaliWizardRulesModule | null>(null);
+  const [rulesModule, setRulesModule] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [reviewValidationIssues, setReviewValidationIssues] = useState<readonly ValidationIssue[]>(
     []
   );
+  const [stepNavValidationIssues, setStepNavValidationIssues] = useState<
+    readonly ValidationIssue[]
+  >([]);
   const [internalStepIndex, setInternalStepIndex] = useState(0);
   const activeStepIndex = controlledStepIndex ?? internalStepIndex;
   const setActiveStepIndex = onActiveStepIndexChange ?? setInternalStepIndex;
 
   const wizardHost = workspacePlugin?.wizardHost;
   const reviewStepId = wizardHost?.reviewStepId;
+  const translateWorkspaceMessage = useWorkspaceWizardTranslator(wizardHost?.wizardMessageNamespace);
+  const labelSurface = useMemo(
+    () => resolveWizardCompositeSurface(wizardHost?.fieldLabelSurfaceId),
+    [wizardHost?.fieldLabelSurfaceId]
+  );
+  const resolveDefaultStepLabel = useCallback(
+    (stepId: string) => {
+      if (labelSurface?.resolveStepLabel != null) {
+        return labelSurface.resolveStepLabel(translateWorkspaceMessage, stepId);
+      }
+      return formatWizardTemplateStepLabel(stepId);
+    },
+    [labelSurface, translateWorkspaceMessage]
+  );
   const reviewSurface = useMemo(
     () => resolveWizardReviewSurface(wizardHost?.reviewSurfaceId),
     [wizardHost?.reviewSurfaceId]
+  );
+  const validationSurface = useMemo(
+    () =>
+      resolveWizardValidationSurface(
+        wizardHost?.validationSurfaceId,
+        wizardHost?.reviewSurfaceId
+      ),
+    [wizardHost?.validationSurfaceId, wizardHost?.reviewSurfaceId]
   );
 
   const dimensionsKey = useMemo(() => {
@@ -199,9 +223,7 @@ export function WorkspaceWizardHost({
         const plugin = await loadWorkspacePluginById(pluginId);
         const hooks = plugin.wizardHost;
         const rules =
-          hooks?.loadRulesModule != null
-            ? ((await hooks.loadRulesModule()) as DenaliWizardRulesModule)
-            : null;
+          hooks?.loadRulesModule != null ? await hooks.loadRulesModule() : null;
         const engine = PlatformWizardEngine.create(pluginForWizardEngine(plugin));
         engine.init();
         const plan = engine.buildRenderPlan({
@@ -277,6 +299,38 @@ export function WorkspaceWizardHost({
     [stepDescriptors]
   );
 
+  const resumeAppliedRef = useRef(false);
+
+  useEffect(() => {
+    if (visibleSteps == null || visibleSteps.length === 0) {
+      return;
+    }
+    if (wizardHost?.resolveInitialStepIndex == null) {
+      return;
+    }
+    if (resumeAppliedRef.current) {
+      return;
+    }
+
+    const saved = clampWizardStepIndex(activeStepIndex, visibleSteps.length);
+    if (saved > 0) {
+      resumeAppliedRef.current = true;
+      return;
+    }
+
+    const inferred = wizardHost.resolveInitialStepIndex({
+      draft: draft as unknown as Record<string, unknown>,
+      visibleSteps,
+      savedStepIndex: saved,
+    });
+    if (inferred === 0) {
+      return;
+    }
+
+    resumeAppliedRef.current = true;
+    setActiveStepIndex(inferred);
+  }, [wizardHost, visibleSteps, activeStepIndex, draft, setActiveStepIndex]);
+
   useEffect(() => {
     const nextIndex = clampWizardStepIndex(activeStepIndex, stepDescriptors.length);
     if (nextIndex !== activeStepIndex) {
@@ -301,6 +355,11 @@ export function WorkspaceWizardHost({
 
   const { focusFirstFromResult, focusIssue } = useWizardStepValidation({
     goToStep: goToStepById,
+    focusOptions: {
+      scrollBehavior: "smooth",
+      scrollBlock: "center",
+      highlight: true,
+    },
   });
 
   const refreshReviewValidationIssues = useCallback(() => {
@@ -336,7 +395,7 @@ export function WorkspaceWizardHost({
     if (activeStep?.stepId === reviewStepId) {
       refreshReviewValidationIssues();
     }
-  }, [visibleSteps, activeStepIndex, reviewStepId, refreshReviewValidationIssues]);
+  }, [visibleSteps, activeStepIndex, reviewStepId, refreshReviewValidationIssues, draft]);
 
   useEffect(() => {
     if (submitValidationIssues == null || submitValidationIssues.length === 0) {
@@ -346,14 +405,17 @@ export function WorkspaceWizardHost({
     const first = submitValidationIssues[0];
     if (first != null) {
       void (async () => {
-        if (first.stepId != null) {
-          await goToStepById(first.stepId);
-        }
         await focusIssue(first);
         onSubmitValidationHandled?.();
       })();
     }
-  }, [submitValidationIssues, goToStepById, focusIssue, onSubmitValidationHandled]);
+  }, [submitValidationIssues, focusIssue, onSubmitValidationHandled]);
+
+  useEffect(() => {
+    if (stepNavValidationIssues.length > 0) {
+      setStepNavValidationIssues([]);
+    }
+  }, [draft]);
 
   const handleBeforeNext = useCallback(
     async (currentIndex: number) => {
@@ -376,8 +438,11 @@ export function WorkspaceWizardHost({
         scope: { stepId: step.stepId, visibleSteps },
       });
       if (result.ok) {
+        setStepNavValidationIssues([]);
         return true;
       }
+      const issues = mapValidationResultToIssues(result, { resolveStepId });
+      setStepNavValidationIssues(issues);
       await focusFirstFromResult(result, { resolveStepId });
       return false;
     },
@@ -397,12 +462,9 @@ export function WorkspaceWizardHost({
 
   const handleFocusValidationIssue = useCallback(
     (stepId: string, path: string) => {
-      void (async () => {
-        await goToStepById(stepId);
-        await focusIssue({ path, message: "", stepId });
-      })();
+      void focusIssue({ path, message: "", stepId });
     },
-    [goToStepById, focusIssue]
+    [focusIssue]
   );
 
   if (!authorized) {
@@ -479,6 +541,19 @@ export function WorkspaceWizardHost({
             </h2>
           </header>
           <div className="workspace-wizard__fields">
+            {stepNavValidationIssues.length > 0 ? (
+              <div className="workspace-wizard__step-validation">
+                {validationSurface.renderValidationSummary(
+                  buildWizardValidationSurfaceProps({
+                    issues: stepNavValidationIssues,
+                    stepDescriptors,
+                    onFocusIssue: handleFocusValidationIssue,
+                    fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
+                    translateWorkspaceMessage,
+                  })
+                )}
+              </div>
+            ) : null}
             {wizardHost?.usesReviewStep === true &&
             reviewStepId != null &&
             activeStep.stepId === reviewStepId &&
@@ -489,6 +564,8 @@ export function WorkspaceWizardHost({
                 reviewValidationIssues,
                 stepDescriptors,
                 onFocusIssue: handleFocusValidationIssue,
+                fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
+                translateWorkspaceMessage,
               })
             ) : null}
             {activeStep.fields
@@ -506,7 +583,11 @@ export function WorkspaceWizardHost({
                 const value = getCanonicalStringValue(draft, path);
 
                 return (
-                  <div key={`${field.fieldId}:${path}`} className="workspace-wizard__field">
+                  <div
+                    key={`${field.fieldId}:${path}`}
+                    className="workspace-wizard__field"
+                    {...wizardFieldPathAttributes(path, field.fieldId)}
+                  >
                     <WizardField
                       field={field}
                       value={value}

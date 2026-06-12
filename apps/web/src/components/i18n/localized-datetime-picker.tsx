@@ -2,16 +2,13 @@
 
 import { useLocale, useTranslations } from "next-intl";
 
-import { joinDatetimeLocal, normalizeClockTime, splitDatetimeLocal } from "@/i18n/datetime-format";
+import { joinDatetimeLocal, splitDatetimeLocal } from "@/i18n/datetime-format";
 import type { AppLocale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
+import { DenaliTimeInput } from "./denali-time-input";
 import { Label } from "../ui/label";
 import { LocalizedDatePicker } from "./localized-date-picker";
-import {
-  LocalizedNumericInput,
-  PrimitiveLocalizedNumericInput,
-} from "./localized-numeric-input";
 
 export type LocalizedTimeInputProps = {
   readonly id?: string;
@@ -24,7 +21,7 @@ export type LocalizedTimeInputProps = {
   readonly "aria-label"?: string;
 };
 
-/** HH:mm clock input with Persian digit display when locale is fa. */
+/** HH:mm — Denali field style (wizard + settings). */
 export function LocalizedTimeInput({
   id,
   value,
@@ -35,89 +32,32 @@ export function LocalizedTimeInput({
   variant = "shadcn",
   "aria-label": ariaLabel,
 }: LocalizedTimeInputProps) {
-  const t = useTranslations("common.calendar");
-  const [hoursRaw = "", minutesRaw = ""] = value.split(":");
-
-  const emit = (hours: string, minutes: string) => {
-    if (hours.length === 0 && minutes.length === 0) {
-      onChange("");
-      return;
-    }
-    const hh = hours.padStart(2, "0").slice(-2);
-    const mm = minutes.padStart(2, "0").slice(-2);
-    onChange(normalizeClockTime(`${hh}:${mm}`));
-  };
-
-  const NumericInput = variant === "primitive" ? PrimitiveLocalizedNumericInput : LocalizedNumericInput;
-
   if (variant === "primitive") {
     return (
-      <div
+      <DenaliTimeInput
         id={id}
-        role="group"
-        aria-label={ariaLabel ?? t("timeLabel")}
-        aria-required={required || undefined}
-        className={cn("denali-wizard-datetime__clock", className)}
-      >
-        <NumericInput
-          mode="digits"
-          maxLength={2}
-          value={hoursRaw}
-          disabled={disabled}
-          aria-label={t("hour")}
-          className="denali-wizard-datetime__clock-digit"
-          placeholder="00"
-          onChange={(hours) => emit(hours, minutesRaw)}
-        />
-        <span className="denali-wizard-datetime__clock-separator" aria-hidden>
-          :
-        </span>
-        <NumericInput
-          mode="digits"
-          maxLength={2}
-          value={minutesRaw}
-          disabled={disabled}
-          aria-label={t("minute")}
-          className="denali-wizard-datetime__clock-digit"
-          placeholder="00"
-          onChange={(minutes) => emit(hoursRaw, minutes)}
-        />
-      </div>
+        value={value}
+        disabled={disabled}
+        required={required}
+        className={className}
+        aria-label={ariaLabel}
+        appearance="field"
+        onChange={onChange}
+      />
     );
   }
 
   return (
-    <div
+    <DenaliTimeInput
       id={id}
-      role="group"
-      aria-label={ariaLabel ?? t("timeLabel")}
-      aria-required={required || undefined}
-      className={cn("flex items-center gap-1", className)}
-    >
-      <NumericInput
-        mode="digits"
-        maxLength={2}
-        value={hoursRaw}
-        disabled={disabled}
-        aria-label={t("hour")}
-        className="w-14 text-center"
-        placeholder="00"
-        onChange={(hours) => emit(hours, minutesRaw)}
-      />
-      <span className="text-muted-foreground" aria-hidden>
-        :
-      </span>
-      <NumericInput
-        mode="digits"
-        maxLength={2}
-        value={minutesRaw}
-        disabled={disabled}
-        aria-label={t("minute")}
-        className="w-14 text-center"
-        placeholder="00"
-        onChange={(minutes) => emit(hoursRaw, minutes)}
-      />
-    </div>
+      value={value}
+      disabled={disabled}
+      required={required}
+      className={className}
+      aria-label={ariaLabel}
+      appearance="field"
+      onChange={onChange}
+    />
   );
 }
 
@@ -133,7 +73,7 @@ export type LocalizedDatetimePickerProps = {
   readonly "aria-label"?: string;
 };
 
-/** Persian/Gregorian date picker plus localized HH:mm time inputs. Value: `YYYY-MM-DDTHH:mm`. */
+/** Persian/Gregorian date + HH:mm. Wizard layout: one shared control bar. */
 export function LocalizedDatetimePicker({
   id,
   value,
@@ -157,23 +97,25 @@ export function LocalizedDatetimePicker({
         data-testid={dataTestId}
         dir={locale === "fa" ? "rtl" : "ltr"}
       >
-        <div className="denali-wizard-datetime__date">
-          <LocalizedDatePicker
-            id={id}
-            value={date}
-            disabled={disabled}
-            required={required}
-            aria-label={ariaLabel ?? t("pickDate")}
-            onChange={(nextDate) => onChange(joinDatetimeLocal(nextDate, time))}
-          />
-        </div>
-        <div className="denali-wizard-datetime__time">
-          <span className="denali-wizard-datetime__time-label">{t("timeLabel")}</span>
-          <LocalizedTimeInput
-            variant="primitive"
+        <div className="denali-wizard-datetime__control">
+          <div className="denali-wizard-datetime__date">
+            <LocalizedDatePicker
+              id={id}
+              value={date}
+              disabled={disabled}
+              required={required}
+              aria-label={ariaLabel ?? t("pickDate")}
+              className="denali-wizard-datetime__date-trigger"
+              onChange={(nextDate) => onChange(joinDatetimeLocal(nextDate, time))}
+            />
+          </div>
+          <div className="denali-wizard-datetime__divider" aria-hidden />
+          <DenaliTimeInput
+            appearance="inline"
             value={time}
             disabled={disabled}
             required={required}
+            aria-label={t("timeLabel")}
             onChange={(nextTime) => onChange(joinDatetimeLocal(date, nextTime))}
           />
         </div>

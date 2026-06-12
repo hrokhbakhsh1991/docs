@@ -87,7 +87,9 @@ const OPERATOR_TOUR_CATEGORY_SLUGS = new Set([
   "desert_day",
   "desert_multi",
   "event_reading",
+  "event_reading_multi",
   "event_cinema",
+  "event_cinema_multi",
 ]);
 
 function parseOperatorCategory(raw: string | null): string | undefined {

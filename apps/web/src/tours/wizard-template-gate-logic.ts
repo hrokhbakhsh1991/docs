@@ -234,10 +234,9 @@ export function applyWizardTemplateToRenderPlan<
     if (templateStep.enabled === false) {
       continue;
     }
-    const engineStep = engineStepById.get(templateStep.stepId);
-    if (engineStep === undefined) {
-      continue;
-    }
+    const engineStep =
+      engineStepById.get(templateStep.stepId) ??
+      ({ stepId: templateStep.stepId, fields: [] } as TStep);
 
     const orderedFields: TField[] = [];
     for (const templateField of templateStep.fields) {

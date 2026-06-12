@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -138,32 +138,62 @@ export function TourPresetsClient({ session }: TourPresetsClientProps) {
     <div className="space-y-6" data-testid={SETTINGS_HUB_TEST_IDS.tourPresetsPage}>
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
 
+      <Card data-denali-surface="card" className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">{t("aboutTitle")}</CardTitle>
+          <CardDescription className="text-sm leading-relaxed">{t("intro")}</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <ul className="list-disc space-y-2 ps-5 text-sm text-muted-foreground">
+            <li>{t("introBulletWizard")}</li>
+            <li>{t("introBulletDescription")}</li>
+            <li>
+              {t("introBulletAdvanced")}{" "}
+              <Link
+                href="/settings/tour-presets/advanced"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                {t("advancedLink")}
+              </Link>
+              .
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
+
       {canManage ? (
         <Card data-denali-surface="card" className="shadow-sm" data-testid={SETTINGS_HUB_TEST_IDS.tourPresetsForm}>
           <CardHeader>
             <CardTitle>{t("addTitle")}</CardTitle>
+            <CardDescription>{t("addDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="grid gap-4 sm:grid-cols-4" onSubmit={(event) => void handleCreate(event)}>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="preset-name">{tCommon("name")}</Label>
-                <Input
-                  id="preset-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                />
+            <form className="space-y-4" onSubmit={(event) => void handleCreate(event)}>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="preset-name">{tCommon("name")}</Label>
+                  <p className="text-xs text-muted-foreground">{t("nameHint")}</p>
+                  <Input
+                    id="preset-name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="preset-description">{tCommon("description")}</Label>
+                  <p className="text-xs text-muted-foreground">{t("descriptionHint")}</p>
+                  <Input
+                    id="preset-description"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                  />
+                </div>
               </div>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="preset-description">{tCommon("description")}</Label>
-                <Input
-                  id="preset-description"
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-1">
+
+              <div className="max-w-md space-y-2">
                 <Label htmlFor="preset-theme">{t("theme")}</Label>
+                <p className="text-xs text-muted-foreground">{t("themeHint")}</p>
                 <select
                   id="preset-theme"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -177,13 +207,20 @@ export function TourPresetsClient({ session }: TourPresetsClientProps) {
                     </option>
                   ))}
                 </select>
+                {!loading && themes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t("noThemes")}{" "}
+                    <Link href="/settings/tour-themes" className="text-primary underline-offset-4 hover:underline">
+                      {t("themesLink")}
+                    </Link>
+                  </p>
+                ) : null}
               </div>
-              <div className="flex items-end sm:col-span-1">
-                <Button type="submit" disabled={saving}>
-                  <Plus className="me-1 size-4" />
-                  {tCommon("add")}
-                </Button>
-              </div>
+
+              <Button type="submit" disabled={saving}>
+                <Plus className="me-1 size-4" />
+                {tCommon("add")}
+              </Button>
             </form>
           </CardContent>
         </Card>

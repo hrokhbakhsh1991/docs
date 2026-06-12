@@ -1,5 +1,6 @@
 import { resolveThemeCompatibleCategories } from "@app-tour/workspace-denali/settings/theme-compatible-categories";
 import { resolveEquipmentCompatibleCategories } from "@app-tour/workspace-denali/settings/equipment-compatible-categories";
+import { isEquipmentCompatibleWithTourThemes as isEquipmentThemeMatch } from "@app-tour/workspace-denali/settings/equipment-compatible-themes";
 
 import type { EquipmentResource, TourThemeResource } from "@/features/settings/settings-module-types";
 
@@ -22,6 +23,18 @@ export function isEquipmentCompatibleWithTourCategory(
     return true;
   }
   return allowed.includes(tourCategory);
+}
+
+export function isEquipmentVisibleInWizard(
+  item: EquipmentResource,
+  tourCategory: string | undefined,
+  tourThemeIds: readonly string[] | undefined
+): boolean {
+  const themeIds = item.themeIds ?? [];
+  if (themeIds.length > 0) {
+    return isEquipmentThemeMatch(themeIds, tourThemeIds);
+  }
+  return isEquipmentCompatibleWithTourCategory(item, tourCategory);
 }
 
 function resolveThemeAllowedCategories(theme: TourThemeResource): readonly string[] {

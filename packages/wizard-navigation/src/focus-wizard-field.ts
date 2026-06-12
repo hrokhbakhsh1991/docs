@@ -1,4 +1,5 @@
 import { findFocusableDescendant } from "./find-focusable";
+import { highlightWizardFieldMarker } from "./highlight-wizard-field";
 import type { FieldFocusRegistry, FocusWizardFieldOptions } from "./types";
 
 function resolveRoot(options?: FocusWizardFieldOptions): ParentNode | null {
@@ -34,8 +35,11 @@ export function focusWizardField(
     if (options?.scroll !== false) {
       focusable.scrollIntoView({
         behavior: options?.scrollBehavior ?? "smooth",
-        block: "nearest",
+        block: options?.scrollBlock ?? "center",
       });
+    }
+    if (options?.highlight !== false) {
+      highlightWizardFieldMarker(match);
     }
     return true;
   }

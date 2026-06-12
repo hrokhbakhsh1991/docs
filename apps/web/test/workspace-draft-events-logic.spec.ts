@@ -35,8 +35,8 @@ describe("workspace-draft-events-logic.spec.ts — Phase 11.11", () => {
   });
 
   it("WEB-P11-11-03 maps action to i18n keys", () => {
-    assert.equal(resolveWorkspaceDraftEventMessageKey("created"), "host.draftEvents.action.created");
-    assert.equal(resolveWorkspaceDraftEventMessageKey("deleted"), "host.draftEvents.action.deleted");
+    assert.equal(resolveWorkspaceDraftEventMessageKey("created"), "action.created");
+    assert.equal(resolveWorkspaceDraftEventMessageKey("deleted"), "action.deleted");
   });
 
   it("WEB-P11-11-02 caps visible events for display", () => {

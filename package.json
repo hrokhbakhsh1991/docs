@@ -31,6 +31,8 @@
     "test:nightly:cold-start": "pnpm --filter @apps/api run test:nightly:cold-start",
     "pre-commit:fast": "bash scripts/pre-commit-fast.sh",
     "db:test-reset": "bash scripts/db-test-reset.sh",
+    "infra:up": "DB_PORT=5434 docker compose -f infra/docker-compose.yml up -d postgres redis minio && pnpm infra:minio:ensure-bucket",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
     "infra:minio:up": "docker compose -f infra/docker-compose.yml up -d minio",
     "infra:minio:ensure-bucket": "docker run --rm --network host --entrypoint /bin/sh minio/mc -c 'mc alias set local http://127.0.0.1:9002 minioadmin minioadmin && mc mb local/app-tour-dev --ignore-existing'",
     "test:minio-photo": "pnpm --filter @app-tour/workspace-denali... run build && pnpm --filter @apps/api exec node --import tsx --test test/minio-photo.spec.ts",
@@ -78,6 +80,7 @@
     "generate:workspace-registry": "node scripts/generate-workspace-registry.mjs",
     "guard:workspace-registry-fresh": "node scripts/generate-workspace-registry.mjs --check",
     "workspace:create": "node scripts/workspace-create.mjs",
+    "build:operator-vps": "pnpm --filter @apps/api... run build && pnpm --filter @apps/web... run build",
     "phase-10:guard": "node scripts/guards/phase-10-guard.mjs",
     "guard:public-catalog-m17": "node scripts/guards/guard-public-catalog-m17.mjs"
   },

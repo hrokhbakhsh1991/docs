@@ -1,10 +1,13 @@
 "use client";
 
 import { Button } from "@app-tour/ui-primitives/button";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
-import { WIZARD_STEP_SHELL_TEST_IDS } from "./wizard-step-shell-logic";
+import {
+  canNavigateToWizardStepIndex,
+  WIZARD_STEP_SHELL_TEST_IDS,
+} from "./wizard-step-shell-logic";
 
 export { WIZARD_STEP_SHELL_TEST_IDS };
 
@@ -35,11 +38,19 @@ export function WizardStepShell({
   onBeforeNext,
 }: WizardStepShellProps) {
   const t = useTranslations("wizard.stepShell");
+  const format = useFormatter();
   const stepCount = steps.length;
   const safeIndex = Math.min(Math.max(activeIndex, 0), Math.max(0, stepCount - 1));
   const isFirst = safeIndex === 0;
   const isLast = safeIndex === stepCount - 1;
   const activeStep = steps[safeIndex];
+
+  const jumpToStep = (index: number) => {
+    if (navLocked || !canNavigateToWizardStepIndex(index, safeIndex) || index === safeIndex) {
+      return;
+    }
+    onActiveIndexChange(index);
+  };
 
   return (
     <div className="workspace-wizard-shell" data-testid={WIZARD_STEP_SHELL_TEST_IDS.panel}>
@@ -52,6 +63,16 @@ export function WizardStepShell({
           {steps.map((step, index) => {
             const state =
               index < safeIndex ? "complete" : index === safeIndex ? "current" : "upcoming";
+            const canJump = canNavigateToWizardStepIndex(index, safeIndex);
+            const content = (
+              <>
+                <span className="workspace-wizard-shell__progress-index" aria-hidden>
+                  {format.number(index + 1)}
+                </span>
+                <span className="workspace-wizard-shell__progress-label">{step.label}</span>
+              </>
+            );
+
             return (
               <li
                 key={step.stepId}
@@ -59,10 +80,21 @@ export function WizardStepShell({
                 data-wizard-step-state={state}
                 data-wizard-progress-step={step.stepId}
               >
-                <span className="workspace-wizard-shell__progress-index" aria-hidden>
-                  {index + 1}
-                </span>
-                <span className="workspace-wizard-shell__progress-label">{step.label}</span>
+                {canJump ? (
+                  <button
+                    type="button"
+                    className="workspace-wizard-shell__progress-step-btn"
+                    data-testid={WIZARD_STEP_SHELL_TEST_IDS.progressStep(step.stepId)}
+                    aria-current={index === safeIndex ? "step" : undefined}
+                    aria-label={t("jumpToStep", { label: step.label })}
+                    disabled={navLocked || index === safeIndex}
+                    onClick={() => jumpToStep(index)}
+                  >
+                    {content}
+                  </button>
+                ) : (
+                  <span className="workspace-wizard-shell__progress-step-label">{content}</span>
+                )}
               </li>
             );
           })}
@@ -81,7 +113,9 @@ export function WizardStepShell({
         </p>
       </nav>
 
-      <div className="workspace-wizard-shell__card">{children}</div>
+      <div className="workspace-wizard-shell__body">
+        <div className="workspace-wizard-shell__card">{children}</div>
+      </div>
 
       <footer className="workspace-wizard-shell__actions">
         <Button

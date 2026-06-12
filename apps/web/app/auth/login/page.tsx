@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -7,12 +6,7 @@ import { buildAuthLoginPageMetadata } from "@/i18n/app-page-metadata";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding.server";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
-import { LoginFormFallback } from "./login-form-fallback";
-
-const LoginForm = dynamic(
-  () => import("./login-form").then((mod) => mod.LoginForm),
-  { ssr: false, loading: () => <LoginFormFallback /> }
-);
+import { LoginFormLazy } from "./login-form-lazy";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildAuthLoginPageMetadata();
@@ -51,7 +45,7 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
     fetchPublicTenantBrandingForHost(host),
   ]);
   return (
-    <LoginForm
+    <LoginFormLazy
       pluginId={bootstrap.session.pluginId}
       initialBranding={branding}
       searchQuery={searchQuery}

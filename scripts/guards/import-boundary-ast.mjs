@@ -79,7 +79,7 @@ function listSourceFiles(dir) {
     for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, ent.name);
       if (ent.isDirectory()) {
-        if (ent.name === "node_modules" || ent.name === "dist") continue;
+        if (ent.name === "node_modules" || ent.name === "dist" || ent.name === ".next") continue;
         walk(p);
       } else if (/\.(ts|tsx|mts|cts)$/.test(ent.name)) {
         out.push(p);

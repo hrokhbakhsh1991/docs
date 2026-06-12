@@ -99,6 +99,8 @@ export function evaluateDenaliContextualRule(
       return isDenaliSeatPreferenceRequired(transportModeFromForm(form));
     case "multiDayEndDateTimeRequired":
       return denaliTourKindToIsMultiDay(form.basicInfo.tourType as DenaliTourKind);
+    case "singleDayTourOnly":
+      return !denaliTourKindToIsMultiDay(form.basicInfo.tourType as DenaliTourKind);
     case "peakExperienceVisible":
       return isPeakExperienceVisible(form);
     case "groupInsuranceVisible":

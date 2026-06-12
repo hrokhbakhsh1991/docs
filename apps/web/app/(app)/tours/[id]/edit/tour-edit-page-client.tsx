@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import type { OperatorSessionContext } from "@/admin/require-operator-session";
+import { isDenaliOperatorSession, type OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,7 @@ type TourEditPageClientProps = {
 };
 
 export function TourEditPageClient({ session, tourId }: TourEditPageClientProps) {
-  const isDenali = session.pluginId === "denali";
+  const isDenali = isDenaliOperatorSession(session);
   const canEdit = canMutateTour(session.role);
   if (isDenali && canEdit) {
     return <DenaliFlatEditPageClient session={session} tourId={tourId} />;

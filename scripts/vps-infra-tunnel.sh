@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Forward VPS Postgres (5433) and Redis (6379) to local 15433 / 16379.
-# Required before `pnpm --filter @apps/api dev` when using remote infra.
-# MinIO is reached directly at 89.45.89.206:9002 (no tunnel).
+# OPTIONAL — forward VPS Postgres (5433) and Redis (6379) to local 15433 / 16379.
+# Use only with apps/api/.env.vps-tunnel.example (never mix with local Docker .env.local).
+# Preferred local dev: pnpm infra:up + apps/api/.env.local.example (isolated from VPS).
+# MinIO on VPS has no tunnel — direct IP when using vps-tunnel env.
 set -euo pipefail
 
 VPS_HOST="${VPS_HOST:-89.45.89.206}"

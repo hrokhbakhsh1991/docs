@@ -12,6 +12,10 @@ import type {
 } from "../field-registry/DenaliFieldRegistry.types";
 import { DENALI_GLOBAL_STRUCTURAL_INVARIANTS } from "../registry/denaliGlobalStructuralInvariants";
 import type { DenaliCreateTourWizardForm } from "../schemas/denaliCore.schema";
+import {
+  parseDenaliItineraryDays,
+  pruneItinerarySegmentPhotoIds,
+} from "../schemas/denaliItineraryDaySchema";
 import type { DenaliTourKind } from "../types/legacy/repo-types";
 import { mapDenaliCanonicalToFormPath } from "../rules/denaliCanonicalPaths";
 import type { DenaliRuleSet } from "../rules/denaliRuleModel";
@@ -100,6 +104,24 @@ function applyStructuralInvariantRule(
   }
 }
 
+function collectAllowedPhotoIdsFromForm(form: DenaliCreateTourWizardForm): ReadonlySet<string> {
+  const ids = new Set<string>();
+  const photos = form.photosData?.photos;
+  if (!Array.isArray(photos)) {
+    return ids;
+  }
+  for (const entry of photos) {
+    if (entry == null || typeof entry !== "object") {
+      continue;
+    }
+    const id = (entry as { id?: unknown }).id;
+    if (typeof id === "string" && id.trim().length > 0) {
+      ids.add(id.trim());
+    }
+  }
+  return ids;
+}
+
 function applyGlobalStructuralInvariant(
   form: DenaliCreateTourWizardForm,
   rule: DenaliGlobalStructuralInvariant
@@ -132,6 +154,18 @@ function applyGlobalStructuralInvariant(
         form.programNature.itinerary as Parameters<typeof syncDenaliItineraryRows>[0],
         dayCount
       );
+      return;
+    }
+    case "pruneItinerarySegmentPhotoIds": {
+      const itinerary = form.programNature.itinerary;
+      if (!Array.isArray(itinerary) || itinerary.length === 0) {
+        return;
+      }
+      const parsed = parseDenaliItineraryDays(itinerary);
+      const pruned = pruneItinerarySegmentPhotoIds(parsed, collectAllowedPhotoIdsFromForm(form));
+      if (JSON.stringify(pruned) !== JSON.stringify(parsed)) {
+        form.programNature.itinerary = pruned as typeof form.programNature.itinerary;
+      }
       return;
     }
     default: {

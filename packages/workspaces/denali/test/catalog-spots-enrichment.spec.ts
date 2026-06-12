@@ -49,7 +49,7 @@ function bookingPort(approvedByTour: Record<string, number>): DenaliPublicBookin
 }
 
 describe("catalog-spots-enrichment", () => {
-  it("DN-CAT-07 detail card includes spotsRemaining from approved occupancy", async () => {
+  it("DN-SPOTS-01 detail card includes spotsRemaining from approved occupancy", async () => {
     const card = await getDenaliCatalogTour({
       tenantId: "tenant",
       workspaceType: "denali",
@@ -60,7 +60,7 @@ describe("catalog-spots-enrichment", () => {
     assert.equal(card?.spotsRemaining, 8);
   });
 
-  it("DN-CAT-08 pending occupancy does not reduce spots when port returns zero", async () => {
+  it("DN-SPOTS-02 pending occupancy does not reduce spots when port returns zero", async () => {
     const card = await getDenaliCatalogTour({
       tenantId: "tenant",
       workspaceType: "denali",

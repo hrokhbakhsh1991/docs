@@ -1,8 +1,8 @@
 "use client";
 
 import { readDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
+import { Check } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
-import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { useTranslations } from "next-intl";
 
 import type { TourThemeResource, TourThemesListResponse } from "@/features/settings/settings-module-types";
@@ -12,10 +12,12 @@ import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
 
 import { isTourThemeCompatibleWithWizard } from "./denali-catalog-filters";
+import { themeDisplayInitials, themeSwatchToneClass } from "./denali-theme-picker-logic";
 import { DENALI_DEFAULT_WORKSPACE_FORM_PROFILE } from "./denali-wizard-ui-context";
 
 export const DENALI_PROGRAM_CONTENT_TEST_IDS = {
   themes: "denali-composite-program-themes",
+  card: "denali-theme-picker-card",
 } as const;
 
 function parseThemeIds(value: unknown): string[] {
@@ -40,7 +42,7 @@ export function DenaliProgramContentField({
   const tErrors = useTranslations("settings.errors");
   const label = resolveDenaliFieldLabel(t, "program.themeIds");
   const selected = parseThemeIds(getCanonicalValue(draft, "program.themeIds"));
-  const selectedSet = new Set(selected);
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
   const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,18 +91,28 @@ export function DenaliProgramContentField({
     [themes, tourCategory, workspaceFormProfile]
   );
 
-  const toggleTheme = (themeId: string, checked: boolean) => {
-    const next = checked
-      ? [...selected, themeId]
-      : selected.filter((id) => id !== themeId);
+  const toggleTheme = (themeId: string) => {
+    const next = selectedSet.has(themeId)
+      ? selected.filter((id) => id !== themeId)
+      : [...selected, themeId];
     onDraftChange(setCanonicalValue(draft, "program.themeIds", next));
   };
 
   return (
-    <div className="denali-wizard-composite" data-denali-wizard-surface="section" data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.themes}>
+    <div
+      className="denali-wizard-composite"
+      data-denali-wizard-surface="section"
+      data-denali-theme-picker
+      data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.themes}
+    >
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{label}</h3>
         <p className="denali-wizard-composite__helper">{t("composites.programContent.helper")}</p>
+        {selected.length > 0 ? (
+          <p className="denali-theme-picker__summary">
+            {t("composites.programContent.selectedCount", { count: selected.length })}
+          </p>
+        ) : null}
       </div>
 
       {loading ? (
@@ -111,19 +123,63 @@ export function DenaliProgramContentField({
       ) : null}
 
       {!loading && visibleThemes.length === 0 && error === null ? (
-        <p className="denali-wizard-composite__status">{t("composites.programContent.empty")}</p>
+        <div className="denali-theme-picker__empty">
+          <p className="denali-wizard-composite__status">{t("composites.programContent.empty")}</p>
+          <a className="denali-wizard-composite__link" href="/settings/tour-themes">
+            {t("composites.programContent.openTourThemes")}
+          </a>
+        </div>
       ) : null}
 
-      {visibleThemes.map((theme) => (
-        <label key={theme.id} className="denali-wizard-composite__field-row">
-          <Checkbox
-            aria-label={theme.name}
-            checked={selectedSet.has(theme.id)}
-            onChange={(event) => toggleTheme(theme.id, event.target.checked)}
-          />
-          <span>{theme.name}</span>
-        </label>
-      ))}
+      {visibleThemes.length > 0 ? (
+        <div className="denali-theme-picker__grid" role="list">
+          {visibleThemes.map((theme) => {
+            const isSelected = selectedSet.has(theme.id);
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                role="listitem"
+                data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.card}
+                data-denali-theme-card
+                aria-pressed={isSelected}
+                aria-label={theme.name}
+                className={
+                  isSelected
+                    ? "denali-theme-picker__card denali-theme-picker__card--selected"
+                    : "denali-theme-picker__card"
+                }
+                onClick={() => toggleTheme(theme.id)}
+              >
+                <span
+                  className={`denali-theme-picker__swatch ${themeSwatchToneClass(theme.slug || theme.id)}`}
+                  aria-hidden
+                >
+                  {themeDisplayInitials(theme.name)}
+                </span>
+                <span className="denali-theme-picker__body">
+                  <span className="denali-theme-picker__name">{theme.name}</span>
+                  {theme.slug ? (
+                    <span className="denali-theme-picker__slug" dir="ltr">
+                      {theme.slug}
+                    </span>
+                  ) : null}
+                </span>
+                <span
+                  className={
+                    isSelected
+                      ? "denali-theme-picker__check denali-theme-picker__check--visible"
+                      : "denali-theme-picker__check"
+                  }
+                  aria-hidden
+                >
+                  <Check />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

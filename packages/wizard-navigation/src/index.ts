@@ -11,5 +11,10 @@ export {
 } from "./field-path-attributes";
 export { createDefaultFieldFocusRegistry } from "./default-field-focus-registry";
 export { focusWizardField } from "./focus-wizard-field";
+export {
+  highlightWizardFieldMarker,
+  WIZARD_FIELD_VALIDATION_HIGHLIGHT_CLASS,
+} from "./highlight-wizard-field";
 export { scrollToFirstIssue } from "./scroll-to-first-issue";
+export { waitForWizardFieldMarker } from "./wait-for-wizard-field";
 export { mapValidationResultToIssues, type MapValidationResultOptions } from "./map-validation-result";

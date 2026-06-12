@@ -6,6 +6,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { CatalogCoverImage } from "@/catalog/catalog-cover-image";
+import { CatalogItinerarySection } from "@/catalog/catalog-itinerary-section";
 import {
   formatCatalogCardDates,
   formatCatalogCardDescription,
@@ -98,6 +99,20 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
         <p>{t("detail.difficulty", { level: tour.difficultyLevel })}</p>
       ) : null}
       {tour.fitnessLevel ? <p>{t("detail.fitness", { level: tour.fitnessLevel })}</p> : null}
+      {tour.itineraryDays != null && tour.itineraryDays.length > 0 ? (
+        <CatalogItinerarySection
+          days={tour.itineraryDays}
+          heading={t("detail.itineraryHeading")}
+          dayLabel={(dayNumber) => t("detail.itineraryDay", { day: dayNumber })}
+          segmentsHeading={t("detail.itinerarySegments")}
+        />
+      ) : null}
+      {tour.structuredData != null ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(tour.structuredData) }}
+        />
+      ) : null}
       {registrationUrl ? (
         <p>
           <a href={registrationUrl} data-marketing-register>

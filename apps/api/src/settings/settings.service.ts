@@ -11,6 +11,7 @@ import {
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { enrichTourThemesCompatibleCategories } from "./enrich-tour-theme-compatible-categories";
 import { enrichEquipmentListCompatibleCategories } from "./enrich-equipment-compatible-categories";
+import { normalizeThemeIdsInput } from "./parse-theme-ids";
 import {
   assertDenaliOperatorSettingsWorkspace,
   isUrbanOperatorSettingsWorkspace,
@@ -222,11 +223,18 @@ export async function createSettingsResource(
     if (equipmentBody.name.trim().length === 0) {
       throw new SettingsResourceInvalidError();
     }
+    let themeIds: string[] = [];
+    try {
+      themeIds = normalizeThemeIdsInput(equipmentBody.themeIds);
+    } catch {
+      throw new SettingsResourceInvalidError();
+    }
     const created = await repo.createEquipment(auth.tenantId, {
       name: equipmentBody.name.trim(),
       ...(equipmentBody.category !== undefined && equipmentBody.category.trim().length > 0
         ? { category: equipmentBody.category.trim() }
         : {}),
+      themeIds,
     });
     await emitSettingsResourceAudit(
       auth,
@@ -373,9 +381,18 @@ export async function patchSettingsResource(
 
   if (moduleId === "equipment") {
     const equipmentBody = body as PatchEquipmentRequest;
+    let themeIds: string[] | undefined;
+    if (equipmentBody.themeIds !== undefined) {
+      try {
+        themeIds = normalizeThemeIdsInput(equipmentBody.themeIds);
+      } catch {
+        throw new SettingsResourceInvalidError();
+      }
+    }
     const updated = await repo.patchEquipment(auth.tenantId, itemId, {
       ...(equipmentBody.name !== undefined ? { name: equipmentBody.name.trim() } : {}),
       ...(equipmentBody.category !== undefined ? { category: equipmentBody.category } : {}),
+      ...(themeIds !== undefined ? { themeIds } : {}),
     });
     await emitSettingsResourceAudit(
       auth,

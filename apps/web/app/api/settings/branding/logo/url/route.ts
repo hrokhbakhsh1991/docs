@@ -32,5 +32,8 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
+  if (backendRes.status === 404 && payload.code === "TENANT_BRAND_LOGO_NOT_SET") {
+    return NextResponse.json({ url: null });
+  }
   return NextResponse.json(payload, { status: backendRes.status });
 }

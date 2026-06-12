@@ -9,11 +9,9 @@ import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
 
 import { datetimeLocalInputToIso, isoToDatetimeLocalInput } from "./denali-datetime-utils";
+import { DENALI_DATETIME_TEST_IDS } from "./denali-datetime-test-ids";
 
-export const DENALI_DATETIME_TEST_IDS = {
-  start: "denali-composite-datetime-start",
-  end: "denali-composite-datetime-end",
-} as const;
+export { DENALI_DATETIME_TEST_IDS } from "./denali-datetime-test-ids";
 
 type DenaliDatetimeFieldProps = {
   readonly draft: TourWizardDraft;

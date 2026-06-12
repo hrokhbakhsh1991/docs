@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/admin/patterns/page-header";

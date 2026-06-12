@@ -131,7 +131,7 @@
     "phase-3:regression-gate": "node ./scripts/phase-3-regression-gate.mjs",
     "phase-4:cross-phase-p0-verify": "node ./scripts/phase-4-cross-phase-p0-verify.mjs",
     "phase-4:resilience-regression-gate": "node ./scripts/phase-4-resilience-regression-gate.mjs",
-    "db:migrate:deploy": "node ./scripts/db-migrate-deploy.mjs",
+    "db:migrate:deploy": "node --env-file=.env --env-file=.env.local ./scripts/db-migrate-deploy.mjs",
     "db:seed": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/db-seed.ts",
     "test:phase-5": "NODE_ENV=test node --import tsx --test test/phase-5.contract.spec.ts",
     "test:soak": "NODE_ENV=test RUN_SOAK=1 node --expose-gc --import tsx --test --test-concurrency=1 test/3-performance/soak-memory-leak.spec.ts",

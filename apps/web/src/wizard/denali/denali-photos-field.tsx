@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Button } from "@app-tour/ui-primitives/button";
 import { Input } from "@app-tour/ui-primitives/input";
 import { Select, type SelectOption } from "@app-tour/ui-primitives/select";
@@ -13,10 +13,8 @@ import { resolveDenaliPhotoUploadError } from "@/i18n/resolve-denali-photo-uploa
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
 
-import {
-  resolveDenaliWizardPhotoPreviewUrl,
-  uploadDenaliWizardPhoto,
-} from "./denali-photo-upload-client";
+import { DenaliPhotoPreview } from "./denali-photo-preview";
+import { uploadDenaliWizardPhoto } from "./denali-photo-upload-client";
 import {
   DENALI_MAX_PHOTO_COUNT,
   estimateDenaliTourDayCount,
@@ -44,59 +42,6 @@ function newPhotoId(): string {
     return crypto.randomUUID();
   }
   return `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function DenaliPhotoPreview({
-  photo,
-  altFallback,
-}: {
-  readonly photo: DenaliTourPhoto;
-  readonly altFallback: string;
-}) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const externalUrl = photo.url?.trim() ?? "";
-    const storageKey = photo.storageKey?.trim() ?? "";
-
-    if (externalUrl.length > 0) {
-      setPreviewUrl(isDenaliHttpsImageUrl(externalUrl) ? externalUrl : null);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    if (storageKey.length === 0) {
-      setPreviewUrl(null);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    void resolveDenaliWizardPhotoPreviewUrl(storageKey).then((url) => {
-      if (!cancelled) {
-        setPreviewUrl(url);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [photo.storageKey, photo.url]);
-
-  if (previewUrl === null) {
-    return null;
-  }
-
-  return (
-    <img
-      src={previewUrl}
-      alt={photo.label?.trim() || altFallback}
-      className="denali-wizard-composite__preview-img"
-      data-testid={DENALI_PHOTOS_TEST_IDS.preview}
-    />
-  );
 }
 
 export function DenaliPhotosField({

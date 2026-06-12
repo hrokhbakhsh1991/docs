@@ -29,6 +29,7 @@ export type DenaliContextualRule =
   | { readonly kind: "transportAdminCapacityVisible" }
   | { readonly kind: "transportTrainSeatVisible" }
   | { readonly kind: "multiDayEndDateTimeRequired" }
+  | { readonly kind: "singleDayTourOnly" }
   | { readonly kind: "peakExperienceVisible" }
   | { readonly kind: "groupInsuranceVisible" };
 
@@ -45,6 +46,7 @@ export type DenaliStructuralInvariant =
 /** Cross-field or algorithmic rules not tied to a single registry row visibility flag. */
 export type DenaliGlobalStructuralInvariant =
   | { readonly kind: "syncProgramItineraryToDayCount" }
+  | { readonly kind: "pruneItinerarySegmentPhotoIds" }
   | {
       readonly kind: "clearFieldWhenTransportMode";
       readonly targetCanonical: string;

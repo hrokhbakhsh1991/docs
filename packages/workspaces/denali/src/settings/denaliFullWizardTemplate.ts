@@ -84,9 +84,10 @@ export function buildDenaliFullWizardTemplateSteps(): readonly DenaliWizardTempl
       enabled: true,
       fields: [
         field("transport.mode", true),
-        field("startPoint"),
         field("gatheringPoints"),
+        field("startPoint"),
         field("participants.gearItems"),
+        field("tripDetails.logistics.includedServices"),
         field("tripDetails.overview.customServiceLabels"),
       ],
     },

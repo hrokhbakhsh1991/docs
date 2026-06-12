@@ -1,4 +1,4 @@
-/** Denali wizard tour kind slugs (8 values). */
+/** Denali wizard tour kind slugs (10 values). */
 export const DENALI_TOUR_KIND_VALUES = [
   "mountain_day",
   "mountain_multi",
@@ -7,7 +7,9 @@ export const DENALI_TOUR_KIND_VALUES = [
   "desert_day",
   "desert_multi",
   "event_reading",
+  "event_reading_multi",
   "event_cinema",
+  "event_cinema_multi",
 ] as const;
 
 export type DenaliTourKind = (typeof DENALI_TOUR_KIND_VALUES)[number];
@@ -23,7 +25,7 @@ export function denaliTourKindToIsMultiDay(kind: DenaliTourKind): boolean {
 }
 
 export function isDenaliEventTourKind(kind: DenaliTourKind): boolean {
-  return kind === "event_reading" || kind === "event_cinema";
+  return kind.startsWith("event_");
 }
 
 export function isDenaliOutdoorTourKind(kind: DenaliTourKind): boolean {

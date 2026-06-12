@@ -14,7 +14,10 @@ export type TourEditHydrateStatus = "idle" | "loading" | "ready" | "error";
 export function hydrateTourEditDraft(
   plugin: WorkspacePlugin,
   detail: OperatorTourDetailResponse,
-  options?: { readonly activeEquipmentIds?: readonly string[] }
+  options?: {
+    readonly activeEquipmentIds?: readonly string[];
+    readonly activeDestinationIds?: readonly string[];
+  }
 ): TourWizardDraft | null {
   const hydrate = plugin.wizardHost?.hydrateEditDraft;
   if (hydrate == null) {
@@ -24,6 +27,9 @@ export function hydrateTourEditDraft(
     canonicalData: detail.canonical.data,
     ...(options?.activeEquipmentIds !== undefined
       ? { activeEquipmentIds: options.activeEquipmentIds }
+      : {}),
+    ...(options?.activeDestinationIds !== undefined
+      ? { activeDestinationIds: options.activeDestinationIds }
       : {}),
   });
   return { data: data as TourWizardDraft["data"] };

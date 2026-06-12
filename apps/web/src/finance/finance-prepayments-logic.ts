@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/routing";
 import {
+  formatGroupedDigitsString,
   formatLocalizedNumber,
   INTL_LOCALE,
   toLocalizedDigits,
@@ -107,15 +108,7 @@ export function formatMinorAmount(
   if (digits.length === 0) {
     return `${formatLocalizedNumber(0, locale)} ${currency}`;
   }
-  const numeric = Number(digits);
-  if (Number.isFinite(numeric) && digits.length <= 15) {
-    return `${formatLocalizedNumber(numeric, locale)} ${currency}`;
-  }
-  const grouped = toLocalizedDigits(
-    digits.replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-    locale
-  );
-  return `${grouped} ${currency}`;
+  return `${formatGroupedDigitsString(digits, locale)} ${currency}`;
 }
 
 export function formatPrepaymentRecordedAt(iso: string, locale: AppLocale = "en"): string {

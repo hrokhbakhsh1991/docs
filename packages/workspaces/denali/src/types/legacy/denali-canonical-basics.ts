@@ -32,8 +32,14 @@ export function denaliCanonicalBasicsFromTourKind(
   kind: DenaliTourKind | undefined
 ): DenaliCanonicalBasicsSelection | null {
   if (kind == null) return null;
+  if (kind === "event_cinema_multi") {
+    return { category: "event", duration: "multi_day", eventVariant: "cinema" };
+  }
   if (kind === "event_cinema") {
     return { category: "event", duration: "single_day", eventVariant: "cinema" };
+  }
+  if (kind === "event_reading_multi") {
+    return { category: "event", duration: "multi_day", eventVariant: "reading" };
   }
   if (kind === "event_reading") {
     return { category: "event", duration: "single_day", eventVariant: "reading" };
@@ -64,8 +70,10 @@ export function denaliTourKindFromCanonical(input: {
       return multi ? "desert_multi" : "desert_day";
     case "event": {
       const variant = input.eventVariant ?? "reading";
-      if (variant === "cinema") return "event_cinema";
-      return "event_reading";
+      if (variant === "cinema") {
+        return multi ? "event_cinema_multi" : "event_cinema";
+      }
+      return multi ? "event_reading_multi" : "event_reading";
     }
     default: {
       const _exhaustive: never = input.category;

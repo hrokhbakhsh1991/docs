@@ -1,0 +1,18 @@
+[Unit]
+Description=App Tour API (@apps/api)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@APP_USER@
+Group=@APP_USER@
+WorkingDirectory=@DEPLOY_PATH@
+EnvironmentFile=@ENV_DIR@/api.env
+ExecStart=/usr/bin/node @DEPLOY_PATH@/apps/api/dist/main.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

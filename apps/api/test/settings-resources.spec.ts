@@ -47,12 +47,15 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
       "/settings/resources/equipment",
       {
         headers: operatorAuthHeaders(),
-        body: { name: "Trekking Poles", category: "gear" },
+        body: {
+          name: "Trekking Poles",
+          themeIds: ["00000000-0000-4000-8000-000000000701"],
+        },
       }
     );
     assert.equal(createRes.status, 201);
     assert.equal(createRes.body.name, "Trekking Poles");
-    assert.equal(createRes.body.category, "gear");
+    assert.deepEqual(createRes.body.themeIds, ["00000000-0000-4000-8000-000000000701"]);
     const itemId = createRes.body.id as string;
 
     const listRes = await client.requestJson<ResourceResponse>(
@@ -95,6 +98,7 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
       tenantId: foreignTenantId,
       name: "Foreign Tent",
       category: null,
+      themeIds: [],
       sortOrder: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

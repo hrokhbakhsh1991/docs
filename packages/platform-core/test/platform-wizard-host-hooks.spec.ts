@@ -9,6 +9,8 @@ describe("platform-wizard-host-hooks.spec.ts (SDK-12.8-01)", () => {
   it("exports createPlatformWizardHostHooks with step validation enabled", () => {
     const hooks = createPlatformWizardHostHooks({ dimensions: { variant: "default" } });
     assert.equal(hooks.usesStepValidation, true);
+    assert.equal(hooks.validationSurfaceId, "platform");
+    assert.equal(hooks.wizardMessageNamespace, "wizard");
     assert.equal(typeof hooks.validateDraftSync, "function");
     assert.equal(typeof hooks.resolveMatrixDimensionsFromDraft, "function");
   });

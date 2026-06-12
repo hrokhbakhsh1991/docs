@@ -4,6 +4,7 @@ import { applyTestDbHoldIfConfigured, withPoolSaturationMapping } from "./pool-s
 import { withTransientDbGuard } from "./with-transient-db-guard";
 import { withTenantDbBudget } from "./tenant-connection-budget";
 import { getPrisma } from "./prisma";
+import { resolvePrismaTransactionOptions } from "./prisma-transaction-options";
 import { assertActiveTenantMatchesRlsTarget } from "./assert-tenant-rls-alignment";
 import { applyTenantRlsSessionVars } from "./rls-session-vars";
 import { getActiveTraceId } from "../observability/trace-request-context";
@@ -25,11 +26,14 @@ export async function withTenantRls<T>(
   return withTenantDbBudget(normalized, () =>
     withTransientDbGuard(() =>
       withPoolSaturationMapping(() =>
-        prisma.$transaction(async (tx) => {
-          await applyTenantRlsSessionVars(tx, normalized, getActiveTraceId());
-          await applyTestDbHoldIfConfigured(tx);
-          return run(tx);
-        })
+        prisma.$transaction(
+          async (tx) => {
+            await applyTenantRlsSessionVars(tx, normalized, getActiveTraceId());
+            await applyTestDbHoldIfConfigured(tx);
+            return run(tx);
+          },
+          resolvePrismaTransactionOptions()
+        )
       )
     )
   );

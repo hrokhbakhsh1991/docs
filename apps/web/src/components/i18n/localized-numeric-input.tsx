@@ -1,7 +1,7 @@
 "use client";
 
 import { Input as PrimitiveInput } from "@app-tour/ui-primitives/input";
-import React, { type ComponentProps } from "react";
+import React, { forwardRef, type ComponentProps } from "react";
 
 import { Input as ShadcnInput } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -21,10 +21,11 @@ export function LocalizedNumericInput({
   onChange,
   mode,
   maxLength,
+  groupThousands,
   className,
   ...rest
 }: LocalizedNumericInputBaseProps) {
-  const localized = useLocalizedNumericInput({ value, onChange, mode, maxLength });
+  const localized = useLocalizedNumericInput({ value, onChange, mode, maxLength, groupThousands });
   return <ShadcnInput {...rest} {...localized} className={cn(localized.className, className)} />;
 }
 
@@ -34,20 +35,20 @@ type PrimitiveLocalizedNumericInputProps = Omit<
 > &
   UseLocalizedNumericInputOptions;
 
-export function PrimitiveLocalizedNumericInput({
-  value,
-  onChange,
-  mode,
-  maxLength,
-  className,
-  ...rest
-}: PrimitiveLocalizedNumericInputProps) {
-  const localized = useLocalizedNumericInput({ value, onChange, mode, maxLength });
+export const PrimitiveLocalizedNumericInput = forwardRef<
+  HTMLInputElement,
+  PrimitiveLocalizedNumericInputProps
+>(function PrimitiveLocalizedNumericInput(
+  { value, onChange, mode, maxLength, groupThousands, className, ...rest },
+  ref
+) {
+  const localized = useLocalizedNumericInput({ value, onChange, mode, maxLength, groupThousands });
   return (
     <PrimitiveInput
+      ref={ref}
       {...rest}
       {...localized}
       className={cn(localized.className, className)}
     />
   );
-}
+});

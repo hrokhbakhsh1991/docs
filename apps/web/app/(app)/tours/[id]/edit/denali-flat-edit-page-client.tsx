@@ -21,6 +21,13 @@ import { isOwnerRole, type OperatorSessionContext } from "@/admin/require-operat
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DraftConflictBanner } from "@/draft/draft-conflict-banner";
+import { DraftSyncIndicator } from "@/draft/draft-sync-indicator";
+import {
+  mergeDenaliWizardDraftEnvelope,
+  type NewTourWizardDraftEnvelope,
+} from "@/draft/denali-wizard-draft-merge";
+import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import { loadDenaliWizardRulesModule, type DenaliWizardRulesModule } from "@/bootstrap/denali-wizard-rules";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types";
@@ -31,7 +38,9 @@ import {
 } from "@/features/tours/tour-list-formatters";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
+import { useAppSession } from "@/providers/app-session-context";
 import type { TourThemeResource } from "@/features/settings/settings-module-types";
+import { parseLocationsResponse } from "@/features/settings/locations-logic";
 import { readActiveEquipmentIds } from "@/tours/tour-clone-hydrate-logic";
 import { hydrateTourEditDraft } from "@/tours/tour-edit-hydrate-logic";
 import { emptyTourWizardDraft, type TourWizardDraft } from "@/tours/tour-wizard-draft";
@@ -41,6 +50,7 @@ import {
   type WizardTemplateGateState,
 } from "@/tours/wizard-template-gate-logic";
 import {
+  readActiveDestinationIds,
   readActiveGuideLanguageIds,
   readActiveThemeIds,
   readSelectableLeaderUserIds,
@@ -191,9 +201,10 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     setLoading(true);
     setError(null);
     try {
-      const [tourResponse, equipmentResponse] = await Promise.all([
+      const [tourResponse, equipmentResponse, locationsResponse] = await Promise.all([
         fetch(`/api/tours/${encodeURIComponent(tourId)}`, { cache: "no-store" }),
         fetch("/api/settings/resources/equipment", { cache: "no-store" }),
+        fetch("/api/settings/resources/locations", { cache: "no-store" }),
       ]);
       if (tourResponse.status === 404) {
         setDetail(null);
@@ -205,13 +216,21 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
       }
       const tourDetail = (await tourResponse.json()) as OperatorTourDetailResponse;
       let activeEquipmentIds: readonly string[] | undefined;
+      let activeDestinationIds: readonly string[] | undefined;
       if (equipmentResponse.ok) {
         const equipmentPayload = (await equipmentResponse.json()) as {
           items?: Array<{ id: string; isActive?: boolean }>;
         };
         activeEquipmentIds = readActiveEquipmentIds(equipmentPayload.items ?? []);
       }
-      const hydrated = hydrateTourEditDraft(plugin, tourDetail, { activeEquipmentIds });
+      if (locationsResponse.ok) {
+        const locationsPayload = parseLocationsResponse(await locationsResponse.json());
+        activeDestinationIds = readActiveDestinationIds(locationsPayload.destinations);
+      }
+      const hydrated = hydrateTourEditDraft(plugin, tourDetail, {
+        activeEquipmentIds,
+        activeDestinationIds,
+      });
       if (hydrated == null) {
         throw new Error("TOUR_EDIT_HYDRATOR_UNAVAILABLE");
       }
@@ -293,13 +312,15 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
       let activeEquipmentIds: readonly string[] | undefined;
       let activeThemeIds: readonly string[] | undefined;
       let activeGuideLanguageIds: readonly string[] | undefined;
+      let activeDestinationIds: readonly string[] | undefined;
       let selectableLeaderIds: readonly string[] | undefined;
       try {
-        const [equipmentResponse, themesResponse, guideLanguagesResponse, usersResponse] =
+        const [equipmentResponse, themesResponse, guideLanguagesResponse, locationsResponse, usersResponse] =
           await Promise.all([
           fetch("/api/settings/resources/equipment", { cache: "no-store" }),
           fetch("/api/settings/resources/tour_themes", { cache: "no-store" }),
           fetch("/api/settings/resources/guide_languages", { cache: "no-store" }),
+          fetch("/api/settings/resources/locations", { cache: "no-store" }),
           fetch("/api/users?role=all&status=active", { cache: "no-store" }),
         ]);
         if (equipmentResponse.ok) {
@@ -320,6 +341,10 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
           };
           activeGuideLanguageIds = readActiveGuideLanguageIds(guideLanguagesPayload.items ?? []);
         }
+        if (locationsResponse.ok) {
+          const locationsPayload = parseLocationsResponse(await locationsResponse.json());
+          activeDestinationIds = readActiveDestinationIds(locationsPayload.destinations);
+        }
         if (usersResponse.ok) {
           const usersPayload = (await usersResponse.json()) as {
             items?: Array<{ userId: string; role: string; status: string }>;
@@ -330,6 +355,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
         activeEquipmentIds = undefined;
         activeThemeIds = undefined;
         activeGuideLanguageIds = undefined;
+        activeDestinationIds = undefined;
         selectableLeaderIds = undefined;
       }
       const preparePatch = plugin.wizardHost?.prepareTourPatchPayload;
@@ -349,6 +375,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
           activeEquipmentIds,
           activeThemeIds,
           activeGuideLanguageIds,
+          activeDestinationIds,
           selectableLeaderIds,
         },
       }) as UpdateTourPayload;

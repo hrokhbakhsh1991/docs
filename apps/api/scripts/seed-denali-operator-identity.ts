@@ -36,12 +36,14 @@ export async function seedDenaliOperatorIdentity(): Promise<void> {
     owner.displayName !== undefined ? { displayName: owner.displayName } : {};
 
   await prisma.user.upsert({
-    where: { mobile: owner.mobile },
+    where: { id: owner.userId },
     create: {
       id: owner.userId,
       mobile: owner.mobile,
     },
-    update: {},
+    update: {
+      mobile: owner.mobile,
+    },
   });
 
   await withTenantRls(DENALI_SMOKE_TENANT_ID, (tx) =>

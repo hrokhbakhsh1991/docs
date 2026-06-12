@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
-import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
+import { resolveDenaliFieldLabel, resolveDenaliStepLabel } from "@/i18n/denali-wizard-labels";
 
 const DenaliCompositeField = dynamic(
   () => import("./denali/denali-composite-field").then((mod) => mod.DenaliCompositeField),
@@ -30,6 +30,10 @@ export type WizardCompositeSurface = {
     translate: (key: string) => string,
     canonicalPath: string
   ) => string;
+  readonly resolveStepLabel?: (
+    translate: (key: string) => string,
+    stepId: string
+  ) => string;
 };
 
 const DENALI_COMPOSITE_SURFACE: WizardCompositeSurface = Object.freeze({
@@ -45,6 +49,7 @@ const DENALI_COMPOSITE_SURFACE: WizardCompositeSurface = Object.freeze({
   ),
   resolveFieldLabel: (translate, canonicalPath) =>
     resolveDenaliFieldLabel(translate, canonicalPath),
+  resolveStepLabel: (translate, stepId) => resolveDenaliStepLabel(translate, stepId),
 });
 
 const WIZARD_COMPOSITE_SURFACE_REGISTRY: Readonly<Record<string, WizardCompositeSurface>> =

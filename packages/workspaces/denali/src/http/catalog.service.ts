@@ -1,9 +1,64 @@
+import type { PublicCatalogTourInput } from "@app-tour/workspace-sdk";
+
 import { withSpotsRemaining } from "../catalog/compute-spots-remaining";
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
+import { collectItinerarySegmentDestinationIds } from "../catalog/project-denali-catalog-itinerary";
 import { DenaliWorkspaceRequiredError } from "./errors/denali-workspace-required.error";
 import type { DenaliPublicBookingPort } from "./ports/public-booking.port";
+import type { DenaliPublicDestinationPort } from "./ports/public-destination.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
+}
+
+function collectDestinationIdsFromTours(tours: readonly PublicCatalogTourInput[]): readonly string[] {
+  const ids = new Set<string>();
+  for (const tour of tours) {
+    const data = tour.canonical.data;
+    if (isRecord(data)) {
+      for (const destinationId of collectItinerarySegmentDestinationIds(data)) {
+        ids.add(destinationId);
+      }
+    }
+  }
+  return Object.freeze([...ids]);
+}
+
+async function resolveDestinationNameById(params: {
+  readonly tenantId: string;
+  readonly tours: readonly PublicCatalogTourInput[];
+  readonly destinationPort?: DenaliPublicDestinationPort;
+}): Promise<ReadonlyMap<string, string> | undefined> {
+  if (params.destinationPort === undefined) {
+    return undefined;
+  }
+  const destinationIds = collectDestinationIdsFromTours(params.tours);
+  if (destinationIds.length === 0) {
+    return undefined;
+  }
+  const names = await params.destinationPort.getDestinationNamesByIds(
+    params.tenantId,
+    destinationIds
+  );
+  const entries = Object.entries(names).filter(
+    ([, name]) => typeof name === "string" && name.trim().length > 0
+  );
+  return entries.length > 0 ? new Map(entries) : undefined;
+}
+
+function mapToursToCatalogCards(
+  tours: readonly PublicCatalogTourInput[],
+  destinationNameById: ReadonlyMap<string, string> | undefined
+): ReturnType<typeof toDenaliCatalogCard>[] {
+  return tours.map((tour) =>
+    toDenaliCatalogCard(
+      tour,
+      destinationNameById === undefined ? undefined : { destinationNameById }
+    )
+  );
+}
 
 async function enrichCatalogCardsWithSpots(params: {
   readonly tenantId: string;
@@ -35,6 +90,7 @@ export async function listDenaliCatalog(params: {
   readonly workspaceType: string;
   readonly store: DenaliTourStorePort;
   readonly bookingPort?: DenaliPublicBookingPort;
+  readonly destinationPort?: DenaliPublicDestinationPort;
   readonly limit?: number;
   readonly cursor?: string;
 }): Promise<DenaliCatalogListResult> {
@@ -61,7 +117,12 @@ export async function listDenaliCatalog(params: {
 
   const slice = published.slice(startIdx, startIdx + limit);
   const hasMore = startIdx + slice.length < published.length;
-  const cards = slice.map((tour) => toDenaliCatalogCard(tour));
+  const destinationNameById = await resolveDestinationNameById({
+    tenantId: params.tenantId,
+    tours: slice,
+    destinationPort: params.destinationPort,
+  });
+  const cards = mapToursToCatalogCards(slice, destinationNameById);
   const items = await enrichCatalogCardsWithSpots({
     tenantId: params.tenantId,
     cards,
@@ -78,6 +139,7 @@ export async function getDenaliCatalogTour(params: {
   readonly workspaceType: string;
   readonly store: DenaliTourStorePort;
   readonly bookingPort?: DenaliPublicBookingPort;
+  readonly destinationPort?: DenaliPublicDestinationPort;
   readonly tourId: string;
 }) {
   if (params.workspaceType !== "denali") {
@@ -87,7 +149,12 @@ export async function getDenaliCatalogTour(params: {
   if (tour === null || !isDenaliTourPublished(tour.canonical)) {
     return null;
   }
-  const card = toDenaliCatalogCard(tour);
+  const destinationNameById = await resolveDestinationNameById({
+    tenantId: params.tenantId,
+    tours: [tour],
+    destinationPort: params.destinationPort,
+  });
+  const [card] = mapToursToCatalogCards([tour], destinationNameById);
   const [enriched] = await enrichCatalogCardsWithSpots({
     tenantId: params.tenantId,
     cards: [card],

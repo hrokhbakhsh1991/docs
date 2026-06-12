@@ -16,7 +16,10 @@ export function mergeDenaliWizardDraftEnvelope(
       },
     },
     meta: {
-      currentStepIndex: local.meta.currentStepIndex,
+      currentStepIndex:
+        local.meta.currentStepIndex > 0
+          ? local.meta.currentStepIndex
+          : server.meta.currentStepIndex,
       wizardSessionId: local.meta.wizardSessionId ?? server.meta.wizardSessionId,
     },
   };

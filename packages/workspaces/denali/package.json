@@ -34,6 +34,10 @@
       "types": "./dist/settings/equipment-compatible-categories.d.ts",
       "default": "./dist/settings/equipment-compatible-categories.js"
     },
+    "./settings/equipment-compatible-themes": {
+      "types": "./dist/settings/equipment-compatible-themes.d.ts",
+      "default": "./dist/settings/equipment-compatible-themes.js"
+    },
     "./wizard/validation": {
       "types": "./dist/wizard/denali-wizard-validation.d.ts",
       "default": "./dist/wizard/denali-wizard-validation.js"
@@ -61,6 +65,14 @@
     "./wizard/contextual": {
       "types": "./dist/wizard/contextual.d.ts",
       "default": "./dist/wizard/contextual.js"
+    },
+    "./program/itinerary": {
+      "types": "./dist/schemas/denaliItineraryDaySchema.d.ts",
+      "default": "./dist/schemas/denaliItineraryDaySchema.js"
+    },
+    "./wizard/resolve-initial-step-index": {
+      "types": "./dist/wizard/resolve-initial-step-index.d.ts",
+      "default": "./dist/wizard/resolve-initial-step-index.js"
     },
     "./http": {
       "types": "./dist/http/index.d.ts",

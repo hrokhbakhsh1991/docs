@@ -1,0 +1,45 @@
+name: Deploy VPS (operator stack)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.repository == 'hrokhbakhsh1991/docs'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          test -n "$VPS_HOST" || (echo "Missing secret VPS_HOST" && exit 1)
+          test -n "$VPS_SSH_KEY" || (echo "Missing secret VPS_SSH_KEY" && exit 1)
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Run remote deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+        run: |
+          USER="${VPS_USER:-root}"
+          PATH_ON_SERVER="${DEPLOY_PATH:-/opt/app-tour}"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            "${USER}@${VPS_HOST}" \
+            "DEPLOY_PATH='${PATH_ON_SERVER}' bash '${PATH_ON_SERVER}/scripts/vps-deploy/remote-deploy.sh'"

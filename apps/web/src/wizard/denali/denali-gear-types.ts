@@ -1,7 +1,7 @@
 export type DenaliGearItem = {
   readonly equipmentId: string;
   readonly name: string;
-  readonly isRequired?: boolean;
+  readonly isRequired: boolean;
 };
 
 export function parseDenaliGearItems(value: unknown): DenaliGearItem[] {
@@ -13,7 +13,7 @@ export function parseDenaliGearItems(value: unknown): DenaliGearItem[] {
     .map((entry) => ({
       equipmentId: String(entry.equipmentId ?? entry.id ?? ""),
       name: String(entry.name ?? ""),
-      ...(entry.isRequired === true ? { isRequired: true } : {}),
+      isRequired: entry.isRequired !== false,
     }))
     .filter((item) => item.equipmentId.length > 0);
 }

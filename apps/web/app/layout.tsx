@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { buildRootLayoutMetadata } from "@/i18n/app-page-metadata";
 import { inter, resolveAppFontClassName, resolveAppFontFamilyCss, vazirmatn } from "@/i18n/app-fonts";
+import { intlFormatsForLocale } from "@/i18n/intl-formats";
 import { isAppLocale, resolveTextDirection, routing } from "@/i18n/routing";
 import { AppProviders } from "@/providers/app-providers";
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
@@ -53,7 +54,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         data-locale={locale}
         data-dir={dir}
       >
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages} formats={intlFormatsForLocale(locale)}>
           <AppProviders bootstrap={bootstrap}>{children}</AppProviders>
         </NextIntlClientProvider>
       </body>

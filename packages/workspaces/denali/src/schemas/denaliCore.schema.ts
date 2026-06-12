@@ -75,6 +75,8 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
     tripDetails: {
       logistics: {
         gatheringPoints: [],
+        includedServices: [],
+        excludedServices: [],
       },
       overview: {
         customServiceLabels: [],

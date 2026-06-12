@@ -43,8 +43,15 @@ export function resetSettingsResourcesRepositoryForTests(): void {
 export interface SettingsResourcesRepository {
   listEquipment(tenantId: string): Promise<EquipmentResource[]>;
   getEquipment(tenantId: string, itemId: string): Promise<EquipmentResource | null>;
-  createEquipment(tenantId: string, input: { name: string; category?: string }): Promise<EquipmentResource>;
-  patchEquipment(tenantId: string, itemId: string, input: { name?: string; category?: string | null }): Promise<EquipmentResource>;
+  createEquipment(
+    tenantId: string,
+    input: { name: string; category?: string; themeIds?: readonly string[] }
+  ): Promise<EquipmentResource>;
+  patchEquipment(
+    tenantId: string,
+    itemId: string,
+    input: { name?: string; category?: string | null; themeIds?: readonly string[] }
+  ): Promise<EquipmentResource>;
   deleteEquipment(tenantId: string, itemId: string): Promise<void>;
   seedEquipment(record: EquipmentResource): Promise<void>;
   listTourThemes(tenantId: string): Promise<TourThemeResource[]>;
@@ -92,7 +99,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
 
   async createEquipment(
     tenantId: string,
-    input: { name: string; category?: string }
+    input: { name: string; category?: string; themeIds?: readonly string[] }
   ): Promise<EquipmentResource> {
     const now = new Date().toISOString();
     const existing = await this.listEquipment(tenantId);
@@ -101,6 +108,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       tenantId,
       name: input.name,
       category: input.category ?? null,
+      themeIds: input.themeIds ?? [],
       sortOrder: existing.length,
       createdAt: now,
       updatedAt: now,
@@ -112,7 +120,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
   async patchEquipment(
     tenantId: string,
     itemId: string,
-    input: { name?: string; category?: string | null }
+    input: { name?: string; category?: string | null; themeIds?: readonly string[] }
   ): Promise<EquipmentResource> {
     const current = equipmentStore.get(resourceKey(tenantId, itemId));
     if (current === undefined) {
@@ -122,6 +130,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       ...current,
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(input.themeIds !== undefined ? { themeIds: [...input.themeIds] } : {}),
       updatedAt: new Date().toISOString(),
     };
     equipmentStore.set(resourceKey(tenantId, itemId), updated);

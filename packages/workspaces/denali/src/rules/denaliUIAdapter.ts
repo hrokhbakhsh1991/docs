@@ -179,6 +179,9 @@ export function isDenaliFieldVisibleOnStep(
   const field = findDenaliRuleField(model, canonicalPath);
   if (field == null) {
     const registryOnly = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
+    if (registryOnly?.settingsSurface === "review") {
+      return step === "review";
+    }
     if (registryOnly?.contextualVisibility == null) return false;
     if (step === "review") return true;
     return registryOnly.stepId === step;
@@ -201,6 +204,9 @@ export function isDenaliFieldRequiredOnStep(
   const field = findDenaliRuleField(model, canonicalPath);
   if (field == null) {
     const registryOnly = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
+    if (registryOnly?.settingsSurface === "review") {
+      return step === "review" ? registryOnly.ruleDefaults.required : false;
+    }
     if (registryOnly?.contextualRequired == null) return false;
     if (step !== "review" && registryOnly.stepId !== step) return false;
     if (form != null) {

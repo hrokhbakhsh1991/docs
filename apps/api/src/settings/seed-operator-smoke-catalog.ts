@@ -33,6 +33,7 @@ export async function seedOperatorSmokeCatalog(
     tenantId,
     name: "Smoke Trekking Poles",
     category: "mountain",
+    themeIds: [OPERATOR_SMOKE_THEME_ID],
     sortOrder: 0,
     createdAt: ISO_NOW,
     updatedAt: ISO_NOW,

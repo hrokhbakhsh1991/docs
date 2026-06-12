@@ -10,6 +10,8 @@ type PublishOperatorWizardTemplateOptions = {
   readonly seedLabel?: string;
   /** Denali default — starter smoke bridge uses `title` in UI catalog for tenant 014. */
   readonly titleCanonicalPath?: string;
+  /** Load Denali full template (all steps including program.itinerary) before publish. */
+  readonly fullTemplate?: boolean;
 };
 
 export async function publishOperatorWizardTemplate(
@@ -22,6 +24,10 @@ export async function publishOperatorWizardTemplate(
   await expect(page.getByTestId(WIZARD_TEMPLATE_TEST_IDS.page)).toBeVisible({
     timeout: 15_000,
   });
+
+  if (options.fullTemplate === true) {
+    await page.getByTestId(WIZARD_TEMPLATE_TEST_IDS.loadFullTemplateButton).click();
+  }
 
   if (options.seedLabel !== undefined && options.seedLabel.length > 0) {
     await page.getByTestId(WIZARD_TEMPLATE_TEST_IDS.seedInput).fill(options.seedLabel);

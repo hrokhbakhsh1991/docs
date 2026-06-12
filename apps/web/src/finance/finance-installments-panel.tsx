@@ -190,6 +190,7 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
                 <LocalizedNumericInput
                   id="schedule-invoice-total"
                   mode="digits"
+                  groupThousands
                   value={form.invoiceTotalMinor}
                   onChange={(invoiceTotalMinor) =>
                     setForm((current) => ({ ...current, invoiceTotalMinor }))

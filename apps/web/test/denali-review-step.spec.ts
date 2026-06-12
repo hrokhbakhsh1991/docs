@@ -35,5 +35,6 @@ describe("denali-review-step.spec.ts — Phase 11.7", () => {
 
   it("WEB-P11-7-06 review test ids are stable", () => {
     assert.equal(DENALI_REVIEW_STEP_TEST_IDS.panel, "denali-review-step");
+    assert.equal(DENALI_REVIEW_STEP_TEST_IDS.section("denali_basic"), "denali-review-section-denali_basic");
   });
 });

@@ -8,6 +8,7 @@ import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { setCanonicalValue } from "../src/tours/tour-wizard-draft-path";
 import {
   filterIdsToAllowedCatalog,
+  readActiveDestinationIds,
   readActiveThemeIds,
   readSelectableLeaderUserIds,
   resolveMainThemeFormProfileFromCatalog,
@@ -47,9 +48,20 @@ describe("denali-catalog-sanitize.spec.ts", () => {
         { userId: "u2", role: "member", isSelectableLeader: false },
         { userId: "u3", role: "admin", isSelectableLeader: false },
         { userId: "u4", role: "member", isSelectableLeader: false, labels: ["admin"] },
+        { userId: "u5", role: "member", isSelectableLeader: false, labels: ["راهنما"] },
       ]),
-      ["u1", "u3", "u4"]
+      ["u1", "u3", "u4", "u5"]
     );
     assert.deepEqual(filterIdsToAllowedCatalog(["a", "b"], ["b"]), ["b"]);
+  });
+
+  it("WEB-11.8-CAT-04 readActiveDestinationIds skips inactive rows", () => {
+    assert.deepEqual(
+      readActiveDestinationIds([
+        { id: "d1", regionId: "r1", name: "Alamut", isActive: true },
+        { id: "d2", regionId: "r1", name: "Inactive", isActive: false },
+      ]),
+      ["d1"]
+    );
   });
 });

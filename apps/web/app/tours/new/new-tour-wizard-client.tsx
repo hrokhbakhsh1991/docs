@@ -15,13 +15,11 @@ import {
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
 } from "@app-tour/workspace-denali/draft";
-import { Button } from "@app-tour/ui-primitives/button";
+import { Button } from "@/components/ui/button";
 
 import { DraftConflictBanner } from "@/draft/draft-conflict-banner";
 import { DraftSyncIndicator } from "@/draft/draft-sync-indicator";
-import { useWorkspaceDraftEvents } from "@/draft/use-workspace-draft-events";
 import { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
-import { WorkspaceDraftEventsTimeline } from "@/draft/workspace-draft-events-timeline";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
 import {
   mergeDenaliWizardDraftEnvelope,
@@ -31,7 +29,7 @@ import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import { useAppSession } from "@/providers/app-session-context";
 import { createTourAction } from "@/tours/create-tour.server";
 import { emptyTourWizardDraft } from "@/tours/tour-wizard-draft";
-import { getCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { getCanonicalStringValue, getCanonicalValue } from "@/tours/tour-wizard-draft-path";
 import {
   buildCloneTourDetailUrl,
   hydrateTourCloneDraft,
@@ -43,8 +41,28 @@ import {
   TOUR_CLONE_HYDRATE_TEST_IDS,
   type TourCloneHydrateStatus,
 } from "@/tours/tour-clone-hydrate-logic";
+import {
+  applyTourPresetToDraft,
+  findActiveTourPreset,
+  resolvePresetId,
+  TOUR_PRESET_PREFILL_TEST_IDS,
+} from "@/tours/tour-preset-prefill-logic";
+import {
+  resolveWizardTemplateGateState,
+  WIZARD_TEMPLATE_GATE_TEST_IDS,
+  type WizardTemplateGateState,
+} from "@/tours/wizard-template-gate-logic";
+import {
+  applyWizardTemplatePrefillToDraft,
+  WIZARD_TEMPLATE_PREFILL_TEST_IDS,
+} from "@/tours/wizard-template-prefill-logic";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
-import type { TourPresetResource, TourThemeResource } from "@/features/settings/settings-module-types";
+import type {
+  GuideLanguageResource,
+  TourPresetResource,
+  TourThemeResource,
+} from "@/features/settings/settings-module-types";
+import type { UsersListResponse } from "@/features/users/users-directory-types";
 import { loadDenaliWizardRulesModule, type DenaliWizardRulesModule } from "@/bootstrap/denali-wizard-rules";
 import { sanitizeDenaliWizardDraft } from "@/wizard/denali/denali-draft-form-adapter";
 import {
@@ -52,7 +70,9 @@ import {
   validateDenaliPublishTransitionSync,
   validateDenaliWizardDraftSync,
 } from "@/wizard/denali/denali-wizard-validation";
+import { parseLocationsResponse } from "@/features/settings/locations-logic";
 import {
+  readActiveDestinationIds,
   readActiveGuideLanguageIds,
   readActiveThemeIds,
   readSelectableLeaderUserIds,
@@ -169,13 +189,6 @@ export function NewTourWizardClient() {
     DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE
   );
 
-  const draftEvents = useWorkspaceDraftEvents(
-    isDenali ? session.workspaceId : undefined,
-    DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
-    DENALI_CREATE_TOUR_DRAFT_KEY,
-    draftSync.version
-  );
-
   useEffect(() => {
     let cancelled = false;
     void fetch("/api/settings/tour-wizard-template", { cache: "no-store" })
@@ -223,23 +236,30 @@ export function NewTourWizardClient() {
 
     void (async () => {
       try {
-        const [tourResponse, equipmentResponse] = await Promise.all([
+        const [tourResponse, equipmentResponse, locationsResponse] = await Promise.all([
           fetch(buildCloneTourDetailUrl(cloneTourId), { cache: "no-store" }),
           fetch("/api/settings/resources/equipment", { cache: "no-store" }),
+          fetch("/api/settings/resources/locations", { cache: "no-store" }),
         ]);
         if (!tourResponse.ok) {
           throw new Error(`TOUR_CLONE_HTTP_${tourResponse.status}`);
         }
         const detail = (await tourResponse.json()) as OperatorTourDetailResponse;
         let activeEquipmentIds: readonly string[] | undefined;
+        let activeDestinationIds: readonly string[] | undefined;
         if (equipmentResponse.ok) {
           const equipmentPayload = (await equipmentResponse.json()) as {
             items?: Array<{ id: string; isActive?: boolean }>;
           };
           activeEquipmentIds = readActiveEquipmentIds(equipmentPayload.items ?? []);
         }
+        if (locationsResponse.ok) {
+          const locationsPayload = parseLocationsResponse(await locationsResponse.json());
+          activeDestinationIds = readActiveDestinationIds(locationsPayload.destinations);
+        }
         const hydrated = hydrateTourCloneDraft(session.pluginId, detail, {
           activeEquipmentIds,
+          activeDestinationIds,
           wizardSessionId,
           tenantId: detail.tenantId,
         });
@@ -435,7 +455,9 @@ export function NewTourWizardClient() {
         themeCatalog
       ),
     };
-    return build != null ? build(input) : buildDenaliWizardRuleEvalContext(input);
+    const context =
+      build != null ? build(input) : buildDenaliWizardRuleEvalContext(input);
+    return context as DenaliWizardRuleEvalContext;
   }, [denaliPlugin, gate.workspaceFormProfile, gate.fieldRulesOverlay, draft, themeCatalog]);
 
   const onDraftChange = useCallback(
@@ -475,6 +497,21 @@ export function NewTourWizardClient() {
     [isDenali, denaliEnvelope, draftSync]
   );
 
+  const onClearDraft = useCallback(() => {
+    if (!isDenali || !window.confirm(t("clearDraftConfirm"))) {
+      return;
+    }
+    void (async () => {
+      await draftSync.clearDraft();
+      draftSync.setData(
+        denaliPrepareDraftEnvelope(buildPrefilledForm(gate, session.pluginId), {
+          currentStepIndex: 0,
+          wizardSessionId,
+        })
+      );
+    })();
+  }, [isDenali, draftSync, gate, session.pluginId, wizardSessionId, t]);
+
   const onSubmit = () => {
     setSubmitError(null);
     setSubmitValidationIssues(null);
@@ -486,16 +523,24 @@ export function NewTourWizardClient() {
         }
         const plugin = getDenaliWorkspacePlugin();
         const publishStatus = getCanonicalStringValue(draft, "publishStatus");
-        const validation =
-          publishStatus === "active"
-            ? validateDenaliPublishTransitionSync(
-                plugin,
-                draft,
-                denaliRules,
-                session.tenantId,
-                wizardRuleEvalContext
-              )
-            : validateDenaliWizardDraftSync(plugin, draft, denaliRules, session.tenantId);
+        let validation;
+        if (publishStatus === "active") {
+          if (wizardRuleEvalContext === undefined) {
+            setSubmitError(
+              t("submit.errorGeneric", { status: 0, code: "DENALI_RULES_NOT_READY" })
+            );
+            return;
+          }
+          validation = validateDenaliPublishTransitionSync(
+            plugin,
+            draft,
+            denaliRules,
+            session.tenantId,
+            wizardRuleEvalContext
+          );
+        } else {
+          validation = validateDenaliWizardDraftSync(plugin, draft, denaliRules, session.tenantId);
+        }
         if (!validation.ok) {
           const resolveStepId = buildFieldStepResolverFromTemplate(gate.templateSteps);
           setSubmitValidationIssues(
@@ -507,13 +552,15 @@ export function NewTourWizardClient() {
         let activeEquipmentIds: readonly string[] | undefined;
         let activeThemeIds: readonly string[] | undefined;
         let activeGuideLanguageIds: readonly string[] | undefined;
+        let activeDestinationIds: readonly string[] | undefined;
         let selectableLeaderIds: readonly string[] | undefined;
         try {
-          const [equipmentResponse, themesResponse, guideLanguagesResponse, usersResponse] =
+          const [equipmentResponse, themesResponse, guideLanguagesResponse, locationsResponse, usersResponse] =
             await Promise.all([
             fetch("/api/settings/resources/equipment", { cache: "no-store" }),
             fetch("/api/settings/resources/tour_themes", { cache: "no-store" }),
             fetch("/api/settings/resources/guide_languages", { cache: "no-store" }),
+            fetch("/api/settings/resources/locations", { cache: "no-store" }),
             fetch("/api/users?role=all&status=active", { cache: "no-store" }),
           ]);
           if (equipmentResponse.ok) {
@@ -530,9 +577,13 @@ export function NewTourWizardClient() {
           }
           if (guideLanguagesResponse.ok) {
             const guideLanguagesPayload = (await guideLanguagesResponse.json()) as {
-              items?: Array<{ id: string; isActive?: boolean }>;
+              items?: readonly GuideLanguageResource[];
             };
             activeGuideLanguageIds = readActiveGuideLanguageIds(guideLanguagesPayload.items ?? []);
+          }
+          if (locationsResponse.ok) {
+            const locationsPayload = parseLocationsResponse(await locationsResponse.json());
+            activeDestinationIds = readActiveDestinationIds(locationsPayload.destinations);
           }
           if (usersResponse.ok) {
             const usersPayload = (await usersResponse.json()) as UsersListResponse;
@@ -542,6 +593,7 @@ export function NewTourWizardClient() {
           activeEquipmentIds = undefined;
           activeThemeIds = undefined;
           activeGuideLanguageIds = undefined;
+          activeDestinationIds = undefined;
           selectableLeaderIds = undefined;
         }
         const prepare = plugin.wizardHost?.prepareSubmitPayload;
@@ -558,6 +610,7 @@ export function NewTourWizardClient() {
             activeEquipmentIds,
             activeThemeIds,
             activeGuideLanguageIds,
+            activeDestinationIds,
             selectableLeaderIds,
           },
         }) as CreateTourPayload;
@@ -626,30 +679,52 @@ export function NewTourWizardClient() {
   return (
     <div className="new-tour-wizard-page" data-new-tour-wizard>
       <header className="new-tour-wizard-page__header">
-        <h1 className="new-tour-wizard-page__title">{t("pageTitle")}</h1>
-        <p className="new-tour-wizard-page__subtitle">{t("pageSubtitle")}</p>
+        <div className="new-tour-wizard-page__header-main">
+          <div className="new-tour-wizard-page__header-copy">
+            <h1 className="new-tour-wizard-page__title">{t("pageTitle")}</h1>
+            <p className="new-tour-wizard-page__subtitle">{t("pageSubtitle")}</p>
+          </div>
+          {isDenali ? (
+            <div className="new-tour-wizard-page__header-actions">
+              <DraftSyncIndicator
+                className="new-tour-wizard-page__sync"
+                status={draftSync.status}
+                onRetry={() => void draftSync.retry()}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="wizard-clear-draft"
+                disabled={draftSync.navLocked || draftSync.status === "SYNCING"}
+                onClick={onClearDraft}
+              >
+                {t("clearDraft")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="wizard-save-draft"
+                disabled={
+                  draftSync.navLocked ||
+                  draftSync.status === "SYNCING" ||
+                  (draftSync.status !== "DIRTY" && draftSync.status !== "ERROR")
+                }
+                onClick={() => void draftSync.flush()}
+              >
+                {draftSync.status === "SYNCING" ? t("savingDraft") : t("saveDraft")}
+              </Button>
+            </div>
+          ) : null}
+        </div>
         {isDenali ? (
-          <div className="new-tour-wizard-page__draft-sync">
+          <>
             <WorkspaceDraftIndexSummary
               items={draftIndex.items}
               loading={draftIndex.loading}
               currentDraftKey={DENALI_CREATE_TOUR_DRAFT_KEY}
             />
-            <DraftSyncIndicator status={draftSync.status} onRetry={() => void draftSync.retry()} />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              data-testid="wizard-save-draft"
-              disabled={
-                draftSync.navLocked ||
-                draftSync.status === "SYNCING" ||
-                (draftSync.status !== "DIRTY" && draftSync.status !== "ERROR")
-              }
-              onClick={() => void draftSync.flush()}
-            >
-              {draftSync.status === "SYNCING" ? t("savingDraft") : t("saveDraft")}
-            </Button>
             <DraftConflictBanner
               status={draftSync.status}
               pendingDraft={draftSync.pendingDraft}
@@ -660,11 +735,7 @@ export function NewTourWizardClient() {
                 }
               }}
             />
-            <WorkspaceDraftEventsTimeline
-              items={draftEvents.items}
-              loading={draftEvents.loading}
-            />
-          </div>
+          </>
         ) : null}
       </header>
       {showSeedBanner ? (
@@ -703,7 +774,7 @@ export function NewTourWizardClient() {
         wizardRuleEvalContext={isDenali ? wizardRuleEvalContext : undefined}
         renderFooter={() => (
           <div data-wizard-footer>
-            <Button type="button" variant="primary" onClick={onSubmit} disabled={pending}>
+            <Button type="button" onClick={onSubmit} disabled={pending}>
               {pending ? t("creating") : t("createButton")}
             </Button>
             {submitError ? (

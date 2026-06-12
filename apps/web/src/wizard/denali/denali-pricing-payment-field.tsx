@@ -52,6 +52,7 @@ export function DenaliPricingPaymentField({
           <span>{resolveDenaliFieldLabel(t, "pricing.basePricePerPerson")}</span>
           <PrimitiveLocalizedNumericInput
             mode="digits"
+            groupThousands
             value={getCanonicalStringValue(draft, "pricing.basePricePerPerson")}
             onChange={(value) => setString("pricing.basePricePerPerson", value)}
             required

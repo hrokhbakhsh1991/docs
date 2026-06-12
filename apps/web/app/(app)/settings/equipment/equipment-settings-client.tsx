@@ -4,7 +4,8 @@ import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,8 @@ import {
   SETTINGS_HUB_TEST_IDS,
   type EquipmentResource,
   type SettingsResourceListResponse,
+  type TourThemeResource,
+  type TourThemesListResponse,
 } from "@/features/settings/settings-module-types";
 
 type EquipmentSettingsClientProps = {
@@ -30,12 +33,19 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
   const tCommon = useTranslations("common");
   const canManage = isAdminOrOwnerRole(session.role);
   const [items, setItems] = useState<readonly EquipmentResource[]>([]);
+  const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [themesLoading, setThemesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
+  const [selectedThemeIds, setSelectedThemeIds] = useState<readonly string[]>([]);
   const [saving, setSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
+
+  const themesById = useMemo(
+    () => new Map(themes.map((theme) => [theme.id, theme] as const)),
+    [themes]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +78,49 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
     };
   }, [fetchNonce]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setThemesLoading(true);
+    void fetch("/api/settings/resources/tour_themes", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`TOUR_THEMES_HTTP_${response.status}`);
+        }
+        return (await response.json()) as TourThemesListResponse;
+      })
+      .then((payload) => {
+        if (!cancelled) {
+          setThemes((payload.items ?? []).filter((theme) => theme.isActive));
+        }
+      })
+      .catch((fetchError: unknown) => {
+        if (!cancelled) {
+          setError(fetchError instanceof Error ? fetchError.message : "TOUR_THEMES_LOAD_FAILED");
+          setThemes([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setThemesLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const refresh = () => setFetchNonce((value) => value + 1);
+
+  const toggleTheme = (themeId: string, checked: boolean) => {
+    setSelectedThemeIds((current) =>
+      checked ? [...current, themeId] : current.filter((id) => id !== themeId)
+    );
+  };
+
+  const resolveThemeLabels = (themeIds: readonly string[]) =>
+    themeIds
+      .map((id) => themesById.get(id)?.name)
+      .filter((label): label is string => label !== undefined && label.length > 0);
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -83,14 +135,14 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          ...(category.trim().length > 0 ? { category: category.trim() } : {}),
+          themeIds: selectedThemeIds,
         }),
       });
       if (!response.ok) {
         throw new Error(`EQUIPMENT_CREATE_HTTP_${response.status}`);
       }
       setName("");
-      setCategory("");
+      setSelectedThemeIds([]);
       refresh();
     } catch (createError: unknown) {
       setError(createError instanceof Error ? createError.message : "EQUIPMENT_CREATE_FAILED");
@@ -130,8 +182,8 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
             <CardTitle>{t("addTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="grid gap-4 sm:grid-cols-3" onSubmit={(event) => void handleCreate(event)}>
-              <div className="space-y-2 sm:col-span-1">
+            <form className="space-y-4" onSubmit={(event) => void handleCreate(event)}>
+              <div className="space-y-2">
                 <Label htmlFor="equipment-name">{tCommon("name")}</Label>
                 <Input
                   id="equipment-name"
@@ -140,24 +192,46 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
                   required
                 />
               </div>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="equipment-category">{t("category")}</Label>
-                <Input
-                  id="equipment-category"
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                />
+
+              <div className="space-y-2">
+                <Label>{t("themes")}</Label>
+                <p className="text-xs text-muted-foreground">{t("themesHint")}</p>
+                {themesLoading ? <Skeleton className="h-20 w-full" /> : null}
+                {!themesLoading && themes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("noThemes")}{" "}
+                    <Link href="/settings/tour-themes" className="text-primary underline-offset-4 hover:underline">
+                      {t("themesLink")}
+                    </Link>
+                  </p>
+                ) : null}
+                {!themesLoading && themes.length > 0 ? (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {themes.map((theme) => (
+                      <label
+                        key={theme.id}
+                        className="flex items-center gap-2 rounded-md border p-2 text-sm"
+                      >
+                        <Checkbox
+                          aria-label={theme.name}
+                          checked={selectedThemeIds.includes(theme.id)}
+                          onChange={(event) => toggleTheme(theme.id, event.target.checked)}
+                        />
+                        <span>{theme.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
               </div>
-              <div className="flex items-end sm:col-span-1">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  data-testid={SETTINGS_HUB_TEST_IDS.equipmentCreate}
-                >
-                  <Plus className="me-1 size-4" />
-                  {tCommon("add")}
-                </Button>
-              </div>
+
+              <Button
+                type="submit"
+                disabled={saving}
+                data-testid={SETTINGS_HUB_TEST_IDS.equipmentCreate}
+              >
+                <Plus className="me-1 size-4" />
+                {tCommon("add")}
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -176,30 +250,35 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("empty")}</p>
           ) : (
-            items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between rounded-lg border p-3"
-              >
-                <div>
-                  <p className="font-medium">{item.name}</p>
-                  {item.category ? (
-                    <p className="text-xs text-muted-foreground">{item.category}</p>
+            items.map((item) => {
+              const themeLabels = resolveThemeLabels(item.themeIds ?? []);
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div>
+                    <p className="font-medium">{item.name}</p>
+                    {themeLabels.length > 0 ? (
+                      <p className="text-xs text-muted-foreground">{themeLabels.join("، ")}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">{t("allThemes")}</p>
+                    )}
+                  </div>
+                  {canManage ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={saving}
+                      aria-label={t("deleteItem", { name: item.name })}
+                      onClick={() => void handleDelete(item.id)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   ) : null}
                 </div>
-                {canManage ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={saving}
-                    aria-label={t("deleteItem", { name: item.name })}
-                    onClick={() => void handleDelete(item.id)}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                ) : null}
-              </div>
-            ))
+              );
+            })
           )}
         </CardContent>
       </Card>

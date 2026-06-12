@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import { validateSessionToken } from "@/auth/validate-session-token";
+import { resolveBootstrapPluginIdForTenant } from "@/tenant/tenant-kernel.shared";
 
 function normalizeRole(
   role: string | undefined
@@ -26,10 +27,13 @@ export async function readOperatorSessionFromCookies(): Promise<OperatorSessionC
     return null;
   }
 
+  const pluginId = resolveBootstrapPluginIdForTenant(validation.tenantId);
+
   return {
     userId: validation.userId,
     tenantId: validation.tenantId,
     role,
-    workspaceType: "denali",
+    workspaceType: pluginId,
+    pluginId,
   };
 }

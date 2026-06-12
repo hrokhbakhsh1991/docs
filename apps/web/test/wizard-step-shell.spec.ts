@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 
 import {
   buildWizardStepDescriptors,
+  canNavigateToWizardStepIndex,
   clampWizardStepIndex,
   resolveWizardStepLabel,
   WIZARD_STEP_SHELL_TEST_IDS,
@@ -41,5 +42,16 @@ describe("wizard-step-shell.spec.ts", () => {
   it("WEB-WIZ-STEP-04 exposes stable test ids", () => {
     assert.equal(WIZARD_STEP_SHELL_TEST_IDS.next, "workspace-wizard-step-next");
     assert.equal(WIZARD_STEP_SHELL_TEST_IDS.back, "workspace-wizard-step-back");
+    assert.equal(
+      WIZARD_STEP_SHELL_TEST_IDS.progressStep("denali_basic"),
+      "workspace-wizard-step-denali_basic"
+    );
+  });
+
+  it("WEB-WIZ-STEP-05 allows jumping back to completed steps only", () => {
+    assert.equal(canNavigateToWizardStepIndex(0, 3), true);
+    assert.equal(canNavigateToWizardStepIndex(3, 3), true);
+    assert.equal(canNavigateToWizardStepIndex(4, 3), false);
+    assert.equal(canNavigateToWizardStepIndex(-1, 3), false);
   });
 });

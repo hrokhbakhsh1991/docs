@@ -16,6 +16,7 @@ import {
 import type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 import { getCanonicalStringFromDraft, type CanonicalWizardDraftEnvelope } from "./canonical-draft-access";
 import { validateDenaliWizardDraftSyncFromHostInput, validateDenaliPublishReadinessSyncFromHostInput } from "./denali-wizard-validation";
+import { resolveDenaliInitialStepIndexFromHostInput } from "./resolve-initial-step-index";
 import {
   buildDenaliWizardRuleEvalContextFromHostInput,
   denaliHydrateTourEditDraftFromHostInput,
@@ -80,8 +81,10 @@ function applyContextualFieldRules(input: {
 export const denaliWizardHostHooks: WorkspaceWizardHostHooks = Object.freeze({
   reviewStepId: "review",
   reviewSurfaceId: "denali",
+  validationSurfaceId: "denali",
   compositeSurfaceId: "denali",
   fieldLabelSurfaceId: "denali",
+  wizardMessageNamespace: "denali",
   showCompletionHeader: true,
   usesContextualFieldRules: true,
   usesStepValidation: true,
@@ -90,6 +93,7 @@ export const denaliWizardHostHooks: WorkspaceWizardHostHooks = Object.freeze({
   loadRulesModule: loadDenaliWizardRulesModule,
   resolveMatrixDimensionsFromDraft: resolveDenaliMatrixDimensionsFromDraft,
   applyContextualFieldRules,
+  resolveInitialStepIndex: resolveDenaliInitialStepIndexFromHostInput,
   validateDraftSync: validateDenaliWizardDraftSyncFromHostInput,
   validatePublishReadiness: validateDenaliPublishReadinessSyncFromHostInput,
   buildRuleEvalContext: buildDenaliWizardRuleEvalContextFromHostInput,

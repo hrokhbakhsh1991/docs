@@ -8,4 +8,5 @@ export const DENALI_GLOBAL_STRUCTURAL_INVARIANTS: readonly DenaliGlobalStructura
     modes: ["shared_cars"],
   },
   { kind: "syncProgramItineraryToDayCount" },
+  { kind: "pruneItinerarySegmentPhotoIds" },
 ];

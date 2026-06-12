@@ -22,7 +22,12 @@ export type OperatorSessionContext = {
   readonly tenantId: string;
   readonly role: "owner" | "admin" | "member" | "viewer";
   readonly workspaceType: string;
+  readonly pluginId: string;
 };
+
+export function isDenaliOperatorSession(session: OperatorSessionContext): boolean {
+  return session.pluginId === "denali" || session.workspaceType === "denali";
+}
 
 export type RequireOperatorSessionWebParams = {
   readonly session: OperatorSessionContext | null;

@@ -27,6 +27,9 @@
     "spotsRemaining": "{count} spots remaining",
     "difficulty": "Difficulty: {level}",
     "fitness": "Fitness: {level}",
+    "itineraryHeading": "Day-by-day program",
+    "itineraryDay": "Day {day, number}",
+    "itinerarySegments": "Program sections",
     "priceOnRequest": "Price on request",
     "datesTba": "Dates TBA"
   },

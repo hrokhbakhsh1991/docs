@@ -1,12 +1,21 @@
-import type { GuideLanguageResource, TourThemeResource } from "@/features/settings/settings-module-types";
+import type {
+  DestinationResource,
+  GuideLanguageResource,
+  TourThemeResource,
+} from "@/features/settings/settings-module-types";
 import type { UsersDirectoryRow } from "@/features/users/users-directory-types";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
 
 import { parseStringArray } from "./denali-array-field-utils";
 
-/** Reward labels that grant tour-leader eligibility without RBAC admin role (Legacy parity). */
-const LEADER_ELIGIBILITY_REWARD_LABELS = new Set(["admin"]);
+/** Custom user labels that grant tour-leader eligibility (Users → rewards). */
+const LEADER_ELIGIBILITY_REWARD_LABELS = new Set([
+  "admin",
+  "leader",
+  "لیدر",
+  "راهنما",
+]);
 
 export function isWizardLeaderCandidate(
   user: Pick<UsersDirectoryRow, "userId" | "role" | "isSelectableLeader" | "labels">
@@ -33,6 +42,15 @@ export function readActiveThemeIds(
 
 export function readActiveGuideLanguageIds(
   items: readonly Pick<GuideLanguageResource, "id" | "isActive">[]
+): readonly string[] {
+  return items
+    .filter((item) => item.isActive !== false)
+    .map((item) => item.id.trim())
+    .filter((id) => id.length > 0);
+}
+
+export function readActiveDestinationIds(
+  items: readonly Pick<DestinationResource, "id" | "isActive">[]
 ): readonly string[] {
   return items
     .filter((item) => item.isActive !== false)

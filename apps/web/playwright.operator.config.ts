@@ -9,7 +9,7 @@ const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 export default defineConfig({
   globalSetup: useExternalServers ? undefined : "./tests/e2e/operator-smoke-global-setup.ts",
   testDir: "./tests/e2e",
-  testMatch: ["operator-smoke.spec.ts"],
+  testMatch: ["operator-smoke.spec.ts", "denali-itinerary-wizard.spec.ts"],
   retries: process.env.CI ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,

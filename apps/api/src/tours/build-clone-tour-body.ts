@@ -7,6 +7,7 @@ export type BuildCloneTourBodyInput = {
   readonly source: TourRecord;
   readonly tenantId: string;
   readonly activeEquipmentIds?: readonly string[];
+  readonly activeDestinationIds?: readonly string[];
 };
 
 export async function buildCloneTourCreateBody(
@@ -24,6 +25,7 @@ export async function buildCloneTourCreateBody(
   const hydrated = prepareClone({
     canonicalData,
     activeEquipmentIds: input.activeEquipmentIds,
+    activeDestinationIds: input.activeDestinationIds,
   });
 
   return {

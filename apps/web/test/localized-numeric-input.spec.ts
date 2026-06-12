@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  formatGroupedDigitsString,
   normalizeNumericInputValue,
   toAsciiDigits,
   toLocalizedDigits,
@@ -35,5 +36,13 @@ describe("localized-numeric-input.spec.ts", () => {
     assert.equal(normalizeNumericInputValue("+۹۸۹۱۲۱۰۰۰۰۰۱", "phone"), ascii);
     assert.equal(normalizeNumericInputValue("+989121000001", "phone"), ascii);
     assert.equal(normalizeNumericInputValue("۰۹۸۹۱۲۱۰۰۰۰۰۱", "phone"), "0989121000001");
+  });
+
+  it("WEB-I18N-INPUT-06 groups thousands for monetary digit strings", () => {
+    assert.equal(formatGroupedDigitsString("5000000", "en"), "5,000,000");
+    assert.match(formatGroupedDigitsString("5000000", "fa"), /۵/);
+    assert.match(formatGroupedDigitsString("5000000", "fa"), /٬/);
+    assert.equal(normalizeNumericInputValue("5,000,000", "digits"), "5000000");
+    assert.equal(normalizeNumericInputValue("۵٬۰۰۰٬۰۰۰", "digits"), "5000000");
   });
 });

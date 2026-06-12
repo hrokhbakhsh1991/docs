@@ -1,12 +1,12 @@
 "use client";
 
 import type { ValidationIssue } from "@app-tour/wizard-navigation";
-import { useTranslations } from "next-intl";
+import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
-import {
-  groupValidationIssuesByStep,
-  type ValidationIssueStepGroup,
-} from "./group-validation-issues-by-step";
+import { groupValidationIssuesByStep, type ValidationIssueStepGroup } from "../group-validation-issues-by-step";
+import type { WizardStepDescriptor } from "../wizard-surface-types";
+import { resolveWizardValidationFieldLabel } from "../wizard-validation-field-label";
 
 export const DENALI_REVIEW_VALIDATION_TEST_IDS = {
   panel: "denali-review-validation-summary",
@@ -16,29 +16,53 @@ export const DENALI_REVIEW_VALIDATION_TEST_IDS = {
 
 type DenaliReviewValidationSummaryProps = {
   readonly issues: readonly ValidationIssue[];
-  readonly steps: readonly { readonly stepId: string; readonly label: string }[];
+  readonly stepDescriptors: readonly WizardStepDescriptor[];
   readonly onFocusIssue: (stepId: string, path: string) => void;
+  readonly fieldLabelSurfaceId?: string;
+  readonly translateWorkspaceMessage?: (key: string) => string;
 };
 
 export function DenaliReviewValidationSummary({
   issues,
-  steps,
+  stepDescriptors,
   onFocusIssue,
+  fieldLabelSurfaceId,
+  translateWorkspaceMessage,
 }: DenaliReviewValidationSummaryProps) {
   const t = useTranslations("denali");
+  const locale = useLocale();
+  const isRtl = locale === "fa";
+  const StepChevron = isRtl ? ChevronLeft : ChevronRight;
+  const translateFieldLabel =
+    translateWorkspaceMessage ?? ((key: string) => t(key));
+
   if (issues.length === 0) {
     return null;
   }
 
-  const groups: readonly ValidationIssueStepGroup[] = groupValidationIssuesByStep(issues, steps);
+  const groups: readonly ValidationIssueStepGroup[] = groupValidationIssuesByStep(
+    issues,
+    stepDescriptors
+  );
 
   return (
     <section
       className="denali-review-validation"
       role="alert"
+      aria-live="polite"
       data-testid={DENALI_REVIEW_VALIDATION_TEST_IDS.panel}
     >
-      <h3 className="denali-review-validation__heading">{t("review.validationHeading")}</h3>
+      <header className="denali-review-validation__header">
+        <span className="denali-review-validation__icon" aria-hidden="true">
+          <AlertCircle size={20} strokeWidth={2.25} />
+        </span>
+        <div className="denali-review-validation__header-text">
+          <h3 className="denali-review-validation__heading">{t("review.validationHeading")}</h3>
+          <p className="denali-review-validation__count">
+            {t("review.validationCount", { count: issues.length })}
+          </p>
+        </div>
+      </header>
       <div className="denali-review-validation__groups">
         {groups.map((group) => (
           <section
@@ -49,6 +73,7 @@ export function DenaliReviewValidationSummary({
             <button
               type="button"
               className="denali-review-validation__group-title"
+              aria-label={t("review.validationGoToStep", { step: group.label })}
               onClick={() => {
                 const first = group.issues[0];
                 if (first != null) {
@@ -56,24 +81,36 @@ export function DenaliReviewValidationSummary({
                 }
               }}
             >
-              {t("review.validationStepGroup", {
-                step: group.label,
-                count: group.issues.length,
-              })}
+              <span className="denali-review-validation__group-label">
+                {t("review.validationStepGroup", {
+                  step: group.label,
+                  count: group.issues.length,
+                })}
+              </span>
+              <StepChevron className="denali-review-validation__group-chevron" aria-hidden="true" />
             </button>
             <ul className="denali-review-validation__issue-list">
-              {group.issues.map((issue) => (
-                <li key={`${issue.path}:${issue.message}`}>
-                  <button
-                    type="button"
-                    className="denali-review-validation__issue-link"
-                    data-testid={`${DENALI_REVIEW_VALIDATION_TEST_IDS.issueLink}-${issue.path.replace(/\./g, "-")}`}
-                    onClick={() => onFocusIssue(group.stepId, issue.path)}
-                  >
-                    {issue.message}
-                  </button>
-                </li>
-              ))}
+              {group.issues.map((issue) => {
+                const fieldLabel = resolveWizardValidationFieldLabel({
+                  canonicalPath: issue.path,
+                  fieldLabelSurfaceId,
+                  translateWorkspaceMessage: translateFieldLabel,
+                });
+                return (
+                  <li key={`${issue.path}:${issue.message}`}>
+                    <button
+                      type="button"
+                      className="denali-review-validation__issue-link"
+                      data-testid={`${DENALI_REVIEW_VALIDATION_TEST_IDS.issueLink}-${issue.path.replace(/\./g, "-")}`}
+                      aria-label={t("review.validationIssueAction", { field: fieldLabel })}
+                      onClick={() => onFocusIssue(group.stepId, issue.path)}
+                    >
+                      <span className="denali-review-validation__issue-field">{fieldLabel}</span>
+                      <span className="denali-review-validation__issue-message">{issue.message}</span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ))}

@@ -35,6 +35,9 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
   if (rel === "src/draft/denali-wizard-draft-merge.ts") {
     return true;
   }
+  if (rel === "src/draft/denali-wizard-resume-step.ts") {
+    return true;
+  }
   if (rel === "src/features/users/users-nav-access.ts") {
     return true;
   }

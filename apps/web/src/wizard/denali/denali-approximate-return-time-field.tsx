@@ -3,7 +3,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 
-import { LocalizedTimeInput } from "@/components/i18n/localized-datetime-picker";
+import { DenaliTimeInput } from "@/components/i18n/denali-time-input";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
@@ -35,13 +35,17 @@ export function DenaliApproximateReturnTimeField({
     <div className="denali-wizard-composite" data-testid={DENALI_RETURN_TIME_TEST_IDS.returnTime}>
       <label className="denali-wizard-composite__field">
         <span>{label}</span>
-        <LocalizedTimeInput
-          variant="primitive"
+        <DenaliTimeInput
+          appearance="field"
           aria-label={label}
           value={value}
           onChange={(next) =>
             onDraftChange(
-              setCanonicalStringValue(draft, "approximateReturnTime", normalizeApproximateReturnTime(next))
+              setCanonicalStringValue(
+                draft,
+                "approximateReturnTime",
+                normalizeApproximateReturnTime(next)
+              )
             )
           }
           required={required}
