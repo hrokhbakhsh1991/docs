@@ -1,9 +1,26 @@
-import type { TourThemeResource } from "@/features/settings/settings-module-types";
+import type { GuideLanguageResource, TourThemeResource } from "@/features/settings/settings-module-types";
 import type { UsersDirectoryRow } from "@/features/users/users-directory-types";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
 
 import { parseStringArray } from "./denali-array-field-utils";
+
+/** Reward labels that grant tour-leader eligibility without RBAC admin role (Legacy parity). */
+const LEADER_ELIGIBILITY_REWARD_LABELS = new Set(["admin"]);
+
+export function isWizardLeaderCandidate(
+  user: Pick<UsersDirectoryRow, "userId" | "role" | "isSelectableLeader" | "labels">
+): boolean {
+  if (user.isSelectableLeader === true || user.role === "admin" || user.role === "owner") {
+    return true;
+  }
+  for (const label of user.labels ?? []) {
+    if (LEADER_ELIGIBILITY_REWARD_LABELS.has(label.trim().toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export function readActiveThemeIds(
   items: readonly Pick<TourThemeResource, "id" | "isActive">[]
@@ -14,14 +31,20 @@ export function readActiveThemeIds(
     .filter((id) => id.length > 0);
 }
 
-export function readSelectableLeaderUserIds(
-  items: readonly Pick<UsersDirectoryRow, "userId" | "role" | "isSelectableLeader">[]
+export function readActiveGuideLanguageIds(
+  items: readonly Pick<GuideLanguageResource, "id" | "isActive">[]
 ): readonly string[] {
   return items
-    .filter(
-      (user) =>
-        user.isSelectableLeader === true || user.role === "admin" || user.role === "owner"
-    )
+    .filter((item) => item.isActive !== false)
+    .map((item) => item.id.trim())
+    .filter((id) => id.length > 0);
+}
+
+export function readSelectableLeaderUserIds(
+  items: readonly Pick<UsersDirectoryRow, "userId" | "role" | "isSelectableLeader" | "labels">[]
+): readonly string[] {
+  return items
+    .filter((user) => isWizardLeaderCandidate(user))
     .map((user) => user.userId.trim())
     .filter((id) => id.length > 0);
 }
@@ -69,4 +92,15 @@ export function sanitizeThemeIdsOnDraft(
     activeThemeIds
   );
   return setCanonicalValue(draft, "program.themeIds", filtered);
+}
+
+export function sanitizeGuideLanguageIdsOnDraft(
+  draft: TourWizardDraft,
+  activeGuideLanguageIds: readonly string[] | undefined
+): TourWizardDraft {
+  const filtered = filterIdsToAllowedCatalog(
+    getCanonicalValue(draft, "program.guideLanguageIds"),
+    activeGuideLanguageIds
+  );
+  return setCanonicalValue(draft, "program.guideLanguageIds", filtered);
 }

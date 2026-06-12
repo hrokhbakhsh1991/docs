@@ -217,7 +217,7 @@ Trunk دو لایه موازی دارد که ممکن است از هم جدا ش
 | | Domain (`denali-transport-rules.ts`) | Web (`denali-transport-logic.ts` + composite) |
 |---|--------------------------------------|-----------------------------------------------|
 | dong وقتی `shared_cars` | ✅ | ✅ |
-| dong وقتی `bus|minibus|train` **و** `allowPersonalCar=true` | ✅ visible **و** required | ❌ dong **اصلاً** نشان داده نمی‌شود (`isDenaliDongAmountVisible(mode)` فقط mode) |
+| dong وقتی `bus|minibus|train` **و** `allowPersonalCar=true` | ✅ visible **و** required | ✅ dong وقتی `allowPersonalCar=true` (`isDenaliDongAmountVisible(mode, allowPersonalCar)`) — 2026-06-11 |
 
 **Observable:** اتوبوس + خودرو شخصی مجاز → Legacy dong می‌خواهد؛ Trunk فقط checkbox ظرفیت ادمین را نشان می‌دهد.
 

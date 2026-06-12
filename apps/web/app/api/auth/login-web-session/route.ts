@@ -6,6 +6,8 @@ import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
 import { decodeJwtPayload } from "@/auth/decode-jwt-payload";
 import { setSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { setOperatorWelcomeArmedCookieOnResponse } from "@/auth/operator-welcome-cookie";
+import { normalizeOtpDigits } from "@/features/auth/otp-segment-input.logic";
+import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
 import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
 
 type LoginPayload = {
@@ -16,8 +18,11 @@ type LoginPayload = {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as LoginPayload;
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
-  const otp = typeof body.otp === "string" ? body.otp.trim() : "";
+  const phone = normalizeNumericInputValue(
+    typeof body.phone === "string" ? body.phone.trim() : "",
+    "phone"
+  );
+  const otp = normalizeOtpDigits(typeof body.otp === "string" ? body.otp.trim() : "");
   const challengeId =
     typeof body.challenge_id === "string" ? body.challenge_id.trim() : "";
 

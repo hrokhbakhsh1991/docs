@@ -26,7 +26,7 @@ import type { WorkspaceDraftSyncPayload } from "./workspace-drafts.types";
 function handleWorkspaceDraftRouteError(res: ServerResponse, error: unknown): void {
   if (isWorkspaceDraftVersionConflictError(error)) {
     const payload = error.serverPayload;
-    sendHttpError(res, 409, {
+    sendJson(res, 409, {
       error: error.message,
       code: error.code,
       data: payload.data,

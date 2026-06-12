@@ -15,6 +15,7 @@ import { DenaliDifficultyLevelField } from "./denali-difficulty-level-field";
 import { DenaliElevationGainField } from "./denali-elevation-gain-field";
 import { DenaliGearField } from "./denali-gear-field";
 import { DenaliGatheringPointsField } from "./denali-gathering-points-field";
+import { DenaliGuideLanguageIdsField } from "./denali-guide-language-ids-field";
 import { DenaliItineraryField } from "./denali-itinerary-field";
 import { DenaliLeaderUserIdsField } from "./denali-leader-user-ids-field";
 import { DenaliLocationZonesField } from "./denali-location-zones-field";
@@ -137,6 +138,9 @@ const DENALI_COMPOSITE_RENDERERS: Readonly<Record<DenaliImplementedCompositeId, 
     ),
     "denali.leader-user-ids": ({ draft, onDraftChange }) => (
       <DenaliLeaderUserIdsField draft={draft} onDraftChange={onDraftChange} />
+    ),
+    "denali.guide-language-ids": ({ draft, onDraftChange }) => (
+      <DenaliGuideLanguageIdsField draft={draft} onDraftChange={onDraftChange} />
     ),
     "denali.custom-services": ({ draft, onDraftChange }) => (
       <DenaliCustomServicesField draft={draft} onDraftChange={onDraftChange} />

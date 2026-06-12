@@ -530,11 +530,25 @@ const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101";
 const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000102";
 const OPERATOR_SMOKE_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000103";
-const OPERATOR_SMOKE_OWNER_MOBILE = "+15550001001";
+const DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE = "+15550001001";
 const OPERATOR_SMOKE_ADMIN_MOBILE = "+15550001002";
 const OPERATOR_SMOKE_MEMBER_MOBILE = "+15550001003";
 const OPERATOR_SMOKE_INVITEE_USER_ID = "00000000-0000-4000-8000-000000000195";
 const OPERATOR_SMOKE_INVITEE_MOBILE = "+15550008803";
+
+function resolveOperatorSmokeOwnerSeed(): {
+  readonly userId: string;
+  readonly mobile: string;
+  readonly displayName: string;
+} {
+  const mobile =
+    process.env.OPERATOR_OWNER_MOBILE?.trim() || DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE;
+  const userId =
+    process.env.OPERATOR_OWNER_USER_ID?.trim() || OPERATOR_SMOKE_OWNER_USER_ID;
+  const displayName =
+    process.env.OPERATOR_OWNER_DISPLAY_NAME?.trim() || "Smoke Owner";
+  return { userId, mobile, displayName };
+}
 
 function seedOperatorSmokeTeamRoster(repo: InMemoryIdentityRepository, tenantId: string): void {
   repo.seedUser({ id: OPERATOR_SMOKE_ADMIN_USER_ID, mobile: OPERATOR_SMOKE_ADMIN_MOBILE });
@@ -560,14 +574,15 @@ function seedOperatorSmokeTeamRoster(repo: InMemoryIdentityRepository, tenantId:
 }
 
 function seedOperatorSmokeDevFixture(repo: InMemoryIdentityRepository): void {
-  repo.seedUser({ id: OPERATOR_SMOKE_OWNER_USER_ID, mobile: OPERATOR_SMOKE_OWNER_MOBILE });
+  const owner = resolveOperatorSmokeOwnerSeed();
+  repo.seedUser({ id: owner.userId, mobile: owner.mobile });
   repo.seedUser({ id: OPERATOR_SMOKE_INVITEE_USER_ID, mobile: OPERATOR_SMOKE_INVITEE_MOBILE });
   const ownerMembership = {
-    userId: OPERATOR_SMOKE_OWNER_USER_ID,
+    userId: owner.userId,
     role: "owner" as const,
     status: "ACTIVE" as const,
     sessionVersion: 1,
-    displayName: "Smoke Owner",
+    displayName: owner.displayName,
   };
   // Denali host login — operator.localhost / urban.localhost must not share this owner row.
   repo.seedMembership({

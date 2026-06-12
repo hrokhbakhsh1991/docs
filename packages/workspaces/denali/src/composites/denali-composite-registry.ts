@@ -16,6 +16,7 @@ export const DENALI_COMPOSITE_BY_CANONICAL_PATH: Readonly<
   startDateTime: "denali.datetime",
   endDateTime: "denali.datetime-end",
   "program.themeIds": "denali.program-content",
+  "program.guideLanguageIds": "denali.guide-language-ids",
   "tripDetails.overview.customServiceLabels": "denali.custom-services",
   leaderUserIds: "denali.leader-user-ids",
   "tripDetails.metrics.elevationGain": "denali.elevation-gain",

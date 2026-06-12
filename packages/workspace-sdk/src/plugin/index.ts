@@ -42,6 +42,11 @@ export {
   type WorkspaceViolation,
 } from "./workspace-validation";
 export { type WorkspaceWizardMode, type WorkspaceWizardSurface } from "./workspace-wizard-surface";
+export type {
+  WorkspaceWizardHostHooks,
+  WizardDraftValidationResult,
+  WizardDraftValidationViolation,
+} from "./workspace-wizard-host-hooks";
 export {
   createStarterWorkspacePlugin,
   getStarterWorkspacePlugin,

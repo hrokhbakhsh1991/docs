@@ -74,7 +74,9 @@ import {
   URBAN_WORKSPACE_REQUIRED,
 } from "@app-tour/workspace-urban/http";
 import {
+  DENALI_OWNER_REQUIRED,
   DENALI_REGISTRATION_DUPLICATE,
+  isDenaliOwnerRequiredError,
   isDenaliRegistrationDuplicateError,
 } from "@app-tour/workspace-denali/http";
 import {
@@ -431,6 +433,16 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
       res,
       403,
       { error: URBAN_OWNER_REQUIRED, code: URBAN_OWNER_REQUIRED },
+      correlationId
+    );
+    return;
+  }
+
+  if (isDenaliOwnerRequiredError(error)) {
+    sendHttpError(
+      res,
+      403,
+      { error: DENALI_OWNER_REQUIRED, code: DENALI_OWNER_REQUIRED },
       correlationId
     );
     return;

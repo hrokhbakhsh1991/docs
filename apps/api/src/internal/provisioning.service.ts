@@ -201,8 +201,10 @@ async function createTenantRow(identity: ResolvedTenantIdentity): Promise<Provis
 
 function resolveTenantIdentity(input: ProvisionTenantInput): ResolvedTenantIdentity {
   const subdomain = input.subdomain.trim().toLowerCase();
-  const seedManifest = findTenantBySubdomain(subdomain);
-  const registered = isStaticTenantRegistryAllowed() ? seedManifest : null;
+  const seedManifest = isStaticTenantRegistryAllowed()
+    ? findTenantBySubdomain(subdomain)
+    : null;
+  const registered = seedManifest;
   const seedTenantId = isPhase43SeedSubdomain(subdomain)
     ? PHASE_43_SEED_TENANT_IDS[subdomain]
     : undefined;

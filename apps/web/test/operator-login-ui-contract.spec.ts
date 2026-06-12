@@ -11,6 +11,10 @@ const WEB_ROOT = join(import.meta.dirname, "..");
 
 describe("operator-login-ui-contract.spec.ts", () => {
   const loginForm = readFileSync(join(WEB_ROOT, "app/auth/login/login-form.tsx"), "utf8");
+  const navigateAfterAuth = readFileSync(
+    join(WEB_ROOT, "src/auth/navigate-after-auth-session-change.ts"),
+    "utf8"
+  );
   const requestOtpRoute = readFileSync(
     join(WEB_ROOT, "app/api/auth/request-otp/route.ts"),
     "utf8"
@@ -77,9 +81,9 @@ describe("operator-login-ui-contract.spec.ts", () => {
     assert.match(phonePreflightRoute, /AUTH_PREFLIGHT_FAILED/);
   });
 
-  it("WEB-LOGIN-UI-06 post-auth uses soft navigation (push + refresh)", () => {
+  it("WEB-LOGIN-UI-06 post-auth login uses document navigation; logout stays soft", () => {
     assert.match(loginForm, /navigateAfterLogin/);
-    assert.doesNotMatch(loginForm, /window\.location\.href/);
+    assert.match(navigateAfterAuth, /window\.location\.assign/);
     assert.match(operatorShell, /navigateAfterLogout/);
     assert.doesNotMatch(operatorShell, /window\.location\.href/);
   });

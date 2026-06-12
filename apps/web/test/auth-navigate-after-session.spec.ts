@@ -7,6 +7,7 @@ import { describe, it } from "node:test";
 
 import {
   navigateAfterAuthSessionChange,
+  navigateAfterLogin,
   resolveAuthReturnPath,
 } from "../src/auth/navigate-after-auth-session-change";
 
@@ -34,5 +35,23 @@ describe("auth-navigate-after-session.spec.ts", () => {
     };
     navigateAfterAuthSessionChange(router as never, "/dashboard");
     assert.deepEqual(calls, ["push:/dashboard", "refresh"]);
+  });
+
+  it("AUTH-NAV-04 navigateAfterLogin uses full document navigation when window exists", () => {
+    const originalWindow = globalThis.window;
+    const assigns: string[] = [];
+    (globalThis as { window?: { location: { assign: (path: string) => void } } }).window = {
+      location: {
+        assign: (path: string) => {
+          assigns.push(path);
+        },
+      },
+    };
+    try {
+      navigateAfterLogin({ push: () => {}, refresh: () => {} } as never, "returnUrl=%2Fbookings");
+      assert.deepEqual(assigns, ["/bookings"]);
+    } finally {
+      (globalThis as { window?: typeof originalWindow }).window = originalWindow;
+    }
   });
 });

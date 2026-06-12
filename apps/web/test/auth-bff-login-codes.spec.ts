@@ -112,6 +112,10 @@ describe("auth-bff-login-codes.spec.ts", () => {
   });
 
   it("BFF-LOGIN-08 login-web-session sets welcome-armed cookie for owner", async () => {
+    const prevNodeEnv = process.env.NODE_ENV;
+    const prevDevSession = process.env.ALLOW_DEV_WEB_SESSION;
+    process.env.NODE_ENV = "development";
+    process.env.ALLOW_DEV_WEB_SESSION = "true";
     const payload = Buffer.from(
       JSON.stringify({
         sub: "00000000-0000-4000-8000-000000000101",
@@ -155,10 +159,24 @@ describe("auth-bff-login-codes.spec.ts", () => {
       } else {
         process.env.TOUR_OPS_API_URL = prevApiBase;
       }
+      if (prevNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = prevNodeEnv;
+      }
+      if (prevDevSession === undefined) {
+        delete process.env.ALLOW_DEV_WEB_SESSION;
+      } else {
+        process.env.ALLOW_DEV_WEB_SESSION = prevDevSession;
+      }
     }
   });
 
   it("BFF-LOGIN-07 login-web-session rejects non-owner JWT (DEC-P9-018)", async () => {
+    const prevNodeEnv = process.env.NODE_ENV;
+    const prevDevSession = process.env.ALLOW_DEV_WEB_SESSION;
+    process.env.NODE_ENV = "development";
+    process.env.ALLOW_DEV_WEB_SESSION = "true";
     const payload = Buffer.from(
       JSON.stringify({
         sub: "00000000-0000-4000-8000-000000000103",
@@ -202,6 +220,16 @@ describe("auth-bff-login-codes.spec.ts", () => {
         delete process.env.TOUR_OPS_API_URL;
       } else {
         process.env.TOUR_OPS_API_URL = prevApiBase;
+      }
+      if (prevNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = prevNodeEnv;
+      }
+      if (prevDevSession === undefined) {
+        delete process.env.ALLOW_DEV_WEB_SESSION;
+      } else {
+        process.env.ALLOW_DEV_WEB_SESSION = prevDevSession;
       }
     }
   });

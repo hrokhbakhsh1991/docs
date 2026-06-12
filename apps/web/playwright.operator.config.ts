@@ -7,8 +7,8 @@ import { defineConfig, devices } from "@playwright/test";
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 
 export default defineConfig({
-  globalSetup: useExternalServers ? undefined : "./test/operator-smoke-global-setup.ts",
-  testDir: "./test",
+  globalSetup: useExternalServers ? undefined : "./tests/e2e/operator-smoke-global-setup.ts",
+  testDir: "./tests/e2e",
   testMatch: ["operator-smoke.spec.ts"],
   retries: process.env.CI ? 1 : 0,
   forbidOnly: !!process.env.CI,

@@ -278,6 +278,15 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     ruleDefaults: { required: false, hidden: false },
   },
   {
+    canonicalPath: "program.guideLanguageIds",
+    stepId: "denali_program",
+    rhfPath: "programNature.guideLanguageIds",
+    zodPath: "programNature.guideLanguageIds",
+    zodKind: "stringArrayDefault",
+    tags: ["optional_program"] as const,
+    ruleDefaults: { required: false, hidden: false },
+  },
+  {
     canonicalPath: "program.shortDescription",
     stepId: "denali_photos",
     rhfPath: "programNature.shortDescription",

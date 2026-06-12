@@ -39,6 +39,7 @@ export const DENALI_CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
   "pricing.paymentMode": "pricingPayment.paymentMode",
   "pricing.requiresPayment": "pricingPayment.requiresPayment",
   "program.difficultyLevel": "programNature.difficultyLevel",
+  "program.guideLanguageIds": "programNature.guideLanguageIds",
   "program.hikingGoHours": "programNature.hikingGoHours",
   "program.hikingHoursApprox": "programNature.hikingHoursApprox",
   "program.hikingReturnHours": "programNature.hikingReturnHours",

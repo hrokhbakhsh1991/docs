@@ -7,6 +7,12 @@ export const TOUR_EDIT_TEST_IDS = {
   retry: "operator-tour-edit-retry",
   workspace: "operator-tour-edit-workspace",
   register: "operator-tour-edit-register",
+  flatForm: "operator-tour-edit-flat-form",
+  flatSection: (stepId: string) => `operator-tour-edit-section-${stepId}`,
+  publish: "operator-tour-edit-publish",
+  unpublish: "operator-tour-edit-unpublish",
+  cancel: "operator-tour-edit-cancel",
+  draftSync: "operator-tour-edit-draft-sync",
 } as const;
 
 export type OperatorTourDetailResponse = {

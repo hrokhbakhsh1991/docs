@@ -20,3 +20,8 @@ export {
 export type { RuleContext } from "./types/rule-context";
 export type { RenderFieldPlan, RenderStepPlan } from "./types/render-plan";
 export type { ValidationResult, ValidationViolation } from "./types/validation-result";
+
+export {
+  createPlatformWizardHostHooks,
+  type PlatformWizardHostHooksOptions,
+} from "./host/create-platform-wizard-host-hooks";

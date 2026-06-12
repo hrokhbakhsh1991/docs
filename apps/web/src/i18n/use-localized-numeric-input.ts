@@ -38,11 +38,15 @@ export function useLocalizedNumericInput({
     [maxLength, mode, onChange]
   );
 
+  const inputMode =
+    mode === "phone" ? ("tel" as const) : mode === "decimal" ? ("decimal" as const) : ("numeric" as const);
+
   return {
     value: displayValue,
     onChange: handleChange,
     type: "text" as const,
-    inputMode: mode === "decimal" ? ("decimal" as const) : ("numeric" as const),
+    inputMode,
+    lang: locale === "fa" ? ("fa-IR" as const) : undefined,
     dir: "ltr" as const,
     className: "text-start",
   };

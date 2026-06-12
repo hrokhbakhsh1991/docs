@@ -26,6 +26,7 @@ import {
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 
+import { DenaliFlatEditPageClient } from "./denali-flat-edit-page-client";
 import { TourStatusBadge } from "../../tour-status-badge";
 
 type TourEditPageClientProps = {
@@ -34,6 +35,15 @@ type TourEditPageClientProps = {
 };
 
 export function TourEditPageClient({ session, tourId }: TourEditPageClientProps) {
+  const isDenali = session.pluginId === "denali";
+  const canEdit = canMutateTour(session.role);
+  if (isDenali && canEdit) {
+    return <DenaliFlatEditPageClient session={session} tourId={tourId} />;
+  }
+  return <TourEditTitlePageClient session={session} tourId={tourId} />;
+}
+
+function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.edit");
   const tErrors = useTranslations("tours.edit.errors");

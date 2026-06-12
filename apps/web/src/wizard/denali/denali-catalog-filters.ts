@@ -1,18 +1,27 @@
-import { resolveThemeCompatibleCategories } from "@app-tour/workspace-denali";
+import { resolveThemeCompatibleCategories } from "@app-tour/workspace-denali/settings/theme-compatible-categories";
+import { resolveEquipmentCompatibleCategories } from "@app-tour/workspace-denali/settings/equipment-compatible-categories";
 
 import type { EquipmentResource, TourThemeResource } from "@/features/settings/settings-module-types";
+
+function resolveEquipmentAllowedCategories(item: EquipmentResource): readonly string[] {
+  if (item.compatibleCategories !== undefined && item.compatibleCategories.length > 0) {
+    return item.compatibleCategories;
+  }
+  return resolveEquipmentCompatibleCategories(item.category);
+}
 
 export function isEquipmentCompatibleWithTourCategory(
   item: EquipmentResource,
   tourCategory: string | undefined
 ): boolean {
-  if (item.category == null || item.category.trim().length === 0) {
+  const allowed = resolveEquipmentAllowedCategories(item);
+  if (allowed.length === 0) {
     return true;
   }
   if (tourCategory == null || tourCategory.trim().length === 0) {
     return true;
   }
-  return item.category === tourCategory;
+  return allowed.includes(tourCategory);
 }
 
 function resolveThemeAllowedCategories(theme: TourThemeResource): readonly string[] {

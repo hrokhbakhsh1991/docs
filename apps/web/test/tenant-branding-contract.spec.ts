@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 const REPO_ROOT = join(import.meta.dirname, "../../..");
+const WEB_ROOT = join(import.meta.dirname, "..");
 
 describe("tenant-branding-contract.spec.ts", () => {
   it("WEB-TENANT-BRANDING-01 settings module registered in denali manifest", () => {

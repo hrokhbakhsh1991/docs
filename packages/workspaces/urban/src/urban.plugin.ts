@@ -1,3 +1,4 @@
+import { createPlatformWizardHostHooks } from "@app-tour/platform-core";
 import {
   type WorkspacePlugin,
   type WorkspaceValidationHooks,
@@ -299,6 +300,8 @@ export function createUrbanValidationHooks(): WorkspaceValidationHooks {
   };
 }
 
+const urbanWizardHostHooks = createPlatformWizardHostHooks({ dimensions: { tourType: "city" } });
+
 const urbanTheme = {
   ...workspaceThemePresets["platform-primary"],
   optionalStylesheet: URBAN_THEME_TOKENS_STYLESHEET,
@@ -323,6 +326,7 @@ export function createUrbanWorkspacePlugin(): WorkspacePlugin {
       isPublished: isUrbanTourPublished,
       toCatalogCard: toUrbanPublicCatalogCard,
     }),
+    wizardHost: deepFreezeValue({ ...urbanWizardHostHooks }),
   });
 }
 

@@ -211,7 +211,8 @@
     "noTheme": "بدون تم",
     "listTitle": "پریست‌ها ({count, number})",
     "empty": "هنوز پریستی ثبت نشده است.",
-    "themeLabel": "تم: {name}"
+    "themeLabel": "تم: {name}",
+    "useInWizard": "استفاده در ویزارد"
   },
   "presetsAdvanced": {
     "backToPresets": "بازگشت به پریست‌های تور",

@@ -158,6 +158,14 @@
         "staticRequired": true
       },
       {
+        "canonicalPath": "program.guideLanguageIds",
+        "formPath": "programNature.guideLanguageIds",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "program.hikingGoHours",
         "formPath": "programNature.hikingGoHours",
         "visible": true,
@@ -572,6 +580,14 @@
         "staticRequired": true
       },
       {
+        "canonicalPath": "program.guideLanguageIds",
+        "formPath": "programNature.guideLanguageIds",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "program.hikingGoHours",
         "formPath": "programNature.hikingGoHours",
         "visible": true,
@@ -984,6 +1000,14 @@
         "required": true,
         "staticHidden": false,
         "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.guideLanguageIds",
+        "formPath": "programNature.guideLanguageIds",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
       },
       {
         "canonicalPath": "program.hikingGoHours",

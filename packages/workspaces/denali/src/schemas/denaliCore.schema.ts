@@ -34,6 +34,7 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
     },
     programNature: {
       themeIds: [],
+      guideLanguageIds: [],
       shortDescription: undefined,
       longDescription: undefined,
       difficultyLevel: 5,

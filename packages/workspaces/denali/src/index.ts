@@ -41,6 +41,7 @@ export {
 } from "./draft";
 export {
   appendDenaliCloneTitleSuffix,
+  bridgeStarterShapedDenaliCreateData,
   denaliHydrateTourCloneDraft,
   prepareDenaliServerCloneCanonical,
   remintDenaliClonePhotosInCanonical,

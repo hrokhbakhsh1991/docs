@@ -4,19 +4,19 @@
  */
 import { expect, test } from "@playwright/test";
 
-import { BOOKINGS_CREATE_TEST_IDS } from "../src/features/bookings/bookings-create-types";
-import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../src/features/bookings/bookings-command-center-types";
-import { SETTINGS_HUB_TEST_IDS } from "../src/features/settings/settings-module-types";
-import { FINANCE_OVERVIEW_TEST_IDS } from "../src/finance/finance-reports-logic";
-import { FINANCE_PREPAYMENTS_TEST_IDS } from "../src/finance/finance-prepayments-logic";
-import { RECONCILIATION_TRIAGE_TEST_IDS } from "../src/finance/reconciliation-triage-logic";
-import { INVITE_ACCEPT_TEST_IDS } from "../src/features/users/invite-accept-logic";
-import { USERS_DIRECTORY_TEST_IDS } from "../src/features/users/users-directory-types";
-import { WIZARD_TEMPLATE_PREFILL_TEST_IDS } from "../src/tours/wizard-template-prefill-logic";
-import { TOURS_LIST_TEST_IDS } from "../src/features/tours/query-model";
-import { typeLoginPhone } from "./fixtures/operator-login-ui";
-import { OPERATOR_LOGIN_TEST_IDS } from "../src/features/auth/operator-login-copy";
-import { OPERATOR_WELCOME_TEST_IDS } from "../src/admin/onboarding/operator-welcome-types";
+import { BOOKINGS_CREATE_TEST_IDS } from "../../src/features/bookings/bookings-create-types";
+import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../../src/features/bookings/bookings-command-center-types";
+import { SETTINGS_HUB_TEST_IDS } from "../../src/features/settings/settings-module-types";
+import { FINANCE_OVERVIEW_TEST_IDS } from "../../src/finance/finance-reports-logic";
+import { FINANCE_PREPAYMENTS_TEST_IDS } from "../../src/finance/finance-prepayments-logic";
+import { RECONCILIATION_TRIAGE_TEST_IDS } from "../../src/finance/reconciliation-triage-logic";
+import { INVITE_ACCEPT_TEST_IDS } from "../../src/features/users/invite-accept-logic";
+import { USERS_DIRECTORY_TEST_IDS } from "../../src/features/users/users-directory-types";
+import { WIZARD_TEMPLATE_PREFILL_TEST_IDS } from "../../src/tours/wizard-template-prefill-logic";
+import { TOURS_LIST_TEST_IDS } from "../../src/features/tours/query-model";
+import { typeLoginPhone } from "../../test/fixtures/operator-login-ui";
+import { OPERATOR_LOGIN_TEST_IDS } from "../../src/features/auth/operator-login-copy";
+import { OPERATOR_WELCOME_TEST_IDS } from "../../src/admin/onboarding/operator-welcome-types";
 import {
   loginOperatorOwner,
   loginOperatorWithPhone,
@@ -26,10 +26,10 @@ import {
   OPERATOR_INVITEE_MOBILE,
   OPERATOR_MEMBER_DISPLAY_NAME,
   OPERATOR_OWNER_MOBILE,
-} from "./fixtures/operator-owner-session";
+} from "../../test/fixtures/operator-owner-session";
 
 const UNAUTHORIZED_LOGIN_MOBILE = "+15559999999";
-import { publishOperatorWizardTemplate } from "./fixtures/operator-wizard-template-fixture";
+import { publishOperatorWizardTemplate } from "../../test/fixtures/operator-wizard-template-fixture";
 
 test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
   test("SMK-P9-01 owner OTP login reaches dashboard", async ({ page }) => {

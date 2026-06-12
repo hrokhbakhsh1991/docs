@@ -125,7 +125,7 @@ describe("public-auth-bff.spec.ts — M17", () => {
         new Request("http://urban.localhost:3000/api/public-auth/session-profile", {
           headers: {
             host: "urban.localhost:3000",
-            cookie: `session=${encodeURIComponent(sessionToken)}`,
+            authorization: `Bearer ${sessionToken}`,
           },
         })
       );

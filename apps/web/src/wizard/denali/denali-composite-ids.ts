@@ -15,6 +15,7 @@ export const DENALI_IMPLEMENTED_COMPOSITE_IDS = [
   "denali.pricing-participants",
   "denali.approximate-return-time",
   "denali.leader-user-ids",
+  "denali.guide-language-ids",
   "denali.custom-services",
   "denali.photos",
   "denali.itinerary",

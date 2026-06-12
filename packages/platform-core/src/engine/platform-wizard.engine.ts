@@ -46,9 +46,21 @@ type WizardRuntime = {
   readonly ruleEngine: RuleEngine;
 };
 
+function stripNonIngressPluginSurfaces(plugin: WorkspacePlugin): WorkspacePlugin {
+  const {
+    tourList: _tourList,
+    tourClone: _tourClone,
+    publicCatalog: _publicCatalog,
+    wizardHost: _wizardHost,
+    ...wizardPlugin
+  } = plugin;
+  return wizardPlugin as WorkspacePlugin;
+}
+
 function sanitizePluginAtCreate(plugin: WorkspacePlugin): WorkspacePlugin {
   try {
-    return parseWorkspacePluginFromStorage(plugin, { includeTheme: false });
+    const ingressPlugin = stripNonIngressPluginSurfaces(plugin);
+    return parseWorkspacePluginFromStorage(ingressPlugin, { includeTheme: false });
   } catch (error: unknown) {
     const mapped = mapPluginIngressFailure(error);
     if (mapped != null && !mapped.ok) {

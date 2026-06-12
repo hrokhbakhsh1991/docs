@@ -211,7 +211,8 @@
     "noTheme": "No theme",
     "listTitle": "Presets ({count})",
     "empty": "No tour presets yet.",
-    "themeLabel": "Theme: {name}"
+    "themeLabel": "Theme: {name}",
+    "useInWizard": "Use in wizard"
   },
   "presetsAdvanced": {
     "backToPresets": "Back to tour presets",

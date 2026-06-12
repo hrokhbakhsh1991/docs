@@ -11,6 +11,7 @@ import type { OperatorSettingsSurface } from "../operator/settings/settings-modu
 import type { OperatorTourListSurface } from "../tour/tour-list-projection.contract";
 import type { PublicCatalogSurface } from "../tour/public-catalog.contract";
 import type { TourCloneHydrator } from "../tour/tour-clone-hydrator.contract";
+import type { WorkspaceWizardHostHooks } from "./workspace-wizard-host-hooks";
 
 /**
  * Workspace plugin contract.
@@ -41,4 +42,6 @@ export interface WorkspacePlugin {
   readonly publicCatalog?: PublicCatalogSurface;
   /** Phase 11.6 — `?clone=tourId` wizard draft hydrator (DEC-P11-007). */
   readonly tourClone?: TourCloneHydrator;
+  /** Phase 12.0 — generic web wizard host behavior (DEC-P12-001). Denali first implementer. */
+  readonly wizardHost?: WorkspaceWizardHostHooks;
 }

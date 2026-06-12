@@ -1,5 +1,6 @@
 export {
   appendDenaliCloneTitleSuffix,
+  bridgeStarterShapedDenaliCreateData,
   denaliHydrateTourCloneDraft,
   prepareDenaliServerCloneCanonical,
   filterGearItemsToActiveEquipmentCatalog,

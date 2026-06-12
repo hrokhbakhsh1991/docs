@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@app-tour/ui-primitives/button";
 import { Input } from "@app-tour/ui-primitives/input";
 import { Select, type SelectOption } from "@app-tour/ui-primitives/select";
-import { isDenaliHttpsImageUrl, isDenaliWizardDraftSessionId } from "@app-tour/workspace-denali";
+import { isDenaliHttpsImageUrl } from "@app-tour/workspace-denali/schemas/file-asset";
+import { isDenaliWizardDraftSessionId } from "@app-tour/workspace-denali/draft";
 import { useTranslations } from "next-intl";
 
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";

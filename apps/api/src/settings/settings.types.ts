@@ -20,6 +20,8 @@ export type EquipmentResource = {
   readonly tenantId: string;
   readonly name: string;
   readonly category: string | null;
+  /** Denali wizard — tour categories compatible with this equipment row (DEC-P12-001 / 12.1). */
+  readonly compatibleCategories?: readonly string[];
   readonly sortOrder: number;
   readonly createdAt: string;
   readonly updatedAt: string;

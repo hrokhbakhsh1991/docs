@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import {
   buildDenaliTourPhotoObjectKey,
   buildDenaliWizardDraftPhotoObjectKey,
@@ -16,6 +14,13 @@ export type DenaliPhotoRemintPlanEntry = {
   readonly newPhotoId: string;
   readonly contentType?: string;
 };
+
+function createPhotoId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  throw new Error("DENALI_PHOTO_ID_UNAVAILABLE");
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -92,8 +97,8 @@ export function remintDenaliClonePhotosInCanonical(
 
   const plan: DenaliPhotoRemintPlanEntry[] = [];
   const remintedRows = located.rows.map((row) => {
-    const oldPhotoId = String(row.id ?? "").trim() || randomUUID();
-    const newPhotoId = randomUUID();
+    const oldPhotoId = String(row.id ?? "").trim() || createPhotoId();
+    const newPhotoId = createPhotoId();
     const next: Record<string, unknown> = { ...row, id: newPhotoId };
 
     const oldStorageKey = typeof row.storageKey === "string" ? row.storageKey.trim() : "";

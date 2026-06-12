@@ -1,4 +1,4 @@
-import type { DenaliWizardDraftEnvelope } from "@app-tour/workspace-denali";
+import type { DenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/draft";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 

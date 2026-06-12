@@ -92,10 +92,11 @@ describe("architectural integrity — declarative purity", () => {
     assert.match(indexSource, /^export\s+\{/m);
   });
 
-  it("starter.plugin.ts re-exports SDK reference without local plugin logic", () => {
+  it("starter.plugin.ts extends SDK reference with platform wizardHost (Phase 12.8)", () => {
     assert.doesNotMatch(pluginSource, /\breadFileSync\b|\bfetch\b|\brequire\s*\(/);
-    assert.doesNotMatch(pluginSource, /\bfunction\s+\w+\s*\(/);
     assert.doesNotMatch(pluginSource, /=\s*JSON\.parse/);
+    assert.match(pluginSource, /from "@app-tour\/platform-core"/);
+    assert.match(pluginSource, /createPlatformWizardHostHooks/);
     assert.match(pluginSource, /from "@app-tour\/workspace-sdk"/);
     assert.match(pluginSource, /getStarterWorkspacePlugin/);
   });

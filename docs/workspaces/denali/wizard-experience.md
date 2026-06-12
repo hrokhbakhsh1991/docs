@@ -2,13 +2,16 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-06-10-v6"
+version: "2026-06-11-v7"
+status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
 authority: DEC-P9-007 · DEC-P9-013
 ```
 
 ## Scope
+
+**Style remediation DoD (TEMP `denali-wizard-style-remediation-roadmap.md`):** closed 2026-06-11 — phases 1–4 + 4b green; `denali-wizard-theme.spec.ts` 14/14. Deferred: Playwright visual baseline (WZ-P2-06), framer-motion (WZ-P2-07).
 
 Tour create wizard at **`/tours/new`** (`apps/web/app/tours/**`) — outside `(app)/` per DEC-P9-007. Controls stay on **`@app-tour/ui-primitives`**; no shadcn in `app/tours/**`.
 

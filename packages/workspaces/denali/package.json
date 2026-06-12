@@ -14,6 +14,54 @@
       "types": "./dist/denali.plugin.d.ts",
       "default": "./dist/denali.plugin.js"
     },
+    "./draft": {
+      "types": "./dist/draft/index.d.ts",
+      "default": "./dist/draft/index.js"
+    },
+    "./acl": {
+      "types": "./dist/acl/migrateDenaliCanonical.d.ts",
+      "default": "./dist/acl/migrateDenaliCanonical.js"
+    },
+    "./schemas/file-asset": {
+      "types": "./dist/schemas/denaliFileAssetSchema.d.ts",
+      "default": "./dist/schemas/denaliFileAssetSchema.js"
+    },
+    "./settings/theme-compatible-categories": {
+      "types": "./dist/settings/theme-compatible-categories.d.ts",
+      "default": "./dist/settings/theme-compatible-categories.js"
+    },
+    "./settings/equipment-compatible-categories": {
+      "types": "./dist/settings/equipment-compatible-categories.d.ts",
+      "default": "./dist/settings/equipment-compatible-categories.js"
+    },
+    "./wizard/validation": {
+      "types": "./dist/wizard/denali-wizard-validation.d.ts",
+      "default": "./dist/wizard/denali-wizard-validation.js"
+    },
+    "./wizard/submit": {
+      "types": "./dist/wizard/denali-wizard-submit-payload.d.ts",
+      "default": "./dist/wizard/denali-wizard-submit-payload.js"
+    },
+    "./clone/hydration": {
+      "types": "./dist/clone/denali-tour-clone-hydration.d.ts",
+      "default": "./dist/clone/denali-tour-clone-hydration.js"
+    },
+    "./edit": {
+      "types": "./dist/edit/index.d.ts",
+      "default": "./dist/edit/index.js"
+    },
+    "./tours": {
+      "types": "./dist/tours/index.d.ts",
+      "default": "./dist/tours/index.js"
+    },
+    "./wizard/host-hooks": {
+      "types": "./dist/wizard/denali-wizard-host-hooks.d.ts",
+      "default": "./dist/wizard/denali-wizard-host-hooks.js"
+    },
+    "./wizard/contextual": {
+      "types": "./dist/wizard/contextual.d.ts",
+      "default": "./dist/wizard/contextual.js"
+    },
     "./http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"

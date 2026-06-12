@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Smartphone, ShieldCheck } from "lucide-react";
@@ -33,20 +33,23 @@ import { navigateAfterLogin } from "@/auth/navigate-after-auth-session-change";
 type Step = "phone" | "otp";
 
 const RESEND_COOLDOWN_SEC = 45;
-const DEV_LOGIN_PHONE = "+15550001001";
+/** Denali dev owner — ASCII in state/API; LocalizedNumericInput shows Persian digits when locale is fa. */
+const DEV_LOGIN_PHONE = "+989121000001";
 const DEV_LOGIN_OTP = "1234";
 
 function initialLoginPhone(): string {
-  return process.env.NODE_ENV === "development" ? DEV_LOGIN_PHONE : "";
+  return "";
 }
 
 function initialLoginOtp(): string {
-  return process.env.NODE_ENV === "development" ? DEV_LOGIN_OTP : "";
+  return "";
 }
 
 type LoginFormProps = {
   readonly pluginId: string;
   readonly initialBranding?: PublicTenantBrandingSnapshot;
+  /** Server-serialized query (excludes `phone`) — avoids client `useSearchParams` hydration stall. */
+  readonly searchQuery?: string;
 };
 
 type ApiErrorPayload = {
@@ -60,6 +63,10 @@ function readErrorCode(data: ApiErrorPayload): string {
 }
 
 function readPhoneForSubmit(statePhone: string): string {
+  const fromState = normalizeNumericInputValue(statePhone, "phone");
+  if (fromState.length > 0) {
+    return fromState;
+  }
   if (typeof document === "undefined") {
     return statePhone;
   }
@@ -67,20 +74,16 @@ function readPhoneForSubmit(statePhone: string): string {
   if (!(element instanceof HTMLInputElement)) {
     return statePhone;
   }
-  const normalized = normalizeNumericInputValue(element.value, "phone");
-  return normalized.length > 0 ? normalized : statePhone;
+  return normalizeNumericInputValue(element.value, "phone");
 }
 
-export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
+export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: LoginFormProps) {
   const t = useTranslations("auth");
   const router = useRouter();
   const phoneErrorId = useId();
   const otpErrorId = useId();
-  const searchParams = useSearchParams();
-  const inviteToken = readInviteTokenFromSearchParams(
-    new URLSearchParams(searchParams.toString())
-  );
-  const urlParams = new URLSearchParams(searchParams.toString());
+  const urlParams = new URLSearchParams(searchQuery);
+  const inviteToken = readInviteTokenFromSearchParams(urlParams);
   const showInviteOnlyBanner = shouldShowInviteOnlyBanner(urlParams);
   const showTenantMismatchBanner = urlParams.get("access") === "tenant-mismatch";
   const showOwnerOnlyBanner = shouldShowOwnerOnlyBanner(urlParams);
@@ -92,12 +95,14 @@ export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const loginInFlightRef = useRef(false);
 
   useEffect(() => {
-    setHydrated(true);
+    if (process.env.NODE_ENV === "development") {
+      setPhone(DEV_LOGIN_PHONE);
+      setOtp(DEV_LOGIN_OTP);
+    }
   }, []);
 
   useEffect(() => {
@@ -125,6 +130,7 @@ export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
       const res = await fetch("/api/auth/request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ phone: effectivePhone }),
       });
       const data = (await res.json()) as ApiErrorPayload;
@@ -163,6 +169,7 @@ export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
       const res = await fetch("/api/auth/login-web-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({
           phone: effectivePhone,
           otp: code,
@@ -179,7 +186,9 @@ export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
         return;
       }
 
-      const abilityRes = await fetch("/api/auth/membership-ability-context");
+      const abilityRes = await fetch("/api/auth/membership-ability-context", {
+        credentials: "same-origin",
+      });
       if (!abilityRes.ok) {
         setOtpError(resolveLoginErrorMessage(t, "abilitiesFailed"));
         return;
@@ -197,7 +206,7 @@ export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
         }
       }
 
-      navigateAfterLogin(router, searchParams.toString());
+      navigateAfterLogin(router, searchQuery);
     } catch {
       setOtpError(resolveLoginErrorMessage(t, "network"));
     } finally {
@@ -234,9 +243,7 @@ export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className={step === "otp" ? "space-y-3" : "space-y-4"}>
-          {hydrated ? (
-            <span data-testid={OPERATOR_LOGIN_TEST_IDS.hydrated} hidden aria-hidden="true" />
-          ) : null}
+          <span data-testid={OPERATOR_LOGIN_TEST_IDS.hydrated} hidden aria-hidden="true" />
           {showTenantMismatchBanner ? (
             <p
               role="alert"
@@ -284,16 +291,15 @@ export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
           {step === "phone" ? (
             <form
               className="space-y-4"
+              noValidate
               onSubmit={(event) => {
                 event.preventDefault();
-                void requestOtp();
               }}
             >
               <div className="space-y-2">
                 <Label htmlFor="phone">{t("phoneLabel")}</Label>
                 <LocalizedNumericInput
                   id="phone"
-                  name="phone"
                   autoComplete="tel"
                   mode="phone"
                   value={phone}
@@ -317,16 +323,23 @@ export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
                   </p>
                 ) : null}
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button
+                type="button"
+                className="w-full"
+                disabled={loading}
+                onClick={() => {
+                  void requestOtp();
+                }}
+              >
                 {loading ? t("sendingOtp") : t("sendOtp")}
               </Button>
             </form>
           ) : (
             <form
               className="space-y-3"
+              noValidate
               onSubmit={(event) => {
                 event.preventDefault();
-                void login();
               }}
             >
               <div className="space-y-2">
@@ -361,9 +374,12 @@ export function LoginForm({ pluginId, initialBranding }: LoginFormProps) {
                 ) : null}
               </div>
               <Button
-                type="submit"
+                type="button"
                 className="w-full"
                 disabled={loading || otp.replace(/\D/g, "").length < OTP_SEGMENT_LENGTH}
+                onClick={() => {
+                  void login();
+                }}
               >
                 {loading ? t("signingIn") : t("signIn")}
               </Button>

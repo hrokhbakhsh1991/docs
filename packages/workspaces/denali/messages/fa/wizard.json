@@ -38,6 +38,7 @@
     "socialMediaLink": "لینک شبکه اجتماعی",
     "program": {
       "themeIds": "تم‌ها (اختیاری)",
+      "guideLanguageIds": "زبان‌های راهنما (اختیاری)",
       "shortDescription": "توضیح کوتاه",
       "longDescription": "توضیح کامل",
       "difficultyLevel": "سطح سختی",
@@ -202,6 +203,11 @@
       "helper": "یک یا چند راهنمای تور از تیم workspace انتخاب کنید.",
       "loading": "در حال بارگذاری اعضای تیم…",
       "empty": "عضوی یافت نشد. از Users → دعوت، هم‌تیمی دعوت کنید."
+    },
+    "guideLanguages": {
+      "helper": "زبان‌هایی را که راهنمایان این تور ارائه می‌دهند انتخاب کنید.",
+      "loading": "در حال بارگذاری زبان‌های راهنما…",
+      "empty": "هنوز زبان راهنمایی ثبت نشده. از Settings → Guide languages اضافه کنید."
     },
     "gear": {
       "helper": "تجهیزات الزامی را از Settings → Equipment انتخاب کنید. هر مورد را الزامی یا اختیاری علامت بزنید.",

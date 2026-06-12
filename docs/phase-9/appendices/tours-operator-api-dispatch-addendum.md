@@ -135,8 +135,10 @@ Only add when direct API fetch fails in 9.3-L-R2 integration — not default.
 
 | Concern | Trunk behavior |
 | ------- | -------------- |
-| Smoke tenant `00000000-0000-4000-8000-000000000014` | Not in `DEV_TENANTS` → API resolves `workspaceType: starter` for POST `/tours` memory specs |
-| `DATABASE_URL` in shell | Cleared by `bootstrap-outbox-test-env.ts` when `STORAGE_DRIVER=memory` so Postgres tenant rows cannot override starter resolution |
-| POST `/tours` body in `tours-operator.spec.ts` | Starter canonical (`basics.title`, `details.summary`) |
+| Smoke tenant `00000000-0000-4000-8000-000000000014` | **`denali`** in `DEV_TENANTS` (DEC-P11-001 / Phase 11.0) — same as web `createTourAction` |
+| `DATABASE_URL` in shell | Cleared by `bootstrap-outbox-test-env.ts` when `STORAGE_DRIVER=memory` so Postgres tenant rows cannot override registry resolution |
+| POST `/tours` body in `tours-operator.spec.ts` | Starter-shaped ingress (`basics.title`, `details.summary`, optional `category`) — **not** persisted as starter roots |
+| Denali starter bridge (until 11.7) | Tenant `…0014` + starter ingress with **both** `basics.title` and `details.summary`: validate with **starter** plugin, then `enrichStarterDocumentForDenaliOperatorList` adds flat `title` + `program.shortDescription` for Denali operator list projection |
+| Partial starter ingress (e.g. title-only on tenant `…000003`) | Bridge normalizes paths but **does not** apply operator defaults → **400** `VALIDATION_FAILURE` (see `denali-wizard.spec.ts` SMK-P6-05) |
 | Validation engine | `getOrCreateValidationEngine` omits `plugin.tourList`, `plugin.tourClone`, and `plugin.publicCatalog` before `PlatformWizardEngine.create` (callable operator/marketing surfaces are not wizard ingress) |
-| Fast API proof | `pnpm --filter @apps/api run test:file test/tours-operator.spec.ts` |
+| Fast API proof | `pnpm --filter @apps/api run test:file test/tours-operator.spec.ts test/denali-operator-create-bridge.spec.ts` |

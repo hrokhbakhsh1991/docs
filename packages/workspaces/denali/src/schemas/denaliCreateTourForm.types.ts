@@ -23,6 +23,7 @@ export interface DenaliCreateTourWizardForm {
   };
   programNature: {
     themeIds: string[];
+    guideLanguageIds: string[];
     shortDescription: string | undefined;
     longDescription: string | undefined;
     difficultyLevel: number | undefined;

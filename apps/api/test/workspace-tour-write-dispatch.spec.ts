@@ -38,4 +38,28 @@ describe("workspace-tour-write-dispatch (P4-T05/T06)", () => {
     assert.equal(tourPublishFieldOwnerSurface("urban"), "urban.tour.publish_fields");
     assert.equal(tourPublishFieldOwnerSurface("starter"), undefined);
   });
+
+  it("denali publish-field gate delegates to denali hook", () => {
+    assert.equal(
+      tourPatchTouchesProtectedPublishFields("denali", { data: { publishStatus: "active" } }),
+      true
+    );
+    assert.equal(
+      tourPatchTouchesProtectedPublishFields("denali", { data: { title: "Only title" } }),
+      false
+    );
+  });
+
+  it("denali merge shallow-merges root keys", () => {
+    const merged = mergeCanonicalPatchDataForWorkspace(
+      "denali",
+      { title: "A", category: "mountain" },
+      { title: "B" }
+    );
+    assert.deepEqual(merged, { title: "B", category: "mountain" });
+  });
+
+  it("exposes denali owner surface id", () => {
+    assert.equal(tourPublishFieldOwnerSurface("denali"), "denali.tour.publish_fields");
+  });
 });

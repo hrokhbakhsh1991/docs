@@ -31,6 +31,7 @@ export const DENALI_COMPOSITE_RENDERER_IDS = [
   "denali.program-content",
   "denali.custom-services",
   "denali.leader-user-ids",
+  "denali.guide-language-ids",
   "denali.elevation-gain",
   "denali.pricing-participants",
   "denali.pricing-payment",

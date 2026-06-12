@@ -1,6 +1,7 @@
 "use client";
 
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
+import { Input as PrimitiveInput } from "@app-tour/ui-primitives/input";
 
 import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -917,9 +918,10 @@ export function UsersPageClient({ session }: UsersPageClientProps) {
               <legend className="text-sm font-medium">{t("rewards.loyaltyTierLabel")}</legend>
               <div className="flex flex-wrap gap-3 text-sm">
                 <label className="flex items-center gap-2">
-                  <input
+                  <PrimitiveInput
                     type="radio"
                     name="rewards-loyalty-tier"
+                    className="h-4 w-4 shrink-0 p-0"
                     checked={rewardsLoyaltyTier === "none"}
                     onChange={() => setRewardsLoyaltyTier("none")}
                   />
@@ -927,9 +929,10 @@ export function UsersPageClient({ session }: UsersPageClientProps) {
                 </label>
                 {LOYALTY_REWARD_BADGE_IDS.map((badgeId) => (
                   <label key={badgeId} className="flex items-center gap-2">
-                    <input
+                    <PrimitiveInput
                       type="radio"
                       name="rewards-loyalty-tier"
+                      className="h-4 w-4 shrink-0 p-0"
                       checked={rewardsLoyaltyTier === badgeId}
                       onChange={() => setRewardsLoyaltyTier(badgeId)}
                     />

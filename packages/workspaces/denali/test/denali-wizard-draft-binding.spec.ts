@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  denaliEditTourDraftKey,
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
 } from "../src/draft/denali-wizard-draft-binding";
@@ -43,5 +44,10 @@ describe("denali-wizard-draft-binding.spec.ts — Phase 11.5", () => {
     assert.equal(hydrated.meta.currentStepIndex, 1);
     assert.equal(hydrated.meta.wizardSessionId, "ws-1");
     assert.equal(hydrated.form.data.basics.title, "Seed");
+  });
+
+  it("WEB-P11-5-04 edit draft key is scoped per tour id", () => {
+    assert.equal(denaliEditTourDraftKey("abc-123"), "denali-edit:abc-123");
+    assert.equal(denaliEditTourDraftKey("  "), "denali-edit:unknown");
   });
 });

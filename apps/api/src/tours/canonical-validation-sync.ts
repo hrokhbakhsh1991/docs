@@ -13,6 +13,11 @@ import { throwSchemaVersionMismatch } from "../canonical/schema-version-mismatch
 import { throwValidationFailure } from "../canonical/validation-failure";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 import type { CreateTourBody } from "./create-tour.schema";
+import {
+  enrichStarterDocumentForDenaliOperatorList,
+  pickStarterCreateDataForValidation,
+  shouldUseStarterValidationForDenaliCreate,
+} from "./bridge-denali-operator-create-body";
 import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks";
 
 function readDenaliTourKindFromCanonicalData(
@@ -126,6 +131,10 @@ export function getOrCreateValidationEngine(
   return touchEngineCache(key, { engine: PlatformWizardEngine.create(pluginForEngine) });
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 function defaultCanonicalData(pluginRoots: readonly string[]): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   if (pluginRoots.includes("basics")) {
@@ -146,9 +155,18 @@ export function validateCanonicalBeforePersistSync(
 ): CanonicalDocument {
   const plugin = resolveWorkspacePluginForType(input.workspaceType);
   const validationVariant = input.validationVariant ?? "default";
+  const useStarterValidation = shouldUseStarterValidationForDenaliCreate(
+    input.workspaceType,
+    input.tenantId,
+    input.body
+  );
+  const validationWorkspaceType = useStarterValidation ? "starter" : input.workspaceType;
+  const validationPlugin = useStarterValidation
+    ? resolveWorkspacePluginForType("starter")
+    : plugin;
   const engine = getOrCreateValidationEngine(
     input.tenantId,
-    input.workspaceType,
+    validationWorkspaceType,
     validationVariant
   );
   const currentSchemaVersion = resolveWorkspaceCurrentSchemaVersion(input.workspaceType);
@@ -158,11 +176,19 @@ export function validateCanonicalBeforePersistSync(
   }
 
   let document: CanonicalDocument;
+  let starterPick: ReturnType<typeof pickStarterCreateDataForValidation> | undefined;
   try {
+    const rawCreateData = input.body.data ?? defaultCanonicalData(validationPlugin.wizard.roots);
+    starterPick =
+      useStarterValidation && isRecord(rawCreateData)
+        ? pickStarterCreateDataForValidation(rawCreateData)
+        : undefined;
+    const createData = starterPick?.createData ?? rawCreateData;
+
     document = createCanonicalDocument({
       schemaVersion: requestedSchemaVersion,
-      roots: input.body.roots ?? [...plugin.wizard.roots],
-      data: input.body.data ?? defaultCanonicalData(plugin.wizard.roots),
+      roots: input.body.roots ?? [...validationPlugin.wizard.roots],
+      data: createData,
     });
   } catch (error) {
     if (error instanceof CanonicalDocumentValidationError) {
@@ -176,7 +202,7 @@ export function validateCanonicalBeforePersistSync(
   const result = engine.validateCanonical(document, {
     tenantId: input.tenantId,
     dimensions: resolveValidationDimensions(
-      plugin,
+      validationPlugin,
       validationVariant,
       document.data as Record<string, unknown>
     ),
@@ -187,11 +213,17 @@ export function validateCanonicalBeforePersistSync(
     throwValidationFailure(`CANONICAL_VALIDATION_FAILED: ${message}`);
   }
 
-  const hookViolation = runWorkspaceValidationHooks(plugin, document);
+  const hookViolation = runWorkspaceValidationHooks(validationPlugin, document);
   if (hookViolation != null) {
     throwValidationFailure(
       `CANONICAL_VALIDATION_FAILED: ${hookViolation.code}: ${hookViolation.message}`
     );
+  }
+
+  if (useStarterValidation) {
+    document = enrichStarterDocumentForDenaliOperatorList(document, {
+      category: starterPick?.category,
+    });
   }
 
   return document;

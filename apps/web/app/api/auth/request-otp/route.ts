@@ -7,6 +7,7 @@ import {
 } from "@/auth/bff-login-rate-limit";
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
+import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
 import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
 
 type RequestOtpBody = {
@@ -15,7 +16,10 @@ type RequestOtpBody = {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as RequestOtpBody;
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  const phone = normalizeNumericInputValue(
+    typeof body.phone === "string" ? body.phone.trim() : "",
+    "phone"
+  );
   if (phone.length === 0) {
     return bffCodedError("MOBILE_REQUIRED", 400);
   }

@@ -25,6 +25,7 @@ export type EquipmentResource = {
   readonly id: string;
   readonly name: string;
   readonly category: string | null;
+  readonly compatibleCategories?: readonly string[];
   readonly sortOrder: number;
 };
 

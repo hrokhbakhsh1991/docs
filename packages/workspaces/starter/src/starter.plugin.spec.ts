@@ -57,4 +57,14 @@ describe("getStarterWorkspacePlugin()", () => {
     });
     assert.ok(plan.length >= 2);
   });
+
+  it("exposes platform wizardHost hooks (STR-12.8-01)", () => {
+    const plugin = getStarterWorkspacePlugin();
+    assert.ok(plugin.wizardHost);
+    assert.equal(plugin.wizardHost.usesStepValidation, true);
+    assert.equal(typeof plugin.wizardHost.validateDraftSync, "function");
+    assert.deepEqual(plugin.wizardHost.resolveMatrixDimensionsFromDraft?.({}, null), {
+      variant: "default",
+    });
+  });
 });

@@ -38,6 +38,7 @@
     "socialMediaLink": "Social media link",
     "program": {
       "themeIds": "Themes (optional)",
+      "guideLanguageIds": "Guide languages (optional)",
       "shortDescription": "Short description",
       "longDescription": "Full description",
       "difficultyLevel": "Difficulty level",
@@ -202,6 +203,11 @@
       "helper": "Select one or more tour leaders from your workspace team.",
       "loading": "Loading team members…",
       "empty": "No team members found. Invite users under Users → Invite."
+    },
+    "guideLanguages": {
+      "helper": "Select languages your guides can offer on this tour.",
+      "loading": "Loading guide languages…",
+      "empty": "No guide languages yet. Add items under Settings → Guide languages."
     },
     "gear": {
       "helper": "Pick required gear from Settings → Equipment. Mark each item as required or optional.",

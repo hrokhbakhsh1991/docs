@@ -6,7 +6,7 @@ import { handleHttpError } from "../middleware/error-interceptor";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { readUrbanSettingsRequestBody } from "./read-urban-settings-request-body";
-import { assertWorkspaceOwner } from "./require-workspace-owner";
+import { assertWorkspaceOwner } from "@app-tour/workspace-urban/http";
 import { parseUrbanSettingsPatchBody } from "./schemas/urban-settings-patch.schema";
 import { getUrbanSettings, patchUrbanSettings } from "./urban-settings.service";
 

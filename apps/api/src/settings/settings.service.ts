@@ -10,6 +10,7 @@ import {
 } from "./settings-registry";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { enrichTourThemesCompatibleCategories } from "./enrich-tour-theme-compatible-categories";
+import { enrichEquipmentListCompatibleCategories } from "./enrich-equipment-compatible-categories";
 import {
   assertDenaliOperatorSettingsWorkspace,
   isUrbanOperatorSettingsWorkspace,
@@ -156,7 +157,12 @@ export async function listSettingsResources(
   const repo = getSettingsResourcesRepository();
 
   if (moduleId === "equipment") {
-    const items = await repo.listEquipment(auth.tenantId);
+    const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+    const raw = await repo.listEquipment(auth.tenantId);
+    const items =
+      workspaceType === "denali"
+        ? enrichEquipmentListCompatibleCategories(raw)
+        : raw;
     return { items, total: items.length };
   }
 

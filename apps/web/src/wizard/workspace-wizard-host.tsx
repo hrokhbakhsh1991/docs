@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 
 import { resolveDenaliStepLabel } from "@/i18n/denali-wizard-labels";
 
-import { loadDenaliWizardRulesModule, type DenaliWizardRulesModule } from "@/bootstrap/denali-wizard-rules";
+import type { DenaliWizardRulesModule } from "@/bootstrap/denali-wizard-rules";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
 import type { WizardTemplateStepRef } from "@/features/settings/wizard-template-types";
@@ -27,11 +27,6 @@ import { canLoadWorkspaceWizard } from "./wizard-access";
 import { WizardAccessDenied } from "./wizard-access-denied";
 import { loadWorkspacePluginById } from "./load-workspace-plugin";
 import {
-  applyDenaliConditionalFieldRules,
-  resolveDenaliDimensionsFromDraft,
-} from "./denali/denali-wizard-conditional-logic";
-import type { DenaliWizardRuleEvalContext } from "./denali/denali-wizard-ui-context";
-import {
   buildWizardStepDescriptors,
   clampWizardStepIndex,
   resolveWizardStepLabel,
@@ -39,15 +34,8 @@ import {
 import { WizardStepShell } from "./wizard-step-shell";
 
 import { WizardField } from "./wizard-field";
-import { DenaliWizardContentQualityHeader } from "./denali/denali-wizard-content-quality-header";
-import { computeDenaliWizardCompletion } from "./denali/denali-wizard-completion";
-import { DenaliPublishStatusField } from "./denali/denali-publish-status-field";
-import { DenaliReviewStep } from "./denali/denali-review-step";
-import { DenaliReviewValidationSummary } from "./denali/denali-review-validation-summary";
-import {
-  buildFieldStepResolver,
-  validateDenaliWizardDraftSync,
-} from "./denali/denali-wizard-validation";
+import { resolveWizardReviewSurface } from "./wizard-review-surface-registry";
+import { buildFieldStepResolver } from "./denali/denali-wizard-validation";
 import { useWizardStepValidation } from "./use-wizard-step-validation";
 
 export type WorkspaceWizardHostProps = {
@@ -72,23 +60,24 @@ export type WorkspaceWizardHostProps = {
   /** Parent submit validation — host focuses first issue (11.7-T5). */
   readonly submitValidationIssues?: readonly ValidationIssue[] | null;
   readonly onSubmitValidationHandled?: () => void;
-  /** Denali rule eval context — profile + template overlay (11.8-T3/T6). */
-  readonly denaliRuleEvalContext?: DenaliWizardRuleEvalContext;
+  /** Opaque workspace rule eval context (profile + template overlay). */
+  readonly wizardRuleEvalContext?: unknown;
 };
 
 function resolveWizardDimensions(
   plugin: WorkspacePlugin,
-  pluginId: string,
   draft: TourWizardDraft,
-  denaliRules: DenaliWizardRulesModule | null,
+  rulesModule: DenaliWizardRulesModule | null,
   validationVariant: "default" | "basic" = "default"
 ): Record<string, string> {
+  const hooks = plugin.wizardHost;
+  if (hooks?.resolveMatrixDimensionsFromDraft != null) {
+    return { ...hooks.resolveMatrixDimensionsFromDraft(draft as unknown as Record<string, unknown>, rulesModule) };
+  }
+
   const matrix = plugin.ruleSet.matrixDimensions;
   if (matrix.includes("variant")) {
     return { variant: validationVariant };
-  }
-  if (pluginId === "denali" && matrix.includes("category") && matrix.includes("duration")) {
-    return resolveDenaliDimensionsFromDraft(draft, denaliRules ?? undefined);
   }
   if (matrix.includes("category") && matrix.includes("duration")) {
     return { category: "mountain", duration: "single_day" };
@@ -102,12 +91,22 @@ function resolveWizardDimensions(
   return Object.fromEntries(matrix.map((key) => [key, validationVariant]));
 }
 
+function readWorkspaceFormProfileFromEvalContext(ctx: unknown): string | undefined {
+  if (ctx == null || typeof ctx !== "object") {
+    return undefined;
+  }
+  const uiOptions = (ctx as { uiOptions?: { workspaceFormProfile?: unknown } }).uiOptions;
+  const profile = uiOptions?.workspaceFormProfile;
+  return typeof profile === "string" ? profile : undefined;
+}
+
 /** Platform wizard ingress rejects callable operator/marketing surfaces — strip before engine bootstrap. */
 function pluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
   const {
     tourList: _tourList,
     tourClone: _tourClone,
     publicCatalog: _publicCatalog,
+    wizardHost: _wizardHost,
     ...wizardPlugin
   } = plugin;
   return wizardPlugin as WorkspacePlugin;
@@ -134,7 +133,7 @@ export function WorkspaceWizardHost({
   navLocked = false,
   submitValidationIssues = null,
   onSubmitValidationHandled,
-  denaliRuleEvalContext,
+  wizardRuleEvalContext,
 }: WorkspaceWizardHostProps) {
   const tWizard = useTranslations("wizard");
   const tDenali = useTranslations("denali");
@@ -151,7 +150,7 @@ export function WorkspaceWizardHost({
 
   const [baseSteps, setBaseSteps] = useState<readonly RenderStepPlan[] | null>(null);
   const [workspacePlugin, setWorkspacePlugin] = useState<WorkspacePlugin | null>(null);
-  const [denaliRules, setDenaliRules] = useState<DenaliWizardRulesModule | null>(null);
+  const [rulesModule, setRulesModule] = useState<DenaliWizardRulesModule | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reviewValidationIssues, setReviewValidationIssues] = useState<readonly ValidationIssue[]>(
     []
@@ -160,19 +159,31 @@ export function WorkspaceWizardHost({
   const activeStepIndex = controlledStepIndex ?? internalStepIndex;
   const setActiveStepIndex = onActiveStepIndexChange ?? setInternalStepIndex;
 
-  const tourKind = getCanonicalStringValue(draft, "category");
+  const wizardHost = workspacePlugin?.wizardHost;
+  const reviewStepId = wizardHost?.reviewStepId;
+  const reviewSurface = useMemo(
+    () => resolveWizardReviewSurface(wizardHost?.reviewSurfaceId),
+    [wizardHost?.reviewSurfaceId]
+  );
+
   const dimensionsKey = useMemo(() => {
-    if (pluginId !== "denali") {
-      return "static";
+    if (wizardHost?.resolveMatrixDimensionsFromDraft != null) {
+      const dims = wizardHost.resolveMatrixDimensionsFromDraft(
+        draft as unknown as Record<string, unknown>,
+        rulesModule
+      );
+      return Object.entries(dims)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => `${key}:${value}`)
+        .join("|");
     }
-    const dims = resolveDenaliDimensionsFromDraft(draft, denaliRules ?? undefined);
-    return `${dims.category}:${dims.duration}`;
-  }, [pluginId, denaliRules, tourKind]);
+    return "static";
+  }, [wizardHost, rulesModule, draft]);
 
   useEffect(() => {
     if (!authorized) {
       setBaseSteps(null);
-      setDenaliRules(null);
+      setRulesModule(null);
       setError(null);
       return;
     }
@@ -185,18 +196,21 @@ export function WorkspaceWizardHost({
           return;
         }
 
-        const rules =
-          pluginId === "denali" ? await loadDenaliWizardRulesModule() : null;
         const plugin = await loadWorkspacePluginById(pluginId);
+        const hooks = plugin.wizardHost;
+        const rules =
+          hooks?.loadRulesModule != null
+            ? ((await hooks.loadRulesModule()) as DenaliWizardRulesModule)
+            : null;
         const engine = PlatformWizardEngine.create(pluginForWizardEngine(plugin));
         engine.init();
         const plan = engine.buildRenderPlan({
           tenantId,
-          dimensions: resolveWizardDimensions(plugin, pluginId, draft, rules),
+          dimensions: resolveWizardDimensions(plugin, draft, rules),
         });
 
         if (!cancelled) {
-          setDenaliRules(rules);
+          setRulesModule(rules);
           setWorkspacePlugin(plugin);
           setBaseSteps(plan);
           setError(null);
@@ -207,7 +221,7 @@ export function WorkspaceWizardHost({
           setError(message);
           setBaseSteps(null);
           setWorkspacePlugin(null);
-          setDenaliRules(null);
+          setRulesModule(null);
         }
       }
     })();
@@ -229,8 +243,13 @@ export function WorkspaceWizardHost({
           ? filterRenderPlanByCanonicalPaths(baseSteps, allowedCanonicalPaths)
           : baseSteps;
 
-    if (pluginId === "denali" && denaliRules != null) {
-      steps = applyDenaliConditionalFieldRules(steps, draft, denaliRules, denaliRuleEvalContext);
+    if (wizardHost?.applyContextualFieldRules != null && rulesModule != null) {
+      steps = wizardHost.applyContextualFieldRules({
+        steps,
+        draft: draft as unknown as Record<string, unknown>,
+        rulesModule,
+        evalContext: wizardRuleEvalContext ?? null,
+      }) as typeof steps;
     }
 
     return steps;
@@ -239,9 +258,10 @@ export function WorkspaceWizardHost({
     templateSteps,
     allowedCanonicalPaths,
     pluginId,
-    denaliRules,
+    rulesModule,
     draft,
-    denaliRuleEvalContext,
+    wizardRuleEvalContext,
+    wizardHost?.applyContextualFieldRules,
   ]);
 
   const stepDescriptors = useMemo(
@@ -284,16 +304,21 @@ export function WorkspaceWizardHost({
   });
 
   const refreshReviewValidationIssues = useCallback(() => {
-    if (workspacePlugin == null || pluginId !== "denali") {
+    if (workspacePlugin == null || wizardHost?.usesStepValidation !== true) {
       setReviewValidationIssues([]);
       return;
     }
-    const result = validateDenaliWizardDraftSync(
-      workspacePlugin,
-      draft,
-      denaliRules,
-      tenantId
-    );
+    const validate = wizardHost.validateDraftSync;
+    if (validate == null) {
+      setReviewValidationIssues([]);
+      return;
+    }
+    const result = validate({
+      plugin: workspacePlugin,
+      draft: draft as unknown as Record<string, unknown>,
+      rulesModule: rulesModule,
+      tenantId,
+    });
     if (result.ok) {
       setReviewValidationIssues([]);
       return;
@@ -301,17 +326,17 @@ export function WorkspaceWizardHost({
     setReviewValidationIssues(
       mapValidationResultToIssues(result, { resolveStepId })
     );
-  }, [workspacePlugin, pluginId, draft, denaliRules, tenantId, resolveStepId]);
+  }, [workspacePlugin, wizardHost?.usesStepValidation, wizardHost?.validateDraftSync, draft, rulesModule, tenantId, resolveStepId]);
 
   useEffect(() => {
     if (visibleSteps == null) {
       return;
     }
     const activeStep = visibleSteps[clampWizardStepIndex(activeStepIndex, visibleSteps.length)];
-    if (activeStep?.stepId === "review") {
+    if (activeStep?.stepId === reviewStepId) {
       refreshReviewValidationIssues();
     }
-  }, [visibleSteps, activeStepIndex, refreshReviewValidationIssues]);
+  }, [visibleSteps, activeStepIndex, reviewStepId, refreshReviewValidationIssues]);
 
   useEffect(() => {
     if (submitValidationIssues == null || submitValidationIssues.length === 0) {
@@ -332,20 +357,24 @@ export function WorkspaceWizardHost({
 
   const handleBeforeNext = useCallback(
     async (currentIndex: number) => {
-      if (workspacePlugin == null || visibleSteps == null || pluginId !== "denali") {
+      if (workspacePlugin == null || visibleSteps == null || wizardHost?.usesStepValidation !== true) {
         return true;
       }
       const step = visibleSteps[currentIndex];
-      if (step == null || step.stepId === "review") {
+      if (step == null || (reviewStepId != null && step.stepId === reviewStepId)) {
         return true;
       }
-      const result = validateDenaliWizardDraftSync(
-        workspacePlugin,
-        draft,
-        denaliRules,
+      const validate = wizardHost.validateDraftSync;
+      if (validate == null) {
+        return true;
+      }
+      const result = validate({
+        plugin: workspacePlugin,
+        draft: draft as unknown as Record<string, unknown>,
+        rulesModule: rulesModule,
         tenantId,
-        { stepId: step.stepId, visibleSteps }
-      );
+        scope: { stepId: step.stepId, visibleSteps },
+      });
       if (result.ok) {
         return true;
       }
@@ -355,9 +384,11 @@ export function WorkspaceWizardHost({
     [
       workspacePlugin,
       visibleSteps,
-      pluginId,
+      wizardHost?.usesStepValidation,
+      wizardHost?.validateDraftSync,
+      reviewStepId,
       draft,
-      denaliRules,
+      rulesModule,
       tenantId,
       focusFirstFromResult,
       resolveStepId,
@@ -413,9 +444,9 @@ export function WorkspaceWizardHost({
     resolveDefaultStepLabel
   );
 
-  const denaliCompletion =
-    pluginId === "denali"
-      ? computeDenaliWizardCompletion(draft, visibleSteps)
+  const completionSnapshot =
+    reviewSurface?.computeCompletion != null
+      ? reviewSurface.computeCompletion(draft, visibleSteps)
       : null;
 
   return (
@@ -423,11 +454,11 @@ export function WorkspaceWizardHost({
       className="workspace-wizard"
       data-workspace-wizard
       data-plugin-id={pluginId}
-      {...(pluginId === "denali" ? { "data-denali-wizard-host": true } : {})}
+      {...(wizardHost?.hostRootDataAttributes ?? {})}
     >
-      {denaliCompletion != null ? (
-        <DenaliWizardContentQualityHeader completion={denaliCompletion} />
-      ) : null}
+      {completionSnapshot != null && reviewSurface?.renderCompletionHeader != null
+        ? reviewSurface.renderCompletionHeader(completionSnapshot)
+        : null}
       <WizardStepShell
         steps={buildWizardStepDescriptors(visibleSteps, templateSteps, resolveDefaultStepLabel)}
         activeIndex={activeStepIndex}
@@ -448,23 +479,25 @@ export function WorkspaceWizardHost({
             </h2>
           </header>
           <div className="workspace-wizard__fields">
-            {activeStep.stepId === "review" && pluginId === "denali" ? (
-              <>
-                <DenaliReviewStep draft={draft} />
-                <DenaliReviewValidationSummary
-                  issues={reviewValidationIssues}
-                  steps={stepDescriptors}
-                  onFocusIssue={handleFocusValidationIssue}
-                />
-                <DenaliPublishStatusField draft={draft} onDraftChange={onDraftChange} />
-              </>
+            {wizardHost?.usesReviewStep === true &&
+            reviewStepId != null &&
+            activeStep.stepId === reviewStepId &&
+            reviewSurface?.renderReviewChrome != null ? (
+              reviewSurface.renderReviewChrome({
+                draft,
+                onDraftChange,
+                reviewValidationIssues,
+                stepDescriptors,
+                onFocusIssue: handleFocusValidationIssue,
+              })
             ) : null}
             {activeStep.fields
               .filter(
                 (field) =>
                   !(
-                    activeStep.stepId === "review" &&
-                    pluginId === "denali" &&
+                    wizardHost?.usesReviewStep === true &&
+                    reviewStepId != null &&
+                    activeStep.stepId === reviewStepId &&
                     field.canonicalPath === "publishStatus"
                   )
               )
@@ -481,8 +514,10 @@ export function WorkspaceWizardHost({
                       draft={draft}
                       onDraftChange={onDraftChange}
                       pluginId={pluginId}
+                      compositeSurfaceId={wizardHost?.compositeSurfaceId}
+                      fieldLabelSurfaceId={wizardHost?.fieldLabelSurfaceId}
                       wizardSessionId={wizardSessionId}
-                      workspaceFormProfile={denaliRuleEvalContext?.uiOptions.workspaceFormProfile}
+                      workspaceFormProfile={readWorkspaceFormProfileFromEvalContext(wizardRuleEvalContext)}
                       dataTestId={
                         shouldAttachSeedPrefillTestId(path, pluginId)
                           ? WIZARD_TEMPLATE_PREFILL_TEST_IDS.seedPrefillField

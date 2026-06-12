@@ -2,59 +2,16 @@ import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
 
 import type { DenaliWizardRulesModule } from "@/bootstrap/denali-wizard-rules";
+import { tourWizardDraftToDenaliForm } from "@app-tour/workspace-denali/wizard/contextual";
 
 import type { DenaliWizardRuleEvalContext } from "./denali-wizard-ui-context";
+import { sanitizeDenaliWizardDraftRecord } from "@app-tour/workspace-denali/wizard/submit";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function setNestedFormValue(target: Record<string, unknown>, formPath: string, value: unknown): void {
-  const segments = formPath.split(".");
-  let cursor: Record<string, unknown> = target;
-
-  for (let index = 0; index < segments.length - 1; index += 1) {
-    const key = segments[index]!;
-    const existing = cursor[key];
-    const branch = isRecord(existing) ? { ...existing } : {};
-    cursor[key] = branch;
-    cursor = branch;
-  }
-
-  cursor[segments[segments.length - 1]!] = value;
-}
-
-function coerceDraftScalar(value: unknown): unknown {
-  if (typeof value === "string") {
-    if (value === "true") return true;
-    if (value === "false") return false;
-    const trimmed = value.trim();
-    if (trimmed.length > 0 && /^-?\d+(\.\d+)?$/.test(trimmed)) {
-      const parsed = Number(trimmed);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-  return value;
-}
-
-/** Map canonical-path draft values into the legacy Denali RHF form shape for rule evaluation. */
-export function tourWizardDraftToDenaliForm(
-  draft: TourWizardDraft,
-  rules: DenaliWizardRulesModule
-): ReturnType<DenaliWizardRulesModule["buildDefaultForm"]> {
-  const form = rules.buildDefaultForm() as Record<string, unknown>;
-
-  for (const [canonicalPath, formPath] of Object.entries(rules.canonicalToFormPathMap)) {
-    const raw = getCanonicalValue(draft, canonicalPath);
-    if (raw === undefined) {
-      continue;
-    }
-    const value = Array.isArray(raw) || isRecord(raw) ? raw : coerceDraftScalar(raw);
-    setNestedFormValue(form, formPath, value);
-  }
-
-  return form as ReturnType<DenaliWizardRulesModule["buildDefaultForm"]>;
-}
+export { tourWizardDraftToDenaliForm };
 
 function getNestedFormValue(form: Record<string, unknown>, formPath: string): unknown {
   const segments = formPath.split(".");
@@ -105,11 +62,13 @@ export function sanitizeDenaliWizardDraft(
   rules: DenaliWizardRulesModule,
   evalContext: DenaliWizardRuleEvalContext
 ): TourWizardDraft {
-  const form = tourWizardDraftToDenaliForm(draft, rules) as Record<string, unknown>;
-  const sanitized = rules.applyDenaliInvariantState(
-    form,
-    evalContext.uiOptions,
-    evalContext.ruleSet
-  ) as Record<string, unknown>;
-  return syncDenaliFormToTourWizardDraft(draft, sanitized, rules);
+  const next = sanitizeDenaliWizardDraftRecord(
+    draft as unknown as Record<string, unknown>,
+    rules,
+    evalContext
+  );
+  if (draft.data != null && typeof draft.data === "object") {
+    return { ...draft, data: next.data as TourWizardDraft["data"] };
+  }
+  return next as unknown as TourWizardDraft;
 }

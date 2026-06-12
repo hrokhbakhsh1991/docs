@@ -4,10 +4,18 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
+import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
+import { mergeDenaliCanonicalPatchData, denaliTourPatchRequiresOwner, DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-denali/tours";
 import { URBAN_WORKSPACE_TYPE } from "@app-tour/workspace-urban";
 import { mergeUrbanCanonicalPatchData, urbanTourPatchRequiresOwner, URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-urban/tours";
 
 export const WORKSPACE_TOUR_WRITE_BINDINGS = [
+  {
+    workspaceType: DENALI_WORKSPACE_TYPE,
+    mergeCanonicalPatch: mergeDenaliCanonicalPatchData,
+    publishFieldGate: denaliTourPatchRequiresOwner,
+    publishOwnerSurface: DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
+  },
   {
     workspaceType: URBAN_WORKSPACE_TYPE,
     mergeCanonicalPatch: mergeUrbanCanonicalPatchData,

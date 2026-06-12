@@ -5,6 +5,8 @@ import type { Prisma } from "@prisma/client";
 
 import {
   AUDIT_ACTION_TOUR_CREATED,
+  AUDIT_ACTION_TOUR_PUBLISHED,
+  AUDIT_ACTION_TOUR_UNPUBLISHED,
   AUDIT_ACTION_TOUR_UPDATED,
   appendAuditEvent,
 } from "../audit/audit-logger";
@@ -21,6 +23,11 @@ import {
 } from "../tenant/tenant-request-context";
 import { assertTourCapacityInTx } from "./assert-tour-capacity-in-tx";
 import { deriveTourProjections } from "./projection-sync";
+import {
+  detectTourPublishTransition,
+  type TourPublishTransitionKind,
+} from "./tour-publish-transition-audit";
+import { readDenaliTourPublishStatusFromCanonical } from "@app-tour/workspace-denali/tours";
 
 export type AtomicCanonicalTourPersistInput = {
   readonly tenantId: string;
@@ -167,6 +174,14 @@ async function persistTourUpdateAtomicallyInContext(
   return withCanonicalTransaction(input.tenantId, async (tx) => {
     const txNow = await readCanonicalTransactionNow(tx);
 
+    const existing = await tx.tour.findUnique({
+      where: { tenantId_id: { tenantId: input.tenantId, id: input.tourId } },
+    });
+    if (existing === null) {
+      throw new TourVersionConflictError();
+    }
+    const beforeCanonical = existing.canonical as unknown as CanonicalDocument;
+
     const result = await tx.tour.updateMany({
       where: {
         tenantId: input.tenantId,
@@ -202,6 +217,21 @@ async function persistTourUpdateAtomicallyInContext(
       createdAt: txNow,
     });
 
+    const publishTransition = detectTourPublishTransition(
+      getActiveWorkspaceType(),
+      beforeCanonical,
+      input.canonical
+    );
+    if (publishTransition != null) {
+      await appendPublishTransitionAuditEvent(tx, {
+        tourId: input.tourId,
+        transition: publishTransition,
+        before: beforeCanonical,
+        after: input.canonical,
+        createdAt: txNow,
+      });
+    }
+
     if (process.env.P5_ATOMIC_TX_TEST_ABORT === "pre_commit") {
       throw new Error("P5_ATOMIC_TX_TEST_ABORT");
     }
@@ -231,4 +261,42 @@ function buildTourCreateData(args: {
     schemaVersion: args.projections.schemaVersion,
     createdAt: args.createdAt,
   };
+}
+
+function readPublishStatusLabel(
+  workspaceType: string | undefined,
+  canonical: CanonicalDocument
+): string | undefined {
+  if (workspaceType === "denali") {
+    return readDenaliTourPublishStatusFromCanonical(canonical);
+  }
+  return undefined;
+}
+
+async function appendPublishTransitionAuditEvent(
+  tx: Prisma.TransactionClient,
+  input: {
+    readonly tourId: string;
+    readonly transition: TourPublishTransitionKind;
+    readonly before: CanonicalDocument;
+    readonly after: CanonicalDocument;
+    readonly createdAt: Date;
+  }
+): Promise<void> {
+  const workspaceType = getActiveWorkspaceType();
+  const action =
+    input.transition === "published" ? AUDIT_ACTION_TOUR_PUBLISHED : AUDIT_ACTION_TOUR_UNPUBLISHED;
+  const fromPublishStatus = readPublishStatusLabel(workspaceType, input.before);
+  const toPublishStatus = readPublishStatusLabel(workspaceType, input.after);
+
+  await appendAuditEvent(tx, {
+    action,
+    entityType: "tour",
+    entityId: input.tourId,
+    createdAt: input.createdAt,
+    metadata: {
+      ...(fromPublishStatus !== undefined ? { fromPublishStatus } : {}),
+      ...(toPublishStatus !== undefined ? { toPublishStatus } : {}),
+    },
+  });
 }

@@ -25,6 +25,7 @@ import {
   buildDenaliWorkspaceRuleSet,
 } from "./denali-plugin-adapter";
 import { denaliHydrateTourCloneDraft, prepareDenaliServerCloneCanonical } from "./clone";
+import { denaliWizardHostHooks } from "./wizard/denali-wizard-host-hooks";
 import { denaliRuleSet } from "./rules/denaliRuleModel";
 
 /** Relative to workspace package root — published via package exports. */
@@ -153,6 +154,7 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
         data: prepareDenaliServerCloneCanonical(canonicalData, { activeEquipmentIds }),
       }),
     }),
+    wizardHost: deepFreeze({ ...denaliWizardHostHooks }),
   });
 }
 

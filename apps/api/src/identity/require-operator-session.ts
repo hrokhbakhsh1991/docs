@@ -15,20 +15,29 @@ function readAuthorizationHeader(req: IncomingMessage): string {
   return Array.isArray(raw) ? (raw[0] ?? "") : raw;
 }
 
-function hasOperatorAuthIngress(req: IncomingMessage): boolean {
+function hasPartialHeaderIngress(headers: ReturnType<typeof readRequestAuthHeaders>): boolean {
+  return (
+    (headers.authenticatedTenantId?.trim().length ?? 0) > 0 ||
+    (headers.userId?.trim().length ?? 0) > 0 ||
+    (headers.role?.trim().length ?? 0) > 0 ||
+    (headers.status?.trim().length ?? 0) > 0 ||
+    (headers.workspaceId?.trim().length ?? 0) > 0
+  );
+}
+
+function assertOperatorAuthIngress(req: IncomingMessage): void {
   if (readAuthorizationHeader(req).length > 0) {
-    return true;
+    return;
   }
   if (readSessionCookieToken(req) !== null) {
-    return true;
+    return;
   }
-  try {
-    const headers = readRequestAuthHeaders(req);
+  const headers = readRequestAuthHeaders(req);
+  if (hasPartialHeaderIngress(headers)) {
     assertRequiredAuthHeaders(headers);
-    return true;
-  } catch {
-    return false;
+    return;
   }
+  throw new IdentityRequiredError();
 }
 
 function withSessionCookieBearer(req: IncomingMessage): IncomingMessage {
@@ -48,9 +57,7 @@ function withSessionCookieBearer(req: IncomingMessage): IncomingMessage {
 export async function requireOperatorSession(
   req: IncomingMessage
 ): Promise<TenantAuthContext> {
-  if (!hasOperatorAuthIngress(req)) {
-    throw new IdentityRequiredError();
-  }
+  assertOperatorAuthIngress(req);
 
   const auth = await resolveTenantContextFromRequest(withSessionCookieBearer(req));
   try {

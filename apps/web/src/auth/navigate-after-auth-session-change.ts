@@ -34,11 +34,18 @@ export function navigateAfterAuthSessionChange(
   router.refresh();
 }
 
-export function navigateAfterLogin(router: AppRouter, search: string): void {
-  navigateAfterAuthSessionChange(
-    router,
-    resolveAuthReturnPath(search, DEFAULT_POST_LOGIN_PATH)
-  );
+/**
+ * Post-login: full document navigation so the browser commits the HttpOnly
+ * session cookie before middleware / `(app)/layout` run (avoids soft-nav race).
+ */
+export function navigateAfterLogin(_router: AppRouter, search: string): void {
+  const target = resolveAuthReturnPath(search, DEFAULT_POST_LOGIN_PATH);
+  if (typeof window !== "undefined") {
+    window.location.assign(target);
+    return;
+  }
+  _router.push(target);
+  _router.refresh();
 }
 
 export function navigateAfterLogout(router: AppRouter): void {

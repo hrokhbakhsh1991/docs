@@ -10,11 +10,11 @@ import { buildTenantAuthz } from "@app-tour/workspace-sdk";
 import { createRequestListener } from "../src/app";
 import { UNAUTHORIZED_BEARER_AUTH_REQUIRED_IN_PRODUCTION } from "../src/tenant-kernel/auth-errors";
 import { encodeDevBearerToken } from "../src/tenant-kernel/parse-bearer";
-import { assertWorkspaceOwner } from "../src/urban/require-workspace-owner";
 import {
+  assertWorkspaceOwner,
   URBAN_OWNER_REQUIRED,
   UrbanOwnerRequiredError,
-} from "../src/urban/urban-owner-required.error";
+} from "@app-tour/workspace-urban/http";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 import { canLoadUrbanSettings } from "../../../docs/phase-8/appendices/CANLOAD-URBAN-SETTINGS.contract";

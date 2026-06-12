@@ -46,8 +46,9 @@ describe("denali-catalog-sanitize.spec.ts", () => {
         { userId: "u1", role: "member", isSelectableLeader: true },
         { userId: "u2", role: "member", isSelectableLeader: false },
         { userId: "u3", role: "admin", isSelectableLeader: false },
+        { userId: "u4", role: "member", isSelectableLeader: false, labels: ["admin"] },
       ]),
-      ["u1", "u3"]
+      ["u1", "u3", "u4"]
     );
     assert.deepEqual(filterIdsToAllowedCatalog(["a", "b"], ["b"]), ["b"]);
   });

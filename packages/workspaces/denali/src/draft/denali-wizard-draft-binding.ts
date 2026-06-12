@@ -3,6 +3,11 @@
 export const DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE = "operator.wizard" as const;
 export const DENALI_CREATE_TOUR_DRAFT_KEY = "denali-create" as const;
 
+export function denaliEditTourDraftKey(tourId: string): string {
+  const trimmed = tourId.trim();
+  return trimmed.length > 0 ? `denali-edit:${trimmed}` : "denali-edit:unknown";
+}
+
 export type DenaliWizardDraftMeta = {
   readonly currentStepIndex: number;
   readonly wizardSessionId?: string;

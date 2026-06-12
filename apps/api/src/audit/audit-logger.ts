@@ -9,9 +9,15 @@ import { pseudonymizeAuditActorId } from "./audit-pseudonym";
 
 export const AUDIT_ACTION_TOUR_CREATED = "TOUR_CREATED";
 export const AUDIT_ACTION_TOUR_UPDATED = "TOUR_UPDATED";
+export const AUDIT_ACTION_TOUR_PUBLISHED = "TOUR_PUBLISHED";
+export const AUDIT_ACTION_TOUR_UNPUBLISHED = "TOUR_UNPUBLISHED";
 export const AUDIT_ACTION_TENANT_PROVISIONED = "TENANT_PROVISIONED";
 
-const AUDIT_METADATA_ALLOWLIST = ["workspaceType"] as const;
+const AUDIT_METADATA_ALLOWLIST = [
+  "workspaceType",
+  "fromPublishStatus",
+  "toPublishStatus",
+] as const;
 
 export type AppendAuditEventInput = {
   readonly action: string;

@@ -28,4 +28,12 @@ describe("localized-numeric-input.spec.ts", () => {
     assert.equal(normalizeNumericInputValue("+۹۸۹۱۲", "phone"), "+98912");
     assert.equal(normalizeNumericInputValue("۰۹۱۲۳۴۵۶۷۸۹", "phone"), "09123456789");
   });
+
+  it("WEB-I18N-INPUT-05 phone: Persian display from ASCII state, mixed keyboard input", () => {
+    const ascii = "+989121000001";
+    assert.equal(toLocalizedDigits(ascii, "fa"), "+۹۸۹۱۲۱۰۰۰۰۰۱");
+    assert.equal(normalizeNumericInputValue("+۹۸۹۱۲۱۰۰۰۰۰۱", "phone"), ascii);
+    assert.equal(normalizeNumericInputValue("+989121000001", "phone"), ascii);
+    assert.equal(normalizeNumericInputValue("۰۹۸۹۱۲۱۰۰۰۰۰۱", "phone"), "0989121000001");
+  });
 });

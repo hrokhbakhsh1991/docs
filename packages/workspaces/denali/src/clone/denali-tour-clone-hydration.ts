@@ -101,6 +101,13 @@ function flattenLegacyFormToWizardData(source: Record<string, unknown>): Record<
   return target;
 }
 
+/** Maps starter-shaped ingress (`basics.title`, `details.summary`) to flat Denali canonical paths. */
+export function bridgeStarterShapedDenaliCreateData(
+  source: Record<string, unknown>
+): Record<string, unknown> {
+  return normalizeCanonicalToWizardData(source);
+}
+
 function normalizeCanonicalToWizardData(source: Record<string, unknown>): Record<string, unknown> {
   if ("basicInfo" in source) {
     return flattenLegacyFormToWizardData(source);
@@ -127,6 +134,9 @@ function normalizeCanonicalToWizardData(source: Record<string, unknown>): Record
   ) {
     writePath(cloned, "program.shortDescription", detailsSummary.trim());
   }
+
+  delete cloned.basics;
+  delete cloned.details;
 
   return cloned;
 }
@@ -201,6 +211,19 @@ export function denaliHydrateTourCloneDraft(
   writePath(data, "publishStatus", "draft");
   applyGearCatalogFilter(data, options?.activeEquipmentIds);
   return maybeRemintWizardClonePhotos(data, options);
+}
+
+/**
+ * Maps stored tour canonical `data` into wizard draft for edit flow (Phase 12.2b).
+ * Preserves title, publishStatus, and photo refs — no copy suffix or remint.
+ */
+export function denaliHydrateTourEditDraft(
+  canonicalData: Record<string, unknown>,
+  options?: Pick<DenaliTourCloneHydrationOptions, "activeEquipmentIds">
+): DenaliTourCloneDraft {
+  const data = normalizeCanonicalToWizardData(canonicalData);
+  applyGearCatalogFilter(data, options?.activeEquipmentIds);
+  return { data };
 }
 
 /**

@@ -11,6 +11,7 @@ import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
 
 import { parseStringArray } from "./denali-array-field-utils";
+import { isWizardLeaderCandidate } from "./denali-catalog-sanitize";
 
 export const DENALI_LEADERS_TEST_IDS = {
   leaders: "denali-composite-leader-user-ids",
@@ -36,7 +37,7 @@ export function DenaliLeaderUserIdsField({
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/users?role=all&tab=active", { cache: "no-store" })
+    void fetch("/api/users?role=all&status=active", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`USERS_HTTP_${response.status}`);
@@ -46,13 +47,8 @@ export function DenaliLeaderUserIdsField({
       .then((payload) => {
         if (!cancelled) {
           const items = payload.items ?? [];
-          const leaders = items.filter(
-            (user) =>
-              user.isSelectableLeader === true ||
-              user.role === "admin" ||
-              user.role === "owner"
-          );
-          setUsers(leaders.length > 0 ? leaders : items);
+          const leaders = items.filter((user) => isWizardLeaderCandidate(user));
+          setUsers(leaders);
           setError(null);
         }
       })

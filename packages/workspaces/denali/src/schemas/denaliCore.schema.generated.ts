@@ -73,6 +73,7 @@ export const denaliProgramNatureSchema = z.object({
   longDescription: z.string().trim().optional(),
   shortDescription: z.string().trim().optional(),
   themeIds: z.array(z.string().trim()).default([]),
+  guideLanguageIds: z.array(z.string().trim()).default([]),
 });
 
 export const denaliPhotosSchema = z.object({

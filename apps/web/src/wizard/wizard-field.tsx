@@ -6,23 +6,15 @@ import { wizardFieldPathAttributes } from "@app-tour/wizard-navigation";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { Input } from "@app-tour/ui-primitives/input";
 import { Select, type SelectOption } from "@app-tour/ui-primitives/select";
-import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import React, { type ReactNode } from "react";
 
 import { LocalizedDatePicker } from "@/components/i18n/localized-date-picker";
 import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
-import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { resolveWizardTemplateFieldLabel } from "@/tours/wizard-template-field-labels";
 
-const DenaliCompositeField = dynamic(
-  () => import("./denali/denali-composite-field").then((mod) => mod.DenaliCompositeField),
-  {
-    ssr: false,
-    loading: () => <p data-denali-wizard-composite-loading aria-busy="true" />,
-  }
-);
+import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
 
 /** Kinds wired to ui-primitives subpaths in the Phase 3 shell. */
 export const SUPPORTED_WIZARD_FIELD_KINDS = [
@@ -224,6 +216,8 @@ export function WizardField({
   onDraftChange,
   wizardSessionId,
   workspaceFormProfile,
+  compositeSurfaceId,
+  fieldLabelSurfaceId,
 }: {
   readonly field: RenderFieldPlan;
   readonly value: string;
@@ -234,31 +228,33 @@ export function WizardField({
   readonly onDraftChange?: (draft: TourWizardDraft) => void;
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
+  readonly compositeSurfaceId?: string;
+  readonly fieldLabelSurfaceId?: string;
 }) {
   const tDenali = useTranslations("denali");
   const tField = useTranslations("wizard.field");
+  const labelSurface = resolveWizardCompositeSurface(fieldLabelSurfaceId);
   const label =
-    pluginId === "denali"
-      ? resolveDenaliFieldLabel(tDenali, field.canonicalPath)
+    labelSurface != null
+      ? labelSurface.resolveFieldLabel((key) => tDenali(key), field.canonicalPath)
       : resolveWizardTemplateFieldLabel(field.canonicalPath, pluginId);
 
   if (field.hidden) {
     return null;
   }
 
-  if (field.kind === "composite" && pluginId === "denali" && draft !== undefined && onDraftChange) {
+  if (field.kind === "composite" && draft !== undefined && onDraftChange) {
+    const compositeSurface = resolveWizardCompositeSurface(compositeSurfaceId);
     const compositeId = field.uiHints?.compositeId ?? field.fieldId;
-    if (compositeId.length > 0) {
-      return (
-        <DenaliCompositeField
-          compositeId={compositeId}
-          field={field}
-          draft={draft}
-          onDraftChange={onDraftChange}
-          wizardSessionId={wizardSessionId}
-          workspaceFormProfile={workspaceFormProfile}
-        />
-      );
+    if (compositeSurface != null && compositeId.length > 0) {
+      return compositeSurface.renderCompositeField({
+        compositeId,
+        field,
+        draft,
+        onDraftChange,
+        wizardSessionId,
+        workspaceFormProfile,
+      });
     }
   }
 

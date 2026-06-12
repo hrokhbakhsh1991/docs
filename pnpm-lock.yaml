@@ -206,6 +206,9 @@ importers:
       '@app-tour/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@playwright/test':
+        specifier: ^1.51.1
+        version: 1.60.0
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.4

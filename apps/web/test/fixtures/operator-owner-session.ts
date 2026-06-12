@@ -7,7 +7,8 @@
  */
 import { expect, type Page } from "@playwright/test";
 
-export const OPERATOR_OWNER_MOBILE = "+15550001001";
+/** Sync with apps/api `.env.local` `OPERATOR_OWNER_MOBILE` (Denali dev owner). */
+export const OPERATOR_OWNER_MOBILE = "+989121000001";
 export const OPERATOR_ADMIN_MOBILE = "+15550001002";
 export const OPERATOR_MEMBER_MOBILE = "+15550001003";
 export const OPERATOR_MEMBER_DISPLAY_NAME = "Smoke Member";

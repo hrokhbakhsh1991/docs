@@ -1,6 +1,6 @@
 # لیست موقت — اصلاح استایل ویزارد Denali (فازبندی)
 
-> **وضعیت:** باز — 2026-06-10  
+> **وضعیت:** بسته (style DoD) — 2026-06-11 · WZ-P2-06/07 معوق  
 > **دامنه:** `/tours/new` · Wizard Bridge · `packages/workspaces/denali/theme/wizard-*.css` · `apps/web/src/wizard/**`  
 > **مرجع قرارداد:** [`docs/workspaces/denali/wizard-experience.md`](../docs/workspaces/denali/wizard-experience.md) · DEC-P9-007 · DEC-P9-013  
 > **مرجع تم admin (مشترک):** [`docs/workspaces/denali/admin-experience.md`](../docs/workspaces/denali/admin-experience.md)  
@@ -155,10 +155,10 @@ PW_EXTERNAL_SERVERS=1 PLAYWRIGHT_BASE_URL=http://denali.localhost:3000 \
 
 - [x] فاز ۱ — تقویم light/dark teal؛ CSS مرده حذف
 - [x] فاز ۲ — datetime بدون Tailwind در layout؛ bridge toggle primitive
-- [ ] فاز ۳ — photos/gear/stepper UX
-- [ ] فاز ۴ — RTL back + globals dedup
-- [ ] `wizard-experience.md` به‌روز با data attributes جدید
-- [ ] `denali-wizard-theme.spec.ts` ≥ ۱۰ تست سبز
+- [x] فاز ۳ — photos/gear/stepper UX
+- [x] فاز ۴ — RTL back + globals dedup
+- [x] `wizard-experience.md` به‌روز با data attributes جدید
+- [x] `denali-wizard-theme.spec.ts` ≥ ۱۰ تست سبز (۱۴/۱۴ VPS)
 
 ---
 

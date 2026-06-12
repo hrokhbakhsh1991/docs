@@ -69,6 +69,7 @@ export function buildDenaliFullWizardTemplateSteps(): readonly DenaliWizardTempl
       label: "برنامه",
       enabled: true,
       fields: [
+        field("program.guideLanguageIds"),
         field("program.difficultyLevel", true),
         field("program.hikingHoursApprox", true),
         field("program.hikingGoHours"),

@@ -1,4 +1,4 @@
-import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
+import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 import type { DenaliPhotoRemintPlanEntry, TourCloneHydrator } from "@app-tour/workspace-sdk";
 
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";

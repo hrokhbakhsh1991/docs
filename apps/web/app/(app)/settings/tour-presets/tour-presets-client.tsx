@@ -220,6 +220,12 @@ export function TourPresetsClient({ session }: TourPresetsClientProps) {
                     </p>
                   ) : null}
                 </div>
+                <div className="flex items-center gap-2">
+                  <Link href={`/tours/new?preset=${encodeURIComponent(item.id)}`}>
+                    <Button type="button" variant="outline" size="sm">
+                      {t("useInWizard")}
+                    </Button>
+                  </Link>
                 {canManage ? (
                   <Button
                     variant="ghost"
@@ -231,6 +237,7 @@ export function TourPresetsClient({ session }: TourPresetsClientProps) {
                     <Trash2 className="size-4" />
                   </Button>
                 ) : null}
+                </div>
               </div>
             ))
           )}

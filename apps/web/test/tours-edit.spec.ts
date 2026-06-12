@@ -48,6 +48,15 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
     assert.equal(TOUR_EDIT_TEST_IDS.page, "operator-tour-edit-page");
     assert.equal(TOUR_EDIT_TEST_IDS.title, "operator-tour-edit-title");
     assert.equal(TOUR_EDIT_TEST_IDS.save, "operator-tour-edit-save");
+    assert.equal(TOUR_EDIT_TEST_IDS.publish, "operator-tour-edit-publish");
+    assert.equal(TOUR_EDIT_TEST_IDS.unpublish, "operator-tour-edit-unpublish");
+    assert.equal(TOUR_EDIT_TEST_IDS.cancel, "operator-tour-edit-cancel");
+    assert.equal(TOUR_EDIT_TEST_IDS.draftSync, "operator-tour-edit-draft-sync");
+    assert.equal(TOUR_EDIT_TEST_IDS.flatForm, "operator-tour-edit-flat-form");
+    assert.equal(
+      TOUR_EDIT_TEST_IDS.flatSection("denali_basic"),
+      "operator-tour-edit-section-denali_basic"
+    );
   });
 
   it("WEB-9.3-E02 buildTourTitlePatch uses canonical basics shape", () => {

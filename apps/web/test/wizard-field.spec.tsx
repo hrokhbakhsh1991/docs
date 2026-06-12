@@ -3,7 +3,7 @@ import { before, describe, it } from "node:test";
 import type { AbstractIntlMessages } from "next-intl";
 import { NextIntlClientProvider } from "next-intl";
 import React from "react";
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 
 import type { RenderFieldPlan } from "@app-tour/platform-core";
 
@@ -77,7 +77,7 @@ describe("WizardField renderers", () => {
     assert.match(fallback?.textContent ?? "", /specialized editor/);
   });
 
-  it("renders denali location zones composite when draft binding is provided", () => {
+  it("renders denali location zones composite when draft binding is provided", async () => {
     const field: RenderFieldPlan = {
       fieldId: "denali.location-zones",
       kind: "composite",
@@ -93,10 +93,15 @@ describe("WizardField renderers", () => {
         value=""
         onChange={() => {}}
         pluginId="denali"
+        compositeSurfaceId="denali"
         draft={emptyTourWizardDraft()}
         onDraftChange={() => {}}
       />
     );
-    assert.ok(container.querySelector(`[data-testid="${DENALI_COMPOSITE_TEST_IDS.locationZones}"]`));
+    await waitFor(() => {
+      assert.ok(
+        container.querySelector(`[data-testid="${DENALI_COMPOSITE_TEST_IDS.locationZones}"]`)
+      );
+    });
   });
 });

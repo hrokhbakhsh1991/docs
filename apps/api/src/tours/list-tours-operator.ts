@@ -164,7 +164,7 @@ export async function listToursOperator(
     plugin.tourList?.extractTourListProjection ?? defaultExtractTourListProjection;
 
   const scopedRepo = new ScopedTourRepository(store, ability);
-  const records = await scopedRepo.findMany();
+  const records = await scopedRepo.findMany(undefined);
 
   const projected = records.map((record) =>
     buildTourListProjection(toRowMeta(record), record.canonical, extract)

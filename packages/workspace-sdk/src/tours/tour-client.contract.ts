@@ -14,6 +14,14 @@ export type CreateTourPayload = {
   readonly data?: Readonly<Record<string, unknown>>;
 };
 
+/** Body aligned with PATCH /tours/{id} (Phase 9.3 / 12.2b). */
+export type UpdateTourPayload = {
+  readonly rowVersion: number;
+  readonly schemaVersion?: number;
+  readonly roots?: readonly string[];
+  readonly data?: Readonly<Record<string, unknown>>;
+};
+
 /** Ingress header map for tour routes (TenantKernel). */
 export type TourAuthHeaders = {
   readonly "x-tenant-id": string;
