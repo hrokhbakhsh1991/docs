@@ -41,17 +41,17 @@ phase_9_guard_report: reports/phase-9-gate-2026-06-08.json
 
 ## Subphase ledger (9.0 → 9.8)
 
-| Subphase | Spec                                                                                                                                        | Goal                                               | Primary artifact                                                                                                                                  | Behavioral status                                                                                                       | Notes                                                                               |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **9.0**  | [`subphases/9.0-entry.md`](../subphases/9.0-entry.md)                                                                                       | Entry gate — Phase 8 + MAP §3.5 review             | `reports/phase-9-entry-verified.yaml`                                                                                                             | **VERIFIED_ENTRY**                                                                                                      | GHA #27130859957 · `map_35_reviewed: true` · unblocks 9.1                           |
-| **9.1**  | [`subphases/9.1-identity-session.md`](../subphases/9.1-identity-session.md)                                                                 | Identity + session production                      | [`IDENTITY-PORT-SCOPE.md`](../appendices/IDENTITY-PORT-SCOPE.md) · [`erip/9.1-cop-identity-port.md`](../appendices/erip/9.1-cop-identity-port.md) | **PARTIAL_R1**                                                                                                          | identity 4/4 · web auth 9/9 · BFF session · Prisma 005 deferred |
-| **9.2**  | [`subphases/9.2-admin-shell.md`](../subphases/9.2-admin-shell.md)                                                                           | Admin web shell                                    | [`ADMIN-SHELL-UX.md`](../appendices/ADMIN-SHELL-UX.md) · `apps/web/app/(app)/`                                                                    | **IN_PROGRESS** · **PARTIAL_R3**                                                                                        | OperatorShell R1–R3 · live dashboard widgets · `(app)/finance` migrate · 9.2 closure pending |
-| **9.3**  | [`subphases/9.3-tours-operator.md`](../subphases/9.3-tours-operator.md)                                                                     | Tours + leader + transport + register              | [`TOURS-LIST-UX.md`](../appendices/TOURS-LIST-UX.md) · [`TOURS-EDIT-UX.md`](../appendices/TOURS-EDIT-UX.md) · [`TOURS-WORKSPACE-UX.md`](../appendices/TOURS-WORKSPACE-UX.md) · [`TOURS-REGISTER-UX.md`](../appendices/TOURS-REGISTER-UX.md) | **IN_PROGRESS** · **PARTIAL_R5**                                                                                      | list + edit + workspace + register R4 on trunk · transport data + 9.3 closure pending |
-| **9.4**  | [`subphases/9.4-users-rbac.md`](../subphases/9.4-users-rbac.md) · [`appendices/USERS-DIRECTORY-UX.md`](../appendices/USERS-DIRECTORY-UX.md) | Users · 4-tier team RBAC (DEC-P9-015/019) · owner panel (DEC-P9-018) | identity users API + UI                                                                                                                           | **PARTIAL_R8**                                                                                                          | R0–R8 + membership audit event_kind · enterprise isolation · SMK-P9-USERS E2E green · roadmap promoted · Architect sign-off pending |
-| **9.5**  | [`subphases/9.5-bookings-ops.md`](../subphases/9.5-bookings-ops.md)                                                                         | Registration Command Center                        | [`BOOKINGS-OPS-UX.md`](../appendices/BOOKINGS-OPS-UX.md)                                                                                          | **IN_PROGRESS** · **PARTIAL_R5**                                                                                        | R1–R5 on trunk (manual create UI · leader alias) · tour board R4 optional pre-9.8 |
-| **9.6**  | [`subphases/9.6-settings-templates.md`](../subphases/9.6-settings-templates.md)                                                             | Settings registry + hybrid storage                 | [`SETTINGS-MODULE-REGISTRY.md`](../appendices/SETTINGS-MODULE-REGISTRY.md)                                                                        | **IN_PROGRESS** · **PARTIAL_R8**                                                                                        | R1–R7 + W-track (W1–W7) + SMK-P9-05 · operator smoke **13/13** · Prisma 007 pending |
-| **9.7**  | [`subphases/9.7-finance-denali.md`](../subphases/9.7-finance-denali.md) · [`appendices/FINANCE-OPS-UX.md`](../appendices/FINANCE-OPS-UX.md) | Finance Command Center · prepayment · installments | **PARTIAL_R4** · doc LOCKED                                                                                                                       | R1 ops + receipts · R2 prepayments · R3 schedules (Postgres specs) · R4 ledger CSV + triage ledger-gap KPI · adjust API deferred |
-| **9.8**  | [`subphases/9.8-operator-dod-gate.md`](../subphases/9.8-operator-dod-gate.md)                                                               | Operator Admin DoD                                 | `phase-9.contract.spec.ts`                                                                                                                        | **ABSENT**                                                                                                              | `phase-9:gate` scaffold only                                                        |
+| Subphase | Spec                                                                                                                                        | Goal                                                                 | Primary artifact                                                                                                                                                                                                                            | Behavioral status                                                                                                                | Notes                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **9.0**  | [`subphases/9.0-entry.md`](../subphases/9.0-entry.md)                                                                                       | Entry gate — Phase 8 + MAP §3.5 review                               | `reports/phase-9-entry-verified.yaml`                                                                                                                                                                                                       | **VERIFIED_ENTRY**                                                                                                               | GHA #27130859957 · `map_35_reviewed: true` · unblocks 9.1                                                                           |
+| **9.1**  | [`subphases/9.1-identity-session.md`](../subphases/9.1-identity-session.md)                                                                 | Identity + session production                                        | [`IDENTITY-PORT-SCOPE.md`](../appendices/IDENTITY-PORT-SCOPE.md) · [`erip/9.1-cop-identity-port.md`](../appendices/erip/9.1-cop-identity-port.md)                                                                                           | **PARTIAL_R1**                                                                                                                   | identity 4/4 · web auth 9/9 · BFF session · Prisma 005 deferred                                                                     |
+| **9.2**  | [`subphases/9.2-admin-shell.md`](../subphases/9.2-admin-shell.md)                                                                           | Admin web shell                                                      | [`ADMIN-SHELL-UX.md`](../appendices/ADMIN-SHELL-UX.md) · `apps/web/app/(app)/`                                                                                                                                                              | **IN_PROGRESS** · **PARTIAL_R3**                                                                                                 | OperatorShell R1–R3 · live dashboard widgets · `(app)/finance` migrate · 9.2 closure pending                                        |
+| **9.3**  | [`subphases/9.3-tours-operator.md`](../subphases/9.3-tours-operator.md)                                                                     | Tours + leader + transport + register                                | [`TOURS-LIST-UX.md`](../appendices/TOURS-LIST-UX.md) · [`TOURS-EDIT-UX.md`](../appendices/TOURS-EDIT-UX.md) · [`TOURS-WORKSPACE-UX.md`](../appendices/TOURS-WORKSPACE-UX.md) · [`TOURS-REGISTER-UX.md`](../appendices/TOURS-REGISTER-UX.md) | **IN_PROGRESS** · **PARTIAL_R5**                                                                                                 | list + edit + workspace + register R4 on trunk · transport data + 9.3 closure pending                                               |
+| **9.4**  | [`subphases/9.4-users-rbac.md`](../subphases/9.4-users-rbac.md) · [`appendices/USERS-DIRECTORY-UX.md`](../appendices/USERS-DIRECTORY-UX.md) | Users · 4-tier team RBAC (DEC-P9-015/019) · owner panel (DEC-P9-018) | identity users API + UI                                                                                                                                                                                                                     | **PARTIAL_R8**                                                                                                                   | R0–R8 + membership audit event_kind · enterprise isolation · SMK-P9-USERS E2E green · roadmap promoted · Architect sign-off pending |
+| **9.5**  | [`subphases/9.5-bookings-ops.md`](../subphases/9.5-bookings-ops.md)                                                                         | Registration Command Center                                          | [`BOOKINGS-OPS-UX.md`](../appendices/BOOKINGS-OPS-UX.md)                                                                                                                                                                                    | **IN_PROGRESS** · **PARTIAL_R5**                                                                                                 | R1–R5 on trunk (manual create UI · leader alias) · tour board R4 optional pre-9.8                                                   |
+| **9.6**  | [`subphases/9.6-settings-templates.md`](../subphases/9.6-settings-templates.md)                                                             | Settings registry + hybrid storage                                   | [`SETTINGS-MODULE-REGISTRY.md`](../appendices/SETTINGS-MODULE-REGISTRY.md)                                                                                                                                                                  | **IN_PROGRESS** · **PARTIAL_R8**                                                                                                 | R1–R7 + W-track (W1–W7) + SMK-P9-05 · operator smoke **13/13** · Prisma 007 pending                                                 |
+| **9.7**  | [`subphases/9.7-finance-denali.md`](../subphases/9.7-finance-denali.md) · [`appendices/FINANCE-OPS-UX.md`](../appendices/FINANCE-OPS-UX.md) | Finance Command Center · prepayment · installments                   | **PARTIAL_R4** · doc LOCKED                                                                                                                                                                                                                 | R1 ops + receipts · R2 prepayments · R3 schedules (Postgres specs) · R4 ledger CSV + triage ledger-gap KPI · adjust API deferred |
+| **9.8**  | [`subphases/9.8-operator-dod-gate.md`](../subphases/9.8-operator-dod-gate.md)                                                               | Operator Admin DoD                                                   | `phase-9.contract.spec.ts`                                                                                                                                                                                                                  | **ABSENT**                                                                                                                       | `phase-9:gate` scaffold only                                                                                                        |
 
 ---
 
@@ -70,22 +70,22 @@ phase_9_guard_report: reports/phase-9-gate-2026-06-08.json
 ## Apps status
 
 | Concern                             | Status                       | Subphase |
-| ----------------------------------- | ---------------------------- | -------- | --------------------------------------------------------------------- |
-| OTP + login production              | **PARTIAL_R1**               | 9.1      | API in-memory + BFF login/ability-context chain |
-| Session + membership hydrate        | **PARTIAL_R1**               | 9.1      | middleware · `GET /api/auth/session` · post-login hydrate |
-| `(app)/` admin shell                | **PARTIAL_R3**               | 9.2      | OperatorShell · account menu · branding · live dashboard widgets · `(app)/finance` |
-| Tour list / edit / workspace        | **PARTIAL_R5** (register R4)   | 9.3      | list + edit + workspace shell + `(app)/tours/[id]/register` · transport tables pending |
-| Users directory + invites           | **PARTIAL_R8**               | 9.4      | R0–R8 directory · bulk · audit drawer · SMK-P9-03 + SMK-P9-USERS-01..04 E2E green · Prisma 005 deferred |
-| Bookings approve (smoke)            | **PARTIAL_R6**               | 9.5      | Command Center · SMK-P9-04/06/07 E2E green (memory seed) |
-| Operator smoke E2E (SMK-P9-01..08)  | **VERIFIED_E2E_LOCAL**       | 9.8      | `operator-smoke.spec.ts` **13/13** · `pnpm --filter @apps/web run test:e2e:operator` (~3.3m) |
-| Bookings approve/reject             | **PARTIAL_R5**               | 9.5      | Command Center R1–R3 · bulk approve · `(app)/bookings/new` manual create |
+| ----------------------------------- | ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| OTP + login production              | **PARTIAL_R1**               | 9.1      | API in-memory + BFF login/ability-context chain                                                                    |
+| Session + membership hydrate        | **PARTIAL_R1**               | 9.1      | middleware · `GET /api/auth/session` · post-login hydrate                                                          |
+| `(app)/` admin shell                | **PARTIAL_R3**               | 9.2      | OperatorShell · account menu · branding · live dashboard widgets · `(app)/finance`                                 |
+| Tour list / edit / workspace        | **PARTIAL_R5** (register R4) | 9.3      | list + edit + workspace shell + `(app)/tours/[id]/register` · transport tables pending                             |
+| Users directory + invites           | **PARTIAL_R8**               | 9.4      | R0–R8 directory · bulk · audit drawer · SMK-P9-03 + SMK-P9-USERS-01..04 E2E green · Prisma 005 deferred            |
+| Bookings approve (smoke)            | **PARTIAL_R6**               | 9.5      | Command Center · SMK-P9-04/06/07 E2E green (memory seed)                                                           |
+| Operator smoke E2E (SMK-P9-01..08)  | **VERIFIED_E2E_LOCAL**       | 9.8      | `operator-smoke.spec.ts` **13/13** · `pnpm --filter @apps/web run test:e2e:operator` (~3.3m)                       |
+| Bookings approve/reject             | **PARTIAL_R5**               | 9.5      | Command Center R1–R3 · bulk approve · `(app)/bookings/new` manual create                                           |
 | Settings templates/presets          | **PARTIAL_R8**               | 9.6      | reference_data pilot · **W-track** W1–W9 (render overlay order/required/default) · tour_presets · presets_advanced |
-| Finance UI (Denali)                 | **PARTIAL_R4**               | 9.7      | command center tabs · ledger CSV export · reconciliation triage + ledger-gap KPI |
-| Finance API (Denali)                | **PARTIAL_R3**               | 9.7      | R1 manual pay/receipts/ledger outbox · R2 prepayments · R3 schedules (Postgres) |
-| Dashboard live widgets              | **PARTIAL_R3**               | 9.2      | overview · tours · bookings · registrations · `dashboard-widgets-logic.spec.ts` 5/5 |
+| Finance UI (Denali)                 | **PARTIAL_R4**               | 9.7      | command center tabs · ledger CSV export · reconciliation triage + ledger-gap KPI                                   |
+| Finance API (Denali)                | **PARTIAL_R3**               | 9.7      | R1 manual pay/receipts/ledger outbox · R2 prepayments · R3 schedules (Postgres)                                    |
+| Dashboard live widgets              | **PARTIAL_R3**               | 9.2      | overview · tours · bookings · registrations · `dashboard-widgets-logic.spec.ts` 5/5                                |
 | `phase-9.contract.spec.ts`          | **SCAFFOLD_ON_TRUNK**        | 9.8      |
-| `scripts/guards/phase-9-guard.mjs`  | **VERIFIED_SCAFFOLD**        | 9.8      | `pnpm run phase-9:guard`                                              |
-| Urban owner regression (INV-P8-007) | **N/A until 9.8**            | 9.8      | Must stay green                                                       |
+| `scripts/guards/phase-9-guard.mjs`  | **VERIFIED_SCAFFOLD**        | 9.8      | `pnpm run phase-9:guard`                                                                                           |
+| Urban owner regression (INV-P8-007) | **N/A until 9.8**            | 9.8      | Must stay green                                                                                                    |
 
 ---
 
@@ -145,11 +145,11 @@ Admin gaps previously deferred to Phase 10+ are **in scope for Phase 9**:
 
 ## Doc vs repo
 
-| Metric                          | Doc pack              | Repo behavioral                                      |
-| ------------------------------- | --------------------- | ---------------------------------------------------- |
-| Charter + BOOT-MANIFEST + TRUTH | **VERIFIED_SCAFFOLD** | PEK doc pack only                                    |
-| Subphases VERIFIED_BEHAVIORAL   | 0 / 9                 | Partial slices 9.1–9.7 on trunk                      |
-| Operator smoke E2E              | SMK-P9-01..08 mapped  | **13/13 local** (2026-06-09)                         |
+| Metric                          | Doc pack              | Repo behavioral                                     |
+| ------------------------------- | --------------------- | --------------------------------------------------- |
+| Charter + BOOT-MANIFEST + TRUTH | **VERIFIED_SCAFFOLD** | PEK doc pack only                                   |
+| Subphases VERIFIED_BEHAVIORAL   | 0 / 9                 | Partial slices 9.1–9.7 on trunk                     |
+| Operator smoke E2E              | SMK-P9-01..08 mapped  | **13/13 local** (2026-06-09)                        |
 | Operator admin demo             | **~70% navigable**    | Full DoD blocked on 9.8 gate + remaining 9.3 tables |
 
 **Do not claim Operator Admin DoD from documentation guard alone.** MAP §12 R2 applies.
@@ -172,7 +172,7 @@ Admin gaps previously deferred to Phase 10+ are **in scope for Phase 9**:
 
 **Guard attestation (2026-06-08 sync):** `pnpm run phase-9:guard` → **32/32 PASS**. T-9.1..T-9.8 scaffolds on trunk · P8 charter gates active.
 
-**Hook suspension (2026-06-08):** [`PHASE-9-HOOKS-SUSPENSION.yaml`](../appendices/PHASE-9-HOOKS-SUSPENSION.yaml) `active: true` — Husky pre-commit **no-op** until **9.8**. Gates/tests manual-only during velocity sprint.
+**Hooks (2026-06-12):** Phase 9 suspension marker **removed** — Husky pre-commit runs `pre-commit:fast` again (`pnpm test` + `pre-commit:fast` PASS on main).
 
 ```yaml
 guard_attestation:
@@ -182,15 +182,12 @@ guard_attestation:
   charter_gates: 32
   promote_train_completed: T-9.1..T-9.8
 hooks_suspension:
-  marker: docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml
-  active: true
-  until_subphase: "9.8"
-  detector: scripts/phase-hooks-suspended.sh
-  re_enable_verify:
+  marker: removed (was docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml)
+  active: false
+  re_enabled_at: "2026-06-12"
+  verified:
     - pnpm run pre-commit:fast
-    - pnpm run phase-9:guard
-    - pnpm run test:full
-    - pnpm run phase-9:gate
+    - pnpm test
 ```
 
 ---
@@ -255,16 +252,16 @@ Subphase ledger remains **SPEC_ONLY** for behavioral until prove_with specs exit
 
 > **SoT:** [`SPEC-REGISTRY-OPERATOR.yaml`](../appendices/SPEC-REGISTRY-OPERATOR.yaml) `on_trunk` · promote train **COMPLETE** 2026-06-08
 
-| Subphase | Trunk bundle                                                                            | Status       |
-| -------- | --------------------------------------------------------------------------------------- | ------------ |
-| **9.1**  | identity-otp · identity-session · operator-ability · auth-login-\* · admin-shell-access | **ON_TRUNK** |
-| **9.2**  | dashboard-smoke                                                                         | **ON_TRUNK** |
-| **9.3**  | tours-operator (API/web) · tour-list-projection                                         | **ON_TRUNK** |
+| Subphase | Trunk bundle                                                                             | Status       |
+| -------- | ---------------------------------------------------------------------------------------- | ------------ |
+| **9.1**  | identity-otp · identity-session · operator-ability · auth-login-\* · admin-shell-access  | **ON_TRUNK** |
+| **9.2**  | dashboard-smoke                                                                          | **ON_TRUNK** |
+| **9.3**  | tours-operator (API/web) · tour-list-projection                                          | **ON_TRUNK** |
 | **9.4**  | identity-users · users-directory · users-bulk · users-role-history · users-resend-invite | **ON_TRUNK** |
-| **9.5**  | bookings-ops/create · command-center · approve · SDK+denali manifest                    | **ON_TRUNK** |
-| **9.6**  | settings API (7) · settings web (6) · SDK+denali manifest · tour_presets R6          | **ON_TRUNK** |
-| **9.7**  | finance-ops · finance-page · finance-admin                                              | **ON_TRUNK** |
-| **9.8**  | operator-smoke · phase-9.contract · operator-owner-session fixture                      | **ON_TRUNK** |
+| **9.5**  | bookings-ops/create · command-center · approve · SDK+denali manifest                     | **ON_TRUNK** |
+| **9.6**  | settings API (7) · settings web (6) · SDK+denali manifest · tour_presets R6              | **ON_TRUNK** |
+| **9.7**  | finance-ops · finance-page · finance-admin                                               | **ON_TRUNK** |
+| **9.8**  | operator-smoke · phase-9.contract · operator-owner-session fixture                       | **ON_TRUNK** |
 
 **Guard impact:** All normative prove_with paths exist on trunk — `p9_spec_path_registry` passes. Behavioral closure still **SPEC_ONLY** until scaffolds implement handlers (no `assert.fail`).
 

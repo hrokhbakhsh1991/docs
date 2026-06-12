@@ -1,5 +1,6 @@
 import {
   DEFAULT_WORKSPACE_TYPE_BINDINGS,
+  resolveEffectiveTenantBranding,
   resolveWorkspacePluginIdForType,
   validateTenantTheme,
   type TenantAuthContext,
@@ -7,10 +8,14 @@ import {
   type WorkspaceTypeId,
 } from "@app-tour/workspace-sdk";
 
-import { getPrismaAdmin } from "../db/prisma";
+import { resolveDefaultTenantBranding } from "./workspace-default-tenant-branding";
+
 import { assertWorkspaceBrandingModuleAccess } from "../settings/settings-branding-module-access";
 
-import { resolveRegisteredTenantById } from "./resolve-registered-tenant";
+import {
+  resolveRegisteredTenantById,
+  resolveTenantThemeJsonById,
+} from "./resolve-registered-tenant";
 import { updateTenantRegistryRow } from "./update-tenant-registry-row";
 import {
   assertTenantBrandLogoUploadContentType,
@@ -31,7 +36,10 @@ async function readMergedTheme(tenantId: string): Promise<TenantThemeConfig> {
   if (tenant === null) {
     throw new Error("TENANT_NOT_FOUND");
   }
-  return tenant.theme;
+  const themeJson = await resolveTenantThemeJsonById(tenantId);
+  const raw = themeRecordFromJson(themeJson ?? tenant.theme);
+  validateTenantTheme(raw);
+  return resolveEffectiveTenantBranding(raw, resolveDefaultTenantBranding(tenant.workspaceType));
 }
 
 export type TenantBrandingResponse = {
@@ -60,24 +68,28 @@ export async function patchTenantBranding(
   input: { readonly displayName?: string | null }
 ): Promise<TenantBrandingResponse> {
   await assertWorkspaceBrandingModuleAccess(auth, "mutate");
-  const admin = getPrismaAdmin();
-  const row = await admin.tenant.findUnique({
-    where: { id: auth.tenantId },
-    select: { theme: true, workspaceType: true },
-  });
-  if (row === null) {
+  const tenant = await resolveRegisteredTenantById(auth.tenantId);
+  if (tenant === null) {
     throw new Error("TENANT_NOT_FOUND");
   }
 
-  const raw = themeRecordFromJson(row.theme);
-  if (input.displayName === null || input.displayName.trim().length === 0) {
+  const themeJson = await resolveTenantThemeJsonById(auth.tenantId);
+  const raw = themeRecordFromJson(themeJson ?? tenant.theme);
+  if (input.displayName === null) {
     delete raw.displayName;
   } else if (input.displayName !== undefined) {
-    raw.displayName = input.displayName.trim();
+    const trimmed = input.displayName.trim();
+    if (trimmed.length === 0) {
+      delete raw.displayName;
+    } else {
+      raw.displayName = trimmed;
+    }
   }
 
   validateTenantTheme(raw);
-  await updateTenantRegistryRow(auth.tenantId, { theme: raw });
+  await updateTenantRegistryRow(auth.tenantId, {
+    theme: JSON.parse(JSON.stringify(raw)),
+  });
   return getTenantBranding(auth);
 }
 
@@ -88,12 +100,8 @@ export async function uploadTenantBrandLogo(
 ): Promise<TenantBrandingResponse> {
   await assertWorkspaceBrandingModuleAccess(auth, "mutate");
   assertTenantBrandLogoUploadContentType(contentType);
-  const admin = getPrismaAdmin();
-  const row = await admin.tenant.findUnique({
-    where: { id: auth.tenantId },
-    select: { theme: true },
-  });
-  if (row === null) {
+  const tenant = await resolveRegisteredTenantById(auth.tenantId);
+  if (tenant === null) {
     throw new Error("TENANT_NOT_FOUND");
   }
 
@@ -103,29 +111,31 @@ export async function uploadTenantBrandLogo(
     contentType,
   });
 
-  const raw = themeRecordFromJson(row.theme);
+  const themeJson = await resolveTenantThemeJsonById(auth.tenantId);
+  const raw = themeRecordFromJson(themeJson ?? tenant.theme);
   raw.logo = {
     storageKey,
     contentType: contentType.trim().toLowerCase(),
   };
 
   validateTenantTheme(raw);
-  await updateTenantRegistryRow(auth.tenantId, { theme: raw });
+  await updateTenantRegistryRow(auth.tenantId, {
+    theme: JSON.parse(JSON.stringify(raw)),
+  });
   return getTenantBranding(auth);
 }
 
-export async function removeTenantBrandLogo(auth: TenantAuthContext): Promise<TenantBrandingResponse> {
+export async function removeTenantBrandLogo(
+  auth: TenantAuthContext
+): Promise<TenantBrandingResponse> {
   await assertWorkspaceBrandingModuleAccess(auth, "mutate");
-  const admin = getPrismaAdmin();
-  const row = await admin.tenant.findUnique({
-    where: { id: auth.tenantId },
-    select: { theme: true },
-  });
-  if (row === null) {
+  const tenant = await resolveRegisteredTenantById(auth.tenantId);
+  if (tenant === null) {
     throw new Error("TENANT_NOT_FOUND");
   }
 
-  const raw = themeRecordFromJson(row.theme);
+  const themeJson = await resolveTenantThemeJsonById(auth.tenantId);
+  const raw = themeRecordFromJson(themeJson ?? tenant.theme);
   const existingKey =
     raw.logo !== null &&
     typeof raw.logo === "object" &&
@@ -146,7 +156,9 @@ export async function removeTenantBrandLogo(auth: TenantAuthContext): Promise<Te
   }
 
   validateTenantTheme(raw);
-  await updateTenantRegistryRow(auth.tenantId, { theme: raw });
+  await updateTenantRegistryRow(auth.tenantId, {
+    theme: JSON.parse(JSON.stringify(raw)),
+  });
   return getTenantBranding(auth);
 }
 

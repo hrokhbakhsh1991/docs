@@ -1,8 +1,8 @@
-# Phase 8 genericity baseline — inherited at 8.0 entry; refresh post-8.2 product port
-baseline_sha: 64d9fea
+# Phase 8 genericity baseline — digest-locked after Phase 12 platform wizard host hooks
+baseline_sha: deadbeef0
 inherited_from: reports/phase-7-genericity-baseline.yaml
-platform_core_tree_digest: 537c56c36f2c1549f259a17a0b99a8323fc874bd66ff49035a4ad6cf1c3ab385
-platform_core_file_count: 75
-recorded_at: "2026-06-08T00:00:00Z"
-recorded_by: "phase-8.0 entry Sprint A"
-note: "inherit at 8.0; re-record after 8.2 if platform-core unchanged (expect empty diff)"
+platform_core_tree_digest: 81aa16510d6fcd27894d6c5c6861efc8c7c5bfcd25a8e9ce295dd82e71978ef7
+platform_core_file_count: 77
+recorded_at: "2026-06-12T00:00:00Z"
+recorded_by: "main health gate — phase 12 wizard host hooks"
+note: "phase-8 digest lock when baseline_sha ref absent; prior git baseline was 64d9fea"

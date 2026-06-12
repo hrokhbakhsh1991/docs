@@ -5,7 +5,16 @@
     "rootDir": "./src",
     "noEmit": false,
     "lib": ["ES2022"],
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@app-tour/workspace-denali/plugin": ["../../packages/workspaces/denali/dist/denali.plugin"],
+      "@app-tour/workspace-denali/tours": ["../../packages/workspaces/denali/dist/tours/index"],
+      "@app-tour/workspace-urban/plugin": ["../../packages/workspaces/urban/dist/urban.plugin"],
+      "@app-tour/workspace-urban/http": ["../../packages/workspaces/urban/dist/http/index"],
+      "@app-tour/workspace-urban/tours": ["../../packages/workspaces/urban/dist/tours/index"],
+      "@app-tour/workspace-urban/auth": ["../../packages/workspaces/urban/dist/auth/index"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.spec.ts"]

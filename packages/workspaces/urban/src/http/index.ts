@@ -1,14 +1,25 @@
 export * from "./routes";
 export { assertWorkspaceOwner, type AssertWorkspaceOwnerParams } from "./require-workspace-owner";
-export { urbanTourPatchTouchesPublishFields, URBAN_TOUR_PUBLISH_PROTECTED_PATHS } from "./tour-publish-field-gate";
+export {
+  urbanTourPatchTouchesPublishFields,
+  URBAN_TOUR_PUBLISH_PROTECTED_PATHS,
+} from "./tour-publish-field-gate";
 export { patchThemeUrban, readUrbanFromTheme, type UrbanSettingsUrban } from "./theme-merge";
 export {
   getUrbanSettings,
   patchUrbanSettings,
   type UrbanSettingsGetEnvelope,
 } from "./settings.service";
-export { listUrbanCatalog, getUrbanCatalogTour, type UrbanCatalogListResult } from "./catalog.service";
-export { resolveUrbanPublicAuth, resolveUrbanPublicAuthFromHeaders } from "./resolve-urban-public-auth";
+export {
+  listUrbanCatalog,
+  getUrbanCatalogTour,
+  type UrbanCatalogListResult,
+} from "./catalog.service";
+export {
+  PUBLIC_CATALOG_GUEST_USER_ID,
+  resolveUrbanPublicAuth,
+  resolveUrbanPublicAuthFromHeaders,
+} from "./resolve-urban-public-auth";
 export { createUrbanRegistration } from "./registration.service";
 export {
   getUrbanRegistrationRepository,

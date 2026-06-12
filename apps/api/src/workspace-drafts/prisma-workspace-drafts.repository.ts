@@ -76,9 +76,7 @@ export class PrismaWorkspaceDraftsRepository implements WorkspaceDraftsRepositor
           tenantId: scope.tenantId,
           workspaceId: scope.workspaceId,
           userId: scope.userId,
-          ...(scope.draftNamespace !== undefined
-            ? { draftNamespace: scope.draftNamespace }
-            : {}),
+          ...(scope.draftNamespace !== undefined ? { draftNamespace: scope.draftNamespace } : {}),
         },
         orderBy: { updatedAt: "desc" },
         select: {
@@ -154,7 +152,15 @@ export class PrismaWorkspaceDraftsRepository implements WorkspaceDraftsRepositor
 
   async delete(key: WorkspaceDraftKey): Promise<boolean> {
     const result = await withTenantRls(key.tenantId, (tx) =>
-      tx.workspaceDraftSnapshot.deleteMany({ where: compositeWhere(key) })
+      tx.workspaceDraftSnapshot.deleteMany({
+        where: {
+          tenantId: key.tenantId,
+          workspaceId: key.workspaceId,
+          userId: key.userId,
+          draftNamespace: key.draftNamespace,
+          draftKey: key.draftKey,
+        },
+      })
     );
     return result.count > 0;
   }

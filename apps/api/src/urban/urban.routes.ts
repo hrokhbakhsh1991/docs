@@ -158,7 +158,7 @@ export async function handlePostUrbanRegistration(
     const requestHash = hashIdempotentRequest(
       req.method ?? "POST",
       "/urban/registrations",
-      rawBody
+      typeof rawBody === "string" ? rawBody : JSON.stringify(rawBody)
     );
 
     await runWithHttpRequestContext(

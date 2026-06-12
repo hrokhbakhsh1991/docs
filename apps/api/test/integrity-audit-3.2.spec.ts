@@ -53,6 +53,14 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "tenant/resolve-tenant-feature-flags.ts",
   "tenant/tenant-id-format.ts",
   "tenant/update-tenant-registry-row.ts",
+  "bookings/",
+  "identity/create-identity-repository.ts",
+  "identity/prisma-identity.repository.ts",
+  "settings/create-settings-audit-repository.ts",
+  "settings/create-settings-config-repository.ts",
+  "settings/create-settings-resources-repository.ts",
+  "settings/prisma-settings-config.repository.ts",
+  "workspace-drafts/",
 ];
 
 function listTsFiles(dir: string, out: string[] = []): string[] {

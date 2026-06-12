@@ -1,6 +1,6 @@
 import { assertDenaliWorkspaceOwner } from "@app-tour/workspace-denali/http";
 import { assertWorkspaceOwner } from "@app-tour/workspace-urban/http";
-import type { UrbanOwnerSurface } from "@app-tour/workspace-urban/auth/urban-owner-surface";
+import type { UrbanOwnerSurface } from "@app-tour/workspace-urban/auth";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 export function assertTourPublishFieldOwner(input: {
