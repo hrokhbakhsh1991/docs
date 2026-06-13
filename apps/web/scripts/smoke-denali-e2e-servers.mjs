@@ -17,6 +17,10 @@ const dbAdmin =
   process.env.DATABASE_URL_ADMIN?.trim() || "postgresql://postgres:postgres@127.0.0.1:5434/tour_db";
 const denaliSmokeTenantId =
   process.env.DENALI_SMOKE_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000003";
+const denaliSmokeOwnerUserId =
+  process.env.DENALI_SMOKE_OWNER_USER_ID?.trim() || "00000000-0000-4000-8000-000000000101";
+const denaliSmokeWorkspaceId =
+  process.env.DENALI_SMOKE_WORKSPACE_ID?.trim() || "ws-denali-dev";
 
 function waitForUrl(url, timeoutMs = 180_000) {
   const deadline = Date.now() + timeoutMs;
@@ -73,6 +77,10 @@ seed.on("exit", (code) => {
     ALLOW_DEV_WEB_SESSION: "true",
     ALLOW_DENALI_WEB_PLUGIN: "true",
     TOUR_OPS_DEV_TENANT_ID: denaliSmokeTenantId,
+    TOUR_OPS_DEV_USER_ID: denaliSmokeOwnerUserId,
+    TOUR_OPS_DEV_WORKSPACE_ID: denaliSmokeWorkspaceId,
+    TOUR_OPS_DEV_ACTOR_ROLE: "owner",
+    TOUR_OPS_DEV_MEMBERSHIP_STATUS: "ACTIVE",
     TOUR_OPS_API_URL: "http://127.0.0.1:3001",
     API_INTERNAL_URL: "http://127.0.0.1:3001",
     PORT: "3000",

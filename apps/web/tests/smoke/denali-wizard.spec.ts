@@ -7,6 +7,8 @@ const REPO_ROOT = join(process.cwd(), "../..");
 const GOLDEN_DIR = join(REPO_ROOT, "packages/workspaces/denali/test/fixtures/golden");
 
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
+const DENALI_SMOKE_OWNER_USER_ID =
+  process.env.DENALI_SMOKE_OWNER_USER_ID ?? "00000000-0000-4000-8000-000000000101";
 const API_BASE = process.env.SMOKE_API_URL ?? "http://127.0.0.1:3001";
 
 test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
@@ -79,7 +81,7 @@ test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
         "content-type": "application/json",
         "x-tenant-id": DENALI_SMOKE_TENANT_ID,
         "x-authenticated-tenant-id": DENALI_SMOKE_TENANT_ID,
-        "x-user-id": "denali-smoke-user",
+        "x-user-id": DENALI_SMOKE_OWNER_USER_ID,
         "x-actor-role": "admin",
         "x-membership-status": "ACTIVE",
         "x-workspace-id": "default",

@@ -166,6 +166,7 @@ jobs:
       STORAGE_DRIVER: memory
       URBAN_SMOKE_E2E_SEED: "1"
       AUTH_ALLOW_DEV_BEARER: "true"
+      ALLOW_DEV_WEB_SESSION: "true"
       URBAN_TEST_WORKSPACE_TYPE: urban
       PW_NO_REUSE_SERVER: "1"
 
