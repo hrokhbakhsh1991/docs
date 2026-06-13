@@ -2,6 +2,10 @@ import { assertDenaliFinanceWorkspace } from "@app-tour/workspace-denali";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { getPrismaAdmin } from "../db/prisma";
+import {
+  canResolveDevTenantRegistryFallback,
+  findTenantById,
+} from "../tenant/tenant-registry";
 
 function isAdminOrOwner(context: TenantAuthContext): boolean {
   return context.role === "admin" || context.role === "owner";
@@ -42,6 +46,17 @@ export async function assertFinanceWorkspaceGate(tenantId: string): Promise<{
   readonly workspaceType: string;
   readonly theme: unknown;
 }> {
+  if (canResolveDevTenantRegistryFallback()) {
+    const devTenant = findTenantById(tenantId);
+    if (devTenant !== null) {
+      assertDenaliFinanceWorkspace(devTenant.workspaceType);
+      if (!isFinanceModuleEnabled(devTenant.theme, devTenant.workspaceType)) {
+        throw new Error("FORBIDDEN_FINANCE_MODULE_DISABLED");
+      }
+      return { workspaceType: devTenant.workspaceType, theme: devTenant.theme };
+    }
+  }
+
   const row = await getPrismaAdmin().tenant.findUnique({
     where: { id: tenantId },
     select: { workspaceType: true, theme: true },

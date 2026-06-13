@@ -129,8 +129,9 @@ export function getTenantRateLimiterStore(
   }
   if (sharedStore === undefined) {
     const redisUrl = process.env.REDIS_URL?.trim();
+    const forceMemoryForTestHarness = Boolean(process.env.APPS_API_TEST_TIER?.trim());
     sharedStore =
-      redisUrl !== undefined && redisUrl.length > 0
+      !forceMemoryForTestHarness && redisUrl !== undefined && redisUrl.length > 0
         ? new RedisRateLimiterStore(redisUrl, config, new MemoryRateLimiterStore(config))
         : new MemoryRateLimiterStore(config);
   }

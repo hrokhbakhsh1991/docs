@@ -45,13 +45,8 @@ function withSessionCookieBearer(req: IncomingMessage): IncomingMessage {
   if (cookieToken === null || readAuthorizationHeader(req).length > 0) {
     return req;
   }
-  return {
-    ...req,
-    headers: {
-      ...req.headers,
-      authorization: `Bearer ${cookieToken}`,
-    },
-  };
+  req.headers.authorization = `Bearer ${cookieToken}`;
+  return req;
 }
 
 export async function requireOperatorSession(

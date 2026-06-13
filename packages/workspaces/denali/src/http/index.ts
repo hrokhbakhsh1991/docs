@@ -6,3 +6,10 @@ export {
   DENALI_OWNER_REQUIRED,
 } from "./errors/denali-owner-required.error";
 export type { FinanceServicePort } from "./ports/finance-service.port";
+export type {
+  CreateManualPaymentBody,
+  GenerateScheduleBody,
+  RecordPrepaymentBody,
+  ReviewReceiptBody,
+  SubmitReceiptBody,
+} from "./schemas/finance-request.schemas";

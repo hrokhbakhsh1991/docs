@@ -15,7 +15,7 @@ function toRecord(row: {
     tenantId: row.tenantId,
     configKey: row.configKey,
     configVersion: row.configVersion,
-    payload: row.payload as TenantConfigPayload,
+    payload: row.payload as unknown as TenantConfigPayload,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

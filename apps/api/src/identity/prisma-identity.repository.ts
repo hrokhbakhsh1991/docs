@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import type { ActorRole } from "@app-tour/workspace-sdk";
 import type { Prisma } from "@prisma/client";
 import type { InvitableWorkspaceRole } from "./users.types";
 import { getPrisma } from "../db/prisma";

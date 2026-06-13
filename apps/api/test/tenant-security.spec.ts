@@ -268,7 +268,8 @@ describe("tenant-security (TenantKernel ingress)", () => {
     process.env.AUTH_JWT_ISSUER = "tour-ops";
     process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
     process.env.STORAGE_DRIVER = "memory";
-    const authorization = `Bearer ${await signProductionJwt(tenantJwt)}`;
+    const productionTenantId = "00000000-0000-4000-8000-000000000001";
+    const authorization = `Bearer ${await signProductionJwt(productionTenantId)}`;
 
     const res = await requestJson(listener, {
       method: "POST",
@@ -278,7 +279,7 @@ describe("tenant-security (TenantKernel ingress)", () => {
     });
 
     assert.equal(res.status, 201);
-    assert.equal((res.body as { tenantId: string }).tenantId, tenantJwt);
+    assert.equal((res.body as { tenantId: string }).tenantId, productionTenantId);
   });
 
   it("POST without auth headers or Bearer returns 401", async () => {

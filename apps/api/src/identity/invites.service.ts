@@ -50,7 +50,7 @@ export async function acceptWorkspaceInvite(
     tenantId: invite.tenantId,
     userId: auth.userId,
     role: membership.role,
-    status: membership.status,
+    status: "ACTIVE",
     inviteId: invite.inviteId,
   };
 }

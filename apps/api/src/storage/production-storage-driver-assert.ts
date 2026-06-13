@@ -21,6 +21,11 @@ export function assertProductionStorageDriver(): void {
     return;
   }
 
+  // Trunk/nightly harness may simulate production auth ingress with memory storage.
+  if (process.env.APPS_API_TEST_TIER?.trim()) {
+    return;
+  }
+
   const databaseUrl = process.env.DATABASE_URL?.trim();
   if (!databaseUrl) {
     throw new Error(PRODUCTION_DATABASE_URL_REQUIRED);

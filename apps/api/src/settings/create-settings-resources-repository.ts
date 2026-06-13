@@ -24,7 +24,7 @@ export function getSettingsResourcesRepository(): SettingsResourcesRepository {
       singleton = new InMemorySettingsResourcesRepository();
     }
   }
-  return singleton;
+  return singleton!;
 }
 
 export function resetSettingsResourcesRepositorySingletonForTests(): void {

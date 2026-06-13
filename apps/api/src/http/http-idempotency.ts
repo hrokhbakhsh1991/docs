@@ -327,9 +327,9 @@ export async function runIdempotentHttpMutation<T extends StoredResponse>(
 ): Promise<T> {
   assertIdempotentCreateTenantAllowed(tenantId);
   if (resolveStorageDriver() !== "prisma") {
-    return runWithMemoryIdempotency(tenantId, idempotencyKey, requestHash, execute);
+    return runWithMemoryIdempotency(tenantId, idempotencyKey, requestHash, execute) as Promise<T>;
   }
-  return runWithPrismaIdempotency(tenantId, idempotencyKey, requestHash, execute);
+  return runWithPrismaIdempotency(tenantId, idempotencyKey, requestHash, execute) as Promise<T>;
 }
 
 /**

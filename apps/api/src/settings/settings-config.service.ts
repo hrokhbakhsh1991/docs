@@ -2,7 +2,7 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { getSettingsConfigRepository } from "./create-settings-config-repository";
 import { emitSettingsConfigAudit } from "./settings-audit-emitter";
-import { assertWizardTemplateFieldsKnown, SettingsWizardUnknownFieldError } from "./wizard-template-catalog";
+import { assertWizardTemplateFieldsKnown } from "./wizard-template-catalog";
 import {
   resolveSettingsModuleByConfigKeyForTenant,
   SettingsConfigUnknownError,

@@ -54,6 +54,8 @@ describe("auth environment integrity (P0-03)", () => {
     process.env.AUTH_JWT_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----\nMIIB\n-----END PUBLIC KEY-----";
     process.env.AUTH_JWT_ISSUER = "tour-ops";
     process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
+    delete process.env.OTP_FIXTURE_CODE;
+    delete process.env.AUTH_ALLOW_DEV_STATIC_OTP;
     const { assertAuthEnvironmentIntegrity } = await import("./auth-env.js");
     assert.doesNotThrow(() => assertAuthEnvironmentIntegrity());
   });

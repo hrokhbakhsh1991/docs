@@ -10,6 +10,38 @@ import { fileURLToPath } from "node:url";
 
 const API_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+/** Local dev only — CI/VPS inject DATABASE_URL_ADMIN via env (never rely on gitignored .env). */
+function loadOptionalEnvFile(filename) {
+  const filePath = path.join(API_ROOT, filename);
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+  for (const line of fs.readFileSync(filePath, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith("#")) {
+      continue;
+    }
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) {
+      continue;
+    }
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (process.env[key] === undefined || process.env[key] === "") {
+      process.env[key] = value;
+    }
+  }
+}
+
+loadOptionalEnvFile(".env");
+loadOptionalEnvFile(".env.local");
+
 function resolveMigrateUrl() {
   const admin = process.env.DATABASE_URL_ADMIN?.trim();
   if (admin) return { url: admin, source: "DATABASE_URL_ADMIN" };

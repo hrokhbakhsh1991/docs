@@ -6,6 +6,8 @@ import {
   InMemoryIdentityRepository,
   type IdentityRepository,
 } from "./in-memory-identity.repository";
+
+export type { IdentityRepository } from "./in-memory-identity.repository";
 import { PrismaIdentityRepository } from "./prisma-identity.repository";
 
 let singleton: IdentityRepository | null = null;
@@ -33,8 +35,9 @@ export function getIdentityRepository(): IdentityRepository {
 
 /** Tests only — returns a fresh in-memory repository (sync seed helpers). */
 export function resetIdentityRepositoryForTests(): InMemoryIdentityRepository {
-  singleton = new InMemoryIdentityRepository();
-  return singleton;
+  const repo = new InMemoryIdentityRepository();
+  singleton = repo;
+  return repo;
 }
 
 export function resetIdentityRepositorySingletonForTests(): void {

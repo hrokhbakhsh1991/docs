@@ -518,7 +518,3 @@ export class FinanceRepository {
     });
   }
 }
-
-export function createFinanceRepository(): FinanceRepository {
-  return new FinanceRepository();
-}

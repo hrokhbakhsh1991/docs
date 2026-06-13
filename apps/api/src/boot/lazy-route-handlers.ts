@@ -5,7 +5,7 @@ import type { MapEnrichRouteDeps } from "../routes/api-v2/map-enrich.routes";
 import type { ToursRouteDeps } from "../tours/tours.routes";
 import type { UrbanProductRouteDeps } from "../urban/urban.routes";
 
-type LazyRouteHandlers = {
+export type LazyRouteHandlers = {
   readonly handleInternalMetrics: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
   readonly handleCacheInvalidate: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
   readonly handleTenantConfig: (req: IncomingMessage, res: ServerResponse) => Promise<void>;

@@ -1,8 +1,8 @@
 # Phase 8 genericity baseline — digest-locked after Phase 12 platform wizard host hooks
-baseline_sha: deadbeef0
+baseline_sha: 6761df80910f74e6cf5d6a729ad3570d6748bff4
 inherited_from: reports/phase-7-genericity-baseline.yaml
-platform_core_tree_digest: 81aa16510d6fcd27894d6c5c6861efc8c7c5bfcd25a8e9ce295dd82e71978ef7
+platform_core_tree_digest: 191daea440d0b42de44701226ba3e4c7c0313bda22cab6ccb9b6874dc1e5cc7f
 platform_core_file_count: 77
-recorded_at: "2026-06-12T00:00:00Z"
-recorded_by: "main health gate — phase 12 wizard host hooks"
-note: "phase-8 digest lock when baseline_sha ref absent; prior git baseline was 64d9fea"
+recorded_at: "2026-06-13T00:00:00Z"
+recorded_by: "CI gate repair — platform-core digest after API TS fixes"
+note: "phase-8 digest lock when baseline_sha ref absent; aligns with post-6761df80 platform-core"

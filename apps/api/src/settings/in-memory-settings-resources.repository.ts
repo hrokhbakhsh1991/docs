@@ -157,7 +157,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
   async createTourTheme(
     tenantId: string,
     input: { name: string; slug?: string; isActive?: boolean }
-  ): TourThemeResource {
+  ): Promise<TourThemeResource> {
     const now = new Date().toISOString();
     const existing = await this.listTourThemes(tenantId);
     const baseSlug = slugifyName(input.slug ?? input.name);
@@ -224,7 +224,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
   async createGuideLanguage(
     tenantId: string,
     input: { name: string; slug?: string; isActive?: boolean }
-  ): GuideLanguageResource {
+  ): Promise<GuideLanguageResource> {
     const now = new Date().toISOString();
     const existing = await this.listGuideLanguages(tenantId);
     const baseSlug = slugifyName(input.slug ?? input.name);
@@ -297,7 +297,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
   async createTourPreset(
     tenantId: string,
     input: { name: string; description?: string; themeId?: string; isActive?: boolean }
-  ): TourPresetResource {
+  ): Promise<TourPresetResource> {
     if (input.themeId !== undefined && input.themeId.trim().length > 0) {
       const theme = await this.getTourTheme(tenantId, input.themeId.trim());
       if (theme === null) {
@@ -514,7 +514,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       locationType?: string | null;
       isActive?: boolean;
     }
-  ): RegionResource | DestinationResource {
+  ): Promise<RegionResource | DestinationResource> {
     if (regionStore.has(resourceKey(tenantId, itemId))) {
       return await this.patchRegion(tenantId, itemId, input);
     }

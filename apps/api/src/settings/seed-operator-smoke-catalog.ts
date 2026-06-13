@@ -34,7 +34,9 @@ export const OPERATOR_SMOKE_DESTINATION_ID = OPERATOR_SMOKE_CATALOG_IDS.destinat
 
 const ISO_NOW = "2026-06-11T00:00:00.000Z";
 
-function resolveSmokeCatalogIds(tenantId: string): typeof OPERATOR_SMOKE_CATALOG_IDS {
+function resolveSmokeCatalogIds(
+  tenantId: string
+): typeof OPERATOR_SMOKE_CATALOG_IDS | typeof DENALI_DEV_SMOKE_CATALOG_IDS {
   return tenantId === DENALI_SMOKE_TENANT_ID
     ? DENALI_DEV_SMOKE_CATALOG_IDS
     : OPERATOR_SMOKE_CATALOG_IDS;

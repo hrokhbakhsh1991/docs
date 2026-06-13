@@ -22,6 +22,18 @@ All routes below require:
 
 Urban → **404** `FINANCE_WORKSPACE_UNSUPPORTED`.
 
+### Memory driver (`STORAGE_DRIVER=memory`, no `DATABASE_URL`)
+
+Local dev without Postgres must not return **500** on read-only finance report routes documented in SMK-P9-09.
+
+| Layer | Behavior |
+| ----- | -------- |
+| `assertFinanceWorkspaceGate` | When `canResolveDevTenantRegistryFallback()` is true, resolve `workspaceType` + `theme` from static `DEV_TENANTS` (`findTenantById`) instead of `getPrismaAdmin().tenant.findUnique`. |
+| Finance repository factory | `resolveStorageDriver() === "memory"` → `InMemoryFinanceRepository` (zeros for `getSummary`, empty arrays for list reads). |
+| Prisma path | Unchanged — `FinanceRepository` (Prisma) + RLS via `withTenantRls`. |
+
+Dashboard KPI strip (`GET /finance/reports/summary` BFF) therefore returns `{ pendingManualPayments: 0, pendingReceiptReviews: 0, paidPayments: 0, failedPayments: 0 }` until `DATABASE_URL` is configured.
+
 ---
 
 ## Host bootstrap (trunk)

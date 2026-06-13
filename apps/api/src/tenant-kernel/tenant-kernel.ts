@@ -6,6 +6,7 @@ import { parseRequestAuth } from "../auth/request-context";
 import {
   assertAuthEnvironmentIntegrity,
   isDevBearerAllowed,
+  isDevBearerPermitted,
   isProductionAuthMode,
 } from "./auth-env";
 import {
@@ -35,6 +36,13 @@ export async function resolveTenantContextFromRequest(
   const authorization = readAuthorizationHeader(req);
   if (isProductionAuthMode() && authorization.length === 0) {
     throw new Error(UNAUTHORIZED_BEARER_AUTH_REQUIRED_IN_PRODUCTION);
+  }
+  if (
+    authorization.length > 0 &&
+    isDevBearerAuthorization(authorization) &&
+    !isDevBearerPermitted()
+  ) {
+    throw new Error(UNAUTHORIZED_DEV_BEARER_DISABLED);
   }
   assertAuthEnvironmentIntegrity();
   if (authorization.length > 0) {

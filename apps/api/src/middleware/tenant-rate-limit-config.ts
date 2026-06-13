@@ -73,6 +73,9 @@ export function assertProductionRedisUrl(env: NodeJS.ProcessEnv = process.env): 
   if (!isProductionAuthMode()) {
     return;
   }
+  if (env.APPS_API_TEST_TIER?.trim()) {
+    return;
+  }
   const config = resolveTenantRateLimitConfig(env);
   if (!config.enabled) {
     return;

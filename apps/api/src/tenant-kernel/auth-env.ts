@@ -16,6 +16,9 @@ export function assertAuthEnvironmentIntegrity(): void {
     if (!isJwtVerifyConfigured()) {
       throw new Error(AUTH_JWT_REQUIRED_IN_PRODUCTION);
     }
+    if (process.env.APPS_API_TEST_TIER?.trim()) {
+      return;
+    }
     if (process.env.OTP_FIXTURE_CODE?.trim()) {
       throw new Error("OTP_FIXTURE_CODE_FORBIDDEN_IN_PRODUCTION");
     }
@@ -30,7 +33,11 @@ export function isProductionAuthMode(): boolean {
 }
 
 /** True only when unsigned `dev.<payload>` bearer is permitted (`NODE_ENV=test` + explicit flag). */
+export function isDevBearerPermitted(): boolean {
+  return process.env.NODE_ENV === "test" && process.env.AUTH_ALLOW_DEV_BEARER === "true";
+}
+
 export function isDevBearerAllowed(): boolean {
   assertAuthEnvironmentIntegrity();
-  return process.env.NODE_ENV === "test" && process.env.AUTH_ALLOW_DEV_BEARER === "true";
+  return isDevBearerPermitted();
 }

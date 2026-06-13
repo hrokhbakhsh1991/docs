@@ -374,7 +374,12 @@ function parseRewardsBody(body: unknown): PatchUserRewardsRequest {
     return {};
   }
   const record = body as Record<string, unknown>;
-  const patch: PatchUserRewardsRequest = {};
+  const patch: {
+    permanentDiscountPercentage?: number | null;
+    badges?: string[];
+    isSelectableLeader?: boolean;
+    labels?: string[];
+  } = {};
   if ("permanentDiscountPercentage" in record) {
     const value = record.permanentDiscountPercentage;
     patch.permanentDiscountPercentage =

@@ -204,7 +204,7 @@ export async function handleVerifyOtp(
 export async function handleGetAuthSession(
   req: IncomingMessage,
   res: ServerResponse,
-  repo: IdentityRepository = getIdentityRepository()
+  _repo: IdentityRepository = getIdentityRepository()
 ): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
@@ -223,7 +223,7 @@ export async function handleGetAuthSession(
 export async function handleGetAuthAbilityContext(
   req: IncomingMessage,
   res: ServerResponse,
-  repo: IdentityRepository = getIdentityRepository()
+  _repo: IdentityRepository = getIdentityRepository()
 ): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);

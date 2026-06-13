@@ -21,8 +21,11 @@ import type {
   ReviewReceiptBody,
   SubmitReceiptBody,
 } from "@app-tour/workspace-denali/http";
-import type { FinanceLedgerOutboxRow, FinanceRepository } from "./finance.repository";
-import { createFinanceRepository } from "./finance.repository";
+import type { FinanceLedgerOutboxRow } from "./finance.repository";
+import {
+  getFinanceRepository,
+  type FinanceRepositoryPort,
+} from "./create-finance-repository";
 import {
   buildPaymentScheduleItems,
   getSchedule,
@@ -86,7 +89,7 @@ function mapLedgerEventRow(row: FinanceLedgerOutboxRow): Record<string, unknown>
 }
 
 export class FinanceService {
-  constructor(private readonly repository: FinanceRepository) {}
+  constructor(private readonly repository: FinanceRepositoryPort) {}
 
   private async gate(auth: TenantAuthContext): Promise<void> {
     await assertFinanceWorkspaceGate(auth.tenantId);
@@ -306,7 +309,7 @@ export class FinanceService {
   async listPrepayments(auth: TenantAuthContext, limit: number): Promise<PrepaymentRecord[]> {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
-    return this.repository.listPrepayments(auth.tenantId, limit);
+    return [...(await this.repository.listPrepayments(auth.tenantId, limit))];
   }
 
   async recordPrepayment(auth: TenantAuthContext, body: RecordPrepaymentBody) {
@@ -399,7 +402,7 @@ export class FinanceService {
 }
 
 export function createFinanceService(
-  repository: FinanceRepository = createFinanceRepository()
+  repository: FinanceRepositoryPort = getFinanceRepository()
 ): FinanceService {
   return new FinanceService(repository);
 }

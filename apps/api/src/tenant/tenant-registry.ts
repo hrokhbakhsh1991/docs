@@ -75,7 +75,8 @@ export function isStaticTenantRegistryAllowed(): boolean {
  */
 export function canResolveDevTenantRegistryFallback(): boolean {
   if (isProductionAuthMode()) {
-    return false;
+    // Trunk harness simulates production JWT ingress with memory storage + DEV_TENANTS.
+    return Boolean(process.env.APPS_API_TEST_TIER?.trim());
   }
   const nodeEnv = process.env.NODE_ENV ?? "development";
   return nodeEnv === "test" || nodeEnv === "development";

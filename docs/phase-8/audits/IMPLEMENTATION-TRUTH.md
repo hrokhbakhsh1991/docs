@@ -203,7 +203,7 @@ subphase_8_1:
         PHASE-BOUNDARY-MATRIX.yaml,
       ]
   prove_with_implementation:
-    - packages/workspace-sdk/test/urban-owner-ability.spec.ts
+    - packages/workspaces/urban/test/urban-owner-ability.spec.ts
     - apps/api/test/urban-owner-ability.spec.ts
     - apps/api/test/urban-settings-patch.spec.ts
     - apps/api/test/urban-redis-fallback.spec.ts
@@ -253,7 +253,7 @@ subphase_8_1:
 
 | Trunk path                                                | Status       | WIP source                                                        | Promote train |
 | --------------------------------------------------------- | ------------ | ----------------------------------------------------------------- | ------------- |
-| `packages/workspace-sdk/test/urban-owner-ability.spec.ts` | **ON_TRUNK** | `TEMP/phase8-wip-specs/workspace-sdk/urban-owner-ability.spec.ts` | T-8.1 ✓       |
+| `packages/workspaces/urban/test/urban-owner-ability.spec.ts` | **ON_TRUNK** | `TEMP/phase8-wip-specs/workspace-sdk/urban-owner-ability.spec.ts` | T-8.1 ✓       |
 | `apps/api/test/urban-owner-ability.spec.ts`               | **ON_TRUNK** | `TEMP/phase8-wip-specs/urban-owner-ability.spec.ts`               | T-8.1 ✓       |
 | `apps/api/test/urban-settings-patch.spec.ts`              | **ON_TRUNK** | `TEMP/phase8-wip-specs/urban-settings-patch.spec.ts`              | T-8.1 ✓       |
 | `apps/api/test/urban-redis-fallback.spec.ts`              | **ON_TRUNK** | `TEMP/phase8-wip-specs/urban-redis-fallback.spec.ts`              | T-8.1 ✓       |

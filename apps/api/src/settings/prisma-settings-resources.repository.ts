@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import { withTenantRls } from "../db/with-tenant-rls";
 import { slugifyName, uniqueCatalogSlug } from "./settings-catalog-slug";
 import type {

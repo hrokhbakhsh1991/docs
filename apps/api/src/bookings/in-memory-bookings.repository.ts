@@ -14,7 +14,7 @@ type RepositorySnapshot = {
 
 let bookingsStore = new Map<string, BookingRecord>();
 let outboxStore: BookingOutboxRecord[] = [];
-let devFixtureSeeded = false;
+let _devFixtureSeeded = false;
 
 /** Phase 9.8 smoke — mirrors `operator-bookings-fixture.ts` for memory API boot. */
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
@@ -24,6 +24,9 @@ const OPERATOR_SMOKE_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000103";
 const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101";
 
 function seedOperatorSmokeDevBookingsFixture(): void {
+  if (_devFixtureSeeded) {
+    return;
+  }
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
@@ -81,7 +84,7 @@ function seedOperatorSmokeDevBookingsFixture(): void {
     submittedByUserId: OPERATOR_SMOKE_OWNER_USER_ID,
     approvedAt: null,
   });
-  devFixtureSeeded = true;
+  _devFixtureSeeded = true;
 }
 
 function cloneBooking(record: BookingRecord): BookingRecord {
@@ -103,7 +106,7 @@ function restoreState(snapshot: RepositorySnapshot): void {
 export function resetBookingsStoresForTests(): void {
   bookingsStore = new Map();
   outboxStore = [];
-  devFixtureSeeded = false;
+  _devFixtureSeeded = false;
 }
 
 export type BookingsRepository = {

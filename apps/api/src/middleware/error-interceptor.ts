@@ -127,10 +127,15 @@ export function resolveCorrelationId(): string {
   return requireActiveTraceId();
 }
 
+export type HttpErrorInput = {
+  readonly error: string;
+  readonly code?: string;
+} & Record<string, unknown>;
+
 export function sendHttpError(
   res: ServerResponse,
   status: number,
-  body: { readonly error: string; readonly code?: string },
+  body: HttpErrorInput,
   correlationId: string = resolveCorrelationId(),
   retryAfterSec?: number
 ): void {
@@ -201,6 +206,9 @@ function mapErrorMessageToStatus(message: string): number {
   if (message === HTTP_IDEMPOTENCY_TENANT_MISMATCH) {
     return 403;
   }
+  if (message.startsWith("PRODUCTION_")) return 503;
+  if (message.endsWith("_FORBIDDEN_IN_PRODUCTION")) return 503;
+  if (message === "AUTH_JWT_REQUIRED_IN_PRODUCTION") return 503;
   if (message.startsWith("PROVISIONING_TENANT_ID_REQUIRED")) return 400;
   if (message.startsWith("PROVISIONING_TENANT_ID_INVALID_UUID")) return 400;
   if (message.startsWith("PROVISIONING_TENANT_ID_MISMATCH")) return 400;

@@ -11,10 +11,10 @@ export type IdentityUserRecord = {
 };
 
 export type MembershipRewardsRecord = {
-  readonly permanentDiscountPercentage?: number | null;
-  readonly badges?: readonly string[];
-  readonly isSelectableLeader?: boolean;
-  readonly labels?: readonly string[];
+  permanentDiscountPercentage?: number | null;
+  badges?: string[];
+  isSelectableLeader?: boolean;
+  labels?: string[];
 };
 
 export type IdentityMembershipRecord = {

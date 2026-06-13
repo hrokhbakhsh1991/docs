@@ -192,5 +192,9 @@ export async function resolveTenantThemeJsonById(tenantId: string): Promise<unkn
     return findTenantById(normalized)?.theme ?? null;
   }
 
+  if (canResolveDevTenantRegistryFallback()) {
+    return findTenantById(normalized)?.theme ?? null;
+  }
+
   return null;
 }
