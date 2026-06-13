@@ -115,7 +115,7 @@
     "build": "pnpm run prisma:generate && tsc -p tsconfig.json",
     "guard:workspace-registry": "node ./scripts/guard-workspace-registry-imports.mjs",
     "lint": "tsc --noEmit",
-    "test": "env STORAGE_DRIVER=\"${STORAGE_DRIVER:-memory}\" NODE_ENV=test APPS_API_TEST_TIER=trunk OUTBOX_RELAY_ENABLED=false PROJECTION_AUTO_RECONCILE_ENABLED=false node --expose-gc --import tsx --import ./test/bootstrap-outbox-test-env.ts --test --test-force-exit --test-concurrency=1 \"src/**/*.spec.ts\" \"test/**/*.spec.ts\"",
+    "test": "env STORAGE_DRIVER=\"${STORAGE_DRIVER:-memory}\" NODE_ENV=test APPS_API_TEST_TIER=trunk OUTBOX_RELAY_ENABLED=false PROJECTION_AUTO_RECONCILE_ENABLED=false COLD_START_WORKER_READY_BUDGET_MS=1200 COLD_START_HTTP_BUDGET_MS=1200 node --expose-gc --import tsx --import ./test/bootstrap-outbox-test-env.ts --test --test-force-exit --test-concurrency=1 \"src/**/*.spec.ts\" \"test/**/*.spec.ts\"",
     "test:file": "env STORAGE_DRIVER=memory NODE_ENV=test APPS_API_TEST_TIER=trunk OUTBOX_RELAY_ENABLED=false PROJECTION_AUTO_RECONCILE_ENABLED=false P5_VALIDATION_WORKERS_ENABLED=false TENANT_RATE_LIMIT_ENABLED=false node --import tsx --import ./test/bootstrap-outbox-test-env.ts --test --test-force-exit --test-concurrency=1",
     "test:nightly": "NODE_ENV=test APPS_API_TEST_TIER=nightly node --import tsx --test --test-concurrency=1 \"src/**/*.spec.ts\" \"test/**/*.spec.ts\"",
     "test:nightly:soak": "NODE_ENV=test RUN_SOAK=1 APPS_API_TEST_TIER=nightly node --expose-gc --import tsx --test --test-concurrency=1 test/3-performance/soak-memory-leak.spec.ts",
