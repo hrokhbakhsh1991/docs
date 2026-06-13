@@ -24,6 +24,7 @@ process.env.P5_VALIDATION_WORKERS_ENABLED = "false";
 if (process.env.STORAGE_DRIVER?.trim() === "memory") {
   delete process.env.DATABASE_URL;
   delete process.env.DATABASE_URL_ADMIN;
+  delete process.env.REDIS_URL;
 }
 
 /** Integration suites need headroom for concurrent mixed-tenant specs (DEC-055). */
