@@ -1,8 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-API_URL="${API_HEALTH_URL:-http://127.0.0.1:3001/health}"
-WEB_URL="${WEB_HEALTH_URL:-http://127.0.0.1:3000/}"
+ENV_DIR="${ENV_DIR:-/etc/app-tour}"
+
+read_env_port() {
+  local file="$1" key="$2" default="$3"
+  if [[ -f "$file" ]]; then
+    local val
+    val=$(grep -E "^${key}=" "$file" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)
+    if [[ -n "$val" ]]; then
+      printf '%s' "$val"
+      return
+    fi
+  fi
+  printf '%s' "$default"
+}
+
+api_port=$(read_env_port "${ENV_DIR}/api.env" PORT 3001)
+web_port=$(read_env_port "${ENV_DIR}/web.env" PORT 3000)
+
+API_URL="${API_HEALTH_URL:-http://127.0.0.1:${api_port}/health}"
+WEB_URL="${WEB_HEALTH_URL:-http://127.0.0.1:${web_port}/auth/login}"
 MAX_ATTEMPTS="${HEALTH_CHECK_ATTEMPTS:-30}"
 SLEEP_SEC="${HEALTH_CHECK_SLEEP_SEC:-2}"
 
