@@ -9,7 +9,27 @@ const GOLDEN_DIR = join(REPO_ROOT, "packages/workspaces/denali/test/fixtures/gol
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
 const DENALI_SMOKE_OWNER_USER_ID =
   process.env.DENALI_SMOKE_OWNER_USER_ID ?? "00000000-0000-4000-8000-000000000101";
+const DENALI_SMOKE_OWNER_MOBILE = "+15550001001";
+const DENALI_DEV_OTP = "1234";
 const API_BASE = process.env.SMOKE_API_URL ?? "http://127.0.0.1:3001";
+
+async function loginDenaliSmokeOwner(page: import("@playwright/test").Page): Promise<void> {
+  const otpRes = await page.request.post("/api/auth/request-otp", {
+    data: { phone: DENALI_SMOKE_OWNER_MOBILE },
+  });
+  expect(otpRes.ok()).toBeTruthy();
+  const otpBody = (await otpRes.json()) as { challenge_id?: string };
+  expect(typeof otpBody.challenge_id).toBe("string");
+
+  const loginRes = await page.request.post("/api/auth/login-web-session", {
+    data: {
+      phone: DENALI_SMOKE_OWNER_MOBILE,
+      otp: DENALI_DEV_OTP,
+      challenge_id: otpBody.challenge_id,
+    },
+  });
+  expect(loginRes.ok()).toBeTruthy();
+}
 
 test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
   // smoke-denali-e2e-servers sets TOUR_OPS_DEV_TENANT_ID → denali plugin (Linux-safe; no Host override).
@@ -24,6 +44,8 @@ test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
         consoleErrors.push(msg.text());
       }
     });
+
+    await loginDenaliSmokeOwner(page);
 
     const res = await page.goto("/tours/new", {
       waitUntil: "domcontentloaded",
