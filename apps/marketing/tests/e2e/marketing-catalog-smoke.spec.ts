@@ -4,6 +4,7 @@ import {
   CATALOG_DEV_OTP,
   completeCatalogRegistrationIntake,
   fillCatalogOtp,
+  submitCatalogPhoneForOtp,
 } from "./fixtures/catalog-registration-otp";
 
 const OPERATOR_PUBLISHED_TOUR_TITLE = "North Ridge Trek";
@@ -42,8 +43,8 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
     timeout: 60_000,
   });
 
-  await page.getByLabel(/Mobile|موبایل/).fill(DEV_PHONE);
-  await page.locator('[data-action="send-code"]').click();
+  await page.getByLabel(/Mobile|موبایل/).waitFor({ state: "visible", timeout: 60_000 });
+  await submitCatalogPhoneForOtp(page, DEV_PHONE);
   await expect(page.locator("[data-public-registration-otp]")).toBeVisible({ timeout: 60_000 });
 
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
