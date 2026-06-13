@@ -2,7 +2,6 @@
 
 import React from "react";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
-import { Input } from "@app-tour/ui-primitives/input";
 
 import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import { useTranslations } from "next-intl";

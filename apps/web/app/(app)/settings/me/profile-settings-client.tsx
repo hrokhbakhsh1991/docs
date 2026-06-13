@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";

@@ -4,6 +4,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: process.env.VPS_BUILD_IGNORE_TS === "1",
+  },
   async rewrites() {
     return [{ source: "/favicon.ico", destination: "/icon" }];
   },

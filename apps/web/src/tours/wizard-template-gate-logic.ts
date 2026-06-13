@@ -112,7 +112,7 @@ export function resolveWizardTemplateAllowedPaths(
   }
 
   const paths = new Set<string>();
-  for (const step of payload.steps) {
+  for (const step of payload.steps ?? []) {
     if (!isEnabledStep(step)) {
       continue;
     }

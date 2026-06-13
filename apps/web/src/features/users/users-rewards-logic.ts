@@ -93,7 +93,7 @@ export function buildRewardsPatchPayload(input: {
 }):
   | { readonly ok: true; readonly payload: PatchUserRewardsRequest }
   | { readonly ok: false; readonly error: "discountRange" } {
-  const payload: PatchUserRewardsRequest = {
+  const basePayload: PatchUserRewardsRequest = {
     isSelectableLeader: input.selectableLeader,
     badges: [
       ...buildRewardBadgesFromLoyaltyTier(input.loyaltyTier),
@@ -111,13 +111,20 @@ export function buildRewardsPatchPayload(input: {
     if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) {
       return { ok: false, error: "discountRange" };
     }
-    payload.permanentDiscountPercentage = parsed;
-  } else if (
+    return {
+      ok: true,
+      payload: { ...basePayload, permanentDiscountPercentage: parsed },
+    };
+  }
+  if (
     input.previous.permanentDiscountPercentage !== null &&
     input.previous.permanentDiscountPercentage !== undefined
   ) {
-    payload.permanentDiscountPercentage = null;
+    return {
+      ok: true,
+      payload: { ...basePayload, permanentDiscountPercentage: null },
+    };
   }
 
-  return { ok: true, payload };
+  return { ok: true, payload: basePayload };
 }

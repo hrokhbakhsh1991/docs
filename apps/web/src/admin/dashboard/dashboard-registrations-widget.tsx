@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
@@ -14,7 +14,6 @@ import {
   selectRegistrationQueueChips,
 } from "@/admin/dashboard/dashboard-widgets-logic";
 import { resolveDashboardErrorMessage } from "@/i18n/resolve-dashboard-error-message";
-import type { AppLocale } from "@/i18n/routing";
 
 export function DashboardRegistrationsWidget() {
   const t = useTranslations("dashboard");

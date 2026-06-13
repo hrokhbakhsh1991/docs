@@ -18,7 +18,12 @@ const LEADER_ELIGIBILITY_REWARD_LABELS = new Set([
 ]);
 
 export function isWizardLeaderCandidate(
-  user: Pick<UsersDirectoryRow, "userId" | "role" | "isSelectableLeader" | "labels">
+  user: Pick<UsersDirectoryRow, "userId" | "role" | "isSelectableLeader" | "labels"> | {
+    readonly userId: string;
+    readonly role: string;
+    readonly isSelectableLeader?: boolean;
+    readonly labels?: readonly string[];
+  }
 ): boolean {
   if (user.isSelectableLeader === true || user.role === "admin" || user.role === "owner") {
     return true;
@@ -32,7 +37,7 @@ export function isWizardLeaderCandidate(
 }
 
 export function readActiveThemeIds(
-  items: readonly Pick<TourThemeResource, "id" | "isActive">[]
+  items: ReadonlyArray<{ id: string; isActive?: boolean }>
 ): readonly string[] {
   return items
     .filter((item) => item.isActive !== false)
@@ -41,7 +46,7 @@ export function readActiveThemeIds(
 }
 
 export function readActiveGuideLanguageIds(
-  items: readonly Pick<GuideLanguageResource, "id" | "isActive">[]
+  items: ReadonlyArray<{ id: string; isActive?: boolean }>
 ): readonly string[] {
   return items
     .filter((item) => item.isActive !== false)
@@ -59,7 +64,12 @@ export function readActiveDestinationIds(
 }
 
 export function readSelectableLeaderUserIds(
-  items: readonly Pick<UsersDirectoryRow, "userId" | "role" | "isSelectableLeader" | "labels">[]
+  items: ReadonlyArray<{
+    userId: string;
+    role: string;
+    isSelectableLeader?: boolean;
+    labels?: readonly string[];
+  }>
 ): readonly string[] {
   return items
     .filter((user) => isWizardLeaderCandidate(user))

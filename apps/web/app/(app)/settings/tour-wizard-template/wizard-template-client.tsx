@@ -1,7 +1,6 @@
 "use client";
 
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { LayoutTemplate, Save } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";

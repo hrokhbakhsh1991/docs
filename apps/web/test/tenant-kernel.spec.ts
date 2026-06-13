@@ -32,12 +32,18 @@ afterEach(() => {
 });
 
 describe("isDevWebSessionAllowed", () => {
-  it("requires development + ALLOW_DEV_WEB_SESSION", () => {
+  it("requires ALLOW_DEV_WEB_SESSION (including under next start production)", () => {
     env.NODE_ENV = "development";
     env.ALLOW_DEV_WEB_SESSION = "true";
     assert.equal(isDevWebSessionAllowed(), true);
 
+    env.NODE_ENV = "production";
+    assert.equal(isDevWebSessionAllowed(), true);
+
     env.ALLOW_DEV_WEB_SESSION = "false";
+    assert.equal(isDevWebSessionAllowed(), false);
+
+    delete env.ALLOW_DEV_WEB_SESSION;
     assert.equal(isDevWebSessionAllowed(), false);
   });
 });

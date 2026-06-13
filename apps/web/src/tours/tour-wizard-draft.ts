@@ -20,7 +20,7 @@ export function tourWizardDraftToPayload(draft: TourWizardDraft) {
       : {
           ...basics,
           ...(basics.featured !== undefined
-            ? { featured: basics.featured === true || basics.featured === "true" }
+            ? { featured: basics.featured === "true" }
             : {}),
         };
 

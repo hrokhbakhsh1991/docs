@@ -1,5 +1,5 @@
 import type { AppLocale } from "@/i18n/routing";
-import { formatLocalizedNumber, INTL_LOCALE, toLocalizedDigits } from "@/i18n/format-localized-digits";
+import { formatLocalizedNumber, INTL_LOCALE } from "@/i18n/format-localized-digits";
 
 import type { TourListProjection } from "./operator-tours-types";
 

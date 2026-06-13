@@ -1,6 +1,6 @@
 "use client";
 
-import { Select, type SelectOption } from "@app-tour/ui-primitives/select";
+import { Select } from "@app-tour/ui-primitives/select";
 import { useTranslations } from "next-intl";
 
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";

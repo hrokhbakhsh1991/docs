@@ -40,7 +40,7 @@ run_as_app "
   corepack prepare pnpm@9.12.0 --activate
   node -v | grep -q '^v24\\.' || { echo 'Node 24 required'; exit 1; }
   pnpm install --frozen-lockfile
-  pnpm run build:operator-vps
+  bash scripts/vps-deploy/build-operator-vps.sh
   set -a
   source '$ENV_DIR/api.env'
   set +a

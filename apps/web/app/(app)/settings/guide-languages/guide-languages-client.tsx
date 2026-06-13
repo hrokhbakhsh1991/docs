@@ -1,7 +1,6 @@
 "use client";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";

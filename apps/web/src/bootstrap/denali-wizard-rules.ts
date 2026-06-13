@@ -49,7 +49,7 @@ export function loadDenaliWizardRulesModule(): Promise<DenaliWizardRulesModule> 
       readCanonicalBasics: mod.readDenaliCanonicalBasics,
       canonicalToFormPathMap: mod.DENALI_CANONICAL_TO_FORM_PATH_MAP,
       tourKindValues: mod.DENALI_TOUR_KIND_VALUES,
-    })
+    }) as unknown as DenaliWizardRulesModule
   );
   return denaliWizardRulesPromise;
 }

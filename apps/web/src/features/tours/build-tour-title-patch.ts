@@ -49,6 +49,6 @@ export function buildTourTitlePatch(
   };
 }
 
-export function canMutateTour(role: "owner" | "admin" | "member"): boolean {
+export function canMutateTour(role: "owner" | "admin" | "member" | "viewer"): boolean {
   return role === "owner" || role === "admin";
 }

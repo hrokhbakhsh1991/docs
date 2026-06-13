@@ -9,7 +9,6 @@ import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
 
 import { datetimeLocalInputToIso, isoToDatetimeLocalInput } from "./denali-datetime-utils";
-import { DENALI_DATETIME_TEST_IDS } from "./denali-datetime-test-ids";
 
 export { DENALI_DATETIME_TEST_IDS } from "./denali-datetime-test-ids";
 
