@@ -36,20 +36,42 @@ import { createCanonicalDocument } from "@app-tour/workspace-sdk/canonical";
 import { createStarterWorkspacePlugin, workspaceThemePresets } from "@app-tour/workspace-sdk";
 
 import { buildLargeWorkspacePlugin, COLD_START_CANONICAL_INPUT } from "./cold-start-fixtures";
+import { isTrunkTestTier } from "../test-tier";
 
-const COLD_START_ENGINE_BUDGET_MS = Number.parseInt(
-  process.env.COLD_START_ENGINE_BUDGET_MS ?? process.env.COLD_START_BUDGET_MS ?? "1000",
-  10
+/** Trunk CI runs tsx dev paths — DEC-061 waives strict 500ms readiness on shared GHA runners. */
+const TRUNK_COLD_START_HTTP_BUDGET_MS = 2000;
+const TRUNK_COLD_START_WORKER_READY_BUDGET_MS = 2000;
+
+function resolveColdStartBudget(
+  primary: string | undefined,
+  legacy: string | undefined,
+  trunkDefault: number,
+  strictDefault: number
+): number {
+  const raw = primary ?? legacy;
+  if (raw?.trim()) {
+    return Number.parseInt(raw, 10);
+  }
+  return isTrunkTestTier() ? trunkDefault : strictDefault;
+}
+
+const COLD_START_ENGINE_BUDGET_MS = resolveColdStartBudget(
+  process.env.COLD_START_ENGINE_BUDGET_MS,
+  process.env.COLD_START_BUDGET_MS,
+  1000,
+  1000
 );
-const COLD_START_HTTP_BUDGET_MS = Number.parseInt(
-  process.env.COLD_START_HTTP_BUDGET_MS ?? process.env.COLD_START_READINESS_BUDGET_MS ?? "500",
-  10
+const COLD_START_HTTP_BUDGET_MS = resolveColdStartBudget(
+  process.env.COLD_START_HTTP_BUDGET_MS,
+  process.env.COLD_START_READINESS_BUDGET_MS,
+  TRUNK_COLD_START_HTTP_BUDGET_MS,
+  500
 );
-const COLD_START_WORKER_READY_BUDGET_MS = Number.parseInt(
-  process.env.COLD_START_WORKER_READY_BUDGET_MS ??
-    process.env.COLD_START_READINESS_BUDGET_MS ??
-    "500",
-  10
+const COLD_START_WORKER_READY_BUDGET_MS = resolveColdStartBudget(
+  process.env.COLD_START_WORKER_READY_BUDGET_MS,
+  process.env.COLD_START_READINESS_BUDGET_MS,
+  TRUNK_COLD_START_WORKER_READY_BUDGET_MS,
+  500
 );
 const COLD_START_CELL_COUNT = Number.parseInt(process.env.COLD_START_CELL_COUNT ?? "256", 10);
 const SKIP_SUBPROCESS = process.env.COLD_START_SKIP_SUBPROCESS === "1";

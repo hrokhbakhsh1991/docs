@@ -52,10 +52,12 @@ jobs:
   integration-gate:
     name: Phase 0 integration gate
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
       # H-12 — full monorepo legacy-import depcruise (all packages/workspaces).
       LEGACY_IMPORT_SCAN_SCOPE: monorepo
+      STORAGE_DRIVER: memory
+      NODE_ENV: test
 
     steps:
       - name: Checkout

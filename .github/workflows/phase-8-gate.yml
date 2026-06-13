@@ -192,7 +192,11 @@ jobs:
         run: pnpm run build
 
       - name: Install Playwright Chromium
-        run: pnpm --filter @apps/web run test:e2e:urban:install
+        run: pnpm --filter @apps/web exec playwright install --with-deps chromium
+
+      - name: Configure dev smoke hosts
+        run: |
+          grep -q 'urban.localhost' /etc/hosts || echo '127.0.0.1 urban.localhost urban-owner.localhost urban-member.localhost shop.urban.localhost' | sudo tee -a /etc/hosts
 
       - name: Urban E2E integrity (SMK-P8-01..04)
         run: pnpm --filter @apps/web run test:e2e:urban

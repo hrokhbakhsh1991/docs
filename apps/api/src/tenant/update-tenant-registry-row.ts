@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import { getPrismaAdmin } from "../db/prisma";
 import { isPersistedTenantUuid } from "./tenant-id-format";
-import { findTenantById, isStaticTenantRegistryAllowed } from "./tenant-registry";
+import { findTenantById } from "./tenant-registry";
 import { invalidateTenantRegistryCache, setCachedTenantThemeById } from "./tenant-registry-cache";
 
 /**
@@ -14,11 +14,7 @@ export async function updateTenantRegistryRow(
   data: Prisma.TenantUpdateInput
 ): Promise<{ readonly id: string; readonly subdomain: string }> {
   const normalized = tenantId.trim().toLowerCase();
-  if (
-    !process.env.DATABASE_URL?.trim() ||
-    !isPersistedTenantUuid(normalized) ||
-    isStaticTenantRegistryAllowed()
-  ) {
+  if (!process.env.DATABASE_URL?.trim() || !isPersistedTenantUuid(normalized)) {
     if (data.theme !== undefined) {
       setCachedTenantThemeById(normalized, data.theme);
     }

@@ -26,7 +26,11 @@ const seed = spawnSync(
     "-e",
     `
     import { ProvisioningService } from "./src/internal/provisioning.service.ts";
+    import { seedDenaliOperatorIdentity } from "./scripts/seed-denali-operator-identity.ts";
+    import { seedDenaliFullWizardTemplate } from "./src/settings/seed-denali-full-wizard-template.ts";
     const row = await new ProvisioningService().seedDenaliSmokeTenant();
+    await seedDenaliOperatorIdentity();
+    await seedDenaliFullWizardTemplate(row.id);
     console.log(JSON.stringify(row));
   `,
   ],

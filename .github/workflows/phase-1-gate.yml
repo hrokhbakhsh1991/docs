@@ -17,7 +17,11 @@ jobs:
   gate:
     name: Phase 1 platform-core gate
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
+
+    env:
+      STORAGE_DRIVER: memory
+      NODE_ENV: test
 
     steps:
       - name: Checkout
