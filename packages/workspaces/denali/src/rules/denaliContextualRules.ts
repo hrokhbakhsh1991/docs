@@ -16,17 +16,16 @@ import {
   DENALI_FIELD_DEFINITIONS,
   type DenaliFieldDefinition,
 } from "../field-registry/denaliFieldRegistryData";
-import type { DenaliContextualRule } from "../field-registry/DenaliFieldRegistry.types";
+import type { DenaliContextualRule } from "../field-registry/denali-contextual-rule.types";
 import { getWorkspaceUiCapabilityFlags } from "../types/legacy/shared-contracts";
 import type { TourFormProfile } from "../types/legacy/repo-types";
 
 import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
 import { isGroupInsuranceVisible, isPeakExperienceVisible } from "./predicates";
 
-export type DenaliUIContextOptions = {
-  mainThemeFormProfile?: TourFormProfile;
-  workspaceFormProfile?: TourFormProfile;
-};
+import type { DenaliUIContextOptions } from "./denali-ui-context-options";
+
+export type { DenaliUIContextOptions } from "./denali-ui-context-options";
 
 const DEFINITION_BY_CANONICAL_PATH = new Map<string, DenaliFieldDefinition>(
   DENALI_FIELD_DEFINITIONS.map((def) => [def.canonicalPath, def])

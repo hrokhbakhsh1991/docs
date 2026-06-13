@@ -5,7 +5,7 @@
 
 import type { DenaliCreateWizardStepId } from "../layout/stepIds";
 
-import type { DenaliUIContextOptions } from "./denaliContextualRules";
+import type { DenaliUIContextOptions } from "./denali-ui-context-options";
 
 export const DENALI_RULE_MODEL_CATEGORIES = ["mountain", "nature", "desert", "event"] as const;
 

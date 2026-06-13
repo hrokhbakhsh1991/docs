@@ -1,7 +1,5 @@
-import {
-  isTenantBrandLogoContentType,
-  type TenantBrandLogoContentType,
-} from "./tenant-brand-logo";
+import type { TenantBrandLogoContentType } from "./tenant-brand-logo-types";
+import { isTenantBrandLogoContentType } from "./tenant-brand-logo-types";
 
 /** Sniff raster format from magic bytes (upload hardening). */
 export function sniffTenantBrandLogoContentType(body: Buffer): TenantBrandLogoContentType | null {

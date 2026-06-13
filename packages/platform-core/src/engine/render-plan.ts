@@ -94,7 +94,7 @@ function toRenderFieldPlan(
 function buildFieldUiHints(
   entry: WorkspaceFieldRegistryEntry
 ): Readonly<Record<string, string>> | undefined {
-  if (entry.kind === "composite" || entry.id.startsWith("denali.")) {
+  if (entry.kind === "composite") {
     return { compositeId: entry.id };
   }
   if (entry.kind === "enum" && entry.enumOptions && entry.enumOptions.length > 0) {

@@ -75,7 +75,7 @@ function filterValidationToStep(
   };
 }
 
-/** Platform-default wizard host hooks for non-Denali workspaces (Phase 12.8). */
+/** Platform-default wizard host hooks for workspaces without custom host hooks (Phase 12.8). */
 export function createPlatformWizardHostHooks(
   options: PlatformWizardHostHooksOptions
 ): WorkspaceWizardHostHooks {

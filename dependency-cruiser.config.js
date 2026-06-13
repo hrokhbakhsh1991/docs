@@ -171,7 +171,7 @@ module.exports = {
       severity: "error",
       from: { path: "^apps/web" },
       to: {
-        path: "^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|workspaces/starter|workspaces/denali|workspaces/urban|config)",
+        path: "^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|draft-engine|wizard-navigation|workspaces/starter|workspaces/denali|workspaces/urban|config)",
       },
     },
     {
@@ -196,7 +196,7 @@ module.exports = {
       from: {
         path: "^apps/api/src",
         pathNot:
-          "(workspace-plugin-registry\\.generated|\\.spec\\.ts$|denali-finance|urban|canonical|internal/provisioning)",
+          "(workspace-plugin-registry\\.generated|workspace-tour-write-bindings\\.generated|\\.spec\\.ts$|denali-finance|urban|canonical|internal/provisioning|settings/|tours/|tenant/tenant-branding-storage)",
       },
       to: {
         path: "^packages/workspaces/(starter|denali|urban)(/plugin)?(/|$)",

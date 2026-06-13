@@ -2,6 +2,11 @@
 
 import type { DenaliRuleModelCategory } from "../rules/denaliRuleModel.types";
 
+export type {
+  DenaliContextualRule,
+  DenaliWorkspaceCapabilityFlag,
+} from "./denali-contextual-rule.types";
+
 export type DenaliFieldKind = "standard" | "asyncAsset";
 
 export type DenaliFieldWireProjection =
@@ -12,26 +17,6 @@ export type DenaliFieldWireProjection =
   | { kind: "tripDetails"; field: "transport" | "photos" }
   | { kind: "createTourDto"; field: string }
   | { kind: "derived"; description: string };
-
-/**
- * Runtime visibility/required rule evaluated from registry (replaces denaliUIAdapter if-chains).
- * Transport kinds delegate to `@repo/types/denali` — do not duplicate mode logic here.
- */
-/** Workspace UI flags from {@link getCapabilitiesForProfile} (not tour category × duration matrix). */
-export type DenaliWorkspaceCapabilityFlag = "canDefineCustomServices";
-
-export type DenaliContextualRule =
-  | { readonly kind: "whenTruthy"; readonly watchCanonical: string }
-  | { readonly kind: "capability"; readonly flag: DenaliWorkspaceCapabilityFlag }
-  | { readonly kind: "transportOrganizedCostVisible" }
-  | { readonly kind: "transportPersonalCarOptionVisible" }
-  | { readonly kind: "transportDongVisible" }
-  | { readonly kind: "transportAdminCapacityVisible" }
-  | { readonly kind: "transportTrainSeatVisible" }
-  | { readonly kind: "multiDayEndDateTimeRequired" }
-  | { readonly kind: "singleDayTourOnly" }
-  | { readonly kind: "peakExperienceVisible" }
-  | { readonly kind: "groupInsuranceVisible" };
 
 /** Structural normalize rules (ghost purge, enforce, defaults) — evaluated in denaliInvariantEngine.ts. */
 export type DenaliStructuralInvariant =

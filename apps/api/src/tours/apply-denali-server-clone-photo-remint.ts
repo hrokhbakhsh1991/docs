@@ -7,11 +7,23 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import type { TourRecord } from "../db/tour-record";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
-import type { ToursService } from "./tours.service";
+
+type TourUpdateInput = {
+  readonly rowVersion: number;
+  readonly data: Record<string, unknown>;
+};
+
+type TourUpdater = {
+  updateTour(
+    auth: TenantAuthContext,
+    tourId: string,
+    input: TourUpdateInput
+  ): Promise<TourRecord>;
+};
 
 /** Post-create MinIO copy + canonical patch for server tour clone (DEC-P11-011). */
 export async function applyDenaliServerClonePhotoRemint(
-  toursService: ToursService,
+  toursService: TourUpdater,
   auth: TenantAuthContext,
   record: TourRecord
 ): Promise<TourRecord> {

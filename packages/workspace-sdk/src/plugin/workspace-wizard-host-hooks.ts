@@ -10,6 +10,14 @@ export type WizardDraftValidationResult = {
   readonly violations: readonly WizardDraftValidationViolation[];
 };
 
+/** Plugin slice passed into host hooks — avoids contract ↔ hooks import cycle. */
+export type WorkspaceWizardHostPluginContext = {
+  readonly wizard: import("./workspace-wizard-surface").WorkspaceWizardSurface;
+  readonly fieldRegistry: import("../registry/field-registry").WorkspaceFieldRegistry;
+  readonly ruleSet: import("../registry/rule-set").WorkspaceRuleSet;
+  readonly validation: import("./workspace-validation").WorkspaceValidationHooks;
+};
+
 /**
  * Optional workspace wizard host hooks (Phase 12.0 — DEC-P12-001).
  * Platform web host reads these from WorkspacePlugin instead of hardcoding plugin ids.
@@ -68,7 +76,7 @@ export type WorkspaceWizardHostHooks = {
   }) => number;
   /** Synchronous canonical validation — host uses for step Next + review summary. */
   readonly validateDraftSync?: (input: {
-    readonly plugin: import("./workspace-plugin.contract").WorkspacePlugin;
+    readonly plugin: WorkspaceWizardHostPluginContext;
     readonly draft: Readonly<Record<string, unknown>>;
     readonly rulesModule: unknown;
     readonly tenantId: string;
@@ -80,7 +88,7 @@ export type WorkspaceWizardHostHooks = {
   }) => WizardDraftValidationResult;
   /** Rule-engine publish matrix — host calls before publish transition (Phase 12.6). */
   readonly validatePublishReadiness?: (input: {
-    readonly plugin: import("./workspace-plugin.contract").WorkspacePlugin;
+    readonly plugin: WorkspaceWizardHostPluginContext;
     readonly draft: Readonly<Record<string, unknown>>;
     readonly rulesModule: unknown;
     readonly evalContext: unknown;
@@ -102,7 +110,7 @@ export type WorkspaceWizardHostHooks = {
   }) => Readonly<Record<string, unknown>>;
   /** Project draft → CreateTourPayload before POST /tours. */
   readonly prepareSubmitPayload?: (input: {
-    readonly plugin: import("./workspace-plugin.contract").WorkspacePlugin;
+    readonly plugin: WorkspaceWizardHostPluginContext;
     readonly draft: Readonly<Record<string, unknown>>;
     readonly rulesModule: unknown;
     readonly evalContext: unknown;
@@ -122,7 +130,7 @@ export type WorkspaceWizardHostHooks = {
   }) => Readonly<Record<string, unknown>>;
   /** Project draft → UpdateTourPayload before PATCH /tours/{id}. */
   readonly prepareTourPatchPayload?: (input: {
-    readonly plugin: import("./workspace-plugin.contract").WorkspacePlugin;
+    readonly plugin: WorkspaceWizardHostPluginContext;
     readonly draft: Readonly<Record<string, unknown>>;
     readonly rulesModule: unknown;
     readonly evalContext: unknown;
