@@ -18,7 +18,6 @@ import {
 } from "../field-registry/denaliFieldRegistryData";
 import type { DenaliContextualRule } from "../field-registry/denali-contextual-rule.types";
 import { getWorkspaceUiCapabilityFlags } from "../types/legacy/shared-contracts";
-import type { TourFormProfile } from "../types/legacy/repo-types";
 
 import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
 import { isGroupInsuranceVisible, isPeakExperienceVisible } from "./predicates";

@@ -87,9 +87,10 @@ export function createPlatformWizardHostHooks(
     wizardMessageNamespace: "wizard",
     resolveMatrixDimensionsFromDraft: () => dimensions,
     validateDraftSync: (input) => {
-      const engine = PlatformWizardEngine.create(stripWizardHostForEngine(input.plugin));
+      const plugin = input.plugin as WorkspacePlugin;
+      const engine = PlatformWizardEngine.create(stripWizardHostForEngine(plugin));
       engine.init();
-      const document = draftToCanonicalDocument(input.draft, input.plugin);
+      const document = draftToCanonicalDocument(input.draft, plugin);
       const result = engine.validateCanonical(document, {
         tenantId: input.tenantId,
         dimensions,

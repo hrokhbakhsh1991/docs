@@ -4,7 +4,7 @@ import {
   type RenderStepPlan,
   type ValidationResult,
 } from "@app-tour/platform-core";
-import { createCanonicalDocument, type WorkspacePlugin } from "@app-tour/workspace-sdk";
+import { createCanonicalDocument, type WorkspacePlugin, type WorkspaceWizardHostPluginContext } from "@app-tour/workspace-sdk";
 
 import { projectDenaliWizardFormToCanonicalIngressData } from "../acl/migrateDenaliCanonical";
 import { collectDenaliPublishReadinessRuleIssues } from "../validation/publishReadinessRules";
@@ -362,7 +362,7 @@ export function validateDenaliPublishReadinessSyncFromHostInput(input: {
 }
 
 export function validateDenaliWizardDraftSyncFromHostInput(input: {
-  readonly plugin: WorkspacePlugin;
+  readonly plugin: WorkspaceWizardHostPluginContext;
   readonly draft: Readonly<Record<string, unknown>>;
   readonly rulesModule: unknown;
   readonly tenantId: string;
@@ -372,8 +372,9 @@ export function validateDenaliWizardDraftSyncFromHostInput(input: {
     readonly visibleSteps?: readonly unknown[];
   };
 }): ValidationResult {
+  const plugin = input.plugin as WorkspacePlugin;
   return validateDenaliWizardDraftSync(
-    input.plugin,
+    plugin,
     input.draft,
     input.rulesModule as DenaliWizardRulesModule | null,
     input.tenantId,

@@ -1,4 +1,4 @@
-import { createCanonicalDocument, type CreateTourPayload, type UpdateTourPayload, type WorkspacePlugin } from "@app-tour/workspace-sdk";
+import { createCanonicalDocument, type CreateTourPayload, type UpdateTourPayload, type WorkspacePlugin, type WorkspaceWizardHostPluginContext } from "@app-tour/workspace-sdk";
 
 import {
   DENALI_CURRENT_CANONICAL_SCHEMA_VERSION,
@@ -110,15 +110,16 @@ export function prepareDenaliTourPatchPayload(
 }
 
 export function prepareDenaliTourCreatePayloadFromHostInput(input: {
-  readonly plugin: WorkspacePlugin;
+  readonly plugin: WorkspaceWizardHostPluginContext;
   readonly draft: Readonly<Record<string, unknown>>;
   readonly rulesModule: unknown;
   readonly evalContext: unknown;
   readonly catalog?: PrepareDenaliTourCreatePayloadOptions;
 }): CreateTourPayload {
+  const plugin = input.plugin as WorkspacePlugin;
   return prepareDenaliTourCreatePayload(
     input.draft,
-    input.plugin,
+    plugin,
     input.rulesModule as DenaliWizardRulesModule,
     input.evalContext as DenaliWizardRuleEvalContext,
     input.catalog
@@ -165,7 +166,7 @@ export function denaliHydrateTourEditDraftFromHostInput(input: {
 }
 
 export function prepareDenaliTourPatchPayloadFromHostInput(input: {
-  readonly plugin: WorkspacePlugin;
+  readonly plugin: WorkspaceWizardHostPluginContext;
   readonly draft: Readonly<Record<string, unknown>>;
   readonly rulesModule: unknown;
   readonly evalContext: unknown;
@@ -173,9 +174,10 @@ export function prepareDenaliTourPatchPayloadFromHostInput(input: {
   readonly patchIntent?: DenaliTourPatchIntent;
   readonly catalog?: PrepareDenaliTourCreatePayloadOptions;
 }): UpdateTourPayload {
+  const plugin = input.plugin as WorkspacePlugin;
   return prepareDenaliTourPatchPayload(
     input.draft,
-    input.plugin,
+    plugin,
     input.rulesModule as DenaliWizardRulesModule,
     input.evalContext as DenaliWizardRuleEvalContext,
     input.rowVersion,

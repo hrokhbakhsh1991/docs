@@ -63,6 +63,7 @@ export {
   type WorkspaceWizardMode,
   type WorkspaceWizardSurface,
   type WorkspaceWizardHostHooks,
+  type WorkspaceWizardHostPluginContext,
   type WizardDraftValidationResult,
   type WizardDraftValidationViolation,
   type WorkspaceSdkValidationError,
