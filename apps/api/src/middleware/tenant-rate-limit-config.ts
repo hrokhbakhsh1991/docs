@@ -1,4 +1,5 @@
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
+import { isProductionAuthHarnessActive } from "../test/production-auth-harness";
 import type { TenantConnectionTier } from "../tenant/resolve-tenant-connection-tier";
 
 import type { TenantRateLimitConfig, TenantRateLimitTier } from "./tenant-rate-limiter-types";
@@ -73,7 +74,7 @@ export function assertProductionRedisUrl(env: NodeJS.ProcessEnv = process.env): 
   if (!isProductionAuthMode()) {
     return;
   }
-  if (env.APPS_API_TEST_TIER?.trim()) {
+  if (isProductionAuthHarnessActive(env)) {
     return;
   }
   const config = resolveTenantRateLimitConfig(env);

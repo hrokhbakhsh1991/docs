@@ -1,6 +1,7 @@
 import type { TenantThemeConfig } from "@app-tour/workspace-sdk";
 
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
+import { isProductionAuthHarnessActive } from "../test/production-auth-harness";
 import { logger } from "../observability/logger";
 
 export const PRODUCTION_STATIC_TENANT_REGISTRY_FORBIDDEN =
@@ -75,8 +76,7 @@ export function isStaticTenantRegistryAllowed(): boolean {
  */
 export function canResolveDevTenantRegistryFallback(): boolean {
   if (isProductionAuthMode()) {
-    // Trunk harness simulates production JWT ingress with memory storage + DEV_TENANTS.
-    return Boolean(process.env.APPS_API_TEST_TIER?.trim());
+    return isProductionAuthHarnessActive();
   }
   const nodeEnv = process.env.NODE_ENV ?? "development";
   return nodeEnv === "test" || nodeEnv === "development";

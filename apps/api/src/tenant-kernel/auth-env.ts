@@ -3,6 +3,7 @@ import {
   AUTH_JWT_REQUIRED_IN_PRODUCTION,
 } from "./auth-errors";
 import { isJwtVerifyConfigured } from "./jwt-env";
+import { isProductionAuthHarnessActive } from "../test/production-auth-harness";
 
 /**
  * Fail closed: unsigned dev bearer must never be enabled outside automated test runs.
@@ -16,7 +17,7 @@ export function assertAuthEnvironmentIntegrity(): void {
     if (!isJwtVerifyConfigured()) {
       throw new Error(AUTH_JWT_REQUIRED_IN_PRODUCTION);
     }
-    if (process.env.APPS_API_TEST_TIER?.trim()) {
+    if (isProductionAuthHarnessActive()) {
       return;
     }
     if (process.env.OTP_FIXTURE_CODE?.trim()) {

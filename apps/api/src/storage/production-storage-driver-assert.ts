@@ -1,4 +1,5 @@
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
+import { isProductionAuthHarnessActive } from "../test/production-auth-harness";
 
 export type TourStorageDriver = "memory" | "prisma";
 
@@ -21,8 +22,8 @@ export function assertProductionStorageDriver(): void {
     return;
   }
 
-  // Trunk/nightly harness may simulate production auth ingress with memory storage.
-  if (process.env.APPS_API_TEST_TIER?.trim()) {
+  // Specs that simulate production JWT ingress use APPS_API_PRODUCTION_AUTH_HARNESS=1.
+  if (isProductionAuthHarnessActive()) {
     return;
   }
 

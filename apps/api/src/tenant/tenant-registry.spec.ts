@@ -67,8 +67,9 @@ describe("tenant-registry static gate (DI-REG-01 / DEC-039)", () => {
     assert.equal(canResolveDevTenantRegistryFallback(), true);
     process.env.NODE_ENV = "production";
     delete process.env.APPS_API_TEST_TIER;
+    delete process.env.APPS_API_PRODUCTION_AUTH_HARNESS;
     assert.equal(canResolveDevTenantRegistryFallback(), false);
-    process.env.APPS_API_TEST_TIER = "trunk";
+    process.env.APPS_API_PRODUCTION_AUTH_HARNESS = "1";
     assert.equal(canResolveDevTenantRegistryFallback(), true);
   });
 });

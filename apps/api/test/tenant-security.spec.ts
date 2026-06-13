@@ -17,7 +17,7 @@ const ENV_SNAPSHOT = {
   AUTH_JWT_PUBLIC_KEY: process.env.AUTH_JWT_PUBLIC_KEY,
   AUTH_JWT_ISSUER: process.env.AUTH_JWT_ISSUER,
   AUTH_JWT_AUDIENCE: process.env.AUTH_JWT_AUDIENCE,
-  STORAGE_DRIVER: process.env.STORAGE_DRIVER,
+  APPS_API_PRODUCTION_AUTH_HARNESS: process.env.APPS_API_PRODUCTION_AUTH_HARNESS,
 };
 
 let jwtPublicKeyPem = "";
@@ -60,6 +60,7 @@ afterEach(() => {
   process.env.AUTH_JWT_PUBLIC_KEY = ENV_SNAPSHOT.AUTH_JWT_PUBLIC_KEY;
   process.env.AUTH_JWT_ISSUER = ENV_SNAPSHOT.AUTH_JWT_ISSUER;
   process.env.AUTH_JWT_AUDIENCE = ENV_SNAPSHOT.AUTH_JWT_AUDIENCE;
+  process.env.APPS_API_PRODUCTION_AUTH_HARNESS = ENV_SNAPSHOT.APPS_API_PRODUCTION_AUTH_HARNESS;
   process.env.STORAGE_DRIVER = "memory";
 });
 
@@ -188,6 +189,7 @@ describe("tenant-security (TenantKernel ingress)", () => {
 
   it("POST with dev Bearer returns 401 when AUTH_ALLOW_DEV_BEARER is disabled", async () => {
     process.env.NODE_ENV = "production";
+    process.env.APPS_API_PRODUCTION_AUTH_HARNESS = "1";
     delete process.env.AUTH_ALLOW_DEV_BEARER;
     const authorization = encodeDevBearerToken({
       userId: "attacker",
@@ -263,6 +265,7 @@ describe("tenant-security (TenantKernel ingress)", () => {
 
   it("POST with RS256 JWT in production mode returns 201 (F-17)", async () => {
     process.env.NODE_ENV = "production";
+    process.env.APPS_API_PRODUCTION_AUTH_HARNESS = "1";
     delete process.env.AUTH_ALLOW_DEV_BEARER;
     process.env.AUTH_JWT_PUBLIC_KEY = jwtPublicKeyPem;
     process.env.AUTH_JWT_ISSUER = "tour-ops";
