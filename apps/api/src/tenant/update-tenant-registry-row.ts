@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import { getPrismaAdmin } from "../db/prisma";
 import { isPersistedTenantUuid } from "./tenant-id-format";
-import { findTenantById } from "./tenant-registry";
+import { findTenantById, isStaticTenantRegistryAllowed } from "./tenant-registry";
 import { invalidateTenantRegistryCache, setCachedTenantThemeById } from "./tenant-registry-cache";
 
 /**
@@ -18,9 +18,12 @@ export async function updateTenantRegistryRow(
     if (data.theme !== undefined) {
       setCachedTenantThemeById(normalized, data.theme);
     }
-    const devTenant = findTenantById(normalized);
-    invalidateTenantRegistryCache(normalized, devTenant?.subdomain);
-    return { id: normalized, subdomain: devTenant?.subdomain ?? normalized };
+    if (isStaticTenantRegistryAllowed()) {
+      const devTenant = findTenantById(normalized);
+      invalidateTenantRegistryCache(normalized, devTenant?.subdomain);
+      return { id: normalized, subdomain: devTenant?.subdomain ?? normalized };
+    }
+    throw new Error(`updateTenantRegistryRow: DATABASE_URL required for tenant ${normalized}`);
   }
 
   const admin = getPrismaAdmin();
