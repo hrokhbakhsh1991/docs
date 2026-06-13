@@ -17,6 +17,7 @@ const joseEntry = path.join(repoRoot, "apps/api/node_modules/jose/dist/webapi/in
 const operatorTenantId =
   process.env.TOUR_OPS_DEV_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000014";
 const operatorSmokeOwnerUserId = "00000000-0000-4000-8000-000000000101";
+const operatorSmokeOwnerMobile = "+989121000001";
 const operatorSmokeSeedTourTitle = "North Ridge Trek";
 
 /** Cursor shell may expose Node 22 on PATH ahead of nvm — pin repo .nvmrc for spawned pnpm/next. */
@@ -225,14 +226,19 @@ try {
     ...jwtEnv,
     NODE_ENV: "test",
     STORAGE_DRIVER: "memory",
+    DATABASE_URL: "",
+    DATABASE_URL_ADMIN: "",
+    REDIS_URL: "",
     AUTH_ALLOW_DEV_STATIC_OTP: "true",
     OPERATOR_SMOKE_E2E_SEED: "1",
+    OPERATOR_OWNER_MOBILE: operatorSmokeOwnerMobile,
+    OPERATOR_OWNER_USER_ID: operatorSmokeOwnerUserId,
     P5_VALIDATION_WORKERS_ENABLED: "false",
     PORT: "3001",
     TENANT_RATE_LIMIT_ENABLED: "false",
+    PROJECTION_AUTO_RECONCILE_ENABLED: "false",
+    PRIORITY_LOAD_SHED_ENABLED: "false",
   });
-  delete apiEnv.DATABASE_URL;
-  delete apiEnv.DATABASE_URL_ADMIN;
   delete apiEnv.OPERATOR_SMOKE_WORKSPACE_TYPE;
 
   const webEnv = withRepoNodePath({
@@ -247,8 +253,8 @@ try {
   });
 
   if (!apiListening) {
-    api = spawn("pnpm", ["--filter", "@apps/api", "run", "dev"], {
-      cwd: repoRoot,
+    api = spawn("node", ["--import", "tsx", "src/main.ts"], {
+      cwd: path.join(repoRoot, "apps/api"),
       env: apiEnv,
       stdio: "inherit",
     });

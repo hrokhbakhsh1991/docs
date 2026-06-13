@@ -31,8 +31,15 @@ test.describe("denali-itinerary-wizard.spec.ts", () => {
     await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary)).toBeVisible({
       timeout: 60_000,
     });
-    await expect(page.getByDisplayValue("Summit push")).toBeVisible();
-    await expect(page.getByDisplayValue("Ridge ascent")).toBeVisible();
+    const itinerary = page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary);
+    await expect(itinerary.getByRole("textbox", { name: "عنوان روز" }).first()).toHaveValue("Summit push");
+    await expect(
+      itinerary
+        .getByTestId(DENALI_ITINERARY_TEST_IDS.day(1))
+        .locator("article")
+        .first()
+        .getByRole("textbox", { name: "عنوان" })
+    ).toHaveValue("Ridge ascent");
   });
 
   test("SMK-P9-ITIN-02 new tour wizard shows itinerary on program step for multi-day", async ({
@@ -43,17 +50,10 @@ test.describe("denali-itinerary-wizard.spec.ts", () => {
     await loginOperatorOwner(page);
     await publishOperatorWizardTemplate(page, { fullTemplate: true });
 
-    await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("[data-workspace-wizard]")).toBeVisible({ timeout: 120_000 });
     await resetOperatorWizardToBasic(page);
 
     await fillDenaliMultiDayWizardBasics(page, tourTitle);
     await advanceWizardToStep(page, "denali_photos");
-
-    await page
-      .locator('[data-canonical-path="program.shortDescription"] input, [data-canonical-path="program.shortDescription"] textarea')
-      .first()
-      .fill("Smoke itinerary E2E");
     await advanceWizardToStep(page, "denali_program");
 
     await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary)).toBeVisible({

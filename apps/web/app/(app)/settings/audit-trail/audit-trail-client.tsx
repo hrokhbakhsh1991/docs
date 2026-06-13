@@ -1,11 +1,9 @@
 "use client";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AppLocale } from "@/i18n/routing";
