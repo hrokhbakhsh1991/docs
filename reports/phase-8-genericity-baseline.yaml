@@ -1,8 +1,8 @@
-# Phase 8 genericity baseline — digest-locked after platform-core render-plan genericity fix
-baseline_sha: b32c7c72b07d31c3b072b91407af31d7d85ca14b
+# Phase 8 genericity baseline — digest-locked after WorkspaceWizardHostPluginContext build fix
+baseline_sha: 4d3dad2ed3b7f42d3f75fc99196bd1c5ab0af346
 inherited_from: reports/phase-7-genericity-baseline.yaml
-platform_core_tree_digest: b9e67ff41c5ccd94a2bcd71301e6bf748ad8389562511f3526da2ec9554a204e
+platform_core_tree_digest: 1196a6f8ef25cd4f93a512d52c4cfc9435073afb93aac9b6de4d508e945c7729
 platform_core_file_count: 77
 recorded_at: "2026-06-13T00:00:00Z"
-recorded_by: "CI gate repair — platform-core digest after architecture guard fixes"
-note: "phase-8 digest lock when baseline_sha ref absent; aligns with post-b32c7c72 platform-core"
+recorded_by: "CI gate repair — platform-core digest after host plugin context typing"
+note: "phase-8 digest lock when baseline_sha ref absent; aligns with post-4d3dad2e platform-core"
