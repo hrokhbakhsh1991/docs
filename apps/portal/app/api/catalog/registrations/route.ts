@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { buildCatalogRegistrationHeaders } from "@/catalog/build-catalog-registration-headers.server";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+import { buildUrbanIntakeIdempotencyKey } from "@/urban/build-urban-intake-idempotency-key";
 
 type RegistrationBody = {
   readonly tourId?: unknown;
@@ -66,9 +67,21 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   if (bootstrap.pluginId === "urban") {
+    const catalogHeaders = await buildCatalogRegistrationHeaders(bootstrap.tenantId);
+    const actorUserId = catalogHeaders["x-user-id"] ?? "anonymous";
+    const idempotencyKey = buildUrbanIntakeIdempotencyKey({
+      tenantId: bootstrap.tenantId,
+      tourId,
+      email,
+      actorUserId,
+    });
     const res = await fetch(`${apiBase}/urban/registrations`, {
       method: "POST",
-      headers,
+      headers: {
+        ...catalogHeaders,
+        "content-type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
       body: JSON.stringify({
         tourId,
         contact: {

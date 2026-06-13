@@ -166,7 +166,9 @@ jobs:
       STORAGE_DRIVER: memory
       URBAN_SMOKE_E2E_SEED: "1"
       AUTH_ALLOW_DEV_BEARER: "true"
+      AUTH_ALLOW_DEV_STATIC_OTP: "true"
       ALLOW_DEV_WEB_SESSION: "true"
+      SESSION_COOKIE_SECURE: "false"
       URBAN_TEST_WORKSPACE_TYPE: urban
       PW_NO_REUSE_SERVER: "1"
 
@@ -188,9 +190,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Build workspace (smoke servers)
-        run: pnpm run build
 
       - name: Install Playwright Chromium
         run: pnpm --filter @apps/web exec playwright install --with-deps chromium

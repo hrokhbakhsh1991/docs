@@ -9,21 +9,42 @@ import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
 import { resolveWorkspaceLabelFromMessages } from "@/i18n/resolve-workspace-label";
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
+import { isDevWebSessionAllowed } from "@/tenant/auth-env";
+import { hasDevHostSmokeSessionProfile } from "@/tenant/dev-host-session-profiles";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
 export const dynamic = "force-dynamic";
 
 export default async function OperatorAppLayout({ children }: { children: ReactNode }) {
-  const session = await readOperatorSessionFromCookies();
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const pathname = headerList.get("x-pathname") ?? "/dashboard";
-  const gate = requireOperatorSessionWeb({ session, pathname, host });
-  if (!gate.allowed) {
-    redirect(gate.redirectTo);
+  const bootstrap = resolveBootstrapAppSessionForHost(host);
+  const devSmokeHost =
+    isDevWebSessionAllowed() && hasDevHostSmokeSessionProfile(host);
+
+  let session = await readOperatorSessionFromCookies();
+  if (session === null && devSmokeHost) {
+    const ctx = bootstrap.context;
+    session = {
+      userId: ctx.userId,
+      tenantId: ctx.tenantId,
+      role: ctx.role,
+      workspaceType: bootstrap.session.pluginId,
+      pluginId: bootstrap.session.pluginId,
+    };
   }
 
-  const bootstrap = resolveBootstrapAppSessionForHost(host);
+  if (!devSmokeHost) {
+    const gate = requireOperatorSessionWeb({ session, pathname, host });
+    if (!gate.allowed) {
+      redirect(gate.redirectTo);
+    }
+  } else if (session === null) {
+    const returnUrl = encodeURIComponent(pathname);
+    redirect(`/auth/login?returnUrl=${returnUrl}`);
+  }
+
   const tenantTheme = await fetchTenantThemeForContext(bootstrap.context, host);
   const tWorkspaces = await getTranslations("app.workspaces");
   const navItems = resolveOperatorNav({

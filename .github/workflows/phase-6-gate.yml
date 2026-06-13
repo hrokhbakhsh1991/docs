@@ -201,9 +201,6 @@ jobs:
       - name: Prisma migrate deploy
         run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
-      - name: Build workspace (smoke servers)
-        run: pnpm run build && pnpm --filter @apps/web run build
-
       - name: Install Playwright Chromium
         run: pnpm --filter @apps/web exec playwright install --with-deps chromium
 

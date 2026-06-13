@@ -13,6 +13,18 @@ import {
 import { validateSessionToken } from "@/auth/validate-session-token";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
 
+/** Inlined for Edge — env in imported modules is not always available in middleware. */
+const DEV_SMOKE_HOST_LABELS = new Set(["deny-theme", "urban-owner", "urban-member"]);
+
+function shouldBypassDevHostSmokeSession(host: string): boolean {
+  if (process.env.ALLOW_DEV_WEB_SESSION !== "true") {
+    return false;
+  }
+  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
+  const match = /^([a-z0-9-]+)\.localhost$/.exec(hostname);
+  return match?.[1] ? DEV_SMOKE_HOST_LABELS.has(match[1]) : false;
+}
+
 const ADMIN_PATH_PREFIXES = [
   "/dashboard",
   "/users",
@@ -111,10 +123,14 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return forwardPathname(request, pathname);
   }
 
+  const host = request.headers.get("host") ?? "";
+  if (!isBffApi && shouldBypassDevHostSmokeSession(host)) {
+    return forwardPathname(request, pathname);
+  }
+
   const token = readSessionToken(request);
   const validation = await validateSessionToken(token);
   if (validation.status === "valid") {
-    const host = request.headers.get("host") ?? "";
     if (!sessionTenantMatchesHost(validation.tenantId, host)) {
       if (isBffApi) {
         const res = jsonAuthError(

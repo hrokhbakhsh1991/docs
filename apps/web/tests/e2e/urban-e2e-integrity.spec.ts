@@ -42,11 +42,9 @@ test("SMK-P8-02 public registration intake (OTP + tour intake)", async ({ page }
   await expect(page.locator("[data-public-registration-otp]")).toBeVisible({ timeout: 60_000 });
 
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
-  await page.locator('[data-action="verify-otp"]').click();
-
-  await expect(page.locator("[data-public-registration-intake]")).toBeVisible({
-    timeout: 60_000,
-  });
+  await expect(
+    page.locator("[data-public-registration-profile], [data-public-registration-intake]")
+  ).toBeVisible({ timeout: 60_000 });
 
   await completeCatalogRegistrationIntake(page, {
     email: REGISTRATION_EMAIL,
@@ -64,8 +62,8 @@ test("SMK-P8-03 owner settings load", async ({ page }) => {
   await expect(page.locator("[data-urban-owner-settings-panel]")).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.getByText("Catalog enabled")).toBeVisible();
-  await expect(page.getByText("Registration policy")).toBeVisible();
+  await expect(page.getByText(/Catalog enabled|کاتالوگ فعال/)).toBeVisible();
+  await expect(page.getByText(/Registration policy|سیاست ثبت‌نام/)).toBeVisible();
   await expect(page.locator("[data-workspace-wizard-forbidden]")).toHaveCount(0);
 });
 

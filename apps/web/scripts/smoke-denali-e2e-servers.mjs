@@ -3,10 +3,16 @@
  * Starts API + Web for Phase 6.6 denali smoke Playwright.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import {
+  ensurePackageBuild,
+  ensureSmokeJwtEnv,
+  isSmokeProdStartEnv,
+  smokeWebBaseEnv,
+  waitForUrl,
+} from "./smoke-ci-env.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const webDir = path.join(repoRoot, "apps/web");
@@ -22,76 +28,7 @@ const denaliSmokeOwnerUserId =
   process.env.DENALI_SMOKE_OWNER_USER_ID?.trim() || "00000000-0000-4000-8000-000000000101";
 const denaliSmokeWorkspaceId =
   process.env.DENALI_SMOKE_WORKSPACE_ID?.trim() || "ws-denali-dev";
-/** CI runs `pnpm build` before smoke; dev-mode first compile of /tours/new exceeds Playwright goto budget. */
-const useProdStart =
-  process.env.SMOKE_USE_PROD_START === "1" ||
-  process.env.CI === "true" ||
-  process.env.CI === "1";
-
-function parseBootstrapJwtLines(stdout) {
-  const env = {};
-  for (const line of stdout.split("\n")) {
-    if (line.startsWith("#") || !line.includes("=")) {
-      continue;
-    }
-    const idx = line.indexOf("=");
-    const key = line.slice(0, idx).trim();
-    let val = line.slice(idx + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1).replace(/\\n/g, "\n");
-    }
-    env[key] = val;
-  }
-  return env;
-}
-
-/** GHA smoke has no apps/api/.env.local — ephemeral RS256 keys for verify-otp/session JWT. */
-function ensureSmokeJwtEnv(baseEnv) {
-  if (baseEnv.AUTH_JWT_PRIVATE_KEY?.trim()) {
-    return baseEnv;
-  }
-  const result = spawnSync("pnpm", ["--filter", "@apps/api", "run", "bootstrap:dev-jwt"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  });
-  if (result.status !== 0) {
-    console.error(result.stderr || result.stdout);
-    process.exit(result.status ?? 1);
-  }
-  return { ...baseEnv, ...parseBootstrapJwtLines(result.stdout) };
-}
-
-function waitForUrl(url, timeoutMs = 180_000) {
-  const deadline = Date.now() + timeoutMs;
-  return new Promise((resolve, reject) => {
-    const tick = () => {
-      const req = http.get(url, (res) => {
-        res.resume();
-        if (res.statusCode && res.statusCode < 500) {
-          resolve();
-          return;
-        }
-        retry();
-      });
-      req.on("error", retry);
-      req.setTimeout(2_000, () => {
-        req.destroy();
-        retry();
-      });
-    };
-    const retry = () => {
-      if (Date.now() > deadline) {
-        reject(new Error(`smoke-denali-e2e-servers: timeout waiting for ${url}`));
-        return;
-      }
-      setTimeout(tick, 500);
-    };
-    tick();
-  });
-}
+const useProdStart = isSmokeProdStartEnv();
 
 const seed = spawn("node", ["scripts/seed-denali-smoke-tenant.mjs"], {
   cwd: webDir,
@@ -104,17 +41,12 @@ seed.on("exit", (code) => {
     process.exit(code ?? 1);
   }
 
-  if (useProdStart && !existsSync(path.join(webDir, ".next", "BUILD_ID"))) {
-    const build = spawnSync("pnpm", ["--filter", "@apps/web", "run", "build"], {
-      cwd: repoRoot,
-      stdio: "inherit",
-    });
-    if (build.status !== 0) {
-      process.exit(build.status ?? 1);
-    }
+  if (useProdStart) {
+    ensurePackageBuild(repoRoot, "@apps/api", "apps/api/dist/main.js");
+    ensurePackageBuild(repoRoot, "@apps/web", "apps/web/.next/BUILD_ID");
   }
 
-  const apiEnv = ensureSmokeJwtEnv({
+  const apiEnv = ensureSmokeJwtEnv(repoRoot, {
     ...process.env,
     NODE_ENV: useProdStart ? "test" : "development",
     DATABASE_URL: dbUrl,
@@ -128,11 +60,7 @@ seed.on("exit", (code) => {
   const webEnv = {
     ...process.env,
     NODE_ENV: useProdStart ? "production" : "development",
-    SESSION_COOKIE_SECURE: "false",
-    AUTH_JWT_PUBLIC_KEY: apiEnv.AUTH_JWT_PUBLIC_KEY,
-    AUTH_JWT_ISSUER: apiEnv.AUTH_JWT_ISSUER ?? "tour-ops",
-    AUTH_JWT_AUDIENCE: apiEnv.AUTH_JWT_AUDIENCE ?? "tour-ops-api",
-    ALLOW_DEV_WEB_SESSION: "true",
+    ...smokeWebBaseEnv(apiEnv),
     ALLOW_DENALI_WEB_PLUGIN: "true",
     TOUR_OPS_DEV_TENANT_ID: denaliSmokeTenantId,
     TOUR_OPS_DEV_USER_ID: denaliSmokeOwnerUserId,
