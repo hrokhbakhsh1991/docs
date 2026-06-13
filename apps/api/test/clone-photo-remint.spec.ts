@@ -49,25 +49,47 @@ describe("clone-photo-remint.spec.ts — Phase 11.13 API", () => {
   });
 
   it("API-P11-13-02 returns 503 when MinIO is not configured", async () => {
-    const response = await client.requestJson<{ code?: string }>(
-      "POST",
-      "/tours/clone-photo-remint",
-      {
-        headers: operatorAuthHeaders(),
-        body: {
-          plan: [
-            {
-              sourceStorageKey: `${TENANT_ID}/tours/tour-a/photos/old-id`,
-              destStorageKey: `${TENANT_ID}/wizard-drafts/${SESSION_ID}/photos/new-id`,
-              oldPhotoId: "old-id",
-              newPhotoId: "new-id",
-            },
-          ],
-        },
+    const minioSnapshot = {
+      MINIO_ENDPOINT: process.env.MINIO_ENDPOINT,
+      MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY,
+      MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY,
+      MINIO_BUCKET: process.env.MINIO_BUCKET,
+      MINIO_USE_SSL: process.env.MINIO_USE_SSL,
+    };
+    delete process.env.MINIO_ENDPOINT;
+    delete process.env.MINIO_ACCESS_KEY;
+    delete process.env.MINIO_SECRET_KEY;
+    delete process.env.MINIO_BUCKET;
+    delete process.env.MINIO_USE_SSL;
+    try {
+      const response = await client.requestJson<{ code?: string }>(
+        "POST",
+        "/tours/clone-photo-remint",
+        {
+          headers: operatorAuthHeaders(),
+          body: {
+            plan: [
+              {
+                sourceStorageKey: `${TENANT_ID}/tours/tour-a/photos/old-id`,
+                destStorageKey: `${TENANT_ID}/wizard-drafts/${SESSION_ID}/photos/new-id`,
+                oldPhotoId: "old-id",
+                newPhotoId: "new-id",
+              },
+            ],
+          },
+        }
+      );
+      assert.equal(response.status, 503);
+      assert.equal(response.body.code, "MINIO_NOT_CONFIGURED");
+    } finally {
+      for (const [key, value] of Object.entries(minioSnapshot)) {
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
       }
-    );
-    assert.equal(response.status, 503);
-    assert.equal(response.body.code, "MINIO_NOT_CONFIGURED");
+    }
   });
 
   it("API-P11-13-03 empty plan returns 204", async () => {

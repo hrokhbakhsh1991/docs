@@ -21,6 +21,7 @@ const FORBIDDEN_STORAGE_PATTERNS = [
 const STORAGE_LAYER_ALLOWED_REL = [
   "storage/",
   "db/prisma.ts",
+  "db/prisma-transaction-options.ts",
   "db/pool-saturation.ts",
   "db/with-canonical-transaction.ts",
   "db/with-tenant-rls.ts",
@@ -60,6 +61,8 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "settings/create-settings-config-repository.ts",
   "settings/create-settings-resources-repository.ts",
   "settings/prisma-settings-config.repository.ts",
+  "settings/bootstrap-denali-dev-smoke-fixtures.ts",
+  "settings/seed-operator-smoke-published-tour.ts",
   "workspace-drafts/",
 ];
 
