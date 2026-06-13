@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import {
   receiptFileLabel,
   validateReviewReceiptForm,
   type FinancePendingReceipt,
+  type FinancePendingReceiptsResponse,
 } from "@/finance/finance-receipts-logic";
 
 function resolveFinanceReceiptStatusLabel(t: (key: string) => string, status: string): string {
@@ -34,6 +35,7 @@ function resolveFinanceReceiptStatusLabel(t: (key: string) => string, status: st
 
 type FinanceReceiptsPanelProps = {
   readonly session: OperatorSessionContext;
+  readonly initialReceipts?: FinancePendingReceiptsResponse | null;
 };
 
 function ReceiptRow({
@@ -147,18 +149,26 @@ function ReceiptRow({
   );
 }
 
-export function FinanceReceiptsPanel({ session }: FinanceReceiptsPanelProps) {
+export function FinanceReceiptsPanel({
+  session,
+  initialReceipts = null,
+}: FinanceReceiptsPanelProps) {
   const t = useTranslations("finance.receipts");
   const tCommon = useTranslations("finance.common");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
-  const [items, setItems] = useState<readonly FinancePendingReceipt[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<readonly FinancePendingReceipt[]>(initialReceipts?.items ?? []);
+  const [loading, setLoading] = useState(initialReceipts === null);
   const [error, setError] = useState<string | null>(null);
   const [fetchNonce, setFetchNonce] = useState(0);
+  const skipInitialFetchRef = useRef(initialReceipts !== null);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

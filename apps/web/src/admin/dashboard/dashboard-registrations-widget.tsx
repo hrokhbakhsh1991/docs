@@ -15,14 +15,28 @@ import {
 } from "@/admin/dashboard/dashboard-widgets-logic";
 import { resolveDashboardErrorMessage } from "@/i18n/resolve-dashboard-error-message";
 
-export function DashboardRegistrationsWidget() {
+import type { BookingsSummaryResponse } from "@/features/bookings/bookings-command-center-types";
+
+type DashboardRegistrationsWidgetProps = {
+  readonly initialBookingsSummary?: BookingsSummaryResponse | null;
+};
+
+export function DashboardRegistrationsWidget({
+  initialBookingsSummary = null,
+}: DashboardRegistrationsWidgetProps) {
   const t = useTranslations("dashboard");
   const tErrors = useTranslations("dashboard.errors");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialBookingsSummary === null);
   const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState(parseDashboardBookingsSummary(null));
+  const [summary, setSummary] = useState(
+    initialBookingsSummary ?? parseDashboardBookingsSummary(null)
+  );
 
   useEffect(() => {
+    if (initialBookingsSummary !== null) {
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -55,7 +69,7 @@ export function DashboardRegistrationsWidget() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialBookingsSummary]);
 
   const queueChips = useMemo(() => selectRegistrationQueueChips(summary), [summary]);
 

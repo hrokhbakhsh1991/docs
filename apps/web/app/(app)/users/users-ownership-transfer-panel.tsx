@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Crown } from "lucide-react";
 
 import { clearOperatorWelcomeSession } from "@/admin/onboarding/operator-welcome-dismiss";
@@ -24,20 +24,29 @@ import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
 type UsersOwnershipTransferPanelProps = {
   readonly session: OperatorSessionContext;
+  readonly initialRoster?: readonly UsersDirectoryRow[] | null;
 };
 
-export function UsersOwnershipTransferPanel({ session }: UsersOwnershipTransferPanelProps) {
+export function UsersOwnershipTransferPanel({
+  session,
+  initialRoster = null,
+}: UsersOwnershipTransferPanelProps) {
   const t = useTranslations("users");
   const tErrors = useTranslations("users.errors");
   const router = useRouter();
-  const [roster, setRoster] = useState<readonly UsersDirectoryRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [roster, setRoster] = useState<readonly UsersDirectoryRow[]>(initialRoster ?? []);
+  const [loading, setLoading] = useState(initialRoster === null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const skipInitialFetchRef = useRef(initialRoster !== null);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setLoadError(null);

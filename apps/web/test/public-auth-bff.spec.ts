@@ -93,6 +93,15 @@ describe("public-auth-bff.spec.ts — M17", () => {
   });
 
   it("PUB-BFF-08 session-profile returns display_name from identity/me", async () => {
+    const jwtEnv = {
+      AUTH_JWT_PUBLIC_KEY: process.env.AUTH_JWT_PUBLIC_KEY,
+      AUTH_JWT_ISSUER: process.env.AUTH_JWT_ISSUER,
+      AUTH_JWT_AUDIENCE: process.env.AUTH_JWT_AUDIENCE,
+    };
+    delete process.env.AUTH_JWT_PUBLIC_KEY;
+    delete process.env.AUTH_JWT_ISSUER;
+    delete process.env.AUTH_JWT_AUDIENCE;
+
     const payload = Buffer.from(
       JSON.stringify({
         sub: "00000000-0000-4000-8000-000000000099",
@@ -144,6 +153,13 @@ describe("public-auth-bff.spec.ts — M17", () => {
         delete process.env.TOUR_OPS_API_URL;
       } else {
         process.env.TOUR_OPS_API_URL = prevApiBase;
+      }
+      for (const [key, value] of Object.entries(jwtEnv)) {
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
       }
     }
   });

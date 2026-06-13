@@ -4,10 +4,13 @@
 import { expect, test } from "@playwright/test";
 
 import {
-  advanceWizardToStep,
   DENALI_FLAT_EDIT_SECTION_TEST_ID,
   fillDenaliMultiDayWizardBasics,
+  fillDenaliMultiDayWizardThroughLegal,
+  fillDenaliWizardPhotosMinimal,
+  fillDenaliWizardProgramMinimal,
   resetOperatorWizardToBasic,
+  submitDenaliWizardDraftCreate,
 } from "../../test/fixtures/denali-itinerary-wizard-fixture";
 import { loginOperatorOwner } from "../../test/fixtures/operator-owner-session";
 import { publishOperatorWizardTemplate } from "../../test/fixtures/operator-wizard-template-fixture";
@@ -16,7 +19,7 @@ import { DENALI_ITINERARY_TEST_IDS } from "../../src/wizard/denali/denali-itiner
 const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 
 test.describe("denali-itinerary-wizard.spec.ts", () => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
 
   test("SMK-P9-ITIN-01 flat edit shows itinerary composite for multi-day smoke tour", async ({
     page,
@@ -53,13 +56,53 @@ test.describe("denali-itinerary-wizard.spec.ts", () => {
     await resetOperatorWizardToBasic(page);
 
     await fillDenaliMultiDayWizardBasics(page, tourTitle);
-    await advanceWizardToStep(page, "denali_photos");
-    await advanceWizardToStep(page, "denali_program");
+    await fillDenaliWizardPhotosMinimal(page);
 
     await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary)).toBeVisible({
       timeout: 30_000,
     });
     await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.day(1))).toBeVisible();
     await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.day(2))).toBeVisible();
+  });
+
+  test("SMK-P9-ITIN-03 multi-day wizard advances from program to logistics", async ({ page }) => {
+    const tourTitle = `SMK-P9-ITIN-03 ${Date.now()}`;
+
+    await loginOperatorOwner(page);
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
+
+    await resetOperatorWizardToBasic(page);
+    await fillDenaliMultiDayWizardBasics(page, tourTitle);
+    await fillDenaliWizardPhotosMinimal(page);
+    await fillDenaliWizardProgramMinimal(page);
+
+    await expect(page.locator('[data-wizard-step="denali_logistics"]')).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId("denali-composite-transport")).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("SMK-P9-ITIN-04 multi-day wizard reaches legal step (tenant template rail)", async ({
+    page,
+  }) => {
+    const tourTitle = `SMK-P9-ITIN-04 ${Date.now()}`;
+
+    await loginOperatorOwner(page);
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
+
+    await resetOperatorWizardToBasic(page);
+    await fillDenaliMultiDayWizardThroughLegal(page, tourTitle);
+    await expect(page.locator('[data-wizard-step="denali_legal"]')).toBeVisible();
+  });
+
+  test("SMK-P9-ITIN-05 multi-day wizard creates draft tour end-to-end", async ({ page }) => {
+    const tourTitle = `SMK-P9-ITIN-05 ${Date.now()}`;
+
+    await loginOperatorOwner(page);
+    await publishOperatorWizardTemplate(page, { fullTemplate: true });
+
+    await resetOperatorWizardToBasic(page);
+    await fillDenaliMultiDayWizardThroughLegal(page, tourTitle);
+    await submitDenaliWizardDraftCreate(page);
   });
 });

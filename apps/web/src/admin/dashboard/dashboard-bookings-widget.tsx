@@ -16,15 +16,29 @@ import { resolveDashboardErrorMessage } from "@/i18n/resolve-dashboard-error-mes
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 
-export function DashboardBookingsWidget() {
+import type { BookingsSummaryResponse } from "@/features/bookings/bookings-command-center-types";
+
+type DashboardBookingsWidgetProps = {
+  readonly initialBookingsSummary?: BookingsSummaryResponse | null;
+};
+
+export function DashboardBookingsWidget({
+  initialBookingsSummary = null,
+}: DashboardBookingsWidgetProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("dashboard");
   const tErrors = useTranslations("dashboard.errors");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialBookingsSummary === null);
   const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState(parseDashboardBookingsSummary(null));
+  const [summary, setSummary] = useState(
+    initialBookingsSummary ?? parseDashboardBookingsSummary(null)
+  );
 
   useEffect(() => {
+    if (initialBookingsSummary !== null) {
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -55,7 +69,7 @@ export function DashboardBookingsWidget() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialBookingsSummary]);
 
   const kpiCards = useMemo(() => buildDashboardBookingsKpiCards(summary), [summary]);
 

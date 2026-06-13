@@ -19,8 +19,12 @@ const URBAN_PHASE81_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 const URBAN_SILO_ENTERPRISE_TENANT_ID = "00000000-0000-4000-8000-000000000406";
 const URBAN_SILO_ENTERPRISE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000412";
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
-const OPERATOR_SMOKE_SEED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
-const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211";
+import {
+  buildOperatorSmokeDraftTour,
+  buildOperatorSmokePublishedTour,
+  OPERATOR_SMOKE_DRAFT_TOUR_ID,
+  OPERATOR_SMOKE_SEED_TOUR_ID,
+} from "../fixtures/operator-smoke-published-tour.fixture";
 
 function assertTenantId(tenantId: string): void {
   if (typeof tenantId !== "string" || tenantId.trim().length === 0) {
@@ -95,87 +99,10 @@ export class InMemoryTourRepository implements TourStorageRepository {
   /** Phase 9.8 smoke — operator tour for manual booking create (SMK-P9-07). */
   ensureOperatorSmokeSeedTour(): void {
     if (!this.byId.has(OPERATOR_SMOKE_SEED_TOUR_ID)) {
-      const tour: Tour = {
-        id: OPERATOR_SMOKE_SEED_TOUR_ID,
-        tenantId: OPERATOR_SMOKE_TENANT_ID,
-        rowVersion: 1,
-        createdAt: new Date(0).toISOString(),
-        canonical: {
-          schemaVersion: 1,
-          roots: ["basics"],
-          data: {
-            title: "North Ridge Trek",
-            publishStatus: "active",
-            startDateTime: "2026-07-01T08:00:00.000Z",
-            endDateTime: "2026-07-03T18:00:00.000Z",
-            category: "mountain_multi",
-            capacityMax: 12,
-            program: {
-              shortDescription: "Operator smoke catalog tour",
-              difficultyLevel: 6,
-              hikingHoursApprox: 8,
-              itinerary: [
-                {
-                  dayNumber: 1,
-                  title: "Summit push",
-                  summary: "Early alpine start",
-                  segments: [
-                    {
-                      id: "smk-seg-1",
-                      kind: "activity",
-                      title: "Ridge ascent",
-                      startTime: "06:00",
-                      locationLabel: "North Ridge camp",
-                      photoIds: ["smk-photo-1"],
-                    },
-                  ],
-                },
-                {
-                  dayNumber: 2,
-                  title: "Return leg",
-                  segments: [
-                    {
-                      id: "smk-seg-2",
-                      kind: "transport",
-                      title: "Descent to trailhead",
-                    },
-                  ],
-                },
-              ],
-            },
-            participants: { fitnessLevel: "medium" },
-            pricing: { basePricePerPerson: 2500000 },
-            photos: [
-              {
-                id: "smk-photo-1",
-                url: "https://cdn.example/north-ridge.jpg",
-                label: "Ridge panorama",
-                day: 1,
-              },
-            ],
-            basics: { title: "North Ridge Trek" },
-            details: { summary: "Operator smoke seed tour" },
-          },
-        },
-      };
-      this.indexTour(tour);
+      this.indexTour(buildOperatorSmokePublishedTour({ tenantId: OPERATOR_SMOKE_TENANT_ID }));
     }
     if (!this.byId.has(OPERATOR_SMOKE_DRAFT_TOUR_ID)) {
-      const draft: Tour = {
-        id: OPERATOR_SMOKE_DRAFT_TOUR_ID,
-        tenantId: OPERATOR_SMOKE_TENANT_ID,
-        rowVersion: 1,
-        createdAt: new Date(1).toISOString(),
-        canonical: {
-          schemaVersion: 1,
-          roots: ["basics"],
-          data: {
-            title: "Denali draft fixture",
-            publishStatus: "draft",
-          },
-        },
-      };
-      this.indexTour(draft);
+      this.indexTour(buildOperatorSmokeDraftTour({ tenantId: OPERATOR_SMOKE_TENANT_ID }));
     }
   }
 

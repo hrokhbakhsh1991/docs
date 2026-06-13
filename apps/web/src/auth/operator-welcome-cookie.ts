@@ -1,3 +1,5 @@
+import { resolveSessionCookieSecure } from "./build-session-cookie";
+
 /** Non-HttpOnly flag cookie — consumed by dashboard gate after BFF login. */
 export const OPERATOR_WELCOME_ARMED_COOKIE = "operator-welcome-armed";
 
@@ -10,7 +12,7 @@ export function setOperatorWelcomeArmedCookieOnResponse(headers: Headers): void 
     "SameSite=Lax",
     `Max-Age=${WELCOME_ARMED_MAX_AGE_SECONDS}`,
   ];
-  if (process.env.NODE_ENV === "production") {
+  if (resolveSessionCookieSecure()) {
     parts.push("Secure");
   }
   headers.append("Set-Cookie", parts.join("; "));
@@ -24,7 +26,7 @@ export function clearOperatorWelcomeArmedCookieOnResponse(headers: Headers): voi
     "Max-Age=0",
     "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
   ];
-  if (process.env.NODE_ENV === "production") {
+  if (resolveSessionCookieSecure()) {
     parts.push("Secure");
   }
   headers.append("Set-Cookie", parts.join("; "));

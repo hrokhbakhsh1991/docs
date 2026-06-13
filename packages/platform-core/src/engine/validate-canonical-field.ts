@@ -52,7 +52,8 @@ export function validateFieldValue(
     return;
   }
 
-  if (value === undefined) {
+  // Canonical shells use `null` for unset scalars; treat like missing (typeof null === "object").
+  if (value === undefined || value === null) {
     if (effective.required && !hidden) {
       validationStatus.record(
         "UNKNOWN_CANONICAL_PATH",

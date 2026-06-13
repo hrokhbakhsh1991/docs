@@ -47,18 +47,21 @@ export function resolveWizardValidationSurface(
   const surfaceId = validationSurfaceId ?? reviewSurfaceId ?? "platform";
   const surface = resolveWizardReviewSurface(surfaceId);
   if (surface?.renderValidationSummary != null) {
-    return surface;
+    return { renderValidationSummary: surface.renderValidationSummary };
   }
   return platformValidationSurface;
 }
 
-export function buildWizardValidationSurfaceProps(input: {
-  readonly issues: readonly WizardValidationSurfaceRenderProps["issues"];
-  readonly stepDescriptors: WizardValidationSurfaceRenderProps["stepDescriptors"];
-  readonly onFocusIssue: WizardValidationSurfaceRenderProps["onFocusIssue"];
-  readonly fieldLabelSurfaceId?: string;
-  readonly translateWorkspaceMessage?: WizardValidationSurfaceRenderProps["translateWorkspaceMessage"];
-}): WizardValidationSurfaceRenderProps {
+export function buildWizardValidationSurfaceProps(
+  input: Pick<
+    WizardValidationSurfaceRenderProps,
+    | "issues"
+    | "stepDescriptors"
+    | "onFocusIssue"
+    | "fieldLabelSurfaceId"
+    | "translateWorkspaceMessage"
+  >
+): WizardValidationSurfaceRenderProps {
   return {
     issues: input.issues,
     stepDescriptors: input.stepDescriptors,

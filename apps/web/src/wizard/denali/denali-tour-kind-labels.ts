@@ -1,5 +1,10 @@
 /** Human labels for Denali `basicInfo.tourType` slugs (category × duration × event variant). */
 
+import {
+  readDenaliCanonicalBasics,
+  type DenaliCanonicalBasicsSelection,
+} from "@app-tour/workspace-denali/plugin";
+
 export const DENALI_TOUR_KIND_VALUES = [
   "mountain_day",
   "mountain_multi",
@@ -12,6 +17,22 @@ export const DENALI_TOUR_KIND_VALUES = [
   "event_cinema",
   "event_cinema_multi",
 ] as const;
+
+export type DenaliTourKindSlug = (typeof DENALI_TOUR_KIND_VALUES)[number];
+
+export function isDenaliTourKindSlug(value: string): value is DenaliTourKindSlug {
+  return (DENALI_TOUR_KIND_VALUES as readonly string[]).includes(value);
+}
+
+export function resolveDenaliBasicsFromCategorySlug(
+  slug: string
+): DenaliCanonicalBasicsSelection | null | undefined {
+  const trimmed = slug.trim();
+  if (!isDenaliTourKindSlug(trimmed)) {
+    return undefined;
+  }
+  return readDenaliCanonicalBasics(trimmed);
+}
 
 export const DENALI_TOUR_CATEGORY_VALUES = ["mountain", "nature", "desert", "event"] as const;
 

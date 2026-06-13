@@ -1,4 +1,5 @@
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
+import { fetchOperatorProfileServer } from "@/features/settings/fetch-operator-profile.server";
 import { buildSettingsPageMetadata } from "@/i18n/settings-page-metadata";
 
 import { ProfileSettingsClient } from "./profile-settings-client";
@@ -14,5 +15,6 @@ export default async function ProfileSettingsPage() {
   if (session === null) {
     return null;
   }
-  return <ProfileSettingsClient session={session} />;
+  const initialProfile = await fetchOperatorProfileServer();
+  return <ProfileSettingsClient session={session} initialProfile={initialProfile} />;
 }

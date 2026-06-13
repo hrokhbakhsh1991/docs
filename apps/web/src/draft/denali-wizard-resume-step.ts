@@ -6,6 +6,7 @@ export {
   hasNonEmptyCanonicalValue,
   readDenaliDraftFieldValue,
   resolveDenaliInitialStepIndex,
+  shouldCountCanonicalPathForResumeInference,
 } from "@app-tour/workspace-denali/wizard/resolve-initial-step-index";
 
 import {

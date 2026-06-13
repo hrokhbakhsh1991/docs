@@ -5,6 +5,41 @@ import { PlatformCoreError } from "../errors/platform-core.error";
 const MAX_ENUM_OPTIONS = 500;
 const MIN_DATE_YEAR = 1970;
 const MAX_DATE_YEAR = 2100;
+const PERSIAN_DIGIT_START = 0x06f0;
+const ARABIC_INDIC_DIGIT_START = 0x0660;
+
+/** Maps Persian / Arabic-Indic digits to Western ASCII 0-9 for canonical number coercion. */
+function toAsciiDigits(text: string): string {
+  let result = "";
+  for (const character of text) {
+    const code = character.charCodeAt(0);
+    if (code >= PERSIAN_DIGIT_START && code <= PERSIAN_DIGIT_START + 9) {
+      result += String(code - PERSIAN_DIGIT_START);
+      continue;
+    }
+    if (code >= ARABIC_INDIC_DIGIT_START && code <= ARABIC_INDIC_DIGIT_START + 9) {
+      result += String(code - ARABIC_INDIC_DIGIT_START);
+      continue;
+    }
+    result += character;
+  }
+  return result;
+}
+
+function coerceFiniteCanonicalNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const trimmed = toAsciiDigits(value).trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+    const parsed = Number.parseFloat(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
 
 /** ISO-8601 calendar date or date-time (Z or numeric offset). */
 const ISO_DATE_TIME_PATTERN =
@@ -116,11 +151,12 @@ export function assertScalarCanonicalValue(
         throw emptyRequired(canonicalPath, kind);
       }
       return;
-    case "number":
-      if (typeof value !== "number" || !Number.isFinite(value)) {
+    case "number": {
+      if (coerceFiniteCanonicalNumber(value) == null) {
         throw typeMismatch(canonicalPath, kind, typeof value);
       }
       return;
+    }
     case "boolean":
       if (typeof value !== "boolean") {
         throw typeMismatch(canonicalPath, kind, typeof value);

@@ -4,7 +4,9 @@ import { describe, it } from "node:test";
 import {
   buildDenaliFullWizardTemplatePayload,
   buildDenaliFullWizardTemplateSteps,
+  buildDenaliTenantWizardTemplatePayload,
 } from "../src/settings/denaliFullWizardTemplate";
+import { buildDenaliWorkspaceFieldRegistry } from "../src/denali-plugin-adapter";
 
 describe("denali-full-wizard-template.spec.ts", () => {
   it("DN-FULL-TPL-01 keeps category first for rule matrix", () => {
@@ -57,5 +59,32 @@ describe("denali-full-wizard-template.spec.ts", () => {
         "tripDetails.overview.customServiceLabels",
       ]
     );
+  });
+
+  it("DN-FULL-TPL-06 full template fields are wizard-template catalog paths", () => {
+    const registry = buildDenaliWorkspaceFieldRegistry();
+    const catalogPaths = new Set(
+      registry.fields
+        .filter((field) => !field.tags?.includes("wizard_overlay_exclude"))
+        .map((field) => field.canonicalPath)
+    );
+    for (const step of buildDenaliTenantWizardTemplatePayload().steps) {
+      for (const field of step.fields) {
+        if (field.canonicalPath === "publishStatus") {
+          continue;
+        }
+        assert.ok(
+          catalogPaths.has(field.canonicalPath),
+          `template field not in catalog: ${field.canonicalPath}`
+        );
+      }
+    }
+  });
+
+  it("DN-FULL-TPL-07 tenant publish payload omits review overlay fields", () => {
+    const payload = buildDenaliTenantWizardTemplatePayload();
+    assert.ok(!payload.steps.some((step) => step.stepId === "review"));
+    const paths = payload.steps.flatMap((step) => step.fields.map((field) => field.canonicalPath));
+    assert.ok(!paths.includes("publishStatus"));
   });
 });

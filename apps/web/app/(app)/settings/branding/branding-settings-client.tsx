@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { BRANDING_SETTINGS_TEST_IDS } from "@/features/settings/branding-types";
+import type { TenantBrandingServerPrefetch } from "@/features/settings/fetch-tenant-branding.server";
 import {
   fetchTenantBranding,
   patchTenantBrandingDisplayName,
@@ -30,23 +31,31 @@ import { validateTenantBrandLogoFile } from "@/features/settings/validate-tenant
 type BrandingSettingsClientProps = {
   readonly session: OperatorSessionContext;
   readonly pluginId: string;
+  readonly initialBranding?: TenantBrandingServerPrefetch | null;
 };
 
-export function BrandingSettingsClient({ session, pluginId }: BrandingSettingsClientProps) {
+export function BrandingSettingsClient({
+  session,
+  pluginId,
+  initialBranding = null,
+}: BrandingSettingsClientProps) {
   const t = useTranslations("settings.branding");
   const tErrors = useTranslations("settings.errors");
   const tCommon = useTranslations("common");
   const router = useRouter();
   const brandingContext = useTenantBrandingOptional();
   const canManage = isAdminOrOwnerRole(session.role);
-  const [displayName, setDisplayName] = useState("");
-  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [displayName, setDisplayName] = useState(initialBranding?.branding.displayName ?? "");
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(
+    initialBranding?.logoPreviewUrl ?? null
+  );
+  const [loading, setLoading] = useState(initialBranding === null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const skipInitialFetchRef = useRef(initialBranding !== null);
 
   const workspaceLabel = session.workspaceType;
 
@@ -59,6 +68,10 @@ export function BrandingSettingsClient({ session, pluginId }: BrandingSettingsCl
   }
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

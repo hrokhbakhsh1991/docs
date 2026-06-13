@@ -3,25 +3,42 @@
  */
 import { expect, type Page } from "@playwright/test";
 
+import {
+  DENALI_CREATE_TOUR_DRAFT_KEY,
+  DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+} from "@app-tour/workspace-denali/draft";
+
 import { DENALI_DATETIME_TEST_IDS } from "../../src/wizard/denali/denali-datetime-test-ids";
 import { DENALI_COMPOSITE_TEST_IDS } from "../../src/wizard/denali/denali-location-types";
+import { DENALI_ITINERARY_TEST_IDS } from "../../src/wizard/denali/denali-itinerary-test-ids";
 import { DENALI_TOUR_KIND_TEST_IDS } from "../../src/wizard/denali/denali-tour-kind-test-ids";
 import { WIZARD_STEP_SHELL_TEST_IDS } from "../../src/wizard/wizard-step-shell-logic";
+
+import { resolveOperatorWorkspaceId } from "./operator-owner-session";
 
 export const OPERATOR_SMOKE_DESTINATION_LABEL = "Smoke Summit (Smoke Alps)";
 
 export const DENALI_FLAT_EDIT_SECTION_TEST_ID = (stepId: string) =>
   `operator-tour-edit-section-${stepId}`;
 
-const OPERATOR_SMOKE_WORKSPACE_ID = "ws-operator-smoke";
-const DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE = "operator.wizard";
-const DENALI_CREATE_TOUR_DRAFT_KEY = "denali-create";
-
 export async function clearOperatorCreateTourDraftViaApi(page: Page): Promise<void> {
-  const response = await page.request.delete(
-    `/api/workspaces/${OPERATOR_SMOKE_WORKSPACE_ID}/drafts/${DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE}/${DENALI_CREATE_TOUR_DRAFT_KEY}`
-  );
-  expect([200, 204, 404]).toContain(response.status());
+  const workspaceId = await resolveOperatorWorkspaceId(page);
+  const url = `/api/workspaces/${encodeURIComponent(workspaceId)}/drafts/${DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE}/${DENALI_CREATE_TOUR_DRAFT_KEY}`;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const response = await page.request.delete(url);
+    if ([200, 204, 404].includes(response.status())) {
+      return;
+    }
+    if (response.status() !== 502) {
+      expect([200, 204, 404]).toContain(response.status());
+      return;
+    }
+    await page.waitForTimeout(500 * (attempt + 1));
+  }
+
+  const last = await page.request.delete(url);
+  expect([200, 204, 404]).toContain(last.status());
 }
 
 export async function clearOperatorWizardDraftIfPresent(page: Page): Promise<void> {
@@ -78,7 +95,8 @@ async function navigateWizardToBasicStep(page: Page): Promise<void> {
 export async function resetOperatorWizardToBasic(page: Page): Promise<void> {
   await clearOperatorCreateTourDraftViaApi(page);
   await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-  await expect(page.locator("[data-workspace-wizard]")).toBeVisible({ timeout: 120_000 });
+  await expect(page.locator("[data-workspace-wizard-loading]")).toHaveCount(0, { timeout: 120_000 });
+  await expect(page.locator("[data-workspace-wizard]")).toBeVisible({ timeout: 30_000 });
   await settleOperatorWizardDraftSync(page);
 
   const basicStep = page.locator('[data-wizard-step="denali_basic"]');
@@ -97,14 +115,19 @@ async function settleOperatorWizardDraftSync(page: Page): Promise<void> {
     return;
   }
 
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    await expect(syncIndicator).not.toHaveAttribute("data-status", "SYNCING", { timeout: 30_000 });
-    const retryBtn = page.getByTestId("draft-sync-retry");
-    if (!(await retryBtn.isVisible().catch(() => false))) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const status = await syncIndicator.getAttribute("data-status");
+    if (status !== "SYNCING" && status !== "CONFLICT_RESOLVING") {
       return;
     }
-    await retryBtn.click();
+    const retryBtn = page.getByTestId("draft-sync-retry");
+    if (await retryBtn.isVisible().catch(() => false)) {
+      await retryBtn.click();
+    }
+    await page.waitForTimeout(400);
   }
+
+  await expect(syncIndicator).not.toHaveAttribute("data-status", "SYNCING", { timeout: 10_000 });
 }
 
 export async function jumpToWizardStep(page: Page, stepId: string): Promise<void> {
@@ -118,12 +141,26 @@ export async function jumpToWizardStep(page: Page, stepId: string): Promise<void
   await expect(step).toBeVisible({ timeout: 30_000 });
 }
 
-function wizardFieldInput(page: Page, canonicalPath: string) {
-  return page
-    .locator(
-      `[data-canonical-path="${canonicalPath}"] input, [data-canonical-path="${canonicalPath}"] textarea`
-    )
+function wizardFieldInput(page: Page, fieldPath: string) {
+  const escaped = fieldPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const fieldRoot = page
+    .locator(`[data-field-path="${escaped}"], [data-canonical-path="${escaped}"]`)
     .first();
+  return fieldRoot.locator("input, textarea").first();
+}
+
+async function fillWizardNumericField(
+  page: Page,
+  label: RegExp,
+  value: string
+): Promise<void> {
+  const field = page.getByRole("textbox", { name: label });
+  await expect(field).toBeVisible({ timeout: 15_000 });
+  await field.click();
+  await page.keyboard.press("Control+a");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.type(value, { delay: 25 });
+  await field.blur();
 }
 
 async function pickWizardDate(
@@ -164,44 +201,283 @@ async function pickWizardTime(page: Page, fieldTestId: string, time: string): Pr
     .locator(`[data-time-option="${minutes}"]`)
     .click();
   await picker.getByRole("button").last().click();
+  await expect(picker).not.toBeVisible({ timeout: 15_000 });
+}
+
+async function readWizardStepValidationIssues(page: Page): Promise<string[]> {
+  const issues = page.locator("[data-validation-issue]");
+  if ((await issues.count()) === 0) {
+    return [];
+  }
+  return issues.allTextContents();
 }
 
 export async function fillDenaliMultiDayWizardBasics(page: Page, title: string): Promise<void> {
+  await navigateWizardToBasicStep(page);
+  await expect(page.locator('[data-wizard-step="denali_basic"]')).toBeVisible({ timeout: 30_000 });
   await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.tourKind).waitFor({ state: "visible" });
   await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.category("mountain")).click();
   await page.getByTestId(DENALI_TOUR_KIND_TEST_IDS.duration("multi_day")).click();
 
-  const titleField = page.getByRole("textbox", { name: "title" });
-  if (await titleField.isVisible().catch(() => false)) {
-    await titleField.fill(title);
+  const titleInput = wizardFieldInput(page, "basicInfo.title");
+  if (!(await titleInput.isVisible().catch(() => false))) {
+    await page.getByRole("textbox", { name: /نام تور|Tour name/i }).fill(title);
   } else {
-    await page.getByRole("textbox", { name: /نام تور|title/i }).fill(title);
+    await titleInput.fill(title);
   }
 
   const destination = page.getByTestId(DENALI_COMPOSITE_TEST_IDS.destination);
   await expect(destination).toBeVisible();
   const destinationSelect = destination.getByRole("combobox");
   await expect(destinationSelect).toBeEnabled({ timeout: 60_000 });
-  await destinationSelect.selectOption({ label: OPERATOR_SMOKE_DESTINATION_LABEL });
+  const smokeLabel = OPERATOR_SMOKE_DESTINATION_LABEL;
+  const smokeOption = destinationSelect.locator("option", { hasText: smokeLabel });
+  if ((await smokeOption.count()) > 0) {
+    await destinationSelect.selectOption({ label: smokeLabel });
+  } else {
+    const firstActive = destinationSelect.locator("option:not([disabled])").first();
+    await expect(firstActive).toHaveCount(1, { timeout: 15_000 });
+    const value = await firstActive.getAttribute("value");
+    expect(value).toBeTruthy();
+    await destinationSelect.selectOption(value!);
+  }
 
   await pickWizardDate(page, DENALI_DATETIME_TEST_IDS.start, "شروع برنامه", "2026-07-01");
   await pickWizardTime(page, DENALI_DATETIME_TEST_IDS.start, "08:00");
   await pickWizardDate(page, DENALI_DATETIME_TEST_IDS.end, "پایان برنامه", "2026-07-03");
   await pickWizardTime(page, DENALI_DATETIME_TEST_IDS.end, "18:00");
 
-  await page.getByRole("textbox", { name: /حداکثر ظرفیت|capacityMax/i }).fill("12");
+  await fillWizardNumericField(page, /حداکثر ظرفیت|capacityMax/i, "12");
+  await fillWizardNumericField(page, /ارتفاع قله|peakHeight/i, "5610");
+
+  await settleOperatorWizardDraftSync(page);
+
+  await waitForWizardNextReady(page);
+  await page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next).click();
+  const photosStep = page.locator('[data-wizard-step="denali_photos"]');
+  const reachedPhotos = await photosStep.isVisible({ timeout: 12_000 }).catch(() => false);
+  if (!reachedPhotos) {
+    const validationIssues = await readWizardStepValidationIssues(page);
+    throw new Error(
+      `basic step blocked before photos: ${validationIssues.join(" | ") || "no validation banner"}`
+    );
+  }
 }
 
-export async function advanceWizardToStep(page: Page, stepId: string, maxNext = 8): Promise<void> {
+async function waitForWizardNextReady(page: Page): Promise<void> {
+  const next = page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next);
+  const syncIndicator = page.getByTestId("draft-sync-indicator");
+
+  for (let attempt = 0; attempt < 45; attempt += 1) {
+    if (await next.isEnabled().catch(() => false)) {
+      return;
+    }
+    if (await syncIndicator.isVisible().catch(() => false)) {
+      const status = await syncIndicator.getAttribute("data-status");
+      if (status === "SYNCING" || status === "CONFLICT_RESOLVING") {
+        const retryBtn = page.getByTestId("draft-sync-retry");
+        if (await retryBtn.isVisible().catch(() => false)) {
+          await retryBtn.click();
+        }
+      }
+    }
+    await page.waitForTimeout(400);
+  }
+
+  await expect(next).toBeEnabled({ timeout: 5_000 });
+}
+
+async function readVisibleWizardStepId(page: Page): Promise<string | null> {
+  const steps = page.locator("[data-wizard-step]");
+  const count = await steps.count();
+  for (let index = 0; index < count; index += 1) {
+    const candidate = steps.nth(index);
+    if (await candidate.isVisible().catch(() => false)) {
+      return candidate.getAttribute("data-wizard-step");
+    }
+  }
+  return null;
+}
+
+export async function advanceWizardToStep(page: Page, stepId: string, maxNext = 6): Promise<void> {
   const step = page.locator(`[data-wizard-step="${stepId}"]`);
   if (await step.isVisible().catch(() => false)) {
+    return;
+  }
+  const progress = page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.progressStep(stepId));
+  if (await progress.isEnabled().catch(() => false)) {
+    await progress.click();
+    await expect(step).toBeVisible({ timeout: 30_000 });
     return;
   }
   for (let attempt = 0; attempt < maxNext; attempt += 1) {
     if (await step.isVisible().catch(() => false)) {
       return;
     }
+    const beforeStepId = await readVisibleWizardStepId(page);
+    await waitForWizardNextReady(page);
     await page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next).click();
+    if (await step.isVisible({ timeout: 4_000 }).catch(() => false)) {
+      return;
+    }
+    const afterStepId = await readVisibleWizardStepId(page);
+    if (afterStepId === beforeStepId) {
+      const validationIssues = await readWizardStepValidationIssues(page);
+      throw new Error(
+        `wizard stalled on ${afterStepId ?? "unknown"} before ${stepId}: ${
+          validationIssues.join(" | ") || "no validation banner"
+        }`
+      );
+    }
   }
   await expect(step).toBeVisible({ timeout: 15_000 });
+}
+
+export async function fillDenaliWizardPhotosMinimal(page: Page): Promise<void> {
+  await expect(page.locator('[data-wizard-step="denali_photos"]')).toBeVisible({ timeout: 30_000 });
+  const shortDescription = page.getByTestId("denali-composite-program-short-description");
+  if (await shortDescription.isVisible().catch(() => false)) {
+    await shortDescription.fill("برنامه چندروزه تست دود");
+  } else {
+    const fallback = page.getByRole("textbox", {
+      name: /خلاصه|shortDescription|short description/i,
+    });
+    if (await fallback.isVisible().catch(() => false)) {
+      await fallback.fill("برنامه چندروزه تست دود");
+    }
+  }
+  await settleOperatorWizardDraftSync(page);
+
+  await waitForWizardNextReady(page);
+  await page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next).click();
+  const programStep = page.locator('[data-wizard-step="denali_program"]');
+  const reachedProgram = await programStep.isVisible({ timeout: 12_000 }).catch(() => false);
+  if (!reachedProgram) {
+    const validationIssues = await readWizardStepValidationIssues(page);
+    throw new Error(
+      `photos step blocked before program: ${validationIssues.join(" | ") || "no validation banner"}`
+    );
+  }
+}
+
+async function clickWizardNextToStep(page: Page, expectedStepId: string, blockedLabel: string): Promise<void> {
+  await settleOperatorWizardDraftSync(page);
+  await waitForWizardNextReady(page);
+  await page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next).click();
+  const step = page.locator(`[data-wizard-step="${expectedStepId}"]`);
+  const reached = await step.isVisible({ timeout: 12_000 }).catch(() => false);
+  if (!reached) {
+    const validationIssues = await readWizardStepValidationIssues(page);
+    throw new Error(
+      `${blockedLabel}: ${validationIssues.join(" | ") || "no validation banner"}`
+    );
+  }
+}
+
+export async function fillDenaliWizardLogisticsMinimal(page: Page): Promise<void> {
+  await expect(page.locator('[data-wizard-step="denali_logistics"]')).toBeVisible({
+    timeout: 30_000,
+  });
+  const transport = page.getByTestId("denali-composite-transport");
+  await expect(transport).toBeVisible({ timeout: 15_000 });
+  await transport.getByRole("combobox").selectOption("none");
+  await clickWizardNextToStep(page, "denali_pricing", "logistics step blocked before pricing");
+}
+
+export async function fillDenaliWizardPricingMinimal(page: Page): Promise<void> {
+  await expect(page.locator('[data-wizard-step="denali_pricing"]')).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId("denali-composite-pricing-participants")).toBeVisible({
+    timeout: 15_000,
+  });
+  await fillWizardNumericField(page, /حداقل سن|minimumAge|Minimum age/i, "18");
+  const fitnessSelect = page
+    .getByTestId("denali-composite-pricing-participants")
+    .getByRole("combobox", { name: /سطح آمادگی|Fitness level/i });
+  if (await fitnessSelect.isVisible().catch(() => false)) {
+    await fitnessSelect.selectOption("medium");
+  }
+  await clickWizardNextToStep(page, "denali_legal", "pricing step blocked before legal");
+}
+
+export async function fillDenaliWizardLegalMinimal(page: Page): Promise<void> {
+  await expect(page.locator('[data-wizard-step="denali_legal"]')).toBeVisible({ timeout: 30_000 });
+  await settleOperatorWizardDraftSync(page);
+}
+
+/** Full multi-day path through published tenant template (ends on legal — review is Layer C overlay). */
+export async function fillDenaliMultiDayWizardThroughLegal(page: Page, title: string): Promise<void> {
+  await fillDenaliMultiDayWizardBasics(page, title);
+  await fillDenaliWizardPhotosMinimal(page);
+  await fillDenaliWizardProgramMinimal(page);
+  await fillDenaliWizardLogisticsMinimal(page);
+  await fillDenaliWizardPricingMinimal(page);
+  await fillDenaliWizardLegalMinimal(page);
+  await expect(page.locator("[data-wizard-footer]").getByRole("button", { name: /Create tour|ساخت تور/i })).toBeVisible({
+    timeout: 15_000,
+  });
+}
+
+async function fillItineraryDayMinimal(
+  page: Page,
+  dayNumber: number,
+  dayTitle: string,
+  segmentTitle: string
+): Promise<void> {
+  const day = page.getByTestId(DENALI_ITINERARY_TEST_IDS.day(dayNumber));
+  await expect(day).toBeVisible({ timeout: 15_000 });
+  await day.getByRole("textbox", { name: /عنوان روز|Day title/i }).fill(dayTitle);
+  await day.getByRole("textbox", { name: /^عنوان$|^Title$/i }).first().fill(segmentTitle);
+}
+
+export async function submitDenaliWizardDraftCreate(page: Page): Promise<void> {
+  const createButton = page
+    .locator("[data-wizard-footer]")
+    .getByRole("button", { name: /Create tour|ساخت تور/i });
+  await expect(createButton).toBeEnabled({ timeout: 30_000 });
+  await createButton.click();
+
+  const created = page.locator("[data-tour-created]");
+  const submitError = page.locator("[data-tour-create-error]");
+  const settled = await Promise.race([
+    created.waitFor({ state: "visible", timeout: 60_000 }).then(() => "created" as const),
+    submitError.waitFor({ state: "visible", timeout: 60_000 }).then(() => "error" as const),
+  ]).catch(() => "timeout" as const);
+
+  if (settled === "created") {
+    return;
+  }
+
+  const validationIssues = await readWizardStepValidationIssues(page);
+  const submitMessage =
+    settled === "error" ? (await submitError.textContent())?.trim() : undefined;
+  throw new Error(
+    `wizard submit failed: ${submitMessage ?? "timeout"} — ${
+      validationIssues.join(" | ") || "no validation banner"
+    }`
+  );
+}
+
+/** Required program fields for mountain multi-day (rule matrix + full template). */
+export async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> {
+  await expect(page.locator('[data-wizard-step="denali_program"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary)).toBeVisible({
+    timeout: 30_000,
+  });
+
+  const difficultySlider = page.getByTestId("denali-difficulty-slider");
+  await expect(difficultySlider).toBeVisible({ timeout: 15_000 });
+  await difficultySlider.fill("6");
+
+  await fillWizardNumericField(
+    page,
+    /مدت تقریبی پیاده|Approximate hiking hours|hikingHoursApprox/i,
+    "8"
+  );
+
+  await fillItineraryDayMinimal(page, 1, "روز اول تست", "فعالیت صبح");
+  await fillItineraryDayMinimal(page, 2, "روز دوم تست", "بازگشت");
+
+  await clickWizardNextToStep(page, "denali_logistics", "program step blocked before logistics");
 }

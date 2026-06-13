@@ -236,7 +236,7 @@ export function applyWizardTemplateToRenderPlan<
     }
     const engineStep =
       engineStepById.get(templateStep.stepId) ??
-      ({ stepId: templateStep.stepId, fields: [] } as TStep);
+      ({ stepId: templateStep.stepId, fields: [] } as unknown as TStep);
 
     const orderedFields: TField[] = [];
     for (const templateField of templateStep.fields) {

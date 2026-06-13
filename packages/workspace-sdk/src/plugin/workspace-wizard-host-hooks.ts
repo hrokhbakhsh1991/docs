@@ -72,6 +72,7 @@ export type WorkspaceWizardHostHooks = {
     readonly draft: Readonly<Record<string, unknown>>;
     readonly rulesModule: unknown;
     readonly tenantId: string;
+    readonly evalContext?: unknown;
     readonly scope?: {
       readonly stepId?: string;
       readonly visibleSteps?: readonly unknown[];

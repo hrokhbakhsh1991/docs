@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -19,20 +19,29 @@ import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
 type ProfileSettingsClientProps = {
   readonly session: OperatorSessionContext;
+  readonly initialProfile?: OperatorProfile | null;
 };
 
-export function ProfileSettingsClient({ session }: ProfileSettingsClientProps) {
+export function ProfileSettingsClient({
+  session,
+  initialProfile = null,
+}: ProfileSettingsClientProps) {
   const t = useTranslations("settings.profile");
   const tErrors = useTranslations("settings.errors");
   const tCommon = useTranslations("common");
-  const [profile, setProfile] = useState<OperatorProfile | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<OperatorProfile | null>(initialProfile);
+  const [displayName, setDisplayName] = useState(initialProfile?.displayName ?? "");
+  const [loading, setLoading] = useState(initialProfile === null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const skipInitialFetchRef = useRef(initialProfile !== null);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

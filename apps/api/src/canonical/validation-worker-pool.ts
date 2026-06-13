@@ -267,7 +267,7 @@ function getValidationWorkerPool(): ValidationWorkerPool {
 export async function runValidationOffThread(
   input: ValidateBeforePersistInput
 ): Promise<CanonicalDocument> {
-  if (!isValidationWorkersEnabled()) {
+  if (!isValidationWorkersEnabled() || input.workspaceType === "denali") {
     return validateCanonicalBeforePersistSync(input);
   }
   return getValidationWorkerPool().run(input);

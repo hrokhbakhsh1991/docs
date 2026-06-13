@@ -1,8 +1,8 @@
-baseline_sha: "0a9f2fb"
-baseline_source: reports/phase-7-genericity-baseline.yaml
+baseline_sha: "5f0baf05"
+baseline_source: reports/phase-9-genericity-baseline.yaml
 phase: 9
-recorded_at: "2026-06-08"
+recorded_at: "2026-06-13"
 post_phase_8_closure: true
 note: >
-  Phase 9 operator admin work must keep packages/platform-core diff empty (INV-P9-001).
-  Baseline pinned at Phase 8 closure merge on main (0a9f2fb).
+  Re-baselined after Phase 12.8 wizard host hooks and ingress strip landed on main (5f0baf05).
+  Future Phase 9 admin work must keep packages/platform-core diff empty vs this SHA (INV-P9-001).

@@ -1,6 +1,5 @@
 import type {
   DestinationResource,
-  GuideLanguageResource,
   TourThemeResource,
 } from "@/features/settings/settings-module-types";
 import type { UsersDirectoryRow } from "@/features/users/users-directory-types";

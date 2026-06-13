@@ -17,16 +17,19 @@ async function warmPostListen(): Promise<void> {
     { startProjectionAutoReconcileIfEnabled },
     { bootstrapDenaliWizardTemplatesIfNeeded },
     { bootstrapOperatorSmokeCatalogIfNeeded },
+    { bootstrapDenaliDevSmokeFixturesIfNeeded },
   ] = await Promise.all([
     import("./outbox/start-outbox-relay"),
     import("./outbox/start-projection-auto-reconcile"),
     import("./settings/bootstrap-denali-wizard-template"),
     import("./settings/bootstrap-operator-smoke-catalog"),
+    import("./settings/bootstrap-denali-dev-smoke-fixtures"),
   ]);
   startOutboxRelayIfEnabled();
   startProjectionAutoReconcileIfEnabled();
   await bootstrapDenaliWizardTemplatesIfNeeded();
   await bootstrapOperatorSmokeCatalogIfNeeded();
+  await bootstrapDenaliDevSmokeFixturesIfNeeded();
 }
 
 function createDeferredAppListener(appDeps: AppDeps): AppRequestListener {

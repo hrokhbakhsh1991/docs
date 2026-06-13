@@ -11,6 +11,13 @@ export const DENALI_COMPOSITE_ANCHOR_BY_ZOD_KIND: Partial<Record<DenaliZodFieldK
   transportMode: "transport.mode",
 };
 
+/** Composite anchor → dependent canonical paths rendered inside the same widget (INV-WIZ-002). */
+export const DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR: Readonly<
+  Record<string, readonly string[]>
+> = Object.freeze({
+  "program.themeIds": ["program.shortDescription", "program.longDescription"],
+});
+
 /** Paths rendered by a composite widget anchored on another registry row. */
 export const DENALI_COMPOSITE_DEPENDENT_PATHS = new Set<string>([
   "duration",

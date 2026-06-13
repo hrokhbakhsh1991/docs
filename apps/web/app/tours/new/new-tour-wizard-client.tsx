@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 import { mapValidationResultToIssues, type ValidationIssue } from "@app-tour/wizard-navigation";
@@ -54,6 +54,7 @@ import {
 } from "@/tours/wizard-template-gate-logic";
 import {
   applyWizardTemplatePrefillToDraft,
+  ensureDenaliWizardDraftDefaults,
   WIZARD_TEMPLATE_PREFILL_TEST_IDS,
 } from "@/tours/wizard-template-prefill-logic";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
@@ -81,6 +82,7 @@ import {
 import { buildDenaliWizardRuleEvalContext, type DenaliWizardRuleEvalContext } from "@/wizard/denali/denali-wizard-ui-context";
 import type { CreateTourPayload } from "@app-tour/workspace-sdk";
 import { WorkspaceWizardHost } from "@/wizard/workspace-wizard-host";
+import { DenaliWizardCatalogPrefetchProvider } from "@/wizard/denali/denali-wizard-catalog-prefetch-context";
 
 const INITIAL_GATE_STATE: WizardTemplateGateState = {
   loading: true,
@@ -105,7 +107,13 @@ function buildPrefilledForm(
   );
 }
 
-export function NewTourWizardClient() {
+export function NewTourWizardClient({
+  initialTemplateResponse = null,
+  initialLocationsResponse = null,
+}: {
+  readonly initialTemplateResponse?: unknown | null;
+  readonly initialLocationsResponse?: unknown | null;
+}) {
   const t = useTranslations("wizard");
   const searchParams = useSearchParams();
   const session = useAppSession();
@@ -117,7 +125,12 @@ export function NewTourWizardClient() {
   const presetId = useMemo(() => resolvePresetId(searchParams.get("preset")), [searchParams]);
   const [localDraft, setLocalDraft] = useState(() => emptyTourWizardDraft());
   const [localStepIndex, setLocalStepIndex] = useState(0);
-  const [gate, setGate] = useState<WizardTemplateGateState>(INITIAL_GATE_STATE);
+  const [gate, setGate] = useState<WizardTemplateGateState>(() =>
+    initialTemplateResponse !== null
+      ? resolveWizardTemplateGateState(initialTemplateResponse, session.pluginId)
+      : INITIAL_GATE_STATE
+  );
+  const skipInitialGateFetchRef = useRef(initialTemplateResponse !== null);
   const [cloneStatus, setCloneStatus] = useState<TourCloneHydrateStatus>("idle");
   const [cloneError, setCloneError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -184,12 +197,30 @@ export function NewTourWizardClient() {
     hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, session.pluginId),
   });
 
+  useEffect(() => {
+    if (!isDenali || draftSync.data === null) {
+      return;
+    }
+    if (draftSync.status === "SYNCING" || draftSync.status === "CONFLICT_RESOLVING") {
+      return;
+    }
+    const migrated = ensureDenaliWizardDraftDefaults(draftSync.data.form);
+    if (JSON.stringify(migrated.data) === JSON.stringify(draftSync.data.form.data)) {
+      return;
+    }
+    draftSync.setData(denaliPrepareDraftEnvelope(migrated, draftSync.data.meta));
+  }, [isDenali, draftSync.data, draftSync.status, draftSync.setData]);
+
   const draftIndex = useWorkspaceDraftIndex(
     isDenali ? session.workspaceId : undefined,
     DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE
   );
 
   useEffect(() => {
+    if (skipInitialGateFetchRef.current) {
+      skipInitialGateFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     void fetch("/api/settings/tour-wizard-template", { cache: "no-store" })
       .then(async (response) => {
@@ -516,6 +547,7 @@ export function NewTourWizardClient() {
     setSubmitError(null);
     setSubmitValidationIssues(null);
     startTransition(async () => {
+      try {
       if (isDenali) {
         if (denaliRules == null) {
           setSubmitError(t("submit.errorGeneric", { status: 0, code: "DENALI_RULES_NOT_READY" }));
@@ -539,7 +571,14 @@ export function NewTourWizardClient() {
             wizardRuleEvalContext
           );
         } else {
-          validation = validateDenaliWizardDraftSync(plugin, draft, denaliRules, session.tenantId);
+          validation = validateDenaliWizardDraftSync(
+            plugin,
+            draft,
+            denaliRules,
+            session.tenantId,
+            undefined,
+            wizardRuleEvalContext
+          );
         }
         if (!validation.ok) {
           const resolveStepId = buildFieldStepResolverFromTemplate(gate.templateSteps);
@@ -619,8 +658,8 @@ export function NewTourWizardClient() {
           setSubmitError(t("submit.errorGeneric", { status: result.status, code: result.code }));
           return;
         }
-        await draftSync.clearDraft();
         setCreatedTourId(result.record.id);
+        void draftSync.clearDraft();
         return;
       }
       const result = await createTourAction({ data: draft.data });
@@ -629,6 +668,9 @@ export function NewTourWizardClient() {
         return;
       }
       setCreatedTourId(result.record.id);
+      } catch {
+        setSubmitError(t("submit.errorGeneric", { status: 0, code: "WIZARD_SUBMIT_FAILED" }));
+      }
     });
   };
 
@@ -677,6 +719,7 @@ export function NewTourWizardClient() {
   }
 
   return (
+    <DenaliWizardCatalogPrefetchProvider initialLocationsResponse={initialLocationsResponse}>
     <div className="new-tour-wizard-page" data-new-tour-wizard>
       <header className="new-tour-wizard-page__header">
         <div className="new-tour-wizard-page__header-main">
@@ -791,5 +834,6 @@ export function NewTourWizardClient() {
         )}
       />
     </div>
+    </DenaliWizardCatalogPrefetchProvider>
   );
 }

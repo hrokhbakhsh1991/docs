@@ -17,6 +17,7 @@ import type {
   UserRoleAuditInsert,
   UserRoleAuditRecord,
 } from "./in-memory-identity.repository";
+import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
 import {
   InviteNotFoundError,
   MembershipNotFoundError,
@@ -25,7 +26,7 @@ import {
 } from "./in-memory-identity.repository";
 
 function normalizeMobile(mobile: string): string {
-  return mobile.trim();
+  return canonicalizeLoginMobile(mobile);
 }
 
 function membershipKey(userId: string, tenantId: string): string {

@@ -1,17 +1,30 @@
 import { decodeJwtPayload, isJwtExpired } from "@/auth/decode-jwt-payload";
+import { verifySessionJwtSignature } from "@/auth/verify-session-jwt-signature";
 
 export type SessionTokenValidationStatus = "valid" | "missing" | "expired" | "invalid_claims";
 
 export type SessionTokenValidation =
-  | { status: "valid"; userId: string; tenantId: string; role?: string }
+  | {
+      status: "valid";
+      userId: string;
+      tenantId: string;
+      workspaceId?: string;
+      role?: string;
+    }
   | { status: "missing" }
   | { status: "expired" }
   | { status: "invalid_claims" };
 
-export function validateSessionToken(raw: string | undefined | null): SessionTokenValidation {
+export async function validateSessionToken(
+  raw: string | undefined | null
+): Promise<SessionTokenValidation> {
   const token = typeof raw === "string" ? raw.trim() : "";
   if (token.length === 0) {
     return { status: "missing" };
+  }
+
+  if (!(await verifySessionJwtSignature(token))) {
+    return { status: "invalid_claims" };
   }
 
   const claims = decodeJwtPayload(token);
@@ -26,5 +39,13 @@ export function validateSessionToken(raw: string | undefined | null): SessionTok
   }
 
   const role = typeof claims?.role === "string" ? claims.role.trim() : undefined;
-  return { status: "valid", userId, tenantId, role };
+  const workspaceId =
+    typeof claims?.workspace_id === "string" ? claims.workspace_id.trim() : undefined;
+  return {
+    status: "valid",
+    userId,
+    tenantId,
+    ...(workspaceId !== undefined && workspaceId.length > 0 ? { workspaceId } : {}),
+    role,
+  };
 }

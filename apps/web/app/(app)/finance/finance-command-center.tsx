@@ -17,13 +17,31 @@ import { FinanceOverviewPanel } from "@/finance/finance-overview-panel";
 import { FinancePaymentsPanel } from "@/finance/finance-payments-panel";
 import { FinancePrepaymentsPanel } from "@/finance/finance-prepayments-panel";
 import { FinanceReceiptsPanel } from "@/finance/finance-receipts-panel";
+import type { FinanceOverviewServerPrefetch } from "@/finance/fetch-finance-overview.server";
+import type { FinancePaymentsListResponse } from "@/finance/finance-payments-logic";
+import type { FinancePendingReceiptsResponse } from "@/finance/finance-receipts-logic";
+import type { FinanceLedgerListResponse } from "@/finance/finance-reports-logic";
+import type { PrepaymentsListResponse } from "@/finance/finance-prepayments-logic";
 
 type FinanceCommandCenterProps = {
   readonly session: OperatorSessionContext;
   readonly initialTab?: string;
+  readonly initialOverview?: FinanceOverviewServerPrefetch | null;
+  readonly initialPayments?: FinancePaymentsListResponse | null;
+  readonly initialReceipts?: FinancePendingReceiptsResponse | null;
+  readonly initialLedger?: FinanceLedgerListResponse | null;
+  readonly initialPrepayments?: PrepaymentsListResponse | null;
 };
 
-export function FinanceCommandCenter({ session, initialTab }: FinanceCommandCenterProps) {
+export function FinanceCommandCenter({
+  session,
+  initialTab,
+  initialOverview = null,
+  initialPayments = null,
+  initialReceipts = null,
+  initialLedger = null,
+  initialPrepayments = null,
+}: FinanceCommandCenterProps) {
   const t = useTranslations("finance.commandCenter");
   const activeTab = useMemo(() => parseFinanceTab(initialTab), [initialTab]);
 
@@ -54,12 +72,20 @@ export function FinanceCommandCenter({ session, initialTab }: FinanceCommandCent
         ))}
       </nav>
 
-      {activeTab === "overview" ? <FinanceOverviewPanel /> : null}
-      {activeTab === "payments" ? <FinancePaymentsPanel session={session} /> : null}
-      {activeTab === "receipts" ? <FinanceReceiptsPanel session={session} /> : null}
-      {activeTab === "prepayments" ? <FinancePrepaymentsPanel session={session} /> : null}
+      {activeTab === "overview" ? <FinanceOverviewPanel initialOverview={initialOverview} /> : null}
+      {activeTab === "payments" ? (
+        <FinancePaymentsPanel session={session} initialPayments={initialPayments} />
+      ) : null}
+      {activeTab === "receipts" ? (
+        <FinanceReceiptsPanel session={session} initialReceipts={initialReceipts} />
+      ) : null}
+      {activeTab === "prepayments" ? (
+        <FinancePrepaymentsPanel session={session} initialPrepayments={initialPrepayments} />
+      ) : null}
       {activeTab === "installments" ? <FinanceInstallmentsPanel session={session} /> : null}
-      {activeTab === "ledger" ? <FinanceLedgerPanel session={session} /> : null}
+      {activeTab === "ledger" ? (
+        <FinanceLedgerPanel session={session} initialLedger={initialLedger} />
+      ) : null}
     </div>
   );
 }

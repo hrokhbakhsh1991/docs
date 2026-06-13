@@ -3,6 +3,7 @@ import type {
   WizardTemplateConfigResponse,
   WizardTemplateFieldRef,
 } from "@/features/settings/wizard-template-types";
+import { patchDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
 
 import { getCanonicalStringValue, setCanonicalStringValue } from "./tour-wizard-draft-path";
 import type { TourWizardDraft } from "./tour-wizard-draft";
@@ -101,6 +102,24 @@ function applyDenaliPublishStatusDraftDefault(
   return setCanonicalStringValue(draft, "publishStatus", "draft");
 }
 
+/** Align draft with tour-kind UI defaults (mountain + single_day → mountain_day). */
+export function applyDenaliDefaultCategoryDraft(draft: TourWizardDraft): TourWizardDraft {
+  const current = getCanonicalStringValue(draft, "category").trim();
+  if (current.length > 0) {
+    return draft;
+  }
+  const defaultSlug = patchDenaliCanonicalBasics(undefined, {
+    category: "mountain",
+    duration: "single_day",
+  });
+  return setCanonicalStringValue(draft, "category", defaultSlug);
+}
+
+/** Idempotent migration for hydrated operator drafts (category shell, etc.). */
+export function ensureDenaliWizardDraftDefaults(draft: TourWizardDraft): TourWizardDraft {
+  return applyDenaliDefaultCategoryDraft(draft);
+}
+
 export function applyWizardTemplatePrefillToDraft(
   draft: TourWizardDraft,
   seedLabel: string,
@@ -112,9 +131,11 @@ export function applyWizardTemplatePrefillToDraft(
     pluginId === "denali"
       ? applyDenaliPublishStatusDraftDefault(withDefaults, fieldOverlays)
       : withDefaults;
+  const withCategoryDefault =
+    pluginId === "denali" ? applyDenaliDefaultCategoryDraft(withPublishDefault) : withPublishDefault;
   const seedPath = resolveWizardTemplateSeedCanonicalPath(pluginId);
   const overlayDefault = fieldOverlays.get(seedPath)?.defaultValue;
-  return applyWizardTemplateSeedToDraft(withPublishDefault, seedLabel, pluginId, {
+  return applyWizardTemplateSeedToDraft(withCategoryDefault, seedLabel, pluginId, {
     overlayDefaultValue: overlayDefault,
   });
 }

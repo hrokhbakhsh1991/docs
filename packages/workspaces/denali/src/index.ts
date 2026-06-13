@@ -30,6 +30,7 @@ export {
 export {
   buildDenaliFullWizardTemplatePayload,
   buildDenaliFullWizardTemplateSteps,
+  buildDenaliTenantWizardTemplatePayload,
 } from "./settings/denaliFullWizardTemplate";
 export {
   DENALI_CREATE_TOUR_DRAFT_KEY,

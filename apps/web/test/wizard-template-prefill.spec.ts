@@ -5,12 +5,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
-import { getCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
+import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
 import { buildWizardTemplateFieldOverlays } from "../src/tours/wizard-template-gate-logic";
 import {
   applyWizardTemplateDefaultsToDraft,
   applyWizardTemplatePrefillToDraft,
   applyWizardTemplateSeedToDraft,
+  ensureDenaliWizardDraftDefaults,
   extractSeedLabelFromTemplateResponse,
   parseWizardTemplateSeedForPrefill,
   resolveWizardTemplateSeedCanonicalPath,
@@ -114,5 +115,23 @@ describe("wizard-template-prefill.spec.ts — SMK-P9-05", () => {
       "denali"
     );
     assert.equal(getCanonicalStringValue(draft, "publishStatus"), "draft");
+  });
+
+  it("denali prefill seeds default category slug (mountain_day)", () => {
+    const draft = applyWizardTemplatePrefillToDraft(
+      emptyTourWizardDraft(),
+      "تور جدید",
+      new Map(),
+      "denali"
+    );
+    assert.equal(getCanonicalStringValue(draft, "category"), "mountain_day");
+  });
+
+  it("ensureDenaliWizardDraftDefaults migrates hydrated drafts missing category", () => {
+    const draft = ensureDenaliWizardDraftDefaults(
+      setCanonicalStringValue(emptyTourWizardDraft(), "title", "Saved draft")
+    );
+    assert.equal(getCanonicalStringValue(draft, "category"), "mountain_day");
+    assert.equal(getCanonicalStringValue(draft, "title"), "Saved draft");
   });
 });

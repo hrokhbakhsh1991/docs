@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,22 +20,38 @@ import {
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import type { FinanceOverviewServerPrefetch } from "./fetch-finance-overview.server";
 
-export function FinanceOverviewPanel() {
+type FinanceOverviewPanelProps = {
+  readonly initialOverview?: FinanceOverviewServerPrefetch | null;
+};
+
+export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverviewPanelProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("finance.overview");
   const tKpi = useTranslations("finance.kpi");
   const tCommon = useTranslations("finance.common");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialOverview === null);
   const [error, setError] = useState<string | null>(null);
   const [fetchNonce, setFetchNonce] = useState(0);
-  const [summary, setSummary] = useState(parseFinanceSummary(null));
-  const [ledgerItems, setLedgerItems] = useState(parseFinanceLedgerListResponse(null).items);
-  const [overdueInstallments, setOverdueInstallments] = useState(0);
+  const [summary, setSummary] = useState(
+    initialOverview?.summary ?? parseFinanceSummary(null)
+  );
+  const [ledgerItems, setLedgerItems] = useState(
+    initialOverview?.ledgerItems ?? parseFinanceLedgerListResponse(null).items
+  );
+  const [overdueInstallments, setOverdueInstallments] = useState(
+    initialOverview?.overdueInstallments ?? 0
+  );
+  const skipInitialFetchRef = useRef(initialOverview !== null);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

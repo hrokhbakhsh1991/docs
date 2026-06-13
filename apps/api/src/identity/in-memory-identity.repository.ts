@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { ActorRole, MembershipStatus } from "@app-tour/workspace-sdk";
 
+import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
 import type { InvitableWorkspaceRole } from "./users.types";
 
 export type IdentityUserRecord = {
@@ -607,5 +608,5 @@ function membershipKey(userId: string, tenantId: string): string {
 }
 
 function normalizeMobile(mobile: string): string {
-  return mobile.trim();
+  return canonicalizeLoginMobile(mobile);
 }

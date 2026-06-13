@@ -216,6 +216,7 @@ export {
 export {
   patchDenaliCanonicalBasics,
   readDenaliCanonicalBasics,
+  type DenaliCanonicalBasicsSelection,
 } from "./adapters/canonical-basics";
 export {
   buildDenaliTourCreateDefaultValues,
@@ -227,6 +228,7 @@ export { getDenaliFieldCompletionWeight } from "./field-registry/denaliFieldComp
 export {
   buildDenaliFullWizardTemplatePayload,
   buildDenaliFullWizardTemplateSteps,
+  buildDenaliTenantWizardTemplatePayload,
 } from "./settings/denaliFullWizardTemplate";
 export {
   prepareDenaliSubmitArtifact,

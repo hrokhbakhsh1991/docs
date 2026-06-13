@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Check, Plus, Search, X } from "lucide-react";
 import type { VariantProps } from "class-variance-authority";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BookingActivityTimeline } from "@/admin/patterns/booking-activity-timeline";
 import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
@@ -47,13 +47,19 @@ import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
 import { resolveBookingsPageBodyState } from "./bookings-command-center-gate";
+import type { BookingsServerPrefetch } from "@/features/bookings/fetch-bookings-list.server";
 
 type BookingsPageClientProps = {
   readonly session: OperatorSessionContext;
   readonly leaderAlias?: boolean;
+  readonly initialPrefetch?: BookingsServerPrefetch | null;
 };
 
-export function BookingsPageClient({ session, leaderAlias = false }: BookingsPageClientProps) {
+export function BookingsPageClient({
+  session,
+  leaderAlias = false,
+  initialPrefetch = null,
+}: BookingsPageClientProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("bookings");
   const tErrors = useTranslations("bookings.errors");
@@ -75,14 +81,28 @@ export function BookingsPageClient({ session, leaderAlias = false }: BookingsPag
   );
 
   const [searchInput, setSearchInput] = useState(query.search);
-  const [listData, setListData] = useState<BookingsListResponse | null>(null);
-  const [summary, setSummary] = useState<BookingsSummaryResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [fetchNonce, setFetchNonce] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => readBookingIdFromCommandCenterParams(new URLSearchParams(searchParams.toString())) || null
+  const [listData, setListData] = useState<BookingsListResponse | null>(
+    initialPrefetch?.list ?? null
   );
+  const [summary, setSummary] = useState<BookingsSummaryResponse | null>(
+    initialPrefetch?.summary ?? null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(initialPrefetch === null);
+  const [fetchNonce, setFetchNonce] = useState(0);
+  const skipInitialFetchRef = useRef(initialPrefetch !== null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    const bookingIdFromUrl = readBookingIdFromCommandCenterParams(
+      new URLSearchParams(searchParams.toString())
+    );
+    if (
+      bookingIdFromUrl.length > 0 &&
+      initialPrefetch?.list.items.some((item) => item.id === bookingIdFromUrl)
+    ) {
+      return bookingIdFromUrl;
+    }
+    return initialPrefetch?.list.items[0]?.id ?? null;
+  });
   const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([]);
   const [actionBusy, setActionBusy] = useState(false);
 
@@ -106,6 +126,10 @@ export function BookingsPageClient({ session, leaderAlias = false }: BookingsPag
   }, [pathname, query, router, searchInput]);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

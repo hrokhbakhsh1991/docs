@@ -36,15 +36,13 @@ run_as_app() {
 run_as_app "
   set -euo pipefail
   cd '$DEPLOY_PATH'
-  corepack enable
-  corepack prepare pnpm@9.12.0 --activate
-  node -v | grep -q '^v24\\.' || { echo 'Node 24 required'; exit 1; }
-  pnpm install --frozen-lockfile
+  /usr/local/bin/pnpm install --frozen-lockfile
   bash scripts/vps-deploy/build-operator-vps.sh
   set -a
   source '$ENV_DIR/api.env'
   set +a
   pnpm run db:migrate:deploy
+  cd apps/api && pnpm exec tsx -e \"import { seedDenaliOperatorIdentity } from './scripts/seed-denali-operator-identity.ts'; seedDenaliOperatorIdentity().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); })\"
 "
 
 log "restart services"

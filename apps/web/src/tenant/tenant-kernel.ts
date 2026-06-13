@@ -17,4 +17,6 @@ export {
   toSerializableBootstrap,
 } from "./tenant-kernel.server";
 
+export { resolveRequestBootstrapAppSession } from "./resolve-request-bootstrap.server";
+
 export { hydrateBootstrapSession } from "./hydrate-bootstrap-session.client";

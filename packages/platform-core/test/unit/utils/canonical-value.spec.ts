@@ -103,4 +103,13 @@ describe("assertCanonicalValueMatchesKind", () => {
       },
     );
   });
+
+  it("accepts localized Persian digit strings for number fields", () => {
+    assert.doesNotThrow(() =>
+      assertCanonicalValueMatchesKind("۱۲", "number", "capacityMax")
+    );
+    assert.doesNotThrow(() =>
+      assertCanonicalValueMatchesKind("5610", "number", "tripDetails.overview.peakHeight")
+    );
+  });
 });

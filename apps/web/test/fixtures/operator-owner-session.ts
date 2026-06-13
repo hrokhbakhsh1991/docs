@@ -66,3 +66,27 @@ export async function loginOperatorWithPhone(
 export async function loginOperatorOwner(page: Page): Promise<void> {
   await loginOperatorWithPhone(page, OPERATOR_OWNER_MOBILE);
 }
+
+/** Resolve workspace id from BFF session (draft API namespace). */
+export async function resolveOperatorWorkspaceId(page: Page): Promise<string> {
+  const sessionRes = await page.request.get("/api/auth/session");
+  expect(sessionRes.ok()).toBeTruthy();
+  const session = (await sessionRes.json()) as {
+    workspace_id?: string | null;
+    workspaceId?: string | null;
+  };
+  let workspaceId = (session.workspace_id ?? session.workspaceId ?? "").trim();
+  if (workspaceId.length > 0) {
+    return workspaceId;
+  }
+
+  const abilityRes = await page.request.get("/api/auth/membership-ability-context");
+  expect(abilityRes.ok()).toBeTruthy();
+  const ability = (await abilityRes.json()) as {
+    workspace_id?: string | null;
+    workspaceId?: string | null;
+  };
+  workspaceId = (ability.workspaceId ?? ability.workspace_id ?? "").trim();
+  expect(workspaceId.length).toBeGreaterThan(0);
+  return workspaceId;
+}

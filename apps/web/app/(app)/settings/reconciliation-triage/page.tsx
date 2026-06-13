@@ -1,4 +1,5 @@
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
+import { fetchReconciliationTriageServer } from "@/finance/fetch-reconciliation-triage.server";
 import { buildSettingsPageMetadata } from "@/i18n/settings-page-metadata";
 
 import { ReconciliationTriageClient } from "./reconciliation-triage-client";
@@ -14,5 +15,6 @@ export default async function ReconciliationTriagePage() {
   if (session === null) {
     return null;
   }
-  return <ReconciliationTriageClient session={session} />;
+  const initialFindings = await fetchReconciliationTriageServer();
+  return <ReconciliationTriageClient session={session} initialFindings={initialFindings} />;
 }

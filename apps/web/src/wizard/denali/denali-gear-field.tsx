@@ -1,6 +1,5 @@
 "use client";
 
-import { readDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
 import { Check } from "lucide-react";
 import { Input } from "@app-tour/ui-primitives/input";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -13,6 +12,7 @@ import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
 
 import { isEquipmentVisibleInWizard } from "./denali-catalog-filters";
+import { resolveDenaliBasicsFromCategorySlug } from "./denali-tour-kind-labels";
 import { parseDenaliGearItems, type DenaliGearItem } from "./denali-gear-types";
 import { filterPickerItemsByQuery } from "./denali-picker-filter-logic";
 import { themeDisplayInitials, themeSwatchToneClass } from "./denali-theme-picker-logic";
@@ -80,7 +80,7 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
 
   const tourCategory = useMemo(() => {
     const tourKind = getCanonicalStringValue(draft, "category").trim();
-    return readDenaliCanonicalBasics(tourKind.length > 0 ? tourKind : undefined)?.category;
+    return resolveDenaliBasicsFromCategorySlug(tourKind)?.category;
   }, [draft]);
 
   const tourThemeIds = useMemo(

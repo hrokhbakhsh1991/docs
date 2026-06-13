@@ -2,7 +2,7 @@
 
 import { buildTourAuthHeaders, type CreateTourPayload, type TourRecordDto } from "@app-tour/workspace-sdk";
 
-import { resolveBootstrapAppSession } from "@/tenant/tenant-kernel";
+import { resolveRequestBootstrapAppSession } from "@/tenant/tenant-kernel";
 
 import { FetchTourClient } from "./fetch-tour-client";
 
@@ -84,7 +84,7 @@ function normalizeTourCreatePayload(
 }
 
 export async function createTourAction(payload: CreateTourPayload): Promise<CreateTourActionResult> {
-  const { context, session } = resolveBootstrapAppSession();
+  const { context, session } = await resolveRequestBootstrapAppSession();
   if (context.workspaceId === undefined) {
     throw new Error("WEB_SESSION_MISSING_WORKSPACE_ID");
   }

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SelectOption } from "@app-tour/ui-primitives/select";
 
 import type { DestinationResource } from "@/features/settings/settings-module-types";
 import { parseLocationsResponse } from "@/features/settings/locations-logic";
+
+import { useDenaliWizardCatalogPrefetch } from "./denali-wizard-catalog-prefetch-context";
 
 export type DenaliDestinationCatalogState = {
   readonly options: readonly SelectOption[];
@@ -13,17 +15,61 @@ export type DenaliDestinationCatalogState = {
   readonly error: string | null;
 };
 
-const EMPTY_STATE: DenaliDestinationCatalogState = {
+const EMPTY_LOADING_STATE: DenaliDestinationCatalogState = {
   options: [],
   destinationById: new Map(),
   loading: true,
   error: null,
 };
 
+function buildDestinationCatalogState(payload: ReturnType<typeof parseLocationsResponse>): DenaliDestinationCatalogState {
+  const regionById = new Map(payload.regions.map((region) => [region.id, region.name]));
+  const byId = new Map(payload.destinations.map((destination) => [destination.id, destination]));
+  return {
+    options: payload.destinations
+      .filter((destination) => destination.isActive)
+      .map((destination) => {
+        const regionName = regionById.get(destination.regionId);
+        const suffix = regionName ? ` (${regionName})` : "";
+        return {
+          value: destination.id,
+          label: `${destination.name}${suffix}`,
+        };
+      }),
+    destinationById: byId,
+    loading: false,
+    error: null,
+  };
+}
+
+function resolveInitialDestinationCatalogState(
+  initialLocationsResponse: unknown | null
+): DenaliDestinationCatalogState {
+  if (initialLocationsResponse == null) {
+    return EMPTY_LOADING_STATE;
+  }
+  try {
+    return buildDestinationCatalogState(parseLocationsResponse(initialLocationsResponse));
+  } catch {
+    return {
+      options: [],
+      destinationById: new Map(),
+      loading: false,
+      error: "LOCATIONS_PARSE_FAILED",
+    };
+  }
+}
+
 export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
-  const [state, setState] = useState<DenaliDestinationCatalogState>(EMPTY_STATE);
+  const { initialLocationsResponse } = useDenaliWizardCatalogPrefetch();
+  const skipInitialFetchRef = useRef(initialLocationsResponse !== null);
+  const [state, setState] = useState(() => resolveInitialDestinationCatalogState(initialLocationsResponse));
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     void fetch("/api/settings/resources/locations", { cache: "no-store" })
       .then(async (response) => {
@@ -36,23 +82,7 @@ export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
         if (cancelled) {
           return;
         }
-        const regionById = new Map(payload.regions.map((region) => [region.id, region.name]));
-        const byId = new Map(payload.destinations.map((destination) => [destination.id, destination]));
-        setState({
-          options: payload.destinations
-            .filter((destination) => destination.isActive)
-            .map((destination) => {
-              const regionName = regionById.get(destination.regionId);
-              const suffix = regionName ? ` (${regionName})` : "";
-              return {
-                value: destination.id,
-                label: `${destination.name}${suffix}`,
-              };
-            }),
-          destinationById: byId,
-          loading: false,
-          error: null,
-        });
+        setState(buildDestinationCatalogState(payload));
       })
       .catch((fetchError: unknown) => {
         if (!cancelled) {

@@ -1,3 +1,4 @@
+import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
 import {
   getIdentityRepository,
   type IdentityRepository,
@@ -7,7 +8,7 @@ import { findPendingInviteByPhone } from "./resolve-pending-invite-auth";
 const MIN_MOBILE_DIGITS = 8;
 
 export function normalizeLoginMobile(mobile: string): string {
-  return mobile.trim();
+  return canonicalizeLoginMobile(mobile);
 }
 
 export function isLoginMobileFormatValid(mobile: string): boolean {

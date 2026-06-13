@@ -59,8 +59,6 @@ export function buildDenaliFullWizardTemplateSteps(): readonly DenaliWizardTempl
       enabled: true,
       fields: [
         field("program.themeIds"),
-        field("program.shortDescription", true),
-        field("program.longDescription"),
         field("photos"),
       ],
     },
@@ -129,5 +127,16 @@ export function buildDenaliFullWizardTemplatePayload(
     published: true,
     sections: [],
     steps: buildDenaliFullWizardTemplateSteps(),
+  };
+}
+
+/** Tenant PUT payload — omits Layer C `review` / `publishStatus` (INV-WIZ-002 palette). */
+export function buildDenaliTenantWizardTemplatePayload(
+  seedLabel = "تور جدید"
+): DenaliFullWizardTemplatePayload {
+  const payload = buildDenaliFullWizardTemplatePayload(seedLabel);
+  return {
+    ...payload,
+    steps: payload.steps.filter((step) => step.stepId !== "review"),
   };
 }

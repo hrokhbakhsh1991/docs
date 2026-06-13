@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
@@ -42,6 +42,7 @@ import { TourCard } from "./tour-card";
 
 type OperatorToursPageClientProps = {
   readonly session: OperatorSessionContext;
+  readonly initialToursList?: OperatorTourListResponse | null;
 };
 
 function canManageTours(role: OperatorSessionContext["role"]): boolean {
@@ -54,7 +55,10 @@ const SORT_COLUMNS: readonly TourListQueryModel["sortBy"][] = [
   "price",
 ] as const;
 
-export function OperatorToursPageClient({ session }: OperatorToursPageClientProps) {
+export function OperatorToursPageClient({
+  session,
+  initialToursList = null,
+}: OperatorToursPageClientProps) {
   const t = useTranslations("tours");
   const tDenali = useTranslations("denali");
   const tErrors = useTranslations("tours.errors");
@@ -68,10 +72,11 @@ export function OperatorToursPageClient({ session }: OperatorToursPageClientProp
     [searchParams]
   );
   const [searchInput, setSearchInput] = useState(query.search);
-  const [data, setData] = useState<OperatorTourListResponse | null>(null);
+  const [data, setData] = useState<OperatorTourListResponse | null>(initialToursList);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialToursList === null);
   const [fetchNonce, setFetchNonce] = useState(0);
+  const skipInitialFetchRef = useRef(initialToursList !== null);
 
   const replaceQuery = useCallback(
     (next: TourListQueryModel) => {
@@ -95,6 +100,11 @@ export function OperatorToursPageClient({ session }: OperatorToursPageClientProp
   }, [query, replaceQuery, searchInput]);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);

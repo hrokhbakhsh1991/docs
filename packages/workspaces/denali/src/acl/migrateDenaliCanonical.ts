@@ -115,9 +115,12 @@ function projectLegacyFormToCanonicalData(
     writePath(data, "tripDetails", tripDetails);
   }
 
-  const photos = legacyForm.photosData;
-  if (photos != null && typeof photos === "object" && !Array.isArray(photos)) {
-    writePath(data, "photos", photos);
+  if (readPath(data, "pricing.paymentMode") === undefined) {
+    writePath(data, "pricing.paymentMode", "offline_receipt");
+  }
+
+  if (readPath(data, "publishStatus") === undefined) {
+    writePath(data, "publishStatus", "draft");
   }
 
   return data;

@@ -20,8 +20,8 @@ export function isDenaliTourKind(value: unknown): value is DenaliTourKind {
   return typeof value === "string" && DENALI_TOUR_KIND_SET.has(value);
 }
 
-export function denaliTourKindToIsMultiDay(kind: DenaliTourKind): boolean {
-  return kind.endsWith("_multi");
+export function denaliTourKindToIsMultiDay(kind: DenaliTourKind | undefined): boolean {
+  return typeof kind === "string" && kind.endsWith("_multi");
 }
 
 export function isDenaliEventTourKind(kind: DenaliTourKind): boolean {

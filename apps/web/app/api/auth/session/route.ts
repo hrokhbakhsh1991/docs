@@ -5,7 +5,7 @@ import { validateSessionToken } from "@/auth/validate-session-token";
 
 export async function GET(req: Request): Promise<NextResponse> {
   const token = readSessionTokenFromRequest(req);
-  const validation = validateSessionToken(token);
+  const validation = await validateSessionToken(token);
   if (validation.status !== "valid") {
     return NextResponse.json(
       { ok: false, error: { code: "AUTH_UNAUTHENTICATED", message: "Authentication required" } },
@@ -18,5 +18,6 @@ export async function GET(req: Request): Promise<NextResponse> {
     user_id: validation.userId,
     tenant_id: validation.tenantId,
     role: validation.role ?? null,
+    ...(validation.workspaceId !== undefined ? { workspace_id: validation.workspaceId } : {}),
   });
 }

@@ -20,14 +20,22 @@ import {
   type SettingsModulesListResponse,
 } from "@/features/settings/settings-module-types";
 
-export function SettingsHubClient() {
+export function SettingsHubClient({
+  initialModules = null,
+}: {
+  readonly initialModules?: SettingsModulesListResponse | null;
+}) {
   const t = useTranslations("settings");
   const tErrors = useTranslations("settings.errors");
-  const [modules, setModules] = useState<SettingsModulesListResponse | null>(null);
+  const [modules, setModules] = useState<SettingsModulesListResponse | null>(initialModules);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialModules === null);
 
   useEffect(() => {
+    if (initialModules !== null) {
+      return;
+    }
+
     let cancelled = false;
     void fetch("/api/settings/modules", { cache: "no-store" })
       .then(async (response) => {
@@ -54,7 +62,7 @@ export function SettingsHubClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialModules]);
 
   const groups =
     modules === null ? [] : groupSettingsModulesByNav(modules.items);

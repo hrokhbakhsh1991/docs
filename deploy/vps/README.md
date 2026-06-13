@@ -42,6 +42,14 @@ First deploy manually:
 bash /opt/app-tour/scripts/vps-deploy/remote-deploy.sh
 ```
 
+Pre-commit hotfix sync from a local worktree (no `git push` yet):
+
+```bash
+bash scripts/vps-deploy/sync-worktree-to-deploy.sh
+sudo -u app-tour bash /opt/app-tour/scripts/vps-deploy/build-operator-vps.sh
+systemctl restart app-tour-api app-tour-web
+```
+
 Open firewall ports if needed:
 
 ```bash
@@ -75,6 +83,8 @@ ssh-keygen -t ed25519 -f /root/.ssh/github_deploy -N ""
 6. Health check on `:3001` and `:3000`
 
 ## systemd
+
+Units call `scripts/vps-deploy/start-api.sh` and `start-web.sh` (source `/etc/app-tour/*.env`, then tsx API + `next start` web).
 
 ```bash
 systemctl status app-tour-api app-tour-web

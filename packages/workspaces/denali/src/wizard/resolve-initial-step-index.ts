@@ -11,6 +11,23 @@ export type WizardResumeStepLike = {
   readonly fields: readonly { readonly canonicalPath: string; readonly hidden?: boolean }[];
 };
 
+/** System defaults must not advance resume inference on a fresh template-prefilled draft. */
+const RESUME_INFERENCE_EXCLUDED_CANONICAL_PATHS = new Set(["publishStatus"]);
+
+export function shouldCountCanonicalPathForResumeInference(
+  canonicalPath: string,
+  value: unknown
+): boolean {
+  const trimmed = canonicalPath.trim();
+  if (trimmed.length === 0 || !hasNonEmptyCanonicalValue(value)) {
+    return false;
+  }
+  if (RESUME_INFERENCE_EXCLUDED_CANONICAL_PATHS.has(trimmed)) {
+    return false;
+  }
+  return true;
+}
+
 export function hasNonEmptyCanonicalValue(value: unknown): boolean {
   if (value === null || value === undefined) {
     return false;
@@ -97,9 +114,8 @@ export function resolveDenaliInitialStepIndex(
         if (path.length === 0) {
           return false;
         }
-        return hasNonEmptyCanonicalValue(
-          readDenaliDraftFieldValue(draft, path, canonicalToFormPath)
-        );
+        const value = readDenaliDraftFieldValue(draft, path, canonicalToFormPath);
+        return shouldCountCanonicalPathForResumeInference(path, value);
       });
     if (hasData) {
       furthestStepWithData = stepIndex;

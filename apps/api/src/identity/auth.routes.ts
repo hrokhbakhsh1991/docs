@@ -232,6 +232,7 @@ export async function handleGetAuthAbilityContext(
       userId: auth.userId,
       tenantId: auth.tenantId,
       role: auth.role,
+      workspaceId: auth.workspaceId ?? null,
       capabilities: {
         canManageTenant: authz.canManageTenant(auth.tenantId),
       },

@@ -10,8 +10,12 @@ import {
   hasNonEmptyCanonicalValue,
   readDenaliDraftFieldValue,
   resolveDenaliWizardResumeStepIndex,
+  shouldCountCanonicalPathForResumeInference,
 } from "../src/draft/denali-wizard-resume-step";
-import { mergeDenaliWizardDraftEnvelope } from "../src/draft/denali-wizard-draft-merge";
+import {
+  mergeDenaliWizardDraftEnvelope,
+  resolveMergedWizardStepIndex,
+} from "../src/draft/denali-wizard-draft-merge";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 
 const TEMPLATE_STEPS = [
@@ -84,5 +88,24 @@ describe("denali-wizard-resume-step.spec.ts", () => {
     assert.equal(hasNonEmptyCanonicalValue("x"), true);
     assert.equal(hasNonEmptyCanonicalValue([{ name: "A" }]), true);
     assert.equal(hasNonEmptyCanonicalValue([{}]), false);
+  });
+
+  it("WEB-RESUME-06 merge keeps explicit step 0 within the same wizard session", () => {
+    const local = denaliPrepareDraftEnvelope(emptyTourWizardDraft(), {
+      currentStepIndex: 0,
+      wizardSessionId: "session-a",
+    });
+    const server = denaliPrepareDraftEnvelope(emptyTourWizardDraft(), {
+      currentStepIndex: 4,
+      wizardSessionId: "session-a",
+    });
+    assert.equal(resolveMergedWizardStepIndex(local.meta, server.meta), 0);
+    assert.equal(mergeDenaliWizardDraftEnvelope(local, server).meta.currentStepIndex, 0);
+  });
+
+  it("WEB-RESUME-07 ignores publishStatus system default for resume inference", () => {
+    const draft = { data: { publishStatus: "draft", title: "تور جدید" } };
+    assert.equal(shouldCountCanonicalPathForResumeInference("publishStatus", "draft"), false);
+    assert.equal(resolveDenaliWizardResumeStepIndex(draft, TEMPLATE_STEPS, 0), 0);
   });
 });

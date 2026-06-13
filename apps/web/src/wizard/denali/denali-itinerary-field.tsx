@@ -303,7 +303,7 @@ export function DenaliItineraryField({
 
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               data-testid={DENALI_ITINERARY_TEST_IDS.addSegment(day.dayNumber ?? dayIndex + 1)}
               onClick={() => addSegment(dayIndex)}
             >
@@ -315,7 +315,7 @@ export function DenaliItineraryField({
 
       <Button
         type="button"
-        variant="outline"
+        variant="secondary"
         onClick={() => writeDays(buildDefaultItineraryDays(targetDayCount))}
       >
         {t("composites.itinerary.resetRows", { count: targetDayCount })}

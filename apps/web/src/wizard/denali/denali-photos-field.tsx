@@ -249,7 +249,7 @@ export function DenaliPhotosField({
                 </p>
               ) : null}
             </label>
-            <Button type="button" variant="outline" onClick={() => removePhoto(index)}>
+            <Button type="button" variant="secondary" onClick={() => removePhoto(index)}>
               {t("composites.photos.removePhoto")}
             </Button>
           </section>

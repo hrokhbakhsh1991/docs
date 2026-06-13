@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -24,21 +24,30 @@ import {
 
 type ReconciliationTriageClientProps = {
   readonly session: OperatorSessionContext;
+  readonly initialFindings?: readonly ReconciliationFinding[] | null;
 };
 
-export function ReconciliationTriageClient({ session }: ReconciliationTriageClientProps) {
+export function ReconciliationTriageClient({
+  session,
+  initialFindings = null,
+}: ReconciliationTriageClientProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("settings.reconciliation");
   const tErrors = useTranslations("settings.reconciliation.errors");
   const canManage = isAdminOrOwnerRole(session.role);
-  const [findings, setFindings] = useState<readonly ReconciliationFinding[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [findings, setFindings] = useState<readonly ReconciliationFinding[]>(initialFindings ?? []);
+  const [loading, setLoading] = useState(canManage && initialFindings === null);
   const [error, setError] = useState<string | null>(null);
   const [fetchNonce, setFetchNonce] = useState(0);
+  const skipInitialFetchRef = useRef(initialFindings !== null);
 
   useEffect(() => {
     if (!canManage) {
       setLoading(false);
+      return;
+    }
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
       return;
     }
     let cancelled = false;

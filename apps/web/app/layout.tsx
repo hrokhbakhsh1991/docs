@@ -14,7 +14,7 @@ import {
   isPublicCatalogPath,
   resolvePublicCatalogRootSessionForHost,
 } from "@/tenant/resolve-public-catalog-bootstrap.server";
-import { resolveBootstrapAppSessionForHost, toSerializableBootstrap } from "@/tenant/tenant-kernel";
+import { resolveRequestBootstrapAppSession, toSerializableBootstrap } from "@/tenant/tenant-kernel";
 
 import "@app-tour/workspace-denali/theme/denali-admin.css";
 import "./globals.css";
@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const pathname = headerList.get("x-pathname") ?? "";
   const resolved = isPublicCatalogPath(pathname)
     ? await resolvePublicCatalogRootSessionForHost(host)
-    : resolveBootstrapAppSessionForHost(host);
+    : await resolveRequestBootstrapAppSession();
   const tenantTheme = await fetchTenantThemeForContext(resolved.context, host);
   const bootstrap = toSerializableBootstrap(resolved, tenantTheme ?? undefined);
   const dir = resolveTextDirection(locale);

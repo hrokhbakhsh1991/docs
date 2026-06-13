@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import {
   parsePrepaymentsListResponse,
   validateRecordPrepaymentForm,
   type PrepaymentRecord,
+  type PrepaymentsListResponse,
   type RecordPrepaymentFormState,
 } from "@/finance/finance-prepayments-logic";
 import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
@@ -34,6 +35,7 @@ import type { AppLocale } from "@/i18n/routing";
 
 type FinancePrepaymentsPanelProps = {
   readonly session: OperatorSessionContext;
+  readonly initialPrepayments?: PrepaymentsListResponse | null;
 };
 
 const EMPTY_FORM: RecordPrepaymentFormState = {
@@ -44,26 +46,34 @@ const EMPTY_FORM: RecordPrepaymentFormState = {
   note: "",
 };
 
-export function FinancePrepaymentsPanel({ session }: FinancePrepaymentsPanelProps) {
+export function FinancePrepaymentsPanel({
+  session,
+  initialPrepayments = null,
+}: FinancePrepaymentsPanelProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("finance.prepayments");
   const tCommon = useTranslations("finance.common");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
-  const [items, setItems] = useState<readonly PrepaymentRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<readonly PrepaymentRecord[]>(initialPrepayments?.items ?? []);
+  const [loading, setLoading] = useState(initialPrepayments === null);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<RecordPrepaymentFormState>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
+  const skipInitialFetchRef = useRef(initialPrepayments !== null);
   const [invoiceLookupId, setInvoiceLookupId] = useState("");
   const [invoiceLookupError, setInvoiceLookupError] = useState<string | null>(null);
   const [invoiceLookupBusy, setInvoiceLookupBusy] = useState(false);
   const [invoice, setInvoice] = useState<RegistrationInvoice | null>(null);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

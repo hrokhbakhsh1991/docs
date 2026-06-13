@@ -1,4 +1,4 @@
-import { readDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
+import { resolveDenaliBasicsFromCategorySlug } from "./denali-tour-kind-labels";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, getCanonicalValue } from "@/tours/tour-wizard-draft-path";
@@ -131,7 +131,7 @@ export function buildDenaliReviewSections(
 
   const basicRows: DenaliReviewRow[] = [];
   const category = getCanonicalStringValue(draft, "category");
-  const basics = readDenaliCanonicalBasics(category.trim().length > 0 ? category : undefined);
+  const basics = resolveDenaliBasicsFromCategorySlug(category);
   if (basics != null) {
     pushRow(basicRows, labels.fieldLabel("category"), labels.tourKindLabel(category));
   }

@@ -90,7 +90,12 @@ export function PublicCatalogRegistrationFlow({
   const [intakeError, setIntakeError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [clientReady, setClientReady] = useState(false);
   const verifyInFlightRef = useRef(false);
+
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   const resolveError = useCallback(
     (code: string) => resolveCatalogRegistrationErrorMessage(t, code),
@@ -521,13 +526,18 @@ export function PublicCatalogRegistrationFlow({
   }
 
   return (
-    <div data-public-registration-phone data-tour-id={tourId}>
+    <div
+      data-public-registration-phone
+      data-registration-ready={clientReady ? "" : undefined}
+      data-tour-id={tourId}
+    >
       <h2>{t("phone.title")}</h2>
       <p>{t("phone.description")}</p>
       {phoneHint === "existing" ? <p>{t("phone.existingHint")}</p> : null}
       {phoneHint === "new" ? <p>{t("phone.newHint")}</p> : null}
       <label htmlFor="phone">{t("phone.label")}</label>
       <PrimitiveLocalizedNumericInput
+        id="phone"
         mode="phone"
         value={phone}
         onChange={setPhone}

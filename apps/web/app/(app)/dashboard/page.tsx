@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 
+import { fetchDashboardServerPrefetch } from "@/admin/dashboard/fetch-dashboard-data.server";
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
 import { buildDashboardPageMetadata } from "@/i18n/app-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
@@ -18,11 +19,13 @@ export default async function OperatorDashboardPage() {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const resolved = resolveBootstrapAppSessionForHost(host);
+  const initialPrefetch = await fetchDashboardServerPrefetch();
 
   return (
     <DashboardPageClient
       pluginId={resolved.session.pluginId}
       role={session?.role ?? "none"}
+      initialPrefetch={initialPrefetch}
     />
   );
 }

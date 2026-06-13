@@ -103,7 +103,7 @@ function forwardPathname(request: NextRequest, pathname: string): NextResponse {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
-export function middleware(request: NextRequest): NextResponse {
+export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const isBffApi = isProtectedBffApiPath(pathname);
 
@@ -112,7 +112,7 @@ export function middleware(request: NextRequest): NextResponse {
   }
 
   const token = readSessionToken(request);
-  const validation = validateSessionToken(token);
+  const validation = await validateSessionToken(token);
   if (validation.status === "valid") {
     const host = request.headers.get("host") ?? "";
     if (!sessionTenantMatchesHost(validation.tenantId, host)) {

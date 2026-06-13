@@ -19,15 +19,27 @@ import {
 import { resolveDashboardErrorMessage } from "@/i18n/resolve-dashboard-error-message";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 
-export function DashboardToursWidget() {
+import type { OperatorTourListResponse } from "@/features/tours/operator-tours-types";
+
+type DashboardToursWidgetProps = {
+  readonly initialTours?: OperatorTourListResponse | null;
+};
+
+export function DashboardToursWidget({ initialTours = null }: DashboardToursWidgetProps) {
   const t = useTranslations("dashboard");
   const tErrors = useTranslations("dashboard.errors");
   const brandName = useTenantBrandTitle();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialTours === null);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState(parseDashboardToursList(null));
+  const [data, setData] = useState(
+    initialTours ?? parseDashboardToursList(null)
+  );
 
   useEffect(() => {
+    if (initialTours !== null) {
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -58,7 +70,7 @@ export function DashboardToursWidget() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialTours]);
 
   const recentTours = useMemo(() => selectRecentToursForDashboard(data.items), [data.items]);
 

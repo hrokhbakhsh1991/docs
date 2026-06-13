@@ -34,7 +34,7 @@ function cloneDenaliFormSections(form: DenaliCreateTourWizardForm): DenaliCreate
     policies: { ...form.policies },
     photosData: {
       ...form.photosData,
-      photos: form.photosData?.photos ? [...form.photosData.photos] : [],
+      photos: Array.isArray(form.photosData?.photos) ? [...form.photosData.photos] : [],
     },
     tripDetails: {
       ...form.tripDetails,

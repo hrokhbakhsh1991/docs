@@ -301,7 +301,14 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
               session.tenantId,
               wizardRuleEvalContext
             )
-          : validateDenaliWizardDraftSync(plugin, draft, denaliRules, session.tenantId);
+          : validateDenaliWizardDraftSync(
+              plugin,
+              draft,
+              denaliRules,
+              session.tenantId,
+              undefined,
+              wizardRuleEvalContext
+            );
       if (!validation.ok) {
         const resolveStepId = buildFieldStepResolverFromTemplate(gate.templateSteps);
         setSubmitValidationIssues(mapValidationResultToIssues(validation, { resolveStepId }));

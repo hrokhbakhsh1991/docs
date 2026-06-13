@@ -17,7 +17,8 @@ export function validateDenaliWizardDraftSync(
   draft: TourWizardDraft,
   denaliRules: DenaliWizardRulesModule | null,
   tenantId: string,
-  scope?: DenaliWizardValidationScope
+  scope?: DenaliWizardValidationScope,
+  evalContext?: DenaliWizardRuleEvalContext
 ): ValidationResult {
   const validate = plugin.wizardHost?.validateDraftSync;
   if (validate == null) {
@@ -29,6 +30,7 @@ export function validateDenaliWizardDraftSync(
     rulesModule: denaliRules,
     tenantId,
     scope: scope as DenaliWizardValidationScope | undefined,
+    evalContext,
   }) as ValidationResult;
 }
 
@@ -73,7 +75,14 @@ export function validateDenaliPublishTransitionSync(
   tenantId: string,
   evalContext: DenaliWizardRuleEvalContext
 ): ValidationResult {
-  const canonical = validateDenaliWizardDraftSync(plugin, draft, denaliRules, tenantId);
+  const canonical = validateDenaliWizardDraftSync(
+    plugin,
+    draft,
+    denaliRules,
+    tenantId,
+    undefined,
+    evalContext
+  );
   const readiness = validateDenaliPublishReadinessSync(plugin, draft, denaliRules, evalContext, {
     publishTransition: true,
   });

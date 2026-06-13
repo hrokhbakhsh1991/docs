@@ -6,7 +6,7 @@ import { buildAuthLoginPageMetadata } from "@/i18n/app-page-metadata";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding.server";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
-import { LoginFormLazy } from "./login-form-lazy";
+import { LoginForm } from "./login-form";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildAuthLoginPageMetadata();
@@ -45,7 +45,7 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
     fetchPublicTenantBrandingForHost(host),
   ]);
   return (
-    <LoginFormLazy
+    <LoginForm
       pluginId={bootstrap.session.pluginId}
       initialBranding={branding}
       searchQuery={searchQuery}

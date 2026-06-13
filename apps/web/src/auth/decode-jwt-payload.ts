@@ -3,6 +3,7 @@
 export type SessionJwtClaims = {
   sub?: string;
   tenant_id?: string;
+  workspace_id?: string;
   role?: string;
   exp?: number;
   iat?: number;

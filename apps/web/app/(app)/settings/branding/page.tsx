@@ -1,4 +1,5 @@
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
+import { fetchTenantBrandingServer } from "@/features/settings/fetch-tenant-branding.server";
 import { getTranslations } from "next-intl/server";
 
 import { BrandingSettingsClient } from "./branding-settings-client";
@@ -22,5 +23,13 @@ export default async function BrandingSettingsPage() {
   }
   const host = (await headers()).get("host") ?? "localhost:3000";
   const bootstrap = resolveBootstrapAppSessionForHost(host);
-  return <BrandingSettingsClient session={session} pluginId={bootstrap.session.pluginId} />;
+  const initialBranding = await fetchTenantBrandingServer();
+
+  return (
+    <BrandingSettingsClient
+      session={session}
+      pluginId={bootstrap.session.pluginId}
+      initialBranding={initialBranding}
+    />
+  );
 }

@@ -3,6 +3,13 @@ import type {
   OperatorTourListResponse,
   TourListProjection,
 } from "@/features/tours/operator-tours-types";
+import type { FinanceSummary } from "@/finance/finance-reports-logic";
+
+export type DashboardServerPrefetch = {
+  readonly tours: OperatorTourListResponse | null;
+  readonly bookingsSummary: BookingsSummaryResponse | null;
+  readonly financeSummary: FinanceSummary | null;
+};
 
 export const DASHBOARD_WIDGETS_TEST_IDS = {
   overview: "dashboard-widget-stats",

@@ -5,6 +5,7 @@ import {
   hasNonEmptyCanonicalValue,
   readDenaliDraftFieldValue,
   resolveDenaliInitialStepIndex,
+  shouldCountCanonicalPathForResumeInference,
 } from "../src/wizard/resolve-initial-step-index";
 
 const TEMPLATE_STEPS = [
@@ -43,5 +44,11 @@ describe("resolve-initial-step-index.spec.ts", () => {
   it("DEN-RESUME-04 detects non-empty values", () => {
     assert.equal(hasNonEmptyCanonicalValue(""), false);
     assert.equal(hasNonEmptyCanonicalValue("x"), true);
+  });
+
+  it("DEN-RESUME-05 ignores publishStatus system default", () => {
+    assert.equal(shouldCountCanonicalPathForResumeInference("publishStatus", "draft"), false);
+    const draft = { data: { publishStatus: "draft", title: "Seed" } };
+    assert.equal(resolveDenaliInitialStepIndex(draft, TEMPLATE_STEPS, 0), 0);
   });
 });

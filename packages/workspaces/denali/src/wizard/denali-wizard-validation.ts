@@ -1,5 +1,6 @@
 import {
   PlatformWizardEngine,
+  type RenderFieldPlan,
   type RenderStepPlan,
   type ValidationResult,
 } from "@app-tour/platform-core";
@@ -15,12 +16,14 @@ import {
   type CanonicalWizardDraftEnvelope,
 } from "./canonical-draft-access";
 import { resolveDenaliCompositeRendererId } from "../composites/denali-composite-registry";
+import { DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR } from "../composites/denali-composite-anchors";
 import type { DenaliFieldDefinition } from "../field-registry/denaliFieldRegistryData";
 import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
 import { resolveDenaliDimensionsFromDraft } from "./apply-contextual-render-plan";
 import type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 import { tourWizardDraftToDenaliForm } from "./denali-wizard-form-adapter";
 import type { DenaliWizardRuleEvalContext } from "./denali-wizard-rule-eval-context";
+import { sanitizeDenaliWizardDraftRecord } from "./denali-wizard-draft-sanitize";
 
 const DENALI_COMPOSITE_FIELD_BY_CANONICAL_PATH = new Map<string, DenaliFieldDefinition>(
   DENALI_FIELD_DEFINITIONS.flatMap((field) => {
@@ -67,7 +70,10 @@ function pluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
 }
 
 function isEmptyHiddenShellValue(value: unknown): boolean {
-  if (value === null) {
+  if (value === null || value === undefined) {
+    return true;
+  }
+  if (Array.isArray(value) && value.length === 0) {
     return true;
   }
   if (typeof value === "string" && value.trim() === "") {
@@ -146,15 +152,57 @@ function filterDenaliCompositeStorageViolations(
   };
 }
 
+/** API + wizard — denali composite/array storage and hidden-shell poison parity filter. */
+export function filterDenaliCanonicalValidationResult(
+  result: ValidationResult,
+  data: Readonly<Record<string, unknown>>
+): ValidationResult {
+  return filterDenaliCompositeStorageViolations(result, { data });
+}
+
+function expandStepFieldsForCompositeDependents(step: RenderStepPlan): RenderStepPlan {
+  const extraPaths = new Set<string>();
+  for (const field of step.fields) {
+    const dependents = DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR[field.canonicalPath];
+    if (dependents == null) {
+      continue;
+    }
+    for (const path of dependents) {
+      extraPaths.add(path);
+    }
+  }
+  if (extraPaths.size === 0) {
+    return step;
+  }
+  const existing = new Set(step.fields.map((field) => field.canonicalPath));
+  const synthetic = [...extraPaths]
+    .filter((path) => !existing.has(path))
+    .map(
+      (path): RenderFieldPlan => ({
+        fieldId: path,
+        canonicalPath: path,
+        kind: "text",
+        required: false,
+        hidden: false,
+        stepId: step.stepId,
+      })
+    );
+  return {
+    ...step,
+    fields: [...step.fields, ...synthetic],
+  };
+}
+
 function filterValidationToStep(
   result: ValidationResult,
   step: RenderStepPlan
 ): ValidationResult {
+  const expandedStep = expandStepFieldsForCompositeDependents(step);
   if (result.ok) {
     return result;
   }
-  const fieldIds = new Set(step.fields.map((field) => field.fieldId));
-  const canonicalPaths = new Set(step.fields.map((field) => field.canonicalPath));
+  const fieldIds = new Set(expandedStep.fields.map((field) => field.fieldId));
+  const canonicalPaths = new Set(expandedStep.fields.map((field) => field.canonicalPath));
   const violations = result.violations.filter(
     (violation) =>
       (violation.fieldId != null && fieldIds.has(violation.fieldId)) ||
@@ -214,9 +262,14 @@ export function validateDenaliWizardDraftSync(
   draft: Readonly<Record<string, unknown>>,
   denaliRules: DenaliWizardRulesModule | null,
   tenantId: string,
-  scope?: DenaliWizardValidationScope
+  scope?: DenaliWizardValidationScope,
+  evalContext?: DenaliWizardRuleEvalContext
 ): ValidationResult {
-  const envelope = asDraftEnvelope(draft);
+  const draftForValidation =
+    plugin.id === "denali" && denaliRules != null && evalContext != null
+      ? sanitizeDenaliWizardDraftRecord(draft, denaliRules, evalContext)
+      : draft;
+  const envelope = asDraftEnvelope(draftForValidation);
   const engine = PlatformWizardEngine.create(pluginForWizardEngine(plugin));
   engine.init();
   const document =
@@ -313,6 +366,7 @@ export function validateDenaliWizardDraftSyncFromHostInput(input: {
   readonly draft: Readonly<Record<string, unknown>>;
   readonly rulesModule: unknown;
   readonly tenantId: string;
+  readonly evalContext?: unknown;
   readonly scope?: {
     readonly stepId?: string;
     readonly visibleSteps?: readonly unknown[];
@@ -323,7 +377,8 @@ export function validateDenaliWizardDraftSyncFromHostInput(input: {
     input.draft,
     input.rulesModule as DenaliWizardRulesModule | null,
     input.tenantId,
-    input.scope as DenaliWizardValidationScope | undefined
+    input.scope as DenaliWizardValidationScope | undefined,
+    input.evalContext as DenaliWizardRuleEvalContext | undefined
   );
 }
 

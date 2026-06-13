@@ -17,18 +17,34 @@ import { resolveDashboardErrorMessage } from "@/i18n/resolve-dashboard-error-mes
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
+import type { BookingsSummaryResponse } from "@/features/bookings/bookings-command-center-types";
 
-export function DashboardOverviewWidget() {
+type DashboardOverviewWidgetProps = {
+  readonly initialToursTotal?: number | null;
+  readonly initialBookingsSummary?: BookingsSummaryResponse | null;
+};
+
+export function DashboardOverviewWidget({
+  initialToursTotal = null,
+  initialBookingsSummary = null,
+}: DashboardOverviewWidgetProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("dashboard");
   const tErrors = useTranslations("dashboard.errors");
   const brandName = useTenantBrandTitle();
-  const [loading, setLoading] = useState(true);
+  const hasInitialData = initialToursTotal !== null && initialBookingsSummary !== null;
+  const [loading, setLoading] = useState(!hasInitialData);
   const [error, setError] = useState<string | null>(null);
-  const [toursTotal, setToursTotal] = useState(0);
-  const [summary, setSummary] = useState(parseDashboardBookingsSummary(null));
+  const [toursTotal, setToursTotal] = useState(initialToursTotal ?? 0);
+  const [summary, setSummary] = useState(
+    initialBookingsSummary ?? parseDashboardBookingsSummary(null)
+  );
 
   useEffect(() => {
+    if (hasInitialData) {
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -65,7 +81,7 @@ export function DashboardOverviewWidget() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hasInitialData]);
 
   const kpiCards = useMemo(
     () => buildDashboardOverviewKpiCards(toursTotal, summary),

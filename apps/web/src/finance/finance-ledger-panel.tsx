@@ -2,7 +2,7 @@
 
 import { Download } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
@@ -18,26 +18,36 @@ import {
   parseFinanceLedgerListResponse,
   toFinanceLedgerCsvRows,
   type FinanceLedgerEvent,
+  type FinanceLedgerListResponse,
 } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
 import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
 
 type FinanceLedgerPanelProps = {
   readonly session: OperatorSessionContext;
+  readonly initialLedger?: FinanceLedgerListResponse | null;
 };
 
-export function FinanceLedgerPanel({ session }: FinanceLedgerPanelProps) {
+export function FinanceLedgerPanel({
+  session,
+  initialLedger = null,
+}: FinanceLedgerPanelProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("finance.ledger");
   const tCommon = useTranslations("finance.common");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
-  const [items, setItems] = useState<readonly FinanceLedgerEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<readonly FinanceLedgerEvent[]>(initialLedger?.items ?? []);
+  const [loading, setLoading] = useState(initialLedger === null);
   const [error, setError] = useState<string | null>(null);
   const [fetchNonce, setFetchNonce] = useState(0);
+  const skipInitialFetchRef = useRef(initialLedger !== null);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

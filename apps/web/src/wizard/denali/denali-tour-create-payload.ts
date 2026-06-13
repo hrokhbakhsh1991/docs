@@ -22,7 +22,7 @@ export function prepareDenaliTourCreatePayload(
   return prepareDenaliTourCreatePayloadCore(
     draft as unknown as Record<string, unknown>,
     plugin,
-    rules,
+    rules as unknown as Parameters<typeof prepareDenaliTourCreatePayloadCore>[2],
     evalContext,
     options
   );

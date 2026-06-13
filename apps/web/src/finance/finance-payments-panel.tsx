@@ -2,7 +2,7 @@
 
 import type { VariantProps } from "class-variance-authority";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge, badgeVariants } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import {
   type CreateManualPaymentFormState,
   type FinancePaymentRow,
   type SubmitReceiptFormState,
+  type FinancePaymentsListResponse,
 } from "@/finance/finance-payments-logic";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
@@ -32,6 +33,7 @@ import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
 
 type FinancePaymentsPanelProps = {
   readonly session: OperatorSessionContext;
+  readonly initialPayments?: FinancePaymentsListResponse | null;
 };
 
 const EMPTY_FORM: CreateManualPaymentFormState = {
@@ -93,15 +95,18 @@ function PaymentRow({
   );
 }
 
-export function FinancePaymentsPanel({ session }: FinancePaymentsPanelProps) {
+export function FinancePaymentsPanel({
+  session,
+  initialPayments = null,
+}: FinancePaymentsPanelProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("finance.payments");
   const tCommon = useTranslations("finance.common");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
-  const [items, setItems] = useState<readonly FinancePaymentRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<readonly FinancePaymentRow[]>(initialPayments?.items ?? []);
+  const [loading, setLoading] = useState(initialPayments === null);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<CreateManualPaymentFormState>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
@@ -110,8 +115,13 @@ export function FinancePaymentsPanel({ session }: FinancePaymentsPanelProps) {
   const [saving, setSaving] = useState(false);
   const [receiptSaving, setReceiptSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
+  const skipInitialFetchRef = useRef(initialPayments !== null);
 
   useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

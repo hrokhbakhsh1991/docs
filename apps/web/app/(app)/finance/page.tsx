@@ -3,7 +3,12 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
-import { isFinanceRouteAllowed } from "@/finance/finance-nav-access";
+import { fetchFinanceOverviewServer } from "@/finance/fetch-finance-overview.server";
+import { fetchFinancePaymentsServer } from "@/finance/fetch-finance-payments.server";
+import { fetchFinanceLedgerServer } from "@/finance/fetch-finance-ledger.server";
+import { fetchFinancePrepaymentsServer } from "@/finance/fetch-finance-prepayments.server";
+import { fetchFinanceReceiptsServer } from "@/finance/fetch-finance-receipts.server";
+import { isFinanceRouteAllowed, parseFinanceTab } from "@/finance/finance-nav-access";
 import { buildFinancePageMetadata } from "@/i18n/finance-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
@@ -33,5 +38,23 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
   }
 
   const params = await searchParams;
-  return <FinanceCommandCenter session={session} initialTab={params.tab} />;
+  const activeTab = parseFinanceTab(params.tab);
+  const initialOverview = activeTab === "overview" ? await fetchFinanceOverviewServer() : null;
+  const initialPayments = activeTab === "payments" ? await fetchFinancePaymentsServer() : null;
+  const initialReceipts = activeTab === "receipts" ? await fetchFinanceReceiptsServer() : null;
+  const initialLedger = activeTab === "ledger" ? await fetchFinanceLedgerServer() : null;
+  const initialPrepayments =
+    activeTab === "prepayments" ? await fetchFinancePrepaymentsServer() : null;
+
+  return (
+    <FinanceCommandCenter
+      session={session}
+      initialTab={params.tab}
+      initialOverview={initialOverview}
+      initialPayments={initialPayments}
+      initialReceipts={initialReceipts}
+      initialLedger={initialLedger}
+      initialPrepayments={initialPrepayments}
+    />
+  );
 }

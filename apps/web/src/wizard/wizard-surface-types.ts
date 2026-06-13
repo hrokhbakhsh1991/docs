@@ -40,4 +40,4 @@ export type WizardReviewSurface = {
   readonly renderReviewChrome?: (props: WizardReviewSurfaceRenderProps) => ReactNode;
 };
 
-export type WizardValidationSurface = Pick<WizardReviewSurface, "renderValidationSummary">;
+export type WizardValidationSurface = Required<Pick<WizardReviewSurface, "renderValidationSummary">>;

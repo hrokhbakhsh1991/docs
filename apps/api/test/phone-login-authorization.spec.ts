@@ -29,6 +29,11 @@ describe("phone-login-authorization.spec.ts", () => {
     assert.equal(normalizeLoginMobile("  +15550001001  "), "+15550001001");
   });
 
+  it("AUTHZ-01b normalizeLoginMobile canonicalizes Iranian local 09… to +98…", () => {
+    assert.equal(normalizeLoginMobile("09121000001"), "+989121000001");
+    assert.equal(normalizeLoginMobile("989121000001"), "+989121000001");
+  });
+
   it("AUTHZ-02 isLoginMobileFormatValid rejects empty and short numbers", () => {
     assert.equal(isLoginMobileFormatValid(""), false);
     assert.equal(isLoginMobileFormatValid("123"), false);

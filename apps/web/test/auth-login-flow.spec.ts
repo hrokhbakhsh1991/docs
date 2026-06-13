@@ -25,21 +25,40 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
   });
 
   it("BFF-9.1-03 validateSessionToken accepts signed operator JWT shape", async () => {
+    const jwtEnv = {
+      AUTH_JWT_PUBLIC_KEY: process.env.AUTH_JWT_PUBLIC_KEY,
+      AUTH_JWT_ISSUER: process.env.AUTH_JWT_ISSUER,
+      AUTH_JWT_AUDIENCE: process.env.AUTH_JWT_AUDIENCE,
+    };
+    delete process.env.AUTH_JWT_PUBLIC_KEY;
+    delete process.env.AUTH_JWT_ISSUER;
+    delete process.env.AUTH_JWT_AUDIENCE;
+
     const { validateSessionToken } = await import("../src/auth/validate-session-token");
     const header = Buffer.from(JSON.stringify({ alg: "RS256" })).toString("base64url");
     const payload = Buffer.from(
       JSON.stringify({
         sub: "00000000-0000-4000-8000-000000000101",
         tenant_id: "00000000-0000-4000-8000-000000000014",
+        workspace_id: "ws-operator-smoke",
         role: "owner",
         exp: Math.floor(Date.now() / 1000) + 3600,
       })
     ).toString("base64url");
     const token = `${header}.${payload}.sig`;
-    const result = validateSessionToken(token);
+    const result = await validateSessionToken(token);
     assert.equal(result.status, "valid");
     if (result.status === "valid") {
       assert.equal(result.role, "owner");
+      assert.equal(result.workspaceId, "ws-operator-smoke");
+    }
+
+    for (const [key, value] of Object.entries(jwtEnv)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
     }
   });
 
@@ -47,7 +66,7 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
     const { NextRequest } = await import("next/server");
     const { middleware } = await import("../middleware");
     const req = new NextRequest("http://127.0.0.1:3000/bookings");
-    const res = middleware(req);
+    const res = await middleware(req);
     assert.ok(res.status >= 300 && res.status < 400);
     const location = res.headers.get("location") ?? "";
     assert.match(location, /\/auth\/login\?returnUrl=/);
@@ -82,7 +101,7 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
     const { NextRequest } = await import("next/server");
     const { middleware } = await import("../middleware");
     const req = new NextRequest("http://denali.localhost:3000/api/users");
-    const res = middleware(req);
+    const res = await middleware(req);
     assert.equal(res.status, 401);
     const body = (await res.json()) as { error?: { code?: string } };
     assert.equal(body.error?.code, "AUTH_UNAUTHENTICATED");

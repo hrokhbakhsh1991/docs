@@ -1,5 +1,6 @@
 import { PlatformWizardEngine } from "@app-tour/platform-core";
 import { resolveDenaliWizardDimensionsFromTourKind } from "@app-tour/workspace-denali";
+import { filterDenaliCanonicalValidationResult } from "@app-tour/workspace-denali/wizard/validation";
 import {
   assertCanonicalDocument,
   CanonicalDocumentValidationError,
@@ -208,8 +209,13 @@ export function validateCanonicalBeforePersistSync(
     ),
   });
 
-  if (!result.ok) {
-    const message = result.violations.map((v) => v.message).join("; ");
+  const filteredResult =
+    validationPlugin.id === "denali"
+      ? filterDenaliCanonicalValidationResult(result, document.data as Record<string, unknown>)
+      : result;
+
+  if (!filteredResult.ok) {
+    const message = filteredResult.violations.map((v) => v.message).join("; ");
     throwValidationFailure(`CANONICAL_VALIDATION_FAILED: ${message}`);
   }
 

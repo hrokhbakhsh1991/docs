@@ -67,7 +67,7 @@ export function DenaliCustomServicesField({
               className="denali-wizard-composite__list-item"
             >
               <span>{entry}</span>
-              <Button type="button" variant="outline" onClick={() => removeLabel(index)}>
+              <Button type="button" variant="secondary" onClick={() => removeLabel(index)}>
                 {tCommon("remove")}
               </Button>
             </li>

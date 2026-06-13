@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { proxyBackendJsonResponse } from "@/auth/proxy-backend-json";
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
 
@@ -37,5 +38,5 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
-  return NextResponse.json(payload, { status: backendRes.status });
+  return proxyBackendJsonResponse(payload, backendRes.status);
 }

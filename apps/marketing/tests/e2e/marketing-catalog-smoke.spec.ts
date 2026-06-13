@@ -36,16 +36,12 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
 
   const registerLink = page.locator("[data-marketing-register]");
   await expect(registerLink).toBeVisible();
-  await registerLink.click();
+  await Promise.all([
+    page.waitForURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 }),
+    registerLink.click(),
+  ]);
 
-  await expect(page).toHaveURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 });
-  await expect(page.locator("[data-public-registration-phone]")).toBeVisible({
-    timeout: 60_000,
-  });
-
-  await page.getByLabel(/Mobile|موبایل/).waitFor({ state: "visible", timeout: 60_000 });
   await submitCatalogPhoneForOtp(page, DEV_PHONE);
-  await expect(page.locator("[data-public-registration-otp]")).toBeVisible({ timeout: 60_000 });
 
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
   await expect(

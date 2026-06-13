@@ -3,10 +3,13 @@
  *
  * Run: NODE_ENV=development DATABASE_URL=... DATABASE_URL_ADMIN=... pnpm --filter @apps/api run db:seed
  */
+import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+
 import { ProvisioningService } from "../src/internal/provisioning.service";
 import { logger } from "../src/observability/logger";
 import { getSettingsResourcesRepository } from "../src/settings/create-settings-resources-repository";
 import { seedOperatorSmokeCatalog } from "../src/settings/seed-operator-smoke-catalog";
+import { seedOperatorSmokePublishedTour } from "../src/settings/seed-operator-smoke-published-tour";
 import { seedDenaliOperatorIdentity } from "./seed-denali-operator-identity";
 import { seedDenaliFullWizardTemplate } from "../src/settings/seed-denali-full-wizard-template";
 
@@ -20,10 +23,17 @@ async function main(): Promise<void> {
   logger.info({ event: "db.seed.tenant", subdomain: denali.subdomain }, "dev tenant seeded");
   await seedDenaliFullWizardTemplate(denali.id);
   logger.info({ event: "db.seed.denali_wizard_template", tenantId: denali.id }, "denali wizard template seeded");
+  await seedOperatorSmokeCatalog(getSettingsResourcesRepository(), { tenantId: DENALI_SMOKE_TENANT_ID });
+  await seedOperatorSmokePublishedTour(DENALI_SMOKE_TENANT_ID);
+  logger.info(
+    { event: "db.seed.denali_dev_smoke_fixtures", tenantId: DENALI_SMOKE_TENANT_ID },
+    "denali dev smoke catalog and published tour seeded"
+  );
   const operator = await service.seedOperatorSmokeTenant();
   logger.info({ event: "db.seed.tenant", subdomain: operator.subdomain }, "operator smoke tenant seeded");
   await seedDenaliFullWizardTemplate(operator.id);
   await seedOperatorSmokeCatalog(getSettingsResourcesRepository());
+  await seedOperatorSmokePublishedTour(operator.id);
   logger.info(
     { event: "db.seed.operator_smoke_catalog", tenantId: operator.id },
     "operator smoke reference catalog seeded"

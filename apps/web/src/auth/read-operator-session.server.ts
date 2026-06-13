@@ -17,7 +17,7 @@ function normalizeRole(
 export async function readOperatorSessionFromCookies(): Promise<OperatorSessionContext | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_TOKEN_COOKIE)?.value;
-  const validation = validateSessionToken(token);
+  const validation = await validateSessionToken(token);
   if (validation.status !== "valid") {
     return null;
   }

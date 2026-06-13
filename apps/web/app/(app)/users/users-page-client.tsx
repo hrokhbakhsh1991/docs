@@ -70,12 +70,18 @@ import { UsersOwnershipTransferPanel } from "./users-ownership-transfer-panel";
 
 type UsersPageClientProps = {
   readonly session: OperatorSessionContext;
+  readonly initialUsersList?: UsersListResponse | null;
+  readonly initialOwnershipRoster?: UsersListResponse | null;
 };
 
 const ROLE_FILTER_OPTIONS = ["all", "owner", "admin", "member", "viewer"] as const;
 const STATUS_FILTER_OPTIONS = ["all", "active", "suspended"] as const;
 
-export function UsersPageClient({ session }: UsersPageClientProps) {
+export function UsersPageClient({
+  session,
+  initialUsersList = null,
+  initialOwnershipRoster = null,
+}: UsersPageClientProps) {
   const t = useTranslations("users");
   const tErrors = useTranslations("users.errors");
   const tCommon = useTranslations("common");
@@ -88,17 +94,22 @@ export function UsersPageClient({ session }: UsersPageClientProps) {
     [searchParams]
   );
   const [searchInput, setSearchInput] = useState(query.search);
-  const [listItems, setListItems] = useState<readonly UsersDirectoryRow[]>([]);
-  const [listTotal, setListTotal] = useState(0);
-  const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
+  const [listItems, setListItems] = useState<readonly UsersDirectoryRow[]>(
+    () => initialUsersList?.items ?? []
+  );
+  const [listTotal, setListTotal] = useState(initialUsersList?.total ?? 0);
+  const [nextCursor, setNextCursor] = useState<string | undefined>(
+    initialUsersList?.nextCursor ?? undefined
+  );
   const [loadingMore, setLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const loadMoreInFlightRef = useRef(false);
-  const nextCursorRef = useRef<string | undefined>(undefined);
+  const nextCursorRef = useRef<string | undefined>(initialUsersList?.nextCursor ?? undefined);
   const [pendingData, setPendingData] = useState<PendingInvitesListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(isOwnerRole(session.role));
+  const [loading, setLoading] = useState(isOwnerRole(session.role) && initialUsersList === null);
   const [fetchNonce, setFetchNonce] = useState(0);
+  const skipInitialFetchRef = useRef(initialUsersList !== null);
   const [pendingFetchNonce, setPendingFetchNonce] = useState(0);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [rowActionId, setRowActionId] = useState<string | null>(null);
@@ -179,6 +190,10 @@ export function UsersPageClient({ session }: UsersPageClientProps) {
       if (!canManage) {
         setLoading(false);
       }
+      return;
+    }
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
       return;
     }
     let cancelled = false;
@@ -886,7 +901,12 @@ export function UsersPageClient({ session }: UsersPageClientProps) {
         <p className="text-sm text-muted-foreground">{t("counts.members", { count: listTotal })}</p>
       ) : null}
 
-      {canManage && !isPendingTab ? <UsersOwnershipTransferPanel session={session} /> : null}
+      {canManage && !isPendingTab ? (
+        <UsersOwnershipTransferPanel
+          session={session}
+          initialRoster={initialOwnershipRoster?.items ?? null}
+        />
+      ) : null}
 
       {isPendingTab && pendingData && pendingData.total > 0 ? (
         <p className="text-sm text-muted-foreground">

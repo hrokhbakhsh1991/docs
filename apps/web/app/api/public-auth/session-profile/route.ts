@@ -19,7 +19,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     );
   }
 
-  const validation = validateSessionToken(sessionToken);
+  const validation = await validateSessionToken(sessionToken);
   if (validation.status !== "valid") {
     return NextResponse.json(
       { ok: false, error: { code: "AUTH_UNAUTHENTICATED" } },

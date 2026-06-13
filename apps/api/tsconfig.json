@@ -9,6 +9,7 @@
     "baseUrl": ".",
     "paths": {
       "@app-tour/workspace-denali/plugin": ["../../packages/workspaces/denali/dist/denali.plugin"],
+      "@app-tour/workspace-denali/http": ["../../packages/workspaces/denali/dist/http/index"],
       "@app-tour/workspace-denali/tours": ["../../packages/workspaces/denali/dist/tours/index"],
       "@app-tour/workspace-urban/plugin": ["../../packages/workspaces/urban/dist/urban.plugin"],
       "@app-tour/workspace-urban/http": ["../../packages/workspaces/urban/dist/http/index"],

@@ -12,6 +12,7 @@ import { DashboardBookingsWidget } from "@/admin/dashboard/dashboard-bookings-wi
 import { DashboardOverviewWidget } from "@/admin/dashboard/dashboard-overview-widget";
 import { DashboardRegistrationsWidget } from "@/admin/dashboard/dashboard-registrations-widget";
 import { DashboardToursWidget } from "@/admin/dashboard/dashboard-tours-widget";
+import type { DashboardServerPrefetch } from "@/admin/dashboard/dashboard-widgets-logic";
 import { shouldShowFinanceDashboardWidget } from "@/finance/finance-dashboard-widget-logic";
 import { FinanceDashboardWidget } from "@/finance/finance-dashboard-widget";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
@@ -19,9 +20,14 @@ import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 type DashboardPageClientProps = {
   readonly pluginId: string;
   readonly role: string;
+  readonly initialPrefetch?: DashboardServerPrefetch | null;
 };
 
-export function DashboardPageClient({ pluginId, role }: DashboardPageClientProps) {
+export function DashboardPageClient({
+  pluginId,
+  role,
+  initialPrefetch = null,
+}: DashboardPageClientProps) {
   const t = useTranslations("dashboard");
   const brandName = useTenantBrandTitle();
   const showFinanceWidget = shouldShowFinanceDashboardWidget(pluginId, role);
@@ -55,20 +61,29 @@ export function DashboardPageClient({ pluginId, role }: DashboardPageClientProps
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
       >
         <div data-denali-animate="fade-up">
-          <DashboardOverviewWidget />
+          <DashboardOverviewWidget
+            initialToursTotal={initialPrefetch?.tours?.total ?? null}
+            initialBookingsSummary={initialPrefetch?.bookingsSummary ?? null}
+          />
         </div>
         <div data-denali-animate="fade-up" data-denali-animate-delay="1">
-          <DashboardToursWidget />
+          <DashboardToursWidget initialTours={initialPrefetch?.tours ?? null} />
         </div>
         <div data-denali-animate="fade-up" data-denali-animate-delay="2">
-          <DashboardBookingsWidget />
+          <DashboardBookingsWidget
+            initialBookingsSummary={initialPrefetch?.bookingsSummary ?? null}
+          />
         </div>
         <div data-denali-animate="fade-up" data-denali-animate-delay="3">
-          <DashboardRegistrationsWidget />
+          <DashboardRegistrationsWidget
+            initialBookingsSummary={initialPrefetch?.bookingsSummary ?? null}
+          />
         </div>
         {showFinanceWidget ? (
           <div data-denali-animate="fade-up" data-denali-animate-delay="3">
-            <FinanceDashboardWidget />
+            <FinanceDashboardWidget
+              initialFinanceSummary={initialPrefetch?.financeSummary ?? null}
+            />
           </div>
         ) : null}
       </div>

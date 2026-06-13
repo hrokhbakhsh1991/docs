@@ -64,7 +64,7 @@ export function sanitizeDenaliWizardDraft(
 ): TourWizardDraft {
   const next = sanitizeDenaliWizardDraftRecord(
     draft as unknown as Record<string, unknown>,
-    rules,
+    rules as unknown as Parameters<typeof sanitizeDenaliWizardDraftRecord>[1],
     evalContext
   );
   if (draft.data != null && typeof draft.data === "object") {

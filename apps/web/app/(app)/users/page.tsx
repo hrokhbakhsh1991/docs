@@ -3,7 +3,10 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
+import { buildUsersListFetchQuery } from "@/features/users/users-directory-list-logic";
+import { fetchUsersListServer } from "@/features/users/fetch-users-list.server";
 import { isUsersRouteAllowed } from "@/features/users/users-nav-access";
+import { parseUsersDirectoryQuery } from "@/features/users/users-directory-types";
 import { buildUsersPageMetadata } from "@/i18n/app-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
@@ -15,7 +18,30 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = "force-dynamic";
 
-export default async function OperatorUsersPage() {
+type OperatorUsersPageProps = {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function toUrlSearchParams(
+  params: Record<string, string | string[] | undefined>
+): URLSearchParams {
+  const next = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined) {
+      continue;
+    }
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        next.append(key, entry);
+      }
+    } else {
+      next.set(key, value);
+    }
+  }
+  return next;
+}
+
+export default async function OperatorUsersPage({ searchParams }: OperatorUsersPageProps) {
   const session = await readOperatorSessionFromCookies();
   if (session === null) {
     return null;
@@ -28,5 +54,22 @@ export default async function OperatorUsersPage() {
     notFound();
   }
 
-  return <UsersPageClient session={session} />;
+  const params = await searchParams;
+  const query = parseUsersDirectoryQuery(toUrlSearchParams(params));
+  const initialUsersList =
+    query.tab === "pending"
+      ? null
+      : await fetchUsersListServer(buildUsersListFetchQuery(query));
+  const initialOwnershipRoster =
+    session.role === "owner"
+      ? await fetchUsersListServer("limit=100&sort=name_asc")
+      : null;
+
+  return (
+    <UsersPageClient
+      session={session}
+      initialUsersList={initialUsersList}
+      initialOwnershipRoster={initialOwnershipRoster}
+    />
+  );
 }

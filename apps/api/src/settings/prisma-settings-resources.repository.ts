@@ -250,28 +250,31 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
   }
 
   async seedEquipment(record: EquipmentResource): Promise<void> {
-    await withTenantRls(record.tenantId, (tx) =>
-      tx.workspaceEquipment.upsert({
-        where: { id: record.id },
-        create: {
-          id: record.id,
-          tenantId: record.tenantId,
-          name: record.name,
-          category: record.category,
-          themeIds: [...record.themeIds],
-          sortOrder: record.sortOrder,
-          createdAt: new Date(record.createdAt),
-          updatedAt: new Date(record.updatedAt),
-        },
-        update: {
-          name: record.name,
-          category: record.category,
-          themeIds: [...record.themeIds],
-          sortOrder: record.sortOrder,
-          updatedAt: new Date(record.updatedAt),
-        },
-      })
-    );
+    await withTenantRls(record.tenantId, async (tx) => {
+      const existing = await tx.workspaceEquipment.findFirst({
+        where: { tenantId: record.tenantId, id: record.id },
+        select: { id: true },
+      });
+      const data = {
+        name: record.name,
+        category: record.category,
+        themeIds: [...record.themeIds],
+        sortOrder: record.sortOrder,
+        updatedAt: new Date(record.updatedAt),
+      };
+      if (existing === null) {
+        await tx.workspaceEquipment.create({
+          data: {
+            id: record.id,
+            tenantId: record.tenantId,
+            ...data,
+            createdAt: new Date(record.createdAt),
+          },
+        });
+        return;
+      }
+      await tx.workspaceEquipment.update({ where: { id: record.id }, data });
+    });
   }
 
   async listTourThemes(tenantId: string): Promise<TourThemeResource[]> {
@@ -361,28 +364,31 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
   }
 
   async seedTourTheme(record: TourThemeResource): Promise<void> {
-    await withTenantRls(record.tenantId, (tx) =>
-      tx.workspaceTourTheme.upsert({
-        where: { id: record.id },
-        create: {
-          id: record.id,
-          tenantId: record.tenantId,
-          name: record.name,
-          slug: record.slug,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          createdAt: new Date(record.createdAt),
-          updatedAt: new Date(record.updatedAt),
-        },
-        update: {
-          name: record.name,
-          slug: record.slug,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          updatedAt: new Date(record.updatedAt),
-        },
-      })
-    );
+    await withTenantRls(record.tenantId, async (tx) => {
+      const existing = await tx.workspaceTourTheme.findFirst({
+        where: { tenantId: record.tenantId, id: record.id },
+        select: { id: true },
+      });
+      const data = {
+        name: record.name,
+        slug: record.slug,
+        isActive: record.isActive,
+        sortOrder: record.sortOrder,
+        updatedAt: new Date(record.updatedAt),
+      };
+      if (existing === null) {
+        await tx.workspaceTourTheme.create({
+          data: {
+            id: record.id,
+            tenantId: record.tenantId,
+            ...data,
+            createdAt: new Date(record.createdAt),
+          },
+        });
+        return;
+      }
+      await tx.workspaceTourTheme.update({ where: { id: record.id }, data });
+    });
   }
 
   async listGuideLanguages(tenantId: string): Promise<GuideLanguageResource[]> {
@@ -469,28 +475,31 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
   }
 
   async seedGuideLanguage(record: GuideLanguageResource): Promise<void> {
-    await withTenantRls(record.tenantId, (tx) =>
-      tx.workspaceGuideLanguage.upsert({
-        where: { id: record.id },
-        create: {
-          id: record.id,
-          tenantId: record.tenantId,
-          name: record.name,
-          slug: record.slug,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          createdAt: new Date(record.createdAt),
-          updatedAt: new Date(record.updatedAt),
-        },
-        update: {
-          name: record.name,
-          slug: record.slug,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          updatedAt: new Date(record.updatedAt),
-        },
-      })
-    );
+    await withTenantRls(record.tenantId, async (tx) => {
+      const existing = await tx.workspaceGuideLanguage.findFirst({
+        where: { tenantId: record.tenantId, id: record.id },
+        select: { id: true },
+      });
+      const data = {
+        name: record.name,
+        slug: record.slug,
+        isActive: record.isActive,
+        sortOrder: record.sortOrder,
+        updatedAt: new Date(record.updatedAt),
+      };
+      if (existing === null) {
+        await tx.workspaceGuideLanguage.create({
+          data: {
+            id: record.id,
+            tenantId: record.tenantId,
+            ...data,
+            createdAt: new Date(record.createdAt),
+          },
+        });
+        return;
+      }
+      await tx.workspaceGuideLanguage.update({ where: { id: record.id }, data });
+    });
   }
 
   async listTourPresets(tenantId: string): Promise<TourPresetResource[]> {
@@ -586,30 +595,32 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
   }
 
   async seedTourPreset(record: TourPresetResource): Promise<void> {
-    await withTenantRls(record.tenantId, (tx) =>
-      tx.workspaceTourPreset.upsert({
-        where: { id: record.id },
-        create: {
-          id: record.id,
-          tenantId: record.tenantId,
-          name: record.name,
-          description: record.description,
-          themeId: record.themeId,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          createdAt: new Date(record.createdAt),
-          updatedAt: new Date(record.updatedAt),
-        },
-        update: {
-          name: record.name,
-          description: record.description,
-          themeId: record.themeId,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          updatedAt: new Date(record.updatedAt),
-        },
-      })
-    );
+    await withTenantRls(record.tenantId, async (tx) => {
+      const existing = await tx.workspaceTourPreset.findFirst({
+        where: { tenantId: record.tenantId, id: record.id },
+        select: { id: true },
+      });
+      const data = {
+        name: record.name,
+        description: record.description,
+        themeId: record.themeId,
+        isActive: record.isActive,
+        sortOrder: record.sortOrder,
+        updatedAt: new Date(record.updatedAt),
+      };
+      if (existing === null) {
+        await tx.workspaceTourPreset.create({
+          data: {
+            id: record.id,
+            tenantId: record.tenantId,
+            ...data,
+            createdAt: new Date(record.createdAt),
+          },
+        });
+        return;
+      }
+      await tx.workspaceTourPreset.update({ where: { id: record.id }, data });
+    });
   }
 
   async listRegions(tenantId: string): Promise<RegionResource[]> {
@@ -787,54 +798,59 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
   }
 
   async seedRegion(record: RegionResource): Promise<void> {
-    await withTenantRls(record.tenantId, (tx) =>
-      tx.workspaceRegion.upsert({
-        where: { id: record.id },
-        create: {
-          id: record.id,
-          tenantId: record.tenantId,
-          name: record.name,
-          country: record.country,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          createdAt: new Date(record.createdAt),
-          updatedAt: new Date(record.updatedAt),
-        },
-        update: {
-          name: record.name,
-          country: record.country,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          updatedAt: new Date(record.updatedAt),
-        },
-      })
-    );
+    await withTenantRls(record.tenantId, async (tx) => {
+      const existing = await tx.workspaceRegion.findFirst({
+        where: { tenantId: record.tenantId, id: record.id },
+        select: { id: true },
+      });
+      const data = {
+        name: record.name,
+        country: record.country,
+        isActive: record.isActive,
+        sortOrder: record.sortOrder,
+        updatedAt: new Date(record.updatedAt),
+      };
+      if (existing === null) {
+        await tx.workspaceRegion.create({
+          data: {
+            id: record.id,
+            tenantId: record.tenantId,
+            ...data,
+            createdAt: new Date(record.createdAt),
+          },
+        });
+        return;
+      }
+      await tx.workspaceRegion.update({ where: { id: record.id }, data });
+    });
   }
 
   async seedDestination(record: DestinationResource): Promise<void> {
-    await withTenantRls(record.tenantId, (tx) =>
-      tx.workspaceDestination.upsert({
-        where: { id: record.id },
-        create: {
-          id: record.id,
-          tenantId: record.tenantId,
-          regionId: record.regionId,
-          name: record.name,
-          locationType: record.locationType,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          createdAt: new Date(record.createdAt),
-          updatedAt: new Date(record.updatedAt),
-        },
-        update: {
-          name: record.name,
-          regionId: record.regionId,
-          locationType: record.locationType,
-          isActive: record.isActive,
-          sortOrder: record.sortOrder,
-          updatedAt: new Date(record.updatedAt),
-        },
-      })
-    );
+    await withTenantRls(record.tenantId, async (tx) => {
+      const existing = await tx.workspaceDestination.findFirst({
+        where: { tenantId: record.tenantId, id: record.id },
+        select: { id: true },
+      });
+      const data = {
+        name: record.name,
+        regionId: record.regionId,
+        locationType: record.locationType,
+        isActive: record.isActive,
+        sortOrder: record.sortOrder,
+        updatedAt: new Date(record.updatedAt),
+      };
+      if (existing === null) {
+        await tx.workspaceDestination.create({
+          data: {
+            id: record.id,
+            tenantId: record.tenantId,
+            ...data,
+            createdAt: new Date(record.createdAt),
+          },
+        });
+        return;
+      }
+      await tx.workspaceDestination.update({ where: { id: record.id }, data });
+    });
   }
 }

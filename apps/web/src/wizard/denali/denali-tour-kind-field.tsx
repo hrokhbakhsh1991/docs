@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  patchDenaliCanonicalBasics,
-  readDenaliCanonicalBasics,
-} from "@app-tour/workspace-denali/plugin";
+import { patchDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
 import React, { useMemo } from "react";
 import { useTranslations } from "next-intl";
 
@@ -16,6 +13,8 @@ import {
   DENALI_TOUR_CATEGORY_VALUES,
   DENALI_TOUR_DURATION_VALUES,
   denaliCategoryRequiresEventVariant,
+  isDenaliTourKindSlug,
+  resolveDenaliBasicsFromCategorySlug,
   type DenaliEventVariantSlug,
   type DenaliTourCategorySlug,
   type DenaliTourDurationSlug,
@@ -43,7 +42,7 @@ export function DenaliTourKindField({
   const tourKindSlug = readTourKindSlug(draft);
   const basics = useMemo(
     () =>
-      readDenaliCanonicalBasics(tourKindSlug.length > 0 ? tourKindSlug : undefined) ?? {
+      resolveDenaliBasicsFromCategorySlug(tourKindSlug) ?? {
         category: "mountain" as DenaliTourCategorySlug,
         duration: "single_day" as DenaliTourDurationSlug,
       },
@@ -60,7 +59,7 @@ export function DenaliTourKindField({
     eventVariant?: DenaliEventVariantSlug;
   }) => {
     const nextSlug = patchDenaliCanonicalBasics(
-      tourKindSlug.length > 0 ? tourKindSlug : undefined,
+      isDenaliTourKindSlug(tourKindSlug) ? tourKindSlug : undefined,
       patch
     );
     onDraftChange(setCanonicalStringValue(draft, "category", nextSlug));

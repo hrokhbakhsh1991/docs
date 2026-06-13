@@ -1,6 +1,5 @@
 "use client";
 
-import { readDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
 import { Check } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -13,11 +12,14 @@ import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@
 
 import { isTourThemeCompatibleWithWizard } from "./denali-catalog-filters";
 import { themeDisplayInitials, themeSwatchToneClass } from "./denali-theme-picker-logic";
+import { resolveDenaliBasicsFromCategorySlug } from "./denali-tour-kind-labels";
 import { DENALI_DEFAULT_WORKSPACE_FORM_PROFILE } from "./denali-wizard-ui-context";
 
 export const DENALI_PROGRAM_CONTENT_TEST_IDS = {
   themes: "denali-composite-program-themes",
   card: "denali-theme-picker-card",
+  shortDescription: "denali-composite-program-short-description",
+  longDescription: "denali-composite-program-long-description",
 } as const;
 
 function parseThemeIds(value: unknown): string[] {
@@ -41,6 +43,10 @@ export function DenaliProgramContentField({
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
   const label = resolveDenaliFieldLabel(t, "program.themeIds");
+  const shortDescriptionLabel = resolveDenaliFieldLabel(t, "program.shortDescription");
+  const longDescriptionLabel = resolveDenaliFieldLabel(t, "program.longDescription");
+  const shortDescription = getCanonicalStringValue(draft, "program.shortDescription");
+  const longDescription = getCanonicalStringValue(draft, "program.longDescription");
   const selected = parseThemeIds(getCanonicalValue(draft, "program.themeIds"));
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
@@ -80,7 +86,7 @@ export function DenaliProgramContentField({
 
   const tourCategory = useMemo(() => {
     const tourKind = getCanonicalStringValue(draft, "category").trim();
-    return readDenaliCanonicalBasics(tourKind.length > 0 ? tourKind : undefined)?.category;
+    return resolveDenaliBasicsFromCategorySlug(tourKind)?.category;
   }, [draft]);
 
   const visibleThemes = useMemo(
@@ -180,6 +186,38 @@ export function DenaliProgramContentField({
           })}
         </div>
       ) : null}
+
+      <label className="denali-wizard-composite__field">
+        <span>{shortDescriptionLabel}</span>
+        <textarea
+          className="denali-wizard-composite__textarea"
+          data-canonical-path="program.shortDescription"
+          data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.shortDescription}
+          value={shortDescription}
+          rows={3}
+          onChange={(event) => {
+            onDraftChange(
+              setCanonicalValue(draft, "program.shortDescription", event.target.value)
+            );
+          }}
+        />
+      </label>
+
+      <label className="denali-wizard-composite__field">
+        <span>{longDescriptionLabel}</span>
+        <textarea
+          className="denali-wizard-composite__textarea"
+          data-canonical-path="program.longDescription"
+          data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.longDescription}
+          value={longDescription}
+          rows={4}
+          onChange={(event) => {
+            onDraftChange(
+              setCanonicalValue(draft, "program.longDescription", event.target.value)
+            );
+          }}
+        />
+      </label>
     </div>
   );
 }

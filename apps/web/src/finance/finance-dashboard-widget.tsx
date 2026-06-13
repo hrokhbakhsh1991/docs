@@ -12,22 +12,35 @@ import {
   financeDashboardWidgetHref,
   parseDashboardFinanceSummary,
 } from "@/finance/finance-dashboard-widget-logic";
+import type { FinanceSummary } from "@/finance/finance-reports-logic";
 import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 
-export function FinanceDashboardWidget() {
+type FinanceDashboardWidgetProps = {
+  readonly initialFinanceSummary?: FinanceSummary | null;
+};
+
+export function FinanceDashboardWidget({
+  initialFinanceSummary = null,
+}: FinanceDashboardWidgetProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("dashboard.finance");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const brandName = useTenantBrandTitle();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialFinanceSummary === null);
   const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState(parseDashboardFinanceSummary(null));
+  const [summary, setSummary] = useState(
+    initialFinanceSummary ?? parseDashboardFinanceSummary(null)
+  );
 
   useEffect(() => {
+    if (initialFinanceSummary !== null) {
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -56,7 +69,7 @@ export function FinanceDashboardWidget() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialFinanceSummary]);
 
   const kpiCards = useMemo(() => buildDashboardFinanceKpiCards(summary), [summary]);
 

@@ -1,25 +1,33 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 export const CATALOG_DEV_OTP = "1234";
 
-/** Controlled localized phone input — `fill()` alone may not update React state. */
+/** Portal registration phone step — wait for client hydration before interacting. */
 export async function fillCatalogPhone(page: Page, phone: string): Promise<void> {
-  const input = page.getByLabel(/Mobile|موبایل/);
-  await input.click();
-  await input.clear();
-  await input.pressSequentially(phone, { delay: 15 });
+  const phoneStep = page.locator(
+    "[data-public-registration-phone][data-registration-ready]"
+  );
+  await phoneStep.waitFor({ state: "visible", timeout: 60_000 });
+  await phoneStep.locator("#phone").fill(phone);
 }
 
 export async function submitCatalogPhoneForOtp(page: Page, phone: string): Promise<void> {
   await fillCatalogPhone(page, phone);
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === "POST" &&
-      response.url().includes("/api/public-auth/request-otp"),
-    { timeout: 60_000 }
-  );
-  await page.locator('[data-action="send-code"]').click();
-  await responsePromise;
+  const sendCode = page.locator('[data-action="send-code"]');
+  await expect(sendCode).toBeEnabled({ timeout: 60_000 });
+  await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().includes("/api/public-auth/request-otp") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+    sendCode.click(),
+  ]);
+  await expect(page.locator("[data-public-registration-otp]")).toBeVisible({
+    timeout: 60_000,
+  });
 }
 
 export async function fillCatalogOtp(page: Page, code: string): Promise<void> {

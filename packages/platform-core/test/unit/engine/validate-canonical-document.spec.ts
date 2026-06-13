@@ -215,4 +215,41 @@ describe("validateCanonicalDocument — direct unit", () => {
     assert.equal(result.ok, false);
     assert.equal(result.violations[0]?.code, "SANITIZE_BIGINT_NOT_ALLOWED");
   });
+
+  it("treats null scalar shells as missing required fields (not CANONICAL_TYPE_MISMATCH)", () => {
+    const plugin: WorkspacePlugin = {
+      ...createTestStarterPlugin(),
+      fieldRegistry: {
+        version: 1,
+        fields: [
+          ...createTestStarterPlugin().fieldRegistry.fields,
+          {
+            id: "capacityMax",
+            canonicalPath: "capacityMax",
+            stepId: "basics",
+            kind: "number",
+            required: true,
+          },
+        ],
+      },
+      wizard: {
+        ...createTestStarterPlugin().wizard,
+        roots: [...createTestStarterPlugin().wizard.roots, "capacityMax"],
+      },
+    };
+    const document = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: ["basics", "details", "capacityMax"],
+      data: {
+        basics: { title: "My tour" },
+        details: { summary: "Summary text" },
+        capacityMax: null,
+      },
+    });
+    const result = runValidate(plugin, document);
+    assert.equal(result.ok, false);
+    assert.equal(result.violations[0]?.fieldId, "capacityMax");
+    assert.equal(result.violations[0]?.code, "UNKNOWN_CANONICAL_PATH");
+    assert.match(result.violations[0]?.message ?? "", /No value at canonical path "capacityMax"/);
+  });
 });

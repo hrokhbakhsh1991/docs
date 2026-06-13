@@ -190,6 +190,8 @@ export function WorkspaceWizardHost({
     [wizardHost?.validationSurfaceId, wizardHost?.reviewSurfaceId]
   );
 
+  const draftCategoryKey = getCanonicalStringValue(draft, "category").trim();
+
   const dimensionsKey = useMemo(() => {
     if (wizardHost?.resolveMatrixDimensionsFromDraft != null) {
       const dims = wizardHost.resolveMatrixDimensionsFromDraft(
@@ -202,13 +204,18 @@ export function WorkspaceWizardHost({
         .join("|");
     }
     return "static";
-  }, [wizardHost, rulesModule, draft]);
+  }, [wizardHost, rulesModule, draftCategoryKey]);
 
   useEffect(() => {
     if (!authorized) {
-      setBaseSteps(null);
+      setWorkspacePlugin(null);
       setRulesModule(null);
+      setBaseSteps(null);
       setError(null);
+      return;
+    }
+
+    if (!canLoadWorkspaceWizard(access)) {
       return;
     }
 
@@ -216,34 +223,23 @@ export function WorkspaceWizardHost({
 
     void (async () => {
       try {
-        if (!canLoadWorkspaceWizard(access)) {
-          return;
-        }
-
         const plugin = await loadWorkspacePluginById(pluginId);
         const hooks = plugin.wizardHost;
         const rules =
           hooks?.loadRulesModule != null ? await hooks.loadRulesModule() : null;
-        const engine = PlatformWizardEngine.create(pluginForWizardEngine(plugin));
-        engine.init();
-        const plan = engine.buildRenderPlan({
-          tenantId,
-          dimensions: resolveWizardDimensions(plugin, draft, rules),
-        });
 
         if (!cancelled) {
-          setRulesModule(rules);
           setWorkspacePlugin(plugin);
-          setBaseSteps(plan);
+          setRulesModule(rules);
           setError(null);
         }
       } catch (cause) {
         if (!cancelled) {
           const message = cause instanceof Error ? cause.message : "wizard_load_failed";
           setError(message);
-          setBaseSteps(null);
           setWorkspacePlugin(null);
           setRulesModule(null);
+          setBaseSteps(null);
         }
       }
     })();
@@ -251,7 +247,29 @@ export function WorkspaceWizardHost({
     return () => {
       cancelled = true;
     };
-  }, [authorized, access, pluginId, tenantId, dimensionsKey]);
+  }, [authorized, access, pluginId]);
+
+  useEffect(() => {
+    if (workspacePlugin == null) {
+      setBaseSteps(null);
+      return;
+    }
+
+    try {
+      const engine = PlatformWizardEngine.create(pluginForWizardEngine(workspacePlugin));
+      engine.init();
+      const plan = engine.buildRenderPlan({
+        tenantId,
+        dimensions: resolveWizardDimensions(workspacePlugin, draft, rulesModule),
+      });
+      setBaseSteps(plan);
+      setError(null);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "wizard_load_failed";
+      setError(message);
+      setBaseSteps(null);
+    }
+  }, [workspacePlugin, rulesModule, tenantId, dimensionsKey]);
 
   const visibleSteps = useMemo(() => {
     if (baseSteps == null) {
@@ -314,6 +332,12 @@ export function WorkspaceWizardHost({
 
     const saved = clampWizardStepIndex(activeStepIndex, visibleSteps.length);
     if (saved > 0) {
+      resumeAppliedRef.current = true;
+      return;
+    }
+
+    // Parent persists step in draft meta (11.5) — do not override step 0 via field inference.
+    if (controlledStepIndex !== undefined) {
       resumeAppliedRef.current = true;
       return;
     }

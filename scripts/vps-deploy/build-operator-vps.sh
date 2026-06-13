@@ -22,6 +22,6 @@ build_pkg @app-tour/platform-events
 pnpm --filter @app-tour/wizard-navigation run build 2>/dev/null || true
 
 cd "${DEPLOY_PATH}/apps/web"
-NODE_ENV=production VPS_BUILD_IGNORE_TS=1 pnpm exec next build
+NODE_ENV=production pnpm exec next build
 
 echo "[vps-build] web build complete; API uses tsx runtime"
