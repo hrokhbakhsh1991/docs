@@ -1,7 +1,7 @@
-# Phase 7 genericity baseline — digest-locked after Phase 12 platform wizard host hooks
-baseline_sha: 6761df80910f74e6cf5d6a729ad3570d6748bff4
-platform_core_tree_digest: 191daea440d0b42de44701226ba3e4c7c0313bda22cab6ccb9b6874dc1e5cc7f
+# Phase 7 genericity baseline — digest-locked after platform-core render-plan genericity fix
+baseline_sha: b32c7c72b07d31c3b072b91407af31d7d85ca14b
+platform_core_tree_digest: b9e67ff41c5ccd94a2bcd71301e6bf748ad8389562511f3526da2ec9554a204e
 platform_core_file_count: 77
 recorded_at: "2026-06-13T00:00:00Z"
-recorded_by: "CI gate repair — platform-core digest after API TS fixes"
-note: "phase-7 digest lock when baseline_sha ref absent; aligns with post-6761df80 platform-core"
+recorded_by: "CI gate repair — platform-core digest after architecture guard fixes"
+note: "phase-7 digest lock when baseline_sha ref absent; aligns with post-b32c7c72 platform-core"
