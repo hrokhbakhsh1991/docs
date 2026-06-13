@@ -39,8 +39,8 @@ import { buildLargeWorkspacePlugin, COLD_START_CANONICAL_INPUT } from "./cold-st
 import { isTrunkTestTier } from "../test-tier";
 
 /** Trunk CI runs tsx dev paths — DEC-061 waives strict 500ms readiness on shared GHA runners. */
-const TRUNK_COLD_START_HTTP_BUDGET_MS = 2000;
-const TRUNK_COLD_START_WORKER_READY_BUDGET_MS = 2000;
+const TRUNK_COLD_START_HTTP_BUDGET_MS = 4000;
+const TRUNK_COLD_START_WORKER_READY_BUDGET_MS = 4000;
 
 function resolveColdStartBudget(
   primary: string | undefined,

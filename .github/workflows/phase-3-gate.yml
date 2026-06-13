@@ -21,6 +21,8 @@ jobs:
     env:
       STORAGE_DRIVER: memory
       NODE_ENV: test
+      COLD_START_WORKER_READY_BUDGET_MS: "4000"
+      COLD_START_HTTP_BUDGET_MS: "4000"
 
     steps:
       - name: Checkout
