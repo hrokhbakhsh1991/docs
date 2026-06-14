@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
+import { resolveRequestHost } from "@/auth/resolve-request-host";
 import { validateSessionToken } from "@/auth/validate-session-token";
 import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
 
@@ -29,7 +30,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   let backendRes: Response;
   try {
-    const host = req.headers.get("host") ?? "localhost:3000";
+    const host = resolveRequestHost(req);
     backendRes = await fetch(`${resolveTourOpsApiBaseUrl()}/identity/me`, {
       method: "GET",
       headers: {

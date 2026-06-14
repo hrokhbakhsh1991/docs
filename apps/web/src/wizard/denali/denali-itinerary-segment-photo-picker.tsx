@@ -52,7 +52,7 @@ export function DenaliItinerarySegmentPhotoPicker({
     >
       <span>{t("composites.itinerary.segmentPhotos")}</span>
       {selectablePhotos.length === 0 ? (
-        <div className="space-y-2">
+        <div className="denali-wizard-composite__segment-photo-empty">
           <p className="denali-wizard-composite__helper">{t("composites.itinerary.segmentPhotosEmpty")}</p>
           {stepNav != null ? (
             <Button

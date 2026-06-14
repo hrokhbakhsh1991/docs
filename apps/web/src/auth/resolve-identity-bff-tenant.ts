@@ -3,6 +3,7 @@ import { resolvePublicCatalogBootstrapForHost } from "@/tenant/resolve-public-ca
 import {
   buildIdentityBffHeadersForTenant,
 } from "./identity-bff-headers";
+import { resolveRequestHost } from "./resolve-request-host";
 
 const ANONYMOUS_OTP_USER_ID = "00000000-0000-4000-8000-000000000099";
 
@@ -16,7 +17,7 @@ export async function resolveIdentityBffTenantId(host: string): Promise<string> 
 export { buildIdentityBffHeadersForTenant };
 
 export async function buildIdentityBffHeadersAsync(req: Request): Promise<Record<string, string>> {
-  const host = req.headers.get("host") ?? "localhost:3000";
+  const host = resolveRequestHost(req);
   const tenantId = await resolveIdentityBffTenantId(host);
   return buildIdentityBffHeadersForTenant(host, tenantId);
 }

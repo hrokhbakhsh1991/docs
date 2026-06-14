@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { before, after, describe, it } from "node:test";
+import { afterEach, before, describe, it } from "node:test";
 import type { AbstractIntlMessages } from "next-intl";
 import { NextIntlClientProvider } from "next-intl";
 import React, { useState } from "react";
@@ -24,7 +24,7 @@ before(async () => {
   originalFetch = globalThis.fetch;
 });
 
-after(() => {
+afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
@@ -70,6 +70,7 @@ describe("denali-itinerary-segment-pickers.spec.tsx", () => {
   });
 
   it("WEB-DENALI-ITIN-19 destination picker emits destinationId and locationLabel", async () => {
+    const prevFetch = globalThis.fetch;
     globalThis.fetch = async () =>
       new Response(
         JSON.stringify({
@@ -82,31 +83,35 @@ describe("denali-itinerary-segment-pickers.spec.tsx", () => {
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
 
-    const changes: Array<{ destinationId?: string; locationLabel?: string }> = [];
-    const { container } = renderPicker(
-      <DenaliItinerarySegmentDestinationField
-        onChange={(selection) => changes.push(selection)}
-      />
-    );
+    try {
+      const changes: Array<{ destinationId?: string; locationLabel?: string }> = [];
+      const { container } = renderPicker(
+        <DenaliItinerarySegmentDestinationField
+          onChange={(selection) => changes.push(selection)}
+        />
+      );
 
-    await waitFor(() => {
+      await waitFor(() => {
+        const select = container.querySelector("select");
+        assert.ok(select);
+        assert.ok(select?.options.length > 1);
+      });
+
       const select = container.querySelector("select");
       assert.ok(select);
-      assert.ok(select?.options.length > 1);
-    });
+      fireEvent.change(select!, { target: { value: "dest-1" } });
 
-    const select = container.querySelector("select");
-    assert.ok(select);
-    fireEvent.change(select!, { target: { value: "dest-1" } });
-
-    assert.deepEqual(changes.at(-1), {
-      destinationId: "dest-1",
-      locationLabel: "Damavand",
-    });
-    assert.ok(
-      container.querySelector(
-        `[data-testid="${DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS.select}"]`
-      )
-    );
+      assert.deepEqual(changes.at(-1), {
+        destinationId: "dest-1",
+        locationLabel: "Damavand",
+      });
+      assert.ok(
+        container.querySelector(
+          `[data-testid="${DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS.select}"]`
+        )
+      );
+    } finally {
+      globalThis.fetch = prevFetch;
+    }
   });
 });

@@ -3,6 +3,8 @@ import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { resolveTenantIdFromDevHost } from "@/tenant/resolve-host-tenant";
 import { resolvePublicFallbackTenantId } from "@/tenant/resolve-public-host-fallback";
 
+import { resolveRequestHost } from "./resolve-request-host";
+
 const ANONYMOUS_OTP_USER_ID = "00000000-0000-4000-8000-000000000099";
 
 export const OPERATOR_BFF_TENANT_UNRESOLVED = "OPERATOR_BFF_TENANT_UNRESOLVED";
@@ -58,14 +60,14 @@ export function buildIdentityBffHeadersForTenant(
 
 /** Operator login BFF — dev host map → tenant-context → dev env (M17.2). */
 export async function buildIdentityBffHeadersAsync(req: Request): Promise<Record<string, string>> {
-  const host = req.headers.get("host") ?? "localhost:3000";
+  const host = resolveRequestHost(req);
   const tenantId = await resolveOperatorBffTenantId(host);
   return buildIdentityBffHeadersForTenant(host, tenantId);
 }
 
 /** @deprecated Prefer `buildIdentityBffHeadersAsync` for production host resolution. */
 export function buildIdentityBffHeaders(req: Request): Record<string, string> {
-  const host = req.headers.get("host") ?? "localhost:3000";
+  const host = resolveRequestHost(req);
   const tenantId = resolveTenantIdFromDevHost(host) ?? fallbackOperatorTenantId();
   return buildIdentityBffHeadersForTenant(host, tenantId);
 }
