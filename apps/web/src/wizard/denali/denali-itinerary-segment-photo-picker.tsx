@@ -57,8 +57,7 @@ export function DenaliItinerarySegmentPhotoPicker({
           {stepNav != null ? (
             <Button
               type="button"
-              variant="outline"
-              size="sm"
+              variant="secondary"
               data-testid="denali-itinerary-go-to-photos"
               onClick={() => stepNav.goToStepId("denali_photos")}
             >

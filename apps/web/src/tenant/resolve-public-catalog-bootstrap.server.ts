@@ -17,7 +17,7 @@ export type PublicCatalogBootstrap = {
   readonly pluginId: string;
 };
 
-function fallbackTenantId(): string {
+function devEnvFallbackTenantId(): string {
   return (
     process.env.TOUR_OPS_DEV_TENANT_ID?.trim() ||
     process.env.NEXT_PUBLIC_DEV_TENANT_ID?.trim() ||
@@ -46,7 +46,7 @@ export async function resolvePublicCatalogBootstrapForHost(
   }
 
   if (isDevWebSessionAllowed()) {
-    const tenantId = fallbackTenantId();
+    const tenantId = devEnvFallbackTenantId();
     return {
       tenantId,
       pluginId: resolveBootstrapPluginIdForTenant(tenantId, host),
