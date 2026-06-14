@@ -31,6 +31,8 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "db/migration-head-preflight.ts",
   "db/tenant-connection-budget.ts",
   "db/transient-db-error.ts",
+  "db/database-connection-error.ts",
+  "db/database-health.ts",
   "db/assert-tenant-rls-alignment.ts",
   "db/assert-production-database-integrity.ts",
   "canonical/canonical-storage.ts",

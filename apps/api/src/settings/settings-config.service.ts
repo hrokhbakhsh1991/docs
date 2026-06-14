@@ -230,9 +230,10 @@ async function getWizardTemplateConfig(
     const payload = stored?.payload as { published?: boolean; steps?: unknown[] } | undefined;
     const needsSeed =
       stored === null ||
-      payload?.published !== true ||
-      !Array.isArray(payload?.steps) ||
-      payload.steps.length <= 5;
+      (stored.configVersion >= WIZARD_TEMPLATE_CURRENT_VERSION &&
+        (payload?.published !== true ||
+          !Array.isArray(payload?.steps) ||
+          payload.steps.length <= 5));
     if (needsSeed) {
       await seedDenaliFullWizardTemplate(auth.tenantId);
       stored = await repo.get(auth.tenantId, configKey);
