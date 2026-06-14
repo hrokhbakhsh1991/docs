@@ -6,7 +6,7 @@ import { before, describe, it } from "node:test";
 
 import {
   getIdentityRepository,
-  resetIdentityRepositoryForTests,
+  resetIdentityRepositorySingletonForTests,
 } from "../src/identity/create-identity-repository";
 import {
   getWorkspaceUserBookingSummary,
@@ -17,6 +17,7 @@ import {
 import {
   getBookingsRepository,
   resetBookingsRepositoryForTests,
+  resetBookingsRepositorySingletonForTests,
 } from "../src/bookings/create-bookings-repository";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
 import { seedOperatorIdentityFixture } from "./fixtures/operator-identity-fixture";
@@ -34,7 +35,8 @@ const ownerAuth = {
 
 describe("users-role-history.spec.ts — R7", () => {
   before(() => {
-    resetIdentityRepositoryForTests();
+    resetBookingsRepositorySingletonForTests();
+    resetIdentityRepositorySingletonForTests();
     resetBookingsRepositoryForTests();
     seedOperatorIdentityFixture();
   });

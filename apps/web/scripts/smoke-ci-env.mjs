@@ -56,6 +56,7 @@ export function smokeBuildEnv(overrides = {}) {
     SESSION_COOKIE_SECURE: "false",
     ALLOW_URBAN_WEB_PLUGIN: "true",
     ALLOW_DENALI_WEB_PLUGIN: "true",
+    WEB_SKIP_GUARD_PREBUILD: "1",
     ...overrides,
   };
 }

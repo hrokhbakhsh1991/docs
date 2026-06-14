@@ -15,6 +15,11 @@ let singletonDriver: ReturnType<typeof resolveStorageDriver> | null = null;
 export function getBookingsRepository(): BookingsRepository {
   assertProductionStorageDriver();
 
+  // Test harness pins an in-memory repo while gate env exports STORAGE_DRIVER=prisma.
+  if (singleton instanceof InMemoryBookingsRepository && singletonDriver === "memory") {
+    return singleton;
+  }
+
   const driver = resolveStorageDriver();
   if (singleton !== null && singletonDriver === driver) {
     return singleton;
@@ -35,6 +40,7 @@ export function getBookingsRepository(): BookingsRepository {
 export function resetBookingsRepositoryForTests(): InMemoryBookingsRepository {
   resetBookingsStoresForTests();
   singleton = new InMemoryBookingsRepository();
+  singletonDriver = "memory";
   return singleton;
 }
 

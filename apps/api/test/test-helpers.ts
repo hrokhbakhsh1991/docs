@@ -11,6 +11,7 @@ import { TourStorageDbAdapter } from "../src/db/tour-storage.adapter";
 import type { TourStorageRepository } from "../src/db/tour.repository";
 import { resetBookingsRepositorySingletonForTests } from "../src/bookings/create-bookings-repository";
 import { resetIdentityRepositorySingletonForTests } from "../src/identity/create-identity-repository";
+import { resetSettingsResourcesRepositorySingletonForTests } from "../src/settings/create-settings-resources-repository";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { ToursService } from "../src/tours/tours.service";
 
@@ -58,6 +59,7 @@ export function installMemoryStorageDriverForDescribe(): void {
     process.env.PROJECTION_AUTO_RECONCILE_ENABLED = "false";
     resetBookingsRepositorySingletonForTests();
     resetIdentityRepositorySingletonForTests();
+    resetSettingsResourcesRepositorySingletonForTests();
   });
   after(() => {
     if (prior === undefined) {

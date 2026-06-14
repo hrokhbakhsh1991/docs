@@ -8,6 +8,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
+      "@app-tour/workspace-denali": ["../../packages/workspaces/denali/dist/index"],
       "@app-tour/workspace-denali/plugin": ["../../packages/workspaces/denali/dist/denali.plugin"],
       "@app-tour/workspace-denali/http": ["../../packages/workspaces/denali/dist/http/index"],
       "@app-tour/workspace-denali/wizard/validation": [
