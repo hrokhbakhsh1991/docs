@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+import { OPERATOR_DENALI_SMOKE_TENANT_ID } from "../internal/operator-smoke-tenant-id";
 
 import { deriveTourProjections } from "../canonical/projection-sync";
 import { TourVersionConflictError } from "../tours/tour-version-conflict";
@@ -188,13 +188,13 @@ export class InMemoryTourRepository implements TourStorageRepository {
     build: (input: { tenantId: string }) => Tour
   ): void {
     const existing = this.byId.get(tourId);
-    if (existing !== undefined && existing.tenantId === DENALI_SMOKE_TENANT_ID) {
+    if (existing !== undefined && existing.tenantId === OPERATOR_DENALI_SMOKE_TENANT_ID) {
       return;
     }
     if (existing !== undefined) {
       this.unindexTourId(tourId, existing.tenantId);
     }
-    this.indexTour(build({ tenantId: DENALI_SMOKE_TENANT_ID }));
+    this.indexTour(build({ tenantId: OPERATOR_DENALI_SMOKE_TENANT_ID }));
   }
 
   async getById(id: string, tenantId: string): Promise<Tour | null> {

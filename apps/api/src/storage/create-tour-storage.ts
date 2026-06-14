@@ -1,5 +1,5 @@
 import type { Tour, TourStorageRepository } from "./tour-storage.interface";
-import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+import { OPERATOR_DENALI_SMOKE_TENANT_ID } from "../internal/operator-smoke-tenant-id";
 import type { TourStorageRepository as DbTourStorageRepository } from "../db/tour.repository";
 import { TourStorageDbAdapter } from "../db/tour-storage.adapter";
 import { InMemoryTourRepository } from "./in-memory-tour.repository";
@@ -71,7 +71,7 @@ export function ensureDevMemoryTourSeedForTenant(
   if (isProductionAuthMode()) {
     return;
   }
-  if (tenantId !== DENALI_SMOKE_TENANT_ID) {
+  if (tenantId !== OPERATOR_DENALI_SMOKE_TENANT_ID) {
     return;
   }
   const memoryStore = resolveDevMemoryTourStore(store);
