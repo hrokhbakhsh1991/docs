@@ -70,7 +70,7 @@ export class PrismaWorkspaceDraftEventsRepository implements WorkspaceDraftEvent
           draftNamespace: key.draftNamespace,
           draftKey: key.draftKey,
         },
-        orderBy: { occurredAt: "desc" },
+        orderBy: [{ occurredAt: "desc" }, { version: "desc" }, { id: "desc" }],
         take: limit,
       })
     );

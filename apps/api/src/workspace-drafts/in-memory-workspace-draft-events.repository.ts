@@ -33,6 +33,22 @@ function draftScopeMatches(
   );
 }
 
+function compareDraftEventsNewestFirst(
+  left: WorkspaceDraftEventRecord,
+  right: WorkspaceDraftEventRecord
+): number {
+  const byTime = right.occurredAt.localeCompare(left.occurredAt);
+  if (byTime !== 0) {
+    return byTime;
+  }
+  const leftVersion = left.version ?? -1;
+  const rightVersion = right.version ?? -1;
+  if (rightVersion !== leftVersion) {
+    return rightVersion - leftVersion;
+  }
+  return right.id.localeCompare(left.id);
+}
+
 export class InMemoryWorkspaceDraftEventsRepository implements WorkspaceDraftEventsRepository {
   async append(input: AppendWorkspaceDraftEventInput): Promise<WorkspaceDraftEventRecord> {
     const created: WorkspaceDraftEventRecord = {
@@ -58,7 +74,7 @@ export class InMemoryWorkspaceDraftEventsRepository implements WorkspaceDraftEve
   ): Promise<readonly WorkspaceDraftEventRecord[]> {
     return eventStore
       .filter((record) => draftScopeMatches(record, key))
-      .sort((left, right) => right.occurredAt.localeCompare(left.occurredAt))
+      .sort(compareDraftEventsNewestFirst)
       .slice(0, limit)
       .map((record) => ({ ...record }));
   }
