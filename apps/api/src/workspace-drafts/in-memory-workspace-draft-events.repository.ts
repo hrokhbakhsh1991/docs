@@ -4,6 +4,7 @@ import type {
   AppendWorkspaceDraftEventInput,
   WorkspaceDraftEventRecord,
 } from "./workspace-draft-events.types";
+import { compareWorkspaceDraftEventsNewestFirst } from "./workspace-draft-events-order";
 import type { WorkspaceDraftKey } from "./workspace-drafts.types";
 
 let eventStore: WorkspaceDraftEventRecord[] = [];
@@ -33,22 +34,6 @@ function draftScopeMatches(
   );
 }
 
-function compareDraftEventsNewestFirst(
-  left: WorkspaceDraftEventRecord,
-  right: WorkspaceDraftEventRecord
-): number {
-  const byTime = right.occurredAt.localeCompare(left.occurredAt);
-  if (byTime !== 0) {
-    return byTime;
-  }
-  const leftVersion = left.version ?? -1;
-  const rightVersion = right.version ?? -1;
-  if (rightVersion !== leftVersion) {
-    return rightVersion - leftVersion;
-  }
-  return right.id.localeCompare(left.id);
-}
-
 export class InMemoryWorkspaceDraftEventsRepository implements WorkspaceDraftEventsRepository {
   async append(input: AppendWorkspaceDraftEventInput): Promise<WorkspaceDraftEventRecord> {
     const created: WorkspaceDraftEventRecord = {
@@ -74,7 +59,7 @@ export class InMemoryWorkspaceDraftEventsRepository implements WorkspaceDraftEve
   ): Promise<readonly WorkspaceDraftEventRecord[]> {
     return eventStore
       .filter((record) => draftScopeMatches(record, key))
-      .sort(compareDraftEventsNewestFirst)
+      .sort(compareWorkspaceDraftEventsNewestFirst)
       .slice(0, limit)
       .map((record) => ({ ...record }));
   }

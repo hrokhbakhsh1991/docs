@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { withTenantRls } from "../db/with-tenant-rls";
 import type { WorkspaceDraftEventsRepository } from "./in-memory-workspace-draft-events.repository";
+import { compareWorkspaceDraftEventsNewestFirst } from "./workspace-draft-events-order";
 import type {
   AppendWorkspaceDraftEventInput,
   WorkspaceDraftEventRecord,
@@ -70,10 +71,11 @@ export class PrismaWorkspaceDraftEventsRepository implements WorkspaceDraftEvent
           draftNamespace: key.draftNamespace,
           draftKey: key.draftKey,
         },
-        orderBy: [{ occurredAt: "desc" }, { version: "desc" }, { id: "desc" }],
-        take: limit,
       })
     );
-    return rows.map(toRecord);
+    return rows
+      .map(toRecord)
+      .sort(compareWorkspaceDraftEventsNewestFirst)
+      .slice(0, limit);
   }
 }
