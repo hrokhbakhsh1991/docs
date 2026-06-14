@@ -1,58 +1,66 @@
 "use server";
 
-import { buildTourAuthHeaders, type UpdateTourPayload } from "@app-tour/workspace-sdk";
+import { headers } from "next/headers";
 
-import { resolveBootstrapAppSession } from "@/tenant/tenant-kernel";
+import type { UpdateTourPayload } from "@app-tour/workspace-sdk";
+
+import { readSessionTokenFromCookies } from "@/auth/read-session-token.server";
+import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
 
 export type UpdateTourActionResult =
   | { readonly ok: true; readonly rowVersion: number }
   | { readonly ok: false; readonly status: number; readonly code: string; readonly message: string };
 
-function apiBaseUrl(): string {
-  const url = process.env.TOUR_OPS_API_URL?.trim();
-  if (url === undefined || url.length === 0) {
-    throw new Error("TOUR_OPS_API_URL_NOT_CONFIGURED");
+function parseApiErrorCode(body: unknown): string {
+  if (body === null || typeof body !== "object") {
+    return "unknown_error";
   }
-  return url.replace(/\/$/, "");
+  const record = body as Record<string, unknown>;
+  if (typeof record.code === "string" && record.code.trim().length > 0) {
+    return record.code.trim();
+  }
+  if (typeof record.error === "string" && record.error.trim().length > 0) {
+    return record.error.trim();
+  }
+  if (
+    record.error !== null &&
+    typeof record.error === "object" &&
+    "code" in record.error &&
+    typeof (record.error as { code?: unknown }).code === "string"
+  ) {
+    return String((record.error as { code: string }).code);
+  }
+  return "unknown_error";
 }
 
 export async function updateTourAction(
   tourId: string,
   payload: UpdateTourPayload
 ): Promise<UpdateTourActionResult> {
-  const { context } = resolveBootstrapAppSession();
-  if (context.workspaceId === undefined) {
-    throw new Error("WEB_SESSION_MISSING_WORKSPACE_ID");
+  const sessionToken = await readSessionTokenFromCookies();
+  if (sessionToken === null) {
+    return {
+      ok: false,
+      status: 401,
+      code: "AUTH_UNAUTHENTICATED",
+      message: "AUTH_UNAUTHENTICATED",
+    };
   }
 
-  const auth = buildTourAuthHeaders({
-    tenantId: context.tenantId,
-    userId: context.userId,
-    role: context.role,
-    status: context.status,
-    workspaceId: context.workspaceId,
-  });
-
-  const headers: Record<string, string> = {
-    ...auth,
-    "content-type": "application/json",
-  };
-
-  const response = await fetch(`${apiBaseUrl()}/tours/${encodeURIComponent(tourId)}`, {
+  const host = (await headers()).get("host") ?? "localhost:3000";
+  const response = await fetch(`${resolveTourOpsApiBaseUrl()}/tours/${encodeURIComponent(tourId)}`, {
     method: "PATCH",
-    headers,
+    headers: {
+      Authorization: `Bearer ${sessionToken}`,
+      host: host.split(":")[0] ?? "localhost",
+      "content-type": "application/json",
+    },
     body: JSON.stringify(payload),
   });
 
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    const code =
-      body !== null &&
-      typeof body === "object" &&
-      "error" in body &&
-      typeof (body as { error?: unknown }).error === "string"
-        ? String((body as { error: string }).error)
-        : "unknown_error";
+    const code = parseApiErrorCode(body);
     return {
       ok: false,
       status: response.status,

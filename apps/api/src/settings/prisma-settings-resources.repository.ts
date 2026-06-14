@@ -668,7 +668,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
 
   async createDestination(
     tenantId: string,
-    input: { regionId: string; name: string; locationType?: string }
+    input: { regionId: string; name: string; locationType?: string; altitudeM?: number | null }
   ): Promise<DestinationResource> {
     const region = await this.getRegion(tenantId, input.regionId);
     if (region === null) {
@@ -684,6 +684,12 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
           regionId: input.regionId,
           name: input.name,
           locationType: input.locationType ?? null,
+          altitudeM:
+            input.altitudeM !== undefined &&
+            input.altitudeM !== null &&
+            Number.isFinite(input.altitudeM)
+              ? input.altitudeM
+              : null,
           sortOrder: existing.length,
         },
       })

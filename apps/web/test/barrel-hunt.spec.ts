@@ -46,4 +46,18 @@ describe("P3-E-PRIM-BARREL barrel hunt (apps/web/src)", () => {
     }
     assert.deepEqual(violations, []);
   });
+
+  it("WEB-DENALI-CLIENT-01 wizard client graph avoids workspace-denali root barrel", () => {
+    const wizardDir = join(SRC_DIR, "wizard");
+    const violations: string[] = [];
+    for (const file of listSourceFiles(wizardDir)) {
+      const specs = extractImportSpecifiers(readFileSync(file, "utf8"));
+      for (const spec of specs) {
+        if (spec === "@app-tour/workspace-denali") {
+          violations.push(`${file}: ${spec}`);
+        }
+      }
+    }
+    assert.deepEqual(violations, []);
+  });
 });

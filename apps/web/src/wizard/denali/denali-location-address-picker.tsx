@@ -25,6 +25,7 @@ type DenaliLocationAddressPickerProps = {
   readonly onChange: (_patch: Partial<DenaliLocationAddressValue>) => void;
   readonly label?: string;
   readonly hint?: string;
+  readonly mapEnabled?: boolean;
 };
 
 function geocodingSuggestionKey(item: GeocodingSearchResult): string {
@@ -53,6 +54,7 @@ export function DenaliLocationAddressPicker({
   onChange,
   label,
   hint,
+  mapEnabled = false,
 }: DenaliLocationAddressPickerProps) {
   const t = useTranslations("denali.composites.location");
   const listboxId = useId();
@@ -232,13 +234,19 @@ export function DenaliLocationAddressPicker({
       )}
 
       <div className="denali-wizard-composite__map-wrap">
-        <DenaliLocationPickerMap
-          value={mapValue}
-          onChange={handleMapChange}
-          height={220}
-          data-testid={`denali-location-${testIdKey}-map`}
-        />
-        <p className="denali-wizard-composite__location-map-hint">{t("mapInteractionHint")}</p>
+        {mapEnabled ? (
+          <>
+            <DenaliLocationPickerMap
+              value={mapValue}
+              onChange={handleMapChange}
+              height={220}
+              data-testid={`denali-location-${testIdKey}-map`}
+            />
+            <p className="denali-wizard-composite__location-map-hint">{t("mapInteractionHint")}</p>
+          </>
+        ) : (
+          <p className="denali-wizard-composite__location-map-hint">{t("pickFromMapHint")}</p>
+        )}
       </div>
     </div>
   );

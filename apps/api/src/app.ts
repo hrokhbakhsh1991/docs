@@ -103,7 +103,7 @@ async function dispatchRequest(
   const method = req.method ?? "GET";
 
   if (method === "GET" && url.pathname === "/health") {
-    handleHealth(req, res);
+    await handleHealth(req, res);
     return;
   }
 

@@ -18,7 +18,7 @@ import {
   type InvitableWorkspaceRole,
   type UsersDirectoryRow,
 } from "@/features/users/users-directory-types";
-import { assignableRolesForActor, canManageUserRow } from "@/features/users/users-page-logic";
+import { assignableRolesForActor, canEditUserRewards, canManageUserRow } from "@/features/users/users-page-logic";
 import { collectUserRowMicroBadges } from "@/features/users/users-rewards-logic";
 
 import { UserMicroBadges } from "./users-directory-user-micro-badges";
@@ -56,6 +56,7 @@ export function UsersDirectoryRowActionsSheet({
   }
 
   const manageable = canManageUserRow(session.role, session.userId, user);
+  const canRewards = canEditUserRewards(session.role, session.userId, user);
   const roleOptions = assignableRolesForActor(session.role).filter((role) => role !== user.role);
   const isSuspended = user.status === "SUSPENDED";
 
@@ -83,6 +84,20 @@ export function UsersDirectoryRowActionsSheet({
           >
             {t("actions.details")}
           </Button>
+          {canRewards ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              data-testid={USERS_DIRECTORY_TEST_IDS.rowRewards}
+              onClick={() => {
+                onOpenRewards();
+                onOpenChange(false);
+              }}
+            >
+              {t("actions.rewards")}
+            </Button>
+          ) : null}
           {manageable ? (
             <div className="flex flex-col gap-2" data-testid={USERS_DIRECTORY_TEST_IDS.rowActions}>
               {roleOptions.map((role) => (
@@ -100,18 +115,6 @@ export function UsersDirectoryRowActionsSheet({
                   {t("actions.setRole", { role: t(`roles.${role}`) })}
                 </Button>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                disabled={busy}
-                data-testid={USERS_DIRECTORY_TEST_IDS.rowRewards}
-                onClick={() => {
-                  onOpenRewards();
-                  onOpenChange(false);
-                }}
-              >
-                {t("actions.rewards")}
-              </Button>
               {isSuspended ? (
                 <Button
                   type="button"
@@ -180,6 +183,7 @@ export function UsersDirectoryMobileCard({
 }: UsersDirectoryMobileCardProps) {
   const t = useTranslations("users");
   const manageable = canManageUserRow(session.role, session.userId, user);
+  const canRewards = canEditUserRewards(session.role, session.userId, user);
   const isSuspended = user.status === "SUSPENDED";
   const microBadges = collectUserRowMicroBadges(user);
 
@@ -216,7 +220,7 @@ export function UsersDirectoryMobileCard({
           >
             {t("actions.details")}
           </Button>
-          {manageable ? (
+          {manageable || canRewards ? (
             <Button
               type="button"
               size="icon"

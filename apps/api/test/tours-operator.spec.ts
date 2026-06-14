@@ -5,6 +5,8 @@
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
+import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+
 import { createRequestListener } from "../src/app";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
 import {
@@ -46,6 +48,17 @@ function createOperatorTestListener() {
   return createRequestListener({ toursService: createTestToursService() });
 }
 
+function denaliSmokeAuthHeaders(): Record<string, string> {
+  return {
+    "x-tenant-id": DENALI_SMOKE_TENANT_ID,
+    "x-authenticated-tenant-id": DENALI_SMOKE_TENANT_ID,
+    "x-user-id": OPERATOR_SMOKE.ownerUserId,
+    "x-actor-role": "owner",
+    "x-membership-status": "ACTIVE",
+    "x-workspace-id": "ws-denali-smoke",
+  };
+}
+
 describe("tours-operator.spec.ts — Phase 9.3 API", () => {
   const client = installHttpTestClient(createOperatorTestListener);
 
@@ -60,6 +73,14 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
       status: "ACTIVE",
       sessionVersion: 1,
       workspaceId: "ws-operator-member",
+    });
+    repo.seedMembership({
+      userId: OPERATOR_SMOKE.ownerUserId,
+      tenantId: DENALI_SMOKE_TENANT_ID,
+      role: "owner",
+      status: "ACTIVE",
+      sessionVersion: 1,
+      workspaceId: "ws-denali-smoke",
     });
   });
 
@@ -208,5 +229,17 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
     });
     assert.equal(patch.status, 403);
     assert.equal(patch.body.code, "OPERATOR_TOUR_WRITE_FORBIDDEN");
+  });
+
+  it("API-9.3-03 GET /tours/:id seeds denali memory smoke tour without prior list (FE-14/TR-09)", async () => {
+    const detail = await client.requestJson<OperatorListResponse>(
+      "GET",
+      `/tours/${OPERATOR_SMOKE.seedTourId}`,
+      { headers: denaliSmokeAuthHeaders() }
+    );
+    assert.equal(detail.status, 200);
+    assert.equal(detail.body.id, OPERATOR_SMOKE.seedTourId);
+    assert.equal(detail.body.tenantId, DENALI_SMOKE_TENANT_ID);
+    assert.equal(typeof detail.body.projection, "object");
   });
 });

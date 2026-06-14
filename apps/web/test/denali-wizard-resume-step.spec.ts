@@ -40,7 +40,7 @@ const TEMPLATE_STEPS = [
 ] as const;
 
 describe("denali-wizard-resume-step.spec.ts", () => {
-  it("WEB-RESUME-01 merge prefers server step when local resume index is still 0", () => {
+  it("WEB-RESUME-01 merge keeps step 0 when local session differs from server (MD-08)", () => {
     const local = denaliPrepareDraftEnvelope(emptyTourWizardDraft(), {
       currentStepIndex: 0,
       wizardSessionId: "local",
@@ -50,7 +50,7 @@ describe("denali-wizard-resume-step.spec.ts", () => {
       { currentStepIndex: 3, wizardSessionId: "server" }
     );
     const merged = mergeDenaliWizardDraftEnvelope(local, server);
-    assert.equal(merged.meta.currentStepIndex, 3);
+    assert.equal(merged.meta.currentStepIndex, 0);
   });
 
   it("WEB-RESUME-02 merge keeps active local step during edit conflicts", () => {

@@ -35,4 +35,13 @@ describe("otp-segment-input.spec.ts", () => {
     assert.equal(normalizeOtpDigits("٠١٢٣"), "0123");
     assert.equal(normalizeOtpDigits("۱۲-۳۴"), "1234");
   });
+
+  it("WEB-OTP-05 sequential digit normalization preserves order", () => {
+    let value = "";
+    for (const digit of ["1", "2", "3", "4"]) {
+      const incoming = normalizeOtpDigits(digit);
+      value = normalizeOtpDigits(`${value}${incoming}`);
+    }
+    assert.equal(value, "1234");
+  });
 });

@@ -32,13 +32,24 @@ import { TourStatusBadge } from "../../tour-status-badge";
 type TourEditPageClientProps = {
   readonly session: OperatorSessionContext;
   readonly tourId: string;
+  readonly initialLocationsResponse?: unknown | null;
 };
 
-export function TourEditPageClient({ session, tourId }: TourEditPageClientProps) {
+export function TourEditPageClient({
+  session,
+  tourId,
+  initialLocationsResponse = null,
+}: TourEditPageClientProps) {
   const isDenali = isDenaliOperatorSession(session);
   const canEdit = canMutateTour(session.role);
   if (isDenali && canEdit) {
-    return <DenaliFlatEditPageClient session={session} tourId={tourId} />;
+    return (
+      <DenaliFlatEditPageClient
+        session={session}
+        tourId={tourId}
+        initialLocationsResponse={initialLocationsResponse}
+      />
+    );
   }
   return <TourEditTitlePageClient session={session} tourId={tourId} />;
 }

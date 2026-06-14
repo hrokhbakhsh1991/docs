@@ -274,6 +274,7 @@
       "resetRows": "Reset {count, number} day rows",
       "segmentPhotos": "Photos for this section",
       "segmentPhotosEmpty": "Upload photos in the Photos step first.",
+      "segmentPhotosGoToPhotos": "Go to Photos step",
       "segmentPhotoToggle": "Select photo {label}",
       "segmentDestination": "Catalog location",
       "segmentDestinationPlaceholder": "Select location (optional)",
@@ -315,7 +316,7 @@
     "guideLanguages": {
       "helper": "Select languages your guides can offer on this tour.",
       "loading": "Loading guide languages…",
-      "empty": "No guide languages yet. Add items under Settings → Guide languages."
+      "empty": "No guide languages yet. Add them under Settings → Guide languages."
     },
     "gear": {
       "helper": "Choose equipment for your selected themes. Mark each item as required or optional.",
@@ -378,6 +379,7 @@
     "photoCount": "{count, number} {count, plural, one {photo} other {photos}}",
     "dayLabel": "Day {day, number}",
     "primaryGathering": "Primary",
+    "stepValidationHeading": "Fix these issues before continuing",
     "validationHeading": "Fix these issues before creating the tour",
     "validationCount": "{count, number} {count, plural, one {issue} other {issues}} to fix",
     "validationStepGroup": "{step} — {count, number} {count, plural, one {issue} other {issues}}",
@@ -388,5 +390,11 @@
       "draft": "Draft",
       "active": "Active (publish)"
     }
+  },
+  "validation": {
+    "requiredField": "{field} is required.",
+    "invalidNumber": "{field} must be a valid number.",
+    "invalidBoolean": "{field} must be a valid yes/no value.",
+    "invalidText": "{field} must be valid text."
   }
 }

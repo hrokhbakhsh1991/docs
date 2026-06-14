@@ -1,11 +1,11 @@
 {
   "gate": "phase-8",
   "date": "2026-06-13",
-  "gitSha": "6761df80",
+  "gitSha": "4d3dad2e",
   "ok": true,
   "fail_token": null,
   "active_subphase": "8.5",
-  "platform_core_baseline_sha": "6761df80910f74e6cf5d6a729ad3570d6748bff4",
+  "platform_core_baseline_sha": "4d3dad2ed3b7f42d3f75fc99196bd1c5ab0af346",
   "checks": [
     {
       "id": "p8_boot_manifest",
@@ -29,7 +29,7 @@
       "id": "p8_platform_core_zero_diff",
       "required": true,
       "ok": true,
-      "detail": "platform-core clean vs baseline 6761df80910f74e6cf5d6a729ad3570d6748bff4 and working tree"
+      "detail": "platform-core clean vs baseline 4d3dad2ed3b7f42d3f75fc99196bd1c5ab0af346 and working tree"
     },
     {
       "id": "p8_doc_hardening",

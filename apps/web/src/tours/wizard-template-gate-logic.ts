@@ -266,6 +266,50 @@ export function applyWizardTemplateToRenderPlan<
   return ordered;
 }
 
+/**
+ * Layer C review step — injected by the wizard host when `usesReviewStep` is true.
+ * Tenant template payloads omit `review` (INV-WIZ-002); publishStatus lives on the engine plan.
+ */
+export function appendWorkspaceReviewStepToRenderPlan<
+  TStep extends RenderPlanStepLike,
+  TField extends TStep["fields"][number],
+>(
+  steps: readonly TStep[],
+  engineSteps: readonly TStep[],
+  reviewStepId: string
+): readonly TStep[] {
+  if (steps.some((step) => step.stepId === reviewStepId)) {
+    return steps;
+  }
+
+  let publishStatusField: TField | undefined;
+  for (const step of engineSteps) {
+    for (const field of step.fields) {
+      if (field.canonicalPath === "publishStatus") {
+        publishStatusField = {
+          ...field,
+          required: true,
+        } as TField;
+        break;
+      }
+    }
+    if (publishStatusField != null) {
+      break;
+    }
+  }
+
+  if (publishStatusField == null) {
+    return steps;
+  }
+
+  const reviewStep = {
+    stepId: reviewStepId,
+    fields: [publishStatusField],
+  } as unknown as TStep;
+
+  return [...steps, reviewStep];
+}
+
 export function filterRenderPlanByCanonicalPaths<
   T extends { readonly fields: readonly { readonly canonicalPath: string }[] },
 >(steps: readonly T[], allowedPaths: readonly string[]): readonly T[] {

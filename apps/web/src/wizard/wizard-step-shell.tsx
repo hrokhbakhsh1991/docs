@@ -24,6 +24,8 @@ type WizardStepShellProps = {
   readonly lastStepFooter?: ReactNode;
   /** When true, block step navigation while draft sync is in flight (11.3-T5). */
   readonly navLocked?: boolean;
+  /** TW-03 — disable Continue until current step validation passes. */
+  readonly continueDisabled?: boolean;
   /** Return false to block Continue (11.7 per-step validation). */
   readonly onBeforeNext?: (currentIndex: number) => boolean | Promise<boolean>;
 };
@@ -35,6 +37,7 @@ export function WizardStepShell({
   children,
   lastStepFooter,
   navLocked = false,
+  continueDisabled = false,
   onBeforeNext,
 }: WizardStepShellProps) {
   const t = useTranslations("wizard.stepShell");
@@ -131,7 +134,7 @@ export function WizardStepShell({
           <Button
             type="button"
             variant="primary"
-            disabled={navLocked}
+            disabled={navLocked || continueDisabled}
             data-testid={WIZARD_STEP_SHELL_TEST_IDS.next}
             onClick={() => {
               void (async () => {

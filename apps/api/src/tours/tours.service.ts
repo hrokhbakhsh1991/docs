@@ -44,7 +44,7 @@ export class ToursService {
 
   async getTourById(auth: TenantAuthContext, tourId: string): Promise<TourRecord | null> {
     const ability = createApiAbility(auth);
-    return this.canonical.readTourById(ability, tourId);
+    return this.canonical.readTourById(ability, tourId, auth.tenantId);
   }
 
   async listTours(auth: TenantAuthContext, query: ListToursQuery): Promise<TourListResult> {

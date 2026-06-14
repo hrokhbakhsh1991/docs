@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { groupValidationIssuesByStep, type ValidationIssueStepGroup } from "../group-validation-issues-by-step";
 import type { WizardStepDescriptor } from "../wizard-surface-types";
+import { localizeDenaliValidationIssueMessage } from "./denali-localize-validation-message";
 import { resolveWizardValidationFieldLabel } from "../wizard-validation-field-label";
 
 export const DENALI_REVIEW_VALIDATION_TEST_IDS = {
@@ -20,6 +21,7 @@ type DenaliReviewValidationSummaryProps = {
   readonly onFocusIssue: (stepId: string, path: string) => void;
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;
+  readonly validationHeadingKey?: "review.stepValidationHeading" | "review.validationHeading";
 };
 
 export function DenaliReviewValidationSummary({
@@ -28,6 +30,7 @@ export function DenaliReviewValidationSummary({
   onFocusIssue,
   fieldLabelSurfaceId,
   translateWorkspaceMessage,
+  validationHeadingKey = "review.validationHeading",
 }: DenaliReviewValidationSummaryProps) {
   const t = useTranslations("denali");
   const locale = useLocale();
@@ -57,7 +60,7 @@ export function DenaliReviewValidationSummary({
           <AlertCircle size={20} strokeWidth={2.25} />
         </span>
         <div className="denali-review-validation__header-text">
-          <h3 className="denali-review-validation__heading">{t("review.validationHeading")}</h3>
+          <h3 className="denali-review-validation__heading">{t(validationHeadingKey)}</h3>
           <p className="denali-review-validation__count">
             {t("review.validationCount", { count: issues.length })}
           </p>
@@ -96,6 +99,11 @@ export function DenaliReviewValidationSummary({
                   fieldLabelSurfaceId,
                   translateWorkspaceMessage: translateFieldLabel,
                 });
+                const localizedMessage = localizeDenaliValidationIssueMessage(
+                  (key, values) => t(key, values),
+                  issue.message,
+                  fieldLabel
+                );
                 return (
                   <li key={`${issue.path}:${issue.message}`}>
                     <button
@@ -106,7 +114,7 @@ export function DenaliReviewValidationSummary({
                       onClick={() => onFocusIssue(group.stepId, issue.path)}
                     >
                       <span className="denali-review-validation__issue-field">{fieldLabel}</span>
-                      <span className="denali-review-validation__issue-message">{issue.message}</span>
+                      <span className="denali-review-validation__issue-message">{localizedMessage}</span>
                     </button>
                   </li>
                 );

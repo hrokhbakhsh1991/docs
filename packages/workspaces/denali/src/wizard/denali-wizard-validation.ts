@@ -17,6 +17,7 @@ import {
 } from "./canonical-draft-access";
 import { resolveDenaliCompositeRendererId } from "../composites/denali-composite-registry";
 import { DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR } from "../composites/denali-composite-anchors";
+import { denaliFieldIdForCanonicalPath } from "../denali-plugin-adapter";
 import type { DenaliFieldDefinition } from "../field-registry/denaliFieldRegistryData";
 import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
 import { resolveDenaliDimensionsFromDraft } from "./apply-contextual-render-plan";
@@ -203,10 +204,13 @@ function filterValidationToStep(
   }
   const fieldIds = new Set(expandedStep.fields.map((field) => field.fieldId));
   const canonicalPaths = new Set(expandedStep.fields.map((field) => field.canonicalPath));
+  for (const path of canonicalPaths) {
+    fieldIds.add(denaliFieldIdForCanonicalPath(path));
+  }
   const violations = result.violations.filter(
     (violation) =>
-      (violation.fieldId != null && fieldIds.has(violation.fieldId)) ||
-      (violation.fieldId != null && canonicalPaths.has(violation.fieldId))
+      violation.fieldId != null &&
+      (fieldIds.has(violation.fieldId) || canonicalPaths.has(violation.fieldId))
   );
   return {
     ok: violations.length === 0,
@@ -302,7 +306,73 @@ export function validateDenaliWizardDraftSync(
     return result;
   }
 
-  return filterValidationToStep(result, step);
+  result = filterValidationToStep(result, step);
+  return mergeDenaliStepRequiredFieldViolations(result, envelope, step);
+}
+
+function isDenaliDraftFieldValueEmpty(
+  envelope: CanonicalWizardDraftEnvelope,
+  field: RenderFieldPlan
+): boolean {
+  const value = getCanonicalValueFromDraft(envelope, field.canonicalPath);
+  if (value === undefined || value === null) {
+    return true;
+  }
+  if (typeof value === "string") {
+    return value.trim().length === 0;
+  }
+  if (field.kind === "number") {
+    return value === "";
+  }
+  return false;
+}
+
+/** Composite anchors store scalars at canonical path — enforce required after engine filter (MD-11). */
+function mergeDenaliStepRequiredFieldViolations(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope,
+  step: RenderStepPlan
+): ValidationResult {
+  const expandedStep = expandStepFieldsForCompositeDependents(step);
+  const extraViolations: Array<ValidationResult["violations"][number]> = [];
+
+  for (const field of expandedStep.fields) {
+    if (field.hidden || !field.required) {
+      continue;
+    }
+    if (field.canonicalPath === "publishStatus" && step.stepId !== "review") {
+      continue;
+    }
+    if (!isDenaliDraftFieldValueEmpty(envelope, field)) {
+      continue;
+    }
+    extraViolations.push({
+      code: "REQUIRED_FIELD_EMPTY",
+      fieldId: denaliFieldIdForCanonicalPath(field.canonicalPath),
+      message: `Required field empty at "${field.canonicalPath}"`,
+    });
+  }
+
+  if (extraViolations.length === 0) {
+    return result;
+  }
+
+  const merged = [...result.violations];
+  for (const violation of extraViolations) {
+    const duplicate = merged.some(
+      (existing) =>
+        existing.fieldId === violation.fieldId &&
+        (existing.code === violation.code || existing.code === "UNKNOWN_CANONICAL_PATH")
+    );
+    if (!duplicate) {
+      merged.push(violation);
+    }
+  }
+
+  return {
+    ok: false,
+    violations: merged,
+  };
 }
 
 export type DenaliPublishReadinessValidationScope = {

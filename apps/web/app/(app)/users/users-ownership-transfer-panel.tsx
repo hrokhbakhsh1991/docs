@@ -25,11 +25,13 @@ import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 type UsersOwnershipTransferPanelProps = {
   readonly session: OperatorSessionContext;
   readonly initialRoster?: readonly UsersDirectoryRow[] | null;
+  readonly onInviteClick?: () => void;
 };
 
 export function UsersOwnershipTransferPanel({
   session,
   initialRoster = null,
+  onInviteClick,
 }: UsersOwnershipTransferPanelProps) {
   const t = useTranslations("users");
   const tErrors = useTranslations("users.errors");
@@ -145,7 +147,19 @@ export function UsersOwnershipTransferPanel({
           </p>
         ) : null}
         {!loading && !loadError && candidates.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("ownershipTransfer.empty")}</p>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t("ownershipTransfer.soleOwnerHint")}</p>
+            {onInviteClick ? (
+              <Button
+                type="button"
+                variant="outline"
+                data-testid={USERS_DIRECTORY_TEST_IDS.ownershipTransferInvite}
+                onClick={onInviteClick}
+              >
+                {t("ownershipTransfer.inviteCta")}
+              </Button>
+            ) : null}
+          </div>
         ) : null}
         {!loading && !loadError && candidates.length > 0 ? (
           <>

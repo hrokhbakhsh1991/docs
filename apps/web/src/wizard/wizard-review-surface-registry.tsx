@@ -60,6 +60,7 @@ export function buildWizardValidationSurfaceProps(
     | "onFocusIssue"
     | "fieldLabelSurfaceId"
     | "translateWorkspaceMessage"
+    | "validationHeadingKey"
   >
 ): WizardValidationSurfaceRenderProps {
   return {
@@ -68,5 +69,6 @@ export function buildWizardValidationSurfaceProps(
     onFocusIssue: input.onFocusIssue,
     fieldLabelSurfaceId: input.fieldLabelSurfaceId,
     translateWorkspaceMessage: input.translateWorkspaceMessage,
+    validationHeadingKey: input.validationHeadingKey,
   };
 }

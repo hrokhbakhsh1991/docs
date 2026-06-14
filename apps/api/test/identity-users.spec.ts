@@ -107,6 +107,15 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     assert.equal(response.body.inviteId?.length, 36);
   });
 
+  it("API-9.4-04b owner POST /users/invite rejects invalid phone (USR-07)", async () => {
+    const response = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
+      headers: operatorAuthHeaders(),
+      body: { phone: "bad", role: "member" },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, "PHONE_INVALID");
+  });
+
   it("API-9.4-05 admin cannot invite or list pending queue (DEC-P9-018)", async () => {
     const invite = await client.requestJson<UsersApiResponse>( "POST", "/users/invite", {
       headers: {

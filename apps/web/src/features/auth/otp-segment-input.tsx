@@ -31,10 +31,6 @@ type OtpSegmentInputProps = {
   readonly "aria-describedby"?: string;
 };
 
-function digitsFromValue(value: string): string[] {
-  return digitsFromOtpValue(value);
-}
-
 function displayDigit(digit: string, locale: AppLocale): string {
   return digit.length > 0 ? toLocalizedDigits(digit, locale) : "";
 }
@@ -54,7 +50,7 @@ export function OtpSegmentInput({
   const valueRef = useRef(value);
 
   valueRef.current = value;
-  const cells = digitsFromValue(value);
+  const cells = digitsFromOtpValue(value);
 
   const emitValue = useCallback(
     (nextDigits: string[]) => {
@@ -68,13 +64,23 @@ export function OtpSegmentInput({
     [onChange, onComplete]
   );
 
+  const focusCell = useCallback((index: number): void => {
+    const clamped = Math.max(0, Math.min(OTP_SEGMENT_LENGTH - 1, index));
+    const target = inputRefs.current[clamped];
+    if (!target) {
+      return;
+    }
+    target.focus({ preventScroll: true });
+    target.select();
+  }, []);
+
   const applyDigitsAtIndex = useCallback(
     (startIndex: number, raw: string): void => {
       const incoming = normalizeOtpDigits(raw);
       if (incoming.length === 0) {
         return;
       }
-      const next = digitsFromValue(valueRef.current);
+      const next = digitsFromOtpValue(valueRef.current);
       let writeIndex = startIndex;
       for (const digit of incoming) {
         if (writeIndex >= OTP_SEGMENT_LENGTH) {
@@ -86,7 +92,19 @@ export function OtpSegmentInput({
       emitValue(next);
       focusCell(Math.min(writeIndex, OTP_SEGMENT_LENGTH - 1));
     },
-    [emitValue]
+    [emitValue, focusCell]
+  );
+
+  const commitDigitAtIndex = useCallback(
+    (index: number, digit: string): void => {
+      const next = digitsFromOtpValue(valueRef.current);
+      next[index] = digit;
+      emitValue(next);
+      if (index < OTP_SEGMENT_LENGTH - 1) {
+        focusCell(index + 1);
+      }
+    },
+    [emitValue, focusCell]
   );
 
   useEffect(() => {
@@ -96,22 +114,10 @@ export function OtpSegmentInput({
     inputRefs.current[0]?.focus({ preventScroll: true });
   }, [disabled, value]);
 
-  function focusCell(index: number): void {
-    const clamped = Math.max(0, Math.min(OTP_SEGMENT_LENGTH - 1, index));
-    const target = inputRefs.current[clamped];
-    if (!target) {
-      return;
-    }
-    requestAnimationFrame(() => {
-      target.focus({ preventScroll: true });
-      target.select();
-    });
-  }
-
   function handleCellChange(index: number, raw: string): void {
     const incoming = normalizeOtpDigits(raw);
     if (incoming.length === 0) {
-      const next = digitsFromValue(valueRef.current);
+      const next = digitsFromOtpValue(valueRef.current);
       next[index] = "";
       emitValue(next);
       return;
@@ -120,16 +126,20 @@ export function OtpSegmentInput({
       applyDigitsAtIndex(index, incoming);
       return;
     }
-    const next = digitsFromValue(valueRef.current);
-    next[index] = incoming;
-    emitValue(next);
-    if (index < OTP_SEGMENT_LENGTH - 1) {
-      focusCell(index + 1);
-    }
+    commitDigitAtIndex(index, incoming);
   }
 
   function handleKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>): void {
-    const current = digitsFromValue(valueRef.current);
+    const current = digitsFromOtpValue(valueRef.current);
+
+    if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      const digit = normalizeOtpDigits(event.key);
+      if (digit.length === 1) {
+        event.preventDefault();
+        commitDigitAtIndex(index, digit);
+        return;
+      }
+    }
 
     if (event.key === "Backspace") {
       event.preventDefault();

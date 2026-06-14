@@ -27,8 +27,12 @@ export async function buildAuthLoginPageMetadata(): Promise<Metadata> {
 
 export async function buildRootLayoutMetadata(): Promise<Metadata> {
   const t = await getTranslations("app.metadata");
+  const brand = t("title");
   return {
-    title: t("title"),
+    title: {
+      default: brand,
+      template: `%s | ${brand}`,
+    },
     description: t("description"),
   };
 }

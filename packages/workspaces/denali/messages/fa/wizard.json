@@ -274,6 +274,7 @@
       "resetRows": "بازنشانی {count, number} ردیف روز",
       "segmentPhotos": "عکس‌های این بخش",
       "segmentPhotosEmpty": "ابتدا در مرحله عکس‌ها، تصویر آپلود کنید.",
+      "segmentPhotosGoToPhotos": "رفتن به مرحله عکس‌ها",
       "segmentPhotoToggle": "انتخاب عکس {label}",
       "segmentDestination": "مکان از فهرست",
       "segmentDestinationPlaceholder": "انتخاب مکان (اختیاری)",
@@ -315,7 +316,7 @@
     "guideLanguages": {
       "helper": "زبان‌هایی را که راهنمایان این تور ارائه می‌دهند انتخاب کنید.",
       "loading": "در حال بارگذاری زبان‌های راهنما…",
-      "empty": "هنوز زبان راهنمایی ثبت نشده. از Settings → Guide languages اضافه کنید."
+      "empty": "هنوز زبان راهنمایی ثبت نشده. از تنظیمات → زبان‌های راهنما اضافه کنید."
     },
     "gear": {
       "helper": "تجهیزات متناسب با تم‌های انتخاب‌شده را مشخص کنید. هر مورد می‌تواند الزامی یا اختیاری باشد.",
@@ -333,7 +334,7 @@
     "destination": {
       "loadingPlaceholder": "در حال بارگذاری مقصدها…",
       "selectPlaceholder": "انتخاب مقصد",
-      "empty": "مقصدی نیست. از Settings → Locations منطقه و مقصد اضافه کنید."
+      "empty": "مقصدی نیست. از تنظیمات → مقصدها و مناطق، مقصد اضافه کنید."
     },
     "programContent": {
       "helper": "یک یا چند تم برای دسته‌بندی و نمایش تور انتخاب کنید.",
@@ -378,6 +379,7 @@
     "photoCount": "{count, number} عکس",
     "dayLabel": "روز {day, number}",
     "primaryGathering": "اصلی",
+    "stepValidationHeading": "قبل از ادامه این موارد را اصلاح کنید",
     "validationHeading": "قبل از ایجاد تور این موارد را اصلاح کنید",
     "validationCount": "{count, number} مورد نیاز به اصلاح",
     "validationStepGroup": "{step} — {count, number} مورد",
@@ -388,5 +390,11 @@
       "draft": "پیش‌نویس",
       "active": "فعال (انتشار)"
     }
+  },
+  "validation": {
+    "requiredField": "فیلد «{field}» الزامی است.",
+    "invalidNumber": "فیلد «{field}» باید عدد معتبر باشد.",
+    "invalidBoolean": "فیلد «{field}» باید مقدار بله/خیر معتبر داشته باشد.",
+    "invalidText": "فیلد «{field}» باید متن معتبر باشد."
   }
 }

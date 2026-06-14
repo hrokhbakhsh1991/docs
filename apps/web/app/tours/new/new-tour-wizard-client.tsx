@@ -16,6 +16,14 @@ import {
   denaliPrepareDraftEnvelope,
 } from "@app-tour/workspace-denali/draft";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { DraftConflictBanner } from "@/draft/draft-conflict-banner";
 import { DraftSyncIndicator } from "@/draft/draft-sync-indicator";
@@ -115,6 +123,7 @@ export function NewTourWizardClient({
   readonly initialLocationsResponse?: unknown | null;
 }) {
   const t = useTranslations("wizard");
+  const tCommon = useTranslations("common");
   const searchParams = useSearchParams();
   const session = useAppSession();
   const isDenali = session.pluginId === "denali";
@@ -137,6 +146,7 @@ export function NewTourWizardClient({
   const [submitValidationIssues, setSubmitValidationIssues] = useState<
     readonly ValidationIssue[] | null
   >(null);
+  const [clearDraftDialogOpen, setClearDraftDialogOpen] = useState(false);
   const [createdTourId, setCreatedTourId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const wizardSessionId = useMemo(() => createDenaliWizardDraftSessionId(), []);
@@ -193,6 +203,7 @@ export function NewTourWizardClient({
     namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
     draftKey: DENALI_CREATE_TOUR_DRAFT_KEY,
     conflictStrategy: "REFETCH_REAPPLY",
+    debounceMs: 800,
     merge: mergeDenaliWizardDraftEnvelope,
     hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, session.pluginId),
   });
@@ -464,12 +475,13 @@ export function NewTourWizardClient({
     );
   }, [isDenali, draftSync.data, gate, session.pluginId, wizardSessionId, cloneTourId]);
 
-  const showSeedBanner =
-    gate.seedLabel.length > 0 &&
-    !shouldSkipWizardTemplatePrefill(cloneTourId, session.pluginId);
-
   const draft = isDenali ? (denaliEnvelope?.form ?? emptyTourWizardDraft()) : localDraft;
   const activeStepIndex = isDenali ? (denaliEnvelope?.meta.currentStepIndex ?? 0) : localStepIndex;
+
+  const showSeedBanner =
+    gate.seedLabel.length > 0 &&
+    !shouldSkipWizardTemplatePrefill(cloneTourId, session.pluginId) &&
+    getCanonicalStringValue(draft, "title").trim() === gate.seedLabel.trim();
 
   const denaliPlugin = useMemo(() => (isDenali ? getDenaliWorkspacePlugin() : null), [isDenali]);
 
@@ -528,10 +540,7 @@ export function NewTourWizardClient({
     [isDenali, denaliEnvelope, draftSync]
   );
 
-  const onClearDraft = useCallback(() => {
-    if (!isDenali || !window.confirm(t("clearDraftConfirm"))) {
-      return;
-    }
+  const confirmClearDraft = useCallback(() => {
     void (async () => {
       await draftSync.clearDraft();
       draftSync.setData(
@@ -540,8 +549,16 @@ export function NewTourWizardClient({
           wizardSessionId,
         })
       );
+      setClearDraftDialogOpen(false);
     })();
-  }, [isDenali, draftSync, gate, session.pluginId, wizardSessionId, t]);
+  }, [draftSync, gate, session.pluginId, wizardSessionId]);
+
+  const onClearDraft = useCallback(() => {
+    if (!isDenali) {
+      return;
+    }
+    setClearDraftDialogOpen(true);
+  }, [isDenali]);
 
   const onSubmit = () => {
     setSubmitError(null);
@@ -749,11 +766,7 @@ export function NewTourWizardClient({
                 variant="outline"
                 size="sm"
                 data-testid="wizard-save-draft"
-                disabled={
-                  draftSync.navLocked ||
-                  draftSync.status === "SYNCING" ||
-                  (draftSync.status !== "DIRTY" && draftSync.status !== "ERROR")
-                }
+                disabled={draftSync.navLocked || draftSync.status === "SYNCING"}
                 onClick={() => void draftSync.flush()}
               >
                 {draftSync.status === "SYNCING" ? t("savingDraft") : t("saveDraft")}
@@ -833,6 +846,27 @@ export function NewTourWizardClient({
           </div>
         )}
       />
+      <Dialog open={clearDraftDialogOpen} onOpenChange={setClearDraftDialogOpen}>
+        <DialogContent data-testid="wizard-clear-draft-dialog">
+          <DialogHeader>
+            <DialogTitle>{t("clearDraft")}</DialogTitle>
+            <DialogDescription>{t("clearDraftConfirm")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setClearDraftDialogOpen(false)}>
+              {tCommon("cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              data-testid="wizard-clear-draft-confirm"
+              onClick={confirmClearDraft}
+            >
+              {t("clearDraft")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </DenaliWizardCatalogPrefetchProvider>
   );

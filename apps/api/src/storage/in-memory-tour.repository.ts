@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+
 import { deriveTourProjections } from "../canonical/projection-sync";
 import { TourVersionConflictError } from "../tours/tour-version-conflict";
 import { readTourCapLimits } from "../db/tour-cap-config";
@@ -106,6 +108,12 @@ export class InMemoryTourRepository implements TourStorageRepository {
     }
   }
 
+  /** Dev memory — Denali tenant …000003 gets smoke catalog tour …0210 (SMK-P9-ITIN-01). */
+  ensureDenaliDevSmokeSeedTour(): void {
+    this.ensureSmokeTourForTenant(OPERATOR_SMOKE_SEED_TOUR_ID, buildOperatorSmokePublishedTour);
+    this.ensureSmokeTourForTenant(OPERATOR_SMOKE_DRAFT_TOUR_ID, buildOperatorSmokeDraftTour);
+  }
+
   /** Phase 8.3 silo enterprise fixture — published catalog tour on dedicated tenant id. */
   ensureUrbanSiloEnterpriseCatalogFixture(): void {
     if (!this.byId.has(URBAN_SILO_ENTERPRISE_PUBLISHED_TOUR_ID)) {
@@ -169,6 +177,24 @@ export class InMemoryTourRepository implements TourStorageRepository {
       this.idsByTenant.set(tour.tenantId, ids);
     }
     ids.add(tour.id);
+  }
+
+  private unindexTourId(tourId: string, tenantId: string): void {
+    this.idsByTenant.get(tenantId)?.delete(tourId);
+  }
+
+  private ensureSmokeTourForTenant(
+    tourId: string,
+    build: (input: { tenantId: string }) => Tour
+  ): void {
+    const existing = this.byId.get(tourId);
+    if (existing !== undefined && existing.tenantId === DENALI_SMOKE_TENANT_ID) {
+      return;
+    }
+    if (existing !== undefined) {
+      this.unindexTourId(tourId, existing.tenantId);
+    }
+    this.indexTour(build({ tenantId: DENALI_SMOKE_TENANT_ID }));
   }
 
   async getById(id: string, tenantId: string): Promise<Tour | null> {

@@ -5,6 +5,7 @@ import {
   resolveMarketingPublicBaseUrl,
   resolveMarketingTourDetailUrl,
   resolveMarketingToursUrl,
+  shouldRedirectCatalogToMarketing,
 } from "../src/marketing/resolve-marketing-public-url";
 
 describe("resolve-marketing-public-url", () => {
@@ -39,6 +40,42 @@ describe("resolve-marketing-public-url", () => {
         delete process.env.MARKETING_PUBLIC_BASE_URL;
       } else {
         process.env.MARKETING_PUBLIC_BASE_URL = prior;
+      }
+    }
+  });
+
+  it("WEB-MKT-05 localhost without MARKETING_PUBLIC_BASE_URL skips redirect", () => {
+    const prior = process.env.MARKETING_PUBLIC_BASE_URL;
+    const priorRedirect = process.env.MARKETING_CATALOG_REDIRECT;
+    delete process.env.MARKETING_PUBLIC_BASE_URL;
+    delete process.env.MARKETING_CATALOG_REDIRECT;
+    try {
+      assert.equal(shouldRedirectCatalogToMarketing("127.0.0.1:3000"), false);
+      assert.equal(shouldRedirectCatalogToMarketing("localhost:3000"), false);
+    } finally {
+      if (prior === undefined) {
+        delete process.env.MARKETING_PUBLIC_BASE_URL;
+      } else {
+        process.env.MARKETING_PUBLIC_BASE_URL = prior;
+      }
+      if (priorRedirect === undefined) {
+        delete process.env.MARKETING_CATALOG_REDIRECT;
+      } else {
+        process.env.MARKETING_CATALOG_REDIRECT = priorRedirect;
+      }
+    }
+  });
+
+  it("WEB-MKT-06 MARKETING_CATALOG_REDIRECT=false disables redirect", () => {
+    const prior = process.env.MARKETING_CATALOG_REDIRECT;
+    process.env.MARKETING_CATALOG_REDIRECT = "false";
+    try {
+      assert.equal(shouldRedirectCatalogToMarketing("urban.example.com"), false);
+    } finally {
+      if (prior === undefined) {
+        delete process.env.MARKETING_CATALOG_REDIRECT;
+      } else {
+        process.env.MARKETING_CATALOG_REDIRECT = priorRedirect;
       }
     }
   });

@@ -15,7 +15,7 @@ import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buildBookingCreatePayload } from "@/features/bookings/bookings-create-logic";
+import { buildBookingCreatePayload, validateBookingCreateForm } from "@/features/bookings/bookings-create-logic";
 import type {
   BookingCreateFormState,
   BookingCreateResponse,
@@ -30,6 +30,7 @@ import {
   mapTourDetailToCreateOption,
 } from "@/features/tours/tour-register-logic";
 import { TOUR_REGISTER_TEST_IDS } from "@/features/tours/tour-register-types";
+import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 
 import { TourStatusBadge } from "../../tour-status-badge";
@@ -53,14 +54,19 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
   const [loadingTour, setLoadingTour] = useState(canManage);
   const [tourNotFound, setTourNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<keyof BookingCreateFormState, string>>
+  >({});
 
   const pageState = resolveTourRegisterGateState({
     canManage,
     loadingTour,
     submitting,
-    error,
+    error: loadError,
     tourNotFound,
+    tourUiStatus,
   });
 
   const tourOptions = useMemo(
@@ -76,7 +82,7 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
     let cancelled = false;
     setLoadingTour(true);
     setTourNotFound(false);
-    setError(null);
+    setLoadError(null);
     void fetch(`/api/tours/${encodeURIComponent(tourId)}`, { cache: "no-store" })
       .then(async (response) => {
         if (response.status === 404) {
@@ -104,7 +110,9 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
       })
       .catch((fetchError: unknown) => {
         if (!cancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : "TOUR_REGISTER_FETCH_FAILED");
+          setLoadError(
+            fetchError instanceof Error ? fetchError.message : "TOUR_REGISTER_FETCH_FAILED"
+          );
         }
       })
       .finally(() => {
@@ -129,10 +137,17 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
     if (form === null) {
       return;
     }
-    setError(null);
+    setSubmitError(null);
+    setFieldErrors({});
+    const validation = validateBookingCreateForm(form, tourOptions);
+    if (!validation.ok) {
+      setFieldErrors({ [validation.field]: validation.message });
+      setSubmitError(validation.message);
+      return;
+    }
     const payload = buildBookingCreatePayload(form, tourOptions);
     if (payload === null) {
-      setError("TOUR_REGISTER_INVALID");
+      setSubmitError("TOUR_REGISTER_INVALID");
       return;
     }
 
@@ -151,16 +166,20 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
         throw new Error(`TOUR_REGISTER_HTTP_${response.status}`);
       }
       router.push(buildTourRegisterSuccessRedirect(tourId));
-    } catch (submitError: unknown) {
-      setError(submitError instanceof Error ? submitError.message : "TOUR_REGISTER_FAILED");
+    } catch (submitFailure: unknown) {
+      setSubmitError(
+        submitFailure instanceof Error ? submitFailure.message : "TOUR_REGISTER_FAILED"
+      );
       setSubmitting(false);
     }
   };
 
-  const localizedError =
+  const localizedLoadError =
     pageState.type === "error"
       ? resolveTourErrorMessage(tErrors, pageState.message) ?? pageState.message
       : null;
+  const localizedSubmitError = resolveTourErrorMessage(tErrors, submitError);
+  const localizedGuestError = resolveCodedErrorMessage(tErrors, fieldErrors.guestLabel ?? null);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6" data-testid={TOUR_REGISTER_TEST_IDS.page}>
@@ -191,6 +210,22 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
         </Card>
       ) : null}
 
+      {pageState.type === "draft_blocked" ? (
+        <Card data-testid={TOUR_REGISTER_TEST_IDS.draftBlocked}>
+          <CardHeader>
+            <CardTitle>{t("draftBlockedTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-muted-foreground">
+            <p>{t("draftBlockedDescription")}</p>
+            <Link href={`/tours/${encodeURIComponent(tourId)}/edit`}>
+              <Button type="button" variant="outline" size="sm">
+                {t("draftBlockedEdit")}
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {pageState.type === "loading_tour" ? (
         <div className="space-y-3">
           <Skeleton className="h-10 w-full" />
@@ -215,7 +250,7 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
 
       {pageState.type === "error" ? (
         <Card>
-          <CardContent className="pt-6 text-sm text-destructive">{localizedError}</CardContent>
+          <CardContent className="pt-6 text-sm text-destructive">{localizedLoadError}</CardContent>
         </Card>
       ) : null}
 
@@ -247,10 +282,27 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
                     id="register-guest"
                     data-testid={TOUR_REGISTER_TEST_IDS.guestInput}
                     value={form.guestLabel}
-                    onChange={(event) => updateField("guestLabel", event.target.value)}
+                    onChange={(event) => {
+                      updateField("guestLabel", event.target.value);
+                      if (fieldErrors.guestLabel !== undefined) {
+                        setFieldErrors((current) => {
+                          const next = { ...current };
+                          delete next.guestLabel;
+                          return next;
+                        });
+                      }
+                    }}
                     placeholder={t("guestNamePlaceholder")}
-                    required
+                    aria-invalid={localizedGuestError.length > 0}
+                    aria-describedby={
+                      localizedGuestError.length > 0 ? "register-guest-error" : undefined
+                    }
                   />
+                  {localizedGuestError.length > 0 ? (
+                    <p id="register-guest-error" className="text-sm text-destructive" role="alert">
+                      {localizedGuestError}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -297,6 +349,12 @@ export function TourRegisterPageClient({ session, tourId }: TourRegisterPageClie
                     />
                   </div>
                 </div>
+
+                {localizedSubmitError ? (
+                  <p role="alert" className="text-sm text-destructive">
+                    {localizedSubmitError}
+                  </p>
+                ) : null}
 
                 <div className="flex gap-2 pt-2">
                   <Button

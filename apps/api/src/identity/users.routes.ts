@@ -8,6 +8,7 @@ import { readIdentityRequestBody } from "./read-identity-request-body";
 import { requireOperatorSession } from "./require-operator-session";
 import {
   InviteNotFoundError,
+  InvitePhoneInvalidError,
   InviteRoleForbiddenError,
   inviteWorkspaceUser,
   listPendingInvites,
@@ -143,6 +144,10 @@ export async function handleInviteUser(req: IncomingMessage, res: ServerResponse
     }
     if (error instanceof InviteRoleForbiddenError) {
       sendHttpError(res, 403, { error: "forbidden", code: error.code });
+      return;
+    }
+    if (error instanceof InvitePhoneInvalidError) {
+      sendHttpError(res, 400, { error: "phone_invalid", code: error.code });
       return;
     }
     handleHttpError(res, error);

@@ -44,7 +44,7 @@ export function DashboardPageClient({
         }
       />
 
-      <div className="flex flex-wrap gap-2" data-denali-quick-actions>
+      <div className="relative z-10 flex flex-wrap gap-2" data-denali-quick-actions>
         <Button asChild>
           <Link href={OPERATOR_WIZARD_PATH}>{t("quickActions.newTour")}</Link>
         </Button>

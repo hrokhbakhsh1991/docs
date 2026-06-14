@@ -127,6 +127,11 @@
       "trips": "سفرها"
     },
     "loading": "در حال بارگذاری اطلاعات هم‌تیمی…",
+    "retry": "تلاش مجدد",
+    "eventLabels": {
+      "rewards": "پاداش",
+      "updated": "به‌روزرسانی"
+    },
     "historyEmpty": "هنوز فعالیتی ثبت نشده.",
     "tripsEmpty": "این هم‌تیمی رزروی ثبت نکرده.",
     "roleChange": "{oldRole} ← {newRole}",
@@ -144,6 +149,8 @@
     "description": "مالکیت سازمان را به یک ادمین یا عضو فعال واگذار کنید. پس از انتقال، نقش شما ادمین می‌شود و از این پنل خارج می‌شوید.",
     "loading": "در حال بارگذاری نامزدها…",
     "empty": "هیچ ادمین یا عضو فعالی برای انتقال مالکیت وجود ندارد.",
+    "soleOwnerHint": "شما تنها عضو فعال سازمان هستید. یک ادمین یا عضو دعوت کنید، سپس برای انتقال مالکیت به این بخش برگردید.",
+    "inviteCta": "دعوت هم‌تیمی",
     "selectLabel": "مالک جدید",
     "selectPlaceholder": "انتخاب هم‌تیمی…",
     "preview": "«{name}» ({role}) مالک جدید می‌شود؛ شما ادمین خواهید شد.",
@@ -164,6 +171,8 @@
     "USERS_PENDING_FAILED": "بارگذاری دعوت‌های در انتظار ناموفق بود.",
     "USERS_INVITE_HTTP_ERROR": "ارسال دعوت ناموفق بود (HTTP {status}).",
     "USERS_INVITE_FAILED": "ارسال دعوت ناموفق بود.",
+    "USERS_INVITE_PHONE_INVALID": "شماره موبایل معتبر برای دعوت وارد کنید.",
+    "USERS_INVITE_PHONE_REQUIRED": "شماره موبایل الزامی است.",
     "USERS_REVOKE_HTTP_ERROR": "لغو دعوت ناموفق بود (HTTP {status}).",
     "USERS_REVOKE_FAILED": "لغو دعوت ناموفق بود.",
     "USERS_RESEND_HTTP_ERROR": "ارسال مجدد دعوت ناموفق بود (HTTP {status}).",

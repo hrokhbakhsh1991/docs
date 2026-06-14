@@ -106,6 +106,7 @@ export function DenaliGatheringPointsField({
           <label className="denali-wizard-composite__field">
             <span>{tCommon("name")}</span>
             <Input
+              aria-label={`${t("composites.gatheringPoints.station", { n: index + 1 })} — ${tCommon("name")}`}
               value={point.name ?? ""}
               onChange={(event) => patchPoint(index, { name: event.target.value })}
             />

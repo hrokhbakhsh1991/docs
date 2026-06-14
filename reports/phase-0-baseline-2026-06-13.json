@@ -1,0 +1,76 @@
+{
+  "generatedAt": "2026-06-13T22:14:46.626Z",
+  "gitSha": "b1fb7ee1",
+  "phase": "0.6",
+  "thresholds": {},
+  "metrics": {
+    "workspace_sdk_test_count": 213,
+    "workspace_sdk_test_it_source": 186,
+    "workspace_sdk_spec_files": 36,
+    "workspace_sdk_export_count": 4,
+    "workspace_sdk_source_files": 83,
+    "denali_coupling_contract_ok": true,
+    "legacy_import_contract_ok": true,
+    "new_packages": [
+      "config",
+      "design-tokens",
+      "draft-engine",
+      "platform-core",
+      "platform-events",
+      "tenant-kernel",
+      "theme-react",
+      "ui-primitives",
+      "wizard-navigation",
+      "workspace-sdk",
+      "workspaces"
+    ],
+    "platform_core_exists": true,
+    "apps_exists": true
+  },
+  "layers": {
+    "packages/config": {
+      "enforced": true,
+      "source": "denali-coupling.contract.spec.ts"
+    },
+    "packages/workspace-sdk": {
+      "enforced": true,
+      "source": "denali-coupling.contract.spec.ts"
+    },
+    "packages/platform-core": {
+      "enforced": false,
+      "source": "outside foundation scan"
+    },
+    "packages/workspaces": {
+      "enforced": false,
+      "source": "outside foundation scan"
+    }
+  },
+  "couplingContracts": {
+    "denaliOk": true,
+    "legacyOk": true,
+    "denaliDetail": null,
+    "legacyDetail": null
+  },
+  "testRun": {
+    "ok": true,
+    "testCount": 213
+  },
+  "exit06": {
+    "pass": true,
+    "checks": [
+      {
+        "id": "t2_denali_coupling_contract",
+        "ok": true,
+        "expected": "denali-coupling.contract.spec.ts PASS",
+        "actual": true
+      },
+      {
+        "id": "t3_legacy_import_contract",
+        "ok": true,
+        "expected": "legacy-import.contract.spec.ts PASS",
+        "actual": true
+      }
+    ],
+    "note": "coupling contract tests (denali + legacy depcruise) + SDK test floor"
+  }
+}

@@ -23,7 +23,8 @@ export function resolveMergedWizardStepIndex(
   ) {
     return local.currentStepIndex;
   }
-  return server.currentStepIndex;
+  // Fresh wizard session — do not restore a stale server step index (MD-08).
+  return 0;
 }
 
 export function mergeDenaliWizardDraftEnvelope(

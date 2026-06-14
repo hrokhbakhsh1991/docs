@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  appendWorkspaceReviewStepToRenderPlan,
   applyWizardTemplateToRenderPlan,
   buildDefaultPublishedWizardSteps,
   ensureWizardTemplatePublishablePayload,
@@ -167,5 +168,41 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
     assert.equal(ordered[0]?.stepId, "review");
     assert.equal(ordered[0]?.fields[0]?.canonicalPath, "publishStatus");
     assert.equal(ordered[0]?.fields[0]?.required, true);
+  });
+
+  it("WEB-9.6-WIZ-09 appendWorkspaceReviewStepToRenderPlan injects Layer C review step", () => {
+    const enginePlan = [
+      {
+        stepId: "denali_basic",
+        fields: [
+          {
+            canonicalPath: "publishStatus",
+            fieldId: "publishStatus",
+            kind: "enum",
+            required: false,
+          },
+          { canonicalPath: "title", fieldId: "title", kind: "text", required: true },
+        ],
+      },
+      {
+        stepId: "denali_legal",
+        fields: [{ canonicalPath: "policies.policiesText", fieldId: "policies.policiesText", kind: "text" }],
+      },
+    ];
+    const tenantSteps = [
+      { stepId: "denali_basic", label: "Basic", enabled: true, fields: [{ canonicalPath: "title", required: true }] },
+      { stepId: "denali_legal", label: "Legal", enabled: true, fields: [{ canonicalPath: "policies.policiesText" }] },
+    ];
+    const withoutReview = applyWizardTemplateToRenderPlan(enginePlan, tenantSteps);
+    assert.equal(withoutReview.some((step) => step.stepId === "review"), false);
+
+    const withReview = appendWorkspaceReviewStepToRenderPlan(
+      withoutReview,
+      enginePlan,
+      "review"
+    );
+    assert.equal(withReview.at(-1)?.stepId, "review");
+    assert.equal(withReview.at(-1)?.fields[0]?.canonicalPath, "publishStatus");
+    assert.equal(withReview.at(-1)?.fields[0]?.required, true);
   });
 });

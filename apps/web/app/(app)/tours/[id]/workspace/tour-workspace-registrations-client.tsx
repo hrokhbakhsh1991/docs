@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { UserPlus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,10 +14,9 @@ import type {
   BookingListItem,
   BookingsListResponse,
 } from "@/features/bookings/bookings-command-center-types";
-import { TOUR_REGISTER_TEST_IDS } from "@/features/tours/tour-register-types";
 import {
-  buildTourRegistrationsBookingsQuery,
   buildTourRegistrationsCommandCenterHref,
+  buildTourRegistrationsWorkspaceQuery,
   sortRegistrationRows,
   TOUR_WORKSPACE_REGISTRATIONS_TEST_IDS,
 } from "@/features/tours/tour-workspace-registrations-logic";
@@ -35,6 +35,7 @@ export function TourWorkspaceRegistrationsClient({ tourId }: TourWorkspaceRegist
   const tTable = useTranslations("tours.workspace.table");
   const tNav = useTranslations("tours.nav");
   const tWorkspace = useTranslations("tours.workspace");
+  const tBookingsStatus = useTranslations("bookings.status");
   const tErrors = useTranslations("tours.workspace.errors");
   const [items, setItems] = useState<BookingListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +45,7 @@ export function TourWorkspaceRegistrationsClient({ tourId }: TourWorkspaceRegist
     setLoading(true);
     setError(null);
     try {
-      const query = buildTourRegistrationsBookingsQuery(tourId);
+      const query = buildTourRegistrationsWorkspaceQuery(tourId);
       const response = await fetch(`/api/bookings?${query}`, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`TOUR_REGISTRATIONS_HTTP_${response.status}`);
@@ -97,7 +98,7 @@ export function TourWorkspaceRegistrationsClient({ tourId }: TourWorkspaceRegist
             data-testid={TOUR_WORKSPACE_REGISTRATIONS_TEST_IDS.empty}
           >
             <p>{t("empty")}</p>
-            <Button asChild variant="link" className="mt-2" data-testid={TOUR_REGISTER_TEST_IDS.page}>
+            <Button asChild variant="link" className="mt-2" data-testid={TOUR_WORKSPACE_REGISTRATIONS_TEST_IDS.registerFirstLink}>
               <Link href={`/tours/${encodeURIComponent(tourId)}/register`}>{t("registerFirst")}</Link>
             </Button>
           </div>
@@ -114,6 +115,7 @@ export function TourWorkspaceRegistrationsClient({ tourId }: TourWorkspaceRegist
                   <th className="px-3 py-2 font-medium">{tTable("guest")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("party")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("departure")}</th>
+                  <th className="px-3 py-2 font-medium">{tTable("status")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("submitted")}</th>
                 </tr>
               </thead>
@@ -124,6 +126,9 @@ export function TourWorkspaceRegistrationsClient({ tourId }: TourWorkspaceRegist
                     <td className="px-3 py-2">{formatLocalizedNumber(row.partySize, locale)}</td>
                     <td className="px-3 py-2">
                       {formatBookingDeparture(row.departureAt, locale)}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge variant="secondary">{tBookingsStatus(row.status)}</Badge>
                     </td>
                     <td className="px-3 py-2">
                       {formatBookingDeparture(row.submittedAt, locale)}

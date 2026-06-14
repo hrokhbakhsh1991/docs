@@ -97,6 +97,8 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const loginInFlightRef = useRef(false);
+  const devOtpBootstrappedRef = useRef(false);
+  const devLoginAttemptedRef = useRef(false);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -104,6 +106,33 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
       setOtp(DEV_LOGIN_OTP);
     }
   }, []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || devOtpBootstrappedRef.current) {
+      return;
+    }
+    const effectivePhone = normalizeNumericInputValue(phone, "phone");
+    if (effectivePhone.length === 0 || challengeId.length > 0) {
+      return;
+    }
+    devOtpBootstrappedRef.current = true;
+    void requestOtp();
+  }, [phone, challengeId]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || devLoginAttemptedRef.current) {
+      return;
+    }
+    if (step !== "otp" || challengeId.length === 0) {
+      return;
+    }
+    const code = normalizeOtpDigits(otp);
+    if (code.length < OTP_SEGMENT_LENGTH) {
+      return;
+    }
+    devLoginAttemptedRef.current = true;
+    void login(code);
+  }, [step, challengeId, otp]);
 
   useEffect(() => {
     if (resendCooldown <= 0) {

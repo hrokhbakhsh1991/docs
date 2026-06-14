@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
 import { buildTourPageMetadata } from "@/i18n/tour-page-metadata";
+import { fetchWizardLocationsServer } from "@/tours/fetch-wizard-locations.server";
 
 import { TourEditPageClient } from "./tour-edit-page-client";
 
@@ -21,5 +22,12 @@ export default async function TourEditPage({ params }: TourEditPageProps) {
     return null;
   }
   const { id } = await params;
-  return <TourEditPageClient session={session} tourId={id} />;
+  const initialLocationsResponse = await fetchWizardLocationsServer();
+  return (
+    <TourEditPageClient
+      session={session}
+      tourId={id}
+      initialLocationsResponse={initialLocationsResponse}
+    />
+  );
 }

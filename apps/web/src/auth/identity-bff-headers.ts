@@ -1,6 +1,7 @@
 import { fetchPublicTenantContextForHost } from "@/tenant/fetch-public-tenant-context.server";
 import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { resolveTenantIdFromDevHost } from "@/tenant/resolve-host-tenant";
+import { resolvePublicFallbackTenantId } from "@/tenant/resolve-public-host-fallback";
 
 const ANONYMOUS_OTP_USER_ID = "00000000-0000-4000-8000-000000000099";
 
@@ -27,6 +28,11 @@ export async function resolveOperatorBffTenantId(host: string): Promise<string> 
 
   if (isDevWebSessionAllowed()) {
     return fallbackOperatorTenantId();
+  }
+
+  const fallbackTenantId = resolvePublicFallbackTenantId(host);
+  if (fallbackTenantId !== null) {
+    return fallbackTenantId;
   }
 
   throw new Error(OPERATOR_BFF_TENANT_UNRESOLVED);

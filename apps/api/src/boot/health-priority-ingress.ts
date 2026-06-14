@@ -35,7 +35,7 @@ export function createHealthAwareServerListener(
 
   return (req, res) => {
     if (isHealthGetRequest(req)) {
-      handleHealth(req, res);
+      void handleHealth(req, res);
       return;
     }
     void businessListener(req, res);

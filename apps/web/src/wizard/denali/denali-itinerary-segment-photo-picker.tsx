@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { Button } from "@app-tour/ui-primitives/button";
 import { useTranslations } from "next-intl";
 
 import { DenaliPhotoPreview } from "./denali-photo-preview";
+import { useWizardStepNavigation } from "../wizard-step-navigation-context";
 import type { DenaliTourPhoto } from "./denali-photo-types";
 import {
   filterSelectableItineraryPhotos,
@@ -30,6 +32,7 @@ export function DenaliItinerarySegmentPhotoPicker({
   onChange,
 }: DenaliItinerarySegmentPhotoPickerProps) {
   const t = useTranslations("denali");
+  const stepNav = useWizardStepNavigation();
 
   const selectablePhotos = useMemo(
     () => filterSelectableItineraryPhotos(photos, dayNumber),
@@ -49,7 +52,20 @@ export function DenaliItinerarySegmentPhotoPicker({
     >
       <span>{t("composites.itinerary.segmentPhotos")}</span>
       {selectablePhotos.length === 0 ? (
-        <p className="denali-wizard-composite__helper">{t("composites.itinerary.segmentPhotosEmpty")}</p>
+        <div className="space-y-2">
+          <p className="denali-wizard-composite__helper">{t("composites.itinerary.segmentPhotosEmpty")}</p>
+          {stepNav != null ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="denali-itinerary-go-to-photos"
+              onClick={() => stepNav.goToStepId("denali_photos")}
+            >
+              {t("composites.itinerary.segmentPhotosGoToPhotos")}
+            </Button>
+          ) : null}
+        </div>
       ) : (
         <div className="denali-wizard-composite__segment-photo-grid" role="group">
           {selectablePhotos.map((photo) => {

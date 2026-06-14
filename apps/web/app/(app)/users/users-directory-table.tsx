@@ -12,7 +12,7 @@ import {
   type UsersDirectoryRow,
 } from "@/features/users/users-directory-types";
 import { formatUserLastActive } from "@/features/users/users-directory-list-logic";
-import { assignableRolesForActor, canManageUserRow } from "@/features/users/users-page-logic";
+import { assignableRolesForActor, canEditUserRewards, canManageUserRow } from "@/features/users/users-page-logic";
 
 import { UserMicroBadges } from "./users-directory-user-micro-badges";
 
@@ -84,6 +84,7 @@ export function UsersDirectoryTable({
         <tbody>
           {users.map((user) => {
             const manageable = canManageUserRow(session.role, session.userId, user);
+            const canRewards = canEditUserRewards(session.role, session.userId, user);
             const roleOptions = assignableRolesForActor(session.role).filter(
               (role) => role !== user.role
             );
@@ -136,6 +137,18 @@ export function UsersDirectoryTable({
                     >
                       {t("actions.details")}
                     </Button>
+                    {canRewards ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        data-testid={USERS_DIRECTORY_TEST_IDS.rowRewards}
+                        onClick={() => onOpenRewards(user)}
+                      >
+                        {t("actions.rewards")}
+                      </Button>
+                    ) : null}
                     {manageable ? (
                       <div
                         className="flex flex-wrap gap-1.5"
@@ -154,16 +167,6 @@ export function UsersDirectoryTable({
                           {t("actions.setRole", { role: t(`roles.${role}`) })}
                         </Button>
                       ))}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        data-testid={USERS_DIRECTORY_TEST_IDS.rowRewards}
-                        onClick={() => onOpenRewards(user)}
-                      >
-                        {t("actions.rewards")}
-                      </Button>
                       {isSuspended ? (
                         <Button
                           type="button"

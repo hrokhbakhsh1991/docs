@@ -18,6 +18,8 @@ export type WizardValidationSurfaceRenderProps = {
   readonly onFocusIssue: (stepId: string, path: string) => void;
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;
+  /** `step` — blocked Continue; `submit` — create/publish blocked (default). */
+  readonly validationHeadingKey?: "review.stepValidationHeading" | "review.validationHeading";
 };
 
 export type WizardReviewSurfaceRenderProps = {

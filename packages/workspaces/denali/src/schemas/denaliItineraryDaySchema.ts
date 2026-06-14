@@ -77,6 +77,27 @@ export function createEmptyDenaliItinerarySegment(): DenaliItinerarySegment {
   };
 }
 
+function scaffoldItineraryDayTitle(dayNumber: number): string {
+  return `Day ${dayNumber}`;
+}
+
+function scaffoldItinerarySegmentTitle(dayNumber: number): string {
+  return `Activity ${dayNumber}`;
+}
+
+function scaffoldItineraryDay(dayNumber: number): DenaliItineraryDay {
+  return {
+    dayNumber,
+    title: scaffoldItineraryDayTitle(dayNumber),
+    segments: [
+      {
+        ...createEmptyDenaliItinerarySegment(),
+        title: scaffoldItinerarySegmentTitle(dayNumber),
+      },
+    ],
+  };
+}
+
 export function buildDefaultItineraryDays(dayCount: number): DenaliItineraryDay[] {
   const count = Math.max(1, Math.min(Math.floor(dayCount), 60));
   return Array.from({ length: count }, (_, index) => ({
@@ -307,11 +328,7 @@ export function syncDenaliItineraryRows(
       });
       continue;
     }
-    next.push({
-      dayNumber,
-      title: "",
-      segments: [createEmptyDenaliItinerarySegment()],
-    });
+    next.push(scaffoldItineraryDay(dayNumber));
   }
   return next;
 }

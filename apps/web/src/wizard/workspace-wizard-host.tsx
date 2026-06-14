@@ -12,6 +12,7 @@ import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
 import type { WizardTemplateStepRef } from "@/features/settings/wizard-template-types";
 import {
+  appendWorkspaceReviewStepToRenderPlan,
   applyWizardTemplateToRenderPlan,
   filterRenderPlanByCanonicalPaths,
 } from "@/tours/wizard-template-gate-logic";
@@ -32,6 +33,8 @@ import {
 import { WizardStepShell } from "./wizard-step-shell";
 
 import { WizardField } from "./wizard-field";
+import { isWizardStepContinueBlocked } from "./workspace-wizard-step-nav-logic";
+import { WizardStepNavigationProvider } from "./wizard-step-navigation-context";
 import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
 import {
   buildWizardValidationSurfaceProps,
@@ -292,6 +295,15 @@ export function WorkspaceWizardHost({
       }) as typeof steps;
     }
 
+    if (
+      wizardHost?.usesReviewStep === true &&
+      reviewStepId != null &&
+      reviewStepId.length > 0 &&
+      baseSteps != null
+    ) {
+      steps = appendWorkspaceReviewStepToRenderPlan(steps, baseSteps, reviewStepId);
+    }
+
     return steps;
   }, [
     baseSteps,
@@ -302,6 +314,8 @@ export function WorkspaceWizardHost({
     draft,
     wizardRuleEvalContext,
     wizardHost?.applyContextualFieldRules,
+    wizardHost?.usesReviewStep,
+    reviewStepId,
   ]);
 
   const stepDescriptors = useMemo(
@@ -426,6 +440,13 @@ export function WorkspaceWizardHost({
       return;
     }
     setReviewValidationIssues(submitValidationIssues);
+    const activeStep =
+      visibleSteps?.[clampWizardStepIndex(activeStepIndex, visibleSteps.length)];
+    const onReviewStep =
+      reviewStepId != null && activeStep?.stepId === reviewStepId;
+    if (!onReviewStep) {
+      setStepNavValidationIssues(submitValidationIssues);
+    }
     const first = submitValidationIssues[0];
     if (first != null) {
       void (async () => {
@@ -433,13 +454,62 @@ export function WorkspaceWizardHost({
         onSubmitValidationHandled?.();
       })();
     }
-  }, [submitValidationIssues, focusIssue, onSubmitValidationHandled]);
+  }, [
+    submitValidationIssues,
+    focusIssue,
+    onSubmitValidationHandled,
+    visibleSteps,
+    activeStepIndex,
+    reviewStepId,
+  ]);
 
-  useEffect(() => {
-    if (stepNavValidationIssues.length > 0) {
-      setStepNavValidationIssues([]);
+  const draftContentKey = useMemo(() => {
+    const data = (draft as { data?: Record<string, unknown> }).data;
+    try {
+      return JSON.stringify(data ?? draft);
+    } catch {
+      return "";
     }
   }, [draft]);
+
+  useEffect(() => {
+    setStepNavValidationIssues([]);
+  }, [draftContentKey]);
+
+  const activeStepContinueBlocked = useMemo(() => {
+    if (workspacePlugin == null || visibleSteps == null) {
+      return false;
+    }
+    const step = visibleSteps[clampWizardStepIndex(activeStepIndex, visibleSteps.length)];
+    const validateFn = wizardHost?.validateDraftSync;
+    if (step === undefined || validateFn == null) {
+      return false;
+    }
+    return isWizardStepContinueBlocked({
+      usesStepValidation: wizardHost?.usesStepValidation === true,
+      stepId: step.stepId,
+      reviewStepId: reviewStepId ?? undefined,
+      validate: () =>
+        validateFn({
+          plugin: workspacePlugin,
+          draft: draft as unknown as Record<string, unknown>,
+          rulesModule,
+          tenantId,
+          scope: { stepId: step.stepId, visibleSteps },
+        }),
+    });
+  }, [
+    workspacePlugin,
+    visibleSteps,
+    activeStepIndex,
+    wizardHost?.usesStepValidation,
+    wizardHost?.validateDraftSync,
+    reviewStepId,
+    draft,
+    rulesModule,
+    tenantId,
+    draftContentKey,
+  ]);
 
   const handleBeforeNext = useCallback(
     async (currentIndex: number) => {
@@ -489,6 +559,19 @@ export function WorkspaceWizardHost({
       void focusIssue({ path, message: "", stepId });
     },
     [focusIssue]
+  );
+
+  const goToWizardStepId = useCallback(
+    (stepId: string) => {
+      if (visibleSteps == null) {
+        return;
+      }
+      const index = visibleSteps.findIndex((step) => step.stepId === stepId);
+      if (index >= 0) {
+        setActiveStepIndex(index);
+      }
+    },
+    [visibleSteps, setActiveStepIndex]
   );
 
   if (!authorized) {
@@ -545,12 +628,14 @@ export function WorkspaceWizardHost({
       {completionSnapshot != null && reviewSurface?.renderCompletionHeader != null
         ? reviewSurface.renderCompletionHeader(completionSnapshot)
         : null}
+      <WizardStepNavigationProvider goToStepId={goToWizardStepId}>
       <WizardStepShell
         steps={buildWizardStepDescriptors(visibleSteps, templateSteps, resolveDefaultStepLabel)}
         activeIndex={activeStepIndex}
         onActiveIndexChange={setActiveStepIndex}
         lastStepFooter={renderFooter?.(draft)}
         navLocked={navLocked}
+        continueDisabled={activeStepContinueBlocked}
         onBeforeNext={handleBeforeNext}
       >
         <section
@@ -574,6 +659,7 @@ export function WorkspaceWizardHost({
                     onFocusIssue: handleFocusValidationIssue,
                     fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
                     translateWorkspaceMessage,
+                    validationHeadingKey: "review.stepValidationHeading",
                   })
                 )}
               </div>
@@ -635,6 +721,7 @@ export function WorkspaceWizardHost({
           </div>
         </section>
       </WizardStepShell>
+      </WizardStepNavigationProvider>
     </div>
   );
 }

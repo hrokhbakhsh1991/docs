@@ -10,10 +10,6 @@ import { readIdentityRequestBody } from "../identity/read-identity-request-body"
 import { SettingsModuleNotSupportedError, SettingsMutationForbiddenError } from "../settings/settings.service";
 import { SettingsWorkspaceForbiddenError } from "../settings/settings-workspace-guard";
 import { SettingsModuleUnknownError } from "../settings/settings-registry";
-import {
-  DEFAULT_TENANT_HOST_RESERVED_LABELS,
-  parseWorkspaceTenantLabelFromHost,
-} from "@app-tour/tenant-kernel";
 
 import {
   getTenantBranding,
@@ -24,10 +20,9 @@ import {
   resolveTenantBrandLogoUrl,
   uploadTenantBrandLogo,
 } from "./tenant-branding.service";
+import { resolvePublicTenantLabelFromIngressHost } from "./resolve-public-tenant-label-from-host";
 import { assertTenantBrandLogoUploadContentType } from "./tenant-branding-storage";
 import { TENANT_BRAND_LOGO_MAX_BYTES } from "@app-tour/workspace-sdk";
-
-const reserved = new Set(DEFAULT_TENANT_HOST_RESERVED_LABELS);
 
 function mapBrandingError(res: ServerResponse, error: unknown): void {
   if (error instanceof SettingsMutationForbiddenError) {
@@ -191,9 +186,8 @@ export async function handlePublicTenantBranding(
   res: ServerResponse
 ): Promise<void> {
   try {
-    const rootDomain = process.env.TENANT_ROOT_DOMAIN ?? "localhost";
     const host = readIngressHost(req);
-    const labelOutcome = parseWorkspaceTenantLabelFromHost(host, rootDomain, reserved);
+    const labelOutcome = resolvePublicTenantLabelFromIngressHost(host);
     if (labelOutcome.kind !== "label") {
       sendHttpError(res, 404, { error: "not_found", code: "TENANT_HOST_UNKNOWN" });
       return;
@@ -210,9 +204,8 @@ export async function handlePublicTenantContext(
   res: ServerResponse
 ): Promise<void> {
   try {
-    const rootDomain = process.env.TENANT_ROOT_DOMAIN ?? "localhost";
     const host = readIngressHost(req);
-    const labelOutcome = parseWorkspaceTenantLabelFromHost(host, rootDomain, reserved);
+    const labelOutcome = resolvePublicTenantLabelFromIngressHost(host);
     if (labelOutcome.kind !== "label") {
       sendHttpError(res, 404, { error: "not_found", code: "TENANT_HOST_UNKNOWN" });
       return;

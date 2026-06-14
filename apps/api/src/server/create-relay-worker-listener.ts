@@ -9,7 +9,7 @@ export function createRelayWorkerListener(): (req: IncomingMessage, res: ServerR
   return (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     if (req.method === "GET" && url.pathname === "/health") {
-      handleHealth(req, res);
+      void handleHealth(req, res);
       return;
     }
     res.statusCode = 404;

@@ -16,6 +16,8 @@ import type {
 } from "./settings.types";
 import { SettingsMutationForbiddenError } from "./settings.service";
 import { assertDenaliOperatorSettingsWorkspace } from "./settings-workspace-guard";
+import { isProductionAuthMode } from "../tenant-kernel/auth-env";
+import { seedDenaliFullWizardTemplate } from "./seed-denali-full-wizard-template";
 
 export { SettingsWizardUnknownFieldError } from "./wizard-template-catalog";
 export class SettingsConfigVersionUnsupportedError extends Error {
@@ -223,7 +225,19 @@ async function getWizardTemplateConfig(
   configKey: string
 ): Promise<SettingsConfigResponse> {
   const repo = getSettingsConfigRepository();
-  const stored = await repo.get(auth.tenantId, configKey);
+  let stored = await repo.get(auth.tenantId, configKey);
+  if (!isProductionAuthMode()) {
+    const payload = stored?.payload as { published?: boolean; steps?: unknown[] } | undefined;
+    const needsSeed =
+      stored === null ||
+      payload?.published !== true ||
+      !Array.isArray(payload?.steps) ||
+      payload.steps.length <= 5;
+    if (needsSeed) {
+      await seedDenaliFullWizardTemplate(auth.tenantId);
+      stored = await repo.get(auth.tenantId, configKey);
+    }
+  }
   if (stored === null) {
     return {
       configKey,

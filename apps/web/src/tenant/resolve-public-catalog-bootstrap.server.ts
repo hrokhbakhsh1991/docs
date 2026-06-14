@@ -7,6 +7,7 @@ import {
 import { fetchPublicTenantContextForHost } from "./fetch-public-tenant-context.server";
 import { isDevWebSessionAllowed } from "./auth-env";
 import { resolveTenantIdFromDevHost } from "./resolve-host-tenant";
+import { resolvePublicFallbackTenantId } from "./resolve-public-host-fallback";
 
 /** Guest actor for public catalog shell — sync with `PUBLIC_CATALOG_GUEST_USER_ID` in workspace HTTP resolvers. */
 export const PUBLIC_CATALOG_GUEST_USER_ID = "00000000-0000-4000-8000-000000000001";
@@ -49,6 +50,14 @@ export async function resolvePublicCatalogBootstrapForHost(
     return {
       tenantId,
       pluginId: resolveBootstrapPluginIdForTenant(tenantId, host),
+    };
+  }
+
+  const fallbackTenantId = resolvePublicFallbackTenantId(host);
+  if (fallbackTenantId !== null) {
+    return {
+      tenantId: fallbackTenantId,
+      pluginId: resolveBootstrapPluginIdForTenant(fallbackTenantId, host),
     };
   }
 

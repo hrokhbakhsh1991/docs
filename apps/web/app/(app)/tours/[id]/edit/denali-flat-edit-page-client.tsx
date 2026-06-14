@@ -37,18 +37,22 @@ import {
   formatTourSeats,
 } from "@/features/tours/tour-list-formatters";
 import type { AppLocale } from "@/i18n/routing";
+import { resolveDenaliStepLabel } from "@/i18n/denali-wizard-labels";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
 import { useAppSession } from "@/providers/app-session-context";
 import type { TourThemeResource } from "@/features/settings/settings-module-types";
 import { parseLocationsResponse } from "@/features/settings/locations-logic";
 import { readActiveEquipmentIds } from "@/tours/tour-clone-hydrate-logic";
 import { hydrateTourEditDraft } from "@/tours/tour-edit-hydrate-logic";
+import { mapTourPatchErrorCode } from "@/tours/tour-edit-error-logic";
 import { emptyTourWizardDraft, type TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { updateTourAction } from "@/tours/update-tour.server";
 import {
   resolveWizardTemplateGateState,
   type WizardTemplateGateState,
 } from "@/tours/wizard-template-gate-logic";
+import { resolveWizardStepLabel } from "@/wizard/wizard-step-shell-logic";
+import { useWizardStepValidation } from "@/wizard/use-wizard-step-validation";
 import {
   readActiveDestinationIds,
   readActiveGuideLanguageIds,
@@ -56,6 +60,9 @@ import {
   readSelectableLeaderUserIds,
 } from "@/wizard/denali/denali-catalog-sanitize";
 import { DenaliFlatEditForm } from "@/wizard/denali/denali-flat-edit-form";
+import { createDenaliFieldFocusRegistry } from "@/wizard/denali/denali-field-focus-registry";
+import { DenaliReviewValidationSummary } from "@/wizard/denali/denali-review-validation-summary";
+import { DenaliWizardCatalogPrefetchProvider } from "@/wizard/denali/denali-wizard-catalog-prefetch-context";
 import {
   buildFieldStepResolverFromTemplate,
   validateDenaliPublishTransitionSync,
@@ -79,9 +86,14 @@ const INITIAL_GATE: WizardTemplateGateState = {
 type DenaliFlatEditPageClientProps = {
   readonly session: OperatorSessionContext;
   readonly tourId: string;
+  readonly initialLocationsResponse?: unknown | null;
 };
 
-export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPageClientProps) {
+export function DenaliFlatEditPageClient({
+  session,
+  tourId,
+  initialLocationsResponse = null,
+}: DenaliFlatEditPageClientProps) {
   const locale = useLocale() as AppLocale;
   const appSession = useAppSession();
   const t = useTranslations("tours.edit");
@@ -89,6 +101,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
   const tNav = useTranslations("tours.nav");
   const tFormat = useTranslations("tours.format");
   const tWizard = useTranslations("wizard");
+  const tDenali = useTranslations("denali");
   const tCommon = useTranslations("common");
   const router = useRouter();
   const plugin = useMemo(() => getDenaliWorkspacePlugin(), []);
@@ -104,6 +117,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
     draftKey: editDraftKey,
     conflictStrategy: "REFETCH_REAPPLY",
+    debounceMs: 800,
     merge: mergeDenaliWizardDraftEnvelope,
   });
 
@@ -124,6 +138,41 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
   const [pending, startTransition] = useTransition();
   const [denaliRules, setDenaliRules] = useState<DenaliWizardRulesModule | null>(null);
   const [themeCatalog, setThemeCatalog] = useState<readonly TourThemeResource[]>([]);
+
+  const flatEditStepDescriptors = useMemo(
+    () =>
+      gate.templateSteps
+        .filter((step) => step.enabled !== false)
+        .map((step) => ({
+          stepId: step.stepId,
+          label: resolveWizardStepLabel(step.stepId, gate.templateSteps, (stepId) =>
+            resolveDenaliStepLabel(tDenali, stepId)
+          ),
+        })),
+    [gate.templateSteps, tDenali]
+  );
+
+  const scrollToFlatEditStep = useCallback(async (stepId: string) => {
+    const section = document.querySelector(`[data-denali-flat-edit-section="${stepId}"]`);
+    section?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const denaliFocusRegistry = useMemo(() => createDenaliFieldFocusRegistry(), []);
+  const { focusIssue } = useWizardStepValidation({
+    registry: denaliFocusRegistry,
+    goToStep: scrollToFlatEditStep,
+    focusOptions: { scrollBehavior: "smooth", scrollBlock: "center", highlight: true },
+  });
+
+  const handleFocusValidationIssue = useCallback(
+    (stepId: string, path: string) => {
+      void (async () => {
+        await scrollToFlatEditStep(stepId);
+        await focusIssue({ path, message: "", stepId });
+      })();
+    },
+    [scrollToFlatEditStep, focusIssue]
+  );
 
   const envelope = useMemo((): NewTourWizardDraftEnvelope | null => {
     if (draftSync.data !== null) {
@@ -146,56 +195,90 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
   );
 
   useEffect(() => {
-    void loadDenaliWizardRulesModule().then(setDenaliRules);
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
-    void fetch("/api/settings/tour-wizard-template", { cache: "no-store" })
-      .then(async (response) => (response.ok ? ((await response.json()) as unknown) : null))
-      .then((payload) => {
-        if (!cancelled) {
-          setGate(resolveWizardTemplateGateState(payload, session.pluginId));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setGate({ ...INITIAL_GATE, loading: false });
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [session.pluginId]);
 
-  useEffect(() => {
-    if (!gate.published) {
-      return;
-    }
-    let cancelled = false;
-    void fetch("/api/settings/resources/tour_themes", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) {
-          return { items: [] as readonly TourThemeResource[] };
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [rules, templateResponse, tourResponse, equipmentResponse, locationsResponse, themesResponse] =
+          await Promise.all([
+            loadDenaliWizardRulesModule(),
+            fetch("/api/settings/tour-wizard-template", { cache: "no-store" }),
+            fetch(`/api/tours/${encodeURIComponent(tourId)}`, { cache: "no-store" }),
+            fetch("/api/settings/resources/equipment", { cache: "no-store" }),
+            fetch("/api/settings/resources/locations", { cache: "no-store" }),
+            fetch("/api/settings/resources/tour_themes", { cache: "no-store" }),
+          ]);
+
+        if (cancelled) {
+          return;
         }
-        return (await response.json()) as {
-          items?: readonly TourThemeResource[];
-        };
-      })
-      .then((payload) => {
-        if (!cancelled) {
-          setThemeCatalog(payload.items ?? []);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
+
+        setDenaliRules(rules);
+
+        const templatePayload = templateResponse.ok
+          ? ((await templateResponse.json()) as unknown)
+          : null;
+        const nextGate = resolveWizardTemplateGateState(templatePayload, session.pluginId);
+        setGate(nextGate);
+
+        if (themesResponse.ok) {
+          const themesPayload = (await themesResponse.json()) as {
+            items?: readonly TourThemeResource[];
+          };
+          setThemeCatalog(themesPayload.items ?? []);
+        } else {
           setThemeCatalog([]);
         }
-      });
+
+        if (tourResponse.status === 404) {
+          setDetail(null);
+          setError("TOUR_NOT_FOUND");
+          return;
+        }
+        if (!tourResponse.ok) {
+          throw new Error(`TOUR_EDIT_HTTP_${tourResponse.status}`);
+        }
+
+        const tourDetail = (await tourResponse.json()) as OperatorTourDetailResponse;
+        let activeEquipmentIds: readonly string[] | undefined;
+        let activeDestinationIds: readonly string[] | undefined;
+        if (equipmentResponse.ok) {
+          const equipmentPayload = (await equipmentResponse.json()) as {
+            items?: Array<{ id: string; isActive?: boolean }>;
+          };
+          activeEquipmentIds = readActiveEquipmentIds(equipmentPayload.items ?? []);
+        }
+        if (locationsResponse.ok) {
+          const locationsPayload = parseLocationsResponse(await locationsResponse.json());
+          activeDestinationIds = readActiveDestinationIds(locationsPayload.destinations);
+        }
+        const hydrated = hydrateTourEditDraft(plugin, tourDetail, {
+          activeEquipmentIds,
+          activeDestinationIds,
+        });
+        if (hydrated == null) {
+          throw new Error("TOUR_EDIT_HYDRATOR_UNAVAILABLE");
+        }
+        setDetail(tourDetail);
+        setTourBaseline(hydrated);
+        setRowVersion(tourDetail.rowVersion);
+      } catch (loadError: unknown) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "TOUR_EDIT_LOAD_FAILED");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
     return () => {
       cancelled = true;
     };
-  }, [gate.published]);
+  }, [plugin, session.pluginId, tourId]);
 
   const loadTour = useCallback(async () => {
     setLoading(true);
@@ -245,12 +328,6 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
   }, [plugin, tourId]);
 
   useEffect(() => {
-    if (gate.published) {
-      void loadTour();
-    }
-  }, [gate.published, loadTour]);
-
-  useEffect(() => {
     if (!gate.published || tourBaseline === null) {
       return;
     }
@@ -288,7 +365,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     setPendingIntent(patchIntent);
     startTransition(async () => {
       if (denaliRules == null || rowVersion == null) {
-        setSubmitError(tWizard("submit.errorGeneric", { status: 0, code: "TOUR_EDIT_NOT_READY" }));
+        setSubmitError("TOUR_EDIT_NOT_READY");
         setPendingIntent(null);
         return;
       }
@@ -312,7 +389,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
       if (!validation.ok) {
         const resolveStepId = buildFieldStepResolverFromTemplate(gate.templateSteps);
         setSubmitValidationIssues(mapValidationResultToIssues(validation, { resolveStepId }));
-        setSubmitError(tWizard("submit.validationFailed"));
+        setSubmitError("TOUR_EDIT_VALIDATION_FAILED");
         setPendingIntent(null);
         return;
       }
@@ -367,7 +444,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
       }
       const preparePatch = plugin.wizardHost?.prepareTourPatchPayload;
       if (preparePatch == null) {
-        setSubmitError(tWizard("submit.errorGeneric", { status: 0, code: "WIZARD_PATCH_NOT_CONFIGURED" }));
+        setSubmitError("TOUR_EDIT_PATCH_NOT_CONFIGURED");
         setPendingIntent(null);
         return;
       }
@@ -388,8 +465,12 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
       }) as UpdateTourPayload;
       const result = await updateTourAction(tourId, payload);
       if (!result.ok) {
-        setSubmitError(tWizard("submit.errorGeneric", { status: result.status, code: result.code }));
+        const code = mapTourPatchErrorCode(result.code, result.status);
+        setSubmitError(code);
         setPendingIntent(null);
+        if (code === "TOUR_EDIT_AUTH_TOKEN_REVOKED") {
+          router.replace(`/auth/login?returnTo=${encodeURIComponent(`/tours/${tourId}/edit`)}`);
+        }
         return;
       }
       setRowVersion(result.rowVersion);
@@ -411,9 +492,10 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
   const canUnpublish = canPublish && detail?.projection.uiStatus === "active";
   const formReady = envelope !== null;
 
-  const localizedError = resolveTourErrorMessage(tErrors, error ?? submitError);
+  const localizedLoadError = resolveTourErrorMessage(tErrors, error);
+  const localizedSubmitError = resolveTourErrorMessage(tErrors, submitError);
 
-  if (gate.loading || loading || !formReady) {
+  if (gate.loading || loading) {
     return (
       <div className="space-y-4" data-testid={TOUR_EDIT_TEST_IDS.page}>
         <Skeleton className="h-8 w-48" />
@@ -436,9 +518,26 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     return (
       <Card data-testid={TOUR_EDIT_TEST_IDS.page}>
         <CardContent className="py-10 text-center text-muted-foreground">
-          {t("notFound")}
+          {localizedLoadError ?? t("notFound")}
         </CardContent>
       </Card>
+    );
+  }
+
+  if (localizedLoadError !== null) {
+    return (
+      <Card data-testid={TOUR_EDIT_TEST_IDS.page}>
+        <CardContent className="py-10 text-center text-destructive">{localizedLoadError}</CardContent>
+      </Card>
+    );
+  }
+
+  if (!formReady) {
+    return (
+      <div className="space-y-4" data-testid={TOUR_EDIT_TEST_IDS.page}>
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-40 w-full rounded-xl" />
+      </div>
     );
   }
 
@@ -454,7 +553,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
   });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6" data-testid={TOUR_EDIT_TEST_IDS.page}>
+    <div className="mx-auto max-w-3xl space-y-6" data-testid={TOUR_EDIT_TEST_IDS.page} data-new-tour-wizard>
       <div className="flex flex-wrap items-center gap-2">
         <Link href="/tours">
           <Button type="button" variant="ghost" size="sm" className="gap-1">
@@ -465,6 +564,11 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
         <Link href={`/tours/${encodeURIComponent(tourId)}/workspace`}>
           <Button type="button" variant="outline" size="sm" data-testid={TOUR_EDIT_TEST_IDS.workspace}>
             {tNav("workspace")}
+          </Button>
+        </Link>
+        <Link href={`/tours/${encodeURIComponent(tourId)}/register`}>
+          <Button type="button" variant="default" size="sm" data-testid={TOUR_EDIT_TEST_IDS.register}>
+            {tNav("registerGuest")}
           </Button>
         </Link>
       </div>
@@ -495,26 +599,30 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
         </div>
       </div>
 
-      <DenaliFlatEditForm
-        tenantId={session.tenantId}
-        draft={draft}
-        onDraftChange={onDraftChange}
-        templateSteps={gate.templateSteps}
-        allowedCanonicalPaths={gate.allowedCanonicalPaths}
-        wizardRuleEvalContext={wizardRuleEvalContext}
-        wizardSessionId={wizardSessionId}
-        footer={
+      <DenaliWizardCatalogPrefetchProvider initialLocationsResponse={initialLocationsResponse}>
+        <DenaliFlatEditForm
+          tenantId={session.tenantId}
+          draft={draft}
+          onDraftChange={onDraftChange}
+          templateSteps={gate.templateSteps}
+          allowedCanonicalPaths={gate.allowedCanonicalPaths}
+          wizardRuleEvalContext={wizardRuleEvalContext}
+          wizardSessionId={wizardSessionId}
+          denaliRulesModule={denaliRules}
+          footer={
           <div className="space-y-3 pt-2">
             {submitValidationIssues != null && submitValidationIssues.length > 0 ? (
-              <ul className="text-sm text-destructive" data-denali-flat-edit-validation>
-                {submitValidationIssues.map((issue) => (
-                  <li key={`${issue.path}:${issue.message}`}>{issue.message}</li>
-                ))}
-              </ul>
+              <DenaliReviewValidationSummary
+                issues={submitValidationIssues}
+                stepDescriptors={flatEditStepDescriptors}
+                onFocusIssue={handleFocusValidationIssue}
+                fieldLabelSurfaceId="denali"
+                translateWorkspaceMessage={(key) => tDenali(key)}
+              />
             ) : null}
-            {localizedError ? (
+            {localizedSubmitError ? (
               <p role="alert" className="text-sm text-destructive">
-                {localizedError}
+                {localizedSubmitError}
               </p>
             ) : null}
             {saved ? <p className="text-sm text-muted-foreground">{t("saved")}</p> : null}
@@ -564,7 +672,8 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
             </div>
           </div>
         }
-      />
+        />
+      </DenaliWizardCatalogPrefetchProvider>
     </div>
   );
 }

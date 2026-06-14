@@ -2,6 +2,7 @@ import type { BookingCreateFormState, BookingCreateTourOption } from "@/features
 import { departureInputFromTour } from "@/features/bookings/bookings-create-logic";
 
 import type { OperatorTourDetailResponse } from "./operator-tour-detail-types";
+import type { TourUiStatus } from "./operator-tours-types";
 
 export function mapTourDetailToCreateOption(
   detail: OperatorTourDetailResponse
@@ -27,6 +28,7 @@ export function initRegisterFormFromTour(tour: BookingCreateTourOption): Booking
 export type TourRegisterPageState =
   | { readonly type: "locked" }
   | { readonly type: "loading_tour" }
+  | { readonly type: "draft_blocked" }
   | { readonly type: "ready" }
   | { readonly type: "submitting" }
   | { readonly type: "error"; readonly message: string }
@@ -38,6 +40,7 @@ export function resolveTourRegisterPageState(input: {
   readonly submitting: boolean;
   readonly error: string | null;
   readonly tourNotFound: boolean;
+  readonly tourUiStatus?: TourUiStatus;
 }): TourRegisterPageState {
   if (!input.canManage) {
     return { type: "locked" };
@@ -54,14 +57,14 @@ export function resolveTourRegisterPageState(input: {
   if (input.error !== null) {
     return { type: "error", message: input.error };
   }
+  if (input.tourUiStatus === "draft") {
+    return { type: "draft_blocked" };
+  }
   return { type: "ready" };
 }
 
 export function buildTourRegisterSuccessRedirect(tourId: string): string {
-  const params = new URLSearchParams();
-  params.set("status", "pending");
-  params.set("tourId", tourId.trim());
-  return `/bookings?${params.toString()}`;
+  return `/tours/${encodeURIComponent(tourId.trim())}/workspace`;
 }
 
 /** @deprecated Use buildTourRegisterSuccessRedirect(tourId) */

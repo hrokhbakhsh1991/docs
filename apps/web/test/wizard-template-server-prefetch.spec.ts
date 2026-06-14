@@ -37,5 +37,24 @@ describe("wizard-template-server-prefetch.spec.ts", () => {
     );
     assert.match(hookSource, /skipInitialFetchRef/);
     assert.match(hookSource, /useDenaliWizardCatalogPrefetch/);
+    assert.match(hookSource, /fetchDenaliDestinationCatalogClient/);
+  });
+
+  it("WIZARD-05 flat edit page prefetches locations catalog on the server", () => {
+    const pageSource = readFileSync(
+      resolve(WEB_ROOT, "app/(app)/tours/[id]/edit/page.tsx"),
+      "utf8"
+    );
+    assert.match(pageSource, /fetchWizardLocationsServer/);
+    assert.match(pageSource, /initialLocationsResponse/);
+  });
+
+  it("WIZARD-06 flat edit client wraps destination catalog prefetch provider", () => {
+    const clientSource = readFileSync(
+      resolve(WEB_ROOT, "app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx"),
+      "utf8"
+    );
+    assert.match(clientSource, /DenaliWizardCatalogPrefetchProvider/);
+    assert.match(clientSource, /initialLocationsResponse/);
   });
 });

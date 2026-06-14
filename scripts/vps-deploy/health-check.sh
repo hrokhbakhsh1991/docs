@@ -27,11 +27,18 @@ SLEEP_SEC="${HEALTH_CHECK_SLEEP_SEC:-2}"
 for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
   api_ok=0
   web_ok=0
-  curl -fsS "$API_URL" >/dev/null 2>&1 && api_ok=1
+  api_body=""
+  api_body=$(curl -fsS "$API_URL" 2>/dev/null || true)
+  if [[ -n "$api_body" ]]; then
+    api_ok=1
+  fi
   curl -fsS -o /dev/null "$WEB_URL" 2>/dev/null && web_ok=1
   if [[ "$api_ok" -eq 1 && "$web_ok" -eq 1 ]]; then
     echo "[health] api + web OK (attempt $attempt)"
     exit 0
+  fi
+  if [[ -n "$api_body" ]]; then
+    echo "[health] api degraded: $api_body" >&2
   fi
   sleep "$SLEEP_SEC"
 done

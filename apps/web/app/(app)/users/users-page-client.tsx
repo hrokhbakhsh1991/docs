@@ -7,13 +7,20 @@ import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, Plus, Search, UserPlus } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { PageHeader as AdminPageHeader } from "@/admin/patterns/page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
@@ -106,6 +113,9 @@ export function UsersPageClient({
   const loadMoreInFlightRef = useRef(false);
   const nextCursorRef = useRef<string | undefined>(initialUsersList?.nextCursor ?? undefined);
   const [pendingData, setPendingData] = useState<PendingInvitesListResponse | null>(null);
+  const [pendingLoading, setPendingLoading] = useState(
+    () => query.tab === "pending" && isOwnerRole(session.role)
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(isOwnerRole(session.role) && initialUsersList === null);
   const [fetchNonce, setFetchNonce] = useState(0);
@@ -163,6 +173,13 @@ export function UsersPageClient({
   }, [pathname, query, router, searchInput]);
 
   const isPendingTab = query.tab === "pending";
+  const directoryLoading = isPendingTab ? pendingLoading : loading;
+
+  useLayoutEffect(() => {
+    if (isPendingTab && canManage) {
+      setPendingLoading(true);
+    }
+  }, [canManage, isPendingTab]);
 
   const fetchUsersPage = useCallback(
     async (cursor: string | undefined, append: boolean) => {
@@ -258,7 +275,7 @@ export function UsersPageClient({
       return;
     }
     let cancelled = false;
-    setLoading(true);
+    setPendingLoading(true);
     setError(null);
     void fetch("/api/users/invites", { cache: "no-store" })
       .then(async (response) => {
@@ -282,7 +299,7 @@ export function UsersPageClient({
       })
       .finally(() => {
         if (!cancelled) {
-          setLoading(false);
+          setPendingLoading(false);
         }
       });
     return () => {
@@ -300,7 +317,7 @@ export function UsersPageClient({
   const rosterLength = isPendingTab ? (pendingData?.items.length ?? 0) : visibleUsers.length;
   const bodyState = resolveUsersDirectoryBodyState({
     session,
-    loading,
+    loading: directoryLoading,
     error,
     usersLength: rosterLength,
     hasActiveFilters: isPendingTab ? false : hasActiveFilters,
@@ -409,6 +426,13 @@ export function UsersPageClient({
         ),
       });
       if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { code?: string };
+        if (body.code === "PHONE_INVALID") {
+          throw new Error("USERS_INVITE_PHONE_INVALID");
+        }
+        if (body.code === "PHONE_REQUIRED") {
+          throw new Error("USERS_INVITE_PHONE_REQUIRED");
+        }
         throw new Error(`USERS_INVITE_HTTP_${response.status}`);
       }
       setInviteOpen(false);
@@ -711,15 +735,23 @@ export function UsersPageClient({
         </>
       ) : null}
 
-      {inviteOpen ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
+      <Dialog
+        open={inviteOpen}
+        onOpenChange={(open) => {
+          setInviteOpen(open);
+          if (!open) {
+            setInviteError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg" data-testid={USERS_DIRECTORY_TEST_IDS.inviteModal}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5" />
               {t("inviteForm.title")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="invite-phone">{t("inviteForm.phone")}</Label>
               <LocalizedNumericInput
@@ -767,22 +799,22 @@ export function UsersPageClient({
                 {resolveCodedErrorMessage(tErrors, inviteError)}
               </p>
             ) : null}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                disabled={inviting || invitePhone.trim().length === 0}
-                data-testid={USERS_DIRECTORY_TEST_IDS.inviteSend}
-                onClick={() => void handleInvite()}
-              >
-                {inviting ? t("inviteForm.sending") : t("inviteForm.send")}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
-                {tCommon("cancel")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
+              {tCommon("cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={inviting || invitePhone.trim().length === 0}
+              data-testid={USERS_DIRECTORY_TEST_IDS.inviteSend}
+              onClick={() => void handleInvite()}
+            >
+              {inviting ? t("inviteForm.sending") : t("inviteForm.send")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {bodyState.type === "loading" ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -905,6 +937,7 @@ export function UsersPageClient({
         <UsersOwnershipTransferPanel
           session={session}
           initialRoster={initialOwnershipRoster?.items ?? null}
+          onInviteClick={() => setInviteOpen(true)}
         />
       ) : null}
 
@@ -914,14 +947,25 @@ export function UsersPageClient({
         </p>
       ) : null}
 
-      {rewardsUser ? (
-        <Card data-testid={USERS_DIRECTORY_TEST_IDS.rewardsModal}>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              {t("rewards.title", { name: rewardsUser.displayName })}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <Dialog
+        open={rewardsUser !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeRewardsModal();
+          }
+        }}
+      >
+        <DialogContent
+          className="max-h-[90vh] max-w-lg overflow-y-auto"
+          data-testid={USERS_DIRECTORY_TEST_IDS.rewardsModal}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {rewardsUser ? t("rewards.title", { name: rewardsUser.displayName }) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {rewardsUser ? (
+            <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="rewards-discount">{t("rewards.discountLabel")}</Label>
               <LocalizedNumericInput
@@ -1037,22 +1081,23 @@ export function UsersPageClient({
                 {resolveCodedErrorMessage(tErrors, rewardsError)}
               </p>
             ) : null}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                disabled={rewardsSaving}
-                data-testid={USERS_DIRECTORY_TEST_IDS.rewardsSave}
-                onClick={() => void handleSaveRewards()}
-              >
-                {rewardsSaving ? t("rewards.saving") : t("rewards.save")}
-              </Button>
-              <Button type="button" variant="outline" onClick={closeRewardsModal}>
-                {tCommon("cancel")}
-              </Button>
             </div>
-          </CardContent>
-        </Card>
-      ) : null}
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeRewardsModal}>
+              {tCommon("cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={rewardsSaving || rewardsUser === null}
+              data-testid={USERS_DIRECTORY_TEST_IDS.rewardsSave}
+              onClick={() => void handleSaveRewards()}
+            >
+              {rewardsSaving ? t("rewards.saving") : t("rewards.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <UsersDirectoryRowActionsSheet
         user={actionsUser}

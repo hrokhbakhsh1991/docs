@@ -95,7 +95,16 @@
     "errors": {
       "TOUR_NOT_FOUND": "Tour not found.",
       "TOUR_EDIT_LOAD_FAILED": "Failed to load tour.",
-      "TOUR_EDIT_SAVE_FAILED": "Failed to save changes."
+      "TOUR_EDIT_SAVE_FAILED": "Failed to save changes.",
+      "TOUR_EDIT_NOT_READY": "The form is not ready to save yet.",
+      "TOUR_EDIT_VALIDATION_FAILED": "Fix the highlighted fields before saving.",
+      "TOUR_EDIT_PATCH_NOT_CONFIGURED": "Tour save is not configured for this workspace.",
+      "TOUR_EDIT_AUTH_TOKEN_REVOKED": "Session expired — sign in again.",
+      "TOUR_EDIT_AUTH_UNAUTHENTICATED": "Sign in to save changes.",
+      "TOUR_EDIT_HTTP_401": "Save failed (authentication).",
+      "TOUR_EDIT_HTTP_403": "You are not allowed to save this tour.",
+      "TOUR_EDIT_HTTP_409": "Tour version changed — reload the page.",
+      "TOUR_EDIT_HTTP_500": "Save failed (server error)."
     }
   },
   "register": {
@@ -103,6 +112,9 @@
     "pageSubtitle": "Create a pending booking for this tour",
     "lockedTitle": "Registration restricted",
     "lockedDescription": "Only admin and owner operators can register guests on tours.",
+    "draftBlockedTitle": "Publish tour first",
+    "draftBlockedDescription": "Guest registration is available after this tour is published. Edit the tour and set status to active.",
+    "draftBlockedEdit": "Edit tour",
     "notFound": "Tour not found.",
     "defaultTourTitle": "Tour",
     "guestDetails": "Guest details",
@@ -116,8 +128,13 @@
     "errors": {
       "TOUR_REGISTER_FETCH_FAILED": "Failed to load tour.",
       "TOUR_REGISTER_INVALID": "Invalid form data.",
+      "GUEST_REQUIRED": "Guest name is required.",
       "TOUR_REGISTER_FORBIDDEN": "You are not allowed to register guests.",
-      "TOUR_REGISTER_FAILED": "Registration failed."
+      "TOUR_REGISTER_FAILED": "Registration failed.",
+      "TOUR_REGISTER_HTTP_400": "Invalid registration request.",
+      "TOUR_REGISTER_HTTP_403": "You are not allowed to register guests.",
+      "TOUR_REGISTER_HTTP_404": "Tour not found.",
+      "TOUR_REGISTER_HTTP_500": "Registration failed (server error)."
     }
   },
   "workspace": {
@@ -139,8 +156,8 @@
     },
     "registrations": {
       "title": "Registrations",
-      "description": "Pending guest registrations for this tour — approve in Command Center.",
-      "empty": "No pending registrations for this tour.",
+      "description": "All guest registrations for this tour — approve or reject in Command Center.",
+      "empty": "No registrations for this tour yet.",
       "registerFirst": "Register first guest"
     },
     "waitlist": {
@@ -156,10 +173,21 @@
     },
     "errors": {
       "TOUR_WORKSPACE_FETCH_FAILED": "Failed to load workspace.",
+      "TOUR_WORKSPACE_HTTP_401": "Workspace access failed (authentication).",
+      "TOUR_WORKSPACE_HTTP_403": "You are not allowed to open this tour workspace.",
+      "TOUR_WORKSPACE_HTTP_404": "Tour not found.",
+      "TOUR_WORKSPACE_HTTP_500": "Failed to load workspace (server error).",
       "TOUR_REGISTRATIONS_FETCH_FAILED": "Failed to load registrations.",
+      "TOUR_REGISTRATIONS_HTTP_404": "Failed to load registrations.",
       "TOUR_WAITLIST_FETCH_FAILED": "Failed to load waitlist.",
+      "TOUR_WAITLIST_HTTP_404": "Waitlist not found for this tour.",
+      "TOUR_WAITLIST_HTTP_500": "Failed to load waitlist (server error).",
       "TOUR_WAITLIST_APPROVE_FAILED": "Approval failed.",
-      "TOUR_TRANSPORT_FETCH_FAILED": "Failed to load transport roster."
+      "TOUR_TRANSPORT_FETCH_FAILED": "Failed to load transport roster.",
+      "TOUR_TRANSPORT_TOUR_HTTP_404": "Tour not found for transport roster.",
+      "TOUR_TRANSPORT_BOOKINGS_HTTP_404": "Transport bookings not found.",
+      "TOUR_TRANSPORT_TOUR_HTTP_500": "Failed to load transport tour (server error).",
+      "TOUR_TRANSPORT_BOOKINGS_HTTP_500": "Failed to load transport bookings (server error)."
     }
   }
 }

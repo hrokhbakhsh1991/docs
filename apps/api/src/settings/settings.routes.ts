@@ -141,12 +141,14 @@ function parseCreateBodyForModule(
     if (entity === "destination") {
       const regionId = readStringField(body, "regionId");
       const locationType = readStringField(body, "locationType");
+      const altitudeM = readNumberField(body, "altitudeM");
       if (name.length === 0 || regionId.length === 0) return null;
       return {
         entity: "destination",
         regionId,
         name,
         ...(locationType.length > 0 ? { locationType } : {}),
+        ...(altitudeM !== null ? { altitudeM } : {}),
       };
     }
     return null;

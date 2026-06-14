@@ -23,6 +23,13 @@ die() {
 
 chmod +x "$DEPLOY_PATH"/scripts/vps-deploy/*.sh 2>/dev/null || true
 
+log "verify database credentials"
+if ! bash "$DEPLOY_PATH/scripts/vps-deploy/verify-db-env.sh" "$ENV_DIR/api.env"; then
+  log "DATABASE_URL probe failed — syncing app_tour password from env"
+  bash "$DEPLOY_PATH/scripts/vps-deploy/sync-db-app-role-password.sh" "$ENV_DIR/api.env"
+  bash "$DEPLOY_PATH/scripts/vps-deploy/verify-db-env.sh" "$ENV_DIR/api.env"
+fi
+
 log "sync $BRANCH"
 cd "$DEPLOY_PATH"
 git fetch origin "$BRANCH"
@@ -51,5 +58,8 @@ systemctl restart app-tour-web.service
 
 log "health"
 bash "$DEPLOY_PATH/scripts/vps-deploy/health-check.sh"
+
+log "smoke operator login"
+bash "$DEPLOY_PATH/scripts/vps-deploy/smoke-operator-login.sh"
 
 log "deploy complete"

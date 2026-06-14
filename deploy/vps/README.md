@@ -106,4 +106,36 @@ journalctl -u app-tour-web -f
 
 ## Tenant / host without domain
 
-Operator panel uses host-based tenant routing (`denali.localhost` in dev). With raw IP you may need `/etc/hosts` on the client or DNS later. Login OTP dev: see `OPERATOR-LOGIN-FLOW.md`.
+Operator panel uses host-based tenant routing (`denali.localhost` in dev). With raw IP, configure **both** env files:
+
+```bash
+# /etc/app-tour/api.env
+PUBLIC_TENANT_FALLBACK_LABEL=denali
+PUBLIC_TENANT_FALLBACK_HOSTS=89.45.89.206,127.0.0.1
+
+# /etc/app-tour/web.env
+TOUR_OPS_DEFAULT_TENANT_ID=00000000-0000-4000-8000-000000000003
+TOUR_OPS_PUBLIC_FALLBACK_HOSTS=89.45.89.206,127.0.0.1
+SESSION_COOKIE_SECURE=false
+```
+
+Verify Postgres credentials **before** OTP/login smoke:
+
+```bash
+bash /opt/app-tour/scripts/vps-deploy/verify-db-env.sh /etc/app-tour/api.env
+# on password mismatch (requires DATABASE_URL_ADMIN in api.env):
+bash /opt/app-tour/scripts/vps-deploy/sync-db-app-role-password.sh /etc/app-tour/api.env
+systemctl restart app-tour-api app-tour-web
+```
+
+`remote-deploy.sh` runs `verify-db-env.sh` before migrations and auto-invokes `sync-db-app-role-password.sh` when the probe fails. API `/health` returns **503 degraded** when `DATABASE_URL` cannot connect; OTP routes return stable code **`DATABASE_UNAVAILABLE`** (503) instead of opaque 500.
+
+Post-deploy smoke (fail-closed):
+
+```bash
+bash /opt/app-tour/scripts/vps-deploy/smoke-operator-login.sh
+```
+
+Checks: DB probe (prisma) → `/health` with `checks.database.ok` → BFF OTP issues `challenge_id` (not `OTP_REQUEST_FAILED`).
+
+Login OTP dev: see `OPERATOR-LOGIN-FLOW.md`.

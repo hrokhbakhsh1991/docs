@@ -1,6 +1,9 @@
 import type { Tour, TourStorageRepository } from "./tour-storage.interface";
+import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+import { TourStorageDbAdapter } from "../db/tour-storage.adapter";
 import { InMemoryTourRepository } from "./in-memory-tour.repository";
 import { PrismaTourRepository } from "./prisma-tour.repository";
+import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 import {
   assertProductionStorageDriver,
   resolveStorageDriver,
@@ -20,6 +23,7 @@ export type TourStorageImplementation = TourStorageRepository & {
 
 let urbanSmokeMemoryStore: InMemoryTourRepository | undefined;
 let operatorSmokeMemoryStore: InMemoryTourRepository | undefined;
+let defaultMemoryTourStore: InMemoryTourRepository | undefined;
 
 /**
  * DI factory — `STORAGE_DRIVER=memory|prisma` or NODE_ENV default (test→memory, production→prisma).
@@ -49,7 +53,47 @@ export function createTourStorageRepository(): TourStorageImplementation {
     }
     return operatorSmokeMemoryStore;
   }
-  return new InMemoryTourRepository();
+  if (defaultMemoryTourStore === undefined) {
+    defaultMemoryTourStore = new InMemoryTourRepository();
+    if (!isProductionAuthMode()) {
+      defaultMemoryTourStore.ensureDenaliDevSmokeSeedTour();
+    }
+  }
+  return defaultMemoryTourStore;
+}
+
+/** Dev memory — idempotent Denali smoke tours for tenant …000003 (FE-14 / TR-09). */
+export function ensureDevMemoryTourSeedForTenant(
+  tenantId: string,
+  store?: TourStorageRepository
+): void {
+  if (isProductionAuthMode()) {
+    return;
+  }
+  if (tenantId !== DENALI_SMOKE_TENANT_ID) {
+    return;
+  }
+  const memoryStore = resolveDevMemoryTourStore(store);
+  memoryStore?.ensureDenaliDevSmokeSeedTour();
+}
+
+function resolveDevMemoryTourStore(
+  store?: TourStorageRepository
+): InMemoryTourRepository | null {
+  if (store instanceof InMemoryTourRepository) {
+    return store;
+  }
+  if (store instanceof TourStorageDbAdapter) {
+    return store.devMemoryStore();
+  }
+  if (store !== undefined) {
+    return null;
+  }
+  if (resolveStorageDriver() !== "memory") {
+    return null;
+  }
+  const fallback = createTourStorageRepository();
+  return fallback instanceof InMemoryTourRepository ? fallback : null;
 }
 
 /** Phase 5.4-S1 — atomic tour + projection columns + outbox (Prisma only). */

@@ -14,6 +14,10 @@
       "types": "./dist/denali.plugin.d.ts",
       "default": "./dist/denali.plugin.js"
     },
+    "./composites": {
+      "types": "./dist/composites/index.d.ts",
+      "default": "./dist/composites/index.js"
+    },
     "./draft": {
       "types": "./dist/draft/index.d.ts",
       "default": "./dist/draft/index.js"

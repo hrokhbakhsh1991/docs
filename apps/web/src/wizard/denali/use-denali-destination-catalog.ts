@@ -6,6 +6,7 @@ import type { SelectOption } from "@app-tour/ui-primitives/select";
 import type { DestinationResource } from "@/features/settings/settings-module-types";
 import { parseLocationsResponse } from "@/features/settings/locations-logic";
 
+import { fetchDenaliDestinationCatalogClient } from "./fetch-denali-destination-catalog.client";
 import { useDenaliWizardCatalogPrefetch } from "./denali-wizard-catalog-prefetch-context";
 
 export type DenaliDestinationCatalogState = {
@@ -71,29 +72,11 @@ export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
       return;
     }
     let cancelled = false;
-    void fetch("/api/settings/resources/locations", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`LOCATIONS_HTTP_${response.status}`);
-        }
-        return parseLocationsResponse(await response.json());
-      })
-      .then((payload) => {
-        if (cancelled) {
-          return;
-        }
-        setState(buildDestinationCatalogState(payload));
-      })
-      .catch((fetchError: unknown) => {
-        if (!cancelled) {
-          setState({
-            options: [],
-            destinationById: new Map(),
-            loading: false,
-            error: fetchError instanceof Error ? fetchError.message : "LOCATIONS_LOAD_FAILED",
-          });
-        }
-      });
+    void fetchDenaliDestinationCatalogClient().then((next) => {
+      if (!cancelled) {
+        setState(next);
+      }
+    });
 
     return () => {
       cancelled = true;

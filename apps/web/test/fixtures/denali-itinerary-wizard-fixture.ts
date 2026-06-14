@@ -115,8 +115,8 @@ async function settleOperatorWizardDraftSync(page: Page): Promise<void> {
     return;
   }
 
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    const status = await syncIndicator.getAttribute("data-status");
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const status = await syncIndicator.getAttribute("data-status", { timeout: 5_000 }).catch(() => null);
     if (status !== "SYNCING" && status !== "CONFLICT_RESOLVING") {
       return;
     }
@@ -127,7 +127,7 @@ async function settleOperatorWizardDraftSync(page: Page): Promise<void> {
     await page.waitForTimeout(400);
   }
 
-  await expect(syncIndicator).not.toHaveAttribute("data-status", "SYNCING", { timeout: 10_000 });
+  await expect(syncIndicator).not.toHaveAttribute("data-status", "SYNCING", { timeout: 15_000 });
 }
 
 export async function jumpToWizardStep(page: Page, stepId: string): Promise<void> {
@@ -161,6 +161,35 @@ async function fillWizardNumericField(
   await page.keyboard.press("Backspace");
   await page.keyboard.type(value, { delay: 25 });
   await field.blur();
+}
+
+async function ensureWizardDateTime(
+  page: Page,
+  fieldTestId: string,
+  dateButtonName: string,
+  isoDate: string,
+  time: string
+): Promise<void> {
+  const field = page.getByTestId(fieldTestId);
+  const dateBtn = field.getByRole("button", { name: dateButtonName });
+  const dateLabel = (await dateBtn.innerText()).trim();
+  if (
+    dateLabel.includes("انتخاب تاریخ") ||
+    dateLabel.toLowerCase().includes("select date") ||
+    dateLabel.length === 0
+  ) {
+    await pickWizardDate(page, fieldTestId, dateButtonName, isoDate);
+  }
+
+  const timeBtn = field.getByRole("button", { name: /ساعت|pick time|pickTime/i });
+  const timeLabel = (await timeBtn.innerText()).trim();
+  if (
+    timeLabel.includes("انتخاب ساعت") ||
+    timeLabel.toLowerCase().includes("pick time") ||
+    timeLabel.length === 0
+  ) {
+    await pickWizardTime(page, fieldTestId, time);
+  }
 }
 
 async function pickWizardDate(
@@ -206,10 +235,17 @@ async function pickWizardTime(page: Page, fieldTestId: string, time: string): Pr
 
 async function readWizardStepValidationIssues(page: Page): Promise<string[]> {
   const issues = page.locator("[data-validation-issue]");
-  if ((await issues.count()) === 0) {
-    return [];
+  if ((await issues.count()) > 0) {
+    return issues.allTextContents();
   }
-  return issues.allTextContents();
+  const stepBanner = page.locator(".workspace-wizard__step-validation");
+  if (await stepBanner.isVisible().catch(() => false)) {
+    const text = (await stepBanner.innerText()).trim();
+    if (text.length > 0) {
+      return [text];
+    }
+  }
+  return [];
 }
 
 export async function fillDenaliMultiDayWizardBasics(page: Page, title: string): Promise<void> {
@@ -242,38 +278,37 @@ export async function fillDenaliMultiDayWizardBasics(page: Page, title: string):
     await destinationSelect.selectOption(value!);
   }
 
-  await pickWizardDate(page, DENALI_DATETIME_TEST_IDS.start, "شروع برنامه", "2026-07-01");
-  await pickWizardTime(page, DENALI_DATETIME_TEST_IDS.start, "08:00");
-  await pickWizardDate(page, DENALI_DATETIME_TEST_IDS.end, "پایان برنامه", "2026-07-03");
-  await pickWizardTime(page, DENALI_DATETIME_TEST_IDS.end, "18:00");
+  await ensureWizardDateTime(page, DENALI_DATETIME_TEST_IDS.start, "شروع برنامه", "2026-07-01", "08:00");
+  await ensureWizardDateTime(page, DENALI_DATETIME_TEST_IDS.end, "پایان برنامه", "2026-07-03", "18:00");
 
   await fillWizardNumericField(page, /حداکثر ظرفیت|capacityMax/i, "12");
   await fillWizardNumericField(page, /ارتفاع قله|peakHeight/i, "5610");
 
   await settleOperatorWizardDraftSync(page);
 
-  await waitForWizardNextReady(page);
-  await page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next).click();
-  const photosStep = page.locator('[data-wizard-step="denali_photos"]');
-  const reachedPhotos = await photosStep.isVisible({ timeout: 12_000 }).catch(() => false);
-  if (!reachedPhotos) {
+  const next = page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next);
+  try {
+    await expect(next).toBeEnabled({ timeout: 30_000 });
+  } catch {
     const validationIssues = await readWizardStepValidationIssues(page);
     throw new Error(
-      `basic step blocked before photos: ${validationIssues.join(" | ") || "no validation banner"}`
+      `basic step blocked before photos: ${validationIssues.join(" | ") || "Continue disabled after basic fill"}`
     );
   }
+  await next.click();
+  await expect(page.locator('[data-wizard-step="denali_photos"]')).toBeVisible({ timeout: 15_000 });
 }
 
 async function waitForWizardNextReady(page: Page): Promise<void> {
   const next = page.getByTestId(WIZARD_STEP_SHELL_TEST_IDS.next);
   const syncIndicator = page.getByTestId("draft-sync-indicator");
 
-  for (let attempt = 0; attempt < 45; attempt += 1) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
     if (await next.isEnabled().catch(() => false)) {
       return;
     }
     if (await syncIndicator.isVisible().catch(() => false)) {
-      const status = await syncIndicator.getAttribute("data-status");
+      const status = await syncIndicator.getAttribute("data-status", { timeout: 5_000 }).catch(() => null);
       if (status === "SYNCING" || status === "CONFLICT_RESOLVING") {
         const retryBtn = page.getByTestId("draft-sync-retry");
         if (await retryBtn.isVisible().catch(() => false)) {
@@ -284,7 +319,12 @@ async function waitForWizardNextReady(page: Page): Promise<void> {
     await page.waitForTimeout(400);
   }
 
-  await expect(next).toBeEnabled({ timeout: 5_000 });
+  const validationIssues = await readWizardStepValidationIssues(page);
+  if (validationIssues.length > 0) {
+    throw new Error(`wizard Continue blocked: ${validationIssues.join(" | ")}`);
+  }
+
+  await expect(next).toBeEnabled({ timeout: 10_000 });
 }
 
 async function readVisibleWizardStepId(page: Page): Promise<string | null> {
@@ -395,9 +435,9 @@ export async function fillDenaliWizardPricingMinimal(page: Page): Promise<void> 
   const fitnessSelect = page
     .getByTestId("denali-composite-pricing-participants")
     .getByRole("combobox", { name: /سطح آمادگی|Fitness level/i });
-  if (await fitnessSelect.isVisible().catch(() => false)) {
-    await fitnessSelect.selectOption("medium");
-  }
+  await expect(fitnessSelect).toBeVisible({ timeout: 15_000 });
+  await fitnessSelect.selectOption("medium");
+  await settleOperatorWizardDraftSync(page);
   await clickWizardNextToStep(page, "denali_legal", "pricing step blocked before legal");
 }
 
@@ -406,7 +446,7 @@ export async function fillDenaliWizardLegalMinimal(page: Page): Promise<void> {
   await settleOperatorWizardDraftSync(page);
 }
 
-/** Full multi-day path through published tenant template (ends on legal — review is Layer C overlay). */
+/** Full multi-day path through published tenant template (ends on legal). */
 export async function fillDenaliMultiDayWizardThroughLegal(page: Page, title: string): Promise<void> {
   await fillDenaliMultiDayWizardBasics(page, title);
   await fillDenaliWizardPhotosMinimal(page);
@@ -414,6 +454,12 @@ export async function fillDenaliMultiDayWizardThroughLegal(page: Page, title: st
   await fillDenaliWizardLogisticsMinimal(page);
   await fillDenaliWizardPricingMinimal(page);
   await fillDenaliWizardLegalMinimal(page);
+}
+
+/** Layer C review step — create footer renders on last step (INV-WIZ-002). */
+export async function fillDenaliMultiDayWizardThroughReview(page: Page, title: string): Promise<void> {
+  await fillDenaliMultiDayWizardThroughLegal(page, title);
+  await clickWizardNextToStep(page, "review", "legal step blocked before review");
   await expect(page.locator("[data-wizard-footer]").getByRole("button", { name: /Create tour|ساخت تور/i })).toBeVisible({
     timeout: 15_000,
   });
@@ -476,8 +522,10 @@ export async function fillDenaliWizardProgramMinimal(page: Page): Promise<void> 
     "8"
   );
 
-  await fillItineraryDayMinimal(page, 1, "روز اول تست", "فعالیت صبح");
-  await fillItineraryDayMinimal(page, 2, "روز دوم تست", "بازگشت");
+  const dayCount = await page.getByTestId(DENALI_ITINERARY_TEST_IDS.itinerary).locator("[data-testid^='denali-itinerary-day-']").count();
+  for (let dayNumber = 1; dayNumber <= dayCount; dayNumber += 1) {
+    await fillItineraryDayMinimal(page, dayNumber, `روز ${dayNumber} تست`, `فعالیت روز ${dayNumber}`);
+  }
 
   await clickWizardNextToStep(page, "denali_logistics", "program step blocked before logistics");
 }

@@ -16,6 +16,7 @@ export {
 export {
   getDenaliCompositeRegistry,
   resolveDenaliFieldRenderer,
+  DENALI_COMPOSITE_BY_CANONICAL_PATH,
   DENALI_COMPOSITE_RENDERER_IDS,
   PLATFORM_RENDERER_IDS,
 } from "./composites";

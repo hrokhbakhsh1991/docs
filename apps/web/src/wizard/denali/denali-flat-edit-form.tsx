@@ -64,6 +64,7 @@ type DenaliFlatEditFormProps = {
   readonly wizardSessionId?: string;
   readonly sectionIds?: readonly string[];
   readonly footer?: ReactNode;
+  readonly denaliRulesModule?: DenaliWizardRulesModule | null;
 };
 
 export function DenaliFlatEditForm({
@@ -76,13 +77,15 @@ export function DenaliFlatEditForm({
   wizardSessionId,
   sectionIds = DENALI_FLAT_EDIT_SECTIONS_FULL,
   footer,
+  denaliRulesModule = null,
 }: DenaliFlatEditFormProps) {
   const tWizard = useTranslations("wizard");
   const tDenali = useTranslations("denali");
   const plugin = useMemo(() => getDenaliWorkspacePlugin(), []);
   const [baseSteps, setBaseSteps] = useState<readonly RenderStepPlan[] | null>(null);
-  const [rulesModule, setRulesModule] = useState<DenaliWizardRulesModule | null>(null);
+  const [loadedRulesModule, setLoadedRulesModule] = useState<DenaliWizardRulesModule | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const rulesModule = denaliRulesModule ?? loadedRulesModule;
 
   const dimensionsKey = useMemo(() => {
     const hooks = plugin.wizardHost;
@@ -103,11 +106,17 @@ export function DenaliFlatEditForm({
     let cancelled = false;
     void (async () => {
       try {
-        const hooks = plugin.wizardHost;
-        const rules =
-          hooks?.loadRulesModule != null
-            ? ((await hooks.loadRulesModule()) as DenaliWizardRulesModule)
-            : null;
+        let rules = denaliRulesModule;
+        if (rules === null) {
+          const hooks = plugin.wizardHost;
+          rules =
+            hooks?.loadRulesModule != null
+              ? ((await hooks.loadRulesModule()) as DenaliWizardRulesModule)
+              : null;
+          if (!cancelled) {
+            setLoadedRulesModule(rules);
+          }
+        }
         const engine = PlatformWizardEngine.create(denaliPluginForWizardEngine(plugin));
         engine.init();
         const plan = engine.buildRenderPlan({
@@ -115,7 +124,6 @@ export function DenaliFlatEditForm({
           dimensions: resolveWizardDimensions(plugin, draft, rules),
         });
         if (!cancelled) {
-          setRulesModule(rules);
           setBaseSteps(plan);
           setError(null);
         }
@@ -123,14 +131,16 @@ export function DenaliFlatEditForm({
         if (!cancelled) {
           setError(cause instanceof Error ? cause.message : "FLAT_EDIT_LOAD_FAILED");
           setBaseSteps(null);
-          setRulesModule(null);
+          if (denaliRulesModule === null) {
+            setLoadedRulesModule(null);
+          }
         }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [plugin, tenantId, dimensionsKey]);
+  }, [plugin, tenantId, dimensionsKey, denaliRulesModule, draft]);
 
   const flatTemplateSteps = useMemo(
     () => filterFlatEditTemplateSteps(templateSteps, sectionIds),
@@ -188,7 +198,7 @@ export function DenaliFlatEditForm({
     );
   }
 
-  if (visibleSteps == null) {
+  if (visibleSteps == null || rulesModule == null) {
     return <p data-denali-flat-edit-loading>{tWizard("host.loading")}</p>;
   }
 
@@ -196,6 +206,7 @@ export function DenaliFlatEditForm({
     <form
       className="denali-flat-edit-form space-y-6"
       data-denali-flat-edit-form
+      data-new-tour-wizard
       data-testid={DENALI_FLAT_EDIT_TEST_IDS.form}
       onSubmit={(event) => event.preventDefault()}
     >

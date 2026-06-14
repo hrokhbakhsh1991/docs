@@ -113,6 +113,9 @@ export function DenaliDifficultyLevelField({
             aria-valuenow={value}
             aria-valuetext={displayValue}
             onChange={(event) => commitValue(Number.parseFloat(event.target.value))}
+            onInput={(event) =>
+              commitValue(Number.parseFloat((event.target as HTMLInputElement).value))
+            }
           />
           <div className="denali-difficulty-level__scale" aria-hidden>
             <span>{minLabel}</span>

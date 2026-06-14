@@ -341,6 +341,7 @@ export async function createSettingsResource(
       ...(locationBody.locationType !== undefined
         ? { locationType: locationBody.locationType.trim() }
         : {}),
+      ...(locationBody.altitudeM !== undefined ? { altitudeM: locationBody.altitudeM } : {}),
     });
     await emitSettingsResourceAudit(
       auth,

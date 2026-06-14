@@ -1,5 +1,6 @@
-import type { TourListPageInput, TourListPageResult, TourRecord, TourWhere } from "./tour-record";
+import type { Tour, TourListPageInput, TourListPageResult, TourRecord, TourWhere } from "./tour-record";
 import type { TourStorageRepository as DbTourStorageRepository } from "./tour.repository";
+import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
 import type {
   Tour,
   TourStorageRepository as StorageTourRepository,
@@ -31,6 +32,11 @@ export class TourStorageDbAdapter implements DbTourStorageRepository {
       }): Promise<Tour>;
     }
   ) {}
+
+  /** Dev memory — unwrap in-memory repository for idempotent smoke seed helpers. */
+  devMemoryStore(): InMemoryTourRepository | null {
+    return this.store instanceof InMemoryTourRepository ? this.store : null;
+  }
 
   async findMany(where: TourWhere): Promise<readonly TourRecord[]> {
     const rows = await this.store.listByTenant(where.tenantId);

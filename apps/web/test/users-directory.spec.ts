@@ -20,6 +20,7 @@ import {
   buildUsersCsvContent,
   buildUsersCsvFilename,
   canManageUserRow,
+  canEditUserRewards,
   filterUsersDirectoryByStatus,
   toUsersCsvRows,
 } from "../src/features/users/users-page-logic";
@@ -164,6 +165,20 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowRemove, "operator-users-row-remove");
   });
 
+  it("WEB-9.4-16 owner can edit own rewards but not self role actions (USR-11)", () => {
+    const ownerRow = {
+      userId: "o1",
+      tenantId: "t1",
+      role: "owner" as const,
+      status: "ACTIVE" as const,
+      displayName: "Owner",
+      phone: null,
+    };
+    assert.equal(canManageUserRow("owner", "o1", ownerRow), false);
+    assert.equal(canEditUserRewards("owner", "o1", ownerRow), true);
+    assert.equal(canEditUserRewards("member", "m1", ownerRow), false);
+  });
+
   it("WEB-9.4-11 rewards modal landmarks exposed (R4)", () => {
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowRewards, "operator-users-row-rewards");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rewardsModal, "operator-users-rewards-modal");
@@ -238,6 +253,22 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
       hasActiveFilters: false,
     });
     assert.equal(state.type, "empty");
+  });
+
+  it("WEB-9.4-05b pending tab loading avoids empty flash (USR-08)", () => {
+    const state = resolveUsersDirectoryBodyState({
+      session: {
+        userId: "u1",
+        tenantId: "t1",
+        role: "owner",
+        workspaceType: "denali",
+      },
+      loading: true,
+      error: null,
+      usersLength: 0,
+      hasActiveFilters: false,
+    });
+    assert.equal(state.type, "loading");
   });
 
   it("WEB-9.4-17 R4 list fetch query includes sort and limit", async () => {

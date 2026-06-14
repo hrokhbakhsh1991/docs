@@ -1379,6 +1379,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-l
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
+  pointer-events: none;
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-level__ticks {
@@ -1386,6 +1387,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-l
   height: 1.125rem;
   margin-top: var(--space-1, 0.25rem);
   margin-inline: calc(var(--denali-difficulty-thumb-size) / 2);
+  pointer-events: none;
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-difficulty-level__tick {

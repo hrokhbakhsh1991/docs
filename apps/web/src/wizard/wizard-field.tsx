@@ -258,6 +258,9 @@ export function WizardField({
         workspaceFormProfile,
       });
     }
+    if (field.kind === "composite" || field.fieldId.startsWith("denali.")) {
+      return <p data-denali-wizard-composite-loading aria-busy="true" />;
+    }
   }
 
   const render = WIZARD_FIELD_RENDERERS[field.kind];

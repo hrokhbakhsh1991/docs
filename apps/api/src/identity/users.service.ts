@@ -22,6 +22,10 @@ import {
 } from "./users-directory-cursor";
 import { normalizeMembershipRole } from "./hydrate-membership";
 import {
+  isLoginMobileFormatValid,
+  normalizeLoginMobile,
+} from "./phone-login-authorization";
+import {
   evaluateMembershipRemoval,
   evaluateMembershipRoleChange,
   RBAC_INSUFFICIENT_ROLE_PRIVILEGE,
@@ -69,6 +73,15 @@ export class InviteRoleForbiddenError extends Error {
   constructor() {
     super("INVITE_ROLE_FORBIDDEN");
     this.name = "InviteRoleForbiddenError";
+  }
+}
+
+export class InvitePhoneInvalidError extends Error {
+  readonly code = "PHONE_INVALID" as const;
+
+  constructor() {
+    super("PHONE_INVALID");
+    this.name = "InvitePhoneInvalidError";
   }
 }
 
@@ -244,9 +257,12 @@ export async function inviteWorkspaceUser(
     throw new InviteRoleForbiddenError();
   }
 
-  const phone = body.phone.trim();
+  const phone = normalizeLoginMobile(body.phone.trim());
   if (phone.length === 0) {
     throw new Error("PHONE_REQUIRED");
+  }
+  if (!isLoginMobileFormatValid(phone)) {
+    throw new InvitePhoneInvalidError();
   }
 
   return repo.createPendingInvite({

@@ -37,6 +37,25 @@ function formValueToDraftScalar(value: unknown): unknown {
   return value;
 }
 
+function coerceScalarFormValueForDraft(formValue: unknown): unknown {
+  if (formValue === null || formValue === undefined) {
+    return formValue;
+  }
+  if (Array.isArray(formValue)) {
+    return formValue;
+  }
+  if (isRecord(formValue)) {
+    if (Object.keys(formValue).length === 0) {
+      return undefined;
+    }
+    if (typeof formValue.value === "string" || typeof formValue.value === "number") {
+      return formValueToDraftScalar(formValue.value);
+    }
+    return formValue;
+  }
+  return formValueToDraftScalar(formValue);
+}
+
 function syncDenaliFormToDraftEnvelope(
   draft: CanonicalWizardDraftEnvelope,
   form: Record<string, unknown>,
@@ -52,8 +71,7 @@ function syncDenaliFormToDraftEnvelope(
       }
       continue;
     }
-    const mapped =
-      Array.isArray(formValue) || isRecord(formValue) ? formValue : formValueToDraftScalar(formValue);
+    const mapped = coerceScalarFormValueForDraft(formValue);
     if (JSON.stringify(mapped) !== JSON.stringify(draftValue)) {
       next = setCanonicalValueOnDraft(next, canonicalPath, mapped);
     }

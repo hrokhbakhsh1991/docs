@@ -45,16 +45,19 @@ export function buildDenaliWorkspaceFieldRegistry(): WorkspaceFieldRegistry {
 
     const compositeRendererId = resolveDenaliCompositeRendererId(def);
     const fieldId = compositeRendererId ?? def.canonicalPath;
+    const kind = compositeRendererId != null ? ("composite" as const) : resolution.kind;
 
     return [
       Object.freeze({
         id: fieldId,
         canonicalPath: def.canonicalPath,
         stepId: def.stepId,
-        kind: resolution.kind,
+        kind,
         required: def.ruleDefaults.required,
         tags: denaliFieldRegistryTags(def),
-        ...(resolution.enumOptions != null ? { enumOptions: resolution.enumOptions } : {}),
+        ...(kind === "enum" && resolution.enumOptions != null
+          ? { enumOptions: resolution.enumOptions }
+          : {}),
       }),
     ];
   });

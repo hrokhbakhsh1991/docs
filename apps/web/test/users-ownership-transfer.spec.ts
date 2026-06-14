@@ -67,5 +67,9 @@ describe("users-ownership-transfer-logic (R5)", () => {
       USERS_DIRECTORY_TEST_IDS.ownershipTransferSubmit,
       "operator-users-ownership-submit"
     );
+    assert.equal(
+      USERS_DIRECTORY_TEST_IDS.ownershipTransferInvite,
+      "operator-users-ownership-invite"
+    );
   });
 });

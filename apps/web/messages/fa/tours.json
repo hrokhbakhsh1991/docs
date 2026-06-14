@@ -95,7 +95,16 @@
     "errors": {
       "TOUR_NOT_FOUND": "تور پیدا نشد.",
       "TOUR_EDIT_LOAD_FAILED": "بارگذاری تور ناموفق بود.",
-      "TOUR_EDIT_SAVE_FAILED": "ذخیره تغییرات ناموفق بود."
+      "TOUR_EDIT_SAVE_FAILED": "ذخیره تغییرات ناموفق بود.",
+      "TOUR_EDIT_NOT_READY": "فرم هنوز آماده ذخیره نیست.",
+      "TOUR_EDIT_VALIDATION_FAILED": "قبل از ذخیره، فیلدهای مشخص‌شده را اصلاح کنید.",
+      "TOUR_EDIT_PATCH_NOT_CONFIGURED": "ذخیره تور برای این workspace پیکربندی نشده است.",
+      "TOUR_EDIT_AUTH_TOKEN_REVOKED": "نشست منقضی شده — دوباره وارد شوید.",
+      "TOUR_EDIT_AUTH_UNAUTHENTICATED": "برای ذخیره باید وارد شوید.",
+      "TOUR_EDIT_HTTP_401": "ذخیره ناموفق بود (احراز هویت).",
+      "TOUR_EDIT_HTTP_403": "اجازه ذخیره این تور را ندارید.",
+      "TOUR_EDIT_HTTP_409": "نسخه تور تغییر کرده — صفحه را بازخوانی کنید.",
+      "TOUR_EDIT_HTTP_500": "ذخیره ناموفق بود (خطای سرور)."
     }
   },
   "register": {
@@ -103,6 +112,9 @@
     "pageSubtitle": "ایجاد رزرو در انتظار برای این تور",
     "lockedTitle": "ثبت‌نام محدود است",
     "lockedDescription": "فقط اپراتورهای ادمین و مالک می‌توانند مهمان ثبت کنند.",
+    "draftBlockedTitle": "ابتدا تور را منتشر کنید",
+    "draftBlockedDescription": "ثبت‌نام مهمان پس از انتشار تور فعال می‌شود. تور را ویرایش کرده و وضعیت را فعال کنید.",
+    "draftBlockedEdit": "ویرایش تور",
     "notFound": "تور پیدا نشد.",
     "defaultTourTitle": "تور",
     "guestDetails": "مشخصات مهمان",
@@ -116,8 +128,13 @@
     "errors": {
       "TOUR_REGISTER_FETCH_FAILED": "بارگذاری تور ناموفق بود.",
       "TOUR_REGISTER_INVALID": "اطلاعات فرم نامعتبر است.",
+      "GUEST_REQUIRED": "نام مهمان الزامی است.",
       "TOUR_REGISTER_FORBIDDEN": "اجازه ثبت‌نام ندارید.",
-      "TOUR_REGISTER_FAILED": "ثبت‌نام ناموفق بود."
+      "TOUR_REGISTER_FAILED": "ثبت‌نام ناموفق بود.",
+      "TOUR_REGISTER_HTTP_400": "درخواست ثبت‌نام نامعتبر است.",
+      "TOUR_REGISTER_HTTP_403": "اجازه ثبت‌نام ندارید.",
+      "TOUR_REGISTER_HTTP_404": "تور پیدا نشد.",
+      "TOUR_REGISTER_HTTP_500": "ثبت‌نام ناموفق بود (خطای سرور)."
     }
   },
   "workspace": {
@@ -139,8 +156,8 @@
     },
     "registrations": {
       "title": "ثبت‌نام‌ها",
-      "description": "ثبت‌نام‌های در انتظار مهمان برای این تور — در مرکز رزروها تأیید کنید.",
-      "empty": "ثبت‌نام در انتظاری برای این تور نیست.",
+      "description": "همه ثبت‌نام‌های مهمان برای این تور — در مرکز رزروها تأیید یا رد کنید.",
+      "empty": "هنوز ثبت‌نامی برای این تور نیست.",
       "registerFirst": "ثبت اولین مهمان"
     },
     "waitlist": {
@@ -156,10 +173,21 @@
     },
     "errors": {
       "TOUR_WORKSPACE_FETCH_FAILED": "بارگذاری ورک‌اسپیس ناموفق بود.",
+      "TOUR_WORKSPACE_HTTP_401": "دسترسی به workspace ناموفق بود (احراز هویت).",
+      "TOUR_WORKSPACE_HTTP_403": "اجازه باز کردن workspace این تور را ندارید.",
+      "TOUR_WORKSPACE_HTTP_404": "تور پیدا نشد.",
+      "TOUR_WORKSPACE_HTTP_500": "بارگذاری workspace ناموفق بود (خطای سرور).",
       "TOUR_REGISTRATIONS_FETCH_FAILED": "بارگذاری ثبت‌نام‌ها ناموفق بود.",
+      "TOUR_REGISTRATIONS_HTTP_404": "بارگذاری ثبت‌نام‌ها ناموفق بود.",
       "TOUR_WAITLIST_FETCH_FAILED": "بارگذاری لیست انتظار ناموفق بود.",
+      "TOUR_WAITLIST_HTTP_404": "لیست انتظار برای این تور پیدا نشد.",
+      "TOUR_WAITLIST_HTTP_500": "بارگذاری لیست انتظار ناموفق بود (خطای سرور).",
       "TOUR_WAITLIST_APPROVE_FAILED": "تأیید ناموفق بود.",
-      "TOUR_TRANSPORT_FETCH_FAILED": "بارگذاری حمل‌ونقل ناموفق بود."
+      "TOUR_TRANSPORT_FETCH_FAILED": "بارگذاری حمل‌ونقل ناموفق بود.",
+      "TOUR_TRANSPORT_TOUR_HTTP_404": "تور برای roster حمل‌ونقل پیدا نشد.",
+      "TOUR_TRANSPORT_BOOKINGS_HTTP_404": "رزروهای حمل‌ونقل پیدا نشد.",
+      "TOUR_TRANSPORT_TOUR_HTTP_500": "بارگذاری تور حمل‌ونقل ناموفق بود (خطای سرور).",
+      "TOUR_TRANSPORT_BOOKINGS_HTTP_500": "بارگذاری رزروهای حمل‌ونقل ناموفق بود (خطای سرور)."
     }
   }
 }

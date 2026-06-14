@@ -175,6 +175,17 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
     assert.equal(destinationRes.status, 201);
     assert.equal(destinationRes.body.regionId, regionId);
 
+    const destinationWithAltitude = await client.requestJson<ResourceResponse>(
+      "POST",
+      "/settings/resources/locations",
+      {
+        headers: operatorAuthHeaders(),
+        body: { entity: "destination", regionId, name: "Damavand", altitudeM: 3964 },
+      }
+    );
+    assert.equal(destinationWithAltitude.status, 201);
+    assert.equal(destinationWithAltitude.body.altitudeM, 3964);
+
     const listRes = await client.requestJson<ResourceResponse>(
       "GET",
       "/settings/resources/locations",
@@ -186,7 +197,7 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
     const regions = listRes.body.regions as Array<Record<string, unknown>>;
     const destinations = listRes.body.destinations as Array<Record<string, unknown>>;
     assert.equal(regions.length, 1);
-    assert.equal(destinations.length, 1);
+    assert.equal(destinations.length, 2);
 
     const deleteRegionRes = await client.requestJson<ResourceResponse>(
       "DELETE",

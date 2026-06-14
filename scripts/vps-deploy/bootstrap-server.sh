@@ -20,9 +20,13 @@ install_node_24_if_needed() {
   fi
   log "installing Node 24 (NodeSource)"
   apt-get update -qq
-  apt-get install -y curl ca-certificates git rsync
+  apt-get install -y curl ca-certificates git rsync postgresql-client python3
   curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
   apt-get install -y nodejs
+}
+
+install_deploy_prereqs() {
+  apt-get install -y postgresql-client python3 2>/dev/null || true
 }
 
 ensure_app_user() {
@@ -83,13 +87,15 @@ main() {
     exit 1
   }
   install_node_24_if_needed
+  install_deploy_prereqs
   ensure_app_user
   clone_or_update_repo
   install_env_templates
   install_systemd_units
   log "bootstrap done"
-  log "next: edit $ENV_DIR/api.env and $ENV_DIR/web.env"
-  log "then: sudo -u $APP_USER bash $DEPLOY_PATH/scripts/vps-deploy/remote-deploy.sh"
+  log "next: edit $ENV_DIR/api.env (DATABASE_URL + DATABASE_URL_ADMIN) and $ENV_DIR/web.env"
+  log "verify: bash $DEPLOY_PATH/scripts/vps-deploy/verify-db-env.sh $ENV_DIR/api.env"
+  log "deploy: sudo -u $APP_USER bash $DEPLOY_PATH/scripts/vps-deploy/remote-deploy.sh"
 }
 
 main "$@"

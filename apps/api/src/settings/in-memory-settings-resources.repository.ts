@@ -74,7 +74,7 @@ export interface SettingsResourcesRepository {
   listDestinations(tenantId: string): Promise<DestinationResource[]>;
   getRegion(tenantId: string, regionId: string): Promise<RegionResource | null>;
   createRegion(tenantId: string, input: { name: string; country?: string }): Promise<RegionResource>;
-  createDestination(tenantId: string, input: { regionId: string; name: string; locationType?: string }): Promise<DestinationResource>;
+  createDestination(tenantId: string, input: { regionId: string; name: string; locationType?: string; altitudeM?: number | null }): Promise<DestinationResource>;
   patchRegion(tenantId: string, itemId: string, input: { name?: string; country?: string | null; isActive?: boolean }): Promise<RegionResource>;
   patchDestination(tenantId: string, itemId: string, input: { name?: string; regionId?: string; locationType?: string | null; isActive?: boolean }): Promise<DestinationResource>;
   deleteRegion(tenantId: string, itemId: string): Promise<void>;
@@ -409,7 +409,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
 
   async createDestination(
     tenantId: string,
-    input: { regionId: string; name: string; locationType?: string }
+    input: { regionId: string; name: string; locationType?: string; altitudeM?: number | null }
   ): Promise<DestinationResource> {
     const region = await this.getRegion(tenantId, input.regionId);
     if (region === null) {
@@ -425,7 +425,10 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       regionId: input.regionId,
       name: input.name,
       locationType: input.locationType ?? null,
-      altitudeM: null,
+      altitudeM:
+        input.altitudeM !== undefined && input.altitudeM !== null && Number.isFinite(input.altitudeM)
+          ? input.altitudeM
+          : null,
       isActive: true,
       sortOrder: existing.length,
       createdAt: now,

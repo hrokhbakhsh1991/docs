@@ -7,6 +7,7 @@ import {
   DENALI_FLAT_EDIT_SECTION_TEST_ID,
   fillDenaliMultiDayWizardBasics,
   fillDenaliMultiDayWizardThroughLegal,
+  fillDenaliMultiDayWizardThroughReview,
   fillDenaliWizardPhotosMinimal,
   fillDenaliWizardProgramMinimal,
   resetOperatorWizardToBasic,
@@ -102,7 +103,7 @@ test.describe("denali-itinerary-wizard.spec.ts", () => {
     await publishOperatorWizardTemplate(page, { fullTemplate: true });
 
     await resetOperatorWizardToBasic(page);
-    await fillDenaliMultiDayWizardThroughLegal(page, tourTitle);
+    await fillDenaliMultiDayWizardThroughReview(page, tourTitle);
     await submitDenaliWizardDraftCreate(page);
   });
 });

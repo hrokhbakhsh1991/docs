@@ -12,6 +12,7 @@ import { ScopedTourRepository } from "../db/scoped-tour.repository";
 import type { TourRecord } from "../db/tour-record";
 import { enrichTourListProjectionsWithAcceptedCount } from "../bookings/enrich-tour-accepted-counts";
 import type { TourStorageRepository } from "../db/tour.repository";
+import { ensureDevMemoryTourSeedForTenant } from "../storage/create-tour-storage";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 
@@ -158,6 +159,7 @@ export async function listToursOperator(
   tenantId: string,
   query: OperatorListToursQuery
 ): Promise<OperatorTourListResult> {
+  ensureDevMemoryTourSeedForTenant(tenantId, store);
   const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
   const plugin = resolveWorkspacePluginForType(workspaceType);
   const extract =

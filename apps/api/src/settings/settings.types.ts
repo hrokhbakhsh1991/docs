@@ -257,6 +257,7 @@ export type CreateLocationResourceRequest =
       readonly regionId: string;
       readonly name: string;
       readonly locationType?: string;
+      readonly altitudeM?: number | null;
     };
 
 export type PatchLocationResourceRequest = {

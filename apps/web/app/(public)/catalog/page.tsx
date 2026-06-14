@@ -1,7 +1,13 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { resolveMarketingToursUrl } from "@/marketing/resolve-marketing-public-url";
+import {
+  resolveMarketingPublicBaseUrl,
+  resolveMarketingToursUrl,
+  shouldRedirectCatalogToMarketing,
+} from "@/marketing/resolve-marketing-public-url";
+
+import { CatalogMarketingUnavailable } from "./catalog-marketing-unavailable";
 
 export const dynamic = "force-dynamic";
 
@@ -14,5 +20,9 @@ export default async function UrbanCatalogRedirectPage({ searchParams }: PagePro
   const { cursor } = await searchParams;
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
+  const marketingBaseUrl = resolveMarketingPublicBaseUrl(host);
+  if (!shouldRedirectCatalogToMarketing(host)) {
+    return <CatalogMarketingUnavailable marketingBaseUrl={marketingBaseUrl} />;
+  }
   redirect(resolveMarketingToursUrl(host, cursor));
 }

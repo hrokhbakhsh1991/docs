@@ -2,21 +2,21 @@ import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
 
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 import { logger } from "../observability/logger";
+import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
 
 import { getSettingsResourcesRepository } from "./create-settings-resources-repository";
 import { seedOperatorSmokeCatalog } from "./seed-operator-smoke-catalog";
 import { seedOperatorSmokePublishedTour } from "./seed-operator-smoke-published-tour";
+import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
+import { createTourStorageRepository } from "../storage/create-tour-storage";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 
 /**
- * Dev/VPS Prisma bootstrap — Denali dev tenant gets smoke catalog + published tour …0210.
- * Mirrors in-memory `ensureOperatorSmokeSeedTour` + `seedOperatorSmokeCatalog` for tenant …000003.
+ * Dev bootstrap — Denali dev tenant gets smoke catalog + published tour …0210.
+ * Runs for memory (local dev) and prisma (VPS) when not in production auth mode.
  */
 export async function bootstrapDenaliDevSmokeFixturesIfNeeded(): Promise<void> {
   if (isProductionAuthMode()) {
-    return;
-  }
-  if (process.env.STORAGE_DRIVER !== "prisma") {
     return;
   }
 
@@ -26,7 +26,15 @@ export async function bootstrapDenaliDevSmokeFixturesIfNeeded(): Promise<void> {
     await runWithTenantContext(tenantId, async () => {
       const repo = getSettingsResourcesRepository();
       await seedOperatorSmokeCatalog(repo, { tenantId });
-      await seedOperatorSmokePublishedTour(tenantId);
+
+      if (resolveStorageDriver() === "prisma") {
+        await seedOperatorSmokePublishedTour(tenantId);
+      } else {
+        const tourStore = createTourStorageRepository();
+        if (tourStore instanceof InMemoryTourRepository) {
+          tourStore.ensureDenaliDevSmokeSeedTour();
+        }
+      }
     });
     logger.info(
       { event: "settings.denali_dev_smoke.bootstrapped", tenantId },

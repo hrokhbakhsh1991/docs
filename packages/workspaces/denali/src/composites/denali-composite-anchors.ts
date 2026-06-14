@@ -16,6 +16,13 @@ export const DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR: Readonly<
   Record<string, readonly string[]>
 > = Object.freeze({
   "program.themeIds": ["program.shortDescription", "program.longDescription"],
+  "participants.minimumAge": [
+    "participants.maximumAge",
+    "participants.fitnessLevel",
+    "participants.sportsInsuranceRequired",
+    "participants.fitnessPrerequisiteText",
+  ],
+  "pricing.requiresPayment": ["pricing.basePricePerPerson", "pricing.includesTourInsurance"],
 });
 
 /** Paths rendered by a composite widget anchored on another registry row. */

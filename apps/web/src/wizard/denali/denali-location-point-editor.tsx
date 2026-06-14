@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useId, useRef, useState } from "react";
 import { Input } from "@app-tour/ui-primitives/input";
 import { Button } from "@app-tour/ui-primitives/button";
 import { useTranslations } from "next-intl";
@@ -29,10 +29,13 @@ export function DenaliLocationPointEditor({
 }: DenaliLocationPointEditorProps) {
   const t = useTranslations("denali.composites.common");
   const tLocation = useTranslations("denali.composites.location");
+  const labelFieldId = useId();
   const draftRef = useRef(draft);
   draftRef.current = draft;
+  const [expanded, setExpanded] = useState(false);
 
   const location = parseDenaliLocationData(getCanonicalValue(draft, canonicalPath));
+  const labelFieldText = `${heading} — ${t("label")}`;
 
   const updateLocation = (patch: Partial<DenaliLocationData>) => {
     const current = parseDenaliLocationData(getCanonicalValue(draftRef.current, canonicalPath));
@@ -64,23 +67,33 @@ export function DenaliLocationPointEditor({
   };
 
   return (
-    <details className="denali-wizard-composite__panel denali-location-point" open>
+    <details
+      className="denali-wizard-composite__panel denali-location-point"
+      onToggle={(event) => setExpanded((event.currentTarget as HTMLDetailsElement).open)}
+    >
       <summary className="denali-wizard-composite__legend denali-location-point__summary">{heading}</summary>
-      <label className="denali-wizard-composite__field">
-        <span>{t("label")}</span>
-        <Input
-          value={location.label ?? ""}
-          onChange={(event) => updateLocation({ label: event.target.value })}
-        />
-      </label>
-      <DenaliLocationAddressPicker
-        testIdKey={testIdKey}
-        value={location}
-        onChange={updateLocation}
-      />
-      <Button type="button" variant="secondary" onClick={useCurrentPosition}>
-        {tLocation("useCurrentLocation")}
-      </Button>
+      {expanded ? (
+        <>
+          <label className="denali-wizard-composite__field" htmlFor={labelFieldId}>
+            <span>{t("label")}</span>
+            <Input
+              id={labelFieldId}
+              aria-label={labelFieldText}
+              value={location.label ?? ""}
+              onChange={(event) => updateLocation({ label: event.target.value })}
+            />
+          </label>
+          <DenaliLocationAddressPicker
+            testIdKey={testIdKey}
+            value={location}
+            onChange={updateLocation}
+            mapEnabled
+          />
+          <Button type="button" variant="secondary" onClick={useCurrentPosition}>
+            {tLocation("useCurrentLocation")}
+          </Button>
+        </>
+      ) : null}
     </details>
   );
 }

@@ -22,7 +22,7 @@ import { mapDenaliCanonicalToFormPath } from "./denaliCanonicalPaths";
 import type { DenaliUIContextOptions } from "./denaliContextualRules";
 import { isDenaliFieldRequired } from "./denaliFieldGate";
 import { DENALI_CONDITIONALLY_REQUIRED_CANONICAL_PATHS } from "./generated/denaliConditionallyRequiredPaths.generated";
-import { listDenaliRuleFieldPaths } from "./denaliRuleModel";
+import { findDenaliRuleField, listDenaliRuleFieldPaths } from "./denaliRuleModel";
 import type { DenaliRuleFieldStep, DenaliRuleModel } from "./denaliRuleModel.types";
 
 /** Submit gate: all steps. Step gate: one rail step only (field.step === stepId). */
@@ -170,10 +170,14 @@ export function collectDenaliRuleRequiredIssues(
     pushRequiredIssueIfEmpty(issues, seen, form, model, field.path, uiOptions);
   }
 
-  if (scope.mode === "submit") {
-    for (const path of CONDITIONALLY_REQUIRED_PATHS) {
-      pushRequiredIssueIfEmpty(issues, seen, form, model, path, uiOptions);
+  for (const path of CONDITIONALLY_REQUIRED_PATHS) {
+    if (scope.mode === "step") {
+      const field = findDenaliRuleField(model, path);
+      if (field == null || field.step !== scope.stepId) {
+        continue;
+      }
     }
+    pushRequiredIssueIfEmpty(issues, seen, form, model, path, uiOptions);
   }
 
   for (const issue of collectDenaliItineraryRequiredIssues(form, model, scope, uiOptions)) {

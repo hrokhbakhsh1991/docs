@@ -5,6 +5,7 @@ import { accessibleByTourWhere } from "../casl/api-ability";
 import { ScopedTourRepository } from "../db/scoped-tour.repository";
 import type { TourRecord } from "../db/tour-record";
 import type { TourStorageRepository } from "../db/tour.repository";
+import { ensureDevMemoryTourSeedForTenant } from "../storage/create-tour-storage";
 import type { ListToursQuery, TourListItem, TourListResult } from "../tours/list-tours-query";
 import {
   listToursOperator,
@@ -146,7 +147,14 @@ export class CanonicalTourService {
     });
   }
 
-  async readTourById(ability: ApiAbility, tourId: string): Promise<TourRecord | null> {
+  async readTourById(
+    ability: ApiAbility,
+    tourId: string,
+    tenantId?: string
+  ): Promise<TourRecord | null> {
+    if (tenantId !== undefined) {
+      ensureDevMemoryTourSeedForTenant(tenantId, this.canonicalStore);
+    }
     accessibleByTourWhere(ability, "read");
     const scopedRepo = new ScopedTourRepository(this.canonicalStore, ability);
     return scopedRepo.findFirst({ id: tourId });

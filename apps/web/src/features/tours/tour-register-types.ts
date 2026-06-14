@@ -6,6 +6,7 @@ export const TOUR_REGISTER_TEST_IDS = {
   departureInput: "operator-tour-register-departure",
   submitButton: "operator-tour-register-submit",
   locked: "operator-tour-register-locked",
+  draftBlocked: "operator-tour-register-draft-blocked",
   success: "operator-tour-register-success",
   tourTitle: "operator-tour-register-tour-title",
 } as const;

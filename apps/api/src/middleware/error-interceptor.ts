@@ -90,6 +90,10 @@ import {
   isProxyUpstreamTimeoutError,
   ProxyUpstreamTimeoutError,
 } from "../proxy/proxy-upstream-timeout";
+import {
+  DATABASE_UNAVAILABLE,
+  isDatabaseConnectionError,
+} from "../db/database-connection-error";
 import { isTransientDbError } from "../db/transient-db-error";
 
 export const CORRELATION_ID_HEADER = "x-correlation-id";
@@ -190,6 +194,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message === TOUR_WRITE_CONCURRENCY_EXCEEDED) return 429;
   if (message.startsWith("DUAL_WRITE_FORBIDDEN")) return 403;
   if (message.startsWith("DB_POOL_SATURATED")) return 503;
+  if (message === DATABASE_UNAVAILABLE) return 503;
   if (message.startsWith("DB_TRANSIENT_UNAVAILABLE")) return 503;
   if (message.startsWith("DB_CIRCUIT_OPEN")) return 503;
   if (message === TENANT_DB_BUDGET_EXCEEDED) return 503;
@@ -387,6 +392,17 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
       { error: "service_unavailable", code: error.code },
       correlationId,
       error.retryAfterSec
+    );
+    return;
+  }
+
+  if (isDatabaseConnectionError(error)) {
+    sendHttpError(
+      res,
+      503,
+      { error: "database_unavailable", code: DATABASE_UNAVAILABLE },
+      correlationId,
+      30
     );
     return;
   }

@@ -127,6 +127,11 @@
       "trips": "Trips"
     },
     "loading": "Loading member context…",
+    "retry": "Try again",
+    "eventLabels": {
+      "rewards": "Rewards",
+      "updated": "Update"
+    },
     "historyEmpty": "No activity recorded yet.",
     "tripsEmpty": "No bookings submitted by this teammate.",
     "roleChange": "{oldRole} → {newRole}",
@@ -144,6 +149,8 @@
     "description": "Assign organization ownership to an active admin or member. After transfer, your role becomes admin and you will leave this panel.",
     "loading": "Loading candidates…",
     "empty": "No active admin or member is available for ownership transfer.",
+    "soleOwnerHint": "You are the only active teammate. Invite an admin or member, then return here to transfer ownership.",
+    "inviteCta": "Invite teammate",
     "selectLabel": "New owner",
     "selectPlaceholder": "Select teammate…",
     "preview": "{name} ({role}) will become owner; you will become admin.",
@@ -164,6 +171,8 @@
     "USERS_PENDING_FAILED": "Failed to load pending invites.",
     "USERS_INVITE_HTTP_ERROR": "Invite failed (HTTP {status}).",
     "USERS_INVITE_FAILED": "Invite failed.",
+    "USERS_INVITE_PHONE_INVALID": "Enter a valid mobile number for the invite.",
+    "USERS_INVITE_PHONE_REQUIRED": "Mobile number is required.",
     "USERS_REVOKE_HTTP_ERROR": "Revoke invite failed (HTTP {status}).",
     "USERS_REVOKE_FAILED": "Revoke invite failed.",
     "USERS_RESEND_HTTP_ERROR": "Resend invite failed (HTTP {status}).",
