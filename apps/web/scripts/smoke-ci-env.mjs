@@ -32,7 +32,6 @@ export function parseBootstrapJwtLines(stdout) {
   return env;
 }
 
-/** GHA smoke has no apps/api/.env.local — ephemeral RS256 keys for verify-otp/session JWT. */
 export function ensureSmokeJwtEnv(repoRoot, baseEnv) {
   if (baseEnv.AUTH_JWT_PRIVATE_KEY?.trim()) {
     return baseEnv;
@@ -48,6 +47,19 @@ export function ensureSmokeJwtEnv(repoRoot, baseEnv) {
   return { ...baseEnv, ...parseBootstrapJwtLines(result.stdout) };
 }
 
+/** Env for `next build` in smoke — middleware inlines ALLOW_DEV_WEB_SESSION at compile time. */
+export function smokeBuildEnv(overrides = {}) {
+  return {
+    ...process.env,
+    NEXT_FONT_OFFLINE: "1",
+    ALLOW_DEV_WEB_SESSION: "true",
+    SESSION_COOKIE_SECURE: "false",
+    ALLOW_URBAN_WEB_PLUGIN: "true",
+    ALLOW_DENALI_WEB_PLUGIN: "true",
+    ...overrides,
+  };
+}
+
 export function ensurePackageBuild(repoRoot, packageName, buildIdRelativePath) {
   if (!isSmokeProdStartEnv()) {
     return;
@@ -58,6 +70,7 @@ export function ensurePackageBuild(repoRoot, packageName, buildIdRelativePath) {
   const build = spawnSync("pnpm", ["--filter", `${packageName}...`, "run", "build"], {
     cwd: repoRoot,
     stdio: "inherit",
+    env: smokeBuildEnv(),
   });
   if (build.status !== 0) {
     process.exit(build.status ?? 1);

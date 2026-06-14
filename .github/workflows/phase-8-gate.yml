@@ -164,6 +164,7 @@ jobs:
       CI: "true"
       NODE_ENV: test
       STORAGE_DRIVER: memory
+      NEXT_FONT_OFFLINE: "1"
       URBAN_SMOKE_E2E_SEED: "1"
       AUTH_ALLOW_DEV_BEARER: "true"
       AUTH_ALLOW_DEV_STATIC_OTP: "true"

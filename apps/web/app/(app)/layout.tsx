@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { requireOperatorSessionWeb } from "@/admin/require-operator-session";
+import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { OperatorShell } from "@/admin/shell/operator-shell";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
@@ -14,6 +15,13 @@ import { hasDevHostSmokeSessionProfile } from "@/tenant/dev-host-session-profile
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
 export const dynamic = "force-dynamic";
+
+function normalizeOperatorRole(role: string): OperatorSessionContext["role"] | null {
+  if (role === "owner" || role === "admin" || role === "member" || role === "viewer") {
+    return role;
+  }
+  return null;
+}
 
 export default async function OperatorAppLayout({ children }: { children: ReactNode }) {
   const headerList = await headers();
@@ -26,13 +34,16 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   let session = await readOperatorSessionFromCookies();
   if (session === null && devSmokeHost) {
     const ctx = bootstrap.context;
-    session = {
-      userId: ctx.userId,
-      tenantId: ctx.tenantId,
-      role: ctx.role,
-      workspaceType: bootstrap.session.pluginId,
-      pluginId: bootstrap.session.pluginId,
-    };
+    const role = normalizeOperatorRole(ctx.role);
+    if (role !== null) {
+      session = {
+        userId: ctx.userId,
+        tenantId: ctx.tenantId,
+        role,
+        workspaceType: bootstrap.session.pluginId,
+        pluginId: bootstrap.session.pluginId,
+      };
+    }
   }
 
   if (!devSmokeHost) {

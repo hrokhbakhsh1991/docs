@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
@@ -23,6 +25,14 @@ const nextConfig: NextConfig = {
     "@app-tour/workspace-urban",
   ],
   webpack: (config, { webpack, isServer }) => {
+    if (process.env.NEXT_FONT_OFFLINE === "1") {
+      const googleFonts = path.join(process.cwd(), "src/i18n/app-fonts.google.ts");
+      const offlineFonts = path.join(process.cwd(), "src/i18n/app-fonts.offline.ts");
+      config.resolve.alias = {
+        ...(config.resolve.alias ?? {}),
+        [googleFonts]: offlineFonts,
+      };
+    }
     if (!isServer) {
       // Client never bundles Node minio; Denali web uses `@app-tour/workspace-denali/plugin` only.
       config.plugins.push(

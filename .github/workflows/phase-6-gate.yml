@@ -171,6 +171,7 @@ jobs:
       STORAGE_DRIVER: prisma
       NODE_ENV: test
       CI: true
+      NEXT_FONT_OFFLINE: "1"
       SESSION_COOKIE_SECURE: "false"
 
     steps:
