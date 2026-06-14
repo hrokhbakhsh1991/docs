@@ -56,8 +56,9 @@ export function resolvePublicTenantLabelFromIngressHost(
 ): ResolvePublicTenantLabelResult {
   const env = options?.env ?? process.env;
   const rootDomain = options?.rootDomain ?? env.TENANT_ROOT_DOMAIN ?? "localhost";
-  const reserved =
-    options?.reservedLabels ?? new Set<string>(DEFAULT_TENANT_HOST_RESERVED_LABELS);
+  const reserved = new Set(
+    options?.reservedLabels ?? DEFAULT_TENANT_HOST_RESERVED_LABELS
+  );
   const hostname = ingressHost.trim().toLowerCase().split(":")[0] ?? "";
 
   const outcome = parseWorkspaceTenantLabelFromHost(hostname, rootDomain, reserved);

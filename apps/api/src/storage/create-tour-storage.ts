@@ -1,5 +1,6 @@
 import type { Tour, TourStorageRepository } from "./tour-storage.interface";
 import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+import type { TourStorageRepository as DbTourStorageRepository } from "../db/tour.repository";
 import { TourStorageDbAdapter } from "../db/tour-storage.adapter";
 import { InMemoryTourRepository } from "./in-memory-tour.repository";
 import { PrismaTourRepository } from "./prisma-tour.repository";
@@ -65,7 +66,7 @@ export function createTourStorageRepository(): TourStorageImplementation {
 /** Dev memory — idempotent Denali smoke tours for tenant …000003 (FE-14 / TR-09). */
 export function ensureDevMemoryTourSeedForTenant(
   tenantId: string,
-  store?: TourStorageRepository
+  store?: TourStorageRepository | DbTourStorageRepository
 ): void {
   if (isProductionAuthMode()) {
     return;
@@ -78,7 +79,7 @@ export function ensureDevMemoryTourSeedForTenant(
 }
 
 function resolveDevMemoryTourStore(
-  store?: TourStorageRepository
+  store?: TourStorageRepository | DbTourStorageRepository
 ): InMemoryTourRepository | null {
   if (store instanceof InMemoryTourRepository) {
     return store;

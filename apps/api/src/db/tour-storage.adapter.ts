@@ -1,4 +1,4 @@
-import type { Tour, TourListPageInput, TourListPageResult, TourRecord, TourWhere } from "./tour-record";
+import type { TourListPageInput, TourListPageResult, TourRecord, TourWhere } from "./tour-record";
 import type { TourStorageRepository as DbTourStorageRepository } from "./tour.repository";
 import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
 import type {
