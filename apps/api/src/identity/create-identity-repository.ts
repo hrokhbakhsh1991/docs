@@ -11,6 +11,7 @@ export type { IdentityRepository } from "./in-memory-identity.repository";
 import { PrismaIdentityRepository } from "./prisma-identity.repository";
 
 let singleton: IdentityRepository | null = null;
+let singletonDriver: ReturnType<typeof resolveStorageDriver> | null = null;
 
 /**
  * DI factory — follows `STORAGE_DRIVER=memory|prisma` (same as tour storage).
@@ -19,17 +20,20 @@ let singleton: IdentityRepository | null = null;
 export function getIdentityRepository(): IdentityRepository {
   assertProductionStorageDriver();
 
-  if (singleton === null) {
-    const driver = resolveStorageDriver();
-    if (driver === "prisma") {
-      if (process.env.DATABASE_URL === undefined || process.env.DATABASE_URL.length === 0) {
-        throw new Error("STORAGE_DRIVER=prisma requires DATABASE_URL for identity repository");
-      }
-      singleton = new PrismaIdentityRepository();
-    } else {
-      singleton = InMemoryIdentityRepository.createWithDevSeed();
-    }
+  const driver = resolveStorageDriver();
+  if (singleton !== null && singletonDriver === driver) {
+    return singleton;
   }
+
+  if (driver === "prisma") {
+    if (process.env.DATABASE_URL === undefined || process.env.DATABASE_URL.length === 0) {
+      throw new Error("STORAGE_DRIVER=prisma requires DATABASE_URL for identity repository");
+    }
+    singleton = new PrismaIdentityRepository();
+  } else {
+    singleton = InMemoryIdentityRepository.createWithDevSeed();
+  }
+  singletonDriver = driver;
   return singleton;
 }
 
@@ -42,4 +46,5 @@ export function resetIdentityRepositoryForTests(): InMemoryIdentityRepository {
 
 export function resetIdentityRepositorySingletonForTests(): void {
   singleton = null;
+  singletonDriver = null;
 }

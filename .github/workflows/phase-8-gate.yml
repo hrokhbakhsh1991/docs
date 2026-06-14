@@ -192,6 +192,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
       - name: Install Playwright Chromium
         run: pnpm --filter @apps/web exec playwright install --with-deps chromium
 

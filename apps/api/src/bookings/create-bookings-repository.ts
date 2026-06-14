@@ -10,20 +10,25 @@ import {
 import { PrismaBookingsRepository } from "./prisma-bookings.repository";
 
 let singleton: BookingsRepository | null = null;
+let singletonDriver: ReturnType<typeof resolveStorageDriver> | null = null;
 
 export function getBookingsRepository(): BookingsRepository {
   assertProductionStorageDriver();
 
-  if (singleton === null) {
-    if (resolveStorageDriver() === "prisma") {
-      if (process.env.DATABASE_URL === undefined || process.env.DATABASE_URL.length === 0) {
-        throw new Error("STORAGE_DRIVER=prisma requires DATABASE_URL for bookings repository");
-      }
-      singleton = new PrismaBookingsRepository();
-    } else {
-      singleton = InMemoryBookingsRepository.createWithDevSeed();
-    }
+  const driver = resolveStorageDriver();
+  if (singleton !== null && singletonDriver === driver) {
+    return singleton;
   }
+
+  if (driver === "prisma") {
+    if (process.env.DATABASE_URL === undefined || process.env.DATABASE_URL.length === 0) {
+      throw new Error("STORAGE_DRIVER=prisma requires DATABASE_URL for bookings repository");
+    }
+    singleton = new PrismaBookingsRepository();
+  } else {
+    singleton = InMemoryBookingsRepository.createWithDevSeed();
+  }
+  singletonDriver = driver;
   return singleton;
 }
 
@@ -35,4 +40,5 @@ export function resetBookingsRepositoryForTests(): InMemoryBookingsRepository {
 
 export function resetBookingsRepositorySingletonForTests(): void {
   singleton = null;
+  singletonDriver = null;
 }

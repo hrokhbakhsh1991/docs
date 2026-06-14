@@ -27,6 +27,25 @@ export async function updateTenantRegistryRow(
   }
 
   const admin = getPrismaAdmin();
+  const existing = await admin.tenant.findUnique({
+    where: { id: normalized },
+    select: { id: true, subdomain: true },
+  });
+
+  if (existing === null) {
+    if (isStaticTenantRegistryAllowed()) {
+      const devTenant = findTenantById(normalized);
+      if (devTenant !== null) {
+        if (data.theme !== undefined) {
+          setCachedTenantThemeById(normalized, data.theme);
+        }
+        invalidateTenantRegistryCache(normalized, devTenant.subdomain);
+        return { id: normalized, subdomain: devTenant.subdomain };
+      }
+    }
+    throw new Error("TENANT_NOT_FOUND");
+  }
+
   const row = await admin.tenant.update({
     where: { id: normalized },
     data,

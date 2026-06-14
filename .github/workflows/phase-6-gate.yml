@@ -202,6 +202,9 @@ jobs:
       - name: Prisma migrate deploy
         run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
+      - name: Build workspace dist (denali plugin imports dist)
+        run: pnpm --filter @app-tour/workspace-denali... run build
+
       - name: Install Playwright Chromium
         run: pnpm --filter @apps/web exec playwright install --with-deps chromium
 

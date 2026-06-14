@@ -9,13 +9,13 @@ import {
 
 describe("migration-head-preflight (DEC-097)", () => {
   it("expected head matches latest migration folder", () => {
-    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260608100000_urban_product_delta");
+    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260612130000_equipment_theme_ids");
   });
 
   it("throws on mismatch with structured message", () => {
     assert.throws(
       () => assertMigrationHeadMatches("20260604114237_phase4_schema"),
-      /PRODUCTION_MIGRATION_HEAD_MISMATCH:20260608100000_urban_product_delta:20260604114237_phase4_schema/
+      /PRODUCTION_MIGRATION_HEAD_MISMATCH:20260612130000_equipment_theme_ids:20260604114237_phase4_schema/
     );
   });
 

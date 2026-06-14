@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260608100000_urban_product_delta";
+export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260612130000_equipment_theme_ids";
 
 export const PRODUCTION_MIGRATION_HEAD_MISMATCH = "PRODUCTION_MIGRATION_HEAD_MISMATCH";
 

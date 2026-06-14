@@ -3,7 +3,7 @@ import http from "node:http";
 import { describe, it, before, after } from "node:test";
 
 import { createRequestListener } from "../src/app";
-import { createTestToursService } from "./test-helpers";
+import { assertOkHealthBody, createTestToursService } from "./test-helpers";
 
 type JsonResponse = {
   readonly status: number;
@@ -97,7 +97,7 @@ describe("apps/api integration", { concurrency: false }, () => {
   it("GET /health returns 200", async () => {
     const res = await requestJson(listener, { method: "GET", path: "/health" });
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { status: "ok", service: "@apps/api" });
+    assertOkHealthBody(res.body);
   });
 
   it("POST /tours persists canonical document for tenant", async () => {

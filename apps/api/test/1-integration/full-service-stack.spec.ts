@@ -22,7 +22,7 @@ import { TourStorageDbAdapter } from "../../src/db/tour-storage.adapter";
 import { disconnectPrisma } from "../../src/db/prisma";
 import { createTourStorageRepository } from "../../src/storage/create-tour-storage";
 import { ToursService } from "../../src/tours/tours.service";
-import { integrationTenantId } from "../test-helpers";
+import { assertOkHealthBody, integrationTenantId } from "../test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -187,7 +187,7 @@ describe(
     it(`GET /health then ${REQUEST_COUNT} POST /tours succeed end-to-end`, async () => {
       const health = await requestJson({ method: "GET", path: "/health" });
       assert.equal(health.status, 200, "GET /health must return 200");
-      assert.deepEqual(health.body, { status: "ok", service: "@apps/api" });
+      assertOkHealthBody(health.body);
 
       for (let i = 0; i < REQUEST_COUNT; i += 1) {
         const res = await requestJson({

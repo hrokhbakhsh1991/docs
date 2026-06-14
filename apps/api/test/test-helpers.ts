@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import assert from "node:assert/strict";
 import { after, before } from "node:test";
 
 import { flushDomainEventDispatch } from "@app-tour/platform-events";
@@ -8,6 +9,8 @@ import { CanonicalTourService } from "../src/canonical/canonical-tour.service";
 import { LegacyCanonicalAdapter } from "../src/canonical/legacy-canonical-adapter";
 import { TourStorageDbAdapter } from "../src/db/tour-storage.adapter";
 import type { TourStorageRepository } from "../src/db/tour.repository";
+import { resetBookingsRepositorySingletonForTests } from "../src/bookings/create-bookings-repository";
+import { resetIdentityRepositorySingletonForTests } from "../src/identity/create-identity-repository";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { ToursService } from "../src/tours/tours.service";
 
@@ -41,18 +44,41 @@ export function createTestToursService(
  */
 export function installMemoryStorageDriverForDescribe(): void {
   const prior = process.env.STORAGE_DRIVER;
+  const priorDatabaseUrl = process.env.DATABASE_URL;
+  const priorDatabaseUrlAdmin = process.env.DATABASE_URL_ADMIN;
+  const priorRedisUrl = process.env.REDIS_URL;
   const priorRelay = process.env.OUTBOX_RELAY_ENABLED;
   const priorReconcile = process.env.PROJECTION_AUTO_RECONCILE_ENABLED;
   before(() => {
     process.env.STORAGE_DRIVER = "memory";
+    delete process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL_ADMIN;
+    delete process.env.REDIS_URL;
     process.env.OUTBOX_RELAY_ENABLED = "false";
     process.env.PROJECTION_AUTO_RECONCILE_ENABLED = "false";
+    resetBookingsRepositorySingletonForTests();
+    resetIdentityRepositorySingletonForTests();
   });
   after(() => {
     if (prior === undefined) {
       delete process.env.STORAGE_DRIVER;
     } else {
       process.env.STORAGE_DRIVER = prior;
+    }
+    if (priorDatabaseUrl === undefined) {
+      delete process.env.DATABASE_URL;
+    } else {
+      process.env.DATABASE_URL = priorDatabaseUrl;
+    }
+    if (priorDatabaseUrlAdmin === undefined) {
+      delete process.env.DATABASE_URL_ADMIN;
+    } else {
+      process.env.DATABASE_URL_ADMIN = priorDatabaseUrlAdmin;
+    }
+    if (priorRedisUrl === undefined) {
+      delete process.env.REDIS_URL;
+    } else {
+      process.env.REDIS_URL = priorRedisUrl;
     }
     if (priorRelay === undefined) {
       delete process.env.OUTBOX_RELAY_ENABLED;
@@ -64,7 +90,19 @@ export function installMemoryStorageDriverForDescribe(): void {
     } else {
       process.env.PROJECTION_AUTO_RECONCILE_ENABLED = priorReconcile;
     }
+    resetBookingsRepositorySingletonForTests();
+    resetIdentityRepositorySingletonForTests();
   });
+}
+
+/** Assert GET /health 200 body — allows optional prisma `checks.database` when STORAGE_DRIVER=prisma. */
+export function assertOkHealthBody(body: unknown): void {
+  assert.equal((body as { status?: string }).status, "ok");
+  assert.equal((body as { service?: string }).service, "@apps/api");
+  const checks = (body as { checks?: { database?: { status?: string } } }).checks;
+  if (checks?.database !== undefined) {
+    assert.equal(checks.database.status, "ok");
+  }
 }
 
 /**
