@@ -54,12 +54,29 @@ run_as_app "
   bash scripts/vps-deploy/bootstrap-prod-identity.sh '$ENV_DIR/api.env'
 "
 
+log "sync web BFF upstream port with api.env"
+bash "$DEPLOY_PATH/scripts/vps-deploy/sync-web-api-url-port.sh"
+bash "$DEPLOY_PATH/scripts/vps-deploy/verify-env-coherence.sh"
+
 log "refresh systemd units"
 bash "$DEPLOY_PATH/scripts/vps-deploy/install-systemd-units.sh"
+
+log "stop stale listeners before restart"
+bash "$DEPLOY_PATH/scripts/vps-deploy/stop-stale-listeners.sh"
 
 log "restart services"
 systemctl restart app-tour-api.service
 systemctl restart app-tour-web.service
+
+# shellcheck source=lib/ports.sh
+source "$DEPLOY_PATH/scripts/vps-deploy/lib/ports.sh"
+collect_app_ports "$ENV_DIR"
+if ! wait_for_port_listen "$API_PORT" 30 1; then
+  die "API did not bind :${API_PORT} — check journalctl -u app-tour-api"
+fi
+if ! wait_for_port_listen "$WEB_PORT" 30 1; then
+  die "web did not bind :${WEB_PORT} — check journalctl -u app-tour-web"
+fi
 
 log "infra profile"
 bash "$DEPLOY_PATH/scripts/vps-deploy/show-infra-profile.sh" "$ENV_DIR/api.env" || true

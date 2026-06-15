@@ -79,8 +79,8 @@ ssh-keygen -t ed25519 -f /root/.ssh/github_deploy -N ""
 2. `pnpm install --frozen-lockfile`
 3. `pnpm run build:operator-vps` (API + web + workspace deps)
 4. `pnpm run db:migrate:deploy`
-5. `systemctl restart app-tour-api app-tour-web`
-6. Health check on `:3001` and `:3000`
+5. `sync-web-api-url-port.sh` + `stop-stale-listeners.sh`, then `systemctl restart app-tour-api app-tour-web`
+6. Health check on `api.env` `PORT` and `web.env` `PORT` (defaults `:3001` / `:3000`)
 
 ## systemd
 
@@ -92,13 +92,39 @@ journalctl -u app-tour-api -f
 journalctl -u app-tour-web -f
 ```
 
-## Local dev vs VPS
+## Local dev vs VPS (same machine confusion)
+
+**Never mix these.** Run on VPS to see active profile:
+
+```bash
+bash /opt/app-tour/scripts/vps-deploy/show-infra-profile.sh /etc/app-tour/api.env
+```
+
+| Resource | **PRODUCTION** (operator on VPS) | **DEV** (laptop / CI) |
+| -------- | -------------------------------- | --------------------- |
+| Env file | `/etc/app-tour/api.env` | `apps/api/.env.local` |
+| `NODE_ENV` | `production` | `development` |
+| `APP_INFRA_PROFILE` | `production` | (unset or `development`) |
+| Postgres | `127.0.0.1:5433` / **`tour_db_prod`** | `127.0.0.1:5434` / `tour_db` (Docker) |
+| Redis | `127.0.0.1:6379` **db 1** | `127.0.0.1:6379` **db 0** (Docker) |
+| MinIO | `:9002` bucket **`app-tour-prod`** | `:9002` bucket **`app-tour-dev`** |
+| SSH tunnel | **Forbidden** for daily dev | `scripts/vps-infra-tunnel.sh` hits **prod** `:5433` |
+
+Fresh production database reset (empty prod, no data to keep):
+
+```bash
+# on VPS as root — generates new passwords, recreates tour_db_prod
+bash /opt/app-tour/scripts/vps-deploy/ensure-prod-postgres-extensions.sh /etc/app-tour/api.env
+bash /opt/app-tour/scripts/vps-deploy/bootstrap-prod-identity.sh /etc/app-tour/api.env
+```
+
+## Local dev vs VPS (legacy table)
 
 | | Local dev (recommended) | VPS production |
 | - | ----------------------- | -------------- |
-| Postgres | Docker `:5434` (`pnpm infra:up`) | native `:5433` |
-| Redis | Docker `:6379` | native `:6379` |
-| MinIO | Docker `:9002` | native `:9002` |
+| Postgres | Docker `:5434` (`pnpm infra:up`) | native `:5433` / `tour_db_prod` |
+| Redis | Docker `:6379` db 0 | native `:6379` db 1 |
+| MinIO | Docker `:9002` / `app-tour-dev` | native `:9002` / `app-tour-prod` |
 | Env file | `apps/api/.env.local` from `.env.local.example` | `/etc/app-tour/api.env` |
 | `NODE_ENV` | `development` | `production` |
 

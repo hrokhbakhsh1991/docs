@@ -2,22 +2,13 @@
 set -euo pipefail
 
 ENV_DIR="${ENV_DIR:-/etc/app-tour}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/ports.sh
+source "${SCRIPT_DIR}/lib/ports.sh"
 
-read_env_port() {
-  local file="$1" key="$2" default="$3"
-  if [[ -f "$file" ]]; then
-    local val
-    val=$(grep -E "^${key}=" "$file" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true)
-    if [[ -n "$val" ]]; then
-      printf '%s' "$val"
-      return
-    fi
-  fi
-  printf '%s' "$default"
-}
-
-api_port=$(read_env_port "${ENV_DIR}/api.env" PORT 3001)
-web_port=$(read_env_port "${ENV_DIR}/web.env" PORT 3000)
+collect_app_ports "$ENV_DIR"
+api_port="$API_PORT"
+web_port="$WEB_PORT"
 
 API_URL="${API_HEALTH_URL:-http://127.0.0.1:${api_port}/health}"
 WEB_URL="${WEB_HEALTH_URL:-http://127.0.0.1:${web_port}/auth/login}"
@@ -33,6 +24,16 @@ log_service_status() {
       journalctl -u "$unit" -n 20 --no-pager 2>&1 >&2 || true
     fi
   done
+  if command -v ss >/dev/null 2>&1; then
+    echo "[health] listening TCP ports (app + legacy):" >&2
+    for port in "${APP_PORTS[@]}"; do
+      if port_is_listening "$port"; then
+        echo "[health]   :${port} LISTEN" >&2
+      else
+        echo "[health]   :${port} (not listening)" >&2
+      fi
+    done
+  fi
 }
 
 for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
@@ -66,5 +67,8 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
 done
 
 echo "[health] FAILED — api=$API_URL web=$WEB_URL" >&2
+if [[ "$api_port" != "3001" ]] && port_is_listening 3001 && ! port_is_listening "$api_port"; then
+  echo "[health] hint: API is listening on :3001 but api.env PORT=${api_port} — run stop-stale-listeners.sh and restart" >&2
+fi
 log_service_status
 exit 1
