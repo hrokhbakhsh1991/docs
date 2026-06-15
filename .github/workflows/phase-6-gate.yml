@@ -202,6 +202,9 @@ jobs:
       - name: Prisma migrate deploy
         run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
+      - name: Generate Prisma client (smoke seed imports @apps/api)
+        run: pnpm --filter @apps/api run prisma:generate
+
       - name: Build workspace dist (denali plugin imports dist)
         run: pnpm --filter @app-tour/workspace-denali... run build
 
