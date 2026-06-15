@@ -1,4 +1,5 @@
 # Phase 8 — Product Parity DoD on GitHub runners (Postgres + urban regression + optional full gate).
+# Manual: Actions → phase-8-gate → Run workflow (workflow_dispatch).
 # Local dev: phase-8:guard + test:changed — heavy chain stays on GHA.
 # Authority: docs/phase-8/subphases/8.5-platform-dod.md · docs/dev/tiered-testing.md
 

@@ -4,6 +4,9 @@
 name: phase-10-guard
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths:
       - "packages/workspaces/**"
