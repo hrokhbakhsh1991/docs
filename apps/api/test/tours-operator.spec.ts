@@ -188,7 +188,7 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
 
     const unauth = await client.requestJson<OperatorListResponse>("GET", `/tours/${tourId}`);
     assert.equal(unauth.status, 401);
-    assert.equal(unauth.body.code, "IDENTITY_REQUIRED");
+    assert.equal(unauth.body.code, "UNAUTHORIZED_MISSING_AUTHENTICATED_TENANT");
   });
 
   it("API-9.3-E02 GET /tours/{id} returns projection (CP-9.3-E02)", async () => {

@@ -85,7 +85,7 @@ export async function handlePatchTour(
   try {
     const { parsedBody } = await readTourRequestBody(req);
     const body = parseUpdateTourBody(parsedBody);
-    const auth = await requireOperatorSession(req);
+    const auth = await resolveTenantContextFromRequest(req);
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
     if (auth.role === "member" && workspaceType === "denali") {
       sendHttpError(res, 403, { error: "forbidden", code: "OPERATOR_TOUR_WRITE_FORBIDDEN" });
@@ -201,7 +201,7 @@ export async function handleGetTour(
   tourId: string
 ): Promise<void> {
   try {
-    const auth = await requireOperatorSession(req);
+    const auth = await resolveTenantContextFromRequest(req);
     await runWithHttpRequestContext(
       req,
       auth,

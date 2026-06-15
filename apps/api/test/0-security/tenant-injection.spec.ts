@@ -20,6 +20,7 @@ import { PrismaTourRepository } from "../../src/storage/prisma-tour.repository";
 import { runWithTenantContext } from "../../src/tenant/tenant-request-context";
 import { ToursService } from "../../src/tours/tours.service";
 import { createTestToursService, integrationTenantId } from "../test-helpers";
+import { resetBookingsRepositorySingletonForTests } from "../../src/bookings/create-bookings-repository";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -205,6 +206,7 @@ describe("tenant injection pentest (0-security)", () => {
     before(async () => {
       if (!hasDatabase) return;
       process.env.STORAGE_DRIVER = "prisma";
+      resetBookingsRepositorySingletonForTests();
       admin = getPrismaAdmin();
       appRole = new PrismaClient({ datasources: { db: { url: APP_TOUR_URL } } });
 

@@ -19,6 +19,7 @@ import {
 import { resetWeightedFairAdmissionForTests } from "../../src/http/weighted-fair-admission";
 import { resetRedisRateLimiterCircuitForTests } from "../../src/middleware/redis-rate-limiter-resilience";
 import { resetTenantRegistryCacheForTests } from "../../src/tenant/tenant-registry-cache";
+import { resetBookingsRepositorySingletonForTests } from "../../src/bookings/create-bookings-repository";
 import { createTourStorageRepository } from "../../src/storage/create-tour-storage";
 import { ToursService } from "../../src/tours/tours.service";
 import { integrationTenantId } from "../test-helpers";
@@ -144,6 +145,7 @@ describe(
       resetRedisRateLimiterCircuitForTests();
       resetTenantRegistryCacheForTests();
       process.env.STORAGE_DRIVER = "prisma";
+      resetBookingsRepositorySingletonForTests();
       const appUrl = withConnectionLimit(process.env.DATABASE_URL?.trim() ?? APP_TOUR_URL);
       process.env.DATABASE_URL = appUrl;
       await disconnectPrisma();

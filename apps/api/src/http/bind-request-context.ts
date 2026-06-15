@@ -29,6 +29,9 @@ export type HttpRequestContextOptions = {
  * already bound (DEC-044 / TRACE-REGEN-01 — no second `resolveTraceIdFromHeaders`).
  * Optional `rateLimit` runs {@link consumeTenantRateLimit} after auth + tenant ALS,
  * before route business logic — see docs/phase-5/appendices/rate-limiting.md.
+ *
+ * Tenant ALS is entered synchronously before any async resolve so {@link withTenantRls}
+ * checks cannot race under concurrent HTTP load (TK-LOAD-RLS / DEC-028).
  */
 export async function runWithHttpRequestContext<T>(
   req: IncomingMessage,
@@ -36,10 +39,6 @@ export async function runWithHttpRequestContext<T>(
   run: () => Promise<T>,
   options?: HttpRequestContextOptions
 ): Promise<T> {
-  const [workspaceType, tenantRoute] = await Promise.all([
-    resolveWorkspaceTypeForTenant(auth.tenantId),
-    getTenantConnectionRouter().resolveRoute(auth.tenantId),
-  ]);
   const rateLimitRoute =
     options?.rateLimit !== undefined
       ? {
@@ -48,8 +47,13 @@ export async function runWithHttpRequestContext<T>(
         }
       : undefined;
 
-  const runWithTenant = () =>
-    runWithTenantContext(
+  const executeWithinTenantContext = async (): Promise<T> => {
+    const [workspaceType, tenantRoute] = await Promise.all([
+      resolveWorkspaceTypeForTenant(auth.tenantId),
+      getTenantConnectionRouter().resolveRoute(auth.tenantId),
+    ]);
+
+    return runWithTenantContext(
       auth.tenantId,
       async () => {
         await acquireWeightedFairAdmission(auth.tenantId);
@@ -77,6 +81,12 @@ export async function runWithHttpRequestContext<T>(
         tenantTier: tenantRoute.tier,
       }
     );
+  };
+
+  const runWithTenant = () =>
+    runWithTenantContext(auth.tenantId, executeWithinTenantContext, {
+      actorId: auth.userId,
+    });
 
   const existingTrace = getActiveTraceId();
   if (existingTrace !== undefined) {

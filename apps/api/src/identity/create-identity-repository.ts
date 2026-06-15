@@ -20,12 +20,22 @@ let singletonDriver: ReturnType<typeof resolveStorageDriver> | null = null;
 export function getIdentityRepository(): IdentityRepository {
   assertProductionStorageDriver();
 
-  // Test harness pins an in-memory repo while gate env exports STORAGE_DRIVER=prisma.
-  if (singleton instanceof InMemoryIdentityRepository && singletonDriver === "memory") {
+  const driver = resolveStorageDriver();
+
+  // Test harness pins in-memory only while the active driver remains memory.
+  if (
+    driver === "memory" &&
+    singleton instanceof InMemoryIdentityRepository &&
+    singletonDriver === "memory"
+  ) {
     return singleton;
   }
 
-  const driver = resolveStorageDriver();
+  if (singleton instanceof InMemoryIdentityRepository && singletonDriver === "memory" && driver === "prisma") {
+    singleton = null;
+    singletonDriver = null;
+  }
+
   if (singleton !== null && singletonDriver === driver) {
     return singleton;
   }

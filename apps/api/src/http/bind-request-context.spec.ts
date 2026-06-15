@@ -11,6 +11,7 @@ import {
   requireActiveTraceId,
   runWithTraceContext,
 } from "../observability/trace-request-context";
+import { getActiveTenantId } from "../tenant/tenant-request-context";
 import { integrationTenantId } from "../../test/test-helpers";
 
 function fakeAuth(tenantId: string): TenantAuthContext {
@@ -51,5 +52,19 @@ describe("runWithHttpRequestContext trace bind (TRACE-REGEN-01 / DEC-044)", () =
     });
 
     assert.equal(getActiveTraceId(), undefined, "trace ALS must clear after bind settles");
+  });
+
+  it("keeps tenant ALS stable across handler awaits", async () => {
+    const tenantId = integrationTenantId();
+    const snapshots: Array<string | undefined> = [];
+    const req = { headers: {} } as IncomingMessage;
+
+    await runWithHttpRequestContext(req, fakeAuth(tenantId), async () => {
+      snapshots.push(getActiveTenantId());
+      await Promise.resolve();
+      snapshots.push(getActiveTenantId());
+    });
+
+    assert.deepEqual(snapshots, [tenantId, tenantId]);
   });
 });
