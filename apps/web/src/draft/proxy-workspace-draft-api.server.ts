@@ -148,6 +148,13 @@ export async function proxyWorkspaceDraftApiRequest(
       backendRes.status === 204
         ? {}
         : ((await backendRes.json().catch(() => ({}))) as Record<string, unknown>);
+    if (
+      options.method === "GET" &&
+      backendRes.status === 404 &&
+      payload.code === "WORKSPACE_DRAFT_NOT_FOUND"
+    ) {
+      return new NextResponse(null, { status: 204 });
+    }
     return NextResponse.json(payload, { status: backendRes.status });
   } catch {
     return NextResponse.json(
