@@ -10,7 +10,10 @@ import { resetWeightedFairAdmissionForTests } from "../src/http/weighted-fair-ad
 import { resetRedisRateLimiterCircuitForTests } from "../src/middleware/redis-rate-limiter-resilience";
 import { resetTenantRateLimiterStoreForTests } from "../src/middleware/tenant-rate-limiter";
 import { resetTourWriteConcurrencyBudgetForTests } from "../src/http/tour-write-concurrency-budget";
+import { resetValidationSchedulerForTests } from "../src/canonical/validation-scheduler";
 import { resetOutboxRelayTenantBudgetForTests } from "../src/outbox/outbox-relay-tenant-budget";
+import { resetTenantRouteLookupCacheForTests } from "../src/tenant/tenant-route-lookup";
+import { clearPreTransactionValidationGate } from "../src/canonical/pre-transaction-validation";
 
 process.env.OUTBOX_RELAY_ENABLED = "false";
 process.env.PROJECTION_AUTO_RECONCILE_ENABLED = "false";
@@ -39,6 +42,11 @@ beforeEach(async () => {
   resetRedisRateLimiterCircuitForTests();
   resetTourWriteConcurrencyBudgetForTests();
   resetOutboxRelayTenantBudgetForTests();
+  if (process.env.DATABASE_URL?.trim()) {
+    resetValidationSchedulerForTests();
+    resetTenantRouteLookupCacheForTests();
+    clearPreTransactionValidationGate();
+  }
   await resetTenantRateLimiterStoreForTests();
 });
 

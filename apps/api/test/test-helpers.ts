@@ -9,9 +9,14 @@ import { CanonicalTourService } from "../src/canonical/canonical-tour.service";
 import { LegacyCanonicalAdapter } from "../src/canonical/legacy-canonical-adapter";
 import { TourStorageDbAdapter } from "../src/db/tour-storage.adapter";
 import type { TourStorageRepository } from "../src/db/tour.repository";
+import { clearPreTransactionValidationGate } from "../src/canonical/pre-transaction-validation";
+import { resetValidationSchedulerForTests } from "../src/canonical/validation-scheduler";
+import { disconnectPrisma } from "../src/db/prisma";
 import { resetBookingsRepositorySingletonForTests } from "../src/bookings/create-bookings-repository";
 import { resetIdentityRepositorySingletonForTests } from "../src/identity/create-identity-repository";
 import { resetSettingsResourcesRepositorySingletonForTests } from "../src/settings/create-settings-resources-repository";
+import { resetTenantRouteLookupCacheForTests } from "../src/tenant/tenant-route-lookup";
+import { resetTenantRegistryCacheForTests } from "../src/tenant/tenant-registry-cache";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { ToursService } from "../src/tours/tours.service";
 
@@ -95,6 +100,20 @@ export function installMemoryStorageDriverForDescribe(): void {
     resetBookingsRepositorySingletonForTests();
     resetIdentityRepositorySingletonForTests();
   });
+}
+
+/**
+ * Postgres HTTP integration — reset singletons and ALS-adjacent schedulers that can leak
+ * across node:test files when CI pins `STORAGE_DRIVER=prisma` for the full suite.
+ */
+export async function preparePostgresHttpIntegration(): Promise<void> {
+  resetValidationSchedulerForTests();
+  resetTenantRouteLookupCacheForTests();
+  resetTenantRegistryCacheForTests();
+  clearPreTransactionValidationGate();
+  resetBookingsRepositorySingletonForTests();
+  resetIdentityRepositorySingletonForTests();
+  await disconnectPrisma();
 }
 
 /** Assert GET /health 200 body — allows optional prisma `checks.database` when STORAGE_DRIVER=prisma. */

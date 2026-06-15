@@ -13,10 +13,9 @@ import { LegacyCanonicalAdapter } from "../src/canonical/legacy-canonical-adapte
 import { TourStorageDbAdapter } from "../src/db/tour-storage.adapter";
 import { disconnectPrisma, getPrismaAdmin } from "../src/db/prisma";
 import { createTourStorageRepository } from "../src/storage/create-tour-storage";
-import { resetBookingsRepositorySingletonForTests } from "../src/bookings/create-bookings-repository";
 import { runWithTenantContext } from "../src/tenant/tenant-request-context";
 import { ToursService } from "../src/tours/tours.service";
-import { integrationTenantId } from "./test-helpers";
+import { integrationTenantId, preparePostgresHttpIntegration } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -158,8 +157,8 @@ describe("5.5 audit events (integration)", { skip: !hasDatabase, concurrency: fa
   const priorStorageDriver = process.env.STORAGE_DRIVER;
 
   before(async () => {
+    await preparePostgresHttpIntegration();
     process.env.STORAGE_DRIVER = "prisma";
-    resetBookingsRepositorySingletonForTests();
     admin = getPrismaAdmin();
     appRole = new PrismaClient({ datasources: { db: { url: APP_TOUR_URL } } });
 

@@ -5,10 +5,8 @@ import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
 import { enrichTourListProjectionsWithAcceptedCount } from "../src/bookings/enrich-tour-accepted-counts";
-import {
-  resetBookingsRepositoryForTests,
-  resetBookingsRepositorySingletonForTests,
-} from "../src/bookings/create-bookings-repository";
+import { installMemoryStorageDriverForDescribe } from "./test-helpers";
+import { resetBookingsRepositoryForTests } from "../src/bookings/create-bookings-repository";
 import type { TourListProjection } from "@app-tour/workspace-sdk";
 
 const TENANT_ID = "00000000-0000-4000-8000-000000000014";
@@ -37,8 +35,9 @@ function projection(id: string, acceptedCount = 0): TourListProjection {
 }
 
 describe("tours-operator-accepted-count", () => {
+  installMemoryStorageDriverForDescribe();
+
   before(() => {
-    resetBookingsRepositorySingletonForTests();
     const repo = resetBookingsRepositoryForTests();
     repo.seedBooking({
       id: "00000000-0000-4000-8000-000000000401",
