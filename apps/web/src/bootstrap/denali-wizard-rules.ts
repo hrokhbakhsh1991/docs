@@ -1,3 +1,13 @@
+import {
+  evaluateFormFieldRule,
+  applyDenaliInvariantState,
+  resolveDenaliRuleSetFromTemplate,
+  buildDenaliTourCreateDefaultValues,
+  readDenaliCanonicalBasics,
+  DENALI_CANONICAL_TO_FORM_PATH_MAP,
+  DENALI_TOUR_KIND_VALUES,
+} from "@app-tour/workspace-denali/plugin";
+
 export type DenaliWizardRulesModule = {
   readonly evaluateFormFieldRule: (
     form: Record<string, unknown>,
@@ -33,23 +43,36 @@ export type DenaliWizardRulesModule = {
   readonly tourKindValues: readonly string[];
 };
 
+let denaliWizardRulesModule: DenaliWizardRulesModule | null = null;
 let denaliWizardRulesPromise: Promise<DenaliWizardRulesModule> | null = null;
+
+function createDenaliWizardRulesModule(): DenaliWizardRulesModule {
+  return Object.freeze({
+    evaluateFormFieldRule,
+    applyDenaliInvariantState,
+    resolveDenaliRuleSetFromTemplate,
+    buildDefaultForm: buildDenaliTourCreateDefaultValues,
+    readCanonicalBasics: readDenaliCanonicalBasics,
+    canonicalToFormPathMap: DENALI_CANONICAL_TO_FORM_PATH_MAP,
+    tourKindValues: DENALI_TOUR_KIND_VALUES,
+  }) as unknown as DenaliWizardRulesModule;
+}
+
+/**
+ * Sync Denali rules for routes that already static-import the Denali plugin (create-tour, template).
+ */
+export function getDenaliWizardRulesModuleSync(): DenaliWizardRulesModule {
+  denaliWizardRulesModule ??= createDenaliWizardRulesModule();
+  return denaliWizardRulesModule;
+}
 
 /**
  * Lazy Denali wizard rules — sole web entry for evaluateFormRules (Phase 6.3).
  * Loaded via dynamic import so starter routes avoid bundling denali-domain rules.
  */
 export function loadDenaliWizardRulesModule(): Promise<DenaliWizardRulesModule> {
-  denaliWizardRulesPromise ??= import("@app-tour/workspace-denali/plugin").then((mod) =>
-    Object.freeze({
-      evaluateFormFieldRule: mod.evaluateFormFieldRule,
-      applyDenaliInvariantState: mod.applyDenaliInvariantState,
-      resolveDenaliRuleSetFromTemplate: mod.resolveDenaliRuleSetFromTemplate,
-      buildDefaultForm: mod.buildDenaliTourCreateDefaultValues,
-      readCanonicalBasics: mod.readDenaliCanonicalBasics,
-      canonicalToFormPathMap: mod.DENALI_CANONICAL_TO_FORM_PATH_MAP,
-      tourKindValues: mod.DENALI_TOUR_KIND_VALUES,
-    }) as unknown as DenaliWizardRulesModule
+  denaliWizardRulesPromise ??= import("@app-tour/workspace-denali/plugin").then(() =>
+    getDenaliWizardRulesModuleSync()
   );
   return denaliWizardRulesPromise;
 }

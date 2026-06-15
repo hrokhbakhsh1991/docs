@@ -3,7 +3,7 @@
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { useTranslations } from "next-intl";
 import { LayoutTemplate, Save } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -26,7 +26,7 @@ import {
   validateWizardTemplateSavable,
 } from "@/tours/wizard-template-gate-logic";
 import { loadDenaliFullWizardTemplatePreset } from "@/bootstrap/denali-wizard-template-preset";
-import { loadWorkspacePluginById } from "@/wizard/load-workspace-plugin";
+import { resolveBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 import {
   applyWizardTemplatePreset,
   buildWizardTemplateCatalogFromPlugin,
@@ -55,21 +55,55 @@ import {
 type WizardTemplateClientProps = {
   readonly session: OperatorSessionContext;
   readonly pluginId: string;
+  readonly initialTemplateResponse?: unknown | null;
+  readonly initialCatalog?: readonly WizardTemplateCatalogStep[];
 };
 
-export function WizardTemplateClient({ session, pluginId }: WizardTemplateClientProps) {
-  const t = useTranslations("settings.wizardTemplate");
-  const tDenali = useTranslations("denali");
-  const canManage = isAdminOrOwnerRole(session.role);
-  const [payload, setPayload] = useState<WizardTemplatePayload>({
+function createEmptyWizardTemplatePayload(): WizardTemplatePayload {
+  return {
     seedLabel: "",
     sections: [],
     published: false,
     steps: [],
+  };
+}
+
+function parseInitialWizardTemplatePayload(response: unknown | null | undefined): WizardTemplatePayload | null {
+  if (response == null) {
+    return null;
+  }
+  try {
+    return parseWizardTemplateResponse(response as WizardTemplateConfigResponse);
+  } catch {
+    return null;
+  }
+}
+
+export function WizardTemplateClient({
+  session,
+  pluginId,
+  initialTemplateResponse = null,
+  initialCatalog,
+}: WizardTemplateClientProps) {
+  const t = useTranslations("settings.wizardTemplate");
+  const tDenali = useTranslations("denali");
+  const canManage = isAdminOrOwnerRole(session.role);
+  const skipInitialTemplateFetchRef = useRef(initialTemplateResponse != null);
+  const [payload, setPayload] = useState<WizardTemplatePayload>(() => {
+    return parseInitialWizardTemplatePayload(initialTemplateResponse) ?? createEmptyWizardTemplatePayload();
   });
-  const [catalog, setCatalog] = useState<readonly WizardTemplateCatalogStep[]>([]);
+  const catalog = useMemo(() => {
+    if (initialCatalog != null) {
+      return initialCatalog;
+    }
+    try {
+      return buildWizardTemplateCatalogFromPlugin(resolveBootstrapWorkspacePlugin(pluginId));
+    } catch {
+      return [];
+    }
+  }, [initialCatalog, pluginId]);
   const [fieldQuery, setFieldQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialTemplateResponse == null);
   const [saving, setSaving] = useState(false);
   const [loadingPreset, setLoadingPreset] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,20 +145,22 @@ export function WizardTemplateClient({ session, pluginId }: WizardTemplateClient
   }, [catalog, fieldQuery, pluginId, tDenali]);
 
   useEffect(() => {
+    if (skipInitialTemplateFetchRef.current) {
+      skipInitialTemplateFetchRef.current = false;
+      return;
+    }
+
     let cancelled = false;
-    void Promise.all([
-      fetch("/api/settings/tour-wizard-template", { cache: "no-store" }).then(async (response) => {
+    void fetch("/api/settings/tour-wizard-template", { cache: "no-store" })
+      .then(async (response) => {
         if (!response.ok) {
           throw new Error(`WIZARD_TEMPLATE_HTTP_${response.status}`);
         }
         return (await response.json()) as WizardTemplateConfigResponse;
-      }),
-      loadWorkspacePluginById(pluginId).then((plugin) => buildWizardTemplateCatalogFromPlugin(plugin)),
-    ])
-      .then(([config, catalogSteps]) => {
+      })
+      .then((config) => {
         if (!cancelled) {
           setPayload(parseWizardTemplateResponse(config));
-          setCatalog(catalogSteps);
         }
       })
       .catch((fetchError: unknown) => {
@@ -140,7 +176,7 @@ export function WizardTemplateClient({ session, pluginId }: WizardTemplateClient
     return () => {
       cancelled = true;
     };
-  }, [formatWizardError, pluginId]);
+  }, [formatWizardError]);
 
   const handleLoadFullTemplate = async () => {
     if (!canManage || !showDenaliFullTemplate) {
@@ -210,13 +246,16 @@ export function WizardTemplateClient({ session, pluginId }: WizardTemplateClient
 
       {loading ? <Skeleton className="h-40 w-full" /> : null}
       {error !== null ? <p className="text-sm text-destructive">{error}</p> : null}
+      {!loading && catalog.length === 0 ? (
+        <p className="text-sm text-destructive">{t("errors.loadFailed")}</p>
+      ) : null}
       {saved ? (
         <p className="text-sm text-green-600" data-testid={WIZARD_TEMPLATE_TEST_IDS.success}>
           {t("success")}
         </p>
       ) : null}
 
-      {!loading ? (
+      {!loading && catalog.length > 0 ? (
         <Card data-denali-surface="card" className="shadow-sm">
           <CardHeader>
             <CardTitle>{t("cardTitle")}</CardTitle>

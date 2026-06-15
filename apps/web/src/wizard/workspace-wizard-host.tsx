@@ -69,6 +69,13 @@ export type WorkspaceWizardHostProps = {
   readonly onSubmitValidationHandled?: () => void;
   /** Opaque workspace rule eval context (profile + template overlay). */
   readonly wizardRuleEvalContext?: unknown;
+  /**
+   * When the parent already resolved the workspace plugin (e.g. Denali create-tour page),
+   * pass it here to avoid a second dynamic import race that can leave the host on loading.
+   */
+  readonly preloadedWorkspacePlugin?: WorkspacePlugin | null;
+  /** Optional rules module aligned with {@link preloadedWorkspacePlugin}. */
+  readonly preloadedRulesModule?: unknown;
 };
 
 function resolveWizardDimensions(
@@ -141,6 +148,8 @@ export function WorkspaceWizardHost({
   submitValidationIssues = null,
   onSubmitValidationHandled,
   wizardRuleEvalContext,
+  preloadedWorkspacePlugin = null,
+  preloadedRulesModule = null,
 }: WorkspaceWizardHostProps) {
   const tWizard = useTranslations("wizard");
   const access = useMemo(
@@ -150,9 +159,10 @@ export function WorkspaceWizardHost({
 
   const authorized = useMemo(() => canLoadWorkspaceWizard(access), [access]);
 
-  const [baseSteps, setBaseSteps] = useState<readonly RenderStepPlan[] | null>(null);
-  const [workspacePlugin, setWorkspacePlugin] = useState<WorkspacePlugin | null>(null);
-  const [rulesModule, setRulesModule] = useState<unknown>(null);
+  const [workspacePlugin, setWorkspacePlugin] = useState<WorkspacePlugin | null>(
+    () => preloadedWorkspacePlugin ?? null
+  );
+  const [rulesModule, setRulesModule] = useState<unknown>(() => preloadedRulesModule ?? null);
   const [error, setError] = useState<string | null>(null);
   const [reviewValidationIssues, setReviewValidationIssues] = useState<readonly ValidationIssue[]>(
     []
@@ -213,12 +223,18 @@ export function WorkspaceWizardHost({
     if (!authorized) {
       setWorkspacePlugin(null);
       setRulesModule(null);
-      setBaseSteps(null);
       setError(null);
       return;
     }
 
     if (!canLoadWorkspaceWizard(access)) {
+      return;
+    }
+
+    if (preloadedWorkspacePlugin != null) {
+      setWorkspacePlugin(preloadedWorkspacePlugin);
+      setRulesModule(preloadedRulesModule);
+      setError(null);
       return;
     }
 
@@ -242,7 +258,6 @@ export function WorkspaceWizardHost({
           setError(message);
           setWorkspacePlugin(null);
           setRulesModule(null);
-          setBaseSteps(null);
         }
       }
     })();
@@ -250,34 +265,46 @@ export function WorkspaceWizardHost({
     return () => {
       cancelled = true;
     };
-  }, [authorized, access, pluginId]);
+  }, [
+    authorized,
+    tenantId,
+    workspaceId,
+    pluginId,
+    preloadedWorkspacePlugin,
+    preloadedRulesModule,
+  ]);
 
-  useEffect(() => {
+  const renderPlanState = useMemo(():
+    | { readonly status: "loading" }
+    | { readonly status: "error"; readonly message: string }
+    | { readonly status: "ready"; readonly steps: readonly RenderStepPlan[] } => {
     if (workspacePlugin == null) {
-      setBaseSteps(null);
-      return;
+      return { status: "loading" };
     }
-
     try {
       const engine = PlatformWizardEngine.create(pluginForWizardEngine(workspacePlugin));
       engine.init();
-      const plan = engine.buildRenderPlan({
-        tenantId,
-        dimensions: resolveWizardDimensions(workspacePlugin, draft, rulesModule),
-      });
-      setBaseSteps(plan);
-      setError(null);
+      return {
+        status: "ready",
+        steps: engine.buildRenderPlan({
+          tenantId,
+          dimensions: resolveWizardDimensions(workspacePlugin, draft, rulesModule),
+        }),
+      };
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "wizard_load_failed";
-      setError(message);
-      setBaseSteps(null);
+      return {
+        status: "error",
+        message: cause instanceof Error ? cause.message : "wizard_load_failed",
+      };
     }
   }, [workspacePlugin, rulesModule, tenantId, dimensionsKey]);
 
   const visibleSteps = useMemo(() => {
-    if (baseSteps == null) {
+    if (renderPlanState.status !== "ready") {
       return null;
     }
+
+    const baseSteps = renderPlanState.steps;
 
     let steps =
       templateSteps !== undefined && templateSteps.length > 0
@@ -298,18 +325,16 @@ export function WorkspaceWizardHost({
     if (
       wizardHost?.usesReviewStep === true &&
       reviewStepId != null &&
-      reviewStepId.length > 0 &&
-      baseSteps != null
+      reviewStepId.length > 0
     ) {
       steps = appendWorkspaceReviewStepToRenderPlan(steps, baseSteps, reviewStepId);
     }
 
     return steps;
   }, [
-    baseSteps,
+    renderPlanState,
     templateSteps,
     allowedCanonicalPaths,
-    pluginId,
     rulesModule,
     draft,
     wizardRuleEvalContext,
@@ -415,6 +440,7 @@ export function WorkspaceWizardHost({
       draft: draft as unknown as Record<string, unknown>,
       rulesModule: rulesModule,
       tenantId,
+      evalContext: wizardRuleEvalContext,
     });
     if (result.ok) {
       setReviewValidationIssues([]);
@@ -423,7 +449,7 @@ export function WorkspaceWizardHost({
     setReviewValidationIssues(
       mapValidationResultToIssues(result, { resolveStepId })
     );
-  }, [workspacePlugin, wizardHost?.usesStepValidation, wizardHost?.validateDraftSync, draft, rulesModule, tenantId, resolveStepId]);
+  }, [workspacePlugin, wizardHost?.usesStepValidation, wizardHost?.validateDraftSync, draft, rulesModule, tenantId, wizardRuleEvalContext, resolveStepId]);
 
   useEffect(() => {
     if (visibleSteps == null) {
@@ -495,6 +521,7 @@ export function WorkspaceWizardHost({
           draft: draft as unknown as Record<string, unknown>,
           rulesModule,
           tenantId,
+          evalContext: wizardRuleEvalContext,
           scope: { stepId: step.stepId, visibleSteps },
         }),
     });
@@ -508,6 +535,7 @@ export function WorkspaceWizardHost({
     draft,
     rulesModule,
     tenantId,
+    wizardRuleEvalContext,
     draftContentKey,
   ]);
 
@@ -529,6 +557,7 @@ export function WorkspaceWizardHost({
         draft: draft as unknown as Record<string, unknown>,
         rulesModule: rulesModule,
         tenantId,
+        evalContext: wizardRuleEvalContext,
         scope: { stepId: step.stepId, visibleSteps },
       });
       if (result.ok) {
@@ -549,6 +578,7 @@ export function WorkspaceWizardHost({
       draft,
       rulesModule,
       tenantId,
+      wizardRuleEvalContext,
       focusFirstFromResult,
       resolveStepId,
     ]
@@ -578,10 +608,14 @@ export function WorkspaceWizardHost({
     return <WizardAccessDenied />;
   }
 
-  if (error) {
+  const planError =
+    renderPlanState.status === "error" ? renderPlanState.message : null;
+  const loadError = error ?? planError;
+
+  if (loadError) {
     return (
       <div role="alert" data-workspace-wizard-error>
-        <p>{tWizard("host.loadError", { error })}</p>
+        <p>{tWizard("host.loadError", { error: loadError })}</p>
       </div>
     );
   }

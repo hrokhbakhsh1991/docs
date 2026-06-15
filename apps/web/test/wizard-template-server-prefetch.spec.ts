@@ -57,4 +57,25 @@ describe("wizard-template-server-prefetch.spec.ts", () => {
     assert.match(clientSource, /DenaliWizardCatalogPrefetchProvider/);
     assert.match(clientSource, /initialLocationsResponse/);
   });
+
+  it("WIZARD-07 settings template page prefetches template + catalog on the server", () => {
+    const pageSource = readFileSync(
+      resolve(WEB_ROOT, "app/(app)/settings/tour-wizard-template/page.tsx"),
+      "utf8"
+    );
+    assert.match(pageSource, /fetchWizardTemplateServer/);
+    assert.match(pageSource, /initialTemplateResponse/);
+    assert.match(pageSource, /initialCatalog/);
+    assert.match(pageSource, /buildWizardTemplateCatalogFromPlugin/);
+  });
+
+  it("WIZARD-08 settings template client skips first fetch when initialTemplateResponse is provided", () => {
+    const clientSource = readFileSync(
+      resolve(WEB_ROOT, "app/(app)/settings/tour-wizard-template/wizard-template-client.tsx"),
+      "utf8"
+    );
+    assert.match(clientSource, /initialTemplateResponse/);
+    assert.match(clientSource, /initialCatalog/);
+    assert.match(clientSource, /skipInitialTemplateFetchRef/);
+  });
 });

@@ -72,7 +72,7 @@ import type {
   TourThemeResource,
 } from "@/features/settings/settings-module-types";
 import type { UsersListResponse } from "@/features/users/users-directory-types";
-import { loadDenaliWizardRulesModule, type DenaliWizardRulesModule } from "@/bootstrap/denali-wizard-rules";
+import { getDenaliWizardRulesModuleSync, type DenaliWizardRulesModule } from "@/bootstrap/denali-wizard-rules";
 import { sanitizeDenaliWizardDraft } from "@/wizard/denali/denali-draft-form-adapter";
 import {
   buildFieldStepResolverFromTemplate,
@@ -150,7 +150,9 @@ export function NewTourWizardClient({
   const [createdTourId, setCreatedTourId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const wizardSessionId = useMemo(() => createDenaliWizardDraftSessionId(), []);
-  const [denaliRules, setDenaliRules] = useState<DenaliWizardRulesModule | null>(null);
+  const [denaliRules, setDenaliRules] = useState<DenaliWizardRulesModule | null>(() =>
+    isDenali ? getDenaliWizardRulesModuleSync() : null
+  );
   const [themeCatalog, setThemeCatalog] = useState<readonly TourThemeResource[]>([]);
   const [presetApplied, setPresetApplied] = useState(false);
 
@@ -159,15 +161,7 @@ export function NewTourWizardClient({
       setDenaliRules(null);
       return;
     }
-    let cancelled = false;
-    void loadDenaliWizardRulesModule().then((rules) => {
-      if (!cancelled) {
-        setDenaliRules(rules);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
+    setDenaliRules(getDenaliWizardRulesModuleSync());
   }, [isDenali]);
 
   useEffect(() => {
@@ -817,6 +811,8 @@ export function NewTourWizardClient({
         tenantId={session.tenantId}
         workspaceId={session.workspaceId}
         authz={session.authz}
+        preloadedWorkspacePlugin={denaliPlugin}
+        preloadedRulesModule={denaliRules}
         draft={draft}
         onDraftChange={onDraftChange}
         allowedCanonicalPaths={gate.allowedCanonicalPaths}
