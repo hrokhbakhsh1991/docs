@@ -3,6 +3,9 @@
 set -euo pipefail
 
 ENV_FILE="${1:-/etc/app-tour/api.env}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/psql-url.sh
+source "${SCRIPT_DIR}/lib/psql-url.sh"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "verify-db-env: missing env file: $ENV_FILE" >&2
@@ -24,7 +27,7 @@ if ! command -v psql >/dev/null 2>&1; then
   exit 1
 fi
 
-if psql "$DATABASE_URL" -c "SELECT 1" >/dev/null 2>&1; then
+if psql "$(psql_database_url "$DATABASE_URL")" -c "SELECT 1" >/dev/null 2>&1; then
   echo "verify-db-env: OK — DATABASE_URL connects"
   exit 0
 fi

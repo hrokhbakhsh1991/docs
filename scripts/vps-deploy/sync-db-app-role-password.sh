@@ -3,6 +3,9 @@
 set -euo pipefail
 
 ENV_FILE="${1:-/etc/app-tour/api.env}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/psql-url.sh
+source "${SCRIPT_DIR}/lib/psql-url.sh"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "sync-db-app-role-password: missing env file: $ENV_FILE" >&2
@@ -42,5 +45,5 @@ print(password.replace("'", "''"))
 PY
 )
 
-psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -c "ALTER USER app_tour WITH PASSWORD '${APP_PASSWORD}';"
+psql "$(psql_database_url "$DATABASE_URL_ADMIN")" -v ON_ERROR_STOP=1 -c "ALTER USER app_tour WITH PASSWORD '${APP_PASSWORD}';"
 echo "sync-db-app-role-password: OK — app_tour password aligned with DATABASE_URL"

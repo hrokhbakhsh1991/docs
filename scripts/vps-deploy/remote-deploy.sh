@@ -32,7 +32,7 @@ fi
 
 log "sync $BRANCH"
 cd "$DEPLOY_PATH"
-git fetch origin "$BRANCH"
+git fetch origin "$BRANCH:refs/remotes/origin/$BRANCH"
 git reset --hard "origin/$BRANCH"
 chown -R "$APP_USER:$APP_USER" "$DEPLOY_PATH"
 
@@ -50,7 +50,13 @@ run_as_app "
   set +a
   bash scripts/vps-deploy/ensure-prod-postgres-extensions.sh '$ENV_DIR/api.env'
   pnpm run db:migrate:deploy
-  bash scripts/vps-deploy/sync-db-app-role-grants.sh '$ENV_DIR/api.env'
+"
+
+bash "$DEPLOY_PATH/scripts/vps-deploy/sync-db-app-role-grants.sh" "$ENV_DIR/api.env"
+
+run_as_app "
+  set -euo pipefail
+  cd '$DEPLOY_PATH'
   bash scripts/vps-deploy/bootstrap-prod-identity.sh '$ENV_DIR/api.env'
 "
 
