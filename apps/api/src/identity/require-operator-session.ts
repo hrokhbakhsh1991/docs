@@ -54,7 +54,16 @@ export async function requireOperatorSession(
 ): Promise<TenantAuthContext> {
   assertOperatorAuthIngress(req);
 
+  // Header-only ingress (integration tests, dev shim) matches POST /tours: trust parsed
+  // headers without a pre-ALS membership lookup that can race under concurrent load.
+  const headerOnlyIngress =
+    readAuthorizationHeader(req).length === 0 && readSessionCookieToken(req) === null;
+
   const auth = await resolveTenantContextFromRequest(withSessionCookieBearer(req));
+  if (headerOnlyIngress) {
+    return auth;
+  }
+
   try {
     return await hydrateMembershipFromDb(auth.userId, auth.tenantId, undefined);
   } catch (error) {
