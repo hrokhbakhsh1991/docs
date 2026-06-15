@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, it } from "node:test";
+import { after, afterEach, before, describe, it } from "node:test";
 
 import { createRequestListener } from "../app";
 import { createHealthAwareServerListener, isHealthGetRequest } from "./health-priority-ingress";
@@ -141,6 +141,38 @@ async function runHealthProbeBurst(
 }
 
 describe("health priority ingress (NN-08)", () => {
+  let priorStorageDriver: string | undefined;
+  let priorDatabaseUrl: string | undefined;
+  let priorDatabaseUrlAdmin: string | undefined;
+
+  before(() => {
+    // Ingress unit tests must not depend on CI gate Postgres — probeDatabaseHealth would 503.
+    priorStorageDriver = process.env.STORAGE_DRIVER;
+    priorDatabaseUrl = process.env.DATABASE_URL;
+    priorDatabaseUrlAdmin = process.env.DATABASE_URL_ADMIN;
+    process.env.STORAGE_DRIVER = "memory";
+    delete process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL_ADMIN;
+  });
+
+  after(() => {
+    if (priorStorageDriver === undefined) {
+      delete process.env.STORAGE_DRIVER;
+    } else {
+      process.env.STORAGE_DRIVER = priorStorageDriver;
+    }
+    if (priorDatabaseUrl === undefined) {
+      delete process.env.DATABASE_URL;
+    } else {
+      process.env.DATABASE_URL = priorDatabaseUrl;
+    }
+    if (priorDatabaseUrlAdmin === undefined) {
+      delete process.env.DATABASE_URL_ADMIN;
+    } else {
+      process.env.DATABASE_URL_ADMIN = priorDatabaseUrlAdmin;
+    }
+  });
+
   afterEach(() => {
     __resetHttpRequestLogQueueForTests();
     resetHealthProbeLatencyMonitorForTests();
