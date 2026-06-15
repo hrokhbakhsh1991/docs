@@ -29,6 +29,7 @@ if [[ ! -f "${DEPLOY_PATH}/apps/api/dist/main.js" ]]; then
 fi
 
 cd "${DEPLOY_PATH}/apps/web"
+rm -rf .next
 NODE_ENV=production pnpm exec next build
 
 echo "[vps-build] api + web production builds complete"
