@@ -36,6 +36,9 @@ git fetch origin "$BRANCH:refs/remotes/origin/$BRANCH"
 git reset --hard "origin/$BRANCH"
 chown -R "$APP_USER:$APP_USER" "$DEPLOY_PATH"
 
+log "stop services before build (release .next / dist locks)"
+bash "$DEPLOY_PATH/scripts/vps-deploy/stop-stale-listeners.sh"
+
 run_as_app() {
   sudo -u "$APP_USER" env HOME="$DEPLOY_PATH" PATH="/usr/local/bin:/usr/bin:/bin" bash -lc "$1"
 }
