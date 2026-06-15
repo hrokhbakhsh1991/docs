@@ -11,4 +11,9 @@ set -a
 source "${ENV_DIR}/api.env"
 set +a
 
+if [[ -f dist/main.js ]]; then
+  exec node dist/main.js
+fi
+
+echo "[start-api] dist/main.js missing — falling back to tsx runtime" >&2
 exec node --import tsx src/main.ts

@@ -23,6 +23,11 @@ pnpm --filter @app-tour/wizard-navigation run build 2>/dev/null || true
 
 build_pkg @apps/api
 
+if [[ ! -f "${DEPLOY_PATH}/apps/api/dist/main.js" ]]; then
+  echo "[vps-build] ERROR: apps/api/dist/main.js missing after @apps/api build" >&2
+  exit 1
+fi
+
 cd "${DEPLOY_PATH}/apps/web"
 NODE_ENV=production pnpm exec next build
 

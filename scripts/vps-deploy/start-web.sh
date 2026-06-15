@@ -11,4 +11,4 @@ set -a
 source "${ENV_DIR}/web.env"
 set +a
 
-exec /usr/local/bin/pnpm exec next start -p "${PORT:-3000}"
+exec /usr/local/bin/pnpm exec next start -p "${PORT:-3000}" -H "${HOSTNAME:-0.0.0.0}"

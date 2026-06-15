@@ -48,13 +48,21 @@ run_as_app "
   set -a
   source '$ENV_DIR/api.env'
   set +a
+  bash scripts/vps-deploy/ensure-prod-postgres-extensions.sh '$ENV_DIR/api.env'
   pnpm run db:migrate:deploy
-  cd apps/api && pnpm exec tsx -e \"import { seedDenaliOperatorIdentity } from './scripts/seed-denali-operator-identity.ts'; seedDenaliOperatorIdentity().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); })\"
+  bash scripts/vps-deploy/sync-db-app-role-grants.sh '$ENV_DIR/api.env'
+  bash scripts/vps-deploy/bootstrap-prod-identity.sh '$ENV_DIR/api.env'
 "
+
+log "refresh systemd units"
+bash "$DEPLOY_PATH/scripts/vps-deploy/install-systemd-units.sh"
 
 log "restart services"
 systemctl restart app-tour-api.service
 systemctl restart app-tour-web.service
+
+log "infra profile"
+bash "$DEPLOY_PATH/scripts/vps-deploy/show-infra-profile.sh" "$ENV_DIR/api.env" || true
 
 log "health"
 bash "$DEPLOY_PATH/scripts/vps-deploy/health-check.sh"

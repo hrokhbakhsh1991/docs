@@ -64,20 +64,7 @@ install_env_templates() {
 }
 
 install_systemd_units() {
-  sed \
-    -e "s|@DEPLOY_PATH@|$DEPLOY_PATH|g" \
-    -e "s|@APP_USER@|$APP_USER|g" \
-    -e "s|@ENV_DIR@|$ENV_DIR|g" \
-    "$DEPLOY_PATH/deploy/vps/systemd/app-tour-api.service" \
-    > /etc/systemd/system/app-tour-api.service
-  sed \
-    -e "s|@DEPLOY_PATH@|$DEPLOY_PATH|g" \
-    -e "s|@APP_USER@|$APP_USER|g" \
-    -e "s|@ENV_DIR@|$ENV_DIR|g" \
-    "$DEPLOY_PATH/deploy/vps/systemd/app-tour-web.service" \
-    > /etc/systemd/system/app-tour-web.service
-  systemctl daemon-reload
-  systemctl enable app-tour-api.service app-tour-web.service
+  bash "$DEPLOY_PATH/scripts/vps-deploy/install-systemd-units.sh"
   log "systemd units installed"
 }
 
