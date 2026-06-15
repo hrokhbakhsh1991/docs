@@ -42,8 +42,15 @@ beforeEach(async () => {
   await resetTenantRateLimiterStoreForTests();
 });
 
+/** Reclaim once per test run; memory specs may clear DATABASE_URL in root before hooks. */
+let outboxReclaimedForRun = false;
+
 if (process.env.DATABASE_URL?.trim()) {
   before(async () => {
+    if (outboxReclaimedForRun || !process.env.DATABASE_URL?.trim()) {
+      return;
+    }
+    outboxReclaimedForRun = true;
     const { reclaimStaleProcessingOutboxRows } =
       await import("../src/outbox/outbox-processing-reclaim");
     await reclaimStaleProcessingOutboxRows(0);
