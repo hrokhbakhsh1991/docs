@@ -15,6 +15,8 @@ export type WorkspaceDraftAdapterOptions<T> = {
   readonly autoApply?: boolean;
   /** When false, skip initial GET — used when `?clone=` hydrates locally first (11.6). */
   readonly hydrateFromRemote?: boolean;
+  /** When false, skip visibility/pagehide flush hooks (Phase 3). Default true. */
+  readonly visibilityFlush?: boolean;
   readonly merge?: (_local: T, _server: T) => T;
 };
 

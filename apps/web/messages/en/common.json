@@ -18,6 +18,7 @@
     "draftAvailable": "Draft available",
     "conflictResolving": "Resolving conflict…",
     "retry": "Retry",
+    "softLockBanner": "Your changes are saved locally; server sync is temporarily unavailable.",
     "applyServer": "Load server version",
     "discardLocal": "Keep editing locally"
   },

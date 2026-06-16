@@ -7,4 +7,5 @@ export {
   type DenaliWizardDraftEnvelope,
   type DenaliWizardDraftMeta,
 } from "./denali-wizard-draft-binding";
+export { DENALI_CANONICAL_OBJECT_ROOTS } from "../denali-plugin-adapter";
 export { createDenaliWizardDraftSessionId, isDenaliWizardDraftSessionId } from "../photos/wizard-draft-session-id";

@@ -1,6 +1,6 @@
 import { cssEscapeAttributeValue } from "./css-escape";
 import type { FieldFocusRegistry } from "./types";
-import { WIZARD_FIELD_ID_ATTR, WIZARD_FIELD_PATH_ATTR } from "./types";
+import { WIZARD_FIELD_PATH_ATTR } from "./types";
 
 export type WaitForWizardFieldOptions = {
   readonly root?: ParentNode | null;

@@ -33,13 +33,21 @@ export type ConflictStrategy =
   /** Re-fetch via onFetch, merge with local, hydrate quietly — no automatic retry push. */
   | "REFETCH_REAPPLY";
 
+export type DraftPushOptions = {
+  /** Browser may complete PATCH after page unload (Phase 3 visibility flush). */
+  readonly keepalive?: boolean;
+};
+
 export type DraftEngineConfig<T> = {
   id: string;
   conflictStrategy: ConflictStrategy;
   /** Default true. If false, fetched drafts are staged as pending until applyDraft(). */
   autoApply?: boolean;
   onFetch: () => Promise<DraftSyncPayload<T> | null>;
-  onPush: (_payload: DraftSyncPayload<T>) => Promise<DraftSyncPayload<T>>;
+  onPush: (
+    _payload: DraftSyncPayload<T>,
+    _options?: DraftPushOptions
+  ) => Promise<DraftSyncPayload<T>>;
   /** Optional delete handler used by clearDraft(). */
   onDelete?: () => Promise<void>;
   /** Debounce interval before triggering onPush after update(). Default: 500ms. */

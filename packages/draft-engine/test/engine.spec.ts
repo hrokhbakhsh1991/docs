@@ -117,6 +117,86 @@ test("clearDraft calls onDelete and clears local state", async () => {
   assert.equal(state.pendingDraft, undefined);
 });
 
+test("clearDraft awaits in-flight push, deletes, and ignores stale push side effects", async () => {
+  let deleteCalls = 0;
+  let pushCalls = 0;
+  let resolvePush: (() => void) | undefined;
+  const pushGate = new Promise<void>((resolve) => {
+    resolvePush = resolve;
+  });
+
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    onFetch: async () => null,
+    onPush: async (p) => {
+      pushCalls += 1;
+      await pushGate;
+      return { ...p, version: p.version + 1 };
+    },
+    onDelete: async () => {
+      deleteCalls += 1;
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "stale" });
+  const flushPromise = engine.flush();
+  await sleep(0);
+  assert.equal(engine.getState().status, "SYNCING");
+  assert.equal(pushCalls, 1);
+
+  const clearPromise = engine.clearDraft();
+  resolvePush?.();
+  await Promise.all([flushPromise, clearPromise]);
+
+  assert.equal(pushCalls, 1);
+  assert.equal(deleteCalls, 1);
+  const state = engine.getState();
+  assert.equal(state.status, "IDLE");
+  assert.equal(state.data, null);
+  assert.equal(state.version, 0);
+});
+
+test("clearDraft resets pendingSync so queued flush does not run after clear", async () => {
+  let deleteCalls = 0;
+  let pushCalls = 0;
+  let resolvePush: (() => void) | undefined;
+  const pushGate = new Promise<void>((resolve) => {
+    resolvePush = resolve;
+  });
+
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => null,
+    onPush: async (p) => {
+      pushCalls += 1;
+      await pushGate;
+      return { ...p, version: p.version + 1 };
+    },
+    onDelete: async () => {
+      deleteCalls += 1;
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "first" });
+  const firstFlush = engine.flush();
+  await sleep(0);
+  engine.setDraftData({ value: "second" });
+  void engine.flush();
+
+  const clearPromise = engine.clearDraft();
+  resolvePush?.();
+  await Promise.all([firstFlush, clearPromise]);
+
+  assert.equal(deleteCalls, 1);
+  assert.equal(pushCalls, 1);
+  assert.equal(engine.getState().data, null);
+});
+
 test("initialize sets ERROR when onFetch throws", async () => {
   const engine = new DraftEngine<TestData>({
     id: "test",
@@ -613,4 +693,46 @@ test("default debounce is 500ms when debounceMs omitted", async () => {
   assert.equal(pushCount, 0);
   await sleep(520);
   assert.equal(pushCount, 1);
+});
+
+test("flushKeepalive calls onPush with keepalive when DIRTY", async () => {
+  let keepalivePush = false;
+  const engine = new DraftEngine<TestData>({
+    id: "test-keepalive",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => null,
+    onPush: async (p, options) => {
+      if (options?.keepalive === true) {
+        keepalivePush = true;
+      }
+      return { ...p, version: p.version + 1 };
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "unload" });
+  assert.equal(engine.getState().status, "DIRTY");
+
+  engine.flushKeepalive();
+  await sleep(20);
+  assert.equal(keepalivePush, true);
+  assert.equal(engine.getState().status, "DIRTY");
+});
+
+test("flushKeepalive is no-op when IDLE", async () => {
+  let pushCount = 0;
+  const engine = new DraftEngine<TestData>({
+    id: "test-keepalive-idle",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => null,
+    onPush: async (p) => {
+      pushCount += 1;
+      return { ...p, version: p.version + 1 };
+    },
+  });
+
+  await engine.initialize();
+  engine.flushKeepalive();
+  await sleep(20);
+  assert.equal(pushCount, 0);
 });

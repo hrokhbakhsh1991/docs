@@ -23,7 +23,7 @@ function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T
       return configRef.current.merge;
     },
     onFetch: () => configRef.current.onFetch(),
-    onPush: (payload) => configRef.current.onPush(payload),
+    onPush: (payload, options) => configRef.current.onPush(payload, options),
   };
   if (configRef.current.onDelete != null) {
     config.onDelete = async () => {
@@ -38,6 +38,7 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
   setDraftData: (_data: T, _options?: DraftSetDataOptions) => void;
   retry: () => Promise<void>;
   flush: () => Promise<void>;
+  flushKeepalive: () => void;
   initialize: () => Promise<void>;
   applyDraft: () => void;
   clearDraft: () => Promise<void>;
@@ -75,6 +76,10 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
     await engineRef.current?.flush();
   }, []);
 
+  const flushKeepalive = useCallback(() => {
+    engineRef.current?.flushKeepalive();
+  }, []);
+
   const applyDraft = useCallback(() => {
     engineRef.current?.applyDraft();
   }, []);
@@ -83,5 +88,5 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
     await engineRef.current?.clearDraft();
   }, []);
 
-  return { state, setDraftData, retry, flush, initialize, applyDraft, clearDraft };
+  return { state, setDraftData, retry, flush, flushKeepalive, initialize, applyDraft, clearDraft };
 }

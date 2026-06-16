@@ -25,6 +25,7 @@ import { DraftConflictBanner } from "@/draft/draft-conflict-banner";
 import { DraftSyncIndicator } from "@/draft/draft-sync-indicator";
 import {
   mergeDenaliWizardDraftEnvelope,
+  trackDeletedCanonicalRoots,
   type NewTourWizardDraftEnvelope,
 } from "@/draft/denali-wizard-draft-merge";
 import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
@@ -56,6 +57,7 @@ import {
   readSelectableLeaderUserIds,
 } from "@/wizard/denali/denali-catalog-sanitize";
 import { DenaliFlatEditForm } from "@/wizard/denali/denali-flat-edit-form";
+import { DenaliFlatEditValidationList } from "@/wizard/denali/denali-flat-edit-validation-list";
 import {
   buildFieldStepResolverFromTemplate,
   validateDenaliPublishTransitionSync,
@@ -140,7 +142,17 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
   const persistDraft = useCallback(
     (next: TourWizardDraft) => {
       const meta = envelope?.meta ?? envelopeMeta;
-      draftSync.setData(denaliPrepareDraftEnvelope(next, meta));
+      const deletedRoots = trackDeletedCanonicalRoots(
+        envelope?.form.data as Record<string, unknown> | undefined,
+        next.data as Record<string, unknown> | undefined,
+        meta.deletedRoots
+      );
+      draftSync.setData(
+        denaliPrepareDraftEnvelope(next, {
+          ...meta,
+          ...(deletedRoots !== undefined ? { deletedRoots } : {}),
+        })
+      );
     },
     [draftSync, envelope, envelopeMeta]
   );
@@ -499,11 +511,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
         footer={
           <div className="space-y-3 pt-2">
             {submitValidationIssues != null && submitValidationIssues.length > 0 ? (
-              <ul className="text-sm text-destructive" data-denali-flat-edit-validation>
-                {submitValidationIssues.map((issue) => (
-                  <li key={`${issue.path}:${issue.message}`}>{issue.message}</li>
-                ))}
-              </ul>
+              <DenaliFlatEditValidationList issues={submitValidationIssues} />
             ) : null}
             {localizedError ? (
               <p role="alert" className="text-sm text-destructive">

@@ -4,6 +4,7 @@ import { useDraftEngine } from "@app-tour/draft-engine/react";
 import { useEffect, useMemo } from "react";
 
 import { createWorkspaceDraftAdapter } from "./create-workspace-draft-adapter";
+import { useDraftVisibilityFlush } from "./use-draft-visibility-flush";
 import type { UseWorkspaceDraftOptions, WorkspaceDraftHookResult } from "./workspace-draft-types";
 
 export function useWorkspaceDraft<T>(
@@ -23,7 +24,7 @@ export function useWorkspaceDraft<T>(
     ]
   );
 
-  const { state, setDraftData, retry, flush, initialize, clearDraft, applyDraft } =
+  const { state, setDraftData, retry, flush, flushKeepalive, initialize, clearDraft, applyDraft } =
     useDraftEngine(adapter);
 
   useEffect(() => {
@@ -32,6 +33,13 @@ export function useWorkspaceDraft<T>(
     }
     void initialize();
   }, [initialize, options.hydrateFromRemote]);
+
+  useDraftVisibilityFlush({
+    enabled: options.visibilityFlush !== false,
+    status: state.status,
+    flush,
+    flushKeepalive,
+  });
 
   const navLocked = state.status === "SYNCING" || state.status === "CONFLICT_RESOLVING";
 

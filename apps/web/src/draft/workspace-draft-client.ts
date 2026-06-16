@@ -7,6 +7,8 @@ import type {
   WorkspaceDraftIndexResponse,
 } from "./workspace-draft-types";
 
+export const WORKSPACE_DRAFT_PATCH_ABORTED = "WORKSPACE_DRAFT_PATCH_ABORTED" as const;
+
 function draftBffPath(workspaceId: string, namespace: string, key: string): string {
   return `/api/workspaces/${encodeURIComponent(workspaceId)}/drafts/${encodeURIComponent(namespace)}/${encodeURIComponent(key)}`;
 }
@@ -143,6 +145,18 @@ export async function fetchWorkspaceDraftIndex(
   return parseWorkspaceDraftIndexResponse(body);
 }
 
+function responseHasJsonContentType(response: Response): boolean {
+  const contentType = response.headers.get("content-type") ?? "";
+  return contentType.toLowerCase().includes("application/json");
+}
+
+async function readJsonResponseBody(response: Response): Promise<unknown> {
+  if (!responseHasJsonContentType(response)) {
+    throw new Error(`WORKSPACE_DRAFT_PATCH_FAILED:${response.status}`);
+  }
+  return (await response.json()) as unknown;
+}
+
 function parseDraftSyncPayload<T>(body: unknown): DraftSyncPayload<T> {
   if (typeof body !== "object" || body === null) {
     throw new Error("WORKSPACE_DRAFT_INVALID_RESPONSE");
@@ -189,25 +203,36 @@ export async function fetchWorkspaceDraftSnapshot<T>(
   return parseDraftSyncPayload<T>(body);
 }
 
+export type PatchWorkspaceDraftSnapshotOptions = {
+  readonly signal?: AbortSignal;
+  /** Browser may complete PATCH after page unload; mutually exclusive with signal. */
+  readonly keepalive?: boolean;
+};
+
 export async function patchWorkspaceDraftSnapshot<T>(
   workspaceId: string,
   namespace: string,
   key: string,
-  payload: DraftSyncPayload<T>
+  payload: DraftSyncPayload<T>,
+  options?: PatchWorkspaceDraftSnapshotOptions
 ): Promise<DraftSyncPayload<T>> {
+  const keepalive = options?.keepalive === true;
   const response = await fetch(draftBffPath(workspaceId, namespace, key), {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
     cache: "no-store",
+    ...(keepalive ? { keepalive: true } : {}),
+    ...(!keepalive && options?.signal !== undefined ? { signal: options.signal } : {}),
   });
-  const body = (await response.json()) as unknown;
   if (response.status === 409) {
+    const body = await readJsonResponseBody(response);
     throw new DraftConflictError(parseDraftSyncPayload<T>(body));
   }
   if (!response.ok) {
     throw new Error(`WORKSPACE_DRAFT_PATCH_FAILED:${response.status}`);
   }
+  const body = await readJsonResponseBody(response);
   return parseDraftSyncPayload<T>(body);
 }
 

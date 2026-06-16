@@ -33,4 +33,67 @@ describe("denali-wizard-draft-resume.spec.ts — Phase 11.5", () => {
     });
     assert.equal(envelope.meta.currentStepIndex, 4);
   });
+
+  it("WEB-P11-5-03 freshStart merge keeps local template over stale server", () => {
+    const local = denaliPrepareDraftEnvelope(
+      { data: { basics: { title: "Template seed" } } },
+      { currentStepIndex: 0, wizardSessionId: "local-session", freshStart: true }
+    );
+    const server = denaliPrepareDraftEnvelope(
+      {
+        data: {
+          basics: { title: "Stale server" },
+          details: { summary: "Old summary" },
+        },
+      },
+      { currentStepIndex: 4, wizardSessionId: "server-session" }
+    );
+    const merged = mergeDenaliWizardDraftEnvelope(local, server);
+    assert.equal(merged.meta.currentStepIndex, 0);
+    assert.equal(merged.meta.wizardSessionId, "local-session");
+    assert.equal(merged.meta.freshStart, true);
+    assert.equal(merged.form.data.basics?.title, "Template seed");
+    assert.equal(merged.form.data.details?.summary, undefined);
+  });
+
+  it("WEB-P11-5-04 level-2 merge preserves server siblings under shared object root", () => {
+    const local = denaliPrepareDraftEnvelope(
+      {
+        data: {
+          program: {
+            itinerary: [{ dayNumber: 1 }],
+          },
+        },
+      },
+      { currentStepIndex: 1, wizardSessionId: "local" }
+    );
+    const server = denaliPrepareDraftEnvelope(
+      {
+        data: {
+          program: {
+            itinerary: [{ dayNumber: 1 }, { dayNumber: 2 }],
+            difficultyLevel: "5",
+          },
+        },
+      },
+      { currentStepIndex: 2, wizardSessionId: "server" }
+    );
+    const merged = mergeDenaliWizardDraftEnvelope(local, server);
+    assert.equal(merged.form.data.program?.difficultyLevel, "5");
+    assert.deepEqual(merged.form.data.program?.itinerary, [{ dayNumber: 1 }]);
+  });
+
+  it("WEB-P11-5-05 deletedRoots blocks server root resurrection", () => {
+    const local = denaliPrepareDraftEnvelope(
+      { data: { basics: { title: "Local" } } },
+      { currentStepIndex: 2, wizardSessionId: "local", deletedRoots: ["details"] }
+    );
+    const server = denaliPrepareDraftEnvelope(
+      { data: { basics: { title: "Server" }, details: { summary: "Remote" } } },
+      { currentStepIndex: 0, wizardSessionId: "server" }
+    );
+    const merged = mergeDenaliWizardDraftEnvelope(local, server);
+    assert.equal(merged.form.data.details?.summary, undefined);
+    assert.deepEqual(merged.meta.deletedRoots, ["details"]);
+  });
 });

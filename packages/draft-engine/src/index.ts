@@ -5,6 +5,7 @@ export {
   type DraftDataSource,
   type DraftEngineConfig,
   type DraftEngineState,
+  type DraftPushOptions,
   type DraftSetDataOptions,
   type DraftStatus,
   type DraftSyncPayload,

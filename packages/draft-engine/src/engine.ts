@@ -23,6 +23,8 @@ export class DraftEngine<T> {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private syncInFlight: Promise<void> | null = null;
   private pendingSync = false;
+  /** Bumped on clearDraft — in-flight pushes must not mutate state after a clear. */
+  private syncEpoch = 0;
   private readonly listeners = new Set<(_state: DraftEngineState<T>) => void>();
 
   constructor(config: DraftEngineConfig<T>) {
@@ -67,6 +69,18 @@ export class DraftEngine<T> {
   async flush(): Promise<void> {
     this.clearDebounce();
     await this.flushSync();
+  }
+
+  /**
+   * Best-effort push for tab unload — no SYNCING transition; errors swallowed by caller.
+   * Uses {@link DraftPushOptions.keepalive} when the adapter supports it.
+   */
+  flushKeepalive(): void {
+    if (this.status !== "DIRTY" || this.data == null) {
+      return;
+    }
+    this.clearDebounce();
+    void this.config.onPush(this.buildPayload(), { keepalive: true }).catch(() => {});
   }
 
   async retry(): Promise<void> {
@@ -143,8 +157,25 @@ export class DraftEngine<T> {
     if (this.config.onDelete == null) {
       throw new Error("clearDraft requires config.onDelete");
     }
-    await this.config.onDelete();
+
     this.clearDebounce();
+    this.pendingSync = false;
+    this.syncEpoch += 1;
+
+    const inFlight = this.syncInFlight;
+    if (inFlight != null) {
+      try {
+        await inFlight;
+      } catch {
+        // Stale push failure must not block server delete.
+      }
+    }
+
+    this.syncInFlight = null;
+    this.pendingSync = false;
+
+    await this.config.onDelete();
+
     this.pendingDraft = null;
     this.data = null;
     this.version = 0;
@@ -258,6 +289,8 @@ export class DraftEngine<T> {
   }
 
   private async doPush(): Promise<void> {
+    const epochAtStart = this.syncEpoch;
+
     if (this.status === "CONFLICT_RESOLVING") {
       return;
     }
@@ -272,6 +305,9 @@ export class DraftEngine<T> {
     try {
       const pushedPayload = this.buildPayload();
       const result = await this.config.onPush(pushedPayload);
+      if (this.syncEpoch !== epochAtStart) {
+        return;
+      }
       const localChangedDuringPush =
         this.data !== pushedPayload.data || this.lastModified !== pushedPayload.lastModified;
       if (localChangedDuringPush) {
@@ -282,9 +318,18 @@ export class DraftEngine<T> {
         this.status = "IDLE";
       }
     } catch (err) {
+      if (this.syncEpoch !== epochAtStart) {
+        return;
+      }
       if (err instanceof DraftConflictError) {
-        await this.handleConflict(err);
+        await this.handleConflict(err, epochAtStart);
+        if (this.syncEpoch !== epochAtStart) {
+          return;
+        }
         this.notify();
+        return;
+      }
+      if (err instanceof Error && err.message === "WORKSPACE_DRAFT_PATCH_ABORTED") {
         return;
       }
       this.status = "ERROR";
@@ -293,12 +338,15 @@ export class DraftEngine<T> {
     this.notify();
   }
 
-  private async handleConflict(conflict: DraftConflictError<T>): Promise<void> {
+  private async handleConflict(
+    conflict: DraftConflictError<T>,
+    epochAtStart: number = this.syncEpoch
+  ): Promise<void> {
     const { conflictStrategy } = this.config;
     const serverPayload = conflict.serverPayload;
 
     if (conflictStrategy === "REFETCH_REAPPLY") {
-      await this.refetchAndReapplyLocal(conflict);
+      await this.refetchAndReapplyLocal(conflict, epochAtStart);
       return;
     }
 
@@ -317,7 +365,7 @@ export class DraftEngine<T> {
         this.notify();
       } catch (retryErr) {
         if (retryErr instanceof DraftConflictError) {
-          await this.handleConflict(retryErr);
+          await this.handleConflict(retryErr, epochAtStart);
           return;
         }
         this.status = "ERROR";
@@ -351,7 +399,10 @@ export class DraftEngine<T> {
   /**
    * On 409: re-fetch server state, merge with local edits, hydrate quietly (no auto-push).
    */
-  private async refetchAndReapplyLocal(conflict: DraftConflictError<T>): Promise<void> {
+  private async refetchAndReapplyLocal(
+    conflict: DraftConflictError<T>,
+    epochAtStart: number = this.syncEpoch
+  ): Promise<void> {
     const localPending = this.data;
     if (localPending == null) {
       this.hydrateFromRemote(conflict.serverPayload);
@@ -366,6 +417,9 @@ export class DraftEngine<T> {
     this.notify();
     try {
       const serverPayload = await this.config.onFetch();
+      if (this.syncEpoch !== epochAtStart) {
+        return;
+      }
       const fallback = conflict.serverPayload;
       const occSource = serverPayload ?? fallback;
       const merged =
@@ -387,6 +441,9 @@ export class DraftEngine<T> {
       this.error = undefined;
       this.notify();
     } catch {
+      if (this.syncEpoch !== epochAtStart) {
+        return;
+      }
       this.hydrateFromRemote(conflict.serverPayload);
       this.status = "IDLE";
       this.error = undefined;

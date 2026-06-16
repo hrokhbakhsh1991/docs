@@ -19,10 +19,12 @@ import { Button } from "@/components/ui/button";
 
 import { DraftConflictBanner } from "@/draft/draft-conflict-banner";
 import { DraftSyncIndicator } from "@/draft/draft-sync-indicator";
+import { DraftManualSyncButton } from "@/draft/draft-manual-sync-button";
 import { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
 import {
   mergeDenaliWizardDraftEnvelope,
+  trackDeletedCanonicalRoots,
   type NewTourWizardDraftEnvelope,
 } from "@/draft/denali-wizard-draft-merge";
 import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
@@ -121,6 +123,9 @@ export function NewTourWizardClient() {
   const [cloneStatus, setCloneStatus] = useState<TourCloneHydrateStatus>("idle");
   const [cloneError, setCloneError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [clearDraftError, setClearDraftError] = useState<string | null>(null);
+  const [clearDraftPending, setClearDraftPending] = useState(false);
+  const [draftResumeEpoch, setDraftResumeEpoch] = useState(0);
   const [submitValidationIssues, setSubmitValidationIssues] = useState<
     readonly ValidationIssue[] | null
   >(null);
@@ -437,6 +442,12 @@ export function NewTourWizardClient() {
     gate.seedLabel.length > 0 &&
     !shouldSkipWizardTemplatePrefill(cloneTourId, session.pluginId);
 
+  const denaliDraftHydrated =
+    !isDenali ||
+    (draftSync.data !== null &&
+      draftSync.status !== "SYNCING" &&
+      draftSync.status !== "CONFLICT_RESOLVING");
+
   const draft = isDenali ? (denaliEnvelope?.form ?? emptyTourWizardDraft()) : localDraft;
   const activeStepIndex = isDenali ? (denaliEnvelope?.meta.currentStepIndex ?? 0) : localStepIndex;
 
@@ -473,7 +484,20 @@ export function NewTourWizardClient() {
             ? sanitizeDenaliWizardDraft(next, denaliRules, wizardRuleEvalContext as DenaliWizardRuleEvalContext)
             : next;
       if (isDenali && denaliEnvelope !== null) {
-        draftSync.setData(denaliPrepareDraftEnvelope(sanitized, denaliEnvelope.meta));
+        const deletedRoots = trackDeletedCanonicalRoots(
+          denaliEnvelope.form.data as Record<string, unknown> | undefined,
+          sanitized.data as Record<string, unknown> | undefined,
+          denaliEnvelope.meta.deletedRoots
+        );
+        draftSync.setData(
+          denaliPrepareDraftEnvelope(sanitized, {
+            currentStepIndex: denaliEnvelope.meta.currentStepIndex,
+            ...(denaliEnvelope.meta.wizardSessionId !== undefined
+              ? { wizardSessionId: denaliEnvelope.meta.wizardSessionId }
+              : {}),
+            ...(deletedRoots !== undefined ? { deletedRoots } : {}),
+          })
+        );
         return;
       }
       setLocalDraft(sanitized);
@@ -498,19 +522,40 @@ export function NewTourWizardClient() {
   );
 
   const onClearDraft = useCallback(() => {
-    if (!isDenali || !window.confirm(t("clearDraftConfirm"))) {
+    if (!isDenali || clearDraftPending || !window.confirm(t("clearDraftConfirm"))) {
       return;
     }
     void (async () => {
-      await draftSync.clearDraft();
-      draftSync.setData(
-        denaliPrepareDraftEnvelope(buildPrefilledForm(gate, session.pluginId), {
-          currentStepIndex: 0,
-          wizardSessionId,
-        })
-      );
+      setClearDraftPending(true);
+      setClearDraftError(null);
+      try {
+        await draftSync.clearDraft();
+        draftSync.setData(
+          denaliPrepareDraftEnvelope(buildPrefilledForm(gate, session.pluginId), {
+            currentStepIndex: 0,
+            wizardSessionId,
+            freshStart: true,
+          })
+        );
+        await draftSync.flush();
+        setDraftResumeEpoch((epoch) => epoch + 1);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "WORKSPACE_DRAFT_CLEAR_FAILED";
+        setClearDraftError(t("clearDraftError", { error: message }));
+      } finally {
+        setClearDraftPending(false);
+      }
     })();
-  }, [isDenali, draftSync, gate, session.pluginId, wizardSessionId, t]);
+  }, [
+    isDenali,
+    clearDraftPending,
+    draftSync,
+    gate,
+    session.pluginId,
+    wizardSessionId,
+    t,
+  ]);
 
   const onSubmit = () => {
     setSubmitError(null);
@@ -696,25 +741,22 @@ export function NewTourWizardClient() {
                 variant="outline"
                 size="sm"
                 data-testid="wizard-clear-draft"
-                disabled={draftSync.navLocked || draftSync.status === "SYNCING"}
+                disabled={
+                  clearDraftPending ||
+                  draftSync.navLocked ||
+                  draftSync.status === "SYNCING"
+                }
                 onClick={onClearDraft}
               >
-                {t("clearDraft")}
+                {clearDraftPending ? t("clearingDraft") : t("clearDraft")}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                data-testid="wizard-save-draft"
-                disabled={
-                  draftSync.navLocked ||
-                  draftSync.status === "SYNCING" ||
-                  (draftSync.status !== "DIRTY" && draftSync.status !== "ERROR")
-                }
-                onClick={() => void draftSync.flush()}
-              >
-                {draftSync.status === "SYNCING" ? t("savingDraft") : t("saveDraft")}
-              </Button>
+              <DraftManualSyncButton
+                status={draftSync.status}
+                navLocked={draftSync.navLocked}
+                clearDraftPending={clearDraftPending}
+                onFlush={() => void draftSync.flush()}
+                onRetry={() => void draftSync.retry()}
+              />
             </div>
           ) : null}
         </div>
@@ -735,6 +777,15 @@ export function NewTourWizardClient() {
                 }
               }}
             />
+            {clearDraftError ? (
+              <p
+                className="new-tour-wizard-page__clear-draft-error"
+                role="alert"
+                data-testid="wizard-clear-draft-error"
+              >
+                {clearDraftError}
+              </p>
+            ) : null}
           </>
         ) : null}
       </header>
@@ -768,10 +819,13 @@ export function NewTourWizardClient() {
         wizardSessionId={wizardSessionId}
         activeStepIndex={activeStepIndex}
         onActiveStepIndexChange={onActiveStepIndexChange}
-        navLocked={isDenali ? draftSync.navLocked : false}
+        navLocked={isDenali ? draftSync.navLocked || clearDraftPending : false}
+        draftSyncStatus={isDenali ? draftSync.status : undefined}
         submitValidationIssues={submitValidationIssues}
         onSubmitValidationHandled={() => setSubmitValidationIssues(null)}
         wizardRuleEvalContext={isDenali ? wizardRuleEvalContext : undefined}
+        draftHydrated={denaliDraftHydrated}
+        draftResumeEpoch={isDenali ? draftResumeEpoch : undefined}
         renderFooter={() => (
           <div data-wizard-footer>
             <Button type="button" onClick={onSubmit} disabled={pending}>

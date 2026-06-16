@@ -383,6 +383,15 @@
     "validationStepGroup": "{step} — {count, number} مورد",
     "validationGoToStep": "رفتن به مرحله {step}",
     "validationIssueAction": "رفتن به فیلد {field} و اصلاح خطا",
+    "validation": {
+      "REQUIRED_FIELD_EMPTY": "{field} الزامی است",
+      "CANONICAL_TYPE_MISMATCH": "مقدار {field} نامعتبر است",
+      "CANONICAL_ROOT_UNKNOWN": "{field} در این فرم مجاز نیست",
+      "HIDDEN_FIELD_POISON": "مقدار {field} باید پاک شود",
+      "VALIDATION_RULE_REQUIRED_FIELD": "{field} الزامی است",
+      "DENALI_TOUR_TYPE_REQUIRED": "قبل از ادامه نوع تور را انتخاب کنید",
+      "CARDINALITY_VIOLATION": "{field} از حد مجاز فراتر رفته است"
+    },
     "publishStatus": {
       "helper": "تور پیش‌نویس تا زمان انتشار فعال، داخلی می‌ماند.",
       "draft": "پیش‌نویس",

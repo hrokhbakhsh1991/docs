@@ -50,6 +50,45 @@ Client: `fetchWorkspaceDraftEvents` — proxies API audit stream for operator to
 
 Route handler forwards `Authorization: Bearer <session>` to `@apps/api` paths documented in 11.2.
 
+## PATCH transport contract (Phase 1 — systemic fixes)
+
+`patchWorkspaceDraftSnapshot` mirrors GET ordering: **status checks before body parse**.
+
+```text
+fetch(PATCH)
+  → if status === 409 → parse JSON body (Content-Type gate) → DraftConflictError
+  → if !response.ok → throw WORKSPACE_DRAFT_PATCH_FAILED:${status} (no JSON required)
+  → parse JSON → parseDraftSyncPayload
+```
+
+### Content-Type gate
+
+`readJsonResponseBody(response)` parses only when `Content-Type` includes `application/json`. Gateway HTML error pages (502/504 from edge proxies) therefore surface as `WORKSPACE_DRAFT_PATCH_FAILED:502` instead of `SyntaxError: unexpected token <`.
+
+When `409` arrives with a non-JSON body, throw `WORKSPACE_DRAFT_PATCH_FAILED:409` — do not silently drop conflict semantics.
+
+### Error taxonomy (client)
+
+| Code | Meaning |
+| ---- | ------- |
+| `WORKSPACE_DRAFT_PATCH_FAILED:${status}` | HTTP failure (4xx/5xx except handled 409) |
+| `WORKSPACE_DRAFT_PATCH_ABORTED` | Superseded in-flight PATCH (see below) |
+| `DraftConflictError` | 409 with valid `DraftSyncPayload` body |
+
+GET failures continue to use `WORKSPACE_DRAFT_FETCH_FAILED:${status}`.
+
+### Push-time AbortController
+
+`create-workspace-draft-adapter` owns a closure-scoped `AbortController` per adapter instance:
+
+1. Each `onPush` call **aborts** the previous in-flight PATCH signal.
+2. A new controller is created and its `signal` is passed to `fetch`.
+3. `AbortError` is normalized to `WORKSPACE_DRAFT_PATCH_ABORTED`.
+
+`DraftEngine.doPush` treats `WORKSPACE_DRAFT_PATCH_ABORTED` as a **benign supersession** — it does not set `status: ERROR` because a newer push owns recovery.
+
+This complements existing `syncEpoch` / `localChangedDuringPush` guards inside the engine.
+
 ## Generic envelope
 
 Workspace packages may wrap form state + meta:
@@ -80,6 +119,23 @@ const draft = useWorkspaceDraft<MySnapshot>({
 
 `initialize()` runs on mount. `setData` schedules debounced PATCH (500ms default).
 
+### `clearDraft()` sequencing (Denali wizard)
+
+`DraftEngine.clearDraft()` is safe against in-flight auto-save races:
+
+1. Clears debounce and **`pendingSync`** so no queued flush re-runs after clear.
+2. Bumps **`syncEpoch`** so a stale `doPush` that completes after clear cannot mutate local state.
+3. **Awaits** active `syncInFlight` (errors swallowed) so DELETE runs after the stale PATCH finishes — then deletes the row.
+4. Resets local OCC fields to `version: 0` / `data: null` / `IDLE`.
+
+Denali create tour (`new-tour-wizard-client.tsx`) runs **`clearDraft()` → `setData(prefilled)` → `flush()`** so the template reset is persisted before navigation. Failures surface via `wizard-clear-draft-error` alert; the clear button stays disabled until the sequence completes.
+
+### Conflict merge + resume (Denali create)
+
+- Envelope meta may include `freshStart: true` after explicit clear. `mergeDenaliWizardDraftEnvelope` keeps the local template and step **0** — stale server `currentStepIndex` and fields must not win during OCC conflict while fresh-start is active.
+- `WorkspaceWizardHost` runs `resolveInitialStepIndex` **once** per mount when `draftHydrated` is true (not on every draft keystroke). `draftResumeEpoch` increments after clear to suppress re-inference jumps.
+- When matrix / contextual rules change the visible step list, the host re-anchors by **`stepId`** (`resolveWizardStepIndexAfterPlanChange`) instead of keeping a numeric index that may point at different content.
+
 ## 409 mapping
 
 `workspace-draft-client.patchWorkspaceDraftSnapshot` throws `DraftConflictError` when BFF returns `409` with `DraftSyncPayload` body — engine `REFETCH_REAPPLY` handles merge quietly.
@@ -103,6 +159,67 @@ Maps `DraftStatus` → `@app-tour/ui-primitives/badge` variant + `common.draftSy
 
 - `apps/web/test/workspace-draft-client.spec.ts` — mock `fetch`, no Denali
 - `apps/web/test/draft-sync-indicator-logic.spec.ts` — status mapping
+- `apps/web/test/draft-visibility-flush-logic.spec.ts` — visibility → flush/keepalive mapping
+- `apps/web/test/create-workspace-draft-adapter.spec.ts` — abort + keepalive paths
+- **Systemic fixes DoD:** [`denali-wizard-draft-binding.md`](denali-wizard-draft-binding.md#systemic-fixes-closure-phase-4--dod) — Phase 1–4 closure checklist + fast-track commands
+- `apps/web/test/denali-draft-systemic-closure.spec.ts` — regression guards (`WEB-P11-CLOSE-*`)
+
+## ERROR soft-lock UX (Phase 2 — systemic fixes)
+
+When `DraftStatus === ERROR`, the host **must not** disable wizard fields or step navigation (`navLocked` stays false — only `SYNCING` / `CONFLICT_RESOLVING` lock nav).
+
+### Soft-lock banner
+
+`WorkspaceWizardHost` accepts optional `draftSyncStatus`. When `ERROR`, it renders a non-blocking `DraftSyncSoftLockBanner` above step content:
+
+- Message: `common.draftSync.softLockBanner` — local edits accumulate; server sync is temporarily unavailable.
+- Fields remain editable; first keystroke transitions engine to `DIRTY` and clears `error` (existing `setDraftData` contract).
+
+### Manual sync button (Save draft)
+
+`resolveDraftManualSyncButtonView(status)` drives the header **Save draft** control on Denali create tour:
+
+| Status | Label | Action | Enabled |
+| ------ | ----- | ------ | ------- |
+| `ERROR` | `common.draftSync.retry` | `draft.retry()` | yes (unless `navLocked` / clear pending) |
+| `DIRTY` | `wizard.saveDraft` | `draft.flush()` | yes |
+| `SYNCING` | `wizard.savingDraft` | — | disabled |
+| other | `wizard.saveDraft` | — | disabled |
+
+`DraftEngine.flush()` is a no-op when not `DIRTY`; routing `ERROR` to `retry()` avoids the dead Save click documented in the Phase 2 audit.
+
+`DraftSyncIndicator` keeps inline retry on `ERROR`; the Save/retry button uses the same `retry()` entry point for consistency.
+
+## Visibility flush (Phase 3 — lifecycle)
+
+Debounced auto-save (500ms default) can lose the last edit if the user hides or closes the tab before the timer fires. `useDraftVisibilityFlush` (wired inside `useWorkspaceDraft` by default) closes that gap.
+
+### Two-tier event strategy
+
+| Event | Condition | Action |
+| ----- | --------- | ------ |
+| `visibilitychange` | `document.visibilityState === "hidden"` and `status === DIRTY` | `DraftEngine.flush()` — normal async PATCH (primary path) |
+| `pagehide` | still `DIRTY` (not `SYNCING`) | `DraftEngine.flushKeepalive()` — fire-and-forget PATCH |
+
+Skip flush when `status` is `CONFLICT_RESOLVING` or `DRAFT_AVAILABLE`. Opt out per hook: `useWorkspaceDraft({ visibilityFlush: false })`.
+
+Engine data is already sanitized at `setData` time (Denali `onDraftChange` / flat-edit rule sync) — visibility flush does not re-run sanitize.
+
+### PATCH `keepalive` transport
+
+`patchWorkspaceDraftSnapshot` accepts `keepalive?: boolean` on `PatchWorkspaceDraftSnapshotOptions`. When true:
+
+- `fetch` includes `keepalive: true` (browser may complete PATCH after page unload)
+- **No `AbortSignal`** — mutually exclusive with Phase 1 push-time abort
+- Keepalive pushes must not abort an in-flight debounced PATCH; debounced pushes must not abort a keepalive unload send
+
+`create-workspace-draft-adapter` routes `onPush(payload, { keepalive: true })` to this path and swallows errors (unload context).
+
+`DraftEngine.flushKeepalive()` clears debounce, builds payload, calls `onPush` with keepalive — **does not** transition to `SYNCING` (unload-safe).
+
+### Browser limit
+
+`keepalive` request bodies are capped at ~64KB in modern browsers. Large Denali drafts may fail silently on `pagehide`; the `visibilitychange` flush remains the reliable path when the user switches tabs.
 
 ## Draft events timeline (11.11)
 

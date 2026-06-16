@@ -383,6 +383,15 @@
     "validationStepGroup": "{step} — {count, number} {count, plural, one {issue} other {issues}}",
     "validationGoToStep": "Go to step {step}",
     "validationIssueAction": "Go to {field} and fix this issue",
+    "validation": {
+      "REQUIRED_FIELD_EMPTY": "{field} is required",
+      "CANONICAL_TYPE_MISMATCH": "{field} has an invalid value",
+      "CANONICAL_ROOT_UNKNOWN": "{field} is not allowed in this form",
+      "HIDDEN_FIELD_POISON": "{field} contains a value that must be cleared",
+      "VALIDATION_RULE_REQUIRED_FIELD": "{field} is required",
+      "DENALI_TOUR_TYPE_REQUIRED": "Select a tour type before continuing",
+      "CARDINALITY_VIOLATION": "{field} exceeds allowed limits"
+    },
     "publishStatus": {
       "helper": "Draft tours stay internal until you publish as active.",
       "draft": "Draft",

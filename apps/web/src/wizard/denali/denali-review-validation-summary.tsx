@@ -5,6 +5,7 @@ import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { groupValidationIssuesByStep, type ValidationIssueStepGroup } from "../group-validation-issues-by-step";
+import { resolveWizardValidationIssueMessage } from "../resolve-wizard-validation-issue-message";
 import type { WizardStepDescriptor } from "../wizard-surface-types";
 import { resolveWizardValidationFieldLabel } from "../wizard-validation-field-label";
 
@@ -30,11 +31,16 @@ export function DenaliReviewValidationSummary({
   translateWorkspaceMessage,
 }: DenaliReviewValidationSummaryProps) {
   const t = useTranslations("denali");
+  const tValidation = useTranslations("denali.review.validation");
   const locale = useLocale();
   const isRtl = locale === "fa";
   const StepChevron = isRtl ? ChevronLeft : ChevronRight;
   const translateFieldLabel =
     translateWorkspaceMessage ?? ((key: string) => t(key));
+  const validationTranslator = {
+    has: (key: string) => tValidation.has(key),
+    translate: (key: string, values: { field: string }) => tValidation(key, values),
+  };
 
   if (issues.length === 0) {
     return null;
@@ -96,8 +102,13 @@ export function DenaliReviewValidationSummary({
                   fieldLabelSurfaceId,
                   translateWorkspaceMessage: translateFieldLabel,
                 });
+                const issueMessage = resolveWizardValidationIssueMessage(
+                  issue,
+                  validationTranslator,
+                  fieldLabel
+                );
                 return (
-                  <li key={`${issue.path}:${issue.message}`}>
+                  <li key={`${issue.path}:${issue.code ?? issue.message}`}>
                     <button
                       type="button"
                       className="denali-review-validation__issue-link"
@@ -106,7 +117,7 @@ export function DenaliReviewValidationSummary({
                       onClick={() => onFocusIssue(group.stepId, issue.path)}
                     >
                       <span className="denali-review-validation__issue-field">{fieldLabel}</span>
-                      <span className="denali-review-validation__issue-message">{issue.message}</span>
+                      <span className="denali-review-validation__issue-message">{issueMessage}</span>
                     </button>
                   </li>
                 );
