@@ -138,7 +138,6 @@ export function mergeDenaliWizardDraftEnvelope(
           ? local.meta.currentStepIndex
           : server.meta.currentStepIndex,
       wizardSessionId: local.meta.wizardSessionId ?? server.meta.wizardSessionId,
-      ...(deletedRoots !== undefined ? { deletedRoots } : {}),
     },
   };
 }

@@ -470,6 +470,8 @@ export class DraftEngine<T> {
       const localChangedDuringPush =
         this.data !== pushedPayload.data || this.lastModified !== pushedPayload.lastModified;
       if (localChangedDuringPush) {
+        this.captureLastValidSnapshot(result);
+        this.commitServerAck(result, "patch200");
         this.status = "DIRTY";
         this.scheduleSync();
       } else {

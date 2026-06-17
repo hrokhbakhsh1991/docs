@@ -53,6 +53,7 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
     const merge = readWebSource("src/draft/denali-wizard-draft-merge.ts");
     assert.doesNotMatch(merge, /mergeDeletedRoots/);
     assert.match(merge, /server\.meta\.deletedRoots/);
+    assert.doesNotMatch(merge, /\.\.\.\(deletedRoots !== undefined \? \{ deletedRoots \}/);
   });
 
   it("WEB-P11-UNIFY-05 DraftSyncChrome forwards conflictReloadNotice to conflict banner", () => {

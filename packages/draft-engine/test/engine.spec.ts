@@ -927,3 +927,58 @@ test("flushKeepalive does not commit ack cache (Track B)", async () => {
   const ackAfter = engine.getAckCacheForTests();
   assert.deepEqual(ackAfter, ackBefore);
 });
+
+test("patch200 commits ack when local edits continue during in-flight push (Track B INV-6)", async () => {
+  const fetched = payload({ value: "initial" }, 1, 1000);
+  let resolvePush: (() => void) | undefined;
+  const pushGate = new Promise<void>((resolve) => {
+    resolvePush = resolve;
+  });
+
+  const engine = new DraftEngine<TestData>({
+    id: "test-ack-concurrent-edit",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    onFetch: async () => fetched,
+    onPush: async (p) => {
+      await pushGate;
+      return payload({ value: "saved-on-server" }, p.version + 1, p.lastModified + 1);
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "first-edit" });
+  const flushPromise = engine.flush();
+  await sleep(0);
+  engine.setDraftData({ value: "second-edit-during-push" });
+  resolvePush?.();
+  await flushPromise;
+
+  const state = engine.getState();
+  assert.equal(state.data?.value, "second-edit-during-push");
+  assert.equal(state.status, "DIRTY");
+  const ack = engine.getAckCacheForTests();
+  assert.ok(ack != null);
+  assert.equal(ack.version, 2);
+  assert.equal(ack.ackSource, "patch200");
+  assert.deepEqual(ack.data, { value: "saved-on-server" });
+});
+
+test("aborted push does not commit patch200 ack (Track B INV-6)", async () => {
+  const fetched = payload({ value: "initial" }, 3, 3000);
+  const engine = new DraftEngine<TestData>({
+    id: "test-ack-abort",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    onFetch: async () => fetched,
+    onPush: async () => {
+      throw new Error("WORKSPACE_DRAFT_PATCH_ABORTED");
+    },
+  });
+
+  await engine.initialize();
+  const ackBefore = engine.getAckCacheForTests();
+  engine.setDraftData({ value: "edited" });
+  await engine.flush();
+  assert.deepEqual(engine.getAckCacheForTests(), ackBefore);
+});

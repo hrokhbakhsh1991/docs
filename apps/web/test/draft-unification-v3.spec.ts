@@ -49,7 +49,7 @@ describe("draft-unification-v3.spec.ts — Track C", () => {
     assert.equal(resolveDenaliDraftMerge("on"), undefined);
   });
 
-  it("WEB-P11-C-05 mergeDenaliWizardDraftEnvelope uses server-only deletedRoots in meta", () => {
+  it("WEB-P11-C-05 mergeDenaliWizardDraftEnvelope honors server tombstones but omits client meta (INV-2)", () => {
     const local = {
       form: { data: { basics: { title: "Local" } } },
       meta: { currentStepIndex: 2, deletedRoots: ["photos"] as const },
@@ -59,8 +59,7 @@ describe("draft-unification-v3.spec.ts — Track C", () => {
       meta: { currentStepIndex: 0, deletedRoots: ["details"] as const },
     };
     const merged = mergeDenaliWizardDraftEnvelope(local, server);
-    assert.deepEqual(merged.meta.deletedRoots, ["details"]);
-    assert.notDeepEqual(merged.meta.deletedRoots, ["details", "photos"]);
+    assert.equal(merged.meta.deletedRoots, undefined);
     assert.equal(merged.form.data.details?.summary, undefined);
   });
 

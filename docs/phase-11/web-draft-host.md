@@ -110,6 +110,7 @@ type DraftAckCache<T> = {
 | Event | Action |
 | ----- | ------ |
 | GET / PATCH 200 parsed | `commitServerAck` → update cache |
+| PATCH 200 while local still dirty (`localChangedDuringPush`) | Commit ack/version from server; keep in-memory edits |
 | `syncEpoch` changed mid-push | **No** commit |
 | `WORKSPACE_DRAFT_PATCH_ABORTED` | **No** commit |
 | `flushKeepalive` fire-and-forget | **No** commit (no parsed response) |

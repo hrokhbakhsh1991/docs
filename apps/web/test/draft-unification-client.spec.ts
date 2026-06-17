@@ -13,6 +13,8 @@ import {
   createDenaliDraftSchemaGate,
 } from "@app-tour/workspace-denali/draft";
 
+import { mergeDenaliWizardDraftEnvelope } from "../src/draft/denali-wizard-draft-merge";
+
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_ROOT = join(WEB_ROOT, "..", "..");
 
@@ -77,6 +79,21 @@ describe("draft-unification-client.spec.ts — Track B", () => {
   it("regression — flat edit must not import trackDeletedCanonicalRoots", () => {
     const source = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
     assert.doesNotMatch(source, /trackDeletedCanonicalRoots/);
+  });
+
+  it("409 merge output omits deletedRoots from client meta (INV-2)", () => {
+    const merged = mergeDenaliWizardDraftEnvelope(
+      {
+        form: { data: { basics: { title: "Local" } } },
+        meta: { currentStepIndex: 2 },
+      },
+      {
+        form: { data: { basics: { title: "Server" }, photos: [{ id: "p1" }] } },
+        meta: { currentStepIndex: 0, deletedRoots: ["photos"] },
+      }
+    );
+    assert.equal(merged.meta.deletedRoots, undefined);
+    assert.equal((merged.form.data as Record<string, unknown>).photos, undefined);
   });
 
   it("engine source defines commitServerAck (Track B INV-6)", () => {

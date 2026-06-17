@@ -74,7 +74,7 @@ describe("workspace-draft-server-tombstone.spec.ts — Track A", () => {
     });
   });
 
-  it("A1 v0 resurrection fix — client deletedRoots cleared when baseline empty", async () => {
+  it("A1 TOMBSTONE_RESURRECTION cannot occur when server recomputes on v0", async () => {
     resetDraftStoresForTests();
     const response = await client.requestJson<DraftResponse>("PATCH", draftPath(), {
       headers: operatorAuthHeaders(),

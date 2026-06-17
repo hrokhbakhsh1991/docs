@@ -46,7 +46,7 @@ Replaces naive shallow spread on `form.data` with controlled merge rules:
 
 `DENALI_CANONICAL_OBJECT_ROOTS` is exported from `@app-tour/workspace-denali/draft` (`program`, `transport`, `pricing`, `participants`, `policies`, `tripDetails`, `photos`, `gatheringPoints`).
 
-`meta.deletedRoots` on merge: **server array only** (no union with local hints). Step index and `wizardSessionId` rules unchanged.
+`meta.deletedRoots` on merge: reads **server array only** to filter merged `form.data`; **output meta omits `deletedRoots`** (INV-2 — same as prepare/hydrate). Step index and `wizardSessionId` rules unchanged.
 
 ### Tombstone write path (Track B — server-primary)
 
@@ -58,7 +58,7 @@ Server PATCH recomputes `meta.deletedRoots` from stored vs incoming form via `Wo
 | ----- | -------------- |
 | Client envelope (UI / engine `data`) | **Absent** — `denaliPrepareDraftEnvelope` and `denaliHydrateDraftEnvelope` omit/strip |
 | Server DB row | Authoritative after PATCH recompute |
-| 409 merge (`off` / `shadow`) | `mergeDenaliWizardDraftEnvelope` — server `deletedRoots` only |
+| 409 merge (`off` / `shadow`) | `mergeDenaliWizardDraftEnvelope` — server tombstones apply to form only; client meta stripped |
 | 409 reload (`on`) | `SERVER_WINS` — no merge; engine hydrates server payload |
 
 See also [`web-draft-host.md`](web-draft-host.md) — AckRecord cache, PATCH transport, and `DRAFT_UNIFICATION_V3` rollout.
