@@ -1,4 +1,4 @@
-import type { ConflictStrategy, DraftEngineState, DraftSetDataOptions } from "@app-tour/draft-engine";
+import type { ConflictStrategy, DraftEngineState, DraftSchemaGate, DraftSetDataOptions } from "@app-tour/draft-engine";
 
 export type WorkspaceDraftEnvelope<TForm, TMeta = unknown> = {
   readonly form: TForm;
@@ -18,6 +18,8 @@ export type WorkspaceDraftAdapterOptions<T> = {
   /** When false, skip visibility/pagehide flush hooks (Phase 3). Default true. */
   readonly visibilityFlush?: boolean;
   readonly merge?: (_local: T, _server: T) => T;
+  /** prePush gate — Phase 5A; never blocks setData. */
+  readonly schemaGate?: DraftSchemaGate<T>;
 };
 
 export type UseWorkspaceDraftOptions<T> = WorkspaceDraftAdapterOptions<T>;
@@ -43,6 +45,8 @@ export type WorkspaceDraftHookResult<T> = {
   readonly lastModified: number;
   readonly error: Error | undefined;
   readonly pendingDraft: DraftEngineState<T>["pendingDraft"];
+  readonly schemaIssues: DraftEngineState<T>["schemaIssues"];
+  readonly canRevertQuarantine: boolean;
   readonly navLocked: boolean;
   readonly setData: (_data: T, _options?: DraftSetDataOptions) => void;
   readonly retry: () => Promise<void>;
@@ -50,6 +54,7 @@ export type WorkspaceDraftHookResult<T> = {
   readonly applyDraft: () => void;
   readonly flush: () => Promise<void>;
   readonly initialize: () => Promise<void>;
+  readonly revertToLastValid: () => void;
 };
 
 export type WorkspaceDraftEventListItem = {

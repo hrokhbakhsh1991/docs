@@ -4,15 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import {
   createDenaliWizardDraftSessionId,
+  createDenaliDraftSchemaGate,
   denaliEditTourDraftKey,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
 } from "@app-tour/workspace-denali/draft";
+import type { DraftSchemaGate } from "@app-tour/draft-engine";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 import type { UpdateTourPayload } from "@app-tour/workspace-sdk";
 import { mapValidationResultToIssues, type ValidationIssue } from "@app-tour/wizard-navigation";
@@ -21,8 +23,7 @@ import { isOwnerRole, type OperatorSessionContext } from "@/admin/require-operat
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DraftConflictBanner } from "@/draft/draft-conflict-banner";
-import { DraftSyncIndicator } from "@/draft/draft-sync-indicator";
+import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
 import {
   mergeDenaliWizardDraftEnvelope,
   trackDeletedCanonicalRoots,
@@ -100,6 +101,17 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     () => ({ currentStepIndex: 0, wizardSessionId }),
     [wizardSessionId]
   );
+  const denaliSchemaGateRef = useRef<DraftSchemaGate<NewTourWizardDraftEnvelope> | null>(null);
+  const denaliSchemaGate = useMemo(
+    (): DraftSchemaGate<NewTourWizardDraftEnvelope> => (candidate, ctx) => {
+      const active = denaliSchemaGateRef.current;
+      if (active == null) {
+        return { ok: true, value: candidate };
+      }
+      return active(candidate, ctx);
+    },
+    []
+  );
 
   const draftSync = useWorkspaceDraft<NewTourWizardDraftEnvelope>({
     workspaceId: appSession.workspaceId,
@@ -107,6 +119,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     draftKey: editDraftKey,
     conflictStrategy: "REFETCH_REAPPLY",
     merge: mergeDenaliWizardDraftEnvelope,
+    schemaGate: denaliSchemaGate,
   });
 
   const [detail, setDetail] = useState<OperatorTourDetailResponse | null>(null);
@@ -290,6 +303,11 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     gate,
     themeCatalog,
   });
+
+  denaliSchemaGateRef.current =
+    denaliRules != null && wizardRuleEvalContext !== undefined
+      ? createDenaliDraftSchemaGate(denaliRules, wizardRuleEvalContext)
+      : null;
 
   const handlePatch = (patchIntent: "save" | "publish" | "unpublish") => {
     setSubmitError(null);
@@ -475,22 +493,25 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
       </div>
 
       <div className="space-y-2">
-        <div
-          className="flex flex-wrap items-center gap-2"
-          data-testid={TOUR_EDIT_TEST_IDS.draftSync}
-        >
-          <DraftSyncIndicator status={draftSync.status} onRetry={() => void draftSync.retry()} />
-          <DraftConflictBanner
-            status={draftSync.status}
-            pendingDraft={draftSync.pendingDraft}
-            onApplyPending={draftSync.applyDraft}
-            onDiscardPending={() => {
-              if (draftSync.pendingDraft != null) {
-                draftSync.setData(draftSync.pendingDraft.data, { source: "remote" });
-              }
-            }}
-          />
-        </div>
+        <DraftSyncChrome
+          status={draftSync.status}
+          schemaIssues={draftSync.schemaIssues}
+          navLocked={draftSync.navLocked}
+          pendingDraft={draftSync.pendingDraft}
+          onRetry={() => void draftSync.retry()}
+          onFlush={() => void draftSync.flush()}
+          onApplyPending={draftSync.applyDraft}
+          onDiscardPending={() => {
+            if (draftSync.pendingDraft != null) {
+              draftSync.setData(draftSync.pendingDraft.data, { source: "remote" });
+            }
+          }}
+          manualSyncTestId={TOUR_EDIT_TEST_IDS.save}
+          rowTestId={TOUR_EDIT_TEST_IDS.draftSync}
+          showInlineSoftLockBanner
+          canRevertQuarantine={draftSync.canRevertQuarantine}
+          onRevertQuarantine={draftSync.revertToLastValid}
+        />
         <TourStatusBadge status={detail.projection.uiStatus} />
         <h1 className="text-2xl font-semibold">{detail.projection.title}</h1>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -504,6 +525,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
         tenantId={session.tenantId}
         draft={draft}
         onDraftChange={onDraftChange}
+        navLocked={draftSync.navLocked}
         templateSteps={gate.templateSteps}
         allowedCanonicalPaths={gate.allowedCanonicalPaths}
         wizardRuleEvalContext={wizardRuleEvalContext}

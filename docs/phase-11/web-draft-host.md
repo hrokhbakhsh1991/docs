@@ -154,6 +154,58 @@ Maps `DraftStatus` → `@app-tour/ui-primitives/badge` variant + `common.draftSy
 | ERROR | danger | yes + retry |
 | DRAFT_AVAILABLE | info | yes |
 | CONFLICT_RESOLVING | warning | yes |
+| QUARANTINED | danger | yes — sync paused; form stays editable (Phase 5A) |
+
+## Hermetic schema gate + network quarantine (Phase 5A)
+
+Phase 5A adds optional `schemaGate` on `DraftEngineConfig`. The gate runs **only at network egress** (`buildPayload` / `doPush` / `flushKeepalive`) — never on `setDraftData`.
+
+### Dual-state model
+
+| Layer | Field | QUARANTINED behaviour |
+| ----- | ----- | --------------------- |
+| UI render | `data` | **READ_WRITE** — `setDraftData` always updates in-memory draft |
+| Network sync | `status === QUARANTINED` | **LOCKED** — `doPush` and `flushKeepalive` abort before HTTP |
+
+**G-CORE-01:** `schemaGate(payload.data, { phase: "prePush" })` — if `ok === false`, transition to `QUARANTINED`, store `schemaIssues`, **zero bytes egress**.
+
+**G-CORE-02:** `setDraftData` MUST NOT invoke the gate synchronously or reject user input.
+
+**G-CORE-03:** `flushKeepalive` when `QUARANTINED` or when prePush gate fails → return immediately (no fetch, no swallow-and-send).
+
+While `QUARANTINED`, debounced auto-sync does not schedule; operator uses **Save draft** / `flush()` to re-run the gate. `navLocked` stays `false` (same as `ERROR` soft-lock).
+
+### Hook additions
+
+```typescript
+useWorkspaceDraft({
+  // ...
+  schemaGate: createDenaliDraftSchemaGate(rules, evalContext), // from @app-tour/workspace-denali/draft
+});
+// draft.schemaIssues — readonly when QUARANTINED
+```
+
+Quarantine banner UI (`DraftQuarantineBanner`) → integrated in `DraftSyncChrome` (Phase 5B).
+
+## DraftSyncChrome (Phase 5B)
+
+`apps/web/src/draft/draft-sync-chrome.tsx` — shared by create-tour header and flat-edit page:
+
+| Child | Role |
+| ----- | ---- |
+| `DraftSyncIndicator` | status badge |
+| `DraftManualSyncButton` | Save / Retry |
+| `DraftConflictBanner` | 409 pending draft |
+| `DraftQuarantineBanner` | `QUARANTINED` + `schemaIssues` codes |
+| `DraftSyncSoftLockBanner` | optional inline (`showInlineSoftLockBanner`) — flat-edit |
+
+Create-tour keeps step-body `DraftSyncSoftLockBanner` in `WorkspaceWizardHost` for `ERROR`. Flat-edit uses inline soft-lock for `SYNCING` / `CONFLICT_RESOLVING` / `ERROR`.
+
+## API tombstone rejection (Phase 6)
+
+When `@apps/api` rejects PATCH with `400` (`TOMBSTONE_RESURRECTION` or `DELETED_ROOTS_NOT_ARRAY`), the BFF forwards the JSON body unchanged. The browser client throws `WORKSPACE_DRAFT_PATCH_FAILED:400` → engine `ERROR`. Operator may fix local envelope (merge / remove resurrected roots) and retry via **Save draft**.
+
+Server emits audit event `tombstone_violation`. Contract: [`workspace-draft-persistence.md`](workspace-draft-persistence.md#envelope-tombstone-invariants-phase-6--g-api-04).
 
 ## Verification
 
@@ -161,8 +213,10 @@ Maps `DraftStatus` → `@app-tour/ui-primitives/badge` variant + `common.draftSy
 - `apps/web/test/draft-sync-indicator-logic.spec.ts` — status mapping
 - `apps/web/test/draft-visibility-flush-logic.spec.ts` — visibility → flush/keepalive mapping
 - `apps/web/test/create-workspace-draft-adapter.spec.ts` — abort + keepalive paths
-- **Systemic fixes DoD:** [`denali-wizard-draft-binding.md`](denali-wizard-draft-binding.md#systemic-fixes-closure-phase-4--dod) — Phase 1–4 closure checklist + fast-track commands
+- **Systemic fixes DoD:** [`denali-wizard-draft-binding.md`](denali-wizard-draft-binding.md#systemic-fixes-closure-phase-4--dod) — Phases 1–6 closure checklist + fast-track commands
 - `apps/web/test/denali-draft-systemic-closure.spec.ts` — regression guards (`WEB-P11-CLOSE-*`)
+- `apps/web/test/denali-draft-hermetic-closure.spec.ts` — Phase 5A (`WEB-P11-HERMETIC-*`)
+- `apps/web/test/denali-flat-edit-sync-chrome.spec.ts` — Phase 5B (`WEB-P11-SYMM-*`)
 
 ## ERROR soft-lock UX (Phase 2 — systemic fixes)
 

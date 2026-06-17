@@ -31,6 +31,13 @@ export function resolveDraftSyncIndicatorView(status: DraftStatus): DraftSyncInd
         visible: true,
         showRetry: true,
       };
+    case "QUARANTINED":
+      return {
+        variant: "danger",
+        messageKey: "draftSync.quarantined",
+        visible: true,
+        showRetry: true,
+      };
     case "DRAFT_AVAILABLE":
       return {
         variant: "info",

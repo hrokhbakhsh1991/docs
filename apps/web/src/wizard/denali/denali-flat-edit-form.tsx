@@ -62,6 +62,7 @@ type DenaliFlatEditFormProps = {
   readonly allowedCanonicalPaths: readonly string[];
   readonly wizardRuleEvalContext?: unknown;
   readonly wizardSessionId?: string;
+  readonly navLocked?: boolean;
   readonly sectionIds?: readonly string[];
   readonly footer?: ReactNode;
 };
@@ -74,6 +75,7 @@ export function DenaliFlatEditForm({
   allowedCanonicalPaths,
   wizardRuleEvalContext,
   wizardSessionId,
+  navLocked = false,
   sectionIds = DENALI_FLAT_EDIT_SECTIONS_FULL,
   footer,
 }: DenaliFlatEditFormProps) {
@@ -199,6 +201,7 @@ export function DenaliFlatEditForm({
       data-testid={DENALI_FLAT_EDIT_TEST_IDS.form}
       onSubmit={(event) => event.preventDefault()}
     >
+      <fieldset disabled={navLocked} className="space-y-6 border-0 p-0 m-0 min-w-0">
       {visibleSteps.map((step) => {
         const sectionLabel = resolveWizardStepLabel(
           step.stepId,
@@ -245,6 +248,7 @@ export function DenaliFlatEditForm({
           </Card>
         );
       })}
+      </fieldset>
       {footer}
     </form>
   );

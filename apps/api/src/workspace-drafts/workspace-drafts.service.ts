@@ -4,9 +4,15 @@ import { getWorkspaceDraftEventsRepository } from "./create-workspace-draft-even
 import { getWorkspaceDraftsRepository } from "./create-workspace-drafts-repository";
 import {
   WorkspaceDraftForbiddenError,
+  WorkspaceDraftInvalidBodyError,
   WorkspaceDraftNotFoundError,
+  WorkspaceDraftTombstoneInvariantError,
 } from "./workspace-drafts.errors";
 import { emitWorkspaceDraftEvent } from "./workspace-draft-events-emitter";
+import {
+  assertEnvelopeTombstoneInvariants,
+  ENVELOPE_TOMBSTONE_PATCH_NAMESPACES,
+} from "./invariants/envelope-tombstone-invariants";
 import type {
   WorkspaceDraftEventListItem,
   WorkspaceDraftEventRecord,
@@ -91,6 +97,15 @@ export async function patchWorkspaceDraft(
   body: WorkspaceDraftSyncPayload
 ): Promise<WorkspaceDraftSyncPayload> {
   assertWorkspaceDraftScope(auth, params.workspaceId);
+
+  if (ENVELOPE_TOMBSTONE_PATCH_NAMESPACES.has(params.draftNamespace)) {
+    const tombstoneCheck = assertEnvelopeTombstoneInvariants(body.data);
+    if (!tombstoneCheck.ok) {
+      await emitWorkspaceDraftEvent(auth, params, "tombstone_violation", null);
+      throw new WorkspaceDraftTombstoneInvariantError(tombstoneCheck.code, tombstoneCheck.keys);
+    }
+  }
+
   const repo = getWorkspaceDraftsRepository();
   const action = body.version === 0 ? "created" : "updated";
   const row = await repo.patch({

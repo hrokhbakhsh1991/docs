@@ -1,5 +1,5 @@
 /**
- * Phase 4 — Denali draft systemic fixes closure guards (WEB-P11-CLOSE-*)
+ * Phase 4+ — Denali draft systemic fixes closure guards (WEB-P11-CLOSE-*)
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -58,5 +58,48 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
     assert.doesNotMatch(flatEdit, /\{issue\.message\}/);
     assert.match(listComponent, /resolveWizardValidationIssueMessage/);
     assert.match(listComponent, /denali\.review\.validation/);
+  });
+
+  it("WEB-P11-CLOSE-06 draft-engine exposes QUARANTINED and schemaGate egress", () => {
+    const types = readRepoSource("packages/draft-engine/src/types.ts");
+    const engine = readRepoSource("packages/draft-engine/src/engine.ts");
+    assert.match(types, /QUARANTINED/);
+    assert.match(types, /DraftSchemaGate/);
+    assert.match(engine, /buildPayloadForPush/);
+  });
+
+  it("WEB-P11-CLOSE-07 API tombstone invariant module has zero denali imports", () => {
+    const source = readRepoSource(
+      "apps/api/src/workspace-drafts/invariants/envelope-tombstone-invariants.ts"
+    );
+    assert.doesNotMatch(source, /@app-tour\/workspace-denali/);
+    assert.match(source, /assertEnvelopeTombstoneInvariants/);
+    assert.match(source, /ENVELOPE_TOMBSTONE_PATCH_NAMESPACES/);
+  });
+
+  it("WEB-P11-CLOSE-08 patchWorkspaceDraft invokes tombstone gate for operator.wizard", () => {
+    const service = readRepoSource("apps/api/src/workspace-drafts/workspace-drafts.service.ts");
+    assert.match(service, /assertEnvelopeTombstoneInvariants/);
+    assert.match(service, /tombstone_violation/);
+  });
+
+  it("WEB-P11-CLOSE-09 DraftSyncChrome composes quarantine + sync chrome", () => {
+    const chrome = readWebSource("src/draft/draft-sync-chrome.tsx");
+    assert.match(chrome, /DraftQuarantineBanner/);
+    assert.match(chrome, /DraftSyncIndicator/);
+    assert.match(chrome, /DraftManualSyncButton/);
+    assert.match(chrome, /onRevertQuarantine/);
+    const quarantine = readWebSource("src/draft/draft-quarantine-banner.tsx");
+    assert.match(quarantine, /draft-quarantine-revert/);
+    const createTour = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    assert.match(createTour, /DraftSyncChrome/);
+    assert.match(flatEdit, /DraftSyncChrome/);
+  });
+
+  it("WEB-P11-CLOSE-10 react useDraftEngine forwards schemaGate to engine", () => {
+    const source = readRepoSource("packages/draft-engine/src/react.ts");
+    assert.match(source, /get schemaGate\(\)/);
+    assert.match(source, /configRef\.current\.schemaGate/);
   });
 });

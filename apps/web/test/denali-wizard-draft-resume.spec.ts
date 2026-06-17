@@ -96,4 +96,21 @@ describe("denali-wizard-draft-resume.spec.ts — Phase 11.5", () => {
     assert.equal(merged.form.data.details?.summary, undefined);
     assert.deepEqual(merged.meta.deletedRoots, ["details"]);
   });
+
+  it("WEB-P11-HERMETIC-03 merge output has no resurrected tombstone keys in form.data", () => {
+    const local = denaliPrepareDraftEnvelope(
+      { data: { basics: { title: "Local" } } },
+      { currentStepIndex: 2, wizardSessionId: "local", deletedRoots: ["details"] }
+    );
+    const server = denaliPrepareDraftEnvelope(
+      { data: { basics: { title: "Server" }, details: { summary: "Remote" } } },
+      { currentStepIndex: 0, wizardSessionId: "server" }
+    );
+    const merged = mergeDenaliWizardDraftEnvelope(local, server);
+    const deleted = merged.meta.deletedRoots ?? [];
+    const formKeys = Object.keys(merged.form.data as Record<string, unknown>);
+    for (const root of deleted) {
+      assert.equal(formKeys.includes(root), false, `tombstone ${root} must not appear in merged form.data`);
+    }
+  });
 });

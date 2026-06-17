@@ -10,6 +10,7 @@ import {
   WorkspaceDraftForbiddenError,
   WorkspaceDraftInvalidBodyError,
   WorkspaceDraftNotFoundError,
+  WorkspaceDraftTombstoneInvariantError,
 } from "./workspace-drafts.errors";
 import {
   clampWorkspaceDraftEventsLimit,
@@ -46,6 +47,14 @@ function handleWorkspaceDraftRouteError(res: ServerResponse, error: unknown): vo
   }
   if (error instanceof WorkspaceDraftInvalidBodyError) {
     sendHttpError(res, 400, { error: "invalid_body", code: error.code });
+    return;
+  }
+  if (error instanceof WorkspaceDraftTombstoneInvariantError) {
+    sendHttpError(res, 400, {
+      error: "tombstone_invariant_violation",
+      code: error.code,
+      ...(error.keys != null && error.keys.length > 0 ? { keys: error.keys } : {}),
+    });
     return;
   }
   handleHttpError(res, error);

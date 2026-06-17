@@ -4,7 +4,26 @@ export type DraftStatus =
   | "DIRTY"
   | "DRAFT_AVAILABLE"
   | "CONFLICT_RESOLVING"
-  | "ERROR";
+  | "ERROR"
+  /** Network sync halted after prePush schema gate failure — UI data remains editable (Phase 5A). */
+  | "QUARANTINED";
+
+export type DraftSchemaPhase = "prePush" | "merge";
+
+export type DraftSchemaIssue = {
+  readonly code: string;
+  readonly path?: readonly string[];
+  readonly message?: string;
+};
+
+export type DraftSchemaGateResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly issues: readonly DraftSchemaIssue[] };
+
+export type DraftSchemaGate<T> = (
+  _candidate: T,
+  _ctx: { readonly phase: DraftSchemaPhase }
+) => DraftSchemaGateResult<T>;
 
 export type DraftSyncPayload<T> = {
   data: T;
@@ -54,6 +73,8 @@ export type DraftEngineConfig<T> = {
   debounceMs?: number;
   /** Required when conflictStrategy is MERGE; optional for REFETCH_REAPPLY (defaults to keeping local). */
   merge?: (_local: T, _server: T) => T;
+  /** Runs at prePush only — never blocks setDraftData (Phase 5A). */
+  schemaGate?: DraftSchemaGate<T>;
 };
 
 export type DraftEngineState<T> = {
@@ -64,6 +85,8 @@ export type DraftEngineState<T> = {
   readonly lastModified: number;
   readonly pendingDraft?: DraftSyncPayload<T> | null;
   readonly error?: Error;
+  readonly schemaIssues?: readonly DraftSchemaIssue[];
+  readonly hasLastValidSnapshot?: boolean;
 };
 
 export class DraftConflictError<T> extends Error {

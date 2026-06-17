@@ -2,6 +2,7 @@ import {
   DraftConflictError,
   type DraftEngineConfig,
   type DraftEngineState,
+  type DraftSchemaIssue,
   type DraftSetDataOptions,
   type DraftSyncPayload,
 } from "./types";
@@ -19,6 +20,8 @@ export class DraftEngine<T> {
   private schemaVersion = 1;
   private lastModified = 0;
   private error: Error | undefined;
+  private schemaIssues: readonly DraftSchemaIssue[] | undefined;
+  private lastValidSnapshot: DraftSyncPayload<T> | null = null;
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private syncInFlight: Promise<void> | null = null;
@@ -76,16 +79,27 @@ export class DraftEngine<T> {
    * Uses {@link DraftPushOptions.keepalive} when the adapter supports it.
    */
   flushKeepalive(): void {
-    if (this.status !== "DIRTY" || this.data == null) {
+    if (this.status === "QUARANTINED" || this.data == null) {
+      return;
+    }
+    if (this.status !== "DIRTY") {
       return;
     }
     this.clearDebounce();
-    void this.config.onPush(this.buildPayload(), { keepalive: true }).catch(() => {});
+    const gated = this.buildPayloadForPush();
+    if (!gated.ok) {
+      this.schemaIssues = gated.issues;
+      this.status = "QUARANTINED";
+      this.notify();
+      return;
+    }
+    this.schemaIssues = undefined;
+    void this.config.onPush(gated.payload, { keepalive: true }).catch(() => {});
   }
 
   async retry(): Promise<void> {
     const state = this.getState();
-    if (state.status !== "ERROR") {
+    if (state.status !== "ERROR" && state.status !== "QUARANTINED") {
       return;
     }
     if (state.data == null) {
@@ -127,6 +141,13 @@ export class DraftEngine<T> {
       return;
     }
     if (this.status === "DRAFT_AVAILABLE") {
+      return;
+    }
+    if (this.status === "QUARANTINED") {
+      this.data = newData;
+      this.lastModified = Date.now();
+      this.error = undefined;
+      this.notify();
       return;
     }
     this.data = newData;
@@ -183,7 +204,28 @@ export class DraftEngine<T> {
     this.lastModified = 0;
     this.status = "IDLE";
     this.error = undefined;
+    this.schemaIssues = undefined;
+    this.lastValidSnapshot = null;
     this.notify();
+  }
+
+  /** Restore last server-valid snapshot and exit quarantine (Phase 5A revert CTA). */
+  revertToLastValid(): void {
+    if (this.lastValidSnapshot == null) {
+      return;
+    }
+    const snap = this.lastValidSnapshot;
+    this.schemaIssues = undefined;
+    this.setDraftData(snap.data, {
+      source: "remote",
+      version: snap.version,
+      schemaVersion: snap.schemaVersion,
+      lastModified: snap.lastModified,
+    });
+  }
+
+  hasLastValidSnapshot(): boolean {
+    return this.lastValidSnapshot != null;
   }
 
   getState(): DraftEngineState<T> {
@@ -195,6 +237,8 @@ export class DraftEngine<T> {
       lastModified: this.lastModified,
       ...(this.pendingDraft != null ? { pendingDraft: this.pendingDraft } : {}),
       ...(this.error != null ? { error: this.error } : {}),
+      ...(this.schemaIssues != null ? { schemaIssues: this.schemaIssues } : {}),
+      ...(this.lastValidSnapshot != null ? { hasLastValidSnapshot: true } : {}),
     };
   }
 
@@ -215,12 +259,22 @@ export class DraftEngine<T> {
 
   /** Server / snapshot hydration — updates version metadata without marking DIRTY or pushing. */
   private hydrateFromRemote(payload: DraftSyncPayload<T>): void {
+    this.captureLastValidSnapshot(payload);
     this.setDraftData(payload.data, {
       source: "remote",
       version: payload.version,
       schemaVersion: payload.schemaVersion,
       lastModified: payload.lastModified,
     });
+  }
+
+  private captureLastValidSnapshot(payload: DraftSyncPayload<T>): void {
+    this.lastValidSnapshot = {
+      data: structuredClone(payload.data),
+      version: payload.version,
+      schemaVersion: payload.schemaVersion,
+      lastModified: payload.lastModified,
+    };
   }
 
   private buildPayload(): DraftSyncPayload<T> {
@@ -235,6 +289,27 @@ export class DraftEngine<T> {
     };
   }
 
+  private buildPayloadForPush():
+    | { readonly ok: true; readonly payload: DraftSyncPayload<T> }
+    | { readonly ok: false; readonly issues: readonly DraftSchemaIssue[] } {
+    const base = this.buildPayload();
+    const gate = this.config.schemaGate;
+    if (gate == null) {
+      return { ok: true, payload: base };
+    }
+    const result = gate(base.data, { phase: "prePush" });
+    if (!result.ok) {
+      return { ok: false, issues: result.issues };
+    }
+    return {
+      ok: true,
+      payload: {
+        ...base,
+        data: result.value,
+      },
+    };
+  }
+
   private clearDebounce(): void {
     if (this.debounceTimer != null) {
       clearTimeout(this.debounceTimer);
@@ -243,7 +318,7 @@ export class DraftEngine<T> {
   }
 
   private scheduleSync(): void {
-    if (this.status === "CONFLICT_RESOLVING") {
+    if (this.status === "CONFLICT_RESOLVING" || this.status === "QUARANTINED") {
       return;
     }
     this.scheduleDebouncedSync();
@@ -251,13 +326,13 @@ export class DraftEngine<T> {
 
   /** Debounced sync scheduler — runs on the timer queue, not during React render. */
   private scheduleDebouncedSync(): void {
-    if (this.status === "CONFLICT_RESOLVING") {
+    if (this.status === "CONFLICT_RESOLVING" || this.status === "QUARANTINED") {
       return;
     }
     this.clearDebounce();
     this.debounceTimer = setTimeout(() => {
       this.debounceTimer = null;
-      if (this.status === "CONFLICT_RESOLVING") {
+      if (this.status === "CONFLICT_RESOLVING" || this.status === "QUARANTINED") {
         return;
       }
       void this.flushSync();
@@ -270,7 +345,7 @@ export class DraftEngine<T> {
       return;
     }
 
-    if (this.status !== "DIRTY") {
+    if (this.status !== "DIRTY" && this.status !== "QUARANTINED") {
       return;
     }
 
@@ -281,7 +356,7 @@ export class DraftEngine<T> {
       this.syncInFlight = null;
       if (this.pendingSync) {
         this.pendingSync = false;
-        if (this.status === "DIRTY") {
+        if (this.status === "DIRTY" || this.status === "QUARANTINED") {
           await this.flushSync();
         }
       }
@@ -294,16 +369,26 @@ export class DraftEngine<T> {
     if (this.status === "CONFLICT_RESOLVING") {
       return;
     }
-    if (this.status !== "DIRTY" || this.data == null) {
+    if ((this.status !== "DIRTY" && this.status !== "QUARANTINED") || this.data == null) {
       return;
     }
 
+    const gated = this.buildPayloadForPush();
+    if (!gated.ok) {
+      this.schemaIssues = gated.issues;
+      this.status = "QUARANTINED";
+      this.error = undefined;
+      this.notify();
+      return;
+    }
+
+    this.schemaIssues = undefined;
     this.status = "SYNCING";
     this.error = undefined;
     this.notify();
 
     try {
-      const pushedPayload = this.buildPayload();
+      const pushedPayload = gated.payload;
       const result = await this.config.onPush(pushedPayload);
       if (this.syncEpoch !== epochAtStart) {
         return;
@@ -359,7 +444,15 @@ export class DraftEngine<T> {
 
     if (conflictStrategy === "CLIENT_WINS") {
       try {
-        const result = await this.config.onPush(this.buildPayload());
+        const clientGated = this.buildPayloadForPush();
+        if (!clientGated.ok) {
+          this.schemaIssues = clientGated.issues;
+          this.status = "QUARANTINED";
+          this.error = undefined;
+          this.notify();
+          return;
+        }
+        const result = await this.config.onPush(clientGated.payload);
         this.hydrateFromRemote(result);
         this.status = "IDLE";
         this.notify();

@@ -21,10 +21,11 @@ export function useWorkspaceDraft<T>(
       options.debounceMs,
       options.autoApply,
       options.merge,
+      options.schemaGate,
     ]
   );
 
-  const { state, setDraftData, retry, flush, flushKeepalive, initialize, clearDraft, applyDraft } =
+  const { state, setDraftData, retry, flush, flushKeepalive, initialize, clearDraft, applyDraft, revertToLastValid } =
     useDraftEngine(adapter);
 
   useEffect(() => {
@@ -42,6 +43,8 @@ export function useWorkspaceDraft<T>(
   });
 
   const navLocked = state.status === "SYNCING" || state.status === "CONFLICT_RESOLVING";
+  const canRevertQuarantine =
+    state.status === "QUARANTINED" && state.hasLastValidSnapshot === true;
 
   return {
     data: state.data,
@@ -51,6 +54,8 @@ export function useWorkspaceDraft<T>(
     lastModified: state.lastModified,
     error: state.error,
     pendingDraft: state.pendingDraft,
+    schemaIssues: state.schemaIssues,
+    canRevertQuarantine,
     navLocked,
     setData: setDraftData,
     retry,
@@ -58,5 +63,6 @@ export function useWorkspaceDraft<T>(
     applyDraft,
     flush,
     initialize,
+    revertToLastValid,
   };
 }

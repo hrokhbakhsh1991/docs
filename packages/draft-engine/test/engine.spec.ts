@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { DraftEngine } from "../src/engine";
-import { DraftConflictError, type DraftEngineState, type DraftSyncPayload } from "../src/types";
+import { DraftConflictError, type DraftEngineState, type DraftSchemaGate, type DraftSyncPayload } from "../src/types";
 
 type TestData = { value: string };
 
@@ -735,4 +735,94 @@ test("flushKeepalive is no-op when IDLE", async () => {
   engine.flushKeepalive();
   await sleep(20);
   assert.equal(pushCount, 0);
+});
+
+test("schemaGate failure on push transitions to QUARANTINED without onPush (WEB-P11-HERMETIC-01 engine.spec)", async () => {
+  let pushCount = 0;
+  const gate: DraftSchemaGate<TestData> = () => ({
+    ok: false,
+    issues: [{ code: "ENGINE_SPEC_GATE_FAIL" }],
+  });
+
+  const engine = new DraftEngine<TestData>({
+    id: "engine-spec-quarantine",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    schemaGate: gate,
+    onFetch: async () => null,
+    onPush: async (p) => {
+      pushCount += 1;
+      return { ...p, version: p.version + 1 };
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "blocked" });
+  await engine.flush();
+
+  assert.equal(pushCount, 0);
+  assert.equal(engine.getState().status, "QUARANTINED");
+  assert.deepEqual(engine.getState().schemaIssues, [{ code: "ENGINE_SPEC_GATE_FAIL" }]);
+});
+
+test("QUARANTINED blocks debounced auto-sync scheduling (network layer locked)", async () => {
+  let pushCount = 0;
+  const gate: DraftSchemaGate<TestData> = () => ({
+    ok: false,
+    issues: [{ code: "NO_AUTO_SYNC" }],
+  });
+
+  const engine = new DraftEngine<TestData>({
+    id: "engine-spec-quarantine-debounce",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    schemaGate: gate,
+    onFetch: async () => null,
+    onPush: async (p) => {
+      pushCount += 1;
+      return { ...p, version: p.version + 1 };
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "first" });
+  await engine.flush();
+  assert.equal(engine.getState().status, "QUARANTINED");
+
+  engine.setDraftData({ value: "edited-while-quarantined" });
+  await sleep(30);
+  assert.equal(pushCount, 0);
+  assert.equal(engine.getState().status, "QUARANTINED");
+  assert.equal(engine.getState().data?.value, "edited-while-quarantined");
+});
+
+test("flushKeepalive from QUARANTINED is zero egress (WEB-P11-HERMETIC-02 engine.spec)", async () => {
+  let pushCount = 0;
+  const gate: DraftSchemaGate<TestData> = () => ({
+    ok: false,
+    issues: [{ code: "KEEPALIVE_BLOCK" }],
+  });
+
+  const engine = new DraftEngine<TestData>({
+    id: "engine-spec-keepalive-quarantine",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    schemaGate: gate,
+    onFetch: async () => payload({ value: "remote" }, 1),
+    onPush: async (p, options) => {
+      pushCount += 1;
+      assert.equal(options?.keepalive, true);
+      return { ...p, version: p.version + 1 };
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "bad" });
+  await engine.flush();
+  assert.equal(engine.getState().status, "QUARANTINED");
+
+  engine.flushKeepalive();
+  await sleep(20);
+  assert.equal(pushCount, 0);
+  assert.equal(engine.getState().status, "QUARANTINED");
 });

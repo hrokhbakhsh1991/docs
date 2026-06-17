@@ -22,6 +22,9 @@ function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T
     get merge() {
       return configRef.current.merge;
     },
+    get schemaGate() {
+      return configRef.current.schemaGate;
+    },
     onFetch: () => configRef.current.onFetch(),
     onPush: (payload, options) => configRef.current.onPush(payload, options),
   };
@@ -42,6 +45,8 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
   initialize: () => Promise<void>;
   applyDraft: () => void;
   clearDraft: () => Promise<void>;
+  revertToLastValid: () => void;
+  hasLastValidSnapshot: () => boolean;
 } {
   const configRef = useRef(config);
   configRef.current = config;
@@ -88,5 +93,24 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
     await engineRef.current?.clearDraft();
   }, []);
 
-  return { state, setDraftData, retry, flush, flushKeepalive, initialize, applyDraft, clearDraft };
+  const revertToLastValid = useCallback(() => {
+    engineRef.current?.revertToLastValid();
+  }, []);
+
+  const hasLastValidSnapshot = useCallback(() => {
+    return engineRef.current?.hasLastValidSnapshot() ?? false;
+  }, []);
+
+  return {
+    state,
+    setDraftData,
+    retry,
+    flush,
+    flushKeepalive,
+    initialize,
+    applyDraft,
+    clearDraft,
+    revertToLastValid,
+    hasLastValidSnapshot,
+  };
 }

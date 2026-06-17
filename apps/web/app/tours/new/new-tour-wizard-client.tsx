@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 import { mapValidationResultToIssues, type ValidationIssue } from "@app-tour/wizard-navigation";
@@ -12,14 +12,14 @@ import {
   createDenaliWizardDraftSessionId,
   DENALI_CREATE_TOUR_DRAFT_KEY,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+  createDenaliDraftSchemaGate,
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
 } from "@app-tour/workspace-denali/draft";
+import type { DraftSchemaGate } from "@app-tour/draft-engine";
 import { Button } from "@/components/ui/button";
 
-import { DraftConflictBanner } from "@/draft/draft-conflict-banner";
-import { DraftSyncIndicator } from "@/draft/draft-sync-indicator";
-import { DraftManualSyncButton } from "@/draft/draft-manual-sync-button";
+import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
 import { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
 import {
@@ -133,6 +133,17 @@ export function NewTourWizardClient() {
   const [pending, startTransition] = useTransition();
   const wizardSessionId = useMemo(() => createDenaliWizardDraftSessionId(), []);
   const [denaliRules, setDenaliRules] = useState<DenaliWizardRulesModule | null>(null);
+  const denaliSchemaGateRef = useRef<DraftSchemaGate<NewTourWizardDraftEnvelope> | null>(null);
+  const denaliSchemaGate = useMemo(
+    (): DraftSchemaGate<NewTourWizardDraftEnvelope> => (candidate, ctx) => {
+      const active = denaliSchemaGateRef.current;
+      if (active == null) {
+        return { ok: true, value: candidate };
+      }
+      return active(candidate, ctx);
+    },
+    []
+  );
   const [themeCatalog, setThemeCatalog] = useState<readonly TourThemeResource[]>([]);
   const [presetApplied, setPresetApplied] = useState(false);
 
@@ -187,6 +198,7 @@ export function NewTourWizardClient() {
     conflictStrategy: "REFETCH_REAPPLY",
     merge: mergeDenaliWizardDraftEnvelope,
     hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, session.pluginId),
+    ...(isDenali ? { schemaGate: denaliSchemaGate } : {}),
   });
 
   const draftIndex = useWorkspaceDraftIndex(
@@ -471,6 +483,11 @@ export function NewTourWizardClient() {
     return context as DenaliWizardRuleEvalContext;
   }, [denaliPlugin, gate.workspaceFormProfile, gate.fieldRulesOverlay, draft, themeCatalog]);
 
+  denaliSchemaGateRef.current =
+    isDenali && denaliRules != null && wizardRuleEvalContext !== undefined
+      ? createDenaliDraftSchemaGate(denaliRules, wizardRuleEvalContext)
+      : null;
+
   const onDraftChange = useCallback(
     (next: ReturnType<typeof emptyTourWizardDraft>) => {
       const sanitized =
@@ -731,10 +748,23 @@ export function NewTourWizardClient() {
           </div>
           {isDenali ? (
             <div className="new-tour-wizard-page__header-actions">
-              <DraftSyncIndicator
-                className="new-tour-wizard-page__sync"
+              <DraftSyncChrome
                 status={draftSync.status}
+                schemaIssues={draftSync.schemaIssues}
+                navLocked={draftSync.navLocked}
+                pendingDraft={draftSync.pendingDraft}
                 onRetry={() => void draftSync.retry()}
+                onFlush={() => void draftSync.flush()}
+                onApplyPending={draftSync.applyDraft}
+                onDiscardPending={() => {
+                  if (draftSync.pendingDraft != null) {
+                    draftSync.setData(draftSync.pendingDraft.data, { source: "remote" });
+                  }
+                }}
+                clearDraftPending={clearDraftPending}
+                canRevertQuarantine={draftSync.canRevertQuarantine}
+                onRevertQuarantine={draftSync.revertToLastValid}
+                rowClassName="new-tour-wizard-page__header-actions flex flex-wrap items-center gap-2"
               />
               <Button
                 type="button"
@@ -750,13 +780,6 @@ export function NewTourWizardClient() {
               >
                 {clearDraftPending ? t("clearingDraft") : t("clearDraft")}
               </Button>
-              <DraftManualSyncButton
-                status={draftSync.status}
-                navLocked={draftSync.navLocked}
-                clearDraftPending={clearDraftPending}
-                onFlush={() => void draftSync.flush()}
-                onRetry={() => void draftSync.retry()}
-              />
             </div>
           ) : null}
         </div>
@@ -766,16 +789,6 @@ export function NewTourWizardClient() {
               items={draftIndex.items}
               loading={draftIndex.loading}
               currentDraftKey={DENALI_CREATE_TOUR_DRAFT_KEY}
-            />
-            <DraftConflictBanner
-              status={draftSync.status}
-              pendingDraft={draftSync.pendingDraft}
-              onApplyPending={draftSync.applyDraft}
-              onDiscardPending={() => {
-                if (draftSync.pendingDraft != null) {
-                  draftSync.setData(draftSync.pendingDraft.data, { source: "remote" });
-                }
-              }}
             />
             {clearDraftError ? (
               <p

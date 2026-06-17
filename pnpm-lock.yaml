@@ -592,6 +592,9 @@ importers:
       '@app-tour/design-tokens':
         specifier: workspace:*
         version: link:../../design-tokens
+      '@app-tour/draft-engine':
+        specifier: workspace:*
+        version: link:../../draft-engine
       '@app-tour/platform-core':
         specifier: workspace:*
         version: link:../../platform-core

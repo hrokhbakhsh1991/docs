@@ -26,6 +26,13 @@ export function resolveDraftManualSyncButtonView(status: DraftStatus): DraftManu
         labelNamespace: "common",
         disabled: false,
       };
+    case "QUARANTINED":
+      return {
+        action: "retry",
+        labelKey: "draftSync.retry",
+        labelNamespace: "common",
+        disabled: false,
+      };
     case "DIRTY":
       return {
         action: "flush",

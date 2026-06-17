@@ -160,6 +160,7 @@ Append-only table `workspace_draft_events` — one row per successful mutation:
 | `created` | PATCH `version: 0` → new row |
 | `updated` | PATCH matching version → increment |
 | `deleted` | DELETE removed row |
+| `tombstone_violation` | PATCH rejected by envelope tombstone gate (Phase 6) |
 
 ```http
 GET /workspaces/{workspaceId}/drafts/{namespace}/{key}/events?limit=50
@@ -186,6 +187,31 @@ Events are scoped to the authenticated user (same composite key as snapshots). D
 
 Web BFF: `GET /api/workspaces/{workspaceId}/drafts/{namespace}/{key}/events` — client `fetchWorkspaceDraftEvents`.
 
+## Envelope tombstone invariants (Phase 6 — G-API-04)
+
+For allowlisted namespaces (`operator.wizard`), PATCH validates **structural** tombstone rules only — no Denali Zod or workspace imports in `@apps/api`.
+
+Module: `apps/api/src/workspace-drafts/invariants/envelope-tombstone-invariants.ts`
+
+| Check | Condition | HTTP |
+| ----- | --------- | ---- |
+| Pass-through | `data` is not `{ form: { data: object }, meta: object }` | persist opaque blob |
+| Pass-through | `meta.deletedRoots` absent | persist |
+| `DELETED_ROOTS_NOT_ARRAY` | `deletedRoots` present but not `string[]` | `400` |
+| `TOMBSTONE_RESURRECTION` | any `root ∈ deletedRoots` is an own key of `form.data` | `400` + `keys` |
+
+```json
+{
+  "error": "tombstone_invariant_violation",
+  "code": "TOMBSTONE_RESURRECTION",
+  "keys": ["timetable"]
+}
+```
+
+Rejected PATCH emits audit event `tombstone_violation` (no snapshot version increment). Successful PATCH flow unchanged.
+
+Other namespaces remain fully opaque until explicitly allowlisted via `ENVELOPE_TOMBSTONE_PATCH_NAMESPACES`.
+
 ## Out of scope (later subphases)
 
 - Web list BFF + draft index summary UI → **11.9-T6** ✅
@@ -195,4 +221,5 @@ Web BFF: `GET /api/workspaces/{workspaceId}/drafts/{namespace}/{key}/events` —
 ## Verification
 
 - `apps/api/test/workspace-drafts.spec.ts` — create → patch → conflict → delete · list index (API-P11-9-01…04) · events audit (API-P11-9-05…08)
+- `apps/api/test/workspace-draft-tombstone-invariants.spec.ts` — structural tombstone gate (API-P11-TOMB-01…03, API-P11-GEN-01)
 - Memory driver default in unit tests; prisma path covered by repository contract

@@ -8,11 +8,20 @@ export type DraftSyncSoftLockBannerProps = {
   readonly className?: string;
 };
 
-/** Non-blocking banner when server sync failed — fields stay editable (Phase 2). */
+/** Non-blocking banner when server sync failed or in-flight — fields stay editable (Phase 2/5B). */
 export function DraftSyncSoftLockBanner({ status, className }: DraftSyncSoftLockBannerProps) {
   const t = useTranslations("common");
 
-  if (status !== "ERROR") {
+  const messageKey =
+    status === "ERROR"
+      ? "draftSync.softLockBanner"
+      : status === "SYNCING"
+        ? "draftSync.syncingSoftLockBanner"
+        : status === "CONFLICT_RESOLVING"
+          ? "draftSync.conflictSoftLockBanner"
+          : null;
+
+  if (messageKey == null) {
     return null;
   }
 
@@ -23,7 +32,7 @@ export function DraftSyncSoftLockBanner({ status, className }: DraftSyncSoftLock
       data-testid="draft-sync-soft-lock-banner"
       data-draft-sync-status={status}
     >
-      {t("draftSync.softLockBanner")}
+      {t(messageKey)}
     </div>
   );
 }

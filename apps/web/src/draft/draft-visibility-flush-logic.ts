@@ -7,6 +7,7 @@ export type VisibilityFlushAction = "none" | "flush" | "keepalive";
 const VISIBILITY_FLUSH_SKIP_STATUSES = new Set<DraftStatus>([
   "CONFLICT_RESOLVING",
   "DRAFT_AVAILABLE",
+  "QUARANTINED",
 ]);
 
 /** Pure mapping for tab lifecycle → draft flush strategy (Phase 3). */

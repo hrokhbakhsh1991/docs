@@ -39,4 +39,12 @@ describe("draft-visibility-flush-logic.spec.ts — Phase 3", () => {
       "none"
     );
   });
+
+  it("QUARANTINED skips all flush actions (Phase 5A)", () => {
+    assert.equal(
+      resolveVisibilityFlushAction("QUARANTINED", "visibilitychange", "hidden"),
+      "none"
+    );
+    assert.equal(resolveVisibilityFlushAction("QUARANTINED", "pagehide", "hidden"), "none");
+  });
 });
