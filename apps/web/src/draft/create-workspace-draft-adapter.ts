@@ -28,6 +28,7 @@ export function createWorkspaceDraftAdapter<T>(
     ...(options.merge !== undefined ? { merge: options.merge } : {}),
     ...(options.onPushSuccess !== undefined ? { onPushSuccess: options.onPushSuccess } : {}),
     ...(options.schemaGate !== undefined ? { schemaGate: options.schemaGate } : {}),
+    ...(options.normalizeRemote !== undefined ? { normalizeRemote: options.normalizeRemote } : {}),
     onFetch: async () => fetchWorkspaceDraftSnapshot<T>(workspaceId, namespace, draftKey),
     onPush: async (payload, pushOptions?: DraftPushOptions) => {
       if (pushOptions?.keepalive === true) {

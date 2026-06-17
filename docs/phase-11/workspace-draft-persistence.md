@@ -210,7 +210,7 @@ Recompute helper: `apps/api/src/workspace-drafts/reapply-server-envelope-tombsto
 
 **Behavioral note:** A client-sent resurrection on **first push** (`version === 0`, empty baseline) becomes **200** after recompute — server sets `deletedRoots` to `[]` because no roots were removed from an empty baseline. This is intentional (fixes client dual-state drift); not a regression of G-API-04.
 
-**Client (Track B):** Web envelope omits `meta.deletedRoots` after hydrate/prepare; server row may still carry ephemeral tombstones until the next edit. See [`denali-wizard-draft-binding.md`](denali-wizard-draft-binding.md) § Tombstone write path and [`web-draft-host.md`](web-draft-host.md) § AckRecord cache.
+**Client (Track B):** Web engine omits `meta.deletedRoots` via `normalizeRemote` on remote hydrate and `denaliPrepareDraftEnvelope` on edit; server row may still carry ephemeral tombstones until the next PATCH. See [`denali-wizard-draft-binding.md`](denali-wizard-draft-binding.md) § Tombstone write path and [`web-draft-host.md`](web-draft-host.md) § Remote normalize hook + AckRecord cache.
 
 ```json
 {

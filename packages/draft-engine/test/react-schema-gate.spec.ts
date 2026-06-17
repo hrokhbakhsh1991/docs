@@ -15,4 +15,12 @@ describe("react.ts — schemaGate live config (WEB-P11-HERMETIC-01b)", () => {
     assert.match(source, /get schemaGate\(\)/);
     assert.match(source, /configRef\.current\.schemaGate/);
   });
+
+  it("createEngineWithLiveConfig forwards normalizeRemote and onPushSuccess (Track B/C)", () => {
+    const source = readFileSync(REACT_SOURCE, "utf8");
+    assert.match(source, /get normalizeRemote\(\)/);
+    assert.match(source, /configRef\.current\.normalizeRemote/);
+    assert.match(source, /get onPushSuccess\(\)/);
+    assert.match(source, /configRef\.current\.onPushSuccess/);
+  });
 });

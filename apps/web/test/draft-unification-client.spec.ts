@@ -14,6 +14,9 @@ import {
 } from "@app-tour/workspace-denali/draft";
 
 import { mergeDenaliWizardDraftEnvelope } from "../src/draft/denali-wizard-draft-merge";
+import { normalizeDenaliRemoteEnvelope } from "../src/draft/denali-draft-normalize-remote";
+import { DraftEngine } from "@app-tour/draft-engine";
+import type { DraftSyncPayload } from "@app-tour/draft-engine";
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_ROOT = join(WEB_ROOT, "..", "..");
@@ -103,5 +106,36 @@ describe("draft-unification-client.spec.ts — Track B", () => {
     );
     assert.match(source, /commitServerAck/);
     assert.match(source, /ensureAckBeforePush/);
+  });
+
+  it("normalizeDenaliRemoteEnvelope strips deletedRoots after engine remote hydrate (B-8)", async () => {
+    type Envelope = {
+      form: { data: Record<string, unknown> };
+      meta: { currentStepIndex: number; deletedRoots?: readonly string[] };
+    };
+
+    const fetched: DraftSyncPayload<Envelope> = {
+      data: {
+        form: { data: { photos: [{ id: "p1" }] } },
+        meta: { currentStepIndex: 1, deletedRoots: ["photos"] },
+      },
+      version: 2,
+      schemaVersion: 1,
+      lastModified: 5000,
+    };
+
+    const engine = new DraftEngine<Envelope>({
+      id: "denali-b8",
+      conflictStrategy: "SERVER_WINS",
+      normalizeRemote: normalizeDenaliRemoteEnvelope,
+      onFetch: async () => fetched,
+      onPush: async (p) => p,
+    });
+
+    await engine.initialize();
+    const state = engine.getState();
+    assert.equal(state.data?.meta.deletedRoots, undefined);
+    assert.equal(state.data?.meta.currentStepIndex, 1);
+    assert.ok(Array.isArray((state.data?.form.data as Record<string, unknown>).photos));
   });
 });

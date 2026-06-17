@@ -80,4 +80,22 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
     assert.match(stripper, /draftTombstone:\s*_draftTombstone/);
     assert.match(engineStrip, /draftTombstone:\s*_draftTombstone/);
   });
+
+  it("WEB-P11-UNIFY-09 react live config forwards onPushSuccess (Track C shadow)", () => {
+    const react = readRepoSource("packages/draft-engine/src/react.ts");
+    assert.match(react, /get onPushSuccess\(\)/);
+    assert.match(react, /configRef\.current\.onPushSuccess/);
+  });
+
+  it("WEB-P11-UNIFY-08 create + flat-edit wire normalizeRemote for B-8", () => {
+    const createTour = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    const normalize = readWebSource("src/draft/denali-draft-normalize-remote.ts");
+    assert.match(normalize, /normalizeDenaliRemoteEnvelope/);
+    assert.match(normalize, /denaliHydrateDraftEnvelope/);
+    for (const source of [createTour, flatEdit]) {
+      assert.match(source, /normalizeDenaliRemoteEnvelope/);
+      assert.match(source, /normalizeRemote:\s*normalizeDenaliRemoteEnvelope/);
+    }
+  });
 });

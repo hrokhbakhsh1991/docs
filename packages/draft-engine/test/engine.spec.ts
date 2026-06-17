@@ -982,3 +982,53 @@ test("aborted push does not commit patch200 ack (Track B INV-6)", async () => {
   await engine.flush();
   assert.deepEqual(engine.getAckCacheForTests(), ackBefore);
 });
+
+type StripMetaData = { value: string; stripMe?: string };
+
+test("normalizeRemote strips server-origin data on remote hydrate (Track B B-8)", async () => {
+  const engine = new DraftEngine<StripMetaData>({
+    id: "test-normalize-remote",
+    conflictStrategy: "SERVER_WINS",
+    normalizeRemote: (data) => {
+      const { stripMe: _removed, ...rest } = data;
+      return rest;
+    },
+    onFetch: async () => payload({ value: "initial", stripMe: "server-only" }, 2, 2000),
+    onPush: async (p) => p,
+  });
+
+  await engine.initialize();
+
+  assert.deepEqual(engine.getState().data, { value: "initial" });
+  assert.equal(engine.getState().data?.stripMe, undefined);
+});
+
+test("REFETCH_REAPPLY runs schemaGate merge phase after merge (Track B B-3)", async () => {
+  const gatePhases: string[] = [];
+  const gate: DraftSchemaGate<TestData> = (candidate, ctx) => {
+    gatePhases.push(ctx.phase);
+    if (ctx.phase === "merge") {
+      return { ok: true, value: { value: `${candidate.value}-sanitized` } };
+    }
+    return { ok: true, value: candidate };
+  };
+
+  const engine = new DraftEngine<TestData>({
+    id: "test-merge-gate",
+    conflictStrategy: "REFETCH_REAPPLY",
+    debounceMs: 5,
+    schemaGate: gate,
+    merge: (local, server) => ({ value: `${local.value}+${server.value}` }),
+    onFetch: async () => payload({ value: "fresh-server" }, 5, 5000),
+    onPush: async () => {
+      throw new DraftConflictError(payload({ value: "stale-server" }, 4, 4000));
+    },
+  });
+
+  await engine.initialize();
+  engine.update({ value: "local" });
+  await sleep(60);
+
+  assert.ok(gatePhases.includes("merge"));
+  assert.deepEqual(engine.getState().data, { value: "local+fresh-server-sanitized" });
+});

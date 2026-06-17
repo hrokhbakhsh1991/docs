@@ -17,6 +17,7 @@ apps/web/src/draft/
   draft-unification-v3.ts        — DRAFT_UNIFICATION_V3 flag resolver (Track C)
   draft-unification-v3-options.ts — Denali conflictStrategy / merge wiring
   draft-unification-v3-shadow.ts — shadow tombstone mismatch logging
+  denali-draft-normalize-remote.ts — B-8 remote hydrate strip (INV-2)
 
 apps/web/app/api/workspaces/[workspaceId]/drafts/route.ts
   GET — list index proxy (11.9-T6)
@@ -116,7 +117,30 @@ type DraftAckCache<T> = {
 | `flushKeepalive` fire-and-forget | **No** commit (no parsed response) |
 | `ackCache == null` && `version > 0` | Block PATCH → refetch GET → commit → hydrate quietly |
 
+`useDraftEngine` (`react.ts`) forwards `normalizeRemote`, `schemaGate`, and `onPushSuccess` via live config getters so hooks wired in `useWorkspaceDraft` reach `DraftEngine.doPush`.
+
 `setDraftData` from user edits does **not** update the ack cache. `buildPayload` uses `ackCache.version` when present for OCC.
+
+## Remote normalize hook (Track B — B-8 / INV-2)
+
+`DraftEngineConfig.normalizeRemote` runs inside `setDraftData({ source: "remote" })` — the single choke point for GET, PATCH 200, SERVER_WINS 409, and post-merge 409 hydration. Idempotent transforms are safe (Denali calls `denaliHydrateDraftEnvelope`).
+
+Denali wiring:
+
+```typescript
+// apps/web/src/draft/denali-draft-normalize-remote.ts
+normalizeRemote: normalizeDenaliRemoteEnvelope
+```
+
+Passed via `createWorkspaceDraftAdapter` → `useWorkspaceDraft` in `new-tour-wizard-client.tsx` and `denali-flat-edit-page-client.tsx`.
+
+| Path | `meta.deletedRoots` in engine.data |
+| ---- | ----------------------------------- |
+| After remote hydrate | **Absent** (stripped) |
+| After user edit (`denaliPrepareDraftEnvelope`) | **Absent** |
+| Server DB row | May persist tombstones (Track A) |
+
+409 `REFETCH_REAPPLY` merge additionally runs `schemaGate(..., { phase: "merge" })` in `DraftEngine.refetchAndReapplyLocal` before quiet hydrate (Track B B-3).
 
 ## Generic envelope
 

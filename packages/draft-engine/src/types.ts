@@ -91,8 +91,10 @@ export type DraftEngineConfig<T> = {
     _serverPayload: DraftSyncPayload<T>,
     _baselineData: T | undefined,
   ) => void;
-  /** Runs at prePush only — never blocks setDraftData (Phase 5A). */
+  /** Runs at prePush and 409 merge — never blocks setDraftData (Phase 5A / Track B). */
   schemaGate?: DraftSchemaGate<T>;
+  /** Optional transform applied to server-origin data in setDraftData({ source: "remote" }) (Track B B-8). */
+  normalizeRemote?: (_data: T) => T;
 };
 
 export type DraftEngineState<T> = {

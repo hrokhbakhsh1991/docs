@@ -29,6 +29,7 @@ import {
   resolveDenaliDraftConflictStrategy,
   resolveDenaliDraftMerge,
 } from "@/draft/draft-unification-v3-options";
+import { normalizeDenaliRemoteEnvelope } from "@/draft/denali-draft-normalize-remote";
 import {
   type NewTourWizardDraftEnvelope,
 } from "@/draft/denali-wizard-draft-merge";
@@ -124,6 +125,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     merge: resolveDenaliDraftMerge(),
     onPushSuccess: createDenaliDraftOnPushSuccess(),
     schemaGate: denaliSchemaGate,
+    normalizeRemote: normalizeDenaliRemoteEnvelope,
   });
 
   const [detail, setDetail] = useState<OperatorTourDetailResponse | null>(null);

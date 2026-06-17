@@ -23,6 +23,7 @@ export function useWorkspaceDraft<T>(
       options.merge,
       options.onPushSuccess,
       options.schemaGate,
+      options.normalizeRemote,
     ]
   );
 

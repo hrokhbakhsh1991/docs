@@ -25,6 +25,8 @@ export type WorkspaceDraftAdapterOptions<T> = {
   ) => void;
   /** prePush gate — Phase 5A; never blocks setData. */
   readonly schemaGate?: DraftSchemaGate<T>;
+  /** Strip server-only fields after remote hydrate (Track B B-8). */
+  readonly normalizeRemote?: (_data: T) => T;
 };
 
 export type UseWorkspaceDraftOptions<T> = WorkspaceDraftAdapterOptions<T>;

@@ -129,7 +129,10 @@ export class DraftEngine<T> {
 
     if (source === "remote") {
       this.clearDebounce();
-      this.data = newData;
+      this.data =
+        this.config.normalizeRemote != null
+          ? this.config.normalizeRemote(newData)
+          : newData;
       if (options?.version != null) {
         this.version = options.version;
       }
@@ -326,7 +329,6 @@ export class DraftEngine<T> {
 
   /** Server / snapshot hydration — updates version metadata without marking DIRTY or pushing. */
   private hydrateFromRemote(payload: DraftSyncPayload<T>, ackSource: DraftAckSource): void {
-    this.captureLastValidSnapshot(payload);
     this.commitServerAck(payload, ackSource);
     this.setDraftData(payload.data, {
       source: "remote",
@@ -334,6 +336,14 @@ export class DraftEngine<T> {
       schemaVersion: payload.schemaVersion,
       lastModified: payload.lastModified,
     });
+    if (this.data != null) {
+      this.captureLastValidSnapshot({
+        data: structuredClone(this.data),
+        version: payload.version,
+        schemaVersion: payload.schemaVersion,
+        lastModified: payload.lastModified,
+      });
+    }
   }
 
   private captureLastValidSnapshot(payload: DraftSyncPayload<T>): void {
@@ -343,6 +353,15 @@ export class DraftEngine<T> {
       schemaVersion: payload.schemaVersion,
       lastModified: payload.lastModified,
     };
+  }
+
+  private applyPostMergeGate(merged: T): T {
+    const gate = this.config.schemaGate;
+    if (gate == null) {
+      return merged;
+    }
+    const result = gate(merged, { phase: "merge" });
+    return result.ok ? result.value : merged;
   }
 
   private buildPayload(): DraftSyncPayload<T> {
@@ -559,7 +578,7 @@ export class DraftEngine<T> {
         this.notify();
         return;
       }
-      this.data = this.config.merge(this.data, serverPayload.data);
+      this.data = this.applyPostMergeGate(this.config.merge(this.data, serverPayload.data));
       this.lastModified = Date.now();
       this.status = "DIRTY";
       this.notify();
@@ -593,7 +612,7 @@ export class DraftEngine<T> {
       }
       const fallback = conflict.serverPayload;
       const occSource = serverPayload ?? fallback;
-      const merged =
+      const rawMerged =
         serverPayload != null
           ? this.config.merge != null
             ? this.config.merge(localPending, serverPayload.data)
@@ -601,6 +620,7 @@ export class DraftEngine<T> {
           : this.config.merge != null
             ? this.config.merge(localPending, fallback.data)
             : localPending;
+      const merged = this.applyPostMergeGate(rawMerged);
 
       this.setDraftData(merged, {
         source: "remote",
@@ -609,7 +629,8 @@ export class DraftEngine<T> {
         lastModified: occSource.lastModified,
       });
       this.commitServerAck(occSource, "conflictRefetch");
-      this.captureLastValidSnapshot({ ...occSource, data: merged });
+      const snapshotData = this.data ?? merged;
+      this.captureLastValidSnapshot({ ...occSource, data: snapshotData });
       this.status = "IDLE";
       this.error = undefined;
       this.notify();

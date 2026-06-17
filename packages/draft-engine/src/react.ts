@@ -25,6 +25,12 @@ function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T
     get schemaGate() {
       return configRef.current.schemaGate;
     },
+    get normalizeRemote() {
+      return configRef.current.normalizeRemote;
+    },
+    get onPushSuccess() {
+      return configRef.current.onPushSuccess;
+    },
     onFetch: () => configRef.current.onFetch(),
     onPush: (payload, options) => configRef.current.onPush(payload, options),
   };

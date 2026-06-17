@@ -56,10 +56,10 @@ Server PATCH recomputes `meta.deletedRoots` from stored vs incoming form via `Wo
 
 | Layer | `deletedRoots` |
 | ----- | -------------- |
-| Client envelope (UI / engine `data`) | **Absent** — `denaliPrepareDraftEnvelope` and `denaliHydrateDraftEnvelope` omit/strip |
+| Client envelope (UI / engine `data`) | **Absent** — `normalizeRemote` (`denaliHydrateDraftEnvelope`) on remote hydrate; `denaliPrepareDraftEnvelope` on edit |
 | Server DB row | Authoritative after PATCH recompute |
-| 409 merge (`off` / `shadow`) | `mergeDenaliWizardDraftEnvelope` — server tombstones apply to form only; client meta stripped |
-| 409 reload (`on`) | `SERVER_WINS` — no merge; engine hydrates server payload |
+| 409 merge (`off` / `shadow`) | `mergeDenaliWizardDraftEnvelope` + `schemaGate` merge phase — server tombstones apply to form only; client meta stripped |
+| 409 reload (`on`) | `SERVER_WINS` — `normalizeRemote` strips meta after server hydrate |
 
 See also [`web-draft-host.md`](web-draft-host.md) — AckRecord cache, PATCH transport, and `DRAFT_UNIFICATION_V3` rollout.
 
@@ -93,6 +93,27 @@ No `DRAFT_AVAILABLE` pending-draft chooser in `on` mode — server snapshot is a
 
 ### Manual smoke checklist (Track C)
 
+| # | Scenario | Expected | Result |
+|---|----------|----------|--------|
+| 1 | **`off`:** PATCH after canonical root delete | 200; no `TOMBSTONE_RESURRECTION` | **pass** (prior run) |
+| 2 | **`off`:** Client PATCH after hydrate | `meta.deletedRoots` absent in PATCH body | **pass** (B-8 `normalizeRemote`) |
+| 3 | **`off`:** Two-tab stale edit | Quiet merge; no reload banner | **automated** — `denali-draft-unification-smoke.mjs` `runTwoTabConflict` |
+| 4 | **`on`:** Two-tab stale edit | Reload banner FA/EN; server title wins | **automated when** `SMOKE_EXPECT_UNIFICATION_ON=true` + web built with `NEXT_PUBLIC_DRAFT_UNIFICATION_V3=on` |
+| 5 | **Flat-edit parity** | `DraftSyncChrome` on `/tours/[id]/edit` | **automated** — smoke script `runFlatEditSmoke` |
+
+Run:
+
+```bash
+# default off-mode smoke (web + api dev required)
+node apps/web/scripts/denali-draft-unification-smoke.mjs
+
+# SERVER_WINS sign-off
+NEXT_PUBLIC_DRAFT_UNIFICATION_V3=on pnpm --filter @apps/web dev
+SMOKE_EXPECT_UNIFICATION_ON=true node apps/web/scripts/denali-draft-unification-smoke.mjs
+```
+
+Legacy numbered list (same scenarios):
+
 1. **`off` (default):** Two tabs edit same draft → stale PATCH → quiet merge via `REFETCH_REAPPLY`; no reload banner.
 2. **`shadow`:** Same as `off`; after successful PATCH, dev console may log `[draft-unification-v3] tombstone shadow mismatch` when client form diff implies roots server did not tombstone.
 3. **`on`:** Stale PATCH → UI shows server reload banner once; form matches server; banner clears after any edit.
@@ -108,7 +129,9 @@ See also [`web-draft-host.md`](web-draft-host.md) — AckRecord cache + PATCH tr
 ## Helpers (`packages/workspaces/denali/src/draft/`)
 
 - `denaliPrepareDraftEnvelope(form, meta)` — clone before push
-- `denaliHydrateDraftEnvelope(remote, fallbackForm, fallbackMeta?)` — restore after GET / conflict
+- `denaliHydrateDraftEnvelope(remote, fallbackForm, fallbackMeta?)` — strip server tombstones from meta
+
+Web adapter: `apps/web/src/draft/denali-draft-normalize-remote.ts` → `normalizeDenaliRemoteEnvelope` wired as `DraftEngineConfig.normalizeRemote`.
 
 Full Legacy `sanitizeDenaliWizardDraftSnapshot` port deferred — trunk form is canonical-path `TourWizardDraft`, not `DenaliCreateTourWizardForm`.
 

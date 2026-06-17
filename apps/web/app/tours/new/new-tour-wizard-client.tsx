@@ -25,6 +25,7 @@ import {
   resolveDenaliDraftConflictStrategy,
   resolveDenaliDraftMerge,
 } from "@/draft/draft-unification-v3-options";
+import { normalizeDenaliRemoteEnvelope } from "@/draft/denali-draft-normalize-remote";
 import { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
 import {
@@ -203,6 +204,7 @@ export function NewTourWizardClient() {
     ...(isDenali ? { onPushSuccess: createDenaliDraftOnPushSuccess() } : {}),
     hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, session.pluginId),
     ...(isDenali ? { schemaGate: denaliSchemaGate } : {}),
+    ...(isDenali ? { normalizeRemote: normalizeDenaliRemoteEnvelope } : {}),
   });
 
   const draftIndex = useWorkspaceDraftIndex(
