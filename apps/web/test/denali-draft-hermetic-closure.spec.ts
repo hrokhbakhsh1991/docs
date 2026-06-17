@@ -48,9 +48,16 @@ describe("denali-draft-hermetic-closure.spec.ts — Phase 5A", () => {
     assert.match(source, /DraftSyncChrome/);
   });
 
-  it("WEB-P11-HERMETIC-04 denali gate defines MAX_SANITY_ATTEMPTS = 2", () => {
+  it("WEB-P11-HERMETIC-04 denali gate defines MAX_SANITY_ATTEMPTS = 2 for merge phase", () => {
     const source = readRepoSource("packages/workspaces/denali/src/draft/create-denali-draft-schema-gate.ts");
     assert.match(source, /MAX_SANITY_ATTEMPTS/);
     assert.match(source, /SANITIZE_FIXPOINT_EXCEEDED/);
+    assert.match(source, /runMergePhaseGate/);
+    assert.match(source, /ctx\.phase === "prePush"/);
+  });
+
+  it("WEB-P11-HERMETIC-05 create-tour does not track deletedRoots on edit (Track B)", () => {
+    const source = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    assert.doesNotMatch(source, /trackDeletedCanonicalRoots/);
   });
 });

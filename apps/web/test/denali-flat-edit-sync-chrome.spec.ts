@@ -45,4 +45,11 @@ describe("denali-flat-edit-sync-chrome.spec.ts — Phase 5B", () => {
     assert.match(flatEdit, /createDenaliDraftSchemaGate/);
     assert.match(flatEdit, /schemaGate:\s*denaliSchemaGate/);
   });
+
+  it("WEB-P11-SYMM-05 flat-edit passes conflictReloadNotice like create-tour (Track C)", () => {
+    const createTour = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    assert.match(createTour, /conflictReloadNotice=\{draftSync\.conflictReloadNotice\}/);
+    assert.match(flatEdit, /conflictReloadNotice=\{draftSync\.conflictReloadNotice\}/);
+  });
 });

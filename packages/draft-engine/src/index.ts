@@ -2,6 +2,8 @@ export { DraftEngine } from "./engine";
 export {
   DraftConflictError,
   type ConflictStrategy,
+  type DraftAckCache,
+  type DraftAckSource,
   type DraftDataSource,
   type DraftEngineConfig,
   type DraftEngineState,

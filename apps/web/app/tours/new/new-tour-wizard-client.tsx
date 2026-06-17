@@ -20,11 +20,14 @@ import type { DraftSchemaGate } from "@app-tour/draft-engine";
 import { Button } from "@/components/ui/button";
 
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
+import {
+  createDenaliDraftOnPushSuccess,
+  resolveDenaliDraftConflictStrategy,
+  resolveDenaliDraftMerge,
+} from "@/draft/draft-unification-v3-options";
 import { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
 import {
-  mergeDenaliWizardDraftEnvelope,
-  trackDeletedCanonicalRoots,
   type NewTourWizardDraftEnvelope,
 } from "@/draft/denali-wizard-draft-merge";
 import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
@@ -195,8 +198,9 @@ export function NewTourWizardClient() {
     workspaceId: session.workspaceId,
     namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
     draftKey: DENALI_CREATE_TOUR_DRAFT_KEY,
-    conflictStrategy: "REFETCH_REAPPLY",
-    merge: mergeDenaliWizardDraftEnvelope,
+    conflictStrategy: resolveDenaliDraftConflictStrategy(),
+    merge: resolveDenaliDraftMerge(),
+    ...(isDenali ? { onPushSuccess: createDenaliDraftOnPushSuccess() } : {}),
     hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, session.pluginId),
     ...(isDenali ? { schemaGate: denaliSchemaGate } : {}),
   });
@@ -501,18 +505,12 @@ export function NewTourWizardClient() {
             ? sanitizeDenaliWizardDraft(next, denaliRules, wizardRuleEvalContext as DenaliWizardRuleEvalContext)
             : next;
       if (isDenali && denaliEnvelope !== null) {
-        const deletedRoots = trackDeletedCanonicalRoots(
-          denaliEnvelope.form.data as Record<string, unknown> | undefined,
-          sanitized.data as Record<string, unknown> | undefined,
-          denaliEnvelope.meta.deletedRoots
-        );
         draftSync.setData(
           denaliPrepareDraftEnvelope(sanitized, {
             currentStepIndex: denaliEnvelope.meta.currentStepIndex,
             ...(denaliEnvelope.meta.wizardSessionId !== undefined
               ? { wizardSessionId: denaliEnvelope.meta.wizardSessionId }
               : {}),
-            ...(deletedRoots !== undefined ? { deletedRoots } : {}),
           })
         );
         return;
@@ -753,6 +751,7 @@ export function NewTourWizardClient() {
                 schemaIssues={draftSync.schemaIssues}
                 navLocked={draftSync.navLocked}
                 pendingDraft={draftSync.pendingDraft}
+                conflictReloadNotice={draftSync.conflictReloadNotice}
                 onRetry={() => void draftSync.retry()}
                 onFlush={() => void draftSync.flush()}
                 onApplyPending={draftSync.applyDraft}

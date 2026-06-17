@@ -48,6 +48,12 @@ export type {
   WizardDraftValidationViolation,
 } from "./workspace-wizard-host-hooks";
 export {
+  noopWorkspaceDraftTombstoneBinding,
+  topLevelRootsRemoved,
+  isNonEmptyRootValue,
+  type WorkspaceDraftTombstoneBinding,
+} from "../draft/workspace-draft-tombstone-binding";
+export {
   createStarterWorkspacePlugin,
   getStarterWorkspacePlugin,
   starterWorkspacePlugin,

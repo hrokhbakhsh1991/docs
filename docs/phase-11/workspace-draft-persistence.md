@@ -189,16 +189,28 @@ Web BFF: `GET /api/workspaces/{workspaceId}/drafts/{namespace}/{key}/events` —
 
 ## Envelope tombstone invariants (Phase 6 — G-API-04)
 
-For allowlisted namespaces (`operator.wizard`), PATCH validates **structural** tombstone rules only — no Denali Zod or workspace imports in `@apps/api`.
+For allowlisted namespaces (`operator.wizard`), PATCH applies a **two-step** pipeline before persist:
 
-Module: `apps/api/src/workspace-drafts/invariants/envelope-tombstone-invariants.ts`
+1. **Server recompute (Track A — authoritative)** — load stored snapshot; resolve workspace plugin; compute `meta.deletedRoots` from baseline vs incoming form via `WorkspacePlugin.draftTombstone.resolveTombstoneRoots`. Client-sent `deletedRoots` is a hint only and is **overwritten** on persist.
+2. **Structural invariant** — generic check on the recomputed envelope (no workspace imports in the invariant module).
+
+Baseline for diff = **stored row** `form.data` (empty object on first create). Incoming = PATCH body `form.data`. Plugin binding lives on `WorkspacePlugin`; `@apps/api` resolves plugin by tenant `workspaceType` — **no** `@app-tour/workspace-denali` import in the invariant module (G-API-04 preserved).
+
+**Ingress boundary:** `draftTombstone` contains functions — strip via `denaliPluginForWizardEngine` / `PlatformWizardEngine.create` `stripNonIngressPluginSurfaces` before workspace-sdk plain-tree ingress (same as `wizardHost`, `tourClone`). `@apps/api` uses the **full** runtime plugin, not the wizard-engine subset.
+
+Module (step 2 only): `apps/api/src/workspace-drafts/invariants/envelope-tombstone-invariants.ts`  
+Recompute helper: `apps/api/src/workspace-drafts/reapply-server-envelope-tombstones.ts`
 
 | Check | Condition | HTTP |
 | ----- | --------- | ---- |
 | Pass-through | `data` is not `{ form: { data: object }, meta: object }` | persist opaque blob |
-| Pass-through | `meta.deletedRoots` absent | persist |
+| Pass-through | `meta.deletedRoots` absent after recompute | persist |
 | `DELETED_ROOTS_NOT_ARRAY` | `deletedRoots` present but not `string[]` | `400` |
-| `TOMBSTONE_RESURRECTION` | any `root ∈ deletedRoots` is an own key of `form.data` | `400` + `keys` |
+| `TOMBSTONE_RESURRECTION` | any `root ∈ deletedRoots` is an own key of `form.data` (after recompute) | `400` + `keys` |
+
+**Behavioral note:** A client-sent resurrection on **first push** (`version === 0`, empty baseline) becomes **200** after recompute — server sets `deletedRoots` to `[]` because no roots were removed from an empty baseline. This is intentional (fixes client dual-state drift); not a regression of G-API-04.
+
+**Client (Track B):** Web envelope omits `meta.deletedRoots` after hydrate/prepare; server row may still carry ephemeral tombstones until the next edit. See [`denali-wizard-draft-binding.md`](denali-wizard-draft-binding.md) § Tombstone write path and [`web-draft-host.md`](web-draft-host.md) § AckRecord cache.
 
 ```json
 {
@@ -222,4 +234,5 @@ Other namespaces remain fully opaque until explicitly allowlisted via `ENVELOPE_
 
 - `apps/api/test/workspace-drafts.spec.ts` — create → patch → conflict → delete · list index (API-P11-9-01…04) · events audit (API-P11-9-05…08)
 - `apps/api/test/workspace-draft-tombstone-invariants.spec.ts` — structural tombstone gate (API-P11-TOMB-01…03, API-P11-GEN-01)
+- `apps/api/test/workspace-draft-server-tombstone.spec.ts` — server authoritative recompute (Track A)
 - Memory driver default in unit tests; prisma path covered by repository contract

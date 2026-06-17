@@ -120,6 +120,7 @@ function pluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
     tourClone: _tourClone,
     publicCatalog: _publicCatalog,
     wizardHost: _wizardHost,
+    draftTombstone: _draftTombstone,
     ...wizardPlugin
   } = plugin;
   return wizardPlugin as WorkspacePlugin;

@@ -24,7 +24,8 @@
     "syncingSoftLockBanner": "Saving draft to server — you can keep editing.",
     "conflictSoftLockBanner": "Resolving draft conflict — please wait.",
     "applyServer": "Load server version",
-    "discardLocal": "Keep editing locally"
+    "discardLocal": "Keep editing locally",
+    "serverReloaded": "Draft updated from server after a sync conflict."
   },
   "slug": "Slug",
   "optional": "optional",

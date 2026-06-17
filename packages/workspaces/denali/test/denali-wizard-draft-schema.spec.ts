@@ -51,7 +51,25 @@ describe("denali-wizard-draft-schema.spec.ts — WEB-P11-HERMETIC-04", () => {
     assert.equal(result.ok, true);
   });
 
-  it("fixpoint loop is bounded by MAX_SANITY_ATTEMPTS in gate source", async () => {
+  it("prePush returns envelope unchanged (validate-only)", () => {
+    const gate = createDenaliDraftSchemaGate(minimalRules(), {
+      uiOptions: {},
+      ruleSet: "publish",
+    } as never);
+
+    const envelope = {
+      form: { data: { program: { themeIds: [] } } },
+      meta: { currentStepIndex: 0 },
+    };
+    const result = gate(envelope as never, { phase: "prePush" });
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(JSON.stringify(result.value.form), JSON.stringify(envelope.form));
+      assert.equal(JSON.stringify(result.value.meta), JSON.stringify(envelope.meta));
+    }
+  });
+
+  it("fixpoint loop is bounded by MAX_SANITY_ATTEMPTS in merge phase source", async () => {
     const { readFileSync } = await import("node:fs");
     const { dirname, join } = await import("node:path");
     const { fileURLToPath } = await import("node:url");
@@ -59,11 +77,12 @@ describe("denali-wizard-draft-schema.spec.ts — WEB-P11-HERMETIC-04", () => {
       join(dirname(fileURLToPath(import.meta.url)), "../src/draft/create-denali-draft-schema-gate.ts"),
       "utf8"
     );
+    assert.match(source, /runMergePhaseGate/);
     assert.match(source, /for \(let attempt = 1; attempt <= MAX_SANITY_ATTEMPTS; attempt\+\+\)/);
     assert.match(source, /SANITIZE_FIXPOINT_EXCEEDED/);
   });
 
-  it("freshStart clears deletedRoots before gate pass", () => {
+  it("freshStart clears deletedRoots before prePush gate pass", () => {
     const gate = createDenaliDraftSchemaGate(minimalRules(), {
       uiOptions: {},
       ruleSet: "publish",
@@ -83,7 +102,7 @@ describe("denali-wizard-draft-schema.spec.ts — WEB-P11-HERMETIC-04", () => {
     }
   });
 
-  it("returns SANITIZE_FIXPOINT_EXCEEDED when sanitize never stabilizes", () => {
+  it("returns SANITIZE_FIXPOINT_EXCEEDED when sanitize never stabilizes on merge phase", () => {
     let toggle = false;
     const oscillatingRules = {
       canonicalToFormPathMap: { "basics.title": "basics.title" },
@@ -106,7 +125,7 @@ describe("denali-wizard-draft-schema.spec.ts — WEB-P11-HERMETIC-04", () => {
         form: { data: { basics: { title: "seed" } } },
         meta: { currentStepIndex: 0 },
       } as never,
-      { phase: "prePush" }
+      { phase: "merge" }
     );
 
     assert.equal(result.ok, false);

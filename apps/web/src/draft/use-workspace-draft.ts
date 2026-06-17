@@ -21,6 +21,7 @@ export function useWorkspaceDraft<T>(
       options.debounceMs,
       options.autoApply,
       options.merge,
+      options.onPushSuccess,
       options.schemaGate,
     ]
   );
@@ -55,6 +56,7 @@ export function useWorkspaceDraft<T>(
     error: state.error,
     pendingDraft: state.pendingDraft,
     schemaIssues: state.schemaIssues,
+    conflictReloadNotice: state.conflictReloadNotice === true,
     canRevertQuarantine,
     navLocked,
     setData: setDraftData,

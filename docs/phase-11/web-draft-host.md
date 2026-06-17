@@ -14,6 +14,9 @@ apps/web/src/draft/
   use-workspace-draft.ts         — React hook (useDraftEngine wrapper)
   draft-sync-indicator-logic.ts  — status → badge variant (unit-tested)
   draft-sync-indicator.tsx       — ui-primitives Badge UI
+  draft-unification-v3.ts        — DRAFT_UNIFICATION_V3 flag resolver (Track C)
+  draft-unification-v3-options.ts — Denali conflictStrategy / merge wiring
+  draft-unification-v3-shadow.ts — shadow tombstone mismatch logging
 
 apps/web/app/api/workspaces/[workspaceId]/drafts/route.ts
   GET — list index proxy (11.9-T6)
@@ -89,6 +92,31 @@ GET failures continue to use `WORKSPACE_DRAFT_FETCH_FAILED:${status}`.
 
 This complements existing `syncEpoch` / `localChangedDuringPush` guards inside the engine.
 
+## AckRecord cache (Track B — INV-6)
+
+`DraftEngine` maintains an explicit **ack cache** (`DraftAckCache<T>`) — last parsed GET/PATCH 200 body + OCC fields. Used for PATCH `expectedVersion`; **not** primary truth for tombstones (server Track A).
+
+```typescript
+type DraftAckCache<T> = {
+  version: number;
+  lastModified: number;
+  schemaVersion: number;
+  data: T;
+  ackedAt: number;
+  ackSource: "initialize" | "patch200" | "conflictRefetch";
+};
+```
+
+| Event | Action |
+| ----- | ------ |
+| GET / PATCH 200 parsed | `commitServerAck` → update cache |
+| `syncEpoch` changed mid-push | **No** commit |
+| `WORKSPACE_DRAFT_PATCH_ABORTED` | **No** commit |
+| `flushKeepalive` fire-and-forget | **No** commit (no parsed response) |
+| `ackCache == null` && `version > 0` | Block PATCH → refetch GET → commit → hydrate quietly |
+
+`setDraftData` from user edits does **not** update the ack cache. `buildPayload` uses `ackCache.version` when present for OCC.
+
 ## Generic envelope
 
 Workspace packages may wrap form state + meta:
@@ -138,9 +166,18 @@ Denali create tour (`new-tour-wizard-client.tsx`) runs **`clearDraft()` → `set
 
 ## 409 mapping
 
-`workspace-draft-client.patchWorkspaceDraftSnapshot` throws `DraftConflictError` when BFF returns `409` with `DraftSyncPayload` body — engine `REFETCH_REAPPLY` handles merge quietly.
+`workspace-draft-client.patchWorkspaceDraftSnapshot` throws `DraftConflictError` when BFF returns `409` with `DraftSyncPayload` body.
 
-Explicit conflict banner UI → **11.3-T6** (later).
+| `conflictStrategy` | Engine behaviour | Operator UX |
+| ------------------ | ---------------- | ----------- |
+| `REFETCH_REAPPLY` (default / flag `off` \| `shadow`) | Refetch baseline, merge via `mergeDenaliWizardDraftEnvelope`, re-push | Quiet — no reload banner; optional `DRAFT_AVAILABLE` if merge yields pending local delta |
+| `SERVER_WINS` (flag `on`) | `hydrateFromRemote(serverPayload)`; `conflictReloadNotice = true` | `DraftConflictBanner` → `common.draftSync.serverReloaded` until next edit |
+
+Flag wiring: [`denali-wizard-draft-binding.md`](denali-wizard-draft-binding.md#track-c-rollout--draft_unification_v3).
+
+`DraftEngineState.conflictReloadNotice` is exposed by `useWorkspaceDraft` and passed to `DraftSyncChrome` → `DraftConflictBanner`.
+
+Explicit conflict chooser (`applyServer` / `discardLocal`) remains for `REFETCH_REAPPLY` + `DRAFT_AVAILABLE` only.
 
 ## DraftSyncIndicator
 
@@ -195,7 +232,7 @@ Quarantine banner UI (`DraftQuarantineBanner`) → integrated in `DraftSyncChrom
 | ----- | ---- |
 | `DraftSyncIndicator` | status badge |
 | `DraftManualSyncButton` | Save / Retry |
-| `DraftConflictBanner` | 409 pending draft |
+| `DraftConflictBanner` | 409 pending draft (`REFETCH_REAPPLY`) or server reload notice (`SERVER_WINS`) |
 | `DraftQuarantineBanner` | `QUARANTINED` + `schemaIssues` codes |
 | `DraftSyncSoftLockBanner` | optional inline (`showInlineSoftLockBanner`) — flat-edit |
 
@@ -212,7 +249,9 @@ Server emits audit event `tombstone_violation`. Contract: [`workspace-draft-pers
 - `apps/web/test/workspace-draft-client.spec.ts` — mock `fetch`, no Denali
 - `apps/web/test/draft-sync-indicator-logic.spec.ts` — status mapping
 - `apps/web/test/draft-visibility-flush-logic.spec.ts` — visibility → flush/keepalive mapping
-- `apps/web/test/create-workspace-draft-adapter.spec.ts` — abort + keepalive paths
+- `apps/web/test/create-workspace-draft-adapter.spec.ts` — abort + keepalive + SERVER_WINS 409 paths
+- `apps/web/test/draft-unification-v3.spec.ts` — Track C flag + merge tombstone guards
+- `apps/web/test/draft-conflict-banner-logic.spec.ts` — `serverReloaded` banner view
 - **Systemic fixes DoD:** [`denali-wizard-draft-binding.md`](denali-wizard-draft-binding.md#systemic-fixes-closure-phase-4--dod) — Phases 1–6 closure checklist + fast-track commands
 - `apps/web/test/denali-draft-systemic-closure.spec.ts` — regression guards (`WEB-P11-CLOSE-*`)
 - `apps/web/test/denali-draft-hermetic-closure.spec.ts` — Phase 5A (`WEB-P11-HERMETIC-*`)

@@ -25,8 +25,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
 import {
-  mergeDenaliWizardDraftEnvelope,
-  trackDeletedCanonicalRoots,
+  createDenaliDraftOnPushSuccess,
+  resolveDenaliDraftConflictStrategy,
+  resolveDenaliDraftMerge,
+} from "@/draft/draft-unification-v3-options";
+import {
   type NewTourWizardDraftEnvelope,
 } from "@/draft/denali-wizard-draft-merge";
 import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
@@ -117,8 +120,9 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     workspaceId: appSession.workspaceId,
     namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
     draftKey: editDraftKey,
-    conflictStrategy: "REFETCH_REAPPLY",
-    merge: mergeDenaliWizardDraftEnvelope,
+    conflictStrategy: resolveDenaliDraftConflictStrategy(),
+    merge: resolveDenaliDraftMerge(),
+    onPushSuccess: createDenaliDraftOnPushSuccess(),
     schemaGate: denaliSchemaGate,
   });
 
@@ -155,15 +159,9 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
   const persistDraft = useCallback(
     (next: TourWizardDraft) => {
       const meta = envelope?.meta ?? envelopeMeta;
-      const deletedRoots = trackDeletedCanonicalRoots(
-        envelope?.form.data as Record<string, unknown> | undefined,
-        next.data as Record<string, unknown> | undefined,
-        meta.deletedRoots
-      );
       draftSync.setData(
         denaliPrepareDraftEnvelope(next, {
           ...meta,
-          ...(deletedRoots !== undefined ? { deletedRoots } : {}),
         })
       );
     },
@@ -498,6 +496,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
           schemaIssues={draftSync.schemaIssues}
           navLocked={draftSync.navLocked}
           pendingDraft={draftSync.pendingDraft}
+          conflictReloadNotice={draftSync.conflictReloadNotice}
           onRetry={() => void draftSync.retry()}
           onFlush={() => void draftSync.flush()}
           onApplyPending={draftSync.applyDraft}

@@ -59,17 +59,21 @@ describe("denali-wizard-draft-binding.spec.ts — Phase 11.5", () => {
     assert.equal(envelope.meta.freshStart, true);
   });
 
-  it("WEB-P11-5-06 prepare and hydrate preserve deletedRoots meta", () => {
+  it("WEB-P11-5-06 prepare and hydrate strip deletedRoots from client meta (Track B)", () => {
     const envelope = denaliPrepareDraftEnvelope(
       { data: { basics: { title: "Seed" } } },
       { currentStepIndex: 1, deletedRoots: ["details", "program"] }
     );
-    assert.deepEqual(envelope.meta.deletedRoots, ["details", "program"]);
+    assert.equal(envelope.meta.deletedRoots, undefined);
     const hydrated = denaliHydrateDraftEnvelope(
-      envelope,
+      {
+        form: { data: { basics: { title: "Remote" } } },
+        meta: { currentStepIndex: 2, deletedRoots: ["photos"] },
+      },
       { data: { basics: { title: "Fallback" } } },
       { currentStepIndex: 0 }
     );
-    assert.deepEqual(hydrated.meta.deletedRoots, ["details", "program"]);
+    assert.equal(hydrated.meta.deletedRoots, undefined);
+    assert.equal(hydrated.meta.currentStepIndex, 2);
   });
 });

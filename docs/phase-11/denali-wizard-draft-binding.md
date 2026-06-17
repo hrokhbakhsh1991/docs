@@ -23,7 +23,7 @@ type DenaliWizardDraftEnvelope<TForm> = {
     wizardSessionId?: string;
     /** True after explicit clear — conflict merge prefers local template. */
     freshStart?: boolean;
-    /** Canonical object roots intentionally removed — 409 merge must not resurrect. */
+    /** Server-persisted tombstones only — stripped on client hydrate (Track B). Legacy 409 merge reads server copy (Track C). */
     deletedRoots?: readonly string[];
   };
 };
@@ -46,16 +46,64 @@ Replaces naive shallow spread on `form.data` with controlled merge rules:
 
 `DENALI_CANONICAL_OBJECT_ROOTS` is exported from `@app-tour/workspace-denali/draft` (`program`, `transport`, `pricing`, `participants`, `policies`, `tripDetails`, `photos`, `gatheringPoints`).
 
-`meta.deletedRoots` on merge: union of local + server arrays (deduplicated). Step index and `wizardSessionId` rules unchanged.
+`meta.deletedRoots` on merge: **server array only** (no union with local hints). Step index and `wizardSessionId` rules unchanged.
 
-### Tombstone write path
+### Tombstone write path (Track B — server-primary)
 
-`trackDeletedCanonicalRoots(previousFormData, nextFormData, existingDeletedRoots)` runs in `onDraftChange` after sanitize:
+**Client no longer tracks `deletedRoots`.** On edit, `onDraftChange` sanitizes once and writes envelope meta without `deletedRoots` (step index, `wizardSessionId`, `freshStart` only).
 
-- For each key in `DENALI_CANONICAL_OBJECT_ROOTS`, if `previous` had a non-empty root object and `next` omits that key → append root to `deletedRoots`.
-- Persisted in envelope meta and synced as part of the opaque JSONB blob.
+Server PATCH recomputes `meta.deletedRoots` from stored vs incoming form via `WorkspacePlugin.draftTombstone` — see [`workspace-draft-persistence.md`](workspace-draft-persistence.md) § Envelope tombstone invariants (Track A).
 
-See also [`web-draft-host.md`](web-draft-host.md) — PATCH transport + AbortController.
+| Layer | `deletedRoots` |
+| ----- | -------------- |
+| Client envelope (UI / engine `data`) | **Absent** — `denaliPrepareDraftEnvelope` and `denaliHydrateDraftEnvelope` omit/strip |
+| Server DB row | Authoritative after PATCH recompute |
+| 409 merge (`off` / `shadow`) | `mergeDenaliWizardDraftEnvelope` — server `deletedRoots` only |
+| 409 reload (`on`) | `SERVER_WINS` — no merge; engine hydrates server payload |
+
+See also [`web-draft-host.md`](web-draft-host.md) — AckRecord cache, PATCH transport, and `DRAFT_UNIFICATION_V3` rollout.
+
+## Track C rollout — `DRAFT_UNIFICATION_V3`
+
+Flag resolver: `apps/web/src/draft/draft-unification-v3.ts`
+
+| Env (precedence) | Values | Effect |
+| ---------------- | ------ | ------ |
+| `NEXT_PUBLIC_DRAFT_UNIFICATION_V3` | `off` \| `shadow` \| `on` | Client bundle (wins when set) |
+| `DRAFT_UNIFICATION_V3` | same | Server fallback when public unset |
+| default | — | `off` |
+
+Wiring helpers: `apps/web/src/draft/draft-unification-v3-options.ts` — consumed by `new-tour-wizard-client.tsx` and `denali-flat-edit-page-client.tsx`.
+
+| Mode | `conflictStrategy` | `merge` | Post-PATCH hook |
+| ---- | ------------------ | ------- | --------------- |
+| `off` | `REFETCH_REAPPLY` | `mergeDenaliWizardDraftEnvelope` | none |
+| `shadow` | `REFETCH_REAPPLY` | `mergeDenaliWizardDraftEnvelope` | `logDenaliTombstoneShadowMismatch` after PATCH 200 |
+| `on` | `SERVER_WINS` | omitted | same shadow hook (no-op unless `shadow`) |
+
+### 409 SERVER_WINS UX (`on`)
+
+When PATCH returns `409` and strategy is `SERVER_WINS`, `DraftEngine.handleConflict`:
+
+1. `hydrateFromRemote(serverPayload)` — local edits discarded
+2. `conflictReloadNotice = true` → `DraftConflictBanner` shows `common.draftSync.serverReloaded`
+3. Cleared on next user `setDraftData` (operator may continue editing)
+
+No `DRAFT_AVAILABLE` pending-draft chooser in `on` mode — server snapshot is applied immediately.
+
+### Manual smoke checklist (Track C)
+
+1. **`off` (default):** Two tabs edit same draft → stale PATCH → quiet merge via `REFETCH_REAPPLY`; no reload banner.
+2. **`shadow`:** Same as `off`; after successful PATCH, dev console may log `[draft-unification-v3] tombstone shadow mismatch` when client form diff implies roots server did not tombstone.
+3. **`on`:** Stale PATCH → UI shows server reload banner once; form matches server; banner clears after any edit.
+4. **Tombstone:** Delete canonical root in tab A, save; tab B stale push → merged/reloaded envelope must not resurrect deleted root (`photos`, `program`, etc.).
+5. **Flat-edit parity:** Repeat steps 1–3 on `/tours/[id]/edit` — same `DraftSyncChrome` + flag helpers.
+
+### C-5 deferral
+
+`trackDeletedCanonicalRoots` remains in `denali-wizard-draft-merge.ts` until flag is `on` at 100% rollout for ≥90 days — do not delete in Track C.
+
+See also [`web-draft-host.md`](web-draft-host.md) — AckRecord cache + PATCH transport.
 
 ## Helpers (`packages/workspaces/denali/src/draft/`)
 
@@ -68,7 +116,7 @@ Full Legacy `sanitizeDenaliWizardDraftSnapshot` port deferred — trunk form is 
 
 `new-tour-wizard-client.tsx`:
 
-1. `useWorkspaceDraft<NewTourWizardDraftEnvelope>` with `REFETCH_REAPPLY` + level-2 form merge (`mergeDenaliWizardDraftEnvelope`)
+1. `useWorkspaceDraft<NewTourWizardDraftEnvelope>` with `resolveDenaliDraftConflictStrategy()` + `resolveDenaliDraftMerge()` (Track C flag)
 2. `WorkspaceWizardHost` — controlled `activeStepIndex` from `meta`
 3. `DraftSyncIndicator` + `DraftConflictBanner` in page header
 4. `clearDraft()` after successful `createTourAction`
@@ -146,13 +194,17 @@ Client-only validation choke point before draft PATCH. Implemented in `@app-tour
 - `packages/workspaces/denali/src/draft/denali-wizard-draft-schema.ts` — `DenaliWizardDraftEnvelopeSchema` (Zod)
 - `packages/workspaces/denali/src/draft/create-denali-draft-schema-gate.ts` — `createDenaliDraftSchemaGate`
 
-### Fixpoint guard (G-DENALI-02)
+### prePush validate-only (Track B — INV-3)
+
+`phase: "prePush"`: `normalizeForGate` → Zod parse → return envelope **unchanged** (no sanitize fixpoint). Sanitize runs **once** on the edit path (`onDraftChange` / flat-edit rule sync).
+
+### Fixpoint guard (G-DENALI-02) — merge phase only
 
 ```typescript
 export const MAX_SANITY_ATTEMPTS = 2 as const;
 ```
 
-Inside `createDenaliDraftSchemaGate`: `parse → sanitizeDenaliWizardDraftEnvelope → re-parse` loop. If the envelope does not stabilize within **2** iterations:
+Inside `createDenaliDraftSchemaGate` when `phase: "merge"`: `parse → sanitizeDenaliWizardDraftEnvelope → re-parse` loop. If the envelope does not stabilize within **2** iterations:
 
 1. Break loop (no infinite retry)
 2. `console.warn` with `SANITIZE_FIXPOINT_EXCEEDED`
@@ -202,9 +254,13 @@ Flat-edit additionally:
 
 ## API envelope tombstone (Phase 6 — G-API-04)
 
-Server-side **structural** check only — `@apps/api` must not import `@app-tour/workspace-denali`.
+Server-side pipeline: **recompute** then **structural check**. On PATCH, `@apps/api` loads the stored snapshot, resolves the workspace plugin, and calls `plugin.draftTombstone.resolveTombstoneRoots(baselineForm, incomingForm)` (Denali implements via `DENALI_CANONICAL_OBJECT_ROOTS`). Persisted `meta.deletedRoots` is **server-authoritative**; client hints are overwritten. Structural invariant module remains workspace-agnostic — `@apps/api` must not import `@app-tour/workspace-denali`.
 
-Module: `apps/api/src/workspace-drafts/invariants/envelope-tombstone-invariants.ts`
+Module: `apps/api/src/workspace-drafts/invariants/envelope-tombstone-invariants.ts`  
+Recompute: `apps/api/src/workspace-drafts/reapply-server-envelope-tombstones.ts`  
+Denali binding: `packages/workspaces/denali/src/draft/denali-draft-tombstone-binding.ts`
+
+Full contract: [`workspace-draft-persistence.md`](workspace-draft-persistence.md#envelope-tombstone-invariants-phase-6--g-api-04).
 
 | Violation | Condition |
 | --------- | --------- |
@@ -220,26 +276,39 @@ Full contract: [`workspace-draft-persistence.md`](workspace-draft-persistence.md
 
 | ID | Assert |
 | -- | ------ |
-| API-P11-TOMB-01 | resurrected root → HTTP 400 |
+| API-P11-TOMB-01 | client resurrection on v0 → HTTP 200 after server recompute; incoherent envelope after recompute → HTTP 400 |
 | API-P11-TOMB-02 | invalid `deletedRoots` shape → HTTP 400 |
 | API-P11-TOMB-03 | opaque / valid envelope → persist |
 | API-P11-GEN-01 | zero `workspace-denali` imports in invariant module |
 
-## Phases 5–6 closure (DoD bundle)
+## Phases 5–6 + unification closure (DoD bundle)
 
-After 5A/5B/6 land, run:
+After 5A/5B/6 and Tracks A–C land, run:
 
 ```bash
+pnpm --filter @app-tour/draft-engine run build
+pnpm --filter @app-tour/workspace-denali run build
 pnpm --filter @app-tour/draft-engine exec node --import tsx --test test/engine.spec.ts test/schema-gate.spec.ts
-pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/denali-wizard-draft-schema.spec.ts test/denali-wizard-draft-binding.spec.ts
+pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/workspace-draft-tombstone-binding.spec.ts
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test \
+  test/denali-wizard-draft-schema.spec.ts \
+  test/denali-wizard-draft-binding.spec.ts \
+  test/denali-draft-tombstone-binding.spec.ts
 pnpm --filter @apps/web exec node --import tsx --test \
   test/denali-draft-hermetic-closure.spec.ts \
   test/denali-flat-edit-sync-chrome.spec.ts \
+  test/denali-draft-unification-closure.spec.ts \
+  test/denali-draft-systemic-closure.spec.ts \
   test/create-workspace-draft-adapter.spec.ts \
-  test/denali-draft-systemic-closure.spec.ts
+  test/draft-unification-client.spec.ts \
+  test/draft-unification-v3.spec.ts \
+  test/draft-conflict-banner-logic.spec.ts \
+  test/denali-wizard-draft-resume.spec.ts
 pnpm --filter @apps/api exec node --import tsx --test \
   test/workspace-draft-tombstone-invariants.spec.ts \
+  test/workspace-draft-server-tombstone.spec.ts \
   test/workspace-drafts.spec.ts
+pnpm run guard:import-boundary
 bash scripts/guard-docs.sh
 ```
 
@@ -252,7 +321,11 @@ bash scripts/guard-docs.sh
 - `apps/web/test/resolve-wizard-validation-issue-message.spec.ts` — code → i18n mapping
 - `apps/web/test/denali-flat-edit-validation-list.spec.ts` — flat edit i18n parity
 - `apps/web/test/denali-draft-systemic-closure.spec.ts` — Phase 1–4 regression guards
+- `apps/web/test/denali-draft-unification-closure.spec.ts` — Tracks A–C regression guards (`WEB-P11-UNIFY-*`)
 - `apps/web/test/denali-draft-hermetic-closure.spec.ts` — Phase 5A guards
 - `apps/web/test/denali-flat-edit-sync-chrome.spec.ts` — Phase 5B symmetry
+- `apps/web/test/draft-unification-client.spec.ts` — Track B client tombstone + ack
+- `apps/web/test/draft-unification-v3.spec.ts` — Track C flag + merge guards
+- `apps/api/test/workspace-draft-server-tombstone.spec.ts` — Track A server recompute (`API-P11-TOMB-*`)
 
 `mainThemeFormProfile` for contextual rules derives from the first selected `program.themeIds` row when the theme catalog is loaded (`new-tour-wizard-client.tsx`).

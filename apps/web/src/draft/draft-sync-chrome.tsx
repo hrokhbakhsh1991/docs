@@ -13,6 +13,7 @@ export type DraftSyncChromeProps<T> = {
   readonly schemaIssues?: DraftEngineState<T>["schemaIssues"];
   readonly navLocked?: boolean;
   readonly pendingDraft?: DraftEngineState<T>["pendingDraft"];
+  readonly conflictReloadNotice?: boolean;
   readonly onRetry: () => void;
   readonly onFlush: () => void;
   readonly canRevertQuarantine?: boolean;
@@ -35,6 +36,7 @@ export function DraftSyncChrome<T>({
   schemaIssues,
   navLocked = false,
   pendingDraft,
+  conflictReloadNotice = false,
   onRetry,
   onFlush,
   canRevertQuarantine = false,
@@ -72,6 +74,7 @@ export function DraftSyncChrome<T>({
           <DraftConflictBanner
             status={status}
             pendingDraft={pendingDraft}
+            conflictReloadNotice={conflictReloadNotice}
             onApplyPending={onApplyPending}
             onDiscardPending={onDiscardPending}
           />

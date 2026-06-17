@@ -1,5 +1,7 @@
 import {
   DraftConflictError,
+  type DraftAckCache,
+  type DraftAckSource,
   type DraftEngineConfig,
   type DraftEngineState,
   type DraftSchemaIssue,
@@ -22,6 +24,8 @@ export class DraftEngine<T> {
   private error: Error | undefined;
   private schemaIssues: readonly DraftSchemaIssue[] | undefined;
   private lastValidSnapshot: DraftSyncPayload<T> | null = null;
+  private ackCache: DraftAckCache<T> | null = null;
+  private conflictReloadNotice = false;
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private syncInFlight: Promise<void> | null = null;
@@ -119,6 +123,10 @@ export class DraftEngine<T> {
   setDraftData(newData: T, options?: DraftSetDataOptions): void {
     const source = options?.source ?? "user";
 
+    if (source === "user") {
+      this.conflictReloadNotice = false;
+    }
+
     if (source === "remote") {
       this.clearDebounce();
       this.data = newData;
@@ -167,7 +175,7 @@ export class DraftEngine<T> {
     if (this.pendingDraft == null) {
       return;
     }
-    this.hydrateFromRemote(this.pendingDraft);
+    this.hydrateFromRemote(this.pendingDraft, "initialize");
     this.pendingDraft = null;
     this.status = "IDLE";
     this.error = undefined;
@@ -206,7 +214,64 @@ export class DraftEngine<T> {
     this.error = undefined;
     this.schemaIssues = undefined;
     this.lastValidSnapshot = null;
+    this.ackCache = null;
+    this.conflictReloadNotice = false;
     this.notify();
+  }
+
+  /** Test-only — read ack cache for Track B specs. */
+  getAckCacheForTests(): DraftAckCache<T> | null {
+    return this.ackCache;
+  }
+
+  /** Test-only — simulate ack cache miss while version > 0. */
+  clearAckCacheForTests(): void {
+    this.ackCache = null;
+  }
+
+  private commitServerAck(payload: DraftSyncPayload<T>, ackSource: DraftAckSource): void {
+    this.ackCache = {
+      version: payload.version,
+      lastModified: payload.lastModified,
+      schemaVersion: payload.schemaVersion,
+      data: structuredClone(payload.data),
+      ackedAt: Date.now(),
+      ackSource,
+    };
+  }
+
+  private async ensureAckBeforePush(epochAtStart: number): Promise<boolean> {
+    if (this.ackCache != null || this.version === 0) {
+      return true;
+    }
+
+    const payload = await this.config.onFetch();
+    if (this.syncEpoch !== epochAtStart) {
+      return false;
+    }
+
+    if (payload == null) {
+      this.version = 0;
+      this.schemaVersion = 1;
+      this.lastModified = 0;
+      return true;
+    }
+
+    this.commitServerAck(payload, "initialize");
+    if (this.status === "DIRTY" && this.data != null) {
+      this.version = payload.version;
+      this.schemaVersion = payload.schemaVersion;
+      return this.syncEpoch === epochAtStart;
+    }
+
+    this.captureLastValidSnapshot(payload);
+    this.setDraftData(payload.data, {
+      source: "remote",
+      version: payload.version,
+      schemaVersion: payload.schemaVersion,
+      lastModified: payload.lastModified,
+    });
+    return this.syncEpoch === epochAtStart;
   }
 
   /** Restore last server-valid snapshot and exit quarantine (Phase 5A revert CTA). */
@@ -216,6 +281,7 @@ export class DraftEngine<T> {
     }
     const snap = this.lastValidSnapshot;
     this.schemaIssues = undefined;
+    this.commitServerAck(snap, "patch200");
     this.setDraftData(snap.data, {
       source: "remote",
       version: snap.version,
@@ -239,6 +305,7 @@ export class DraftEngine<T> {
       ...(this.error != null ? { error: this.error } : {}),
       ...(this.schemaIssues != null ? { schemaIssues: this.schemaIssues } : {}),
       ...(this.lastValidSnapshot != null ? { hasLastValidSnapshot: true } : {}),
+      ...(this.conflictReloadNotice ? { conflictReloadNotice: true } : {}),
     };
   }
 
@@ -249,7 +316,7 @@ export class DraftEngine<T> {
       return;
     }
     if (options.forceApply || this.config.autoApply !== false) {
-      this.hydrateFromRemote(payload);
+      this.hydrateFromRemote(payload, "initialize");
       this.pendingDraft = null;
       return;
     }
@@ -258,8 +325,9 @@ export class DraftEngine<T> {
   }
 
   /** Server / snapshot hydration — updates version metadata without marking DIRTY or pushing. */
-  private hydrateFromRemote(payload: DraftSyncPayload<T>): void {
+  private hydrateFromRemote(payload: DraftSyncPayload<T>, ackSource: DraftAckSource): void {
     this.captureLastValidSnapshot(payload);
+    this.commitServerAck(payload, ackSource);
     this.setDraftData(payload.data, {
       source: "remote",
       version: payload.version,
@@ -283,7 +351,7 @@ export class DraftEngine<T> {
     }
     return {
       data: this.data,
-      version: this.version,
+      version: this.ackCache?.version ?? this.version,
       schemaVersion: this.schemaVersion,
       lastModified: this.lastModified,
     };
@@ -373,6 +441,11 @@ export class DraftEngine<T> {
       return;
     }
 
+    const ackReady = await this.ensureAckBeforePush(epochAtStart);
+    if (!ackReady || this.syncEpoch !== epochAtStart) {
+      return;
+    }
+
     const gated = this.buildPayloadForPush();
     if (!gated.ok) {
       this.schemaIssues = gated.issues;
@@ -389,6 +462,7 @@ export class DraftEngine<T> {
 
     try {
       const pushedPayload = gated.payload;
+      const baselineAckData = this.ackCache?.data;
       const result = await this.config.onPush(pushedPayload);
       if (this.syncEpoch !== epochAtStart) {
         return;
@@ -399,9 +473,10 @@ export class DraftEngine<T> {
         this.status = "DIRTY";
         this.scheduleSync();
       } else {
-        this.hydrateFromRemote(result);
+        this.hydrateFromRemote(result, "patch200");
         this.status = "IDLE";
       }
+      this.config.onPushSuccess?.(pushedPayload, result, baselineAckData);
     } catch (err) {
       if (this.syncEpoch !== epochAtStart) {
         return;
@@ -436,7 +511,8 @@ export class DraftEngine<T> {
     }
 
     if (conflictStrategy === "SERVER_WINS") {
-      this.hydrateFromRemote(serverPayload);
+      this.hydrateFromRemote(serverPayload, "conflictRefetch");
+      this.conflictReloadNotice = true;
       this.status = "IDLE";
       this.notify();
       return;
@@ -453,7 +529,7 @@ export class DraftEngine<T> {
           return;
         }
         const result = await this.config.onPush(clientGated.payload);
-        this.hydrateFromRemote(result);
+        this.hydrateFromRemote(result, "patch200");
         this.status = "IDLE";
         this.notify();
       } catch (retryErr) {
@@ -498,7 +574,7 @@ export class DraftEngine<T> {
   ): Promise<void> {
     const localPending = this.data;
     if (localPending == null) {
-      this.hydrateFromRemote(conflict.serverPayload);
+      this.hydrateFromRemote(conflict.serverPayload, "conflictRefetch");
       this.status = "IDLE";
       this.error = undefined;
       this.notify();
@@ -530,6 +606,8 @@ export class DraftEngine<T> {
         schemaVersion: occSource.schemaVersion,
         lastModified: occSource.lastModified,
       });
+      this.commitServerAck(occSource, "conflictRefetch");
+      this.captureLastValidSnapshot({ ...occSource, data: merged });
       this.status = "IDLE";
       this.error = undefined;
       this.notify();
@@ -537,7 +615,7 @@ export class DraftEngine<T> {
       if (this.syncEpoch !== epochAtStart) {
         return;
       }
-      this.hydrateFromRemote(conflict.serverPayload);
+      this.hydrateFromRemote(conflict.serverPayload, "conflictRefetch");
       this.status = "IDLE";
       this.error = undefined;
       this.notify();

@@ -53,6 +53,38 @@ function sanitizeEnvelopeForm<TForm extends { readonly data: Record<string, unkn
   };
 }
 
+function runMergePhaseGate<TForm extends { readonly data: Record<string, unknown> }>(
+  candidate: DenaliWizardDraftEnvelope<TForm>,
+  rules: DenaliWizardRulesModule,
+  evalContext: DenaliWizardRuleEvalContext
+): ReturnType<DraftSchemaGate<DenaliWizardDraftEnvelope<TForm>>> {
+  let current: unknown = normalizeForGate(candidate);
+
+  for (let attempt = 1; attempt <= MAX_SANITY_ATTEMPTS; attempt++) {
+    const parsed = DenaliWizardDraftEnvelopeSchema.safeParse(current);
+    if (!parsed.success) {
+      return { ok: false, issues: zodIssuesToSchemaIssues(parsed.error) };
+    }
+
+    const sanitized = sanitizeEnvelopeForm<TForm>(parsed.data, rules, evalContext);
+    const reparsed = DenaliWizardDraftEnvelopeSchema.safeParse(sanitized);
+    if (!reparsed.success) {
+      return { ok: false, issues: zodIssuesToSchemaIssues(reparsed.error) };
+    }
+
+    if (stableEqual(parsed.data, reparsed.data)) {
+      return { ok: true, value: reparsed.data as DenaliWizardDraftEnvelope<TForm> };
+    }
+
+    current = reparsed.data;
+  }
+
+  console.warn("[denali-draft-gate] SANITIZE_FIXPOINT_EXCEEDED", {
+    attempts: MAX_SANITY_ATTEMPTS,
+  });
+  return { ok: false, issues: [{ code: "SANITIZE_FIXPOINT_EXCEEDED" }] };
+}
+
 export function createDenaliDraftSchemaGate<TForm extends { readonly data: Record<string, unknown> }>(
   rules: DenaliWizardRulesModule,
   evalContext: DenaliWizardRuleEvalContext
@@ -62,30 +94,16 @@ export function createDenaliDraftSchemaGate<TForm extends { readonly data: Recor
       return { ok: false, issues: [{ code: "INVALID_SCHEMA_PHASE" }] };
     }
 
-    let current: unknown = normalizeForGate(candidate);
+    const normalized = normalizeForGate(candidate);
 
-    for (let attempt = 1; attempt <= MAX_SANITY_ATTEMPTS; attempt++) {
-      const parsed = DenaliWizardDraftEnvelopeSchema.safeParse(current);
+    if (ctx.phase === "prePush") {
+      const parsed = DenaliWizardDraftEnvelopeSchema.safeParse(normalized);
       if (!parsed.success) {
         return { ok: false, issues: zodIssuesToSchemaIssues(parsed.error) };
       }
-
-      const sanitized = sanitizeEnvelopeForm<TForm>(parsed.data, rules, evalContext);
-      const reparsed = DenaliWizardDraftEnvelopeSchema.safeParse(sanitized);
-      if (!reparsed.success) {
-        return { ok: false, issues: zodIssuesToSchemaIssues(reparsed.error) };
-      }
-
-      if (stableEqual(parsed.data, reparsed.data)) {
-        return { ok: true, value: reparsed.data as DenaliWizardDraftEnvelope<TForm> };
-      }
-
-      current = reparsed.data;
+      return { ok: true, value: normalized };
     }
 
-    console.warn("[denali-draft-gate] SANITIZE_FIXPOINT_EXCEEDED", {
-      attempts: MAX_SANITY_ATTEMPTS,
-    });
-    return { ok: false, issues: [{ code: "SANITIZE_FIXPOINT_EXCEEDED" }] };
+    return runMergePhaseGate(normalized, rules, evalContext);
   };
 }

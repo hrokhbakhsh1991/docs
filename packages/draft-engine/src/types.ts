@@ -33,6 +33,18 @@ export type DraftSyncPayload<T> = {
   lastModified: number;
 };
 
+export type DraftAckSource = "initialize" | "patch200" | "conflictRefetch";
+
+/** Last parsed GET/PATCH 200 — OCC cache only (Track B / INV-6). */
+export type DraftAckCache<T> = {
+  readonly version: number;
+  readonly lastModified: number;
+  readonly schemaVersion: number;
+  readonly data: T;
+  readonly ackedAt: number;
+  readonly ackSource: DraftAckSource;
+};
+
 /** Origin of a {@link DraftEngine.setDraftData} call — controls dirty + sync scheduling. */
 export type DraftDataSource = "user" | "remote";
 
@@ -73,6 +85,12 @@ export type DraftEngineConfig<T> = {
   debounceMs?: number;
   /** Required when conflictStrategy is MERGE; optional for REFETCH_REAPPLY (defaults to keeping local). */
   merge?: (_local: T, _server: T) => T;
+  /** Optional hook after successful PATCH (non-keepalive). */
+  onPushSuccess?: (
+    _localPayload: DraftSyncPayload<T>,
+    _serverPayload: DraftSyncPayload<T>,
+    _baselineData: T | undefined,
+  ) => void;
   /** Runs at prePush only — never blocks setDraftData (Phase 5A). */
   schemaGate?: DraftSchemaGate<T>;
 };
@@ -87,6 +105,8 @@ export type DraftEngineState<T> = {
   readonly error?: Error;
   readonly schemaIssues?: readonly DraftSchemaIssue[];
   readonly hasLastValidSnapshot?: boolean;
+  /** True after SERVER_WINS 409 reload until next user edit (Track C). */
+  readonly conflictReloadNotice?: boolean;
 };
 
 export class DraftConflictError<T> extends Error {

@@ -8,20 +8,25 @@ import { resolveDraftConflictBannerView } from "../src/draft/draft-conflict-bann
 
 describe("draft-conflict-banner-logic.spec.ts — Phase 11.3", () => {
   it("WEB-P11-3-06 CONFLICT_RESOLVING shows resolving banner", () => {
-    const view = resolveDraftConflictBannerView("CONFLICT_RESOLVING", false, false);
+    const view = resolveDraftConflictBannerView("CONFLICT_RESOLVING", false, false, false);
     assert.equal(view.kind, "resolving");
   });
 
   it("WEB-P11-3-06 DRAFT_AVAILABLE with pending draft shows actions when handlers exist", () => {
-    const view = resolveDraftConflictBannerView("DRAFT_AVAILABLE", true, true);
+    const view = resolveDraftConflictBannerView("DRAFT_AVAILABLE", true, true, false);
     assert.equal(view.kind, "available");
     if (view.kind === "available") {
       assert.equal(view.showActions, true);
     }
   });
 
+  it("WEB-P11-C-07 conflictReloadNotice shows serverReloaded banner", () => {
+    const view = resolveDraftConflictBannerView("IDLE", false, false, true);
+    assert.equal(view.kind, "serverReloaded");
+  });
+
   it("IDLE hides the banner", () => {
-    const view = resolveDraftConflictBannerView("IDLE", true, true);
+    const view = resolveDraftConflictBannerView("IDLE", true, true, false);
     assert.equal(view.kind, "hidden");
   });
 });

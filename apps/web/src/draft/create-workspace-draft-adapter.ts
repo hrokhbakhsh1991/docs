@@ -26,6 +26,7 @@ export function createWorkspaceDraftAdapter<T>(
     debounceMs: options.debounceMs ?? 500,
     ...(options.autoApply !== undefined ? { autoApply: options.autoApply } : {}),
     ...(options.merge !== undefined ? { merge: options.merge } : {}),
+    ...(options.onPushSuccess !== undefined ? { onPushSuccess: options.onPushSuccess } : {}),
     ...(options.schemaGate !== undefined ? { schemaGate: options.schemaGate } : {}),
     onFetch: async () => fetchWorkspaceDraftSnapshot<T>(workspaceId, namespace, draftKey),
     onPush: async (payload, pushOptions?: DraftPushOptions) => {

@@ -24,17 +24,6 @@ function isNonEmptyRootValue(value: unknown): boolean {
   return true;
 }
 
-function mergeDeletedRoots(
-  local: readonly string[] | undefined,
-  server: readonly string[] | undefined
-): readonly string[] | undefined {
-  const merged = new Set<string>([...(local ?? []), ...(server ?? [])]);
-  if (merged.size === 0) {
-    return undefined;
-  }
-  return [...merged].sort();
-}
-
 function mergeRootValue(
   rootKey: string,
   localValue: unknown,
@@ -132,7 +121,10 @@ export function mergeDenaliWizardDraftEnvelope(
     };
   }
 
-  const deletedRoots = mergeDeletedRoots(local.meta.deletedRoots, server.meta.deletedRoots);
+  const deletedRoots =
+    server.meta.deletedRoots !== undefined && server.meta.deletedRoots.length > 0
+      ? server.meta.deletedRoots
+      : undefined;
   const localData = local.form.data as Record<string, unknown> | undefined;
   const serverData = server.form.data as Record<string, unknown> | undefined;
 

@@ -63,21 +63,23 @@ describe("create-workspace-draft-adapter.spec.ts — Phase 1 abort", () => {
       draftKey: "test-draft",
     });
 
-    const engine = new DraftEngine<TestData>(adapter);
-    await engine.initialize();
+    const payload = (value: string) => ({
+      data: { value },
+      version: 0,
+      schemaVersion: 1,
+      lastModified: 100,
+    });
 
-    engine.setDraftData({ value: "first" });
-    const firstFlush = engine.flush();
-    engine.setDraftData({ value: "second" });
-    const secondFlush = engine.flush();
+    const firstPush = adapter.onPush(payload("first"));
+    const secondPush = adapter.onPush(payload("second"));
     resolveFirst?.();
-    await Promise.all([firstFlush, secondFlush]);
+    await Promise.allSettled([firstPush, secondPush]);
 
     assert.equal(signals.length, 2);
     assert.equal(signals[0]?.aborted, true);
     assert.equal(signals[1]?.aborted, false);
-    assert.equal(engine.getState().status, "IDLE");
-    assert.equal(engine.getState().data?.value, "second");
+    const secondResult = await secondPush;
+    assert.equal(secondResult.data.value, "second");
   });
 
   it("WEB-P11-3-11 keepalive onPush does not abort in-flight PATCH signal", async () => {
@@ -141,5 +143,42 @@ describe("create-workspace-draft-adapter.spec.ts — Phase 1 abort", () => {
     assert.equal(signals.length, 1);
     assert.equal(signals[0]?.aborted, false);
     assert.deepEqual(keepaliveFlags, [false, true]);
+  });
+
+  it("WEB-P11-C-08 SERVER_WINS 409 applies server payload and sets conflictReloadNotice", async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          data: { value: "server-authoritative" },
+          version: 42,
+          schemaVersion: 1,
+          lastModified: 9000,
+        }),
+        {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        }
+      )) as FetchImpl;
+
+    const adapter = createWorkspaceDraftAdapter<TestData>({
+      workspaceId: "ws-test",
+      namespace: "operator.wizard",
+      draftKey: "server-wins-conflict",
+      conflictStrategy: "SERVER_WINS",
+    });
+
+    const engine = new DraftEngine<TestData>(adapter);
+    await engine.initialize();
+    engine.setDraftData({ value: "local-edit" });
+    await engine.flush();
+
+    const state = engine.getState();
+    assert.equal(state.status, "IDLE");
+    assert.equal(state.data?.value, "server-authoritative");
+    assert.equal(state.version, 42);
+    assert.equal(state.conflictReloadNotice, true);
+
+    engine.setDraftData({ value: "operator-edit" });
+    assert.equal(engine.getState().conflictReloadNotice, undefined);
   });
 });

@@ -10,6 +10,7 @@ export {
 export { DENALI_CANONICAL_OBJECT_ROOTS } from "../denali-plugin-adapter";
 export { createDenaliWizardDraftSessionId, isDenaliWizardDraftSessionId } from "../photos/wizard-draft-session-id";
 export { createDenaliDraftSchemaGate } from "./create-denali-draft-schema-gate";
+export { denaliDraftTombstoneBinding } from "./denali-draft-tombstone-binding";
 export {
   DenaliWizardDraftEnvelopeSchema,
   DenaliWizardDraftMetaSchema,

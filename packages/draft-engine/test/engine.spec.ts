@@ -288,7 +288,7 @@ test("mutex ensures only one onPush at a time and coalesces pending updates", as
   await sleep(10);
 
   engine.update({ value: "second" });
-  await sleep(60);
+  await sleep(100);
 
   assert.equal(maxConcurrent, 1);
   assert.ok(pushCount >= 2);
@@ -336,6 +336,10 @@ test("SERVER_WINS conflict applies server payload", async () => {
   assert.equal(state.status, "IDLE");
   assert.deepEqual(state.data, { value: "server" });
   assert.equal(state.version, 5);
+  assert.equal(state.conflictReloadNotice, true);
+
+  engine.setDraftData({ value: "edited-after-reload" });
+  assert.equal(engine.getState().conflictReloadNotice, undefined);
 });
 
 test("CLIENT_WINS conflict retries push with local data", async () => {
@@ -825,4 +829,101 @@ test("flushKeepalive from QUARANTINED is zero egress (WEB-P11-HERMETIC-02 engine
   await sleep(20);
   assert.equal(pushCount, 0);
   assert.equal(engine.getState().status, "QUARANTINED");
+});
+
+test("initialize commits ack cache (Track B)", async () => {
+  const fetched = payload({ value: "initial" }, 3, 1000);
+  const engine = new DraftEngine<TestData>({
+    id: "test-ack-init",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => fetched,
+    onPush: async (p) => p,
+  });
+
+  await engine.initialize();
+
+  const ack = engine.getAckCacheForTests();
+  assert.ok(ack != null);
+  assert.equal(ack.version, 3);
+  assert.equal(ack.ackSource, "initialize");
+});
+
+test("clearDraft clears ack cache (Track B)", async () => {
+  const fetched = payload({ value: "initial" }, 2, 2000);
+  const engine = new DraftEngine<TestData>({
+    id: "test-ack-clear",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => fetched,
+    onPush: async (p) => p,
+    onDelete: async () => {},
+  });
+
+  await engine.initialize();
+  assert.ok(engine.getAckCacheForTests() != null);
+  await engine.clearDraft();
+  assert.equal(engine.getAckCacheForTests(), null);
+});
+
+test("successful push commits patch200 ack (Track B)", async () => {
+  const fetched = payload({ value: "initial" }, 1, 1000);
+  const engine = new DraftEngine<TestData>({
+    id: "test-ack-push",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => fetched,
+    onPush: async (p) => payload({ value: "saved" }, p.version + 1, p.lastModified + 1),
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "edited" });
+  await engine.flush();
+
+  const ack = engine.getAckCacheForTests();
+  assert.ok(ack != null);
+  assert.equal(ack.version, 2);
+  assert.equal(ack.ackSource, "patch200");
+  assert.deepEqual(ack.data, { value: "saved" });
+});
+
+test("ack cache miss refetches before push (Track B B-7)", async () => {
+  let fetchCount = 0;
+  const fetched = payload({ value: "server" }, 5, 5000);
+  const engine = new DraftEngine<TestData>({
+    id: "test-ack-refetch",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    onFetch: async () => {
+      fetchCount += 1;
+      return fetched;
+    },
+    onPush: async (p) => payload(p.data, p.version + 1, p.lastModified + 1),
+  });
+
+  await engine.initialize();
+  engine.clearAckCacheForTests();
+  engine.setDraftData({ value: "local-edit" });
+  await engine.flush();
+
+  assert.ok(fetchCount >= 2);
+  const ack = engine.getAckCacheForTests();
+  assert.ok(ack != null);
+  assert.equal(ack.version, 6);
+  assert.equal(ack.ackSource, "patch200");
+});
+
+test("flushKeepalive does not commit ack cache (Track B)", async () => {
+  const fetched = payload({ value: "initial" }, 1, 1000);
+  const engine = new DraftEngine<TestData>({
+    id: "test-ack-keepalive",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => fetched,
+    onPush: async (p) => payload(p.data, p.version + 1, p.lastModified),
+  });
+
+  await engine.initialize();
+  const ackBefore = engine.getAckCacheForTests();
+  engine.setDraftData({ value: "unload" });
+  engine.flushKeepalive();
+  await sleep(20);
+  const ackAfter = engine.getAckCacheForTests();
+  assert.deepEqual(ackAfter, ackBefore);
 });

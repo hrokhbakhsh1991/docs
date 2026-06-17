@@ -83,16 +83,21 @@ describe("denali-wizard-draft-resume.spec.ts — Phase 11.5", () => {
     assert.deepEqual(merged.form.data.program?.itinerary, [{ dayNumber: 1 }]);
   });
 
-  it("WEB-P11-5-05 deletedRoots blocks server root resurrection", () => {
+  it("WEB-P11-5-05 deletedRoots blocks server root resurrection (409 merge — server meta)", () => {
+    // Track B/C: client envelopes omit deletedRoots; merge honors server tombstones only.
     const local = denaliPrepareDraftEnvelope(
       { data: { basics: { title: "Local" } } },
-      { currentStepIndex: 2, wizardSessionId: "local", deletedRoots: ["details"] }
+      { currentStepIndex: 2, wizardSessionId: "local" }
     );
     const server = denaliPrepareDraftEnvelope(
       { data: { basics: { title: "Server" }, details: { summary: "Remote" } } },
       { currentStepIndex: 0, wizardSessionId: "server" }
     );
-    const merged = mergeDenaliWizardDraftEnvelope(local, server);
+    const serverWithTombstone = {
+      ...server,
+      meta: { ...server.meta, deletedRoots: ["details"] as const },
+    };
+    const merged = mergeDenaliWizardDraftEnvelope(local, serverWithTombstone);
     assert.equal(merged.form.data.details?.summary, undefined);
     assert.deepEqual(merged.meta.deletedRoots, ["details"]);
   });
@@ -100,13 +105,17 @@ describe("denali-wizard-draft-resume.spec.ts — Phase 11.5", () => {
   it("WEB-P11-HERMETIC-03 merge output has no resurrected tombstone keys in form.data", () => {
     const local = denaliPrepareDraftEnvelope(
       { data: { basics: { title: "Local" } } },
-      { currentStepIndex: 2, wizardSessionId: "local", deletedRoots: ["details"] }
+      { currentStepIndex: 2, wizardSessionId: "local" }
     );
     const server = denaliPrepareDraftEnvelope(
       { data: { basics: { title: "Server" }, details: { summary: "Remote" } } },
       { currentStepIndex: 0, wizardSessionId: "server" }
     );
-    const merged = mergeDenaliWizardDraftEnvelope(local, server);
+    const serverWithTombstone = {
+      ...server,
+      meta: { ...server.meta, deletedRoots: ["details"] as const },
+    };
+    const merged = mergeDenaliWizardDraftEnvelope(local, serverWithTombstone);
     const deleted = merged.meta.deletedRoots ?? [];
     const formKeys = Object.keys(merged.form.data as Record<string, unknown>);
     for (const root of deleted) {

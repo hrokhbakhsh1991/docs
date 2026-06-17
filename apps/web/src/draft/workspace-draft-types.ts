@@ -1,4 +1,4 @@
-import type { ConflictStrategy, DraftEngineState, DraftSchemaGate, DraftSetDataOptions } from "@app-tour/draft-engine";
+import type { ConflictStrategy, DraftEngineState, DraftSchemaGate, DraftSetDataOptions, DraftSyncPayload } from "@app-tour/draft-engine";
 
 export type WorkspaceDraftEnvelope<TForm, TMeta = unknown> = {
   readonly form: TForm;
@@ -18,6 +18,11 @@ export type WorkspaceDraftAdapterOptions<T> = {
   /** When false, skip visibility/pagehide flush hooks (Phase 3). Default true. */
   readonly visibilityFlush?: boolean;
   readonly merge?: (_local: T, _server: T) => T;
+  readonly onPushSuccess?: (
+    _localPayload: DraftSyncPayload<T>,
+    _serverPayload: DraftSyncPayload<T>,
+    _baselineData: T | undefined,
+  ) => void;
   /** prePush gate — Phase 5A; never blocks setData. */
   readonly schemaGate?: DraftSchemaGate<T>;
 };
@@ -46,6 +51,7 @@ export type WorkspaceDraftHookResult<T> = {
   readonly error: Error | undefined;
   readonly pendingDraft: DraftEngineState<T>["pendingDraft"];
   readonly schemaIssues: DraftEngineState<T>["schemaIssues"];
+  readonly conflictReloadNotice: boolean;
   readonly canRevertQuarantine: boolean;
   readonly navLocked: boolean;
   readonly setData: (_data: T, _options?: DraftSetDataOptions) => void;

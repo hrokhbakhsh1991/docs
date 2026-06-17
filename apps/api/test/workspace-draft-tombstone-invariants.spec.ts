@@ -126,29 +126,23 @@ describe("workspace-draft-tombstone-invariants.spec.ts — Phase 6 HTTP", () => 
     assert.doesNotMatch(source, /workspace-denali/);
   });
 
-  it("API-P11-TOMB-01 PATCH rejects tombstone resurrection with 400", async () => {
+  it("API-P11-TOMB-01 PATCH v0 client resurrection hint cleared by server recompute — 200", async () => {
     resetDraftStoresForTests();
     const response = await client.requestJson<DraftResponse>("PATCH", draftPath(), {
       headers: operatorAuthHeaders(),
       body: patchBody({
-        form: { data: { timetable: { days: [] } } },
-        meta: { deletedRoots: ["timetable"] },
+        form: { data: { photos: [{ id: "p1" }] } },
+        meta: { deletedRoots: ["photos"] },
       }),
     });
-    assert.equal(response.status, 400);
-    assert.equal(response.body.code, "TOMBSTONE_RESURRECTION");
-    assert.deepEqual(response.body.keys, ["timetable"]);
-
-    const events = await client.requestJson<DraftResponse>("GET", draftEventsPath(), {
-      headers: operatorAuthHeaders(),
-    });
-    const items = events.body.items as Array<Record<string, unknown>>;
-    assert.equal(items.length, 1);
-    assert.equal(items[0]?.action, "tombstone_violation");
-    assert.equal(items[0]?.version, null);
+    assert.equal(response.status, 200);
+    assert.equal(response.body.version, 1);
+    const data = response.body.data as { form: { data: Record<string, unknown> }; meta: Record<string, unknown> };
+    assert.ok("photos" in data.form.data);
+    assert.equal(data.meta.deletedRoots, undefined);
   });
 
-  it("API-P11-TOMB-02 PATCH rejects non-array deletedRoots with 400", async () => {
+  it("API-P11-TOMB-02 PATCH invalid client deletedRoots replaced by server recompute — 200", async () => {
     resetDraftStoresForTests();
     const response = await client.requestJson<DraftResponse>("PATCH", draftPath(), {
       headers: operatorAuthHeaders(),
@@ -157,8 +151,10 @@ describe("workspace-draft-tombstone-invariants.spec.ts — Phase 6 HTTP", () => 
         meta: { deletedRoots: "timetable" },
       }),
     });
-    assert.equal(response.status, 400);
-    assert.equal(response.body.code, "DELETED_ROOTS_NOT_ARRAY");
+    assert.equal(response.status, 200);
+    assert.equal(response.body.version, 1);
+    const data = response.body.data as { meta: Record<string, unknown> };
+    assert.equal(data.meta.deletedRoots, undefined);
   });
 
   it("API-P11-TOMB-03 PATCH accepts opaque non-envelope data", async () => {

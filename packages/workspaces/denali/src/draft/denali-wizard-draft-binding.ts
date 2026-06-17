@@ -13,7 +13,7 @@ export type DenaliWizardDraftMeta = {
   readonly wizardSessionId?: string;
   /** Set after explicit clear — conflict merge must prefer local template over stale server. */
   readonly freshStart?: boolean;
-  /** Canonical object roots intentionally removed — 409 merge must not resurrect. */
+  /** Server-persisted only — stripped on client hydrate/prepare (Track B). */
   readonly deletedRoots?: readonly string[];
 };
 
@@ -22,20 +22,21 @@ export type DenaliWizardDraftEnvelope<TForm> = {
   readonly meta: DenaliWizardDraftMeta;
 };
 
+function clientMetaFromInput(meta: DenaliWizardDraftMeta): DenaliWizardDraftMeta {
+  return {
+    currentStepIndex: meta.currentStepIndex,
+    ...(meta.wizardSessionId !== undefined ? { wizardSessionId: meta.wizardSessionId } : {}),
+    ...(meta.freshStart === true ? { freshStart: true } : {}),
+  };
+}
+
 export function denaliPrepareDraftEnvelope<TForm>(
   form: TForm,
   meta: DenaliWizardDraftMeta
 ): DenaliWizardDraftEnvelope<TForm> {
   return {
     form: structuredClone(form),
-    meta: {
-      currentStepIndex: meta.currentStepIndex,
-      ...(meta.wizardSessionId !== undefined ? { wizardSessionId: meta.wizardSessionId } : {}),
-      ...(meta.freshStart === true ? { freshStart: true } : {}),
-      ...(meta.deletedRoots !== undefined && meta.deletedRoots.length > 0
-        ? { deletedRoots: [...meta.deletedRoots] }
-        : {}),
-    },
+    meta: clientMetaFromInput(meta),
   };
 }
 
@@ -51,9 +52,6 @@ export function denaliHydrateDraftEnvelope<TForm>(
         ? { wizardSessionId: fallbackMeta.wizardSessionId }
         : {}),
       ...(fallbackMeta?.freshStart === true ? { freshStart: true } : {}),
-      ...(fallbackMeta?.deletedRoots !== undefined && fallbackMeta.deletedRoots.length > 0
-        ? { deletedRoots: [...fallbackMeta.deletedRoots] }
-        : {}),
     });
   }
 
@@ -63,9 +61,6 @@ export function denaliHydrateDraftEnvelope<TForm>(
       currentStepIndex: remote.meta.currentStepIndex ?? fallbackMeta?.currentStepIndex ?? 0,
       wizardSessionId: remote.meta.wizardSessionId ?? fallbackMeta?.wizardSessionId,
       ...(remote.meta.freshStart === true ? { freshStart: true } : {}),
-      ...(remote.meta.deletedRoots !== undefined && remote.meta.deletedRoots.length > 0
-        ? { deletedRoots: [...remote.meta.deletedRoots] }
-        : {}),
     },
   };
 }

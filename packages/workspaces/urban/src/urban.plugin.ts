@@ -4,6 +4,7 @@ import {
   type WorkspaceValidationHooks,
   type WorkspaceViolation,
   WORKSPACE_THEME_CSS_VARIABLE,
+  noopWorkspaceDraftTombstoneBinding,
   workspaceThemePresets,
 } from "@app-tour/workspace-sdk";
 
@@ -327,6 +328,7 @@ export function createUrbanWorkspacePlugin(): WorkspacePlugin {
       toCatalogCard: toUrbanPublicCatalogCard,
     }),
     wizardHost: deepFreezeValue({ ...urbanWizardHostHooks }),
+    draftTombstone: noopWorkspaceDraftTombstoneBinding,
   });
 }
 
