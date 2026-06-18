@@ -42,7 +42,7 @@ describe("denali-draft-hermetic-closure.spec.ts — Phase 5A", () => {
   });
 
   it("WEB-P11-HERMETIC-03b create-tour wires schemaGate via useWorkspaceDraft", () => {
-    const source = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const source = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
     assert.match(source, /createDenaliDraftSchemaGate/);
     assert.match(source, /schemaGate:\s*denaliSchemaGate/);
     assert.match(source, /DraftSyncChrome/);
@@ -57,7 +57,7 @@ describe("denali-draft-hermetic-closure.spec.ts — Phase 5A", () => {
   });
 
   it("WEB-P11-HERMETIC-05 create-tour does not track deletedRoots on edit (Track B)", () => {
-    const source = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const source = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
     assert.doesNotMatch(source, /trackDeletedCanonicalRoots/);
   });
 });

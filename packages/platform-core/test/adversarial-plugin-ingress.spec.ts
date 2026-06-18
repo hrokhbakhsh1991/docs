@@ -11,7 +11,7 @@ import {
 import { assertWorkspacePlugin } from "@app-tour/workspace-sdk/plugin";
 import { createCanonicalDocument } from "@app-tour/workspace-sdk/canonical";
 
-import { createTestStarterPlugin } from "./fixtures/starter.fixture.js";
+import { createTestStarterPlugin, pluginPayloadForStorageIngress } from "./fixtures/starter.fixture.js";
 import { loadPlatformWizard } from "./load-platform-wizard.js";
 import { testRuleContext } from "./fixtures/rule-context.fixture.js";
 import { PlatformWizardEngine } from "../src/engine/platform-wizard.engine.js";
@@ -57,7 +57,9 @@ describe("adversarial plugin ingress — headless platform init", () => {
   it("ingress parse with includeTheme:false skips theme CSS validation", () => {
     const plugin = pluginWithInvalidThemeKeys();
     assert.doesNotThrow(() =>
-      parseWorkspacePluginFromStorage(plugin, { includeTheme: false }),
+      parseWorkspacePluginFromStorage(pluginPayloadForStorageIngress(plugin), {
+        includeTheme: false,
+      }),
     );
   });
 

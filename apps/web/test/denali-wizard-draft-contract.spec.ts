@@ -19,6 +19,7 @@ import { loadDenaliWizardRulesModule } from "../src/bootstrap/denali-wizard-rule
 import { mergeDenaliWizardDraftEnvelope } from "../src/draft/denali-wizard-draft-merge";
 import {
   hasNonEmptyCanonicalValue,
+  isDraftEssentiallyEmpty,
   readDenaliDraftFieldValue,
   resolveDenaliInitialStepIndex,
   resolveDenaliWizardResumeStepIndex,
@@ -81,7 +82,7 @@ describe("denali-wizard-draft-contract", () => {
   });
 
   describe("step — resume inference & merge meta", () => {
-    it("DWC-STEP-01 merge prefers server step when local saved index is 0", () => {
+    it("DWC-STEP-01 merge keeps step 0 when local draft is essentially empty", () => {
       const local = denaliPrepareDraftEnvelope(emptyTourWizardDraft(), {
         currentStepIndex: 0,
         wizardSessionId: "local",
@@ -91,7 +92,7 @@ describe("denali-wizard-draft-contract", () => {
         { currentStepIndex: 3, wizardSessionId: "server" }
       );
       const merged = mergeDenaliWizardDraftEnvelope(local, server);
-      assert.equal(merged.meta.currentStepIndex, 3);
+      assert.equal(merged.meta.currentStepIndex, 0);
     });
 
     it("DWC-STEP-02 merge keeps active local step during edit conflicts", () => {
@@ -141,8 +142,27 @@ describe("denali-wizard-draft-contract", () => {
     it("DWC-STEP-06 hasNonEmptyCanonicalValue contract", () => {
       assert.equal(hasNonEmptyCanonicalValue(""), false);
       assert.equal(hasNonEmptyCanonicalValue("x"), true);
+      assert.equal(hasNonEmptyCanonicalValue("false"), false);
+      assert.equal(hasNonEmptyCanonicalValue("none"), false);
+      assert.equal(hasNonEmptyCanonicalValue("5"), false);
       assert.equal(hasNonEmptyCanonicalValue([{ name: "A" }]), true);
       assert.equal(hasNonEmptyCanonicalValue([{}]), false);
+    });
+
+    it("DWC-STEP-07 phantom defaults do not infer past basics", () => {
+      const draft = {
+        data: {
+          title: "تور جدید",
+          category: "mountain_day",
+          program: { difficultyLevel: "5" },
+          transport: { mode: "none" },
+          pricing: { requiresPayment: "false" },
+          participants: { nationalIdRequired: "false" },
+          publishStatus: "draft",
+        },
+      };
+      assert.equal(isDraftEssentiallyEmpty(draft), true);
+      assert.equal(resolveDenaliWizardResumeStepIndex(draft, DENALI_WIZARD_TEMPLATE_STEPS, 0), 0);
     });
   });
 

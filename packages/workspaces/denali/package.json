@@ -62,6 +62,10 @@
       "types": "./dist/tours/index.d.ts",
       "default": "./dist/tours/index.js"
     },
+    "./photos": {
+      "types": "./dist/photos/index.d.ts",
+      "default": "./dist/photos/index.js"
+    },
     "./wizard/host-hooks": {
       "types": "./dist/wizard/denali-wizard-host-hooks.d.ts",
       "default": "./dist/wizard/denali-wizard-host-hooks.js"

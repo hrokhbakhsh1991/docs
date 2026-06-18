@@ -227,10 +227,10 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(photos, /isDenaliHttpsImageUrl/);
     assert.match(photos, /isDenaliWizardDraftSessionId/);
     const client = readFileSync(
-      join(import.meta.dirname, "../app/tours/new/new-tour-wizard-client.tsx"),
+      join(import.meta.dirname, "../app/tours/new/denali-create-tour-wizard-client.tsx"),
       "utf8"
     );
-    assert.match(client, /createDenaliWizardDraftSessionId/);
+    assert.match(client, /createWizardAssetSessionId/);
     const schema = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/schemas/denaliFileAssetSchema.ts"),
       "utf8"
@@ -284,7 +284,7 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(fields, /\[data-denali-tour-kind\]/);
     assert.match(fields, /\.denali-tour-kind__current/);
     const client = readFileSync(
-      join(import.meta.dirname, "../app/tours/new/new-tour-wizard-client.tsx"),
+      join(import.meta.dirname, "../app/tours/new/denali-create-tour-wizard-client.tsx"),
       "utf8"
     );
     assert.match(client, /wizard-clear-draft/);

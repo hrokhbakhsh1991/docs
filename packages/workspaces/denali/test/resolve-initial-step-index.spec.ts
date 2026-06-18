@@ -43,6 +43,22 @@ describe("resolve-initial-step-index.spec.ts", () => {
   it("DEN-RESUME-04 detects non-empty values", () => {
     assert.equal(hasNonEmptyCanonicalValue(""), false);
     assert.equal(hasNonEmptyCanonicalValue("x"), true);
+    assert.equal(hasNonEmptyCanonicalValue("false"), false);
+    assert.equal(hasNonEmptyCanonicalValue("none"), false);
+    assert.equal(hasNonEmptyCanonicalValue(5), false);
+  });
+
+  it("DEN-RESUME-06 phantom defaults stay on step 0", () => {
+    const draft = {
+      data: {
+        category: "mountain_day",
+        program: { difficultyLevel: "5" },
+        transport: { mode: "none" },
+        pricing: { requiresPayment: "false" },
+        participants: { nationalIdRequired: "false" },
+      },
+    };
+    assert.equal(resolveDenaliInitialStepIndex(draft, TEMPLATE_STEPS, 0), 0);
   });
 
   it("DEN-RESUME-05 skipFieldInference keeps step 0 when stale program data exists", () => {

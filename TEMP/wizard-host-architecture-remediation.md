@@ -1,0 +1,134 @@
+# Wizard Host — remediation (workspace / infrastructure boundary)
+
+> **Created:** 2026-06-12  
+> **Authority:** Phase 12 (`WEB-12.1-01`, `WEB-12.1b-01`) · audit of review-validation work  
+> **Goal:** `WorkspaceWizardHost` plugin-agnostic — Denali only via hooks + registries
+
+---
+
+## Context
+
+Review-step validation UX (Phase 11.7) is functionally correct for Denali but introduced / exposed architectural debt:
+
+- Direct `DenaliReviewValidationSummary` import in generic host
+- `pluginId === "denali"` resume branch
+- Denali-specific step labels / utilities in host
+- Duplicate validation CSS in `wizard-review.css`
+
+Urban/Starter already expose `usesStepValidation: true` via `createPlatformWizardHostHooks` — host must not assume Denali UI.
+
+---
+
+## Phase 1 — Validation UI registry (WEB-12.1-01)
+
+| ID | Task | Status |
+|----|------|--------|
+| P1-T1 | Add `validationSurfaceId?: string` to `WorkspaceWizardHostHooks` (SDK) | ✅ |
+| P1-T2 | Add `renderValidationSummary` to review surface registry | ✅ |
+| P1-T3 | Denali hooks: `validationSurfaceId: "denali"` | ✅ |
+| P1-T4 | Host: step-nav errors via registry | ✅ |
+| P1-T5 | Test guard: `wizard-host-boundary.spec.ts` | ✅ |
+
+**Acceptance:** `rg DenaliReviewValidationSummary workspace-wizard-host.tsx` → 0
+
+---
+
+## Phase 2 — Resume step hook (WEB-12.1b-01)
+
+| ID | Task | Status |
+|----|------|--------|
+| P2-T1 | Add `resolveInitialStepIndex?` to SDK | ✅ |
+| P2-T2 | Port resume logic to denali package | ✅ |
+| P2-T3 | Denali hooks implement hook | ✅ |
+| P2-T4 | Host: remove `pluginId === "denali"` branch | ✅ |
+| P2-T5 | Web draft shim re-exports package | ✅ |
+| P2-T6 | Test guard in boundary spec | ✅ |
+
+**Acceptance:** No product plugin id branches in generic host
+
+---
+
+## Phase 3 — Generic utilities + step labels
+
+| ID | Task | Status |
+|----|------|--------|
+| P3-T1 | Move `buildFieldStepResolver` to generic module | ✅ |
+| P3-T2 | Move `groupValidationIssuesByStep` to generic module | ✅ |
+| P3-T3 | `resolveStepLabel` + `wizardMessageNamespace` | ✅ |
+| P3-T4 | Host step labels via composite surface | ✅ |
+| P3-T5 | Validation summary uses `fieldLabelSurfaceId` | ✅ |
+| P3-T6 | Host `rulesModule` typed as `unknown` | ✅ |
+
+---
+
+## Phase 4 — CSS + docs + guards
+
+| ID | Task | Status |
+|----|------|--------|
+| P4-T1 | Remove duplicate validation CSS | ✅ |
+| P4-T2 | Add `wizard-host-boundary.spec.ts` | ✅ |
+| P4-T3 | Update theme spec WEB-DENALI-WIZARD-19 | ✅ |
+
+---
+
+## Verification
+
+```bash
+cd /home/hamed/Music/docs
+pnpm --filter @app-tour/workspace-sdk run build
+pnpm --filter @app-tour/workspace-denali run build
+pnpm --filter @app-tour/wizard-navigation run test
+cd apps/web && NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test \
+  test/wizard-host-boundary.spec.ts \
+  test/denali-wizard-validation.spec.ts \
+  test/denali-wizard-resume-step.spec.ts \
+  test/denali-wizard-theme.spec.ts
+rg 'DenaliReviewValidationSummary|pluginId === "denali"' apps/web/src/wizard/workspace-wizard-host.tsx
+```
+
+---
+
+## Non-goals
+
+- Moving all Denali composites out of `apps/web` (Phase 12 explicit non-goal)
+- Changing Denali validation rule semantics (Phase 11 frozen)
+- Urban wizard UI polish (Urban does not mount full review chrome today)
+
+---
+
+## Progress summary (2026-06-12)
+
+| Phase | Tasks | Done | Remaining |
+|-------|-------|------|-----------|
+| 1 — Validation registry | 5 | 5 | 0 |
+| 2 — Resume hook | 6 | 6 | 0 |
+| 3 — Generic utilities | 6 | 6 | 0 |
+| 4 — CSS + guards | 3 | 3 | 0 |
+| 5 — Platform fallback | 4 | 4 | 0 |
+| **Total** | **24** | **24** | **0** |
+
+## Phase 5 — Platform validation fallback (Urban/Starter)
+
+| ID | Task | Status |
+|----|------|--------|
+| P5-T1 | `WorkspaceWizardValidationSummary` (generic, wizard.json i18n) | ✅ |
+| P5-T2 | Registry `platform` surface + default fallback in `resolveWizardValidationSurface` | ✅ |
+| P5-T3 | `useWorkspaceWizardTranslator` hook (namespace from `wizardMessageNamespace`) | ✅ |
+| P5-T4 | Denali package test `resolve-initial-step-index.spec.ts` | ✅ |
+
+## Optional follow-ups (not blocking)
+
+- [ ] `createPlatformWizardHostHooks` sets `validationSurfaceId: "platform"` explicitly (optional — fallback already works)
+- [ ] Promote this TEMP doc → `docs/phase-12/subphases/12.9-wizard-host-remediation.md`
+- [ ] Urban workspace-specific validation styling when Urban mounts full wizard
+
+## Phase 6 — Polish (2026-06-12)
+
+| ID | Task | Status |
+|----|------|--------|
+| P6-T1 | Split Denali review surface → `denali/denali-wizard-review-surface.tsx` | ✅ |
+| P6-T2 | Shared types + `wizard-validation-field-label.ts` | ✅ |
+| P6-T3 | `buildWizardValidationSurfaceProps` + host DRY | ✅ |
+| P6-T4 | Platform hooks explicit `validationSurfaceId` | ✅ |
+| P6-T5 | Namespace registry translator | ✅ |
+| P6-T6 | Promoted to docs/phase-12/subphases/12.9 | ✅ |

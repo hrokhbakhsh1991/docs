@@ -346,6 +346,14 @@ export function WorkspaceWizardHost({
 
     resumeAppliedRef.current = true;
 
+    if (suppressDraftStepInference) {
+      const freshStartStep = clampWizardStepIndex(0, visibleSteps.length);
+      if (activeStepIndex !== freshStartStep) {
+        setActiveStepIndex(freshStartStep);
+      }
+      return;
+    }
+
     const saved = clampWizardStepIndex(activeStepIndex, visibleSteps.length);
     if (saved > 0) {
       return;

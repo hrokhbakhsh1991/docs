@@ -1,6 +1,16 @@
 import type { RenderStepPlan } from "@app-tour/platform-core";
 import type { WorkspaceWizardHostHooks } from "@app-tour/workspace-sdk";
 
+import {
+  denaliHydrateDraftEnvelope,
+  denaliPrepareDraftEnvelope,
+  type DenaliWizardDraftEnvelope,
+  type DenaliWizardDraftMeta,
+} from "../draft/denali-wizard-draft-binding";
+import {
+  createDenaliWizardDraftSessionId,
+  isDenaliWizardDraftSessionId,
+} from "../photos/wizard-draft-session-id";
 import { readDenaliCanonicalBasics } from "../adapters/canonical-basics";
 import { applyDenaliInvariantState } from "../normalize/invariantState";
 import { resolveDenaliRuleSetFromTemplate } from "../normalize/resolveRuleModel";
@@ -101,6 +111,25 @@ export const denaliWizardHostHooks: WorkspaceWizardHostHooks = Object.freeze({
   prepareSubmitPayload: prepareDenaliTourCreatePayloadFromHostInput,
   hydrateEditDraft: denaliHydrateTourEditDraftFromHostInput,
   prepareTourPatchPayload: prepareDenaliTourPatchPayloadFromHostInput,
+  media: Object.freeze({
+    createAssetSessionId: createDenaliWizardDraftSessionId,
+    isAssetSessionId: isDenaliWizardDraftSessionId,
+    mediaRouteKey: "wizard-photos",
+  }),
+  prepareDraftEnvelope: (form, meta) =>
+    denaliPrepareDraftEnvelope(form, meta as DenaliWizardDraftMeta),
+  hydrateDraftEnvelope: ({ remote, fallbackForm, fallbackMeta }) =>
+    denaliHydrateDraftEnvelope(
+      remote as DenaliWizardDraftEnvelope<typeof fallbackForm> | null | undefined,
+      fallbackForm,
+      fallbackMeta as Partial<DenaliWizardDraftMeta> | undefined
+    ),
+  normalizeRemoteEnvelope: (envelope) =>
+    denaliHydrateDraftEnvelope(
+      envelope as DenaliWizardDraftEnvelope<typeof envelope.form>,
+      envelope.form,
+      envelope.meta as DenaliWizardDraftMeta
+    ),
 });
 
 export { loadDenaliWizardRulesModule, resolveDenaliMatrixDimensionsFromDraft, applyContextualFieldRules };

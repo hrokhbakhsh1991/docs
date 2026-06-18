@@ -128,6 +128,59 @@
           "description": "CASL surface id string export for owner gate"
         }
       }
+    },
+    "wizardMedia": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module",
+        "workspaceTypeExport",
+        "maxUploadBytesExport",
+        "isSessionIdExport",
+        "isDraftReadKeyAllowedExport",
+        "putDraftPhotoExport",
+        "getSignedReadUrlExport",
+        "ensureBucketExport",
+        "readConfigExport"
+      ],
+      "properties": {
+        "module": {
+          "type": "string",
+          "description": "Package subpath exporting wizard draft photo hooks (e.g. ./photos)"
+        },
+        "workspaceTypeExport": {
+          "type": "string",
+          "description": "Named const export for workspace type id"
+        },
+        "maxUploadBytesExport": {
+          "type": "string",
+          "description": "Max upload body size for wizard draft photos"
+        },
+        "isSessionIdExport": {
+          "type": "string",
+          "description": "Validates X-Wizard-Session-Id and X-Photo-Id headers"
+        },
+        "isDraftReadKeyAllowedExport": {
+          "type": "string",
+          "description": "Returns true when storageKey is readable for tenant wizard draft"
+        },
+        "putDraftPhotoExport": {
+          "type": "string",
+          "description": "Upload provisional wizard draft photo to object storage"
+        },
+        "getSignedReadUrlExport": {
+          "type": "string",
+          "description": "Signed GET URL for a storage key"
+        },
+        "ensureBucketExport": {
+          "type": "string",
+          "description": "Ensure MinIO bucket exists before upload/read"
+        },
+        "readConfigExport": {
+          "type": "string",
+          "description": "Read object storage config from env (null when unset)"
+        }
+      }
     }
   }
 }

@@ -75,7 +75,7 @@ describe("draft-unification-client.spec.ts — Track B", () => {
   });
 
   it("regression — create wizard must not import trackDeletedCanonicalRoots", () => {
-    const source = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const source = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
     assert.doesNotMatch(source, /trackDeletedCanonicalRoots/);
   });
 

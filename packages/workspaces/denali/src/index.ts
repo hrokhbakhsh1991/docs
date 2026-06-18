@@ -66,6 +66,7 @@ export {
   createDenaliWizardDraftSessionId,
   DENALI_WIZARD_DRAFT_SESSION_ID_PATTERN,
   isDenaliWizardDraftSessionId,
+  isDenaliWizardDraftPhotoReadKeyAllowed,
   putDenaliWizardDraftPhoto,
   assertDenaliPhotoUploadContentType,
   DENALI_MAX_PHOTO_UPLOAD_BYTES,

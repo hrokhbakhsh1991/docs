@@ -56,6 +56,53 @@ const HOST_OUTBOX_SIDE_EFFECT_ADAPTERS = Object.freeze({
   },
 });
 
+export function generateWizardMediaBindings(manifests) {
+  const withWizardMedia = manifests.filter((m) => m.wizardMedia !== undefined);
+  if (withWizardMedia.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_WIZARD_MEDIA_BINDINGS = [] as const;
+`;
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of withWizardMedia) {
+    const wm = m.wizardMedia;
+    const exportNames = [
+      wm.workspaceTypeExport,
+      wm.maxUploadBytesExport,
+      wm.isSessionIdExport,
+      wm.isDraftReadKeyAllowedExport,
+      wm.putDraftPhotoExport,
+      wm.getSignedReadUrlExport,
+      wm.ensureBucketExport,
+      wm.readConfigExport,
+    ];
+    importLines.add(`import { ${exportNames.join(", ")} } from "${m.package}";`);
+    bindingBlocks.push(`  {
+    workspaceType: ${wm.workspaceTypeExport},
+    maxUploadBytes: ${wm.maxUploadBytesExport},
+    isSessionId: ${wm.isSessionIdExport},
+    isDraftReadKeyAllowed: ${wm.isDraftReadKeyAllowedExport},
+    putDraftPhoto: ${wm.putDraftPhotoExport},
+    getSignedReadUrl: ${wm.getSignedReadUrlExport},
+    ensurePhotoBucket: ${wm.ensureBucketExport},
+    readPhotoConfigFromEnv: ${wm.readConfigExport},
+  },`);
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export const WORKSPACE_WIZARD_MEDIA_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+`;
+}
+
 export function generateTourWriteBindings(manifests) {
   const withTourWrite = manifests.filter((m) => m.tourWrite !== undefined);
   if (withTourWrite.length === 0) {
@@ -244,6 +291,7 @@ export function generateAllOutputs(manifests) {
     api: generateApiRegistry(manifests),
     web: generateWebLoaders(manifests),
     tourWrite: generateTourWriteBindings(manifests),
+    wizardMedia: generateWizardMediaBindings(manifests),
     outbox: generateOutboxSideEffects(manifests),
   };
 }
@@ -253,6 +301,7 @@ const OUTPUT_PATHS = {
   api: join(REPO_ROOT, "apps/api/src/workspace/workspace-plugin-registry.generated.ts"),
   web: join(REPO_ROOT, "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts"),
   tourWrite: join(REPO_ROOT, "apps/api/src/tours/workspace-tour-write-bindings.generated.ts"),
+  wizardMedia: join(REPO_ROOT, "apps/api/src/tours/workspace-wizard-media-bindings.generated.ts"),
   outbox: join(REPO_ROOT, "apps/api/src/workspace/workspace-outbox-side-effects.generated.ts"),
 };
 
@@ -270,7 +319,7 @@ function main() {
   if (checkOnly) {
     const onDisk = readOutputs();
     const mismatches = [];
-    for (const key of ["sdk", "api", "web", "tourWrite", "outbox"]) {
+    for (const key of ["sdk", "api", "web", "tourWrite", "wizardMedia", "outbox"]) {
       if (onDisk[key] !== generated[key]) {
         mismatches.push(OUTPUT_PATHS[key]);
       }
@@ -291,10 +340,11 @@ function main() {
   writeFileSync(OUTPUT_PATHS.api, generated.api);
   writeFileSync(OUTPUT_PATHS.web, generated.web);
   writeFileSync(OUTPUT_PATHS.tourWrite, generated.tourWrite);
+  writeFileSync(OUTPUT_PATHS.wizardMedia, generated.wizardMedia);
   writeFileSync(OUTPUT_PATHS.outbox, generated.outbox);
 
   console.log(
-    `generate:workspace-registry — ${manifests.length} manifest(s) → SDK, API, web, tour-write, outbox`
+    `generate:workspace-registry — ${manifests.length} manifest(s) → SDK, API, web, tour-write, wizard-media, outbox`
   );
 }
 

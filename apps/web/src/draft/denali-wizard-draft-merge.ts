@@ -5,6 +5,8 @@ import {
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 
+import { isDraftEssentiallyEmpty } from "./denali-wizard-resume-step";
+
 export type NewTourWizardDraftEnvelope = DenaliWizardDraftEnvelope<TourWizardDraft>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -132,16 +134,25 @@ export function mergeDenaliWizardDraftEnvelope(
       : undefined;
   const localData = local.form.data as Record<string, unknown> | undefined;
   const serverData = server.form.data as Record<string, unknown> | undefined;
+  const localEssentiallyEmpty = isDraftEssentiallyEmpty(local.form as Record<string, unknown>);
 
   return {
     form: {
       data: mergeCanonicalFormData(localData, serverData, deletedRoots) as TourWizardDraft["data"],
     },
     meta: {
-      currentStepIndex:
-        local.meta.currentStepIndex > 0
-          ? local.meta.currentStepIndex
-          : server.meta.currentStepIndex,
+      currentStepIndex: (() => {
+        if (local.meta.freshStart === true) {
+          return 0;
+        }
+        if (local.meta.currentStepIndex > 0) {
+          return local.meta.currentStepIndex;
+        }
+        if (localEssentiallyEmpty) {
+          return 0;
+        }
+        return server.meta.currentStepIndex;
+      })(),
       wizardSessionId: local.meta.wizardSessionId ?? server.meta.wizardSessionId,
     },
   };

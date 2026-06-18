@@ -63,6 +63,9 @@ export {
   type WorkspaceWizardMode,
   type WorkspaceWizardSurface,
   type WorkspaceWizardHostHooks,
+  type WorkspaceWizardMediaHooks,
+  type WorkspaceWizardDraftEnvelope,
+  type WorkspaceWizardDraftMeta,
   type WizardDraftValidationResult,
   type WizardDraftValidationViolation,
   noopWorkspaceDraftTombstoneBinding,
@@ -170,6 +173,7 @@ export {
 } from "./catalog/resolve-catalog-api-path";
 export {
   type DenaliPhotoRemintPlanEntry,
+  type WizardPhotoRemintPlanEntry,
   type TourCloneHydrationInput,
   type TourCloneHydrationResult,
   type TourCloneHydrator,

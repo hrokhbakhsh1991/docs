@@ -91,7 +91,7 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
     assert.match(chrome, /onRevertQuarantine/);
     const quarantine = readWebSource("src/draft/draft-quarantine-banner.tsx");
     assert.match(quarantine, /draft-quarantine-revert/);
-    const createTour = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
     assert.match(createTour, /DraftSyncChrome/);
     assert.match(flatEdit, /DraftSyncChrome/);

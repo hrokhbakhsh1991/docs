@@ -16,7 +16,7 @@ import type {
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk/plugin-types";
 
 import type { RenderStepPlan } from "../src/types/render-plan.js";
-import { createTestStarterPlugin } from "./fixtures/starter.fixture.js";
+import { createTestStarterPlugin, pluginPayloadForStorageIngress } from "./fixtures/starter.fixture.js";
 import { testRuleContext } from "./fixtures/rule-context.fixture.js";
 import { buildRuleContextScopeKey } from "../src/utils/rule-context-scope-key.js";
 
@@ -122,7 +122,9 @@ describe("runtime isolation — storage ingress immutability", () => {
   });
 
   it("parseWorkspacePluginFromStorage returns a deep-frozen clone", () => {
-    const parsed = parseWorkspacePluginFromStorage(createTestStarterPlugin());
+    const parsed = parseWorkspacePluginFromStorage(
+      pluginPayloadForStorageIngress(createTestStarterPlugin())
+    );
     assert.equal(Object.isFrozen(parsed), true);
     assert.equal(Object.isFrozen(parsed.fieldRegistry), true);
     assert.throws(() => {

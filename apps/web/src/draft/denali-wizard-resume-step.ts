@@ -4,6 +4,7 @@ export type { WizardResumeStepLike } from "@app-tour/workspace-denali/wizard/res
 
 export {
   hasNonEmptyCanonicalValue,
+  isDraftEssentiallyEmpty,
   readDenaliDraftFieldValue,
   resolveDenaliInitialStepIndex,
 } from "@app-tour/workspace-denali/wizard/resolve-initial-step-index";

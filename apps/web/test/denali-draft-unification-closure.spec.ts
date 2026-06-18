@@ -38,7 +38,7 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
   });
 
   it("WEB-P11-UNIFY-03 create + flat-edit wire Track C flag helpers", () => {
-    const createTour = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
     for (const source of [createTour, flatEdit]) {
       assert.match(source, /resolveDenaliDraftConflictStrategy/);
@@ -88,14 +88,14 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
   });
 
   it("WEB-P11-UNIFY-08 create + flat-edit wire normalizeRemote for B-8", () => {
-    const createTour = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
     const normalize = readWebSource("src/draft/denali-draft-normalize-remote.ts");
     assert.match(normalize, /normalizeDenaliRemoteEnvelope/);
-    assert.match(normalize, /denaliHydrateDraftEnvelope/);
-    for (const source of [createTour, flatEdit]) {
-      assert.match(source, /normalizeDenaliRemoteEnvelope/);
-      assert.match(source, /normalizeRemote:\s*normalizeDenaliRemoteEnvelope/);
-    }
+    assert.match(normalize, /normalizeWizardRemoteEnvelope/);
+    assert.match(createTour, /normalizeWizardRemoteEnvelope/);
+    assert.match(createTour, /normalizeRemote:\s*normalizeRemoteEnvelope/);
+    assert.match(flatEdit, /normalizeDenaliRemoteEnvelope/);
+    assert.match(flatEdit, /normalizeRemote:\s*normalizeDenaliRemoteEnvelope/);
   });
 });

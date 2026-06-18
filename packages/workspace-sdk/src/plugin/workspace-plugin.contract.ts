@@ -12,7 +12,15 @@ import type { OperatorTourListSurface } from "../tour/tour-list-projection.contr
 import type { PublicCatalogSurface } from "../tour/public-catalog.contract";
 import type { TourCloneHydrator } from "../tour/tour-clone-hydrator.contract";
 import type { WorkspaceWizardHostHooks } from "./workspace-wizard-host-hooks";
+import type { WorkspaceWizardMediaHooks } from "./workspace-wizard-media-hooks";
+import type {
+  WorkspaceWizardDraftEnvelope,
+  WorkspaceWizardDraftMeta,
+} from "./workspace-wizard-draft-envelope";
 import type { WorkspaceDraftTombstoneBinding } from "../draft/workspace-draft-tombstone-binding";
+
+export type { WorkspaceWizardMediaHooks };
+export type { WorkspaceWizardDraftEnvelope, WorkspaceWizardDraftMeta };
 
 /**
  * Workspace plugin contract.

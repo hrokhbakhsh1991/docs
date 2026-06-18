@@ -1,3 +1,6 @@
+import { parseDenaliPhotoApiErrorCode } from "@/i18n/resolve-denali-photo-upload-error";
+import { resolveWizardMediaBffPath } from "@/wizard/resolve-wizard-media-bff-path";
+
 export const DENALI_PHOTO_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 
 export const DENALI_PHOTO_ALLOWED_CONTENT_TYPES = [
@@ -12,28 +15,9 @@ export type DenaliWizardPhotoUploadResult = {
   readonly contentType: string;
 };
 
-export type DenaliWizardPhotoUrlResult = {
-  readonly url: string;
-  readonly storageKey: string;
-};
-
-function parseUploadError(payload: unknown, status: number): string {
-  if (payload !== null && typeof payload === "object") {
-    const code =
-      "code" in payload && typeof (payload as { code?: unknown }).code === "string"
-        ? (payload as { code: string }).code
-        : "error" in payload && typeof (payload as { error?: unknown }).error === "string"
-          ? (payload as { error: string }).error
-          : null;
-    if (code !== null) {
-      if (code === "MINIO_NOT_CONFIGURED") {
-        return "PHOTO_STORAGE_NOT_CONFIGURED";
-      }
-      return code;
-    }
-  }
-  return `PHOTO_UPLOAD_HTTP_${status}`;
-}
+export type DenaliWizardPhotoPreviewResolveResult =
+  | { readonly ok: true; readonly url: string }
+  | { readonly ok: false; readonly code: string };
 
 export function validateDenaliPhotoFile(file: File): string | null {
   if (!DENALI_PHOTO_ALLOWED_CONTENT_TYPES.includes(file.type as (typeof DENALI_PHOTO_ALLOWED_CONTENT_TYPES)[number])) {
@@ -49,14 +33,17 @@ export async function uploadDenaliWizardPhoto(input: {
   readonly sessionId: string;
   readonly photoId: string;
   readonly file: File;
+  readonly mediaRouteKey?: string;
 }): Promise<DenaliWizardPhotoUploadResult> {
   const validationError = validateDenaliPhotoFile(input.file);
   if (validationError !== null) {
     throw new Error(validationError);
   }
 
+  const mediaRouteKey = input.mediaRouteKey ?? "wizard-photos";
+  const bffPath = resolveWizardMediaBffPath(mediaRouteKey);
   const body = new Uint8Array(await input.file.arrayBuffer());
-  const response = await fetch("/api/tours/wizard-photos", {
+  const response = await fetch(bffPath, {
     method: "POST",
     headers: {
       "Content-Type": input.file.type,
@@ -68,7 +55,7 @@ export async function uploadDenaliWizardPhoto(input: {
 
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok) {
-    throw new Error(parseUploadError(payload, response.status));
+    throw new Error(parseDenaliPhotoApiErrorCode(payload, response.status));
   }
 
   const storageKey = typeof payload.storageKey === "string" ? payload.storageKey : "";
@@ -83,15 +70,21 @@ export async function uploadDenaliWizardPhoto(input: {
 }
 
 export async function resolveDenaliWizardPhotoPreviewUrl(
-  storageKey: string
-): Promise<string | null> {
+  storageKey: string,
+  mediaRouteKey = "wizard-photos"
+): Promise<DenaliWizardPhotoPreviewResolveResult> {
+  const bffPath = resolveWizardMediaBffPath(mediaRouteKey);
   const params = new URLSearchParams({ storageKey });
-  const response = await fetch(`/api/tours/wizard-photos/url?${params.toString()}`, {
+  const response = await fetch(`${bffPath}/url?${params.toString()}`, {
     cache: "no-store",
   });
-  if (!response.ok) {
-    return null;
-  }
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  return typeof payload.url === "string" && payload.url.length > 0 ? payload.url : null;
+  if (!response.ok) {
+    return { ok: false, code: parseDenaliPhotoApiErrorCode(payload, response.status) };
+  }
+  const url = typeof payload.url === "string" && payload.url.length > 0 ? payload.url : "";
+  if (url.length === 0) {
+    return { ok: false, code: "PHOTO_PREVIEW_URL_MISSING" };
+  }
+  return { ok: true, url };
 }

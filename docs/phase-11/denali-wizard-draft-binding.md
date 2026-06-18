@@ -151,7 +151,11 @@ New and cleared create drafts seed canonical `data.category = mountain_day` via 
 
 ### Step resume + freshStart
 
-`WorkspaceWizardHost.resolveInitialStepIndex` infers the furthest step with non-empty field data when `meta.currentStepIndex === 0`. After explicit clear, `meta.freshStart === true` sets `suppressDraftStepInference` so inference is skipped (stale server form fragments must not jump back to step 5). `onActiveStepIndexChange` ignores no-op index updates to avoid redundant PATCH loops.
+`WorkspaceWizardHost.resolveInitialStepIndex` infers the furthest step with **meaningful user-entered** field data when `meta.currentStepIndex === 0`. Sanitize/template scalars (`false`, `"false"`, `"none"`, default `difficultyLevel` `5`, `publishStatus` `draft`, etc.) are ignored via `isPhantomCanonicalScalar` in `resolve-initial-step-index.ts` so Branch B phantom-default inference cannot jump to pricing.
+
+New create-tour prefill sets `meta.freshStart: true`. When the hydrated envelope is essentially empty (`isDraftEssentiallyEmpty`), the client resets `currentStepIndex: 0` + `freshStart: true`, and `mergeDenaliWizardDraftEnvelope` keeps step `0` over a stale server index. `suppressDraftStepInference` (freshStart) forces step `0` in `WorkspaceWizardHost` even when server meta still carries a higher index.
+
+After explicit clear, `meta.freshStart === true` sets `suppressDraftStepInference` so inference is skipped (stale server form fragments must not jump back to step 5). `onActiveStepIndexChange` ignores no-op index updates to avoid redundant PATCH loops.
 
 ### Test contract (regression guard)
 

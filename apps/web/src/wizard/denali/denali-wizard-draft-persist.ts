@@ -7,6 +7,7 @@ import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { sanitizeDenaliWizardDraft } from "@/wizard/denali/denali-draft-form-adapter";
 import { rebaseDraftChangeOntoLatest } from "@/wizard/denali/denali-tour-kind-field-logic";
 import type { DenaliWizardRuleEvalContext } from "@/wizard/denali/denali-wizard-ui-context";
+import { prepareWizardDraftEnvelope } from "@/wizard/wizard-draft-envelope-hooks";
 
 export type DenaliWizardDraftPersistInput = {
   readonly getEnvelope: () => NewTourWizardDraftEnvelope | null;
@@ -41,7 +42,15 @@ export function persistDenaliWizardDraftChange(
     return;
   }
 
-  const prepared = denaliPrepareDraftEnvelope(sanitized, { ...envelope.meta });
+  const prepared =
+    input.denaliPlugin != null
+      ? prepareWizardDraftEnvelope(
+          input.denaliPlugin,
+          sanitized,
+          { ...envelope.meta },
+          denaliPrepareDraftEnvelope
+        )
+      : denaliPrepareDraftEnvelope(sanitized, { ...envelope.meta });
   if (
     JSON.stringify(prepared.form) === JSON.stringify(envelope.form) &&
     prepared.meta.currentStepIndex === envelope.meta.currentStepIndex &&

@@ -22,6 +22,34 @@ export type MinioPhotoConfig = {
   bucket: string;
 };
 
+function readMinioSdkErrorCode(error: unknown): string | null {
+  if (error !== null && typeof error === "object" && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    return typeof code === "string" ? code : null;
+  }
+  return null;
+}
+
+/** Align MinIO SDK failures with stable `Error.message` codes (same pattern as `MINIO_NOT_CONFIGURED`). */
+function rethrowMinioPhotoError(error: unknown): never {
+  const minioCode = readMinioSdkErrorCode(error);
+  if (minioCode === "XMinioStorageFull") {
+    throw new Error("PHOTO_STORAGE_FULL");
+  }
+  if (
+    minioCode === "NoSuchBucket" ||
+    minioCode === "NoSuchKey" ||
+    minioCode === "InvalidBucketName" ||
+    minioCode === "AccessDenied"
+  ) {
+    throw new Error("PHOTO_STORAGE_UNAVAILABLE");
+  }
+  if (error instanceof Error && /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET/i.test(error.message)) {
+    throw new Error("PHOTO_STORAGE_UNAVAILABLE");
+  }
+  throw error;
+}
+
 export function readMinioPhotoConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env
 ): MinioPhotoConfig | null {
@@ -103,9 +131,13 @@ export async function putDenaliWizardDraftPhoto(input: {
   });
   assertDenaliTourPhotoKeyTenantScope(key, input.tenantId);
   const client = createMinioPhotoClient(input.config);
-  await client.putObject(input.config.bucket, key, input.body, input.body.length, {
-    "Content-Type": input.contentType,
-  });
+  try {
+    await client.putObject(input.config.bucket, key, input.body, input.body.length, {
+      "Content-Type": input.contentType,
+    });
+  } catch (error: unknown) {
+    rethrowMinioPhotoError(error);
+  }
   return { key };
 }
 
@@ -128,9 +160,13 @@ export async function putDenaliTourPhoto(input: {
   });
   assertDenaliTourPhotoKeyTenantScope(key, input.tenantId);
   const client = createMinioPhotoClient(input.config);
-  await client.putObject(input.config.bucket, key, input.body, input.body.length, {
-    "Content-Type": input.contentType,
-  });
+  try {
+    await client.putObject(input.config.bucket, key, input.body, input.body.length, {
+      "Content-Type": input.contentType,
+    });
+  } catch (error: unknown) {
+    rethrowMinioPhotoError(error);
+  }
   return { key };
 }
 
@@ -158,5 +194,13 @@ export async function getDenaliTourPhotoSignedReadUrl(input: {
 }): Promise<string> {
   assertDenaliTourPhotoKeyTenantScope(input.key, input.tenantId);
   const client = createMinioPhotoClient(input.config);
-  return client.presignedGetObject(input.config.bucket, input.key, input.expiresInSeconds ?? 300);
+  try {
+    return await client.presignedGetObject(
+      input.config.bucket,
+      input.key,
+      input.expiresInSeconds ?? 300
+    );
+  } catch (error: unknown) {
+    rethrowMinioPhotoError(error);
+  }
 }

@@ -25,7 +25,7 @@ describe("denali-flat-edit-sync-chrome.spec.ts — Phase 5B", () => {
   });
 
   it("WEB-P11-SYMM-02 create-tour and flat-edit both consume DraftSyncChrome", () => {
-    const createTour = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
     assert.match(createTour, /DraftSyncChrome/);
     assert.match(flatEdit, /DraftSyncChrome/);
@@ -47,7 +47,7 @@ describe("denali-flat-edit-sync-chrome.spec.ts — Phase 5B", () => {
   });
 
   it("WEB-P11-SYMM-05 flat-edit passes conflictReloadNotice like create-tour (Track C)", () => {
-    const createTour = readWebSource("app/tours/new/new-tour-wizard-client.tsx");
+    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
     assert.match(createTour, /conflictReloadNotice=\{draftSync\.conflictReloadNotice\}/);
     assert.match(flatEdit, /conflictReloadNotice=\{draftSync\.conflictReloadNotice\}/);

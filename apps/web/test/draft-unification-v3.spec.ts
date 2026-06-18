@@ -63,7 +63,7 @@ describe("draft-unification-v3.spec.ts — Track C", () => {
     assert.equal(merged.form.data.details?.summary, undefined);
   });
 
-  it("WEB-P11-C-06 shadow tombstone compare logs only in shadow mode", () => {
+  it("WEB-P11-C-06 shadow tombstone compare logs only in shadow mode", async () => {
     const baseline = {
       form: { data: { photos: [{ id: "p1" }] } },
       meta: { currentStepIndex: 0 },
@@ -87,6 +87,9 @@ describe("draft-unification-v3.spec.ts — Track C", () => {
       assert.equal(warnings.length, 0);
 
       logDenaliTombstoneShadowMismatch("shadow", baseline, pushed, server);
+      await new Promise<void>((resolve) => {
+        setImmediate(resolve);
+      });
       assert.equal(warnings.length, 1);
       assert.match(String(warnings[0]?.[0] ?? ""), /tombstone shadow mismatch/);
 
@@ -98,6 +101,9 @@ describe("draft-unification-v3.spec.ts — Track C", () => {
         lastModified: 100,
       });
       createDenaliDraftOnPushSuccess("shadow")(wrapPayload(pushed), wrapPayload(server), baseline);
+      await new Promise<void>((resolve) => {
+        setImmediate(resolve);
+      });
       assert.equal(warnings.length, 1);
     } finally {
       console.warn = originalWarn;

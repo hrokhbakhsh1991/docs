@@ -11,18 +11,69 @@ export type WizardResumeStepLike = {
   readonly fields: readonly { readonly canonicalPath: string; readonly hidden?: boolean }[];
 };
 
+/** Sanitize / template scalars that must not advance step-inference past basics. */
+const PHANTOM_CANONICAL_STRINGS = new Set([
+  "",
+  "none",
+  "false",
+  "true",
+  "0",
+  "5",
+  "draft",
+  "mountain_day",
+]);
+
+const EMPTY_DRAFT_SKIP_PATHS = new Set([
+  "category",
+  "publishStatus",
+  "leaderUserIds",
+  "startDateTime",
+  "endDateTime",
+  "approximateReturnTime",
+  "requiresLocalGuide",
+  "requiresManualAdminApproval",
+]);
+
+const EMPTY_DRAFT_SEED_TITLE_PATTERNS = [/^تور جدید$/i, /^new tour$/i] as const;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/** True for sanitize/template defaults that look non-empty but are not user progress. */
+export function isPhantomCanonicalScalar(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return true;
+  }
+  if (value === false) {
+    return true;
+  }
+  if (value === true) {
+    return false;
+  }
+  if (typeof value === "number") {
+    return value === 0 || value === 5;
+  }
+  if (typeof value === "string") {
+    return PHANTOM_CANONICAL_STRINGS.has(value.trim().toLowerCase());
+  }
+  return false;
+}
+
+/**
+ * Step inference treats only meaningful user input as non-empty.
+ * Ignores phantom defaults (e.g. pricing.requiresPayment "false", difficultyLevel "5").
+ */
 export function hasNonEmptyCanonicalValue(value: unknown): boolean {
   if (value === null || value === undefined) {
     return false;
   }
-  if (typeof value === "string") {
-    return value.trim().length > 0;
-  }
-  if (typeof value === "number") {
-    return Number.isFinite(value);
-  }
-  if (typeof value === "boolean") {
-    return value;
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return !isPhantomCanonicalScalar(value);
   }
   if (Array.isArray(value)) {
     return value.length > 0 && value.some((entry) => hasNonEmptyCanonicalValue(entry));
@@ -40,6 +91,59 @@ function asDraftEnvelope(draft: Readonly<Record<string, unknown>>): CanonicalWiz
     return { data: draft.data as Record<string, unknown> };
   }
   return { data: draft as Record<string, unknown> };
+}
+
+function isSeedTemplateTitle(value: unknown): boolean {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return true;
+  }
+  return EMPTY_DRAFT_SEED_TITLE_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+function draftDataHasUserProgress(data: Record<string, unknown>, pathPrefix = ""): boolean {
+  for (const [key, value] of Object.entries(data)) {
+    const path = pathPrefix.length > 0 ? `${pathPrefix}.${key}` : key;
+    if (key === "basics" || key === "details") {
+      continue;
+    }
+    if (EMPTY_DRAFT_SKIP_PATHS.has(path)) {
+      continue;
+    }
+    if (value === null || value === undefined) {
+      continue;
+    }
+    if (path === "title") {
+      if (!isSeedTemplateTitle(value) && hasNonEmptyCanonicalValue(value)) {
+        return true;
+      }
+      continue;
+    }
+    if (Array.isArray(value)) {
+      if (value.length > 0 && value.some((entry) => hasNonEmptyCanonicalValue(entry))) {
+        return true;
+      }
+      continue;
+    }
+    if (isRecord(value)) {
+      if (draftDataHasUserProgress(value, path)) {
+        return true;
+      }
+      continue;
+    }
+    if (hasNonEmptyCanonicalValue(value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** True when the envelope has only template/sanitize defaults — safe to open at step 0. */
+export function isDraftEssentiallyEmpty(draft: Readonly<Record<string, unknown>>): boolean {
+  return !draftDataHasUserProgress(asDraftEnvelope(draft).data);
 }
 
 /** Read canonical field from flat canonical storage or legacy nested form paths. */

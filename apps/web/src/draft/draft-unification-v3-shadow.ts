@@ -1,5 +1,3 @@
-import { denaliDraftTombstoneBinding } from "@app-tour/workspace-denali/draft";
-
 import type { DraftUnificationV3Mode } from "./draft-unification-v3";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -49,14 +47,16 @@ export function logDenaliTombstoneShadowMismatch(
     return;
   }
 
-  const hint = denaliDraftTombstoneBinding.resolveTombstoneRoots(baselineForm, incomingForm);
-  const serverRoots = readDeletedRoots(serverEnvelope) ?? [];
-  const hintKey = [...hint].sort().join(",");
-  const serverKey = [...serverRoots].sort().join(",");
-  if (hintKey !== serverKey) {
-    console.warn("[draft-unification-v3] tombstone shadow mismatch", {
-      clientHint: hint,
-      serverDeletedRoots: serverRoots,
-    });
-  }
+  void import("@app-tour/workspace-denali/draft").then(({ denaliDraftTombstoneBinding }) => {
+    const hint = denaliDraftTombstoneBinding.resolveTombstoneRoots(baselineForm, incomingForm);
+    const serverRoots = readDeletedRoots(serverEnvelope) ?? [];
+    const hintKey = [...hint].sort().join(",");
+    const serverKey = [...serverRoots].sort().join(",");
+    if (hintKey !== serverKey) {
+      console.warn("[draft-unification-v3] tombstone shadow mismatch", {
+        clientHint: hint,
+        serverDeletedRoots: serverRoots,
+      });
+    }
+  });
 }

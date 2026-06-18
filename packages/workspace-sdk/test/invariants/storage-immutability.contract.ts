@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { IngressSanitizationError } from "../../src/errors/ingress-sanitization-error.js";
 import { parseCanonicalDocumentFromStorage } from "../../src/ingress/parse-canonical-document.js";
 import { parseWorkspacePluginFromStorage } from "../../src/ingress/parse-workspace-plugin.js";
-import { createFreshStarterPlugin, harnessCanonicalDocument } from "../lib/immutable-harness.js";
+import { createFreshStarterPlugin, harnessCanonicalDocument, pluginPayloadForStorageIngress } from "../lib/immutable-harness.js";
 
 describe("invariant: storage-immutability", () => {
   it("deep-freezes canonical document data on ingress", () => {
@@ -19,7 +19,9 @@ describe("invariant: storage-immutability", () => {
   });
 
   it("deep-freezes workspace plugin on ingress", () => {
-    const parsed = parseWorkspacePluginFromStorage(createFreshStarterPlugin());
+    const parsed = parseWorkspacePluginFromStorage(
+      pluginPayloadForStorageIngress(createFreshStarterPlugin())
+    );
     assert.equal(Object.isFrozen(parsed.fieldRegistry), true);
     assert.throws(() => {
       (parsed.fieldRegistry.fields as unknown[]).push({});
