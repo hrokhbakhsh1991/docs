@@ -8,6 +8,8 @@ export {
   type DraftEngineConfig,
   type DraftEngineState,
   type DraftPushOptions,
+  type DraftDebugSnapshot,
+  type DraftSyncEvent,
   type DraftSchemaGate,
   type DraftSchemaGateResult,
   type DraftSchemaIssue,

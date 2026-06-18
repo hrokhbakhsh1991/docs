@@ -24,10 +24,11 @@ export function useWorkspaceDraft<T>(
       options.onPushSuccess,
       options.schemaGate,
       options.normalizeRemote,
+      options.shouldBypassServerVersionAdoption,
     ]
   );
 
-  const { state, setDraftData, retry, flush, flushKeepalive, initialize, clearDraft, applyDraft, revertToLastValid } =
+  const { state, setDraftData, retry, flush, flushKeepalive, initialize, clearDraft, clearDraftAndReset, applyDraft, revertToLastValid } =
     useDraftEngine(adapter);
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export function useWorkspaceDraft<T>(
     setData: setDraftData,
     retry,
     clearDraft,
+    clearDraftAndReset,
     applyDraft,
     flush,
     initialize,

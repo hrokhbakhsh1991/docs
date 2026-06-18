@@ -79,6 +79,8 @@ When `409` arrives with a non-JSON body, throw `WORKSPACE_DRAFT_PATCH_FAILED:409
 | `WORKSPACE_DRAFT_PATCH_ABORTED` | Superseded in-flight PATCH (see below) |
 | `DraftConflictError` | 409 with valid `DraftSyncPayload` body |
 
+Non-keepalive PATCH may include `Idempotency-Key: {intentId}` from the engine (Phase 2). See § Idempotency-Key & auto-retry below.
+
 GET failures continue to use `WORKSPACE_DRAFT_FETCH_FAILED:${status}`.
 
 ### Push-time AbortController
@@ -117,9 +119,77 @@ type DraftAckCache<T> = {
 | `flushKeepalive` fire-and-forget | **No** commit (no parsed response) |
 | `ackCache == null` && `version > 0` | Block PATCH → refetch GET → commit → hydrate quietly |
 
-`useDraftEngine` (`react.ts`) forwards `normalizeRemote`, `schemaGate`, and `onPushSuccess` via live config getters so hooks wired in `useWorkspaceDraft` reach `DraftEngine.doPush`.
+`useDraftEngine` (`react.ts`) forwards `normalizeRemote`, `schemaGate`, `onPushSuccess`, and `onDiagnostic` via live config getters so hooks wired in `useWorkspaceDraft` reach `DraftEngine.doPush`.
 
 `setDraftData` from user edits does **not** update the ack cache. `buildPayload` uses `ackCache.version` when present for OCC.
+
+## Diagnostic hook & debug snapshot (Phase 1 observability)
+
+`DraftEngineConfig.onDiagnostic` receives sync-path events only — **not** every `setDraftData` or `notify` call.
+
+```typescript
+type DraftSyncEvent =
+  | { type: "push_start"; intentId: string; version: number }
+  | { type: "push_success"; intentId: string; version: number }
+  | { type: "conflict"; intentId: string; strategy: ConflictStrategy }
+  | { type: "error"; intentId?: string; cause: string; recoverable: boolean };
+```
+
+Each PATCH attempt gets a fresh `intentId` (`crypto.randomUUID()`). `push_start` and `push_success` share the same id for a given attempt.
+
+| Path | Events emitted |
+| ---- | -------------- |
+| `doPush` (debounced / flush) | `push_start` → `push_success` or `conflict` or `error` |
+| `flushKeepalive` (tab unload) | `push_start` → `push_success` or recoverable `error` — **no ack commit** (unchanged) |
+| `refetchAndReapplyLocal` fetch failure | recoverable `error` (`refetch_reapply_failed`) then SERVER_WINS fallback hydrate |
+| `clearDraft` awaiting stale push | optional recoverable `error` (`clear_await_push_failed`) — delete still proceeds |
+| prePush schema gate → QUARANTINED | **none** (no PATCH sent) |
+| `WORKSPACE_DRAFT_PATCH_ABORTED` | **none** (benign supersession) |
+
+`DraftEngine.getDebugSnapshot()` returns metadata for support / console inspection — **no `data` blob** (volume + privacy):
+
+```typescript
+{
+  status, version, schemaVersion, lastModified,
+  pendingSync, syncEpoch, ackVersion, lastIntentId, lastError, conflictReloadNotice
+}
+```
+
+Dev wiring in `create-workspace-draft-adapter.ts`:
+
+```typescript
+onDiagnostic:
+  process.env.NODE_ENV === "development"
+    ? (event) => console.debug("[draft-sync]", adapterId, event)
+    : undefined,
+```
+
+`useDraftEngine` (`react.ts`) forwards `onDiagnostic` via live config getter (same pattern as `onPushSuccess`).
+
+`getState()` returns a **cloned** `data` field so consumers cannot mutate engine-internal state by reference.
+
+## Idempotency-Key & auto-retry (Phase 2)
+
+### Client transport
+
+`DraftPushOptions.intentId` is set by `DraftEngine` on each push attempt. The workspace adapter maps it to:
+
+```http
+Idempotency-Key: {intentId}
+```
+
+Only on **non-keepalive** PATCH (`flushKeepalive` omits the header — fire-and-forget unload). BFF [`proxy-workspace-draft-api.server.ts`](../../apps/web/src/draft/proxy-workspace-draft-api.server.ts) forwards `Idempotency-Key` to the API.
+
+API contract: [`workspace-draft-persistence.md`](workspace-draft-persistence.md) § PATCH Idempotency-Key.
+
+### Auto-retry (engine)
+
+`DraftEngine.doPush` retries `onPush` up to **2** times (3 attempts total) with backoff **1s → 2s** when the error is:
+
+- `WORKSPACE_DRAFT_PATCH_FAILED:5xx` (HTTP 500–599)
+- Transient network failures (`TypeError`, e.g. fetch unreachable)
+
+**Never** retries: `DraftConflictError` (409), `WORKSPACE_DRAFT_PATCH_ABORTED`, validation / QUARANTINE paths. Retries reuse the same `intentId` so Idempotency-Key dedupe applies on the server.
 
 ## Remote normalize hook (Track B — B-8 / INV-2)
 
@@ -177,11 +247,66 @@ const draft = useWorkspaceDraft<MySnapshot>({
 `DraftEngine.clearDraft()` is safe against in-flight auto-save races:
 
 1. Clears debounce and **`pendingSync`** so no queued flush re-runs after clear.
-2. Bumps **`syncEpoch`** so a stale `doPush` that completes after clear cannot mutate local state.
-3. **Awaits** active `syncInFlight` (errors swallowed) so DELETE runs after the stale PATCH finishes — then deletes the row.
-4. Resets local OCC fields to `version: 0` / `data: null` / `IDLE`.
+2. Calls **`onAbortInFlightPush`** (adapter aborts the active PATCH `AbortSignal`) so a stale autosave cannot recreate the server row **after** DELETE.
+3. Bumps **`syncEpoch`** so a stale `doPush` that settles after clear cannot mutate local state.
+4. **Awaits** active `syncInFlight` settlement (aborted / failed pushes swallowed) — **does not** wait for a successful save of the old draft.
+5. **`onDelete`** removes the server row (`DELETE` → API **204 No Content**, BFF forwards empty 204).
+6. Resets local OCC fields to `version: 0` / `data: null` / `IDLE`.
 
-Denali create tour (`new-tour-wizard-client.tsx`) runs **`clearDraft()` → `setData(prefilled)` → `flush()`** so the template reset is persisted before navigation. Failures surface via `wizard-clear-draft-error` alert; the clear button stays disabled until the sequence completes.
+**`clearDraftAndReset(reset)` (Denali clear):** Single engine call that runs steps 1–5, then applies `reset` **without** an intermediate `data: null` notify (avoids React prefill racing between `clearDraft` and `setData`). Finishes with `flushSync()` for the freshStart PATCH.
+
+Denali create tour (`runDenaliWizardClearDraftSequence`) calls **`clearDraftAndReset(freshStart prefilled)`** — DELETE (skip verify GET when row already absent / 404) then PATCH `version: 0`. Failures surface via `wizard-clear-draft-error` alert; the clear button stays disabled until the sequence completes.
+
+**Canonical draft rule (create wizard):** The UI must not render editable fields from a template fallback while `draftSync.data === null`. Show `wizard-draft-hydrate-loading` until the engine holds the envelope (remote hydrate or template seed via `setData`). This prevents “phantom typing” where `onChange` fires against a display-only fallback.
+
+**freshStart OCC:** When `meta.freshStart` transitions from off→on (clear-draft `setData`), the engine arms a one-shot bypass (`freshStartBypassPending`) and PATCHes at `version: 0`. After the first successful ack, subsequent edits use normal OCC even if `freshStart` remains in meta for merge semantics — prevents PATCH `version: 0` loops on every keystroke.
+
+**409 on freshStart seed push:** If PATCH `version: 0` returns 409 (stale server row survived DELETE — e.g. in-flight PATCH landed after DELETE), `REFETCH_REAPPLY` **does not merge** stale server data. Instead the engine calls `onDelete` again and immediately re-pushes the local fresh-start envelope at `version: 0`.
+
+**DELETE verify:** `onDelete` DELETEs the row; when the server returns **404** (no row), verify GET is skipped (no console noise). When DELETE succeeds, a GET confirms absence; if the row still exists, DELETE is retried once before surfacing `WORKSPACE_DRAFT_DELETE_STALE`.
+
+**502 on DELETE:** BFF returns `502` when `@apps/api` is unreachable (`BACKEND_UNREACHABLE`). Verify API is running and `API_INTERNAL_URL` resolves from the web app.
+
+### Draft wizard test contract (DWC-*)
+
+Denali create-wizard behavior is covered by **three tiers** — avoid duplicating the same scenario across files:
+
+| Tier | File | IDs | Scope |
+| ---- | ---- | --- | ----- |
+| **Contract (web)** | `apps/web/test/denali-wizard-draft-contract.spec.ts` | `DWC-DEF-*`, `DWC-STEP-*`, `DWC-CLR-*` | Defaults, step inference, clear/reset races (engine + mock BFF) |
+| **Envelope merge** | `apps/web/test/denali-wizard-draft-resume.spec.ts` | `WEB-P11-5-*` | Tombstone / freshStart merge, step meta round-trip |
+| **Engine primitives** | `packages/draft-engine/test/engine.spec.ts` | — | `clearDraftAndReset`, mutex, abort |
+| **HTTP client** | `apps/web/test/workspace-draft-client.spec.ts` | `WEB-P11-3-*` | DELETE 404/204, verified DELETE, PATCH 409 |
+| **Workspace step** | `packages/workspaces/denali/test/resolve-initial-step-index.spec.ts` | `DEN-RESUME-*` | `skipFieldInference` at workspace boundary |
+| **Source guards** | `apps/web/test/denali-draft-systemic-closure.spec.ts` | `WEB-P11-CLOSE-*` | Wiring invariants (grep-based) |
+
+Shared fixtures: `apps/web/test/helpers/denali-wizard-draft-fixtures.ts` + `mock-workspace-draft-server.ts` (in-memory BFF + **request journal** for race debugging without Playwright).
+
+| ID | Layer | Scenario |
+| -- | ----- | -------- |
+| DWC-CLR-01 | engine + adapter + mock BFF | Clear during in-flight PATCH at step 5 → simulated refresh must **not** resume step 5 |
+| DWC-CLR-02 | no server row | Clear on empty hydrate → IDLE step 0 + `mountain_day` default |
+| DWC-CLR-03 | subscribers | `clearDraftAndReset` never emits `data=null` |
+| DWC-CLR-04 | sequence | DELETE 502 → reset not applied |
+| DWC-CLR-05 | journal | DELETE before freshStart PATCH `version: 0` |
+| DWC-CLR-06 | freshStart OCC | After server v7, freshStart flush PATCHes `version: 0` |
+| DWC-CLR-07 | 409 recovery | freshStart seed PATCH 409 → re-DELETE + step 0 |
+| WEB-P11-3-18 | HTTP client | verified DELETE **404** → single fetch (no verify GET) |
+
+**Manual E2E (dev servers required):** `apps/web/scripts/denali-draft-e2e-probe.mjs` — resume + clear + draft index empty. Not in pre-commit; run before release or after draft-host changes.
+
+**Debug playbook:** On clear/resume bugs, inspect journal order in DWC-CLR-01/05, then `engine.onDiagnostic` / `[draft-sync]` dev logs, then Network DELETE/PATCH order in browser.
+
+**Unit layers (do not duplicate in DWC):**
+
+| Layer | File | Covers |
+| ----- | ---- | ------ |
+| Engine mutex / abort / ack | `packages/draft-engine/test/engine.spec.ts` | `clearDraft`, `syncEpoch`, `onAbortInFlightPush` |
+| Adapter AbortController | `apps/web/test/create-workspace-draft-adapter.spec.ts` | WEB-P11-3-14 |
+| HTTP client / BFF proxy | `workspace-draft-client.spec.ts`, `proxy-workspace-draft-api.spec.ts` | 204/404 DELETE, 409 PATCH |
+| API persistence | `apps/api/test/workspace-drafts.spec.ts` | DELETE → GET 404 |
+| Denali envelope / merge | `denali-wizard-draft-resume.spec.ts`, `denali-wizard-draft-binding.spec.ts` | `freshStart`, step index |
+| Source wiring guards | `denali-draft-systemic-closure.spec.ts` | WEB-P11-CLOSE-* |
 
 ### Conflict merge + resume (Denali create)
 

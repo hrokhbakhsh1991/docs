@@ -1,15 +1,12 @@
 "use client";
 
-import {
-  patchDenaliCanonicalBasics,
-  readDenaliCanonicalBasics,
-} from "@app-tour/workspace-denali/plugin";
-import React, { useMemo } from "react";
+import { patchDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
+import React, { useCallback, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
-import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { getCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
 
 import {
   DENALI_EVENT_VARIANT_VALUES,
@@ -21,6 +18,13 @@ import {
   type DenaliTourDurationSlug,
 } from "./denali-tour-kind-labels";
 import { DENALI_TOUR_KIND_TEST_IDS } from "./denali-tour-kind-test-ids";
+import {
+  isDenaliTourKindChoiceActive,
+  rebaseCategoryDraftChange,
+  resolveDenaliTourKindSummaryParts,
+  resolveDenaliTourKindUiBasics,
+} from "./denali-tour-kind-field-logic";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 export { DENALI_TOUR_KIND_TEST_IDS } from "./denali-tour-kind-test-ids";
 
@@ -40,13 +44,13 @@ export function DenaliTourKindField({
   required = false,
 }: DenaliTourKindFieldProps) {
   const t = useTranslations("denali");
+  const draftRef = useLatestWizardDraft(draft);
   const tourKindSlug = readTourKindSlug(draft);
-  const basics = useMemo(
-    () =>
-      readDenaliCanonicalBasics(tourKindSlug.length > 0 ? tourKindSlug : undefined) ?? {
-        category: "mountain" as DenaliTourCategorySlug,
-        duration: "single_day" as DenaliTourDurationSlug,
-      },
+  const tourKindSlugRef = useRef(tourKindSlug);
+  tourKindSlugRef.current = tourKindSlug;
+
+  const { hasSelection, basics } = useMemo(
+    () => resolveDenaliTourKindUiBasics(tourKindSlug),
     [tourKindSlug]
   );
 
@@ -54,19 +58,46 @@ export function DenaliTourKindField({
   const durationLabel = resolveDenaliFieldLabel(t, "duration");
   const eventVariantLabel = resolveDenaliFieldLabel(t, "eventVariant");
 
-  const applyPatch = (patch: {
-    category?: DenaliTourCategorySlug;
-    duration?: DenaliTourDurationSlug;
-    eventVariant?: DenaliEventVariantSlug;
-  }) => {
-    const nextSlug = patchDenaliCanonicalBasics(
-      tourKindSlug.length > 0 ? tourKindSlug : undefined,
-      patch
-    );
-    onDraftChange(setCanonicalStringValue(draft, "category", nextSlug));
-  };
+  const summaryParts = useMemo(() => resolveDenaliTourKindSummaryParts(basics), [basics]);
 
-  const showEventVariant = denaliCategoryRequiresEventVariant(basics.category);
+  const summaryText = useMemo(() => {
+    if (!hasSelection || basics == null) {
+      return null;
+    }
+    return summaryParts
+      .map((part) => {
+        if (part === "category") {
+          return t(`composites.tourKind.categories.${basics.category}`);
+        }
+        if (part === "duration") {
+          return t(`composites.tourKind.durations.${basics.duration}`);
+        }
+        return t(`composites.tourKind.eventVariants.${basics.eventVariant!}`);
+      })
+      .join(" · ");
+  }, [basics, hasSelection, summaryParts, t]);
+
+  const applyPatch = useCallback(
+    (patch: {
+      category?: DenaliTourCategorySlug;
+      duration?: DenaliTourDurationSlug;
+      eventVariant?: DenaliEventVariantSlug;
+    }) => {
+      const currentSlug = tourKindSlugRef.current;
+      const nextSlug = patchDenaliCanonicalBasics(
+        currentSlug.length > 0 ? currentSlug : undefined,
+        patch
+      );
+      tourKindSlugRef.current = nextSlug;
+      commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+        rebaseCategoryDraftChange(base, nextSlug)
+      );
+    },
+    [onDraftChange]
+  );
+
+  const showEventVariant =
+    basics != null && denaliCategoryRequiresEventVariant(basics.category);
 
   return (
     <div
@@ -77,93 +108,115 @@ export function DenaliTourKindField({
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{categoryLabel}</h3>
         <p className="denali-wizard-composite__helper">{t("composites.tourKind.helper")}</p>
+        {summaryText != null ? (
+          <p
+            className="denali-tour-kind__current"
+            data-testid={DENALI_TOUR_KIND_TEST_IDS.summary}
+            aria-live="polite"
+          >
+            <span className="denali-tour-kind__current-label">{t("composites.tourKind.currentLabel")}</span>
+            <span className="denali-tour-kind__current-value">{summaryText}</span>
+          </p>
+        ) : (
+          <p className="denali-tour-kind__prompt" data-testid={DENALI_TOUR_KIND_TEST_IDS.summary}>
+            {t("composites.tourKind.placeholder")}
+          </p>
+        )}
       </div>
 
-      <fieldset className="denali-tour-kind__group">
-        <legend className="denali-tour-kind__legend">{categoryLabel}</legend>
-        <div className="denali-tour-kind__choices" role="group" aria-label={categoryLabel}>
-          {DENALI_TOUR_CATEGORY_VALUES.map((category) => (
-            <button
-              key={category}
-              type="button"
-              className={
-                basics.category === category
-                  ? "denali-tour-kind__choice denali-tour-kind__choice--active"
-                  : "denali-tour-kind__choice"
-              }
-              data-testid={DENALI_TOUR_KIND_TEST_IDS.category(category)}
-              aria-pressed={basics.category === category}
-              aria-required={required || undefined}
-              onClick={() => {
-                if (basics.category === category) {
-                  return;
-                }
-                applyPatch({ category });
-              }}
-            >
-              {t(`composites.tourKind.categories.${category}`)}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      <fieldset className="denali-tour-kind__group">
-        <legend className="denali-tour-kind__legend">{durationLabel}</legend>
-        <div className="denali-tour-kind__choices" role="group" aria-label={durationLabel}>
-          {DENALI_TOUR_DURATION_VALUES.map((duration) => (
-            <button
-              key={duration}
-              type="button"
-              className={
-                basics.duration === duration
-                  ? "denali-tour-kind__choice denali-tour-kind__choice--active"
-                  : "denali-tour-kind__choice"
-              }
-              data-testid={DENALI_TOUR_KIND_TEST_IDS.duration(duration)}
-              aria-pressed={basics.duration === duration}
-              aria-required={required || undefined}
-              onClick={() => {
-                if (basics.duration === duration) {
-                  return;
-                }
-                applyPatch({ duration });
-              }}
-            >
-              {t(`composites.tourKind.durations.${duration}`)}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      {showEventVariant ? (
+      <div className="denali-tour-kind__picker" data-testid={DENALI_TOUR_KIND_TEST_IDS.picker}>
         <fieldset className="denali-tour-kind__group">
-          <legend className="denali-tour-kind__legend">{eventVariantLabel}</legend>
-          <div className="denali-tour-kind__choices" role="group" aria-label={eventVariantLabel}>
-            {DENALI_EVENT_VARIANT_VALUES.map((eventVariant) => (
+          <legend className="denali-tour-kind__legend">{categoryLabel}</legend>
+          <div className="denali-tour-kind__choices" role="group" aria-label={categoryLabel}>
+            {DENALI_TOUR_CATEGORY_VALUES.map((category) => (
               <button
-                key={eventVariant}
+                key={category}
                 type="button"
                 className={
-                  basics.eventVariant === eventVariant
+                  isDenaliTourKindChoiceActive(hasSelection, basics?.category, category)
                     ? "denali-tour-kind__choice denali-tour-kind__choice--active"
                     : "denali-tour-kind__choice"
                 }
-                data-testid={DENALI_TOUR_KIND_TEST_IDS.eventVariant(eventVariant)}
-                aria-pressed={basics.eventVariant === eventVariant}
+                data-testid={DENALI_TOUR_KIND_TEST_IDS.category(category)}
+                aria-pressed={isDenaliTourKindChoiceActive(hasSelection, basics?.category, category)}
                 aria-required={required || undefined}
                 onClick={() => {
-                  if (basics.eventVariant === eventVariant) {
+                  if (isDenaliTourKindChoiceActive(hasSelection, basics?.category, category)) {
                     return;
                   }
-                  applyPatch({ eventVariant });
+                  applyPatch({ category });
                 }}
               >
-                {t(`composites.tourKind.eventVariants.${eventVariant}`)}
+                {t(`composites.tourKind.categories.${category}`)}
               </button>
             ))}
           </div>
         </fieldset>
-      ) : null}
+
+        <fieldset className="denali-tour-kind__group">
+          <legend className="denali-tour-kind__legend">{durationLabel}</legend>
+          <div className="denali-tour-kind__choices" role="group" aria-label={durationLabel}>
+            {DENALI_TOUR_DURATION_VALUES.map((duration) => (
+              <button
+                key={duration}
+                type="button"
+                className={
+                  isDenaliTourKindChoiceActive(hasSelection, basics?.duration, duration)
+                    ? "denali-tour-kind__choice denali-tour-kind__choice--active"
+                    : "denali-tour-kind__choice"
+                }
+                data-testid={DENALI_TOUR_KIND_TEST_IDS.duration(duration)}
+                aria-pressed={isDenaliTourKindChoiceActive(hasSelection, basics?.duration, duration)}
+                aria-required={required || undefined}
+                onClick={() => {
+                  if (isDenaliTourKindChoiceActive(hasSelection, basics?.duration, duration)) {
+                    return;
+                  }
+                  applyPatch({ duration });
+                }}
+              >
+                {t(`composites.tourKind.durations.${duration}`)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        {showEventVariant ? (
+          <fieldset className="denali-tour-kind__group">
+            <legend className="denali-tour-kind__legend">{eventVariantLabel}</legend>
+            <div className="denali-tour-kind__choices" role="group" aria-label={eventVariantLabel}>
+              {DENALI_EVENT_VARIANT_VALUES.map((eventVariant) => (
+                <button
+                  key={eventVariant}
+                  type="button"
+                  className={
+                    isDenaliTourKindChoiceActive(hasSelection, basics?.eventVariant, eventVariant)
+                      ? "denali-tour-kind__choice denali-tour-kind__choice--active"
+                      : "denali-tour-kind__choice"
+                  }
+                  data-testid={DENALI_TOUR_KIND_TEST_IDS.eventVariant(eventVariant)}
+                  aria-pressed={isDenaliTourKindChoiceActive(
+                    hasSelection,
+                    basics?.eventVariant,
+                    eventVariant
+                  )}
+                  aria-required={required || undefined}
+                  onClick={() => {
+                    if (
+                      isDenaliTourKindChoiceActive(hasSelection, basics?.eventVariant, eventVariant)
+                    ) {
+                      return;
+                    }
+                    applyPatch({ eventVariant });
+                  }}
+                >
+                  {t(`composites.tourKind.eventVariants.${eventVariant}`)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+      </div>
     </div>
   );
 }

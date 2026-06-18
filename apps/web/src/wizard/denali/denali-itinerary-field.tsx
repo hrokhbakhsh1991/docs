@@ -10,6 +10,7 @@ import { DenaliTimeInput } from "@/components/i18n/denali-time-input";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import {
   buildDefaultItineraryDays,
@@ -49,6 +50,7 @@ export function DenaliItineraryField({
 }: DenaliItineraryFieldProps) {
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "program.itinerary");
   const stored = parseDenaliItineraryDays(getCanonicalValue(draft, "program.itinerary"));
   const tourPhotos = parseDenaliTourPhotos(getCanonicalValue(draft, "photos"));
@@ -91,7 +93,9 @@ export function DenaliItineraryField({
   }, [stored, targetDayCount]);
 
   const writeDays = (days: DenaliItineraryDay[]) => {
-    onDraftChange(setCanonicalValue(draft, "program.itinerary", days));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalValue(base, "program.itinerary", days)
+    );
   };
 
   const updateDay = (index: number, patch: Partial<DenaliItineraryDay>) => {

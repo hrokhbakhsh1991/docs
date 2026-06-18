@@ -10,6 +10,7 @@ import { useTranslations } from "next-intl";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 export const DENALI_PRICING_PARTICIPANTS_TEST_IDS = {
   participants: "denali-composite-pricing-participants",
@@ -27,6 +28,7 @@ export function DenaliPricingParticipantsField({
   required = false,
 }: DenaliPricingParticipantsFieldProps) {
   const t = useTranslations("denali");
+  const draftRef = useLatestWizardDraft(draft);
   const fitnessOptions: readonly SelectOption[] = useMemo(
     () => [
       { value: "low", label: t("composites.pricingParticipants.fitnessLow") },
@@ -36,7 +38,9 @@ export function DenaliPricingParticipantsField({
     [t]
   );
   const setString = (path: string, value: string) =>
-    onDraftChange(setCanonicalStringValue(draft, path, value));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalStringValue(base, path, value)
+    );
   const setBool = (path: string, checked: boolean) => setString(path, checked ? "true" : "false");
   const fitnessLabel = resolveDenaliFieldLabel(t, "participants.fitnessLevel");
   const insuranceLabel = resolveDenaliFieldLabel(t, "participants.sportsInsuranceRequired");

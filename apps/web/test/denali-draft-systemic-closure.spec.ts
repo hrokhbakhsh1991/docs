@@ -102,4 +102,29 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
     assert.match(source, /get schemaGate\(\)/);
     assert.match(source, /configRef\.current\.schemaGate/);
   });
+
+  it("WEB-P11-CLOSE-11 observability: onDiagnostic + intentId wiring", () => {
+    const react = readRepoSource("packages/draft-engine/src/react.ts");
+    const adapter = readWebSource("src/draft/create-workspace-draft-adapter.ts");
+    const client = readWebSource("src/draft/workspace-draft-client.ts");
+    const proxy = readWebSource("src/draft/proxy-workspace-draft-api.server.ts");
+    assert.match(react, /get onDiagnostic\(\)/);
+    assert.match(adapter, /onDiagnostic/);
+    assert.match(adapter, /intentId:\s*pushOptions\?\.intentId/);
+    assert.match(adapter, /onAbortInFlightPush/);
+    assert.match(client, /Idempotency-Key/);
+    assert.match(proxy, /Idempotency-Key/);
+  });
+
+  it("WEB-P11-CLOSE-12 clear-draft contract harness + sequence module", () => {
+    const contract = readFileSync(join(WEB_ROOT, "test/denali-wizard-draft-contract.spec.ts"), "utf8");
+    const fixtures = readFileSync(join(WEB_ROOT, "test/helpers/denali-wizard-draft-fixtures.ts"), "utf8");
+    const sequence = readWebSource("src/draft/run-denali-wizard-clear-draft-sequence.ts");
+    const hook = readWebSource("src/draft/use-denali-wizard-clear-draft.tsx");
+    assert.match(contract, /DWC-CLR-01/);
+    assert.match(contract, /denali-wizard-draft-contract/);
+    assert.match(fixtures, /mock-workspace-draft-server/);
+    assert.match(sequence, /runDenaliWizardClearDraftSequence/);
+    assert.match(hook, /runDenaliWizardClearDraftSequence/);
+  });
 });

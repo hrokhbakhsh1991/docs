@@ -67,6 +67,32 @@ export type ConflictStrategy =
 export type DraftPushOptions = {
   /** Browser may complete PATCH after page unload (Phase 3 visibility flush). */
   readonly keepalive?: boolean;
+  /** Per-push trace id — forwarded as Idempotency-Key on non-keepalive PATCH (Phase 2). */
+  readonly intentId?: string;
+};
+
+export type DraftSyncEvent =
+  | { readonly type: "push_start"; readonly intentId: string; readonly version: number }
+  | { readonly type: "push_success"; readonly intentId: string; readonly version: number }
+  | { readonly type: "conflict"; readonly intentId: string; readonly strategy: ConflictStrategy }
+  | {
+      readonly type: "error";
+      readonly intentId?: string;
+      readonly cause: string;
+      readonly recoverable: boolean;
+    };
+
+export type DraftDebugSnapshot = {
+  readonly status: DraftStatus;
+  readonly version: number;
+  readonly schemaVersion: number;
+  readonly lastModified: number;
+  readonly pendingSync: boolean;
+  readonly syncEpoch: number;
+  readonly ackVersion: number | null;
+  readonly lastIntentId: string | null;
+  readonly lastError: string | null;
+  readonly conflictReloadNotice: boolean;
 };
 
 export type DraftEngineConfig<T> = {
@@ -81,6 +107,8 @@ export type DraftEngineConfig<T> = {
   ) => Promise<DraftSyncPayload<T>>;
   /** Optional delete handler used by clearDraft(). */
   onDelete?: () => Promise<void>;
+  /** Optional hook to abort an in-flight PATCH before clearDraft DELETE (adapter AbortController). */
+  onAbortInFlightPush?: () => void;
   /** Debounce interval before triggering onPush after update(). Default: 500ms. */
   debounceMs?: number;
   /** Required when conflictStrategy is MERGE; optional for REFETCH_REAPPLY (defaults to keeping local). */
@@ -95,6 +123,13 @@ export type DraftEngineConfig<T> = {
   schemaGate?: DraftSchemaGate<T>;
   /** Optional transform applied to server-origin data in setDraftData({ source: "remote" }) (Track B B-8). */
   normalizeRemote?: (_data: T) => T;
+  /**
+   * When true for local DIRTY data, ensureAckBeforePush will not adopt the server OCC version
+   * (e.g. Denali `freshStart` after clear — PATCH must stay at version 0).
+   */
+  shouldBypassServerVersionAdoption?: (_localData: T) => boolean;
+  /** Optional sync-path diagnostic hook (push / conflict / error only). */
+  onDiagnostic?: (_event: DraftSyncEvent) => void;
 };
 
 export type DraftEngineState<T> = {

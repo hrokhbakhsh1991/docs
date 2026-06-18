@@ -65,6 +65,7 @@ export type WorkspaceWizardHostHooks = {
     readonly draft: Readonly<Record<string, unknown>>;
     readonly visibleSteps: readonly unknown[];
     readonly savedStepIndex: number;
+    readonly skipFieldInference?: boolean;
   }) => number;
   /** Synchronous canonical validation — host uses for step Next + review summary. */
   readonly validateDraftSync?: (input: {

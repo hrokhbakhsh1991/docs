@@ -97,6 +97,27 @@ Same fields as `DraftSyncPayload`. Client sends **current** `version` before wri
 | row `N` | `N` | update → `N + 1` |
 | row `N` | `≠ N` | `409` + server payload in body |
 
+### PATCH Idempotency-Key (Phase 2 observability)
+
+Optional header on PATCH (same pattern as Phase 5 HTTP idempotency — [`http-idempotency.md`](../phase-5/appendices/http-idempotency.md)):
+
+```http
+PATCH /workspaces/{workspaceId}/drafts/{namespace}/{key}
+Idempotency-Key: {intentId}
+Content-Type: application/json
+```
+
+| Rule | Behavior |
+| ---- | -------- |
+| Header **omitted** | No HTTP dedupe (backward compatible) |
+| Same `(tenant_id, key)` + same body hash | Replay cached **200** `DraftSyncPayload` — no second OCC write |
+| Same key + different body hash | `409`-class idempotency error (`IDEMPOTENCY_PAYLOAD_MISMATCH`) |
+| 409 OCC conflict | **Not** cached as success — normal conflict path |
+
+Client: `DraftEngine` assigns `intentId` per push; web adapter forwards it as `Idempotency-Key` on non-keepalive PATCH. BFF proxies the header to `@apps/api`.
+
+Implementation: `runIdempotentHttpMutation` in `handlePatchWorkspaceDraft` when header present; request hash = `SHA256(method + path + rawBody)`.
+
 ### 409 conflict body
 
 ```json
@@ -232,7 +253,7 @@ Other namespaces remain fully opaque until explicitly allowlisted via `ENVELOPE_
 
 ## Verification
 
-- `apps/api/test/workspace-drafts.spec.ts` — create → patch → conflict → delete · list index (API-P11-9-01…04) · events audit (API-P11-9-05…08)
+- `apps/api/test/workspace-drafts.spec.ts` — create → patch → conflict → delete · list index (API-P11-9-01…04) · events audit (API-P11-9-05…08) · PATCH idempotency replay (API-P11-2-07) · payload mismatch (API-P11-2-08)
 - `apps/api/test/workspace-draft-tombstone-invariants.spec.ts` — structural tombstone gate (API-P11-TOMB-01…03, API-P11-GEN-01)
 - `apps/api/test/workspace-draft-server-tombstone.spec.ts` — server authoritative recompute (Track A)
 - Memory driver default in unit tests; prisma path covered by repository contract

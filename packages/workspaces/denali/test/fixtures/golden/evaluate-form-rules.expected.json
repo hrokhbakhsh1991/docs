@@ -28,8 +28,8 @@
       {
         "canonicalPath": "category",
         "formPath": "basicInfo.tourType",
-        "visible": false,
-        "required": false,
+        "visible": true,
+        "required": true,
         "staticHidden": false,
         "staticRequired": true
       },
@@ -466,8 +466,8 @@
       {
         "canonicalPath": "category",
         "formPath": "basicInfo.tourType",
-        "visible": false,
-        "required": false,
+        "visible": true,
+        "required": true,
         "staticHidden": false,
         "staticRequired": true
       },
@@ -904,8 +904,8 @@
       {
         "canonicalPath": "category",
         "formPath": "basicInfo.tourType",
-        "visible": false,
-        "required": false,
+        "visible": true,
+        "required": true,
         "staticHidden": false,
         "staticRequired": true
       },

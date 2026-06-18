@@ -45,10 +45,12 @@ async function login(page) {
 }
 
 async function clearDraft(page) {
-  page.once("dialog", (d) => void d.accept());
   const btn = page.getByTestId("wizard-clear-draft");
   if (await btn.isVisible().catch(() => false)) {
     await btn.click();
+    const confirm = page.getByTestId("wizard-clear-draft-confirm-confirm");
+    await confirm.waitFor({ state: "visible", timeout: 10_000 });
+    await confirm.click();
     await page.waitForTimeout(3000);
   }
 }

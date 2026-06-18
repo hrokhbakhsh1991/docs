@@ -10,6 +10,7 @@ import { useTranslations } from "next-intl";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 export const DENALI_PRICING_TEST_IDS = {
   pricing: "denali-composite-pricing-payment",
@@ -29,9 +30,12 @@ export function DenaliPricingPaymentField({
   onDraftChange,
 }: DenaliPricingPaymentFieldProps) {
   const t = useTranslations("denali");
+  const draftRef = useLatestWizardDraft(draft);
   const requiresPayment = boolFromDraft(draft, "pricing.requiresPayment");
   const setString = (path: string, value: string) =>
-    onDraftChange(setCanonicalStringValue(draft, path, value));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalStringValue(base, path, value)
+    );
   const setBool = (path: string, checked: boolean) => setString(path, checked ? "true" : "false");
   const requiresPaymentLabel = resolveDenaliFieldLabel(t, "pricing.requiresPayment");
   const insuranceLabel = resolveDenaliFieldLabel(t, "pricing.includesTourInsurance");

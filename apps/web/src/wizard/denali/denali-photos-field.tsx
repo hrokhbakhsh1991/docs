@@ -12,6 +12,7 @@ import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import { resolveDenaliPhotoUploadError } from "@/i18n/resolve-denali-photo-upload-error";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { DenaliPhotoPreview } from "./denali-photo-preview";
 import { uploadDenaliWizardPhoto } from "./denali-photo-upload-client";
@@ -53,6 +54,7 @@ export function DenaliPhotosField({
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
   const label = resolveDenaliFieldLabel(t, "photos");
+  const draftRef = useLatestWizardDraft(draft);
   const photos = parseDenaliTourPhotos(getCanonicalValue(draft, "photos"));
   const tourKind = getCanonicalStringValue(draft, "category");
   const multiDay = isDenaliMultiDayTourKind(tourKind);
@@ -85,7 +87,9 @@ export function DenaliPhotosField({
   }, [dayCount, multiDay, t]);
 
   const writePhotos = (nextPhotos: DenaliTourPhoto[]) => {
-    onDraftChange(setCanonicalValue(draft, "photos", nextPhotos));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalValue(base, "photos", nextPhotos)
+    );
   };
 
   const updatePhoto = (index: number, patch: Partial<DenaliTourPhoto>) => {

@@ -44,4 +44,14 @@ describe("resolve-initial-step-index.spec.ts", () => {
     assert.equal(hasNonEmptyCanonicalValue(""), false);
     assert.equal(hasNonEmptyCanonicalValue("x"), true);
   });
+
+  it("DEN-RESUME-05 skipFieldInference keeps step 0 when stale program data exists", () => {
+    const draft = { data: { title: "Tour", program: { difficultyLevel: 6 } } };
+    assert.equal(
+      resolveDenaliInitialStepIndex(draft, TEMPLATE_STEPS, 0, undefined, {
+        skipFieldInference: true,
+      }),
+      0
+    );
+  });
 });

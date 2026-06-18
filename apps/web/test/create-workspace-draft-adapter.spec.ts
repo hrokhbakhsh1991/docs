@@ -8,6 +8,10 @@ import { DraftEngine } from "@app-tour/draft-engine";
 
 import { createWorkspaceDraftAdapter } from "../src/draft/create-workspace-draft-adapter";
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 type TestData = { readonly value: string };
 
 type FetchImpl = typeof globalThis.fetch;
@@ -145,6 +149,94 @@ describe("create-workspace-draft-adapter.spec.ts — Phase 1 abort", () => {
     assert.deepEqual(keepaliveFlags, [false, true]);
   });
 
+  it("WEB-P11-3-13 adapter forwards intentId as Idempotency-Key on non-keepalive PATCH", async () => {
+    let capturedKey: string | null = null;
+    globalThis.fetch = (async (_input, init) => {
+      const headers = new Headers(init?.headers);
+      capturedKey = headers.get("Idempotency-Key");
+      return new Response(
+        JSON.stringify({
+          data: { value: "saved" },
+          version: 1,
+          schemaVersion: 1,
+          lastModified: 100,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }) as FetchImpl;
+
+    const adapter = createWorkspaceDraftAdapter<TestData>({
+      workspaceId: "ws-test",
+      namespace: "operator.wizard",
+      draftKey: "intent-forward",
+    });
+
+    await adapter.onPush(
+      {
+        data: { value: "saved" },
+        version: 0,
+        schemaVersion: 1,
+        lastModified: 100,
+      },
+      { intentId: "push-intent-uuid-123" }
+    );
+
+    assert.equal(capturedKey, "push-intent-uuid-123");
+  });
+
+  it("WEB-P11-3-14 clearDraft aborts in-flight PATCH before DELETE", async () => {
+    let deleteCalled = false;
+    let resolvePush: (() => void) | undefined;
+    const pushGate = new Promise<void>((resolve) => {
+      resolvePush = resolve;
+    });
+
+    globalThis.fetch = (async (_input, init) => {
+      const method = init?.method ?? "GET";
+      if (method === "GET") {
+        return new Response(null, { status: 404 });
+      }
+      if (method === "DELETE") {
+        deleteCalled = true;
+        return new Response(null, { status: 204 });
+      }
+      await pushGate;
+      if (init?.signal?.aborted) {
+        throw new DOMException("The operation was aborted.", "AbortError");
+      }
+      return new Response(
+        JSON.stringify({
+          data: { value: "stale" },
+          version: 2,
+          schemaVersion: 1,
+          lastModified: 100,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }) as FetchImpl;
+
+    const adapter = createWorkspaceDraftAdapter<TestData>({
+      workspaceId: "ws-test",
+      namespace: "operator.wizard",
+      draftKey: "clear-abort",
+    });
+    const engine = new DraftEngine<TestData>(adapter);
+    await engine.initialize();
+    engine.setDraftData({ value: "dirty" });
+    const pushPromise = engine.flush();
+    await sleep(5);
+    const clearPromise = engine.clearDraft();
+    resolvePush?.();
+    await Promise.allSettled([pushPromise, clearPromise]);
+
+    assert.equal(deleteCalled, true);
+    assert.equal(engine.getState().data, null);
+    assert.equal(engine.getState().version, 0);
+  });
+
   it("WEB-P11-C-08 SERVER_WINS 409 applies server payload and sets conflictReloadNotice", async () => {
     globalThis.fetch = (async () =>
       new Response(
@@ -180,5 +272,60 @@ describe("create-workspace-draft-adapter.spec.ts — Phase 1 abort", () => {
 
     engine.setDraftData({ value: "operator-edit" });
     assert.equal(engine.getState().conflictReloadNotice, undefined);
+  });
+
+  it("WEB-P11-3-15 identical in-flight payload JSON does not abort first PATCH signal", async () => {
+    const signals: AbortSignal[] = [];
+    let resolveFirst: (() => void) | undefined;
+    const firstGate = new Promise<void>((resolve) => {
+      resolveFirst = resolve;
+    });
+
+    globalThis.fetch = (async (_input, init) => {
+      const signal = init?.signal;
+      if (signal != null) {
+        signals.push(signal);
+      }
+      const callIndex = signals.length;
+      if (callIndex === 1) {
+        await firstGate;
+        if (signal?.aborted) {
+          throw new DOMException("The operation was aborted.", "AbortError");
+        }
+      }
+      return new Response(
+        JSON.stringify({
+          data: { value: "same" },
+          version: callIndex,
+          schemaVersion: 1,
+          lastModified: 100,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }) as FetchImpl;
+
+    const adapter = createWorkspaceDraftAdapter<TestData>({
+      workspaceId: "ws-test",
+      namespace: "operator.wizard",
+      draftKey: "same-payload-no-abort",
+    });
+
+    const payload = {
+      data: { value: "same" },
+      version: 0,
+      schemaVersion: 1,
+      lastModified: 100,
+    };
+
+    const firstPush = adapter.onPush(payload);
+    const secondPush = adapter.onPush(payload);
+    resolveFirst?.();
+    await Promise.allSettled([firstPush, secondPush]);
+
+    assert.ok(signals.length >= 1);
+    assert.equal(signals[0]?.aborted, false);
   });
 });

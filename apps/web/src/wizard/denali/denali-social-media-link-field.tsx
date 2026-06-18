@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import {
   detectSocialMediaKind,
@@ -41,6 +42,7 @@ export function DenaliSocialMediaLinkField({
   required = false,
 }: DenaliSocialMediaLinkFieldProps) {
   const t = useTranslations("denali");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "socialMediaLink");
   const stored = getCanonicalStringValue(draft, "socialMediaLink");
   const [kind, setKind] = useState<SocialMediaKind>(() => detectSocialMediaKind(stored));
@@ -61,7 +63,9 @@ export function DenaliSocialMediaLinkField({
       return;
     }
     setError(null);
-    onDraftChange(setCanonicalStringValue(draft, "socialMediaLink", result.value));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalStringValue(base, "socialMediaLink", result.value)
+    );
   };
 
   const selectKind = (nextKind: SocialMediaKind) => {
@@ -76,7 +80,9 @@ export function DenaliSocialMediaLinkField({
       if (telegramDisplay.length > 0) {
         commitValue("telegram", telegramDisplay);
       } else {
-        onDraftChange(setCanonicalStringValue(draft, "socialMediaLink", ""));
+        commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+          setCanonicalStringValue(base, "socialMediaLink", "")
+        );
       }
       return;
     }
@@ -85,7 +91,9 @@ export function DenaliSocialMediaLinkField({
     if (external.length > 0 && detectSocialMediaKind(external) === "other") {
       commitValue("other", external);
     } else {
-      onDraftChange(setCanonicalStringValue(draft, "socialMediaLink", ""));
+      commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+        setCanonicalStringValue(base, "socialMediaLink", "")
+      );
     }
   };
 

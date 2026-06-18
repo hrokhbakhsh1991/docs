@@ -8,6 +8,7 @@
 | Consumer | `processed_domain_events`                 | Required 5.4-S4                     |
 | **HTTP** | `Idempotency-Key` header on `POST /tours` | **P0** — `http_idempotency_records` |
 | **HTTP** | `Idempotency-Key` header on `POST /urban/registrations` | **P1** Phase 8 — required; `runIdempotentHttpMutation` |
+| **HTTP** | `Idempotency-Key` header on `PATCH /workspaces/.../drafts/...` | **Optional** Phase 11.2+ — replay same 200; see [`workspace-draft-persistence.md`](../../phase-11/workspace-draft-persistence.md) § PATCH Idempotency-Key |
 
 When the client sends `Idempotency-Key`, the API must return the **same** `201` body for replays and persist **at most one** tour row per `(tenant_id, idempotency_key)`.
 

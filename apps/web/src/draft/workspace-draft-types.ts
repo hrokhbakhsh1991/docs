@@ -27,6 +27,8 @@ export type WorkspaceDraftAdapterOptions<T> = {
   readonly schemaGate?: DraftSchemaGate<T>;
   /** Strip server-only fields after remote hydrate (Track B B-8). */
   readonly normalizeRemote?: (_data: T) => T;
+  /** Skip server OCC adoption on push when local data is a fresh-start envelope. */
+  readonly shouldBypassServerVersionAdoption?: (_data: T) => boolean;
 };
 
 export type UseWorkspaceDraftOptions<T> = WorkspaceDraftAdapterOptions<T>;
@@ -59,6 +61,7 @@ export type WorkspaceDraftHookResult<T> = {
   readonly setData: (_data: T, _options?: DraftSetDataOptions) => void;
   readonly retry: () => Promise<void>;
   readonly clearDraft: () => Promise<void>;
+  readonly clearDraftAndReset: (reset: T) => Promise<void>;
   readonly applyDraft: () => void;
   readonly flush: () => Promise<void>;
   readonly initialize: () => Promise<void>;

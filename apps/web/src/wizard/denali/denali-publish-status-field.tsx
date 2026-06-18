@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 export const DENALI_PUBLISH_STATUS_TEST_IDS = {
   field: "denali-review-publish-status",
@@ -20,6 +21,7 @@ type DenaliPublishStatusFieldProps = {
 
 export function DenaliPublishStatusField({ draft, onDraftChange }: DenaliPublishStatusFieldProps) {
   const t = useTranslations("denali");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "publishStatus");
   const value = getCanonicalStringValue(draft, "publishStatus") || "draft";
 
@@ -39,7 +41,9 @@ export function DenaliPublishStatusField({ draft, onDraftChange }: DenaliPublish
               : t("review.publishStatus.active"),
         }))}
         onChange={(event) =>
-          onDraftChange(setCanonicalStringValue(draft, "publishStatus", event.target.value))
+          commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+            setCanonicalStringValue(base, "publishStatus", event.target.value)
+          )
         }
       />
       <p className="denali-wizard-composite__helper">{t("review.publishStatus.helper")}</p>

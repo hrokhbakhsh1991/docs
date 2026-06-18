@@ -145,11 +145,40 @@ Full Legacy `sanitizeDenaliWizardDraftSnapshot` port deferred — trunk form is 
 4. `clearDraft()` after successful `createTourAction`
 5. `navLocked` while SYNCING
 
+### Default tour kind (create wizard)
+
+New and cleared create drafts seed canonical `data.category = mountain_day` via `applyDenaliDefaultTourKind` (`apps/web/src/wizard/denali/denali-default-tour-kind.ts`) inside `buildPrefilledForm`. The tour-kind composite and matrix dimensions therefore match persisted draft from first render — operators can type title and other basics without an extra classification click.
+
+### Step resume + freshStart
+
+`WorkspaceWizardHost.resolveInitialStepIndex` infers the furthest step with non-empty field data when `meta.currentStepIndex === 0`. After explicit clear, `meta.freshStart === true` sets `suppressDraftStepInference` so inference is skipped (stale server form fragments must not jump back to step 5). `onActiveStepIndexChange` ignores no-op index updates to avoid redundant PATCH loops.
+
+### Test contract (regression guard)
+
+Behavioral specs for create-wizard draft live in `apps/web/test/denali-wizard-draft-contract.spec.ts` (`DWC-*`). This file replaces scattered `denali-default-tour-kind`, `denali-wizard-resume-step`, and `denali-wizard-clear-draft-integration` specs. Tier map: [`web-draft-host.md` — Draft wizard test contract](web-draft-host.md#draft-wizard-test-contract-dwc).
+
 ## Submit (canonical payload)
 
 `prepareDenaliTourCreatePayload` (`apps/web/src/wizard/denali/denali-tour-create-payload.ts`):
 
-1. `sanitizeDenaliWizardDraft` — final invariant pass (ghost purge)
+1. `sanitizeDenaliWizardDraft` — final invariant pass (ghost purge). **Pre-classification:** when canonical `category` is empty, sanitize is a no-op (same gate as `applyDenaliConditionalFieldRules` / `hasDenaliWizardClassification`); contextual rules treat fields as visible until tour kind is resolved. Create wizard prefill sets `mountain_day` so this gate passes on open.
+
+**Tour kind UI:** Canonical slug at `data.category` drives display (`denali-tour-kind-field-logic.ts`). Create/clear prefill sets `mountain_day` so the **current selection banner** shows «کوهنوردی · تک‌روزه» and category/duration buttons render **active** on first paint.
+
+**Always-visible picker:** Category and duration segmented controls stay on screen (never inside a closed `<details>`). A read-only banner above the matrix confirms the persisted slug; operators change selection by clicking another chip — no hidden collapse step.
+
+**Template invariant (INV-DENALI-WIZ-001):** Tenant wizard-template overlays may trim optional fields but **`category` is always injected** on `denali_basic` when missing (`@app-tour/workspace-denali/wizard/template-invariants`). Without this, the tour-kind composite never mounts and matrix-driven fields break silently.
+
+**Contextual visibility (INV-DENALI-WIZ-002):** After classification is set (`mountain_day`, etc.), `applyDenaliConditionalFieldRules` must keep **`category` visible** on the create wizard. `category`, `duration`, and `eventVariant` share one RHF path (`basicInfo.tourType`); `evaluateFormFieldRule` therefore passes the **canonical path** into `isDenaliFieldVisibleOnStep`, not the ambiguous form path. Passing `basicInfo.tourType` alone would resolve to `eventVariant` and incorrectly hide the tour-kind composite.
+
+Active choice buttons use `denali-tour-kind__choice--active`. Persisted value always comes from canonical `data.category`, never matrix fallbacks.
+
+**Tour kind draft sync (INV-DENALI-WIZ-003):** Only `category` persists the tour-kind slug. Sanitize must not mirror `duration` / `eventVariant` aliases into `form.data` (they share `basicInfo.tourType` — see `shouldPersistCanonicalPathFromForm`). The tour-kind picker keeps an optimistic slug ref so rapid category+duration clicks compose one slug; `onDraftChange` rebases category onto the latest engine snapshot and skips `setData` when sanitize is a no-op (prevents save-loop / «در حال ذخیره…» flicker).
+
+**Text field draft sync (INV-DENALI-WIZ-004):** All wizard field edits (primitive + composite) must call `commitWizardDraftEdit(useLatestWizardDraft(draft), onDraftChange, …)` — never `setCanonical*Value(draft, …)` from a stale render closure. Host: `WorkspaceWizardHost` + `DenaliFlatEditForm`. Shared persist: `persistDenaliWizardDraftChange` (create wizard + `useDenaliFlatEditRuleSync`). Engine: structural `setDraftData` dedup; `localChangedDuringPush` uses JSON equality; `normalizeForGate` identity when `freshStart` without `deletedRoots`. Preset effect runs once per `presetId` (no `draftSync.data` dep). Adapter aborts in-flight PATCH only when payload JSON changes (`WEB-P11-3-15`).
+
+Specs: `apps/web/test/denali-tour-kind-field-logic.spec.ts` (DWC-TK-*), `apps/web/test/denali-tour-kind-field.spec.tsx` (DWC-TK-UI-*).
+
 2. Catalog ref filters when settings APIs are available — gear (`activeEquipmentIds`), themes (`activeThemeIds`), leaders (`selectableLeaderIds`)
 3. `tourWizardDraftToDenaliForm` → `prepareDenaliSubmitArtifact` / `projectDenaliWizardFormToCanonicalIngressData` (nested roots **with arrays** — see [`canonical-array-ingress.md`](canonical-array-ingress.md))
 4. `createCanonicalDocument` — `schemaVersion` + `plugin.wizard.roots` + `data`
@@ -348,7 +377,17 @@ bash scripts/guard-docs.sh
 - `apps/web/test/denali-draft-hermetic-closure.spec.ts` — Phase 5A guards
 - `apps/web/test/denali-flat-edit-sync-chrome.spec.ts` — Phase 5B symmetry
 - `apps/web/test/draft-unification-client.spec.ts` — Track B client tombstone + ack
+- `apps/web/test/denali-wizard-draft-persist.spec.ts` — `WEB-WIZ-PERSIST-*` rebase + dedup
+- `apps/web/test/denali-wizard-save-loop.spec.ts` — `WEB-WIZ-LOOP-*` post-flush dedup + category toggle
+- `apps/web/test/create-workspace-draft-adapter.spec.ts` — includes `WEB-P11-3-15` same-payload no-abort
 - `apps/web/test/draft-unification-v3.spec.ts` — Track C flag + merge guards
 - `apps/api/test/workspace-draft-server-tombstone.spec.ts` — Track A server recompute (`API-P11-TOMB-*`)
 
 `mainThemeFormProfile` for contextual rules derives from the first selected `program.themeIds` row when the theme catalog is loaded (`new-tour-wizard-client.tsx`).
+
+### Dev E2E scripts (manual, against running `denali.localhost:3000`)
+
+| Script | Purpose |
+| ------ | ------- |
+| `apps/web/scripts/denali-draft-e2e-probe.mjs` | Resume / update / clear / draft index |
+| `apps/web/scripts/denali-draft-manual-verify.mjs` | Default category, step-0, PATCH storm, clear |

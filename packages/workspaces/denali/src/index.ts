@@ -32,6 +32,11 @@ export {
   buildDenaliFullWizardTemplateSteps,
 } from "./settings/denaliFullWizardTemplate";
 export {
+  DENALI_TOUR_KIND_CANONICAL_PATH,
+  ensureDenaliTourKindAllowedPaths,
+  ensureDenaliTourKindTemplateSteps,
+} from "./wizard/ensure-tour-kind-template-field";
+export {
   DENALI_CREATE_TOUR_DRAFT_KEY,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
   denaliHydrateDraftEnvelope,

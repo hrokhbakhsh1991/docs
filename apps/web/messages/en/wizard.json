@@ -16,6 +16,7 @@
   "createButton": "Create tour",
   "saveDraft": "Save draft",
   "clearDraft": "Clear draft",
+  "clearDraftConfirmTitle": "Clear draft?",
   "clearDraftConfirm": "Discard the current draft and start over?",
   "clearingDraft": "Clearing draft…",
   "clearDraftError": "Could not clear the draft ({error}). Try again or save your work first.",

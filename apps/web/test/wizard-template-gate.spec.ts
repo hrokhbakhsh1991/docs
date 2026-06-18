@@ -5,6 +5,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  ensureDenaliTourKindAllowedPaths,
+  ensureDenaliTourKindTemplateSteps,
+} from "@app-tour/workspace-denali/wizard/template-invariants";
+
+import {
   applyWizardTemplateToRenderPlan,
   buildDefaultPublishedWizardSteps,
   ensureWizardTemplatePublishablePayload,
@@ -40,7 +45,7 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
     assert.equal(isWizardTemplatePublished({ seedLabel: "", sections: [] }), false);
   });
 
-  it("WEB-9.6-WIZ-03 published denali template defaults to title field only", () => {
+  it("WEB-9.6-WIZ-03 published denali template injects mandatory category field", () => {
     const steps = buildDefaultPublishedWizardSteps("denali");
     assert.equal(steps[0]?.fields[0]?.canonicalPath, "title");
 
@@ -55,7 +60,8 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
       "denali"
     );
     assert.equal(gate.published, true);
-    assert.deepEqual(gate.allowedCanonicalPaths, ["title"]);
+    assert.deepEqual(gate.allowedCanonicalPaths, ["category", "title"]);
+    assert.equal(gate.templateSteps[0]?.fields[0]?.canonicalPath, "category");
   });
 
   it("WEB-9.6-WIZ-04 filterRenderPlanByCanonicalPaths keeps only allowed fields", () => {
@@ -136,6 +142,29 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
       ordered[1]?.fields.map((field) => field.canonicalPath),
       ["basics.featured", "basics.title"]
     );
+  });
+
+  it("WEB-9.6-WIZ-09 applyWizardTemplateToRenderPlan includes injected category", () => {
+    const templateSteps = ensureDenaliTourKindTemplateSteps([
+      {
+        stepId: "denali_basic",
+        enabled: true,
+        fields: [{ canonicalPath: "title", required: true }],
+      },
+    ]);
+    const plan = applyWizardTemplateToRenderPlan(
+      [
+        {
+          stepId: "denali_basic",
+          fields: [
+            { canonicalPath: "category", fieldId: "denali.tour-kind-basics", kind: "enum" },
+            { canonicalPath: "title", fieldId: "title", kind: "text" },
+          ],
+        },
+      ],
+      templateSteps
+    );
+    assert.equal(plan[0]?.fields[0]?.canonicalPath, "category");
   });
 
   it("WEB-9.6-WIZ-08 applyWizardTemplateToRenderPlan keeps template-only review step", () => {

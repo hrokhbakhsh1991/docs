@@ -2,14 +2,19 @@ import {
   DraftConflictError,
   type DraftAckCache,
   type DraftAckSource,
+  type DraftDebugSnapshot,
   type DraftEngineConfig,
   type DraftEngineState,
+  type DraftPushOptions,
   type DraftSchemaIssue,
   type DraftSetDataOptions,
+  type DraftSyncEvent,
   type DraftSyncPayload,
 } from "./types";
 
 const DEFAULT_DEBOUNCE_MS = 500;
+const PUSH_RETRY_BACKOFF_MS = [1000, 2000] as const;
+const PUSH_MAX_ATTEMPTS = 3;
 
 export class DraftEngine<T> {
   private readonly config: DraftEngineConfig<T>;
@@ -26,12 +31,16 @@ export class DraftEngine<T> {
   private lastValidSnapshot: DraftSyncPayload<T> | null = null;
   private ackCache: DraftAckCache<T> | null = null;
   private conflictReloadNotice = false;
+  private lastIntentId: string | null = null;
+  private lastErrorMessage: string | null = null;
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private syncInFlight: Promise<void> | null = null;
   private pendingSync = false;
   /** Bumped on clearDraft — in-flight pushes must not mutate state after a clear. */
   private syncEpoch = 0;
+  /** True after user/clear sets freshStart data until the next successful push at v0. */
+  private freshStartBypassPending = false;
   private readonly listeners = new Set<(_state: DraftEngineState<T>) => void>();
 
   constructor(config: DraftEngineConfig<T>) {
@@ -52,6 +61,73 @@ export class DraftEngine<T> {
     for (const listener of this.listeners) {
       listener(snapshot);
     }
+  }
+
+  private newIntentId(): string {
+    return crypto.randomUUID();
+  }
+
+  private emitDiagnostic(event: DraftSyncEvent): void {
+    this.config.onDiagnostic?.(event);
+  }
+
+  private errorCause(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
+  }
+
+  private draftPayloadDeepEqual(a: T | null, b: T | null): boolean {
+    if (a === b) {
+      return true;
+    }
+    if (a == null || b == null) {
+      return false;
+    }
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  private isRetryablePushError(err: unknown): boolean {
+    if (err instanceof DraftConflictError) {
+      return false;
+    }
+    if (err instanceof Error && err.message === "WORKSPACE_DRAFT_PATCH_ABORTED") {
+      return false;
+    }
+    if (err instanceof TypeError) {
+      return true;
+    }
+    if (err instanceof Error && err.message.startsWith("WORKSPACE_DRAFT_PATCH_FAILED:")) {
+      const status = Number.parseInt(
+        err.message.slice("WORKSPACE_DRAFT_PATCH_FAILED:".length),
+        10
+      );
+      return Number.isFinite(status) && status >= 500 && status <= 599;
+    }
+    return false;
+  }
+
+  private async invokePushWithRetry(
+    payload: DraftSyncPayload<T>,
+    options: DraftPushOptions
+  ): Promise<DraftSyncPayload<T>> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < PUSH_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        return await this.config.onPush(payload, options);
+      } catch (err) {
+        lastError = err;
+        if (attempt >= PUSH_MAX_ATTEMPTS - 1 || !this.isRetryablePushError(err)) {
+          throw err;
+        }
+        await this.sleep(PUSH_RETRY_BACKOFF_MS[attempt] ?? 2000);
+      }
+    }
+    throw lastError;
   }
 
   async initialize(): Promise<void> {
@@ -98,7 +174,33 @@ export class DraftEngine<T> {
       return;
     }
     this.schemaIssues = undefined;
-    void this.config.onPush(gated.payload, { keepalive: true }).catch(() => {});
+    const intentId = this.newIntentId();
+    this.lastIntentId = intentId;
+    this.emitDiagnostic({
+      type: "push_start",
+      intentId,
+      version: gated.payload.version,
+    });
+    void this.config
+      .onPush(gated.payload, { keepalive: true })
+      .then((result) => {
+        this.emitDiagnostic({
+          type: "push_success",
+          intentId,
+          version: result.version,
+        });
+        this.lastErrorMessage = null;
+      })
+      .catch((err) => {
+        const cause = this.errorCause(err);
+        this.lastErrorMessage = cause;
+        this.emitDiagnostic({
+          type: "error",
+          intentId,
+          cause,
+          recoverable: true,
+        });
+      });
   }
 
   async retry(): Promise<void> {
@@ -155,14 +257,30 @@ export class DraftEngine<T> {
       return;
     }
     if (this.status === "QUARANTINED") {
+      if (this.draftPayloadDeepEqual(this.data, newData)) {
+        return;
+      }
       this.data = newData;
       this.lastModified = Date.now();
       this.error = undefined;
       this.notify();
       return;
     }
+    if (this.draftPayloadDeepEqual(this.data, newData)) {
+      return;
+    }
+    const previousData = this.data;
     this.data = newData;
     this.lastModified = Date.now();
+    const freshStartArmed = this.config.shouldBypassServerVersionAdoption?.(newData) === true;
+    const freshStartWasArmed =
+      previousData != null &&
+      this.config.shouldBypassServerVersionAdoption?.(previousData) === true;
+    if (freshStartArmed && !freshStartWasArmed) {
+      this.freshStartBypassPending = true;
+      this.ackCache = null;
+      this.version = 0;
+    }
     this.status = "DIRTY";
     this.error = undefined;
     this.notify();
@@ -192,6 +310,7 @@ export class DraftEngine<T> {
 
     this.clearDebounce();
     this.pendingSync = false;
+    this.config.onAbortInFlightPush?.();
     this.syncEpoch += 1;
 
     const inFlight = this.syncInFlight;
@@ -199,7 +318,11 @@ export class DraftEngine<T> {
       try {
         await inFlight;
       } catch {
-        // Stale push failure must not block server delete.
+        this.emitDiagnostic({
+          type: "error",
+          cause: "clear_await_push_failed",
+          recoverable: true,
+        });
       }
     }
 
@@ -218,8 +341,58 @@ export class DraftEngine<T> {
     this.schemaIssues = undefined;
     this.lastValidSnapshot = null;
     this.ackCache = null;
+    this.freshStartBypassPending = false;
     this.conflictReloadNotice = false;
     this.notify();
+  }
+
+  /**
+   * Delete remote draft then apply reset data in one notify — avoids a transient
+   * `data=null` render between clear and freshStart setData (React prefill race).
+   */
+  async clearDraftAndReset(resetData: T): Promise<void> {
+    if (this.config.onDelete == null) {
+      throw new Error("clearDraftAndReset requires config.onDelete");
+    }
+
+    this.clearDebounce();
+    this.pendingSync = false;
+    this.config.onAbortInFlightPush?.();
+    this.syncEpoch += 1;
+
+    const inFlight = this.syncInFlight;
+    if (inFlight != null) {
+      try {
+        await inFlight;
+      } catch {
+        this.emitDiagnostic({
+          type: "error",
+          cause: "clear_await_push_failed",
+          recoverable: true,
+        });
+      }
+    }
+
+    this.syncInFlight = null;
+    this.pendingSync = false;
+
+    await this.config.onDelete();
+
+    this.pendingDraft = null;
+    this.data = resetData;
+    this.version = 0;
+    this.schemaVersion = 1;
+    this.lastModified = Date.now();
+    this.status = "DIRTY";
+    this.error = undefined;
+    this.schemaIssues = undefined;
+    this.lastValidSnapshot = null;
+    this.ackCache = null;
+    this.conflictReloadNotice = false;
+    this.freshStartBypassPending =
+      this.config.shouldBypassServerVersionAdoption?.(resetData) === true;
+    this.notify();
+    await this.flushSync();
   }
 
   /** Test-only — read ack cache for Track B specs. */
@@ -244,6 +417,16 @@ export class DraftEngine<T> {
   }
 
   private async ensureAckBeforePush(epochAtStart: number): Promise<boolean> {
+    if (
+      this.data != null &&
+      this.config.shouldBypassServerVersionAdoption?.(this.data) === true
+    ) {
+      if (this.freshStartBypassPending) {
+        this.version = 0;
+      }
+      return this.syncEpoch === epochAtStart;
+    }
+
     if (this.ackCache != null || this.version === 0) {
       return true;
     }
@@ -297,14 +480,36 @@ export class DraftEngine<T> {
     return this.lastValidSnapshot != null;
   }
 
-  getState(): DraftEngineState<T> {
+  getDebugSnapshot(): DraftDebugSnapshot {
     return {
-      data: this.data,
       status: this.status,
       version: this.version,
       schemaVersion: this.schemaVersion,
       lastModified: this.lastModified,
-      ...(this.pendingDraft != null ? { pendingDraft: this.pendingDraft } : {}),
+      pendingSync: this.pendingSync,
+      syncEpoch: this.syncEpoch,
+      ackVersion: this.ackCache?.version ?? null,
+      lastIntentId: this.lastIntentId,
+      lastError: this.lastErrorMessage,
+      conflictReloadNotice: this.conflictReloadNotice,
+    };
+  }
+
+  getState(): DraftEngineState<T> {
+    return {
+      data: this.data != null ? structuredClone(this.data) : this.data,
+      status: this.status,
+      version: this.version,
+      schemaVersion: this.schemaVersion,
+      lastModified: this.lastModified,
+      ...(this.pendingDraft != null
+        ? {
+            pendingDraft: {
+              ...this.pendingDraft,
+              data: structuredClone(this.pendingDraft.data),
+            },
+          }
+        : {}),
       ...(this.error != null ? { error: this.error } : {}),
       ...(this.schemaIssues != null ? { schemaIssues: this.schemaIssues } : {}),
       ...(this.lastValidSnapshot != null ? { hasLastValidSnapshot: true } : {}),
@@ -479,15 +684,27 @@ export class DraftEngine<T> {
     this.error = undefined;
     this.notify();
 
+    const intentId = this.newIntentId();
+    this.lastIntentId = intentId;
+    this.emitDiagnostic({
+      type: "push_start",
+      intentId,
+      version: gated.payload.version,
+    });
+
     try {
       const pushedPayload = gated.payload;
       const baselineAckData = this.ackCache?.data;
-      const result = await this.config.onPush(pushedPayload);
+      const result = await this.invokePushWithRetry(pushedPayload, { intentId });
       if (this.syncEpoch !== epochAtStart) {
         return;
       }
+      if (this.config.shouldBypassServerVersionAdoption?.(pushedPayload.data) === true) {
+        this.freshStartBypassPending = false;
+      }
       const localChangedDuringPush =
-        this.data !== pushedPayload.data || this.lastModified !== pushedPayload.lastModified;
+        this.lastModified !== pushedPayload.lastModified ||
+        JSON.stringify(this.data) !== JSON.stringify(pushedPayload.data);
       if (localChangedDuringPush) {
         this.captureLastValidSnapshot(result);
         this.commitServerAck(result, "patch200");
@@ -497,12 +714,23 @@ export class DraftEngine<T> {
         this.hydrateFromRemote(result, "patch200");
         this.status = "IDLE";
       }
+      this.emitDiagnostic({
+        type: "push_success",
+        intentId,
+        version: result.version,
+      });
+      this.lastErrorMessage = null;
       this.config.onPushSuccess?.(pushedPayload, result, baselineAckData);
     } catch (err) {
       if (this.syncEpoch !== epochAtStart) {
         return;
       }
       if (err instanceof DraftConflictError) {
+        this.emitDiagnostic({
+          type: "conflict",
+          intentId,
+          strategy: this.config.conflictStrategy,
+        });
         await this.handleConflict(err, epochAtStart);
         if (this.syncEpoch !== epochAtStart) {
           return;
@@ -511,8 +739,20 @@ export class DraftEngine<T> {
         return;
       }
       if (err instanceof Error && err.message === "WORKSPACE_DRAFT_PATCH_ABORTED") {
+        if (this.status === "SYNCING") {
+          this.status = "DIRTY";
+          this.scheduleSync();
+        }
         return;
       }
+      const cause = this.errorCause(err);
+      this.lastErrorMessage = cause;
+      this.emitDiagnostic({
+        type: "error",
+        intentId,
+        cause,
+        recoverable: false,
+      });
       this.status = "ERROR";
       this.error = err instanceof Error ? err : new Error(String(err));
     }
@@ -549,15 +789,46 @@ export class DraftEngine<T> {
           this.notify();
           return;
         }
-        const result = await this.config.onPush(clientGated.payload);
+        const retryIntentId = this.newIntentId();
+        this.lastIntentId = retryIntentId;
+        this.emitDiagnostic({
+          type: "push_start",
+          intentId: retryIntentId,
+          version: clientGated.payload.version,
+        });
+        const result = await this.invokePushWithRetry(clientGated.payload, {
+          intentId: retryIntentId,
+        });
+        this.emitDiagnostic({
+          type: "push_success",
+          intentId: retryIntentId,
+          version: result.version,
+        });
+        this.lastErrorMessage = null;
         this.hydrateFromRemote(result, "patch200");
         this.status = "IDLE";
         this.notify();
       } catch (retryErr) {
         if (retryErr instanceof DraftConflictError) {
+          const retryIntentId = this.lastIntentId;
+          if (retryIntentId != null) {
+            this.emitDiagnostic({
+              type: "conflict",
+              intentId: retryIntentId,
+              strategy: this.config.conflictStrategy,
+            });
+          }
           await this.handleConflict(retryErr, epochAtStart);
           return;
         }
+        const cause = this.errorCause(retryErr);
+        this.lastErrorMessage = cause;
+        this.emitDiagnostic({
+          type: "error",
+          intentId: this.lastIntentId ?? undefined,
+          cause,
+          recoverable: false,
+        });
         this.status = "ERROR";
         this.error = retryErr instanceof Error ? retryErr : new Error(String(retryErr));
         this.notify();
@@ -602,6 +873,41 @@ export class DraftEngine<T> {
       return;
     }
 
+    if (
+      this.config.shouldBypassServerVersionAdoption?.(localPending) === true &&
+      this.config.onDelete != null
+    ) {
+      this.status = "CONFLICT_RESOLVING";
+      this.error = undefined;
+      this.notify();
+      try {
+        await this.config.onDelete();
+        if (this.syncEpoch !== epochAtStart) {
+          return;
+        }
+        this.version = 0;
+        this.ackCache = null;
+        this.freshStartBypassPending = true;
+        this.status = "DIRTY";
+        this.error = undefined;
+        this.pendingSync = true;
+        this.notify();
+      } catch {
+        if (this.syncEpoch !== epochAtStart) {
+          return;
+        }
+        this.emitDiagnostic({
+          type: "error",
+          cause: "fresh_start_conflict_recovery_failed",
+          recoverable: false,
+        });
+        this.status = "ERROR";
+        this.error = new Error("FRESH_START_CONFLICT_RECOVERY_FAILED");
+        this.notify();
+      }
+      return;
+    }
+
     this.status = "CONFLICT_RESOLVING";
     this.error = undefined;
     this.notify();
@@ -638,6 +944,11 @@ export class DraftEngine<T> {
       if (this.syncEpoch !== epochAtStart) {
         return;
       }
+      this.emitDiagnostic({
+        type: "error",
+        cause: "refetch_reapply_failed",
+        recoverable: true,
+      });
       this.hydrateFromRemote(conflict.serverPayload, "conflictRefetch");
       this.status = "IDLE";
       this.error = undefined;

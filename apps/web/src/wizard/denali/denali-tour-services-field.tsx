@@ -1,13 +1,14 @@
 "use client";
 
 import { CheckCircle2, UserRound, X } from "lucide-react";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@app-tour/ui-primitives/button";
 import { Input } from "@app-tour/ui-primitives/input";
 import { useTranslations } from "next-intl";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { parseStringArray } from "./denali-array-field-utils";
 
@@ -166,8 +167,7 @@ function ServiceColumn({
 
 export function DenaliTourServicesField({ draft, onDraftChange }: DenaliTourServicesFieldProps) {
   const t = useTranslations("denali");
-  const draftRef = useRef(draft);
-  draftRef.current = draft;
+  const draftRef = useLatestWizardDraft(draft);
 
   const included = parseStringArray(getCanonicalValue(draft, INCLUDED_PATH));
   const selfProvided = parseStringArray(getCanonicalValue(draft, EXCLUDED_PATH));
@@ -183,9 +183,7 @@ export function DenaliTourServicesField({ draft, onDraftChange }: DenaliTourServ
 
   const writeBucket = (bucket: ServiceBucket, next: string[]) => {
     const path = bucketPath(bucket);
-    const nextDraft = setCanonicalValue(draftRef.current, path, next);
-    draftRef.current = nextDraft;
-    onDraftChange(nextDraft);
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) => setCanonicalValue(base, path, next));
   };
 
   const readBucket = (bucket: ServiceBucket) =>

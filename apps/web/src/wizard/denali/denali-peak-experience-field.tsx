@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 export const DENALI_MIN_REQUIRED_PEAKS_OPTIONS = [0, 1, 2, 3, 4] as const;
 
@@ -27,6 +28,7 @@ export function DenaliPeakExperienceField({
   required = false,
 }: DenaliPeakExperienceFieldProps) {
   const t = useTranslations("denali");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "participants.minRequiredPeaks");
   const rawValue = getCanonicalStringValue(draft, "participants.minRequiredPeaks").trim();
   const value = DENALI_MIN_REQUIRED_PEAKS_OPTIONS.some((option) => String(option) === rawValue)
@@ -46,8 +48,8 @@ export function DenaliPeakExperienceField({
           options={options}
           value={value}
           onChange={(event) =>
-            onDraftChange(
-              setCanonicalStringValue(draft, "participants.minRequiredPeaks", event.target.value)
+            commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+              setCanonicalStringValue(base, "participants.minRequiredPeaks", event.target.value)
             )
           }
           required={required}

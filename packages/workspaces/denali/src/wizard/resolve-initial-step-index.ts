@@ -75,12 +75,13 @@ export function resolveDenaliInitialStepIndex(
   draft: Readonly<Record<string, unknown>>,
   steps: readonly WizardResumeStepLike[],
   savedStepIndex: number,
-  canonicalToFormPath: Readonly<Record<string, string>> = DENALI_CANONICAL_TO_FORM_PATH_MAP
+  canonicalToFormPath: Readonly<Record<string, string>> = DENALI_CANONICAL_TO_FORM_PATH_MAP,
+  options?: { readonly skipFieldInference?: boolean }
 ): number {
   const maxIndex = Math.max(0, steps.length - 1);
   const clampedSaved = Math.min(Math.max(savedStepIndex, 0), maxIndex);
 
-  if (clampedSaved > 0) {
+  if (clampedSaved > 0 || options?.skipFieldInference === true) {
     return clampedSaved;
   }
 
@@ -113,10 +114,13 @@ export function resolveDenaliInitialStepIndexFromHostInput(input: {
   readonly draft: Readonly<Record<string, unknown>>;
   readonly visibleSteps: readonly unknown[];
   readonly savedStepIndex: number;
+  readonly skipFieldInference?: boolean;
 }): number {
   return resolveDenaliInitialStepIndex(
     input.draft,
     input.visibleSteps as readonly RenderStepPlan[],
-    input.savedStepIndex
+    input.savedStepIndex,
+    DENALI_CANONICAL_TO_FORM_PATH_MAP,
+    { skipFieldInference: input.skipFieldInference }
   );
 }

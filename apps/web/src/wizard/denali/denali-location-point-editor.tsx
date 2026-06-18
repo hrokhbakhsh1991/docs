@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useRef } from "react";
+import React from "react";
 import { Input } from "@app-tour/ui-primitives/input";
 import { Button } from "@app-tour/ui-primitives/button";
 import { useTranslations } from "next-intl";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { DenaliLocationAddressPicker } from "./denali-location-address-picker";
 import { fetchReverseGeocodeAddress } from "./denali-reverse-geocode-client";
@@ -29,16 +30,15 @@ export function DenaliLocationPointEditor({
 }: DenaliLocationPointEditorProps) {
   const t = useTranslations("denali.composites.common");
   const tLocation = useTranslations("denali.composites.location");
-  const draftRef = useRef(draft);
-  draftRef.current = draft;
+  const draftRef = useLatestWizardDraft(draft);
 
   const location = parseDenaliLocationData(getCanonicalValue(draft, canonicalPath));
 
   const updateLocation = (patch: Partial<DenaliLocationData>) => {
-    const current = parseDenaliLocationData(getCanonicalValue(draftRef.current, canonicalPath));
-    const nextDraft = setCanonicalValue(draftRef.current, canonicalPath, { ...current, ...patch });
-    draftRef.current = nextDraft;
-    onDraftChange(nextDraft);
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) => {
+      const current = parseDenaliLocationData(getCanonicalValue(base, canonicalPath));
+      return setCanonicalValue(base, canonicalPath, { ...current, ...patch });
+    });
   };
 
   const useCurrentPosition = () => {

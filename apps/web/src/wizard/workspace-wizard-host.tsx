@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 import type { WizardTemplateStepRef } from "@/features/settings/wizard-template-types";
 import {
   applyWizardTemplateToRenderPlan,
@@ -75,6 +76,8 @@ export type WorkspaceWizardHostProps = {
   readonly draftHydrated?: boolean;
   /** Increment after explicit clear-draft to suppress resume re-inference (Denali create). */
   readonly draftResumeEpoch?: number;
+  /** When true, host uses saved step only — no furthest-field inference (e.g. freshStart). */
+  readonly suppressDraftStepInference?: boolean;
 };
 
 function resolveWizardDimensions(
@@ -151,8 +154,10 @@ export function WorkspaceWizardHost({
   wizardRuleEvalContext,
   draftHydrated = true,
   draftResumeEpoch = 0,
+  suppressDraftStepInference = false,
 }: WorkspaceWizardHostProps) {
   const tWizard = useTranslations("wizard");
+  const draftEditBaseRef = useLatestWizardDraft(draft);
   const access = useMemo(
     () => ({ authz, tenantId, pluginId, workspaceId }),
     [authz, tenantId, pluginId, workspaceId]
@@ -350,8 +355,9 @@ export function WorkspaceWizardHost({
       draft: draft as unknown as Record<string, unknown>,
       visibleSteps,
       savedStepIndex: saved,
+      skipFieldInference: suppressDraftStepInference,
     });
-    if (inferred !== 0) {
+    if (inferred !== saved) {
       setActiveStepIndex(inferred);
     }
   }, [
@@ -360,6 +366,8 @@ export function WorkspaceWizardHost({
     visibleSteps,
     activeStepIndex,
     setActiveStepIndex,
+    suppressDraftStepInference,
+    draft,
   ]);
 
   useEffect(() => {
@@ -651,7 +659,11 @@ export function WorkspaceWizardHost({
                     <WizardField
                       field={field}
                       value={value}
-                      onChange={(next) => onDraftChange(setCanonicalStringValue(draft, path, next))}
+                      onChange={(next) =>
+                        onDraftChange(
+                          setCanonicalStringValue(draftEditBaseRef.current, path, next)
+                        )
+                      }
                       draft={draft}
                       onDraftChange={onDraftChange}
                       pluginId={pluginId}

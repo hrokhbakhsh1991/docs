@@ -3,7 +3,7 @@
 import { readDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
 import { Check } from "lucide-react";
 import { Input } from "@app-tour/ui-primitives/input";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import type { EquipmentResource } from "@/features/settings/settings-module-types";
@@ -11,6 +11,7 @@ import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { isEquipmentVisibleInWizard } from "./denali-catalog-filters";
 import { parseDenaliGearItems, type DenaliGearItem } from "./denali-gear-types";
@@ -38,8 +39,7 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
   const label = resolveDenaliFieldLabel(t, "participants.gearItems");
-  const draftRef = useRef(draft);
-  draftRef.current = draft;
+  const draftRef = useLatestWizardDraft(draft);
 
   const selected = parseDenaliGearItems(getCanonicalValue(draft, "participants.gearItems"));
   const [catalog, setCatalog] = useState<readonly EquipmentResource[]>([]);
@@ -107,9 +107,9 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
   );
 
   const writeItems = (items: DenaliGearItem[]) => {
-    const nextDraft = setCanonicalValue(draftRef.current, "participants.gearItems", items);
-    draftRef.current = nextDraft;
-    onDraftChange(nextDraft);
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalValue(base, "participants.gearItems", items)
+    );
   };
 
   const readSelected = () =>

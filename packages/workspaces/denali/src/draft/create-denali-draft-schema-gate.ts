@@ -30,6 +30,9 @@ function normalizeForGate<TForm>(
   if (envelope.meta.freshStart !== true) {
     return envelope;
   }
+  if (envelope.meta.deletedRoots === undefined) {
+    return envelope;
+  }
   const { deletedRoots: _removed, ...metaRest } = envelope.meta;
   return {
     form: envelope.form,

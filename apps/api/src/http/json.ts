@@ -76,3 +76,8 @@ export function sendJson(res: ServerResponse, status: number, body: unknown): vo
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.end(payload);
 }
+
+export function sendNoContent(res: ServerResponse): void {
+  res.statusCode = 204;
+  res.end();
+}

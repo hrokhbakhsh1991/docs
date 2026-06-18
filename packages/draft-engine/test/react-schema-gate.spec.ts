@@ -23,4 +23,22 @@ describe("react.ts — schemaGate live config (WEB-P11-HERMETIC-01b)", () => {
     assert.match(source, /get onPushSuccess\(\)/);
     assert.match(source, /configRef\.current\.onPushSuccess/);
   });
+
+  it("createEngineWithLiveConfig forwards onDiagnostic (Phase 1 observability)", () => {
+    const source = readFileSync(REACT_SOURCE, "utf8");
+    assert.match(source, /get onDiagnostic\(\)/);
+    assert.match(source, /configRef\.current\.onDiagnostic/);
+  });
+
+  it("createEngineWithLiveConfig forwards onAbortInFlightPush (clear draft abort)", () => {
+    const source = readFileSync(REACT_SOURCE, "utf8");
+    assert.match(source, /get onAbortInFlightPush\(\)/);
+    assert.match(source, /configRef\.current\.onAbortInFlightPush/);
+  });
+
+  it("createEngineWithLiveConfig forwards shouldBypassServerVersionAdoption (freshStart OCC)", () => {
+    const source = readFileSync(REACT_SOURCE, "utf8");
+    assert.match(source, /get shouldBypassServerVersionAdoption\(\)/);
+    assert.match(source, /configRef\.current\.shouldBypassServerVersionAdoption/);
+  });
 });

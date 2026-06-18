@@ -10,6 +10,7 @@ import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { isTourThemeCompatibleWithWizard } from "./denali-catalog-filters";
 import { themeDisplayInitials, themeSwatchToneClass } from "./denali-theme-picker-logic";
@@ -40,6 +41,7 @@ export function DenaliProgramContentField({
 }: DenaliProgramContentFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "program.themeIds");
   const selected = parseThemeIds(getCanonicalValue(draft, "program.themeIds"));
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -95,7 +97,9 @@ export function DenaliProgramContentField({
     const next = selectedSet.has(themeId)
       ? selected.filter((id) => id !== themeId)
       : [...selected, themeId];
-    onDraftChange(setCanonicalValue(draft, "program.themeIds", next));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalValue(base, "program.themeIds", next)
+    );
   };
 
   return (

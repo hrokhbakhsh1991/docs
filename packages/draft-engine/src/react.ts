@@ -28,8 +28,17 @@ function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T
     get normalizeRemote() {
       return configRef.current.normalizeRemote;
     },
+    get shouldBypassServerVersionAdoption() {
+      return configRef.current.shouldBypassServerVersionAdoption;
+    },
     get onPushSuccess() {
       return configRef.current.onPushSuccess;
+    },
+    get onDiagnostic() {
+      return configRef.current.onDiagnostic;
+    },
+    get onAbortInFlightPush() {
+      return configRef.current.onAbortInFlightPush;
     },
     onFetch: () => configRef.current.onFetch(),
     onPush: (payload, options) => configRef.current.onPush(payload, options),
@@ -51,6 +60,7 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
   initialize: () => Promise<void>;
   applyDraft: () => void;
   clearDraft: () => Promise<void>;
+  clearDraftAndReset: (reset: T) => Promise<void>;
   revertToLastValid: () => void;
   hasLastValidSnapshot: () => boolean;
 } {
@@ -99,6 +109,10 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
     await engineRef.current?.clearDraft();
   }, []);
 
+  const clearDraftAndReset = useCallback(async (reset: T) => {
+    await engineRef.current?.clearDraftAndReset(reset);
+  }, []);
+
   const revertToLastValid = useCallback(() => {
     engineRef.current?.revertToLastValid();
   }, []);
@@ -116,6 +130,7 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
     initialize,
     applyDraft,
     clearDraft,
+    clearDraftAndReset,
     revertToLastValid,
     hasLastValidSnapshot,
   };

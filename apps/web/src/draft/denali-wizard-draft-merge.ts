@@ -104,6 +104,11 @@ function isFreshStartEnvelope(envelope: NewTourWizardDraftEnvelope): boolean {
   return envelope.meta.freshStart === true;
 }
 
+/** True when local envelope is an explicit post-clear fresh start (OCC bypass). */
+export function isDenaliFreshStartEnvelope(envelope: NewTourWizardDraftEnvelope): boolean {
+  return isFreshStartEnvelope(envelope);
+}
+
 export function mergeDenaliWizardDraftEnvelope(
   local: NewTourWizardDraftEnvelope,
   server: NewTourWizardDraftEnvelope

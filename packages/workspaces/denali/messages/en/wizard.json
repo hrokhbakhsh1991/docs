@@ -131,6 +131,9 @@
     },
     "tourKind": {
       "placeholder": "Select tour type…",
+      "currentLabel": "Current selection:",
+      "changeHint": "Click to change",
+      "changeLabel": "Change tour category and duration",
       "helper": "Category and duration drive which fields appear (elevation, hiking hours, itinerary, location zones, and more).",
       "categories": {
         "mountain": "Mountain",

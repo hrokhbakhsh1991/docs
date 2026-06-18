@@ -9,6 +9,7 @@ import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { parseStringArray } from "./denali-array-field-utils";
 
@@ -27,6 +28,7 @@ export function DenaliGuideLanguageIdsField({
 }: DenaliGuideLanguageIdsFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "program.guideLanguageIds");
   const selected = parseStringArray(getCanonicalValue(draft, "program.guideLanguageIds"));
   const selectedSet = new Set(selected);
@@ -70,7 +72,9 @@ export function DenaliGuideLanguageIdsField({
     const next = checked
       ? [...selected, languageId]
       : selected.filter((id) => id !== languageId);
-    onDraftChange(setCanonicalValue(draft, "program.guideLanguageIds", next));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalValue(base, "program.guideLanguageIds", next)
+    );
   };
 
   return (

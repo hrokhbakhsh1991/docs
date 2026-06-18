@@ -69,6 +69,23 @@ describe("denali-wizard-draft-schema.spec.ts — WEB-P11-HERMETIC-04", () => {
     }
   });
 
+  it("prePush freshStart without deletedRoots keeps envelope reference (INV-DENALI-WIZ-004)", () => {
+    const gate = createDenaliDraftSchemaGate(minimalRules(), {
+      uiOptions: {},
+      ruleSet: "publish",
+    } as never);
+
+    const envelope = {
+      form: { data: { title: "Typed" } },
+      meta: { currentStepIndex: 0, freshStart: true as const },
+    };
+    const result = gate(envelope as never, { phase: "prePush" });
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.value, envelope);
+    }
+  });
+
   it("fixpoint loop is bounded by MAX_SANITY_ATTEMPTS in merge phase source", async () => {
     const { readFileSync } = await import("node:fs");
     const { dirname, join } = await import("node:path");
@@ -107,6 +124,10 @@ describe("denali-wizard-draft-schema.spec.ts — WEB-P11-HERMETIC-04", () => {
     const oscillatingRules = {
       canonicalToFormPathMap: { "basics.title": "basics.title" },
       buildDefaultForm: () => ({}),
+      readCanonicalBasics: (slug: string) =>
+        slug === "mountain_day"
+          ? { category: "mountain" as const, duration: "single_day" as const }
+          : null,
       applyDenaliInvariantState: (form: Record<string, unknown>) => {
         const basics = { ...(form.basics as Record<string, unknown> | undefined) };
         basics.title = toggle ? "alpha" : "beta";
@@ -122,7 +143,7 @@ describe("denali-wizard-draft-schema.spec.ts — WEB-P11-HERMETIC-04", () => {
 
     const result = gate(
       {
-        form: { data: { basics: { title: "seed" } } },
+        form: { data: { basics: { title: "seed" }, category: "mountain_day" } },
         meta: { currentStepIndex: 0 },
       } as never,
       { phase: "merge" }

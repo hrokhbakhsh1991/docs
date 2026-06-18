@@ -158,17 +158,27 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
 
   const draft = envelope?.form ?? emptyTourWizardDraft();
 
-  const persistDraft = useCallback(
-    (next: TourWizardDraft) => {
-      const meta = envelope?.meta ?? envelopeMeta;
-      draftSync.setData(
-        denaliPrepareDraftEnvelope(next, {
-          ...meta,
-        })
-      );
+  const envelopeRef = useRef(envelope);
+  envelopeRef.current = envelope;
+
+  const setEnvelope = useCallback(
+    (prepared: NewTourWizardDraftEnvelope) => {
+      draftSync.setData(prepared);
     },
-    [draftSync, envelope, envelopeMeta]
+    [draftSync]
   );
+
+  const getEnvelope = useCallback(() => envelopeRef.current, []);
+
+  const { wizardRuleEvalContext, onDraftChange } = useDenaliFlatEditRuleSync({
+    plugin,
+    draft,
+    getEnvelope,
+    setEnvelope,
+    denaliRules,
+    gate,
+    themeCatalog,
+  });
 
   useEffect(() => {
     void loadDenaliWizardRulesModule().then(setDenaliRules);
@@ -294,15 +304,6 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     draftSync.setData,
     envelopeMeta,
   ]);
-
-  const { wizardRuleEvalContext, onDraftChange } = useDenaliFlatEditRuleSync({
-    plugin,
-    draft,
-    setDraft: persistDraft,
-    denaliRules,
-    gate,
-    themeCatalog,
-  });
 
   denaliSchemaGateRef.current =
     denaliRules != null && wizardRuleEvalContext !== undefined

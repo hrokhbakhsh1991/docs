@@ -18,10 +18,10 @@ export async function clearOperatorWizardDraftIfPresent(page: Page): Promise<voi
   if (!(await clearBtn.isVisible().catch(() => false))) {
     return;
   }
-  page.once("dialog", (dialog) => {
-    void dialog.accept();
-  });
   await clearBtn.click();
+  const confirmBtn = page.getByTestId("wizard-clear-draft-confirm-confirm");
+  await expect(confirmBtn).toBeVisible({ timeout: 10_000 });
+  await confirmBtn.click();
   await expect(page.locator('[data-wizard-step="denali_basic"]')).toBeVisible({ timeout: 60_000 });
 }
 

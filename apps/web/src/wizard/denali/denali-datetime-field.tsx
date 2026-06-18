@@ -7,6 +7,7 @@ import { LocalizedDatetimePicker } from "@/components/i18n/localized-datetime-pi
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { datetimeLocalInputToIso, isoToDatetimeLocalInput } from "./denali-datetime-utils";
 import { DENALI_DATETIME_TEST_IDS } from "./denali-datetime-test-ids";
@@ -31,6 +32,7 @@ export function DenaliDatetimeField({
   hint,
 }: DenaliDatetimeFieldProps) {
   const t = useTranslations("denali");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, canonicalPath);
   const stored = getCanonicalStringValue(draft, canonicalPath);
   const localValue = isoToDatetimeLocalInput(stored);
@@ -44,8 +46,8 @@ export function DenaliDatetimeField({
           aria-label={label}
           value={localValue}
           onChange={(local) =>
-            onDraftChange(
-              setCanonicalStringValue(draft, canonicalPath, datetimeLocalInputToIso(local))
+            commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+              setCanonicalStringValue(base, canonicalPath, datetimeLocalInputToIso(local))
             )
           }
           required={required}

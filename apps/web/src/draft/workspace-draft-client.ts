@@ -207,6 +207,8 @@ export type PatchWorkspaceDraftSnapshotOptions = {
   readonly signal?: AbortSignal;
   /** Browser may complete PATCH after page unload; mutually exclusive with signal. */
   readonly keepalive?: boolean;
+  /** Maps to Idempotency-Key on non-keepalive PATCH (Phase 2). */
+  readonly intentId?: string;
 };
 
 export async function patchWorkspaceDraftSnapshot<T>(
@@ -217,9 +219,13 @@ export async function patchWorkspaceDraftSnapshot<T>(
   options?: PatchWorkspaceDraftSnapshotOptions
 ): Promise<DraftSyncPayload<T>> {
   const keepalive = options?.keepalive === true;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (!keepalive && options?.intentId != null && options.intentId.trim().length > 0) {
+    headers["Idempotency-Key"] = options.intentId.trim();
+  }
   const response = await fetch(draftBffPath(workspaceId, namespace, key), {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(payload),
     cache: "no-store",
     ...(keepalive ? { keepalive: true } : {}),
@@ -250,5 +256,32 @@ export async function deleteWorkspaceDraftSnapshot(
   }
   if (!response.ok) {
     throw new Error(`WORKSPACE_DRAFT_DELETE_FAILED:${response.status}`);
+  }
+}
+
+/** DELETE then GET-verify empty; one retry if row still present (clear-draft race). */
+export async function deleteWorkspaceDraftSnapshotVerified(
+  workspaceId: string,
+  namespace: string,
+  key: string
+): Promise<void> {
+  const response = await fetch(draftBffPath(workspaceId, namespace, key), {
+    method: "DELETE",
+    cache: "no-store",
+  });
+  if (response.status === 404) {
+    return;
+  }
+  if (response.status !== 204 && !response.ok) {
+    throw new Error(`WORKSPACE_DRAFT_DELETE_FAILED:${response.status}`);
+  }
+  const stale = await fetchWorkspaceDraftSnapshot<unknown>(workspaceId, namespace, key);
+  if (stale === null) {
+    return;
+  }
+  await deleteWorkspaceDraftSnapshot(workspaceId, namespace, key);
+  const still = await fetchWorkspaceDraftSnapshot<unknown>(workspaceId, namespace, key);
+  if (still !== null) {
+    throw new Error(`WORKSPACE_DRAFT_DELETE_STALE:${still.version}`);
   }
 }

@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import type { RenderStepPlan } from "@app-tour/platform-core";
 
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
-import { setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
+import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
 import {
   applyDenaliConditionalFieldRules,
   resolveDenaliDimensionsFromDraft,
@@ -119,6 +119,13 @@ describe("denali-wizard-conditional.spec.ts", () => {
   it("WEB-DENALI-COND-04 skips contextual filter until tour kind is selected", () => {
     const filtered = applyDenaliConditionalFieldRules(BASE_PLAN, emptyTourWizardDraft(), MOCK_RULES);
     assert.equal(filtered.length, BASE_PLAN.length);
+  });
+
+  it("WEB-DENALI-COND-06 matrix fallback dimensions differ from empty draft classification", () => {
+    const draft = emptyTourWizardDraft();
+    const dimensions = resolveDenaliDimensionsFromDraft(draft, MOCK_RULES);
+    assert.deepEqual(dimensions, { category: "mountain", duration: "single_day" });
+    assert.equal(getCanonicalStringValue(draft, "category"), "");
   });
 
   it("WEB-DENALI-COND-05 detects multi-day tour kinds", () => {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { DraftEngine } from "../src/engine";
-import { DraftConflictError, type DraftEngineState, type DraftSchemaGate, type DraftSyncPayload } from "../src/types";
+import { DraftConflictError, type DraftEngineState, type DraftSchemaGate, type DraftSyncEvent, type DraftSyncPayload } from "../src/types";
 
 type TestData = { value: string };
 
@@ -90,6 +90,65 @@ test("applyDraft hydrates pending server draft", async () => {
   assert.deepEqual(state.data, { value: "server" });
   assert.equal(state.version, 4);
   assert.equal(state.pendingDraft, undefined);
+});
+
+test("clearDraft calls onAbortInFlightPush before onDelete", async () => {
+  let deleteCalls = 0;
+  let aborted = false;
+  const fetched = payload({ value: "server" }, 2, 2222);
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    autoApply: false,
+    conflictStrategy: "SERVER_WINS",
+    onAbortInFlightPush: () => {
+      aborted = true;
+    },
+    onFetch: async () => fetched,
+    onPush: async (p) => p,
+    onDelete: async () => {
+      assert.ok(aborted);
+      deleteCalls += 1;
+    },
+  });
+
+  await engine.initialize();
+  await engine.clearDraft();
+
+  const state = engine.getState();
+  assert.equal(deleteCalls, 1);
+  assert.equal(state.status, "IDLE");
+  assert.equal(state.data, null);
+  assert.equal(state.version, 0);
+  assert.equal(state.pendingDraft, undefined);
+});
+
+test("clearDraftAndReset deletes remote then applies reset without data=null notify", async () => {
+  const snapshots: Array<TestData | null> = [];
+  let deleteCalls = 0;
+  const fetched = payload({ value: "server" }, 2, 2222);
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    autoApply: false,
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => fetched,
+    onPush: async (p) => ({ ...p, version: 1 }),
+    onDelete: async () => {
+      deleteCalls += 1;
+    },
+  });
+  engine.subscribe((state) => {
+    snapshots.push(state.data);
+  });
+
+  await engine.initialize();
+  snapshots.length = 0;
+  await engine.clearDraftAndReset({ value: "fresh" });
+
+  assert.equal(deleteCalls, 1);
+  const state = engine.getState();
+  assert.equal(state.data?.value, "fresh");
+  assert.equal(state.status, "IDLE");
+  assert.equal(snapshots.includes(null), false);
 });
 
 test("clearDraft calls onDelete and clears local state", async () => {
@@ -433,6 +492,43 @@ test("REFETCH_REAPPLY conflict re-fetches, merges local, hydrates quietly withou
   assert.deepEqual(state.data, { value: "local+fresh-server" });
   assert.equal(state.version, 5);
   assert.equal(state.lastModified, 5000);
+});
+
+test("REFETCH_REAPPLY freshStart 409 re-deletes and re-pushes at version 0", async () => {
+  type FreshData = { readonly value: string; readonly freshStart?: boolean };
+  let deleteCalls = 0;
+  const pushVersions: number[] = [];
+  let pushAttempt = 0;
+  const staleServer = payload({ value: "stale-server" }, 7, 7000);
+
+  const engine = new DraftEngine<FreshData>({
+    id: "fresh-start-409",
+    conflictStrategy: "REFETCH_REAPPLY",
+    debounceMs: 5,
+    shouldBypassServerVersionAdoption: (data) => data.freshStart === true,
+    merge: (local, server) => ({ ...server, ...local }),
+    onFetch: async () => staleServer as DraftSyncPayload<FreshData>,
+    onDelete: async () => {
+      deleteCalls += 1;
+    },
+    onPush: async (p) => {
+      pushVersions.push(p.version);
+      pushAttempt += 1;
+      if (pushAttempt === 1) {
+        throw new DraftConflictError(staleServer as DraftSyncPayload<FreshData>);
+      }
+      return payload(p.data, p.version + 1, p.lastModified + 1) as DraftSyncPayload<FreshData>;
+    },
+  });
+
+  engine.setDraftData({ value: "reset", freshStart: true });
+  await engine.flush();
+
+  assert.ok(deleteCalls >= 1);
+  assert.deepEqual(pushVersions, [0, 0]);
+  assert.equal(engine.getState().status, "IDLE");
+  assert.equal(engine.getState().version, 1);
+  assert.equal(engine.getState().data?.value, "reset");
 });
 
 test("setDraftData remote with version updates version without onPush", async () => {
@@ -910,6 +1006,66 @@ test("ack cache miss refetches before push (Track B B-7)", async () => {
   assert.equal(ack.ackSource, "patch200");
 });
 
+test("shouldBypassServerVersionAdoption resets stale ack and pushes at version 0", async () => {
+  type FreshData = { readonly value: string; readonly freshStart?: boolean };
+  let pushedVersion = -1;
+  const fetched = payload({ value: "server" }, 7, 7000);
+
+  const engine = new DraftEngine<FreshData>({
+    id: "test-fresh-start-bypass",
+    conflictStrategy: "REFETCH_REAPPLY",
+    debounceMs: 5,
+    shouldBypassServerVersionAdoption: (data) => data.freshStart === true,
+    onFetch: async () => fetched as DraftSyncPayload<FreshData>,
+    onPush: async (p) => {
+      pushedVersion = p.version;
+      return payload(p.data, p.version + 1, p.lastModified + 1) as DraftSyncPayload<FreshData>;
+    },
+  });
+
+  await engine.initialize();
+  assert.equal(engine.getState().version, 7);
+  engine.setDraftData({ value: "reset", freshStart: true });
+  await engine.flush();
+
+  assert.equal(pushedVersion, 0);
+});
+
+test("freshStart keeps ack version on subsequent pushes while meta stays freshStart", async () => {
+  type FreshData = { readonly value: string; readonly freshStart?: boolean };
+  const pushVersions: number[] = [];
+  let serverVersion = 0;
+
+  const engine = new DraftEngine<FreshData>({
+    id: "test-fresh-start-subsequent",
+    conflictStrategy: "REFETCH_REAPPLY",
+    debounceMs: 5,
+    shouldBypassServerVersionAdoption: (data) => data.freshStart === true,
+    onFetch: async () =>
+      serverVersion === 0
+        ? null
+        : (payload({ value: "server" }, serverVersion, 7000) as DraftSyncPayload<FreshData>),
+    onPush: async (p) => {
+      pushVersions.push(p.version);
+      serverVersion = p.version === 0 ? 1 : p.version + 1;
+      return payload(p.data, serverVersion, p.lastModified + 1) as DraftSyncPayload<FreshData>;
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "reset", freshStart: true });
+  await engine.flush();
+  assert.deepEqual(pushVersions, [0]);
+  assert.equal(engine.getState().version, 1);
+
+  engine.setDraftData({ value: "typed-after-reset", freshStart: true });
+  await engine.flush();
+
+  assert.deepEqual(pushVersions, [0, 1]);
+  assert.equal(engine.getState().status, "IDLE");
+  assert.equal(engine.getState().version, 2);
+});
+
 test("flushKeepalive does not commit ack cache (Track B)", async () => {
   const fetched = payload({ value: "initial" }, 1, 1000);
   const engine = new DraftEngine<TestData>({
@@ -1031,4 +1187,289 @@ test("REFETCH_REAPPLY runs schemaGate merge phase after merge (Track B B-3)", as
 
   assert.ok(gatePhases.includes("merge"));
   assert.deepEqual(engine.getState().data, { value: "local+fresh-server-sanitized" });
+});
+
+test("onDiagnostic emits push_start and push_success with same intentId", async () => {
+  const events: DraftSyncEvent[] = [];
+  const engine = new DraftEngine<TestData>({
+    id: "diag-push",
+    conflictStrategy: "SERVER_WINS",
+    onDiagnostic: (event) => events.push(event),
+    onFetch: async () => null,
+    onPush: async (p) => ({ ...p, version: p.version + 1 }),
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "x" });
+  await engine.flush();
+
+  const starts = events.filter((event) => event.type === "push_start");
+  const successes = events.filter((event) => event.type === "push_success");
+  assert.equal(starts.length, 1);
+  assert.equal(successes.length, 1);
+  assert.equal(starts[0]?.type === "push_start" && successes[0]?.type === "push_success" ? starts[0].intentId : null, successes[0]?.type === "push_success" ? successes[0].intentId : null);
+});
+
+test("onDiagnostic emits conflict on DraftConflictError", async () => {
+  const events: DraftSyncEvent[] = [];
+  const server = payload({ value: "server" }, 2, 2000);
+  const engine = new DraftEngine<TestData>({
+    id: "diag-conflict",
+    conflictStrategy: "SERVER_WINS",
+    onDiagnostic: (event) => events.push(event),
+    onFetch: async () => payload({ value: "initial" }, 1, 1000),
+    onPush: async () => {
+      throw new DraftConflictError(server);
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "edited" });
+  await engine.flush();
+
+  const conflicts = events.filter((event) => event.type === "conflict");
+  assert.equal(conflicts.length, 1);
+  assert.equal(conflicts[0]?.type === "conflict" ? conflicts[0].strategy : null, "SERVER_WINS");
+});
+
+test("onDiagnostic emits error and sets ERROR status on push failure", async () => {
+  const events: DraftSyncEvent[] = [];
+  const engine = new DraftEngine<TestData>({
+    id: "diag-error",
+    conflictStrategy: "SERVER_WINS",
+    onDiagnostic: (event) => events.push(event),
+    onFetch: async () => null,
+    onPush: async () => {
+      throw new Error("WORKSPACE_DRAFT_PATCH_FAILED:422");
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "x" });
+  await engine.flush();
+
+  const errors = events.filter((event) => event.type === "error");
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]?.type === "error" ? errors[0].recoverable : null, false);
+  assert.equal(engine.getState().status, "ERROR");
+});
+
+test("WORKSPACE_DRAFT_PATCH_ABORTED emits no error diagnostic", async () => {
+  const events: DraftSyncEvent[] = [];
+  const fetched = payload({ value: "initial" }, 3, 3000);
+  const engine = new DraftEngine<TestData>({
+    id: "diag-abort",
+    conflictStrategy: "SERVER_WINS",
+    onDiagnostic: (event) => events.push(event),
+    onFetch: async () => fetched,
+    onPush: async () => {
+      throw new Error("WORKSPACE_DRAFT_PATCH_ABORTED");
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "edited" });
+  await engine.flush();
+
+  assert.ok(events.some((event) => event.type === "push_start"));
+  assert.ok(!events.some((event) => event.type === "error"));
+  assert.equal(engine.getState().status, "DIRTY");
+});
+
+test("getDebugSnapshot returns metadata without data blob", async () => {
+  const engine = new DraftEngine<TestData>({
+    id: "diag-snapshot",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => payload({ value: "initial" }, 2, 2000),
+    onPush: async (p) => ({ ...p, version: p.version + 1 }),
+  });
+
+  await engine.initialize();
+  const afterInit = engine.getDebugSnapshot();
+  assert.equal(afterInit.status, "IDLE");
+  assert.equal(afterInit.version, 2);
+  assert.equal(afterInit.ackVersion, 2);
+  assert.equal(afterInit.lastIntentId, null);
+  assert.ok(!("data" in (afterInit as Record<string, unknown>)));
+
+  engine.setDraftData({ value: "edited" });
+  await engine.flush();
+  const afterPush = engine.getDebugSnapshot();
+  assert.equal(afterPush.status, "IDLE");
+  assert.equal(afterPush.ackVersion, 3);
+  assert.ok(afterPush.lastIntentId != null);
+  assert.equal(afterPush.lastError, null);
+});
+
+test("setDraftData no-op when payload is structurally equal (prevents effect loops)", async () => {
+  const pushes: unknown[] = [];
+  const engine = new DraftEngine<TestData>({
+    id: "test-setdata-dedup",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    onFetch: async () => null,
+    onPush: async (p) => {
+      pushes.push(p.data);
+      return { ...p, version: p.version + 1 };
+    },
+  });
+
+  engine.setDraftData({ value: "same" });
+  await engine.flush();
+  assert.equal(pushes.length, 1);
+
+  engine.setDraftData({ value: "same" });
+  await engine.flush();
+  assert.equal(pushes.length, 1);
+  assert.equal(engine.getState().status, "IDLE");
+});
+
+test("prePush gate clone with identical content settles IDLE (no push loop)", async () => {
+  type MetaEnvelope = { form: { title: string }; meta: { step: number; freshStart?: boolean } };
+
+  const schemaGate: DraftSchemaGate<MetaEnvelope> = (candidate, ctx) => {
+    if (ctx.phase !== "prePush") {
+      return { ok: true, value: candidate };
+    }
+    if (candidate.meta.freshStart === true) {
+      return {
+        ok: true,
+        value: {
+          form: candidate.form,
+          meta: { ...candidate.meta, freshStart: true },
+        },
+      };
+    }
+    return { ok: true, value: candidate };
+  };
+
+  const engine = new DraftEngine<MetaEnvelope>({
+    id: "test-prepush-clone-idle",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    schemaGate,
+    onFetch: async () => null,
+    onPush: async (p) => ({ ...p, version: p.version + 1 }),
+  });
+
+  const envelope: MetaEnvelope = {
+    form: { title: "Hello" },
+    meta: { step: 0, freshStart: true },
+  };
+  engine.setDraftData(envelope);
+  await engine.flush();
+  assert.equal(engine.getState().status, "IDLE");
+});
+
+test("getState data clone prevents consumer mutation of engine internals", async () => {
+  const pushed: TestData[] = [];
+  const engine = new DraftEngine<TestData>({
+    id: "diag-immutable",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => payload({ value: "initial" }, 1, 1000),
+    onPush: async (p) => {
+      pushed.push(p.data);
+      return { ...p, version: p.version + 1 };
+    },
+  });
+
+  await engine.initialize();
+  const view = engine.getState().data;
+  assert.ok(view != null);
+  view.value = "mutated-by-consumer";
+  engine.setDraftData({ value: "actual" });
+  await engine.flush();
+  assert.deepEqual(pushed.at(-1), { value: "actual" });
+});
+
+test("flushKeepalive emits recoverable error diagnostic on push failure", async () => {
+  const events: DraftSyncEvent[] = [];
+  const engine = new DraftEngine<TestData>({
+    id: "diag-keepalive-error",
+    conflictStrategy: "SERVER_WINS",
+    onDiagnostic: (event) => events.push(event),
+    onFetch: async () => null,
+    onPush: async (p, options) => {
+      if (options?.keepalive === true) {
+        throw new Error("network down");
+      }
+      return p;
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "unload" });
+  engine.flushKeepalive();
+  await sleep(20);
+
+  const errors = events.filter((event) => event.type === "error");
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]?.type === "error" ? errors[0].recoverable : null, true);
+  assert.equal(engine.getState().status, "DIRTY");
+});
+
+test("doPush passes intentId to onPush options", async () => {
+  let capturedIntentId: string | undefined;
+  const engine = new DraftEngine<TestData>({
+    id: "diag-intent-id",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => null,
+    onPush: async (p, options) => {
+      capturedIntentId = options?.intentId;
+      return { ...p, version: p.version + 1 };
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "x" });
+  await engine.flush();
+
+  assert.ok(capturedIntentId != null && capturedIntentId.length > 0);
+});
+
+test(
+  "doPush retries 5xx errors before success",
+  { timeout: 8000 },
+  async () => {
+    let attempts = 0;
+    const engine = new DraftEngine<TestData>({
+      id: "retry-5xx",
+      conflictStrategy: "SERVER_WINS",
+      onFetch: async () => null,
+      onPush: async (p) => {
+        attempts += 1;
+        if (attempts < 3) {
+          throw new Error("WORKSPACE_DRAFT_PATCH_FAILED:503");
+        }
+        return { ...p, version: p.version + 1 };
+      },
+    });
+
+    await engine.initialize();
+    engine.setDraftData({ value: "x" });
+    await engine.flush();
+
+    assert.equal(attempts, 3);
+    assert.equal(engine.getState().status, "IDLE");
+  }
+);
+
+test("doPush does not retry DraftConflictError", async () => {
+  let attempts = 0;
+  const server = payload({ value: "server" }, 2, 2000);
+  const engine = new DraftEngine<TestData>({
+    id: "no-retry-conflict",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => payload({ value: "initial" }, 1, 1000),
+    onPush: async () => {
+      attempts += 1;
+      throw new DraftConflictError(server);
+    },
+  });
+
+  await engine.initialize();
+  engine.setDraftData({ value: "edited" });
+  await engine.flush();
+
+  assert.equal(attempts, 1);
 });

@@ -13,6 +13,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export { tourWizardDraftToDenaliForm };
 
+/** Keep aligned with `@app-tour/workspace-denali` `denali-canonical-form-sync.ts`. */
+const DENALI_TOUR_KIND_ALIAS_CANONICAL_PATHS = new Set(["duration", "eventVariant"]);
+
+function shouldPersistCanonicalPathFromForm(canonicalPath: string): boolean {
+  return !DENALI_TOUR_KIND_ALIAS_CANONICAL_PATHS.has(canonicalPath);
+}
+
 function getNestedFormValue(form: Record<string, unknown>, formPath: string): unknown {
   const segments = formPath.split(".");
   let current: unknown = form;
@@ -40,6 +47,9 @@ export function syncDenaliFormToTourWizardDraft(
 ): TourWizardDraft {
   let next = draft;
   for (const [canonicalPath, formPath] of Object.entries(rules.canonicalToFormPathMap)) {
+    if (!shouldPersistCanonicalPathFromForm(canonicalPath)) {
+      continue;
+    }
     const formValue = getNestedFormValue(form, formPath);
     const draftValue = getCanonicalValue(draft, canonicalPath);
     if (formValue === undefined) {
