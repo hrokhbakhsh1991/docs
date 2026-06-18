@@ -35,6 +35,8 @@ export {
   DENALI_TOUR_KIND_CANONICAL_PATH,
   ensureDenaliTourKindAllowedPaths,
   ensureDenaliTourKindTemplateSteps,
+  ensureDenaliMatrixRequiredAllowedPaths,
+  ensureDenaliMatrixRequiredTemplateSteps,
 } from "./wizard/ensure-tour-kind-template-field";
 export {
   DENALI_CREATE_TOUR_DRAFT_KEY,

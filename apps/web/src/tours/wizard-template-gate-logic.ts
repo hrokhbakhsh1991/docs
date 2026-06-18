@@ -1,4 +1,6 @@
 import {
+  ensureDenaliMatrixRequiredAllowedPaths,
+  ensureDenaliMatrixRequiredTemplateSteps,
   ensureDenaliTourKindAllowedPaths,
   ensureDenaliTourKindTemplateSteps,
 } from "@app-tour/workspace-denali/wizard/template-invariants";
@@ -183,7 +185,9 @@ export function resolveWizardTemplateGateState(
   const templateStepsRaw = published ? resolvePublishedWizardTemplateSteps(effective) : [];
   const templateSteps =
     pluginId === "denali"
-      ? ensureDenaliTourKindTemplateSteps(templateStepsRaw)
+      ? ensureDenaliMatrixRequiredTemplateSteps(
+          ensureDenaliTourKindTemplateSteps(templateStepsRaw)
+        )
       : templateStepsRaw;
   const fieldRulesOverlay =
     effective.fieldRulesOverlay != null && typeof effective.fieldRulesOverlay === "object"
@@ -201,7 +205,7 @@ export function resolveWizardTemplateGateState(
     published,
     allowedCanonicalPaths:
       pluginId === "denali" && published
-        ? ensureDenaliTourKindAllowedPaths(allowedPathsRaw)
+        ? ensureDenaliMatrixRequiredAllowedPaths(ensureDenaliTourKindAllowedPaths(allowedPathsRaw))
         : allowedPathsRaw,
     templateSteps,
     fieldOverlays: buildWizardTemplateFieldOverlays(templateSteps),

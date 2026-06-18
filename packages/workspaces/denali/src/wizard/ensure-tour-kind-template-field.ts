@@ -35,6 +35,61 @@ function stepHasVisibleCategory(step: DenaliWizardTemplateStepRef): boolean {
   );
 }
 
+/** Matrix-required fields tenant templates must not strip (submit + render parity). */
+export const DENALI_MATRIX_REQUIRED_TEMPLATE_FIELDS: Readonly<
+  Record<string, readonly DenaliWizardTemplateFieldRef[]>
+> = {
+  denali_photos: [{ canonicalPath: "program.shortDescription", required: true }],
+};
+
+function stepHasVisibleField(step: DenaliWizardTemplateStepRef, canonicalPath: string): boolean {
+  if (step.enabled === false) {
+    return false;
+  }
+  return step.fields.some(
+    (field) => field.canonicalPath.trim() === canonicalPath && field.hidden !== true
+  );
+}
+
+function injectFieldsOnStep<T extends DenaliWizardTemplateStepRef>(
+  steps: readonly T[],
+  stepId: string,
+  fields: readonly DenaliWizardTemplateFieldRef[]
+): readonly T[] {
+  const stepIndex = steps.findIndex((step) => step.stepId === stepId);
+  if (stepIndex < 0) {
+    return steps;
+  }
+  const step = steps[stepIndex]!;
+  const missing = fields.filter(
+    (field) => !stepHasVisibleField(step, field.canonicalPath.trim())
+  );
+  if (missing.length === 0) {
+    return steps;
+  }
+  const nextStep = { ...step, fields: [...missing, ...step.fields] } as unknown as T;
+  return steps.map((item, index) => (index === stepIndex ? nextStep : item));
+}
+
+/** Inject matrix-required fields when tenant template omitted them (INV-DENALI-WIZ-005). */
+export function ensureDenaliMatrixRequiredTemplateSteps<T extends DenaliWizardTemplateStepRef>(
+  steps: readonly T[]
+): readonly T[] {
+  let result = steps;
+  for (const [stepId, fields] of Object.entries(DENALI_MATRIX_REQUIRED_TEMPLATE_FIELDS)) {
+    result = injectFieldsOnStep(result, stepId, fields);
+  }
+  return result;
+}
+
+export function ensureDenaliMatrixRequiredAllowedPaths(paths: readonly string[]): readonly string[] {
+  const required = Object.values(DENALI_MATRIX_REQUIRED_TEMPLATE_FIELDS).flatMap((fields) =>
+    fields.map((field) => field.canonicalPath.trim())
+  );
+  const missing = required.filter((path) => !paths.includes(path));
+  return missing.length === 0 ? paths : [...missing, ...paths];
+}
+
 /** Inject `category` on `denali_basic` when tenant template omitted tour kind. */
 export function ensureDenaliTourKindTemplateSteps<T extends DenaliWizardTemplateStepRef>(
   steps: readonly T[]

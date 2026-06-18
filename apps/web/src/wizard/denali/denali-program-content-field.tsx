@@ -1,6 +1,7 @@
 "use client";
 
 import { readDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
+import { wizardFieldPathAttributes } from "@app-tour/wizard-navigation";
 import { Check } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -9,7 +10,12 @@ import type { TourThemeResource, TourThemesListResponse } from "@/features/setti
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
-import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import {
+  getCanonicalStringValue,
+  getCanonicalValue,
+  setCanonicalStringValue,
+  setCanonicalValue,
+} from "@/tours/tour-wizard-draft-path";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { isTourThemeCompatibleWithWizard } from "./denali-catalog-filters";
@@ -19,6 +25,7 @@ import { DENALI_DEFAULT_WORKSPACE_FORM_PROFILE } from "./denali-wizard-ui-contex
 export const DENALI_PROGRAM_CONTENT_TEST_IDS = {
   themes: "denali-composite-program-themes",
   card: "denali-theme-picker-card",
+  shortDescription: "denali-program-short-description",
 } as const;
 
 function parseThemeIds(value: unknown): string[] {
@@ -42,7 +49,9 @@ export function DenaliProgramContentField({
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
   const draftRef = useLatestWizardDraft(draft);
-  const label = resolveDenaliFieldLabel(t, "program.themeIds");
+  const themesLabel = resolveDenaliFieldLabel(t, "program.themeIds");
+  const shortDescriptionLabel = resolveDenaliFieldLabel(t, "program.shortDescription");
+  const shortDescription = getCanonicalStringValue(draft, "program.shortDescription");
   const selected = parseThemeIds(getCanonicalValue(draft, "program.themeIds"));
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
@@ -102,6 +111,12 @@ export function DenaliProgramContentField({
     );
   };
 
+  const writeShortDescription = (next: string) => {
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalStringValue(base, "program.shortDescription", next)
+    );
+  };
+
   return (
     <div
       className="denali-wizard-composite"
@@ -109,8 +124,25 @@ export function DenaliProgramContentField({
       data-denali-theme-picker
       data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.themes}
     >
+      <label
+        className="denali-wizard-composite__field"
+        {...wizardFieldPathAttributes("program.shortDescription")}
+      >
+        <span>{shortDescriptionLabel}</span>
+        <textarea
+          className="denali-wizard-composite__textarea"
+          data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.shortDescription}
+          value={shortDescription}
+          required
+          aria-required
+          rows={3}
+          onChange={(event) => writeShortDescription(event.target.value)}
+          onBlur={(event) => writeShortDescription(event.target.value)}
+        />
+      </label>
+
       <div className="denali-wizard-composite__header">
-        <h3 className="denali-wizard-composite__title">{label}</h3>
+        <h3 className="denali-wizard-composite__title">{themesLabel}</h3>
         <p className="denali-wizard-composite__helper">{t("composites.programContent.helper")}</p>
         {selected.length > 0 ? (
           <p className="denali-theme-picker__summary">
