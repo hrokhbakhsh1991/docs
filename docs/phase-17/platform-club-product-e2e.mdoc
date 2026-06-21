@@ -1,0 +1,131 @@
+---
+title: P4-D — Club product E2E exit
+phase: 17
+format: markdoc
+prerequisite: P4-C-N-012 complete (club surfaces config)
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p4/p4-d-product-e2e.md
+---
+
+# Club product E2E exit (P4-D)
+
+Phase exit gate: **`p4:gate`** + optional **`p4:e2e-gate`** Playwright + §J closure in [`TEMP/p4-exit-checklist.md`](../../TEMP/p4-exit-checklist.md).
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p4/p4-d-product-e2e.md`](../../TEMP/p4/p4-d-product-e2e.md) v1.0
+
+**Status (2026-06-21):** doc 9.9 · **P4-D complete** (10/10 nanos · EX specs green · `p4:e2e-gate` stub)
+
+---
+
+## What P4-D actually delivers (honest scope)
+
+| Deliverable                | Detail                                                                  |
+| -------------------------- | ----------------------------------------------------------------------- |
+| **`p4:gate`**              | Composes guards + P4-A/B/C unit specs + exit contract spec              |
+| **E1 publish→catalog**     | **PW-01 / RV / CP** in gate — not live Playwright publish (E2E-01 soft) |
+| **E2 portal registration** | P4-B unit specs in gate · SMK-\* in **`p4:e2e-gate`** only              |
+| **Closure docs**           | exit checklist · phase-15 §P4 · assessment § product surfaces           |
+| **Full `p4:gate`**         | Requires `git diff --quiet packages/workspaces/denali` (E6)             |
+
+---
+
+## Phase exit criteria (§J closure)
+
+| #   | Criterion                          | Evidence                                                |
+| --- | ---------------------------------- | ------------------------------------------------------- |
+| E1  | Tour publish → marketing catalog   | PW-01 + RV/CP in `p4:gate` · E2E-01 Playwright optional |
+| E2  | Portal registration prod path      | P4-B PR/BR specs in gate · SMK-PTL/MKT in `p4:e2e-gate` |
+| E3  | `guard-public-catalog-m17` in gate | EX-02                                                   |
+| E4  | `p4:gate` exit 0                   | EX-01 (denali covenant when merging)                    |
+| E5  | phase-15-closure P4 section        | EX-03                                                   |
+| E6  | denali diff empty                  | covenant step in gate                                   |
+
+---
+
+## `p4:gate` (authoritative — sync with script)
+
+```bash
+pnpm run guard:import-boundary
+pnpm run guard:public-catalog-m17
+git diff --quiet packages/workspaces/denali
+
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/marketing-catalog-revalidate.spec.ts \
+  test/club-catalog-publish-integration.spec.ts \
+  test/club-catalog-publish-service.spec.ts \
+  test/platform-tenant-surfaces.spec.ts \
+  test/public-tenant-context.spec.ts \
+  test/seed-tenant-site-surfaces.spec.ts \
+  test/platform-club-product-exit.spec.ts
+
+pnpm --filter @apps/marketing exec node --import tsx --test \
+  test/revalidate-route.spec.ts \
+  test/resolve-web-registration-url.spec.ts \
+  test/tenant-site-surfaces-maintenance.spec.ts
+
+pnpm --filter @apps/portal test
+
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/portal-registration-redirect.spec.ts \
+  test/catalog-register-redirect-page.spec.ts \
+  test/platform-club-surfaces-tab.spec.ts
+```
+
+Wire: `"p4:gate": "bash scripts/p4-club-product-gate.sh"` · `"p4:e2e-gate": "bash scripts/p4-club-product-e2e-gate.sh"`.
+
+Heavy Playwright — **`p4:e2e-gate`** only; **Architect YES** for CI merge proof.
+
+---
+
+## `p4:e2e-gate` (optional smokes)
+
+| ID             | Spec                                  | App          |
+| -------------- | ------------------------------------- | ------------ |
+| SMK-MKT-01..04 | `marketing-catalog-smoke.spec.ts`     | marketing    |
+| SMK-PTL-01     | `portal-registration-smoke.spec.ts`   | portal       |
+| SMK-DREG-01    | `denali-catalog-registration.spec.ts` | web → portal |
+
+Fixture tour `…0210` — seed smoke anchor; live operator publish E2E deferred until Architect YES.
+
+---
+
+## Testing matrix
+
+| Spec                                 | IDs         | Asserts                                    |
+| ------------------------------------ | ----------- | ------------------------------------------ |
+| `platform-club-product-exit.spec.ts` | EX-01…EX-03 | gate script · M17 · closure docs           |
+| Gate run                             | EX-01b      | `P4_CLUB_PRODUCT_GATE_OK`                  |
+| M17 guard                            | EX-02       | in chain                                   |
+| E2E alt                              | E2E-01      | PW-01 in gate · fixture doc for Playwright |
+| Assessment                           | EX-03       | G1–G5 gap register in assessment           |
+
+---
+
+## Verification
+
+```bash
+pnpm run p4:gate          # fast unit + guards (denali covenant)
+pnpm run p4:e2e-gate      # Playwright smokes — Architect YES
+```
+
+---
+
+## STOP table
+
+| Symptom                                        | Action                       |
+| ---------------------------------------------- | ---------------------------- |
+| Skip `p4:gate` for phase exit                  | **STOP**                     |
+| Mark P4 complete without `p4:gate` unit chain  | **STOP**                     |
+| Require SMK in `p4:gate` without Architect YES | **STOP** — use `p4:e2e-gate` |
+| Full ci:integrity without YES                  | **STOP**                     |
+
+---
+
+## References
+
+- [`platform-club-catalog-publish.mdoc`](platform-club-catalog-publish.mdoc)
+- [`platform-portal-registration.mdoc`](platform-portal-registration.mdoc)
+- [`platform-club-surfaces-config.mdoc`](platform-club-surfaces-config.mdoc)
+- [`phase-15-closure.mdoc`](../phase-15/phase-15-closure.mdoc)
+- `TEMP/p4-exit-checklist.md`

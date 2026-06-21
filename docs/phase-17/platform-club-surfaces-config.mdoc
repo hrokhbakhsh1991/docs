@@ -1,0 +1,164 @@
+---
+title: P4-C — Club surfaces config
+phase: 17
+format: markdoc
+prerequisite: P4-B-N-014 complete (portal-primary bridge)
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p4/p4-c-club-surfaces.md
+---
+
+# Club surfaces config (P4-C)
+
+Expose **`site_surfaces`** (admin / marketing / portal) from tenant config in Super Admin and enforce maintenance when disabled.
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p4/p4-c-club-surfaces.md`](../../TEMP/p4/p4-c-club-surfaces.md) v1.0
+
+**Status (2026-06-21):** doc 9.9 · **P4-C complete** (12/12 nanos · SF specs green)
+
+---
+
+## What P4-C actually delivers (honest scope)
+
+| Deliverable           | Detail                                                                |
+| --------------------- | --------------------------------------------------------------------- |
+| **Read path (new)**   | `read-tenant-site-surfaces.ts` — `tenant_config.site_surfaces` → DTO  |
+| **Super Admin UI**    | Sites tab badges (`data-platform-surface`) + URLs (extends P2 tab)    |
+| **Public context**    | `GET /public/tenant-context` includes `siteSurfaces` for guest shells |
+| **Maintenance**       | Marketing layout → `MaintenancePage` when `marketing: false`          |
+| **Pre-P2 (not P4-C)** | `sites/check` portal probe · URL list in Sites tab                    |
+
+**Gap G3:** closed with read path + badges + SF specs.
+
+---
+
+## Executive summary
+
+| Layer              | P4-C delivers                                          |
+| ------------------ | ------------------------------------------------------ |
+| **Seed (exists)**  | Provision saga writes `tenant_config.site_surfaces`    |
+| **Super Admin UI** | Sites tab shows admin / marketing / portal flags       |
+| **Read API**       | BFF exposes surfaces on club detail                    |
+| **Maintenance**    | Disabled marketing → maintenance page (pattern P2-A)   |
+| **Health**         | `sites/check` includes portal + marketing reachability |
+
+---
+
+## Goals
+
+| Goal                | Detail                                               |
+| ------------------- | ---------------------------------------------------- |
+| Observable surfaces | Platform ops sees which surfaces enabled per club    |
+| v1 control          | Read-only badges; toggle via PATCH deferred to v1.1  |
+| URL display         | Sites tab shows 3 URLs from provision response       |
+| Denali safety       | No package edits                                     |
+
+## Non-goals (P4-C v1)
+
+- Per-surface custom domains (P2-D domains tab covers custom hosts)
+- DNS automation for portal subdomain
+- Feature flags per surface beyond boolean config
+
+---
+
+## Industry alignment
+
+| Pattern                      | Source                   | P4-C mapping                        |
+| ---------------------------- | ------------------------ | ----------------------------------- |
+| **Multi-storefront toggles** | Shopify sales channels   | Enable/disable marketing vs portal  |
+| **Maintenance mode**         | P2-A gateway pattern     | Disabled surface → maintenance stub |
+| **Tenant config JSONB**      | SaaS feature flags in DB | `site_surfaces` payload             |
+
+---
+
+## Config shape (frozen)
+
+```json
+{
+  "admin": true,
+  "marketing": true,
+  "portal": true
+}
+```
+
+| Key         | Default | Notes                              |
+| ----------- | ------- | ---------------------------------- |
+| `admin`     | `true`  | Operator panel — cannot disable v1 |
+| `marketing` | `true`  | Public catalog host                |
+| `portal`    | `true`  | Registration host                  |
+
+Seeded by [`seed-tenant-site-surfaces-config.ts`](../../apps/api/src/platform/seed-tenant-site-surfaces-config.ts) on provision.
+
+---
+
+## Super Admin UI (P4-C-N-004)
+
+Sites tab (`platform-club-detail`) — extend existing Sites panel:
+
+```text
+┌─────────────────────────────────────────┐
+│ Sites                                    │
+│ Admin     ● enabled   alborz.admin...   │
+│ Marketing ● enabled   shop.alborz...    │
+│ Portal    ● enabled   alborz.portal...  │
+│ [Check health]                           │
+└─────────────────────────────────────────┘
+```
+
+v1: read-only badges · v1.1 (optional): PATCH toggle via platform API
+
+---
+
+## Code anchors
+
+| Anchor           | Path                                                              |
+| ---------------- | ----------------------------------------------------------------- |
+| Read + normalize | `apps/api/src/platform/read-tenant-site-surfaces.ts`              |
+
+When `DATABASE_URL` is unset (memory harness / static dev tenants), read returns `DEFAULT_TENANT_SITE_SURFACES` without Prisma — same pattern as operator PATCH tenant-status skip in P4-A.
+| Seed             | `apps/api/src/platform/seed-tenant-site-surfaces-config.ts`       |
+| Provision        | `apps/api/src/platform/provision-tenant-saga.ts`                  |
+| Public context   | `apps/api/src/tenant/tenant-branding.service.ts` (`siteSurfaces`) |
+| Sites check      | `apps/api/src/platform/check-tenant-sites-health.ts`              |
+| Club detail UI   | `apps/web/src/platform/club-detail/tab-sites.tsx`                 |
+| Marketing gate   | `apps/marketing/src/tenant/resolve-marketing-site-surfaces.ts`    |
+| Maintenance      | `apps/marketing/src/platform/maintenance-page.tsx`                |
+
+---
+
+## Testing matrix
+
+| Spec                                       | IDs         | Asserts                                                           |
+| ------------------------------------------ | ----------- | ----------------------------------------------------------------- |
+| `platform-club-surfaces-tab.spec.ts`       | SF-01…SF-04 | `data-platform-club-sites` · surface rows · enabled badges · URLs |
+| `platform-tenant-surfaces.spec.ts`         | SF-05…SF-06 | GET detail `siteSurfaces` · missing config defaults               |
+| `tenant-site-surfaces-maintenance.spec.ts` | SF-07       | `marketing: false` → maintenance gate in layout                   |
+
+---
+
+## Verification
+
+```bash
+pnpm run guard:import-boundary
+pnpm --filter @apps/api exec node --import tsx --test test/platform-tenant-surfaces.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test test/platform-club-surfaces-tab.spec.ts
+pnpm --filter @apps/marketing exec node --import tsx --test test/tenant-site-surfaces-maintenance.spec.ts
+```
+
+---
+
+## STOP table
+
+| Symptom                    | Action                                                                       |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| Disable admin surface      | **STOP** — v1 forbidden (`normalizeTenantSiteSurfaces` forces `admin: true`) |
+| Edit denali for surfaces   | **STOP**                                                                     |
+| Skip portal in sites/check | **STOP** — pre-P2 invariant (not SF-07)                                      |
+
+---
+
+## References
+
+- [`platform-control-center-ui.mdoc`](../phase-15/platform-control-center-ui.mdoc)
+- [`platform-mother-site.mdoc`](../phase-15/platform-mother-site.mdoc)
+- `TEMP/p4/p4-c-club-surfaces.md`

@@ -55,20 +55,33 @@ export async function POST(req: Request): Promise<NextResponse> {
         partySize,
       }),
     });
-    const payload = (await res.json().catch(() => ({}))) as { code?: string; data?: { id?: string } };
+    const payload = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      data?: { id?: string };
+    };
     if (!res.ok) {
       return NextResponse.json(
         { ok: false, code: typeof payload.code === "string" ? payload.code : "unknown_error" },
         { status: res.status }
       );
     }
-    return NextResponse.json({ ok: true, registrationId: payload.data?.id ?? null }, { status: 201 });
+    return NextResponse.json(
+      { ok: true, registrationId: payload.data?.id ?? null },
+      { status: 201 }
+    );
   }
 
   if (bootstrap.pluginId === "urban") {
+    const idempotencyKey =
+      req.headers.get("idempotency-key")?.trim() ??
+      req.headers.get("Idempotency-Key")?.trim() ??
+      `portal-urban-reg-${tourId}-${Date.now()}`;
     const res = await fetch(`${apiBase}/urban/registrations`, {
       method: "POST",
-      headers,
+      headers: {
+        ...headers,
+        "Idempotency-Key": idempotencyKey,
+      },
       body: JSON.stringify({
         tourId,
         contact: {
@@ -80,14 +93,20 @@ export async function POST(req: Request): Promise<NextResponse> {
         ...(notes.length > 0 ? { notes } : {}),
       }),
     });
-    const payload = (await res.json().catch(() => ({}))) as { code?: string; data?: { id?: string } };
+    const payload = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      data?: { id?: string };
+    };
     if (!res.ok) {
       return NextResponse.json(
         { ok: false, code: typeof payload.code === "string" ? payload.code : "unknown_error" },
         { status: res.status }
       );
     }
-    return NextResponse.json({ ok: true, registrationId: payload.data?.id ?? null }, { status: 201 });
+    return NextResponse.json(
+      { ok: true, registrationId: payload.data?.id ?? null },
+      { status: 201 }
+    );
   }
 
   return NextResponse.json({ ok: false, code: "REGISTRATION_CLOSED" }, { status: 404 });

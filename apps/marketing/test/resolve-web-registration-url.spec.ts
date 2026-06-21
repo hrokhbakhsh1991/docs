@@ -1,3 +1,7 @@
+/**
+ * P4-B — marketing → portal registration URL bridge
+ * @see docs/phase-17/platform-portal-registration.mdoc (BR-01…BR-03)
+ */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

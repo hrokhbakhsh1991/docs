@@ -1,0 +1,168 @@
+---
+title: Phase 15 — Closure status (90+)
+phase: 15
+format: markdoc
+---
+
+# Phase 15 closure register
+
+Last verified: `pnpm run phase-15:90plus-gate` + `smoke:denali-draft-unification:standalone:on` (12/12, §9.5 skip) + urban e2e 5/5.
+
+## Track W — Wizard/Host
+
+| ID          | Task                         | Status   | Evidence                                                                                                                                                                                                   |
+| ----------- | ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P15-W-A1    | guard i18n wizard JSON       | **DONE** | `phase-15:wizard-fast-gate`                                                                                                                                                                                |
+| P15-W-A2    | load-messages static         | **DONE** | wizard gate                                                                                                                                                                                                |
+| P15-W-B1a–e | orchestrator slim + extract  | **DONE** | create client < 150 lines                                                                                                                                                                                  |
+| P15-W-B2    | draft barrel cleanup         | **DONE** | grep gates                                                                                                                                                                                                 |
+| P15-W-B3    | DRAFT_UNIFICATION_V3 rollout | **DONE** | `draft-unification-v3.spec.ts` + `denali-draft-unification-smoke-contract.spec.ts` + `smoke:denali-draft-unification:standalone` (13/13) + `:standalone:on` (12/12; §9.5 skip when workspace has no tours) |
+| P15-W-B4–B7 | shims, theme, media, TCK     | **DONE** | wizard gate 78 tests                                                                                                                                                                                       |
+| P15-W-C1    | catalog/submit → package     | **DONE** | boundary specs                                                                                                                                                                                             |
+| P15-W-C2    | reduce `@/` in denali folder | **DONE** | ≤ 50 imports                                                                                                                                                                                               |
+| P15-W-D1    | urban template fixture       | **DONE** | `urban-wizard-template-gate.spec.ts`                                                                                                                                                                       |
+| P15-W-D2    | Playwright urban create      | **DONE** | `urban-wizard-create.spec.ts` + `urban-wizard-create-fixture.ts` (5/5 urban e2e)                                                                                                                           |
+| P15-W-D3    | urban tour list projection   | **DONE** | `tour-list-projection.ts` + `tour-list-projection.spec.ts` (URB-15-01/02)                                                                                                                                  |
+
+## Track P — Platform/Site
+
+| ID        | Task                                  | Status          | Evidence                                                                                                                                |
+| --------- | ------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| P15-P-D0  | urban wizard template seed            | **DONE**        | `seed-urban-wizard-template.spec.ts`                                                                                                    |
+| P15-P-A1a | branding BFF soft-fail                | **DONE**        | `tenant-branding-contract.spec.ts`                                                                                                      |
+| P15-P-A1b | branding API defaultLocale            | **DONE**        | `tenant-branding.spec.ts` + merge fix                                                                                                   |
+| P15-P-A2  | dashboard runtime 500 triage          | **DONE**        | `operator-dashboard-runtime.spec.ts` + finance gate fix                                                                                 |
+| P15-P-B1  | settings-registry cleanup             | **DONE**        | plugin-only tenant dispatch                                                                                                             |
+| P15-P-B2  | settings.service denali branches      | **INTENTIONAL** | 3 branches: reconciliation module hub + category enrichment (not registry dispatch)                                                     |
+| P15-P-B3  | canonical persist hooks               | **DONE**        | [`api-canonical-dispatch.mdoc`](api-canonical-dispatch.mdoc)                                                                            |
+| P15-P-B4  | tour PATCH publish-owner dispatch     | **DONE**        | [`api-tour-write-dispatch.mdoc`](api-tour-write-dispatch.mdoc)                                                                          |
+| P15-P-C1  | finance / phase 9 remainder           | **DEFER**       | Phase 9.7 roadmap                                                                                                                       |
+| P15-P-P1  | Platform Control Center (P1 EPIC A–H) | **DONE**        | `p1:gate` · `p1:e2e-gate` **11/11** (incl. unhealthy KPI) · optional `p1:live-smoke` · `TEMP/p1-exit-checklist.md` · P2: catalog/portal |
+
+## P1 Platform Control Center (EPIC A–H)
+
+| EPIC | Scope                         | Gate evidence                                                                                                |
+| ---- | ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| A–B  | Read API + provision saga     | `platform-provision.spec.ts` (handler 401/403/400 + optional 201), `platform-epic-b.spec.ts`                 |
+| C    | Platform web shell + BFF      | `platform-epic-c-boundary.spec.ts`, `platform-nav.spec.ts`                                                   |
+| D    | Club detail + status actions  | `platform-epic-d-boundary.spec.ts`                                                                           |
+| E    | Multi-level host + middleware | `platform-host-isolation.spec.ts`, `session-host-binding-multilevel.spec.ts`                                 |
+| F    | Domains · health · audit      | `platform-sites-check-timeout.spec.ts`, `load-platform-overview-stats.spec.ts`, audit/domain specs           |
+| G    | Platform ops RBAC + team      | `platform-rbac.spec.ts`, `platform-team.spec.ts`                                                             |
+| H    | Smokes + Playwright E2E       | `p1:e2e-gate` — create club, owner handoff + wizard step, suspend, `platform-ops-ui`, `platform-team-invite` |
+
+```bash
+pnpm run p1:gate          # fast unit + structural (<~2min)
+pnpm run p1:gate:full     # all platform unit specs
+pnpm run p1:e2e-gate      # Playwright (DATABASE_URL + DATABASE_URL_ADMIN)
+pnpm run p1:live-smoke    # optional live POST 201 (Postgres + API)
+```
+
+Product-level §J catalog/portal/surfaces: **P4 complete** — see [`platform-club-product-e2e.mdoc`](../phase-17/platform-club-product-e2e.mdoc) · `pnpm run p4:gate`. P2 delivered Super Admin enterprise ops; P3 metadata platform complete; **P4** closed publish→catalog unit chain, portal-primary registration, and surfaces config UI.
+
+## P4 Club product surfaces (EPIC A–D)
+
+Last verified: `pnpm run p4:gate` unit chain (denali covenant required for full exit) · `platform-club-product-exit.spec.ts` EX-01…03.
+
+| EPIC | Scope                                   | Gate evidence                                              |
+| ---- | --------------------------------------- | ---------------------------------------------------------- |
+| P4-A | Publish → marketing revalidate          | RV/CP/RR specs · `maybeScheduleMarketingCatalogRevalidate` |
+| P4-B | Portal-primary registration             | PR/BR/M17 · portal + web redirect specs                    |
+| P4-C | `site_surfaces` read + UI + maintenance | SF specs · Sites tab badges                                |
+| P4-D | Phase exit                              | `p4:gate` · EX spec · `p4:e2e-gate` optional Playwright    |
+
+```bash
+pnpm run p4:gate       # guards + P4-A/B/C/D unit specs
+pnpm run p4:e2e-gate   # SMK-MKT · SMK-PTL · SMK-DREG — Architect YES
+```
+
+## P2 Enterprise Ops (EPIC B → C → D → E → A)
+
+Last verified: `guard:import-boundary` PASS · `@apps/marketing` 39/39 · P2 unit/integration specs green · `git diff --quiet packages/workspaces/denali` **FAIL** (P0 legacy diff — isolate before P2 PR).
+
+| EPIC | Scope                                                              | Gate evidence                                                                                            |
+| ---- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| P2-B | Impersonation · readonly operator · audit START/END                | [`platform-impersonation.mdoc`](platform-impersonation.mdoc) · Owner tab · `POST .../impersonate`        |
+| P2-C | Plans · subscriptions · Billing tab · `custom_domain` gate         | [`platform-billing-plans.mdoc`](platform-billing-plans.mdoc) · `platform_plans` / `tenant_subscriptions` |
+| P2-D | Live DNS verify · SSL columns · ingress custom host · Overview KPI | [`platform-domains-ssl.mdoc`](platform-domains-ssl.mdoc)                                                 |
+| P2-E | Offboard · GDPR zip · audit CSV · purge · danger zone              | [`platform-offboard-compliance.mdoc`](platform-offboard-compliance.mdoc) · `offboarding` login block     |
+| P2-A | Apex/www gateway + maintenance (`apps/marketing` only)             | [`platform-mother-site.mdoc`](platform-mother-site.mdoc) · club hosts unchanged                          |
+
+```bash
+pnpm run guard:import-boundary
+pnpm --filter @apps/marketing test
+pnpm --filter @apps/web exec node --import tsx --test test/platform-epic-c-boundary.spec.ts
+git diff --quiet packages/workspaces/denali   # required before P2 merge
+```
+
+Exit register: `TEMP/p2-exit-checklist.md` · Index: `TEMP/p2/README.md` · Next phase: `TEMP/p3-metadata-platform.md`.
+
+## Holistic checklist (§7)
+
+| Check                                                | Status                                                                          |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `generate:workspace-registry --check`                | **PASS** (in 90plus gate)                                                       |
+| `denali-create-tour-wizard-client.tsx` < 450 lines   | **PASS**                                                                        |
+| `workspaceType === "denali"` in API < 6              | **PASS** (5 — finance, settings×3, operator-smoke bridge)                       |
+| `tenant-branding.spec.ts` denali + urban             | **PASS** (platform gate)                                                        |
+| Dashboard probes no 500                              | **PASS** (platform gate)                                                        |
+| `phase-14:wizard-gate` full chain                    | optional (~ heavier); `phase-15:wizard-fast-gate` substitutes in CI loop        |
+| `smoke:denali-draft-unification:standalone`          | **PASS** (memory API+web, 13/13)                                                |
+| `smoke:denali-draft-unification:standalone:on`       | **PASS** (`SMOKE_EXPECT_UNIFICATION_ON=true`; auto-frees stale `:3000`/`:3001`) |
+| `smoke:denali-draft-unification` against running dev | **OPTIONAL** QA — use when iterating on local `:3000` stack                     |
+| Playwright urban create (`test:e2e:urban`)           | **PASS** (5/5; builds `workspace-urban` in smoke servers)                       |
+| Login → dashboard no `INVALID_KEY`                   | **MANUAL** QA                                                                   |
+
+## Remaining hardcoded `workspaceType === "denali"` (5)
+
+| File                                    | Reason                                                     |
+| --------------------------------------- | ---------------------------------------------------------- |
+| `settings.service.ts` (×3)              | Denali-only module hub + reference-data enrichment         |
+| `assert-finance-access.ts`              | Denali default finance module parity                       |
+| `bridge-denali-operator-create-body.ts` | Operator-smoke starter ingress (Phase 11.7 neutral create) |
+
+## Gates
+
+```bash
+pnpm run phase-15:90plus-gate          # holistic fast (<~3min)
+pnpm run phase-15:wizard-fast-gate     # Track W only
+pnpm run phase-15:platform-fast-gate     # Track P only
+```
+
+## Smoke / E2E ops (W-B3 / W-D2)
+
+```bash
+# Recommended — memory API+web, no Postgres (`:standalone:on` auto-frees :3000–:3001)
+pnpm run smoke:denali-draft-unification:standalone
+pnpm run smoke:denali-draft-unification:standalone:on
+
+# Against running dev (restart web after pull if request-otp returns 500)
+pnpm run smoke:denali-draft-unification
+pnpm run smoke:denali-draft-unification:on
+
+# Urban Playwright — stop conflicting :3000/:3001 dev first, or let reuseExistingServer pick healthy stack
+PW_NO_REUSE_SERVER=1 pnpm run test:e2e:urban   # force fresh memory stack
+```
+
+## Urban E2E dev session (P8-03/04 · P15-W-D2)
+
+Playwright urban smoke uses two complementary mechanisms:
+
+| Host                          | Mechanism                                                                               | Used by      |
+| ----------------------------- | --------------------------------------------------------------------------------------- | ------------ |
+| `urban-owner.localhost:3000`  | BFF login (`+15550004001` / OTP `1234`) + optional middleware bypass for SSR-only paths | SMK-P15-W-D2 |
+| `urban-member.localhost:3000` | Middleware dev bypass → `resolveBootstrapAppSessionForHost` member profile              | SMK-P8-04    |
+
+When `URBAN_SMOKE_E2E_SEED=1`, API memory identity seeds owner `…0401` and member `…0402` on tenant `…000004`. Wizard template is bootstrapped on API start (`bootstrapUrbanWizardTemplateIfNeeded`).
+
+Web middleware (`shouldBypassMiddlewareForDevE2eHost`) forwards protected routes for `urban-owner` / `urban-member` labels when `ALLOW_DEV_WEB_SESSION=true`, so page-level CASL guards run without owner-only cookie gate blocking members.
+
+### SMK-P15-W-D2 wizard fill contract
+
+Urban minimal template requires all `URBAN_FIELD_REGISTRY` required paths on step `urban_tour` before `validateDraftSync` allows Continue. Playwright helper `fillUrbanWizardTourDetails` fills via `data-field-path` markers (golden fixture: `urban-tour-minimal.json`).
+
+`WorkspaceWizardHost` coerces `kind: "number"` fields (e.g. `tour.capacity`) to JSON numbers in draft state so platform `validateDraftSync` passes (`CANONICAL_TYPE_MISMATCH` when stored as strings).
+
+Post-create assertion checks BFF canonical `data.tour.title`, then operator `/tours` list title via `urban.tourList.extractTourListProjection` (`packages/workspaces/urban/src/list/tour-list-projection.ts`).
+
+Urban e2e smoke builds `@app-tour/workspace-urban` before starting API (`smoke-urban-e2e-servers.mjs`) — API resolves plugin from `dist/`.

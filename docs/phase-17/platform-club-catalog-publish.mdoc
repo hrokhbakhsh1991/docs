@@ -1,0 +1,225 @@
+---
+title: P4-A — Club catalog publish sync
+phase: 17
+format: markdoc
+prerequisite: P1 ✅ · P2 ✅
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p4/p4-a-catalog-publish.md
+extends: docs/workspaces/denali/public-catalog.md
+---
+
+# Club catalog publish sync (P4-A)
+
+Close the **operator publish → marketing catalog visible** gap (P1 §J / phase-15-closure partial).
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p4/p4-a-catalog-publish.md`](../../TEMP/p4/p4-a-catalog-publish.md) v1.0
+
+**Status (2026-06-21):** doc 9.9 · **P4-A complete** (SV/PW/RV/CP/RR · service + HTTP publish path)
+
+---
+
+## What P4-A actually delivers (honest scope)
+
+| Deliverable                    | Detail                                                                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| **DRY helper**                 | `maybeScheduleMarketingCatalogRevalidate` — predicate + schedule in one call (no behavior change vs pre-P4-A inline `if`) |
+| **Service-layer proof**        | `CanonicalTourService` create/update schedules revalidate (SV-01…SV-06 · urban golden)                                    |
+| **Catalog + revalidate proof** | PW-01 service publish → `GET /urban/catalog` + revalidate POST · PW-DN-01 denali seed                                     |
+| **Marketing route auth**       | RR-01…RR-04 on `POST /api/revalidate`                                                                                     |
+| **Not in P4-A**                | Playwright marketing ISR refresh (P4-D E2E-01 · Architect YES)                                                            |
+
+---
+
+## Executive summary
+
+| Layer                    | P4-A delivers                                                                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Publish gate**         | `publishStatus: active` → public catalog eligibility                                                                    |
+| **Cache purge**          | API `maybeScheduleMarketingCatalogRevalidate` → `scheduleMarketingCatalogRevalidate` → marketing `POST /api/revalidate` |
+| **Service + HTTP proof** | SV-_ through `CanonicalTourService` · PW-_ through `PATCH /tours` + catalog GET                                         |
+| **Integration specs**    | RV/CP helper · SV service · PW HTTP · RR marketing route                                                                |
+| **Prod env**             | `MARKETING_REVALIDATE_*` documented as required for prod sync                                                           |
+
+---
+
+## Goals
+
+| Goal                 | Detail                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| Publish → list       | Operator sets `active` → tour appears on `apps/marketing` catalog                                    |
+| Revalidate all paths | `CanonicalTourService` create + update (scoped memory **and** atomic prisma when `DATABASE_URL` set) |
+| Best-effort purge    | Fire-and-forget; tour TX never rolls back on marketing failure                                       |
+| Denali + urban       | `publicCatalog.isPublished` workspace hook drives invalidation                                       |
+
+## Non-goals (P4-A v1)
+
+- Real-time websocket push to marketing
+- Metadata-only catalog (P3-D) — soft nano P4-A-N-010 after P3-A-N-011
+- Urban full marketing product (Denali sufficient for exit)
+- Operator UI publish button redesign (wizard review step unchanged)
+
+---
+
+## Industry alignment
+
+| Pattern                    | Source                                                                                                                      | P4-A mapping                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| **On-demand ISR**          | [Next.js revalidateTag](https://nextjs.org/docs/app/building-your-application/data-fetching/caching#on-demand-revalidation) | `marketing-catalog-{tenantId}` tag      |
+| **Webhook cache purge**    | Headless CMS / composable commerce                                                                                          | API POST → marketing BFF                |
+| **Eventual consistency**   | CQRS read models                                                                                                            | Catalog lags seconds; acceptable for v1 |
+| **Fail-open side effects** | Side-effect outbox pattern                                                                                                  | Revalidate failure = warn log only      |
+
+---
+
+## Publish gate (frozen)
+
+```text
+publicCatalog.isPublished(canonical) === true
+  → Denali: data.publishStatus === "active"
+  → Urban: publishStatus active on tour root
+```
+
+| `publishStatus` | Public catalog | Operator list |
+| --------------- | -------------- | ------------- |
+| `draft`         | Hidden         | Visible       |
+| `active`        | Visible        | Visible       |
+
+Wizard review persists `publishStatus`; operator must set **active** before marketing lists the tour.
+
+---
+
+## M11 revalidate pipeline
+
+```mermaid
+sequenceDiagram
+  participant Op as Operator PATCH tour
+  participant API as apps_api
+  participant MKT as apps_marketing
+
+  Op->>API: publishStatus active
+  API->>API: persist canonical TX
+  API-->>MKT: POST /api/revalidate tenantId
+  MKT->>MKT: revalidateTag marketing-catalog-tenantId
+```
+
+### Code anchors (verified 2026-06-21)
+
+| Anchor                   | Path                                                                                                                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Invalidation predicate   | `apps/api/src/marketing/should-invalidate-marketing-catalog.ts`                                                                                                          |
+| Scheduler                | `apps/api/src/marketing/schedule-marketing-catalog-revalidate.ts`                                                                                                        |
+| Non-atomic create/update | `apps/api/src/canonical/canonical-tour.service.ts:114,253`                                                                                                               |
+| Atomic persist TX        | `atomic-canonical-tour-persist.ts` — no inline revalidate; **`CanonicalTourService`** calls `maybeScheduleMarketingCatalogRevalidate` after atomic create/update returns |
+| Shared helper            | `maybe-schedule-marketing-catalog-revalidate.ts` ✅                                                                                                                      |
+| Marketing route          | `apps/marketing/app/api/revalidate/route.ts`                                                                                                                             |
+| Unit specs               | `apps/api/test/marketing-catalog-revalidate.spec.ts` (MKT-API-11)                                                                                                        |
+| Catalog HTTP             | `apps/api/src/http/configure-workspace-denali-product-http-host.ts`                                                                                                      |
+
+### Env contract (prod)
+
+| Variable                      | App             | Role                                   |
+| ----------------------------- | --------------- | -------------------------------------- |
+| `MARKETING_REVALIDATE_URL`    | api             | Marketing origin (no trailing slash)   |
+| `MARKETING_REVALIDATE_SECRET` | api + marketing | Header `x-marketing-revalidate-secret` |
+
+Both unset → scheduler **no-op** (local dev OK; prod gap G4).
+
+---
+
+## Shared helper (P4-A-N-002)
+
+Extract to avoid drift between persist paths:
+
+```typescript
+export function maybeScheduleMarketingCatalogRevalidate(input: {
+  workspaceType: string;
+  before: CanonicalDocument | null;
+  after: CanonicalDocument;
+  tenantId: string;
+}): void {
+  if (!shouldInvalidateMarketingCatalog(input.workspaceType, input.before, input.after)) {
+    return;
+  }
+  scheduleMarketingCatalogRevalidate(input.tenantId);
+}
+```
+
+Call from **`CanonicalTourService` only** (create + update; covers atomic and scoped persist paths):
+
+- `writeTourInActiveContext` after record persisted
+- `updateTourInActiveContext` after atomic or scoped update
+
+---
+
+## Testing matrix
+
+| Spec                                       | IDs              | Asserts                                                            |
+| ------------------------------------------ | ---------------- | ------------------------------------------------------------------ |
+| `marketing-catalog-revalidate.spec.ts`     | MKT-API-11…12    | predicate matrix · env no-op                                       |
+| `club-catalog-publish-integration.spec.ts` | RV-00…RV-05      | harness · maybeSchedule · urban · env                              |
+| `club-catalog-publish-service.spec.ts`     | SV-01…SV-06      | `CanonicalTourService` urban create/update · fail-open · unpublish |
+| `club-catalog-publish-service.spec.ts`     | PW-01 · PW-DN-01 | service publish → catalog GET · denali smoke seed                  |
+| `revalidate-route.spec.ts`                 | RR-01…RR-04      | 503 · 401 · 400 · authorized reaches revalidateTag                 |
+| `catalog-fetch-options.spec.ts`            | MKT-17           | tag shape `marketing-catalog-{tenantId}`                           |
+
+**CP-01…03** — covered by SV-02/SV-03/SV-06 (service layer, not duplicate predicates).
+
+**RV-03** — starter workspace no-op (not «non-atomic parity»).
+
+### SV assertion detail
+
+| ID       | Assert                                            |
+| -------- | ------------------------------------------------- |
+| SV-01    | `updateTour` urban draft→published schedules POST |
+| SV-02    | `writeTour` urban draft create does not schedule  |
+| SV-03    | write then publish schedules exactly one POST     |
+| SV-04    | fetch failure → tour still persisted (fail-open)  |
+| SV-05    | starter workspace update → no POST                |
+| SV-06    | published→draft unpublish still schedules POST    |
+| SV-AT-01 | atomic prisma path (skip without `DATABASE_URL`)  |
+
+### PW assertion detail
+
+| ID       | Assert                                                              |
+| -------- | ------------------------------------------------------------------- |
+| PW-01    | service publish → `GET /urban/catalog` lists tour + revalidate POST |
+| PW-DN-01 | `GET /denali/catalog` lists operator smoke published tour           |
+
+**Memory harness:** `PATCH /tours` (Phase 7.4) uses `requireOperatorSession` → `assertTenantActiveForOperatorLogin`. Without `DATABASE_URL`, tenant status lookup must skip Prisma and treat static dev tenants as active (`null` status). Otherwise operator PATCH returns **500** while direct `CanonicalTourService` calls still pass.
+
+---
+
+## Verification
+
+```bash
+pnpm run guard:import-boundary
+pnpm run guard:public-catalog-m17
+git diff --quiet packages/workspaces/denali
+
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/marketing-catalog-revalidate.spec.ts \
+  test/club-catalog-publish-integration.spec.ts \
+  test/club-catalog-publish-service.spec.ts
+
+pnpm --filter @apps/marketing exec node --import tsx --test test/revalidate-route.spec.ts
+```
+
+---
+
+## STOP table
+
+| Symptom                                                | Action                               |
+| ------------------------------------------------------ | ------------------------------------ |
+| Revalidate failure rolls back tour TX                  | **STOP** — side effect must be async |
+| Edit denali fieldRegistry for catalog                  | **STOP** — fix API/marketing         |
+| Skip atomic path in P4-A                               | **STOP** — G1 gap                    |
+| Prod deploy without MARKETING*REVALIDATE*\* documented | **STOP** — env contract              |
+
+---
+
+## References
+
+- [`public-catalog.md`](../workspaces/denali/public-catalog.md)
+- [`platform-club-product-e2e.mdoc`](platform-club-product-e2e.mdoc)
+- `TEMP/p4/p4-a-catalog-publish.md`

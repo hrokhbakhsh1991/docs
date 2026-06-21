@@ -5,10 +5,15 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { resolveTextDirection, isAppLocale, routing } from "@/i18n/routing";
+import { MaintenancePage } from "@/platform/maintenance-page";
+import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
+import { PlatformMotherShell } from "@/platform/platform-mother-shell";
 import { buildMarketingSiteMetadata } from "@/seo/build-marketing-metadata";
 import { MarketingProviders } from "@/shell/marketing-providers";
 import { MarketingShell } from "@/shell/marketing-shell";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+import { isMarketingSurfaceEnabled } from "@/tenant/marketing-site-surfaces";
+import { resolveMarketingSiteSurfacesForHost } from "@/tenant/resolve-marketing-site-surfaces";
 
 import "./globals.css";
 
@@ -34,12 +39,34 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   ]);
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const host = headerList.get("host") ?? "localhost:3002";
+  const dir = resolveTextDirection(locale);
+
+  if (isPlatformMotherHost(host)) {
+    return (
+      <html lang={locale} dir={dir}>
+        <body>
+          <PlatformMotherShell>{children}</PlatformMotherShell>
+        </body>
+      </html>
+    );
+  }
+
+  const siteSurfaces = await resolveMarketingSiteSurfacesForHost(host);
+  if (!isMarketingSurfaceEnabled(siteSurfaces)) {
+    return (
+      <html lang={locale} dir={dir}>
+        <body data-marketing-surface-maintenance>
+          <MaintenancePage title="فروشگاه" />
+        </body>
+      </html>
+    );
+  }
+
   const branding = await fetchPublicTenantBrandingForHost(host);
   const theme = {
     displayName: branding.displayName ?? undefined,
     primaryColor: branding.primaryColor ?? undefined,
   };
-  const dir = resolveTextDirection(locale);
 
   return (
     <html lang={locale} dir={dir}>

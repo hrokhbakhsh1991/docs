@@ -1,3 +1,7 @@
+/**
+ * P4-B — portal host URL resolution
+ * @see docs/phase-17/platform-portal-registration.mdoc (PR-01…PR-02)
+ */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 

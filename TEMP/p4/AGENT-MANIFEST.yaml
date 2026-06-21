@@ -1,0 +1,305 @@
+# P4 Task Manifest
+meta:
+  phase: P4
+  nano_total: 48
+  nano_done: 48
+  current_task: P4-complete
+  agent_entry: TEMP/p4/AGENT-START.md
+  file_map: TEMP/p4/FILE-MAP.md
+
+epic_order: [P4-A, P4-B, P4-C, P4-D]
+
+verify_always:
+  - pnpm run guard:import-boundary
+  - pnpm run guard:public-catalog-m17
+  - git diff --quiet packages/workspaces/denali
+
+tasks:
+  - id: P4-A-N-001
+    epic: P4-A
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: []
+  - id: P4-A-N-002
+    epic: P4-A
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-001"]
+  - id: P4-A-N-003
+    epic: P4-A
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-002"]
+  - id: P4-A-N-004
+    epic: P4-A
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-003"]
+  - id: P4-A-N-005
+    epic: P4-A
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-004"]
+  - id: P4-A-N-006
+    epic: P4-A
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-005"]
+  - id: P4-A-N-007
+    epic: P4-A
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-006"]
+  - id: P4-A-N-008
+    epic: P4-A
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-007"]
+  - id: P4-A-N-009
+    epic: P4-A
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-008"]
+  - id: P4-A-N-010
+    epic: P4-A
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-009"]
+  - id: P4-A-N-011
+    epic: P4-A
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-010"]
+  - id: P4-A-N-012
+    epic: P4-A
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-a-catalog-publish.md
+    deps: ["P4-A-N-011"]
+  - id: P4-B-N-001
+    epic: P4-B
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-A-N-012"]
+  - id: P4-B-N-002
+    epic: P4-B
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-001"]
+  - id: P4-B-N-003
+    epic: P4-B
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-002"]
+  - id: P4-B-N-004
+    epic: P4-B
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-003"]
+  - id: P4-B-N-005
+    epic: P4-B
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-004"]
+  - id: P4-B-N-006
+    epic: P4-B
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-005"]
+  - id: P4-B-N-007
+    epic: P4-B
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-006"]
+  - id: P4-B-N-008
+    epic: P4-B
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-007"]
+  - id: P4-B-N-009
+    epic: P4-B
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-008"]
+  - id: P4-B-N-010
+    epic: P4-B
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-009"]
+  - id: P4-B-N-011
+    epic: P4-B
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-010"]
+  - id: P4-B-N-012
+    epic: P4-B
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-011"]
+  - id: P4-B-N-013
+    epic: P4-B
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-012"]
+  - id: P4-B-N-014
+    epic: P4-B
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-b-portal-registration.md
+    deps: ["P4-B-N-013"]
+  - id: P4-C-N-001
+    epic: P4-C
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-B-N-014"]
+  - id: P4-C-N-002
+    epic: P4-C
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-001"]
+  - id: P4-C-N-003
+    epic: P4-C
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-002"]
+  - id: P4-C-N-004
+    epic: P4-C
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-003"]
+  - id: P4-C-N-005
+    epic: P4-C
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-004"]
+  - id: P4-C-N-006
+    epic: P4-C
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-005"]
+  - id: P4-C-N-007
+    epic: P4-C
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-006"]
+  - id: P4-C-N-008
+    epic: P4-C
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-007"]
+  - id: P4-C-N-009
+    epic: P4-C
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-008"]
+  - id: P4-C-N-010
+    epic: P4-C
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-009"]
+  - id: P4-C-N-011
+    epic: P4-C
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-010"]
+  - id: P4-C-N-012
+    epic: P4-C
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-c-club-surfaces.md
+    deps: ["P4-C-N-011"]
+  - id: P4-D-N-001
+    epic: P4-D
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-C-N-012"]
+  - id: P4-D-N-002
+    epic: P4-D
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-D-N-001"]
+  - id: P4-D-N-003
+    epic: P4-D
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-D-N-002"]
+  - id: P4-D-N-004
+    epic: P4-D
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-D-N-003"]
+  - id: P4-D-N-005
+    epic: P4-D
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-D-N-004"]
+  - id: P4-D-N-006
+    epic: P4-D
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-D-N-005"]
+  - id: P4-D-N-007
+    epic: P4-D
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-D-N-006"]
+  - id: P4-D-N-008
+    epic: P4-D
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-D-N-007"]
+  - id: P4-D-N-009
+    epic: P4-D
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-D-N-008"]
+  - id: P4-D-N-010
+    epic: P4-D
+    type: TEST
+    status: done
+    spec: TEMP/p4/p4-d-product-e2e.md
+    deps: ["P4-D-N-009"]

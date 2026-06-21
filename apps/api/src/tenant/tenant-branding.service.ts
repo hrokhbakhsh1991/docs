@@ -11,6 +11,8 @@ import {
 import { resolveDefaultTenantBranding } from "./workspace-default-tenant-branding";
 
 import { assertWorkspaceBrandingModuleAccess } from "../settings/settings-branding-module-access";
+import type { TenantSiteSurfaces } from "../platform/read-tenant-site-surfaces.ts";
+import { readTenantSiteSurfacesByTenantId } from "../platform/read-tenant-site-surfaces.ts";
 
 import {
   resolveRegisteredTenantById,
@@ -214,6 +216,7 @@ export async function resolvePublicTenantContextBySubdomain(subdomain: string): 
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly pluginId: string;
+  readonly siteSurfaces: TenantSiteSurfaces;
 }> {
   const { resolveRegisteredTenantBySubdomain } = await import("./resolve-registered-tenant");
   const tenant = await resolveRegisteredTenantBySubdomain(subdomain);
@@ -227,9 +230,11 @@ export async function resolvePublicTenantContextBySubdomain(subdomain: string): 
   if (pluginId === null) {
     throw new Error("WORKSPACE_PLUGIN_UNBOUND");
   }
+  const siteSurfaces = await readTenantSiteSurfacesByTenantId(tenant.id);
   return {
     tenantId: tenant.id,
     workspaceType: tenant.workspaceType,
     pluginId,
+    siteSurfaces,
   };
 }
