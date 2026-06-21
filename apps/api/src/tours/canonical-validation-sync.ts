@@ -1,6 +1,4 @@
 import { PlatformWizardEngine } from "@app-tour/platform-core";
-import { resolveDenaliWizardDimensionsFromTourKind } from "@app-tour/workspace-denali";
-import { filterDenaliCanonicalValidationResult } from "@app-tour/workspace-denali/wizard/validation";
 import {
   assertCanonicalDocument,
   CanonicalDocumentValidationError,
@@ -21,20 +19,7 @@ import {
 } from "./bridge-denali-operator-create-body";
 import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks";
 
-function readDenaliTourKindFromCanonicalData(
-  data: Record<string, unknown> | undefined
-): string | undefined {
-  if (data == null) {
-    return undefined;
-  }
-  const category = data.category;
-  if (typeof category === "string" && category.trim().length > 0) {
-    return category.trim();
-  }
-  return undefined;
-}
-
-function resolveValidationDimensions(
+export function resolveValidationDimensions(
   plugin: WorkspacePlugin,
   validationVariant: "default" | "basic",
   data?: Record<string, unknown>
@@ -44,10 +29,9 @@ function resolveValidationDimensions(
     return { variant: validationVariant };
   }
   if (matrix.includes("category") && matrix.includes("duration")) {
-    if (plugin.id === "denali") {
-      return resolveDenaliWizardDimensionsFromTourKind(
-        readDenaliTourKindFromCanonicalData(data)
-      );
+    const resolveFromDraft = plugin.wizardHost?.resolveMatrixDimensionsFromDraft;
+    if (resolveFromDraft != null) {
+      return { ...resolveFromDraft(data ?? {}, null) };
     }
     return { category: "mountain", duration: "single_day" };
   }
@@ -209,13 +193,8 @@ export function validateCanonicalBeforePersistSync(
     ),
   });
 
-  const filteredResult =
-    validationPlugin.id === "denali"
-      ? filterDenaliCanonicalValidationResult(result, document.data as Record<string, unknown>)
-      : result;
-
-  if (!filteredResult.ok) {
-    const message = filteredResult.violations.map((v) => v.message).join("; ");
+  if (!result.ok) {
+    const message = result.violations.map((v) => v.message).join("; ");
     throwValidationFailure(`CANONICAL_VALIDATION_FAILED: ${message}`);
   }
 

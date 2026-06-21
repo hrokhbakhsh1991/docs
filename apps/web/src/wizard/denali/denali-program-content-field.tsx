@@ -1,5 +1,7 @@
 "use client";
 
+import { readDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
+import { wizardFieldPathAttributes } from "@app-tour/wizard-navigation";
 import { Check } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -8,18 +10,22 @@ import type { TourThemeResource, TourThemesListResponse } from "@/features/setti
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
-import { getCanonicalStringValue, getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import {
+  getCanonicalStringValue,
+  getCanonicalValue,
+  setCanonicalStringValue,
+  setCanonicalValue,
+} from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { isTourThemeCompatibleWithWizard } from "./denali-catalog-filters";
 import { themeDisplayInitials, themeSwatchToneClass } from "./denali-theme-picker-logic";
-import { resolveDenaliBasicsFromCategorySlug } from "./denali-tour-kind-labels";
 import { DENALI_DEFAULT_WORKSPACE_FORM_PROFILE } from "./denali-wizard-ui-context";
 
 export const DENALI_PROGRAM_CONTENT_TEST_IDS = {
   themes: "denali-composite-program-themes",
   card: "denali-theme-picker-card",
-  shortDescription: "denali-composite-program-short-description",
-  longDescription: "denali-composite-program-long-description",
+  shortDescription: "denali-program-short-description",
 } as const;
 
 function parseThemeIds(value: unknown): string[] {
@@ -42,11 +48,10 @@ export function DenaliProgramContentField({
 }: DenaliProgramContentFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
-  const label = resolveDenaliFieldLabel(t, "program.themeIds");
+  const draftRef = useLatestWizardDraft(draft);
+  const themesLabel = resolveDenaliFieldLabel(t, "program.themeIds");
   const shortDescriptionLabel = resolveDenaliFieldLabel(t, "program.shortDescription");
-  const longDescriptionLabel = resolveDenaliFieldLabel(t, "program.longDescription");
   const shortDescription = getCanonicalStringValue(draft, "program.shortDescription");
-  const longDescription = getCanonicalStringValue(draft, "program.longDescription");
   const selected = parseThemeIds(getCanonicalValue(draft, "program.themeIds"));
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
@@ -86,7 +91,7 @@ export function DenaliProgramContentField({
 
   const tourCategory = useMemo(() => {
     const tourKind = getCanonicalStringValue(draft, "category").trim();
-    return resolveDenaliBasicsFromCategorySlug(tourKind)?.category;
+    return readDenaliCanonicalBasics(tourKind.length > 0 ? tourKind : undefined)?.category;
   }, [draft]);
 
   const visibleThemes = useMemo(
@@ -101,7 +106,15 @@ export function DenaliProgramContentField({
     const next = selectedSet.has(themeId)
       ? selected.filter((id) => id !== themeId)
       : [...selected, themeId];
-    onDraftChange(setCanonicalValue(draft, "program.themeIds", next));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalValue(base, "program.themeIds", next)
+    );
+  };
+
+  const writeShortDescription = (next: string) => {
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalStringValue(base, "program.shortDescription", next)
+    );
   };
 
   return (
@@ -111,8 +124,25 @@ export function DenaliProgramContentField({
       data-denali-theme-picker
       data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.themes}
     >
+      <label
+        className="denali-wizard-composite__field"
+        {...wizardFieldPathAttributes("program.shortDescription")}
+      >
+        <span>{shortDescriptionLabel}</span>
+        <textarea
+          className="denali-wizard-composite__textarea"
+          data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.shortDescription}
+          value={shortDescription}
+          required
+          aria-required
+          rows={3}
+          onChange={(event) => writeShortDescription(event.target.value)}
+          onBlur={(event) => writeShortDescription(event.target.value)}
+        />
+      </label>
+
       <div className="denali-wizard-composite__header">
-        <h3 className="denali-wizard-composite__title">{label}</h3>
+        <h3 className="denali-wizard-composite__title">{themesLabel}</h3>
         <p className="denali-wizard-composite__helper">{t("composites.programContent.helper")}</p>
         {selected.length > 0 ? (
           <p className="denali-theme-picker__summary">
@@ -186,38 +216,6 @@ export function DenaliProgramContentField({
           })}
         </div>
       ) : null}
-
-      <label className="denali-wizard-composite__field">
-        <span>{shortDescriptionLabel}</span>
-        <textarea
-          className="denali-wizard-composite__textarea"
-          data-canonical-path="program.shortDescription"
-          data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.shortDescription}
-          value={shortDescription}
-          rows={3}
-          onChange={(event) => {
-            onDraftChange(
-              setCanonicalValue(draft, "program.shortDescription", event.target.value)
-            );
-          }}
-        />
-      </label>
-
-      <label className="denali-wizard-composite__field">
-        <span>{longDescriptionLabel}</span>
-        <textarea
-          className="denali-wizard-composite__textarea"
-          data-canonical-path="program.longDescription"
-          data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.longDescription}
-          value={longDescription}
-          rows={4}
-          onChange={(event) => {
-            onDraftChange(
-              setCanonicalValue(draft, "program.longDescription", event.target.value)
-            );
-          }}
-        />
-      </label>
     </div>
   );
 }

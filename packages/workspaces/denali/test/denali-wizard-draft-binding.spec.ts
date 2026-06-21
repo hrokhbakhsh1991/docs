@@ -50,4 +50,30 @@ describe("denali-wizard-draft-binding.spec.ts — Phase 11.5", () => {
     assert.equal(denaliEditTourDraftKey("abc-123"), "denali-edit:abc-123");
     assert.equal(denaliEditTourDraftKey("  "), "denali-edit:unknown");
   });
+
+  it("WEB-P11-5-05 prepare preserves freshStart meta flag", () => {
+    const envelope = denaliPrepareDraftEnvelope(
+      { data: { basics: { title: "Seed" } } },
+      { currentStepIndex: 0, freshStart: true }
+    );
+    assert.equal(envelope.meta.freshStart, true);
+  });
+
+  it("WEB-P11-5-06 prepare and hydrate strip deletedRoots from client meta (Track B)", () => {
+    const envelope = denaliPrepareDraftEnvelope(
+      { data: { basics: { title: "Seed" } } },
+      { currentStepIndex: 1, deletedRoots: ["details", "program"] }
+    );
+    assert.equal(envelope.meta.deletedRoots, undefined);
+    const hydrated = denaliHydrateDraftEnvelope(
+      {
+        form: { data: { basics: { title: "Remote" } } },
+        meta: { currentStepIndex: 2, deletedRoots: ["photos"] },
+      },
+      { data: { basics: { title: "Fallback" } } },
+      { currentStepIndex: 0 }
+    );
+    assert.equal(hydrated.meta.deletedRoots, undefined);
+    assert.equal(hydrated.meta.currentStepIndex, 2);
+  });
 });

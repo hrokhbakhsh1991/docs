@@ -3,17 +3,14 @@ import {
   buildDenaliWizardDraftPhotoObjectKey,
 } from "../photos/tour-photo-object-key";
 
+import type { WizardPhotoRemintPlanEntry } from "@app-tour/workspace-sdk";
+
 export type DenaliClonePhotoRemintTarget =
   | { readonly kind: "wizard-draft"; readonly tenantId: string; readonly sessionId: string }
   | { readonly kind: "tour"; readonly tenantId: string; readonly tourId: string };
 
-export type DenaliPhotoRemintPlanEntry = {
-  readonly sourceStorageKey: string;
-  readonly destStorageKey: string;
-  readonly oldPhotoId: string;
-  readonly newPhotoId: string;
-  readonly contentType?: string;
-};
+/** @deprecated Use WizardPhotoRemintPlanEntry from @app-tour/workspace-sdk */
+export type DenaliPhotoRemintPlanEntry = WizardPhotoRemintPlanEntry;
 
 function createPhotoId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {

@@ -1,3 +1,7 @@
+import {
+  normalizeMarketingSiteSurfaces,
+  type MarketingSiteSurfaces,
+} from "./marketing-site-surfaces";
 import { resolvePublicBrandingHost } from "./resolve-public-branding-host";
 import { resolveTourOpsApiBaseUrl } from "../env";
 
@@ -5,6 +9,7 @@ export type PublicTenantContextSnapshot = {
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly pluginId: string;
+  readonly siteSurfaces: MarketingSiteSurfaces;
 };
 
 type PublicTenantContextResponse = {
@@ -40,6 +45,9 @@ export async function fetchPublicTenantContextForHost(
       tenantId: data.tenantId,
       workspaceType: typeof data.workspaceType === "string" ? data.workspaceType : "",
       pluginId: data.pluginId,
+      siteSurfaces: normalizeMarketingSiteSurfaces(
+        (data as { siteSurfaces?: unknown }).siteSurfaces
+      ),
     };
   } catch {
     return null;

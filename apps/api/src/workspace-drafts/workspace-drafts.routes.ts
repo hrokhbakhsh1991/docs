@@ -1,15 +1,20 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { runWithHttpRequestContext } from "../http/bind-request-context";
-import { sendJson } from "../http/json";
+import {
+  hashIdempotentRequest,
+  readIdempotencyKey,
+  runIdempotentHttpMutation,
+} from "../http/http-idempotency";
+import { readRequestBodyRaw, sendJson, sendNoContent } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
-import { readIdentityRequestBody } from "../identity/read-identity-request-body";
 import { requireOperatorSession } from "../identity/require-operator-session";
 import { isWorkspaceDraftVersionConflictError } from "./workspace-draft-version-conflict";
 import {
   WorkspaceDraftForbiddenError,
   WorkspaceDraftInvalidBodyError,
   WorkspaceDraftNotFoundError,
+  WorkspaceDraftTombstoneInvariantError,
 } from "./workspace-drafts.errors";
 import {
   clampWorkspaceDraftEventsLimit,
@@ -46,6 +51,14 @@ function handleWorkspaceDraftRouteError(res: ServerResponse, error: unknown): vo
   }
   if (error instanceof WorkspaceDraftInvalidBodyError) {
     sendHttpError(res, 400, { error: "invalid_body", code: error.code });
+    return;
+  }
+  if (error instanceof WorkspaceDraftTombstoneInvariantError) {
+    sendHttpError(res, 400, {
+      error: "tombstone_invariant_violation",
+      code: error.code,
+      ...(error.keys != null && error.keys.length > 0 ? { keys: error.keys } : {}),
+    });
     return;
   }
   handleHttpError(res, error);
@@ -97,6 +110,10 @@ async function withWorkspaceDraftHandler(
 function parseDraftListQuery(url: URL): WorkspaceDraftListRouteParams["draftNamespace"] {
   const namespace = url.searchParams.get("namespace")?.trim() ?? "";
   return namespace.length > 0 ? namespace : undefined;
+}
+
+function workspaceDraftPatchPath(params: WorkspaceDraftRouteParams): string {
+  return `/workspaces/${params.workspaceId}/drafts/${params.draftNamespace}/${params.draftKey}`;
 }
 
 export async function handleListWorkspaceDrafts(
@@ -163,17 +180,43 @@ export async function handlePatchWorkspaceDraft(
 ): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
-    const body = await readIdentityRequestBody(req);
-    const parsed = parsePatchBody(body);
+    const rawBody = await readRequestBodyRaw(req);
+    let parsedBody: unknown;
+    try {
+      parsedBody = JSON.parse(rawBody) as unknown;
+    } catch {
+      sendHttpError(res, 400, { error: "invalid_body", code: "WORKSPACE_DRAFT_INVALID_BODY" });
+      return;
+    }
+    const parsed = parsePatchBody(parsedBody);
     if (parsed === null) {
       sendHttpError(res, 400, { error: "invalid_body", code: "WORKSPACE_DRAFT_INVALID_BODY" });
       return;
     }
+    const idempotencyKey = readIdempotencyKey(req);
+    const patchPath = workspaceDraftPatchPath(params);
+
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const payload = await patchWorkspaceDraft(auth, params, parsed);
+        const executePatch = async (): Promise<Record<string, unknown>> => {
+          const payload = await patchWorkspaceDraft(auth, params, parsed);
+          return payload as Record<string, unknown>;
+        };
+
+        if (idempotencyKey === undefined) {
+          sendJson(res, 200, await executePatch());
+          return;
+        }
+
+        const requestHash = hashIdempotentRequest("PATCH", patchPath, rawBody);
+        const payload = await runIdempotentHttpMutation(
+          auth.tenantId,
+          idempotencyKey,
+          requestHash,
+          executePatch
+        );
         sendJson(res, 200, payload);
       },
       { rateLimit: "write" }
@@ -193,7 +236,7 @@ export async function handleDeleteWorkspaceDraft(
     res,
     async (auth) => {
       await deleteWorkspaceDraft(auth, params);
-      sendJson(res, 204, {});
+      sendNoContent(res);
     },
     "write"
   );

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 export const DENALI_ELEVATION_TEST_IDS = {
   elevationGain: "denali-composite-elevation-gain",
@@ -24,6 +25,7 @@ export function DenaliElevationGainField({
   required = false,
 }: DenaliElevationGainFieldProps) {
   const t = useTranslations("denali");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "tripDetails.metrics.elevationGain");
 
   return (
@@ -35,7 +37,9 @@ export function DenaliElevationGainField({
           aria-label={label}
           value={getCanonicalStringValue(draft, "tripDetails.metrics.elevationGain")}
           onChange={(value) =>
-            onDraftChange(setCanonicalStringValue(draft, "tripDetails.metrics.elevationGain", value))
+            commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+              setCanonicalStringValue(base, "tripDetails.metrics.elevationGain", value)
+            )
           }
           required={required}
           aria-required={required || undefined}

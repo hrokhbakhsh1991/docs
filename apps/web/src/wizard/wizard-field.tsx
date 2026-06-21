@@ -243,9 +243,8 @@ export function WizardField({
     return null;
   }
 
-  const compositeId =
-    field.uiHints?.compositeId ??
-    (field.fieldId.startsWith("denali.") ? field.fieldId : undefined);
+  // Composite routing is authoritative from platform-core render plan (field.id ≠ canonicalPath).
+  const compositeId = field.uiHints?.compositeId;
   if (compositeId != null && compositeId.length > 0 && draft !== undefined && onDraftChange) {
     const compositeSurface = resolveWizardCompositeSurface(compositeSurfaceId);
     if (compositeSurface != null) {

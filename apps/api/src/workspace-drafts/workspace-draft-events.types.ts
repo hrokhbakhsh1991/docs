@@ -1,6 +1,11 @@
 import type { WorkspaceDraftKey } from "./workspace-drafts.types";
 
-export const WORKSPACE_DRAFT_EVENT_ACTIONS = ["created", "updated", "deleted"] as const;
+export const WORKSPACE_DRAFT_EVENT_ACTIONS = [
+  "created",
+  "updated",
+  "deleted",
+  "tombstone_violation",
+] as const;
 
 export type WorkspaceDraftEventAction = (typeof WORKSPACE_DRAFT_EVENT_ACTIONS)[number];
 

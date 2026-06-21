@@ -44,8 +44,7 @@ import {
   runPreTransactionValidation,
 } from "./pre-transaction-validation";
 import { PHASE_32_CANONICAL_STORAGE } from "./canonical-storage";
-import { scheduleMarketingCatalogRevalidate } from "../marketing/schedule-marketing-catalog-revalidate";
-import { shouldInvalidateMarketingCatalog } from "../marketing/should-invalidate-marketing-catalog";
+import { maybeScheduleMarketingCatalogRevalidate } from "../marketing/maybe-schedule-marketing-catalog-revalidate";
 
 export type CanonicalTourWriteInput = {
   readonly ability: ApiAbility;
@@ -112,9 +111,12 @@ export class CanonicalTourService {
         });
       }
 
-      if (shouldInvalidateMarketingCatalog(input.workspaceType, null, record.canonical)) {
-        scheduleMarketingCatalogRevalidate(record.tenantId);
-      }
+      maybeScheduleMarketingCatalogRevalidate({
+        workspaceType: input.workspaceType,
+        before: null,
+        after: record.canonical,
+        tenantId: record.tenantId,
+      });
 
       return record;
     } finally {
@@ -257,15 +259,12 @@ export class CanonicalTourService {
         });
       }
 
-      if (
-        shouldInvalidateMarketingCatalog(
-          input.workspaceType,
-          existing.canonical,
-          record.canonical
-        )
-      ) {
-        scheduleMarketingCatalogRevalidate(record.tenantId);
-      }
+      maybeScheduleMarketingCatalogRevalidate({
+        workspaceType: input.workspaceType,
+        before: existing.canonical,
+        after: record.canonical,
+        tenantId: record.tenantId,
+      });
 
       return record;
     } finally {

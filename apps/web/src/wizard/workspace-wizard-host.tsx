@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import type { DraftStatus } from "@app-tour/draft-engine";
 import { PlatformWizardEngine } from "@app-tour/platform-core";
 import type { RenderStepPlan } from "@app-tour/platform-core";
 import type { ScopedTenantAuthz, TenantAuthz, WorkspacePlugin } from "@app-tour/workspace-sdk";
@@ -10,9 +11,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 import type { WizardTemplateStepRef } from "@/features/settings/wizard-template-types";
 import {
-  appendWorkspaceReviewStepToRenderPlan,
   applyWizardTemplateToRenderPlan,
   filterRenderPlanByCanonicalPaths,
 } from "@/tours/wizard-template-gate-logic";
@@ -23,18 +24,18 @@ import {
 import { formatWizardTemplateStepLabel } from "@/tours/wizard-template-catalog-logic";
 
 import { canLoadWorkspaceWizard } from "./wizard-access";
+import { DraftSyncSoftLockBanner } from "@/draft/draft-sync-soft-lock-banner";
 import { WizardAccessDenied } from "./wizard-access-denied";
 import { loadWorkspacePluginById } from "./load-workspace-plugin";
 import {
   buildWizardStepDescriptors,
   clampWizardStepIndex,
+  resolveWizardStepIndexAfterPlanChange,
   resolveWizardStepLabel,
 } from "./wizard-step-shell-logic";
 import { WizardStepShell } from "./wizard-step-shell";
 
 import { WizardField } from "./wizard-field";
-import { isWizardStepContinueBlocked } from "./workspace-wizard-step-nav-logic";
-import { WizardStepNavigationProvider } from "./wizard-step-navigation-context";
 import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
 import {
   buildWizardValidationSurfaceProps,
@@ -62,20 +63,21 @@ export type WorkspaceWizardHostProps = {
   /** Controlled step index — when set, parent owns persisted step (11.5-T4). */
   readonly activeStepIndex?: number;
   readonly onActiveStepIndexChange?: (index: number) => void;
-  /** Block step nav while draft sync runs (11.3-T5). */
+  /** Block step nav while draft sync runs (11.3-T5). ERROR does not lock — Phase 2 soft-lock. */
   readonly navLocked?: boolean;
+  /** When ERROR, host shows non-blocking sync banner; fields stay editable. */
+  readonly draftSyncStatus?: DraftStatus;
   /** Parent submit validation — host focuses first issue (11.7-T5). */
   readonly submitValidationIssues?: readonly ValidationIssue[] | null;
   readonly onSubmitValidationHandled?: () => void;
   /** Opaque workspace rule eval context (profile + template overlay). */
   readonly wizardRuleEvalContext?: unknown;
-  /**
-   * When the parent already resolved the workspace plugin (e.g. Denali create-tour page),
-   * pass it here to avoid a second dynamic import race that can leave the host on loading.
-   */
-  readonly preloadedWorkspacePlugin?: WorkspacePlugin | null;
-  /** Optional rules module aligned with {@link preloadedWorkspacePlugin}. */
-  readonly preloadedRulesModule?: unknown;
+  /** When false, defer one-time draft resume inference until remote hydration completes. */
+  readonly draftHydrated?: boolean;
+  /** Increment after explicit clear-draft to suppress resume re-inference (Denali create). */
+  readonly draftResumeEpoch?: number;
+  /** When true, host uses saved step only — no furthest-field inference (e.g. freshStart). */
+  readonly suppressDraftStepInference?: boolean;
 };
 
 function resolveWizardDimensions(
@@ -121,6 +123,7 @@ function pluginForWizardEngine(plugin: WorkspacePlugin): WorkspacePlugin {
     tourClone: _tourClone,
     publicCatalog: _publicCatalog,
     wizardHost: _wizardHost,
+    draftTombstone: _draftTombstone,
     ...wizardPlugin
   } = plugin;
   return wizardPlugin as WorkspacePlugin;
@@ -145,13 +148,16 @@ export function WorkspaceWizardHost({
   activeStepIndex: controlledStepIndex,
   onActiveStepIndexChange,
   navLocked = false,
+  draftSyncStatus,
   submitValidationIssues = null,
   onSubmitValidationHandled,
   wizardRuleEvalContext,
-  preloadedWorkspacePlugin = null,
-  preloadedRulesModule = null,
+  draftHydrated = true,
+  draftResumeEpoch = 0,
+  suppressDraftStepInference = false,
 }: WorkspaceWizardHostProps) {
   const tWizard = useTranslations("wizard");
+  const draftEditBaseRef = useLatestWizardDraft(draft);
   const access = useMemo(
     () => ({ authz, tenantId, pluginId, workspaceId }),
     [authz, tenantId, pluginId, workspaceId]
@@ -159,10 +165,9 @@ export function WorkspaceWizardHost({
 
   const authorized = useMemo(() => canLoadWorkspaceWizard(access), [access]);
 
-  const [workspacePlugin, setWorkspacePlugin] = useState<WorkspacePlugin | null>(
-    () => preloadedWorkspacePlugin ?? null
-  );
-  const [rulesModule, setRulesModule] = useState<unknown>(() => preloadedRulesModule ?? null);
+  const [baseSteps, setBaseSteps] = useState<readonly RenderStepPlan[] | null>(null);
+  const [workspacePlugin, setWorkspacePlugin] = useState<WorkspacePlugin | null>(null);
+  const [rulesModule, setRulesModule] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [reviewValidationIssues, setReviewValidationIssues] = useState<readonly ValidationIssue[]>(
     []
@@ -203,8 +208,6 @@ export function WorkspaceWizardHost({
     [wizardHost?.validationSurfaceId, wizardHost?.reviewSurfaceId]
   );
 
-  const draftCategoryKey = getCanonicalStringValue(draft, "category").trim();
-
   const dimensionsKey = useMemo(() => {
     if (wizardHost?.resolveMatrixDimensionsFromDraft != null) {
       const dims = wizardHost.resolveMatrixDimensionsFromDraft(
@@ -217,23 +220,12 @@ export function WorkspaceWizardHost({
         .join("|");
     }
     return "static";
-  }, [wizardHost, rulesModule, draftCategoryKey]);
+  }, [wizardHost, rulesModule, draft]);
 
   useEffect(() => {
     if (!authorized) {
-      setWorkspacePlugin(null);
+      setBaseSteps(null);
       setRulesModule(null);
-      setError(null);
-      return;
-    }
-
-    if (!canLoadWorkspaceWizard(access)) {
-      return;
-    }
-
-    if (preloadedWorkspacePlugin != null) {
-      setWorkspacePlugin(preloadedWorkspacePlugin);
-      setRulesModule(preloadedRulesModule);
       setError(null);
       return;
     }
@@ -242,20 +234,32 @@ export function WorkspaceWizardHost({
 
     void (async () => {
       try {
+        if (!canLoadWorkspaceWizard(access)) {
+          return;
+        }
+
         const plugin = await loadWorkspacePluginById(pluginId);
         const hooks = plugin.wizardHost;
         const rules =
           hooks?.loadRulesModule != null ? await hooks.loadRulesModule() : null;
+        const engine = PlatformWizardEngine.create(pluginForWizardEngine(plugin));
+        engine.init();
+        const plan = engine.buildRenderPlan({
+          tenantId,
+          dimensions: resolveWizardDimensions(plugin, draft, rules),
+        });
 
         if (!cancelled) {
-          setWorkspacePlugin(plugin);
           setRulesModule(rules);
+          setWorkspacePlugin(plugin);
+          setBaseSteps(plan);
           setError(null);
         }
       } catch (cause) {
         if (!cancelled) {
           const message = cause instanceof Error ? cause.message : "wizard_load_failed";
           setError(message);
+          setBaseSteps(null);
           setWorkspacePlugin(null);
           setRulesModule(null);
         }
@@ -265,46 +269,12 @@ export function WorkspaceWizardHost({
     return () => {
       cancelled = true;
     };
-  }, [
-    authorized,
-    tenantId,
-    workspaceId,
-    pluginId,
-    preloadedWorkspacePlugin,
-    preloadedRulesModule,
-  ]);
-
-  const renderPlanState = useMemo(():
-    | { readonly status: "loading" }
-    | { readonly status: "error"; readonly message: string }
-    | { readonly status: "ready"; readonly steps: readonly RenderStepPlan[] } => {
-    if (workspacePlugin == null) {
-      return { status: "loading" };
-    }
-    try {
-      const engine = PlatformWizardEngine.create(pluginForWizardEngine(workspacePlugin));
-      engine.init();
-      return {
-        status: "ready",
-        steps: engine.buildRenderPlan({
-          tenantId,
-          dimensions: resolveWizardDimensions(workspacePlugin, draft, rulesModule),
-        }),
-      };
-    } catch (cause) {
-      return {
-        status: "error",
-        message: cause instanceof Error ? cause.message : "wizard_load_failed",
-      };
-    }
-  }, [workspacePlugin, rulesModule, tenantId, dimensionsKey]);
+  }, [authorized, access, pluginId, tenantId, dimensionsKey]);
 
   const visibleSteps = useMemo(() => {
-    if (renderPlanState.status !== "ready") {
+    if (baseSteps == null) {
       return null;
     }
-
-    const baseSteps = renderPlanState.steps;
 
     let steps =
       templateSteps !== undefined && templateSteps.length > 0
@@ -322,25 +292,16 @@ export function WorkspaceWizardHost({
       }) as typeof steps;
     }
 
-    if (
-      wizardHost?.usesReviewStep === true &&
-      reviewStepId != null &&
-      reviewStepId.length > 0
-    ) {
-      steps = appendWorkspaceReviewStepToRenderPlan(steps, baseSteps, reviewStepId);
-    }
-
     return steps;
   }, [
-    renderPlanState,
+    baseSteps,
     templateSteps,
     allowedCanonicalPaths,
+    pluginId,
     rulesModule,
     draft,
     wizardRuleEvalContext,
     wizardHost?.applyContextualFieldRules,
-    wizardHost?.usesReviewStep,
-    reviewStepId,
   ]);
 
   const stepDescriptors = useMemo(
@@ -357,8 +318,22 @@ export function WorkspaceWizardHost({
   );
 
   const resumeAppliedRef = useRef(false);
+  const lastDraftResumeEpochRef = useRef(draftResumeEpoch);
+  const prevStepSignatureRef = useRef<string | null>(null);
+  const anchoredStepIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (draftResumeEpoch === lastDraftResumeEpochRef.current) {
+      return;
+    }
+    lastDraftResumeEpochRef.current = draftResumeEpoch;
+    resumeAppliedRef.current = true;
+  }, [draftResumeEpoch]);
+
+  useEffect(() => {
+    if (!draftHydrated) {
+      return;
+    }
     if (visibleSteps == null || visibleSteps.length === 0) {
       return;
     }
@@ -369,15 +344,18 @@ export function WorkspaceWizardHost({
       return;
     }
 
-    const saved = clampWizardStepIndex(activeStepIndex, visibleSteps.length);
-    if (saved > 0) {
-      resumeAppliedRef.current = true;
+    resumeAppliedRef.current = true;
+
+    if (suppressDraftStepInference) {
+      const freshStartStep = clampWizardStepIndex(0, visibleSteps.length);
+      if (activeStepIndex !== freshStartStep) {
+        setActiveStepIndex(freshStartStep);
+      }
       return;
     }
 
-    // Parent persists step in draft meta (11.5) — do not override step 0 via field inference.
-    if (controlledStepIndex !== undefined) {
-      resumeAppliedRef.current = true;
+    const saved = clampWizardStepIndex(activeStepIndex, visibleSteps.length);
+    if (saved > 0) {
       return;
     }
 
@@ -385,21 +363,50 @@ export function WorkspaceWizardHost({
       draft: draft as unknown as Record<string, unknown>,
       visibleSteps,
       savedStepIndex: saved,
+      skipFieldInference: suppressDraftStepInference,
     });
-    if (inferred === 0) {
+    if (inferred !== saved) {
+      setActiveStepIndex(inferred);
+    }
+  }, [
+    draftHydrated,
+    wizardHost,
+    visibleSteps,
+    activeStepIndex,
+    setActiveStepIndex,
+    suppressDraftStepInference,
+    draft,
+  ]);
+
+  useEffect(() => {
+    if (stepDescriptors.length === 0) {
       return;
     }
 
-    resumeAppliedRef.current = true;
-    setActiveStepIndex(inferred);
-  }, [wizardHost, visibleSteps, activeStepIndex, draft, setActiveStepIndex]);
+    const previousSignature = prevStepSignatureRef.current;
+    const planChanged =
+      previousSignature != null && previousSignature.length > 0 && previousSignature !== stepSignature;
+    prevStepSignatureRef.current = stepSignature;
 
-  useEffect(() => {
-    const nextIndex = clampWizardStepIndex(activeStepIndex, stepDescriptors.length);
-    if (nextIndex !== activeStepIndex) {
-      setActiveStepIndex(nextIndex);
+    if (planChanged) {
+      const nextIndex = resolveWizardStepIndexAfterPlanChange(
+        activeStepIndex,
+        anchoredStepIdRef.current,
+        stepDescriptors
+      );
+      anchoredStepIdRef.current = stepDescriptors[nextIndex]?.stepId ?? null;
+      if (nextIndex !== activeStepIndex) {
+        setActiveStepIndex(nextIndex);
+      }
+      return;
     }
-  }, [stepSignature, stepDescriptors.length, activeStepIndex, setActiveStepIndex]);
+
+    const clamped = clampWizardStepIndex(activeStepIndex, stepDescriptors.length);
+    anchoredStepIdRef.current = stepDescriptors[clamped]?.stepId ?? null;
+    if (clamped !== activeStepIndex) {
+      setActiveStepIndex(clamped);
+    }
+  }, [stepSignature, stepDescriptors, activeStepIndex, setActiveStepIndex]);
 
   const resolveStepId = useMemo(
     () => (visibleSteps != null ? buildFieldStepResolver(visibleSteps) : () => undefined),
@@ -440,7 +447,6 @@ export function WorkspaceWizardHost({
       draft: draft as unknown as Record<string, unknown>,
       rulesModule: rulesModule,
       tenantId,
-      evalContext: wizardRuleEvalContext,
     });
     if (result.ok) {
       setReviewValidationIssues([]);
@@ -449,7 +455,7 @@ export function WorkspaceWizardHost({
     setReviewValidationIssues(
       mapValidationResultToIssues(result, { resolveStepId })
     );
-  }, [workspacePlugin, wizardHost?.usesStepValidation, wizardHost?.validateDraftSync, draft, rulesModule, tenantId, wizardRuleEvalContext, resolveStepId]);
+  }, [workspacePlugin, wizardHost?.usesStepValidation, wizardHost?.validateDraftSync, draft, rulesModule, tenantId, resolveStepId]);
 
   useEffect(() => {
     if (visibleSteps == null) {
@@ -466,13 +472,6 @@ export function WorkspaceWizardHost({
       return;
     }
     setReviewValidationIssues(submitValidationIssues);
-    const activeStep =
-      visibleSteps?.[clampWizardStepIndex(activeStepIndex, visibleSteps.length)];
-    const onReviewStep =
-      reviewStepId != null && activeStep?.stepId === reviewStepId;
-    if (!onReviewStep) {
-      setStepNavValidationIssues(submitValidationIssues);
-    }
     const first = submitValidationIssues[0];
     if (first != null) {
       void (async () => {
@@ -480,64 +479,13 @@ export function WorkspaceWizardHost({
         onSubmitValidationHandled?.();
       })();
     }
-  }, [
-    submitValidationIssues,
-    focusIssue,
-    onSubmitValidationHandled,
-    visibleSteps,
-    activeStepIndex,
-    reviewStepId,
-  ]);
-
-  const draftContentKey = useMemo(() => {
-    const data = (draft as { data?: Record<string, unknown> }).data;
-    try {
-      return JSON.stringify(data ?? draft);
-    } catch {
-      return "";
-    }
-  }, [draft]);
+  }, [submitValidationIssues, focusIssue, onSubmitValidationHandled]);
 
   useEffect(() => {
-    setStepNavValidationIssues([]);
-  }, [draftContentKey]);
-
-  const activeStepContinueBlocked = useMemo(() => {
-    if (workspacePlugin == null || visibleSteps == null) {
-      return false;
+    if (stepNavValidationIssues.length > 0) {
+      setStepNavValidationIssues([]);
     }
-    const step = visibleSteps[clampWizardStepIndex(activeStepIndex, visibleSteps.length)];
-    const validateFn = wizardHost?.validateDraftSync;
-    if (step === undefined || validateFn == null) {
-      return false;
-    }
-    return isWizardStepContinueBlocked({
-      usesStepValidation: wizardHost?.usesStepValidation === true,
-      stepId: step.stepId,
-      reviewStepId: reviewStepId ?? undefined,
-      validate: () =>
-        validateFn({
-          plugin: workspacePlugin,
-          draft: draft as unknown as Record<string, unknown>,
-          rulesModule,
-          tenantId,
-          evalContext: wizardRuleEvalContext,
-          scope: { stepId: step.stepId, visibleSteps },
-        }),
-    });
-  }, [
-    workspacePlugin,
-    visibleSteps,
-    activeStepIndex,
-    wizardHost?.usesStepValidation,
-    wizardHost?.validateDraftSync,
-    reviewStepId,
-    draft,
-    rulesModule,
-    tenantId,
-    wizardRuleEvalContext,
-    draftContentKey,
-  ]);
+  }, [draft]);
 
   const handleBeforeNext = useCallback(
     async (currentIndex: number) => {
@@ -557,7 +505,6 @@ export function WorkspaceWizardHost({
         draft: draft as unknown as Record<string, unknown>,
         rulesModule: rulesModule,
         tenantId,
-        evalContext: wizardRuleEvalContext,
         scope: { stepId: step.stepId, visibleSteps },
       });
       if (result.ok) {
@@ -578,7 +525,6 @@ export function WorkspaceWizardHost({
       draft,
       rulesModule,
       tenantId,
-      wizardRuleEvalContext,
       focusFirstFromResult,
       resolveStepId,
     ]
@@ -591,31 +537,14 @@ export function WorkspaceWizardHost({
     [focusIssue]
   );
 
-  const goToWizardStepId = useCallback(
-    (stepId: string) => {
-      if (visibleSteps == null) {
-        return;
-      }
-      const index = visibleSteps.findIndex((step) => step.stepId === stepId);
-      if (index >= 0) {
-        setActiveStepIndex(index);
-      }
-    },
-    [visibleSteps, setActiveStepIndex]
-  );
-
   if (!authorized) {
     return <WizardAccessDenied />;
   }
 
-  const planError =
-    renderPlanState.status === "error" ? renderPlanState.message : null;
-  const loadError = error ?? planError;
-
-  if (loadError) {
+  if (error) {
     return (
       <div role="alert" data-workspace-wizard-error>
-        <p>{tWizard("host.loadError", { error: loadError })}</p>
+        <p>{tWizard("host.loadError", { error })}</p>
       </div>
     );
   }
@@ -659,17 +588,21 @@ export function WorkspaceWizardHost({
       data-plugin-id={pluginId}
       {...(wizardHost?.hostRootDataAttributes ?? {})}
     >
+      {draftSyncStatus != null ? (
+        <DraftSyncSoftLockBanner
+          status={draftSyncStatus}
+          className="workspace-wizard__sync-soft-lock"
+        />
+      ) : null}
       {completionSnapshot != null && reviewSurface?.renderCompletionHeader != null
         ? reviewSurface.renderCompletionHeader(completionSnapshot)
         : null}
-      <WizardStepNavigationProvider goToStepId={goToWizardStepId}>
       <WizardStepShell
         steps={buildWizardStepDescriptors(visibleSteps, templateSteps, resolveDefaultStepLabel)}
         activeIndex={activeStepIndex}
         onActiveIndexChange={setActiveStepIndex}
         lastStepFooter={renderFooter?.(draft)}
         navLocked={navLocked}
-        continueDisabled={activeStepContinueBlocked}
         onBeforeNext={handleBeforeNext}
       >
         <section
@@ -693,7 +626,6 @@ export function WorkspaceWizardHost({
                     onFocusIssue: handleFocusValidationIssue,
                     fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
                     translateWorkspaceMessage,
-                    validationHeadingKey: "review.stepValidationHeading",
                   })
                 )}
               </div>
@@ -735,7 +667,11 @@ export function WorkspaceWizardHost({
                     <WizardField
                       field={field}
                       value={value}
-                      onChange={(next) => onDraftChange(setCanonicalStringValue(draft, path, next))}
+                      onChange={(next) =>
+                        onDraftChange(
+                          setCanonicalStringValue(draftEditBaseRef.current, path, next)
+                        )
+                      }
                       draft={draft}
                       onDraftChange={onDraftChange}
                       pluginId={pluginId}
@@ -755,7 +691,6 @@ export function WorkspaceWizardHost({
           </div>
         </section>
       </WizardStepShell>
-      </WizardStepNavigationProvider>
     </div>
   );
 }

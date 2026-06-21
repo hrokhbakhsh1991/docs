@@ -14,6 +14,7 @@ import type { WizardTemplateStepRef } from "@/features/settings/wizard-template-
 import { resolveDenaliStepLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 import {
   applyWizardTemplateToRenderPlan,
   filterRenderPlanByCanonicalPaths,
@@ -62,6 +63,7 @@ type DenaliFlatEditFormProps = {
   readonly allowedCanonicalPaths: readonly string[];
   readonly wizardRuleEvalContext?: unknown;
   readonly wizardSessionId?: string;
+  readonly navLocked?: boolean;
   readonly sectionIds?: readonly string[];
   readonly footer?: ReactNode;
   readonly denaliRulesModule?: DenaliWizardRulesModule | null;
@@ -75,12 +77,14 @@ export function DenaliFlatEditForm({
   allowedCanonicalPaths,
   wizardRuleEvalContext,
   wizardSessionId,
+  navLocked = false,
   sectionIds = DENALI_FLAT_EDIT_SECTIONS_FULL,
   footer,
   denaliRulesModule = null,
 }: DenaliFlatEditFormProps) {
   const tWizard = useTranslations("wizard");
   const tDenali = useTranslations("denali");
+  const draftEditBaseRef = useLatestWizardDraft(draft);
   const plugin = useMemo(() => getDenaliWorkspacePlugin(), []);
   const [baseSteps, setBaseSteps] = useState<readonly RenderStepPlan[] | null>(null);
   const [loadedRulesModule, setLoadedRulesModule] = useState<DenaliWizardRulesModule | null>(null);
@@ -210,6 +214,7 @@ export function DenaliFlatEditForm({
       data-testid={DENALI_FLAT_EDIT_TEST_IDS.form}
       onSubmit={(event) => event.preventDefault()}
     >
+      <fieldset disabled={navLocked} className="space-y-6 border-0 p-0 m-0 min-w-0">
       {visibleSteps.map((step) => {
         const sectionLabel = resolveWizardStepLabel(
           step.stepId,
@@ -240,7 +245,11 @@ export function DenaliFlatEditForm({
                     <WizardField
                       field={field}
                       value={value}
-                      onChange={(next) => onDraftChange(setCanonicalStringValue(draft, path, next))}
+                      onChange={(next) =>
+                        commitWizardDraftEdit(draftEditBaseRef, onDraftChange, (base) =>
+                          setCanonicalStringValue(base, path, next)
+                        )
+                      }
                       draft={draft}
                       onDraftChange={onDraftChange}
                       pluginId="denali"
@@ -256,6 +265,7 @@ export function DenaliFlatEditForm({
           </Card>
         );
       })}
+      </fieldset>
       {footer}
     </form>
   );

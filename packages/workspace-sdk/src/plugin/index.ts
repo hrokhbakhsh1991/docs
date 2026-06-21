@@ -42,12 +42,23 @@ export {
   type WorkspaceViolation,
 } from "./workspace-validation";
 export { type WorkspaceWizardMode, type WorkspaceWizardSurface } from "./workspace-wizard-surface";
+export type { WorkspaceWizardMediaHooks } from "./workspace-wizard-media-hooks";
+export type {
+  WorkspaceWizardDraftEnvelope,
+  WorkspaceWizardDraftMeta,
+} from "./workspace-wizard-draft-envelope";
 export type {
   WorkspaceWizardHostHooks,
   WorkspaceWizardHostPluginContext,
   WizardDraftValidationResult,
   WizardDraftValidationViolation,
 } from "./workspace-wizard-host-hooks";
+export {
+  noopWorkspaceDraftTombstoneBinding,
+  topLevelRootsRemoved,
+  isNonEmptyRootValue,
+  type WorkspaceDraftTombstoneBinding,
+} from "../draft/workspace-draft-tombstone-binding";
 export {
   createStarterWorkspacePlugin,
   getStarterWorkspacePlugin,

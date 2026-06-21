@@ -2,6 +2,7 @@
  * Phase 11.2 — workspace draft persistence (DEC-P11-003)
  */
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
@@ -11,6 +12,7 @@ import {
   operatorAuthHeaders,
   seedOperatorIdentityFixture,
 } from "./fixtures/operator-identity-fixture";
+import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
 import { installHttpTestClient } from "./http-test-client";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
@@ -320,5 +322,61 @@ describe("workspace-drafts.spec.ts — Phase 11.2 API", () => {
     assert.equal(items.length, 2);
     assert.equal(items[0]?.version, 3);
     assert.equal(items[1]?.version, 2);
+  });
+
+  it("API-P11-2-07 PATCH Idempotency-Key replays same 200 body", async () => {
+    resetDraftStoresForTests();
+    const idempotencyKey = randomUUID();
+    const body = {
+      data: { title: "idempotent-draft" },
+      version: 0,
+      schemaVersion: 1,
+      lastModified: 1_718_000_000_000,
+    };
+    const headers = { ...operatorAuthHeaders(), "Idempotency-Key": idempotencyKey };
+
+    const first = await client.requestJson<DraftResponse>("PATCH", draftPath(), {
+      headers,
+      body,
+    });
+    assert.equal(first.status, 200);
+    assert.equal(first.body.version, 1);
+
+    const second = await client.requestJson<DraftResponse>("PATCH", draftPath(), {
+      headers,
+      body,
+    });
+    assert.equal(second.status, 200);
+    assert.deepEqual(second.body, first.body);
+  });
+
+  it("API-P11-2-08 PATCH Idempotency-Key with different body returns 409 mismatch", async () => {
+    resetDraftStoresForTests();
+    resetHttpIdempotencyMemoryForTests();
+    const idempotencyKey = randomUUID();
+    const headers = { ...operatorAuthHeaders(), "Idempotency-Key": idempotencyKey };
+
+    const first = await client.requestJson<DraftResponse>("PATCH", draftPath(), {
+      headers,
+      body: {
+        data: { title: "first-body" },
+        version: 0,
+        schemaVersion: 1,
+        lastModified: 1_718_000_000_000,
+      },
+    });
+    assert.equal(first.status, 200);
+
+    const second = await client.requestJson<DraftResponse>("PATCH", draftPath(), {
+      headers,
+      body: {
+        data: { title: "different-body" },
+        version: 0,
+        schemaVersion: 1,
+        lastModified: 1_718_000_000_001,
+      },
+    });
+    assert.equal(second.status, 409);
+    assert.equal(second.body.code, "IDEMPOTENCY_PAYLOAD_MISMATCH");
   });
 });

@@ -1,0 +1,190 @@
+---
+title: P4-B — Portal registration (primary)
+phase: 17
+format: markdoc
+prerequisite: P4-A-N-012 complete (catalog publish sync)
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p4/p4-b-portal-registration.md
+extends: docs/phase-11/subphases/11.16-user-portal.md
+---
+
+# Portal registration — primary surface (P4-B)
+
+Make **`apps/portal`** the canonical guest registration host; marketing CTA and `apps/web` public routes **bridge** to portal only.
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p4/p4-b-portal-registration.md`](../../TEMP/p4/p4-b-portal-registration.md) v1.0
+
+**Status (2026-06-21):** doc 9.9 · **P4-B complete** (14/14 nanos · unit/BFF specs green · Playwright soft)
+
+---
+
+## What P4-B actually delivers (honest scope)
+
+| Deliverable                       | Detail                                                                           |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| **Portal-primary (pre-P4 infra)** | M17 + DEC-P11-014 — P4-B closes with specs + gate + doc truth                    |
+| **URL bridge**                    | marketing `resolveWebRegistrationUrl` · web redirect shim · portal host          |
+| **BFF proof**                     | portal `public-auth/*` + `catalog/registrations` unit specs                      |
+| **Static closure**                | M17 guard 30/30 in `p4:gate`                                                     |
+| **Not in P4-B gate**              | Playwright SMK-PTL-01 · SMK-MKT-03 · SMK-DREG-01 (`p4:e2e-gate` · Architect YES) |
+
+**Extends:** [`11.16-user-portal.md`](../phase-11/subphases/11.16-user-portal.md) · [`public-catalog.md`](../workspaces/denali/public-catalog.md) § Registration
+
+---
+
+## Executive summary
+
+| Layer             | P4-B delivers                                                    |
+| ----------------- | ---------------------------------------------------------------- |
+| **Portal host**   | `{club}.portal.{root}` · dev port 3003                           |
+| **OTP intake**    | Phone → OTP → profile → party size → success                     |
+| **Marketing CTA** | `data-marketing-register` → portal registration URL              |
+| **Web redirect**  | `apps/web` `/catalog/{id}/register` → portal (no duplicate flow) |
+| **Prod env**      | `PORTAL_PUBLIC_BASE_URL` matrix documented + gated               |
+
+---
+
+## Goals
+
+| Goal            | Detail                                           |
+| --------------- | ------------------------------------------------ |
+| Portal-primary  | Single registration UX in `apps/portal`          |
+| Cross-app URLs  | Marketing resolves portal base via env           |
+| E2E green       | SMK-PTL-01 · SMK-MKT-03 · SMK-DREG-01 (redirect) |
+| Public auth API | `public-auth.routes.ts` unchanged contract       |
+
+## Non-goals (P4-B v1)
+
+- Member login / account portal beyond registration
+- Apple/Google social login on portal
+- Urban-only registration UX redesign
+- Payment at registration
+
+---
+
+## Industry alignment
+
+| Pattern                  | Source                          | P4-B mapping              |
+| ------------------------ | ------------------------------- | ------------------------- |
+| **Guest checkout OTP**   | Mobile-first event registration | Phone OTP before profile  |
+| **Multi-app SSO bridge** | Subdomain URL routing           | Env-based portal base URL |
+| **Single write surface** | DRY composable storefront       | One React flow in portal  |
+
+---
+
+## Host map (frozen)
+
+| Surface      | Host pattern                                   | App              |
+| ------------ | ---------------------------------------------- | ---------------- |
+| Marketing    | `shop.{club}.{root}` or `{club}.marketing` dev | `apps/marketing` |
+| Portal       | `{club}.portal.{root}`                         | `apps/portal`    |
+| Web redirect | `{club}.admin.{root}` public catalog path      | redirect only    |
+
+---
+
+## URL resolution
+
+```typescript
+// apps/marketing/src/portal/resolve-web-registration-url.ts
+// Priority: PORTAL_PUBLIC_BASE_URL → dev host + PORTAL_DEV_PORT (3003)
+```
+
+| Env                         | App            | Purpose                 | Prod required |
+| --------------------------- | -------------- | ----------------------- | ------------- |
+| `PORTAL_PUBLIC_BASE_URL`    | marketing, web | Prod portal origin      | Yes (prod)    |
+| `PORTAL_DEV_PORT`           | marketing      | Default `3003` local    | Dev only      |
+| `MARKETING_PUBLIC_BASE_URL` | web            | Catalog redirect source | Yes (prod)    |
+
+Marketing detail CTA:
+
+```html
+<a href="{registrationUrl}" data-marketing-register></a>
+```
+
+`registrationUrl` = `{portalBase}/catalog/{tourId}/register`
+
+---
+
+## Code anchors (verified 2026-06-21)
+
+| Anchor        | Path                                                                             |
+| ------------- | -------------------------------------------------------------------------------- |
+| Portal flow   | `apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx` |
+| Portal BFF    | `apps/portal/app/api/catalog/registrations/route.ts`                             |
+| Web redirect  | `apps/web/src/portal/resolve-portal-registration-redirect.ts`                    |
+| Marketing URL | `apps/marketing/src/portal/resolve-web-registration-url.ts`                      |
+| Public auth   | `apps/api/src/identity/public-auth.routes.ts`                                    |
+| M17 guard     | `scripts/guards/guard-public-catalog-m17.mjs`                                    |
+| Portal E2E    | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts` (SMK-PTL-01)           |
+| Marketing E2E | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts` (SMK-MKT-03)          |
+| Web E2E       | `apps/web/tests/e2e/denali-catalog-registration.spec.ts` (SMK-DREG-01)           |
+
+---
+
+## Testing matrix
+
+| Spec                                            | IDs                         | Asserts                                                    |
+| ----------------------------------------------- | --------------------------- | ---------------------------------------------------------- |
+| `resolve-web-registration-url.spec.ts`          | BR-01…BR-03 (MKT-07…MKT-11) | registration support · dev host · `PORTAL_PUBLIC_BASE_URL` |
+| `resolve-portal-base-url.spec.ts`               | PR-01…PR-02 (PTL-01…PTL-02) | portal base · marketing back-link                          |
+| `portal-public-auth-bff.spec.ts`                | PR-09                       | portal BFF coded errors (phone-preflight · request-otp)    |
+| `portal-catalog-registrations-bff.spec.ts`      | PR-10a/f                    | intake payload validation                                  |
+| `portal-catalog-registrations-dispatch.spec.ts` | PR-10b…e                    | route dispatch contract · registration headers             |
+| `portal-registration-redirect.spec.ts`          | PR-05 (PTL-03)              | web redirect URL shape                                     |
+| `catalog-register-redirect-page.spec.ts`        | PR-06                       | web `page.tsx` redirect-only (no duplicate flow)           |
+| `public-auth.spec.ts` (api)                     | PR-07                       | M17 public-auth API contract (unchanged)                   |
+| `portal-registration-smoke.spec.ts`             | PR-03 (SMK-PTL-01)          | Playwright OTP + intake — **soft / e2e gate**              |
+| `marketing-catalog-smoke.spec.ts`               | PR-04 (SMK-MKT-03)          | Playwright CTA → portal — **soft / e2e gate**              |
+| `denali-catalog-registration.spec.ts`           | PR-08 (SMK-DREG-01)         | Playwright portal denali — **soft / e2e gate**             |
+
+Doc IDs (BR/PR) map to legacy test IDs (MKT/PTL) — see [`p4-b-portal-registration.md`](../../TEMP/p4/p4-b-portal-registration.md).
+
+### PR assertion detail
+
+| ID    | Assert                                                             |
+| ----- | ------------------------------------------------------------------ |
+| PR-05 | web host → portal `/catalog/{id}/register`                         |
+| PR-06 | `apps/web/.../register/page.tsx` calls `redirect()` only           |
+| PR-07 | API `public-auth` OTP paths stable                                 |
+| PR-09 | portal `public-auth` BFF returns coded 4xx                         |
+| PR-10 | portal registrations BFF validates payload + proxies workspace API |
+
+---
+
+## Verification
+
+```bash
+pnpm run guard:public-catalog-m17
+
+pnpm --filter @apps/marketing exec node --import tsx --test \
+  test/resolve-web-registration-url.spec.ts
+
+pnpm --filter @apps/portal exec node --import tsx --test test/**/*.spec.ts
+
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/portal-registration-redirect.spec.ts \
+  test/catalog-register-redirect-page.spec.ts
+
+pnpm --filter @apps/api exec node --import tsx --test test/public-auth.spec.ts
+```
+
+Playwright (Architect YES): `pnpm --filter @apps/portal run test:smoke` · `pnpm --filter @apps/marketing run test:smoke`
+
+---
+
+## STOP table
+
+| Symptom                                           | Action                           |
+| ------------------------------------------------- | -------------------------------- |
+| Duplicate registration form in web (non-redirect) | **STOP** — portal primary        |
+| Marketing CTA points to web admin host            | **STOP**                         |
+| Edit denali package for registration              | **STOP** — portal/marketing only |
+
+---
+
+## References
+
+- [`public-catalog.md`](../workspaces/denali/public-catalog.md)
+- [`platform-club-surfaces-config.mdoc`](platform-club-surfaces-config.mdoc)
+- `TEMP/p4/p4-b-portal-registration.md`

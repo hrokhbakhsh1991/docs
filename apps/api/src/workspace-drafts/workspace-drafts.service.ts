@@ -1,12 +1,21 @@
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
+import { getActiveWorkspaceType } from "../tenant/tenant-request-context";
+import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 import { getWorkspaceDraftEventsRepository } from "./create-workspace-draft-events-repository";
 import { getWorkspaceDraftsRepository } from "./create-workspace-drafts-repository";
 import {
   WorkspaceDraftForbiddenError,
+  WorkspaceDraftInvalidBodyError,
   WorkspaceDraftNotFoundError,
+  WorkspaceDraftTombstoneInvariantError,
 } from "./workspace-drafts.errors";
 import { emitWorkspaceDraftEvent } from "./workspace-draft-events-emitter";
+import {
+  assertEnvelopeTombstoneInvariants,
+  ENVELOPE_TOMBSTONE_PATCH_NAMESPACES,
+} from "./invariants/envelope-tombstone-invariants";
+import { reapplyServerEnvelopeTombstones } from "./reapply-server-envelope-tombstones";
 import type {
   WorkspaceDraftEventListItem,
   WorkspaceDraftEventRecord,
@@ -91,12 +100,32 @@ export async function patchWorkspaceDraft(
   body: WorkspaceDraftSyncPayload
 ): Promise<WorkspaceDraftSyncPayload> {
   assertWorkspaceDraftScope(auth, params.workspaceId);
+
   const repo = getWorkspaceDraftsRepository();
+  const key = draftKeyFor(auth, params);
+  let dataToPersist = body.data;
+
+  if (ENVELOPE_TOMBSTONE_PATCH_NAMESPACES.has(params.draftNamespace)) {
+    const existing = await repo.get(key);
+    const workspaceType = getActiveWorkspaceType() ?? "starter";
+    const plugin = resolveWorkspacePluginForType(workspaceType);
+    dataToPersist = reapplyServerEnvelopeTombstones(
+      existing?.data,
+      body.data,
+      plugin.draftTombstone,
+    );
+    const tombstoneCheck = assertEnvelopeTombstoneInvariants(dataToPersist);
+    if (!tombstoneCheck.ok) {
+      await emitWorkspaceDraftEvent(auth, params, "tombstone_violation", null);
+      throw new WorkspaceDraftTombstoneInvariantError(tombstoneCheck.code, tombstoneCheck.keys);
+    }
+  }
+
   const action = body.version === 0 ? "created" : "updated";
   const row = await repo.patch({
-    ...draftKeyFor(auth, params),
+    ...key,
     expectedVersion: body.version,
-    data: body.data,
+    data: dataToPersist,
     schemaVersion: body.schemaVersion,
     lastModified: body.lastModified,
     updatedByUserId: auth.userId,

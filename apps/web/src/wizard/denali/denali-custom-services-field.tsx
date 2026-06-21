@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { parseStringArray } from "./denali-array-field-utils";
 
@@ -27,6 +28,7 @@ export function DenaliCustomServicesField({
 }: DenaliCustomServicesFieldProps) {
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "tripDetails.overview.customServiceLabels");
   const labels = parseStringArray(
     getCanonicalValue(draft, "tripDetails.overview.customServiceLabels")
@@ -34,7 +36,9 @@ export function DenaliCustomServicesField({
   const [draftLabel, setDraftLabel] = useState("");
 
   const writeLabels = (next: string[]) => {
-    onDraftChange(setCanonicalValue(draft, "tripDetails.overview.customServiceLabels", next));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalValue(base, "tripDetails.overview.customServiceLabels", next)
+    );
   };
 
   const addLabel = () => {

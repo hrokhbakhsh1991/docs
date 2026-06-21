@@ -35,6 +35,37 @@ describe("proxy-workspace-draft-api.spec.ts", () => {
     assert.equal(response.status, 401);
   });
 
+  it("WEB-P11-3-15 DELETE proxy forwards backend 204 without JSON body", async () => {
+    const originalFetch = globalThis.fetch;
+    const originalApiUrl = process.env.TOUR_OPS_API_URL;
+    process.env.TOUR_OPS_API_URL = "http://api.test";
+    globalThis.fetch = (async () =>
+      new Response(null, { status: 204 })) as typeof globalThis.fetch;
+
+    try {
+      const response = await proxyWorkspaceDraftApiRequest(
+        new Request("http://denali.localhost/api/workspaces/ws-test/drafts/operator.wizard/key", {
+          headers: { cookie: "session=test-token" },
+        }),
+        {
+          workspaceId: "ws-test",
+          namespace: "operator.wizard",
+          key: "key",
+          method: "DELETE",
+        }
+      );
+      assert.equal(response.status, 204);
+      assert.equal(await response.text(), "");
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (originalApiUrl === undefined) {
+        delete process.env.TOUR_OPS_API_URL;
+      } else {
+        process.env.TOUR_OPS_API_URL = originalApiUrl;
+      }
+    }
+  });
+
   it("WEB-P11-9-01 events proxy returns 401 without session", async () => {
     const response = await proxyWorkspaceDraftEventsApiRequest(
       new Request("http://localhost/api/workspaces/ws-test/drafts/operator.wizard/key/events"),

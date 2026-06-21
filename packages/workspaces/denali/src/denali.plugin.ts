@@ -26,6 +26,7 @@ import {
 } from "./denali-plugin-adapter";
 import { denaliHydrateTourCloneDraft, prepareDenaliServerCloneCanonical } from "./clone";
 import { denaliWizardHostHooks } from "./wizard/denali-wizard-host-hooks";
+import { denaliDraftTombstoneBinding } from "./draft/denali-draft-tombstone-binding";
 import { denaliRuleSet } from "./rules/denaliRuleModel";
 
 /** Relative to workspace package root — published via package exports. */
@@ -167,6 +168,7 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
       }),
     }),
     wizardHost: deepFreeze({ ...denaliWizardHostHooks }),
+    draftTombstone: denaliDraftTombstoneBinding,
   });
 }
 

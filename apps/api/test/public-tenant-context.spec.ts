@@ -66,9 +66,18 @@ describe("public-tenant-context", () => {
       "x-forwarded-host": "operator.localhost",
     });
     assert.equal(response.status, 200);
-    const data = (response.body as { data?: { tenantId?: string; pluginId?: string } }).data;
+    const data = (response.body as {
+      data?: {
+        tenantId?: string;
+        pluginId?: string;
+        siteSurfaces?: { admin?: boolean; marketing?: boolean; portal?: boolean };
+      };
+    }).data;
     assert.equal(data?.tenantId, OPERATOR_SMOKE.tenantId);
     assert.equal(data?.pluginId, "denali");
+    assert.equal(data?.siteSurfaces?.admin, true);
+    assert.equal(data?.siteSurfaces?.marketing, true);
+    assert.equal(data?.siteSurfaces?.portal, true);
   });
 
   it("PTC-02 GET /public/tenant-context resolves urban host", async () => {
@@ -80,6 +89,17 @@ describe("public-tenant-context", () => {
     const data = (response.body as { data?: { tenantId?: string; pluginId?: string } }).data;
     assert.equal(data?.tenantId, URBAN_SMOKE_E2E.tenantId);
     assert.equal(data?.pluginId, "urban");
+  });
+
+  it("PTC-02b GET /public/tenant-context resolves club admin host", async () => {
+    const response = await requestPublic(listener, "/public/tenant-context", {
+      host: "127.0.0.1",
+      "x-forwarded-host": "operator.admin.localhost",
+    });
+    assert.equal(response.status, 200);
+    const data = (response.body as { data?: { tenantId?: string; pluginId?: string } }).data;
+    assert.equal(data?.tenantId, OPERATOR_SMOKE.tenantId);
+    assert.equal(data?.pluginId, "denali");
   });
 
   it("PTC-03 unknown host returns 404", async () => {

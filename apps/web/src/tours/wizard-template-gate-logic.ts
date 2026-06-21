@@ -1,3 +1,10 @@
+import {
+  ensureDenaliMatrixRequiredAllowedPaths,
+  ensureDenaliMatrixRequiredTemplateSteps,
+  ensureDenaliTourKindAllowedPaths,
+  ensureDenaliTourKindTemplateSteps,
+} from "@app-tour/workspace-denali/wizard/template-invariants";
+
 import { parseWizardTemplateResponse } from "@/features/settings/wizard-template-logic";
 import type {
   WizardTemplateConfigResponse,
@@ -175,7 +182,13 @@ export function resolveWizardTemplateGateState(
   const payload = parseWizardTemplatePayloadRecord(response);
   const published = isWizardTemplatePublished(payload);
   const effective = published ? ensureWizardTemplatePublishablePayload(payload, pluginId) : payload;
-  const templateSteps = published ? resolvePublishedWizardTemplateSteps(effective) : [];
+  const templateStepsRaw = published ? resolvePublishedWizardTemplateSteps(effective) : [];
+  const templateSteps =
+    pluginId === "denali"
+      ? ensureDenaliMatrixRequiredTemplateSteps(
+          ensureDenaliTourKindTemplateSteps(templateStepsRaw)
+        )
+      : templateStepsRaw;
   const fieldRulesOverlay =
     effective.fieldRulesOverlay != null && typeof effective.fieldRulesOverlay === "object"
       ? effective.fieldRulesOverlay
@@ -185,10 +198,15 @@ export function resolveWizardTemplateGateState(
       ? effective.baseProfile.trim()
       : "denali_pilot";
 
+  const allowedPathsRaw = resolveWizardTemplateAllowedPaths(effective);
+
   return {
     loading: false,
     published,
-    allowedCanonicalPaths: resolveWizardTemplateAllowedPaths(effective),
+    allowedCanonicalPaths:
+      pluginId === "denali" && published
+        ? ensureDenaliMatrixRequiredAllowedPaths(ensureDenaliTourKindAllowedPaths(allowedPathsRaw))
+        : allowedPathsRaw,
     templateSteps,
     fieldOverlays: buildWizardTemplateFieldOverlays(templateSteps),
     seedLabel: effective.seedLabel.trim(),

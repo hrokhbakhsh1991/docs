@@ -1,3 +1,9 @@
+import type { WorkspaceWizardMediaHooks } from "./workspace-wizard-media-hooks";
+import type {
+  WorkspaceWizardDraftEnvelope,
+  WorkspaceWizardDraftMeta,
+} from "./workspace-wizard-draft-envelope";
+
 /** Step-scoped or full-draft validation result (matches platform-core ValidationResult shape). */
 export type WizardDraftValidationViolation = {
   readonly code: string;
@@ -65,6 +71,23 @@ export type WorkspaceWizardHostHooks = {
   readonly wizardMessageNamespace?: string;
   /** Registry key for workspace field label resolver (Phase 12.1b). */
   readonly fieldLabelSurfaceId?: string;
+  /** Phase 13.0 — wizard-scoped async asset upload (session id + BFF route key). */
+  readonly media?: WorkspaceWizardMediaHooks;
+  /** Phase 13.0b — clone form + meta into client envelope (strips server-only meta fields). */
+  readonly prepareDraftEnvelope?: <TForm>(
+    form: TForm,
+    meta: WorkspaceWizardDraftMeta
+  ) => WorkspaceWizardDraftEnvelope<TForm>;
+  /** Phase 13.0b — hydrate remote envelope with fallbacks. */
+  readonly hydrateDraftEnvelope?: <TForm>(input: {
+    readonly remote: WorkspaceWizardDraftEnvelope<TForm> | null | undefined;
+    readonly fallbackForm: TForm;
+    readonly fallbackMeta?: WorkspaceWizardDraftMeta;
+  }) => WorkspaceWizardDraftEnvelope<TForm>;
+  /** Phase 13.0b — post-fetch sanitize (e.g. strip server tombstones from meta). */
+  readonly normalizeRemoteEnvelope?: <TForm>(
+    envelope: WorkspaceWizardDraftEnvelope<TForm>
+  ) => WorkspaceWizardDraftEnvelope<TForm>;
   /**
    * Infer initial wizard step on first mount (e.g. resume from draft data).
    * Host calls once when saved step index is 0.
@@ -73,6 +96,7 @@ export type WorkspaceWizardHostHooks = {
     readonly draft: Readonly<Record<string, unknown>>;
     readonly visibleSteps: readonly unknown[];
     readonly savedStepIndex: number;
+    readonly skipFieldInference?: boolean;
   }) => number;
   /** Synchronous canonical validation — host uses for step Next + review summary. */
   readonly validateDraftSync?: (input: {

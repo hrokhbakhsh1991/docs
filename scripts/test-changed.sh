@@ -71,6 +71,9 @@ pkg_for_path() {
     packages/tenant-kernel/*) echo "@app-tour/tenant-kernel" ;;
     packages/platform-events/*) echo "@app-tour/platform-events" ;;
     packages/workspaces/starter/*) echo "@app-tour/workspace-starter" ;;
+    packages/draft-engine/*) echo "@app-tour/draft-engine" ;;
+    packages/wizard-navigation/*) echo "@app-tour/wizard-navigation" ;;
+    packages/workspaces/denali/*) echo "@app-tour/workspace-denali" ;;
     apps/api/*) echo "@apps/api" ;;
     apps/web/*) echo "@apps/web" ;;
     scripts/* | infra/* | docs/* | reports/* | .github/* | .husky/*)
@@ -107,9 +110,18 @@ expand_pkg() {
     @app-tour/workspace-starter)
       echo "@app-tour/workspace-starter @apps/api @apps/web"
       ;;
+    @app-tour/draft-engine)
+      echo "@app-tour/draft-engine @apps/web"
+      ;;
+    @app-tour/wizard-navigation)
+      echo "@app-tour/wizard-navigation @apps/web"
+      ;;
+    @app-tour/workspace-denali)
+      echo "@app-tour/workspace-denali @apps/web"
+      ;;
     @apps/api) echo "@apps/api" ;;
     @apps/web) echo "@apps/web" ;;
-    @app-tour/workspace-sdk|@app-tour/platform-core|@app-tour/design-tokens|@app-tour/ui-primitives|@app-tour/theme-react|@app-tour/tenant-kernel|@app-tour/platform-events|@app-tour/workspace-starter)
+    @app-tour/workspace-starter|@app-tour/draft-engine|@app-tour/wizard-navigation|@app-tour/workspace-denali|@app-tour/workspace-sdk|@app-tour/platform-core|@app-tour/design-tokens|@app-tour/ui-primitives|@app-tour/theme-react|@app-tour/tenant-kernel|@app-tour/platform-events)
       echo "$1"
       ;;
     *) echo "" ;;
@@ -154,6 +166,9 @@ hash_pkg() {
     @app-tour/tenant-kernel) prefix="packages/tenant-kernel" ;;
     @app-tour/platform-events) prefix="packages/platform-events" ;;
     @app-tour/workspace-starter) prefix="packages/workspaces/starter" ;;
+    @app-tour/draft-engine) prefix="packages/draft-engine" ;;
+    @app-tour/wizard-navigation) prefix="packages/wizard-navigation" ;;
+    @app-tour/workspace-denali) prefix="packages/workspaces/denali" ;;
     @apps/api) prefix="apps/api" ;;
     @apps/web) prefix="apps/web" ;;
     *) return 1 ;;
@@ -186,6 +201,9 @@ pkg_dir() {
     @app-tour/tenant-kernel) echo "packages/tenant-kernel" ;;
     @app-tour/platform-events) echo "packages/platform-events" ;;
     @app-tour/workspace-starter) echo "packages/workspaces/starter" ;;
+    @app-tour/draft-engine) echo "packages/draft-engine" ;;
+    @app-tour/wizard-navigation) echo "packages/wizard-navigation" ;;
+    @app-tour/workspace-denali) echo "packages/workspaces/denali" ;;
     @apps/api) echo "apps/api" ;;
     @apps/web) echo "apps/web" ;;
     *) echo "" ;;

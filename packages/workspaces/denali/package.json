@@ -22,6 +22,10 @@
       "types": "./dist/draft/index.d.ts",
       "default": "./dist/draft/index.js"
     },
+    "./draft/tour-wizard": {
+      "types": "./dist/draft/denali-tour-wizard-draft.d.ts",
+      "default": "./dist/draft/denali-tour-wizard-draft.js"
+    },
     "./acl": {
       "types": "./dist/acl/migrateDenaliCanonical.d.ts",
       "default": "./dist/acl/migrateDenaliCanonical.js"
@@ -42,6 +46,14 @@
       "types": "./dist/settings/equipment-compatible-themes.d.ts",
       "default": "./dist/settings/equipment-compatible-themes.js"
     },
+    "./wizard/rules-loader": {
+      "types": "./dist/wizard/rules-loader.d.ts",
+      "default": "./dist/wizard/rules-loader.js"
+    },
+    "./wizard/build-field-step-resolver": {
+      "types": "./dist/wizard/build-field-step-resolver.d.ts",
+      "default": "./dist/wizard/build-field-step-resolver.js"
+    },
     "./wizard/validation": {
       "types": "./dist/wizard/denali-wizard-validation.d.ts",
       "default": "./dist/wizard/denali-wizard-validation.js"
@@ -50,9 +62,21 @@
       "types": "./dist/wizard/denali-wizard-submit-payload.d.ts",
       "default": "./dist/wizard/denali-wizard-submit-payload.js"
     },
+    "./wizard/catalog-sanitize": {
+      "types": "./dist/wizard/denali-wizard-catalog-sanitize.d.ts",
+      "default": "./dist/wizard/denali-wizard-catalog-sanitize.js"
+    },
+    "./wizard/template-invariants": {
+      "types": "./dist/wizard/ensure-tour-kind-template-field.d.ts",
+      "default": "./dist/wizard/ensure-tour-kind-template-field.js"
+    },
     "./clone/hydration": {
       "types": "./dist/clone/denali-tour-clone-hydration.d.ts",
       "default": "./dist/clone/denali-tour-clone-hydration.js"
+    },
+    "./clone": {
+      "types": "./dist/clone/index.d.ts",
+      "default": "./dist/clone/index.js"
     },
     "./edit": {
       "types": "./dist/edit/index.d.ts",
@@ -62,6 +86,10 @@
       "types": "./dist/tours/index.d.ts",
       "default": "./dist/tours/index.js"
     },
+    "./photos": {
+      "types": "./dist/photos/index.d.ts",
+      "default": "./dist/photos/index.js"
+    },
     "./wizard/host-hooks": {
       "types": "./dist/wizard/denali-wizard-host-hooks.d.ts",
       "default": "./dist/wizard/denali-wizard-host-hooks.js"
@@ -70,6 +98,10 @@
       "types": "./dist/wizard/contextual.d.ts",
       "default": "./dist/wizard/contextual.js"
     },
+    "./wizard/canonical-form-sync": {
+      "types": "./dist/wizard/denali-canonical-form-sync.d.ts",
+      "default": "./dist/wizard/denali-canonical-form-sync.js"
+    },
     "./program/itinerary": {
       "types": "./dist/schemas/denaliItineraryDaySchema.d.ts",
       "default": "./dist/schemas/denaliItineraryDaySchema.js"
@@ -77,6 +109,10 @@
     "./wizard/resolve-initial-step-index": {
       "types": "./dist/wizard/resolve-initial-step-index.d.ts",
       "default": "./dist/wizard/resolve-initial-step-index.js"
+    },
+    "./finance/api-tour-created-adapter": {
+      "types": "./dist/finance/api-tour-created-adapter.d.ts",
+      "default": "./dist/finance/api-tour-created-adapter.js"
     },
     "./http": {
       "types": "./dist/http/index.d.ts",
@@ -90,7 +126,303 @@
     "./theme/denali-admin.css": "./theme/denali-admin.css",
     "./theme/admin-skin.css": "./theme/admin-skin.css",
     "./messages/fa/wizard.json": "./messages/fa/wizard.json",
-    "./messages/en/wizard.json": "./messages/en/wizard.json"
+    "./messages/en/wizard.json": "./messages/en/wizard.json",
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "default": "./dist/ui/index.js"
+    },
+    "./ui/composite-ids": {
+      "types": "./dist/ui/surfaces/composite-ids.d.ts",
+      "default": "./dist/ui/surfaces/composite-ids.js"
+    },
+    "./ui/composite-renderers": {
+      "types": "./dist/ui/surfaces/composite-renderers.d.ts",
+      "default": "./dist/ui/surfaces/composite-renderers.js"
+    },
+    "./ui/composite-field": {
+      "types": "./dist/ui/surfaces/composite-field.d.ts",
+      "default": "./dist/ui/surfaces/composite-field.js"
+    },
+    "./ui/composite-surface": {
+      "types": "./dist/ui/surfaces/composite-surface.d.ts",
+      "default": "./dist/ui/surfaces/composite-surface.js"
+    },
+    "./ui/review-surface": {
+      "types": "./dist/ui/surfaces/review-surface.d.ts",
+      "default": "./dist/ui/surfaces/review-surface.js"
+    },
+    "./ui/review-surface-impl": {
+      "types": "./dist/ui/surfaces/review-surface-impl.d.ts",
+      "default": "./dist/ui/surfaces/review-surface-impl.js"
+    },
+    "./ui/review/denali-review-step": {
+      "types": "./dist/ui/review/denali-review-step.d.ts",
+      "default": "./dist/ui/review/denali-review-step.js"
+    },
+    "./ui/review/denali-review-validation-summary": {
+      "types": "./dist/ui/review/denali-review-validation-summary.d.ts",
+      "default": "./dist/ui/review/denali-review-validation-summary.js"
+    },
+    "./ui/review/denali-wizard-content-quality-header": {
+      "types": "./dist/ui/review/denali-wizard-content-quality-header.d.ts",
+      "default": "./dist/ui/review/denali-wizard-content-quality-header.js"
+    },
+    "./ui/field-label-resolver": {
+      "types": "./dist/ui/surfaces/field-label-resolver.d.ts",
+      "default": "./dist/ui/surfaces/field-label-resolver.js"
+    },
+    "./ui/components/difficulty-range-slider": {
+      "types": "./dist/ui/components/denali-difficulty-range-slider.d.ts",
+      "default": "./dist/ui/components/denali-difficulty-range-slider.js"
+    },
+    "./ui/components/location-picker-map": {
+      "types": "./dist/ui/components/map/denali-location-picker-map.d.ts",
+      "default": "./dist/ui/components/map/denali-location-picker-map.js"
+    },
+    "./ui/adapters/*": {
+      "types": "./dist/ui/adapters/*.d.ts",
+      "default": "./dist/ui/adapters/*.js"
+    },
+    "./ui/logic/*": {
+      "types": "./dist/ui/logic/*.d.ts",
+      "default": "./dist/ui/logic/*.js"
+    },
+    "./ui/test-ids/*": {
+      "types": "./dist/ui/test-ids/*.d.ts",
+      "default": "./dist/ui/test-ids/*.js"
+    },
+    "./ui/fields/tour-kind": {
+      "types": "./dist/ui/fields/denali-tour-kind-field.d.ts",
+      "default": "./dist/ui/fields/denali-tour-kind-field.js"
+    },
+    "./ui/fields/difficulty-level": {
+      "types": "./dist/ui/fields/denali-difficulty-level-field.d.ts",
+      "default": "./dist/ui/fields/denali-difficulty-level-field.js"
+    },
+    "./ui/fields/transport-mode": {
+      "types": "./dist/ui/fields/denali-transport-mode-field.d.ts",
+      "default": "./dist/ui/fields/denali-transport-mode-field.js"
+    },
+    "./ui/fields/elevation-gain": {
+      "types": "./dist/ui/fields/denali-elevation-gain-field.d.ts",
+      "default": "./dist/ui/fields/denali-elevation-gain-field.js"
+    },
+    "./ui/fields/approximate-return-time": {
+      "types": "./dist/ui/fields/denali-approximate-return-time-field.d.ts",
+      "default": "./dist/ui/fields/denali-approximate-return-time-field.js"
+    },
+    "./ui/fields/publish-status": {
+      "types": "./dist/ui/fields/denali-publish-status-field.d.ts",
+      "default": "./dist/ui/fields/denali-publish-status-field.js"
+    },
+    "./ui/fields/peak-experience": {
+      "types": "./dist/ui/fields/denali-peak-experience-field.d.ts",
+      "default": "./dist/ui/fields/denali-peak-experience-field.js"
+    },
+    "./ui/fields/social-media-link": {
+      "types": "./dist/ui/fields/denali-social-media-link-field.d.ts",
+      "default": "./dist/ui/fields/denali-social-media-link-field.js"
+    },
+    "./ui/fields/pricing-participants": {
+      "types": "./dist/ui/fields/denali-pricing-participants-field.d.ts",
+      "default": "./dist/ui/fields/denali-pricing-participants-field.js"
+    },
+    "./ui/fields/pricing-payment": {
+      "types": "./dist/ui/fields/denali-pricing-payment-field.d.ts",
+      "default": "./dist/ui/fields/denali-pricing-payment-field.js"
+    },
+    "./ui/fields/custom-services": {
+      "types": "./dist/ui/fields/denali-custom-services-field.d.ts",
+      "default": "./dist/ui/fields/denali-custom-services-field.js"
+    },
+    "./ui/fields/tour-services": {
+      "types": "./dist/ui/fields/denali-tour-services-field.d.ts",
+      "default": "./dist/ui/fields/denali-tour-services-field.js"
+    },
+    "./ui/fields/guide-language-ids": {
+      "types": "./dist/ui/fields/denali-guide-language-ids-field.d.ts",
+      "default": "./dist/ui/fields/denali-guide-language-ids-field.js"
+    },
+    "./ui/fields/leader-user-ids": {
+      "types": "./dist/ui/fields/denali-leader-user-ids-field.d.ts",
+      "default": "./dist/ui/fields/denali-leader-user-ids-field.js"
+    },
+    "./ui/fields/gear": {
+      "types": "./dist/ui/fields/denali-gear-field.d.ts",
+      "default": "./dist/ui/fields/denali-gear-field.js"
+    },
+    "./ui/fields/program-content": {
+      "types": "./dist/ui/fields/denali-program-content-field.d.ts",
+      "default": "./dist/ui/fields/denali-program-content-field.js"
+    },
+    "./ui/fields/datetime": {
+      "types": "./dist/ui/fields/denali-datetime-field.d.ts",
+      "default": "./dist/ui/fields/denali-datetime-field.js"
+    },
+    "./ui/fields/datetime-end": {
+      "types": "./dist/ui/fields/denali-datetime-end-field.d.ts",
+      "default": "./dist/ui/fields/denali-datetime-end-field.js"
+    },
+    "./ui/fields/destination": {
+      "types": "./dist/ui/fields/denali-destination-field.d.ts",
+      "default": "./dist/ui/fields/denali-destination-field.js"
+    },
+    "./ui/fields/gathering-points": {
+      "types": "./dist/ui/fields/denali-gathering-points-field.d.ts",
+      "default": "./dist/ui/fields/denali-gathering-points-field.js"
+    },
+    "./ui/fields/location-zones": {
+      "types": "./dist/ui/fields/denali-location-zones-field.d.ts",
+      "default": "./dist/ui/fields/denali-location-zones-field.js"
+    },
+    "./ui/fields/photos": {
+      "types": "./dist/ui/fields/denali-photos-field.d.ts",
+      "default": "./dist/ui/fields/denali-photos-field.js"
+    },
+    "./ui/fields/itinerary": {
+      "types": "./dist/ui/fields/denali-itinerary-field.d.ts",
+      "default": "./dist/ui/fields/denali-itinerary-field.js"
+    },
+    "./ui/components/denali-photo-preview": {
+      "types": "./dist/ui/components/denali-photo-preview.d.ts",
+      "default": "./dist/ui/components/denali-photo-preview.js"
+    },
+    "./ui/components/denali-map-preview": {
+      "types": "./dist/ui/components/denali-map-preview.d.ts",
+      "default": "./dist/ui/components/denali-map-preview.js"
+    },
+    "./ui/components/denali-itinerary-segment-destination-field": {
+      "types": "./dist/ui/components/denali-itinerary-segment-destination-field.d.ts",
+      "default": "./dist/ui/components/denali-itinerary-segment-destination-field.js"
+    },
+    "./ui/components/denali-itinerary-segment-photo-picker": {
+      "types": "./dist/ui/components/denali-itinerary-segment-photo-picker.d.ts",
+      "default": "./dist/ui/components/denali-itinerary-segment-photo-picker.js"
+    },
+    "./ui/adapters/photo-upload-client": {
+      "types": "./dist/ui/adapters/photo-upload-client.d.ts",
+      "default": "./dist/ui/adapters/photo-upload-client.js"
+    },
+    "./ui/adapters/photo-upload-errors": {
+      "types": "./dist/ui/adapters/photo-upload-errors.d.ts",
+      "default": "./dist/ui/adapters/photo-upload-errors.js"
+    },
+    "./ui/adapters/wizard-media-bff-path": {
+      "types": "./dist/ui/adapters/wizard-media-bff-path.d.ts",
+      "default": "./dist/ui/adapters/wizard-media-bff-path.js"
+    },
+    "./ui/components/denali-location-address-picker": {
+      "types": "./dist/ui/components/denali-location-address-picker.d.ts",
+      "default": "./dist/ui/components/denali-location-address-picker.js"
+    },
+    "./ui/components/denali-location-point-editor": {
+      "types": "./dist/ui/components/denali-location-point-editor.d.ts",
+      "default": "./dist/ui/components/denali-location-point-editor.js"
+    },
+    "./ui/components/localized-date-picker": {
+      "types": "./dist/ui/components/localized-date-picker.d.ts",
+      "default": "./dist/ui/components/localized-date-picker.js"
+    },
+    "./ui/components/localized-datetime-picker": {
+      "types": "./dist/ui/components/localized-datetime-picker.d.ts",
+      "default": "./dist/ui/components/localized-datetime-picker.js"
+    },
+    "./ui/components/calendar/denali-calendar": {
+      "types": "./dist/ui/components/calendar/denali-calendar.d.ts",
+      "default": "./dist/ui/components/calendar/denali-calendar.js"
+    },
+    "./ui/components/localized-numeric-input": {
+      "types": "./dist/ui/components/localized-numeric-input.d.ts",
+      "default": "./dist/ui/components/localized-numeric-input.js"
+    },
+    "./ui/components/denali-time-input": {
+      "types": "./dist/ui/components/denali-time-input.d.ts",
+      "default": "./dist/ui/components/denali-time-input.js"
+    },
+    "./ui/hooks/*": {
+      "types": "./dist/ui/hooks/*.d.ts",
+      "default": "./dist/ui/hooks/*.js"
+    },
+    "./ui/chrome/draft-form-adapter": {
+      "types": "./dist/ui/chrome/draft-form-adapter.d.ts",
+      "default": "./dist/ui/chrome/draft-form-adapter.js"
+    },
+    "./ui/chrome/draft-persist": {
+      "types": "./dist/ui/chrome/draft-persist.d.ts",
+      "default": "./dist/ui/chrome/draft-persist.js"
+    },
+    "./ui/chrome/create-submit-logic": {
+      "types": "./dist/ui/chrome/create-submit-logic.d.ts",
+      "default": "./dist/ui/chrome/create-submit-logic.js"
+    },
+    "./ui/chrome/tour-create-payload": {
+      "types": "./dist/ui/chrome/tour-create-payload.d.ts",
+      "default": "./dist/ui/chrome/tour-create-payload.js"
+    },
+    "./ui/chrome/wizard-validation": {
+      "types": "./dist/ui/chrome/wizard-validation.d.ts",
+      "default": "./dist/ui/chrome/wizard-validation.js"
+    },
+    "./ui/chrome/flat-edit-plan": {
+      "types": "./dist/ui/chrome/flat-edit-plan.d.ts",
+      "default": "./dist/ui/chrome/flat-edit-plan.js"
+    },
+    "./ui/chrome/denali-flat-edit-validation-list": {
+      "types": "./dist/ui/chrome/denali-flat-edit-validation-list.d.ts",
+      "default": "./dist/ui/chrome/denali-flat-edit-validation-list.js"
+    },
+    "./ui/chrome/draft-binding": {
+      "types": "./dist/ui/chrome/draft-binding.d.ts",
+      "default": "./dist/ui/chrome/draft-binding.js"
+    },
+    "./ui/chrome/create-tour-wizard-screen": {
+      "types": "./dist/ui/chrome/create-tour-wizard-screen.d.ts",
+      "default": "./dist/ui/chrome/create-tour-wizard-screen.js"
+    },
+    "./ui/chrome/use-create-tour-wizard-core": {
+      "types": "./dist/ui/chrome/use-create-tour-wizard-core.d.ts",
+      "default": "./dist/ui/chrome/use-create-tour-wizard-core.js"
+    },
+    "./ui/chrome/denali-create-tour-wizard-view": {
+      "types": "./dist/ui/chrome/denali-create-tour-wizard-view.d.ts",
+      "default": "./dist/ui/chrome/denali-create-tour-wizard-view.js"
+    },
+    "./ui/create-wizard": {
+      "types": "./dist/ui/chrome/create-wizard.d.ts",
+      "default": "./dist/ui/chrome/create-wizard.js"
+    },
+    "./ui/flat-edit": {
+      "types": "./dist/ui/flat-edit.d.ts",
+      "default": "./dist/ui/flat-edit.js"
+    },
+    "./ui/chrome/denali-flat-edit-form": {
+      "types": "./dist/ui/chrome/denali-flat-edit-form.d.ts",
+      "default": "./dist/ui/chrome/denali-flat-edit-form.js"
+    },
+    "./ui/chrome/flat-edit-page-screen": {
+      "types": "./dist/ui/chrome/flat-edit-page-screen.d.ts",
+      "default": "./dist/ui/chrome/flat-edit-page-screen.js"
+    },
+    "./ui/chrome/flat-edit-patch-logic": {
+      "types": "./dist/ui/chrome/flat-edit-patch-logic.d.ts",
+      "default": "./dist/ui/chrome/flat-edit-patch-logic.js"
+    },
+    "./ui/chrome/use-flat-edit-page-core": {
+      "types": "./dist/ui/chrome/use-flat-edit-page-core.d.ts",
+      "default": "./dist/ui/chrome/use-flat-edit-page-core.js"
+    },
+    "./ui/test-ids/denali-flat-edit-test-ids": {
+      "types": "./dist/ui/test-ids/denali-flat-edit-test-ids.d.ts",
+      "default": "./dist/ui/test-ids/denali-flat-edit-test-ids.js"
+    },
+    "./ui/adapters/submit-catalog-fetch": {
+      "types": "./dist/ui/adapters/submit-catalog-fetch.d.ts",
+      "default": "./dist/ui/adapters/submit-catalog-fetch.js"
+    },
+    "./ui/adapters/theme-catalog-fetch": {
+      "types": "./dist/ui/adapters/theme-catalog-fetch.d.ts",
+      "default": "./dist/ui/adapters/theme-catalog-fetch.js"
+    }
   },
   "files": [
     "dist",
@@ -102,21 +434,37 @@
     "theme/animations.css"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.ui.json",
     "denali:codegen": "node --import tsx ./scripts/denali-codegen.mjs",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
     "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "peerDependencies": {
+    "lucide-react": "^1.0.0",
+    "next": "^15.0.0",
+    "next-intl": "^3.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "dependencies": {
     "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/draft-engine": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
+    "@app-tour/theme-react": "workspace:*",
+    "@app-tour/ui-primitives": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
+    "@app-tour/wizard-navigation": "workspace:*",
+    "leaflet": "^1.9.4",
     "minio": "^8.0.4",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "lucide-react": "^1.17.0",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"
   }

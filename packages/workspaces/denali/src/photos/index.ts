@@ -2,6 +2,7 @@ export {
   assertDenaliTourPhotoKeyTenantScope,
   buildDenaliTourPhotoObjectKey,
   buildDenaliWizardDraftPhotoObjectKey,
+  isDenaliWizardDraftPhotoReadKeyAllowed,
 } from "./tour-photo-object-key";
 export {
   createDenaliWizardDraftSessionId,

@@ -5,6 +5,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  extractDenaliPhotoApiErrorCode,
+  parseDenaliPhotoApiErrorCode,
+} from "../src/i18n/resolve-denali-photo-upload-error";
+import {
   DENALI_PHOTO_ALLOWED_CONTENT_TYPES,
   validateDenaliPhotoFile,
 } from "../src/wizard/denali/denali-photo-upload-client";
@@ -40,5 +44,30 @@ describe("denali-photo-upload.spec.ts", () => {
       validateDenaliPhotoFile({ type: "image/jpeg", size: 6 * 1024 * 1024 } as File),
       "PHOTO_FILE_TOO_LARGE"
     );
+  });
+
+  it("WEB-6.7-PHOTO-03 parses flat API error codes", () => {
+    assert.equal(
+      parseDenaliPhotoApiErrorCode({ code: "PHOTO_STORAGE_FULL" }, 507),
+      "PHOTO_STORAGE_FULL"
+    );
+    assert.equal(
+      extractDenaliPhotoApiErrorCode({ code: "MINIO_NOT_CONFIGURED" }),
+      "PHOTO_STORAGE_NOT_CONFIGURED"
+    );
+  });
+
+  it("WEB-6.7-PHOTO-04 parses nested BFF error envelopes", () => {
+    assert.equal(
+      parseDenaliPhotoApiErrorCode(
+        { error: { code: "AUTH_UNAUTHENTICATED", message: "Authentication required" } },
+        401
+      ),
+      "PHOTO_AUTH_REQUIRED"
+    );
+  });
+
+  it("WEB-6.7-PHOTO-05 falls back to HTTP status code", () => {
+    assert.equal(parseDenaliPhotoApiErrorCode({}, 500), "PHOTO_UPLOAD_HTTP_500");
   });
 });

@@ -57,8 +57,9 @@ export function evaluateFormRules(
     return {
       canonicalPath: field.path,
       formPath,
-      visible: isDenaliFieldVisibleOnStep(model, step, formPath, form, options?.uiOptions),
-      required: isDenaliFieldRequiredOnStep(model, step, formPath, form, options?.uiOptions),
+      // Use canonical path — `basicInfo.tourType` maps to multiple canonicals (category/duration/eventVariant).
+      visible: isDenaliFieldVisibleOnStep(model, step, field.path, form, options?.uiOptions),
+      required: isDenaliFieldRequiredOnStep(model, step, field.path, form, options?.uiOptions),
       staticHidden: field.hidden,
       staticRequired: field.required,
     };
@@ -81,8 +82,8 @@ export function evaluateFormFieldRule(
   return {
     canonicalPath,
     formPath,
-    visible: isDenaliFieldVisibleOnStep(model, step, formPath, form, options?.uiOptions),
-    required: isDenaliFieldRequiredOnStep(model, step, formPath, form, options?.uiOptions),
+    visible: isDenaliFieldVisibleOnStep(model, step, canonicalPath, form, options?.uiOptions),
+    required: isDenaliFieldRequiredOnStep(model, step, canonicalPath, form, options?.uiOptions),
     staticHidden: field?.hidden ?? true,
     staticRequired: field?.required ?? false,
   };

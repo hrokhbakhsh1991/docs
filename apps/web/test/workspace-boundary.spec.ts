@@ -44,7 +44,7 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
   if (rel === "src/finance/finance-nav-access.ts") {
     return true;
   }
-  if (rel === "app/tours/new/new-tour-wizard-client.tsx") {
+  if (rel === "app/tours/new/denali-create-tour-wizard-client.tsx") {
     return true;
   }
   if (rel.endsWith("denali-flat-edit-page-client.tsx")) {

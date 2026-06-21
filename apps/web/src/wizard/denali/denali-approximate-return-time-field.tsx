@@ -7,6 +7,7 @@ import { DenaliTimeInput } from "@/components/i18n/denali-time-input";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { normalizeApproximateReturnTime } from "./denali-datetime-utils";
 
@@ -26,6 +27,7 @@ export function DenaliApproximateReturnTimeField({
   required = false,
 }: DenaliApproximateReturnTimeFieldProps) {
   const t = useTranslations("denali");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "approximateReturnTime");
   const value = normalizeApproximateReturnTime(
     getCanonicalStringValue(draft, "approximateReturnTime")
@@ -40,9 +42,9 @@ export function DenaliApproximateReturnTimeField({
           aria-label={label}
           value={value}
           onChange={(next) =>
-            onDraftChange(
+            commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
               setCanonicalStringValue(
-                draft,
+                base,
                 "approximateReturnTime",
                 normalizeApproximateReturnTime(next)
               )

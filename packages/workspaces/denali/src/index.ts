@@ -34,6 +34,13 @@ export {
   buildDenaliTenantWizardTemplatePayload,
 } from "./settings/denaliFullWizardTemplate";
 export {
+  DENALI_TOUR_KIND_CANONICAL_PATH,
+  ensureDenaliTourKindAllowedPaths,
+  ensureDenaliTourKindTemplateSteps,
+  ensureDenaliMatrixRequiredAllowedPaths,
+  ensureDenaliMatrixRequiredTemplateSteps,
+} from "./wizard/ensure-tour-kind-template-field";
+export {
   DENALI_CREATE_TOUR_DRAFT_KEY,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
   denaliHydrateDraftEnvelope,
@@ -61,6 +68,7 @@ export {
   createDenaliWizardDraftSessionId,
   DENALI_WIZARD_DRAFT_SESSION_ID_PATTERN,
   isDenaliWizardDraftSessionId,
+  isDenaliWizardDraftPhotoReadKeyAllowed,
   putDenaliWizardDraftPhoto,
   assertDenaliPhotoUploadContentType,
   DENALI_MAX_PHOTO_UPLOAD_BYTES,

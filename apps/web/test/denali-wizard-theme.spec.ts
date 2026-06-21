@@ -227,10 +227,10 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(photos, /isDenaliHttpsImageUrl/);
     assert.match(photos, /isDenaliWizardDraftSessionId/);
     const client = readFileSync(
-      join(import.meta.dirname, "../app/tours/new/new-tour-wizard-client.tsx"),
+      join(import.meta.dirname, "../app/tours/new/denali-create-tour-wizard-client.tsx"),
       "utf8"
     );
-    assert.match(client, /createDenaliWizardDraftSessionId/);
+    assert.match(client, /createWizardAssetSessionId/);
     const schema = readFileSync(
       join(REPO_ROOT, "packages/workspaces/denali/src/schemas/denaliFileAssetSchema.ts"),
       "utf8"
@@ -263,7 +263,7 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(interactions, /denali-wizard-step-in 0\.18s/);
   });
 
-  it("WEB-DENALI-WIZARD-17 tour kind uses segmented category and duration controls", () => {
+  it("WEB-DENALI-WIZARD-17 tour kind uses visible segmented category and duration controls", () => {
     const bridge = readFileSync(
       join(import.meta.dirname, "../src/shell/wizard-bridge-shell.tsx"),
       "utf8"
@@ -276,11 +276,15 @@ describe("denali-wizard-theme.spec.ts", () => {
     );
     assert.match(tourKind, /patchDenaliCanonicalBasics/);
     assert.match(tourKind, /denali-tour-kind__choice/);
+    assert.match(tourKind, /denali-tour-kind__picker/);
+    assert.match(tourKind, /denali-tour-kind__current/);
+    assert.doesNotMatch(tourKind, /<details/);
     assert.doesNotMatch(tourKind, /<Select/);
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.match(fields, /\[data-denali-tour-kind\]/);
+    assert.match(fields, /\.denali-tour-kind__current/);
     const client = readFileSync(
-      join(import.meta.dirname, "../app/tours/new/new-tour-wizard-client.tsx"),
+      join(import.meta.dirname, "../app/tours/new/denali-create-tour-wizard-client.tsx"),
       "utf8"
     );
     assert.match(client, /wizard-clear-draft/);

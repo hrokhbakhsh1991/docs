@@ -16,7 +16,10 @@
   "createButton": "ساخت تور",
   "saveDraft": "ذخیره پیش‌نویس",
   "clearDraft": "پاک کردن پیش‌نویس",
+  "clearDraftConfirmTitle": "پاک کردن پیش‌نویس؟",
   "clearDraftConfirm": "پیش‌نویس فعلی پاک شود و فرم از نو شروع شود؟",
+  "clearingDraft": "در حال پاک کردن پیش‌نویس…",
+  "clearDraftError": "پاک کردن پیش‌نویس ناموفق بود ({error}). دوباره تلاش کنید یا ابتدا کار خود را ذخیره کنید.",
   "savingDraft": "در حال ذخیره پیش‌نویس…",
   "creating": "در حال ساخت تور…",
   "created": "تور ساخته شد: {id}",
@@ -50,7 +53,15 @@
       "count": "{count, number} مورد نیاز به اصلاح",
       "stepGroup": "{step} — {count, number} مورد",
       "goToStep": "رفتن به مرحله {step}",
-      "issueAction": "رفتن به فیلد {field}"
+      "issueAction": "رفتن به فیلد {field}",
+      "codes": {
+        "REQUIRED_FIELD_EMPTY": "{field} الزامی است",
+        "CANONICAL_TYPE_MISMATCH": "مقدار {field} نامعتبر است",
+        "CANONICAL_ROOT_UNKNOWN": "{field} در این فرم مجاز نیست",
+        "HIDDEN_FIELD_POISON": "مقدار {field} باید پاک شود",
+        "VALIDATION_RULE_REQUIRED_FIELD": "{field} الزامی است",
+        "CARDINALITY_VIOLATION": "{field} از حد مجاز فراتر رفته است"
+      }
     }
   },
   "bridge": {

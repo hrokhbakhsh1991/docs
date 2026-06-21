@@ -40,6 +40,13 @@ export function createFreshStarterPlugin(
   return createStarterWorkspacePlugin(theme);
 }
 
+/** JSON round-trip payload for parseWorkspacePluginFromStorage (strips runtime-only functions). */
+export function pluginPayloadForStorageIngress(
+  plugin: WorkspacePlugin,
+): Record<string, unknown> {
+  return JSON.parse(JSON.stringify(plugin)) as Record<string, unknown>;
+}
+
 /** Deep clone of frozen presets — no getWorkspaceThemePresets() singleton (UT-04). */
 export function createFreshPresets(): Readonly<
   Record<WorkspaceThemePresetId, WorkspaceThemeContract>

@@ -131,6 +131,9 @@
     },
     "tourKind": {
       "placeholder": "انتخاب نوع تور…",
+      "currentLabel": "انتخاب فعلی:",
+      "changeHint": "برای تغییر کلیک کنید",
+      "changeLabel": "تغییر دسته‌بندی و مدت تور",
       "helper": "دسته‌بندی و مدت برنامه تعیین می‌کند کدام فیلدها نمایش داده شوند (ارتفاع، ساعت پیاده‌روی، برنامه روزانه، نقاط مسیر و غیره).",
       "categories": {
         "mountain": "کوهنوردی",
@@ -206,10 +209,19 @@
       "httpsUrlRequired": "آدرس تصویر باید با https:// شروع شود.",
       "missingPhotoId": "ردیف عکس فاقد شناسه است.",
       "uploadFailed": "آپلود ناموفق بود",
+      "uploading": "در حال آپلود…",
+      "previewLoadFailed": "بارگذاری پیش‌نمایش تصویر ممکن نشد.",
+      "previewRetry": "تلاش مجدد",
       "uploadErrors": {
         "PHOTO_INVALID_TYPE": "فقط تصاویر JPEG، PNG یا WebP مجاز است.",
         "PHOTO_FILE_TOO_LARGE": "حجم تصویر باید حداکثر ۵ مگابایت باشد.",
         "PHOTO_STORAGE_NOT_CONFIGURED": "فضای ذخیره‌سازی عکس پیکربندی نشده است. به‌جای آن URL تصویر وارد کنید.",
+        "PHOTO_STORAGE_FULL": "فضای ذخیره‌سازی عکس پر است. با مدیر تماس بگیرید یا از URL تصویر استفاده کنید.",
+        "PHOTO_STORAGE_UNAVAILABLE": "فضای ذخیره‌سازی موقتاً در دسترس نیست. دوباره تلاش کنید یا URL تصویر وارد کنید.",
+        "PHOTO_AUTH_REQUIRED": "برای آپلود عکس دوباره وارد شوید.",
+        "PHOTO_BACKEND_UNREACHABLE": "ارتباط با سرور برقرار نشد. اتصال را بررسی و دوباره تلاش کنید.",
+        "PHOTO_PREVIEW_URL_MISSING": "آدرس پیش‌نمایش از سرور دریافت نشد.",
+        "PHOTO_PREVIEW_HTTPS_REQUIRED": "برای پیش‌نمایش، URL تصویر باید HTTPS باشد.",
         "PHOTO_UPLOAD_HTTP_ERROR": "آپلود ناموفق بود (HTTP {status, number}).",
         "PHOTO_MISSING_STORAGE_KEY": "پاسخ آپلود فاقد کلید ذخیره‌سازی است."
       },
@@ -385,6 +397,15 @@
     "validationStepGroup": "{step} — {count, number} مورد",
     "validationGoToStep": "رفتن به مرحله {step}",
     "validationIssueAction": "رفتن به فیلد {field} و اصلاح خطا",
+    "validation": {
+      "REQUIRED_FIELD_EMPTY": "{field} الزامی است",
+      "CANONICAL_TYPE_MISMATCH": "مقدار {field} نامعتبر است",
+      "CANONICAL_ROOT_UNKNOWN": "{field} در این فرم مجاز نیست",
+      "HIDDEN_FIELD_POISON": "مقدار {field} باید پاک شود",
+      "VALIDATION_RULE_REQUIRED_FIELD": "{field} الزامی است",
+      "DENALI_TOUR_TYPE_REQUIRED": "قبل از ادامه نوع تور را انتخاب کنید",
+      "CARDINALITY_VIOLATION": "{field} از حد مجاز فراتر رفته است"
+    },
     "publishStatus": {
       "helper": "تور پیش‌نویس تا زمان انتشار فعال، داخلی می‌ماند.",
       "draft": "پیش‌نویس",

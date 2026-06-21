@@ -8,6 +8,7 @@ import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { DENALI_COMPOSITE_TEST_IDS } from "./denali-location-types";
 import { useDenaliDestinationCatalog } from "./use-denali-destination-catalog";
@@ -41,6 +42,7 @@ export function DenaliDestinationField({
 }: DenaliDestinationFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
+  const draftRef = useLatestWizardDraft(draft);
   const { options, destinationById, loading, error } = useDenaliDestinationCatalog();
   const value = getCanonicalStringValue(draft, canonicalPath);
   const label = resolveDenaliFieldLabel(t, canonicalPath);
@@ -62,10 +64,14 @@ export function DenaliDestinationField({
           onChange={(event) => {
             const nextId = event.target.value;
             if (nextId.length === 0) {
-              onDraftChange(setCanonicalStringValue(draft, canonicalPath, ""));
+              commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+                setCanonicalStringValue(base, canonicalPath, "")
+              );
               return;
             }
-            onDraftChange(applyDestinationSelection(draft, canonicalPath, nextId, destinationById));
+            commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+              applyDestinationSelection(base, canonicalPath, nextId, destinationById)
+            );
           }}
         />
       </label>

@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { buildCatalogRegistrationHeaders } from "@/catalog/build-catalog-registration-headers.server";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
-import { buildUrbanIntakeIdempotencyKey } from "@/urban/build-urban-intake-idempotency-key";
 
 type RegistrationBody = {
   readonly tourId?: unknown;
@@ -56,30 +55,31 @@ export async function POST(req: Request): Promise<NextResponse> {
         partySize,
       }),
     });
-    const payload = (await res.json().catch(() => ({}))) as { code?: string; data?: { id?: string } };
+    const payload = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      data?: { id?: string };
+    };
     if (!res.ok) {
       return NextResponse.json(
         { ok: false, code: typeof payload.code === "string" ? payload.code : "unknown_error" },
         { status: res.status }
       );
     }
-    return NextResponse.json({ ok: true, registrationId: payload.data?.id ?? null }, { status: 201 });
+    return NextResponse.json(
+      { ok: true, registrationId: payload.data?.id ?? null },
+      { status: 201 }
+    );
   }
 
   if (bootstrap.pluginId === "urban") {
-    const catalogHeaders = await buildCatalogRegistrationHeaders(bootstrap.tenantId);
-    const actorUserId = catalogHeaders["x-user-id"] ?? "anonymous";
-    const idempotencyKey = buildUrbanIntakeIdempotencyKey({
-      tenantId: bootstrap.tenantId,
-      tourId,
-      email,
-      actorUserId,
-    });
+    const idempotencyKey =
+      req.headers.get("idempotency-key")?.trim() ??
+      req.headers.get("Idempotency-Key")?.trim() ??
+      `portal-urban-reg-${tourId}-${Date.now()}`;
     const res = await fetch(`${apiBase}/urban/registrations`, {
       method: "POST",
       headers: {
-        ...catalogHeaders,
-        "content-type": "application/json",
+        ...headers,
         "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify({
@@ -93,14 +93,20 @@ export async function POST(req: Request): Promise<NextResponse> {
         ...(notes.length > 0 ? { notes } : {}),
       }),
     });
-    const payload = (await res.json().catch(() => ({}))) as { code?: string; data?: { id?: string } };
+    const payload = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      data?: { id?: string };
+    };
     if (!res.ok) {
       return NextResponse.json(
         { ok: false, code: typeof payload.code === "string" ? payload.code : "unknown_error" },
         { status: res.status }
       );
     }
-    return NextResponse.json({ ok: true, registrationId: payload.data?.id ?? null }, { status: 201 });
+    return NextResponse.json(
+      { ok: true, registrationId: payload.data?.id ?? null },
+      { status: 201 }
+    );
   }
 
   return NextResponse.json({ ok: false, code: "REGISTRATION_CLOSED" }, { status: 404 });

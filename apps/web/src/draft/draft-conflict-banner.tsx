@@ -10,6 +10,7 @@ import { resolveDraftConflictBannerView } from "./draft-conflict-banner-logic";
 export type DraftConflictBannerProps<T> = {
   readonly status: DraftStatus;
   readonly pendingDraft?: DraftSyncPayload<T> | null;
+  readonly conflictReloadNotice?: boolean;
   readonly onApplyPending?: () => void;
   readonly onDiscardPending?: () => void;
 };
@@ -17,6 +18,7 @@ export type DraftConflictBannerProps<T> = {
 export function DraftConflictBanner<T>({
   status,
   pendingDraft,
+  conflictReloadNotice = false,
   onApplyPending,
   onDiscardPending,
 }: DraftConflictBannerProps<T>) {
@@ -24,8 +26,17 @@ export function DraftConflictBanner<T>({
   const view = resolveDraftConflictBannerView(
     status,
     pendingDraft != null,
-    onApplyPending !== undefined || onDiscardPending !== undefined
+    onApplyPending !== undefined || onDiscardPending !== undefined,
+    conflictReloadNotice,
   );
+
+  if (view.kind === "serverReloaded") {
+    return (
+      <p className="draft-conflict-banner" data-testid="draft-conflict-server-reloaded" role="status">
+        {t("draftSync.serverReloaded")}
+      </p>
+    );
+  }
 
   if (view.kind === "resolving") {
     return (

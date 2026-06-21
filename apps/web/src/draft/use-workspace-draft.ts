@@ -4,6 +4,7 @@ import { useDraftEngine } from "@app-tour/draft-engine/react";
 import { useEffect, useMemo } from "react";
 
 import { createWorkspaceDraftAdapter } from "./create-workspace-draft-adapter";
+import { useDraftVisibilityFlush } from "./use-draft-visibility-flush";
 import type { UseWorkspaceDraftOptions, WorkspaceDraftHookResult } from "./workspace-draft-types";
 
 export function useWorkspaceDraft<T>(
@@ -20,10 +21,14 @@ export function useWorkspaceDraft<T>(
       options.debounceMs,
       options.autoApply,
       options.merge,
+      options.onPushSuccess,
+      options.schemaGate,
+      options.normalizeRemote,
+      options.shouldBypassServerVersionAdoption,
     ]
   );
 
-  const { state, setDraftData, retry, flush, initialize, clearDraft, applyDraft } =
+  const { state, setDraftData, retry, flush, flushKeepalive, initialize, clearDraft, clearDraftAndReset, applyDraft, revertToLastValid } =
     useDraftEngine(adapter);
 
   useEffect(() => {
@@ -33,7 +38,16 @@ export function useWorkspaceDraft<T>(
     void initialize();
   }, [initialize, options.hydrateFromRemote]);
 
+  useDraftVisibilityFlush({
+    enabled: options.visibilityFlush !== false,
+    status: state.status,
+    flush,
+    flushKeepalive,
+  });
+
   const navLocked = state.status === "SYNCING" || state.status === "CONFLICT_RESOLVING";
+  const canRevertQuarantine =
+    state.status === "QUARANTINED" && state.hasLastValidSnapshot === true;
 
   return {
     data: state.data,
@@ -43,12 +57,17 @@ export function useWorkspaceDraft<T>(
     lastModified: state.lastModified,
     error: state.error,
     pendingDraft: state.pendingDraft,
+    schemaIssues: state.schemaIssues,
+    conflictReloadNotice: state.conflictReloadNotice === true,
+    canRevertQuarantine,
     navLocked,
     setData: setDraftData,
     retry,
     clearDraft,
+    clearDraftAndReset,
     applyDraft,
     flush,
     initialize,
+    revertToLastValid,
   };
 }

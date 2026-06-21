@@ -10,6 +10,7 @@ import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { parseStringArray } from "./denali-array-field-utils";
 import { isWizardLeaderCandidate } from "./denali-catalog-sanitize";
@@ -32,6 +33,7 @@ export function DenaliLeaderUserIdsField({
 }: DenaliLeaderUserIdsFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "leaderUserIds");
   const selected = parseStringArray(getCanonicalValue(draft, "leaderUserIds"));
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -85,7 +87,9 @@ export function DenaliLeaderUserIdsField({
     const next = selectedSet.has(userId)
       ? selected.filter((id) => id !== userId)
       : [...selected, userId];
-    onDraftChange(setCanonicalValue(draft, "leaderUserIds", next));
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalValue(base, "leaderUserIds", next)
+    );
   };
 
   return (

@@ -1,5 +1,5 @@
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
-import type { DenaliPhotoRemintPlanEntry, TourCloneHydrator } from "@app-tour/workspace-sdk";
+import type { WizardPhotoRemintPlanEntry, TourCloneHydrator } from "@app-tour/workspace-sdk";
 
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
@@ -64,7 +64,7 @@ export type TourCloneHydrateOptions = {
 
 export type TourCloneHydrateResult = {
   readonly draft: TourWizardDraft;
-  readonly photoRemintPlan?: readonly DenaliPhotoRemintPlanEntry[];
+  readonly photoRemintPlan?: readonly WizardPhotoRemintPlanEntry[];
 };
 
 export function hydrateTourCloneDraft(
@@ -94,7 +94,7 @@ export function hydrateTourCloneDraft(
 }
 
 export async function executeTourClonePhotoRemintPlan(
-  plan: readonly DenaliPhotoRemintPlanEntry[]
+  plan: readonly WizardPhotoRemintPlanEntry[]
 ): Promise<void> {
   if (plan.length === 0) {
     return;

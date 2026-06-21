@@ -1,12 +1,16 @@
 /** Phase 11.6 — optional workspace hook for `?clone=tourId` wizard bootstrap (DEC-P11-007). */
 
-export type DenaliPhotoRemintPlanEntry = {
+/** Phase 13.7 — plugin-neutral clone photo remint plan entry (DEC-P13-009). */
+export type WizardPhotoRemintPlanEntry = {
   readonly sourceStorageKey: string;
   readonly destStorageKey: string;
   readonly oldPhotoId: string;
   readonly newPhotoId: string;
   readonly contentType?: string;
 };
+
+/** @deprecated Use {@link WizardPhotoRemintPlanEntry}. */
+export type DenaliPhotoRemintPlanEntry = WizardPhotoRemintPlanEntry;
 
 export type TourCloneHydrationInput = {
   readonly canonicalData: Record<string, unknown>;
@@ -19,7 +23,7 @@ export type TourCloneHydrationInput = {
 
 export type TourCloneHydrationResult = {
   readonly data: Record<string, unknown>;
-  readonly photoRemintPlan?: readonly DenaliPhotoRemintPlanEntry[];
+  readonly photoRemintPlan?: readonly WizardPhotoRemintPlanEntry[];
 };
 
 export type TourCloneHydrator = {

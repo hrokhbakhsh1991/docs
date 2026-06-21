@@ -3,6 +3,7 @@ import {
   getCanonicalValueFromDraft,
   type CanonicalWizardDraftEnvelope,
 } from "./canonical-draft-access";
+import { shouldPersistCanonicalPathFromForm } from "./denali-canonical-form-sync";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -44,6 +45,9 @@ export function tourWizardDraftToDenaliForm(
   const form = rules.buildDefaultForm() as unknown as Record<string, unknown>;
 
   for (const [canonicalPath, formPath] of Object.entries(rules.canonicalToFormPathMap)) {
+    if (!shouldPersistCanonicalPathFromForm(canonicalPath)) {
+      continue;
+    }
     const raw = getCanonicalValueFromDraft(draft, canonicalPath);
     if (raw === undefined) {
       continue;

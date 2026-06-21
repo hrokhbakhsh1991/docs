@@ -16,7 +16,10 @@
   "createButton": "Create tour",
   "saveDraft": "Save draft",
   "clearDraft": "Clear draft",
+  "clearDraftConfirmTitle": "Clear draft?",
   "clearDraftConfirm": "Discard the current draft and start over?",
+  "clearingDraft": "Clearing draft…",
+  "clearDraftError": "Could not clear the draft ({error}). Try again or save your work first.",
   "savingDraft": "Saving draft…",
   "creating": "Creating tour…",
   "created": "Tour created: {id}",
@@ -50,7 +53,15 @@
       "count": "{count, number} {count, plural, one {issue} other {issues}} to fix",
       "stepGroup": "{step} — {count, number} {count, plural, one {issue} other {issues}}",
       "goToStep": "Go to step {step}",
-      "issueAction": "Go to field {field}"
+      "issueAction": "Go to field {field}",
+      "codes": {
+        "REQUIRED_FIELD_EMPTY": "{field} is required",
+        "CANONICAL_TYPE_MISMATCH": "{field} has an invalid value",
+        "CANONICAL_ROOT_UNKNOWN": "{field} is not allowed in this form",
+        "HIDDEN_FIELD_POISON": "{field} contains a value that must be cleared",
+        "VALIDATION_RULE_REQUIRED_FIELD": "{field} is required",
+        "CARDINALITY_VIOLATION": "{field} exceeds allowed limits"
+      }
     }
   },
   "bridge": {

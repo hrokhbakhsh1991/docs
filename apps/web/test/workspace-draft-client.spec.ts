@@ -8,6 +8,7 @@ import { DraftConflictError } from "@app-tour/draft-engine";
 
 import {
   deleteWorkspaceDraftSnapshot,
+  deleteWorkspaceDraftSnapshotVerified,
   fetchWorkspaceDraftEvents,
   fetchWorkspaceDraftIndex,
   fetchWorkspaceDraftSnapshot,
@@ -51,7 +52,10 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
           schemaVersion: 1,
           lastModified: 100,
         }),
-        { status: 409 }
+        {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        }
       )) as FetchImpl;
 
     await assert.rejects(
@@ -80,7 +84,10 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
           schemaVersion: 1,
           lastModified: 200,
         }),
-        { status: 200 }
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
       )) as FetchImpl;
 
     const result = await patchWorkspaceDraftSnapshot(WORKSPACE_ID, NAMESPACE, KEY, {
@@ -93,9 +100,208 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
     assert.deepEqual(result.data, { title: "saved" });
   });
 
+  it("WEB-P11-3-09 PATCH with keepalive passes keepalive to fetch", async () => {
+    let fetchInit: RequestInit | undefined;
+    globalThis.fetch = (async (_input, init) => {
+      fetchInit = init;
+      return new Response(
+        JSON.stringify({
+          data: { title: "saved" },
+          version: 2,
+          schemaVersion: 1,
+          lastModified: 200,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }) as FetchImpl;
+
+    await patchWorkspaceDraftSnapshot(
+      WORKSPACE_ID,
+      NAMESPACE,
+      KEY,
+      {
+        data: { title: "saved" },
+        version: 1,
+        schemaVersion: 1,
+        lastModified: 100,
+      },
+      { keepalive: true }
+    );
+
+    assert.equal(fetchInit?.keepalive, true);
+    assert.equal(fetchInit?.signal, undefined);
+  });
+
+  it("WEB-P11-3-10 PATCH sends Idempotency-Key when intentId provided", async () => {
+    let fetchInit: RequestInit | undefined;
+    globalThis.fetch = (async (_input, init) => {
+      fetchInit = init;
+      return new Response(
+        JSON.stringify({
+          data: { title: "saved" },
+          version: 2,
+          schemaVersion: 1,
+          lastModified: 200,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }) as FetchImpl;
+
+    await patchWorkspaceDraftSnapshot(
+      WORKSPACE_ID,
+      NAMESPACE,
+      KEY,
+      {
+        data: { title: "saved" },
+        version: 1,
+        schemaVersion: 1,
+        lastModified: 100,
+      },
+      { intentId: "intent-abc-123" }
+    );
+
+    const headers = new Headers(fetchInit?.headers);
+    assert.equal(headers.get("Idempotency-Key"), "intent-abc-123");
+  });
+
+  it("WEB-P11-3-12 PATCH keepalive omits Idempotency-Key even when intentId provided", async () => {
+    let fetchInit: RequestInit | undefined;
+    globalThis.fetch = (async (_input, init) => {
+      fetchInit = init;
+      return new Response(
+        JSON.stringify({
+          data: { title: "saved" },
+          version: 2,
+          schemaVersion: 1,
+          lastModified: 200,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }) as FetchImpl;
+
+    await patchWorkspaceDraftSnapshot(
+      WORKSPACE_ID,
+      NAMESPACE,
+      KEY,
+      {
+        data: { title: "saved" },
+        version: 1,
+        schemaVersion: 1,
+        lastModified: 100,
+      },
+      { keepalive: true, intentId: "intent-should-not-send" }
+    );
+
+    const headers = new Headers(fetchInit?.headers);
+    assert.equal(headers.get("Idempotency-Key"), null);
+  });
+
+  it("WEB-P11-3-04 PATCH 502 with HTML body throws PATCH_FAILED not SyntaxError", async () => {
+    globalThis.fetch = (async () =>
+      new Response("<!DOCTYPE html><html><body>Bad Gateway</body></html>", {
+        status: 502,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      })) as FetchImpl;
+
+    await assert.rejects(
+      () =>
+        patchWorkspaceDraftSnapshot(WORKSPACE_ID, NAMESPACE, KEY, {
+          data: { title: "local" },
+          version: 1,
+          schemaVersion: 1,
+          lastModified: 50,
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, "WORKSPACE_DRAFT_PATCH_FAILED:502");
+        assert.notEqual(error.name, "SyntaxError");
+        return true;
+      }
+    );
+  });
+
+  it("WEB-P11-3-06 PATCH 409 with non-JSON body throws PATCH_FAILED:409", async () => {
+    globalThis.fetch = (async () =>
+      new Response("<html>conflict</html>", {
+        status: 409,
+        headers: { "Content-Type": "text/html" },
+      })) as FetchImpl;
+
+    await assert.rejects(
+      () =>
+        patchWorkspaceDraftSnapshot(WORKSPACE_ID, NAMESPACE, KEY, {
+          data: { title: "local" },
+          version: 1,
+          schemaVersion: 1,
+          lastModified: 50,
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, "WORKSPACE_DRAFT_PATCH_FAILED:409");
+        assert.ok(!(error instanceof DraftConflictError));
+        return true;
+      }
+    );
+  });
+
   it("WEB-P11-3-05 DELETE treats 404 as success", async () => {
     globalThis.fetch = (async () => new Response("{}", { status: 404 })) as FetchImpl;
     await deleteWorkspaceDraftSnapshot(WORKSPACE_ID, NAMESPACE, KEY);
+  });
+
+  it("WEB-P11-3-16 DELETE treats 204 as success", async () => {
+    globalThis.fetch = (async () => new Response(null, { status: 204 })) as FetchImpl;
+    await deleteWorkspaceDraftSnapshot(WORKSPACE_ID, NAMESPACE, KEY);
+  });
+
+  it("WEB-P11-3-17 verified DELETE retries when GET still returns row", async () => {
+    let getCalls = 0;
+    globalThis.fetch = (async (_input, init) => {
+      const method = init?.method ?? "GET";
+      if (method === "DELETE") {
+        return new Response(null, { status: 204 });
+      }
+      getCalls += 1;
+      if (getCalls === 1) {
+        return new Response(
+          JSON.stringify({
+            data: { title: "stale" },
+            version: 3,
+            schemaVersion: 1,
+            lastModified: 100,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(JSON.stringify({ error: "not_found" }), { status: 404 });
+    }) as FetchImpl;
+
+    await deleteWorkspaceDraftSnapshotVerified(WORKSPACE_ID, NAMESPACE, KEY);
+    assert.equal(getCalls, 2);
+  });
+
+  it("WEB-P11-3-18 verified DELETE 404 skips verify GET (no noisy second fetch)", async () => {
+    let fetchCalls = 0;
+    globalThis.fetch = (async (_input, init) => {
+      fetchCalls += 1;
+      const method = init?.method ?? "GET";
+      if (method === "DELETE") {
+        return new Response(JSON.stringify({ error: "not_found" }), { status: 404 });
+      }
+      throw new Error("unexpected GET after DELETE 404");
+    }) as FetchImpl;
+
+    await deleteWorkspaceDraftSnapshotVerified(WORKSPACE_ID, NAMESPACE, KEY);
+    assert.equal(fetchCalls, 1);
   });
 
   it("WEB-P11-9-02 GET list parses items without data blobs", async () => {

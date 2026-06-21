@@ -29,5 +29,16 @@
     "mergeExport": "mergeDenaliCanonicalPatchData",
     "publishGateExport": "denaliTourPatchRequiresOwner",
     "publishSurfaceExport": "DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
+  },
+  "wizardMedia": {
+    "module": "./photos",
+    "workspaceTypeExport": "DENALI_WORKSPACE_TYPE",
+    "maxUploadBytesExport": "DENALI_MAX_PHOTO_UPLOAD_BYTES",
+    "isSessionIdExport": "isDenaliWizardDraftSessionId",
+    "isDraftReadKeyAllowedExport": "isDenaliWizardDraftPhotoReadKeyAllowed",
+    "putDraftPhotoExport": "putDenaliWizardDraftPhoto",
+    "getSignedReadUrlExport": "getDenaliTourPhotoSignedReadUrl",
+    "ensureBucketExport": "ensureMinioPhotoBucket",
+    "readConfigExport": "readMinioPhotoConfigFromEnv"
   }
 }

@@ -131,6 +131,9 @@
     },
     "tourKind": {
       "placeholder": "Select tour type…",
+      "currentLabel": "Current selection:",
+      "changeHint": "Click to change",
+      "changeLabel": "Change tour category and duration",
       "helper": "Category and duration drive which fields appear (elevation, hiking hours, itinerary, location zones, and more).",
       "categories": {
         "mountain": "Mountain",
@@ -206,10 +209,19 @@
       "httpsUrlRequired": "Image URL must use HTTPS (https://…).",
       "missingPhotoId": "Photo row is missing an id.",
       "uploadFailed": "Upload failed",
+      "uploading": "Uploading…",
+      "previewLoadFailed": "Could not load image preview.",
+      "previewRetry": "Retry",
       "uploadErrors": {
         "PHOTO_INVALID_TYPE": "Only JPEG, PNG, or WebP images are allowed.",
         "PHOTO_FILE_TOO_LARGE": "Image must be 5 MB or smaller.",
         "PHOTO_STORAGE_NOT_CONFIGURED": "Photo storage is not configured. Use an image URL instead.",
+        "PHOTO_STORAGE_FULL": "Photo storage is full. Contact your administrator or use an image URL instead.",
+        "PHOTO_STORAGE_UNAVAILABLE": "Photo storage is temporarily unavailable. Try again or use an image URL.",
+        "PHOTO_AUTH_REQUIRED": "Sign in again to upload photos.",
+        "PHOTO_BACKEND_UNREACHABLE": "Could not reach the server. Check your connection and try again.",
+        "PHOTO_PREVIEW_URL_MISSING": "Preview URL was not returned by the server.",
+        "PHOTO_PREVIEW_HTTPS_REQUIRED": "Image URL must use HTTPS to preview.",
         "PHOTO_UPLOAD_HTTP_ERROR": "Upload failed (HTTP {status, number}).",
         "PHOTO_MISSING_STORAGE_KEY": "Upload response missing storage key."
       },
@@ -385,6 +397,15 @@
     "validationStepGroup": "{step} — {count, number} {count, plural, one {issue} other {issues}}",
     "validationGoToStep": "Go to step {step}",
     "validationIssueAction": "Go to {field} and fix this issue",
+    "validation": {
+      "REQUIRED_FIELD_EMPTY": "{field} is required",
+      "CANONICAL_TYPE_MISMATCH": "{field} has an invalid value",
+      "CANONICAL_ROOT_UNKNOWN": "{field} is not allowed in this form",
+      "HIDDEN_FIELD_POISON": "{field} contains a value that must be cleared",
+      "VALIDATION_RULE_REQUIRED_FIELD": "{field} is required",
+      "DENALI_TOUR_TYPE_REQUIRED": "Select a tour type before continuing",
+      "CARDINALITY_VIOLATION": "{field} exceeds allowed limits"
+    },
     "publishStatus": {
       "helper": "Draft tours stay internal until you publish as active.",
       "draft": "Draft",

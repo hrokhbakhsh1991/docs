@@ -4,6 +4,7 @@ import type { ValidationIssue } from "@app-tour/wizard-navigation";
 import { useTranslations } from "next-intl";
 
 import { groupValidationIssuesByStep } from "./group-validation-issues-by-step";
+import { resolveWizardValidationIssueMessage } from "./resolve-wizard-validation-issue-message";
 import type { WizardStepDescriptor } from "./wizard-surface-types";
 import { resolveWizardValidationFieldLabel } from "./wizard-validation-field-label";
 
@@ -29,9 +30,15 @@ export function WorkspaceWizardValidationSummary({
   translateWorkspaceMessage,
 }: WorkspaceWizardValidationSummaryProps) {
   const t = useTranslations("wizard.host.validation");
+  const tCodes = useTranslations("wizard.host.validation.codes");
   if (issues.length === 0) {
     return null;
   }
+
+  const validationTranslator = {
+    has: (key: string) => tCodes.has(key),
+    translate: (key: string, values: { field: string }) => tCodes(key, values),
+  };
 
   const groups = groupValidationIssuesByStep(issues, stepDescriptors);
 
@@ -67,8 +74,13 @@ export function WorkspaceWizardValidationSummary({
                   fieldLabelSurfaceId,
                   translateWorkspaceMessage,
                 });
+                const issueMessage = resolveWizardValidationIssueMessage(
+                  issue,
+                  validationTranslator,
+                  fieldLabel
+                );
                 return (
-                  <li key={`${issue.path}:${issue.message}`}>
+                  <li key={`${issue.path}:${issue.code ?? issue.message}`}>
                     <button
                       type="button"
                       className="workspace-wizard-validation__issue-link"
@@ -77,7 +89,7 @@ export function WorkspaceWizardValidationSummary({
                       onClick={() => onFocusIssue(group.stepId, issue.path)}
                     >
                       <span className="workspace-wizard-validation__issue-field">{fieldLabel}</span>
-                      <span className="workspace-wizard-validation__issue-message">{issue.message}</span>
+                      <span className="workspace-wizard-validation__issue-message">{issueMessage}</span>
                     </button>
                   </li>
                 );

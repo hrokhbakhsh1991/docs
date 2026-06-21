@@ -12,6 +12,15 @@ import type { OperatorTourListSurface } from "../tour/tour-list-projection.contr
 import type { PublicCatalogSurface } from "../tour/public-catalog.contract";
 import type { TourCloneHydrator } from "../tour/tour-clone-hydrator.contract";
 import type { WorkspaceWizardHostHooks } from "./workspace-wizard-host-hooks";
+import type { WorkspaceWizardMediaHooks } from "./workspace-wizard-media-hooks";
+import type {
+  WorkspaceWizardDraftEnvelope,
+  WorkspaceWizardDraftMeta,
+} from "./workspace-wizard-draft-envelope";
+import type { WorkspaceDraftTombstoneBinding } from "../draft/workspace-draft-tombstone-binding";
+
+export type { WorkspaceWizardMediaHooks };
+export type { WorkspaceWizardDraftEnvelope, WorkspaceWizardDraftMeta };
 
 /**
  * Workspace plugin contract.
@@ -44,4 +53,6 @@ export interface WorkspacePlugin {
   readonly tourClone?: TourCloneHydrator;
   /** Phase 12.0 — generic web wizard host behavior (DEC-P12-001). Denali first implementer. */
   readonly wizardHost?: WorkspaceWizardHostHooks;
+  /** Phase 11 Track A — server PATCH tombstone diff (workspace-specific root set). */
+  readonly draftTombstone?: WorkspaceDraftTombstoneBinding;
 }

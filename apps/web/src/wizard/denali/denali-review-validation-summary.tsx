@@ -5,8 +5,8 @@ import { AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { groupValidationIssuesByStep, type ValidationIssueStepGroup } from "../group-validation-issues-by-step";
+import { resolveWizardValidationIssueMessage } from "../resolve-wizard-validation-issue-message";
 import type { WizardStepDescriptor } from "../wizard-surface-types";
-import { localizeDenaliValidationIssueMessage } from "./denali-localize-validation-message";
 import { resolveWizardValidationFieldLabel } from "../wizard-validation-field-label";
 
 export const DENALI_REVIEW_VALIDATION_TEST_IDS = {
@@ -21,7 +21,6 @@ type DenaliReviewValidationSummaryProps = {
   readonly onFocusIssue: (stepId: string, path: string) => void;
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;
-  readonly validationHeadingKey?: "review.stepValidationHeading" | "review.validationHeading";
 };
 
 export function DenaliReviewValidationSummary({
@@ -30,14 +29,18 @@ export function DenaliReviewValidationSummary({
   onFocusIssue,
   fieldLabelSurfaceId,
   translateWorkspaceMessage,
-  validationHeadingKey = "review.validationHeading",
 }: DenaliReviewValidationSummaryProps) {
   const t = useTranslations("denali");
+  const tValidation = useTranslations("denali.review.validation");
   const locale = useLocale();
   const isRtl = locale === "fa";
   const StepChevron = isRtl ? ChevronLeft : ChevronRight;
   const translateFieldLabel =
     translateWorkspaceMessage ?? ((key: string) => t(key));
+  const validationTranslator = {
+    has: (key: string) => tValidation.has(key),
+    translate: (key: string, values: { field: string }) => tValidation(key, values),
+  };
 
   if (issues.length === 0) {
     return null;
@@ -60,7 +63,7 @@ export function DenaliReviewValidationSummary({
           <AlertCircle size={20} strokeWidth={2.25} />
         </span>
         <div className="denali-review-validation__header-text">
-          <h3 className="denali-review-validation__heading">{t(validationHeadingKey)}</h3>
+          <h3 className="denali-review-validation__heading">{t("review.validationHeading")}</h3>
           <p className="denali-review-validation__count">
             {t("review.validationCount", { count: issues.length })}
           </p>
@@ -99,13 +102,13 @@ export function DenaliReviewValidationSummary({
                   fieldLabelSurfaceId,
                   translateWorkspaceMessage: translateFieldLabel,
                 });
-                const localizedMessage = localizeDenaliValidationIssueMessage(
-                  (key, values) => t(key, values),
-                  issue.message,
+                const issueMessage = resolveWizardValidationIssueMessage(
+                  issue,
+                  validationTranslator,
                   fieldLabel
                 );
                 return (
-                  <li key={`${issue.path}:${issue.message}`}>
+                  <li key={`${issue.path}:${issue.code ?? issue.message}`}>
                     <button
                       type="button"
                       className="denali-review-validation__issue-link"
@@ -114,7 +117,7 @@ export function DenaliReviewValidationSummary({
                       onClick={() => onFocusIssue(group.stepId, issue.path)}
                     >
                       <span className="denali-review-validation__issue-field">{fieldLabel}</span>
-                      <span className="denali-review-validation__issue-message">{localizedMessage}</span>
+                      <span className="denali-review-validation__issue-message">{issueMessage}</span>
                     </button>
                   </li>
                 );
