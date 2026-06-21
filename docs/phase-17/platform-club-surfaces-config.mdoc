@@ -46,12 +46,12 @@ Expose **`site_surfaces`** (admin / marketing / portal) from tenant config in Su
 
 ## Goals
 
-| Goal                | Detail                                               |
-| ------------------- | ---------------------------------------------------- |
-| Observable surfaces | Platform ops sees which surfaces enabled per club    |
-| v1 control          | Read-only badges; toggle via PATCH deferred to v1.1  |
-| URL display         | Sites tab shows 3 URLs from provision response       |
-| Denali safety       | No package edits                                     |
+| Goal                | Detail                                              |
+| ------------------- | --------------------------------------------------- |
+| Observable surfaces | Platform ops sees which surfaces enabled per club   |
+| v1 control          | Read-only badges; toggle via PATCH deferred to v1.1 |
+| URL display         | Sites tab shows 3 URLs from provision response      |
+| Denali safety       | No package edits                                    |
 
 ## Non-goals (P4-C v1)
 
@@ -111,18 +111,18 @@ v1: read-only badges · v1.1 (optional): PATCH toggle via platform API
 
 ## Code anchors
 
-| Anchor           | Path                                                              |
-| ---------------- | ----------------------------------------------------------------- |
-| Read + normalize | `apps/api/src/platform/read-tenant-site-surfaces.ts`              |
+| Anchor           | Path                                                 |
+| ---------------- | ---------------------------------------------------- |
+| Read + normalize | `apps/api/src/platform/read-tenant-site-surfaces.ts` |
 
 When `DATABASE_URL` is unset (memory harness / static dev tenants), read returns `DEFAULT_TENANT_SITE_SURFACES` without Prisma — same pattern as operator PATCH tenant-status skip in P4-A.
-| Seed             | `apps/api/src/platform/seed-tenant-site-surfaces-config.ts`       |
-| Provision        | `apps/api/src/platform/provision-tenant-saga.ts`                  |
-| Public context   | `apps/api/src/tenant/tenant-branding.service.ts` (`siteSurfaces`) |
-| Sites check      | `apps/api/src/platform/check-tenant-sites-health.ts`              |
-| Club detail UI   | `apps/web/src/platform/club-detail/tab-sites.tsx`                 |
-| Marketing gate   | `apps/marketing/src/tenant/resolve-marketing-site-surfaces.ts`    |
-| Maintenance      | `apps/marketing/src/platform/maintenance-page.tsx`                |
+| Seed | `apps/api/src/platform/seed-tenant-site-surfaces-config.ts` |
+| Provision | `apps/api/src/platform/provision-tenant-saga.ts` |
+| Public context | `apps/api/src/tenant/tenant-branding.service.ts` (`siteSurfaces`) |
+| Sites check | `apps/api/src/platform/check-tenant-sites-health.ts` |
+| Club detail UI | `apps/web/src/platform/club-detail/tab-sites.tsx` |
+| Marketing gate | `apps/marketing/src/tenant/resolve-marketing-site-surfaces.ts` |
+| Maintenance | `apps/marketing/src/platform/maintenance-page.tsx` |
 
 ---
 
@@ -132,6 +132,8 @@ When `DATABASE_URL` is unset (memory harness / static dev tenants), read returns
 | ------------------------------------------ | ----------- | ----------------------------------------------------------------- |
 | `platform-club-surfaces-tab.spec.ts`       | SF-01…SF-04 | `data-platform-club-sites` · surface rows · enabled badges · URLs |
 | `platform-tenant-surfaces.spec.ts`         | SF-05…SF-06 | GET detail `siteSurfaces` · missing config defaults               |
+| `read-tenant-site-surfaces.spec.ts`        | SS-01…SS-02 | memory harness default · normalize coerces flags                  |
+| `public-tenant-context.spec.ts`            | PTC-01      | public context includes `siteSurfaces` booleans                   |
 | `tenant-site-surfaces-maintenance.spec.ts` | SF-07       | `marketing: false` → maintenance gate in layout                   |
 
 ---

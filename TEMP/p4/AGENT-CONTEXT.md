@@ -14,18 +14,18 @@ Close P1 §J: publish→catalog · portal registration · surfaces control. **Do
 
 ## 2. Truth table (critical review)
 
-| Item                             | Status                                      |
-| -------------------------------- | ------------------------------------------- |
-| M17 guard + portal OTP           | ✅ built                                    |
-| M11 unit specs                   | ✅ built                                    |
-| maybeSchedule helper             | ✅ P4-A                                     |
-| CanonicalTourService uses helper | ✅ create + update (atomic + scoped)        |
-| RV/CP integration specs          | ✅ 9 tests                                  |
-| Portal registration (PR/BR)      | ✅ P4-B                                     |
-| site_surfaces UI + API           | ✅ P4-C                                     |
-| p4:gate script                   | ✅ P4-D — **P4_CLUB_PRODUCT_GATE_OK**       |
-| Live publish E2E Playwright      | ⬜ post-merge — `p4:e2e-gate` (Architect YES) |
-| denali covenant for merge        | ✅ staged export slice · commit pending     |
+| Item                             | Status                                        |
+| -------------------------------- | --------------------------------------------- |
+| M17 guard + portal OTP           | ✅ built                                      |
+| M11 unit specs                   | ✅ built                                      |
+| maybeSchedule helper             | ✅ P4-A                                       |
+| CanonicalTourService uses helper | ✅ create + update (atomic + scoped)          |
+| RV/CP integration specs          | ✅ 9 tests                                    |
+| Portal registration (PR/BR)      | ✅ P4-B                                       |
+| site_surfaces UI + API           | ✅ P4-C                                       |
+| p4:gate script                   | ✅ P4-D — **P4_CLUB_PRODUCT_GATE_OK**         |
+| Live publish E2E Playwright      | ⬜ optional — `p4:e2e-gate` (Architect YES)   |
+| denali covenant for merge        | ✅ staged export slice · commit pending       |
 
 ## 3. NOT gaps (do not rebuild)
 

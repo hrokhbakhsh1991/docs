@@ -13,7 +13,7 @@ echo "== p4:gate — public catalog M17 =="
 pnpm run guard:public-catalog-m17
 
 echo "== p4:gate — denali covenant =="
-git diff --quiet packages/workspaces/denali
+pnpm run guard:p3-denali-covenant
 
 echo "== p4:gate — API catalog specs =="
 pnpm --filter @apps/api exec node --import tsx --test \
@@ -22,6 +22,7 @@ pnpm --filter @apps/api exec node --import tsx --test \
   test/club-catalog-publish-service.spec.ts \
   test/platform-tenant-surfaces.spec.ts \
   test/public-tenant-context.spec.ts \
+  test/read-tenant-site-surfaces.spec.ts \
   test/seed-tenant-site-surfaces.spec.ts \
   test/platform-club-product-exit.spec.ts
 

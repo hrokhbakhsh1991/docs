@@ -12,6 +12,9 @@ p5_file_map: TEMP/p5/FILE-MAP.md
 p5_index: TEMP/p5/README.md
 p5_exit: TEMP/p5-exit-checklist.md
 p5_nano: 0/56
+p5_quality: TEMP/p5/QUALITY-AUDIT.md
+p5_preservation: TEMP/p5/PRESERVATION-CHECKLIST.md
+p5_exit_core: P5-B-N-016
 p4_current_task: P4-complete
 p4_agent_entry: TEMP/p4/AGENT-START.md
 p4_file_map: TEMP/p4/FILE-MAP.md

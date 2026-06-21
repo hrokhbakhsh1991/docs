@@ -11,6 +11,7 @@ agent_entry: TEMP/p4/AGENT-START.md
 file_map: TEMP/p4/FILE-MAP.md
 prerequisite: TEMP/p2-exit-checklist.md ✅ · TEMP/p3-exit-checklist.md ✅
 verified: 2026-06-21
+execution_closed: 2026-06-21
 ```
 
 ## Product gates (§J closure)
@@ -35,7 +36,7 @@ verified: 2026-06-21
 - [x] P4-B complete (14/14)
 - [x] P4-C complete (12/12)
 - [x] P4-D complete (10/10) — gate script + EX spec
-- [x] denali covenant PASS — minimal exports staged (`./clone` + `./finance/api-tour-created-adapter`)
+- [x] denali export slice committed (`22b47566`)
 
 ## Denali merge strategy (2026-06-21)
 
@@ -47,16 +48,36 @@ verified: 2026-06-21
 Wizard/UI WIP remains unstashed separately — not required for `p4:gate`.
 **P4 PR:** commit staged denali export slice + P4 apps changes; wizard WIP in follow-up PR.
 
-## Execution closure (in progress)
+## Execution closure
 
-- [ ] Commit 1 — denali export slice
-- [ ] Commit 2 — P4 product + docs/phase-17
-- [ ] PR merged
+- [x] Commit 1 — denali export slice (`22b47566`)
+- [x] Commit 2 — P4 product + docs/phase-17 (`e17f36e9`)
+- [ ] PR merged to main (branch push pending)
+- [ ] Commit 3 — P4 closure holes (SS specs · doc sync)
+
+## Known v1.1 deferrals (not P4 holes)
+
+- PATCH toggle for `site_surfaces` in Super Admin
+- Portal maintenance when `portal: false`
+- Live Playwright publish→catalog (G2 browser path) — use `p4:e2e-gate`
 
 ## Operational (post-merge)
 
 - [ ] `p4:e2e-gate` green (Architect YES)
 - [ ] Prod `MARKETING_REVALIDATE_*` set per club env
+
+### Prod deploy checklist (G4)
+
+```bash
+# API host (per environment)
+MARKETING_REVALIDATE_URL=https://shop.{club-domain}
+MARKETING_REVALIDATE_SECRET=<shared-secret>
+
+# Marketing app (same secret)
+MARKETING_REVALIDATE_SECRET=<shared-secret>
+```
+
+Unset → publish persists but catalog stays stale until manual revalidate.
 
 ## PR pack
 
@@ -69,5 +90,5 @@ pnpm run guard:import-boundary
 pnpm run guard:public-catalog-m17
 pnpm run p4:gate
 pnpm run p4:e2e-gate   # Architect YES only
-git diff --quiet packages/workspaces/denali   # must PASS before P4 PR
+pnpm run guard:p3-denali-covenant   # scoped overlay gate
 ```

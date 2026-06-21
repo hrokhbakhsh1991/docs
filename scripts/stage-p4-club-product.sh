@@ -33,6 +33,7 @@ git add apps/api/test/club-catalog-publish-test-helpers.ts
 git add apps/api/test/platform-club-product-exit.spec.ts
 git add apps/api/test/platform-tenant-surfaces.spec.ts
 git add apps/api/test/public-tenant-context.spec.ts
+git add apps/api/test/read-tenant-site-surfaces.spec.ts
 git add apps/api/test/marketing-catalog-revalidate.spec.ts 2>/dev/null || true
 git add apps/api/test/seed-tenant-site-surfaces.spec.ts 2>/dev/null || true
 git add apps/api/test/platform-tenant-detail.spec.ts 2>/dev/null || true

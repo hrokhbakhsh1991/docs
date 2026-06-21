@@ -26,7 +26,7 @@ Phase exit gate: **`p4:gate`** + optional **`p4:e2e-gate`** Playwright + §J clo
 | **E1 publish→catalog**     | **PW-01 / RV / CP** in gate — not live Playwright publish (E2E-01 soft) |
 | **E2 portal registration** | P4-B unit specs in gate · SMK-\* in **`p4:e2e-gate`** only              |
 | **Closure docs**           | exit checklist · phase-15 §P4 · assessment § product surfaces           |
-| **Full `p4:gate`**         | Requires `git diff --quiet packages/workspaces/denali` (E6)             |
+| **Full `p4:gate`**         | Requires `pnpm run guard:p3-denali-covenant` (E6)             |
 
 ---
 
@@ -48,7 +48,7 @@ Phase exit gate: **`p4:gate`** + optional **`p4:e2e-gate`** Playwright + §J clo
 ```bash
 pnpm run guard:import-boundary
 pnpm run guard:public-catalog-m17
-git diff --quiet packages/workspaces/denali
+pnpm run guard:p3-denali-covenant
 
 pnpm --filter @apps/api exec node --import tsx --test \
   test/marketing-catalog-revalidate.spec.ts \
@@ -56,6 +56,7 @@ pnpm --filter @apps/api exec node --import tsx --test \
   test/club-catalog-publish-service.spec.ts \
   test/platform-tenant-surfaces.spec.ts \
   test/public-tenant-context.spec.ts \
+  test/read-tenant-site-surfaces.spec.ts \
   test/seed-tenant-site-surfaces.spec.ts \
   test/platform-club-product-exit.spec.ts
 

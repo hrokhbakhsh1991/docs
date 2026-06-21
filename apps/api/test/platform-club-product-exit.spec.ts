@@ -23,13 +23,14 @@ describe("platform-club-product-exit (P4-D EX)", () => {
     const gate = readFileSync(gateScriptPath, "utf8");
     assert.match(gate, /guard:import-boundary/);
     assert.match(gate, /guard:public-catalog-m17/);
-    assert.match(gate, /git diff --quiet packages\/workspaces\/denali/);
+    assert.match(gate, /guard:p3-denali-covenant/);
     assert.match(gate, /club-catalog-publish-integration\.spec\.ts/);
     assert.match(gate, /club-catalog-publish-service\.spec\.ts/);
     assert.match(gate, /resolve-web-registration-url\.spec\.ts/);
     assert.match(gate, /platform-club-surfaces-tab\.spec\.ts/);
     assert.match(gate, /platform-tenant-surfaces\.spec\.ts/);
     assert.match(gate, /public-tenant-context\.spec\.ts/);
+    assert.match(gate, /read-tenant-site-surfaces\.spec\.ts/);
     assert.match(gate, /seed-tenant-site-surfaces\.spec\.ts/);
     assert.match(gate, /tenant-site-surfaces-maintenance\.spec\.ts/);
     assert.match(gate, /P4_CLUB_PRODUCT_GATE_OK/);

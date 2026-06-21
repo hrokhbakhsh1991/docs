@@ -87,6 +87,7 @@
     "p1:gate:full": "bash scripts/p1-platform-gate-full.sh",
     "p4:gate": "bash scripts/p4-club-product-gate.sh",
     "p4:e2e-gate": "bash scripts/p4-club-product-e2e-gate.sh",
+    "stage:p4": "bash scripts/stage-p4-club-product.sh",
     "p1:live-smoke": "bash scripts/p1-platform-live-smoke.sh",
     "p1:e2e-gate": "pnpm --filter @apps/web run test:e2e:platform",
     "smoke:denali-draft-unification": "pnpm --filter @apps/web run smoke:denali-draft-unification",
@@ -98,7 +99,8 @@
     "workspace:create": "node scripts/workspace-create.mjs",
     "build:operator-vps": "pnpm --filter @apps/api... run build && pnpm --filter @apps/web... run build",
     "phase-10:guard": "node scripts/guards/phase-10-guard.mjs",
-    "guard:public-catalog-m17": "node scripts/guards/guard-public-catalog-m17.mjs"
+    "guard:public-catalog-m17": "node scripts/guards/guard-public-catalog-m17.mjs",
+    "p5:gate": "bash scripts/p5-enterprise-evolution-gate.sh"
   },
   "devDependencies": {
     "@markdoc/markdoc": "^0.5.7",
