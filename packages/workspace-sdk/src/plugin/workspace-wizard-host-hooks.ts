@@ -88,6 +88,15 @@ export type WorkspaceWizardHostHooks = {
   readonly normalizeRemoteEnvelope?: <TForm>(
     envelope: WorkspaceWizardDraftEnvelope<TForm>
   ) => WorkspaceWizardDraftEnvelope<TForm>;
+  /** Phase 14.2 — merge local + server draft envelopes on sync conflict. */
+  readonly mergeDraftEnvelope?: <TForm>(
+    local: WorkspaceWizardDraftEnvelope<TForm>,
+    server: WorkspaceWizardDraftEnvelope<TForm>
+  ) => WorkspaceWizardDraftEnvelope<TForm>;
+  /** Phase 14.0b — workspace-specific wizard template invariant overlay. */
+  readonly normalizeWizardTemplateGate?: (
+    input: import("./workspace-wizard-template-gate").WorkspaceWizardTemplateGateNormalizeInput
+  ) => import("./workspace-wizard-template-gate").WorkspaceWizardTemplateGateNormalizeResult;
   /**
    * Infer initial wizard step on first mount (e.g. resume from draft data).
    * Host calls once when saved step index is 0.

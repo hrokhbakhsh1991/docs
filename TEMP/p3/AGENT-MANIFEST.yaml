@@ -1,0 +1,375 @@
+# P3 Task Manifest — AI machine-readable registry
+# Update status after each nano. current: P3-A-N-011
+
+meta:
+  phase: P3
+  nano_total: 52
+  nano_done: 10
+  current_task: P3-A-N-011
+  agent_entry: TEMP/p3/AGENT-START.md
+  context: TEMP/p3/AGENT-CONTEXT.md
+  covenant: TEMP/p3/p3-denali-safety.md
+  file_map: TEMP/p3/FILE-MAP.md
+  version: 1.2-aligned
+
+epic_order:
+  - P3-A
+  - P3-B
+  - P3-C
+  - P3-D
+
+verify_always:
+  - pnpm run guard:import-boundary
+  - git diff --quiet packages/workspaces/denali
+
+tasks:
+  # ─── P3-A ─────────────────────────────────────────
+  - id: P3-A-N-001
+    epic: P3-A
+    type: IMPLEMENT
+    status: done
+    spec: TEMP/p3/p3-a-workspace-definitions.md
+    files: [apps/api/prisma/migrations/20260621160000_workspace_definitions/]
+
+  - id: P3-A-N-002
+    epic: P3-A
+    type: TEST
+    status: done
+    deps: [P3-A-N-001]
+
+  - id: P3-A-N-003
+    epic: P3-A
+    type: IMPLEMENT
+    status: done
+    files: [packages/workspace-sdk/src/metadata/workspace-definition-payload.ts]
+
+  - id: P3-A-N-004
+    epic: P3-A
+    type: TEST
+    status: done
+    deps: [P3-A-N-003]
+
+  - id: P3-A-N-005
+    epic: P3-A
+    type: IMPLEMENT
+    status: done
+    files: [apps/api/src/workspace-metadata/]
+
+  - id: P3-A-N-006
+    epic: P3-A
+    type: TEST
+    status: done
+    deps: [P3-A-N-005]
+    verify: [apps/api/test/workspace-metadata-loader.spec.ts]
+
+  - id: P3-A-N-007
+    epic: P3-A
+    type: IMPLEMENT
+    status: done
+    files: [apps/api/scripts/export-workspace-definition.ts, apps/api/scripts/seed/definitions/denali-v1.json]
+
+  - id: P3-A-N-008
+    epic: P3-A
+    type: TEST
+    status: done
+    deps: [P3-A-N-007]
+    verify: [apps/api/test/workspace-definition-export.spec.ts]
+
+  - id: P3-A-N-009
+    epic: P3-A
+    type: IMPLEMENT
+    status: done
+    files:
+      - apps/api/src/routes/platform/workspace-definitions-list.ts
+      - apps/api/src/routes/platform/tenants-workspace-definition-patch.ts
+
+  - id: P3-A-N-010
+    epic: P3-A
+    type: TEST
+    status: done
+    deps: [P3-A-N-009]
+    verify: [apps/api/test/workspace-definition-tenant-binding.spec.ts]
+
+  - id: P3-A-N-011
+    epic: P3-A
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-A-N-010]
+    spec_section: P3-A-N-011
+    create:
+      - apps/api/src/workspace/resolve-workspace-plugin-for-tenant-context.ts
+    edit:
+      - apps/api/src/tours/canonical-validation-sync.ts
+      - apps/api/src/tours/list-tours-operator.ts
+      - apps/api/src/tours/get-tour-operator.ts
+      - apps/api/src/tours/build-clone-tour-body.ts
+      - apps/api/src/workspace-drafts/workspace-drafts.service.ts
+      - apps/api/src/settings/settings-registry.ts
+      - apps/api/src/settings/wizard-template-catalog.ts
+    next: P3-A-N-012
+
+  - id: P3-A-N-012
+    epic: P3-A
+    type: TEST
+    status: todo
+    deps: [P3-A-N-011]
+    create: [apps/api/test/workspace-plugin-tenant-context-integration.spec.ts]
+    verify:
+      - apps/api/test/workspace-plugin-tenant-context-integration.spec.ts
+      - apps/api/test/workspace-metadata-loader.spec.ts
+    next: P3-B-N-001
+
+  # ─── P3-B (summary — detail in p3-b-generic-widgets.md) ───
+  - id: P3-B-N-001
+    epic: P3-B
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-A-N-012]
+    doc_first: docs/phase-16/platform-generic-widgets.mdoc
+    next: P3-B-N-002
+
+  - id: P3-B-N-002
+    epic: P3-B
+    type: TEST
+    status: todo
+    deps: [P3-B-N-001]
+
+  - id: P3-B-N-003
+    epic: P3-B
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-B-N-002]
+    goal: platform.photos widget
+
+  - id: P3-B-N-004
+    epic: P3-B
+    type: TEST
+    status: todo
+    deps: [P3-B-N-003]
+
+  - id: P3-B-N-005
+    epic: P3-B
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-B-N-004]
+    goal: platform.location
+
+  - id: P3-B-N-006
+    epic: P3-B
+    type: TEST
+    status: todo
+    deps: [P3-B-N-005]
+
+  - id: P3-B-N-007
+    epic: P3-B
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-B-N-006]
+    goal: platform.itinerary
+
+  - id: P3-B-N-008
+    epic: P3-B
+    type: TEST
+    status: todo
+    deps: [P3-B-N-007]
+
+  - id: P3-B-N-009
+    epic: P3-B
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-B-N-008]
+    goal: platform composite surface + codegen
+
+  - id: P3-B-N-010
+    epic: P3-B
+    type: TEST
+    status: todo
+    deps: [P3-B-N-009]
+
+  - id: P3-B-N-011
+    epic: P3-B
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-B-N-010]
+    goal: generic review step
+
+  - id: P3-B-N-012
+    epic: P3-B
+    type: TEST
+    status: todo
+    deps: [P3-B-N-011]
+
+  - id: P3-B-N-013
+    epic: P3-B
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-B-N-012]
+    goal: theme tokens from payload
+
+  - id: P3-B-N-014
+    epic: P3-B
+    type: TEST
+    status: todo
+    deps: [P3-B-N-013]
+    next: P3-C-N-001
+
+  # ─── P3-C ───
+  - id: P3-C-N-001
+    epic: P3-C
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-B-N-014]
+    doc_first: docs/phase-16/platform-workspace-builder.mdoc
+
+  - id: P3-C-N-002
+    epic: P3-C
+    type: TEST
+    status: todo
+    deps: [P3-C-N-001]
+
+  - id: P3-C-N-003
+    epic: P3-C
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-C-N-002]
+
+  - id: P3-C-N-004
+    epic: P3-C
+    type: TEST
+    status: todo
+    deps: [P3-C-N-003]
+
+  - id: P3-C-N-005
+    epic: P3-C
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-C-N-004]
+
+  - id: P3-C-N-006
+    epic: P3-C
+    type: TEST
+    status: todo
+    deps: [P3-C-N-005]
+
+  - id: P3-C-N-007
+    epic: P3-C
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-C-N-006]
+
+  - id: P3-C-N-008
+    epic: P3-C
+    type: TEST
+    status: todo
+    deps: [P3-C-N-007]
+
+  - id: P3-C-N-009
+    epic: P3-C
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-C-N-008]
+
+  - id: P3-C-N-010
+    epic: P3-C
+    type: TEST
+    status: todo
+    deps: [P3-C-N-009]
+
+  - id: P3-C-N-011
+    epic: P3-C
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-C-N-010]
+
+  - id: P3-C-N-012
+    epic: P3-C
+    type: TEST
+    status: todo
+    deps: [P3-C-N-011]
+
+  - id: P3-C-N-013
+    epic: P3-C
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-C-N-012]
+
+  - id: P3-C-N-014
+    epic: P3-C
+    type: TEST
+    status: todo
+    deps: [P3-C-N-013]
+    next: P3-D-N-001
+
+  # ─── P3-D optional ───
+  - id: P3-D-N-001
+    epic: P3-D
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-C-N-014]
+    optional: true
+
+  - id: P3-D-N-002
+    epic: P3-D
+    type: TEST
+    status: todo
+    deps: [P3-D-N-001]
+
+  - id: P3-D-N-003
+    epic: P3-D
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-D-N-002]
+
+  - id: P3-D-N-004
+    epic: P3-D
+    type: TEST
+    status: todo
+    deps: [P3-D-N-003]
+
+  - id: P3-D-N-005
+    epic: P3-D
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-D-N-004]
+
+  - id: P3-D-N-006
+    epic: P3-D
+    type: TEST
+    status: todo
+    deps: [P3-D-N-005]
+
+  - id: P3-D-N-007
+    epic: P3-D
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-D-N-006]
+
+  - id: P3-D-N-008
+    epic: P3-D
+    type: TEST
+    status: todo
+    deps: [P3-D-N-007]
+
+  - id: P3-D-N-009
+    epic: P3-D
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-D-N-008]
+
+  - id: P3-D-N-010
+    epic: P3-D
+    type: TEST
+    status: todo
+    deps: [P3-D-N-009]
+
+  - id: P3-D-N-011
+    epic: P3-D
+    type: IMPLEMENT
+    status: todo
+    deps: [P3-D-N-010]
+
+  - id: P3-D-N-012
+    epic: P3-D
+    type: TEST
+    status: todo
+    deps: [P3-D-N-011]

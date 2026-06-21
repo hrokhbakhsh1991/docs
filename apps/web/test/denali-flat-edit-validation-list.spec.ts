@@ -10,11 +10,15 @@ import { describe, it } from "node:test";
 import { resolveWizardValidationIssueMessage } from "../src/wizard/resolve-wizard-validation-issue-message";
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const REPO_ROOT = join(WEB_ROOT, "..", "..");
 
 describe("denali-flat-edit-validation-list.spec.ts — Phase 4", () => {
   it("WEB-P11-5-08 flat edit list module uses shared validation i18n resolver", () => {
     const source = readFileSync(
-      join(WEB_ROOT, "src/wizard/denali/denali-flat-edit-validation-list.tsx"),
+      join(
+        REPO_ROOT,
+        "packages/workspaces/denali/src/ui/chrome/denali-flat-edit-validation-list.tsx"
+      ),
       "utf8"
     );
     assert.match(source, /resolveWizardValidationIssueMessage/);

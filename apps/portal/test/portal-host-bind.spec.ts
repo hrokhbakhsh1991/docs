@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import { resolveTenantIdFromDevHost } from "../src/tenant/resolve-host-tenant";
+
+describe("portal-host-bind", () => {
+  it("portal host ok", () => {
+    const oldAllow = process.env.ALLOW_DEV_WEB_SESSION;
+    process.env.ALLOW_DEV_WEB_SESSION = "true";
+    process.env.NODE_ENV = "development";
+    try {
+      assert.equal(
+        resolveTenantIdFromDevHost("denali.portal.localhost:3003"),
+        "00000000-0000-4000-8000-000000000003"
+      );
+    } finally {
+      process.env.ALLOW_DEV_WEB_SESSION = oldAllow;
+    }
+  });
+});

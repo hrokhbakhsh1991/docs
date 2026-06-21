@@ -1,6 +1,7 @@
 {
   "id": "starter",
   "version": 1,
+  "pluginApiVersion": 1,
   "package": "@app-tour/workspace-starter",
   "workspaceTypes": ["starter"],
   "plugin": {
@@ -10,5 +11,7 @@
   "web": {
     "entry": ".",
     "export": "getStarterWorkspacePlugin"
-  }
+  },
+  "wizardCreate": {},
+  "themeStylesheets": ["theme/tokens.css"]
 }

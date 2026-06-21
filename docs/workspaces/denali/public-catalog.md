@@ -6,6 +6,7 @@ version: "2026-06-11-v24"
 workspace: denali
 stack: workspace-sdk · workspace-denali/http · apps/marketing
 authority: MIGRATION-MAP.md §3.5 · TEMP/denali-public-marketing-app-roadmap.md
+p4_phase_doc: docs/phase-17/platform-club-catalog-publish.mdoc
 decisions: [ADR-MKT-001, ADR-MKT-002, ADR-MKT-003, ADR-MKT-004]
 ```
 
@@ -174,7 +175,9 @@ sequenceDiagram
   end
 ```
 
-Web shell: `apps/web/app/(public)/catalog/[tourId]/register` — shared `PublicCatalogRegistrationFlow` for `denali` and `urban`. Marketing CTA unchanged (M6 bridge).
+Web shell: `apps/web/app/(public)/catalog/[tourId]/register` — **redirect-only shim** to `apps/portal` (`resolvePortalRegistrationRedirectUrl` · DEC-P11-014). Registration UX lives in `apps/portal` only; marketing CTA unchanged (M6 bridge).
+
+> **P4-B (Phase 17):** Do not mount `PublicCatalogRegistrationFlow` on web — see [`platform-portal-registration.mdoc`](../../phase-17/platform-portal-registration.mdoc) PR-06.
 
 ### Denali tour intake (M16 + M17 step 5)
 
@@ -182,8 +185,9 @@ Web shell: `apps/web/app/(public)/catalog/[tourId]/register` — shared `PublicC
 |------|-------|
 | API | `POST /denali/registrations` — guest `x-tenant-id`, published tour gate |
 | Persistence | `BookingsRepository` — `status: pending` |
-| Web | `PublicCatalogRegistrationFlow` intake step → `submitDenaliRegistrationAction` |
-| E2E anchor | `[data-public-registration-intake]` → `[data-public-registration-success]` |
+| Portal | `apps/portal` intake via `POST /api/catalog/registrations` BFF |
+| Web | redirect shim only — no intake on `apps/web` |
+| E2E anchor | `[data-public-registration-intake]` → `[data-public-registration-success]` (portal host) |
 
 Duplicate email per tour → `409 DENALI_REGISTRATION_DUPLICATE`.
 
@@ -313,6 +317,8 @@ When a canonical tour write affects public catalog visibility or content, `@apps
 Both must be set; otherwise the notifier is a no-op (local dev without marketing revalidate is unaffected). Failures are logged at `warn` and **do not** roll back the tour transaction.
 
 Marketing tag invalidated: `marketing-catalog-{tenantId}` (see `buildMarketingCatalogCacheTag`).
+
+**Phase doc:** [P4-A catalog publish sync](../../phase-17/platform-club-catalog-publish.mdoc) — RV/CP/RR assertion IDs · `p4:gate` chain.
 
 ### Error boundary (M12)
 

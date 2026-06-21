@@ -133,6 +133,8 @@
     "phase-4:resilience-regression-gate": "node ./scripts/phase-4-resilience-regression-gate.mjs",
     "db:migrate:deploy": "node ./scripts/db-migrate-deploy.mjs",
     "db:seed": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/db-seed.ts",
+    "export:workspace-definition": "node --import tsx scripts/export-workspace-definition.ts",
+    "seed:workspace-definitions": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/run-seed-workspace-definitions.ts",
     "test:phase-5": "NODE_ENV=test node --import tsx --test test/phase-5.contract.spec.ts",
     "test:soak": "NODE_ENV=test RUN_SOAK=1 node --expose-gc --import tsx --test --test-concurrency=1 test/3-performance/soak-memory-leak.spec.ts",
     "start": "node dist/main.js",
@@ -153,12 +155,14 @@
     "jose": "^6.1.0",
     "pino": "^9.6.0",
     "rate-limiter-flexible": "^5.0.4",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "archiver": "^7.0.1"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",
     "prisma": "^6.19.0",
     "@types/node": "^24.0.0",
+    "@types/archiver": "^6.0.3",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"
   }

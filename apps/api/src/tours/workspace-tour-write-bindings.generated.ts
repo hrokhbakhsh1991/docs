@@ -6,8 +6,10 @@
 
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
 import { mergeDenaliCanonicalPatchData, denaliTourPatchRequiresOwner, DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-denali/tours";
+import { assertDenaliWorkspaceOwner } from "@app-tour/workspace-denali/http";
 import { URBAN_WORKSPACE_TYPE } from "@app-tour/workspace-urban";
 import { mergeUrbanCanonicalPatchData, urbanTourPatchRequiresOwner, URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-urban/tours";
+import { assertWorkspaceOwner } from "@app-tour/workspace-urban/http";
 
 export const WORKSPACE_TOUR_WRITE_BINDINGS = [
   {
@@ -15,11 +17,14 @@ export const WORKSPACE_TOUR_WRITE_BINDINGS = [
     mergeCanonicalPatch: mergeDenaliCanonicalPatchData,
     publishFieldGate: denaliTourPatchRequiresOwner,
     publishOwnerSurface: DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
+    assertPublishFieldOwner: assertDenaliWorkspaceOwner,
+    forbidOperatorMemberTourPatch: true as const,
   },
   {
     workspaceType: URBAN_WORKSPACE_TYPE,
     mergeCanonicalPatch: mergeUrbanCanonicalPatchData,
     publishFieldGate: urbanTourPatchRequiresOwner,
     publishOwnerSurface: URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
+    assertPublishFieldOwner: assertWorkspaceOwner,
   },
 ] as const;

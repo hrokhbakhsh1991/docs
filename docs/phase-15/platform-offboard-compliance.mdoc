@@ -1,0 +1,67 @@
+---
+title: Phase 15 / P2-E — Platform offboard & compliance
+phase: 15
+format: markdoc
+---
+
+# Platform tenant offboarding (P2-E)
+
+Super Admin **Actions** tab danger zone: offboard → GDPR zip export → scheduled purge. Operator OTP blocked on `offboarding`. Denali workspace package is **not** modified.
+
+## Lifecycle
+
+| status | Meaning |
+|--------|---------|
+| `active` / `suspended` | P1 semantics |
+| `offboarding` | Retention window before purge |
+
+```text
+POST .../offboard (owner)
+  → status=offboarding · offboardingStartedAt · scheduledDeletionAt (+30d default)
+  → sessionVersion++ · audit TENANT_OFFBOARDING_STARTED
+
+POST .../cancel-offboard (owner)
+  → status=active · clear dates · audit TENANT_OFFBOARDING_CANCELED
+
+POST .../export (owner)
+  → audit TENANT_EXPORT_REQUESTED · zip stream (9 JSON files)
+
+POST .../purge (owner)
+  → only if scheduledDeletionAt <= now · audit TENANT_DELETED · tenant.delete
+
+POST .../tenants/run-scheduled-deletions (owner)
+  → batch purge due tenants
+```
+
+PATCH `/status` with `{ status: "active" }` while offboarding → **403** `TENANT_OFFBOARDING_USE_CANCEL`.
+
+## API
+
+| Method | Path | RBAC |
+|--------|------|------|
+| POST | `/platform/v1/tenants/{id}/offboard` | owner |
+| POST | `/platform/v1/tenants/{id}/cancel-offboard` | owner |
+| POST | `/platform/v1/tenants/{id}/export` | owner · zip |
+| POST | `/platform/v1/tenants/{id}/purge` | owner |
+| POST | `/platform/v1/tenants/run-scheduled-deletions` | owner |
+| GET | `/platform/v1/audit/export?from=&to=` | owner · CSV |
+
+Detail DTO adds `offboardingStartedAt` · `scheduledDeletionAt`.
+
+## GDPR zip entries
+
+`manifest.json` · `tenant.json` · `tenant-configs.json` · `user-tenants.json` · `operator-pending-invites.json` · `tours.json` · `tenant-domains.json` · `audit-events.json` · `platform-audit-events.json`
+
+## Environment
+
+| Variable | Default |
+|----------|---------|
+| `PLATFORM_OFFBOARD_RETENTION_DAYS` | `30` |
+| `PLATFORM_AUDIT_EXPORT_MAX_ROWS` | `10000` |
+
+## UI
+
+- Actions tab: `TabActionsDanger` (`data-danger-zone`) — offboard · cancel · export
+- Audit page: `data-audit-export-download` CSV link (owner BFF)
+
+See also: [`platform-control-center-api.mdoc`](platform-control-center-api.mdoc) · [`platform-impersonation.mdoc`](platform-impersonation.mdoc)

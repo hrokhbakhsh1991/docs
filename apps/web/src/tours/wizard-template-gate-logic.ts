@@ -1,9 +1,4 @@
-import {
-  ensureDenaliMatrixRequiredAllowedPaths,
-  ensureDenaliMatrixRequiredTemplateSteps,
-  ensureDenaliTourKindAllowedPaths,
-  ensureDenaliTourKindTemplateSteps,
-} from "@app-tour/workspace-denali/wizard/template-invariants";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 import { parseWizardTemplateResponse } from "@/features/settings/wizard-template-logic";
 import type {
@@ -136,21 +131,15 @@ export function resolveWizardTemplateAllowedPaths(
   return [...paths];
 }
 
-export function buildDefaultPublishedWizardSteps(pluginId: string): readonly WizardTemplateStepRef[] {
-  const titlePath = resolveWizardTemplateSeedCanonicalPath(pluginId);
-  if (pluginId === "denali") {
-    return [
-      {
-        stepId: "denali_basic",
-        label: "Basic",
-        enabled: true,
-        fields: [{ canonicalPath: titlePath }],
-      },
-    ];
-  }
+export function buildDefaultPublishedWizardSteps(
+  pluginId: string,
+  plugin?: Pick<WorkspacePlugin, "wizard" | "fieldRegistry">
+): readonly WizardTemplateStepRef[] {
+  const titlePath = resolveWizardTemplateSeedCanonicalPath(pluginId, plugin);
+  const stepId = plugin?.wizard?.steps?.[0]?.stepId ?? "basics";
   return [
     {
-      stepId: "basics",
+      stepId,
       label: "Basics",
       enabled: true,
       fields: [{ canonicalPath: titlePath }],
@@ -160,7 +149,8 @@ export function buildDefaultPublishedWizardSteps(pluginId: string): readonly Wiz
 
 export function ensureWizardTemplatePublishablePayload(
   payload: WizardTemplatePayload,
-  pluginId: string
+  pluginId: string,
+  plugin?: Pick<WorkspacePlugin, "wizard" | "fieldRegistry">
 ): WizardTemplatePayload {
   if (!payload.published) {
     return payload;
@@ -171,42 +161,72 @@ export function ensureWizardTemplatePublishablePayload(
   return {
     ...payload,
     published: true,
-    steps: buildDefaultPublishedWizardSteps(pluginId),
+    steps: buildDefaultPublishedWizardSteps(pluginId, plugin),
   };
+}
+
+export function resolveInitialWorkspaceFormProfile(
+  plugin?: Pick<WorkspacePlugin, "wizardHost">
+): string {
+  const normalize = plugin?.wizardHost?.normalizeWizardTemplateGate;
+  if (normalize == null) {
+    return "platform_default";
+  }
+  return normalize({
+    published: false,
+    templateSteps: [],
+    allowedCanonicalPaths: [],
+    workspaceFormProfile: "",
+    fieldRulesOverlay: {},
+    seedLabel: "",
+  }).workspaceFormProfile;
 }
 
 export function resolveWizardTemplateGateState(
   response: unknown,
-  pluginId: string
+  pluginId: string,
+  plugin?: Pick<WorkspacePlugin, "wizardHost">
 ): WizardTemplateGateState {
   const payload = parseWizardTemplatePayloadRecord(response);
   const published = isWizardTemplatePublished(payload);
-  const effective = published ? ensureWizardTemplatePublishablePayload(payload, pluginId) : payload;
+  const effective = published
+    ? ensureWizardTemplatePublishablePayload(payload, pluginId, plugin)
+    : payload;
   const templateStepsRaw = published ? resolvePublishedWizardTemplateSteps(effective) : [];
-  const templateSteps =
-    pluginId === "denali"
-      ? ensureDenaliMatrixRequiredTemplateSteps(
-          ensureDenaliTourKindTemplateSteps(templateStepsRaw)
-        )
-      : templateStepsRaw;
   const fieldRulesOverlay =
     effective.fieldRulesOverlay != null && typeof effective.fieldRulesOverlay === "object"
       ? effective.fieldRulesOverlay
       : {};
-  const workspaceFormProfile =
+  const workspaceFormProfileBase =
     typeof effective.baseProfile === "string" && effective.baseProfile.trim().length > 0
       ? effective.baseProfile.trim()
-      : "denali_pilot";
+      : "platform_default";
 
   const allowedPathsRaw = resolveWizardTemplateAllowedPaths(effective);
+
+  let templateSteps: readonly WizardTemplateStepRef[] = templateStepsRaw;
+  let allowedCanonicalPaths: readonly string[] = allowedPathsRaw;
+  let workspaceFormProfile = workspaceFormProfileBase;
+
+  const normalize = plugin?.wizardHost?.normalizeWizardTemplateGate;
+  if (normalize != null && published) {
+    const normalized = normalize({
+      published,
+      templateSteps: templateStepsRaw,
+      allowedCanonicalPaths: allowedPathsRaw,
+      workspaceFormProfile: workspaceFormProfileBase,
+      fieldRulesOverlay,
+      seedLabel: effective.seedLabel.trim(),
+    });
+    templateSteps = normalized.templateSteps as readonly WizardTemplateStepRef[];
+    allowedCanonicalPaths = normalized.allowedCanonicalPaths as readonly string[];
+    workspaceFormProfile = normalized.workspaceFormProfile;
+  }
 
   return {
     loading: false,
     published,
-    allowedCanonicalPaths:
-      pluginId === "denali" && published
-        ? ensureDenaliMatrixRequiredAllowedPaths(ensureDenaliTourKindAllowedPaths(allowedPathsRaw))
-        : allowedPathsRaw,
+    allowedCanonicalPaths,
     templateSteps,
     fieldOverlays: buildWizardTemplateFieldOverlays(templateSteps),
     seedLabel: effective.seedLabel.trim(),

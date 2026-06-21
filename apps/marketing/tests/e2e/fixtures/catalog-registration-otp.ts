@@ -37,6 +37,36 @@ export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
   }
 }
 
+/** Reliable phone entry for portal LocalizedNumericInput (fa locale). */
+export async function fillRegistrationPhone(page: Page, phone: string): Promise<void> {
+  const input = page.locator("[data-public-registration-phone] input").first();
+  await input.click();
+  await input.fill("");
+  await input.pressSequentially(phone, { delay: 15 });
+  await expect(input).not.toHaveValue("");
+}
+
+/** Send OTP and assert portal BFF request-otp succeeds before UI advances. */
+export async function requestRegistrationOtp(page: Page, phone: string): Promise<void> {
+  await fillRegistrationPhone(page, phone);
+  const sendCode = page.locator('[data-action="send-code"]');
+  await expect(sendCode).toBeEnabled({ timeout: 15_000 });
+
+  const otpResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/public-auth/request-otp") &&
+      response.request().method() === "POST",
+    { timeout: 90_000 }
+  );
+  await sendCode.click();
+  const response = await otpResponse;
+  const body = await response.text();
+  expect(
+    response.ok(),
+    `request-otp failed (${response.status()}): ${body.slice(0, 240)}`
+  ).toBeTruthy();
+}
+
 export async function completeCatalogRegistrationIntake(
   page: Page,
   input: { readonly email: string; readonly fullName: string; readonly partySize?: string }

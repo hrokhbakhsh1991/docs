@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 
 import { TenantBrandMark } from "./tenant-brand-mark";
@@ -15,7 +16,7 @@ type OperatorBrandProps = {
 
 export function OperatorBrand({ workspaceLabel, pluginId, displayName }: OperatorBrandProps) {
   const t = useTranslations("app");
-  const isDenali = pluginId === "denali";
+  const usesExtendedCreateChrome = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
   const title = useTenantBrandTitle(displayName, workspaceLabel);
 
   return (
@@ -30,7 +31,7 @@ export function OperatorBrand({ workspaceLabel, pluginId, displayName }: Operato
       </div>
       <p className="text-base font-semibold leading-tight">{title}</p>
       <p className="text-xs text-muted-foreground">
-        {isDenali ? t("denaliTagline") : t("operatorWorkspace")}
+        {usesExtendedCreateChrome ? t("denaliTagline") : t("operatorWorkspace")}
       </p>
     </div>
   );

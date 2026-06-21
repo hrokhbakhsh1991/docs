@@ -19,6 +19,14 @@ describe("tenant-branding-merge", () => {
     assert.equal(theme.primaryColor, "#ff00ff");
   });
 
+  it("resolveEffectiveTenantBranding inherits defaultLocale from fallback when stored lacks it", () => {
+    const stored = { primaryColor: "#0d9488", cssVariables: { "--color-primary": "#0d9488" } };
+    const fallback = { defaultLocale: "en" as const };
+    const theme = resolveEffectiveTenantBranding(stored, fallback);
+    assert.equal(theme.primaryColor, "#0d9488");
+    assert.equal(theme.defaultLocale, "en");
+  });
+
   it("isTenantBrandingEmpty treats blank primary and css as empty", () => {
     assert.equal(isTenantBrandingEmpty({}), true);
     assert.equal(isTenantBrandingEmpty({ primaryColor: "  " }), true);

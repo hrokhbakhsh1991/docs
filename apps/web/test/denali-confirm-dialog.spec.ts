@@ -23,8 +23,13 @@ describe("denali-confirm-dialog.spec.ts", () => {
 
   it("create tour uses Denali confirm instead of window.confirm", () => {
     const wizard = readSource("app/tours/new/denali-create-tour-wizard-client.tsx");
+    const hook = readSource("src/wizard/use-denali-create-tour-wizard.ts");
+    const chrome = readSource("src/wizard/create-tour-wizard-chrome.tsx");
+    const clearDraftHook = readSource("src/draft/use-denali-wizard-clear-draft.tsx");
     assert.doesNotMatch(wizard, /window\.confirm/);
-    assert.match(wizard, /useDenaliWizardClearDraft/);
-    assert.match(wizard, /clearDraftConfirmDialog/);
+    assert.doesNotMatch(hook, /window\.confirm/);
+    assert.match(hook, /useDenaliWizardClearDraft/);
+    assert.match(chrome, /clearDraftConfirmDialog/);
+    assert.match(clearDraftHook, /DenaliConfirmDialog/);
   });
 });

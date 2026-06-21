@@ -159,6 +159,9 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     const nodeEnv = process.env.NODE_ENV?.trim();
     if (nodeEnv === "development" || nodeEnv === "test") {
       seedOperatorSmokeDevFixture(repo);
+      if (process.env.URBAN_SMOKE_E2E_SEED === "1") {
+        seedUrbanSmokeE2eFixture(repo);
+      }
     }
     return repo;
   }
@@ -526,6 +529,13 @@ export class OwnershipTransferTargetInvalidError extends Error {
 
 /** Phase 6.6 denali host — sync resolve-host-tenant.ts `denali` label */
 const DENALI_DEV_HOST_TENANT_ID = "00000000-0000-4000-8000-000000000003";
+/** Phase 8.4 urban smoke — sync URBAN_SMOKE_E2E fixture */
+const URBAN_SMOKE_E2E_TENANT_ID = "00000000-0000-4000-8000-000000000004";
+const URBAN_SMOKE_E2E_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";
+const URBAN_SMOKE_E2E_OWNER_USER_ID = "00000000-0000-4000-8000-000000000401";
+const URBAN_SMOKE_E2E_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000402";
+const URBAN_SMOKE_E2E_OWNER_MOBILE = "+15550004001";
+const URBAN_SMOKE_E2E_MEMBER_MOBILE = "+15550004002";
 /** Phase 9.8 operator smoke — sync OPERATOR_SMOKE.tenantId */
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101";
@@ -601,6 +611,29 @@ function seedOperatorSmokeDevFixture(repo: InMemoryIdentityRepository): void {
     });
     seedOperatorSmokeTeamRoster(repo, OPERATOR_SMOKE_TENANT_ID);
   }
+}
+
+function seedUrbanSmokeE2eFixture(repo: InMemoryIdentityRepository): void {
+  repo.seedUser({ id: URBAN_SMOKE_E2E_OWNER_USER_ID, mobile: URBAN_SMOKE_E2E_OWNER_MOBILE });
+  repo.seedUser({ id: URBAN_SMOKE_E2E_MEMBER_USER_ID, mobile: URBAN_SMOKE_E2E_MEMBER_MOBILE });
+  repo.seedMembership({
+    userId: URBAN_SMOKE_E2E_OWNER_USER_ID,
+    tenantId: URBAN_SMOKE_E2E_TENANT_ID,
+    role: "owner",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: URBAN_SMOKE_E2E_WORKSPACE_ID,
+    displayName: "Urban Smoke Owner",
+  });
+  repo.seedMembership({
+    userId: URBAN_SMOKE_E2E_MEMBER_USER_ID,
+    tenantId: URBAN_SMOKE_E2E_TENANT_ID,
+    role: "member",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: URBAN_SMOKE_E2E_WORKSPACE_ID,
+    displayName: "Urban Smoke Member",
+  });
 }
 
 function membershipKey(userId: string, tenantId: string): string {

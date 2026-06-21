@@ -1,3 +1,4 @@
+import "../workspace-finance/register-workspace-finance-deps";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS } from "./workspace-outbox-side-effects.generated";
 import type { WorkspaceOutboxPublishedRow } from "./workspace-outbox-row-context";

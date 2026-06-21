@@ -15,6 +15,8 @@ model Tenant {
   status        String   @default("active")
   theme         Json     @default("{}")
   createdAt     DateTime @default(now()) @map("created_at")
+  offboardingStartedAt DateTime? @map("offboarding_started_at") @db.Timestamptz
+  scheduledDeletionAt  DateTime? @map("scheduled_deletion_at") @db.Timestamptz
   tours         Tour[]
   outboxEvents  OutboxEvent[]
   auditEvents   AuditEvent[]
@@ -28,6 +30,7 @@ model Tenant {
   operatorPendingInvites OperatorPendingInvite[]
   operatorRegistrations OperatorRegistration[]
   tenantConfigs TenantConfig[]
+  tenantDomains TenantDomain[]
   workspaceEquipment WorkspaceEquipment[]
   workspaceTourThemes WorkspaceTourTheme[]
   workspaceGuideLanguages WorkspaceGuideLanguage[]
@@ -38,8 +41,43 @@ model Tenant {
   operatorUserRoleAudits OperatorUserRoleAudit[]
   workspaceDraftSnapshots WorkspaceDraftSnapshot[]
   workspaceDraftEvents    WorkspaceDraftEvent[]
+  subscription TenantSubscription?
+  workspaceDefinitionId      String?  @map("workspace_definition_id")
+  workspaceDefinitionVersion Int?     @map("workspace_definition_version")
+  workspaceDefinition        WorkspaceDefinition? @relation(fields: [workspaceDefinitionId], references: [id], onDelete: SetNull)
 
   @@map("tenants")
+}
+
+/// P3-A — logical workspace vertical (metadata platform).
+model WorkspaceDefinition {
+  id          String   @id
+  displayName String   @map("display_name")
+  status      String   @default("draft")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  versions    WorkspaceDefinitionVersion[]
+  tenants     Tenant[]
+
+  @@map("workspace_definitions")
+}
+
+/// P3-A — immutable published metadata snapshot (JSON payload).
+model WorkspaceDefinitionVersion {
+  id                         String   @id @default(uuid()) @db.Uuid
+  definitionId               String   @map("definition_id")
+  version                    Int
+  pluginApiVersion           Int      @default(1) @map("plugin_api_version")
+  payload                    Json
+  checksum                   String
+  publishedAt                DateTime? @map("published_at") @db.Timestamptz
+  createdByPlatformOpsUserId String?  @map("created_by_platform_ops_user_id") @db.Uuid
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  definition                 WorkspaceDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@unique([definitionId, version], map: "uq_workspace_definition_versions_def_version")
+  @@index([definitionId], map: "idx_workspace_definition_versions_definition_id")
+  @@map("workspace_definition_versions")
 }
 
 /// Phase 7.7 — pool vs silo connection routing (DEC-P7-004).
@@ -488,4 +526,74 @@ model WorkspaceDraftEvent {
 
   @@index([tenantId, workspaceId, userId, draftNamespace, draftKey], map: "idx_workspace_draft_events_scope")
   @@map("workspace_draft_events")
+}
+
+/// P1-N-053 — Platform-level audit events (no tenantId, for platform ops).
+model PlatformAuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([action, createdAt])
+  @@map("platform_audit_events")
+}
+
+model PlatformPlan {
+  id            String   @id
+  displayName   String   @map("display_name")
+  priceMonthly  Int?     @map("price_monthly")
+  currency      String   @default("IRR")
+  features      Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at")
+  subscriptions TenantSubscription[]
+
+  @@map("platform_plans")
+}
+
+model TenantSubscription {
+  tenantId         String    @id @map("tenant_id") @db.Uuid
+  planId           String    @map("plan_id")
+  status           String    @default("active")
+  currentPeriodEnd DateTime? @map("current_period_end") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan             PlatformPlan @relation(fields: [planId], references: [id])
+
+  @@index([planId], map: "idx_tenant_subscriptions_plan_id")
+  @@map("tenant_subscriptions")
+}
+
+/// P1-F — custom hostname bindings for club marketing/portal surfaces.
+model TenantDomain {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  hostname    String   @unique
+  surface     String   @default("marketing")
+  status      String   @default("pending")
+  cnameTarget String   @map("cname_target")
+  createdAt   DateTime @default(now()) @map("created_at")
+  verifiedAt  DateTime? @map("verified_at")
+  sslStatus         String    @default("pending") @map("ssl_status")
+  sslExpiresAt      DateTime? @map("ssl_expires_at") @db.Timestamptz
+  sslLastError      String?   @map("ssl_last_error")
+  lastObservedCname String?   @map("last_observed_cname")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], map: "idx_tenant_domains_tenant_id")
+  @@map("tenant_domains")
+}
+
+/// P1-G — platform operator directory (phone + role; no password).
+model PlatformOpsUser {
+  id        String   @id @default(uuid()) @db.Uuid
+  phone     String   @unique
+  role      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_ops_users")
 }

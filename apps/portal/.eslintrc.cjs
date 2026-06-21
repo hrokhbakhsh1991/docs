@@ -15,6 +15,11 @@ module.exports = {
       {
         paths: [
           {
+            name: "@app-tour/ui-primitives",
+            message:
+              "P3-E-BARREL: import subpaths only — @app-tour/ui-primitives/button, /input, …",
+          },
+          {
             name: "@app-tour/workspace-denali",
             message: "Portal shell must not static-import workspace plugins — use API BFF",
           },

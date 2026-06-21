@@ -53,6 +53,17 @@ describe("tenant-branding-contract.spec.ts", () => {
     assert.match(route, /x-forwarded-host/);
   });
 
+  it("WEB-P15-A1a public BFF soft-fails backend errors with 200 null branding", () => {
+    const route = readFileSync(
+      join(WEB_ROOT, "app/api/public/tenant-branding/route.ts"),
+      "utf8"
+    );
+    assert.match(route, /!backendRes\.ok/);
+    assert.match(route, /defaultLocale: null/);
+    assert.match(route, /EMPTY_PUBLIC_TENANT_BRANDING/);
+    assert.doesNotMatch(route, /status: backendRes\.status/);
+  });
+
   it("WEB-TENANT-BRANDING-04b public BFF is middleware-public", () => {
     const middleware = readFileSync(join(import.meta.dirname, "../middleware.ts"), "utf8");
     assert.match(middleware, /\/api\/public\/tenant-branding/);

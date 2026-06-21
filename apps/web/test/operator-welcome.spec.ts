@@ -12,17 +12,18 @@ import {
   shouldShowOperatorWelcome,
 } from "../src/admin/onboarding/resolve-operator-welcome";
 import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
-import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-tour/workspace-denali/plugin";
+
+const DENALI_PLUGIN_ID = "denali";
 
 describe("operator-welcome.spec.ts", () => {
   it("CP-WELCOME-03 gate active for denali owner only", () => {
-    assert.equal(shouldShowOperatorWelcome(DENALI_WORKSPACE_PLUGIN_ID, "owner"), true);
-    assert.equal(shouldShowOperatorWelcome(DENALI_WORKSPACE_PLUGIN_ID, "admin"), false);
+    assert.equal(shouldShowOperatorWelcome(DENALI_PLUGIN_ID, "owner"), true);
+    assert.equal(shouldShowOperatorWelcome(DENALI_PLUGIN_ID, "admin"), false);
     assert.equal(shouldShowOperatorWelcome("urban", "owner"), false);
   });
 
   it("CP-WELCOME-04 denali welcome content and wizard CTA path", () => {
-    const content = resolveOperatorWelcomeContent(DENALI_WORKSPACE_PLUGIN_ID);
+    const content = resolveOperatorWelcomeContent(DENALI_PLUGIN_ID);
     assert.equal(content.active, true);
     assert.equal(content.bullets.length, 3);
     assert.equal(OPERATOR_WIZARD_PATH, "/tours/new");

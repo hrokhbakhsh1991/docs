@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { buildAuthLoginPageMetadata } from "@/i18n/app-page-metadata";
+import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding.server";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
@@ -40,6 +41,17 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
 
   const host = (await headers()).get("host") ?? "localhost:3000";
   const searchQuery = serializeLoginSearchParams(params);
+
+  if (isPlatformAdminHost(host)) {
+    return (
+      <LoginFormLazy
+        pluginId="platform"
+        initialBranding={{ displayName: "Platform Control Center", logoUrl: null }}
+        searchQuery={searchQuery}
+      />
+    );
+  }
+
   const [bootstrap, branding] = await Promise.all([
     Promise.resolve(resolveBootstrapAppSessionForHost(host)),
     fetchPublicTenantBrandingForHost(host),

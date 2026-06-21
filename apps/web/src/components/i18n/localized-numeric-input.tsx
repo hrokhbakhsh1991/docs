@@ -1,7 +1,7 @@
 "use client";
 
 import { Input as PrimitiveInput } from "@app-tour/ui-primitives/input";
-import React, { forwardRef, type ComponentProps } from "react";
+import { type ComponentProps } from "react";
 
 import { Input as ShadcnInput } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -35,20 +35,22 @@ type PrimitiveLocalizedNumericInputProps = Omit<
 > &
   UseLocalizedNumericInputOptions;
 
-export const PrimitiveLocalizedNumericInput = forwardRef<
-  HTMLInputElement,
-  PrimitiveLocalizedNumericInputProps
->(function PrimitiveLocalizedNumericInput(
-  { value, onChange, mode, maxLength, groupThousands, className, ...rest },
-  ref
-) {
+/** Wizard shell numeric field — ui-primitives input with locale-aware digits. */
+export function PrimitiveLocalizedNumericInput({
+  value,
+  onChange,
+  mode,
+  maxLength,
+  groupThousands,
+  className,
+  ...rest
+}: PrimitiveLocalizedNumericInputProps) {
   const localized = useLocalizedNumericInput({ value, onChange, mode, maxLength, groupThousands });
   return (
     <PrimitiveInput
-      ref={ref}
       {...rest}
       {...localized}
       className={cn(localized.className, className)}
     />
   );
-});
+}

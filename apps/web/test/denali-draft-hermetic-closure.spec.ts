@@ -42,10 +42,12 @@ describe("denali-draft-hermetic-closure.spec.ts — Phase 5A", () => {
   });
 
   it("WEB-P11-HERMETIC-03b create-tour wires schemaGate via useWorkspaceDraft", () => {
-    const source = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
-    assert.match(source, /createDenaliDraftSchemaGate/);
-    assert.match(source, /schemaGate:\s*denaliSchemaGate/);
-    assert.match(source, /DraftSyncChrome/);
+    const hook = readWebSource("src/wizard/use-denali-create-tour-wizard.ts");
+    const chrome = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
+    assert.match(hook, /createDenaliDraftSchemaGate/);
+    assert.match(hook, /schemaGate:\s*denaliSchemaGate/);
+    assert.match(chrome, /CreateTourWizardDenaliHeader/);
+    assert.match(readWebSource("src/wizard/create-tour-wizard-chrome.tsx"), /DraftSyncChrome/);
   });
 
   it("WEB-P11-HERMETIC-04 denali gate defines MAX_SANITY_ATTEMPTS = 2 for merge phase", () => {
@@ -57,7 +59,7 @@ describe("denali-draft-hermetic-closure.spec.ts — Phase 5A", () => {
   });
 
   it("WEB-P11-HERMETIC-05 create-tour does not track deletedRoots on edit (Track B)", () => {
-    const source = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
-    assert.doesNotMatch(source, /trackDeletedCanonicalRoots/);
+    const hook = readWebSource("src/wizard/use-denali-create-tour-wizard.ts");
+    assert.doesNotMatch(hook, /trackDeletedCanonicalRoots/);
   });
 });

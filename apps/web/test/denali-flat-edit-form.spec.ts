@@ -11,11 +11,11 @@ import {
 } from "@app-tour/workspace-denali/edit";
 
 import { TOUR_EDIT_TEST_IDS } from "../src/features/tours/operator-tour-detail-types";
-import { DENALI_FLAT_EDIT_TEST_IDS } from "../src/wizard/denali/denali-flat-edit-form";
+import { DENALI_FLAT_EDIT_TEST_IDS } from "@app-tour/workspace-denali/ui/test-ids/denali-flat-edit-test-ids";
 import {
   filterFlatEditRenderSteps,
   filterFlatEditTemplateSteps,
-} from "../src/wizard/denali/denali-flat-edit-plan";
+} from "@app-tour/workspace-denali/ui/chrome/flat-edit-plan";
 
 describe("denali-flat-edit-form.spec.ts — Phase 12.4 Web", () => {
   it("WEB-12.4-01 flat edit test ids align with operator tour edit landmarks", () => {

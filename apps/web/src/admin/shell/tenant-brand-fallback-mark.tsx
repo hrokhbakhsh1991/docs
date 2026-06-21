@@ -1,3 +1,5 @@
+import { WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS } from "@/bootstrap/wizard-create-bindings.generated";
+
 import { DenaliLogoMark } from "./denali-logo-mark";
 
 type TenantBrandFallbackMarkProps = {
@@ -12,7 +14,8 @@ export function TenantBrandFallbackMark({
   workspaceLabel,
   className,
 }: TenantBrandFallbackMarkProps) {
-  if (pluginId === "denali") {
+  const fallbackMark = WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS[pluginId];
+  if (fallbackMark === "denali") {
     return <DenaliLogoMark className={className} />;
   }
 

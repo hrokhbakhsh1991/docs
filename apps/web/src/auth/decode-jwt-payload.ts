@@ -7,6 +7,7 @@ export type SessionJwtClaims = {
   role?: string;
   exp?: number;
   iat?: number;
+  platform_impersonation_readonly?: boolean;
 };
 
 export function decodeJwtPayload(token: string): SessionJwtClaims | null {

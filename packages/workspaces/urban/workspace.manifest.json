@@ -1,6 +1,7 @@
 {
   "id": "urban",
   "version": 1,
+  "pluginApiVersion": 1,
   "package": "@app-tour/workspace-urban",
   "workspaceTypes": ["urban"],
   "plugin": {
@@ -15,11 +16,73 @@
     "prefix": "/urban",
     "module": "./http/routes"
   },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-urban/http",
+    "groups": [
+      {
+        "manifestExport": "URBAN_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /urban/settings": "handleGetUrbanSettings",
+          "PATCH /urban/settings": "handlePatchUrbanSettings",
+          "GET /urban/catalog": "handleGetUrbanCatalog",
+          "POST /urban/registrations": "handlePostUrbanRegistration"
+        },
+        "paramHandlers": {
+          "GET /urban/catalog/:tourId": "handleGetUrbanCatalogTour"
+        }
+      }
+    ]
+  },
   "tourWrite": {
     "module": "./tours",
     "workspaceTypeExport": "URBAN_WORKSPACE_TYPE",
     "mergeExport": "mergeUrbanCanonicalPatchData",
     "publishGateExport": "urbanTourPatchRequiresOwner",
-    "publishSurfaceExport": "URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
-  }
+    "publishSurfaceExport": "URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE",
+    "publishOwnerAssertModule": "./http",
+    "publishOwnerAssertExport": "assertWorkspaceOwner"
+  },
+  "canonicalTour": {
+    "publishStatusModule": "./tours",
+    "publishStatusReadExport": "readUrbanTourPublishStatusFromCanonical",
+    "publishTransitionExport": "detectUrbanTourPublishTransition"
+  },
+  "wizardI18n": {
+    "messageNamespace": "urban"
+  },
+  "devBootstrap": {
+    "wizardTemplate": {
+      "module": "./settings/urbanMinimalWizardTemplate",
+      "buildExport": "buildUrbanMinimalWizardTemplatePayload",
+      "tenantIds": ["00000000-0000-4000-8000-000000000004"],
+      "minPublishedSteps": 2
+    },
+    "smokeTenant": {
+      "tenantIdExport": "URBAN_SMOKE_TENANT_ID",
+      "subdomainExport": "URBAN_SMOKE_SUBDOMAIN"
+    }
+  },
+  "httpErrors": [
+    {
+      "isErrorExport": "isUrbanOwnerRequiredError",
+      "codeExport": "URBAN_OWNER_REQUIRED",
+      "status": 403
+    },
+    {
+      "isErrorExport": "isUrbanWorkspaceRequiredError",
+      "codeExport": "URBAN_WORKSPACE_REQUIRED",
+      "status": 404
+    },
+    {
+      "isErrorExport": "isUrbanRegistrationDuplicateError",
+      "codeExport": "URBAN_REGISTRATION_DUPLICATE",
+      "status": 409
+    },
+    {
+      "isErrorExport": "isUrbanRegistrationClosedError",
+      "codeExport": "URBAN_REGISTRATION_CLOSED",
+      "status": 403
+    }
+  ],
+  "themeStylesheets": ["theme/tokens.css"]
 }

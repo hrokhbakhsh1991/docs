@@ -13,9 +13,10 @@ import {
 import {
   buildLegacyTripDetailsCanonicalEnvelope,
   isLegacyTripDetailsSchemaVersion,
-  migrateDenaliCanonicalForTenant,
+  migrateWorkspaceCanonicalForTenant,
   parseMigrateCanonicalTenantAllowlist,
-} from "../src/canonical/migrate-canonical-denali.service";
+  workspaceSupportsCanonicalMigration,
+} from "../src/canonical/migrate-canonical-workspace.service";
 import { integrationTenantId } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
@@ -39,6 +40,11 @@ describe("migrate-canonical-denali.spec.ts (REQ-P6-017, RULE-P6-010)", () => {
     const envelope = buildLegacyTripDetailsCanonicalEnvelope(legacy);
     assert.equal(isLegacyTripDetailsSchemaVersion(envelope.schemaVersion), true);
     assert.deepEqual(envelope.roots, [LEGACY_TRIP_DETAILS_SOT_ROOT]);
+  });
+
+  it("workspaceSupportsCanonicalMigration is true for denali only", () => {
+    assert.equal(workspaceSupportsCanonicalMigration("denali"), true);
+    assert.equal(workspaceSupportsCanonicalMigration("urban"), false);
   });
 });
 
@@ -110,7 +116,7 @@ describe("migrate-canonical-denali integration", { skip: !hasDatabase, concurren
 
   it("allowlisted tenant migrates trip_details envelope to canonical_data single SoT", async () => {
     const allowlist = new Set([allowlistedTenantId]);
-    const result = await migrateDenaliCanonicalForTenant(admin, allowlistedTenantId, {
+    const result = await migrateWorkspaceCanonicalForTenant(admin, allowlistedTenantId, {
       allowlist,
     });
 
@@ -131,7 +137,7 @@ describe("migrate-canonical-denali integration", { skip: !hasDatabase, concurren
 
   it("non-allowlisted tenant remains on legacy envelope", async () => {
     const allowlist = new Set([allowlistedTenantId]);
-    const result = await migrateDenaliCanonicalForTenant(admin, controlTenantId, {
+    const result = await migrateWorkspaceCanonicalForTenant(admin, controlTenantId, {
       allowlist,
     });
 

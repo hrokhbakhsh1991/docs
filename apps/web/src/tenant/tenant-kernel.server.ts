@@ -8,6 +8,7 @@ import { resolveBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-w
 import type { AppSession } from "@/session/app-session";
 
 import { isDevWebSessionAllowed } from "./auth-env";
+import { fetchPublicTenantContextForHost } from "./fetch-public-tenant-context.server";
 import { resolveTenantIdFromDevHost } from "./resolve-host-tenant";
 import {
   bootstrapPlugin,
@@ -82,14 +83,42 @@ export function resolveBootstrapAppSessionForHost(host: string): ResolvedBootstr
   return resolveBootstrapAppSession(withProfile, host);
 }
 
+/**
+ * Root layout bootstrap — static dev map, then public tenant-context for provisioned club hosts.
+ * @see docs/phase-15/platform-host-multilevel.mdoc § Session bind vs BFF tenant resolution
+ */
+export async function resolveBootstrapAppSessionForHostAsync(
+  host: string
+): Promise<ResolvedBootstrapSession> {
+  const hostTenantId = resolveTenantIdFromDevHost(host);
+  if (hostTenantId) {
+    return resolveBootstrapAppSessionForHost(host);
+  }
+
+  const publicContext = await fetchPublicTenantContextForHost(host);
+  if (publicContext !== null) {
+    const base = resolveContextFromEnv();
+    const profile = resolveDevSessionProfileFromHost(host);
+    const withProfile = profile ? { ...base, ...profile } : base;
+    return resolveBootstrapAppSession(
+      { ...withProfile, tenantId: publicContext.tenantId },
+      host,
+      { pluginId: publicContext.pluginId }
+    );
+  }
+
+  return resolveBootstrapAppSessionForHost(host);
+}
+
 /** Per-request bootstrap (call from Server Components only). */
 export function resolveBootstrapAppSession(
   input: TenantKernelResolveInput = resolveContextFromEnv(),
-  host?: string
+  host?: string,
+  options?: { readonly pluginId?: string }
 ): ResolvedBootstrapSession {
   const context = resolveTenantContext(input);
   const scoped = createTenantAuthz(context);
-  const pluginId = resolveBootstrapPluginIdForTenant(context.tenantId, host);
+  const pluginId = options?.pluginId ?? resolveBootstrapPluginIdForTenant(context.tenantId, host);
   const workspaceThemeAccess = bindWorkspaceThemeAccess(scoped.context, {
     workspaceId: context.workspaceId!,
     pluginId,

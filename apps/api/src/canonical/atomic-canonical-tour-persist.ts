@@ -25,9 +25,9 @@ import { assertTourCapacityInTx } from "./assert-tour-capacity-in-tx";
 import { deriveTourProjections } from "./projection-sync";
 import {
   detectTourPublishTransition,
+  readTourPublishStatusLabel,
   type TourPublishTransitionKind,
-} from "./tour-publish-transition-audit";
-import { readDenaliTourPublishStatusFromCanonical } from "@app-tour/workspace-denali/tours";
+} from "./workspace-canonical-tour-dispatch";
 
 export type AtomicCanonicalTourPersistInput = {
   readonly tenantId: string;
@@ -263,16 +263,6 @@ function buildTourCreateData(args: {
   };
 }
 
-function readPublishStatusLabel(
-  workspaceType: string | undefined,
-  canonical: CanonicalDocument
-): string | undefined {
-  if (workspaceType === "denali") {
-    return readDenaliTourPublishStatusFromCanonical(canonical);
-  }
-  return undefined;
-}
-
 async function appendPublishTransitionAuditEvent(
   tx: Prisma.TransactionClient,
   input: {
@@ -286,8 +276,8 @@ async function appendPublishTransitionAuditEvent(
   const workspaceType = getActiveWorkspaceType();
   const action =
     input.transition === "published" ? AUDIT_ACTION_TOUR_PUBLISHED : AUDIT_ACTION_TOUR_UNPUBLISHED;
-  const fromPublishStatus = readPublishStatusLabel(workspaceType, input.before);
-  const toPublishStatus = readPublishStatusLabel(workspaceType, input.after);
+  const fromPublishStatus = readTourPublishStatusLabel(workspaceType, input.before);
+  const toPublishStatus = readTourPublishStatusLabel(workspaceType, input.after);
 
   await appendAuditEvent(tx, {
     action,

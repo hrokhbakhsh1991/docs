@@ -2,7 +2,7 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { getSettingsConfigRepository } from "./create-settings-config-repository";
 import { emitSettingsConfigAudit } from "./settings-audit-emitter";
-import { assertWizardTemplateFieldsKnown } from "./wizard-template-catalog";
+import { assertWizardTemplateFieldsKnown, SettingsWizardUnknownFieldError } from "./wizard-template-catalog";
 import {
   resolveSettingsModuleByConfigKeyForTenant,
   SettingsConfigUnknownError,
@@ -15,9 +15,7 @@ import type {
   WizardTemplatePayloadV1,
 } from "./settings.types";
 import { SettingsMutationForbiddenError } from "./settings.service";
-import { assertDenaliOperatorSettingsWorkspace } from "./settings-workspace-guard";
-import { isProductionAuthMode } from "../tenant-kernel/auth-env";
-import { seedDenaliFullWizardTemplate } from "./seed-denali-full-wizard-template";
+import { assertSettingsConfigWorkspaceAllowed } from "./settings-workspace-guard";
 
 export { SettingsWizardUnknownFieldError } from "./wizard-template-catalog";
 export class SettingsConfigVersionUnsupportedError extends Error {
@@ -225,20 +223,7 @@ async function getWizardTemplateConfig(
   configKey: string
 ): Promise<SettingsConfigResponse> {
   const repo = getSettingsConfigRepository();
-  let stored = await repo.get(auth.tenantId, configKey);
-  if (!isProductionAuthMode()) {
-    const payload = stored?.payload as { published?: boolean; steps?: unknown[] } | undefined;
-    const needsSeed =
-      stored === null ||
-      (stored.configVersion >= WIZARD_TEMPLATE_CURRENT_VERSION &&
-        (payload?.published !== true ||
-          !Array.isArray(payload?.steps) ||
-          payload.steps.length <= 5));
-    if (needsSeed) {
-      await seedDenaliFullWizardTemplate(auth.tenantId);
-      stored = await repo.get(auth.tenantId, configKey);
-    }
-  }
+  const stored = await repo.get(auth.tenantId, configKey);
   if (stored === null) {
     return {
       configKey,
@@ -300,7 +285,7 @@ export async function getSettingsConfig(
   auth: TenantAuthContext,
   configKey: string
 ): Promise<SettingsConfigResponse> {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
+  await assertSettingsConfigWorkspaceAllowed(auth.tenantId, configKey);
   await assertSupportedConfigKey(auth.tenantId, configKey);
   if (configKey === "wizard_template") {
     return getWizardTemplateConfig(auth, configKey);
@@ -375,7 +360,7 @@ export async function putSettingsConfig(
   configKey: string,
   body: PutSettingsConfigRequest
 ): Promise<SettingsConfigResponse> {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
+  await assertSettingsConfigWorkspaceAllowed(auth.tenantId, configKey);
   assertAdminOrOwner(auth);
   await assertSupportedConfigKey(auth.tenantId, configKey);
   if (configKey === "wizard_template") {

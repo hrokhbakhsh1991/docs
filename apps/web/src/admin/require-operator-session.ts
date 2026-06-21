@@ -3,6 +3,7 @@
  */
 import type { TenantAuthz } from "@app-tour/workspace-sdk";
 
+import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
 
 export const OPERATOR_APP_ROUTE_PREFIX = "/(app)" as const;
@@ -26,7 +27,10 @@ export type OperatorSessionContext = {
 };
 
 export function isDenaliOperatorSession(session: OperatorSessionContext): boolean {
-  return session.pluginId === "denali" || session.workspaceType === "denali";
+  return (
+    isExtendedOperatorWorkspace(session.pluginId) ||
+    isExtendedOperatorWorkspace(session.workspaceType)
+  );
 }
 
 export type RequireOperatorSessionWebParams = {

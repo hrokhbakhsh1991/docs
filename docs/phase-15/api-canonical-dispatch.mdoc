@@ -1,0 +1,64 @@
+---
+title: Phase 15 — API canonical tour dispatch (P-B3)
+phase: 15
+format: markdoc
+---
+
+# Canonical tour manifest dispatch (P15-P-B3)
+
+## Problem
+
+`apps/api/src/canonical/` still hard-coded Denali imports and `workspaceType === "denali"` branches for:
+
+- publish-status audit labels (`atomic-canonical-tour-persist.ts`)
+- publish transition detection (`tour-publish-transition-audit.ts`)
+- `migrateCanonical` hook resolution (`migrate-canonical-hook.ts`)
+
+Urban publish transitions lived inline in the API host instead of the workspace package.
+
+## Manifest contract (`canonicalTour`)
+
+Optional block on `workspace.manifest.json`:
+
+| Field | Purpose |
+|-------|---------|
+| `publishStatusModule` | Package subpath for read/transition exports (usually `./tours`) |
+| `publishStatusReadExport` | `(canonical) => string \| undefined` for audit metadata |
+| `publishTransitionExport` | `(beforeData, afterData) => "published" \| "unpublished" \| null` |
+| `migrateModule` | ACL module for batch migrate (Denali only today) |
+| `migrateExport` | `migrateCanonical(schemaVersion, data)` |
+
+Codegen output: `apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts`
+
+Regenerate: `pnpm run generate:workspace-registry`
+
+## Host dispatch
+
+`workspace-canonical-tour-dispatch.ts` builds maps from generated bindings:
+
+| Function | Used by |
+|----------|---------|
+| `readTourPublishStatusLabel(workspaceType, canonical)` | `atomic-canonical-tour-persist` audit metadata |
+| `detectTourPublishTransition(workspaceType, before, after)` | publish transition audit + canonical persist |
+| `resolveMigrateCanonicalHook(workspaceType)` | batch migrate jobs (not POST/PATCH — DEC-091 guard) |
+
+Unknown workspace types return `undefined` / `migrateCanonicalNotImplemented`.
+
+## Workspace packages
+
+| Workspace | publish status read | transition detect | migrate |
+|-----------|--------------------|--------------------|---------|
+| denali | `readDenaliTourPublishStatusFromCanonical` | `detectDenaliTourPublishTransition` | `migrateDenaliCanonical` |
+| urban | `readUrbanTourPublishStatusFromCanonical` | `detectUrbanTourPublishTransition` | — |
+
+Urban transition uses `tour.publishStatus` / legacy `tour.status` (`published` vs draft).
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry --check
+pnpm run phase-15:platform-fast-gate
+node --test apps/api/test/tour-publish-transition-audit.spec.ts
+node --test apps/api/test/workspace-canonical-tour-dispatch.spec.ts
+rg -c 'workspaceType === "denali"' apps/api/src/canonical
+```

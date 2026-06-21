@@ -1,0 +1,15 @@
+{
+  "steps": {
+    "basics": "Basics",
+    "review": "Review"
+  },
+  "fields": {
+    "tour": {
+      "title": "Tour title",
+      "city": "City",
+      "venueName": "Venue name",
+      "capacity": "Capacity",
+      "description": "Description"
+    }
+  }
+}

@@ -3,9 +3,9 @@
  */
 import { expect, type Page } from "@playwright/test";
 
-import { DENALI_DATETIME_TEST_IDS } from "../../src/wizard/denali/denali-datetime-test-ids";
-import { DENALI_COMPOSITE_TEST_IDS } from "../../src/wizard/denali/denali-location-types";
-import { DENALI_TOUR_KIND_TEST_IDS } from "../../src/wizard/denali/denali-tour-kind-test-ids";
+import { DENALI_DATETIME_TEST_IDS } from "@app-tour/workspace-denali/ui/test-ids/denali-datetime-test-ids";
+import { DENALI_COMPOSITE_TEST_IDS } from "@app-tour/workspace-denali/ui/logic/denali-location-types";
+import { DENALI_TOUR_KIND_TEST_IDS } from "@app-tour/workspace-denali/ui/test-ids/denali-tour-kind-test-ids";
 import { WIZARD_STEP_SHELL_TEST_IDS } from "../../src/wizard/wizard-step-shell-logic";
 
 export const OPERATOR_SMOKE_DESTINATION_LABEL = "Smoke Summit";

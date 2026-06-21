@@ -1,38 +1,51 @@
-import denaliFaWizard from "@app-tour/workspace-denali/messages/fa/wizard.json";
-
+import { formatCanonicalPathToLabel } from "@/i18n/format-canonical-path-label";
 import {
-  formatCanonicalPathToLabel,
-  resolveDenaliFieldKindLabelFromMessages,
-  resolveDenaliFieldLabelFromMessages,
-  resolveDenaliStepLabelFromMessages,
-  type DenaliWizardMessages,
-} from "@/i18n/denali-wizard-labels";
+  resolveWizardFieldLabel,
+  resolveWizardStepLabel,
+} from "@/wizard/wizard-label-surface-registry";
 
 export { formatCanonicalPathToLabel };
 
-const DEFAULT_DENALI_MESSAGES = denaliFaWizard as DenaliWizardMessages;
-
 export function resolveWizardTemplateFieldLabel(
   canonicalPath: string,
-  pluginId?: string,
-  messages: DenaliWizardMessages = DEFAULT_DENALI_MESSAGES
+  fieldLabelSurfaceId?: string,
+  translate?: (key: string) => string
 ): string {
-  if (pluginId === "denali") {
-    return resolveDenaliFieldLabelFromMessages(messages, canonicalPath);
+  if (fieldLabelSurfaceId != null && translate != null) {
+    return resolveWizardFieldLabel(fieldLabelSurfaceId, translate, canonicalPath);
   }
   return formatCanonicalPathToLabel(canonicalPath);
 }
 
 export function formatWizardTemplateStepLabel(
   stepId: string,
-  messages: DenaliWizardMessages = DEFAULT_DENALI_MESSAGES
+  fieldLabelSurfaceId?: string,
+  translate?: (key: string) => string
 ): string {
-  return resolveDenaliStepLabelFromMessages(messages, stepId);
+  if (fieldLabelSurfaceId != null && translate != null) {
+    return resolveWizardStepLabel(fieldLabelSurfaceId, translate, stepId);
+  }
+  return formatCanonicalPathToLabel(stepId);
 }
 
-export function formatWizardTemplateFieldKindLabel(
+export function formatWizardTemplateFieldKindLabel(kind: string): string {
+  return formatCanonicalPathToLabel(kind);
+}
+
+export function resolveWizardTemplateFieldKindLabel(
   kind: string,
-  messages: DenaliWizardMessages = DEFAULT_DENALI_MESSAGES
+  fieldLabelSurfaceId?: string,
+  translate?: (key: string) => string
 ): string {
-  return resolveDenaliFieldKindLabelFromMessages(messages, kind);
+  if (fieldLabelSurfaceId != null && translate != null) {
+    try {
+      const label = translate(`fieldKinds.${kind}`);
+      if (label !== `fieldKinds.${kind}` && label.length > 0) {
+        return label;
+      }
+    } catch {
+      // Missing message keys fall back to formatted kind.
+    }
+  }
+  return formatWizardTemplateFieldKindLabel(kind);
 }

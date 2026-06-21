@@ -1,0 +1,53 @@
+import { fetchPlatformApi } from "../platform-api-client";
+import { buildCreateClubSuccessPath, type CreateClubDraft } from "./use-create-club-wizard";
+
+export function generateCreateClubIdempotencyKey(): string {
+  return crypto.randomUUID();
+}
+
+export type CreateClubSubmitResult =
+  | { readonly ok: true; readonly tenantId: string; readonly redirectPath: string }
+  | { readonly ok: false; readonly message: string };
+
+export async function submitCreateClubRequest(
+  draft: CreateClubDraft
+): Promise<CreateClubSubmitResult> {
+  const idempotencyKey = generateCreateClubIdempotencyKey();
+  const response = await fetchPlatformApi("/tenants", {
+    method: "POST",
+    headers: {
+      "Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({
+      subdomain: draft.subdomain.trim().toLowerCase(),
+      workspaceType: draft.workspaceType,
+      ownerPhone: draft.ownerPhone.trim(),
+      ownerNameNote: draft.ownerNameNote.trim() || undefined,
+      displayName: draft.displayName.trim() || undefined,
+    }),
+  });
+
+  const body = (await response.json().catch(() => ({}))) as {
+    tenant?: { id?: string };
+    error?: string;
+    code?: string;
+  };
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      message: body.error ?? body.code ?? "Failed to create club",
+    };
+  }
+
+  const tenantId = body.tenant?.id;
+  if (!tenantId) {
+    return { ok: false, message: "Missing tenant id in response" };
+  }
+
+  return {
+    ok: true,
+    tenantId,
+    redirectPath: buildCreateClubSuccessPath(tenantId),
+  };
+}

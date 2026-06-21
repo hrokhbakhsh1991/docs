@@ -1,5 +1,7 @@
 import type { AppLocale } from "./routing";
 
+import { formatCanonicalPathToLabel } from "./format-canonical-path-label";
+
 export type DenaliWizardMessages = {
   readonly steps: Record<string, string>;
   readonly fields: Record<string, unknown>;
@@ -35,13 +37,7 @@ export function getNestedStringValue(
   return typeof cursor === "string" ? cursor : undefined;
 }
 
-export function formatCanonicalPathToLabel(canonicalPath: string): string {
-  const segment = canonicalPath.split(".").pop() ?? canonicalPath;
-  return segment
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
+export { formatCanonicalPathToLabel } from "./format-canonical-path-label";
 
 /** Composite renderer ids → anchor canonical path for field labels (INV-WIZ-002 widgets). */
 const DENALI_COMPOSITE_LABEL_CANONICAL_PATH: Readonly<Record<string, string>> = {

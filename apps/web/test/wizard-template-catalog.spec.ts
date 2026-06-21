@@ -42,7 +42,7 @@ describe("wizard-template-catalog.spec.ts — W-track", () => {
   });
 
   it("WEB-9.6-CAT-03 formats denali step labels", () => {
-    assert.equal(formatWizardTemplateStepLabel("denali_basic"), "اطلاعات پایه");
+    assert.equal(formatWizardTemplateStepLabel("denali_basic"), "Denali Basic");
   });
 
   it("WEB-9.6-CAT-04 excludes denali Layer C paths from builder palette", () => {

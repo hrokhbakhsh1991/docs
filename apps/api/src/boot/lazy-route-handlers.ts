@@ -92,6 +92,7 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
       import("../tours/tours.routes"),
       import("../urban/urban-settings.routes"),
       import("../urban/urban.routes"),
+      import("../routes/platform/workspaces"),
     ]).then(
       ([
         metrics,

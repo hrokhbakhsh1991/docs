@@ -1,20 +1,24 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import "./http/configure-denali-catalog-http-host";
-import "./http/configure-denali-finance-http-host";
-import "./http/configure-urban-http-host";
-import type { ProvisioningService } from "./internal/provisioning.service";
+import {
+  handleApproveBooking,
+  handleBulkApproveBookings,
+  handleCreateBooking,
+  handleGetBookingsSummary,
+  handleListBookings,
+  handleRejectBooking,
+} from "./bookings/bookings.routes";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
-import { buildWorkspaceRouteHandlers } from "./boot/lazy-workspace-finance-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
-import { handleHealth } from "./health/health.routes";
-import { resolveTraceIdFromHeaders } from "./observability/resolve-trace-id";
-import { runWithTraceContext } from "./observability/trace-request-context";
-import { handleHttpError, sendHttpError } from "./middleware/error-interceptor";
-import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
-import type { MapEnrichRouteDeps } from "./routes/api-v2/map-enrich.routes";
+import { buildWorkspaceRouteHandlers } from "./boot/lazy-workspace-finance-handlers";
 import type { TourStorageRepository } from "./db/tour.repository";
-import type { ToursRouteDeps } from "./tours/tours.routes";
+import { handleHealth } from "./health/health.routes";
+import "./http/configure-urban-http-host";
+import "./http/configure-workspace-denali-product-http-host";
+import "./http/configure-workspace-finance-http-host";
+import { tryDispatchPlatformRoutes } from "./http/platform-route-registrar";
+import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
+import { tryDispatchWorkspaceRoutes } from "./http/workspace-route-registrar";
 import {
   handleGetAuthAbilityContext,
   handleGetAuthSession,
@@ -22,17 +26,14 @@ import {
   handleRequestOtp,
   handleVerifyOtp,
 } from "./identity/auth.routes";
+import { handleAcceptInvite } from "./identity/invites.routes";
+import { handleGetIdentityMe, handlePatchIdentityMe } from "./identity/me.routes";
 import {
   handlePublicPhonePreflight,
   handlePublicRegisterComplete,
   handlePublicRequestOtp,
   handlePublicVerifyOtp,
 } from "./identity/public-auth.routes";
-import { handleAcceptInvite } from "./identity/invites.routes";
-import {
-  handleGetIdentityMe,
-  handlePatchIdentityMe,
-} from "./identity/me.routes";
 import {
   handleBulkPatchUserRole,
   handleBulkReactivateUsers,
@@ -52,14 +53,11 @@ import {
   handleSuspendUser,
   handleTransferWorkspaceOwnership,
 } from "./identity/users.routes";
-import {
-  handleApproveBooking,
-  handleBulkApproveBookings,
-  handleCreateBooking,
-  handleGetBookingsSummary,
-  handleListBookings,
-  handleRejectBooking,
-} from "./bookings/bookings.routes";
+import type { ProvisioningService } from "./internal/provisioning.service";
+import { handleHttpError, sendHttpError } from "./middleware/error-interceptor";
+import { resolveTraceIdFromHeaders } from "./observability/resolve-trace-id";
+import { runWithTraceContext } from "./observability/trace-request-context";
+import type { MapEnrichRouteDeps } from "./routes/api-v2/map-enrich.routes";
 import {
   handleCreateSettingsResource,
   handleDeleteSettingsResource,
@@ -75,6 +73,8 @@ import {
   handlePutTourPresetsAdvancedAlias,
   handlePutTourWizardTemplateAlias,
 } from "./settings/settings.routes";
+import type { ToursRouteDeps } from "./tours/tours.routes";
+import type { UrbanProductRouteDeps } from "./urban/urban.routes";
 import {
   handleDeleteWorkspaceDraft,
   handleGetWorkspaceDraft,
@@ -82,9 +82,8 @@ import {
   handleListWorkspaceDrafts,
   handlePatchWorkspaceDraft,
 } from "./workspace-drafts/workspace-drafts.routes";
-import type { UrbanProductRouteDeps } from "./urban/urban.routes";
-import { tryDispatchWorkspaceRoutes } from "./http/workspace-route-registrar";
-import type { FinanceService } from "./denali-finance/finance.service";
+import type { FinanceService } from "./workspace-finance/finance.service";
+import "./workspace-finance/register-workspace-finance-deps";
 
 export type AppDeps = Partial<ToursRouteDeps> &
   Partial<UrbanProductRouteDeps> &
@@ -160,6 +159,14 @@ async function dispatchRequest(
 
   if (method === "POST" && url.pathname === "/auth/verify-otp") {
     await handleVerifyOtp(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/auth/accept-platform-impersonation") {
+    const { handleAcceptPlatformImpersonation } = await import(
+      "./identity/accept-platform-impersonation.ts"
+    );
+    await handleAcceptPlatformImpersonation(req, res);
     return;
   }
 
@@ -291,9 +298,7 @@ async function dispatchRequest(
     }
   }
 
-  const ownershipTransferMatch = url.pathname.match(
-    /^\/workspaces\/([^/]+)\/ownership-transfer$/
-  );
+  const ownershipTransferMatch = url.pathname.match(/^\/workspaces\/([^/]+)\/ownership-transfer$/);
   if (ownershipTransferMatch && method === "POST") {
     await handleTransferWorkspaceOwnership(req, res, ownershipTransferMatch[1]!);
     return;
@@ -500,9 +505,7 @@ async function dispatchRequest(
     }
   }
 
-  const settingsResourceItemMatch = url.pathname.match(
-    /^\/settings\/resources\/([^/]+)\/([^/]+)$/
-  );
+  const settingsResourceItemMatch = url.pathname.match(/^\/settings\/resources\/([^/]+)\/([^/]+)$/);
   if (settingsResourceItemMatch) {
     const moduleId = settingsResourceItemMatch[1]!;
     const itemId = settingsResourceItemMatch[2]!;
@@ -579,6 +582,10 @@ async function dispatchRequest(
       financeService: deps.financeService,
     })
   ) {
+    return;
+  }
+
+  if (await tryDispatchPlatformRoutes(method, url.pathname, req, res)) {
     return;
   }
 

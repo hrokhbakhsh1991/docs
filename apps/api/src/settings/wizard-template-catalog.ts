@@ -1,6 +1,7 @@
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
+import { resolveWorkspacePluginForTenantContext } from "../workspace/resolve-workspace-plugin-for-tenant-context";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 
 import type { WizardTemplatePayloadV1 } from "./settings.types";
@@ -70,7 +71,7 @@ export async function assertWizardTemplateFieldsKnown(
   }
 
   const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
-  const plugin = resolveWorkspacePluginForType(workspaceType);
+  const plugin = await resolveWorkspacePluginForTenantContext(tenantId, workspaceType);
   const catalog = listWizardTemplateCatalogPaths(plugin);
 
   for (const step of payload.steps) {

@@ -11,9 +11,9 @@ import { cleanup, fireEvent, render } from "@testing-library/react";
 import { loadAppMessages } from "../src/i18n/load-messages";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
-import { applyDenaliDefaultTourKind } from "../src/wizard/denali/denali-default-tour-kind";
-import { DenaliTourKindField } from "../src/wizard/denali/denali-tour-kind-field";
-import { DENALI_TOUR_KIND_TEST_IDS } from "../src/wizard/denali/denali-tour-kind-test-ids";
+import { applyDenaliDefaultTourKind } from "@app-tour/workspace-denali/ui/logic/denali-default-tour-kind";
+import { DenaliTourKindField } from "@app-tour/workspace-denali/ui/fields/tour-kind";
+import { DENALI_TOUR_KIND_TEST_IDS } from "@app-tour/workspace-denali/ui/test-ids/denali-tour-kind-test-ids";
 
 let testMessages: AbstractIntlMessages;
 

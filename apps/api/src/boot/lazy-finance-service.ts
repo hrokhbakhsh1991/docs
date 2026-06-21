@@ -1,6 +1,14 @@
+<<<<<<< Updated upstream
 import type { FinanceService } from "../denali-finance/finance.service";
 import { createFinanceService } from "../denali-finance/finance.service";
 import { resetFinanceRepositoryForTests } from "../denali-finance/create-finance-repository";
+||||||| Stash base
+import type { FinanceService } from "../denali-finance/finance.service";
+import { createFinanceService } from "../denali-finance/finance.service";
+=======
+import type { FinanceService } from "../workspace-finance/finance.service";
+import { createFinanceService } from "../workspace-finance/finance.service";
+>>>>>>> Stashed changes
 
 let financeServicePromise: Promise<FinanceService> | null = null;
 

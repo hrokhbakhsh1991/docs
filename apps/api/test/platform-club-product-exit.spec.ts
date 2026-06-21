@@ -76,7 +76,7 @@ describe("platform-club-product-exit (P4-D EX)", () => {
     const e2eGate = readFileSync(e2eGatePath, "utf8");
     assert.match(e2eGate, /playwright\.marketing\.config\.ts/);
     assert.match(e2eGate, /playwright\.portal\.config\.ts/);
-    assert.match(e2eGate, /denali-catalog-registration/);
+    assert.match(e2eGate, /playwright\.denali\.config\.ts/);
     assert.match(e2eGate, /P4_CLUB_PRODUCT_E2E_GATE_OK/);
   });
 

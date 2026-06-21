@@ -11,19 +11,15 @@ import {
   clearSessionCookieOnResponse,
 } from "@/auth/build-session-cookie";
 import { validateSessionToken } from "@/auth/validate-session-token";
+import {
+  PLATFORM_SESSION_COOKIE,
+  validatePlatformSessionToken,
+} from "@/platform/build-platform-session-cookie";
+import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
+import { isOperatorAdminHost, resolveMultiLevelHost } from "@/tenant/resolve-multi-level-host";
+import { isPlatformPublicPath } from "@/platform/require-platform-ops-session";
+import { shouldBypassMiddlewareForDevE2eHost } from "@/tenant/resolve-dev-e2e-host-bypass";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
-
-/** Inlined for Edge — env in imported modules is not always available in middleware. */
-const DEV_SMOKE_HOST_LABELS = new Set(["deny-theme", "urban-owner", "urban-member"]);
-
-function shouldBypassDevHostSmokeSession(host: string): boolean {
-  if (process.env.ALLOW_DEV_WEB_SESSION !== "true") {
-    return false;
-  }
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
-  const match = /^([a-z0-9-]+)\.localhost$/.exec(hostname);
-  return match?.[1] ? DEV_SMOKE_HOST_LABELS.has(match[1]) : false;
-}
 
 const ADMIN_PATH_PREFIXES = [
   "/dashboard",
@@ -115,21 +111,124 @@ function forwardPathname(request: NextRequest, pathname: string): NextResponse {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
-export async function middleware(request: NextRequest): Promise<NextResponse> {
+function isPlatformPublicBffPath(pathname: string): boolean {
+  return (
+    pathname === "/api/platform/auth/login" || pathname === "/api/platform/auth/request-otp"
+  );
+}
+
+function isPlatformProtectedPath(pathname: string): boolean {
+  return pathname.startsWith("/platform") || pathname.startsWith("/api/platform/");
+}
+
+function redirectToPlatformLogin(request: NextRequest): NextResponse {
+  const loginUrl = request.nextUrl.clone();
+  loginUrl.pathname = "/auth/login";
+  loginUrl.search = new URLSearchParams({
+    returnUrl: `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  }).toString();
+  return NextResponse.redirect(loginUrl);
+}
+
+function handlePlatformAdminHost(request: NextRequest, host: string): NextResponse | null {
+  if (!isPlatformAdminHost(host)) {
+    return null;
+  }
+
   const { pathname } = request.nextUrl;
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/platform", request.url));
+  }
+
+  if (isProtectedAdminPath(pathname)) {
+    return NextResponse.redirect(new URL("/platform", request.url));
+  }
+
+  const isPublic =
+    isPlatformPublicPath(pathname) ||
+    isPlatformPublicBffPath(pathname) ||
+    isPublicBffApiPath(pathname);
+
+  if (!isPlatformProtectedPath(pathname)) {
+    return forwardPathname(request, pathname);
+  }
+
+  if (isPublic) {
+    return forwardPathname(request, pathname);
+  }
+
+  const validation = validatePlatformSessionToken(request.cookies.get(PLATFORM_SESSION_COOKIE)?.value);
+  if (validation.status === "valid") {
+    return forwardPathname(request, pathname);
+  }
+
+  if (pathname.startsWith("/api/platform/")) {
+    return jsonAuthError(401, "PLATFORM_UNAUTHORIZED", "Platform session required");
+  }
+
+  return redirectToPlatformLogin(request);
+}
+
+function notFoundResponse(): NextResponse {
+  return new NextResponse("Not Found", { status: 404 });
+}
+
+function blockPlatformOnClubAdminHost(request: NextRequest, host: string): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (!pathname.startsWith("/platform")) {
+    return null;
+  }
+  if (resolveMultiLevelHost(host).kind === "club_admin") {
+    return notFoundResponse();
+  }
+  return null;
+}
+
+function blockOperatorOnWrongHost(request: NextRequest, host: string): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (!isProtectedAdminPath(pathname)) {
+    return null;
+  }
+  if (isPlatformAdminHost(host)) {
+    return NextResponse.redirect(new URL("/platform", request.url));
+  }
+  if (!isOperatorAdminHost(host)) {
+    return notFoundResponse();
+  }
+  return null;
+}
+
+export function middleware(request: NextRequest): NextResponse {
+  const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") ?? "";
+
+  const platformResponse = handlePlatformAdminHost(request, host);
+  if (platformResponse !== null) {
+    return platformResponse;
+  }
+
+  const platformOnClubAdmin = blockPlatformOnClubAdminHost(request, host);
+  if (platformOnClubAdmin !== null) {
+    return platformOnClubAdmin;
+  }
+
+  const operatorHostGate = blockOperatorOnWrongHost(request, host);
+  if (operatorHostGate !== null) {
+    return operatorHostGate;
+  }
+
   const isBffApi = isProtectedBffApiPath(pathname);
 
   if (!isProtectedPath(pathname) || isPublicPath(pathname)) {
     return forwardPathname(request, pathname);
   }
 
-  const host = request.headers.get("host") ?? "";
-  if (!isBffApi && shouldBypassDevHostSmokeSession(host)) {
+  if (shouldBypassMiddlewareForDevE2eHost(host)) {
     return forwardPathname(request, pathname);
   }
 
   const token = readSessionToken(request);
-  const validation = await validateSessionToken(token);
+  const validation = validateSessionToken(token);
   if (validation.status === "valid") {
     if (!sessionTenantMatchesHost(validation.tenantId, host)) {
       if (isBffApi) {

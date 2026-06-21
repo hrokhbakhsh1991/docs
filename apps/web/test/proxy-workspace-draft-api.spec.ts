@@ -45,7 +45,7 @@ describe("proxy-workspace-draft-api.spec.ts", () => {
     try {
       const response = await proxyWorkspaceDraftApiRequest(
         new Request("http://denali.localhost/api/workspaces/ws-test/drafts/operator.wizard/key", {
-          headers: { cookie: "session=test-token" },
+          headers: { authorization: "Bearer test-token" },
         }),
         {
           workspaceId: "ws-test",

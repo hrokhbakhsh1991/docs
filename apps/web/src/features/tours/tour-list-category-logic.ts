@@ -1,4 +1,4 @@
-import { DENALI_TOUR_KIND_VALUES } from "@/wizard/denali/denali-tour-kind-labels";
+import { DENALI_TOUR_KIND_VALUES } from "@app-tour/workspace-denali/ui/logic/denali-tour-kind-labels";
 
 export const TOUR_CATEGORY_FILTER_ALL = "all" as const;
 

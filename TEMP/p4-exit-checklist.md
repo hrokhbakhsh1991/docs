@@ -63,7 +63,7 @@ Wizard/UI WIP remains unstashed separately — not required for `p4:gate`.
 
 ## Operational (post-merge)
 
-- [ ] `p4:e2e-gate` green (Architect YES)
+- [x] `p4:e2e-gate` green (2026-06-21)
 - [ ] Prod `MARKETING_REVALIDATE_*` set per club env
 
 ### Prod deploy checklist (G4)

@@ -10,6 +10,10 @@ import {
 import { resolveWorkspaceCurrentSchemaVersion } from "../canonical/schema-version-policy";
 import { throwSchemaVersionMismatch } from "../canonical/schema-version-mismatch";
 import { throwValidationFailure } from "../canonical/validation-failure";
+import { isWorkspaceMetadataEnabled } from "../workspace-metadata/is-workspace-metadata-enabled.ts";
+import { readTenantWorkspaceMetadataBinding } from "../workspace-metadata/read-tenant-workspace-metadata-binding.ts";
+import type { PlatformTenantRepository } from "../platform/platform-tenant.repository.ts";
+import { resolveWorkspacePluginForTenantContext } from "../workspace/resolve-workspace-plugin-for-tenant-context.ts";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 import type { CreateTourBody } from "./create-tour.schema";
 import {
@@ -70,12 +74,38 @@ function readEngineCacheSize(): number {
   return Number.isFinite(parsed) && parsed >= 1 ? parsed : DEFAULT_ENGINE_CACHE_SIZE;
 }
 
-function engineCacheKey(
+const PACKAGE_METADATA_FINGERPRINT = "_pkg:latest" as const;
+
+/** P3-A-N-011 — cache key suffix when metadata binding pins a definition version. */
+export function buildValidationEngineCacheKey(
   tenantId: string,
   workspaceType: string,
-  validationVariant: "default" | "basic"
+  validationVariant: "default" | "basic",
+  metadataFingerprint = PACKAGE_METADATA_FINGERPRINT
 ): string {
-  return `${tenantId.trim()}:${workspaceType}:${validationVariant}`;
+  return `${tenantId.trim()}:${workspaceType}:${validationVariant}:${metadataFingerprint}`;
+}
+
+/** Reads tenant binding columns for engine LRU fingerprint (package path when flag off or unbound). */
+export async function resolveMetadataFingerprintForEngineCache(
+  tenantId: string,
+  deps: {
+    tenantRepository?: PlatformTenantRepository;
+  } = {}
+): Promise<string> {
+  if (!isWorkspaceMetadataEnabled()) {
+    return PACKAGE_METADATA_FINGERPRINT;
+  }
+  const binding = await readTenantWorkspaceMetadataBinding(tenantId, deps);
+  const metadataBinding = binding?.metadataBinding;
+  if (!metadataBinding?.definitionId) {
+    return PACKAGE_METADATA_FINGERPRINT;
+  }
+  const versionSuffix =
+    metadataBinding.definitionVersion === null || metadataBinding.definitionVersion === undefined
+      ? "latest"
+      : String(metadataBinding.definitionVersion);
+  return `${metadataBinding.definitionId}:${versionSuffix}`;
 }
 
 function touchEngineCache(key: string, entry: CachedEngine): PlatformWizardEngine {
@@ -95,25 +125,61 @@ function touchEngineCache(key: string, entry: CachedEngine): PlatformWizardEngin
   return entry.engine;
 }
 
-/** Cached per tenant + workspaceType + variant (DEC-030 / HT-04). Engine instances remain stateless. */
-export function getOrCreateValidationEngine(
-  tenantId: string,
-  workspaceType: string,
-  validationVariant: "default" | "basic" = "default"
-): PlatformWizardEngine {
-  const key = engineCacheKey(tenantId, workspaceType, validationVariant);
-  const hit = engineCache.get(key);
-  if (hit) {
-    return touchEngineCache(key, hit);
-  }
-  const plugin = resolveWorkspacePluginForType(workspaceType);
+function createValidationEngineFromPlugin(plugin: WorkspacePlugin): PlatformWizardEngine {
   const {
     tourList: _tourList,
     tourClone: _tourClone,
     publicCatalog: _publicCatalog,
     ...pluginForEngine
   } = plugin;
-  return touchEngineCache(key, { engine: PlatformWizardEngine.create(pluginForEngine) });
+  return PlatformWizardEngine.create(pluginForEngine);
+}
+
+function getOrCreateValidationEngineWithPlugin(
+  cacheKey: string,
+  plugin: WorkspacePlugin
+): PlatformWizardEngine {
+  const hit = engineCache.get(cacheKey);
+  if (hit) {
+    return touchEngineCache(cacheKey, hit);
+  }
+  return touchEngineCache(cacheKey, { engine: createValidationEngineFromPlugin(plugin) });
+}
+
+/** Cached per tenant + workspaceType + variant + metadata fingerprint (DEC-030 / P3-A-N-011). */
+export function getOrCreateValidationEngine(
+  tenantId: string,
+  workspaceType: string,
+  validationVariant: "default" | "basic" = "default"
+): PlatformWizardEngine {
+  const key = buildValidationEngineCacheKey(tenantId, workspaceType, validationVariant);
+  return getOrCreateValidationEngineWithPlugin(key, resolveWorkspacePluginForType(workspaceType));
+}
+
+/** Tenant-aware engine cache miss — used when {@link WORKSPACE_METADATA_ENABLED} is on. */
+export async function getOrCreateValidationEngineAsync(
+  tenantId: string,
+  workspaceType: string,
+  validationVariant: "default" | "basic" = "default"
+): Promise<PlatformWizardEngine> {
+  const fingerprint = await resolveMetadataFingerprintForEngineCache(tenantId);
+  const key = buildValidationEngineCacheKey(tenantId, workspaceType, validationVariant, fingerprint);
+  const plugin = await resolveWorkspacePluginForTenantContext(tenantId, workspaceType);
+  return getOrCreateValidationEngineWithPlugin(key, plugin);
+}
+
+/** Evict cached engines after platform assign/clear of workspace definition binding. */
+export function invalidateValidationEngineCacheForTenant(tenantId: string): void {
+  const prefix = `${tenantId.trim()}:`;
+  for (const key of [...engineCacheOrder]) {
+    if (key.startsWith(prefix)) {
+      engineCache.delete(key);
+      const index = engineCacheOrder.indexOf(key);
+      if (index >= 0) {
+        engineCacheOrder.splice(index, 1);
+      }
+    }
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -131,29 +197,33 @@ function defaultCanonicalData(pluginRoots: readonly string[]): Record<string, un
   return data;
 }
 
-/**
- * RULE-003 / RULE-005 — assertCanonicalDocument + validateCanonical before any persist.
- * Sync path — used in worker threads and when {@link P5_VALIDATION_WORKERS_ENABLED}=false.
- */
-export function validateCanonicalBeforePersistSync(
-  input: ValidateBeforePersistInput
-): CanonicalDocument {
-  const plugin = resolveWorkspacePluginForType(input.workspaceType);
-  const validationVariant = input.validationVariant ?? "default";
+function resolveValidationPluginForPersist(
+  input: ValidateBeforePersistInput,
+  plugin: WorkspacePlugin
+): {
+  readonly validationPlugin: WorkspacePlugin;
+  readonly validationWorkspaceType: string;
+  readonly useStarterValidation: boolean;
+} {
   const useStarterValidation = shouldUseStarterValidationForDenaliCreate(
     input.workspaceType,
     input.tenantId,
     input.body
   );
-  const validationWorkspaceType = useStarterValidation ? "starter" : input.workspaceType;
-  const validationPlugin = useStarterValidation
-    ? resolveWorkspacePluginForType("starter")
-    : plugin;
-  const engine = getOrCreateValidationEngine(
-    input.tenantId,
-    validationWorkspaceType,
-    validationVariant
-  );
+  return {
+    useStarterValidation,
+    validationWorkspaceType: useStarterValidation ? "starter" : input.workspaceType,
+    validationPlugin: useStarterValidation ? resolveWorkspacePluginForType("starter") : plugin,
+  };
+}
+
+function validateCanonicalDocumentWithEngine(
+  input: ValidateBeforePersistInput,
+  validationPlugin: WorkspacePlugin,
+  engine: PlatformWizardEngine,
+  useStarterValidation: boolean
+): CanonicalDocument {
+  const validationVariant = input.validationVariant ?? "default";
   const currentSchemaVersion = resolveWorkspaceCurrentSchemaVersion(input.workspaceType);
   const requestedSchemaVersion = input.body.schemaVersion ?? currentSchemaVersion;
   if (requestedSchemaVersion !== currentSchemaVersion) {
@@ -212,6 +282,53 @@ export function validateCanonicalBeforePersistSync(
   }
 
   return document;
+}
+
+/**
+ * RULE-003 / RULE-005 — assertCanonicalDocument + validateCanonical before any persist.
+ * Sync path — used in worker threads and when {@link P5_VALIDATION_WORKERS_ENABLED}=false.
+ */
+export function validateCanonicalBeforePersistSync(
+  input: ValidateBeforePersistInput
+): CanonicalDocument {
+  const plugin = resolveWorkspacePluginForType(input.workspaceType);
+  const { validationPlugin, validationWorkspaceType, useStarterValidation } =
+    resolveValidationPluginForPersist(input, plugin);
+  const validationVariant = input.validationVariant ?? "default";
+  const engine = getOrCreateValidationEngine(
+    input.tenantId,
+    validationWorkspaceType,
+    validationVariant
+  );
+  return validateCanonicalDocumentWithEngine(
+    input,
+    validationPlugin,
+    engine,
+    useStarterValidation
+  );
+}
+
+/** P3-A-N-011 — tenant-aware validation on HTTP/async paths when metadata flag is on. */
+export async function validateCanonicalBeforePersistAsync(
+  input: ValidateBeforePersistInput
+): Promise<CanonicalDocument> {
+  const plugin = await resolveWorkspacePluginForTenantContext(input.tenantId, input.workspaceType);
+  const { validationPlugin, validationWorkspaceType, useStarterValidation } =
+    resolveValidationPluginForPersist(input, plugin);
+  const validationVariant = input.validationVariant ?? "default";
+  const engine = useStarterValidation
+    ? getOrCreateValidationEngine(input.tenantId, validationWorkspaceType, validationVariant)
+    : await getOrCreateValidationEngineAsync(
+        input.tenantId,
+        validationWorkspaceType,
+        validationVariant
+      );
+  return validateCanonicalDocumentWithEngine(
+    input,
+    validationPlugin,
+    engine,
+    useStarterValidation
+  );
 }
 
 /** Test-only — clear engine LRU between cases. */

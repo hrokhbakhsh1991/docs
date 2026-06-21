@@ -9,11 +9,11 @@ import { loadAppMessages } from "../src/i18n/load-messages";
 import {
   DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS,
   DenaliItinerarySegmentDestinationField,
-} from "../src/wizard/denali/denali-itinerary-segment-destination-field";
+} from "@app-tour/workspace-denali/ui/components/denali-itinerary-segment-destination-field";
 import {
   DENALI_ITINERARY_SEGMENT_PHOTO_TEST_IDS,
   DenaliItinerarySegmentPhotoPicker,
-} from "../src/wizard/denali/denali-itinerary-segment-photo-picker";
+} from "@app-tour/workspace-denali/ui/components/denali-itinerary-segment-photo-picker";
 
 let testMessages: AbstractIntlMessages;
 let originalFetch: typeof globalThis.fetch;

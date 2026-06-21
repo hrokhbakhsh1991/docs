@@ -1,0 +1,192 @@
+---
+title: P5-A — Metadata cutover pilot
+phase: 18
+format: markdoc
+prerequisite: P4 ✅ · P3-D parity CI green
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p5/p5-a-cutover-pilot.md
+extends: docs/phase-16/platform-workspace-cutover.mdoc
+---
+
+# Metadata cutover pilot (P5-A)
+
+Move from **CI shadow parity** (P3-D Stage 1) to **staging pilot** (Stage 2→3) without big-bang prod cutover or Denali operator regression.
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p5/p5-a-cutover-pilot.md`](../../TEMP/p5/p5-a-cutover-pilot.md) v2.0
+
+**Status (2026-06-21):** doc complete · implementation starts P5-A-N-001
+
+---
+
+## Executive summary
+
+| Layer | P5-A delivers |
+|-------|----------------|
+| **Gate hygiene** | `p4:gate` / `p5:gate` use `guard:p3-denali-covenant` (scoped overlay) |
+| **Cutover visibility** | Computed `metadataCutoverStage` on platform tenant detail — **no new DB column** |
+| **Super Admin** | Club workspace tab: stage badge + definition version |
+| **Observability** | Validation error counter when metadata path active |
+| **Pilot ops** | Staging bind script + rollback runbook + allowlist expand procedure |
+| **Phase gate** | `pnpm run p5:gate` |
+
+---
+
+## Goals
+
+| Goal | Detail |
+|------|--------|
+| Staging pilot | 1+ smoke tenants on metadata path with allowlist |
+| Rollback | Clear binding / shrink allowlist / flag off — no canonical rewrite |
+| Visibility | Platform ops see cutover stage per club |
+| Denali safety | Covenant + preservation checklist on every PR |
+| No invented infra | Reuse existing audit actions and binding columns |
+
+## Non-goals (P5-A v1)
+
+- Global prod `WORKSPACE_METADATA_ENABLED=true` for all tenants
+- New Prisma `cutover_stage` column
+- New platform audit action strings (use `TENANT_DEFINITION_ASSIGNED` / `CLEARED`)
+- Operator wizard UI changes (Super Admin control plane only)
+- HTTP edge strangler (in-process facade only)
+
+---
+
+## metadataCutoverStage (computed — frozen)
+
+Implement in `apps/api/src/workspace-metadata/derive-metadata-cutover-stage.ts`:
+
+| Stage | Condition |
+|-------|-----------|
+| `off` | `WORKSPACE_METADATA_ENABLED` false **OR** `workspaceDefinitionId` null |
+| `pilot` | Flag true + binding set + `WORKSPACE_METADATA_TENANT_ALLOWLIST` non-empty and tenant ∈ list |
+| `live` | Flag true + binding set + allowlist unset/empty |
+| `shadow` | **Doc label only** — CI parity specs; not stored on tenant |
+
+```mermaid
+flowchart TD
+  REQ[GET platform tenant detail] --> FLAG{WORKSPACE_METADATA_ENABLED?}
+  FLAG -->|false| OFF[stage: off]
+  FLAG -->|true| BIND{workspaceDefinitionId?}
+  BIND -->|no| OFF
+  BIND -->|yes| ALLOW{allowlist configured?}
+  ALLOW -->|yes + tenant in list| PILOT[stage: pilot]
+  ALLOW -->|yes + tenant excluded| OFF
+  ALLOW -->|no| LIVE[stage: live]
+```
+
+Wire into `PlatformTenantWorkspaceDefinitionDto` via `toPlatformTenantDetailDto`.
+
+---
+
+## Staging pilot env (frozen)
+
+```bash
+# API pods (staging only)
+WORKSPACE_METADATA_ENABLED=true
+WORKSPACE_METADATA_TENANT_ALLOWLIST=<smoke-tenant-uuid>
+
+# Bind definition via Super Admin or:
+# apps/api/scripts/smoke-metadata-pilot-bind.mjs (P5-A-N-007)
+```
+
+**Rollback drill (P5-A-N-008):** clear `workspaceDefinitionId` on tenant → next request uses package path (`resolveWorkspacePluginForType`).
+
+---
+
+## Observability
+
+| Metric | Labels | When increment |
+|--------|--------|----------------|
+| `workspace_metadata_validation_errors_total` | `tenantId`, `workspaceType` | Canonical validation fails on metadata plugin path |
+
+Baseline before expanding allowlist beyond smoke tenant.
+
+---
+
+## Industry alignment
+
+| Pattern | P5-A mapping |
+|---------|--------------|
+| Strangler Fig | `resolveWorkspacePluginForTenant` facade |
+| Feature-flag rollout | Global flag + per-tenant allowlist |
+| Parallel run | P3-D CI parity unchanged; prod pilot additive |
+| Branch by abstraction | `WorkspacePlugin` interface unchanged |
+
+See also: [`platform-workspace-cutover.mdoc`](../phase-16/platform-workspace-cutover.mdoc) Stage 2→3.
+
+---
+
+## Preservation (mandatory)
+
+Every P5-A PR must not regress Denali operator product. Gate:
+
+```bash
+pnpm run guard:p3-denali-covenant
+pnpm run guard:import-boundary
+```
+
+Checklist: [`TEMP/p5/PRESERVATION-CHECKLIST.md`](../../TEMP/p5/PRESERVATION-CHECKLIST.md) PC-01..10.
+
+---
+
+## Verify
+
+```bash
+pnpm run guard:import-boundary
+pnpm run guard:p3-denali-covenant
+pnpm run p5:gate
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/platform-tenant-metadata-cutover.spec.ts \
+  test/workspace-metadata-cutover-allowlist.spec.ts \
+  test/platform-enterprise-evolution-exit.spec.ts
+```
+
+Assert IDs: CO-01..05 · UI-01..02 · MET-01..02 · AUD-01..02 · GATE-01..05 · EX-A-01..02 (see TEMP epic spec).
+
+
+---
+
+## Implementation status (2026-06-21)
+
+| Component | Status | Path |
+|-----------|--------|------|
+| `deriveMetadataCutoverStage` | ✅ landed | `apps/api/src/workspace-metadata/derive-metadata-cutover-stage.ts` |
+| DTO field `metadataCutoverStage` | ✅ landed | `platform-tenant-workspace-definition.dto.ts` |
+| CO-01..05 specs | ✅ green | `platform-tenant-metadata-cutover.spec.ts` |
+| Super Admin badge | ⬜ P5-A-N-004 | |
+| Metrics counter | ⬜ P5-A-N-006 | |
+| Staging smoke script | ⬜ P5-A-N-007 | |
+
+---
+
+## Error / rollback matrix
+
+| Failure | Operator action | Data impact |
+|---------|-----------------|-------------|
+| Validation spike on pilot tenant | Clear allowlist entry | Package path resumes |
+| Wrong definition version | Re-assign via Super Admin | No canonical tour rewrite |
+| Flag accidentally on prod | Set `WORKSPACE_METADATA_ENABLED=false` | Instant package path |
+
+---
+
+## Cross-phase dependencies
+
+| Phase | Requirement |
+|-------|-------------|
+| P3-D | Parity CI green before any prod binding |
+| P4 | Catalog publish unchanged on metadata path |
+| P5-B | Operator parity before expanding live stage |
+
+---
+
+## Assert registry (P5-A)
+
+| Band | IDs | Spec file |
+|------|-----|-----------|
+| Cutover | CO-01..05 | platform-tenant-metadata-cutover.spec.ts |
+| Gate | GATE-01..05 | platform-club-product-exit · p5 gate |
+| UI | UI-01..02 | platform-club-workspace-cutover-tab |
+| Metrics | MET-01..02 | workspace-metadata-cutover-metrics |
+| Audit | AUD-01..02 | workspace-definition-tenant-binding |
+| Exit | EX-A-01..02 | platform-enterprise-evolution-exit |

@@ -1,4 +1,9 @@
 import { isDevWebSessionAllowed } from "./auth-env";
+import {
+  isOperatorAdminHost,
+  resolveClubSubdomainFromHost,
+  resolveMultiLevelHost,
+} from "./resolve-multi-level-host";
 
 /** Phase 6.6 smoke — sync with `@app-tour/workspace-denali` DENALI_SMOKE_TENANT_ID. */
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
@@ -14,12 +19,17 @@ const PHASE_43_HOST_TENANT_IDS: Record<string, string> = {
   urban: URBAN_SMOKE_TENANT_ID,
   "urban-owner": URBAN_SMOKE_TENANT_ID,
   "urban-member": URBAN_SMOKE_TENANT_ID,
+  alborz: DENALI_SMOKE_TENANT_ID,
   /** Phase 9.8 operator smoke — sync OPERATOR_SMOKE.tenantId */
   operator: "00000000-0000-4000-8000-000000000014",
 };
 
+function mapSubdomainToTenantId(subdomain: string): string | null {
+  return PHASE_43_HOST_TENANT_IDS[subdomain] ?? null;
+}
+
 /**
- * Dev-only: map `{label}.localhost` host to seeded tenant UUID for TH-1 e2e.
+ * Dev-only: map multi-level and single-level localhost hosts to seeded tenant UUID.
  * Production ingress resolves tenant via auth — not host env alone.
  */
 export function resolveTenantIdFromDevHost(host: string): string | null {
@@ -27,11 +37,19 @@ export function resolveTenantIdFromDevHost(host: string): string | null {
     return null;
   }
 
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
-  const match = /^([a-z0-9-]+)\.localhost$/.exec(hostname);
-  if (!match?.[1]) {
-    return null;
+  const outcome = resolveMultiLevelHost(host);
+  if (
+    outcome.kind === "club_admin" ||
+    outcome.kind === "club_portal" ||
+    outcome.kind === "club_apex"
+  ) {
+    return mapSubdomainToTenantId(outcome.subdomain);
   }
 
-  return PHASE_43_HOST_TENANT_IDS[match[1]] ?? null;
+  const subdomain = resolveClubSubdomainFromHost(host);
+  if (subdomain !== null) {
+    return mapSubdomainToTenantId(subdomain);
+  }
+
+  return null;
 }

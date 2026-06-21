@@ -10,7 +10,7 @@ import { parseNominatimRows } from "../src/lib/geocoding/nominatim";
 import {
   createEmptyDenaliGatheringPoint,
   parseDenaliGatheringPoints,
-} from "../src/wizard/denali/denali-location-types";
+} from "@app-tour/workspace-denali/ui/logic/denali-location-types";
 
 describe("geocoding-search.spec.ts", () => {
   it("WEB-GEOCODING-01 parses nominatim rows", () => {

@@ -53,7 +53,9 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
 
   it("WEB-P11-CLOSE-05 flat edit submit validation uses i18n list component", () => {
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
-    const listComponent = readWebSource("src/wizard/denali/denali-flat-edit-validation-list.tsx");
+    const listComponent = readRepoSource(
+      "packages/workspaces/denali/src/ui/chrome/denali-flat-edit-validation-list.tsx"
+    );
     assert.match(flatEdit, /DenaliFlatEditValidationList/);
     assert.doesNotMatch(flatEdit, /\{issue\.message\}/);
     assert.match(listComponent, /resolveWizardValidationIssueMessage/);
@@ -91,9 +93,9 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
     assert.match(chrome, /onRevertQuarantine/);
     const quarantine = readWebSource("src/draft/draft-quarantine-banner.tsx");
     assert.match(quarantine, /draft-quarantine-revert/);
-    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
+    const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
-    assert.match(createTour, /DraftSyncChrome/);
+    assert.match(createChrome, /DraftSyncChrome/);
     assert.match(flatEdit, /DraftSyncChrome/);
   });
 

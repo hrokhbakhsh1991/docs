@@ -21,6 +21,7 @@ export type OperatorShellProps = {
   readonly displayName?: string | null;
   readonly pluginId: string;
   readonly navItems: readonly OperatorNavItem[];
+  readonly impersonationReadonly?: boolean;
   readonly children: ReactNode;
 };
 
@@ -30,6 +31,7 @@ export function OperatorShell({
   displayName,
   pluginId,
   navItems,
+  impersonationReadonly = false,
   children,
 }: OperatorShellProps) {
   const router = useRouter();
@@ -44,6 +46,12 @@ export function OperatorShell({
     await fetch("/api/auth/logout", { method: "POST" });
     navigateAfterLogout(router);
   }, [router]);
+
+  const handleExitImpersonation = useCallback(async () => {
+    // TODO P2-B-v1.1 audit END on logout
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/auth/login";
+  }, []);
 
   return (
     <TenantBrandingProvider
@@ -73,6 +81,24 @@ export function OperatorShell({
         onMenuToggle={() => setDrawerOpen((open) => !open)}
         onLogout={() => void handleLogout()}
       />
+
+      {impersonationReadonly ? (
+        <div
+          data-operator-impersonation-banner
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm"
+        >
+          <span>نمای پشتیبانی — فقط خواندن — 30 دقیقه</span>
+          <button
+            type="button"
+            data-operator-exit-impersonation
+            className="rounded-md border border-border bg-background px-3 py-1 text-sm"
+            onClick={() => void handleExitImpersonation()}
+          >
+            خروج
+          </button>
+        </div>
+      ) : null}
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent side={drawerSide} className="w-[min(100%,20rem)] p-0 md:hidden">

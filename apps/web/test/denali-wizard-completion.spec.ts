@@ -6,7 +6,7 @@ import type { RenderStepPlan } from "@app-tour/platform-core";
 import {
   computeDenaliWizardCompletion,
   isDenaliWizardFieldFilled,
-} from "../src/wizard/denali/denali-wizard-completion";
+} from "@app-tour/workspace-denali/ui/logic/denali-wizard-completion";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { setCanonicalStringValue, setCanonicalValue } from "../src/tours/tour-wizard-draft-path";
 

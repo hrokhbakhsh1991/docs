@@ -39,6 +39,60 @@ export function discoverManifests(workspacesDir = DEFAULT_WORKSPACES_DIR) {
   return manifests.sort((a, b) => a.id.localeCompare(b.id));
 }
 
+const WIZARD_I18N_LOCALES = ["fa", "en"];
+
+/**
+ * next-intl rejects object keys containing "." (flat paths must be nested).
+ * @param {unknown} value
+ * @param {string} jsonFilePath
+ * @param {string} keyPath
+ */
+export function assertNoDottedKeysInWizardJson(value, jsonFilePath, keyPath = "") {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    const fullPath = keyPath.length > 0 ? `${keyPath}.${key}` : key;
+    if (key.includes(".")) {
+      throw new Error(
+        `${jsonFilePath}: key "${fullPath}" contains "." — use nested objects (next-intl INVALID_KEY)`
+      );
+    }
+    assertNoDottedKeysInWizardJson(child, jsonFilePath, fullPath);
+  }
+}
+
+/**
+ * Phase 15.1 P15-W-A1 — wizard i18n assets exist and pass next-intl key rules.
+ * @param {ReturnType<typeof discoverManifests>} manifests
+ * @param {string} [workspacesDir]
+ */
+export function assertWizardI18nAssets(manifests, workspacesDir = DEFAULT_WORKSPACES_DIR) {
+  for (const manifest of manifests) {
+    const namespace = manifest.wizardI18n?.messageNamespace;
+    if (typeof namespace !== "string" || namespace.length === 0 || namespace === "wizard") {
+      continue;
+    }
+    const workspaceDir = join(workspacesDir, manifest.id);
+    for (const locale of WIZARD_I18N_LOCALES) {
+      const jsonPath = join(workspaceDir, "messages", locale, "wizard.json");
+      if (!existsSync(jsonPath)) {
+        throw new Error(
+          `${jsonPath}: missing wizard.json for workspace "${manifest.id}" (wizardI18n.messageNamespace="${namespace}")`
+        );
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(readFileSync(jsonPath, "utf8"));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`${jsonPath}: invalid JSON — ${message}`);
+      }
+      assertNoDottedKeysInWizardJson(parsed, jsonPath);
+    }
+  }
+}
+
 function importSpecifier(pkg, entry) {
   if (entry === ".") return pkg;
   if (entry.startsWith("./")) return `${pkg}/${entry.slice(2)}`;
@@ -46,15 +100,24 @@ function importSpecifier(pkg, entry) {
 }
 
 /**
- * Host Prisma/outbox adapters for manifest `events[]` — extend when adding plugins.
- * @type {Readonly<Record<string, { importPath: string; export: string }>>}
+ * P0 PR-1 — warn on shell `@/` webModule paths; `--strict` fails (PR-5+ target).
+ * @param {string} manifestId
+ * @param {string} webModule
+ * @param {{ strict?: boolean }} options
  */
-const HOST_OUTBOX_SIDE_EFFECT_ADAPTERS = Object.freeze({
-  "denali:TourCreated": {
-    importPath: "../denali-finance/tour-created-finance-side-effect",
-    export: "runTourCreatedFinanceSideEffect",
-  },
-});
+export function assertPackageWebModule(manifestId, webModule, options = {}) {
+  if (typeof webModule !== "string" || webModule.trim().length === 0) {
+    throw new Error(`workspace.manifest.json ${manifestId}: webModule must be a non-empty string`);
+  }
+  if (webModule.startsWith("@app-tour/workspace-")) {
+    return;
+  }
+  const message = `workspace.manifest.json ${manifestId}: webModule "${webModule}" should use @app-tour/workspace-* package export (transitional shell @/ paths deprecated)`;
+  if (options.strict === true) {
+    throw new Error(message);
+  }
+  console.warn(`warn: ${message}`);
+}
 
 export function generateWizardMediaBindings(manifests) {
   const withWizardMedia = manifests.filter((m) => m.wizardMedia !== undefined);
@@ -81,16 +144,25 @@ export const WORKSPACE_WIZARD_MEDIA_BINDINGS = [] as const;
       wm.ensureBucketExport,
       wm.readConfigExport,
     ];
+    if (wm.createPhotoClientExport != null) {
+      exportNames.push(wm.createPhotoClientExport);
+    }
     importLines.add(`import { ${exportNames.join(", ")} } from "${m.package}";`);
+    const bindingProps = [
+      `workspaceType: ${wm.workspaceTypeExport}`,
+      `maxUploadBytes: ${wm.maxUploadBytesExport}`,
+      `isSessionId: ${wm.isSessionIdExport}`,
+      `isDraftReadKeyAllowed: ${wm.isDraftReadKeyAllowedExport}`,
+      `putDraftPhoto: ${wm.putDraftPhotoExport}`,
+      `getSignedReadUrl: ${wm.getSignedReadUrlExport}`,
+      `ensurePhotoBucket: ${wm.ensureBucketExport}`,
+      `readPhotoConfigFromEnv: ${wm.readConfigExport}`,
+    ];
+    if (wm.createPhotoClientExport != null) {
+      bindingProps.push(`createPhotoClient: ${wm.createPhotoClientExport}`);
+    }
     bindingBlocks.push(`  {
-    workspaceType: ${wm.workspaceTypeExport},
-    maxUploadBytes: ${wm.maxUploadBytesExport},
-    isSessionId: ${wm.isSessionIdExport},
-    isDraftReadKeyAllowed: ${wm.isDraftReadKeyAllowedExport},
-    putDraftPhoto: ${wm.putDraftPhotoExport},
-    getSignedReadUrl: ${wm.getSignedReadUrlExport},
-    ensurePhotoBucket: ${wm.ensureBucketExport},
-    readPhotoConfigFromEnv: ${wm.readConfigExport},
+    ${bindingProps.join(",\n    ")},
   },`);
   }
 
@@ -98,6 +170,448 @@ export const WORKSPACE_WIZARD_MEDIA_BINDINGS = [] as const;
 ${[...importLines].join("\n")}
 
 export const WORKSPACE_WIZARD_MEDIA_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+`;
+}
+
+export function generateWizardMediaRouteBindings(manifests) {
+  /** @type {string[]} */
+  const bffEntries = [];
+
+  for (const m of manifests) {
+    const wm = m.wizardMedia;
+    if (wm === undefined) continue;
+    if (typeof wm.mediaRouteKey !== "string" || wm.mediaRouteKey.trim().length === 0) {
+      throw new Error(`${m.id}: wizardMedia.mediaRouteKey is required when wizardMedia is set`);
+    }
+    const key = wm.mediaRouteKey.trim();
+    const bffPath =
+      typeof wm.legacyBffPath === "string" && wm.legacyBffPath.trim().length > 0
+        ? wm.legacyBffPath.trim()
+        : `/api/wizard-media/${encodeURIComponent(key)}`;
+    bffEntries.push(`  ${JSON.stringify(key)}: ${JSON.stringify(bffPath)},`);
+  }
+
+  return `${BANNER}
+/** Manifest-driven mediaRouteKey → web BFF path (legacy alias or neutral). */
+export const WIZARD_MEDIA_ROUTE_BFF_PATHS = Object.freeze({
+${bffEntries.join("\n")}
+}) as Readonly<Record<string, string>>;
+
+export function isKnownWizardMediaRouteBffKey(mediaRouteKey: string): boolean {
+  return mediaRouteKey.trim() in WIZARD_MEDIA_ROUTE_BFF_PATHS;
+}
+`;
+}
+
+export function generateWizardMediaBackendRouteBindings(manifests) {
+  /** @type {string[]} */
+  const backendEntries = [];
+
+  for (const m of manifests) {
+    const wm = m.wizardMedia;
+    if (wm === undefined) continue;
+    if (typeof wm.mediaRouteKey !== "string" || wm.mediaRouteKey.trim().length === 0) {
+      throw new Error(`${m.id}: wizardMedia.mediaRouteKey is required when wizardMedia is set`);
+    }
+    const key = wm.mediaRouteKey.trim();
+    const upload =
+      typeof wm.legacyBackendUploadPath === "string" ? wm.legacyBackendUploadPath.trim() : "";
+    const signedUrl =
+      typeof wm.legacyBackendSignedUrlPath === "string"
+        ? wm.legacyBackendSignedUrlPath.trim()
+        : "";
+    if (upload.length === 0 || signedUrl.length === 0) {
+      throw new Error(
+        `${m.id}: wizardMedia.legacyBackendUploadPath and legacyBackendSignedUrlPath are required when wizardMedia is set`
+      );
+    }
+    backendEntries.push(`  ${JSON.stringify(key)}: Object.freeze({
+    upload: ${JSON.stringify(upload)},
+    signedUrl: ${JSON.stringify(signedUrl)},
+  }),`);
+  }
+
+  return `${BANNER}
+export type WizardMediaBackendPaths = {
+  readonly upload: string;
+  readonly signedUrl: string;
+};
+
+/** Manifest-driven mediaRouteKey → API backend proxy paths (server-only). */
+export const WIZARD_MEDIA_ROUTE_BACKEND_PATHS = Object.freeze({
+${backendEntries.join("\n")}
+}) as Readonly<Record<string, WizardMediaBackendPaths>>;
+
+export function isKnownWizardMediaRouteBackendKey(mediaRouteKey: string): boolean {
+  return mediaRouteKey.trim() in WIZARD_MEDIA_ROUTE_BACKEND_PATHS;
+}
+`;
+}
+
+export function generateWizardSurfaceBindings(manifests) {
+  const withSurfaces = manifests.filter((m) => m.wizardSurfaces !== undefined);
+  if (withSurfaces.length === 0) {
+    return `${BANNER}
+import type { WizardCompositeSurface, WizardReviewSurface } from "@/wizard/wizard-surface-types";
+
+export function resolveGeneratedCompositeSurface(
+  _surfaceId: string | undefined
+): WizardCompositeSurface | null {
+  return null;
+}
+
+export function resolveGeneratedReviewSurface(
+  _surfaceId: string | undefined
+): WizardReviewSurface | null {
+  return null;
+}
+`;
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const compositeEntries = [];
+  /** @type {string[]} */
+  const reviewEntries = [];
+
+  for (const m of withSurfaces) {
+    const ws = m.wizardSurfaces;
+    const surfaceId = ws.surfaceId ?? m.id;
+    if (ws.composite !== undefined) {
+      const alias = `composite_${m.id.replace(/-/g, "_")}`;
+      importLines.add(
+        `import { ${ws.composite.export} as ${alias} } from "${ws.composite.webModule}";`
+      );
+      compositeEntries.push(`  ${JSON.stringify(surfaceId)}: ${alias}(),`);
+    }
+    if (ws.review !== undefined) {
+      const alias = `review_${m.id.replace(/-/g, "_")}`;
+      importLines.add(`import { ${ws.review.export} as ${alias} } from "${ws.review.webModule}";`);
+      reviewEntries.push(`  ${JSON.stringify(surfaceId)}: ${alias}(),`);
+    }
+  }
+
+  importLines.add(
+    `import { createPlatformCompositeSurface as composite_platform } from "@/wizard/platform/platform-composite-surface";`
+  );
+  compositeEntries.push(`  "platform": composite_platform(),`);
+
+  importLines.add(
+    `import { createPlatformReviewSurface as review_platform } from "@/wizard/platform/platform-review-surface";`
+  );
+  reviewEntries.push(`  "platform": review_platform(),`);
+
+  return `${BANNER}
+import type { WizardCompositeSurface, WizardReviewSurface } from "@/wizard/wizard-surface-types";
+${[...importLines].join("\n")}
+
+const COMPOSITE_SURFACES: Readonly<Record<string, WizardCompositeSurface>> = Object.freeze({
+${compositeEntries.join("\n")}
+});
+
+const REVIEW_SURFACES: Readonly<Record<string, WizardReviewSurface>> = Object.freeze({
+${reviewEntries.join("\n")}
+});
+
+export function resolveGeneratedCompositeSurface(
+  surfaceId: string | undefined
+): WizardCompositeSurface | null {
+  if (surfaceId == null || surfaceId.trim().length === 0) {
+    return null;
+  }
+  return COMPOSITE_SURFACES[surfaceId] ?? null;
+}
+
+export function resolveGeneratedReviewSurface(
+  surfaceId: string | undefined
+): WizardReviewSurface | null {
+  if (surfaceId == null || surfaceId.trim().length === 0) {
+    return null;
+  }
+  return REVIEW_SURFACES[surfaceId] ?? null;
+}
+`;
+}
+
+export function generateWizardLabelBindings(manifests) {
+  const withI18n = manifests.filter((m) => m.wizardI18n?.labelResolver !== undefined);
+  const namespaces = manifests
+    .map((m) => m.wizardI18n?.messageNamespace)
+    .filter((ns) => typeof ns === "string" && ns.length > 0);
+
+  const uniqueNamespaces = [...new Set(["wizard", ...namespaces])];
+
+  if (withI18n.length === 0) {
+    return `${BANNER}
+import type { WizardLabelResolver } from "@/wizard/wizard-surface-types";
+
+export const WORKSPACE_WIZARD_I18N_NAMESPACES = ${JSON.stringify(uniqueNamespaces)} as const;
+
+export function resolveGeneratedLabelResolver(
+  _surfaceId: string | undefined
+): WizardLabelResolver | null {
+  return null;
+}
+`;
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const labelEntries = [];
+
+  for (const m of withI18n) {
+    const i18n = m.wizardI18n;
+    const surfaceId = m.wizardSurfaces?.surfaceId ?? m.id;
+    const lr = i18n.labelResolver;
+    const alias = `label_${m.id.replace(/-/g, "_")}`;
+    importLines.add(`import { ${lr.export} as ${alias} } from "${lr.webModule}";`);
+    labelEntries.push(`  ${JSON.stringify(surfaceId)}: ${alias}(),`);
+  }
+
+  return `${BANNER}
+import type { WizardLabelResolver } from "@/wizard/wizard-surface-types";
+${[...importLines].join("\n")}
+
+export const WORKSPACE_WIZARD_I18N_NAMESPACES = ${JSON.stringify(uniqueNamespaces)} as const;
+
+const LABEL_RESOLVERS: Readonly<Record<string, WizardLabelResolver>> = Object.freeze({
+${labelEntries.join("\n")}
+});
+
+export function resolveGeneratedLabelResolver(
+  surfaceId: string | undefined
+): WizardLabelResolver | null {
+  if (surfaceId == null || surfaceId.trim().length === 0) {
+    return null;
+  }
+  return LABEL_RESOLVERS[surfaceId] ?? null;
+}
+`;
+}
+
+export function generateWizardCloneRemintBindings(manifests) {
+  const withClone = manifests.filter((m) => m.wizardCloneRemint !== undefined);
+  if (withClone.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_WIZARD_CLONE_REMINT_BINDINGS = [] as const;
+`;
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of withClone) {
+    const cr = m.wizardCloneRemint;
+    const exportNames = [
+      cr.workspaceTypeExport,
+      cr.executeRemintExport,
+      cr.assertDestKeyExport,
+      cr.readConfigExport,
+    ];
+    if (cr.executeTourRemintExport != null) {
+      exportNames.push(cr.executeTourRemintExport);
+    }
+    const spec = importSpecifier(m.package, cr.module);
+    importLines.add(`import { ${exportNames.join(", ")} } from "${spec}";`);
+    if (cr.serverRemintModule != null && cr.remintCanonicalExport != null) {
+      const serverSpec = importSpecifier(m.package, cr.serverRemintModule);
+      importLines.add(`import { ${cr.remintCanonicalExport} } from "${serverSpec}";`);
+    }
+    const bindingProps = [
+      `workspaceType: ${cr.workspaceTypeExport}`,
+      `assertDestKey: ${cr.assertDestKeyExport}`,
+      `executeRemint: ${cr.executeRemintExport}`,
+      `readConfigFromEnv: ${cr.readConfigExport}`,
+    ];
+    if (cr.remintCanonicalExport != null) {
+      bindingProps.push(`remintCanonicalInTour: ${cr.remintCanonicalExport}`);
+    }
+    if (cr.executeTourRemintExport != null) {
+      bindingProps.push(`executeTourRemint: ${cr.executeTourRemintExport}`);
+    }
+    bindingBlocks.push(`  {
+    ${bindingProps.join(",\n    ")},
+  },`);
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export const WORKSPACE_WIZARD_CLONE_REMINT_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+`;
+}
+
+export function generateWizardI18nTranslatorHooks(manifests) {
+  const namespaces = [
+    ...new Set([
+      "wizard",
+      ...manifests
+        .map((m) => m.wizardI18n?.messageNamespace)
+        .filter((ns) => typeof ns === "string" && ns.length > 0),
+    ]),
+  ];
+
+  const hookLines = namespaces.map((ns) => {
+    const varName = `t_${ns.replace(/-/g, "_")}`;
+    return `  const ${varName} = useTranslations(${JSON.stringify(ns)});`;
+  });
+  const mapEntries = namespaces.map((ns) => {
+    const varName = `t_${ns.replace(/-/g, "_")}`;
+    return `      ${JSON.stringify(ns)}: ${varName},`;
+  });
+  const deps = namespaces.map((ns) => `t_${ns.replace(/-/g, "_")}`).join(", ");
+
+  return `${BANNER}
+"use client";
+
+import { useTranslations } from "next-intl";
+import { useMemo } from "react";
+
+import { WORKSPACE_WIZARD_I18N_NAMESPACES } from "./wizard-label-bindings.generated";
+
+/** Codegen hook map — one useTranslations call per WORKSPACE_WIZARD_I18N_NAMESPACES entry. */
+export function useGeneratedWorkspaceWizardTranslators() {
+${hookLines.join("\n")}
+  return useMemo(
+    () =>
+      ({
+${mapEntries.join("\n")}
+      }) as const satisfies Partial<
+        Record<(typeof WORKSPACE_WIZARD_I18N_NAMESPACES)[number], ReturnType<typeof useTranslations>>
+      >,
+    [${deps}]
+  );
+}
+`;
+}
+
+export function generateWorkspaceWizardMessageLoads(manifests) {
+  const withI18n = manifests.filter(
+    (m) => typeof m.wizardI18n?.messageNamespace === "string" && m.wizardI18n.messageNamespace !== "wizard"
+  );
+
+  const loaderEntries = withI18n.map((m) => {
+    const ns = m.wizardI18n.messageNamespace;
+    const pkg = m.package;
+    return `  ${JSON.stringify(ns)}: {
+    fa: () => import(${JSON.stringify(`${pkg}/messages/fa/wizard.json`)}),
+    en: () => import(${JSON.stringify(`${pkg}/messages/en/wizard.json`)}),
+  },`;
+  });
+
+  return `${BANNER}
+type WorkspaceWizardMessageLocale = "fa" | "en";
+
+const WORKSPACE_WIZARD_MESSAGE_LOADERS = {
+${loaderEntries.join("\n")}
+} as const;
+
+/** Load workspace wizard JSON namespaces for a locale (manifest wizardI18n.messageNamespace). */
+export async function loadWorkspaceWizardMessagesForLocale(
+  locale: WorkspaceWizardMessageLocale
+): Promise<Record<string, unknown>> {
+  const entries = await Promise.all(
+  Object.entries(WORKSPACE_WIZARD_MESSAGE_LOADERS).map(async ([namespace, loaders]) => {
+      const mod = await loaders[locale]();
+      return [namespace, mod.default] as const;
+    })
+  );
+  return Object.fromEntries(entries);
+}
+`;
+}
+
+export function generateWorkspaceThemeStylesheets(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  for (const m of manifests) {
+    const sheets = Array.isArray(m.themeStylesheets) ? m.themeStylesheets : [];
+    for (const sheet of sheets) {
+      if (typeof sheet !== "string" || sheet.trim().length === 0) {
+        throw new Error(`${m.id}: themeStylesheets entries must be non-empty strings`);
+      }
+      importLines.add(`import "${m.package}/${sheet}";`);
+    }
+  }
+  return `${BANNER}
+${[...importLines].sort().join("\n")}
+`;
+}
+
+export function generateWizardCreateBindings(manifests) {
+  const extendedRows = manifests
+    .filter((m) => m.wizardCreate?.extendedChrome === true)
+    .map((m) => `  ${JSON.stringify(m.id)},`);
+
+  const brandMarkEntries = manifests
+    .filter((m) => typeof m.wizardCreate?.customBrandFallbackMark === "string")
+    .map(
+      (m) =>
+        `  ${JSON.stringify(m.id)}: ${JSON.stringify(m.wizardCreate.customBrandFallbackMark)},`
+    );
+
+  return `${BANNER}
+/** Plugin ids that use workspace-specific extended create chrome (Phase 14.3). */
+export const WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS = new Set<string>([
+${extendedRows.join("\n")}
+]);
+
+/** Plugin-specific tenant brand fallback marks (manifest wizardCreate.customBrandFallbackMark). */
+export const WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS = Object.freeze({
+${brandMarkEntries.join("\n")}
+}) as Readonly<Record<string, string>>;
+`;
+}
+
+export function generateCanonicalTourBindings(manifests) {
+  const withCanonicalTour = manifests.filter((m) => m.canonicalTour !== undefined);
+  if (withCanonicalTour.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [] as const;
+`;
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of withCanonicalTour) {
+    const ct = m.canonicalTour;
+    const tw = m.tourWrite;
+    if (tw === undefined) {
+      throw new Error(`workspace.manifest.json ${m.id}: canonicalTour requires tourWrite.workspaceTypeExport`);
+    }
+    importLines.add(`import { ${tw.workspaceTypeExport} } from "${m.package}";`);
+    const publishSpec = importSpecifier(m.package, ct.publishStatusModule);
+    importLines.add(
+      `import { ${ct.publishStatusReadExport}, ${ct.publishTransitionExport} } from "${publishSpec}";`
+    );
+    let migrateField = "";
+    if (ct.migrateModule !== undefined && ct.migrateExport !== undefined) {
+      const migrateSpec = importSpecifier(m.package, ct.migrateModule);
+      importLines.add(`import { ${ct.migrateExport} } from "${migrateSpec}";`);
+      migrateField = `\n    migrateCanonical: ${ct.migrateExport},`;
+    }
+    bindingBlocks.push(`  {
+    workspaceType: ${tw.workspaceTypeExport},
+    readPublishStatusFromCanonical: ${ct.publishStatusReadExport},
+    detectPublishTransition: ${ct.publishTransitionExport},${migrateField}
+  },`);
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [
 ${bindingBlocks.join("\n")}
 ] as const;
 `;
@@ -123,11 +637,21 @@ export const WORKSPACE_TOUR_WRITE_BINDINGS = [] as const;
     importLines.add(
       `import { ${tw.mergeExport}, ${tw.publishGateExport}, ${tw.publishSurfaceExport} } from "${toursSpec}";`
     );
+    let assertField = "";
+    if (tw.publishOwnerAssertModule !== undefined && tw.publishOwnerAssertExport !== undefined) {
+      const assertSpec = importSpecifier(m.package, tw.publishOwnerAssertModule);
+      importLines.add(`import { ${tw.publishOwnerAssertExport} } from "${assertSpec}";`);
+      assertField = `\n    assertPublishFieldOwner: ${tw.publishOwnerAssertExport},`;
+    }
+    const memberForbiddenField =
+      tw.forbidOperatorMemberTourPatch === true
+        ? `\n    forbidOperatorMemberTourPatch: true as const,`
+        : "";
     bindingBlocks.push(`  {
     workspaceType: ${tw.workspaceTypeExport},
     mergeCanonicalPatch: ${tw.mergeExport},
     publishFieldGate: ${tw.publishGateExport},
-    publishOwnerSurface: ${tw.publishSurfaceExport},
+    publishOwnerSurface: ${tw.publishSurfaceExport},${assertField}${memberForbiddenField}
   },`);
   }
 
@@ -141,31 +665,39 @@ ${bindingBlocks.join("\n")}
 }
 
 export function generateOutboxSideEffects(manifests) {
-  /** @type {{ workspaceTypes: string[]; eventType: string; export: string; importPath: string }[]} */
+  /** @type {{ workspaceTypes: string[]; eventType: string; export: string; importSpecifier: string }[]} */
   const rows = [];
   /** @type {Map<string, Set<string>>} */
-  const importsByPath = new Map();
+  const importsBySpecifier = new Map();
 
   for (const m of manifests) {
     if (!Array.isArray(m.events) || m.events.length === 0) continue;
     for (const ev of m.events) {
-      const key = `${m.id}:${ev.eventType}`;
-      const adapter = HOST_OUTBOX_SIDE_EFFECT_ADAPTERS[key];
-      if (adapter === undefined) {
+      const hostSideEffect = ev.hostSideEffect;
+      if (hostSideEffect === undefined) {
         throw new Error(
-          `workspace.manifest.json ${m.id} event ${ev.eventType}: register host adapter in HOST_OUTBOX_SIDE_EFFECT_ADAPTERS`
+          `workspace.manifest.json ${m.id} event ${ev.eventType}: hostSideEffect is required (adapterModule + export)`
+        );
+      }
+      if (
+        typeof hostSideEffect.adapterModule !== "string" ||
+        typeof hostSideEffect.export !== "string"
+      ) {
+        throw new Error(
+          `workspace.manifest.json ${m.id} event ${ev.eventType}: hostSideEffect.adapterModule and export are required`
         );
       }
       const workspaceTypes = ev.workspaceTypes ?? m.workspaceTypes;
-      if (!importsByPath.has(adapter.importPath)) {
-        importsByPath.set(adapter.importPath, new Set());
+      const spec = importSpecifier(m.package, hostSideEffect.adapterModule);
+      if (!importsBySpecifier.has(spec)) {
+        importsBySpecifier.set(spec, new Set());
       }
-      importsByPath.get(adapter.importPath).add(adapter.export);
+      importsBySpecifier.get(spec).add(hostSideEffect.export);
       rows.push({
         workspaceTypes,
         eventType: ev.eventType,
-        export: adapter.export,
-        importPath: adapter.importPath,
+        export: hostSideEffect.export,
+        importSpecifier: spec,
       });
     }
   }
@@ -178,8 +710,8 @@ export const WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS = [] as const;
 `;
   }
 
-  const importLines = [...importsByPath.entries()].map(([importPath, exports]) => {
-    return `import { ${[...exports].sort().join(", ")} } from "${importPath}";`;
+  const importLines = [...importsBySpecifier.entries()].map(([spec, exports]) => {
+    return `import { ${[...exports].sort().join(", ")} } from "${spec}";`;
   });
 
   const bindingBlocks = rows.map(
@@ -206,6 +738,460 @@ export const WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS: readonly {
 ${bindingBlocks.join("\n")}
 ];
 `;
+}
+
+export function generateSettingsEnrichers(manifests) {
+  /** @type {{ workspaceType: string; settingsModuleId: string; enrichListBody: string }[]} */
+  const bindings = [];
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  let needsEquipmentType = false;
+  let needsThemeType = false;
+
+  for (const m of manifests) {
+    if (!Array.isArray(m.settingsEnrichers) || m.settingsEnrichers.length === 0) continue;
+    const workspaceType = m.workspaceTypes?.[0];
+    if (typeof workspaceType !== "string") {
+      throw new Error(`workspace.manifest.json ${m.id}: settingsEnrichers requires workspaceTypes`);
+    }
+    for (const enricher of m.settingsEnrichers) {
+      const {
+        settingsModuleId,
+        module: modulePath,
+        export: exportName,
+        targetField,
+        sourceField,
+      } = enricher;
+      for (const key of ["settingsModuleId", "module", "export", "targetField", "sourceField"]) {
+        if (typeof enricher[key] !== "string" || enricher[key].trim().length === 0) {
+          throw new Error(
+            `workspace.manifest.json ${m.id}: settingsEnrichers[].${key} is required`
+          );
+        }
+      }
+      const spec = importSpecifier(m.package, modulePath);
+      importLines.add(`import { ${exportName} } from "${spec}";`);
+      if (settingsModuleId === "equipment") {
+        needsEquipmentType = true;
+      }
+      if (settingsModuleId === "tour_themes") {
+        needsThemeType = true;
+      }
+      bindings.push({
+        workspaceType,
+        settingsModuleId,
+        enrichListBody: `items.map((item) => Object.freeze({
+      ...item,
+      ${JSON.stringify(targetField)}: ${exportName}(item[${JSON.stringify(sourceField)}]),
+    }))`,
+      });
+    }
+  }
+
+  if (bindings.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_SETTINGS_ENRICHER_BINDINGS = [] as const;
+
+export function enrichSettingsModuleList<T>(workspaceType: string, moduleId: string, items: readonly T[]): T[] {
+  return [...items];
+}
+`;
+  }
+
+  const typeImports = [];
+  if (needsEquipmentType) {
+    typeImports.push("EquipmentResource");
+  }
+  if (needsThemeType) {
+    typeImports.push("TourThemeResource");
+  }
+
+  const bindingBlocks = bindings.map(
+    (b) => `  {
+    workspaceType: ${JSON.stringify(b.workspaceType)},
+    settingsModuleId: ${JSON.stringify(b.settingsModuleId)},
+    enrichList: (items) => ${b.enrichListBody},
+  },`
+  );
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+import type { ${typeImports.join(", ")} } from "./settings.types";
+
+export const WORKSPACE_SETTINGS_ENRICHER_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+
+export function enrichSettingsModuleList<T>(workspaceType: string, moduleId: string, items: readonly T[]): T[] {
+  const binding = WORKSPACE_SETTINGS_ENRICHER_BINDINGS.find(
+    (entry) => entry.workspaceType === workspaceType && entry.settingsModuleId === moduleId
+  );
+  if (binding === undefined) {
+    return [...items];
+  }
+  return binding.enrichList(items) as T[];
+}
+`;
+}
+
+export function generateDevBootstrapBindings(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const wizardBlocks = [];
+  /** @type {string[]} */
+  const smokeBlocks = [];
+
+  for (const m of manifests) {
+    const devBootstrap = m.devBootstrap;
+    if (devBootstrap === undefined) continue;
+
+    const wizardTemplate = devBootstrap.wizardTemplate;
+    if (wizardTemplate !== undefined) {
+      if (
+        typeof wizardTemplate.module !== "string" ||
+        typeof wizardTemplate.buildExport !== "string" ||
+        !Array.isArray(wizardTemplate.tenantIds)
+      ) {
+        throw new Error(
+          `workspace.manifest.json ${m.id}: devBootstrap.wizardTemplate requires module, buildExport, tenantIds[]`
+        );
+      }
+      importLines.add(`import { ${wizardTemplate.buildExport} } from "${m.package}";`);
+      wizardBlocks.push(`  {
+    workspaceId: ${JSON.stringify(m.id)},
+    tenantIds: ${JSON.stringify(wizardTemplate.tenantIds)},
+    buildPayload: ${wizardTemplate.buildExport},
+    minPublishedSteps: ${wizardTemplate.minPublishedSteps ?? 1},
+  },`);
+    }
+
+    const smokeTenant = devBootstrap.smokeTenant;
+    if (smokeTenant !== undefined) {
+      if (typeof smokeTenant.tenantIdExport !== "string" || typeof smokeTenant.subdomainExport !== "string") {
+        throw new Error(
+          `workspace.manifest.json ${m.id}: devBootstrap.smokeTenant requires tenantIdExport and subdomainExport`
+        );
+      }
+      importLines.add(`import { ${smokeTenant.tenantIdExport}, ${smokeTenant.subdomainExport} } from "${m.package}";`);
+      smokeBlocks.push(`  {
+    workspaceId: ${JSON.stringify(m.id)},
+    tenantId: ${smokeTenant.tenantIdExport},
+    subdomain: ${smokeTenant.subdomainExport},
+  },`);
+    }
+  }
+
+  return `${BANNER}
+${[...importLines].sort().join("\n")}
+
+export const WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS = [
+${wizardBlocks.length > 0 ? wizardBlocks.join("\n") : ""}
+] as const;
+
+export const WORKSPACE_DEV_SMOKE_TENANT_BINDINGS = [
+${smokeBlocks.length > 0 ? smokeBlocks.join("\n") : ""}
+] as const;
+`;
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>} manifests
+ */
+export function generateWorkspaceHttpRoutes(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {Set<string>} */
+  const handlerKeys = new Set();
+  /** @type {string[]} */
+  const staticManifestBlocks = [];
+  /** @type {string[]} */
+  const paramManifestBlocks = [];
+
+  for (const m of manifests) {
+    const httpRoutes = m.httpRoutes;
+    if (httpRoutes === undefined) continue;
+    const handlerPackage =
+      typeof httpRoutes.handlerPackage === "string" && httpRoutes.handlerPackage.length > 0
+        ? httpRoutes.handlerPackage
+        : `${m.package}/http`;
+    if (!Array.isArray(httpRoutes.groups) || httpRoutes.groups.length === 0) {
+      throw new Error(`workspace.manifest.json ${m.id}: httpRoutes.groups must be a non-empty array`);
+    }
+
+    for (let i = 0; i < httpRoutes.groups.length; i++) {
+      const group = httpRoutes.groups[i];
+      if (typeof group.manifestExport !== "string" || group.manifestExport.length === 0) {
+        throw new Error(
+          `workspace.manifest.json ${m.id}: httpRoutes.groups[${i}].manifestExport is required`
+        );
+      }
+      if (group.staticHandlers === undefined || typeof group.staticHandlers !== "object") {
+        throw new Error(
+          `workspace.manifest.json ${m.id}: httpRoutes.groups[${i}].staticHandlers is required`
+        );
+      }
+      importLines.add(`import { ${group.manifestExport} } from "${handlerPackage}";`);
+      const staticConst = `${m.id.toUpperCase()}_${group.manifestExport}_STATIC_HANDLERS`;
+      staticManifestBlocks.push(
+        `const ${staticConst} = ${JSON.stringify(group.staticHandlers, null, 2)} as const satisfies Record<string, WorkspaceHttpHandlerKey>;`
+      );
+      staticManifestBlocks.push(
+        `...staticRoutesFromManifest(${group.manifestExport}, ${staticConst}),`
+      );
+      for (const handlerKey of Object.values(group.staticHandlers)) {
+        handlerKeys.add(String(handlerKey));
+      }
+
+      const paramHandlers = group.paramHandlers ?? {};
+      const paramConst = `${m.id.toUpperCase()}_${group.manifestExport}_PARAM_HANDLERS`;
+      paramManifestBlocks.push(
+        `const ${paramConst} = ${JSON.stringify(paramHandlers, null, 2)} as const satisfies Record<string, WorkspaceHttpHandlerKey>;`
+      );
+      paramManifestBlocks.push(
+        `...paramRoutesFromManifest(${group.manifestExport}, ${paramConst}),`
+      );
+      for (const handlerKey of Object.values(paramHandlers)) {
+        handlerKeys.add(String(handlerKey));
+      }
+    }
+  }
+
+  if (handlerKeys.size === 0) {
+    throw new Error("generateWorkspaceHttpRoutes: no httpRoutes groups found in manifests");
+  }
+
+  const handlerUnion = [...handlerKeys].sort().map((key) => `  | "${key}"`).join("\n");
+
+  return `${BANNER}
+import {
+  manifestPathToParamRegex,
+  staticRoutesFromManifest,
+} from "./workspace-route-manifest-bridge";
+import type { WorkspaceHttpMethod } from "./workspace-http-types";
+
+${[...importLines].sort().join("\n")}
+
+export type WorkspaceHttpHandlerKey =
+${handlerUnion};
+
+export type WorkspaceHttpStaticRoute = {
+  readonly method: WorkspaceHttpMethod;
+  readonly path: string;
+  readonly handlerKey: WorkspaceHttpHandlerKey;
+};
+
+export type WorkspaceHttpParamRoute = {
+  readonly method: WorkspaceHttpMethod;
+  readonly pathPattern: RegExp;
+  readonly handlerKey: WorkspaceHttpHandlerKey;
+};
+
+function paramRoutesFromManifest(
+  manifest: readonly { readonly method: WorkspaceHttpMethod; readonly path: string }[],
+  handlerByRouteKey: Readonly<Record<string, WorkspaceHttpHandlerKey>>
+): readonly WorkspaceHttpParamRoute[] {
+  const routes: WorkspaceHttpParamRoute[] = [];
+  for (const route of manifest) {
+    if (!route.path.includes(":")) {
+      continue;
+    }
+    const routeKey = \`\${route.method} \${route.path}\`;
+    const handlerKey = handlerByRouteKey[routeKey];
+    if (handlerKey === undefined) {
+      throw new Error(\`workspace http route manifest missing param handler for \${routeKey}\`);
+    }
+    routes.push({
+      method: route.method,
+      pathPattern: manifestPathToParamRegex(route.path),
+      handlerKey,
+    });
+  }
+  return routes;
+}
+
+${staticManifestBlocks.filter((line) => line.startsWith("const ")).join("\n\n")}
+
+${paramManifestBlocks.filter((line) => line.startsWith("const ")).join("\n\n")}
+
+export const WORKSPACE_HTTP_STATIC_ROUTES: readonly WorkspaceHttpStaticRoute[] = [
+${staticManifestBlocks.filter((line) => line.startsWith("...")).join("\n")}
+];
+
+export const WORKSPACE_HTTP_PARAM_ROUTES: readonly WorkspaceHttpParamRoute[] = [
+${paramManifestBlocks.filter((line) => line.startsWith("...")).join("\n")}
+];
+`;
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>} manifests
+ */
+export function generateWorkspaceHttpHandlerLoaders(manifests) {
+  /** @type {Map<string, Set<string>>} */
+  const packageHandlers = new Map();
+
+  for (const m of manifests) {
+    const httpRoutes = m.httpRoutes;
+    if (httpRoutes === undefined || httpRoutes.loadHandlersFromPackage !== true) continue;
+    const handlerPackage =
+      typeof httpRoutes.handlerPackage === "string" && httpRoutes.handlerPackage.length > 0
+        ? httpRoutes.handlerPackage
+        : `${m.package}/http`;
+    const keys = packageHandlers.get(handlerPackage) ?? new Set();
+    for (const group of httpRoutes.groups) {
+      for (const handlerKey of Object.values(group.staticHandlers ?? {})) {
+        keys.add(String(handlerKey));
+      }
+      for (const handlerKey of Object.values(group.paramHandlers ?? {})) {
+        keys.add(String(handlerKey));
+      }
+    }
+    packageHandlers.set(handlerPackage, keys);
+  }
+
+  if (packageHandlers.size === 0) {
+    return `${BANNER}
+import type { WorkspaceRouteHandlers } from "./workspace-route-registrar";
+
+export type WorkspaceHttpPackageHandlers = Pick<WorkspaceRouteHandlers, never>;
+
+export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpPackageHandlers> {
+  return {};
+}
+`;
+  }
+
+  const loadBlocks = [...packageHandlers.entries()].map(([pkg, keys], index) => {
+    const sortedKeys = [...keys].sort();
+    const entries = sortedKeys.map((key) => `    ${key}: mod${index}.${key},`).join("\n");
+    return `  const mod${index} = await import("${pkg}");
+  Object.assign(handlers, {
+${entries}
+  });`;
+  });
+
+  const handlerUnion = [...new Set([...packageHandlers.values()].flatMap((s) => [...s]))]
+    .sort()
+    .map((key) => `  | "${key}"`)
+    .join("\n");
+
+  return `${BANNER}
+import type { WorkspaceRouteHandlers } from "./workspace-route-registrar";
+
+export type WorkspaceHttpPackageHandlerKey =
+${handlerUnion};
+
+export type WorkspaceHttpPackageHandlers = Pick<
+  WorkspaceRouteHandlers,
+  WorkspaceHttpPackageHandlerKey
+>;
+
+export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpPackageHandlers> {
+  /** @type {Partial<WorkspaceRouteHandlers>} */
+  const handlers = {};
+${loadBlocks.join("\n")}
+  return handlers as WorkspaceHttpPackageHandlers;
+}
+`;
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>} manifests
+ */
+export function generateWorkspaceHttpErrorMap(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+  /** @type {string[]} */
+  const codeStatusBlocks = [];
+
+  for (const m of manifests) {
+    const httpErrors = m.httpErrors;
+    if (!Array.isArray(httpErrors) || httpErrors.length === 0) continue;
+    const handlerPackage =
+      typeof m.httpRoutes?.handlerPackage === "string" && m.httpRoutes.handlerPackage.length > 0
+        ? m.httpRoutes.handlerPackage
+        : `${m.package}/http`;
+
+    for (const entry of httpErrors) {
+      if (
+        typeof entry.isErrorExport !== "string" ||
+        typeof entry.codeExport !== "string" ||
+        typeof entry.status !== "number"
+      ) {
+        throw new Error(
+          `workspace.manifest.json ${m.id}: httpErrors entries require isErrorExport, codeExport, status`
+        );
+      }
+      importLines.add(
+        `import { ${entry.isErrorExport}, ${entry.codeExport} } from "${handlerPackage}";`
+      );
+      bindingBlocks.push(`  {
+    workspaceId: ${JSON.stringify(m.id)},
+    status: ${entry.status},
+    isError: ${entry.isErrorExport},
+    code: ${entry.codeExport},
+  },`);
+      codeStatusBlocks.push(`  [${entry.codeExport}]: ${entry.status},`);
+    }
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS = [] as const;
+
+export const WORKSPACE_HTTP_ERROR_CODE_STATUS = {} as const satisfies Record<string, number>;
+
+export function resolveWorkspaceHttpErrorCodeStatus(code: string): number | undefined {
+  return WORKSPACE_HTTP_ERROR_CODE_STATUS[code as keyof typeof WORKSPACE_HTTP_ERROR_CODE_STATUS];
+}
+`;
+  }
+
+  return `${BANNER}
+${[...importLines].sort().join("\n")}
+
+type WorkspaceHttpErrorBinding = {
+  readonly workspaceId: string;
+  readonly status: number;
+  readonly isError: (error: unknown) => boolean;
+  readonly code: string;
+};
+
+export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpErrorBinding[] = [
+${bindingBlocks.join("\n")}
+];
+
+export const WORKSPACE_HTTP_ERROR_CODE_STATUS = {
+${codeStatusBlocks.join("\n")}
+} as const satisfies Record<string, number>;
+
+export function resolveWorkspaceHttpErrorCodeStatus(code: string): number | undefined {
+  return WORKSPACE_HTTP_ERROR_CODE_STATUS[code as keyof typeof WORKSPACE_HTTP_ERROR_CODE_STATUS];
+}
+`;
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>} manifests
+ * @param {{ strict?: boolean }} options
+ */
+export function assertManifestWebModules(manifests, options = {}) {
+  for (const m of manifests) {
+    const ws = m.wizardSurfaces;
+    if (ws?.composite?.webModule !== undefined) {
+      assertPackageWebModule(m.id, ws.composite.webModule, options);
+    }
+    if (ws?.review?.webModule !== undefined) {
+      assertPackageWebModule(m.id, ws.review.webModule, options);
+    }
+    const labelResolver = m.wizardI18n?.labelResolver;
+    if (labelResolver?.webModule !== undefined) {
+      assertPackageWebModule(m.id, labelResolver.webModule, options);
+    }
+  }
 }
 
 export function generateSdkBindings(manifests) {
@@ -291,8 +1277,23 @@ export function generateAllOutputs(manifests) {
     api: generateApiRegistry(manifests),
     web: generateWebLoaders(manifests),
     tourWrite: generateTourWriteBindings(manifests),
+    canonicalTour: generateCanonicalTourBindings(manifests),
     wizardMedia: generateWizardMediaBindings(manifests),
+    wizardMediaRoutes: generateWizardMediaRouteBindings(manifests),
+    wizardMediaBackendRoutes: generateWizardMediaBackendRouteBindings(manifests),
+    wizardSurfaces: generateWizardSurfaceBindings(manifests),
+    wizardLabels: generateWizardLabelBindings(manifests),
+    wizardI18nTranslators: generateWizardI18nTranslatorHooks(manifests),
+    workspaceWizardMessages: generateWorkspaceWizardMessageLoads(manifests),
+    wizardCloneRemint: generateWizardCloneRemintBindings(manifests),
+    wizardCreate: generateWizardCreateBindings(manifests),
+    themeStylesheets: generateWorkspaceThemeStylesheets(manifests),
     outbox: generateOutboxSideEffects(manifests),
+    settingsEnrichers: generateSettingsEnrichers(manifests),
+    devBootstrap: generateDevBootstrapBindings(manifests),
+    httpRoutes: generateWorkspaceHttpRoutes(manifests),
+    httpHandlerLoaders: generateWorkspaceHttpHandlerLoaders(manifests),
+    httpErrorMap: generateWorkspaceHttpErrorMap(manifests),
   };
 }
 
@@ -301,8 +1302,56 @@ const OUTPUT_PATHS = {
   api: join(REPO_ROOT, "apps/api/src/workspace/workspace-plugin-registry.generated.ts"),
   web: join(REPO_ROOT, "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts"),
   tourWrite: join(REPO_ROOT, "apps/api/src/tours/workspace-tour-write-bindings.generated.ts"),
+  canonicalTour: join(
+    REPO_ROOT,
+    "apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts"
+  ),
   wizardMedia: join(REPO_ROOT, "apps/api/src/tours/workspace-wizard-media-bindings.generated.ts"),
+  wizardMediaRoutes: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/wizard-media-route-bindings.generated.ts"
+  ),
+  wizardMediaBackendRoutes: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/wizard-media-backend-route-bindings.generated.ts"
+  ),
+  wizardSurfaces: join(REPO_ROOT, "apps/web/src/bootstrap/wizard-surface-bindings.generated.ts"),
+  wizardLabels: join(REPO_ROOT, "apps/web/src/bootstrap/wizard-label-bindings.generated.ts"),
+  wizardI18nTranslators: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/wizard-i18n-translator-hooks.generated.ts"
+  ),
+  workspaceWizardMessages: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-message-loads.generated.ts"
+  ),
+  wizardCloneRemint: join(
+    REPO_ROOT,
+    "apps/api/src/tours/workspace-wizard-clone-remint-bindings.generated.ts"
+  ),
+  wizardCreate: join(REPO_ROOT, "apps/web/src/bootstrap/wizard-create-bindings.generated.ts"),
+  themeStylesheets: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts"
+  ),
   outbox: join(REPO_ROOT, "apps/api/src/workspace/workspace-outbox-side-effects.generated.ts"),
+  settingsEnrichers: join(
+    REPO_ROOT,
+    "apps/api/src/settings/workspace-settings-enrichers.generated.ts"
+  ),
+  devBootstrap: join(
+    REPO_ROOT,
+    "apps/api/src/settings/workspace-dev-bootstrap-bindings.generated.ts"
+  ),
+  httpRoutes: join(REPO_ROOT, "apps/api/src/http/workspace-http-routes.generated.ts"),
+  httpHandlerLoaders: join(
+    REPO_ROOT,
+    "apps/api/src/http/workspace-http-handler-loaders.generated.ts"
+  ),
+  httpErrorMap: join(
+    REPO_ROOT,
+    "apps/api/src/middleware/workspace-http-error-map.generated.ts"
+  ),
 };
 
 function readOutputs() {
@@ -313,13 +1362,38 @@ function readOutputs() {
 
 function main() {
   const checkOnly = process.argv.includes("--check");
+  const strictWebModules = process.argv.includes("--strict");
   const manifests = discoverManifests();
+  assertWizardI18nAssets(manifests);
+  assertManifestWebModules(manifests, { strict: strictWebModules });
   const generated = generateAllOutputs(manifests);
 
   if (checkOnly) {
     const onDisk = readOutputs();
     const mismatches = [];
-    for (const key of ["sdk", "api", "web", "tourWrite", "wizardMedia", "outbox"]) {
+    for (const key of [
+      "sdk",
+      "api",
+      "web",
+      "tourWrite",
+      "canonicalTour",
+      "wizardMedia",
+      "wizardMediaRoutes",
+      "wizardMediaBackendRoutes",
+      "wizardSurfaces",
+      "wizardLabels",
+      "wizardI18nTranslators",
+      "workspaceWizardMessages",
+      "wizardCloneRemint",
+      "wizardCreate",
+      "themeStylesheets",
+      "outbox",
+      "settingsEnrichers",
+      "devBootstrap",
+      "httpRoutes",
+      "httpHandlerLoaders",
+      "httpErrorMap",
+    ]) {
       if (onDisk[key] !== generated[key]) {
         mismatches.push(OUTPUT_PATHS[key]);
       }
@@ -340,11 +1414,26 @@ function main() {
   writeFileSync(OUTPUT_PATHS.api, generated.api);
   writeFileSync(OUTPUT_PATHS.web, generated.web);
   writeFileSync(OUTPUT_PATHS.tourWrite, generated.tourWrite);
+  writeFileSync(OUTPUT_PATHS.canonicalTour, generated.canonicalTour);
   writeFileSync(OUTPUT_PATHS.wizardMedia, generated.wizardMedia);
+  writeFileSync(OUTPUT_PATHS.wizardMediaRoutes, generated.wizardMediaRoutes);
+  writeFileSync(OUTPUT_PATHS.wizardMediaBackendRoutes, generated.wizardMediaBackendRoutes);
+  writeFileSync(OUTPUT_PATHS.wizardSurfaces, generated.wizardSurfaces);
+  writeFileSync(OUTPUT_PATHS.wizardLabels, generated.wizardLabels);
+  writeFileSync(OUTPUT_PATHS.wizardI18nTranslators, generated.wizardI18nTranslators);
+  writeFileSync(OUTPUT_PATHS.workspaceWizardMessages, generated.workspaceWizardMessages);
+  writeFileSync(OUTPUT_PATHS.wizardCloneRemint, generated.wizardCloneRemint);
+  writeFileSync(OUTPUT_PATHS.wizardCreate, generated.wizardCreate);
+  writeFileSync(OUTPUT_PATHS.themeStylesheets, generated.themeStylesheets);
   writeFileSync(OUTPUT_PATHS.outbox, generated.outbox);
+  writeFileSync(OUTPUT_PATHS.settingsEnrichers, generated.settingsEnrichers);
+  writeFileSync(OUTPUT_PATHS.devBootstrap, generated.devBootstrap);
+  writeFileSync(OUTPUT_PATHS.httpRoutes, generated.httpRoutes);
+  writeFileSync(OUTPUT_PATHS.httpHandlerLoaders, generated.httpHandlerLoaders);
+  writeFileSync(OUTPUT_PATHS.httpErrorMap, generated.httpErrorMap);
 
   console.log(
-    `generate:workspace-registry — ${manifests.length} manifest(s) → SDK, API, web, tour-write, wizard-media, outbox`
+    `generate:workspace-registry — ${manifests.length} manifest(s) → SDK, API, web, tour-write, wizard-media, wizard-surfaces, wizard-labels, wizard-clone-remint, wizard-create, theme-stylesheets, outbox, settings-enrichers, dev-bootstrap, http-routes, http-errors`
   );
 }
 

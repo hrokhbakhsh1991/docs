@@ -1,6 +1,6 @@
 import { resolveBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
 
-import type { NewTourWizardDraftEnvelope } from "./denali-wizard-draft-merge";
+import type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
 import { normalizeWizardRemoteEnvelope } from "@/wizard/wizard-draft-envelope-hooks";
 
 /** Strip server-only tombstones from engine data after remote hydrate (Track B B-8 / INV-2). */

@@ -15,8 +15,11 @@ describe("resolve-wizard-media-bff-path.spec.ts (P13-2)", () => {
     assert.equal(resolveWizardMediaBffPath("wizard-photos"), "/api/tours/wizard-photos");
   });
 
-  it("P13-2-02 unknown mediaRouteKey falls back to legacy BFF path", () => {
-    assert.equal(resolveWizardMediaBffPath("future-workspace-media"), "/api/tours/wizard-photos");
+  it("P13-2-02 unknown mediaRouteKey uses neutral BFF path", () => {
+    assert.equal(
+      resolveWizardMediaBffPath("future-workspace-media"),
+      "/api/wizard-media/future-workspace-media"
+    );
     assert.equal(resolveWizardMediaBffPath(""), "/api/tours/wizard-photos");
   });
 

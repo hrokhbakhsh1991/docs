@@ -12,6 +12,8 @@ import {
   isUrbanTourPublished,
   toUrbanPublicCatalogCard,
 } from "./catalog/urban-public-catalog-surface";
+import { extractUrbanTourListProjection } from "./list/tour-list-projection";
+import { urbanOperatorSettingsSurface } from "./settings/urban-settings.manifest";
 
 /** Relative to workspace package root — published via package exports. */
 export const URBAN_THEME_TOKENS_STYLESHEET = "theme/tokens.css" as const;
@@ -301,7 +303,10 @@ export function createUrbanValidationHooks(): WorkspaceValidationHooks {
   };
 }
 
-const urbanWizardHostHooks = createPlatformWizardHostHooks({ dimensions: { tourType: "city" } });
+const urbanWizardHostHooks = Object.freeze({
+  ...createPlatformWizardHostHooks({ dimensions: { tourType: "city" } }),
+  wizardMessageNamespace: "urban",
+});
 
 const urbanTheme = {
   ...workspaceThemePresets["platform-primary"],
@@ -327,8 +332,12 @@ export function createUrbanWorkspacePlugin(): WorkspacePlugin {
       isPublished: isUrbanTourPublished,
       toCatalogCard: toUrbanPublicCatalogCard,
     }),
+    tourList: deepFreezeValue({
+      extractTourListProjection: extractUrbanTourListProjection,
+    }),
     wizardHost: deepFreezeValue({ ...urbanWizardHostHooks }),
     draftTombstone: noopWorkspaceDraftTombstoneBinding,
+    operatorSettings: deepFreezeValue({ ...urbanOperatorSettingsSurface }),
   });
 }
 

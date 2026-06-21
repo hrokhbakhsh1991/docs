@@ -1,19 +1,54 @@
+@import "@app-tour/design-tokens/guest-shell.css";
 @import "tailwindcss";
-
-:root {
-  color-scheme: light;
-  font-family: system-ui, sans-serif;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--color-bg, #f8fafc);
-  color: var(--color-fg, #0f172a);
-}
 
 main[data-catalog-registration-page] {
   max-width: 32rem;
   margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+main[data-catalog-registration-page] h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-4);
+}
+
+main[data-catalog-registration-page] form,
+main[data-catalog-registration-page] [data-public-registration-phone],
+main[data-catalog-registration-page] [data-public-registration-otp] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+main[data-catalog-registration-page] label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+main[data-catalog-registration-page] button[type="button"],
+main[data-catalog-registration-page] button[type="submit"] {
+  align-self: flex-start;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  cursor: pointer;
+}
+
+main[data-catalog-registration-page] button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+main[data-catalog-registration-page] [role="alert"] {
+  color: var(--destructive);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+main[data-catalog-registration-page] a {
+  color: var(--color-text-link, var(--primary));
 }

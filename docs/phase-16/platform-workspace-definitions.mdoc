@@ -1,0 +1,615 @@
+---
+title: P3-A — Workspace definitions (metadata platform)
+phase: 16
+format: markdoc
+prerequisite: P2 complete (Super Admin enterprise ops)
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p3/p3-a-workspace-definitions.md
+---
+
+# Workspace definitions (P3-A)
+
+P3-A introduces **DB-backed workspace metadata** so a vertical's **data plane** (`fieldRegistry`, `ruleSet`, `wizard`) can be authored, versioned, and assigned per tenant without shipping a new npm package. Package plugins (`denali`, `urban`, `starter`) remain the default production path; metadata **coexists** behind `WORKSPACE_METADATA_ENABLED` until P3-D cutover.
+
+This document is the **architecture SoT** for P3-A. Nano execution order and assertion IDs live in [`TEMP/p3/p3-a-workspace-definitions.md`](../../TEMP/p3/p3-a-workspace-definitions.md) v1.3.
+
+---
+
+## Executive summary
+
+| Layer | Owner | Persisted? |
+|-------|-------|------------|
+| **Data plane** | DB `workspace_definition_versions.payload` | ✅ JSONB |
+| **Hook plane** | Package overlay (`validation`, `lifecycle`, `wizardHost`, finance, tourList, …) | ❌ never in JSON |
+| **Composite React** | Package manifest → codegen bindings | ❌ not in JSON |
+| **Tenant routing** | `tenants.workspaceType` + optional `workspaceDefinitionId` | ✅ columns |
+
+**Status (2026-06-21):** A1–A6 landed (12/12 nanos). **P3-A complete** — P3-B unblocked.
+
+---
+
+## Goals
+
+| Goal | Detail |
+|------|--------|
+| Data-only plugin core | Persist serializable subset of `WorkspacePlugin` |
+| Immutable versioning | INSERT-only version rows; SHA-256 checksum audit |
+| Runtime adapter | Merge DB payload + package overlay → valid `WorkspacePlugin` |
+| Platform API | List definitions; assign/clear tenant binding |
+| Denali safety | Export → seed JSON only; zero Denali package edits in P3-A PRs |
+| Ingress readiness | Tenant-aware resolve spec for validation + clone + wizard template |
+
+## Non-goals (P3-A)
+
+| Item | EPIC |
+|------|------|
+| Generic `platform.*` widgets | P3-B |
+| Super Admin builder + publish HTTP | P3-C |
+| Parity tests + prod cutover | P3-D |
+| Persisting hook functions in JSON | never in P3-A |
+| Metadata-only tenant (no overlay) | deferred P3-D |
+| `POST .../workspace-definitions/:id/versions` publish | P3-C |
+
+---
+
+## Industry alignment
+
+| Pattern | Source | P3-A mapping |
+|---------|--------|--------------|
+| **Metadata-driven extensibility** | [OpenG2P Registry](https://docs.openg2p.org/products/registry/registry/features/metadata-driven-extensibility) — domain expressed via metadata tables, stable runtime core | `fieldRegistry` + `ruleSet` in JSONB; hooks stay in package |
+| **Hierarchical config merge** | [ObjectOS](https://docs.objectstack.ai/docs/protocol/objectos) — global → tenant overrides | Package overlay (base) + DB payload (tenant-specific data plane override) |
+| **Plugin registry + semver** | [Adverant Nexus Plugin Registry](https://adverant.ai/docs/core-services/web-core-services-plugin-registry) | `contractVersion: 1` gate; `(definitionId, version)` pin |
+| **Versioned config + rollback** | [OpenDecree](https://github.com/opendecree/decree) — every change versioned, rollback without data migration | Repoint tenant binding to older version row |
+| **Strangler Fig facade** | Phase 6 research — `resolveWorkspacePluginForType` → tenant-aware resolve | `resolveWorkspacePluginForTenantContext` ✅ (N-011) |
+| **SDUI field registry** | Phase 12 composite registry — `field.id` → `uiHints.compositeId` | Same pipeline; DB stores ids, package supplies React |
+
+---
+
+## Two-plane architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                     WorkspacePlugin (runtime)                    │
+├──────────────────────────────┬──────────────────────────────────┤
+│ DATA PLANE (DB metadata)     │ HOOK PLANE (package overlay)       │
+│ · fieldRegistry              │ · validation.validateCanonical     │
+│ · ruleSet                    │ · lifecycle.*                    │
+│ · wizard (WorkspaceWizardSurface) │ · wizardHost.compositeSurfaceId │
+│                              │ · wizardMedia, finance HTTP      │
+│                              │ · tourList, tourClone, publicCatalog │
+│                              │ · operatorSettings, draftTombstone │
+└──────────────────────────────┴──────────────────────────────────┘
+         ▲                                    ▲
+         │ adaptMetadataPayloadToWorkspacePlugin
+         │                                    │
+   workspace_definition_versions         resolveWorkspacePluginForType(workspaceType)
+```
+
+```mermaid
+erDiagram
+  workspace_definitions ||--o{ workspace_definition_versions : has
+  workspace_definitions ||--o{ tenants : assigned_to
+  tenants {
+    uuid id PK
+    text workspace_type
+    text workspace_definition_id FK
+    int workspace_definition_version
+  }
+  workspace_definitions {
+    text id PK
+    text display_name
+    text status
+  }
+  workspace_definition_versions {
+    uuid id PK
+    text definition_id FK
+    int version
+    jsonb payload
+    text checksum
+    timestamptz published_at
+  }
+```
+
+**Invariant:** `assertWorkspacePlugin(merged)` must pass. Metadata-only payload without overlay is **invalid** today.
+
+---
+
+## Data model (A1 + A5)
+
+### Migrations
+
+| Migration | Path |
+|-----------|------|
+| Definitions tables | `apps/api/prisma/migrations/20260621160000_workspace_definitions/` |
+| Tenant binding columns | `apps/api/prisma/migrations/20260621170000_tenant_workspace_definition/` |
+
+### `workspace_definitions`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `TEXT` PK | slug — e.g. `denali-tour-ops` |
+| `displayName` | `TEXT` | Super Admin label |
+| `status` | `TEXT` | `draft` \| `published` \| `archived` |
+| `createdAt` / `updatedAt` | `TIMESTAMPTZ` | |
+
+Prisma: `apps/api/prisma/schema.prisma` → `model WorkspaceDefinition`
+
+### `workspace_definition_versions`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `UUID` PK | |
+| `definitionId` | `TEXT` FK | CASCADE delete with parent definition |
+| `version` | `INT` | monotonic per definition; unique `(definitionId, version)` |
+| `pluginApiVersion` | `INT` | mirrors `payload.contractVersion` (currently `1`) |
+| `payload` | `JSONB` | `WorkspaceDefinitionPayload` |
+| `checksum` | `TEXT` | SHA-256 stable-sorted JSON |
+| `publishedAt` | `TIMESTAMPTZ` NULL | NULL = draft row (not loadable by repository) |
+| `createdByPlatformOpsUserId` | `UUID` NULL | P3-C publish |
+| `createdAt` | `TIMESTAMPTZ` | |
+
+**Repository rule:** `getPublishedVersion` returns null when `publishedAt === null`.
+
+### Tenant binding
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `workspaceDefinitionId` | `TEXT` NULL FK | `onDelete: SetNull` — definition delete clears binding |
+| `workspaceDefinitionVersion` | `INT` NULL | pin; NULL = latest published at resolve time |
+
+`workspaceType` **remains** for package overlay source, finance HTTP host, RLS, and marketing until P3-D.
+
+---
+
+## Payload shape (A2)
+
+**Module:** `packages/workspace-sdk/src/metadata/workspace-definition-payload.ts`  
+**Import:** `@app-tour/workspace-sdk/metadata` (dedicated subpath — boundary enforced)
+
+| Export | Role |
+|--------|------|
+| `WorkspaceDefinitionPayload` | Type alias — Pick of data fields |
+| `validateWorkspaceDefinitionPayload` | Headless validation + alignment |
+| `assertWorkspaceDefinitionPayload` | Throwing assert |
+| `stripWorkspacePluginToDefinitionPayload` | Package → persistable JSON |
+| `computeWorkspaceDefinitionPayloadChecksum` | SHA-256 for `checksum` column |
+
+Validation implementation: `packages/workspace-sdk/src/plugin/workspace-plugin-validation-core.ts` → `validateWorkspaceDefinitionPayload` (lines ~343–408).
+
+### Forbidden in JSON
+
+Top-level keys rejected with `PLUGIN_FUNCTION_NOT_ALLOWED`:
+
+```text
+validation, lifecycle, wizardHost, wizardMedia, registrationOps,
+operatorSettings, tourList, publicCatalog, tourClone, draftTombstone, theme
+```
+
+Any function-valued property is rejected.
+
+### `WorkspaceWizardSurface` (stored shape)
+
+```typescript
+{
+  wizardMode: "classic" | "schema";
+  railId: string;
+  roots: readonly string[];
+  inactiveFieldGroups: readonly string[];
+  wizardCapacityStepRedundant: boolean;
+}
+```
+
+**No** `steps` or `surfaces` keys. Step membership = `fieldRegistry.fields[].stepId`. Composite React = manifest codegen (`wizard-surface-bindings.generated.ts`).
+
+### Example payload (truncated)
+
+```json
+{
+  "id": "denali",
+  "version": 1,
+  "contractVersion": 1,
+  "supportedWorkspaceTypes": ["denali"],
+  "fieldRegistry": { "version": 1, "fields": [] },
+  "ruleSet": { "rules": [], "matrixDimensions": [], "cells": [], "defaultCellId": "default" },
+  "wizard": {
+    "wizardMode": "classic",
+    "railId": "denali-tour-rail",
+    "roots": ["denali_basic"],
+    "inactiveFieldGroups": [],
+    "wizardCapacityStepRedundant": false
+  }
+}
+```
+
+### Composite id pipeline
+
+```text
+fieldRegistry.fields[].id
+  → platform-core buildRenderPlan
+  → uiHints.compositeId
+  → WizardField → resolveWizardCompositeSurface(wizardHost.compositeSurfaceId)
+  → wizard-surface-bindings.generated.ts
+  → workspace surface.renderCompositeField
+```
+
+| Namespace | Example | P3-A |
+|-----------|---------|------|
+| primitives | kind-based text/enum | ✅ in payload |
+| `denali.*` | `denali.photos` | ✅ export seed |
+| `platform.*` | `platform.photos` | P3-B |
+
+### Publish validation pipeline (P3-C extends; export uses same SDK)
+
+```text
+payload JSON
+  → validateWorkspaceDefinitionPayload
+  → computeWorkspaceDefinitionPayloadChecksum
+  → INSERT workspace_definition_versions (immutable)
+```
+
+Dev seed (`seed-workspace-definitions.ts`) uses upsert for local iteration — **not** the production publish contract.
+
+---
+
+## Runtime loader (A3)
+
+```text
+apps/api/src/workspace-metadata/
+  is-workspace-metadata-enabled.ts
+  workspace-definition.repository.ts
+  metadata-plugin-adapter.ts
+  load-workspace-plugin-for-tenant.ts
+  read-tenant-workspace-metadata-binding.ts
+  build-workspace-definition-export.ts
+  index.ts
+```
+
+### Resolution algorithm
+
+```typescript
+// load-workspace-plugin-for-tenant.ts — simplified
+async function resolveWorkspacePluginForTenant(input) {
+  const packagePlugin = resolveWorkspacePluginForType(input.workspaceType);
+  if (!isWorkspaceMetadataEnabled() || !input.metadataBinding?.definitionId) {
+    return packagePlugin;
+  }
+  const row = await loadPublishedVersion(definitionId, version ?? null);
+  if (!row) throw WORKSPACE_DEFINITION_NOT_FOUND;
+  return adaptMetadataPayloadToWorkspacePlugin(parseDefinitionPayload(row), packagePlugin);
+}
+```
+
+```mermaid
+flowchart TD
+  START[resolveWorkspacePluginForTenant] --> FLAG{WORKSPACE_METADATA_ENABLED?}
+  FLAG -->|false| PKG[return packagePlugin]
+  FLAG -->|true| BIND{metadataBinding.definitionId?}
+  BIND -->|no| PKG
+  BIND -->|yes| LOAD[getPublishedVersion]
+  LOAD -->|null| ERR[WORKSPACE_DEFINITION_NOT_FOUND]
+  LOAD -->|row| ADP[adaptMetadataPayloadToWorkspacePlugin]
+  ADP --> OUT[assertWorkspacePlugin merged]
+```
+
+### Adapter merge (`metadata-plugin-adapter.ts`)
+
+```typescript
+const plugin: WorkspacePlugin = {
+  ...overlay,                    // hooks, wizardHost, finance, tourList, …
+  id: payload.id,
+  version: payload.version,
+  contractVersion: payload.contractVersion,
+  supportedWorkspaceTypes: payload.supportedWorkspaceTypes,
+  fieldRegistry: payload.fieldRegistry,   // DB wins
+  ruleSet: payload.ruleSet,               // DB wins
+  wizard: payload.wizard,                 // DB wins
+};
+assertWorkspacePlugin(plugin);
+```
+
+### Tenant-by-id entry
+
+`resolveWorkspacePluginForTenantById(tenantId)` → reads Prisma tenant row → `toTenantWorkspaceMetadataBinding` → `resolveWorkspacePluginForTenant`.
+
+---
+
+## Feature flag
+
+| Env | Default | Values | Behavior |
+|-----|---------|--------|----------|
+| `WORKSPACE_METADATA_ENABLED` | unset / false | `true`, `1`, `yes` | Master gate — false forces package path always |
+
+Implementation: `is-workspace-metadata-enabled.ts`
+
+---
+
+## Platform API (A5)
+
+Auth: `Authorization: Bearer` + `X-Platform-Ops-Phone` (same as P1 platform ops).
+
+| Method | Path | RBAC | Status |
+|--------|------|------|--------|
+| `GET` | `/platform/v1/workspace-definitions` | ops read (all roles) | ✅ |
+| `PATCH` | `/platform/v1/tenants/:tenantId/workspace-definition` | write (owner/admin) | ✅ |
+
+Registrar: `apps/api/src/http/platform-route-registrar.ts`  
+Routes: `workspace-definitions-list.ts`, `tenants-workspace-definition-patch.ts`
+
+### GET list response
+
+```json
+{
+  "items": [
+    {
+      "id": "denali-tour-ops",
+      "displayName": "Denali Tour Ops",
+      "status": "published",
+      "latestPublishedVersion": 1
+    }
+  ]
+}
+```
+
+### PATCH assign body
+
+```json
+{
+  "definitionId": "denali-tour-ops",
+  "definitionVersion": 1
+}
+```
+
+Clear binding:
+
+```json
+{ "definitionId": null }
+```
+
+`definitionVersion` omitted or null → pin **latest published** at resolve time (stored as NULL on tenant row).
+
+### PATCH response
+
+```json
+{
+  "workspaceDefinition": {
+    "definitionId": "denali-tour-ops",
+    "definitionVersion": 1,
+    "displayName": "Denali Tour Ops"
+  }
+}
+```
+
+Clear returns `{ "workspaceDefinition": null }`.
+
+### PATCH validation errors
+
+| HTTP | When |
+|------|------|
+| 401 | Missing ops auth |
+| 403 | Support role without write |
+| 404 | Unknown tenant |
+| 422 | Unknown/unpublished definition id |
+
+Service: `update-platform-tenant-workspace-definition.ts`
+
+---
+
+## Audit events (A5 — landed)
+
+| Action | Constant | When |
+|--------|----------|------|
+| Assign binding | `TENANT_DEFINITION_ASSIGNED` | PATCH with definitionId |
+| Clear binding | `TENANT_DEFINITION_CLEARED` | PATCH with definitionId null |
+
+Metadata: `{ tenantId, definitionId, definitionVersion, previousDefinitionId, previousDefinitionVersion }`
+
+`WORKSPACE_DEFINITION_PUBLISHED` → **P3-C** (not P3-A).
+
+---
+
+## Export + seed (A4)
+
+| Artifact | Path |
+|----------|------|
+| Export CLI | `apps/api/scripts/export-workspace-definition.ts` |
+| Export builder | `build-workspace-definition-export.ts` |
+| Denali snapshot | `apps/api/scripts/seed/definitions/denali-v1.json` (~2078 lines) |
+| Seed runner | `apps/api/scripts/seed-workspace-definitions.ts` |
+| Default exports map | `DEFAULT_WORKSPACE_DEFINITION_EXPORTS` — denali, starter, urban |
+
+```bash
+pnpm --filter @apps/api run export:workspace-definition -- \
+  --workspace denali --out scripts/seed/definitions/denali-v1.json
+
+pnpm --filter @apps/api run db:seed   # includes seedWorkspaceDefinitionsFromDir
+```
+
+Export envelope:
+
+```json
+{
+  "definitionId": "denali-tour-ops",
+  "displayName": "Denali Tour Ops",
+  "workspaceType": "denali",
+  "version": 1,
+  "payload": { "...": "WorkspaceDefinitionPayload" },
+  "checksum": "<sha256>"
+}
+```
+
+**Covenant:** export uses `resolveWorkspacePluginForType` (registry) — no direct `@app-tour/workspace-denali` imports under `apps/api/src/`.
+
+---
+
+## Versioning & schema evolution
+
+| Action | Behavior |
+|--------|----------|
+| Publish vN+1 | INSERT; prior rows immutable |
+| Assign tenant | PATCH sets binding; audit ASSIGNED |
+| Pin version | Store explicit int; NULL = latest at load |
+| Roll back | Repoint to older version — **no tour migration** |
+| Breaking change | New `definitionId` or P3-D upcaster — never UPDATE payload |
+
+Additive-only inside same id: new optional registry fields, widened enums.
+
+---
+
+## Production ingress (A6 — N-011/N-012)
+
+`resolveWorkspacePluginForTenantById` exists; production P0 ingress call sites use `resolveWorkspacePluginForTenantContext` (N-011 landed):
+
+```text
+apps/api/src/workspace/resolve-workspace-plugin-for-tenant-context.ts
+  export async function resolveWorkspacePluginForTenantContext(
+    tenantId: string,
+    workspaceType: string,
+  ): Promise<WorkspacePlugin>
+```
+
+When `WORKSPACE_METADATA_ENABLED` false → sync `resolveWorkspacePluginForType` (zero behavior change).
+
+### Ingress matrix (tiered)
+
+| Tier | File | Function | Why |
+|------|------|----------|-----|
+| **P0 MUST** | `tours/canonical-validation-sync.ts` | `getOrCreateValidationEngine`, `validateCanonicalBeforePersistSync` | fieldRegistry + ruleSet drive validation |
+| **P0 MUST** | `tours/build-clone-tour-body.ts` | `buildCloneTourCreateBody` | uses `plugin.wizard.roots` |
+| **P0 MUST** | `settings/wizard-template-catalog.ts` | `assertWizardTemplateFieldsKnown` | fieldRegistry defines allowed template paths |
+| **P1 SHOULD** | `tours/list-tours-operator.ts` | `listToursOperator` | tourList hook from overlay — metadata optional v1.1 |
+| **P1 SHOULD** | `tours/get-tour-operator.ts` | `buildOperatorTourDetailResponse` | same — overlay hook |
+| **NO v1** | `settings/settings-registry.ts` | `listSettingsModuleMetadataForTenant` | `operatorSettings` from overlay only |
+| **NO v1** | `workspace-drafts/workspace-drafts.service.ts` | `patchWorkspaceDraft` | `draftTombstone` from overlay |
+| **NO v1** | `marketing/should-invalidate-marketing-catalog.ts` | | `publicCatalog` hook from overlay |
+
+### Engine cache key extension (critical)
+
+Current key: `${tenantId}:${workspaceType}:${validationVariant}` (`canonical-validation-sync.ts:73–78`).
+
+When metadata binding changes, fieldRegistry changes but cache may serve stale engine.
+
+**N-011 requirement:** extend key with metadata fingerprint:
+
+```text
+${tenantId}:${workspaceType}:${variant}:${definitionId ?? "_pkg"}:${definitionVersion ?? "latest"}
+```
+
+Or call `resetValidationEngineCacheForTests` pattern as `invalidateValidationEngineCacheForTenant(tenantId)` from `updatePlatformTenantWorkspaceDefinition` after assign/clear.
+
+### Sync vs async strategy
+
+| Path | Strategy |
+|------|----------|
+| HTTP handlers | `await resolveWorkspacePluginForTenantContext` |
+| `validateCanonicalBeforePersistSync` | Add async sibling `validateCanonicalBeforePersistAsync` OR prefetch plugin before sync body when tenantId known |
+| Worker threads | Document fallback: package-only until worker passes binding snapshot (acceptable when flag off) |
+
+Minimal v1: any function with `tenantId` in signature **must** use tenant context resolve when flag on.
+
+---
+
+## Security & isolation
+
+| Concern | Mechanism |
+|---------|-----------|
+| Platform tables | Admin Prisma client; platform ops auth |
+| Tenant binding | FK `onDelete: SetNull` — no orphan crashes |
+| RLS | Existing tenant-scoped tour data unchanged |
+| Import boundary | SDK/platform-core must not import `packages/workspaces/*` |
+| API surface | No public tenant CRUD for definitions — internal loader only |
+
+---
+
+## Error catalog
+
+| Code / prefix | Source | When |
+|---------------|--------|------|
+| `PLUGIN_FUNCTION_NOT_ALLOWED` | SDK validate | Hook or function in payload |
+| `PLUGIN_INVALID_SHAPE` | SDK validate | Schema / alignment fail |
+| `WORKSPACE_DEFINITION_NOT_FOUND:<id>` | loader | Missing/unpublished version |
+| `WORKSPACE_DEFINITION_EXPORT_CHECKSUM_MISMATCH` | parse export file | Tampered seed JSON |
+| `PLATFORM_VALIDATION` | PATCH assign | Unknown definition |
+| `TENANT_NOT_FOUND:<id>` | resolveById | Invalid tenant |
+
+---
+
+## Testing matrix
+
+| Spec | IDs | Asserts |
+|------|-----|---------|
+| `workspace-definition-payload.spec.ts` (SDK) | WD-01…WD-05 | valid payload; rejects hooks; checksum stable; tamper detect |
+| Prisma / schema | DB-01…DB-02 | migrations apply; unique constraint |
+| `workspace-metadata-loader.spec.ts` | LO-01…LO-04 | flag off; no binding; metadata load; missing row throws |
+| `workspace-definition-export.spec.ts` | EX-01…EX-03 | envelope; checksum mismatch; strip shape |
+| `workspace-definition-tenant-binding.spec.ts` | TB-01…TB-04 | binding DTO; assign; clear; resolveById |
+| `workspace-plugin-tenant-context-integration.spec.ts` (N-012) | IG-01…IG-06 | context flag off parity; P0 ingress wired; cache key |
+
+### Verification (P3-A EPIC gate)
+
+```bash
+pnpm run guard:import-boundary
+pnpm run guard:p3-denali-covenant
+
+pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test \
+  test/workspace-definition-payload.spec.ts
+
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/workspace-metadata-loader.spec.ts \
+  test/workspace-definition-export.spec.ts \
+  test/workspace-definition-tenant-binding.spec.ts \
+  test/workspace-plugin-tenant-context-integration.spec.ts
+```
+
+---
+
+## Implementation status
+
+```text
+A1 migration        ✅  N-001 N-002
+A2 SDK metadata     ✅  N-003 N-004
+A3 loader + adapter ✅  N-005 N-006
+A4 export + seed    ✅  N-007 N-008
+A5 tenant API       ✅  N-009 N-010
+A6 ingress wiring   ✅  N-011 N-012
+```
+
+---
+
+## Dependency graph
+
+```text
+P2 complete
+  → P3-A-N-001…N-012
+  → P3-B-N-001 (generic widgets — requires ingress)
+  → P3-C (builder)
+  → P3-D (cutover optional)
+```
+
+---
+
+## STOP table
+
+| Symptom | Action |
+|---------|--------|
+| wizard JSON with `steps`/`surfaces` | **STOP** — use `WorkspaceWizardSurface` |
+| Return metadata-only plugin (no overlay) | **STOP** |
+| Edit `packages/workspaces/denali/**` in P3-A | **STOP** |
+| Skip N-011 start P3-B | **STOP** |
+| UPDATE published version payload in prod | **STOP** — INSERT only |
+| Enable prod flag before P3-D parity | **STOP** |
+
+---
+
+## References
+
+- [`platform-generic-widgets.mdoc`](platform-generic-widgets.mdoc) — P3-B
+- [`platform-workspace-builder.mdoc`](platform-workspace-builder.mdoc) — P3-C
+- [`platform-workspace-cutover.mdoc`](platform-workspace-cutover.mdoc) — P3-D
+- `packages/workspace-sdk/src/plugin/workspace-plugin.contract.ts`
+- `packages/workspace-sdk/src/plugin/workspace-plugin-validation-core.ts`
+- `packages/workspaces/denali/workspace.manifest.json`
+- `docs/research/phase-6-denali-workspace-research.md` — Strangler Fig
+- `docs/phase-6/appendices/industry-alignment-2026.md` — shadow parity
+- [OpenG2P metadata-driven extensibility](https://docs.openg2p.org/products/registry/registry/features/metadata-driven-extensibility)
+- `TEMP/p3/p3-a-workspace-definitions.md` — nano execution spec v1.3

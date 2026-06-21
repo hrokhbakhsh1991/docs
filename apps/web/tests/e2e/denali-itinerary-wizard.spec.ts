@@ -15,7 +15,7 @@ import {
 } from "../../test/fixtures/denali-itinerary-wizard-fixture";
 import { loginOperatorOwner } from "../../test/fixtures/operator-owner-session";
 import { publishOperatorWizardTemplate } from "../../test/fixtures/operator-wizard-template-fixture";
-import { DENALI_ITINERARY_TEST_IDS } from "../../src/wizard/denali/denali-itinerary-test-ids";
+import { DENALI_ITINERARY_TEST_IDS } from "@app-tour/workspace-denali/ui/test-ids/denali-itinerary-test-ids";
 
 const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 

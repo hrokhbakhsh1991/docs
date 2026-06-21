@@ -1,0 +1,53 @@
+---
+title: P5-C — Workspace commerce config (optional)
+phase: 18
+format: markdoc
+optional: true
+prerequisite: P5-core exit OR Architect enable
+quality: 9.5
+doc_role: architecture_sot
+execution_spec: TEMP/p5/p5-c-workspace-commerce-config.md
+---
+
+# Workspace commerce config (P5-C — optional)
+
+Config layer for **one payment model per workspace** before live PSP wiring. **Not required for Denali customer v1.**
+
+**Nano spec:** [`TEMP/p5/p5-c-workspace-commerce-config.md`](../../TEMP/p5/p5-c-workspace-commerce-config.md)
+
+---
+
+## Denali scope (frozen)
+
+| Rule | Detail |
+|------|--------|
+| Payment mode | **`offline_receipt` only** — no Super Admin toggle |
+| Flow | Member upload → admin review (existing finance routes) |
+| P5-C UI | Commerce badge **hidden or read-only** for `workspaceType=denali` |
+
+---
+
+## Schema (non-Denali workspaces)
+
+```json
+{
+  "commerce": {
+    "paymentMode": "offline_receipt",
+    "gatewayProvider": null,
+    "currency": "IRR"
+  }
+}
+```
+
+Gateway values blocked until P5-D exit (`GU-02` spec).
+
+---
+
+## Verify
+
+```bash
+pnpm run guard:p3-denali-covenant
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/denali-offline-receipt-unchanged.spec.ts \
+  test/workspace-commerce-single-mode.spec.ts
+```

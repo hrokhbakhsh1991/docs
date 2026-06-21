@@ -11,8 +11,8 @@ import {
 import {
   DENALI_PHOTO_ALLOWED_CONTENT_TYPES,
   validateDenaliPhotoFile,
-} from "../src/wizard/denali/denali-photo-upload-client";
-import { parseDenaliTourPhotos } from "../src/wizard/denali/denali-photo-types";
+} from "@app-tour/workspace-denali/ui/adapters/photo-upload-client";
+import { parseDenaliTourPhotos } from "@app-tour/workspace-denali/ui/logic/denali-photo-types";
 
 describe("denali-photo-upload.spec.ts", () => {
   it("WEB-6.7-PHOTO-01 parses storageKey on draft photos", () => {

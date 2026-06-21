@@ -12,7 +12,11 @@ const starterWizardHostHooks = createPlatformWizardHostHooks({
 function attachStarterWizardHost(plugin: WorkspacePlugin): WorkspacePlugin {
   return Object.freeze({
     ...plugin,
-    wizardHost: Object.freeze({ ...starterWizardHostHooks }),
+    wizardHost: Object.freeze({
+      ...starterWizardHostHooks,
+      compositeSurfaceId: "platform",
+      reviewSurfaceId: "platform",
+    }),
   });
 }
 

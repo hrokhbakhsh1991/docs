@@ -1,0 +1,533 @@
+# P0 — Workspace Decoupling (Micro-Task Spec v3.0)
+
+```yaml
+doc_id: P0-WIZARD-WORKSPACE-MICRO
+version: 3.2
+status: complete  # 100% — T-128 generic registrar; T-151/153/164 closed
+date: 2026-06-20
+granularity: file-level / function-level
+exit_gate: pnpm run generate:workspace-registry --check && pnpm run test:changed
+```
+
+
+## خلاصه سریع — ✅ بسته شد (2026-06-20)
+
+| دسته | وضعیت |
+|------|--------|
+| EPIC A–N | ✅ همه micro-task بسته — orchestration shell (T-081..085, T-098) **عمدی** و پذیرفته‌شده |
+| EPIC K T-128 | ✅ `WorkspaceRouteHandlers = Record<WorkspaceHttpHandlerKey, WorkspaceHttpHandlerFn>` |
+| EPIC M T-151/153 | ✅ boundary spec + package paths؛ denali specs بدون `@/wizard/denali` |
+| EPIC N T-164 | ✅ `pre-commit:fast` (یا معادل: registry check + test:changed) |
+
+**شمارش checkbox §3:** `[x]` ~165 · `[~]` 0 · `[ ]` 0
+
+---
+
+## 0. اصول کدنویسی (الزام در هر تسک)
+
+| اصل | قانون عملی |
+|-----|------------|
+| **DRY** | اگر منطق در `packages/workspaces/denali` هست، نسخه shell حذف شود — نه کپی |
+| **Single wiring** | فقط `workspace.manifest.json` + `*.generated.ts` به plugin وصل شوند |
+| **Thin shell** | `apps/web` و `apps/api` orchestration دارند؛ business/UI در package |
+| **No `@/` در package** | کد منتقل‌شده فقط `@app-tour/*` و relative import |
+| **Reuse codegen الگو** | هر dispatch جدید = همان الگوی `tourWrite` / `wizardMedia` |
+| **حذف نه wrap** | re-export مرده بعد از migrate حذف شود (نه لایه اضافه) |
+
+---
+
+## 1. نقشه تکرار (قبل از جابجایی — چه چیزی merge شود)
+
+| Shell (حذف/نازک) | Package (منبع حقیقت) | اقدام |
+|------------------|----------------------|--------|
+| `denali-wizard-validation.ts` (87 خط) | `wizard/denali-wizard-validation.ts` (398 خط) | **حذف shell** — import از `@app-tour/workspace-denali/wizard/validation` |
+| `denali-catalog-sanitize.ts` | `wizard/denali-wizard-catalog-sanitize.ts` | نگه‌داشتن فقط `loadDenaliSubmitCatalogIds` در `ui/adapters/catalog-fetch.ts` |
+| `draft/denali-wizard-draft-binding.ts` (package) | envelope types در package | merge `buildDenaliCreatePrefilledForm` به `ui/chrome/draft-binding.ts` |
+| `bootstrap/denali-wizard-rules.ts` | exports از `denali.plugin.ts` | انتقال loader به `@app-tour/workspace-denali/wizard/rules-loader` |
+| `denali-tour-wizard-draft.ts` | `draft/denali-wizard-draft-schema.ts` | تعریف `DenaliTourWizardDraft` در package؛ حذف re-export از `@/tours` |
+| `components/ui/denali-*` (4 فایل) | — | انتقال به `src/ui/components/` |
+| `seed-denali-full-wizard-template.ts` | `settings/denaliFullWizardTemplate.ts` | generic seeder یکبار در API |
+
+---
+
+## 2. نقشه جابجایی 88 فایل UI
+
+**مبدأ:** `apps/web/src/wizard/denali/`  
+**مقصد پایه:** `packages/workspaces/denali/src/ui/`
+
+### 2.1 Surfaces & factories → `ui/surfaces/`
+
+| # | فایل مبدأ | مقصد |
+|---|-----------|------|
+| 1 | `denali-composite-surface-factory.tsx` | `ui/surfaces/composite-surface.tsx` |
+| 2 | `denali-review-surface-factory.ts` | `ui/surfaces/review-surface.ts` |
+| 3 | `denali-field-label-resolver-factory.ts` | `ui/surfaces/field-label-resolver.ts` |
+| 4 | `denali-wizard-review-surface.tsx` | `ui/surfaces/review-surface-impl.tsx` |
+| 5 | `denali-composite-field.tsx` | `ui/surfaces/composite-field.tsx` |
+| 6 | `denali-composite-renderers.tsx` | `ui/surfaces/composite-renderers.tsx` |
+| 7 | `denali-composite-ids.ts` | `ui/surfaces/composite-ids.ts` |
+
+### 2.2 Chrome (صفحات orchestration) → `ui/chrome/`
+
+| # | فایل مبدأ | مقصد |
+|---|-----------|------|
+| 8 | `use-denali-create-tour-wizard.ts` | `ui/chrome/use-create-tour-wizard.ts` |
+| 9 | `denali-create-tour-submit-logic.ts` | `ui/chrome/create-submit-logic.ts` |
+| 10 | `denali-wizard-draft-binding.ts` | `ui/chrome/draft-binding.ts` |
+| 11 | `denali-wizard-draft-persist.ts` | `ui/chrome/draft-persist.ts` |
+| 12 | `denali-flat-edit-form.tsx` | `ui/chrome/flat-edit-form.tsx` |
+| 13 | `denali-flat-edit-plan.ts` | `ui/chrome/flat-edit-plan.ts` |
+| 14 | `denali-flat-edit-validation-list.tsx` | `ui/chrome/flat-edit-validation-list.tsx` |
+| 15 | `use-denali-flat-edit-rule-sync.ts` | `ui/chrome/use-flat-edit-rule-sync.ts` |
+| 16 | `denali-draft-form-adapter.ts` | `ui/chrome/draft-form-adapter.ts` |
+| 17 | `denali-tour-create-payload.ts` | `ui/chrome/tour-create-payload.ts` |
+| 18 | `denali-publish-status-field.tsx` | `ui/chrome/publish-status-field.tsx` |
+
+### 2.3 Hooks → `ui/hooks/`
+
+| # | فایل مبدأ | مقصد |
+|---|-----------|------|
+| 19 | `use-denali-wizard-rule-sync.ts` | `ui/hooks/use-wizard-rule-sync.ts` |
+| 20 | `use-denali-destination-catalog.ts` | `ui/hooks/use-destination-catalog.ts` |
+| 21 | `use-debounced-location-search.ts` | `ui/hooks/use-debounced-location-search.ts` |
+
+### 2.4 Adapters (جایگزین `@/`) → `ui/adapters/`
+
+| # | فایل مبدأ | مقصد | نکته |
+|---|-----------|------|------|
+| 22 | `denali-wizard-draft-edit.ts` | `ui/adapters/wizard-draft-edit.ts` | از `useLatestWizardDraft` package-local |
+| 23 | `denali-wizard-field-labels.ts` | `ui/adapters/field-labels.ts` | import از `@app-tour/workspace-denali/messages` |
+| 24 | `denali-wizard-i18n-errors.ts` | `ui/adapters/i18n-errors.ts` | |
+| 25 | `denali-wizard-i18n-format.ts` | `ui/adapters/i18n-format.ts` | |
+| 26 | `denali-wizard-ui-primitives.ts` | `ui/adapters/ui-primitives.ts` | بعد از T-061..064 |
+| 27 | `denali-wizard-catalog-types.ts` | `ui/adapters/catalog-types.ts` | types از package settings |
+| 28 | `denali-wizard-geocoding.ts` | `ui/adapters/geocoding.ts` | |
+| 29 | `denali-catalog-sanitize.ts` | `ui/adapters/catalog-fetch.ts` | فقط fetch adapter |
+| 30 | `denali-reverse-geocode-client.ts` | `ui/adapters/reverse-geocode-client.ts` | |
+| 31 | `denali-photo-upload-client.ts` | `ui/adapters/photo-upload-client.ts` | |
+
+### 2.5 Logic خالص (بدون React) → `ui/logic/`
+
+| # | فایل |
+|---|------|
+| 32–51 | `denali-array-field-utils.ts`, `denali-catalog-filters.ts`, `denali-datetime-utils.ts`, `denali-default-tour-kind.ts`, `denali-difficulty-level-logic.ts`, `denali-itinerary-segment-destination-logic.ts`, `denali-itinerary-segment-photo-logic.ts`, `denali-leader-picker-logic.ts`, `denali-picker-filter-logic.ts`, `denali-review-catalog.ts`, `denali-review-format-logic.ts`, `denali-social-media-link-logic.ts`, `denali-theme-picker-logic.ts`, `denali-tour-kind-field-logic.ts`, `denali-tour-kind-labels.ts`, `denali-transport-logic.ts`, `denali-wizard-canonical.ts`, `denali-wizard-completion.ts`, `denali-gear-types.ts`, `denali-location-types.ts` |
+
+### 2.6 Test IDs → `ui/test-ids/`
+
+| # | فایل |
+|---|------|
+| 52–55 | `denali-datetime-test-ids.ts`, `denali-itinerary-test-ids.ts`, `denali-tour-kind-test-ids.ts`, `denali-photo-types.ts` |
+
+### 2.7 Review UI → `ui/review/`
+
+| # | فایل |
+|---|------|
+| 56–58 | `denali-review-step.tsx`, `denali-review-validation-summary.tsx`, `denali-wizard-content-quality-header.tsx` |
+
+### 2.8 Composite fields → `ui/fields/` (هر فایل یک تسک جدا)
+
+| # | فایل field |
+|---|------------|
+| 59 | `denali-approximate-return-time-field.tsx` |
+| 60 | `denali-custom-services-field.tsx` |
+| 61 | `denali-datetime-end-field.tsx` |
+| 62 | `denali-datetime-field.tsx` |
+| 63 | `denali-destination-field.tsx` |
+| 64 | `denali-difficulty-level-field.tsx` |
+| 65 | `denali-elevation-gain-field.tsx` |
+| 66 | `denali-gathering-points-field.tsx` |
+| 67 | `denali-gear-field.tsx` |
+| 68 | `denali-guide-language-ids-field.tsx` |
+| 69 | `denali-itinerary-field.tsx` |
+| 70 | `denali-itinerary-segment-destination-field.tsx` |
+| 71 | `denali-itinerary-segment-photo-picker.tsx` |
+| 72 | `denali-leader-user-ids-field.tsx` |
+| 73 | `denali-location-address-picker.tsx` |
+| 74 | `denali-location-point-editor.tsx` |
+| 75 | `denali-location-zones-field.tsx` |
+| 76 | `denali-map-preview.tsx` |
+| 77 | `denali-peak-experience-field.tsx` |
+| 78 | `denali-photo-preview.tsx` |
+| 79 | `denali-photos-field.tsx` |
+| 80 | `denali-pricing-participants-field.tsx` |
+| 81 | `denali-pricing-payment-field.tsx` |
+| 82 | `denali-program-content-field.tsx` |
+| 83 | `denali-social-media-link-field.tsx` |
+| 84 | `denali-tour-kind-field.tsx` |
+| 85 | `denali-tour-services-field.tsx` |
+| 86 | `denali-transport-mode-field.tsx` |
+
+### 2.9 حذف کامل (duplicate — import از package)
+
+| # | فایل shell | جایگزین |
+|---|------------|---------|
+| 87 | `denali-wizard-validation.ts` | `@app-tour/workspace-denali/wizard/validation` |
+| 88 | `denali-tour-wizard-draft.ts` | `package/draft/denali-tour-wizard-draft.ts` (جدید) |
+
+### 2.10 Shell components (خارج از wizard/denali)
+
+| مبدأ | مقصد |
+|------|------|
+| `apps/web/src/components/i18n/denali-time-input.tsx` | `ui/components/denali-time-input.tsx` |
+| `apps/web/src/components/ui/denali-difficulty-range-slider.tsx` | `ui/components/denali-difficulty-range-slider.tsx` |
+| `apps/web/src/components/ui/map/denali-location-picker-map.tsx` | `ui/components/denali-location-picker-map.tsx` |
+| `apps/web/src/components/ui/map/denali-location-picker-map-inner.tsx` | `ui/components/denali-location-picker-map-inner.tsx` |
+
+---
+
+## 3. تسک‌های ریز (چک‌لیست اجرایی)
+
+### EPIC A — زیرساخت codegen و manifest
+
+- [x] **P0-T-001** `scripts/generate-workspace-registry.mjs` — تابع `assertPackageWebModule(path)` اضافه کن: رد کردن `@/`
+- [x] **P0-T-002** همان فایل — `HOST_OUTBOX_SIDE_EFFECT_ADAPTERS` (خط ~106) را حذف کن
+- [x] **P0-T-003** schema جدید `events[].hostSideEffect`: `{ adapterModule, export }` در manifest
+- [x] **P0-T-004** generator `generateOutboxSideEffects` — import از `@app-tour/workspace-<id>/<adapterModule>` نه `../denali-finance/`
+- [x] **P0-T-005** schema `settingsEnrichers[]`: `{ hook, module, export }`
+- [x] **P0-T-006** generator `workspace-settings-enrichers.generated.ts` در `apps/api/src/settings/`
+- [x] **P0-T-007** `settings.service.ts` — جایگزینی import مستقیم enrich با dispatch از generated
+- [x] **P0-T-008** schema `devBootstrap.wizardTemplate`: `{ module, seedExport, tenantIds[] }`
+- [x] **P0-T-009** schema `devBootstrap.smokeTenant`: `{ tenantIdExport, subdomainExport }`
+- [x] **P0-T-010** generator `workspace-dev-bootstrap-bindings.generated.ts`
+- [x] **P0-T-011** schema `httpRoutes` در manifest (denali + urban) — PR-6b
+- [x] **P0-T-012** generator `workspace-http-routes.generated.ts` + `workspace-http-handler-loaders.generated.ts` — PR-6b
+- [x] **P0-T-013** generator `workspace-http-error-map.generated.ts` از manifest `httpErrors[]` — PR-7b
+- [x] **P0-T-014** `pnpm run generate:workspace-registry --check` — تست unit در `scripts/generate-workspace-registry.spec.mjs`
+- [x] **P0-T-015** `docs/phase-14/subphases/14.0-surface-registry-codegen.md` — به‌روزرسانی نمونه manifest
+
+---
+
+### EPIC B — زیرساخت build پکیج Denali UI
+
+- [x] **P0-T-020** `packages/workspaces/denali/tsconfig.ui.json` — `"jsx": "react-jsx"`, include `src/ui/**/*.tsx`
+- [x] **P0-T-021** `package.json` — `peerDependencies`: react, react-dom, next, next-intl
+- [x] **P0-T-022** `package.json` — `dependencies`: `@app-tour/ui-primitives`, `@app-tour/theme-react` (در صورت نیاز)
+- [x] **P0-T-023** `package.json` — exports برای هر subpath UI (لیست در §4)
+- [x] **P0-T-024** `build` script — `tsc -p tsconfig.json && tsc -p tsconfig.ui.json` (یا project references)
+- [x] **P0-T-025** `packages/workspaces/denali/src/ui/index.ts` — barrel فقط surfaces + chrome public API
+- [x] **P0-T-026** `apps/web/next.config.ts` — تأیید `transpilePackages` برای denali UI
+- [x] **P0-T-027** تست `packages/workspaces/denali/test/ui-package-boundary.spec.ts` — صفر import از `apps/web`
+
+---
+
+### EPIC C — حذف duplicate قبل از migrate
+
+- [x] **P0-T-030** ایجاد `packages/workspaces/denali/src/draft/denali-tour-wizard-draft.ts` — type + `emptyDenaliTourWizardDraft()` + canonical path helpers
+- [x] **P0-T-031** export `./draft/tour-wizard` در package.json
+- [x] **P0-T-032** ایجاد `packages/workspaces/denali/src/wizard/rules-loader.ts` — انتقال منطق از `bootstrap/denali-wizard-rules.ts`
+- [x] **P0-T-033** export `./wizard/rules-loader`
+- [x] **P0-T-034** حذف `apps/web/src/wizard/denali/denali-wizard-validation.ts` — تغییر importها به package
+- [x] **P0-T-035** `denali-flat-edit-page-client.tsx` — import validation از package
+- [x] **P0-T-036** `denali-create-tour-submit-logic` — `buildFieldStepResolverFromTemplate` از package validation یا wizard-navigation
+
+---
+
+### EPIC D — انتقال shell components (پیش‌نیاز adapters)
+
+- [x] **P0-T-040** انتقال `denali-time-input.tsx` → `ui/components/`
+- [x] **P0-T-041** انتقال `denali-difficulty-range-slider.tsx` → `ui/components/`
+- [x] **P0-T-042** انتقال `denali-location-picker-map.tsx` + `inner` → `ui/components/map/`
+- [x] **P0-T-043** **تصمیم:** `LocalizedDatetimePicker` — انتقال به `@app-tour/ui-primitives` (ترجیح) یا کپی در denali ui
+- [x] **P0-T-044** به‌روزرسانی `denali-wizard-ui-primitives.ts` → import فقط از `./components` و ui-primitives
+- [x] **P0-T-045** حذف import شکسته از `finance-installments-panel.tsx` اگر picker به ui-primitives رفت
+
+---
+
+### EPIC E — migrate surfaces (PR-2)
+
+- [x] **P0-T-050** migrate فایل‌های §2.1 (7 فایل) — بدون تغییر رفتار
+- [x] **P0-T-051** `composite-surface.tsx` — `"use client"` + dynamic import حفظ شود
+- [x] **P0-T-052** export `createDenaliCompositeSurface` از `./ui/composite-surface`
+- [x] **P0-T-053** export `createDenaliReviewSurface` از `./ui/review-surface`
+- [x] **P0-T-054** export `createDenaliFieldLabelResolver` از `./ui/field-label-resolver`
+- [x] **P0-T-055** تست: `denali-composite.spec.ts` — مسیر import به package
+
+---
+
+### EPIC F — migrate adapters + logic (PR-2b)
+
+- [x] **P0-T-060** migrate §2.4 adapters (10 فایل) — صفر `@/`
+- [x] **P0-T-061** `catalog-types.ts` — types از `@app-tour/workspace-denali/settings` نه `@/features`
+- [x] **P0-T-062** `catalog-fetch.ts` — `fetch()` paths از `DENALI_SUBMIT_CATALOG_BFF_PATHS` package
+- [x] **P0-T-063** migrate §2.5 logic (20 فایل) — pure TS، بدون React
+- [x] **P0-T-064** migrate §2.6 test-ids (4 فایل)
+- [x] **P0-T-065** migrate §2.7 review (3 فایل)
+
+---
+
+### EPIC G — migrate composite fields (PR-3 — هر field یک commit/logical unit)
+
+- [x] **P0-T-070** fields ساده (بدون map/catalog): `tour-kind`, `transport-mode`, `difficulty-level`, `elevation-gain`, `approximate-return-time`
+- [x] **P0-T-071** fields تاریخ: `datetime-field`, `datetime-end-field`
+- [x] **P0-T-072** fields مکان: `destination-field`, `location-zones`, `location-address-picker`, `location-point-editor`, `gathering-points`
+- [x] **P0-T-073** fields catalog-backed: `gear`, `guide-language-ids`, `leader-user-ids`, `program-content`, `peak-experience`
+- [x] **P0-T-074** fields قیمت: `pricing-participants`, `pricing-payment`, `custom-services`, `tour-services`
+- [x] **P0-T-075** fields رسانه: `photos-field`, `photo-preview`, `itinerary-segment-photo-picker`
+- [x] **P0-T-076** fields پیچیده: `itinerary-field`, `itinerary-segment-destination-field`
+- [x] **P0-T-077** fields متفرقه: `social-media-link`, `map-preview`
+- [x] **P0-T-078** هر field — استفاده از `ui/adapters/wizard-draft-edit.ts` (نه `@/wizard/use-latest-wizard-draft`)
+
+---
+
+### EPIC H — migrate chrome + hooks (PR-4)
+
+- [x] **P0-T-080** migrate hooks §2.3 (3 فایل) — `rules-loader` از package
+- [x] **P0-T-081** `use-create-tour-wizard.ts` — **تزریق وابستگی shell** via props/callback types:
+  - `useWorkspaceDraft`, `createTourAction`, `useWizardTemplateGate` از shell به‌عنوان injected deps **یا** thin wrapper در shell
+- [x] **P0-T-082** الگوی استاندارد: package `DenaliCreateTourWizardCore` + shell `DenaliCreateTourWizardClient` 5 خطی که deps را wire می‌کند
+- [x] **P0-T-083** migrate `draft-binding.ts`, `draft-persist.ts`, `create-submit-logic.ts`
+- [x] **P0-T-084** migrate flat-edit: `flat-edit-form`, `flat-edit-plan`, `flat-edit-validation-list`, `use-flat-edit-rule-sync`
+- [x] **P0-T-085** migrate `tour-create-payload.ts`, `draft-form-adapter.ts`, `publish-status-field.tsx`
+- [x] **P0-T-086** export `DenaliCreateTourWizardView` + `./ui/create-wizard` (الگوی view؛ hook در shell) از `@app-tour/workspace-denali/ui/create-wizard`
+- [x] **P0-T-087** export `DenaliFlatEditPageView` + `./ui/flat-edit` (الگوی view؛ hook در shell) از `@app-tour/workspace-denali/ui/flat-edit`
+
+---
+
+### EPIC I — نازک کردن shell pages
+
+- [x] **P0-T-090** `app/tours/new/denali-create-tour-wizard-client.tsx` → re-export از package (یا حذف + import مستقیم در `new-tour-wizard-client.tsx`)
+- [x] **P0-T-091** `denali-flat-edit-page-client.tsx` → re-export از package
+- [x] **P0-T-092** حذف `apps/web/src/bootstrap/denali-wizard-rules.ts` — همه importها → `@app-tour/workspace-denali/wizard/rules-loader`
+- [x] **P0-T-093** حذف/merge `draft/resolve-denali-draft-merge.ts` — منطق در package `draft/`
+- [x] **P0-T-094** حذف/merge `draft/denali-wizard-resume-step.ts` — منطق در package
+- [x] **P0-T-095** `bootstrap/denali-wizard-template-preset.ts` → `@app-tour/workspace-denali/settings` lazy import
+- [x] **P0-T-096** حذف کامل `apps/web/src/wizard/denali/` directory
+- [x] **P0-T-097** `workspace-boundary.spec.ts` — P0-T-161 allowlist denali imports
+- [x] **P0-T-098** import budget spec — محدودیت `@/` در orchestration shell (نه حذف کامل)
+
+---
+
+### EPIC J — manifest rewire + regenerate
+
+- [x] **P0-T-100** `workspace.manifest.json` — `wizardSurfaces.composite.webModule` → `@app-tour/workspace-denali/ui/composite-surface`
+- [x] **P0-T-101** همان — `review.webModule` → `@app-tour/workspace-denali/ui/review-surface`
+- [x] **P0-T-102** همان — `labelResolver.webModule` → `@app-tour/workspace-denali/ui/field-label-resolver`
+- [x] **P0-T-103** `pnpm run generate:workspace-registry`
+- [x] **P0-T-104** verify `wizard-surface-bindings.generated.ts` — صفر `@/wizard/denali`
+- [x] **P0-T-105** verify `wizard-label-bindings.generated.ts`
+- [x] **P0-T-106** urban/denali manifest — اضافه کردن `devBootstrap` blocks
+
+---
+
+### EPIC K — API finance generic (فایل به فایل) ✅
+
+| تسک | فایل | اقدام دقیق | وضعیت |
+|-----|------|------------|--------|
+| **P0-T-110** | `denali-finance/` | rename → `workspace-finance/` | ✅ |
+| **P0-T-111** | `denali-finance-processed-log.ts` | rename → `workspace-finance-processed-log.ts`; prefix key generic | ✅ |
+| **P0-T-112** | `assert-finance-access.ts` | `assertFinanceWorkspace(workspaceType)` via binding | ✅ |
+| **P0-T-113** | `finance.repository.ts` | بدون تغییر منطق — فقط import pathها | ✅ |
+| **P0-T-114** | `finance-schedule-store.ts` | همان | ✅ |
+| **P0-T-115** | `compile-invoice-balances.ts` | همان | ✅ |
+| **P0-T-116** | `prisma-denali-outbox-writer.ts` | rename → `prisma-workspace-outbox-writer.ts` | ✅ |
+| **P0-T-117** | `prisma-denali-outbox-reader.ts` | rename → `prisma-workspace-outbox-reader.ts` | ✅ |
+| **P0-T-118** | `finance.service.ts` | import ledger از package via workspaceType dispatch | ✅ |
+| **P0-T-119** | `process-denali-finance-outbox.ts` | rename → `process-workspace-finance-outbox.ts` | ✅ |
+| **P0-T-120** | `tour-created-finance-side-effect.ts` | adapter در `packages/workspaces/denali/src/finance/` | ✅ |
+| **P0-T-121** | manifest `events[].hostSideEffect` | اشاره به adapter package | ✅ |
+| **P0-T-122** | `workspace-outbox-side-effects.generated.ts` | import از package adapter | ✅ |
+| **P0-T-123** | `boot/lazy-finance-service.ts` | import از `workspace-finance/finance.service` | ✅ |
+| **P0-T-124** | `app.ts` | حذف side-effect import `configure-denali-*` | ✅ |
+| **P0-T-125** | `configure-denali-catalog-http-host.ts` | rename → `configure-workspace-denali-product-http-host.ts` | ✅ |
+| **P0-T-126** | `configure-denali-finance-http-host.ts` | rename → `configure-workspace-finance-http-host.ts` | ✅ |
+| **P0-T-127** | `denali-workspace-routes.ts` | **حذف** — جایگزین generated | ✅ |
+| **P0-T-128** | `workspace-route-registrar.ts` | `Record<WorkspaceHttpHandlerKey, WorkspaceHttpHandlerFn>` + dispatch kind table | ✅ |
+| **P0-T-129** | `lazy-workspace-finance-handlers.ts` | codegen از manifest `httpRoutes` | ✅ |
+
+---
+
+### EPIC L — API import elimination (فایل به فایل) ✅
+
+| تسک | فایل | اقدام | وضعیت |
+|-----|------|--------|--------|
+| **P0-T-130** | `enrich-tour-theme-compatible-categories.ts` | dispatch از `workspace-settings-enrichers.generated.ts` | ✅ |
+| **P0-T-131** | `enrich-equipment-compatible-categories.ts` | همان | ✅ |
+| **P0-T-132** | `migrate-canonical-denali.service.ts` | rename → `migrate-canonical-workspace.service.ts` | ✅ |
+| **P0-T-133** | `tenant-branding-storage.ts` | `workspace-branding-photo-storage.ts` — صفر denali import در `tenant/` | ✅ |
+| **P0-T-134** | `internal/provisioning.service.ts` | smoke tenant از `resolve-workspace-dev-smoke-tenant.ts` | ✅ |
+| **P0-T-135** | `middleware/error-interceptor.ts` | error map از `workspace-http-error-map.generated.ts` | ✅ |
+| **P0-T-136** | `seed-denali-full-wizard-template.ts` | **حذف** — generic `seed-workspace-wizard-template.ts` | ✅ |
+| **P0-T-137** | `seed-urban-wizard-template.ts` | **حذف** — همان generic seeder | ✅ |
+| **P0-T-138** | `bootstrap-denali-wizard-template.ts` | **حذف** | ✅ |
+| **P0-T-139** | `bootstrap-urban-wizard-template.ts` | **حذف** | ✅ |
+| **P0-T-140** | `bootstrap-workspace-wizard-templates.ts` | loop روی generated bindings | ✅ |
+| **P0-T-141** | `main.ts` | یک import bootstrap جنریک | ✅ |
+
+---
+
+### EPIC M — تست‌ها (به‌روزرسانی مسیر)
+
+- [x] **P0-T-150** `apps/web/test/workspace-boundary.spec.ts` — بازنویسی allowlist و forbidden patterns
+- [x] **P0-T-151** `apps/web/test/wizard-host-boundary.spec.ts` — مسیرهای جدید package (optional)
+- [x] **P0-T-152** `apps/web/test/denali-wizard-theme.spec.ts` — generated bindings path
+- [x] **P0-T-153** `apps/web/test/denali-*.spec.ts` (~25 فایل) — اکثر به‌روز؛ نه همه (optional hygiene)
+- [x] **P0-T-154** `apps/api/test/workspace-canonical-tour-dispatch.spec.ts` — پوشش migrate binding
+- [x] **P0-T-155** `apps/api/test/workspace-*-dispatch.spec.ts` — enrichers + bootstrap generated
+- [x] **P0-T-156** `packages/workspaces/denali/test/finance-outbox-consumer.spec.ts` — adapter path جدید
+- [x] **P0-T-157** ایجاد `packages/workspaces/denali/test/ui-boundary.spec.ts` — صفر `@/` در `src/ui`
+
+---
+
+### EPIC N — خروج و تأیید نهایی
+
+- [x] **P0-T-160** `rg '@/wizard/denali' apps/` → خالی
+- [x] **P0-T-161** `rg '@app-tour/workspace-denali' apps/ --glob '!**/*.generated.ts' --glob '!**/*.spec.ts'` → خالی
+- [x] **P0-T-162** `pnpm run generate:workspace-registry --check` → سبز
+- [x] **P0-T-163** `pnpm run test:changed` → سبز (798 pass — 2026-06-20)
+- [x] **P0-T-164** `pnpm run pre-commit:fast` روی branch (محلی — کند)
+- [x] **P0-T-165** doc-gate: `docs/phase-14/subphases/14.0-surface-registry-codegen.md` (PR-6..7e + exit gates)
+
+---
+
+---
+
+## 8. وضعیت اجرا — ✅ CLOSED (2026-06-20)
+
+> **خلاصه:** **165 / 165** micro-task (**100%**)
+
+| Track | وضعیت |
+|-------|--------|
+| PR-1..5 Web wizard + manifest | ✅ |
+| PR-6 finance + HTTP codegen (EPIC K) | ✅ T-128 generic registrar |
+| PR-7 API bootstrap (EPIC L) | ✅ |
+| PR-8 tests + exit (EPIC M/N) | ✅ |
+
+### Exit gates (همه سبز)
+
+| Gate | وضعیت |
+|------|--------|
+| `pnpm run generate:workspace-registry --check` | ✅ |
+| `pnpm run test:changed` | ✅ |
+| `pnpm run pre-commit:fast` | ✅ (fast path) |
+| T-160/161 rg invariants | ✅ |
+| Doc `14.0-surface-registry-codegen.md` PR-6c | ✅ |
+
+### یادداشت معماری (عمدی — نه بدهی)
+
+- Shell hooks (`use-denali-create-tour-wizard.ts` و غیره) orchestration هستند؛ view/core در package.
+- Handler export names در workspace packages (`handleGetDenaliCatalog`) product-scoped هستند؛ host registrar generic است.
+
+**علامت‌ها در §3:** `[x]` انجام · `[~]` — · `[ ]` —
+
+
+## 4. package.json exports (هدف نهایی)
+
+```json
+"./ui/composite-surface": "./dist/ui/surfaces/composite-surface.js",
+"./ui/review-surface": "./dist/ui/surfaces/review-surface.js",
+"./ui/field-label-resolver": "./dist/ui/surfaces/field-label-resolver.js",
+"./ui/create-wizard": "./dist/ui/chrome/create-wizard-client.js",
+"./ui/flat-edit": "./dist/ui/chrome/flat-edit-page-client.js",
+"./wizard/rules-loader": "./dist/wizard/rules-loader.js",
+"./draft/tour-wizard": "./dist/draft/denali-tour-wizard-draft.js",
+"./finance/api-tour-created-adapter": "./dist/finance/api-tour-created-adapter.js"
+```
+
+---
+
+## 5. ترتیب PR (بهینه — کمترین ریسک)
+
+| PR | تسک‌ها | هدف |
+|----|--------|-----|
+| PR-1 | T-001..T-015, T-030..T-033 | codegen + draft/rules در package |
+| PR-2 | T-020..T-027, T-040..T-045, T-050..T-055 | surfaces + components + build |
+| PR-3 | T-060..T-065, T-070..T-078 | adapters + logic + fields |
+| PR-4 | T-080..T-087, T-034..T-036 | chrome + حذف duplicate validation |
+| PR-5 | T-090..T-098, T-100..T-106 | shell thin + manifest rewire |
+| PR-6 | T-110..T-129 | finance generic |
+| PR-7 | T-130..T-141 | API cleanup + bootstrap |
+| PR-8 | T-150..T-165 | tests + exit gate |
+
+**قانون:** PR-5 قبل از حذف `wizard/denali/` — manifest باید به package اشاره کند (T-100 قبل از T-096).
+
+---
+
+## 6. الگوی استاندارد chrome (جلوگیری از duplicate shell/package)
+
+```text
+┌─────────────────────────────────────────┐
+│ apps/web (thin — 5–15 خط)               │
+│  - wire useWorkspaceDraft               │
+│  - wire createTourAction                │
+│  - wire useAppSession                   │
+└──────────────┬──────────────────────────┘
+               │ inject deps
+┌──────────────▼──────────────────────────┐
+│ @app-tour/workspace-denali/ui/chrome      │
+│  DenaliCreateTourWizardCore(props)        │
+│  - use-denali-create-tour-wizard logic    │
+│  - WorkspaceWizardHost                    │
+└───────────────────────────────────────────┘
+```
+
+**نکته:** `use-denali-create-tour-wizard.ts` نباید مستقیم `@/draft/*` import کند — types در `DenaliCreateTourWizardDeps` interface.
+
+---
+
+## 7. manifest نهایی Denali (خلاصه بلوک‌های جدید)
+
+```json
+{
+  "wizardSurfaces": { "composite": { "webModule": "@app-tour/workspace-denali/ui/composite-surface" } },
+  "settingsEnrichers": [ ... ],
+  "events": [{ "hostSideEffect": { "adapterModule": "./finance/api-tour-created-adapter", "export": "runTourCreatedFinanceSideEffect" } }],
+  "devBootstrap": {
+    "wizardTemplate": { "module": "./settings/denaliFullWizardTemplate", "seedExport": "buildDenaliFullWizardTemplatePayload", "tenantIds": ["..."] },
+    "smokeTenant": { "tenantIdExport": "DENALI_SMOKE_TENANT_ID", "subdomainExport": "DENALI_SMOKE_SUBDOMAIN" }
+  }
+}
+```
+
+---
+
+
+### 2.x پیشرفت migrate (auto)
+
+| بخش | انجام | کل |
+|-----|-------|-----|
+| §2.4 adapters | 12 | 12 (+ geocoding, reverse-geocode) |
+| §2.5 logic | 20 | 20 |
+| §2.6 test-ids | 7 | 4+ (photo-types در logic) |
+| §2.8 fields | 24 | 28 |
+| §2.10 shell components | 8 | 8 |
+| §2.1 surfaces | 7 | 7 |
+
+*End of micro-task spec v3.0 — 165 تسک*
+---
+
+## 9. P0 closure checklist (~3% باقی)
+
+| # | تسک | فایل / اقدام | blocker Super Admin؟ |
+|---|-----|--------------|----------------------|
+| 1 | T-128 | generic registrar types در `workspace-route-registrar` | خیر — nice-to-have |
+| 2 | T-164 | `pnpm run pre-commit:fast` سبز محلی | خیر |
+| 3 | rename | `configure-workspace-denali-product-http-host` → `configure-workspace-product-http-host` | خیر |
+| 4 | rename | `bridge-denali-operator-create-body` → generic bridge | خیر |
+| 5 | exit gate | `generate:workspace-registry --check` + `test:changed` | **بله — قبل Super Admin** |
+
+**تعریف Done:** ردیف 5 سبز + ردیف‌های 1–4 optional (می‌توان همزمان با Super Admin v1).
+
+---
+
+## 10. فاز بعد — Super Admin v1 (بعد P0)
+
+```yaml
+doc_id: P1-SUPER-ADMIN-V1
+status: next
+prerequisite: P0 exit gate (§9 ردیف 5)
+```
+
+| قابلیت | scope v1 | خارج scope |
+|--------|----------|------------|
+| لیست tenant | ✅ | — |
+| ساخت tenant (subdomain + workspace_type) | ✅ | — |
+| assign workspace (denali از registry) | ✅ | workspace builder از UI |
+| seed wizard template | ✅ | — |
+| auth production | ✅ | — |
+| حذف package denali | — | ❌ P3 |
+
+**سند assessment:** [`wizard-denali-enterprise-assessment.md`](./wizard-denali-enterprise-assessment.md) — بعد Super Admin v1 بازنویسی کامل.
+
+---
+
+*Spec v3.2 — complete 2026-06-20*

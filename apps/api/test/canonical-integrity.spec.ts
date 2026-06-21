@@ -39,7 +39,7 @@ describe("canonical integrity — POST /tours storage", () => {
       "canonical/canonical-storage.ts",
       "canonical/atomic-canonical-tour-persist.ts",
       "canonical/assert-tour-capacity-in-tx.ts",
-      "canonical/migrate-canonical-denali.service.ts",
+      "canonical/migrate-canonical-workspace.service.ts",
       "tours/workspace-tour-write-bindings.generated.ts",
       "tours/workspace-tour-write-dispatch.ts",
     ]);

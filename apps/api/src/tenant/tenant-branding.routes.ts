@@ -20,9 +20,9 @@ import {
   resolveTenantBrandLogoUrl,
   uploadTenantBrandLogo,
 } from "./tenant-branding.service";
-import { resolvePublicTenantLabelFromIngressHost } from "./resolve-public-tenant-label-from-host";
 import { assertTenantBrandLogoUploadContentType } from "./tenant-branding-storage";
 import { TENANT_BRAND_LOGO_MAX_BYTES } from "@app-tour/workspace-sdk";
+import { resolvePublicIngressSubdomain } from "./resolve-public-ingress-subdomain";
 
 function mapBrandingError(res: ServerResponse, error: unknown): void {
   if (error instanceof SettingsMutationForbiddenError) {
@@ -187,12 +187,12 @@ export async function handlePublicTenantBranding(
 ): Promise<void> {
   try {
     const host = readIngressHost(req);
-    const labelOutcome = resolvePublicTenantLabelFromIngressHost(host);
-    if (labelOutcome.kind !== "label") {
+    const subdomain = await resolvePublicIngressSubdomain(host);
+    if (subdomain === null) {
       sendHttpError(res, 404, { error: "not_found", code: "TENANT_HOST_UNKNOWN" });
       return;
     }
-    const branding = await resolvePublicTenantBrandingBySubdomain(labelOutcome.label);
+    const branding = await resolvePublicTenantBrandingBySubdomain(subdomain);
     sendJson(res, 200, branding);
   } catch (error) {
     mapBrandingError(res, error);
@@ -205,12 +205,12 @@ export async function handlePublicTenantContext(
 ): Promise<void> {
   try {
     const host = readIngressHost(req);
-    const labelOutcome = resolvePublicTenantLabelFromIngressHost(host);
-    if (labelOutcome.kind !== "label") {
+    const subdomain = await resolvePublicIngressSubdomain(host);
+    if (subdomain === null) {
       sendHttpError(res, 404, { error: "not_found", code: "TENANT_HOST_UNKNOWN" });
       return;
     }
-    const context = await resolvePublicTenantContextBySubdomain(labelOutcome.label);
+    const context = await resolvePublicTenantContextBySubdomain(subdomain);
     sendJson(res, 200, { success: true, data: context });
   } catch (error) {
     mapBrandingError(res, error);

@@ -25,3 +25,10 @@ export {
   createPlatformWizardHostHooks,
   type PlatformWizardHostHooksOptions,
 } from "./host/create-platform-wizard-host-hooks";
+
+export {
+  resolveWorkspaceThemeTokens,
+  validateWorkspaceThemeTokenMap,
+  WorkspaceThemeTokenValidationError,
+  type WorkspaceDefinitionThemeTokensInput,
+} from "./theme/resolve-workspace-theme-tokens";

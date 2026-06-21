@@ -15,19 +15,19 @@ async function warmPostListen(): Promise<void> {
   const [
     { startOutboxRelayIfEnabled },
     { startProjectionAutoReconcileIfEnabled },
-    { bootstrapDenaliWizardTemplatesIfNeeded },
+    { bootstrapWorkspaceWizardTemplatesIfNeeded },
     { bootstrapOperatorSmokeCatalogIfNeeded },
     { bootstrapDenaliDevSmokeFixturesIfNeeded },
   ] = await Promise.all([
     import("./outbox/start-outbox-relay"),
     import("./outbox/start-projection-auto-reconcile"),
-    import("./settings/bootstrap-denali-wizard-template"),
+    import("./settings/bootstrap-workspace-wizard-templates"),
     import("./settings/bootstrap-operator-smoke-catalog"),
     import("./settings/bootstrap-denali-dev-smoke-fixtures"),
   ]);
   startOutboxRelayIfEnabled();
   startProjectionAutoReconcileIfEnabled();
-  await bootstrapDenaliWizardTemplatesIfNeeded();
+  await bootstrapWorkspaceWizardTemplatesIfNeeded();
   await bootstrapOperatorSmokeCatalogIfNeeded();
   await bootstrapDenaliDevSmokeFixturesIfNeeded();
 }

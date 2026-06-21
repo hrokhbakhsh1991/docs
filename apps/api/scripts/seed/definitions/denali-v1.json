@@ -1,0 +1,2078 @@
+{
+  "definitionId": "denali-tour-ops",
+  "displayName": "Denali Tour Ops",
+  "workspaceType": "denali",
+  "version": 1,
+  "payload": {
+    "id": "denali",
+    "version": 1,
+    "contractVersion": 1,
+    "supportedWorkspaceTypes": [
+      "denali"
+    ],
+    "fieldRegistry": {
+      "version": 1,
+      "fields": [
+        {
+          "id": "title",
+          "canonicalPath": "title",
+          "stepId": "denali_basic",
+          "kind": "text",
+          "required": true,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "publishStatus",
+          "canonicalPath": "publishStatus",
+          "stepId": "denali_basic",
+          "kind": "enum",
+          "required": true,
+          "tags": [
+            "core",
+            "wizard_overlay_exclude"
+          ],
+          "enumOptions": [
+            "draft",
+            "active"
+          ]
+        },
+        {
+          "id": "denali.tour-kind-basics",
+          "canonicalPath": "category",
+          "stepId": "denali_basic",
+          "kind": "enum",
+          "required": true,
+          "tags": [
+            "core"
+          ],
+          "enumOptions": [
+            "mountain_day",
+            "mountain_multi",
+            "nature_day",
+            "nature_multi",
+            "desert_day",
+            "desert_multi",
+            "event_reading",
+            "event_reading_multi",
+            "event_cinema",
+            "event_cinema_multi"
+          ]
+        },
+        {
+          "id": "denali.destination",
+          "canonicalPath": "destinationId",
+          "stepId": "denali_basic",
+          "kind": "text",
+          "required": true,
+          "tags": [
+            "destination"
+          ]
+        },
+        {
+          "id": "tripDetails.overview.peakHeight",
+          "canonicalPath": "tripDetails.overview.peakHeight",
+          "stepId": "denali_basic",
+          "kind": "number",
+          "required": true,
+          "tags": [
+            "altitude_mountain",
+            "altitude_hidden"
+          ]
+        },
+        {
+          "id": "denali.datetime",
+          "canonicalPath": "startDateTime",
+          "stepId": "denali_basic",
+          "kind": "date",
+          "required": true,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "denali.datetime-end",
+          "canonicalPath": "endDateTime",
+          "stepId": "denali_basic",
+          "kind": "date",
+          "required": false,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "capacityMax",
+          "canonicalPath": "capacityMax",
+          "stepId": "denali_basic",
+          "kind": "number",
+          "required": true,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "capacityMin",
+          "canonicalPath": "capacityMin",
+          "stepId": "denali_basic",
+          "kind": "number",
+          "required": false,
+          "tags": [
+            "optional_basic"
+          ]
+        },
+        {
+          "id": "meetingPoint",
+          "canonicalPath": "meetingPoint",
+          "stepId": "denali_basic",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "wizard_overlay_exclude"
+          ]
+        },
+        {
+          "id": "startPointLocationText",
+          "canonicalPath": "startPointLocationText",
+          "stepId": "denali_basic",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "optional_basic",
+            "wizard_overlay_exclude"
+          ]
+        },
+        {
+          "id": "denali.approximate-return-time",
+          "canonicalPath": "approximateReturnTime",
+          "stepId": "denali_basic",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "optional_basic"
+          ]
+        },
+        {
+          "id": "denali.leader-user-ids",
+          "canonicalPath": "leaderUserIds",
+          "stepId": "denali_basic",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "optional_basic"
+          ]
+        },
+        {
+          "id": "requiresLocalGuide",
+          "canonicalPath": "requiresLocalGuide",
+          "stepId": "denali_basic",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "optional_basic"
+          ]
+        },
+        {
+          "id": "localGuideName",
+          "canonicalPath": "localGuideName",
+          "stepId": "denali_basic",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "optional_basic"
+          ]
+        },
+        {
+          "id": "requiresManualAdminApproval",
+          "canonicalPath": "requiresManualAdminApproval",
+          "stepId": "denali_basic",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "optional_basic"
+          ]
+        },
+        {
+          "id": "denali.social-media-link",
+          "canonicalPath": "socialMediaLink",
+          "stepId": "denali_basic",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "optional_basic"
+          ]
+        },
+        {
+          "id": "denali.program-content",
+          "canonicalPath": "program.themeIds",
+          "stepId": "denali_photos",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "denali.guide-language-ids",
+          "canonicalPath": "program.guideLanguageIds",
+          "stepId": "denali_program",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "optional_program"
+          ]
+        },
+        {
+          "id": "denali.difficulty-level",
+          "canonicalPath": "program.difficultyLevel",
+          "stepId": "denali_program",
+          "kind": "number",
+          "required": true,
+          "tags": [
+            "outdoor_program",
+            "event_program_hidden"
+          ]
+        },
+        {
+          "id": "program.hikingHoursApprox",
+          "canonicalPath": "program.hikingHoursApprox",
+          "stepId": "denali_program",
+          "kind": "number",
+          "required": true,
+          "tags": [
+            "outdoor_program",
+            "event_program_hidden"
+          ]
+        },
+        {
+          "id": "program.hikingGoHours",
+          "canonicalPath": "program.hikingGoHours",
+          "stepId": "denali_program",
+          "kind": "number",
+          "required": false,
+          "tags": [
+            "outdoor_program",
+            "event_program_hidden"
+          ]
+        },
+        {
+          "id": "program.hikingReturnHours",
+          "canonicalPath": "program.hikingReturnHours",
+          "stepId": "denali_program",
+          "kind": "number",
+          "required": false,
+          "tags": [
+            "outdoor_program",
+            "event_program_hidden"
+          ]
+        },
+        {
+          "id": "denali.elevation-gain",
+          "canonicalPath": "tripDetails.metrics.elevationGain",
+          "stepId": "denali_program",
+          "kind": "number",
+          "required": false,
+          "tags": [
+            "altitude_mountain",
+            "altitude_hidden"
+          ]
+        },
+        {
+          "id": "denali.itinerary",
+          "canonicalPath": "program.itinerary",
+          "stepId": "denali_program",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "itinerary_hidden",
+            "itinerary_visible"
+          ]
+        },
+        {
+          "id": "denali.transport-mode",
+          "canonicalPath": "transport.mode",
+          "stepId": "denali_logistics",
+          "kind": "enum",
+          "required": true,
+          "tags": [
+            "core"
+          ],
+          "enumOptions": [
+            "organizer_vehicle",
+            "bus",
+            "minibus",
+            "train",
+            "shared_cars",
+            "none"
+          ]
+        },
+        {
+          "id": "denali.gathering-points",
+          "canonicalPath": "gatheringPoints",
+          "stepId": "denali_logistics",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "outdoor_logistics_location",
+            "event_logistics_hidden"
+          ]
+        },
+        {
+          "id": "denali.location-zones",
+          "canonicalPath": "startPoint",
+          "stepId": "denali_logistics",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "outdoor_logistics_location",
+            "event_logistics_hidden"
+          ]
+        },
+        {
+          "id": "denali.gear",
+          "canonicalPath": "participants.gearItems",
+          "stepId": "denali_logistics",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "gear"
+          ]
+        },
+        {
+          "id": "denali.tour-services",
+          "canonicalPath": "tripDetails.logistics.includedServices",
+          "stepId": "denali_logistics",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "denali.custom-services",
+          "canonicalPath": "tripDetails.overview.customServiceLabels",
+          "stepId": "denali_logistics",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "tripDetails.overview.nonAttendanceDetails",
+          "canonicalPath": "tripDetails.overview.nonAttendanceDetails",
+          "stepId": "denali_pricing",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "denali.photos",
+          "canonicalPath": "photos",
+          "stepId": "denali_photos",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "denali.pricing-payment",
+          "canonicalPath": "pricing.requiresPayment",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "pricing.paymentMode",
+          "canonicalPath": "pricing.paymentMode",
+          "stepId": "denali_pricing",
+          "kind": "enum",
+          "required": true,
+          "tags": [
+            "core",
+            "wizard_overlay_exclude"
+          ],
+          "enumOptions": [
+            "offline_receipt"
+          ]
+        },
+        {
+          "id": "participants.nationalIdRequired",
+          "canonicalPath": "participants.nationalIdRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "core"
+          ]
+        },
+        {
+          "id": "policies.cancellationDeadlineHours",
+          "canonicalPath": "policies.cancellationDeadlineHours",
+          "stepId": "denali_legal",
+          "kind": "number",
+          "required": false,
+          "tags": [
+            "policies_pricing"
+          ]
+        },
+        {
+          "id": "policies.cancellationPenaltyPercentage",
+          "canonicalPath": "policies.cancellationPenaltyPercentage",
+          "stepId": "denali_legal",
+          "kind": "number",
+          "required": false,
+          "tags": [
+            "policies_pricing"
+          ]
+        },
+        {
+          "id": "policies.policiesText",
+          "canonicalPath": "policies.policiesText",
+          "stepId": "denali_legal",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "policies_pricing"
+          ]
+        },
+        {
+          "id": "denali.pricing-participants",
+          "canonicalPath": "participants.minimumAge",
+          "stepId": "denali_pricing",
+          "kind": "number",
+          "required": true,
+          "tags": [
+            "mountain_participants",
+            "non_mountain_participants_hidden"
+          ]
+        },
+        {
+          "id": "denali.peak-experience",
+          "canonicalPath": "participants.minRequiredPeaks",
+          "stepId": "denali_pricing",
+          "kind": "text",
+          "required": false,
+          "tags": [
+            "mountain_participants",
+            "non_mountain_participants_hidden"
+          ]
+        }
+      ]
+    },
+    "ruleSet": {
+      "version": 1,
+      "matrixDimensions": [
+        "category",
+        "duration"
+      ],
+      "defaultCellId": "mountain:single_day",
+      "cells": [
+        {
+          "cellId": "mountain:single_day",
+          "dimensions": {
+            "category": "mountain",
+            "duration": "single_day"
+          },
+          "fieldOverrides": [
+            {
+              "fieldId": "denali.approximate-return-time",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMax",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMin",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-kind-basics",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.destination",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime-end",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.gathering-points",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.leader-user-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gear",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-participants",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.peak-experience",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.nationalIdRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.photos",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationDeadlineHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationPenaltyPercentage",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.policiesText",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-payment",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.difficulty-level",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.guide-language-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingGoHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingHoursApprox",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingReturnHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.itinerary",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.program-content",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresLocalGuide",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresManualAdminApproval",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.social-media-link",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.location-zones",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "title",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.transport-mode",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-services",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.elevation-gain",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.custom-services",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.nonAttendanceDetails",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.peakHeight",
+              "required": true,
+              "hidden": false
+            }
+          ]
+        },
+        {
+          "cellId": "mountain:multi_day",
+          "dimensions": {
+            "category": "mountain",
+            "duration": "multi_day"
+          },
+          "fieldOverrides": [
+            {
+              "fieldId": "denali.approximate-return-time",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMax",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMin",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-kind-basics",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.destination",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime-end",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gathering-points",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.leader-user-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gear",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-participants",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.peak-experience",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.nationalIdRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.photos",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationDeadlineHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationPenaltyPercentage",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.policiesText",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-payment",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.difficulty-level",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.guide-language-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingGoHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingHoursApprox",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingReturnHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.itinerary",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.program-content",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresLocalGuide",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresManualAdminApproval",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.social-media-link",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.location-zones",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "title",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.transport-mode",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-services",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.elevation-gain",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.custom-services",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.nonAttendanceDetails",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.peakHeight",
+              "required": true,
+              "hidden": false
+            }
+          ]
+        },
+        {
+          "cellId": "nature:single_day",
+          "dimensions": {
+            "category": "nature",
+            "duration": "single_day"
+          },
+          "fieldOverrides": [
+            {
+              "fieldId": "denali.approximate-return-time",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMax",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMin",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-kind-basics",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.destination",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime-end",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.gathering-points",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.leader-user-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gear",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-participants",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.peak-experience",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.nationalIdRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.photos",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationDeadlineHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationPenaltyPercentage",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.policiesText",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-payment",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.difficulty-level",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.guide-language-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingGoHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingHoursApprox",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingReturnHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.itinerary",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.program-content",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresLocalGuide",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresManualAdminApproval",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.social-media-link",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.location-zones",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "title",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.transport-mode",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-services",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.elevation-gain",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.custom-services",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.nonAttendanceDetails",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.peakHeight",
+              "required": false,
+              "hidden": true
+            }
+          ]
+        },
+        {
+          "cellId": "nature:multi_day",
+          "dimensions": {
+            "category": "nature",
+            "duration": "multi_day"
+          },
+          "fieldOverrides": [
+            {
+              "fieldId": "denali.approximate-return-time",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMax",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMin",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-kind-basics",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.destination",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime-end",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gathering-points",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.leader-user-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gear",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-participants",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.peak-experience",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.nationalIdRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.photos",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationDeadlineHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationPenaltyPercentage",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.policiesText",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-payment",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.difficulty-level",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.guide-language-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingGoHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingHoursApprox",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingReturnHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.itinerary",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.program-content",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresLocalGuide",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresManualAdminApproval",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.social-media-link",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.location-zones",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "title",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.transport-mode",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-services",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.elevation-gain",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.custom-services",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.nonAttendanceDetails",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.peakHeight",
+              "required": false,
+              "hidden": true
+            }
+          ]
+        },
+        {
+          "cellId": "desert:single_day",
+          "dimensions": {
+            "category": "desert",
+            "duration": "single_day"
+          },
+          "fieldOverrides": [
+            {
+              "fieldId": "denali.approximate-return-time",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMax",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMin",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-kind-basics",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.destination",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime-end",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.gathering-points",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.leader-user-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gear",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-participants",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.peak-experience",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.nationalIdRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.photos",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationDeadlineHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationPenaltyPercentage",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.policiesText",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-payment",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.difficulty-level",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.guide-language-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingGoHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingHoursApprox",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingReturnHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.itinerary",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.program-content",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresLocalGuide",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresManualAdminApproval",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.social-media-link",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.location-zones",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "title",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.transport-mode",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-services",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.elevation-gain",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.custom-services",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.nonAttendanceDetails",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.peakHeight",
+              "required": false,
+              "hidden": true
+            }
+          ]
+        },
+        {
+          "cellId": "desert:multi_day",
+          "dimensions": {
+            "category": "desert",
+            "duration": "multi_day"
+          },
+          "fieldOverrides": [
+            {
+              "fieldId": "denali.approximate-return-time",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMax",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMin",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-kind-basics",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.destination",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime-end",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gathering-points",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.leader-user-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gear",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-participants",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.peak-experience",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.nationalIdRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.photos",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationDeadlineHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationPenaltyPercentage",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.policiesText",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-payment",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.difficulty-level",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.guide-language-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingGoHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingHoursApprox",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingReturnHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.itinerary",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.program-content",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresLocalGuide",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresManualAdminApproval",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.social-media-link",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.location-zones",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "title",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.transport-mode",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-services",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.elevation-gain",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.custom-services",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.nonAttendanceDetails",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.peakHeight",
+              "required": false,
+              "hidden": true
+            }
+          ]
+        },
+        {
+          "cellId": "event:single_day",
+          "dimensions": {
+            "category": "event",
+            "duration": "single_day"
+          },
+          "fieldOverrides": [
+            {
+              "fieldId": "denali.approximate-return-time",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMax",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMin",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-kind-basics",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.destination",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime-end",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.gathering-points",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.leader-user-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gear",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-participants",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.peak-experience",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.nationalIdRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.photos",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationDeadlineHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationPenaltyPercentage",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.policiesText",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-payment",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.difficulty-level",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.guide-language-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingGoHours",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "program.hikingHoursApprox",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "program.hikingReturnHours",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.itinerary",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.program-content",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresLocalGuide",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresManualAdminApproval",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.social-media-link",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.location-zones",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "title",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.transport-mode",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-services",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.elevation-gain",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.custom-services",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.nonAttendanceDetails",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.peakHeight",
+              "required": false,
+              "hidden": true
+            }
+          ]
+        },
+        {
+          "cellId": "event:multi_day",
+          "dimensions": {
+            "category": "event",
+            "duration": "multi_day"
+          },
+          "fieldOverrides": [
+            {
+              "fieldId": "denali.approximate-return-time",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMax",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "capacityMin",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-kind-basics",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.destination",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime-end",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gathering-points",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.leader-user-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "localGuideName",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.gear",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-participants",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.peak-experience",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.nationalIdRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.photos",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationDeadlineHours",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.cancellationPenaltyPercentage",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "policies.policiesText",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.pricing-payment",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.difficulty-level",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.guide-language-ids",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "program.hikingGoHours",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "program.hikingHoursApprox",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "program.hikingReturnHours",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.itinerary",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.program-content",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresLocalGuide",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "requiresManualAdminApproval",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.social-media-link",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.datetime",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.location-zones",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "title",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.transport-mode",
+              "required": true,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.tour-services",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.elevation-gain",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "denali.custom-services",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.nonAttendanceDetails",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "tripDetails.overview.peakHeight",
+              "required": true,
+              "hidden": false
+            }
+          ]
+        }
+      ]
+    },
+    "wizard": {
+      "wizardMode": "classic",
+      "railId": "denali_base",
+      "roots": [
+        "approximateReturnTime",
+        "campPoint",
+        "capacityMax",
+        "capacityMin",
+        "category",
+        "denali_basic",
+        "denali_legal",
+        "denali_logistics",
+        "denali_photos",
+        "denali_pricing",
+        "denali_program",
+        "destinationId",
+        "duration",
+        "endDateTime",
+        "endPoint",
+        "eventVariant",
+        "gatheringPoint",
+        "gatheringPoints",
+        "leaderUserIds",
+        "localGuideName",
+        "meetingPoint",
+        "participants",
+        "photos",
+        "policies",
+        "pricing",
+        "program",
+        "publishStatus",
+        "requiresLocalGuide",
+        "requiresManualAdminApproval",
+        "socialMediaLink",
+        "startDateTime",
+        "startPoint",
+        "startPointLocationText",
+        "summitPoint",
+        "title",
+        "transport",
+        "tripDetails"
+      ],
+      "inactiveFieldGroups": [],
+      "wizardCapacityStepRedundant": false
+    }
+  },
+  "checksum": "21a62242ee82e5cf9345901db4b1f2f49174165282f98fba5218b1312442ca15"
+}

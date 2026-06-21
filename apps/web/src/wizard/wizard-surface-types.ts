@@ -1,4 +1,4 @@
-import type { RenderStepPlan } from "@app-tour/platform-core";
+import type { RenderFieldPlan, RenderStepPlan } from "@app-tour/platform-core";
 import type { ValidationIssue } from "@app-tour/wizard-navigation";
 import type { ReactNode } from "react";
 
@@ -7,6 +7,30 @@ import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 export type WizardStepDescriptor = {
   readonly stepId: string;
   readonly label: string;
+};
+
+export type WizardCompositeFieldRenderProps = {
+  readonly compositeId: string;
+  readonly field: RenderFieldPlan;
+  readonly draft: TourWizardDraft;
+  readonly onDraftChange: (draft: TourWizardDraft) => void;
+  readonly wizardSessionId?: string;
+  readonly workspaceFormProfile?: string;
+};
+
+export type WizardCompositeSurface = {
+  readonly renderCompositeField: (props: WizardCompositeFieldRenderProps) => ReactNode;
+};
+
+export type WizardLabelResolver = {
+  readonly resolveFieldLabel: (
+    translate: (key: string) => string,
+    canonicalPath: string
+  ) => string;
+  readonly resolveStepLabel?: (
+    translate: (key: string) => string,
+    stepId: string
+  ) => string;
 };
 
 /** Opaque completion snapshot — workspace surfaces define their own shape. */

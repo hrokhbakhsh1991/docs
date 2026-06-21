@@ -91,34 +91,42 @@ const denaliShimHits = denaliFinanceShimFiles.filter((rel) =>
 assertCheck(
   "p10_denali_finance_shims_removed",
   denaliShimHits.length === 0,
-  `denali-finance re-export shims removed — use http/configure-denali-finance-http-host.ts + @app-tour/workspace-denali/http (${denaliShimHits.join(", ")})`
+  `denali-finance re-export shims removed — use http/configure-workspace-finance-http-host.ts + @app-tour/workspace-denali/http (${denaliShimHits.join(", ")})`
 );
-const denaliHost = path.join(REPO_ROOT, "apps/api/src/http/configure-denali-finance-http-host.ts");
+const workspaceFinanceHost = path.join(
+  REPO_ROOT,
+  "apps/api/src/http/configure-workspace-finance-http-host.ts"
+);
 assertCheck(
-  "p10_denali_finance_host_present",
-  fs.existsSync(denaliHost),
-  "apps/api/src/http/configure-denali-finance-http-host.ts must exist"
+  "p10_workspace_finance_host_present",
+  fs.existsSync(workspaceFinanceHost),
+  "apps/api/src/http/configure-workspace-finance-http-host.ts must exist"
 );
 
-/** DEC-P10-006 — host infra only; no new product shims in denali-finance/ */
-const DENALI_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
+/** DEC-P10-006 — host infra only; no new product shims in workspace-finance/ */
+const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "assert-finance-access.ts",
-  "denali-finance-processed-log.ts",
+  "compile-invoice-balances.ts",
+  "finance-schedule-store.ts",
   "finance.repository.ts",
   "finance.service.ts",
-  "prisma-denali-outbox-reader.ts",
-  "prisma-denali-outbox-writer.ts",
-  "process-denali-finance-outbox.ts",
+  "prisma-workspace-outbox-reader.ts",
+  "prisma-workspace-outbox-writer.ts",
+  "process-workspace-finance-outbox.ts",
+  "register-workspace-finance-deps.ts",
   "tour-created-finance-side-effect.ts",
+  "workspace-finance-processed-log.ts",
 ]);
-const denaliFinanceDir = path.join(REPO_ROOT, "apps/api/src/denali-finance");
-const denaliFinanceUnexpected = fs.existsSync(denaliFinanceDir)
-  ? fs.readdirSync(denaliFinanceDir).filter((name) => !DENALI_FINANCE_HOST_INFRA_ALLOWLIST.has(name))
+const workspaceFinanceDir = path.join(REPO_ROOT, "apps/api/src/workspace-finance");
+const workspaceFinanceUnexpected = fs.existsSync(workspaceFinanceDir)
+  ? fs
+      .readdirSync(workspaceFinanceDir)
+      .filter((name) => !WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST.has(name))
   : [];
 assertCheck(
-  "p10_denali_finance_host_infra",
-  denaliFinanceUnexpected.length === 0,
-  `denali-finance/ unexpected files (DEC-P10-006): ${denaliFinanceUnexpected.join(", ")}`
+  "p10_workspace_finance_host_infra",
+  workspaceFinanceUnexpected.length === 0,
+  `workspace-finance/ unexpected files (DEC-P10-006): ${workspaceFinanceUnexpected.join(", ")}`
 );
 
 if (failures.length > 0) {

@@ -46,6 +46,7 @@ export function toPlatformTenantDetailDto(input: {
       definitionId: input.tenant.workspaceDefinitionId,
       definitionVersion: input.tenant.workspaceDefinitionVersion,
       displayName: input.definitionDisplayName ?? null,
+      tenantId: input.tenant.id,
     }),
     offboardingStartedAt: input.tenant.offboardingStartedAt?.toISOString() ?? null,
     scheduledDeletionAt: input.tenant.scheduledDeletionAt?.toISOString() ?? null,

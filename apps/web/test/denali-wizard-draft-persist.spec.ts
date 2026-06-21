@@ -3,10 +3,10 @@ import { describe, it } from "node:test";
 
 import { denaliPrepareDraftEnvelope } from "@app-tour/workspace-denali";
 
-import type { NewTourWizardDraftEnvelope } from "../src/draft/denali-wizard-draft-merge";
+import type { NewTourWizardDraftEnvelope } from "../src/draft/denali-wizard-draft-types";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
-import { persistDenaliWizardDraftChange } from "../src/wizard/denali/denali-wizard-draft-persist";
+import { persistDenaliWizardDraftChange } from "@app-tour/workspace-denali/ui/chrome/draft-persist";
 
 function freshEnvelope(sessionId = "sess-persist"): NewTourWizardDraftEnvelope {
   return denaliPrepareDraftEnvelope(emptyTourWizardDraft(), {

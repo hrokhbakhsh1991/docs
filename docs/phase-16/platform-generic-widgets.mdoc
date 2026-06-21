@@ -1,0 +1,464 @@
+---
+title: P3-B — Generic platform wizard widgets
+phase: 16
+format: markdoc
+prerequisite: P3-A-N-012 complete (tenant-aware plugin ingress)
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p3/p3-b-generic-widgets.md
+---
+
+# Generic platform wizard widgets (P3-B)
+
+Ship **workspace-neutral composite React widgets** under the `platform.*` namespace so metadata-defined verticals (P3-C builder) render rich fields **without** importing `packages/workspaces/denali/ui`.
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p3/p3-b-generic-widgets.md`](../../TEMP/p3/p3-b-generic-widgets.md) v1.3
+
+**Status (2026-06-21):** doc complete · **implementation complete** (14/14 nanos) · P3-C unblocked
+
+---
+
+## Executive summary
+
+| Metric | v1 target |
+|--------|-----------|
+| Composite widgets | 3 — `platform.photos`, `platform.location`, `platform.itinerary` |
+| Review surface | 1 — `createPlatformReviewSurface()` |
+| Theme tokens | optional additive `theme.tokens` on payload |
+| Denali parity | **not** 22 widgets — Denali keeps `denali.*` unchanged |
+| Namespace | `platform.*` only in builder allowlist (P3-C reuses SDK list) |
+
+---
+
+## Goals
+
+| Goal | Detail |
+|------|--------|
+| Registry | Central allowlist + renderer map — schema field id → React component |
+| Surface factory | `compositeSurfaceId: "platform"` → `createPlatformCompositeSurface()` |
+| Resilience | Unknown `compositeId` → **fallback UI** (Denali today returns `null` — P3-B fixes pattern) |
+| Publish gate | P3-C rejects ids outside primitives + `platform.*` |
+| Denali safety | Zero edits to `packages/workspaces/denali/**` |
+| Starter overlay | Metadata verticals on `workspaceType: starter` must resolve platform surface |
+
+## Non-goals (P3-B v1)
+
+- Full Denali composite parity (22 ids in `composite-ids.ts`)
+- Super Admin builder UI — P3-C
+- Metadata-only plugin without package overlay — P3-D
+- New MinIO/storage adapter — reuse manifest `wizardMedia` codegen
+- Leaflet map required for location — text/zones editor acceptable v1
+
+---
+
+## Industry alignment (SDUI + form builder)
+
+| Pattern | Source | P3-B mapping |
+|---------|--------|--------------|
+| **Component registry** | [Pyramid SDUI](https://pyramidui.com/blog/sdui-architecture-patterns) — type string → native renderer; unknown → fallback | `PLATFORM_COMPOSITE_RENDERERS[compositeId]` |
+| **Build fallback first** | [MVP Factory SDUI](https://mvpfactory.io/blog/server-driven-ui-for-mobile-apps-json-schema-contracts-component-registries-and/) | `PlatformCompositeFallback` before real widgets ship |
+| **Schema-first contract** | [Sujeet Jaiswal — Form Builder](https://sujeet.pro/articles/design-form-builder) — registry + renderer layering | `fieldRegistry` (schema) ≠ React (registry) |
+| **Stable keys** | SDUI 2026 — reconciler preserves field state | `field.fieldId` + `wizardFieldPathAttributes` |
+| **Versioned allowlist** | OpenDecree / schema registries — publish validates ids | `PLATFORM_GENERIC_RENDERER_IDS` in SDK |
+
+---
+
+## Two-axis model (do not collapse)
+
+| Axis | Source | Example | Resolves via |
+|------|--------|---------|--------------|
+| **A — Renderer id** | `fieldRegistry.fields[].id` | `platform.photos` | `resolvePlatformCompositeRenderer(compositeId)` |
+| **B — Surface factory id** | `wizardHost.compositeSurfaceId` | `"platform"` | `resolveWizardCompositeSurface("platform")` |
+
+Both must align for composites to mount. Today starter uses `createPlatformWizardHostHooks` **without** `compositeSurfaceId` — composites silently skip in `wizard-field.tsx:247-257` when surface is null.
+
+```mermaid
+flowchart TD
+  FR[fieldRegistry.fields id] --> RP[buildRenderPlan]
+  RP --> WF[WizardField uiHints.compositeId]
+  WH[wizardHost.compositeSurfaceId] --> RS[resolveWizardCompositeSurface]
+  WF --> RS
+  RS --> SF[surface.renderCompositeField]
+  SF --> MAP[PLATFORM_COMPOSITE_RENDERERS]
+  MAP -->|known| UI[React widget]
+  MAP -->|unknown| FB[PlatformCompositeFallback]
+```
+
+Headless plan authority: `packages/platform-core/src/engine/render-plan.ts` → `buildFieldUiHints` sets `compositeId: entry.id` when `kind === "composite"` or `id !== canonicalPath` (lines 99–110).
+
+---
+
+## Denali vs platform (scope boundary)
+
+| | Denali (unchanged) | Platform (P3-B) |
+|--|-------------------|-------------------|
+| Composite count | 22 (`DENALI_IMPLEMENTED_COMPOSITE_IDS`) | 3 + review |
+| Id prefix | `denali.*` | `platform.*` |
+| React location | `packages/workspaces/denali/src/ui/` | `apps/web/src/wizard/platform/` |
+| Surface factory | `compositeSurfaceId: "denali"` | `compositeSurfaceId: "platform"` |
+| Unknown renderer | `resolveDenaliCompositeRenderer` → **null** (blank) | **Fallback** with `data-composite-fallback` |
+| Draft type | `DenaliTourWizardDraft` | `TourWizardDraft` + `tour-wizard-draft-path` helpers |
+
+**Gap P3-B closes:** Denali `DenaliCompositeField` returns null for unknown ids — platform tree must never silently blank.
+
+---
+
+## Existing code anchors (verified 2026-06-21)
+
+| Module | Path | Role |
+|--------|------|------|
+| Render plan | `packages/platform-core/src/engine/render-plan.ts:106-110` | `uiHints.compositeId` |
+| Wizard mount | `apps/web/src/wizard/wizard-field.tsx:244-257` | composite routing |
+| Surface registry | `apps/web/src/wizard/wizard-composite-surface-registry.tsx` | → generated bindings |
+| Generated bindings | `apps/web/src/bootstrap/wizard-surface-bindings.generated.ts` | **only `"denali"`** today |
+| Denali factory | `packages/workspaces/denali/src/ui/surfaces/composite-surface.tsx` | pattern to mirror |
+| Denali renderers | `packages/workspaces/denali/src/ui/surfaces/composite-renderers.tsx` | 22-id map |
+| Codegen | `scripts/generate-workspace-registry.mjs:253-327` | `generateWizardSurfaceBindings` |
+| Media BFF | `apps/web/src/wizard/resolve-wizard-media-bff-path.ts` | opaque key → URL |
+| Generic draft paths | `apps/web/src/tours/tour-wizard-draft-path.ts` | get/set canonical |
+| Host wiring | `apps/web/src/wizard/workspace-wizard-host.tsx:712` | `compositeSurfaceId={wizardHost?.compositeSurfaceId}` |
+| Starter hooks | `packages/platform-core/src/host/create-platform-wizard-host-hooks.ts` | no compositeSurfaceId yet |
+| Unit proof | `packages/platform-core/test/unit/engine/render-plan.spec.ts:140` | `workspace.photos` → ship as `platform.photos` |
+
+---
+
+## Namespace policy
+
+| Prefix | Owner | When |
+|--------|-------|------|
+| *(primitive kind)* | `WizardField` + ui-primitives | text, enum, number, date, boolean |
+| `denali.*` | Denali package | production Denali — unchanged |
+| `platform.*` | `apps/web/src/wizard/platform/` | metadata verticals via P3-C |
+| `workspace.*` | Tests only | **never** in published definitions |
+
+Primitives use `field.kind` — **do not** register in composite map.
+
+---
+
+## Renderer allowlist (SDK)
+
+**Create:** `packages/workspace-sdk/src/metadata/allowed-platform-renderer-ids.ts`
+
+```typescript
+export const PLATFORM_GENERIC_RENDERER_IDS = [
+  "platform.photos",
+  "platform.location",
+  "platform.itinerary",
+] as const;
+
+export type PlatformGenericRendererId = (typeof PLATFORM_GENERIC_RENDERER_IDS)[number];
+
+export function isAllowedPlatformRendererId(id: string): boolean;
+export function assertAllowedPlatformRendererId(id: string): void;
+```
+
+| Consumer | Usage |
+|----------|-------|
+| P3-C publish | `assertRendererAllowlist` per composite field |
+| P3-B tests | AL-01…AL-04 |
+| Web forwarder | `apps/web/src/wizard/platform/platform-renderer-ids.ts` re-export |
+
+`denali.*` ids validated only when publishing Denali export snapshots (P3-D) — not in `PLATFORM_GENERIC_RENDERER_IDS`.
+
+---
+
+## Surface factory + codegen
+
+### Factory contract
+
+Mirror Denali:
+
+```typescript
+// apps/web/src/wizard/platform/platform-composite-surface.tsx
+export function createPlatformCompositeSurface(): WizardCompositeSurface;
+```
+
+Dynamic import optional for code-splitting (follow Denali `dynamic()` pattern).
+
+### Codegen strategy (decision: static append)
+
+**Preferred:** extend `generateWizardSurfaceBindings()` in `scripts/generate-workspace-registry.mjs` to append after workspace manifest loop:
+
+```typescript
+import { createPlatformCompositeSurface as composite_platform } from "@/wizard/platform/platform-composite-surface";
+import { createPlatformReviewSurface as review_platform } from "@/wizard/platform/platform-review-surface";
+
+const COMPOSITE_SURFACES = Object.freeze({
+  "denali": composite_denali(),
+  "platform": composite_platform(),  // ← P3-B
+});
+```
+
+**Why not starter manifest only:** starter `workspace.manifest.json` has no `wizardSurfaces`; adding `@/` webModule paths in package manifest is awkward. Static append keeps platform surface **host-owned** (same as future third-party surface pattern).
+
+Regenerate: `pnpm run generate:workspace-registry`
+
+### Starter overlay requirement (N-009b)
+
+Metadata tenants with `workspaceType: "starter"` and `platform.*` field ids need:
+
+```typescript
+// packages/workspaces/starter/src/starter.plugin.ts — extend wizardHost
+wizardHost: Object.freeze({
+  ...starterWizardHostHooks,
+  compositeSurfaceId: "platform",
+  reviewSurfaceId: "platform",
+}),
+```
+
+Or extend `createPlatformWizardHostHooks` options:
+
+```typescript
+createPlatformWizardHostHooks({
+  dimensions: { variant: "default" },
+  compositeSurfaceId: "platform",
+  reviewSurfaceId: "platform",
+});
+```
+
+Without this, `WizardField` receives `compositeSurfaceId: undefined` and skips composite branch.
+
+---
+
+## Fallback component
+
+```typescript
+// platform-composite-fallback.tsx
+export function PlatformCompositeFallback(props: { compositeId: string }): ReactNode;
+```
+
+| Behavior | Rule |
+|----------|------|
+| Known id | Mapped component |
+| Unknown id | Visible message + `data-composite-fallback={compositeId}` |
+| Never | `throw`, silent `null`, break step nav |
+
+Reference anti-pattern: `denali/composite-field.tsx:27-29` returns null.
+
+---
+
+## Media upload pipeline
+
+```mermaid
+sequenceDiagram
+  participant W as platform-photos-field
+  participant BFF as /api/wizard-media/{key}
+  participant API as apps/api proxy
+  participant S as MinIO (existing)
+
+  W->>W: resolveWizardMediaBffPath(mediaRouteKey)
+  W->>BFF: multipart upload (wizardSessionId)
+  BFF->>API: forward with tenant context
+  API->>S: putDraftPhoto (manifest export)
+  S-->>W: objectKey → canonical photos[]
+```
+
+| Item | v1 decision |
+|------|-------------|
+| Route key | `"platform-photos"` — neutral BFF `/api/wizard-media/platform-photos` |
+| Session gate | Upload enabled only when `wizardSessionId` defined (Denali pattern) |
+| Max bytes | Read from env/manifest export — do not import Denali constants |
+| Denali route | `wizard-photos` → `/api/tours/wizard-photos` unchanged |
+
+Implement upload client under `apps/web/src/wizard/platform/` — **reimplement** Denali `photo-upload-client` logic using generic fetch, no `@app-tour/workspace-denali/ui` import.
+
+---
+
+## Widget contracts
+
+All composites use `TourWizardDraft` + `@/tours/tour-wizard-draft-path` (`getCanonicalValue`, `setCanonicalValue`, `getCanonicalStringValue`).
+
+Props surface: `WizardCompositeFieldRenderProps` from `apps/web/src/wizard/wizard-surface-types.ts`.
+
+### `platform.photos`
+
+| Item | Contract |
+|------|----------|
+| Default canonical path | `photos` |
+| Shape | `{ id: string; objectKey?: string; url?: string; caption?: string; dayIndex?: number }[]` |
+| Markers | `data-platform-photos-field`, `data-photos-upload-disabled` when no session |
+| Multi-day | Optional `dayIndex` select — simplified vs Denali (no tour-kind inference required v1) |
+| Reference (read-only) | `denali-photos-field.tsx` — reimplement with ui-primitives |
+
+### `platform.location`
+
+| Item | Contract |
+|------|----------|
+| Canonical path | field-specific from `RenderFieldPlan.canonicalPath` |
+| Shape v1 | `{ zones?: Array<{ id: string; label: string; lat?: number; lng?: number }>; address?: string }` |
+| Map UI | Optional Leaflet dynamic import — **text/zones list acceptable v1** |
+| Marker | `data-platform-location-field` |
+
+### `platform.itinerary`
+
+| Item | Contract |
+|------|----------|
+| Canonical path | e.g. `itinerary.days` or registry-defined |
+| Shape v1 | `{ days: Array<{ dayIndex: number; title?: string; segments?: Array<{ destination?: string; notes?: string }> }> }` |
+| Scope | Segment list editor — no per-segment photo picker (P3-D) |
+| Marker | `data-platform-itinerary-field` |
+
+### `platform.review` (review surface)
+
+Register `createPlatformReviewSurface()`:
+
+| Method | Behavior |
+|--------|----------|
+| `renderValidationSummary` | List `ValidationIssue[]` with step focus callback |
+| `renderReviewChrome` | Optional read-only field summary from render plan labels |
+| `computeCompletionHeader` | **omit** Denali-specific completion headers v1 |
+
+Wire `REVIEW_SURFACES["platform"]` in codegen. Starter already sets `validationSurfaceId: "platform"` in hooks — review surface must exist or validation step degrades.
+
+---
+
+## Theme tokens (optional payload — N-013)
+
+Additive block on `WorkspaceDefinitionPayload`:
+
+```typescript
+theme?: {
+  readonly tokens?: Readonly<Record<string, string>>;
+};
+```
+
+| Rule | Detail |
+|------|--------|
+| Keys | Semantic only: `--ws-primary`, `--ws-accent`, `--ws-surface` |
+| Forbidden | Raw `#hex` without semantic key — rejected by headless validator |
+| Headless | `packages/platform-core/src/theme/resolve-workspace-theme-tokens.ts` |
+| Web apply | `platform-theme-tokens.ts` — `data-workspace-theme="platform"` + inline CSS vars |
+| Merge | `metadata-plugin-adapter.ts` spreads into plugin when present |
+
+---
+
+## Import boundaries
+
+| Tree | Rule |
+|------|------|
+| `apps/web/src/wizard/platform/**` | ✅ platform widgets live here |
+| `apps/web/src/platform/**` | ❌ P3-C Super Admin — no widget code |
+| `packages/workspaces/denali/**` | ❌ zero diff entire P3-B EPIC |
+| `packages/platform-core` | headless only — no React |
+| `packages/workspace-sdk/metadata` | allowlist + optional theme types |
+
+**New spec:** `apps/web/test/platform-epic-b-boundary.spec.ts` — no `denali/ui` or `@app-tour/workspace-denali/ui` under `src/wizard/platform/`.
+
+Existing `platform-epic-c-boundary.spec.ts` covers `src/platform/` — keep both.
+
+---
+
+## File layout
+
+```text
+docs/phase-16/platform-generic-widgets.mdoc                          ✅
+packages/workspace-sdk/src/metadata/allowed-platform-renderer-ids.ts
+packages/workspace-sdk/src/metadata/index.ts                           # export
+apps/web/src/wizard/platform/
+  platform-composite-surface.tsx
+  platform-composite-renderers.tsx
+  platform-composite-fallback.tsx
+  platform-renderer-ids.ts
+  platform-review-surface.tsx
+  platform-theme-tokens.ts
+  platform-photo-upload-client.ts          # generic upload helper
+  composites/
+    platform-photos-field.tsx
+    platform-location-field.tsx
+    platform-itinerary-field.tsx
+packages/platform-core/src/theme/
+  resolve-workspace-theme-tokens.ts
+packages/workspaces/starter/src/starter.plugin.ts                    # compositeSurfaceId
+scripts/generate-workspace-registry.mjs                              # static append
+apps/web/src/bootstrap/wizard-surface-bindings.generated.ts          # regen
+apps/web/test/
+  platform-composite-registry.spec.ts
+  platform-composite-fallback.spec.ts
+  platform-photos-field.spec.ts
+  platform-location-field.spec.ts
+  platform-itinerary-field.spec.ts
+  platform-review-surface.spec.ts
+  platform-epic-b-boundary.spec.ts
+apps/api/test/workspace-metadata-renderer-allowlist.spec.ts
+packages/workspace-sdk/test/allowed-platform-renderer-ids.spec.ts    # optional SDK-local
+```
+
+---
+
+## Testing matrix
+
+| Spec | IDs | Asserts |
+|------|-----|---------|
+| allowlist (SDK/API) | AL-01…AL-04 | platform ids pass; denali id fails; unknown throws; length 3 |
+| `platform-photos-field.spec.ts` | PH-01…PH-03 | registry resolve; marker; upload disabled without session |
+| `platform-location-field.spec.ts` | LO-01…LO-02 | registry; marker |
+| `platform-itinerary-field.spec.ts` | IT-01…IT-02 | registry; day add mutates draft |
+| `platform-composite-registry.spec.ts` | RG-01…RG-04 | platform surface; denali regression; fallback; codegen key |
+| `platform-composite-fallback.spec.ts` | FB-01…FB-02 | unknown id marker; no throw |
+| `platform-review-surface.spec.ts` | RV-01…RV-02 | resolve review; renderValidationSummary |
+| `platform-epic-b-boundary.spec.ts` | BD-01 | no denali/ui in wizard/platform |
+| theme (N-013) | TH-01…TH-02 | semantic keys pass; raw hex rejected |
+| EPIC N-014 | EX-01 | all specs + guard + scoped denali covenant |
+
+---
+
+## Verification
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:import-boundary
+pnpm run guard:p3-denali-covenant
+
+pnpm --filter @apps/web exec node --import tsx --import ./test/register-dom.mjs --test \
+  test/platform-composite-registry.spec.tsx \
+  test/platform-composite-fallback.spec.tsx \
+  test/platform-photos-field.spec.tsx \
+  test/platform-location-field.spec.tsx \
+  test/platform-itinerary-field.spec.tsx \
+  test/platform-review-surface.spec.tsx \
+  test/platform-epic-b-boundary.spec.ts
+
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/workspace-metadata-renderer-allowlist.spec.ts \
+  test/workspace-metadata-theme-payload.spec.ts
+```
+
+---
+
+## EPIC dependency graph
+
+```text
+P3-A-N-012 (ingress wiring) ✅ required
+  → P3-B-N-001 allowlist
+  → N-003…N-008 widgets (photos, location, itinerary)
+  → N-009 codegen + fallback + starter compositeSurfaceId
+  → N-011…N-012 review surface
+  → N-013…N-014 theme + EPIC gate
+  → P3-C-N-001 builder (consumes allowlist)
+```
+
+---
+
+## STOP table
+
+| Symptom | Action |
+|---------|--------|
+| Import `denali/ui` in `wizard/platform` | **STOP** |
+| Unknown composite crashes wizard | **STOP** — fallback |
+| Edit `packages/workspaces/denali/**` | **STOP** |
+| Start P3-B before P3-A-N-012 | **STOP** |
+| Register text/enum in composite map | **STOP** |
+| Hand-edit generated bindings without generator | **STOP** |
+| Ship without starter `compositeSurfaceId: "platform"` | **STOP** — composites won't mount |
+
+---
+
+## References
+
+- [`platform-workspace-definitions.mdoc`](platform-workspace-definitions.mdoc) — metadata payload + loader
+- [`platform-workspace-builder.mdoc`](platform-workspace-builder.mdoc) — publish allowlist consumer (P3-C)
+- [`platform-workspace-cutover.mdoc`](platform-workspace-cutover.mdoc) — parity (P3-D)
+- [`docs/phase-12/subphases/12.1b-composite-field-registry.md`](../phase-12/subphases/12.1b-composite-field-registry.md)
+- `TEMP/p3/p3-b-generic-widgets.md` — nano execution spec v1.3
+- [Pyramid — SDUI Architecture Patterns](https://pyramidui.com/blog/sdui-architecture-patterns)
+- [Sujeet Jaiswal — Design a Form Builder](https://sujeet.pro/articles/design-form-builder)

@@ -129,6 +129,96 @@
         }
       }
     },
+    "pluginApiVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Host plugin API contract version (Phase 14)"
+    },
+    "wizardSurfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "surfaceId": {
+          "type": "string",
+          "description": "Opaque surface id matching wizardHost compositeSurfaceId / reviewSurfaceId"
+        },
+        "composite": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["webModule", "export"],
+          "properties": {
+            "webModule": { "type": "string" },
+            "export": { "type": "string" }
+          }
+        },
+        "review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["webModule", "export"],
+          "properties": {
+            "webModule": { "type": "string" },
+            "export": { "type": "string" }
+          }
+        }
+      }
+    },
+    "wizardI18n": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["messageNamespace"],
+      "properties": {
+        "messageNamespace": { "type": "string" },
+        "labelResolver": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["webModule", "export"],
+          "properties": {
+            "webModule": { "type": "string" },
+            "export": { "type": "string" }
+          }
+        }
+      }
+    },
+    "wizardCloneRemint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module",
+        "workspaceTypeExport",
+        "executeRemintExport",
+        "assertDestKeyExport",
+        "readConfigExport"
+      ],
+      "properties": {
+        "module": { "type": "string" },
+        "workspaceTypeExport": { "type": "string" },
+        "executeRemintExport": { "type": "string" },
+        "assertDestKeyExport": { "type": "string" },
+        "readConfigExport": { "type": "string" },
+        "serverRemintModule": {
+          "type": "string",
+          "description": "Module for server-side tour clone canonical photo remint planner"
+        },
+        "remintCanonicalExport": {
+          "type": "string",
+          "description": "Export that remints clone photos in canonical data (server cloneTour path)"
+        },
+        "executeTourRemintExport": {
+          "type": "string",
+          "description": "Export that executes tour photo remint plan (usually in photos module)"
+        }
+      }
+    },
+    "wizardCreate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extendedChrome": {
+          "type": "boolean",
+          "description": "When true, route to workspace-specific create chrome client"
+        }
+      }
+    },
     "wizardMedia": {
       "type": "object",
       "additionalProperties": false,

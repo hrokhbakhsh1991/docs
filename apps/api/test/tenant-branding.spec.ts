@@ -248,6 +248,7 @@ describe("tenant-branding.spec.ts", () => {
       headers: { host: "denali.localhost" },
     });
     assert.equal(response.status, 200);
+    assert.equal((response.body as { primaryColor?: string }).primaryColor, "#0f766e");
   });
 
   it("API-TB-14 GET /public/tenant-branding resolves x-forwarded-host (BFF loopback)", async () => {
@@ -255,6 +256,7 @@ describe("tenant-branding.spec.ts", () => {
       headers: { host: "127.0.0.1:3001", "x-forwarded-host": "denali.localhost" },
     });
     assert.equal(response.status, 200);
+    assert.equal((response.body as { primaryColor?: string }).primaryColor, "#0f766e");
   });
 
   it("API-TB-15 GET /public/tenant-branding exposes defaultLocale", async () => {
@@ -263,6 +265,27 @@ describe("tenant-branding.spec.ts", () => {
     });
     assert.equal(response.status, 200);
     assert.equal((response.body as { defaultLocale?: string }).defaultLocale, "en");
+    assert.equal((response.body as { primaryColor?: string }).primaryColor, "#0d9488");
+  });
+
+  it("API-TB-16 GET /public/tenant-branding urban host returns workspace colors", async () => {
+    const response = await requestHttp(port, "GET", "/public/tenant-branding", {
+      headers: { host: "urban.localhost" },
+    });
+    assert.equal(response.status, 200);
+    const body = response.body as { primaryColor?: string; defaultLocale?: string };
+    assert.equal(body.primaryColor, "#0d9488");
+    assert.equal(body.defaultLocale, "en");
+  });
+
+  it("API-TB-17 GET /public/tenant-branding urban x-forwarded-host (BFF loopback)", async () => {
+    const response = await requestHttp(port, "GET", "/public/tenant-branding", {
+      headers: { host: "127.0.0.1:3001", "x-forwarded-host": "urban.localhost" },
+    });
+    assert.equal(response.status, 200);
+    const body = response.body as { primaryColor?: string; defaultLocale?: string };
+    assert.equal(body.primaryColor, "#0d9488");
+    assert.equal(body.defaultLocale, "en");
   });
 
   it("API-TB-06 GET /settings/branding/logo/url without logo returns 404", async () => {

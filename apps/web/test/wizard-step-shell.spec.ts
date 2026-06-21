@@ -21,7 +21,7 @@ describe("wizard-step-shell.spec.ts", () => {
       ]),
       "Basic info"
     );
-    assert.equal(resolveWizardStepLabel("denali_photos"), "عکس‌ها");
+    assert.equal(resolveWizardStepLabel("denali_photos"), "Denali Photos");
   });
 
   it("WEB-WIZ-STEP-02 builds descriptors from render plan", () => {

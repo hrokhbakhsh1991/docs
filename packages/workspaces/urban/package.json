@@ -30,11 +30,14 @@
       "types": "./dist/auth/index.d.ts",
       "default": "./dist/auth/index.js"
     },
-    "./theme/tokens.css": "./theme/tokens.css"
+    "./theme/tokens.css": "./theme/tokens.css",
+    "./messages/fa/wizard.json": "./messages/fa/wizard.json",
+    "./messages/en/wizard.json": "./messages/en/wizard.json"
   },
   "files": [
     "dist",
-    "theme/tokens.css"
+    "theme/tokens.css",
+    "messages"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

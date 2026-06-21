@@ -12,13 +12,13 @@ import { parseLocationsResponse } from "../src/features/settings/locations-logic
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
 import { resolveWizardTemplateGateState } from "../src/tours/wizard-template-gate-logic";
-import { loadDenaliWizardRulesModule } from "../src/bootstrap/denali-wizard-rules";
-import { sanitizeDenaliWizardDraft } from "../src/wizard/denali/denali-draft-form-adapter";
-import { buildDenaliWizardRuleEvalContext } from "../src/wizard/denali/denali-wizard-ui-context";
+import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/wizard/rules-loader";
+import { sanitizeDenaliWizardDraft } from "@app-tour/workspace-denali/ui/chrome/draft-form-adapter";
+import { buildDenaliWizardRuleEvalContext } from "@app-tour/workspace-denali/wizard/submit";
 import {
   isEquipmentCompatibleWithTourCategory,
   isTourThemeCompatibleWithWizard,
-} from "../src/wizard/denali/denali-catalog-filters";
+} from "@app-tour/workspace-denali/ui/logic/denali-catalog-filters";
 
 describe("denali-rules-parity.spec.ts", () => {
   it("WEB-11.8-01 parseWizardTemplateResponse preserves fieldRulesOverlay and baseProfile", () => {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import type { ReactNode } from "react";
@@ -14,9 +14,15 @@ import {
   isPublicCatalogPath,
   resolvePublicCatalogRootSessionForHost,
 } from "@/tenant/resolve-public-catalog-bootstrap.server";
-import { resolveRequestBootstrapAppSession, toSerializableBootstrap } from "@/tenant/tenant-kernel";
+import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { validateSessionToken } from "@/auth/validate-session-token";
+import {
+  resolveBootstrapAppSession,
+  resolveBootstrapAppSessionForHostAsync,
+  toSerializableBootstrap,
+} from "@/tenant/tenant-kernel";
 
-import "@app-tour/workspace-denali/theme/denali-admin.css";
+import "@/bootstrap/workspace-theme-stylesheets.generated";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,9 +37,29 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const host = headerList.get("host") ?? "localhost:3000";
   const pathname = headerList.get("x-pathname") ?? "";
-  const resolved = isPublicCatalogPath(pathname)
+  let resolved = isPublicCatalogPath(pathname)
     ? await resolvePublicCatalogRootSessionForHost(host)
-    : await resolveRequestBootstrapAppSession();
+    : await resolveBootstrapAppSessionForHostAsync(host);
+
+  const cookieStore = await cookies();
+  const sessionValidation = validateSessionToken(cookieStore.get(SESSION_TOKEN_COOKIE)?.value);
+  if (sessionValidation.status === "valid") {
+    resolved = resolveBootstrapAppSession(
+      {
+        userId: sessionValidation.userId,
+        tenantId: sessionValidation.tenantId,
+        workspaceId:
+          sessionValidation.workspaceId ??
+          resolved.context.workspaceId ??
+          "default",
+        role: (sessionValidation.role ?? resolved.context.role) as typeof resolved.context.role,
+        status: "ACTIVE",
+      },
+      host,
+      { pluginId: resolved.session.pluginId }
+    );
+  }
+
   const tenantTheme = await fetchTenantThemeForContext(resolved.context, host);
   const bootstrap = toSerializableBootstrap(resolved, tenantTheme ?? undefined);
   const dir = resolveTextDirection(locale);

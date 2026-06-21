@@ -19,3 +19,15 @@ export async function assertDenaliOperatorSettingsWorkspace(tenantId: string): P
     throw new SettingsWorkspaceForbiddenError();
   }
 }
+
+/** Urban may only access wizard_template tenant config — all other settings config keys stay Denali-only. */
+export async function assertSettingsConfigWorkspaceAllowed(
+  tenantId: string,
+  configKey: string
+): Promise<void> {
+  if (await isUrbanOperatorSettingsWorkspace(tenantId)) {
+    if (configKey !== "wizard_template") {
+      throw new SettingsWorkspaceForbiddenError();
+    }
+  }
+}

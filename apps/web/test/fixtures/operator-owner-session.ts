@@ -7,6 +7,8 @@
  */
 import { expect, type Page } from "@playwright/test";
 
+import { SESSION_TOKEN_COOKIE } from "../../src/auth/build-session-cookie";
+
 /** Sync with apps/api `.env.local` `OPERATOR_OWNER_MOBILE` (Denali dev owner). */
 export const OPERATOR_OWNER_MOBILE = "+989121000001";
 export const OPERATOR_ADMIN_MOBILE = "+15550001002";
@@ -17,9 +19,33 @@ export const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-00000000010
 export const OPERATOR_DEV_OTP = "1234";
 export const OPERATOR_INVITEE_MOBILE = "+15550008803";
 
+function readRequestCookieDomain(page: Page): string {
+  const baseURL = page.context()._options.baseURL;
+  if (typeof baseURL === "string" && baseURL.length > 0) {
+    return new URL(baseURL).hostname;
+  }
+  return "localhost";
+}
+
+async function persistOperatorSessionCookie(page: Page, loginRes: Awaited<ReturnType<Page["request"]["post"]>>): Promise<void> {
+  const loginBody = (await loginRes.json()) as { session_token?: string };
+  expect(typeof loginBody.session_token).toBe("string");
+  await page.context().addCookies([
+    {
+      name: SESSION_TOKEN_COOKIE,
+      value: loginBody.session_token!,
+      domain: readRequestCookieDomain(page),
+      path: "/",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+}
+
 async function loginOperatorSessionViaBff(
   page: Page,
-  phone: string
+  phone: string,
+  skipAbilityPreflight = false
 ): Promise<void> {
   const otpRes = await page.request.post("/api/auth/request-otp", {
     data: { phone },
@@ -36,6 +62,11 @@ async function loginOperatorSessionViaBff(
     },
   });
   expect(loginRes.ok()).toBeTruthy();
+  await persistOperatorSessionCookie(page, loginRes);
+
+  if (skipAbilityPreflight) {
+    return;
+  }
 
   const abilityRes = await page.request.get("/api/auth/membership-ability-context");
   expect(abilityRes.ok()).toBeTruthy();
@@ -44,15 +75,29 @@ async function loginOperatorSessionViaBff(
 export async function loginOperatorWithPhone(
   page: Page,
   phone: string,
-  options?: { readonly inviteToken?: string; readonly skipDashboard?: boolean }
+  options?: {
+    readonly inviteToken?: string;
+    readonly skipDashboard?: boolean;
+    readonly skipAbilityPreflight?: boolean;
+  }
 ): Promise<void> {
-  await loginOperatorSessionViaBff(page, phone);
+  await loginOperatorSessionViaBff(
+    page,
+    phone,
+    options?.skipAbilityPreflight === true
+  );
 
   if (options?.inviteToken !== undefined && options.inviteToken.length > 0) {
     const acceptRes = await page.request.post(
       `/api/auth/invite/${encodeURIComponent(options.inviteToken)}/accept`
     );
-    expect(acceptRes.ok()).toBeTruthy();
+    const acceptText = await acceptRes.text();
+    expect(acceptRes.ok(), acceptText).toBeTruthy();
+    await loginOperatorSessionViaBff(
+      page,
+      phone,
+      options?.skipAbilityPreflight === true
+    );
   }
 
   if (options?.skipDashboard === true) {

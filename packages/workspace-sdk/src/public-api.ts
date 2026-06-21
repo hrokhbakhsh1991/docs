@@ -66,6 +66,8 @@ export {
   type WorkspaceWizardMediaHooks,
   type WorkspaceWizardDraftEnvelope,
   type WorkspaceWizardDraftMeta,
+  type WorkspaceWizardTemplateGateNormalizeInput,
+  type WorkspaceWizardTemplateGateNormalizeResult,
   type WizardDraftValidationResult,
   type WizardDraftValidationViolation,
   noopWorkspaceDraftTombstoneBinding,

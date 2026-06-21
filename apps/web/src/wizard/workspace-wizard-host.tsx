@@ -10,7 +10,12 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
-import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import {
+  getCanonicalStringValue,
+  getCanonicalValue,
+  setCanonicalStringValue,
+  setCanonicalValue,
+} from "@/tours/tour-wizard-draft-path";
 import { useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 import type { WizardTemplateStepRef } from "@/features/settings/wizard-template-types";
 import {
@@ -21,7 +26,8 @@ import {
   shouldAttachSeedPrefillTestId,
   WIZARD_TEMPLATE_PREFILL_TEST_IDS,
 } from "@/tours/wizard-template-prefill-logic";
-import { formatWizardTemplateStepLabel } from "@/tours/wizard-template-catalog-logic";
+import { formatWizardTemplateStepLabel } from "@/tours/wizard-template-field-labels";
+import { resolveWizardStepLabel as resolveWizardSurfaceStepLabel } from "./wizard-label-surface-registry";
 
 import { canLoadWorkspaceWizard } from "./wizard-access";
 import { DraftSyncSoftLockBanner } from "@/draft/draft-sync-soft-lock-banner";
@@ -79,6 +85,34 @@ export type WorkspaceWizardHostProps = {
   /** When true, host uses saved step only — no furthest-field inference (e.g. freshStart). */
   readonly suppressDraftStepInference?: boolean;
 };
+
+function readWizardFieldDisplayValue(draft: TourWizardDraft, kind: string, path: string): string {
+  if (kind === "number") {
+    const raw = getCanonicalValue(draft, path);
+    if (raw === undefined || raw === null) {
+      return "";
+    }
+    return typeof raw === "number" ? String(raw) : getCanonicalStringValue(draft, path);
+  }
+  return getCanonicalStringValue(draft, path);
+}
+
+function applyWizardFieldChange(
+  draft: TourWizardDraft,
+  kind: string,
+  path: string,
+  next: string
+): TourWizardDraft {
+  if (kind === "number") {
+    const trimmed = next.trim();
+    if (trimmed === "") {
+      return setCanonicalValue(draft, path, undefined);
+    }
+    const numeric = Number(trimmed);
+    return setCanonicalValue(draft, path, Number.isFinite(numeric) ? numeric : trimmed);
+  }
+  return setCanonicalStringValue(draft, path, next);
+}
 
 function resolveWizardDimensions(
   plugin: WorkspacePlugin,
@@ -182,18 +216,18 @@ export function WorkspaceWizardHost({
   const wizardHost = workspacePlugin?.wizardHost;
   const reviewStepId = wizardHost?.reviewStepId;
   const translateWorkspaceMessage = useWorkspaceWizardTranslator(wizardHost?.wizardMessageNamespace);
-  const labelSurface = useMemo(
-    () => resolveWizardCompositeSurface(wizardHost?.fieldLabelSurfaceId),
-    [wizardHost?.fieldLabelSurfaceId]
-  );
   const resolveDefaultStepLabel = useCallback(
     (stepId: string) => {
-      if (labelSurface?.resolveStepLabel != null) {
-        return labelSurface.resolveStepLabel(translateWorkspaceMessage, stepId);
+      if (wizardHost?.fieldLabelSurfaceId != null) {
+        return resolveWizardSurfaceStepLabel(
+          wizardHost.fieldLabelSurfaceId,
+          translateWorkspaceMessage,
+          stepId
+        );
       }
       return formatWizardTemplateStepLabel(stepId);
     },
-    [labelSurface, translateWorkspaceMessage]
+    [wizardHost?.fieldLabelSurfaceId, translateWorkspaceMessage]
   );
   const reviewSurface = useMemo(
     () => resolveWizardReviewSurface(wizardHost?.reviewSurfaceId),
@@ -656,7 +690,7 @@ export function WorkspaceWizardHost({
               )
               .map((field) => {
                 const path = field.canonicalPath;
-                const value = getCanonicalStringValue(draft, path);
+                const value = readWizardFieldDisplayValue(draft, field.kind, path);
 
                 return (
                   <div
@@ -669,7 +703,7 @@ export function WorkspaceWizardHost({
                       value={value}
                       onChange={(next) =>
                         onDraftChange(
-                          setCanonicalStringValue(draftEditBaseRef.current, path, next)
+                          applyWizardFieldChange(draftEditBaseRef.current, field.kind, path, next)
                         )
                       }
                       draft={draft}
@@ -677,10 +711,11 @@ export function WorkspaceWizardHost({
                       pluginId={pluginId}
                       compositeSurfaceId={wizardHost?.compositeSurfaceId}
                       fieldLabelSurfaceId={wizardHost?.fieldLabelSurfaceId}
+                      translateWorkspaceMessage={translateWorkspaceMessage}
                       wizardSessionId={wizardSessionId}
                       workspaceFormProfile={readWorkspaceFormProfileFromEvalContext(wizardRuleEvalContext)}
                       dataTestId={
-                        shouldAttachSeedPrefillTestId(path, pluginId)
+                        shouldAttachSeedPrefillTestId(path, pluginId, workspacePlugin ?? undefined)
                           ? WIZARD_TEMPLATE_PREFILL_TEST_IDS.seedPrefillField
                           : undefined
                       }

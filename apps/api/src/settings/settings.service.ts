@@ -9,8 +9,7 @@ import {
   SettingsModuleUnknownError,
 } from "./settings-registry";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
-import { enrichTourThemesCompatibleCategories } from "./enrich-tour-theme-compatible-categories";
-import { enrichEquipmentListCompatibleCategories } from "./enrich-equipment-compatible-categories";
+import { enrichSettingsModuleList } from "./workspace-settings-enrichers.generated";
 import { normalizeThemeIdsInput } from "./parse-theme-ids";
 import {
   assertDenaliOperatorSettingsWorkspace,
@@ -160,20 +159,14 @@ export async function listSettingsResources(
   if (moduleId === "equipment") {
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
     const raw = await repo.listEquipment(auth.tenantId);
-    const items =
-      workspaceType === "denali"
-        ? enrichEquipmentListCompatibleCategories(raw)
-        : raw;
+    const items = enrichSettingsModuleList(workspaceType, "equipment", raw);
     return { items, total: items.length };
   }
 
   if (moduleId === "tour_themes") {
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
     const raw = await repo.listTourThemes(auth.tenantId);
-    const items =
-      workspaceType === "denali"
-        ? enrichTourThemesCompatibleCategories(raw)
-        : raw;
+    const items = enrichSettingsModuleList(workspaceType, "tour_themes", raw);
     return { items, total: items.length };
   }
 

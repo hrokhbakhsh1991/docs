@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { joinDatetimeLocal, splitDatetimeLocal } from "@/i18n/datetime-format";
 import type { AppLocale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
+import { DenaliWizardDatetimePicker } from "@app-tour/workspace-denali/ui/components/localized-datetime-picker";
 
 import { DenaliTimeInput } from "./denali-time-input";
 import { Label } from "../ui/label";
@@ -91,35 +92,16 @@ export function LocalizedDatetimePicker({
 
   if (layout === "wizard") {
     return (
-      <div
-        className={cn("denali-wizard-datetime", className)}
-        data-denali-wizard-datetime
+      <DenaliWizardDatetimePicker
+        id={id}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        required={required}
+        className={className}
         data-testid={dataTestId}
-        dir={locale === "fa" ? "rtl" : "ltr"}
-      >
-        <div className="denali-wizard-datetime__control">
-          <div className="denali-wizard-datetime__date">
-            <LocalizedDatePicker
-              id={id}
-              value={date}
-              disabled={disabled}
-              required={required}
-              aria-label={ariaLabel ?? t("pickDate")}
-              className="denali-wizard-datetime__date-trigger"
-              onChange={(nextDate) => onChange(joinDatetimeLocal(nextDate, time))}
-            />
-          </div>
-          <div className="denali-wizard-datetime__divider" aria-hidden />
-          <DenaliTimeInput
-            appearance="inline"
-            value={time}
-            disabled={disabled}
-            required={required}
-            aria-label={t("timeLabel")}
-            onChange={(nextTime) => onChange(joinDatetimeLocal(date, nextTime))}
-          />
-        </div>
-      </div>
+        aria-label={ariaLabel}
+      />
     );
   }
 

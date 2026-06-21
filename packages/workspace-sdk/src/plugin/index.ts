@@ -53,6 +53,17 @@ export type {
   WizardDraftValidationResult,
   WizardDraftValidationViolation,
 } from "./workspace-wizard-host-hooks";
+export type {
+  WorkspaceWizardSurfacesManifest,
+  WorkspaceWizardI18nManifest,
+  WorkspaceWizardCloneRemintManifest,
+  WorkspaceWizardCreateManifest,
+  WorkspaceWizardSurfaceWebBinding,
+} from "./workspace-wizard-surface-binding";
+export type {
+  WorkspaceWizardTemplateGateNormalizeInput,
+  WorkspaceWizardTemplateGateNormalizeResult,
+} from "./workspace-wizard-template-gate";
 export {
   noopWorkspaceDraftTombstoneBinding,
   topLevelRootsRemoved,

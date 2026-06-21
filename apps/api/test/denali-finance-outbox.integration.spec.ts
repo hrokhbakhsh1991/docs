@@ -3,11 +3,11 @@ import { randomUUID } from "node:crypto";
 import { after, before, beforeEach, describe, it } from "node:test";
 
 import { disconnectPrisma, getPrismaAdmin } from "../src/db/prisma";
-import { hasDenaliFinanceProcessedEvent } from "../src/denali-finance/denali-finance-processed-log";
+import { hasWorkspaceFinanceProcessedEvent } from "../src/workspace-finance/workspace-finance-processed-log";
 import {
-  processDenaliFinanceOutboxForTenant,
-  processDenaliFinanceTourCreatedRow,
-} from "../src/denali-finance/process-denali-finance-outbox";
+  processWorkspaceFinanceOutboxForTenant,
+  processWorkspaceFinanceTourCreatedRow,
+} from "../src/workspace-finance/process-workspace-finance-outbox";
 import { integrationTenantId, preparePostgresOutboxIsolation } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
@@ -77,7 +77,7 @@ describe(
         },
       });
 
-      const handled = await processDenaliFinanceTourCreatedRow({
+      const handled = await processWorkspaceFinanceTourCreatedRow({
         tenantId,
         domainEventId,
         eventType: "TourCreated",
@@ -104,7 +104,7 @@ describe(
       const financePayload = financeRows[0]?.payload as { registrationId?: string };
       assert.equal(financePayload.registrationId, registrationId);
 
-      const replay = await processDenaliFinanceTourCreatedRow({
+      const replay = await processWorkspaceFinanceTourCreatedRow({
         tenantId,
         domainEventId,
         eventType: "TourCreated",
@@ -149,12 +149,12 @@ describe(
         ],
       });
 
-      const first = await processDenaliFinanceOutboxForTenant(tenantId);
+      const first = await processWorkspaceFinanceOutboxForTenant(tenantId);
       assert.equal(first.handled, 1);
 
-      assert.equal(await hasDenaliFinanceProcessedEvent(tenantId, secondDomainEventId), true);
+      assert.equal(await hasWorkspaceFinanceProcessedEvent(tenantId, secondDomainEventId), true);
 
-      const second = await processDenaliFinanceOutboxForTenant(tenantId);
+      const second = await processWorkspaceFinanceOutboxForTenant(tenantId);
       assert.equal(second.handled, 0);
       assert.equal(second.skipped, 0);
     });

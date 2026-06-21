@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
+import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
 import { TenantBrandMark } from "@/admin/shell/tenant-brand-mark";
 import { TenantBrandingProvider, useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 
@@ -57,7 +58,7 @@ function WizardBridgeShellChrome({
 }: WizardBridgeShellProps) {
   const tApp = useTranslations("app");
   const tWizard = useTranslations("wizard.bridge");
-  const isDenali = pluginId === "denali";
+  const usesExtendedCreateChrome = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
   const title = useTenantBrandTitle(displayName, workspaceLabel);
 
   return (
@@ -75,7 +76,7 @@ function WizardBridgeShellChrome({
           <div className="wizard-bridge-shell__brand-text">
             <p className="wizard-bridge-shell__brand-title">{title}</p>
             <p className="wizard-bridge-shell__brand-tagline">
-              {isDenali ? tApp("denaliTagline") : tApp("operatorWorkspace")}
+              {usesExtendedCreateChrome ? tApp("denaliTagline") : tApp("operatorWorkspace")}
             </p>
           </div>
         </div>

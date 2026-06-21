@@ -19,7 +19,7 @@ import { applyWizardTemplateToRenderPlan } from "../src/tours/wizard-template-ga
 import {
   buildFieldStepResolverFromTemplate,
   validateDenaliWizardDraftSync,
-} from "../src/wizard/denali/denali-wizard-validation";
+} from "@app-tour/workspace-denali/ui/chrome/wizard-validation";
 import { groupValidationIssuesByStep } from "../src/wizard/group-validation-issues-by-step";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 

@@ -12,6 +12,7 @@
       "default": "./dist/index.js"
     },
     "./styles.css": "./dist/index.css",
+    "./guest-shell.css": "./dist/guest-shell.css",
     "./semantic": {
       "types": "./dist/generated/semantic-tokens.d.ts",
       "default": "./dist/generated/semantic-tokens.js"

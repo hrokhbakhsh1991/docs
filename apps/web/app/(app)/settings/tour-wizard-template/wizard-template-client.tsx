@@ -25,8 +25,18 @@ import {
   countWizardTemplateSelectedFields,
   validateWizardTemplateSavable,
 } from "@/tours/wizard-template-gate-logic";
+<<<<<<< Updated upstream
 import { loadDenaliFullWizardTemplatePreset } from "@/bootstrap/denali-wizard-template-preset";
 import { resolveBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-workspace-plugin";
+||||||| Stash base
+import { loadDenaliFullWizardTemplatePreset } from "@/bootstrap/denali-wizard-template-preset";
+import { loadWorkspacePluginById } from "@/wizard/load-workspace-plugin";
+=======
+import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
+import { loadWorkspacePluginById } from "@/wizard/load-workspace-plugin";
+import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+>>>>>>> Stashed changes
 import {
   applyWizardTemplatePreset,
   buildWizardTemplateCatalogFromPlugin,
@@ -39,11 +49,7 @@ import {
   type WizardTemplateCatalogStep,
 } from "@/tours/wizard-template-catalog-logic";
 import {
-  resolveDenaliFieldKindLabel,
-  resolveDenaliFieldLabel,
-} from "@/i18n/denali-wizard-labels";
-import {
-  formatWizardTemplateFieldKindLabel,
+  resolveWizardTemplateFieldKindLabel,
   resolveWizardTemplateFieldLabel,
 } from "@/tours/wizard-template-field-labels";
 import {
@@ -52,6 +58,19 @@ import {
   type WizardTemplatePayload,
 } from "@/features/settings/wizard-template-types";
 
+let denaliWizardTemplatePresetPromise: Promise<
+  (seedLabel?: string) => WizardTemplatePayload
+> | null = null;
+
+function loadDenaliFullWizardTemplatePreset(
+  seedLabel?: string
+): Promise<WizardTemplatePayload> {
+  denaliWizardTemplatePresetPromise ??= import("@app-tour/workspace-denali/plugin").then(
+    (mod) => mod.buildDenaliFullWizardTemplatePayload
+  );
+  return denaliWizardTemplatePresetPromise.then((build) => build(seedLabel));
+}
+
 type WizardTemplateClientProps = {
   readonly session: OperatorSessionContext;
   readonly pluginId: string;
@@ -59,8 +78,36 @@ type WizardTemplateClientProps = {
   readonly initialCatalog?: readonly WizardTemplateCatalogStep[];
 };
 
+<<<<<<< Updated upstream
 function createEmptyWizardTemplatePayload(): WizardTemplatePayload {
   return {
+||||||| Stash base
+export function WizardTemplateClient({ session, pluginId }: WizardTemplateClientProps) {
+  const t = useTranslations("settings.wizardTemplate");
+  const tDenali = useTranslations("denali");
+  const canManage = isAdminOrOwnerRole(session.role);
+  const [payload, setPayload] = useState<WizardTemplatePayload>({
+=======
+export function WizardTemplateClient({ session, pluginId }: WizardTemplateClientProps) {
+  const t = useTranslations("settings.wizardTemplate");
+  const canManage = isAdminOrOwnerRole(session.role);
+  const [workspacePlugin, setWorkspacePlugin] = useState<WorkspacePlugin | null>(null);
+  const fieldLabelSurfaceId = workspacePlugin?.wizardHost?.fieldLabelSurfaceId;
+  const translateWorkspace = useWorkspaceWizardTranslator(
+    workspacePlugin?.wizardHost?.wizardMessageNamespace
+  );
+  const resolveCatalogFieldLabel = useCallback(
+    (canonicalPath: string) =>
+      resolveWizardTemplateFieldLabel(canonicalPath, fieldLabelSurfaceId, translateWorkspace),
+    [fieldLabelSurfaceId, translateWorkspace]
+  );
+  const resolveCatalogKindLabel = useCallback(
+    (kind: string) =>
+      resolveWizardTemplateFieldKindLabel(kind, fieldLabelSurfaceId, translateWorkspace),
+    [fieldLabelSurfaceId, translateWorkspace]
+  );
+  const [payload, setPayload] = useState<WizardTemplatePayload>({
+>>>>>>> Stashed changes
     seedLabel: "",
     sections: [],
     published: false,
@@ -108,7 +155,7 @@ export function WizardTemplateClient({
   const [loadingPreset, setLoadingPreset] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const showDenaliFullTemplate = pluginId === "denali";
+  const showExtendedWizardTemplate = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
 
   const formatWizardError = useCallback(
     (resolution: WizardTemplateErrorResolution): string => {
@@ -127,14 +174,8 @@ export function WizardTemplateClient({
   const filteredCatalog = useMemo(() => {
     const normalizedQuery = fieldQuery.trim().toLowerCase();
     return filterWizardTemplateCatalog(catalog, fieldQuery, (field, stepLabel) => {
-      const label =
-        pluginId === "denali"
-          ? resolveDenaliFieldLabel(tDenali, field.canonicalPath)
-          : resolveWizardTemplateFieldLabel(field.canonicalPath, pluginId);
-      const kindLabel =
-        pluginId === "denali"
-          ? resolveDenaliFieldKindLabel(tDenali, field.kind)
-          : formatWizardTemplateFieldKindLabel(field.kind);
+      const label = resolveCatalogFieldLabel(field.canonicalPath);
+      const kindLabel = resolveCatalogKindLabel(field.kind);
       return (
         field.canonicalPath.toLowerCase().includes(normalizedQuery) ||
         label.toLowerCase().includes(normalizedQuery) ||
@@ -142,7 +183,7 @@ export function WizardTemplateClient({
         kindLabel.toLowerCase().includes(normalizedQuery)
       );
     });
-  }, [catalog, fieldQuery, pluginId, tDenali]);
+  }, [catalog, fieldQuery, resolveCatalogFieldLabel, resolveCatalogKindLabel]);
 
   useEffect(() => {
     if (skipInitialTemplateFetchRef.current) {
@@ -157,10 +198,29 @@ export function WizardTemplateClient({
           throw new Error(`WIZARD_TEMPLATE_HTTP_${response.status}`);
         }
         return (await response.json()) as WizardTemplateConfigResponse;
+<<<<<<< Updated upstream
       })
       .then((config) => {
+||||||| Stash base
+      }),
+      loadWorkspacePluginById(pluginId).then((plugin) => buildWizardTemplateCatalogFromPlugin(plugin)),
+    ])
+      .then(([config, catalogSteps]) => {
+=======
+      }),
+      loadWorkspacePluginById(pluginId),
+    ])
+      .then(([config, plugin]) => {
+>>>>>>> Stashed changes
         if (!cancelled) {
+          setWorkspacePlugin(plugin);
           setPayload(parseWizardTemplateResponse(config));
+<<<<<<< Updated upstream
+||||||| Stash base
+          setCatalog(catalogSteps);
+=======
+          setCatalog(buildWizardTemplateCatalogFromPlugin(plugin));
+>>>>>>> Stashed changes
         }
       })
       .catch((fetchError: unknown) => {
@@ -179,7 +239,7 @@ export function WizardTemplateClient({
   }, [formatWizardError]);
 
   const handleLoadFullTemplate = async () => {
-    if (!canManage || !showDenaliFullTemplate) {
+    if (!canManage || !showExtendedWizardTemplate) {
       return;
     }
 
@@ -300,7 +360,7 @@ export function WizardTemplateClient({
                 ) : null}
               </div>
 
-              {showDenaliFullTemplate && canManage ? (
+              {showExtendedWizardTemplate && canManage ? (
                 <div className="space-y-2 rounded-md border border-dashed p-3">
                   <p className="text-xs text-muted-foreground">{t("loadFullTemplateHelper")}</p>
                   <Button
@@ -342,14 +402,8 @@ export function WizardTemplateClient({
                     <summary className="cursor-pointer text-sm font-semibold">{step.label}</summary>
                     <ul className="mt-3 space-y-2">
                       {step.fields.map((field) => {
-                        const fieldLabel =
-                          pluginId === "denali"
-                            ? resolveDenaliFieldLabel(tDenali, field.canonicalPath)
-                            : resolveWizardTemplateFieldLabel(field.canonicalPath, pluginId);
-                        const kindLabel =
-                          pluginId === "denali"
-                            ? resolveDenaliFieldKindLabel(tDenali, field.kind)
-                            : formatWizardTemplateFieldKindLabel(field.kind);
+                        const fieldLabel = resolveCatalogFieldLabel(field.canonicalPath);
+                        const kindLabel = resolveCatalogKindLabel(field.kind);
                         const checked = isWizardTemplateCatalogFieldSelected(
                           payload.steps ?? [],
                           field.canonicalPath

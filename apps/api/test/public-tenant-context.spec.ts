@@ -66,13 +66,15 @@ describe("public-tenant-context", () => {
       "x-forwarded-host": "operator.localhost",
     });
     assert.equal(response.status, 200);
-    const data = (response.body as {
-      data?: {
-        tenantId?: string;
-        pluginId?: string;
-        siteSurfaces?: { admin?: boolean; marketing?: boolean; portal?: boolean };
-      };
-    }).data;
+    const data = (
+      response.body as {
+        data?: {
+          tenantId?: string;
+          pluginId?: string;
+          siteSurfaces?: { admin?: boolean; marketing?: boolean; portal?: boolean };
+        };
+      }
+    ).data;
     assert.equal(data?.tenantId, OPERATOR_SMOKE.tenantId);
     assert.equal(data?.pluginId, "denali");
     assert.equal(data?.siteSurfaces?.admin, true);

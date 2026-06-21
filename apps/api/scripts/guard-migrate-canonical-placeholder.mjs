@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * DEC-091 / Phase 6.8 — migrateCanonical must not wire on POST/PATCH write paths.
- * Denali ACL execution is allowed via migrate-canonical-denali.service.ts only.
+ * Denali ACL execution is allowed via migrate-canonical-workspace.service.ts only.
  * @see docs/phase-5/appendices/migrate-canonical-phase6-placeholder.md
  * @see docs/phase-6/subphases/6.8-migrate-canonical.md
  */
@@ -20,9 +20,9 @@ const hook = read("src/canonical/migrate-canonical-hook.ts");
 if (!hook.includes("resolveMigrateCanonicalHook")) {
   violations.push("migrate-canonical-hook.ts must export resolveMigrateCanonicalHook");
 }
-const migrateService = read("src/canonical/migrate-canonical-denali.service.ts");
+const migrateService = read("src/canonical/migrate-canonical-workspace.service.ts");
 if (!migrateService.includes("MIGRATE_CANONICAL_TENANT_IDS")) {
-  violations.push("migrate-canonical-denali.service.ts must gate on MIGRATE_CANONICAL_TENANT_IDS");
+  violations.push("migrate-canonical-workspace.service.ts must gate on MIGRATE_CANONICAL_TENANT_IDS");
 }
 
 const writePathGlobs = [

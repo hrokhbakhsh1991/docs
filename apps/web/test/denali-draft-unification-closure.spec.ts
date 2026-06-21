@@ -38,21 +38,23 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
   });
 
   it("WEB-P11-UNIFY-03 create + flat-edit wire Track C flag helpers", () => {
-    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
+    const createHook = readWebSource("src/wizard/use-denali-create-tour-wizard.ts");
+    const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
+    const flatEditHook = readWebSource("src/wizard/use-denali-flat-edit-page.ts");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
-    for (const source of [createTour, flatEdit]) {
+    for (const source of [createHook, flatEditHook]) {
       assert.match(source, /resolveDenaliDraftConflictStrategy/);
-      assert.match(source, /resolveDenaliDraftMerge/);
-      assert.match(source, /conflictReloadNotice=\{draftSync\.conflictReloadNotice\}/);
+      assert.match(source, /resolveDenaliDraftMerge|resolveWizardDraftMerge/);
+      assert.match(source, /createDenaliDraftOnPushSuccess/);
     }
-    assert.match(createTour, /createDenaliDraftOnPushSuccess/);
-    assert.match(flatEdit, /createDenaliDraftOnPushSuccess/);
+    assert.match(createChrome, /conflictReloadNotice=\{props\.draftSync\.conflictReloadNotice\}/);
+    assert.match(flatEdit, /conflictReloadNotice=\{readyCore\.draftSync\.conflictReloadNotice\}/);
   });
 
   it("WEB-P11-UNIFY-04 merge module has no mergeDeletedRoots union helper", () => {
-    const merge = readWebSource("src/draft/denali-wizard-draft-merge.ts");
+    const merge = readRepoSource("packages/workspaces/denali/src/draft/merge-envelope.ts");
     assert.doesNotMatch(merge, /mergeDeletedRoots/);
-    assert.match(merge, /server\.meta\.deletedRoots/);
+    assert.match(merge, /readDeletedRoots\(server\.meta\)/);
     assert.doesNotMatch(merge, /\.\.\.\(deletedRoots !== undefined \? \{ deletedRoots \}/);
   });
 
@@ -88,14 +90,14 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
   });
 
   it("WEB-P11-UNIFY-08 create + flat-edit wire normalizeRemote for B-8", () => {
-    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
-    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    const createHook = readWebSource("src/wizard/use-denali-create-tour-wizard.ts");
+    const flatEditHook = readWebSource("src/wizard/use-denali-flat-edit-page.ts");
     const normalize = readWebSource("src/draft/denali-draft-normalize-remote.ts");
     assert.match(normalize, /normalizeDenaliRemoteEnvelope/);
     assert.match(normalize, /normalizeWizardRemoteEnvelope/);
-    assert.match(createTour, /normalizeWizardRemoteEnvelope/);
-    assert.match(createTour, /normalizeRemote:\s*normalizeRemoteEnvelope/);
-    assert.match(flatEdit, /normalizeDenaliRemoteEnvelope/);
-    assert.match(flatEdit, /normalizeRemote:\s*normalizeDenaliRemoteEnvelope/);
+    assert.match(createHook, /normalizeWizardRemoteEnvelope/);
+    assert.match(createHook, /normalizeRemote:\s*normalizeRemoteEnvelope/);
+    assert.match(flatEditHook, /normalizeDenaliRemoteEnvelope/);
+    assert.match(flatEditHook, /normalizeRemote:\s*normalizeDenaliRemoteEnvelope/);
   });
 });

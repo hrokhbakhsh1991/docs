@@ -14,6 +14,7 @@ export {
 export {
   resolveBootstrapAppSession,
   resolveBootstrapAppSessionForHost,
+  resolveBootstrapAppSessionForHostAsync,
   toSerializableBootstrap,
 } from "./tenant-kernel.server";
 

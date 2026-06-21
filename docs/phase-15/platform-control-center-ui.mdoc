@@ -1,0 +1,235 @@
+---
+title: Phase 15 — Platform Control Center UI (P1 EPIC C)
+phase: 15
+format: markdoc
+---
+
+# Platform Control Center — web shell (P1 EPIC C)
+
+## Host
+
+Platform ops UI is served on **platform admin host** only:
+
+| Host | Surface |
+|------|---------|
+| `admin.{PLATFORM_ROOT_DOMAIN}` | Platform Control Center |
+| `{club}.admin.{root}` | Club operator panel (unchanged) |
+
+Detection: `@app-tour/tenant-kernel` (`parseMultiLevelTenantHost`, `isPlatformAdminHost`) via `apps/web/src/tenant/resolve-multi-level-host.ts` and `is-platform-admin-host.ts`. Dev: `admin.localhost`; prod: `admin.{PLATFORM_ROOT_DOMAIN}`.
+
+See [`platform-host-multilevel.mdoc`](platform-host-multilevel.mdoc) for full host matrix and middleware isolation.
+
+Ops (domains, health, audit): [`platform-control-center-ops.mdoc`](platform-control-center-ops.mdoc).
+
+P2-B support impersonation (Owner tab · operator banner): [`platform-impersonation.mdoc`](platform-impersonation.mdoc).
+
+P2-C billing tab: [`platform-billing-plans.mdoc`](platform-billing-plans.mdoc).
+
+P2-D domains SSL badges + overview KPI: [`platform-domains-ssl.mdoc`](platform-domains-ssl.mdoc).
+
+P2-E actions danger zone + audit CSV: [`platform-offboard-compliance.mdoc`](platform-offboard-compliance.mdoc).
+
+P2-A platform gateway (apex/www): [`platform-mother-site.mdoc`](platform-mother-site.mdoc).
+
+Middleware branches on platform host **before** club operator session checks.
+
+## Route map
+
+| URL | Page |
+|-----|------|
+| `/platform` | Overview KPIs |
+| `/platform/clubs` | Tenant directory |
+| `/platform/clubs/new` | Create club wizard |
+| `/platform/team` | Platform ops team directory + invite |
+| `/platform/workspace-definitions` | Workspace definition list (P3-C) |
+| `/platform/workspace-definitions/{id}` | Workspace builder editor (P3-C) |
+| `/platform/settings` | Platform settings (placeholder) |
+| `/auth/login` | Platform ops OTP login (platform admin host only; shared route file with club login) |
+
+Route group: `apps/web/app/(platform)/` — **no** `denali/ui` imports (PATTERN-C).
+
+Nav SoT: `platform-nav.ts` — all hrefs prefixed `/platform`.
+
+## Session
+
+| Cookie | Purpose |
+|--------|---------|
+| `session` | Club operator JWT (unchanged) |
+| `platform_session` | Platform ops **signed JWT** (`validatePlatformSessionToken` in middleware) |
+
+Platform login flow: BFF `POST /api/platform/auth/login` → API `POST /platform/v1/auth/verify-otp` → Set-Cookie JWT with **`platform_role` from DB** (never hardcoded owner).
+
+Gate: `requirePlatformOpsSessionWeb` in `(platform)/layout.tsx`.
+
+Login UI: single `app/auth/login/page.tsx` branches on `isPlatformAdminHost(host)` → `pluginId="platform"` vs tenant bootstrap (avoids duplicate Next.js `/auth/login` routes).
+
+## BFF
+
+Browser calls **`/api/platform/*`** only (via `platform-api-client.ts`). BFF proxies to API:
+
+| BFF | Upstream |
+|-----|----------|
+| `GET /api/platform/workspaces` | `GET /platform/v1/workspaces` |
+| `GET /api/platform/tenants` | `GET /platform/v1/tenants` |
+| `GET /api/platform/tenants/{id}` | `GET /platform/v1/tenants/{id}` |
+| `POST /api/platform/tenants` | `POST /platform/v1/tenants` (+ `Idempotency-Key`) |
+| `PATCH /api/platform/tenants/{id}/status` | `PATCH /platform/v1/tenants/{id}/status` |
+| `POST /api/platform/tenants/{id}/owner-invite` | `POST /platform/v1/tenants/{id}/owner-invite` |
+| `GET /api/platform/team` | `GET /platform/v1/team` |
+| `POST /api/platform/team` | `POST /platform/v1/team` (owner only) |
+| `POST /api/platform/auth/request-otp` | `POST /platform/v1/auth/request-otp` |
+
+### P3-C BFF routes (workspace builder — planned)
+
+| BFF | Upstream |
+|-----|----------|
+| `GET /api/platform/workspace-definitions` | `GET /platform/v1/workspace-definitions` |
+| `POST /api/platform/workspace-definitions` | `POST /platform/v1/workspace-definitions` |
+| `POST /api/platform/workspace-definitions/{id}/versions` | `POST /platform/v1/workspace-definitions/{id}/versions` |
+| `GET /api/platform/workspace-definitions/{id}/versions/{version}` | `GET /platform/v1/workspace-definitions/{id}/versions/{version}` |
+| `PATCH /api/platform/tenants/{id}/workspace-definition` | `PATCH /platform/v1/tenants/{id}/workspace-definition` |
+
+Nav: `platform-nav.ts` — **Workspaces** → `/platform/workspace-definitions` (insert after Team). Doc SoT: [`platform-workspace-builder.mdoc`](../phase-16/platform-workspace-builder.mdoc).
+
+### P2 BFF routes (enterprise ops)
+
+| BFF | Upstream |
+|-----|----------|
+| `POST /api/platform/tenants/{id}/impersonate` | `POST /platform/v1/tenants/{id}/impersonate` |
+| `POST /api/platform/tenants/{id}/impersonate/end` | `POST /platform/v1/tenants/{id}/impersonate/end` |
+| `GET /api/platform/plans` | `GET /platform/v1/plans` |
+| `PATCH /api/platform/tenants/{id}/subscription` | `PATCH /platform/v1/tenants/{id}/subscription` |
+| `POST /api/platform/tenants/{id}/subscription/mark-paid` | `POST /platform/v1/tenants/{id}/subscription/mark-paid` |
+| `GET /api/platform/domains/ssl-summary` | `GET /platform/v1/domains/ssl-summary` |
+| `POST /api/platform/tenants/{id}/offboard` | `POST /platform/v1/tenants/{id}/offboard` |
+| `POST /api/platform/tenants/{id}/cancel-offboard` | `POST /platform/v1/tenants/{id}/cancel-offboard` |
+| `POST /api/platform/tenants/{id}/export` | `POST /platform/v1/tenants/{id}/export` |
+| `GET /api/platform/audit/export` | `GET /platform/v1/audit/export` |
+
+Headers forwarded: `Authorization: Bearer ${PLATFORM_OPS_BEARER_TOKEN}`, `X-Platform-Ops-Phone` from validated JWT claims (`proxy-platform-api.server.ts`).
+
+## Verify (EPIC C gate)
+
+```bash
+pnpm --filter @apps/web exec node --test \
+  test/platform-nav.spec.ts \
+  test/platform-subdomain-validator.spec.ts \
+  test/platform-layout-boundary.spec.ts \
+  test/use-create-club-wizard.spec.ts \
+  test/platform-epic-c-boundary.spec.ts
+```
+
+## Create club wizard
+
+Route: `/platform/clubs/new` — 4-step client wizard (`useCreateClubWizard`):
+
+| Step | Component | Fields |
+|------|-----------|--------|
+| 1 Identity | `step-identity` | displayName, subdomain, workspaceType (select from BFF workspaces) |
+| 2 Sites | `step-sites` | read-only URL preview (marketing / portal / admin) |
+| 3 Owner | `step-owner` | ownerPhone (required) |
+| 4 Review | `step-review` | summary + `POST /api/platform/tenants` with `Idempotency-Key` UUID |
+
+Client subdomain rules mirror API (`validate-subdomain.ts`). Success → redirect `/platform/clubs/{tenantId}`.
+
+Async UX: `platform-async-states.tsx` (Loading / Error / Empty).
+
+Smoke: `apps/web/scripts/smoke-platform-create-club.mjs`.
+
+## Team page (EPIC G)
+
+Route: `/platform/team` — server loads members via BFF `GET /api/platform/team`.
+
+| Section | Content |
+|---------|---------|
+| Member list | phone, role, createdAt |
+| Invite form | phone + role select (`admin` / `support`); visible to **owner** session only |
+
+Client component: `src/platform/team/team-invite-form.tsx` posts to `POST /api/platform/team`.
+
+Nav: `platform-nav.ts` includes **Team** → `/platform/team`.
+
+## E2E smoke (EPIC H)
+
+Playwright config: `playwright.platform.config.ts` · specs: `test/e2e/platform-*.spec.ts`.
+
+| Spec | Flow |
+|------|------|
+| `platform-create-club.spec.ts` | Platform ops login → 4-step wizard → club appears in `/platform/clubs` |
+| `platform-owner-handoff.spec.ts` | Provision club → owner invite → club admin OTP login → dashboard |
+| `platform-suspend-blocks-login.spec.ts` | Suspend club → operator request-otp **403** `AUTH_TENANT_SUSPENDED` |
+| `platform-ops-ui.spec.ts` | §J internal: audit, overview KPI, sites health, domains add, suspend UI, settings |
+| `platform-team-invite.spec.ts` | Owner invites platform team member via `/platform/team` |
+
+Extended handoff: `platform-owner-handoff.spec.ts` asserts wizard **Next** control after welcome CTA (minimal §J wizard QA — not tour publish).
+
+### §J internal E2E coverage
+
+| Checklist gap | Proven by |
+|---------------|-----------|
+| Audit page lists provision events | `platform-ops-ui` → `TENANT_CREATED` row |
+| Overview `Total clubs` KPI | `platform-ops-ui` → `[data-stat-total]` ≥ 1 |
+| Overview `Unhealthy sites` KPI | `platform-ops-ui` → `[data-stat-unhealthy]` rendered; ≥ 1 when sites check reports `down` |
+| Sites health actionable | `platform-ops-ui` → Check health → 3 surface rows |
+| Domains tab add hostname | `platform-ops-ui` → hostname in list |
+| Suspend via UI | `platform-ops-ui` → Actions → `[data-status=suspended]` |
+| Team invite UI | `platform-team-invite` |
+| Settings placeholder | `platform-ops-ui` → `[data-platform-settings-page]` |
+| Wizard beyond shell | `platform-owner-handoff` → `[data-workspace-wizard]` + `workspace-wizard-step-next` |
+
+**Not in scope (P2):** marketing catalog after publish, portal registration.
+
+### E2E `data-testid` contract
+
+| Surface | Attribute |
+|---------|-----------|
+| Overview | `data-platform-overview`, `data-stat-total`, `data-stat-unhealthy` |
+| Audit | `data-platform-audit-page`, `data-audit-row` |
+| Settings | `data-platform-settings-page` |
+| Club detail tabs | `data-tab-button={overview\|sites\|domains\|owner\|actions}` |
+| Club actions | `data-action-suspend`, `data-action-activate` |
+| Sites tab | `data-sites-check-health`, `data-sites-health-results` |
+| Team invite | `data-platform-team-invite-form`, `data-platform-team-invite-phone`, `data-platform-team-invite-submit`, `data-client-ready` on form |
+| Club detail tabs | `data-tab-button`, `data-client-ready` on `[data-platform-club-detail]` |
+ `scripts/smoke-platform-e2e-servers.mjs` (API `:3001` + web `:3000`, `DATABASE_URL` + `DATABASE_URL_ADMIN` required). The script runs **`db:migrate:deploy`** then **`db:seed`** before starting servers so provision saga tables exist and Postgres identity includes the **membership-free invitee user** (`+15550008803`, `OPERATOR_SMOKE_INVITEE_USER_ID`) required for owner-handoff OTP login.
+
+```bash
+pnpm run p1:gate
+pnpm --filter @apps/web run test:e2e:platform
+pnpm --filter @apps/web run test:e2e:platform:install   # chromium once
+```
+
+Platform ops session fixture: `test/fixtures/platform-ops-session.ts` (BFF `POST /api/platform/auth/login`, dev OTP `1234`).
+
+**Owner handoff:** provisioned club admin hosts (`{subdomain}.admin.localhost`) resolve tenant via public registry on BFF login; middleware session bind fail-opens for unmapped multi-level club hosts so invite accept does not hit `AUTH_TENANT_HOST_MISMATCH`. See [`platform-host-multilevel.mdoc`](platform-host-multilevel.mdoc) § Session bind vs BFF tenant resolution.
+
+Structural smokes (no Playwright):
+
+```bash
+node apps/api/scripts/smoke-platform-provision.mjs --help
+node apps/web/scripts/smoke-platform-ui.mjs
+```
+
+## Club detail (EPIC D)
+
+Route: `/platform/clubs/[id]` — server loads tenant detail via BFF `GET /api/platform/tenants/{id}`.
+
+| Tab | Content |
+|-----|---------|
+| Overview | subdomain, workspace, status, createdAt |
+| Sites | marketing / portal / admin URLs + **surface enabled badges** (P4-C · [`platform-club-surfaces-config.mdoc`](../phase-17/platform-club-surfaces-config.mdoc)) |
+| Owner | pending invite phone + status; **Resend invite** button |
+| Actions | Suspend / Activate (`PATCH /api/platform/tenants/{id}/status`) |
+
+Client mutations use `fetchPlatformApi` only. Table rows link to detail (`platform-clubs-table.tsx`).
+
+## Verify (EPIC D gate)
+
+```bash
+cd apps/web && NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit \
+  test/platform-club-detail-page.spec.ts \
+  test/platform-bff-tenant-detail.spec.ts \
+  test/platform-club-status-actions.spec.ts \
+  test/platform-epic-d-boundary.spec.ts
+```
+

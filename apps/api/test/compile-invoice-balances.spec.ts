@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
 
-import { compileRegistrationInvoice } from "../src/denali-finance/compile-invoice-balances";
+import { compileRegistrationInvoice } from "../src/workspace-finance/compile-invoice-balances";
 
 describe("compile-invoice-balances.spec.ts — Phase 9.7 R2", () => {
   it("API-9.7-R2-INV-01 paidAmountMinor caps at invoice total", () => {

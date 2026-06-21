@@ -1,0 +1,15 @@
+{
+  "steps": {
+    "basics": "اطلاعات پایه",
+    "review": "بازبینی"
+  },
+  "fields": {
+    "tour": {
+      "title": "عنوان تور",
+      "city": "شهر",
+      "venueName": "نام محل",
+      "capacity": "ظرفیت",
+      "description": "توضیحات"
+    }
+  }
+}

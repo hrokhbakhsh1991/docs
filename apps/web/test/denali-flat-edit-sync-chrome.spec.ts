@@ -25,31 +25,36 @@ describe("denali-flat-edit-sync-chrome.spec.ts — Phase 5B", () => {
   });
 
   it("WEB-P11-SYMM-02 create-tour and flat-edit both consume DraftSyncChrome", () => {
-    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
+    const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
-    assert.match(createTour, /DraftSyncChrome/);
+    assert.match(createChrome, /DraftSyncChrome/);
     assert.match(flatEdit, /DraftSyncChrome/);
-    assert.doesNotMatch(createTour, /from "@\/draft\/draft-sync-indicator"/);
+    assert.doesNotMatch(createChrome, /from "@\/draft\/draft-sync-indicator"/);
     assert.doesNotMatch(flatEdit, /from "@\/draft\/draft-sync-indicator"/);
   });
 
   it("WEB-P11-SYMM-03 flat-edit passes navLocked to DenaliFlatEditForm fieldset", () => {
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
-    const form = readWebSource("src/wizard/denali/denali-flat-edit-form.tsx");
-    assert.match(flatEdit, /navLocked=\{draftSync\.navLocked\}/);
+    const formShim = readWebSource("src/wizard/denali-flat-edit-form-shell.tsx");
+    const form = readFileSync(
+      join(WEB_ROOT, "..", "..", "packages/workspaces/denali/src/ui/chrome/denali-flat-edit-form.tsx"),
+      "utf8"
+    );
+    assert.match(flatEdit, /navLocked=\{readyCore\.draftSync\.navLocked\}/);
+    assert.match(formShim, /@app-tour\/workspace-denali\/ui\/chrome\/denali-flat-edit-form/);
     assert.match(form, /fieldset disabled=\{navLocked\}/);
   });
 
   it("WEB-P11-SYMM-04 flat-edit wires schemaGate like create-tour", () => {
-    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
-    assert.match(flatEdit, /createDenaliDraftSchemaGate/);
-    assert.match(flatEdit, /schemaGate:\s*denaliSchemaGate/);
+    const flatEditHook = readWebSource("src/wizard/use-denali-flat-edit-page.ts");
+    assert.match(flatEditHook, /createDenaliDraftSchemaGate/);
+    assert.match(flatEditHook, /schemaGate:\s*denaliSchemaGate/);
   });
 
   it("WEB-P11-SYMM-05 flat-edit passes conflictReloadNotice like create-tour (Track C)", () => {
-    const createTour = readWebSource("app/tours/new/denali-create-tour-wizard-client.tsx");
+    const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
-    assert.match(createTour, /conflictReloadNotice=\{draftSync\.conflictReloadNotice\}/);
-    assert.match(flatEdit, /conflictReloadNotice=\{draftSync\.conflictReloadNotice\}/);
+    assert.match(createChrome, /conflictReloadNotice=\{props\.draftSync\.conflictReloadNotice\}/);
+    assert.match(flatEdit, /conflictReloadNotice=\{readyCore\.draftSync\.conflictReloadNotice\}/);
   });
 });

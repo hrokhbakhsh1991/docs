@@ -12,7 +12,7 @@ import { createRequestListener } from "../src/app";
 import { resetLazyFinanceServiceForTests } from "../src/boot/lazy-finance-service";
 import { resetLazyRouteHandlersForTests } from "../src/boot/lazy-route-handlers";
 import { resetLazyWorkspaceFinanceHandlersForTests } from "../src/boot/lazy-workspace-finance-handlers";
-import { resetFinanceScheduleStoreForTests } from "../src/denali-finance/finance-schedule-store";
+import { resetFinanceScheduleStoreForTests } from "../src/workspace-finance/finance-schedule-store";
 import { disconnectPrisma } from "../src/db/prisma";
 import { integrationTenantId } from "./test-helpers";
 

@@ -8,54 +8,31 @@ import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-nume
 import { resolveIntakeDefaults } from "@/catalog/resolve-intake-defaults";
 import { resolveCatalogRegistrationErrorMessage } from "@/features/catalog/resolve-catalog-registration-error";
 import {
+  buildPublicRegistrationProfilePayload,
+  initialPublicRegistrationOtp,
+  initialPublicRegistrationPhone,
+  isPublicRegistrationMobileValid,
+  PUBLIC_REGISTRATION_DEV_OTP,
+  PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC,
+  readPublicRegistrationErrorCode,
+  type PublicRegistrationApiError,
+  type PublicRegistrationStep,
+  type PublicRegistrationWorkspace,
+} from "@/features/auth/public-registration-logic";
+import {
   normalizeOtpDigits,
   OTP_SEGMENT_LENGTH,
   OtpSegmentInput,
 } from "@/features/auth/otp-segment-input";
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
 
-type Step = "phone" | "otp" | "profile" | "intake" | "done";
-
-const RESEND_COOLDOWN_SEC = 45;
-const DEV_PHONE = "+15550009901";
-const DEV_OTP = "1234";
-
-type Workspace = "denali" | "urban";
-
 type FormProps = {
-  readonly workspace: Workspace;
+  readonly workspace: PublicRegistrationWorkspace;
   readonly tenantId: string;
   readonly tourId: string;
   readonly tourTitle: string;
   readonly backHref: string;
 };
-
-type ApiErrorPayload = {
-  ok?: boolean;
-  challenge_id?: string;
-  requires_registration?: boolean;
-  onboarding_token?: string;
-  error?: { code?: string };
-};
-
-function readErrorCode(data: ApiErrorPayload): string {
-  return typeof data.error?.code === "string" ? data.error.code : "network";
-}
-
-function initialPhone(): string {
-  return process.env.NODE_ENV === "development" ? DEV_PHONE : "";
-}
-
-function initialOtp(): string {
-  return process.env.NODE_ENV === "development" ? DEV_OTP : "";
-}
-
-const MIN_MOBILE_DIGITS = 8;
-
-function isMobileFormatValid(mobile: string): boolean {
-  const digits = mobile.replace(/\D/g, "");
-  return digits.length >= MIN_MOBILE_DIGITS;
-}
 
 export function PublicCatalogRegistrationFlow({
   workspace,
@@ -70,9 +47,9 @@ export function PublicCatalogRegistrationFlow({
   const nameErrorId = useId();
   const intakeErrorId = useId();
 
-  const [step, setStep] = useState<Step>("phone");
-  const [phone, setPhone] = useState(initialPhone);
-  const [otp, setOtp] = useState(initialOtp);
+  const [step, setStep] = useState<PublicRegistrationStep>("phone");
+  const [phone, setPhone] = useState(initialPublicRegistrationPhone);
+  const [otp, setOtp] = useState(initialPublicRegistrationOtp);
   const [challengeId, setChallengeId] = useState("");
   const [onboardingToken, setOnboardingToken] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -111,7 +88,7 @@ export function PublicCatalogRegistrationFlow({
   }, [resendCooldown]);
 
   const beginResendCooldown = useCallback(() => {
-    setResendCooldown(RESEND_COOLDOWN_SEC);
+    setResendCooldown(PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC);
   }, []);
 
   const goToIntakeStep = useCallback(

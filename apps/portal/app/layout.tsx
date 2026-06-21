@@ -34,7 +34,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={locale} dir={dir}>
-      <body data-app="portal">
+      <body data-app="portal" data-app-surface="portal">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <PortalProviders theme={theme}>{children}</PortalProviders>
         </NextIntlClientProvider>

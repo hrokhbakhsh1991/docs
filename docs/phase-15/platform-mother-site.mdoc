@@ -1,0 +1,42 @@
+---
+title: Phase 15 / P2-A — Platform mother site gateway
+phase: 15
+format: markdoc
+---
+
+# Platform gateway (`apps/marketing`)
+
+Apex and `www` hosts on `PLATFORM_ROOT_DOMAIN` render the **platform mother site** — not club catalog bootstrap.
+
+## Host detection
+
+| Host pattern | `isPlatformMotherHost` |
+|--------------|--------------------------|
+| `{root}` (apex) | true |
+| `www.{root}` | true |
+| `{club}.{root}` | false (club marketing unchanged) |
+| `admin.{root}` | false |
+
+Parser: `@app-tour/tenant-kernel` `parseMultiLevelTenantHost`.
+
+## Surfaces
+
+| Route | Mother host | Club host |
+|-------|-------------|-----------|
+| `/` | Gateway home + Super Admin CTA | Existing catalog home |
+| `/pricing` · `/about` · `/contact` | Maintenance stub | `notFound()` |
+| `/tours/*` | unchanged routes (mother layout has no tours CTA on `/`) | Club catalog |
+
+Super Admin URL: `https://admin.{PLATFORM_ROOT_DOMAIN}` via `buildPlatformAdminUrl()`.
+
+## Layout branch
+
+`apps/marketing/app/layout.tsx` — when mother host: `PlatformMotherShell` only (no tenant branding fetch). Club path unchanged.
+
+## Env
+
+| Variable | Purpose |
+|----------|---------|
+| `PLATFORM_ROOT_DOMAIN` | Root domain (default `localhost`) |
+
+API `/public/tenant-context` on apex remains **404** — correct; no API changes in P2-A.

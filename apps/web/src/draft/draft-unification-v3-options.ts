@@ -1,12 +1,15 @@
 import type { ConflictStrategy, DraftSyncPayload } from "@app-tour/draft-engine";
+import type { WorkspaceWizardDraftEnvelope } from "@app-tour/workspace-sdk";
 
-import { mergeDenaliWizardDraftEnvelope, type NewTourWizardDraftEnvelope } from "./denali-wizard-draft-merge";
+import { mergeWizardDraftEnvelope } from "@/wizard/wizard-draft-envelope-hooks";
+
 import {
   isDraftUnificationV3ServerWins,
   resolveDraftUnificationV3Mode,
   type DraftUnificationV3Mode,
 } from "./draft-unification-v3";
-import { logDenaliTombstoneShadowMismatch } from "./draft-unification-v3-shadow";
+import { logDenaliTombstoneShadowMismatch } from "@app-tour/workspace-denali/draft";
+import type { NewTourWizardDraftEnvelope } from "./denali-wizard-draft-types";
 
 export function resolveDenaliDraftConflictStrategy(
   mode: DraftUnificationV3Mode = resolveDraftUnificationV3Mode(),
@@ -31,16 +34,21 @@ export function createDenaliDraftOnPushSuccess(
   };
 }
 
-export function resolveDenaliDraftMerge(
+export function resolveWizardDraftMerge<TForm>(
+  plugin: Parameters<typeof mergeWizardDraftEnvelope<TForm>>[0],
   mode: DraftUnificationV3Mode = resolveDraftUnificationV3Mode(),
+  fallback?: (
+    local: WorkspaceWizardDraftEnvelope<TForm>,
+    server: WorkspaceWizardDraftEnvelope<TForm>,
+  ) => WorkspaceWizardDraftEnvelope<TForm>
 ):
   | ((
-      local: NewTourWizardDraftEnvelope,
-      server: NewTourWizardDraftEnvelope,
-    ) => NewTourWizardDraftEnvelope)
+      local: WorkspaceWizardDraftEnvelope<TForm>,
+      server: WorkspaceWizardDraftEnvelope<TForm>,
+    ) => WorkspaceWizardDraftEnvelope<TForm>)
   | undefined {
   if (isDraftUnificationV3ServerWins(mode)) {
     return undefined;
   }
-  return mergeDenaliWizardDraftEnvelope;
+  return (local, server) => mergeWizardDraftEnvelope(plugin, local, server, fallback);
 }

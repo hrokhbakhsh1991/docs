@@ -12,9 +12,9 @@ import React, { type ReactNode } from "react";
 import { LocalizedDatePicker } from "@/components/i18n/localized-date-picker";
 import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
-import { resolveWizardTemplateFieldLabel } from "@/tours/wizard-template-field-labels";
 
 import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
+import { resolveWizardFieldLabel } from "./wizard-label-surface-registry";
 
 /** Kinds wired to ui-primitives subpaths in the Phase 3 shell. */
 export const SUPPORTED_WIZARD_FIELD_KINDS = [
@@ -218,6 +218,7 @@ export function WizardField({
   workspaceFormProfile,
   compositeSurfaceId,
   fieldLabelSurfaceId,
+  translateWorkspaceMessage,
 }: {
   readonly field: RenderFieldPlan;
   readonly value: string;
@@ -230,14 +231,11 @@ export function WizardField({
   readonly workspaceFormProfile?: string;
   readonly compositeSurfaceId?: string;
   readonly fieldLabelSurfaceId?: string;
+  readonly translateWorkspaceMessage?: (key: string) => string;
 }) {
-  const tDenali = useTranslations("denali");
   const tField = useTranslations("wizard.field");
-  const labelSurface = resolveWizardCompositeSurface(fieldLabelSurfaceId);
-  const label =
-    labelSurface != null
-      ? labelSurface.resolveFieldLabel((key) => tDenali(key), field.canonicalPath)
-      : resolveWizardTemplateFieldLabel(field.canonicalPath, pluginId);
+  const translate = translateWorkspaceMessage ?? ((key: string) => key);
+  const label = resolveWizardFieldLabel(fieldLabelSurfaceId, translate, field.canonicalPath);
 
   if (field.hidden) {
     return null;

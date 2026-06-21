@@ -1,30 +1,22 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 
-/** Known workspace wizard message namespaces wired in the web host. */
-const WORKSPACE_WIZARD_MESSAGE_NAMESPACES = ["wizard", "denali"] as const;
+import { WORKSPACE_WIZARD_I18N_NAMESPACES } from "@/bootstrap/wizard-label-bindings.generated";
+import { useGeneratedWorkspaceWizardTranslators } from "@/bootstrap/wizard-i18n-translator-hooks.generated";
 
-type WorkspaceWizardMessageNamespace = (typeof WORKSPACE_WIZARD_MESSAGE_NAMESPACES)[number];
+type WorkspaceWizardMessageNamespace = (typeof WORKSPACE_WIZARD_I18N_NAMESPACES)[number];
 
-function isWorkspaceWizardMessageNamespace(value: string): value is WorkspaceWizardMessageNamespace {
-  return (WORKSPACE_WIZARD_MESSAGE_NAMESPACES as readonly string[]).includes(value);
+function isWorkspaceWizardMessageNamespace(
+  value: string
+): value is WorkspaceWizardMessageNamespace {
+  return (WORKSPACE_WIZARD_I18N_NAMESPACES as readonly string[]).includes(value);
 }
 
 /** Resolve workspace wizard copy from hook-declared namespace (falls back to generic wizard). */
 export function useWorkspaceWizardTranslator(wizardMessageNamespace?: string) {
-  const tWizard = useTranslations("wizard");
-  const tDenali = useTranslations("denali");
-
-  const translators = useMemo(
-    () =>
-      ({
-        wizard: tWizard,
-        denali: tDenali,
-      }) as const satisfies Record<WorkspaceWizardMessageNamespace, typeof tWizard>,
-    [tWizard, tDenali]
-  );
+  const translators = useGeneratedWorkspaceWizardTranslators();
+  const tWizard = translators.wizard;
 
   return useCallback(
     (key: string) => {
@@ -32,8 +24,9 @@ export function useWorkspaceWizardTranslator(wizardMessageNamespace?: string) {
         wizardMessageNamespace != null && isWorkspaceWizardMessageNamespace(wizardMessageNamespace)
           ? wizardMessageNamespace
           : "wizard";
-      return translators[namespace](key);
+      const translate = translators[namespace] ?? tWizard;
+      return translate(key);
     },
-    [wizardMessageNamespace, translators]
+    [wizardMessageNamespace, translators, tWizard]
   );
 }

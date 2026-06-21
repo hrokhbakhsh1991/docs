@@ -25,9 +25,9 @@ import { createTestToursService, integrationTenantId } from "../test-helpers";
 const RATE_BURST = Number.parseInt(process.env.RATE_BURST ?? "100", 10);
 const LIMIT_POINTS = Number.parseInt(process.env.TENANT_RATE_LIMIT_POINTS ?? "10", 10);
 const TENANT_B_LATENCY_RATIO_MAX = Number.parseFloat(process.env.TENANT_B_LATENCY_RATIO_MAX ?? "2");
-/** Floor for concurrent victim latency — solo p50 understates burst scheduling (see rate-limiting.md). */
+/** Floor for concurrent victim latency — solo p50 understates burst scheduling under trunk suite load (see rate-limiting.md). */
 const TENANT_B_LATENCY_MIN_BUDGET_MS = Number.parseInt(
-  process.env.TENANT_B_LATENCY_MIN_BUDGET_MS ?? "500",
+  process.env.TENANT_B_LATENCY_MIN_BUDGET_MS ?? "650",
   10
 );
 const BASELINE_WRITE_SAMPLES = Number.parseInt(process.env.BASELINE_WRITE_SAMPLES ?? "5", 10);

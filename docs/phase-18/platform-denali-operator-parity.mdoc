@@ -1,0 +1,147 @@
+---
+title: P5-B — Denali operator parity on metadata path
+phase: 18
+format: markdoc
+prerequisite: P5-A-N-007 staging pilot safe
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p5/p5-b-denali-operator-parity.md
+extends: docs/phase-16/platform-workspace-cutover.mdoc
+---
+
+# Denali operator parity (P5-B)
+
+Prove **package path ≡ metadata path** for Denali operator workflows when tenant is on pilot/live cutover — **without** deleting or moving `packages/workspaces/denali` rules/composites/UI.
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p5/p5-b-denali-operator-parity.md`](../../TEMP/p5/p5-b-denali-operator-parity.md) v2.0
+
+**Status (2026-06-21):** doc complete · implementation after P5-A pilot
+
+---
+
+## Executive summary
+
+| Layer | P5-B delivers |
+|-------|----------------|
+| **Lifecycle** | Tour FSM transitions + publish readiness gates on metadata path |
+| **Validation** | Draft-relaxed vs publish-strict split |
+| **Operator web** | Resolve workspace plugin from tenant binding when flag on |
+| **Audit** | PATCH + publish events (extend DEC-007 scope) |
+| **Preservation** | PC-01..10 gate spec — wizard · clone · list · settings · receipts unchanged |
+| **P5-core exit** | `P5-B-N-016` |
+
+---
+
+## Critical rule (frozen — AI STOP if violated)
+
+```text
+Parity implementation lives in apps/api/src/canonical/ + specs.
+Metadata DB holds layout/ruleSet SNAPSHOT merged by adapter.
+NEVER delete or “port by removal” denali/src/rules|field-registry|composites|ui.
+```
+
+Denali commerce remains **`offline_receipt` only** — receipt upload + admin review unchanged.
+
+---
+
+## Operator product preservation matrix
+
+| ID | Surface | Must pass after P5-B |
+|----|---------|-------------------|
+| PC-01 | Create wizard | Golden tour validates on metadata path |
+| PC-02 | Clone (`?clone=` + server clone) | Hydrate envelope identical |
+| PC-03 | Template / preset | Template gate + prefill unchanged |
+| PC-04 | Tour list projection | `extractDenaliTourListProjection` output match |
+| PC-05 | Settings ×9 modules | Manifest routes + abilities unchanged |
+| PC-06 | Finance receipts | POST upload + PATCH review |
+| PC-07 | offline_receipt | Tour canonical paymentMode |
+| PC-08 | Draft persistence | `operator.wizard` namespace |
+| PC-09 | Composites UI | Widget registry + theme |
+| PC-10 | Public catalog hooks | P4 publish → catalog chain |
+
+Spec: `apps/api/test/p5-preservation-gate.spec.ts` (P5-B-N-014).
+
+---
+
+## Gap → owner map (from legacy gap analysis)
+
+| Gap ID | Legacy capability | P5-B owner | Assert band |
+|--------|-------------------|------------|-------------|
+| LC-P0 | Lifecycle FSM | `assert-tour-lifecycle-transition.ts` | LC-01..03 |
+| LC-P0 | Publish transition gates | `canonical-tour.service.ts` | LC-04..06 |
+| VAL-P1 | Draft vs publish validation | `canonical-validation-sync.ts` | VAL-01..03 |
+| VAL-P1 | Form profile strip | `strip-form-profile-for-submit.ts` | VAL-02 |
+| VAL-P1 | Catalog ref integrity | `assert-catalog-ref-integrity.ts` | VAL-03 |
+| RP-P3 | Golden tour metadata path | parity integration spec | RP-01..04 |
+| AUD-P1 | PATCH audit | `audit-logger.ts` | AUD-02 |
+| AUD-P1 | Publish audit | publish transition audit | AUD-03 |
+| WEB-P1 | Operator metadata resolve | `resolve-operator-workspace-plugin.ts` | WEB-01..02 |
+
+Full gap source: [`legacy-vs-denali-gap-analysis.md`](../../apps/api/docs/legacy-vs-denali-gap-analysis.md) § Tour Business Logic.
+
+---
+
+## Non-goals (P5-B v1)
+
+- Urban full parity
+- Removing `@app-tour/workspace-denali` package
+- Gateway / Stripe / Zibal (P5-D optional)
+- Super Admin operator wizard
+- Moving composites into platform UI
+
+---
+
+## Verify
+
+```bash
+pnpm run guard:p3-denali-covenant
+pnpm run p5:gate
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/p5-preservation-gate.spec.ts \
+  test/denali-metadata-path-publish-integration.spec.ts \
+  test/platform-denali-operator-parity-exit.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/operator-metadata-plugin-resolve.spec.ts
+```
+
+**P5-core exit:** EX-B-01..03 in TEMP spec · assessment ≥ 9.2/10.
+
+
+---
+
+## Assert registry (P5-B)
+
+| Band | IDs | Owner |
+|------|-----|-------|
+| Lifecycle | LC-01..06 | canonical/ |
+| Validation | VAL-01..03 | canonical-validation-sync |
+| Render parity | RP-01..05 | workspace-metadata parity specs |
+| Operator web | WEB-01..02 | apps/web wizard resolve |
+| E2E | E2E-01..03 | denali-metadata-path-publish-integration |
+| Audit | AUD-02..03 | audit-logger |
+| Preservation | PC-GATE-01..04 | p5-preservation-gate |
+| Exit | EX-B-01..03 | platform-denali-operator-parity-exit |
+
+---
+
+## Clone + template preservation (explicit)
+
+P5-B must **not** alter:
+
+- `denaliHydrateTourCloneDraft` behavior (PC-02)
+- `tour_wizard_template` settings module (PC-03)
+- `denaliFullWizardTemplate` seed paths
+
+Regression tests: Phase 11 clone specs + template gate specs must stay green after each B nano.
+
+---
+
+## Metadata path proof sequence
+
+```text
+1. Bind denali-v1.json published version to smoke tenant
+2. WORKSPACE_METADATA_ENABLED=true + allowlist
+3. resolveWorkspacePluginForTenant → adapter + overlay
+4. Golden tour validate + publish on metadata path
+5. Compare render plan + evaluateFormRules output to package path
+```

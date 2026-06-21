@@ -1,0 +1,43 @@
+---
+title: P5-E — Registrations & finance tranche (optional)
+phase: 18
+format: markdoc
+optional: true
+prerequisite: P5-D exit OR offline-only waiver
+quality: 9.5
+doc_role: architecture_sot
+execution_spec: TEMP/p5/p5-e-registrations-finance.md
+---
+
+# Registrations & finance tranche (P5-E — optional)
+
+Minimal legacy port: seat capacity, public registration throttle, paid-tour open gate, tour-created finance outbox hook.
+
+**Not full Tour Ops registration module.**
+
+**Nano spec:** [`TEMP/p5/p5-e-registrations-finance.md`](../../TEMP/p5/p5-e-registrations-finance.md)
+
+---
+
+## Scope
+
+| Capability | Assert band |
+|------------|-------------|
+| Registration seat capacity | REG-01..02 |
+| Public throttle | REG-02 |
+| Paid tour before OPEN | FIN-01 (with offline_receipt) |
+| Finance outbox on tour create | FIN-02 |
+
+**Must not break:** PC-06 receipt flow · PC-07 offline_receipt.
+
+---
+
+## Verify
+
+```bash
+pnpm run p5:gate
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/platform-registrations-finance-exit.spec.ts
+```
+
+**P5-full exit:** `P5-E-N-006` · assessment ≥ 9.5/10.

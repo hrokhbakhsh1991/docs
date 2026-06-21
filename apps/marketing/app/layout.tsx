@@ -70,7 +70,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={locale} dir={dir}>
-      <body>
+      <body data-app-surface="marketing">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <MarketingProviders theme={theme}>
             <MarketingShell branding={branding}>{children}</MarketingShell>

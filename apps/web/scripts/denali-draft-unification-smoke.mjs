@@ -8,7 +8,7 @@
  */
 import { chromium } from "@playwright/test";
 
-const BASE = process.env.SMOKE_BASE_URL ?? "http://denali.localhost:3000";
+const BASE = process.env.SMOKE_BASE_URL ?? "http://127.0.0.1:3000";
 const WORKSPACE = process.env.SMOKE_WORKSPACE_ID ?? "ws-denali-dev";
 const DRAFT_PATH = `/api/workspaces/${WORKSPACE}/drafts/operator.wizard/denali-create`;
 const OWNER_MOBILE = process.env.OPERATOR_OWNER_MOBILE ?? "+989121000001";
@@ -32,14 +32,33 @@ function skip(name, detail) {
   console.log(`○ ${name}: skipped (${detail})`);
 }
 
+async function ensureDraftAbsent(page) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await page.request.delete(DRAFT_PATH).catch(() => {});
+    const getRes = await page.request.get(DRAFT_PATH);
+    if (getRes.status() === 404) {
+      return;
+    }
+    await page.waitForTimeout(400);
+  }
+  throw new Error("draft row still present after DELETE");
+}
+
 async function login(page) {
   const otpRes = await page.request.post(`${BASE}/api/auth/request-otp`, {
     data: { phone: OWNER_MOBILE },
+    timeout: 120_000,
   });
-  if (!otpRes.ok()) throw new Error(`request-otp failed: ${otpRes.status()}`);
+  if (!otpRes.ok()) {
+    const body = await otpRes.text().catch(() => "");
+    throw new Error(
+      `request-otp failed: ${otpRes.status()}${body.includes("ModuleParseError") ? " (Next compile error — restart web dev)" : ""}`
+    );
+  }
   const { challenge_id } = await otpRes.json();
   const loginRes = await page.request.post(`${BASE}/api/auth/login-web-session`, {
     data: { phone: OWNER_MOBILE, otp: OTP, challenge_id },
+    timeout: 120_000,
   });
   if (!loginRes.ok()) throw new Error(`login failed: ${loginRes.status()}`);
 }
@@ -198,6 +217,7 @@ try {
   await page.goto("/tours/new", { waitUntil: "domcontentloaded", timeout: 120_000 });
   await page.locator("[data-workspace-wizard]").waitFor({ state: "visible", timeout: 60_000 });
   await clearDraft(page);
+  await ensureDraftAbsent(page);
   pass("wizard loads + clear");
 
   const seedWithPhotos = {

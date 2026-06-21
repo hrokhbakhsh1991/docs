@@ -13,6 +13,6 @@ echo "== p4:e2e-gate — portal registration smoke (SMK-PTL-01) =="
 pnpm --filter @apps/portal exec playwright test -c playwright.portal.config.ts
 
 echo "== p4:e2e-gate — web denali registration redirect smoke (SMK-DREG-01) =="
-pnpm --filter @apps/web exec playwright test tests/e2e/denali-catalog-registration.spec.ts
+pnpm --filter @apps/web exec playwright test -c playwright.denali.config.ts
 
 echo "P4_CLUB_PRODUCT_E2E_GATE_OK"

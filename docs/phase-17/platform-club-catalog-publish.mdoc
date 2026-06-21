@@ -195,7 +195,7 @@ Call from **`CanonicalTourService` only** (create + update; covers atomic and sc
 ```bash
 pnpm run guard:import-boundary
 pnpm run guard:public-catalog-m17
-git diff --quiet packages/workspaces/denali
+pnpm run guard:p3-denali-covenant
 
 pnpm --filter @apps/api exec node --import tsx --test \
   test/marketing-catalog-revalidate.spec.ts \

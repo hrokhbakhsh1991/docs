@@ -64,26 +64,15 @@ import {
   TenantRateLimitExceededError,
 } from "./tenant-rate-limiter";
 import {
-  isUrbanOwnerRequiredError,
-  isUrbanRegistrationClosedError,
-  isUrbanRegistrationDuplicateError,
-  isUrbanWorkspaceRequiredError,
-  URBAN_OWNER_REQUIRED,
-  URBAN_REGISTRATION_CLOSED,
-  URBAN_REGISTRATION_DUPLICATE,
-  URBAN_WORKSPACE_REQUIRED,
-} from "@app-tour/workspace-urban/http";
-import {
-  DENALI_OWNER_REQUIRED,
-  DENALI_REGISTRATION_DUPLICATE,
-  isDenaliOwnerRequiredError,
-  isDenaliRegistrationDuplicateError,
-} from "@app-tour/workspace-denali/http";
+  resolveWorkspaceHttpErrorCodeStatus,
+  WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS,
+} from "./workspace-http-error-map.generated";
 import {
   isAuthTokenRevokedError,
   isIdentityRequiredError,
   isOtpInvalidError,
 } from "../identity/identity.errors";
+import { ImpersonationReadOnlyError } from "../identity/impersonation-read-only.error";
 import { DbCircuitOpenError } from "../db/transient-db-error";
 import { ProxyCircuitOpenError } from "../proxy/proxy-upstream-circuit";
 import {
@@ -206,9 +195,10 @@ function mapErrorMessageToStatus(message: string): number {
     return 409;
   }
   if (message === IDEMPOTENCY_KEY_REQUIRED) return 400;
-  if (message === URBAN_REGISTRATION_DUPLICATE) return 409;
-  if (message === URBAN_REGISTRATION_CLOSED) return 403;
-  if (message === DENALI_REGISTRATION_DUPLICATE) return 409;
+  const workspaceCodeStatus = resolveWorkspaceHttpErrorCodeStatus(message);
+  if (workspaceCodeStatus !== undefined) {
+    return workspaceCodeStatus;
+  }
   if (message === HTTP_IDEMPOTENCY_TENANT_MISMATCH) {
     return 403;
   }
@@ -453,64 +443,26 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
     return;
   }
 
-  if (isUrbanOwnerRequiredError(error)) {
+  if (error instanceof ImpersonationReadOnlyError) {
     sendHttpError(
       res,
       403,
-      { error: URBAN_OWNER_REQUIRED, code: URBAN_OWNER_REQUIRED },
+      { error: "forbidden", code: "IMPERSONATION_READ_ONLY" },
       correlationId
     );
     return;
   }
 
-  if (isDenaliOwnerRequiredError(error)) {
-    sendHttpError(
-      res,
-      403,
-      { error: DENALI_OWNER_REQUIRED, code: DENALI_OWNER_REQUIRED },
-      correlationId
-    );
-    return;
-  }
-
-  if (isUrbanWorkspaceRequiredError(error)) {
-    sendHttpError(
-      res,
-      404,
-      { error: URBAN_WORKSPACE_REQUIRED, code: URBAN_WORKSPACE_REQUIRED },
-      correlationId
-    );
-    return;
-  }
-
-  if (isUrbanRegistrationDuplicateError(error)) {
-    sendHttpError(
-      res,
-      409,
-      { error: URBAN_REGISTRATION_DUPLICATE, code: URBAN_REGISTRATION_DUPLICATE },
-      correlationId
-    );
-    return;
-  }
-
-  if (isUrbanRegistrationClosedError(error)) {
-    sendHttpError(
-      res,
-      403,
-      { error: URBAN_REGISTRATION_CLOSED, code: URBAN_REGISTRATION_CLOSED },
-      correlationId
-    );
-    return;
-  }
-
-  if (isDenaliRegistrationDuplicateError(error)) {
-    sendHttpError(
-      res,
-      409,
-      { error: DENALI_REGISTRATION_DUPLICATE, code: DENALI_REGISTRATION_DUPLICATE },
-      correlationId
-    );
-    return;
+  for (const binding of WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS) {
+    if (binding.isError(error)) {
+      sendHttpError(
+        res,
+        binding.status,
+        { error: binding.code, code: binding.code },
+        correlationId
+      );
+      return;
+    }
   }
 
   if (error instanceof Error && error.message === "INTERNAL_SERVER_ERROR") {

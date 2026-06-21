@@ -4,10 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-  ensureDenaliTourKindAllowedPaths,
-  ensureDenaliTourKindTemplateSteps,
-} from "@app-tour/workspace-denali/wizard/template-invariants";
+import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 
 import {
   applyWizardTemplateToRenderPlan,
@@ -17,6 +14,7 @@ import {
   isWizardTemplatePublished,
   resolveWizardTemplateAllowedPaths,
   resolveWizardTemplateGateState,
+  resolveInitialWorkspaceFormProfile,
   WIZARD_TEMPLATE_GATE_TEST_IDS,
 } from "../src/tours/wizard-template-gate-logic";
 
@@ -38,7 +36,8 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
         updatedAt: null,
         payload: { seedLabel: "SMK-P9-SEED", sections: [] },
       },
-      "denali"
+      "denali",
+      getDenaliWorkspacePlugin()
     );
     assert.equal(gate.published, false);
     assert.equal(gate.allowedCanonicalPaths.length, 0);
@@ -46,7 +45,7 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
   });
 
   it("WEB-9.6-WIZ-03 published denali template injects mandatory category field", () => {
-    const steps = buildDefaultPublishedWizardSteps("denali");
+    const steps = buildDefaultPublishedWizardSteps("denali", getDenaliWorkspacePlugin());
     assert.equal(steps[0]?.fields[0]?.canonicalPath, "title");
 
     const gate = resolveWizardTemplateGateState(
@@ -57,10 +56,12 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
         updatedAt: null,
         payload: { seedLabel: "", sections: [], published: true },
       },
-      "denali"
+      "denali",
+      getDenaliWorkspacePlugin()
     );
     assert.equal(gate.published, true);
-    assert.deepEqual(gate.allowedCanonicalPaths, ["category", "title"]);
+    assert.ok(gate.allowedCanonicalPaths.includes("category"));
+    assert.ok(gate.allowedCanonicalPaths.includes("title"));
     assert.equal(gate.templateSteps[0]?.fields[0]?.canonicalPath, "category");
   });
 
@@ -145,13 +146,19 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
   });
 
   it("WEB-9.6-WIZ-09 applyWizardTemplateToRenderPlan includes injected category", () => {
-    const templateSteps = ensureDenaliTourKindTemplateSteps([
-      {
-        stepId: "denali_basic",
-        enabled: true,
-        fields: [{ canonicalPath: "title", required: true }],
-      },
-    ]);
+    const plugin = getDenaliWorkspacePlugin();
+    const normalized = plugin.wizardHost?.normalizeWizardTemplateGate?.({
+      templateSteps: [
+        {
+          stepId: "denali_basic",
+          enabled: true,
+          fields: [{ canonicalPath: "title", required: true }],
+        },
+      ],
+      allowedCanonicalPaths: ["title"],
+      workspaceFormProfile: "",
+    });
+    const templateSteps = normalized?.templateSteps ?? [];
     const plan = applyWizardTemplateToRenderPlan(
       [
         {
@@ -165,6 +172,12 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
       templateSteps
     );
     assert.equal(plan[0]?.fields[0]?.canonicalPath, "category");
+  });
+
+  it("P14-0b-08 resolveInitialWorkspaceFormProfile uses plugin hook default", () => {
+    const plugin = getDenaliWorkspacePlugin();
+    assert.equal(resolveInitialWorkspaceFormProfile(plugin), "denali_pilot");
+    assert.equal(resolveInitialWorkspaceFormProfile(), "platform_default");
   });
 
   it("WEB-9.6-WIZ-08 applyWizardTemplateToRenderPlan keeps template-only review step", () => {

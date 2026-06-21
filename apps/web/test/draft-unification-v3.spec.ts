@@ -7,11 +7,11 @@ import { afterEach, describe, it } from "node:test";
 import {
   createDenaliDraftOnPushSuccess,
   resolveDenaliDraftConflictStrategy,
-  resolveDenaliDraftMerge,
 } from "../src/draft/draft-unification-v3-options";
+import { resolveDenaliDraftMerge } from "@app-tour/workspace-denali/draft";
 import { resolveDraftUnificationV3Mode } from "../src/draft/draft-unification-v3";
-import { logDenaliTombstoneShadowMismatch } from "../src/draft/draft-unification-v3-shadow";
-import { mergeDenaliWizardDraftEnvelope } from "../src/draft/denali-wizard-draft-merge";
+import { logDenaliTombstoneShadowMismatch } from "@app-tour/workspace-denali/draft";
+import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/draft";
 
 const ENV_KEYS = ["DRAFT_UNIFICATION_V3", "NEXT_PUBLIC_DRAFT_UNIFICATION_V3"] as const;
 

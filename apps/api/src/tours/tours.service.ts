@@ -12,7 +12,7 @@ import type { CloneTourBody } from "./clone-tour.schema";
 import type { CreateTourBody } from "./create-tour.schema";
 import type { ListToursQuery, TourListResult } from "./list-tours-query";
 import type { OperatorListToursQuery, OperatorTourListResult } from "./list-tours-operator";
-import { applyDenaliServerClonePhotoRemint } from "./apply-denali-server-clone-photo-remint";
+import { applyWorkspaceServerClonePhotoRemint } from "./apply-workspace-server-clone-photo-remint";
 import { resolveActiveEquipmentIdsForClone } from "./resolve-clone-equipment-ids";
 import { resolveActiveDestinationIdsForClone } from "./resolve-clone-destination-ids";
 import type { UpdateTourBody } from "./update-tour.schema";
@@ -83,7 +83,7 @@ export class ToursService {
     });
 
     const record = await this.createTour(auth, createBody);
-    return applyDenaliServerClonePhotoRemint(this, auth, record);
+    return applyWorkspaceServerClonePhotoRemint(this, auth, record);
   }
 
   async updateTour(
