@@ -53,7 +53,7 @@ Wizard/UI WIP remains unstashed separately — not required for `p4:gate`.
 - [x] Commit 1 — denali export slice (`22b47566`)
 - [x] Commit 2 — P4 product + docs/phase-17 (`e17f36e9`)
 - [ ] PR merged to main (branch push pending)
-- [ ] Commit 3 — P4 closure holes (SS specs · doc sync)
+- [x] Commit 3 — P4 closure holes (`36d37663`)
 
 ## Known v1.1 deferrals (not P4 holes)
 
