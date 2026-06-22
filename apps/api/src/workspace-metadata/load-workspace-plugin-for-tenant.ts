@@ -7,6 +7,7 @@ import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-pl
 import { isWorkspaceMetadataEnabled } from "./is-workspace-metadata-enabled.ts";
 import { isWorkspaceMetadataEnabledForTenant, isWorkspaceMetadataTenantAllowlistConfigured } from "./is-workspace-metadata-enabled-for-tenant.ts";
 import { adaptMetadataPayloadToWorkspacePlugin } from "./metadata-plugin-adapter.ts";
+import { mergeCommerceIntoWorkspaceDefinitionPayload } from "./persist-commerce-on-publish.ts";
 import {
   WorkspaceDefinitionRepository,
   type WorkspaceDefinitionVersionRow,
@@ -30,8 +31,11 @@ export type ResolveWorkspacePluginForTenantInput = {
 };
 
 function parseDefinitionPayload(row: WorkspaceDefinitionVersionRow): WorkspaceDefinitionPayload {
-  assertWorkspaceDefinitionPayload(row.payload);
-  return row.payload;
+  const merged = mergeCommerceIntoWorkspaceDefinitionPayload(row.payload);
+  if (typeof assertWorkspaceDefinitionPayload === "function") {
+    assertWorkspaceDefinitionPayload(merged);
+  }
+  return merged as WorkspaceDefinitionPayload;
 }
 
 /**

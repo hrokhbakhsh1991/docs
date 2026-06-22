@@ -7,10 +7,6 @@
 type WorkspaceWizardMessageLocale = "fa" | "en";
 
 const WORKSPACE_WIZARD_MESSAGE_LOADERS = {
-  "denali": {
-    fa: () => import("@app-tour/workspace-denali/messages/fa/wizard.json"),
-    en: () => import("@app-tour/workspace-denali/messages/en/wizard.json"),
-  },
   "urban": {
     fa: () => import("@app-tour/workspace-urban/messages/fa/wizard.json"),
     en: () => import("@app-tour/workspace-urban/messages/en/wizard.json"),

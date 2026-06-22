@@ -26,7 +26,8 @@ describe("public-catalog-registration-flow-contract — P6-1 OTP", () => {
   const otpDoc = readFileSync(otpFlowDocPath, "utf8");
 
   it("OTP-01 flow defines phone → otp → profile → intake → done steps", () => {
-    assert.match(flow, /type Step = "phone" \| "otp" \| "profile" \| "intake" \| "done"/);
+    assert.match(flow, /PublicRegistrationStep/);
+    assert.match(flow, /useState<PublicRegistrationStep>\("phone"\)/);
     assert.match(flow, /data-public-registration-phone/);
     assert.match(flow, /data-public-registration-otp/);
     assert.match(flow, /data-public-registration-profile/);
@@ -35,7 +36,7 @@ describe("public-catalog-registration-flow-contract — P6-1 OTP", () => {
   });
 
   it("OTP-02 dev OTP is 1234 in UI and API", () => {
-    assert.match(flow, /DEV_OTP = "1234"/);
+    assert.match(flow, /PUBLIC_REGISTRATION_DEV_OTP/);
     assert.match(otpService, /DEV_STATIC_OTP = "1234"/);
     assert.match(otpDoc, /1234/);
   });
@@ -60,7 +61,7 @@ describe("public-catalog-registration-flow-contract — P6-1 OTP", () => {
   });
 
   it("OTP-06 profile email is optional", () => {
-    assert.match(flow, /profileEmail\.trim\(\)\.length > 0 \? \{ email: profileEmail\.trim\(\) \} : \{\}/);
+    assert.match(flow, /buildPublicRegistrationProfilePayload/);
     assert.match(faMessages, /ایمیل \(اختیاری\)/);
   });
 

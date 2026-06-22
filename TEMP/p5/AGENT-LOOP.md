@@ -11,3 +11,4 @@
 9. Update DOC-SYNC + START + MANIFEST + FILE-MAP + exit checklist
 10. STOP if red or AD-S0-* violation
 11. Run `pnpm run p5:gate` (includes `p5-doc-integrity.spec.ts`)
+12. If `current_task: null` → **P5 closed**; stop nano loop · run `p5:gate` only on regression

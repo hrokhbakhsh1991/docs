@@ -1,0 +1,210 @@
+---
+title: P6 — Enterprise theming architecture (minimal · powerful)
+phase: 19
+format: markdoc
+doc_role: architecture_sot
+mandatory_for: [P6-0, P6-1, P6-2, P6-3, P6-4]
+extends:
+  - docs/phase-2/subphases/2.1-design-tokens.md
+  - docs/phase-9/appendices/ADMIN-SHELL-UX.md
+  - docs/workspaces/denali/admin-experience.md
+  - docs/phase-19/p6-implementation-standards.mdoc
+research_basis:
+  - W3C Design Tokens Community Group (DTCG) 2025.10
+  - Tailwind CSS v4 @theme / @theme inline (CSS-first tokens)
+  - Multi-tenant runtime CSS variable cascade (white-label SaaS pattern)
+  - Feature-Sliced Design — theme ownership in shared/config, not features
+---
+
+# P6 enterprise theming architecture
+
+**Goal:** One trunk theming system that scales to **many workspaces**, **many tenants**, and **three app surfaces** (admin · portal · marketing) — with the **smallest** moving parts and the **strongest** override chain.
+
+**Reference implementation:** Denali operator admin (`apps/web` + `packages/workspaces/denali/theme/denali-admin.css`).
+
+---
+
+## 1. Industry synthesis (2025–2026)
+
+Research across DTCG/Style Dictionary, Tailwind v4, shadcn monorepos, and multi-tenant SaaS frontends converges on one pattern:
+
+| Principle | Why it wins |
+| --------- | ----------- |
+| **Three token layers** | Primitives → Semantics → Component/workspace overrides. Components never read raw hex. |
+| **Runtime CSS variables** | Tenant + workspace switch without rebuild; zero JS style parsing. |
+| **`@theme inline` for colors** | Tailwind utilities (`bg-primary`) track live `var(--primary)` — required for white-label. |
+| **Shared package, one Tailwind entry** | Design-token package exports CSS **without** `@import "tailwindcss"`; each app imports Tailwind once. |
+| **Attribute-scoped skins** | `[data-workspace-plugin]` / `[data-app-surface]` — no style leakage between workspaces. |
+| **Manifest-driven stylesheet ingress** | Workspace owns skin path; registry generator wires apps — no hard-coded imports in layouts. |
+
+**What we deliberately skip (not minimal):**
+
+- Per-tenant CSS file builds (build-time splitting) — use runtime `TenantThemeProvider` instead.
+- CSS-in-JS theme engines — breaks static/SSR guest pages.
+- Flat Tailwind config tokens — v4 `@theme` in CSS is the trunk standard.
+
+---
+
+## 2. Locked architecture — four layers
+
+```text
+Layer 0  Primitives     packages/design-tokens (DTCG JSON → CSS --color-*, --space-*)
+Layer 1  Shell bridge   shell-bridge.css — @theme inline + shadcn ↔ platform map
+Layer 2  Tenant runtime TenantThemeProvider — primaryColor from branding API
+Layer 3  Workspace skin packages/workspaces/<id>/theme/*.css — scoped overrides + component tokens
+```
+
+### Cascade (most specific wins)
+
+```text
+:root / .theme-dark          ← platform semantics (design-tokens)
+  ↓
+body[data-workspace-plugin] ← workspace palette (denali forest/mist, urban accent, …)
+  ↓
+body[data-app-surface]      ← surface chrome (portal register vs marketing catalog)
+  ↓
+TenantThemeProvider         ← tenant primary override (--color-primary)
+  ↓
+Component data-* rules      ← registration form, catalog card, operator sidebar
+```
+
+**Rule:** TSX and features read **semantic** tokens only (`var(--primary)`, `bg-card`, `text-muted-foreground`). Workspace differences live in **Layer 3 CSS**, not duplicated React.
+
+---
+
+## 3. Package contracts
+
+### 3.1 `@app-tour/design-tokens`
+
+| Export | Role | Imports Tailwind? |
+| ------ | ---- | ----------------- |
+| `styles.css` | Full platform tokens (admin entry) | No |
+| `guest-shell.css` | `index.css` + `shell-bridge.css` + body reset | No |
+| `shell-bridge.css` | `@theme inline` + shadcn semantic bridge | No |
+
+**App `globals.css` (every surface):**
+
+```css
+@import "@app-tour/design-tokens/guest-shell.css"; /* or styles.css for admin */
+@import "tailwindcss";
+/* NO page rules here — move to workspace skin */
+```
+
+### 3.2 `@app-tour/theme-react`
+
+| App | Provider | Why |
+| --- | -------- | --- |
+| Admin | `ThemeProviderChain` | CASL + workspace plugin theme + operator dark toggle |
+| Portal / Marketing | `PlatformThemeProvider` + `TenantThemeProvider` | Guest — no authz; tenant primary only |
+
+### 3.3 Workspace theme bundles
+
+| Workspace | Admin | Portal | Marketing |
+| --------- | ----- | ------ | --------- |
+| Denali | `denali-admin.css` | `denali-portal.css` | `denali-marketing.css` |
+| Urban | `tokens.css` | (future `urban-portal.css`) | (future) |
+| Starter | `tokens.css` | — | — |
+
+Manifest keys (`workspace.manifest.json`):
+
+```json
+{
+  "themeStylesheets": ["theme/denali-admin.css"],
+  "guestThemeStylesheets": {
+    "portal": ["theme/denali-portal.css"],
+    "marketing": ["theme/denali-marketing.css"]
+  }
+}
+```
+
+Generator output:
+
+- `apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts`
+- `apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts`
+- `apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts`
+
+---
+
+## 4. Body attributes (scope contract)
+
+| Attribute | Set by | Purpose |
+| --------- | ------ | ------- |
+| `data-workspace-plugin="{pluginId}"` | Layout from host bootstrap | Workspace skin selector |
+| `data-app-surface="portal\|marketing"` | Guest layout | Surface-specific component tokens |
+| `data-tenant-id` | Admin layout | Ops/debug; guest uses bootstrap in BFF |
+
+**Denali portal skin selector:**
+
+```css
+body[data-app-surface="portal"][data-workspace-plugin="denali"] { … }
+```
+
+Same pattern for marketing. Urban/starter skins add their own `data-workspace-plugin` block — no cross-workspace imports in apps.
+
+---
+
+## 5. Fields differ per workspace — separate concern
+
+Theming (Layer 0–3) is **visual**. **Field shapes** are workspace-owned in `packages/workspaces/<id>/`:
+
+| Concern | Owner | Example |
+| ------- | ----- | ------- |
+| Colors, radius, motion | `theme/*.css` | Denali mist page background |
+| Form fields, validation | `ui/fields/*`, HTTP routes | Denali `partySize` vs Urban `notes` |
+| Registration intake | `apps/portal` feature + workspace dispatch | `pluginId === "denali"` POST path |
+
+**Do not** solve field differences with CSS alone. **Do not** solve colors in workspace TypeScript.
+
+---
+
+## 6. Minimal vs powerful — decision matrix
+
+| Need | Minimal path | Powerful path (when required) |
+| ---- | ------------ | ----------------------------- |
+| New workspace color story | Add `theme/<workspace>-<surface>.css` + manifest | + `tokens.css` contract `--ws-color-accent` |
+| New guest page layout | `data-*` rules in workspace skin | Promote to `@app-tour/ui-primitives` if ≥3 consumers |
+| Tenant rebrand | `TenantThemeProvider` primary | Extend branding DTO + map to `--color-primary` |
+| Dark mode guest | Defer P6 | Mirror admin dual cascade (`html.dark` + `.theme-dark`) |
+| New app surface | Copy 2-file pattern: `globals.css` + generated skin ingress | Register `guestThemeStylesheets.<surface>` in manifest |
+
+---
+
+## 7. P6 implementation checklist
+
+```text
+✅ design-tokens: shell-bridge.css exported; guest-shell composes it
+✅ apps/*/globals.css: imports only (no page-specific rules)
+✅ workspace manifest: themeStylesheets + guestThemeStylesheets
+✅ generate:workspace-registry → portal + marketing guest stylesheet bundles
+✅ layout: data-workspace-plugin + data-app-surface on <body>
+✅ denali-portal.css + denali-marketing.css scoped skins
+✅ TenantThemeProvider passes branding primary (already wired)
+✅ specs: guest-theme-stack + workspace skin contract
+```
+
+---
+
+## 8. Verification
+
+```bash
+pnpm run generate:workspace-registry
+pnpm --filter @app-tour/design-tokens run build
+pnpm --filter @apps/portal run test
+pnpm --filter @apps/marketing run test
+```
+
+Admin reference (unchanged):
+
+```bash
+pnpm --filter @apps/web test -- test/denali-admin-theme.spec.ts
+```
+
+---
+
+## 9. References
+
+- [p6-theming-file-tree.md](p6/p6-theming-file-tree.md) — mandatory file layout (P6-1-N-015)
+- [W3C Design Tokens Format Module 2025.10](https://www.designtokens.org/)
+- [Tailwind v4 `@theme` / `@theme inline`](https://tailwindcss.com/docs/theme)
+- [`p6-implementation-standards.mdoc`](p6-implementation-standards.mdoc)
+- [`admin-experience.md`](../workspaces/denali/admin-experience.md)

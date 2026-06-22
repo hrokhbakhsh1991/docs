@@ -1,0 +1,110 @@
+---
+title: Portal member session and /me (P6-3)
+phase: 19
+format: markdoc
+epic: P6-3
+app: apps/portal
+prerequisite: P6-1-N-014 GUEST_SLICE_OK
+---
+
+# Portal member session contract
+
+Guest **registration** (P6-1) and member **self-service** (P6-3) share the same public-auth session on the **portal host** (`{club}.portal.{root}`).
+
+## Host
+
+| Env | Portal member base |
+| --- | ------------------ |
+| Dev (canonical) | `http://{club}.portal.localhost:3003` |
+| Prod (platform) | `https://{club}.portal.{root}` |
+| Prod (custom) | `https://portal.{apex}` via `tenant_domains` · `surface=portal` |
+
+Authority: [p6-host-addressing-architecture.mdoc](p6-host-addressing-architecture.mdoc)
+
+---
+
+## Session (frozen)
+
+| Item | Value |
+| ---- | ----- |
+| Cookie | `session` (httpOnly · set by portal BFF after `verify-otp` or `register-complete`) |
+| Actor | `role: member` · `ACTIVE` membership on tenant |
+| TTL | Same as operator session policy in `apps/api` identity layer |
+| Scope | Tenant-bound — session valid only on portal host for that club |
+
+### BFF headers to API
+
+Portal BFF routes under `/api/public-auth/*` and `/api/me/*` forward:
+
+```text
+x-tenant-id     ← resolved from Host / public tenant context
+Authorization   ← session token from cookie (member routes)
+```
+
+Member routes **reject** operator (`owner`) sessions — portal `/me` is not admin.
+
+---
+
+## Routes (P6-3)
+
+| Route | Auth | Purpose |
+| ----- | ---- | ------- |
+| `/me/registrations` | member session | List own tour registrations |
+| `/me/registrations/[id]` | member session | Detail + receipt upload |
+| `POST /api/me/registrations/[id]/receipt` | member session | Upload offline receipt proof |
+
+API upstream (frozen — reuse Phase 9.5 member filter):
+
+| BFF route | Upstream API | Scope |
+| --------- | ------------ | ----- |
+| `GET /api/me/registrations` | `GET /bookings?view=mine` | session user + tenant RLS |
+| `POST /api/me/registrations/[id]/receipt` | `POST /finance/receipts` (or workspace dispatch) | member-only; **403** for foreign `registrationId` |
+
+**Do not** add `GET /denali/registrations/mine` in P6 — `view=mine` on `/bookings` is the production SoT (see `BOOKINGS-OPS-UX.md` ASM-9.5-002).
+
+---
+
+## Logout
+
+| Route | Behavior |
+| ----- | -------- |
+| `POST /api/public-auth/logout` | Clears `session` cookie · redirects to marketing or portal home |
+
+Unauthenticated access to `/me/*` → redirect to marketing catalog or portal register (not admin login).
+
+---
+
+## Register success → /me (P6-3-N-008)
+
+After `[data-public-registration-success]` on `/catalog/{tourId}/register`, primary CTA links to `/me/registrations`.
+
+---
+
+## Portal home redirect (P6-3-N-009)
+
+| Condition | `/` behavior |
+| --------- | ------------ |
+| Valid member session | Redirect `/me/registrations` |
+| No session | Show club home or link to marketing `/tours` |
+
+---
+
+## Verification
+
+| ID | Assert |
+| -- | ------ |
+| MEM-01 | Session cookie set after OTP verify (existing user) |
+| MEM-02 | Session cookie set after register-complete (new user) |
+| MEM-03 | `GET /me/registrations` 401 without session |
+| MEM-04 | Member cannot read another user's registration (403) |
+| MEM-05 | Logout clears cookie |
+
+Specs: `apps/portal/test/portal-member-*.spec.ts` · `apps/api/test/portal-member-registrations.spec.ts`
+
+---
+
+## References
+
+- [platform-portal-otp-flow.mdoc](platform-portal-otp-flow.mdoc) — registration session creation
+- [p6-3-member-portal.md](p6/p6-3-member-portal.md)
+- [public-catalog.md](../workspaces/denali/public-catalog.md) § Registration

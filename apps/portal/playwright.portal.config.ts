@@ -13,12 +13,12 @@ export default defineConfig({
   timeout: 180_000,
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: process.env.SMOKE_PORTAL_BASE_URL ?? "http://operator.localhost:3003",
+    baseURL: process.env.SMOKE_PORTAL_BASE_URL ?? "http://operator.portal.localhost:3003",
     viewport: { width: 1280, height: 900 },
   },
   webServer: {
     command: "node scripts/smoke-portal-e2e-servers.mjs",
-    url: `${process.env.SMOKE_PORTAL_BASE_URL ?? "http://operator.localhost:3003"}/health`,
+    url: `${process.env.SMOKE_PORTAL_BASE_URL ?? "http://operator.portal.localhost:3003"}/health`,
     reuseExistingServer: !process.env.CI && process.env.PW_NO_REUSE_SERVER !== "1",
     timeout: 360_000,
     stdout: "pipe",

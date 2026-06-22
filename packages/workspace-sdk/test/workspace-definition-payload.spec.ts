@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   assertWorkspaceDefinitionPayload,
   computeWorkspaceDefinitionPayloadChecksum,
+  DEFAULT_WORKSPACE_COMMERCE_CONFIG,
   stripWorkspacePluginToDefinitionPayload,
   validateWorkspaceDefinitionPayload,
 } from "../src/metadata/index.js";
@@ -50,12 +51,47 @@ describe("validateWorkspaceDefinitionPayload", () => {
     );
   });
 
+  it("accepts optional commerce block on payload", () => {
+    const payload = {
+      ...stripWorkspacePluginToDefinitionPayload(createFreshStarterPlugin()),
+      commerce: DEFAULT_WORKSPACE_COMMERCE_CONFIG,
+    };
+    const result = validateWorkspaceDefinitionPayload(payload);
+    assert.equal(result.ok, true);
+  });
+
+  it("rejects invalid commerce block on payload", () => {
+    const payload = {
+      ...stripWorkspacePluginToDefinitionPayload(createFreshStarterPlugin()),
+      commerce: { paymentMode: "gateway", gatewayProvider: null, currency: "IRR" },
+    };
+    const result = validateWorkspaceDefinitionPayload(payload);
+    assert.equal(result.ok, false);
+  });
+
   it("checksum is stable for same payload", () => {
     const payload = stripWorkspacePluginToDefinitionPayload(createFreshStarterPlugin());
     const a = computeWorkspaceDefinitionPayloadChecksum(payload);
     const b = computeWorkspaceDefinitionPayloadChecksum(payload);
     assert.equal(a, b);
     assert.match(a, /^[a-f0-9]{64}$/);
+  });
+
+  it("checksum changes when commerce content changes", () => {
+    const payload = stripWorkspacePluginToDefinitionPayload(createFreshStarterPlugin());
+    const base = computeWorkspaceDefinitionPayloadChecksum({
+      ...payload,
+      commerce: DEFAULT_WORKSPACE_COMMERCE_CONFIG,
+    });
+    const mutated = {
+      ...payload,
+      commerce: {
+        paymentMode: "gateway" as const,
+        gatewayProvider: "zibal" as const,
+        currency: "IRR",
+      },
+    };
+    assert.notEqual(base, computeWorkspaceDefinitionPayloadChecksum(mutated));
   });
 
   it("checksum changes when registry content changes", () => {

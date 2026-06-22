@@ -5,10 +5,9 @@ import type { Prisma } from "@prisma/client";
 
 import {
   AUDIT_ACTION_TOUR_CREATED,
-  AUDIT_ACTION_TOUR_PUBLISHED,
-  AUDIT_ACTION_TOUR_UNPUBLISHED,
-  AUDIT_ACTION_TOUR_UPDATED,
   appendAuditEvent,
+  appendTourPublishTransitionAuditEvent,
+  appendTourUpdatedAuditEvent,
 } from "../audit/audit-logger";
 import { readCanonicalTransactionNow } from "../db/canonical-transaction-now";
 import { withCanonicalTransaction } from "../db/with-canonical-transaction";
@@ -26,7 +25,6 @@ import { deriveTourProjections } from "./projection-sync";
 import {
   detectTourPublishTransition,
   readTourPublishStatusLabel,
-  type TourPublishTransitionKind,
 } from "./workspace-canonical-tour-dispatch";
 
 export type AtomicCanonicalTourPersistInput = {
@@ -210,10 +208,8 @@ async function persistTourUpdateAtomicallyInContext(
       throw new Error("P5_ATOMIC_TX_TEST_ABORT");
     }
 
-    await appendAuditEvent(tx, {
-      action: AUDIT_ACTION_TOUR_UPDATED,
-      entityType: "tour",
-      entityId: input.tourId,
+    await appendTourUpdatedAuditEvent(tx, {
+      tourId: input.tourId,
       createdAt: txNow,
     });
 
@@ -223,11 +219,11 @@ async function persistTourUpdateAtomicallyInContext(
       input.canonical
     );
     if (publishTransition != null) {
-      await appendPublishTransitionAuditEvent(tx, {
+      await appendTourPublishTransitionAuditEvent(tx, {
         tourId: input.tourId,
         transition: publishTransition,
-        before: beforeCanonical,
-        after: input.canonical,
+        fromPublishStatus: readTourPublishStatusLabel(getActiveWorkspaceType(), beforeCanonical),
+        toPublishStatus: readTourPublishStatusLabel(getActiveWorkspaceType(), input.canonical),
         createdAt: txNow,
       });
     }
@@ -261,32 +257,4 @@ function buildTourCreateData(args: {
     schemaVersion: args.projections.schemaVersion,
     createdAt: args.createdAt,
   };
-}
-
-async function appendPublishTransitionAuditEvent(
-  tx: Prisma.TransactionClient,
-  input: {
-    readonly tourId: string;
-    readonly transition: TourPublishTransitionKind;
-    readonly before: CanonicalDocument;
-    readonly after: CanonicalDocument;
-    readonly createdAt: Date;
-  }
-): Promise<void> {
-  const workspaceType = getActiveWorkspaceType();
-  const action =
-    input.transition === "published" ? AUDIT_ACTION_TOUR_PUBLISHED : AUDIT_ACTION_TOUR_UNPUBLISHED;
-  const fromPublishStatus = readTourPublishStatusLabel(workspaceType, input.before);
-  const toPublishStatus = readTourPublishStatusLabel(workspaceType, input.after);
-
-  await appendAuditEvent(tx, {
-    action,
-    entityType: "tour",
-    entityId: input.tourId,
-    createdAt: input.createdAt,
-    metadata: {
-      ...(fromPublishStatus !== undefined ? { fromPublishStatus } : {}),
-      ...(toPublishStatus !== undefined ? { toPublishStatus } : {}),
-    },
-  });
 }

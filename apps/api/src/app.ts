@@ -147,6 +147,14 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "POST" && url.pathname === "/internal/payments/webhook") {
+    const { handlePaymentsWebhook } = await import(
+      "./integrations/webhooks/payments-webhook.controller.ts"
+    );
+    await handlePaymentsWebhook(req, res);
+    return;
+  }
+
   if (method === "POST" && url.pathname === "/auth/phone-preflight") {
     await handlePhonePreflight(req, res);
     return;

@@ -6,7 +6,7 @@
 
 /** Manifest-driven mediaRouteKey → web BFF path (legacy alias or neutral). */
 export const WIZARD_MEDIA_ROUTE_BFF_PATHS = Object.freeze({
-  "wizard-photos": "/api/tours/wizard-photos",
+  "wizard-photos": "/api/wizard-media/wizard-photos",
 }) as Readonly<Record<string, string>>;
 
 export function isKnownWizardMediaRouteBffKey(mediaRouteKey: string): boolean {

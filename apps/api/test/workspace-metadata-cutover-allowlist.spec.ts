@@ -89,7 +89,59 @@ describe("workspace-metadata-cutover-allowlist", () => {
     );
   });
 
-  it("CO-05 missing definition row throws WORKSPACE_DEFINITION_NOT_FOUND", async () => {
+  it("CO-05 rollback drill clears binding and restores package plugin id", async () => {
+    env.WORKSPACE_METADATA_ENABLED = "true";
+    env.WORKSPACE_METADATA_TENANT_ALLOWLIST = "pilot-tenant";
+    const overlay = getStarterWorkspacePlugin();
+    const payload = stripWorkspacePluginToDefinitionPayload(overlay);
+    payload.fieldRegistry = {
+      version: payload.fieldRegistry.version,
+      fields: [
+        ...payload.fieldRegistry.fields,
+        {
+          id: "basics.pilotMarker",
+          canonicalPath: "basics.pilotMarker",
+          kind: "text",
+          required: false,
+          stepId: "basics",
+        },
+      ],
+    };
+    const packagePlugin = resolveWorkspacePluginForType("starter");
+    const loadPublishedVersion = async () => ({
+      id: "00000000-0000-4000-8000-000000000021",
+      definitionId: "starter-shell",
+      version: 1,
+      pluginApiVersion: 1,
+      payload,
+      checksum: "abc",
+      publishedAt: new Date("2026-06-21T12:00:00.000Z"),
+    });
+
+    const started = performance.now();
+    const boundPlugin = await resolveWorkspacePluginForTenant({
+      workspaceType: "starter",
+      tenantId: "pilot-tenant",
+      metadataBinding: { definitionId: "starter-shell", definitionVersion: 1 },
+      loadPublishedVersion,
+    });
+    assert.equal(boundPlugin.fieldRegistry, payload.fieldRegistry);
+    assert.notEqual(boundPlugin.fieldRegistry, packagePlugin.fieldRegistry);
+
+    const rolledBackPlugin = await resolveWorkspacePluginForTenant({
+      workspaceType: "starter",
+      tenantId: "pilot-tenant",
+      metadataBinding: null,
+      loadPublishedVersion: async () => {
+        throw new Error("must not load metadata after binding cleared");
+      },
+    });
+    assert.equal(rolledBackPlugin.id, packagePlugin.id);
+    assert.equal(rolledBackPlugin.fieldRegistry, packagePlugin.fieldRegistry);
+    assert.ok(performance.now() - started < 60_000, "rollback drill must complete in-process");
+  });
+
+  it("missing definition row throws WORKSPACE_DEFINITION_NOT_FOUND", async () => {
     env.WORKSPACE_METADATA_ENABLED = "true";
     delete env.WORKSPACE_METADATA_TENANT_ALLOWLIST;
     await assert.rejects(

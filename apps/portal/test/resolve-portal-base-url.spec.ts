@@ -5,24 +5,19 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { resolveMarketingTourDetailUrl } from "../src/marketing/resolve-marketing-public-url";
+import { buildDevPortalPublicBaseUrl } from "@app-tour/tenant-kernel";
 
-function resolvePortalPublicBaseUrl(host: string): string {
-  const configured = process.env.PORTAL_PUBLIC_BASE_URL?.trim();
-  if (configured !== undefined && configured.length > 0) {
-    return configured.replace(/\/$/, "");
-  }
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "localhost";
-  const port = process.env.PORTAL_DEV_PORT?.trim() || "3003";
-  const portalHost = hostname.startsWith("shop.") ? hostname.slice("shop.".length) : hostname;
-  return `http://${portalHost}:${port}`;
-}
+import { resolveMarketingTourDetailUrl } from "../src/marketing/resolve-marketing-public-url";
 
 describe("resolve-portal-base-url", () => {
   it("PTL-01 marketing shop host maps to portal base", () => {
     assert.equal(
-      resolvePortalPublicBaseUrl("shop.denali.localhost:3002"),
-      "http://denali.localhost:3003"
+      buildDevPortalPublicBaseUrl({
+        ingressHost: "shop.denali.localhost:3002",
+        rootDomain: "localhost",
+        portalPort: "3003",
+      }),
+      "http://denali.portal.localhost:3003"
     );
   });
 

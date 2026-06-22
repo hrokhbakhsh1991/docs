@@ -1,4 +1,5 @@
 import { PlatformTenantRepository } from "../platform/platform-tenant.repository.ts";
+import { findTenantById } from "../tenant/tenant-registry.ts";
 import {
   resolveWorkspacePluginForTenant,
   type ResolveWorkspacePluginForTenantInput,
@@ -48,12 +49,26 @@ export async function readTenantWorkspaceMetadataBinding(
   workspaceType: string;
   metadataBinding: TenantWorkspaceMetadataBinding | null;
 } | null> {
-  const tenant = await (deps.tenantRepository ?? new PlatformTenantRepository()).getById(tenantId);
-  if (!tenant) {
+  let tenant: Awaited<ReturnType<PlatformTenantRepository["getById"]>> = null;
+  try {
+    tenant = await (deps.tenantRepository ?? new PlatformTenantRepository()).getById(tenantId);
+  } catch {
+    tenant = null;
+  }
+  if (tenant) {
+    return {
+      workspaceType: tenant.workspaceType,
+      metadataBinding: toTenantWorkspaceMetadataBinding(tenant),
+    };
+  }
+
+  const registered = findTenantById(tenantId);
+  if (!registered) {
     return null;
   }
+
   return {
-    workspaceType: tenant.workspaceType,
-    metadataBinding: toTenantWorkspaceMetadataBinding(tenant),
+    workspaceType: registered.workspaceType,
+    metadataBinding: null,
   };
 }

@@ -1,4 +1,5 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
+import type { WorkspaceCommerceConfig } from "@app-tour/workspace-sdk/metadata";
 
 import type { ApiAbility } from "../casl/api-ability";
 import { accessibleByTourWhere } from "../casl/api-ability";
@@ -45,6 +46,9 @@ import {
 } from "./pre-transaction-validation";
 import { PHASE_32_CANONICAL_STORAGE } from "./canonical-storage";
 import { maybeScheduleMarketingCatalogRevalidate } from "../marketing/maybe-schedule-marketing-catalog-revalidate";
+import { assertTourPublishLifecycleOnUpdate } from "./assert-tour-publish-lifecycle-gate";
+import { assertPaidTourOpenCommerceGateOnPublishTransition } from "../registrations/assert-paid-tour-open-gate.ts";
+import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 
 export type CanonicalTourWriteInput = {
   readonly ability: ApiAbility;
@@ -189,6 +193,7 @@ export class CanonicalTourService {
     readonly workspaceType: string;
     readonly validationVariant?: "default" | "basic";
     readonly actorId?: string;
+    readonly commerce?: Pick<WorkspaceCommerceConfig, "paymentMode">;
   }): Promise<TourRecord> {
     assertCanonicalWriteTenantAllowed(input.tenantId);
     return runWithTenantContext(input.tenantId, () => this.updateTourInActiveContext(input), {
@@ -204,6 +209,7 @@ export class CanonicalTourService {
     readonly body: UpdateTourBody;
     readonly workspaceType: string;
     readonly validationVariant?: "default" | "basic";
+    readonly commerce?: Pick<WorkspaceCommerceConfig, "paymentMode">;
   }): Promise<TourRecord> {
     const activeTenant = requireActiveTenantId();
     if (activeTenant !== input.tenantId.trim()) {
@@ -233,6 +239,22 @@ export class CanonicalTourService {
       workspaceType: input.workspaceType,
       validationVariant: input.validationVariant,
     });
+
+    assertTourPublishLifecycleOnUpdate({
+      workspaceType: input.workspaceType,
+      lifecycle: resolveWorkspacePluginForType(input.workspaceType).lifecycle,
+      before: existing.canonical,
+      after: canonical,
+    });
+
+    if (input.commerce !== undefined) {
+      assertPaidTourOpenCommerceGateOnPublishTransition({
+        workspaceType: input.workspaceType,
+        before: existing.canonical,
+        after: canonical,
+        commerce: input.commerce,
+      });
+    }
 
     try {
       let record: TourRecord;

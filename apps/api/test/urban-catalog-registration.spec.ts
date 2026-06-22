@@ -12,6 +12,7 @@ import { validateUrbanRegistrationPayload } from "@app-tour/workspace-urban";
 import { createRequestListener } from "../src/app";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
+import { resetPublicRegistrationThrottleForTests } from "../src/registrations/public-registration-throttle.ts";
 import { resetUrbanRegistrationRepositoryForTests } from "../src/urban/in-memory-urban-registration.repository";
 import { setCachedTenantThemeById } from "../src/tenant/tenant-registry-cache";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
@@ -103,6 +104,7 @@ describe("Phase 8.2 — urban catalog + registration HTTP", () => {
   beforeEach(() => {
     resetUrbanRegistrationRepositoryForTests();
     resetHttpIdempotencyMemoryForTests();
+    resetPublicRegistrationThrottleForTests();
     setCachedTenantThemeById(URBAN_TENANT_ID, {
       urban: {
         catalog: { publicEnabled: true, slug: "catalog" },
@@ -144,7 +146,7 @@ describe("Phase 8.2 — urban catalog + registration HTTP", () => {
     assert.equal(data?.publishStatus, "published");
   });
 
-  it("UREG-8.2-01 POST /urban/registrations creates waitlist row", async () => {
+  it("UREG-8.2-01 POST /urban/registrations creates confirmed row when seats available", async () => {
     const response = await requestUrban(listener, "POST", "/urban/registrations", {
       headers: publicHeaders(),
       body: {
@@ -156,7 +158,7 @@ describe("Phase 8.2 — urban catalog + registration HTTP", () => {
     assert.equal(response.status, 201);
     const data = (response.body as { data?: { id?: string; status?: string } }).data;
     assert.ok(data?.id);
-    assert.equal(data?.status, "waitlist");
+    assert.equal(data?.status, "confirmed");
   });
 
   it("UREG-8.2-02 POST /urban/registrations rejects invalid email with 400", async () => {

@@ -19,16 +19,16 @@ const auditLogger = read("src/audit/audit-logger.ts");
 if (!auditLogger.includes("AUDIT_ACTION_TOUR_UPDATED")) {
   violations.push("audit-logger.ts: missing AUDIT_ACTION_TOUR_UPDATED");
 }
+if (!auditLogger.includes("appendTourUpdatedAuditEvent")) {
+  violations.push("audit-logger.ts: missing appendTourUpdatedAuditEvent (P5-B AUD-02)");
+}
 
 const atomicPersist = read("src/canonical/atomic-canonical-tour-persist.ts");
 if (!atomicPersist.includes("persistTourUpdateAtomically")) {
   violations.push("atomic-canonical-tour-persist.ts: missing persistTourUpdateAtomically");
 }
-if (!atomicPersist.includes("AUDIT_ACTION_TOUR_UPDATED")) {
-  violations.push("atomic-canonical-tour-persist.ts: must use AUDIT_ACTION_TOUR_UPDATED");
-}
-if (!/appendAuditEvent\(tx,\s*\{[\s\S]*action:\s*AUDIT_ACTION_TOUR_UPDATED/.test(atomicPersist)) {
-  violations.push("atomic-canonical-tour-persist.ts: appendAuditEvent must record TOUR_UPDATED");
+if (!atomicPersist.includes("appendTourUpdatedAuditEvent")) {
+  violations.push("atomic-canonical-tour-persist.ts: must call appendTourUpdatedAuditEvent");
 }
 
 const canonicalService = read("src/canonical/canonical-tour.service.ts");

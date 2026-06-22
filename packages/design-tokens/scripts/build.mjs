@@ -41,6 +41,7 @@ if (fs.existsSync(distDir)) {
 fs.mkdirSync(distDir, { recursive: true });
 fs.copyFileSync(path.join(srcDir, "index.css"), path.join(distDir, "index.css"));
 fs.copyFileSync(path.join(srcDir, "guest-shell.css"), path.join(distDir, "guest-shell.css"));
+fs.copyFileSync(path.join(srcDir, "shell-bridge.css"), path.join(distDir, "shell-bridge.css"));
 fs.copyFileSync(path.join(srcDir, "primitives.css"), path.join(distDir, "primitives.css"));
 fs.copyFileSync(path.join(srcDir, "semantics.css"), path.join(distDir, "semantics.css"));
 copyDir("themes");

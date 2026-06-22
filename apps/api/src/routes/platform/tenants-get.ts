@@ -5,6 +5,7 @@ import { toPlatformTenantDetailDto } from "../../platform/platform-tenant-detail
 import { PlatformSubscriptionRepository } from "../../platform/platform-subscription.repository.ts";
 import { PlatformTenantRepository } from "../../platform/platform-tenant.repository.ts";
 import { PlatformUnauthorized } from "../../platform/platform.errors.ts";
+import { resolveWorkspaceCommerceConfigForTenantById } from "../../workspace-metadata/resolve-workspace-commerce-for-tenant.ts";
 
 export async function handlePlatformTenantsGet(
   req: IncomingMessage,
@@ -61,12 +62,16 @@ export async function handlePlatformTenantsGet(
     }
   }
   const siteSurfaces = await repository.getSiteSurfacesByTenantId(tenantId);
+  const workspaceCommerce = await resolveWorkspaceCommerceConfigForTenantById(tenantId, {
+    tenantRepository: repository,
+  });
   const detail = toPlatformTenantDetailDto({
     tenant: row,
     ownerInvite,
     subscription,
     definitionDisplayName,
     siteSurfaces,
+    workspaceCommerce,
   });
 
   res.writeHead(200, { "Content-Type": "application/json" });

@@ -40,7 +40,7 @@ describe("RULE-003 — validation before persist ordering", () => {
 
   const activeMember: TenantAuthContext = {
     userId: "user-1",
-    tenantId: "tenant-a",
+    tenantId: "00000000-0000-4000-8000-000000000001",
     role: "member",
     status: "ACTIVE",
     workspaceId: "ws-1",

@@ -3,11 +3,11 @@
 ```yaml
 phase: P5
 version: 2.9-ai-friendly
-status: in_progress
+status: complete
 prerequisite: TEMP/p4-exit-checklist.md ✅
 nano_total: 56
-nano_done: 3
-current_task: P5-A-N-004
+nano_done: 56
+current_task: null
 exit_core: P5-B-N-016
 exit_full: P5-E-N-006
 doc_sync: TEMP/p5/DOC-SYNC-INDEX.md

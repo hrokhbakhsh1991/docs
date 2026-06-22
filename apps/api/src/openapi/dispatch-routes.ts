@@ -244,6 +244,13 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     internal: true,
     operationId: "replayOutbox",
   },
+  {
+    method: "POST",
+    path: "/internal/payments/webhook",
+    summary: "Signed PSP webhook ingress (WH-01)",
+    internal: true,
+    operationId: "paymentsWebhook",
+  },
   // Phase 9.1 — identity production (INV-P9-007 · DEC-P9-012)
   {
     method: "POST",

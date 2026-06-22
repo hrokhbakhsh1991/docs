@@ -109,5 +109,6 @@ export async function updatePlatformTenantWorkspaceDefinition(input: {
     definitionId: input.patch.definitionId,
     definitionVersion: pinnedVersion,
     displayName: definition.displayName,
+    tenantId: input.tenantId,
   });
 }

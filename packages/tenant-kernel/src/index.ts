@@ -11,6 +11,10 @@ export {
   type WorkspaceTenantLabelOutcome,
 } from "./host/parse-workspace-tenant-label";
 export {
+  buildDevPortalPublicBaseUrl,
+  type BuildDevPortalPublicBaseUrlInput,
+} from "./host/build-dev-portal-public-base-url";
+export {
   isClubAdminHost,
   isPlatformAdminHost,
   parseMultiLevelTenantHost,

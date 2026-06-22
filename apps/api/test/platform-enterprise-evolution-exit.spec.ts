@@ -19,7 +19,21 @@ describe("platform-enterprise-evolution-exit (P5 agent pack)", () => {
   it("EX-P5-01 p5:gate script and package.json wiring", () => {
     const gate = readFileSync(gateScriptPath, "utf8");
     assert.match(gate, /guard:import-boundary/);
-    assert.match(gate, /guard:p3-denali-covenant/);
+    assert.match(gate, /platform-tenant-workspace-definition-audit\.spec\.ts/);
+    assert.match(gate, /workspace-metadata-cutover-metrics\.spec\.ts/);
+    assert.match(gate, /platform-club-workspace-cutover-tab\.spec\.ts/);
+    assert.match(gate, /workspace-metadata-denali-parity-publish\.spec\.ts/);
+    assert.match(gate, /form-profile-strip\.spec\.ts/);
+    assert.match(gate, /catalog-ref-integrity\.spec\.ts/);
+    assert.match(gate, /operator-metadata-plugin-resolve\.spec\.ts/);
+    assert.match(gate, /denali-metadata-path-publish-integration\.spec\.ts/);
+    assert.match(gate, /tour-patch-audit\.spec\.ts/);
+    assert.match(gate, /tour-publish-audit\.spec\.ts/);
+    assert.match(gate, /client-server-rules-parity\.spec\.ts/);
+    assert.match(gate, /platform-workspace-definition-publish\.spec\.ts/);
+    assert.match(gate, /workspace-metadata-commerce-inherit\.spec\.ts/);
+    assert.match(gate, /tour-create-payment-mode-default\.spec\.ts/);
+    assert.match(gate, /platform-club-commerce-badge\.spec\.ts/);
     assert.match(gate, /P5_ENTERPRISE_EVOLUTION_GATE_OK/);
 
     const pkg = readFileSync(packageJsonPath, "utf8");
@@ -29,9 +43,10 @@ describe("platform-enterprise-evolution-exit (P5 agent pack)", () => {
   it("EX-P5-02 agent manifest and preservation checklist exist", () => {
     const manifest = readFileSync(manifestPath, "utf8");
     assert.match(manifest, /nano_total: 56/);
-    assert.match(manifest, /current_task: P5-A-N-004/);
+    assert.match(manifest, /current_task: null/);
+    assert.match(manifest, /nano_done: 56/);
     assert.match(manifest, /exit_core: P5-B-N-016/);
-    assert.match(manifest, /epic_optional: \[P5-C, P5-D, P5-E\]/);
+    assert.match(manifest, /epic_optional:\n- P5-C\n- P5-D\n- P5-E/);
 
     const preservation = readFileSync(preservationPath, "utf8");
     assert.match(preservation, /PC-01/);
@@ -82,7 +97,36 @@ describe("platform-enterprise-evolution-exit (P5 agent pack)", () => {
   it("EX-P5-08 DOC-SYNC index is canonical cross-file SoT", () => {
     const index = readFileSync(join(repoRoot, "TEMP/p5/DOC-SYNC-INDEX.md"), "utf8");
     assert.match(index, /doc_integrity_score: 9\.9\/10/);
-    assert.match(index, /current_task: P5-A-N-004/);
-    assert.match(index, /nano_done: 3/);
+    assert.match(index, /current_task: null/);
+    assert.match(index, /nano_done: 56/);
+  });
+
+  it("EX-A-01 P5-A exit checklist lists EPIC-A deliverables", () => {
+    const checklist = readFileSync(exitChecklistPath, "utf8");
+    assert.match(checklist, /P5-A complete \(N-014\)/);
+    assert.match(checklist, /metadataCutoverStage/);
+    assert.match(checklist, /Allowlist expand runbook DOC-03 \(N-010\)/);
+    assert.match(checklist, /p5:gate flesh \+ web UI specs GATE-04\.\.05 \(N-013\)/);
+  });
+
+  it("EX-A-02 enterprise assessment documents staging pilot (P5-A)", () => {
+    const assessment = readFileSync(
+      join(repoRoot, "TEMP/wizard-denali-enterprise-assessment.md"),
+      "utf8"
+    );
+    assert.match(assessment, /Stage 2 Pilot.*✅/);
+    assert.match(assessment, /platform-metadata-cutover-pilot/);
+    assert.match(assessment, /metadataCutoverStage/);
+  });
+
+  it("EX-P5-09 enterprise assessment documents P5-full exit ≥9.5", () => {
+    const assessment = readFileSync(
+      join(repoRoot, "TEMP/wizard-denali-enterprise-assessment.md"),
+      "utf8"
+    );
+    assert.match(assessment, /P5-full EPIC exit/);
+    assert.match(assessment, /P5-E-N-006/);
+    assert.match(assessment, /9\.5\/10/);
+    assert.match(assessment, /offline_receipt/);
   });
 });

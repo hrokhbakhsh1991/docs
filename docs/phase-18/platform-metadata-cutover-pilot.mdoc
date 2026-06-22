@@ -15,7 +15,7 @@ Move from **CI shadow parity** (P3-D Stage 1) to **staging pilot** (Stage 2→3)
 
 **Doc SoT:** this file · **Nano spec:** [`TEMP/p5/p5-a-cutover-pilot.md`](../../TEMP/p5/p5-a-cutover-pilot.md) v2.0
 
-**Status (2026-06-21):** doc complete · implementation starts P5-A-N-001
+**Status (2026-06-22):** P5-A complete (N-001..014) · current epic P5-B · nano P5-B-N-001
 
 ---
 
@@ -79,18 +79,215 @@ Wire into `PlatformTenantWorkspaceDefinitionDto` via `toPlatformTenantDetailDto`
 
 ---
 
-## Staging pilot env (frozen)
+## Staging pilot env (frozen — P5-A-N-005 DOC-02)
+
+**Scope:** staging API pods only. Never set `WORKSPACE_METADATA_ENABLED=true` on prod without Architect approval and P5-B operator parity green.
+
+### Preconditions
+
+- P3-D parity CI green (`workspace-metadata-*-parity.spec.ts`)
+- Published workspace definition exists (e.g. `denali-v1` from builder)
+- Smoke tenant UUID recorded (staging club)
+- PR passes `pnpm run guard:p3-denali-covenant` and `pnpm run guard:import-boundary`
+
+### Environment variables
+
+| Variable | Staging value | Effect |
+|----------|---------------|--------|
+| `WORKSPACE_METADATA_ENABLED` | `true` | Enables metadata plugin resolution path |
+| `WORKSPACE_METADATA_TENANT_ALLOWLIST` | `<smoke-tenant-uuid>` or comma-separated UUIDs | Restricts metadata path to listed tenants → DTO stage `pilot` |
+
+Implementation: [`is-workspace-metadata-enabled-for-tenant.ts`](../../apps/api/src/workspace-metadata/is-workspace-metadata-enabled-for-tenant.ts).
+
+**Allowlist empty/unset with flag true:** all tenants with a binding get stage `live` (not `pilot`) — use allowlist for staged rollout.
 
 ```bash
 # API pods (staging only)
 WORKSPACE_METADATA_ENABLED=true
 WORKSPACE_METADATA_TENANT_ALLOWLIST=<smoke-tenant-uuid>
-
-# Bind definition via Super Admin or:
-# apps/api/scripts/smoke-metadata-pilot-bind.mjs (P5-A-N-007)
 ```
 
-**Rollback drill (P5-A-N-008):** clear `workspaceDefinitionId` on tenant → next request uses package path (`resolveWorkspacePluginForType`).
+### Binding checklist (Super Admin)
+
+1. Platform ops → Super Admin → **Clubs** → select smoke tenant → tab **Workspace**
+2. Choose published `definitionId` (optional pinned `definitionVersion`; empty = latest published)
+3. **Save binding** → audit emits `TENANT_DEFINITION_ASSIGNED` (existing action — no new strings)
+4. Confirm cutover badge: `data-metadata-cutover-stage=pilot` when tenant ∈ allowlist
+5. Smoke operator path on staging: create/edit tour on pilot tenant (wizard unchanged)
+
+Alternative bind (P5-A-N-007): `apps/api/scripts/smoke-metadata-pilot-bind.mjs` — staging-only automation (see below).
+
+### Smoke bind script (P5-A-N-007 — SMOKE-01)
+
+Automates Super Admin workspace binding for staging pilot tenants.
+
+```bash
+# API must have WORKSPACE_METADATA_ENABLED=true (staging pods)
+export PILOT_TENANT_ID=<smoke-tenant-uuid>
+export PILOT_DEFINITION_ID=denali-tour-ops   # optional — default
+export PILOT_DEFINITION_VERSION=1              # optional — latest when omitted
+export API_BASE=http://127.0.0.1:4000
+export PLATFORM_OPS_PHONE=+989121234567
+export PLATFORM_OPS_BEARER_TOKEN=platform-ops
+
+node apps/api/scripts/smoke-metadata-pilot-bind.mjs
+```
+
+**Safety:** exits when `NODE_ENV=production` unless `SMOKE_METADATA_PILOT_BIND_ALLOW=1`.
+
+**Success output:** JSON with `workspaceDefinition.metadataCutoverStage` (`pilot` when tenant ∈ allowlist, `live` when allowlist empty, `off` when metadata flag false on API).
+
+**Rollback:** re-run Super Admin clear binding or PATCH `{ "definitionId": null }` via the same route.
+
+### Verification (before expanding allowlist)
+
+```bash
+pnpm run guard:p3-denali-covenant
+pnpm run guard:import-boundary
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/platform-tenant-metadata-cutover.spec.ts \
+  test/workspace-metadata-cutover-allowlist.spec.ts \
+  test/platform-metadata-pilot-bind-smoke.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/platform-club-workspace-cutover-tab.spec.ts
+# Live staging (API running): node apps/api/scripts/smoke-metadata-pilot-bind.mjs
+```
+
+Expected DTO: `workspaceDefinition.metadataCutoverStage` = `pilot` (allowlist + binding) or `off` (no binding / flag off / tenant excluded).
+
+### Rollback (P5-A-N-008 drill)
+
+| Action | Result |
+|--------|--------|
+| Clear binding in Super Admin workspace tab | `TENANT_DEFINITION_CLEARED` · package path on next request |
+| Remove tenant from `WORKSPACE_METADATA_TENANT_ALLOWLIST` | Metadata path off for that tenant |
+| Set `WORKSPACE_METADATA_ENABLED=false` on API pods | Instant package path for all tenants |
+
+No canonical tour rewrite. See [`platform-workspace-cutover.mdoc`](../phase-16/platform-workspace-cutover.mdoc) Stage 2→3.
+
+### Allowlist expand runbook (frozen — P5-A-N-010 DOC-03)
+
+**Purpose:** grow the metadata plugin path from one smoke tenant to additional staging clubs **without** clearing the global flag or binding. The allowlist is the primary blast-radius control until P5-B operator parity is green.
+
+#### Allowlist semantics (runtime)
+
+| Condition | `isWorkspaceMetadataEnabledForTenant` | DTO `metadataCutoverStage` |
+|-----------|-------------------------------------|----------------------------|
+| Flag false | false (all tenants) | `off` |
+| Flag true, allowlist unset/empty | true when binding set | `live` |
+| Flag true, allowlist set, tenant ∈ list | true when binding set | `pilot` |
+| Flag true, allowlist set, tenant ∉ list | false (package path) | `off` |
+
+Implementation: [`is-workspace-metadata-enabled-for-tenant.ts`](../../apps/api/src/workspace-metadata/is-workspace-metadata-enabled-for-tenant.ts). Format: comma-separated tenant UUIDs; whitespace trimmed; **exact UUID match** (no wildcards).
+
+```bash
+# Example: two pilot clubs on staging API pods
+WORKSPACE_METADATA_TENANT_ALLOWLIST=<smoke-uuid>,<second-club-uuid>
+```
+
+Changing the env var requires **API pod reload** (K8s rollout / process restart). In-flight requests may briefly see the old list until all pods pick up the new value.
+
+#### Pre-expansion gate (do not skip)
+
+1. Smoke tenant stable ≥24h: zero unexpected `workspace_metadata_validation_errors_total` spikes (see Observability).
+2. Binding + badge confirmed on smoke tenant (`data-metadata-cutover-stage=pilot`).
+3. Operator smoke on staging: create/edit/publish tour on smoke tenant (wizard unchanged).
+4. Local specs green:
+
+```bash
+pnpm run guard:p3-denali-covenant
+pnpm run guard:import-boundary
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/workspace-metadata-cutover-allowlist.spec.ts \
+  test/platform-tenant-metadata-cutover.spec.ts \
+  test/platform-tenant-workspace-definition-audit.spec.ts
+```
+
+5. **Architect sign-off** before adding production tenant UUIDs (staging-only until P5-B EX-B green).
+
+#### Expansion procedure (one tenant per change)
+
+| Step | Action | Owner |
+|------|--------|-------|
+| 1 | Record new tenant UUID + target `definitionId` / version in change ticket | Platform ops |
+| 2 | Assign workspace binding (Super Admin tab or `smoke-metadata-pilot-bind.mjs` with `PILOT_TENANT_ID`) | Platform ops |
+| 3 | Append UUID to `WORKSPACE_METADATA_TENANT_ALLOWLIST` (keep existing pilots in list) | Infra |
+| 4 | Roll API staging pods; confirm env on all replicas | Infra |
+| 5 | `GET /platform/tenants/:id` → `workspaceDefinition.metadataCutoverStage=pilot` | Platform ops |
+| 6 | Super Admin badge `data-metadata-cutover-stage=pilot` | Platform ops |
+| 7 | Operator smoke: tour create/edit on new tenant | QA / ops |
+| 8 | Watch validation counter 15–30 min; hold if spike | Platform ops |
+
+**Do not** add tenants to the allowlist before binding is set — excluded tenants with a binding still show stage `off` in the DTO but may confuse ops; binding-first avoids partial state.
+
+```mermaid
+flowchart LR
+  BIND[Assign binding] --> APPEND[Append UUID to allowlist]
+  APPEND --> ROLLOUT[API pod rollout]
+  ROLLOUT --> VERIFY[DTO + badge pilot]
+  VERIFY --> SMOKE[Operator tour smoke]
+  SMOKE --> METRICS[Validation counter baseline]
+```
+
+#### Post-expansion verification
+
+```bash
+# DTO stage (platform ops token)
+curl -s -H "Authorization: Bearer $PLATFORM_OPS_BEARER_TOKEN" \
+  "$API_BASE/platform/tenants/<new-tenant-uuid>" \
+  | jq '.workspaceDefinition.metadataCutoverStage'
+# expect: "pilot"
+
+# Live staging bind smoke (optional)
+PILOT_TENANT_ID=<new-tenant-uuid> node apps/api/scripts/smoke-metadata-pilot-bind.mjs
+```
+
+Assert CO-02/CO-03 behavior: [`workspace-metadata-cutover-allowlist.spec.ts`](../../apps/api/test/workspace-metadata-cutover-allowlist.spec.ts).
+
+#### Partial rollback (single tenant)
+
+| Symptom | Action | Effect |
+|---------|--------|--------|
+| Validation errors on one club | Remove that UUID from allowlist + rollout | Package path for that tenant only |
+| Wrong definition bound | Clear binding for that tenant (Super Admin) | `TENANT_DEFINITION_CLEARED`; stage `off` |
+| Operator regression on one club | Remove UUID from allowlist **before** clearing binding if you need instant package path | CO-03: excluded tenant → package plugin |
+
+Other tenants in the allowlist remain on the metadata path.
+
+#### Graduation to stage `live` (allowlist empty)
+
+**Blocked until P5-B operator parity exit (EX-B).** When EX-B is green:
+
+1. Confirm all intended tenants have bindings.
+2. Unset or empty `WORKSPACE_METADATA_TENANT_ALLOWLIST` on API pods.
+3. Rollout → DTO stage becomes `live` for all bound tenants (see CO-02 in cutover spec).
+4. Keep `WORKSPACE_METADATA_ENABLED=true` only on approved environments.
+
+Never empty the allowlist on production before P5-B — uncontrolled `live` stage expands metadata path to every bound tenant.
+
+### G2 async validation ingress (frozen — P5-A-N-011 DOC-04)
+
+When a tenant is on the metadata path (`isWorkspaceMetadataEnabledForTenant` true + binding set), **live tour persist** must validate through the async ingress — not the sync package-only path.
+
+Cross-ref: [`platform-workspace-cutover.mdoc`](../phase-16/platform-workspace-cutover.mdoc) § **Ingress routing (P3-A-N-011 — G2)**.
+
+| Mode | Entry | Plugin resolve |
+|------|-------|----------------|
+| Flag off or tenant excluded | `validateCanonicalBeforePersistSync` | Package `resolveWorkspacePluginForType` |
+| Flag on + tenant on metadata path | `validateCanonicalBeforePersist` → `validateCanonicalBeforePersistAsync` | `resolveWorkspacePluginForTenantContext` |
+
+Implementation chain:
+
+```text
+validateCanonicalBeforePersist (canonical-validation.ts)
+  → validateCanonicalBeforePersistAsync (when WORKSPACE_METADATA_ENABLED)
+  → resolveWorkspacePluginForTenantContext(tenantId, workspaceType)
+  → load-workspace-plugin-for-tenant.ts
+```
+
+**P5-A scope:** document only — G2 wiring landed in P3-A-N-011. Pilot ops must keep flag **on** only for allowlisted staging tenants so live persist exercises async validation; parity CI and flag-off dev continue to use sync paths unchanged.
+
+**Observability tie-in:** `workspace_metadata_validation_errors_total` increments only when the metadata validation path is active (see MET-01..02). Spikes during allowlist expansion usually indicate G2 async validation failures on the pilot tenant — shrink allowlist before clearing bindings.
 
 ---
 
@@ -135,11 +332,7 @@ Checklist: [`TEMP/p5/PRESERVATION-CHECKLIST.md`](../../TEMP/p5/PRESERVATION-CHEC
 ```bash
 pnpm run guard:import-boundary
 pnpm run guard:p3-denali-covenant
-pnpm run p5:gate
-pnpm --filter @apps/api exec node --import tsx --test \
-  test/platform-tenant-metadata-cutover.spec.ts \
-  test/workspace-metadata-cutover-allowlist.spec.ts \
-  test/platform-enterprise-evolution-exit.spec.ts
+pnpm run p5:gate   # API cutover specs + web UI-01..02 + agent pack contracts
 ```
 
 Assert IDs: CO-01..05 · UI-01..02 · MET-01..02 · AUD-01..02 · GATE-01..05 · EX-A-01..02 (see TEMP epic spec).
@@ -154,9 +347,13 @@ Assert IDs: CO-01..05 · UI-01..02 · MET-01..02 · AUD-01..02 · GATE-01..05 ·
 | `deriveMetadataCutoverStage` | ✅ landed | `apps/api/src/workspace-metadata/derive-metadata-cutover-stage.ts` |
 | DTO field `metadataCutoverStage` | ✅ landed | `platform-tenant-workspace-definition.dto.ts` |
 | CO-01..05 specs | ✅ green | `platform-tenant-metadata-cutover.spec.ts` |
-| Super Admin badge | ⬜ P5-A-N-004 | |
-| Metrics counter | ⬜ P5-A-N-006 | |
-| Staging smoke script | ⬜ P5-A-N-007 | |
+| Super Admin badge | ✅ landed | `apps/web/src/platform/club-detail/tab-workspace-definition.tsx` |
+| Staging env checklist | ✅ landed | this doc § Staging pilot env (N-005) |
+| Metrics counter | ✅ landed | `apps/api/src/observability/metrics.ts` |
+| Staging smoke script | ✅ landed | `apps/api/scripts/smoke-metadata-pilot-bind.mjs` |
+| Allowlist expand runbook | ✅ landed | this doc § Allowlist expand runbook (N-010 DOC-03) |
+| G2 async ingress note | ✅ landed | this doc § G2 async validation ingress (N-011 DOC-04) |
+| Audit reuse specs | ✅ landed | `platform-tenant-workspace-definition-audit.spec.ts` |
 
 ---
 

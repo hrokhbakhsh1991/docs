@@ -5,11 +5,11 @@
 doc_id: P5-AGENT-START
 version: 2.9-ai-friendly
 mandatory: true
-current_task: P5-A-N-004
-current_epic: P5-A
-next_task: P5-A-N-004
+current_task: null
+current_epic: null
+next_task: null
 nano_total: 56
-nano_done: 3
+nano_done: 56
 exit_core: P5-B-N-016
 exit_full: P5-E-N-006
 file_map: TEMP/p5/FILE-MAP.md
@@ -18,9 +18,24 @@ context: TEMP/p5/AGENT-CONTEXT.md
 preservation: TEMP/p5/PRESERVATION-CHECKLIST.md
 anti_drift: TEMP/p5/ANTI-DRIFT.md
 doc_sync: TEMP/p5/DOC-SYNC-INDEX.md
-status: in_progress
+status: complete
 prerequisite: P4-complete
 ```
+
+## ⛔ P5 closed — 56/56 complete
+
+**Do not open new P5 nanos** unless Architect YES for regression fix.
+
+| Check | Command / marker |
+|-------|------------------|
+| Gate | `pnpm run p5:gate` → `P5_ENTERPRISE_EVOLUTION_GATE_OK` |
+| Exit full | `P5-E-N-006` · Path B complete |
+| Assessment | `TEMP/wizard-denali-enterprise-assessment.md` · **9.5/10** |
+| Next phase | P6 (`docs/phase-19/p6/AGENT-START.md`) — already COMPLETE |
+| Uncommitted work | ~247 files in git working tree — **commit/PR**, not new P5 nanos |
+
+Reopen rule: regression only → fix spec + `p5:gate`; no scope expansion without Architect.
+
 
 ## 17 rules
 

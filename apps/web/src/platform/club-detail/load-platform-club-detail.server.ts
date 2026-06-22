@@ -1,4 +1,5 @@
 import type { PlatformClubDetail } from "./platform-club-detail.types";
+import { resolveIntegrationsPlaneStatusFromEnv } from "../resolve-integrations-plane-status.server";
 
 export async function loadPlatformClubDetailFromResponse(
   response: Response
@@ -23,5 +24,11 @@ export async function loadPlatformClubDetailFromResponse(
     offboardingStartedAt: body.offboardingStartedAt ?? null,
     scheduledDeletionAt: body.scheduledDeletionAt ?? null,
     workspaceDefinition: body.workspaceDefinition ?? null,
+    workspaceCommerce: body.workspaceCommerce ?? {
+      paymentMode: "offline_receipt",
+      gatewayProvider: null,
+      currency: "IRR",
+    },
+    integrationsPlane: body.integrationsPlane ?? resolveIntegrationsPlaneStatusFromEnv(),
   };
 }

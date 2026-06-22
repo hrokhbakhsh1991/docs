@@ -17,6 +17,8 @@
 | **8** Urban Product Parity | [`phase-8/phase-8-charter.md`](phase-8/phase-8-charter.md) · [`phase-8/phase-8-agent-router.md`](phase-8/phase-8-agent-router.md) |
 | **9** Operator Admin Panel | [`phase-9/phase-9-charter.md`](phase-9/phase-9-charter.md) · [`phase-9/phase-9-agent-router.md`](phase-9/phase-9-agent-router.md) |
 | **10** Workspace Host | [`phase-10/phase-10-charter.md`](phase-10/phase-10-charter.md) · plugin-native host **DONE** (10.1–10.7) |
+| **19** P6 Denali first customer | [`phase-19/README.md`](phase-19/README.md) · [`phase-19/p6/AGENT-START.md`](phase-19/p6/AGENT-START.md) · exit: `pnpm run p6:gate` |
+| **20** P7 Denali customer live | [`phase-20/README.md`](phase-20/README.md) · [`phase-20/p7/AGENT-START.md`](phase-20/p7/AGENT-START.md) · sketch: [`TEMP/p7-denali-customer-delivery.md`](../TEMP/p7-denali-customer-delivery.md) |
 
 **Cross-phase continuity:** [`appendices/PLATFORM-CONTINUITY-0-6.md`](appendices/PLATFORM-CONTINUITY-0-6.md)
 
@@ -25,6 +27,15 @@
 Platform logic = generic · Workspace logic = injectable · Tenant = security boundary
 
 ## فاز جاری
+
+**Phase 19 / P6** — Denali first customer — **COMPLETE** (`pnpm run p6:gate`)
+
+**Phase 20 / P7** — Denali customer live — **PLANNED** (sketch)
+
+```bash
+pnpm run p6:gate                  # P6 regression (required on every P7 PR)
+# P7 entry: docs/phase-20/p7/AGENT-START.md
+```
 
 **Phase 10** — Workspace Host (plugin-native) — **implementation DONE**
 

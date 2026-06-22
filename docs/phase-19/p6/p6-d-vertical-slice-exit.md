@@ -1,4 +1,4 @@
-# DEPRECATED — use P6 v2.0
+# DEPRECATED — use P6 v2.1
 
 **Superseded by:** [p6-4-exit-gate.md](p6-4-exit-gate.md)
 

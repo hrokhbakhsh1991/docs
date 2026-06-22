@@ -28,6 +28,52 @@ export type AppendAuditEventInput = {
   readonly createdAt?: Date;
 };
 
+export type AppendTourAuditEventInput = {
+  readonly tourId: string;
+  /** DEC-077 — explicit DB `now()` from canonical TX. */
+  readonly createdAt?: Date;
+};
+
+export type AppendTourPublishTransitionAuditInput = {
+  readonly tourId: string;
+  readonly transition: "published" | "unpublished";
+  readonly fromPublishStatus?: string;
+  readonly toPublishStatus?: string;
+  readonly createdAt?: Date;
+};
+
+/** P5-B-N-011 / DEC-047 — PATCH tour success appends `TOUR_UPDATED` in forensic TX. */
+export async function appendTourUpdatedAuditEvent(
+  tx: Prisma.TransactionClient,
+  input: AppendTourAuditEventInput
+): Promise<void> {
+  await appendAuditEvent(tx, {
+    action: AUDIT_ACTION_TOUR_UPDATED,
+    entityType: "tour",
+    entityId: input.tourId,
+    ...(input.createdAt !== undefined ? { createdAt: input.createdAt } : {}),
+  });
+}
+
+/** P5-B-N-012 — publish/unpublish transition audit in same TX as tour update. */
+export async function appendTourPublishTransitionAuditEvent(
+  tx: Prisma.TransactionClient,
+  input: AppendTourPublishTransitionAuditInput
+): Promise<void> {
+  const action =
+    input.transition === "published" ? AUDIT_ACTION_TOUR_PUBLISHED : AUDIT_ACTION_TOUR_UNPUBLISHED;
+  await appendAuditEvent(tx, {
+    action,
+    entityType: "tour",
+    entityId: input.tourId,
+    ...(input.createdAt !== undefined ? { createdAt: input.createdAt } : {}),
+    metadata: {
+      ...(input.fromPublishStatus !== undefined ? { fromPublishStatus: input.fromPublishStatus } : {}),
+      ...(input.toPublishStatus !== undefined ? { toPublishStatus: input.toPublishStatus } : {}),
+    },
+  });
+}
+
 /** Allowlisted audit metadata — caller extras are dropped (LOG-COL-03 / DEC-034). */
 export function buildAuditMetadata(input: AppendAuditEventInput): Prisma.InputJsonValue {
   const workspaceType = getActiveWorkspaceType() ?? "starter";

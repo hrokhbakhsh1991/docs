@@ -30,9 +30,11 @@ After guest can **register** (P6-1), add **member self-service** on portal host 
 
 ### P6-3-N-002 — GET my registrations API
 
-**Do:** `GET /denali/registrations/mine` scoped by session user + tenant.
+**Do:** Portal BFF proxies `GET /bookings?view=mine` (member session + tenant). No separate `/denali/registrations/mine` route.
 
-**Verify:** `portal-member-registrations.spec.ts`
+**Files:** `apps/portal/app/api/me/registrations/route.ts`
+
+**Verify:** `portal-member-registrations.spec.ts` (MEM-BFF-01)
 
 ---
 
@@ -107,3 +109,20 @@ After guest can **register** (P6-1), add **member self-service** on portal host 
 ## EPIC exit
 
 VS-04 · VS-05 — member sees registration and uploads receipt on portal host.
+
+---
+
+## Gaps (trunk vs nano — post-closure)
+
+| Nano | Status | Proof |
+| ---- | ------ | ----- |
+| N-001 | ✅ | [platform-portal-member.mdoc](../platform-portal-member.mdoc) |
+| N-002 | ✅ | BFF → `GET /bookings?view=mine` |
+| N-003 | ✅ | `apps/portal/app/me/layout.tsx` |
+| N-004 | ✅ | `/me/registrations` list |
+| N-005 | ✅ | `/me/registrations/[id]` detail |
+| N-006 | ✅ | Receipt upload BFF |
+| N-007 | ✅ | Member POST receipt + 403 boundary |
+| N-008 | ✅ | Success CTA → `/me/registrations` |
+| N-009 | ✅ | Portal `/` session redirect |
+| N-010 | ✅ | `portalMember.json` fa/en |

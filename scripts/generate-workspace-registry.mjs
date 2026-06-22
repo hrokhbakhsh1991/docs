@@ -546,6 +546,41 @@ ${[...importLines].sort().join("\n")}
 `;
 }
 
+export function generateGuestThemeStylesheets(manifests, surface) {
+  if (typeof surface !== "string" || surface.trim().length === 0) {
+    throw new Error("generateGuestThemeStylesheets: surface is required");
+  }
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  for (const m of manifests) {
+    const guest = m.guestThemeStylesheets;
+    if (guest === undefined || guest === null) {
+      continue;
+    }
+    if (typeof guest !== "object" || Array.isArray(guest)) {
+      throw new Error(`${m.id}: guestThemeStylesheets must be an object keyed by app surface`);
+    }
+    const sheets = guest[surface];
+    if (sheets === undefined) {
+      continue;
+    }
+    if (!Array.isArray(sheets)) {
+      throw new Error(`${m.id}: guestThemeStylesheets.${surface} must be an array`);
+    }
+    for (const sheet of sheets) {
+      if (typeof sheet !== "string" || sheet.trim().length === 0) {
+        throw new Error(
+          `${m.id}: guestThemeStylesheets.${surface} entries must be non-empty strings`
+        );
+      }
+      importLines.add(`import "${m.package}/${sheet}";`);
+    }
+  }
+  return `${BANNER}
+${[...importLines].sort().join("\n")}
+`;
+}
+
 export function generateWizardCreateBindings(manifests) {
   const extendedRows = manifests
     .filter((m) => m.wizardCreate?.extendedChrome === true)
@@ -1288,6 +1323,8 @@ export function generateAllOutputs(manifests) {
     wizardCloneRemint: generateWizardCloneRemintBindings(manifests),
     wizardCreate: generateWizardCreateBindings(manifests),
     themeStylesheets: generateWorkspaceThemeStylesheets(manifests),
+    guestThemeStylesheetsPortal: generateGuestThemeStylesheets(manifests, "portal"),
+    guestThemeStylesheetsMarketing: generateGuestThemeStylesheets(manifests, "marketing"),
     outbox: generateOutboxSideEffects(manifests),
     settingsEnrichers: generateSettingsEnrichers(manifests),
     devBootstrap: generateDevBootstrapBindings(manifests),
@@ -1333,6 +1370,14 @@ const OUTPUT_PATHS = {
   themeStylesheets: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts"
+  ),
+  guestThemeStylesheetsPortal: join(
+    REPO_ROOT,
+    "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+  ),
+  guestThemeStylesheetsMarketing: join(
+    REPO_ROOT,
+    "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
   ),
   outbox: join(REPO_ROOT, "apps/api/src/workspace/workspace-outbox-side-effects.generated.ts"),
   settingsEnrichers: join(
@@ -1387,6 +1432,8 @@ function main() {
       "wizardCloneRemint",
       "wizardCreate",
       "themeStylesheets",
+      "guestThemeStylesheetsPortal",
+      "guestThemeStylesheetsMarketing",
       "outbox",
       "settingsEnrichers",
       "devBootstrap",
@@ -1425,6 +1472,11 @@ function main() {
   writeFileSync(OUTPUT_PATHS.wizardCloneRemint, generated.wizardCloneRemint);
   writeFileSync(OUTPUT_PATHS.wizardCreate, generated.wizardCreate);
   writeFileSync(OUTPUT_PATHS.themeStylesheets, generated.themeStylesheets);
+  writeFileSync(OUTPUT_PATHS.guestThemeStylesheetsPortal, generated.guestThemeStylesheetsPortal);
+  writeFileSync(
+    OUTPUT_PATHS.guestThemeStylesheetsMarketing,
+    generated.guestThemeStylesheetsMarketing
+  );
   writeFileSync(OUTPUT_PATHS.outbox, generated.outbox);
   writeFileSync(OUTPUT_PATHS.settingsEnrichers, generated.settingsEnrichers);
   writeFileSync(OUTPUT_PATHS.devBootstrap, generated.devBootstrap);

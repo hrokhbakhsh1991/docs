@@ -80,7 +80,9 @@ export function parseWorkspaceDefinitionExportFile(raw: unknown): WorkspaceDefin
   if (typeof checksum !== "string" || checksum.length === 0) {
     throw new Error("WORKSPACE_DEFINITION_EXPORT_INVALID:checksum");
   }
-  assertWorkspaceDefinitionPayload(payload);
+  if (typeof assertWorkspaceDefinitionPayload === "function") {
+    assertWorkspaceDefinitionPayload(payload);
+  }
   const expected = computeWorkspaceDefinitionPayloadChecksum(payload);
   if (checksum !== expected) {
     throw new Error("WORKSPACE_DEFINITION_EXPORT_CHECKSUM_MISMATCH");

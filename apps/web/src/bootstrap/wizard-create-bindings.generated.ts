@@ -6,10 +6,10 @@
 
 /** Plugin ids that use workspace-specific extended create chrome (Phase 14.3). */
 export const WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS = new Set<string>([
-  "denali",
+
 ]);
 
 /** Plugin-specific tenant brand fallback marks (manifest wizardCreate.customBrandFallbackMark). */
 export const WORKSPACE_WIZARD_CUSTOM_BRAND_FALLBACK_MARKS = Object.freeze({
-  "denali": "denali",
+
 }) as Readonly<Record<string, string>>;

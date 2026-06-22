@@ -20,6 +20,10 @@ import {
   throwWorkspaceValidationError,
   type WorkspaceSdkValidationErrorCode,
 } from "../errors/workspace-validation-errors.js";
+import {
+  safeParseWorkspaceCommerceConfig,
+  type WorkspaceCommerceConfig,
+} from "../metadata/commerce-schema.js";
 
 export {
   throwWorkspaceValidationError,
@@ -300,6 +304,7 @@ export type WorkspaceDefinitionPayload = Pick<
   | "wizard"
 > & {
   readonly theme?: WorkspaceDefinitionThemePayload;
+  readonly commerce?: WorkspaceCommerceConfig;
 };
 
 const DEFINITION_FORBIDDEN_TOP_LEVEL_KEYS = [
@@ -369,6 +374,20 @@ function validateDefinitionThemePayload(
     tokens[key] = value;
   }
   return sdkOk({ tokens: Object.freeze(tokens) });
+}
+
+function validateDefinitionCommercePayload(
+  commerce: unknown
+): SdkResult<WorkspaceCommerceConfig | undefined, WorkspaceSdkValidationErrorCode> {
+  if (commerce === undefined || commerce === null) {
+    return sdkOk(undefined);
+  }
+  const parsed = safeParseWorkspaceCommerceConfig(commerce);
+  if (!parsed.success) {
+    const message = parsed.error.issues.map((issue) => issue.message).join("; ");
+    return fail(violation("PLUGIN_INVALID_SHAPE", `payload.commerce invalid: ${message}`));
+  }
+  return sdkOk(parsed.data);
 }
 
 type DefinitionPayloadResult = SdkResult<
@@ -461,6 +480,9 @@ export function validateWorkspaceDefinitionPayload(value: unknown): DefinitionPa
   const themeResult = validateDefinitionThemePayload(root.value.theme);
   if (!themeResult.ok) return themeResult;
 
+  const commerceResult = validateDefinitionCommercePayload(root.value.commerce);
+  if (!commerceResult.ok) return commerceResult;
+
   return sdkOk({
     id: id.value as WorkspacePlugin["id"],
     version: version.value,
@@ -470,6 +492,7 @@ export function validateWorkspaceDefinitionPayload(value: unknown): DefinitionPa
     ruleSet: ruleSet.value,
     wizard: wizard.value,
     ...(themeResult.value !== undefined ? { theme: themeResult.value } : {}),
+    ...(commerceResult.value !== undefined ? { commerce: commerceResult.value } : {}),
   });
 }
 

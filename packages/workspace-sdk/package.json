@@ -65,6 +65,9 @@
       "optional": true
     }
   },
+  "dependencies": {
+    "zod": "^3.24.2"
+  },
   "devDependencies": {
     "@casl/ability": "^6.7.3",
     "@app-tour/config": "workspace:*",

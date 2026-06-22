@@ -1,19 +1,18 @@
+import { buildDevPortalPublicBaseUrl } from "@app-tour/tenant-kernel";
+
 /** Whether marketing detail should link to web registration intake. */
 export function supportsCatalogRegistration(pluginId: string): boolean {
   return pluginId === "urban" || pluginId === "denali";
 }
 
-/** Resolve user portal base URL from marketing host (inverse of M2b shop prefix). */
+/** Resolve user portal base URL from marketing host (P6 canonical `.portal.` dev origin). */
 export function resolvePortalPublicBaseUrl(host: string): string {
-  const configured = process.env.PORTAL_PUBLIC_BASE_URL?.trim();
-  if (configured !== undefined && configured.length > 0) {
-    return configured.replace(/\/$/, "");
-  }
-
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "localhost";
-  const port = process.env.PORTAL_DEV_PORT?.trim() || "3003";
-  const portalHost = hostname.startsWith("shop.") ? hostname.slice("shop.".length) : hostname;
-  return `http://${portalHost}:${port}`;
+  return buildDevPortalPublicBaseUrl({
+    ingressHost: host,
+    rootDomain: process.env.PLATFORM_ROOT_DOMAIN?.trim() || "localhost",
+    portalPort: process.env.PORTAL_DEV_PORT?.trim() || "3003",
+    configuredBaseUrl: process.env.PORTAL_PUBLIC_BASE_URL?.trim(),
+  });
 }
 
 /** @deprecated Use `resolvePortalPublicBaseUrl` — kept for transitional imports. */

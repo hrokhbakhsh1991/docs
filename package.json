@@ -86,6 +86,8 @@
     "p1:gate": "bash scripts/p1-platform-gate.sh",
     "p1:gate:full": "bash scripts/p1-platform-gate-full.sh",
     "p4:gate": "bash scripts/p4-club-product-gate.sh",
+    "p6:gate": "bash scripts/p6-denali-product-gate.sh",
+    "p6:e2e-gate": "bash scripts/p6-denali-e2e-gate.sh",
     "p4:e2e-gate": "bash scripts/p4-club-product-e2e-gate.sh",
     "stage:p4": "bash scripts/stage-p4-club-product.sh",
     "p1:live-smoke": "bash scripts/p1-platform-live-smoke.sh",

@@ -1,18 +1,19 @@
 # P6 — Denali safety (STOP rules)
 
 ```yaml
-pack_version: "2.0"
+pack_version: "2.1"
 workspace: denali
 payment: offline_receipt
 three_apps: true
+addressing: ../p6-host-addressing-architecture.mdoc
 ```
 
 ## Architecture (do not collapse)
 
 ```text
-apps/marketing  — public only (shop.{club})
-apps/portal     — user only ({club}.portal)
-apps/web        — admin only ({club}.admin)
+apps/marketing  — public only ({club}.{root} or custom apex)
+apps/portal     — user only ({club}.portal.{root})
+apps/web        — admin only ({club}.admin.{root})
 ```
 
 Do **not** permanently host public catalog or member `/me` inside `apps/web` — web keeps redirect shims only.

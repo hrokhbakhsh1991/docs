@@ -45,7 +45,9 @@ Single-level `{label}.{root}` behavior is unchanged for valid tenant labels (`pa
 Dev host maps use kernel parser:
 
 - Marketing: `club_apex` → `resolveTenantIdFromDevHost`
-- Portal: `club_portal` → `resolveTenantIdFromDevHost`
+- Portal: `club_portal` (+ legacy `club_apex` during P6-0) → `resolveTenantIdFromDevHost`
+
+Marketing → portal CTA uses `buildDevPortalPublicBaseUrl` (`@app-tour/tenant-kernel`) — maps `club_apex` ingress to `{club}.portal.{root}` dev origin.
 
 ## API
 

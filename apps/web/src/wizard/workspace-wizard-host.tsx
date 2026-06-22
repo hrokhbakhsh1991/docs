@@ -32,7 +32,7 @@ import { resolveWizardStepLabel as resolveWizardSurfaceStepLabel } from "./wizar
 import { canLoadWorkspaceWizard } from "./wizard-access";
 import { DraftSyncSoftLockBanner } from "@/draft/draft-sync-soft-lock-banner";
 import { WizardAccessDenied } from "./wizard-access-denied";
-import { loadWorkspacePluginById } from "./load-workspace-plugin";
+import { loadOperatorWorkspacePlugin, type OperatorWorkspaceMetadataBinding } from "./load-workspace-plugin";
 import {
   buildWizardStepDescriptors,
   clampWizardStepIndex,
@@ -83,7 +83,8 @@ export type WorkspaceWizardHostProps = {
   /** Increment after explicit clear-draft to suppress resume re-inference (Denali create). */
   readonly draftResumeEpoch?: number;
   /** When true, host uses saved step only — no furthest-field inference (e.g. freshStart). */
-  readonly suppressDraftStepInference?: boolean;
+  /** When set with metadata flag, resolves plugin from tenant binding (P5-B-N-009). */
+  readonly metadataBinding?: OperatorWorkspaceMetadataBinding | null;
 };
 
 function readWizardFieldDisplayValue(draft: TourWizardDraft, kind: string, path: string): string {
@@ -189,6 +190,7 @@ export function WorkspaceWizardHost({
   draftHydrated = true,
   draftResumeEpoch = 0,
   suppressDraftStepInference = false,
+  metadataBinding = null,
 }: WorkspaceWizardHostProps) {
   const tWizard = useTranslations("wizard");
   const draftEditBaseRef = useLatestWizardDraft(draft);
@@ -272,7 +274,11 @@ export function WorkspaceWizardHost({
           return;
         }
 
-        const plugin = await loadWorkspacePluginById(pluginId);
+        const plugin = await loadOperatorWorkspacePlugin({
+          pluginId,
+          tenantId,
+          metadataBinding,
+        });
         const hooks = plugin.wizardHost;
         const rules =
           hooks?.loadRulesModule != null ? await hooks.loadRulesModule() : null;
@@ -303,7 +309,7 @@ export function WorkspaceWizardHost({
     return () => {
       cancelled = true;
     };
-  }, [authorized, access, pluginId, tenantId, dimensionsKey]);
+  }, [authorized, access, pluginId, tenantId, dimensionsKey, metadataBinding?.definitionId, metadataBinding?.definitionVersion]);
 
   const visibleSteps = useMemo(() => {
     if (baseSteps == null) {

@@ -33,7 +33,19 @@ export type PlatformClubDetail = {
     readonly definitionId: string;
     readonly definitionVersion: number | null;
     readonly displayName: string | null;
+    readonly metadataCutoverStage: "off" | "pilot" | "live";
   } | null;
+  readonly workspaceCommerce: {
+    readonly paymentMode: "offline_receipt" | "gateway";
+    readonly gatewayProvider: "zibal" | "stripe" | null;
+    readonly currency: string;
+  };
+  readonly integrationsPlane: {
+    readonly zibalConfigured: boolean;
+    readonly stripeConfigured: boolean;
+    readonly webhookConfigured: boolean;
+    readonly gatewayActivationEnabled: boolean;
+  };
 };
 
 export type PlatformClubDetailTab =

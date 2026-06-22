@@ -39,11 +39,267 @@ Gap doc: [`legacy-vs-denali-gap-analysis.md`](../../apps/api/docs/legacy-vs-dena
 
 ---
 
+## Threat model (frozen — P5-D-N-001 DOC-D-01)
+
+P5-D restores legacy integration seams **without** re-opening SSRF, replay, or secret-leak paths documented in [`legacy-vs-denali-gap-analysis.md`](../../apps/api/docs/legacy-vs-denali-gap-analysis.md) § Proxy & Third-Party Integration Gap.
+
+### Assets
+
+| Asset | Why it matters |
+|-------|----------------|
+| Platform egress credentials | Zibal merchant key, Stripe secret key — full PSP authority |
+| Tenant-scoped callback URLs | Stored on club config; attacker-controlled if validation weak |
+| Inbound webhook bodies | Forged events could mark registrations paid without PSP proof |
+| Operator/admin session | Can trigger outbound PSP calls via future finance routes |
+
+### Adversaries & goals
+
+| Actor | Goal | Primary control |
+|-------|------|-----------------|
+| Tenant operator (malicious) | SSRF via callback URL or map/geocode proxy | EG-01 `assertSafeOutboundUrl` before any tenant-influenced URL fetch |
+| External attacker | Replay signed webhook | WH-01 HMAC + ±5m skew + replay cache (WH-02) |
+| External attacker | Forge webhook without secret | HMAC verify fail-closed; no side effects on bad signature |
+| Compromised metadata JSON | Exfiltrate PSP secrets via workspace definition publish | Secrets **never** in metadata — env / platform vault only (F4 from epic spec) |
+
+### Trust boundaries
+
+```text
+[Browser] → [apps/web BFF] → [apps/api operator routes]
+                                    ↓ (tenant-scoped, authenticated)
+                              [TenantHttpProxy + egress-url]
+                                    ↓ (allowlisted hosts only)
+                              [Zibal / Stripe / Resend / MinIO]
+
+[PSP] → POST /internal/payments/webhook → signature guard → idempotent handler
+```
+
+**Denali frozen:** offline receipt clubs never traverse PSP egress in P5-D v1 — gateway activation remains blocked by P5-C GU-02 until P5-D-N-010 lifts the guard.
+
+### Outbound egress sequence (frozen — P5-D-N-001 DOC-D-02)
+
+Every outbound HTTP call from tenant-influenced input follows this order — **no step may be skipped**:
+
+```mermaid
+sequenceDiagram
+  participant Caller as API handler
+  participant Guard as assertSafeOutboundUrl
+  participant Proxy as TenantHttpProxy
+  participant PSP as Allowlisted upstream
+
+  Caller->>Guard: parse URL (protocol, host, port)
+  alt private IP / metadata / link-local / bad protocol
+    Guard-->>Caller: throw EGRESS_URL_BLOCKED
+  else host ∉ allowlist
+    Guard-->>Caller: throw EGRESS_HOST_NOT_ALLOWLISTED
+  else allowed
+    Guard->>Proxy: fetchWithPinnedEgress(url, signal)
+    Proxy->>PSP: TLS connect (pinned DNS, rejectUnauthorized)
+    PSP-->>Proxy: response
+    Proxy-->>Caller: bounded body + status
+  end
+```
+
+Implementation targets (N-002..N-003):
+
+| Step | Owner | Assert |
+|------|-------|--------|
+| URL guard | `apps/api/src/integrations/egress/` | EG-01 blocks `127.0.0.1`; EG-02 blocks metadata IP host |
+| Proxy wire | `tenant-http-proxy.ts` + `main.ts` bootstrap | All map/finance outbound uses proxy — no raw global `fetch` |
+| Timeout | Proxy `AbortSignal` | PI-01 — no unbounded hang |
+
+---
+
+## Egress URL guard (frozen — P5-D-N-002 EG-01..05)
+
+Implementation: `apps/api/src/integrations/egress/assert-safe-outbound-url.ts`
+
+| Assert | Input | Behavior |
+|--------|-------|----------|
+| EG-01 | `http://127.0.0.1/...` | throws `EgressUrlBlockedError` (`EGRESS_URL_BLOCKED`) |
+| EG-02 | `http://169.254.169.254/...` or `metadata.google.internal` | throws `EgressUrlBlockedError` |
+| EG-03 | `ftp://`, `file://`, non-http(s) scheme | throws `EgressUrlBlockedError` |
+| EG-04 | optional `allowedHosts` + host ∉ set | throws `EgressHostNotAllowlistedError` |
+| EG-05 | RFC1918 + link-local IPv4/IPv6 literals | throws `EgressUrlBlockedError` |
+
+Callers pass tenant-influenced URLs through `assertSafeOutboundUrl` **before** `TenantHttpProxy.fetch` (N-003).
+
+Spec: `apps/api/test/egress-url.spec.ts`.
+
+---
+
+## TenantHttpProxy egress wire (frozen — P5-D-N-003 EG-06)
+
+Implementation: `apps/api/src/proxy/tenant-http-proxy.ts`
+
+| Assert | Behavior |
+|--------|----------|
+| EG-06 | `TenantHttpProxy.fetch` calls `assertSafeOutboundUrl` before global `fetch` when `egressGuard !== false` |
+| EG-06b | Default allowlist = upstream base URL hostname; override via `egressAllowedHosts` |
+| EG-06c | Integration tests set `egressGuard: false` for in-process mock upstream on loopback only |
+
+Spec: `apps/api/test/egress-proxy-wire.spec.ts` · existing `proxy-tenant-isolation.spec.ts` unchanged via test seam.
+
+---
+
+## Zibal payment adapter (frozen — P5-D-N-004 PSP-01)
+
+Implementation: `apps/api/src/integrations/payments/zibal/`
+
+| Assert | Behavior |
+|--------|----------|
+| PSP-01 | `createZibalPaymentRequest` validates tenant `callbackUrl` with `assertSafeOutboundUrl` **before** outbound fetch |
+| PSP-01b | POST JSON to `https://gateway.zibal.ir/v1/request` with `merchant` from `ZIBAL_MERCHANT` env only |
+| PSP-01c | `result === 100` + `trackId` → returns redirect URL `https://gateway.zibal.ir/start/{trackId}` |
+| PSP-01d | Missing `ZIBAL_MERCHANT` → `ZibalMerchantNotConfiguredError` (503) |
+
+**Env:** `ZIBAL_MERCHANT` — platform secret; never stored in workspace metadata JSON.
+
+Spec: `apps/api/test/zibal-adapter.spec.ts`.
+
+---
+
+## Stripe Connect Accounts v2 (frozen — P5-D-N-005 PSP-02)
+
+Implementation: `apps/api/src/integrations/payments/stripe-connect-v2/`
+
+| Assert | Behavior |
+|--------|----------|
+| PSP-02 | `createStripeConnectV2AccountLink` validates tenant `returnUrl` / `refreshUrl` with egress guard before fetch |
+| PSP-02b | POST `https://api.stripe.com/v2/core/accounts` with `Stripe-Version: 2026-05-27.dahlia` — **no v1 `Account.create`** |
+| PSP-02c | POST `https://api.stripe.com/v2/core/account_links` with `use_case.type=account_onboarding` |
+| PSP-02d | Missing `STRIPE_SECRET_KEY` → `StripeSecretKeyNotConfiguredError` (503) |
+
+**Env:** `STRIPE_SECRET_KEY` — platform secret only.
+
+Spec: `apps/api/test/stripe-v2-account.spec.ts`.
+
+---
+
+## Payments webhook ingress (frozen — P5-D-N-006 WH-01)
+
+Implementation: `apps/api/src/integrations/webhooks/`
+
+Route: `POST /internal/payments/webhook`
+
+| Assert | Behavior |
+|--------|----------|
+| WH-01 | HMAC-SHA256 over `${timestamp}.${rawBody}` with `PAYMENTS_WEBHOOK_SIGNING_SECRET` |
+| WH-01b | `x-payments-webhook-signature` + `x-payments-webhook-timestamp` required — missing → 401 |
+| WH-01c | Timestamp skew ±5 minutes — outside window → 401 |
+| WH-01d | Bad signature → 401; handler not invoked (fail-closed) |
+| WH-01e | Optional `PAYMENTS_WEBHOOK_ALLOWED_IPS` comma list — mismatch → 403 |
+
+Replay cache (WH-02) — see N-007 section below. Finance side effects deferred to P5-E.
+
+Spec: `apps/api/test/payments-webhook-signature.spec.ts`.
+
+---
+
+## Payments webhook replay cache (frozen — P5-D-N-007 WH-02)
+
+Implementation: `apps/api/src/integrations/webhooks/payments-webhook-replay-cache.ts`
+
+| Assert | Behavior |
+|--------|----------|
+| WH-02 | `claimPaymentsWebhookEvent(eventId)` returns `fresh` on first sighting within TTL |
+| WH-02b | Duplicate `eventId` within TTL → route returns HTTP 200 noop (`replayed: true`, `accepted: false`) |
+| WH-02c | After TTL expiry, same `eventId` may be claimed `fresh` again |
+| WH-02d | Signed webhook without resolvable `eventId` → 400 `PAYMENTS_WEBHOOK_EVENT_ID_REQUIRED` |
+
+**Env:** `PAYMENTS_WEBHOOK_REPLAY_TTL_SEC` (optional; default 24h).
+
+Spec: `apps/api/test/payments-webhook-replay.spec.ts`.
+
+---
+
+## Super Admin PSP status (frozen — P5-D-N-008 UI-03)
+
+Implementation: `apps/web/src/platform/club-psp-status.tsx` · workspace tab checklist.
+
+| Assert | Behavior |
+|--------|----------|
+| UI-03 | Workspace tab renders `ClubPspStatus` with platform integrations checklist |
+| UI-03b | `offline_receipt` clubs → surface status `offline_receipt` |
+| UI-03c | Gateway clubs while GU-02 active → `gateway_blocked` until `P5_D_GATEWAY_ACTIVATION_ENABLED=true` |
+| UI-03d | Env booleans only (`ZIBAL_MERCHANT`, `STRIPE_SECRET_KEY`, `PAYMENTS_WEBHOOK_SIGNING_SECRET`) — no secret values in UI |
+
+Spec: `apps/web/test/platform-club-psp-status.spec.ts`.
+
+---
+
+## Integrations mock suite (frozen — P5-D-N-009 INT-01)
+
+Runtime mock chain validating egress + PSP adapters + webhook ingress without live network.
+
+| Assert | Behavior |
+|--------|----------|
+| INT-01 | Mock Zibal `createZibalPaymentRequest` + Stripe v2 account link in one chain |
+| INT-01b | SSRF callback blocked before mock Zibal fetch |
+| INT-01c | PSP host allowlists (`gateway.zibal.ir`, `api.stripe.com`) accepted by egress guard |
+| INT-01d | Signed webhook duplicate → replay noop on route |
+| INT-01e | GU-02 default blocks gateway commerce until lift env set |
+
+Spec: `apps/api/test/integrations-plane-mock.spec.ts`.
+
+---
+
+## P5-D exit + GU-02 lift (frozen — P5-D-N-010 EX-D)
+
+| Assert | Behavior |
+|--------|----------|
+| EX-D-03 | Gate script lists INT-01 mock suite + all P5-D API specs |
+| EX-D-04 | `P5_D_GATEWAY_ACTIVATION_ENABLED=true` lifts GU-02 — `assertWorkspaceCommerceGatewayActivationAllowed` allows `paymentMode: gateway` |
+| EX-D-05 | Denali frozen commerce unchanged — lift does not bypass offline_receipt default for Denali clubs |
+
+**Env lift:** `P5_D_GATEWAY_ACTIVATION_ENABLED=true` (platform ops only; set at P5-D exit).
+
+---
+
+### Inbound webhook sequence (frozen — P5-D-N-006..N-007)
+
+```mermaid
+sequenceDiagram
+  participant PSP as Zibal/Stripe
+  participant API as payments webhook route
+  participant Cache as replay cache
+  participant Handler as idempotent finance handler
+
+  PSP->>API: POST body + signature + timestamp
+  API->>API: verify HMAC + skew ±5m
+  alt bad signature or skew
+    API-->>PSP: 401/400 (no handler)
+  else ok
+    API->>Cache: seen(eventId)?
+    alt replay
+      API-->>PSP: 409 or 200 noop
+    else fresh
+      Cache->>Handler: process once
+      Handler-->>PSP: 200
+    end
+  end
+```
+
+### Residual risks (accepted until P5-D exit)
+
+| Risk | Mitigation in EPIC |
+|------|-------------------|
+| Allowlist too broad | Start with Zibal + Stripe host literals only; expand via doc change |
+| Webhook IP spoofing at edge | Optional `PAYMENTS_WEBHOOK_ALLOWED_IPS` from legacy env schema |
+| Stripe API version drift | Pin Accounts **v2** in adapter; no v1 Account creation |
+
+---
+
 ## Verify
 
 ```bash
 pnpm run guard:import-boundary
 pnpm --filter @apps/api exec node --import tsx --test \
   test/egress-url.spec.ts \
+  test/egress-proxy-wire.spec.ts \
+  test/zibal-adapter.spec.ts \
+  test/stripe-v2-account.spec.ts \
+  test/payments-webhook-signature.spec.ts \
+  test/payments-webhook-replay.spec.ts \
+  test/integrations-plane-mock.spec.ts \
   test/platform-integrations-plane-exit.spec.ts
 ```

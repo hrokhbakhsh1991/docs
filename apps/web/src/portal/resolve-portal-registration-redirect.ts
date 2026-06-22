@@ -1,13 +1,13 @@
+import { buildDevPortalPublicBaseUrl } from "@app-tour/tenant-kernel";
+
 /** Map web host to portal registration URL (DEC-P11-014). */
 export function resolvePortalPublicBaseUrl(host: string): string {
-  const configured = process.env.PORTAL_PUBLIC_BASE_URL?.trim();
-  if (configured !== undefined && configured.length > 0) {
-    return configured.replace(/\/$/, "");
-  }
-
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "localhost";
-  const port = process.env.PORTAL_DEV_PORT?.trim() || "3003";
-  return `http://${hostname}:${port}`;
+  return buildDevPortalPublicBaseUrl({
+    ingressHost: host,
+    rootDomain: process.env.PLATFORM_ROOT_DOMAIN?.trim() || "localhost",
+    portalPort: process.env.PORTAL_DEV_PORT?.trim() || "3003",
+    configuredBaseUrl: process.env.PORTAL_PUBLIC_BASE_URL?.trim(),
+  });
 }
 
 export function resolvePortalRegistrationRedirectUrl(host: string, tourId: string): string {

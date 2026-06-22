@@ -110,7 +110,15 @@ Shell resolves catalog HTTP path via `resolveCatalogListApiPath(pluginId)`:
 2. `GET {TOUR_OPS_API_URL}{resolveCatalogListApiPath(pluginId)}` with `x-tenant-id`.
 3. Return shaped JSON to RSC pages — browser does not call API directly.
 
-Dev hosts: `shop.operator.localhost:3002`, `shop.denali.localhost:3002` (marketing shell port).
+Dev hosts (P6 canonical — authority [p6-host-addressing-architecture.mdoc](../../phase-19/p6-host-addressing-architecture.mdoc)):
+
+| Surface | Dev canonical | Legacy alias |
+| ------- | ------------- | ------------ |
+| Marketing | `{club}.localhost:3002` | `shop.{club}.localhost:3002` |
+| Portal | `{club}.portal.localhost:3003` | `{club}.localhost:3003` |
+| Admin | `{club}.admin.localhost:3000` | `{club}.localhost:3000` |
+
+Smoke club `operator`: `operator.localhost:3002` · `operator.portal.localhost:3003` · `operator.admin.localhost:3000`.
 
 ### Tour detail (M3)
 
@@ -130,7 +138,7 @@ Public registration intake lives on **`apps/portal`** (`/catalog/{tourId}/regist
 | Marketing detail CTA | `urban` + `denali` → `{PORTAL_PUBLIC_BASE_URL}/catalog/{tourId}/register` (dev: port **3003**) |
 | Web register back-link | → `{MARKETING_PUBLIC_BASE_URL}/tours/{tourId}` |
 
-Dev host map: `shop.urban.localhost:3002` ↔ `urban.localhost:3000`.
+Dev host map: marketing `{club}.localhost:3002` → portal `{club}.portal.localhost:3003` via `buildDevPortalPublicBaseUrl` (`@app-tour/tenant-kernel`). Legacy: `shop.{club}` strip · apex portal `{club}.localhost:3003` still accepted during P6-0 migration.
 
 ### Public catalog registration — phone OTP (M17)
 
@@ -227,7 +235,7 @@ When `ALLOW_DEV_WEB_SESSION !== true`, marketing resolves tenant from host via *
 
 Ingress uses `x-forwarded-host` with `shop.` prefix stripped (same as branding). Dev host map (M2) takes precedence when allowed.
 
-Playwright smoke: **SMK-MKT-01** (`shop.operator.localhost:3002/tours`); **SMK-MKT-03** marketing CTA → **portal** OTP → Denali intake → `[data-public-registration-success]`; Urban **SMK-P8-02** on `urban.localhost:3003` (`apps/portal`); Denali **SMK-DREG-01** / **SMK-PTL-01** on `operator.localhost:3003`.
+Playwright smoke: **SMK-MKT-01** (`operator.localhost:3002/tours` · legacy `shop.operator.localhost:3002`); **SMK-MKT-03** marketing CTA → **portal** (`operator.portal.localhost:3003`) OTP → Denali intake → `[data-public-registration-success]`; Urban **SMK-P8-02** on `urban.portal.localhost:3003`; Denali **SMK-PTL-01** on `operator.portal.localhost:3003`.
 
 ### SEO metadata (M8)
 
@@ -258,7 +266,7 @@ Marketing shell loads **guest-safe** tenant chrome from `GET /public/tenant-bran
 
 | Item | Value |
 |------|-------|
-| Ingress | `x-forwarded-host` — `shop.{label}.localhost` is normalized to `{label}.localhost` before lookup |
+| Ingress | `x-forwarded-host` — platform parse: `{club}.{root}` (`club_apex`); legacy `shop.{club}` strip before lookup |
 | Theme | `PlatformThemeProvider` + `TenantThemeProvider` (`primaryColor`, `displayName`) — no workspace plugin CSS import |
 | Header | Logo + display name + link to `/tours` |
 
@@ -277,7 +285,7 @@ Urban `publicCatalog.isPublished` reads `data.tour.publishStatus` (or legacy `st
 
 Marketing renders workspace fields without static-importing workspace packages — API JSON drives display helpers in `format-catalog-display.ts`.
 
-`apps/web/app/(public)/catalog/page.tsx` and `[tourId]/page.tsx` **307-redirect** to `{MARKETING_PUBLIC_BASE_URL}/tours` (dev default: `shop.{label}.localhost:3002`).
+`apps/web/app/(public)/catalog/page.tsx` and `[tourId]/page.tsx` **307-redirect** to `{MARKETING_PUBLIC_BASE_URL}/tours` (dev default: `{club}.localhost:3002` · legacy `shop.{club}.localhost:3002`).
 
 ### Pagination (M5)
 
@@ -311,7 +319,7 @@ When a canonical tour write affects public catalog visibility or content, `@apps
 
 | Env (`@apps/api`) | Purpose |
 |-------------------|---------|
-| `MARKETING_REVALIDATE_URL` | Marketing origin, e.g. `https://shop.example.com` (no trailing path) |
+| `MARKETING_REVALIDATE_URL` | Marketing origin, e.g. `https://operator.example.com` (no trailing path) |
 | `MARKETING_REVALIDATE_SECRET` | Shared secret; sent as header `x-marketing-revalidate-secret` |
 
 Both must be set; otherwise the notifier is a no-op (local dev without marketing revalidate is unaffected). Failures are logged at `warn` and **do not** roll back the tour transaction.
@@ -343,11 +351,11 @@ Operators set `defaultLocale` via tenant theme patch (validated in `@app-tour/wo
 | `MARKETING_REVALIDATE_SECRET` | marketing + api | shared on-demand cache purge |
 | `MARKETING_REVALIDATE_URL` | api | marketing public origin |
 | `MARKETING_IMAGE_REMOTE_HOSTS` | marketing | CDN/MinIO host allowlist |
-| `MARKETING_PUBLIC_BASE_URL` | web | `https://shop.{tenant}` for catalog redirects |
-| `PORTAL_PUBLIC_BASE_URL` | marketing | user portal registration bridge |
+| `MARKETING_PUBLIC_BASE_URL` | web | `https://{club}.{root}` for catalog redirects |
+| `PORTAL_PUBLIC_BASE_URL` | marketing | `{club}.portal.{root}` registration bridge |
 | `PORTAL_DEV_PORT` | marketing | dev portal port (default `3003`) |
 
-Ingress: public marketing on `shop.{label}.{root}`; strip `shop.` before tenant registry lookup (same as branding).
+Ingress: public marketing on `{club}.{root}` (platform default); legacy `shop.{club}` alias supported in dev.
 
 ```mermaid
 sequenceDiagram

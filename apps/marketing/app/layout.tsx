@@ -5,6 +5,7 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { resolveTextDirection, isAppLocale, routing } from "@/i18n/routing";
+import { inter, resolveAppFontClassName, resolveAppFontFamilyCss, vazirmatn } from "@/i18n/app-fonts";
 import { MaintenancePage } from "@/platform/maintenance-page";
 import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
 import { PlatformMotherShell } from "@/platform/platform-mother-shell";
@@ -13,8 +14,10 @@ import { MarketingProviders } from "@/shell/marketing-providers";
 import { MarketingShell } from "@/shell/marketing-shell";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
 import { isMarketingSurfaceEnabled } from "@/tenant/marketing-site-surfaces";
+import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 import { resolveMarketingSiteSurfacesForHost } from "@/tenant/resolve-marketing-site-surfaces";
 
+import "@/bootstrap/workspace-guest-theme-stylesheets.generated";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -63,14 +66,26 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   }
 
   const branding = await fetchPublicTenantBrandingForHost(host);
+  const bootstrap = await resolveMarketingBootstrapForHost(host);
   const theme = {
     displayName: branding.displayName ?? undefined,
     primaryColor: branding.primaryColor ?? undefined,
   };
+  const fontClassName = resolveAppFontClassName(locale);
+  const fontFamilyBase = resolveAppFontFamilyCss(locale);
 
   return (
-    <html lang={locale} dir={dir}>
-      <body data-app-surface="marketing">
+    <html
+      lang={locale}
+      dir={dir}
+      className={`${vazirmatn.variable} ${inter.variable} ${fontClassName}`}
+      style={{ ["--font-family-base" as string]: fontFamilyBase }}
+    >
+      <body
+        data-app-surface="marketing"
+        data-workspace-plugin={bootstrap.pluginId}
+        data-tenant-id={bootstrap.tenantId}
+      >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <MarketingProviders theme={theme}>
             <MarketingShell branding={branding}>{children}</MarketingShell>

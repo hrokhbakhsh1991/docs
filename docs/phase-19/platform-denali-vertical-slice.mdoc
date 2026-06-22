@@ -1,0 +1,119 @@
+---
+title: P6 — Denali vertical slice (VS-01..08)
+phase: 19
+format: markdoc
+epic: P6-4
+exit_gate: pnpm run p6:gate
+smoke_club: operator
+---
+
+# Denali first customer — full vertical slice
+
+End-to-end proof for the first Denali club on **three apps** with **canonical dev hosts**.
+
+**Smoke club:** `operator` · tenant `00000000-0000-4000-8000-000000000014`
+
+---
+
+## Host matrix (dev canonical)
+
+| Surface | App | URL |
+| ------- | --- | --- |
+| Marketing | `apps/marketing` | `http://operator.localhost:3002` |
+| Portal | `apps/portal` | `http://operator.portal.localhost:3003` |
+| Admin | `apps/web` | `http://operator.admin.localhost:3000` |
+
+Legacy smoke aliases still supported — see [host-subdomain-map.md](p6/runbooks/host-subdomain-map.md).
+
+---
+
+## Vertical slice steps
+
+### VS-01 — Publish active (P6-1)
+
+| Step | Detail |
+| ---- | ------ |
+| App | Admin `operator.admin.localhost:3000` |
+| Action | Wizard review → `publishStatus: active` |
+| Proof | Draft tour hidden from marketing |
+
+### VS-02 — Marketing lists tour (P6-1)
+
+| Step | Detail |
+| ---- | ------ |
+| App | Marketing `operator.localhost:3002/tours` |
+| Proof | Active tour visible in list |
+
+### VS-03 — Portal register success (P6-1)
+
+| Step | Detail |
+| ---- | ------ |
+| App | Portal `operator.portal.localhost:3003/catalog/{tourId}/register` |
+| Flow | Phone → OTP (`1234` dev) → profile (if new) → intake |
+| Proof | `[data-public-registration-success]` |
+
+### VS-04 — Member `/me` lists row (P6-3)
+
+| Step | Detail |
+| ---- | ------ |
+| App | Portal `/me/registrations` |
+| Proof | Registration from VS-03 appears with status |
+
+### VS-05 — Member receipt upload (P6-3)
+
+| Step | Detail |
+| ---- | ------ |
+| App | Portal `/me/registrations/[id]` |
+| Action | Upload offline receipt proof |
+| Proof | Pending receipt visible to operator |
+
+### VS-06 — Operator approve booking (P6-2)
+
+| Step | Detail |
+| ---- | ------ |
+| App | Admin workspace or bookings command center |
+| Action | Approve pending booking from VS-03 |
+| Proof | Status `approved` |
+
+Runbook: [first-customer-operator.md](p6/runbooks/first-customer-operator.md)
+
+### VS-07 — Operator approve receipt (P6-2)
+
+| Step | Detail |
+| ---- | ------ |
+| App | Admin `(app)/finance` |
+| Action | Review and approve member receipt |
+| Proof | Ledger outbox / finance summary updated |
+
+### VS-08 — P6 gate green (P6-4)
+
+```bash
+pnpm run p6:gate
+# exits 0 · prints P6_DENALI_PRODUCT_GATE_OK
+```
+
+Optional E2E (Architect YES):
+
+```bash
+pnpm run p6:e2e-gate
+```
+
+---
+
+## Milestone map
+
+| Milestone | Nanos | VS IDs |
+| --------- | ----- | ------ |
+| M0 Host parity | P6-0 | — |
+| M1 Guest slice | P6-1-N-014 | VS-01..03 |
+| M2 Admin ops | P6-2 | VS-06..07 |
+| M3 Member portal | P6-3 | VS-04..05 |
+| M4 Closure | P6-4-N-008 | VS-08 |
+
+---
+
+## References
+
+- [platform-denali-first-customer.mdoc](platform-denali-first-customer.mdoc)
+- [p6-exit-checklist.md](p6/p6-exit-checklist.md)
+- [guest-slice-operator-minimal.md](p6/runbooks/guest-slice-operator-minimal.md)

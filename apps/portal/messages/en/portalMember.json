@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "registrations": "My registrations"
+  },
+  "registrations": {
+    "title": "My registrations",
+    "empty": "No registrations yet.",
+    "statusLine": "{status} · {paymentStatus} · {departureAt}"
+  },
+  "detail": {
+    "statusLine": "Status: {status} · Payment: {paymentStatus}",
+    "departure": "Departure: {departureAt}"
+  },
+  "receipt": {
+    "label": "Upload payment receipt",
+    "submit": "Submit receipt",
+    "uploaded": "Receipt uploaded.",
+    "failed": "Upload failed."
+  }
+}

@@ -38,6 +38,7 @@ const UI_PRIMITIVES_ALLOWED_SUBPATHS = new Set([
   "field-shell",
   "alert",
   "badge",
+  "otp-segment-input-logic",
 ]);
 
 /** Post-build execution surface — foundation scans workspace-sdk dist only (H-12). */

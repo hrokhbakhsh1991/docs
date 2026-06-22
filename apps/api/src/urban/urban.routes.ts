@@ -14,6 +14,7 @@ import {
 } from "../http/http-idempotency";
 import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
+import { assertPublicRegistrationThrottle } from "../registrations/public-registration-throttle.ts";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { listUrbanCatalog, getUrbanCatalogTour } from "./urban-catalog.service";
 import { resolveUrbanPublicAuth } from "./resolve-urban-public-auth";
@@ -142,6 +143,9 @@ export async function handlePostUrbanRegistration(
 ): Promise<void> {
   try {
     const auth = resolveUrbanPublicAuth(req);
+    await assertPublicRegistrationThrottle(
+      req.headers["x-forwarded-for"]?.toString() ?? req.socket.remoteAddress ?? undefined
+    );
     const idempotencyKey = readIdempotencyKey(req);
     if (idempotencyKey === undefined) {
       sendHttpError(res, 400, {

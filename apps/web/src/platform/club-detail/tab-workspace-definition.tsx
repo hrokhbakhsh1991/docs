@@ -5,10 +5,15 @@ import { useCallback, useEffect, useState } from "react";
 import { Input } from "@app-tour/ui-primitives/input";
 
 import { fetchPlatformApi } from "../platform-api-client";
+import { ClubCommerceBadge } from "../club-commerce-badge";
+import { ClubPspStatus } from "../club-psp-status";
 import type { PlatformClubDetail } from "./platform-club-detail.types";
 
 export type TabWorkspaceDefinitionProps = {
   readonly tenantId: string;
+  readonly workspaceType: string;
+  readonly workspaceCommerce: PlatformClubDetail["workspaceCommerce"];
+  readonly integrationsPlane: PlatformClubDetail["integrationsPlane"];
   readonly binding: PlatformClubDetail["workspaceDefinition"];
   readonly isWriteRole: boolean;
   readonly onBindingUpdated: (binding: PlatformClubDetail["workspaceDefinition"]) => void;
@@ -22,6 +27,9 @@ type DefinitionListItem = {
 
 export function TabWorkspaceDefinition({
   tenantId,
+  workspaceType,
+  workspaceCommerce,
+  integrationsPlane,
   binding,
   isWriteRole,
   onBindingUpdated,
@@ -79,6 +87,14 @@ export function TabWorkspaceDefinition({
     }
   }, [definitionId, definitionVersion, isWriteRole, onBindingUpdated, tenantId]);
 
+  const cutoverStage = binding?.metadataCutoverStage ?? "off";
+  const cutoverVersionLabel =
+    binding?.definitionVersion !== null && binding?.definitionVersion !== undefined
+      ? `v${binding.definitionVersion}`
+      : binding
+        ? "latest"
+        : null;
+
   return (
     <div
       data-tab="workspace-definition"
@@ -91,6 +107,33 @@ export function TabWorkspaceDefinition({
           builder.
         </p>
       </div>
+
+      <div
+        className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2"
+        data-testid="platform-workspace-cutover-badge"
+        data-metadata-cutover-stage={cutoverStage}
+      >
+        <span className="text-muted-foreground">Metadata cutover</span>
+        <span className="font-medium capitalize">{cutoverStage}</span>
+        {cutoverVersionLabel ? (
+          <span className="text-muted-foreground" data-workspace-definition-version>
+            Definition version: {cutoverVersionLabel}
+          </span>
+        ) : null}
+      </div>
+
+      <ClubCommerceBadge
+        workspaceType={workspaceType}
+        paymentMode={workspaceCommerce.paymentMode}
+        gatewayProvider={workspaceCommerce.gatewayProvider}
+      />
+
+      <ClubPspStatus
+        workspaceType={workspaceType}
+        paymentMode={workspaceCommerce.paymentMode}
+        gatewayProvider={workspaceCommerce.gatewayProvider}
+        integrationsPlane={integrationsPlane}
+      />
 
       {binding ? (
         <p>

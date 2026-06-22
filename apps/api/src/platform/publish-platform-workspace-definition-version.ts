@@ -7,6 +7,7 @@ import {
 } from "@app-tour/workspace-sdk/metadata";
 
 import { getPrismaAdmin } from "../db/prisma.ts";
+import { mergeCommerceIntoWorkspaceDefinitionPayload } from "../workspace-metadata/persist-commerce-on-publish.ts";
 import { assertWorkspaceDefinitionRendererAllowlist } from "./assert-workspace-definition-renderer-allowlist.ts";
 import {
   appendPlatformAuditEvent,
@@ -37,7 +38,9 @@ export async function publishPlatformWorkspaceDefinitionVersion(input: {
     return null;
   }
 
-  const validation = validateWorkspaceDefinitionPayload(input.payload);
+  const validation = validateWorkspaceDefinitionPayload(
+    mergeCommerceIntoWorkspaceDefinitionPayload(input.payload)
+  );
   if (!validation.ok) {
     throw new PlatformValidation(validation.error.message);
   }

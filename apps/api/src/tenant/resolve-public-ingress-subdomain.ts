@@ -16,7 +16,10 @@ function readPublicTenantRootDomain(): string {
 export function resolveSubdomainFromPlatformHost(host: string): string | null {
   const rootDomain = readPublicTenantRootDomain();
   const reserved = parseReservedLabelsCsv(process.env.TENANT_HOST_RESERVED_LABELS);
-  const normalized = host.split(":")[0]?.trim().toLowerCase() ?? "";
+  let normalized = host.split(":")[0]?.trim().toLowerCase() ?? "";
+  if (normalized.startsWith("shop.")) {
+    normalized = normalized.slice("shop.".length);
+  }
   const outcome = parseMultiLevelTenantHost(normalized, rootDomain, reserved);
   if (
     outcome.kind === "club_admin" ||

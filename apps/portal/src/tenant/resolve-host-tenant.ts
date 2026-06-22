@@ -30,7 +30,7 @@ export function resolveTenantIdFromDevHost(host: string): string | null {
   const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
   const reserved = parseReservedLabelsCsv(process.env.TENANT_HOST_RESERVED_LABELS);
   const outcome = parseMultiLevelTenantHost(hostname, "localhost", reserved);
-  if (outcome.kind === "club_portal") {
+  if (outcome.kind === "club_portal" || outcome.kind === "club_apex") {
     return mapSubdomain(outcome.subdomain);
   }
 

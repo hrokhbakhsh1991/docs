@@ -237,6 +237,9 @@ export function PlatformClubDetailClient({
       {tab === "workspace" ? (
         <TabWorkspaceDefinition
           tenantId={detail.tenant.id}
+          workspaceType={detail.tenant.workspaceType}
+          workspaceCommerce={detail.workspaceCommerce}
+          integrationsPlane={detail.integrationsPlane}
           binding={detail.workspaceDefinition}
           isWriteRole={opsRole === "owner" || opsRole === "admin"}
           onBindingUpdated={(workspaceDefinition) =>

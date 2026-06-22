@@ -5,13 +5,13 @@ updated: 2026-06-21
 p2_status: complete
 p3_status: complete
 p4_status: complete
-p5_status: planned
-p5_current_task: P5-A-N-004
+p5_status: complete
+p5_current_task: null
 p5_agent_entry: TEMP/p5/AGENT-START.md
 p5_file_map: TEMP/p5/FILE-MAP.md
 p5_index: TEMP/p5/README.md
 p5_exit: TEMP/p5-exit-checklist.md
-p5_nano: 3/56
+p5_nano: 56/56
 p5_quality: TEMP/p5/QUALITY-AUDIT.md
 p5_score: 9.95/10 agent-pack · 9.9/10 doc-integrity
 p5_doc_sync: TEMP/p5/DOC-SYNC-INDEX.md AI-friendly AI-friendly
@@ -29,7 +29,7 @@ p3_nano: 52/52
 ## مسیر کلی
 
 ```text
-P0 ✅ → P1 ✅ → P2 ✅ → P3 ✅ → P4 ✅ → P5 ⬜
+P0 ✅ → P1 ✅ → P2 ✅ → P3 ✅ → P4 ✅ → P5 ✅
 ```
 
 | فاز    | Index                                                                         | وضعیت           |
@@ -37,7 +37,7 @@ P0 ✅ → P1 ✅ → P2 ✅ → P3 ✅ → P4 ✅ → P5 ⬜
 | P0–P2  | [p2/README.md](./p2/README.md)                                                | ✅              |
 | P3     | [p3/README.md](./p3/README.md) · [p3/AGENT-START.md](./p3/AGENT-START.md)     | ✅ complete     |
 | **P4** | **[p4/README.md](./p4/README.md)** · [p4/AGENT-START.md](./p4/AGENT-START.md) | **✅ complete** |
-| **P5** | **[p5/README.md](./p5/README.md)** · [p5/AGENT-START.md](./p5/AGENT-START.md) | **⬜ planned**  |
+| **P5** | **[p5/README.md](./p5/README.md)** · [p5/AGENT-START.md](./p5/AGENT-START.md) | **✅ complete** |
 
 ---
 
@@ -89,7 +89,7 @@ Summary: [p5-enterprise-evolution.md](./p5-enterprise-evolution.md) · Research:
 ## مسیر کلی (به‌روز)
 
 ```text
-P0 ✅ → P1 ✅ → P2 ✅ → P3 ✅ → P4 ✅ → P5 ⬜
+P0 ✅ → P1 ✅ → P2 ✅ → P3 ✅ → P4 ✅ → P5 ✅
 ```
 
 ## مراجع
@@ -99,3 +99,32 @@ P0 ✅ → P1 ✅ → P2 ✅ → P3 ✅ → P4 ✅ → P5 ⬜
 - [p3-exit-checklist.md](./p3-exit-checklist.md)
 - [docs/phase-17/platform-club-product-surfaces.mdoc](./docs/phase-17/platform-club-product-surfaces.mdoc)
 - [docs/phase-16/platform-workspace-definitions.mdoc](./docs/phase-16/platform-workspace-definitions.mdoc)
+
+---
+
+## P6 — Denali first customer (Phase 19)
+
+| Item | Path |
+| ---- | ---- |
+| Status | **✅ complete** (58/58) |
+| Gate | `pnpm run p6:gate` |
+| Docs | [docs/phase-19/README.md](../docs/phase-19/README.md) |
+| Agent | [docs/phase-19/p6/AGENT-START.md](../docs/phase-19/p6/AGENT-START.md) |
+
+---
+
+## P7 — Denali customer live (Phase 20) — sketch
+
+| Item | Path |
+| ---- | ---- |
+| Status | **⬜ planned** (v0.1 sketch) |
+| Summary | [p7-denali-customer-delivery.md](./p7-denali-customer-delivery.md) |
+| Docs | [docs/phase-20/README.md](../docs/phase-20/README.md) |
+| Agent | [docs/phase-20/p7/AGENT-START.md](../docs/phase-20/p7/AGENT-START.md) |
+| First EPIC | P7-0 Live infra |
+
+```text
+P6 ✅ → P7 ⬜ (customer live on staging)
+```
+
+EPICs: P7-0 infra → P7-1 wizard complete → P7-2 workspace ops → P7-3 delivery exit

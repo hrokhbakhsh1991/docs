@@ -1,27 +1,34 @@
 # P6 Agent context
 
 ```yaml
-pack_version: "2.0"
+pack_version: "2.1"
 priority: guest_slice_first
+addressing: dual_model
 ```
 
-## Architecture (three apps)
+## Architecture (three apps · one tenant)
 
 ```text
-┌─────────────────┐   CTA register    ┌─────────────────┐
-│ apps/marketing  │ ────────────────► │ apps/portal     │
-│ public catalog  │                   │ user OTP intake │
-│ shop.{club}     │                   │ {club}.portal   │
-└────────┬────────┘                   └────────┬────────┘
-         │ same tenantId                      │
-         │         ┌──────────────────────────┘
-         │         │ pending booking row
-         ▼         ▼
-┌─────────────────────────────────────────┐
-│ apps/web (app)/  — admin operator       │
-│ {club}.admin · publish · approve · $    │
-└─────────────────────────────────────────┘
+┌─────────────────────────┐     CTA      ┌─────────────────────────┐
+│ apps/marketing          │ ───────────► │ apps/portal             │
+│ PUBLIC surface          │              │ USER surface            │
+│ {club}.{root}           │              │ {club}.portal.{root}    │
+│ or denali.club (custom) │              │ or portal.denali.club   │
+└───────────┬─────────────┘              └───────────┬─────────────┘
+            │ same tenantId                          │
+            │              pending booking             │
+            ▼              ▼                           │
+┌─────────────────────────────────────────────────────┴───────────┐
+│ apps/web (app)/  — ADMIN surface                                 │
+│ {club}.admin.{root}  or  admin.denali.club                       │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+**Tenants are isolated** — `denali.club` and `alborz.ir` never share host resolution.
+
+**Workspaces** (`denali`, `urban`) = product plugin after tenant lookup — not domain labels.
+
+→ [p6-host-addressing-architecture.mdoc](../p6-host-addressing-architecture.mdoc)
 
 ## Why guest first
 
@@ -37,7 +44,7 @@ Full admin (bookings inbox, finance, settings bugs) comes in **P6-2** after that
 
 | Pain | EPIC |
 | ---- | ---- |
-| Wrong tenant / host | P6-0 |
+| Wrong tenant / host / custom domain | P6-0 |
 | No tours on public / can't register | P6-1 |
 | Admin errors, incomplete ops | P6-2 |
 | No member dashboard / receipt | P6-3 |
@@ -57,14 +64,19 @@ Everything else (approve booking, finance) is **P6-2**.
 
 | Flow | Path |
 | ---- | ---- |
-| Host → tenant | `GET /public/tenant-context` |
+| Host → tenant | `resolvePublicIngressSubdomain` · `GET /public/tenant-context` |
+| Platform URLs | `buildClubSiteUrls` |
+| Custom domain | `resolveTenantFromCustomDomainHost` · `tenant_domains` |
 | Catalog | `GET /denali/catalog` · `apps/marketing/app/tours/` |
-| Register URL | `apps/marketing/src/portal/resolve-web-registration-url.ts` |
+| Register URL | `resolveWebRegistrationUrl` → `buildDevPortalPublicBaseUrl` (`@app-tour/tenant-kernel`) |
+| Member `/me` | `apps/portal/app/me/` · BFF `app/api/me/` → `bookings?view=mine` |
 | Register flow | `apps/portal/app/catalog/[tourId]/register/` |
 | Publish → cache | `maybeScheduleMarketingCatalogRevalidate` |
 
 ## References
 
+- [p6-host-addressing-architecture.mdoc](../p6-host-addressing-architecture.mdoc)
+- [runbooks/host-subdomain-map.md](runbooks/host-subdomain-map.md)
 - `docs/workspaces/denali/public-catalog.md`
 - `docs/phase-9/appendices/BOOKINGS-OPS-UX.md`
 - `docs/phase-9/appendices/FINANCE-OPS-UX.md`

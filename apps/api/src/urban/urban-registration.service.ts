@@ -1,6 +1,10 @@
 import { validateUrbanRegistrationPayload } from "@app-tour/workspace-urban";
 
 import type { TourStorageRepository } from "../db/tour.repository";
+import {
+  assertRegistrationCapacityDecision,
+  resolveRegistrationCapacityDecision,
+} from "../registrations/registration-capacity.service.ts";
 import { isUrbanTourPublished } from "./urban-publish-status";
 import {
   getUrbanRegistrationRepository,
@@ -67,6 +71,16 @@ export async function createUrbanRegistration(params: {
     throw new UrbanRegistrationDuplicateError();
   }
 
+  const partySize = params.body.partySize ?? 1;
+  const acceptedSeats = await repo.sumAcceptedPartySize(params.tenantId, params.body.tourId);
+  const capacityDecision = resolveRegistrationCapacityDecision({
+    tourCapacity: capacity,
+    acceptedSeats,
+    requestedPartySize: partySize,
+    policy,
+  });
+  const registrationStatus = assertRegistrationCapacityDecision(capacityDecision);
+
   const created = await repo.create({
     tenantId: params.tenantId,
     tourId: params.body.tourId,
@@ -75,6 +89,7 @@ export async function createUrbanRegistration(params: {
     phone: params.body.contact.phone,
     partySize: params.body.partySize,
     notes: params.body.notes,
+    status: registrationStatus,
   });
 
   return { id: created.id, status: created.status };

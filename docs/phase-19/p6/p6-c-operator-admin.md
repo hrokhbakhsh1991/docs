@@ -1,4 +1,4 @@
-# DEPRECATED — use P6 v2.0
+# DEPRECATED — use P6 v2.1
 
 **Superseded by:** [p6-2-operator-admin.md](p6-2-operator-admin.md)
 

@@ -4,7 +4,23 @@ import { isWorkspaceMetadataEnabled } from "../workspace-metadata/is-workspace-m
 import { runValidationOffThread } from "../canonical/validation-worker-pool";
 import type { CreateTourBody } from "./create-tour.schema";
 import type { ValidateBeforePersistInput } from "./canonical-validation-sync";
-import { validateCanonicalBeforePersistAsync } from "./canonical-validation-sync";
+import {
+  validateCanonicalBeforePersistAsync,
+  validateCanonicalBeforePersistSync,
+} from "./canonical-validation-sync";
+import { resolveDenaliCatalogRefAllowlists } from "../canonical/resolve-denali-catalog-ref-allowlists.ts";
+
+async function enrichValidateBeforePersistInput(
+  input: ValidateBeforePersistInput
+): Promise<ValidateBeforePersistInput> {
+  if (input.workspaceType !== "denali" || input.catalogRefAllowlists !== undefined) {
+    return input;
+  }
+  return {
+    ...input,
+    catalogRefAllowlists: await resolveDenaliCatalogRefAllowlists(input.tenantId),
+  };
+}
 
 export type { ValidateBeforePersistInput } from "./canonical-validation-sync";
 export {
@@ -22,10 +38,11 @@ export {
 export async function validateCanonicalBeforePersist(
   input: ValidateBeforePersistInput
 ): Promise<CanonicalDocument> {
+  const enriched = await enrichValidateBeforePersistInput(input);
   if (isWorkspaceMetadataEnabled()) {
-    return validateCanonicalBeforePersistAsync(input);
+    return validateCanonicalBeforePersistAsync(enriched);
   }
-  return runValidationOffThread(input);
+  return runValidationOffThread(enriched);
 }
 
 export async function buildValidatedCanonicalDocument(

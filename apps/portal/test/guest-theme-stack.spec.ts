@@ -1,6 +1,6 @@
 /**
  * P6-1 — guest app design token stack
- * @see docs/phase-19/p6-implementation-standards.mdoc
+ * @see docs/phase-19/p6-enterprise-theming-architecture.mdoc
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -11,18 +11,38 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const globalsPath = join(repoRoot, "apps/portal/app/globals.css");
 const layoutPath = join(repoRoot, "apps/portal/app/layout.tsx");
+const bootstrapPath = join(
+  repoRoot,
+  "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+);
+const denaliPortalSkinPath = join(
+  repoRoot,
+  "packages/workspaces/denali/theme/denali-portal.css"
+);
 
 describe("guest-theme-stack.spec.ts — portal", () => {
-  it("G-P6-UI-01 imports design-tokens guest-shell + tailwind", () => {
-    const css = readFileSync(globalsPath, "utf8");
+  it("G-P6-UI-01 globals are import-only (no page rules)", () => {
+    const css = readFileSync(globalsPath, "utf8").trim();
     assert.match(css, /@import "@app-tour\/design-tokens\/guest-shell\.css"/);
     assert.match(css, /@import "tailwindcss"/);
-    assert.doesNotMatch(css, /#f8fafc/);
-    assert.match(css, /var\(--background\)/);
+    assert.doesNotMatch(css, /main\[data-catalog-registration-page\]/);
   });
 
-  it("G-P6-UI-01b layout marks portal surface", () => {
+  it("G-P6-UI-01b layout marks portal surface + workspace plugin", () => {
     const layout = readFileSync(layoutPath, "utf8");
     assert.match(layout, /data-app-surface="portal"/);
+    assert.match(layout, /data-workspace-plugin=\{bootstrap\.pluginId\}/);
+    assert.match(layout, /workspace-guest-theme-stylesheets\.generated/);
+  });
+
+  it("G-P6-UI-06 denali portal skin scoped to workspace", () => {
+    const generated = readFileSync(bootstrapPath, "utf8");
+    assert.match(generated, /@app-tour\/workspace-denali\/theme\/denali-portal\.css/);
+    const skin = readFileSync(denaliPortalSkinPath, "utf8");
+    assert.match(
+      skin,
+      /body\[data-app-surface="portal"\]\[data-workspace-plugin="denali"\]/
+    );
+    assert.match(skin, /main\[data-catalog-registration-page\]/);
   });
 });

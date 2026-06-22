@@ -21,7 +21,19 @@ quality_target: 9.5+/10
 | N-001 gate covenant | ✅ |
 | N-002 phase-18 mdoc | ✅ |
 | N-003 deriveMetadataCutoverStage | ✅ |
-| N-004 Super Admin badge | ⬜ **current** |
+| N-004 Super Admin badge | ✅ |
+| N-005 staging env checklist | ✅ |
+| N-006 metrics counter | ✅ |
+| N-007 smoke bind script | ✅ |
+| N-008 rollback drill | ✅ |
+| N-009 audit reuse test | ✅ |
+| N-010 expand allowlist runbook | ✅ |
+| N-011 G2 async note | ✅ | |
+| N-012 FILE-MAP sync | ✅ | |
+| N-013 p5:gate flesh | ✅ | |
+| N-014 EPIC-A exit | ✅ |
+
+**EPIC P5-A complete** — next: P5-B-N-001
 
 > **Doc SoT target:** `docs/phase-18/platform-metadata-cutover-pilot.mdoc` (N-002 sync — mdoc pre-created 2026-06-21)
 

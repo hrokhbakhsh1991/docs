@@ -4,18 +4,10 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { DENALI_SMOKE_TENANT_ID, DENALI_SMOKE_SUBDOMAIN } from "@app-tour/workspace-denali";
 import { URBAN_SMOKE_TENANT_ID, URBAN_SMOKE_SUBDOMAIN } from "@app-tour/workspace-urban";
-import { buildDenaliFullWizardTemplatePayload } from "@app-tour/workspace-denali";
 import { buildUrbanMinimalWizardTemplatePayload } from "@app-tour/workspace-urban";
 
 export const WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS = [
-  {
-    workspaceId: "denali",
-    tenantIds: ["00000000-0000-4000-8000-000000000003","00000000-0000-4000-8000-000000000014"],
-    buildPayload: buildDenaliFullWizardTemplatePayload,
-    minPublishedSteps: 6,
-  },
   {
     workspaceId: "urban",
     tenantIds: ["00000000-0000-4000-8000-000000000004"],
@@ -25,11 +17,6 @@ export const WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS = [
 ] as const;
 
 export const WORKSPACE_DEV_SMOKE_TENANT_BINDINGS = [
-  {
-    workspaceId: "denali",
-    tenantId: DENALI_SMOKE_TENANT_ID,
-    subdomain: DENALI_SMOKE_SUBDOMAIN,
-  },
   {
     workspaceId: "urban",
     tenantId: URBAN_SMOKE_TENANT_ID,

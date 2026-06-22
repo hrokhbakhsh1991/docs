@@ -13,12 +13,15 @@ Guest registration on **`apps/portal`** (`{club}.portal.{root}`). Authority for 
 
 ## Host
 
-| Env | Portal register URL |
-| --- | ------------------- |
-| Dev | `http://{club}.localhost:3003/catalog/{tourId}/register` |
-| Prod | `https://{club}.portal.{root}/catalog/{tourId}/register` |
+Authority: [p6-host-addressing-architecture.mdoc](p6-host-addressing-architecture.mdoc)
 
-Marketing CTA resolves this via `resolveWebRegistrationUrl` (strips `shop.` prefix).
+| Env | Portal register URL (canonical) | Legacy dev alias |
+| --- | ------------------------------- | ---------------- |
+| Dev | `http://{club}.portal.localhost:3003/catalog/{tourId}/register` | `http://{club}.localhost:3003/...` |
+| Prod (platform) | `https://{club}.portal.{root}/catalog/{tourId}/register` | — |
+| Prod (custom) | `https://portal.{apex}/catalog/{tourId}/register` | `tenant_domains` · `surface=portal` |
+
+Marketing CTA resolves portal origin via `resolveWebRegistrationUrl` → **`buildDevPortalPublicBaseUrl`** (`@app-tour/tenant-kernel`; strips `shop.` when present). Custom apex: set `PORTAL_PUBLIC_BASE_URL`.
 
 ---
 
@@ -106,9 +109,9 @@ Specs: `apps/portal/test/public-catalog-registration-flow-contract.spec.ts` · `
 ## Smoke (dev)
 
 ```bash
-# API + portal + marketing running
-# 1. shop.operator.localhost:3002/tours/{id}
-# 2. operator.localhost:3003/catalog/{id}/register
+# API + portal + marketing running (smoke club: operator)
+# 1. operator.localhost:3002/tours/{id}          # or shop.operator.localhost:3002
+# 2. operator.portal.localhost:3003/catalog/{id}/register
 # 3. phone → OTP 1234 → profile (if new) → intake → success
 ```
 

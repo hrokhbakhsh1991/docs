@@ -1,0 +1,120 @@
+---
+title: P7 — Denali customer live (first delivery)
+phase: 20
+format: markdoc
+pack: P7
+prerequisite: P6 complete (p6:gate green)
+doc_role: architecture_sot
+pack_version: "0.1"
+status: PLANNED
+---
+
+# Denali customer live (Phase 20 / P7)
+
+**هدف:** تحویل **اولین مشتری Denali** روی staging/production — بدون آسیب به wizard/settings موجود، با گسترش **additive** workspace.
+
+**پیش‌نیاز:** P6 بسته (`pnpm run p6:gate` · VS-01..08).
+
+**این فاز نیست:** بازنویسی wizard · merge سه app · Urban · gateway · metadata cutover.
+
+---
+
+## North star
+
+```text
+تور واقعی مشتری → publish → مهمان ثبت‌نام → اپراتور تأیید → receipt → live
+```
+
+همان vertical slice P6 — ولی روی **داده و محیط واقعی**، نه فقط gate استاتیک.
+
+---
+
+## سه لایه محصول (frozen)
+
+```text
+┌──────────────────────────────────────────┐
+│ A) Wizard + settings + canonical         │  محافظت — تکمیل، نه rebuild
+│    /tours/new · rules · composites       │
+└──────────────────┬───────────────────────┘
+                   │ publish
+┌──────────────────▼───────────────────────┐
+│ B) Tour workspace Denali (ops)             │  additive — ۳ تب + فقط P0 ops
+│    registrations · waitlist · transport    │
+└──────────────────┬───────────────────────┘
+                   │
+┌──────────────────▼───────────────────────┐
+│ C) Admin shell + guest apps              │  P6 زنجیره · hardening روز اول
+│    (app)/ · marketing · portal           │
+└──────────────────────────────────────────┘
+```
+
+---
+
+## EPIC map (ترتیب اجرا)
+
+| Order | EPIC | هدف | خروجی |
+| ----- | ---- | --- | ----- |
+| 1 | **P7-0** | Live infra | staging · seed مشتری · DNS/env |
+| 2 | **P7-1** | Wizard/settings completion | blockerهای ساخت تور واقعی بسته |
+| 3 | **P7-2** | Workspace Denali (additive) | ops روز اول اپراتور روی همان تور |
+| 4 | **P7-3** | Delivery verification | T2/T3/T4 · `p7:gate` · sign-off |
+
+```mermaid
+flowchart LR
+  P70[P7-0 Live infra] --> P71[P7-1 Wizard complete]
+  P71 --> P72[P7-2 Workspace ops]
+  P72 --> P73[P7-3 Delivery exit]
+  P6[P6 closed] -.-> P70
+```
+
+---
+
+## Zones (اولویت کار)
+
+| Zone | سیاست | مثال |
+| ---- | ----- | ---- |
+| **Z1 Freeze** | refactor ممنوع | `denaliRuleModel` · composites · `/tours/new` host |
+| **Z2 Complete** | همان فیلد/استپ ناقص | شرایط · publish · validate save |
+| **Z3 Additive** | تب/مسیر جدید workspace | promote waitlist · transport fix |
+| **Z4 Later** | بعد از تحویل | dashboard polish · settings عمقی · custom domain |
+
+---
+
+## حفاظت از پنل ادمین Denali
+
+| Rule | Detail |
+| ---- | ------ |
+| R-P7-01 | هر PR: `pnpm run p6:gate` + `test:changed` |
+| R-P7-02 | ممنوع: حذف/جابجایی `packages/workspaces/denali/src/rules` |
+| R-P7-03 | wizard خارج `(app)/` — دست نزن به DEC-P9-007 |
+| R-P7-04 | workspace فقط مسیرهای جدید زیر `/tours/[id]/workspace` |
+| R-P7-05 | doc-first قبل از تغییر api/web/denali package |
+
+Safety carryover: [phase-19/p6/p6-denali-safety.md](../phase-19/p6/p6-denali-safety.md)
+
+---
+
+## Verification tiers (از P6)
+
+| Tier | چه زمانی |
+| ---- | -------- |
+| T1 `p6:gate` | هر PR |
+| T2 E2E smoke | pre-staging |
+| T3 `finance-ops` + Postgres | staging |
+| T4 manual VS-06/07 | sign-off مشتری |
+
+---
+
+## Agent entry
+
+1. [p7/AGENT-START.md](p7/AGENT-START.md)
+2. [AGENT-NAVIGATOR.md](AGENT-NAVIGATOR.md)
+3. [TEMP/p7-denali-customer-delivery.md](../../TEMP/p7-denali-customer-delivery.md) — خلاصه اجرایی
+
+---
+
+## References
+
+- P6 umbrella: [platform-denali-first-customer.mdoc](../phase-19/platform-denali-first-customer.mdoc)
+- Wizard SoT: [workspaces/denali/wizard-experience.md](../workspaces/denali/wizard-experience.md)
+- Staging: [phase-19/p6/runbooks/staging-deploy.md](../phase-19/p6/runbooks/staging-deploy.md)

@@ -10,6 +10,7 @@ export const TENANT_SCOPED_METRIC_NAMES = new Set<string>([
   "tour_write_concurrency_shed_total",
   "outbox_relay_tenant_deferred_total",
   "outbox_projection_lag_seconds",
+  "workspace_metadata_validation_errors_total",
 ]);
 
 function labelKey(labels: MetricLabels | undefined): string {
@@ -99,4 +100,15 @@ export function resetMetricsRegistryForTests(): void {
 /** tour_creation_count{tenant_id} — successful canonical tour persist. */
 export function recordTourCreated(tenantId: string): void {
   metricsRegistry.increment("tour_creation_count", { tenant_id: tenantId });
+}
+
+/** workspace_metadata_validation_errors_total{tenant_id,workspace_type} — metadata-path canonical validation fail. */
+export function recordWorkspaceMetadataValidationError(
+  tenantId: string,
+  workspaceType: string
+): void {
+  metricsRegistry.increment("workspace_metadata_validation_errors_total", {
+    tenant_id: tenantId,
+    workspace_type: workspaceType,
+  });
 }

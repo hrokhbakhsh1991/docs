@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
 import {
   computeWorkspaceDefinitionPayloadChecksum,
+  DEFAULT_WORKSPACE_COMMERCE_CONFIG,
   stripWorkspacePluginToDefinitionPayload,
   type WorkspaceDefinitionPayload,
 } from "@app-tour/workspace-sdk/metadata";
@@ -30,6 +31,13 @@ import { WorkspaceDefinitionRepository } from "../src/workspace-metadata/workspa
 function buildStarterPayload(definitionId: string): WorkspaceDefinitionPayload {
   const payload = stripWorkspacePluginToDefinitionPayload(getStarterWorkspacePlugin());
   return { ...payload, id: definitionId };
+}
+
+function buildStarterPayloadWithDefaultCommerce(definitionId: string): WorkspaceDefinitionPayload {
+  return {
+    ...buildStarterPayload(definitionId),
+    commerce: DEFAULT_WORKSPACE_COMMERCE_CONFIG,
+  };
 }
 
 class InMemoryWorkspaceDefinitionRepository extends WorkspaceDefinitionRepository {
@@ -142,7 +150,9 @@ describe("platform-workspace-definition-publish", () => {
     const repository = new InMemoryWorkspaceDefinitionRepository();
     await repository.createDefinition({ id: "pb-club-v1", displayName: "PB Club" });
     const payload = buildStarterPayload("pb-club-v1");
-    const expectedChecksum = computeWorkspaceDefinitionPayloadChecksum(payload);
+    const expectedChecksum = computeWorkspaceDefinitionPayloadChecksum(
+      buildStarterPayloadWithDefaultCommerce("pb-club-v1")
+    );
     const { prisma, auditEvents } = makePublishDeps(repository);
 
     const published = await publishPlatformWorkspaceDefinitionVersion({
@@ -161,6 +171,45 @@ describe("platform-workspace-definition-publish", () => {
     assert.equal(auditEvents.length, 1);
     assert.equal(auditEvents[0]?.action, PLATFORM_AUDIT_ACTION_WORKSPACE_DEFINITION_PUBLISHED);
     assert.equal(auditEvents[0]?.entityId, "pb-club-v1");
+
+    const stored = await getPlatformWorkspaceDefinitionVersion({
+      definitionId: "pb-club-v1",
+      version: 1,
+      repository,
+    });
+    assert.ok(stored);
+    assert.deepEqual(
+      (stored.payload as WorkspaceDefinitionPayload).commerce,
+      DEFAULT_WORKSPACE_COMMERCE_CONFIG
+    );
+  });
+
+  it("API-01 publish without commerce merges default offline_receipt block", async () => {
+    const repository = new InMemoryWorkspaceDefinitionRepository();
+    await repository.createDefinition({ id: "pb-commerce-default", displayName: "Commerce Default" });
+    const payload = buildStarterPayload("pb-commerce-default");
+    assert.equal(payload.commerce, undefined);
+    const { prisma } = makePublishDeps(repository);
+
+    const published = await publishPlatformWorkspaceDefinitionVersion({
+      definitionId: "pb-commerce-default",
+      payload,
+      actorId: "ops-owner",
+      repository,
+      prisma: prisma as never,
+    });
+
+    assert.ok(published);
+    assert.equal(
+      published?.checksum,
+      computeWorkspaceDefinitionPayloadChecksum(buildStarterPayloadWithDefaultCommerce("pb-commerce-default"))
+    );
+
+    const stored = await repository.getVersion("pb-commerce-default", 1);
+    assert.deepEqual(
+      (stored?.payload as WorkspaceDefinitionPayload).commerce,
+      DEFAULT_WORKSPACE_COMMERCE_CONFIG
+    );
   });
 
   it("PB-02 keeps prior version immutable when publishing v2", async () => {

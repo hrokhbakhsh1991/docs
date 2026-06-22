@@ -16,7 +16,11 @@
       "eventType": "TourCreated",
       "module": "./finance/tour-created-ledger",
       "export": "handleTourCreatedLedgerEvent",
-      "workspaceTypes": ["denali"]
+      "workspaceTypes": ["denali"],
+      "hostSideEffect": {
+        "adapterModule": "./finance/api-tour-created-adapter",
+        "export": "runTourCreatedFinanceSideEffect"
+      }
     }
   ],
   "http": {
@@ -39,6 +43,14 @@
     "putDraftPhotoExport": "putDenaliWizardDraftPhoto",
     "getSignedReadUrlExport": "getDenaliTourPhotoSignedReadUrl",
     "ensureBucketExport": "ensureMinioPhotoBucket",
-    "readConfigExport": "readMinioPhotoConfigFromEnv"
+    "readConfigExport": "readMinioPhotoConfigFromEnv",
+    "mediaRouteKey": "wizard-photos",
+    "legacyBackendUploadPath": "/tours/wizard-photos",
+    "legacyBackendSignedUrlPath": "/tours/wizard-photos/url"
+  },
+  "themeStylesheets": ["theme/denali-admin.css"],
+  "guestThemeStylesheets": {
+    "portal": ["theme/denali-portal.css"],
+    "marketing": ["theme/denali-marketing.css"]
   }
 }

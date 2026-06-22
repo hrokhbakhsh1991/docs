@@ -21,7 +21,13 @@ export function parseHostHeaderTenantOutcome(host: string): MultiLevelTenantHost
  * JWT / bearer auth remains production tenant SoT.
  */
 export function resolveTenantSubdomainFromHostHeader(host: string): string | null {
-  const outcome = parseHostHeaderTenantOutcome(host);
+  let normalized = normalizeHostHeaderValue(host);
+  if (normalized.startsWith("shop.")) {
+    normalized = normalized.slice("shop.".length);
+  }
+  const root = readPlatformRootDomain();
+  const reserved = parseReservedLabelsCsv(process.env.TENANT_HOST_RESERVED_LABELS);
+  const outcome = parseMultiLevelTenantHost(normalized, root, reserved);
   if (
     outcome.kind === "club_admin" ||
     outcome.kind === "club_portal" ||

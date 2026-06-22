@@ -13,7 +13,7 @@ import {
   PUBLIC_REGISTRATION_DEV_OTP,
   PUBLIC_REGISTRATION_MIN_MOBILE_DIGITS,
   readPublicRegistrationErrorCode,
-} from "./public-registration-logic";
+} from "../src/features/auth/public-registration-logic";
 
 describe("public-registration-logic.spec.ts — P6-1", () => {
   it("PR-LOGIC-01 dev defaults expose phone and OTP 1234 in development", () => {

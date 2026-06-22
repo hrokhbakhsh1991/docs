@@ -1,0 +1,102 @@
+/**
+ * Denali guest portal — semantic skin (registration + future /me).
+ * Scoped: portal surface + denali workspace only.
+ */
+body[data-app-surface="portal"][data-workspace-plugin="denali"] {
+  --denali-forest-700: #0f5c4a;
+  --denali-forest-600: #0f766e;
+  --denali-mist-50: #f4f7f4;
+  --denali-mist-100: #e8efe8;
+
+  --radius: 0.5rem;
+
+  --color-primary: var(--denali-forest-600);
+  --color-primary-hover: var(--denali-forest-700);
+  --color-primary-fg: #ffffff;
+  --color-bg-page: var(--denali-mist-50);
+  --color-bg-surface: #ffffff;
+  --color-bg-muted: var(--denali-mist-100);
+  --color-text-primary: #1a1f26;
+  --color-text-muted: #6f7768;
+  --color-text-link: var(--denali-forest-600);
+  --color-border-default: #dce5dc;
+  --color-border-subtle: #e8efe8;
+  --color-focus-ring: rgb(15 118 110 / 0.35);
+
+  --background: var(--color-bg-page);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-surface);
+  --card-foreground: var(--color-text-primary);
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-primary-fg);
+  --muted: var(--color-bg-muted);
+  --muted-foreground: var(--color-text-muted);
+  --border: var(--color-border-default);
+  --input: var(--color-border-subtle);
+  --destructive: var(--color-danger, #dc2626);
+  --destructive-foreground: #ffffff;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-4);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] form,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  [data-public-registration-phone],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  [data-public-registration-otp] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  button[type="button"],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  button[type="submit"] {
+  align-self: flex-start;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  cursor: pointer;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  [role="alert"] {
+  color: var(--destructive);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] a {
+  color: var(--color-text-link, var(--primary));
+}

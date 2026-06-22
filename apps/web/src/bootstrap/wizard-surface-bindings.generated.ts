@@ -5,35 +5,15 @@
  */
 
 import type { WizardCompositeSurface, WizardReviewSurface } from "@/wizard/wizard-surface-types";
-import { createDenaliCompositeSurface as composite_denali } from "@app-tour/workspace-denali/ui/composite-surface";
-import { createDenaliReviewSurface as review_denali } from "@app-tour/workspace-denali/ui/review-surface";
-import { createPlatformCompositeSurface as composite_platform } from "@/wizard/platform/platform-composite-surface";
-import { createPlatformReviewSurface as review_platform } from "@/wizard/platform/platform-review-surface";
-
-const COMPOSITE_SURFACES: Readonly<Record<string, WizardCompositeSurface>> = Object.freeze({
-  "denali": composite_denali(),
-  "platform": composite_platform(),
-});
-
-const REVIEW_SURFACES: Readonly<Record<string, WizardReviewSurface>> = Object.freeze({
-  "denali": review_denali(),
-  "platform": review_platform(),
-});
 
 export function resolveGeneratedCompositeSurface(
-  surfaceId: string | undefined
+  _surfaceId: string | undefined
 ): WizardCompositeSurface | null {
-  if (surfaceId == null || surfaceId.trim().length === 0) {
-    return null;
-  }
-  return COMPOSITE_SURFACES[surfaceId] ?? null;
+  return null;
 }
 
 export function resolveGeneratedReviewSurface(
-  surfaceId: string | undefined
+  _surfaceId: string | undefined
 ): WizardReviewSurface | null {
-  if (surfaceId == null || surfaceId.trim().length === 0) {
-    return null;
-  }
-  return REVIEW_SURFACES[surfaceId] ?? null;
+  return null;
 }

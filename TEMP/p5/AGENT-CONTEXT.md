@@ -4,8 +4,8 @@
 ```yaml
 doc_id: P5-AGENT-CONTEXT
 updated: 2026-06-21
-current_task: P5-A-N-004
-nano_done: 3
+current_task: P5-B-N-013
+nano_done: 26
 status: in_progress
 covenant: TEMP/p5/p5-denali-safety.md
 preservation: TEMP/p5/PRESERVATION-CHECKLIST.md
@@ -27,15 +27,15 @@ doc_sync: TEMP/p5/DOC-SYNC-INDEX.md
 | Flag + allowlist | ✅ | `is-workspace-metadata-enabled-for-tenant.ts` |
 | Parity CI | ✅ | `apps/api/test/workspace-metadata-*-parity.spec.ts` |
 | Scoped denali covenant | ✅ | `scripts/guards/guard-p3-denali-covenant.mjs` |
-| p4:gate uses git diff denali | ⬜ fix N-001 | `scripts/p4-club-product-gate.sh:16` |
+| p4:gate uses git diff denali | ✅ N-001 | `scripts/p4-club-product-gate.sh:16` |
 | Tenant detail DTO binding fields | ✅ | `platform-tenant-detail.dto.ts` |
 | Definition assign/clear audit | ✅ | `TENANT_DEFINITION_ASSIGNED` / `CLEARED` |
 | Denali receipts offline | ✅ | `packages/workspaces/denali/src/http/finance.routes.ts` |
 | Tour clone + template | ✅ | `denali.plugin.ts` `tourClone` · Phase 11 |
 | Settings 9 modules | ✅ | `denali-settings.manifest.ts` |
 | PSP / egress in trunk | ❌ | `apps/api/docs/legacy-vs-denali-gap-analysis.md` |
-| p5:gate | ⬜ N-013 | `scripts/p5-enterprise-evolution-gate.sh` |
-| phase-18 mdoc | ⬜ N-002 | doc-first |
+| p5:gate | 🟡 partial N-013 | `scripts/p5-enterprise-evolution-gate.sh` |
+| phase-18 mdoc | ✅ N-002 | doc-first |
 
 ## 3. NOT gaps — do not rebuild
 

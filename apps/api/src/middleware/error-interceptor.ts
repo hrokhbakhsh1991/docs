@@ -73,6 +73,24 @@ import {
   isOtpInvalidError,
 } from "../identity/identity.errors";
 import { ImpersonationReadOnlyError } from "../identity/impersonation-read-only.error";
+import { isWorkspaceCommerceGatewayBlockedError } from "../workspace-metadata/assert-workspace-commerce-gateway-blocked.ts";
+import {
+  isPaymentsWebhookSignatureInvalidError,
+  isPaymentsWebhookSignatureMissingError,
+  isPaymentsWebhookSigningSecretNotConfiguredError,
+  isPaymentsWebhookSourceIpBlockedError,
+  isPaymentsWebhookTimestampSkewError,
+} from "../integrations/webhooks/webhook.errors.ts";
+import { isPaymentsWebhookEventIdRequiredError } from "../integrations/webhooks/payments-webhook-event-id-required.error.ts";
+import {
+  isPaidTourOpenGateBlockedError,
+} from "../registrations/assert-paid-tour-open-gate.ts";
+import {
+  isPublicRegistrationThrottleExceededError,
+} from "../registrations/public-registration-throttle.ts";
+import {
+  isRegistrationCapacityExceededError,
+} from "../registrations/registration-capacity.service.ts";
 import { DbCircuitOpenError } from "../db/transient-db-error";
 import { ProxyCircuitOpenError } from "../proxy/proxy-upstream-circuit";
 import {
@@ -167,6 +185,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("URBAN_REGISTRATION_INVALID")) return 400;
   if (message.startsWith("URBAN_REGISTRATION_INVALID")) return 400;
   if (message.startsWith("CANONICAL_VALIDATION_FAILED")) return 400;
+  if (message.startsWith("TOUR_LIFECYCLE_")) return 400;
   if (message.startsWith("SCHEMA_VERSION_MISMATCH")) return 400;
   if (message.startsWith("WORKSPACE_PLUGIN_NOT_BOUND")) return 400;
   if (message.startsWith("WORKSPACE_PLUGIN_NOT_FOUND")) return 500;
@@ -450,6 +469,60 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
       { error: "forbidden", code: "IMPERSONATION_READ_ONLY" },
       correlationId
     );
+    return;
+  }
+
+  if (isWorkspaceCommerceGatewayBlockedError(error)) {
+    sendHttpError(
+      res,
+      error.statusCode,
+      { error: "service_unavailable", code: error.code },
+      correlationId
+    );
+    return;
+  }
+
+  if (
+    isPaymentsWebhookSignatureMissingError(error) ||
+    isPaymentsWebhookTimestampSkewError(error) ||
+    isPaymentsWebhookSignatureInvalidError(error)
+  ) {
+    sendHttpError(res, error.statusCode, { error: "unauthorized", code: error.code }, correlationId);
+    return;
+  }
+
+  if (isPaymentsWebhookSourceIpBlockedError(error)) {
+    sendHttpError(res, error.statusCode, { error: "forbidden", code: error.code }, correlationId);
+    return;
+  }
+
+  if (isPaymentsWebhookSigningSecretNotConfiguredError(error)) {
+    sendHttpError(
+      res,
+      error.statusCode,
+      { error: "service_unavailable", code: error.code },
+      correlationId
+    );
+    return;
+  }
+
+  if (isPaymentsWebhookEventIdRequiredError(error)) {
+    sendHttpError(res, error.statusCode, { error: "bad_request", code: error.code }, correlationId);
+    return;
+  }
+
+  if (isRegistrationCapacityExceededError(error)) {
+    sendHttpError(res, error.statusCode, { error: "conflict", code: error.code }, correlationId);
+    return;
+  }
+
+  if (isPublicRegistrationThrottleExceededError(error)) {
+    sendHttpError(res, error.statusCode, { error: "rate_limit_exceeded", code: error.code }, correlationId);
+    return;
+  }
+
+  if (isPaidTourOpenGateBlockedError(error)) {
+    sendHttpError(res, error.statusCode, { error: "forbidden", code: error.code }, correlationId);
     return;
   }
 

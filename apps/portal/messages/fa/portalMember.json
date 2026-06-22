@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "registrations": "ثبت‌نام‌های من"
+  },
+  "registrations": {
+    "title": "ثبت‌نام‌های من",
+    "empty": "هنوز ثبت‌نامی ندارید.",
+    "statusLine": "{status} · {paymentStatus} · {departureAt}"
+  },
+  "detail": {
+    "statusLine": "وضعیت: {status} · پرداخت: {paymentStatus}",
+    "departure": "تاریخ حرکت: {departureAt}"
+  },
+  "receipt": {
+    "label": "بارگذاری رسید پرداخت",
+    "submit": "ارسال رسید",
+    "uploaded": "رسید بارگذاری شد.",
+    "failed": "بارگذاری ناموفق بود."
+  }
+}

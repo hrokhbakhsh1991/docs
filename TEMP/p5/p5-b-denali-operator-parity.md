@@ -142,7 +142,7 @@ Extend `canonical-validation-sync.ts` — RuleContext `mode: draft|publish`.
 |----|--------|
 | VAL-03 | invalid theme id fails publish |
 
-**NEXT:** N-009
+**NEXT:** N-013
 
 ---
 
@@ -155,7 +155,7 @@ Extend `canonical-validation-sync.ts` — RuleContext `mode: draft|publish`.
 | WEB-01 | binding+flag → metadata loader |
 | WEB-02 | no binding → package plugin |
 
-**NEXT:** N-010
+**NEXT:** N-013
 
 ---
 
@@ -169,7 +169,7 @@ Extend `canonical-validation-sync.ts` — RuleContext `mode: draft|publish`.
 | E2E-02 | catalog hook still fires (P4) |
 | E2E-03 | offline_receipt unchanged |
 
-**NEXT:** N-011
+**NEXT:** N-013
 
 ---
 
@@ -181,7 +181,7 @@ Extend audit beyond DEC-007 create-only.
 |----|--------|
 | AUD-02 | PATCH tour writes audit row |
 
-**NEXT:** N-012
+**NEXT:** N-013
 
 ---
 

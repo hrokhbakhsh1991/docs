@@ -7,11 +7,11 @@ pack_version: 2.9-ai-friendly
 doc_integrity_score: 9.9/10
 agent_pack_score: 9.95/10
 phase: P5
-status: in_progress
+status: complete
 nano_total: 56
-nano_done: 3
-current_task: P5-A-N-004
-current_epic: P5-A
+nano_done: 56
+current_task: null
+current_epic: null
 exit_core: P5-B-N-016
 exit_full: P5-E-N-006
 prerequisite: P4-complete
@@ -24,8 +24,29 @@ prerequisite: P4-complete
 | P5-A-N-001 | ✅ done | p4/p5 gate → guard:p3-denali-covenant |
 | P5-A-N-002 | ✅ done | docs/phase-18/ pack (5 mdoc + README) |
 | P5-A-N-003 | ✅ done | deriveMetadataCutoverStage + CO-01..05 |
-| P5-A-N-004 | ⬜ next | Super Admin cutover badge |
-| P5-A-N-005..014 | ⬜ | see p5-a-cutover-pilot.md |
+| P5-A-N-004 | ✅ done | Super Admin cutover badge |
+| P5-A-N-005 | ✅ done | Staging env checklist |
+| P5-A-N-006 | ✅ done | Metrics counter |
+| P5-A-N-007 | ✅ done | Smoke bind script |
+| P5-A-N-008 | ✅ done | Rollback drill |
+| P5-A-N-009 | ✅ done | Audit reuse test |
+| P5-A-N-010 | ✅ done | Allowlist expand runbook (DOC-03) |
+| P5-A-N-011 | ✅ done | G2 async note (DOC-04) |
+| P5-A-N-012 | ✅ done | FILE-MAP EPIC-A sync |
+| P5-A-N-013 | ✅ done | p5:gate + web UI specs |
+| P5-A-N-014 | ✅ done | EPIC-A exit EX-A-01..02 |
+| P5-B-N-001 | ✅ done | Parity matrix doc (DOC-B-01) |
+| P5-B-N-002 | ✅ done | Nano↔gap map |
+| P5-B-N-003 | ✅ done | Lifecycle matrix LC-01..03 |
+| P5-B-N-004 | ✅ done | Publish gates LC-04..06 |
+| P5-B-N-005 | ✅ done | Draft vs publish validation VAL-01..03 |
+| P5-B-N-006 | ✅ done | Golden metadata path RP-01..04 |
+| P5-B-N-007 | ✅ done | Form profile strip VAL-02b |
+| P5-B-N-008 | ✅ done | Catalog ref integrity VAL-03 |
+| P5-B-N-009 | ✅ done | Operator web plugin resolve WEB-01..02 |
+| P5-B-N-010 | ✅ done | Publish integration metadata path E2E-01..03 |
+| P5-B-N-011 | ✅ done | PATCH audit AUD-02 |
+| P5-B-N-012 | ✅ done | Publish audit AUD-03 |
 
 ## Score definitions (do not conflate)
 
@@ -65,3 +86,9 @@ Optional (Architect enable): P5-C, P5-D, P5-E
 | Preservation | TEMP/p5/PRESERVATION-CHECKLIST.md |
 | Anti-drift | TEMP/p5/ANTI-DRIFT.md |
 | Quality | TEMP/p5/QUALITY-AUDIT.md |
+
+## P5-E (registrations + finance tranche)
+
+| Nano | Doc SoT | Runtime verify |
+|------|---------|----------------|
+| P5-E-N-001..006 | `docs/phase-18/platform-registrations-finance-tranche.mdoc` | `registration-capacity.spec.ts`, `paid-tour-open-gate.spec.ts`, `tour-created-finance-side-effect.spec.ts`, `platform-registrations-finance-exit.spec.ts` |

@@ -73,13 +73,15 @@ Make **`apps/portal`** the canonical guest registration host; marketing CTA and 
 
 ---
 
-## Host map (frozen)
+## Host map (frozen — P6 canonical)
 
-| Surface      | Host pattern                                   | App              |
-| ------------ | ---------------------------------------------- | ---------------- |
-| Marketing    | `shop.{club}.{root}` or `{club}.marketing` dev | `apps/marketing` |
-| Portal       | `{club}.portal.{root}`                         | `apps/portal`    |
-| Web redirect | `{club}.admin.{root}` public catalog path      | redirect only    |
+| Surface      | Dev canonical host | Prod platform | App              |
+| ------------ | ------------------ | ------------- | ---------------- |
+| Marketing    | `{club}.localhost:3002` | `{club}.{root}` | `apps/marketing` |
+| Portal       | `{club}.portal.localhost:3003` | `{club}.portal.{root}` | `apps/portal`    |
+| Web redirect | `{club}.admin.localhost:3000` public path | redirect only | `apps/web`       |
+
+**Legacy dev smoke:** `shop.{club}.localhost:3002` · `{club}.localhost:3003` · `{club}.localhost:3000` — still resolve same tenant. See [p6-host-addressing-architecture.mdoc](../phase-19/p6-host-addressing-architecture.mdoc).
 
 ---
 
@@ -87,7 +89,8 @@ Make **`apps/portal`** the canonical guest registration host; marketing CTA and 
 
 ```typescript
 // apps/marketing/src/portal/resolve-web-registration-url.ts
-// Priority: PORTAL_PUBLIC_BASE_URL → dev host + PORTAL_DEV_PORT (3003)
+// → buildDevPortalPublicBaseUrl (@app-tour/tenant-kernel)
+// Priority: PORTAL_PUBLIC_BASE_URL → dev canonical {club}.portal.localhost:PORTAL_DEV_PORT
 ```
 
 | Env                         | App            | Purpose                 | Prod required |

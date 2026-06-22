@@ -84,6 +84,9 @@ describe("platform tenants get handler", () => {
       operatorPendingInvite: {
         findFirst: async () => null,
       },
+      tenantConfig: {
+        findUnique: async () => null,
+      },
     } as never);
 
     await handlePlatformTenantsGet(req, res, knownId, {
@@ -98,6 +101,8 @@ describe("platform tenants get handler", () => {
     assert.equal(out.body.tenant.subdomain, "get-club");
     assert.match(out.body.sites.marketing, /get-club/);
     assert.equal(out.body.workspaceDefinition, null);
+    assert.equal(out.body.workspaceCommerce.paymentMode, "offline_receipt");
+    assert.equal(out.body.workspaceCommerce.gatewayProvider, null);
   });
 
   it("404 uuid", async () => {

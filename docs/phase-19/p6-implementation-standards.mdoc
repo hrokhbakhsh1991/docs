@@ -8,11 +8,14 @@ extends:
   - docs/phase-2/subphases/2.1-design-tokens.md
   - docs/phase-9/appendices/ADMIN-SHELL-UX.md
   - docs/workspaces/denali/admin-experience.md
+  - docs/phase-19/p6-enterprise-theming-architecture.mdoc
 ---
 
 # P6 implementation standards
 
 **Rule:** Guest portal and public marketing must follow the **same trunk stack** as Denali operator admin — not a one-off UI or ad-hoc fetch layer.
+
+**Theming authority:** [`p6-enterprise-theming-architecture.mdoc`](p6-enterprise-theming-architecture.mdoc) — four-layer cascade (primitives → shell-bridge → tenant runtime → workspace skin).
 
 Reference implementation: **`apps/web`** `(app)/` + `auth/login` + `/tours/new` wizard bridge.
 
@@ -44,13 +47,14 @@ Reference implementation: **`apps/web`** `(app)/` + `auth/login` + `/tours/new` 
 
 Locked order — identical to [`ADMIN-SHELL-UX.md`](../phase-9/appendices/ADMIN-SHELL-UX.md) §1:
 
-| # | Package | Admin (`apps/web`) | Portal / Marketing (P6 target) |
-| - | ------- | ------------------ | ------------------------------ |
-| 1 | `@app-tour/design-tokens` | `@import …/styles.css` in `globals.css` | **Required** — align in P6-1 |
-| 2 | Tailwind v4 | `@import "tailwindcss"` + `@theme inline` bridge | Same |
-| 3 | `@app-tour/theme-react` | `ThemeProviderChain` (operator + plugin) | `PlatformThemeProvider` + `TenantThemeProvider` (guest — no CASL) |
-| 4 | `@app-tour/ui-primitives` | **Subpath only** — `/button`, `/input`, … | Same — **no barrel** |
-| 5 | `next-intl` | `messages/{fa,en}/*.json` | Same |
+| # | Package | Admin (`apps/web`) | Portal / Marketing (P6) |
+| - | ------- | ------------------ | ----------------------- |
+| 1 | `@app-tour/design-tokens` | `styles.css` + inline bridge (or `shell-bridge.css`) | **`guest-shell.css`** = `index.css` + **`shell-bridge.css`** |
+| 2 | Tailwind v4 | `@import "tailwindcss"` once in `globals.css` | Same — **no rules in globals** |
+| 3 | `@app-tour/theme-react` | `ThemeProviderChain` (operator + plugin) | `PlatformThemeProvider` + `TenantThemeProvider` |
+| 4 | Workspace skin | `workspace-theme-stylesheets.generated` | **`workspace-guest-theme-stylesheets.generated`** |
+| 5 | `@app-tour/ui-primitives` | **Subpath only** | Same |
+| 6 | `next-intl` | `messages/{fa,en}/*.json` | Same |
 
 ### Primitives (mandatory)
 
@@ -74,10 +78,11 @@ import { Input } from "@app-tour/ui-primitives";
 
 | App | Skin file | Scope |
 | --- | --------- | ----- |
-| Admin | `packages/workspaces/denali/theme/denali-admin.css` | `body[data-workspace-plugin="denali"]` |
-| Wizard | Wizard Bridge + same tokens | `/tours/new` |
-| Portal | **P6-1:** `denali-portal.css` (guest register + `/me`) | `body[data-app-surface="portal"]` — thin accent, no operator sidebar |
-| Marketing | **P6-1:** token bridge only first; optional `denali-marketing.css` later | public catalog |
+| Admin | `denali-admin.css` | `body[data-workspace-plugin="denali"]` |
+| Portal | `denali-portal.css` | `body[data-app-surface="portal"][data-workspace-plugin="denali"]` |
+| Marketing | `denali-marketing.css` | `body[data-app-surface="marketing"][data-workspace-plugin="denali"]` |
+
+Manifest: `guestThemeStylesheets.portal` / `.marketing` → generated bootstrap imports.
 
 Operator chrome patterns (`PageHeader`, `DenaliEmptyState`) live in **`apps/web/src/admin/patterns/`** — **do not copy** into portal; use primitives + minimal guest layout.
 
@@ -144,7 +149,16 @@ Same API spine; different apps and post-login path:
 | Dev OTP | `1234` (`otp.service.ts`) | **Same** |
 | After OTP | Dashboard `(app)/` | New → profile (name*) → tour intake |
 
-**Do not fork OTP verify logic** — extend `features/auth/otp-segment-input.logic.ts` pattern; portal may wrap UI but shares normalization (`normalizeOtpDigits`, length 4).
+**Do not fork OTP verify logic** — shared package export:
+
+```typescript
+import {
+  normalizeOtpDigits,
+  OTP_SEGMENT_LENGTH,
+} from "@app-tour/ui-primitives/otp-segment-input-logic";
+```
+
+Apps (`apps/web`, `apps/portal`) keep thin `otp-segment-input.tsx` UI shells; logic lives in `packages/ui-primitives/src/utils/otp-segment-input.logic.ts`. Allowed subpath: `import-boundary-ast.mjs` → `otp-segment-input-logic`. **Full scope:** [p6/appendices/OTP-SCOPE-P6.md](p6/appendices/OTP-SCOPE-P6.md).
 
 Profile step (new user only):
 
@@ -156,13 +170,19 @@ Profile step (new user only):
 
 ## 5. Three apps · one tenant
 
-| App | Host (dev) | Bootstrap |
-| --- | ---------- | --------- |
-| Marketing | `shop.{club}.localhost:3002` | `resolveMarketingBootstrapForHost` |
-| Portal | `{club}.localhost:3003` | `resolvePortalBootstrapForHost` |
-| Admin | `{club}.localhost:3000` | `resolveBootstrapAppSessionForHost` |
+Authority: [p6-host-addressing-architecture.mdoc](p6-host-addressing-architecture.mdoc)
 
-All must resolve **same `tenantId`** for one club (P6-0).
+| App | Dev (canonical) | Legacy smoke | Bootstrap |
+| --- | --------------- | ------------ | --------- |
+| Marketing | `{club}.localhost:3002` | `shop.{club}.localhost:3002` | `resolveMarketingBootstrapForHost` |
+| Portal | `{club}.portal.localhost:3003` | `{club}.localhost:3003` | `resolvePortalBootstrapForHost` |
+| Admin | `{club}.admin.localhost:3000` | `{club}.localhost:3000` | `resolveBootstrapAppSessionForHost` |
+
+Prod platform: `{club}.{root}` · `{club}.portal.{root}` · `{club}.admin.{root}`.
+
+Custom apex per tenant: `denali.club` · `portal.denali.club` · `admin.denali.club` (see `tenant_domains`).
+
+All surfaces must resolve **same `tenantId`** for one club (P6-0).
 
 ---
 
@@ -170,19 +190,22 @@ All must resolve **same `tenantId`** for one club (P6-0).
 
 | ID | Gap | EPIC | Fix |
 | -- | --- | ---- | --- |
-| G-P6-UI-01 | Portal `globals.css` missing `@app-tour/design-tokens/styles.css` | P6-1 | Add import + `@theme inline` like `apps/web` |
-| G-P6-UI-02 | Marketing `globals.css` same | P6-1 | Same |
-| G-P6-UI-03 | Portal uses inline `#f8fafc` fallbacks | P6-1 | Replace with token semantics |
-| G-P6-UI-04 | Registration flow logic inline in 550-line TSX | P6-1 | Extract `features/auth/public-registration-*` |
-| G-P6-UI-05 | OTP component duplicated web/portal | P6-1 | Share `.logic.ts` or document single source |
-| G-P6-UI-06 | No `denali-portal.css` guest skin | P6-3 | Optional accent parity with admin teal |
+| G-P6-UI-01 | Portal `globals.css` missing `@app-tour/design-tokens/guest-shell.css` | P6-1 | ✅ `guest-shell.css` + tailwind bridge |
+| G-P6-UI-02 | Marketing `globals.css` same | P6-1 | ✅ Same |
+| G-P6-UI-03 | Portal uses inline `#f8fafc` fallbacks | P6-1 | ✅ Token semantics (`var(--*)`) |
+| G-P6-UI-04 | Registration flow logic inline in 550-line TSX | P6-1 | ✅ `features/auth/public-registration-logic.ts` |
+| G-P6-UI-05 | OTP component duplicated web/portal | P6-1 | ✅ shared `@app-tour/ui-primitives/otp-segment-input-logic` |
+| G-P6-UI-06 | No `denali-portal.css` / `denali-marketing.css` guest skins | P6-1 | ✅ Workspace skins + manifest `guestThemeStylesheets` |
+| G-P6-UI-07 | No canonical file-tree gate | P6-1 | ✅ `p6-theming-file-tree.md` + `p6-theming-file-tree.spec.ts` |
 
 ---
 
 ## 7. P6 checklist before merging UI
 
 ```text
-□ globals.css imports design-tokens + tailwind bridge
+□ globals.css: guest-shell + tailwind only (no page rules)
+□ workspace-guest-theme-stylesheets.generated imported in layout
+□ body: data-app-surface + data-workspace-plugin + data-tenant-id
 □ ui-primitives subpath only (eslint)
 □ logic in src/features/* — page < 150 lines compose
 □ BFF route — no client API base URL
@@ -196,6 +219,7 @@ All must resolve **same `tenantId`** for one club (P6-0).
 
 ## 8. References
 
+- [`p6-enterprise-theming-architecture.mdoc`](p6-enterprise-theming-architecture.mdoc)
 - [`admin-experience.md`](../workspaces/denali/admin-experience.md)
 - [`platform-portal-otp-flow.mdoc`](platform-portal-otp-flow.mdoc)
 - [`apps/web/docs/P3-E-PRIM-BARREL.md`](../../apps/web/docs/P3-E-PRIM-BARREL.md)

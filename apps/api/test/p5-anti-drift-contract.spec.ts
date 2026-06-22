@@ -37,6 +37,6 @@ describe("p5-anti-drift-contract", () => {
 
   it("AD-C-04 optional EPICs marked in manifest", () => {
     const manifest = readFileSync(join(repoRoot, "TEMP/p5/AGENT-MANIFEST.yaml"), "utf8");
-    assert.match(manifest, /epic_optional: \[P5-C, P5-D, P5-E\]/);
+    assert.match(manifest, /epic_optional:\n- P5-C\n- P5-D\n- P5-E/);
   });
 });

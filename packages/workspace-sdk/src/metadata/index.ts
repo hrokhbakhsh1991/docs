@@ -6,6 +6,17 @@ export {
   type PlatformGenericRendererId,
 } from "./allowed-platform-renderer-ids.js";
 export {
+  DEFAULT_WORKSPACE_COMMERCE_CONFIG,
+  parseWorkspaceCommerceConfig,
+  safeParseWorkspaceCommerceConfig,
+  WORKSPACE_GATEWAY_PROVIDERS,
+  WORKSPACE_PAYMENT_MODES,
+  workspaceCommerceConfigSchema,
+  type WorkspaceCommerceConfig,
+  type WorkspaceGatewayProvider,
+  type WorkspacePaymentMode,
+} from "./commerce-schema.js";
+export {
   assertWorkspaceDefinitionPayload,
   computeWorkspaceDefinitionPayloadChecksum,
   stripWorkspacePluginToDefinitionPayload,

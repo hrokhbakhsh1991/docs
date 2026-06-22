@@ -103,6 +103,7 @@ describe("4-integration — proxy tenant isolation (mock map upstream)", () => {
     proxy = new TenantHttpProxy({
       upstreamBaseUrl: upstream.baseUrl,
       cacheResponses: true,
+      egressGuard: false,
     });
   });
 

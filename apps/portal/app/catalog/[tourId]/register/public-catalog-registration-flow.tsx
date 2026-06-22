@@ -160,7 +160,7 @@ export function PublicCatalogRegistrationFlow({
       setPhoneError(resolveError("MOBILE_REQUIRED"));
       return false;
     }
-    if (!isMobileFormatValid(effectivePhone)) {
+    if (!isPublicRegistrationMobileValid(effectivePhone)) {
       setPhoneError(resolveError("MOBILE_INVALID"));
       return false;
     }
@@ -173,9 +173,9 @@ export function PublicCatalogRegistrationFlow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: effectivePhone }),
       });
-      const data = (await res.json()) as ApiErrorPayload;
+      const data = (await res.json()) as PublicRegistrationApiError;
       if (!res.ok || !data.ok || typeof data.challenge_id !== "string") {
-        setPhoneError(resolveError(readErrorCode(data)));
+        setPhoneError(resolveError(readPublicRegistrationErrorCode(data)));
         return false;
       }
       setChallengeId(data.challenge_id);
@@ -215,9 +215,9 @@ export function PublicCatalogRegistrationFlow({
           challenge_id: challengeId,
         }),
       });
-      const data = (await res.json()) as ApiErrorPayload;
+      const data = (await res.json()) as PublicRegistrationApiError;
       if (!res.ok || !data.ok) {
-        setOtpError(resolveError(readErrorCode(data)));
+        setOtpError(resolveError(readPublicRegistrationErrorCode(data)));
         return;
       }
       if (data.requires_registration === true) {
@@ -253,15 +253,17 @@ export function PublicCatalogRegistrationFlow({
       const res = await fetch("/api/public-auth/register-complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          onboarding_token: onboardingToken,
-          display_name: name,
-          ...(profileEmail.trim().length > 0 ? { email: profileEmail.trim() } : {}),
-        }),
+        body: JSON.stringify(
+          buildPublicRegistrationProfilePayload({
+            onboardingToken,
+            displayName,
+            profileEmail,
+          })
+        ),
       });
-      const data = (await res.json()) as ApiErrorPayload;
+      const data = (await res.json()) as PublicRegistrationApiError;
       if (!res.ok || !data.ok) {
-        const code = readErrorCode(data);
+        const code = readPublicRegistrationErrorCode(data);
         if (code === "ONBOARDING_TOKEN_INVALID") {
           handleChangePhone();
         }
@@ -343,6 +345,9 @@ export function PublicCatalogRegistrationFlow({
         {...(workspace === "urban" ? { "data-urban-registration-success": true } : {})}
       >
         <p role="status">{t("success.message", { tourTitle })}</p>
+        <p>
+          <a href="/me/registrations">View my registrations</a>
+        </p>
         <p>
           <a href={backHref}>{t("success.backToTour")}</a>
         </p>
@@ -487,7 +492,7 @@ export function PublicCatalogRegistrationFlow({
           {t("otp.changePhone")}
         </button>
         {process.env.NODE_ENV === "development" ? (
-          <p data-dev-otp-hint>{t("otp.devHint", { code: DEV_OTP })}</p>
+          <p data-dev-otp-hint>{t("otp.devHint", { code: PUBLIC_REGISTRATION_DEV_OTP })}</p>
         ) : null}
       </div>
     );

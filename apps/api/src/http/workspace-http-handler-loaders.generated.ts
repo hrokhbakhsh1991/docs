@@ -6,54 +6,8 @@
 
 import type { WorkspaceRouteHandlers } from "./workspace-route-registrar";
 
-export type WorkspaceHttpPackageHandlerKey =
-  | "handleFinanceCreateManualPayment"
-  | "handleFinanceGenerateSchedule"
-  | "handleFinanceGetRegistrationInvoice"
-  | "handleFinanceGetSchedule"
-  | "handleFinanceLedgerEvents"
-  | "handleFinanceListPayments"
-  | "handleFinanceListPrepayments"
-  | "handleFinanceListSchedules"
-  | "handleFinanceOpenPayments"
-  | "handleFinancePendingReceipts"
-  | "handleFinanceReceiptUrl"
-  | "handleFinanceRecordPrepayment"
-  | "handleFinanceReviewReceipt"
-  | "handleFinanceSubmitReceipt"
-  | "handleFinanceSummary"
-  | "handleGetDenaliCatalog"
-  | "handleGetDenaliCatalogTour"
-  | "handlePostDenaliRegistration";
-
-export type WorkspaceHttpPackageHandlers = Pick<
-  WorkspaceRouteHandlers,
-  WorkspaceHttpPackageHandlerKey
->;
+export type WorkspaceHttpPackageHandlers = Pick<WorkspaceRouteHandlers, never>;
 
 export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpPackageHandlers> {
-  /** @type {Partial<WorkspaceRouteHandlers>} */
-  const handlers = {};
-  const mod0 = await import("@app-tour/workspace-denali/http");
-  Object.assign(handlers, {
-    handleFinanceCreateManualPayment: mod0.handleFinanceCreateManualPayment,
-    handleFinanceGenerateSchedule: mod0.handleFinanceGenerateSchedule,
-    handleFinanceGetRegistrationInvoice: mod0.handleFinanceGetRegistrationInvoice,
-    handleFinanceGetSchedule: mod0.handleFinanceGetSchedule,
-    handleFinanceLedgerEvents: mod0.handleFinanceLedgerEvents,
-    handleFinanceListPayments: mod0.handleFinanceListPayments,
-    handleFinanceListPrepayments: mod0.handleFinanceListPrepayments,
-    handleFinanceListSchedules: mod0.handleFinanceListSchedules,
-    handleFinanceOpenPayments: mod0.handleFinanceOpenPayments,
-    handleFinancePendingReceipts: mod0.handleFinancePendingReceipts,
-    handleFinanceReceiptUrl: mod0.handleFinanceReceiptUrl,
-    handleFinanceRecordPrepayment: mod0.handleFinanceRecordPrepayment,
-    handleFinanceReviewReceipt: mod0.handleFinanceReviewReceipt,
-    handleFinanceSubmitReceipt: mod0.handleFinanceSubmitReceipt,
-    handleFinanceSummary: mod0.handleFinanceSummary,
-    handleGetDenaliCatalog: mod0.handleGetDenaliCatalog,
-    handleGetDenaliCatalogTour: mod0.handleGetDenaliCatalogTour,
-    handlePostDenaliRegistration: mod0.handlePostDenaliRegistration,
-  });
-  return handlers as WorkspaceHttpPackageHandlers;
+  return {};
 }

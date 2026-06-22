@@ -9,8 +9,19 @@ import {
 
 import { resolveWorkspaceCurrentSchemaVersion } from "../canonical/schema-version-policy";
 import { throwSchemaVersionMismatch } from "../canonical/schema-version-mismatch";
-import { throwValidationFailure } from "../canonical/validation-failure";
+import { isValidationFailure, throwValidationFailure } from "../canonical/validation-failure";
+import {
+  assertCatalogRefIntegrity,
+  type CatalogRefAllowlists,
+} from "../canonical/assert-catalog-ref-integrity.ts";
+import {
+  stripFormProfileFieldsFromCanonicalData,
+  filterDenaliRootsAfterProfileStrip,
+} from "../canonical/strip-form-profile-for-submit.ts";
+import { recordWorkspaceMetadataValidationError } from "../observability/metrics.ts";
 import { isWorkspaceMetadataEnabled } from "../workspace-metadata/is-workspace-metadata-enabled.ts";
+import { resolveWorkspaceMetadataValidationPathActive } from "../workspace-metadata/is-workspace-metadata-validation-path-active.ts";
+import type { ResolveWorkspacePluginForTenantByIdDeps } from "../workspace-metadata/read-tenant-workspace-metadata-binding.ts";
 import { readTenantWorkspaceMetadataBinding } from "../workspace-metadata/read-tenant-workspace-metadata-binding.ts";
 import type { PlatformTenantRepository } from "../platform/platform-tenant.repository.ts";
 import { resolveWorkspacePluginForTenantContext } from "../workspace/resolve-workspace-plugin-for-tenant-context.ts";
@@ -22,6 +33,11 @@ import {
   shouldUseStarterValidationForDenaliCreate,
 } from "./bridge-denali-operator-create-body";
 import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks";
+import {
+  resolveValidationMode,
+  runValidationModePublishGate,
+  type ValidationMode,
+} from "./resolve-validation-mode";
 
 export function resolveValidationDimensions(
   plugin: WorkspacePlugin,
@@ -54,6 +70,10 @@ export type ValidateBeforePersistInput = {
   readonly workspaceType: string;
   /** RuleContext variant — `default` (advanced) or `basic` (degraded). DEC-014. */
   readonly validationVariant?: "default" | "basic";
+  /** P5-B-N-005 — draft-relaxed vs publish-strict (inferred from publishStatus when omitted). */
+  readonly validationMode?: ValidationMode;
+  /** P5-B-N-008 — inject tenant catalog allowlists (production enrich loads automatically). */
+  readonly catalogRefAllowlists?: CatalogRefAllowlists;
 };
 
 const DEFAULT_ENGINE_CACHE_SIZE = 8;
@@ -160,11 +180,12 @@ export function getOrCreateValidationEngine(
 export async function getOrCreateValidationEngineAsync(
   tenantId: string,
   workspaceType: string,
-  validationVariant: "default" | "basic" = "default"
+  validationVariant: "default" | "basic" = "default",
+  deps: ResolveWorkspacePluginForTenantByIdDeps = {}
 ): Promise<PlatformWizardEngine> {
-  const fingerprint = await resolveMetadataFingerprintForEngineCache(tenantId);
+  const fingerprint = await resolveMetadataFingerprintForEngineCache(tenantId, deps);
   const key = buildValidationEngineCacheKey(tenantId, workspaceType, validationVariant, fingerprint);
-  const plugin = await resolveWorkspacePluginForTenantContext(tenantId, workspaceType);
+  const plugin = await resolveWorkspacePluginForTenantContext(tenantId, workspaceType, deps);
   return getOrCreateValidationEngineWithPlugin(key, plugin);
 }
 
@@ -239,11 +260,22 @@ function validateCanonicalDocumentWithEngine(
         ? pickStarterCreateDataForValidation(rawCreateData)
         : undefined;
     const createData = starterPick?.createData ?? rawCreateData;
+    const profileStrippedCreateData =
+      input.workspaceType === "denali" && isRecord(createData)
+        ? stripFormProfileFieldsFromCanonicalData(input.workspaceType, createData)
+        : createData;
+    const documentRoots =
+      input.workspaceType === "denali" && isRecord(profileStrippedCreateData)
+        ? filterDenaliRootsAfterProfileStrip(
+            input.body.roots ?? [...validationPlugin.wizard.roots],
+            profileStrippedCreateData
+          )
+        : (input.body.roots ?? [...validationPlugin.wizard.roots]);
 
     document = createCanonicalDocument({
       schemaVersion: requestedSchemaVersion,
-      roots: input.body.roots ?? [...validationPlugin.wizard.roots],
-      data: createData,
+      roots: [...documentRoots],
+      data: profileStrippedCreateData,
     });
   } catch (error) {
     if (error instanceof CanonicalDocumentValidationError) {
@@ -273,6 +305,31 @@ function validateCanonicalDocumentWithEngine(
     throwValidationFailure(
       `CANONICAL_VALIDATION_FAILED: ${hookViolation.code}: ${hookViolation.message}`
     );
+  }
+
+  const validationMode = resolveValidationMode(input, document);
+  const publishViolation = runValidationModePublishGate(
+    validationPlugin,
+    document,
+    validationMode
+  );
+  if (publishViolation != null) {
+    throwValidationFailure(
+      `CANONICAL_VALIDATION_FAILED: ${publishViolation.code}: ${publishViolation.message}`
+    );
+  }
+
+  if (
+    input.workspaceType === "denali" &&
+    validationMode === "publish" &&
+    input.catalogRefAllowlists != null
+  ) {
+    const catalogViolation = assertCatalogRefIntegrity(document, input.catalogRefAllowlists);
+    if (catalogViolation != null) {
+      throwValidationFailure(
+        `CANONICAL_VALIDATION_FAILED: ${catalogViolation.code}: ${catalogViolation.message}`
+      );
+    }
   }
 
   if (useStarterValidation) {
@@ -310,25 +367,42 @@ export function validateCanonicalBeforePersistSync(
 
 /** P3-A-N-011 — tenant-aware validation on HTTP/async paths when metadata flag is on. */
 export async function validateCanonicalBeforePersistAsync(
-  input: ValidateBeforePersistInput
+  input: ValidateBeforePersistInput,
+  deps: ResolveWorkspacePluginForTenantByIdDeps = {}
 ): Promise<CanonicalDocument> {
-  const plugin = await resolveWorkspacePluginForTenantContext(input.tenantId, input.workspaceType);
-  const { validationPlugin, validationWorkspaceType, useStarterValidation } =
-    resolveValidationPluginForPersist(input, plugin);
-  const validationVariant = input.validationVariant ?? "default";
-  const engine = useStarterValidation
-    ? getOrCreateValidationEngine(input.tenantId, validationWorkspaceType, validationVariant)
-    : await getOrCreateValidationEngineAsync(
-        input.tenantId,
-        validationWorkspaceType,
-        validationVariant
-      );
-  return validateCanonicalDocumentWithEngine(
-    input,
-    validationPlugin,
-    engine,
-    useStarterValidation
+  const metadataPathActive = await resolveWorkspaceMetadataValidationPathActive(
+    input.tenantId,
+    deps
   );
+  try {
+    const plugin = await resolveWorkspacePluginForTenantContext(
+      input.tenantId,
+      input.workspaceType,
+      deps
+    );
+    const { validationPlugin, validationWorkspaceType, useStarterValidation } =
+      resolveValidationPluginForPersist(input, plugin);
+    const validationVariant = input.validationVariant ?? "default";
+    const engine = useStarterValidation
+      ? getOrCreateValidationEngine(input.tenantId, validationWorkspaceType, validationVariant)
+      : await getOrCreateValidationEngineAsync(
+          input.tenantId,
+          validationWorkspaceType,
+          validationVariant,
+          deps
+        );
+    return validateCanonicalDocumentWithEngine(
+      input,
+      validationPlugin,
+      engine,
+      useStarterValidation
+    );
+  } catch (error) {
+    if (metadataPathActive && isValidationFailure(error)) {
+      recordWorkspaceMetadataValidationError(input.tenantId, input.workspaceType);
+    }
+    throw error;
+  }
 }
 
 /** Test-only — clear engine LRU between cases. */

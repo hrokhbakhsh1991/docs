@@ -2,10 +2,11 @@
 
 ```yaml
 epic: P6-1
-nanos: 14
+nanos: 15
 priority: 2
 prerequisite: P6-0 complete
 milestone: P6-1-N-014 GUEST_SLICE_OK
+requires_theming: P6-1-N-015
 apps: [marketing, portal, web-minimal]
 otp_flow_doc: docs/phase-19/platform-portal-otp-flow.mdoc
 ```
@@ -70,7 +71,7 @@ Route: `{club}.portal.{root}/catalog/{tourId}/register`
 
 ### P6-1-N-004 — Detail CTA → portal
 
-**Do:** `resolveWebRegistrationUrl` → `{club}.localhost:3003/catalog/{id}/register`.
+**Do:** `resolveWebRegistrationUrl` → `buildDevPortalPublicBaseUrl` → `{club}.portal.localhost:3003/catalog/{id}/register` (legacy `{club}.localhost:3003` still accepted).
 
 **Verify:** `resolve-web-registration-url.spec.ts`
 
@@ -123,11 +124,11 @@ Route: `{club}.portal.{root}/catalog/{tourId}/register`
 
 ### P6-1-N-010 — Club home + design-token stack
 
-**Do:** Branded home + `/tours`. Align marketing + portal `globals.css` with `@app-tour/design-tokens/styles.css` (G-P6-UI-01/02).
+**Do:** Branded home + `/tours`. Guest `globals.css` = `guest-shell.css` + tailwind only; page rules live in workspace skins (`denali-portal.css`, `denali-marketing.css`).
 
-**Standards:** [p6-implementation-standards.mdoc](../p6-implementation-standards.mdoc) §2
+**Standards:** [p6-enterprise-theming-architecture.mdoc](../p6-enterprise-theming-architecture.mdoc) · [p6-implementation-standards.mdoc](../p6-implementation-standards.mdoc) §2
 
-**Verify:** marketing home spec · token import present
+**Verify:** `guest-theme-stack.spec.ts` (portal + marketing)
 
 ---
 
@@ -155,9 +156,33 @@ Route: `{club}.portal.{root}/catalog/{tourId}/register`
 
 ### P6-1-N-014 — GUEST_SLICE_OK
 
+**Prerequisite:** P6-1-N-015 (theming file tree) ✅
+
 **Do:** Manual smoke doc + Playwright SMK-PTL-01 path documented.
 
 **Verify:** milestone complete
+
+---
+
+### P6-1-N-015 — Enterprise theming file tree (mandatory)
+
+**Do:** Lock canonical file tree — tokens · shell-bridge · workspace skins · generated ingress · fonts · thin globals.
+
+**Authority:** [p6-theming-file-tree.md](p6-theming-file-tree.md) · [p6-enterprise-theming-architecture.mdoc](../p6-enterprise-theming-architecture.mdoc)
+
+**Files:**
+
+| Area | Path |
+| ---- | ---- |
+| Bridge | `packages/design-tokens/src/shell-bridge.css` |
+| Guest entry | `packages/design-tokens/src/guest-shell.css` |
+| Denali skins | `packages/workspaces/denali/theme/denali-{portal,marketing}.css` |
+| Manifest | `guestThemeStylesheets` in `workspace.manifest.json` |
+| Portal/marketing | `workspace-guest-theme-stylesheets.generated.ts` |
+| Fonts | `apps/{portal,marketing}/src/i18n/app-fonts.ts` |
+| Admin dedup | `apps/web/app/globals.css` imports `shell-bridge.css` |
+
+**Verify:** `p6-theming-file-tree.spec.ts` · `guest-theme-stack.spec.ts` · `pnpm run generate:workspace-registry`
 
 ---
 

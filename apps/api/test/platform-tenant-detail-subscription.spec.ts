@@ -37,6 +37,11 @@ describe("toPlatformTenantDetailDto subscription", () => {
           createdAt: new Date("2026-06-21T10:00:00.000Z"),
         },
       },
+      workspaceCommerce: {
+        paymentMode: "offline_receipt",
+        gatewayProvider: null,
+        currency: "IRR",
+      },
     });
 
     assert.equal(detail.subscription?.planId, "standard");

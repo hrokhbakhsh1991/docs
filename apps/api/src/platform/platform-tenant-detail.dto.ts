@@ -1,3 +1,5 @@
+import type { WorkspaceCommerceConfig } from "@app-tour/workspace-sdk/metadata";
+
 import { buildClubSiteUrls } from "./build-club-site-urls.ts";
 import type { TenantSiteSurfaces } from "./read-tenant-site-surfaces.ts";
 import { DEFAULT_TENANT_SITE_SURFACES } from "./read-tenant-site-surfaces.ts";
@@ -16,6 +18,8 @@ export type PlatformOwnerInviteSummary = {
   readonly status: string;
 };
 
+export type PlatformTenantCommerceDto = WorkspaceCommerceConfig;
+
 export type PlatformTenantDetailDto = {
   readonly tenant: PlatformTenantDto;
   readonly sites: ReturnType<typeof buildClubSiteUrls>;
@@ -23,6 +27,7 @@ export type PlatformTenantDetailDto = {
   readonly ownerInvite: PlatformOwnerInviteSummary | null;
   readonly subscription: TenantSubscriptionDto | null;
   readonly workspaceDefinition: PlatformTenantWorkspaceDefinitionDto | null;
+  readonly workspaceCommerce: PlatformTenantCommerceDto;
   readonly offboardingStartedAt: string | null;
   readonly scheduledDeletionAt: string | null;
 };
@@ -33,6 +38,7 @@ export function toPlatformTenantDetailDto(input: {
   subscription: TenantSubscriptionWithPlan | null;
   definitionDisplayName?: string | null;
   siteSurfaces?: TenantSiteSurfaces;
+  workspaceCommerce: PlatformTenantCommerceDto;
 }): PlatformTenantDetailDto {
   return {
     tenant: toPlatformTenantDto(input.tenant),
@@ -48,6 +54,7 @@ export function toPlatformTenantDetailDto(input: {
       displayName: input.definitionDisplayName ?? null,
       tenantId: input.tenant.id,
     }),
+    workspaceCommerce: input.workspaceCommerce,
     offboardingStartedAt: input.tenant.offboardingStartedAt?.toISOString() ?? null,
     scheduledDeletionAt: input.tenant.scheduledDeletionAt?.toISOString() ?? null,
   };
