@@ -1,4 +1,6 @@
 import { withTenantRls } from "../db/with-tenant-rls";
+import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
+import { InMemoryFinanceRepository } from "./in-memory-finance.repository";
 
 export type FinanceSummaryRow = {
   readonly pendingManualPayments: number;
@@ -199,6 +201,33 @@ export class FinanceRepository {
     return withTenantRls(tenantId, async (tx) => {
       return tx.payment.findFirst({
         where: { tenantId, id: paymentId },
+        select: {
+          id: true,
+          registrationId: true,
+          amount: true,
+          currency: true,
+          method: true,
+          status: true,
+          provider: true,
+          paidAt: true,
+          createdAt: true,
+        },
+      });
+    });
+  }
+
+  async findFirstPendingManualPayment(
+    tenantId: string,
+    registrationId: string
+  ): Promise<FinancePaymentRow | null> {
+    return withTenantRls(tenantId, async (tx) => {
+      return tx.payment.findFirst({
+        where: {
+          tenantId,
+          registrationId,
+          method: "Manual",
+          status: "Pending",
+        },
         select: {
           id: true,
           registrationId: true,
@@ -519,6 +548,22 @@ export class FinanceRepository {
   }
 }
 
-export function createFinanceRepository(): FinanceRepository {
-  return new FinanceRepository();
+export type FinanceRepositoryPort = FinanceRepository | InMemoryFinanceRepository;
+
+let financeRepositorySingleton: FinanceRepositoryPort | null = null;
+
+export function createFinanceRepository(): FinanceRepositoryPort {
+  if (financeRepositorySingleton !== null) {
+    return financeRepositorySingleton;
+  }
+  if (resolveStorageDriver() === "memory") {
+    financeRepositorySingleton = new InMemoryFinanceRepository();
+  } else {
+    financeRepositorySingleton = new FinanceRepository();
+  }
+  return financeRepositorySingleton;
+}
+
+export function resetFinanceRepositoryForTests(): void {
+  financeRepositorySingleton = null;
 }

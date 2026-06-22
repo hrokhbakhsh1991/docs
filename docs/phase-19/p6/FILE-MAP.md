@@ -86,7 +86,9 @@ machine_snapshot: AGENT-CURRENT-PHASE.yaml
 | File | Nano | Status |
 | ---- | ---- | ------ |
 | `scripts/p6-denali-product-gate.sh` | P6-4-N-002 | ✅ |
-| `scripts/p6-denali-e2e-gate.sh` | P6-4-N-007 | ✅ stub |
+| `scripts/p6-denali-e2e-gate.sh` | P6-4-N-007 | ✅ E2E wired |
+| `scripts/p6-staging-gate.sh` | P6-4-N-006 | ✅ Postgres optional |
+| `.github/workflows/p6-denali-gate.yml` | P6-4-N-006 | ✅ CI product + E2E schedule |
 | `scripts/smoke-p6-host-bind.mjs` | P6-0-N-007 | ✅ |
 | `apps/api/test/p6-host-tenant-parity.spec.ts` | P6-0-N-002 | ✅ |
 | `apps/api/test/p6-guest-slice.spec.ts` | P6-1-N-013 | ✅ |
@@ -97,6 +99,12 @@ machine_snapshot: AGENT-CURRENT-PHASE.yaml
 | `apps/api/test/platform-denali-first-customer-exit.spec.ts` | P6-4-N-004 | ✅ |
 | `apps/portal/test/portal-member-registrations.spec.ts` | P6-3 | ✅ |
 | `apps/portal/test/portal-home-redirect.spec.ts` | P6-3-N-009 | ✅ |
+| `apps/portal/test/portal-member-receipt-bff.spec.ts` | P6-3-N-006 | ✅ |
+| `apps/api/test/p6-member-receipt-flow.spec.ts` | P6-3-N-007 · VS-07 | ✅ |
+| `apps/api/test/p6-vs01-admin-publish.spec.ts` | P6-1-N-001 · VS-01 | ✅ |
+| `apps/web/tests/e2e/p6-admin-publish-smoke.spec.ts` | P6-4-N-007 · VS-01 | ✅ E2E |
+| `apps/web/tests/e2e/p6-operator-receipt-approve-smoke.spec.ts` | P6-4-N-007 · VS-07 | ✅ E2E |
+| `apps/portal/tests/e2e/portal-member-smoke.spec.ts` | P6-3 · VS-04/05 | ✅ E2E |
 
 ## Host gaps (post-closure)
 

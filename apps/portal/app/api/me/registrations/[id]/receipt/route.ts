@@ -5,6 +5,16 @@ import { resolveTourOpsApiBaseUrl } from "@/env";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+function sanitizeReceiptFileName(name: string): string {
+  const base = name.split(/[/\\]/).pop() ?? "receipt";
+  const cleaned = base.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120);
+  return cleaned.length > 0 ? cleaned : "receipt";
+}
+
+function buildMemberReceiptFileKey(registrationId: string, fileName: string): string {
+  return `receipts/${registrationId}/${sanitizeReceiptFileName(fileName)}`;
+}
+
 export async function POST(req: Request, context: RouteContext): Promise<NextResponse> {
   const { id: registrationId } = await context.params;
   const host = req.headers.get("host") ?? "localhost:3003";
@@ -20,17 +30,21 @@ export async function POST(req: Request, context: RouteContext): Promise<NextRes
     return NextResponse.json({ ok: false, code: "FILE_REQUIRED" }, { status: 400 });
   }
 
-  const body = new FormData();
-  body.append("registrationId", registrationId);
-  body.append("file", file, file.name);
+  const fileKey = buildMemberReceiptFileKey(registrationId, file.name);
+  const noteRaw = form.get("note");
+  const note = typeof noteRaw === "string" && noteRaw.trim().length > 0 ? noteRaw.trim() : undefined;
 
   const apiBase = resolveTourOpsApiBaseUrl();
-  const res = await fetch(`${apiBase}/finance/receipts`, {
+  const res = await fetch(`${apiBase}/bookings/${encodeURIComponent(registrationId)}/receipts`, {
     method: "POST",
     headers: {
       ...headers,
+      "Content-Type": "application/json",
     },
-    body,
+    body: JSON.stringify({
+      fileKey,
+      ...(note !== undefined ? { note } : {}),
+    }),
   });
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) {

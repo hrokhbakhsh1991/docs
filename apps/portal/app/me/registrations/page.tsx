@@ -1,31 +1,11 @@
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 
-type RegistrationItem = {
-  id: string;
-  tourTitle: string;
-  status: string;
-  paymentStatus: string;
-  departureAt: string;
-};
-
-async function fetchRegistrations(host: string): Promise<RegistrationItem[]> {
-  const res = await fetch(`http://${host}/api/me/registrations`, {
-    cache: "no-store",
-    headers: { host },
-  });
-  if (!res.ok) {
-    return [];
-  }
-  const payload = (await res.json()) as {
-    data?: { items?: RegistrationItem[] };
-  };
-  return payload.data?.items ?? [];
-}
+import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server";
 
 export default async function MeRegistrationsPage() {
   const host = (await headers()).get("host") ?? "localhost:3003";
-  const items = await fetchRegistrations(host);
+  const items = await fetchMemberRegistrations(host);
   const t = await getTranslations("portalMember.registrations");
 
   return (

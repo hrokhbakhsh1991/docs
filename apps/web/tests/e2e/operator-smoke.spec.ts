@@ -197,7 +197,9 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toContainText(
       guestLabel
     );
-    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toContainText("pending");
+    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toContainText(
+      /pending|در انتظار/i
+    );
   });
 
   test("SMK-P9-04 pending booking → approve", async ({ page }) => {
@@ -221,12 +223,13 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     await approveResponse;
 
     await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inspection)).toContainText(
-      "approved",
+      /approved|تأییدشده/i,
       { timeout: 15_000 }
     );
-    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toContainText("approved", {
-      timeout: 15_000,
-    });
+    await expect(page.getByTestId(BOOKINGS_COMMAND_CENTER_TEST_IDS.inbox)).toContainText(
+      /approved|تأییدشده/i,
+      { timeout: 15_000 }
+    );
   });
 
   test("SMK-P9-03 invite → accept → directory shows member", async ({ page, browser }) => {

@@ -3,7 +3,7 @@ import { decodeJwtPayload, isJwtExpired } from "@/auth/decode-jwt-payload";
 export type SessionTokenValidationStatus = "valid" | "missing" | "expired" | "invalid_claims";
 
 export type SessionTokenValidation =
-  | { status: "valid"; userId: string; tenantId: string; role?: string }
+  | { status: "valid"; userId: string; tenantId: string; role?: string; workspaceId?: string }
   | { status: "missing" }
   | { status: "expired" }
   | { status: "invalid_claims" };
@@ -26,5 +26,13 @@ export function validateSessionToken(raw: string | undefined | null): SessionTok
   }
 
   const role = typeof claims?.role === "string" ? claims.role.trim() : undefined;
-  return { status: "valid", userId, tenantId, role };
+  const workspaceId =
+    typeof claims?.workspace_id === "string" ? claims.workspace_id.trim() : "";
+  return {
+    status: "valid",
+    userId,
+    tenantId,
+    role,
+    ...(workspaceId.length > 0 ? { workspaceId } : {}),
+  };
 }

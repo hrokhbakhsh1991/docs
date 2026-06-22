@@ -2,30 +2,39 @@
 
 ```yaml
 phase: P6
-pack_version: "2.1"
+pack_version: "2.2"
 status: COMPLETE
+doc_pack: COMPLETE
+code_integration: BEHAVIORAL_COMPLETE
 current_task: null
-nano_done: 58
+nano_done_behavioral: 58
 nano_total: 58
 exit_nano: P6-4-N-008
 milestone_guest_slice: P6-1-N-014
 prerequisite: P5-B-N-016 complete
-gate: pnpm run p6:gate
+gate_static: pnpm run p6:gate
+gate_e2e: pnpm run p6:e2e-gate
+gate_live: node scripts/smoke-p6-host-bind.mjs
 machine_snapshot: AGENT-CURRENT-PHASE.yaml
+truth: appendices/IMPLEMENTATION-TRUTH-P6.md
 navigator: ../AGENT-NAVIGATOR.md
 doc_sot: docs/phase-19/platform-denali-first-customer.mdoc
-addressing_sot: docs/phase-19/p6-host-addressing-architecture.mdoc
+p7_blocked: false
 ```
 
-## Status: P6 closed ✅
+## Status: P6 complete (2026-06-22)
 
-All **58 nanos** complete · **VS-08** green. **Do not** re-implement closed work unless `p6:gate` regresses.
+Vertical slice **VS-01..08** behaviorally proven · `p6:gate` + `p6:e2e-gate` green.
+
+**Next phase:** [P7 Agent START](../phase-20/p7/AGENT-START.md) — staging delivery on VPS.
 
 ```bash
-pnpm run p6:gate   # must print P6_DENALI_PRODUCT_GATE_OK
+pnpm run p6:gate                                    # daily regression (~8s)
+pnpm run p6:e2e-gate                                # pre-staging browser (~80s)
+TOUR_OPS_API_URL=http://127.0.0.1:3001 node scripts/smoke-p6-host-bind.mjs
 ```
 
-For **next step** logic → [../AGENT-NAVIGATOR.md](../AGENT-NAVIGATOR.md) · machine state → [AGENT-CURRENT-PHASE.yaml](AGENT-CURRENT-PHASE.yaml).
+Machine state → [AGENT-CURRENT-PHASE.yaml](AGENT-CURRENT-PHASE.yaml) · truth → [IMPLEMENTATION-TRUTH-P6.md](appendices/IMPLEMENTATION-TRUTH-P6.md).
 
 ---
 
@@ -39,7 +48,7 @@ For **next step** logic → [../AGENT-NAVIGATOR.md](../AGENT-NAVIGATOR.md) · ma
 | P6-1 | Guest browse → OTP register (`GUEST_SLICE_OK`) |
 | P6-2 | Operator approve booking + receipt (VS-06 · VS-07) |
 | P6-3 | Member `/me/registrations` + receipt upload (VS-04 · VS-05) |
-| P6-4 | `p6:gate` + exit specs |
+| P6-4 | `p6:gate` · `p6:e2e-gate` · exit specs |
 
 ## Three apps + hosts
 
@@ -55,13 +64,13 @@ For **next step** logic → [../AGENT-NAVIGATOR.md](../AGENT-NAVIGATOR.md) · ma
 
 ## Read order (maintenance / regression)
 
-1. [appendices/IMPLEMENTATION-TRUTH-P6.md](appendices/IMPLEMENTATION-TRUTH-P6.md) — **repo truth first**
+1. [appendices/IMPLEMENTATION-TRUTH-P6.md](appendices/IMPLEMENTATION-TRUTH-P6.md) — repo truth
 2. [platform-denali-vertical-slice.mdoc](../platform-denali-vertical-slice.mdoc) — VS-01..08 steps
 3. [AGENT-STATE-MAP-P6.md](AGENT-STATE-MAP-P6.md) — triggers · guards · prove specs
 4. [appendices/TRACEABILITY-MATRIX-P6.md](appendices/TRACEABILITY-MATRIX-P6.md) — nano → file → spec
-5. [platform-denali-first-customer.mdoc](../platform-denali-first-customer.mdoc) — umbrella
-6. [p6-host-addressing-architecture.mdoc](../p6-host-addressing-architecture.mdoc) — host SoT
-7. [DOC-SYNC-INDEX.md](DOC-SYNC-INDEX.md) · [p6-exit-checklist.md](p6-exit-checklist.md)
+5. [appendices/SMOKE-SCENARIO-MAP-P6.md](appendices/SMOKE-SCENARIO-MAP-P6.md) — SMK-P6 matrix
+6. [runbooks/p6-e2e-smoke.md](runbooks/p6-e2e-smoke.md) — full browser gate
+7. [p6-exit-checklist.md](p6-exit-checklist.md)
 
 ## Agent loop (regression only)
 

@@ -1,18 +1,22 @@
 # Phase 19 — P6 Denali first customer
 
 ```yaml
-pack_version: "2.1"
+pack_version: "2.2"
 nanos: 58
-status: COMPLETE
+status: REOPEN_BEHAVIORAL
+doc_pack: COMPLETE
+code_integration: PARTIAL
 execution_order: [P6-0, P6-1, P6-2, P6-3, P6-4]
 milestone_guest_slice: P6-1-N-014
-gate: pnpm run p6:gate
+gate_static: pnpm run p6:gate
+gate_live: node scripts/smoke-p6-host-bind.mjs
 navigator: AGENT-NAVIGATOR.md
+p7_blocked: true
 ```
 
 ## Start
 
-→ [p6/AGENT-START.md](p6/AGENT-START.md) · **navigator:** [AGENT-NAVIGATOR.md](AGENT-NAVIGATOR.md) · **status:** 58/58 ✅
+→ [p6/AGENT-START.md](p6/AGENT-START.md) · **status:** REOPEN_BEHAVIORAL · current `P6-0-N-007`
 
 ## Umbrella
 

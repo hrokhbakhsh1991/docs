@@ -1,4 +1,6 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+
+import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
 
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 import {
@@ -21,8 +23,9 @@ import type {
   ReviewReceiptBody,
   SubmitReceiptBody,
 } from "@app-tour/workspace-denali/http";
-import type { FinanceLedgerOutboxRow, FinanceRepository, FinanceSummaryRow } from "./finance.repository";
+import type { FinanceLedgerOutboxRow, FinanceRepositoryPort, FinanceSummaryRow } from "./finance.repository";
 import { createFinanceRepository } from "./finance.repository";
+import { getBookingsRepository } from "../bookings/create-bookings-repository";
 import {
   buildPaymentScheduleItems,
   getSchedule,
@@ -85,8 +88,11 @@ function mapLedgerEventRow(row: FinanceLedgerOutboxRow): Record<string, unknown>
   };
 }
 
+const OFFLINE_RECEIPT_DEFAULT_AMOUNT = "2500000";
+const OFFLINE_RECEIPT_DEFAULT_CURRENCY = "IRR";
+
 export class FinanceService {
-  constructor(private readonly repository: FinanceRepository) {}
+  constructor(private readonly repository: FinanceRepositoryPort = createFinanceRepository()) {}
 
   private async gate(auth: TenantAuthContext): Promise<void> {
     await assertFinanceWorkspaceGate(auth.tenantId);
@@ -221,6 +227,47 @@ export class FinanceService {
     };
   }
 
+  async submitMemberReceiptForRegistration(
+    auth: TenantAuthContext,
+    input: { readonly registrationId: string; readonly fileKey: string; readonly note?: string }
+  ) {
+    const booking = await getBookingsRepository().getById(input.registrationId);
+    if (
+      booking === null ||
+      booking.tenantId !== auth.tenantId ||
+      booking.submittedByUserId !== auth.userId
+    ) {
+      throw new Error("BOOKINGS_FORBIDDEN");
+    }
+
+    let payment = await this.repository.findFirstPendingManualPayment(
+      auth.tenantId,
+      input.registrationId
+    );
+    if (payment === null) {
+      const statuses = await this.repository.findPaymentStatusesByRegistration(
+        auth.tenantId,
+        input.registrationId
+      );
+      assertManualPaymentDebtAllowed(statuses);
+      payment = await this.repository.createManualPayment({
+        tenantId: auth.tenantId,
+        registrationId: input.registrationId,
+        amount: OFFLINE_RECEIPT_DEFAULT_AMOUNT,
+        currency: OFFLINE_RECEIPT_DEFAULT_CURRENCY,
+        method: "Manual",
+        provider: "manual",
+        status: "Pending",
+      });
+    }
+
+    return this.submitReceipt(auth, {
+      paymentId: payment.id,
+      fileKey: input.fileKey,
+      ...(input.note !== undefined ? { note: input.note } : {}),
+    });
+  }
+
   async reviewReceipt(auth: TenantAuthContext, receiptId: string, body: ReviewReceiptBody) {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
@@ -276,13 +323,15 @@ export class FinanceService {
     });
 
     const outboxWriter = createPrismaWorkspaceOutboxWriter();
-    await emitFinanceLedgerDoubleEntryAppliedOutbox({
-      outboxWriter,
-      tenantId: auth.tenantId,
-      registrationId: payment.registrationId,
-      lines,
-      domainEventIdOverride: `payment:${payment.id}:ledger-capture-anchor`,
-    });
+    if (resolveStorageDriver() !== "memory") {
+      await emitFinanceLedgerDoubleEntryAppliedOutbox({
+        outboxWriter,
+        tenantId: auth.tenantId,
+        registrationId: payment.registrationId,
+        lines,
+        domainEventIdOverride: `payment:${payment.id}:ledger-capture-anchor`,
+      });
+    }
 
     await this.repository.markPaymentPaid(auth.tenantId, payment.id, journalId);
     const updated = await this.repository.updateReceiptReview(auth.tenantId, receiptId, {
@@ -411,7 +460,7 @@ export class FinanceService {
 }
 
 export function createFinanceService(
-  repository: FinanceRepository = createFinanceRepository()
+  repository: FinanceRepositoryPort = createFinanceRepository()
 ): FinanceService {
   return new FinanceService(repository);
 }

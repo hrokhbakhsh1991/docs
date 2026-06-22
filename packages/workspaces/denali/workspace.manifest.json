@@ -27,6 +27,44 @@
     "prefix": "/finance",
     "module": "./http/routes"
   },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-denali/http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "CATALOG_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /denali/catalog": "handleGetDenaliCatalog",
+          "POST /denali/registrations": "handlePostDenaliRegistration"
+        },
+        "paramHandlers": {
+          "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour"
+        }
+      },
+      {
+        "manifestExport": "FINANCE_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /finance/reports/summary": "handleFinanceSummary",
+          "GET /finance/reports/open-payments": "handleFinanceOpenPayments",
+          "GET /finance/reports/ledger-events": "handleFinanceLedgerEvents",
+          "GET /finance/payments": "handleFinanceListPayments",
+          "POST /finance/payments/manual": "handleFinanceCreateManualPayment",
+          "POST /finance/receipts": "handleFinanceSubmitReceipt",
+          "GET /finance/receipts/pending": "handleFinancePendingReceipts",
+          "GET /finance/prepayments": "handleFinanceListPrepayments",
+          "POST /finance/prepayments": "handleFinanceRecordPrepayment",
+          "GET /finance/schedules": "handleFinanceListSchedules",
+          "POST /finance/schedules/generate": "handleFinanceGenerateSchedule"
+        },
+        "paramHandlers": {
+          "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",
+          "GET /finance/receipts/:receiptId/url": "handleFinanceReceiptUrl",
+          "GET /finance/invoices/:registrationId": "handleFinanceGetRegistrationInvoice",
+          "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule"
+        }
+      }
+    ]
+  },
   "tourWrite": {
     "module": "./tours",
     "workspaceTypeExport": "DENALI_WORKSPACE_TYPE",
@@ -49,8 +87,23 @@
     "legacyBackendSignedUrlPath": "/tours/wizard-photos/url"
   },
   "themeStylesheets": ["theme/denali-admin.css"],
+  "wizardCreate": {
+    "extendedChrome": true
+  },
   "guestThemeStylesheets": {
     "portal": ["theme/denali-portal.css"],
     "marketing": ["theme/denali-marketing.css"]
+  },
+  "devBootstrap": {
+    "wizardTemplate": {
+      "module": "./settings/denaliFullWizardTemplate",
+      "buildExport": "buildDenaliTenantWizardTemplatePayload",
+      "tenantIds": ["00000000-0000-4000-8000-000000000003"],
+      "minPublishedSteps": 2
+    },
+    "smokeTenant": {
+      "tenantIdExport": "DENALI_SMOKE_TENANT_ID",
+      "subdomainExport": "DENALI_SMOKE_SUBDOMAIN"
+    }
   }
 }

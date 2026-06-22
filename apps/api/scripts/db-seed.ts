@@ -23,20 +23,15 @@ async function main(): Promise<void> {
   logger.info({ event: "db.seed.tenant", subdomain: denali.subdomain }, "dev tenant seeded");
   await seedWorkspaceWizardTemplateForTenant(denali.id);
   logger.info({ event: "db.seed.denali_wizard_template", tenantId: denali.id }, "denali wizard template seeded");
-<<<<<<< Updated upstream
   await seedOperatorSmokeCatalog(getSettingsResourcesRepository(), { tenantId: DENALI_SMOKE_TENANT_ID });
-  await seedOperatorSmokePublishedTour(DENALI_SMOKE_TENANT_ID);
   logger.info(
-    { event: "db.seed.denali_dev_smoke_fixtures", tenantId: DENALI_SMOKE_TENANT_ID },
-    "denali dev smoke catalog and published tour seeded"
+    { event: "db.seed.denali_dev_smoke_catalog", tenantId: DENALI_SMOKE_TENANT_ID },
+    "denali dev smoke catalog seeded (tour lives on operator tenant only)"
   );
-||||||| Stash base
-=======
   const urban = await service.seedUrbanSmokeTenant();
   logger.info({ event: "db.seed.tenant", subdomain: urban.subdomain }, "dev tenant seeded");
   await seedWorkspaceWizardTemplateForTenant(urban.id);
   logger.info({ event: "db.seed.urban_wizard_template", tenantId: urban.id }, "urban wizard template seeded");
->>>>>>> Stashed changes
   const operator = await service.seedOperatorSmokeTenant();
   logger.info({ event: "db.seed.tenant", subdomain: operator.subdomain }, "operator smoke tenant seeded");
   await seedWorkspaceWizardTemplateForTenant(operator.id);
@@ -63,9 +58,13 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(() => {
+main().catch((error: unknown) => {
   logger.error(
-    { event: "db.seed.failed", code: "SEED_DEV_TENANTS_FAILED" },
+    {
+      event: "db.seed.failed",
+      code: "SEED_DEV_TENANTS_FAILED",
+      err: error instanceof Error ? error.message : String(error),
+    },
     "dev tenant seed failed"
   );
   process.exit(1);

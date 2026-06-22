@@ -3,11 +3,19 @@
 ```yaml
 phase: 20
 pack: P7
-pack_version: "0.1"
-status: PLANNED
+pack_version: "1.2"
+status: IN_PROGRESS
+current_task: P7-0-N-002
+nano_spec_total: 27
+nano_staging_done: 1
+nano_total: 27
 prerequisite: P6 complete (pnpm run p6:gate)
-temp_summary: TEMP/p7-denali-customer-delivery.md
+p7_gate: pnpm run p7:gate
+doc_architecture: p7/appendices/P7-DOC-ARCHITECTURE.md
+execution_discipline: p7/appendices/P7-EXECUTION-DISCIPLINE.md
 north_star: first Denali club customer live on staging
+machine_snapshot: p7/AGENT-CURRENT-PHASE.yaml
+doc_sot: platform-denali-customer-delivery.mdoc
 ```
 
 ## Start
@@ -33,7 +41,7 @@ north_star: first Denali club customer live on staging
 
 ## Progress
 
-→ [p7/DOC-SYNC-INDEX.md](p7/DOC-SYNC-INDEX.md) · [p7/p7-exit-checklist.md](p7/p7-exit-checklist.md)
+→ [p7/DOC-SYNC-INDEX.md](p7/DOC-SYNC-INDEX.md) · [p7/p7-exit-checklist.md](p7/p7-exit-checklist.md) · [p7/FILE-MAP.md](p7/FILE-MAP.md)
 
 ## Not in P7 v0.1
 

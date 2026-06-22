@@ -156,8 +156,10 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
     }
     setLoading(true);
     setPhoneError(null);
+    const otpPath =
+      pluginId === "platform" ? "/api/platform/auth/request-otp" : "/api/auth/request-otp";
     try {
-      const res = await fetch("/api/auth/request-otp", {
+      const res = await fetch(otpPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -195,8 +197,10 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
     loginInFlightRef.current = true;
     setLoading(true);
     setOtpError(null);
+    const loginPath =
+      pluginId === "platform" ? "/api/platform/auth/login" : "/api/auth/login-web-session";
     try {
-      const res = await fetch("/api/auth/login-web-session", {
+      const res = await fetch(loginPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -213,6 +217,11 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
         if (codeKey === "OTP_CHALLENGE_INVALID" || codeKey === "OTP_EXPIRED") {
           setOtp("");
         }
+        return;
+      }
+
+      if (pluginId === "platform") {
+        window.location.assign("/platform");
         return;
       }
 

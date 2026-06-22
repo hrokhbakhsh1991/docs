@@ -7,6 +7,7 @@ export type PublicCatalogSession = {
   readonly userId: string;
   readonly tenantId: string;
   readonly role: "owner" | "admin" | "member" | "viewer";
+  readonly workspaceId?: string;
 };
 
 function normalizeCatalogRole(
@@ -41,5 +42,6 @@ export async function readPublicCatalogSessionFromCookies(): Promise<PublicCatal
     userId: validation.userId,
     tenantId: validation.tenantId,
     role,
+    ...(validation.workspaceId !== undefined ? { workspaceId: validation.workspaceId } : {}),
   };
 }

@@ -6,6 +6,7 @@ import {
   handleCreateBooking,
   handleGetBookingsSummary,
   handleListBookings,
+  handlePostBookingReceipt,
   handleRejectBooking,
 } from "./bookings/bookings.routes";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
@@ -341,6 +342,12 @@ async function dispatchRequest(
   const bookingRejectMatch = url.pathname.match(/^\/bookings\/([^/]+)\/reject$/);
   if (method === "POST" && bookingRejectMatch) {
     await handleRejectBooking(req, res, bookingRejectMatch[1]!);
+    return;
+  }
+
+  const bookingReceiptMatch = url.pathname.match(/^\/bookings\/([^/]+)\/receipts$/);
+  if (method === "POST" && bookingReceiptMatch) {
+    await handlePostBookingReceipt(req, res, bookingReceiptMatch[1]!);
     return;
   }
 

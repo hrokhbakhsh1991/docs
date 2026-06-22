@@ -11,6 +11,54 @@ Push to **`main`** → GitHub Actions runs `scripts/vps-deploy/remote-deploy.sh`
 
 Infra on the VPS (already running): Postgres `:5433`, Redis `:6379`, MinIO `:9002`.
 
+## P7 three-surface staging (Phase 20)
+
+P6 product chain needs **four processes**: API + web + marketing + portal. Current VPS systemd ships **API + web only**; P7-0 adds env templates for guest apps:
+
+- `deploy/vps/env/marketing.env.example`
+- `deploy/vps/env/portal.env.example`
+
+Runbook: `docs/phase-20/p7/runbooks/p7-0-staging-walkthrough.md`
+
+### Four-process gap (P7-0-N-004)
+
+| Unit (target) | Port | Env file | Status |
+| ------------- | ---- | -------- | ------ |
+| `app-tour-api` | 3001 | `/etc/app-tour/api.env` | shipped |
+| `app-tour-web` | 3000 | `/etc/app-tour/web.env` | shipped |
+| `app-tour-marketing` | 3002 | `/etc/app-tour/marketing.env` | **P7-0 — template only** |
+| `app-tour-portal` | 3003 | `/etc/app-tour/portal.env` | **P7-0 — template only** |
+
+Copy env templates:
+
+```bash
+cp deploy/vps/env/marketing.env.example /etc/app-tour/marketing.env
+cp deploy/vps/env/portal.env.example /etc/app-tour/portal.env
+# Set TOUR_OPS_API_URL=http://127.0.0.1:3001 (or public API URL)
+# Set PORTAL_PUBLIC_BASE_URL / MARKETING_PUBLIC_BASE_URL for VPS IP profile B
+```
+
+Systemd sketch (add after P7-0 infra nano):
+
+```ini
+# /etc/systemd/system/app-tour-marketing.service
+[Service]
+User=app-tour
+WorkingDirectory=/opt/app-tour/apps/marketing
+EnvironmentFile=/etc/app-tour/marketing.env
+ExecStart=/usr/bin/node .next/standalone/apps/marketing/server.js
+# mirror app-tour-web pattern from scripts/vps-deploy/
+```
+
+Firewall (profile B): `ufw allow 3002/tcp` · `ufw allow 3003/tcp`
+
+Verify: `TOUR_OPS_API_URL=http://<VPS_IP>:3001 node scripts/smoke-p6-host-bind.mjs`
+
+```bash
+pnpm run p7:gate
+pnpm run p7:staging-verify   # optional live host smoke
+```
+
 ## One-time VPS bootstrap
 
 SSH to the server as root:

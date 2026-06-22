@@ -10,12 +10,17 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 describe("portal-member-registrations", () => {
-  it("MEM-BFF-01 /api/me/registrations proxies bookings?view=mine", () => {
+  it("MEM-BFF-01 member registrations fetch uses bookings?view=mine", () => {
+    const fetchModule = readFileSync(
+      join(repoRoot, "apps/portal/src/me/fetch-member-registrations.server.ts"),
+      "utf8"
+    );
     const route = readFileSync(
       join(repoRoot, "apps/portal/app/api/me/registrations/route.ts"),
       "utf8"
     );
-    assert.match(route, /bookings\?view=mine/);
+    assert.match(fetchModule, /bookings\?view=mine/);
+    assert.match(route, /fetchMemberRegistrations/);
   });
 
   it("MEM-BFF-02 /me/registrations page exists", () => {
@@ -24,6 +29,7 @@ describe("portal-member-registrations", () => {
       "utf8"
     );
     assert.match(page, /data-portal-member-registrations/);
+    assert.match(page, /fetchMemberRegistrations/);
   });
 
   it("MEM-I18N-01 portalMember messages loaded for fa and en", () => {

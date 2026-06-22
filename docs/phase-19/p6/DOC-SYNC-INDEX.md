@@ -43,5 +43,5 @@ finance_note: appendices/FINANCE-OPS-P6-NOTE.md
 otp_scope: appendices/OTP-SCOPE-P6.md
 doc_completeness: FULL
 next_phase: docs/phase-20/README.md
-next_temp: TEMP/p7-denali-customer-delivery.md
+next_phase_entry: docs/phase-20/p7/AGENT-START.md
 ```

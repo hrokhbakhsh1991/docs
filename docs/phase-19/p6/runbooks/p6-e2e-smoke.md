@@ -4,12 +4,12 @@
 runbook_id: P6-E2E-SMOKE
 nano: P6-4-N-007
 authority: appendices/SMOKE-SCENARIO-MAP-P6.md
-gate_stub: scripts/p6-denali-e2e-gate.sh
+gate_e2e: scripts/p6-denali-e2e-gate.sh
+gate_ci: .github/workflows/p6-denali-gate.yml
 gate_product: pnpm run p6:gate
-architect_approval: required for CI wiring
 ```
 
-> **Scope:** Product closure uses **`pnpm run p6:gate`** (unit/static only). This runbook is the **full browser proof** for VS-01..05 when servers are running.
+> **Scope:** Product closure uses **`pnpm run p6:gate`**. Full browser proof for **VS-01..07** via **`pnpm run p6:e2e-gate`**. CI: `p6-denali-gate.yml`.
 
 ---
 
@@ -18,11 +18,11 @@ architect_approval: required for CI wiring
 | Context | Command |
 | ------- | ------- |
 | Daily regression | `pnpm run p6:gate` only |
-| Pre-staging / Architect YES | This runbook + manual VS-06/07 |
-| CI E2E (future) | Wire `p6:e2e-gate` after servers bootstrap |
+| Pre-staging | `pnpm run p6:e2e-gate` |
+| CI | `p6-denali-gate.yml` — product on PR · E2E weekly · staging manual |
 
 ```bash
-pnpm run p6:e2e-gate   # prints stub + manual commands
+pnpm run p6:e2e-gate   # p6:gate + VS-01 + portal + marketing smokes
 ```
 
 ---
@@ -40,6 +40,8 @@ Start stack (example — adjust to your local scripts):
 
 ```bash
 # API + apps must be running on 3000/3001/3002/3003
+# Operator Playwright (`playwright.operator.config.ts`) bootstraps ephemeral JWT keys
+# in `smoke-operator-e2e-servers.mjs` (API + web share the same pair).
 # Marketing E2E helper (if used):
 node apps/marketing/scripts/smoke-marketing-e2e-servers.mjs
 ```
@@ -51,14 +53,15 @@ node apps/marketing/scripts/smoke-marketing-e2e-servers.mjs
 | ID | VS | App | Spec file | npm script | Pass signal |
 | -- | -- | --- | --------- | ---------- | ----------- |
 | **SMK-P6-HOST-01** | — | API | `scripts/smoke-p6-host-bind.mjs` | `node scripts/smoke-p6-host-bind.mjs` | same `tenantId` ×3 hosts |
+| **SMK-P6-VS-01** | VS-01 | web | `p6-admin-publish-smoke.spec.ts` | `playwright.operator.config.ts -g SMK-P6-VS-01` | draft hidden · publish → catalog |
 | **SMK-P6-MKT-02** | VS-02 | marketing | `marketing-catalog-smoke.spec.ts` | `@apps/marketing test:smoke` | tour list visible |
 | **SMK-P6-MKT-03** | VS-03 | marketing→portal | `SMK-MKT-03` in same file | same | CTA lands portal · success marker |
 | **SMK-P6-PTL-01** | VS-03 | portal | `portal-registration-smoke.spec.ts` | `@apps/portal test:smoke` | `[data-public-registration-success]` |
-| **SMK-P6-PTL-02** | VS-04 | portal | manual | — | `/` → `/me/registrations` with session |
+| **SMK-P6-PTL-02** | VS-04 | portal | `portal-member-smoke.spec.ts` SMK-PTL-02 | `@apps/portal test:smoke` | `/me/registrations` lists row |
 | **SMK-P6-PTL-03** | VS-04 | portal | `portal-member-registrations.spec.ts` | unit in `p6:gate` | BFF `view=mine` |
-| **SMK-P6-PTL-04** | VS-05 | portal | manual | — | receipt upload on `/me/registrations/[id]` |
-| **SMK-P6-ADM-01** | VS-06 | web | `first-customer-operator.md` | manual | booking approved |
-| **SMK-P6-ADM-02** | VS-07 | web | same | manual | receipt approved |
+| **SMK-P6-PTL-04** | VS-05 | portal | `portal-member-smoke.spec.ts` SMK-PTL-04 | `@apps/portal test:smoke` | receipt upload 201 |
+| **SMK-P6-ADM-01** | VS-06 | web | `operator-smoke.spec.ts` SMK-P9-04 | `playwright.operator.config.ts -g SMK-P9-04` | booking approved (fa/en status) |
+| **SMK-P6-ADM-02** | VS-07 | web | `p6-operator-receipt-approve-smoke.spec.ts` SMK-P6-ADM-02 | `playwright.operator.config.ts -g SMK-P6-ADM-02` | receipt approved · queue empty |
 
 Legacy IDs **SMK-MKT-03** · **SMK-PTL-01** map to SMK-P6 rows above.
 
@@ -70,7 +73,7 @@ Legacy IDs **SMK-MKT-03** · **SMK-PTL-01** map to SMK-P6 rows above.
 | --- | ------ | --------- |
 | Portal | `apps/portal/playwright.portal.config.ts` | `http://operator.portal.localhost:3003` |
 | Marketing | `apps/marketing/playwright.marketing.config.ts` | `http://operator.localhost:3002` |
-| Admin | `apps/web/playwright.operator.config.ts` | `http://operator.admin.localhost:3000` (or 127.0.0.1) |
+| Admin | `apps/web/playwright.operator.config.ts` | `http://operator.admin.localhost:3000` |
 
 ---
 
@@ -90,8 +93,14 @@ pnpm --filter @apps/portal run test:smoke           # SMK-PTL-01 / SMK-P6-PTL-01
 # 4 — Marketing catalog + CTA E2E
 pnpm --filter @apps/marketing run test:smoke        # SMK-MKT-03
 
-# 5 — Operator VS-06/07 (manual)
-# → runbooks/first-customer-operator.md
+# 5 — Operator VS-07 (E2E in p6:e2e-gate — runs before VS-06)
+pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "SMK-P6-ADM-02"
+
+# 6 — Operator VS-06 (E2E in p6:e2e-gate)
+pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "SMK-P9-04"
+
+# 7 — Postgres finance depth (staging only)
+pnpm run p6:staging-gate   # requires DATABASE_URL
 ```
 
 ---
@@ -116,6 +125,8 @@ pnpm --filter @apps/marketing run test:smoke        # SMK-MKT-03
 | OTP step timeout | API up · `public-auth` BFF warm · dev OTP `1234` |
 | `/me` empty | session cookie · BFF `bookings?view=mine` |
 | Finance approve fails | Postgres + `finance-ops.spec.ts` (see FINANCE-OPS-P6-NOTE.md) |
+| Admin `/bookings` shows Not Found | Playwright must use `operator.admin.localhost:3000` — middleware blocks admin paths on bare `127.0.0.1` |
+| SMK-P9-04 status assertion fails | Operator UI is fa-IR — expect `تأییدشده` not literal `approved` |
 
 ---
 

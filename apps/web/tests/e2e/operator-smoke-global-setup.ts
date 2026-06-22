@@ -45,6 +45,9 @@ function waitForUrl(url: string, timeoutMs = 300_000): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
-  // webServer.url already gates on /auth/login; warm bookings/new for SMK-P9-07 compile.
-  await waitForUrl("http://127.0.0.1:3000/bookings/new");
+  const base =
+    process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, "") ??
+    "http://operator.admin.localhost:3000";
+  // webServer.url gates on /auth/login; warm bookings/new for SMK-P9-07 compile.
+  await waitForUrl(`${base}/bookings/new`);
 }

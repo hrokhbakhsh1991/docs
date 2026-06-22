@@ -43,9 +43,11 @@ describe("portal-catalog-registrations-dispatch (P4-B PR-10b/c)", () => {
       tenantId,
       userId: "00000000-0000-4000-8000-000000000099",
       role: "member",
+      workspaceId: "ws-public-smoke",
     });
     assert.equal(headers["x-user-id"], "00000000-0000-4000-8000-000000000099");
     assert.equal(headers["x-actor-role"], "member");
     assert.equal(headers["x-membership-status"], "ACTIVE");
+    assert.equal(headers["x-workspace-id"], "ws-public-smoke");
   });
 });

@@ -44,7 +44,7 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
 
   if (isPlatformAdminHost(host)) {
     return (
-      <LoginFormLazy
+      <LoginForm
         pluginId="platform"
         initialBranding={{ displayName: "Platform Control Center", logoUrl: null }}
         searchQuery={searchQuery}

@@ -16,6 +16,9 @@ export function mergeCatalogRegistrationHeaders(
     "x-user-id": session.userId,
     "x-actor-role": session.role,
     "x-membership-status": "ACTIVE",
+    ...(session.workspaceId !== undefined && session.workspaceId.length > 0
+      ? { "x-workspace-id": session.workspaceId }
+      : {}),
   };
 }
 

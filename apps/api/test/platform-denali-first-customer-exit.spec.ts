@@ -19,12 +19,36 @@ describe("platform-denali-first-customer-exit", () => {
     assert.match(gate, /guard:p3-denali-covenant/);
     assert.match(gate, /p6-host-tenant-parity\.spec\.ts/);
     assert.match(gate, /p6-guest-slice\.spec\.ts/);
+    assert.match(gate, /p6-member-receipt-flow\.spec\.ts/);
+    assert.match(gate, /p6-vs01-admin-publish\.spec\.ts/);
+    assert.match(gate, /finance-page\.spec\.ts/);
     assert.match(gate, /P6_DENALI_PRODUCT_GATE_OK/);
   });
 
-  it("EX-P6-02 package.json wires p6:gate", () => {
+  it("EX-P6-02 package.json wires p6 gates", () => {
     const pkg = readFileSync(packageJsonPath, "utf8");
     assert.match(pkg, /"p6:gate":\s*"bash scripts\/p6-denali-product-gate\.sh"/);
+    assert.match(pkg, /"p6:e2e-gate":\s*"bash scripts\/p6-denali-e2e-gate\.sh"/);
+    assert.match(pkg, /"p6:staging-gate":\s*"bash scripts\/p6-staging-gate\.sh"/);
+  });
+
+  it("EX-P6-04 e2e gate script wires VS-01..07 browser smokes", () => {
+    const e2eGate = readFileSync(join(repoRoot, "scripts/p6-denali-e2e-gate.sh"), "utf8");
+    assert.match(e2eGate, /p6:gate/);
+    assert.match(e2eGate, /SMK-P6-VS-01/);
+    assert.match(e2eGate, /SMK-P6-ADM-02/);
+    assert.match(e2eGate, /SMK-P9-04/);
+    assert.match(e2eGate, /P6_E2E_GATE_OK/);
+  });
+
+  it("EX-P6-05 CI workflow wires p6 product gate", () => {
+    const workflow = readFileSync(
+      join(repoRoot, ".github/workflows/p6-denali-gate.yml"),
+      "utf8"
+    );
+    assert.match(workflow, /pnpm run p6:gate/);
+    assert.match(workflow, /p6:e2e-gate/);
+    assert.match(workflow, /p6:staging-gate/);
   });
 
   it("EX-P6-03 DOC-SYNC v2.1 references vertical slice", () => {

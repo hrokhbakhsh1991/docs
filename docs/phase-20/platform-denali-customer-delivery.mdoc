@@ -5,17 +5,25 @@ format: markdoc
 pack: P7
 prerequisite: P6 complete (p6:gate green)
 doc_role: architecture_sot
-pack_version: "0.1"
-status: PLANNED
+pack_version: "1.2"
+status: IN_PROGRESS
+nano_total: 27
+exit_nano: P7-3-N-005
+current_task: P7-0-N-002
+doc_architecture: p7/appendices/P7-DOC-ARCHITECTURE.md
+decisions: p7/appendices/DEC-P7-INDEX.md
+execution_discipline: p7/appendices/P7-EXECUTION-DISCIPLINE.md
+extension_guide: p7/appendices/PACK-EXTENSION-GUIDE.md
+implementation_standards: p7-implementation-standards.mdoc
 ---
 
 # Denali customer live (Phase 20 / P7)
 
 **هدف:** تحویل **اولین مشتری Denali** روی staging/production — بدون آسیب به wizard/settings موجود، با گسترش **additive** workspace.
 
-**پیش‌نیاز:** P6 بسته (`pnpm run p6:gate` · VS-01..08).
+**پیش‌نیاز:** P6 بسته (`pnpm run p6:gate` · VS-01..08 dev).
 
-**این فاز نیست:** بازنویسی wizard · merge سه app · Urban · gateway · metadata cutover.
+**این فاز نیست:** بازنویسی wizard · merge سه app · Urban · gateway · metadata cutover — see [p7/appendices/POST-P7-HORIZON.md](p7/appendices/POST-P7-HORIZON.md).
 
 ---
 
@@ -25,7 +33,7 @@ status: PLANNED
 تور واقعی مشتری → publish → مهمان ثبت‌نام → اپراتور تأیید → receipt → live
 ```
 
-همان vertical slice P6 — ولی روی **داده و محیط واقعی**، نه فقط gate استاتیک.
+همان vertical slice P6 — ولی روی **داده و محیط واقعی** (staging proof tiers).
 
 ---
 
@@ -33,31 +41,31 @@ status: PLANNED
 
 ```text
 ┌──────────────────────────────────────────┐
-│ A) Wizard + settings + canonical         │  محافظت — تکمیل، نه rebuild
+│ A) Wizard + settings + canonical         │  P7-1 — تکمیل، نه rebuild
 │    /tours/new · rules · composites       │
 └──────────────────┬───────────────────────┘
                    │ publish
 ┌──────────────────▼───────────────────────┐
-│ B) Tour workspace Denali (ops)             │  additive — ۳ تب + فقط P0 ops
+│ B) Tour workspace Denali (ops)             │  P7-2 — additive
 │    registrations · waitlist · transport    │
 └──────────────────┬───────────────────────┘
                    │
 ┌──────────────────▼───────────────────────┐
-│ C) Admin shell + guest apps              │  P6 زنجیره · hardening روز اول
+│ C) Admin shell + guest apps              │  P7-0 infra · P7-3 verify
 │    (app)/ · marketing · portal           │
 └──────────────────────────────────────────┘
 ```
 
 ---
 
-## EPIC map (ترتیب اجرا)
+## EPIC map (27 nanos)
 
-| Order | EPIC | هدف | خروجی |
-| ----- | ---- | --- | ----- |
-| 1 | **P7-0** | Live infra | staging · seed مشتری · DNS/env |
-| 2 | **P7-1** | Wizard/settings completion | blockerهای ساخت تور واقعی بسته |
-| 3 | **P7-2** | Workspace Denali (additive) | ops روز اول اپراتور روی همان تور |
-| 4 | **P7-3** | Delivery verification | T2/T3/T4 · `p7:gate` · sign-off |
+| Order | EPIC | Nanos | Doc | Exit |
+| ----- | ---- | ----- | --- | ---- |
+| 1 | **P7-0** | 5 | [p7-0-live-infra.md](p7/p7-0-live-infra.md) | staging login + host smoke |
+| 2 | **P7-1** | 9 | [p7-1-wizard-completion.md](p7/p7-1-wizard-completion.md) | VS-01 staging |
+| 3 | **P7-2** | 8 | [p7-2-workspace-ops.md](p7/p7-2-workspace-ops.md) | VS-06 staging |
+| 4 | **P7-3** | 5 | [p7-3-delivery-exit.md](p7/p7-3-delivery-exit.md) | sign-off |
 
 ```mermaid
 flowchart LR
@@ -74,47 +82,76 @@ flowchart LR
 | Zone | سیاست | مثال |
 | ---- | ----- | ---- |
 | **Z1 Freeze** | refactor ممنوع | `denaliRuleModel` · composites · `/tours/new` host |
-| **Z2 Complete** | همان فیلد/استپ ناقص | شرایط · publish · validate save |
-| **Z3 Additive** | تب/مسیر جدید workspace | promote waitlist · transport fix |
-| **Z4 Later** | بعد از تحویل | dashboard polish · settings عمقی · custom domain |
+| **Z2 Complete** | همان فیلد/استپ ناقص | publish · validate save |
+| **Z3 Additive** | workspace paths جدید | waitlist promote |
+| **Z4 Later** | بعد از sign-off | [POST-P7-HORIZON.md](p7/appendices/POST-P7-HORIZON.md) |
 
 ---
 
-## حفاظت از پنل ادمین Denali
+## Boundaries
+
+| Topic | Doc |
+| ----- | --- |
+| Doc architecture (C4 · spine) | [p7/appendices/P7-DOC-ARCHITECTURE.md](p7/appendices/P7-DOC-ARCHITECTURE.md) |
+| Decisions (ADR-lite) | [p7/appendices/DEC-P7-INDEX.md](p7/appendices/DEC-P7-INDEX.md) |
+| Pack extension | [p7/appendices/PACK-EXTENSION-GUIDE.md](p7/appendices/PACK-EXTENSION-GUIDE.md) |
+| P6 vs P7 | [p7/appendices/P6-P7-BOUNDARY.md](p7/appendices/P6-P7-BOUNDARY.md) |
+| Payment vs ledger | [p7/appendices/PAYMENT-LEDGER-BOUNDARY.md](p7/appendices/PAYMENT-LEDGER-BOUNDARY.md) |
+| Repo truth | [p7/appendices/IMPLEMENTATION-TRUTH-P7.md](p7/appendices/IMPLEMENTATION-TRUTH-P7.md) |
+| Implementation | [p7-implementation-standards.mdoc](p7-implementation-standards.mdoc) |
+
+---
+
+## Rules
 
 | Rule | Detail |
 | ---- | ------ |
-| R-P7-01 | هر PR: `pnpm run p6:gate` + `test:changed` |
-| R-P7-02 | ممنوع: حذف/جابجایی `packages/workspaces/denali/src/rules` |
-| R-P7-03 | wizard خارج `(app)/` — دست نزن به DEC-P9-007 |
-| R-P7-04 | workspace فقط مسیرهای جدید زیر `/tours/[id]/workspace` |
-| R-P7-05 | doc-first قبل از تغییر api/web/denali package |
+| R-P7-01 | هر PR: `pnpm run p7:gate` (includes p6:gate) |
+| R-P7-02 | ممنوع: حذف/جابجایی `denali/src/rules` |
+| R-P7-03 | wizard خارج `(app)/` — DEC-P9-007 |
+| R-P7-04 | workspace فقط زیر `/tours/[id]/workspace` |
+| R-P7-05 | doc-first قبل از تغییر api/web/denali |
 
-Safety carryover: [phase-19/p6/p6-denali-safety.md](../phase-19/p6/p6-denali-safety.md)
-
----
-
-## Verification tiers (از P6)
-
-| Tier | چه زمانی |
-| ---- | -------- |
-| T1 `p6:gate` | هر PR |
-| T2 E2E smoke | pre-staging |
-| T3 `finance-ops` + Postgres | staging |
-| T4 manual VS-06/07 | sign-off مشتری |
+Safety: [p6-denali-safety.md](../phase-19/p6/p6-denali-safety.md)
 
 ---
 
-## Agent entry
+## Verification tiers
 
-1. [p7/AGENT-START.md](p7/AGENT-START.md)
-2. [AGENT-NAVIGATOR.md](AGENT-NAVIGATOR.md)
-3. [TEMP/p7-denali-customer-delivery.md](../../TEMP/p7-denali-customer-delivery.md) — خلاصه اجرایی
+| Tier | Command / artifact |
+| ---- | ------------------ |
+| T1 | `pnpm run p7:gate` |
+| T2 | [p6-e2e-smoke.md](../phase-19/p6/runbooks/p6-e2e-smoke.md) on staging |
+| T3 | `finance-ops.spec.ts` + staging Postgres |
+| T4 | [p7-customer-sign-off.md](p7/runbooks/p7-customer-sign-off.md) |
+
+---
+
+## Agent entry (read order)
+
+| # | File |
+| - | ---- |
+| 1 | [p7/AGENT-START.md](p7/AGENT-START.md) |
+| 2 | [p7/appendices/IMPLEMENTATION-TRUTH-P7.md](p7/appendices/IMPLEMENTATION-TRUTH-P7.md) |
+| 3 | [p7/appendices/P7-DOC-ARCHITECTURE.md](p7/appendices/P7-DOC-ARCHITECTURE.md) — C4 · traceability spine |
+| 4 | [p7/appendices/DEC-P7-INDEX.md](p7/appendices/DEC-P7-INDEX.md) — frozen decisions |
+| 5 | [AGENT-NAVIGATOR.md](AGENT-NAVIGATOR.md) |
+| 6 | [p7/DOC-SYNC-INDEX.md](p7/DOC-SYNC-INDEX.md) |
+| 7 | [p7/appendices/TRACEABILITY-MATRIX-P7.md](p7/appendices/TRACEABILITY-MATRIX-P7.md) |
+| 8 | [p7-implementation-standards.mdoc](p7-implementation-standards.mdoc) |
+| 9 | [p7/p7-exit-checklist.md](p7/p7-exit-checklist.md) |
+| 10 | [p7/FILE-MAP.md](p7/FILE-MAP.md) |
+
+```bash
+pnpm run p7:gate
+pnpm run p7:staging-verify
+```
 
 ---
 
 ## References
 
-- P6 umbrella: [platform-denali-first-customer.mdoc](../phase-19/platform-denali-first-customer.mdoc)
-- Wizard SoT: [workspaces/denali/wizard-experience.md](../workspaces/denali/wizard-experience.md)
-- Staging: [phase-19/p6/runbooks/staging-deploy.md](../phase-19/p6/runbooks/staging-deploy.md)
+- P6: [platform-denali-first-customer.mdoc](../phase-19/platform-denali-first-customer.mdoc)
+- Wizard: [wizard-experience.md](../workspaces/denali/wizard-experience.md)
+- Staging: [p7/runbooks/p7-0-staging-walkthrough.md](p7/runbooks/p7-0-staging-walkthrough.md)
+- Post-P7: [p7/appendices/POST-P7-HORIZON.md](p7/appendices/POST-P7-HORIZON.md)

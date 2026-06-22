@@ -4,16 +4,8 @@ import {
   CATALOG_DEV_OTP,
   completeCatalogRegistrationIntake,
   fillCatalogOtp,
-<<<<<<< Updated upstream
   submitCatalogPhoneForOtp,
-||||||| Stash base
-=======
-  requestRegistrationOtp,
->>>>>>> Stashed changes
 } from "./fixtures/catalog-registration-otp";
-
-const OPERATOR_PORTAL_BASE_URL =
-  process.env.SMOKE_PORTAL_BASE_URL ?? "http://operator.localhost:3003";
 
 const OPERATOR_PUBLISHED_TOUR_TITLE = "North Ridge Trek";
 const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
@@ -44,39 +36,12 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
 
   const registerLink = page.locator("[data-marketing-register]");
   await expect(registerLink).toBeVisible();
-<<<<<<< Updated upstream
   await Promise.all([
     page.waitForURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 }),
     registerLink.click(),
   ]);
-||||||| Stash base
-  await registerLink.click();
-=======
-  const registrationHref = await registerLink.getAttribute("href");
-  expect(registrationHref).toContain(`${OPERATOR_PORTAL_BASE_URL}/catalog/${OPERATOR_PUBLISHED_TOUR_ID}/register`);
->>>>>>> Stashed changes
 
-<<<<<<< Updated upstream
   await submitCatalogPhoneForOtp(page, DEV_PHONE);
-||||||| Stash base
-  await expect(page).toHaveURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 });
-  await expect(page.locator("[data-public-registration-phone]")).toBeVisible({
-    timeout: 60_000,
-  });
-
-  await page.getByLabel(/Mobile|موبایل/).fill(DEV_PHONE);
-  await page.locator('[data-action="send-code"]').click();
-  await expect(page.locator("[data-public-registration-otp]")).toBeVisible({ timeout: 60_000 });
-=======
-  await page.goto(registrationHref!);
-  await expect(page).toHaveURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 });
-  await expect(page.locator("[data-public-registration-phone]")).toBeVisible({
-    timeout: 60_000,
-  });
-
-  await requestRegistrationOtp(page, DEV_PHONE);
-  await expect(page.locator("[data-public-registration-otp]")).toBeVisible({ timeout: 60_000 });
->>>>>>> Stashed changes
 
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
   await expect(

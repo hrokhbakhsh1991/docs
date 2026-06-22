@@ -10,13 +10,33 @@ import {
 } from "./workspace-route-manifest-bridge";
 import type { WorkspaceHttpMethod } from "./workspace-http-types";
 
+import { CATALOG_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/http";
+import { FINANCE_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/http";
 import { URBAN_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-urban/http";
 
 export type WorkspaceHttpHandlerKey =
+  | "handleFinanceCreateManualPayment"
+  | "handleFinanceGenerateSchedule"
+  | "handleFinanceGetRegistrationInvoice"
+  | "handleFinanceGetSchedule"
+  | "handleFinanceLedgerEvents"
+  | "handleFinanceListPayments"
+  | "handleFinanceListPrepayments"
+  | "handleFinanceListSchedules"
+  | "handleFinanceOpenPayments"
+  | "handleFinancePendingReceipts"
+  | "handleFinanceReceiptUrl"
+  | "handleFinanceRecordPrepayment"
+  | "handleFinanceReviewReceipt"
+  | "handleFinanceSubmitReceipt"
+  | "handleFinanceSummary"
+  | "handleGetDenaliCatalog"
+  | "handleGetDenaliCatalogTour"
   | "handleGetUrbanCatalog"
   | "handleGetUrbanCatalogTour"
   | "handleGetUrbanSettings"
   | "handlePatchUrbanSettings"
+  | "handlePostDenaliRegistration"
   | "handlePostUrbanRegistration";
 
 export type WorkspaceHttpStaticRoute = {
@@ -54,6 +74,25 @@ function paramRoutesFromManifest(
   return routes;
 }
 
+const DENALI_CATALOG_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
+  "GET /denali/catalog": "handleGetDenaliCatalog",
+  "POST /denali/registrations": "handlePostDenaliRegistration"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
+const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
+  "GET /finance/reports/summary": "handleFinanceSummary",
+  "GET /finance/reports/open-payments": "handleFinanceOpenPayments",
+  "GET /finance/reports/ledger-events": "handleFinanceLedgerEvents",
+  "GET /finance/payments": "handleFinanceListPayments",
+  "POST /finance/payments/manual": "handleFinanceCreateManualPayment",
+  "POST /finance/receipts": "handleFinanceSubmitReceipt",
+  "GET /finance/receipts/pending": "handleFinancePendingReceipts",
+  "GET /finance/prepayments": "handleFinanceListPrepayments",
+  "POST /finance/prepayments": "handleFinanceRecordPrepayment",
+  "GET /finance/schedules": "handleFinanceListSchedules",
+  "POST /finance/schedules/generate": "handleFinanceGenerateSchedule"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
 const URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /urban/settings": "handleGetUrbanSettings",
   "PATCH /urban/settings": "handlePatchUrbanSettings",
@@ -61,14 +100,29 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "POST /urban/registrations": "handlePostUrbanRegistration"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
+const DENALI_CATALOG_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
+const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
+  "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",
+  "GET /finance/receipts/:receiptId/url": "handleFinanceReceiptUrl",
+  "GET /finance/invoices/:registrationId": "handleFinanceGetRegistrationInvoice",
+  "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule"
+} as const satisfies Record<string, WorkspaceHttpHandlerKey>;
+
 const URBAN_URBAN_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
   "GET /urban/catalog/:tourId": "handleGetUrbanCatalogTour"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 export const WORKSPACE_HTTP_STATIC_ROUTES: readonly WorkspaceHttpStaticRoute[] = [
+...staticRoutesFromManifest(CATALOG_HTTP_ROUTE_MANIFEST, DENALI_CATALOG_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
+...staticRoutesFromManifest(FINANCE_HTTP_ROUTE_MANIFEST, DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ...staticRoutesFromManifest(URBAN_HTTP_ROUTE_MANIFEST, URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS),
 ];
 
 export const WORKSPACE_HTTP_PARAM_ROUTES: readonly WorkspaceHttpParamRoute[] = [
+...paramRoutesFromManifest(CATALOG_HTTP_ROUTE_MANIFEST, DENALI_CATALOG_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
+...paramRoutesFromManifest(FINANCE_HTTP_ROUTE_MANIFEST, DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ...paramRoutesFromManifest(URBAN_HTTP_ROUTE_MANIFEST, URBAN_URBAN_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS),
 ];

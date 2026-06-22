@@ -106,7 +106,7 @@ P0 ✅ → P1 ✅ → P2 ✅ → P3 ✅ → P4 ✅ → P5 ✅
 
 | Item | Path |
 | ---- | ---- |
-| Status | **✅ complete** (58/58) |
+| Status | **🔄 REOPEN_BEHAVIORAL** (doc 58/58 · code partial) |
 | Gate | `pnpm run p6:gate` |
 | Docs | [docs/phase-19/README.md](../docs/phase-19/README.md) |
 | Agent | [docs/phase-19/p6/AGENT-START.md](../docs/phase-19/p6/AGENT-START.md) |
@@ -117,14 +117,14 @@ P0 ✅ → P1 ✅ → P2 ✅ → P3 ✅ → P4 ✅ → P5 ✅
 
 | Item | Path |
 | ---- | ---- |
-| Status | **⬜ planned** (v0.1 sketch) |
+| Status | **⏸ BLOCKED_ON_P6** |
 | Summary | [p7-denali-customer-delivery.md](./p7-denali-customer-delivery.md) |
 | Docs | [docs/phase-20/README.md](../docs/phase-20/README.md) |
 | Agent | [docs/phase-20/p7/AGENT-START.md](../docs/phase-20/p7/AGENT-START.md) |
 | First EPIC | P7-0 Live infra |
 
 ```text
-P6 ✅ → P7 ⬜ (customer live on staging)
+P6 🔄 REOPEN → P7 ⏸ (customer live on staging)
 ```
 
 EPICs: P7-0 infra → P7-1 wizard complete → P7-2 workspace ops → P7-3 delivery exit

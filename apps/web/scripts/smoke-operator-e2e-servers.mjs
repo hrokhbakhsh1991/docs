@@ -4,7 +4,7 @@
  * Skips spawn for ports already listening (Playwright reuse / manual dev).
  * @see docs/phase-9/appendices/SMOKE-SCENARIO-MAP.md
  */
-import { execSync, spawn } from "node:child_process";
+import { execSync, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import net from "node:net";
@@ -200,6 +200,86 @@ async function probeOperatorSmokeSeedReady() {
   });
 }
 
+function probeTenantContextHost(forwardedHost) {
+  return new Promise((resolve) => {
+    const req = http.request(
+      {
+        hostname: "127.0.0.1",
+        port: 3001,
+        path: "/public/tenant-context",
+        method: "GET",
+        headers: {
+          host: forwardedHost,
+          "x-forwarded-host": forwardedHost,
+        },
+      },
+      (res) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => {
+          if (res.statusCode !== 200) {
+            resolve(false);
+            return;
+          }
+          try {
+            const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+            resolve(body?.data?.tenantId === operatorTenantId);
+          } catch {
+            resolve(false);
+          }
+        });
+      }
+    );
+    req.on("error", () => resolve(false));
+    req.setTimeout(3_000, () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.end();
+  });
+}
+
+async function waitForTenantContextReady() {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    if (await probeTenantContextHost("operator.admin.localhost")) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  throw new Error("smoke-operator-e2e-servers: tenant-context not ready on operator.admin.localhost");
+}
+
+async function runP6HostBindSmoke() {
+  await waitForTenantContextReady();
+  const scriptPath = path.join(repoRoot, "scripts/smoke-p6-host-bind.mjs");
+  const deadline = Date.now() + 90_000;
+  let lastStatus = 1;
+  while (Date.now() < deadline) {
+    const result = spawnSync("node", [scriptPath], {
+      cwd: repoRoot,
+      env: { ...process.env, TOUR_OPS_API_URL: "http://127.0.0.1:3001" },
+      stdio: "pipe",
+      encoding: "utf8",
+    });
+    lastStatus = result.status ?? 1;
+    if (lastStatus === 0) {
+      if (result.stdout) {
+        process.stdout.write(result.stdout);
+      }
+      return;
+    }
+    if (result.stdout) {
+      process.stdout.write(result.stdout);
+    }
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  throw new Error(`smoke-operator-e2e-servers: P6 host bind smoke failed (exit ${lastStatus})`);
+}
+
 try {
   let apiListening = await isPortListening(3001);
   const webListening = await isPortListening(3000);
@@ -219,7 +299,7 @@ try {
     apiListening = false;
   }
 
-  const jwtEnv = await resolveSmokeJwtEnv();
+  const jwtEnv = await bootstrapSmokeJwtEnv();
 
   const apiEnv = withRepoNodePath({
     ...process.env,
@@ -243,6 +323,7 @@ try {
 
   const webEnv = withRepoNodePath({
     ...process.env,
+    ...jwtEnv,
     NODE_ENV: "development",
     ALLOW_DEV_WEB_SESSION: "true",
     ALLOW_DENALI_WEB_PLUGIN: "true",
@@ -282,6 +363,7 @@ try {
   }
 
   console.log("smoke-operator-e2e-servers: API + web ready");
+  await runP6HostBindSmoke();
   await keepAlive();
 } catch (error) {
   console.error(error);

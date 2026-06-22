@@ -63,9 +63,9 @@ pnpm --filter @apps/api exec node --import tsx --test test/finance-ops.spec.ts
 ## Staging checklist (Architect YES)
 
 1. `pnpm run p6:gate` green
-2. `finance-ops.spec.ts` green with staging `DATABASE_URL`
-3. Manual VS-07 on `operator.admin.localhost:3000`
-4. Member VS-05 receipt visible in finance pending tab
+2. `pnpm run p6:e2e-gate` → `P6_E2E_GATE_OK`
+3. `pnpm run p6:staging-gate` with staging `DATABASE_URL` (runs `finance-ops.spec.ts`)
+4. Manual sign-off optional: [first-customer-operator.md](../runbooks/first-customer-operator.md) on staging hosts
 
 ---
 

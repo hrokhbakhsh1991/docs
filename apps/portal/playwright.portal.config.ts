@@ -6,7 +6,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["portal-registration-smoke.spec.ts"],
+  testMatch: ["portal-*-smoke.spec.ts"],
   retries: process.env.CI ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,

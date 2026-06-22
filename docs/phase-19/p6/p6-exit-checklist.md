@@ -2,28 +2,31 @@
 
 ```yaml
 phase: P6
-pack_version: "2.1"
+pack_version: "2.2"
 status: complete
-nano_done: 58
+nano_done_doc: 58
+nano_done_behavioral: 58
 nano_total: 58
 exit_nano: P6-4-N-008
 milestone_guest_slice: P6-1-N-014
-current_task: P6-4-N-008
+current_task: null
 prerequisite: P5-B-N-016
-gate: pnpm run p6:gate
+gate_static: pnpm run p6:gate
+gate_live: node scripts/smoke-p6-host-bind.mjs
 execution_order: [P6-0, P6-1, P6-2, P6-3, P6-4]
 addressing_sot: ../p6-host-addressing-architecture.mdoc
+truth: appendices/IMPLEMENTATION-TRUTH-P6.md
 ```
 
 ## Milestones
 
 | ID | Nano | Status |
 | -- | ---- | ------ |
-| M0 Host parity | P6-0 complete | ✅ |
-| **M1 GUEST_SLICE_OK** | **P6-1-N-014** (+ N-015) | ✅ |
-| M2 Admin full | P6-2 complete | ✅ |
-| M3 Member portal | P6-3 complete | ✅ |
-| M4 P6 exit | P6-4-N-008 | ✅ |
+| M0 Host parity | P6-0-N-007 live smoke | ✅ behavioral 2026-06-22 |
+| **M1 GUEST_SLICE_OK** | **P6-1-N-014** | ✅ behavioral 2026-06-22 |
+| M2 Admin full | P6-2-N-016 | ✅ behavioral 2026-06-22 |
+| M3 Member portal | P6-3-N-007 | ✅ behavioral 2026-06-22 |
+| M4 P6 exit | P6-4-N-008 | ✅ p6:e2e-gate 2026-06-22 |
 
 ## EPIC progress
 
@@ -35,22 +38,22 @@ addressing_sot: ../p6-host-addressing-architecture.mdoc
 | P6-3 Member portal | 10 | 10 | ✅ |
 | P6-4 Exit gate | 8 | 8 | ✅ |
 
-## Vertical slice
+## Vertical slice (behavioral — complete)
 
-- [x] VS-01 Publish active (P6-1)
-- [x] VS-02 Marketing lists tour (P6-1)
-- [x] VS-03 Portal register success (P6-1)
-- [x] VS-04 Portal `/me` lists row (P6-3)
-- [x] VS-05 Member receipt upload (P6-3)
-- [x] VS-06 Operator approve booking (P6-2)
-- [x] VS-07 Operator approve receipt (P6-2)
-- [x] VS-08 `p6:gate` green (P6-4)
+- [x] VS-01 Publish active (P6-1) — SMK-P6-VS-01 · `p6-admin-publish-smoke.spec.ts`
+- [x] VS-02 Marketing lists tour (P6-1) — SMK-MKT-01
+- [x] VS-03 Portal register success (P6-1) — SMK-MKT-03 · SMK-PTL-01
+- [x] VS-04 Portal `/me` lists row (P6-3) — SMK-PTL-02
+- [x] VS-05 Member receipt upload (P6-3) — SMK-PTL-04 · `p6-member-receipt-flow.spec.ts`
+- [x] VS-06 Operator approve booking (P6-2) — SMK-P9-04 E2E + `bookings-ops` API-9.5-01 (in `p6:e2e-gate`)
+- [x] VS-07 Operator approve receipt (P6-2) — SMK-P6-ADM-02 E2E + `p6-member-receipt-flow` P6-MR-03 (in `p6:e2e-gate`)
+- [x] VS-08 `p6:gate` + `p6:e2e-gate` (P6-4) — product + browser smokes green
 
 ---
 
 ## P6-0 — Host subdomain (dual model)
 
-- [x] P6-0-N-001 Host map runbook (`runbooks/host-subdomain-map.md`)
+- [x] P6-0-N-007 Three-URL live smoke (`P6_HOST_BIND_SMOKE_OK` · API :3001)
 - [x] P6-0-N-002 tenant-context parity spec
 - [x] P6-0-N-003 Dev host resolver alignment (canonical `.portal.` / `.admin.`)
 - [x] P6-0-N-004 First customer seed
@@ -76,7 +79,7 @@ addressing_sot: ../p6-host-addressing-architecture.mdoc
 - [x] P6-1-N-012 site_surfaces marketing gate
 - [x] P6-1-N-013 Guest slice integration spec
 - [x] P6-1-N-015 Enterprise theming file tree
-- [x] P6-1-N-014 **GUEST_SLICE_OK** (requires P6-0 + N-015)
+- [x] P6-1-N-014 **GUEST_SLICE_OK** — SMK-MKT-03 + SMK-PTL-01 green (2026-06-22)
 
 ## P6-2 — Operator admin
 
@@ -118,5 +121,5 @@ addressing_sot: ../p6-host-addressing-architecture.mdoc
 - [x] P6-4-N-004 Exit spec
 - [x] P6-4-N-005 Customer seed runbook
 - [x] P6-4-N-006 Staging deploy
-- [x] P6-4-N-007 p6:e2e-gate stub
+- [x] P6-4-N-007 p6:e2e-gate wired (`scripts/p6-denali-e2e-gate.sh`)
 - [x] P6-4-N-008 P6 closure

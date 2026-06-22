@@ -67,15 +67,17 @@ echo P6_DENALI_PRODUCT_GATE_OK
 
 **Do:** `runbooks/staging-deploy.md` — three apps + API + subdomain DNS.
 
+**CI:** `.github/workflows/p6-denali-gate.yml` — `p6:gate` on PR; E2E weekly; `p6:staging-gate` via `workflow_dispatch`.
+
 ---
 
 ### P6-4-N-007 — p6:e2e-gate + E2E runbook
 
-**Do:** `scripts/p6-denali-e2e-gate.sh` stub + full runbook [runbooks/p6-e2e-smoke.md](runbooks/p6-e2e-smoke.md) (SMK-P6-PTL-01 · SMK-MKT-03 · host smoke).
+**Do:** `scripts/p6-denali-e2e-gate.sh` runs `p6:gate` + web SMK-P6-VS-01 + portal + marketing smokes. Runbook: [runbooks/p6-e2e-smoke.md](runbooks/p6-e2e-smoke.md).
 
-**Verify:** runbook lists Playwright configs · commands · env matrix
+**Verify:** `pnpm run p6:e2e-gate` → `P6_E2E_GATE_OK`
 
-**Not in product gate** — Architect YES for CI wiring.
+**Not in product gate alone** — use `p6:e2e-gate` for pre-staging / Architect YES.
 
 ---
 

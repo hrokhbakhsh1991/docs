@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
 
+import {
+  buildOperatorSmokeDraftTour,
+  buildOperatorSmokePublishedTour,
+} from "../fixtures/operator-smoke-published-tour.fixture";
+import { OPERATOR_DENALI_SMOKE_TENANT_ID } from "../internal/operator-smoke-tenant-id";
 import { deriveTourProjections } from "../canonical/projection-sync";
 import { TourVersionConflictError } from "../tours/tour-version-conflict";
 import { readTourCapLimits } from "../db/tour-cap-config";
@@ -149,6 +154,17 @@ export class InMemoryTourRepository implements TourStorageRepository {
         },
       };
       this.indexTour(draft);
+    }
+  }
+
+  /** Denali dev host tenant (…000003) — FE-14 / TR-09 memory seed. */
+  ensureDenaliDevSmokeSeedTour(): void {
+    const tenantId = OPERATOR_DENALI_SMOKE_TENANT_ID;
+    if (!this.byId.has(OPERATOR_SMOKE_SEED_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokePublishedTour({ tenantId }));
+    }
+    if (!this.byId.has(OPERATOR_SMOKE_DRAFT_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeDraftTour({ tenantId }));
     }
   }
 

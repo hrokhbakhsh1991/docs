@@ -21,6 +21,8 @@ function fetchTenantId(forwardedHost) {
     [
       "-s",
       "-H",
+      `host: ${forwardedHost}`,
+      "-H",
       `x-forwarded-host: ${forwardedHost}`,
       `${API_URL}/public/tenant-context`,
     ],

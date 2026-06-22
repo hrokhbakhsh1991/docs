@@ -63,6 +63,7 @@ Custom apex (optional): `denali.club` · `portal.denali.club` · `admin.denali.c
 2. Marketing `/tours` lists active tour
 3. Portal registration OTP flow (real SMS)
 4. Admin login + approve booking
-5. `pnpm run p6:gate` in CI against staging config (static specs)
+5. `pnpm run p6:gate` in CI (`p6-denali-gate.yml` on PR)
+6. Optional: `workflow_dispatch` → `run_e2e_gate` / `run_staging_gate`
 
 See [platform-denali-vertical-slice.mdoc](../../platform-denali-vertical-slice.mdoc).

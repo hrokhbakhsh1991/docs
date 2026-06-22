@@ -58,9 +58,16 @@ API upstream (frozen — reuse Phase 9.5 member filter):
 | BFF route | Upstream API | Scope |
 | --------- | ------------ | ----- |
 | `GET /api/me/registrations` | `GET /bookings?view=mine` | session user + tenant RLS |
-| `POST /api/me/registrations/[id]/receipt` | `POST /finance/receipts` (or workspace dispatch) | member-only; **403** for foreign `registrationId` |
+| `POST /api/me/registrations/[id]/receipt` | `POST /bookings/{registrationId}/receipts` | member-only; ensures pending manual payment then `POST /finance/receipts` |
 
-**Do not** add `GET /denali/registrations/mine` in P6 — `view=mine` on `/bookings` is the production SoT (see `BOOKINGS-OPS-UX.md` ASM-9.5-002).
+**BFF steps (frozen):**
+
+1. Read multipart `file` from member.
+2. Build `fileKey`: `receipts/{registrationId}/{sanitizedFileName}` (dev/smoke — no MinIO in memory E2E).
+3. `POST /bookings/{registrationId}/receipts` with JSON `{ fileKey }` and member session headers (`Authorization`, `x-workspace-id` from JWT `workspace_id`).
+4. API verifies booking `submittedByUserId === auth.userId`, ensures pending manual payment (creates default offline debt if none), submits receipt.
+
+**Do not** POST multipart to `/finance/receipts` — finance API expects JSON `{ paymentId, fileKey }` only.
 
 ---
 

@@ -109,7 +109,7 @@ gate: pnpm run p6:gate
 | N-004 | Exit spec | `platform-denali-first-customer-exit.spec.ts` | EX-P6-01..03 | VS-08 |
 | N-005 | Seed runbook | `first-customer-seed.md` | linked | — |
 | N-006 | Staging deploy | `staging-deploy.md` | linked | — |
-| N-007 | E2E stub | `scripts/p6-denali-e2e-gate.sh` | stub OK marker | — |
+| N-007 | E2E gate | `scripts/p6-denali-e2e-gate.sh` | `pnpm run p6:e2e-gate` → `P6_E2E_GATE_OK` | VS-01..07 |
 | N-008 | Closure | `p6-exit-checklist.md` `nano_done: 58` | `p6:gate` green | VS-08 |
 
 ---

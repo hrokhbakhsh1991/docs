@@ -1,15 +1,15 @@
 # P6 — Smoke scenario map (SMK-P6)
 
 ```yaml
-smoke_version: "2026-06-21-v1"
+smoke_version: "2026-06-22-v2"
 phase: 19
 authority: platform-denali-vertical-slice.mdoc · SMOKE-SCENARIO-MAP-P6.md
 fixture_tenant: operator · 00000000-0000-4000-8000-000000000014
 gate_product: pnpm run p6:gate
-gate_e2e: pnpm run p6:e2e-gate
+gate_e2e: pnpm run p6:e2e-gate   # product + browser — P6_E2E_GATE_OK
 ```
 
-> **Agents:** Product gate (`p6:gate`) runs **unit/static specs only**. Browser smokes below are **soft** — run via `p6:e2e-gate` stub or manual when servers are up (Architect YES).
+> **Agents:** Product gate (`p6:gate`) runs unit/static specs. Browser smokes run via `pnpm run p6:e2e-gate` → `P6_E2E_GATE_OK`. Postgres finance depth: `pnpm run p6:staging-gate` when `DATABASE_URL` is set.
 
 ---
 
@@ -17,18 +17,20 @@ gate_e2e: pnpm run p6:e2e-gate
 
 | ID | Title | VS | Playwright / script | Unit gate spec | Pass signal |
 | -- | ----- | -- | ------------------- | -------------- | ----------- |
-| **SMK-P6-HOST-01** | Three canonical hosts same tenant | — | `scripts/smoke-p6-host-bind.mjs` | `p6-host-tenant-parity.spec.ts` | same `tenantId` on marketing · portal · admin |
+| **SMK-P6-HOST-01** | Three canonical hosts same tenant | — | `scripts/smoke-p6-host-bind.mjs` (also in operator E2E bootstrap) | `p6-host-tenant-parity.spec.ts` | same `tenantId` on marketing · portal · admin |
+| **SMK-P6-VS-01** | Admin publish → catalog | VS-01 | `p6-admin-publish-smoke.spec.ts` | `p6-vs01-admin-publish.spec.ts` | draft hidden · active listed (publish transition API-proven) |
 | **SMK-P6-MKT-01** | Marketing lists active tour | VS-02 | `marketing-catalog-smoke.spec.ts` (SMK-MKT-03) | `p6-guest-slice.spec.ts` GS-02 | tour card visible |
 | **SMK-P6-MKT-02** | CTA → portal canonical URL | VS-03 | same (SMK-MKT-03) | `resolve-web-registration-url.spec.ts` MKT-08 | URL contains `.portal.` |
 | **SMK-P6-PTL-01** | Portal OTP register success | VS-03 | `portal-registration-smoke.spec.ts` | `p6-guest-slice.spec.ts` GS-01 | `[data-public-registration-success]` |
-| **SMK-P6-PTL-02** | Portal home → `/me` when session | VS-04 | manual | `portal-home-redirect.spec.ts` MEM-HOME-01 | redirect `/me/registrations` |
-| **SMK-P6-PTL-03** | Member list BFF | VS-04 | manual | `portal-member-registrations.spec.ts` MEM-BFF-01 | proxies `bookings?view=mine` |
-| **SMK-P6-PTL-04** | Member receipt upload | VS-05 | manual | `p6-offline-receipt-gate.spec.ts` | BFF + finance route exist |
-| **SMK-P6-ADM-01** | Operator approve booking | VS-06 | manual | `bookings-ops.spec.ts` API-9.5-01 | approve + outbox |
-| **SMK-P6-ADM-02** | Operator approve receipt | VS-07 | manual | `p6-offline-receipt-gate.spec.ts` | finance receipts path |
+| **SMK-P6-PTL-02** | Portal `/me` lists registration | VS-04 | `portal-member-smoke.spec.ts` SMK-PTL-02 | `portal-home-redirect.spec.ts` MEM-HOME-01 | row visible after intake |
+| **SMK-P6-PTL-03** | Member list BFF | VS-04 | — | `portal-member-registrations.spec.ts` MEM-BFF-01 | proxies `bookings?view=mine` |
+| **SMK-P6-PTL-04** | Member receipt upload | VS-05 | `portal-member-smoke.spec.ts` SMK-PTL-04 | `p6-member-receipt-flow.spec.ts` | receipt 201 + success marker |
+| **SMK-P6-ADM-01** | Operator approve booking | VS-06 | `operator-smoke.spec.ts` SMK-P9-04 | `bookings-ops.spec.ts` API-9.5-01 | approve + outbox · E2E in `p6:e2e-gate` |
+| **SMK-P6-ADM-02** | Operator approve receipt | VS-07 | `p6-operator-receipt-approve-smoke.spec.ts` SMK-P6-ADM-02 | `p6-member-receipt-flow.spec.ts` P6-MR-03 · `p6-offline-receipt-gate.spec.ts` | finance approve · E2E in `p6:e2e-gate` |
+| **SMK-P6-EXIT-02** | Full E2E gate | VS-08 | — | `pnpm run p6:e2e-gate` | `P6_E2E_GATE_OK` |
 | **SMK-P6-EXIT-01** | Product gate green | VS-08 | — | `platform-denali-first-customer-exit.spec.ts` | `P6_DENALI_PRODUCT_GATE_OK` |
 
-**Full E2E runbook (T2):** [runbooks/p6-e2e-smoke.md](../runbooks/p6-e2e-smoke.md) — Architect YES · not in `p6:gate`
+**Full E2E runbook (T2):** [runbooks/p6-e2e-smoke.md](../runbooks/p6-e2e-smoke.md) · CI: `p6-denali-gate.yml`
 
 ---
 
@@ -55,8 +57,8 @@ pnpm run p6:gate
 # Host bind smoke (servers must be running)
 node scripts/smoke-p6-host-bind.mjs
 
-# E2E stub (Architect YES for full browser)
-pnpm run p6:e2e-gate
+# Full E2E gate (VS-01..07 browser + product)
+pnpm run p6:e2e-gate   # → P6_E2E_GATE_OK
 pnpm --filter @apps/portal run test:smoke   # SMK-PTL-01
 pnpm --filter @apps/marketing run test:smoke # SMK-MKT-03
 ```

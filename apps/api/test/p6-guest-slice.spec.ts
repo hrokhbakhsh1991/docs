@@ -1,5 +1,5 @@
 /**
- * P6-1-N-013 — guest slice integration gate
+ * P6-1-N-013 — guest slice integration gate (code markers — BFF behavioral tests in portal package)
  * @see docs/phase-19/p6/p6-1-guest-slice.md
  */
 import assert from "node:assert/strict";
@@ -27,21 +27,5 @@ describe("p6-guest-slice", () => {
       "utf8"
     );
     assert.match(bridge, /buildDevPortalPublicBaseUrl/);
-  });
-
-  it("GS-03 platform-portal-otp-flow mdoc exists", () => {
-    const otpDoc = readFileSync(
-      join(repoRoot, "docs/phase-19/platform-portal-otp-flow.mdoc"),
-      "utf8"
-    );
-    assert.match(otpDoc, /operator\.portal\.localhost/);
-  });
-
-  it("GS-04 guest slice runbook references canonical hosts", () => {
-    const runbook = readFileSync(
-      join(repoRoot, "docs/phase-19/p6/runbooks/guest-slice-operator-minimal.md"),
-      "utf8"
-    );
-    assert.match(runbook, /operator\.portal\.localhost:3003/);
   });
 });
