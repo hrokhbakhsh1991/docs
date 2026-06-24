@@ -30,6 +30,7 @@
   },
   "intake": {
     "title": "ثبت‌نام برای این تور",
+    "termsHeading": "قوانین و شرایط",
     "nameLabel": "نام",
     "emailLabel": "ایمیل",
     "partySizeLabel": "تعداد نفرات",

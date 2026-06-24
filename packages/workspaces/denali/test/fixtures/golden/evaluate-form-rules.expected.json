@@ -112,6 +112,14 @@
         "required": true,
         "staticHidden": false,
         "staticRequired": true
+      },
+      {
+        "canonicalPath": "tripDetails.overview.trailDistanceKm",
+        "formPath": "tripDetails.overview.trailDistanceKm",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
       }
     ],
     "denali_photos": [
@@ -550,6 +558,14 @@
         "required": true,
         "staticHidden": false,
         "staticRequired": true
+      },
+      {
+        "canonicalPath": "tripDetails.overview.trailDistanceKm",
+        "formPath": "tripDetails.overview.trailDistanceKm",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
       }
     ],
     "denali_photos": [
@@ -988,6 +1004,14 @@
         "required": true,
         "staticHidden": false,
         "staticRequired": true
+      },
+      {
+        "canonicalPath": "tripDetails.overview.trailDistanceKm",
+        "formPath": "tripDetails.overview.trailDistanceKm",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
       }
     ],
     "denali_photos": [

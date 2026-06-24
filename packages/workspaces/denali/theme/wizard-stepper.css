@@ -2,22 +2,57 @@
  * Denali wizard stepper — enhanced progress UI (scoped).
  */
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell {
-  flex: 1;
-  min-height: 0;
   gap: var(--space-4, 1rem);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress {
   flex-shrink: 0;
   margin-block-end: 0;
+  min-width: 0;
 }
 
-body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-inline-end: var(--space-1, 0.25rem);
+/* Dense scroll rail — fade hints when pills overflow (all breakpoints). */
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail {
+  position: relative;
+  min-width: 0;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail::before,
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  width: 1.75rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail::before {
+  inset-inline-start: 0;
+  background: linear-gradient(90deg, var(--color-bg-page, var(--background)) 0%, transparent 100%);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail::after {
+  inset-inline-end: 0;
+  background: linear-gradient(270deg, var(--color-bg-page, var(--background)) 0%, transparent 100%);
+}
+
+[dir="rtl"] body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail::before {
+  background: linear-gradient(270deg, var(--color-bg-page, var(--background)) 0%, transparent 100%);
+}
+
+[dir="rtl"] body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail::after {
+  background: linear-gradient(90deg, var(--color-bg-page, var(--background)) 0%, transparent 100%);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail[data-wizard-step-rail-overflow-start="true"]::before {
+  opacity: 1;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-rail[data-wizard-step-rail-overflow-end="true"]::after {
+  opacity: 1;
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-list {
@@ -28,7 +63,10 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-sh
   padding: 0 0 var(--space-1, 0.25rem);
   list-style: none;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--space-2, 0.5rem);
+  scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
 }
@@ -38,7 +76,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-sh
   align-items: center;
   gap: var(--space-2, 0.5rem);
   flex-shrink: 0;
-  scroll-snap-align: start;
+  scroll-snap-align: center;
   padding: 0;
   border: 1px solid var(--color-border-default);
   border-radius: 999px;
@@ -128,6 +166,12 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-sh
   color: var(--color-primary);
 }
 
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-check {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex-shrink: 0;
+}
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-label {
   max-width: 9rem;
   white-space: nowrap;
@@ -136,13 +180,8 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-sh
 }
 
 @media (min-width: 768px) {
-  body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-list {
-    flex-wrap: wrap;
-    overflow-x: visible;
-  }
-
   body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__progress-label {
-    max-width: 12rem;
+    max-width: 10rem;
   }
 }
 
@@ -156,20 +195,80 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-sh
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius, 0.625rem);
   background: var(--color-bg-surface);
-  padding: var(--space-6, 1.5rem);
+  padding: var(--space-6, 1.5rem) var(--space-6, 1.5rem) 0;
   box-shadow: var(--denali-shadow-card, 0 1px 2px rgb(15 23 42 / 0.04));
+  overflow: hidden;
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__actions {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4, 1rem);
-  margin: 0;
-  padding: var(--space-4, 1rem) 0 calc(var(--space-4, 1rem) + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--color-border-default);
-  background: color-mix(in oklch, var(--color-bg-page) 94%, transparent);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 -10px 28px color-mix(in oklch, var(--color-text-primary) 5%, transparent);
+  justify-content: flex-end;
+  margin: var(--space-6, 1.5rem) calc(-1 * var(--space-6, 1.5rem)) 0;
+  padding: var(--space-4, 1rem) var(--space-6, 1.5rem)
+    calc(var(--space-4, 1rem) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-border-subtle);
+  background: color-mix(in oklch, var(--color-bg-muted) 42%, var(--color-bg-surface));
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__actions-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2, 0.5rem);
+  width: 100%;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__nav-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__nav-icon--end {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__nav-icon--start {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard-shell__nav-icon--end {
+  transform: none;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-nav="back"] {
+  color: var(--color-text-secondary);
+  gap: var(--space-2, 0.5rem);
+  padding-inline: var(--space-3, 0.75rem);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-nav="back"]:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-nav="continue"] {
+  min-inline-size: 7.5rem;
+  gap: var(--space-2, 0.5rem);
+  padding-inline: var(--space-5, 1.25rem);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-nav="continue"]:hover:not(:disabled) {
+  box-shadow: 0 2px 6px color-mix(in oklch, var(--color-primary) 28%, transparent);
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-step-nav] [data-wizard-footer] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2, 0.5rem);
+  margin-inline-start: auto;
+}
+
+body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-wizard-step-nav] [data-wizard-footer] > button {
+  min-inline-size: 7.5rem;
 }

@@ -17,3 +17,14 @@ export {
   MAX_SANITY_ATTEMPTS,
   type ParsedDenaliWizardDraftEnvelope,
 } from "./denali-wizard-draft-schema";
+export { isDenaliFreshStartEnvelope, mergeDenaliWizardDraftEnvelope } from "./merge-envelope";
+export {
+  isDenaliDraftUnificationV3ServerWins,
+  mergeDenaliDraftViaPlugin,
+  resolveDenaliDraftMerge,
+  type DenaliDraftUnificationV3Mode,
+} from "./resolve-denali-draft-merge";
+export {
+  logDenaliTombstoneShadowMismatch,
+  type DenaliDraftTombstoneShadowMode,
+} from "./tombstone-shadow-log";

@@ -2,12 +2,16 @@
 
 import { Button } from "@app-tour/ui-primitives/button";
 import { useFormatter, useTranslations } from "next-intl";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
 
 import {
   canNavigateToWizardStepIndex,
   WIZARD_STEP_SHELL_TEST_IDS,
 } from "./wizard-step-shell-logic";
+import {
+  readWizardStepRailOverflowEdges,
+  scrollWizardStepRailItemIntoView,
+} from "./wizard-step-rail-scroll";
 
 export { WIZARD_STEP_SHELL_TEST_IDS };
 
@@ -30,6 +34,40 @@ type WizardStepShellProps = {
   readonly onBeforeNext?: (currentIndex: number) => boolean | Promise<boolean>;
 };
 
+function WizardNavIcon({ direction }: { readonly direction: "start" | "end" }) {
+  return (
+    <svg
+      className={`workspace-wizard-shell__nav-icon workspace-wizard-shell__nav-icon--${direction}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+function WizardProgressCheckIcon() {
+  return (
+    <svg
+      className="workspace-wizard-shell__progress-check"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M5 12l4 4L19 6" />
+    </svg>
+  );
+}
+
 export function WizardStepShell({
   steps,
   activeIndex,
@@ -47,6 +85,49 @@ export function WizardStepShell({
   const isFirst = safeIndex === 0;
   const isLast = safeIndex === stepCount - 1;
   const activeStep = steps[safeIndex];
+  const progressRailRef = useRef<HTMLDivElement>(null);
+  const progressListRef = useRef<HTMLOListElement>(null);
+  const activeStepItemRef = useRef<HTMLLIElement>(null);
+
+  const syncProgressRailOverflow = useCallback(() => {
+    const rail = progressRailRef.current;
+    const list = progressListRef.current;
+    if (rail == null || list == null) {
+      return;
+    }
+    const edges = readWizardStepRailOverflowEdges(list);
+    rail.dataset.wizardStepRailOverflowStart = edges.start ? "true" : "false";
+    rail.dataset.wizardStepRailOverflowEnd = edges.end ? "true" : "false";
+  }, []);
+
+  useEffect(() => {
+    syncProgressRailOverflow();
+    const list = progressListRef.current;
+    if (list == null) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      syncProgressRailOverflow();
+    });
+    observer.observe(list);
+    return () => {
+      observer.disconnect();
+    };
+  }, [steps, syncProgressRailOverflow]);
+
+  useEffect(() => {
+    const activeItem = activeStepItemRef.current;
+    if (activeItem == null) {
+      return;
+    }
+    scrollWizardStepRailItemIntoView(activeItem);
+    const frame = window.requestAnimationFrame(() => {
+      syncProgressRailOverflow();
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [safeIndex, steps.length, syncProgressRailOverflow]);
 
   const jumpToStep = (index: number) => {
     if (navLocked || !canNavigateToWizardStepIndex(index, safeIndex) || index === safeIndex) {
@@ -62,7 +143,16 @@ export function WizardStepShell({
         aria-label={t("progressAria")}
         data-testid={WIZARD_STEP_SHELL_TEST_IDS.nav}
       >
-        <ol className="workspace-wizard-shell__progress-list">
+        <div
+          ref={progressRailRef}
+          className="workspace-wizard-shell__progress-rail"
+          data-wizard-step-rail
+        >
+          <ol
+            ref={progressListRef}
+            className="workspace-wizard-shell__progress-list"
+            onScroll={syncProgressRailOverflow}
+          >
           {steps.map((step, index) => {
             const state =
               index < safeIndex ? "complete" : index === safeIndex ? "current" : "upcoming";
@@ -70,15 +160,22 @@ export function WizardStepShell({
             const content = (
               <>
                 <span className="workspace-wizard-shell__progress-index" aria-hidden>
-                  {format.number(index + 1)}
+                  {state === "complete" ? (
+                    <WizardProgressCheckIcon />
+                  ) : (
+                    format.number(index + 1)
+                  )}
                 </span>
-                <span className="workspace-wizard-shell__progress-label">{step.label}</span>
+                <span className="workspace-wizard-shell__progress-label" title={step.label}>
+                  {step.label}
+                </span>
               </>
             );
 
             return (
               <li
                 key={step.stepId}
+                ref={index === safeIndex ? activeStepItemRef : undefined}
                 className="workspace-wizard-shell__progress-item"
                 data-wizard-step-state={state}
                 data-wizard-progress-step={step.stepId}
@@ -101,7 +198,8 @@ export function WizardStepShell({
               </li>
             );
           })}
-        </ol>
+          </ol>
+        </div>
         <p
           className="workspace-wizard-shell__progress-summary"
           data-testid={WIZARD_STEP_SHELL_TEST_IDS.progress}
@@ -117,43 +215,56 @@ export function WizardStepShell({
       </nav>
 
       <div className="workspace-wizard-shell__body">
-        <div className="workspace-wizard-shell__card">{children}</div>
-      </div>
-
-      <footer className="workspace-wizard-shell__actions">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={isFirst || navLocked}
-          data-testid={WIZARD_STEP_SHELL_TEST_IDS.back}
-          onClick={() => onActiveIndexChange(safeIndex - 1)}
-        >
-          {t("back")}
-        </Button>
-        {!isLast ? (
-          <Button
-            type="button"
-            variant="primary"
-            disabled={navLocked || continueDisabled}
-            data-testid={WIZARD_STEP_SHELL_TEST_IDS.next}
-            onClick={() => {
-              void (async () => {
-                if (onBeforeNext != null) {
-                  const allowed = await onBeforeNext(safeIndex);
-                  if (!allowed) {
-                    return;
-                  }
-                }
-                onActiveIndexChange(safeIndex + 1);
-              })();
-            }}
+        <div className="workspace-wizard-shell__card">
+          {children}
+          <footer
+            className="workspace-wizard-shell__actions"
+            data-wizard-step-nav
+            {...(isFirst ? { "data-wizard-step-nav-first": "" } : {})}
           >
-            {t("continue")}
-          </Button>
-        ) : (
-          lastStepFooter
-        )}
-      </footer>
+            <div className="workspace-wizard-shell__actions-group">
+              {!isFirst ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={navLocked}
+                  data-wizard-nav="back"
+                  data-testid={WIZARD_STEP_SHELL_TEST_IDS.back}
+                  onClick={() => onActiveIndexChange(safeIndex - 1)}
+                >
+                  <WizardNavIcon direction="start" />
+                  {t("back")}
+                </Button>
+              ) : null}
+              {!isLast ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={navLocked || continueDisabled}
+                  data-wizard-nav="continue"
+                  data-testid={WIZARD_STEP_SHELL_TEST_IDS.next}
+                  onClick={() => {
+                    void (async () => {
+                      if (onBeforeNext != null) {
+                        const allowed = await onBeforeNext(safeIndex);
+                        if (!allowed) {
+                          return;
+                        }
+                      }
+                      onActiveIndexChange(safeIndex + 1);
+                    })();
+                  }}
+                >
+                  {t("continue")}
+                  <WizardNavIcon direction="end" />
+                </Button>
+              ) : (
+                lastStepFooter
+              )}
+            </div>
+          </footer>
+        </div>
+      </div>
     </div>
   );
 }

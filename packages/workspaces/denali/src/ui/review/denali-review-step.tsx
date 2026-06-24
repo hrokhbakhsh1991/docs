@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { RenderStepPlan } from "@app-tour/platform-core";
 
 import { loadDenaliReviewCatalog } from "../adapters/review-catalog-fetch";
 import {
@@ -10,15 +11,20 @@ import {
   resolveDenaliTourKindLabel,
   resolveDenaliTransportModeLabel,
 } from "../adapters/field-labels";
+import { DenaliPhotoPreview } from "../components/denali-photo-preview";
+import { EquipmentCatalogAvatar } from "../components/equipment-catalog-avatar";
 import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
+import type { DenaliGearItem } from "../logic/denali-gear-types";
 import {
   buildDenaliReviewHero,
-  buildDenaliReviewSections,
+  buildDenaliReviewSectionsFromVisibleSteps,
   type DenaliReviewCatalog,
   type DenaliReviewFormatLabels,
+  type DenaliReviewHero,
   type DenaliReviewRow,
   type DenaliReviewSection,
 } from "../logic/denali-review-format-logic";
+import type { DenaliTourPhoto } from "../logic/denali-photo-types";
 import { DENALI_REVIEW_STEP_TEST_IDS } from "../test-ids/denali-review-test-ids";
 
 export { DENALI_REVIEW_STEP_TEST_IDS } from "../test-ids/denali-review-test-ids";
@@ -28,10 +34,13 @@ const EMPTY_CATALOG: DenaliReviewCatalog = {
   leaderNameById: new Map(),
   themeNameById: new Map(),
   languageNameById: new Map(),
+  equipmentIconKeyById: new Map(),
 };
 
 type DenaliReviewStepProps = {
   readonly draft: DenaliTourWizardDraft;
+  readonly contentSteps: readonly RenderStepPlan[];
+  readonly onNavigateToStep?: (stepId: string) => void;
 };
 
 function ReviewGrid({ rows }: { readonly rows: readonly DenaliReviewRow[] }) {
@@ -58,11 +67,171 @@ function ReviewGrid({ rows }: { readonly rows: readonly DenaliReviewRow[] }) {
   );
 }
 
-function ReviewSectionBlock({ section }: { readonly section: DenaliReviewSection }) {
+function ReviewPhotoGrid({
+  photos,
+  dayLabel,
+  altFallback,
+}: {
+  readonly photos: readonly DenaliTourPhoto[];
+  readonly dayLabel: (day: number) => string;
+  readonly altFallback: string;
+}) {
+  if (photos.length === 0) {
+    return null;
+  }
+  return (
+    <div className="denali-review__photo-grid" data-testid={DENALI_REVIEW_STEP_TEST_IDS.photoGrid}>
+      {photos.map((photo, index) => {
+        const caption = photo.label?.trim();
+        const day = photo.day;
+        return (
+          <figure
+            key={photo.id ?? `photo-${index}`}
+            className="denali-review__photo-card"
+            data-denali-review-photo={photo.id ?? String(index)}
+          >
+            <DenaliPhotoPreview
+              photo={photo}
+              altFallback={altFallback}
+              className="denali-review__photo-img"
+              readOnly
+            />
+            {caption || day != null ? (
+              <figcaption className="denali-review__photo-caption">
+                {caption ? <span className="denali-review__photo-label">{caption}</span> : null}
+                {day != null ? (
+                  <span className="denali-review__photo-day">{dayLabel(day)}</span>
+                ) : null}
+              </figcaption>
+            ) : null}
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
+function ReviewGearList({
+  gearItems,
+  equipmentIconKeyById,
+  gearRequiredLabel,
+  gearOptionalLabel,
+}: {
+  readonly gearItems: readonly DenaliGearItem[];
+  readonly equipmentIconKeyById: ReadonlyMap<string, string | null>;
+  readonly gearRequiredLabel: string;
+  readonly gearOptionalLabel: string;
+}) {
+  if (gearItems.length === 0) {
+    return null;
+  }
+  return (
+    <ul className="denali-review__gear-list" aria-label="gear">
+      {gearItems.map((item) => (
+        <li
+          key={item.equipmentId ?? item.name}
+          className="denali-review__gear-item"
+          data-denali-review-gear={item.equipmentId ?? item.name}
+        >
+          <div className="denali-review__gear-main">
+            <EquipmentCatalogAvatar
+              id={item.equipmentId || item.name}
+              name={item.name}
+              iconKey={
+                item.equipmentId.length > 0
+                  ? equipmentIconKeyById.get(item.equipmentId) ?? null
+                  : null
+              }
+              className="denali-review__gear-avatar"
+            />
+            <span className="denali-review__gear-name">{item.name}</span>
+          </div>
+          <span
+            className={
+              item.isRequired
+                ? "denali-review__gear-badge denali-review__gear-badge--required"
+                : "denali-review__gear-badge denali-review__gear-badge--optional"
+            }
+          >
+            {item.isRequired ? gearRequiredLabel : gearOptionalLabel}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ReviewHero({
+  hero,
+  displayTitle,
+}: {
+  readonly hero: DenaliReviewHero;
+  readonly displayTitle: string;
+}) {
+  const hasMeta =
+    hero.destination.trim().length > 0 || hero.schedule.trim().length > 0;
+  return (
+    <header className="denali-review__hero" data-testid={DENALI_REVIEW_STEP_TEST_IDS.hero}>
+      {hero.coverPhoto != null ? (
+        <div className="denali-review__hero-media">
+          <DenaliPhotoPreview
+            photo={hero.coverPhoto}
+            altFallback={displayTitle}
+            className="denali-review__hero-cover"
+            testId={DENALI_REVIEW_STEP_TEST_IDS.heroCover}
+            readOnly
+          />
+        </div>
+      ) : null}
+      <div className="denali-review__hero-content">
+        {hero.categoryLabel.trim().length > 0 ? (
+          <div className="denali-review__hero-badges">
+            <span className="denali-review__badge">{hero.categoryLabel}</span>
+          </div>
+        ) : null}
+        <h3 className="denali-review__hero-title" data-testid={DENALI_REVIEW_STEP_TEST_IDS.title}>
+          {displayTitle}
+        </h3>
+        {hasMeta ? (
+          <p className="denali-review__hero-meta">
+            {hero.destination.trim().length > 0 ? (
+              <span data-testid={DENALI_REVIEW_STEP_TEST_IDS.destinationName}>
+                {hero.destination}
+              </span>
+            ) : null}
+            {hero.schedule.trim().length > 0 ? <span>{hero.schedule}</span> : null}
+          </p>
+        ) : null}
+      </div>
+    </header>
+  );
+}
+
+function ReviewSectionBlock({
+  section,
+  equipmentIconKeyById,
+  editSectionLabel,
+  gearRequiredLabel,
+  gearOptionalLabel,
+  dayLabel,
+  photoAltFallback,
+  onNavigateToStep,
+}: {
+  readonly section: DenaliReviewSection;
+  readonly equipmentIconKeyById: ReadonlyMap<string, string | null>;
+  readonly editSectionLabel: string;
+  readonly gearRequiredLabel: string;
+  readonly gearOptionalLabel: string;
+  readonly dayLabel: (day: number) => string;
+  readonly photoAltFallback: string;
+  readonly onNavigateToStep?: (stepId: string) => void;
+}) {
   const hasBody =
     section.rows.length > 0 ||
     (section.chips?.length ?? 0) > 0 ||
-    (section.cards?.length ?? 0) > 0;
+    (section.cards?.length ?? 0) > 0 ||
+    (section.photos?.length ?? 0) > 0 ||
+    (section.gearItems?.length ?? 0) > 0;
   if (!hasBody) {
     return null;
   }
@@ -73,9 +242,36 @@ function ReviewSectionBlock({ section }: { readonly section: DenaliReviewSection
       data-testid={DENALI_REVIEW_STEP_TEST_IDS.section(section.stepId)}
       data-denali-review-section={section.stepId}
     >
-      <h4 className="denali-review__section-title">{section.title}</h4>
+      <div className="denali-review__section-header">
+        <h4 className="denali-review__section-title">{section.title}</h4>
+        {onNavigateToStep != null ? (
+          <button
+            type="button"
+            className="denali-review__section-edit"
+            data-testid={DENALI_REVIEW_STEP_TEST_IDS.editSection(section.stepId)}
+            onClick={() => onNavigateToStep(section.stepId)}
+          >
+            {editSectionLabel}
+          </button>
+        ) : null}
+      </div>
       <div className="denali-review__section-body">
         <ReviewGrid rows={section.rows} />
+        {section.photos != null && section.photos.length > 0 ? (
+          <ReviewPhotoGrid
+            photos={section.photos}
+            dayLabel={dayLabel}
+            altFallback={photoAltFallback}
+          />
+        ) : null}
+        {section.gearItems != null && section.gearItems.length > 0 ? (
+          <ReviewGearList
+            gearItems={section.gearItems}
+            equipmentIconKeyById={equipmentIconKeyById}
+            gearRequiredLabel={gearRequiredLabel}
+            gearOptionalLabel={gearOptionalLabel}
+          />
+        ) : null}
         {section.chips != null && section.chips.length > 0 ? (
           <ul className="denali-review__chips" aria-label={section.title}>
             {section.chips.map((chip) => (
@@ -96,6 +292,7 @@ function ReviewSectionBlock({ section }: { readonly section: DenaliReviewSection
                     ? "denali-review__card denali-review__card--self"
                     : "denali-review__card"
                 }
+                data-denali-review-card={card.kind ?? "text"}
               >
                 {card.meta ? (
                   <p
@@ -119,7 +316,11 @@ function ReviewSectionBlock({ section }: { readonly section: DenaliReviewSection
   );
 }
 
-export function DenaliReviewStep({ draft }: DenaliReviewStepProps) {
+export function DenaliReviewStep({
+  draft,
+  contentSteps,
+  onNavigateToStep,
+}: DenaliReviewStepProps) {
   const t = useTranslations("denali");
   const [catalog, setCatalog] = useState<DenaliReviewCatalog>(EMPTY_CATALOG);
   const [loading, setLoading] = useState(true);
@@ -157,6 +358,7 @@ export function DenaliReviewStep({ draft }: DenaliReviewStepProps) {
       photoCount: (count) => t("review.photoCount", { count }),
       dayLabel: (day) => t("review.dayLabel", { day }),
       primaryGathering: t("review.primaryGathering"),
+      socialMediaTelegramAutoLabel: t("composites.socialMedia.reviewTelegramAuto"),
     };
   }, [t]);
 
@@ -165,8 +367,8 @@ export function DenaliReviewStep({ draft }: DenaliReviewStepProps) {
     [draft, catalog, labels]
   );
   const sections = useMemo(
-    () => buildDenaliReviewSections(draft, catalog, labels),
-    [draft, catalog, labels]
+    () => buildDenaliReviewSectionsFromVisibleSteps(draft, contentSteps, catalog, labels),
+    [draft, contentSteps, catalog, labels]
   );
 
   const displayTitle =
@@ -177,26 +379,21 @@ export function DenaliReviewStep({ draft }: DenaliReviewStepProps) {
       <p className="denali-review__intro">{t("review.intro")}</p>
       {loading ? <p className="denali-review__status">{t("review.loading")}</p> : null}
 
-      <header className="denali-review__hero" data-testid={DENALI_REVIEW_STEP_TEST_IDS.hero}>
-        {hero.categoryLabel.trim().length > 0 ? (
-          <div className="denali-review__hero-badges">
-            <span className="denali-review__badge">{hero.categoryLabel}</span>
-          </div>
-        ) : null}
-        <h3 className="denali-review__hero-title" data-testid={DENALI_REVIEW_STEP_TEST_IDS.title}>
-          {displayTitle}
-        </h3>
-        <p className="denali-review__hero-meta">
-          {hero.destination.trim().length > 0 ? (
-            <span data-testid={DENALI_REVIEW_STEP_TEST_IDS.destinationName}>{hero.destination}</span>
-          ) : null}
-          {hero.schedule.trim().length > 0 ? <span>{hero.schedule}</span> : null}
-        </p>
-      </header>
+      <ReviewHero hero={hero} displayTitle={displayTitle} />
 
       <div className="denali-review__sections">
         {sections.map((section) => (
-          <ReviewSectionBlock key={section.stepId} section={section} />
+          <ReviewSectionBlock
+            key={section.stepId}
+            section={section}
+            equipmentIconKeyById={catalog.equipmentIconKeyById}
+            editSectionLabel={t("review.editSection")}
+            gearRequiredLabel={t("review.gearRequired")}
+            gearOptionalLabel={t("review.gearOptional")}
+            dayLabel={(day) => t("review.dayLabel", { day })}
+            photoAltFallback={displayTitle}
+            onNavigateToStep={onNavigateToStep}
+          />
         ))}
       </div>
     </section>

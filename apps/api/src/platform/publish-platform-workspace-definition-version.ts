@@ -1,10 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
 
 import {
-  computeWorkspaceDefinitionPayloadChecksum,
   validateWorkspaceDefinitionPayload,
   type WorkspaceDefinitionPayload,
 } from "@app-tour/workspace-sdk/metadata";
+import { computeWorkspaceDefinitionPayloadChecksum } from "@app-tour/workspace-sdk/metadata/checksum";
 
 import { getPrismaAdmin } from "../db/prisma.ts";
 import { mergeCommerceIntoWorkspaceDefinitionPayload } from "../workspace-metadata/persist-commerce-on-publish.ts";

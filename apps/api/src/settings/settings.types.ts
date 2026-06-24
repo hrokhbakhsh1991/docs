@@ -20,6 +20,8 @@ export type EquipmentResource = {
   readonly tenantId: string;
   readonly name: string;
   readonly category: string | null;
+  /** Denali closed icon registry key; null = initials fallback in wizard. */
+  readonly iconKey: string | null;
   /** Tour theme ids from operator settings (`/settings/tour-themes`). Empty = all themes. */
   readonly themeIds: readonly string[];
   /** Denali wizard — tour categories compatible with this equipment row (DEC-P12-001 / 12.1). */
@@ -37,12 +39,14 @@ export type SettingsResourceListResponse = {
 export type CreateEquipmentRequest = {
   readonly name: string;
   readonly category?: string;
+  readonly iconKey?: string | null;
   readonly themeIds?: readonly string[];
 };
 
 export type PatchEquipmentRequest = {
   readonly name?: string;
   readonly category?: string | null;
+  readonly iconKey?: string | null;
   readonly themeIds?: readonly string[];
 };
 
@@ -71,6 +75,8 @@ export type WizardTemplatePayloadV1 = {
   readonly sections: readonly WizardTemplateSection[];
   readonly published?: boolean;
   readonly steps?: readonly WizardTemplateStepRef[];
+  readonly fieldRulesOverlay?: Readonly<Record<string, unknown>>;
+  readonly baseProfile?: string;
 };
 
 export type PresetsAdvancedMatchRule = {
@@ -163,6 +169,7 @@ export type DestinationResource = {
   readonly name: string;
   readonly locationType: string | null;
   readonly altitudeM: number | null;
+  readonly typicalTrailDistanceKm: number | null;
   readonly isActive: boolean;
   readonly sortOrder: number;
   readonly createdAt: string;
@@ -258,6 +265,7 @@ export type CreateLocationResourceRequest =
       readonly name: string;
       readonly locationType?: string;
       readonly altitudeM?: number | null;
+      readonly typicalTrailDistanceKm?: number | null;
     };
 
 export type PatchLocationResourceRequest = {
@@ -265,5 +273,7 @@ export type PatchLocationResourceRequest = {
   readonly country?: string | null;
   readonly regionId?: string;
   readonly locationType?: string | null;
+  readonly altitudeM?: number | null;
+  readonly typicalTrailDistanceKm?: number | null;
   readonly isActive?: boolean;
 };

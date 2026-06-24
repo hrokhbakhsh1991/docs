@@ -15,7 +15,7 @@ import {
 } from "./denali-wizard-completion";
 import { DenaliWizardContentQualityHeader } from "./denali-wizard-content-quality-header";
 import { DenaliPublishStatusField } from "./denali-publish-status-field";
-import { DenaliReviewStep } from "./denali-review-step";
+import { DenaliReviewStep } from "@app-tour/workspace-denali/ui/review/denali-review-step";
 import { DenaliReviewValidationSummary } from "./denali-review-validation-summary";
 
 function renderDenaliValidationSummary(props: WizardValidationSurfaceRenderProps): ReactNode {
@@ -41,7 +41,11 @@ function renderDenaliReviewChrome(props: WizardReviewSurfaceRenderProps): ReactN
         fieldLabelSurfaceId: props.fieldLabelSurfaceId,
         translateWorkspaceMessage: props.translateWorkspaceMessage,
       })}
-      <DenaliReviewStep draft={props.draft} />
+      <DenaliReviewStep
+        draft={props.draft}
+        contentSteps={props.contentSteps}
+        onNavigateToStep={props.onNavigateToStep}
+      />
       <div className="denali-review__publish">
         <DenaliPublishStatusField draft={props.draft} onDraftChange={props.onDraftChange} />
       </div>

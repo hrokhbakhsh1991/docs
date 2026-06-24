@@ -7,10 +7,11 @@ import {
   getCanonicalStringValue,
   setCanonicalStringValue,
 } from "../../draft/denali-tour-wizard-draft";
+import { applyDestinationCatalogPrefill } from "../../settings/apply-destination-catalog-prefill";
 import type { DestinationResource } from "../adapters/catalog-types";
+import { DenaliSearchableSelect } from "../components/denali-searchable-select";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
-import { Select } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { useDenaliDestinationCatalog } from "../hooks/use-destination-catalog";
 import { DENALI_COMPOSITE_TEST_IDS } from "../logic/denali-location-types";
@@ -28,12 +29,8 @@ function applyDestinationSelection(
   destinationId: string,
   destinationById: ReadonlyMap<string, DestinationResource>
 ): DenaliTourWizardDraft {
-  let next = setCanonicalStringValue(draft, canonicalPath, destinationId);
-  const altitudeM = destinationById.get(destinationId)?.altitudeM;
-  if (typeof altitudeM === "number" && Number.isFinite(altitudeM) && altitudeM > 0) {
-    next = setCanonicalStringValue(next, "tripDetails.overview.peakHeight", String(altitudeM));
-  }
-  return next;
+  const next = setCanonicalStringValue(draft, canonicalPath, destinationId);
+  return applyDestinationCatalogPrefill(next, destinationById.get(destinationId));
 }
 
 export function DenaliDestinationField({
@@ -53,8 +50,8 @@ export function DenaliDestinationField({
     <div className="denali-wizard-composite" data-testid={DENALI_COMPOSITE_TEST_IDS.destination}>
       <label className="denali-wizard-composite__field">
         <span>{label}</span>
-        <Select
-          aria-label={label}
+        <DenaliSearchableSelect
+          ariaLabel={label}
           options={options}
           value={value}
           placeholder={
@@ -62,9 +59,13 @@ export function DenaliDestinationField({
               ? t("composites.destination.loadingPlaceholder")
               : t("composites.destination.selectPlaceholder")
           }
+          loading={loading}
           required={required}
-          onChange={(event) => {
-            const nextId = event.target.value;
+          searchableThreshold={0}
+          searchLabel={t("composites.destination.searchLabel")}
+          searchPlaceholder={t("composites.destination.searchPlaceholder")}
+          searchEmptyMessage={t("composites.destination.searchEmpty")}
+          onChange={(nextId) => {
             if (nextId.length === 0) {
               commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
                 setCanonicalStringValue(base, canonicalPath, "")

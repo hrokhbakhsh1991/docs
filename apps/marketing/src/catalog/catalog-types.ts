@@ -36,6 +36,9 @@ export type MarketingCatalogCard = {
   readonly publishedAt?: string | null;
   readonly publishStatus?: string | null;
   readonly itineraryDays?: readonly MarketingCatalogItineraryDay[];
+  readonly policiesText?: string | null;
+  readonly cancellationDeadlineHours?: number | null;
+  readonly cancellationPenaltyPercentage?: number | null;
   readonly structuredData?: Readonly<Record<string, unknown>>;
 };
 

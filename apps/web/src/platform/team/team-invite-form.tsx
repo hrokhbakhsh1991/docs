@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@app-tour/ui-primitives/input";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -58,7 +59,7 @@ export function TeamInviteForm({ canInvite }: TeamInviteFormProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-1 text-sm">
           <span className="font-medium">Phone</span>
-          <input
+          <Input
             className="w-full rounded-md border border-border px-3 py-2"
             name="phone"
             data-testid="platform-team-invite-phone"

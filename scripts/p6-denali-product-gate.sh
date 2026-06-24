@@ -25,7 +25,10 @@ pnpm --filter @apps/api exec node --import tsx --test \
   test/p6-preservation-gate.spec.ts \
   test/bookings-ops.spec.ts \
   test/p6-member-receipt-flow.spec.ts \
+  test/p6-vertical-slice-chain.spec.ts \
   test/p6-vs01-admin-publish.spec.ts \
+  test/tour-publish-transition.spec.ts \
+  test/marketing-catalog-revalidate.spec.ts \
   test/platform-denali-first-customer-exit.spec.ts
 
 echo "== p6:gate — marketing unit =="
@@ -49,6 +52,7 @@ pnpm --filter @apps/portal exec node --import tsx --test \
 echo "== p6:gate — web redirect + finance nav =="
 pnpm --filter @apps/web exec node --import tsx --test \
   test/portal-registration-redirect.spec.ts \
-  test/finance-page.spec.ts
+  test/finance-page.spec.ts \
+  test/finance-dashboard-widget.spec.ts
 
 echo "P6_DENALI_PRODUCT_GATE_OK"

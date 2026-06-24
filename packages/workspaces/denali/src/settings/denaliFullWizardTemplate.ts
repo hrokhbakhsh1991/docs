@@ -41,6 +41,7 @@ export function buildDenaliFullWizardTemplateSteps(): readonly DenaliWizardTempl
         field("title", true),
         field("destinationId", true),
         field("tripDetails.overview.peakHeight"),
+        field("tripDetails.overview.trailDistanceKm"),
         field("startDateTime", true),
         field("endDateTime"),
         field("approximateReturnTime"),

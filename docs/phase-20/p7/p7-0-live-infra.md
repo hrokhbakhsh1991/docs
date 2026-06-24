@@ -3,10 +3,11 @@
 ```yaml
 epic: P7-0
 nanos: 5
-status: IN_PROGRESS
+pack_version: "1.6"
+status: STAGING_GREEN
 priority: 1
 blocks: P7-1
-current_nano: P7-0-N-002
+current_nano: P7-0-N-005
 runbook: runbooks/p7-0-staging-walkthrough.md
 exit_signal: Operator staging login + same tenantId on all hosts
 ```
@@ -30,6 +31,14 @@ exit_signal: Operator staging login + same tenantId on all hosts
 
 ### P7-0-N-001 — Staging deploy walkthrough
 
+```yaml
+nano: P7-0-N-001
+proof_tier: DOC
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-0-N-001
+repo_status: DEV_PASS
+forbidden_until: []
+```
+
 **Do:** Document full staging deploy path + wire `p7:staging-verify`.
 
 **Files:** [runbooks/p7-0-staging-walkthrough.md](runbooks/p7-0-staging-walkthrough.md) · [scripts/p7-staging-verify.sh](../../../scripts/p7-staging-verify.sh)
@@ -41,6 +50,14 @@ exit_signal: Operator staging login + same tenantId on all hosts
 ---
 
 ### P7-0-N-002 — Env matrix verified
+
+```yaml
+nano: P7-0-N-002
+proof_tier: STAGING
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-0-N-002
+repo_status: NOT_STARTED
+forbidden_until: [P7-0-N-001]
+```
 
 **Do:** Three profiles documented and verified against running env.
 
@@ -54,17 +71,25 @@ exit_signal: Operator staging login + same tenantId on all hosts
 | B | VPS IP (no DNS) |
 | C | Subdomain staging (north star) |
 
-**Verify:** Profile chosen in checklist · no `ALLOW_DEV_WEB_SESSION=true` on profile C · `verify-env-coherence.sh` on VPS
+**Verify:** Profile B-staging on VPS · `pnpm run p7:staging-remote-smoke`
 
-**Status:** IN_PROGRESS
+**Status:** STAGING PASS (2026-06-23 · `/etc/app-tour-staging` · PORT=23001)
 
 ---
 
 ### P7-0-N-003 — Customer seed on staging Postgres
 
+```yaml
+nano: P7-0-N-003
+proof_tier: STAGING
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-0-N-003
+repo_status: NOT_STARTED
+forbidden_until: [P7-0-N-002]
+```
+
 **Do:** Apply P6 seed on staging with migrations + RLS.
 
-**Files:** [first-customer-seed.md](../../phase-19/p6/runbooks/first-customer-seed.md) · `apps/api/scripts/db-seed.ts`
+**Files:** [first-customer-seed.md](../../phase-19/p6/runbooks/first-customer-seed.md) · [P7-CUSTOMER-SEED-DELTA.md](appendices/P7-CUSTOMER-SEED-DELTA.md) · `apps/api/scripts/db-seed.ts`
 
 **Verify:**
 
@@ -79,23 +104,41 @@ curl -s -H "x-forwarded-host: <staging-host>" "$TOUR_OPS_API_URL/public/tenant-c
 
 ### P7-0-N-004 — Four-process deploy + host smoke
 
+```yaml
+nano: P7-0-N-004
+proof_tier: STAGING
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-0-N-004
+repo_status: STAGING_PASS
+forbidden_until: [P7-0-N-003]
+```
+
 **Do:** API + web + marketing + portal running on staging; host tenant parity.
 
-**Files:** [deploy/vps/README.md](../../../deploy/vps/README.md) · `deploy/vps/env/marketing.env.example` · `portal.env.example` · `scripts/smoke-p6-host-bind.mjs`
+**Files:** [deploy/vps/README.md](../../../deploy/vps/README.md) · `scripts/p7-staging-remote-smoke.sh`
 
-**Verify:** `TOUR_OPS_API_URL=... node scripts/smoke-p6-host-bind.mjs` → `P6_HOST_BIND_SMOKE_OK` · SMK-P7-INFRA-01
+**Verify:** `pnpm run p7:staging-remote-smoke` · SMK-P7-INFRA-01..02
 
-**Gap doc:** VPS systemd currently ships API + web only — marketing/portal units documented in deploy README
+**Status:** STAGING PASS (2026-06-23 · 4 units active · health 200)
 
 ---
 
 ### P7-0-N-005 — Operator staging login exit
 
+```yaml
+nano: P7-0-N-005
+proof_tier: STAGING
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-0-N-005
+repo_status: STAGING_PASS
+forbidden_until: [P7-0-N-004]
+```
+
 **Do:** Operator can OTP-login on staging admin URL; tenant resolves correctly.
 
-**Files:** `scripts/vps-deploy/smoke-operator-login.sh` · `scripts/vps-deploy/verify-env-coherence.sh`
+**Files:** `scripts/p7-staging-operator-login.sh` · `scripts/vps-deploy/smoke-operator-login.sh`
 
-**Verify:** SMK-P7-INFRA-03 · manual login on staging admin host
+**Verify:** `pnpm run p7:staging-operator-login` · SMK-P7-INFRA-03
+
+**Status:** STAGING PASS (2026-06-23 · verify-db-env OK · OTP challenge issued)
 
 ---
 

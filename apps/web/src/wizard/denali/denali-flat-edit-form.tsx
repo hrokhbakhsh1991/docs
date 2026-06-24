@@ -257,6 +257,7 @@ export function DenaliFlatEditForm({
                       fieldLabelSurfaceId={wizardHost?.fieldLabelSurfaceId}
                       wizardSessionId={wizardSessionId}
                       workspaceFormProfile={workspaceFormProfile}
+                      wizardRuleEvalContext={wizardRuleEvalContext}
                     />
                   </div>
                 );

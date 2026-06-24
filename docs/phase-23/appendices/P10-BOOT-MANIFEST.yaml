@@ -1,0 +1,122 @@
+# P10 — Sole AI boot manifest (T0 entry)
+# Authority: AGENT-START.md · p10-app-fit.md
+
+manifest_id: P10-BOOT-MANIFEST
+pack_version: "1.0"
+sole_entry: docs/phase-23/AGENT-START.md
+fail_token: P10_FAIL
+machine_snapshot: docs/phase-23/AGENT-CURRENT-PHASE.yaml
+implementation_truth: appendices/P10-IMPLEMENTATION-TRUTH.md
+anti_hollow: appendices/P10-ANTI-HOLLOW-CONTRACT.md
+verification_commands: appendices/P10-VERIFICATION-COMMANDS.yaml
+turn_schema: appendices/P10-AGENT-TURN-SCHEMA.md
+execution_discipline: appendices/P10-EXECUTION-DISCIPLINE.md
+deprecated: appendices/P10-DEPRECATED-ENTRYPOINTS.md
+profile: ../p10-production-profile.yaml
+app_fit: ../p10-app-fit.md
+alignment: ../../POST-P7-PACK-ALIGNMENT.md
+
+current_task: P10-1-N-001
+nano_total: 16
+
+prerequisite:
+  command: pnpm run p9:gate
+  expect_token: P9_CODE_CONSOLIDATION_GATE_OK
+  note: "P9 exit — web no public-auth · M+P guest-surface-host"
+
+boot_sequence_T0:
+  - step: 0
+    action: READ
+    path: appendices/P10-BOOT-MANIFEST.yaml
+  - step: 1
+    action: READ
+    path: ../p10-app-fit.md
+    rule: "wildcard TLS first · admin custom apex defer · Profile B kept"
+  - step: 2
+    action: READ
+    path: ../p10-production-profile.yaml
+  - step: 3
+    action: READ
+    path: appendices/P10-IMPLEMENTATION-TRUTH.md
+  - step: 4
+    action: READ
+    path: appendices/P10-ANTI-HOLLOW-CONTRACT.md
+  - step: 5
+    action: READ
+    path: appendices/P10-EXECUTION-DISCIPLINE.md
+  - step: 6
+    action: READ
+    path: AGENT-CURRENT-PHASE.yaml
+  - step: 7
+    action: RUN
+    command: pnpm run p9:gate
+    expect_exit: 0
+    on_fail: P10_FAIL
+  - step: 8
+    action: DETECT_NANO
+    algorithm: detect_current_nano
+  - step: 9
+    action: LOAD
+    path: "appendices/P10-VERIFICATION-COMMANDS.yaml#{current_nano}"
+
+forbidden_T0:
+  - action: on_demand_tls_before_wildcard_staging
+    reason: "Wave C — wildcard Profile C first"
+  - action: admin_custom_apex_tenant_domains
+    reason: "trunk v2 H-P6-03"
+  - action: deprecate_profile_b_ip
+    reason: "P7 delivery path must remain"
+  - action: require_second_production_customer
+    reason: "runbook + staging proof sufficient"
+  - action: k8s_prometheus_on_vps
+    reason: "G-OPS-03 waive"
+  - action: sms_provider_in_p10_exit
+    reason: "phase-18 waiver"
+  - action: public_api_https_required
+    reason: "BFF loopback 127.0.0.1:3001 OK"
+  - path: docs/phase-23/p10-production-grade-audit.md
+    reason: "Audit only — use VERIFICATION-COMMANDS per nano"
+
+gate_chain:
+  - id: DEV_STATIC
+    command: pnpm run p10:gate
+    expect_token: P10_PRODUCTION_GRADE_GATE_OK
+    proof_tier: DEV_STATIC
+  - id: PROFILE_C_STAGING
+    command: bash scripts/vps-deploy/smoke-four-process.sh
+    proof_tier: PROFILE_C
+    note: "After edge deployed"
+  - id: REGRESSION
+    command: pnpm run p9:gate
+    proof_tier: REGRESSION
+
+execution_order:
+  - P10-1-N-001
+  - P10-2-N-001
+  - P10-2-N-002
+  - P10-3-N-001
+  - P10-2-N-003
+  - P10-2-N-004
+  - P10-2-N-005
+  - P10-1-N-002
+  - P10-3-N-002
+  - P10-3-N-003
+  - P10-0-N-001
+  - P10-0-N-002
+  - P10-0-N-003
+  - P10-2-N-006
+  - P10-3-N-005
+  - P10-3-N-006
+
+wave_map:
+  A: [P10-1-N-001, P10-2-N-001, P10-2-N-002, P10-3-N-001]
+  B: [P10-2-N-003, P10-2-N-004, P10-2-N-005, P10-1-N-002, P10-3-N-002, P10-3-N-003, P10-0-N-001]
+  C: [P10-0-N-002, P10-0-N-003, P10-2-N-006, P10-3-N-005, P10-3-N-006]
+
+exit_requires:
+  composite: ">=8.7"
+  profile_c_staging_https: true
+  smoke_four_process: green
+  profile_b_documented: true
+  admin_custom_apex: false
+  p10_gate: green

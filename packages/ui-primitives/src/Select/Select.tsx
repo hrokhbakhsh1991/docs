@@ -1,6 +1,7 @@
 import { forwardRef, useId, type SelectHTMLAttributes } from "react";
 
 import { cn } from "../utils/cn";
+import "./select-affordance.css";
 import styles from "./Select.module.css";
 
 export type SelectOption = {
@@ -40,6 +41,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
     <select
       ref={ref}
       id={fieldId}
+      data-ui-select
       className={cn(styles.control, isInvalid && styles.controlInvalid, className)}
       value={value}
       aria-invalid={isInvalid || undefined}

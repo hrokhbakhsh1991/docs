@@ -45,12 +45,12 @@ export interface SettingsResourcesRepository {
   getEquipment(tenantId: string, itemId: string): Promise<EquipmentResource | null>;
   createEquipment(
     tenantId: string,
-    input: { name: string; category?: string; themeIds?: readonly string[] }
+    input: { name: string; category?: string; iconKey?: string | null; themeIds?: readonly string[] }
   ): Promise<EquipmentResource>;
   patchEquipment(
     tenantId: string,
     itemId: string,
-    input: { name?: string; category?: string | null; themeIds?: readonly string[] }
+    input: { name?: string; category?: string | null; iconKey?: string | null; themeIds?: readonly string[] }
   ): Promise<EquipmentResource>;
   deleteEquipment(tenantId: string, itemId: string): Promise<void>;
   seedEquipment(record: EquipmentResource): Promise<void>;
@@ -74,12 +74,12 @@ export interface SettingsResourcesRepository {
   listDestinations(tenantId: string): Promise<DestinationResource[]>;
   getRegion(tenantId: string, regionId: string): Promise<RegionResource | null>;
   createRegion(tenantId: string, input: { name: string; country?: string }): Promise<RegionResource>;
-  createDestination(tenantId: string, input: { regionId: string; name: string; locationType?: string; altitudeM?: number | null }): Promise<DestinationResource>;
+  createDestination(tenantId: string, input: { regionId: string; name: string; locationType?: string; altitudeM?: number | null; typicalTrailDistanceKm?: number | null }): Promise<DestinationResource>;
   patchRegion(tenantId: string, itemId: string, input: { name?: string; country?: string | null; isActive?: boolean }): Promise<RegionResource>;
-  patchDestination(tenantId: string, itemId: string, input: { name?: string; regionId?: string; locationType?: string | null; isActive?: boolean }): Promise<DestinationResource>;
+  patchDestination(tenantId: string, itemId: string, input: { name?: string; regionId?: string; locationType?: string | null; altitudeM?: number | null; typicalTrailDistanceKm?: number | null; isActive?: boolean }): Promise<DestinationResource>;
   deleteRegion(tenantId: string, itemId: string): Promise<void>;
   deleteDestination(tenantId: string, itemId: string): Promise<void>;
-  patchLocationResource(tenantId: string, itemId: string, input: { name?: string; country?: string | null; regionId?: string; locationType?: string | null; isActive?: boolean }): Promise<RegionResource | DestinationResource>;
+  patchLocationResource(tenantId: string, itemId: string, input: { name?: string; country?: string | null; regionId?: string; locationType?: string | null; altitudeM?: number | null; typicalTrailDistanceKm?: number | null; isActive?: boolean }): Promise<RegionResource | DestinationResource>;
   deleteLocationResource(tenantId: string, itemId: string): Promise<void>;
   seedRegion(record: RegionResource): Promise<void>;
   seedDestination(record: DestinationResource): Promise<void>;
@@ -99,7 +99,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
 
   async createEquipment(
     tenantId: string,
-    input: { name: string; category?: string; themeIds?: readonly string[] }
+    input: { name: string; category?: string; iconKey?: string | null; themeIds?: readonly string[] }
   ): Promise<EquipmentResource> {
     const now = new Date().toISOString();
     const existing = await this.listEquipment(tenantId);
@@ -108,6 +108,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       tenantId,
       name: input.name,
       category: input.category ?? null,
+      iconKey: input.iconKey ?? null,
       themeIds: input.themeIds ?? [],
       sortOrder: existing.length,
       createdAt: now,
@@ -120,7 +121,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
   async patchEquipment(
     tenantId: string,
     itemId: string,
-    input: { name?: string; category?: string | null; themeIds?: readonly string[] }
+    input: { name?: string; category?: string | null; iconKey?: string | null; themeIds?: readonly string[] }
   ): Promise<EquipmentResource> {
     const current = equipmentStore.get(resourceKey(tenantId, itemId));
     if (current === undefined) {
@@ -130,6 +131,7 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       ...current,
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(input.iconKey !== undefined ? { iconKey: input.iconKey } : {}),
       ...(input.themeIds !== undefined ? { themeIds: [...input.themeIds] } : {}),
       updatedAt: new Date().toISOString(),
     };
@@ -409,7 +411,13 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
 
   async createDestination(
     tenantId: string,
-    input: { regionId: string; name: string; locationType?: string; altitudeM?: number | null }
+    input: {
+      regionId: string;
+      name: string;
+      locationType?: string;
+      altitudeM?: number | null;
+      typicalTrailDistanceKm?: number | null;
+    }
   ): Promise<DestinationResource> {
     const region = await this.getRegion(tenantId, input.regionId);
     if (region === null) {
@@ -427,7 +435,14 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       locationType: input.locationType ?? null,
       altitudeM:
         input.altitudeM !== undefined && input.altitudeM !== null && Number.isFinite(input.altitudeM)
-          ? input.altitudeM
+          ? Math.trunc(input.altitudeM)
+          : null,
+      typicalTrailDistanceKm:
+        input.typicalTrailDistanceKm !== undefined &&
+        input.typicalTrailDistanceKm !== null &&
+        Number.isFinite(input.typicalTrailDistanceKm) &&
+        input.typicalTrailDistanceKm > 0
+          ? Math.round(input.typicalTrailDistanceKm * 100) / 100
           : null,
       isActive: true,
       sortOrder: existing.length,
@@ -465,6 +480,8 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       name?: string;
       regionId?: string;
       locationType?: string | null;
+      altitudeM?: number | null;
+      typicalTrailDistanceKm?: number | null;
       isActive?: boolean;
     }
   ): Promise<DestinationResource> {
@@ -480,6 +497,24 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.regionId !== undefined ? { regionId: input.regionId } : {}),
       ...(input.locationType !== undefined ? { locationType: input.locationType } : {}),
+      ...(input.altitudeM !== undefined
+        ? {
+            altitudeM:
+              input.altitudeM !== null && Number.isFinite(input.altitudeM)
+                ? Math.trunc(input.altitudeM)
+                : null,
+          }
+        : {}),
+      ...(input.typicalTrailDistanceKm !== undefined
+        ? {
+            typicalTrailDistanceKm:
+              input.typicalTrailDistanceKm !== null &&
+              Number.isFinite(input.typicalTrailDistanceKm) &&
+              input.typicalTrailDistanceKm > 0
+                ? Math.round(input.typicalTrailDistanceKm * 100) / 100
+                : null,
+          }
+        : {}),
       ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
       updatedAt: new Date().toISOString(),
     };
@@ -515,6 +550,8 @@ export class InMemorySettingsResourcesRepository implements SettingsResourcesRep
       country?: string | null;
       regionId?: string;
       locationType?: string | null;
+      altitudeM?: number | null;
+      typicalTrailDistanceKm?: number | null;
       isActive?: boolean;
     }
   ): Promise<RegionResource | DestinationResource> {

@@ -18,21 +18,30 @@ export function OperatorBrand({ workspaceLabel, pluginId, displayName }: Operato
   const t = useTranslations("app");
   const usesExtendedCreateChrome = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId);
   const title = useTenantBrandTitle(displayName, workspaceLabel);
+  const tagline = usesExtendedCreateChrome ? t("denaliTagline") : t("operatorWorkspace");
 
   return (
-    <div data-testid={OPERATOR_NAV_TEST_IDS.brand} data-workspace-plugin={pluginId} className="space-y-1.5">
-      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-primary">
+    <div
+      data-testid={OPERATOR_NAV_TEST_IDS.brand}
+      data-operator-sidebar-brand
+      data-workspace-plugin={pluginId}
+      className="flex min-w-0 items-center gap-3"
+    >
+      <div
+        data-operator-sidebar-brand-mark
+        className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-sidebar-border bg-sidebar-accent shadow-sm"
+      >
         <TenantBrandMark
           pluginId={pluginId}
           workspaceLabel={title}
-          className="h-8 w-8 text-primary"
+          className="h-7 w-7 text-sidebar-primary"
           imageClassName="h-full w-full object-contain"
         />
       </div>
-      <p className="text-base font-semibold leading-tight">{title}</p>
-      <p className="text-xs text-muted-foreground">
-        {usesExtendedCreateChrome ? t("denaliTagline") : t("operatorWorkspace")}
-      </p>
+      <div className="min-w-0 flex-1 leading-tight">
+        <p className="truncate text-sm font-semibold text-sidebar-foreground">{title}</p>
+        <p className="truncate text-xs text-muted-foreground">{tagline}</p>
+      </div>
     </div>
   );
 }

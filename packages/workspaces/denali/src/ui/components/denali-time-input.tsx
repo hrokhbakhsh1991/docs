@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeClockTime } from "../adapters/datetime-format";
 import { toLocalizedDigits, type AppLocale } from "../adapters/i18n-format";
 import { cn } from "../utils/cn";
-import { splitClockValue } from "./time/time-picker-logic";
+import { resolveTimePickerDraft } from "./time/time-picker-logic";
 import { TimePickerPanel } from "./time/time-picker-panel";
 
 function ClockIcon({ className }: { readonly className?: string }) {
@@ -43,7 +43,7 @@ export type DenaliTimeInputProps = {
   readonly "aria-label"?: string;
 };
 
-/** Popover time picker (scroll columns) — mirrors localized date picker UX. */
+/** Popover time picker (scroll columns) — draft locally, commit on confirm. */
 export function DenaliTimeInput({
   id,
   value,
@@ -58,6 +58,7 @@ export function DenaliTimeInput({
   const locale = useLocale() as AppLocale;
   const t = useTranslations("common.calendar");
   const [open, setOpen] = useState(false);
+  const [draftTime, setDraftTime] = useState(() => resolveTimePickerDraft(value));
   const rootRef = useRef<HTMLDivElement>(null);
   const displayLabel = useMemo(() => {
     const normalized = normalizeClockTime(value.trim());
@@ -71,26 +72,47 @@ export function DenaliTimeInput({
     if (!open) {
       return;
     }
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
+    const handlePointerDown = (event: PointerEvent) => {
+      const root = rootRef.current;
+      if (root == null) {
+        return;
       }
+      const path = event.composedPath();
+      if (path.some((node) => node === root)) {
+        return;
+      }
+      setOpen(false);
     };
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
-  const handleChange = (next: string) => {
-    const normalized = normalizeClockTime(next);
-    onChange(normalized.length > 0 ? normalized : next);
+  const openPicker = () => {
+    setDraftTime(resolveTimePickerDraft(value));
+    setOpen(true);
+  };
+
+  const commitDraft = () => {
+    const normalized = normalizeClockTime(draftTime);
+    if (normalized.length > 0) {
+      onChange(normalized);
+    }
+    setOpen(false);
   };
 
   return (
-    <div ref={rootRef} className="relative">
+    <div
+      ref={rootRef}
+      className={cn(
+        "denali-time-picker-host",
+        appearance === "inline" && "denali-time-picker-host--inline",
+        appearance === "field" && "denali-time-picker-host--field"
+      )}
+    >
       <Button
         id={id}
         type="button"
-        variant="secondary"
+        variant={appearance === "inline" ? "ghost" : "secondary"}
         disabled={disabled}
         data-denali-time-picker
         data-denali-time-appearance={appearance}
@@ -99,31 +121,33 @@ export function DenaliTimeInput({
         aria-label={ariaLabel ?? t("pickTime")}
         aria-required={required || undefined}
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={(event) => {
+          event.stopPropagation();
+          openPicker();
+        }}
         className={cn(
           "denali-time-picker-trigger",
           appearance === "inline"
             ? "denali-time-picker-trigger--inline"
             : "denali-time-picker-trigger--field",
-          !displayLabel && "text-muted-foreground",
+          !displayLabel && "denali-time-picker-trigger--placeholder",
           className
         )}
       >
-        <ClockIcon className="denali-time-picker-trigger__icon size-4 shrink-0 opacity-70" />
-        <span className="truncate">{displayLabel ?? t("pickTime")}</span>
+        <ClockIcon className="denali-time-picker-trigger__icon" />
+        <span className="denali-time-picker-trigger__label">{displayLabel ?? t("pickTime")}</span>
       </Button>
       {open ? (
         <div
-          className={cn(
-            "absolute z-50 mt-1 w-auto rounded-md border bg-popover p-0 shadow-md",
-            appearance === "inline" ? "end-0" : "start-0"
-          )}
           data-denali-wizard-time-popover
+          onPointerDown={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         >
           <TimePickerPanel
-            value={splitClockValue(value).hours.length > 0 ? value : "09:00"}
-            onChange={handleChange}
-            onConfirm={() => setOpen(false)}
+            value={draftTime}
+            onChange={setDraftTime}
+            onConfirm={commitDraft}
           />
         </div>
       ) : null}

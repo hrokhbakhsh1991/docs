@@ -174,6 +174,21 @@ export function readDenaliDraftFieldValue(
   return undefined;
 }
 
+/** True when a canonical path should advance resume step inference (excludes template defaults). */
+export function shouldCountCanonicalPathForResumeInference(
+  canonicalPath: string,
+  value: unknown
+): boolean {
+  const path = canonicalPath.trim();
+  if (path.length === 0 || EMPTY_DRAFT_SKIP_PATHS.has(path)) {
+    return false;
+  }
+  if (path === "title" && isSeedTemplateTitle(value)) {
+    return false;
+  }
+  return true;
+}
+
 /** Resume wizard at saved step, or infer furthest step with user-entered data when saved index is 0. */
 export function resolveDenaliInitialStepIndex(
   draft: Readonly<Record<string, unknown>>,
@@ -202,9 +217,11 @@ export function resolveDenaliInitialStepIndex(
         if (path.length === 0) {
           return false;
         }
-        return hasNonEmptyCanonicalValue(
-          readDenaliDraftFieldValue(draft, path, canonicalToFormPath)
-        );
+        const value = readDenaliDraftFieldValue(draft, path, canonicalToFormPath);
+        if (!shouldCountCanonicalPathForResumeInference(path, value)) {
+          return false;
+        }
+        return hasNonEmptyCanonicalValue(value);
       });
     if (hasData) {
       furthestStepWithData = stepIndex;
@@ -212,6 +229,15 @@ export function resolveDenaliInitialStepIndex(
   }
 
   return furthestStepWithData;
+}
+
+/** Resume alias for draft envelope tests — delegates to {@link resolveDenaliInitialStepIndex}. */
+export function resolveDenaliWizardResumeStepIndex(
+  draft: Readonly<Record<string, unknown>>,
+  steps: readonly WizardResumeStepLike[],
+  savedStepIndex: number
+): number {
+  return resolveDenaliInitialStepIndex(draft, steps, savedStepIndex);
 }
 
 export function resolveDenaliInitialStepIndexFromHostInput(input: {

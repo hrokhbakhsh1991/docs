@@ -8,6 +8,8 @@ export const DENALI_IMPLEMENTED_COMPOSITE_IDS = [
   "denali.transport-mode",
   "denali.difficulty-level",
   "denali.elevation-gain",
+  "denali.destination-catalog-metric.peak-height",
+  "denali.destination-catalog-metric.trail-distance",
   "denali.gear",
   "denali.program-content",
   "denali.peak-experience",

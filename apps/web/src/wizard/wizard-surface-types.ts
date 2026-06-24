@@ -16,6 +16,7 @@ export type WizardCompositeFieldRenderProps = {
   readonly onDraftChange: (draft: TourWizardDraft) => void;
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
+  readonly wizardRuleEvalContext?: unknown;
 };
 
 export type WizardCompositeSurface = {
@@ -51,6 +52,9 @@ export type WizardReviewSurfaceRenderProps = {
   readonly onDraftChange: (draft: TourWizardDraft) => void;
   readonly reviewValidationIssues: readonly ValidationIssue[];
   readonly stepDescriptors: readonly WizardStepDescriptor[];
+  /** Content steps only — excludes the injected review step (INV-WIZ-002). */
+  readonly contentSteps: readonly RenderStepPlan[];
+  readonly onNavigateToStep?: (stepId: string) => void;
   readonly onFocusIssue: (stepId: string, path: string) => void;
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;

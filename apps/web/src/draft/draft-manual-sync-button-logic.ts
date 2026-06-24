@@ -15,7 +15,7 @@ export function resolveDraftManualSyncButtonView(status: DraftStatus): DraftManu
     case "SYNCING":
       return {
         action: "none",
-        labelKey: "savingDraft",
+        labelKey: "saveDraft",
         labelNamespace: "wizard",
         disabled: true,
       };

@@ -1,9 +1,12 @@
+import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel";
+
 import { isDevWebSessionAllowed } from "./auth-env";
+import { resolveClubSubdomainFromHost } from "./operator-admin-host";
 import {
-  isOperatorAdminHost,
-  resolveClubSubdomainFromHost,
-  resolveMultiLevelHost,
-} from "./resolve-multi-level-host";
+  normalizeHostHeader,
+  readPlatformRootDomainWeb,
+  readWebReservedHostLabels,
+} from "./platform-host-env";
 
 /** Phase 6.6 smoke — sync with `@app-tour/workspace-denali` DENALI_SMOKE_TENANT_ID. */
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
@@ -28,6 +31,11 @@ function mapSubdomainToTenantId(subdomain: string): string | null {
   return PHASE_43_HOST_TENANT_IDS[subdomain] ?? null;
 }
 
+/** Map ingress workspace label to seeded tenant UUID when known (production bind). */
+export function resolveTenantIdFromIngressLabel(label: string): string | null {
+  return mapSubdomainToTenantId(label.trim().toLowerCase());
+}
+
 /**
  * Dev-only: map multi-level and single-level localhost hosts to seeded tenant UUID.
  * Production ingress resolves tenant via auth — not host env alone.
@@ -37,7 +45,11 @@ export function resolveTenantIdFromDevHost(host: string): string | null {
     return null;
   }
 
-  const outcome = resolveMultiLevelHost(host);
+  const outcome = parseMultiLevelTenantHost(
+    normalizeHostHeader(host),
+    readPlatformRootDomainWeb(),
+    readWebReservedHostLabels()
+  );
   if (
     outcome.kind === "club_admin" ||
     outcome.kind === "club_portal" ||

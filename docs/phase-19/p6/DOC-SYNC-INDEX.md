@@ -1,9 +1,10 @@
 ```yaml
 pack: P6-denali-first-customer
-version: "2.1"
-status: COMPLETE
+version: "2.2-fast-close"
+status: CLOSED_FAST
+fast_close: p6-fast-close.yaml
 prerequisite: P5-B-N-016
-current_task: P6-4-N-008
+current_task: none
 nano_done: 58
 nano_total: 58
 exit_nano: P6-4-N-008
@@ -36,6 +37,8 @@ vertical_slice: ../platform-denali-vertical-slice.mdoc
 agent_navigator: ../AGENT-NAVIGATOR.md
 agent_snapshot: AGENT-CURRENT-PHASE.yaml
 implementation_truth: appendices/IMPLEMENTATION-TRUTH-P6.md
+remaining_checklist: p6-remaining-checklist.md
+fast_close: p6-fast-close.yaml
 traceability: appendices/TRACEABILITY-MATRIX-P6.md
 smoke_map: appendices/SMOKE-SCENARIO-MAP-P6.md
 e2e_runbook: runbooks/p6-e2e-smoke.md

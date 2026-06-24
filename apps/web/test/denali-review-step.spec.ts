@@ -35,6 +35,12 @@ describe("denali-review-step.spec.ts — Phase 11.7", () => {
 
   it("WEB-P11-7-06 review test ids are stable", () => {
     assert.equal(DENALI_REVIEW_STEP_TEST_IDS.panel, "denali-review-step");
+    assert.equal(DENALI_REVIEW_STEP_TEST_IDS.heroCover, "denali-review-hero-cover");
+    assert.equal(DENALI_REVIEW_STEP_TEST_IDS.photoGrid, "denali-review-photo-grid");
     assert.equal(DENALI_REVIEW_STEP_TEST_IDS.section("denali_basic"), "denali-review-section-denali_basic");
+    assert.equal(
+      DENALI_REVIEW_STEP_TEST_IDS.editSection("denali_basic"),
+      "denali-review-edit-denali_basic"
+    );
   });
 });

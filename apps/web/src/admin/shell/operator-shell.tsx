@@ -101,11 +101,14 @@ export function OperatorShell({
       ) : null}
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side={drawerSide} className="w-[min(100%,20rem)] p-0 md:hidden">
-          <SheetHeader className="border-b px-4 py-4 text-start">
+        <SheetContent
+          side={drawerSide}
+          className="flex h-full w-[min(100%,var(--shell-sidebar-width,16.5rem))] flex-col border-sidebar-border bg-sidebar p-0 text-sidebar-foreground md:hidden"
+        >
+          <SheetHeader className="shrink-0 border-b border-sidebar-border px-4 py-4 text-start">
             <OperatorSheetTitle />
           </SheetHeader>
-          <div className="p-4">
+          <div className="flex min-h-0 flex-1 flex-col px-3 py-4">
             <OperatorNav
               items={navItems}
               workspaceLabel={workspaceLabel}
@@ -117,12 +120,13 @@ export function OperatorShell({
         </SheetContent>
       </Sheet>
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex min-h-0 flex-1">
         <aside
-          className="hidden w-[17.5rem] shrink-0 border-e border-border/60 bg-card md:flex md:flex-col"
+          data-operator-sidebar
+          className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[var(--shell-sidebar-width,16.5rem)] shrink-0 self-start border-e border-sidebar-border bg-sidebar text-sidebar-foreground md:flex md:flex-col"
           aria-hidden={false}
         >
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+          <div className="flex min-h-0 flex-1 flex-col px-3 py-4">
             <OperatorNav
               items={navItems}
               workspaceLabel={workspaceLabel}

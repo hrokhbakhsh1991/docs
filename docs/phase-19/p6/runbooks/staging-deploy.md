@@ -26,9 +26,9 @@ Custom apex (optional): `denali.club` · `portal.denali.club` · `admin.denali.c
 
 ## Services
 
-| Service | Port (typical) | Notes |
-| ------- | -------------- | ----- |
-| `@apps/api` | 4000 | Postgres + RLS required |
+| Service | Port | Notes |
+| ------- | ---- | ----- |
+| `@apps/api` | **4000** local · **3001** VPS | See [P7-PORT-MATRIX.md](../../phase-20/p7/appendices/P7-PORT-MATRIX.md) |
 | `apps/marketing` | 3002 | `TOUR_OPS_API_URL` → API |
 | `apps/portal` | 3003 | public-auth + `/me` BFF |
 | `apps/web` | 3000 | operator admin |
@@ -66,4 +66,6 @@ Custom apex (optional): `denali.club` · `portal.denali.club` · `admin.denali.c
 5. `pnpm run p6:gate` in CI (`p6-denali-gate.yml` on PR)
 6. Optional: `workflow_dispatch` → `run_e2e_gate` / `run_staging_gate`
 
-See [platform-denali-vertical-slice.mdoc](../../platform-denali-vertical-slice.mdoc).
+See [platform-denali-vertical-slice.mdoc](../../phase-19/platform-denali-vertical-slice.mdoc).
+
+**P7:** [p7-staging-gate.md](../../phase-20/p7/runbooks/p7-staging-gate.md) · `pnpm run p7:staging-gate`

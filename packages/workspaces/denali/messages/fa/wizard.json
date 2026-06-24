@@ -17,6 +17,7 @@
     "tripDetails": {
       "overview": {
         "peakHeight": "ارتفاع قله (متر)",
+        "trailDistanceKm": "مسافت مسیر (کیلومتر)",
         "customServiceLabels": "برچسب سرویس‌های سفارشی",
         "nonAttendanceDetails": "جزئیات عدم حضور"
       },
@@ -65,7 +66,14 @@
       "fitnessLevel": "سطح آمادگی بدنی",
       "sportsInsuranceRequired": "بیمه ورزشی / کوهنوردی شخصی (شرکت‌کننده)",
       "fitnessPrerequisiteText": "پیش‌نیاز آمادگی / تجربه",
-      "minRequiredPeaks": "حداقل قله‌های صعودشده (تایید خودکار)"
+      "minRequiredPeaks": "حداقل قله‌های صعودشده (تایید خودکار)",
+      "medicationsRequired": "دریافت داروهای مصرفی در ثبت‌نام",
+      "allergiesRequired": "دریافت حساسیت‌ها (غذا، دارو، محیط)",
+      "dietaryRequirementsRequired": "دریافت محدودیت‌های رژیم غذایی",
+      "medicalDeclarationRequired": "اظهارنامه سلامت / شرایط پزشکی",
+      "emergencyContactRequired": "تماس اضطراری شرکت‌کننده",
+      "physicalLimitationsRequired": "محدودیت‌های جسمی / روانی",
+      "evacuationInsuranceRequired": "بیمه اخلاء / درمانی اضطراری"
     },
     "transport": {
       "mode": "نحوه حمل‌ونقل",
@@ -85,8 +93,10 @@
     "policies": {
       "cancellationDeadlineHours": "مهلت لغو (ساعت قبل از حرکت)",
       "cancellationPenaltyPercentage": "درصد جریمه داخل مهلت",
-      "policiesText": "قوانین و توضیحات (اختیاری)"
-    }
+      "policiesText": "قوانین و توضیحات (اختیاری)",
+      "medicalFitnessDeclarationRequired": "الزام اظهار تناسب پزشکی در ثبت‌نام"
+    },
+    "publishStatus": "وضعیت انتشار"
   },
   "fieldKinds": {
     "text": "متن",
@@ -301,15 +311,14 @@
       }
     },
     "socialMedia": {
-      "helper": "محل اطلاع‌رسانی تور را مشخص کنید. برای تلگرام فقط نام کانال کافی است؛ برای سایر شبکه‌ها لینک کامل لازم است.",
+      "helper": "محل اطلاع‌رسانی و گروه شرکت‌کنندگان را مشخص کنید.",
       "telegram": "تلگرام",
-      "other": "سایر",
-      "telegramFieldLabel": "نام کانال یا یوزرنیم",
-      "urlFieldLabel": "لینک",
-      "telegramPlaceholder": "@mychannel",
+      "other": "سایر پلتفرم‌ها",
+      "urlFieldLabel": "لینک گروه",
       "urlPlaceholder": "https://instagram.com/...",
-      "telegramHint": "نیازی به وارد کردن لینک کامل نیست — فقط @نام‌کاربری یا نام کانال.",
-      "urlHint": "لینک کامل با https:// وارد کنید.",
+      "telegramAutoInfo": "با انتخاب تلگرام، لینک گروه پس از ایجاد تور به‌صورت خودکار ساخته می‌شود — نیازی به وارد کردن لینک نیست.",
+      "reviewTelegramAuto": "تلگرام — ایجاد خودکار گروه",
+      "urlHint": "لینک کامل گروه را با https:// وارد کنید.",
       "invalidTelegram": "نام کانال یا یوزرنیم تلگرام معتبر نیست.",
       "invalidUrl": "لینک باید با http:// یا https:// شروع شود."
     },
@@ -319,6 +328,10 @@
       "empty": "هنوز راهنمایی ثبت نشده. در بخش کاربران، برای هر نفر برچسب راهنما را فعال کنید.",
       "openUsers": "رفتن به کاربران",
       "selectedCount": "{count, number} نفر انتخاب شده",
+      "expandPicker": "ویرایش راهنمایان",
+      "collapsePicker": "بستن لیست",
+      "overflowCount": "+{count, number} نفر دیگر",
+      "removeLeader": "حذف {name}",
       "leaderBadge": "راهنما",
       "adminBadge": "مدیریت",
       "searchLabel": "جستجوی راهنما",
@@ -335,18 +348,70 @@
       "loading": "در حال بارگذاری تجهیزات…",
       "empty": "تجهیزاتی برای تم‌های فعلی یافت نشد. از تنظیمات → تجهیزات مورد اضافه کنید یا تم دیگری انتخاب کنید.",
       "openEquipment": "رفتن به تجهیزات",
+      "allThemes": "همه تم‌ها",
       "selectedCount": "{count, number} مورد انتخاب شده",
       "required": "الزامی",
       "optional": "اختیاری",
       "requirementGroup": "الزامیت {name} برای شرکت‌کنندگان",
       "searchLabel": "جستجوی تجهیزات",
       "searchPlaceholder": "نام تجهیز…",
-      "searchEmpty": "تجهیزی با این عبارت پیدا نشد."
+      "searchEmpty": "تجهیزی با این عبارت پیدا نشد.",
+      "iconPickerLabel": "نماد تجهیزات",
+      "iconPickerHelper": "نماد در ویزارد ساخت تور و فهرست تنظیمات همین‌طور نمایش داده می‌شود.",
+      "iconPreviewPlaceholder": "نام تجهیز",
+      "iconSearchLabel": "جستجوی نماد",
+      "iconSearchPlaceholder": "نام نماد یا تجهیز…",
+      "iconSuggestion": "پیشنهاد: {label}",
+      "iconSuggestionApply": "اعمال پیشنهاد",
+      "iconUseInitials": "بدون نماد (حروف اول نام)",
+      "iconCategoriesLabel": "دسته نمادها",
+      "iconCategories": {
+        "hiking": "کوهنوردی",
+        "camp": "کمپ",
+        "clothing": "لباس",
+        "safety": "ایمنی",
+        "foodWater": "آب و غذا",
+        "general": "عمومی"
+      },
+      "icons": {
+        "backpack": "کوله‌پشتی",
+        "trekking_poles": "عصای پیاده‌روی",
+        "boot": "کفش کوهنوردی",
+        "mountain": "کوه",
+        "map": "نقشه",
+        "compass": "قطب‌نما",
+        "tent": "چادر",
+        "sleeping_bag": "کیسه خواب",
+        "flashlight": "چراغ قوه",
+        "gloves": "دستکش",
+        "jacket": "کاپشن",
+        "glasses": "عینک",
+        "helmet": "کلاه ایمنی",
+        "first_aid": "کمک‌های اولیه",
+        "life_buoy": "جلیقه نجات",
+        "water_bottle": "بطری آب",
+        "utensils": "قاشق و چنگال",
+        "rope": "طناب",
+        "tool": "ابزار",
+        "camera": "دوربین",
+        "umbrella": "چتر",
+        "sun": "ضد آفتاب"
+      }
     },
     "destination": {
       "loadingPlaceholder": "در حال بارگذاری مقصدها…",
       "selectPlaceholder": "انتخاب مقصد",
+      "searchLabel": "جستجوی مقصد",
+      "searchPlaceholder": "نام مقصد را بنویسید…",
+      "searchEmpty": "مقصدی با این عبارت پیدا نشد.",
       "empty": "مقصدی نیست. از تنظیمات → مقصدها و مناطق، مقصد اضافه کنید."
+    },
+    "destinationCatalogMetric": {
+      "digitsPlaceholder": "مثلاً ۳۹۶۲",
+      "decimalPlaceholder": "مثلاً ۵٫۵",
+      "lockedFromSettings": "این مقدار از کاتالوگ مقصد (تنظیمات) ثبت شده و در ویزارد قابل ویرایش نیست.",
+      "selectDestinationFirst": "ابتدا مقصد را انتخاب کنید.",
+      "savingToSettings": "در حال ذخیره در کاتالوگ مقصد…"
     },
     "programContent": {
       "helper": "یک یا چند تم برای دسته‌بندی و نمایش تور انتخاب کنید.",
@@ -391,6 +456,7 @@
     "photoCount": "{count, number} عکس",
     "dayLabel": "روز {day, number}",
     "primaryGathering": "اصلی",
+    "editSection": "ویرایش",
     "stepValidationHeading": "قبل از ادامه این موارد را اصلاح کنید",
     "validationHeading": "قبل از ایجاد تور این موارد را اصلاح کنید",
     "validationCount": "{count, number} مورد نیاز به اصلاح",

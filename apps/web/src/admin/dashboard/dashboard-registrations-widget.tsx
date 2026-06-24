@@ -1,12 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DashboardWidgetCard,
+  DashboardWidgetFooterLink,
+} from "@/admin/patterns/dashboard-widget-card";
 import {
   DASHBOARD_WIDGETS_TEST_IDS,
   dashboardPendingBookingsHref,
@@ -74,50 +76,50 @@ export function DashboardRegistrationsWidget({
   const queueChips = useMemo(() => selectRegistrationQueueChips(summary), [summary]);
 
   return (
-    <Card data-denali-surface="card" data-testid={DASHBOARD_WIDGETS_TEST_IDS.registrations} className="flex flex-col shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t("registrations.title")}</CardTitle>
-        <CardDescription>
-          {loading ? t("registrations.loading") : t("registrations.pendingCount", { count: summary.pending })}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="mt-auto space-y-4">
-        {loading ? (
-          <div className="space-y-2">
-            <DenaliSkeleton className="h-8 w-full" />
-            <DenaliSkeleton className="h-8 w-full" />
-          </div>
-        ) : null}
-        {!loading && error ? (
-          <p className="text-sm text-destructive" role="alert">
-            {resolveDashboardErrorMessage(tErrors, error)}
-          </p>
-        ) : null}
-        {!loading && !error ? (
-          <ul className="space-y-2">
-            {queueChips.length === 0 ? (
-              <li>
-                <DenaliEmptyState description={t("registrations.empty")} icon="trees" />
-              </li>
-            ) : (
-              queueChips.map((chip) => (
-                <li
-                  key={chip.tourId}
-                  className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"
-                >
-                  <span className="truncate">{chip.tourTitle}</span>
-                  <span className="shrink-0 font-medium">
-                    {t("registrations.pendingOnTour", { count: chip.pendingCount })}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        ) : null}
-        <Link href={dashboardPendingBookingsHref()} className="text-sm text-primary hover:underline">
+    <DashboardWidgetCard
+      testId={DASHBOARD_WIDGETS_TEST_IDS.registrations}
+      title={t("registrations.title")}
+      description={
+        loading ? t("registrations.loading") : t("registrations.pendingCount", { count: summary.pending })
+      }
+      footer={
+        <DashboardWidgetFooterLink href={dashboardPendingBookingsHref()}>
           {t("registrations.reviewPending")}
-        </Link>
-      </CardContent>
-    </Card>
+        </DashboardWidgetFooterLink>
+      }
+    >
+      {loading ? (
+        <div className="space-y-2">
+          <DenaliSkeleton className="h-11 w-full" />
+          <DenaliSkeleton className="h-11 w-full" />
+        </div>
+      ) : null}
+      {!loading && error ? (
+        <p className="text-sm text-destructive" role="alert">
+          {resolveDashboardErrorMessage(tErrors, error)}
+        </p>
+      ) : null}
+      {!loading && !error ? (
+        <ul className="flex flex-1 flex-col gap-2">
+          {queueChips.length === 0 ? (
+            <li className="flex flex-1 items-center">
+              <DenaliEmptyState description={t("registrations.empty")} icon="trees" />
+            </li>
+          ) : (
+            queueChips.map((chip) => (
+              <li
+                key={chip.tourId}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-sm"
+              >
+                <span className="min-w-0 flex-1 truncate text-start">{chip.tourTitle}</span>
+                <span className="shrink-0 text-end text-xs font-medium tabular-nums sm:text-sm">
+                  {t("registrations.pendingOnTour", { count: chip.pendingCount })}
+                </span>
+              </li>
+            ))
+          )}
+        </ul>
+      ) : null}
+    </DashboardWidgetCard>
   );
 }

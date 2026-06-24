@@ -1,0 +1,124 @@
+# P8 — Sole AI boot manifest (T0 entry)
+# Authority: AGENT-START.md · p8-app-fit.md
+
+manifest_id: P8-BOOT-MANIFEST
+pack_version: "1.0"
+sole_entry: docs/phase-21/AGENT-START.md
+fail_token: P8_FAIL
+machine_snapshot: docs/phase-21/AGENT-CURRENT-PHASE.yaml
+implementation_truth: appendices/P8-IMPLEMENTATION-TRUTH.md
+anti_hollow: appendices/P8-ANTI-HOLLOW-CONTRACT.md
+verification_commands: appendices/P8-VERIFICATION-COMMANDS.yaml
+turn_schema: appendices/P8-AGENT-TURN-SCHEMA.md
+execution_discipline: appendices/P8-EXECUTION-DISCIPLINE.md
+deprecated: appendices/P8-DEPRECATED-ENTRYPOINTS.md
+app_fit: ../p8-app-fit.md
+alignment: ../../POST-P7-PACK-ALIGNMENT.md
+
+current_task: P8-0-N-001
+nano_total: 14
+
+prerequisite:
+  command: pnpm run p7:gate
+  expect_token: P7_DENALI_DELIVERY_GATE_OK
+  note: "P7 behavioral complete OR p7:gate green before P8 code"
+
+boot_sequence_T0:
+  - step: 0
+    action: READ
+    path: appendices/P8-BOOT-MANIFEST.yaml
+    rule: "Assert sole_entry — do not boot from deprecated list"
+  - step: 1
+    action: READ
+    path: ../p8-app-fit.md
+    rule: "Know P8 vs P9/P10 scope — no TLS · no guest package · no web public-auth removal"
+  - step: 2
+    action: READ
+    path: appendices/P8-IMPLEMENTATION-TRUTH.md
+    rule: "profile_a_proof / profile_b_proof != doc complete"
+  - step: 3
+    action: READ
+    path: appendices/P8-ANTI-HOLLOW-CONTRACT.md
+    rule: "Know proof tiers and forbidden shortcuts"
+  - step: 4
+    action: READ
+    path: appendices/P8-EXECUTION-DISCIPLINE.md
+    rule: "Wave A before B — no P9/P10 items"
+  - step: 5
+    action: READ
+    path: AGENT-CURRENT-PHASE.yaml
+    rule: "current_task authoritative"
+  - step: 6
+    action: RUN
+    command: pnpm run p7:gate
+    expect_exit: 0
+    on_fail: P8_FAIL
+    rule: "P7 regression before P8 work"
+  - step: 7
+    action: DETECT_NANO
+    algorithm: detect_current_nano
+  - step: 8
+    action: LOAD
+    path: "appendices/P8-VERIFICATION-COMMANDS.yaml#{current_nano}"
+    rule: "T1 nano scope only"
+
+forbidden_T0:
+  - path: docs/phase-22/p9-app-fit.md
+    reason: "P9 blocked until P8 exit — do not implement P9 in P8 turn"
+  - path: docs/phase-23/p10-app-fit.md
+    reason: "P10 blocked until P9 exit"
+  - path: docs/phase-21/p8-ingress-session-env-audit.md
+    reason: "Audit reference only — not sole boot (no verify keys per nano)"
+  - action: implement_guest_surface_host
+    reason: "P9 — forbidden in P8"
+  - action: remove_web_public_auth
+    reason: "P9 — forbidden in P8"
+  - action: add_caddy_tls
+    reason: "P10 — forbidden in P8"
+
+gate_chain:
+  - id: DEV_STATIC
+    command: pnpm run p8:gate
+    expect_token: P8_PLATFORM_SURFACE_GATE_OK
+    proof_tier: DEV_STATIC
+  - id: PROFILE_A
+    command: node scripts/smoke-p6-host-bind.mjs
+    requires_env: [TOUR_OPS_API_URL]
+    expect_token: P6_HOST_BIND_SMOKE_OK
+    proof_tier: PROFILE_A
+  - id: PROFILE_B
+    command: TOUR_OPS_API_URL=http://127.0.0.1:3001 pnpm run p7:staging-verify
+    expect_token: P7_STAGING_VERIFY_OK
+    proof_tier: PROFILE_B
+  - id: REGRESSION
+    command: pnpm run p6:gate && pnpm run p7:gate
+    proof_tier: REGRESSION
+
+execution_order:
+  - P8-0-N-001
+  - P8-0-N-002
+  - P8-0-N-003
+  - P8-0-N-004
+  - P8-0-N-005
+  - P8-1-N-001
+  - P8-1-N-002
+  - P8-1-N-003
+  - P8-1-N-004
+  - P8-2-N-001
+  - P8-2-N-002
+  - P8-2-N-004
+  - P8-3-N-001
+  - P8-3-N-002
+
+wave_map:
+  A: [P8-0-N-001, P8-0-N-002, P8-1-N-001, P8-1-N-002, P8-1-N-004, P8-2-N-001]
+  B: [P8-0-N-003, P8-0-N-004, P8-0-N-005, P8-1-N-003, P8-2-N-002, P8-2-N-004]
+  C: [P8-3-N-001, P8-3-N-002]
+
+exit_requires:
+  profile_a: ">=9 ingress/session/env"
+  profile_b_session_cap: 8
+  profile_b_ingress: ">=8"
+  env: ">=9"
+  p8_gate: green
+  p6_p7_regression: green

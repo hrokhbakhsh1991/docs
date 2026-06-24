@@ -7,7 +7,7 @@ import {
 import {
   normalizeHostHeader,
   readPlatformRootDomainWeb,
-} from "@/tenant/resolve-multi-level-host";
+} from "@/tenant/platform-host-env";
 
 /** Platform Control Center host — `admin.{root}` only (not `{club}.admin.{root}`). */
 export function readPlatformRootDomainFromEnv(): string {

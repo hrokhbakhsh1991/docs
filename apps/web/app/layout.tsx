@@ -10,12 +10,8 @@ import { intlFormatsForLocale } from "@/i18n/intl-formats";
 import { isAppLocale, resolveTextDirection, routing } from "@/i18n/routing";
 import { AppProviders } from "@/providers/app-providers";
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
-import {
-  isPublicCatalogPath,
-  resolvePublicCatalogRootSessionForHost,
-} from "@/tenant/resolve-public-catalog-bootstrap.server";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
-import { validateSessionToken } from "@/auth/validate-session-token";
+import { validateSessionToken } from "@app-tour/session-client";
 import {
   resolveBootstrapAppSession,
   resolveBootstrapAppSessionForHostAsync,
@@ -36,10 +32,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const [headerList, localeRaw, messages] = await Promise.all([headers(), getLocale(), getMessages()]);
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const host = headerList.get("host") ?? "localhost:3000";
-  const pathname = headerList.get("x-pathname") ?? "";
-  let resolved = isPublicCatalogPath(pathname)
-    ? await resolvePublicCatalogRootSessionForHost(host)
-    : await resolveBootstrapAppSessionForHostAsync(host);
+  let resolved = await resolveBootstrapAppSessionForHostAsync(host);
 
   const cookieStore = await cookies();
   const sessionValidation = validateSessionToken(cookieStore.get(SESSION_TOKEN_COOKIE)?.value);

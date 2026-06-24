@@ -17,6 +17,7 @@ export type DenaliFlatEditPatchFailure = {
   readonly kind: "not-ready" | "validation" | "patch-config" | "update-action";
   readonly code: string;
   readonly status?: number;
+  readonly message?: string;
   readonly validationIssues?: readonly ValidationIssue[];
 };
 
@@ -41,7 +42,7 @@ export async function runDenaliFlatEditPatch(input: {
     payload: UpdateTourPayload
   ) => Promise<
     | { readonly ok: true; readonly rowVersion: number }
-    | { readonly ok: false; readonly status: number; readonly code: string }
+    | { readonly ok: false; readonly status: number; readonly code: string; readonly message: string }
   >;
 }): Promise<
   | { readonly ok: true; readonly rowVersion: number; readonly patchIntent: DenaliFlatEditPatchIntent }
@@ -116,6 +117,7 @@ export async function runDenaliFlatEditPatch(input: {
         kind: "update-action",
         code: result.code,
         status: result.status,
+        message: result.message,
       },
     };
   }

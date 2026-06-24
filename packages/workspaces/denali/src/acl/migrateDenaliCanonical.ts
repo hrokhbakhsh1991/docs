@@ -2,6 +2,7 @@ import { createCanonicalDocument, type CanonicalDocument } from "@app-tour/works
 
 import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
 import { DENALI_CANONICAL_OBJECT_ROOTS, buildDenaliWizardRoots } from "../denali-plugin-adapter";
+import { stripSocialMediaLinkForSubmit } from "../ui/logic/denali-social-media-link-logic";
 import {
   normalizeLegacyTripDetails,
   type LegacyTripDetailsBlob,
@@ -92,7 +93,12 @@ export function projectDenaliWizardFormToCanonicalIngressData(
 export function prepareDenaliSubmitArtifact(
   form: Record<string, unknown>
 ): Record<string, unknown> {
-  return projectDenaliWizardFormToCanonicalIngressData(form);
+  const data = projectDenaliWizardFormToCanonicalIngressData(form);
+  const link = readPath(data, "socialMediaLink");
+  if (typeof link === "string") {
+    writePath(data, "socialMediaLink", stripSocialMediaLinkForSubmit(link));
+  }
+  return data;
 }
 
 function projectLegacyFormToCanonicalData(

@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@app-tour/ui-primitives/input";
+
 import type { CreateClubDraft, WorkspaceOption } from "./use-create-club-wizard";
 
 export type StepIdentityProps = {
@@ -16,7 +18,7 @@ export function StepIdentity({ draft, workspaces, onChange, error }: StepIdentit
         <label htmlFor="club-display-name" className="mb-1 block text-sm font-medium">
           Display name
         </label>
-        <input
+        <Input
           id="club-display-name"
           className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
           value={draft.displayName}
@@ -28,7 +30,7 @@ export function StepIdentity({ draft, workspaces, onChange, error }: StepIdentit
         <label htmlFor="club-subdomain" className="mb-1 block text-sm font-medium">
           Subdomain
         </label>
-        <input
+        <Input
           id="club-subdomain"
           className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
           value={draft.subdomain}

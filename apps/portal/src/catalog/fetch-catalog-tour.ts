@@ -5,11 +5,16 @@ import { resolveTourOpsApiBaseUrl } from "../env";
 export type PortalCatalogTour = {
   readonly id: string;
   readonly title: string;
+  readonly policiesText?: string | null;
 };
 
 type CatalogDetailResponse = {
   readonly success: boolean;
-  readonly data?: { readonly id?: string; readonly title?: string };
+  readonly data?: {
+    readonly id?: string;
+    readonly title?: string;
+    readonly policiesText?: string | null;
+  };
 };
 
 export async function fetchCatalogTour(input: {
@@ -34,5 +39,5 @@ export async function fetchCatalogTour(input: {
   if (data?.id === undefined) {
     return null;
   }
-  return { id: data.id, title: data.title ?? "Tour" };
+  return { id: data.id, title: data.title ?? "Tour", policiesText: data.policiesText ?? null };
 }

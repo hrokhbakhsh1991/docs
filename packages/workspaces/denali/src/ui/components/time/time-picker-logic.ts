@@ -45,3 +45,12 @@ export function joinClockParts(hours: string, minutes: string): string {
   const mm = snapMinuteToPickerStep(minutes);
   return normalizeClockTime(`${hh}:${mm}`);
 }
+
+/** Panel seed while popover is open — snaps minutes to picker step. */
+export function resolveTimePickerDraft(value: string, fallback = "09:00"): string {
+  const { hours, minutes } = splitClockValue(value);
+  if (hours.length === 0) {
+    return normalizeClockTime(fallback) || fallback;
+  }
+  return joinClockParts(hours, minutes);
+}

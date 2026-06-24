@@ -9,6 +9,10 @@ export const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-00000000021
 
 export const OPERATOR_SMOKE_PUBLISHED_TOUR_TITLE = "North Ridge Trek" as const;
 
+/** Stable marker for P7-1-N-008 staging/catalog probes. */
+export const OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT =
+  "P7 staging: cancel 48h before departure for full refund." as const;
+
 export function buildOperatorSmokePublishedTourCanonical(): CanonicalDocument {
   return {
     schemaVersion: 1,
@@ -63,6 +67,11 @@ export function buildOperatorSmokePublishedTourCanonical(): CanonicalDocument {
           day: 1,
         },
       ],
+      policies: {
+        policiesText: OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
+        cancellationDeadlineHours: 48,
+        cancellationPenaltyPercentage: 20,
+      },
       basics: { title: OPERATOR_SMOKE_PUBLISHED_TOUR_TITLE },
       details: { summary: "Operator smoke seed tour" },
     },

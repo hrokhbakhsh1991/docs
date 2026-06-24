@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@app-tour/ui-primitives/input";
+
 import type { CreateClubDraft } from "./use-create-club-wizard";
 
 export type StepOwnerProps = {
@@ -15,7 +17,7 @@ export function StepOwner({ draft, onChange, error }: StepOwnerProps) {
         <label htmlFor="club-owner-phone" className="mb-1 block text-sm font-medium">
           Owner phone
         </label>
-        <input
+        <Input
           id="club-owner-phone"
           className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
           value={draft.ownerPhone}
@@ -29,7 +31,7 @@ export function StepOwner({ draft, onChange, error }: StepOwnerProps) {
         <label htmlFor="club-owner-note" className="mb-1 block text-sm font-medium">
           Owner note
         </label>
-        <input
+        <Input
           id="club-owner-note"
           className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
           value={draft.ownerNameNote}

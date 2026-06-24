@@ -9,14 +9,15 @@ import { expect, type Page } from "@playwright/test";
 
 import { SESSION_TOKEN_COOKIE } from "../../src/auth/build-session-cookie";
 
-/** Sync with apps/api `.env.local` `OPERATOR_OWNER_MOBILE` (Denali dev owner). */
-export const OPERATOR_OWNER_MOBILE = "+989121000001";
+/** Sync with `OPERATOR_SMOKE.ownerMobile` / staging seed (override via env on VPS). */
+export const OPERATOR_OWNER_MOBILE =
+  process.env.OPERATOR_OWNER_MOBILE?.trim() || "+15550001001";
 export const OPERATOR_ADMIN_MOBILE = "+15550001002";
 export const OPERATOR_MEMBER_MOBILE = "+15550001003";
 export const OPERATOR_MEMBER_DISPLAY_NAME = "Smoke Member";
 export const OPERATOR_ADMIN_DISPLAY_NAME = "Smoke Admin";
 export const OPERATOR_SMOKE_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000102";
-export const OPERATOR_DEV_OTP = "1234";
+export const OPERATOR_DEV_OTP = process.env.OPERATOR_DEV_OTP?.trim() || "1234";
 export const OPERATOR_INVITEE_MOBILE = "+15550008803";
 
 function readRequestCookieDomain(page: Page): string {

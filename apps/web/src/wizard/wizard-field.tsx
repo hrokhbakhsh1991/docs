@@ -216,6 +216,7 @@ export function WizardField({
   onDraftChange,
   wizardSessionId,
   workspaceFormProfile,
+  wizardRuleEvalContext,
   compositeSurfaceId,
   fieldLabelSurfaceId,
   translateWorkspaceMessage,
@@ -229,6 +230,7 @@ export function WizardField({
   readonly onDraftChange?: (draft: TourWizardDraft) => void;
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
+  readonly wizardRuleEvalContext?: unknown;
   readonly compositeSurfaceId?: string;
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;
@@ -253,6 +255,7 @@ export function WizardField({
         onDraftChange,
         wizardSessionId,
         workspaceFormProfile,
+        wizardRuleEvalContext,
       });
     }
     if (field.kind === "composite" || field.fieldId.startsWith("denali.")) {

@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
-import { getPrisma } from "../db/prisma";
+import { getPrisma, getPrismaAdmin } from "../db/prisma";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import type {
   BookingOutboxRecord,
@@ -109,7 +109,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   async getById(id: string): Promise<BookingRecord | null> {
-    const row = await getPrisma().operatorRegistration.findUnique({ where: { id } });
+    // Primary-key lookup before caller authz (e.g. member receipt) — app pool has NOBYPASSRLS
+    // and queries outside withTenantRls see zero rows on Postgres staging.
+    const row = await getPrismaAdmin().operatorRegistration.findUnique({ where: { id } });
     if (row === null) {
       return null;
     }

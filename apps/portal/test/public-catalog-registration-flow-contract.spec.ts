@@ -70,4 +70,10 @@ describe("public-catalog-registration-flow-contract — P6-1 OTP", () => {
     assert.match(flow, /phoneHint === "new"/);
     assert.match(faMessages, /کاربر جدید/);
   });
+
+  it("OTP-08 intake shows tour policies when catalog provides policiesText", () => {
+    assert.match(flow, /data-tour-policies-text/);
+    assert.match(flow, /tourPoliciesText/);
+    assert.match(faMessages, /قوانین و شرایط/);
+  });
 });

@@ -1,22 +1,31 @@
-import { fetchPublicTenantContextForHost } from "./fetch-public-tenant-context";
+import {
+  fetchPublicTenantContextForHost,
+  resolveTenantIdFromDevHost,
+} from "@app-tour/guest-surface-host";
+
+import { assertGuestBffProductionConfig, resolveTourOpsApiBaseUrl } from "../env";
 import {
   DEFAULT_MARKETING_SITE_SURFACES,
+  normalizeMarketingSiteSurfaces,
   resolveDevMarketingSiteSurfaces,
   type MarketingSiteSurfaces,
 } from "./marketing-site-surfaces";
-import { resolveTenantIdFromDevHost } from "./resolve-host-tenant";
 
 /** Guest-safe site surface flags for marketing shell (P4-C). */
 export async function resolveMarketingSiteSurfacesForHost(
   host: string
 ): Promise<MarketingSiteSurfaces> {
-  if (resolveTenantIdFromDevHost(host) !== null) {
+  if (resolveTenantIdFromDevHost(host, "marketing") !== null) {
     return resolveDevMarketingSiteSurfaces();
   }
 
-  const publicContext = await fetchPublicTenantContextForHost(host);
+  const publicContext = await fetchPublicTenantContextForHost(host, {
+    apiBaseUrl: resolveTourOpsApiBaseUrl(),
+    onBeforeFetch: assertGuestBffProductionConfig,
+    nextRevalidate: 300,
+  });
   if (publicContext?.siteSurfaces !== undefined) {
-    return publicContext.siteSurfaces;
+    return normalizeMarketingSiteSurfaces(publicContext.siteSurfaces);
   }
 
   return DEFAULT_MARKETING_SITE_SURFACES;

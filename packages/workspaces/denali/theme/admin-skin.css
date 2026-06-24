@@ -64,8 +64,63 @@ body[data-workspace-plugin="denali"] {
   --sidebar-accent: var(--denali-mist-100);
   --sidebar-accent-foreground: var(--denali-forest-700);
   --sidebar-border: #dce5dc;
+  --shell-sidebar-width: 16.5rem;
 
   --shadow-card: var(--denali-shadow-card);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-sidebar] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--sidebar) 88%, var(--denali-mist-100)) 0%,
+    var(--sidebar) 28%,
+    var(--sidebar) 100%
+  );
+  box-shadow: inset -1px 0 0 color-mix(in oklch, var(--sidebar-border) 80%, transparent);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-sidebar-brand-mark] {
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklch, var(--sidebar-primary) 14%, var(--sidebar-accent)),
+    var(--sidebar-accent)
+  );
+}
+
+body[data-workspace-plugin="denali"] [data-operator-nav-group-label] {
+  color: color-mix(in oklch, var(--sidebar-foreground) 52%, transparent);
+  letter-spacing: 0.1em;
+}
+
+body[data-workspace-plugin="denali"] [data-operator-nav-link][aria-current="page"] {
+  border-inline-start: 3px solid var(--sidebar-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-nav-icon][data-active="true"] {
+  box-shadow: 0 1px 3px rgb(15 118 110 / 0.28);
+}
+
+html.dark:has(body[data-workspace-plugin="denali"]) [data-operator-sidebar],
+body[data-workspace-plugin="denali"] .theme-dark [data-operator-sidebar] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--sidebar) 92%, #242c24) 0%,
+    var(--sidebar) 30%,
+    var(--sidebar) 100%
+  );
+}
+
+html.dark:has(body[data-workspace-plugin="denali"]) [data-operator-nav-icon][data-active="true"],
+body[data-workspace-plugin="denali"] .theme-dark [data-operator-nav-icon][data-active="true"] {
+  box-shadow: 0 1px 4px rgb(94 234 212 / 0.35);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-dashboard-grid] [data-denali-surface="card"] {
+  border-color: color-mix(in oklch, var(--sidebar-border) 65%, var(--color-border-default));
+}
+
+body[data-workspace-plugin="denali"] [data-dashboard-widget-footer] a {
+  color: var(--sidebar-primary);
 }
 
 body[data-workspace-plugin="denali"] [data-denali-empty-state] {
@@ -99,14 +154,14 @@ body[data-workspace-plugin="denali"] [data-denali-empty-state] [data-denali-empt
 }
 
 body[data-workspace-plugin="denali"] [data-operator-nav-cta] {
-  position: sticky;
-  bottom: 0;
+  position: relative;
   z-index: 1;
-  padding-top: var(--space-2, 0.5rem);
+  padding-top: var(--space-3, 0.75rem);
+  border-top: 1px solid color-mix(in oklch, var(--sidebar-border) 70%, transparent);
   background: linear-gradient(
     to top,
-    var(--color-bg-surface) 70%,
-    color-mix(in oklch, var(--color-bg-surface) 0%, transparent)
+    var(--sidebar) 75%,
+    color-mix(in oklch, var(--sidebar) 0%, transparent)
   );
 }
 
@@ -184,4 +239,5 @@ body[data-workspace-plugin="denali"] .theme-dark {
   --sidebar-accent: #242c24;
   --sidebar-accent-foreground: #5eead4;
   --sidebar-border: #2f382f;
+  --shell-sidebar-width: 16.5rem;
 }

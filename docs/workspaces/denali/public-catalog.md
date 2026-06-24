@@ -20,7 +20,7 @@ Read-only **public tour listing** for Denali tenants — consumed by **`apps/mar
 | Catalog API | `apps/api` | `x-tenant-id` + guest actor (`role: none`) |
 | Operator list | `apps/web` `(app)/` | Owner session |
 
-Public **catalog registration** (M17) uses legacy-style **phone OTP** on `apps/web` `/catalog/{tourId}/register` (Denali + Urban). Operator invite-only login (`/auth/*`) stays separate. Optional post-login tour intake (`POST /denali/registrations`) remains for pending bookings.
+Public **catalog registration** (M17) is **portal-only** (`apps/portal` `/catalog/{tourId}/register`, dev port **3003**) — legacy-style phone OTP for Denali + Urban. `apps/web` keeps **307 redirect shims** only (`/catalog/*` → marketing/portal); **no** `apps/web` public-auth BFF (removed P9-1-N-001). Operator invite-only login (`/auth/*` on web) stays separate.
 
 ## Publish gate
 
@@ -77,6 +77,9 @@ Distinct from **operator** `TourListProjection` — no draft rows, no ops-only f
 | `coverImageUrl` | first `photos` entry |
 | `totalCapacity` | `capacityMax` |
 | `spotsRemaining` | `max(0, capacityMax − Σ approved.partySize)` — see DEC-P11-013 |
+| `policiesText` | `policies.policiesText` — egress-safe cancellation / terms copy (P7-1-N-008) |
+| `cancellationDeadlineHours` | `policies.cancellationDeadlineHours` |
+| `cancellationPenaltyPercentage` | `policies.cancellationPenaltyPercentage` |
 
 ### `spotsRemaining` (DEC-P11-013)
 
@@ -140,46 +143,46 @@ Public registration intake lives on **`apps/portal`** (`/catalog/{tourId}/regist
 
 Dev host map: marketing `{club}.localhost:3002` → portal `{club}.portal.localhost:3003` via `buildDevPortalPublicBaseUrl` (`@app-tour/tenant-kernel`). Legacy: `shop.{club}` strip · apex portal `{club}.localhost:3003` still accepted during P6-0 migration.
 
-### Public catalog registration — phone OTP (M17)
+### Public catalog registration — phone OTP (M17 · portal-only post-P9)
 
-Legacy parity: guest enters **mobile** → OTP → existing user **logs in**; new user completes **profile** (`displayName` required, `email` optional) → **tour intake** → session + pending registration/booking.
+Legacy parity on **`apps/portal`**: guest enters **mobile** → OTP → existing user **logs in**; new user completes **profile** (`displayName` required, `email` optional) → **tour intake** → member session (`atour_mb_session`) + pending registration/booking.
 
-| Step | API (`apps/api`) | Web BFF |
-|------|------------------|---------|
+| Step | API (`apps/api`) | Portal BFF (`apps/portal`) |
+|------|------------------|----------------------------|
 | 1 · phone hint | `POST /public/auth/phone-preflight` → `{ exists }` | `POST /api/public-auth/phone-preflight` |
 | 2 · OTP issue | `POST /public/auth/request-otp` (no invite gate) | `POST /api/public-auth/request-otp` |
-| 3 · OTP verify | `POST /public/auth/verify-otp` → `sessionToken` **or** `requiresRegistration` + signed `onboardingToken` (15m) | `POST /api/public-auth/verify-otp` (sets `session` cookie on success) |
+| 3 · OTP verify | `POST /public/auth/verify-otp` → `sessionToken` **or** `requiresRegistration` + signed `onboardingToken` (15m) | `POST /api/public-auth/verify-otp` (sets member session cookie on success) |
 | 4 · profile | `POST /public/auth/register/complete` | `POST /api/public-auth/register-complete` |
-| 5 · tour intake | `POST /urban/registrations` or `POST /denali/registrations` | server action — `buildCatalogRegistrationHeaders` + **`Idempotency-Key`** (Urban only, stable hash per tenant/tour/email/session) |
+| 5 · tour intake | `POST /urban/registrations` or `POST /denali/registrations` | `POST /api/catalog/registrations` — `buildCatalogRegistrationHeaders` + **`Idempotency-Key`** (Urban only) |
 
-Production tenant on web register + public-auth BFF: `resolvePublicCatalogBootstrapForHost` / `resolveIdentityBffTenantId` call `GET /public/tenant-context` when dev host map is unavailable (same as marketing M7). **No silent Urban smoke fallback** — unresolved tenant → `PUBLIC_CATALOG_TENANT_UNRESOLVED` (503 on BFF, throw on register page).
+Production tenant on portal register + public-auth BFF: `resolvePortalBootstrapForHost` / `resolveGuestSurfaceBootstrapForHost` call `GET /public/tenant-context` when dev host map is unavailable (same as marketing M7). **No silent Urban smoke fallback** — unresolved tenant → `PORTAL_TENANT_UNRESOLVED` (503 on BFF, error on register page).
 
-**Root layout bootstrap (M17.1):** `apps/web/app/layout.tsx` reads middleware `x-pathname`. For `/catalog/*` routes it uses `resolvePublicCatalogRootSessionForHost` (guest `member` + resolved `tenantId`/`pluginId`) instead of operator `resolveBootstrapAppSessionForHost`. `data-tenant-id` / theme / `AppProviders` therefore match the register page and public-auth BFF on production hosts.
+**Portal layout bootstrap:** `apps/portal/app/layout.tsx` uses `resolvePortalBootstrapForHost` (guest `member` + resolved `tenantId`/`pluginId` from API in prod). Web root layout is **operator-only** (`resolveBootstrapAppSessionForHostAsync`) — no catalog guest bootstrap (P9-1-N-003).
 
-**Operator auth BFF tenant (M17.2):** `/api/auth/*` routes use `buildIdentityBffHeadersAsync` — dev host map → `GET /public/tenant-context` → dev env fallback (when allowed). Unresolved production host → `OPERATOR_BFF_TENANT_UNRESOLVED` (503).
+**Operator auth BFF tenant (M17.2):** `apps/web` `/api/auth/*` routes use `buildIdentityBffHeadersAsync` / `resolveOperatorBffTenantId` — dev host map → `GET /public/tenant-context` → dev env fallback (when allowed). Unresolved production host → `OPERATOR_BFF_TENANT_UNRESOLVED` (503).
 
 Membership created with `role: member`, `status: ACTIVE`. Distinct from operator `/auth/*` (`authorized` preflight, invite gate on OTP, owner-only web BFF).
 
 ```mermaid
 sequenceDiagram
   participant U as Guest browser
-  participant W as apps/web BFF
+  participant P as apps/portal BFF
   participant A as apps/api
 
-  U->>W: phone
-  W->>A: POST /public/auth/request-otp
-  A-->>W: challengeId
-  U->>W: OTP
-  W->>A: POST /public/auth/verify-otp
+  U->>P: phone
+  P->>A: POST /public/auth/request-otp
+  A-->>P: challengeId
+  U->>P: OTP
+  P->>A: POST /public/auth/verify-otp
   alt existing ACTIVE membership
-    A-->>W: sessionToken
-    W-->>U: Set-Cookie session
+    A-->>P: sessionToken
+    P-->>U: Set-Cookie atour_mb_session
   else new or no tenant membership
-    A-->>W: requiresRegistration + onboardingToken
-    U->>W: displayName (+ optional email)
-    W->>A: POST /public/auth/register/complete
-    A-->>W: sessionToken
-    W-->>U: Set-Cookie session
+    A-->>P: requiresRegistration + onboardingToken
+    U->>P: displayName (+ optional email)
+    P->>A: POST /public/auth/register/complete
+    A-->>P: sessionToken
+    P-->>U: Set-Cookie atour_mb_session
   end
 ```
 
@@ -199,15 +202,15 @@ Web shell: `apps/web/app/(public)/catalog/[tourId]/register` — **redirect-only
 
 Duplicate email per tour → `409 DENALI_REGISTRATION_DUPLICATE`.
 
-**Session attribution (P2):** After M17 verify/profile, tour intake server actions read the `session` cookie and forward `x-user-id` + `x-actor-role: member` to `POST /denali/registrations` (or urban). Anonymous catalog guest id (`…000001`) is used only when no valid session.
+**Session attribution (P2):** After M17 verify/profile, portal `POST /api/catalog/registrations` reads the member session cookie and forwards `x-user-id` + `x-actor-role: member` to `POST /denali/registrations` (or urban). Anonymous catalog guest id (`…000001`) is used only when no valid session.
 
-**Intake pre-fill (P2b):** `GET /api/public-auth/session-profile` (member-safe BFF) hydrates `displayName` / optional `email` from `GET /identity/me` for returning users. Profile-step email pre-fills intake via `resolveIntakeDefaults` (profile wins over session).
+**Intake pre-fill (P2b):** `GET /api/public-auth/session-profile` (portal member-safe BFF) hydrates `displayName` / optional `email` from `GET /identity/me` for returning users. Profile-step email pre-fills intake via `resolveIntakeDefaults` (profile wins over session).
 
 ### Known limitations (M17 P3)
 
 | Risk | Detail | Mitigation |
 |------|--------|------------|
-| Shared `session` cookie | Operator login (`/api/auth/*`) and public catalog OTP (`/api/public-auth/*`) both write cookie name `session` on `apps/web`. Last successful auth wins. | Keep operator panel and public register on separate browser profiles in QA; future: split cookie names or scoped paths. |
+| Operator vs member cookies | Web operator uses `atour_op_session`; portal member OTP uses `atour_mb_session` (`@app-tour/session-client` P8/P9). | Surfaces isolated by host + cookie name. |
 | `identity/me` naming | BFF uses `requireOperatorSession` middleware naming though public members are valid. | Behavior is member-safe; rename deferred to identity refactor. |
 | Denali booking `userId` in E2E | Playwright smokes assert UI success only; Postgres `userId` on booking row covered by **DREG-17-01** API spec. | Run `denali-registration.spec.ts` in CI when `DATABASE_URL` set. |
 
@@ -403,20 +406,22 @@ sequenceDiagram
 | Locale resolution | `apps/marketing/src/i18n/resolve-app-locale.ts` |
 | Tenant default locale | `packages/workspace-sdk/src/theme/tenant-theme.contract.ts` (`defaultLocale`) |
 | Denali registration API | `packages/workspaces/denali/src/http/registration.service.ts` |
-| Public OTP web flow | `apps/web/app/(public)/catalog/[tourId]/register/public-catalog-registration-flow.tsx` |
-| i18n (fa/en) | `apps/web/messages/*/catalogRegistration.json` |
-| Public-auth BFF tests | `apps/web/test/public-auth-bff.spec.ts` · PUB-BFF-01..09 (happy-path session-profile + verify cookie) |
-| Urban intake idempotency | `apps/web/src/urban/build-urban-intake-idempotency-key.ts` · URB-INTAKE-IDEM-01..02 |
+| Public OTP portal flow | `apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx` |
+| i18n (fa/en) | `apps/portal/messages/*/catalogRegistration.json` |
+| Public-auth BFF tests | `apps/portal/test/portal-public-auth-bff.spec.ts` · PR-09 |
+| Urban intake idempotency | `apps/portal` registration BFF (Urban idempotency header) |
 | M17 static guard | `scripts/guards/guard-public-catalog-m17.mjs` · `pnpm run guard:public-catalog-m17` |
 | Marketing register smoke | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts` · SMK-MKT-03 (full OTP + intake) |
 | Portal registration smoke | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts` · SMK-PTL-01 · `pnpm --filter @apps/portal run test:smoke` |
-| Denali web OTP smoke | `apps/web/tests/e2e/denali-catalog-registration.spec.ts` · SMK-DREG-01 |
+| Portal member smoke | `apps/portal/tests/e2e/portal-member-smoke.spec.ts` · SMK-PTL-02/04/05 |
+| Denali OTP smoke | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts` · SMK-PTL-01 (supersedes SMK-DREG-01) |
 | Public auth Prisma integration | `apps/api/test/public-auth-prisma.integration.spec.ts` · PUB-AUTH-PRISMA-01 (skip without `DATABASE_URL`) |
 | Urban public auth resolver | `packages/workspaces/urban/src/http/resolve-urban-public-auth.ts` · `resolveUrbanPublicAuthFromHeaders` (apps/api thin wrapper) |
 | Public auth API | `apps/api/src/identity/public-auth.routes.ts` |
 | Public auth OpenAPI | `apps/api/src/openapi/public-auth-openapi.ts` |
-| Session intake headers | `apps/web/src/catalog/build-catalog-registration-headers.server.ts` |
-| Public auth BFF | `apps/web/app/api/public-auth/*` |
+| Session intake headers | `apps/portal/src/catalog/build-catalog-registration-headers.server.ts` |
+| Public auth BFF | `apps/portal/app/api/public-auth/*` (portal-only post-P9) |
+| Web catalog redirect shim | `apps/web/app/(public)/catalog/**` — 307 only; **no** `apps/web` public-auth |
 
 ## Sequence
 

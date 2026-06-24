@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { bffCodedError } from "@/auth/bff-coded-error";
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
-import { decodeJwtPayload } from "@/auth/decode-jwt-payload";
+import { decodeJwtPayload } from "@app-tour/session-client";
 import { setSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { setOperatorWelcomeArmedCookieOnResponse } from "@/auth/operator-welcome-cookie";
 import { normalizeOtpDigits } from "@/features/auth/otp-segment-input.logic";

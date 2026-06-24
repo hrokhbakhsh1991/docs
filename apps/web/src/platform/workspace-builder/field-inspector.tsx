@@ -1,6 +1,8 @@
 "use client";
 
 import type { WorkspaceFieldKind } from "@app-tour/workspace-sdk";
+import { Checkbox } from "@app-tour/ui-primitives/checkbox";
+import { Input } from "@app-tour/ui-primitives/input";
 
 import type { BuilderDraft, BuilderDraftAction } from "./builder-draft-state";
 
@@ -36,7 +38,7 @@ export function FieldInspector({ draft, dispatch }: FieldInspectorProps) {
       <h2 className="text-sm font-semibold">Field inspector</h2>
       <label className="block space-y-1 text-sm">
         <span>Id</span>
-        <input
+        <Input
           className="w-full rounded-md border border-border px-2 py-1"
           value={selected.id}
           onChange={(event) =>
@@ -50,7 +52,7 @@ export function FieldInspector({ draft, dispatch }: FieldInspectorProps) {
       </label>
       <label className="block space-y-1 text-sm">
         <span>Canonical path</span>
-        <input
+        <Input
           className="w-full rounded-md border border-border px-2 py-1"
           value={selected.canonicalPath}
           onChange={(event) =>
@@ -103,8 +105,7 @@ export function FieldInspector({ draft, dispatch }: FieldInspectorProps) {
         </select>
       </label>
       <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={selected.required}
           onChange={(event) =>
             dispatch({

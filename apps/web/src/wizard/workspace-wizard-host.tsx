@@ -18,10 +18,7 @@ import {
 } from "@/tours/tour-wizard-draft-path";
 import { useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 import type { WizardTemplateStepRef } from "@/features/settings/wizard-template-types";
-import {
-  applyWizardTemplateToRenderPlan,
-  filterRenderPlanByCanonicalPaths,
-} from "@/tours/wizard-template-gate-logic";
+import { buildVisibleWizardSteps } from "@/wizard/build-visible-wizard-steps";
 import {
   shouldAttachSeedPrefillTestId,
   WIZARD_TEMPLATE_PREFILL_TEST_IDS,
@@ -30,7 +27,7 @@ import { formatWizardTemplateStepLabel } from "@/tours/wizard-template-field-lab
 import { resolveWizardStepLabel as resolveWizardSurfaceStepLabel } from "./wizard-label-surface-registry";
 
 import { canLoadWorkspaceWizard } from "./wizard-access";
-import { DraftSyncSoftLockBanner } from "@/draft/draft-sync-soft-lock-banner";
+import { DraftSyncSoftLockBanner, shouldShowCreateTourWizardSoftLockBanner } from "@/draft/draft-sync-soft-lock-banner";
 import { WizardAccessDenied } from "./wizard-access-denied";
 import { loadOperatorWorkspacePlugin, type OperatorWorkspaceMetadataBinding } from "./load-workspace-plugin";
 import {
@@ -316,41 +313,48 @@ export function WorkspaceWizardHost({
       return null;
     }
 
-    let steps =
-      templateSteps !== undefined && templateSteps.length > 0
-        ? applyWizardTemplateToRenderPlan(baseSteps, templateSteps)
-        : allowedCanonicalPaths !== undefined && allowedCanonicalPaths.length > 0
-          ? filterRenderPlanByCanonicalPaths(baseSteps, allowedCanonicalPaths)
-          : baseSteps;
-
-    if (wizardHost?.applyContextualFieldRules != null && rulesModule != null) {
-      steps = wizardHost.applyContextualFieldRules({
-        steps,
-        draft: draft as unknown as Record<string, unknown>,
-        rulesModule,
-        evalContext: wizardRuleEvalContext ?? null,
-      }) as typeof steps;
-    }
-
-    return steps;
+    return buildVisibleWizardSteps({
+      baseSteps,
+      templateSteps,
+      allowedCanonicalPaths,
+      draft: draft as unknown as Record<string, unknown>,
+      rulesModule,
+      wizardHost,
+      wizardRuleEvalContext,
+    });
   }, [
     baseSteps,
     templateSteps,
     allowedCanonicalPaths,
-    pluginId,
     rulesModule,
     draft,
     wizardRuleEvalContext,
-    wizardHost?.applyContextualFieldRules,
+    wizardHost,
   ]);
 
+  const lastVisibleStepsRef = useRef<readonly RenderStepPlan[] | null>(null);
+  if (visibleSteps != null) {
+    lastVisibleStepsRef.current = visibleSteps;
+  }
+  const resolvedVisibleSteps = visibleSteps ?? lastVisibleStepsRef.current;
+
   const stepDescriptors = useMemo(
-    () => (visibleSteps ?? []).map((step) => ({
+    () => (resolvedVisibleSteps ?? []).map((step) => ({
       stepId: step.stepId,
       label: resolveWizardStepLabel(step.stepId, templateSteps, resolveDefaultStepLabel),
     })),
-    [visibleSteps, templateSteps, resolveDefaultStepLabel]
+    [resolvedVisibleSteps, templateSteps, resolveDefaultStepLabel]
   );
+
+  const contentSteps = useMemo(() => {
+    if (resolvedVisibleSteps == null) {
+      return [];
+    }
+    if (reviewStepId == null) {
+      return resolvedVisibleSteps;
+    }
+    return resolvedVisibleSteps.filter((step) => step.stepId !== reviewStepId);
+  }, [resolvedVisibleSteps, reviewStepId]);
 
   const stepSignature = useMemo(
     () => stepDescriptors.map((step) => step.stepId).join("|"),
@@ -498,14 +502,14 @@ export function WorkspaceWizardHost({
   }, [workspacePlugin, wizardHost?.usesStepValidation, wizardHost?.validateDraftSync, draft, rulesModule, tenantId, resolveStepId]);
 
   useEffect(() => {
-    if (visibleSteps == null) {
+    if (resolvedVisibleSteps == null) {
       return;
     }
-    const activeStep = visibleSteps[clampWizardStepIndex(activeStepIndex, visibleSteps.length)];
+    const activeStep = resolvedVisibleSteps[clampWizardStepIndex(activeStepIndex, resolvedVisibleSteps.length)];
     if (activeStep?.stepId === reviewStepId) {
       refreshReviewValidationIssues();
     }
-  }, [visibleSteps, activeStepIndex, reviewStepId, refreshReviewValidationIssues, draft]);
+  }, [resolvedVisibleSteps, activeStepIndex, reviewStepId, refreshReviewValidationIssues, draft]);
 
   useEffect(() => {
     if (submitValidationIssues == null || submitValidationIssues.length === 0) {
@@ -589,11 +593,11 @@ export function WorkspaceWizardHost({
     );
   }
 
-  if (!visibleSteps) {
+  if (!resolvedVisibleSteps) {
     return <p data-workspace-wizard-loading>{tWizard("host.loading")}</p>;
   }
 
-  if (visibleSteps.length === 0) {
+  if (resolvedVisibleSteps.length === 0) {
     return (
       <p data-workspace-wizard-empty data-plugin-id={pluginId}>
         {tWizard("host.noFields")}
@@ -601,7 +605,7 @@ export function WorkspaceWizardHost({
     );
   }
 
-  const activeStep = visibleSteps[clampWizardStepIndex(activeStepIndex, visibleSteps.length)];
+  const activeStep = resolvedVisibleSteps[clampWizardStepIndex(activeStepIndex, resolvedVisibleSteps.length)];
   if (activeStep === undefined) {
     return (
       <p data-workspace-wizard-empty data-plugin-id={pluginId}>
@@ -618,7 +622,7 @@ export function WorkspaceWizardHost({
 
   const completionSnapshot =
     reviewSurface?.computeCompletion != null
-      ? reviewSurface.computeCompletion(draft, visibleSteps)
+      ? reviewSurface.computeCompletion(draft, resolvedVisibleSteps)
       : null;
 
   return (
@@ -628,7 +632,7 @@ export function WorkspaceWizardHost({
       data-plugin-id={pluginId}
       {...(wizardHost?.hostRootDataAttributes ?? {})}
     >
-      {draftSyncStatus != null ? (
+      {draftSyncStatus != null && shouldShowCreateTourWizardSoftLockBanner(draftSyncStatus) ? (
         <DraftSyncSoftLockBanner
           status={draftSyncStatus}
           className="workspace-wizard__sync-soft-lock"
@@ -638,7 +642,7 @@ export function WorkspaceWizardHost({
         ? reviewSurface.renderCompletionHeader(completionSnapshot)
         : null}
       <WizardStepShell
-        steps={buildWizardStepDescriptors(visibleSteps, templateSteps, resolveDefaultStepLabel)}
+        steps={buildWizardStepDescriptors(resolvedVisibleSteps, templateSteps, resolveDefaultStepLabel)}
         activeIndex={activeStepIndex}
         onActiveIndexChange={setActiveStepIndex}
         lastStepFooter={renderFooter?.(draft)}
@@ -679,6 +683,8 @@ export function WorkspaceWizardHost({
                 onDraftChange,
                 reviewValidationIssues,
                 stepDescriptors,
+                contentSteps,
+                onNavigateToStep: goToStepById,
                 onFocusIssue: handleFocusValidationIssue,
                 fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
                 translateWorkspaceMessage,
@@ -720,6 +726,7 @@ export function WorkspaceWizardHost({
                       translateWorkspaceMessage={translateWorkspaceMessage}
                       wizardSessionId={wizardSessionId}
                       workspaceFormProfile={readWorkspaceFormProfileFromEvalContext(wizardRuleEvalContext)}
+                      wizardRuleEvalContext={wizardRuleEvalContext}
                       dataTestId={
                         shouldAttachSeedPrefillTestId(path, pluginId, workspacePlugin ?? undefined)
                           ? WIZARD_TEMPLATE_PREFILL_TEST_IDS.seedPrefillField

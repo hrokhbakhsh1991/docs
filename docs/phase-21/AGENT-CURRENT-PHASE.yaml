@@ -1,0 +1,21 @@
+# P8 — Machine snapshot (agents)
+
+```yaml
+phase: 21
+pack: P8
+pack_version: "1.0"
+status: BEHAVIORAL_COMPLETE
+ai_agent_pack: COMPLETE
+doc_quality_target: "85+ai"
+prerequisite: P7_BEHAVIORAL_COMPLETE
+current_task: null
+current_wave: C
+nano_total: 14
+fail_token: P8_FAIL
+p8_gate: pnpm run p8:gate
+boot_manifest: appendices/P8-BOOT-MANIFEST.yaml
+implementation_truth: appendices/P8-IMPLEMENTATION-TRUTH.md
+blocked_until: null
+```
+
+> Human + agents: all 14 nanos PASS — Profile B VPS smoke remains post-deploy.

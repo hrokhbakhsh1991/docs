@@ -65,6 +65,7 @@ export const denaliRuleSet: DenaliRuleSet = {
         { path: "tripDetails.overview.customServiceLabels", required: false, hidden: true, step: "denali_logistics" },
         { path: "tripDetails.overview.nonAttendanceDetails", required: false, hidden: true, step: "denali_pricing" },
         { path: "tripDetails.overview.peakHeight", required: true, hidden: false, step: "denali_basic" },
+        { path: "tripDetails.overview.trailDistanceKm", required: false, hidden: true, step: "denali_basic" },
       ],
     },
     multi_day: {
@@ -124,6 +125,7 @@ export const denaliRuleSet: DenaliRuleSet = {
         { path: "tripDetails.overview.customServiceLabels", required: false, hidden: true, step: "denali_logistics" },
         { path: "tripDetails.overview.nonAttendanceDetails", required: false, hidden: true, step: "denali_pricing" },
         { path: "tripDetails.overview.peakHeight", required: true, hidden: false, step: "denali_basic" },
+        { path: "tripDetails.overview.trailDistanceKm", required: false, hidden: true, step: "denali_basic" },
       ],
     },
   },
@@ -185,6 +187,7 @@ export const denaliRuleSet: DenaliRuleSet = {
         { path: "tripDetails.overview.customServiceLabels", required: false, hidden: true, step: "denali_logistics" },
         { path: "tripDetails.overview.nonAttendanceDetails", required: false, hidden: true, step: "denali_pricing" },
         { path: "tripDetails.overview.peakHeight", required: false, hidden: true, step: "denali_basic" },
+        { path: "tripDetails.overview.trailDistanceKm", required: false, hidden: false, step: "denali_basic" },
       ],
     },
     multi_day: {
@@ -244,6 +247,7 @@ export const denaliRuleSet: DenaliRuleSet = {
         { path: "tripDetails.overview.customServiceLabels", required: false, hidden: true, step: "denali_logistics" },
         { path: "tripDetails.overview.nonAttendanceDetails", required: false, hidden: true, step: "denali_pricing" },
         { path: "tripDetails.overview.peakHeight", required: false, hidden: true, step: "denali_basic" },
+        { path: "tripDetails.overview.trailDistanceKm", required: false, hidden: false, step: "denali_basic" },
       ],
     },
   },
@@ -305,6 +309,7 @@ export const denaliRuleSet: DenaliRuleSet = {
         { path: "tripDetails.overview.customServiceLabels", required: false, hidden: true, step: "denali_logistics" },
         { path: "tripDetails.overview.nonAttendanceDetails", required: false, hidden: true, step: "denali_pricing" },
         { path: "tripDetails.overview.peakHeight", required: false, hidden: true, step: "denali_basic" },
+        { path: "tripDetails.overview.trailDistanceKm", required: false, hidden: true, step: "denali_basic" },
       ],
     },
     multi_day: {
@@ -364,6 +369,7 @@ export const denaliRuleSet: DenaliRuleSet = {
         { path: "tripDetails.overview.customServiceLabels", required: false, hidden: true, step: "denali_logistics" },
         { path: "tripDetails.overview.nonAttendanceDetails", required: false, hidden: true, step: "denali_pricing" },
         { path: "tripDetails.overview.peakHeight", required: false, hidden: true, step: "denali_basic" },
+        { path: "tripDetails.overview.trailDistanceKm", required: false, hidden: true, step: "denali_basic" },
       ],
     },
   },
@@ -426,6 +432,7 @@ export const denaliRuleSet: DenaliRuleSet = {
         { path: "tripDetails.overview.customServiceLabels", required: false, hidden: true, step: "denali_logistics" },
         { path: "tripDetails.overview.nonAttendanceDetails", required: false, hidden: true, step: "denali_pricing" },
         { path: "tripDetails.overview.peakHeight", required: false, hidden: true, step: "denali_basic" },
+        { path: "tripDetails.overview.trailDistanceKm", required: false, hidden: true, step: "denali_basic" },
       ],
     },
     multi_day: {
@@ -486,6 +493,7 @@ export const denaliRuleSet: DenaliRuleSet = {
         { path: "tripDetails.overview.customServiceLabels", required: false, hidden: true, step: "denali_logistics" },
         { path: "tripDetails.overview.nonAttendanceDetails", required: false, hidden: true, step: "denali_pricing" },
         { path: "tripDetails.overview.peakHeight", required: true, hidden: false, step: "denali_basic" },
+        { path: "tripDetails.overview.trailDistanceKm", required: false, hidden: true, step: "denali_basic" },
       ],
     },
   },

@@ -41,19 +41,40 @@ Roadmap draft used `html[data-workspace="denali"]`. Implementation uses **`body[
 | `data-denali-animate="fade-up"` | Dashboard stagger entrance |
 | `data-denali-skeleton="shimmer"` | Loading placeholders (`DenaliSkeleton`) |
 | `data-denali-empty-state` | Illustrated empty blocks (`DenaliEmptyState`) |
-| `data-denali-quick-actions` | Dashboard shortcut row below `PageHeader` |
+| `data-denali-quick-actions` | Dashboard shortcut row in `PageHeader` actions |
+| `data-operator-dashboard-grid` | Responsive 12-col widget grid — equal-height slots |
+| `data-dashboard-widget-footer` | Pinned footer link row inside each widget card |
 | `data-density="compact"` | Bookings inbox density |
 | `data-denali-bookings-inbox` | Inbox card — sticky header + zebra rows |
 | `data-denali-booking-timeline` | Inspection panel activity rail |
 | `data-denali-category-badge` | Tour kind chip on list cards (`--denali-bark-600` tint) |
+| `data-operator-sidebar` | Desktop aside — viewport-height sticky rail (`--shell-sidebar-width`) |
+| `data-operator-sidebar-header` | Brand block (logo + tenant title) |
+| `data-operator-sidebar-content` | Scrollable nav group between header and footer |
+| `data-operator-sidebar-footer` | Pinned footer rail (new-tour CTA) |
+| `data-operator-nav-group-label` | Uppercase section label above primary nav links |
+| `data-operator-nav-icon` | Icon tile inside each nav row — filled when active |
 | `data-operator-header` | Sticky operator chrome — scroll elevation via `data-denali-header-scrolled` |
 | `data-denali-tenant-badge` | Compact workspace pill beside breadcrumb (Denali only) |
 | `data-operator-breadcrumb` | Path-derived breadcrumb trail in header |
 | `data-denali-finance-tabs` | Finance command center tab strip |
 | `data-denali-finance-kpi` | KPI cells — alpine accent border (`--denali-alpine-600`) |
+| `data-denali-kpi` | Dashboard widget KPI cells — forest accent (overflow-safe labels) |
 | `data-denali-finance-board` | Installments kanban — column tint by `data-board-column` |
 | `data-denali-finance-progress` | Installment paid-ratio bar (alpine → forest gradient) |
 | `data-denali-date-picker` | Admin + wizard date trigger / calendar popover skin |
+
+## Operator sidebar layout
+
+Follows the shadcn/ui **Header → Content → Footer** split (without importing the full Sidebar provider — operator shell stays workspace-agnostic):
+
+| Region | Element | Scroll |
+|--------|---------|--------|
+| Header | `data-operator-sidebar-header` · `OperatorBrand` | Fixed |
+| Content | `data-operator-sidebar-content` · `[data-operator-nav-link]` list | `overflow-y-auto` on `<ul>` only |
+| Footer | `data-operator-sidebar-footer` · `[data-operator-nav-cta]` | Fixed |
+
+Visual language (Denali only): mist gradient surface, forest `--sidebar-primary` active row + filled icon tile, `--shell-sidebar-width: 16.5rem`. Tailwind utilities (`bg-sidebar`, `text-sidebar-foreground`, …) bridge from `@app-tour/design-tokens/shell-bridge.css`.
 
 ## Shared patterns (`apps/web/src/admin/patterns/`)
 
@@ -61,6 +82,8 @@ Roadmap draft used `html[data-workspace="denali"]`. Implementation uses **`body[
 |-----------|------|
 | `denali-skeleton.tsx` | Shimmer skeleton (Denali CSS only; falls back to shadcn pulse elsewhere) |
 | `denali-empty-state.tsx` | Mountain mark + dashed panel + optional CTA |
+| `dashboard-kpi-cell.tsx` | KPI tile — `line-clamp-2` label + `data-denali-kpi` / finance variant |
+| `dashboard-widget-card.tsx` | Equal-height widget shell (header / body / footer) |
 | `page-header.tsx` | Title / description / actions row |
 
 ## Primary palette
@@ -118,7 +141,7 @@ Dev DB branding must match `#0f766e` — re-run `pnpm --filter @apps/api run db:
 | Playwright theme smoke | `SMK-P9-DENALI-THEME`, `SMK-P9-WIZARD-THEME` |
 | Urban isolation | `WEB-DENALI-THEME-03`, TH-1 e2e unchanged |
 | Dashboard quick actions + skeleton/empty patterns | `DenaliSkeleton`, `DenaliEmptyState`, `data-denali-quick-actions` |
-| Sticky sidebar CTA + softer sheet overlay | `data-operator-nav-cta`, `[data-radix-dialog-overlay]` |
+| Modern sidebar rail (Header/Content/Footer + sidebar tokens) | `data-operator-sidebar*`, `data-operator-nav-icon`, `shell-bridge.css` |
 | Tours category filter + bark badge | `tour-list-category-logic`, `TourCategoryBadge` |
 | Bookings inbox zebra + timeline | `data-denali-bookings-inbox`, `BookingActivityTimeline` |
 

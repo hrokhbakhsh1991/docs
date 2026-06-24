@@ -1,0 +1,552 @@
+# P7 — Verification commands (canonical — 27 nanos)
+# Authority: TRACEABILITY-MATRIX-P7.md · P7-BOOT-MANIFEST.yaml
+# Agents: load ONLY current_nano key (T1)
+
+manifest_id: P7-VERIFICATION-COMMANDS
+pack_version: "1.6"
+nano_total: 27
+
+P7-0-N-001:
+  epic: P7-0
+  proof_tier: DOC
+  repo_status: DEV_PASS
+  forbidden_until: []
+  commands:
+    - run: pnpm run p7:gate
+      expect_stdout: P7_DENALI_DELIVERY_GATE_OK
+    - run: pnpm run p7:staging-verify
+      expect_stdout: P7_STAGING_VERIFY_OK
+      optional: true
+      note: "Only when staging API reachable"
+  manual_runbook_ref: runbooks/p7-0-staging-walkthrough.md
+  files_touch:
+    - docs/phase-20/p7/runbooks/p7-0-staging-walkthrough.md
+    - scripts/p7-staging-verify.sh
+  on_pass_update:
+    - p7-exit-checklist.md#P7-0-N-001
+  forbidden_shortcuts:
+    - "Mark staging PASS from doc write only"
+
+P7-0-N-002:
+  epic: P7-0
+  proof_tier: STAGING
+  repo_status: STAGING_PASS
+  forbidden_until: [P7-0-N-001]
+  commands:
+    - run: bash scripts/vps-deploy/verify-env-coherence.sh
+      expect_stdout: "verify-env-coherence: OK"
+      requires_env: [ENV_DIR]
+  manual_runbook_ref: runbooks/p7-0-env-matrix.md
+  files_touch:
+    - deploy/vps/env/*.env.example
+  on_pass_update:
+    - p7-exit-checklist.md#P7-0-N-002
+    - IMPLEMENTATION-TRUTH-P7.md
+  forbidden_shortcuts:
+    - "Mark PASS from reading env matrix doc only"
+
+P7-0-N-003:
+  epic: P7-0
+  proof_tier: STAGING
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-0-N-002]
+  commands:
+    - run: pnpm --filter @apps/api run db:seed
+      expect_exit: 0
+      requires_env: [DATABASE_URL, DATABASE_URL_ADMIN]
+    - run: 'curl -fsS "$TOUR_OPS_API_URL/public/tenant-context" -H "x-forwarded-host: $STAGING_HOST"'
+      expect_stdout: site_surfaces
+      requires_env: [TOUR_OPS_API_URL, STAGING_HOST]
+  manual_runbook_ref: appendices/P7-CUSTOMER-SEED-DELTA.md
+  files_touch:
+    - apps/api/scripts/db-seed.ts
+  on_pass_update:
+    - p7-exit-checklist.md#P7-0-N-003
+  forbidden_shortcuts:
+    - "Seed on localhost only and claim staging PASS"
+
+P7-0-N-004:
+  epic: P7-0
+  proof_tier: STAGING
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-0-N-003]
+  commands:
+    - run: TOUR_OPS_API_URL=http://127.0.0.1:3001 pnpm run p7:staging-verify
+      expect_stdout: P7_STAGING_VERIFY_OK
+    - run: TOUR_OPS_API_URL=http://127.0.0.1:3001 node scripts/smoke-p6-host-bind.mjs
+      expect_stdout: P6_HOST_BIND_SMOKE_OK
+  manual_runbook_ref: deploy/vps/README.md
+  files_touch:
+    - deploy/vps/systemd/
+  on_pass_update:
+    - p7-exit-checklist.md#P7-0-N-004
+  forbidden_shortcuts:
+    - "Three-process deploy without marketing+portal"
+
+P7-0-N-005:
+  epic: P7-0
+  proof_tier: STAGING
+  repo_status: STAGING_PASS
+  forbidden_until: [P7-0-N-004]
+  commands:
+    - run: bash scripts/vps-deploy/smoke-operator-login.sh
+      expect_stdout: "[smoke] operator login path OK"
+      requires_env: [ENV_DIR]
+  manual_runbook_ref: runbooks/p7-0-staging-walkthrough.md
+  files_touch: []
+  on_pass_update:
+    - p7-exit-checklist.md#P7-0-N-005
+  forbidden_shortcuts:
+    - "Dev session cookie on staging admin"
+
+P7-1-N-001:
+  epic: P7-1
+  proof_tier: MANUAL
+  repo_status: MANUAL_PASS
+  forbidden_until: [P7-0-N-005]
+  commands:
+    - run: pnpm run p7:staging-wizard-probe
+      expect_stdout: P7_STAGING_WIZARD_PROBE_OK
+      note: "Expect FAIL until BLK-P7-00 fixed — walkthrough §Results documents blockers"
+    - run: grep walkthrough_status docs/phase-20/p7/runbooks/p7-wizard-blocker-walkthrough.md
+      expect_stdout: RUN_WITH_BLOCKERS
+  manual_runbook_ref: runbooks/p7-wizard-blocker-walkthrough.md
+  files_touch:
+    - docs/phase-20/p7/runbooks/p7-wizard-blocker-walkthrough.md
+  on_pass_update:
+    - p7-exit-checklist.md#P7-1-N-001
+    - IMPLEMENTATION-TRUTH-P7.md
+  forbidden_shortcuts:
+    - "Invent blockers not seen on staging walkthrough"
+
+P7-1-N-002:
+  epic: P7-1
+  proof_tier: DEV_STATIC
+  repo_status: PARTIAL_DEV
+  forbidden_until: [P7-1-N-001]
+  commands:
+    - run: pnpm run p7:gate
+      expect_stdout: P7_DENALI_DELIVERY_GATE_OK
+    - run: pnpm --filter @apps/web exec node --import tsx --test test/denali-publish-readiness.spec.ts
+      expect_exit: 0
+    - run: pnpm --filter @apps/web exec node --import tsx --test test/denali-wizard-draft-contract.spec.ts
+      expect_exit: 0
+  manual_runbook_ref: runbooks/p7-preservation-gate.md
+  files_touch: []
+  on_pass_update:
+    - p7-exit-checklist.md#P7-1-N-002
+  forbidden_shortcuts:
+    - "Skip preservation on wizard PR"
+
+P7-1-N-003:
+  epic: P7-1
+  proof_tier: STAGING
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-1-N-001]
+  commands: []
+  manual_runbook_ref: runbooks/p7-wizard-blocker-walkthrough.md#BLK-WIZ-03
+  manual_steps:
+    - "Create tour on staging admin /tours/new"
+    - "PATCH save succeeds · refresh retains draft"
+  files_touch:
+    - apps/web/app/tours/new/
+  on_pass_update:
+    - p7-exit-checklist.md#P7-1-N-003
+  forbidden_shortcuts:
+    - "localhost-only save test as staging PASS"
+
+P7-1-N-004:
+  epic: P7-1
+  proof_tier: STAGING
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-0-N-003]
+  commands:
+    - run: pnpm --filter @apps/api run db:seed
+      expect_exit: 0
+      requires_env: [DATABASE_URL]
+  manual_runbook_ref: appendices/P7-CUSTOMER-SEED-DELTA.md
+  manual_steps:
+    - "Wizard pickers populated on staging settings + /tours/new"
+  files_touch:
+    - apps/api/scripts/db-seed.ts
+  on_pass_update:
+    - p7-exit-checklist.md#P7-1-N-004
+  forbidden_shortcuts:
+    - "Operator smoke fixture instead of customer club_id"
+
+P7-1-N-005:
+  epic: P7-1
+  proof_tier: DEV_API_MEMORY
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-1-N-001]
+  commands:
+    - run: pnpm --filter @apps/web exec node --import tsx --test test/denali-publish-readiness.spec.ts
+      expect_exit: 0
+  manual_runbook_ref: runbooks/p7-wizard-blocker-walkthrough.md
+  manual_steps:
+    - "Staging UI shows violations before publish on incomplete draft"
+  files_touch:
+    - packages/workspaces/denali/ui/chrome/wizard-validation
+  on_pass_update:
+    - p7-exit-checklist.md#P7-1-N-005
+  forbidden_shortcuts:
+    - "Unit test PASS alone as staging UX proof"
+
+P7-1-N-006:
+  epic: P7-1
+  proof_tier: STAGING
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-1-N-005]
+  commands: []
+  manual_runbook_ref: runbooks/p7-staging-triage.md#VS-02
+  manual_steps:
+    - "Publish tour active on staging"
+    - "Marketing /tours lists row · MARKETING_REVALIDATE_* set"
+  files_touch:
+    - apps/api/src/tours/
+  on_pass_update:
+    - p7-exit-checklist.md#P7-1-N-006
+  forbidden_shortcuts:
+    - "Skip revalidate env and claim catalog green"
+
+P7-1-N-007:
+  epic: P7-1
+  proof_tier: DEV_API_MEMORY
+  repo_status: STAGING_PASS
+  forbidden_until: [P7-1-N-003]
+  commands:
+    - run: pnpm --filter @apps/web exec node --import tsx --test test/denali-wizard-draft-contract.spec.ts
+      expect_exit: 0
+    - run: pnpm run p7:staging-draft-refresh-probe
+      expect_exit: 0
+      expect_stdout_contains: P7_STAGING_DRAFT_REFRESH_PROBE_OK
+  manual_runbook_ref: runbooks/p7-wizard-blocker-walkthrough.md
+  manual_steps:
+    - "Mid-wizard refresh on staging retains step + draft"
+  files_touch:
+    - apps/web/src/tours/tour-wizard-draft.ts
+  on_pass_update:
+    - p7-exit-checklist.md#P7-1-N-007
+  forbidden_shortcuts: []
+
+P7-1-N-008:
+  epic: P7-1
+  proof_tier: STAGING
+  repo_status: STAGING_PASS
+  forbidden_until: [P7-1-N-007]
+  commands:
+    - run: pnpm --filter @apps/api exec node --import tsx --test test/denali-catalog.spec.ts
+      expect_exit: 0
+    - run: pnpm run p7:staging-terms-probe
+      expect_exit: 0
+      expect_stdout_contains: P7_STAGING_TERMS_PROBE_OK
+  manual_runbook_ref: runbooks/p7-wizard-blocker-walkthrough.md#BLK-WIZ-08
+  manual_steps:
+    - "Terms persist on published tour · visible on portal register"
+  files_touch: []
+  on_pass_update:
+    - p7-exit-checklist.md#P7-1-N-008
+  forbidden_shortcuts: []
+
+P7-1-N-009:
+  epic: P7-1
+  proof_tier: STAGING_E2E
+  repo_status: STAGING_PASS
+  forbidden_until: [P7-1-N-006]
+  commands:
+    - run: pnpm run p7:staging-vs01-probe
+      expect_exit: 0
+      expect_stdout_contains: P7_STAGING_VS01_PROBE_OK
+  manual_runbook_ref: runbooks/p7-staging-e2e.md
+  files_touch: []
+  on_pass_update:
+    - p7-exit-checklist.md#P7-1-N-009
+    - p7-exit-checklist.md#VS-01
+  forbidden_shortcuts:
+    - "localhost marketing smoke as VS-01 staging"
+
+P7-2-N-001:
+  epic: P7-2
+  proof_tier: DEV_API_MEMORY
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-1-N-009]
+  commands:
+    - run: pnpm --filter @apps/web exec node --import tsx --test test/tour-workspace-registrations-logic.spec.ts
+      expect_exit: 0
+    - run: pnpm run p7:staging-workspace-registrations-probe
+      expect_exit: 0
+      tier: STAGING
+  manual_runbook_ref: p7-2-workspace-ops.md
+  manual_steps:
+    - "Staging workspace registrations scoped to route tourId"
+    - "seed-operator-smoke-identity-staging.ts before operator.admin OTP"
+  files_touch:
+    - apps/web/app/(app)/tours/[id]/workspace/
+    - apps/api/scripts/seed-operator-smoke-identity-staging.ts
+  on_pass_update:
+    - p7-exit-checklist.md#P7-2-N-001
+  forbidden_shortcuts:
+    - "skip operator tenant 014 identity seed on staging"
+
+P7-2-N-002:
+  epic: P7-2
+  proof_tier: STAGING
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-2-N-001]
+  commands:
+    - run: pnpm run p7:staging-portal-pending-probe
+      expect_exit: 0
+  manual_runbook_ref: p7-2-workspace-ops.md
+  manual_steps:
+    - "Portal register (VS-03) → pending row in admin workspace"
+  files_touch:
+    - apps/api/src/bookings/
+    - apps/portal/app/api/catalog/registrations/
+  on_pass_update:
+    - p7-exit-checklist.md#P7-2-N-002
+  forbidden_shortcuts:
+    - "POST /denali/registrations directly without portal BFF"
+
+P7-2-N-003:
+  epic: P7-2
+  proof_tier: STAGING
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-2-N-002]
+  commands:
+    - run: pnpm --filter @apps/api exec node --import tsx --test test/bookings-ops.spec.ts
+      expect_exit: 0
+    - run: pnpm run p7:staging-approve-booking-probe
+      expect_exit: 0
+      tier: STAGING
+  manual_runbook_ref: p7-2-workspace-ops.md
+  manual_steps:
+    - "Operator approves booking on staging · VS-06"
+  files_touch:
+    - apps/api/src/bookings/bookings.service.ts
+    - apps/api/scripts/verify-booking-approve-outbox-staging.ts
+  on_pass_update:
+    - p7-exit-checklist.md#P7-2-N-003
+    - p7-exit-checklist.md#VS-06
+  forbidden_shortcuts:
+    - "API test only without staging approve"
+
+P7-2-N-004:
+  epic: P7-2
+  proof_tier: DEV_API_MEMORY
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-2-N-003]
+  commands:
+    - run: pnpm --filter @apps/web exec node --import tsx --test test/tours-workspace.spec.ts
+      expect_exit: 0
+    - run: pnpm run p7:staging-waitlist-promote-probe
+      expect_exit: 0
+      tier: STAGING
+  manual_runbook_ref: p7-2-workspace-ops.md
+  manual_steps:
+    - "Waitlist promote on staging when capacity full"
+  files_touch:
+    - apps/web/app/(app)/tours/[id]/workspace/waitlist/
+    - apps/api/scripts/seed-operator-smoke-waitlist-staging.ts
+  on_pass_update:
+    - p7-exit-checklist.md#P7-2-N-004
+  forbidden_shortcuts:
+    - "approve pending row without waitlisted status seed"
+
+P7-2-N-005:
+  epic: P7-2
+  proof_tier: STAGING
+  repo_status: SKIP
+  conditional: true
+  forbidden_until: [P7-2-N-004]
+  commands: []
+  manual_runbook_ref: appendices/P7-EXECUTION-DISCIPLINE.md#conditional-nanos
+  manual_steps:
+    - "Enable only if customer day-one needs transport tab"
+  files_touch:
+    - apps/web/app/(app)/tours/[id]/workspace/transport/
+  on_pass_update:
+    - p7-exit-checklist.md#P7-2-N-005
+  forbidden_shortcuts:
+    - "Implement without customer requirement"
+
+P7-2-N-006:
+  epic: P7-2
+  proof_tier: STAGING
+  repo_status: SKIP
+  conditional: true
+  forbidden_until: [P7-2-N-004]
+  commands:
+    - run: pnpm --filter @apps/api exec node --import tsx --test test/tours-workspace.spec.ts
+      expect_exit: 0
+  manual_runbook_ref: appendices/P7-EXECUTION-DISCIPLINE.md#conditional-nanos
+  manual_steps:
+    - "Enable only if portal-only register insufficient"
+  files_touch:
+    - apps/web/app/(app)/tours/[id]/register/
+  on_pass_update:
+    - p7-exit-checklist.md#P7-2-N-006
+  forbidden_shortcuts: []
+
+P7-2-N-007:
+  epic: P7-2
+  proof_tier: STAGING
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-2-N-003]
+  commands:
+    - run: pnpm --filter @apps/web exec node --import tsx --test test/finance-page.spec.ts
+      expect_exit: 0
+    - run: pnpm --filter @apps/web exec node --import tsx --test test/finance-dashboard-widget.spec.ts
+      expect_exit: 0
+    - run: pnpm run p7:staging-finance-hub-probe
+      expect_exit: 0
+      tier: STAGING
+  manual_runbook_ref: p7-2-workspace-ops.md
+  manual_steps:
+    - "After VS-05 upload · receipt visible in /finance pending on staging"
+  files_touch:
+    - apps/web/app/(app)/finance/
+    - apps/api/scripts/seed-operator-smoke-finance-receipt-staging.ts
+  on_pass_update:
+    - p7-exit-checklist.md#P7-2-N-007
+  forbidden_shortcuts:
+    - "finance summary without pending receipt row"
+
+P7-2-N-008:
+  epic: P7-2
+  proof_tier: MANUAL
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-2-N-003]
+  commands:
+    - run: pnpm run p7:staging-vs06-runbook-probe
+      expect_exit: 0
+      tier: STAGING
+      note: "Automated VS-06 runbook chain; T4 sign-off still manual column"
+  manual_runbook_ref: ../../phase-19/p6/runbooks/first-customer-operator.md
+  manual_steps:
+    - "Execute VS-06 operator runbook on staging URLs"
+    - "T4 sign-off when customer walks through live"
+  files_touch: []
+  on_pass_update:
+    - p7-exit-checklist.md#P7-2-N-008
+  forbidden_shortcuts:
+    - "approve without portal registration prerequisite"
+    - "skip workspace registrations shell check"
+
+P7-3-N-001:
+  epic: P7-3
+  proof_tier: STAGING_E2E
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-2-N-008]
+  commands:
+    - run: pnpm run p7:staging-e2e-probe
+      expect_exit: 0
+      expect_stdout: P7_STAGING_E2E_PROBE_OK
+      tier: STAGING
+      requires_env: [PW_EXTERNAL_SERVERS, SMOKE_PORTAL_BASE_URL, PLAYWRIGHT_BASE_URL, OPERATOR_OWNER_MOBILE]
+    - run: PW_EXTERNAL_SERVERS=1 PW_NO_REUSE_SERVER=1 pnpm --filter @apps/portal exec playwright test tests/e2e/portal-member-smoke.spec.ts
+      expect_exit: 0
+      requires_env: [PW_EXTERNAL_SERVERS, SMOKE_PORTAL_BASE_URL, PLAYWRIGHT_BASE_URL]
+      note: "Subset only — full T2 matrix is p7:staging-e2e-probe"
+  manual_runbook_ref: runbooks/p7-staging-e2e.md
+  files_touch: []
+  on_pass_update:
+    - p7-exit-checklist.md#P7-3-N-001
+    - p7-exit-checklist.md#VS-01
+    - p7-exit-checklist.md#VS-02
+    - p7-exit-checklist.md#VS-03
+    - p7-exit-checklist.md#VS-04
+    - p7-exit-checklist.md#VS-05
+    - p7-exit-checklist.md#VS-06
+  forbidden_shortcuts:
+    - "localhost Playwright as T2 staging proof"
+
+P7-3-N-002:
+  epic: P7-3
+  proof_tier: STAGING_BEHAVIORAL
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-0-N-003]
+  commands:
+    - run: pnpm run p7:staging-finance-ops-probe
+      expect_exit: 0
+      tier: STAGING
+      requires_env: [DATABASE_URL]
+    - run: pnpm --filter @apps/api exec node --import tsx --test test/finance-ops.spec.ts
+      expect_exit: 0
+      requires_env: [DATABASE_URL]
+      note: "Same spec · run on VPS via probe or with staging DATABASE_URL locally"
+  manual_runbook_ref: runbooks/p7-receipt-minio-staging.md
+  files_touch:
+    - apps/api/test/finance-ops.spec.ts
+  on_pass_update:
+    - p7-exit-checklist.md#P7-3-N-002
+    - p7-exit-checklist.md#VS-07
+  forbidden_shortcuts:
+    - "Run without staging DATABASE_URL"
+
+P7-3-N-003:
+  epic: P7-3
+  proof_tier: DEV_STATIC
+  repo_status: DEV_PASS
+  forbidden_until: []
+  commands:
+    - run: pnpm run p7:gate
+      expect_stdout: P7_DENALI_DELIVERY_GATE_OK
+  manual_runbook_ref: runbooks/p7-staging-gate.md
+  files_touch:
+    - scripts/p7-denali-delivery-gate.sh
+  on_pass_update:
+    - p7-exit-checklist.md#P7-3-N-003
+    - p7-exit-checklist.md#VS-08
+  forbidden_shortcuts:
+    - "Add T2 Playwright to p7:gate script"
+
+P7-3-N-004:
+  epic: P7-3
+  proof_tier: MANUAL
+  repo_status: NOT_STARTED
+  forbidden_until: [P7-3-N-001, P7-3-N-002]
+  commands:
+    - run: pnpm run p7:evidence-pack-verify
+      expect_stdout: P7_EVIDENCE_PACK_VERIFY_OK
+  manual_runbook_ref: runbooks/p7-customer-sign-off.md
+  files_touch:
+    - docs/phase-20/p7/evidence/
+  on_pass_update:
+    - p7-exit-checklist.md#P7-3-N-004
+  forbidden_shortcuts:
+    - "Sign-off without evidence manifest"
+
+P7-3-N-005:
+  epic: P7-3
+  proof_tier: STAGING
+  repo_status: STAGING_PASS
+  forbidden_until: [P7-3-N-004]
+  commands:
+    - run: pnpm run p7:gate
+      expect_stdout: P7_DENALI_DELIVERY_GATE_OK
+    - run: pnpm run p7:staging-gate
+      expect_stdout: P7_STAGING_GATE_OK
+      optional: true
+      note: "Required when staging reachable"
+    - run: pnpm run p7:staging-e2e-probe
+      expect_stdout: P7_STAGING_E2E_PROBE_OK
+      optional: true
+      note: "Playwright via SSH tunnel — local dev runner"
+    - run: pnpm run p7:t4-architect-dry-run
+      expect_stdout: P7_T4_ARCHITECT_DRY_RUN_OK
+      optional: true
+      note: "Architect witness before customer session"
+  manual_runbook_ref: runbooks/p7-t4-sign-off-session.md
+  closeout_command: pnpm run p7:t4-closeout
+  prep_command: pnpm run p7:t4-prep
+  t4_day_command: pnpm run p7:t4-day
+  t4_ready_command: pnpm run p7:t4-ready
+  files_touch:
+    - appendices/IMPLEMENTATION-TRUTH-P7.md
+    - AGENT-CURRENT-PHASE.yaml
+    - P7-EXIT-HANDOFF.md
+  on_pass_update:
+    - p7-exit-checklist.md#P7-3-N-005
+  forbidden_shortcuts:
+    - "BEHAVIORAL_COMPLETE without customer T4 session"
+    - "p7:t4-closeout before manual VS-01..08 sign-off"

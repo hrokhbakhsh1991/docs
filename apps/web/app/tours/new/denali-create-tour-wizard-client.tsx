@@ -5,6 +5,11 @@ import { useCallback } from "react";
 
 import { DenaliCreateTourWizardView } from "@app-tour/workspace-denali/ui/create-wizard";
 
+import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
+import {
+  createDenaliWizardSubmitFieldLabelResolver,
+  resolveWizardSubmitErrorMessage,
+} from "@/wizard/resolve-wizard-submit-error-message";
 import { useAppSession } from "@/providers/app-session-context";
 import {
   CreateTourWizardCloneError,
@@ -20,27 +25,29 @@ import { WorkspaceWizardHost } from "@/wizard/workspace-wizard-host";
 
 export function DenaliCreateTourWizardClient() {
   const t = useTranslations("wizard");
+  const tDenali = useWorkspaceWizardTranslator("denali");
   const session = useAppSession();
   const wizard = useDenaliCreateTourWizard();
 
-  const formatSubmitError = useCallback(
-    (code: string) => {
-      if (code === "VALIDATION_FAILED") {
-        return t("submit.validationFailed");
-      }
-      if (code === "DENALI_RULES_NOT_READY") {
-        return t("submit.errorGeneric", { status: 0, code });
-      }
-      if (code.startsWith("ACTION:")) {
-        const [, status, actionCode] = code.split(":");
-        return t("submit.errorGeneric", {
-          status: Number(status),
-          code: actionCode ?? "UNKNOWN",
-        });
-      }
-      return t("submit.errorGeneric", { status: 0, code });
-    },
-    [t]
+  const resolveSubmitError = useCallback(
+    (code: string) =>
+      resolveWizardSubmitErrorMessage({
+        raw: code,
+        context: "create",
+        translateFieldLabel: createDenaliWizardSubmitFieldLabelResolver((key) => tDenali(key)),
+        t: {
+          translate: (key, values) => t(key, values),
+          has: (key) => {
+            try {
+              t(key);
+              return true;
+            } catch {
+              return false;
+            }
+          },
+        },
+      }),
+    [t, tDenali]
   );
 
   return (
@@ -48,7 +55,7 @@ export function DenaliCreateTourWizardClient() {
       wizard={wizard}
       authz={session.authz}
       cloneLoadingMessage={t("clone.loading")}
-      formatSubmitError={formatSubmitError}
+      resolveSubmitError={resolveSubmitError}
       slots={{
         renderLoading: (props) => <CreateTourWizardLoadingMessage {...props} />,
         renderCloneError: (props) => <CreateTourWizardCloneError {...props} />,
@@ -56,7 +63,15 @@ export function DenaliCreateTourWizardClient() {
         renderHeader: (props) => <CreateTourWizardDenaliHeader {...props} />,
         renderSeedBanner: (props) => <CreateTourWizardSeedBanner {...props} />,
         renderPresetBanner: (props) => <CreateTourWizardPresetBanner {...props} />,
-        renderSubmitFooter: (props) => <CreateTourWizardSubmitFooter {...props} />,
+        renderSubmitFooter: (props) => (
+          <CreateTourWizardSubmitFooter
+            pending={props.pending}
+            submitError={props.submitError}
+            createdTourId={props.createdTourId}
+            onSubmit={props.onSubmit}
+            resolveSubmitError={props.resolveSubmitError}
+          />
+        ),
         renderWizardHost: (hostProps) => (
           <WorkspaceWizardHost
             pluginId={hostProps.pluginId}

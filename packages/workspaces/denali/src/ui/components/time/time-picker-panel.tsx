@@ -57,6 +57,9 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
       className={cn("denali-time-picker", className)}
       data-denali-wizard-time-picker
       dir="ltr"
+      onPointerDown={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
     >
       <p className="denali-time-picker__hint">{t("timePickerHint")}</p>
       <div className="denali-time-picker__columns" role="group" aria-label={t("timeLabel")}>
@@ -129,7 +132,15 @@ export function TimePickerPanel({ value, onChange, onConfirm, className }: TimeP
       </p>
       {onConfirm != null ? (
         <div className="denali-time-picker__actions">
-          <Button type="button" className="w-full" onClick={onConfirm}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="denali-time-picker__confirm"
+            onClick={(event) => {
+              event.stopPropagation();
+              onConfirm();
+            }}
+          >
             {t("confirmTime")}
           </Button>
         </div>

@@ -122,4 +122,25 @@ describe("public-tenant-context", () => {
     });
     assert.equal(response.status, 404);
   });
+
+  it("PTC-04 P8-0-N-001 bare IP fallback resolves operator tenant when env set", async () => {
+    const prevLabel = process.env.PUBLIC_TENANT_FALLBACK_LABEL;
+    const prevHosts = process.env.PUBLIC_TENANT_FALLBACK_HOSTS;
+    process.env.PUBLIC_TENANT_FALLBACK_LABEL = "operator";
+    process.env.PUBLIC_TENANT_FALLBACK_HOSTS = "89.45.89.206";
+    try {
+      const response = await requestPublic(listener, "/public/tenant-context", {
+        host: "89.45.89.206",
+        "x-forwarded-host": "89.45.89.206:23001",
+      });
+      assert.equal(response.status, 200);
+      const data = (response.body as { data?: { tenantId?: string } }).data;
+      assert.equal(data?.tenantId, OPERATOR_SMOKE.tenantId);
+    } finally {
+      if (prevLabel === undefined) delete process.env.PUBLIC_TENANT_FALLBACK_LABEL;
+      else process.env.PUBLIC_TENANT_FALLBACK_LABEL = prevLabel;
+      if (prevHosts === undefined) delete process.env.PUBLIC_TENANT_FALLBACK_HOSTS;
+      else process.env.PUBLIC_TENANT_FALLBACK_HOSTS = prevHosts;
+    }
+  });
 });

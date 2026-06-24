@@ -227,7 +227,7 @@ export class InMemoryFinanceRepository {
     }
     ledgerEvents.push({
       id: randomUUID(),
-      eventType: "finance.ledger.double_entry.applied",
+      eventType: "finance.ledger.double_entry_applied",
       payload: {
         journalId: ledgerJournalId,
         registrationId: row.registrationId,

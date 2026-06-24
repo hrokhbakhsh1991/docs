@@ -66,6 +66,7 @@ describe("denali-admin-theme.spec.ts", () => {
     const css = readFileSync(join(DENALI_THEME_DIR, "interactions.css"), "utf8");
     assert.match(css, /\[data-denali-surface="card"\]/);
     assert.match(css, /\[data-operator-nav-link\]/);
+    assert.match(css, /\[data-operator-nav-icon\]/);
     assert.match(css, /prefers-reduced-motion: reduce/);
   });
 
@@ -87,6 +88,12 @@ describe("denali-admin-theme.spec.ts", () => {
     );
     assert.match(skeleton, /data-denali-skeleton="shimmer"/);
     assert.match(empty, /data-denali-empty-state/);
+    const kpiCell = readFileSync(
+      join(import.meta.dirname, "../src/admin/patterns/dashboard-kpi-cell.tsx"),
+      "utf8"
+    );
+    assert.match(kpiCell, /data-denali-kpi/);
+    assert.match(kpiCell, /line-clamp-2/);
     const skin = readFileSync(join(DENALI_THEME_DIR, "admin-skin.css"), "utf8");
     assert.match(skin, /\[data-denali-empty-state\]/);
     assert.match(skin, /\[data-operator-nav-cta\]/);
@@ -115,6 +122,20 @@ describe("denali-admin-theme.spec.ts", () => {
     );
     assert.match(shell, /data-operator-shell/);
     assert.match(shell, /data-workspace-plugin=\{pluginId\}/);
+    assert.match(shell, /data-operator-sidebar/);
+    assert.match(shell, /sticky top-14/);
+    assert.match(shell, /h-\[calc\(100dvh-3\.5rem\)\]/);
+    const nav = readFileSync(
+      join(import.meta.dirname, "../src/admin/shell/operator-nav.tsx"),
+      "utf8"
+    );
+    assert.match(nav, /data-operator-sidebar-header/);
+    assert.match(nav, /data-operator-sidebar-content/);
+    assert.match(nav, /data-operator-sidebar-footer/);
+    assert.match(nav, /data-operator-nav-icon/);
+    const skin = readFileSync(join(DENALI_THEME_DIR, "admin-skin.css"), "utf8");
+    assert.match(skin, /\[data-operator-sidebar\]/);
+    assert.match(skin, /\[data-operator-nav-group-label\]/);
     const header = readFileSync(
       join(import.meta.dirname, "../src/admin/shell/operator-header.tsx"),
       "utf8"

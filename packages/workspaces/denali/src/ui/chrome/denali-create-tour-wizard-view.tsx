@@ -28,6 +28,11 @@ export type DenaliCreateTourWizardHostRenderProps = {
   readonly renderFooter: () => ReactNode;
 };
 
+export type DenaliWizardSubmitErrorPresentation = {
+  readonly summary: string;
+  readonly details?: readonly string[];
+};
+
 export type DenaliCreateTourWizardViewSlots = {
   readonly renderLoading: (props: { readonly message?: string; readonly testId?: string }) => ReactNode;
   readonly renderCloneError: (props: {
@@ -50,7 +55,7 @@ export type DenaliCreateTourWizardViewSlots = {
     readonly submitError: string | null;
     readonly createdTourId: string | null;
     readonly onSubmit: () => void;
-    readonly formatSubmitError: (code: string) => string;
+    readonly resolveSubmitError: (code: string) => DenaliWizardSubmitErrorPresentation | null;
   }) => ReactNode;
   readonly renderWizardHost: (props: DenaliCreateTourWizardHostRenderProps) => ReactNode;
 };
@@ -59,7 +64,7 @@ export type DenaliCreateTourWizardViewProps = {
   readonly wizard: DenaliCreateTourWizardCoreState;
   readonly authz: unknown;
   readonly cloneLoadingMessage: string;
-  readonly formatSubmitError: (code: string) => string;
+  readonly resolveSubmitError: (code: string) => DenaliWizardSubmitErrorPresentation | null;
   readonly slots: DenaliCreateTourWizardViewSlots;
 };
 
@@ -68,7 +73,7 @@ export function DenaliCreateTourWizardView({
   wizard,
   authz,
   cloneLoadingMessage,
-  formatSubmitError,
+  resolveSubmitError,
   slots,
 }: DenaliCreateTourWizardViewProps) {
   if (wizard.screen === "gate-loading" || wizard.screen === "clone-loading") {
@@ -135,7 +140,7 @@ export function DenaliCreateTourWizardView({
             submitError: wizard.submitError,
             createdTourId: wizard.createdTourId,
             onSubmit: wizard.onSubmit,
-            formatSubmitError,
+            resolveSubmitError,
           }),
       })}
     </div>

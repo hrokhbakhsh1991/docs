@@ -1,9 +1,9 @@
 import {
   assertWorkspaceDefinitionPayload,
-  computeWorkspaceDefinitionPayloadChecksum,
   stripWorkspacePluginToDefinitionPayload,
   type WorkspaceDefinitionPayload,
 } from "@app-tour/workspace-sdk/metadata";
+import { computeWorkspaceDefinitionPayloadChecksum } from "@app-tour/workspace-sdk/metadata/checksum";
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 export type WorkspaceDefinitionExportMeta = {

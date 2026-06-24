@@ -21,6 +21,7 @@ import {
   sanitizeLeaderUserIdsOnDraft,
   sanitizeThemeIdsOnDraft,
 } from "./denali-wizard-catalog-sanitize";
+import type { DenaliSubmitCatalogIds } from "./denali-wizard-catalog-sanitize";
 import {
   sanitizeDenaliWizardDraftEnvelope,
   sanitizeDenaliWizardDraftRecord,
@@ -183,6 +184,45 @@ export function prepareDenaliTourPatchPayloadFromHostInput(input: {
     input.rowVersion,
     { ...input.catalog, patchIntent: input.patchIntent }
   );
+}
+
+/** Phase 15.2 P15-W-C1 — wizardHost.prepareSubmitPayload or throw. */
+export function submitDenaliCreateTourViaWizardHost(input: {
+  readonly plugin: WorkspacePlugin;
+  readonly draft: Readonly<Record<string, unknown>>;
+  readonly rulesModule: DenaliWizardRulesModule;
+  readonly evalContext: DenaliWizardRuleEvalContext;
+  readonly catalog?: PrepareDenaliTourCreatePayloadOptions;
+}): CreateTourPayload {
+  const prepare = input.plugin.wizardHost?.prepareSubmitPayload;
+  if (prepare == null) {
+    throw new Error("WIZARD_SUBMIT_NOT_CONFIGURED");
+  }
+  return prepare({
+    plugin: input.plugin as WorkspaceWizardHostPluginContext,
+    draft: input.draft,
+    rulesModule: input.rulesModule,
+    evalContext: input.evalContext,
+    catalog: input.catalog,
+  }) as CreateTourPayload;
+}
+
+/** Phase 15.2 P15-W-C1 — load catalog ids then submit via wizardHost hook. */
+export async function submitDenaliCreateTourViaWizardHostWithCatalogLoader(input: {
+  readonly plugin: WorkspacePlugin;
+  readonly draft: Readonly<Record<string, unknown>>;
+  readonly rulesModule: DenaliWizardRulesModule;
+  readonly evalContext: DenaliWizardRuleEvalContext;
+  readonly loadCatalog: () => Promise<DenaliSubmitCatalogIds>;
+}): Promise<CreateTourPayload> {
+  const catalog = await input.loadCatalog();
+  return submitDenaliCreateTourViaWizardHost({
+    plugin: input.plugin,
+    draft: input.draft,
+    rulesModule: input.rulesModule,
+    evalContext: input.evalContext,
+    catalog,
+  });
 }
 
 export {

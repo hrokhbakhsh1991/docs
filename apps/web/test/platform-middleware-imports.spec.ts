@@ -6,7 +6,7 @@ describe("platform-middleware-imports", () => {
   it("no duplicate TENANT_SUBDOMAIN_REGEX in middleware", () => {
     const middleware = readFileSync(new URL("../middleware.ts", import.meta.url), "utf8");
     assert.doesNotMatch(middleware, /TENANT_SUBDOMAIN_REGEX/);
-    assert.match(middleware, /resolveMultiLevelHost/);
+    assert.match(middleware, /parseMultiLevelTenantHost/);
   });
 
   it("is-platform-admin-host imports kernel", () => {

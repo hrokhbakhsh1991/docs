@@ -44,13 +44,16 @@ build_pkg @app-tour/workspace-sdk
 build_pkg @app-tour/platform-core
 build_pkg @app-tour/design-tokens
 build_pkg @app-tour/workspace-starter
-build_pkg @app-tour/workspace-denali
-build_pkg @app-tour/workspace-urban
 build_pkg @app-tour/ui-primitives
 build_pkg @app-tour/theme-react
 build_pkg @app-tour/tenant-kernel
+build_pkg @app-tour/guest-surface-host
+build_pkg @app-tour/session-client
 build_pkg @app-tour/platform-events
 pnpm --filter @app-tour/wizard-navigation run build 2>/dev/null || true
+pnpm --filter @app-tour/draft-engine run build 2>/dev/null || true
+build_pkg @app-tour/workspace-denali
+build_pkg @app-tour/workspace-urban
 
 build_pkg @apps/api
 
@@ -61,4 +64,23 @@ fi
 
 build_web_production
 
-echo "[vps-build] api + web production builds complete"
+build_next_app() {
+  local app_dir="$1"
+  local label="$2"
+  rm -rf "${app_dir}/.next" "${app_dir}/out" "${app_dir}/node_modules/.cache"
+  (
+    cd "$app_dir"
+    export NODE_ENV=production
+    export CI=true
+    export NEXT_FONT_OFFLINE=1
+    /usr/local/bin/pnpm exec next build
+  ) || {
+    echo "[vps-build] ERROR: ${label} next build failed" >&2
+    return 1
+  }
+}
+
+build_next_app "${DEPLOY_PATH}/apps/marketing" "@apps/marketing"
+build_next_app "${DEPLOY_PATH}/apps/portal" "@apps/portal"
+
+echo "[vps-build] api + web + marketing + portal production builds complete"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { formatIsoDateLabel } from "../adapters/calendar-format";
 import { type AppLocale } from "../adapters/i18n-format";
@@ -34,6 +34,7 @@ export type LocalizedDatePickerProps = {
   readonly id?: string;
   readonly value: string;
   readonly onChange: (isoDate: string) => void;
+  readonly minIsoDate?: string;
   readonly placeholder?: string;
   readonly disabled?: boolean;
   readonly required?: boolean;
@@ -46,6 +47,7 @@ export function LocalizedDatePicker({
   id,
   value,
   onChange,
+  minIsoDate,
   placeholder,
   disabled = false,
   required = false,
@@ -57,50 +59,63 @@ export function LocalizedDatePicker({
   const t = useTranslations("common.calendar");
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerId = useId();
   const displayLabel = value.trim().length > 0 ? formatIsoDateLabel(value, locale) : null;
 
   useEffect(() => {
     if (!open) {
       return;
     }
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
+    const handlePointerDown = (event: PointerEvent) => {
+      const root = rootRef.current;
+      if (root == null) {
+        return;
       }
+      const path = event.composedPath();
+      if (path.some((node) => node === root)) {
+        return;
+      }
+      setOpen(false);
     };
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="denali-date-picker">
       <Button
         data-denali-date-picker
-        id={id}
+        id={id ?? triggerId}
         type="button"
-        variant="secondary"
+        variant="ghost"
         disabled={disabled}
         data-testid={dataTestId}
         aria-label={ariaLabel ?? t("pickDate")}
         aria-required={required || undefined}
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen(true);
+        }}
         className={cn(
           "denali-date-picker-trigger",
-          !displayLabel && "text-muted-foreground",
+          !displayLabel && "denali-date-picker-trigger--placeholder",
           className
         )}
       >
-        <CalendarIcon className="denali-date-picker-trigger__icon size-4 shrink-0 opacity-70" />
-        <span className="truncate">{displayLabel ?? placeholder ?? t("pickDate")}</span>
+        <CalendarIcon className="denali-date-picker-trigger__icon" />
+        <span className="denali-date-picker-trigger__label">{displayLabel ?? placeholder ?? t("pickDate")}</span>
       </Button>
       {open ? (
         <div
-          className="absolute z-50 mt-1 start-0 w-auto rounded-md border bg-popover p-0 shadow-md"
           data-denali-wizard-calendar-popover
+          onPointerDown={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         >
           <DenaliCalendar
             value={value}
+            minIsoDate={minIsoDate}
             onSelect={(iso) => {
               onChange(iso);
               setOpen(false);

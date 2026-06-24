@@ -1,6 +1,8 @@
 "use client";
 
 import { readDenaliCanonicalBasics } from "../../adapters/denaliCanonicalBasicsControl";
+import { isDenaliWizardFieldVisibleOnDraft } from "../../wizard/denali-wizard-field-visibility";
+import type { DenaliWizardRuleEvalContext } from "../../wizard/denali-wizard-rule-eval-context";
 import { DENALI_DEFAULT_WORKSPACE_FORM_PROFILE } from "../../wizard/denali-wizard-rule-eval-context";
 import { wizardFieldPathAttributes } from "@app-tour/wizard-navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -36,19 +38,30 @@ type DenaliProgramContentFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly workspaceFormProfile?: string;
+  readonly wizardRuleEvalContext?: Pick<DenaliWizardRuleEvalContext, "ruleSet">;
 };
 
 export function DenaliProgramContentField({
   draft,
   onDraftChange,
   workspaceFormProfile = DENALI_DEFAULT_WORKSPACE_FORM_PROFILE,
+  wizardRuleEvalContext,
 }: DenaliProgramContentFieldProps) {
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
   const draftRef = useLatestWizardDraft(draft);
   const themesLabel = resolveDenaliFieldLabel(t, "program.themeIds");
   const shortDescriptionLabel = resolveDenaliFieldLabel(t, "program.shortDescription");
+  const longDescriptionLabel = resolveDenaliFieldLabel(t, "program.longDescription");
   const shortDescription = getCanonicalStringValue(draft, "program.shortDescription");
+  const longDescription = getCanonicalStringValue(draft, "program.longDescription");
+  const showLongDescription = useMemo(
+    () =>
+      isDenaliWizardFieldVisibleOnDraft(draft, "program.longDescription", "denali_photos", {
+        ruleSet: wizardRuleEvalContext?.ruleSet,
+      }),
+    [draft, wizardRuleEvalContext]
+  );
   const selected = parseThemeIds(getCanonicalValue(draft, "program.themeIds"));
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
@@ -118,6 +131,12 @@ export function DenaliProgramContentField({
     );
   };
 
+  const writeLongDescription = (next: string) => {
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalStringValue(base, "program.longDescription", next)
+    );
+  };
+
   return (
     <div
       className="denali-wizard-composite"
@@ -141,6 +160,23 @@ export function DenaliProgramContentField({
           onBlur={(event) => writeShortDescription(event.target.value)}
         />
       </label>
+
+      {showLongDescription ? (
+        <label
+          className="denali-wizard-composite__field"
+          {...wizardFieldPathAttributes("program.longDescription")}
+        >
+          <span>{longDescriptionLabel}</span>
+          <textarea
+            className="denali-wizard-composite__textarea"
+            data-testid={DENALI_PROGRAM_CONTENT_TEST_IDS.longDescription}
+            value={longDescription}
+            rows={6}
+            onChange={(event) => writeLongDescription(event.target.value)}
+            onBlur={(event) => writeLongDescription(event.target.value)}
+          />
+        </label>
+      ) : null}
 
       <div className="denali-wizard-composite__header">
         <h3 className="denali-wizard-composite__title">{themesLabel}</h3>

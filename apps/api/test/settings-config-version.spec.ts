@@ -105,6 +105,39 @@ describe("settings-config-version.spec.ts — Phase 9.6 API", () => {
     assert.equal(wasTenantConfigInvalidated(OPERATOR_SMOKE.tenantId, "wizard_template"), true);
   });
 
+  it("API-9.6-CFG-03b PUT wizard template persists fieldRulesOverlay", async () => {
+    const response = await client.requestJson<ConfigResponse>(
+      "PUT",
+      "/settings/tour-wizard-template",
+      {
+        headers: operatorAuthHeaders(),
+        body: {
+          configVersion: 1,
+          payload: {
+            ...VALID_PAYLOAD,
+            published: true,
+            fieldRulesOverlay: {
+              "program.longDescription": { visibility: "hidden" },
+            },
+            steps: [
+              {
+                stepId: "denali_photos",
+                label: "Photos",
+                enabled: true,
+                fields: [{ canonicalPath: "program.themeIds" }],
+              },
+            ],
+          },
+        },
+      }
+    );
+    assert.equal(response.status, 200);
+    const payload = response.body.payload as Record<string, unknown>;
+    assert.deepEqual(payload.fieldRulesOverlay, {
+      "program.longDescription": { visibility: "hidden" },
+    });
+  });
+
   it("API-9.6-CFG-05 PUT rejects unknown wizard template field path", async () => {
     const response = await client.requestJson<ConfigResponse>(
       "PUT",

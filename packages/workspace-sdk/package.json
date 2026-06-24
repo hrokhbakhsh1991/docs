@@ -45,6 +45,18 @@
     "./metadata": {
       "types": "./dist/metadata/index.d.ts",
       "default": "./dist/metadata/index.js"
+    },
+    "./metadata/workspace-definition-payload": {
+      "types": "./dist/metadata/workspace-definition-payload.d.ts",
+      "default": "./dist/metadata/workspace-definition-payload.js"
+    },
+    "./metadata/allowed-platform-renderer-ids": {
+      "types": "./dist/metadata/allowed-platform-renderer-ids.d.ts",
+      "default": "./dist/metadata/allowed-platform-renderer-ids.js"
+    },
+    "./metadata/checksum": {
+      "types": "./dist/metadata/workspace-definition-payload-checksum.d.ts",
+      "default": "./dist/metadata/workspace-definition-payload-checksum.js"
     }
   },
   "scripts": {

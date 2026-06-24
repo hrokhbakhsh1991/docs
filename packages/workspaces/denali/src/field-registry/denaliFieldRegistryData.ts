@@ -39,7 +39,13 @@ export type DenaliZodFieldKind =
   | "minRequiredPeaks"
   | "adminCapacityApproval";
 
-export type DenaliSettingsSurface = "section" | "review" | "implicit" | "deprecated" | "json_only";
+export type DenaliSettingsSurface =
+  | "section"
+  | "review"
+  | "implicit"
+  | "deprecated"
+  | "json_only"
+  | "palette_roadmap";
 
 export interface DenaliFieldDefinition {
   canonicalPath: string;
@@ -145,6 +151,26 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     },
     wire: { kind: "tripDetails.overview", field: "maxAltitudeMeters" },
     notes: "Peak elevation (m ASL); prefilled from destination catalog when available.",
+  },
+  {
+    canonicalPath: "tripDetails.overview.trailDistanceKm",
+    stepId: "denali_basic",
+    rhfPath: "tripDetails.overview.trailDistanceKm",
+    zodPath: "tripDetails.overview.trailDistanceKm",
+    zodKind: "optionalPositiveInt",
+    tags: ["trail_nature", "trail_hidden"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
+    cellOverrides: {
+      "desert:multi_day": { required: false, hidden: true },
+      "desert:single_day": { required: false, hidden: true },
+      "event:single_day": { required: false, hidden: true },
+      "event:multi_day": { required: false, hidden: true },
+      "mountain:multi_day": { required: false, hidden: true },
+      "mountain:single_day": { required: false, hidden: true },
+    },
+    wire: { kind: "tripDetails.overview", field: "trailDistanceKm" },
+    notes: "Nature trail distance (km); prefilled from destination catalog when available.",
   },
   {
     canonicalPath: "startDateTime",
@@ -832,5 +858,101 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     settingsSurface: "section",
     contextualVisibility: { kind: "peakExperienceVisible" },
     structuralInvariant: { kind: "clearWhenNotVisible" },
+  },
+  {
+    canonicalPath: "participants.medicationsRequired",
+    stepId: "denali_pricing",
+    rhfPath: "participantRequirements.medicationsRequired",
+    zodPath: "participantRequirements.medicationsRequired",
+    zodKind: "booleanOptional",
+    tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "palette_roadmap",
+    notes: "Roadmap — guest registration collects current medications (trek medical forms).",
+  },
+  {
+    canonicalPath: "participants.allergiesRequired",
+    stepId: "denali_pricing",
+    rhfPath: "participantRequirements.allergiesRequired",
+    zodPath: "participantRequirements.allergiesRequired",
+    zodKind: "booleanOptional",
+    tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "palette_roadmap",
+    notes: "Roadmap — guest registration collects allergies (food, medicine, environment).",
+  },
+  {
+    canonicalPath: "participants.dietaryRequirementsRequired",
+    stepId: "denali_pricing",
+    rhfPath: "participantRequirements.dietaryRequirementsRequired",
+    zodPath: "participantRequirements.dietaryRequirementsRequired",
+    zodKind: "booleanOptional",
+    tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "palette_roadmap",
+    notes: "Roadmap — guest registration collects dietary restrictions.",
+  },
+  {
+    canonicalPath: "participants.medicalDeclarationRequired",
+    stepId: "denali_pricing",
+    rhfPath: "participantRequirements.medicalDeclarationRequired",
+    zodPath: "participantRequirements.medicalDeclarationRequired",
+    zodKind: "booleanOptional",
+    tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "palette_roadmap",
+    notes: "Roadmap — guest health / pre-existing conditions declaration.",
+  },
+  {
+    canonicalPath: "participants.emergencyContactRequired",
+    stepId: "denali_pricing",
+    rhfPath: "participantRequirements.emergencyContactRequired",
+    zodPath: "participantRequirements.emergencyContactRequired",
+    zodKind: "booleanOptional",
+    tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "palette_roadmap",
+    notes: "Roadmap — emergency contact required at guest registration.",
+  },
+  {
+    canonicalPath: "participants.physicalLimitationsRequired",
+    stepId: "denali_pricing",
+    rhfPath: "participantRequirements.physicalLimitationsRequired",
+    zodPath: "participantRequirements.physicalLimitationsRequired",
+    zodKind: "booleanOptional",
+    tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "palette_roadmap",
+    notes: "Roadmap — physical or mental limitations disclosure at registration.",
+  },
+  {
+    canonicalPath: "participants.evacuationInsuranceRequired",
+    stepId: "denali_pricing",
+    rhfPath: "participantRequirements.evacuationInsuranceRequired",
+    zodPath: "participantRequirements.evacuationInsuranceRequired",
+    zodKind: "booleanOptional",
+    tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "palette_roadmap",
+    notes: "Roadmap — medical / evacuation insurance attestation (distinct from sports insurance).",
+  },
+  {
+    canonicalPath: "policies.medicalFitnessDeclarationRequired",
+    stepId: "denali_legal",
+    rhfPath: "policies.medicalFitnessDeclarationRequired",
+    zodPath: "policies.medicalFitnessDeclarationRequired",
+    zodKind: "booleanOptional",
+    tags: ["policies_pricing"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "palette_roadmap",
+    notes: "Roadmap — require medical-fitness acknowledgement in policies / registration flow.",
   },
 ] as const;

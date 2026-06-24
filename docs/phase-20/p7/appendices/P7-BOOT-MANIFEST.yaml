@@ -1,0 +1,117 @@
+# P7 — Sole AI boot manifest (T0 entry)
+# Authority: DEC-P7-015 · AGENT-START.md
+
+manifest_id: P7-BOOT-MANIFEST
+pack_version: "1.6"
+sole_entry: docs/phase-20/p7/AGENT-START.md
+fail_token: P7_FAIL
+machine_snapshot: docs/phase-20/p7/AGENT-CURRENT-PHASE.yaml
+implementation_truth: appendices/IMPLEMENTATION-TRUTH-P7.md
+anti_hollow: appendices/P7-ANTI-HOLLOW-CONTRACT.md
+verification_commands: appendices/P7-VERIFICATION-COMMANDS.yaml
+turn_schema: appendices/P7-AGENT-TURN-SCHEMA.md
+deprecated: appendices/P7-DEPRECATED-ENTRYPOINTS.md
+navigator: ../AGENT-NAVIGATOR.md
+
+current_task: P7-3-N-005
+
+boot_sequence_T0:
+  - step: 0
+    action: READ
+    path: appendices/P7-BOOT-MANIFEST.yaml
+    rule: "Assert sole_entry — do not boot from deprecated list"
+  - step: 1
+    action: READ
+    path: appendices/IMPLEMENTATION-TRUTH-P7.md
+    rule: "Use staging_proof + proof tiers — doc complete != exit"
+  - step: 2
+    action: READ
+    path: appendices/P7-ANTI-HOLLOW-CONTRACT.md
+    rule: "Know what each gate proves vs does_not_prove"
+  - step: 3
+    action: READ
+    path: AGENT-CURRENT-PHASE.yaml
+    rule: "current_task + execution_order authoritative"
+  - step: 4
+    action: RUN
+    command: pnpm run p6:gate
+    expect_exit: 0
+    on_fail: P7_FAIL
+    rule: "P6 regression before any P7 work"
+  - step: 5
+    action: DETECT_NANO
+    algorithm: detect_current_nano
+  - step: 6
+    action: LOAD
+    path: "appendices/P7-VERIFICATION-COMMANDS.yaml#{current_nano}"
+    rule: "T1 nano scope only — no bulk EPIC read"
+
+forbidden_T0:
+  - path: docs/phase-20/p7/AGENT-CONTEXT.md
+    reason: redirect stub — use BOOT-MANIFEST
+  - path: docs/phase-20/platform-denali-customer-delivery.mdoc
+    reason: umbrella only — not sole boot
+  - path: docs/phase-19/p6/*
+    reason: P7 regression reference only — not implementation SoT
+
+gate_chain:
+  - id: T1
+    command: pnpm run p7:gate
+    expect_token: P7_DENALI_DELIVERY_GATE_OK
+    proof_tier: DEV_STATIC
+  - id: T1_plus
+    command: pnpm run p7:staging-gate
+    expect_token: P7_STAGING_GATE_OK
+    proof_tier: STAGING
+  - id: T2
+    runbook: runbooks/p7-staging-e2e.md
+    proof_tier: STAGING_E2E
+  - id: T3
+    command: "pnpm --filter @apps/api exec node --import tsx --test test/finance-ops.spec.ts"
+    requires_env: DATABASE_URL
+    proof_tier: STAGING_BEHAVIORAL
+  - id: T4
+    runbook: runbooks/p7-customer-sign-off.md
+    proof_tier: MANUAL
+
+execution_order:
+  - P7-0-N-001
+  - P7-0-N-002
+  - P7-0-N-003
+  - P7-0-N-004
+  - P7-0-N-005
+  - P7-1-N-001
+  - P7-1-N-002
+  - P7-1-N-003
+  - P7-1-N-004
+  - P7-1-N-005
+  - P7-1-N-006
+  - P7-1-N-007
+  - P7-1-N-008
+  - P7-1-N-009
+  - P7-2-N-001
+  - P7-2-N-002
+  - P7-2-N-003
+  - P7-2-N-004
+  - P7-2-N-005
+  - P7-2-N-006
+  - P7-2-N-007
+  - P7-2-N-008
+  - P7-3-N-001
+  - P7-3-N-002
+  - P7-3-N-003
+  - P7-3-N-004
+  - P7-3-N-005
+
+detect_current_nano:
+  description: |
+    1. Read execution_order from this manifest (synced with AGENT-CURRENT-PHASE.yaml).
+    2. Read p7-exit-checklist.md staging column for each nano.
+    3. Return first nano where staging is not PASS (checkbox unchecked or not marked PASS).
+    4. If all PASS, return P7-3-N-005 for exit verification.
+  fallback: AGENT-CURRENT-PHASE.yaml current_task
+
+agent_load_tiers:
+  T0: [P7-BOOT-MANIFEST.yaml, IMPLEMENTATION-TRUTH-P7.md, P7-ANTI-HOLLOW-CONTRACT.md, AGENT-CURRENT-PHASE.yaml]
+  T1: [P7-VERIFICATION-COMMANDS.yaml#current_nano, EPIC spec for nano prefix, linked runbook]
+  T2: [TRACEABILITY-MATRIX-P7.md, P7-TEST-INVENTORY.md, SMOKE-SCENARIO-MAP-P7.md, FILE-MAP.md]

@@ -42,9 +42,29 @@
       "types": "./dist/settings/equipment-compatible-categories.d.ts",
       "default": "./dist/settings/equipment-compatible-categories.js"
     },
+    "./settings/equipment-icon-registry": {
+      "types": "./dist/settings/equipment-icon-registry.d.ts",
+      "default": "./dist/settings/equipment-icon-registry.js"
+    },
     "./settings/equipment-compatible-themes": {
       "types": "./dist/settings/equipment-compatible-themes.d.ts",
       "default": "./dist/settings/equipment-compatible-themes.js"
+    },
+    "./settings/destination-location-types": {
+      "types": "./dist/settings/destination-location-types.d.ts",
+      "default": "./dist/settings/destination-location-types.js"
+    },
+    "./settings/wizard-template-long-description": {
+      "types": "./dist/settings/denali-wizard-template-long-description.d.ts",
+      "default": "./dist/settings/denali-wizard-template-long-description.js"
+    },
+    "./settings/wizard-template-catalog-meta": {
+      "types": "./dist/settings/denali-wizard-template-catalog-meta.d.ts",
+      "default": "./dist/settings/denali-wizard-template-catalog-meta.js"
+    },
+    "./settings/wizard-template-roadmap": {
+      "types": "./dist/settings/denali-wizard-template-roadmap.d.ts",
+      "default": "./dist/settings/denali-wizard-template-roadmap.js"
     },
     "./wizard/rules-loader": {
       "types": "./dist/wizard/rules-loader.d.ts",
@@ -297,6 +317,18 @@
       "types": "./dist/ui/components/denali-itinerary-segment-destination-field.d.ts",
       "default": "./dist/ui/components/denali-itinerary-segment-destination-field.js"
     },
+    "./ui/components/denali-searchable-select": {
+      "types": "./dist/ui/components/denali-searchable-select.d.ts",
+      "default": "./dist/ui/components/denali-searchable-select.js"
+    },
+    "./ui/components/equipment-catalog-avatar": {
+      "types": "./dist/ui/components/equipment-catalog-avatar.d.ts",
+      "default": "./dist/ui/components/equipment-catalog-avatar.js"
+    },
+    "./ui/components/equipment-icon-picker": {
+      "types": "./dist/ui/components/equipment-icon-picker.d.ts",
+      "default": "./dist/ui/components/equipment-icon-picker.js"
+    },
     "./ui/components/denali-itinerary-segment-photo-picker": {
       "types": "./dist/ui/components/denali-itinerary-segment-photo-picker.d.ts",
       "default": "./dist/ui/components/denali-itinerary-segment-photo-picker.js"
@@ -446,7 +478,7 @@
   "peerDependencies": {
     "lucide-react": "^1.0.0",
     "next": "^15.0.0",
-    "next-intl": "^3.0.0",
+    "next-intl": "^4.11.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -469,6 +501,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "lucide-react": "^1.17.0",
+    "next-intl": "^4.11.1",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"
   }

@@ -1,33 +1,24 @@
 ```yaml
 pack: P7-denali-customer-live
-pack_version: "1.2"
-status: IN_PROGRESS
+pack_version: "1.6"
+status: STAGING_COMPLETE
 prerequisite: P6-complete
-current_task: P7-0-N-002
+current_task: P7-3-N-005
 nano_spec_total: 27
-nano_staging_done: 1
+nano_staging_done: 23
 nano_total: 27
 exit_nano: P7-3-N-005
+blocker: T4_customer_sign_off
 p6_regression: pnpm run p6:gate
 p7_gate: pnpm run p7:gate
+p7_staging_verify: pnpm run p7:staging-verify
+p7_staging_gate: pnpm run p7:staging-gate
+p7_staging_e2e: pnpm run p7:staging-e2e-probe
+p7_t4_closeout: pnpm run p7:t4-closeout
 machine_snapshot: AGENT-CURRENT-PHASE.yaml
 doc_sot: ../platform-denali-customer-delivery.mdoc
-doc_architecture: appendices/P7-DOC-ARCHITECTURE.md
-execution_discipline: appendices/P7-EXECUTION-DISCIPLINE.md
-decisions: appendices/DEC-P7-INDEX.md
-extension_guide: appendices/PACK-EXTENSION-GUIDE.md
-implementation_standards: ../p7-implementation-standards.mdoc
+exit_handoff: P7-EXIT-HANDOFF.md
 implementation_truth: appendices/IMPLEMENTATION-TRUTH-P7.md
-traceability: appendices/TRACEABILITY-MATRIX-P7.md
-smoke_map: appendices/SMOKE-SCENARIO-MAP-P7.md
-execution_order: [P7-0, P7-1, P7-2, P7-3]
-epics:
-  P7-0: { nanos: 5, spec: 5, done_staging: 1, spec_file: p7-0-live-infra.md }
-  P7-1: { nanos: 9, spec: 9, done_staging: 0, spec_file: p7-1-wizard-completion.md }
-  P7-2: { nanos: 8, spec: 8, done_staging: 0, spec_file: p7-2-workspace-ops.md }
-  P7-3: { nanos: 5, spec: 5, done_staging: 0, spec_file: p7-3-delivery-exit.md }
-payment_model: offline_receipt
-workspace: denali
 post_p7_horizon: appendices/POST-P7-HORIZON.md
 ```
 

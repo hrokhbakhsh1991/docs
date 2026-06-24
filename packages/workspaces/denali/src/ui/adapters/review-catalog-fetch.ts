@@ -9,11 +9,12 @@ function readNameMap(
 }
 
 export async function loadDenaliReviewCatalog(): Promise<DenaliReviewCatalog> {
-  const [locationsRes, usersRes, themesRes, languagesRes] = await Promise.all([
+  const [locationsRes, usersRes, themesRes, languagesRes, equipmentRes] = await Promise.all([
     fetch("/api/settings/resources/locations", { cache: "no-store" }),
     fetch("/api/users?role=all&status=active", { cache: "no-store" }),
     fetch("/api/settings/resources/tour_themes", { cache: "no-store" }),
     fetch("/api/settings/resources/guide_languages", { cache: "no-store" }),
+    fetch("/api/settings/resources/equipment", { cache: "no-store" }),
   ]);
 
   const destinationNameById = new Map<string, string>();
@@ -52,10 +53,21 @@ export async function loadDenaliReviewCatalog(): Promise<DenaliReviewCatalog> {
     );
   }
 
+  let equipmentIconKeyById: ReadonlyMap<string, string | null> = new Map();
+  if (equipmentRes.ok) {
+    const payload = (await equipmentRes.json()) as {
+      items?: Array<{ id: string; iconKey?: string | null }>;
+    };
+    equipmentIconKeyById = new Map(
+      (payload.items ?? []).map((item) => [item.id, item.iconKey ?? null] as const)
+    );
+  }
+
   return {
     destinationNameById,
     leaderNameById,
     themeNameById,
     languageNameById,
+    equipmentIconKeyById,
   };
 }

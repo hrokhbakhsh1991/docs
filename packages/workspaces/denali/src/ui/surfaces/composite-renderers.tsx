@@ -4,6 +4,7 @@ import type { RenderFieldPlan } from "@app-tour/platform-core";
 import type { ReactNode } from "react";
 
 import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
+import type { DenaliWizardRuleEvalContext } from "../../wizard/denali-wizard-rule-eval-context";
 import type { DenaliImplementedCompositeId } from "./composite-ids";
 import { DenaliApproximateReturnTimeField } from "../fields/denali-approximate-return-time-field";
 import { DenaliCustomServicesField } from "../fields/denali-custom-services-field";
@@ -12,6 +13,7 @@ import {
   DenaliDatetimeField,
   DENALI_DATETIME_TEST_IDS,
 } from "../fields/denali-datetime-field";
+import { DenaliDestinationCatalogMetricField } from "../fields/denali-destination-catalog-metric-field";
 import { DenaliDestinationField } from "../fields/denali-destination-field";
 import { DenaliDifficultyLevelField } from "../fields/denali-difficulty-level-field";
 import { DenaliElevationGainField } from "../fields/denali-elevation-gain-field";
@@ -40,6 +42,7 @@ type DenaliCompositeRendererProps = {
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
+  readonly wizardRuleEvalContext?: Pick<DenaliWizardRuleEvalContext, "ruleSet">;
 };
 
 type DenaliCompositeRenderer = (props: DenaliCompositeRendererProps) => ReactNode;
@@ -55,6 +58,22 @@ const DENALI_COMPOSITE_RENDERERS: Readonly<Record<DenaliImplementedCompositeId, 
     ),
     "denali.destination": ({ field, draft, onDraftChange }) => (
       <DenaliDestinationField
+        draft={draft}
+        onDraftChange={onDraftChange}
+        canonicalPath={field.canonicalPath}
+        required={field.required}
+      />
+    ),
+    "denali.destination-catalog-metric.peak-height": ({ field, draft, onDraftChange }) => (
+      <DenaliDestinationCatalogMetricField
+        draft={draft}
+        onDraftChange={onDraftChange}
+        canonicalPath={field.canonicalPath}
+        required={field.required}
+      />
+    ),
+    "denali.destination-catalog-metric.trail-distance": ({ field, draft, onDraftChange }) => (
+      <DenaliDestinationCatalogMetricField
         draft={draft}
         onDraftChange={onDraftChange}
         canonicalPath={field.canonicalPath}
@@ -107,11 +126,12 @@ const DENALI_COMPOSITE_RENDERERS: Readonly<Record<DenaliImplementedCompositeId, 
     "denali.gear": ({ draft, onDraftChange }) => (
       <DenaliGearField draft={draft} onDraftChange={onDraftChange} />
     ),
-    "denali.program-content": ({ draft, onDraftChange, workspaceFormProfile }) => (
+    "denali.program-content": ({ draft, onDraftChange, workspaceFormProfile, wizardRuleEvalContext }) => (
       <DenaliProgramContentField
         draft={draft}
         onDraftChange={onDraftChange}
         workspaceFormProfile={workspaceFormProfile}
+        wizardRuleEvalContext={wizardRuleEvalContext}
       />
     ),
     "denali.peak-experience": ({ draft, onDraftChange, field }) => (

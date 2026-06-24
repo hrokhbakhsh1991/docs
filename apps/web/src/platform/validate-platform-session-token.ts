@@ -1,4 +1,4 @@
-import { decodeJwtPayload, isJwtExpired } from "@/auth/decode-jwt-payload";
+import { decodeJwtPayload, isJwtExpired } from "@app-tour/session-client";
 
 import type { PlatformOpsSessionPayload } from "./build-platform-session-cookie";
 

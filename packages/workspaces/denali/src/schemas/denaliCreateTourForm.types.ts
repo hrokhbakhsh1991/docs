@@ -73,6 +73,7 @@ export interface DenaliCreateTourWizardForm {
     overview: {
       customServiceLabels: string[];
       peakHeight?: number;
+      trailDistanceKm?: number;
       [key: string]: unknown;
     };
     metrics: Record<string, unknown>;

@@ -81,8 +81,8 @@ export function OperatorWelcomeDialog({
               pluginId={pluginId}
               workspaceLabel={workspaceLabel}
             />
-            <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {workspaceLabel}
               </p>
             </div>
@@ -90,7 +90,7 @@ export function OperatorWelcomeDialog({
           <DialogTitle data-testid={OPERATOR_WELCOME_TEST_IDS.title}>
             {isOwner ? t("titleOwner", { displayName }) : t("title", { displayName })}
           </DialogTitle>
-          <DialogDescription className="space-y-2 text-base text-foreground/90">
+          <DialogDescription className="space-y-2 break-words text-base text-foreground/90">
             <span className="block">
               {isOwner
                 ? t("subtitleOwner", { workspaceLabel })
@@ -100,7 +100,7 @@ export function OperatorWelcomeDialog({
               <span className="block text-sm text-muted-foreground">{tagline}</span>
             ) : null}
           </DialogDescription>
-          <p className="text-sm leading-relaxed text-muted-foreground">{t("lead")}</p>
+          <p className="break-words text-sm leading-relaxed text-muted-foreground">{t("lead")}</p>
         </DialogHeader>
 
         <ul className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-4 text-sm">
@@ -109,21 +109,26 @@ export function OperatorWelcomeDialog({
               <span aria-hidden className="text-primary">
                 ✓
               </span>
-              <span>{t(`bullets.${bullet.id}`)}</span>
+              <span className="min-w-0 break-words">{t(`bullets.${bullet.id}`)}</span>
             </li>
           ))}
         </ul>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
           <Button
             data-testid={OPERATOR_WELCOME_TEST_IDS.dismissCta}
             onClick={requestClose}
             type="button"
             variant="outline"
+            className="h-auto min-h-10 whitespace-normal py-2"
           >
             {t("later")}
           </Button>
-          <Button asChild data-testid={OPERATOR_WELCOME_TEST_IDS.primaryCta}>
+          <Button
+            asChild
+            data-testid={OPERATOR_WELCOME_TEST_IDS.primaryCta}
+            className="h-auto min-h-10 whitespace-normal py-2"
+          >
             <Link href={OPERATOR_WIZARD_PATH} onClick={requestClose}>
               {t("primaryCta")}
             </Link>

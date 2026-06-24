@@ -2,15 +2,28 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel";
+
 import { isPlatformAdminHost } from "../src/platform/is-platform-admin-host";
-import { resolveMultiLevelHost } from "../src/tenant/resolve-multi-level-host";
+import {
+  normalizeHostHeader,
+  readPlatformRootDomainWeb,
+} from "../src/tenant/platform-host-env";
+
+function parseWebHost(host: string) {
+  return parseMultiLevelTenantHost(
+    normalizeHostHeader(host),
+    readPlatformRootDomainWeb(),
+    new Set()
+  );
+}
 
 describe("platform-host-isolation", () => {
   it("4 host matrix", () => {
-    assert.equal(resolveMultiLevelHost("admin.localhost").kind, "platform_admin");
-    assert.equal(resolveMultiLevelHost("club.admin.localhost").kind, "club_admin");
-    assert.equal(resolveMultiLevelHost("club.portal.localhost").kind, "club_portal");
-    assert.equal(resolveMultiLevelHost("club.localhost").kind, "club_apex");
+    assert.equal(parseWebHost("admin.localhost").kind, "platform_admin");
+    assert.equal(parseWebHost("club.admin.localhost").kind, "club_admin");
+    assert.equal(parseWebHost("club.portal.localhost").kind, "club_portal");
+    assert.equal(parseWebHost("club.localhost").kind, "club_apex");
   });
 
   it("platform≠operator", () => {

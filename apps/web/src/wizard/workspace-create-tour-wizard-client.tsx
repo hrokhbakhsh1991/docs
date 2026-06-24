@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { encodeTourActionSubmitError } from "@app-tour/workspace-denali/ui/logic/tour-action-submit-error-codec";
 import type { WorkspacePlugin, WorkspaceWizardDraftMeta } from "@app-tour/workspace-sdk";
 
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
@@ -46,6 +47,7 @@ import {
   prepareWizardDraftEnvelope,
 } from "@/wizard/wizard-draft-envelope-hooks";
 import { WorkspaceWizardHost } from "@/wizard/workspace-wizard-host";
+import { resolveWizardSubmitErrorMessage } from "@/wizard/resolve-wizard-submit-error-message";
 
 function buildPrefilledForm(
   gate: WizardTemplateGateState,
@@ -78,6 +80,27 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
   const [workspacePlugin, setWorkspacePlugin] = useState<WorkspacePlugin | null>(null);
   const [supportsTourClone, setSupportsTourClone] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const resolveSubmitError = useCallback(
+    (code: string) =>
+      resolveWizardSubmitErrorMessage({
+        raw: code,
+        context: "create",
+        translateFieldLabel: (path) => path,
+        t: {
+          translate: (key, values) => t(key, values),
+          has: (key) => {
+            try {
+              t(key);
+              return true;
+            } catch {
+              return false;
+            }
+          },
+        },
+      }),
+    [t]
+  );
   const [createdTourId, setCreatedTourId] = useState<string | null>(null);
   const [presetApplied, setPresetApplied] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -246,7 +269,13 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
           : { data: draft.data };
       const result = await createTourAction(payload as { data: typeof draft.data });
       if (!result.ok) {
-        setSubmitError(t("submit.errorGeneric", { status: result.status, code: result.code }));
+        setSubmitError(
+          encodeTourActionSubmitError({
+            status: result.status,
+            code: result.code,
+            message: result.message,
+          })
+        );
         return;
       }
       await draftSync.clearDraft();
@@ -318,6 +347,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
             submitError={submitError}
             createdTourId={createdTourId}
             onSubmit={onSubmit}
+            resolveSubmitError={resolveSubmitError}
           />
         )}
       />

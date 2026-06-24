@@ -1,11 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardKpiCell } from "@/admin/patterns/dashboard-kpi-cell";
+import {
+  DASHBOARD_KPI_GRID_CLASS,
+  DashboardWidgetCard,
+  DashboardWidgetFooterLink,
+} from "@/admin/patterns/dashboard-widget-card";
 import {
   DASHBOARD_WIDGETS_TEST_IDS,
   buildDashboardOverviewKpiCards,
@@ -89,40 +93,40 @@ export function DashboardOverviewWidget({
   );
 
   return (
-    <Card data-denali-surface="card" data-testid={DASHBOARD_WIDGETS_TEST_IDS.overview} className="flex flex-col shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t("overview.title")}</CardTitle>
-        <CardDescription>{t("overview.description", { brandName })}</CardDescription>
-      </CardHeader>
-      <CardContent className="mt-auto space-y-4">
-        {loading ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <DenaliSkeleton className="h-14 w-full" />
-            <DenaliSkeleton className="h-14 w-full" />
-          </div>
-        ) : null}
-        {!loading && error ? (
-          <p className="text-sm text-destructive" role="alert">
-            {resolveDashboardErrorMessage(tErrors, error)}
-          </p>
-        ) : null}
-        {!loading && !error ? (
-          <div
-            className="grid gap-3 sm:grid-cols-2"
-            data-testid={DASHBOARD_WIDGETS_TEST_IDS.overviewKpi}
-          >
-            {kpiCards.map((card) => (
-              <div key={card.id} className="rounded-md border bg-muted/30 p-3">
-                <p className="text-xs text-muted-foreground">{t(`kpi.${card.id}`)}</p>
-                <p className="text-2xl font-bold">{formatLocalizedNumber(card.value, locale)}</p>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        <Link href={dashboardBookingsHref()} className="text-sm text-primary hover:underline">
+    <DashboardWidgetCard
+      testId={DASHBOARD_WIDGETS_TEST_IDS.overview}
+      title={t("overview.title")}
+      description={t("overview.description", { brandName })}
+      footer={
+        <DashboardWidgetFooterLink href={dashboardBookingsHref()}>
           {t("overview.openBookings")}
-        </Link>
-      </CardContent>
-    </Card>
+        </DashboardWidgetFooterLink>
+      }
+    >
+      {loading ? (
+        <div className={DASHBOARD_KPI_GRID_CLASS}>
+          <DenaliSkeleton className="h-[5.25rem] w-full" />
+          <DenaliSkeleton className="h-[5.25rem] w-full" />
+          <DenaliSkeleton className="h-[5.25rem] w-full" />
+          <DenaliSkeleton className="h-[5.25rem] w-full" />
+        </div>
+      ) : null}
+      {!loading && error ? (
+        <p className="text-sm text-destructive" role="alert">
+          {resolveDashboardErrorMessage(tErrors, error)}
+        </p>
+      ) : null}
+      {!loading && !error ? (
+        <div className={DASHBOARD_KPI_GRID_CLASS} data-testid={DASHBOARD_WIDGETS_TEST_IDS.overviewKpi}>
+          {kpiCards.map((card) => (
+            <DashboardKpiCell
+              key={card.id}
+              label={t(`kpi.${card.id}`)}
+              value={formatLocalizedNumber(card.value, locale)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </DashboardWidgetCard>
   );
 }

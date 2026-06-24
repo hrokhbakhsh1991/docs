@@ -30,6 +30,7 @@
   },
   "intake": {
     "title": "Register for this tour",
+    "termsHeading": "Policies & terms",
     "nameLabel": "Name",
     "emailLabel": "Email",
     "partySizeLabel": "Party size",

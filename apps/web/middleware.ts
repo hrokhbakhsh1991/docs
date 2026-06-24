@@ -6,17 +6,24 @@ import {
   OPERATOR_LOGIN_PATH,
   OPERATOR_WIZARD_PATH,
 } from "@/admin/require-operator-session";
+import { resolveOperatorAdminRootRedirect } from "@/admin/resolve-operator-admin-root-redirect";
 import {
   SESSION_TOKEN_COOKIE,
   clearSessionCookieOnResponse,
 } from "@/auth/build-session-cookie";
-import { validateSessionToken } from "@/auth/validate-session-token";
+import { validateSessionToken } from "@app-tour/session-client";
 import {
   PLATFORM_SESSION_COOKIE,
   validatePlatformSessionToken,
 } from "@/platform/build-platform-session-cookie";
 import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
-import { isOperatorAdminHost, resolveMultiLevelHost } from "@/tenant/resolve-multi-level-host";
+import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel";
+import { isOperatorAdminHost } from "@/tenant/operator-admin-host";
+import {
+  normalizeHostHeader,
+  readPlatformRootDomainWeb,
+  readWebReservedHostLabels,
+} from "@/tenant/platform-host-env";
 import { isPlatformPublicPath } from "@/platform/require-platform-ops-session";
 import { shouldBypassMiddlewareForDevE2eHost } from "@/tenant/resolve-dev-e2e-host-bypass";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
@@ -40,17 +47,12 @@ function isPublicPath(pathname: string): boolean {
   );
 }
 
-/** BFF routes that must not require a session (login flow). */
+/** BFF routes that must not require a session (operator login flow). */
 const PUBLIC_BFF_API_PATHS = [
   "/api/auth/phone-preflight",
   "/api/auth/request-otp",
   "/api/auth/login-web-session",
   "/api/auth/logout",
-  "/api/public-auth/phone-preflight",
-  "/api/public-auth/request-otp",
-  "/api/public-auth/verify-otp",
-  "/api/public-auth/register-complete",
-  "/api/public-auth/session-profile",
   "/api/public/tenant-branding",
 ] as const;
 
@@ -178,7 +180,13 @@ function blockPlatformOnClubAdminHost(request: NextRequest, host: string): NextR
   if (!pathname.startsWith("/platform")) {
     return null;
   }
-  if (resolveMultiLevelHost(host).kind === "club_admin") {
+  if (
+    parseMultiLevelTenantHost(
+      normalizeHostHeader(host),
+      readPlatformRootDomainWeb(),
+      readWebReservedHostLabels()
+    ).kind === "club_admin"
+  ) {
     return notFoundResponse();
   }
   return null;
@@ -205,6 +213,11 @@ export function middleware(request: NextRequest): NextResponse {
   const platformResponse = handlePlatformAdminHost(request, host);
   if (platformResponse !== null) {
     return platformResponse;
+  }
+
+  const operatorAdminHome = resolveOperatorAdminRootRedirect({ pathname, host });
+  if (operatorAdminHome !== null) {
+    return NextResponse.redirect(new URL(operatorAdminHome, request.url));
   }
 
   const platformOnClubAdmin = blockPlatformOnClubAdminHost(request, host);

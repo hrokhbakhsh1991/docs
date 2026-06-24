@@ -1,4 +1,5 @@
 import { PlatformWizardEngine } from "@app-tour/platform-core";
+import { filterDenaliCanonicalValidationResult } from "@app-tour/workspace-denali/wizard/validation";
 import {
   assertCanonicalDocument,
   CanonicalDocumentValidationError,
@@ -288,7 +289,7 @@ function validateCanonicalDocumentWithEngine(
 
   assertCanonicalDocument(document);
 
-  const result = engine.validateCanonical(document, {
+  let result = engine.validateCanonical(document, {
     tenantId: input.tenantId,
     dimensions: resolveValidationDimensions(
       validationPlugin,
@@ -296,6 +297,12 @@ function validateCanonicalDocumentWithEngine(
       document.data as Record<string, unknown>
     ),
   });
+  if (input.workspaceType === "denali") {
+    result = filterDenaliCanonicalValidationResult(
+      result,
+      document.data as Record<string, unknown>
+    );
+  }
 
   if (!result.ok) {
     const message = result.violations.map((v) => v.message).join("; ");

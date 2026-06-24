@@ -142,6 +142,7 @@ describe("denali-rules-parity.spec.ts", () => {
           name: "Peak",
           locationType: "peak",
           altitudeM: 4200,
+          typicalTrailDistanceKm: null,
           isActive: true,
           sortOrder: 0,
         },

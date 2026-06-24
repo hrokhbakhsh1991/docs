@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import {
   buildOperatorSmokeDraftTour,
   buildOperatorSmokePublishedTour,
+  OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
 } from "../fixtures/operator-smoke-published-tour.fixture";
 import { OPERATOR_DENALI_SMOKE_TENANT_ID } from "../internal/operator-smoke-tenant-id";
 import { deriveTourProjections } from "../canonical/projection-sync";
@@ -84,6 +85,13 @@ function buildOperatorSmokeDenaliCatalogData(input: {
     basics: { title: input.title },
     details: { summary: "Operator smoke seed tour" },
   };
+  if (input.publishStatus === "active") {
+    data.policies = {
+      policiesText: OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
+      cancellationDeadlineHours: 48,
+      cancellationPenaltyPercentage: 20,
+    };
+  }
   return { data, roots: Object.keys(data).sort() };
 }
 

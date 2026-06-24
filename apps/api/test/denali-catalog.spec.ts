@@ -163,4 +163,24 @@ describe("denali-catalog", () => {
     assert.equal(data?.itineraryDays?.[0]?.segments?.[0]?.title, "Ridge ascent");
     assert.equal(data?.itineraryDays?.[0]?.segments?.[0]?.photoUrls?.[0], "https://cdn.example/north-ridge.jpg");
   });
+
+  it("DCAT-06 GET /denali/catalog/{tourId} includes policiesText for legal step", async () => {
+    const response = await requestDenali(
+      listener,
+      "GET",
+      `/denali/catalog/${OPERATOR_SMOKE_PUBLISHED_TOUR_ID}`,
+      { headers: publicHeaders() }
+    );
+    assert.equal(response.status, 200);
+    const data = (response.body as {
+      data?: {
+        policiesText?: string;
+        cancellationDeadlineHours?: number;
+        cancellationPenaltyPercentage?: number;
+      };
+    }).data;
+    assert.match(data?.policiesText ?? "", /P7 staging: cancel 48h/);
+    assert.equal(data?.cancellationDeadlineHours, 48);
+    assert.equal(data?.cancellationPenaltyPercentage, 20);
+  });
 });

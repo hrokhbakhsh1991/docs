@@ -30,6 +30,7 @@
     "itineraryHeading": "برنامه روزانه",
     "itineraryDay": "روز {day, number}",
     "itinerarySegments": "بخش‌های برنامه",
+    "policiesHeading": "قوانین و شرایط",
     "priceOnRequest": "قیمت پس از استعلام",
     "datesTba": "تاریخ اعلام می‌شود"
   },

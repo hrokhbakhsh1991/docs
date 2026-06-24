@@ -11,10 +11,52 @@ Professional last wizard step: read-back summary, publish status selector, group
 
 | Piece | Location |
 | ----- | -------- |
-| Template seed | `buildDenaliFullWizardTemplateSteps()` — `publishStatus` on `review` |
-| Read-back | `DenaliReviewStep` — title, category, schedule, summary |
+| Engine seed | `buildDenaliFullWizardTemplateSteps()` — `publishStatus` on `review` (reference / dev full template) |
+| Tenant template | `buildDenaliTenantWizardTemplatePayload()` **omits** `review` + `publishStatus` (**INV-WIZ-002**) |
+| Host injection | `buildVisibleWizardSteps` → `appendWorkspaceReviewStepToRenderPlan` when `wizardHost.usesReviewStep` |
+| Read-back | `DenaliReviewStep` — hero + per-step summary from `contentSteps` (visible plan minus review) |
+| Section edit | `onNavigateToStep` — jumps to content step; host passes `goToStepById` |
 | Error summary | `DenaliReviewValidationSummary` — issues grouped by step |
 | Publish gate | `DenaliPublishStatusField` — `draft` / `active` enum on `publishStatus` |
+
+### INV-WIZ-002 review overlay (host Layer C)
+
+Tenant Settings wizard template payloads must not include the `review` step or `publishStatus` field — they are **registry overlay** rows (`settingsSurface: "review"`), excluded from the builder palette and PUT validation.
+
+The generic host still renders a final review step for workspaces with `usesReviewStep: true`:
+
+```text
+baseSteps (engine)
+  → applyWizardTemplateToRenderPlan (tenant steps)
+  → applyContextualFieldRules (Denali conditional visibility)
+  → appendWorkspaceReviewStepToRenderPlan(reviewFieldCanonicalPath: "publishStatus")
+```
+
+`DenaliReviewStep` receives `contentSteps` (all visible steps except `review`) and builds sections via `buildDenaliReviewSectionsFromVisibleSteps`, which:
+
+1. Restricts sections to step ids present in the tenant template.
+2. Expands composite anchors to dependent canonical paths (transport mode → `transport.transportCost`, theme ids → descriptions, etc.).
+3. Filters row-level read-back to paths that are visible on the plan.
+
+Composite-heavy enrichments (itinerary cards, gear cards, service chips) follow the same visibility: e.g. itinerary cards only when `program.itinerary` is on the plan.
+
+### Visual read-back (9+ parity)
+
+Review is not a text dump of wizard labels — it mirrors composite surfaces:
+
+| Surface | Read-back | Source |
+| ------- | --------- | ------ |
+| Hero | Cover thumbnail (first photo with `url` or `storageKey`) + title / category / schedule | `buildDenaliReviewHero` → `DenaliPhotoPreview` (`readOnly`) |
+| Photos | Responsive grid (`denali-review__photo-grid`) with real previews + caption/day chips | `section.photos[]` from `parseDenaliTourPhotos` — **not** text cards |
+| Gear | Compact list rows with required/optional badge — not generic cards | `section.gearItems[]` from `parseDenaliGearItems` |
+| Itinerary | Day cards (`kind: "itinerary"`) with segment body | `program.itinerary` |
+| Excluded services | Dashed self-variant cards only | `tripDetails.logistics.excludedServices` |
+
+Section chrome uses `denali-review__section-header` (title + ghost **Edit** jump) — no `text-transform: uppercase` (FA-safe). Styles live in `packages/workspaces/denali/theme/wizard-review.css`.
+
+`DenaliPhotoPreview` accepts `readOnly` for review surfaces: signed-url fetch still runs; retry button is hidden and fallback uses `denali-review__photo-fallback`.
+
+Test ids: `denali-review-hero-cover`, `denali-review-photo-grid`, per-section `denali-review-edit-{stepId}`.
 
 Submit button stays in `WizardStepShell` `lastStepFooter` (review is the last step). Create is **not** embedded inside the review composite.
 
@@ -56,5 +98,7 @@ Full array ingress — [`canonical-array-ingress.md`](canonical-array-ingress.md
 
 ## Verification
 
+- `apps/web/test/build-visible-wizard-steps.spec.ts`
+- `apps/web/test/denali-review-format-logic.spec.ts`
 - `apps/web/test/denali-wizard-validation.spec.ts`
 - `apps/web/test/denali-review-step.spec.ts`

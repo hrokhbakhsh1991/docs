@@ -24,7 +24,12 @@ import { resolveDenaliDimensionsFromDraft } from "./apply-contextual-render-plan
 import type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 import { tourWizardDraftToDenaliForm } from "./denali-wizard-form-adapter";
 import type { DenaliWizardRuleEvalContext } from "./denali-wizard-rule-eval-context";
+import { isSocialMediaLinkWizardSatisfied } from "../ui/logic/denali-social-media-link-logic";
 import { sanitizeDenaliWizardDraftRecord } from "./denali-wizard-draft-sanitize";
+import {
+  DENALI_TOUR_START_CANONICAL_PATH,
+  isDenaliTourStartDatetimeBeforeMin,
+} from "../ui/logic/denali-schedule-date-policy";
 
 const DENALI_COMPOSITE_FIELD_BY_CANONICAL_PATH = new Map<string, DenaliFieldDefinition>(
   DENALI_FIELD_DEFINITIONS.flatMap((field) => {
@@ -298,16 +303,17 @@ export function validateDenaliWizardDraftSync(
   result = filterDenaliCompositeStorageViolations(result, { data: document.data });
 
   if (scope?.stepId == null || scope.visibleSteps == null) {
-    return result;
+    return mergeDenaliScheduleDateViolations(result, envelope);
   }
 
   const step = scope.visibleSteps.find((entry) => entry.stepId === scope.stepId);
   if (step == null) {
-    return result;
+    return mergeDenaliScheduleDateViolations(result, envelope);
   }
 
   result = filterValidationToStep(result, step);
-  return mergeDenaliStepRequiredFieldViolations(result, envelope, step);
+  result = mergeDenaliStepRequiredFieldViolations(result, envelope, step);
+  return mergeDenaliScheduleDateViolations(result, envelope, step);
 }
 
 function isDenaliDraftFieldValueEmpty(
@@ -319,6 +325,9 @@ function isDenaliDraftFieldValueEmpty(
     return true;
   }
   if (typeof value === "string") {
+    if (field.canonicalPath === "socialMediaLink") {
+      return !isSocialMediaLinkWizardSatisfied(value);
+    }
     return value.trim().length === 0;
   }
   if (field.kind === "number") {
@@ -372,6 +381,47 @@ function mergeDenaliStepRequiredFieldViolations(
   return {
     ok: false,
     violations: merged,
+  };
+}
+
+function mergeDenaliScheduleDateViolations(
+  result: ValidationResult,
+  envelope: CanonicalWizardDraftEnvelope,
+  step?: RenderStepPlan
+): ValidationResult {
+  if (step != null) {
+    const expandedStep = expandStepFieldsForCompositeDependents(step);
+    const includesStart = expandedStep.fields.some(
+      (field) => field.canonicalPath === DENALI_TOUR_START_CANONICAL_PATH && !field.hidden
+    );
+    if (!includesStart) {
+      return result;
+    }
+  }
+
+  const startIso = getCanonicalStringFromDraft(envelope, DENALI_TOUR_START_CANONICAL_PATH);
+  if (startIso.trim().length === 0 || !isDenaliTourStartDatetimeBeforeMin(startIso)) {
+    return result;
+  }
+
+  const violation = {
+    code: "DENALI_TOUR_START_BEFORE_TODAY",
+    fieldId: denaliFieldIdForCanonicalPath(DENALI_TOUR_START_CANONICAL_PATH),
+    message: `Tour start cannot be before today at "${DENALI_TOUR_START_CANONICAL_PATH}"`,
+  };
+
+  const duplicate = result.violations.some(
+    (existing) =>
+      existing.fieldId === violation.fieldId &&
+      (existing.code === violation.code || existing.code === "UNKNOWN_CANONICAL_PATH")
+  );
+  if (duplicate) {
+    return result;
+  }
+
+  return {
+    ok: false,
+    violations: [...result.violations, violation],
   };
 }
 
@@ -429,6 +479,54 @@ export function validateDenaliPublishReadinessSyncFromHostInput(input: {
     input.evalContext as DenaliWizardRuleEvalContext | undefined,
     input.scope
   );
+}
+
+export type DenaliCreateTourSubmitValidationResult =
+  | { readonly kind: "rules-not-ready" }
+  | { readonly kind: "ok"; readonly validation: ValidationResult };
+
+/** Phase 15.2 P15-W-C1 — combined canonical + publish-readiness validation before create submit. */
+export function validateDenaliCreateTourSubmitSync(input: {
+  readonly plugin: WorkspacePlugin | WorkspaceWizardHostPluginContext;
+  readonly draft: Readonly<Record<string, unknown>>;
+  readonly rulesModule: unknown;
+  readonly tenantId: string;
+  readonly evalContext?: unknown;
+}): DenaliCreateTourSubmitValidationResult {
+  const plugin = input.plugin as WorkspacePlugin;
+  const rules = input.rulesModule as DenaliWizardRulesModule | null;
+  if (rules == null) {
+    return { kind: "rules-not-ready" };
+  }
+
+  const envelope = asDraftEnvelope(input.draft);
+  const publishStatus = getCanonicalStringFromDraft(envelope, "publishStatus").trim().toLowerCase();
+  const publishTransition = publishStatus === "active";
+  if (publishTransition && input.evalContext == null) {
+    return { kind: "rules-not-ready" };
+  }
+
+  const evalContext = input.evalContext as DenaliWizardRuleEvalContext | undefined;
+  const canonical = validateDenaliWizardDraftSync(
+    plugin,
+    input.draft,
+    rules,
+    input.tenantId,
+    undefined,
+    evalContext
+  );
+  const readiness = validateDenaliPublishReadinessSync(input.draft, rules, evalContext, {
+    publishTransition,
+  });
+
+  const violations = [...canonical.violations, ...readiness.violations];
+  return {
+    kind: "ok",
+    validation: {
+      ok: canonical.ok && readiness.ok,
+      violations,
+    },
+  };
 }
 
 export function validateDenaliWizardDraftSyncFromHostInput(input: {

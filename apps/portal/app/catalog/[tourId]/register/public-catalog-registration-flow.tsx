@@ -31,6 +31,7 @@ type FormProps = {
   readonly tenantId: string;
   readonly tourId: string;
   readonly tourTitle: string;
+  readonly tourPoliciesText?: string | null;
   readonly backHref: string;
 };
 
@@ -39,6 +40,7 @@ export function PublicCatalogRegistrationFlow({
   tenantId: _tenantId,
   tourId,
   tourTitle,
+  tourPoliciesText,
   backHref,
 }: FormProps) {
   const t = useTranslations("catalogRegistration");
@@ -355,10 +357,19 @@ export function PublicCatalogRegistrationFlow({
     );
   }
 
+  const policiesBlock =
+    tourPoliciesText != null && tourPoliciesText.trim().length > 0 ? (
+      <section data-tour-policies data-tour-policies-text aria-label={t("intake.termsHeading")}>
+        <h3>{t("intake.termsHeading")}</h3>
+        <p>{tourPoliciesText}</p>
+      </section>
+    ) : null;
+
   if (step === "intake") {
     return (
       <form onSubmit={submitIntake} data-public-registration-intake data-tour-id={tourId}>
         <h2>{t("intake.title")}</h2>
+        {policiesBlock}
         <label htmlFor="intakeName">
           {t("intake.nameLabel")} <span aria-hidden="true">*</span>
         </label>
@@ -504,6 +515,7 @@ export function PublicCatalogRegistrationFlow({
       data-registration-ready={clientReady ? "" : undefined}
       data-tour-id={tourId}
     >
+      {policiesBlock}
       <h2>{t("phone.title")}</h2>
       <p>{t("phone.description")}</p>
       {phoneHint === "existing" ? <p>{t("phone.existingHint")}</p> : null}

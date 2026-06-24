@@ -1,11 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardKpiCell } from "@/admin/patterns/dashboard-kpi-cell";
+import {
+  DashboardWidgetCard,
+  DashboardWidgetFooterLink,
+} from "@/admin/patterns/dashboard-widget-card";
 import {
   FINANCE_DASHBOARD_WIDGET_TEST_IDS,
   buildDashboardFinanceKpiCards,
@@ -74,45 +77,43 @@ export function FinanceDashboardWidget({
   const kpiCards = useMemo(() => buildDashboardFinanceKpiCards(summary), [summary]);
 
   return (
-    <Card
-      data-denali-surface="card"
-      data-testid={FINANCE_DASHBOARD_WIDGET_TEST_IDS.widget}
-      className="flex flex-col shadow-sm sm:col-span-2 xl:col-span-2"
-    >
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t("title")}</CardTitle>
-        <CardDescription>{t("description", { brandName })}</CardDescription>
-      </CardHeader>
-      <CardContent className="mt-auto space-y-4">
-        {loading ? (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <DenaliSkeleton className="h-14 w-full" />
-            <DenaliSkeleton className="h-14 w-full" />
-            <DenaliSkeleton className="h-14 w-full" />
-          </div>
-        ) : null}
-        {!loading && error ? (
-          <p className="text-sm text-destructive" role="alert">
-            {localizeFinanceMessage(tValidation, tErrors, error)}
-          </p>
-        ) : null}
-        {!loading && !error ? (
-          <div
-            className="grid gap-3 sm:grid-cols-3"
-            data-testid={FINANCE_DASHBOARD_WIDGET_TEST_IDS.kpiStrip}
-          >
-            {kpiCards.map((card) => (
-              <div key={card.id} data-denali-finance-kpi className="rounded-md border bg-muted/30 p-3">
-                <p className="text-xs text-muted-foreground">{t(`kpi.${card.id}`)}</p>
-                <p className="text-2xl font-bold">{formatLocalizedNumber(card.value, locale)}</p>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        <Link href={financeDashboardWidgetHref()} className="text-sm text-primary hover:underline">
+    <DashboardWidgetCard
+      testId={FINANCE_DASHBOARD_WIDGET_TEST_IDS.widget}
+      title={t("title")}
+      description={t("description", { brandName })}
+      footer={
+        <DashboardWidgetFooterLink href={financeDashboardWidgetHref()}>
           {t("openCommandCenter")}
-        </Link>
-      </CardContent>
-    </Card>
+        </DashboardWidgetFooterLink>
+      }
+    >
+      {loading ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <DenaliSkeleton className="h-[5.25rem] w-full" />
+          <DenaliSkeleton className="h-[5.25rem] w-full" />
+          <DenaliSkeleton className="h-[5.25rem] w-full" />
+        </div>
+      ) : null}
+      {!loading && error ? (
+        <p className="text-sm text-destructive" role="alert">
+          {localizeFinanceMessage(tValidation, tErrors, error)}
+        </p>
+      ) : null}
+      {!loading && !error ? (
+        <div
+          className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+          data-testid={FINANCE_DASHBOARD_WIDGET_TEST_IDS.kpiStrip}
+        >
+          {kpiCards.map((card) => (
+            <DashboardKpiCell
+              key={card.id}
+              label={t(`kpi.${card.id}`)}
+              value={formatLocalizedNumber(card.value, locale)}
+              variant="finance"
+            />
+          ))}
+        </div>
+      ) : null}
+    </DashboardWidgetCard>
   );
 }

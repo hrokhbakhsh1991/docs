@@ -90,6 +90,24 @@
   "wizardCreate": {
     "extendedChrome": true
   },
+  "wizardSurfaces": {
+    "surfaceId": "denali",
+    "composite": {
+      "webModule": "@app-tour/workspace-denali/ui/composite-surface",
+      "export": "createDenaliCompositeSurface"
+    },
+    "review": {
+      "webModule": "@app-tour/workspace-denali/ui/review-surface",
+      "export": "createDenaliReviewSurface"
+    }
+  },
+  "wizardI18n": {
+    "messageNamespace": "denali",
+    "labelResolver": {
+      "webModule": "@app-tour/workspace-denali/ui/field-label-resolver",
+      "export": "createDenaliFieldLabelResolver"
+    }
+  },
   "guestThemeStylesheets": {
     "portal": ["theme/denali-portal.css"],
     "marketing": ["theme/denali-marketing.css"]

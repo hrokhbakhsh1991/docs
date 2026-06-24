@@ -10,7 +10,7 @@ describe("resolve-host-tenant multilevel", () => {
       new URL("../src/tenant/resolve-host-tenant.ts", import.meta.url),
       "utf8"
     );
-    assert.match(source, /resolveMultiLevelHost/);
+    assert.match(source, /parseMultiLevelTenantHost/);
     assert.match(source, /club_admin/);
   });
 

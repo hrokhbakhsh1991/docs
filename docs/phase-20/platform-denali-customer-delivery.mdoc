@@ -5,7 +5,7 @@ format: markdoc
 pack: P7
 prerequisite: P6 complete (p6:gate green)
 doc_role: architecture_sot
-pack_version: "1.2"
+pack_version: "1.4"
 status: IN_PROGRESS
 nano_total: 27
 exit_nano: P7-3-N-005
@@ -93,6 +93,15 @@ flowchart LR
 | Topic | Doc |
 | ----- | --- |
 | Doc architecture (C4 · spine) | [p7/appendices/P7-DOC-ARCHITECTURE.md](p7/appendices/P7-DOC-ARCHITECTURE.md) |
+| Execution discipline | [p7/appendices/P7-EXECUTION-DISCIPLINE.md](p7/appendices/P7-EXECUTION-DISCIPLINE.md) |
+| Port / URL matrix | [p7/appendices/P7-PORT-MATRIX.md](p7/appendices/P7-PORT-MATRIX.md) |
+| Customer seed delta | [p7/appendices/P7-CUSTOMER-SEED-DELTA.md](p7/appendices/P7-CUSTOMER-SEED-DELTA.md) |
+| Staging E2E (T2) | [p7/runbooks/p7-staging-e2e.md](p7/runbooks/p7-staging-e2e.md) |
+| Staging gate | [p7/runbooks/p7-staging-gate.md](p7/runbooks/p7-staging-gate.md) |
+| SMS/OTP staging | [p7/runbooks/p7-sms-otp-staging.md](p7/runbooks/p7-sms-otp-staging.md) |
+| Receipt/MinIO | [p7/runbooks/p7-receipt-minio-staging.md](p7/runbooks/p7-receipt-minio-staging.md) |
+| Host parity B | [p7/appendices/P7-HOST-PARITY-PROFILE-B.md](p7/appendices/P7-HOST-PARITY-PROFILE-B.md) |
+| Finance path | [p7/appendices/P7-FINANCE-PATH-BOUNDARY.md](p7/appendices/P7-FINANCE-PATH-BOUNDARY.md) |
 | Decisions (ADR-lite) | [p7/appendices/DEC-P7-INDEX.md](p7/appendices/DEC-P7-INDEX.md) |
 | Pack extension | [p7/appendices/PACK-EXTENSION-GUIDE.md](p7/appendices/PACK-EXTENSION-GUIDE.md) |
 | P6 vs P7 | [p7/appendices/P6-P7-BOUNDARY.md](p7/appendices/P6-P7-BOUNDARY.md) |
@@ -121,7 +130,8 @@ Safety: [p6-denali-safety.md](../phase-19/p6/p6-denali-safety.md)
 | Tier | Command / artifact |
 | ---- | ------------------ |
 | T1 | `pnpm run p7:gate` |
-| T2 | [p6-e2e-smoke.md](../phase-19/p6/runbooks/p6-e2e-smoke.md) on staging |
+| T1+infra+T3 | `pnpm run p7:staging-gate` |
+| T2 | [p7-staging-e2e.md](p7/runbooks/p7-staging-e2e.md) |
 | T3 | `finance-ops.spec.ts` + staging Postgres |
 | T4 | [p7-customer-sign-off.md](p7/runbooks/p7-customer-sign-off.md) |
 
@@ -133,14 +143,14 @@ Safety: [p6-denali-safety.md](../phase-19/p6/p6-denali-safety.md)
 | - | ---- |
 | 1 | [p7/AGENT-START.md](p7/AGENT-START.md) |
 | 2 | [p7/appendices/IMPLEMENTATION-TRUTH-P7.md](p7/appendices/IMPLEMENTATION-TRUTH-P7.md) |
-| 3 | [p7/appendices/P7-DOC-ARCHITECTURE.md](p7/appendices/P7-DOC-ARCHITECTURE.md) — C4 · traceability spine |
-| 4 | [p7/appendices/DEC-P7-INDEX.md](p7/appendices/DEC-P7-INDEX.md) — frozen decisions |
-| 5 | [AGENT-NAVIGATOR.md](AGENT-NAVIGATOR.md) |
-| 6 | [p7/DOC-SYNC-INDEX.md](p7/DOC-SYNC-INDEX.md) |
-| 7 | [p7/appendices/TRACEABILITY-MATRIX-P7.md](p7/appendices/TRACEABILITY-MATRIX-P7.md) |
-| 8 | [p7-implementation-standards.mdoc](p7-implementation-standards.mdoc) |
-| 9 | [p7/p7-exit-checklist.md](p7/p7-exit-checklist.md) |
-| 10 | [p7/FILE-MAP.md](p7/FILE-MAP.md) |
+| 3 | [p7/appendices/P7-EXECUTION-DISCIPLINE.md](p7/appendices/P7-EXECUTION-DISCIPLINE.md) |
+| 4 | [p7/appendices/P7-PORT-MATRIX.md](p7/appendices/P7-PORT-MATRIX.md) |
+| 5 | [p7/appendices/P7-DOC-ARCHITECTURE.md](p7/appendices/P7-DOC-ARCHITECTURE.md) |
+| 6 | [p7/appendices/DEC-P7-INDEX.md](p7/appendices/DEC-P7-INDEX.md) |
+| 7 | [AGENT-NAVIGATOR.md](AGENT-NAVIGATOR.md) |
+| 8 | [p7/DOC-SYNC-INDEX.md](p7/DOC-SYNC-INDEX.md) |
+| 9 | [p7/runbooks/p7-staging-e2e.md](p7/runbooks/p7-staging-e2e.md) |
+| 10 | [p7/p7-exit-checklist.md](p7/p7-exit-checklist.md) |
 
 ```bash
 pnpm run p7:gate

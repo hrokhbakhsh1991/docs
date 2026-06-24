@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
+import type { WizardSubmitErrorPresentation } from "@/wizard/resolve-wizard-submit-error-message";
+import { WizardSubmitErrorAlert } from "@/wizard/wizard-submit-error-alert";
 import type { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import type { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
@@ -123,23 +125,19 @@ export function CreateTourWizardSubmitFooter(props: {
   readonly submitError: string | null;
   readonly createdTourId: string | null;
   readonly onSubmit: () => void;
-  readonly formatSubmitError?: (code: string) => string;
+  readonly resolveSubmitError?: (code: string) => WizardSubmitErrorPresentation | null;
 }) {
   const t = useTranslations("wizard");
-  const submitMessage =
+  const submitPresentation =
     props.submitError != null
-      ? props.formatSubmitError?.(props.submitError) ?? props.submitError
+      ? props.resolveSubmitError?.(props.submitError) ?? { summary: props.submitError }
       : null;
   return (
     <div data-wizard-footer>
       <Button type="button" onClick={props.onSubmit} disabled={props.pending}>
         {props.pending ? t("creating") : t("createButton")}
       </Button>
-      {submitMessage ? (
-        <p role="alert" data-tour-create-error>
-          {submitMessage}
-        </p>
-      ) : null}
+      <WizardSubmitErrorAlert presentation={submitPresentation} />
       {props.createdTourId ? (
         <p data-tour-created>
           {t("created", { id: props.createdTourId })}
@@ -200,15 +198,23 @@ export function CreateTourWizardDenaliHeader(props: {
             type="button"
             variant="outline"
             size="sm"
+            className="draft-stable-label-button"
             data-testid="wizard-clear-draft"
             disabled={
               props.clearDraftPending ||
               props.draftSync.navLocked ||
               props.draftSync.status === "SYNCING"
             }
+            aria-busy={props.clearDraftPending ? true : undefined}
             onClick={props.requestClearDraft}
           >
-            {props.clearDraftPending ? t("clearingDraft") : t("clearDraft")}
+            <span className="draft-stable-label-button__sizer" aria-hidden>
+              <span>{t("clearDraft")}</span>
+              <span>{t("clearingDraft")}</span>
+            </span>
+            <span className="draft-stable-label-button__label">
+              {props.clearDraftPending ? t("clearingDraft") : t("clearDraft")}
+            </span>
           </Button>
         </>
       }

@@ -33,7 +33,7 @@ export function DenaliFlatEditForm({ draft, onDraftChange, ...props }: DenaliFla
       draft={draft}
       onDraftChange={onDraftChange}
       renderPlanOverlay={{
-        applyTemplateToRenderPlan,
+        applyTemplateToRenderPlan: applyWizardTemplateToRenderPlan,
         filterRenderPlanByCanonicalPaths,
       }}
       renderField={(fieldProps) => <WizardField {...fieldProps} />}

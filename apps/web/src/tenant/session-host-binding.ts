@@ -1,6 +1,14 @@
+import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel";
+
 import { isDevWebSessionAllowed } from "./auth-env";
-import { resolveTenantIdFromDevHost } from "./resolve-host-tenant";
-import { isOperatorAdminHost, resolveMultiLevelHost } from "./resolve-multi-level-host";
+import { isOperatorAdminHost } from "./operator-admin-host";
+import {
+  normalizeHostHeader,
+  readPlatformRootDomainWeb,
+  readWebReservedHostLabels,
+} from "./platform-host-env";
+import { resolveTenantIdFromDevHost, resolveTenantIdFromIngressLabel } from "./resolve-host-tenant";
+import { resolveProductionIngressLabelFromHost } from "./resolve-production-ingress-label";
 
 /**
  * Expected tenant for the current Host header.
@@ -12,11 +20,20 @@ export function resolveExpectedTenantIdForHost(host: string): string | null {
   if (hostMapped !== null) {
     return hostMapped;
   }
+
   if (!isDevWebSessionAllowed()) {
+    const label = resolveProductionIngressLabelFromHost(host);
+    if (label !== null) {
+      return resolveTenantIdFromIngressLabel(label);
+    }
     return null;
   }
 
-  const outcome = resolveMultiLevelHost(host);
+  const outcome = parseMultiLevelTenantHost(
+    normalizeHostHeader(host),
+    readPlatformRootDomainWeb(),
+    readWebReservedHostLabels()
+  );
   if (
     outcome.kind === "club_admin" ||
     outcome.kind === "club_portal" ||
@@ -32,18 +49,25 @@ export function resolveExpectedTenantIdForHost(host: string): string | null {
   return envTenant !== undefined && envTenant.length > 0 ? envTenant : null;
 }
 
-/** True when session JWT tenant matches the workspace host (fail-open when host is unmapped). */
+/** True when session JWT tenant matches the workspace host (fail-open only for unmapped admin clubs). */
 export function sessionTenantMatchesHost(sessionTenantId: string, host: string): boolean {
-  const outcome = resolveMultiLevelHost(host);
+  const outcome = parseMultiLevelTenantHost(
+    normalizeHostHeader(host),
+    readPlatformRootDomainWeb(),
+    readWebReservedHostLabels()
+  );
   if (outcome.kind === "platform_admin") {
     return true;
   }
+
+  const expected = resolveExpectedTenantIdForHost(host);
+  if (expected !== null) {
+    return sessionTenantId.trim() === expected;
+  }
+
   if (!isOperatorAdminHost(host)) {
     return true;
   }
-  const expected = resolveExpectedTenantIdForHost(host);
-  if (expected === null) {
-    return true;
-  }
-  return sessionTenantId.trim() === expected;
+
+  return true;
 }

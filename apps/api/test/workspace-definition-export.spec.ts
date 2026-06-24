@@ -3,9 +3,9 @@ import { describe, it } from "node:test";
 
 import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
 import {
-  computeWorkspaceDefinitionPayloadChecksum,
   stripWorkspacePluginToDefinitionPayload,
 } from "@app-tour/workspace-sdk/metadata";
+import { computeWorkspaceDefinitionPayloadChecksum } from "@app-tour/workspace-sdk/metadata/checksum";
 
 import {
   buildWorkspaceDefinitionExport,

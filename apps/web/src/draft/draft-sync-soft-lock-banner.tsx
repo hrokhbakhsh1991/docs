@@ -8,6 +8,11 @@ export type DraftSyncSoftLockBannerProps = {
   readonly className?: string;
 };
 
+/** Create-tour wizard body: soft-lock banner only on sync ERROR (not SYNCING — avoids layout jump). */
+export function shouldShowCreateTourWizardSoftLockBanner(status: DraftStatus): boolean {
+  return status === "ERROR";
+}
+
 /** Non-blocking banner when server sync failed or in-flight — fields stay editable (Phase 2/5B). */
 export function DraftSyncSoftLockBanner({ status, className }: DraftSyncSoftLockBannerProps) {
   const t = useTranslations("common");

@@ -1,0 +1,96 @@
+---
+title: P10 — Platform production grade
+phase: 23
+format: markdoc
+pack: P10
+status: PLANNED
+prerequisite: P9 exit
+audit: p10-production-grade-audit.md
+app_fit: p10-app-fit.md
+effort: p10-effort-to-nine.md
+---
+
+# P10 — Platform production grade
+
+## North star (fit-aligned)
+
+**Profile C HTTPS** on **one VPS** — four processes behind edge · CI smoke 4/4 · ops runbooks.
+
+**Profile B IP (P7) stays** — P10 adds production path; does not remove staging IP.
+
+**Exit admin HTTPS:** `{club}.admin.{platform_root}` — **not** admin custom apex (H-P6-03 defer).
+
+→ [p10-app-fit.md](p10-app-fit.md)
+
+---
+
+## Strict scores today
+
+| Axis | Score |
+| ---- | ----: |
+| TLS / reverse-proxy | 1.5 |
+| Deploy / CI | 4.0 |
+| Ops | 3.0 |
+| **Composite** | **3.4** |
+| Profile B IP today | ~6.5 |
+
+**Exit (fit):** composite **≥ 8.7** · smoke **4/4** · Profile C staging HTTPS proven.
+
+---
+
+## EPIC map (fit-aligned)
+
+### P10-1 — TLS + edge (Wave A)
+
+| Nano | Deliverable |
+| ---- | ----------- |
+| P10-1-N-001 | `deploy/vps/caddy/` — wildcard staging TLS first |
+| P10-1-N-002 | HTTPS cookie + forwarded-proto smoke |
+| P10-1-N-003 | loopback bind (Profile C; Profile B unchanged until edge) |
+
+### P10-2 — CI four-process smoke (Wave A/B)
+
+| Nano | Deliverable |
+| ---- | ----------- |
+| P10-2-N-001 | `smoke-four-process.sh` + health-check 4/4 |
+| P10-2-N-002 | GHA post-deploy smoke |
+| P10-2-N-003 | align `build:operator-vps` |
+| P10-2-N-004 | env verify `--all` (P8) |
+
+### P10-3 — Ops (Wave A/B/C)
+
+| Nano | Deliverable |
+| ---- | ----------- |
+| P10-3-N-001 | incident runbook 4 units |
+| P10-3-N-002 | cert renewal |
+| P10-3-N-003 | rollback-vps.sh |
+| P10-3-N-006 | `p10:gate` |
+
+### P10-0 — Custom domain (Wave B/C — not day-1 blocker)
+
+| Nano | Deliverable |
+| ---- | ----------- |
+| P10-0-N-002 | on_demand_tls ask (after wildcard staging) |
+| P10-0-N-003 | second club runbook (platform subdomain) |
+| P10-0-N-004 | SMS waiver (not P10 infra gate) |
+
+**Moved out of P10-0 P0:** P10-0-N-001 admin custom apex → trunk v2.
+
+---
+
+## NOT P10
+
+| Item | Owner |
+| ---- | ----- |
+| Admin custom apex `admin.{apex}` | trunk v2 / post-P10 |
+| SMS real provider | phase-18 or waiver |
+| k8s Prometheus | waive VPS |
+| Deprecate Profile B IP | never in P10 |
+| Per-club deploy | contradicts architecture |
+
+---
+
+## References
+
+- [p10-app-fit.md](p10-app-fit.md)
+- [p10-gap-registry.md](p10-gap-registry.md)

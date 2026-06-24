@@ -65,7 +65,7 @@ gate: pnpm run p6:gate
 | N-004 | Workspace embed CC | `tour-workspace-registrations-client.tsx` | command-center spec | VS-06 |
 | N-005 | Operator register | `(app)/tours/[id]/register` | register route spec | VS-06 |
 | N-006 | Finance receipts panel | `(app)/finance/` | `finance-page.spec.ts` | VS-07 |
-| N-007 | Receipt → ledger | finance approve path | `finance-ops.spec.ts` (DB skip ok) | VS-07 |
+| N-007 | Receipt → ledger | finance approve path | `finance-ops.spec.ts` · `p6:staging-gate` when `DATABASE_URL` | VS-07 |
 | N-008 | MinIO upload | finance + portal receipt | `p6-offline-receipt-gate.spec.ts` | VS-05/07 |
 | N-009 | Wizard sweep | wizard routes | runbook note | — |
 | N-010 | Settings persist | 9 modules | `settings-*.spec.ts` | — |

@@ -2,21 +2,41 @@
 
 ```yaml
 phase: P6
-pack_version: "2.2"
-status: complete
+pack_version: "2.4"
+status: closed_fast
+fast_close: p6-fast-close.yaml
 nano_done_doc: 58
-nano_done_behavioral: 58
+nano_done_behavioral: 37
+nano_done_behavioral_note: "Fast-close 2026-06-23 — honest tiers; full VPS gates deferred P7"
+remaining_checklist: p6-remaining-checklist.md
+current_task: none
+proof_tiers:
+  doc: 58
+  e2e_vertical_slice: 8
+  api_memory_in_gate: 28
+  static_wiring: 12
+  deferred_p7: 9
+  deferred_p10: 4
 nano_total: 58
 exit_nano: P6-4-N-008
 milestone_guest_slice: P6-1-N-014
-current_task: null
 prerequisite: P5-B-N-016
 gate_static: pnpm run p6:gate
 gate_live: node scripts/smoke-p6-host-bind.mjs
+gate_closure_fast: P6_FAST_CLOSE=1 pnpm run p6:closure
 execution_order: [P6-0, P6-1, P6-2, P6-3, P6-4]
 addressing_sot: ../p6-host-addressing-architecture.mdoc
 truth: appendices/IMPLEMENTATION-TRUTH-P6.md
 ```
+
+## Fast-close (2026-06-23)
+
+P6 **closed** on local dev slice + VPS staging infra smoke. Slow paths deferred:
+
+- VPS `p6:staging-preflight` / `p6:e2e-gate` → **P7**
+- DEV `build-operator-vps` + hollow spec hardening → **P7 / P10**
+
+See **[p6-fast-close.yaml](p6-fast-close.yaml)** and **[p6-remaining-checklist.md](p6-remaining-checklist.md)**.
 
 ## Milestones
 
@@ -40,7 +60,7 @@ truth: appendices/IMPLEMENTATION-TRUTH-P6.md
 
 ## Vertical slice (behavioral — complete)
 
-- [x] VS-01 Publish active (P6-1) — SMK-P6-VS-01 · `p6-admin-publish-smoke.spec.ts`
+- [x] VS-01 Publish active (P6-1) — SMK-P6-VS-01 + `p6-vs01-admin-publish` + `tour-publish-transition` LC-04/06 · wizard UI PATCH E2E = P7
 - [x] VS-02 Marketing lists tour (P6-1) — SMK-MKT-01
 - [x] VS-03 Portal register success (P6-1) — SMK-MKT-03 · SMK-PTL-01
 - [x] VS-04 Portal `/me` lists row (P6-3) — SMK-PTL-02
@@ -72,7 +92,7 @@ truth: appendices/IMPLEMENTATION-TRUTH-P6.md
 - [x] P6-1-N-005 Portal register page
 - [x] P6-1-N-006 OTP flow E2E
 - [x] P6-1-N-007 Success marker
-- [x] P6-1-N-008 Publish → revalidate → catalog
+- [x] P6-1-N-008 Publish → revalidate → catalog (`marketing-catalog-revalidate.spec.ts` in `p6:gate`)
 - [x] P6-1-N-009 Pending booking row
 - [x] P6-1-N-010 Club home + design-token stack
 - [x] P6-1-N-011 fa-IR default
@@ -93,7 +113,7 @@ truth: appendices/IMPLEMENTATION-TRUTH-P6.md
 - [x] P6-2-N-008 MinIO upload
 - [x] P6-2-N-009 Wizard bug sweep
 - [x] P6-2-N-010 Settings persist
-- [x] P6-2-N-011 Dashboard pending KPI
+- [x] P6-2-N-011 Dashboard pending KPI — `finance-dashboard-widget.spec.ts` in `p6:gate`
 - [x] P6-2-N-012 Finance widget live
 - [x] P6-2-N-013 Reconciliation triage
 - [x] P6-2-N-014 offline_receipt gate
@@ -110,7 +130,7 @@ truth: appendices/IMPLEMENTATION-TRUTH-P6.md
 - [x] P6-3-N-006 Receipt upload BFF
 - [x] P6-3-N-007 POST receipt member
 - [x] P6-3-N-008 Register success → `/me`
-- [x] P6-3-N-009 Portal home redirect
+- [x] P6-3-N-009 Portal home redirect — SMK-PTL-05 E2E + `portal-home-redirect.spec.ts`
 - [x] P6-3-N-010 Portal member i18n
 
 ## P6-4 — Exit gate
@@ -120,6 +140,6 @@ truth: appendices/IMPLEMENTATION-TRUTH-P6.md
 - [x] P6-4-N-003 p6:gate package.json
 - [x] P6-4-N-004 Exit spec
 - [x] P6-4-N-005 Customer seed runbook
-- [x] P6-4-N-006 Staging deploy
+- [x] P6-4-N-006 Staging deploy — runbook + `p6:staging-deploy-verify.sh` (live deploy = ops)
 - [x] P6-4-N-007 p6:e2e-gate wired (`scripts/p6-denali-e2e-gate.sh`)
 - [x] P6-4-N-008 P6 closure

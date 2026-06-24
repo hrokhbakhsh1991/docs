@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { resolveTenantIdFromDevHost } from "../src/tenant/resolve-host-tenant";
+import { resolveTenantIdFromDevHost } from "@app-tour/guest-surface-host";
 
 describe("portal-host-bind", () => {
   it("portal club_portal host ok", () => {
@@ -10,7 +10,7 @@ describe("portal-host-bind", () => {
     process.env.NODE_ENV = "development";
     try {
       assert.equal(
-        resolveTenantIdFromDevHost("denali.portal.localhost:3003"),
+        resolveTenantIdFromDevHost("denali.portal.localhost:3003", "portal"),
         "00000000-0000-4000-8000-000000000003"
       );
     } finally {
@@ -24,7 +24,7 @@ describe("portal-host-bind", () => {
     process.env.NODE_ENV = "development";
     try {
       assert.equal(
-        resolveTenantIdFromDevHost("operator.localhost:3003"),
+        resolveTenantIdFromDevHost("operator.localhost:3003", "portal"),
         "00000000-0000-4000-8000-000000000014"
       );
     } finally {

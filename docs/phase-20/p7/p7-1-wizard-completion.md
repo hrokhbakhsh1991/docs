@@ -3,7 +3,8 @@
 ```yaml
 epic: P7-1
 nanos: 9
-status: PLANNED
+pack_version: "1.6"
+status: IN_PROGRESS
 priority: 2
 prerequisite: P7-0-N-005
 zone: Z1 freeze + Z2 complete
@@ -29,6 +30,14 @@ exit_signal: VS-01 live on staging — customer tour publishStatus active
 
 ### P7-1-N-001 — Walkthrough + blocker inventory
 
+```yaml
+nano: P7-1-N-001
+proof_tier: MANUAL
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-1-N-001
+repo_status: NOT_STARTED
+forbidden_until: [P7-0-N-005]
+```
+
 **Do:** Run [p7-wizard-blocker-walkthrough.md](runbooks/p7-wizard-blocker-walkthrough.md) on staging; record P0/P1/Z4 list.
 
 **Files:** runbook · update IMPLEMENTATION-TRUTH-P7 blocker table
@@ -39,7 +48,15 @@ exit_signal: VS-01 live on staging — customer tour publishStatus active
 
 ### P7-1-N-002 — Preservation gate on every PR
 
-**Do:** Document regression commands for wizard PRs.
+```yaml
+nano: P7-1-N-002
+proof_tier: DEV_STATIC
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-1-N-002
+repo_status: NOT_STARTED
+forbidden_until: [P7-1-N-001]
+```
+
+**Do:** Run [p7-preservation-gate.md](runbooks/p7-preservation-gate.md) on every wizard PR.
 
 **Verify:**
 
@@ -53,6 +70,14 @@ pnpm --filter @apps/web exec node --import tsx --test test/denali-wizard-draft-c
 
 ### P7-1-N-003 — Staging tour create/save PATCH round-trip
 
+```yaml
+nano: P7-1-N-003
+proof_tier: STAGING
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-1-N-003
+repo_status: NOT_STARTED
+forbidden_until: [P7-1-N-001]
+```
+
 **Do:** New tour on staging persists via Postgres (`STORAGE_DRIVER=prisma`); draft PATCH succeeds end-to-end.
 
 **Files:** `apps/web/app/tours/new/` · `apps/api/src/tours/tours.service.ts`
@@ -64,6 +89,14 @@ pnpm --filter @apps/web exec node --import tsx --test test/denali-wizard-draft-c
 ---
 
 ### P7-1-N-004 — Customer settings seed (pickers + prefill)
+
+```yaml
+nano: P7-1-N-004
+proof_tier: STAGING
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-1-N-004
+repo_status: NOT_STARTED
+forbidden_until: [P7-0-N-003]
+```
 
 **Do:** Staging Postgres has destinations, equipment, locations, and customer fixture rows wizard composites need — **one seed pass**, not duplicate nano work.
 
@@ -77,6 +110,14 @@ pnpm --filter @apps/web exec node --import tsx --test test/denali-wizard-draft-c
 
 ### P7-1-N-005 — Publish readiness violations visible in UI
 
+```yaml
+nano: P7-1-N-005
+proof_tier: DEV_API_MEMORY
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-1-N-005
+repo_status: NOT_STARTED
+forbidden_until: [P7-1-N-001]
+```
+
 **Do:** Operator sees rule/canonical violations before publish — not silent failure.
 
 **Files:** `@app-tour/workspace-denali/ui/chrome/wizard-validation` · wizard host
@@ -88,6 +129,14 @@ pnpm --filter @apps/web exec node --import tsx --test test/denali-wizard-draft-c
 ---
 
 ### P7-1-N-006 — publishStatus active → marketing catalog
+
+```yaml
+nano: P7-1-N-006
+proof_tier: STAGING
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-1-N-006
+repo_status: NOT_STARTED
+forbidden_until: [P7-1-N-005]
+```
 
 **Do:** PATCH publish to `active` on staging tour → marketing `/tours` lists row (revalidate path).
 
@@ -101,6 +150,14 @@ pnpm --filter @apps/web exec node --import tsx --test test/denali-wizard-draft-c
 
 ### P7-1-N-007 — Wizard draft session persistence
 
+```yaml
+nano: P7-1-N-007
+proof_tier: DEV_API_MEMORY
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-1-N-007
+repo_status: STAGING_PASS
+forbidden_until: [P7-1-N-003]
+```
+
 **Do:** `wizardSessionId` + draft envelope survive step navigation and page refresh on staging.
 
 **Files:** `apps/web/src/tours/tour-wizard-draft.ts` · draft PATCH routes
@@ -113,6 +170,14 @@ pnpm --filter @apps/web exec node --import tsx --test test/denali-wizard-draft-c
 
 ### P7-1-N-008 — Terms/conditions on real tour
 
+```yaml
+nano: P7-1-N-008
+proof_tier: STAGING
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-1-N-008
+repo_status: STAGING_PASS
+forbidden_until: [P7-1-N-007]
+```
+
 **Do:** Canonical `terms` / conditions fields persist and display on published customer tour.
 
 **Files:** denali canonical paths · wizard terms step
@@ -122,6 +187,14 @@ pnpm --filter @apps/web exec node --import tsx --test test/denali-wizard-draft-c
 ---
 
 ### P7-1-N-009 — VS-01 live proof on staging
+
+```yaml
+nano: P7-1-N-009
+proof_tier: STAGING_E2E
+verify_ref: appendices/P7-VERIFICATION-COMMANDS.yaml#P7-1-N-009
+repo_status: STAGING_PASS
+forbidden_until: [P7-1-N-006]
+```
 
 **Do:** Customer tour `publishStatus: active` on staging admin; draft hidden from catalog until publish.
 

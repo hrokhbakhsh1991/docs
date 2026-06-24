@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
-import { validateSessionToken } from "@/auth/validate-session-token";
+import { validateSessionToken } from "@app-tour/session-client";
 import { resolveBootstrapPluginIdForTenant } from "@/tenant/tenant-kernel.shared";
 
 function normalizeRole(

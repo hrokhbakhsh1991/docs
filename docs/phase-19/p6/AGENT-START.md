@@ -2,39 +2,43 @@
 
 ```yaml
 phase: P6
-pack_version: "2.2"
-status: COMPLETE
+pack_version: "2.3-fast-close"
+status: CLOSED_FAST
+fast_close: p6-fast-close.yaml
 doc_pack: COMPLETE
-code_integration: BEHAVIORAL_COMPLETE
+code_integration: DEV_SLICE_CLOSED
 current_task: null
-nano_done_behavioral: 58
+nano_done_behavioral: 37
 nano_total: 58
 exit_nano: P6-4-N-008
 milestone_guest_slice: P6-1-N-014
 prerequisite: P5-B-N-016 complete
 gate_static: pnpm run p6:gate
 gate_e2e: pnpm run p6:e2e-gate
+gate_closure_fast: P6_FAST_CLOSE=1 pnpm run p6:closure
 gate_live: node scripts/smoke-p6-host-bind.mjs
 machine_snapshot: AGENT-CURRENT-PHASE.yaml
 truth: appendices/IMPLEMENTATION-TRUTH-P6.md
 navigator: ../AGENT-NAVIGATOR.md
 doc_sot: docs/phase-19/platform-denali-first-customer.mdoc
 p7_blocked: false
+long_commands: TEMP/FOR YOU.md
 ```
 
-## Status: P6 complete (2026-06-22)
+## Status: P6 fast-closed (2026-06-23)
 
-Vertical slice **VS-01..08** behaviorally proven · `p6:gate` + `p6:e2e-gate` green.
+Dev slice **VS-01..08** proven locally · VPS staging **infra + host-bind smoke** · full VPS gates → **P7**.
 
-**Next phase:** [P7 Agent START](../phase-20/p7/AGENT-START.md) — staging delivery on VPS.
+**Next phase:** [P7 Agent START](../phase-20/p7/AGENT-START.md)
 
 ```bash
-pnpm run p6:gate                                    # daily regression (~8s)
-pnpm run p6:e2e-gate                                # pre-staging browser (~80s)
-TOUR_OPS_API_URL=http://127.0.0.1:3001 node scripts/smoke-p6-host-bind.mjs
+pnpm run p6:gate                         # daily (~8s) — or see TEMP/FOR YOU.md
+P6_FAST_CLOSE=1 pnpm run p6:closure      # skip slow staging-preflight
 ```
 
-Machine state → [AGENT-CURRENT-PHASE.yaml](AGENT-CURRENT-PHASE.yaml) · truth → [IMPLEMENTATION-TRUTH-P6.md](appendices/IMPLEMENTATION-TRUTH-P6.md).
+Long commands (install, build, VPS gates): **[TEMP/FOR YOU.md](../../../TEMP/FOR%20YOU.md)**
+
+Machine state → [AGENT-CURRENT-PHASE.yaml](AGENT-CURRENT-PHASE.yaml) · [p6-fast-close.yaml](p6-fast-close.yaml)
 
 ---
 

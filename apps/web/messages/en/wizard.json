@@ -24,8 +24,24 @@
   "creating": "Creating tour…",
   "created": "Tour created: {id}",
   "submit": {
-    "errorGeneric": "Tour creation failed ({status}: {code})",
-    "validationFailed": "Fix the highlighted fields before creating the tour."
+    "validationFailed": "Fix the highlighted fields before creating the tour.",
+    "validationSummary": "Fix the following before creating the tour:",
+    "rulesNotReady": "The form is not ready to submit yet — wait a moment and try again.",
+    "errorUnknown": "Tour creation failed. Please try again.",
+    "unknownField": "A field",
+    "http401": "Your session has expired — sign in again.",
+    "http403": "You do not have permission to create this tour.",
+    "http409": "Version conflict — refresh the page and try again.",
+    "http500": "Tour creation failed (server error). Please try again later."
+  },
+  "submitEdit": {
+    "validationFailed": "Fix the highlighted fields before saving.",
+    "validationSummary": "Fix the following before saving:",
+    "errorUnknown": "Could not save changes. Please try again.",
+    "http401": "Your session has expired — sign in again.",
+    "http403": "You do not have permission to save this tour.",
+    "http409": "The tour version changed — refresh the page.",
+    "http500": "Save failed (server error)."
   },
   "host": {
     "loadError": "Wizard failed to load: {error}",

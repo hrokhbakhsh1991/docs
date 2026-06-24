@@ -1,5 +1,8 @@
+import type { RenderStepPlan } from "@app-tour/platform-core";
+
 import type { DenaliTourKind } from "../../types/legacy/repo-types";
 import { readDenaliCanonicalBasics } from "../../adapters/denaliCanonicalBasicsControl";
+import { DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR } from "../../composites/denali-composite-anchors";
 import {
   parseDenaliItineraryDays,
   type DenaliItineraryDay,
@@ -12,29 +15,37 @@ import {
   getCanonicalValue,
 } from "../../draft/denali-tour-wizard-draft";
 
+import { isDenaliWizardFieldVisibleOnDraft } from "../../wizard/denali-wizard-field-visibility";
+import type { DenaliCreateWizardStepId } from "../../layout/stepIds";
+import type { DenaliRuleFieldStep } from "../../rules/denaliRuleModel";
+
 import { parseStringArray } from "./denali-array-field-utils";
-import { parseDenaliGearItems } from "./denali-gear-types";
+import { parseDenaliGearItems, type DenaliGearItem } from "./denali-gear-types";
 import {
   DENALI_LOCATION_ZONE_PATHS,
   parseDenaliGatheringPoints,
   parseDenaliLocationData,
 } from "./denali-location-types";
-import { parseDenaliTourPhotos } from "./denali-photo-types";
+import { parseDenaliTourPhotos, type DenaliTourPhoto } from "./denali-photo-types";
+import { formatSocialMediaLinkForReview } from "./denali-social-media-link-logic";
 
 export type DenaliReviewCatalog = {
   readonly destinationNameById: ReadonlyMap<string, string>;
   readonly leaderNameById: ReadonlyMap<string, string>;
   readonly themeNameById: ReadonlyMap<string, string>;
   readonly languageNameById: ReadonlyMap<string, string>;
+  readonly equipmentIconKeyById: ReadonlyMap<string, string | null>;
 };
 
 export type DenaliReviewRow = {
+  readonly canonicalPath?: string;
   readonly label: string;
   readonly value: string;
   readonly multiline?: boolean;
 };
 
 export type DenaliReviewCard = {
+  readonly kind?: "text" | "itinerary" | "excluded";
   readonly title: string;
   readonly body?: string;
   readonly meta?: string;
@@ -47,6 +58,10 @@ export type DenaliReviewSection = {
   readonly rows: readonly DenaliReviewRow[];
   readonly chips?: readonly string[];
   readonly cards?: readonly DenaliReviewCard[];
+  /** Read-only tour photos for `denali_photos` (visual grid — not text cards). */
+  readonly photos?: readonly DenaliTourPhoto[];
+  /** Compact gear list for `denali_logistics`. */
+  readonly gearItems?: readonly DenaliGearItem[];
 };
 
 export type DenaliReviewHero = {
@@ -54,6 +69,7 @@ export type DenaliReviewHero = {
   readonly categoryLabel: string;
   readonly destination: string;
   readonly schedule: string;
+  readonly coverPhoto?: DenaliTourPhoto;
 };
 
 export type DenaliReviewFormatLabels = {
@@ -70,10 +86,12 @@ export type DenaliReviewFormatLabels = {
   readonly photoCount: (count: number) => string;
   readonly dayLabel: (day: number) => string;
   readonly primaryGathering: string;
+  readonly socialMediaTelegramAutoLabel: string;
 };
 
 function pushRow(
   rows: DenaliReviewRow[],
+  canonicalPath: string,
   label: string,
   value: string,
   multiline = false
@@ -81,7 +99,27 @@ function pushRow(
   if (value.trim().length === 0) {
     return;
   }
-  rows.push({ label, value, ...(multiline ? { multiline: true } : {}) });
+  rows.push({
+    canonicalPath,
+    label,
+    value,
+    ...(multiline ? { multiline: true } : {}),
+  });
+}
+
+function pushRowWhenFieldVisible(
+  draft: DenaliTourWizardDraft,
+  rows: DenaliReviewRow[],
+  labels: DenaliReviewFormatLabels,
+  canonicalPath: string,
+  stepId: DenaliRuleFieldStep | DenaliCreateWizardStepId,
+  value: string,
+  multiline = false
+): void {
+  if (!isDenaliWizardFieldVisibleOnDraft(draft, canonicalPath, stepId)) {
+    return;
+  }
+  pushRow(rows, canonicalPath, labels.fieldLabel(canonicalPath), value, multiline);
 }
 
 function boolLabel(raw: string, labels: Pick<DenaliReviewFormatLabels, "yes" | "no">): string {
@@ -109,6 +147,17 @@ function formatLocation(value: unknown): string {
   return parts.join(" — ");
 }
 
+function resolveDenaliReviewCoverPhoto(draft: DenaliTourWizardDraft): DenaliTourPhoto | undefined {
+  const photos = parseDenaliTourPhotos(getCanonicalValue(draft, "photos"));
+  if (photos.length === 0) {
+    return undefined;
+  }
+  const withAsset = photos.find(
+    (photo) => (photo.url?.trim().length ?? 0) > 0 || (photo.storageKey?.trim().length ?? 0) > 0
+  );
+  return withAsset ?? photos[0];
+}
+
 export function buildDenaliReviewHero(
   draft: DenaliTourWizardDraft,
   catalog: DenaliReviewCatalog,
@@ -127,6 +176,7 @@ export function buildDenaliReviewHero(
       category.trim().length > 0 ? labels.tourKindLabel(category) : "",
     destination: catalog.destinationNameById.get(destinationId) ?? destinationId,
     schedule: scheduleParts.join(" → "),
+    coverPhoto: resolveDenaliReviewCoverPhoto(draft),
   };
 }
 
@@ -143,43 +193,66 @@ export function buildDenaliReviewSections(
     category.trim().length > 0 ? (category as DenaliTourKind) : undefined
   );
   if (basics != null) {
-    pushRow(basicRows, labels.fieldLabel("category"), labels.tourKindLabel(category));
+    pushRow(basicRows, "category", labels.fieldLabel("category"), labels.tourKindLabel(category));
   }
-  pushRow(basicRows, labels.fieldLabel("title"), getCanonicalStringValue(draft, "title"));
+  pushRow(basicRows, "title", labels.fieldLabel("title"), getCanonicalStringValue(draft, "title"));
   pushRow(
     basicRows,
+    "destinationId",
     labels.fieldLabel("destinationId"),
     catalog.destinationNameById.get(getCanonicalStringValue(draft, "destinationId")) ??
       getCanonicalStringValue(draft, "destinationId")
   );
-  pushRow(
+  pushRowWhenFieldVisible(
+    draft,
     basicRows,
-    labels.fieldLabel("tripDetails.overview.peakHeight"),
+    labels,
+    "tripDetails.overview.peakHeight",
+    "denali_basic",
     getCanonicalStringValue(draft, "tripDetails.overview.peakHeight")
   );
-  pushRow(basicRows, labels.fieldLabel("startDateTime"), getCanonicalStringValue(draft, "startDateTime"));
-  pushRow(basicRows, labels.fieldLabel("endDateTime"), getCanonicalStringValue(draft, "endDateTime"));
+  pushRowWhenFieldVisible(
+    draft,
+    basicRows,
+    labels,
+    "tripDetails.overview.trailDistanceKm",
+    "denali_basic",
+    getCanonicalStringValue(draft, "tripDetails.overview.trailDistanceKm")
+  );
+  pushRow(basicRows, "startDateTime", labels.fieldLabel("startDateTime"), getCanonicalStringValue(draft, "startDateTime"));
+  pushRow(basicRows, "endDateTime", labels.fieldLabel("endDateTime"), getCanonicalStringValue(draft, "endDateTime"));
   pushRow(
     basicRows,
+    "approximateReturnTime",
     labels.fieldLabel("approximateReturnTime"),
     getCanonicalStringValue(draft, "approximateReturnTime")
   );
-  pushRow(basicRows, labels.fieldLabel("capacityMax"), getCanonicalStringValue(draft, "capacityMax"));
-  pushRow(basicRows, labels.fieldLabel("capacityMin"), getCanonicalStringValue(draft, "capacityMin"));
+  pushRow(basicRows, "capacityMax", labels.fieldLabel("capacityMax"), getCanonicalStringValue(draft, "capacityMax"));
+  pushRow(basicRows, "capacityMin", labels.fieldLabel("capacityMin"), getCanonicalStringValue(draft, "capacityMin"));
   const leaderIds = parseStringArray(getCanonicalValue(draft, "leaderUserIds"));
-  pushRow(basicRows, labels.fieldLabel("leaderUserIds"), mapIds(leaderIds, catalog.leaderNameById));
+  pushRow(basicRows, "leaderUserIds", labels.fieldLabel("leaderUserIds"), mapIds(leaderIds, catalog.leaderNameById));
   pushRow(
     basicRows,
+    "requiresLocalGuide",
     labels.fieldLabel("requiresLocalGuide"),
     boolLabel(getCanonicalStringValue(draft, "requiresLocalGuide"), labels)
   );
-  pushRow(basicRows, labels.fieldLabel("localGuideName"), getCanonicalStringValue(draft, "localGuideName"));
+  pushRow(basicRows, "localGuideName", labels.fieldLabel("localGuideName"), getCanonicalStringValue(draft, "localGuideName"));
   pushRow(
     basicRows,
+    "requiresManualAdminApproval",
     labels.fieldLabel("requiresManualAdminApproval"),
     boolLabel(getCanonicalStringValue(draft, "requiresManualAdminApproval"), labels)
   );
-  pushRow(basicRows, labels.fieldLabel("socialMediaLink"), getCanonicalStringValue(draft, "socialMediaLink"));
+  pushRow(
+    basicRows,
+    "socialMediaLink",
+    labels.fieldLabel("socialMediaLink"),
+    formatSocialMediaLinkForReview(
+      getCanonicalStringValue(draft, "socialMediaLink"),
+      labels.socialMediaTelegramAutoLabel
+    )
+  );
   if (basicRows.length > 0) {
     sections.push({
       stepId: "denali_basic",
@@ -191,33 +264,31 @@ export function buildDenaliReviewSections(
   const photoRows: DenaliReviewRow[] = [];
   const themeIds = parseStringArray(getCanonicalValue(draft, "program.themeIds"));
   const themeNames = mapIds(themeIds, catalog.themeNameById);
-  pushRow(photoRows, labels.fieldLabel("program.themeIds"), themeNames);
+  pushRow(photoRows, "program.themeIds", labels.fieldLabel("program.themeIds"), themeNames);
   pushRow(
     photoRows,
+    "program.shortDescription",
     labels.fieldLabel("program.shortDescription"),
     getCanonicalStringValue(draft, "program.shortDescription"),
     true
   );
-  pushRow(
+  pushRowWhenFieldVisible(
+    draft,
     photoRows,
-    labels.fieldLabel("program.longDescription"),
+    labels,
+    "program.longDescription",
+    "denali_photos",
     getCanonicalStringValue(draft, "program.longDescription"),
     true
   );
   const photos = parseDenaliTourPhotos(getCanonicalValue(draft, "photos"));
-  pushRow(photoRows, labels.fieldLabel("photos"), labels.photoCount(photos.length));
+  pushRow(photoRows, "photos", labels.fieldLabel("photos"), labels.photoCount(photos.length));
   if (photoRows.length > 0 || photos.length > 0) {
     sections.push({
       stepId: "denali_photos",
       title: labels.stepLabel("denali_photos"),
       rows: photoRows,
-      cards: photos.map((photo) => ({
-        title: photo.label?.trim() || labels.fieldLabel("photos"),
-        meta:
-          photo.day != null
-            ? labels.dayLabel(photo.day)
-            : undefined,
-      })),
+      photos,
     });
   }
 
@@ -225,32 +296,40 @@ export function buildDenaliReviewSections(
   const languageIds = parseStringArray(getCanonicalValue(draft, "program.guideLanguageIds"));
   pushRow(
     programRows,
+    "program.guideLanguageIds",
     labels.fieldLabel("program.guideLanguageIds"),
     mapIds(languageIds, catalog.languageNameById)
   );
   pushRow(
     programRows,
+    "program.difficultyLevel",
     labels.fieldLabel("program.difficultyLevel"),
     getCanonicalStringValue(draft, "program.difficultyLevel")
   );
   pushRow(
     programRows,
+    "program.hikingHoursApprox",
     labels.fieldLabel("program.hikingHoursApprox"),
     getCanonicalStringValue(draft, "program.hikingHoursApprox")
   );
   pushRow(
     programRows,
+    "program.hikingGoHours",
     labels.fieldLabel("program.hikingGoHours"),
     getCanonicalStringValue(draft, "program.hikingGoHours")
   );
   pushRow(
     programRows,
+    "program.hikingReturnHours",
     labels.fieldLabel("program.hikingReturnHours"),
     getCanonicalStringValue(draft, "program.hikingReturnHours")
   );
-  pushRow(
+  pushRowWhenFieldVisible(
+    draft,
     programRows,
-    labels.fieldLabel("tripDetails.metrics.elevationGain"),
+    labels,
+    "tripDetails.metrics.elevationGain",
+    "denali_program",
     getCanonicalStringValue(draft, "tripDetails.metrics.elevationGain")
   );
   const itinerary = parseDenaliItineraryDays(getCanonicalValue(draft, "program.itinerary"));
@@ -308,6 +387,7 @@ export function buildDenaliReviewSections(
             title: day.title?.trim() || labels.dayLabel(day.dayNumber ?? 1),
             body: bodyParts.length > 0 ? bodyParts.join("\n\n") : undefined,
             meta: labels.dayLabel(day.dayNumber ?? 1),
+            kind: "itinerary" as const,
           };
         }),
     });
@@ -317,28 +397,33 @@ export function buildDenaliReviewSections(
   const transportMode = getCanonicalStringValue(draft, "transport.mode");
   pushRow(
     logisticsRows,
+    "transport.mode",
     labels.fieldLabel("transport.mode"),
     transportMode.trim().length > 0 ? labels.transportModeLabel(transportMode) : ""
   );
   pushRow(
     logisticsRows,
-    labels.fieldLabel("transport.cost"),
-    getCanonicalStringValue(draft, "transport.cost")
+    "transport.transportCost",
+    labels.fieldLabel("transport.transportCost"),
+    getCanonicalStringValue(draft, "transport.transportCost")
   );
   pushRow(
     logisticsRows,
+    "transport.dongAmount",
     labels.fieldLabel("transport.dongAmount"),
     getCanonicalStringValue(draft, "transport.dongAmount")
   );
   pushRow(
     logisticsRows,
-    labels.fieldLabel("transport.notes"),
-    getCanonicalStringValue(draft, "transport.notes"),
+    "transport.transportNotes",
+    labels.fieldLabel("transport.transportNotes"),
+    getCanonicalStringValue(draft, "transport.transportNotes"),
     true
   );
   for (const zone of DENALI_LOCATION_ZONE_PATHS) {
     pushRow(
       logisticsRows,
+      zone.path,
       labels.locationZoneLabel(zone.path),
       formatLocation(getCanonicalValue(draft, zone.path))
     );
@@ -352,6 +437,7 @@ export function buildDenaliReviewSections(
     }
     pushRow(
       logisticsRows,
+      "gatheringPoints",
       labels.fieldLabel("gatheringPoints"),
       [name, address, point.isPrimary ? labels.primaryGathering : ""].filter(Boolean).join(" — ")
     );
@@ -374,38 +460,38 @@ export function buildDenaliReviewSections(
       title: labels.stepLabel("denali_logistics"),
       rows: logisticsRows,
       chips: [...included, ...customLabels],
-      cards: [
-        ...gear.map((item) => ({
-          title: item.name,
-          meta: item.isRequired ? labels.gearRequired : labels.gearOptional,
-        })),
-        ...excluded.map((service) => ({
-          title: service,
-          meta: labels.fieldLabel("tripDetails.logistics.excludedServices"),
-          variant: "self" as const,
-        })),
-      ],
+      gearItems: gear,
+      cards: excluded.map((service) => ({
+        kind: "excluded" as const,
+        title: service,
+        meta: labels.fieldLabel("tripDetails.logistics.excludedServices"),
+        variant: "self" as const,
+      })),
     });
   }
 
   const pricingRows: DenaliReviewRow[] = [];
   pushRow(
     pricingRows,
+    "pricing.requiresPayment",
     labels.fieldLabel("pricing.requiresPayment"),
     boolLabel(getCanonicalStringValue(draft, "pricing.requiresPayment"), labels)
   );
   pushRow(
     pricingRows,
+    "participants.minimumAge",
     labels.fieldLabel("participants.minimumAge"),
     getCanonicalStringValue(draft, "participants.minimumAge")
   );
   pushRow(
     pricingRows,
+    "participants.minRequiredPeaks",
     labels.fieldLabel("participants.minRequiredPeaks"),
     getCanonicalStringValue(draft, "participants.minRequiredPeaks")
   );
   pushRow(
     pricingRows,
+    "participants.nationalIdRequired",
     labels.fieldLabel("participants.nationalIdRequired"),
     boolLabel(getCanonicalStringValue(draft, "participants.nationalIdRequired"), labels)
   );
@@ -420,17 +506,20 @@ export function buildDenaliReviewSections(
   const legalRows: DenaliReviewRow[] = [];
   pushRow(
     legalRows,
+    "policies.policiesText",
     labels.fieldLabel("policies.policiesText"),
     getCanonicalStringValue(draft, "policies.policiesText"),
     true
   );
   pushRow(
     legalRows,
+    "policies.cancellationDeadlineHours",
     labels.fieldLabel("policies.cancellationDeadlineHours"),
     getCanonicalStringValue(draft, "policies.cancellationDeadlineHours")
   );
   pushRow(
     legalRows,
+    "policies.cancellationPenaltyPercentage",
     labels.fieldLabel("policies.cancellationPenaltyPercentage"),
     getCanonicalStringValue(draft, "policies.cancellationPenaltyPercentage")
   );
@@ -443,4 +532,138 @@ export function buildDenaliReviewSections(
   }
 
   return sections;
+}
+
+const TRANSPORT_MODE_REVIEW_DEPENDENTS = [
+  "transport.transportCost",
+  "transport.allowPersonalCar",
+  "transport.dongAmount",
+  "transport.transportNotes",
+  "transport.seatPreference",
+  "transport.adminCapacityApproval",
+] as const;
+
+const CATEGORY_REVIEW_DEPENDENTS = ["duration", "eventVariant"] as const;
+
+const START_POINT_REVIEW_DEPENDENTS = ["summitPoint", "campPoint", "endPoint"] as const;
+
+function resolveCompositeDependentsForAnchor(anchor: string): readonly string[] {
+  const listed = DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR[anchor];
+  if (listed != null) {
+    return listed;
+  }
+  if (anchor === "transport.mode") {
+    return TRANSPORT_MODE_REVIEW_DEPENDENTS;
+  }
+  if (anchor === "category") {
+    return CATEGORY_REVIEW_DEPENDENTS;
+  }
+  if (anchor === "startPoint") {
+    return START_POINT_REVIEW_DEPENDENTS;
+  }
+  return [];
+}
+
+/** Expand visible render-plan fields to include composite dependents (INV-WIZ-002). */
+export function expandDenaliReviewVisibleCanonicalPaths(
+  contentSteps: readonly RenderStepPlan[]
+): ReadonlySet<string> {
+  const paths = new Set<string>();
+  for (const step of contentSteps) {
+    for (const field of step.fields) {
+      if (field.hidden === true) {
+        continue;
+      }
+      paths.add(field.canonicalPath);
+      for (const dependent of resolveCompositeDependentsForAnchor(field.canonicalPath)) {
+        paths.add(dependent);
+      }
+    }
+  }
+  return paths;
+}
+
+function filterDenaliReviewSectionByVisiblePaths(
+  section: DenaliReviewSection,
+  visiblePaths: ReadonlySet<string>
+): DenaliReviewSection | null {
+  const rows = section.rows.filter(
+    (row) => row.canonicalPath == null || visiblePaths.has(row.canonicalPath)
+  );
+
+  let chips = section.chips;
+  let cards = section.cards;
+  let photos = section.photos;
+  let gearItems = section.gearItems;
+
+  if (section.stepId === "denali_photos" && !visiblePaths.has("photos")) {
+    photos = undefined;
+  }
+  if (section.stepId === "denali_program" && !visiblePaths.has("program.itinerary")) {
+    cards = cards?.filter((card) => card.kind !== "itinerary");
+  }
+  if (section.stepId === "denali_logistics") {
+    if (
+      !visiblePaths.has("tripDetails.logistics.includedServices") &&
+      !visiblePaths.has("tripDetails.overview.customServiceLabels")
+    ) {
+      chips = undefined;
+    }
+    if (!visiblePaths.has("participants.gearItems")) {
+      gearItems = undefined;
+    }
+    if (!visiblePaths.has("tripDetails.logistics.excludedServices")) {
+      cards = cards?.filter((card) => card.kind !== "excluded" && card.variant !== "self");
+    }
+    if (cards != null && cards.length === 0) {
+      cards = undefined;
+    }
+  }
+
+  const hasBody =
+    rows.length > 0 ||
+    (chips?.length ?? 0) > 0 ||
+    (cards?.length ?? 0) > 0 ||
+    (photos?.length ?? 0) > 0 ||
+    (gearItems?.length ?? 0) > 0;
+  if (!hasBody) {
+    return null;
+  }
+
+  return {
+    ...section,
+    rows,
+    ...(chips != null ? { chips } : {}),
+    ...(cards != null ? { cards } : {}),
+    ...(photos != null ? { photos } : {}),
+    ...(gearItems != null ? { gearItems } : {}),
+  };
+}
+
+/**
+ * Template-driven review sections — only steps and fields present in `contentSteps`.
+ * `contentSteps` must exclude the injected review step (host passes visibleSteps − review).
+ */
+export function buildDenaliReviewSectionsFromVisibleSteps(
+  draft: DenaliTourWizardDraft,
+  contentSteps: readonly RenderStepPlan[],
+  catalog: DenaliReviewCatalog,
+  labels: DenaliReviewFormatLabels
+): readonly DenaliReviewSection[] {
+  const allowedStepIds = new Set(contentSteps.map((step) => step.stepId));
+  const visiblePaths = expandDenaliReviewVisibleCanonicalPaths(contentSteps);
+  const sections = buildDenaliReviewSections(draft, catalog, labels);
+  const filtered: DenaliReviewSection[] = [];
+
+  for (const section of sections) {
+    if (!allowedStepIds.has(section.stepId)) {
+      continue;
+    }
+    const next = filterDenaliReviewSectionByVisiblePaths(section, visiblePaths);
+    if (next != null) {
+      filtered.push(next);
+    }
+  }
+
+  return filtered;
 }

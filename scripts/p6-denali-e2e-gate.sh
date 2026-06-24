@@ -11,8 +11,11 @@ export PW_NO_REUSE_SERVER=1
 echo "== p6:e2e-gate — product gate =="
 pnpm run p6:gate
 
+echo "== p6:e2e-gate — VS-CHAIN browser (P6-VS-CHAIN-B01) =="
+pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "P6-VS-CHAIN-B01"
+
 echo "== p6:e2e-gate — VS-01 admin publish (SMK-P6-VS-01) =="
-pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "SMK-P6-VS-01"
+pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "SMK-P6-VS-01 active tour"
 
 echo "== p6:e2e-gate — portal smoke (VS-03..05) =="
 pnpm --filter @apps/portal run test:smoke

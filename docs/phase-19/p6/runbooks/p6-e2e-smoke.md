@@ -58,6 +58,7 @@ node apps/marketing/scripts/smoke-marketing-e2e-servers.mjs
 | **SMK-P6-MKT-03** | VS-03 | marketing→portal | `SMK-MKT-03` in same file | same | CTA lands portal · success marker |
 | **SMK-P6-PTL-01** | VS-03 | portal | `portal-registration-smoke.spec.ts` | `@apps/portal test:smoke` | `[data-public-registration-success]` |
 | **SMK-P6-PTL-02** | VS-04 | portal | `portal-member-smoke.spec.ts` SMK-PTL-02 | `@apps/portal test:smoke` | `/me/registrations` lists row |
+| **SMK-P6-PTL-05** | VS-04 | portal | `portal-member-smoke.spec.ts` SMK-PTL-05 | `@apps/portal test:smoke` | `/` → `/me/registrations` when session |
 | **SMK-P6-PTL-03** | VS-04 | portal | `portal-member-registrations.spec.ts` | unit in `p6:gate` | BFF `view=mine` |
 | **SMK-P6-PTL-04** | VS-05 | portal | `portal-member-smoke.spec.ts` SMK-PTL-04 | `@apps/portal test:smoke` | receipt upload 201 |
 | **SMK-P6-ADM-01** | VS-06 | web | `operator-smoke.spec.ts` SMK-P9-04 | `playwright.operator.config.ts -g SMK-P9-04` | booking approved (fa/en status) |

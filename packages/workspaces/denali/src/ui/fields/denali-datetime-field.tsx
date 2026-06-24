@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useId } from "react";
 
 import {
   type DenaliTourWizardDraft,
@@ -14,6 +15,7 @@ import {
   datetimeLocalInputToIso,
   isoToDatetimeLocalInput,
 } from "../logic/denali-datetime-utils";
+import { resolveDenaliDatetimeFieldMinIsoDate } from "../logic/denali-schedule-date-policy";
 
 type DenaliDatetimeFieldProps = {
   readonly draft: DenaliTourWizardDraft;
@@ -33,18 +35,22 @@ export function DenaliDatetimeField({
   hint,
 }: DenaliDatetimeFieldProps) {
   const t = useTranslations("denali");
+  const fieldId = useId();
   const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, canonicalPath);
   const stored = getCanonicalStringValue(draft, canonicalPath);
   const localValue = isoToDatetimeLocalInput(stored);
+  const minIsoDate = resolveDenaliDatetimeFieldMinIsoDate(canonicalPath);
 
   return (
     <div className="denali-wizard-composite" data-testid={testId} data-wizard-date-picker>
-      <label className="denali-wizard-composite__field">
-        <span>{label}</span>
+      <div className="denali-wizard-composite__field">
+        <label htmlFor={fieldId}>{label}</label>
         <DenaliWizardDatetimePicker
+          id={fieldId}
           aria-label={label}
           value={localValue}
+          minIsoDate={minIsoDate}
           onChange={(local) =>
             commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
               setCanonicalStringValue(base, canonicalPath, datetimeLocalInputToIso(local))
@@ -52,7 +58,7 @@ export function DenaliDatetimeField({
           }
           required={required}
         />
-      </label>
+      </div>
       {hint ? <p className="denali-wizard-composite__helper">{hint}</p> : null}
     </div>
   );

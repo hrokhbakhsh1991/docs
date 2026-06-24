@@ -9,6 +9,19 @@ const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const OPERATOR_SMOKE_BASE_URL =
   process.env.PLAYWRIGHT_BASE_URL ?? "http://operator.admin.localhost:3000";
 
+function stagingLaunchOptions(): { args: string[] } | undefined {
+  const vpsIp = process.env.VPS_IP?.trim();
+  if (!useExternalServers || vpsIp === undefined || vpsIp.length === 0) {
+    return undefined;
+  }
+  const rules = [
+    `MAP operator.admin.localhost ${vpsIp}`,
+    `MAP operator.portal.localhost ${vpsIp}`,
+    `MAP operator.localhost ${vpsIp}`,
+  ].join(", ");
+  return { args: [`--host-resolver-rules=${rules}`] };
+}
+
 export default defineConfig({
   globalSetup: useExternalServers ? undefined : "./tests/e2e/operator-smoke-global-setup.ts",
   testDir: "./tests/e2e",
@@ -17,15 +30,17 @@ export default defineConfig({
     "denali-itinerary-wizard.spec.ts",
     "p6-admin-publish-smoke.spec.ts",
     "p6-operator-receipt-approve-smoke.spec.ts",
+    "p6-vertical-slice-browser-chain.spec.ts",
   ],
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI || useExternalServers ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,
-  timeout: 120_000,
+  timeout: useExternalServers ? 180_000 : 120_000,
   use: {
     ...devices["Desktop Chrome"],
     baseURL: OPERATOR_SMOKE_BASE_URL,
     viewport: { width: 1280, height: 900 },
+    ...(stagingLaunchOptions() ? { launchOptions: stagingLaunchOptions() } : {}),
   },
   ...(useExternalServers
     ? {}

@@ -79,6 +79,13 @@ function buildBaseCard(
     difficultyLevel: readDenaliCatalogDifficultyLevel(data),
     fitnessLevel: readDenaliCatalogFitnessLevel(data),
     ...(itineraryDays != null ? { itineraryDays } : {}),
+    policiesText: readString(readCanonicalPath(data, "policies.policiesText")),
+    cancellationDeadlineHours: readInteger(
+      readCanonicalPath(data, "policies.cancellationDeadlineHours")
+    ),
+    cancellationPenaltyPercentage: readInteger(
+      readCanonicalPath(data, "policies.cancellationPenaltyPercentage")
+    ),
   });
 }
 

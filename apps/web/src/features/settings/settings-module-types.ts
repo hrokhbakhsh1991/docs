@@ -25,6 +25,7 @@ export type EquipmentResource = {
   readonly id: string;
   readonly name: string;
   readonly category: string | null;
+  readonly iconKey?: string | null;
   readonly themeIds: readonly string[];
   readonly compatibleCategories?: readonly string[];
   readonly sortOrder: number;
@@ -91,6 +92,7 @@ export type DestinationResource = {
   readonly name: string;
   readonly locationType: string | null;
   readonly altitudeM: number | null;
+  readonly typicalTrailDistanceKm: number | null;
   readonly isActive: boolean;
   readonly sortOrder: number;
 };

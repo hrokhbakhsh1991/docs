@@ -7,7 +7,7 @@ import {
   formatCatalogPrice,
   shouldShowCatalogPrice,
 } from "../src/catalog/format-catalog-display";
-import { resolvePublicBrandingHost } from "../src/tenant/resolve-public-branding-host";
+import { resolvePublicBrandingHost } from "@app-tour/guest-surface-host";
 
 describe("marketing catalog display", () => {
   it("MKT-01 urban subtitle uses city and venue", () => {

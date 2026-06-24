@@ -206,7 +206,20 @@
     "destinationsCount": "مقاصد ({count, number})",
     "noRegions": "هنوز منطقه‌ای ثبت نشده است.",
     "noDestinations": "هنوز مقصدی ثبت نشده است.",
-    "regionLabel": "منطقه: {name}"
+    "regionLabel": "منطقه: {name}",
+    "locationType": "نوع مقصد",
+    "locationTypeGeneric": "عمومی",
+    "locationTypePeak": "قله / کوهنوردی",
+    "locationTypeNatureTrail": "طبیعت‌گردی / مسیر",
+    "altitudeM": "ارتفاع قله (متر)",
+    "altitudeMHint": "اختیاری — اگر در ویزارد خالی باشد، ارتفاع قله پر می‌شود.",
+    "typicalTrailDistanceKm": "پیمایش تقریبی (کیلومتر)",
+    "typicalTrailDistanceKmHint": "اختیاری — برای مسیرهای طبیعت‌گردی در کاتالوگ مقصد ذخیره می‌شود.",
+    "metadataLabel": "جزئیات: {value}",
+    "saveDestination": "ذخیره تغییرات",
+    "cancelEdit": "انصراف",
+    "editDestination": "ویرایش {name}",
+    "invalidMetadata": "عدد مثبت وارد کنید یا فیلد را خالی بگذارید."
   },
   "tourPresets": {
     "title": "پریست‌های تور",
@@ -274,6 +287,19 @@
     "readOnlyBanner": "می‌توانید این تمپلیت را ببینید اما فقط مالک و ادمین می‌توانند آن را تغییر دهند.",
     "compositeHint": "ویرایشگر تخصصی با چند ورودی باز می‌کند.",
     "noSearchResults": "فیلدی با این جستجو پیدا نشد.",
+    "photosStep": {
+      "showLongDescription": "نمایش توضیح کامل در مرحله دوم",
+      "showLongDescriptionHelper": "با فعال بودن این گزینه، فیلد توضیح کامل زیر توضیح کوتاه در مرحله عکس‌ها نمایش داده می‌شود."
+    },
+    "hints": {
+      "parentField": "والد: {name}",
+      "compositeIncludes": "شامل: {names}",
+      "matrixInjectedRequired": "هنگام ساخت تور همیشه الزامی است (قانون ماتریس)",
+      "matrixDefaultRequired": "در ماتریس Denali پیش‌فرض الزامی است",
+      "conditionalOnParent": "فقط وقتی «{parent}» فعال باشد در ویزارد دیده می‌شود",
+      "optionalAtCreate": "اختیاری هنگام ساخت تور — مثل کد ملی",
+      "roadmapField": "به‌زودی — هنوز در ویزارد ساخت تور فعال نیست (ثبت‌نام مهمان)"
+    },
     "errors": {
       "publishNoFields": "قبل از انتشار فرم تور حداقل یک فیلد انتخاب کنید.",
       "loadFailed": "بارگذاری تمپلیت ویزارد ناموفق بود. صفحه را رفرش کنید.",

@@ -40,6 +40,7 @@ export {
   ensureDenaliMatrixRequiredAllowedPaths,
   ensureDenaliMatrixRequiredTemplateSteps,
 } from "./wizard/ensure-tour-kind-template-field";
+export { normalizeDenaliWizardTemplateGate } from "./wizard/normalize-denali-wizard-template-gate";
 export {
   DENALI_CREATE_TOUR_DRAFT_KEY,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,

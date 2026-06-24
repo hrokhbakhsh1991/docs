@@ -150,6 +150,28 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     assert.equal((document.data as Record<string, unknown>).title, "صعود به قله دماوند - جبهه جنوبی");
   });
 
+  it("VAL-05 INV-DENALI-INGRESS-002 — scalar composite rich storage passes engine filter", () => {
+    const form = loadGoldenForm("tour-publish-ready.json");
+    const basicInfo = form.basicInfo as Record<string, unknown>;
+    basicInfo.publishStatus = "active";
+    basicInfo.startPoint = {
+      address: "ده نمک, استان سمنان, ایران",
+      latitude: 35.24710863527999,
+      longitude: 52.71446228027344,
+    };
+    const participantRequirements = form.participantRequirements as Record<string, unknown>;
+    participantRequirements.minRequiredPeaks = 3;
+
+    assert.doesNotThrow(() =>
+      validateCanonicalBeforePersistSync({
+        tenantId: "val-05-tenant",
+        workspaceType: "denali",
+        body: denaliCreateBody(form),
+        validationMode: "publish",
+      })
+    );
+  });
+
   it("resolveValidationMode infers publish from active publishStatus", () => {
     const form = loadGoldenForm("tour-publish-ready.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";

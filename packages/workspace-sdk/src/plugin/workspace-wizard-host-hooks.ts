@@ -59,6 +59,11 @@ export type WorkspaceWizardHostHooks = {
   }) => unknown;
   /** Host renders workspace review/read-back chrome when active step matches reviewStepId. */
   readonly usesReviewStep?: boolean;
+  /**
+   * Canonical path for the review-step field lifted from the engine plan (INV-WIZ-002).
+   * Denali: `"publishStatus"`. Host appends this field on the injected review step only.
+   */
+  readonly reviewFieldCanonicalPath?: string;
   /** Extra data-* attributes on wizard host root (workspace skin markers). */
   readonly hostRootDataAttributes?: Readonly<Record<string, string>>;
   /** Registry key for workspace-specific review/read-back React surface (Phase 12.1). */

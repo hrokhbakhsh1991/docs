@@ -2,8 +2,8 @@
 
 import { useTranslations } from "next-intl";
 
+import { DenaliSearchableSelect } from "../components/denali-searchable-select";
 import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
-import { Select } from "../adapters/platform-primitives";
 import { useDenaliDestinationCatalog, readDenaliDestinationLabel } from "../hooks/use-destination-catalog";
 import { buildItinerarySegmentDestinationSelection } from "../logic/denali-itinerary-segment-destination-logic";
 import { DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS } from "../test-ids/denali-photos-test-ids";
@@ -31,8 +31,8 @@ export function DenaliItinerarySegmentDestinationField({
     <label className="denali-wizard-composite__field">
       <span>{t("composites.itinerary.segmentDestination")}</span>
       <div data-testid={DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS.select}>
-        <Select
-          aria-label={t("composites.itinerary.segmentDestination")}
+        <DenaliSearchableSelect
+          ariaLabel={t("composites.itinerary.segmentDestination")}
           options={options}
           value={destinationId ?? ""}
           placeholder={
@@ -40,8 +40,12 @@ export function DenaliItinerarySegmentDestinationField({
               ? t("composites.destination.loadingPlaceholder")
               : t("composites.itinerary.segmentDestinationPlaceholder")
           }
-          onChange={(event) => {
-            const nextId = event.target.value.trim();
+          loading={loading}
+          searchableThreshold={0}
+          searchLabel={t("composites.destination.searchLabel")}
+          searchPlaceholder={t("composites.destination.searchPlaceholder")}
+          searchEmptyMessage={t("composites.destination.searchEmpty")}
+          onChange={(nextId) => {
             onChange(buildItinerarySegmentDestinationSelection(nextId, destinationById));
           }}
         />

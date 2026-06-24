@@ -13,6 +13,7 @@ import {
   type DenaliTourWizardDraft,
 } from "../../draft/denali-tour-wizard-draft";
 import type { DenaliWizardRulesModule as StrictDenaliWizardRulesModule } from "../../wizard/denali-wizard-rules-module";
+import { encodeTourActionSubmitError } from "../logic/tour-action-submit-error-codec";
 import { runDenaliCreateTourSubmit } from "./create-submit-logic";
 import type { DenaliTemplateGatePrefill } from "./draft-binding";
 import {
@@ -90,7 +91,7 @@ export type DenaliCreateTourWizardCoreInput = {
     payload: CreateTourPayload
   ) => Promise<
     | { readonly ok: true; readonly record: { readonly id: string } }
-    | { readonly ok: false; readonly status: number; readonly code: string }
+    | { readonly ok: false; readonly status: number; readonly code: string; readonly message: string }
   >;
   readonly isDraftEssentiallyEmpty: (form: Record<string, unknown>) => boolean;
   readonly draftResumeEpoch: number;
@@ -281,7 +282,13 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
       }
       const result = await input.createTourAction(outcome.result.payload);
       if (!result.ok) {
-        setSubmitError(`ACTION:${result.status}:${result.code}`);
+        setSubmitError(
+          encodeTourActionSubmitError({
+            status: result.status,
+            code: result.code,
+            message: result.message,
+          })
+        );
         return;
       }
       await input.draftSync.clearDraft();

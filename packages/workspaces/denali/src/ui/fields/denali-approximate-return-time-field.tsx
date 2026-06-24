@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useId } from "react";
 
 import {
   type DenaliTourWizardDraft,
@@ -28,6 +29,7 @@ export function DenaliApproximateReturnTimeField({
   required = false,
 }: DenaliApproximateReturnTimeFieldProps) {
   const t = useTranslations("denali");
+  const fieldId = useId();
   const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "approximateReturnTime");
   const value = normalizeApproximateReturnTime(
@@ -36,9 +38,10 @@ export function DenaliApproximateReturnTimeField({
 
   return (
     <div className="denali-wizard-composite" data-testid={DENALI_RETURN_TIME_TEST_IDS.returnTime}>
-      <label className="denali-wizard-composite__field">
-        <span>{label}</span>
+      <div className="denali-wizard-composite__field">
+        <label htmlFor={fieldId}>{label}</label>
         <DenaliTimeInput
+          id={fieldId}
           appearance="field"
           aria-label={label}
           value={value}
@@ -53,7 +56,7 @@ export function DenaliApproximateReturnTimeField({
           }
           required={required}
         />
-      </label>
+      </div>
       <p className="denali-wizard-composite__helper">{t("composites.approximateReturn.helper")}</p>
     </div>
   );

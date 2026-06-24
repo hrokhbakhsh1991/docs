@@ -1,5 +1,7 @@
 "use client";
 
+import "./draft-sync-chrome-layout.css";
+
 import type { DraftEngineState, DraftStatus } from "@app-tour/draft-engine";
 
 import { DraftConflictBanner } from "./draft-conflict-banner";

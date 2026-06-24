@@ -1,0 +1,147 @@
+# P10 — Action plan (machine-readable, app-fit v1.2)
+# Sync with: p10-app-fit.md · p10-gap-registry.md · p10-exit-checklist.md
+
+action_plan_id: P10-ACTION-PLAN
+version: "1.2"
+app_fit: p10-app-fit.md
+effort_doc: p10-effort-to-nine.md
+estimated_weeks_post_p8_p9: "5-10"
+strict_baseline:
+  tls_reverse_proxy: 1.5
+  deploy_ci: 4.0
+  observability_ops: 3.0
+  env_coherence: 3.5
+  custom_domain: 5.0
+  composite: 3.4
+exit_target: 8.7
+
+waves:
+  A:
+    name: P0 Profile C foundation (wildcard staging first)
+    when: First P10 sprint
+    items:
+      - id: A1
+        gaps: [G-TLS-01, G-TLS-02, G-TLS-04, G-TLS-09]
+        action: deploy/vps/caddy — wildcard *.staging.example.com · reverse_proxy loopback 3000-3003
+        note: Profile B IP ports may stay until edge cutover — documented dual mode
+        verify: curl -I https://operator.admin.staging.example.com/auth/login
+        epic: P10-1-N-001
+
+      - id: A2
+        gaps: [G-DEP-01, G-DEP-09]
+        action: health-check.sh + smoke-four-process.sh — all 4 units
+        epic: P10-2-N-001
+
+      - id: A3
+        gaps: [G-DEP-02]
+        action: GHA deploy-vps post-step or p10-staging-remote-gate.sh
+        epic: P10-2-N-002
+
+      - id: A4
+        gaps: [G-OPS-01]
+        action: runbooks/p10-incident-four-process.md
+        epic: P10-3-N-001
+
+  B:
+    name: P1 production hardening
+    when: P10 EPIC completion
+    items:
+      - id: B1
+        gaps: [G-DEP-03]
+        action: package.json build:operator-vps → build-operator-vps.sh
+        epic: P10-2-N-003
+
+      - id: B2
+        gaps: [G-DEP-04, G-DEP-05]
+        action: Profile C env regression — verify P8 G-ENV-01/02 closed; extend only if P8 deferred
+        epic: P10-2-N-004
+
+      - id: B3
+        gaps: [G-DEP-06]
+        action: p7-staging-verify M+P fail-closed
+        epic: P10-2-N-005
+
+      - id: B4
+        gaps: [G-TLS-05, G-TLS-07]
+        action: edge headers doc (loopback trust); SESSION_COOKIE_SECURE Profile C smoke
+        epic: P10-1-N-002
+
+      - id: B5
+        gaps: [G-TLS-06, G-OPS-04]
+        action: cert renewal runbook
+        epic: P10-3-N-002
+
+      - id: B6
+        gaps: [G-DEP-10]
+        action: rollback-vps.sh idempotent
+        epic: P10-3-N-003
+
+      - id: B7
+        gaps: [G-DOM-02]
+        action: M+P custom apex SSL path (after staging wildcard proven)
+        epic: P10-0
+
+  C:
+    name: P2+ polish
+    when: P10 tail
+    items:
+      - id: C1
+        gaps: [G-TLS-03, G-TLS-10]
+        action: on_demand_tls ask endpoint — verified tenant_domains only
+        epic: P10-0-N-002
+
+      - id: C2
+        gaps: [G-DOM-04]
+        action: second club runbook — platform subdomain (not production club required for exit)
+        epic: P10-0-N-003
+
+      - id: C3
+        gaps: [G-DOM-05]
+        action: custom domain HTTPS E2E (M+P apex)
+        epic: P10-2-N-006
+
+      - id: C4
+        gaps: [G-DEP-08]
+        action: deploy/vps/README Profile C + four-process first
+        epic: P10-3-N-005
+
+      - id: C5
+        action: p10:gate + p10-pack-integrity.spec.ts
+        epic: P10-3-N-006
+
+      - id: C6
+        gaps: [G-OPS-02]
+        action: VPS DR drill script (lite) or signed waive
+        epic: P10-3-N-004
+
+out_of_scope:
+  - G-DOM-01_admin_custom_apex  # trunk v2
+  - G-DOM-03_SMS_provider       # waiver / phase-18
+  - G-OPS-03_k8s_prometheus     # waive VPS
+  - deprecate_profile_b_ip
+
+p8_p9_dependency:
+  must_complete_first:
+    - P8 env bootstrap/verify
+    - P8 cookie secure path design
+    - P9 web guest BFF removed
+
+exit_gates:
+  - id: EG-01
+    check: Profile C staging HTTPS — 3 surfaces on platform subdomain (admin subdomain not custom apex)
+  - id: EG-02
+    check: Post-deploy four-process smoke green
+  - id: EG-03
+    check: Second club onboarding runbook + staging proof (no IP fallback env in runbook)
+  - id: EG-04
+    check: Incident runbook signed
+  - id: EG-05
+    check: audit composite >= 8.7
+  - id: EG-06
+    check: Profile B IP path still documented and smokeable
+
+references:
+  app_fit: p10-app-fit.md
+  audit: p10-production-grade-audit.md
+  profile: p10-production-profile.yaml
+  gaps: p10-gap-registry.md

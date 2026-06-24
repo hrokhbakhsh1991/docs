@@ -206,7 +206,20 @@
     "destinationsCount": "Destinations ({count})",
     "noRegions": "No regions yet.",
     "noDestinations": "No destinations yet.",
-    "regionLabel": "Region: {name}"
+    "regionLabel": "Region: {name}",
+    "locationType": "Destination type",
+    "locationTypeGeneric": "General",
+    "locationTypePeak": "Peak / mountaineering",
+    "locationTypeNatureTrail": "Nature / trail",
+    "altitudeM": "Peak elevation (m)",
+    "altitudeMHint": "Optional — prefills tour peak height in the wizard when empty.",
+    "typicalTrailDistanceKm": "Approx. trail distance (km)",
+    "typicalTrailDistanceKmHint": "Optional — stored on the destination catalog for nature trails.",
+    "metadataLabel": "Details: {value}",
+    "saveDestination": "Save changes",
+    "cancelEdit": "Cancel",
+    "editDestination": "Edit {name}",
+    "invalidMetadata": "Enter a positive number or leave the field empty."
   },
   "tourPresets": {
     "title": "Tour presets",
@@ -274,6 +287,19 @@
     "readOnlyBanner": "You can view this template but only owners and admins can change it.",
     "compositeHint": "Opens a specialized editor with multiple inputs.",
     "noSearchResults": "No fields match your search.",
+    "photosStep": {
+      "showLongDescription": "Show full description on step 2",
+      "showLongDescriptionHelper": "When enabled, staff see a long-description field below the short summary on the photos step."
+    },
+    "hints": {
+      "parentField": "Parent: {name}",
+      "compositeIncludes": "Includes: {names}",
+      "matrixInjectedRequired": "Always required when creating a tour (matrix rule)",
+      "matrixDefaultRequired": "Required by default in the Denali rule matrix",
+      "conditionalOnParent": "Shown in the wizard only when “{parent}” is enabled",
+      "optionalAtCreate": "Optional when creating a tour — e.g. national ID",
+      "roadmapField": "Coming soon — not yet available in the create-tour wizard (guest registration)"
+    },
     "errors": {
       "publishNoFields": "Select at least one field before publishing the tour form.",
       "loadFailed": "Could not load the wizard template. Refresh and try again.",

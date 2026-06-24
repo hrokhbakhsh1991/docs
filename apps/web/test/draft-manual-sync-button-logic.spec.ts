@@ -27,10 +27,10 @@ describe("draft-manual-sync-button-logic.spec.ts — Phase 2", () => {
     assert.equal(view.disabled, true);
   });
 
-  it("SYNCING shows saving label and disables", () => {
+  it("SYNCING keeps save label and disables (badge carries sync state)", () => {
     const view = resolveDraftManualSyncButtonView("SYNCING");
     assert.equal(view.action, "none");
-    assert.equal(view.labelKey, "savingDraft");
+    assert.equal(view.labelKey, "saveDraft");
     assert.equal(view.disabled, true);
   });
 });

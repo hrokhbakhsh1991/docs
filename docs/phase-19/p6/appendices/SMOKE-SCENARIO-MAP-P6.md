@@ -1,7 +1,7 @@
 # P6 — Smoke scenario map (SMK-P6)
 
 ```yaml
-smoke_version: "2026-06-22-v2"
+smoke_version: "2026-06-22-bundle-c"
 phase: 19
 authority: platform-denali-vertical-slice.mdoc · SMOKE-SCENARIO-MAP-P6.md
 fixture_tenant: operator · 00000000-0000-4000-8000-000000000014
@@ -18,11 +18,14 @@ gate_e2e: pnpm run p6:e2e-gate   # product + browser — P6_E2E_GATE_OK
 | ID | Title | VS | Playwright / script | Unit gate spec | Pass signal |
 | -- | ----- | -- | ------------------- | -------------- | ----------- |
 | **SMK-P6-HOST-01** | Three canonical hosts same tenant | — | `scripts/smoke-p6-host-bind.mjs` (also in operator E2E bootstrap) | `p6-host-tenant-parity.spec.ts` | same `tenantId` on marketing · portal · admin |
-| **SMK-P6-VS-01** | Admin publish → catalog | VS-01 | `p6-admin-publish-smoke.spec.ts` | `p6-vs01-admin-publish.spec.ts` | draft hidden · active listed (publish transition API-proven) |
+| **SMK-P6-VS-01** | Admin publish → catalog | VS-01 | `p6-admin-publish-smoke.spec.ts` SMK-P6-VS-01 | `p6-vs01-admin-publish.spec.ts` | catalog visibility · publish transition API |
+| **SMK-P6-VS-CHAIN-B01** | Browser chain guest API + operator UI | VS-03..07 | `p6-vertical-slice-browser-chain.spec.ts` | `p6-vertical-slice-chain.spec.ts` | same `bookingId` · bookings + finance UI |
 | **SMK-P6-MKT-01** | Marketing lists active tour | VS-02 | `marketing-catalog-smoke.spec.ts` (SMK-MKT-03) | `p6-guest-slice.spec.ts` GS-02 | tour card visible |
 | **SMK-P6-MKT-02** | CTA → portal canonical URL | VS-03 | same (SMK-MKT-03) | `resolve-web-registration-url.spec.ts` MKT-08 | URL contains `.portal.` |
 | **SMK-P6-PTL-01** | Portal OTP register success | VS-03 | `portal-registration-smoke.spec.ts` | `p6-guest-slice.spec.ts` GS-01 | `[data-public-registration-success]` |
-| **SMK-P6-PTL-02** | Portal `/me` lists registration | VS-04 | `portal-member-smoke.spec.ts` SMK-PTL-02 | `portal-home-redirect.spec.ts` MEM-HOME-01 | row visible after intake |
+| **SMK-P6-PTL-02** | Portal `/me` lists registration | VS-04 | `portal-member-smoke.spec.ts` SMK-PTL-02 | `portal-member-registrations.spec.ts` MEM-BFF-01 | row visible after intake |
+| **SMK-P6-PTL-05** | Portal home → `/me/registrations` | VS-04 | `portal-member-smoke.spec.ts` SMK-PTL-05 | `portal-home-redirect.spec.ts` MEM-HOME-01 | redirect when session cookie set |
+| **SMK-P6-VS-CHAIN** | One booking VS-03→06→05→07 | VS-03..07 | — (browser smokes remain isolated) | `p6-vertical-slice-chain.spec.ts` P6-VS-CHAIN-01 | same `bookingId` through register · approve · receipt · finance |
 | **SMK-P6-PTL-03** | Member list BFF | VS-04 | — | `portal-member-registrations.spec.ts` MEM-BFF-01 | proxies `bookings?view=mine` |
 | **SMK-P6-PTL-04** | Member receipt upload | VS-05 | `portal-member-smoke.spec.ts` SMK-PTL-04 | `p6-member-receipt-flow.spec.ts` | receipt 201 + success marker |
 | **SMK-P6-ADM-01** | Operator approve booking | VS-06 | `operator-smoke.spec.ts` SMK-P9-04 | `bookings-ops.spec.ts` API-9.5-01 | approve + outbox · E2E in `p6:e2e-gate` |

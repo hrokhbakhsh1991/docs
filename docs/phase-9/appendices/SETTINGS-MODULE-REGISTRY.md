@@ -289,12 +289,16 @@ type DestinationResource = {
   regionId: string;
   name: string;
   locationType: string | null;
+  altitudeM: number | null;
+  typicalTrailDistanceKm: number | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
 };
 ```
+
+**Destination metadata (Denali semantics):** optional `locationType` + type-specific fields (`altitudeM`, `typicalTrailDistanceKm`). Wizard prefill rules: [`docs/workspaces/denali/destination-catalog.md`](../../workspaces/denali/destination-catalog.md).
 
 ### 3.4 Registration flow
 
@@ -380,6 +384,8 @@ Authority: [`settings-api-dispatch-addendum.md`](settings-api-dispatch-addendum.
 | ----------------------- | ----------------- | ------------------------------------------ | -------------------------------- |
 | `workspace_branding`    | readonly_explorer | — (custom UI · tenant logo + displayName)    | `settings/branding`              |
 | `equipment`             | reference_data    | `WorkspaceEquipment`                       | `settings/equipment`             |
+
+**Equipment `iconKey` (Denali):** optional `workspace_equipment.icon_key` — closed registry in `@app-tour/workspace-denali/settings/equipment-icon-registry`. API rejects unknown keys; wizard resolves icon from catalog by `equipmentId` (not stored on tour draft). UI: `EquipmentIconPicker` in settings + `EquipmentCatalogAvatar` in wizard/review.
 | `guide_languages`       | reference_data    | `WorkspaceGuideLanguage`                   | `settings/guide-languages`       |
 | `tour_themes`           | reference_data    | `WorkspaceTourTheme`                       | `settings/tour-themes`           |
 | `locations`             | reference_data    | `WorkspaceRegion` + `WorkspaceDestination` | `settings/locations`             |
@@ -457,15 +463,59 @@ type WizardTemplateStepRef = {
 type WizardTemplatePayloadV1_1 = WizardTemplatePayloadV1 & {
   published?: boolean; // default false — empty wizard until admin publishes
   steps?: readonly WizardTemplateStepRef[];
+  /** Denali matrix overlay — see `parseFieldRulesOverlay` (11.8-T6) */
+  fieldRulesOverlay?: Readonly<Record<string, FieldRuleOverlayPatch>>;
+  baseProfile?: string;
 };
 ```
+
+**Step 2 (Denali `denali_photos`) — long description toggle**
+
+The program-content composite (`program.themeIds`) always renders **short description** and **themes**. **Full description** (`program.longDescription` / FA «توضیح کامل») is optional per tenant:
+
+| Settings UI | `fieldRulesOverlay` | Wizard step 2 |
+| ----------- | ------------------- | ------------- |
+| Show full description (default) | key absent or `visibility: "active"` | Textarea below short description |
+| Hide full description | `{ "program.longDescription": { "visibility": "hidden" } }` | Field omitted; invariant engine may clear stored value on save |
+
+Helper: `denali-wizard-template-long-description.ts` · UI checkbox on `denali_photos` step in `wizard-template-client.tsx` (Denali only). API `normalizeWizardTemplatePayload` must persist `fieldRulesOverlay` on PUT (not strip).
+
+**Field picker metadata (Denali — parent + create-time required hints)**
+
+Each catalog row may show:
+
+| UI line | Source |
+| ------- | ------ |
+| **والد / Parent** | Composite dependent → anchor path; sibling fields under same composite prefix (e.g. `participants.nationalIdRequired` → `participants.minimumAge` section); contextual `watchCanonical` for gated fields |
+| **شامل / Includes** | Composite anchor → `DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR` child paths (labels) |
+| **الزام در ساخت تور** | `DENALI_MATRIX_REQUIRED_TEMPLATE_FIELDS` inject (e.g. `program.shortDescription`) or registry `ruleDefaults.required` |
+
+Logic: `denali-wizard-template-catalog-meta.ts` · labels via `resolveDenaliFieldLabel` / composite `sectionTitle` i18n.
+
+**Roadmap palette rows (INV-WIZ-009 — visible, not activatable)**
+
+Aligned with common trekking / adventure-travel medical questionnaires (medications, allergies, dietary needs, health declaration, emergency contact, evacuation insurance). Operators see upcoming guest-registration requirements in the template picker; wizard create-tour does **not** render them until registration slice ships.
+
+| Canonical path | Wizard step | Purpose |
+| -------------- | ----------- | ------- |
+| `participants.medicationsRequired` | `denali_pricing` | Collect current medications at guest registration |
+| `participants.allergiesRequired` | `denali_pricing` | Collect allergies (food, medicine, environment) |
+| `participants.dietaryRequirementsRequired` | `denali_pricing` | Collect dietary restrictions |
+| `participants.medicalDeclarationRequired` | `denali_pricing` | Health / pre-existing conditions declaration |
+| `participants.emergencyContactRequired` | `denali_pricing` | Emergency contact at registration |
+| `participants.physicalLimitationsRequired` | `denali_pricing` | Physical or mental limitations disclosure |
+| `participants.evacuationInsuranceRequired` | `denali_pricing` | Medical / evacuation insurance attestation |
+| `policies.medicalFitnessDeclarationRequired` | `denali_legal` | Require medical-fitness acknowledgement in policies flow |
+
+Parent hint in picker: pricing rows group under composite anchor `participants.minimumAge` (same section as national ID / fitness).
 
 **Governance:**
 
 | Rule | Enforcement |
 | ---- | ----------- |
 | INV-WIZ-001 | Unknown `canonicalPath` on PUT → **400** `SETTINGS_WIZARD_UNKNOWN_FIELD` (W4) · starter accepts denali `title` bridge |
-| INV-WIZ-002 | Layer C registry rows excluded from builder palette — `settingsSurface !== "section"` → tag `wizard_overlay_exclude` on denali `fieldRegistry` rows; web catalog + API PUT catalog omit tagged paths |
+| INV-WIZ-002 | Layer C registry rows excluded from builder palette — `settingsSurface` in `review` · `deprecated` · `implicit` · `json_only` → tag `wizard_overlay_exclude`; web catalog + API PUT omit tagged paths. **`review` step + `publishStatus` are host-injected** when `wizardHost.usesReviewStep` (`buildVisibleWizardSteps` → `appendWorkspaceReviewStepToRenderPlan`; tenant payload must not include them — see [`denali-review-step.md`](../../phase-11/denali-review-step.md)) |
+| INV-WIZ-009 | **Roadmap palette (Denali)** — `settingsSurface: "palette_roadmap"` rows appear in Settings field picker **disabled** (checkbox off, not toggleable); **no wizard renderer** · `inRuleModel: false` · PUT rejects if present in `steps[]` (`SETTINGS_WIZARD_ROADMAP_FIELD`). Industry parity: guest registration health/safety flags (medications, allergies, dietary, medical declaration, emergency contact, physical limitations, evacuation insurance) under **`denali_pricing`**; legal medical-fitness gate under **`denali_legal`**. Tag: `wizard_palette_roadmap` · helper: `denali-wizard-template-roadmap.ts` |
 | INV-WIZ-003 | `published: false` → `/tours/new` shows empty state · link `(app)/settings/tour-wizard-template` |
 | INV-WIZ-004 | Visibility overlay is UX only; `validateCanonical` + CASL remain server SoT |
 | INV-WIZ-005 | `configVersion: 2` migration deferred — v1.1 optional keys migrate-on-read |

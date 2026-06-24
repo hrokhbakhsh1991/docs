@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { readSessionTokenFromRequest } from "@/auth/read-session-token";
-import { validateSessionToken } from "@/auth/validate-session-token";
+import { validateSessionToken } from "@app-tour/session-client";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 
 type IdentityMePayload = {

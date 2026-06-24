@@ -1,6 +1,7 @@
 /**
  * P6 VS-01 — denali catalog reflects publishStatus (API · smoke seed)
- * Publish transition on golden form — denali-metadata-path-publish-integration (P5-B).
+ * Publish lifecycle: tour-publish-transition.spec.ts (LC-04/LC-06) in p6:gate.
+ * Wizard UI publish E2E deferred — composite canonical validation (P7 wizard).
  * @see docs/phase-19/platform-denali-vertical-slice.mdoc
  */
 import assert from "node:assert/strict";

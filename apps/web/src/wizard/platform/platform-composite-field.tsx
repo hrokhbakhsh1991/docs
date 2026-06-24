@@ -16,6 +16,7 @@ type PlatformCompositeFieldProps = {
   readonly onDraftChange: (draft: TourWizardDraft) => void;
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
+  readonly wizardRuleEvalContext?: unknown;
 };
 
 export function PlatformCompositeField({
@@ -25,6 +26,7 @@ export function PlatformCompositeField({
   onDraftChange,
   wizardSessionId,
   workspaceFormProfile,
+  wizardRuleEvalContext,
 }: PlatformCompositeFieldProps): ReactNode {
   const renderer = resolvePlatformCompositeRenderer(compositeId);
   return renderer({
@@ -34,6 +36,7 @@ export function PlatformCompositeField({
     onDraftChange,
     wizardSessionId,
     workspaceFormProfile,
+    wizardRuleEvalContext,
   });
 }
 

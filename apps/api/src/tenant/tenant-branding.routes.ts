@@ -22,7 +22,7 @@ import {
 } from "./tenant-branding.service";
 import { assertTenantBrandLogoUploadContentType } from "./tenant-branding-storage";
 import { TENANT_BRAND_LOGO_MAX_BYTES } from "@app-tour/workspace-sdk";
-import { resolvePublicIngressSubdomain } from "./resolve-public-ingress-subdomain";
+import { resolvePublicIngressSubdomain, resolvePublicIngressSurfaceKind } from "./resolve-public-ingress-subdomain";
 
 function mapBrandingError(res: ServerResponse, error: unknown): void {
   if (error instanceof SettingsMutationForbiddenError) {
@@ -211,7 +211,8 @@ export async function handlePublicTenantContext(
       return;
     }
     const context = await resolvePublicTenantContextBySubdomain(subdomain);
-    sendJson(res, 200, { success: true, data: context });
+    const ingressSurface = resolvePublicIngressSurfaceKind(host);
+    sendJson(res, 200, { success: true, data: { ...context, ingressSurface } });
   } catch (error) {
     mapBrandingError(res, error);
   }

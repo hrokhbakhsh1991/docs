@@ -17,6 +17,9 @@
       "@app-tour/workspace-denali/settings/equipment-compatible-categories": [
         "../../packages/workspaces/denali/dist/settings/equipment-compatible-categories"
       ],
+      "@app-tour/workspace-denali/settings/equipment-icon-registry": [
+        "../../packages/workspaces/denali/dist/settings/equipment-icon-registry"
+      ],
       "@app-tour/workspace-denali/tours": ["../../packages/workspaces/denali/dist/tours/index"],
       "@app-tour/workspace-urban/plugin": ["../../packages/workspaces/urban/dist/urban.plugin"],
       "@app-tour/workspace-urban/http": ["../../packages/workspaces/urban/dist/http/index"],

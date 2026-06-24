@@ -25,6 +25,25 @@ test("SMK-PTL-02 member /me lists registration after catalog intake (VS-04)", as
   await expect(page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE })).toBeVisible();
 });
 
+test("SMK-PTL-05 portal home redirects authenticated member to /me/registrations", async ({
+  page,
+}) => {
+  const email = `smk-ptl-05-${Date.now()}@denali-smoke.local`;
+  const phone = `+1555${String(Date.now()).slice(-7)}`;
+
+  await completePortalCatalogRegistration(page, {
+    email,
+    fullName: "Portal Home Redirect Smoke",
+    phone,
+  });
+
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/me\/registrations/, { timeout: 60_000 });
+  await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
+    timeout: 60_000,
+  });
+});
+
 const RECEIPT_EMAIL = `smk-ptl-04-${Date.now()}@denali-smoke.local`;
 const RECEIPT_PHONE = `+1555${String(Date.now()).slice(-7)}`;
 
@@ -61,7 +80,8 @@ test("SMK-PTL-04 member uploads offline receipt on registration detail (VS-05)",
       await page.locator("[data-portal-member-receipt-submit]").click();
     })(),
   ]);
-  expect(uploadRes.ok()).toBe(true);
+  const uploadBody = await uploadRes.text();
+  expect(uploadRes.ok(), `receipt upload ${uploadRes.status()} ${uploadBody.slice(0, 300)}`).toBe(true);
   await expect(page.locator("[data-portal-member-receipt-success]")).toBeVisible({
     timeout: 60_000,
   });

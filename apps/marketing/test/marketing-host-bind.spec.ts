@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { resolveTenantIdFromDevHost } from "../src/tenant/resolve-host-tenant";
+import { resolveTenantIdFromDevHost } from "@app-tour/guest-surface-host";
 
 describe("marketing-host-bind", () => {
   it("tenant subdomain from club apex", () => {
@@ -10,7 +10,7 @@ describe("marketing-host-bind", () => {
     process.env.NODE_ENV = "development";
     try {
       assert.equal(
-        resolveTenantIdFromDevHost("denali.localhost:3002"),
+        resolveTenantIdFromDevHost("denali.localhost:3002", "marketing"),
         "00000000-0000-4000-8000-000000000003"
       );
     } finally {

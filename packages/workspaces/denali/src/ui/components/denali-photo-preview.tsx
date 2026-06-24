@@ -27,6 +27,8 @@ type DenaliPhotoPreviewProps = {
   readonly testId?: string;
   readonly localPreviewUrl?: string | null;
   readonly isUploading?: boolean;
+  /** Review/read-back: no retry control; compact fallback copy only. */
+  readonly readOnly?: boolean;
 };
 
 export function DenaliPhotoPreview({
@@ -36,6 +38,7 @@ export function DenaliPhotoPreview({
   testId = DENALI_PHOTO_PREVIEW_TEST_ID,
   localPreviewUrl = null,
   isUploading = false,
+  readOnly = false,
 }: DenaliPhotoPreviewProps) {
   const t = useTranslations("denali");
   const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
@@ -132,11 +135,17 @@ export function DenaliPhotoPreview({
       : t("composites.photos.previewLoadFailed");
 
   return (
-    <div data-testid={DENALI_PHOTO_PREVIEW_FALLBACK_TEST_ID}>
-      <p className="denali-wizard-composite__error" role="alert">
+    <div
+      data-testid={DENALI_PHOTO_PREVIEW_FALLBACK_TEST_ID}
+      className={readOnly ? "denali-review__photo-fallback" : undefined}
+    >
+      <p
+        className={readOnly ? "denali-review__photo-fallback-text" : "denali-wizard-composite__error"}
+        role="alert"
+      >
         {fallbackMessage}
       </p>
-      {storageKey.length > 0 ? (
+      {!readOnly && storageKey.length > 0 ? (
         <Button
           type="button"
           variant="secondary"

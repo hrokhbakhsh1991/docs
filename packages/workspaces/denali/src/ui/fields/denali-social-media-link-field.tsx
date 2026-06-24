@@ -12,8 +12,9 @@ import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { Input } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import {
+  DENALI_SOCIAL_MEDIA_EXTERNAL_PENDING,
   detectSocialMediaKind,
-  formatTelegramInputDisplay,
+  isSocialMediaExternalPending,
   normalizeSocialMediaLinkForKind,
   type SocialMediaKind,
 } from "../logic/denali-social-media-link-logic";
@@ -23,6 +24,7 @@ export const DENALI_SOCIAL_MEDIA_TEST_IDS = {
   telegram: "denali-social-media-kind-telegram",
   other: "denali-social-media-kind-other",
   input: "denali-social-media-input",
+  telegramAutoInfo: "denali-social-media-telegram-auto-info",
 } as const;
 
 type DenaliSocialMediaLinkFieldProps = {
@@ -30,13 +32,6 @@ type DenaliSocialMediaLinkFieldProps = {
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly required?: boolean;
 };
-
-function readDisplayValue(stored: string, kind: SocialMediaKind): string {
-  if (kind === "telegram") {
-    return formatTelegramInputDisplay(stored);
-  }
-  return stored.trim();
-}
 
 export function DenaliSocialMediaLinkField({
   draft,
@@ -48,13 +43,15 @@ export function DenaliSocialMediaLinkField({
   const label = resolveDenaliFieldLabel(t, "socialMediaLink");
   const stored = getCanonicalStringValue(draft, "socialMediaLink");
   const [kind, setKind] = useState<SocialMediaKind>(() => detectSocialMediaKind(stored));
-  const [display, setDisplay] = useState(() => readDisplayValue(stored, kind));
+  const [display, setDisplay] = useState(() =>
+    isSocialMediaExternalPending(stored) ? "" : stored.trim()
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const nextKind = detectSocialMediaKind(stored);
     setKind(nextKind);
-    setDisplay(readDisplayValue(stored, nextKind));
+    setDisplay(isSocialMediaExternalPending(stored) ? "" : stored.trim());
     setError(null);
   }, [stored]);
 
@@ -81,15 +78,10 @@ export function DenaliSocialMediaLinkField({
     setKind(nextKind);
     setError(null);
     if (nextKind === "telegram") {
-      const telegramDisplay = formatTelegramInputDisplay(stored);
-      setDisplay(telegramDisplay);
-      if (telegramDisplay.length > 0) {
-        commitValue("telegram", telegramDisplay);
-      } else {
-        commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
-          setCanonicalStringValue(base, "socialMediaLink", "")
-        );
-      }
+      setDisplay("");
+      commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+        setCanonicalStringValue(base, "socialMediaLink", "")
+      );
       return;
     }
     const external = stored.trim();
@@ -98,7 +90,7 @@ export function DenaliSocialMediaLinkField({
       commitValue("other", external);
     } else {
       commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
-        setCanonicalStringValue(base, "socialMediaLink", "")
+        setCanonicalStringValue(base, "socialMediaLink", DENALI_SOCIAL_MEDIA_EXTERNAL_PENDING)
       );
     }
   };
@@ -108,6 +100,7 @@ export function DenaliSocialMediaLinkField({
       className="denali-wizard-composite"
       data-denali-wizard-surface="section"
       data-denali-social-media-link
+      data-social-media-kind={kind}
       data-testid={DENALI_SOCIAL_MEDIA_TEST_IDS.root}
     >
       <div className="denali-wizard-composite__header">
@@ -144,40 +137,40 @@ export function DenaliSocialMediaLinkField({
         </button>
       </div>
 
-      <label className="denali-wizard-composite__field">
-        <span>
-          {kind === "telegram"
-            ? t("composites.socialMedia.telegramFieldLabel")
-            : t("composites.socialMedia.urlFieldLabel")}
-        </span>
-        <Input
-          data-testid={DENALI_SOCIAL_MEDIA_TEST_IDS.input}
-          dir="ltr"
-          value={display}
-          required={required}
-          aria-required={required || undefined}
-          aria-invalid={error !== null || undefined}
-          placeholder={
-            kind === "telegram"
-              ? t("composites.socialMedia.telegramPlaceholder")
-              : t("composites.socialMedia.urlPlaceholder")
-          }
-          onChange={(event) => {
-            const next = event.target.value;
-            setDisplay(next);
-            if (error !== null) {
-              setError(null);
-            }
-          }}
-          onBlur={() => commitValue(kind, display)}
-        />
-      </label>
+      {kind === "telegram" ? (
+        <p
+          className="denali-wizard-composite__status denali-social-media__auto-info"
+          role="status"
+          data-testid={DENALI_SOCIAL_MEDIA_TEST_IDS.telegramAutoInfo}
+        >
+          {t("composites.socialMedia.telegramAutoInfo")}
+        </p>
+      ) : (
+        <>
+          <label className="denali-wizard-composite__field">
+            <span>{t("composites.socialMedia.urlFieldLabel")}</span>
+            <Input
+              data-testid={DENALI_SOCIAL_MEDIA_TEST_IDS.input}
+              dir="ltr"
+              value={display}
+              required={required}
+              aria-required={required || undefined}
+              aria-invalid={error !== null || undefined}
+              placeholder={t("composites.socialMedia.urlPlaceholder")}
+              onChange={(event) => {
+                const next = event.target.value;
+                setDisplay(next);
+                if (error !== null) {
+                  setError(null);
+                }
+              }}
+              onBlur={() => commitValue("other", display)}
+            />
+          </label>
+          <p className="denali-wizard-composite__helper">{t("composites.socialMedia.urlHint")}</p>
+        </>
+      )}
 
-      <p className="denali-wizard-composite__helper">
-        {kind === "telegram"
-          ? t("composites.socialMedia.telegramHint")
-          : t("composites.socialMedia.urlHint")}
-      </p>
       {error !== null ? <p className="denali-wizard-composite__error">{error}</p> : null}
     </div>
   );

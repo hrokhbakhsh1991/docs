@@ -17,6 +17,7 @@
     "tripDetails": {
       "overview": {
         "peakHeight": "Peak height (m)",
+        "trailDistanceKm": "Trail distance (km)",
         "customServiceLabels": "Custom service labels",
         "nonAttendanceDetails": "Non-attendance details"
       },
@@ -65,7 +66,14 @@
       "fitnessLevel": "Fitness level",
       "sportsInsuranceRequired": "Personal sports / mountaineering insurance",
       "fitnessPrerequisiteText": "Fitness / experience prerequisite",
-      "minRequiredPeaks": "Minimum summits climbed (auto-approval)"
+      "minRequiredPeaks": "Minimum summits climbed (auto-approval)",
+      "medicationsRequired": "Collect medications at registration",
+      "allergiesRequired": "Collect allergies (food, medicine, environment)",
+      "dietaryRequirementsRequired": "Collect dietary restrictions",
+      "medicalDeclarationRequired": "Health / medical conditions declaration",
+      "emergencyContactRequired": "Emergency contact at registration",
+      "physicalLimitationsRequired": "Physical or mental limitations disclosure",
+      "evacuationInsuranceRequired": "Medical / evacuation insurance attestation"
     },
     "transport": {
       "mode": "Transport mode",
@@ -85,8 +93,10 @@
     "policies": {
       "cancellationDeadlineHours": "Cancellation deadline (hours before departure)",
       "cancellationPenaltyPercentage": "In-window cancellation penalty (%)",
-      "policiesText": "Policies & notes (optional)"
-    }
+      "policiesText": "Policies & notes (optional)",
+      "medicalFitnessDeclarationRequired": "Require medical-fitness acknowledgement at registration"
+    },
+    "publishStatus": "Publish status"
   },
   "fieldKinds": {
     "text": "Text",
@@ -301,15 +311,14 @@
       }
     },
     "socialMedia": {
-      "helper": "Where participants get tour updates. Telegram needs only a channel name; other networks need a full link.",
+      "helper": "Where participants get tour updates and join the group.",
       "telegram": "Telegram",
-      "other": "Other",
-      "telegramFieldLabel": "Channel or username",
-      "urlFieldLabel": "Link",
-      "telegramPlaceholder": "@mychannel",
+      "other": "Other platform",
+      "urlFieldLabel": "Group link",
       "urlPlaceholder": "https://instagram.com/...",
-      "telegramHint": "No full URL needed — enter @username or channel name only.",
-      "urlHint": "Enter the full link starting with https://",
+      "telegramAutoInfo": "With Telegram selected, the group link is created automatically after the tour is published — no manual link needed.",
+      "reviewTelegramAuto": "Telegram — group created automatically",
+      "urlHint": "Enter the full group link starting with https://",
       "invalidTelegram": "Enter a valid Telegram channel or username.",
       "invalidUrl": "Link must start with http:// or https://"
     },
@@ -319,6 +328,10 @@
       "empty": "No leaders yet. Open Users and enable the leader tag for each guide.",
       "openUsers": "Open Users",
       "selectedCount": "{count, number} selected",
+      "expandPicker": "Edit leaders",
+      "collapsePicker": "Close list",
+      "overflowCount": "+{count, number} more",
+      "removeLeader": "Remove {name}",
       "leaderBadge": "Leader",
       "adminBadge": "Admin",
       "searchLabel": "Search leaders",
@@ -335,18 +348,70 @@
       "loading": "Loading equipment…",
       "empty": "No equipment matches the current themes. Add items under Settings → Equipment or pick different themes.",
       "openEquipment": "Open equipment settings",
+      "allThemes": "All themes",
       "selectedCount": "{count, number} items selected",
       "required": "Required",
       "optional": "Optional",
       "requirementGroup": "Requirement for {name}",
       "searchLabel": "Search equipment",
       "searchPlaceholder": "Equipment name…",
-      "searchEmpty": "No equipment matches this search."
+      "searchEmpty": "No equipment matches this search.",
+      "iconPickerLabel": "Equipment icon",
+      "iconPickerHelper": "The same symbol appears in the tour wizard and settings list.",
+      "iconPreviewPlaceholder": "Equipment name",
+      "iconSearchLabel": "Search icons",
+      "iconSearchPlaceholder": "Icon or gear name…",
+      "iconSuggestion": "Suggested: {label}",
+      "iconSuggestionApply": "Apply suggestion",
+      "iconUseInitials": "No icon (name initials)",
+      "iconCategoriesLabel": "Icon categories",
+      "iconCategories": {
+        "hiking": "Hiking",
+        "camp": "Camp",
+        "clothing": "Clothing",
+        "safety": "Safety",
+        "foodWater": "Food & water",
+        "general": "General"
+      },
+      "icons": {
+        "backpack": "Backpack",
+        "trekking_poles": "Trekking poles",
+        "boot": "Hiking boots",
+        "mountain": "Mountain",
+        "map": "Map",
+        "compass": "Compass",
+        "tent": "Tent",
+        "sleeping_bag": "Sleeping bag",
+        "flashlight": "Flashlight",
+        "gloves": "Gloves",
+        "jacket": "Jacket",
+        "glasses": "Glasses",
+        "helmet": "Helmet",
+        "first_aid": "First aid",
+        "life_buoy": "Life jacket",
+        "water_bottle": "Water bottle",
+        "utensils": "Utensils",
+        "rope": "Rope",
+        "tool": "Tool",
+        "camera": "Camera",
+        "umbrella": "Umbrella",
+        "sun": "Sunscreen"
+      }
     },
     "destination": {
       "loadingPlaceholder": "Loading destinations…",
       "selectPlaceholder": "Select destination",
+      "searchLabel": "Search destinations",
+      "searchPlaceholder": "Type destination name…",
+      "searchEmpty": "No destination matches your search.",
       "empty": "No destinations yet. Add regions and destinations under Settings → Locations."
+    },
+    "destinationCatalogMetric": {
+      "digitsPlaceholder": "e.g. 3962",
+      "decimalPlaceholder": "e.g. 5.5",
+      "lockedFromSettings": "This value is stored on the destination in Settings and cannot be edited in the wizard.",
+      "selectDestinationFirst": "Select a destination first.",
+      "savingToSettings": "Saving to destination catalog…"
     },
     "programContent": {
       "helper": "Pick one or more themes to categorize and present this tour.",
@@ -391,6 +456,7 @@
     "photoCount": "{count, number} {count, plural, one {photo} other {photos}}",
     "dayLabel": "Day {day, number}",
     "primaryGathering": "Primary",
+    "editSection": "Edit",
     "stepValidationHeading": "Fix these issues before continuing",
     "validationHeading": "Fix these issues before creating the tour",
     "validationCount": "{count, number} {count, plural, one {issue} other {issues}} to fix",

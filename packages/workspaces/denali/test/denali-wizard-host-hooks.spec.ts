@@ -88,3 +88,30 @@ describe("denali-wizard-host-hooks.spec.ts (P13-0b)", () => {
     assert.deepEqual(normalizedViaHook, normalizedDirect);
   });
 });
+
+describe("denali-wizard-host-hooks.spec.ts (P14-0b)", () => {
+  it("P14-0b-01 normalizeWizardTemplateGate injects category and denali_pilot profile", () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const normalize = plugin.wizardHost?.normalizeWizardTemplateGate;
+    assert.equal(typeof normalize, "function");
+
+    const result = normalize!({
+      published: true,
+      templateSteps: [
+        {
+          stepId: "denali_basic",
+          enabled: true,
+          fields: [{ canonicalPath: "title", required: true }],
+        },
+      ],
+      allowedCanonicalPaths: ["title"],
+      workspaceFormProfile: "",
+      fieldRulesOverlay: {},
+      seedLabel: "",
+    });
+
+    assert.equal(result.templateSteps[0]?.fields[0]?.canonicalPath, "category");
+    assert.ok(result.allowedCanonicalPaths.includes("category"));
+    assert.equal(result.workspaceFormProfile, "denali_pilot");
+  });
+});

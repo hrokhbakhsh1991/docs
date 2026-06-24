@@ -43,6 +43,22 @@ Web: `prepareDenaliTourCreatePayload` → `createCanonicalDocument` + ingress pr
 
 SDUI render plan still receives `uiHints.compositeId` from `field.id` when it differs from `canonicalPath` (`platform-core` render-plan).
 
+**Invariant INV-DENALI-INGRESS-002:** scalar composite widgets may persist **rich draft shapes** at their canonical anchor while the field registry declares a **semantic scalar kind** (`text`, `number`, …). Examples:
+
+| Canonical path | Registry `kind` | Wizard storage |
+| -------------- | --------------- | -------------- |
+| `startPoint` | `text` | `{ address, latitude, longitude }` from `denali.location-zones` |
+| `participants.minRequiredPeaks` | `text` | number from `denali.peak-experience` |
+
+`PlatformWizardEngine.validateCanonical` therefore emits `CANONICAL_TYPE_MISMATCH` for these paths when submit sends operator draft values unchanged. Denali **must** filter those violations on both sides:
+
+| Layer | Filter |
+| ----- | ------ |
+| Wizard client / publish-readiness | `filterDenaliCompositeStorageViolations` in `denali-wizard-validation.ts` |
+| API `POST /tours` | `filterDenaliCanonicalValidationResult` in `validateCanonicalDocumentWithEngine` when `workspaceType === "denali"` |
+
+Without API parity, operator create succeeds in the wizard UI (`VALIDATION_FAILED` never shown) but fails server-side with `400 CANONICAL_VALIDATION_FAILED: Canonical path "startPoint" expects kind "text" but got object`.
+
 ## Verification
 
 - `packages/workspace-sdk/test/workspace-sdk.unit.spec.ts` — nested arrays accepted
@@ -52,4 +68,4 @@ SDUI render plan still receives `uiHints.compositeId` from `field.id` when it di
 - `packages/platform-core/test/unit/utils/canonical-value.spec.ts` — composite JSON array acceptance
 - `packages/platform-core/test/unit/utils/canonical-path.spec.ts` — `isEmptyCanonicalValue` for composite arrays
 - `apps/web/test/denali-tour-create-payload.spec.ts` — gear survives submit
-- `apps/api/test/canonical-validation-draft-vs-publish.spec.ts` — `tour-publish-ready.json` passes `validateCanonicalBeforePersistSync` in publish mode
+- `apps/api/test/canonical-validation-draft-vs-publish.spec.ts` — `tour-publish-ready.json` passes `validateCanonicalBeforePersistSync` in publish mode; scalar composite rich storage (`startPoint` object, `participants.minRequiredPeaks` number) passes after INV-DENALI-INGRESS-002 filter

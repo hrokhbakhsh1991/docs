@@ -2,7 +2,7 @@
 
 import { readDenaliCanonicalBasics } from "../../adapters/denaliCanonicalBasicsControl";
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   type DenaliTourWizardDraft,
@@ -11,16 +11,22 @@ import {
   setCanonicalValue,
 } from "../../draft/denali-tour-wizard-draft";
 import { DENALI_SUBMIT_CATALOG_BFF_PATHS } from "../../wizard/denali-wizard-catalog-sanitize";
-import type { EquipmentResource } from "../adapters/catalog-types";
+import type { EquipmentResource, TourThemeResource, TourThemesListResponse } from "../adapters/catalog-types";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
 import { Input } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { CheckIcon } from "../components/icons/tour-service-icons";
+import { EquipmentCatalogAvatar } from "../components/equipment-catalog-avatar";
 import { isEquipmentVisibleInWizard } from "../logic/denali-catalog-filters";
+import {
+  resolveEquipmentCatalogSearchText,
+  resolveEquipmentCatalogSubtitle,
+  resolveEquipmentThemeNames,
+  resolveTourCategoryLabelKey,
+} from "../logic/denali-equipment-catalog-labels";
 import { parseDenaliGearItems, type DenaliGearItem } from "../logic/denali-gear-types";
 import { filterPickerItemsByQuery } from "../logic/denali-picker-filter-logic";
-import { themeDisplayInitials, themeSwatchToneClass } from "../logic/denali-theme-picker-logic";
 import { DENALI_GEAR_TEST_IDS } from "../test-ids/denali-gear-test-ids";
 
 export { DENALI_GEAR_TEST_IDS } from "../test-ids/denali-gear-test-ids";
@@ -38,6 +44,7 @@ type DenaliGearFieldProps = {
 };
 
 export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) {
+  const locale = useLocale();
   const t = useTranslations("denali");
   const tErrors = useTranslations("settings.errors");
   const label = resolveDenaliFieldLabel(t, "participants.gearItems");
@@ -45,22 +52,31 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
 
   const selected = parseDenaliGearItems(getCanonicalValue(draft, "participants.gearItems"));
   const [catalog, setCatalog] = useState<readonly EquipmentResource[]>([]);
+  const [themes, setThemes] = useState<readonly TourThemeResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    void fetch(DENALI_SUBMIT_CATALOG_BFF_PATHS.equipment, { cache: "no-store" })
-      .then(async (response) => {
+    void Promise.all([
+      fetch(DENALI_SUBMIT_CATALOG_BFF_PATHS.equipment, { cache: "no-store" }).then(async (response) => {
         if (!response.ok) {
           throw new Error(`EQUIPMENT_HTTP_${response.status}`);
         }
         return (await response.json()) as { items: EquipmentResource[] };
-      })
-      .then((payload) => {
+      }),
+      fetch(DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes, { cache: "no-store" }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`TOUR_THEMES_HTTP_${response.status}`);
+        }
+        return (await response.json()) as TourThemesListResponse;
+      }),
+    ])
+      .then(([equipmentPayload, themesPayload]) => {
         if (!cancelled) {
-          setCatalog(payload.items ?? []);
+          setCatalog(equipmentPayload.items ?? []);
+          setThemes((themesPayload.items ?? []).filter((theme) => theme.isActive));
           setError(null);
         }
       })
@@ -68,6 +84,7 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
         if (!cancelled) {
           setError(fetchError instanceof Error ? fetchError.message : "EQUIPMENT_LOAD_FAILED");
           setCatalog([]);
+          setThemes([]);
         }
       })
       .finally(() => {
@@ -79,6 +96,34 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
       cancelled = true;
     };
   }, []);
+
+  const themesById = useMemo(
+    () => new Map(themes.map((theme) => [theme.id, theme] as const)),
+    [themes]
+  );
+
+  const formatThemeNameList = useMemo(
+    () => new Intl.ListFormat(locale, { style: "short", type: "conjunction" }),
+    [locale]
+  );
+
+  const resolveEquipmentSubtitle = (item: EquipmentResource): string =>
+    resolveEquipmentCatalogSubtitle(item, themesById, {
+      formatThemeNames: (names) => formatThemeNameList.format([...names]),
+      resolveCategoryLabel: (category) => {
+        const categoryKey = resolveTourCategoryLabelKey(category);
+        try {
+          const categoryLabel = t(categoryKey);
+          if (categoryLabel !== categoryKey && categoryLabel.length > 0) {
+            return categoryLabel;
+          }
+        } catch {
+          // Missing message keys fall through.
+        }
+        return null;
+      },
+      allThemesLabel: t("composites.gear.allThemes"),
+    });
 
   const tourCategory = useMemo(() => {
     const tourKind = getCanonicalStringValue(draft, "category").trim();
@@ -102,9 +147,12 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
   const filteredCatalog = useMemo(
     () =>
       filterPickerItemsByQuery(visibleCatalog, searchQuery, (item) =>
-        [item.name, item.category].filter(Boolean).join(" ")
+        resolveEquipmentCatalogSearchText(
+          item,
+          resolveEquipmentThemeNames(item.themeIds, themesById)
+        )
       ),
-    [visibleCatalog, searchQuery]
+    [visibleCatalog, searchQuery, themesById]
   );
 
   const selectedById = useMemo(
@@ -216,17 +264,16 @@ export function DenaliGearField({ draft, onDraftChange }: DenaliGearFieldProps) 
                         aria-label={item.name}
                         onClick={() => toggleItem(item)}
                       >
-                        <span
-                          className={`denali-gear-picker__swatch ${themeSwatchToneClass(item.id)}`}
-                          aria-hidden
-                        >
-                          {themeDisplayInitials(item.name)}
-                        </span>
+                        <EquipmentCatalogAvatar
+                          id={item.id}
+                          name={item.name}
+                          iconKey={item.iconKey}
+                        />
                         <span className="denali-gear-picker__body">
                           <span className="denali-gear-picker__name">{item.name}</span>
-                          {item.category ? (
-                            <span className="denali-gear-picker__category">{item.category}</span>
-                          ) : null}
+                          <span className="denali-gear-picker__category">
+                            {resolveEquipmentSubtitle(item)}
+                          </span>
                         </span>
                         <span
                           className={

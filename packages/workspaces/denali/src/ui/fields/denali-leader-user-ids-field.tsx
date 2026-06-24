@@ -19,7 +19,12 @@ import { Input } from "../adapters/platform-primitives";
 import { CheckIcon } from "../components/icons/tour-service-icons";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { parseStringArray } from "../logic/denali-array-field-utils";
-import { leaderDisplayInitials } from "../logic/denali-leader-picker-logic";
+import {
+  leaderDisplayInitials,
+  partitionLeaderChipPreview,
+  resolveDenaliLeaderPickerDefaultExpanded,
+  truncateLeaderDisplayName,
+} from "../logic/denali-leader-picker-logic";
 import { filterPickerItemsByQuery } from "../logic/denali-picker-filter-logic";
 import { DENALI_LEADERS_TEST_IDS } from "../test-ids/denali-leaders-test-ids";
 
@@ -29,6 +34,28 @@ type DenaliLeaderUserIdsFieldProps = {
   readonly draft: DenaliTourWizardDraft;
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
 };
+
+function ChevronDownIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M4 6L8 10L12 6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export function DenaliLeaderUserIdsField({
   draft,
@@ -44,6 +71,15 @@ export function DenaliLeaderUserIdsField({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [pickerExpanded, setPickerExpanded] = useState(() =>
+    resolveDenaliLeaderPickerDefaultExpanded(selected.length)
+  );
+
+  useEffect(() => {
+    if (selected.length === 0) {
+      setPickerExpanded(true);
+    }
+  }, [selected.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +114,24 @@ export function DenaliLeaderUserIdsField({
     };
   }, []);
 
+  const userById = useMemo(() => new Map(users.map((user) => [user.userId, user])), [users]);
+
+  const selectedUsers = useMemo(
+    () =>
+      selected
+        .map((userId) => {
+          const user = userById.get(userId);
+          if (user == null) {
+            return { userId, displayName: userId };
+          }
+          return { userId, displayName: user.displayName };
+        })
+        .filter((entry) => entry.displayName.length > 0),
+    [selected, userById]
+  );
+
+  const chipPreview = useMemo(() => partitionLeaderChipPreview(selectedUsers), [selectedUsers]);
+
   const filteredUsers = useMemo(
     () =>
       filterPickerItemsByQuery(users, searchQuery, (user) =>
@@ -86,31 +140,103 @@ export function DenaliLeaderUserIdsField({
     [users, searchQuery]
   );
 
-  const toggleLeader = (userId: string) => {
-    const next = selectedSet.has(userId)
-      ? selected.filter((id) => id !== userId)
-      : [...selected, userId];
+  const setSelected = (next: readonly string[]) => {
     commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
       setCanonicalValue(base, "leaderUserIds", next)
     );
   };
+
+  const toggleLeader = (userId: string) => {
+    const next = selectedSet.has(userId)
+      ? selected.filter((id) => id !== userId)
+      : [...selected, userId];
+    setSelected(next);
+  };
+
+  const removeLeader = (userId: string) => {
+    setSelected(selected.filter((id) => id !== userId));
+  };
+
+  const showCollapsedSummary = selected.length > 0 && !pickerExpanded;
 
   return (
     <div
       className="denali-wizard-composite"
       data-denali-wizard-surface="section"
       data-denali-leader-picker
+      data-denali-leader-picker-expanded={pickerExpanded ? "true" : "false"}
       data-testid={DENALI_LEADERS_TEST_IDS.leaders}
     >
-      <div className="denali-wizard-composite__header">
-        <h3 className="denali-wizard-composite__title">{label}</h3>
+      <div className="denali-wizard-composite__header denali-leader-picker__header">
+        <div className="denali-leader-picker__header-row">
+          <h3 className="denali-wizard-composite__title">{label}</h3>
+          {selected.length > 0 ? (
+            <button
+              type="button"
+              className="denali-leader-picker__toggle"
+              data-testid={DENALI_LEADERS_TEST_IDS.toggle}
+              aria-expanded={pickerExpanded}
+              onClick={() => setPickerExpanded((open) => !open)}
+            >
+              <span>
+                {pickerExpanded
+                  ? t("composites.leaders.collapsePicker")
+                  : t("composites.leaders.expandPicker")}
+              </span>
+              <ChevronDownIcon
+                className={
+                  pickerExpanded
+                    ? "denali-leader-picker__toggle-icon denali-leader-picker__toggle-icon--open"
+                    : "denali-leader-picker__toggle-icon"
+                }
+              />
+            </button>
+          ) : null}
+        </div>
         <p className="denali-wizard-composite__helper">{t("composites.leaders.helper")}</p>
-        {selected.length > 0 ? (
+      </div>
+
+      {showCollapsedSummary ? (
+        <div className="denali-leader-picker__collapsed" data-testid={DENALI_LEADERS_TEST_IDS.chips}>
+          <div className="denali-leader-picker__chip-row" role="list" aria-label={label}>
+            {chipPreview.visible.map((user) => (
+              <span
+                key={user.userId}
+                className="denali-leader-picker__chip"
+                role="listitem"
+                data-testid={DENALI_LEADERS_TEST_IDS.chip}
+              >
+                <span className="denali-leader-picker__chip-avatar" aria-hidden>
+                  {leaderDisplayInitials(user.displayName)}
+                </span>
+                <span className="denali-leader-picker__chip-name">
+                  {truncateLeaderDisplayName(user.displayName)}
+                </span>
+                <button
+                  type="button"
+                  className="denali-leader-picker__chip-remove"
+                  aria-label={t("composites.leaders.removeLeader", { name: user.displayName })}
+                  onClick={() => removeLeader(user.userId)}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {chipPreview.overflowCount > 0 ? (
+              <button
+                type="button"
+                className="denali-leader-picker__chip denali-leader-picker__chip--overflow"
+                onClick={() => setPickerExpanded(true)}
+              >
+                {t("composites.leaders.overflowCount", { count: chipPreview.overflowCount })}
+              </button>
+            ) : null}
+          </div>
           <p className="denali-leader-picker__summary">
             {t("composites.leaders.selectedCount", { count: selected.length })}
           </p>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {loading ? (
         <p className="denali-wizard-composite__status">{t("composites.leaders.loading")}</p>
@@ -128,8 +254,13 @@ export function DenaliLeaderUserIdsField({
         </div>
       ) : null}
 
-      {users.length > 0 ? (
-        <>
+      {pickerExpanded && users.length > 0 ? (
+        <div className="denali-leader-picker__panel" data-testid={DENALI_LEADERS_TEST_IDS.panel}>
+          {selected.length > 0 ? (
+            <p className="denali-leader-picker__summary denali-leader-picker__summary--panel">
+              {t("composites.leaders.selectedCount", { count: selected.length })}
+            </p>
+          ) : null}
           <label className="denali-wizard-picker__search">
             <span className="denali-wizard-picker__search-label">{t("composites.leaders.searchLabel")}</span>
             <Input
@@ -206,7 +337,7 @@ export function DenaliLeaderUserIdsField({
               </div>
             </div>
           )}
-        </>
+        </div>
       ) : null}
     </div>
   );

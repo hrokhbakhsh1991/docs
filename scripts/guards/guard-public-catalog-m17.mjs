@@ -38,8 +38,6 @@ const REQUIRED_FILES = [
   "apps/portal/tests/e2e/fixtures/catalog-registration-otp.ts",
   "apps/web/app/(public)/catalog/[tourId]/register/page.tsx",
   "apps/web/src/portal/resolve-portal-registration-redirect.ts",
-  "apps/web/tests/e2e/denali-catalog-registration.spec.ts",
-  "apps/web/tests/e2e/fixtures/catalog-registration-otp.ts",
   "apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts",
   "docs/workspaces/denali/public-catalog.md",
 ];

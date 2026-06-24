@@ -18,7 +18,6 @@ export {
 } from "./commerce-schema.js";
 export {
   assertWorkspaceDefinitionPayload,
-  computeWorkspaceDefinitionPayloadChecksum,
   stripWorkspacePluginToDefinitionPayload,
   validateWorkspaceDefinitionPayload,
 } from "./workspace-definition-payload.js";

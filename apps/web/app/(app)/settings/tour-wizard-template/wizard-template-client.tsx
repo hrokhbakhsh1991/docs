@@ -48,10 +48,12 @@ import {
   resolveWizardTemplateFieldLabel,
 } from "@/tours/wizard-template-field-labels";
 import {
-  WIZARD_TEMPLATE_TEST_IDS,
-  type WizardTemplateConfigResponse,
-  type WizardTemplatePayload,
-} from "@/features/settings/wizard-template-types";
+  DENALI_WIZARD_PHOTOS_STEP_ID,
+  isDenaliWizardTemplateLongDescriptionVisible,
+  patchDenaliWizardTemplateLongDescriptionVisibility,
+} from "@app-tour/workspace-denali/settings/wizard-template-long-description";
+import { resolveDenaliWizardTemplateCatalogFieldMeta } from "@app-tour/workspace-denali/settings/wizard-template-catalog-meta";
+import { resolveDenaliWizardTemplateFieldDisplayHints } from "@/tours/wizard-template-field-display-hints";
 
 type WizardTemplateClientProps = {
   readonly session: OperatorSessionContext;
@@ -341,6 +343,35 @@ export function WizardTemplateClient({
                 {filteredCatalog.map((step) => (
                   <details key={step.stepId} open className="rounded-md border p-3">
                     <summary className="cursor-pointer text-sm font-semibold">{step.label}</summary>
+                    {pluginId === "denali" && step.stepId === DENALI_WIZARD_PHOTOS_STEP_ID ? (
+                      <div className="mt-3 space-y-1 rounded-md border border-dashed p-3">
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            id="wizard-photos-show-long-description"
+                            data-testid={WIZARD_TEMPLATE_TEST_IDS.photosStepShowLongDescription}
+                            checked={isDenaliWizardTemplateLongDescriptionVisible(payload.fieldRulesOverlay)}
+                            onChange={(event) =>
+                              setPayload((current) => ({
+                                ...current,
+                                fieldRulesOverlay: patchDenaliWizardTemplateLongDescriptionVisibility(
+                                  current.fieldRulesOverlay,
+                                  event.target.checked
+                                ),
+                              }))
+                            }
+                            disabled={!canManage}
+                          />
+                          <div className="space-y-0.5">
+                            <Label htmlFor="wizard-photos-show-long-description">
+                              {t("photosStep.showLongDescription")}
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              {t("photosStep.showLongDescriptionHelper")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                     <ul className="mt-3 space-y-2">
                       {step.fields.map((field) => {
                         const fieldLabel =
@@ -351,10 +382,25 @@ export function WizardTemplateClient({
                           pluginId === "denali"
                             ? resolveDenaliFieldKindLabel(tDenali, field.kind)
                             : formatWizardTemplateFieldKindLabel(field.kind);
+                        const stepFieldPaths = step.fields.map((entry) => entry.canonicalPath);
+                        const fieldDisplayHints =
+                          pluginId === "denali"
+                            ? resolveDenaliWizardTemplateFieldDisplayHints(
+                                (key, values) => t(key, values),
+                                tDenali,
+                                (path) => resolveDenaliFieldLabel(tDenali, path),
+                                resolveDenaliWizardTemplateCatalogFieldMeta(
+                                  field.canonicalPath,
+                                  step.stepId,
+                                  stepFieldPaths
+                                )
+                              )
+                            : null;
                         const checked = isWizardTemplateCatalogFieldSelected(
                           payload.steps ?? [],
                           field.canonicalPath
                         );
+                        const selectable = field.selectable;
                         const overlay = resolveWizardTemplateFieldRef(
                           payload.steps ?? [],
                           field.canonicalPath
@@ -366,6 +412,7 @@ export function WizardTemplateClient({
                                 id={`wizard-field-${field.canonicalPath}`}
                                 data-testid={WIZARD_TEMPLATE_CATALOG_TEST_IDS.fieldToggle}
                                 data-canonical-path={field.canonicalPath}
+                                data-selectable={selectable ? "true" : "false"}
                                 checked={checked}
                                 onChange={(event) =>
                                   setPayload((current) => ({
@@ -377,7 +424,7 @@ export function WizardTemplateClient({
                                     ),
                                   }))
                                 }
-                                disabled={!canManage}
+                                disabled={!canManage || !selectable}
                               />
                               <div className="space-y-0.5">
                                 <Label htmlFor={`wizard-field-${field.canonicalPath}`}>
@@ -389,9 +436,44 @@ export function WizardTemplateClient({
                                     <span className="ms-2">{t("compositeHint")}</span>
                                   ) : null}
                                 </p>
+                                {fieldDisplayHints?.parentLabel != null ? (
+                                  <p
+                                    className="text-xs text-muted-foreground"
+                                    data-testid={WIZARD_TEMPLATE_CATALOG_TEST_IDS.fieldParent}
+                                    data-canonical-path={field.canonicalPath}
+                                  >
+                                    {t("hints.parentField", { name: fieldDisplayHints.parentLabel })}
+                                  </p>
+                                ) : null}
+                                {fieldDisplayHints != null &&
+                                fieldDisplayHints.includesLabels.length > 0 ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    {t("hints.compositeIncludes", {
+                                      names: fieldDisplayHints.includesLabels.join("، "),
+                                    })}
+                                  </p>
+                                ) : null}
+                                {fieldDisplayHints?.createTourHint != null ? (
+                                  <p
+                                    className="text-xs text-muted-foreground"
+                                    data-testid={WIZARD_TEMPLATE_CATALOG_TEST_IDS.fieldCreateHint}
+                                    data-canonical-path={field.canonicalPath}
+                                  >
+                                    {fieldDisplayHints.createTourHint}
+                                  </p>
+                                ) : null}
+                                {!selectable ? (
+                                  <p
+                                    className="text-xs text-muted-foreground"
+                                    data-testid={WIZARD_TEMPLATE_CATALOG_TEST_IDS.fieldRoadmap}
+                                    data-canonical-path={field.canonicalPath}
+                                  >
+                                    {t("hints.roadmapField")}
+                                  </p>
+                                ) : null}
                               </div>
                             </div>
-                            {checked ? (
+                            {checked && selectable ? (
                               <div className="ms-6 flex flex-wrap items-center gap-4">
                                 <div className="flex items-center gap-2">
                                   <Checkbox

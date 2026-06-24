@@ -20,8 +20,49 @@ const EMPTY_STATE: DenaliDestinationCatalogState = {
   error: null,
 };
 
+let patchDestinationCatalogCache: ((destination: DestinationResource) => void) | null = null;
+
+export function patchDenaliDestinationCatalogCache(destination: DestinationResource): void {
+  patchDestinationCatalogCache?.(destination);
+}
+
+function buildDestinationCatalogState(
+  payload: ReturnType<typeof parseLocationsResponse>
+): DenaliDestinationCatalogState {
+  const regionById = new Map(payload.regions.map((region) => [region.id, region.name]));
+  const byId = new Map(payload.destinations.map((destination) => [destination.id, destination]));
+  return {
+    options: payload.destinations
+      .filter((destination) => destination.isActive)
+      .map((destination) => {
+        const regionName = regionById.get(destination.regionId);
+        const suffix = regionName ? ` (${regionName})` : "";
+        return {
+          value: destination.id,
+          label: `${destination.name}${suffix}`,
+        };
+      }),
+    destinationById: byId,
+    loading: false,
+    error: null,
+  };
+}
+
 export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
   const [state, setState] = useState<DenaliDestinationCatalogState>(EMPTY_STATE);
+
+  useEffect(() => {
+    patchDestinationCatalogCache = (destination) => {
+      setState((previous) => {
+        const destinationById = new Map(previous.destinationById);
+        destinationById.set(destination.id, destination);
+        return { ...previous, destinationById };
+      });
+    };
+    return () => {
+      patchDestinationCatalogCache = null;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,23 +77,7 @@ export function useDenaliDestinationCatalog(): DenaliDestinationCatalogState {
         if (cancelled) {
           return;
         }
-        const regionById = new Map(payload.regions.map((region) => [region.id, region.name]));
-        const byId = new Map(payload.destinations.map((destination) => [destination.id, destination]));
-        setState({
-          options: payload.destinations
-            .filter((destination) => destination.isActive)
-            .map((destination) => {
-              const regionName = regionById.get(destination.regionId);
-              const suffix = regionName ? ` (${regionName})` : "";
-              return {
-                value: destination.id,
-                label: `${destination.name}${suffix}`,
-              };
-            }),
-          destinationById: byId,
-          loading: false,
-          error: null,
-        });
+        setState(buildDestinationCatalogState(payload));
       })
       .catch((fetchError: unknown) => {
         if (!cancelled) {

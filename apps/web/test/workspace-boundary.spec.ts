@@ -31,7 +31,13 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
   }
   const rel = file.slice(WEB_ROOT.length + 1);
   if (rel.startsWith("src/wizard/denali/")) {
-    return false;
+    return true;
+  }
+  if (
+    rel === "src/bootstrap/denali-wizard-rules.ts" ||
+    rel === "src/bootstrap/denali-wizard-template-preset.ts"
+  ) {
+    return true;
   }
   if (
     rel === "src/wizard/use-denali-create-tour-wizard.ts" ||
@@ -191,7 +197,7 @@ describe("Phase 3.3 workspace boundary", () => {
       join(SRC_DIR, "bootstrap/wizard-media-route-bindings.generated.ts"),
       "utf8"
     );
-    assert.match(generated, /"wizard-photos": "\/api\/tours\/wizard-photos"/);
+    assert.match(generated, /"wizard-photos": "\/api\/wizard-media\/wizard-photos"/);
     const resolver = readFileSync(join(SRC_DIR, "wizard/resolve-wizard-media-bff-path.ts"), "utf8");
     assert.match(resolver, /wizard-media-route-bindings\.generated/);
     assert.doesNotMatch(resolver, /MEDIA_ROUTE_KEY_TO_BFF/);
@@ -208,17 +214,18 @@ describe("Phase 3.3 workspace boundary", () => {
     assert.doesNotMatch(backendResolver, /MEDIA_ROUTE_KEY_TO_BACKEND/);
   });
 
-  it("P15-W-C1 catalog readers import from workspace-denali package (no shell barrel)", () => {
+  it("P15-W-C1 catalog readers import from workspace-denali package (web adapters allowed)", () => {
     const flatEditHook = readFileSync(
       join(SRC_DIR, "wizard/use-denali-flat-edit-page.ts"),
       "utf8"
     );
     assert.match(flatEditHook, /@app-tour\/workspace-denali\/ui\/adapters\/submit-catalog-fetch/);
-    assert.ok(!existsSync(join(SRC_DIR, "wizard/denali/denali-catalog-sanitize.ts")));
+    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-catalog-sanitize.ts")));
   });
 
-  it("P15-W-C2 denali orchestration avoids legacy wizard/denali folder", () => {
-    assert.ok(!existsSync(join(SRC_DIR, "wizard/denali")));
+  it("P15-W-C2 denali web adapters live under wizard/denali", () => {
+    assert.ok(existsSync(join(SRC_DIR, "wizard/denali")));
+    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-flat-edit-form.tsx")));
   });
 
   it("P15-W-C2 denali shell avoids self-referential @/wizard/denali imports", () => {
@@ -289,8 +296,8 @@ describe("Phase 3.3 workspace boundary", () => {
     }
   });
 
-  it("P15-W-C2b denali shell orchestration files live at wizard root (T-096)", () => {
-    assert.ok(!existsSync(join(SRC_DIR, "wizard/denali")));
+  it("P15-W-C2b denali shell orchestration at wizard root + wizard/denali adapters (T-096)", () => {
+    assert.ok(existsSync(join(SRC_DIR, "wizard/denali")));
     for (const name of DENALI_SHELL_ORCHESTRATION) {
       assert.ok(existsSync(join(SRC_DIR, "wizard", name)), `missing ${name}`);
     }

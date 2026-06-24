@@ -48,6 +48,7 @@ jobs:
 
       - name: Run remote deploy
         if: steps.vps.outputs.ready == 'true'
+        # remote-deploy.sh runs verify-env-coherence.sh (--all when marketing+portal env exist)
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -58,3 +59,14 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             "${USER}@${VPS_HOST}" \
             "DEPLOY_PATH='${PATH_ON_SERVER}' bash '${PATH_ON_SERVER}/scripts/vps-deploy/remote-deploy.sh'"
+
+      - name: Post-deploy four-process smoke
+        if: steps.vps.outputs.ready == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
+          ENV_DIR: /etc/app-tour
+          UNIT_PREFIX: app-tour
+        run: bash scripts/p10-production-remote-gate.sh

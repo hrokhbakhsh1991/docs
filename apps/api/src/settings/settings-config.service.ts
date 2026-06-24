@@ -128,6 +128,19 @@ function normalizeWizardTemplateSteps(raw: unknown): WizardTemplatePayloadV1["st
   return steps.length > 0 ? steps : undefined;
 }
 
+function normalizeFieldRulesOverlay(raw: unknown): WizardTemplatePayloadV1["fieldRulesOverlay"] {
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+  const entries = Object.entries(raw as Record<string, unknown>).filter(
+    ([key, value]) => key.trim().length > 0 && value != null && typeof value === "object" && !Array.isArray(value)
+  );
+  if (entries.length === 0) {
+    return undefined;
+  }
+  return Object.fromEntries(entries);
+}
+
 function normalizeWizardTemplatePayload(payload: Record<string, unknown>): WizardTemplatePayloadV1 {
   const seedLabel = typeof payload.seedLabel === "string" ? payload.seedLabel : "";
   const sections = Array.isArray(payload.sections)
@@ -140,12 +153,24 @@ function normalizeWizardTemplatePayload(payload: Record<string, unknown>): Wizar
         }))
     : WIZARD_TEMPLATE_WORKSPACE_DEFAULT.sections.map((section) => ({ ...section }));
 
-  const normalized: WizardTemplatePayloadV1 = {
+  let normalized: WizardTemplatePayloadV1 = {
     seedLabel,
     sections: sections.length > 0 ? sections : WIZARD_TEMPLATE_WORKSPACE_DEFAULT.sections.map((s) => ({ ...s })),
   };
+
+  const baseProfile =
+    typeof payload.baseProfile === "string" ? payload.baseProfile.trim() : "";
+  if (baseProfile.length > 0) {
+    normalized = { ...normalized, baseProfile };
+  }
+
+  const fieldRulesOverlay = normalizeFieldRulesOverlay(payload.fieldRulesOverlay);
+  if (fieldRulesOverlay !== undefined) {
+    normalized = { ...normalized, fieldRulesOverlay };
+  }
+
   if (payload.published === true) {
-    return {
+    normalized = {
       ...normalized,
       published: true,
       ...(normalizeWizardTemplateSteps(payload.steps) !== undefined
@@ -153,6 +178,7 @@ function normalizeWizardTemplatePayload(payload: Record<string, unknown>): Wizar
         : {}),
     };
   }
+
   return normalized;
 }
 

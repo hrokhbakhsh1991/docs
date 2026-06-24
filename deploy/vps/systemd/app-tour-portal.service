@@ -1,0 +1,20 @@
+[Unit]
+Description=App Tour Portal (@apps/portal)
+After=network-online.target app-tour-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@APP_USER@
+Group=@APP_USER@
+WorkingDirectory=@DEPLOY_PATH@
+EnvironmentFile=@ENV_DIR@/portal.env
+Environment=DEPLOY_PATH=@DEPLOY_PATH@
+Environment=ENV_DIR=@ENV_DIR@
+ExecStart=@DEPLOY_PATH@/scripts/vps-deploy/start-portal.sh
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

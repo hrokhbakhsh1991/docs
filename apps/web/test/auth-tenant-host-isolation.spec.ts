@@ -62,4 +62,23 @@ describe("auth-tenant-host-isolation.spec.ts", () => {
     assert.equal(sessionTenantMatchesHost(DENALI_TENANT, "urban.localhost:3000"), false);
     assert.equal(resolveExpectedTenantIdForHost("urban.localhost:3000"), URBAN_TENANT);
   });
+
+  it("P8-1-N-002 production IP fallback binds operator session on VPS host", () => {
+    env.NODE_ENV = "production";
+    delete env.ALLOW_DEV_WEB_SESSION;
+    env.PUBLIC_TENANT_FALLBACK_LABEL = "operator";
+    env.PUBLIC_TENANT_FALLBACK_HOSTS = "89.45.89.206";
+    assert.equal(
+      resolveExpectedTenantIdForHost("89.45.89.206:23000"),
+      OPERATOR_TENANT
+    );
+    assert.equal(
+      sessionTenantMatchesHost(OPERATOR_TENANT, "89.45.89.206:23000"),
+      true
+    );
+    assert.equal(
+      sessionTenantMatchesHost(DENALI_TENANT, "89.45.89.206:23000"),
+      false
+    );
+  });
 });

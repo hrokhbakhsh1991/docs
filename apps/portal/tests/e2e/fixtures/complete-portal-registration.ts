@@ -5,6 +5,8 @@ import {
   CATALOG_DEV_OTP,
   completeCatalogRegistrationIntake,
   fillCatalogOtp,
+  gotoPortalRegistration,
+  requestRegistrationOtp,
 } from "./catalog-registration-otp";
 
 export const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
@@ -21,12 +23,10 @@ export async function completePortalCatalogRegistration(
   }
 ): Promise<void> {
   const tourId = input.tourId ?? OPERATOR_PUBLISHED_TOUR_ID;
-  await page.goto(`/catalog/${tourId}/register`);
-  await expect(page.locator("[data-public-registration-phone]")).toBeVisible({ timeout: 60_000 });
+  await page.context().clearCookies();
+  await gotoPortalRegistration(page, tourId);
 
-  await page.getByLabel(/Mobile|موبایل/).fill(input.phone);
-  await page.locator('[data-action="send-code"]').click();
-  await expect(page.locator("[data-public-registration-otp]")).toBeVisible({ timeout: 60_000 });
+  await requestRegistrationOtp(page, input.phone);
 
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
   await expect(

@@ -2,12 +2,52 @@ export type SocialMediaKind = "telegram" | "other";
 
 const TELEGRAM_HOSTS = new Set(["t.me", "telegram.me", "telegram.dog"]);
 
+/** Wizard-only marker: external platform selected but URL not entered yet. Never persisted on tour submit. */
+export const DENALI_SOCIAL_MEDIA_EXTERNAL_PENDING = "__denali_social_external_pending__";
+
+export function isSocialMediaExternalPending(stored: string): boolean {
+  return stored.trim() === DENALI_SOCIAL_MEDIA_EXTERNAL_PENDING;
+}
+
 export function detectSocialMediaKind(stored: string): SocialMediaKind {
   const trimmed = stored.trim();
+  if (isSocialMediaExternalPending(trimmed)) {
+    return "other";
+  }
   if (trimmed.length === 0) {
     return "telegram";
   }
   return isTelegramSocialLink(trimmed) ? "telegram" : "other";
+}
+
+/** Whether the operator has satisfied the social-media step (Telegram empty = OK; external needs URL). */
+export function isSocialMediaLinkWizardSatisfied(stored: string): boolean {
+  const trimmed = stored.trim();
+  if (trimmed.length === 0) {
+    return true;
+  }
+  return !isSocialMediaExternalPending(trimmed);
+}
+
+export function stripSocialMediaLinkForSubmit(stored: string): string {
+  if (isSocialMediaExternalPending(stored)) {
+    return "";
+  }
+  return stored.trim();
+}
+
+export function formatSocialMediaLinkForReview(
+  stored: string,
+  telegramAutoLabel: string
+): string {
+  const trimmed = stored.trim();
+  if (trimmed.length === 0) {
+    return telegramAutoLabel;
+  }
+  if (isSocialMediaExternalPending(trimmed)) {
+    return "";
+  }
+  return trimmed;
 }
 
 export function isTelegramSocialLink(value: string): boolean {

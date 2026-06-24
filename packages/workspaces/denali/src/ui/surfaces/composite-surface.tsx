@@ -24,6 +24,7 @@ export function createDenaliCompositeSurface(): WizardCompositeSurface {
         onDraftChange={props.onDraftChange}
         wizardSessionId={props.wizardSessionId}
         workspaceFormProfile={props.workspaceFormProfile}
+        wizardRuleEvalContext={props.wizardRuleEvalContext}
       />
     ),
   });

@@ -38,6 +38,10 @@ export type PublicCatalogCard = {
   readonly difficultyLevel?: number | null;
   readonly fitnessLevel?: string | null;
   readonly itineraryDays?: readonly PublicCatalogItineraryDay[];
+  /** Denali legal step — public cancellation / terms copy (egress-safe). */
+  readonly policiesText?: string | null;
+  readonly cancellationDeadlineHours?: number | null;
+  readonly cancellationPenaltyPercentage?: number | null;
   /** Schema.org JSON-LD blob when workspace builds structured data (e.g. TouristTrip). */
   readonly structuredData?: Readonly<Record<string, unknown>>;
 };

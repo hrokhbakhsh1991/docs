@@ -10,7 +10,6 @@ import {
 const OPERATOR_PUBLISHED_TOUR_TITLE = "North Ridge Trek";
 const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const REGISTRATION_EMAIL = `smk-mkt-03-${Date.now()}@denali-smoke.local`;
-const DEV_PHONE = `+1555${String(Date.now()).slice(-7)}`;
 
 async function openOperatorTourDetail(page: import("@playwright/test").Page): Promise<void> {
   await page.locator(`a[href="/tours/${OPERATOR_PUBLISHED_TOUR_ID}"]`).first().click();
@@ -27,7 +26,8 @@ test("SMK-MKT-01 denali operator public catalog browse", async ({ page, context 
 });
 
 test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({ page }) => {
-  await page.goto("/tours");
+  const devPhone = `+1555${String(Date.now()).slice(-7)}`;
+  await page.goto("/tours", { waitUntil: "domcontentloaded" });
   await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible({ timeout: 60_000 });
   await openOperatorTourDetail(page);
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
@@ -40,8 +40,11 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
     page.waitForURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 }),
     registerLink.click(),
   ]);
+  await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
+    timeout: 120_000,
+  });
 
-  await submitCatalogPhoneForOtp(page, DEV_PHONE);
+  await submitCatalogPhoneForOtp(page, devPhone);
 
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
   await expect(
@@ -60,7 +63,7 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
 });
 
 test("SMK-MKT-02 tour detail and back navigation", async ({ page }) => {
-  await page.goto("/tours");
+  await page.goto("/tours", { waitUntil: "domcontentloaded" });
   await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible({ timeout: 60_000 });
   await openOperatorTourDetail(page);
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
@@ -71,7 +74,7 @@ test("SMK-MKT-02 tour detail and back navigation", async ({ page }) => {
 });
 
 test("SMK-MKT-04 tour detail renders multi-day itinerary and segment photos", async ({ page }) => {
-  await page.goto(`/tours/${OPERATOR_PUBLISHED_TOUR_ID}`);
+  await page.goto(`/tours/${OPERATOR_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
   });

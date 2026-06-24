@@ -6,13 +6,7 @@ import type {
   TourRecordDto,
 } from "@app-tour/workspace-sdk";
 
-function parseErrorBody(body: unknown): { code: string; message: string } {
-  if (body !== null && typeof body === "object" && "error" in body) {
-    const code = String((body as { error?: unknown }).error ?? "unknown_error");
-    return { code, message: code };
-  }
-  return { code: "unknown_error", message: "unknown_error" };
-}
+import { parseTourApiErrorBody } from "./parse-tour-api-error-body";
 
 export class FetchTourClient implements TourClient {
   constructor(private readonly baseUrl: string) {}
@@ -28,7 +22,7 @@ export class FetchTourClient implements TourClient {
     });
     const body: unknown = await res.json().catch(() => null);
     if (!res.ok) {
-      const parsed = parseErrorBody(body);
+      const parsed = parseTourApiErrorBody(body);
       const err: TourClientError = {
         status: res.status,
         code: parsed.code,
@@ -49,7 +43,7 @@ export class FetchTourClient implements TourClient {
     }
     const body: unknown = await res.json().catch(() => null);
     if (!res.ok) {
-      const parsed = parseErrorBody(body);
+      const parsed = parseTourApiErrorBody(body);
       const err: TourClientError = {
         status: res.status,
         code: parsed.code,

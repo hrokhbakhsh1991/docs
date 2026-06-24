@@ -3,11 +3,11 @@ import { describe, it } from "node:test";
 
 import {
   assertWorkspaceDefinitionPayload,
-  computeWorkspaceDefinitionPayloadChecksum,
   DEFAULT_WORKSPACE_COMMERCE_CONFIG,
   stripWorkspacePluginToDefinitionPayload,
   validateWorkspaceDefinitionPayload,
 } from "../src/metadata/index.js";
+import { computeWorkspaceDefinitionPayloadChecksum } from "../src/metadata/workspace-definition-payload-checksum.js";
 import { isWorkspaceSdkValidationError } from "../src/index.js";
 import { createFreshStarterPlugin } from "./lib/immutable-harness.js";
 

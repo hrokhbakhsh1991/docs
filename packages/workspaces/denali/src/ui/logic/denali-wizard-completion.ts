@@ -3,14 +3,19 @@ import type { RenderStepPlan } from "@app-tour/platform-core";
 
 import {
   type DenaliTourWizardDraft,
+  getCanonicalStringValue,
   getCanonicalValue,
 } from "../../draft/denali-tour-wizard-draft";
+import { isSocialMediaLinkWizardSatisfied } from "./denali-social-media-link-logic";
 
 /** Whether a visible wizard field has operator-provided content (11.7-T9). */
 export function isDenaliWizardFieldFilled(
   draft: DenaliTourWizardDraft,
   canonicalPath: string
 ): boolean {
+  if (canonicalPath === "socialMediaLink") {
+    return isSocialMediaLinkWizardSatisfied(getCanonicalStringValue(draft, canonicalPath));
+  }
   const value = getCanonicalValue(draft, canonicalPath);
   if (value === undefined || value === null) {
     return false;

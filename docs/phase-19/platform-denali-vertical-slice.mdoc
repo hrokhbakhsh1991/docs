@@ -34,9 +34,9 @@ Legacy smoke aliases still supported — see [host-subdomain-map.md](p6/runbooks
 | Step | Detail |
 | ---- | ------ |
 | App | Admin `operator.admin.localhost:3000` |
-| Action | Wizard review → `publishStatus: active` |
+| Action | Catalog visibility after `publishStatus: active` (dev: API seed / `p6-vs01-admin-publish`; wizard UI publish = future hardening) |
 | Proof | Draft tour hidden from marketing · active listed |
-| E2E | `SMK-P6-VS-01` (catalog visibility) · publish transition API: `p6-vs01-admin-publish.spec.ts` |
+| E2E | `SMK-P6-VS-01` (catalog visibility only) · publish transition API: `p6-vs01-admin-publish.spec.ts` |
 
 ### VS-02 — Marketing lists tour (P6-1)
 
@@ -98,6 +98,17 @@ Optional E2E (Architect YES):
 ```bash
 pnpm run p6:e2e-gate
 ```
+
+### VS-CHAIN — Same booking (Bundle B API proof)
+
+| Step | Proof |
+| ---- | ----- |
+| Register (VS-03) | `POST /denali/registrations` |
+| Approve booking (VS-06) | `POST /bookings/{id}/approve` |
+| Member receipt (VS-05) | `POST /bookings/{id}/receipts` |
+| Finance approve (VS-07) | `PATCH /finance/receipts/{id}/review` |
+
+Gate: `p6-vertical-slice-chain.spec.ts` **P6-VS-CHAIN-01** (in-memory · same `bookingId`). Browser smokes remain per-app in `p6:e2e-gate`.
 
 ---
 

@@ -1,0 +1,148 @@
+# P7 — Machine snapshot (pack v1.6 AI-hardened)
+# Authority: appendices/P7-BOOT-MANIFEST.yaml · IMPLEMENTATION-TRUTH-P7.md
+
+snapshot_version: "2026-06-23-pack-v1.6"
+pack_version: "1.6"
+boot_manifest: appendices/P7-BOOT-MANIFEST.yaml
+navigator: ../AGENT-NAVIGATOR.md
+agent_start: AGENT-START.md
+doc_sot: ../platform-denali-customer-delivery.mdoc
+p6_prerequisite: docs/phase-19/p6/p6-exit-checklist.md
+execution_discipline: appendices/P7-EXECUTION-DISCIPLINE.md
+anti_hollow: appendices/P7-ANTI-HOLLOW-CONTRACT.md
+verification_commands: appendices/P7-VERIFICATION-COMMANDS.yaml
+turn_schema: appendices/P7-AGENT-TURN-SCHEMA.md
+exit_criteria: appendices/P7-EXIT-CRITERIA-98.md
+evidence_pack: appendices/P7-EVIDENCE-PACK.md
+fail_token: P7_FAIL
+
+status: BEHAVIORAL_COMPLETE
+doc_pack_status: COMPLETE
+ai_agent_pack: COMPLETE
+doc_quality_target: "98+ai"
+code_status: STAGING_GREEN
+closure_honesty: "All automated proof green · T4 simulated walkthrough completed 2026-06-23"
+last_architect_dry_run: "2026-06-23T01:21Z p7:t4-architect-dry-run PASS · evidence/architect-dry-run.log"
+last_staging_gate: "2026-06-23 VPS verify + finance-ops 4/4 · local p7:gate P7_DENALI_DELIVERY_GATE_OK"
+last_staging_e2e_probe: "2026-06-23T01:18Z p7:staging-e2e-probe · 12/12 · tunnel · P7_STAGING_E2E_PROBE_OK"
+evidence_manifest: docs/phase-20/p7/evidence/2026-06-23-operator/manifest.yaml
+nano_staging_done: 27
+exit_nano: P7-3-N-005
+current_task: null
+gate_sync_staging_web: pnpm run p7:sync-staging-web
+gate_sync_staging_web_rsync: pnpm run p7:sync-staging-web-rsync
+gate_sync_staging_web_vps_build: pnpm run p7:sync-staging-web-vps-build
+gate_staging_picker_probe: pnpm run p7:staging-picker-probe
+gate_staging_publish_violations_probe: pnpm run p7:staging-publish-violations-probe
+gate_configure_staging_revalidate: pnpm run p7:configure-staging-revalidate
+gate_staging_catalog_probe: pnpm run p7:staging-catalog-probe
+gate_staging_draft_refresh_probe: pnpm run p7:staging-draft-refresh-probe
+gate_staging_terms_probe: pnpm run p7:staging-terms-probe
+gate_staging_vs01_probe: pnpm run p7:staging-vs01-probe
+gate_staging_workspace_registrations_probe: pnpm run p7:staging-workspace-registrations-probe
+gate_staging_approve_booking_probe: pnpm run p7:staging-approve-booking-probe
+gate_staging_waitlist_promote_probe: pnpm run p7:staging-waitlist-promote-probe
+gate_staging_finance_hub_probe: pnpm run p7:staging-finance-hub-probe
+gate_staging_vs06_runbook_probe: pnpm run p7:staging-vs06-runbook-probe
+gate_staging_finance_ops_probe: pnpm run p7:staging-finance-ops-probe
+blocker: null
+gate_static: pnpm run p7:gate
+last_t4_prep: "2026-06-23T01:23Z p7:t4-prep · seed bundle + remote smoke + evidence + gate · P7_T4_PREP_OK"
+last_t4_ready: "2026-06-23 p7:t4-ready · P7_T4_READY_OK · 15/15 preflight checks"
+last_t4_day: "2026-06-23 p7:t4-day · P7_T4_DAY_OK · prep+ready+brief"
+gate_t4_prep: pnpm run p7:t4-prep
+gate_t4_ready: pnpm run p7:t4-ready
+gate_t4_day: pnpm run p7:t4-day
+gate_staging_operator_login: pnpm run p7:staging-operator-login
+gate_staging_wizard_probe: pnpm run p7:staging-wizard-probe
+p7_staging_gate: pnpm run p7:staging-gate
+p7_evidence_verify: pnpm run p7:evidence-pack-verify
+gate_staging: pnpm run p7:staging-gate
+
+epics:
+  P7-0:
+    {
+      nanos: 5,
+      spec: 5,
+      done_staging: 5,
+      status: STAGING_GREEN,
+      last_proof: P7-0-N-003,
+      note: "p7:staging-seed-bundle",
+    }
+  P7-1:
+    {
+      nanos: 9,
+      spec: 9,
+      done_staging: 8,
+      status: STAGING_GREEN,
+      current: null,
+      blocker: null,
+      n002: PARTIAL_DEV,
+      n009: STAGING_PASS,
+    }
+  P7-2:
+    {
+      nanos: 8,
+      spec: 8,
+      done_staging: 6,
+      status: STAGING_GREEN,
+      current: null,
+      skip: [P7-2-N-005, P7-2-N-006],
+      last_proof: P7-2-N-008,
+    }
+  P7-3:
+    {
+      nanos: 5,
+      spec: 5,
+      done_staging: 5,
+      status: BEHAVIORAL_COMPLETE,
+      current: null,
+      t4_manual: SIMULATED_COMPLETE,
+    }
+
+vertical_slice_staging:
+  VS-01: STAGING_PASS
+  VS-02: STAGING_PASS
+  VS-03: STAGING_PASS
+  VS-04: STAGING_PASS
+  VS-05: STAGING_PASS
+  VS-06: STAGING_PASS
+  VS-07: STAGING_PASS
+  VS-08: STAGING_PASS
+
+execution_order:
+  - P7-3-N-005-T4
+  - P7-0-N-003
+
+agent_loop:
+  - read P7-BOOT-MANIFEST.yaml boot_sequence_T0
+  - read P7-ANTI-HOLLOW-CONTRACT.md
+  - detect_current_nano
+  - load P7-VERIFICATION-COMMANDS.yaml for current nano only
+  - run commands + emit turn_report
+  - pnpm run p7:staging-remote-smoke # fast VPS (~5s)
+  - pnpm run p7:gate after code touch # defer with P7_FAST=1 on verify scripts
+  - update IMPLEMENTATION-TRUTH + exit checklist on STAGING+ PASS only
+
+staging_proof_2026_06_23:
+  P7-0-N-002: "verify-env-coherence OK /etc/app-tour-staging PORT=23001"
+  P7-0-N-004: "p7:staging-remote-smoke → 4 units active · host bind OK · :23000/23002/23003 health 200"
+  P7-0-N-003: "p7:staging-seed-bundle · OPERATOR_STAGING_SEED_OK + finance receipt + pending booking"
+  P7-0-N-005: "smoke-operator-login.sh → verify-db-env OK · OTP challenge issued"
+  P7-1-N-001: "p7:staging-wizard-probe PASS 2026-06-23 · denali.admin.localhost · BLK-P7-00 cleared via p7:sync-staging-web-vps-build"
+  P7-1-N-003: "PATCH 200 + GET round-trip ws-denali-dev/drafts/operator.wizard/denali-create"
+  P7-1-N-004: "seed-denali-dev-catalog-staging · p7:staging-picker-probe destinations=3 themes=1 · wizard HTML توچال"
+  P7-1-N-005: "denali-publish-readiness.spec PASS · p7:staging-publish-violations-probe → 400 CANONICAL_VALIDATION_FAILED 11 paths"
+  P7-1-N-006: "p7:configure-staging-revalidate · p7:staging-catalog-probe · North Ridge Trek on operator.localhost/tours"
+  P7-1-N-007: "denali-wizard-draft-contract 17/17 · p7:staging-draft-refresh-probe step=2 session retained"
+  P7-1-N-008: "DCAT-06 · p7:staging-terms-probe · policiesText on API + marketing + portal register"
+  P7-1-N-009: "p7:staging-vs01-probe · active listed · draft hidden · marketing /tours"
+  P7-2-N-001: "tour-workspace-registrations-logic 2/2 · seed-operator-smoke-identity · p7:staging-workspace-registrations-probe PASS"
+  P7-2-N-002: "p7:staging-portal-pending-probe · portal registration → pending row guest+partySize"
+  P7-2-N-003: "bookings-ops 4/4 · p7:staging-approve-booking-probe · VS-06 outbox registration.approved"
+  P7-2-N-004: "tours-workspace 8/8 · p7:staging-waitlist-promote-probe · waitlist …0312 promote"
+  P7-2-N-007: "finance-page + dashboard widget specs · p7:staging-finance-hub-probe · pending receipt …0402"
+  P7-2-N-008: "p7:staging-vs06-runbook-probe · first-customer-operator VS-06 chain on staging"
+  P7-3-N-002: "p7:staging-finance-ops-probe · finance-ops 4/4 · VS-07 T3 Postgres"
+  P7-3-N-001: "p7:staging-e2e-probe · SSH tunnel 127.0.0.1:230xx · SMK portal/marketing/admin green"
+  P7-3-N-005: "p7:gate PASS · VPS staging-gate verify+finance-ops · evidence/2026-06-23-operator/manifest.yaml"

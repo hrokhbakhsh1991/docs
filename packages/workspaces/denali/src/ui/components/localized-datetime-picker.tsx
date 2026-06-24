@@ -12,6 +12,7 @@ export type DenaliWizardDatetimePickerProps = {
   readonly id?: string;
   readonly value: string;
   readonly onChange: (datetimeLocal: string) => void;
+  readonly minIsoDate?: string;
   readonly disabled?: boolean;
   readonly required?: boolean;
   readonly className?: string;
@@ -24,6 +25,7 @@ export function DenaliWizardDatetimePicker({
   id,
   value,
   onChange,
+  minIsoDate,
   disabled = false,
   required = false,
   className,
@@ -46,6 +48,7 @@ export function DenaliWizardDatetimePicker({
           <LocalizedDatePicker
             id={id}
             value={date}
+            minIsoDate={minIsoDate}
             disabled={disabled}
             required={required}
             aria-label={ariaLabel ?? t("pickDate")}

@@ -4,11 +4,11 @@ import { describe, it } from "node:test";
 
 import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
 import {
-  computeWorkspaceDefinitionPayloadChecksum,
   DEFAULT_WORKSPACE_COMMERCE_CONFIG,
   stripWorkspacePluginToDefinitionPayload,
   type WorkspaceDefinitionPayload,
 } from "@app-tour/workspace-sdk/metadata";
+import { computeWorkspaceDefinitionPayloadChecksum } from "@app-tour/workspace-sdk/metadata/checksum";
 
 import { assertPlatformOpsOwnerRole } from "../src/platform/assert-platform-ops-role.ts";
 import { createPlatformWorkspaceDefinition } from "../src/platform/create-platform-workspace-definition.ts";

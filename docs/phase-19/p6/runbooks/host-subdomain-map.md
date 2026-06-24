@@ -31,6 +31,28 @@ Clubs **do not share** apex zones. `alborz.ir` and `denali.club` are unrelated t
 
 ---
 
+## VPS staging (89.45.89.206 — P6-REM-A6)
+
+Raw IP staging until DNS. All surfaces share tenant `00000000-0000-4000-8000-000000000014` (`operator`).
+
+| Surface | URL | Port |
+| ------- | --- | ---- |
+| Admin | `http://89.45.89.206:23000` | 23000 |
+| API | `http://89.45.89.206:23001/health` | 23001 |
+| Marketing | `http://89.45.89.206:23002` | 23002 |
+| Portal | `http://89.45.89.206:23003` | 23003 |
+
+Host-header smoke (same as dev canonical labels):
+
+```bash
+TOUR_OPS_API_URL=http://127.0.0.1:23001 node scripts/smoke-p6-host-bind.mjs
+# Host: operator.localhost · operator.portal.localhost · operator.admin.localhost
+```
+
+Env: `/etc/app-tour-staging/` · DB: `tour_db_staging` · MinIO: `app-tour-staging`
+
+---
+
 ## Smoke club (dev)
 
 | Surface | Canonical URL | Legacy alias (still supported) |

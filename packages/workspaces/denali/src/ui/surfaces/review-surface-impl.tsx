@@ -39,7 +39,11 @@ function renderDenaliReviewChrome(props: WizardReviewSurfaceRenderProps): ReactN
         fieldLabelSurfaceId: props.fieldLabelSurfaceId,
         translateWorkspaceMessage: props.translateWorkspaceMessage,
       })}
-      <DenaliReviewStep draft={props.draft} />
+      <DenaliReviewStep
+        draft={props.draft}
+        contentSteps={props.contentSteps}
+        onNavigateToStep={props.onNavigateToStep}
+      />
       <div className="denali-review__publish">
         <DenaliPublishStatusField draft={props.draft} onDraftChange={props.onDraftChange} />
       </div>

@@ -9,8 +9,10 @@ cd "$ROOT"
 echo "== p6:staging-gate — product gate =="
 pnpm run p6:gate
 
-if [[ -n "${DATABASE_URL:-}" ]]; then
+if [[ -n "${DATABASE_URL:-}" ]] || [[ "${P6_FINANCE_OPS:-}" == "1" ]]; then
   echo "== p6:staging-gate — finance-ops (Postgres) =="
+  unset DATABASE_URL_ADMIN
+  eval "$(bash scripts/ensure-p6-finance-postgres.sh)"
   pnpm --filter @apps/api exec node --import tsx --test test/finance-ops.spec.ts
 else
   echo "== p6:staging-gate — skip finance-ops (DATABASE_URL unset) =="

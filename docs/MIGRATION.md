@@ -30,7 +30,7 @@ Platform logic = generic · Workspace logic = injectable · Tenant = security bo
 
 **Phase 19 / P6** — Denali first customer — **COMPLETE** (`pnpm run p6:gate`)
 
-**Phase 20 / P7** — Denali customer live — **IN_PROGRESS** (pack v1.2 · `P7-0-N-002` · walkthrough-before-code)
+**Phase 20 / P7** — Denali customer live — **IN_PROGRESS** (pack v1.4 · doc target 90 · `P7-0-N-002`)
 
 ```bash
 pnpm run p6:gate                  # P6 regression (required on every P7 PR)

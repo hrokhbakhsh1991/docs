@@ -1,0 +1,131 @@
+# P9 — Action plan (machine-readable, app-fit v1.1)
+# Sync with: p9-app-fit.md · p9-gap-registry.md · p9-exit-checklist.md
+
+action_plan_id: P9-ACTION-PLAN
+version: "1.1"
+pack: P9
+status: PLANNED
+app_fit: p9-app-fit.md
+prerequisite: P8 exit (all P0 gaps closed)
+strict_baseline:
+  guest_bootstrap: 3.0
+  surface_boundary: 3.5
+  auth_bff_dedup: 2.0
+  package_architecture: 4.0
+  boundary_enforcement: 3.5
+  composite: 3.2
+exit_target: 8.7
+
+waves:
+  A:
+    name: P0 consolidation
+    when: First P9 sprint
+    items:
+      - id: A1
+        gaps: [G-BOOT-01, G-BOOT-02, G-BOOT-05, G-BOOT-06, G-PKG-01]
+        action: Create packages/guest-surface-host — M+P bootstrap only
+        consumers: [apps/marketing, apps/portal]
+        not_consumers: [apps/web]
+        verify: M+P zero local resolve-host-tenant.ts; web may keep operator copy
+        epic: P9-0-N-001
+
+      - id: A2
+        gaps: [G-BOOT-03]
+        action: Remove resolvePluginIdForTenant hostname heuristics; prod pluginId from API only
+        epic: P9-2-N-001
+
+      - id: A3
+        gaps: [G-SURF-01, G-SURF-04, G-AUTH-01]
+        action: Delete apps/web/app/api/public-auth/*; trim middleware public-auth paths only
+        keep: ["/catalog", "/catalog/* redirect shims"]
+        verify: glob zero web public-auth routes; portal tests green
+        epic: P9-1-N-001
+
+      - id: A4
+        gaps: [G-SURF-02]
+        action: Delete orphan public-catalog-registration-flow.tsx
+        epic: P9-1-N-002
+
+      - id: A5
+        gaps: [G-AUTH-02, G-AUTH-03]
+        action: Create packages/session-client — web + portal only
+        epic: P9-0-N-002
+
+  B:
+    name: P1 dedup + boundary
+    when: P9 EPIC completion
+    items:
+      - id: B1
+        gaps: [G-BOOT-04]
+        action: isDevGuestHostAllowed(surface) — M+P only
+        epic: P9-0-N-003
+
+      - id: B2
+        gaps: [G-SURF-03, G-SURF-05, G-BOOT-08]
+        action: Remove web catalog bootstrap (layout branch, resolve-public-catalog-bootstrap)
+        keep: catalog redirect pages
+        epic: P9-1-N-003
+
+      - id: B3
+        gaps: [G-AUTH-04, G-AUTH-05, G-AUTH-06]
+        action: Portal-only catalog session + headers + bff-error (not shared guest package)
+        epic: P9-1
+
+      - id: B4
+        gaps: [G-PKG-02]
+        action: guard:p9-surface-boundary from p9-package-boundary.yaml
+        epic: P9-3-N-001
+
+      - id: B5
+        gaps: [G-BOOT-07]
+        action: web resolve-multi-level-host → tenant-kernel only
+        epic: P9-0-N-006
+
+  C:
+    name: P2+ polish
+    when: P9 tail
+    items:
+      - id: C1
+        gaps: [G-SURF-06]
+        action: Sync public-catalog.md portal-only
+        epic: P9-3-N-002
+
+      - id: C2
+        gaps: [G-SURF-07]
+        action: E2E registration → @apps/portal only
+        epic: P9-3-N-003
+
+      - id: C3
+        action: p9:gate + p9-pack-integrity.spec.ts
+        epic: P9-3-N-005
+
+out_of_scope:
+  - tenant_domains.surface enforce  # P10 G-ING-04b only
+  - cross_app_public_auth_bff_factory  # portal sole owner after web delete
+  - session_client_in_marketing
+  - remove_web_catalog_redirect_pages
+
+p8_dependency:
+  must_complete_first:
+    - P8-1 cookie names (session-client constants align)
+    - P8-0 marketing fail-closed bootstrap
+    - P8 portal middleware (before web public-auth removal)
+
+exit_gates:
+  - id: EG-01
+    check: resolve-host-tenant.ts only in guest-surface-host + apps/web (operator)
+  - id: EG-02
+    check: web app/api/public-auth route count = 0
+  - id: EG-03
+    check: guard P9 surface rules PASS
+  - id: EG-04
+    check: audit composite score >= 8.7
+  - id: EG-05
+    check: p7:gate + p8:gate regression green
+
+references:
+  sole_boot: appendices/P9-BOOT-MANIFEST.yaml
+  verification: appendices/P9-VERIFICATION-COMMANDS.yaml
+  app_fit: p9-app-fit.md
+  boundaries: p9-package-boundary.yaml
+  gaps: p9-gap-registry.md

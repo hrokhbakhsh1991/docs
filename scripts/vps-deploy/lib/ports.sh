@@ -41,7 +41,17 @@ collect_app_ports() {
   local env_dir="${1:-/etc/app-tour}"
   API_PORT="$(read_env_port "${env_dir}/api.env" PORT 3001)"
   WEB_PORT="$(read_env_port "${env_dir}/web.env" PORT 3000)"
+  MARKETING_PORT=""
+  PORTAL_PORT=""
   APP_PORTS=("$API_PORT" "$WEB_PORT")
+  if [[ -f "${env_dir}/marketing.env" ]]; then
+    MARKETING_PORT="$(read_env_port "${env_dir}/marketing.env" PORT 3002)"
+    APP_PORTS+=("$MARKETING_PORT")
+  fi
+  if [[ -f "${env_dir}/portal.env" ]]; then
+    PORTAL_PORT="$(read_env_port "${env_dir}/portal.env" PORT 3003)"
+    APP_PORTS+=("$PORTAL_PORT")
+  fi
   for legacy in 3000 3001; do
     local seen=0 p
     for p in "${APP_PORTS[@]}"; do

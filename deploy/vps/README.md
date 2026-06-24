@@ -1,63 +1,190 @@
-# VPS deploy — operator admin (IP, no domain)
+# VPS deploy — four-process platform (P10 Profile C + P8 Profile B)
 
 Push to **`main`** → GitHub Actions runs `scripts/vps-deploy/remote-deploy.sh` on the VPS via SSH.
+
+**Four processes:** API · web · marketing · portal — each with its own env file under `/etc/app-tour/`.
+
+## Deployment Profiles
+
+| Profile | Access | TLS | Use Case | Status |
+|---------|--------|-----|----------|--------|
+| **Profile C** | HTTPS subdomain | ✅ Caddy wildcard | Production-ready | **P10 (current)** |
+| **Profile B** | HTTP IP:port | ❌ | First customer delivery | Supported |
+
+### Profile C — HTTPS with Caddy (P10-1-N-001)
+
+**Recommended for production.** Apps bind to `127.0.0.1` (loopback), Caddy reverse-proxies with TLS.
+
+```
+https://{club}.admin.{root}   → 127.0.0.1:3000 (web)
+https://{club}.portal.{root}  → 127.0.0.1:3003 (portal)
+https://{club}.{root}         → 127.0.0.1:3002 (marketing)
+API (internal)                → 127.0.0.1:3001
+```
+
+**Setup:** See [`caddy/README.md`](caddy/README.md)
+
+**Example:** `https://operator.admin.staging.example.com`
+
+### Profile B — Direct IP HTTP (P7/P8)
+
+**Legacy mode for first customer.** Apps exposed on `0.0.0.0:3000-3003`.
+
+```
+http://<VPS_IP>:3000  # web
+http://<VPS_IP>:3002  # marketing
+http://<VPS_IP>:3003  # portal
+http://<VPS_IP>:3001  # api (loopback preferred)
+```
+
+**Note:** Profile B remains documented and supported. Not deprecated in P10.
+
+---
+
+## Four-Process Architecture (P8 G-ENV-07)
+
+| Service | Default port | Env file | Template |
+| ------- | -----------: | -------- | -------- |
+| API | 3001 | `/etc/app-tour/api.env` | `deploy/vps/env/api.env.example` |
+| Operator web | 3000 | `/etc/app-tour/web.env` | `deploy/vps/env/web.env.example` |
+| Marketing | 3002 | `/etc/app-tour/marketing.env` | `deploy/vps/env/marketing.env.example` |
+| Portal | 3003 | `/etc/app-tour/portal.env` | `deploy/vps/env/portal.env.example` |
+
+Bootstrap (first time): `bash scripts/vps-deploy/bootstrap-server.sh` — creates all four env templates.
+
+Verify after edit:
+
+```bash
+ENV_DIR=/etc/app-tour bash scripts/vps-deploy/verify-env-coherence.sh --all
+```
+
+Deploy (`remote-deploy.sh`) runs the same `--all` check when marketing + portal env files exist.
+
+**P8 Profile B smoke:** `pnpm run p8:staging-remote-smoke` — see `docs/phase-21/runbooks/p8-profile-b-vps-smoke.md`.
+
+**P10 four-process smoke (staging):**
+
+```bash
+# from laptop
+VPS_HOST=89.45.89.206 pnpm run p10:staging-remote-smoke
+
+# on VPS
+ENV_DIR=/etc/app-tour-staging bash /opt/app-tour-staging/scripts/vps-deploy/smoke-four-process.sh
+```
+
+**P10 Profile B regression:** `VPS_HOST=89.45.89.206 pnpm run p10:profile-b-regression`
+
+**P10 P8 env regression:** `pnpm run p10:p8-env-regression`
+
+**P10 staging gate (one command — laptop → VPS):**
+
+```bash
+VPS_HOST=89.45.89.206 pnpm run p10:staging-gate
+# → P10_STAGING_GATE_OK
+```
+
+**P10 ops drill (read-only — systemd + smoke + rollback dry-run):**
+
+```bash
+VPS_HOST=89.45.89.206 pnpm run p10:ops-drill
+# → P10_OPS_DRILL_OK
+```
+
+**On VPS directly (no pnpm — SSH first):**
+
+```bash
+ssh root@89.45.89.206
+ENV_DIR=/etc/app-tour-staging bash /opt/app-tour-staging/scripts/vps-deploy/smoke-four-process.sh
+```
+
+**From laptop (preferred — do not paste VPS paths into local shell):**
+
+```bash
+VPS_HOST=89.45.89.206 pnpm run p10:vps-smoke
+```
+
+**Profile C loopback cutover (opt-in — breaks Profile B IP until Caddy proxies):**
+
+```bash
+PROFILE_C_ENABLE=1 ENV_DIR=/etc/app-tour-staging bash scripts/vps-deploy/ensure-profile-c-loopback.sh
+systemctl restart app-tour-staging-web app-tour-staging-marketing app-tour-staging-portal
+```
 
 **URLs (no domain):**
 
 | Service | URL |
 | ------- | --- |
 | Operator web | `http://<VPS_IP>:3000` |
-| API (health) | `http://<VPS_IP>:3001/health` |
+| Marketing | `http://<VPS_IP>:3002` |
+| Portal | `http://<VPS_IP>:3003` |
+| API (health) | `http://<VPS_IP>:3001/health` (loopback preferred — see P8 loopback runbook) |
 
 Infra on the VPS (already running): Postgres `:5433`, Redis `:6379`, MinIO `:9002`.
 
-## P7 three-surface staging (Phase 20)
+## P6/P7/P10 staging stack (isolated from prod)
 
-P6 product chain needs **four processes**: API + web + marketing + portal. Current VPS systemd ships **API + web only**; P7-0 adds env templates for guest apps:
+| Resource | Production | Staging |
+| -------- | ---------- | ------- |
+| Path | `/opt/app-tour` | `/opt/app-tour-staging` |
+| Env | `/etc/app-tour/` | `/etc/app-tour-staging/` |
+| Units | `app-tour-*` | `app-tour-staging-*` |
+| Web / API / M / P | `3000` / `3001` / `3002` / `3003` | `23000` / `23001` / `23002` / `23003` |
+| Public IP (Profile B) | `:13000–13003` optional | `:23000–23003` |
+| Edge (Profile C) | Caddy `:443` → loopback | same pattern · `render-caddy-env.sh` reads staging ports |
 
-- `deploy/vps/env/marketing.env.example`
-- `deploy/vps/env/portal.env.example`
+## P7 four-process templates (production ports)
 
-Runbook: `docs/phase-20/p7/runbooks/p7-0-staging-walkthrough.md`
+P6 vertical slice needs **four processes**: API + web + marketing + portal.
 
-### Four-process gap (P7-0-N-004)
+| Unit | Port | Env file | Template |
+| ---- | ---- | -------- | -------- |
+| `app-tour-api` | 3001 | `/etc/app-tour/api.env` | `deploy/vps/env/api.env.example` |
+| `app-tour-web` | 3000 | `/etc/app-tour/web.env` | `deploy/vps/env/web.env.example` |
+| `app-tour-marketing` | 3002 | `/etc/app-tour/marketing.env` | `deploy/vps/env/marketing.env.example` |
+| `app-tour-portal` | 3003 | `/etc/app-tour/portal.env` | `deploy/vps/env/portal.env.example` |
 
-| Unit (target) | Port | Env file | Status |
-| ------------- | ---- | -------- | ------ |
-| `app-tour-api` | 3001 | `/etc/app-tour/api.env` | shipped |
-| `app-tour-web` | 3000 | `/etc/app-tour/web.env` | shipped |
-| `app-tour-marketing` | 3002 | `/etc/app-tour/marketing.env` | **P7-0 — template only** |
-| `app-tour-portal` | 3003 | `/etc/app-tour/portal.env` | **P7-0 — template only** |
+Systemd templates: `deploy/vps/systemd/app-tour-{marketing,portal}.service`
+Installed by `scripts/vps-deploy/install-systemd-units.sh` on each deploy.
 
-Copy env templates:
+**P7-0-N-004 bootstrap:**
 
 ```bash
 cp deploy/vps/env/marketing.env.example /etc/app-tour/marketing.env
 cp deploy/vps/env/portal.env.example /etc/app-tour/portal.env
-# Set TOUR_OPS_API_URL=http://127.0.0.1:3001 (or public API URL)
-# Set PORTAL_PUBLIC_BASE_URL / MARKETING_PUBLIC_BASE_URL for VPS IP profile B
+# Align MARKETING_REVALIDATE_SECRET with api.env (see docs/phase-20/p7/runbooks/p7-0-env-matrix.md)
+bash scripts/vps-deploy/install-systemd-units.sh
+systemctl restart app-tour-marketing app-tour-portal
+ufw allow 3002/tcp
+ufw allow 3003/tcp
 ```
 
-Systemd sketch (add after P7-0 infra nano):
-
-```ini
-# /etc/systemd/system/app-tour-marketing.service
-[Service]
-User=app-tour
-WorkingDirectory=/opt/app-tour/apps/marketing
-EnvironmentFile=/etc/app-tour/marketing.env
-ExecStart=/usr/bin/node .next/standalone/apps/marketing/server.js
-# mirror app-tour-web pattern from scripts/vps-deploy/
-```
-
-Firewall (profile B): `ufw allow 3002/tcp` · `ufw allow 3003/tcp`
-
-Verify: `TOUR_OPS_API_URL=http://<VPS_IP>:3001 node scripts/smoke-p6-host-bind.mjs`
+Verify:
 
 ```bash
-pnpm run p7:gate
-pnpm run p7:staging-verify   # optional live host smoke
+TOUR_OPS_API_URL=http://127.0.0.1:3001 pnpm run p7:staging-verify
+# T2 browser: docs/phase-20/p7/runbooks/p7-staging-e2e.md
 ```
+
+**Loopback (P8):** API binds `127.0.0.1` only — BFF apps use `TOUR_OPS_API_URL=http://127.0.0.1:3001`. See [docs/phase-21/runbooks/p8-api-loopback-vps.md](../../docs/phase-21/runbooks/p8-api-loopback-vps.md).
+
+## P6 staging stack (isolated from prod)
+
+| Resource | Production | Staging |
+| -------- | ---------- | ------- |
+| Path | `/opt/app-tour` | `/opt/app-tour-staging` |
+| Env | `/etc/app-tour/` | `/etc/app-tour-staging/` |
+| Units | `app-tour-*` | `app-tour-staging-*` |
+| API port | 13001 | 23001 |
+| DB | `tour_db_prod` | `tour_db_staging` |
+
+**Wiring only (fast — no pnpm install):**
+
+```bash
+# on VPS as root, after rsync DEV to /opt/app-tour-staging
+bash /opt/app-tour-staging/scripts/vps-deploy/bootstrap-staging.sh
+```
+
+Install/build/migrate/gates: **[TEMP/FOR YOU.md](../../TEMP/FOR%20YOU.md)** · runbook [p6-staging-vps-boundary.md](../../docs/phase-19/p6/runbooks/p6-staging-vps-boundary.md)
 
 ## One-time VPS bootstrap
 
@@ -206,10 +333,15 @@ systemctl restart app-tour-api app-tour-web
 
 Post-deploy smoke (fail-closed):
 
+When `marketing.env` and `portal.env` exist, `remote-deploy.sh` runs **`smoke-four-process.sh`** (api + web + marketing + portal on loopback) then **`smoke-operator-login.sh`**. Two-process-only stacks fall back to `health-check.sh` (api + web).
+
 ```bash
-bash /opt/app-tour/scripts/vps-deploy/smoke-operator-login.sh
+ENV_DIR=/etc/app-tour bash /opt/app-tour/scripts/vps-deploy/smoke-four-process.sh
+ENV_DIR=/etc/app-tour bash /opt/app-tour/scripts/vps-deploy/smoke-operator-login.sh
 ```
 
-Checks: DB probe (prisma) → `/health` with `checks.database.ok` → BFF OTP issues `challenge_id` (not `OTP_REQUEST_FAILED`).
+**GHA:** `deploy-vps.yml` post-step runs `scripts/p10-production-remote-gate.sh`. Staging manual: `pnpm run p10:staging-remote-smoke` (see `docs/phase-23/appendices/P10-VERIFICATION-COMMANDS.yaml` P10-2-N-002).
+
+Checks: four loopback HTTP endpoints → DB probe (prisma) → `/health` with `checks.database.ok` → BFF OTP issues `challenge_id` (not `OTP_REQUEST_FAILED`).
 
 Login OTP dev: see `OPERATOR-LOGIN-FLOW.md`.

@@ -46,6 +46,7 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
         tenantId={bootstrap.tenantId}
         tourId={tourId}
         tourTitle={tourTitle}
+        tourPoliciesText={tour.policiesText ?? null}
         backHref={backHref}
       />
       <p>

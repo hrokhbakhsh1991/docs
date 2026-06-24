@@ -10,6 +10,7 @@ import {
 } from "./settings-registry";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { enrichSettingsModuleList } from "./workspace-settings-enrichers.generated";
+import { parseEquipmentIconKeyInput } from "./parse-equipment-icon-key";
 import { normalizeThemeIdsInput } from "./parse-theme-ids";
 import {
   assertDenaliOperatorSettingsWorkspace,
@@ -222,11 +223,18 @@ export async function createSettingsResource(
     } catch {
       throw new SettingsResourceInvalidError();
     }
+    let iconKey: string | null | undefined;
+    try {
+      iconKey = parseEquipmentIconKeyInput(equipmentBody.iconKey);
+    } catch {
+      throw new SettingsResourceInvalidError();
+    }
     const created = await repo.createEquipment(auth.tenantId, {
       name: equipmentBody.name.trim(),
       ...(equipmentBody.category !== undefined && equipmentBody.category.trim().length > 0
         ? { category: equipmentBody.category.trim() }
         : {}),
+      ...(iconKey !== undefined ? { iconKey } : {}),
       themeIds,
     });
     await emitSettingsResourceAudit(
@@ -335,6 +343,9 @@ export async function createSettingsResource(
         ? { locationType: locationBody.locationType.trim() }
         : {}),
       ...(locationBody.altitudeM !== undefined ? { altitudeM: locationBody.altitudeM } : {}),
+      ...(locationBody.typicalTrailDistanceKm !== undefined
+        ? { typicalTrailDistanceKm: locationBody.typicalTrailDistanceKm }
+        : {}),
     });
     await emitSettingsResourceAudit(
       auth,
@@ -383,9 +394,16 @@ export async function patchSettingsResource(
         throw new SettingsResourceInvalidError();
       }
     }
+    let iconKey: string | null | undefined;
+    try {
+      iconKey = parseEquipmentIconKeyInput(equipmentBody.iconKey);
+    } catch {
+      throw new SettingsResourceInvalidError();
+    }
     const updated = await repo.patchEquipment(auth.tenantId, itemId, {
       ...(equipmentBody.name !== undefined ? { name: equipmentBody.name.trim() } : {}),
       ...(equipmentBody.category !== undefined ? { category: equipmentBody.category } : {}),
+      ...(iconKey !== undefined ? { iconKey } : {}),
       ...(themeIds !== undefined ? { themeIds } : {}),
     });
     await emitSettingsResourceAudit(
@@ -460,6 +478,10 @@ export async function patchSettingsResource(
     ...(locationBody.country !== undefined ? { country: locationBody.country } : {}),
     ...(locationBody.regionId !== undefined ? { regionId: locationBody.regionId.trim() } : {}),
     ...(locationBody.locationType !== undefined ? { locationType: locationBody.locationType } : {}),
+    ...(locationBody.altitudeM !== undefined ? { altitudeM: locationBody.altitudeM } : {}),
+    ...(locationBody.typicalTrailDistanceKm !== undefined
+      ? { typicalTrailDistanceKm: locationBody.typicalTrailDistanceKm }
+      : {}),
     ...(locationBody.isActive !== undefined ? { isActive: locationBody.isActive } : {}),
   });
   const resourceType = "regionId" in updated ? "destination" : "region";

@@ -14,15 +14,17 @@ import { WORKSPACE_WIZARD_I18N_NAMESPACES } from "./wizard-label-bindings.genera
 /** Codegen hook map — one useTranslations call per WORKSPACE_WIZARD_I18N_NAMESPACES entry. */
 export function useGeneratedWorkspaceWizardTranslators() {
   const t_wizard = useTranslations("wizard");
+  const t_denali = useTranslations("denali");
   const t_urban = useTranslations("urban");
   return useMemo(
     () =>
       ({
       "wizard": t_wizard,
+      "denali": t_denali,
       "urban": t_urban,
       }) as const satisfies Partial<
         Record<(typeof WORKSPACE_WIZARD_I18N_NAMESPACES)[number], ReturnType<typeof useTranslations>>
       >,
-    [t_wizard, t_urban]
+    [t_wizard, t_denali, t_urban]
   );
 }

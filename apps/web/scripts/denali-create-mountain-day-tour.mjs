@@ -99,10 +99,15 @@ async function fillMountainDayBasics(page) {
   await pickStartDatetime(page);
   await fillTextField(page, "capacityMax", "12");
 
-  const social = field(page, "socialMediaLink").locator("input").first();
-  if (await social.isVisible().catch(() => false)) {
-    await social.fill("@denali_mountain");
-    await social.blur();
+  const socialAutoInfo = page.getByTestId("denali-social-media-telegram-auto-info");
+  if (await socialAutoInfo.isVisible().catch(() => false)) {
+    // Telegram default — group link is provisioned after publish; no manual input.
+  } else {
+    const social = field(page, "socialMediaLink").locator("input").first();
+    if (await social.isVisible().catch(() => false)) {
+      await social.fill("https://example.com/tour-group");
+      await social.blur();
+    }
   }
 }
 

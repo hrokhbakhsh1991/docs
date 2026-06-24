@@ -3,6 +3,7 @@ import type { ValidationIssue } from "@app-tour/wizard-navigation";
 import type { ReactNode } from "react";
 
 import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
+import type { DenaliWizardRuleEvalContext } from "../../wizard/denali-wizard-rule-eval-context";
 
 export type WizardLabelResolver = {
   readonly resolveFieldLabel: (
@@ -27,6 +28,7 @@ export type WizardCompositeFieldRenderProps = {
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
+  readonly wizardRuleEvalContext?: Pick<DenaliWizardRuleEvalContext, "ruleSet">;
 };
 
 export type WizardCompositeSurface = {
@@ -49,6 +51,9 @@ export type WizardReviewSurfaceRenderProps = {
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly reviewValidationIssues: readonly ValidationIssue[];
   readonly stepDescriptors: readonly WizardStepDescriptor[];
+  /** Content steps only — excludes the injected review step (INV-WIZ-002). */
+  readonly contentSteps: readonly RenderStepPlan[];
+  readonly onNavigateToStep?: (stepId: string) => void;
   readonly onFocusIssue: (stepId: string, path: string) => void;
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;

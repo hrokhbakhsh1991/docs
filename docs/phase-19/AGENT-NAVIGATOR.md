@@ -1,11 +1,14 @@
 # Phase 19 / P6 — Agent navigator («قدم بعدی چیست؟»)
 
 ```yaml
-navigator_version: "2026-06-21-v1"
+navigator_version: "2026-06-23-fast-close"
 sole_entry: p6/AGENT-START.md
 machine_snapshot: p6/AGENT-CURRENT-PHASE.yaml
+fast_close: p6/p6-fast-close.yaml
 umbrella: platform-denali-first-customer.mdoc
 gate: pnpm run p6:gate
+next_phase: ../phase-20/p7/AGENT-START.md
+long_commands: ../../TEMP/FOR YOU.md
 ```
 
 > **Use after** [`p6/AGENT-START.md`](p6/AGENT-START.md). Answers **what to read and do next** without browsing all 58 nanos.
@@ -16,6 +19,13 @@ gate: pnpm run p6:gate
 
 ```text
 START
+  │
+  ├─ IF AGENT-CURRENT-PHASE.status in [CLOSED_FAST, COMPLETE]
+  │    → STOP greenfield P6 implementation
+  │    → NEXT: ../phase-20/p7/AGENT-START.md
+  │    → REGRESSION: P6_FAST_CLOSE=1 pnpm run p6:closure (local gate only)
+  │    → VPS depth: TEMP/FOR YOU.md (user-run · not agent)
+  │    → READ: p6/p6-fast-close.yaml · IMPLEMENTATION-TRUTH-P6.md
   │
   ├─ IF AGENT-CURRENT-PHASE.status == COMPLETE AND p6:gate == PASS
   │    → STOP greenfield P6 implementation

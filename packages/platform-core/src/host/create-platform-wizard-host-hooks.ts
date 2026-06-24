@@ -109,6 +109,6 @@ export function createPlatformWizardHostHooks(
       return filterValidationToStep(result, step);
     },
     prepareSubmitPayload: (input) =>
-      draftToCanonicalDocument(input.draft, input.plugin),
+      draftToCanonicalDocument(input.draft, input.plugin as WorkspacePlugin),
   });
 }

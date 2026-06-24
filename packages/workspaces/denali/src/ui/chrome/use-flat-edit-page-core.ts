@@ -14,6 +14,7 @@ import {
 } from "../../draft/denali-tour-wizard-draft";
 import type { DenaliSubmitCatalogIds } from "../../wizard/denali-wizard-catalog-sanitize";
 import type { DenaliWizardRulesModule as StrictDenaliWizardRulesModule } from "../../wizard/denali-wizard-rules-module";
+import { encodeTourActionSubmitError } from "../logic/tour-action-submit-error-codec";
 import type { DenaliCreateTourWizardGate } from "./use-create-tour-wizard-core";
 import {
   useDenaliThemeCatalog,
@@ -77,7 +78,7 @@ export type DenaliFlatEditPageCoreInput = {
     payload: UpdateTourPayload
   ) => Promise<
     | { readonly ok: true; readonly rowVersion: number }
-    | { readonly ok: false; readonly status: number; readonly code: string }
+    | { readonly ok: false; readonly status: number; readonly code: string; readonly message: string }
   >;
   readonly loadSubmitCatalog: () => Promise<DenaliSubmitCatalogIds>;
   readonly onAfterPatchSuccess: () => void;
@@ -220,7 +221,13 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
             setSubmitValidationIssues(outcome.failure.validationIssues ?? null);
             setSubmitError("VALIDATION_FAILED");
           } else if (outcome.failure.kind === "update-action") {
-            setSubmitError(`ACTION:${outcome.failure.status}:${outcome.failure.code}`);
+            setSubmitError(
+              encodeTourActionSubmitError({
+                status: outcome.failure.status ?? 400,
+                code: outcome.failure.code,
+                message: outcome.failure.message ?? outcome.failure.code,
+              })
+            );
           } else {
             setSubmitError(outcome.failure.code);
           }

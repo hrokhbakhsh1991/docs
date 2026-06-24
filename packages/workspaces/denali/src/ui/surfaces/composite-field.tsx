@@ -4,6 +4,7 @@ import type { RenderFieldPlan } from "@app-tour/platform-core";
 import type { ReactNode } from "react";
 
 import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
+import type { DenaliWizardRuleEvalContext } from "../../wizard/denali-wizard-rule-eval-context";
 import { resolveDenaliCompositeRenderer } from "./composite-renderers";
 
 type DenaliCompositeFieldProps = {
@@ -13,6 +14,7 @@ type DenaliCompositeFieldProps = {
   readonly onDraftChange: (draft: DenaliTourWizardDraft) => void;
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
+  readonly wizardRuleEvalContext?: Pick<DenaliWizardRuleEvalContext, "ruleSet">;
 };
 
 export function DenaliCompositeField({
@@ -22,10 +24,11 @@ export function DenaliCompositeField({
   onDraftChange,
   wizardSessionId,
   workspaceFormProfile,
+  wizardRuleEvalContext,
 }: DenaliCompositeFieldProps): ReactNode {
   const renderer = resolveDenaliCompositeRenderer(compositeId);
   if (!renderer) {
     return null;
   }
-  return renderer({ field, draft, onDraftChange, wizardSessionId, workspaceFormProfile });
+  return renderer({ field, draft, onDraftChange, wizardSessionId, workspaceFormProfile, wizardRuleEvalContext });
 }

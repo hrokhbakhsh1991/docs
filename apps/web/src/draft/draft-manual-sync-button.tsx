@@ -4,6 +4,8 @@ import { Button } from "@app-tour/ui-primitives/button";
 import type { DraftStatus } from "@app-tour/draft-engine";
 import { useTranslations } from "next-intl";
 
+import { cn } from "@/lib/utils";
+
 import { resolveDraftManualSyncButtonView } from "./draft-manual-sync-button-logic";
 
 export type DraftManualSyncButtonProps = {
@@ -48,13 +50,19 @@ export function DraftManualSyncButton({
       type="button"
       variant="outline"
       size="sm"
-      className={className}
+      className={cn("draft-manual-sync-button", className)}
       data-testid={testId}
       data-draft-sync-action={view.action}
+      data-draft-sync-status={status}
       disabled={disabled}
+      aria-busy={status === "SYNCING" ? true : undefined}
       onClick={onClick}
     >
-      {label}
+      <span className="draft-manual-sync-button__sizer" aria-hidden>
+        <span>{tWizard("saveDraft")}</span>
+        <span>{tCommon("draftSync.retry")}</span>
+      </span>
+      <span className="draft-manual-sync-button__label">{label}</span>
     </Button>
   );
 }

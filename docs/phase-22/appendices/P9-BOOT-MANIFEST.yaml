@@ -1,0 +1,120 @@
+# P9 — Sole AI boot manifest (T0 entry)
+# Authority: AGENT-START.md · p9-app-fit.md
+
+manifest_id: P9-BOOT-MANIFEST
+pack_version: "1.0"
+sole_entry: docs/phase-22/AGENT-START.md
+fail_token: P9_FAIL
+machine_snapshot: docs/phase-22/AGENT-CURRENT-PHASE.yaml
+implementation_truth: appendices/P9-IMPLEMENTATION-TRUTH.md
+anti_hollow: appendices/P9-ANTI-HOLLOW-CONTRACT.md
+verification_commands: appendices/P9-VERIFICATION-COMMANDS.yaml
+turn_schema: appendices/P9-AGENT-TURN-SCHEMA.md
+execution_discipline: appendices/P9-EXECUTION-DISCIPLINE.md
+deprecated: appendices/P9-DEPRECATED-ENTRYPOINTS.md
+boundaries: ../p9-package-boundary.yaml
+app_fit: ../p9-app-fit.md
+alignment: ../../POST-P7-PACK-ALIGNMENT.md
+
+current_task: P9-0-N-001
+nano_total: 13
+
+prerequisite:
+  command: pnpm run p8:gate
+  expect_token: P8_PLATFORM_SURFACE_GATE_OK
+  note: "P8 Wave A+B complete — cookie rename · portal middleware · marketing fail-closed"
+
+boot_sequence_T0:
+  - step: 0
+    action: READ
+    path: appendices/P9-BOOT-MANIFEST.yaml
+  - step: 1
+    action: READ
+    path: ../p9-app-fit.md
+    rule: "web keeps operator host map · catalog redirects KEEP · no TLS/P10"
+  - step: 2
+    action: READ
+    path: appendices/P9-IMPLEMENTATION-TRUTH.md
+  - step: 3
+    action: READ
+    path: appendices/P9-ANTI-HOLLOW-CONTRACT.md
+  - step: 4
+    action: READ
+    path: appendices/P9-EXECUTION-DISCIPLINE.md
+  - step: 5
+    action: READ
+    path: ../p9-package-boundary.yaml
+  - step: 6
+    action: READ
+    path: AGENT-CURRENT-PHASE.yaml
+  - step: 7
+    action: RUN
+    command: pnpm run p8:gate
+    expect_exit: 0
+    on_fail: P9_FAIL
+  - step: 8
+    action: DETECT_NANO
+    algorithm: detect_current_nano
+  - step: 9
+    action: LOAD
+    path: "appendices/P9-VERIFICATION-COMMANDS.yaml#{current_nano}"
+
+forbidden_T0:
+  - action: start_before_p8_exit
+    reason: "P9_FAIL — session-client needs P8 cookie names"
+  - action: remove_web_catalog_redirect_pages
+    reason: "307 shims DEC-P11-014 — keep"
+  - action: zero_resolve_host_tenant_in_web
+    reason: "web operator dev map stays local"
+  - action: guest_surface_host_in_web
+    reason: "P9-SURF-03 boundary"
+  - action: tenant_domains_surface_enforce
+    reason: "P10 G-ING-04b"
+  - action: add_caddy_tls
+    reason: "P10"
+  - path: docs/phase-22/p9-code-consolidation-audit.md
+    reason: "Audit only — use VERIFICATION-COMMANDS per nano"
+
+gate_chain:
+  - id: DEV_STATIC
+    command: pnpm run p9:gate
+    expect_token: P9_CODE_CONSOLIDATION_GATE_OK
+    proof_tier: DEV_STATIC
+  - id: PACKAGE
+    command: pnpm run guard:import-boundary
+    proof_tier: PACKAGE
+  - id: SURFACE
+    command: pnpm run guard:p9-surface-boundary
+    proof_tier: SURFACE
+    note: "After P9-3-N-001 implemented"
+  - id: REGRESSION
+    command: pnpm run p8:gate
+    proof_tier: REGRESSION
+
+execution_order:
+  - P9-0-N-001
+  - P9-0-N-002
+  - P9-2-N-001
+  - P9-1-N-001
+  - P9-1-N-002
+  - P9-0-N-003
+  - P9-1-N-003
+  - P9-1-N-004
+  - P9-0-N-006
+  - P9-3-N-001
+  - P9-3-N-002
+  - P9-3-N-003
+  - P9-3-N-005
+
+wave_map:
+  A: [P9-0-N-001, P9-0-N-002, P9-2-N-001, P9-1-N-001, P9-1-N-002]
+  B: [P9-0-N-003, P9-1-N-003, P9-1-N-004, P9-0-N-006, P9-3-N-001]
+  C: [P9-3-N-002, P9-3-N-003, P9-3-N-005]
+
+exit_requires:
+  composite: ">=8.7"
+  web_public_auth_routes: 0
+  mp_local_resolve_host_tenant: 0
+  web_imports_guest_surface_host: 0
+  catalog_redirect_shims: kept
+  p9_gate: green

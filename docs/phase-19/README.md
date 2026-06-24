@@ -1,22 +1,27 @@
 # Phase 19 — P6 Denali first customer
 
 ```yaml
-pack_version: "2.2"
+pack_version: "2.3-fast-close"
 nanos: 58
-status: REOPEN_BEHAVIORAL
+status: CLOSED_FAST
+fast_close: p6/p6-fast-close.yaml
 doc_pack: COMPLETE
-code_integration: PARTIAL
+code_integration: DEV_SLICE_CLOSED
 execution_order: [P6-0, P6-1, P6-2, P6-3, P6-4]
 milestone_guest_slice: P6-1-N-014
 gate_static: pnpm run p6:gate
+gate_closure_fast: P6_FAST_CLOSE=1 pnpm run p6:closure
 gate_live: node scripts/smoke-p6-host-bind.mjs
 navigator: AGENT-NAVIGATOR.md
-p7_blocked: true
+p7_blocked: false
+long_commands: ../TEMP/FOR YOU.md
 ```
 
 ## Start
 
-→ [p6/AGENT-START.md](p6/AGENT-START.md) · **status:** REOPEN_BEHAVIORAL · current `P6-0-N-007`
+→ [p6/AGENT-START.md](p6/AGENT-START.md) · **status:** CLOSED_FAST · **P7** unblocked
+
+Long VPS/build/gate commands: **[TEMP/FOR YOU.md](../TEMP/FOR%20YOU.md)**
 
 ## Umbrella
 

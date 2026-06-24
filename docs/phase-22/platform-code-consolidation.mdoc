@@ -1,0 +1,176 @@
+---
+title: P9 — Platform code consolidation
+phase: 22
+format: markdoc
+pack: P9
+status: PLANNED
+prerequisite: P8 exit
+audit: p9-code-consolidation-audit.md
+app_fit: p9-app-fit.md
+---
+
+# P9 — Platform code consolidation
+
+## North star (fit-aligned)
+
+**web = operator only** · **portal = sole guest auth/registration** · **marketing + portal = shared guest bootstrap package**.
+
+**Keep:** web `/catalog/*` **redirect shims** (307) — legacy URLs.  
+**Remove:** web public-auth BFF · orphan flow · catalog layout bootstrap.
+
+→ [p9-app-fit.md](p9-app-fit.md)
+
+---
+
+## Strict scores today
+
+| Axis | Score |
+| ---- | ----: |
+| Guest bootstrap (M+P) | 3.0 |
+| Surface boundary | 3.5 |
+| Auth/BFF dedup | 2.0 |
+| **Composite** | **3.2** |
+
+**Exit (fit):** composite **≥ 8.7** · surface **≥ 9** · web zero public-auth routes.
+
+---
+
+## EPIC map (fit-aligned)
+
+Local duplicates removed under M+P. **`session-client`** (P9-0-N-002) owns JWT decode/validate + cookie name constants for web · portal.
+
+### P9-1-N-001 — delete web `public-auth` BFF
+
+Removed `apps/web/app/api/public-auth/*` · trimmed `middleware.ts` `PUBLIC_BFF_API_PATHS`. Catalog redirect shims **kept** (`/catalog/*` → marketing/portal).
+
+### P9-1-N-003 — remove web catalog layout bootstrap (G-SURF-03/05 · G-BOOT-08)
+
+`apps/web/app/layout.tsx` always calls `resolveBootstrapAppSessionForHostAsync(host)` — no `isPublicCatalogPath` branch and no guest actor for `/catalog/*`.
+
+**Deleted:**
+
+- `apps/web/src/tenant/resolve-public-catalog-bootstrap.server.ts`
+- `apps/web/src/auth/resolve-identity-bff-tenant.ts` (catalog-bootstrap tenant shim; operator BFF uses `identity-bff-headers.resolveOperatorBffTenantId`)
+- `apps/web/test/resolve-public-catalog-bootstrap.spec.ts`
+
+**Unchanged:** `apps/web/app/(public)/catalog/**` redirect pages · `middleware.ts` `/catalog` matcher.
+
+### P9-0-N-006 — web multi-level host → tenant-kernel (G-BOOT-07)
+
+Deleted `apps/web/src/tenant/resolve-multi-level-host.ts`. Web tenant modules call `parseMultiLevelTenantHost` from `@app-tour/tenant-kernel` with env from `platform-host-env.ts`. Operator-only helpers (`isOperatorAdminHost`, `resolveClubSubdomainFromHost`) live in `operator-admin-host.ts`.
+
+### P9-1-N-004 — portal-only catalog session + headers (G-AUTH-04/05/06)
+
+Guest catalog auth modules live **only** under `apps/portal`:
+
+- `read-public-catalog-session.server.ts`
+- `build-catalog-registration-headers.server.ts`
+- `public-auth-bff-error.ts`
+
+**Deleted from web:** the three modules above · orphan `submit-denali-registration.server.ts` · `submit-urban-registration.server.ts` · `build-catalog-registration-headers.spec.ts`.
+
+### P9-2-N-001 — API-only pluginId (G-BOOT-03)
+
+`resolveGuestSurfaceBootstrapForHost` in `guest-surface-host`:
+
+- **Production:** `pluginId` only from `GET /public/tenant-context`
+- **Dev:** `resolveDevPluginIdForTenantId(tenantId)` — smoke UUID map; **no** `hostname.includes`
+
+M+P `resolve-*-bootstrap.ts` are thin wrappers (~15 lines each).
+
+### P9-0-N-002 — `session-client` (web + portal)
+
+Package `packages/session-client` owns:
+
+- `decodeJwtPayload` · `isJwtExpired` · `validateSessionToken`
+- `SESSION_COOKIE_NAMES` (`atour_op_session` · `atour_mb_session`)
+- `resolveSessionCookieSecure` · `setSessionCookieOnResponse` (plain `Headers`, no Next import)
+
+Apps keep thin `build-session-cookie.ts` shims that bind surface cookie name.
+
+### P9-0-N-001 — `guest-surface-host` (M+P)
+
+Package `packages/guest-surface-host` owns:
+
+- `PHASE_43_HOST_TENANT_IDS` · `resolveTenantIdFromDevHost(surface)`
+- `resolveTenantIdFromIngressLabel` · `resolvePublicBrandingHost`
+- `fetchPublicTenantContextForHost(host, { apiBaseUrl, onBeforeFetch })`
+- `isDevGuestHostAllowed` (alias `isDevWebSessionAllowed` in apps)
+
+**Consumers:** `apps/marketing` · `apps/portal` only. **Web must not import.**
+
+Local duplicates removed: `resolve-host-tenant.ts` · `fetch-public-tenant-context.ts` · `resolve-public-branding-host.ts` under M+P.
+
+### P9-0 — Shared packages
+
+| Nano | Deliverable | Consumers |
+| ---- | ----------- | --------- |
+| P9-0-N-001 | `guest-surface-host` — M+P bootstrap only | marketing · portal |
+| P9-0-N-002 | `session-client` — JWT helpers | **web · portal** (not marketing) |
+| P9-0-N-003 | `isDevGuestHostAllowed` — **M+P only** | marketing · portal |
+| P9-0-N-006 | web → tenant-kernel for multi-level host | web |
+
+**Removed from P9-0:** cross-app BFF factory (portal-only inline) · catalog headers in guest pkg (portal-only).
+
+### P9-1 — Web guest cleanup (not full catalog removal)
+
+| Nano | Deliverable |
+| ---- | ----------- |
+| P9-1-N-001 | Delete web `app/api/public-auth/*` |
+| P9-1-N-002 | Delete orphan registration flow |
+| P9-1-N-003 | Remove catalog **bootstrap** from layout — operator `resolveBootstrapAppSessionForHostAsync` only; `/catalog/*` redirect pages unchanged |
+| P9-1-N-004 | Portal-only catalog session + headers + bff-error |
+
+### P9-2 — API-only pluginId (M+P)
+
+| Nano | Deliverable |
+| ---- | ----------- |
+| P9-2-N-001 | Remove hostname pluginId heuristic |
+
+### P9-3-N-001 — `guard:p9-surface-boundary`
+
+Script `scripts/guards/guard-p9-surface-boundary.mjs` enforces `p9-package-boundary.yaml` rules:
+
+- **P9-SURF-01** — no `apps/web/app/api/public-auth` routes
+- **P9-SURF-02** — no local `PHASE_43_HOST_TENANT_IDS` in M+P
+- **P9-SURF-03** — web must not import `guest-surface-host`
+- **P9-PKG-01** — `guest-surface-host` must not import `apps/*`
+
+Wired into `pnpm run p9:gate` after P9-0 wiring checks.
+
+### P9-3-N-002 — `public-catalog.md` portal-only (G-SURF-06)
+
+`docs/workspaces/denali/public-catalog.md` documents M17 OTP on **`apps/portal`** only; web `/catalog/*` redirect shims and operator `/api/auth/*` called out separately. SMK-DREG-01 superseded by portal `SMK-PTL-01`.
+
+### P9-3-N-003 — portal-only registration E2E (G-SURF-07)
+
+Removed `apps/web/tests/e2e/denali-catalog-registration.spec.ts` · `playwright.denali.config.ts`. Registration smokes: `apps/portal/tests/e2e/portal-*-smoke.spec.ts` via `pnpm --filter @apps/portal run test:smoke`.
+
+### P9-3 — Boundary gate
+
+| Nano | Deliverable |
+| ---- | ----------- |
+| P9-3-N-001 | `guard:p9-surface-boundary` |
+| P9-3-N-002 | doc sync portal-only |
+| P9-3-N-003 | e2e portal-only |
+| P9-3-N-005 | `p9:gate` |
+
+**Moved out:** P9-3-N-004 tenant_domains → **P10** G-ING-04b.
+
+---
+
+## NOT P9
+
+| Item | Owner |
+| ---- | ----- |
+| TLS · Caddy | P10 |
+| ingress session/env | P8 |
+| web operator `resolve-host-tenant` | stays in web |
+| catalog redirect pages | keep in web |
+
+---
+
+## References
+
+- [p9-app-fit.md](p9-app-fit.md)
+- [p9-gap-registry.md](p9-gap-registry.md)

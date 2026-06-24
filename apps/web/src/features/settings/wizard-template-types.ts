@@ -46,6 +46,7 @@ export const WIZARD_TEMPLATE_TEST_IDS = {
   saveButton: "operator-wizard-template-save",
   loadFullTemplateButton: "operator-wizard-template-load-full",
   success: "operator-wizard-template-success",
+  photosStepShowLongDescription: "operator-wizard-template-photos-show-long-description",
 } as const;
 
 export const DEFAULT_WIZARD_TEMPLATE_SECTIONS: readonly WizardTemplateSection[] = [

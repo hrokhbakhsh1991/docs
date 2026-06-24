@@ -1,6 +1,7 @@
 import type { RenderStepPlan } from "@app-tour/platform-core";
 import type { WorkspaceWizardHostHooks } from "@app-tour/workspace-sdk";
 
+import { mergeDenaliWizardDraftEnvelope } from "../draft/merge-envelope";
 import {
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
@@ -34,6 +35,7 @@ import {
   prepareDenaliTourPatchPayloadFromHostInput,
   sanitizeDenaliWizardDraftFromHostInput,
 } from "./denali-wizard-submit-payload";
+import { normalizeDenaliWizardTemplateGate } from "./normalize-denali-wizard-template-gate";
 
 export type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
 
@@ -99,6 +101,7 @@ export const denaliWizardHostHooks: WorkspaceWizardHostHooks = Object.freeze({
   usesContextualFieldRules: true,
   usesStepValidation: true,
   usesReviewStep: true,
+  reviewFieldCanonicalPath: "publishStatus",
   hostRootDataAttributes: Object.freeze({ "data-denali-wizard-host": "true" }),
   loadRulesModule: loadDenaliWizardRulesModule,
   resolveMatrixDimensionsFromDraft: resolveDenaliMatrixDimensionsFromDraft,
@@ -130,6 +133,8 @@ export const denaliWizardHostHooks: WorkspaceWizardHostHooks = Object.freeze({
       envelope.form,
       envelope.meta as DenaliWizardDraftMeta
     ),
+  mergeDraftEnvelope: (local, server) => mergeDenaliWizardDraftEnvelope(local, server),
+  normalizeWizardTemplateGate: normalizeDenaliWizardTemplateGate,
 });
 
 export { loadDenaliWizardRulesModule, resolveDenaliMatrixDimensionsFromDraft, applyContextualFieldRules };

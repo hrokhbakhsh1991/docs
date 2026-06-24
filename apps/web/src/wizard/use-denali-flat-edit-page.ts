@@ -176,7 +176,12 @@ export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPage
     async (payload: UpdateTourPayload) => {
       const result = await updateTourAction(tourId, payload);
       if (!result.ok) {
-        return { ok: false as const, status: result.status, code: result.code };
+        return {
+          ok: false as const,
+          status: result.status,
+          code: result.code,
+          message: result.message,
+        };
       }
       return { ok: true as const, rowVersion: result.rowVersion };
     },
@@ -187,7 +192,7 @@ export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPage
     router.refresh();
   }, [router]);
 
-  return useDenaliFlatEditPageCore({
+  const core = useDenaliFlatEditPageCore({
     tourId,
     tenantId: session.tenantId,
     canPublish: isOwnerRole(session.role),
@@ -202,6 +207,8 @@ export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPage
     loadSubmitCatalog: loadDenaliSubmitCatalogIds,
     onAfterPatchSuccess,
   });
+
+  return { ...core, draftSyncEngine: draftSync };
 }
 
 export { createDenaliDraftSchemaGate };

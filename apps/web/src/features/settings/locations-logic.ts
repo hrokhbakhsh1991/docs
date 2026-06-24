@@ -41,6 +41,16 @@ function isDestination(value: unknown): value is DestinationResource {
   if (row.altitudeM === undefined) {
     row.altitudeM = null;
   }
+  if (
+    row.typicalTrailDistanceKm !== undefined &&
+    row.typicalTrailDistanceKm !== null &&
+    typeof row.typicalTrailDistanceKm !== "number"
+  ) {
+    return false;
+  }
+  if (row.typicalTrailDistanceKm === undefined) {
+    row.typicalTrailDistanceKm = null;
+  }
   if (row.isActive === undefined) {
     row.isActive = true;
   }

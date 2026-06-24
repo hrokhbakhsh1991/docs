@@ -1,0 +1,95 @@
+# P10 — Production Profile C contract (app-fit v1.1)
+# Authority: p10-app-fit.md · P7-PORT-MATRIX Profile C · p6-host-addressing H-P6-03
+
+contract_id: P10-PRODUCTION-PROFILE
+version: "1.1"
+pack: P10
+app_fit: p10-app-fit.md
+profile: C
+
+# Profile C — platform subdomain staging + optional M+P custom apex
+# Profile B IP HTTP remains valid for P7 first customer (not deprecated)
+
+edge:
+  recommended: caddy
+  alternatives: [nginx]
+  public_ports: [80, 443]
+  app_bind: 127.0.0.1
+  tls_phase_1: wildcard  # *.staging.example.com — Wave A
+  tls_phase_2:
+    on_demand_tls:
+      ask_endpoint: "/internal/tls/verify"
+      authority: tenant_domains verified — M+P surfaces only
+      note: Wave C — not day-1 blocker
+
+surfaces:
+  marketing:
+    url_pattern_staging: "https://{club}.{staging_root}"
+    custom_apex: "https://{apex}"           # phase 2 — trunk v1 M+P
+    loopback: "127.0.0.1:3002"
+    tenant_domains_surface: marketing
+
+  portal:
+    url_pattern_staging: "https://{club}.portal.{staging_root}"
+    custom_apex: "https://portal.{apex}"    # phase 2
+    loopback: "127.0.0.1:3003"
+    tenant_domains_surface: portal
+
+  admin:
+    url_pattern_staging: "https://{club}.admin.{staging_root}"
+    custom_apex: "https://admin.{apex}"     # DEFERRED trunk v2 — H-P6-03
+    loopback: "127.0.0.1:3000"
+    tenant_domains_surface: admin
+    p10_exit_uses: subdomain_only
+
+  api:
+    loopback: "127.0.0.1:3001"
+    public_edge: optional                   # BFF uses TOUR_OPS_API_URL loopback
+    note: smoke via 127.0.0.1 — not required on public api.*
+
+profile_b:
+  status: SUPPORTED_not_deprecated
+  urls: "http://<VPS_IP>:3000-3003"
+  note: P7 first customer — coexists until edge cutover
+
+env_profile_c:
+  forbidden:
+    - ALLOW_DEV_WEB_SESSION=true
+    - AUTH_ALLOW_DEV_STATIC_OTP=true
+    - PUBLIC_TENANT_FALLBACK_HOSTS
+  required:
+    SESSION_COOKIE_SECURE: "true"
+    TOUR_OPS_API_URL: "http://127.0.0.1:3001"
+  per_app_files:
+    - /etc/app-tour/api.env
+    - /etc/app-tour/web.env
+    - /etc/app-tour/marketing.env
+    - /etc/app-tour/portal.env
+
+headers_from_edge:
+  required:
+    - Host
+    - X-Forwarded-Proto: https
+  optional:
+    - X-Forwarded-Host
+  trust_model: loopback_only  # not enterprise edge signing
+
+post_deploy_smoke:
+  script_target: scripts/vps-deploy/smoke-four-process.sh
+  checks:
+    - api: "GET http://127.0.0.1:3001/health → 200"
+    - web: "GET https://{club}.admin.{staging_root}/auth/login → 2xx"
+    - marketing: "GET /health or tenant-context on HTTPS host"
+    - portal: "GET /health on HTTPS host"
+  fail_action: rollback-vps.sh
+
+exit_targets_fit:
+  composite: 8.7
+  tls: 8.5
+  deploy_ci: 9.0
+  strict_ceiling: 9.2
+
+references:
+  app_fit: p10-app-fit.md
+  audit: p10-production-grade-audit.md
+  p7_matrix: ../phase-20/p7/appendices/P7-PORT-MATRIX.md

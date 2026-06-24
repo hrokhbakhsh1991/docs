@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   buildDenaliReviewHero,
   buildDenaliReviewSections,
+  buildDenaliReviewSectionsFromVisibleSteps,
   type DenaliReviewCatalog,
   type DenaliReviewFormatLabels,
 } from "@app-tour/workspace-denali/ui/logic/denali-review-format-logic";
@@ -29,6 +30,7 @@ const LABELS: DenaliReviewFormatLabels = {
   photoCount: (count) => `${count} photos`,
   dayLabel: (day) => `day ${day}`,
   primaryGathering: "primary",
+  socialMediaTelegramAutoLabel: "Telegram — auto",
 };
 
 describe("denali-review-format-logic.spec.ts", () => {
@@ -49,6 +51,23 @@ describe("denali-review-format-logic.spec.ts", () => {
     assert.equal(hero.title, "Spring climb");
     assert.equal(hero.destination, "Damavand");
     assert.match(hero.schedule, /2026-07-01T08:00/);
+  });
+
+  it("WEB-DENALI-REVIEW-02b shows telegram auto label when social link is empty", () => {
+    const sections = buildDenaliReviewSections(
+      {
+        data: {
+          title: "Spring climb",
+          category: "mountain_day",
+          destinationId: "dest-1",
+        },
+      },
+      EMPTY_CATALOG,
+      LABELS
+    );
+    const basic = sections.find((section) => section.stepId === "denali_basic");
+    const socialRow = basic?.rows.find((row) => row.label === "socialMediaLink");
+    assert.equal(socialRow?.value, "Telegram — auto");
   });
 
   it("WEB-DENALI-REVIEW-02 groups filled fields into wizard sections", () => {
@@ -93,7 +112,29 @@ describe("denali-review-format-logic.spec.ts", () => {
     ]);
     const logistics = sections.find((section) => section.stepId === "denali_logistics");
     assert.ok(logistics?.chips?.includes("Breakfast"));
+    assert.equal(logistics?.gearItems?.[0]?.name, "Sleeping bag");
     assert.equal(logistics?.cards?.some((card) => card.variant === "self"), true);
+  });
+
+  it("WEB-DENALI-REVIEW-08 exposes cover photo and photo grid payloads", () => {
+    const draft = {
+      data: {
+        title: "Photo tour",
+        category: "mountain_day",
+        destinationId: "dest-1",
+        photos: [
+          { id: "p1", label: "Trail head", url: "https://cdn.example.com/p1.jpg" },
+          { id: "p2", label: "Summit", storageKey: "uploads/p2.jpg", day: 2 },
+        ],
+      },
+    };
+    const hero = buildDenaliReviewHero(draft, EMPTY_CATALOG, LABELS);
+    assert.equal(hero.coverPhoto?.id, "p1");
+    const sections = buildDenaliReviewSections(draft, EMPTY_CATALOG, LABELS);
+    const photos = sections.find((section) => section.stepId === "denali_photos");
+    assert.equal(photos?.photos?.length, 2);
+    assert.equal(photos?.photos?.[0]?.label, "Trail head");
+    assert.equal(photos?.cards, undefined);
   });
 
   it("WEB-DENALI-REVIEW-03 renders itinerary day segments in program section", () => {
@@ -199,5 +240,78 @@ describe("denali-review-format-logic.spec.ts", () => {
     );
     const program = sections.find((section) => section.stepId === "denali_program");
     assert.match(program?.cards?.[0]?.body ?? "", /Tehran Book City/);
+  });
+
+  it("WEB-DENALI-REVIEW-06 filters sections to visible template steps only", () => {
+    const contentSteps = [
+      {
+        stepId: "denali_basic",
+        fields: [
+          { canonicalPath: "title", fieldId: "title", kind: "text", required: true, hidden: false },
+          {
+            canonicalPath: "destinationId",
+            fieldId: "destinationId",
+            kind: "text",
+            required: true,
+            hidden: false,
+          },
+        ],
+      },
+    ];
+    const sections = buildDenaliReviewSectionsFromVisibleSteps(
+      {
+        data: {
+          title: "Spring climb",
+          category: "mountain_day",
+          destinationId: "dest-1",
+          transport: { mode: "bus", transportCost: "50000" },
+        },
+      },
+      contentSteps,
+      EMPTY_CATALOG,
+      LABELS
+    );
+    assert.deepEqual(
+      sections.map((section) => section.stepId),
+      ["denali_basic"]
+    );
+    const basic = sections[0];
+    assert.ok(basic?.rows.some((row) => row.canonicalPath === "title"));
+    assert.ok(!basic?.rows.some((row) => row.canonicalPath === "transport.mode"));
+  });
+
+  it("WEB-DENALI-REVIEW-07 uses transport.transportCost canonical path in logistics", () => {
+    const contentSteps = [
+      {
+        stepId: "denali_logistics",
+        fields: [
+          {
+            canonicalPath: "transport.mode",
+            fieldId: "transport.mode",
+            kind: "enum",
+            required: false,
+            hidden: false,
+          },
+        ],
+      },
+    ];
+    const sections = buildDenaliReviewSectionsFromVisibleSteps(
+      {
+        data: {
+          title: "Tour",
+          category: "mountain_day",
+          transport: { mode: "bus", transportCost: "120000" },
+        },
+      },
+      contentSteps,
+      EMPTY_CATALOG,
+      LABELS
+    );
+    const logistics = sections.find((section) => section.stepId === "denali_logistics");
+    assert.ok(logistics?.rows.some((row) => row.canonicalPath === "transport.transportCost"));
+    assert.equal(
+      logistics?.rows.find((row) => row.canonicalPath === "transport.transportCost")?.value,
+      "120000"
+    );
   });
 });

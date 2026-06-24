@@ -31,7 +31,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] {
   --color-focus-ring: var(--focus-ring-color);
 }
 
-/* Wizard Bridge shell */
+/* Wizard Bridge shell — natural page height; document scrolls (no nested form panel). */
 body[data-workspace-plugin="denali"] .wizard-bridge-shell {
   min-height: 100dvh;
   display: flex;
@@ -185,22 +185,17 @@ body[data-workspace-plugin="denali"] .wizard-bridge-shell__theme-toggle:hover:no
 
 body[data-workspace-plugin="denali"] .wizard-bridge-shell__main {
   flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
 body[data-workspace-plugin="denali"] .new-tour-wizard-page {
   display: flex;
-  flex: 1;
-  min-height: 0;
   flex-direction: column;
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard {
   display: flex;
-  flex: 1;
-  min-height: 0;
   flex-direction: column;
 }
 
@@ -208,13 +203,11 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] {
   --denali-wizard-max-width: 48rem;
   --denali-wizard-page-pad: var(--space-4, 1rem);
   display: flex;
-  flex: 1;
-  min-height: 0;
   flex-direction: column;
   max-width: var(--denali-wizard-max-width);
   margin-inline: auto;
   padding: var(--denali-wizard-page-pad);
-  padding-block-end: var(--space-4, 1rem);
+  padding-block-end: var(--space-8, 2rem);
 }
 
 body[data-workspace-plugin="denali"] .new-tour-wizard-page__header {
@@ -349,6 +342,15 @@ body[data-workspace-plugin="denali"] [data-tour-create-error] {
   margin: 0;
   font-size: 0.875rem;
   color: var(--color-danger);
+}
+
+body[data-workspace-plugin="denali"] [data-tour-create-error] .wizard-submit-error__summary {
+  margin: 0;
+}
+
+body[data-workspace-plugin="denali"] [data-tour-create-error] .wizard-submit-error__list {
+  margin: 0.5rem 0 0;
+  padding-inline-start: 1.25rem;
 }
 
 body[data-workspace-plugin="denali"] [data-tour-created] {

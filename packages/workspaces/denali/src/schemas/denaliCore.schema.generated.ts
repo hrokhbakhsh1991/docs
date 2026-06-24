@@ -89,6 +89,10 @@ export const denaliTripDetailsMetricsSchema = z.object({
 
 export const denaliTripDetailsOverviewCoreSchema = z.object({
   peakHeight: optionalInt("مقدار نمی‌تواند منفی باشد."),
+  trailDistanceKm: z
+    .number()
+    .positive("مسافت باید بزرگ‌تر از صفر باشد.")
+    .optional(),
 });
 
 export function applyDenaliCoreSchemaRefinements(

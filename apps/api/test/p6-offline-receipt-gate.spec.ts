@@ -36,4 +36,10 @@ describe("p6-offline-receipt-gate", () => {
     assert.match(app, /handlePostBookingReceipt/);
     assert.match(routes, /submitMemberReceiptForRegistration/);
   });
+
+  it("P6-OR-04 offline receipt chain proven in p6 gate", () => {
+    const gate = readFileSync(join(repoRoot, "scripts/p6-denali-product-gate.sh"), "utf8");
+    assert.match(gate, /p6-member-receipt-flow\.spec\.ts/);
+    assert.match(gate, /p6-vertical-slice-chain\.spec\.ts/);
+  });
 });

@@ -12,7 +12,7 @@ import {
 
 describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
   it("BFF-9.1-01 contract exposes session cookie constants", () => {
-    assert.equal(SESSION_COOKIE_NAME, "session");
+    assert.equal(SESSION_COOKIE_NAME, "atour_op_session");
     assert.equal(SESSION_COOKIE_MAX_AGE_SECONDS, 604_800);
   });
 
@@ -34,7 +34,7 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
     delete process.env.AUTH_JWT_ISSUER;
     delete process.env.AUTH_JWT_AUDIENCE;
 
-    const { validateSessionToken } = await import("../src/auth/validate-session-token");
+    const { validateSessionToken } = await import("@app-tour/session-client");
     const header = Buffer.from(JSON.stringify({ alg: "RS256" })).toString("base64url");
     const payload = Buffer.from(
       JSON.stringify({
@@ -83,7 +83,7 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
     assert.match(middlewareSource, /\/api\/auth\/phone-preflight/);
   });
 
-  it("BFF-9.1-08 middleware allows anonymous public-auth BFF routes", async () => {
+  it("BFF-9.1-08 middleware does not whitelist web public-auth (P9-1-N-001)", async () => {
     const { readFileSync } = await import("node:fs");
     const { resolve, dirname } = await import("node:path");
     const { fileURLToPath } = await import("node:url");
@@ -91,10 +91,7 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
       resolve(dirname(fileURLToPath(import.meta.url)), "../middleware.ts"),
       "utf8"
     );
-    assert.match(middlewareSource, /\/api\/public-auth\/phone-preflight/);
-    assert.match(middlewareSource, /\/api\/public-auth\/verify-otp/);
-    assert.match(middlewareSource, /\/api\/public-auth\/register-complete/);
-    assert.match(middlewareSource, /\/api\/public-auth\/session-profile/);
+    assert.doesNotMatch(middlewareSource, /\/api\/public-auth\//);
   });
 
   it("BFF-9.1-06 middleware blocks anonymous BFF /api/users with 401", async () => {
@@ -112,7 +109,7 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
     const res = await POST();
     assert.equal(res.status, 200);
     const setCookie = res.headers.get("set-cookie") ?? "";
-    assert.match(setCookie, /session=/);
+    assert.match(setCookie, /atour_op_session=/);
     assert.match(setCookie, /Max-Age=0/i);
     assert.match(setCookie, /HttpOnly/i);
     assert.match(setCookie, /operator-welcome-armed=/);

@@ -34,13 +34,29 @@ authority: FINANCE-OPS-UX.md · p6-2-operator-admin.md
 
 ## When to run `finance-ops.spec.ts`
 
-```bash
-# Requires Postgres + migration 008_finance_payments_delta.sql
-export DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5434/tour_db
-export DATABASE_URL_ADMIN="$DATABASE_URL"
+**Preferred (P6 staging gates — bootstraps `tour_db` + migrate automatically):**
 
+```bash
+pnpm run infra:up   # if Docker Postgres not running
+P6_FINANCE_OPS=1 pnpm run p6:staging-gate
+# or:
+export DATABASE_URL=postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db
+unset DATABASE_URL_ADMIN   # stale postgres:postgres from old docs breaks auth
+pnpm run p6:staging-preflight
+```
+
+`scripts/ensure-p6-finance-postgres.sh` creates `tour_db`, applies `01-app-role.sql`, runs `db:migrate:deploy`, and exports matching `DATABASE_URL` / `DATABASE_URL_ADMIN` (`app_tour` role — **not** `postgres:postgres` on local Docker).
+
+**Manual (single spec only):**
+
+```bash
+eval "$(bash scripts/ensure-p6-finance-postgres.sh)"
 pnpm --filter @apps/api exec node --import tsx --test test/finance-ops.spec.ts
 ```
+
+{% callout type="warning" %}
+Do **not** set `DATABASE_URL_ADMIN=postgresql://postgres:postgres@127.0.0.1:5434/...` on local `pnpm infra:up` — that user is not provisioned. Use `app_tour:app_tour` or omit `DATABASE_URL_ADMIN` (spec falls back to `DATABASE_URL`).
+{% /callout %}
 
 **Pass signals (API-9.7):**
 
@@ -60,11 +76,24 @@ pnpm --filter @apps/api exec node --import tsx --test test/finance-ops.spec.ts
 
 ---
 
+## Verified (2026-06-22 — Bundle E)
+
+Local Postgres with `DATABASE_URL` set:
+
+```bash
+pnpm run p6:staging-preflight   # → P6_STAGING_PREFLIGHT_OK (includes finance-ops)
+pnpm run p6:staging-gate        # → P6_STAGING_GATE_OK
+```
+
+**Pass:** `finance-ops.spec.ts` API-9.7-01..04 — manual payment → receipt → approve → ledger outbox.
+
+---
+
 ## Staging checklist (Architect YES)
 
 1. `pnpm run p6:gate` green
 2. `pnpm run p6:e2e-gate` → `P6_E2E_GATE_OK`
-3. `pnpm run p6:staging-gate` with staging `DATABASE_URL` (runs `finance-ops.spec.ts`)
+3. `pnpm run p6:staging-preflight` or `p6:staging-gate` with staging `DATABASE_URL` (runs `finance-ops.spec.ts`)
 4. Manual sign-off optional: [first-customer-operator.md](../runbooks/first-customer-operator.md) on staging hosts
 
 ---

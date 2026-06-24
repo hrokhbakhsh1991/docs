@@ -107,6 +107,12 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
           segmentsHeading={t("detail.itinerarySegments")}
         />
       ) : null}
+      {tour.policiesText ? (
+        <section data-tour-policies>
+          <h2>{t("detail.policiesHeading")}</h2>
+          <p data-tour-policies-text>{tour.policiesText}</p>
+        </section>
+      ) : null}
       {tour.structuredData != null ? (
         <script
           type="application/ld+json"

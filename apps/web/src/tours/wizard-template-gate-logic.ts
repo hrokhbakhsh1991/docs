@@ -314,35 +314,36 @@ export function appendWorkspaceReviewStepToRenderPlan<
 >(
   steps: readonly TStep[],
   engineSteps: readonly TStep[],
-  reviewStepId: string
+  reviewStepId: string,
+  reviewFieldCanonicalPath = "publishStatus"
 ): readonly TStep[] {
   if (steps.some((step) => step.stepId === reviewStepId)) {
     return steps;
   }
 
-  let publishStatusField: TField | undefined;
+  let reviewField: TField | undefined;
   for (const step of engineSteps) {
     for (const field of step.fields) {
-      if (field.canonicalPath === "publishStatus") {
-        publishStatusField = {
+      if (field.canonicalPath === reviewFieldCanonicalPath) {
+        reviewField = {
           ...field,
           required: true,
         } as TField;
         break;
       }
     }
-    if (publishStatusField != null) {
+    if (reviewField != null) {
       break;
     }
   }
 
-  if (publishStatusField == null) {
+  if (reviewField == null) {
     return steps;
   }
 
   const reviewStep = {
     stepId: reviewStepId,
-    fields: [publishStatusField],
+    fields: [reviewField],
   } as unknown as TStep;
 
   return [...steps, reviewStep];
