@@ -2,7 +2,7 @@ import {
   createCanonicalDocument,
   type CanonicalDocument,
 } from "@app-tour/workspace-sdk";
-import { DENALI_COMPOSITE_DEPENDENT_PATHS } from "@app-tour/workspace-denali/composites";
+import { DENALI_FORM_PROFILE_GHOST_PATHS } from "@app-tour/workspace-denali/composites";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -27,7 +27,7 @@ function deleteCanonicalPath(target: Record<string, unknown>, path: string): voi
   delete current[parts[parts.length - 1]!];
 }
 
-/** P5-B-N-007 — remove composite-dependent ghost keys clients must not persist separately. */
+/** P5-B-N-007 — remove top-level tour-kind alias ghosts before persist (INV-DENALI-WIZ-003). */
 export function stripFormProfileFieldsFromCanonicalData(
   workspaceType: string,
   data: Record<string, unknown>
@@ -37,18 +37,18 @@ export function stripFormProfileFieldsFromCanonicalData(
   }
 
   const next = structuredClone(data);
-  for (const path of DENALI_COMPOSITE_DEPENDENT_PATHS) {
+  for (const path of DENALI_FORM_PROFILE_GHOST_PATHS) {
     deleteCanonicalPath(next, path);
   }
   return next;
 }
 
-/** Drop composite-dependent wizard roots after data strip (INV-DENALI-WIZ-003). */
+/** Drop ghost wizard roots after data strip (INV-DENALI-WIZ-003). */
 export function filterDenaliRootsAfterProfileStrip(
   roots: readonly string[],
   data: Record<string, unknown>
 ): readonly string[] {
-  return roots.filter((root) => !DENALI_COMPOSITE_DEPENDENT_PATHS.has(root) && root in data);
+  return roots.filter((root) => !DENALI_FORM_PROFILE_GHOST_PATHS.has(root) && root in data);
 }
 
 /** Strip non-persistable profile fields before canonical document assembly / persist. */

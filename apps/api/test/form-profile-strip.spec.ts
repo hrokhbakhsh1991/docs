@@ -33,7 +33,7 @@ describe("form-profile-strip (P5-B VAL-02b)", () => {
     resetValidationEngineCacheForTests();
   });
 
-  it("VAL-02b-01 strips composite-dependent ghost keys on denali submit data", () => {
+  it("VAL-02b-01 strips top-level tour-kind alias ghosts on denali submit data", () => {
     const stripped = stripFormProfileFieldsFromCanonicalData("denali", {
       category: "mountain_day",
       duration: "single_day",
@@ -43,14 +43,18 @@ describe("form-profile-strip (P5-B VAL-02b)", () => {
         requiresPayment: true,
         basePricePerPerson: 500000,
       },
+      program: {
+        themeIds: ["theme-1"],
+        shortDescription: "خلاصه",
+      },
     });
 
     assert.equal(stripped.category, "mountain_day");
     assert.equal(stripped.title, "Alpine day");
     assert.equal(stripped.duration, undefined);
     assert.equal(stripped.eventVariant, undefined);
-    assert.equal((stripped.pricing as Record<string, unknown>).basePricePerPerson, undefined);
-    assert.equal((stripped.pricing as Record<string, unknown>).requiresPayment, true);
+    assert.equal((stripped.pricing as Record<string, unknown>).basePricePerPerson, 500000);
+    assert.equal((stripped.program as Record<string, unknown>).shortDescription, "خلاصه");
   });
 
   it("VAL-02b-02 non-denali workspace is a no-op", () => {

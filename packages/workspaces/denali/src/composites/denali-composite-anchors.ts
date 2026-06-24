@@ -21,9 +21,25 @@ export const DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR: Readonly<
     "participants.fitnessLevel",
     "participants.sportsInsuranceRequired",
     "participants.fitnessPrerequisiteText",
+    "participants.medicationsRequired",
+    "participants.allergiesRequired",
+    "participants.dietaryRequirementsRequired",
+    "participants.medicalDeclarationRequired",
+    "participants.emergencyContactRequired",
+    "participants.physicalLimitationsRequired",
+    "participants.evacuationInsuranceRequired",
   ],
   "pricing.requiresPayment": ["pricing.basePricePerPerson", "pricing.includesTourInsurance"],
 });
+
+/** Top-level tour-kind / location aliases — never persist separately (INV-DENALI-WIZ-003). */
+export const DENALI_FORM_PROFILE_GHOST_PATHS = new Set<string>([
+  "duration",
+  "eventVariant",
+  "summitPoint",
+  "campPoint",
+  "endPoint",
+]);
 
 /** Paths rendered by a composite widget anchored on another registry row. */
 export const DENALI_COMPOSITE_DEPENDENT_PATHS = new Set<string>([
@@ -38,6 +54,13 @@ export const DENALI_COMPOSITE_DEPENDENT_PATHS = new Set<string>([
   "participants.fitnessLevel",
   "participants.sportsInsuranceRequired",
   "participants.fitnessPrerequisiteText",
+  "participants.medicationsRequired",
+  "participants.allergiesRequired",
+  "participants.dietaryRequirementsRequired",
+  "participants.medicalDeclarationRequired",
+  "participants.emergencyContactRequired",
+  "participants.physicalLimitationsRequired",
+  "participants.evacuationInsuranceRequired",
   "transport.transportCost",
   "transport.allowPersonalCar",
   "transport.dongAmount",
@@ -50,6 +73,9 @@ export const DENALI_COMPOSITE_DEPENDENT_PATHS = new Set<string>([
 ]);
 
 export function shouldRenderDenaliRegistryField(field: DenaliFieldDefinition): boolean {
+  if (field.settingsSurface === "palette_roadmap") {
+    return false;
+  }
   if (DENALI_COMPOSITE_DEPENDENT_PATHS.has(field.canonicalPath)) {
     return false;
   }

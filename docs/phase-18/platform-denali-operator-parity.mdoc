@@ -212,7 +212,7 @@ Spec: `apps/api/test/workspace-metadata-denali-parity-publish.spec.ts` (RP-01..0
 
 ## Form profile strip (frozen — P5-B-N-007)
 
-Server-side strip removes Denali composite-dependent ghost keys (`duration`, `eventVariant`, nested pricing/transport dependents, etc.) before `createCanonicalDocument` in pre-TX validation — parity with client `shouldPersistCanonicalPathFromForm` / sanitize ghost purge.
+Server-side strip removes **top-level** Denali tour-kind alias ghosts (`duration`, `eventVariant`, `summitPoint`, `campPoint`, `endPoint`) before `createCanonicalDocument` in pre-TX validation — parity with client `shouldPersistCanonicalPathFromForm` / sanitize ghost purge. Nested composite dependents (`program.shortDescription`, `pricing.basePricePerPerson`, …) remain in canonical ingress from `prepareDenaliSubmitArtifact`.
 
 | Assert | Behavior |
 |--------|----------|

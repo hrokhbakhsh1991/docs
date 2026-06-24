@@ -112,4 +112,16 @@ describe("assertCanonicalValueMatchesKind", () => {
       assertCanonicalValueMatchesKind("5610", "number", "tripDetails.overview.peakHeight")
     );
   });
+
+  it("accepts empty JSON arrays at composite paths (Phase 11.10 array ingress)", () => {
+    assert.doesNotThrow(() =>
+      assertCanonicalValueMatchesKind([], "composite", "program.themeIds")
+    );
+  });
+
+  it("accepts non-empty JSON arrays at composite paths (Phase 11.10 array ingress)", () => {
+    assert.doesNotThrow(() =>
+      assertCanonicalValueMatchesKind(["theme-1"], "composite", "program.themeIds")
+    );
+  });
 });

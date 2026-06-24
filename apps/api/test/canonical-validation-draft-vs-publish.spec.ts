@@ -136,6 +136,20 @@ describe("canonical-validation-draft-vs-publish (P5-B VAL-01..03)", () => {
     assert.equal(metadataViolation?.code, packageViolation?.code);
   });
 
+  it("VAL-04 publish-ready golden passes full validateCanonicalBeforePersistSync", () => {
+    const form = loadGoldenForm("tour-publish-ready.json");
+    (form.basicInfo as Record<string, unknown>).publishStatus = "active";
+
+    const document = validateCanonicalBeforePersistSync({
+      tenantId: "val-04-tenant",
+      workspaceType: "denali",
+      body: denaliCreateBody(form),
+      validationMode: "publish",
+    });
+
+    assert.equal((document.data as Record<string, unknown>).title, "صعود به قله دماوند - جبهه جنوبی");
+  });
+
   it("resolveValidationMode infers publish from active publishStatus", () => {
     const form = loadGoldenForm("tour-publish-ready.json");
     (form.basicInfo as Record<string, unknown>).publishStatus = "active";

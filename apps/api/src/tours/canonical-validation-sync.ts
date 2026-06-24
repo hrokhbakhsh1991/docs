@@ -150,6 +150,8 @@ function createValidationEngineFromPlugin(plugin: WorkspacePlugin): PlatformWiza
     tourList: _tourList,
     tourClone: _tourClone,
     publicCatalog: _publicCatalog,
+    wizardHost: _wizardHost,
+    draftTombstone: _draftTombstone,
     ...pluginForEngine
   } = plugin;
   return PlatformWizardEngine.create(pluginForEngine);

@@ -48,6 +48,14 @@ describe("isEmptyCanonicalValue", () => {
     assert.equal(isEmptyCanonicalValue({ a: 1 }, "composite"), false);
   });
 
+  it("treats empty composite array as empty (Phase 11.10 array ingress)", () => {
+    assert.equal(isEmptyCanonicalValue([], "composite"), true);
+  });
+
+  it("treats non-empty composite array as non-empty (Phase 11.10 array ingress)", () => {
+    assert.equal(isEmptyCanonicalValue(["x"], "composite"), false);
+  });
+
   it("does not treat wrong primitive as empty for text kind", () => {
     assert.equal(isEmptyCanonicalValue(42, "text"), false);
   });
