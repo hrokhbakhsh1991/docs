@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { ActorRole, MembershipStatus } from "@app-tour/workspace-sdk";
+import type { ActorRole, MembershipStatus, OperatorMembershipAvatar } from "@app-tour/workspace-sdk";
 
 import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
 import type { InvitableWorkspaceRole } from "./users.types";
@@ -27,6 +27,7 @@ export type IdentityMembershipRecord = {
   readonly displayName?: string;
   readonly email?: string;
   readonly rewards?: MembershipRewardsRecord;
+  readonly avatar?: OperatorMembershipAvatar;
 };
 
 export type OtpChallengeRecord = {
@@ -128,6 +129,11 @@ export type IdentityRepository = {
     tenantId: string,
     userId: string,
     displayName: string
+  ): Promise<IdentityMembershipRecord>;
+  updateMembershipAvatar(
+    tenantId: string,
+    userId: string,
+    avatar: OperatorMembershipAvatar | null
   ): Promise<IdentityMembershipRecord>;
   transferWorkspaceOwnership(
     tenantId: string,
@@ -426,6 +432,24 @@ export class InMemoryIdentityRepository implements IdentityRepository {
       ...row,
       displayName: displayName.trim(),
     };
+    this.memberships.set(key, updated);
+    return updated;
+  }
+
+  async updateMembershipAvatar(
+    tenantId: string,
+    userId: string,
+    avatar: OperatorMembershipAvatar | null
+  ): Promise<IdentityMembershipRecord> {
+    const key = membershipKey(userId, tenantId);
+    const row = this.memberships.get(key);
+    if (row === undefined) {
+      throw new MembershipNotFoundError(userId);
+    }
+    const updated: IdentityMembershipRecord =
+      avatar === null
+        ? (({ avatar: _removed, ...rest }) => rest)({ ...row })
+        : { ...row, avatar };
     this.memberships.set(key, updated);
     return updated;
   }

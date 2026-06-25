@@ -37,7 +37,7 @@ extends: docs/phase-5/appendices/tours-list-endpoint.md
 | `category`      | Denali tour kind slug             | —                                | exact match on `TourListProjection.category` · invalid slug ignored |
 | `page`          | int ≥1                            | 1                                | offset pagination                  |
 | `limit`         | int                               | 10 (operator) / 50 (slim)        | max 100                            |
-| `sort_by`       | `created_at \| title \| price`    | `created_at`                     |                                    |
+| `sort_by`       | `created_at \| title \| price \| departure_at` | `created_at`          | `departure_at` nulls sort last (2026-06-24) |
 | `sort_dir`      | `asc \| desc`                     | `desc`                           |                                    |
 | `include_total` | bool                              | true                             |                                    |
 | `cursor`        | string                            | —                                | **slim only**                      |

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-WIZARD-EXPERIENCE
-version: "2026-06-11-v7"
+version: "2026-06-24-v8"
 status: style_dod_closed
 workspace: denali
 stack: ui-primitives · design-tokens · denali/theme/wizard-*
@@ -24,6 +24,8 @@ Tour create wizard at **`/tours/new`** (`apps/web/app/tours/**`) — outside `(a
 | Bridge chrome | `apps/web/src/shell/wizard-bridge-shell.tsx` |
 
 Operator list/settings use shadcn under `(app)/`; wizard shares **tenant primary** and mist surfaces via `body[data-workspace-plugin="denali"]` + [`admin-experience.md`](admin-experience.md).
+
+Tour **flat edit** at **`(app)/tours/[id]/edit`** (Denali operator) reuses the same composite field skin as create — see [Flat edit skin bridge](#flat-edit-skin-bridge) below. Edit stays outside Wizard Bridge; it mounts under the operator `(app)/` shell with shadcn nav buttons only in the page header.
 
 ## Field labels (i18n)
 
@@ -92,11 +94,28 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-workspace-wiza
 
 **Portal exception (calendar):** Radix `Popover` renders on `document.body`, outside `[data-new-tour-wizard]`. Calendar skin uses **body-level** selectors on `data-denali-wizard-calendar` / `data-denali-wizard-calendar-popover` — see `wizard-calendar.css`.
 
+## Flat edit skin bridge
+
+Phase 12.4 flat edit (`DenaliFlatEditForm`) renders wizard composites via platform `WizardField` but **does not** mount `WorkspaceWizardHost` or the create stepper. Composite BEM rules in `wizard-fields.css` still key off `[data-new-tour-wizard]` on an ancestor — same contract as create.
+
+| Surface | Route | Scope root | Form landmark |
+|---------|-------|------------|---------------|
+| Create wizard | `/tours/new` | `DenaliCreateTourWizardView` → `data-new-tour-wizard` | `[data-workspace-wizard]` inside host |
+| Flat edit | `(app)/tours/[id]/edit` | `DenaliFlatEditPageShell` → `data-new-tour-wizard` + `data-denali-flat-edit-page` | `[data-denali-flat-edit-form]` on `<form>` |
+
+**Wiring (shell):** `apps/web/src/wizard/denali-flat-edit-chrome.tsx` exports `DenaliFlatEditPageShell` + `DenaliFlatEditPageHeader` (BEM `new-tour-wizard-page__*` — shared with create header typography). `denali-flat-edit-page-client.tsx` wraps all ready-state content in the shell so token bridge + composite borders apply without duplicating `wizard-fields.css` selectors.
+
+**Non-goals:** No Wizard Bridge layout on edit; no stepper CSS required; no `data-new-tour-wizard` on the `<form>` itself (page root only — mirrors create, where scope sits on `new-tour-wizard-page`, not on inner field nodes).
+
+Authority: [`docs/phase-12/subphases/12.4-denali-flat-edit-form.md`](../../phase-12/subphases/12.4-denali-flat-edit-form.md) · [`TOURS-EDIT-UX.md`](../../phase-9/appendices/TOURS-EDIT-UX.md) (Phase 12 supersession note).
+
 ## Data attributes
 
 | Attribute | Use |
 |-----------|-----|
-| `data-new-tour-wizard` | Page root (`new-tour-wizard-client`) |
+| `data-new-tour-wizard` | Page root — create (`DenaliCreateTourWizardView`) and flat edit (`DenaliFlatEditPageShell`) |
+| `data-denali-flat-edit-page` | Flat edit page root (with `data-new-tour-wizard`) — distinguishes edit from create in tests/docs |
+| `data-denali-flat-edit-form` | Flat edit `<form>` landmark (`DenaliFlatEditForm`) |
 | `data-denali-wizard-host` | `WorkspaceWizardHost` when `pluginId=denali` |
 | `data-denali-wizard-surface="card\|section"` | KPI-style cards / composite sections |
 | `data-denali-wizard-photo-grid` | Photos composite — 2-column layout from `__photos-layout` (sm+) |

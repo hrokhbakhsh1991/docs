@@ -109,6 +109,17 @@ export {
   assertWorkspaceThemeSealed,
   assertTenantThemeSealed,
 } from "./theme/index";
+export {
+  assertOperatorAvatarKeyScope,
+  buildOperatorAvatarObjectKey,
+  isOperatorAvatarContentType,
+  isOperatorAvatarStorageKey,
+  OPERATOR_AVATAR_ALLOWED_CONTENT_TYPES,
+  OPERATOR_AVATAR_MAX_BYTES,
+  assertOperatorAvatarBytesMatchContentType,
+  sniffOperatorAvatarContentType,
+  type OperatorMembershipAvatar,
+} from "./operator/identity/operator-avatar";
 export { tryParseTenantAuthContext, type AuthContextErrorCode } from "./auth/validate-auth-context";
 export {
   buildTenantAuthz,

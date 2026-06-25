@@ -12,7 +12,7 @@ export type TourListQueryModel = {
   readonly limit: number;
   readonly status: TourListStatusFilter;
   readonly category: TourCategoryFilter;
-  readonly sortBy: "created_at" | "title" | "price";
+  readonly sortBy: "created_at" | "title" | "price" | "departure_at";
   readonly sortDir: "asc" | "desc";
 };
 
@@ -30,6 +30,12 @@ export const TOURS_LIST_TEST_IDS = {
   workspace: "operator-tours-workspace",
   retry: "operator-tours-retry",
   category: "operator-tours-category",
+  cardMeta: "operator-tours-card-meta",
+  cardDuration: "operator-tours-card-duration",
+  cardCover: "operator-tours-card-cover",
+  toolbarSkeleton: "operator-tours-toolbar-skeleton",
+  listSkeleton: "operator-tours-list-skeleton",
+  cardSkeleton: "operator-tours-card-skeleton",
 } as const;
 
 export const DEFAULT_TOUR_LIST_QUERY: TourListQueryModel = {
@@ -77,7 +83,9 @@ export function parseTourListQuery(searchParams: URLSearchParams): TourListQuery
       : "all";
   const sortByRaw = searchParams.get("sort_by");
   const sortBy =
-    sortByRaw === "title" || sortByRaw === "price" ? sortByRaw : "created_at";
+    sortByRaw === "title" || sortByRaw === "price" || sortByRaw === "departure_at"
+      ? sortByRaw
+      : "created_at";
   const sortDir = searchParams.get("sort_dir") === "asc" ? "asc" : "desc";
   const pageRaw = Number(searchParams.get("page") ?? "1");
   const limitRaw = Number(searchParams.get("limit") ?? "10");

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { ActorRole } from "@app-tour/workspace-sdk";
+import type { ActorRole, OperatorMembershipAvatar } from "@app-tour/workspace-sdk";
 import type { Prisma } from "@prisma/client";
 import type { InvitableWorkspaceRole } from "./users.types";
 import { getPrisma } from "../db/prisma";
@@ -20,6 +20,12 @@ import type {
 } from "./in-memory-identity.repository";
 import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
 import {
+  mergeMembershipMetadata,
+  readMembershipMetadata,
+  writeMembershipMetadata,
+  writePublicProfileMetadata,
+} from "./membership-metadata";
+import {
   InviteNotFoundError,
   MembershipNotFoundError,
   OwnershipTransferForbiddenError,
@@ -32,92 +38,6 @@ function normalizeMobile(mobile: string): string {
 
 function membershipKey(userId: string, tenantId: string): string {
   return `${userId}:${tenantId}`;
-}
-
-function readRewards(metadata: Prisma.JsonValue | undefined): MembershipRewardsRecord | undefined {
-  if (metadata === null || metadata === undefined || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return undefined;
-  }
-  const record = metadata as Record<string, unknown>;
-  const rewards: MembershipRewardsRecord = {};
-  if ("permanentDiscountPercentage" in record) {
-    const value = record.permanentDiscountPercentage;
-    rewards.permanentDiscountPercentage =
-      value === null || typeof value === "number" ? value : undefined;
-  }
-  if (Array.isArray(record.badges)) {
-    rewards.badges = record.badges.filter((badge): badge is string => typeof badge === "string");
-  }
-  if (typeof record.isSelectableLeader === "boolean") {
-    rewards.isSelectableLeader = record.isSelectableLeader;
-  }
-  if (Array.isArray(record.labels)) {
-    rewards.labels = record.labels.filter((label): label is string => typeof label === "string");
-  }
-  return Object.keys(rewards).length > 0 ? rewards : undefined;
-}
-
-function readMembershipMetadata(metadata: Prisma.JsonValue | undefined): {
-  readonly displayName?: string;
-  readonly email?: string;
-  readonly rewards?: MembershipRewardsRecord;
-} {
-  if (metadata === null || metadata === undefined || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return {};
-  }
-  const record = metadata as Record<string, unknown>;
-  const displayName =
-    typeof record.displayName === "string" && record.displayName.trim().length > 0
-      ? record.displayName.trim()
-      : undefined;
-  const email =
-    typeof record.email === "string" && record.email.trim().length > 0
-      ? record.email.trim()
-      : undefined;
-  const rewards = readRewards(metadata);
-  return {
-    ...(displayName !== undefined ? { displayName } : {}),
-    ...(email !== undefined ? { email } : {}),
-    ...(rewards !== undefined ? { rewards } : {}),
-  };
-}
-
-function writeRewards(rewards: MembershipRewardsRecord): Prisma.InputJsonObject {
-  return {
-    ...(rewards.permanentDiscountPercentage !== undefined
-      ? { permanentDiscountPercentage: rewards.permanentDiscountPercentage }
-      : {}),
-    ...(rewards.badges !== undefined ? { badges: [...rewards.badges] } : {}),
-    ...(rewards.isSelectableLeader !== undefined
-      ? { isSelectableLeader: rewards.isSelectableLeader }
-      : {}),
-    ...(rewards.labels !== undefined ? { labels: [...rewards.labels] } : {}),
-  };
-}
-
-function writeMembershipMetadata(input: {
-  readonly displayName?: string;
-  readonly email?: string;
-  readonly rewards?: MembershipRewardsRecord;
-}): Prisma.InputJsonObject {
-  return {
-    ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
-    ...(input.email !== undefined && input.email.length > 0 ? { email: input.email } : {}),
-    ...(input.rewards !== undefined ? writeRewards(input.rewards) : {}),
-  };
-}
-
-function writePublicProfileMetadata(input: {
-  readonly displayName: string;
-  readonly email?: string;
-  readonly existingMetadata?: Prisma.JsonValue;
-}): Prisma.InputJsonObject {
-  const existing = readMembershipMetadata(input.existingMetadata);
-  return writeMembershipMetadata({
-    displayName: input.displayName,
-    ...(input.email !== undefined ? { email: input.email } : {}),
-    ...(existing.rewards !== undefined ? { rewards: existing.rewards } : {}),
-  });
 }
 
 function toMembershipRecord(row: {
@@ -140,6 +60,7 @@ function toMembershipRecord(row: {
     ...(metadata.displayName !== undefined ? { displayName: metadata.displayName } : {}),
     ...(metadata.email !== undefined ? { email: metadata.email } : {}),
     ...(metadata.rewards !== undefined ? { rewards: metadata.rewards } : {}),
+    ...(metadata.avatar !== undefined ? { avatar: metadata.avatar } : {}),
   };
 }
 
@@ -447,10 +368,31 @@ export class PrismaIdentityRepository implements IdentityRepository {
       return tx.userTenant.update({
         where: { userId_tenantId: { userId, tenantId } },
         data: {
-          membershipMetadata: writeMembershipMetadata({
+          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
             displayName: displayName.trim(),
-            ...(metadata.rewards !== undefined ? { rewards: metadata.rewards } : {}),
           }),
+        },
+      });
+    });
+    return toMembershipRecord(updated);
+  }
+
+  async updateMembershipAvatar(
+    tenantId: string,
+    userId: string,
+    avatar: OperatorMembershipAvatar | null
+  ): Promise<IdentityMembershipRecord> {
+    const updated = await withTenantRls(tenantId, async (tx) => {
+      const row = await tx.userTenant.findUnique({
+        where: { userId_tenantId: { userId, tenantId } },
+      });
+      if (row === null) {
+        throw new MembershipNotFoundError(userId);
+      }
+      return tx.userTenant.update({
+        where: { userId_tenantId: { userId, tenantId } },
+        data: {
+          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, { avatar }),
         },
       });
     });

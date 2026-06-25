@@ -41,6 +41,9 @@ legacy_mapping: identity-web-bff-addendum.md
   { method: "GET", path: "/auth/ability-context", operationId: "getAuthAbilityContext" },
   { method: "GET", path: "/identity/me", operationId: "getIdentityMe" },
   { method: "PATCH", path: "/identity/me", operationId: "patchIdentityMe" },
+  { method: "POST", path: "/identity/me/avatar", operationId: "uploadIdentityMeAvatar" },
+  { method: "DELETE", path: "/identity/me/avatar", operationId: "deleteIdentityMeAvatar" },
+  { method: "GET", path: "/identity/me/avatar/url", operationId: "getIdentityMeAvatarUrl" },
   { method: "POST", path: "/auth/phone-preflight", operationId: "phonePreflight" },
   { method: "POST", path: "/auth/register/complete", operationId: "completeRegistration" },
 ```
@@ -59,6 +62,9 @@ legacy_mapping: identity-web-bff-addendum.md
 | `GET /auth/ability-context`    | `getAuthAbilityContext` | same                      | `requireOperatorSession`           |
 | `GET /identity/me`             | `getIdentityMe`         | `identity/me.routes.ts`   | `requireOperatorSession`           |
 | `PATCH /identity/me`           | `patchIdentityMe`       | same                      | `requireOperatorSession` · self only |
+| `POST /identity/me/avatar`     | `uploadIdentityMeAvatar`| `identity/me.avatar.routes.ts` | `requireOperatorSession` · self · binary body |
+| `DELETE /identity/me/avatar`   | `deleteIdentityMeAvatar`| same                      | `requireOperatorSession` · self only |
+| `GET /identity/me/avatar/url`  | `getIdentityMeAvatarUrl`| same                      | `requireOperatorSession` · signed read |
 | `POST /auth/phone-preflight`   | `phonePreflight`        | same                      | tenant resolve                     |
 | `POST /auth/register/complete` | `completeRegistration`  | same                      | onboarding token validate          |
 

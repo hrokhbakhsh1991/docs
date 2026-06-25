@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import { eligibleOwnershipTransferTargets } from "../src/features/users/users-ownership-transfer-logic";
 import { USERS_DIRECTORY_TEST_IDS } from "../src/features/users/users-directory-types";
+import { USERS_OWNERSHIP_TRANSFER_UI_ENABLED } from "../src/features/users/users-page-logic";
 
 describe("users-ownership-transfer-logic (R5)", () => {
   it("WEB-9.4-19 eligible targets exclude self, owner, viewer, suspended", () => {
@@ -71,5 +72,9 @@ describe("users-ownership-transfer-logic (R5)", () => {
       USERS_DIRECTORY_TEST_IDS.ownershipTransferInvite,
       "operator-users-ownership-invite"
     );
+  });
+
+  it("WEB-9.4-19b ownership transfer panel gated off by default", () => {
+    assert.equal(USERS_OWNERSHIP_TRANSFER_UI_ENABLED, false);
   });
 });

@@ -3,6 +3,9 @@
  * Authority: docs/phase-9/appendices/TOURS-EDIT-UX.md
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import {
@@ -95,5 +98,24 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
       }),
       false
     );
+  });
+
+  it("WEB-DENALI-FLAT-EDIT-01 flat edit page applies wizard skin scope root", () => {
+    const flatEdit = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/wizard/denali-flat-edit-chrome.tsx"),
+      "utf8"
+    );
+    const pageClient = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(flatEdit, /data-new-tour-wizard/);
+    assert.match(flatEdit, /data-denali-flat-edit-page/);
+    assert.match(flatEdit, /new-tour-wizard-page__header/);
+    assert.match(pageClient, /DenaliFlatEditPageShell/);
+    assert.match(pageClient, /DenaliFlatEditPageHeader/);
   });
 });

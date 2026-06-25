@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-ADMIN-EXPERIENCE
-version: "2026-06-10"
+version: "2026-06-24"
 workspace: denali
 stack: Tailwind v4 · shadcn/ui · design-tokens · theme-react
 ```
@@ -11,7 +11,7 @@ stack: Tailwind v4 · shadcn/ui · design-tokens · theme-react
 
 Denali operator chrome (`apps/web` `(app)/` routes) uses a **workspace-owned skin** plus tenant primary color. Urban and starter tenants are unaffected — all Denali rules use `body[data-workspace-plugin="denali"]`.
 
-Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge** — see [`wizard-experience.md`](wizard-experience.md).
+Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge** — see [`wizard-experience.md`](wizard-experience.md). Tour flat edit (`(app)/tours/[id]/edit`) shares composite field skin via `data-new-tour-wizard` on `DenaliFlatEditPageShell` (operator shell layout; no bridge).
 
 ## Theme files
 
@@ -63,6 +63,7 @@ Roadmap draft used `html[data-workspace="denali"]`. Implementation uses **`body[
 | `data-denali-finance-board` | Installments kanban — column tint by `data-board-column` |
 | `data-denali-finance-progress` | Installment paid-ratio bar (alpine → forest gradient) |
 | `data-denali-date-picker` | Admin + wizard date trigger / calendar popover skin |
+| `data-denali-flat-edit-page` | Flat edit page root — pairs with `data-new-tour-wizard` for wizard composite skin under `(app)/` |
 
 ## Operator sidebar layout
 
@@ -142,7 +143,7 @@ Dev DB branding must match `#0f766e` — re-run `pnpm --filter @apps/api run db:
 | Urban isolation | `WEB-DENALI-THEME-03`, TH-1 e2e unchanged |
 | Dashboard quick actions + skeleton/empty patterns | `DenaliSkeleton`, `DenaliEmptyState`, `data-denali-quick-actions` |
 | Modern sidebar rail (Header/Content/Footer + sidebar tokens) | `data-operator-sidebar*`, `data-operator-nav-icon`, `shell-bridge.css` |
-| Tours category filter + bark badge | `tour-list-category-logic`, `TourCategoryBadge` |
+| Tours category filter + bark badge | `tour-list-category-logic`, `TourCategoryBadge` — grouped chips (mountain/nature/desert/event) in toolbar; card meta line `data-testid="operator-tours-card-meta"`; cover placeholder when `coverImageUrl` null |
 | Bookings inbox zebra + timeline | `data-denali-bookings-inbox`, `BookingActivityTimeline` |
 
 | Header breadcrumb + tenant badge + main scroll shadow | `operator-breadcrumb.tsx`, `data-denali-header-scrolled` on `<main>` scroll |

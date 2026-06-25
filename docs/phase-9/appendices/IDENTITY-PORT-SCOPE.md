@@ -71,6 +71,9 @@ Legacy DB values `leader` → normalize to `admin` at hydrate boundary (DEC-P9-0
 | GET    | `/auth/ability-context`   | Authenticated | CASL labels/caps/modules  | `membership-ability-context` |
 | GET    | `/identity/me`            | Authenticated | Read operator profile     | legacy account prefs read    |
 | PATCH  | `/identity/me`            | Authenticated | Patch own display name    | legacy account prefs write   |
+| POST   | `/identity/me/avatar`     | Authenticated | Upload own profile avatar | MinIO · self only            |
+| DELETE | `/identity/me/avatar`     | Authenticated | Remove own profile avatar | MinIO · self only            |
+| GET    | `/identity/me/avatar/url` | Authenticated | Signed avatar preview URL | ephemeral read               |
 | POST   | `/auth/phone-preflight`   | Anonymous     | Classify phone (P1)       | `web/phone/preflight`        |
 | POST   | `/auth/register/complete` | Anonymous     | Onboarding token exchange | `web/registration/complete`  |
 
@@ -84,9 +87,18 @@ Legacy DB values `leader` → normalize to `admin` at hydrate boundary (DEC-P9-0
 | `status`      | ✓   | —     | `UserTenant.status`                          |
 | `mobile`      | ✓   | —     | `User.mobile` (read-only)                    |
 | `displayName` | ✓   | ✓     | `UserTenant.membership_metadata.displayName` |
+| `avatarUrl`   | ✓   | —     | signed read from `membership_metadata.avatar.storageKey` (MinIO) |
 | `workspaceId` | ✓   | —     | optional membership field                    |
 
-**Persistence proof:** `identity-me.spec.ts` API-9.6-ME-01..03 (memory) · `phase-9-persistence.integration.spec.ts` **P9-PERSIST-05** (Prisma `STORAGE_DRIVER=prisma` + `DATABASE_URL`) · E2E **SMK-P9-10**.
+**Avatar metadata shape** (`membership_metadata.avatar`):
+
+```json
+{ "storageKey": "{tenantId}/operators/{userId}/avatar", "contentType": "image/jpeg" }
+```
+
+Object key contract: `packages/workspace-sdk` → `buildOperatorAvatarObjectKey`. Reuses the same MinIO bucket/env as tenant branding and wizard photos (`workspace-wizard-media-bindings`). **No** new bucket or Prisma column.
+
+**Persistence proof:** `identity-me.spec.ts` API-9.6-ME-01..07 (memory) · `phase-9-persistence.integration.spec.ts` **P9-PERSIST-05** (Prisma `STORAGE_DRIVER=prisma` + `DATABASE_URL`) · E2E **SMK-P9-10**.
 
 UI route: `/settings/me` (account nav group · not in Denali manifest). Any authenticated member may read/patch **own** profile only.
 

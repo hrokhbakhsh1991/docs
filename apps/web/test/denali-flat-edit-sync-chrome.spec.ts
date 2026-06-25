@@ -15,22 +15,22 @@ function readWebSource(relativePath: string): string {
 
 describe("denali-flat-edit-sync-chrome.spec.ts — Phase 5B", () => {
   it("WEB-P11-SYMM-01 flat-edit binds DraftSyncChrome with manual sync and soft-lock", () => {
-    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    const flatEditChrome = readWebSource("src/wizard/denali-flat-edit-chrome.tsx");
     const chrome = readWebSource("src/draft/draft-sync-chrome.tsx");
-    assert.match(flatEdit, /DraftSyncChrome/);
-    assert.match(flatEdit, /showInlineSoftLockBanner/);
-    assert.match(flatEdit, /TOUR_EDIT_TEST_IDS\.draftSync/);
+    assert.match(flatEditChrome, /DraftSyncChrome/);
+    assert.match(flatEditChrome, /showInlineSoftLockBanner/);
+    assert.match(flatEditChrome, /TOUR_EDIT_TEST_IDS\.draftSync/);
     assert.match(chrome, /DraftManualSyncButton/);
     assert.match(chrome, /DraftSyncSoftLockBanner/);
   });
 
   it("WEB-P11-SYMM-02 create-tour and flat-edit both consume DraftSyncChrome", () => {
     const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
-    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    const flatEditChrome = readWebSource("src/wizard/denali-flat-edit-chrome.tsx");
     assert.match(createChrome, /DraftSyncChrome/);
-    assert.match(flatEdit, /DraftSyncChrome/);
+    assert.match(flatEditChrome, /DraftSyncChrome/);
     assert.doesNotMatch(createChrome, /from "@\/draft\/draft-sync-indicator"/);
-    assert.doesNotMatch(flatEdit, /from "@\/draft\/draft-sync-indicator"/);
+    assert.doesNotMatch(flatEditChrome, /from "@\/draft\/draft-sync-indicator"/);
   });
 
   it("WEB-P11-SYMM-03 flat-edit passes navLocked to DenaliFlatEditForm fieldset", () => {
@@ -53,8 +53,8 @@ describe("denali-flat-edit-sync-chrome.spec.ts — Phase 5B", () => {
 
   it("WEB-P11-SYMM-05 flat-edit passes conflictReloadNotice like create-tour (Track C)", () => {
     const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
-    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    const flatEditChrome = readWebSource("src/wizard/denali-flat-edit-chrome.tsx");
     assert.match(createChrome, /conflictReloadNotice=\{props\.draftSync\.conflictReloadNotice\}/);
-    assert.match(flatEdit, /conflictReloadNotice=\{readyCore\.draftSync\.conflictReloadNotice\}/);
+    assert.match(flatEditChrome, /conflictReloadNotice=\{props\.draftSync\.conflictReloadNotice\}/);
   });
 });

@@ -175,6 +175,36 @@ export function resolveDenaliTourKindLabel(t: DenaliTranslator, tourKind: string
   return tourKind.replace(/_/g, " ");
 }
 
+export function resolveDenaliTourCategoryGroupLabel(
+  t: DenaliTranslator,
+  category: string
+): string {
+  try {
+    const label = t(`composites.tourKind.categories.${category}`);
+    if (label !== `composites.tourKind.categories.${category}` && label.length > 0) {
+      return label;
+    }
+  } catch {
+    // Missing message keys fall back to slug.
+  }
+  return category.replace(/_/g, " ");
+}
+
+export function resolveDenaliTourDurationLabel(
+  t: DenaliTranslator,
+  duration: "single_day" | "multi_day"
+): string {
+  try {
+    const label = t(`composites.tourKind.durations.${duration}`);
+    if (label !== `composites.tourKind.durations.${duration}` && label.length > 0) {
+      return label;
+    }
+  } catch {
+    // Missing message keys fall back to slug.
+  }
+  return duration.replace(/_/g, " ");
+}
+
 export function resolveDenaliPublishStatusLabel(t: DenaliTranslator, status: string): string {
   try {
     const label = t(`review.publishStatus.${status}`);

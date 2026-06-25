@@ -6,6 +6,8 @@ import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { requireOperatorSession } from "../identity/require-operator-session";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
+import { isDenaliOperatorTourPhotoReadKeyAllowed } from "@app-tour/workspace-denali";
+
 import {
   resolveWizardMediaBinding,
   type WorkspaceWizardMediaBinding,
@@ -156,7 +158,7 @@ export async function handleGetWizardPhotoUrl(
       return;
     }
 
-    if (!media.isDraftReadKeyAllowed(auth.tenantId, storageKey)) {
+    if (!isDenaliOperatorTourPhotoReadKeyAllowed(auth.tenantId, storageKey)) {
       sendHttpError(res, 403, { error: "forbidden", code: "WIZARD_PHOTO_KEY_FORBIDDEN" });
       return;
     }

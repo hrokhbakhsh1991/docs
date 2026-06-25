@@ -7,6 +7,7 @@ import { buildUsersListFetchQuery } from "@/features/users/users-directory-list-
 import { fetchUsersListServer } from "@/features/users/fetch-users-list.server";
 import { isUsersRouteAllowed } from "@/features/users/users-nav-access";
 import { parseUsersDirectoryQuery } from "@/features/users/users-directory-types";
+import { USERS_OWNERSHIP_TRANSFER_UI_ENABLED } from "@/features/users/users-page-logic";
 import { buildUsersPageMetadata } from "@/i18n/app-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
@@ -61,7 +62,7 @@ export default async function OperatorUsersPage({ searchParams }: OperatorUsersP
       ? null
       : await fetchUsersListServer(buildUsersListFetchQuery(query));
   const initialOwnershipRoster =
-    session.role === "owner"
+    USERS_OWNERSHIP_TRANSFER_UI_ENABLED && session.role === "owner"
       ? await fetchUsersListServer("limit=100&sort=name_asc")
       : null;
 

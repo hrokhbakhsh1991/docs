@@ -4,6 +4,9 @@ import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
 
 import type { InvitableWorkspaceRole, UsersDirectoryRow, UsersDirectoryStatus } from "./users-directory-types";
 
+/** Product gate — hide ownership transfer panel until flow is explicitly enabled. */
+export const USERS_OWNERSHIP_TRANSFER_UI_ENABLED = false;
+
 export type InviteRequestBody = {
   readonly phone: string;
   readonly role: InvitableWorkspaceRole;

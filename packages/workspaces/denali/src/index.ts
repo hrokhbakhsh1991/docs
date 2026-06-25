@@ -70,6 +70,7 @@ export {
   DENALI_WIZARD_DRAFT_SESSION_ID_PATTERN,
   isDenaliWizardDraftSessionId,
   isDenaliWizardDraftPhotoReadKeyAllowed,
+  isDenaliOperatorTourPhotoReadKeyAllowed,
   putDenaliWizardDraftPhoto,
   assertDenaliPhotoUploadContentType,
   DENALI_MAX_PHOTO_UPLOAD_BYTES,
@@ -86,6 +87,10 @@ export {
   assertDenaliWizardDraftDestKey,
 } from "./photos";
 export { isDenaliHttpsImageUrl } from "./schemas/denaliFileAssetSchema";
+export {
+  readDenaliFirstPhotoHttpsUrl,
+  readDenaliFirstPhotoStorageKey,
+} from "./list/read-denali-first-photo";
 export type { MinioPhotoConfig } from "./photos";
 export {
   DENALI_CURRENT_CANONICAL_SCHEMA_VERSION,

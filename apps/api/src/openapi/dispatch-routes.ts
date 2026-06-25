@@ -320,6 +320,24 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
   },
   {
     method: "POST",
+    path: "/identity/me/avatar",
+    summary: "Upload authenticated operator profile avatar",
+    operationId: "uploadIdentityMeAvatar",
+  },
+  {
+    method: "DELETE",
+    path: "/identity/me/avatar",
+    summary: "Remove authenticated operator profile avatar",
+    operationId: "deleteIdentityMeAvatar",
+  },
+  {
+    method: "GET",
+    path: "/identity/me/avatar/url",
+    summary: "Signed operator profile avatar preview URL",
+    operationId: "getIdentityMeAvatarUrl",
+  },
+  {
+    method: "POST",
     path: "/tours",
     summary: "Create tour",
     operationId: "createTour",

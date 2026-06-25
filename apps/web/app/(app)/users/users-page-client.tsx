@@ -52,6 +52,7 @@ import {
   canManageUserRow,
   filterUsersDirectoryByStatus,
   toUsersCsvRows,
+  USERS_OWNERSHIP_TRANSFER_UI_ENABLED,
 } from "@/features/users/users-page-logic";
 import {
   addRewardLabel,
@@ -679,7 +680,7 @@ export function UsersPageClient({
       </div>
 
       {!isPendingTab ? (
-        <>
+        <div className="space-y-4">
           <div className="relative max-w-xl">
             <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -732,7 +733,7 @@ export function UsersPageClient({
               </Button>
             ))}
           </div>
-        </>
+        </div>
       ) : null}
 
       <Dialog
@@ -933,7 +934,7 @@ export function UsersPageClient({
         <p className="text-sm text-muted-foreground">{t("counts.members", { count: listTotal })}</p>
       ) : null}
 
-      {canManage && !isPendingTab ? (
+      {canManage && !isPendingTab && USERS_OWNERSHIP_TRANSFER_UI_ENABLED ? (
         <UsersOwnershipTransferPanel
           session={session}
           initialRoster={initialOwnershipRoster?.items ?? null}

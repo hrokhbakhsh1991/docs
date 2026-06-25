@@ -4,6 +4,7 @@ import { getIdentityRepository } from "./create-identity-repository";
 import type { IdentityMembershipRecord, IdentityUserRecord } from "./in-memory-identity.repository";
 import { MembershipNotFoundError } from "./in-memory-identity.repository";
 import type { OperatorProfileResponse, PatchOperatorProfileRequest } from "./me.types";
+import { resolveOperatorAvatarUrlForMembership } from "./operator-avatar-storage";
 
 export const PROFILE_DISPLAY_NAME_MAX_LENGTH = 80;
 
@@ -27,10 +28,15 @@ function resolveDisplayName(
   return user.mobile;
 }
 
-function toProfileResponse(
+async function toProfileResponse(
   user: IdentityUserRecord,
   membership: IdentityMembershipRecord
-): OperatorProfileResponse {
+): Promise<OperatorProfileResponse> {
+  const avatarUrl = await resolveOperatorAvatarUrlForMembership(
+    membership.tenantId,
+    user.id,
+    membership.avatar?.storageKey
+  );
   return {
     userId: user.id,
     tenantId: membership.tenantId,
@@ -40,7 +46,7 @@ function toProfileResponse(
     mobile: user.mobile,
     displayName: resolveDisplayName(user, membership),
     email: membership.email?.trim() ?? null,
-    avatarUrl: null,
+    avatarUrl,
   };
 }
 

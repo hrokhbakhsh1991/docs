@@ -6,6 +6,7 @@ export type OperatorProfile = {
   readonly workspaceId: string | null;
   readonly mobile: string;
   readonly displayName: string;
+  readonly avatarUrl?: string | null;
 };
 
 export function resolveProfileDisplayName(profile: Pick<OperatorProfile, "displayName" | "mobile">): string {

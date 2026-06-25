@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft } from "lucide-react";
 import { useCallback } from "react";
 
 import { DenaliFlatEditPageView } from "@app-tour/workspace-denali/ui/flat-edit";
@@ -10,9 +9,6 @@ import { DenaliFlatEditValidationList } from "@app-tour/workspace-denali/ui/chro
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
 import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types";
 import type { TourUiStatus } from "@/features/tours/operator-tours-types";
 import {
@@ -22,6 +18,14 @@ import {
 } from "@/features/tours/tour-list-formatters";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
+import {
+  CreateTourWizardLoadingMessage,
+  CreateTourWizardNotConfigured,
+} from "@/wizard/create-tour-wizard-chrome";
+import {
+  DenaliFlatEditPageHeader,
+  DenaliFlatEditPageShell,
+} from "@/wizard/denali-flat-edit-chrome";
 import { DenaliFlatEditForm } from "@/wizard/denali-flat-edit-form-shell";
 import {
   createDenaliWizardSubmitFieldLabelResolver,
@@ -40,6 +44,11 @@ type DenaliFlatEditPageClientProps = {
   readonly session: OperatorSessionContext;
   readonly tourId: string;
 };
+
+function buildFlatEditMetaLine(parts: readonly (string | null | undefined)[]): string | null {
+  const line = parts.filter((part) => part != null && part.length > 0).join(" · ");
+  return line.length > 0 ? line : null;
+}
 
 export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPageClientProps) {
   const locale = useLocale() as AppLocale;
@@ -71,24 +80,15 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
       tourId={tourId}
       slots={{
         renderLoading: () => (
-          <div className="space-y-4" data-testid={TOUR_EDIT_TEST_IDS.page}>
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-40 w-full rounded-xl" />
-          </div>
+          <CreateTourWizardLoadingMessage testId={TOUR_EDIT_TEST_IDS.page} />
         ),
-        renderNotConfigured: () => (
-          <Card data-testid={TOUR_EDIT_TEST_IDS.page}>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              {tWizard("notConfigured.description")}
-            </CardContent>
-          </Card>
-        ),
+        renderNotConfigured: () => <CreateTourWizardNotConfigured />,
         renderNotFound: () => (
-          <Card data-testid={TOUR_EDIT_TEST_IDS.page}>
-            <CardContent className="py-10 text-center text-muted-foreground">
-              {t("notFound")}
-            </CardContent>
-          </Card>
+          <DenaliFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
+            <section className="new-tour-wizard-page__empty">
+              <p className="new-tour-wizard-page__empty-desc">{t("notFound")}</p>
+            </section>
+          </DenaliFlatEditPageShell>
         ),
         renderReady: ({ core: readyCore, detail, tourId: readyTourId }) => {
           const loadError = resolveTourErrorMessage(tErrors, readyCore.error);
@@ -115,59 +115,21 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
           );
           const departureLabel = formatTourDeparture(detail.projection.departureAt, locale);
           const seatsLabel = formatSeats(detail.projection);
+          const metaLine = buildFlatEditMetaLine([departureLabel, priceLabel, seatsLabel]);
 
           return (
-            <div className="mx-auto max-w-3xl space-y-6" data-testid={TOUR_EDIT_TEST_IDS.page}>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link href="/tours">
-                  <Button type="button" variant="ghost" size="sm" className="gap-1">
-                    <ArrowLeft className="h-4 w-4" />
-                    {tNav("tours")}
-                  </Button>
-                </Link>
-                <Link href={`/tours/${encodeURIComponent(readyTourId)}/workspace`}>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    data-testid={TOUR_EDIT_TEST_IDS.workspace}
-                  >
-                    {tNav("workspace")}
-                  </Button>
-                </Link>
-              </div>
-
-              <div className="space-y-2">
-                <DraftSyncChrome
-                  status={draftSyncEngine.status}
-                  schemaIssues={draftSyncEngine.schemaIssues}
-                  navLocked={draftSyncEngine.navLocked}
-                  pendingDraft={draftSyncEngine.pendingDraft}
-                  conflictReloadNotice={draftSyncEngine.conflictReloadNotice}
-                  onRetry={() => void draftSyncEngine.retry()}
-                  onFlush={() => void draftSyncEngine.flush()}
-                  onApplyPending={draftSyncEngine.applyDraft}
-                  onDiscardPending={() => {
-                    if (draftSyncEngine.pendingDraft != null) {
-                      draftSyncEngine.setData(draftSyncEngine.pendingDraft.data, {
-                        source: "remote",
-                      });
-                    }
-                  }}
-                  manualSyncTestId={TOUR_EDIT_TEST_IDS.save}
-                  rowTestId={TOUR_EDIT_TEST_IDS.draftSync}
-                  showInlineSoftLockBanner
-                  canRevertQuarantine={draftSyncEngine.canRevertQuarantine}
-                  onRevertQuarantine={draftSyncEngine.revertToLastValid}
-                />
-                <TourStatusBadge status={detail.projection.uiStatus as TourUiStatus} />
-                <h1 className="text-2xl font-semibold">{detail.projection.title}</h1>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                  {departureLabel ? <span>{departureLabel}</span> : null}
-                  {priceLabel ? <span>{priceLabel}</span> : null}
-                  <span>{seatsLabel}</span>
-                </div>
-              </div>
+            <DenaliFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
+              <DenaliFlatEditPageHeader
+                tourId={readyTourId}
+                title={detail.projection.title}
+                statusBadge={
+                  <TourStatusBadge status={detail.projection.uiStatus as TourUiStatus} />
+                }
+                metaLine={metaLine}
+                toursNavLabel={tNav("tours")}
+                workspaceNavLabel={tNav("workspace")}
+                draftSync={draftSyncEngine}
+              />
 
               <DenaliFlatEditForm
                 tenantId={session.tenantId}
@@ -179,7 +141,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
                 wizardRuleEvalContext={readyCore.wizardRuleEvalContext}
                 wizardSessionId={readyCore.wizardSessionId}
                 footer={
-                  <div className="space-y-3 pt-2">
+                  <div className="space-y-3 pt-2" data-wizard-footer>
                     {readyCore.submitValidationIssues != null &&
                     readyCore.submitValidationIssues.length > 0 ? (
                       <DenaliFlatEditValidationList issues={readyCore.submitValidationIssues} />
@@ -253,7 +215,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
                   </div>
                 }
               />
-            </div>
+            </DenaliFlatEditPageShell>
           );
         },
       }}

@@ -6,6 +6,7 @@ import {
 import type { CanonicalDocument, TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { enrichTourListProjectionWithAcceptedCount } from "../bookings/enrich-tour-accepted-counts";
+import { enrichTourListProjectionCoverImageUrl } from "./enrich-tour-list-cover-image-url";
 import type { TourRecord } from "../db/tour-record";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
@@ -50,6 +51,7 @@ function defaultExtractTourListProjection(canonical: CanonicalDocument): TourLis
     acceptedCount: 0,
     category: null,
     coverImageUrl: null,
+    coverImageStorageKey: null,
     departureAt: null,
   });
 }
@@ -62,20 +64,24 @@ export async function buildOperatorTourDetailResponse(
   const plugin = resolveWorkspacePluginForType(workspaceType);
   const extract =
     plugin.tourList?.extractTourListProjection ?? defaultExtractTourListProjection;
-  const projection = await enrichTourListProjectionWithAcceptedCount(
-    tenantId,
-    buildTourListProjection(
-      {
-        id: record.id,
-        tenantId: record.tenantId,
-        createdAt: record.createdAt,
-        updatedAt: record.createdAt,
-        rowVersion: record.rowVersion,
-      },
-      record.canonical,
-      extract
-    )
+  const baseProjection = buildTourListProjection(
+    {
+      id: record.id,
+      tenantId: record.tenantId,
+      createdAt: record.createdAt,
+      updatedAt: record.createdAt,
+      rowVersion: record.rowVersion,
+    },
+    record.canonical,
+    extract
   );
+  const withCover = await enrichTourListProjectionCoverImageUrl(
+    baseProjection,
+    record.canonical,
+    tenantId,
+    workspaceType
+  );
+  const projection = await enrichTourListProjectionWithAcceptedCount(tenantId, withCover);
 
   return {
     id: record.id,

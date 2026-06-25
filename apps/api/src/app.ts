@@ -219,6 +219,24 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "POST" && url.pathname === "/identity/me/avatar") {
+    const { handleUploadIdentityMeAvatar } = await import("./identity/me.avatar.routes");
+    await handleUploadIdentityMeAvatar(req, res);
+    return;
+  }
+
+  if (method === "DELETE" && url.pathname === "/identity/me/avatar") {
+    const { handleDeleteIdentityMeAvatar } = await import("./identity/me.avatar.routes");
+    await handleDeleteIdentityMeAvatar(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/identity/me/avatar/url") {
+    const { handleGetIdentityMeAvatarUrl } = await import("./identity/me.avatar.routes");
+    await handleGetIdentityMeAvatarUrl(req, res);
+    return;
+  }
+
   const inviteAcceptMatch = url.pathname.match(/^\/auth\/invite\/([^/]+)\/accept$/);
   if (inviteAcceptMatch && method === "POST") {
     await handleAcceptInvite(req, res, inviteAcceptMatch[1]!);

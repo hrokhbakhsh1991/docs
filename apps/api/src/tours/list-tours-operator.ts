@@ -11,12 +11,13 @@ import type { ApiAbility } from "../casl/api-ability";
 import { ScopedTourRepository } from "../db/scoped-tour.repository";
 import type { TourRecord } from "../db/tour-record";
 import { enrichTourListProjectionsWithAcceptedCount } from "../bookings/enrich-tour-accepted-counts";
+import { enrichTourListProjectionsCoverImageUrls } from "./enrich-tour-list-cover-image-url";
 import type { TourStorageRepository } from "../db/tour.repository";
 import { ensureDevMemoryTourSeedForTenant } from "../storage/create-tour-storage";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 
-export type OperatorListSortBy = "created_at" | "title" | "price";
+export type OperatorListSortBy = "created_at" | "title" | "price" | "departure_at";
 export type OperatorListSortDir = "asc" | "desc";
 export type OperatorListStatusFilter = "active" | "completed" | "archived";
 
@@ -85,6 +86,7 @@ function defaultExtractTourListProjection(canonical: CanonicalDocument): TourLis
     acceptedCount: 0,
     category: null,
     coverImageUrl: null,
+    coverImageStorageKey: null,
     departureAt: null,
   });
 }
@@ -134,6 +136,23 @@ function matchesCategoryFilter(
   return projection.category === category;
 }
 
+function compareNullableIso(left: string | null, right: string | null): number {
+  const leftVal = left?.trim() ?? "";
+  const rightVal = right?.trim() ?? "";
+  const leftEmpty = leftVal.length === 0;
+  const rightEmpty = rightVal.length === 0;
+  if (leftEmpty && rightEmpty) {
+    return 0;
+  }
+  if (leftEmpty) {
+    return 1;
+  }
+  if (rightEmpty) {
+    return -1;
+  }
+  return leftVal.localeCompare(rightVal);
+}
+
 function compareProjections(
   left: TourListProjection,
   right: TourListProjection,
@@ -147,6 +166,8 @@ function compareProjections(
     const leftPrice = left.priceAmount ?? Number.NEGATIVE_INFINITY;
     const rightPrice = right.priceAmount ?? Number.NEGATIVE_INFINITY;
     delta = leftPrice - rightPrice;
+  } else if (sortBy === "departure_at") {
+    delta = compareNullableIso(left.departureAt, right.departureAt);
   } else {
     delta = left.createdAt.localeCompare(right.createdAt);
   }
@@ -183,7 +204,14 @@ export async function listToursOperator(
   const total = filtered.length;
   const offset = (query.page - 1) * query.limit;
   const pageItems = filtered.slice(offset, offset + query.limit);
-  const items = await enrichTourListProjectionsWithAcceptedCount(tenantId, pageItems);
+  const recordsById = new Map(records.map((record) => [record.id, record] as const));
+  const pageItemsWithCover = await enrichTourListProjectionsCoverImageUrls(
+    pageItems,
+    recordsById,
+    tenantId,
+    workspaceType
+  );
+  const items = await enrichTourListProjectionsWithAcceptedCount(tenantId, pageItemsWithCover);
 
   return {
     items,

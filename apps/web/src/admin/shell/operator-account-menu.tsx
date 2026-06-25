@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { OperatorProfileAvatar } from "@/admin/patterns/operator-profile-avatar";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,15 +20,15 @@ import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 
 type OperatorAccountMenuProps = {
   readonly session: OperatorSessionContext;
+  readonly displayName?: string | null;
   readonly onLogout: () => void;
 };
 
-function initialsFromUserId(userId: string): string {
-  const compact = userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 2);
-  return (compact || "OP").toUpperCase();
-}
-
-export function OperatorAccountMenu({ session, onLogout }: OperatorAccountMenuProps) {
+export function OperatorAccountMenu({
+  session,
+  displayName = null,
+  onLogout,
+}: OperatorAccountMenuProps) {
   const tApp = useTranslations("app");
   const brandTitle = useTenantBrandTitle();
 
@@ -42,9 +42,13 @@ export function OperatorAccountMenu({ session, onLogout }: OperatorAccountMenuPr
           data-testid={OPERATOR_NAV_TEST_IDS.accountMenu}
           aria-label={tApp("accountMenu")}
         >
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">{initialsFromUserId(session.userId)}</AvatarFallback>
-          </Avatar>
+          <OperatorProfileAvatar
+            userId={session.userId}
+            displayName={displayName}
+            className="h-8 w-8"
+            fallbackClassName="text-xs"
+            resolvePreview
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">

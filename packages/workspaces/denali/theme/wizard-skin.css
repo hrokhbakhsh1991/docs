@@ -210,6 +210,13 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] {
   padding-block-end: var(--space-8, 2rem);
 }
 
+body[data-workspace-plugin="denali"] .new-tour-wizard-page__flat-edit-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+}
+
 body[data-workspace-plugin="denali"] .new-tour-wizard-page__header {
   display: flex;
   flex-direction: column;

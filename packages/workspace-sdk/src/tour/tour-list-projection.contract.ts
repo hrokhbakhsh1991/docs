@@ -34,6 +34,8 @@ export type TourListProjectionFields = {
   readonly acceptedCount: number;
   readonly category: string | null;
   readonly coverImageUrl: string | null;
+  /** MinIO object key for operator BFF signed-read when `coverImageUrl` is not yet resolved. */
+  readonly coverImageStorageKey: string | null;
   readonly departureAt: string | null;
 };
 

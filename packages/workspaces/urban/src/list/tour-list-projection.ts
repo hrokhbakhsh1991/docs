@@ -74,6 +74,7 @@ export function extractUrbanTourListProjection(
     acceptedCount: 0,
     category: readString(tour?.city),
     coverImageUrl: readString(tour?.coverImageUrl),
+    coverImageStorageKey: null,
     departureAt: readString(tour?.startDate),
   });
 }

@@ -18,7 +18,7 @@ export function TourCategoryBadge({ category }: TourCategoryBadgeProps) {
   }
 
   return (
-    <Badge variant="outline" data-denali-category-badge className="mb-2 w-fit">
+    <Badge variant="outline" data-denali-category-badge className="w-fit">
       {resolveDenaliTourKindLabel(t, category)}
     </Badge>
   );

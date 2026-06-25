@@ -605,11 +605,13 @@ settings.config.put   — resourceId = config_key (wizard_template | presets_adv
 | -------- | ---- | -------- |
 | Profile API | `apps/api/src/identity/me.service.ts` | `GET/PATCH /identity/me` — self-scoped; `displayName` in `membership_metadata` |
 | Settings modules inject | `apps/api/src/settings/settings.service.ts` | Appends synthetic `account_profile` module (`kind: account_preference`) to `GET /settings/modules` |
-| Profile UI | `apps/web/app/(app)/settings/me/` | Read-only phone/role + editable display name |
+| Profile UI | `apps/web/app/(app)/settings/me/` | Read-only phone/role + editable display name + avatar upload (MinIO · self) |
 | BFF | `apps/web/app/api/identity/me/route.ts` | Bearer forward to API |
-| Account menu | `operator-account-menu.tsx` | Links to `/settings/me` |
+| Account menu | `operator-account-menu.tsx` | Links to `/settings/me` · shows avatar or User-icon placeholder |
+| Avatar API | `identity/me.avatar.routes.ts` | `POST/DELETE /identity/me/avatar` · `GET /identity/me/avatar/url` |
+| Avatar storage | `identity/operator-avatar-storage.ts` | Reuses wizard/branding MinIO binding · key `{tenantId}/operators/{userId}/avatar` |
 
-**Proof:** `identity-me.spec.ts` API-9.6-ME-01..03 · `settings-profile.spec.ts` WEB-9.6-ME-01.
+**Proof:** `identity-me.spec.ts` API-9.6-ME-01..07 · `settings-profile.spec.ts` WEB-9.6-ME-01..02.
 
 ### 3.16 Trunk implementation (S9-R8 — urban filter · reconciliation hub)
 

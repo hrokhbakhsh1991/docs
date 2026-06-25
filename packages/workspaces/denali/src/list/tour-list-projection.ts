@@ -9,6 +9,12 @@ import type {
   TourUiStatus,
 } from "@app-tour/workspace-sdk";
 
+import {
+  readDenaliCanonicalPhotoRows,
+  readDenaliFirstPhotoHttpsUrl,
+  readDenaliFirstPhotoStorageKey,
+} from "./read-denali-first-photo";
+
 const DEFAULT_PRICE_CURRENCY = "IRR";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -52,22 +58,6 @@ function normalizeDenaliListStatus(publishStatus: unknown): {
   return { listStatus: "draft", uiStatus: "draft" };
 }
 
-function readCoverImageUrl(photos: unknown): string | null {
-  if (Array.isArray(photos)) {
-    const first = photos[0];
-    return isRecord(first) ? readString(first.url) : null;
-  }
-  if (!isRecord(photos)) {
-    return null;
-  }
-  const items = photos.items ?? photos.entries ?? photos.photos;
-  if (!Array.isArray(items) || items.length === 0) {
-    return null;
-  }
-  const first = items[0];
-  return isRecord(first) ? readString(first.url) : null;
-}
-
 /** Extract operator list fields from a Denali canonical document. */
 export function extractDenaliTourListProjection(
   canonical: CanonicalDocument
@@ -75,6 +65,8 @@ export function extractDenaliTourListProjection(
   const data = canonical.data;
   const title = readString(data.title) ?? "Untitled tour";
   const { listStatus, uiStatus } = normalizeDenaliListStatus(data.publishStatus);
+
+  const photoRows = readDenaliCanonicalPhotoRows(data);
 
   return Object.freeze({
     title,
@@ -86,7 +78,8 @@ export function extractDenaliTourListProjection(
     totalCapacity: readInteger(data.capacityMax),
     acceptedCount: 0,
     category: readString(data.category),
-    coverImageUrl: readCoverImageUrl(data.photos),
+    coverImageUrl: readDenaliFirstPhotoHttpsUrl(photoRows),
+    coverImageStorageKey: readDenaliFirstPhotoStorageKey(photoRows),
     departureAt: readString(data.startDateTime),
   });
 }

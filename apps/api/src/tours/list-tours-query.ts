@@ -62,7 +62,7 @@ function parseListView(searchParams: URLSearchParams): ListToursView {
 }
 
 function parseOperatorSortBy(raw: string | null): OperatorListSortBy {
-  if (raw === "title" || raw === "price") {
+  if (raw === "title" || raw === "price" || raw === "departure_at") {
     return raw;
   }
   return "created_at";

@@ -29,6 +29,7 @@ function projection(id: string, acceptedCount = 0): TourListProjection {
     acceptedCount,
     category: null,
     coverImageUrl: null,
+    coverImageStorageKey: null,
     departureAt: null,
   };
 }

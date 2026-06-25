@@ -29,7 +29,7 @@ export function buildDenaliWizardDraftPhotoObjectKey(input: {
   return `${tenantId}/wizard-drafts/${sessionId}/photos/${photoId}`;
 }
 
-/** Wizard draft signed-read scope — matches API `tour-wizard-photos` GET guard. */
+/** Wizard draft signed-read scope — matches API `tour-wizard-photos` GET guard (wizard only). */
 export function isDenaliWizardDraftPhotoReadKeyAllowed(
   tenantId: string,
   storageKey: string
@@ -37,6 +37,21 @@ export function isDenaliWizardDraftPhotoReadKeyAllowed(
   const normalizedTenant = tenantId.trim();
   const prefix = `${normalizedTenant}/wizard-drafts/`;
   return storageKey.length > 0 && storageKey.startsWith(prefix);
+}
+
+/** Operator session may read tenant-scoped wizard draft or persisted tour photo keys. */
+export function isDenaliOperatorTourPhotoReadKeyAllowed(
+  tenantId: string,
+  storageKey: string
+): boolean {
+  const normalizedTenant = tenantId.trim();
+  if (storageKey.length === 0 || !storageKey.startsWith(`${normalizedTenant}/`)) {
+    return false;
+  }
+  if (storageKey.startsWith(`${normalizedTenant}/wizard-drafts/`)) {
+    return true;
+  }
+  return storageKey.includes("/tours/") && storageKey.includes("/photos/");
 }
 
 export function assertDenaliTourPhotoKeyTenantScope(key: string, tenantId: string): void {

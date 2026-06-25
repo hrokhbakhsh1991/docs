@@ -1,4 +1,5 @@
 import type { AppLocale } from "@/i18n/routing";
+import { formatDatetimeLocalLabel } from "@/i18n/datetime-format";
 import { formatLocalizedNumber, INTL_LOCALE } from "@/i18n/format-localized-digits";
 
 import type { TourListProjection } from "./operator-tours-types";
@@ -35,15 +36,8 @@ export function formatTourDeparture(
   if (iso === null || iso.trim().length === 0) {
     return null;
   }
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+  const label = formatDatetimeLocalLabel(iso, locale);
+  return label.length > 0 ? label : null;
 }
 
 export function formatTourSeats(

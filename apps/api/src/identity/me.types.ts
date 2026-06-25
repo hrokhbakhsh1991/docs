@@ -9,7 +9,7 @@ export type OperatorProfileResponse = {
   readonly mobile: string;
   readonly displayName: string;
   readonly email: string | null;
-  readonly avatarUrl: null;
+  readonly avatarUrl: string | null;
 };
 
 export type PatchOperatorProfileRequest = {

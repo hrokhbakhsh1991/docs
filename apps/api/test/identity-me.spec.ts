@@ -20,6 +20,7 @@ type ProfileResponse = {
   readonly displayName?: string;
   readonly mobile?: string;
   readonly role?: string;
+  readonly avatarUrl?: string | null;
   readonly code?: string;
 };
 
@@ -63,5 +64,39 @@ describe("identity-me.spec.ts — Phase 9.6 S9-R7", () => {
     });
     assert.equal(reread.status, 200);
     assert.equal(reread.body.displayName, "Smoke Owner");
+  });
+
+  it("API-9.6-ME-04 GET /identity/me returns avatarUrl null by default", async () => {
+    const response = await client.requestJson<ProfileResponse>("GET", "/identity/me", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.avatarUrl, null);
+  });
+
+  it("API-9.6-ME-05 POST /identity/me/avatar without Content-Type returns 400", async () => {
+    const response = await client.requestJson<ProfileResponse>("POST", "/identity/me/avatar", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(response.status, 400);
+  });
+
+  it("API-9.6-ME-06 GET /identity/me/avatar/url without avatar returns 404", async () => {
+    const response = await client.requestJson<ProfileResponse>("GET", "/identity/me/avatar/url", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(response.status, 404);
+    assert.equal(response.body.code, "OPERATOR_AVATAR_NOT_SET");
+  });
+
+  it("API-9.6-ME-07 POST /identity/me/avatar invalid content-type returns 400", async () => {
+    const response = await client.requestJson<ProfileResponse>("POST", "/identity/me/avatar", {
+      headers: {
+        ...operatorAuthHeaders(),
+        "Content-Type": "image/svg+xml",
+      },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, "OPERATOR_AVATAR_CONTENT_TYPE_INVALID");
   });
 });
