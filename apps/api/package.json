@@ -64,6 +64,8 @@
     "guard:proxy-production-wire": "node ./scripts/guard-proxy-production-wire.mjs",
     "outbox:replay-failed": "node ./scripts/outbox-replay-failed.mjs",
     "reconcile:tour-projection": "node ./scripts/reconcile-tour-projection.mjs",
+    "integrations:backfill-telegram": "node ./scripts/backfill-telegram-integrations.mjs",
+    "integrations:verify-telegram-backfill": "node ./scripts/backfill-telegram-integrations.mjs --verify",
     "guard:http-idempotency-memory-bounds": "node ./scripts/guard-http-idempotency-memory-bounds.mjs",
     "guard:tenant-registry-cache-bounds": "node ./scripts/guard-tenant-registry-cache-bounds.mjs",
     "guard:bulk-import-victim-slo": "node ./scripts/guard-bulk-import-victim-slo.mjs",

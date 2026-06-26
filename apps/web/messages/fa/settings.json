@@ -22,6 +22,7 @@
     "PROFILE_HTTP_ERROR": "بارگذاری پروفایل ناموفق بود (HTTP {status}).",
     "PROFILE_FETCH_FAILED": "بارگذاری پروفایل ناموفق بود.",
     "PROFILE_DISPLAY_NAME_INVALID": "نام نمایشی باید بین ۱ تا ۱۲۰ کاراکتر باشد.",
+    "PROFILE_GENDER_INVALID": "جنسیت انتخاب‌شده معتبر نیست.",
     "PROFILE_SAVE_HTTP_ERROR": "ذخیره پروفایل ناموفق بود (HTTP {status}).",
     "PROFILE_SAVE_FAILED": "ذخیره پروفایل ناموفق بود.",
     "PROFILE_AVATAR_UPLOAD_HTTP_ERROR": "آپلود عکس پروفایل ناموفق بود (HTTP {status}).",
@@ -140,6 +141,10 @@
     "workspace_branding": {
       "title": "برند workspace",
       "description": "لوگوی سازمان و نام نمایشی برای ورود و پنل اپراتور."
+    },
+    "integrations": {
+      "title": "یکپارچه‌سازی‌ها",
+      "description": "بررسی اتصال تلگرام، منبع پشتیبان و آزمایش اتصال."
     }
   },
   "branding": {
@@ -169,6 +174,7 @@
     "status": "وضعیت",
     "saved": "پروفایل ذخیره شد.",
     "saveButton": "ذخیره پروفایل",
+    "gender": "جنسیت",
     "avatarLabel": "عکس پروفایل",
     "avatarUpload": "انتخاب عکس",
     "avatarUploading": "در حال آپلود…",
@@ -338,6 +344,139 @@
     "hideEvents": "پنهان کردن تاریخچه",
     "resumeWizard": "ادامه ویزارد",
     "backToHub": "بازگشت به تنظیمات"
+  },
+  "integrations": {
+    "forbidden": "تنظیمات یکپارچه‌سازی فقط برای ادمین یا مالک در دسترس است.",
+    "title": "یکپارچه‌سازی‌ها",
+    "subtitle": "بررسی اتصال‌های یکپارچه‌سازی ورک‌اسپیس قبل از مهاجرت backfill",
+    "workspaceScope": "محدوده API ورک‌اسپیس: {workspaceId}",
+    "refresh": "بروزرسانی",
+    "backToHub": "بازگشت به تنظیمات",
+    "listTitle": "اتصال‌ها ({count, number})",
+    "summary": {
+      "title": "نمای کلی منبع ارسال",
+      "description": "{integrationCount, number} ردیف integration_connection، {legacyCount, number} ردیف بات قدیمی.",
+      "noActiveSource": "هیچ منبع ارسال فعالی برای این ورک‌اسپیس وجود ندارد.",
+      "legacyFallbackSuppressed": "بات تلگرام قدیمی وجود دارد اما fallback به‌دلیل ردیف integration_connections غیرفعال است.",
+      "activeSource": {
+        "integration_connection": "ارسال فعال از integration_connections استفاده می‌کند.",
+        "legacy_workspace_telegram_bot": "ارسال فعال از fallback قدیمی workspace_telegram_bots استفاده می‌کند."
+      }
+    },
+    "scenarios": {
+      "empty": {
+        "title": "یکپارچه‌سازی پیکربندی نشده",
+        "description": "نه ردیف integration_connection تلگرام و نه ردیف legacy workspace_telegram_bots برای این ورک‌اسپیس وجود دارد."
+      },
+      "legacy_only": {
+        "title": "فقط تلگرام قدیمی",
+        "description": "ارسال از workspace_telegram_bots تأمین می‌شود. پس از backfill ردیف پلتفرم یکپارچه‌سازی را فعال کنید."
+      },
+      "migration_ready": {
+        "title": "آماده مهاجرت (نمای دوگانه)",
+        "description": "هم integration_connections و هم ردیف بات قدیمی قابل مشاهده است. سیستم جدید در صورت فعال بودن اولویت دارد؛ fallback قدیمی ممکن است غیرفعال باشد."
+      },
+      "active_new_system": {
+        "title": "پلتفرم یکپارچه‌سازی فعال",
+        "description": "ارسال از integration_connections برای این ورک‌اسپیس تأمین می‌شود."
+      }
+    },
+    "empty": {
+      "title": "یکپارچه‌سازی پیکربندی نشده",
+      "description": "نه ردیف integration_connections و نه بات تلگرام قدیمی برای این ورک‌اسپیس وجود دارد."
+    },
+    "rowMeta": "کانال {channelId}",
+    "detail": {
+      "title": "جزئیات اتصال",
+      "connectionId": "شناسه اتصال",
+      "status": "وضعیت",
+      "channelId": "شناسه کانال",
+      "hasSecret": "رمز پیکربندی شده",
+      "yes": "بله",
+      "no": "خیر",
+      "legacySourceId": "شناسه ردیف بات قدیمی",
+      "legacyReadOnly": "اتصال‌های مبتنی بر legacy در اینجا فقط‌خواندنی هستند. برای مهاجرت به integration_connections مرحله backfill (۶) را اجرا کنید.",
+      "fallbackSuppressed": "fallback قدیمی غیرفعال است چون ردیف integration_connections برای تلگرام در این ورک‌اسپیس وجود دارد.",
+      "backingSource": "منبع پشتیبان",
+      "eventPolicies": "سیاست‌های رویداد"
+    },
+    "badges": {
+      "legacy": "بات قدیمی",
+      "legacyWarning": "قدیمی (فقط‌خواندنی)",
+      "integrationConnection": "یکپارچه‌سازی فعال",
+      "activeDelivery": "منبع ارسال فعال",
+      "enabled": "فعال",
+      "disabled": "غیرفعال",
+      "error": "خطا",
+      "fallbackSuppressed": "fallback غیرفعال",
+      "fallbackActive": "fallback فعال"
+    },
+    "actions": {
+      "enable": "فعال‌سازی",
+      "disable": "غیرفعال‌سازی",
+      "testConnection": "آزمایش اتصال"
+    },
+    "create": {
+      "title": "افزودن ربات تلگرام",
+      "description": "ربات و چنل تلگرام ورک‌اسپیس خود را وصل کنید. توکن ربات به‌صورت امن ذخیره می‌شود و پس از ذخیره دیگر نمایش داده نمی‌شود.",
+      "channelIdLabel": "شناسه چنل",
+      "channelIdPlaceholder": "@your_channel یا -1001234567890",
+      "channelIdHint": "نام کاربری عمومی @ یا شناسه عددی چنلی که اعلان تورها باید در آن ارسال شود.",
+      "botTokenLabel": "توکن ربات",
+      "botTokenPlaceholder": "123456789:ABCdef...",
+      "botTokenHint": "از @BotFather. ربات باید ادمین چنل باشد و اجازه ارسال پیام داشته باشد.",
+      "enableAfterSave": "پس از ذخیره، یکپارچه‌سازی فعال شود",
+      "submit": "ذخیره اتصال تلگرام",
+      "submitting": "در حال ذخیره…",
+      "success": "اتصال تلگرام ذخیره شد. در صورت نیاز فعال‌سازی یا آزمایش اتصال را انجام دهید.",
+      "validationRequired": "شناسه چنل و توکن ربات الزامی است."
+    },
+    "edit": {
+      "title": "ویرایش اتصال",
+      "description": "چنل را به‌روز کنید یا توکن ربات را عوض کنید. برای نگه‌داشتن توکن فعلی، فیلد توکن را خالی بگذارید.",
+      "channelIdLabel": "شناسه چنل",
+      "channelIdPlaceholder": "@your_channel یا -1001234567890",
+      "channelIdHint": "نام کاربری عمومی @ یا شناسه عددی چنلی که اعلان تورها باید در آن ارسال شود.",
+      "botTokenLabel": "توکن جدید ربات (اختیاری)",
+      "botTokenPlaceholder": "برای نگه‌داشتن توکن فعلی خالی بگذارید",
+      "botTokenHint": "فقط هنگام تعویض ربات، توکن جدید از @BotFather وارد کنید. توکن ذخیره‌شده هرگز نمایش داده نمی‌شود.",
+      "submit": "ذخیره تغییرات",
+      "submitting": "در حال ذخیره…",
+      "success": "اتصال به‌روز شد. برای تأیید تنظیمات جدید، آزمایش اتصال را اجرا کنید.",
+      "validationRequired": "شناسه چنل الزامی است.",
+      "noChanges": "تغییری برای ذخیره وجود ندارد."
+    },
+    "test": {
+      "successTitle": "آزمایش موفق بود",
+      "failureTitle": "آزمایش ناموفق بود",
+      "meta": "منبع: {backing} · زمان آزمایش {testedAt}"
+    },
+    "errors": {
+      "INTEGRATION_SYSTEM_NOT_READY": "سامانه یکپارچه‌سازی آماده نیست. ممکن است مهاجرت‌های پایگاه داده در انتظار باشند — با اپراتور تماس بگیرید.",
+      "INTEGRATIONS_LIST_HTTP_ERROR": "بارگذاری یکپارچه‌سازی‌ها ناموفق بود (HTTP {status}).",
+      "INTEGRATIONS_FETCH_FAILED": "بارگذاری یکپارچه‌سازی‌ها ناموفق بود.",
+      "INTEGRATION_DETAIL_HTTP_ERROR": "بارگذاری جزئیات یکپارچه‌سازی ناموفق بود (HTTP {status}).",
+      "INTEGRATION_DETAIL_FAILED": "بارگذاری جزئیات یکپارچه‌سازی ناموفق بود.",
+      "INTEGRATION_ENABLE_HTTP_ERROR": "فعال‌سازی یکپارچه‌سازی ناموفق بود (HTTP {status}).",
+      "INTEGRATION_ENABLE_FAILED": "فعال‌سازی یکپارچه‌سازی ناموفق بود.",
+      "INTEGRATION_DISABLE_HTTP_ERROR": "غیرفعال‌سازی یکپارچه‌سازی ناموفق بود (HTTP {status}).",
+      "INTEGRATION_DISABLE_FAILED": "غیرفعال‌سازی یکپارچه‌سازی ناموفق بود.",
+      "INTEGRATION_TEST_HTTP_ERROR": "آزمایش اتصال ناموفق بود (HTTP {status}).",
+      "INTEGRATION_TEST_FAILED": "آزمایش اتصال ناموفق بود.",
+      "INTEGRATION_CREATE_HTTP_ERROR": "افزودن ربات تلگرام ناموفق بود (HTTP {status}).",
+      "INTEGRATION_CREATE_FAILED": "افزودن ربات تلگرام ناموفق بود.",
+      "INTEGRATION_PATCH_HTTP_ERROR": "به‌روزرسانی یکپارچه‌سازی ناموفق بود (HTTP {status}).",
+      "INTEGRATION_PATCH_FAILED": "به‌روزرسانی یکپارچه‌سازی ناموفق بود.",
+      "INTEGRATION_META_FAILED": "بارگذاری متادیتای فرم یکپارچه‌سازی ناموفق بود.",
+      "INTEGRATION_INVALID_BODY": "اطلاعات ربات یا چنل نامعتبر است.",
+      "INTEGRATION_CAPABILITIES_INVALID": "قابلیت‌های انتخاب‌شده برای یکپارچه‌سازی معتبر نیستند.",
+      "INTEGRATION_PROVIDER_INVALID": "این provider برای یکپارچه‌سازی پشتیبانی نمی‌شود.",
+      "INTEGRATION_PROVIDER_NOT_REGISTERED": "این provider در runtime فعلی در دسترس نیست.",
+      "INTEGRATION_PROVIDER_NOT_SUPPORTED_FOR_WORKSPACE": "این provider در پلاگین ورک‌اسپیس فعلی فعال نیست.",
+      "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "شناسه چنل تلگرام الزامی است.",
+      "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED": "توکن ربات تلگرام الزامی است.",
+      "INTEGRATION_CONNECTION_ALREADY_EXISTS": "برای این ورک‌اسپیس قبلاً اتصال تلگرام ثبت شده است. اتصال موجود را مدیریت کنید."
+    }
   },
   "reconciliation": {
     "forbidden": "اولویت‌بندی تطبیق فقط برای ادمین یا مالک در دسترس است.",

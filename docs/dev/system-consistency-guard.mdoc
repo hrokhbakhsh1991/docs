@@ -1,0 +1,97 @@
+---
+title: System Consistency Guard
+format: markdoc
+doc_role: architecture_sot
+---
+
+# System Consistency Guard
+
+Production safety layer that prevents silent drift between Prisma migrations, live Postgres schema, API runtime integration subsystem state, and Denali settings module visibility.
+
+## Problem class
+
+| Failure                                | Symptom without guard                                                        |
+| -------------------------------------- | ---------------------------------------------------------------------------- |
+| Unapplied integration migrations       | Code expects `integration_connections`; DB has no table; UI shows empty list |
+| Stale API process after plugin rebuild | `/settings/modules` omits `integrations`; Settings hub never links to page   |
+| Partial deployment                     | Integration worker runs against missing schema; operator sees ghost features |
+
+## Components
+
+### 1. Migration consistency check (`apps/api/src/health/migration-consistency-check.ts`)
+
+At API boot (Prisma storage + `DATABASE_URL`):
+
+1. Probe `information_schema.tables` for required integration tables:
+   - `integration_connections`
+   - `integration_delivery_jobs`
+   - `integration_event_policies`
+   - `workspace_telegram_bots`
+2. Compare `prisma/migrations/*/migration.sql` directory names vs `_prisma_migrations` rows with `finished_at IS NOT NULL`.
+3. Emit structured report with signal:
+   - `CONSISTENCY_OK`
+   - `CONSISTENCY_MISSING_TABLES`
+   - `CONSISTENCY_MIGRATION_DRIFT`
+
+Skipped when storage driver is not `prisma` (memory/tests).
+
+### 2. Integration subsystem gate (`apps/api/src/health/integration-subsystem-gate.ts`)
+
+Process-wide latch set from the migration consistency report:
+
+- `ok === true` → integration subsystem **armed** (`CONSISTENCY_OK` log)
+- `ok === false` → integration subsystem **blocked** (`CONSISTENCY_MISSING_TABLES` or `CONSISTENCY_MIGRATION_DRIFT` fatal log)
+
+When blocked:
+
+- `bootstrapIntegrationProviders()` is a no-op
+- `startIntegrationDeliveryWorkerIfEnabled()` is a no-op
+- `listSettingsModules()` omits `integrations` module id
+- Integration HTTP handlers return `503` / `INTEGRATION_SYSTEM_NOT_READY` (never silent empty arrays caused by schema absence)
+
+### 3. Internal probe endpoint
+
+`GET /internal/consistency/migrations`
+
+Returns the latest migration consistency report JSON. Auth: ops JWT in production (metrics read scope); open in development.
+
+### 4. UI module registry guard (`apps/web/src/features/settings/settings-module-consistency-guard.ts`)
+
+After `GET /settings/modules` (server prefetch and client refresh):
+
+- For Denali plugin, required backend module ids come from
+  `denali-required-settings-modules.generated.ts`, generated from the Denali settings manifest
+  inventory (`workspace_branding`, `integrations`, reference-data modules, wizard/template modules,
+  and audit views)
+- If manifest-expected id is absent from backend payload → log `CONSISTENCY_UI_DESYNC` / `UI-BACKEND DESYNC DETECTED`
+- Do not synthesize or render modules missing from backend
+
+## Boot sequence (with guard)
+
+```text
+assertAuthEnvironmentIntegrity()
+assertProductionRuntimeIntegrity()
+[production] assertProductionDatabaseIntegrity()
+runMigrationConsistencyCheck()     ← new
+applyMigrationConsistencyGate()    ← new
+server.listen()
+[if integration armed] bootstrapIntegrationProviders + worker
+```
+
+## Observability signals
+
+| Event / log                   | Meaning                                             |
+| ----------------------------- | --------------------------------------------------- |
+| `CONSISTENCY_OK`              | Tables present, no migration drift                  |
+| `CONSISTENCY_MISSING_TABLES`  | Required integration tables absent                  |
+| `CONSISTENCY_MIGRATION_DRIFT` | Disk migrations not applied to DB                   |
+| `CONSISTENCY_UI_DESYNC`       | Denali UI expected module missing from API registry |
+
+All include `service: @apps/api` (API) or web context (UI), ISO `checkedAt` / timestamp.
+
+## Operator recovery
+
+1. `GET /internal/consistency/migrations` — read report
+2. Fix migration files / run `prisma migrate deploy`
+3. Restart API to re-run boot gate
+4. Confirm `/settings/modules` includes `integrations` and `/workspaces/:ws/integrations` returns data or explicit `INTEGRATION_SYSTEM_NOT_READY` until fixed

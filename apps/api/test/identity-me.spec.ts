@@ -21,6 +21,7 @@ type ProfileResponse = {
   readonly mobile?: string;
   readonly role?: string;
   readonly avatarUrl?: string | null;
+  readonly gender?: string | null;
   readonly code?: string;
 };
 
@@ -72,6 +73,32 @@ describe("identity-me.spec.ts — Phase 9.6 S9-R7", () => {
     });
     assert.equal(response.status, 200);
     assert.equal(response.body.avatarUrl, null);
+    assert.equal(response.body.gender, null);
+  });
+
+  it("API-9.6-ME-04b PATCH /identity/me updates optional gender", async () => {
+    const patched = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { displayName: "Smoke Owner", gender: "female" },
+    });
+    assert.equal(patched.status, 200);
+    assert.equal(patched.body.gender, "female");
+
+    const cleared = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { gender: null },
+    });
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.body.gender, null);
+  });
+
+  it("API-9.6-ME-04c PATCH /identity/me rejects invalid gender", async () => {
+    const response = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { gender: "invalid" },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, "PROFILE_GENDER_INVALID");
   });
 
   it("API-9.6-ME-05 POST /identity/me/avatar without Content-Type returns 400", async () => {

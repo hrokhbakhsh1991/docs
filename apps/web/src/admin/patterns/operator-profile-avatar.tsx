@@ -15,6 +15,7 @@ type OperatorProfileAvatarProps = {
   readonly fallbackClassName?: string;
   readonly testId?: string;
   readonly resolvePreview?: boolean;
+  readonly fallbackMode?: "initials" | "icon";
 };
 
 function initialsFromLabel(label: string): string {
@@ -38,6 +39,7 @@ export function OperatorProfileAvatar({
   fallbackClassName,
   testId,
   resolvePreview = false,
+  fallbackMode = "initials",
 }: OperatorProfileAvatarProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
 
@@ -67,6 +69,7 @@ export function OperatorProfileAvatar({
   }, [resolvePreview]);
 
   const fallbackInitials = resolveFallbackInitials(displayName, userId);
+  const showIconFallback = fallbackMode === "icon" || fallbackInitials === "OP";
 
   return (
     <Avatar className={cn("h-16 w-16", className)} data-testid={testId}>
@@ -74,7 +77,7 @@ export function OperatorProfileAvatar({
         <AvatarImage src={avatarUrl} alt="" className="object-cover" />
       ) : null}
       <AvatarFallback className={cn("bg-muted text-muted-foreground", fallbackClassName)}>
-        {fallbackInitials === "OP" ? <User className="h-5 w-5" aria-hidden /> : fallbackInitials}
+        {showIconFallback ? <User className="h-5 w-5" aria-hidden /> : fallbackInitials}
       </AvatarFallback>
     </Avatar>
   );

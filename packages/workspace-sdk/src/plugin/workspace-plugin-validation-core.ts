@@ -314,6 +314,7 @@ const DEFINITION_FORBIDDEN_TOP_LEVEL_KEYS = [
   "wizardMedia",
   "registrationOps",
   "operatorSettings",
+  "integrationSurface",
   "tourList",
   "publicCatalog",
   "tourClone",
@@ -365,10 +366,7 @@ function validateDefinitionThemePayload(
     }
     if (typeof value !== "string") {
       return fail(
-        violation(
-          "PLUGIN_INVALID_SHAPE",
-          `payload.theme.tokens.${key} must be a string`
-        )
+        violation("PLUGIN_INVALID_SHAPE", `payload.theme.tokens.${key} must be a string`)
       );
     }
     tokens[key] = value;
@@ -431,7 +429,11 @@ export function validateWorkspaceDefinitionPayload(value: unknown): DefinitionPa
   const id = requireNonEmptyString(root.value.id, "payload.id", "PLUGIN_INVALID_SHAPE");
   if (!id.ok) return id;
 
-  const version = requireFiniteNumber(root.value.version, "payload.version", "PLUGIN_INVALID_SHAPE");
+  const version = requireFiniteNumber(
+    root.value.version,
+    "payload.version",
+    "PLUGIN_INVALID_SHAPE"
+  );
   if (!version.ok) return version;
 
   const contractVersion = requireFiniteNumber(

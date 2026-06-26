@@ -21,6 +21,7 @@ export function buildDenaliWizardRuleEvalContext(input?: {
   readonly workspaceFormProfile?: string;
   readonly mainThemeFormProfile?: string;
   readonly fieldRulesOverlay?: Readonly<Record<string, unknown>>;
+  readonly telegramIntegrationActive?: boolean;
 }): DenaliWizardRuleEvalContext {
   const workspaceFormProfile = resolveDenaliWorkspaceFormProfile(input?.workspaceFormProfile);
 
@@ -28,6 +29,9 @@ export function buildDenaliWizardRuleEvalContext(input?: {
     uiOptions: {
       workspaceFormProfile,
       ...(input?.mainThemeFormProfile ? { mainThemeFormProfile: input.mainThemeFormProfile } : {}),
+      ...(input?.telegramIntegrationActive !== undefined
+        ? { telegramIntegrationActive: input.telegramIntegrationActive }
+        : {}),
     },
     ruleSet: resolveDenaliRuleSetFromTemplate({
       fieldRulesOverlay: input?.fieldRulesOverlay,

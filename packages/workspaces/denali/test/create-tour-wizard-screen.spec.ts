@@ -35,6 +35,20 @@ describe("resolveDenaliCreateTourWizardScreen", () => {
     );
   });
 
+  it("returns gate-loading when integration runtime is loading", () => {
+    assert.equal(
+      resolveDenaliCreateTourWizardScreen({
+        gateLoading: false,
+        integrationRuntimeLoading: true,
+        gatePublished: true,
+        cloneTourId: null,
+        cloneStatus: "idle",
+        denaliDraftReady: true,
+      }),
+      "gate-loading"
+    );
+  });
+
   it("returns ready when gate published and draft ready", () => {
     assert.equal(
       resolveDenaliCreateTourWizardScreen({

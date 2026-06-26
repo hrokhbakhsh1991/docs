@@ -105,6 +105,13 @@ export function evaluateDenaliContextualRule(
       return isPeakExperienceVisible(form);
     case "groupInsuranceVisible":
       return isGroupInsuranceVisible();
+    case "telegramIntegrationActive": {
+      const active = options?.telegramIntegrationActive;
+      if (active === undefined) {
+        return true;
+      }
+      return active;
+    }
     default: {
       const _exhaustive: never = rule;
       return _exhaustive;

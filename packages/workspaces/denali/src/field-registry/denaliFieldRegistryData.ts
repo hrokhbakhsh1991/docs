@@ -295,6 +295,10 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "socialMediaLink",
     tags: ["optional_basic"] as const,
     ruleDefaults: { required: false, hidden: false },
+    contextualVisibility: { kind: "telegramIntegrationActive" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
+    notes:
+      "Shown only when workspace telegram integration is an active delivery source (Settings).",
   },
   {
     canonicalPath: "program.themeIds",

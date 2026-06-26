@@ -23,21 +23,21 @@ Close **P0 identity gaps** so `(app)/` routes authenticate real operators with *
 
 ## Prisma models (Phase 9.1)
 
-| Model                | Purpose                                           | Legacy entity                    |
-| -------------------- | ------------------------------------------------- | -------------------------------- |
-| `User`               | Global user identity (mobile/email)               | `user.entity.ts`                 |
-| `UserTenant`         | Membership + role + **sessionVersion** per tenant | `user-tenant.entity.ts`          |
-| `MobileOtpChallenge` | OTP challenge store (single-use, TTL 5m)          | `mobile-otp-challenge.entity.ts` |
-| `OperatorPendingInvite` | Pending workspace invite (9.1 DDL · 9.4 UX)     | legacy invite flow               |
+| Model                   | Purpose                                           | Legacy entity                    |
+| ----------------------- | ------------------------------------------------- | -------------------------------- |
+| `User`                  | Global user identity (mobile/email)               | `user.entity.ts`                 |
+| `UserTenant`            | Membership + role + **sessionVersion** per tenant | `user-tenant.entity.ts`          |
+| `MobileOtpChallenge`    | OTP challenge store (single-use, TTL 5m)          | `mobile-otp-challenge.entity.ts` |
+| `OperatorPendingInvite` | Pending workspace invite (9.1 DDL · 9.4 UX)       | legacy invite flow               |
 
 ### SQL delta (`010_identity_production_delta.sql`)
 
-| Table                     | RLS   | Notes                                                                 |
-| ------------------------- | ----- | --------------------------------------------------------------------- |
-| `users`                   | No    | Global identity · unique `mobile`                                     |
-| `user_tenants`            | Yes   | Compound PK `(user_id, tenant_id)` · `session_version` for JWT revoke |
-| `mobile_otp_challenges`   | No    | Pre-login · TTL enforced in service layer · `code_hash` scrypt (1C.2) |
-| `operator_pending_invites`| No    | App-layer tenant checks · unique `invite_token`                       |
+| Table                      | RLS | Notes                                                                 |
+| -------------------------- | --- | --------------------------------------------------------------------- |
+| `users`                    | No  | Global identity · unique `mobile`                                     |
+| `user_tenants`             | Yes | Compound PK `(user_id, tenant_id)` · `session_version` for JWT revoke |
+| `mobile_otp_challenges`    | No  | Pre-login · TTL enforced in service layer · `code_hash` scrypt (1C.2) |
+| `operator_pending_invites` | No  | App-layer tenant checks · unique `invite_token`                       |
 
 **Repository wiring:** `PrismaIdentityRepository` when `STORAGE_DRIVER=prisma` + `DATABASE_URL`; `InMemoryIdentityRepository` otherwise (tests/smoke). Interface is **async** — handlers `await` hydrate/OTP/users paths.
 
@@ -50,12 +50,12 @@ Close **P0 identity gaps** so `(app)/` routes authenticate real operators with *
 
 ### `UserTenant` fields (minimum)
 
-| Column                          | Purpose                                             |
-| ------------------------------- | --------------------------------------------------- |
+| Column                          | Purpose                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------- |
 | `role`                          | `owner` \| `admin` \| `member` \| `viewer` — **DEC-P9-019** (amends DEC-P9-015) |
-| `sessionVersion`                | JWT `sess_ver` — bump on role change / force logout |
-| `status`                        | `ACTIVE` required for login                         |
-| `labels` / `membershipMetadata` | optional — ability context (legacy parity)          |
+| `sessionVersion`                | JWT `sess_ver` — bump on role change / force logout                             |
+| `status`                        | `ACTIVE` required for login                                                     |
+| `labels` / `membershipMetadata` | optional — ability context (legacy parity)                                      |
 
 Legacy DB values `leader` → normalize to `admin` at hydrate boundary (DEC-P9-015). `viewer` persists as `viewer` (DEC-P9-019). Do **not** persist legacy `leader` in new 9.4 writes.
 
@@ -70,7 +70,7 @@ Legacy DB values `leader` → normalize to `admin` at hydrate boundary (DEC-P9-0
 | GET    | `/auth/session`           | Authenticated | Hydrate membership        | session refresh              |
 | GET    | `/auth/ability-context`   | Authenticated | CASL labels/caps/modules  | `membership-ability-context` |
 | GET    | `/identity/me`            | Authenticated | Read operator profile     | legacy account prefs read    |
-| PATCH  | `/identity/me`            | Authenticated | Patch own display name    | legacy account prefs write   |
+| PATCH  | `/identity/me`            | Authenticated | Patch own profile fields  | legacy account prefs write   |
 | POST   | `/identity/me/avatar`     | Authenticated | Upload own profile avatar | MinIO · self only            |
 | DELETE | `/identity/me/avatar`     | Authenticated | Remove own profile avatar | MinIO · self only            |
 | GET    | `/identity/me/avatar/url` | Authenticated | Signed avatar preview URL | ephemeral read               |
@@ -79,16 +79,17 @@ Legacy DB values `leader` → normalize to `admin` at hydrate boundary (DEC-P9-0
 
 **`/identity/me` contract (S9-R7):**
 
-| Field         | GET | PATCH | Storage                                      |
-| ------------- | --- | ----- | -------------------------------------------- |
-| `userId`      | ✓   | —     | JWT `sub`                                    |
-| `tenantId`    | ✓   | —     | membership row                               |
-| `role`        | ✓   | —     | `UserTenant.role` (DB hydrate)               |
-| `status`      | ✓   | —     | `UserTenant.status`                          |
-| `mobile`      | ✓   | —     | `User.mobile` (read-only)                    |
-| `displayName` | ✓   | ✓     | `UserTenant.membership_metadata.displayName` |
-| `avatarUrl`   | ✓   | —     | signed read from `membership_metadata.avatar.storageKey` (MinIO) |
-| `workspaceId` | ✓   | —     | optional membership field                    |
+| Field         | GET | PATCH | Storage                                                                                                  |
+| ------------- | --- | ----- | -------------------------------------------------------------------------------------------------------- |
+| `userId`      | ✓   | —     | JWT `sub`                                                                                                |
+| `tenantId`    | ✓   | —     | membership row                                                                                           |
+| `role`        | ✓   | —     | `UserTenant.role` (DB hydrate)                                                                           |
+| `status`      | ✓   | —     | `UserTenant.status`                                                                                      |
+| `mobile`      | ✓   | —     | `User.mobile` (read-only)                                                                                |
+| `displayName` | ✓   | ✓     | `UserTenant.membership_metadata.displayName`                                                             |
+| `gender`      | ✓   | ✓     | `UserTenant.membership_metadata.gender` — optional · `male` \| `female` \| `other` · PATCH `null` clears |
+| `avatarUrl`   | ✓   | —     | signed read from `membership_metadata.avatar.storageKey` (MinIO)                                         |
+| `workspaceId` | ✓   | —     | optional membership field                                                                                |
 
 **Avatar metadata shape** (`membership_metadata.avatar`):
 
@@ -110,12 +111,12 @@ UI route: `/settings/me` (account nav group · not in Denali manifest). Any auth
 
 ## Web routes
 
-| PATH                   | Purpose                                                                 |
-| ---------------------- | ----------------------------------------------------------------------- |
-| `/auth/login`          | OTP two-step form (canonical) — **only** admin entry                    |
-| `/login`               | Alias → same component (middleware redirect target)                     |
-| `/auth/register`       | **Redirect** → `/auth/login?access=invite-only` — no self-registration  |
-| `/auth/invite/[token]` | Invite entry (9.4 extends accept)                                       |
+| PATH                   | Purpose                                                                |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `/auth/login`          | OTP two-step form (canonical) — **only** admin entry                   |
+| `/login`               | Alias → same component (middleware redirect target)                    |
+| `/auth/register`       | **Redirect** → `/auth/login?access=invite-only` — no self-registration |
+| `/auth/invite/[token]` | Invite entry (9.4 extends accept)                                      |
 
 **Admin panel rule:** operators join via **invite** (`POST /users/invite`) — not public signup. Unknown phones after OTP see an invite-only message on the login form.
 
@@ -141,16 +142,16 @@ BFF: see [`identity-web-bff-addendum.md`](identity-web-bff-addendum.md).
 
 See [`env-runtime-matrix.md`](env-runtime-matrix.md) § Identity profile.
 
-| Variable                            | Purpose                                   |
-| ----------------------------------- | ----------------------------------------- |
-| `AUTH_JWT_PUBLIC_KEY`               | RS256 verify (API + metrics scrape)       |
-| `AUTH_JWT_PRIVATE_KEY`              | RS256 sign (`signSessionToken`)           |
-| `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` | Required with public key              |
-| `SESSION_SECRET`                    | Legacy — **not** operator JWT path        |
-| `OTP_FIXTURE_CODE`                  | Dev static OTP (default `1234`)           |
-| `AUTH_ALLOW_DEV_STATIC_OTP`         | Allow verify without challenge row        |
-| `NEXT_PUBLIC_SESSION_COOKIE_DOMAIN` | Prod cookie domain                        |
-| `ALLOW_DEV_WEB_SESSION`             | **Forbidden in prod** — dev bearer bypass |
+| Variable                                | Purpose                                   |
+| --------------------------------------- | ----------------------------------------- |
+| `AUTH_JWT_PUBLIC_KEY`                   | RS256 verify (API + metrics scrape)       |
+| `AUTH_JWT_PRIVATE_KEY`                  | RS256 sign (`signSessionToken`)           |
+| `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` | Required with public key                  |
+| `SESSION_SECRET`                        | Legacy — **not** operator JWT path        |
+| `OTP_FIXTURE_CODE`                      | Dev static OTP (default `1234`)           |
+| `AUTH_ALLOW_DEV_STATIC_OTP`             | Allow verify without challenge row        |
+| `NEXT_PUBLIC_SESSION_COOKIE_DOMAIN`     | Prod cookie domain                        |
+| `ALLOW_DEV_WEB_SESSION`                 | **Forbidden in prod** — dev bearer bypass |
 
 ---
 
@@ -167,12 +168,12 @@ cd apps/api && pnpm run bootstrap:dev-jwt >> .env.local
 
 Script: `apps/api/scripts/bootstrap-dev-jwt-keys.mjs` emits:
 
-| Variable | Value |
-| -------- | ----- |
-| `AUTH_JWT_PUBLIC_KEY` | PEM (single line, `\n` escapes) |
-| `AUTH_JWT_PRIVATE_KEY` | PKCS#8 PEM |
-| `AUTH_JWT_ISSUER` | `tour-ops` |
-| `AUTH_JWT_AUDIENCE` | `tour-ops-api` |
+| Variable               | Value                           |
+| ---------------------- | ------------------------------- |
+| `AUTH_JWT_PUBLIC_KEY`  | PEM (single line, `\n` escapes) |
+| `AUTH_JWT_PRIVATE_KEY` | PKCS#8 PEM                      |
+| `AUTH_JWT_ISSUER`      | `tour-ops`                      |
+| `AUTH_JWT_AUDIENCE`    | `tour-ops-api`                  |
 
 **Smoke / manual dev:** when `AUTH_JWT_PUBLIC_KEY` **and** `AUTH_JWT_PRIVATE_KEY` are already set, `smoke-operator-e2e-servers.mjs` reuses them instead of generating ephemeral keys (SMK-P9 JWT parity).
 
@@ -184,18 +185,18 @@ Script: `apps/api/scripts/bootstrap-dev-jwt-keys.mjs` emits:
 
 When `AUTH_ALLOW_DEV_STATIC_OTP=false` (staging/production), verify uses **challenge-bound scrypt hash** — not the dev `1234` bypass.
 
-| Step | Behavior |
-| ---- | -------- |
+| Step                     | Behavior                                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | `POST /auth/request-otp` | Generate 6-digit code · store `code_hash` · deliver via SMS provider (or log-only when `RESEND_API_KEY` unset in non-prod) |
-| Rate limit | **10 RPM per mobile** (in-memory dev · Redis staging+) → **429** `OTP_RATE_LIMITED` |
-| `POST /auth/verify-otp` | Constant-time hash compare · single-use · 5m TTL |
-| Dev bypass | `AUTH_ALLOW_DEV_STATIC_OTP=true` + `NODE_ENV=development|test` accepts `1234` when challenge row valid |
+| Rate limit               | **10 RPM per mobile** (in-memory dev · Redis staging+) → **429** `OTP_RATE_LIMITED`                                        |
+| `POST /auth/verify-otp`  | Constant-time hash compare · single-use · 5m TTL                                                                           |
+| Dev bypass               | `AUTH_ALLOW_DEV_STATIC_OTP=true` + `NODE_ENV=development                                                                   | test`accepts`1234` when challenge row valid |
 
-| Variable | Purpose |
-| -------- | ------- |
-| `AUTH_ALLOW_DEV_STATIC_OTP` | `false` in staging/prod (boot throw if `true` in production) |
-| `OTP_FIXTURE_CODE` | Non-prod deterministic code at challenge creation (tests) · **forbidden in production** |
-| `RESEND_API_KEY` | Optional SMS delivery (P1); unset = log-only delivery in dev |
+| Variable                    | Purpose                                                                                 |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| `AUTH_ALLOW_DEV_STATIC_OTP` | `false` in staging/prod (boot throw if `true` in production)                            |
+| `OTP_FIXTURE_CODE`          | Non-prod deterministic code at challenge creation (tests) · **forbidden in production** |
+| `RESEND_API_KEY`            | Optional SMS delivery (P1); unset = log-only delivery in dev                            |
 
 Migration: `20260609130000_operator_otp_code_hash` adds `mobile_otp_challenges.code_hash`.
 
@@ -205,14 +206,14 @@ Proof: `identity-otp-production.spec.ts` · existing `identity-otp.spec.ts` (dev
 
 ## Completion proof
 
-| Command                     | Subphase      |
-| --------------------------- | ------------- |
-| `identity-otp.spec.ts`      | 9.1           |
-| `identity-session.spec.ts`  | 9.1           |
-| `identity-jwt-signing.spec.ts` | 1C.1 RS256 round-trip |
+| Command                           | Subphase                   |
+| --------------------------------- | -------------------------- |
+| `identity-otp.spec.ts`            | 9.1                        |
+| `identity-session.spec.ts`        | 9.1                        |
+| `identity-jwt-signing.spec.ts`    | 1C.1 RS256 round-trip      |
 | `identity-otp-production.spec.ts` | 1C.2 OTP hash + rate limit |
-| `auth-login-access.spec.ts` | 9.1           |
-| `auth-login-flow.spec.ts`   | 9.1 BFF chain |
+| `auth-login-access.spec.ts`       | 9.1                        |
+| `auth-login-flow.spec.ts`         | 9.1 BFF chain              |
 
 ---
 

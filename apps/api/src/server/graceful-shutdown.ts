@@ -21,6 +21,8 @@ export class GracefulShutdownHttpTimeoutError extends Error {
 export type GracefulShutdownDeps = {
   readonly server: Server;
   readonly outboxRelay: OutboxRelayHandle;
+  /** Optional hooks after outbox relay stop (e.g. integration delivery worker). */
+  readonly onShutdown?: () => Promise<void>;
 };
 
 let shuttingDown = false;
@@ -80,6 +82,9 @@ export async function runGracefulShutdown(deps: GracefulShutdownDeps): Promise<v
   shuttingDown = true;
 
   await deps.outboxRelay.stop();
+  if (deps.onShutdown !== undefined) {
+    await deps.onShutdown();
+  }
   await closeHttpServerWithWatchdog(deps.server);
 
   drainHttpRequestLogQueueSync();

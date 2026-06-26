@@ -13,7 +13,8 @@ export type SettingsMetadataSection =
   | "wizardTemplate"
   | "auditTrail"
   | "wizardDrafts"
-  | "reconciliation";
+  | "reconciliation"
+  | "integrations";
 
 export async function buildSettingsPageMetadata(
   section: SettingsMetadataSection

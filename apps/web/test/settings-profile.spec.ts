@@ -8,6 +8,10 @@ import {
   isProfileDisplayNameValid,
   resolveProfileDisplayName,
 } from "../src/features/settings/profile-settings-logic";
+import {
+  isOperatorProfileGender,
+  parseOperatorProfileGender,
+} from "../src/features/operator-profile/gender";
 import { validateOperatorAvatarFile } from "../src/features/settings/validate-operator-avatar-file";
 import {
   groupSettingsModulesByNav,
@@ -25,16 +29,31 @@ describe("settings-profile.spec.ts — Phase 9.6", () => {
     assert.equal(SETTINGS_HUB_TEST_IDS.profileForm, "operator-settings-profile-form");
     assert.equal(SETTINGS_HUB_TEST_IDS.profileSave, "operator-settings-profile-save");
     assert.equal(SETTINGS_HUB_TEST_IDS.profileAvatar, "operator-settings-profile-avatar");
-    assert.equal(SETTINGS_HUB_TEST_IDS.profileAvatarUpload, "operator-settings-profile-avatar-upload");
+    assert.equal(
+      SETTINGS_HUB_TEST_IDS.profileAvatarUpload,
+      "operator-settings-profile-avatar-upload"
+    );
+    assert.equal(SETTINGS_HUB_TEST_IDS.profileGender, "operator-settings-profile-gender");
     assert.equal(isProfileDisplayNameValid("Ops lead"), true);
     assert.equal(isProfileDisplayNameValid("   "), false);
-    assert.equal(validateOperatorAvatarFile(new File([], "empty.png", { type: "image/png" })), "PROFILE_AVATAR_EMPTY");
-    assert.equal(resolveProfileDisplayName({ displayName: "", mobile: "+15550001001" }), "+15550001001");
+    assert.equal(
+      validateOperatorAvatarFile(new File([], "empty.png", { type: "image/png" })),
+      "PROFILE_AVATAR_EMPTY"
+    );
+    assert.equal(
+      resolveProfileDisplayName({ displayName: "", mobile: "+15550001001" }),
+      "+15550001001"
+    );
+    assert.equal(parseOperatorProfileGender(""), null);
+    assert.equal(parseOperatorProfileGender("male"), "male");
+    assert.equal(isOperatorProfileGender("other"), true);
   });
 
   it("WEB-9.6-ME-02 avatar validation rejects unsupported types", () => {
     assert.equal(
-      validateOperatorAvatarFile(new File([new Uint8Array([1, 2, 3])], "bad.svg", { type: "image/svg+xml" })),
+      validateOperatorAvatarFile(
+        new File([new Uint8Array([1, 2, 3])], "bad.svg", { type: "image/svg+xml" })
+      ),
       "PROFILE_AVATAR_TYPE_INVALID"
     );
   });

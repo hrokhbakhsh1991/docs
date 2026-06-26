@@ -7,13 +7,18 @@ export type DenaliFlatEditPageScreen =
 
 export function resolveDenaliFlatEditPageScreen(input: {
   readonly gateLoading: boolean;
+  readonly integrationRuntimeLoading?: boolean;
   readonly gatePublished: boolean;
   readonly tourLoading: boolean;
   readonly formReady: boolean;
   readonly error: string | null;
   readonly hasDetail: boolean;
 }): DenaliFlatEditPageScreen {
-  if (input.gateLoading || (input.gatePublished && input.tourLoading)) {
+  if (
+    input.gateLoading ||
+    input.integrationRuntimeLoading === true ||
+    (input.gatePublished && input.tourLoading)
+  ) {
     return input.gatePublished && input.tourLoading ? "tour-loading" : "gate-loading";
   }
   if (!input.gatePublished) {

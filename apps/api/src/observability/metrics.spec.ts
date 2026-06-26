@@ -4,6 +4,8 @@ import { afterEach, describe, it } from "node:test";
 import {
   METRIC_TENANT_LABEL_REQUIRED,
   metricsRegistry,
+  recordIntegrationConnectionCreated,
+  recordIntegrationDeliveryFailed,
   resetMetricsRegistryForTests,
   TENANT_SCOPED_METRIC_NAMES,
 } from "./metrics.js";
@@ -17,6 +19,8 @@ describe("tenant-scoped metrics (MET-API-01 / DEC-049)", () => {
   it("TENANT_SCOPED_METRIC_NAMES includes tour and projection counters", () => {
     assert.ok(TENANT_SCOPED_METRIC_NAMES.has("tour_creation_count"));
     assert.ok(TENANT_SCOPED_METRIC_NAMES.has("projection_inconsistency_total"));
+    assert.ok(TENANT_SCOPED_METRIC_NAMES.has("integration_connection_created_total"));
+    assert.ok(TENANT_SCOPED_METRIC_NAMES.has("integration_delivery_failed_total"));
   });
 
   it("rejects unlabeled tour_creation_count increment", () => {
@@ -73,5 +77,43 @@ describe("tenant-scoped metrics (MET-API-01 / DEC-049)", () => {
   it("allows non-tenant-scoped metrics without tenant_id", () => {
     metricsRegistry.increment("platform_health_probe_total");
     assert.equal(metricsRegistry.getMetric("platform_health_probe_total"), 1);
+  });
+
+  it("records integration connection metrics with bounded labels", () => {
+    const tenantId = integrationTenantId();
+    recordIntegrationConnectionCreated({
+      tenantId,
+      provider: "telegram",
+      workspaceType: "denali",
+    });
+
+    assert.equal(
+      metricsRegistry.getMetric("integration_connection_created_total", {
+        tenant_id: tenantId,
+        provider: "telegram",
+        workspace_type: "denali",
+      }),
+      1
+    );
+  });
+
+  it("records integration delivery failure metrics with reason labels", () => {
+    const tenantId = integrationTenantId();
+    recordIntegrationDeliveryFailed({
+      tenantId,
+      provider: "telegram",
+      capability: "message.send",
+      reason: "INTEGRATION_CONFIG_INCOMPLETE",
+    });
+
+    assert.equal(
+      metricsRegistry.getMetric("integration_delivery_failed_total", {
+        tenant_id: tenantId,
+        provider: "telegram",
+        capability: "message.send",
+        reason: "INTEGRATION_CONFIG_INCOMPLETE",
+      }),
+      1
+    );
   });
 });

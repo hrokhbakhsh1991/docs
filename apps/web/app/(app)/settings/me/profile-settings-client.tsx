@@ -20,6 +20,10 @@ import {
   isProfileDisplayNameValid,
   type OperatorProfile,
 } from "@/features/settings/profile-settings-logic";
+import {
+  OPERATOR_PROFILE_GENDERS,
+  parseOperatorProfileGender,
+} from "@/features/operator-profile/gender";
 import { SETTINGS_HUB_TEST_IDS } from "@/features/settings/settings-module-types";
 import { validateOperatorAvatarFile } from "@/features/settings/validate-operator-avatar-file";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
@@ -38,6 +42,7 @@ export function ProfileSettingsClient({
   const tCommon = useTranslations("common");
   const [profile, setProfile] = useState<OperatorProfile | null>(initialProfile);
   const [displayName, setDisplayName] = useState(initialProfile?.displayName ?? "");
+  const [gender, setGender] = useState(initialProfile?.gender ?? "");
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(
     initialProfile?.avatarUrl ?? null
   );
@@ -84,6 +89,7 @@ export function ProfileSettingsClient({
         if (!cancelled) {
           setProfile(payload);
           setDisplayName(payload.displayName);
+          setGender(payload.gender ?? "");
           await hydrateAvatarPreview(payload);
         }
       })
@@ -108,6 +114,11 @@ export function ProfileSettingsClient({
       setError("PROFILE_DISPLAY_NAME_INVALID");
       return;
     }
+    const parsedGender = parseOperatorProfileGender(gender);
+    if (gender.trim().length > 0 && parsedGender === null) {
+      setError("PROFILE_GENDER_INVALID");
+      return;
+    }
     setSaving(true);
     setError(null);
     setSaved(false);
@@ -115,7 +126,10 @@ export function ProfileSettingsClient({
       const response = await fetch("/api/identity/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: displayName.trim() }),
+        body: JSON.stringify({
+          displayName: displayName.trim(),
+          gender: parsedGender,
+        }),
       });
       if (!response.ok) {
         throw new Error(`PROFILE_SAVE_HTTP_${response.status}`);
@@ -123,6 +137,7 @@ export function ProfileSettingsClient({
       const payload = (await response.json()) as OperatorProfile;
       setProfile(payload);
       setDisplayName(payload.displayName);
+      setGender(payload.gender ?? "");
       setSaved(true);
     } catch (saveError: unknown) {
       setError(saveError instanceof Error ? saveError.message : "PROFILE_SAVE_FAILED");
@@ -188,7 +203,9 @@ export function ProfileSettingsClient({
         <Card className="max-w-xl">
           <CardHeader>
             <CardTitle>{t("cardTitle")}</CardTitle>
-            <CardDescription>{t("cardDescription", { workspaceType: session.workspaceType })}</CardDescription>
+            <CardDescription>
+              {t("cardDescription", { workspaceType: session.workspaceType })}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form
@@ -253,6 +270,27 @@ export function ProfileSettingsClient({
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="profile-gender">{t("gender")}</Label>
+                <select
+                  id="profile-gender"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  data-testid={SETTINGS_HUB_TEST_IDS.profileGender}
+                  value={gender}
+                  onChange={(event) => {
+                    setGender(event.target.value);
+                    setSaved(false);
+                  }}
+                >
+                  <option value="">{tCommon("gender.unset")}</option>
+                  {OPERATOR_PROFILE_GENDERS.map((value) => (
+                    <option key={value} value={value}>
+                      {tCommon(`gender.${value}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="profile-mobile">{t("phone")}</Label>
                 <Input id="profile-mobile" value={profile?.mobile ?? ""} readOnly disabled />
               </div>
@@ -260,16 +298,28 @@ export function ProfileSettingsClient({
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="profile-role">{t("role")}</Label>
-                  <Input id="profile-role" value={profile?.role ?? session.role} readOnly disabled />
+                  <Input
+                    id="profile-role"
+                    value={profile?.role ?? session.role}
+                    readOnly
+                    disabled
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="profile-status">{t("status")}</Label>
-                  <Input id="profile-status" value={profile?.status ?? "ACTIVE"} readOnly disabled />
+                  <Input
+                    id="profile-status"
+                    value={profile?.status ?? "ACTIVE"}
+                    readOnly
+                    disabled
+                  />
                 </div>
               </div>
 
               {error !== null ? (
-                <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, error)}</p>
+                <p className="text-sm text-destructive">
+                  {resolveCodedErrorMessage(tErrors, error)}
+                </p>
               ) : null}
               {saved ? <p className="text-sm text-muted-foreground">{t("saved")}</p> : null}
 

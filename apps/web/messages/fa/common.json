@@ -31,6 +31,12 @@
   "optional": "اختیاری",
   "remove": "حذف",
   "description": "توضیحات",
+  "gender": {
+    "unset": "انتخاب نشده",
+    "male": "مرد",
+    "female": "زن",
+    "other": "سایر"
+  },
   "calendar": {
     "pickDate": "انتخاب تاریخ",
     "today": "امروز",

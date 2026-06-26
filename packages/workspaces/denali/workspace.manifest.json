@@ -82,6 +82,7 @@
     "getSignedReadUrlExport": "getDenaliTourPhotoSignedReadUrl",
     "ensureBucketExport": "ensureMinioPhotoBucket",
     "readConfigExport": "readMinioPhotoConfigFromEnv",
+    "createPhotoClientExport": "createMinioPhotoClient",
     "mediaRouteKey": "wizard-photos",
     "legacyBackendUploadPath": "/tours/wizard-photos",
     "legacyBackendSignedUrlPath": "/tours/wizard-photos/url"

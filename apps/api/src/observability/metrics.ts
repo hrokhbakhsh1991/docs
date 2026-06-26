@@ -11,6 +11,10 @@ export const TENANT_SCOPED_METRIC_NAMES = new Set<string>([
   "outbox_relay_tenant_deferred_total",
   "outbox_projection_lag_seconds",
   "workspace_metadata_validation_errors_total",
+  "integration_connection_created_total",
+  "integration_connection_create_failed_total",
+  "integration_delivery_success_total",
+  "integration_delivery_failed_total",
 ]);
 
 function labelKey(labels: MetricLabels | undefined): string {
@@ -110,5 +114,62 @@ export function recordWorkspaceMetadataValidationError(
   metricsRegistry.increment("workspace_metadata_validation_errors_total", {
     tenant_id: tenantId,
     workspace_type: workspaceType,
+  });
+}
+
+function workspaceTypeLabel(workspaceType: string | null | undefined): string {
+  const normalized = workspaceType?.trim();
+  return normalized !== undefined && normalized.length > 0 ? normalized : "global";
+}
+
+export function recordIntegrationConnectionCreated(input: {
+  readonly tenantId: string;
+  readonly provider: string;
+  readonly workspaceType: string | null;
+}): void {
+  metricsRegistry.increment("integration_connection_created_total", {
+    tenant_id: input.tenantId,
+    provider: input.provider,
+    workspace_type: workspaceTypeLabel(input.workspaceType),
+  });
+}
+
+export function recordIntegrationConnectionCreateFailed(input: {
+  readonly tenantId: string;
+  readonly provider: string;
+  readonly workspaceType: string | null;
+  readonly reason: string;
+}): void {
+  metricsRegistry.increment("integration_connection_create_failed_total", {
+    tenant_id: input.tenantId,
+    provider: input.provider,
+    workspace_type: workspaceTypeLabel(input.workspaceType),
+    reason: input.reason,
+  });
+}
+
+export function recordIntegrationDeliverySuccess(input: {
+  readonly tenantId: string;
+  readonly provider: string;
+  readonly capability: string;
+}): void {
+  metricsRegistry.increment("integration_delivery_success_total", {
+    tenant_id: input.tenantId,
+    provider: input.provider,
+    capability: input.capability,
+  });
+}
+
+export function recordIntegrationDeliveryFailed(input: {
+  readonly tenantId: string;
+  readonly provider: string;
+  readonly capability: string;
+  readonly reason: string;
+}): void {
+  metricsRegistry.increment("integration_delivery_failed_total", {
+    tenant_id: input.tenantId,
+    provider: input.provider,
+    capability: input.capability,
+    reason: input.reason,
   });
 }

@@ -1,13 +1,11 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import { validateSessionToken } from "@app-tour/session-client";
 import { resolveBootstrapPluginIdForTenant } from "@/tenant/tenant-kernel.shared";
 
-function normalizeRole(
-  role: string | undefined
-): OperatorSessionContext["role"] | null {
+function normalizeRole(role: string | undefined): OperatorSessionContext["role"] | null {
   if (role === "owner" || role === "admin" || role === "member") {
     return role;
   }
@@ -27,7 +25,8 @@ export async function readOperatorSessionFromCookies(): Promise<OperatorSessionC
     return null;
   }
 
-  const pluginId = resolveBootstrapPluginIdForTenant(validation.tenantId);
+  const host = (await headers()).get("host") ?? "localhost:3000";
+  const pluginId = resolveBootstrapPluginIdForTenant(validation.tenantId, host);
 
   return {
     userId: validation.userId,

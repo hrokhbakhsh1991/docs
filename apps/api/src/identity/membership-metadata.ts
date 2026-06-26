@@ -1,4 +1,8 @@
-import type { OperatorMembershipAvatar } from "@app-tour/workspace-sdk";
+import {
+  isOperatorProfileGender,
+  type OperatorMembershipAvatar,
+  type OperatorProfileGender,
+} from "@app-tour/workspace-sdk";
 import type { Prisma } from "@prisma/client";
 
 import type { MembershipRewardsRecord } from "./in-memory-identity.repository";
@@ -6,12 +10,18 @@ import type { MembershipRewardsRecord } from "./in-memory-identity.repository";
 export type MembershipMetadataFields = {
   readonly displayName?: string;
   readonly email?: string;
+  readonly gender?: OperatorProfileGender;
   readonly rewards?: MembershipRewardsRecord;
   readonly avatar?: OperatorMembershipAvatar;
 };
 
 function readRewards(metadata: Prisma.JsonValue | undefined): MembershipRewardsRecord | undefined {
-  if (metadata === null || metadata === undefined || typeof metadata !== "object" || Array.isArray(metadata)) {
+  if (
+    metadata === null ||
+    metadata === undefined ||
+    typeof metadata !== "object" ||
+    Array.isArray(metadata)
+  ) {
     return undefined;
   }
   const record = metadata as Record<string, unknown>;
@@ -57,7 +67,12 @@ function readAvatar(record: Record<string, unknown>): OperatorMembershipAvatar |
 export function readMembershipMetadata(
   metadata: Prisma.JsonValue | undefined
 ): MembershipMetadataFields {
-  if (metadata === null || metadata === undefined || typeof metadata !== "object" || Array.isArray(metadata)) {
+  if (
+    metadata === null ||
+    metadata === undefined ||
+    typeof metadata !== "object" ||
+    Array.isArray(metadata)
+  ) {
     return {};
   }
   const record = metadata as Record<string, unknown>;
@@ -71,9 +86,14 @@ export function readMembershipMetadata(
       : undefined;
   const rewards = readRewards(metadata);
   const avatar = readAvatar(record);
+  const gender =
+    typeof record.gender === "string" && isOperatorProfileGender(record.gender)
+      ? record.gender
+      : undefined;
   return {
     ...(displayName !== undefined ? { displayName } : {}),
     ...(email !== undefined ? { email } : {}),
+    ...(gender !== undefined ? { gender } : {}),
     ...(rewards !== undefined ? { rewards } : {}),
     ...(avatar !== undefined ? { avatar } : {}),
   };
@@ -105,6 +125,7 @@ export function writeMembershipMetadata(input: MembershipMetadataFields): Prisma
   return {
     ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
     ...(input.email !== undefined && input.email.length > 0 ? { email: input.email } : {}),
+    ...(input.gender !== undefined ? { gender: input.gender } : {}),
     ...(input.rewards !== undefined ? writeRewards(input.rewards) : {}),
     ...(input.avatar !== undefined ? { avatar: writeAvatar(input.avatar) } : {}),
   };
@@ -112,19 +133,21 @@ export function writeMembershipMetadata(input: MembershipMetadataFields): Prisma
 
 export function mergeMembershipMetadata(
   existing: Prisma.JsonValue | undefined,
-  patch: Partial<MembershipMetadataFields> & { readonly avatar?: OperatorMembershipAvatar | null }
+  patch: Partial<MembershipMetadataFields> & {
+    readonly avatar?: OperatorMembershipAvatar | null;
+    readonly gender?: OperatorProfileGender | null;
+  }
 ): Prisma.InputJsonObject {
   const current = readMembershipMetadata(existing);
   const nextAvatar =
-    patch.avatar === null
-      ? undefined
-      : patch.avatar !== undefined
-        ? patch.avatar
-        : current.avatar;
+    patch.avatar === null ? undefined : patch.avatar !== undefined ? patch.avatar : current.avatar;
+  const nextGender =
+    patch.gender === null ? undefined : patch.gender !== undefined ? patch.gender : current.gender;
   return writeMembershipMetadata({
     displayName: patch.displayName !== undefined ? patch.displayName : current.displayName,
     email: patch.email !== undefined ? patch.email : current.email,
     rewards: patch.rewards !== undefined ? patch.rewards : current.rewards,
+    ...(nextGender !== undefined ? { gender: nextGender } : {}),
     ...(nextAvatar !== undefined ? { avatar: nextAvatar } : {}),
   });
 }
@@ -138,6 +161,7 @@ export function writePublicProfileMetadata(input: {
   return writeMembershipMetadata({
     displayName: input.displayName,
     ...(input.email !== undefined ? { email: input.email } : {}),
+    ...(existing.gender !== undefined ? { gender: existing.gender } : {}),
     ...(existing.rewards !== undefined ? { rewards: existing.rewards } : {}),
     ...(existing.avatar !== undefined ? { avatar: existing.avatar } : {}),
   });

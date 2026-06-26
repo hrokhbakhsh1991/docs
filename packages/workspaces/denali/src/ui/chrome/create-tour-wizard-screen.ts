@@ -10,12 +10,17 @@ export type TourCloneHydrateStatus = "idle" | "loading" | "ready" | "error";
 
 export function resolveDenaliCreateTourWizardScreen(input: {
   readonly gateLoading: boolean;
+  readonly integrationRuntimeLoading?: boolean;
   readonly gatePublished: boolean;
   readonly cloneTourId: string | null;
   readonly cloneStatus: TourCloneHydrateStatus;
   readonly denaliDraftReady: boolean;
 }): DenaliCreateTourWizardScreen {
-  if (input.gateLoading || (input.cloneTourId !== null && input.cloneStatus === "loading")) {
+  if (
+    input.gateLoading ||
+    input.integrationRuntimeLoading === true ||
+    (input.cloneTourId !== null && input.cloneStatus === "loading")
+  ) {
     return input.cloneTourId !== null && input.cloneStatus === "loading"
       ? "clone-loading"
       : "gate-loading";

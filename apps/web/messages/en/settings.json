@@ -22,6 +22,7 @@
     "PROFILE_HTTP_ERROR": "Failed to load profile (HTTP {status}).",
     "PROFILE_FETCH_FAILED": "Failed to load profile.",
     "PROFILE_DISPLAY_NAME_INVALID": "Display name must be between 1 and 120 characters.",
+    "PROFILE_GENDER_INVALID": "Selected gender is not valid.",
     "PROFILE_SAVE_HTTP_ERROR": "Failed to save profile (HTTP {status}).",
     "PROFILE_SAVE_FAILED": "Failed to save profile.",
     "PROFILE_AVATAR_UPLOAD_HTTP_ERROR": "Avatar upload failed (HTTP {status}).",
@@ -140,6 +141,10 @@
     "workspace_branding": {
       "title": "Workspace branding",
       "description": "Upload your organization logo and display name for login and admin chrome."
+    },
+    "integrations": {
+      "title": "Integrations",
+      "description": "Inspect Telegram delivery connections, backing source, and test connectivity."
     }
   },
   "branding": {
@@ -169,6 +174,7 @@
     "status": "Status",
     "saved": "Profile saved.",
     "saveButton": "Save profile",
+    "gender": "Gender",
     "avatarLabel": "Profile photo",
     "avatarUpload": "Upload photo",
     "avatarUploading": "Uploading…",
@@ -338,6 +344,139 @@
     "hideEvents": "Hide history",
     "resumeWizard": "Resume wizard",
     "backToHub": "Back to settings"
+  },
+  "integrations": {
+    "forbidden": "Integration settings require admin or owner access.",
+    "title": "Integrations",
+    "subtitle": "Inspect workspace integration connections before migration backfill",
+    "workspaceScope": "Workspace API scope: {workspaceId}",
+    "refresh": "Refresh",
+    "backToHub": "Back to settings",
+    "listTitle": "Connections ({count})",
+    "summary": {
+      "title": "Delivery source overview",
+      "description": "{integrationCount} integration_connection row(s), {legacyCount} legacy bot row(s).",
+      "noActiveSource": "No enabled delivery source is active for this workspace.",
+      "legacyFallbackSuppressed": "A legacy Telegram bot exists but delivery fallback is suppressed by an integration_connections row.",
+      "activeSource": {
+        "integration_connection": "Active delivery uses integration_connections.",
+        "legacy_workspace_telegram_bot": "Active delivery uses legacy workspace_telegram_bots fallback."
+      }
+    },
+    "scenarios": {
+      "empty": {
+        "title": "No integrations configured",
+        "description": "No Telegram integration_connection row and no legacy workspace_telegram_bots row for this workspace."
+      },
+      "legacy_only": {
+        "title": "Legacy Telegram only",
+        "description": "Delivery is backed by workspace_telegram_bots. Enable the integration platform row after backfill to migrate."
+      },
+      "migration_ready": {
+        "title": "Migration-ready (dual visibility)",
+        "description": "Both integration_connections and legacy bot rows are visible. New system is preferred when enabled; legacy fallback may be suppressed."
+      },
+      "active_new_system": {
+        "title": "Active integration platform",
+        "description": "Delivery is backed by integration_connections for this workspace."
+      }
+    },
+    "empty": {
+      "title": "No integrations configured",
+      "description": "No integration_connections rows and no legacy Telegram bot for this workspace."
+    },
+    "rowMeta": "Channel {channelId}",
+    "detail": {
+      "title": "Connection detail",
+      "connectionId": "Connection ID",
+      "status": "Status",
+      "channelId": "Channel ID",
+      "hasSecret": "Secret configured",
+      "yes": "Yes",
+      "no": "No",
+      "legacySourceId": "Legacy bot row ID",
+      "legacyReadOnly": "Legacy-backed connections are read-only here. Run backfill (Step 6) to migrate into integration_connections.",
+      "fallbackSuppressed": "Legacy fallback is suppressed because an integration_connections row exists for Telegram on this workspace.",
+      "backingSource": "Backing source",
+      "eventPolicies": "Event policies"
+    },
+    "badges": {
+      "legacy": "Legacy Bot",
+      "legacyWarning": "Legacy (read-only)",
+      "integrationConnection": "Active Integration",
+      "activeDelivery": "Active delivery source",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "error": "Error",
+      "fallbackSuppressed": "Fallback suppressed",
+      "fallbackActive": "Fallback active"
+    },
+    "actions": {
+      "enable": "Enable",
+      "disable": "Disable",
+      "testConnection": "Test connection"
+    },
+    "create": {
+      "title": "Add Telegram bot",
+      "description": "Connect your workspace Telegram bot and channel. The bot token is stored securely and never shown again after saving.",
+      "channelIdLabel": "Channel ID",
+      "channelIdPlaceholder": "@your_channel or -1001234567890",
+      "channelIdHint": "Public @username or numeric chat id for the channel where tour notifications should be posted.",
+      "botTokenLabel": "Bot token",
+      "botTokenPlaceholder": "123456789:ABCdef...",
+      "botTokenHint": "From @BotFather. The bot must be an admin of the channel with permission to post messages.",
+      "enableAfterSave": "Enable integration after saving",
+      "submit": "Save Telegram connection",
+      "submitting": "Saving…",
+      "success": "Telegram connection saved. Enable it or run a test connection when ready.",
+      "validationRequired": "Channel ID and bot token are required."
+    },
+    "edit": {
+      "title": "Edit connection",
+      "description": "Update the channel or rotate the bot token. Leave the token field blank to keep the current secret.",
+      "channelIdLabel": "Channel ID",
+      "channelIdPlaceholder": "@your_channel or -1001234567890",
+      "channelIdHint": "Public @username or numeric chat id for the channel where tour notifications should be posted.",
+      "botTokenLabel": "New bot token (optional)",
+      "botTokenPlaceholder": "Leave blank to keep current token",
+      "botTokenHint": "Enter a new token from @BotFather only when rotating the bot. The stored token is never shown.",
+      "submit": "Save changes",
+      "submitting": "Saving…",
+      "success": "Connection updated. Run a test connection to verify the new settings.",
+      "validationRequired": "Channel ID is required.",
+      "noChanges": "No changes to save."
+    },
+    "test": {
+      "successTitle": "Test succeeded",
+      "failureTitle": "Test failed",
+      "meta": "Backing: {backing} · Tested at {testedAt}"
+    },
+    "errors": {
+      "INTEGRATION_SYSTEM_NOT_READY": "Integration system is not ready. Database migrations may be pending — contact your operator.",
+      "INTEGRATIONS_LIST_HTTP_ERROR": "Failed to load integrations (HTTP {status}).",
+      "INTEGRATIONS_FETCH_FAILED": "Failed to load integrations.",
+      "INTEGRATION_DETAIL_HTTP_ERROR": "Failed to load integration detail (HTTP {status}).",
+      "INTEGRATION_DETAIL_FAILED": "Failed to load integration detail.",
+      "INTEGRATION_ENABLE_HTTP_ERROR": "Failed to enable integration (HTTP {status}).",
+      "INTEGRATION_ENABLE_FAILED": "Failed to enable integration.",
+      "INTEGRATION_DISABLE_HTTP_ERROR": "Failed to disable integration (HTTP {status}).",
+      "INTEGRATION_DISABLE_FAILED": "Failed to disable integration.",
+      "INTEGRATION_TEST_HTTP_ERROR": "Test connection failed (HTTP {status}).",
+      "INTEGRATION_TEST_FAILED": "Test connection failed.",
+      "INTEGRATION_CREATE_HTTP_ERROR": "Failed to add Telegram bot (HTTP {status}).",
+      "INTEGRATION_CREATE_FAILED": "Failed to add Telegram bot.",
+      "INTEGRATION_PATCH_HTTP_ERROR": "Failed to update integration (HTTP {status}).",
+      "INTEGRATION_PATCH_FAILED": "Failed to update integration.",
+      "INTEGRATION_META_FAILED": "Failed to load integration form metadata.",
+      "INTEGRATION_INVALID_BODY": "Invalid bot or channel details.",
+      "INTEGRATION_CAPABILITIES_INVALID": "Selected integration capabilities are not valid.",
+      "INTEGRATION_PROVIDER_INVALID": "This integration provider is not supported.",
+      "INTEGRATION_PROVIDER_NOT_REGISTERED": "This integration provider is not available in the current runtime.",
+      "INTEGRATION_PROVIDER_NOT_SUPPORTED_FOR_WORKSPACE": "This provider is not enabled for the current workspace plugin.",
+      "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "Telegram channel ID is required.",
+      "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED": "Telegram bot token is required.",
+      "INTEGRATION_CONNECTION_ALREADY_EXISTS": "A Telegram connection already exists for this workspace. Manage the existing connection instead."
+    }
   },
   "reconciliation": {
     "forbidden": "Reconciliation triage requires admin or owner access.",

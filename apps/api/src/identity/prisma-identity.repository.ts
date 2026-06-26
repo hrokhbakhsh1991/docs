@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import type { ActorRole, OperatorMembershipAvatar } from "@app-tour/workspace-sdk";
+import type {
+  ActorRole,
+  OperatorMembershipAvatar,
+  OperatorProfileGender,
+} from "@app-tour/workspace-sdk";
 import type { Prisma } from "@prisma/client";
 import type { InvitableWorkspaceRole } from "./users.types";
 import { getPrisma } from "../db/prisma";
@@ -59,6 +63,7 @@ function toMembershipRecord(row: {
     ...(row.workspaceId !== null ? { workspaceId: row.workspaceId } : {}),
     ...(metadata.displayName !== undefined ? { displayName: metadata.displayName } : {}),
     ...(metadata.email !== undefined ? { email: metadata.email } : {}),
+    ...(metadata.gender !== undefined ? { gender: metadata.gender } : {}),
     ...(metadata.rewards !== undefined ? { rewards: metadata.rewards } : {}),
     ...(metadata.avatar !== undefined ? { avatar: metadata.avatar } : {}),
   };
@@ -370,6 +375,34 @@ export class PrismaIdentityRepository implements IdentityRepository {
         data: {
           membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
             displayName: displayName.trim(),
+          }),
+        },
+      });
+    });
+    return toMembershipRecord(updated);
+  }
+
+  async updateMembershipProfileFields(
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly displayName?: string;
+      readonly gender?: OperatorProfileGender | null;
+    }
+  ): Promise<IdentityMembershipRecord> {
+    const updated = await withTenantRls(tenantId, async (tx) => {
+      const row = await tx.userTenant.findUnique({
+        where: { userId_tenantId: { userId, tenantId } },
+      });
+      if (row === null) {
+        throw new MembershipNotFoundError(userId);
+      }
+      return tx.userTenant.update({
+        where: { userId_tenantId: { userId, tenantId } },
+        data: {
+          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
+            ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
+            ...("gender" in patch ? { gender: patch.gender ?? null } : {}),
           }),
         },
       });

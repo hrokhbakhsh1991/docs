@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import type { ActorRole, MembershipStatus, OperatorMembershipAvatar } from "@app-tour/workspace-sdk";
+import type {
+  ActorRole,
+  MembershipStatus,
+  OperatorMembershipAvatar,
+  OperatorProfileGender,
+} from "@app-tour/workspace-sdk";
 
 import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
 import type { InvitableWorkspaceRole } from "./users.types";
@@ -26,6 +31,7 @@ export type IdentityMembershipRecord = {
   readonly workspaceId?: string;
   readonly displayName?: string;
   readonly email?: string;
+  readonly gender?: OperatorProfileGender;
   readonly rewards?: MembershipRewardsRecord;
   readonly avatar?: OperatorMembershipAvatar;
 };
@@ -129,6 +135,14 @@ export type IdentityRepository = {
     tenantId: string,
     userId: string,
     displayName: string
+  ): Promise<IdentityMembershipRecord>;
+  updateMembershipProfileFields(
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly displayName?: string;
+      readonly gender?: OperatorProfileGender | null;
+    }
   ): Promise<IdentityMembershipRecord>;
   updateMembershipAvatar(
     tenantId: string,
@@ -423,15 +437,31 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     userId: string,
     displayName: string
   ): Promise<IdentityMembershipRecord> {
+    return this.updateMembershipProfileFields(tenantId, userId, { displayName });
+  }
+
+  async updateMembershipProfileFields(
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly displayName?: string;
+      readonly gender?: OperatorProfileGender | null;
+    }
+  ): Promise<IdentityMembershipRecord> {
     const key = membershipKey(userId, tenantId);
     const row = this.memberships.get(key);
     if (row === undefined) {
       throw new MembershipNotFoundError(userId);
     }
-    const updated: IdentityMembershipRecord = {
+    let updated: IdentityMembershipRecord = {
       ...row,
-      displayName: displayName.trim(),
+      ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
     };
+    if (patch.gender === null) {
+      updated = (({ gender: _removed, ...rest }) => rest)(updated);
+    } else if (patch.gender !== undefined) {
+      updated = { ...updated, gender: patch.gender };
+    }
     this.memberships.set(key, updated);
     return updated;
   }
@@ -447,9 +477,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
       throw new MembershipNotFoundError(userId);
     }
     const updated: IdentityMembershipRecord =
-      avatar === null
-        ? (({ avatar: _removed, ...rest }) => rest)({ ...row })
-        : { ...row, avatar };
+      avatar === null ? (({ avatar: _removed, ...rest }) => rest)({ ...row }) : { ...row, avatar };
     this.memberships.set(key, updated);
     return updated;
   }
@@ -576,12 +604,9 @@ function resolveOperatorSmokeOwnerSeed(): {
   readonly mobile: string;
   readonly displayName: string;
 } {
-  const mobile =
-    process.env.OPERATOR_OWNER_MOBILE?.trim() || DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE;
-  const userId =
-    process.env.OPERATOR_OWNER_USER_ID?.trim() || OPERATOR_SMOKE_OWNER_USER_ID;
-  const displayName =
-    process.env.OPERATOR_OWNER_DISPLAY_NAME?.trim() || "Smoke Owner";
+  const mobile = process.env.OPERATOR_OWNER_MOBILE?.trim() || DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE;
+  const userId = process.env.OPERATOR_OWNER_USER_ID?.trim() || OPERATOR_SMOKE_OWNER_USER_ID;
+  const displayName = process.env.OPERATOR_OWNER_DISPLAY_NAME?.trim() || "Smoke Owner";
   return { userId, mobile, displayName };
 }
 

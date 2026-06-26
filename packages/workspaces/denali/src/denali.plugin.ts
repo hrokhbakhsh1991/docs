@@ -20,6 +20,10 @@ import {
   getDenaliOperatorSettingsSurface,
 } from "./settings/denali-settings.manifest";
 import {
+  denaliIntegrationSurface,
+  getDenaliIntegrationSurface,
+} from "./integrations/denali-integration.surface";
+import {
   buildDenaliWizardRoots,
   buildDenaliWorkspaceFieldRegistry,
   buildDenaliWorkspaceRuleSet,
@@ -131,6 +135,7 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
       manifest: denaliRegistrationOpsManifest,
     }),
     operatorSettings: deepFreeze({ ...denaliOperatorSettingsSurface }),
+    integrationSurface: deepFreeze({ ...denaliIntegrationSurface }),
     tourList: deepFreeze({
       extractTourListProjection: extractDenaliTourListProjection,
     }),
@@ -192,6 +197,9 @@ export { getDenaliRegistrationOpsManifest };
 
 /** Phase 9.6 — settings module registry surface (Denali-only). */
 export { getDenaliOperatorSettingsSurface };
+
+/** Integration platform surface (Denali-only). */
+export { getDenaliIntegrationSurface };
 
 /** Phase 9.3 — operator list projection extractor (Denali-only). */
 export { extractDenaliTourListProjection } from "./list/tour-list-projection";

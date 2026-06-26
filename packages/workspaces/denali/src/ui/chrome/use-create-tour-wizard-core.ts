@@ -7,7 +7,10 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { createDenaliDraftSchemaGate } from "../../draft/create-denali-draft-schema-gate";
-import type { DenaliWizardDraftEnvelope, DenaliWizardDraftMeta } from "../../draft/denali-wizard-draft-binding";
+import type {
+  DenaliWizardDraftEnvelope,
+  DenaliWizardDraftMeta,
+} from "../../draft/denali-wizard-draft-binding";
 import {
   emptyDenaliTourWizardDraft,
   type DenaliTourWizardDraft,
@@ -64,12 +67,18 @@ export type DenaliWizardClearDraftHandle = {
   readonly clearDraftConfirmDialog: ReactNode;
 };
 
+export type DenaliWizardRuntimeGates = {
+  readonly telegramIntegrationActive: boolean;
+  readonly loading: boolean;
+};
+
 export type DenaliCreateTourWizardCoreInput = {
   readonly cloneTourId: string | null;
   readonly presetId: string | null;
   readonly presetApplied: boolean;
   readonly session: DenaliCreateTourWizardSession;
   readonly gate: DenaliCreateTourWizardGate;
+  readonly runtimeGates?: DenaliWizardRuntimeGates;
   readonly denaliPlugin: WorkspacePlugin;
   readonly draftSync: DenaliCreateTourDraftSync;
   readonly draftIndex: unknown;
@@ -79,19 +88,20 @@ export type DenaliCreateTourWizardCoreInput = {
     form: DenaliTourWizardDraft,
     meta: DenaliWizardDraftMeta
   ) => DenaliCreateTourWizardDraftEnvelope;
-  readonly denaliSchemaGateRef: React.MutableRefObject<
-    DraftSchemaGate<DenaliCreateTourWizardDraftEnvelope> | null
-  >;
+  readonly denaliSchemaGateRef: React.MutableRefObject<DraftSchemaGate<DenaliCreateTourWizardDraftEnvelope> | null>;
   readonly hydrateCreateTourFromClone: (input: {
     readonly cloneTourId: string;
     readonly pluginId: string;
     readonly wizardSessionId: string;
   }) => Promise<{ readonly draft: DenaliTourWizardDraft }>;
-  readonly createTourAction: (
-    payload: CreateTourPayload
-  ) => Promise<
+  readonly createTourAction: (payload: CreateTourPayload) => Promise<
     | { readonly ok: true; readonly record: { readonly id: string } }
-    | { readonly ok: false; readonly status: number; readonly code: string; readonly message: string }
+    | {
+        readonly ok: false;
+        readonly status: number;
+        readonly code: string;
+        readonly message: string;
+      }
   >;
   readonly isDraftEssentiallyEmpty: (form: Record<string, unknown>) => boolean;
   readonly draftResumeEpoch: number;
@@ -170,8 +180,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     input.draftSync.data !== null ||
     input.clearDraft.clearDraftPending ||
     input.draftSync.status === "ERROR";
-  const showSeedBanner =
-    input.gate.seedLabel.length > 0 && input.cloneTourId === null;
+  const showSeedBanner = input.gate.seedLabel.length > 0 && input.cloneTourId === null;
   const denaliDraftHydrated =
     input.draftSync.data !== null &&
     input.draftSync.status !== "SYNCING" &&
@@ -184,7 +193,10 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
       return;
     }
     const envelope = input.draftSync.data;
-    if (envelope == null || !input.isDraftEssentiallyEmpty(envelope.form as Record<string, unknown>)) {
+    if (
+      envelope == null ||
+      !input.isDraftEssentiallyEmpty(envelope.form as Record<string, unknown>)
+    ) {
       emptyDraftResetRef.current = false;
       return;
     }
@@ -228,7 +240,13 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     getEnvelope,
     setEnvelope,
     denaliRules,
-    gate: input.gate,
+    gate: {
+      workspaceFormProfile: input.gate.workspaceFormProfile,
+      fieldRulesOverlay: input.gate.fieldRulesOverlay,
+      ...(input.runtimeGates !== undefined && !input.runtimeGates.loading
+        ? { telegramIntegrationActive: input.runtimeGates.telegramIntegrationActive }
+        : {}),
+    },
     themeCatalog,
   });
 
@@ -309,6 +327,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     (): DenaliCreateTourWizardScreen =>
       resolveDenaliCreateTourWizardScreen({
         gateLoading: input.gate.loading,
+        integrationRuntimeLoading: input.runtimeGates?.loading,
         gatePublished: input.gate.published,
         cloneTourId: input.cloneTourId,
         cloneStatus,
@@ -316,6 +335,7 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
       }),
     [
       input.gate.loading,
+      input.runtimeGates?.loading,
       input.gate.published,
       input.cloneTourId,
       cloneStatus,

@@ -8,6 +8,7 @@ import type { WorkspaceThemeContract } from "../theme/workspace-theme.contract";
 import type { WorkspaceWizardSurface } from "./workspace-wizard-surface";
 import type { OperatorRegistrationOpsSurface } from "../operator/bookings/registration-ops-manifest";
 import type { OperatorSettingsSurface } from "../operator/settings/settings-module-manifest";
+import type { WorkspaceIntegrationSurface } from "../operator/integrations/workspace-integration-surface";
 import type { OperatorTourListSurface } from "../tour/tour-list-projection.contract";
 import type { PublicCatalogSurface } from "../tour/public-catalog.contract";
 import type { TourCloneHydrator } from "../tour/tour-clone-hydrator.contract";
@@ -45,6 +46,8 @@ export interface WorkspacePlugin {
   readonly registrationOps?: OperatorRegistrationOpsSurface;
   /** Phase 9.6 — Settings module registry (DEC-P9-009). */
   readonly operatorSettings?: OperatorSettingsSurface;
+  /** Integration platform — provider defaults, mappings, templates for operator control plane. */
+  readonly integrationSurface?: WorkspaceIntegrationSurface;
   /** Phase 9.3 — Operator list projection extractor (DEC-P9-014). */
   readonly tourList?: OperatorTourListSurface;
   /** Marketing public catalog — publish gate + egress card (ADR-MKT-003). */

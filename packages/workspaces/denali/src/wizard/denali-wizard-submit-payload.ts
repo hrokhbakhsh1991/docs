@@ -1,4 +1,10 @@
-import { createCanonicalDocument, type CreateTourPayload, type UpdateTourPayload, type WorkspacePlugin, type WorkspaceWizardHostPluginContext } from "@app-tour/workspace-sdk";
+import {
+  createCanonicalDocument,
+  type CreateTourPayload,
+  type UpdateTourPayload,
+  type WorkspacePlugin,
+  type WorkspaceWizardHostPluginContext,
+} from "@app-tour/workspace-sdk";
 
 import {
   DENALI_CURRENT_CANONICAL_SCHEMA_VERSION,
@@ -143,6 +149,7 @@ export function buildDenaliWizardRuleEvalContextFromHostInput(input: {
   readonly workspaceFormProfile?: string;
   readonly mainThemeFormProfile?: string;
   readonly fieldRulesOverlay?: Readonly<Record<string, unknown>>;
+  readonly telegramIntegrationActive?: boolean;
 }): DenaliWizardRuleEvalContext {
   return buildDenaliWizardRuleEvalContext(input);
 }

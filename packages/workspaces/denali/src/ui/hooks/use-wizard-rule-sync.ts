@@ -24,6 +24,7 @@ import { persistDenaliWizardDraftChange } from "../chrome/draft-persist";
 export type DenaliWizardRuleSyncGate = {
   readonly workspaceFormProfile: string;
   readonly fieldRulesOverlay: Readonly<Record<string, unknown>>;
+  readonly telegramIntegrationActive?: boolean;
 };
 
 /** Phase 15.2 P15-W-B1c — load Denali rules module once. */
@@ -109,11 +110,21 @@ export function useDenaliWizardRuleSync({
         getCanonicalValue(draft, "program.themeIds"),
         themeCatalog
       ),
+      ...(gate.telegramIntegrationActive !== undefined
+        ? { telegramIntegrationActive: gate.telegramIntegrationActive }
+        : {}),
     };
     return build != null
       ? (build(input) as DenaliWizardRuleEvalContext)
       : buildDenaliWizardRuleEvalContext(input);
-  }, [plugin, gate.workspaceFormProfile, gate.fieldRulesOverlay, draft, themeCatalog]);
+  }, [
+    plugin,
+    gate.workspaceFormProfile,
+    gate.fieldRulesOverlay,
+    gate.telegramIntegrationActive,
+    draft,
+    themeCatalog,
+  ]);
 
   const onDraftChange = useCallback(
     (next: DenaliTourWizardDraft) => {

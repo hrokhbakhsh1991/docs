@@ -12,6 +12,7 @@ import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type"
 import { enrichSettingsModuleList } from "./workspace-settings-enrichers.generated";
 import { parseEquipmentIconKeyInput } from "./parse-equipment-icon-key";
 import { normalizeThemeIdsInput } from "./parse-theme-ids";
+import { isIntegrationSubsystemReady } from "../health/integration-subsystem-gate";
 import {
   assertDenaliOperatorSettingsWorkspace,
   isUrbanOperatorSettingsWorkspace,
@@ -115,6 +116,17 @@ const RECONCILIATION_TRIAGE_MODULE: SettingsModuleMetadata = {
   nav: { group: "finance_ops", labelKey: "settings.reconciliation_triage" },
 };
 
+const INTEGRATIONS_SETTINGS_MODULE_ID = "integrations" as const;
+
+function omitIntegrationsModuleWhenSubsystemBlocked(
+  modules: readonly SettingsModuleMetadata[]
+): SettingsModuleMetadata[] {
+  if (isIntegrationSubsystemReady()) {
+    return [...modules];
+  }
+  return modules.filter((module) => module.id !== INTEGRATIONS_SETTINGS_MODULE_ID);
+}
+
 export async function listSettingsModules(
   auth: TenantAuthContext
 ): Promise<SettingsModulesListResponse> {
@@ -130,7 +142,7 @@ export async function listSettingsModules(
   if (workspaceType === "denali") {
     items.push(RECONCILIATION_TRIAGE_MODULE);
   }
-  return { items };
+  return { items: omitIntegrationsModuleWhenSubsystemBlocked(items) };
 }
 
 async function assertReferenceDataModule(tenantId: string, moduleId: string): Promise<void> {
@@ -294,7 +306,9 @@ export async function createSettingsResource(
     }
     const created = await repo.createTourPreset(auth.tenantId, {
       name: presetBody.name.trim(),
-      ...(presetBody.description !== undefined ? { description: presetBody.description.trim() } : {}),
+      ...(presetBody.description !== undefined
+        ? { description: presetBody.description.trim() }
+        : {}),
       ...(presetBody.themeId !== undefined ? { themeId: presetBody.themeId.trim() } : {}),
       ...(presetBody.isActive !== undefined ? { isActive: presetBody.isActive } : {}),
     });
@@ -508,13 +522,25 @@ export async function deleteSettingsResource(
 
   if (moduleId === "equipment") {
     await repo.deleteEquipment(auth.tenantId, itemId);
-    await emitSettingsResourceAudit(auth, "delete", moduleId, itemId, `Deleted equipment ${itemId}`);
+    await emitSettingsResourceAudit(
+      auth,
+      "delete",
+      moduleId,
+      itemId,
+      `Deleted equipment ${itemId}`
+    );
     return;
   }
 
   if (moduleId === "tour_themes") {
     await repo.deleteTourTheme(auth.tenantId, itemId);
-    await emitSettingsResourceAudit(auth, "delete", moduleId, itemId, `Deleted tour theme ${itemId}`);
+    await emitSettingsResourceAudit(
+      auth,
+      "delete",
+      moduleId,
+      itemId,
+      `Deleted tour theme ${itemId}`
+    );
     return;
   }
 
@@ -532,7 +558,13 @@ export async function deleteSettingsResource(
 
   if (moduleId === "tour_presets") {
     await repo.deleteTourPreset(auth.tenantId, itemId);
-    await emitSettingsResourceAudit(auth, "delete", moduleId, itemId, `Deleted tour preset ${itemId}`);
+    await emitSettingsResourceAudit(
+      auth,
+      "delete",
+      moduleId,
+      itemId,
+      `Deleted tour preset ${itemId}`
+    );
     return;
   }
 

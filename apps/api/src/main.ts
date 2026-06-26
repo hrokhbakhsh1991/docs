@@ -18,15 +18,21 @@ async function warmPostListen(): Promise<void> {
     { bootstrapWorkspaceWizardTemplatesIfNeeded },
     { bootstrapOperatorSmokeCatalogIfNeeded },
     { bootstrapDenaliDevSmokeFixturesIfNeeded },
+    { bootstrapIntegrationProviders },
+    { startIntegrationDeliveryWorkerIfEnabled },
   ] = await Promise.all([
     import("./outbox/start-outbox-relay"),
     import("./outbox/start-projection-auto-reconcile"),
     import("./settings/bootstrap-workspace-wizard-templates"),
     import("./settings/bootstrap-operator-smoke-catalog"),
     import("./settings/bootstrap-denali-dev-smoke-fixtures"),
+    import("./integrations/platform/bootstrap-integration-providers"),
+    import("./integrations/worker/start-integration-delivery-worker"),
   ]);
+  bootstrapIntegrationProviders();
   startOutboxRelayIfEnabled();
   startProjectionAutoReconcileIfEnabled();
+  startIntegrationDeliveryWorkerIfEnabled();
   await bootstrapWorkspaceWizardTemplatesIfNeeded();
   await bootstrapOperatorSmokeCatalogIfNeeded();
   await bootstrapDenaliDevSmokeFixturesIfNeeded();
@@ -85,6 +91,11 @@ async function bootstrap(): Promise<void> {
     await assertProductionDatabaseIntegrity();
   }
 
+  const { runMigrationConsistencyCheck } = await import("./health/migration-consistency-check");
+  const { applyMigrationConsistencyGate } = await import("./health/integration-subsystem-gate");
+  const consistencyReport = await runMigrationConsistencyCheck();
+  applyMigrationConsistencyGate(consistencyReport);
+
   const mapUpstreamBaseUrl = process.env.MAP_UPSTREAM_BASE_URL?.trim();
   let appDeps: AppDeps = {};
   if (mapUpstreamBaseUrl) {
@@ -101,15 +112,28 @@ async function bootstrap(): Promise<void> {
   const server = createServer(createHealthAwareServerListener(dispatch));
 
   let outboxRelay: OutboxRelayHandle = { stop: async () => {} };
+  let integrationWorker: { stop: () => Promise<void> } = { stop: async () => {} };
   if (productionBoot) {
     const { startOutboxRelayIfEnabled } = await import("./outbox/start-outbox-relay");
     const { startProjectionAutoReconcileIfEnabled } =
       await import("./outbox/start-projection-auto-reconcile");
+    const { bootstrapIntegrationProviders } =
+      await import("./integrations/platform/bootstrap-integration-providers");
+    const { startIntegrationDeliveryWorkerIfEnabled } =
+      await import("./integrations/worker/start-integration-delivery-worker");
+    bootstrapIntegrationProviders();
     outboxRelay = startOutboxRelayIfEnabled();
     startProjectionAutoReconcileIfEnabled();
+    integrationWorker = startIntegrationDeliveryWorkerIfEnabled();
   }
 
-  installGracefulShutdownHandlers({ server, outboxRelay });
+  installGracefulShutdownHandlers({
+    server,
+    outboxRelay,
+    onShutdown: async () => {
+      await integrationWorker.stop();
+    },
+  });
 
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);

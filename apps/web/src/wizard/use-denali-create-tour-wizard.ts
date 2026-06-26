@@ -52,6 +52,7 @@ import {
   useDenaliCreateTourWizardCore,
   type DenaliCreateTourWizardScreen,
 } from "@app-tour/workspace-denali/ui/chrome/use-create-tour-wizard-core";
+import { useWorkspaceIntegrationRuntimeState } from "@/integrations/use-workspace-integration-runtime-state";
 
 export type { DenaliCreateTourWizardScreen };
 
@@ -59,10 +60,7 @@ export type { DenaliCreateTourWizardScreen };
 export function useDenaliCreateTourWizard() {
   const searchParams = useSearchParams();
   const session = useAppSession();
-  const cloneTourId = useMemo(
-    () => resolveCloneTourId(searchParams.get("clone")),
-    [searchParams]
-  );
+  const cloneTourId = useMemo(() => resolveCloneTourId(searchParams.get("clone")), [searchParams]);
   const presetId = useMemo(() => resolvePresetId(searchParams.get("preset")), [searchParams]);
   const denaliPlugin = useMemo(() => getDenaliWorkspacePlugin(), []);
   const loadDenaliPlugin = useCallback(async () => getDenaliWorkspacePlugin(), []);
@@ -72,6 +70,7 @@ export function useDenaliCreateTourWizard() {
     initialWorkspaceFormProfile: resolveInitialWorkspaceFormProfile(denaliPlugin),
     unresolvedWorkspaceFormProfile: resolveInitialWorkspaceFormProfile,
   });
+  const integrationRuntime = useWorkspaceIntegrationRuntimeState(session.workspaceId);
   const [draftResumeEpoch, setDraftResumeEpoch] = useState(0);
   const [presetApplied, setPresetApplied] = useState(false);
 
@@ -118,7 +117,10 @@ export function useDenaliCreateTourWizard() {
 
   const draftSyncDataRef = useRef(draftSync.data);
   draftSyncDataRef.current = draftSync.data;
-  const draftIndex = useWorkspaceDraftIndex(session.workspaceId, DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE);
+  const draftIndex = useWorkspaceDraftIndex(
+    session.workspaceId,
+    DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE
+  );
 
   const buildClearResetEnvelope = useCallback(
     () =>
@@ -182,6 +184,7 @@ export function useDenaliCreateTourWizard() {
       pluginId: session.pluginId,
     },
     gate,
+    runtimeGates: integrationRuntime,
     denaliPlugin,
     draftSync,
     draftIndex,

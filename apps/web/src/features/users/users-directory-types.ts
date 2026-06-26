@@ -1,5 +1,5 @@
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
-import type { ActorRole } from "@app-tour/workspace-sdk";
+import type { ActorRole, OperatorProfileGender } from "@app-tour/workspace-sdk";
 
 export const USERS_DIRECTORY_TEST_IDS = {
   page: "operator-users-page",
@@ -57,6 +57,8 @@ export const USERS_DIRECTORY_TEST_IDS = {
   bulkRemove: "operator-users-bulk-remove",
   rowSelect: "operator-users-row-select",
   rowSelectAll: "operator-users-row-select-all",
+  rowAvatar: "operator-users-row-avatar",
+  rowGender: "operator-users-row-gender",
 } as const;
 
 export type PatchUserRewardsRequest = {
@@ -80,6 +82,8 @@ export type UsersDirectoryRow = {
   readonly displayName: string;
   readonly phone: string | null;
   readonly email?: string | null;
+  readonly avatarUrl: string | null;
+  readonly gender: OperatorProfileGender | null;
   readonly permanentDiscountPercentage?: number | null;
   readonly rewardBadges?: readonly string[];
   readonly isSelectableLeader?: boolean;
@@ -154,7 +158,11 @@ export type BulkUsersMutationResponse = {
 
 export type InvitableWorkspaceRole = "admin" | "member" | "viewer";
 
-export const INVITABLE_ROLES: readonly InvitableWorkspaceRole[] = ["admin", "member", "viewer"] as const;
+export const INVITABLE_ROLES: readonly InvitableWorkspaceRole[] = [
+  "admin",
+  "member",
+  "viewer",
+] as const;
 
 export type UsersDirectoryQuery = {
   readonly search: string;
@@ -195,15 +203,11 @@ export function serializeUsersDirectoryQuery(query: UsersDirectoryQuery): string
 export function parseUsersDirectoryQuery(searchParams: URLSearchParams): UsersDirectoryQuery {
   const roleRaw = searchParams.get("role");
   const role =
-    roleRaw === "owner" ||
-    roleRaw === "admin" ||
-    roleRaw === "member" ||
-    roleRaw === "viewer"
+    roleRaw === "owner" || roleRaw === "admin" || roleRaw === "member" || roleRaw === "viewer"
       ? roleRaw
       : "all";
   const statusRaw = searchParams.get("status");
-  const status =
-    statusRaw === "active" || statusRaw === "suspended" ? statusRaw : "all";
+  const status = statusRaw === "active" || statusRaw === "suspended" ? statusRaw : "all";
   const sortRaw = searchParams.get("sort");
   const sort: UsersDirectoryQuery["sort"] =
     sortRaw === "name_desc" || sortRaw === "email_asc" || sortRaw === "email_desc"

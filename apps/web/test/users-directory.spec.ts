@@ -119,12 +119,17 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
         status: "ACTIVE",
         displayName: "Ali",
         phone: "+15550001002",
+        avatarUrl: null,
+        gender: "male",
       },
     ]);
     const csv = buildUsersCsvContent(rows);
-    assert.ok(csv.includes("name,phone,email,role,status"));
-    assert.ok(csv.includes("Ali,+15550001002,,admin,ACTIVE"));
-    assert.equal(buildUsersCsvFilename("denali", new Date("2026-06-08T12:00:00.000Z")), "users-denali-2026-06-08.csv");
+    assert.ok(csv.includes("name,phone,email,gender,role,status"));
+    assert.ok(csv.includes("Ali,+15550001002,,male,admin,ACTIVE"));
+    assert.equal(
+      buildUsersCsvFilename("denali", new Date("2026-06-08T12:00:00.000Z")),
+      "users-denali-2026-06-08.csv"
+    );
   });
 
   it("WEB-9.4-10 row actions gated by rank (R3)", () => {
@@ -183,7 +188,10 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowRewards, "operator-users-row-rewards");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rewardsModal, "operator-users-rewards-modal");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rewardsSave, "operator-users-rewards-save");
-    assert.equal(USERS_DIRECTORY_TEST_IDS.rewardsLoyaltyTier, "operator-users-rewards-loyalty-tier");
+    assert.equal(
+      USERS_DIRECTORY_TEST_IDS.rewardsLoyaltyTier,
+      "operator-users-rewards-loyalty-tier"
+    );
     assert.equal(USERS_DIRECTORY_TEST_IDS.rewardsLabelInput, "operator-users-rewards-label-input");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowMicroBadges, "operator-users-row-micro-badges");
   });
@@ -191,7 +199,10 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
   it("WEB-9.4-15 suspend/reactivate row landmarks exposed (R1)", () => {
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowSuspend, "operator-users-row-suspend");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowReactivate, "operator-users-row-reactivate");
-    assert.equal(USERS_DIRECTORY_TEST_IDS.rowStatusSuspended, "operator-users-row-status-suspended");
+    assert.equal(
+      USERS_DIRECTORY_TEST_IDS.rowStatusSuspended,
+      "operator-users-row-status-suspended"
+    );
     assert.equal(USERS_DIRECTORY_TEST_IDS.statusFilter, "operator-users-status-filter");
   });
 
@@ -225,10 +236,10 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
   });
 
   it("WEB-9.4-12 invite payload normalizes Persian phone digits before API", () => {
-    assert.deepEqual(
-      buildInviteRequestBody({ phone: "  +۹۸۹۱۲۳۴۵۶۷۸  ", role: "member" }),
-      { phone: "+98912345678", role: "member" }
-    );
+    assert.deepEqual(buildInviteRequestBody({ phone: "  +۹۸۹۱۲۳۴۵۶۷۸  ", role: "member" }), {
+      phone: "+98912345678",
+      role: "member",
+    });
     assert.deepEqual(
       buildInviteRequestBody({
         phone: "+15550001001",
@@ -290,17 +301,41 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(params.get("cursor"), null);
 
     const merged = mergeUsersDirectoryPages(
-      [{ userId: "u1", tenantId: "t1", role: "admin", status: "ACTIVE", displayName: "A", phone: null }],
       [
-        { userId: "u1", tenantId: "t1", role: "admin", status: "ACTIVE", displayName: "A", phone: null },
-        { userId: "u2", tenantId: "t1", role: "member", status: "ACTIVE", displayName: "B", phone: null },
+        {
+          userId: "u1",
+          tenantId: "t1",
+          role: "admin",
+          status: "ACTIVE",
+          displayName: "A",
+          phone: null,
+        },
+      ],
+      [
+        {
+          userId: "u1",
+          tenantId: "t1",
+          role: "admin",
+          status: "ACTIVE",
+          displayName: "A",
+          phone: null,
+        },
+        {
+          userId: "u2",
+          tenantId: "t1",
+          role: "member",
+          status: "ACTIVE",
+          displayName: "B",
+          phone: null,
+        },
       ]
     );
     assert.equal(merged.length, 2);
   });
 
   it("WEB-9.4-18 R4 invite role preview keys (CP-9.4-13)", async () => {
-    const { resolveInviteRolePreviewKeys } = await import("../src/features/users/users-invite-role-preview");
+    const { resolveInviteRolePreviewKeys } =
+      await import("../src/features/users/users-invite-role-preview");
     assert.deepEqual(resolveInviteRolePreviewKeys("viewer"), {
       line1Key: "inviteForm.preview.viewer.line1",
       line2Key: "inviteForm.preview.viewer.line2",
@@ -328,7 +363,8 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
   });
 
   it("WEB-9.4-22 R4 sort options include contact/email sorts", async () => {
-    const { USERS_DIRECTORY_SORT_OPTIONS } = await import("../src/features/users/users-directory-list-logic");
+    const { USERS_DIRECTORY_SORT_OPTIONS } =
+      await import("../src/features/users/users-directory-list-logic");
     assert.ok(USERS_DIRECTORY_SORT_OPTIONS.includes("email_asc"));
     assert.ok(USERS_DIRECTORY_SORT_OPTIONS.includes("email_desc"));
   });
@@ -342,14 +378,20 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
     assert.equal(USERS_DIRECTORY_TEST_IDS.bulkRemove, "operator-users-bulk-remove");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowSelect, "operator-users-row-select");
     assert.equal(USERS_DIRECTORY_TEST_IDS.rowSelectAll, "operator-users-row-select-all");
+    assert.equal(USERS_DIRECTORY_TEST_IDS.rowAvatar, "operator-users-row-avatar");
+    assert.equal(USERS_DIRECTORY_TEST_IDS.rowGender, "operator-users-row-gender");
   });
 
   it("WEB-9.4-24 R2 rewards leader buddy toggle landmark", () => {
-    assert.equal(USERS_DIRECTORY_TEST_IDS.rewardsLeaderBuddy, "operator-users-rewards-leader-buddy");
+    assert.equal(
+      USERS_DIRECTORY_TEST_IDS.rewardsLeaderBuddy,
+      "operator-users-rewards-leader-buddy"
+    );
   });
 
   it("WEB-9.4-25 buildUsersListFetchQuery forwards status filter to API", async () => {
-    const { buildUsersListFetchQuery } = await import("../src/features/users/users-directory-list-logic");
+    const { buildUsersListFetchQuery } =
+      await import("../src/features/users/users-directory-list-logic");
     const suspendedQs = buildUsersListFetchQuery({
       tab: "active",
       search: "",
@@ -375,18 +417,16 @@ describe("users-directory.spec.ts — Phase 9.4 Web", () => {
 
   it("WEB-9.4-27 users nav hidden on urban plugin (INV-P9-006)", async () => {
     const { URBAN_WORKSPACE_PLUGIN_ID } = await import("@app-tour/workspace-urban");
-    const { isUsersRouteAllowed, shouldShowUsersNav } = await import(
-      "../src/features/users/users-nav-access"
-    );
+    const { isUsersRouteAllowed, shouldShowUsersNav } =
+      await import("../src/features/users/users-nav-access");
     assert.equal(shouldShowUsersNav(URBAN_WORKSPACE_PLUGIN_ID), false);
     assert.equal(isUsersRouteAllowed(URBAN_WORKSPACE_PLUGIN_ID), false);
   });
 
   it("WEB-9.4-28 users nav visible on denali plugin", async () => {
     const { DENALI_WORKSPACE_PLUGIN_ID } = await import("@app-tour/workspace-denali/plugin");
-    const { isUsersRouteAllowed, shouldShowUsersNav } = await import(
-      "../src/features/users/users-nav-access"
-    );
+    const { isUsersRouteAllowed, shouldShowUsersNav } =
+      await import("../src/features/users/users-nav-access");
     assert.equal(shouldShowUsersNav(DENALI_WORKSPACE_PLUGIN_ID), true);
     assert.equal(isUsersRouteAllowed(DENALI_WORKSPACE_PLUGIN_ID), true);
   });

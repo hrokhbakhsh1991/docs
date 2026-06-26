@@ -41,6 +41,11 @@ model Tenant {
   operatorUserRoleAudits OperatorUserRoleAudit[]
   workspaceDraftSnapshots WorkspaceDraftSnapshot[]
   workspaceDraftEvents    WorkspaceDraftEvent[]
+  workspaceTelegramBots   WorkspaceTelegramBot[]
+  integrationConnections  IntegrationConnection[]
+  integrationDeliveryJobs IntegrationDeliveryJob[]
+  integrationEventPolicies IntegrationEventPolicy[]
+  integrationSecrets      IntegrationSecret[]
   subscription TenantSubscription?
   workspaceDefinitionId      String?  @map("workspace_definition_id")
   workspaceDefinitionVersion Int?     @map("workspace_definition_version")
@@ -598,4 +603,99 @@ model PlatformOpsUser {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("platform_ops_users")
+}
+
+model WorkspaceTelegramBot {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  workspaceType     String   @map("workspace_type")
+  botToken          String   @map("bot_token") @db.VarChar(500)
+  channelId         String   @map("channel_id") @db.VarChar(100)
+  enabled           Boolean  @default(true)
+  createdByUserId   String?  @map("created_by_user_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, workspaceType], map: "unique_tenant_workspace_telegram")
+  @@index([tenantId], map: "idx_workspace_telegram_bots_tenant")
+  @@index([tenantId, workspaceType], map: "idx_workspace_telegram_bots_tenant_workspace")
+  @@map("workspace_telegram_bots")
+}
+
+/// Workspace integration plugin — tenant-scoped provider connection (replaces provider-specific tables).
+model IntegrationConnection {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  workspaceType   String?  @map("workspace_type")
+  provider        String
+  status          String   @default("disabled")
+  enabled         Boolean  @default(false)
+  capabilities    Json     @default("[]")
+  config          Json     @default("{}")
+  credentials     Json     @default("{}")
+  secretRef       String?  @map("secret_ref")
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventPolicies   IntegrationEventPolicy[]
+
+  @@unique([tenantId, provider, workspaceType], map: "uq_integration_connections_tenant_provider_ws")
+  @@index([tenantId, provider, status], map: "idx_integration_connections_tenant_provider_status")
+  @@index([tenantId, enabled], map: "idx_integration_connections_tenant_enabled")
+  @@map("integration_connections")
+}
+
+/// Per-connection domain event routing policy (data-driven dispatcher input).
+model IntegrationEventPolicy {
+  id                     String   @id @default(uuid()) @db.Uuid
+  tenantId               String   @map("tenant_id") @db.Uuid
+  integrationConnectionId String  @map("integration_connection_id") @db.Uuid
+  eventType              String   @map("event_type")
+  enabled                Boolean  @default(true)
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connection             IntegrationConnection @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationConnectionId, eventType], map: "uq_integration_event_policies_conn_event")
+  @@index([tenantId, eventType, enabled], map: "idx_integration_event_policies_tenant_event")
+  @@map("integration_event_policies")
+}
+
+/// Internal secret payload — never exposed via control plane HTTP.
+model IntegrationSecret {
+  secretRef  String   @id @map("secret_ref")
+  tenantId   String   @map("tenant_id") @db.Uuid
+  payload    Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], map: "idx_integration_secrets_tenant")
+  @@map("integration_secrets")
+}
+
+/// Async integration delivery queue — decoupled from outbox relay HTTP path.
+model IntegrationDeliveryJob {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  provider      String
+  capability    String
+  domainEventId String    @map("domain_event_id")
+  eventType     String    @map("event_type")
+  payload       Json      @default("{}")
+  status        String    @default("pending")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  nextAttemptAt DateTime? @map("next_attempt_at") @db.Timestamptz
+  lastError     Json?     @map("last_error")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  processedAt   DateTime? @map("processed_at") @db.Timestamptz
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider, capability, domainEventId], map: "uq_integration_delivery_jobs_idempotency")
+  @@index([status, nextAttemptAt, createdAt], map: "idx_integration_delivery_jobs_claim")
+  @@index([tenantId, status, createdAt], map: "idx_integration_delivery_jobs_tenant_status")
+  @@map("integration_delivery_jobs")
 }

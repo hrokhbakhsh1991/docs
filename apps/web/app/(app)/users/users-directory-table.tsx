@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import type { OperatorProfileGender } from "@app-tour/workspace-sdk";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { useTranslations } from "next-intl";
 
@@ -13,9 +14,15 @@ import {
   type UsersDirectoryRow,
 } from "@/features/users/users-directory-types";
 import { formatUserLastActive } from "@/features/users/users-directory-list-logic";
-import { assignableRolesForActor, canEditUserRewards, canManageUserRow } from "@/features/users/users-page-logic";
+import { formatOperatorProfileGenderLabel } from "@/features/operator-profile/gender";
+import {
+  assignableRolesForActor,
+  canEditUserRewards,
+  canManageUserRow,
+} from "@/features/users/users-page-logic";
 
 import { UserMicroBadges } from "./users-directory-user-micro-badges";
+import { UsersDirectoryAvatar } from "./users-directory-avatar";
 
 type UsersDirectoryTableProps = {
   readonly users: readonly UsersDirectoryRow[];
@@ -50,6 +57,17 @@ function formatPhoneCell(phone: string | null): ReactNode {
   );
 }
 
+function formatGenderCell(
+  gender: OperatorProfileGender | null,
+  translate: (key: "gender.male" | "gender.female" | "gender.other") => string
+): ReactNode {
+  const label = formatOperatorProfileGenderLabel(gender, translate);
+  if (label === null) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return <span className="whitespace-nowrap">{label}</span>;
+}
+
 export function UsersDirectoryTable({
   users,
   session,
@@ -66,22 +84,19 @@ export function UsersDirectoryTable({
   onToggleSelectAll,
 }: UsersDirectoryTableProps) {
   const t = useTranslations("users");
+  const tCommon = useTranslations("common");
   const selectableUsers = users.filter((user) =>
     canManageUserRow(session.role, session.userId, user)
   );
   const allSelectableSelected =
-    selectableUsers.length > 0 &&
-    selectableUsers.every((user) => selectedUserIds.has(user.userId));
+    selectableUsers.length > 0 && selectableUsers.every((user) => selectedUserIds.has(user.userId));
 
   return (
     <div
       className="hidden overflow-x-auto rounded-xl border md:block"
       data-testid={USERS_DIRECTORY_TEST_IDS.tableDesktop}
     >
-      <table
-        className="w-full min-w-[52rem] border-collapse text-sm"
-        data-operator-users-table
-      >
+      <table className="w-full min-w-[52rem] border-collapse text-sm" data-operator-users-table>
         <thead className="border-b bg-muted/40">
           <tr>
             <th className={SELECT_HEAD_CELL} scope="col">
@@ -98,6 +113,9 @@ export function UsersDirectoryTable({
             </th>
             <th className={`${HEAD_CELL} w-[10rem]`} scope="col">
               {t("table.phone")}
+            </th>
+            <th className={`${HEAD_CELL} w-[6.5rem]`} scope="col">
+              {t("table.gender")}
             </th>
             <th className={`${HEAD_CELL} w-[6.5rem]`} scope="col">
               {t("table.role")}
@@ -135,14 +153,20 @@ export function UsersDirectoryTable({
                       disabled={busy}
                       aria-label={t("bulk.selectRow", { name: user.displayName })}
                       data-testid={USERS_DIRECTORY_TEST_IDS.rowSelect}
-                      onChange={(event) =>
-                        onToggleUserSelected(user.userId, event.target.checked)
-                      }
+                      onChange={(event) => onToggleUserSelected(user.userId, event.target.checked)}
                     />
                   ) : null}
                 </td>
-                <td className={`${BODY_CELL} font-medium`}>{user.displayName}</td>
+                <td className={`${BODY_CELL} font-medium`}>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <UsersDirectoryAvatar user={user} className="h-9 w-9 shrink-0" />
+                    <span className="truncate">{user.displayName}</span>
+                  </div>
+                </td>
                 <td className={BODY_CELL}>{formatPhoneCell(user.phone)}</td>
+                <td className={BODY_CELL} data-testid={USERS_DIRECTORY_TEST_IDS.rowGender}>
+                  {formatGenderCell(user.gender, tCommon)}
+                </td>
                 <td className={BODY_CELL}>
                   <Badge variant="secondary" className="whitespace-nowrap">
                     {t(`roles.${user.role}`)}

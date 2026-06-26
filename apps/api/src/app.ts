@@ -114,6 +114,12 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "GET" && url.pathname === "/internal/consistency/migrations") {
+    const { handleMigrationConsistency } = await import("./routes/internal/migration-consistency");
+    await handleMigrationConsistency(req, res);
+    return;
+  }
+
   if (method === "POST" && url.pathname === "/internal/cache/invalidate") {
     await handlers.handleCacheInvalidate(req, res);
     return;
@@ -149,9 +155,8 @@ async function dispatchRequest(
   }
 
   if (method === "POST" && url.pathname === "/internal/payments/webhook") {
-    const { handlePaymentsWebhook } = await import(
-      "./integrations/webhooks/payments-webhook.controller.ts"
-    );
+    const { handlePaymentsWebhook } =
+      await import("./integrations/webhooks/payments-webhook.controller.ts");
     await handlePaymentsWebhook(req, res);
     return;
   }
@@ -172,9 +177,8 @@ async function dispatchRequest(
   }
 
   if (method === "POST" && url.pathname === "/auth/accept-platform-impersonation") {
-    const { handleAcceptPlatformImpersonation } = await import(
-      "./identity/accept-platform-impersonation.ts"
-    );
+    const { handleAcceptPlatformImpersonation } =
+      await import("./identity/accept-platform-impersonation.ts");
     await handleAcceptPlatformImpersonation(req, res);
     return;
   }
@@ -615,6 +619,79 @@ async function dispatchRequest(
       financeService: deps.financeService,
     })
   ) {
+    return;
+  }
+
+  const workspaceIntegrationsMatch = url.pathname.match(/^\/workspaces\/([^/]+)\/integrations$/);
+  if (workspaceIntegrationsMatch) {
+    const workspaceId = decodeURIComponent(workspaceIntegrationsMatch[1]!);
+    if (method === "POST") {
+      const { handleCreateWorkspaceIntegration } =
+        await import("./integrations/http/integrations.routes");
+      await handleCreateWorkspaceIntegration(req, res, workspaceId);
+      return;
+    }
+    if (method === "GET") {
+      const { handleListWorkspaceIntegrations } =
+        await import("./integrations/http/integrations.routes");
+      await handleListWorkspaceIntegrations(req, res, workspaceId);
+      return;
+    }
+  }
+
+  const workspaceIntegrationsMetaMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/integrations\/meta$/
+  );
+  if (workspaceIntegrationsMetaMatch && method === "GET") {
+    const { handleGetWorkspaceIntegrationMeta } =
+      await import("./integrations/http/integrations.routes");
+    await handleGetWorkspaceIntegrationMeta(
+      req,
+      res,
+      decodeURIComponent(workspaceIntegrationsMetaMatch[1]!)
+    );
+    return;
+  }
+
+  const integrationByIdMatch = url.pathname.match(/^\/integrations\/([^/]+)$/);
+  if (integrationByIdMatch) {
+    const integrationId = decodeURIComponent(integrationByIdMatch[1]!);
+    if (method === "GET") {
+      const { handleGetIntegration } = await import("./integrations/http/integrations.routes");
+      await handleGetIntegration(req, res, integrationId);
+      return;
+    }
+    if (method === "PATCH") {
+      const { handlePatchIntegration } = await import("./integrations/http/integrations.routes");
+      await handlePatchIntegration(req, res, integrationId);
+      return;
+    }
+    if (method === "DELETE") {
+      const { handleDeleteIntegration } = await import("./integrations/http/integrations.routes");
+      await handleDeleteIntegration(req, res, integrationId);
+      return;
+    }
+  }
+
+  const integrationTestMatch = url.pathname.match(/^\/integrations\/([^/]+)\/test-connection$/);
+  if (method === "POST" && integrationTestMatch) {
+    const { handleTestIntegrationConnection } =
+      await import("./integrations/http/integrations.routes");
+    await handleTestIntegrationConnection(req, res, decodeURIComponent(integrationTestMatch[1]!));
+    return;
+  }
+
+  const integrationEnableMatch = url.pathname.match(/^\/integrations\/([^/]+)\/enable$/);
+  if (method === "POST" && integrationEnableMatch) {
+    const { handleEnableIntegration } = await import("./integrations/http/integrations.routes");
+    await handleEnableIntegration(req, res, decodeURIComponent(integrationEnableMatch[1]!));
+    return;
+  }
+
+  const integrationDisableMatch = url.pathname.match(/^\/integrations\/([^/]+)\/disable$/);
+  if (method === "POST" && integrationDisableMatch) {
+    const { handleDisableIntegration } = await import("./integrations/http/integrations.routes");
+    await handleDisableIntegration(req, res, decodeURIComponent(integrationDisableMatch[1]!));
     return;
   }
 

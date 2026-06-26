@@ -120,6 +120,11 @@ export {
   sniffOperatorAvatarContentType,
   type OperatorMembershipAvatar,
 } from "./operator/identity/operator-avatar";
+export {
+  isOperatorProfileGender,
+  OPERATOR_PROFILE_GENDERS,
+  type OperatorProfileGender,
+} from "./operator/identity/operator-profile-gender";
 export { tryParseTenantAuthContext, type AuthContextErrorCode } from "./auth/validate-auth-context";
 export {
   buildTenantAuthz,
@@ -163,6 +168,15 @@ export {
   type SettingsModuleManifest,
   type SettingsNavGroup,
 } from "./operator/settings/settings-module-manifest";
+export {
+  validateIntegrationSurface,
+  type IntegrationFieldKind,
+  type IntegrationFieldSchema,
+  type WorkspaceIntegrationEventMapping,
+  type WorkspaceIntegrationEventPolicyDefault,
+  type WorkspaceIntegrationProviderSurface,
+  type WorkspaceIntegrationSurface,
+} from "./operator/integrations/workspace-integration-surface";
 export {
   buildTourListProjection,
   type OperatorTourListSurface,

@@ -31,10 +31,7 @@ import { resolveDenaliDraftMerge } from "@app-tour/workspace-denali/draft";
 import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import { parseLocationsResponse } from "@/features/settings/locations-logic";
-import {
-  readActiveDestinationIds,
-  readActiveEquipmentIds,
-} from "@/tours/tour-clone-hydrate-logic";
+import { readActiveDestinationIds, readActiveEquipmentIds } from "@/tours/tour-clone-hydrate-logic";
 import { hydrateTourEditDraft } from "@/tours/tour-edit-hydrate-logic";
 import { updateTourAction } from "@/tours/update-tour.server";
 import {
@@ -43,6 +40,7 @@ import {
   type WizardTemplateGateState,
 } from "@/tours/wizard-template-gate-logic";
 import { useAppSession } from "@/providers/app-session-context";
+import { useWorkspaceIntegrationRuntimeState } from "@/integrations/use-workspace-integration-runtime-state";
 
 const INITIAL_GATE: WizardTemplateGateState = {
   loading: true,
@@ -81,10 +79,7 @@ export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPage
   const plugin = useMemo(() => getDenaliWorkspacePlugin(), []);
   const wizardSessionId = useMemo(() => createDenaliWizardDraftSessionId(), []);
   const editDraftKey = useMemo(() => denaliEditTourDraftKey(tourId), [tourId]);
-  const envelopeMeta = useMemo(
-    () => ({ currentStepIndex: 0, wizardSessionId }),
-    [wizardSessionId]
-  );
+  const envelopeMeta = useMemo(() => ({ currentStepIndex: 0, wizardSessionId }), [wizardSessionId]);
   const denaliSchemaGateRef = useRef<DraftSchemaGate<NewTourWizardDraftEnvelope> | null>(null);
   const denaliSchemaGate = useMemo(
     (): DraftSchemaGate<NewTourWizardDraftEnvelope> => (candidate, ctx) => {
@@ -109,6 +104,7 @@ export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPage
   });
 
   const [gate, setGate] = useState<WizardTemplateGateState>(INITIAL_GATE);
+  const integrationRuntime = useWorkspaceIntegrationRuntimeState(appSession.workspaceId);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,6 +193,7 @@ export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPage
     tenantId: session.tenantId,
     canPublish: isOwnerRole(session.role),
     gate,
+    runtimeGates: integrationRuntime,
     plugin,
     draftSync,
     denaliSchemaGateRef,

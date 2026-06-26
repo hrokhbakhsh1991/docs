@@ -14,6 +14,10 @@ import {
   kindLabelKeyForSettingsModule,
   labelKeyForSettingsModule,
 } from "@/features/settings/settings-hub-logic";
+import {
+  guardSettingsModulesAgainstBackend,
+  logSettingsModuleUiDesync,
+} from "@/features/settings/settings-module-consistency-guard";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import {
   SETTINGS_HUB_TEST_IDS,
@@ -22,8 +26,10 @@ import {
 
 export function SettingsHubClient({
   initialModules = null,
+  pluginId = "starter",
 }: {
   readonly initialModules?: SettingsModulesListResponse | null;
+  readonly pluginId?: string;
 }) {
   const t = useTranslations("settings");
   const tErrors = useTranslations("settings.errors");
@@ -46,7 +52,14 @@ export function SettingsHubClient({
       })
       .then((payload) => {
         if (!cancelled) {
-          setModules(payload);
+          const guarded = guardSettingsModulesAgainstBackend(payload.items, pluginId);
+          if (guarded.desyncDetected) {
+            logSettingsModuleUiDesync({
+              pluginId,
+              missingFromBackend: guarded.missingFromBackend,
+            });
+          }
+          setModules({ items: guarded.modules });
         }
       })
       .catch((fetchError: unknown) => {
@@ -62,10 +75,9 @@ export function SettingsHubClient({
     return () => {
       cancelled = true;
     };
-  }, [initialModules]);
+  }, [initialModules, pluginId]);
 
-  const groups =
-    modules === null ? [] : groupSettingsModulesByNav(modules.items);
+  const groups = modules === null ? [] : groupSettingsModulesByNav(modules.items);
 
   return (
     <div className="space-y-6" data-testid={SETTINGS_HUB_TEST_IDS.page}>
@@ -105,7 +117,9 @@ export function SettingsHubClient({
                     >
                       <CardHeader>
                         <CardTitle>{t(labelKeyForSettingsModule(module))}</CardTitle>
-                        <CardDescription>{t(kindLabelKeyForSettingsModule(module))}</CardDescription>
+                        <CardDescription>
+                          {t(kindLabelKeyForSettingsModule(module))}
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-2">
                         {descriptionKey !== null ? (

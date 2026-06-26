@@ -17,6 +17,13 @@ const DENALI_SETTINGS_MODULES = Object.freeze([
     nav: Object.freeze({ group: "workspace", labelKey: "settings.workspace_branding" }),
   }),
   Object.freeze({
+    id: "integrations",
+    kind: "readonly_explorer",
+    route: "settings/integrations",
+    ability: "operator.settings.integrations",
+    nav: Object.freeze({ group: "workspace", labelKey: "settings.integrations" }),
+  }),
+  Object.freeze({
     id: "equipment",
     kind: "reference_data",
     route: "settings/equipment",

@@ -1,0 +1,305 @@
+---
+title: Workspace Integration Plugin System
+format: markdoc
+doc_role: architecture_sot
+---
+
+# Workspace Integration Plugin System
+
+Provider-neutral integration platform for multi-tenant workspaces. Telegram is the first provider plugin; Slack, WhatsApp, Discord, and Email follow the same contract.
+
+## Goals
+
+- Each workspace (tenant) enables integrations independently.
+- Domain modules never call external providers directly.
+- Integrations are event-driven via the existing outbox relay.
+- Provider adapters own outbound HTTP only (through egress guard).
+- Backward compatible with `workspace_telegram_bots` during migration.
+
+## Boundaries
+
+| Layer                                     | Responsibility                                                  |
+| ----------------------------------------- | --------------------------------------------------------------- |
+| Domain (`tours`, `bookings`, `canonical`) | Persist aggregates; enqueue domain events in outbox TX          |
+| Outbox relay                              | Publish in-process bus; run workspace side effects (unchanged)  |
+| Integration dispatcher                    | Map published domain events → `integration_delivery_jobs` rows  |
+| Integration worker                        | Claim jobs; invoke provider adapters asynchronously             |
+| Provider adapter (`telegram`, …)          | API mapping + HTTP only — no business rules                     |
+| Workspace plugin `integrationSurface`     | Declares providers, defaults, event mappings, message templates |
+
+## Event flow
+
+```text
+HTTP → Service → Prisma TX → outbox_events (pending)
+                              ↓
+                    outbox relay (unchanged)
+                              ↓
+              publishDomainEvent (platform-events bus)
+                              ↓
+         dispatchTourCreatedOutboxSideEffects (workspace bindings — unchanged)
+                              ↓
+         dispatchIntegrationDomainEvent (NEW — feature-flagged)
+                              ↓
+              integration_delivery_jobs (pending)
+                              ↓
+         integration delivery worker (separate poll loop)
+                              ↓
+              TelegramProviderAdapter.sendMessage
+```
+
+**Rule:** Outbox relay must not await provider HTTP. It only inserts delivery jobs.
+
+## Core abstractions
+
+- `IntegrationProviderId` — registry key (`telegram`, `slack`, …).
+- `IntegrationCapability` — `message.send`, `channel.create`, `message.delete`, `group.manage`.
+- `IntegrationConnection` — tenant-scoped enabled provider + config + credentials reference.
+- `IntegrationEventMapping` — domain `eventType` + capability → provider list.
+- `IntegrationDeliveryJob` — idempotent work unit `(tenantId, provider, capability, domainEventId)`.
+
+### Workspace `integrationSurface` (Phase B)
+
+Workspaces that support operator-managed integrations declare an optional
+`integrationSurface` on `WorkspacePlugin` (workspace-sdk). The API resolves this surface
+via `resolveWorkspacePluginForType(workspaceType)` — never by hardcoding Denali/Telegram in
+platform core.
+
+Denali is the first implementer (`packages/workspaces/denali/src/integrations/denali-integration.surface.ts`):
+
+| Surface field                                   | Purpose                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| `providers[].id`                                | Provider registry id (`telegram`)                                    |
+| `providers[].configFields` / `credentialFields` | Control-plane field contract (`channelId`, `botToken`)               |
+| `providers[].defaultCapabilities`               | Connection create default (`message.send`)                           |
+| `providers[].defaultEventPolicies`              | Seed `integration_event_policies` on create                          |
+| `providers[].eventMappings`                     | Dispatcher maps domain events → capabilities                         |
+| `messageTemplates`                              | Worker message text per `eventType` (`{{title}}`, `{{aggregateId}}`) |
+
+Platform core (`apps/api/src/integrations/platform/*`) reads the surface at runtime:
+
+- `integrationMappingsForEvent(eventType, workspaceType)` — no static Denali list
+- `seedDefaultEventPoliciesForConnection` — seeds from `defaultEventPolicies`
+- `IntegrationPolicyEngine` — empty-policy fallback uses surface defaults (not `if telegram`)
+- `process-integration-delivery-once` — formats outbound text from `messageTemplates`
+
+Workspaces without `integrationSurface` enqueue no integration jobs.
+
+`channel.create` remains a generic provider capability but must not appear in workspace
+surface mappings until a real channel-creation contract exists.
+
+## Data model
+
+Tables (RLS per tenant, same pattern as `workspace_telegram_bots`):
+
+- `integration_connections` — one row per `(tenant_id, provider, workspace_type)`; `enabled`, `status`, `config`, `secret_ref` (no credentials in API).
+- `integration_event_policies` — per-connection event routing (`event_type`, `enabled`).
+- `integration_secrets` — internal secret payload keyed by `secret_ref` (never returned via HTTP).
+- `integration_delivery_jobs` — async delivery queue with retry metadata.
+
+`WorkspaceTelegramBot` remains until backfill + dual-read removal. Delivery dual-reads legacy table when no `integration_connections` row exists.
+
+## Control plane HTTP
+
+Operator routes (tenant RLS + `requireOperatorSession`):
+
+| Method | Path                                         | Action                                                               |
+| ------ | -------------------------------------------- | -------------------------------------------------------------------- |
+| GET    | `/workspaces/:workspaceId/integrations/meta` | Read workspace `integrationSurface` form metadata for operator UI    |
+| POST   | `/workspaces/:workspaceId/integrations`      | Create connection + store secret                                     |
+| GET    | `/workspaces/:workspaceId/integrations`      | List connections + legacy visibility + delivery summary              |
+| GET    | `/integrations/:id`                          | Connection detail (supports `legacy-telegram:{botId}` synthetic ids) |
+| PATCH  | `/integrations/:id`                          | Update config / capabilities                                         |
+| DELETE | `/integrations/:id`                          | Remove connection + secret                                           |
+| POST   | `/integrations/:id/enable`                   | Enable connection (`integration_connections` only)                   |
+| POST   | `/integrations/:id/disable`                  | Disable connection (`integration_connections` only)                  |
+| POST   | `/integrations/:id/test-connection`          | Provider health check (legacy or new row)                            |
+
+List/detail DTO fields for operator verification (Step 7):
+
+- `backingSource`: `integration_connection` | `legacy_workspace_telegram_bot`
+- `legacySourceId`: underlying `workspace_telegram_bots.id` when legacy-backed
+- `actionsAllowed`: per-row mutation gates (legacy rows are read-only except `test`)
+- `isActiveDeliverySource`: whether dispatcher would route events through this row today
+- `fallbackSuppressed`: legacy row visible but inactive because an `integration_connections` telegram row exists
+- `summary.activeDeliverySource`: workspace-level active delivery backing
+
+Legacy synthetic connection ids use prefix `legacy-telegram:` so operators can inspect pre-backfill bots without mutating legacy tables from the control plane.
+
+### Create validation and duplicate handling
+
+The Telegram control-plane create path validates provider-owned input before any row is
+persisted:
+
+- `provider` must exist in the provider registry.
+- The provider must be declared by the workspace plugin `integrationSurface`.
+- Required `configFields` and `credentialFields` are read from that surface, trimmed, and
+  validated before persistence.
+- Denali Telegram currently requires `config.channelId` and credential `botToken`; the token is
+  stored only through `secret_ref`.
+- Default capabilities come from the provider surface (`["message.send"]` for Denali Telegram).
+
+The database unique scope `(tenant_id, provider, workspace_type)` is mapped to
+`INTEGRATION_CONNECTION_ALREADY_EXISTS` (`409`) so the operator UI can guide admins to
+manage the existing connection instead of surfacing a generic Prisma conflict.
+
+### Workspace scope resolution (type vs instance)
+
+Integration rows are keyed on tenant + **workspace type** (`integration_connections.workspace_type`, e.g. `denali`), not the workspace **instance** id. The session JWT `workspace_id` claim carries the instance id (e.g. `ws-denali-dev`), and the operator UI calls `/workspaces/:workspaceId/integrations` with the workspace **type** slug.
+
+Therefore workspace authorization must compare the requested workspace type against the tenant's resolved workspace type (`resolveWorkspaceTypeForTenant`) — never raw-equality of the JWT `workspace_id` instance against the path slug. The scope guard accepts a request when the path workspaceId either equals the JWT `workspace_id` instance, or case-insensitively matches the tenant's workspace type; otherwise it returns `INTEGRATION_WORKSPACE_FORBIDDEN`. Detail/enable/disable/test resolve and compare against the tenant workspace type for the same reason. RLS still isolates all rows by `tenant_id`.
+
+## Operator UI (Step 7)
+
+**Denali settings hub:** module `integrations` in `packages/workspaces/denali/src/settings/denali-settings.manifest.ts` (workspace group) → `/settings/integrations`.
+
+Web route proxies control-plane HTTP via Next.js API routes under `/api/workspaces/:workspaceId/integrations` and `/api/integrations/:id/*`.
+
+- **Add provider (admin self-service):** when no `integration_connections` row exists for a
+  provider declared in `integrationSurface`, `/settings/integrations` fetches
+  `/workspaces/:workspaceId/integrations/meta` and renders `configFields` +
+  `credentialFields`. Denali currently renders Telegram `channelId` + `botToken`. Submit calls
+  `POST /workspaces/:workspaceId/integrations`; optional “enable after save” calls
+  `POST /integrations/:id/enable`. Secrets are stored via `secret_ref` only — never echoed in
+  list/detail responses.
+- **Edit connection (admin self-service):** when `actionsAllowed.patch` is true for an
+  `integration_connection` row, the detail panel renders the same surface-driven fields in edit
+  mode. `config` fields (e.g. Telegram `channelId`) are prefilled from the connection DTO; secret
+  fields (e.g. `botToken`) render empty — leave blank to keep the stored token, or enter a new
+  value to rotate via `PATCH /integrations/:id`. The web BFF proxies PATCH at
+  `/api/integrations/:id`. Partial updates are supported: config-only, credential-only, or both in
+  one request. Legacy synthetic rows remain read-only (`actionsAllowed.patch === false`).
+- List panel shows backing badges, enabled state, and active delivery marker.
+- Detail panel shows channel config, secret presence (never token), legacy source id, and fallback suppression warning.
+- Enable/disable actions apply only to `integration_connections` rows; legacy rows display read-only guidance pending Step 6 backfill.
+- Test connection surfaces `ok`, `code`, `message`, `testedAt`, and `backingSource` inline.
+
+**No backfill in Step 7** — UI is inspection/control only; `workspace_telegram_bots` rows are not migrated automatically.
+
+## Policy engine
+
+`IntegrationPolicyEngine` evaluates `integration_event_policies` before enqueue:
+
+1. Load enabled connections for tenant + workspace scope.
+2. For each connection, check policy row for `(connection_id, event_type)` — `enabled` must be true.
+3. If no policy rows exist for a connection, apply provider defaults (seed on create).
+4. Dispatcher consults policy engine only — never calls providers.
+
+## Secret handling
+
+- `IntegrationSecretStore` interface — `put` / `get` / `delete` by `secret_ref`.
+- Trunk: `PrismaIntegrationSecretStore` → `integration_secrets` table (RLS).
+- API DTOs expose `hasSecret: boolean` and opaque `secretRef` prefix only — never raw tokens.
+- Control-plane create writes `integration_connections`, `integration_secrets`, and
+  `integration_event_policies` in one tenant RLS transaction. A failed secret write rolls the
+  connection row back, so operators never see a partially configured provider.
+- Secret rotation through PATCH uses the same transaction boundary as the config/capability update.
+- Telegram backfill uses the same atomic boundary for migrated connection rows, migrated secrets,
+  and default policy seeds.
+
+## Provider plugin contract
+
+Each provider implements:
+
+```typescript
+interface IntegrationProviderAdapter {
+  readonly id: IntegrationProviderId;
+  readonly supportedCapabilities: readonly IntegrationCapability[];
+  sendMessage(ctx, input): Promise<IntegrationDeliveryResult>;
+  createChannelLink?(ctx, input): Promise<IntegrationDeliveryResult>;
+}
+```
+
+Register in `integration-provider-registry.ts` at API boot.
+
+## Feature flags
+
+| Env                                   | Default | Meaning                                                                           |
+| ------------------------------------- | ------- | --------------------------------------------------------------------------------- |
+| `INTEGRATION_DELIVERY_ENABLED`        | `false` | Dispatcher enqueues jobs from outbox relay                                        |
+| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `false` | Background worker processes jobs                                                  |
+| `LEGACY_TELEGRAM_FALLBACK_ENABLED`    | `true`  | Dual-read `workspace_telegram_bots` when no enabled `integration_connections` row |
+
+Set `LEGACY_TELEGRAM_FALLBACK_ENABLED=false` after backfill verification to force `integration_connections` only. Set `true` again to roll back delivery to legacy rows if `integration_connections` rows are removed.
+
+## Security
+
+- Bot tokens stored via `secret_ref` → `integration_secrets` (never in HTTP responses).
+- Legacy `integration_connections.credentials` column deprecated; dual-read during migration.
+- All outbound URLs pass `assertSafeOutboundUrl` with provider host allowlist (`api.telegram.org`).
+- Webhook ingress (future) uses `integration_webhook_events` with HMAC + replay cache (same pattern as payments webhooks).
+
+## Verification
+
+```bash
+pnpm --filter @apps/api exec node --import tsx --test \
+  src/integrations/platform/integration-provider-registry.spec.ts \
+  src/integrations/application/dispatch-integration-domain-event.spec.ts \
+  src/integrations/application/integration-policy-engine.spec.ts \
+  src/integrations/http/integrations.routes.spec.ts \
+  src/integrations/http/integrations-verification.spec.ts \
+  src/integrations/migration/telegram-backfill.spec.ts
+```
+
+## Migration from WorkspaceTelegramBot (Step 6)
+
+### Backfill script
+
+Idempotent, tenant-scoped, RLS-aware migration from `workspace_telegram_bots` → `integration_connections`.
+
+```bash
+# Dry-run (default) — logs intended inserts, no writes
+pnpm --filter @apps/api run integrations:backfill-telegram -- --dry-run
+
+# Optional tenant filter
+pnpm --filter @apps/api run integrations:backfill-telegram -- --dry-run --tenant=<uuid>
+
+# Apply writes (requires explicit flag)
+pnpm --filter @apps/api run integrations:backfill-telegram -- --apply
+
+# Verification only — mismatch report between legacy and new rows
+pnpm --filter @apps/api run integrations:verify-telegram-backfill
+pnpm --filter @apps/api run integrations:verify-telegram-backfill -- --tenant=<uuid>
+```
+
+### Mapping rules
+
+| Legacy (`workspace_telegram_bots`) | Target (`integration_connections`)            |
+| ---------------------------------- | --------------------------------------------- |
+| `workspace_type`                   | `workspace_type`                              |
+| —                                  | `provider = telegram`                         |
+| `channel_id`                       | `config.channelId`                            |
+| `enabled`                          | `enabled` + `status` (`enabled` / `disabled`) |
+| `bot_token`                        | `integration_secrets` via `secret_ref`        |
+| `id`                               | `config.migratedFromLegacyBotId` (audit)      |
+
+`secret_ref` values:
+
+- Bot token present: `integration-connection:{connectionId}` with payload in `integration_secrets`.
+- No bot token: `migrated-legacy:telegram:{legacyBotId}` marker (no secret payload).
+
+### Safety guarantees
+
+- **Idempotent:** skips when `(tenant_id, provider, workspace_type)` already exists — never overwrites.
+- **Tenant-safe:** writes run inside `withTenantRls(tenantId)` per tenant.
+- **Retry-safe:** re-run after partial failure only inserts missing rows.
+- **Legacy read-only:** `workspace_telegram_bots` rows are never mutated; control plane legacy synthetic ids remain inspection-only.
+
+### Post-backfill delivery preference
+
+`PrismaIntegrationPolicyRepository.listEnabledConnectionsForScope` already prefers `integration_connections` when any enabled row exists. Legacy fallback runs only when the table has no enabled connection **and** `LEGACY_TELEGRAM_FALLBACK_ENABLED=true`.
+
+### Remaining steps
+
+1. ~~Backfill script~~ (this step).
+2. Dual-read connections API (done — operator UI).
+3. Drop `workspace_telegram_bots` after Architect sign-off.
+
+## System consistency guard
+
+Runtime safety for migration/schema/UI drift is documented in [system-consistency-guard](/dev/system-consistency-guard). API boot runs `runMigrationConsistencyCheck()` and arms or blocks the integration subsystem; integration HTTP returns `INTEGRATION_SYSTEM_NOT_READY` instead of silent empty lists when blocked.
+
+The guard must include every table required for a healthy integration control plane:
+`integration_connections`, `integration_secrets`, `integration_event_policies`,
+`integration_delivery_jobs`, and the legacy `workspace_telegram_bots` table during dual-read
+migration. Missing `integration_secrets` is treated as subsystem-not-ready because atomic create
+depends on that table.

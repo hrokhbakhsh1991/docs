@@ -4,7 +4,12 @@ import { runWithHttpRequestContext } from "../http/bind-request-context";
 import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { MembershipNotFoundError } from "./in-memory-identity.repository";
-import { getOperatorProfile, patchOperatorProfile, ProfileDisplayNameInvalidError } from "./me.service";
+import {
+  getOperatorProfile,
+  patchOperatorProfile,
+  ProfileDisplayNameInvalidError,
+  ProfileGenderInvalidError,
+} from "./me.service";
 import { readIdentityRequestBody } from "./read-identity-request-body";
 import { requireOperatorSession } from "./require-operator-session";
 
@@ -14,9 +19,20 @@ function readStringField(body: unknown, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function parsePatchProfileBody(body: unknown): { displayName?: string } {
+function readNullableStringField(body: unknown, key: string): string | null | undefined {
+  if (typeof body !== "object" || body === null) return undefined;
+  const value = (body as Record<string, unknown>)[key];
+  if (value === null) return null;
+  return typeof value === "string" ? value : undefined;
+}
+
+function parsePatchProfileBody(body: unknown): { displayName?: string; gender?: string | null } {
   const displayName = readStringField(body, "displayName");
-  return displayName === undefined ? {} : { displayName };
+  const gender = readNullableStringField(body, "gender");
+  return {
+    ...(displayName === undefined ? {} : { displayName }),
+    ...(gender === undefined ? {} : { gender }),
+  };
 }
 
 export async function handleGetIdentityMe(
@@ -63,6 +79,10 @@ export async function handlePatchIdentityMe(
     );
   } catch (error) {
     if (error instanceof ProfileDisplayNameInvalidError) {
+      sendHttpError(res, 400, { error: "validation_error", code: error.code });
+      return;
+    }
+    if (error instanceof ProfileGenderInvalidError) {
       sendHttpError(res, 400, { error: "validation_error", code: error.code });
       return;
     }

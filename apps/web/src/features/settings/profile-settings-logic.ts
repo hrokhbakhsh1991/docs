@@ -1,3 +1,5 @@
+import type { OperatorProfileGender } from "@app-tour/workspace-sdk";
+
 export type OperatorProfile = {
   readonly userId: string;
   readonly tenantId: string;
@@ -6,10 +8,13 @@ export type OperatorProfile = {
   readonly workspaceId: string | null;
   readonly mobile: string;
   readonly displayName: string;
-  readonly avatarUrl?: string | null;
+  readonly gender: OperatorProfileGender | null;
+  readonly avatarUrl: string | null;
 };
 
-export function resolveProfileDisplayName(profile: Pick<OperatorProfile, "displayName" | "mobile">): string {
+export function resolveProfileDisplayName(
+  profile: Pick<OperatorProfile, "displayName" | "mobile">
+): string {
   const trimmed = profile.displayName.trim();
   return trimmed.length > 0 ? trimmed : profile.mobile;
 }

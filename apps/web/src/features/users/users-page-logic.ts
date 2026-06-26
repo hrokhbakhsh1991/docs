@@ -2,7 +2,11 @@ import type { ActorRole } from "@app-tour/workspace-sdk";
 
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
 
-import type { InvitableWorkspaceRole, UsersDirectoryRow, UsersDirectoryStatus } from "./users-directory-types";
+import type {
+  InvitableWorkspaceRole,
+  UsersDirectoryRow,
+  UsersDirectoryStatus,
+} from "./users-directory-types";
 
 /** Product gate — hide ownership transfer panel until flow is explicitly enabled. */
 export const USERS_OWNERSHIP_TRANSFER_UI_ENABLED = false;
@@ -31,6 +35,7 @@ export type UsersCsvRow = {
   readonly name: string;
   readonly phone: string;
   readonly email: string;
+  readonly gender: string;
   readonly role: string;
   readonly status: string;
 };
@@ -86,11 +91,13 @@ function escapeCsvCell(value: string): string {
 }
 
 export function buildUsersCsvContent(rows: readonly UsersCsvRow[]): string {
-  const headers = ["name", "phone", "email", "role", "status"];
+  const headers = ["name", "phone", "email", "gender", "role", "status"];
   const lines = [
     headers.join(","),
     ...rows.map((row) =>
-      [row.name, row.phone, row.email, row.role, row.status].map(escapeCsvCell).join(",")
+      [row.name, row.phone, row.email, row.gender, row.role, row.status]
+        .map(escapeCsvCell)
+        .join(",")
     ),
   ];
   return `${lines.join("\n")}\n`;
@@ -101,6 +108,7 @@ export function toUsersCsvRows(items: readonly UsersDirectoryRow[]): readonly Us
     name: row.displayName,
     phone: row.phone ?? "",
     email: row.email ?? "",
+    gender: row.gender ?? "",
     role: row.role,
     status: row.status,
   }));

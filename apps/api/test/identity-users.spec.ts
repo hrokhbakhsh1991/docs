@@ -62,7 +62,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("API-9.4-01 member cannot POST /users/invite (P9-F-005)", async () => {
-    const response = await client.requestJson<UsersApiResponse>( "POST", "/users/invite", {
+    const response = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
       headers: {
         ...operatorAuthHeaders(),
         "x-user-id": OPERATOR_SMOKE.memberUserId,
@@ -75,7 +75,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("API-9.4-02 admin GET /users returns 403 owner-only directory (DEC-P9-018)", async () => {
-    const response = await client.requestJson<UsersApiResponse>( "GET", "/users", {
+    const response = await client.requestJson<UsersApiResponse>("GET", "/users", {
       headers: {
         ...operatorAuthHeaders(),
         "x-user-id": OPERATOR_SMOKE.adminUserId,
@@ -87,7 +87,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("API-9.4-03 member GET /users returns 403", async () => {
-    const response = await client.requestJson<UsersApiResponse>( "GET", "/users", {
+    const response = await client.requestJson<UsersApiResponse>("GET", "/users", {
       headers: {
         ...operatorAuthHeaders(),
         "x-user-id": OPERATOR_SMOKE.memberUserId,
@@ -99,7 +99,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("API-9.4-04 owner POST /users/invite creates pending invite", async () => {
-    const response = await client.requestJson<UsersApiResponse>( "POST", "/users/invite", {
+    const response = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
       headers: operatorAuthHeaders(),
       body: { phone: "+15550008888", role: "admin", nameNote: "Ops lead" },
     });
@@ -117,7 +117,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("API-9.4-05 admin cannot invite or list pending queue (DEC-P9-018)", async () => {
-    const invite = await client.requestJson<UsersApiResponse>( "POST", "/users/invite", {
+    const invite = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
       headers: {
         ...operatorAuthHeaders(),
         "x-user-id": OPERATOR_SMOKE.adminUserId,
@@ -128,7 +128,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     assert.equal(invite.status, 403);
     assert.equal(invite.body.code, "USERS_DIRECTORY_FORBIDDEN");
 
-    const response = await client.requestJson<UsersApiResponse>( "GET", "/users/invites", {
+    const response = await client.requestJson<UsersApiResponse>("GET", "/users/invites", {
       headers: {
         ...operatorAuthHeaders(),
         "x-user-id": OPERATOR_SMOKE.adminUserId,
@@ -140,7 +140,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("API-9.4-06 member GET /users/invites returns 403 (R2)", async () => {
-    const response = await client.requestJson<UsersApiResponse>( "GET", "/users/invites", {
+    const response = await client.requestJson<UsersApiResponse>("GET", "/users/invites", {
       headers: {
         ...operatorAuthHeaders(),
         "x-user-id": OPERATOR_SMOKE.memberUserId,
@@ -152,7 +152,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("API-9.4-07 owner DELETE /users/invites/{id} revokes pending invite (R2)", async () => {
-    const created = await client.requestJson<UsersApiResponse>( "POST", "/users/invite", {
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
       headers: operatorAuthHeaders(),
       body: { phone: "+15550006666", role: "member" },
     });
@@ -160,12 +160,16 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     const inviteId = created.body.inviteId;
     assert.ok(typeof inviteId === "string");
 
-    const revoked = await client.requestJson<UsersApiResponse>( "DELETE", `/users/invites/${inviteId}`, {
-      headers: operatorAuthHeaders(),
-    });
+    const revoked = await client.requestJson<UsersApiResponse>(
+      "DELETE",
+      `/users/invites/${inviteId}`,
+      {
+        headers: operatorAuthHeaders(),
+      }
+    );
     assert.equal(revoked.status, 204);
 
-    const list = await client.requestJson<UsersApiResponse>( "GET", "/users/invites", {
+    const list = await client.requestJson<UsersApiResponse>("GET", "/users/invites", {
       headers: operatorAuthHeaders(),
     });
     const ids = (list.body.items ?? []).map((row) => row.inviteId);
@@ -185,9 +189,13 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       invitedByUserId: "foreign-user",
     });
 
-    const response = await client.requestJson<UsersApiResponse>( "DELETE", `/users/invites/${foreignInviteId}`, {
-      headers: operatorAuthHeaders(),
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "DELETE",
+      `/users/invites/${foreignInviteId}`,
+      {
+        headers: operatorAuthHeaders(),
+      }
+    );
     assert.equal(response.status, 404);
     assert.equal(response.body.code, "INVITE_NOT_FOUND");
   });
@@ -205,36 +213,48 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       workspaceId: "ws-operator-patch",
     });
 
-    const response = await client.requestJson<UsersApiResponse>( "PATCH", `/users/${patchTargetId}/role`, {
-      headers: operatorAuthHeaders(),
-      body: { role: "admin" },
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "PATCH",
+      `/users/${patchTargetId}/role`,
+      {
+        headers: operatorAuthHeaders(),
+        body: { role: "admin" },
+      }
+    );
     assert.equal(response.status, 200);
     assert.equal(response.body.role, "admin");
   });
 
   it("API-9.4-11 admin cannot PATCH owner role — owner-only directory (DEC-P9-018)", async () => {
-    const response = await client.requestJson<UsersApiResponse>( "PATCH", `/users/${OPERATOR_SMOKE.ownerUserId}/role`, {
-      headers: {
-        ...operatorAuthHeaders(),
-        "x-user-id": OPERATOR_SMOKE.adminUserId,
-        "x-actor-role": "admin",
-      },
-      body: { role: "member" },
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "PATCH",
+      `/users/${OPERATOR_SMOKE.ownerUserId}/role`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": OPERATOR_SMOKE.adminUserId,
+          "x-actor-role": "admin",
+        },
+        body: { role: "member" },
+      }
+    );
     assert.equal(response.status, 403);
     assert.equal(response.body.code, "USERS_DIRECTORY_FORBIDDEN");
   });
 
   it("API-9.4-12 admin cannot PATCH roles — owner-only directory (DEC-P9-018)", async () => {
-    const selfPatch = await client.requestJson<UsersApiResponse>( "PATCH", `/users/${OPERATOR_SMOKE.adminUserId}/role`, {
-      headers: {
-        ...operatorAuthHeaders(),
-        "x-user-id": OPERATOR_SMOKE.adminUserId,
-        "x-actor-role": "admin",
-      },
-      body: { role: "member" },
-    });
+    const selfPatch = await client.requestJson<UsersApiResponse>(
+      "PATCH",
+      `/users/${OPERATOR_SMOKE.adminUserId}/role`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": OPERATOR_SMOKE.adminUserId,
+          "x-actor-role": "admin",
+        },
+        body: { role: "member" },
+      }
+    );
     assert.equal(selfPatch.status, 403);
     assert.equal(selfPatch.body.code, "USERS_DIRECTORY_FORBIDDEN");
 
@@ -250,14 +270,18 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       workspaceId: "ws-operator-peer-admin",
     });
 
-    const peerPatch = await client.requestJson<UsersApiResponse>( "PATCH", `/users/${peerAdminId}/role`, {
-      headers: {
-        ...operatorAuthHeaders(),
-        "x-user-id": OPERATOR_SMOKE.adminUserId,
-        "x-actor-role": "admin",
-      },
-      body: { role: "member" },
-    });
+    const peerPatch = await client.requestJson<UsersApiResponse>(
+      "PATCH",
+      `/users/${peerAdminId}/role`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": OPERATOR_SMOKE.adminUserId,
+          "x-actor-role": "admin",
+        },
+        body: { role: "member" },
+      }
+    );
     assert.equal(peerPatch.status, 403);
     assert.equal(peerPatch.body.code, "USERS_DIRECTORY_FORBIDDEN");
   });
@@ -275,12 +299,16 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       workspaceId: "ws-operator-extra",
     });
 
-    const response = await client.requestJson<UsersApiResponse>( "DELETE", `/users/${extraMemberId}`, {
-      headers: operatorAuthHeaders(),
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "DELETE",
+      `/users/${extraMemberId}`,
+      {
+        headers: operatorAuthHeaders(),
+      }
+    );
     assert.equal(response.status, 204);
 
-    const list = await client.requestJson<UsersApiResponse>( "GET", "/users", {
+    const list = await client.requestJson<UsersApiResponse>("GET", "/users", {
       headers: operatorAuthHeaders(),
     });
     const ids = (list.body.items ?? []).map((row) => row.userId);
@@ -288,9 +316,13 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("API-9.4-14 self DELETE forbidden (R3)", async () => {
-    const response = await client.requestJson<UsersApiResponse>( "DELETE", `/users/${OPERATOR_SMOKE.ownerUserId}`, {
-      headers: operatorAuthHeaders(),
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "DELETE",
+      `/users/${OPERATOR_SMOKE.ownerUserId}`,
+      {
+        headers: operatorAuthHeaders(),
+      }
+    );
     assert.equal(response.status, 403);
     assert.equal(response.body.code, "RBAC_SELF_ROLE_CHANGE_FORBIDDEN");
   });
@@ -308,24 +340,32 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       workspaceId: "ws-operator-rewards",
     });
 
-    const response = await client.requestJson<UsersApiResponse>( "PATCH", `/users/${targetId}/rewards`, {
-      headers: operatorAuthHeaders(),
-      body: { permanentDiscountPercentage: 15, isSelectableLeader: true },
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "PATCH",
+      `/users/${targetId}/rewards`,
+      {
+        headers: operatorAuthHeaders(),
+        body: { permanentDiscountPercentage: 15, isSelectableLeader: true },
+      }
+    );
     assert.equal(response.status, 200);
     assert.equal(response.body.permanentDiscountPercentage, 15);
     assert.equal(response.body.isSelectableLeader, true);
   });
 
   it("API-9.4-16 admin cannot PATCH owner rewards — owner-only directory (DEC-P9-018)", async () => {
-    const response = await client.requestJson<UsersApiResponse>( "PATCH", `/users/${OPERATOR_SMOKE.ownerUserId}/rewards`, {
-      headers: {
-        ...operatorAuthHeaders(),
-        "x-user-id": OPERATOR_SMOKE.adminUserId,
-        "x-actor-role": "admin",
-      },
-      body: { permanentDiscountPercentage: 5 },
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "PATCH",
+      `/users/${OPERATOR_SMOKE.ownerUserId}/rewards`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": OPERATOR_SMOKE.adminUserId,
+          "x-actor-role": "admin",
+        },
+        body: { permanentDiscountPercentage: 5 },
+      }
+    );
     assert.equal(response.status, 403);
     assert.equal(response.body.code, "USERS_DIRECTORY_FORBIDDEN");
   });
@@ -353,7 +393,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     const repo = getIdentityRepository();
     repo.seedUser({ id: inviteeId, mobile: inviteeMobile });
 
-    const created = await client.requestJson<UsersApiResponse>( "POST", "/users/invite", {
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
       headers: operatorAuthHeaders(),
       body: { phone: inviteeMobile, role: "member", nameNote: "New teammate" },
     });
@@ -361,26 +401,30 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     const inviteToken = created.body.inviteToken;
     assert.ok(typeof inviteToken === "string" && inviteToken.length === 36);
 
-    const accepted = await client.requestJson<UsersApiResponse>( "POST", `/auth/invite/${inviteToken}/accept`, {
-      headers: {
-        ...operatorAuthHeaders(),
-        "x-user-id": inviteeId,
-        "x-actor-role": "member",
-        "x-workspace-id": "ws-invitee-pending",
-      },
-    });
+    const accepted = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/auth/invite/${inviteToken}/accept`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": inviteeId,
+          "x-actor-role": "member",
+          "x-workspace-id": "ws-invitee-pending",
+        },
+      }
+    );
     assert.equal(accepted.status, 200);
     assert.equal(accepted.body.userId, inviteeId);
     assert.equal(accepted.body.role, "member");
     assert.equal(accepted.body.status, "ACTIVE");
 
-    const list = await client.requestJson<UsersApiResponse>( "GET", "/users", {
+    const list = await client.requestJson<UsersApiResponse>("GET", "/users", {
       headers: operatorAuthHeaders(),
     });
     const phones = (list.body.items ?? []).map((row) => row.phone);
     assert.ok(phones.includes(inviteeMobile));
 
-    const pending = await client.requestJson<UsersApiResponse>( "GET", "/users/invites", {
+    const pending = await client.requestJson<UsersApiResponse>("GET", "/users/invites", {
       headers: operatorAuthHeaders(),
     });
     const pendingPhones = (pending.body.items ?? []).map((row) => row.phone);
@@ -388,7 +432,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
   });
 
   it("API-9.4-20 accept with phone mismatch returns 403 (R5)", async () => {
-    const created = await client.requestJson<UsersApiResponse>( "POST", "/users/invite", {
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
       headers: operatorAuthHeaders(),
       body: { phone: "+15550001994", role: "member" },
     });
@@ -396,13 +440,17 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     const inviteToken = created.body.inviteToken;
     assert.ok(typeof inviteToken === "string");
 
-    const response = await client.requestJson<UsersApiResponse>( "POST", `/auth/invite/${inviteToken}/accept`, {
-      headers: {
-        ...operatorAuthHeaders(),
-        "x-user-id": OPERATOR_SMOKE.memberUserId,
-        "x-actor-role": "member",
-      },
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/auth/invite/${inviteToken}/accept`,
+      {
+        headers: {
+          ...operatorAuthHeaders(),
+          "x-user-id": OPERATOR_SMOKE.memberUserId,
+          "x-actor-role": "member",
+        },
+      }
+    );
     assert.equal(response.status, 403);
     assert.equal(response.body.code, "INVITE_PHONE_MISMATCH");
   });
@@ -420,15 +468,19 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       invitedByUserId: "foreign-user",
     });
 
-    const response = await client.requestJson<UsersApiResponse>( "POST", `/auth/invite/${token}/accept`, {
-      headers: operatorAuthHeaders(),
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/auth/invite/${token}/accept`,
+      {
+        headers: operatorAuthHeaders(),
+      }
+    );
     assert.equal(response.status, 403);
     assert.equal(response.body.code, "INVITE_TENANT_MISMATCH");
   });
 
   it("API-9.4-09 owner POST resend returns same pending row (R2)", async () => {
-    const created = await client.requestJson<UsersApiResponse>( "POST", "/users/invite", {
+    const created = await client.requestJson<UsersApiResponse>("POST", "/users/invite", {
       headers: operatorAuthHeaders(),
       body: { phone: "+15550004444", role: "admin", nameNote: "Resend probe" },
     });
@@ -436,9 +488,13 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     const inviteId = created.body.inviteId;
     assert.ok(typeof inviteId === "string");
 
-    const resent = await client.requestJson<UsersApiResponse>( "POST", `/users/invites/${inviteId}/resend`, {
-      headers: operatorAuthHeaders(),
-    });
+    const resent = await client.requestJson<UsersApiResponse>(
+      "POST",
+      `/users/invites/${inviteId}/resend`,
+      {
+        headers: operatorAuthHeaders(),
+      }
+    );
     assert.equal(resent.status, 200);
     assert.equal(resent.body.inviteId, inviteId);
     assert.equal(resent.body.phone, "+15550004444");
@@ -586,10 +642,14 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
       workspaceId: "ws-operator-viewer-patch",
     });
 
-    const response = await client.requestJson<UsersApiResponse>("PATCH", `/users/${targetId}/role`, {
-      headers: operatorAuthHeaders(),
-      body: { role: "viewer" },
-    });
+    const response = await client.requestJson<UsersApiResponse>(
+      "PATCH",
+      `/users/${targetId}/role`,
+      {
+        headers: operatorAuthHeaders(),
+        body: { role: "viewer" },
+      }
+    );
     assert.equal(response.status, 200);
     assert.equal(response.body.role, "viewer");
   });
@@ -658,7 +718,7 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     assert.equal(response.body.newOwnerUserId, newOwnerId);
     assert.equal(response.body.previousOwnerUserId, OPERATOR_SMOKE.ownerUserId);
 
-    const list = await client.requestJson<UsersApiResponse>( "GET", "/users", {
+    const list = await client.requestJson<UsersApiResponse>("GET", "/users", {
       headers: {
         ...operatorAuthHeaders(),
         "x-user-id": newOwnerId,
@@ -667,5 +727,19 @@ describe("identity-users.spec.ts — Phase 9.4 API", () => {
     });
     const ownerRow = (list.body.items ?? []).find((row) => row.userId === newOwnerId);
     assert.equal(ownerRow?.role, "owner");
+  });
+
+  it("API-9.4-33 GET /users rows include avatarUrl (S9-R7 directory projection)", async () => {
+    const response = await client.requestJson<UsersApiResponse>("GET", "/users", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(response.status, 200);
+    assert.ok((response.body.items ?? []).length > 0);
+    for (const row of response.body.items ?? []) {
+      assert.ok("avatarUrl" in row);
+      assert.ok(row.avatarUrl === null || typeof row.avatarUrl === "string");
+      assert.ok("gender" in row);
+      assert.ok(row.gender === null || typeof row.gender === "string");
+    }
   });
 });

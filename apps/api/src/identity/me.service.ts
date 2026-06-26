@@ -1,4 +1,5 @@
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
+import { isOperatorProfileGender, type OperatorProfileGender } from "@app-tour/workspace-sdk";
 
 import { getIdentityRepository } from "./create-identity-repository";
 import type { IdentityMembershipRecord, IdentityUserRecord } from "./in-memory-identity.repository";
@@ -14,6 +15,15 @@ export class ProfileDisplayNameInvalidError extends Error {
   constructor() {
     super("PROFILE_DISPLAY_NAME_INVALID");
     this.name = "ProfileDisplayNameInvalidError";
+  }
+}
+
+export class ProfileGenderInvalidError extends Error {
+  readonly code = "PROFILE_GENDER_INVALID" as const;
+
+  constructor() {
+    super("PROFILE_GENDER_INVALID");
+    this.name = "ProfileGenderInvalidError";
   }
 }
 
@@ -46,6 +56,7 @@ async function toProfileResponse(
     mobile: user.mobile,
     displayName: resolveDisplayName(user, membership),
     email: membership.email?.trim() ?? null,
+    gender: membership.gender ?? null,
     avatarUrl,
   };
 }
@@ -69,13 +80,34 @@ export async function patchOperatorProfile(
   auth: TenantAuthContext,
   patch: PatchOperatorProfileRequest
 ): Promise<OperatorProfileResponse> {
-  if (!("displayName" in patch)) {
+  const hasDisplayName = "displayName" in patch;
+  const hasGender = "gender" in patch;
+  if (!hasDisplayName && !hasGender) {
     return getOperatorProfile(auth);
   }
 
-  const trimmed = patch.displayName?.trim() ?? "";
-  if (trimmed.length === 0 || trimmed.length > PROFILE_DISPLAY_NAME_MAX_LENGTH) {
-    throw new ProfileDisplayNameInvalidError();
+  const profilePatch: {
+    displayName?: string;
+    gender?: OperatorProfileGender | null;
+  } = {};
+
+  if (hasDisplayName) {
+    const trimmed = patch.displayName?.trim() ?? "";
+    if (trimmed.length === 0 || trimmed.length > PROFILE_DISPLAY_NAME_MAX_LENGTH) {
+      throw new ProfileDisplayNameInvalidError();
+    }
+    profilePatch.displayName = trimmed;
+  }
+
+  if (hasGender) {
+    if (
+      patch.gender !== null &&
+      patch.gender !== undefined &&
+      !isOperatorProfileGender(patch.gender)
+    ) {
+      throw new ProfileGenderInvalidError();
+    }
+    profilePatch.gender = patch.gender ?? null;
   }
 
   const repo = getIdentityRepository();
@@ -84,6 +116,10 @@ export async function patchOperatorProfile(
     throw new MembershipNotFoundError(auth.userId);
   }
 
-  const membership = await repo.updateMembershipDisplayName(auth.tenantId, auth.userId, trimmed);
+  const membership = await repo.updateMembershipProfileFields(
+    auth.tenantId,
+    auth.userId,
+    profilePatch
+  );
   return toProfileResponse(user, membership);
 }

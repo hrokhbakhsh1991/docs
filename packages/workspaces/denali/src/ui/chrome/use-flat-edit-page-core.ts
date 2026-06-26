@@ -6,8 +6,14 @@ import type { ValidationIssue } from "@app-tour/wizard-navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { createDenaliDraftSchemaGate } from "../../draft/create-denali-draft-schema-gate";
-import type { DenaliWizardDraftEnvelope, DenaliWizardDraftMeta } from "../../draft/denali-wizard-draft-binding";
-import { denaliHydrateDraftEnvelope, denaliPrepareDraftEnvelope } from "../../draft/denali-wizard-draft-binding";
+import type {
+  DenaliWizardDraftEnvelope,
+  DenaliWizardDraftMeta,
+} from "../../draft/denali-wizard-draft-binding";
+import {
+  denaliHydrateDraftEnvelope,
+  denaliPrepareDraftEnvelope,
+} from "../../draft/denali-wizard-draft-binding";
 import {
   emptyDenaliTourWizardDraft,
   type DenaliTourWizardDraft,
@@ -15,16 +21,16 @@ import {
 import type { DenaliSubmitCatalogIds } from "../../wizard/denali-wizard-catalog-sanitize";
 import type { DenaliWizardRulesModule as StrictDenaliWizardRulesModule } from "../../wizard/denali-wizard-rules-module";
 import { encodeTourActionSubmitError } from "../logic/tour-action-submit-error-codec";
-import type { DenaliCreateTourWizardGate } from "./use-create-tour-wizard-core";
+import type {
+  DenaliCreateTourWizardGate,
+  DenaliWizardRuntimeGates,
+} from "./use-create-tour-wizard-core";
 import {
   useDenaliThemeCatalog,
   useDenaliWizardRuleSync,
   useDenaliWizardRules,
 } from "../hooks/use-wizard-rule-sync";
-import {
-  runDenaliFlatEditPatch,
-  type DenaliFlatEditPatchIntent,
-} from "./flat-edit-patch-logic";
+import { runDenaliFlatEditPatch, type DenaliFlatEditPatchIntent } from "./flat-edit-patch-logic";
 import {
   resolveDenaliFlatEditPageScreen,
   type DenaliFlatEditPageScreen,
@@ -66,19 +72,21 @@ export type DenaliFlatEditPageCoreInput = {
   readonly tenantId: string;
   readonly canPublish: boolean;
   readonly gate: DenaliCreateTourWizardGate;
+  readonly runtimeGates?: DenaliWizardRuntimeGates;
   readonly plugin: WorkspacePlugin;
   readonly draftSync: DenaliFlatEditDraftSync;
-  readonly denaliSchemaGateRef: React.MutableRefObject<
-    DraftSchemaGate<DenaliFlatEditDraftEnvelope> | null
-  >;
+  readonly denaliSchemaGateRef: React.MutableRefObject<DraftSchemaGate<DenaliFlatEditDraftEnvelope> | null>;
   readonly envelopeMeta: DenaliWizardDraftMeta;
   readonly wizardSessionId: string;
   readonly loadTourBaseline: (tourId: string) => Promise<DenaliFlatEditTourLoadResult>;
-  readonly updateTour: (
-    payload: UpdateTourPayload
-  ) => Promise<
+  readonly updateTour: (payload: UpdateTourPayload) => Promise<
     | { readonly ok: true; readonly rowVersion: number }
-    | { readonly ok: false; readonly status: number; readonly code: string; readonly message: string }
+    | {
+        readonly ok: false;
+        readonly status: number;
+        readonly code: string;
+        readonly message: string;
+      }
   >;
   readonly loadSubmitCatalog: () => Promise<DenaliSubmitCatalogIds>;
   readonly onAfterPatchSuccess: () => void;
@@ -165,7 +173,13 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
     getEnvelope,
     setEnvelope,
     denaliRules,
-    gate: input.gate,
+    gate: {
+      workspaceFormProfile: input.gate.workspaceFormProfile,
+      fieldRulesOverlay: input.gate.fieldRulesOverlay,
+      ...(input.runtimeGates !== undefined && !input.runtimeGates.loading
+        ? { telegramIntegrationActive: input.runtimeGates.telegramIntegrationActive }
+        : {}),
+    },
     themeCatalog,
   });
 
@@ -180,12 +194,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
       return;
     }
     input.draftSync.setData(denaliPrepareDraftEnvelope(tourBaseline, input.envelopeMeta));
-  }, [
-    input.gate.published,
-    tourBaseline,
-    input.draftSync,
-    input.envelopeMeta,
-  ]);
+  }, [input.gate.published, tourBaseline, input.draftSync, input.envelopeMeta]);
 
   input.denaliSchemaGateRef.current =
     denaliRules != null && wizardRuleEvalContext !== undefined
@@ -248,14 +257,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
         void loadTour();
       });
     },
-    [
-      input,
-      draft,
-      denaliRules,
-      wizardRuleEvalContext,
-      rowVersion,
-      loadTour,
-    ]
+    [input, draft, denaliRules, wizardRuleEvalContext, rowVersion, loadTour]
   );
 
   const formReady = envelope !== null;
@@ -265,6 +267,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
     (): DenaliFlatEditPageScreen =>
       resolveDenaliFlatEditPageScreen({
         gateLoading: input.gate.loading,
+        integrationRuntimeLoading: input.runtimeGates?.loading,
         gatePublished: input.gate.published,
         tourLoading,
         formReady,
@@ -273,6 +276,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
       }),
     [
       input.gate.loading,
+      input.runtimeGates?.loading,
       input.gate.published,
       tourLoading,
       formReady,

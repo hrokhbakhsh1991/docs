@@ -31,6 +31,12 @@
   "optional": "optional",
   "remove": "Remove",
   "description": "Description",
+  "gender": {
+    "unset": "Not specified",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
+  },
   "calendar": {
     "pickDate": "Pick a date",
     "today": "Today",

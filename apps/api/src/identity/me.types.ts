@@ -1,4 +1,4 @@
-import type { ActorRole, MembershipStatus } from "@app-tour/workspace-sdk";
+import type { ActorRole, MembershipStatus, OperatorProfileGender } from "@app-tour/workspace-sdk";
 
 export type OperatorProfileResponse = {
   readonly userId: string;
@@ -9,9 +9,11 @@ export type OperatorProfileResponse = {
   readonly mobile: string;
   readonly displayName: string;
   readonly email: string | null;
+  readonly gender: OperatorProfileGender | null;
   readonly avatarUrl: string | null;
 };
 
 export type PatchOperatorProfileRequest = {
   readonly displayName?: string;
+  readonly gender?: OperatorProfileGender | null;
 };

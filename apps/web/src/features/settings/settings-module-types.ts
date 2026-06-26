@@ -109,6 +109,7 @@ export const SETTINGS_HUB_TEST_IDS = {
   profilePage: "operator-settings-profile-page",
   profileForm: "operator-settings-profile-form",
   profileDisplayName: "operator-settings-profile-display-name",
+  profileGender: "operator-settings-profile-gender",
   profileAvatar: "operator-settings-profile-avatar",
   profileAvatarUpload: "operator-settings-profile-avatar-upload",
   profileAvatarRemove: "operator-settings-profile-avatar-remove",
@@ -131,6 +132,7 @@ export const SETTINGS_HUB_TEST_IDS = {
   tourPresetsForm: "operator-settings-tour-presets-form",
   presetsAdvancedPage: "operator-presets-advanced-page",
   brandingPage: "operator-settings-branding-page",
+  integrationsPage: "operator-settings-integrations-page",
 } as const;
 
 /** Message keys under the `settings` namespace (`modules.{id}.title`). */
@@ -147,6 +149,7 @@ export const SETTINGS_MODULE_LABEL_KEYS: Record<string, string> = {
   wizard_drafts: "modules.wizard_drafts.title",
   reconciliation_triage: "modules.reconciliation_triage.title",
   workspace_branding: "modules.workspace_branding.title",
+  integrations: "modules.integrations.title",
 };
 
 /** @deprecated Use `SETTINGS_MODULE_LABEL_KEYS` — kept for stable imports in tests. */
@@ -165,6 +168,7 @@ export const SETTINGS_MODULE_DESCRIPTION_KEYS: Partial<Record<string, string>> =
   reconciliation_triage: "modules.reconciliation_triage.description",
   account_profile: "modules.account_profile.description",
   workspace_branding: "modules.workspace_branding.description",
+  integrations: "modules.integrations.description",
 };
 
 /** @deprecated Use `SETTINGS_MODULE_DESCRIPTION_KEYS`. */
