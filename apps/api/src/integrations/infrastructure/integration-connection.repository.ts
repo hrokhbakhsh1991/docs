@@ -7,7 +7,7 @@ export type IntegrationConnectionRepository = {
     readonly provider: IntegrationProviderId;
     readonly workspaceType: string | null;
   }): Promise<IntegrationConnectionRecord | null>;
-  findById(tenantId: string, connectionId: string): Promise<IntegrationConnectionRecord | null>;
+  findByTenantAndId(tenantId: string, connectionId: string): Promise<IntegrationConnectionRecord | null>;
   listForWorkspace(input: {
     readonly tenantId: string;
     readonly workspaceType: string | null;

@@ -23,6 +23,8 @@ import {
   denaliIntegrationSurface,
   getDenaliIntegrationSurface,
 } from "./integrations/denali-integration.surface";
+import { denaliExposureSurface, getDenaliExposureSurface } from "./exposure/denali-exposure.surface";
+import { denaliFieldPolicyManifest } from "./integrations/denali-field-policy.manifest";
 import {
   buildDenaliWizardRoots,
   buildDenaliWorkspaceFieldRegistry,
@@ -136,6 +138,8 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
     }),
     operatorSettings: deepFreeze({ ...denaliOperatorSettingsSurface }),
     integrationSurface: deepFreeze({ ...denaliIntegrationSurface }),
+    exposureSurface: deepFreeze({ ...denaliExposureSurface }),
+    fieldPolicy: deepFreeze({ ...denaliFieldPolicyManifest }),
     tourList: deepFreeze({
       extractTourListProjection: extractDenaliTourListProjection,
     }),
@@ -200,6 +204,9 @@ export { getDenaliOperatorSettingsSurface };
 
 /** Integration platform surface (Denali-only). */
 export { getDenaliIntegrationSurface };
+
+/** Field exposure surface defaults (Denali-only). */
+export { getDenaliExposureSurface };
 
 /** Phase 9.3 — operator list projection extractor (Denali-only). */
 export { extractDenaliTourListProjection } from "./list/tour-list-projection";

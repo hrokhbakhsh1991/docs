@@ -49,15 +49,19 @@ describe("settings-module-consistency-guard", () => {
     assert.equal(result.modules.length, DENALI_BACKEND_REQUIRED_MODULE_IDS.length);
   });
 
-  it("flags desync when Denali backend omits integrations", () => {
+  it("injects missing integrations from Denali fallback manifest", () => {
     const modules = DENALI_BACKEND_REQUIRED_MODULE_IDS.filter((id) => id !== "integrations").map(
       moduleForId
     );
     const result = guardSettingsModulesAgainstBackend(modules, "denali");
     assert.equal(result.desyncDetected, true);
     assert.deepEqual(result.missingFromBackend, ["integrations"]);
-    assert.equal(result.modules.length, DENALI_BACKEND_REQUIRED_MODULE_IDS.length - 1);
-    assert.equal(result.modules[0]?.id, "workspace_branding");
+    assert.equal(result.modules.length, DENALI_BACKEND_REQUIRED_MODULE_IDS.length);
+    const integrationsIndex = result.modules.findIndex((module) => module.id === "integrations");
+    const brandingIndex = result.modules.findIndex((module) => module.id === "workspace_branding");
+    const exposureIndex = result.modules.findIndex((module) => module.id === "exposure");
+    assert.ok(integrationsIndex > brandingIndex);
+    assert.ok(exposureIndex > integrationsIndex);
   });
 
   it("does not enforce Denali required modules for starter plugin", () => {

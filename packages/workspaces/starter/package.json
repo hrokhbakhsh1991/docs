@@ -10,7 +10,11 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./theme/tokens.css": "./theme/tokens.css"
+    "./theme/tokens.css": "./theme/tokens.css",
+    "./exposure": {
+      "types": "./dist/exposure/index.d.ts",
+      "default": "./dist/exposure/index.js"
+    }
   },
   "files": [
     "dist",

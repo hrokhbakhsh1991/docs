@@ -143,8 +143,12 @@
       "description": "Upload your organization logo and display name for login and admin chrome."
     },
     "integrations": {
-      "title": "Integrations",
-      "description": "Inspect Telegram delivery connections, backing source, and test connectivity."
+      "title": "Connections",
+      "description": "Telegram bot and channel setup, enablement, and delivery health checks."
+    },
+    "exposure": {
+      "title": "Field exposure",
+      "description": "Choose which tour fields are published to external channels per connection."
     }
   },
   "branding": {
@@ -345,60 +349,232 @@
     "resumeWizard": "Resume wizard",
     "backToHub": "Back to settings"
   },
+  "exposure": {
+    "title": "Field exposure",
+    "description": "Choose which tour fields appear in Telegram messages, the public catalog, dashboard, and reminders.",
+    "noWorkspace": "No workspace context is available for field exposure settings.",
+    "emptyTitle": "No enabled connections",
+    "emptyDescription": "Enable an integration connection before configuring field exposure.",
+    "goToIntegrations": "Open integrations settings",
+    "connectionsTitle": "Connections",
+    "connectionsDescription": "When multiple active connections exist, select the one you want to configure.",
+    "fieldSelectionTitle": "Field selection",
+    "fieldSelectionDescription": "Override or inherit the workspace defaults.",
+    "telegramSectionTitle": "Telegram message when a tour is created",
+    "telegramSectionDescription": "Choose which fields are included in the Telegram channel message when a new tour is created.",
+    "manageTelegramConnection": "Manage Telegram connection",
+    "loadingConnection": "Loading connection…",
+    "catalogLoadFailed": "Could not load the field catalog. Field selection is unavailable until you retry.",
+    "catalogRetry": "Retry catalog load",
+    "catalogRetrying": "Retrying…",
+    "detailLoadFailed": "Could not load the connection details. Field exposure settings are unavailable until you retry.",
+    "detailRetry": "Retry connection load",
+    "detailRetrying": "Retrying…",
+    "detailDegradedBanner": "Some connection data could not be loaded. Event policies or field exposure settings may be incomplete until migrations catch up.",
+    "catalogSeedBanner": "Field list is using workspace registry defaults until a tour wizard template is published.",
+    "catalogPublishedBanner": "Field list is based on your published tour wizard template.",
+    "openControlPlane": "Open runtime control plane",
+    "openSimulation": "Open exposure simulation",
+    "fieldChecklist": {
+      "searchPlaceholder": "Search fields…",
+      "selectAllInGroup": "Select all in group",
+      "clearGroup": "Clear group",
+      "selectedOfTotal": "{selected} of {total} fields selected"
+    },
+    "controlPlane": {
+      "title": "Exposure control plane",
+      "description": "Read-only runtime truth for field exposure: intents, profiles, resolved context, and engine preview.",
+      "noWorkspace": "No workspace context is available for the exposure control plane.",
+      "loadFailed": "Unable to load the exposure control plane.",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "backToExposure": "Back to field exposure",
+      "runtimeTitle": "Runtime mode",
+      "runtimeDescription": "Current server-side field exposure runtime configuration.",
+      "runtimeMode": "FIELD_EXPOSURE_RUNTIME_MODE",
+      "activeSelector": "Active delivery selector",
+      "parityInstrumentation": "Parity instrumentation",
+      "forwardShadow": "FIELD_EXPOSURE_DECISION_ENGINE_SHADOW",
+      "enabled": "enabled",
+      "disabled": "disabled",
+      "emptyTitle": "No enabled connections",
+      "emptyDescription": "Enable an integration connection to inspect exposure runtime state.",
+      "connectionsTitle": "Connections",
+      "connectionsDescription": "Select a connection to inspect persisted intent/profile and engine preview.",
+      "selectConnection": "Select a connection.",
+      "eventDescription": "Technical field-visibility settings and selected-field preview for this event.",
+      "eventEnabled": "routing enabled",
+      "eventDisabled": "routing disabled",
+      "surface": "Surface",
+      "audience": "Audience",
+      "trigger": "Trigger",
+      "coordinateRuntimeNotice": "Saved settings for this route are currently active.",
+      "storedContext": "Stored context",
+      "effectiveContext": "Effective context",
+      "coordinateControlsRuntimeEffective": "Coordinate controls runtime-effective",
+      "storedOnly": "route default",
+      "storedDiffersFromEffective": "Saved settings differ from the event default and are currently used for delivery.",
+      "persistedProfile": "Persisted ExposureProfile",
+      "activeIntent": "Active ExposureIntent",
+      "none": "None",
+      "inheritProfile": "No native intent row — inherit profile defaults.",
+      "enginePreviewTitle": "Technical preview (read-only)",
+      "enginePreviewEmpty": "Technical preview is unavailable for this connection.",
+      "samplePayload": "Sample payload",
+      "engineSelected": "Selected field ids",
+      "reasonChain": "Reason chain",
+      "appliedPolicies": "Applied policies",
+      "noPolicies": "No applied policies"
+    },
+    "denaliSurfaces": {
+      "title": "Denali product surfaces",
+      "description": "Choose which tour fields users see in each product surface.",
+      "companionNotice": "Telegram message fields are configured in the Telegram message section on this page. This card is for the public catalog, dashboard, and reminders.",
+      "loading": "Loading workspace surfaces…",
+      "empty": "No configurable product surfaces for this workspace.",
+      "defaultSurfaceDescription": "This surface uses tour field visibility settings.",
+      "coordinate": "Audience: {audience} · Trigger: {trigger}",
+      "customizeFields": "Customize fields for this surface",
+      "customizeHint": "Only the selected fields below are exposed on this surface.",
+      "inheritHint": "This surface uses the default fields. Enable to choose fields manually.",
+      "modeInherit": "Default fields",
+      "modeCustom": "Custom selection",
+      "fieldCount": "{count} fields exposed",
+      "emptyFields": "No exposure-eligible fields in the catalog.",
+      "selectedSummary": "{count} fields selected",
+      "save": "Save surface",
+      "saving": "Saving…",
+      "saved": "Surface exposure saved.",
+      "loadFailed": "Could not load the exposure surfaces. Reopen the page.",
+      "saveFailed": "Could not save this surface. Please try again.",
+      "surfaceNames": {
+        "public_list": "Public catalog list",
+        "public_details": "Public catalog details",
+        "user_dashboard": "Registered user dashboard",
+        "reminder_feed": "Reminder feed"
+      },
+      "surfaceDescriptions": {
+        "public_list": "Public tour list cards that visitors see before opening details.",
+        "public_details": "The public detail page for each tour.",
+        "user_dashboard": "The tour view inside a registered user's dashboard.",
+        "reminder_feed": "Fields used by reminders near the tour start time."
+      },
+      "audienceNames": {
+        "external_channel": "External channel (Telegram)",
+        "public": "Public visitor",
+        "registered_user": "Registered user"
+      },
+      "triggerNames": {
+        "TourCreated": "New tour created",
+        "always": "Always shown",
+        "tour_dashboard_view": "Tour dashboard view",
+        "relative_to_tour_start": "Relative to tour start"
+      }
+    },
+    "simulation": {
+      "title": "Exposure simulation",
+      "description": "Draft field-selection changes and compare engine outcomes against current runtime without saving.",
+      "backToExposure": "Back to field exposure",
+      "noWorkspace": "No workspace context is available for exposure simulation.",
+      "emptyTitle": "No enabled connections",
+      "emptyDescription": "Enable an integration connection before running exposure simulations.",
+      "connectionsTitle": "Connections",
+      "connectionsDescription": "Select a connection to simulate draft field exposure per event.",
+      "consoleTitle": "Simulation console",
+      "consoleDescription": "Adjust draft field selection, run a diff, and inspect state changes. Nothing is persisted.",
+      "loadingConnection": "Loading connection…",
+      "nonMutatingNotice": "Simulation is read-only. Use field exposure settings to save changes to ExposureIntent.",
+      "noEvents": "No routable events are configured for this connection.",
+      "coordinateTitle": "Effective coordinate",
+      "effectiveContext": "Effective context",
+      "runtimeEffective": "Route-scoped runtime authority",
+      "runtimeEffectiveYes": "route-scoped intent controls runtime",
+      "runtimeEffectiveNo": "provider/event defaults",
+      "draftFieldsTitle": "Draft field selection",
+      "customizeFields": "Override profile defaults for this simulation",
+      "emptyCatalog": "No exposure fields are available for this workspace.",
+      "selectedSummary": "{count} field(s) selected in draft",
+      "runSimulation": "Run simulation diff",
+      "running": "Simulating…",
+      "runFailed": "Simulation failed.",
+      "diffTitle": "Simulation diff",
+      "diffDescription": "Field states and selected ids compared against current persisted runtime.",
+      "selectedAdded": "Engine-selected ids added",
+      "selectedRemoved": "Engine-selected ids removed",
+      "noFieldChanges": "No field exposure state changes for this draft."
+    }
+  },
   "integrations": {
     "forbidden": "Integration settings require admin or owner access.",
-    "title": "Integrations",
-    "subtitle": "Inspect workspace integration connections before migration backfill",
+    "title": "Connections",
+    "subtitle": "Manage the Telegram connection, destination channel, and delivery health for this workspace.",
     "workspaceScope": "Workspace API scope: {workspaceId}",
     "refresh": "Refresh",
+    "catalogLoadFailed": "Could not load the field catalog for this workspace.",
+    "catalogRetry": "Retry catalog load",
+    "catalogRetrying": "Retrying…",
+    "detailDegradedBanner": "Some connection data could not be loaded. Delivery settings may be incomplete until migrations catch up.",
+    "subsystemNotReadyHint": "The connections page stays available; apply pending database migrations and restart the API before creating or editing new connections.",
     "backToHub": "Back to settings",
     "listTitle": "Connections ({count})",
     "summary": {
-      "title": "Delivery source overview",
-      "description": "{integrationCount} integration_connection row(s), {legacyCount} legacy bot row(s).",
+      "title": "Telegram delivery overview",
+      "description": "{integrationCount} new connection(s) and {legacyCount} legacy connection(s) were found for this workspace.",
       "noActiveSource": "No enabled delivery source is active for this workspace.",
-      "legacyFallbackSuppressed": "A legacy Telegram bot exists but delivery fallback is suppressed by an integration_connections row.",
+      "legacyFallbackSuppressed": "A legacy Telegram bot exists, but the old path is not used because a new connection is registered.",
       "activeSource": {
-        "integration_connection": "Active delivery uses integration_connections.",
-        "legacy_workspace_telegram_bot": "Active delivery uses legacy workspace_telegram_bots fallback."
+        "integration_connection": "Active delivery uses the new Telegram connection.",
+        "legacy_workspace_telegram_bot": "Active delivery still uses the legacy Telegram bot."
       }
     },
     "scenarios": {
       "empty": {
         "title": "No integrations configured",
-        "description": "No Telegram integration_connection row and no legacy workspace_telegram_bots row for this workspace."
+        "description": "No new Telegram connection or legacy bot is registered for this workspace."
       },
       "legacy_only": {
         "title": "Legacy Telegram only",
-        "description": "Delivery is backed by workspace_telegram_bots. Enable the integration platform row after backfill to migrate."
+        "description": "Delivery still uses the legacy Telegram bot. Enable the new connection after migration."
       },
       "migration_ready": {
         "title": "Migration-ready (dual visibility)",
-        "description": "Both integration_connections and legacy bot rows are visible. New system is preferred when enabled; legacy fallback may be suppressed."
+        "description": "Both a new connection and a legacy bot exist. When the new connection is enabled, delivery uses the new path."
       },
       "active_new_system": {
         "title": "Active integration platform",
-        "description": "Delivery is backed by integration_connections for this workspace."
+        "description": "Telegram delivery for this workspace uses the new connection."
       }
     },
     "empty": {
       "title": "No integrations configured",
-      "description": "No integration_connections rows and no legacy Telegram bot for this workspace."
+      "description": "No new Telegram connection or legacy Telegram bot exists for this workspace."
     },
     "rowMeta": "Channel {channelId}",
     "detail": {
-      "title": "Connection detail",
+      "title": "Telegram connection",
+      "overviewTitle": "Telegram connection status",
+      "statusDescriptions": {
+        "enabled": "Telegram is enabled and eligible messages can be sent to the destination channel.",
+        "disabled": "Telegram is saved, but automatic sending is currently disabled.",
+        "error": "The Telegram connection has an error. Check the channel, token, or bot permissions and test again."
+      },
+      "lastTestSuccess": "The latest connection test succeeded.",
+      "lastTestFailure": "The latest connection test failed.",
+      "technicalDetails": "Technical details",
       "connectionId": "Connection ID",
       "status": "Status",
-      "channelId": "Channel ID",
-      "hasSecret": "Secret configured",
+      "channelId": "Destination channel",
+      "hasSecret": "Bot token saved",
       "yes": "Yes",
       "no": "No",
       "legacySourceId": "Legacy bot row ID",
-      "legacyReadOnly": "Legacy-backed connections are read-only here. Run backfill (Step 6) to migrate into integration_connections.",
-      "fallbackSuppressed": "Legacy fallback is suppressed because an integration_connections row exists for Telegram on this workspace.",
+      "legacyReadOnly": "Legacy-backed connections are read-only here. Enable the new Telegram connection for full management.",
+      "fallbackSuppressed": "The old path is disabled because this workspace has a new Telegram connection.",
       "backingSource": "Backing source",
-      "eventPolicies": "Event policies"
+      "eventPolicies": "Event policies",
+      "exposureMovedTitle": "Message fields are configured in Field visibility",
+      "exposureMovedDescription": "Use this page only for the Telegram connection, destination channel, and health checks. Choose Telegram message fields and Denali product-surface fields from Field visibility.",
+      "openExposureSettings": "Configure message fields"
     },
     "badges": {
       "legacy": "Legacy Bot",
@@ -451,6 +627,71 @@
       "failureTitle": "Test failed",
       "meta": "Backing: {backing} · Tested at {testedAt}"
     },
+    "deliveryPolicy": {
+      "title": "Telegram messages",
+      "description": "Set what is sent to Telegram for each event, and which fields appear in the message. Field selection can only narrow what the workspace already allows — never add more.",
+      "enabledLabel": "Send automatically",
+      "enabledLabelOff": "Sending off",
+      "eventNames": {
+        "TourCreated": "New tour created"
+      },
+      "eventHints": {
+        "TourCreated": "When a new tour is created, a Telegram message is sent using the fields you select below."
+      },
+      "surfaceLabel": "Surface",
+      "surfaceHint": "Integration provider surface for this exposure intent.",
+      "audienceLabel": "Audience",
+      "audienceHint": "Exposure audience channel (external_channel today).",
+      "triggerLabel": "Trigger",
+      "triggerHint": "Domain event that activates this exposure intent.",
+      "messageContentLabel": "Message content",
+      "customizeFieldsLabel": "Customize included fields",
+      "customizeFieldsHint": "Turn this on to choose which tour fields appear in the Telegram message and in what order.",
+      "fieldOrderTitle": "Message field order",
+      "fieldOrderDescription": "Selected fields appear in the Telegram message from top to bottom in this order.",
+      "fieldOrderEmpty": "Select at least one field to set the message order.",
+      "fieldOrderMoveUp": "Move up",
+      "fieldOrderMoveDown": "Move down",
+      "fieldIconLabel": "Icon beside field",
+      "fieldsLabel": "Fields to include",
+      "noCandidateFields": "This workspace exposes no configurable delivery fields yet.",
+      "templateLabel": "Message template",
+      "templateAdvancedToggle": "Custom message template (advanced)",
+      "templatePlaceholder": "'{{eventType}}': '{{field:title}}'",
+      "templateHint": "Supported placeholders: '{{eventType}}', '{{aggregateId}}', and '{{field:<id>}}' for any selected field. Non-eligible fields are redacted automatically.",
+      "previewTitle": "Telegram message preview",
+      "previewDescription": "This preview shows the admin how the message will look with the current fields.",
+      "previewEmpty": "No fields are selected for this message yet.",
+      "previewDefaultPrefix": "Event",
+      "previewSampleValue": "Sample value",
+      "previewAggregateId": "tour_123",
+      "previewRedacted": "Redacted field",
+      "coordinateStoredOnlyTitle": "Technical settings apply after save",
+      "coordinateStoredOnlyDescription": "Surface, audience, and trigger are stored on the route-scoped native intent. After save, dispatch and preview use those stored coordinates for this connection/event.",
+      "coordinateRuntimeEffectiveTitle": "Saved technical settings are active",
+      "coordinateRuntimeEffectiveDescription": "Dispatch and preview use the persisted stored coordinates for this connection/event. Unsaved draft edits become runtime-effective after save.",
+      "storedContextLabel": "Stored context",
+      "effectiveContextLabel": "Effective context",
+      "runtimeEffectiveLabel": "Runtime effect",
+      "storedDiffers": "will override route default after save",
+      "storedMatches": "uses route default",
+      "storedDiffersRuntime": "draft differs from persisted runtime context",
+      "storedMatchesRuntime": "matches persisted runtime context",
+      "enginePreviewTitle": "Technical preview (optional)",
+      "enginePreviewEmpty": "Load preview to inspect selected fields for support/debugging.",
+      "previewRefresh": "Load preview",
+      "previewRefreshing": "Loading…",
+      "samplePayload": "Sample payload",
+      "engineSelected": "Selected field ids",
+      "reasonChain": "Reason chain",
+      "appliedPolicies": "Applied policies",
+      "noPolicies": "No applied policies",
+      "save": "Save delivery policy",
+      "saving": "Saving…",
+      "success": "Delivery policy updated.",
+      "selectedSummary": "{count} field(s) selected",
+      "advancedSummary": "Technical diagnostics"
+    },
     "errors": {
       "INTEGRATION_SYSTEM_NOT_READY": "Integration system is not ready. Database migrations may be pending — contact your operator.",
       "INTEGRATIONS_LIST_HTTP_ERROR": "Failed to load integrations (HTTP {status}).",
@@ -475,7 +716,20 @@
       "INTEGRATION_PROVIDER_NOT_SUPPORTED_FOR_WORKSPACE": "This provider is not enabled for the current workspace plugin.",
       "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "Telegram channel ID is required.",
       "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED": "Telegram bot token is required.",
-      "INTEGRATION_CONNECTION_ALREADY_EXISTS": "A Telegram connection already exists for this workspace. Manage the existing connection instead."
+      "INTEGRATION_CONNECTION_ALREADY_EXISTS": "A Telegram connection already exists for this workspace. Manage the existing connection instead.",
+      "INTEGRATION_EVENT_POLICY_PATCH_FAILED": "Failed to update the delivery policy.",
+      "INTEGRATION_EVENT_POLICY_ENABLED_INVALID": "The publish toggle value is invalid.",
+      "INTEGRATION_EVENT_POLICY_FIELDS_INVALID": "Selected fields are invalid.",
+      "INTEGRATION_EVENT_POLICY_FIELD_NOT_ALLOWED": "One or more selected fields are not delivery candidates for this workspace.",
+      "INTEGRATION_EVENT_POLICY_TEMPLATE_INVALID": "The message template is invalid.",
+      "INTEGRATION_EVENT_POLICY_TEMPLATE_FIELD_NOT_ALLOWED": "The template references a field that is not a delivery candidate.",
+      "INTEGRATION_EVENT_POLICY_TEMPLATE_TOKEN_INVALID": "The template contains an unsupported placeholder.",
+      "INTEGRATION_EVENT_POLICY_EVENT_INVALID": "The event type is invalid.",
+      "INTEGRATION_EVENT_POLICY_EVENT_NOT_ALLOWED": "This event is not supported by the connected provider.",
+      "INTEGRATION_DELIVERY_INTENT_PATCH_FAILED": "Failed to update the exposure intent.",
+      "INTEGRATION_DELIVERY_INTENT_SURFACE_INVALID": "The selected surface is not supported for this workspace.",
+      "INTEGRATION_DELIVERY_INTENT_AUDIENCE_INVALID": "The selected audience is not supported.",
+      "INTEGRATION_DELIVERY_INTENT_TRIGGER_INVALID": "The selected trigger is not supported by this provider."
     }
   },
   "reconciliation": {

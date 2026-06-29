@@ -133,6 +133,8 @@ export const SETTINGS_HUB_TEST_IDS = {
   presetsAdvancedPage: "operator-presets-advanced-page",
   brandingPage: "operator-settings-branding-page",
   integrationsPage: "operator-settings-integrations-page",
+  exposurePage: "operator-settings-exposure-page",
+  exposureTelegramPanel: "operator-settings-exposure-telegram-panel",
 } as const;
 
 /** Message keys under the `settings` namespace (`modules.{id}.title`). */
@@ -150,6 +152,7 @@ export const SETTINGS_MODULE_LABEL_KEYS: Record<string, string> = {
   reconciliation_triage: "modules.reconciliation_triage.title",
   workspace_branding: "modules.workspace_branding.title",
   integrations: "modules.integrations.title",
+  exposure: "modules.exposure.title",
 };
 
 /** @deprecated Use `SETTINGS_MODULE_LABEL_KEYS` — kept for stable imports in tests. */
@@ -169,6 +172,7 @@ export const SETTINGS_MODULE_DESCRIPTION_KEYS: Partial<Record<string, string>> =
   account_profile: "modules.account_profile.description",
   workspace_branding: "modules.workspace_branding.description",
   integrations: "modules.integrations.description",
+  exposure: "modules.exposure.description",
 };
 
 /** @deprecated Use `SETTINGS_MODULE_DESCRIPTION_KEYS`. */

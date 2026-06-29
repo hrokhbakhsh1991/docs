@@ -17,6 +17,7 @@ import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
 import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { hasDevHostSmokeSessionProfile } from "@/tenant/dev-host-session-profiles";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
+import { fetchOperatorProfileServer } from "@/features/settings/fetch-operator-profile.server";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   }
 
   const tenantTheme = await fetchTenantThemeForContext(bootstrap.context, host);
+  const operatorProfile = await fetchOperatorProfileServer();
   const tWorkspaces = await getTranslations("app.workspaces");
   const navItems = resolveOperatorNav({
     session: session!,
@@ -77,6 +79,8 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
       session={session!}
       workspaceLabel={resolveWorkspaceLabelFromMessages(tWorkspaces, bootstrap.session.pluginId)}
       displayName={tenantTheme?.displayName ?? null}
+      operatorProfileDisplayName={operatorProfile?.displayName ?? null}
+      operatorProfileAvatarUrl={operatorProfile?.avatarUrl ?? null}
       pluginId={bootstrap.session.pluginId}
       navItems={navItems}
       impersonationReadonly={impersonationReadonly}

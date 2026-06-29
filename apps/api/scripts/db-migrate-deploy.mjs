@@ -88,4 +88,20 @@ const result = spawnSync(
   }
 );
 
-process.exit(result.status ?? 1);
+if ((result.status ?? 1) !== 0) {
+  process.exit(result.status ?? 1);
+}
+
+console.log("db:migrate:deploy: migrate deploy succeeded — running prisma generate");
+
+const generateResult = spawnSync(
+  prismaCmd,
+  ["generate", "--schema=./prisma/schema.prisma"],
+  {
+    cwd: API_ROOT,
+    env: process.env,
+    stdio: "inherit",
+  },
+);
+
+process.exit(generateResult.status ?? 1);

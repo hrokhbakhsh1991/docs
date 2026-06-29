@@ -1,0 +1,102 @@
+# Workspace exposure plugin contract (M5)
+
+```yaml
+doc_id: WORKSPACE-EXPOSURE-PLUGIN-CONTRACT
+version: "2026-06-29-v1"
+authority: docs/architecture/field-exposure-system.md
+related:
+  - docs/architecture/field-policy-system.md
+  - docs/dev/workspace-integration-plugin-system.mdoc
+implementation:
+  sdk: packages/workspace-sdk/src/exposure/workspace-exposure-surface.ts
+  denali: packages/workspaces/denali/src/exposure/denali-exposure.surface.ts
+  starter: packages/workspaces/starter/src/exposure/starter-exposure.surface.ts
+  api: apps/api/src/exposure/workspace-exposure-surfaces.service.ts
+```
+
+## Purpose
+
+Field exposure answers **which registry fields may appear on a publication surface** for a given
+audience and trigger. Integrations own **transport only**; workspace plugins declare **surface
+defaults** consumed by the exposure control plane.
+
+This contract mirrors `WorkspacePlugin.integrationSurface` — data-only manifest on the plugin,
+validated at workspace package load time.
+
+## Boundaries
+
+| Layer | Owns |
+| ----- | ---- |
+| Field registry | Field identity, canonical paths, presentation metadata |
+| Field policy (`fieldPolicy`) | Entity/workspace PDP states per `FieldPolicySurface` |
+| **Exposure surface (`exposureSurface`)** | Surface id, audience, trigger labels, default visible field ids |
+| API exposure engine | Intent persistence, resolver, dispatch selection |
+| Integration plugin | Provider config, event policies, message templates |
+
+Exposure surface ids (e.g. `public_list`, `telegram`) are **workspace-owned strings**. They must not
+appear in SDK field-policy forbidden vocabulary lists — map to `FieldPolicySurface` in workspace
+code (`map*ExposureSurfaceToFieldPolicySurface`).
+
+## WorkspacePlugin.exposureSurface
+
+Optional on `WorkspacePlugin`:
+
+```typescript
+readonly exposureSurface?: WorkspaceExposureSurface;
+```
+
+### Manifest shape
+
+```typescript
+type WorkspaceExposureSurface = {
+  readonly manifestVersion: 1;
+  readonly definitions: readonly WorkspaceExposureSurfaceDefinition[];
+};
+
+type WorkspaceExposureSurfaceDefinition = {
+  readonly surface: string;
+  readonly audience: string;
+  readonly triggerLabel: string;       // operator-facing label
+  readonly triggerStorageKey: string;  // persisted ExposureIntent.trigger
+  readonly defaultFieldIds: readonly string[];
+  readonly operatorSettingsVisible?: boolean; // default true; false hides from /settings/exposure surfaces panel
+};
+```
+
+Validation: `validateExposureSurface()` — fail closed at workspace package module load (same pattern
+as `validateIntegrationSurface()`).
+
+### Denali reference
+
+Five surfaces in `denali-exposure-surfaces.ts`; `telegram` has `operatorSettingsVisible: false`
+(connection panel owns delivery field checklist). HTTP redaction bindings stay workspace-local
+(`denali-catalog-exposure-bindings.ts`).
+
+### Starter minimal slice
+
+One surface: `public_list` / audience `public` / trigger `always` with field ids aligned to
+`STARTER_FIELD_POLICY_MANIFEST` public/delivery rules.
+
+## API resolution
+
+`getWorkspaceExposureSurfaces` / `patchWorkspaceSurfaceExposureIntent` resolve
+`resolveWorkspacePluginForType(workspaceType).exposureSurface` — **not** hardcoded Denali imports.
+
+When `exposureSurface` is absent, settings surfaces API returns an empty list (patch → 403).
+
+## Linkage to fieldPolicy
+
+Workspace exposure definitions supply **default field id sets** for profile seeding. Field policy
+manifest rules (`public_website`, `delivery`, `profile`) remain separate but should reference the
+same field ids (Denali: `denali-field-policy.manifest.ts` imports from `denali-exposure-surfaces.ts`).
+
+## Verification
+
+| Check | Command / file |
+| ----- | -------------- |
+| SDK validator | `packages/workspace-sdk/test/exposure-surface.spec.ts` |
+| Starter surfaces | `packages/workspaces/starter/test/starter-exposure-surfaces.spec.ts` |
+| Platform guard | `pnpm run guard:field-exposure-phase-11` |
+| Contract | `apps/api/test/field-exposure-phase-11-platform.contract.spec.ts` |
+
+Denali HTTP redaction integration tests remain in M3 (`field-exposure-denali-*` specs).

@@ -32,6 +32,8 @@ export type WorkspaceHttpHandlerKey =
   | "handleFinanceSummary"
   | "handleGetDenaliCatalog"
   | "handleGetDenaliCatalogTour"
+  | "handleGetDenaliDashboardTour"
+  | "handleGetDenaliReminderFeed"
   | "handleGetUrbanCatalog"
   | "handleGetUrbanCatalogTour"
   | "handleGetUrbanSettings"
@@ -76,6 +78,7 @@ function paramRoutesFromManifest(
 
 const DENALI_CATALOG_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /denali/catalog": "handleGetDenaliCatalog",
+  "GET /denali/reminders/feed": "handleGetDenaliReminderFeed",
   "POST /denali/registrations": "handlePostDenaliRegistration"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
@@ -101,7 +104,8 @@ const URBAN_URBAN_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const DENALI_CATALOG_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {
-  "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour"
+  "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour",
+  "GET /denali/dashboard/tours/:tourId": "handleGetDenaliDashboardTour"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;
 
 const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_PARAM_HANDLERS = {

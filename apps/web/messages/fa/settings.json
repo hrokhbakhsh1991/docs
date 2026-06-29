@@ -143,8 +143,12 @@
       "description": "لوگوی سازمان و نام نمایشی برای ورود و پنل اپراتور."
     },
     "integrations": {
-      "title": "یکپارچه‌سازی‌ها",
-      "description": "بررسی اتصال تلگرام، منبع پشتیبان و آزمایش اتصال."
+      "title": "اتصال‌ها",
+      "description": "اتصال تلگرام (بات و کانال)، فعال‌سازی و آزمایش سلامت ارسال."
+    },
+    "exposure": {
+      "title": "نمایش فیلدها (تلگرام و سطح‌ها)",
+      "description": "انتخاب فیلدهای تور برای پیام تلگرام، کاتالوگ عمومی، داشبورد و یادآورها."
     }
   },
   "branding": {
@@ -345,60 +349,232 @@
     "resumeWizard": "ادامه ویزارد",
     "backToHub": "بازگشت به تنظیمات"
   },
+  "exposure": {
+    "title": "نمایش فیلدها",
+    "description": "انتخاب کنید کدام فیلدهای تور در پیام تلگرام، کاتالوگ عمومی، داشبورد و یادآورها دیده شوند.",
+    "noWorkspace": "زمینه ورک‌اسپیس برای تنظیمات نمایش فیلد در دسترس نیست.",
+    "emptyTitle": "اتصال فعالی وجود ندارد",
+    "emptyDescription": "قبل از پیکربندی نمایش فیلد، یک اتصال یکپارچه‌سازی را فعال کنید.",
+    "goToIntegrations": "باز کردن تنظیمات یکپارچه‌سازی",
+    "connectionsTitle": "اتصال‌ها",
+    "connectionsDescription": "برای چند اتصال فعال، اتصال موردنظر را انتخاب کنید.",
+    "fieldSelectionTitle": "انتخاب فیلد",
+    "fieldSelectionDescription": "پیش‌فرض ورک‌اسپیس را بازنویسی کنید یا از آن ارث ببرید.",
+    "telegramSectionTitle": "پیام تلگرام هنگام ساخت تور",
+    "telegramSectionDescription": "مشخص کنید وقتی تور جدید ساخته می‌شود چه فیلدهایی داخل پیام کانال تلگرام بیاید.",
+    "manageTelegramConnection": "مدیریت اتصال تلگرام",
+    "loadingConnection": "در حال بارگذاری اتصال…",
+    "catalogLoadFailed": "بارگذاری فهرست فیلدها ناموفق بود. تا زمان تلاش مجدد، انتخاب فیلد در دسترس نیست.",
+    "catalogRetry": "تلاش مجدد بارگذاری فهرست",
+    "catalogRetrying": "در حال تلاش مجدد…",
+    "detailLoadFailed": "بارگذاری جزئیات اتصال ناموفق بود. تا زمان تلاش مجدد، تنظیمات نمایش فیلد در دسترس نیست.",
+    "detailRetry": "تلاش مجدد بارگذاری اتصال",
+    "detailRetrying": "در حال تلاش مجدد…",
+    "detailDegradedBanner": "بخشی از داده‌های اتصال بارگذاری نشد. سیاست رویداد یا تنظیمات نمایش فیلد ممکن است تا پایان مهاجرت ناقص بماند.",
+    "catalogSeedBanner": "فهرست فیلدها از پیش‌فرض‌های ثبت workspace استفاده می‌کند تا زمانی که قالب ویزارد تور منتشر شود.",
+    "catalogPublishedBanner": "فهرست فیلدها بر اساس قالب ویزارد تور منتشرشده شماست.",
+    "openControlPlane": "باز کردن کنترل‌پلین runtime",
+    "openSimulation": "باز کردن شبیه‌سازی exposure",
+    "fieldChecklist": {
+      "searchPlaceholder": "جستجوی فیلد…",
+      "selectAllInGroup": "انتخاب همه این گروه",
+      "clearGroup": "پاک کردن این گروه",
+      "selectedOfTotal": "{selected} از {total} فیلد انتخاب شده"
+    },
+    "controlPlane": {
+      "title": "کنترل‌پلین نمایش فیلد",
+      "description": "نمایش فقط‌خواندنی وضعیت فنی نمایش فیلد: تنظیمات ذخیره‌شده، پروفایل‌ها، مسیر انتخاب و پیش‌نمایش فنی.",
+      "noWorkspace": "زمینه ورک‌اسپیس برای کنترل‌پلین نمایش فیلد در دسترس نیست.",
+      "loadFailed": "بارگذاری کنترل‌پلین نمایش فیلد ناموفق بود.",
+      "refresh": "بروزرسانی",
+      "refreshing": "در حال بروزرسانی…",
+      "backToExposure": "بازگشت به نمایش فیلد",
+      "runtimeTitle": "حالت runtime",
+      "runtimeDescription": "پیکربندی فعلی runtime نمایش فیلد در سرور.",
+      "runtimeMode": "FIELD_EXPOSURE_RUNTIME_MODE",
+      "activeSelector": "selector فعال ارسال",
+      "parityInstrumentation": "ابزار parity",
+      "forwardShadow": "FIELD_EXPOSURE_DECISION_ENGINE_SHADOW",
+      "enabled": "فعال",
+      "disabled": "غیرفعال",
+      "emptyTitle": "اتصال فعالی وجود ندارد",
+      "emptyDescription": "برای مشاهده وضعیت runtime نمایش فیلد، یک اتصال یکپارچه‌سازی را فعال کنید.",
+      "connectionsTitle": "اتصال‌ها",
+      "connectionsDescription": "برای مشاهده تنظیمات ذخیره‌شده، پروفایل‌ها و پیش‌نمایش فنی یک اتصال انتخاب کنید.",
+      "selectConnection": "یک اتصال انتخاب کنید.",
+      "eventDescription": "تنظیمات فنی نمایش فیلد و پیش‌نمایش انتخاب فیلد برای این رویداد.",
+      "eventEnabled": "مسیریابی فعال",
+      "eventDisabled": "مسیریابی غیرفعال",
+      "surface": "سطح",
+      "audience": "مخاطب",
+      "trigger": "تریگر",
+      "coordinateRuntimeNotice": "تنظیمات ذخیره‌شده برای این مسیر اکنون فعال است.",
+      "storedContext": "context ذخیره‌شده",
+      "effectiveContext": "context مؤثر",
+      "coordinateControlsRuntimeEffective": "کنترل‌های context در runtime مؤثرند",
+      "storedOnly": "پیش‌فرض route",
+      "storedDiffersFromEffective": "تنظیمات ذخیره‌شده با پیش‌فرض این رویداد متفاوت است و اکنون برای اجرا استفاده می‌شود.",
+      "persistedProfile": "ExposureProfile ذخیره‌شده",
+      "activeIntent": "ExposureIntent فعال",
+      "none": "ندارد",
+      "inheritProfile": "رد native intent وجود ندارد — از پیش‌فرض پروفایل ارث می‌برد.",
+      "enginePreviewTitle": "پیش‌نمایش فنی (فقط‌خواندنی)",
+      "enginePreviewEmpty": "پیش‌نمایش فنی برای این اتصال در دسترس نیست.",
+      "samplePayload": "نمونه داده",
+      "engineSelected": "شناسه فیلدهای انتخاب‌شده",
+      "reasonChain": "زنجیره دلیل",
+      "appliedPolicies": "سیاست‌های اعمال‌شده",
+      "noPolicies": "سیاستی اعمال نشده"
+    },
+    "denaliSurfaces": {
+      "title": "نمایش در سطح‌های Denali",
+      "description": "برای هر بخش محصول مشخص کنید کاربر کدام فیلدهای تور را ببیند.",
+      "companionNotice": "فیلدهای پیام تلگرام در بخش پیام تلگرام همین صفحه تنظیم می‌شوند. این کارت برای کاتالوگ عمومی، داشبورد و یادآورهاست.",
+      "loading": "در حال بارگذاری سطح‌های workspace…",
+      "empty": "سطح محصول قابل پیکربندی برای این workspace وجود ندارد.",
+      "defaultSurfaceDescription": "این سطح از تنظیمات نمایش فیلدهای تور استفاده می‌کند.",
+      "coordinate": "مخاطب: {audience} · محرک: {trigger}",
+      "customizeFields": "سفارشی‌سازی فیلدها برای این سطح",
+      "customizeHint": "فقط فیلدهای انتخاب‌شده زیر در این سطح نمایش داده می‌شوند.",
+      "inheritHint": "این بخش از فیلدهای پیش‌فرض استفاده می‌کند. برای انتخاب دستی فیلدها این گزینه را فعال کنید.",
+      "modeInherit": "نمایش پیش‌فرض",
+      "modeCustom": "انتخاب سفارشی",
+      "fieldCount": "{count} فیلد نمایش داده می‌شود",
+      "emptyFields": "فیلد واجد شرایط exposure در کاتالوگ نیست.",
+      "selectedSummary": "{count} فیلد انتخاب شده",
+      "save": "ذخیره سطح",
+      "saving": "در حال ذخیره…",
+      "saved": "نمایش سطح ذخیره شد.",
+      "loadFailed": "بارگذاری بخش‌های نمایش ناموفق بود. صفحه را دوباره باز کنید.",
+      "saveFailed": "ذخیره این بخش ناموفق بود. دوباره تلاش کنید.",
+      "surfaceNames": {
+        "public_list": "فهرست کاتالوگ عمومی",
+        "public_details": "جزئیات کاتالوگ عمومی",
+        "user_dashboard": "داشبورد کاربر ثبت‌نام‌شده",
+        "reminder_feed": "فید یادآور"
+      },
+      "surfaceDescriptions": {
+        "public_list": "کارت‌های فهرست عمومی تورها که بازدیدکننده قبل از ورود به جزئیات می‌بیند.",
+        "public_details": "صفحه جزئیات عمومی هر تور برای بازدیدکننده‌های سایت.",
+        "user_dashboard": "نمای تور در داشبورد کاربر ثبت‌نام‌شده بعد از ورود.",
+        "reminder_feed": "فیلدهایی که در یادآورهای نزدیک زمان شروع تور استفاده می‌شوند."
+      },
+      "audienceNames": {
+        "external_channel": "کانال بیرونی (تلگرام)",
+        "public": "بازدیدکننده عمومی",
+        "registered_user": "کاربر ثبت‌نام‌شده"
+      },
+      "triggerNames": {
+        "TourCreated": "ساخت تور جدید",
+        "always": "همیشه نمایش داده می‌شود",
+        "tour_dashboard_view": "بازدید داشبورد تور",
+        "relative_to_tour_start": "نسبت به زمان شروع تور"
+      }
+    },
+    "simulation": {
+      "title": "شبیه‌سازی exposure",
+      "description": "تغییرات انتخاب فیلد را پیش‌نویس کنید و نتیجه فنی را بدون ذخیره با وضعیت فعلی مقایسه کنید.",
+      "backToExposure": "بازگشت به نمایش فیلد",
+      "noWorkspace": "زمینه ورک‌اسپیس برای شبیه‌سازی exposure در دسترس نیست.",
+      "emptyTitle": "اتصال فعالی وجود ندارد",
+      "emptyDescription": "قبل از اجرای شبیه‌سازی exposure، یک اتصال یکپارچه‌سازی را فعال کنید.",
+      "connectionsTitle": "اتصال‌ها",
+      "connectionsDescription": "برای شبیه‌سازی پیش‌نویس نمایش فیلد هر رویداد، یک اتصال انتخاب کنید.",
+      "consoleTitle": "کنسول شبیه‌سازی",
+      "consoleDescription": "انتخاب فیلد پیش‌نویس را تنظیم کنید، diff اجرا کنید و تغییرات state را ببینید. چیزی ذخیره نمی‌شود.",
+      "loadingConnection": "در حال بارگذاری اتصال…",
+      "nonMutatingNotice": "شبیه‌سازی فقط‌خواندنی است. برای ذخیره تغییرات از تنظیمات نمایش فیلد استفاده کنید.",
+      "noEvents": "رویداد قابل مسیریابی برای این اتصال پیکربندی نشده است.",
+      "coordinateTitle": "مختصات مؤثر",
+      "effectiveContext": "context مؤثر",
+      "runtimeEffective": "مرجع فنی اجرا برای این مسیر",
+      "runtimeEffectiveYes": "تنظیمات ذخیره‌شده این مسیر اجرا را کنترل می‌کند",
+      "runtimeEffectiveNo": "پیش‌فرض provider/event",
+      "draftFieldsTitle": "انتخاب فیلد پیش‌نویس",
+      "customizeFields": "برای این شبیه‌سازی پیش‌فرض پروفایل را بازنویسی کنید",
+      "emptyCatalog": "فیلد exposure برای این workspace در دسترس نیست.",
+      "selectedSummary": "{count, number} فیلد در پیش‌نویس انتخاب شده",
+      "runSimulation": "اجرای diff شبیه‌سازی",
+      "running": "در حال شبیه‌سازی…",
+      "runFailed": "شبیه‌سازی ناموفق بود.",
+      "diffTitle": "diff شبیه‌سازی",
+      "diffDescription": "state فیلدها و شناسه‌های انتخاب‌شده در مقایسه با runtime ذخیره‌شده فعلی.",
+      "selectedAdded": "شناسه‌های انتخاب‌شده اضافه شد",
+      "selectedRemoved": "شناسه‌های انتخاب‌شده حذف شد",
+      "noFieldChanges": "برای این پیش‌نویس تغییری در state نمایش فیلد وجود ندارد."
+    }
+  },
   "integrations": {
     "forbidden": "تنظیمات یکپارچه‌سازی فقط برای ادمین یا مالک در دسترس است.",
-    "title": "یکپارچه‌سازی‌ها",
-    "subtitle": "بررسی اتصال‌های یکپارچه‌سازی ورک‌اسپیس قبل از مهاجرت backfill",
+    "title": "اتصال‌ها",
+    "subtitle": "اتصال تلگرام، کانال مقصد و سلامت ارسال پیام‌های ورک‌اسپیس را مدیریت کنید.",
     "workspaceScope": "محدوده API ورک‌اسپیس: {workspaceId}",
     "refresh": "بروزرسانی",
+    "catalogLoadFailed": "بارگذاری فهرست فیلدهای ورک‌اسپیس ناموفق بود.",
+    "catalogRetry": "تلاش مجدد بارگذاری فهرست",
+    "catalogRetrying": "در حال تلاش مجدد…",
+    "detailDegradedBanner": "بخشی از داده‌های اتصال بارگذاری نشد. تنظیمات ارسال ممکن است تا پایان مهاجرت ناقص بماند.",
+    "subsystemNotReadyHint": "صفحه اتصال‌ها باز است؛ برای ایجاد یا ویرایش اتصال جدید، مهاجرت‌های پایگاه داده را اعمال کنید و API را ری‌استارت کنید.",
     "backToHub": "بازگشت به تنظیمات",
     "listTitle": "اتصال‌ها ({count, number})",
     "summary": {
-      "title": "نمای کلی منبع ارسال",
-      "description": "{integrationCount, number} ردیف integration_connection، {legacyCount, number} ردیف بات قدیمی.",
+      "title": "نمای کلی ارسال تلگرام",
+      "description": "{integrationCount, number} اتصال جدید و {legacyCount, number} اتصال قدیمی برای این ورک‌اسپیس پیدا شد.",
       "noActiveSource": "هیچ منبع ارسال فعالی برای این ورک‌اسپیس وجود ندارد.",
-      "legacyFallbackSuppressed": "بات تلگرام قدیمی وجود دارد اما fallback به‌دلیل ردیف integration_connections غیرفعال است.",
+      "legacyFallbackSuppressed": "بات تلگرام قدیمی وجود دارد اما چون اتصال جدید ثبت شده، مسیر قدیمی دیگر استفاده نمی‌شود.",
       "activeSource": {
-        "integration_connection": "ارسال فعال از integration_connections استفاده می‌کند.",
-        "legacy_workspace_telegram_bot": "ارسال فعال از fallback قدیمی workspace_telegram_bots استفاده می‌کند."
+        "integration_connection": "ارسال فعال از اتصال جدید تلگرام استفاده می‌کند.",
+        "legacy_workspace_telegram_bot": "ارسال فعال هنوز از بات قدیمی تلگرام استفاده می‌کند."
       }
     },
     "scenarios": {
       "empty": {
         "title": "یکپارچه‌سازی پیکربندی نشده",
-        "description": "نه ردیف integration_connection تلگرام و نه ردیف legacy workspace_telegram_bots برای این ورک‌اسپیس وجود دارد."
+        "description": "برای این ورک‌اسپیس هنوز اتصال تلگرام جدید یا بات قدیمی ثبت نشده است."
       },
       "legacy_only": {
         "title": "فقط تلگرام قدیمی",
-        "description": "ارسال از workspace_telegram_bots تأمین می‌شود. پس از backfill ردیف پلتفرم یکپارچه‌سازی را فعال کنید."
+        "description": "ارسال هنوز از بات قدیمی تلگرام انجام می‌شود. بعد از مهاجرت، اتصال جدید را فعال کنید."
       },
       "migration_ready": {
         "title": "آماده مهاجرت (نمای دوگانه)",
-        "description": "هم integration_connections و هم ردیف بات قدیمی قابل مشاهده است. سیستم جدید در صورت فعال بودن اولویت دارد؛ fallback قدیمی ممکن است غیرفعال باشد."
+        "description": "هم اتصال جدید و هم بات قدیمی وجود دارد. اگر اتصال جدید فعال باشد، ارسال از مسیر جدید انجام می‌شود."
       },
       "active_new_system": {
         "title": "پلتفرم یکپارچه‌سازی فعال",
-        "description": "ارسال از integration_connections برای این ورک‌اسپیس تأمین می‌شود."
+        "description": "ارسال تلگرام برای این ورک‌اسپیس از اتصال جدید انجام می‌شود."
       }
     },
     "empty": {
       "title": "یکپارچه‌سازی پیکربندی نشده",
-      "description": "نه ردیف integration_connections و نه بات تلگرام قدیمی برای این ورک‌اسپیس وجود دارد."
+      "description": "برای این ورک‌اسپیس هنوز اتصال تلگرام جدید یا بات قدیمی وجود ندارد."
     },
     "rowMeta": "کانال {channelId}",
     "detail": {
-      "title": "جزئیات اتصال",
+      "title": "اتصال تلگرام",
+      "overviewTitle": "وضعیت اتصال تلگرام",
+      "statusDescriptions": {
+        "enabled": "تلگرام فعال است و پیام‌های مجاز می‌توانند به کانال مقصد ارسال شوند.",
+        "disabled": "تلگرام ذخیره شده اما ارسال خودکار فعلاً غیرفعال است.",
+        "error": "اتصال تلگرام خطا دارد. کانال، توکن یا دسترسی ربات را بررسی و دوباره آزمایش کنید."
+      },
+      "lastTestSuccess": "آخرین آزمایش اتصال موفق بود.",
+      "lastTestFailure": "آخرین آزمایش اتصال ناموفق بود.",
+      "technicalDetails": "جزئیات فنی",
       "connectionId": "شناسه اتصال",
       "status": "وضعیت",
-      "channelId": "شناسه کانال",
-      "hasSecret": "رمز پیکربندی شده",
+      "channelId": "کانال مقصد",
+      "hasSecret": "توکن ربات ذخیره شده",
       "yes": "بله",
       "no": "خیر",
       "legacySourceId": "شناسه ردیف بات قدیمی",
-      "legacyReadOnly": "اتصال‌های مبتنی بر legacy در اینجا فقط‌خواندنی هستند. برای مهاجرت به integration_connections مرحله backfill (۶) را اجرا کنید.",
-      "fallbackSuppressed": "fallback قدیمی غیرفعال است چون ردیف integration_connections برای تلگرام در این ورک‌اسپیس وجود دارد.",
+      "legacyReadOnly": "اتصال‌های قدیمی در این صفحه فقط‌خواندنی هستند. برای مدیریت کامل، اتصال جدید تلگرام را فعال کنید.",
+      "fallbackSuppressed": "مسیر قدیمی غیرفعال است چون برای این ورک‌اسپیس اتصال جدید تلگرام وجود دارد.",
       "backingSource": "منبع پشتیبان",
-      "eventPolicies": "سیاست‌های رویداد"
+      "eventPolicies": "سیاست‌های رویداد",
+      "exposureMovedTitle": "فیلدهای پیام در صفحه نمایش فیلدها تنظیم می‌شوند",
+      "exposureMovedDescription": "این صفحه فقط برای اتصال تلگرام، کانال مقصد و آزمایش سلامت است. برای انتخاب فیلدهای پیام تلگرام و سطح‌های Denali وارد صفحه نمایش فیلدها شوید.",
+      "openExposureSettings": "تنظیم فیلدهای پیام"
     },
     "badges": {
       "legacy": "بات قدیمی",
@@ -451,6 +627,71 @@
       "failureTitle": "آزمایش ناموفق بود",
       "meta": "منبع: {backing} · زمان آزمایش {testedAt}"
     },
+    "deliveryPolicy": {
+      "title": "پیام‌های تلگرام",
+      "description": "تعیین کنید هنگام هر رویداد چه چیزی به تلگرام ارسال شود و کدام فیلدها در پیام بیایند. انتخاب فیلد فقط می‌تواند از فیلدهای مجاز ورک‌اسپیس کم کند، نه چیزی اضافه کند.",
+      "enabledLabel": "ارسال خودکار",
+      "enabledLabelOff": "ارسال غیرفعال",
+      "eventNames": {
+        "TourCreated": "ساخت تور جدید"
+      },
+      "eventHints": {
+        "TourCreated": "وقتی یک تور جدید ساخته می‌شود، یک پیام تلگرام با فیلدهایی که پایین انتخاب می‌کنید ارسال می‌شود."
+      },
+      "surfaceLabel": "سطح",
+      "surfaceHint": "سطح ارائه‌دهنده یکپارچه‌سازی برای این intent نمایش.",
+      "audienceLabel": "مخاطب",
+      "audienceHint": "کانال مخاطب نمایش (فعلاً external_channel).",
+      "triggerLabel": "تریگر",
+      "triggerHint": "رویداد دامنه‌ای که این intent نمایش را فعال می‌کند.",
+      "messageContentLabel": "محتوای پیام",
+      "customizeFieldsLabel": "سفارشی‌سازی فیلدهای پیام",
+      "customizeFieldsHint": "با فعال‌کردن این گزینه، فیلدهای پیام تلگرام را انتخاب و مرتب کنید.",
+      "fieldOrderTitle": "ترتیب فیلدهای پیام",
+      "fieldOrderDescription": "فیلدهای انتخاب‌شده از بالا به پایین در پیام تلگرام نمایش داده می‌شوند.",
+      "fieldOrderEmpty": "برای تعیین ترتیب، ابتدا فیلدی را انتخاب کنید.",
+      "fieldOrderMoveUp": "انتقال به بالا",
+      "fieldOrderMoveDown": "انتقال به پایین",
+      "fieldIconLabel": "آیکون کنار فیلد",
+      "fieldsLabel": "فیلدهای قابل انتشار",
+      "noCandidateFields": "این ورک‌اسپیس هنوز فیلد قابل پیکربندی برای انتشار ندارد.",
+      "templateLabel": "قالب پیام",
+      "templateAdvancedToggle": "قالب پیام سفارشی (پیشرفته)",
+      "templatePlaceholder": "'{{eventType}}': '{{field:title}}'",
+      "templateHint": "پلیس‌هولدرهای مجاز: '{{eventType}}'، '{{aggregateId}}' و '{{field:<id>}}' برای هر فیلد انتخاب‌شده. فیلدهای غیرمجاز به‌صورت خودکار حذف می‌شوند.",
+      "previewTitle": "نمونه پیام تلگرام",
+      "previewDescription": "این پیش‌نمایش به ادمین نشان می‌دهد پیام با فیلدهای فعلی چه شکلی خواهد بود.",
+      "previewEmpty": "هنوز فیلدی برای نمایش در پیام انتخاب نشده است.",
+      "previewDefaultPrefix": "اتفاق",
+      "previewSampleValue": "نمونه مقدار",
+      "previewAggregateId": "tour_123",
+      "previewRedacted": "فیلد غیرمجاز",
+      "coordinateStoredOnlyTitle": "تنظیمات فنی بعد از ذخیره اعمال می‌شوند",
+      "coordinateStoredOnlyDescription": "سطح، مخاطب و تریگر روی native intent همان route ذخیره می‌شوند. بعد از ذخیره، dispatch و preview همین context ذخیره‌شده را برای این اتصال/رویداد استفاده می‌کنند.",
+      "coordinateRuntimeEffectiveTitle": "تنظیمات ذخیره‌شده اکنون فعال است",
+      "coordinateRuntimeEffectiveDescription": "dispatch و preview از context ذخیره‌شدهٔ persisted برای این اتصال/رویداد استفاده می‌کنند. ویرایش‌های draft ذخیره‌نشده بعد از save در runtime اعمال می‌شوند.",
+      "storedContextLabel": "context ذخیره‌شده",
+      "effectiveContextLabel": "context مؤثر",
+      "runtimeEffectiveLabel": "اثر runtime",
+      "storedDiffers": "بعد از ذخیره پیش‌فرض route را override می‌کند",
+      "storedMatches": "از پیش‌فرض route استفاده می‌کند",
+      "storedDiffersRuntime": "draft با context runtime ذخیره‌شده متفاوت است",
+      "storedMatchesRuntime": "با context runtime ذخیره‌شده یکسان است",
+      "enginePreviewTitle": "پیش‌نمایش فنی (اختیاری)",
+      "enginePreviewEmpty": "برای بررسی فنی فیلدهای انتخاب‌شده، پیش‌نمایش را بارگذاری کنید.",
+      "previewRefresh": "بارگذاری پیش‌نمایش",
+      "previewRefreshing": "در حال بارگذاری…",
+      "samplePayload": "payload نمونه",
+      "engineSelected": "شناسه فیلدهای انتخاب‌شده",
+      "reasonChain": "زنجیره دلیل",
+      "appliedPolicies": "سیاست‌های اعمال‌شده",
+      "noPolicies": "سیاستی اعمال نشده",
+      "save": "ذخیره سیاست انتشار",
+      "saving": "در حال ذخیره…",
+      "success": "سیاست انتشار به‌روزرسانی شد.",
+      "selectedSummary": "{count} فیلد انتخاب شده",
+      "advancedSummary": "عیب‌یابی فنی"
+    },
     "errors": {
       "INTEGRATION_SYSTEM_NOT_READY": "سامانه یکپارچه‌سازی آماده نیست. ممکن است مهاجرت‌های پایگاه داده در انتظار باشند — با اپراتور تماس بگیرید.",
       "INTEGRATIONS_LIST_HTTP_ERROR": "بارگذاری یکپارچه‌سازی‌ها ناموفق بود (HTTP {status}).",
@@ -475,7 +716,20 @@
       "INTEGRATION_PROVIDER_NOT_SUPPORTED_FOR_WORKSPACE": "این provider در پلاگین ورک‌اسپیس فعلی فعال نیست.",
       "INTEGRATION_TELEGRAM_CHANNEL_ID_REQUIRED": "شناسه چنل تلگرام الزامی است.",
       "INTEGRATION_TELEGRAM_BOT_TOKEN_REQUIRED": "توکن ربات تلگرام الزامی است.",
-      "INTEGRATION_CONNECTION_ALREADY_EXISTS": "برای این ورک‌اسپیس قبلاً اتصال تلگرام ثبت شده است. اتصال موجود را مدیریت کنید."
+      "INTEGRATION_CONNECTION_ALREADY_EXISTS": "برای این ورک‌اسپیس قبلاً اتصال تلگرام ثبت شده است. اتصال موجود را مدیریت کنید.",
+      "INTEGRATION_EVENT_POLICY_PATCH_FAILED": "به‌روزرسانی سیاست انتشار ناموفق بود.",
+      "INTEGRATION_EVENT_POLICY_ENABLED_INVALID": "مقدار کلید انتشار نامعتبر است.",
+      "INTEGRATION_EVENT_POLICY_FIELDS_INVALID": "فیلدهای انتخاب‌شده نامعتبرند.",
+      "INTEGRATION_EVENT_POLICY_FIELD_NOT_ALLOWED": "یک یا چند فیلد انتخاب‌شده برای این ورک‌اسپیس قابل انتشار نیستند.",
+      "INTEGRATION_EVENT_POLICY_TEMPLATE_INVALID": "قالب پیام نامعتبر است.",
+      "INTEGRATION_EVENT_POLICY_TEMPLATE_FIELD_NOT_ALLOWED": "قالب به فیلدی اشاره دارد که قابل انتشار نیست.",
+      "INTEGRATION_EVENT_POLICY_TEMPLATE_TOKEN_INVALID": "قالب شامل پلیس‌هولدر پشتیبانی‌نشده است.",
+      "INTEGRATION_EVENT_POLICY_EVENT_INVALID": "نوع رویداد نامعتبر است.",
+      "INTEGRATION_EVENT_POLICY_EVENT_NOT_ALLOWED": "این رویداد توسط provider متصل پشتیبانی نمی‌شود.",
+      "INTEGRATION_DELIVERY_INTENT_PATCH_FAILED": "به‌روزرسانی intent نمایش ناموفق بود.",
+      "INTEGRATION_DELIVERY_INTENT_SURFACE_INVALID": "سطح انتخاب‌شده برای این ورک‌اسپیس پشتیبانی نمی‌شود.",
+      "INTEGRATION_DELIVERY_INTENT_AUDIENCE_INVALID": "مخاطب انتخاب‌شده پشتیبانی نمی‌شود.",
+      "INTEGRATION_DELIVERY_INTENT_TRIGGER_INVALID": "تریگر انتخاب‌شده توسط این provider پشتیبانی نمی‌شود."
     }
   },
   "reconciliation": {

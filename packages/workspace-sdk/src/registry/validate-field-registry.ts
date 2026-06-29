@@ -187,6 +187,18 @@ function validateFieldEntry(
     required: required.value,
     ...(raw.groupSlug != null ? { groupSlug: raw.groupSlug as string } : {}),
     ...(raw.tags != null ? { tags: raw.tags as readonly string[] } : {}),
+    ...(typeof raw.adminLabel === "string" && raw.adminLabel.trim().length > 0
+      ? { adminLabel: raw.adminLabel.trim() }
+      : {}),
+    ...(typeof raw.adminDescription === "string" && raw.adminDescription.trim().length > 0
+      ? { adminDescription: raw.adminDescription.trim() }
+      : {}),
+    ...(typeof raw.group === "string" && raw.group.trim().length > 0
+      ? { group: raw.group.trim() }
+      : {}),
+    ...(typeof raw.icon === "string" && raw.icon.trim().length > 0
+      ? { icon: raw.icon.trim() }
+      : {}),
     ...(kind.value === "enum" ? { enumOptions: raw.enumOptions as readonly string[] } : {}),
   };
 

@@ -1,7 +1,12 @@
 import type { IntegrationCapability } from "../platform/integration-capability";
 import type { IntegrationProviderId } from "../platform/integration-provider.types";
+import type { ExposureIntentConnectionPublic } from "../../exposure/exposure-intent-public";
 
 export type IntegrationConnectionStatus = "disabled" | "enabled" | "error";
+
+export type IntegrationConnectionLoadWarning =
+  | "POLICIES_UNAVAILABLE"
+  | "EXPOSURE_INTENTS_UNAVAILABLE";
 
 export type IntegrationBackingSource = "integration_connection" | "legacy_workspace_telegram_bot";
 
@@ -42,6 +47,7 @@ export type IntegrationConnectionPublicDto = {
     readonly eventType: string;
     readonly enabled: boolean;
   }[];
+  readonly exposureIntents: readonly ExposureIntentConnectionPublic[];
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly backingSource: IntegrationBackingSource;
@@ -50,6 +56,8 @@ export type IntegrationConnectionPublicDto = {
   readonly isActiveDeliverySource: boolean;
   /** Legacy row visible but dispatcher prefers integration_connections when present. */
   readonly fallbackSuppressed: boolean;
+  /** Present when policy/intent reads degraded during migration drift (GET stays 200). */
+  readonly loadWarnings?: readonly IntegrationConnectionLoadWarning[];
 };
 
 export type WorkspaceIntegrationsListSummary = {

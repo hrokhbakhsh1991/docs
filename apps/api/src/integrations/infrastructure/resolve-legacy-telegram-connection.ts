@@ -128,6 +128,7 @@ export async function resolveLegacyTelegramConnection(
     config: { channelId: legacy.channelId },
     credentials: { botToken: legacy.botToken },
     secretRef: null,
+    syntheticLegacyConnection: true,
   };
 }
 

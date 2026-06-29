@@ -94,7 +94,7 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
     return legacy;
   }
 
-  async findById(
+  async findByTenantAndId(
     tenantId: string,
     connectionId: string
   ): Promise<IntegrationConnectionRecord | null> {

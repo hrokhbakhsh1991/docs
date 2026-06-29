@@ -12,7 +12,6 @@ import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type"
 import { enrichSettingsModuleList } from "./workspace-settings-enrichers.generated";
 import { parseEquipmentIconKeyInput } from "./parse-equipment-icon-key";
 import { normalizeThemeIdsInput } from "./parse-theme-ids";
-import { isIntegrationSubsystemReady } from "../health/integration-subsystem-gate";
 import {
   assertDenaliOperatorSettingsWorkspace,
   isUrbanOperatorSettingsWorkspace,
@@ -116,17 +115,6 @@ const RECONCILIATION_TRIAGE_MODULE: SettingsModuleMetadata = {
   nav: { group: "finance_ops", labelKey: "settings.reconciliation_triage" },
 };
 
-const INTEGRATIONS_SETTINGS_MODULE_ID = "integrations" as const;
-
-function omitIntegrationsModuleWhenSubsystemBlocked(
-  modules: readonly SettingsModuleMetadata[]
-): SettingsModuleMetadata[] {
-  if (isIntegrationSubsystemReady()) {
-    return [...modules];
-  }
-  return modules.filter((module) => module.id !== INTEGRATIONS_SETTINGS_MODULE_ID);
-}
-
 export async function listSettingsModules(
   auth: TenantAuthContext
 ): Promise<SettingsModulesListResponse> {
@@ -142,7 +130,7 @@ export async function listSettingsModules(
   if (workspaceType === "denali") {
     items.push(RECONCILIATION_TRIAGE_MODULE);
   }
-  return { items: omitIntegrationsModuleWhenSubsystemBlocked(items) };
+  return { items };
 }
 
 async function assertReferenceDataModule(tenantId: string, moduleId: string): Promise<void> {

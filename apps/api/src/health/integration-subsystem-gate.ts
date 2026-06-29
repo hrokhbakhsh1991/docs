@@ -1,5 +1,8 @@
 import type { MigrationConsistencyReport } from "./migration-consistency-check";
-import { logMigrationConsistencyReport } from "./migration-consistency-check";
+import {
+  logExposureTablesConsistencyWarn,
+  logMigrationConsistencyReport,
+} from "./migration-consistency-check";
 
 let integrationSubsystemReady = false;
 let lastReport: MigrationConsistencyReport | null = null;
@@ -15,6 +18,9 @@ export function getLastMigrationConsistencyReport(): MigrationConsistencyReport 
 /** Arms or blocks the integration subsystem from the latest consistency report. */
 export function applyMigrationConsistencyGate(report: MigrationConsistencyReport): void {
   lastReport = report;
+  if (report.missingExposureTables.length > 0 && report.ok) {
+    logExposureTablesConsistencyWarn(report.missingExposureTables, report.checkedAt);
+  }
   integrationSubsystemReady = report.ok;
   logMigrationConsistencyReport(report);
 }
@@ -39,6 +45,7 @@ export function forceIntegrationSubsystemReadyForTests(report?: MigrationConsist
       signal: "CONSISTENCY_OK",
       service: "@apps/api",
       missingTables: [],
+      missingExposureTables: [],
       unappliedMigrations: [],
       expectedMigrationCount: 0,
       appliedMigrationCount: 0,

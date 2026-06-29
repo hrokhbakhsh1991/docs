@@ -35,10 +35,12 @@
         "manifestExport": "CATALOG_HTTP_ROUTE_MANIFEST",
         "staticHandlers": {
           "GET /denali/catalog": "handleGetDenaliCatalog",
+          "GET /denali/reminders/feed": "handleGetDenaliReminderFeed",
           "POST /denali/registrations": "handlePostDenaliRegistration"
         },
         "paramHandlers": {
-          "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour"
+          "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour",
+          "GET /denali/dashboard/tours/:tourId": "handleGetDenaliDashboardTour"
         }
       },
       {

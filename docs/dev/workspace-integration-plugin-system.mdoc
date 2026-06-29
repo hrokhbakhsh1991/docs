@@ -8,6 +8,19 @@ doc_role: architecture_sot
 
 Provider-neutral integration platform for multi-tenant workspaces. Telegram is the first provider plugin; Slack, WhatsApp, Discord, and Email follow the same contract.
 
+{% callout type="note" title="Field exposure migration" %}
+Integration delivery field selection is no longer integration-owned. Phase 7 retired
+`IntegrationDeliveryIntent` and the `deliveryCandidateFields` response alias; native
+`ExposureIntent` is the field-selection store. Phase 8 moves standalone exposure settings to
+the native exposure catalog API (`/workspaces/:workspaceId/exposure/catalog`) while
+integration transport remains plugin-owned. Workspace **exposure surface defaults** are declared on
+`WorkspacePlugin.exposureSurface` — see
+[workspace-exposure-plugin-contract.mdoc](./workspace-exposure-plugin-contract.mdoc).
+integrations continue to own transport, credentials, routing, and provider formatting only.
+Integrations do not own field catalogs.
+Domain language (glossary, ADRs, forbidden vocabulary): [Phase 1 closure](../architecture/field-exposure-system.md#phase-1--domain-language-closure). Enforced by `pnpm run guard:field-exposure-phase-0`, `pnpm run guard:field-exposure-phase-1`, and `pnpm run guard:field-exposure-phase-8`.
+{% /callout %}
+
 ## Goals
 
 - Each workspace (tenant) enables integrations independently.
@@ -104,7 +117,8 @@ Operator routes (tenant RLS + `requireOperatorSession`):
 
 | Method | Path                                         | Action                                                               |
 | ------ | -------------------------------------------- | -------------------------------------------------------------------- |
-| GET    | `/workspaces/:workspaceId/integrations/meta` | Read workspace `integrationSurface` form metadata for operator UI    |
+| GET    | `/workspaces/:workspaceId/integrations/meta` | Read workspace integration provider form metadata                    |
+| GET    | `/workspaces/:workspaceId/exposure/catalog`  | Read native exposure catalog for field-selection UI                  |
 | POST   | `/workspaces/:workspaceId/integrations`      | Create connection + store secret                                     |
 | GET    | `/workspaces/:workspaceId/integrations`      | List connections + legacy visibility + delivery summary              |
 | GET    | `/integrations/:id`                          | Connection detail (supports `legacy-telegram:{botId}` synthetic ids) |
@@ -113,6 +127,8 @@ Operator routes (tenant RLS + `requireOperatorSession`):
 | POST   | `/integrations/:id/enable`                   | Enable connection (`integration_connections` only)                   |
 | POST   | `/integrations/:id/disable`                  | Disable connection (`integration_connections` only)                  |
 | POST   | `/integrations/:id/test-connection`          | Provider health check (legacy or new row)                            |
+| PATCH  | `/integrations/:id/event-policies/:eventType` | Update event enabled state (routing only)                            |
+| PATCH  | `/integrations/:id/exposure-intents/:eventType` | Update native exposure intent for a connection/event                 |
 
 List/detail DTO fields for operator verification (Step 7):
 
@@ -173,6 +189,52 @@ Web route proxies control-plane HTTP via Next.js API routes under `/api/workspac
 - Enable/disable actions apply only to `integration_connections` rows; legacy rows display read-only guidance pending Step 6 backfill.
 - Test connection surfaces `ok`, `code`, `message`, `testedAt`, and `backingSource` inline.
 
+### Test-connection probe message
+
+`POST /integrations/:id/test-connection` performs a **live** provider round-trip: `runProviderTest`
+(`apps/api/src/integrations/http/integrations.service.ts`) calls `adapter.sendMessage` with the
+synthetic context `domainEventId: "test-connection"`, `eventType: "TestConnection"`. For Telegram
+this delivers a real message into the configured `channelId` via
+`TelegramProviderAdapter.sendMessage`.
+
+Because the probe lands in the same channel that real subscribers see, the probe text must be
+**audience-safe and brand-aligned**, not a raw developer string. The probe body is a workspace-branded
+activation confirmation (Denali: a success + branded reassurance line, with a small number of
+presentation emojis). Constraints:
+
+- Text is UTF-8 and sent as Telegram plain `text` (no `parse_mode`), so emojis render directly and
+  no Markdown/HTML escaping is required.
+- The probe carries no tour payload — it must read as a connection/activation notice, never as a
+  tour announcement, so it is not driven by `messageTemplates[eventType]` or exposure field
+  selection.
+- The probe string currently hardcodes the Denali brand name. When a second workspace onboards,
+  parametrize it by the workspace display name rather than branching per workspace.
+
+The integrations meta endpoint intentionally describes provider configuration and event routing
+only:
+
+- `providers[].defaultEventPolicies` comes from `integrationSurface.providers[].defaultEventPolicies`.
+- Field-selection UI reads selectable fields from
+  `/workspaces/:workspaceId/exposure/catalog`, not integration meta. During Phase 8 this native
+  catalog is still seeded from registry `deliverable` tags until persisted
+  [Exposure Profiles](../architecture/field-exposure-system.md#exposureprofile--reusable-defaults)
+  land.
+
+This is intentionally read-only metadata for UI rendering. It does not introduce a second event
+catalog or a provider-specific field list.
+
+Persisted operator overrides:
+
+- `integration_event_policies.enabled` — whether the connection publishes this event type (routing only).
+- `exposure_intents` — explicit native exposure intent (`selectedFieldIds`,
+  `templateOverrideId`, mode) scoped by connection + event context.
+
+Admin UI writes field exposure through
+`PATCH /integrations/:id/exposure-intents/:eventType` and event routing through
+`PATCH /integrations/:id/event-policies/:eventType`. Standalone exposure settings read catalog
+data from `/workspaces/:workspaceId/exposure/catalog`; integrations settings may still embed the
+generic exposure checklist for connection-scoped convenience.
+
 **No backfill in Step 7** — UI is inspection/control only; `workspace_telegram_bots` rows are not migrated automatically.
 
 ## Policy engine
@@ -183,6 +245,55 @@ Web route proxies control-plane HTTP via Next.js API routes under `/api/workspac
 2. For each connection, check policy row for `(connection_id, event_type)` — `enabled` must be true.
 3. If no policy rows exist for a connection, apply provider defaults (seed on create).
 4. Dispatcher consults policy engine only — never calls providers.
+
+Each `IntegrationPolicyDecision` carries the connection's native `exposureIntent`
+(`ExposureIntent | null`) for that event. Legacy synthetic connections and connections without a
+matching intent row resolve to `null` (exposure profile defaults, currently registry-seeded until
+Phase 8 persisted profiles land). This lets the dispatcher apply per-connection overrides without
+a second repository read.
+
+### Lean delivery field policy (transitional)
+
+> Current pipeline. Target: [Field Exposure evaluation pipeline](../architecture/field-exposure-system.md#evaluation-pipeline). Integrations must not remain the starting point of field selection after Phase 7.
+
+Outbound field selection reuses field policy and event policy contracts during migration:
+
+```text
+WorkspacePlugin.integrationSurface.defaultEventPolicies
+  -> IntegrationPolicyEngine selects connection + event + capability
+  -> native ExposureIntent.selectedFieldIds OR ExposureProfile defaults
+  -> filterDeliveryEligibleFields(surface: "<provider ExposureSurface>")
+  -> enrichCanonicalDeliveryPayload()
+  -> formatIntegrationDeliveryMessage() resolves {{field:<canonicalId>}}
+```
+
+For the current Phase 8 path, a workspace can opt in by declaring `fieldPolicy` and using
+`{{field:<id>}}` placeholders in `integrationSurface.messageTemplates`. Admin-selected fields
+and templates are persisted in `exposure_intents` (not `integration_event_policies`).
+
+`dispatchIntegrationDomainEvent` runs a deterministic per-connection pipeline:
+
+1. Load native `ExposureIntent` for connection + event.
+2. `requestedFieldIds` = `intent.selectedFieldIds` when the intent overrides fields, otherwise `ExposureProfile` defaults (registry-seeded until Phase 8 persisted profiles).
+3. `filterDeliveryEligibleFields(surface: "<provider ExposureSurface>")` applies FieldPolicy to those candidates.
+4. `enrichCanonicalDeliveryPayload()` resolves canonical values.
+5. Provider-agnostic job payload is enqueued; formatting and HTTP happen in the worker/provider.
+
+Event policies retain routing (`enabled`) only. Field selection and template overrides are
+persisted in `exposure_intents` and exposed to admin UI as `exposureIntents` on the connection
+DTO. Do not add new integration-owned field-selection primitives — see
+[transitional inventory](../architecture/field-exposure-system.md#transitional-concepts-inventory).
+
+`integrationDeliveryFieldValues` carries enriched eligible values only. `intent.templateId`
+(when non-null) is forwarded to `formatIntegrationDeliveryMessage` as
+`integrationDeliveryMessageTemplate`, overriding the surface default. Provider adapters and workers
+must not evaluate field policy; they only receive already-filtered payload metadata or formatted
+text.
+
+For events whose outbox payload is intentionally thin (for example `TourCreated` may only carry
+`tenantId` and `tourId`), keep existing stable placeholders until the dispatcher enriches canonical
+field values. A workspace may still declare `fieldPolicy` first so eligibility metadata is available
+without changing the delivered message text.
 
 ## Secret handling
 
@@ -296,7 +407,7 @@ pnpm --filter @apps/api run integrations:verify-telegram-backfill -- --tenant=<u
 
 ## System consistency guard
 
-Runtime safety for migration/schema/UI drift is documented in [system-consistency-guard](/dev/system-consistency-guard). API boot runs `runMigrationConsistencyCheck()` and arms or blocks the integration subsystem; integration HTTP returns `INTEGRATION_SYSTEM_NOT_READY` instead of silent empty lists when blocked.
+Runtime safety for migration/schema/UI drift is documented in [system-consistency-guard](/dev/system-consistency-guard). API boot runs `runMigrationConsistencyCheck()` and arms or blocks the integration delivery subsystem; operator settings **reads** (settings hub module + `GET` integrations list/meta/detail) stay available during drift, while **writes** return `INTEGRATION_SYSTEM_NOT_READY` until the gate is green.
 
 The guard must include every table required for a healthy integration control plane:
 `integration_connections`, `integration_secrets`, `integration_event_policies`,

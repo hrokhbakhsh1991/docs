@@ -21,12 +21,14 @@ import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 type OperatorAccountMenuProps = {
   readonly session: OperatorSessionContext;
   readonly displayName?: string | null;
+  readonly avatarUrl?: string | null;
   readonly onLogout: () => void;
 };
 
 export function OperatorAccountMenu({
   session,
   displayName = null,
+  avatarUrl = null,
   onLogout,
 }: OperatorAccountMenuProps) {
   const tApp = useTranslations("app");
@@ -45,9 +47,9 @@ export function OperatorAccountMenu({
           <OperatorProfileAvatar
             userId={session.userId}
             displayName={displayName}
+            avatarUrl={avatarUrl}
             className="h-8 w-8"
             fallbackClassName="text-xs"
-            resolvePreview
           />
         </Button>
       </DropdownMenuTrigger>

@@ -32,6 +32,7 @@ function sampleItem(
     hasSecret: true,
     secretRefMasked: null,
     eventPolicies: [],
+    exposureIntents: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     backingSource: "integration_connection",
@@ -195,12 +196,37 @@ describe("integrations-settings-logic", () => {
           configFields: [{ id: "channelId", kind: "string", requiredOnCreate: true }],
           credentialFields: [{ id: "botToken", kind: "secret", requiredOnCreate: true }],
           defaultCapabilities: ["message.send"],
+          defaultEventPolicies: [{ eventType: "TourCreated", enabled: true }],
         },
       ],
+      exposureCandidateFields: [{ id: "title", canonicalPath: "title", kind: "text" }],
     });
 
     assert.equal(parsed.providers[0]?.id, "telegram");
     assert.equal(parsed.providers[0]?.credentialFields[0]?.kind, "secret");
+    assert.deepEqual(parsed.providers[0]?.defaultEventPolicies, [
+      { eventType: "TourCreated", enabled: true },
+    ]);
+    assert.deepEqual(parsed.exposureCandidateFields, [
+      { id: "title", canonicalPath: "title", kind: "text" },
+    ]);
+    assert.equal(
+      (parsed as Record<string, unknown>).deliveryCandidateFields,
+      undefined,
+      "Phase 7g: parser must not re-emit the legacy delivery alias",
+    );
+  });
+
+  it("WEB-INT-11b parses legacy delivery candidate field alias as exposure catalog fallback", () => {
+    const parsed = parseWorkspaceIntegrationSurfaceMetaResponse({
+      workspaceType: "denali",
+      providers: [],
+      deliveryCandidateFields: [{ id: "title", canonicalPath: "title", kind: "text" }],
+    });
+
+    assert.deepEqual(parsed.exposureCandidateFields, [
+      { id: "title", canonicalPath: "title", kind: "text" },
+    ]);
   });
 
   it("WEB-INT-12 builds patch payload for channel and token rotation", () => {
@@ -209,6 +235,7 @@ describe("integrations-settings-logic", () => {
       configFields: [{ id: "channelId", kind: "string" as const, requiredOnCreate: true }],
       credentialFields: [{ id: "botToken", kind: "secret" as const, requiredOnCreate: true }],
       defaultCapabilities: ["message.send"],
+      defaultEventPolicies: [],
     };
 
     assert.deepEqual(

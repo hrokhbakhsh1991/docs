@@ -50,6 +50,22 @@ function mapConnectionRow(row: {
   };
 }
 
+function mapEventPolicyRow(row: {
+  id: string;
+  tenantId: string;
+  integrationConnectionId: string;
+  eventType: string;
+  enabled: boolean;
+}): IntegrationEventPolicyRecord {
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    integrationConnectionId: row.integrationConnectionId,
+    eventType: row.eventType,
+    enabled: row.enabled,
+  };
+}
+
 export class PrismaIntegrationPolicyRepository implements IntegrationPolicyRepository {
   async listEnabledConnectionsForScope(input: {
     readonly tenantId: string;
@@ -89,13 +105,7 @@ export class PrismaIntegrationPolicyRepository implements IntegrationPolicyRepos
           integrationConnectionId: input.integrationConnectionId,
         },
       });
-      return rows.map((row) => ({
-        id: row.id,
-        tenantId: row.tenantId,
-        integrationConnectionId: row.integrationConnectionId,
-        eventType: row.eventType,
-        enabled: row.enabled,
-      }));
+      return rows.map(mapEventPolicyRow);
     });
   }
 
@@ -117,6 +127,31 @@ export class PrismaIntegrationPolicyRepository implements IntegrationPolicyRepos
         return false;
       }
       return row.enabled;
+    });
+  }
+
+  async updateEventPolicy(
+    input: import("./integration-policy.repository").UpdateIntegrationEventPolicyInput
+  ): Promise<IntegrationEventPolicyRecord> {
+    return withTenantRls(input.tenantId, async (tx) => {
+      const row = await tx.integrationEventPolicy.upsert({
+        where: {
+          integrationConnectionId_eventType: {
+            integrationConnectionId: input.integrationConnectionId,
+            eventType: input.eventType,
+          },
+        },
+        create: {
+          tenantId: input.tenantId,
+          integrationConnectionId: input.integrationConnectionId,
+          eventType: input.eventType,
+          enabled: input.enabled ?? true,
+        },
+        update: {
+          ...(input.enabled === undefined ? {} : { enabled: input.enabled }),
+        },
+      });
+      return mapEventPolicyRow(row);
     });
   }
 }

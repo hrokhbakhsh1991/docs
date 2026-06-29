@@ -1,4 +1,6 @@
 import { configureDenaliProductHttpHost } from "@app-tour/workspace-denali/http";
+import { buildDenaliExposureResolverPort } from "../exposure/resolve-denali-surface-exposure";
+import { buildDenaliReminderFeedPort } from "../exposure/denali-reminder-activation.repository";
 import type {
   DenaliProductRouteDeps,
   DenaliPublicBookingPort,
@@ -116,6 +118,20 @@ async function resolveTourStore(deps: DenaliProductRouteDeps) {
   return new TourStorageDbAdapter(createTourStorageRepository());
 }
 
+function resolveExposureResolverPort(deps: DenaliProductRouteDeps) {
+  if (deps.exposureResolverPort !== undefined) {
+    return deps.exposureResolverPort;
+  }
+  return buildDenaliExposureResolverPort();
+}
+
+function resolveReminderFeedPort(deps: DenaliProductRouteDeps) {
+  if (deps.reminderFeedPort !== undefined) {
+    return deps.reminderFeedPort;
+  }
+  return buildDenaliReminderFeedPort();
+}
+
 configureDenaliProductHttpHost({
   runWithHttpRequestContext,
   sendJson,
@@ -126,4 +142,6 @@ configureDenaliProductHttpHost({
   readDenaliRegistrationRequestBody: readJsonBody,
   resolvePublicBookingPort,
   resolvePublicDestinationPort,
+  resolveExposureResolverPort,
+  resolveReminderFeedPort,
 });

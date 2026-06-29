@@ -422,6 +422,18 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     summary: "Public denali registration intake (anonymous)",
     operationId: "postDenaliRegistration",
   },
+  {
+    method: "GET",
+    path: "/denali/dashboard/tours/{tourId}",
+    summary: "Get registered-user denali dashboard tour card",
+    operationId: "getDenaliDashboardTour",
+  },
+  {
+    method: "GET",
+    path: "/denali/reminders/feed",
+    summary: "List denali reminder feed entries for registered user",
+    operationId: "getDenaliReminderFeed",
+  },
   // Phase 9.6 — tenant workspace branding (TENANT-WORKSPACE-BRANDING)
   {
     method: "GET",

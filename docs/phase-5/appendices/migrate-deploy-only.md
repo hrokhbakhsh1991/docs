@@ -69,6 +69,23 @@ cd apps/api && pnpm run db:migrate:deploy
 pnpm --filter @apps/api exec prisma migrate dev --name my_change
 ```
 
+### Prisma client regeneration (M1 / Phase 9.2)
+
+`db:migrate:deploy` runs **`prisma generate`** immediately after a successful
+`migrate deploy`. This keeps `@prisma/client` aligned with new columns/models
+(for example `exposure_intents.fieldDecorations`) so a restarted API process does
+not throw `Unknown field` at runtime.
+
+Local dev checklist after pulling migrations:
+
+```text
+pnpm --filter @apps/api run db:migrate:deploy   # deploy + generate
+# restart API (pnpm dev / process manager)
+```
+
+If you run `migrate deploy` manually without the wrapper, run
+`pnpm --filter @apps/api run prisma:generate` before booting the API.
+
 ## Verification
 
 ```bash

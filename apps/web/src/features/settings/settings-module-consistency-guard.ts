@@ -1,5 +1,6 @@
 import type { SettingsModuleMetadata } from "./settings-module-types";
 import { DENALI_BACKEND_REQUIRED_MODULE_IDS } from "./denali-required-settings-modules.generated";
+import { DENALI_FALLBACK_SETTINGS_MODULES } from "./denali-fallback-settings-modules";
 
 export { DENALI_BACKEND_REQUIRED_MODULE_IDS };
 
@@ -9,8 +10,45 @@ export type SettingsModuleConsistencyResult = {
   readonly missingFromBackend: readonly string[];
 };
 
+function manifestIndexForModule(moduleId: string): number {
+  const index = DENALI_BACKEND_REQUIRED_MODULE_IDS.indexOf(
+    moduleId as (typeof DENALI_BACKEND_REQUIRED_MODULE_IDS)[number]
+  );
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+}
+
+function injectMissingDenaliModules(
+  backendModules: readonly SettingsModuleMetadata[],
+  missingIds: readonly string[]
+): SettingsModuleMetadata[] {
+  const result = [...backendModules];
+  const presentIds = new Set(result.map((module) => module.id));
+
+  for (const missingId of missingIds) {
+    const fallback = DENALI_FALLBACK_SETTINGS_MODULES[missingId];
+    if (fallback === undefined || presentIds.has(missingId)) {
+      continue;
+    }
+
+    const missingIndex = manifestIndexForModule(missingId);
+    let insertAt = result.length;
+    for (let index = 0; index < result.length; index += 1) {
+      const candidateIndex = manifestIndexForModule(result[index]?.id ?? "");
+      if (candidateIndex > missingIndex) {
+        insertAt = index;
+        break;
+      }
+    }
+    result.splice(insertAt, 0, fallback);
+    presentIds.add(missingId);
+  }
+
+  return result;
+}
+
 /**
- * If Denali declares settings modules that the API registry omits, do not render them.
+ * If Denali declares settings modules that the API registry omits, inject manifest fallbacks
+ * so the hub keeps linking to connection pages during migration drift or stale API processes.
  * Logs CONSISTENCY_UI_DESYNC when mismatch is detected.
  */
 export function guardSettingsModulesAgainstBackend(
@@ -27,9 +65,8 @@ export function guardSettingsModulesAgainstBackend(
     return { modules: [...backendModules], desyncDetected: false, missingFromBackend: [] };
   }
 
-  const blocked = new Set<string>(missingFromBackend);
   return {
-    modules: backendModules.filter((module) => !blocked.has(module.id)),
+    modules: injectMissingDenaliModules(backendModules, missingFromBackend),
     desyncDetected: true,
     missingFromBackend,
   };

@@ -1,5 +1,8 @@
 import type { WorkspaceFieldRegistry, WorkspaceRuleSet } from "@app-tour/workspace-sdk";
 
+import {
+  denaliRegistryPresentationFields,
+} from "./field-registry/denali-integration-field-presentation";
 import { DENALI_FIELD_DEFINITIONS } from "./field-registry/denaliFieldRegistryData";
 import {
   resolveDenaliCompositeRendererId,
@@ -69,6 +72,13 @@ export function buildDenaliWorkspaceFieldRegistry(): WorkspaceFieldRegistry {
     const fieldId = compositeRendererId ?? def.canonicalPath;
     const kind = resolveDenaliWorkspaceFieldRegistryKind(def, resolution);
 
+    const tags = denaliFieldRegistryTags(def);
+    const presentation = denaliRegistryPresentationFields({
+      id: fieldId,
+      canonicalPath: def.canonicalPath,
+      tags,
+    });
+
     return [
       Object.freeze({
         id: fieldId,
@@ -76,7 +86,8 @@ export function buildDenaliWorkspaceFieldRegistry(): WorkspaceFieldRegistry {
         stepId: def.stepId,
         kind,
         required: def.ruleDefaults.required,
-        tags: denaliFieldRegistryTags(def),
+        tags,
+        ...presentation,
         ...(kind === "enum" && resolution.enumOptions != null
           ? { enumOptions: resolution.enumOptions }
           : {}),

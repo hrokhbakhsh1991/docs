@@ -15,6 +15,7 @@ describe("integration-subsystem-gate", () => {
     applyMigrationConsistencyGate(
       buildMigrationConsistencyReport({
         missingTables: [],
+        missingExposureTables: [],
         unappliedMigrations: [],
         expectedMigrationCount: 1,
         appliedMigrationCount: 1,
@@ -28,12 +29,43 @@ describe("integration-subsystem-gate", () => {
     applyMigrationConsistencyGate(
       buildMigrationConsistencyReport({
         missingTables: ["integration_connections"],
+        missingExposureTables: [],
         unappliedMigrations: [],
         expectedMigrationCount: 1,
         appliedMigrationCount: 1,
       })
     );
     assert.equal(isIntegrationSubsystemReady(), false);
+  });
+
+  it("blocks subsystem when exposure tables missing and fatal gate is enabled", () => {
+    resetIntegrationSubsystemGateForTests();
+    applyMigrationConsistencyGate(
+      buildMigrationConsistencyReport({
+        missingTables: [],
+        missingExposureTables: ["exposure_intents"],
+        unappliedMigrations: [],
+        expectedMigrationCount: 1,
+        appliedMigrationCount: 1,
+        exposureTablesGateFatal: true,
+      })
+    );
+    assert.equal(isIntegrationSubsystemReady(), false);
+  });
+
+  it("arms subsystem when exposure tables missing but fatal gate is disabled", () => {
+    resetIntegrationSubsystemGateForTests();
+    applyMigrationConsistencyGate(
+      buildMigrationConsistencyReport({
+        missingTables: [],
+        missingExposureTables: ["exposure_intents"],
+        unappliedMigrations: [],
+        expectedMigrationCount: 1,
+        appliedMigrationCount: 1,
+        exposureTablesGateFatal: false,
+      })
+    );
+    assert.equal(isIntegrationSubsystemReady(), true);
   });
 
   it("forceIntegrationSubsystemReadyForTests bypasses gate in unit tests", () => {

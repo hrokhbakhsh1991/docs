@@ -1,0 +1,69 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import { buildExposureSelectableFieldCatalog } from "./exposure-field-catalog";
+import {
+  DENALI_TELEGRAM_TOUR_CREATED_PROFILE_SLUG,
+  REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED,
+} from "./exposure-profile";
+import {
+  resolveExposureProfileDefaultFieldIds,
+  resolveExposureRequestedFieldIds,
+  resolveRegistrySeededExposureProfile,
+} from "./resolve-registry-seeded-exposure-profile";
+
+describe("resolveRegistrySeededExposureProfile", () => {
+  it("returns null without a workspace type", () => {
+    assert.equal(
+      resolveRegistrySeededExposureProfile({
+        workspaceType: null,
+        entityType: "tour",
+        surface: "telegram",
+        audience: "external_channel",
+        trigger: "TourCreated",
+      }),
+      null,
+    );
+  });
+
+  it("seeds Denali telegram TourCreated defaults from deliverable registry tags", () => {
+    const selectableIds = buildExposureSelectableFieldCatalog("denali").map((field) => field.id);
+    const profile = resolveRegistrySeededExposureProfile({
+      workspaceType: "denali",
+      entityType: "tour",
+      surface: "telegram",
+      audience: "external_channel",
+      trigger: "TourCreated",
+    });
+
+    assert.equal(profile?.id, "denali.telegram.TourCreated");
+    assert.equal(profile?.source, REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED);
+    assert.deepEqual(profile?.defaultFieldIds, selectableIds);
+    assert.ok(profile?.defaultFieldIds.includes("title"));
+    assert.ok(profile?.defaultFieldIds.includes("denali.destination"));
+    assert.equal(profile?.defaultTemplateId, "Tour created: {{title}}");
+    assert.equal(
+      `${profile?.workspaceType}.${profile?.surface}.${profile?.trigger}`,
+      "denali.telegram.TourCreated",
+    );
+    assert.equal(DENALI_TELEGRAM_TOUR_CREATED_PROFILE_SLUG, "telegram_tour_created");
+  });
+
+  it("resolveExposureProfileDefaultFieldIds matches legacy deliverable defaults", () => {
+    assert.deepEqual(
+      resolveExposureProfileDefaultFieldIds("denali"),
+      buildExposureSelectableFieldCatalog("denali").map((field) => field.id),
+    );
+    assert.deepEqual(resolveExposureProfileDefaultFieldIds("starter"), [
+      "basics.title",
+      "details.summary",
+    ]);
+  });
+
+  it("resolveExposureRequestedFieldIds prefers admin selection over profile defaults", () => {
+    const defaults = buildExposureSelectableFieldCatalog("denali").map((field) => field.id);
+    assert.deepEqual(resolveExposureRequestedFieldIds(["title"], "denali"), ["title"]);
+    assert.deepEqual(resolveExposureRequestedFieldIds(null, "denali"), defaults);
+    assert.deepEqual(resolveExposureRequestedFieldIds(undefined, "denali"), defaults);
+  });
+});

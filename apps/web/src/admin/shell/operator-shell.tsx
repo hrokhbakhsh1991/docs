@@ -19,6 +19,8 @@ export type OperatorShellProps = {
   readonly session: OperatorSessionContext;
   readonly workspaceLabel: string;
   readonly displayName?: string | null;
+  readonly operatorProfileDisplayName?: string | null;
+  readonly operatorProfileAvatarUrl?: string | null;
   readonly pluginId: string;
   readonly navItems: readonly OperatorNavItem[];
   readonly impersonationReadonly?: boolean;
@@ -29,6 +31,8 @@ export function OperatorShell({
   session,
   workspaceLabel,
   displayName,
+  operatorProfileDisplayName = null,
+  operatorProfileAvatarUrl = null,
   pluginId,
   navItems,
   impersonationReadonly = false,
@@ -76,6 +80,8 @@ export function OperatorShell({
       <OperatorHeader
         session={session}
         pluginId={pluginId}
+        profileDisplayName={operatorProfileDisplayName}
+        profileAvatarUrl={operatorProfileAvatarUrl}
         headerScrolled={headerScrolled}
         drawerOpen={drawerOpen}
         onMenuToggle={() => setDrawerOpen((open) => !open)}

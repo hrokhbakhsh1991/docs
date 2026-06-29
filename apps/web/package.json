@@ -21,6 +21,8 @@
     "test:smoke:denali": "playwright test -c playwright.smoke.config.ts",
     "test:e2e:operator": "playwright test -c playwright.operator.config.ts",
     "test:e2e:operator:install": "playwright install chromium",
+    "test:e2e:exposure": "playwright test -c playwright.exposure.config.ts",
+    "test:e2e:exposure:install": "playwright install chromium",
     "test:e2e:urban": "playwright test -c playwright.urban.config.ts",
     "test:e2e:urban:install": "playwright install chromium",
     "test:e2e:platform": "playwright test -c playwright.platform.config.ts",

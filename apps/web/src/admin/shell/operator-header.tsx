@@ -16,6 +16,8 @@ import { OperatorThemeToggleButton } from "./operator-theme-toggle-button";
 type OperatorHeaderProps = {
   readonly session: OperatorSessionContext;
   readonly pluginId: string;
+  readonly profileDisplayName?: string | null;
+  readonly profileAvatarUrl?: string | null;
   readonly headerScrolled: boolean;
   readonly drawerOpen: boolean;
   readonly onMenuToggle: () => void;
@@ -25,6 +27,8 @@ type OperatorHeaderProps = {
 export function OperatorHeader({
   session,
   pluginId,
+  profileDisplayName = null,
+  profileAvatarUrl = null,
   headerScrolled,
   drawerOpen,
   onMenuToggle,
@@ -71,7 +75,12 @@ export function OperatorHeader({
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <OperatorThemeToggleButton />
-        <OperatorAccountMenu session={session} onLogout={onLogout} />
+        <OperatorAccountMenu
+          session={session}
+          displayName={profileDisplayName}
+          avatarUrl={profileAvatarUrl}
+          onLogout={onLogout}
+        />
       </div>
     </header>
   );

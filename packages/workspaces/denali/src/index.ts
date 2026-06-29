@@ -25,6 +25,10 @@ export {
   DENALI_SMOKE_TENANT_ID,
 } from "./smoke/phase-6-denali-smoke-tenant";
 export {
+  buildDenaliFieldPolicyDefinitions,
+  DENALI_FIELD_POLICY_WORKSPACE_TYPE,
+} from "./field-policy/denali-field-policy-definitions";
+export {
   resolveDenaliWizardDimensions,
   resolveDenaliWizardDimensionsFromTourKind,
 } from "./wizard-dimensions";

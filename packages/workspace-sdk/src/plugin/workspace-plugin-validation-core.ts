@@ -1,5 +1,9 @@
 import { sdkOk, type SdkResult } from "../errors/sdk-result";
 import type { WorkspaceFieldRegistry } from "../registry/field-registry";
+import {
+  validateFieldPolicyManifest,
+  type WorkspaceFieldPolicyManifest,
+} from "../registry/field-policy-manifest";
 import { validateWorkspaceFieldRegistry } from "../registry/validate-field-registry";
 import { validateWorkspaceRuleSet } from "../registry/validate-rule-set";
 import {
@@ -284,6 +288,28 @@ export function validateWorkspacePluginCore(value: unknown): PluginResult {
   const lifecycle = validateWorkspaceLifecycleContract(root.value.lifecycle);
   if (!lifecycle.ok) return lifecycle;
 
+  if (root.value.fieldPolicy !== undefined) {
+    const fieldPolicy = requirePlainObject(
+      root.value.fieldPolicy,
+      "plugin.fieldPolicy",
+      "PLUGIN_INVALID_SHAPE"
+    );
+    if (!fieldPolicy.ok) return fieldPolicy;
+    try {
+      validateFieldPolicyManifest(
+        fieldPolicy.value as unknown as WorkspaceFieldPolicyManifest,
+        knownFieldIds
+      );
+    } catch (error: unknown) {
+      return fail(
+        violation(
+          "PLUGIN_INVALID_SHAPE",
+          error instanceof Error ? error.message : String(error)
+        )
+      );
+    }
+  }
+
   return sdkOk(root.value as unknown as WorkspacePlugin);
 }
 
@@ -315,6 +341,8 @@ const DEFINITION_FORBIDDEN_TOP_LEVEL_KEYS = [
   "registrationOps",
   "operatorSettings",
   "integrationSurface",
+  "exposureSurface",
+  "fieldPolicy",
   "tourList",
   "publicCatalog",
   "tourClone",

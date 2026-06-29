@@ -8,6 +8,42 @@ cd "$ROOT"
 echo "pre-commit-fast: guard-docs"
 sh scripts/guard-docs.sh
 
+echo "pre-commit-fast: guard-field-exposure-phase-0"
+node scripts/guards/field-exposure-phase-0-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-1"
+node scripts/guards/field-exposure-phase-1-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-2"
+node scripts/guards/field-exposure-phase-2-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-3"
+node scripts/guards/field-exposure-phase-3-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-4"
+node scripts/guards/field-exposure-phase-4-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-5"
+node scripts/guards/field-exposure-phase-5-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-6"
+node scripts/guards/field-exposure-phase-6-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-7"
+node scripts/guards/field-exposure-phase-7-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-8"
+node scripts/guards/field-exposure-phase-8-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-9"
+node scripts/guards/field-exposure-phase-9-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-10"
+node scripts/guards/field-exposure-phase-10-guard.mjs
+
+echo "pre-commit-fast: guard-field-exposure-phase-11"
+node scripts/guards/field-exposure-phase-11-guard.mjs
+
 echo "pre-commit-fast: check-node-engine"
 node scripts/guards/check-node-engine.mjs
 

@@ -62,7 +62,7 @@ export class PlatformDomainRepository {
     });
   }
 
-  async findById(domainId: string): Promise<TenantDomainRecord | null> {
+  async getDomainRowById(domainId: string): Promise<TenantDomainRecord | null> {
     return this.prisma.tenantDomain.findFirst({
       where: { id: domainId },
       select: domainSelect,

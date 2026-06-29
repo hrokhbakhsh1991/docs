@@ -4,6 +4,19 @@ export {
   type WorkspaceFieldRegistryEntry,
 } from "./field-registry";
 export {
+  validateFieldPolicyManifest,
+  type WorkspaceFieldPolicyDefinition,
+  type WorkspaceFieldPolicyManifest,
+  type WorkspaceFieldPolicyRule,
+  type WorkspaceFieldPolicyState,
+  type WorkspaceFieldPolicySurface,
+  type WorkspaceSimpleCondition,
+} from "./field-policy-manifest";
+export {
+  assertNoLegacyDeliveryCandidateFieldIds,
+  LEGACY_FIELD_CANDIDATE_USAGE_DETECTED,
+} from "./guard-legacy-delivery-candidate-field-ids";
+export {
   assertWorkspaceFieldRegistry,
   validateWorkspaceFieldRegistry,
 } from "./validate-field-registry";

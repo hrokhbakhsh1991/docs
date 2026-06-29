@@ -12,6 +12,7 @@ export type DenaliMatrixCell = `${DenaliRuleModelCategory}:${DenaliRuleModelDura
 
 export type DenaliMatrixTag =
   | "core"
+  | "deliverable"
   | "optional_basic"
   | "destination"
   | "event_variant"

@@ -58,7 +58,7 @@ export async function provisionTenantDomainSsl(
     });
   }
 
-  const row = await repository.findById(input.domainId);
+  const row = await repository.getDomainRowById(input.domainId);
   if (!row) {
     throw new Error("DOMAIN_NOT_FOUND_AFTER_SSL");
   }

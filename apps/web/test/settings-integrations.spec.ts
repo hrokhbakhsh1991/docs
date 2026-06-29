@@ -57,6 +57,22 @@ describe("settings-integrations.spec.ts — Denali wiring", () => {
           hasSecret: true,
           secretRefMasked: "integrat…n-1",
           eventPolicies: [{ eventType: "TourCreated", enabled: true }],
+          exposureIntents: [
+            {
+              id: "intent-1",
+              workspaceType: "denali",
+              connectionId: "conn-1",
+              eventType: "TourCreated",
+              surface: "telegram",
+              audience: "external_channel",
+              trigger: "TourPublished",
+              selectedFieldIds: ["title"],
+              routeScoped: true,
+              enabled: true,
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-01T00:00:00.000Z",
+            },
+          ],
           createdAt: "2026-01-01T00:00:00.000Z",
           updatedAt: "2026-01-01T00:00:00.000Z",
           backingSource: "integration_connection",
@@ -107,6 +123,9 @@ describe("settings-integrations.spec.ts — Denali wiring", () => {
 
     assert.equal(parsed.items.length, 2);
     assert.equal(parsed.items[0]?.backingSource, "integration_connection");
+    assert.equal(parsed.items[0]?.exposureIntents[0]?.eventType, "TourCreated");
+    assert.equal(parsed.items[0]?.exposureIntents[0]?.trigger, "TourPublished");
+    assert.equal(parsed.items[0]?.exposureIntents[0]?.routeScoped, true);
     assert.equal(parsed.items[1]?.fallbackSuppressed, true);
     assert.equal(parsed.summary.activeDeliverySource, "integration_connection");
   });

@@ -9,6 +9,13 @@ export type IntegrationEventPolicyRecord = {
   readonly enabled: boolean;
 };
 
+export type UpdateIntegrationEventPolicyInput = {
+  readonly tenantId: string;
+  readonly integrationConnectionId: string;
+  readonly eventType: string;
+  readonly enabled?: boolean;
+};
+
 export type IntegrationPolicyTarget = {
   readonly connectionId: string;
   readonly tenantId: string;
@@ -18,6 +25,8 @@ export type IntegrationPolicyTarget = {
   readonly config: Record<string, unknown>;
   readonly secretRef: string | null;
   readonly credentials: Record<string, unknown>;
+  /** Synthetic legacy bot row — skip persisted intent/policy lookups (Phase 7i). */
+  readonly syntheticLegacyConnection?: boolean;
 };
 
 export type IntegrationPolicyRepository = {
@@ -34,4 +43,5 @@ export type IntegrationPolicyRepository = {
     readonly integrationConnectionId: string;
     readonly eventType: string;
   }): Promise<boolean>;
+  updateEventPolicy(input: UpdateIntegrationEventPolicyInput): Promise<IntegrationEventPolicyRecord>;
 };

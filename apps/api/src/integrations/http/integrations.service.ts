@@ -4,6 +4,18 @@ import { Prisma } from "@prisma/client";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { withTenantRls } from "../../db/with-tenant-rls";
+import { logger } from "../../observability/logger";
+import { mapLatestExposureIntentsToConnectionPublic } from "../../exposure/exposure-intent-public";
+import { normalizeFieldDecorations } from "../../exposure/field-decorations";
+import { createExposureIntentRepository } from "../../exposure/prisma-exposure-intent.repository";
+import {
+  buildConnectionExposureIntentUpsert,
+  exposureSelectableCatalogFieldIds,
+  patchConnectionExposureIntent,
+} from "../../exposure/patch-connection-exposure-intent";
+import { deleteConnectionExposureIntentsInTransaction } from "../../exposure/connection-exposure-intent-scope";
+import { assertWorkspaceExposureModuleAccess } from "../../settings/settings-exposure-module-access";
+import { emitSettingsResourceAudit } from "../../settings/settings-audit-emitter";
 import { isIntegrationSubsystemReady } from "../../health/integration-subsystem-gate";
 import { resolveWorkspaceTypeForTenant } from "../../tenant/resolve-workspace-type";
 import { getIntegrationProvider } from "../platform/integration-provider-registry";
@@ -14,7 +26,9 @@ import {
   buildWorkspaceIntegrationSurfaceMeta,
   type WorkspaceIntegrationSurfaceMetaResponse,
 } from "../platform/integration-surface-meta";
+import { buildExposureSelectableFieldCatalog } from "../../exposure/exposure-field-catalog";
 import type {
+  IntegrationConnectionLoadWarning,
   IntegrationConnectionPublicDto,
   IntegrationConnectionRecord,
   IntegrationTestConnectionResult,
@@ -205,6 +219,59 @@ function parseCapabilities(
     throw new IntegrationInvalidBodyError("INTEGRATION_CAPABILITIES_INVALID");
   }
   return parsed;
+}
+
+const DELIVERY_FIELD_PLACEHOLDER_PATTERN = /\{\{field:([^}]+)\}\}/g;
+const DELIVERY_STATIC_TEMPLATE_TOKENS = ["{{eventType}}", "{{aggregateId}}"] as const;
+
+function parseOptionalEnabled(value: unknown): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "boolean") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_EVENT_POLICY_ENABLED_INVALID");
+  }
+  return value;
+}
+
+function assertSelectedFieldsAllowed(
+  selectedFieldIds: readonly string[] | null | undefined,
+  candidateFieldIds: ReadonlySet<string>
+): void {
+  if (selectedFieldIds == null) {
+    return;
+  }
+  for (const fieldId of selectedFieldIds) {
+    if (!candidateFieldIds.has(fieldId)) {
+      throw new IntegrationInvalidBodyError("INTEGRATION_EVENT_POLICY_FIELD_NOT_ALLOWED");
+    }
+  }
+}
+
+function assertMessageTemplateAllowed(input: {
+  readonly messageTemplate: string | null | undefined;
+  readonly selectedFieldIds: readonly string[] | null | undefined;
+  readonly candidateFieldIds: ReadonlySet<string>;
+}): void {
+  if (input.messageTemplate == null) {
+    return;
+  }
+  const fieldScope =
+    input.selectedFieldIds == null ? input.candidateFieldIds : new Set(input.selectedFieldIds);
+  for (const match of input.messageTemplate.matchAll(DELIVERY_FIELD_PLACEHOLDER_PATTERN)) {
+    const fieldId = match[1]?.trim() ?? "";
+    if (fieldId.length === 0 || !fieldScope.has(fieldId)) {
+      throw new IntegrationInvalidBodyError("INTEGRATION_EVENT_POLICY_TEMPLATE_FIELD_NOT_ALLOWED");
+    }
+  }
+
+  let stripped = input.messageTemplate.replace(DELIVERY_FIELD_PLACEHOLDER_PATTERN, "");
+  for (const token of DELIVERY_STATIC_TEMPLATE_TOKENS) {
+    stripped = stripped.replaceAll(token, "");
+  }
+  if (stripped.includes("{{") || stripped.includes("}}")) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_EVENT_POLICY_TEMPLATE_TOKEN_INVALID");
+  }
 }
 
 function requiredSurfaceFieldCode(provider: IntegrationProviderId, fieldId: string): string {
@@ -403,7 +470,13 @@ function legacyTelegramToPublicDto(
     config: { channelId: legacy.channelId },
     hasSecret: legacy.botToken.trim().length > 0,
     secretRefMasked: null,
-    eventPolicies: [{ eventType: "TourCreated", enabled: true }],
+    eventPolicies: [
+      {
+        eventType: "TourCreated",
+        enabled: true,
+      },
+    ],
+    exposureIntents: [],
     createdAt: legacy.createdAt.toISOString(),
     updatedAt: legacy.updatedAt.toISOString(),
     backingSource: "legacy_workspace_telegram_bot",
@@ -414,15 +487,64 @@ function legacyTelegramToPublicDto(
   };
 }
 
+async function loadConnectionPoliciesAndIntents(
+  tenantId: string,
+  connectionId: string,
+): Promise<{
+  readonly policies: Awaited<
+    ReturnType<ReturnType<typeof createIntegrationPolicyRepository>["listPoliciesForConnection"]>
+  >;
+  readonly exposureIntents: ReturnType<typeof mapLatestExposureIntentsToConnectionPublic>;
+  readonly loadWarnings: readonly IntegrationConnectionLoadWarning[];
+}> {
+  const policyRepository = createIntegrationPolicyRepository();
+  const exposureIntentRepository = createExposureIntentRepository();
+  let policies: Awaited<
+    ReturnType<ReturnType<typeof createIntegrationPolicyRepository>["listPoliciesForConnection"]>
+  > = [];
+  let exposureIntents: ReturnType<typeof mapLatestExposureIntentsToConnectionPublic> = [];
+  const loadWarnings: IntegrationConnectionLoadWarning[] = [];
+  try {
+    policies = await policyRepository.listPoliciesForConnection({
+      tenantId,
+      integrationConnectionId: connectionId,
+    });
+  } catch (error) {
+    logger.warn({
+      event: "integration.policies_load_degraded",
+      tenantId,
+      connectionId,
+      err: error instanceof Error ? error.message : String(error),
+    });
+    loadWarnings.push("POLICIES_UNAVAILABLE");
+  }
+  try {
+    exposureIntents = mapLatestExposureIntentsToConnectionPublic(
+      await exposureIntentRepository.listForConnectionScope({
+        tenantId,
+        connectionId,
+      }),
+    );
+  } catch (error) {
+    logger.warn({
+      event: "integration.exposure_intents_load_degraded",
+      tenantId,
+      connectionId,
+      err: error instanceof Error ? error.message : String(error),
+    });
+    loadWarnings.push("EXPOSURE_INTENTS_UNAVAILABLE");
+  }
+  return { policies, exposureIntents, loadWarnings };
+}
+
 async function toPublicDto(
   tenantId: string,
   row: IntegrationConnectionRecord & { createdAt?: Date; updatedAt?: Date }
 ): Promise<IntegrationConnectionPublicDto> {
-  const policyRepository = createIntegrationPolicyRepository();
-  const policies = await policyRepository.listPoliciesForConnection({
+  const { policies, exposureIntents, loadWarnings } = await loadConnectionPoliciesAndIntents(
     tenantId,
-    integrationConnectionId: row.id,
-  });
+    row.id,
+  );
 
   return {
     id: row.id,
@@ -439,6 +561,7 @@ async function toPublicDto(
       eventType: policy.eventType,
       enabled: policy.enabled,
     })),
+    exposureIntents,
     createdAt: row.createdAt?.toISOString() ?? new Date(0).toISOString(),
     updatedAt: row.updatedAt?.toISOString() ?? new Date(0).toISOString(),
     backingSource: "integration_connection",
@@ -446,6 +569,7 @@ async function toPublicDto(
     actionsAllowed: integrationConnectionActionsAllowed(),
     isActiveDeliverySource: false,
     fallbackSuppressed: false,
+    ...(loadWarnings.length > 0 ? { loadWarnings } : {}),
   };
 }
 
@@ -543,7 +667,6 @@ export async function getWorkspaceIntegrationMeta(
   auth: TenantAuthContext,
   workspaceId: string
 ): Promise<WorkspaceIntegrationSurfaceMetaResponse> {
-  assertIntegrationSystemReady();
   await assertWorkspaceScope(auth, workspaceId);
   const workspaceType = await resolveWorkspaceTypeForRoute(auth.tenantId, workspaceId);
   return buildWorkspaceIntegrationSurfaceMeta(workspaceType);
@@ -553,27 +676,32 @@ export async function listWorkspaceIntegrations(
   auth: TenantAuthContext,
   workspaceId: string
 ): Promise<WorkspaceIntegrationsListResponse> {
-  assertIntegrationSystemReady();
   await assertWorkspaceScope(auth, workspaceId);
   const workspaceType = await resolveWorkspaceTypeForRoute(auth.tenantId, workspaceId);
-  const repository = createIntegrationConnectionRepository();
-  const rows = await repository.listForWorkspace({
-    tenantId: auth.tenantId,
-    workspaceType,
-  });
 
-  const connectionItems = await Promise.all(
-    rows.map(async (row) => {
-      const full = await withTenantRls(auth.tenantId, async (tx) =>
-        tx.integrationConnection.findUnique({ where: { id: row.id } })
-      );
-      return toPublicDto(auth.tenantId, {
-        ...row,
-        createdAt: full?.createdAt,
-        updatedAt: full?.updatedAt,
-      });
-    })
-  );
+  let connectionItems: IntegrationConnectionPublicDto[] = [];
+  try {
+    const repository = createIntegrationConnectionRepository();
+    const rows = await repository.listForWorkspace({
+      tenantId: auth.tenantId,
+      workspaceType,
+    });
+
+    connectionItems = await Promise.all(
+      rows.map(async (row) => {
+        const full = await withTenantRls(auth.tenantId, async (tx) =>
+          tx.integrationConnection.findUnique({ where: { id: row.id } })
+        );
+        return toPublicDto(auth.tenantId, {
+          ...row,
+          createdAt: full?.createdAt,
+          updatedAt: full?.updatedAt,
+        });
+      })
+    );
+  } catch {
+    // Degraded operator settings read when integration schema is not fully armed.
+  }
 
   const legacyBot = await findLegacyTelegramBotForInspection(auth.tenantId, workspaceType);
   const legacySuppressed =
@@ -599,7 +727,6 @@ export async function getIntegrationDetail(
   auth: TenantAuthContext,
   integrationId: string
 ): Promise<IntegrationConnectionPublicDto> {
-  assertIntegrationSystemReady();
   if (isLegacyTelegramConnectionId(integrationId)) {
     const legacy = await findLegacyTelegramBotBySyntheticId(auth.tenantId, integrationId);
     if (legacy === null) {
@@ -718,6 +845,273 @@ export async function patchIntegration(
   });
 }
 
+export async function patchIntegrationEventPolicy(
+  auth: TenantAuthContext,
+  integrationId: string,
+  eventTypeRaw: string,
+  body: unknown
+): Promise<IntegrationConnectionPublicDto> {
+  assertIntegrationSystemReady();
+  assertLegacyReadOnly(integrationId);
+  const eventType = eventTypeRaw.trim();
+  if (eventType.length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_EVENT_POLICY_EVENT_INVALID");
+  }
+  if (typeof body !== "object" || body === null) {
+    throw new IntegrationInvalidBodyError();
+  }
+  const record = body as Record<string, unknown>;
+  const enabled = parseOptionalEnabled(record.enabled);
+
+  const existing = await withTenantRls(auth.tenantId, async (tx) =>
+    tx.integrationConnection.findFirst({
+      where: { id: integrationId, tenantId: auth.tenantId },
+    })
+  );
+  if (existing === null) {
+    throw new IntegrationNotFoundError();
+  }
+  await assertTenantOwnsWorkspaceType(auth, existing.workspaceType);
+
+  const meta = buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
+  const providerMeta = meta.providers.find((provider) => provider.id === existing.provider);
+  const eventDeclared =
+    providerMeta?.defaultEventPolicies.some((policy) => policy.eventType === eventType) === true;
+  if (!eventDeclared) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_EVENT_POLICY_EVENT_NOT_ALLOWED");
+  }
+
+  const policyRepository = createIntegrationPolicyRepository();
+  await policyRepository.updateEventPolicy({
+    tenantId: auth.tenantId,
+    integrationConnectionId: existing.id,
+    eventType,
+    ...(enabled === undefined ? {} : { enabled }),
+  });
+
+  return getIntegrationDetail(auth, integrationId);
+}
+
+function parseDeliveryIntentEnabled(value: unknown): boolean {
+  if (typeof value !== "boolean") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_ENABLED_INVALID");
+  }
+  return value;
+}
+
+function parseDeliveryIntentSelectedFieldIds(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_FIELDS_INVALID");
+  }
+  const fieldIds: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string") {
+      throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_FIELDS_INVALID");
+    }
+    const trimmed = entry.trim();
+    if (trimmed.length === 0) {
+      throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_FIELDS_INVALID");
+    }
+    fieldIds.push(trimmed);
+  }
+  return fieldIds;
+}
+
+function parseOptionalFieldDecorations(
+  value: unknown,
+  input: {
+    readonly allowedFieldIds: ReadonlySet<string>;
+    readonly selectedFieldIds: readonly string[];
+  },
+) {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  return normalizeFieldDecorations(value, input);
+}
+
+function parseOptionalTemplateId(value: unknown): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_TEMPLATE_INVALID");
+  }
+  const normalized = value.trim();
+  if (normalized.length === 0 || normalized.length > 2000) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_TEMPLATE_INVALID");
+  }
+  return normalized;
+}
+
+function parseOptionalExposureIntentSurface(
+  value: unknown,
+  allowedProviderIds: readonly string[],
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_SURFACE_INVALID");
+  }
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_SURFACE_INVALID");
+  }
+  if (!allowedProviderIds.includes(normalized)) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_SURFACE_INVALID");
+  }
+  return normalized;
+}
+
+function parseOptionalExposureIntentAudience(value: unknown): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_AUDIENCE_INVALID");
+  }
+  const normalized = value.trim();
+  if (normalized.length === 0 || normalized !== "external_channel") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_AUDIENCE_INVALID");
+  }
+  return normalized;
+}
+
+function parseOptionalExposureIntentTrigger(
+  value: unknown,
+  allowedEventTypes: readonly string[],
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_TRIGGER_INVALID");
+  }
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_TRIGGER_INVALID");
+  }
+  if (!allowedEventTypes.includes(normalized)) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_TRIGGER_INVALID");
+  }
+  return normalized;
+}
+
+export async function patchConnectionExposureIntentForIntegration(
+  auth: TenantAuthContext,
+  integrationId: string,
+  eventTypeRaw: string,
+  body: unknown,
+): Promise<IntegrationConnectionPublicDto> {
+  assertIntegrationSystemReady();
+  await assertWorkspaceExposureModuleAccess(auth, "mutate");
+  assertLegacyReadOnly(integrationId);
+  const eventType = eventTypeRaw.trim();
+  if (eventType.length === 0) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_EVENT_INVALID");
+  }
+  if (typeof body !== "object" || body === null) {
+    throw new IntegrationInvalidBodyError();
+  }
+  const record = body as Record<string, unknown>;
+  const enabled = parseDeliveryIntentEnabled(record.enabled);
+  const selectedFieldIds = parseDeliveryIntentSelectedFieldIds(record.selectedFieldIds);
+  const templateId = parseOptionalTemplateId(record.templateId);
+
+  const existing = await withTenantRls(auth.tenantId, async (tx) =>
+    tx.integrationConnection.findFirst({
+      where: { id: integrationId, tenantId: auth.tenantId },
+    }),
+  );
+  if (existing === null) {
+    throw new IntegrationNotFoundError();
+  }
+  await assertTenantOwnsWorkspaceType(auth, existing.workspaceType);
+
+  const meta = buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
+  const providerMeta = meta.providers.find((provider) => provider.id === existing.provider);
+  const allowedEventTypes =
+    providerMeta?.defaultEventPolicies.map((policy) => policy.eventType) ?? [];
+  const eventDeclared = allowedEventTypes.includes(eventType);
+  if (!eventDeclared) {
+    throw new IntegrationInvalidBodyError("INTEGRATION_DELIVERY_INTENT_EVENT_NOT_ALLOWED");
+  }
+
+  const surface = parseOptionalExposureIntentSurface(
+    record.surface,
+    meta.providers.map((provider) => provider.id),
+  );
+  const audience = parseOptionalExposureIntentAudience(record.audience);
+  const trigger = parseOptionalExposureIntentTrigger(record.trigger, allowedEventTypes);
+
+  const catalogFieldIds = await exposureSelectableCatalogFieldIds(
+    auth.tenantId,
+    existing.workspaceType,
+  );
+  assertSelectedFieldsAllowed(selectedFieldIds, catalogFieldIds);
+  assertMessageTemplateAllowed({
+    messageTemplate: templateId,
+    selectedFieldIds: enabled ? selectedFieldIds : null,
+    candidateFieldIds: catalogFieldIds,
+  });
+  const fieldDecorations = parseOptionalFieldDecorations(record.fieldDecorations, {
+    allowedFieldIds: catalogFieldIds,
+    selectedFieldIds: enabled ? selectedFieldIds : [],
+  });
+
+  const upsertPreview = buildConnectionExposureIntentUpsert({
+    tenantId: auth.tenantId,
+    workspaceType: existing.workspaceType,
+    provider: existing.provider,
+    connectionId: existing.id,
+    eventType,
+    selectedFieldIds,
+    enabled,
+    ...(templateId === undefined ? {} : { templateId }),
+    ...(fieldDecorations === undefined ? {} : { fieldDecorations }),
+    ...(surface === undefined ? {} : { surface }),
+    ...(audience === undefined ? {} : { audience }),
+    ...(trigger === undefined ? {} : { trigger }),
+    updatedByUserId: auth.userId,
+  });
+  if (upsertPreview === null) {
+    throw new IntegrationInvalidBodyError("EXPOSURE_PROFILE_NOT_RESOLVED");
+  }
+
+  await patchConnectionExposureIntent({
+    tenantId: auth.tenantId,
+    workspaceType: existing.workspaceType,
+    provider: existing.provider,
+    connectionId: existing.id,
+    eventType,
+    selectedFieldIds,
+    enabled,
+    ...(templateId === undefined ? {} : { templateId }),
+    ...(fieldDecorations === undefined ? {} : { fieldDecorations }),
+    ...(surface === undefined ? {} : { surface }),
+    ...(audience === undefined ? {} : { audience }),
+    ...(trigger === undefined ? {} : { trigger }),
+    updatedByUserId: auth.userId,
+  });
+
+  await emitSettingsResourceAudit(
+    auth,
+    "patch",
+    "exposure",
+    `${existing.id}:${eventType}`,
+    `Patched exposure intent for ${eventType} on connection ${existing.id}`,
+  );
+
+  return getIntegrationDetail(auth, integrationId);
+}
+
 export async function deleteIntegration(
   auth: TenantAuthContext,
   integrationId: string
@@ -734,6 +1128,10 @@ export async function deleteIntegration(
     if (existing.secretRef !== null) {
       await getIntegrationSecretStore().delete(auth.tenantId, existing.secretRef);
     }
+    await deleteConnectionExposureIntentsInTransaction(tx, {
+      tenantId: auth.tenantId,
+      connectionId: existing.id,
+    });
     await tx.integrationConnection.delete({ where: { id: existing.id } });
   });
 }
@@ -809,7 +1207,7 @@ export async function testIntegrationConnection(
   }
 
   const repository = createIntegrationConnectionRepository();
-  const connection = await repository.findById(auth.tenantId, integrationId);
+  const connection = await repository.findByTenantAndId(auth.tenantId, integrationId);
   if (connection === null) {
     throw new IntegrationNotFoundError();
   }
@@ -870,7 +1268,7 @@ async function runProviderTest(input: {
       config: input.config,
       credentials: input.credentials,
     },
-    { channelId, text: "Integration test connection" }
+    { channelId, text: "🔔 اطلاع‌رسانی دنالی با موفقیت فعال شد. ✅\n🏔️ دنالی همیشه همراه شماست." }
   );
 
   if (!result.ok) {

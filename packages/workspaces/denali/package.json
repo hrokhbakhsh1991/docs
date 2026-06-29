@@ -142,6 +142,10 @@
       "types": "./dist/http/routes.d.ts",
       "default": "./dist/http/routes.js"
     },
+    "./exposure": {
+      "types": "./dist/exposure/index.d.ts",
+      "default": "./dist/exposure/index.js"
+    },
     "./theme/tokens.css": "./theme/tokens.css",
     "./theme/denali-admin.css": "./theme/denali-admin.css",
     "./theme/denali-portal.css": "./theme/denali-portal.css",

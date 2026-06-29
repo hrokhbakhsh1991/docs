@@ -24,6 +24,8 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleFinanceSummary"
   | "handleGetDenaliCatalog"
   | "handleGetDenaliCatalogTour"
+  | "handleGetDenaliDashboardTour"
+  | "handleGetDenaliReminderFeed"
   | "handlePostDenaliRegistration";
 
 export type WorkspaceHttpPackageHandlers = Pick<
@@ -53,6 +55,8 @@ export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpP
     handleFinanceSummary: mod0.handleFinanceSummary,
     handleGetDenaliCatalog: mod0.handleGetDenaliCatalog,
     handleGetDenaliCatalogTour: mod0.handleGetDenaliCatalogTour,
+    handleGetDenaliDashboardTour: mod0.handleGetDenaliDashboardTour,
+    handleGetDenaliReminderFeed: mod0.handleGetDenaliReminderFeed,
     handlePostDenaliRegistration: mod0.handlePostDenaliRegistration,
   });
   return handlers as WorkspaceHttpPackageHandlers;

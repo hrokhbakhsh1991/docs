@@ -18,11 +18,30 @@ import {
   IntegrationSystemNotReadyError,
   IntegrationWorkspaceForbiddenError,
   listWorkspaceIntegrations,
+  patchIntegrationEventPolicy,
+  patchConnectionExposureIntentForIntegration,
   patchIntegration,
   testIntegrationConnection,
 } from "./integrations.service";
+import {
+  SettingsModuleNotSupportedError,
+  SettingsMutationForbiddenError,
+} from "../../settings/settings.service";
+import { SettingsWorkspaceForbiddenError } from "../../settings/settings-workspace-guard";
 
 function mapIntegrationRouteError(res: ServerResponse, error: unknown): void {
+  if (error instanceof SettingsMutationForbiddenError) {
+    sendHttpError(res, 403, { error: "forbidden", code: error.code });
+    return;
+  }
+  if (error instanceof SettingsWorkspaceForbiddenError) {
+    sendHttpError(res, 403, { error: "forbidden", code: error.code });
+    return;
+  }
+  if (error instanceof SettingsModuleNotSupportedError) {
+    sendHttpError(res, 404, { error: "not_found", code: error.code, moduleId: error.moduleId });
+    return;
+  }
   if (error instanceof IntegrationSystemNotReadyError) {
     sendHttpError(res, 503, { error: "service_unavailable", code: error.code });
     return;
@@ -148,6 +167,57 @@ export async function handlePatchIntegration(
       auth,
       async () => {
         const updated = await patchIntegration(auth, integrationId, body);
+        sendJson(res, 200, updated);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    mapIntegrationRouteError(res, error);
+  }
+}
+
+export async function handlePatchIntegrationEventPolicy(
+  req: IncomingMessage,
+  res: ServerResponse,
+  integrationId: string,
+  eventType: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const body = await readJsonBody(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const updated = await patchIntegrationEventPolicy(auth, integrationId, eventType, body);
+        sendJson(res, 200, updated);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    mapIntegrationRouteError(res, error);
+  }
+}
+
+export async function handlePatchConnectionExposureIntent(
+  req: IncomingMessage,
+  res: ServerResponse,
+  integrationId: string,
+  eventType: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const body = await readJsonBody(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const updated = await patchConnectionExposureIntentForIntegration(
+          auth,
+          integrationId,
+          eventType,
+          body,
+        );
         sendJson(res, 200, updated);
       },
       { rateLimit: "write" }

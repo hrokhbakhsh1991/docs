@@ -53,6 +53,8 @@ const HANDLER_DISPATCH_KIND = {
   handleFinanceSummary: "finance",
   handleGetDenaliCatalog: "product",
   handleGetDenaliCatalogTour: "product-param",
+  handleGetDenaliDashboardTour: "product-param",
+  handleGetDenaliReminderFeed: "product",
   handleGetUrbanCatalog: "product",
   handleGetUrbanCatalogTour: "product-param",
   handleGetUrbanSettings: "bare",

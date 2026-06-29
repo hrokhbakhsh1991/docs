@@ -39,7 +39,7 @@ export async function resolveDeliveryConnection(input: {
   const { createIntegrationConnectionRepository } =
     await import("../infrastructure/prisma-integration-connection.repository");
   const repository = createIntegrationConnectionRepository();
-  const connection = await repository.findById(input.tenantId, input.connectionId);
+  const connection = await repository.findByTenantAndId(input.tenantId, input.connectionId);
   if (connection === null || !connection.enabled || connection.status !== "enabled") {
     return null;
   }

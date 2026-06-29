@@ -32,5 +32,8 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
+  if (backendRes.status === 404) {
+    return NextResponse.json({ url: null }, { status: 200 });
+  }
   return NextResponse.json(payload, { status: backendRes.status });
 }

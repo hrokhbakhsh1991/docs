@@ -1,6 +1,4 @@
-import { cookies, headers } from "next/headers";
-
-import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { readSessionProxyContext } from "@/admin/read-session-proxy-context.server";
 import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
 import {
   parseWorkspaceIntegrationSurfaceMetaResponse,
@@ -8,20 +6,6 @@ import {
   type WorkspaceIntegrationSurfaceMetaResponse,
   type WorkspaceIntegrationsListResponse,
 } from "@/integrations/integrations-types";
-
-async function readSessionProxyContext(): Promise<{
-  readonly token: string;
-  readonly host: string;
-} | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_TOKEN_COOKIE)?.value?.trim();
-  if (token === undefined || token.length === 0) {
-    return null;
-  }
-
-  const host = (await headers()).get("host") ?? "localhost:3000";
-  return { token, host: host.split(":")[0] ?? "localhost" };
-}
 
 export async function fetchWorkspaceIntegrationsServer(
   workspaceId: string

@@ -653,6 +653,77 @@ async function dispatchRequest(
     return;
   }
 
+  const workspaceExposureCatalogMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/exposure\/catalog$/
+  );
+  if (workspaceExposureCatalogMatch && method === "GET") {
+    const { handleGetWorkspaceExposureCatalog } = await import("./exposure/exposure.routes");
+    await handleGetWorkspaceExposureCatalog(
+      req,
+      res,
+      decodeURIComponent(workspaceExposureCatalogMatch[1]!)
+    );
+    return;
+  }
+
+  const workspaceExposureControlPlaneMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/exposure\/control-plane$/,
+  );
+  if (workspaceExposureControlPlaneMatch && method === "GET") {
+    const { handleGetWorkspaceExposureControlPlane } = await import("./exposure/exposure.routes");
+    await handleGetWorkspaceExposureControlPlane(
+      req,
+      res,
+      decodeURIComponent(workspaceExposureControlPlaneMatch[1]!),
+    );
+    return;
+  }
+
+  const workspaceExposureSurfacesMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/exposure\/surfaces$/,
+  );
+  if (workspaceExposureSurfacesMatch && method === "GET") {
+    const { handleGetWorkspaceExposureSurfaces } = await import("./exposure/exposure.routes");
+    await handleGetWorkspaceExposureSurfaces(
+      req,
+      res,
+      decodeURIComponent(workspaceExposureSurfacesMatch[1]!),
+    );
+    return;
+  }
+
+  const workspaceSurfaceExposureIntentMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/exposure\/surfaces\/([^/]+)$/,
+  );
+  if (workspaceSurfaceExposureIntentMatch && method === "PATCH") {
+    const { handlePatchWorkspaceSurfaceExposureIntent } = await import("./exposure/exposure.routes");
+    await handlePatchWorkspaceSurfaceExposureIntent(
+      req,
+      res,
+      decodeURIComponent(workspaceSurfaceExposureIntentMatch[1]!),
+      decodeURIComponent(workspaceSurfaceExposureIntentMatch[2]!),
+    );
+    return;
+  }
+
+  if (url.pathname === "/exposure/engine-preview" && method === "GET") {
+    const { handleGetExposureEnginePreview } = await import("./exposure/exposure.routes");
+    await handleGetExposureEnginePreview(req, res);
+    return;
+  }
+
+  if (url.pathname === "/exposure/simulate" && method === "POST") {
+    const { handlePostExposureSimulation } = await import("./exposure/exposure.routes");
+    await handlePostExposureSimulation(req, res);
+    return;
+  }
+
+  if (url.pathname === "/exposure/diff" && method === "POST") {
+    const { handlePostExposureDiff } = await import("./exposure/exposure.routes");
+    await handlePostExposureDiff(req, res);
+    return;
+  }
+
   const integrationByIdMatch = url.pathname.match(/^\/integrations\/([^/]+)$/);
   if (integrationByIdMatch) {
     const integrationId = decodeURIComponent(integrationByIdMatch[1]!);
@@ -671,6 +742,36 @@ async function dispatchRequest(
       await handleDeleteIntegration(req, res, integrationId);
       return;
     }
+  }
+
+  const integrationEventPolicyMatch = url.pathname.match(
+    /^\/integrations\/([^/]+)\/event-policies\/([^/]+)$/
+  );
+  if (method === "PATCH" && integrationEventPolicyMatch) {
+    const { handlePatchIntegrationEventPolicy } =
+      await import("./integrations/http/integrations.routes");
+    await handlePatchIntegrationEventPolicy(
+      req,
+      res,
+      decodeURIComponent(integrationEventPolicyMatch[1]!),
+      decodeURIComponent(integrationEventPolicyMatch[2]!)
+    );
+    return;
+  }
+
+  const integrationExposureIntentMatch = url.pathname.match(
+    /^\/integrations\/([^/]+)\/exposure-intents\/([^/]+)$/
+  );
+  if (method === "PATCH" && integrationExposureIntentMatch) {
+    const { handlePatchConnectionExposureIntent } =
+      await import("./integrations/http/integrations.routes");
+    await handlePatchConnectionExposureIntent(
+      req,
+      res,
+      decodeURIComponent(integrationExposureIntentMatch[1]!),
+      decodeURIComponent(integrationExposureIntentMatch[2]!)
+    );
+    return;
   }
 
   const integrationTestMatch = url.pathname.match(/^\/integrations\/([^/]+)\/test-connection$/);

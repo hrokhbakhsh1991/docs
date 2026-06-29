@@ -1,4 +1,5 @@
 import type { WorkspaceFieldRegistry } from "../registry/field-registry";
+import type { WorkspaceFieldPolicyManifest } from "../registry/field-policy-manifest";
 import type { WorkspaceRuleSet } from "../registry/rule-set";
 import type { WorkspaceLifecycleContract } from "./workspace-lifecycle";
 import type { WorkspacePluginId } from "./workspace-plugin-id";
@@ -9,6 +10,7 @@ import type { WorkspaceWizardSurface } from "./workspace-wizard-surface";
 import type { OperatorRegistrationOpsSurface } from "../operator/bookings/registration-ops-manifest";
 import type { OperatorSettingsSurface } from "../operator/settings/settings-module-manifest";
 import type { WorkspaceIntegrationSurface } from "../operator/integrations/workspace-integration-surface";
+import type { WorkspaceExposureSurface } from "../exposure/workspace-exposure-surface";
 import type { OperatorTourListSurface } from "../tour/tour-list-projection.contract";
 import type { PublicCatalogSurface } from "../tour/public-catalog.contract";
 import type { TourCloneHydrator } from "../tour/tour-clone-hydrator.contract";
@@ -48,6 +50,10 @@ export interface WorkspacePlugin {
   readonly operatorSettings?: OperatorSettingsSurface;
   /** Integration platform — provider defaults, mappings, templates for operator control plane. */
   readonly integrationSurface?: WorkspaceIntegrationSurface;
+  /** Field exposure control plane — surface defaults for intents and operator settings. */
+  readonly exposureSurface?: WorkspaceExposureSurface;
+  /** Optional provider-agnostic field policy manifest for new surfaces and delivery eligibility. */
+  readonly fieldPolicy?: WorkspaceFieldPolicyManifest;
   /** Phase 9.3 — Operator list projection extractor (DEC-P9-014). */
   readonly tourList?: OperatorTourListSurface;
   /** Marketing public catalog — publish gate + egress card (ADR-MKT-003). */

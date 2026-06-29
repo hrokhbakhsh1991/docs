@@ -16,12 +16,24 @@ describe("integration surface meta", () => {
       { id: "botToken", kind: "secret", requiredOnCreate: true },
     ]);
     assert.deepEqual(telegram.defaultCapabilities, ["message.send"]);
+    assert.deepEqual(telegram.defaultEventPolicies, [{ eventType: "TourCreated", enabled: true }]);
+
+    const catalogIds = meta.exposureCandidateFields.map((field) => field.id);
+    assert.ok(catalogIds.includes("title"));
+    assert.ok(catalogIds.includes("denali.destination"));
+    assert.ok(meta.exposureCandidateFields.length > 1);
+    assert.equal(
+      (meta as Record<string, unknown>).deliveryCandidateFields,
+      undefined,
+      "Phase 7g: legacy delivery alias must not be emitted",
+    );
   });
 
   it("returns no providers for workspaces without an integration surface", () => {
     assert.deepEqual(buildWorkspaceIntegrationSurfaceMeta("starter"), {
       workspaceType: "starter",
       providers: [],
+      exposureCandidateFields: [],
     });
   });
 });

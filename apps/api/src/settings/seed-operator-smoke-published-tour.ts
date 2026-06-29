@@ -18,7 +18,7 @@ export async function seedOperatorSmokePublishedTour(tenantId: string): Promise<
     return;
   }
 
-  const globalRow = await getPrismaAdmin().tour.findUnique({
+  const globalRow = await getPrismaAdmin().tour.findFirst({
     where: { id: OPERATOR_SMOKE_SEED_TOUR_ID },
     select: { tenantId: true },
   });

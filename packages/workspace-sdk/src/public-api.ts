@@ -146,7 +146,14 @@ export type {
 } from "./auth/index";
 export {
   getWorkspaceRuleCell,
+  validateFieldPolicyManifest,
   type WorkspaceFieldKind,
+  type WorkspaceFieldPolicyDefinition,
+  type WorkspaceFieldPolicyManifest,
+  type WorkspaceFieldPolicyRule,
+  type WorkspaceFieldPolicyState,
+  type WorkspaceFieldPolicySurface,
+  type WorkspaceSimpleCondition,
   type WorkspaceFieldRegistry,
   type WorkspaceFieldRegistryEntry,
   type WorkspaceRuleCell,
@@ -177,6 +184,11 @@ export {
   type WorkspaceIntegrationProviderSurface,
   type WorkspaceIntegrationSurface,
 } from "./operator/integrations/workspace-integration-surface";
+export {
+  validateExposureSurface,
+  type WorkspaceExposureSurface,
+  type WorkspaceExposureSurfaceDefinition,
+} from "./exposure/workspace-exposure-surface";
 export {
   buildTourListProjection,
   type OperatorTourListSurface,

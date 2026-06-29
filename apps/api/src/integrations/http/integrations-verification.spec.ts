@@ -29,6 +29,7 @@ function sampleIntegration(
     hasSecret: true,
     secretRefMasked: "integration-connection:conn-1…",
     eventPolicies: [{ eventType: "TourCreated", enabled: true }],
+    exposureIntents: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     backingSource: "integration_connection",

@@ -14,6 +14,22 @@ export const REQUIRED_INTEGRATION_TABLES = [
   "workspace_telegram_bots",
 ] as const;
 
+/** Exposure subsystem tables — warn-first (9.1a); fatal when gate env is true (9.1b). */
+export const REQUIRED_EXPOSURE_TABLES = [
+  "exposure_intents",
+  "exposure_profiles",
+  "denali_exposure_reminder_activations",
+] as const;
+
+export const FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL_ENV =
+  "FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL" as const;
+
+export function isFieldExposureConsistencyGateFatalEnabled(
+  value: string | null | undefined = process.env[FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL_ENV],
+): boolean {
+  return value?.trim().toLowerCase() === "true";
+}
+
 export type ConsistencySignal =
   | "CONSISTENCY_OK"
   | "CONSISTENCY_MISSING_TABLES"
@@ -23,7 +39,10 @@ export type MigrationConsistencyReport = {
   readonly ok: boolean;
   readonly signal: ConsistencySignal;
   readonly service: "@apps/api";
+  /** Missing integration subsystem tables (always fatal when non-empty). */
   readonly missingTables: readonly string[];
+  /** Missing exposure subsystem tables (fatal only when exposure gate env is true). */
+  readonly missingExposureTables: readonly string[];
   readonly unappliedMigrations: readonly string[];
   readonly expectedMigrationCount: number;
   readonly appliedMigrationCount: number;
@@ -65,22 +84,31 @@ export function listExpectedMigrationNamesFromDisk(): string[] {
 
 export function computeUnappliedMigrations(
   expected: readonly string[],
-  applied: ReadonlySet<string>
+  applied: ReadonlySet<string>,
 ): string[] {
   return expected.filter((name) => !applied.has(name));
 }
 
 export function buildMigrationConsistencyReport(input: {
   readonly missingTables: readonly string[];
+  readonly missingExposureTables?: readonly string[];
   readonly unappliedMigrations: readonly string[];
   readonly expectedMigrationCount: number;
   readonly appliedMigrationCount: number;
   readonly checkedAt?: string;
+  readonly exposureTablesGateFatal?: boolean;
 }): MigrationConsistencyReport {
+  const missingExposureTables = input.missingExposureTables ?? [];
+  const exposureTablesGateFatal = input.exposureTablesGateFatal ?? false;
+  const integrationTablesMissing = input.missingTables.length > 0;
+  const exposureTablesBlock =
+    exposureTablesGateFatal && missingExposureTables.length > 0;
+  const migrationDrift = input.unappliedMigrations.length > 0;
+
   const signal: ConsistencySignal =
-    input.missingTables.length > 0
+    integrationTablesMissing || exposureTablesBlock
       ? "CONSISTENCY_MISSING_TABLES"
-      : input.unappliedMigrations.length > 0
+      : migrationDrift
         ? "CONSISTENCY_MIGRATION_DRIFT"
         : "CONSISTENCY_OK";
 
@@ -89,6 +117,7 @@ export function buildMigrationConsistencyReport(input: {
     signal,
     service: "@apps/api",
     missingTables: input.missingTables,
+    missingExposureTables,
     unappliedMigrations: input.unappliedMigrations,
     expectedMigrationCount: input.expectedMigrationCount,
     appliedMigrationCount: input.appliedMigrationCount,
@@ -123,6 +152,21 @@ async function findMissingIntegrationTables(): Promise<string[]> {
   return REQUIRED_INTEGRATION_TABLES.filter((table) => !present.has(table));
 }
 
+async function findMissingExposureTables(): Promise<string[]> {
+  const rows = await getPrisma().$queryRaw<Array<{ table_name: string }>>`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name IN (
+        'exposure_intents',
+        'exposure_profiles',
+        'denali_exposure_reminder_activations'
+      )
+  `;
+  const present = new Set(rows.map((row) => row.table_name));
+  return REQUIRED_EXPOSURE_TABLES.filter((table) => !present.has(table));
+}
+
 export function shouldRunMigrationConsistencyCheck(): boolean {
   return resolveStorageDriver() === "prisma" && (process.env.DATABASE_URL?.trim().length ?? 0) > 0;
 }
@@ -135,14 +179,16 @@ export async function runMigrationConsistencyCheck(): Promise<MigrationConsisten
   if (!shouldRunMigrationConsistencyCheck()) {
     return buildMigrationConsistencyReport({
       missingTables: [],
+      missingExposureTables: [],
       unappliedMigrations: [],
       expectedMigrationCount: 0,
       appliedMigrationCount: 0,
     });
   }
 
-  const [missingTables, appliedNames] = await Promise.all([
+  const [missingTables, missingExposureTables, appliedNames] = await Promise.all([
     findMissingIntegrationTables(),
+    findMissingExposureTables(),
     listAppliedMigrationNames(),
   ]);
   const expectedNames = listExpectedMigrationNamesFromDisk();
@@ -151,10 +197,31 @@ export async function runMigrationConsistencyCheck(): Promise<MigrationConsisten
 
   return buildMigrationConsistencyReport({
     missingTables,
+    missingExposureTables,
     unappliedMigrations,
     expectedMigrationCount: expectedNames.length,
     appliedMigrationCount: appliedNames.length,
+    exposureTablesGateFatal: isFieldExposureConsistencyGateFatalEnabled(),
   });
+}
+
+export function logExposureTablesConsistencyWarn(
+  missingExposureTables: readonly string[],
+  checkedAt: string,
+): void {
+  if (missingExposureTables.length === 0) {
+    return;
+  }
+  logger.warn(
+    {
+      event: "consistency.check",
+      signal: "CONSISTENCY_MISSING_EXPOSURE_TABLES",
+      service: "@apps/api",
+      missingExposureTables,
+      checkedAt,
+    },
+    "CONSISTENCY_MISSING_EXPOSURE_TABLES",
+  );
 }
 
 export function logMigrationConsistencyReport(report: MigrationConsistencyReport): void {
@@ -163,6 +230,7 @@ export function logMigrationConsistencyReport(report: MigrationConsistencyReport
     signal: report.signal,
     service: report.service,
     missingTables: report.missingTables,
+    missingExposureTables: report.missingExposureTables,
     unappliedMigrations: report.unappliedMigrations,
     checkedAt: report.checkedAt,
   };

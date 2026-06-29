@@ -12,8 +12,10 @@ import {
 } from "@app-tour/workspace-sdk";
 
 import {
+  buildDenaliFieldPolicyDefinitions,
   createDenaliFinanceOutboxConsumer,
   DENALI_CURRENT_CANONICAL_SCHEMA_VERSION,
+  DENALI_FIELD_POLICY_WORKSPACE_TYPE,
   DENALI_LEGACY_TRIP_DETAILS_SCHEMA_VERSION,
   DENALI_THEME_ADMIN_STYLESHEET,
   denaliPluginForWizardEngine,
@@ -49,6 +51,11 @@ describe("phase-6.contract scaffold (REQ-P6-004, REQ-P6-005, REQ-P6-027)", () =>
   it("public API does not export DENALI_BREACH_PROBE", async () => {
     const mod = await import("../src/index.ts");
     assert.equal("DENALI_BREACH_PROBE" in mod, false);
+  });
+
+  it("exports metadata-only field policy bridge", () => {
+    assert.equal(DENALI_FIELD_POLICY_WORKSPACE_TYPE, "denali");
+    assert.equal(typeof buildDenaliFieldPolicyDefinitions, "function");
   });
 });
 

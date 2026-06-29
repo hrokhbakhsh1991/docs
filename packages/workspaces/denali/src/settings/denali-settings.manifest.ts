@@ -24,6 +24,13 @@ const DENALI_SETTINGS_MODULES = Object.freeze([
     nav: Object.freeze({ group: "workspace", labelKey: "settings.integrations" }),
   }),
   Object.freeze({
+    id: "exposure",
+    kind: "readonly_explorer",
+    route: "settings/exposure",
+    ability: "operator.settings.exposure",
+    nav: Object.freeze({ group: "workspace", labelKey: "settings.exposure" }),
+  }),
+  Object.freeze({
     id: "equipment",
     kind: "reference_data",
     route: "settings/equipment",

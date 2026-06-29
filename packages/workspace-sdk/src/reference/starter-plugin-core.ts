@@ -6,6 +6,9 @@ import { STARTER_WORKSPACE_TYPE } from "../plugin/workspace-type";
 import type { WorkspaceThemeContract } from "../theme/workspace-theme.contract";
 import { noopWorkspaceDraftTombstoneBinding } from "../draft/workspace-draft-tombstone-binding";
 import { starterOperatorSettingsSurface } from "./starter-settings.manifest";
+import { STARTER_FIELD_POLICY_MANIFEST } from "./starter-field-policy.manifest";
+
+export { STARTER_FIELD_POLICY_MANIFEST } from "./starter-field-policy.manifest";
 
 /** Relative to workspace package root — published via `@app-tour/workspace-starter` exports. */
 export const STARTER_THEME_TOKENS_STYLESHEET = "theme/tokens.css" as const;
@@ -46,7 +49,9 @@ export const STARTER_FIELD_REGISTRY = deepFreeze({
       stepId: "basics",
       kind: "text" as const,
       required: true,
-      tags: ["core"],
+      tags: ["core", "deliverable"],
+      adminLabel: "Tour Title",
+      group: "General",
     },
     {
       id: "basics.featured",
@@ -54,6 +59,8 @@ export const STARTER_FIELD_REGISTRY = deepFreeze({
       stepId: "basics",
       kind: "boolean" as const,
       required: false,
+      adminLabel: "Featured Tour",
+      group: "General",
     },
     {
       id: "details.summary",
@@ -61,6 +68,9 @@ export const STARTER_FIELD_REGISTRY = deepFreeze({
       stepId: "details",
       kind: "text" as const,
       required: false,
+      tags: ["deliverable"],
+      adminLabel: "Tour Summary",
+      group: "General",
     },
     {
       id: "details.status",
@@ -69,6 +79,8 @@ export const STARTER_FIELD_REGISTRY = deepFreeze({
       kind: "enum" as const,
       required: false,
       enumOptions: ["draft", "open", "published"],
+      adminLabel: "Publication Status",
+      group: "General",
     },
   ],
 });
@@ -131,6 +143,7 @@ export function createStarterWorkspacePlugin(theme: WorkspaceThemeContract): Wor
     lifecycle: STARTER_LIFECYCLE,
     theme: deepFreeze({ ...theme }),
     operatorSettings: deepFreeze({ ...starterOperatorSettingsSurface }),
+    fieldPolicy: STARTER_FIELD_POLICY_MANIFEST,
     draftTombstone: noopWorkspaceDraftTombstoneBinding,
   });
 }

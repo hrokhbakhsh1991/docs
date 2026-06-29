@@ -86,6 +86,68 @@ export async function patchIntegration(
   return parseIntegrationConnectionPublic(payload);
 }
 
+export type PatchIntegrationEventPolicyInput = {
+  readonly enabled?: boolean;
+};
+
+export type PatchExposureIntentInput = {
+  readonly enabled: boolean;
+  readonly selectedFieldIds: readonly string[];
+  readonly templateId?: string | null;
+  readonly fieldDecorations?: Record<string, { prefix: string }> | null;
+  readonly surface?: string;
+  readonly audience?: string;
+  readonly trigger?: string;
+};
+
+export async function patchIntegrationEventPolicy(
+  integrationId: string,
+  eventType: string,
+  input: PatchIntegrationEventPolicyInput,
+): Promise<IntegrationConnectionPublic> {
+  const eventPolicyPath =
+    `/api/integrations/${encodeURIComponent(integrationId)}` +
+    `/event-policies/${encodeURIComponent(eventType)}`;
+  const res = await fetch(eventPolicyPath, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const code =
+      typeof payload.code === "string"
+        ? payload.code
+        : `INTEGRATION_EVENT_POLICY_PATCH_HTTP_${res.status}`;
+    throw new Error(code);
+  }
+  return parseIntegrationConnectionPublic(payload);
+}
+
+export async function patchExposureIntent(
+  integrationId: string,
+  eventType: string,
+  input: PatchExposureIntentInput,
+): Promise<IntegrationConnectionPublic> {
+  const exposureIntentPath =
+    `/api/integrations/${encodeURIComponent(integrationId)}` +
+    `/exposure-intents/${encodeURIComponent(eventType)}`;
+  const res = await fetch(exposureIntentPath, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const payload = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const code =
+      typeof payload.code === "string"
+        ? payload.code
+        : `EXPOSURE_INTENT_PATCH_HTTP_${res.status}`;
+    throw new Error(code);
+  }
+  return parseIntegrationConnectionPublic(payload);
+}
+
 export async function fetchIntegrationDetail(
   integrationId: string
 ): Promise<IntegrationConnectionPublic> {

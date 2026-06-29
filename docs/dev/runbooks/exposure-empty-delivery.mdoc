@@ -1,0 +1,48 @@
+# Runbook — empty integration delivery / exposure engine selector failure
+
+```yaml
+runbook_version: "2026-06-29-v1"
+map_ref: docs/architecture/field-exposure-system.md — Phase 9.10 / 10.1
+implementation:
+  - apps/api/src/integrations/application/dispatch-integration-domain-event.ts
+  - apps/api/src/exposure/resolve-active-delivery-field-ids.ts
+  - apps/api/src/observability/metrics.ts
+```
+
+## Symptoms
+
+- Telegram (or other integration) message arrives with **no tour fields** despite event policy enabled.
+- Metric `field_exposure_engine_selector_failure_total` increments.
+- Logs contain `FIELD_EXPOSURE_ENGINE_FAIL_CLOSED` or `engineSelectorMissing: true` on dispatch path.
+
+## Root causes
+
+| Cause | Signal | Fix |
+| ----- | ------ | --- |
+| Exposure profile / intent not resolved | PATCH exposure returns `EXPOSURE_PROFILE_NOT_RESOLVED` | Run migrations; verify `exposure_profiles` seeded for workspace |
+| Selector throws (engine input build) | `field_exposure_engine_selector_failure_total` + stack in logs | Fix data shape; check `buildFieldExposureEngineInput` inputs |
+| All fields hidden by intent | Diff/simulation shows zero visible fields | Operator adjusts field checklist on connection or surface |
+| Fail-closed enabled (expected) | No enqueue; metric only | See rollout section below |
+
+## Triage steps
+
+1. Confirm connection event policy is **enabled** (`patchIntegrationEventPolicy` — separate from exposure field checklist).
+2. Open **Settings → Exposure** for the connection; verify selected fields for the event type.
+3. Run simulation diff (`POST /exposure/diff`) for the same connection + event type.
+4. Check dispatch logs for `eligibleFieldIds` length and `engineSelectorMissing`.
+5. Query Prometheus (or logs): `field_exposure_engine_selector_failure_total{tenant_id="..."}`.
+
+## Fail-closed rollout
+
+| Stage | `FIELD_EXPOSURE_ENGINE_FAIL_CLOSED` | Behavior |
+| ----- | ----------------------------------- | -------- |
+| Observe (default) | `false` | Metric + log; **enqueue may still proceed** with empty fields |
+| Staging | `true` | Skip enqueue when selector missing |
+| Production | `true` | Same — requires M2 sign-off |
+
+Shadow engine failures (`runShadow`) **never** block enqueue — only forward selector failures are gated.
+
+## Escalation
+
+- Cross-tenant field leakage suspected → stop dispatch flag + Phase 4 adversarial review.
+- Widespread empty delivery after deploy → check `migration-consistency-check` and exposure table presence.

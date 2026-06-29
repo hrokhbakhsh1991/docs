@@ -5,6 +5,7 @@ import {
   fetchWorkspaceIntegrationMetaServer,
   fetchWorkspaceIntegrationsServer,
 } from "@/integrations/fetch-integrations.server";
+import { fetchWorkspaceExposureCatalogServer } from "@/exposure/fetch-exposure-catalog.server";
 
 import { IntegrationsSettingsClient } from "./integrations-settings-client";
 
@@ -23,9 +24,10 @@ export default async function IntegrationsSettingsPage() {
   if (session === null) {
     return null;
   }
-  const [initialList, initialMeta] = await Promise.all([
+  const [initialList, initialMeta, initialCatalog] = await Promise.all([
     fetchWorkspaceIntegrationsServer(session.workspaceType),
     fetchWorkspaceIntegrationMetaServer(session.workspaceType),
+    fetchWorkspaceExposureCatalogServer(session.workspaceType),
   ]);
   return (
     <IntegrationsSettingsClient
@@ -33,6 +35,7 @@ export default async function IntegrationsSettingsPage() {
       workspaceId={session.workspaceType}
       initialList={initialList}
       initialMeta={initialMeta}
+      initialCatalog={initialCatalog}
     />
   );
 }

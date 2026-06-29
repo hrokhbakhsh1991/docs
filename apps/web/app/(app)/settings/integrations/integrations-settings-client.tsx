@@ -16,6 +16,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { SETTINGS_HUB_TEST_IDS } from "@/features/settings/settings-module-types";
 import {
+  fetchWorkspaceExposureCatalog,
+  type WorkspaceExposureCatalogResponse,
+} from "@/exposure/exposure-catalog-client";
+import {
   createWorkspaceIntegration,
   disableIntegration,
   enableIntegration,
@@ -60,7 +64,7 @@ export const INTEGRATIONS_SETTINGS_TEST_IDS = {
   scenario: "integrations-settings-scenario",
   workspaceScope: "integrations-settings-workspace-scope",
   addForm: "integrations-settings-add-form",
-  editForm: "integrations-settings-edit-form",
+  catalogError: "integrations-settings-catalog-error",
 } as const;
 
 type IntegrationsSettingsClientProps = {
@@ -68,6 +72,7 @@ type IntegrationsSettingsClientProps = {
   readonly workspaceId: string;
   readonly initialList?: WorkspaceIntegrationsListResponse | null;
   readonly initialMeta?: WorkspaceIntegrationSurfaceMetaResponse | null;
+  readonly initialCatalog?: WorkspaceExposureCatalogResponse | null;
 };
 
 export function IntegrationsSettingsClient({
@@ -75,6 +80,7 @@ export function IntegrationsSettingsClient({
   workspaceId,
   initialList = null,
   initialMeta = null,
+  initialCatalog = null,
 }: IntegrationsSettingsClientProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("settings.integrations");
@@ -83,6 +89,12 @@ export function IntegrationsSettingsClient({
 
   const [list, setList] = useState<WorkspaceIntegrationsListResponse | null>(initialList);
   const [meta, setMeta] = useState<WorkspaceIntegrationSurfaceMetaResponse | null>(initialMeta);
+  const [exposureCatalog, setExposureCatalog] =
+    useState<WorkspaceExposureCatalogResponse | null>(initialCatalog);
+  const [catalogError, setCatalogError] = useState<string | null>(
+    initialCatalog === null ? "pending" : null,
+  );
+  const [catalogRetrying, setCatalogRetrying] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(initialList?.items[0]?.id ?? null);
   const [detail, setDetail] = useState<IntegrationConnectionPublic | null>(null);
   const [loading, setLoading] = useState(canManage && initialList === null);
@@ -102,6 +114,26 @@ export function IntegrationsSettingsClient({
   const [patchLoading, setPatchLoading] = useState(false);
   const [patchError, setPatchError] = useState<string | null>(null);
   const [patchSuccess, setPatchSuccess] = useState(false);
+
+  async function refreshExposureCatalog(): Promise<void> {
+    setCatalogRetrying(true);
+    try {
+      const payload = await fetchWorkspaceExposureCatalog(workspaceId);
+      setExposureCatalog(payload);
+      setCatalogError(null);
+    } catch {
+      setExposureCatalog(null);
+      setCatalogError(t("catalogLoadFailed"));
+    } finally {
+      setCatalogRetrying(false);
+    }
+  }
+
+  useEffect(() => {
+    if (catalogError === "pending") {
+      setCatalogError(t("catalogLoadFailed"));
+    }
+  }, [catalogError, t]);
 
   const providerToCreate = useMemo(
     () =>
@@ -195,6 +227,32 @@ export function IntegrationsSettingsClient({
   }, [canManage, fetchNonce, initialMeta, workspaceId]);
 
   useEffect(() => {
+    if (!canManage) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void fetchWorkspaceExposureCatalog(workspaceId)
+      .then((payload) => {
+        if (!cancelled) {
+          setExposureCatalog(payload);
+          setCatalogError(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setExposureCatalog(null);
+          setCatalogError(t("catalogLoadFailed"));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canManage, fetchNonce, initialCatalog, workspaceId]);
+
+  useEffect(() => {
     if (!canManage || selectedId === null) {
       setDetail(null);
       return;
@@ -270,8 +328,12 @@ export function IntegrationsSettingsClient({
   );
 
   async function refreshList(preferredId?: string): Promise<void> {
-    const payload = await fetchWorkspaceIntegrations(workspaceId);
+    const [payload, nextCatalog] = await Promise.all([
+      fetchWorkspaceIntegrations(workspaceId),
+      fetchWorkspaceExposureCatalog(workspaceId),
+    ]);
     setList(payload);
+    setExposureCatalog(nextCatalog);
     if (preferredId !== undefined) {
       setSelectedId(preferredId);
     }
@@ -556,6 +618,17 @@ export function IntegrationsSettingsClient({
     );
   }
 
+  function connectionStatusDescription(item: IntegrationConnectionPublic): string {
+    const key = integrationStatusBadgeKey(item);
+    if (key === "error") {
+      return t("detail.statusDescriptions.error");
+    }
+    if (!item.enabled) {
+      return t("detail.statusDescriptions.disabled");
+    }
+    return t("detail.statusDescriptions.enabled");
+  }
+
   function fallbackLabelBadge(item: IntegrationConnectionPublic) {
     const fallback = resolveIntegrationFallbackLabel(item);
     if (fallback === "not_applicable") {
@@ -589,7 +662,11 @@ export function IntegrationsSettingsClient({
   }
 
   return (
-    <div className="space-y-6" data-testid={SETTINGS_HUB_TEST_IDS.integrationsPage}>
+    <div
+      className="space-y-6"
+      data-testid={SETTINGS_HUB_TEST_IDS.integrationsPage}
+      data-exposure-catalog-field-count={exposureCatalog?.fields.length ?? 0}
+    >
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
       <p
         className="text-xs text-muted-foreground"
@@ -612,6 +689,26 @@ export function IntegrationsSettingsClient({
           <Link href="/settings">{t("backToHub")}</Link>
         </Button>
       </div>
+
+      {catalogError !== null && catalogError !== "pending" ? (
+        <div
+          className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm"
+          role="alert"
+          data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.catalogError}
+        >
+          <p className="text-destructive">{catalogError}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            disabled={catalogRetrying}
+            onClick={() => void refreshExposureCatalog()}
+          >
+            {catalogRetrying ? t("catalogRetrying") : t("catalogRetry")}
+          </Button>
+        </div>
+      ) : null}
 
       {showScenarioCard ? (
         <Card
@@ -663,7 +760,12 @@ export function IntegrationsSettingsClient({
       ) : null}
 
       {error !== null ? (
-        <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, error)}</p>
+        <div className="space-y-2">
+          <p className="text-sm text-destructive">{resolveCodedErrorMessage(tErrors, error)}</p>
+          {error === "INTEGRATION_SYSTEM_NOT_READY" ? (
+            <p className="text-sm text-muted-foreground">{t("subsystemNotReadyHint")}</p>
+          ) : null}
+        </div>
       ) : null}
 
       {showCreateForm ? (
@@ -831,56 +933,95 @@ export function IntegrationsSettingsClient({
                 </p>
               ) : null}
 
+              {detailError === null &&
+              detail !== null &&
+              detail.loadWarnings !== undefined &&
+              detail.loadWarnings.length > 0 ? (
+                <div
+                  className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100"
+                  role="status"
+                  data-testid="integrations-detail-degraded"
+                >
+                  {t("detailDegradedBanner")}
+                </div>
+              ) : null}
+
               {activeItem !== null && !detailLoading ? (
                 <>
-                  <dl className="grid gap-2 text-sm">
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-muted-foreground">{t("detail.connectionId")}</dt>
-                      <dd className="font-mono text-xs">{activeItem.id}</dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-muted-foreground">{t("detail.backingSource")}</dt>
-                      <dd>
-                        {isLegacyBackedIntegration(activeItem)
-                          ? t("badges.legacy")
-                          : t("badges.integrationConnection")}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-muted-foreground">{t("detail.status")}</dt>
-                      <dd>{activeItem.status}</dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-muted-foreground">{t("detail.channelId")}</dt>
-                      <dd>{channelIdFromConfig(activeItem.config)}</dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-muted-foreground">{t("detail.hasSecret")}</dt>
-                      <dd>{activeItem.hasSecret ? t("detail.yes") : t("detail.no")}</dd>
-                    </div>
-                    {activeItem.legacySourceId !== null ? (
-                      <div className="flex justify-between gap-4">
-                        <dt className="text-muted-foreground">{t("detail.legacySourceId")}</dt>
-                        <dd className="font-mono text-xs">{activeItem.legacySourceId}</dd>
-                      </div>
-                    ) : null}
-                  </dl>
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
+                    <p className="font-medium">{t("detail.exposureMovedTitle")}</p>
+                    <p className="mt-1 text-muted-foreground">
+                      {t("detail.exposureMovedDescription")}
+                    </p>
+                    <Button asChild className="mt-3" size="sm">
+                      <Link href="/settings/exposure">
+                        {t("detail.openExposureSettings")}
+                      </Link>
+                    </Button>
+                  </div>
 
-                  {activeItem.eventPolicies.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">{t("detail.eventPolicies")}</p>
-                      <ul className="space-y-1 text-sm text-muted-foreground">
-                        {activeItem.eventPolicies.map((policy) => (
-                          <li key={policy.eventType} className="flex justify-between gap-4">
-                            <span>{policy.eventType}</span>
-                            <span>
-                              {policy.enabled ? t("badges.enabled") : t("badges.disabled")}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                  <div className="rounded-lg border border-border p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">{t("detail.overviewTitle")}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {connectionStatusDescription(activeItem)}
+                        </p>
+                      </div>
+                      {statusBadge(activeItem)}
                     </div>
-                  ) : null}
+                    <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                      <div className="rounded-md bg-muted/40 p-3">
+                        <dt className="text-xs text-muted-foreground">{t("detail.channelId")}</dt>
+                        <dd className="mt-1 font-medium">
+                          {channelIdFromConfig(activeItem.config)}
+                        </dd>
+                      </div>
+                      <div className="rounded-md bg-muted/40 p-3">
+                        <dt className="text-xs text-muted-foreground">{t("detail.hasSecret")}</dt>
+                        <dd className="mt-1 font-medium">
+                          {activeItem.hasSecret ? t("detail.yes") : t("detail.no")}
+                        </dd>
+                      </div>
+                    </dl>
+                    {testResult !== null ? (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        {testResult.ok
+                          ? t("detail.lastTestSuccess")
+                          : t("detail.lastTestFailure")}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <details className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs">
+                    <summary className="cursor-pointer select-none font-medium text-foreground">
+                      {t("detail.technicalDetails")}
+                    </summary>
+                    <dl className="mt-3 grid gap-2">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-muted-foreground">{t("detail.connectionId")}</dt>
+                        <dd className="font-mono text-xs">{activeItem.id}</dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-muted-foreground">{t("detail.backingSource")}</dt>
+                        <dd>
+                          {isLegacyBackedIntegration(activeItem)
+                            ? t("badges.legacy")
+                            : t("badges.integrationConnection")}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-muted-foreground">{t("detail.status")}</dt>
+                        <dd>{activeItem.status}</dd>
+                      </div>
+                      {activeItem.legacySourceId !== null ? (
+                        <div className="flex justify-between gap-4">
+                          <dt className="text-muted-foreground">{t("detail.legacySourceId")}</dt>
+                          <dd className="font-mono text-xs">{activeItem.legacySourceId}</dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                  </details>
 
                   {activeItem.fallbackSuppressed ? (
                     <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">
