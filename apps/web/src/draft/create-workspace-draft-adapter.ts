@@ -38,7 +38,8 @@ export function createWorkspaceDraftAdapter<T>(
       ? { shouldBypassServerVersionAdoption: options.shouldBypassServerVersionAdoption }
       : {}),
     onDiagnostic:
-      process.env.NODE_ENV === "development"
+      process.env.NODE_ENV === "development" &&
+      process.env.NEXT_PUBLIC_DRAFT_SYNC_DEBUG === "1"
         ? (event) => {
             console.debug("[draft-sync]", options.id ?? `${namespace}:${draftKey}`, event);
           }

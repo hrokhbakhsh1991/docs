@@ -29,6 +29,7 @@
     "guard:field-exposure-phase-10": "node scripts/guards/field-exposure-phase-10-guard.mjs",
     "guard:field-exposure-phase-11": "node scripts/guards/field-exposure-phase-11-guard.mjs",
     "guard:p3-denali-covenant": "node scripts/guards/guard-p3-denali-covenant.mjs",
+    "guard:wizard-post-submit": "node scripts/guards/guard-wizard-post-submit-contract.mjs",
     "guard:artifact-surface": "node scripts/guards/artifact-surface-guard.mjs",
     "check:node-engine": "node scripts/guards/check-node-engine.mjs",
     "audit-boundary": "node scripts/guards/audit-ui-primitives-boundary.mjs",

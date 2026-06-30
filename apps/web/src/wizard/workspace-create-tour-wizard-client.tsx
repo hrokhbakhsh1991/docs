@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { encodeTourActionSubmitError } from "@app-tour/workspace-denali/ui/logic/tour-action-submit-error-codec";
@@ -13,6 +13,8 @@ import { resolveWizardDraftMerge } from "@/draft/draft-unification-v3-options";
 import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import { useAppSession } from "@/providers/app-session-context";
 import { createTourAction } from "@/tours/create-tour.server";
+import { createCreateTourPostSubmitDiscardRemoteDraft } from "@/tours/create-tour-post-submit-discard";
+import { runCreateTourPostSubmitSuccess } from "@/tours/run-create-tour-post-submit-success";
 import { emptyTourWizardDraft, type TourWizardDraft } from "@/tours/tour-wizard-draft";
 import {
   resolveCloneTourId,
@@ -70,6 +72,7 @@ export type WorkspaceCreateTourWizardClientProps = {
 /** Phase 14.3 — shared create-tour orchestrator for non-extended-chrome workspaces. */
 export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTourWizardClientProps) {
   const t = useTranslations("wizard");
+  const router = useRouter();
   const searchParams = useSearchParams();
   const session = useAppSession();
   const cloneTourId = useMemo(
@@ -206,8 +209,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
     onPresetAppliedChange: setPresetApplied,
   });
 
-  const draftReady =
-    draftSync.data !== null || draftSync.status === "ERROR";
+  const draftReady = draftSync.data !== null || draftSync.status === "ERROR";
 
   const draft = draftSync.data?.form ?? emptyTourWizardDraft();
   const activeStepIndex =
@@ -278,8 +280,16 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
         );
         return;
       }
-      await draftSync.clearDraft();
       setCreatedTourId(result.record.id);
+      runCreateTourPostSubmitSuccess({
+        tourId: result.record.id,
+        navigate: (url) => router.replace(url),
+        discardRemoteDraft: createCreateTourPostSubmitDiscardRemoteDraft({
+          workspaceId: session.workspaceId,
+          namespace: PLATFORM_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+          draftKey: platformCreateTourDraftKey(pluginId),
+        }),
+      });
     });
   };
 

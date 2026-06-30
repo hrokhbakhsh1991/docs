@@ -1,6 +1,10 @@
 "use client";
 
-import type { UpdateTourPayload, WorkspacePlugin } from "@app-tour/workspace-sdk";
+import {
+  isWorkspaceUnpublishTransitionAllowed,
+  type UpdateTourPayload,
+  type WorkspacePlugin,
+} from "@app-tour/workspace-sdk";
 import type { DraftSchemaGate } from "@app-tour/draft-engine";
 import type { ValidationIssue } from "@app-tour/wizard-navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -261,7 +265,10 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
   );
 
   const formReady = envelope !== null;
-  const canUnpublish = input.canPublish && detail?.projection.uiStatus === "active";
+  const canUnpublish =
+    input.canPublish &&
+    detail?.projection.uiStatus === "active" &&
+    isWorkspaceUnpublishTransitionAllowed(input.plugin.lifecycle);
 
   const screen = useMemo(
     (): DenaliFlatEditPageScreen =>

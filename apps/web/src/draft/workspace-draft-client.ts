@@ -1,4 +1,4 @@
-import { DraftConflictError, type DraftSyncPayload } from "@app-tour/draft-engine";
+import { DraftConflictError, fetchWithTransientRetry, type DraftSyncPayload } from "@app-tour/draft-engine";
 
 import type {
   WorkspaceDraftEventListItem,
@@ -134,7 +134,7 @@ export async function fetchWorkspaceDraftIndex(
   workspaceId: string,
   namespace?: string
 ): Promise<WorkspaceDraftIndexResponse> {
-  const response = await fetch(draftListBffPath(workspaceId, namespace), {
+  const response = await fetchWithTransientRetry(draftListBffPath(workspaceId, namespace), {
     method: "GET",
     cache: "no-store",
   });
@@ -189,7 +189,7 @@ export async function fetchWorkspaceDraftSnapshot<T>(
   namespace: string,
   key: string
 ): Promise<DraftSyncPayload<T> | null> {
-  const response = await fetch(draftBffPath(workspaceId, namespace, key), {
+  const response = await fetchWithTransientRetry(draftBffPath(workspaceId, namespace, key), {
     method: "GET",
     cache: "no-store",
   });
@@ -259,7 +259,7 @@ export async function deleteWorkspaceDraftSnapshot(
   }
 }
 
-/** DELETE then GET-verify empty; one retry if row still present (clear-draft race). */
+/** DELETE then optional GET-verify when response is non-204 success (clear-draft race). */
 export async function deleteWorkspaceDraftSnapshotVerified(
   workspaceId: string,
   namespace: string,
@@ -272,7 +272,10 @@ export async function deleteWorkspaceDraftSnapshotVerified(
   if (response.status === 404) {
     return;
   }
-  if (response.status !== 204 && !response.ok) {
+  if (response.status === 204) {
+    return;
+  }
+  if (!response.ok) {
     throw new Error(`WORKSPACE_DRAFT_DELETE_FAILED:${response.status}`);
   }
   const stale = await fetchWorkspaceDraftSnapshot<unknown>(workspaceId, namespace, key);

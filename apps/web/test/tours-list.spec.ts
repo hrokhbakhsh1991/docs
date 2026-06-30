@@ -192,4 +192,14 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.match(pageClient, /isRefetching/);
     assert.match(pageClient, /aria-busy=\{isRefetching/);
   });
+
+  it("WEB-P11-6-05 tours list shows created notice and strips query param", () => {
+    const pageClient = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-page-client.tsx"),
+      "utf8"
+    );
+    assert.match(pageClient, /TOURS_LIST_TEST_IDS\.createdNotice/);
+    assert.match(pageClient, /searchParams\.get\("created"\)/);
+    assert.match(pageClient, /next\.delete\("created"\)/);
+  });
 });

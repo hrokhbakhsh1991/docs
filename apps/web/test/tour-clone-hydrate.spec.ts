@@ -9,6 +9,8 @@ import { OPERATOR_WIZARD_PATH } from "../src/admin/require-operator-session";
 import type { OperatorTourDetailResponse } from "../src/features/tours/operator-tour-detail-types";
 import {
   buildCloneTourDetailUrl,
+  chunkTourClonePhotoRemintPlan,
+  executeTourClonePhotoRemintPlan,
   hydrateCreateTourFromClone,
   hydrateTourCloneDraft,
   loadTourCloneHydrator,
@@ -17,6 +19,7 @@ import {
   resolveCloneTourId,
   shouldHydrateDraftFromRemote,
   shouldSkipWizardTemplatePrefill,
+  TOUR_CLONE_PHOTO_REMINT_BATCH_SIZE,
 } from "../src/tours/tour-clone-hydrate-logic";
 import { getCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
 
@@ -175,5 +178,78 @@ describe("tour-clone-hydrate.spec.ts — Phase 11.6 Web", () => {
     assert.notEqual(photos[0]!.id, "photo-old");
     assert.match(photos[0]!.storageKey, /wizard-drafts/);
     assert.equal(result!.photoRemintPlan?.length, 1);
+  });
+
+  it("WEB-P11-13-02 chunks remint plan into API batch size", () => {
+    const plan = Array.from({ length: TOUR_CLONE_PHOTO_REMINT_BATCH_SIZE + 3 }, (_, index) => ({
+      sourceStorageKey: `tenant/tours/a/photos/old-${index}`,
+      destStorageKey: `tenant/wizard-drafts/session/photos/new-${index}`,
+      oldPhotoId: `old-${index}`,
+      newPhotoId: `new-${index}`,
+    }));
+    const chunks = chunkTourClonePhotoRemintPlan(plan);
+    assert.equal(chunks.length, 2);
+    assert.equal(chunks[0]?.length, TOUR_CLONE_PHOTO_REMINT_BATCH_SIZE);
+    assert.equal(chunks[1]?.length, 3);
+  });
+
+  it("WEB-P11-13-03 remint HTTP failure does not throw", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response("forbidden", { status: 403 });
+    try {
+      await executeTourClonePhotoRemintPlan([
+        {
+          sourceStorageKey: "tenant/tours/a/photos/old",
+          destStorageKey: "tenant/wizard-drafts/session/photos/new",
+          oldPhotoId: "old",
+          newPhotoId: "new",
+        },
+      ]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("WEB-P11-13-04 hydrateCreateTourFromClone succeeds when remint returns 403", async () => {
+    const tourId = "00000000-0000-4000-8000-000000000099";
+    const tenantId = "00000000-0000-4000-8000-000000000014";
+    const sessionId = "11111111-1111-4111-8111-111111111111";
+    const detail = sampleDetail("Photo clone");
+    detail.canonical.data.photos = [
+      {
+        id: "photo-old",
+        storageKey: `${tenantId}/tours/tour-src/photos/photo-old`,
+        contentType: "image/png",
+      },
+    ];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      if (url.includes(`/api/tours/${tourId}`)) {
+        return new Response(JSON.stringify(detail), { status: 200 });
+      }
+      if (url.includes("/api/settings/resources/equipment")) {
+        return new Response(JSON.stringify({ items: [] }), { status: 200 });
+      }
+      if (url.includes("/api/settings/resources/locations")) {
+        return new Response(JSON.stringify({ destinations: [] }), { status: 200 });
+      }
+      if (url.includes("/api/wizard-clone-remint")) {
+        return new Response("forbidden", { status: 403 });
+      }
+      return new Response("not found", { status: 404 });
+    };
+    try {
+      const result = await hydrateCreateTourFromClone({
+        cloneTourId: tourId,
+        pluginId: "denali",
+        wizardSessionId: sessionId,
+      });
+      assert.equal(getCanonicalStringValue(result.draft, "title"), "Photo clone (Copy)");
+      const photos = result.draft.data.photos as Array<{ id: string }>;
+      assert.notEqual(photos[0]?.id, "photo-old");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
@@ -13,6 +13,8 @@ import { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
 import { useDenaliWizardClearDraft } from "@/draft/use-denali-wizard-clear-draft";
 import { useAppSession } from "@/providers/app-session-context";
 import { createTourAction } from "@/tours/create-tour.server";
+import { createCreateTourPostSubmitDiscardRemoteDraft } from "@/tours/create-tour-post-submit-discard";
+import { runCreateTourPostSubmitSuccess } from "@/tours/run-create-tour-post-submit-success";
 import {
   hydrateCreateTourFromClone,
   resolveCloneTourId,
@@ -58,6 +60,7 @@ export type { DenaliCreateTourWizardScreen };
 
 /** Phase 15.2 P15-W-B1e — Denali create wizard orchestration hook (shell wiring). */
 export function useDenaliCreateTourWizard() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const session = useAppSession();
   const cloneTourId = useMemo(() => resolveCloneTourId(searchParams.get("clone")), [searchParams]);
@@ -174,6 +177,21 @@ export function useDenaliCreateTourWizard() {
     onPresetAppliedChange: setPresetApplied,
   });
 
+  const onCreateSuccess = useCallback(
+    (tourId: string) => {
+      runCreateTourPostSubmitSuccess({
+        tourId,
+        navigate: (url) => router.replace(url),
+        discardRemoteDraft: createCreateTourPostSubmitDiscardRemoteDraft({
+          workspaceId: session.workspaceId,
+          namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+          draftKey: DENALI_CREATE_TOUR_DRAFT_KEY,
+        }),
+      });
+    },
+    [router, session.workspaceId]
+  );
+
   return useDenaliCreateTourWizardCore({
     cloneTourId,
     presetId,
@@ -196,6 +214,7 @@ export function useDenaliCreateTourWizard() {
     createTourAction,
     isDraftEssentiallyEmpty,
     draftResumeEpoch,
+    onCreateSuccess,
   });
 }
 

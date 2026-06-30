@@ -26,6 +26,7 @@
   },
   "emptyCatalog": "No tours yet. Create your first tour to get started.",
   "emptyFilter": "No tours match your filters. Try adjusting search or status.",
+  "createdNotice": "Tour created successfully.",
   "pagination": "Page {page, number} of {totalPages, number} · {total, number} tours",
   "card": {
     "noDescription": "No description",

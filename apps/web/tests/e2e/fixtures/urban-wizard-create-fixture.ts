@@ -105,13 +105,10 @@ export async function submitUrbanWizardCreate(page: Page): Promise<void> {
   await waitForDraftSyncIdle(page);
   const createBtn = page.locator("[data-wizard-footer] button");
   await expect(createBtn).toBeVisible({ timeout: 15_000 });
-  const actionDone = page.waitForResponse(
-    (res) => res.request().method() === "POST" && res.url().includes("/tours/new"),
-    { timeout: 60_000 }
-  );
-  await createBtn.click();
-  const response = await actionDone;
-  expect(response.ok()).toBeTruthy();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === "/tours", { timeout: 90_000 }),
+    createBtn.click(),
+  ]);
 }
 
 /** Operator list projection may show Untitled — assert canonical tour.title via BFF. */

@@ -42,6 +42,17 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
     assert.equal(result, null);
   });
 
+  it("WEB-P11-3-20 GET 204 returns null", async () => {
+    globalThis.fetch = (async () => new Response(null, { status: 204 })) as FetchImpl;
+
+    const result = await fetchWorkspaceDraftSnapshot<{ title: string }>(
+      WORKSPACE_ID,
+      NAMESPACE,
+      KEY
+    );
+    assert.equal(result, null);
+  });
+
   it("WEB-P11-3-02 PATCH 409 throws DraftConflictError with server payload", async () => {
     globalThis.fetch = (async () =>
       new Response(
@@ -263,7 +274,7 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
     await deleteWorkspaceDraftSnapshot(WORKSPACE_ID, NAMESPACE, KEY);
   });
 
-  it("WEB-P11-3-17 verified DELETE retries when GET still returns row", async () => {
+  it("WEB-P11-3-17 verified DELETE 204 skips verify GET", async () => {
     let getCalls = 0;
     globalThis.fetch = (async (_input, init) => {
       const method = init?.method ?? "GET";
@@ -271,22 +282,11 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
         return new Response(null, { status: 204 });
       }
       getCalls += 1;
-      if (getCalls === 1) {
-        return new Response(
-          JSON.stringify({
-            data: { title: "stale" },
-            version: 3,
-            schemaVersion: 1,
-            lastModified: 100,
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-        );
-      }
-      return new Response(JSON.stringify({ error: "not_found" }), { status: 404 });
+      throw new Error("unexpected GET after DELETE 204");
     }) as FetchImpl;
 
     await deleteWorkspaceDraftSnapshotVerified(WORKSPACE_ID, NAMESPACE, KEY);
-    assert.equal(getCalls, 2);
+    assert.equal(getCalls, 0);
   });
 
   it("WEB-P11-3-18 verified DELETE 404 skips verify GET (no noisy second fetch)", async () => {
@@ -355,5 +355,23 @@ describe("workspace-draft-client.spec.ts — Phase 11.3", () => {
     const result = await fetchWorkspaceDraftEvents(WORKSPACE_ID, NAMESPACE, KEY);
     assert.equal(result.items.length, 1);
     assert.equal(result.items[0]?.action, "updated");
+  });
+
+  it("WEB-P11-9-06 draft index GET retries once on transient 503", async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(JSON.stringify({ error: "busy" }), { status: 503 });
+      }
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }) as FetchImpl;
+
+    const result = await fetchWorkspaceDraftIndex(WORKSPACE_ID, NAMESPACE);
+    assert.equal(calls, 2);
+    assert.deepEqual(result.items, []);
   });
 });

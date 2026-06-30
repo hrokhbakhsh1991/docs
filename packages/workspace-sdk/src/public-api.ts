@@ -58,6 +58,8 @@ export {
   type WorkspaceTypeId,
   type WorkspaceLifecycleContract,
   type WorkspaceLifecycleTransition,
+  isWorkspaceLifecycleTransitionAllowed,
+  isWorkspaceUnpublishTransitionAllowed,
   type WorkspaceValidationHooks,
   type WorkspaceViolation,
   type WorkspaceWizardMode,

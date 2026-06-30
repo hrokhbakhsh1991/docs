@@ -1,5 +1,10 @@
 export { DraftEngine } from "./engine";
 export {
+  DEFAULT_TRANSIENT_HTTP_STATUSES,
+  fetchWithTransientRetry,
+  type FetchWithTransientRetryOptions,
+} from "./fetch-with-transient-retry";
+export {
   DraftConflictError,
   type ConflictStrategy,
   type DraftAckCache,

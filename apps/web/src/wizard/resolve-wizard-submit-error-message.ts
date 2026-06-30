@@ -35,6 +35,43 @@ function resolveHttpSubmitSummary(
   return t.translate(context === "create" ? "submit.errorUnknown" : "submitEdit.errorUnknown");
 }
 
+type HttpSubmitErrorPayload = {
+  readonly status: number;
+  readonly code: string;
+  readonly message: string;
+  readonly correlationId?: string;
+};
+
+function buildHttpSubmitErrorDetails(
+  payload: HttpSubmitErrorPayload,
+  t: WizardSubmitErrorTranslator,
+  context: "create" | "edit"
+): readonly string[] | undefined {
+  const details: string[] = [];
+  const code = payload.code.trim();
+  const message = payload.message.trim();
+  const prefix = context === "create" ? "submit" : "submitEdit";
+
+  if (code.length > 0 && code !== "unknown_error") {
+    details.push(t.translate(`${prefix}.errorDetailCode`, { code }));
+  }
+  if (
+    message.length > 0 &&
+    message !== "unknown_error" &&
+    message !== code &&
+    !message.startsWith("CANONICAL_VALIDATION_FAILED")
+  ) {
+    details.push(t.translate(`${prefix}.errorDetailMessage`, { message }));
+  }
+  if (payload.correlationId != null && payload.correlationId.length > 0) {
+    details.push(
+      t.translate(`${prefix}.errorDetailCorrelation`, { correlationId: payload.correlationId })
+    );
+  }
+
+  return details.length > 0 ? details : undefined;
+}
+
 function formatValidationSegments(input: {
   readonly message: string;
   readonly t: WizardSubmitErrorTranslator;
@@ -141,8 +178,19 @@ export function resolveWizardSubmitErrorMessage(input: {
     });
   }
 
+  if (payload.code.startsWith("TOUR_LIFECYCLE_TRANSITION_REJECTED")) {
+    const unpublishRejected = payload.code.includes("OPEN->DRAFT");
+    const lifecycleKey = unpublishRejected
+      ? "submitEdit.lifecycleUnpublishRejected"
+      : "submitEdit.lifecycleTransitionRejected";
+    if (input.t.has(lifecycleKey)) {
+      return { summary: input.t.translate(lifecycleKey) };
+    }
+  }
+
   return {
     summary: resolveHttpSubmitSummary(payload.status, input.t, input.context),
+    details: buildHttpSubmitErrorDetails(payload, input.t, input.context),
   };
 }
 

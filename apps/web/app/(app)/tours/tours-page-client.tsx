@@ -78,6 +78,8 @@ export function OperatorToursPageClient({
   const [loading, setLoading] = useState(initialToursList === null);
   const [fetchNonce, setFetchNonce] = useState(0);
   const skipInitialFetchRef = useRef(initialToursList !== null);
+  const capturedCreatedNoticeRef = useRef(false);
+  const [createdNoticeTourId, setCreatedNoticeTourId] = useState<string | null>(null);
 
   const replaceQuery = useCallback(
     (next: TourListQueryModel) => {
@@ -89,6 +91,21 @@ export function OperatorToursPageClient({
   useEffect(() => {
     setSearchInput(query.search);
   }, [query.search]);
+
+  useEffect(() => {
+    const createdId = searchParams.get("created")?.trim() ?? "";
+    if (createdId.length === 0) {
+      return;
+    }
+    if (!capturedCreatedNoticeRef.current) {
+      capturedCreatedNoticeRef.current = true;
+      setCreatedNoticeTourId(createdId);
+    }
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("created");
+    const suffix = next.toString();
+    router.replace(suffix.length > 0 ? `${pathname}?${suffix}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -195,6 +212,16 @@ export function OperatorToursPageClient({
           ) : null
         }
       />
+
+      {createdNoticeTourId !== null ? (
+        <p
+          className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-foreground"
+          role="status"
+          data-testid={TOURS_LIST_TEST_IDS.createdNotice}
+        >
+          {t("createdNotice")}
+        </p>
+      ) : null}
 
       {isInitialLoad ? (
         <ToursListToolbarSkeleton isDenali={isDenali} />

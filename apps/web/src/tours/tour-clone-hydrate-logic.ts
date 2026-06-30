@@ -105,22 +105,54 @@ export function hydrateTourCloneDraft(
   };
 }
 
+export const TOUR_CLONE_PHOTO_REMINT_BATCH_SIZE = 10;
+
+export function chunkTourClonePhotoRemintPlan(
+  plan: readonly WizardPhotoRemintPlanEntry[],
+  batchSize = TOUR_CLONE_PHOTO_REMINT_BATCH_SIZE,
+): WizardPhotoRemintPlanEntry[][] {
+  if (plan.length === 0) {
+    return [];
+  }
+  const chunks: WizardPhotoRemintPlanEntry[][] = [];
+  for (let index = 0; index < plan.length; index += batchSize) {
+    chunks.push(plan.slice(index, index + batchSize));
+  }
+  return chunks;
+}
+
+/**
+ * Best-effort MinIO copy for wizard clone — failures must not block draft hydration.
+ * API accepts at most {@link TOUR_CLONE_PHOTO_REMINT_BATCH_SIZE} entries per request.
+ */
 export async function executeTourClonePhotoRemintPlan(
   plan: readonly WizardPhotoRemintPlanEntry[]
 ): Promise<void> {
   if (plan.length === 0) {
     return;
   }
-  const response = await fetch(resolveWizardCloneRemintBffPath(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan }),
-  });
-  if (response.status === 503) {
-    return;
-  }
-  if (!response.ok) {
-    throw new Error(`TOUR_CLONE_PHOTO_REMINT_HTTP_${response.status}`);
+  for (const batch of chunkTourClonePhotoRemintPlan(plan)) {
+    try {
+      const response = await fetch(resolveWizardCloneRemintBffPath(), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: batch }),
+      });
+      if (response.status === 503 || response.status === 401) {
+        return;
+      }
+      if (!response.ok) {
+        console.warn(
+          `[tour-clone] photo remint skipped for batch of ${batch.length}: HTTP ${response.status}`,
+        );
+      }
+    } catch (error: unknown) {
+      console.warn(
+        `[tour-clone] photo remint skipped for batch of ${batch.length}:`,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
 }
 
@@ -165,8 +197,8 @@ export async function hydrateCreateTourFromClone(
     wizardSessionId: input.wizardSessionId,
     tenantId: detail.tenantId,
   });
-  if (hydrated.photoRemintPlan !== undefined) {
-    await executeTourClonePhotoRemintPlan(hydrated.photoRemintPlan);
+  if (hydrated.photoRemintPlan !== undefined && hydrated.photoRemintPlan.length > 0) {
+    void executeTourClonePhotoRemintPlan(hydrated.photoRemintPlan);
   }
   return hydrated;
 }

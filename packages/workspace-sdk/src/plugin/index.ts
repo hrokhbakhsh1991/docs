@@ -37,6 +37,10 @@ export {
   type WorkspaceLifecycleTransition,
 } from "./workspace-lifecycle";
 export {
+  isWorkspaceLifecycleTransitionAllowed,
+  isWorkspaceUnpublishTransitionAllowed,
+} from "./workspace-lifecycle-transition";
+export {
   noopWorkspaceValidationHooks,
   type WorkspaceValidationHooks,
   type WorkspaceViolation,

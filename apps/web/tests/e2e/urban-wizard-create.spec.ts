@@ -36,9 +36,11 @@ test.describe("urban-wizard-create.spec.ts — P15-W-D2", () => {
 
     await fillUrbanWizardReviewPublishStatus(page);
     await submitUrbanWizardCreate(page);
+    await expect(page.getByTestId(TOURS_LIST_TEST_IDS.createdNotice)).toBeVisible({
+      timeout: 15_000,
+    });
     await expectUrbanTourCanonicalTitle(page, tourTitle);
 
-    await page.goto("/tours");
     await expect(page.getByTestId(TOURS_LIST_TEST_IDS.page)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId(TOURS_LIST_TEST_IDS.list)).toContainText(tourTitle, {
       timeout: 15_000,

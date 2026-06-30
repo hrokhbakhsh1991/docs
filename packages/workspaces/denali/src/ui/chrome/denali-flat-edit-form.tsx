@@ -71,6 +71,7 @@ export type DenaliFlatEditFieldRenderProps = {
   readonly fieldLabelSurfaceId?: string;
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
+  readonly translateWorkspaceMessage?: (key: string) => string;
 };
 
 export type DenaliFlatEditFormProps = {
@@ -268,6 +269,7 @@ export function DenaliFlatEditForm({
                         fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
                         wizardSessionId,
                         workspaceFormProfile,
+                        translateWorkspaceMessage: (key) => tDenali(key),
                       })}
                     </div>
                   );

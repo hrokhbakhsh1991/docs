@@ -26,6 +26,10 @@ import {
   type TourCloneHydrateStatus,
 } from "./create-tour-wizard-screen";
 import {
+  resolveCreateTourCloneHydrateKey,
+  runCreateTourCloneHydrateSequence,
+} from "./create-tour-clone-hydrate-sequence";
+import {
   useDenaliThemeCatalog,
   useDenaliWizardRuleSync,
   useDenaliWizardRules,
@@ -101,10 +105,12 @@ export type DenaliCreateTourWizardCoreInput = {
         readonly status: number;
         readonly code: string;
         readonly message: string;
+        readonly correlationId?: string;
       }
   >;
   readonly isDraftEssentiallyEmpty: (form: Record<string, unknown>) => boolean;
   readonly draftResumeEpoch: number;
+  readonly onCreateSuccess?: (tourId: string) => void;
 };
 
 /** Phase 15.2 P15-W-B1e — Denali create wizard orchestration (workspace package). */
@@ -121,40 +127,60 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
   const denaliRules = useDenaliWizardRules();
   const themeCatalog = useDenaliThemeCatalog(input.gate.published);
 
+  const cloneHydratedKeyRef = useRef<string | null>(null);
+  const draftSyncRef = useRef(input.draftSync);
+  draftSyncRef.current = input.draftSync;
+  const hydrateCreateTourFromCloneRef = useRef(input.hydrateCreateTourFromClone);
+  hydrateCreateTourFromCloneRef.current = input.hydrateCreateTourFromClone;
+  const prepareEnvelopeRef = useRef(input.prepareEnvelope);
+  prepareEnvelopeRef.current = input.prepareEnvelope;
+
   useEffect(() => {
     if (!input.cloneTourId || !input.gate.published) {
+      cloneHydratedKeyRef.current = null;
       setCloneStatus("idle");
       setCloneError(null);
       return;
     }
+
+    const hydrateKey = resolveCreateTourCloneHydrateKey(input.cloneTourId, input.wizardSessionId);
+    if (cloneHydratedKeyRef.current === hydrateKey) {
+      setCloneStatus("ready");
+      setCloneError(null);
+      return;
+    }
+
     let cancelled = false;
     setCloneStatus("loading");
     setCloneError(null);
     void (async () => {
       try {
-        const hydrated = await input.hydrateCreateTourFromClone({
+        await runCreateTourCloneHydrateSequence({
           cloneTourId: input.cloneTourId!,
           pluginId: input.session.pluginId,
           wizardSessionId: input.wizardSessionId,
+          hydrateCreateTourFromClone: (hydrateInput) =>
+            hydrateCreateTourFromCloneRef.current(hydrateInput),
+          clearDraft: () => draftSyncRef.current.clearDraft(),
+          applyHydratedDraft: (hydratedDraft) => {
+            draftSyncRef.current.setData(
+              prepareEnvelopeRef.current(hydratedDraft, {
+                currentStepIndex: 0,
+                wizardSessionId: input.wizardSessionId,
+              })
+            );
+          },
         });
         if (cancelled) {
           return;
         }
-        await input.draftSync.clearDraft();
-        if (cancelled) {
-          return;
-        }
-        input.draftSync.setData(
-          input.prepareEnvelope(hydrated.draft, {
-            currentStepIndex: 0,
-            wizardSessionId: input.wizardSessionId,
-          })
-        );
+        cloneHydratedKeyRef.current = hydrateKey;
         setCloneStatus("ready");
       } catch (error: unknown) {
         if (cancelled) {
           return;
         }
+        cloneHydratedKeyRef.current = null;
         setCloneStatus("error");
         setCloneError(error instanceof Error ? error.message : "TOUR_CLONE_FAILED");
       }
@@ -167,9 +193,6 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     input.gate.published,
     input.wizardSessionId,
     input.session.pluginId,
-    input.draftSync,
-    input.prepareEnvelope,
-    input.hydrateCreateTourFromClone,
   ]);
 
   const denaliEnvelope = input.draftSync.data;
@@ -207,8 +230,8 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
       return;
     }
     emptyDraftResetRef.current = true;
-    input.draftSync.setData(
-      input.prepareEnvelope(envelope.form, {
+    draftSyncRef.current.setData(
+      prepareEnvelopeRef.current(envelope.form, {
         currentStepIndex: 0,
         wizardSessionId: envelope.meta.wizardSessionId ?? input.wizardSessionId,
         freshStart: true,
@@ -218,9 +241,8 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
     input.gate.published,
     input.cloneTourId,
     denaliDraftHydrated,
-    input.draftSync,
+    input.draftSync.data,
     input.wizardSessionId,
-    input.prepareEnvelope,
     input.isDraftEssentiallyEmpty,
   ]);
 
@@ -229,9 +251,9 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
   const getEnvelope = useCallback(() => denaliEnvelopeRef.current, []);
   const setEnvelope = useCallback(
     (prepared: DenaliCreateTourWizardDraftEnvelope) => {
-      input.draftSync.setData(prepared);
+      draftSyncRef.current.setData(prepared);
     },
-    [input.draftSync]
+    []
   );
 
   const { wizardRuleEvalContext, onDraftChange } = useDenaliWizardRuleSync({
@@ -305,19 +327,20 @@ export function useDenaliCreateTourWizardCore(input: DenaliCreateTourWizardCoreI
             status: result.status,
             code: result.code,
             message: result.message,
+            ...(result.correlationId !== undefined ? { correlationId: result.correlationId } : {}),
           })
         );
         return;
       }
-      await input.draftSync.clearDraft();
       setCreatedTourId(result.record.id);
+      input.onCreateSuccess?.(result.record.id);
     });
   }, [
     input.denaliPlugin,
     input.session.tenantId,
     input.gate,
-    input.draftSync,
     input.createTourAction,
+    input.onCreateSuccess,
     draft,
     denaliRules,
     wizardRuleEvalContext,

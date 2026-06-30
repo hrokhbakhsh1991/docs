@@ -240,6 +240,10 @@ Platform-neutral wizard fallback remains in `apps/web/app/globals.css`; Denali o
 
 Server actions (`createTourAction`, `updateTourAction`) return structured `{ status, code, message }` from Tour Ops API. Denali wizard cores encode failures as `TOUR_ACTION_ERROR:` + JSON (see `tour-action-submit-error-codec.ts`) — never raw `ACTION:400:CANONICAL_…` tokens in UI state.
 
+**Auth bind (create):** `createTourAction` must call Tour Ops with the operator **session JWT** (`Authorization: Bearer …` + ingress `host`), same as `updateTourAction`. Using `resolveBootstrapAppSession()` alone (env defaults like `dev-tenant-local`) sends the wrong `x-tenant-id` and API returns `500 internal_error`.
+
+`createTourAction` **must** call `resolveRequestBootstrapAppSession()` (host + signed session cookie), not bare `resolveBootstrapAppSession()`. The env-only bootstrap (`dev-tenant-local` / `default` workspace) makes `POST /tours` return `500 internal_error` even when the operator UI shows the correct Denali tenant from layout bootstrap.
+
 | Layer                             | Responsibility                                                                     |
 | --------------------------------- | ---------------------------------------------------------------------------------- |
 | `parseTourApiErrorBody`           | Split API `code` vs human `error` message                                          |
@@ -248,6 +252,29 @@ Server actions (`createTourAction`, `updateTourAction`) return structured `{ sta
 | `WizardSubmitErrorAlert`          | Summary + bullet list under create/save footer                                     |
 
 Validation failures show Persian field labels (e.g. «نقطه شروع») — not English canonical paths or HTTP codes.
+
+For non-validation HTTP failures (401/403/409/5xx), the summary stays a localized bucket message (`wizard.submit.http500`, etc.) and **details** carry operator-debuggable facts from the API envelope:
+
+| Detail line | Source |
+| ----------- | ------ |
+| `submit.errorDetailCode` | Tour Ops `code` when present |
+| `submit.errorDetailMessage` | `error` / `message` body (e.g. `internal_error`) |
+| `submit.errorDetailCorrelation` | `correlationId` echoed by API — match in `@apps/api` access logs |
+
+Server errors intentionally hide stack/SQL from the response; correlation id is the supported cross-layer lookup key.
+
+## Post-create navigation (Phase 11.6)
+
+Successful create **must** leave `/tours/new` immediately:
+
+| Step | Behavior |
+| ---- | -------- |
+| Submit OK | `runCreateTourPostSubmitSuccess` → `router.replace(/tours?created={id})` |
+| Remote draft | `createCreateTourPostSubmitDiscardRemoteDraft` → `deleteWorkspaceDraftSnapshot` in background (non-verified DELETE) |
+| Engine | No `clearDraft()` on success — avoids `data=null` loading stall (especially with `?clone=`) |
+| List UX | `OperatorToursPageClient` shows `tours.createdNotice`, strips `?created=` from URL |
+
+Contract guard: `pnpm run guard:wizard-post-submit` (wired in `pre-commit:fast`)
 
 ## Verification
 

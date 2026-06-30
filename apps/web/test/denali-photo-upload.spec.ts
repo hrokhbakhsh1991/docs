@@ -7,9 +7,10 @@ import { describe, it } from "node:test";
 import {
   extractDenaliPhotoApiErrorCode,
   parseDenaliPhotoApiErrorCode,
-} from "../src/i18n/resolve-denali-photo-upload-error";
+} from "@app-tour/workspace-denali/ui/adapters/photo-upload-errors";
 import {
   DENALI_PHOTO_ALLOWED_CONTENT_TYPES,
+  resolveDenaliWizardPhotoPreviewUrl,
   validateDenaliPhotoFile,
 } from "@app-tour/workspace-denali/ui/adapters/photo-upload-client";
 import { parseDenaliTourPhotos } from "@app-tour/workspace-denali/ui/logic/denali-photo-types";
@@ -69,5 +70,45 @@ describe("denali-photo-upload.spec.ts", () => {
 
   it("WEB-6.7-PHOTO-05 falls back to HTTP status code", () => {
     assert.equal(parseDenaliPhotoApiErrorCode({}, 500), "PHOTO_UPLOAD_HTTP_500");
+  });
+
+  it("WEB-6.7-PHOTO-06 maps tenant DB budget exhaustion to PHOTO_SERVICE_BUSY", () => {
+    assert.equal(
+      parseDenaliPhotoApiErrorCode({ code: "TENANT_DB_BUDGET_EXCEEDED" }, 503),
+      "PHOTO_SERVICE_BUSY"
+    );
+    assert.equal(
+      parseDenaliPhotoApiErrorCode({ code: "DB_POOL_SATURATED" }, 503),
+      "PHOTO_SERVICE_BUSY"
+    );
+  });
+
+  it("WEB-6.7-PHOTO-07 preview URL fetch retries once on 503", async () => {
+    const originalFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(
+          JSON.stringify({ code: "TENANT_DB_BUDGET_EXCEEDED" }),
+          { status: 503, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(JSON.stringify({ url: "https://cdn.example/photo.jpg" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }) as typeof globalThis.fetch;
+
+    try {
+      const result = await resolveDenaliWizardPhotoPreviewUrl("tenant/wizard-drafts/session/photos/id");
+      assert.equal(calls, 2);
+      assert.equal(result.ok, true);
+      if (result.ok) {
+        assert.equal(result.url, "https://cdn.example/photo.jpg");
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

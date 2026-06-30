@@ -1,4 +1,8 @@
-import type { UpdateTourPayload, WorkspacePlugin } from "@app-tour/workspace-sdk";
+import {
+  isWorkspaceUnpublishTransitionAllowed,
+  type UpdateTourPayload,
+  type WorkspacePlugin,
+} from "@app-tour/workspace-sdk";
 import { mapValidationResultToIssues, type ValidationIssue } from "@app-tour/wizard-navigation";
 
 import type { DenaliTourWizardDraft } from "../../draft/denali-tour-wizard-draft";
@@ -59,6 +63,21 @@ export async function runDenaliFlatEditPatch(input: {
     return {
       ok: false,
       failure: { kind: "not-ready", code: "DENALI_EVAL_CONTEXT_NOT_READY" },
+    };
+  }
+
+  if (
+    input.patchIntent === "unpublish" &&
+    !isWorkspaceUnpublishTransitionAllowed(input.plugin.lifecycle)
+  ) {
+    return {
+      ok: false,
+      failure: {
+        kind: "update-action",
+        code: "TOUR_LIFECYCLE_TRANSITION_REJECTED:OPEN->DRAFT",
+        status: 400,
+        message: "TOUR_LIFECYCLE_TRANSITION_REJECTED:OPEN->DRAFT",
+      },
     };
   }
 

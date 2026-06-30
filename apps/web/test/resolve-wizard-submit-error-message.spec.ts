@@ -13,6 +13,11 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
         "submit.validationSummary": "Fix before create:",
         "submit.validationFailed": "Fix highlighted fields.",
         "submit.errorUnknown": "Create failed.",
+        "submit.http500": "Server error bucket.",
+        "submit.errorDetailCode": "Code: {code}",
+        "submit.errorDetailMessage": "Message: {message}",
+        "submit.errorDetailCorrelation": "Correlation: {correlationId}",
+        "submitEdit.lifecycleUnpublishRejected": "Unpublish not supported.",
         "submit.unknownField": "Field",
         "host.validation.codes.REQUIRED_FIELD_EMPTY": "{field} is required",
         "host.validation.codes.CANONICAL_TYPE_MISMATCH": "{field} is invalid",
@@ -24,6 +29,7 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
     },
     has: (key: string) =>
       key.startsWith("submit.") ||
+      key.startsWith("submitEdit.") ||
       key.startsWith("host.validation.codes.") ||
       key.startsWith("validation."),
   };
@@ -45,6 +51,43 @@ describe("resolve-wizard-submit-error-message.spec.ts", () => {
     assert.equal(presentation?.details?.length, 2);
     assert.match(presentation?.details?.[0] ?? "", /Label:title/);
     assert.match(presentation?.details?.[1] ?? "", /Label:startPoint/);
+  });
+
+  it("shows API code, message, and correlation id for HTTP 500", () => {
+    const raw = encodeTourActionSubmitError({
+      status: 500,
+      code: "INTERNAL_ERROR",
+      message: "internal_error",
+      correlationId: "8104fe81-3909-4563-b29f-97414e10abfa",
+    });
+    const presentation = resolveWizardSubmitErrorMessage({
+      raw,
+      context: "create",
+      translateFieldLabel: (path) => path,
+      t,
+    });
+    assert.equal(presentation?.summary, "Server error bucket.");
+    assert.deepEqual(presentation?.details, [
+      "Code: INTERNAL_ERROR",
+      "Message: internal_error",
+      "Correlation: 8104fe81-3909-4563-b29f-97414e10abfa",
+    ]);
+  });
+
+  it("maps lifecycle unpublish rejection to operator copy", () => {
+    const raw = encodeTourActionSubmitError({
+      status: 400,
+      code: "TOUR_LIFECYCLE_TRANSITION_REJECTED:OPEN->DRAFT",
+      message: "TOUR_LIFECYCLE_TRANSITION_REJECTED:OPEN->DRAFT",
+    });
+    const presentation = resolveWizardSubmitErrorMessage({
+      raw,
+      context: "edit",
+      translateFieldLabel: (path) => path,
+      t,
+    });
+    assert.equal(presentation?.summary, "Unpublish not supported.");
+    assert.equal(presentation?.details, undefined);
   });
 
   it("parses legacy ACTION prefix", () => {
