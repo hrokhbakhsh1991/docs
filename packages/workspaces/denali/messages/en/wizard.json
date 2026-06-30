@@ -233,7 +233,9 @@
         "PHOTO_PREVIEW_URL_MISSING": "Preview URL was not returned by the server.",
         "PHOTO_PREVIEW_HTTPS_REQUIRED": "Image URL must use HTTPS to preview.",
         "PHOTO_UPLOAD_HTTP_ERROR": "Upload failed (HTTP {status, number}).",
-        "PHOTO_MISSING_STORAGE_KEY": "Upload response missing storage key."
+        "PHOTO_MISSING_STORAGE_KEY": "Upload response missing storage key.",
+        "PHOTO_INVALID_UPLOAD_HEADERS": "Invalid upload request headers.",
+        "PHOTO_SERVICE_BUSY": "The server is temporarily busy. Try again in a few seconds."
       },
       "addPhoto": "Add photo",
       "removePhoto": "Remove photo",
@@ -399,6 +401,7 @@
       }
     },
     "destination": {
+      "sectionTitle": "Destination",
       "loadingPlaceholder": "Loading destinations…",
       "selectPlaceholder": "Select destination",
       "searchLabel": "Search destinations",
@@ -407,6 +410,12 @@
       "empty": "No destinations yet. Add regions and destinations under Settings → Locations."
     },
     "destinationCatalogMetric": {
+      "peakHeight": {
+        "sectionTitle": "Peak height (m)"
+      },
+      "trailDistance": {
+        "sectionTitle": "Trail distance (km)"
+      },
       "digitsPlaceholder": "e.g. 3962",
       "decimalPlaceholder": "e.g. 5.5",
       "lockedFromSettings": "This value is stored on the destination in Settings and cannot be edited in the wizard.",

@@ -1,3 +1,4 @@
+import { fetchWithTransientRetry } from "@app-tour/draft-engine";
 import { parseDenaliPhotoApiErrorCode } from "./photo-upload-errors";
 import { resolveWizardMediaBffPath } from "./wizard-media-bff-path";
 
@@ -79,7 +80,7 @@ export async function resolveDenaliWizardPhotoPreviewUrl(
 ): Promise<DenaliWizardPhotoPreviewResolveResult> {
   const bffPath = resolveWizardMediaBffPath(mediaRouteKey);
   const params = new URLSearchParams({ storageKey });
-  const response = await fetch(`${bffPath}/url?${params.toString()}`, {
+  const response = await fetchWithTransientRetry(`${bffPath}/url?${params.toString()}`, {
     cache: "no-store",
   });
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;

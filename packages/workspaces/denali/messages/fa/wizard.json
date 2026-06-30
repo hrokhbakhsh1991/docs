@@ -233,7 +233,9 @@
         "PHOTO_PREVIEW_URL_MISSING": "آدرس پیش‌نمایش از سرور دریافت نشد.",
         "PHOTO_PREVIEW_HTTPS_REQUIRED": "برای پیش‌نمایش، URL تصویر باید HTTPS باشد.",
         "PHOTO_UPLOAD_HTTP_ERROR": "آپلود ناموفق بود (HTTP {status, number}).",
-        "PHOTO_MISSING_STORAGE_KEY": "پاسخ آپلود فاقد کلید ذخیره‌سازی است."
+        "PHOTO_MISSING_STORAGE_KEY": "پاسخ آپلود فاقد کلید ذخیره‌سازی است.",
+        "PHOTO_INVALID_UPLOAD_HEADERS": "هدرهای درخواست آپلود نامعتبر است.",
+        "PHOTO_SERVICE_BUSY": "سرور موقتاً شلوغ است. چند ثانیه بعد دوباره تلاش کنید."
       },
       "addPhoto": "افزودن عکس",
       "removePhoto": "حذف عکس",
@@ -399,6 +401,7 @@
       }
     },
     "destination": {
+      "sectionTitle": "مقصد",
       "loadingPlaceholder": "در حال بارگذاری مقصدها…",
       "selectPlaceholder": "انتخاب مقصد",
       "searchLabel": "جستجوی مقصد",
@@ -407,6 +410,12 @@
       "empty": "مقصدی نیست. از تنظیمات → مقصدها و مناطق، مقصد اضافه کنید."
     },
     "destinationCatalogMetric": {
+      "peakHeight": {
+        "sectionTitle": "ارتفاع قله (متر)"
+      },
+      "trailDistance": {
+        "sectionTitle": "مسافت مسیر (کیلومتر)"
+      },
       "digitsPlaceholder": "مثلاً ۳۹۶۲",
       "decimalPlaceholder": "مثلاً ۵٫۵",
       "lockedFromSettings": "این مقدار از کاتالوگ مقصد (تنظیمات) ثبت شده و در ویزارد قابل ویرایش نیست.",
