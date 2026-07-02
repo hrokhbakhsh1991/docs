@@ -2,8 +2,13 @@ import { randomUUID } from "node:crypto";
 
 import {
   buildOperatorSmokeDraftTour,
+  buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTour,
+  buildOperatorSmokeTransportBusTour,
+  buildOperatorSmokeTransportSharedCarsTour,
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
+  OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
 } from "../fixtures/operator-smoke-published-tour.fixture";
 import { OPERATOR_DENALI_SMOKE_TENANT_ID } from "../internal/operator-smoke-tenant-id";
 import { deriveTourProjections } from "../canonical/projection-sync";
@@ -27,6 +32,7 @@ const URBAN_SILO_ENTERPRISE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-0000000
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_SEED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211";
+const OPERATOR_SMOKE_PARTICIPANT_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 
 function buildOperatorSmokeDenaliCatalogData(input: {
   readonly title: string;
@@ -174,6 +180,15 @@ export class InMemoryTourRepository implements TourStorageRepository {
     if (!this.byId.has(OPERATOR_SMOKE_DRAFT_TOUR_ID)) {
       this.indexTour(buildOperatorSmokeDraftTour({ tenantId }));
     }
+    if (!this.byId.has(OPERATOR_SMOKE_PARTICIPANT_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeParticipantRequirementsTour({ tenantId }));
+    }
+    if (!this.byId.has(OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeTransportBusTour({ tenantId }));
+    }
+    if (!this.byId.has(OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeTransportSharedCarsTour({ tenantId }));
+    }
   }
 
   /** Phase 9.8 smoke — operator tour for manual booking create (SMK-P9-07). */
@@ -213,6 +228,19 @@ export class InMemoryTourRepository implements TourStorageRepository {
         },
       };
       this.indexTour(draft);
+    }
+    if (!this.byId.has(OPERATOR_SMOKE_PARTICIPANT_TOUR_ID)) {
+      this.indexTour(
+        buildOperatorSmokeParticipantRequirementsTour({ tenantId: OPERATOR_SMOKE_TENANT_ID })
+      );
+    }
+    if (!this.byId.has(OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeTransportBusTour({ tenantId: OPERATOR_SMOKE_TENANT_ID }));
+    }
+    if (!this.byId.has(OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID)) {
+      this.indexTour(
+        buildOperatorSmokeTransportSharedCarsTour({ tenantId: OPERATOR_SMOKE_TENANT_ID })
+      );
     }
   }
 

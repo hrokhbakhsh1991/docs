@@ -153,6 +153,7 @@
     "table": {
       "guest": "Guest",
       "party": "Party",
+      "transportIntake": "Transport choice",
       "departure": "Departure",
       "submitted": "Submitted",
       "actions": "Actions",

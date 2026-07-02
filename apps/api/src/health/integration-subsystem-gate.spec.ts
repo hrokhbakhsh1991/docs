@@ -68,6 +68,22 @@ describe("integration-subsystem-gate", () => {
     assert.equal(isIntegrationSubsystemReady(), true);
   });
 
+  it("blocks subsystem when tour published policy drift and rollout fatal gate is enabled", () => {
+    resetIntegrationSubsystemGateForTests();
+    applyMigrationConsistencyGate(
+      buildMigrationConsistencyReport({
+        missingTables: [],
+        missingExposureTables: [],
+        unappliedMigrations: [],
+        expectedMigrationCount: 1,
+        appliedMigrationCount: 1,
+        tourPublishedPolicyDriftCount: 1,
+        tourPublishedRolloutGateFatal: true,
+      }),
+    );
+    assert.equal(isIntegrationSubsystemReady(), false);
+  });
+
   it("forceIntegrationSubsystemReadyForTests bypasses gate in unit tests", () => {
     resetIntegrationSubsystemGateForTests();
     forceIntegrationSubsystemReadyForTests();

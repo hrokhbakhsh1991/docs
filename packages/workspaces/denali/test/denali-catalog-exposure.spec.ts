@@ -44,6 +44,16 @@ describe("applyDenaliCatalogCardExposure", () => {
     assert.equal("structuredData" in redacted, false);
   });
 
+  it("rebuilds structured data without offers when price is hidden", () => {
+    const card = toDenaliCatalogCard(tour);
+    const redacted = applyDenaliCatalogCardExposure(
+      card,
+      new Set(["title", "denali.pricing-participants"]),
+    );
+    const offers = (redacted.structuredData as { offers?: unknown } | undefined)?.offers;
+    assert.equal(offers, undefined);
+  });
+
   it("excludes delivery-only fields from catalog card bindings", () => {
     const bindingFieldIds = DENALI_CATALOG_CARD_EXPOSURE_BINDINGS.map((entry) => entry.fieldId);
     assert.ok(!bindingFieldIds.includes("denali.approximate-return-time"));

@@ -34,7 +34,7 @@ pnpm run p6:e2e-gate   # p6:gate + VS-01 + portal + marketing smokes
 | Smoke club | `operator` |
 | Tenant ID | `00000000-0000-4000-8000-000000000014` |
 | Dev OTP | `1234` (`AUTH_ALLOW_DEV_STATIC_OTP=true`) |
-| `/etc/hosts` | `operator.localhost` · `operator.portal.localhost` · `operator.admin.localhost` · `shop.operator.localhost` |
+| `/etc/hosts` | `operator.localhost` · `operator.portal.localhost` · `operator.admin.localhost` · `shop.operator.localhost` · `urban.localhost` (SMK-MKT-05) |
 
 Start stack (example — adjust to your local scripts):
 
@@ -55,12 +55,17 @@ node apps/marketing/scripts/smoke-marketing-e2e-servers.mjs
 | **SMK-P6-HOST-01** | — | API | `scripts/smoke-p6-host-bind.mjs` | `node scripts/smoke-p6-host-bind.mjs` | same `tenantId` ×3 hosts |
 | **SMK-P6-VS-01** | VS-01 | web | `p6-admin-publish-smoke.spec.ts` | `playwright.operator.config.ts -g SMK-P6-VS-01` | draft hidden · publish → catalog |
 | **SMK-P6-MKT-02** | VS-02 | marketing | `marketing-catalog-smoke.spec.ts` | `@apps/marketing test:smoke` | tour list visible |
+| **SMK-P6-MKT-05** | VS-02b | marketing | `marketing-urban-catalog-smoke.spec.ts` | `@apps/marketing test:smoke:urban` | urban skin · city filter |
 | **SMK-P6-MKT-03** | VS-03 | marketing→portal | `SMK-MKT-03` in same file | same | CTA lands portal · success marker |
 | **SMK-P6-PTL-01** | VS-03 | portal | `portal-registration-smoke.spec.ts` | `@apps/portal test:smoke` | `[data-public-registration-success]` |
 | **SMK-P6-PTL-02** | VS-04 | portal | `portal-member-smoke.spec.ts` SMK-PTL-02 | `@apps/portal test:smoke` | `/me/registrations` lists row |
 | **SMK-P6-PTL-05** | VS-04 | portal | `portal-member-smoke.spec.ts` SMK-PTL-05 | `@apps/portal test:smoke` | `/` → `/me/registrations` when session |
 | **SMK-P6-PTL-03** | VS-04 | portal | `portal-member-registrations.spec.ts` | unit in `p6:gate` | BFF `view=mine` |
 | **SMK-P6-PTL-04** | VS-05 | portal | `portal-member-smoke.spec.ts` SMK-PTL-04 | `@apps/portal test:smoke` | receipt upload 201 |
+| **SMK-P6-PTL-06** | VS-04 | portal | `portal-member-smoke.spec.ts` SMK-PTL-06 | `@apps/portal test:smoke` | logout · middleware blocks `/me/*` |
+| **SMK-P6-PTL-07** | VS-03 | portal | `portal-registration-transport-smoke.spec.ts` DEN-TRANS-01 | `@apps/portal test:smoke` | bus tour `…213` hides transport UI · body omits `transport` |
+| **SMK-P6-PTL-08** | VS-03 | portal | `portal-registration-transport-smoke.spec.ts` DEN-TRANS-02 | `@apps/portal test:smoke` | personal-car opt-in → `transport.kind=personal_car` |
+| **SMK-P6-PTL-09** | VS-03 | portal | `portal-registration-transport-smoke.spec.ts` DEN-TRANS-03 | `@apps/portal test:smoke` | shared_cars `…214` dong → `transport.kind=no_car_dong` |
 | **SMK-P6-ADM-01** | VS-06 | web | `operator-smoke.spec.ts` SMK-P9-04 | `playwright.operator.config.ts -g SMK-P9-04` | booking approved (fa/en status) |
 | **SMK-P6-ADM-02** | VS-07 | web | `p6-operator-receipt-approve-smoke.spec.ts` SMK-P6-ADM-02 | `playwright.operator.config.ts -g SMK-P6-ADM-02` | receipt approved · queue empty |
 
@@ -93,6 +98,9 @@ pnpm --filter @apps/portal run test:smoke           # SMK-PTL-01 / SMK-P6-PTL-01
 
 # 4 — Marketing catalog + CTA E2E
 pnpm --filter @apps/marketing run test:smoke        # SMK-MKT-03
+
+# 4b — Urban marketing regression (optional · not in p6:e2e-gate)
+PW_NO_REUSE_SERVER=1 pnpm --filter @apps/marketing run test:smoke:urban   # SMK-MKT-05
 
 # 5 — Operator VS-07 (E2E in p6:e2e-gate — runs before VS-06)
 pnpm --filter @apps/web exec playwright test -c playwright.operator.config.ts -g "SMK-P6-ADM-02"
@@ -128,6 +136,9 @@ pnpm run p6:staging-gate   # requires DATABASE_URL
 | Finance approve fails | Postgres + `finance-ops.spec.ts` (see FINANCE-OPS-P6-NOTE.md) |
 | Admin `/bookings` shows Not Found | Playwright must use `operator.admin.localhost:3000` — middleware blocks admin paths on bare `127.0.0.1` |
 | SMK-P9-04 status assertion fails | Operator UI is fa-IR — expect `تأییدشده` not literal `approved` |
+| SMK-MKT-05 detail 404 / empty catalog | Stale API on `:3001` without urban seed — use `PW_NO_REUSE_SERVER=1` or kill ports · probe checks list **and** detail endpoints |
+| SMK-MKT-03 portal register 503 | Stale portal/API without operator seed or Denali exposure Prisma without DB — use `PW_NO_REUSE_SERVER=1` · probe checks `/denali/catalog/:tourId` |
+| Urban marketing skin missing | Run `pnpm run generate:workspace-registry` — `workspace-guest-theme-stylesheets.generated.ts` must import `urban-marketing.css` |
 
 ---
 
@@ -136,3 +147,4 @@ pnpm run p6:staging-gate   # requires DATABASE_URL
 - [SMOKE-SCENARIO-MAP-P6.md](../appendices/SMOKE-SCENARIO-MAP-P6.md)
 - [first-customer-operator.md](first-customer-operator.md) — VS-06/07
 - [guest-slice-operator-minimal.md](guest-slice-operator-minimal.md) — VS-01..03 manual
+- [host-subdomain-map.md](host-subdomain-map.md) — Postgres Denali full stack (`denali.localhost:3002` + `denali.portal.localhost:3003`)

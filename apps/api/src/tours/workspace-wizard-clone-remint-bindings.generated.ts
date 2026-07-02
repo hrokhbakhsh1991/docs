@@ -4,4 +4,17 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-export const WORKSPACE_WIZARD_CLONE_REMINT_BINDINGS = [] as const;
+import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
+import { executeDenaliWizardPhotoRemintPlan, assertDenaliWizardDraftDestKey, readMinioPhotoConfigFromEnv, executeDenaliTourPhotoRemintPlan } from "@app-tour/workspace-denali/photos";
+import { remintDenaliClonePhotosInCanonical } from "@app-tour/workspace-denali/clone";
+
+export const WORKSPACE_WIZARD_CLONE_REMINT_BINDINGS = [
+  {
+    workspaceType: DENALI_WORKSPACE_TYPE,
+    assertDestKey: assertDenaliWizardDraftDestKey,
+    executeRemint: executeDenaliWizardPhotoRemintPlan,
+    readConfigFromEnv: readMinioPhotoConfigFromEnv,
+    remintCanonicalInTour: remintDenaliClonePhotosInCanonical,
+    executeTourRemint: executeDenaliTourPhotoRemintPlan,
+  },
+] as const;

@@ -75,18 +75,23 @@ async function applyCatalogExposure(params: {
 
 async function mapTourToExposureAwareCard(params: {
   readonly tenantId: string;
-  readonly tour: PublicCatalogTourInput;
+  readonly tour: PublicCatalogTourInput & { readonly createdAt?: string };
   readonly destinationNameById: ReadonlyMap<string, string> | undefined;
   readonly surface: (typeof DENALI_EXPOSURE_SURFACE)[keyof typeof DENALI_EXPOSURE_SURFACE];
   readonly exposurePort?: DenaliExposureResolverPort;
 }): Promise<ReturnType<typeof toDenaliCatalogCard>> {
+  const tourInput: PublicCatalogTourInput = {
+    id: params.tour.id,
+    canonical: params.tour.canonical,
+    catalogUpdatedAt: params.tour.catalogUpdatedAt ?? params.tour.createdAt,
+  };
   const card = toDenaliCatalogCard(
-    params.tour,
+    tourInput,
     params.destinationNameById === undefined ? undefined : { destinationNameById: params.destinationNameById },
   );
   return applyCatalogExposure({
     tenantId: params.tenantId,
-    tour: params.tour,
+    tour: tourInput,
     card,
     surface: params.surface,
     exposurePort: params.exposurePort,
@@ -156,17 +161,18 @@ export async function listDenaliCatalog(params: {
     tours: slice,
     destinationPort: params.destinationPort,
   });
-  const cards = await Promise.all(
-    slice.map((tour) =>
-      mapTourToExposureAwareCard({
+  const cards: Awaited<ReturnType<typeof mapTourToExposureAwareCard>>[] = [];
+  for (const tour of slice) {
+    cards.push(
+      await mapTourToExposureAwareCard({
         tenantId: params.tenantId,
         tour,
         destinationNameById,
         surface: DENALI_EXPOSURE_SURFACE.publicList,
         exposurePort: params.exposurePort,
       }),
-    ),
-  );
+    );
+  }
   const items = await enrichCatalogCardsWithSpots({
     tenantId: params.tenantId,
     cards,

@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PUBLIC-CATALOG
-version: "2026-06-11-v24"
+version: "2026-06-30-v26"
 workspace: denali
 stack: workspace-sdk · workspace-denali/http · apps/marketing
 authority: MIGRATION-MAP.md §3.5 · TEMP/denali-public-marketing-app-roadmap.md
@@ -80,6 +80,21 @@ Distinct from **operator** `TourListProjection` — no draft rows, no ops-only f
 | `policiesText` | `policies.policiesText` — egress-safe cancellation / terms copy (P7-1-N-008) |
 | `cancellationDeadlineHours` | `policies.cancellationDeadlineHours` |
 | `cancellationPenaltyPercentage` | `policies.cancellationPenaltyPercentage` |
+| `listSubtitle` | normalized egress — Denali: `category` |
+| `listDescription` | normalized egress — Denali: `program.shortDescription` |
+| `showListPrice` | normalized egress — Denali: `true`; Urban: `false` |
+
+### Presentation fields (Track A)
+
+Workspace mappers set normalized fields on `PublicCatalogCard` so marketing never branches on `pluginId`:
+
+| Field | Denali | Urban |
+|-------|--------|-------|
+| `listSubtitle` | `category` | `city · venueName` |
+| `listDescription` | `shortDescription` | `catalogSummary` |
+| `showListPrice` | `true` | `false` |
+
+List capabilities (city filter) resolve via SDK `resolveCatalogListFeatures(pluginId)` — registry in `packages/workspace-sdk/src/catalog/resolve-catalog-list-features.ts`.
 
 ### `spotsRemaining` (DEC-P11-013)
 
@@ -200,11 +215,18 @@ Web shell: `apps/web/app/(public)/catalog/[tourId]/register` — **redirect-only
 | Web | redirect shim only — no intake on `apps/web` |
 | E2E anchor | `[data-public-registration-intake]` → `[data-public-registration-success]` (portal host) |
 
-Duplicate email per tour → `409 DENALI_REGISTRATION_DUPLICATE`.
+Duplicate registration guard:
+
+| `registrantTarget` | Rule |
+|--------------------|------|
+| `self` (default) | Same **member user id + tour id** → `409` |
+| `other` | Same **tour id + guest full name** (normalized) → `409` when no national ID supplied; when guest **national ID** is provided → same **tour id + national ID** → `409`; booker may register multiple different guests |
+
+Persisted intake metadata: `registrationIntake` JSON on booking (`registrantTarget`, `transport`, optional `nationalId` when collected at intake). Operator list/detail surfaces `registrationIntake` for ops inspection (transport kind, registrant target).
 
 **Session attribution (P2):** After M17 verify/profile, portal `POST /api/catalog/registrations` reads the member session cookie and forwards `x-user-id` + `x-actor-role: member` to `POST /denali/registrations` (or urban). Anonymous catalog guest id (`…000001`) is used only when no valid session.
 
-**Intake pre-fill (P2b):** `GET /api/public-auth/session-profile` (portal member-safe BFF) hydrates `displayName` / optional `email` from `GET /identity/me` for returning users. Profile-step email pre-fills intake via `resolveIntakeDefaults` (profile wins over session).
+**Intake pre-fill (P2b):** `GET /api/me/profile` hydrates `displayName` / optional `email` for returning users. Profile-step email pre-fills intake via `resolveIntakeDefaults` (profile wins over session).
 
 ### Known limitations (M17 P3)
 
@@ -212,11 +234,12 @@ Duplicate email per tour → `409 DENALI_REGISTRATION_DUPLICATE`.
 |------|--------|------------|
 | Operator vs member cookies | Web operator uses `atour_op_session`; portal member OTP uses `atour_mb_session` (`@app-tour/session-client` P8/P9). | Surfaces isolated by host + cookie name. |
 | `identity/me` naming | BFF uses `requireOperatorSession` middleware naming though public members are valid. | Behavior is member-safe; rename deferred to identity refactor. |
-| Denali booking `userId` in E2E | Playwright smokes assert UI success only; Postgres `userId` on booking row covered by **DREG-17-01** API spec. | Run `denali-registration.spec.ts` in CI when `DATABASE_URL` set. |
+| Denali booking `userId` in E2E | Playwright smokes assert UI success only; Postgres `userId` on booking row covered by **DREG-17-01** API spec. | `denali-registration.spec.ts` (in-memory · no Postgres required). |
+| `registrationIntake` persistence | **DREG-19-01** asserts JSON on booking after `POST /denali/registrations` (transport + registrant + nationalId). | `apps/api/test/denali-registration.spec.ts` · `p4:gate` + `p6:gate` |
 
 ### Static guard
 
-`pnpm run guard:public-catalog-m17` — fast file/dispatch/OpenAPI/layout attestation (wired in `marketing-guard.yml` smoke job).
+`pnpm run guard:public-catalog-m17` — fast file/dispatch/OpenAPI/layout attestation (**dynamic check count** via `checksPassed` · also in `pnpm run p6:gate` · `pnpm run p4:gate` · `marketing-guard.yml` smoke job).
 
 ### Client bootstrap (M17 P3 — E2E unblock)
 
@@ -238,7 +261,11 @@ When `ALLOW_DEV_WEB_SESSION !== true`, marketing resolves tenant from host via *
 
 Ingress uses `x-forwarded-host` with `shop.` prefix stripped (same as branding). Dev host map (M2) takes precedence when allowed.
 
-Playwright smoke: **SMK-MKT-01** (`operator.localhost:3002/tours` · legacy `shop.operator.localhost:3002`); **SMK-MKT-03** marketing CTA → **portal** (`operator.portal.localhost:3003`) OTP → Denali intake → `[data-public-registration-success]`; Urban **SMK-P8-02** on `urban.portal.localhost:3003`; Denali **SMK-PTL-01** on `operator.portal.localhost:3003`.
+Playwright smoke: **SMK-MKT-01** (`operator.localhost:3002/tours` · legacy `shop.operator.localhost:3002`); **SMK-MKT-05** (`urban.localhost:3002/tours` · urban skin + city filter); **SMK-MKT-03** marketing CTA → **portal** (`operator.portal.localhost:3003`) OTP → Denali intake → `[data-public-registration-success]`; Urban **SMK-P8-02** on `urban.portal.localhost:3003`; Denali **SMK-PTL-01** on `operator.portal.localhost:3003`.
+
+List catalog HTTP applies exposure redaction **sequentially** per page (not `Promise.all`) so Postgres dev hosts (`denali.localhost:3002`, `urban.localhost:3002`) stay under per-tenant DB budget (`TENANT_DB_BUDGET_EXCEEDED` / 503).
+
+Denali and Urban exposure resolvers (`resolve-denali-surface-exposure.ts`, `resolve-urban-surface-exposure.ts`) catch Prisma failures when `DATABASE_URL` is unset and fall back to registry-seeded field defaults — required for DB-less Playwright smokes (SMK-MKT-03 portal register, SMK-MKT-05 urban catalog).
 
 ### SEO metadata (M8)
 
@@ -250,16 +277,77 @@ Playwright smoke: **SMK-MKT-01** (`operator.localhost:3002/tours` · legacy `sho
 
 Canonical URLs derive from `MARKETING_PUBLIC_BASE_URL` or request host. `app/not-found.tsx` for missing tours.
 
+#### SEO shell (M8a — marketing `apps/marketing`)
+
+| Route | Role |
+|-------|------|
+| `app/sitemap.ts` | Host-aware dynamic sitemap — `/`, `/tours`, `/tours/{id}` only (no query strings) |
+| `app/robots.ts` | `disallow: /api/` · absolute `Sitemap:` · `noindex` in non-prod unless `MARKETING_ROBOTS_ALLOW_INDEX=true` |
+| Metadata builders | Twitter Card mirrors Open Graph on list + detail (`build-marketing-metadata.ts`); policy from `resolveGuestSeoForPlugin()` (ADR-GP-004) |
+
+#### SEO manifest (`guestSeo`)
+
+L2+ workspaces declare `guestSeo.marketing` in `workspace.manifest.json`. Marketing reads SEO policy via `resolveGuestSeoForPlugin(pluginId)` — no plugin-id branches in the marketing app.
+
+#### SEO cache tags
+
+Publish revalidate purges **two** Next.js tags per tenant:
+
+| Tag | Scope |
+|-----|-------|
+| `marketing-catalog-{tenantId}` | Catalog upstream fetches |
+| `marketing-seo-{tenantId}` | `app/sitemap.ts` · `app/robots.ts` |
+
+`POST /api/revalidate` invalidates both. See [`guest-seo-conformance.md`](../../dev/guest-seo-conformance.md).
+
+#### E2E smokes (SEO-3)
+
+| ID | Spec |
+|----|------|
+| SMK-MKT-06 | `marketing-seo-jsonld.spec.ts` |
+| SMK-MKT-07 | `marketing-seo-head.spec.ts` |
+| SMK-MKT-08 | `marketing-seo-sitemap.spec.ts` |
+| SMK-MKT-09 | `marketing-seo-hreflang.spec.ts` |
+
+Run: `pnpm --filter @apps/marketing run test:smoke:seo`
+
+Mother host and maintenance surfaces emit **empty sitemap** and `robots: disallow /`.
+
+#### Catalog card freshness (`catalogUpdatedAt`)
+
+`PublicCatalogCard` exposes optional **`catalogUpdatedAt`** (ISO-8601) at workspace egress:
+
+| Workspace | Source |
+|-----------|--------|
+| `denali` | tour row `createdAt` until store exposes `updatedAt` |
+| `urban` | `publishedAt` when set, else tour row `createdAt` |
+
+Used for sitemap `lastmod` and JSON-LD `dateModified` when present.
+
+#### Structured data (JSON-LD)
+
+Workspaces attach egress-safe `structuredData` on catalog cards; marketing renders in `catalog-tour-detail.tsx` (plus BreadcrumbList script).
+
+| `pluginId` | `@type` | Rich fields |
+|------------|---------|-------------|
+| `denali` | `TouristTrip` | `offers` (when `priceAmount`), `image`, `dateModified`, itinerary |
+| `urban` | `Event` | `location` (city/venue), `startDate`/`endDate`, `eventStatus: EventScheduled` |
+| `guest-club` | `Event` | stub builder (catalog HTTP still 501) |
+
+Marketing enriches workspace JSON-LD with absolute `url` at render (`enrich-marketing-structured-data.ts`). Exposure redaction rebuilds `structuredData` from the redacted card (no stale `offers` when price hidden).
+
 ### i18n + RTL (M9)
 
-`next-intl` with locales **`fa`** (default) and **`en`**, `localePrefix: never` — same B2B host pattern as `apps/web`.
+`next-intl` with locales **`fa`** (default) and **`en`**, `localePrefix: as-needed`.
+Default Persian routes stay unprefixed (`/tours`); English routes use `/en/...` (`/en/tours`, `/en/tours/{id}`).
 
 | Item | Value |
 |------|-------|
-| Cookie | `NEXT_LOCALE` override |
+| Locale URL | `/...` = `fa`; `/en/...` = `en`; cookie remains a non-URL fallback |
 | RTL | `<html dir="rtl">` when `fa` |
 | Copy | `apps/marketing/messages/{fa,en}/catalog.json` |
 | Switcher | Header locale toggle (`MarketingLocaleSwitcher`) |
+| SEO | metadata emits reciprocal `alternates.languages` (`fa-IR`, `en-US`, `x-default`) |
 
 Date/price formatters accept active locale (`fa-IR` / `en-US`).
 
@@ -288,7 +376,71 @@ Urban `publicCatalog.isPublished` reads `data.tour.publishStatus` (or legacy `st
 
 Marketing renders workspace fields without static-importing workspace packages — API JSON drives display helpers in `format-catalog-display.ts`.
 
-`apps/web/app/(public)/catalog/page.tsx` and `[tourId]/page.tsx` **307-redirect** to `{MARKETING_PUBLIC_BASE_URL}/tours` (dev default: `{club}.localhost:3002` · legacy `shop.{club}.localhost:3002`).
+**UI component tree + E2E hooks:** [marketing-catalog-ui.md](./marketing-catalog-ui.md) · registration: [portal-registration-ui.md](./portal-registration-ui.md).
+
+`apps/web/app/(public)/catalog/page.tsx` and `[tourId]/page.tsx` **`permanentRedirect` (HTTP 308)** to `{MARKETING_PUBLIC_BASE_URL}/tours` (dev default: `{club}.localhost:3002` · legacy `shop.{club}.localhost:3002`). Temporary 307 redirects are not used for catalog SEO consolidation (SEO-5++ · SMK-WEB-SEO-01).
+
+### Marketing catalog UI (P6 skeleton)
+
+Thin RSC pages compose components under `apps/marketing/src/catalog/`:
+
+| Component | Role |
+|-----------|------|
+| `CatalogTourList` | grid wrapper — maps items to cards |
+| `CatalogTourCard` | list card (cover, title, meta, stats, CTA) |
+| `CatalogTourDetail` | detail body (cover, meta, stats, itinerary, policies, register CTA) |
+| `CatalogTourStats` | shared capacity / price / difficulty / fitness stats |
+| `CatalogItinerarySection` | multi-day itinerary (Denali egress) |
+| `CatalogTourDetailPolicies` | policies + cancellation lines |
+| `CatalogCoverImage` | `next/image` with host allowlist |
+
+Workspace guest skin: `packages/workspaces/denali/theme/denali-marketing.css` (scoped via `data-workspace-plugin="denali"`).
+
+### Extensibility — presentation without marketing forks (ADR)
+
+| ADR | Decision |
+|-----|----------|
+| **ADR-MKT-001** | `apps/marketing` stays workspace-agnostic — tenant/plugin from bootstrap; no static `@app-tour/workspace-*` imports |
+| **ADR-MKT-002** | Denali public catalog HTTP (`GET /denali/catalog*`) owned by workspace-denali/http |
+| **ADR-MKT-003** | `PublicCatalogCard` contract + plugin `publicCatalog` publish gate / card mapper |
+| **ADR-MKT-004** | SDK resolver registry: API paths, list/detail features, registration support, intake capabilities + upstream dispatch — product literals allowed in `resolve-catalog-*.ts` · `build-catalog-registration-upstream-request.ts` (see `product-neutral-core.contract.spec.ts` allowlist) |
+
+**Status (2026-06-30):** Track A implemented — workspace mappers set `listSubtitle`, `listDescription`, `showListPrice` on egress. Marketing catalog helpers consume JSON only (legacy `city`/`venueName` fallback retained for old payloads).
+
+**UI specs (component tree + E2E hooks):** [marketing-catalog-ui.md](./marketing-catalog-ui.md) · [portal-registration-ui.md](./portal-registration-ui.md).
+
+**Urban wire path:** `GET /urban/catalog` maps tours via `toUrbanPublicCatalogCard` in `apps/api/src/urban/urban.routes.ts` → workspace `catalog.service.ts` with `UrbanExposureResolverPort`.
+
+**Urban exposure:** `applyUrbanCatalogCardExposure` redacts hidden registry fields (`tour.city`, `tour.coverImageUrl`, …). Surfaces declared on `urban.plugin.ts` → `exposureSurface`.
+
+**Registration gate:** `supportsCatalogRegistration(pluginId)` in SDK (`resolve-catalog-registration-support.ts`) — reads manifest-derived guest conformance (**L2+** = `catalogRegistrationFlow` declared); marketing shell does not bootstrap the intake plugin registry.
+
+**Detail section gates:** `resolveCatalogDetailSections(pluginId)` in SDK (`resolve-catalog-detail-sections.ts`) — Denali enables difficulty, fitness, itinerary, policies; Urban hides them even when API sends fields.
+
+**Track B (fallback, not implemented):** `catalogUi` block in `workspace.manifest.json`, emitted by `generate:workspace-registry`.
+
+### Adding a workspace to public catalog
+
+Checklist for workspace `{id}` (e.g. third plugin after Denali/Urban):
+
+| Step | Action | Path |
+|------|--------|------|
+| 1 | Expose `publicCatalog.isPublished` + `toCatalogCard` on plugin | `packages/workspaces/{id}/src/{id}.plugin.ts` |
+| 2 | HTTP list + detail routes | `workspace.manifest.json` → `httpRoutes` |
+| 3 | Catalog service + card mapper | `packages/workspaces/{id}/src/http/` · `src/catalog/` |
+| 4 | Register catalog + registration API paths | `resolve-catalog-api-path.ts` · `resolve-catalog-registration-api-path.ts` |
+| 4b | Register list features, detail sections, registration gate | `resolve-catalog-list-features.ts` · `resolve-catalog-detail-sections.ts` · `resolve-catalog-registration-support.ts` |
+| 4c | Register intake capabilities + upstream dispatch | `resolve-catalog-intake-capabilities.ts` · `build-catalog-registration-upstream-request.ts` · [platform-portal-registration-intake.mdoc](../../phase-19/platform-portal-registration-intake.mdoc) |
+| 4d | Dev host label → tenant UUID + pluginId | `packages/guest-surface-host/src/phase-43-host-tenant-ids.ts` · `resolve-dev-plugin-id.ts` (`SMOKE_TENANT_PLUGIN_IDS`) |
+| 5 | Exposure surfaces (`public_list`, `public_details`) | workspace exposure bindings + `catalog.service.ts` |
+| 6 | Guest marketing skin (when product-ready) | `theme/{id}-marketing.css` + `guestThemeStylesheets.marketing` |
+| 7 | Regenerate bootstrap | `pnpm run generate:workspace-registry` |
+| 8 | Dev seed + smoke tenant (optional) | `devBootstrap` in manifest |
+| 9 | Extend SDK contract if new egress fields | `public-catalog.contract.ts` |
+| 10 | Document card extensions + hooks | this file § M2b + [marketing-catalog-ui.md](./marketing-catalog-ui.md) |
+| 11 | Marketing smoke (when product-ready) | `SMK-MKT-*` — see [marketing-catalog-ui.md](./marketing-catalog-ui.md) § Smoke |
+
+**Do not:** import `@app-tour/workspace-{id}` from `apps/marketing`. **Do not:** add `if (pluginId === "{id}")` in marketing — use Track A/B above.
 
 ### Pagination (M5)
 
@@ -296,7 +448,7 @@ List fetch accepts `cursor` + `limit` query params (passthrough to workspace cat
 
 ### Cache tags + Urban city filter (M10)
 
-Catalog fetches tag `marketing-catalog-{tenantId}` for on-demand invalidation via `POST /api/revalidate` (header `x-marketing-revalidate-secret`).
+Catalog fetches tag `marketing-catalog-{tenantId}` for on-demand invalidation via `POST /api/revalidate` (header `x-marketing-revalidate-secret`). SEO routes (`sitemap.ts`, `robots.ts`) tag `marketing-seo-{tenantId}` — both tags are purged on publish.
 
 Urban list supports `?city=` filter (passthrough to `GET /urban/catalog?city=`). Cover images use `next/image` on list cards and tour detail.
 
@@ -369,32 +521,68 @@ sequenceDiagram
   Op->>API: PATCH /tours/:id publishStatus active
   API->>API: persist canonical TX
   API-->>MKT: POST /api/revalidate tenantId
-  MKT->>MKT: revalidateTag marketing-catalog-tenantId
+  MKT->>MKT: revalidateTag marketing-catalog-tenantId + marketing-seo-tenantId
 ```
 
 ## Implementation map
 
 | Layer | Path |
 |-------|------|
+| **UI spec (marketing)** | `docs/workspaces/denali/marketing-catalog-ui.md` |
+| **UI spec (portal register)** | `docs/workspaces/denali/portal-registration-ui.md` |
 | Contract | `packages/workspace-sdk/src/tour/public-catalog.contract.ts` |
 | Path resolver | `packages/workspace-sdk/src/catalog/resolve-catalog-api-path.ts` |
+| List features resolver | `packages/workspace-sdk/src/catalog/resolve-catalog-list-features.ts` |
+| List features tests | `packages/workspace-sdk/test/resolve-catalog-list-features.spec.ts` (SDK-CAT-01..03) |
+| Detail sections resolver | `packages/workspace-sdk/src/catalog/resolve-catalog-detail-sections.ts` |
+| Detail sections tests | `packages/workspace-sdk/test/resolve-catalog-detail-sections.spec.ts` |
+| Registration support resolver | `packages/workspace-sdk/src/catalog/resolve-catalog-registration-support.ts` |
+| Registration support tests | `packages/workspace-sdk/test/resolve-catalog-registration-support.spec.ts` |
+| Urban public catalog mapper | `packages/workspaces/urban/src/catalog/urban-public-catalog-surface.ts` |
+| Urban catalog HTTP (API) | `apps/api/src/urban/urban.routes.ts` → `@app-tour/workspace-urban/http` `catalog.service.ts` |
+| Urban catalog exposure bindings | `packages/workspaces/urban/src/catalog/urban-catalog-exposure-bindings.ts` |
+| Urban exposure surfaces | `packages/workspaces/urban/src/exposure/urban-exposure-surfaces.ts` |
+| Urban exposure resolver (API) | `apps/api/src/exposure/resolve-urban-surface-exposure.ts` |
 | Denali card | `packages/workspaces/denali/src/catalog/denali-catalog-card.ts` |
 | Catalog service | `packages/workspaces/denali/src/http/catalog.service.ts` |
 | HTTP handlers | `packages/workspaces/denali/src/http/product.routes.ts` |
 | Host adapter | `apps/api/src/http/configure-denali-catalog-http-host.ts` |
 | Registrar | `apps/api/src/http/denali-workspace-routes.ts` |
-| Marketing list | `apps/marketing/app/tours/page.tsx` |
-| Marketing detail | `apps/marketing/app/tours/[tourId]/page.tsx` |
+| Marketing home | `apps/marketing/app/page.tsx` |
+| Marketing list page | `apps/marketing/app/tours/page.tsx` |
+| Marketing detail page | `apps/marketing/app/tours/[tourId]/page.tsx` |
+| Marketing list grid | `apps/marketing/src/catalog/catalog-tour-list.tsx` |
+| Marketing list card | `apps/marketing/src/catalog/catalog-tour-card.tsx` |
+| Marketing detail body | `apps/marketing/src/catalog/catalog-tour-detail.tsx` |
+| Marketing stats (list + detail) | `apps/marketing/src/catalog/catalog-tour-stats.tsx` |
+| Marketing itinerary | `apps/marketing/src/catalog/catalog-itinerary-section.tsx` |
+| Itinerary pure logic | `apps/marketing/src/catalog/catalog-itinerary-display-logic.ts` |
+| Marketing policies block | `apps/marketing/src/catalog/catalog-tour-detail-policies.tsx` |
+| Cancellation formatters | `apps/marketing/src/catalog/format-catalog-cancellation.ts` |
+| Denali marketing skin | `packages/workspaces/denali/theme/denali-marketing.css` (tokens: `design-system/denali-club/MASTER.md`) |
+| Design-system SoT | `design-system/denali-club/MASTER.md` |
+| Marketing env template | `apps/marketing/.env.local.example` |
+| Urban marketing skin | `packages/workspaces/urban/theme/urban-marketing.css` |
+| Urban city filter UI | `apps/marketing/src/catalog/catalog-city-filter-form.tsx` |
+| Marketing BFF list | `apps/marketing/app/api/catalog/route.ts` |
 | Marketing BFF detail | `apps/marketing/app/api/catalog/[tourId]/route.ts` |
+| Catalog list fetch | `apps/marketing/src/catalog/fetch-catalog-list.ts` |
+| Catalog detail fetch | `apps/marketing/src/catalog/fetch-catalog-tour.ts` |
+| Marketing types | `apps/marketing/src/catalog/catalog-types.ts` — extends SDK `PublicCatalogCard` |
+| Meta line helper | `apps/marketing/src/catalog/build-catalog-tour-meta-line.ts` |
 | Public branding fetch | `apps/marketing/src/tenant/fetch-public-tenant-branding.ts` |
 | Marketing shell | `apps/marketing/src/shell/marketing-shell.tsx` |
+| Guest theme bootstrap | `apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts` |
 | Catalog cache policy | `apps/marketing/src/catalog/catalog-fetch-options.ts` |
 | Catalog display helpers | `apps/marketing/src/catalog/format-catalog-display.ts` |
 | Web catalog redirect | `apps/web/src/marketing/resolve-marketing-public-url.ts` |
 | Registration bridge | `apps/marketing/src/portal/resolve-web-registration-url.ts` |
+| Guest BFF API base | `packages/guest-surface-host/src/resolve-tour-ops-api-base-url.ts` (`resolveTourOpsApiBaseUrl`) |
+| Guest BFF env tests | `packages/guest-surface-host/test/resolve-tour-ops-api-base-url.spec.ts` (G-ENV-01..03) |
 | Public tenant context API | `apps/api/src/tenant/tenant-branding.routes.ts` (`GET /public/tenant-context`) |
 | Production bootstrap | `apps/marketing/src/tenant/fetch-public-tenant-context.ts` |
 | SEO metadata builders | `apps/marketing/src/seo/build-marketing-metadata.ts` |
+| Playwright smoke config | `apps/marketing/playwright.marketing.config.ts` |
 | CI guard | `.github/workflows/marketing-guard.yml` |
 | i18n | `apps/marketing/src/i18n/` · `messages/{fa,en}/catalog.json` |
 | Cache revalidate BFF | `apps/marketing/app/api/revalidate/route.ts` |
@@ -407,21 +595,30 @@ sequenceDiagram
 | Tenant default locale | `packages/workspace-sdk/src/theme/tenant-theme.contract.ts` (`defaultLocale`) |
 | Denali registration API | `packages/workspaces/denali/src/http/registration.service.ts` |
 | Public OTP portal flow | `apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx` |
+| Denali portal skin | `packages/workspaces/denali/theme/denali-portal.css` (tokens: `design-system/denali-club/MASTER.md`) |
+| Portal guest theme bootstrap | `apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts` |
+| Portal dev origins | `apps/portal/next.config.ts` (`allowedDevOrigins: *.portal.localhost`) |
+| Portal env template | `apps/portal/.env.local.example` |
+| Portal theme unit tests | `apps/portal/test/guest-theme-stack.spec.ts` (G-P6-UI-06/07/08) |
 | i18n (fa/en) | `apps/portal/messages/*/catalogRegistration.json` |
 | Public-auth BFF tests | `apps/portal/test/portal-public-auth-bff.spec.ts` · PR-09 |
 | Urban intake idempotency | `apps/portal` registration BFF (Urban idempotency header) |
 | M17 static guard | `scripts/guards/guard-public-catalog-m17.mjs` · `pnpm run guard:public-catalog-m17` |
 | Marketing register smoke | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts` · SMK-MKT-03 (full OTP + intake) |
-| Portal registration smoke | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts` · SMK-PTL-01 · `pnpm --filter @apps/portal run test:smoke` |
-| Portal member smoke | `apps/portal/tests/e2e/portal-member-smoke.spec.ts` · SMK-PTL-02/04/05 |
+| Portal registration smoke | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts` · SMK-PTL-01 · `pnpm --filter @apps/portal run test:smoke` (14 tests) |
+| Portal member smoke | `apps/portal/tests/e2e/portal-member-smoke.spec.ts` · SMK-PTL-02/04/05/06 |
+| Portal transport intake smoke | `apps/portal/tests/e2e/portal-registration-transport-smoke.spec.ts` · DEN-TRANS-01/02/03 |
 | Denali OTP smoke | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts` · SMK-PTL-01 (supersedes SMK-DREG-01) |
 | Public auth Prisma integration | `apps/api/test/public-auth-prisma.integration.spec.ts` · PUB-AUTH-PRISMA-01 (skip without `DATABASE_URL`) |
 | Urban public auth resolver | `packages/workspaces/urban/src/http/resolve-urban-public-auth.ts` · `resolveUrbanPublicAuthFromHeaders` (apps/api thin wrapper) |
 | Public auth API | `apps/api/src/identity/public-auth.routes.ts` |
 | Public auth OpenAPI | `apps/api/src/openapi/public-auth-openapi.ts` |
+| Denali registration OpenAPI | `apps/api/src/openapi/denali-catalog-openapi.ts` · `postDenaliRegistration` body (transport · profile fields) |
+| Identity profile API | `apps/api/test/identity-me.spec.ts` · `API-9.6-ME-04d` (`fatherName` / `birthDate` PATCH) |
 | Session intake headers | `apps/portal/src/catalog/build-catalog-registration-headers.server.ts` |
 | Public auth BFF | `apps/portal/app/api/public-auth/*` (portal-only post-P9) |
 | Web catalog redirect shim | `apps/web/app/(public)/catalog/**` — 307 only; **no** `apps/web` public-auth |
+| Enterprise roadmap (TEMP) | `TEMP/marketing-public-catalog-enterprise-roadmap.md` |
 
 ## Sequence
 

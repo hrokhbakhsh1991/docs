@@ -86,3 +86,51 @@ test("SMK-PTL-04 member uploads offline receipt on registration detail (VS-05)",
     timeout: 60_000,
   });
 });
+
+test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ page }) => {
+  const email = `smk-ptl-06-${Date.now()}@denali-smoke.local`;
+  const phone = `+1555${String(Date.now()).slice(-7)}`;
+
+  await completePortalCatalogRegistration(page, {
+    email,
+    fullName: "Portal Logout Smoke",
+    phone,
+  });
+
+  await page.locator('[data-public-registration-success] a[href="/me/registrations"]').click();
+  await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
+    timeout: 60_000,
+  });
+  const logoutButton = page.locator(
+    '[data-public-auth-logout][data-public-auth-logout-ready="true"]'
+  );
+  await expect(logoutButton).toBeEnabled({ timeout: 60_000 });
+
+  const [logoutResponse] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" && res.url().includes("/api/public-auth/logout"),
+      { timeout: 60_000 }
+    ),
+    logoutButton.click(),
+  ]);
+  const logoutBody = await logoutResponse.text();
+  expect(
+    logoutResponse.ok(),
+    `logout failed (${logoutResponse.status()}): ${logoutBody.slice(0, 240)}`
+  ).toBeTruthy();
+
+  await page.waitForURL((url) => !url.pathname.startsWith("/me"), { timeout: 60_000 });
+
+  const sessionCookies = await page.context().cookies();
+  expect(
+    sessionCookies.some((cookie) => cookie.name === "atour_mb_session" && cookie.value.length > 0)
+  ).toBe(false);
+
+  const blockedMePage = await page.request.get("/me/registrations", { maxRedirects: 0 });
+  expect(blockedMePage.status(), "middleware must redirect unauthenticated /me/*").toBe(307);
+  expect(blockedMePage.headers().location).toBe("/");
+
+  const blockedMeApi = await page.request.get("/api/me/registrations");
+  expect(blockedMeApi.status(), "BFF must reject unauthenticated /api/me/*").toBe(401);
+});

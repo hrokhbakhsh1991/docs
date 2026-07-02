@@ -88,6 +88,7 @@ export class PrismaIntegrationDeliveryRepository implements IntegrationDeliveryR
           attemptCount: input.attemptCount,
           nextAttemptAt: input.nextAttemptAt,
           lastError: input.lastError as Prisma.InputJsonValue,
+          processedAt: null,
         },
       });
     });
@@ -163,7 +164,7 @@ async function claimPendingGlobal(
       where: {
         OR: rows.map((row) => ({ id: row.id, tenantId: row.tenantId })),
       },
-      data: { status: "processing" },
+      data: { status: "processing", processedAt: new Date() },
     });
 
     return rows.map(mapDeliveryRow);
@@ -220,7 +221,7 @@ async function claimPendingForTenant(
         tenantId,
         id: { in: rows.map((row) => row.id) },
       },
-      data: { status: "processing" },
+      data: { status: "processing", processedAt: new Date() },
     });
 
     return rows.map(mapDeliveryRow);

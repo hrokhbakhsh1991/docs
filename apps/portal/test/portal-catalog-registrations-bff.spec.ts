@@ -27,7 +27,7 @@ describe("portal-catalog-registrations-bff (P4-B PR-10)", () => {
           host: "denali.portal.localhost:3003",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ tourId: "tour-1", email: "", fullName: "" }),
+        body: JSON.stringify({ tourId: "tour-1", fullName: "" }),
       })
     );
     assert.equal(res.status, 400);
@@ -46,7 +46,6 @@ describe("portal-catalog-registrations-bff (P4-B PR-10)", () => {
         },
         body: JSON.stringify({
           tourId: "tour-1",
-          email: "guest@example.com",
           fullName: "Portal Guest",
         }),
       })

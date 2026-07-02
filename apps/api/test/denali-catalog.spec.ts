@@ -17,6 +17,9 @@ import { createTestToursService, installMemoryStorageDriverForDescribe } from ".
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211";
+const OPERATOR_SMOKE_PARTICIPANT_TOUR_ID = "00000000-0000-4000-8000-000000000212";
+const OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID = "00000000-0000-4000-8000-000000000213";
+const OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 
 function publicHeaders(tenantId = OPERATOR_SMOKE_TENANT_ID): Record<string, string> {
   return { "x-tenant-id": tenantId };
@@ -85,8 +88,17 @@ describe("denali-catalog", () => {
     });
     assert.equal(response.status, 200);
     const items = (response.body as { data?: { items?: { id: string }[] } }).data?.items ?? [];
-    assert.equal(items.length, 1);
-    assert.equal(items[0]?.id, OPERATOR_SMOKE_PUBLISHED_TOUR_ID);
+    assert.equal(items.length, 4);
+    const ids = items.map((item) => item.id).sort();
+    assert.deepEqual(
+      ids,
+      [
+        OPERATOR_SMOKE_PARTICIPANT_TOUR_ID,
+        OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
+        OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+        OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
+      ].sort()
+    );
   });
 
   it("DCAT-02 GET /denali/catalog/{tourId} returns 404 for draft tour", async () => {
@@ -182,5 +194,29 @@ describe("denali-catalog", () => {
     assert.match(data?.policiesText ?? "", /P7 staging: cancel 48h/);
     assert.equal(data?.cancellationDeadlineHours, 48);
     assert.equal(data?.cancellationPenaltyPercentage, 20);
+  });
+
+  it("DCAT-07 GET /denali/catalog/{tourId} exposes participant requirement flags on smoke tour 212", async () => {
+    const response = await requestDenali(
+      listener,
+      "GET",
+      `/denali/catalog/${OPERATOR_SMOKE_PARTICIPANT_TOUR_ID}`,
+      { headers: publicHeaders() }
+    );
+    assert.equal(response.status, 200);
+    const data = (response.body as {
+      data?: {
+        id?: string;
+        title?: string;
+        nationalIdRequired?: boolean;
+        fatherNameRequired?: boolean;
+        birthDateRequired?: boolean;
+      };
+    }).data;
+    assert.equal(data?.id, OPERATOR_SMOKE_PARTICIPANT_TOUR_ID);
+    assert.equal(data?.title, "Alpine Identity Check");
+    assert.equal(data?.nationalIdRequired, true);
+    assert.equal(data?.fatherNameRequired, true);
+    assert.equal(data?.birthDateRequired, true);
   });
 });

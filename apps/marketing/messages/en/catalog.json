@@ -3,7 +3,15 @@
     "siteDescription": "Browse published tours from {siteName}.",
     "listDescription": "Published tour catalog for {siteName}.",
     "notFoundTitle": "Tour not found",
-    "notFoundDescription": "This tour is not published or does not exist."
+    "notFoundDescription": "This tour is not published or does not exist.",
+    "motherTitle": "Platform administration",
+    "motherDescription": "Operator platform entry.",
+    "maintenanceTitle": "Shop unavailable",
+    "maintenanceDescription": "The shop is temporarily disabled."
+  },
+  "seo": {
+    "toursTitle": "{siteName} — Tours",
+    "toursDescription": "Published tour catalog for {siteName}."
   },
   "nav": {
     "tours": "Tours",
@@ -12,6 +20,7 @@
   "list": {
     "title": "Tours",
     "empty": "No published tours yet.",
+    "viewTour": "View tour",
     "loadMore": "Load more",
     "cityLabel": "City",
     "cityPlaceholder": "Filter by city",
@@ -31,17 +40,22 @@
     "itineraryDay": "Day {day, number}",
     "itinerarySegments": "Program sections",
     "policiesHeading": "Policies & terms",
+    "cancellationDeadline": "Cancellation deadline: {hours} hours before departure",
+    "cancellationPenalty": "Cancellation penalty: {percent}%",
     "priceOnRequest": "Price on request",
     "datesTba": "Dates TBA"
   },
   "home": {
-    "title": "Marketing",
+    "title": "Mountain tours",
+    "lead": "Browse published programs and register online.",
     "browseTours": "Browse tours"
   },
   "notFound": {
     "title": "Tour not found",
     "body": "This tour is not published or does not exist.",
-    "back": "Back to tours"
+    "back": "Back to tours",
+    "metadataTitle": "Tour not found",
+    "metadataDescription": "This tour is not published or does not exist."
   },
   "locale": {
     "fa": "فارسی",

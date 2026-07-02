@@ -5,3 +5,5 @@
  */
 
 import "@app-tour/workspace-denali/theme/denali-marketing.css";
+import "@app-tour/workspace-guest-club/theme/marketing.css";
+import "@app-tour/workspace-urban/theme/urban-marketing.css";

@@ -1,7 +1,7 @@
 import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { buildMarketingCatalogCacheTag } from "@/catalog/catalog-fetch-options";
+import { buildMarketingCatalogCacheTag, buildMarketingSeoCacheTag } from "@/catalog/catalog-fetch-options";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +32,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "TENANT_ID_REQUIRED" }, { status: 400 });
   }
 
-  const tag = buildMarketingCatalogCacheTag(tenantId);
-  revalidateTag(tag);
+  const catalogTag = buildMarketingCatalogCacheTag(tenantId);
+  const seoTag = buildMarketingSeoCacheTag(tenantId);
+  revalidateTag(catalogTag);
+  revalidateTag(seoTag);
 
-  return NextResponse.json({ revalidated: true, tag });
-}
+  return NextResponse.json({ revalidated: true, tags: [catalogTag, seoTag] });
+}برر

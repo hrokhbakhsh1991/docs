@@ -14,6 +14,14 @@
       "types": "./dist/denali.plugin.d.ts",
       "default": "./dist/denali.plugin.js"
     },
+    "./catalog-registration-flow": {
+      "types": "./dist/catalog/registration-flow/index.d.ts",
+      "default": "./dist/catalog/registration-flow/index.js"
+    },
+    "./catalog-registration-flow/react": {
+      "types": "./dist/catalog/registration-flow/react.d.ts",
+      "default": "./dist/catalog/registration-flow/react.js"
+    },
     "./composites": {
       "types": "./dist/composites/index.d.ts",
       "default": "./dist/composites/index.js"
@@ -487,6 +495,9 @@
     "react-dom": "^19.0.0"
   },
   "dependencies": {
+    "@app-tour/catalog-intake-ui": "workspace:*",
+    "@app-tour/catalog-registration-flow-ui": "workspace:*",
+    "@app-tour/catalog-registration-auth": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/draft-engine": "workspace:*",
     "@app-tour/platform-core": "workspace:*",

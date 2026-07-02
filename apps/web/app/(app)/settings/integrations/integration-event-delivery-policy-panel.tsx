@@ -1,40 +1,33 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ExposureFieldChecklist } from "@/exposure/ExposureFieldChecklist";
-import { ExposureEnginePreviewPanel } from "@/exposure/ExposureEnginePreviewPanel";
-import type { ExposureControlPlaneEventContext } from "@/exposure/exposure-control-plane-client";
-import {
-  fetchExposureEnginePreview,
-  type ExposureEnginePreviewModel,
-} from "@/exposure/exposure-engine-preview-client";
 import { localizeExposureCatalogFields } from "@/exposure/localize-exposure-catalog-fields";
 import {
   catalogFieldIdsFromExposureFields,
-  reorderExposureSelectedFieldId,
   resolveEffectiveSelectedFieldIds,
-  resolveExposureCatalogFieldsInSelectedOrder,
   resolveExposureFieldSelectionFromPersisted,
   resolveExposureIntentContextFromPersisted,
   resolveExposureIntentPatchInput,
   setExposureCustomizeFields,
-  setExposureFieldDecorationPrefix,
   toExposureChecklistFields,
   toggleExposureFieldSelection,
   type ExposureChecklistContext,
   type ExposureCatalogField,
-  type ExposureFieldDecorations,
   type ExposureFieldSelectionState,
 } from "@/exposure/exposure-field-selection";
+import {
+  hydrateTelegramTemplateState,
+  renderTelegramDeliveryPreview,
+  syncTelegramTemplateOnFieldToggle,
+} from "@/exposure/telegram-delivery-template-sync";
 import { buildExposureEventTypeList } from "@/exposure/build-exposure-event-type-list";
 import {
   patchExposureIntent,
@@ -44,16 +37,15 @@ import type {
   IntegrationConnectionPublic,
   IntegrationProviderSurfaceMeta,
 } from "@/integrations/integrations-types";
+import { listDeprecatedEventPolicies } from "@/integrations/integration-connection-load-warnings";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
 export const INTEGRATION_DELIVERY_POLICY_TEST_IDS = {
   panel: "integration-delivery-policy-panel",
+  deprecatedMigration: "integration-delivery-policy-deprecated-migration",
   event: "integration-delivery-policy-event",
   surface: "integration-delivery-policy-surface",
-  fieldOrder: "integration-delivery-policy-field-order",
-  fieldOrderMoveUp: "integration-delivery-policy-field-order-move-up",
-  fieldOrderMoveDown: "integration-delivery-policy-field-order-move-down",
-  fieldOrderIconInput: "integration-delivery-policy-field-order-icon-input",
+  messageTemplate: "integration-delivery-policy-message-template",
 } as const;
 
 type DeliveryPolicyEventState = {
@@ -61,7 +53,6 @@ type DeliveryPolicyEventState = {
   /** When true, {@link selectedFieldIds} narrows delivery; otherwise registry defaults apply. */
   readonly customizeFields: boolean;
   readonly selectedFieldIds: readonly string[];
-  readonly fieldDecorations: ExposureFieldDecorations;
   readonly template: string;
   readonly surface: string;
   readonly audience: string;
@@ -96,7 +87,6 @@ type TelegramMessagePreviewProps = {
   readonly eventLabel: string;
   readonly fields: readonly ExposureCatalogField[];
   readonly selectedFieldIds: readonly string[];
-  readonly fieldDecorations: ExposureFieldDecorations;
   readonly template: string;
   readonly labels: {
     readonly title: string;
@@ -109,65 +99,6 @@ type TelegramMessagePreviewProps = {
   };
 };
 
-function fieldLabel(field: ExposureCatalogField): string {
-  return field.adminLabel ?? field.id;
-}
-
-function sampleFieldValue(field: ExposureCatalogField, fallback: string): string {
-  const key = `${field.id} ${field.canonicalPath}`.toLowerCase();
-  if (key.includes("title") || key.includes("name")) {
-    return "تور کویر لوت";
-  }
-  if (key.includes("date") || key.includes("time")) {
-    return "۱۴۰۳/۰۸/۲۰";
-  }
-  if (key.includes("price") || key.includes("amount")) {
-    return "۴۸٬۰۰۰٬۰۰۰ تومان";
-  }
-  if (key.includes("location") || key.includes("destination")) {
-    return "کرمان";
-  }
-  return fallback;
-}
-
-function renderTelegramPreviewMessage({
-  eventLabel,
-  fields,
-  selectedFieldIds,
-  fieldDecorations,
-  template,
-  labels,
-}: TelegramMessagePreviewProps): string {
-  const selectedFields = resolveExposureCatalogFieldsInSelectedOrder(fields, selectedFieldIds);
-  if (selectedFields.length === 0) {
-    return labels.empty;
-  }
-  const sampleById = new Map(
-    selectedFields.map((field) => [
-      field.id,
-      sampleFieldValue(field, labels.sampleValue),
-    ] as const),
-  );
-  const trimmedTemplate = template.trim();
-  if (trimmedTemplate.length > 0) {
-    return trimmedTemplate
-      .replaceAll("{{eventType}}", eventLabel)
-      .replaceAll("{{aggregateId}}", labels.aggregateId)
-      .replace(/{{field:([^}]+)}}/g, (_match, fieldId: string) => {
-        return sampleById.get(fieldId.trim()) ?? labels.redacted;
-      });
-  }
-  const lines = selectedFields.map((field) => {
-    const prefix = fieldDecorations[field.id]?.prefix?.trim();
-    const label = fieldLabel(field);
-    const value = sampleFieldValue(field, labels.sampleValue);
-    return prefix !== undefined && prefix.length > 0
-      ? `${prefix} ${label}: ${value}`
-      : `${label}: ${value}`;
-  });
-  return `${labels.defaultPrefix}: ${eventLabel}\n${lines.join("\n")}`;
-}
-
 function TelegramMessagePreview(props: TelegramMessagePreviewProps) {
   return (
     <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
@@ -176,126 +107,22 @@ function TelegramMessagePreview(props: TelegramMessagePreviewProps) {
         <p className="text-xs text-muted-foreground">{props.labels.description}</p>
       </div>
       <pre className="mt-3 whitespace-pre-wrap rounded-md border border-border/60 bg-background p-3 text-xs leading-6 text-foreground">
-        {renderTelegramPreviewMessage(props)}
+        {renderTelegramDeliveryPreview({
+          eventLabel: props.eventLabel,
+          fields: props.fields,
+          selectedFieldIds: props.selectedFieldIds,
+          template: props.template,
+          labels: {
+            empty: props.labels.empty,
+            defaultPrefix: props.labels.defaultPrefix,
+            sampleValue: props.labels.sampleValue,
+            aggregateId: props.labels.aggregateId,
+            redacted: props.labels.redacted,
+          },
+        })}
       </pre>
     </div>
   );
-}
-
-type TelegramFieldOrderSectionProps = {
-  readonly fields: readonly ExposureCatalogField[];
-  readonly selectedFieldIds: readonly string[];
-  readonly fieldDecorations: ExposureFieldDecorations;
-  readonly disabled: boolean;
-  readonly labels: {
-    readonly title: string;
-    readonly description: string;
-    readonly empty: string;
-    readonly moveUp: string;
-    readonly moveDown: string;
-    readonly iconLabel: string;
-  };
-  readonly onMove: (fieldId: string, direction: "up" | "down") => void;
-  readonly onIconChange: (fieldId: string, prefix: string) => void;
-};
-
-function TelegramFieldOrderSection({
-  fields,
-  selectedFieldIds,
-  fieldDecorations,
-  disabled,
-  labels,
-  onMove,
-  onIconChange,
-}: TelegramFieldOrderSectionProps) {
-  const orderedFields = resolveExposureCatalogFieldsInSelectedOrder(fields, selectedFieldIds);
-
-  return (
-    <div
-      className="space-y-2 rounded-lg border border-border/60 bg-muted/10 p-3"
-      data-testid={INTEGRATION_DELIVERY_POLICY_TEST_IDS.fieldOrder}
-    >
-      <div className="space-y-0.5">
-        <p className="text-sm font-medium text-foreground">{labels.title}</p>
-        <p className="text-xs text-muted-foreground">{labels.description}</p>
-      </div>
-      {orderedFields.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{labels.empty}</p>
-      ) : (
-        <ol className="space-y-1.5">
-          {orderedFields.map((field, index) => (
-            <li
-              key={field.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md border border-border/50 bg-background px-3 py-2 text-sm sm:grid-cols-[minmax(0,1fr)_7rem_auto]"
-            >
-              <span className="truncate font-medium">{fieldLabel(field)}</span>
-              <Input
-                id={`field-icon-${field.id}`}
-                type="text"
-                className="h-8 text-sm"
-                value={fieldDecorations[field.id]?.prefix ?? ""}
-                placeholder="✅ 📍"
-                disabled={disabled}
-                aria-label={`${labels.iconLabel}: ${fieldLabel(field)}`}
-                data-testid={INTEGRATION_DELIVERY_POLICY_TEST_IDS.fieldOrderIconInput}
-                onChange={(event) => onIconChange(field.id, event.target.value)}
-              />
-              <div className="flex items-center gap-0.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={disabled || index === 0}
-                  data-testid={INTEGRATION_DELIVERY_POLICY_TEST_IDS.fieldOrderMoveUp}
-                  aria-label={`${labels.moveUp}: ${fieldLabel(field)}`}
-                  onClick={() => onMove(field.id, "up")}
-                >
-                  <ChevronUp className="h-4 w-4" aria-hidden />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={disabled || index === orderedFields.length - 1}
-                  data-testid={INTEGRATION_DELIVERY_POLICY_TEST_IDS.fieldOrderMoveDown}
-                  aria-label={`${labels.moveDown}: ${fieldLabel(field)}`}
-                  onClick={() => onMove(field.id, "down")}
-                >
-                  <ChevronDown className="h-4 w-4" aria-hidden />
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-}
-
-function toEnginePreviewContext(
-  eventType: string,
-  eventState: DeliveryPolicyEventState,
-  preview: ExposureEnginePreviewModel | null | undefined,
-): ExposureControlPlaneEventContext {
-  const coordinates = {
-    surface: eventState.surface,
-    audience: eventState.audience,
-    trigger: eventState.trigger,
-  };
-  return {
-    eventType,
-    eventPolicyEnabled: eventState.enabled,
-    storedContext: coordinates,
-    effectiveContext: coordinates,
-    storedDiffersFromEffective: false,
-    coordinateControlsRuntimeEffective: true,
-    seededProfile: null,
-    persistedProfile: null,
-    activeExposureIntent: null,
-    enginePreview: preview ?? null,
-  };
 }
 
 function toSelectionState(eventState: DeliveryPolicyEventState): ExposureFieldSelectionState {
@@ -327,6 +154,7 @@ function initialEventState(
   connection: IntegrationConnectionPublic,
   providerSurface: IntegrationProviderSurfaceMeta | null,
   eventType: string,
+  exposureCandidateFields: readonly ExposureCatalogField[],
 ): DeliveryPolicyEventState {
   const persistedPolicy = connection.eventPolicies.find((policy) => policy.eventType === eventType);
   const persistedIntent =
@@ -345,12 +173,23 @@ function initialEventState(
     eventType,
     persistedIntent,
   );
+  const selectedFieldIds = resolveEffectiveSelectedFieldIds(
+    selection,
+    catalogFieldIds(exposureCandidateFields),
+  );
+  const hydratedTemplate = hydrateTelegramTemplateState({
+    template: persistedIntent?.templateId ?? "",
+    legacyFieldDecorations: persistedIntent?.fieldDecorations,
+    fields: exposureCandidateFields,
+    selectedFieldIds,
+    customizeFields: selection.customizeFields,
+  });
+
   return {
     enabled,
     customizeFields: selection.customizeFields,
     selectedFieldIds: selection.selectedFieldIds,
-    fieldDecorations: persistedIntent?.fieldDecorations ?? {},
-    template: persistedIntent?.templateId ?? "",
+    template: hydratedTemplate,
     surface: context.surface,
     audience: context.audience,
     trigger: context.trigger,
@@ -379,6 +218,11 @@ export function IntegrationEventDeliveryPolicyPanel({
     [connection, providerSurface],
   );
 
+  const deprecatedEventPolicies = useMemo(
+    () => listDeprecatedEventPolicies(connection),
+    [connection],
+  );
+
   const eventLabel = (eventType: string): string => {
     const key = `eventNames.${eventType}`;
     return t.has(key) ? t(key) : humanizeEventType(eventType);
@@ -389,37 +233,24 @@ export function IntegrationEventDeliveryPolicyPanel({
   };
 
   const [stateByEvent, setStateByEvent] = useState<Record<string, DeliveryPolicyEventState>>({});
-  const [previewByEvent, setPreviewByEvent] = useState<
-    Record<string, ExposureEnginePreviewModel | null>
-  >({});
   const [savingEvent, setSavingEvent] = useState<string | null>(null);
   const [errorByEvent, setErrorByEvent] = useState<Record<string, string>>({});
   const [successEvent, setSuccessEvent] = useState<string | null>(null);
 
-  async function refreshPreview(eventType: string): Promise<void> {
-    try {
-      const preview = await fetchExposureEnginePreview(connection.id, eventType);
-      setPreviewByEvent((current) => ({ ...current, [eventType]: preview }));
-    } catch {
-      setPreviewByEvent((current) => ({ ...current, [eventType]: null }));
-    }
-  }
-
   useEffect(() => {
     const next: Record<string, DeliveryPolicyEventState> = {};
     for (const eventType of eventTypes) {
-      next[eventType] = initialEventState(connection, providerSurface, eventType);
+      next[eventType] = initialEventState(
+        connection,
+        providerSurface,
+        eventType,
+        localizedCandidateFields,
+      );
     }
     setStateByEvent(next);
     setErrorByEvent({});
     setSuccessEvent(null);
-  }, [connection, eventTypes, providerSurface]);
-
-  useEffect(() => {
-    for (const eventType of eventTypes) {
-      void refreshPreview(eventType);
-    }
-  }, [connection.id, eventTypes]);
+  }, [connection, eventTypes, providerSurface, localizedCandidateFields]);
 
   if (eventTypes.length === 0) {
     return null;
@@ -436,15 +267,31 @@ export function IntegrationEventDeliveryPolicyPanel({
   function toggleField(eventType: string, fieldId: string, checked: boolean): void {
     setStateByEvent((current) => {
       const previous = current[eventType];
-      const next = toggleExposureFieldSelection(
+      if (previous === undefined) {
+        return current;
+      }
+      const nextSelection = toggleExposureFieldSelection(
         toSelectionState(previous),
         catalogFieldIds(exposureCandidateFields),
         fieldId,
         checked,
       );
+      const field = localizedCandidateFields.find((candidate) => candidate.id === fieldId);
+      const nextTemplate =
+        field === undefined
+          ? previous.template
+          : syncTelegramTemplateOnFieldToggle({
+              template: previous.template,
+              field,
+              checked,
+            });
       return {
         ...current,
-        [eventType]: { ...previous, ...next },
+        [eventType]: {
+          ...previous,
+          ...nextSelection,
+          template: nextTemplate,
+        },
       };
     });
     setSuccessEvent(null);
@@ -453,59 +300,30 @@ export function IntegrationEventDeliveryPolicyPanel({
   function setCustomizeFields(eventType: string, customize: boolean): void {
     setStateByEvent((current) => {
       const previous = current[eventType];
-      const next = setExposureCustomizeFields(
+      if (previous === undefined) {
+        return current;
+      }
+      const nextSelection = setExposureCustomizeFields(
         toSelectionState(previous),
         catalogFieldIds(exposureCandidateFields),
         customize,
       );
-      return {
-        ...current,
-        [eventType]: { ...previous, ...next },
-      };
-    });
-    setSuccessEvent(null);
-  }
-
-  function moveFieldOrder(
-    eventType: string,
-    fieldId: string,
-    direction: "up" | "down",
-  ): void {
-    setStateByEvent((current) => {
-      const previous = current[eventType];
-      if (previous === undefined) {
-        return current;
-      }
-      const next = reorderExposureSelectedFieldId(
-        toSelectionState(previous),
+      const selectedIds = resolveEffectiveSelectedFieldIds(
+        nextSelection,
         catalogFieldIds(exposureCandidateFields),
-        fieldId,
-        direction,
       );
+      const template =
+        customize && previous.template.trim().length === 0
+          ? hydrateTelegramTemplateState({
+              template: "",
+              fields: localizedCandidateFields,
+              selectedFieldIds: selectedIds,
+              customizeFields: true,
+            })
+          : previous.template;
       return {
         ...current,
-        [eventType]: { ...previous, ...next },
-      };
-    });
-    setSuccessEvent(null);
-  }
-
-  function updateFieldDecoration(eventType: string, fieldId: string, prefix: string): void {
-    setStateByEvent((current) => {
-      const previous = current[eventType];
-      if (previous === undefined) {
-        return current;
-      }
-      return {
-        ...current,
-        [eventType]: {
-          ...previous,
-          fieldDecorations: setExposureFieldDecorationPrefix(
-            previous.fieldDecorations,
-            fieldId,
-            prefix,
-          ),
-        },
+        [eventType]: { ...previous, ...nextSelection, template },
       };
     });
     setSuccessEvent(null);
@@ -531,7 +349,6 @@ export function IntegrationEventDeliveryPolicyPanel({
         selection: toSelectionState(eventState),
         context: toExposureContext(eventState),
         template: eventState.template,
-        fieldDecorations: eventState.fieldDecorations,
       });
       const updated = await patchExposureIntent(connection.id, eventType, patchInput);
       onUpdated(updated);
@@ -549,6 +366,29 @@ export function IntegrationEventDeliveryPolicyPanel({
 
   return (
     <div className="space-y-6" data-testid={INTEGRATION_DELIVERY_POLICY_TEST_IDS.panel}>
+      {deprecatedEventPolicies.length > 0 ? (
+        <div
+          className="space-y-2 rounded-md border border-border/70 bg-muted/20 p-4 text-sm"
+          data-testid={INTEGRATION_DELIVERY_POLICY_TEST_IDS.deprecatedMigration}
+        >
+          {deprecatedEventPolicies.map((policy) => {
+            const supersededBy = policy.supersededBy ?? "TourPublished";
+            return (
+              <div key={policy.eventType} className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="border-muted-foreground/40 text-muted-foreground">
+                  {t("deprecatedEventBadge")}
+                </Badge>
+                <p className="text-muted-foreground">
+                  {t("deprecatedEventNotice", {
+                    eventName: eventLabel(policy.eventType),
+                    supersededBy: eventLabel(supersededBy),
+                  })}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
       {eventTypes.map((eventType, eventIndex) => {
         const eventState = stateByEvent[eventType];
         if (eventState === undefined) {
@@ -632,44 +472,24 @@ export function IntegrationEventDeliveryPolicyPanel({
                     />
                   </section>
 
-                  <TelegramFieldOrderSection
-                    fields={localizedCandidateFields}
-                    selectedFieldIds={selectedFieldIds}
-                    fieldDecorations={eventState.fieldDecorations}
-                    disabled={!canEdit || isSaving}
-                    labels={{
-                      title: t("fieldOrderTitle"),
-                      description: t("fieldOrderDescription"),
-                      empty: t("fieldOrderEmpty"),
-                      moveUp: t("fieldOrderMoveUp"),
-                      moveDown: t("fieldOrderMoveDown"),
-                      iconLabel: t("fieldIconLabel"),
-                    }}
-                    onMove={(fieldId, direction) => moveFieldOrder(eventType, fieldId, direction)}
-                    onIconChange={(fieldId, prefix) =>
-                      updateFieldDecoration(eventType, fieldId, prefix)
-                    }
-                  />
-
-                  <details className="rounded-lg border border-border/70 bg-card">
-                    <summary className="cursor-pointer px-4 py-3 text-sm font-medium marker:content-none [&::-webkit-details-marker]:hidden">
-                      {t("templateAdvancedToggle")}
-                    </summary>
-                    <div className="space-y-2 border-t border-border/60 px-4 py-3">
+                  <section className="space-y-2 rounded-lg border border-border/70 bg-card p-4">
+                    <div className="space-y-0.5">
                       <Label htmlFor={`delivery-template-${eventType}`}>{t("templateLabel")}</Label>
-                      <textarea
-                        id={`delivery-template-${eventType}`}
-                        className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        value={eventState.template}
-                        placeholder={t("templatePlaceholder")}
-                        disabled={!canEdit || isSaving}
-                        onChange={(event) =>
-                          updateEventState(eventType, { template: event.target.value })
-                        }
-                      />
-                      <p className="text-xs text-muted-foreground">{t("templateHint")}</p>
+                      <p className="text-xs text-muted-foreground">{t("templateCanvasDescription")}</p>
                     </div>
-                  </details>
+                    <textarea
+                      id={`delivery-template-${eventType}`}
+                      className="min-h-32 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      value={eventState.template}
+                      placeholder={t("templatePlaceholder")}
+                      disabled={!canEdit || isSaving}
+                      data-testid={INTEGRATION_DELIVERY_POLICY_TEST_IDS.messageTemplate}
+                      onChange={(event) =>
+                        updateEventState(eventType, { template: event.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">{t("templateHint")}</p>
+                  </section>
                 </div>
 
                 <div className="space-y-4">
@@ -677,7 +497,6 @@ export function IntegrationEventDeliveryPolicyPanel({
                     eventLabel={eventLabel(eventType)}
                     fields={localizedCandidateFields}
                     selectedFieldIds={selectedFieldIds}
-                    fieldDecorations={eventState.fieldDecorations}
                     template={eventState.template}
                     labels={{
                       title: t("previewTitle"),
@@ -689,26 +508,6 @@ export function IntegrationEventDeliveryPolicyPanel({
                       redacted: t("previewRedacted"),
                     }}
                   />
-
-                  <div className="rounded-lg border border-border/70 bg-muted/10 p-4">
-                    <p className="text-sm font-medium text-foreground">{t("enginePreviewTitle")}</p>
-                    <ExposureEnginePreviewPanel
-                      context={toEnginePreviewContext(
-                        eventType,
-                        eventState,
-                        previewByEvent[eventType],
-                      )}
-                      labels={{
-                        title: t("enginePreviewTitle"),
-                        empty: t("enginePreviewEmpty"),
-                        samplePayload: t("samplePayload"),
-                        engineSelected: t("engineSelected"),
-                        reasonChain: t("reasonChain"),
-                        appliedPolicies: t("appliedPolicies"),
-                        noPolicies: t("noPolicies"),
-                      }}
-                    />
-                  </div>
                 </div>
               </div>
             ) : null}

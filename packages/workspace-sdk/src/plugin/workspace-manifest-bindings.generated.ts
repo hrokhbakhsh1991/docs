@@ -12,6 +12,7 @@ export const WORKSPACE_MANIFEST_BINDINGS: readonly {
   readonly pluginId: WorkspacePluginId;
 }[] = [
   { workspaceType: "denali", pluginId: "denali" },
+  { workspaceType: "guest-club", pluginId: "guest-club" },
   { workspaceType: "starter", pluginId: "starter" },
   { workspaceType: "urban", pluginId: "urban" },
 ];

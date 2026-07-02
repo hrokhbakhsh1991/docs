@@ -33,5 +33,6 @@
   "typescript.disableAutomaticTypeAcquisition": true,
   "files.exclude": {
     "**/.git": true
-  }
+  },
+  "js/ts.experimental.useTsgo": false
 }

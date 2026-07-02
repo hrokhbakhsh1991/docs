@@ -49,6 +49,7 @@ import {
   prepareWizardDraftEnvelope,
 } from "@/wizard/wizard-draft-envelope-hooks";
 import { WorkspaceWizardHost } from "@/wizard/workspace-wizard-host";
+import { createWizardSubmitErrorTranslator } from "@/wizard/create-wizard-submit-error-translator";
 import { resolveWizardSubmitErrorMessage } from "@/wizard/resolve-wizard-submit-error-message";
 
 function buildPrefilledForm(
@@ -90,17 +91,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
         raw: code,
         context: "create",
         translateFieldLabel: (path) => path,
-        t: {
-          translate: (key, values) => t(key, values),
-          has: (key) => {
-            try {
-              t(key);
-              return true;
-            } catch {
-              return false;
-            }
-          },
-        },
+        t: createWizardSubmitErrorTranslator(t),
       }),
     [t]
   );

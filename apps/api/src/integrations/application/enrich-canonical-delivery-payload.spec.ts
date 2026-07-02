@@ -82,6 +82,50 @@ describe("enrichCanonicalDeliveryPayload", () => {
     });
   });
 
+  it("prefers catalog reference display values over raw ids", () => {
+    const enriched = enrichCanonicalDeliveryPayload({
+      payload: { destinationId: "dest-1" },
+      eligibleFieldIds: ["denali.destination"],
+      definitions: [
+        {
+          id: "denali.destination",
+          workspaceType: "denali",
+          canonicalPath: "destinationId",
+          kind: "text",
+          version: 1,
+        },
+      ],
+      referenceDisplayValues: {
+        destinationId: "Damavand",
+      },
+    });
+
+    assert.deepEqual(enriched.fieldValues, {
+      "denali.destination": "Damavand",
+    });
+  });
+
+  it("formats date-kind fields to fa-IR delivery strings instead of raw ISO", () => {
+    const enriched = enrichCanonicalDeliveryPayload({
+      payload: { startDateTime: "2026-06-30T22:30:00.000Z" },
+      eligibleFieldIds: ["denali.datetime"],
+      definitions: [
+        {
+          id: "denali.datetime",
+          workspaceType: "denali",
+          canonicalPath: "startDateTime",
+          kind: "date",
+          version: 1,
+        },
+      ],
+    });
+
+    const formatted = enriched.fieldValues["denali.datetime"];
+    assert.equal(typeof formatted, "string");
+    assert.notEqual(formatted, "2026-06-30T22:30:00.000Z");
+    assert.match(formatted!, /۱۴۰۵|1405/);
+  });
+
   it("renders locationData objects using label, falling back to address", () => {
     const enriched = enrichCanonicalDeliveryPayload({
       payload: {

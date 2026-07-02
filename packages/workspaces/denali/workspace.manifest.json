@@ -1,6 +1,7 @@
 {
   "id": "denali",
   "version": 1,
+  "guestExtensionsVersion": 1,
   "package": "@app-tour/workspace-denali",
   "workspaceTypes": ["denali"],
   "plugin": {
@@ -74,6 +75,11 @@
     "publishGateExport": "denaliTourPatchRequiresOwner",
     "publishSurfaceExport": "DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
   },
+  "canonicalTour": {
+    "publishStatusModule": "./tours",
+    "publishStatusReadExport": "readDenaliTourPublishStatusFromCanonical",
+    "publishTransitionExport": "detectDenaliTourPublishTransition"
+  },
   "wizardMedia": {
     "module": "./photos",
     "workspaceTypeExport": "DENALI_WORKSPACE_TYPE",
@@ -88,6 +94,16 @@
     "mediaRouteKey": "wizard-photos",
     "legacyBackendUploadPath": "/tours/wizard-photos",
     "legacyBackendSignedUrlPath": "/tours/wizard-photos/url"
+  },
+  "wizardCloneRemint": {
+    "module": "./photos",
+    "workspaceTypeExport": "DENALI_WORKSPACE_TYPE",
+    "executeRemintExport": "executeDenaliWizardPhotoRemintPlan",
+    "assertDestKeyExport": "assertDenaliWizardDraftDestKey",
+    "readConfigExport": "readMinioPhotoConfigFromEnv",
+    "serverRemintModule": "./clone",
+    "remintCanonicalExport": "remintDenaliClonePhotosInCanonical",
+    "executeTourRemintExport": "executeDenaliTourPhotoRemintPlan"
   },
   "themeStylesheets": ["theme/denali-admin.css"],
   "wizardCreate": {
@@ -115,7 +131,57 @@
     "portal": ["theme/denali-portal.css"],
     "marketing": ["theme/denali-marketing.css"]
   },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "denaliCatalogRegistrationFlowSurface",
+    "transportInitializerExport": "registerDenaliCatalogRegistrationTransportInitializer",
+    "steps": {
+      "mode": "bundle",
+      "export": "denaliRegistrationFlowSteps"
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": { "cityFilter": false },
+    "detailSections": {
+      "difficulty": true,
+      "fitness": true,
+      "itinerary": true,
+      "policies": true
+    }
+  },
+  "memberProfile": {
+    "editableFields": ["displayName", "email", "nationalId", "fatherName", "birthDate"],
+    "readOnlyFields": ["mobile"],
+    "mobileChangeViaOtp": true,
+    "sections": [
+      {
+        "id": "identity",
+        "fields": ["displayName", "mobile", "email"]
+      },
+      {
+        "id": "participant",
+        "fields": ["nationalId", "fatherName", "birthDate"]
+      }
+    ]
+  },
+  "guestSeo": {
+    "marketing": {
+      "listTitleKey": "seo.toursTitle",
+      "listDescriptionKey": "seo.toursDescription",
+      "jsonLd": {
+        "required": true,
+        "schemaTypes": ["TouristTrip"],
+        "builderExport": "buildDenaliTouristTripJsonLd",
+        "richResultsProfile": "tourist-trip-v1"
+      },
+      "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": true },
+      "pagination": { "noindexQueryParams": ["cursor", "city"] }
+    }
+  },
   "devBootstrap": {
+    "pluginTenantIds": [
+      "00000000-0000-4000-8000-000000000003",
+      "00000000-0000-4000-8000-000000000014"
+    ],
     "wizardTemplate": {
       "module": "./settings/denaliFullWizardTemplate",
       "buildExport": "buildDenaliTenantWizardTemplatePayload",
@@ -126,5 +192,12 @@
       "tenantIdExport": "DENALI_SMOKE_TENANT_ID",
       "subdomainExport": "DENALI_SMOKE_SUBDOMAIN"
     }
-  }
+  },
+  "httpErrors": [
+    {
+      "isErrorExport": "isDenaliRegistrationDuplicateError",
+      "codeExport": "DENALI_REGISTRATION_DUPLICATE",
+      "status": 409
+    }
+  ]
 }

@@ -31,7 +31,15 @@ function toBookingRecord(row: {
   submittedAt: Date;
   submittedByUserId: string;
   approvedAt: Date | null;
+  registrationIntake?: Prisma.JsonValue | null;
 }): BookingRecord {
+  const registrationIntake =
+    row.registrationIntake !== null &&
+    row.registrationIntake !== undefined &&
+    typeof row.registrationIntake === "object" &&
+    !Array.isArray(row.registrationIntake)
+      ? (row.registrationIntake as Readonly<Record<string, unknown>>)
+      : undefined;
   return {
     id: row.id,
     tenantId: row.tenantId,
@@ -47,6 +55,7 @@ function toBookingRecord(row: {
     submittedAt: row.submittedAt.toISOString(),
     submittedByUserId: row.submittedByUserId,
     approvedAt: row.approvedAt?.toISOString() ?? null,
+    ...(registrationIntake !== undefined ? { registrationIntake } : {}),
   };
 }
 
@@ -154,6 +163,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
           paymentStatus: input.body.paymentStatus ?? "unpaid",
           departureAt: new Date(input.body.departureAt),
           submittedByUserId: input.submittedByUserId,
+          ...(input.body.registrationIntake !== undefined
+            ? { registrationIntake: input.body.registrationIntake as Prisma.InputJsonValue }
+            : {}),
         },
       })
     );

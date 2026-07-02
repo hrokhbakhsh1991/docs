@@ -5,6 +5,7 @@
  */
 
 import { DENALI_SMOKE_TENANT_ID, DENALI_SMOKE_SUBDOMAIN } from "@app-tour/workspace-denali";
+import { GUEST_CLUB_SMOKE_TENANT_ID, GUEST_CLUB_SMOKE_SUBDOMAIN } from "@app-tour/workspace-guest-club";
 import { URBAN_SMOKE_TENANT_ID, URBAN_SMOKE_SUBDOMAIN } from "@app-tour/workspace-urban";
 import { buildDenaliTenantWizardTemplatePayload } from "@app-tour/workspace-denali";
 import { buildUrbanMinimalWizardTemplatePayload } from "@app-tour/workspace-urban";
@@ -29,6 +30,11 @@ export const WORKSPACE_DEV_SMOKE_TENANT_BINDINGS = [
     workspaceId: "denali",
     tenantId: DENALI_SMOKE_TENANT_ID,
     subdomain: DENALI_SMOKE_SUBDOMAIN,
+  },
+  {
+    workspaceId: "guest-club",
+    tenantId: GUEST_CLUB_SMOKE_TENANT_ID,
+    subdomain: GUEST_CLUB_SMOKE_SUBDOMAIN,
   },
   {
     workspaceId: "urban",

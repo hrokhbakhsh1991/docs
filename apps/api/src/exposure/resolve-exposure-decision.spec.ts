@@ -74,6 +74,24 @@ describe("resolveExposureDecision", () => {
     assert.equal(resolved.messageTemplate, "Native {{field:native.title}}");
   });
 
+  it("does not treat profile defaultTemplateId as a delivery override template", () => {
+    const resolved = resolveExposureDecision({
+      tenantId: "tenant-a",
+      workspaceType: "denali",
+      eventType: "TourPublished",
+      exposureSurface: "telegram",
+      payload: { title: "Alpine Day" },
+      profile: {
+        ...profile,
+        defaultTemplateId: "Tour published: {{title}}",
+      },
+      exposureIntent: null,
+      resolveDeliveryFieldDefinitions: () => [],
+    });
+
+    assert.equal(resolved.messageTemplate, null);
+  });
+
   it("uses engine catalog and mirrors engine-selected ids when engine decisions are provided", () => {
     const resolved = resolveExposureDecision({
       tenantId: "tenant-a",

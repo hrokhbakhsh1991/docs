@@ -14,10 +14,27 @@ on:
       - "apps/api/src/workspace/**"
       - "apps/api/src/outbox/**"
       - "apps/api/src/app.ts"
+      - "apps/api/src/boot/**"
+      - "apps/api/src/http/**"
       - "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts"
       - "scripts/generate-workspace-registry.mjs"
-      - "scripts/guards/phase-10-guard.mjs"
       - "scripts/workspace-create.mjs"
+      - "scripts/guards/phase-10-guard.mjs"
+      - "scripts/guards/guard-guest-plugin-conformance.mjs"
+      - "scripts/guards/guard-guest-*.mjs"
+      - "scripts/guards/guard-intake-plugin-registry.mjs"
+      - "scripts/guards/guard-no-default-fallback.mjs"
+      - "scripts/guards/guard-generated-banner.mjs"
+      - "scripts/guards/guard-feature-flag-boundary.mjs"
+      - "scripts/guards/guard-structured-errors.mjs"
+      - "scripts/guards/guard-guest-api-shell.mjs"
+      - "scripts/test/workspace-guest-conformance.spec.mjs"
+      - "scripts/test/workspace-create-guest.spec.mjs"
+      - "scripts/test/test-extract-catalog-paths.mjs"
+      - "docs/dev/guest-plugin-conformance.md"
+      - "docs/dev/workspace-guest-extensions.schema.json"
+      - "docs/dev/guest-registration-e2e-hooks.yaml"
+      - "docs/dev/adr-guest-plugin/**"
       - "docs/phase-10/**"
       - ".github/workflows/phase-10-guard.yml"
   workflow_dispatch:
@@ -34,4 +51,5 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run phase-10:guard
+      - run: pnpm run guard:guest-plugin-conformance
       - run: node --test scripts/test/workspace-registry-drop-in.spec.mjs

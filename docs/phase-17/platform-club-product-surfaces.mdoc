@@ -11,7 +11,7 @@ doc_role: architecture_sot_index
 
 Close P1 §J product gaps: **publish → catalog**, **portal registration**, **club surfaces control**.
 
-**Nano index:** [`TEMP/p4/README.md`](../../TEMP/p4/README.md) · **Exit:** [`TEMP/p4-exit-checklist.md`](../../TEMP/p4-exit-checklist.md)
+**Nano index:** [`platform-club-product-e2e.mdoc`](platform-club-product-e2e.mdoc) · **Exit:** [`platform-club-product-surfaces.mdoc`](platform-club-product-surfaces.mdoc) § gap register
 
 **Status (2026-06-21):** doc 9.9 · **P4 complete** (48/48 nanos · A–D closed)
 
@@ -64,7 +64,7 @@ flowchart LR
 
 | Claim                        | Verdict                                                                                                                                                                  | Evidence                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| M17 portal flow exists       | ✅ Built                                                                                                                                                                 | `guard-public-catalog-m17` 30/30                       |
+| M17 portal flow exists       | ✅ Built                                                                                                                                                                 | `guard-public-catalog-m17` dynamic PASS                |
 | M11 unit specs exist         | ✅ Built                                                                                                                                                                 | `marketing-catalog-revalidate.spec.ts`                 |
 | Atomic persist TX            | `atomic-canonical-tour-persist.ts` — no inline revalidate; **`CanonicalTourService`** calls `maybeScheduleMarketingCatalogRevalidate` after atomic create/update returns |
 | Operator publish→catalog E2E | ⚠️ PW-01 in gate · Playwright fixture `…0210`                                                                                                                            | `club-catalog-publish-service.spec.ts` · `p4:e2e-gate` |

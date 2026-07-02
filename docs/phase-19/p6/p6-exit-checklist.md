@@ -99,7 +99,7 @@ See **[p6-fast-close.yaml](p6-fast-close.yaml)** and **[p6-remaining-checklist.m
 - [x] P6-1-N-012 site_surfaces marketing gate
 - [x] P6-1-N-013 Guest slice integration spec
 - [x] P6-1-N-015 Enterprise theming file tree
-- [x] P6-1-N-014 **GUEST_SLICE_OK** — SMK-MKT-03 + SMK-PTL-01 green (2026-06-22)
+- [x] P6-1-N-014 **GUEST_SLICE_OK** — SMK-MKT-03 + SMK-PTL-01 green · M17 guard in `p6:gate` (2026-06-30)
 
 ## P6-2 — Operator admin
 

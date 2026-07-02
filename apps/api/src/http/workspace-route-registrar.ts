@@ -3,6 +3,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolveLazyFinanceService } from "../boot/lazy-finance-service";
 import type { FinanceService } from "../workspace-finance/finance.service";
 import type { TourStorageRepository } from "../db/tour.repository";
+import { getIdentityRepository } from "../identity/create-identity-repository";
+import { MembershipNotFoundError } from "../identity/in-memory-identity.repository";
 import {
   WORKSPACE_HTTP_PARAM_ROUTES,
   WORKSPACE_HTTP_STATIC_ROUTES,
@@ -26,6 +28,23 @@ export type WorkspaceRouteRegistrarDeps = {
 
 type WorkspaceProductRouteDeps = {
   readonly tourStore: TourStorageRepository | undefined;
+  readonly resolveGuestMembership?: (
+    tenantId: string,
+    userId: string
+  ) => Promise<{
+    readonly nationalId?: string | null;
+    readonly fatherName?: string | null;
+    readonly birthDate?: string | null;
+  } | null>;
+  readonly saveGuestProfileFields?: (
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly nationalId?: string;
+      readonly fatherName?: string;
+      readonly birthDate?: string;
+    }
+  ) => Promise<void>;
 };
 
 type HandlerDispatchKind =
@@ -55,16 +74,47 @@ const HANDLER_DISPATCH_KIND = {
   handleGetDenaliCatalogTour: "product-param",
   handleGetDenaliDashboardTour: "product-param",
   handleGetDenaliReminderFeed: "product",
+  handleGetGuestClubCatalog: "bare",
+  handleGetGuestClubCatalogTour: "product-param",
   handleGetUrbanCatalog: "product",
   handleGetUrbanCatalogTour: "product-param",
   handleGetUrbanSettings: "bare",
   handlePatchUrbanSettings: "bare",
   handlePostDenaliRegistration: "product",
+  handlePostGuestClubRegistration: "bare",
   handlePostUrbanRegistration: "product",
 } as const satisfies Record<WorkspaceHttpHandlerKey, HandlerDispatchKind>;
 
 function workspaceProductDeps(deps: WorkspaceRouteRegistrarDeps): WorkspaceProductRouteDeps {
-  return { tourStore: deps.tourStore };
+  return {
+    tourStore: deps.tourStore,
+    resolveGuestMembership: async (tenantId, userId) => {
+      try {
+        const repo = getIdentityRepository();
+        const membership = await repo.findMembership(userId, tenantId);
+        if (membership === null) {
+          return null;
+        }
+        const nationalId = membership.nationalId?.trim() ?? "";
+        const fatherName = membership.fatherName?.trim() ?? "";
+        const birthDate = membership.birthDate?.trim() ?? "";
+        return {
+          nationalId: nationalId.length > 0 ? nationalId : null,
+          fatherName: fatherName.length > 0 ? fatherName : null,
+          birthDate: birthDate.length > 0 ? birthDate : null,
+        };
+      } catch (error) {
+        if (error instanceof MembershipNotFoundError) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    saveGuestProfileFields: async (tenantId, userId, patch) => {
+      const repo = getIdentityRepository();
+      await repo.updateMembershipProfileFields(tenantId, userId, patch);
+    },
+  };
 }
 
 async function financeRouteDeps(

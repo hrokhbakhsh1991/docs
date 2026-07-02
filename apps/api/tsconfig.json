@@ -23,6 +23,8 @@
       "@app-tour/workspace-denali/tours": ["../../packages/workspaces/denali/dist/tours/index"],
       "@app-tour/workspace-urban/plugin": ["../../packages/workspaces/urban/dist/urban.plugin"],
       "@app-tour/workspace-urban/http": ["../../packages/workspaces/urban/dist/http/index"],
+      "@app-tour/workspace-urban/catalog": ["../../packages/workspaces/urban/dist/catalog/index"],
+      "@app-tour/workspace-urban/exposure": ["../../packages/workspaces/urban/dist/exposure/index"],
       "@app-tour/workspace-urban/tours": ["../../packages/workspaces/urban/dist/tours/index"],
       "@app-tour/workspace-urban/auth": ["../../packages/workspaces/urban/dist/auth/index"]
     }

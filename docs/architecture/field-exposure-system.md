@@ -289,10 +289,30 @@ Web: operator banner on `/settings/exposure` and `/settings/integrations` detail
 Public catalog HTTP (`GET /denali/catalog`, `GET /denali/catalog/:tourId`) applies
 `applyDenaliCatalogCardExposure` using field ids from `DenaliExposureResolverPort`.
 
-Contract: `apps/api/test/field-exposure-denali-catalog-redaction.contract.spec.ts`  
-Integration: `apps/api/test/4-integration/field-exposure-denali-catalog-redaction.spec.ts`  
-Integration (reminder feed): `apps/api/test/4-integration/field-exposure-denali-reminder-feed.spec.ts`  
+Contract: `apps/api/test/field-exposure-denali-catalog-redaction.contract.spec.ts`
+Integration: `apps/api/test/4-integration/field-exposure-denali-catalog-redaction.spec.ts`
+Integration (reminder feed): `apps/api/test/4-integration/field-exposure-denali-reminder-feed.spec.ts`
 Unit (workspace): `packages/workspaces/denali/test/denali-catalog-exposure.spec.ts`
+
+**DB-less smoke fallback:** `resolveDenaliSurfaceVisibleFieldIds` (`resolve-denali-surface-exposure.ts`) wraps Prisma-backed `resolvePersistedExposureProfileForContext` and `createExposureIntentRepository().findForContext` in try/catch — same pattern as Urban. When `DATABASE_URL` is unset (operator Playwright smoke, unit tests), resolver falls back to registry-seeded profile defaults instead of surfacing 503 on catalog detail (portal register path SMK-MKT-03).
+
+### Urban catalog redaction (Phase 10.3 extension)
+
+Public catalog HTTP (`GET /urban/catalog`, `GET /urban/catalog/:tourId`) applies
+`applyUrbanCatalogCardExposure` using registry field ids (`tour.title`, `tour.city`, …) from
+`UrbanExposureResolverPort` (`resolveUrbanSurfaceVisibleFieldIds` in `apps/api`).
+
+Surfaces: `public_list` (list cards) and `public_details` (detail). Both map to FieldPolicy
+surface `public_website` via `mapUrbanExposureSurfaceToFieldPolicySurface`.
+
+Contract: `apps/api/test/field-exposure-urban-catalog-redaction.contract.spec.ts`
+Unit (workspace): `packages/workspaces/urban/test/urban-catalog-exposure.spec.ts`
+
+**DB-less smoke fallback:** `resolveUrbanSurfaceVisibleFieldIds` (`resolve-urban-surface-exposure.ts`) wraps Prisma-backed profile/intent lookups in try/catch — falls back to registry-seeded defaults when `DATABASE_URL` is unset (SMK-MKT-05 · unit tests).
+
+Host wiring: `configure-urban-http-host.ts` → `buildUrbanExposureResolverPort`.
+Workspace HTTP: `packages/workspaces/urban/src/http/catalog.service.ts` → `applyCatalogExposure`.
+Production ingress: `apps/api/src/urban/urban.routes.ts` delegates to workspace catalog service.
 
 ### Phase 11.0 — Exposure settings audit trail (M4)
 
@@ -606,6 +626,12 @@ operator_review_panel
 Profiles define `defaultFieldIds` and optional `defaultTemplateId`. They do not store
 provider credentials.
 
+`defaultTemplateId` on a seeded profile mirrors the workspace integration-surface header
+seed (for example `Tour published: {{title}}`). It is **not** dispatched as
+`integrationDeliveryMessageTemplate`. Only `ExposureIntent.templateOverrideId` becomes a
+custom delivery override at runtime. When no override exists, `formatIntegrationDeliveryMessage`
+uses the surface header plus automatic field lines from eligible values.
+
 ### ExposureIntent — admin override
 
 Replaces `IntegrationDeliveryIntent` as the long-term domain primitive. Scoped by
@@ -739,7 +765,7 @@ Phase 2+ adapters must follow this table.
 | Registry tag `deliverable` | `ExposureProfile.defaultFieldIds` (seed) | Tag is migration seed, not policy |
 | `buildDeliveryFieldCatalog` | Exposure module catalog builder | Must move out of `integrations/platform` |
 | FieldPolicy `surface: "delivery"` | FieldPolicy lower bound + `ExposureSurface`-specific ExposurePolicy | `delivery` ≠ destination |
-| Integration `messageTemplates` | `ExposureProfile.defaultTemplateId` / `ExposureIntent.templateOverrideId` | Templates follow approved field set |
+| Integration `messageTemplates` | Surface header seed on `ExposureProfile.defaultTemplateId`; custom body on `ExposureIntent.templateOverrideId` | Profile seed is not a delivery override; intent template is authoritative when set |
 | `IntegrationEventPolicy.enabled` | Routing/activation only | No field selection on event policy |
 | `legacy-telegram:` connection prefix | Normal exposure context + connection scope | Remove migration shortcut |
 
@@ -1397,22 +1423,25 @@ the following must hold when adapters or shadow resolver run:
   matches current registry `deliverable` defaults filtered by FieldPolicy `delivery` surface.
 - For explicit admin override (`enabled=true` + `selectedFieldIds`): dispatch uses
   override ids intersected with eligibility (same as today).
-- **`selectedFieldIds` array order is the delivery order** for automatic Telegram field
-  lists (no separate `fieldOrder` column). Admin reorder in the Telegram exposure panel
-  persists by reordering the stored `selectedFieldIds` JSON array; preview and runtime
-  default rendering iterate `integrationDeliveryFieldIds` in that same order.
+- **`selectedFieldIds` array order is the delivery order** when no custom template is set.
+  The Telegram exposure panel uses a single message-template textarea as the operator
+  canvas: ticking a field appends or removes `label: {{field:<id>}}` lines. Reorder fields
+  by moving lines in the textarea. Legacy `fieldDecorations` prefixes migrate into inline
+  template text on load; new saves clear stored decorations.
 - When no admin `templateOverrideId` / `integrationDeliveryMessageTemplate` is set, runtime
-  builds the automatic multi-line body from ordered eligible field values. Custom templates
-  remain authoritative — placeholder order in the template wins over `selectedFieldIds`
-  order.
+  builds the automatic multi-line body from ordered eligible field values. Profile
+  `defaultTemplateId` does **not** count as an override — it only seeds profile metadata;
+  the worker header comes from the workspace integration surface template. Custom intent
+  templates remain authoritative — placeholder order in the template wins over
+  `selectedFieldIds` order.
+- **Catalog reference enrichment** — reference ids in the frozen `deliverySnapshot` (for
+  example `destinationId`) resolve to tenant catalog display names at dispatch time when
+  companion paths are absent. Datetime fields (`kind: date`) format to operator-readable
+  `fa-IR` strings (Asia/Tehran) instead of raw ISO.
 - **Telegram field decorations** (`fieldDecorations` on native `ExposureIntent`) are
-  intent-scoped rendering metadata only — they do not change exposure policy, eligibility,
-  or global field-catalog icons. Shape:
-  `Record<fieldId, { prefix: string }>` where `prefix` is trimmed emoji/text (max 16 chars)
-  shown before the automatic field label (for example `✅ 📍 محل تجمع: …`). Decorations apply
-  only to automatic Telegram field lists; custom free-form templates stay authoritative and
-  never receive injected prefixes. PATCH normalizes decorations to catalog-allowed,
-  currently-selected field ids; empty prefixes are dropped.
+  legacy-only. The web canvas migrates prefixes into the template on load and always PATCHes
+  `fieldDecorations: null` on save. Runtime still honors stored decorations for automatic lists
+  until rows are re-saved.
 
 ### Denali location-zones delivery field (composite, not split)
 
@@ -2591,24 +2620,24 @@ web must not hardcode `coordinateControlsRuntimeEffective: true`.
 
 ## Control Plane UI — Phase C (preview-primary editor client)
 
-Phase C adds a dedicated web client for `GET /exposure/engine-preview?connectionId=&eventType=` and
-embeds engine preview beside the transitional integration editor. Preview remains read-only: no
-enqueue, no persistence, no draft-mutation API.
+Phase C adds a dedicated web client for `GET /exposure/engine-preview?connectionId=&eventType=`.
+Preview remains read-only: no enqueue, no persistence, no draft-mutation API.
 
-The editor loads preview for the active connection/event row using the same deterministic sample
-payload path as the control plane. The preview response includes `samplePayload` so the operator sees
-the exact fixture used for the read-only engine decision. Preview refresh happens on event selection
-and after successful save; live draft preview without persistence is out of scope.
+The operator-facing `IntegrationEventDeliveryPolicyPanel` on `settings/exposure` shows only the
+Telegram message preview (sample copy) and field-selection controls. Engine preview
+(`samplePayload`, decision chain, applied policies) is confined to the engineering control-plane
+surface (`settings/exposure/control-plane`) so admins are not exposed to internal engine diagnostics.
+
+The control plane loads preview for the active connection/event row using the same deterministic
+sample payload path as the API. The preview response includes `samplePayload` so engineering review
+uses the exact fixture for the read-only engine decision.
 
 ### Phase C exit criteria (testable)
 
 - Web BFF proxies `GET /api/exposure/engine-preview` to the API read-only preview route.
 - `apps/web/src/exposure/exposure-engine-preview-client.ts` parses the API preview response,
   including `samplePayload`.
-- Integration delivery panel embeds preview for each event row via the dedicated client (not only via
-  bundled control-plane data).
-- Preview refresh runs on initial event-row load and after successful save; live draft preview without
-  persistence remains out of scope.
+- `IntegrationEventDeliveryPolicyPanel` does **not** embed engine preview; control-plane page does.
 - Parser unit coverage lives in `apps/web/test/exposure-engine-preview-client.spec.ts`.
 - Contract: `apps/web/test/field-exposure-phase-c-ui.contract.spec.ts`.
 
@@ -2725,6 +2754,10 @@ rules map through `mapDenaliExposureSurfaceToFieldPolicySurface()`:
   - `DenaliReminderFeedPort` — reads `denali_exposure_reminder_activations`
 - Denali must **not** import `apps/api` internals. Host wiring lives in
   `configure-workspace-denali-product-http-host.ts`.
+- `@app-tour/workspace-urban` declares `public_list` / `public_details` surfaces, catalog redaction
+  bindings (`applyUrbanCatalogCardExposure`), and HTTP consumers via `UrbanExposureResolverPort`
+  (`resolveUrbanSurfaceVisibleFieldIds` in `apps/api`). Host wiring:
+  `configure-urban-http-host.ts` → `buildUrbanExposureResolverPort`.
 
 ### Relative-time reminder scheduler
 

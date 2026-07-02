@@ -13,6 +13,12 @@
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 0 && tsc --noEmit",
     "test": "node --import tsx --test test/**/*.spec.ts",
     "test:smoke": "playwright test -c playwright.marketing.config.ts",
+    "test:smoke:seo": "playwright test -c playwright.marketing-seo.config.ts",
+    "test:lighthouse": "lhci autorun",
+    "test:lighthouse:strict": "lhci autorun --config=lighthouserc.strict.json",
+    "test:smoke:urban": "playwright test -c playwright.marketing-urban.config.ts",
+    "test:smoke:guest-club": "playwright test -c playwright.marketing-guest-club.config.ts",
+    "test:smoke:seo-matrix": "playwright test -c playwright.marketing-seo-matrix.config.ts",
     "test:smoke:install": "playwright install chromium",
     "start": "next start --port 3002"
   },
@@ -21,7 +27,11 @@
     "@app-tour/guest-surface-host": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
     "@app-tour/theme-react": "workspace:*",
+    "@app-tour/ui-primitives": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
+    "@app-tour/workspace-denali": "workspace:*",
+    "@app-tour/workspace-guest-club": "workspace:*",
+    "@app-tour/workspace-urban": "workspace:*",
     "@tailwindcss/postcss": "^4.3.0",
     "next": "^15.1.8",
     "next-intl": "^4.11.1",
@@ -39,6 +49,7 @@
     "@typescript-eslint/parser": "^8.46.2",
     "eslint": "^8.57.1",
     "@playwright/test": "^1.51.1",
+    "@lhci/cli": "^0.14.0",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"
   }

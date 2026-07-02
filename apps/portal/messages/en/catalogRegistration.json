@@ -31,14 +31,40 @@
   "intake": {
     "title": "Register for this tour",
     "termsHeading": "Policies & terms",
+    "registrantTabsLabel": "Who is this registration for?",
+    "forSelfTab": "For myself",
+    "forOtherTab": "For someone else",
     "nameLabel": "Name",
-    "emailLabel": "Email",
+    "knownNameHint": "Registering as {name}",
+    "nationalIdLabel": "National ID",
+    "fatherNameLabel": "Father's name",
+    "birthDateLabel": "Date of birth",
     "partySizeLabel": "Party size",
+    "emailLabel": "Email",
+    "emailRequired": "Email is required for this tour.",
     "notesLabel": "Notes (optional)",
+    "estimatedPrice": "Estimated price per person: {amount} IRR",
+    "personalCarOptIn": "I will come by personal car",
+    "transportLegend": "Personal car",
+    "hasPersonalCarQuestion": "Do you have a personal car?",
+    "hasPersonalCarYes": "Yes",
+    "hasPersonalCarNo": "No",
+    "personalCarOccupantsLabel": "How many people (including you)?",
+    "personalCarOccupants": {
+      "1": "1 person",
+      "2": "2 people",
+      "3": "3 people"
+    },
+    "paysDongQuestion": "Will you pay a dong (fuel share)?",
+    "paysDongYes": "Yes, I pay dong",
+    "paysDongNo": "No — riding with someone I know",
     "submit": "Submit registration",
     "submitting": "Submitting…",
-    "emailRequired": "Email is required for tour registration.",
-    "partySizeInvalid": "Enter a valid party size."
+    "partySizeInvalid": "Enter a valid party size.",
+    "nationalIdInvalid": "Enter a valid 10-digit national ID.",
+    "fatherNameInvalid": "Father's name is required.",
+    "birthDateInvalid": "Enter a valid date of birth.",
+    "transportIncomplete": "Complete the transport options."
   },
   "success": {
     "message": "Registration received for {tourTitle}. Thank you!",
@@ -56,7 +82,7 @@
     "PUBLIC_CATALOG_TENANT_UNRESOLVED": "Registration is temporarily unavailable for this site.",
     "URBAN_REGISTRATION_DUPLICATE": "You already registered for this tour with this email.",
     "URBAN_REGISTRATION_CLOSED": "Registration is closed for this workspace.",
-    "DENALI_REGISTRATION_DUPLICATE": "You already registered for this tour with this email.",
+    "DENALI_REGISTRATION_DUPLICATE": "You already registered for this tour.",
     "network": "Something went wrong. Try again."
   }
 }

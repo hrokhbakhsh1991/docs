@@ -56,6 +56,38 @@ function resolveDenaliSurfaceExposureProfile(input: {
   });
 }
 
+async function tryResolvePersistedExposureProfile(input: {
+  readonly tenantId: string;
+  readonly context: {
+    readonly workspaceType: string;
+    readonly entityType: string;
+    readonly surface: string;
+    readonly audience: string;
+    readonly trigger: string;
+  };
+}) {
+  try {
+    return await resolvePersistedExposureProfileForContext(input);
+  } catch {
+    return null;
+  }
+}
+
+async function tryFindExposureIntent(input: {
+  readonly tenantId: string;
+  readonly profileId: string;
+  readonly surface: string;
+  readonly audience: string;
+  readonly trigger: string;
+  readonly scope: { readonly tourSurface: string };
+}) {
+  try {
+    return await createExposureIntentRepository().findForContext(input);
+  } catch {
+    return null;
+  }
+}
+
 export async function resolveDenaliSurfaceVisibleFieldIds(
   auth: TenantAuthContext,
   input: ResolveDenaliSurfaceExposureInput,
@@ -68,7 +100,7 @@ export async function resolveDenaliSurfaceVisibleFieldIds(
   const persistedProfile =
     seededProfile === null
       ? null
-      : await resolvePersistedExposureProfileForContext({
+      : await tryResolvePersistedExposureProfile({
           tenantId: auth.tenantId,
           context: {
             workspaceType: input.workspaceType,
@@ -84,7 +116,7 @@ export async function resolveDenaliSurfaceVisibleFieldIds(
   const nativeIntent =
     profile === null
       ? null
-      : await createExposureIntentRepository().findForContext({
+      : await tryFindExposureIntent({
           tenantId: auth.tenantId,
           profileId: profile.id,
           surface: input.coordinate.surface,

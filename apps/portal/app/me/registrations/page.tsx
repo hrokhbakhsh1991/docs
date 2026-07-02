@@ -9,18 +9,16 @@ export default async function MeRegistrationsPage() {
   const t = await getTranslations("portalMember.registrations");
 
   return (
-    <section data-portal-member-registrations>
-      <h1 className="mb-4 text-xl font-semibold">{t("title")}</h1>
+    <main data-portal-member-registrations>
+      <h1>{t("title")}</h1>
       {items.length === 0 ? (
-        <p className="text-muted-foreground">{t("empty")}</p>
+        <p data-portal-member-registrations-empty>{t("empty")}</p>
       ) : (
-        <ul className="space-y-3">
+        <ul>
           {items.map((item) => (
-            <li key={item.id} className="rounded-md border p-4">
-              <a href={`/me/registrations/${encodeURIComponent(item.id)}`} className="font-medium">
-                {item.tourTitle}
-              </a>
-              <p className="text-sm text-muted-foreground">
+            <li key={item.id} data-portal-member-registration-row>
+              <a href={`/me/registrations/${encodeURIComponent(item.id)}`}>{item.tourTitle}</a>
+              <p>
                 {t("statusLine", {
                   status: item.status,
                   paymentStatus: item.paymentStatus,
@@ -31,6 +29,6 @@ export default async function MeRegistrationsPage() {
           ))}
         </ul>
       )}
-    </section>
+    </main>
   );
 }

@@ -24,8 +24,9 @@ export function CatalogCoverImage({
       width={width}
       height={height}
       unoptimized={unoptimized}
+      priority
       data-marketing-catalog-cover
-      style={{ maxWidth: "100%", height: "auto", borderRadius: "0.5rem" }}
+      style={{ maxWidth: "100%", height: "auto", display: "block" }}
     />
   );
 }

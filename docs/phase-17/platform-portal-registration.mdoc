@@ -26,7 +26,7 @@ Make **`apps/portal`** the canonical guest registration host; marketing CTA and 
 | **Portal-primary (pre-P4 infra)** | M17 + DEC-P11-014 — P4-B closes with specs + gate + doc truth                    |
 | **URL bridge**                    | marketing `resolveWebRegistrationUrl` · web redirect shim · portal host          |
 | **BFF proof**                     | portal `public-auth/*` + `catalog/registrations` unit specs                      |
-| **Static closure**                | M17 guard 30/30 in `p4:gate`                                                     |
+| **Static closure**                | M17 guard (dynamic count) in `p4:gate` · `p6:gate`                               |
 | **Not in P4-B gate**              | Playwright SMK-PTL-01 · SMK-MKT-03 · SMK-DREG-01 (`p4:e2e-gate` · Architect YES) |
 
 **Extends:** [`11.16-user-portal.md`](../phase-11/subphases/11.16-user-portal.md) · [`public-catalog.md`](../workspaces/denali/public-catalog.md) § Registration
@@ -120,6 +120,9 @@ Marketing detail CTA:
 | Public auth   | `apps/api/src/identity/public-auth.routes.ts`                                    |
 | M17 guard     | `scripts/guards/guard-public-catalog-m17.mjs`                                    |
 | Portal E2E    | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts` (SMK-PTL-01)           |
+| Portal UI spec | [`portal-registration-ui.md`](../../workspaces/denali/portal-registration-ui.md) |
+| Intake architecture | [`platform-portal-registration-intake.mdoc`](../phase-19/platform-portal-registration-intake.mdoc) |
+| Marketing UI spec | [`marketing-catalog-ui.md`](../../workspaces/denali/marketing-catalog-ui.md) |
 | Marketing E2E | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts` (SMK-MKT-03)          |
 | Web E2E       | `apps/web/tests/e2e/denali-catalog-registration.spec.ts` (SMK-DREG-01)           |
 
@@ -133,7 +136,14 @@ Marketing detail CTA:
 | `resolve-portal-base-url.spec.ts`               | PR-01…PR-02 (PTL-01…PTL-02) | portal base · marketing back-link                          |
 | `portal-public-auth-bff.spec.ts`                | PR-09                       | portal BFF coded errors (phone-preflight · request-otp)    |
 | `portal-catalog-registrations-bff.spec.ts`      | PR-10a/f                    | intake payload validation                                  |
-| `portal-catalog-registrations-dispatch.spec.ts` | PR-10b…e                    | route dispatch contract · registration headers             |
+| `portal-catalog-registrations-dispatch.spec.ts` | PR-10b…e                    | SDK upstream builder · registration headers (no inline plugin branches) |
+| `catalog-registration-intake-form-contract.spec.ts` | PTL-INT-01…02           | SDK capabilities · no workspace branches in intake form |
+| `public-catalog-registration-flow-contract.spec.ts` | OTP-07…11               | capability-driven email · transport hooks · successDataAttributes |
+| `resolve-intake-defaults.spec.ts`               | —                           | profile/session name hydration for intake |
+| `denali-registration.spec.ts` (api)             | DREG-16…19                  | duplicate guards · **DREG-19-01** `registrationIntake` persistence |
+| `catalog-registration-dispatch.spec.ts` (sdk) | SDK-REG-*                   | intake capabilities · upstream request profiles |
+| `registration-intake.contract.spec.ts` (sdk)    | SDK-INT-*                   | ops parser for booking `registrationIntake` JSON |
+| `format-registration-intake.spec.ts` (web)    | WEB-INT-*                   | SDK parser used by operator bookings UI |
 | `portal-registration-redirect.spec.ts`          | PR-05 (PTL-03)              | web redirect URL shape                                     |
 | `catalog-register-redirect-page.spec.ts`        | PR-06                       | web `page.tsx` redirect-only (no duplicate flow)           |
 | `public-auth.spec.ts` (api)                     | PR-07                       | M17 public-auth API contract (unchanged)                   |
@@ -169,7 +179,13 @@ pnpm --filter @apps/web exec node --import tsx --test \
   test/portal-registration-redirect.spec.ts \
   test/catalog-register-redirect-page.spec.ts
 
-pnpm --filter @apps/api exec node --import tsx --test test/public-auth.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/public-auth.spec.ts \
+  test/denali-registration.spec.ts
+
+pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test \
+  test/catalog-registration-dispatch.spec.ts \
+  test/registration-intake.contract.spec.ts
 ```
 
 Playwright (Architect YES): `pnpm --filter @apps/portal run test:smoke` · `pnpm --filter @apps/marketing run test:smoke`

@@ -29,6 +29,7 @@ export const TOURS_LIST_TEST_IDS = {
   duplicateServer: "operator-tours-duplicate-server",
   workspace: "operator-tours-workspace",
   retry: "operator-tours-retry",
+  createdNotice: "operator-tours-created-notice",
   category: "operator-tours-category",
   cardMeta: "operator-tours-card-meta",
   cardDuration: "operator-tours-card-duration",

@@ -1,0 +1,51 @@
+# Guest SEO E2E hooks — consumed by guard-guest-seo-e2e-hooks.mjs (SEO-3)
+version: 1
+hooks:
+  - id: SMK-MKT-06
+    description: Denali tour detail TouristTrip JSON-LD + breadcrumb
+    spec: apps/marketing/tests/e2e/marketing-seo-jsonld.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo
+  - id: SMK-MKT-07
+    description: Tour detail head metadata — title, og:title, twitter:card
+    spec: apps/marketing/tests/e2e/marketing-seo-head.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo
+  - id: SMK-MKT-08
+    description: Host sitemap.xml returns 200 and includes published tour URL
+    spec: apps/marketing/tests/e2e/marketing-seo-sitemap.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo
+  - id: SMK-MKT-09
+    description: English tours page emits reciprocal hreflang alternates
+    spec: apps/marketing/tests/e2e/marketing-seo-hreflang.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo
+  - id: SMK-MKT-10
+    description: Paginated tours list (?cursor) emits noindex follow robots meta
+    spec: apps/marketing/tests/e2e/marketing-seo-pagination.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo
+  - id: SMK-MKT-11
+    description: Denali tour detail JSON-LD includes offers and cover image
+    spec: apps/marketing/tests/e2e/marketing-seo-jsonld.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo
+  - id: SMK-MKT-12
+    description: Urban tour detail Event JSON-LD v2 fields
+    spec: apps/marketing/tests/e2e/marketing-urban-catalog-smoke.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:urban
+  - id: SMK-MKT-13
+    description: Guest-club tour detail Event stub JSON-LD
+    spec: apps/marketing/tests/e2e/marketing-guest-club-seo.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:guest-club
+  - id: SMK-MKT-14
+    description: Draft tour detail 404 with noindex and sitemap omission
+    spec: apps/marketing/tests/e2e/marketing-seo-unpublish.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo-matrix
+  - id: SMK-MKT-15
+    description: Denali and Urban fa/en hreflang matrix
+    spec: apps/marketing/tests/e2e/marketing-seo-locale-matrix.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo-matrix
+  - id: SMK-MKT-104
+    description: Per-tenant sitemap URL isolation
+    spec: apps/marketing/tests/e2e/marketing-seo-sitemap-isolation.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo-matrix
+  - id: SMK-WEB-SEO-01
+    description: Web catalog pages use permanentRedirect to marketing
+    spec: apps/web/test/web-catalog-seo-redirect.spec.ts
+    command: pnpm --filter @apps/web exec node --import tsx --test test/web-catalog-seo-redirect.spec.ts

@@ -15,6 +15,7 @@ import {
 } from "../src/integrations/application/integration-policy-engine";
 import { resolveRegistrySeededExposureProfile } from "../src/exposure/resolve-registry-seeded-exposure-profile";
 import { resolvePersistedExposureProfileForContext } from "../src/exposure/resolve-persisted-exposure-profile";
+import { formatIntegrationDeliveryMessage } from "../src/integrations/platform/format-integration-delivery-message";
 
 const REPO_ROOT = join(process.cwd(), "..", "..");
 const EXPOSURE_DOC = join(REPO_ROOT, "docs/architecture/field-exposure-system.md");
@@ -196,7 +197,14 @@ describe("field exposure phase 6 controlled cutover contract", () => {
     assert.equal(job.payload.fieldExposureRuntime.mode, "shadow");
     assert.equal(job.payload.fieldExposureRuntime.selectionSource, "exposure_profile_defaults");
     assert.equal(job.payload.fieldExposureRuntime.nativeIntentMissing, true);
-    assert.equal(job.payload.integrationDeliveryMessageTemplate, "Tour created: {{title}}");
+    assert.equal(job.payload.integrationDeliveryMessageTemplate, undefined);
+    const rendered = formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "TourCreated",
+      payload: job.payload as Record<string, unknown>,
+    });
+    assert.match(rendered, /TourCreated: Alpine Day/);
+    assert.match(rendered, /Title: Alpine Day/);
   });
 
   it("cutover mode routes native intent when a native row exists", async () => {
@@ -217,7 +225,14 @@ describe("field exposure phase 6 controlled cutover contract", () => {
     assert.equal(job.payload.fieldExposureRuntime.mode, "cutover");
     assert.equal(job.payload.fieldExposureRuntime.selectionSource, "exposure_profile_defaults");
     assert.equal(job.payload.fieldExposureRuntime.nativeIntentMissing, true);
-    assert.equal(job.payload.integrationDeliveryMessageTemplate, "Tour created: {{title}}");
+    assert.equal(job.payload.integrationDeliveryMessageTemplate, undefined);
+    const rendered = formatIntegrationDeliveryMessage({
+      workspaceType: "denali",
+      eventType: "TourCreated",
+      payload: job.payload as Record<string, unknown>,
+    });
+    assert.match(rendered, /TourCreated: Alpine Day/);
+    assert.match(rendered, /Title: Alpine Day/);
   });
 
   it("records fieldExposureRuntime even when delivery policy resolves to null", async () => {

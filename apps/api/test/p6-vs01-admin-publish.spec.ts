@@ -15,6 +15,7 @@ import { createTestToursService, installMemoryStorageDriverForDescribe } from ".
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
 const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211";
+const OPERATOR_SMOKE_PARTICIPANT_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 
 function publicHeaders(tenantId = OPERATOR_SMOKE_TENANT_ID): Record<string, string> {
   return { "x-tenant-id": tenantId };
@@ -85,9 +86,11 @@ describe("p6-vs01-admin-publish.spec.ts — P6 VS-01 API", () => {
     const items =
       (response.body as { data?: { items?: { id: string; title?: string }[] } }).data?.items ??
       [];
-    assert.equal(items.length, 1);
-    assert.equal(items[0]?.id, OPERATOR_SMOKE_PUBLISHED_TOUR_ID);
-    assert.equal(items[0]?.title, "North Ridge Trek");
+    assert.equal(items.length, 4);
+    assert.ok(items.some((item) => item.id === OPERATOR_SMOKE_PUBLISHED_TOUR_ID));
+    assert.ok(items.some((item) => item.id === OPERATOR_SMOKE_PARTICIPANT_TOUR_ID));
+    const northRidge = items.find((item) => item.id === OPERATOR_SMOKE_PUBLISHED_TOUR_ID);
+    assert.equal(northRidge?.title, "North Ridge Trek");
   });
 
   it("P6-VS-01-02 GET /denali/catalog/{tourId} returns 404 for draft tour", async () => {

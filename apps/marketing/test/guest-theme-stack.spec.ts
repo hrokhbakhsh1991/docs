@@ -45,4 +45,50 @@ describe("guest-theme-stack.spec.ts — marketing", () => {
     );
     assert.match(skin, /header\[data-marketing-header\]/);
   });
+
+  it("G-P6-UI-06b urban marketing skin registered in bootstrap", () => {
+    const generated = readFileSync(bootstrapPath, "utf8");
+    assert.match(generated, /@app-tour\/workspace-urban\/theme\/urban-marketing\.css/);
+    const urbanSkinPath = join(
+      repoRoot,
+      "packages/workspaces/urban/theme/urban-marketing.css"
+    );
+    const skin = readFileSync(urbanSkinPath, "utf8");
+    assert.match(
+      skin,
+      /body\[data-app-surface="marketing"\]\[data-workspace-plugin="urban"\]/
+    );
+    assert.match(skin, /form\[data-marketing-city-filter\]/);
+  });
+
+  it("G-P6-UI-06c guest-club marketing skin registered in bootstrap", () => {
+    const generated = readFileSync(bootstrapPath, "utf8");
+    assert.match(generated, /@app-tour\/workspace-guest-club\/theme\/marketing\.css/);
+    const guestSkinPath = join(
+      repoRoot,
+      "packages/workspaces/guest-club/theme/marketing.css"
+    );
+    const skin = readFileSync(guestSkinPath, "utf8");
+    assert.match(
+      skin,
+      /body\[data-app-surface="marketing"\]\[data-workspace-plugin="guest-club"\]/
+    );
+  });
+
+  it("G-P6-UI-07 denali marketing skin aligns with denali-club MASTER tokens", () => {
+    const skin = readFileSync(denaliMarketingSkinPath, "utf8");
+    assert.match(skin, /--color-primary: #059669/);
+    assert.match(skin, /--color-accent: #d97706/);
+    assert.match(skin, /design-system\/denali-club\/MASTER\.md/);
+    assert.match(skin, /background: var\(--color-accent\)/);
+    assert.match(skin, /--font-heading: var\(--font-heading-en/);
+  });
+
+  it("G-P6-UI-08 layout loads Calistoga heading variable", () => {
+    const layout = readFileSync(layoutPath, "utf8");
+    assert.match(layout, /calistoga\.variable/);
+    const fonts = readFileSync(join(repoRoot, "apps/marketing/src/i18n/app-fonts.google.ts"), "utf8");
+    assert.match(fonts, /Calistoga/);
+    assert.match(fonts, /--font-heading-en/);
+  });
 });

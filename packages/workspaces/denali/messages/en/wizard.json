@@ -61,6 +61,8 @@
     "participants": {
       "gearItems": "Required gear",
       "nationalIdRequired": "National ID required at registration",
+      "fatherNameRequired": "Father's name required at registration",
+      "birthDateRequired": "Birth date required at registration",
       "minimumAge": "Minimum age",
       "maximumAge": "Maximum age",
       "fitnessLevel": "Fitness level",
@@ -88,6 +90,7 @@
     "pricing": {
       "requiresPayment": "Paid tour (registration requires payment)",
       "basePricePerPerson": "Price per person",
+      "paymentMode": "Payment method",
       "includesTourInsurance": "Tour includes organizer group liability insurance"
     },
     "policies": {
@@ -125,6 +128,9 @@
     "train": "Train",
     "shared_cars": "Shared cars (carpool)",
     "none": "No organized transport"
+  },
+  "paymentModes": {
+    "offline_receipt": "Offline receipt / bank transfer"
   },
   "composites": {
     "common": {

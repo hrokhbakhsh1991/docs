@@ -5,11 +5,14 @@ format: markdoc
 epic: P6-3
 app: apps/portal
 prerequisite: P6-1-N-014 GUEST_SLICE_OK
+extends: platform-portal-member-profile.mdoc
 ---
 
 # Portal member session contract
 
 Guest **registration** (P6-1) and member **self-service** (P6-3) share the same public-auth session on the **portal host** (`{club}.portal.{root}`).
+
+**Profile architecture (frozen):** [platform-portal-member-profile.mdoc](./platform-portal-member-profile.mdoc) — canonical BFF, SDK capabilities, migration from current split paths.
 
 ## Host
 
@@ -27,10 +30,11 @@ Authority: [p6-host-addressing-architecture.mdoc](p6-host-addressing-architectur
 
 | Item | Value |
 | ---- | ----- |
-| Cookie | `session` (httpOnly · set by portal BFF after `verify-otp` or `register-complete`) |
-| Actor | `role: member` · `ACTIVE` membership on tenant |
+| Cookie | `atour_mb_session` (`SESSION_COOKIE_NAMES.member` in `@app-tour/session-client`) · httpOnly · set by portal BFF after `verify-otp` or `register-complete` |
+| Operator cookie (web only) | `atour_op_session` — **not** used on portal member routes |
+| Actor | JWT `role` claim · typical guest flow creates `member` · `ACTIVE` membership on tenant |
 | TTL | Same as operator session policy in `apps/api` identity layer |
-| Scope | Tenant-bound — session valid only on portal host for that club |
+| Scope | Tenant-bound — `sessionTenantMatchesHost` on `/me/*` and `/api/me/*` |
 
 ### BFF headers to API
 
@@ -41,7 +45,7 @@ x-tenant-id     ← resolved from Host / public tenant context
 Authorization   ← session token from cookie (member routes)
 ```
 
-Member routes **reject** operator (`owner`) sessions — portal `/me` is not admin.
+Portal `/me` is **not** the operator admin panel (`apps/web`). Product rule: operators use `{club}.admin.{root}`; members use portal host. Middleware accepts any valid JWT role on portal host today; **do not** rely on role rejection until explicitly gated (see freeze doc).
 
 ---
 
@@ -51,7 +55,11 @@ Member routes **reject** operator (`owner`) sessions — portal `/me` is not adm
 | ----- | ---- | ------- |
 | `/me/registrations` | member session | List own tour registrations |
 | `/me/registrations/[id]` | member session | Detail + receipt upload |
+| `/me/profile` | member session | Edit profile fields (capability-driven · see freeze doc) |
+| `GET /api/me/registrations` | member session | BFF list proxy |
 | `POST /api/me/registrations/[id]/receipt` | member session | Upload offline receipt proof |
+| `GET/PATCH /api/me/profile` | member session | **Landed M2** — sole profile BFF |
+| `POST /api/public-auth/logout` | none (idempotent) | Clear `atour_mb_session` · **Landed** 2026-07-02 |
 
 API upstream (frozen — reuse Phase 9.5 member filter):
 
@@ -73,11 +81,17 @@ API upstream (frozen — reuse Phase 9.5 member filter):
 
 ## Logout
 
-| Route | Behavior |
-| ----- | -------- |
-| `POST /api/public-auth/logout` | Clears `session` cookie · redirects to marketing or portal home |
+| Route | Status | Behavior |
+| ----- | ------ | -------- |
+| `POST /api/public-auth/logout` | **Landed** (2026-07-02) | Clears `atour_mb_session` via `clearSessionCookieOnResponse` · returns `{ ok: true }` · **no** API revoke (parity with operator `POST /api/auth/logout`) |
 
-Unauthenticated access to `/me/*` → redirect to marketing catalog or portal register (not admin login).
+**Client (member nav):** `MemberLogoutButton` in `/me` layout — `POST /api/public-auth/logout` then `router.push("/")` + `router.refresh()`. Hooks: `data-public-auth-logout` · `data-public-auth-logout-ready="true"` after hydration.
+
+**E2E:** **SMK-PTL-06** — register → `/me/registrations` → `data-public-auth-logout` (hydration-ready) → `POST /api/public-auth/logout` 200 → cookie cleared → middleware `307` on `GET /me/registrations` (no member shell) → `401` on `GET /api/me/registrations`. Smoke servers set `MARKETING_PUBLIC_BASE_URL` to portal `/health` so post-logout `/` redirect does not require marketing `:3002`.
+
+**Middleware:** `/api/public-auth/logout` is **not** behind `/api/me/*` guard — callable without valid session (idempotent clear).
+
+Unauthenticated access to `/me/*` → redirect to `/` (portal home → marketing when no session).
 
 ---
 
@@ -103,15 +117,17 @@ After `[data-public-registration-success]` on `/catalog/{tourId}/register`, prim
 | MEM-01 | Session cookie set after OTP verify (existing user) |
 | MEM-02 | Session cookie set after register-complete (new user) |
 | MEM-03 | `GET /me/registrations` 401 without session |
-| MEM-04 | Member cannot read another user's registration (403) |
+| MEM-04 | Member cannot read another user's registration — `GET /bookings?view=mine` scoped to `submittedByUserId` |
 | MEM-05 | Logout clears cookie |
 
-Specs: `apps/portal/test/portal-member-*.spec.ts` · `apps/api/test/portal-member-registrations.spec.ts`
+Specs: `apps/portal/test/portal-member-*.spec.ts` · `apps/api/test/portal-member-registrations.spec.ts` · **MEM-04** `apps/api/test/bookings-member-isolation.spec.ts` (`view=mine` never leaks another member's booking row)
 
 ---
 
 ## References
 
+- [platform-portal-member-profile.mdoc](./platform-portal-member-profile.mdoc) — profile freeze · BFF · SDK capabilities
 - [platform-portal-otp-flow.mdoc](platform-portal-otp-flow.mdoc) — registration session creation
 - [p6-3-member-portal.md](p6/p6-3-member-portal.md)
 - [public-catalog.md](../workspaces/denali/public-catalog.md) § Registration
+- [portal-member-profile.md](../workspaces/denali/portal-member-profile.md) — Denali profile deltas

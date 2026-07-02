@@ -266,10 +266,10 @@ export function DenaliFlatEditForm({
                         onDraftChange,
                         pluginId: "denali",
                         compositeSurfaceId: wizardHost?.compositeSurfaceId,
-                        fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId,
+                        fieldLabelSurfaceId: wizardHost?.fieldLabelSurfaceId ?? "denali",
                         wizardSessionId,
                         workspaceFormProfile,
-                        translateWorkspaceMessage: (key) => tDenali(key),
+                        translateWorkspaceMessage: tDenali,
                       })}
                     </div>
                   );

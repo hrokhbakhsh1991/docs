@@ -22,6 +22,8 @@ type ProfileResponse = {
   readonly role?: string;
   readonly avatarUrl?: string | null;
   readonly gender?: string | null;
+  readonly fatherName?: string | null;
+  readonly birthDate?: string | null;
   readonly code?: string;
 };
 
@@ -99,6 +101,25 @@ describe("identity-me.spec.ts — Phase 9.6 S9-R7", () => {
     });
     assert.equal(response.status, 400);
     assert.equal(response.body.code, "PROFILE_GENDER_INVALID");
+  });
+
+  it("API-9.6-ME-04d PATCH /identity/me updates fatherName and birthDate", async () => {
+    const patched = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { fatherName: "Ali", birthDate: "1990-05-15" },
+    });
+    assert.equal(patched.status, 200);
+    assert.equal(patched.body.fatherName, "Ali");
+    assert.equal(patched.body.birthDate, "1990-05-15");
+  });
+
+  it("API-9.6-ME-04e PATCH /identity/me rejects invalid birthDate", async () => {
+    const response = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { birthDate: "not-a-date" },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, "PROFILE_BIRTH_DATE_INVALID");
   });
 
   it("API-9.6-ME-05 POST /identity/me/avatar without Content-Type returns 400", async () => {

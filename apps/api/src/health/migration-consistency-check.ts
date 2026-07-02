@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { getPrisma } from "../db/prisma";
 import { logger } from "../observability/logger";
 import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
+import {
+  countTourPublishedPolicyDriftConnections,
+  isTourPublishedRolloutGateFatalEnabled,
+} from "./tour-published-policy-drift";
 
 /** Integration subsystem tables that must exist before arming delivery/control plane. */
 export const REQUIRED_INTEGRATION_TABLES = [
@@ -33,7 +37,8 @@ export function isFieldExposureConsistencyGateFatalEnabled(
 export type ConsistencySignal =
   | "CONSISTENCY_OK"
   | "CONSISTENCY_MISSING_TABLES"
-  | "CONSISTENCY_MIGRATION_DRIFT";
+  | "CONSISTENCY_MIGRATION_DRIFT"
+  | "CONSISTENCY_TOUR_PUBLISHED_POLICY_DRIFT";
 
 export type MigrationConsistencyReport = {
   readonly ok: boolean;
@@ -46,6 +51,7 @@ export type MigrationConsistencyReport = {
   readonly unappliedMigrations: readonly string[];
   readonly expectedMigrationCount: number;
   readonly appliedMigrationCount: number;
+  readonly tourPublishedPolicyDriftCount: number;
   readonly checkedAt: string;
 };
 
@@ -97,20 +103,28 @@ export function buildMigrationConsistencyReport(input: {
   readonly appliedMigrationCount: number;
   readonly checkedAt?: string;
   readonly exposureTablesGateFatal?: boolean;
+  readonly tourPublishedPolicyDriftCount?: number;
+  readonly tourPublishedRolloutGateFatal?: boolean;
 }): MigrationConsistencyReport {
   const missingExposureTables = input.missingExposureTables ?? [];
   const exposureTablesGateFatal = input.exposureTablesGateFatal ?? false;
+  const tourPublishedPolicyDriftCount = input.tourPublishedPolicyDriftCount ?? 0;
+  const tourPublishedRolloutGateFatal = input.tourPublishedRolloutGateFatal ?? false;
   const integrationTablesMissing = input.missingTables.length > 0;
   const exposureTablesBlock =
     exposureTablesGateFatal && missingExposureTables.length > 0;
+  const tourPublishedPolicyDriftBlock =
+    tourPublishedRolloutGateFatal && tourPublishedPolicyDriftCount > 0;
   const migrationDrift = input.unappliedMigrations.length > 0;
 
   const signal: ConsistencySignal =
     integrationTablesMissing || exposureTablesBlock
       ? "CONSISTENCY_MISSING_TABLES"
-      : migrationDrift
-        ? "CONSISTENCY_MIGRATION_DRIFT"
-        : "CONSISTENCY_OK";
+      : tourPublishedPolicyDriftBlock
+        ? "CONSISTENCY_TOUR_PUBLISHED_POLICY_DRIFT"
+        : migrationDrift
+          ? "CONSISTENCY_MIGRATION_DRIFT"
+          : "CONSISTENCY_OK";
 
   return {
     ok: signal === "CONSISTENCY_OK",
@@ -121,6 +135,7 @@ export function buildMigrationConsistencyReport(input: {
     unappliedMigrations: input.unappliedMigrations,
     expectedMigrationCount: input.expectedMigrationCount,
     appliedMigrationCount: input.appliedMigrationCount,
+    tourPublishedPolicyDriftCount,
     checkedAt: input.checkedAt ?? new Date().toISOString(),
   };
 }
@@ -183,14 +198,17 @@ export async function runMigrationConsistencyCheck(): Promise<MigrationConsisten
       unappliedMigrations: [],
       expectedMigrationCount: 0,
       appliedMigrationCount: 0,
+      tourPublishedPolicyDriftCount: 0,
     });
   }
 
-  const [missingTables, missingExposureTables, appliedNames] = await Promise.all([
-    findMissingIntegrationTables(),
-    findMissingExposureTables(),
-    listAppliedMigrationNames(),
-  ]);
+  const [missingTables, missingExposureTables, appliedNames, tourPublishedPolicyDriftCount] =
+    await Promise.all([
+      findMissingIntegrationTables(),
+      findMissingExposureTables(),
+      listAppliedMigrationNames(),
+      countTourPublishedPolicyDriftConnections(),
+    ]);
   const expectedNames = listExpectedMigrationNamesFromDisk();
   const appliedSet = new Set(appliedNames);
   const unappliedMigrations = computeUnappliedMigrations(expectedNames, appliedSet);
@@ -202,6 +220,8 @@ export async function runMigrationConsistencyCheck(): Promise<MigrationConsisten
     expectedMigrationCount: expectedNames.length,
     appliedMigrationCount: appliedNames.length,
     exposureTablesGateFatal: isFieldExposureConsistencyGateFatalEnabled(),
+    tourPublishedPolicyDriftCount,
+    tourPublishedRolloutGateFatal: isTourPublishedRolloutGateFatalEnabled(),
   });
 }
 
@@ -232,6 +252,7 @@ export function logMigrationConsistencyReport(report: MigrationConsistencyReport
     missingTables: report.missingTables,
     missingExposureTables: report.missingExposureTables,
     unappliedMigrations: report.unappliedMigrations,
+    tourPublishedPolicyDriftCount: report.tourPublishedPolicyDriftCount,
     checkedAt: report.checkedAt,
   };
 

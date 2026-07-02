@@ -11,7 +11,13 @@ export type EnrichCanonicalDeliveryPayloadInput = {
   readonly definitions: readonly FieldDefinition[];
   /** Reserved for future entity lookups; not used by path-only enrichment today. */
   readonly entityState?: FieldPolicyEntityState;
+  /** Catalog-resolved display strings keyed by canonical path (for example `destinationId`). */
+  readonly referenceDisplayValues?: Readonly<Record<string, string>>;
 };
+
+const ISO_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})/;
+const DELIVERY_DATE_TIME_LOCALE = "fa-IR";
+const DELIVERY_DATE_TIME_TIME_ZONE = "Asia/Tehran";
 
 /** Denali composite location field — renders all populated trip zones in selection order. */
 const DENALI_LOCATION_ZONES_FIELD_ID = "denali.location-zones";
@@ -30,13 +36,40 @@ function coerceLocationDataToDeliveryString(value: unknown): string | undefined 
   return address.length > 0 ? address : undefined;
 }
 
-function coerceToDeliveryString(value: unknown): string | undefined {
+function formatDeliveryDateTimeString(value: string, includeTime: boolean): string | undefined {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+  const parsed = Date.parse(trimmed);
+  if (Number.isNaN(parsed)) {
+    return trimmed;
+  }
+  return new Intl.DateTimeFormat(DELIVERY_DATE_TIME_LOCALE, {
+    timeZone: DELIVERY_DATE_TIME_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    ...(includeTime ? { hour: "2-digit", minute: "2-digit" } : {}),
+  }).format(new Date(parsed));
+}
+
+function coerceToDeliveryString(
+  value: unknown,
+  options?: { readonly kind?: FieldDefinition["kind"] },
+): string | undefined {
   if (value === null || value === undefined) {
     return undefined;
   }
   if (typeof value === "string") {
     const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
+    if (trimmed.length === 0) {
+      return undefined;
+    }
+    if (options?.kind === "date" || ISO_DATE_TIME_PATTERN.test(trimmed)) {
+      return formatDeliveryDateTimeString(trimmed, trimmed.includes("T"));
+    }
+    return trimmed;
   }
   if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
@@ -68,8 +101,17 @@ function resolveDenaliLocationZonesDeliveryValue(
 function resolveCanonicalDeliveryValue(
   payload: Readonly<Record<string, unknown>>,
   canonicalPath: string,
+  options: {
+    readonly kind?: FieldDefinition["kind"];
+    readonly referenceDisplayValues?: Readonly<Record<string, string>>;
+  } = {},
 ): string | undefined {
   if (canonicalPath.endsWith("Id") && canonicalPath.length > 2) {
+    const catalogDisplay = options.referenceDisplayValues?.[canonicalPath]?.trim();
+    if (catalogDisplay !== undefined && catalogDisplay.length > 0) {
+      return catalogDisplay;
+    }
+
     const base = canonicalPath.slice(0, -2);
     const displayValue = coerceToDeliveryString(getCanonicalValue(payload, `${base}.name`));
     if (displayValue !== undefined) {
@@ -77,7 +119,9 @@ function resolveCanonicalDeliveryValue(
     }
   }
 
-  return coerceToDeliveryString(getCanonicalValue(payload, canonicalPath));
+  return coerceToDeliveryString(getCanonicalValue(payload, canonicalPath), {
+    kind: options.kind,
+  });
 }
 
 /**
@@ -89,6 +133,9 @@ export function enrichCanonicalDeliveryPayload(
 ): CanonicalDeliveryPayload {
   const canonicalPathById = new Map(
     input.definitions.map((definition) => [definition.id, definition.canonicalPath] as const),
+  );
+  const definitionById = new Map(
+    input.definitions.map((definition) => [definition.id, definition] as const),
   );
   const values: Record<string, string> = {};
 
@@ -104,7 +151,10 @@ export function enrichCanonicalDeliveryPayload(
     if (canonicalPath === undefined) {
       continue;
     }
-    const value = resolveCanonicalDeliveryValue(input.payload, canonicalPath);
+    const value = resolveCanonicalDeliveryValue(input.payload, canonicalPath, {
+      kind: definitionById.get(fieldId)?.kind,
+      referenceDisplayValues: input.referenceDisplayValues,
+    });
     if (value !== undefined) {
       values[fieldId] = value;
     }

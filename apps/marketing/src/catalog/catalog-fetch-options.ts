@@ -7,6 +7,15 @@ export function buildMarketingCatalogCacheTag(tenantId: string): string {
   return `marketing-catalog-${id}`;
 }
 
+/** Next.js cache tag for tenant SEO routes (sitemap, robots). */
+export function buildMarketingSeoCacheTag(tenantId: string): string {
+  const id = tenantId.trim();
+  if (id.length === 0) {
+    throw new Error("MARKETING_SEO_TENANT_ID_REQUIRED");
+  }
+  return `marketing-seo-${id}`;
+}
+
 /** Next.js fetch revalidate for catalog upstream (seconds). `0` = no time revalidate. */
 export function resolveCatalogRevalidateSeconds(): number {
   const raw = process.env.MARKETING_CATALOG_REVALIDATE_SECONDS?.trim();
@@ -25,7 +34,7 @@ export function resolveCatalogFetchCache(): RequestInit["cache"] | undefined {
 }
 
 export function resolveCatalogFetchNext(tenantId: string): { revalidate?: number; tags: string[] } {
-  const tags = [buildMarketingCatalogCacheTag(tenantId)];
+  const tags = [buildMarketingCatalogCacheTag(tenantId), buildMarketingSeoCacheTag(tenantId)];
   const seconds = resolveCatalogRevalidateSeconds();
   if (seconds > 0) {
     return { revalidate: seconds, tags };

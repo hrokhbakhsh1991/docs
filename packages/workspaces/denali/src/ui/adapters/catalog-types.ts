@@ -70,6 +70,7 @@ export type UsersDirectoryRow = {
   readonly role: Exclude<ActorRole, "none">;
   readonly status: string;
   readonly displayName: string;
+  readonly avatarUrl?: string | null;
   readonly phone: string | null;
   readonly email?: string | null;
   readonly permanentDiscountPercentage?: number | null;

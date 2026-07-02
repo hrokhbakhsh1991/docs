@@ -1,19 +1,100 @@
 {
   "nav": {
-    "registrations": "ثبت‌نام‌های من"
+    "registrations": "ثبت‌نام‌های من",
+    "profile": "پروفایل",
+    "logout": "خروج",
+    "loggingOut": "در حال خروج…"
   },
   "registrations": {
     "title": "ثبت‌نام‌های من",
     "empty": "هنوز ثبت‌نامی ندارید.",
     "statusLine": "{status} · {paymentStatus} · {departureAt}"
   },
+  "profile": {
+    "title": "پروفایل من",
+    "description": "این اطلاعات در ثبت‌نام‌های بعدی پیش‌فرض می‌شوند.",
+    "fieldLabels": {
+      "displayName": "نام نمایشی",
+      "email": "ایمیل",
+      "mobile": "موبایل",
+      "nationalId": "کد ملی",
+      "fatherName": "نام پدر",
+      "birthDate": "تاریخ تولد",
+      "gender": "جنسیت",
+      "avatarUrl": "تصویر پروفایل"
+    },
+    "save": "ذخیره",
+    "saving": "در حال ذخیره…",
+    "saved": "پروفایل ذخیره شد.",
+    "failed": "ذخیره ناموفق بود.",
+    "loadFailed": "بارگذاری پروفایل ناموفق بود.",
+    "sectionLabels": {
+      "identity": "اطلاعات هویتی",
+      "participant": "اطلاعات تکمیلی"
+    },
+    "mobileReadOnlyHint": "شماره موبایل را نمی‌توان مستقیماً در این صفحه ویرایش کرد.",
+    "mobileChange": {
+      "start": "تغییر شماره موبایل",
+      "viewHint": "شماره ورود تأییدشده. تغییر با OTP به شماره جدید انجام می‌شود.",
+      "phoneDescription": "شماره موبایل جدید را وارد کنید. کد تأیید ارسال می‌شود.",
+      "newPhoneLabel": "شماره موبایل جدید",
+      "sendOtp": "ارسال کد",
+      "sendingOtp": "در حال ارسال کد…",
+      "otpDescription": "کد تأیید ارسال‌شده به شماره جدید را وارد کنید.",
+      "otpLabel": "کد تأیید",
+      "verify": "تأیید تغییر",
+      "verifying": "در حال تأیید…",
+      "cancel": "انصراف",
+      "back": "بازگشت",
+      "success": "شماره موبایل به‌روزرسانی شد.",
+      "errors": {
+        "failed": "تغییر شماره موبایل ناموفق بود.",
+        "MOBILE_REQUIRED": "شماره موبایل را وارد کنید.",
+        "MOBILE_INVALID": "شماره موبایل معتبر وارد کنید.",
+        "MOBILE_UNCHANGED": "این همان شماره فعلی شماست.",
+        "MOBILE_ALREADY_REGISTERED": "این شماره قبلاً ثبت شده است.",
+        "MOBILE_CHALLENGE_MISMATCH": "کد تأیید با شماره جدید مطابقت ندارد.",
+        "OTP_INVALID": "کد تأیید معتبر وارد کنید.",
+        "OTP_EXPIRED": "کد منقضی شده. کد جدید بگیرید.",
+        "OTP_CHALLENGE_INVALID": "نشست تأیید منقضی شده. کد جدید بگیرید.",
+        "OTP_RATE_LIMITED": "درخواست زیاد است. کمی بعد دوباره تلاش کنید.",
+        "OTP_PAYLOAD_INVALID": "کد تأیید را وارد کنید.",
+        "OTP_REQUEST_FAILED": "ارسال کد تأیید ناموفق بود."
+      }
+    },
+    "avatarUpload": "انتخاب تصویر",
+    "avatarUploading": "در حال بارگذاری…",
+    "avatarRemove": "حذف تصویر",
+    "avatarHint": "فرمت‌های JPG، PNG یا WebP — حداکثر ۲ مگابایت.",
+    "avatarErrors": {
+      "PROFILE_AVATAR_EMPTY": "فایل خالی است.",
+      "PROFILE_AVATAR_TOO_LARGE": "حجم فایل بیش از حد مجاز است.",
+      "PROFILE_AVATAR_TYPE_INVALID": "فرمت تصویر پشتیبانی نمی‌شود.",
+      "uploadFailed": "بارگذاری تصویر ناموفق بود.",
+      "removeFailed": "حذف تصویر ناموفق بود."
+    },
+    "errors": {
+      "PROFILE_NATIONAL_ID_INVALID": "کد ملی ۱۰ رقمی معتبر وارد کنید.",
+      "PROFILE_BIRTH_DATE_INVALID": "تاریخ تولد معتبر وارد کنید (YYYY-MM-DD).",
+      "PROFILE_DISPLAY_NAME_INVALID": "نام نمایشی معتبر وارد کنید.",
+      "PROFILE_FATHER_NAME_INVALID": "نام پدر معتبر وارد کنید.",
+      "PROFILE_EMAIL_INVALID": "ایمیل معتبر وارد کنید.",
+      "PROFILE_FIELD_READ_ONLY": "این فیلد قابل ویرایش نیست.",
+      "PROFILE_FIELD_NOT_SUPPORTED": "این فیلد پشتیبانی نمی‌شود.",
+      "EMPTY_PATCH": "تغییری برای ذخیره وجود ندارد.",
+      "INVALID_PAYLOAD": "داده پروفایل نامعتبر است.",
+      "PROFILE_PATCH_FAILED": "ذخیره ناموفق بود."
+    }
+  },
   "detail": {
+    "backToList": "← بازگشت به ثبت‌نام‌های من",
     "statusLine": "وضعیت: {status} · پرداخت: {paymentStatus}",
     "departure": "تاریخ حرکت: {departureAt}"
   },
   "receipt": {
     "label": "بارگذاری رسید پرداخت",
     "submit": "ارسال رسید",
+    "uploading": "در حال بارگذاری…",
     "uploaded": "رسید بارگذاری شد.",
     "failed": "بارگذاری ناموفق بود."
   }

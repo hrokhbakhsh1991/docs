@@ -164,7 +164,7 @@ Profile step (new user only):
 
 - `display_name` required
 - `email` optional on `register-complete`
-- Tour intake email still required for Denali `POST /denali/registrations` (booking contact — not account email)
+- Denali tour intake does **not** collect email at UI; optional `contact.email` on upstream POST when provided (Urban requires email at intake via SDK capabilities)
 
 ---
 
@@ -197,6 +197,8 @@ All surfaces must resolve **same `tenantId`** for one club (P6-0).
 | G-P6-UI-05 | OTP component duplicated web/portal | P6-1 | ✅ shared `@app-tour/ui-primitives/otp-segment-input-logic` |
 | G-P6-UI-06 | No `denali-portal.css` / `denali-marketing.css` guest skins | P6-1 | ✅ Workspace skins + manifest `guestThemeStylesheets` |
 | G-P6-UI-07 | No canonical file-tree gate | P6-1 | ✅ `p6-theming-file-tree.md` + `p6-theming-file-tree.spec.ts` |
+| G-P6-UI-08 | Portal dev host cross-origin (`*.portal.localhost` → `localhost:3003`) | P6-1 | ✅ `apps/portal/next.config.ts` `allowedDevOrigins` + `guest-theme-stack.spec.ts` |
+| G-P6-CAT-01 | Marketing `pluginId` forks for list/detail/register | P6-1 | ✅ workspace-sdk `resolve-catalog-*.ts` + SDK-CAT specs in `p6:gate` |
 
 ---
 
@@ -211,7 +213,7 @@ All surfaces must resolve **same `tenantId`** for one club (P6-0).
 □ BFF route — no client API base URL
 □ next-intl keys in fa + en
 □ data-* test hooks preserved or extended
-□ guard:p3-denali-covenant + portal specs green
+□ guard:public-catalog-m17 + SDK-CAT + registration intake specs in p6:gate + p4:gate
 □ No new imports from packages/workspaces/* in apps except allowed workspace HTTP types
 ```
 
@@ -222,5 +224,7 @@ All surfaces must resolve **same `tenantId`** for one club (P6-0).
 - [`p6-enterprise-theming-architecture.mdoc`](p6-enterprise-theming-architecture.mdoc)
 - [`admin-experience.md`](../workspaces/denali/admin-experience.md)
 - [`platform-portal-otp-flow.mdoc`](platform-portal-otp-flow.mdoc)
+- [`marketing-catalog-ui.md`](../workspaces/denali/marketing-catalog-ui.md)
+- [`portal-registration-ui.md`](../workspaces/denali/portal-registration-ui.md)
 - [`apps/web/docs/P3-E-PRIM-BARREL.md`](../../apps/web/docs/P3-E-PRIM-BARREL.md)
 - [`public-catalog.md`](../workspaces/denali/public-catalog.md)

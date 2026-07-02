@@ -12,8 +12,6 @@ import {
   resolveExposureSelectionSaveInput,
   resolveExposureCatalogFieldsInSelectedOrder,
   resolveStoredVsEffectiveExposureContext,
-  reorderExposureSelectedFieldId,
-  setExposureFieldDecorationPrefix,
   setExposureCustomizeFields,
   toExposureChecklistFields,
   toggleExposureFieldSelection,
@@ -207,44 +205,18 @@ describe("resolveExposureIntentPatchInput", () => {
     );
   });
 
-  it("includes field decorations in the PATCH body", () => {
-    assert.deepEqual(
+  it("always clears legacy field decorations from the canvas save path", () => {
+    assert.equal(
       resolveExposureIntentPatchInput({
-        selection: { customizeFields: true, selectedFieldIds: ["meetingPoint"] },
+        selection: { customizeFields: true, selectedFieldIds: ["title"] },
         context: {
           surface: "telegram",
           audience: EXPOSURE_EXTERNAL_CHANNEL_AUDIENCE,
-          trigger: "TourCreated",
+          trigger: "TourPublished",
         },
-        template: "",
-        fieldDecorations: { meetingPoint: { prefix: "✅ 📍" } },
-      }),
-      {
-        enabled: true,
-        selectedFieldIds: ["meetingPoint"],
-        surface: "telegram",
-        audience: EXPOSURE_EXTERNAL_CHANNEL_AUDIENCE,
-        trigger: "TourCreated",
-        templateId: null,
-        fieldDecorations: { meetingPoint: { prefix: "✅ 📍" } },
-      },
-    );
-  });
-});
-
-describe("setExposureFieldDecorationPrefix", () => {
-  it("sets and clears decoration prefixes", () => {
-    assert.deepEqual(
-      setExposureFieldDecorationPrefix({}, "meetingPoint", "✅ 📍"),
-      { meetingPoint: { prefix: "✅ 📍" } },
-    );
-    assert.deepEqual(
-      setExposureFieldDecorationPrefix(
-        { meetingPoint: { prefix: "✅ 📍" } },
-        "meetingPoint",
-        "   ",
-      ),
-      {},
+        template: "مقصد: {{field:denali.destination}}",
+      }).fieldDecorations,
+      null,
     );
   });
 });
@@ -287,24 +259,6 @@ describe("exposure catalog boundary helpers", () => {
 });
 
 describe("selected field ordering", () => {
-  it("reorderExposureSelectedFieldId moves one id within the effective selection", () => {
-    const state = {
-      customizeFields: true,
-      selectedFieldIds: ["title", "denali.destination", "details.summary"],
-    };
-    assert.deepEqual(
-      reorderExposureSelectedFieldId(state, CATALOG, "denali.destination", "up"),
-      {
-        customizeFields: true,
-        selectedFieldIds: ["denali.destination", "title", "details.summary"],
-      },
-    );
-    assert.deepEqual(
-      reorderExposureSelectedFieldId(state, CATALOG, "title", "up"),
-      state,
-    );
-  });
-
   it("resolveExposureCatalogFieldsInSelectedOrder follows selectedFieldIds, not catalog order", () => {
     const fields = [
       { id: "title", canonicalPath: "title" },

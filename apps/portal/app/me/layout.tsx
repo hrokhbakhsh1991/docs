@@ -7,6 +7,8 @@ import type { ReactNode } from "react";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
+import { MemberLogoutButton } from "./member-logout-button";
+
 export default async function MeLayout({ children }: { children: ReactNode }) {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3003";
@@ -24,8 +26,10 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
 
   return (
     <div data-portal-member-shell className="mx-auto max-w-3xl px-4 py-8">
-      <nav className="mb-6 flex gap-4 text-sm">
+      <nav className="mb-6 flex flex-wrap items-center gap-4 text-sm">
         <Link href="/me/registrations">{t("registrations")}</Link>
+        <Link href="/me/profile">{t("profile")}</Link>
+        <MemberLogoutButton />
       </nav>
       {children}
     </div>

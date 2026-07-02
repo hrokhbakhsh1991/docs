@@ -1,5 +1,5 @@
 import { PlatformTenantRepository } from "../platform/platform-tenant.repository.ts";
-import { findTenantById } from "../tenant/tenant-registry.ts";
+import { findTenantById, isStaticTenantRegistryAllowed } from "../tenant/tenant-registry.ts";
 import {
   resolveWorkspacePluginForTenant,
   type ResolveWorkspacePluginForTenantInput,
@@ -60,6 +60,10 @@ export async function readTenantWorkspaceMetadataBinding(
       workspaceType: tenant.workspaceType,
       metadataBinding: toTenantWorkspaceMetadataBinding(tenant),
     };
+  }
+
+  if (!isStaticTenantRegistryAllowed()) {
+    return null;
   }
 
   const registered = findTenantById(tenantId);

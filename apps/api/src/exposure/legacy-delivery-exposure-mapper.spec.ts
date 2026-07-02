@@ -13,14 +13,14 @@ describe("legacy-delivery-exposure-mapper", () => {
     const profile = resolveLegacyDeliveryExposureProfile({
       workspaceType: "denali",
       provider: "telegram",
-      eventType: "TourCreated",
+      eventType: "TourPublished",
     });
     const selectableIds = buildExposureSelectableFieldCatalog("denali").map((field) => field.id);
 
-    assert.equal(profile?.id, "denali.telegram.TourCreated");
+    assert.equal(profile?.id, "denali.telegram.TourPublished");
     assert.equal(profile?.source, REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED);
     assert.deepEqual(profile?.defaultFieldIds, selectableIds);
-    assert.equal(profile?.defaultTemplateId, "Tour created: {{title}}");
+    assert.equal(profile?.defaultTemplateId, "Tour published: {{title}}");
   });
 
   it("maps disabled legacy intents to inherit_profile", () => {

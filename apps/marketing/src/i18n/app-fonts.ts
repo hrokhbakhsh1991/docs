@@ -2,7 +2,7 @@ import type { AppLocale } from "./routing";
 
 import { inter, vazirmatn } from "./app-fonts.google";
 
-export { inter, vazirmatn };
+export { inter, vazirmatn, calistoga } from "./app-fonts.google";
 
 export function resolveAppFontClassName(locale: AppLocale): string {
   return locale === "fa" ? vazirmatn.className : inter.className;

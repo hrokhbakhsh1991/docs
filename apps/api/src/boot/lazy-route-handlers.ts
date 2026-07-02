@@ -3,7 +3,6 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ProvisioningService } from "../internal/provisioning.service";
 import type { MapEnrichRouteDeps } from "../routes/api-v2/map-enrich.routes";
 import type { ToursRouteDeps } from "../tours/tours.routes";
-import type { UrbanProductRouteDeps } from "../urban/urban.routes";
 
 export type LazyRouteHandlers = {
   readonly handleInternalMetrics: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
@@ -53,24 +52,6 @@ export type LazyRouteHandlers = {
     deps: ToursRouteDeps,
     tourId: string
   ) => Promise<void>;
-  readonly handleGetUrbanSettings: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
-  readonly handlePatchUrbanSettings: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
-  readonly handleGetUrbanCatalog: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: UrbanProductRouteDeps
-  ) => Promise<void>;
-  readonly handleGetUrbanCatalogTour: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    tourId: string,
-    deps: UrbanProductRouteDeps
-  ) => Promise<void>;
-  readonly handlePostUrbanRegistration: (
-    req: IncomingMessage,
-    res: ServerResponse,
-    deps: UrbanProductRouteDeps
-  ) => Promise<void>;
 };
 
 let handlersPromise: Promise<LazyRouteHandlers> | null = null;
@@ -90,9 +71,6 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
       import("../routes/internal/db-pool-hold"),
       import("../routes/internal/outbox-replay"),
       import("../tours/tours.routes"),
-      import("../urban/urban-settings.routes"),
-      import("../urban/urban.routes"),
-      import("../routes/platform/workspaces"),
     ]).then(
       ([
         metrics,
@@ -103,8 +81,6 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         dbPoolHold,
         outboxReplay,
         tours,
-        urbanSettings,
-        urbanProduct,
       ]) => ({
         handleInternalMetrics: metrics.handleInternalMetrics,
         handleCacheInvalidate: cacheInvalidate.handleCacheInvalidate,
@@ -118,11 +94,6 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         handleGetTour: tours.handleGetTour,
         handlePatchTour: tours.handlePatchTour,
         handleCloneTour: tours.handleCloneTour,
-        handleGetUrbanSettings: urbanSettings.handleGetUrbanSettings,
-        handlePatchUrbanSettings: urbanSettings.handlePatchUrbanSettings,
-        handleGetUrbanCatalog: urbanProduct.handleGetUrbanCatalog,
-        handleGetUrbanCatalogTour: urbanProduct.handleGetUrbanCatalogTour,
-        handlePostUrbanRegistration: urbanProduct.handlePostUrbanRegistration,
       })
     );
   }

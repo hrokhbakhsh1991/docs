@@ -7,6 +7,11 @@ import {
   readDenaliCatalogFitnessLevel,
   type ProjectDenaliCatalogItineraryOptions,
 } from "./project-denali-catalog-itinerary";
+import {
+  readDenaliCatalogBirthDateRequired,
+  readDenaliCatalogFatherNameRequired,
+  readDenaliCatalogTransportSnapshot,
+} from "./read-denali-catalog-transport";
 
 export type DenaliCatalogCardOptions = ProjectDenaliCatalogItineraryOptions;
 
@@ -59,25 +64,48 @@ function readCoverImageUrl(photos: unknown): string | null {
   return isRecord(first) ? readString(first.url) : null;
 }
 
+function readBoolean(value: unknown): boolean {
+  return value === true;
+}
+
+function readDenaliCatalogNationalIdRequired(data: Record<string, unknown>): boolean {
+  return (
+    readBoolean(readCanonicalPath(data, "participantRequirements.nationalIdRequired")) ||
+    readBoolean(readCanonicalPath(data, "participants.nationalIdRequired"))
+  );
+}
+
 function buildBaseCard(
   tour: PublicCatalogTourInput,
   data: Record<string, unknown>,
   options?: DenaliCatalogCardOptions
 ): PublicCatalogCard {
   const itineraryDays = projectDenaliCatalogItinerary(data, options);
+  const category = readString(data.category);
+  const shortDescription = readString(readCanonicalPath(data, "program.shortDescription"));
+  const priceAmount = readInteger(readCanonicalPath(data, "pricing.basePricePerPerson"));
+  const transport = readDenaliCatalogTransportSnapshot(data);
+  const nationalIdRequired = readDenaliCatalogNationalIdRequired(data);
+  const fatherNameRequired = readDenaliCatalogFatherNameRequired(data);
+  const birthDateRequired = readDenaliCatalogBirthDateRequired(data);
+  const catalogUpdatedAt = readString(tour.catalogUpdatedAt);
   return Object.freeze({
     id: tour.id,
     title: readString(data.title) ?? "Untitled tour",
-    shortDescription: readString(readCanonicalPath(data, "program.shortDescription")),
-    category: readString(data.category),
+    shortDescription,
+    category,
     departureAt: readString(data.startDateTime),
     endAt: readString(data.endDateTime),
-    priceAmount: readInteger(readCanonicalPath(data, "pricing.basePricePerPerson")),
+    priceAmount,
     priceCurrency: DEFAULT_PRICE_CURRENCY,
     coverImageUrl: readCoverImageUrl(data.photos),
     totalCapacity: readInteger(data.capacityMax),
     difficultyLevel: readDenaliCatalogDifficultyLevel(data),
     fitnessLevel: readDenaliCatalogFitnessLevel(data),
+    listSubtitle: category,
+    listDescription: shortDescription,
+    showListPrice: true,
+    ...(catalogUpdatedAt != null ? { catalogUpdatedAt } : {}),
     ...(itineraryDays != null ? { itineraryDays } : {}),
     policiesText: readString(readCanonicalPath(data, "policies.policiesText")),
     cancellationDeadlineHours: readInteger(
@@ -86,6 +114,10 @@ function buildBaseCard(
     cancellationPenaltyPercentage: readInteger(
       readCanonicalPath(data, "policies.cancellationPenaltyPercentage")
     ),
+    ...(nationalIdRequired ? { nationalIdRequired: true } : {}),
+    ...(fatherNameRequired ? { fatherNameRequired: true } : {}),
+    ...(birthDateRequired ? { birthDateRequired: true } : {}),
+    transport,
   });
 }
 
@@ -94,6 +126,11 @@ function attachStructuredData(card: PublicCatalogCard): PublicCatalogCard {
     ...card,
     structuredData: buildDenaliTouristTripJsonLd(card) as unknown as Readonly<Record<string, unknown>>,
   });
+}
+
+/** Rebuild JSON-LD after exposure redaction so offers/image match visible fields. */
+export function refreshDenaliCatalogStructuredData(card: PublicCatalogCard): PublicCatalogCard {
+  return attachStructuredData(card);
 }
 
 /** Map Denali canonical tour row to public marketing card (egress-safe). */
@@ -115,6 +152,10 @@ export function toDenaliCatalogCard(
         priceCurrency: DEFAULT_PRICE_CURRENCY,
         coverImageUrl: null,
         totalCapacity: null,
+        listSubtitle: null,
+        listDescription: null,
+        showListPrice: true,
+        ...(tour.catalogUpdatedAt?.trim() ? { catalogUpdatedAt: tour.catalogUpdatedAt.trim() } : {}),
       })
     );
   }

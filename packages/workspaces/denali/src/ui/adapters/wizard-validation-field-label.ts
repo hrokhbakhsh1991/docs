@@ -2,7 +2,24 @@ import { DENALI_COMPOSITE_BY_CANONICAL_PATH } from "../../composites";
 
 import { resolveDenaliFieldLabel } from "./field-labels";
 
-type DenaliTranslator = (key: string) => string;
+type DenaliTranslator = ((key: string) => string) & {
+  readonly has?: (key: string) => boolean;
+};
+
+function tryTranslateSectionTitle(t: DenaliTranslator, sectionKey: string): string | null {
+  if (t.has != null && !t.has(sectionKey)) {
+    return null;
+  }
+  try {
+    const sectionLabel = t(sectionKey);
+    if (sectionLabel !== sectionKey && sectionLabel.length > 0) {
+      return sectionLabel;
+    }
+  } catch {
+    // Fall through to canonical anchor lookup.
+  }
+  return null;
+}
 
 function compositeIdToSectionTitleMessageKey(compositeId: string): string {
   const slug = compositeId.replace(/^denali\./, "");
@@ -35,13 +52,9 @@ export function resolveDenaliValidationIssueLabel(
 ): string {
   if (pathOrCompositeId.startsWith("denali.")) {
     const sectionKey = compositeIdToSectionTitleMessageKey(pathOrCompositeId);
-    try {
-      const sectionLabel = t(sectionKey);
-      if (sectionLabel !== sectionKey && sectionLabel.length > 0) {
-        return sectionLabel;
-      }
-    } catch {
-      // Fall through to canonical anchor lookup.
+    const sectionLabel = tryTranslateSectionTitle(t, sectionKey);
+    if (sectionLabel != null) {
+      return sectionLabel;
     }
 
     for (const [canonicalPath, compositeId] of Object.entries(DENALI_COMPOSITE_BY_CANONICAL_PATH)) {

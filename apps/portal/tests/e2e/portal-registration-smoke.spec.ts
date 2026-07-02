@@ -23,9 +23,9 @@ test("SMK-PTL-01 portal catalog registration (OTP + intake)", async ({ page }) =
   ).toBeVisible({ timeout: 60_000 });
 
   await completeCatalogRegistrationIntake(page, {
-    email: REGISTRATION_EMAIL,
     fullName: "Portal Smoke Guest",
     partySize: "2",
+    registrantTarget: "self",
   });
 
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({

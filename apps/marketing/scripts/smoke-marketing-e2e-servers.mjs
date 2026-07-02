@@ -19,6 +19,8 @@ const operatorSmokeTenantId =
   process.env.TOUR_OPS_DEV_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000014";
 const operatorSmokeOwnerUserId = "00000000-0000-4000-8000-000000000101";
 const operatorSmokeSeedTourTitle = "North Ridge Trek";
+const operatorSmokeSeedTourId = "00000000-0000-4000-8000-000000000210";
+const forceFreshServers = process.env.PW_NO_REUSE_SERVER === "1";
 
 function isPortListening(port) {
   return new Promise((resolve) => {
@@ -85,7 +87,7 @@ async function probeOperatorSmokeSeedReady() {
     "x-membership-status": "ACTIVE",
     "x-workspace-id": "ws-operator-smoke",
   };
-  return new Promise((resolve) => {
+  const listReady = await new Promise((resolve) => {
     const req = http.request(
       {
         hostname: "127.0.0.1",
@@ -115,6 +117,30 @@ async function probeOperatorSmokeSeedReady() {
             resolve(false);
           }
         });
+      }
+    );
+    req.on("error", () => resolve(false));
+    req.setTimeout(3_000, () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.end();
+  });
+  if (!listReady) {
+    return false;
+  }
+  return new Promise((resolve) => {
+    const req = http.request(
+      {
+        hostname: "127.0.0.1",
+        port: 3001,
+        path: `/denali/catalog/${operatorSmokeSeedTourId}`,
+        method: "GET",
+        headers: { "x-tenant-id": operatorSmokeTenantId },
+      },
+      (res) => {
+        res.resume();
+        resolve(res.statusCode === 200);
       }
     );
     req.on("error", () => resolve(false));
@@ -185,6 +211,14 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 try {
+  if (forceFreshServers) {
+    console.warn("smoke-marketing-e2e-servers: PW_NO_REUSE_SERVER=1 — freeing ports 3001–3003");
+    freePort(3001);
+    freePort(3002);
+    freePort(3003);
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+
   let apiListening = await isPortListening(3001);
   const portalListening = await isPortListening(3003);
   const marketingListening = await isPortListening(3002);

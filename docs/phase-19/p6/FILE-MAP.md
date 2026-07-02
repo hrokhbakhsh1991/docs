@@ -85,6 +85,26 @@ machine_snapshot: AGENT-CURRENT-PHASE.yaml
 
 | File | Nano | Status |
 | ---- | ---- | ------ |
+| `scripts/guards/guard-public-catalog-m17.mjs` | P6-1 · M17 | ✅ in `p6:gate` + `p4:gate` (dynamic count) |
+| `packages/guest-surface-host/test/resolve-tour-ops-api-base-url.spec.ts` | P6-1 · G-ENV | ✅ in `p6:gate` |
+| `packages/workspace-sdk/test/resolve-catalog-*.spec.ts` | P6-1 · SDK-CAT | ✅ in `p6:gate` |
+| `docs/workspaces/denali/marketing-catalog-ui.md` | P6-1 | ✅ |
+| `docs/workspaces/denali/portal-registration-ui.md` | P6-1 | ✅ |
+| `docs/phase-19/platform-portal-registration-intake.mdoc` | P6-1 · intake platform | ✅ |
+| `packages/workspace-sdk/test/catalog-registration-dispatch.spec.ts` | P6-1 · SDK-REG | ✅ |
+| `packages/workspace-sdk/test/public-catalog-transport-intake.spec.ts` | P6-1 · SDK-TR | ✅ |
+| `packages/workspace-sdk/test/compute-public-catalog-registration-price.spec.ts` | P6-1 · SDK-PRICE | ✅ |
+| `packages/workspace-sdk/test/registration-intake.contract.spec.ts` | P6-1 · SDK-INT | ✅ |
+| `apps/api/test/denali-registration.spec.ts` | P6-1 · DREG-19 | ✅ in `p6:gate` + `p4:gate` |
+| `packages/workspaces/denali/test/resolve-denali-registration-transport.spec.ts` | P6-1 · DN-TR | ✅ in `p6:gate` + `p4:gate` |
+| `packages/workspaces/denali/test/denali-registration-validation.spec.ts` | P6-1 · DN-REG-V | ✅ in `p6:gate` + `p4:gate` |
+| `apps/api/test/identity-me.spec.ts` | P6-1 · API-9.6-ME-04d | ✅ in `p6:gate` + `p4:gate` |
+| `apps/api/src/openapi/denali-catalog-openapi.ts` | P6-1 · OpenAPI intake body | ✅ M17 guard |
+| `apps/portal/test/catalog-registration-intake-form-contract.spec.ts` | P6-1 · PTL-INT | ✅ |
+| `apps/portal/test/public-catalog-registration-flow-contract.spec.ts` | P6-1 · OTP-07…11 | ✅ |
+| `apps/web/test/format-registration-intake.spec.ts` | P6-2 · WEB-INT | ✅ in `p6:gate` + `p4:gate` |
+| `scripts/p4-club-product-gate.sh` | P4 · club surfaces | ✅ registration intake aligned with p6 |
+| `.github/workflows/marketing-guard.yml` | P6-1 · M17 | ✅ unit + smoke · G-ENV · M17 |
 | `scripts/p6-denali-product-gate.sh` | P6-4-N-002 | ✅ |
 | `scripts/p6-denali-e2e-gate.sh` | P6-4-N-007 | ✅ E2E wired |
 | `scripts/p6-staging-gate.sh` | P6-4-N-006 | ✅ Postgres optional |

@@ -1,9 +1,8 @@
+import { supportsCatalogRegistration } from "@app-tour/workspace-sdk";
+
 import { buildDevPortalPublicBaseUrl } from "@app-tour/tenant-kernel";
 
-/** Whether marketing detail should link to web registration intake. */
-export function supportsCatalogRegistration(pluginId: string): boolean {
-  return pluginId === "urban" || pluginId === "denali";
-}
+export { supportsCatalogRegistration };
 
 /** Resolve user portal base URL from marketing host (P6 canonical `.portal.` dev origin). */
 export function resolvePortalPublicBaseUrl(host: string): string {

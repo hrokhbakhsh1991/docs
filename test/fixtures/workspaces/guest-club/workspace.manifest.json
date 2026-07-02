@@ -1,0 +1,94 @@
+{
+  "id": "guest-club",
+  "version": 1,
+  "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
+  "package": "@app-tour/workspace-guest-club",
+  "workspaceTypes": [
+    "guest-club"
+  ],
+  "plugin": {
+    "entry": "./guest-club.plugin",
+    "export": "getGuestClubWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./guest-club.plugin",
+    "export": "getGuestClubWorkspacePlugin"
+  },
+  "http": {
+    "prefix": "/guest-club",
+    "module": "./http/routes"
+  },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-guest-club/http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "GUEST_CLUB_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /guest-club/catalog": "handleGetGuestClubCatalog",
+          "POST /guest-club/registrations": "handlePostGuestClubRegistration"
+        },
+        "paramHandlers": {
+          "GET /guest-club/catalog/:tourId": "handleGetGuestClubCatalogTour"
+        }
+      }
+    ]
+  },
+  "devBootstrap": {
+    "pluginTenantIds": [
+      "eb29a07b-40bb-4e06-9e35-522cb22dab02"
+    ],
+    "smokeTenant": {
+      "tenantIdExport": "GUEST_CLUB_SMOKE_TENANT_ID",
+      "subdomainExport": "GUEST_CLUB_SMOKE_SUBDOMAIN"
+    }
+  },
+  "themeStylesheets": [
+    "theme/tokens.css"
+  ],
+  "guestThemeStylesheets": {
+    "marketing": [
+      "theme/marketing.css"
+    ]
+  },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "guestClubCatalogRegistrationFlowSurface",
+    "steps": {
+      "mode": "compose",
+      "reuseAuthStepsFrom": "shared",
+      "components": {
+        "intake": "GuestClubIntakeStep",
+        "done": "GuestClubDoneStep"
+      }
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": {
+      "cityFilter": false
+    },
+    "detailSections": {
+      "difficulty": false,
+      "fitness": false,
+      "itinerary": false,
+      "policies": false
+    }
+  },
+  "memberProfile": {
+    "editableFields": [
+      "displayName"
+    ],
+    "readOnlyFields": [
+      "email"
+    ],
+    "sections": [
+      {
+        "id": "identity",
+        "fields": [
+          "displayName",
+          "email"
+        ]
+      }
+    ]
+  }
+}

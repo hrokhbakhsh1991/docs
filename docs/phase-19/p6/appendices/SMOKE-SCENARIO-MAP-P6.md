@@ -22,6 +22,7 @@ gate_e2e: pnpm run p6:e2e-gate   # product + browser — P6_E2E_GATE_OK
 | **SMK-P6-VS-CHAIN-B01** | Browser chain guest API + operator UI | VS-03..07 | `p6-vertical-slice-browser-chain.spec.ts` | `p6-vertical-slice-chain.spec.ts` | same `bookingId` · bookings + finance UI |
 | **SMK-P6-MKT-01** | Marketing lists active tour | VS-02 | `marketing-catalog-smoke.spec.ts` (SMK-MKT-03) | `p6-guest-slice.spec.ts` GS-02 | tour card visible |
 | **SMK-P6-MKT-02** | CTA → portal canonical URL | VS-03 | same (SMK-MKT-03) | `resolve-web-registration-url.spec.ts` MKT-08 | URL contains `.portal.` |
+| **SMK-P6-MKT-05** | Urban marketing catalog browse + detail | VS-02b · P8 cross-workspace | `marketing-urban-catalog-smoke.spec.ts` (SMK-MKT-05) | `guest-theme-stack.spec.ts` G-P6-UI-08 | urban skin · city filter · no Denali-only sections · **not** in `p6:e2e-gate` |
 | **SMK-P6-PTL-01** | Portal OTP register success | VS-03 | `portal-registration-smoke.spec.ts` | `p6-guest-slice.spec.ts` GS-01 | `[data-public-registration-success]` |
 | **SMK-P6-PTL-02** | Portal `/me` lists registration | VS-04 | `portal-member-smoke.spec.ts` SMK-PTL-02 | `portal-member-registrations.spec.ts` MEM-BFF-01 | row visible after intake |
 | **SMK-P6-PTL-05** | Portal home → `/me/registrations` | VS-04 | `portal-member-smoke.spec.ts` SMK-PTL-05 | `portal-home-redirect.spec.ts` MEM-HOME-01 | redirect when session cookie set |
@@ -41,7 +42,8 @@ gate_e2e: pnpm run p6:e2e-gate   # product + browser — P6_E2E_GATE_OK
 
 | Surface | Canonical dev URL | Legacy alias |
 | ------- | ----------------- | ------------ |
-| Marketing | `http://operator.localhost:3002` | `http://shop.operator.localhost:3002` |
+| Marketing (Denali) | `http://operator.localhost:3002` | `http://shop.operator.localhost:3002` |
+| Marketing (Urban) | `http://urban.localhost:3002` | — · SMK-MKT-05 |
 | Portal | `http://operator.portal.localhost:3003` | `http://operator.localhost:3003` |
 | Admin | `http://operator.admin.localhost:3000` | `http://operator.localhost:3000` |
 
@@ -49,13 +51,16 @@ gate_e2e: pnpm run p6:e2e-gate   # product + browser — P6_E2E_GATE_OK
 
 **CTA bridge:** `buildDevPortalPublicBaseUrl` in `@app-tour/tenant-kernel` — do not duplicate in apps.
 
+**UI specs (hooks + component tree):** [marketing-catalog-ui.md](../../../workspaces/denali/marketing-catalog-ui.md) · [portal-registration-ui.md](../../../workspaces/denali/portal-registration-ui.md).
+
 ---
 
 ## Commands
 
 ```bash
-# Product gate (required for P6 closure)
+# Product gate (required for P6 closure — includes M17 + SDK-CAT + G-ENV)
 pnpm run p6:gate
+pnpm run guard:public-catalog-m17   # also invoked inside p6:gate
 
 # Host bind smoke (servers must be running)
 node scripts/smoke-p6-host-bind.mjs
@@ -64,6 +69,9 @@ node scripts/smoke-p6-host-bind.mjs
 pnpm run p6:e2e-gate   # → P6_E2E_GATE_OK
 pnpm --filter @apps/portal run test:smoke   # SMK-PTL-01
 pnpm --filter @apps/marketing run test:smoke # SMK-MKT-03
+
+# Urban marketing regression (Phase 8 · optional — not in p6:e2e-gate)
+PW_NO_REUSE_SERVER=1 pnpm --filter @apps/marketing run test:smoke:urban # SMK-MKT-05
 ```
 
 ---

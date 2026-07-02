@@ -1,6 +1,5 @@
 /**
- * P6-1 — Portal catalog registration flow contract
- * @see docs/phase-19/platform-portal-otp-flow.mdoc
+ * P8 — Portal catalog registration flow is a thin plugin runtime shell.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -13,67 +12,48 @@ const flowPath = join(
   repoRoot,
   "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx"
 );
-const otpServicePath = join(repoRoot, "apps/api/src/identity/otp.service.ts");
-const publicAuthPath = join(repoRoot, "apps/api/src/identity/public-auth.routes.ts");
-const faMessagesPath = join(repoRoot, "apps/portal/messages/fa/catalogRegistration.json");
-const otpFlowDocPath = join(repoRoot, "docs/phase-19/platform-portal-otp-flow.mdoc");
+const denaliIntakeStepPath = join(
+  repoRoot,
+  "packages/workspaces/denali/src/catalog/registration-flow/denali-registration-flow.steps.tsx"
+);
 
-describe("public-catalog-registration-flow-contract — P6-1 OTP", () => {
+describe("public-catalog-registration-flow-contract — P8 plugin runtime", () => {
   const flow = readFileSync(flowPath, "utf8");
-  const otpService = readFileSync(otpServicePath, "utf8");
-  const publicAuth = readFileSync(publicAuthPath, "utf8");
-  const faMessages = readFileSync(faMessagesPath, "utf8");
-  const otpDoc = readFileSync(otpFlowDocPath, "utf8");
+  const denaliIntake = readFileSync(denaliIntakeStepPath, "utf8");
 
-  it("OTP-01 flow defines phone → otp → profile → intake → done steps", () => {
-    assert.match(flow, /PublicRegistrationStep/);
-    assert.match(flow, /useState<PublicRegistrationStep>\("phone"\)/);
-    assert.match(flow, /data-public-registration-phone/);
-    assert.match(flow, /data-public-registration-otp/);
-    assert.match(flow, /data-public-registration-profile/);
-    assert.match(flow, /data-public-registration-intake/);
-    assert.match(flow, /data-public-registration-success/);
+  it("P8-01 portal flow delegates to registration flow plugin registry", () => {
+    assert.match(flow, /getWorkspaceRegistrationFlowPlugin/);
+    assert.match(flow, /getWorkspaceRegistrationFlowSteps/);
+    assert.doesNotMatch(flow, /request-otp/);
+    assert.doesNotMatch(flow, /verify-otp/);
+    assert.doesNotMatch(flow, /setStep\(/);
   });
 
-  it("OTP-02 dev OTP is 1234 in UI and API", () => {
-    assert.match(flow, /PUBLIC_REGISTRATION_DEV_OTP/);
-    assert.match(otpService, /DEV_STATIC_OTP = "1234"/);
-    assert.match(otpDoc, /1234/);
+  it("P8-02 denali plugin owns intake transport and registrant UI", () => {
+    assert.match(denaliIntake, /data-registration-target-tabs/);
+    assert.match(denaliIntake, /data-public-registration-transport/);
+    assert.match(denaliIntake, /RenderIntakeForm/);
+    assert.match(denaliIntake, /tourRequirements: context\.tourRequirements/);
   });
 
-  it("OTP-03 new user routes to profile when requires_registration", () => {
-    assert.match(flow, /requires_registration === true/);
-    assert.match(flow, /setStep\("profile"\)/);
-    assert.match(publicAuth, /requiresRegistration: true, onboardingToken/);
+  it("P8-02b portal flow wires catalog tourRequirements into registration context", () => {
+    const pagePath = join(
+      repoRoot,
+      "apps/portal/app/catalog/[tourId]/register/page.tsx"
+    );
+    const page = readFileSync(pagePath, "utf8");
+    assert.match(page, /tourNationalIdRequired=/);
+    assert.match(flow, /tourRequirements:/);
   });
 
-  it("OTP-04 existing user skips profile and goes to intake", () => {
-    assert.match(flow, /await hydrateIntakeAfterSession\(\)/);
-    assert.match(publicAuth, /sessionToken/);
-    assert.match(publicAuth, /membership\.status === "ACTIVE"/);
-  });
-
-  it("OTP-05 profile requires display name", () => {
-    assert.match(flow, /DISPLAY_NAME_REQUIRED/);
-    assert.match(flow, /const name = displayName\.trim\(\)/);
-    assert.match(flow, /if \(name\.length === 0\)/);
-    assert.match(faMessages, /نام اجباری/);
-  });
-
-  it("OTP-06 profile email is optional", () => {
-    assert.match(flow, /buildPublicRegistrationProfilePayload/);
-    assert.match(faMessages, /ایمیل \(اختیاری\)/);
-  });
-
-  it("OTP-07 phone preflight hints existing vs new", () => {
-    assert.match(flow, /phoneHint === "existing"/);
-    assert.match(flow, /phoneHint === "new"/);
-    assert.match(faMessages, /کاربر جدید/);
-  });
-
-  it("OTP-08 intake shows tour policies when catalog provides policiesText", () => {
-    assert.match(flow, /data-tour-policies-text/);
-    assert.match(flow, /tourPoliciesText/);
-    assert.match(faMessages, /قوانین و شرایط/);
+  it("P8-03 OTP orchestration lives in shared catalog-registration-flow-ui", () => {
+    const authStepsPath = join(
+      repoRoot,
+      "packages/catalog-registration-flow-ui/src/catalog-registration-auth-steps.tsx"
+    );
+    const authSteps = readFileSync(authStepsPath, "utf8");
+    assert.match(authSteps, /request-otp/);
+    assert.match(authSteps, /verify-otp/);
+    assert.doesNotMatch(denaliIntake, /request-otp/);
   });
 });

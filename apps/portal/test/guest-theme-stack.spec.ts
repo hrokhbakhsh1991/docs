@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const globalsPath = join(repoRoot, "apps/portal/app/globals.css");
 const layoutPath = join(repoRoot, "apps/portal/app/layout.tsx");
+const nextConfigPath = join(repoRoot, "apps/portal/next.config.ts");
 const bootstrapPath = join(
   repoRoot,
   "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
@@ -44,5 +45,20 @@ describe("guest-theme-stack.spec.ts — portal", () => {
       /body\[data-app-surface="portal"\]\[data-workspace-plugin="denali"\]/
     );
     assert.match(skin, /main\[data-catalog-registration-page\]/);
+    assert.match(skin, /main\[data-portal-member-registrations\]/);
+    assert.match(skin, /main\[data-portal-member-profile\]/);
+    assert.match(skin, /#059669/);
+    assert.match(skin, /denali-club\/MASTER\.md/);
+  });
+
+  it("G-P6-UI-07 portal layout loads Calistoga heading font", () => {
+    const layout = readFileSync(layoutPath, "utf8");
+    assert.match(layout, /calistoga\.variable/);
+  });
+
+  it("G-P6-UI-08 portal allows *.portal.localhost dev origins", () => {
+    const config = readFileSync(nextConfigPath, "utf8");
+    assert.match(config, /allowedDevOrigins/);
+    assert.match(config, /\*\.portal\.localhost/);
   });
 });

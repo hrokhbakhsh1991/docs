@@ -2,7 +2,7 @@ import type { WorkspaceFieldPolicyManifest } from "../registry/field-policy-mani
 
 /**
  * Reference starter field policy — provider-agnostic delivery/public surfaces only.
- * Denali wizard matrix remains on WorkspaceRuleSet; this manifest is additive.
+ * Workspace-specific wizard matrices remain on WorkspaceRuleSet; this manifest is additive.
  */
 export const STARTER_FIELD_POLICY_MANIFEST = Object.freeze({
   manifestVersion: 1,

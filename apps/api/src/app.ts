@@ -75,7 +75,7 @@ import {
   handlePutTourWizardTemplateAlias,
 } from "./settings/settings.routes";
 import type { ToursRouteDeps } from "./tours/tours.routes";
-import type { UrbanProductRouteDeps } from "./urban/urban.routes";
+import type { UrbanProductRouteDeps } from "@app-tour/workspace-urban/http";
 import {
   handleDeleteWorkspaceDraft,
   handleGetWorkspaceDraft,
@@ -238,6 +238,18 @@ async function dispatchRequest(
   if (method === "GET" && url.pathname === "/identity/me/avatar/url") {
     const { handleGetIdentityMeAvatarUrl } = await import("./identity/me.avatar.routes");
     await handleGetIdentityMeAvatarUrl(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/identity/me/mobile/request-otp") {
+    const { handlePostIdentityMeMobileRequestOtp } = await import("./identity/me.mobile.routes");
+    await handlePostIdentityMeMobileRequestOtp(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/identity/me/mobile/verify") {
+    const { handlePostIdentityMeMobileVerify } = await import("./identity/me.mobile.routes");
+    await handlePostIdentityMeMobileVerify(req, res);
     return;
   }
 
@@ -421,34 +433,6 @@ async function dispatchRequest(
     return;
   }
 
-  if (method === "GET" && url.pathname === "/urban/settings") {
-    await handlers.handleGetUrbanSettings(req, res);
-    return;
-  }
-
-  if (method === "PATCH" && url.pathname === "/urban/settings") {
-    await handlers.handlePatchUrbanSettings(req, res);
-    return;
-  }
-
-  const urbanProductDeps = { tourStore: deps.tourStore };
-
-  if (method === "GET" && url.pathname === "/urban/catalog") {
-    await handlers.handleGetUrbanCatalog(req, res, urbanProductDeps);
-    return;
-  }
-
-  const urbanCatalogTourMatch = url.pathname.match(/^\/urban\/catalog\/([^/]+)$/);
-  if (method === "GET" && urbanCatalogTourMatch) {
-    await handlers.handleGetUrbanCatalogTour(req, res, urbanCatalogTourMatch[1]!, urbanProductDeps);
-    return;
-  }
-
-  if (method === "POST" && url.pathname === "/urban/registrations") {
-    await handlers.handlePostUrbanRegistration(req, res, urbanProductDeps);
-    return;
-  }
-
   if (method === "GET" && url.pathname === "/public/tenant-branding") {
     const { handlePublicTenantBranding } = await import("./tenant/tenant-branding.routes");
     await handlePublicTenantBranding(req, res);
@@ -612,7 +596,7 @@ async function dispatchRequest(
     }
   }
 
-  const workspaceHandlers = await buildWorkspaceRouteHandlers(handlers);
+  const workspaceHandlers = await buildWorkspaceRouteHandlers();
   if (
     await tryDispatchWorkspaceRoutes(method, url.pathname, req, res, workspaceHandlers, {
       tourStore: deps.tourStore,

@@ -3,6 +3,7 @@ export const OTP_INVALID = "OTP_INVALID";
 export const OTP_EXPIRED = "OTP_EXPIRED";
 export const OTP_CHALLENGE_INVALID = "OTP_CHALLENGE_INVALID";
 export const AUTH_TOKEN_REVOKED = "AUTH_TOKEN_REVOKED";
+export const MOBILE_ALREADY_REGISTERED = "MOBILE_ALREADY_REGISTERED";
 
 export class IdentityRequiredError extends Error {
   readonly code = IDENTITY_REQUIRED;
@@ -46,6 +47,15 @@ export class AuthTokenRevokedError extends Error {
   constructor() {
     super(AUTH_TOKEN_REVOKED);
     this.name = "AuthTokenRevokedError";
+  }
+}
+
+export class MobileAlreadyRegisteredError extends Error {
+  readonly code = MOBILE_ALREADY_REGISTERED;
+
+  constructor() {
+    super(MOBILE_ALREADY_REGISTERED);
+    this.name = "MobileAlreadyRegisteredError";
   }
 }
 

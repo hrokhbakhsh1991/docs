@@ -60,6 +60,9 @@ const apiEnv = {
 delete apiEnv.DATABASE_URL;
 delete apiEnv.DATABASE_URL_ADMIN;
 
+const portalSmokeHost =
+  process.env.SMOKE_PORTAL_BASE_URL?.trim() || "http://operator.portal.localhost:3003";
+
 const portalEnv = {
   ...process.env,
   NODE_ENV: "development",
@@ -69,6 +72,8 @@ const portalEnv = {
   TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,
   TOUR_OPS_DEV_WORKSPACE_ID: "ws-operator-smoke",
   PORTAL_DEV_PORT: "3003",
+  // Logout → `/` redirects unauthenticated users to marketing; keep smoke self-contained.
+  MARKETING_PUBLIC_BASE_URL: `${portalSmokeHost.replace(/\/$/, "")}/health`,
 };
 
 const api = spawn("node", ["--import", "tsx", "src/main.ts"], {

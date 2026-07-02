@@ -30,6 +30,15 @@ const store: DenaliTourStorePort = {
 
 function bookingPort(approvedByTour: Record<string, number>): DenaliPublicBookingPort {
   return {
+    async findDuplicateByTourGuest() {
+      return null;
+    },
+    async findDuplicateByTourGuestLabel() {
+      return null;
+    },
+    async findDuplicateByTourGuestNationalId() {
+      return null;
+    },
     async findDuplicateByTourEmail() {
       return null;
     },

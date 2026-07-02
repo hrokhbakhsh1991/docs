@@ -353,6 +353,7 @@ model OperatorRegistration {
   submittedAt       DateTime  @default(now()) @map("submitted_at")
   submittedByUserId String    @map("submitted_by_user_id") @db.Uuid
   approvedAt        DateTime? @map("approved_at")
+  registrationIntake Json?  @map("registration_intake")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
   tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)

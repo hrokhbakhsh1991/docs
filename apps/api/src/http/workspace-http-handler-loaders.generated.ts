@@ -26,7 +26,15 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleGetDenaliCatalogTour"
   | "handleGetDenaliDashboardTour"
   | "handleGetDenaliReminderFeed"
-  | "handlePostDenaliRegistration";
+  | "handleGetGuestClubCatalog"
+  | "handleGetGuestClubCatalogTour"
+  | "handleGetUrbanCatalog"
+  | "handleGetUrbanCatalogTour"
+  | "handleGetUrbanSettings"
+  | "handlePatchUrbanSettings"
+  | "handlePostDenaliRegistration"
+  | "handlePostGuestClubRegistration"
+  | "handlePostUrbanRegistration";
 
 export type WorkspaceHttpPackageHandlers = Pick<
   WorkspaceRouteHandlers,
@@ -58,6 +66,20 @@ export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpP
     handleGetDenaliDashboardTour: mod0.handleGetDenaliDashboardTour,
     handleGetDenaliReminderFeed: mod0.handleGetDenaliReminderFeed,
     handlePostDenaliRegistration: mod0.handlePostDenaliRegistration,
+  });
+  const mod1 = await import("@app-tour/workspace-guest-club/http");
+  Object.assign(handlers, {
+    handleGetGuestClubCatalog: mod1.handleGetGuestClubCatalog,
+    handleGetGuestClubCatalogTour: mod1.handleGetGuestClubCatalogTour,
+    handlePostGuestClubRegistration: mod1.handlePostGuestClubRegistration,
+  });
+  const mod2 = await import("@app-tour/workspace-urban/http");
+  Object.assign(handlers, {
+    handleGetUrbanCatalog: mod2.handleGetUrbanCatalog,
+    handleGetUrbanCatalogTour: mod2.handleGetUrbanCatalogTour,
+    handleGetUrbanSettings: mod2.handleGetUrbanSettings,
+    handlePatchUrbanSettings: mod2.handlePatchUrbanSettings,
+    handlePostUrbanRegistration: mod2.handlePostUrbanRegistration,
   });
   return handlers as WorkspaceHttpPackageHandlers;
 }

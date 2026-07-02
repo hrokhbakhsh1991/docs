@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.dev/schemas/workspace-guest-extensions.schema.json",
+  "title": "Workspace Guest Extensions",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "guestExtensionsVersion": {
+      "const": 1
+    },
+    "guestCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "guestThemeStylesheets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "portal": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "marketing": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "catalogRegistrationFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surfaceExport", "steps"],
+      "properties": {
+        "surfaceExport": { "type": "string", "minLength": 1 },
+        "transportInitializerExport": { "type": "string", "minLength": 1 },
+        "steps": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "export"],
+              "properties": {
+                "mode": { "const": "bundle" },
+                "export": { "type": "string", "minLength": 1 }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "components"],
+              "properties": {
+                "mode": { "const": "compose" },
+                "reuseAuthStepsFrom": { "type": "string", "minLength": 1 },
+                "reuseFrom": { "type": "string", "minLength": 1 },
+                "components": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["intake", "done"],
+                  "properties": {
+                    "intake": { "type": "string", "minLength": 1 },
+                    "done": { "type": "string", "minLength": 1 }
+                  }
+                }
+              },
+              "anyOf": [
+                { "required": ["reuseAuthStepsFrom"] },
+                { "required": ["reuseFrom"] }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "catalogPresentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["listFeatures", "detailSections"],
+      "properties": {
+        "listFeatures": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cityFilter"],
+          "properties": {
+            "cityFilter": { "type": "boolean" }
+          }
+        },
+        "detailSections": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["difficulty", "fitness", "itinerary", "policies"],
+          "properties": {
+            "difficulty": { "type": "boolean" },
+            "fitness": { "type": "boolean" },
+            "itinerary": { "type": "boolean" },
+            "policies": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "memberProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["editableFields", "readOnlyFields"],
+      "properties": {
+        "editableFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "readOnlyFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "fields"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "fields": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "guestSeo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["marketing"],
+      "properties": {
+        "marketing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["jsonLd"],
+          "properties": {
+            "listTitleKey": { "type": "string", "minLength": 1 },
+            "listDescriptionKey": { "type": "string", "minLength": 1 },
+            "detailTitleTemplate": { "type": "string", "minLength": 1 },
+            "jsonLd": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["required", "schemaTypes", "builderExport"],
+              "properties": {
+                "required": { "type": "boolean" },
+                "schemaTypes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string", "minLength": 1 }
+                },
+                "builderExport": { "type": "string", "minLength": 1 },
+                "richResultsProfile": { "type": "string", "minLength": 1 }
+              }
+            },
+            "openGraph": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "type": { "type": "string", "minLength": 1 },
+                "twitterCard": { "enum": ["summary", "summary_large_image"] }
+              }
+            },
+            "sitemap": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "changefreq": {
+                  "enum": ["always", "hourly", "daily", "weekly", "monthly", "yearly", "never"]
+                },
+                "priority": { "type": "number", "minimum": 0, "maximum": 1 },
+                "includeImages": { "type": "boolean" }
+              }
+            },
+            "pagination": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "noindexQueryParams": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "dependentRequired": {
+    "guestCatalog": ["guestExtensionsVersion"],
+    "guestThemeStylesheets": ["guestExtensionsVersion"],
+    "catalogRegistrationFlow": ["guestExtensionsVersion"],
+    "catalogPresentation": ["guestExtensionsVersion"],
+    "memberProfile": ["guestExtensionsVersion"],
+    "guestSeo": ["guestExtensionsVersion"]
+  }
+}

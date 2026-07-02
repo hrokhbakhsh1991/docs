@@ -383,6 +383,122 @@ describe("dispatch-integration-domain-event", () => {
     assert.equal(first.payload.fieldExposureRuntime.selectionSource, "exposure_profile_defaults");
   });
 
+  it("merges TourPublished deliverySnapshot into enqueued delivery payload", async () => {
+    const enqueued: unknown[] = [];
+    const policyEngine: IntegrationPolicyEngine = {
+      evaluate: async () => [
+        {
+          connectionId: "conn-1",
+          tenantId: "tenant-a",
+          provider: "telegram",
+          capability: "message.send",
+          workspaceType: "denali",
+          exposureIntent: null,
+        },
+      ],
+    };
+
+    const count = await dispatchIntegrationDomainEvent(
+      {
+        tenantId: "tenant-a",
+        domainEventId: "TourPublished:tour-1:2",
+        eventType: "TourPublished",
+        aggregateType: "tour",
+        aggregateId: "tour-1",
+        payload: {
+          schemaVersion: 1,
+          tenantId: "tenant-a",
+          tourId: "tour-1",
+          rowVersion: 2,
+          publishStatus: "active",
+          title: "Alpine Day",
+          occurredAt: "2026-06-29T12:00:00.000Z",
+          deliverySnapshot: {
+            title: "Alpine Day",
+            publishStatus: "active",
+          },
+        },
+      },
+      dispatchDeps({
+        policyEngine,
+        deliveryRepository: emptyDeliveryRepository(enqueued),
+        resolveWorkspaceType: async () => "denali",
+      }),
+    );
+
+    assert.equal(count, 1);
+    const job = enqueued[0] as {
+      eventType: string;
+      domainEventId: string;
+      payload: Record<string, unknown>;
+    };
+    assert.equal(job.eventType, "TourPublished");
+    assert.equal(job.domainEventId, "TourPublished:tour-1:2");
+    assert.equal(job.payload.title, "Alpine Day");
+    assert.equal(job.payload.publishStatus, "active");
+    assert.equal(job.payload.tourId, "tour-1");
+  });
+
+  it("no-ops duplicate TourPublished enqueue when repository reports idempotent skip", async () => {
+    const policyEngine: IntegrationPolicyEngine = {
+      evaluate: async () => [
+        {
+          connectionId: "conn-1",
+          tenantId: "tenant-a",
+          provider: "telegram",
+          capability: "message.send",
+          workspaceType: "denali",
+          exposureIntent: null,
+        },
+      ],
+    };
+    const row = {
+      tenantId: "tenant-a",
+      domainEventId: "TourPublished:tour-1:2",
+      eventType: "TourPublished",
+      aggregateType: "tour",
+      aggregateId: "tour-1",
+      payload: {
+        tourId: "tour-1",
+        deliverySnapshot: { title: "Alpine Day", publishStatus: "active" },
+      },
+    };
+    let insertCount = 0;
+    const deliveryRepository: IntegrationDeliveryRepository = {
+      async enqueueJob() {
+        insertCount += 1;
+        return insertCount === 1;
+      },
+      async claimPendingBatch() {
+        return [];
+      },
+      async markDone() {},
+      async markFailedForRetry() {},
+      async markDead() {},
+    };
+
+    const first = await dispatchIntegrationDomainEvent(
+      row,
+      dispatchDeps({
+        policyEngine,
+        deliveryRepository,
+        resolveWorkspaceType: async () => "denali",
+      }),
+    );
+    const second = await dispatchIntegrationDomainEvent(
+      row,
+      dispatchDeps({
+        policyEngine,
+        deliveryRepository,
+        resolveWorkspaceType: async () => "denali",
+      }),
+    );
+
+    assert.equal(first, 1);
+    assert.equal(second, 0);
+    assert.equal(insertCount, 2);
+  });
+
   it("enqueues provider-agnostic delivery field eligibility metadata", async () => {
     process.env.FIELD_EXPOSURE_SHADOW_DIAGNOSTICS = "true";
     const enqueued: unknown[] = [];

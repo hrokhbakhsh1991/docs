@@ -24,9 +24,19 @@ describe("platform-denali-first-customer-exit", () => {
     assert.match(gate, /p6-vs01-admin-publish\.spec\.ts/);
     assert.match(gate, /tour-publish-transition\.spec\.ts/);
     assert.match(gate, /marketing-catalog-revalidate\.spec\.ts/);
+    assert.match(gate, /guard:public-catalog-m17/);
+    assert.match(gate, /guest-surface-host run test/);
+    assert.match(gate, /resolve-catalog-list-features\.spec\.ts/);
     assert.match(gate, /finance-page\.spec\.ts/);
     assert.match(gate, /finance-dashboard-widget\.spec\.ts/);
     assert.match(gate, /P6_DENALI_PRODUCT_GATE_OK/);
+  });
+
+  it("EX-P6-01b M17 guard runs in p6:gate before marketing unit specs", () => {
+    const gate = readFileSync(gateScriptPath, "utf8");
+    const m17Index = gate.indexOf("guard:public-catalog-m17");
+    const marketingIndex = gate.indexOf("== p6:gate — marketing unit ==");
+    assert.ok(m17Index >= 0 && marketingIndex > m17Index);
   });
 
   it("EX-P6-02 package.json wires p6 gates", () => {
@@ -52,6 +62,8 @@ describe("platform-denali-first-customer-exit", () => {
       "utf8"
     );
     assert.match(workflow, /pnpm run p6:gate/);
+    assert.match(workflow, /workspace-urban run build/);
+    assert.match(workflow, /guest-surface-host run build/);
     assert.match(workflow, /p6:e2e-gate/);
     assert.match(workflow, /p6:staging-gate/);
   });

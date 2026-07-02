@@ -52,13 +52,22 @@ describe("Denali workspace surfaces UI contract", () => {
       ),
       "utf8",
     );
+    const templateSync = readFileSync(
+      join(repoRoot, "apps/web/src/exposure/telegram-delivery-template-sync.ts"),
+      "utf8",
+    );
 
     assert.match(panel, /TelegramMessagePreview/);
     assert.match(panel, /previewTitle/);
-    assert.match(panel, /TelegramFieldOrderSection/);
-    assert.match(panel, /fieldOrderTitle/);
-    assert.match(panel, /fieldIconLabel/);
-    assert.match(panel, /fieldOrderIconInput/);
+    assert.match(panel, /telegram-delivery-template-sync/);
+    assert.match(panel, /syncTelegramTemplateOnFieldToggle/);
+    assert.match(panel, /integration-delivery-policy-message-template/);
+    assert.match(panel, /renderTelegramDeliveryPreview/);
+    assert.doesNotMatch(panel, /insertFieldLabel/);
+    assert.doesNotMatch(panel, /integration-delivery-policy-insert-field/);
+    assert.match(templateSync, /buildTelegramFieldTemplateLine/);
+    assert.doesNotMatch(panel, /TelegramFieldOrderSection/);
+    assert.doesNotMatch(panel, /fieldOrderIconInput/);
     assert.doesNotMatch(panel, /AdvancedExposureDiagnostics/);
     assert.doesNotMatch(panel, /advancedSummary/);
     assert.doesNotMatch(panel, /ExposureEnginePreviewPanel/);

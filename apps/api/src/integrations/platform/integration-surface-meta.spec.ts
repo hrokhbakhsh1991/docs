@@ -16,7 +16,7 @@ describe("integration surface meta", () => {
       { id: "botToken", kind: "secret", requiredOnCreate: true },
     ]);
     assert.deepEqual(telegram.defaultCapabilities, ["message.send"]);
-    assert.deepEqual(telegram.defaultEventPolicies, [{ eventType: "TourCreated", enabled: true }]);
+    assert.deepEqual(telegram.defaultEventPolicies, [{ eventType: "TourPublished", enabled: true }]);
 
     const catalogIds = meta.exposureCandidateFields.map((field) => field.id);
     assert.ok(catalogIds.includes("title"));

@@ -49,6 +49,7 @@ export function forceIntegrationSubsystemReadyForTests(report?: MigrationConsist
       unappliedMigrations: [],
       expectedMigrationCount: 0,
       appliedMigrationCount: 0,
+      tourPublishedPolicyDriftCount: 0,
       checkedAt: new Date().toISOString(),
     } satisfies MigrationConsistencyReport);
 }

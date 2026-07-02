@@ -6,7 +6,8 @@ export type IntegrationConnectionStatus = "disabled" | "enabled" | "error";
 
 export type IntegrationConnectionLoadWarning =
   | "POLICIES_UNAVAILABLE"
-  | "EXPOSURE_INTENTS_UNAVAILABLE";
+  | "EXPOSURE_INTENTS_UNAVAILABLE"
+  | "TOUR_PUBLISHED_POLICY_DRIFT";
 
 export type IntegrationBackingSource = "integration_connection" | "legacy_workspace_telegram_bot";
 
@@ -46,6 +47,8 @@ export type IntegrationConnectionPublicDto = {
   readonly eventPolicies: readonly {
     readonly eventType: string;
     readonly enabled: boolean;
+    readonly deprecated?: boolean;
+    readonly supersededBy?: string;
   }[];
   readonly exposureIntents: readonly ExposureIntentConnectionPublic[];
   readonly createdAt: string;

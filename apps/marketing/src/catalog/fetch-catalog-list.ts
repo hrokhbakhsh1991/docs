@@ -3,7 +3,7 @@ import {
   resolveCatalogFetchCache,
   resolveCatalogFetchNext,
 } from "./catalog-fetch-options";
-import { resolveCatalogListApiPath } from "@app-tour/workspace-sdk";
+import { resolveCatalogListApiPath, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
 
 import { resolveTourOpsApiBaseUrl } from "../env";
 
@@ -22,7 +22,11 @@ export async function fetchCatalogList(input: {
   if (input.limit !== undefined) {
     query.set("limit", String(input.limit));
   }
-  if (input.pluginId === "urban" && input.city !== undefined && input.city.trim().length > 0) {
+  if (
+    resolveCatalogListFeatures(input.pluginId).cityFilter &&
+    input.city !== undefined &&
+    input.city.trim().length > 0
+  ) {
     query.set("city", input.city.trim());
   }
   const suffix = query.size > 0 ? `?${query.toString()}` : "";

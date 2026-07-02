@@ -33,11 +33,17 @@ Full vertical slice VS-01..08 · `p6:gate` · first customer staging runbooks.
 ```bash
 pnpm run guard:p3-denali-covenant
 pnpm run guard:import-boundary
+pnpm run guard:public-catalog-m17          # M17 · dynamic check count
+pnpm --filter @app-tour/guest-surface-host run test   # G-ENV-01..03
+pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test \
+  test/resolve-catalog-list-features.spec.ts \
+  test/resolve-catalog-detail-sections.spec.ts \
+  test/resolve-catalog-registration-support.spec.ts   # SDK-CAT-*
 # tenant-kernel: build-dev-portal-public-base-url · multi-level-host-parse
 # API: p6-host-tenant-parity · p6-guest-slice · p6-offline-receipt · p6-preservation · bookings-ops · exit
 # marketing: resolve-web-registration-url · guest-theme-stack
 # portal: p6-theming-file-tree · guest-theme-stack · portal-host-bind · portal-member · portal-home-redirect
-# web: portal-registration-redirect
+# web: portal-registration-redirect · finance-page · finance-dashboard-widget
 echo P6_DENALI_PRODUCT_GATE_OK
 ```
 
@@ -67,7 +73,7 @@ echo P6_DENALI_PRODUCT_GATE_OK
 
 **Do:** `runbooks/staging-deploy.md` — three apps + API + subdomain DNS.
 
-**CI:** `.github/workflows/p6-denali-gate.yml` — `p6:gate` on PR; E2E weekly; `p6:staging-gate` via `workflow_dispatch`.
+**CI:** `.github/workflows/p6-denali-gate.yml` — `p6:gate` on PR (paths include M17 · guest-surface-host · workspace-sdk catalog · catalog UI docs); E2E weekly; `p6:staging-gate` via `workflow_dispatch`.
 
 ---
 

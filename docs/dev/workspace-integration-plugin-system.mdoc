@@ -284,16 +284,22 @@ persisted in `exposure_intents` and exposed to admin UI as `exposureIntents` on 
 DTO. Do not add new integration-owned field-selection primitives — see
 [transitional inventory](../architecture/field-exposure-system.md#transitional-concepts-inventory).
 
-`integrationDeliveryFieldValues` carries enriched eligible values only. `intent.templateId`
-(when non-null) is forwarded to `formatIntegrationDeliveryMessage` as
-`integrationDeliveryMessageTemplate`, overriding the surface default. Provider adapters and workers
+`integrationDeliveryFieldValues` carries enriched eligible values only. A non-null
+`ExposureIntent.templateOverrideId` is forwarded to `formatIntegrationDeliveryMessage` as
+`integrationDeliveryMessageTemplate`. Profile `defaultTemplateId` mirrors the workspace
+surface header seed only and is **not** forwarded as an override — automatic field lines use
+`integrationDeliveryFieldIds` when no intent template is set. Provider adapters and workers
 must not evaluate field policy; they only receive already-filtered payload metadata or formatted
 text.
 
 For events whose outbox payload is intentionally thin (for example `TourCreated` may only carry
 `tenantId` and `tourId`), keep existing stable placeholders until the dispatcher enriches canonical
-field values. A workspace may still declare `fieldPolicy` first so eligibility metadata is available
-without changing the delivered message text.
+field values. **`TourPublished`** carries a frozen `deliverySnapshot` in the outbox payload; the
+dispatcher merges it before field enrichment (see
+[integration event catalog](./integration-event-catalog.mdoc) and
+[ADR-INT-001](../architecture/adr/ADR-INT-001-tour-published-telegram.mdoc)). A workspace may still
+declare `fieldPolicy` first so eligibility metadata is available without changing the delivered
+message text.
 
 ## Secret handling
 
@@ -326,8 +332,11 @@ Register in `integration-provider-registry.ts` at API boot.
 
 | Env                                   | Default | Meaning                                                                           |
 | ------------------------------------- | ------- | --------------------------------------------------------------------------------- |
-| `INTEGRATION_DELIVERY_ENABLED`        | `false` | Dispatcher enqueues jobs from outbox relay                                        |
-| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `false` | Background worker processes jobs                                                  |
+| `INTEGRATION_DELIVERY_ENABLED`        | `false` | Dispatcher enqueues jobs from outbox relay (`true` by dev bootstrap when `DATABASE_URL` set) |
+| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `false` | Background worker processes jobs (`true` by dev bootstrap when `DATABASE_URL` set)             |
+| `TOUR_PUBLISHED_ROLLOUT_GATE_FATAL`   | `false` | When `true`, integration mutations blocked if denali Telegram lacks `TourPublished` policy (staging) |
+
+Denali Telegram on publish requires all three delivery flags plus [TourPublished rollout](./tour-published-telegram-rollout-plan.mdoc).
 | `LEGACY_TELEGRAM_FALLBACK_ENABLED`    | `true`  | Dual-read `workspace_telegram_bots` when no enabled `integration_connections` row |
 
 Set `LEGACY_TELEGRAM_FALLBACK_ENABLED=false` after backfill verification to force `integration_connections` only. Set `true` again to roll back delivery to legacy rows if `integration_connections` rows are removed.

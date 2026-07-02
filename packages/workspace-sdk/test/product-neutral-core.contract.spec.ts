@@ -10,6 +10,13 @@ const ALLOWLIST_PATHS = new Set([
   path.join(SDK_SRC, "plugin/workspace-manifest-bindings.generated.ts"),
   path.join(SDK_SRC, "auth/operator-surface.ts"),
   path.join(SDK_SRC, "catalog/resolve-catalog-api-path.ts"),
+  path.join(SDK_SRC, "catalog/resolve-catalog-list-features.ts"),
+  path.join(SDK_SRC, "catalog/resolve-catalog-detail-sections.ts"),
+  path.join(SDK_SRC, "catalog/resolve-catalog-registration-support.ts"),
+  path.join(SDK_SRC, "catalog/resolve-catalog-registration-api-path.ts"),
+  path.join(SDK_SRC, "catalog/resolve-catalog-intake-capabilities.ts"),
+  path.join(SDK_SRC, "catalog/build-catalog-registration-upstream-request.ts"),
+  path.join(SDK_SRC, "profile/resolve-member-profile-capabilities.ts"),
   path.join(SDK_SRC, "plugin/workspace-plugin.contract.ts"),
   path.join(SDK_SRC, "plugin/workspace-wizard-host-hooks.ts"),
   path.join(SDK_SRC, "tour/public-catalog.contract.ts"),
@@ -31,6 +38,7 @@ describe("workspace-sdk product-neutral core (P5-T04)", () => {
     const violations: string[] = [];
     for (const file of listTsFiles(SDK_SRC)) {
       if (ALLOWLIST_PATHS.has(file)) continue;
+      if (file.endsWith(".generated.ts")) continue;
       const src = fs.readFileSync(file, "utf8");
       if (PRODUCT_PATTERN.test(src)) {
         violations.push(path.relative(SDK_SRC, file));

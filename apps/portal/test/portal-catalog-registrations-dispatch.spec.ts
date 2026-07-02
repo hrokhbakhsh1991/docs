@@ -1,6 +1,6 @@
 /**
  * P4-B — portal catalog registrations dispatch contract + headers
- * @see docs/phase-17/platform-portal-registration.mdoc (PR-10b/c)
+ * @see docs/phase-19/platform-portal-registration-intake.mdoc
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -16,19 +16,16 @@ const ROUTE_PATH = join(
 );
 
 describe("portal-catalog-registrations-dispatch (P4-B PR-10b/c)", () => {
-  it("PR-10b route dispatches denali registrations with contact payload", () => {
+  it("PR-10b route uses SDK upstream builder (denali contact profile)", () => {
     const source = readFileSync(ROUTE_PATH, "utf8");
-    assert.match(source, /bootstrap\.pluginId === "denali"/);
-    assert.match(source, /`\$\{apiBase\}\/denali\/registrations`/);
-    assert.match(source, /contact:\s*\{/);
+    assert.match(source, /buildCatalogRegistrationUpstreamRequest/);
+    assert.doesNotMatch(source, /bootstrap\.pluginId === "denali"/);
   });
 
-  it("PR-10c route dispatches urban registrations with Idempotency-Key", () => {
+  it("PR-10c route forwards idempotency key via SDK builder", () => {
     const source = readFileSync(ROUTE_PATH, "utf8");
-    assert.match(source, /bootstrap\.pluginId === "urban"/);
-    assert.match(source, /`\$\{apiBase\}\/urban\/registrations`/);
-    assert.match(source, /Idempotency-Key/);
     assert.match(source, /idempotency-key/);
+    assert.match(source, /Idempotency-Key/);
   });
 
   it("PR-10d mergeCatalogRegistrationHeaders guest uses x-tenant-id only", () => {

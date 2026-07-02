@@ -16,8 +16,7 @@ import {
   isPublicRegistrationThrottleExceededError,
   resetPublicRegistrationThrottleForTests,
 } from "../src/registrations/public-registration-throttle.ts";
-import { InMemoryUrbanRegistrationRepository } from "../src/urban/in-memory-urban-registration.repository.ts";
-import { createUrbanRegistration } from "../src/urban/urban-registration.service.ts";
+import { InMemoryUrbanRegistrationRepository, createUrbanRegistration } from "@app-tour/workspace-urban/http";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository.ts";
 import { TourStorageDbAdapter } from "../src/db/tour-storage.adapter.ts";
 

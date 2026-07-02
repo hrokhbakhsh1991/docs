@@ -1,0 +1,31 @@
+{
+  "@context": "https://schema.org",
+  "@type": "TouristTrip",
+  "name": "North Ridge Trek",
+  "description": "Alpine trek with multi-day itinerary.",
+  "touristType": "Trekking",
+  "startDate": "2026-08-01",
+  "endDate": "2026-08-05",
+  "image": "https://cdn.example/cover.jpg",
+  "dateModified": "2026-06-02T10:00:00.000Z",
+  "offers": {
+    "@type": "Offer",
+    "price": 2500000,
+    "priceCurrency": "IRR",
+    "availability": "https://schema.org/InStock"
+  },
+  "itinerary": {
+    "@type": "ItemList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "item": {
+          "@type": "TouristTrip",
+          "name": "Day 1",
+          "description": "Briefing — Base camp"
+        }
+      }
+    ]
+  }
+}

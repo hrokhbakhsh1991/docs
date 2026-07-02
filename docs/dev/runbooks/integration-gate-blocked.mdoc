@@ -23,6 +23,7 @@ implementation:
 | Exposure tables missing (9.1b fatal) | `exposure_intents`, `exposure_profiles`, `denali_exposure_reminder_activations` | Apply exposure migrations; set `FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL=false` temporarily only in dev |
 | Prisma client stale | Schema drift after migrate | `prisma generate` + API restart (see `docs/phase-5/appendices/migrate-deploy-only.md`) |
 | `STORAGE_DRIVER=memory` in prod | Gate may never arm | Use `STORAGE_DRIVER=prisma` with `DATABASE_URL` |
+| TourPublished policy drift (staging+) | `CONSISTENCY_TOUR_PUBLISHED_POLICY_DRIFT` when `TOUR_PUBLISHED_ROLLOUT_GATE_FATAL=true` | Apply migration `20260704100000_backfill_tour_published_event_policies`; see [TourPublished Telegram runbook](./tour-published-telegram-delivery.mdoc) |
 
 ## Triage steps
 
@@ -41,4 +42,10 @@ implementation:
 
 ## Degraded read (not a gate block)
 
-`GET /integrations/:id` may return `loadWarnings: ["POLICIES_UNAVAILABLE"]` or `EXPOSURE_INTENTS_UNAVAILABLE` while gate is open — UI shows banner; this is **not** the same as mutation block.
+`GET /integrations/:id` may return `loadWarnings` while gate is open — UI shows banner; this is **not** the same as mutation block.
+
+| Warning | Meaning | Runbook |
+| ------- | ------- | ------- |
+| `POLICIES_UNAVAILABLE` | Policy rows failed to load | Retry; check DB / RLS |
+| `EXPOSURE_INTENTS_UNAVAILABLE` | Intent rows failed to load | Retry; exposure migrations |
+| `TOUR_PUBLISHED_POLICY_DRIFT` | Enabled denali Telegram missing `TourPublished` policy | [TourPublished Telegram delivery](./tour-published-telegram-delivery.mdoc) |

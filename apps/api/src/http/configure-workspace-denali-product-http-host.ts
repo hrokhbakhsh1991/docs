@@ -10,6 +10,9 @@ import type {
 import {
   createPublicGuestBooking,
   findGuestBookingDuplicate,
+  findGuestBookingDuplicateByGuestLabel,
+  findGuestBookingDuplicateByTourNationalId,
+  findGuestBookingDuplicateByUser,
   sumApprovedPartySizeByTourIds,
 } from "../bookings/bookings.service";
 import type { TourStorageRepository as DbTourStorageRepository } from "../db/tour.repository";
@@ -28,6 +31,22 @@ function resolvePublicBookingPort(deps: DenaliProductRouteDeps): DenaliPublicBoo
     return deps.publicBookingPort;
   }
   return {
+    async findDuplicateByTourGuest(tenantId, tourId, guestUserId) {
+      const duplicate = await findGuestBookingDuplicateByUser(tenantId, tourId, guestUserId);
+      return duplicate === null ? null : { id: duplicate.id };
+    },
+    async findDuplicateByTourGuestLabel(tenantId, tourId, guestLabel) {
+      const duplicate = await findGuestBookingDuplicateByGuestLabel(tenantId, tourId, guestLabel);
+      return duplicate === null ? null : { id: duplicate.id };
+    },
+    async findDuplicateByTourGuestNationalId(tenantId, tourId, nationalId) {
+      const duplicate = await findGuestBookingDuplicateByTourNationalId(
+        tenantId,
+        tourId,
+        nationalId
+      );
+      return duplicate === null ? null : { id: duplicate.id };
+    },
     async findDuplicateByTourEmail(tenantId, tourId, email) {
       const duplicate = await findGuestBookingDuplicate(tenantId, tourId, email);
       return duplicate === null ? null : { id: duplicate.id };
@@ -48,6 +67,9 @@ function resolvePublicBookingPort(deps: DenaliProductRouteDeps): DenaliPublicBoo
           guestPhone: input.guestPhone,
           partySize: input.partySize,
           departureAt: input.departureAt,
+          ...(input.registrationIntake !== undefined
+            ? { registrationIntake: input.registrationIntake }
+            : {}),
         }
       );
       return { id: created.id, status: created.status };

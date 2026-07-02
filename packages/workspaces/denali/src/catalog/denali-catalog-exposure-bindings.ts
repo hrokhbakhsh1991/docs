@@ -1,5 +1,7 @@
 import type { PublicCatalogCard } from "@app-tour/workspace-sdk";
 
+import { refreshDenaliCatalogStructuredData } from "./denali-catalog-card";
+
 export type DenaliCatalogCardExposureBinding = {
   readonly fieldId: string;
   readonly applyHidden: (card: PublicCatalogCard) => PublicCatalogCard;
@@ -74,6 +76,8 @@ export function applyDenaliCatalogCardExposure(
   }
   if (!visibleFieldIds.has("title")) {
     next = clearStructuredData(next);
+  } else if ("structuredData" in next) {
+    next = refreshDenaliCatalogStructuredData(next);
   }
   return next;
 }

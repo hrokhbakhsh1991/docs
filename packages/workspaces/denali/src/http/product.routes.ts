@@ -127,6 +127,12 @@ export async function handlePostDenaliRegistration(
           body,
           store,
           bookingPort,
+          ...(deps.resolveGuestMembership !== undefined
+            ? { resolveGuestMembership: deps.resolveGuestMembership }
+            : {}),
+          ...(deps.saveGuestProfileFields !== undefined
+            ? { saveGuestProfileFields: deps.saveGuestProfileFields }
+            : {}),
         });
         host.sendJson(res, 201, { success: true, data: created });
       },

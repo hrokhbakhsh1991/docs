@@ -158,9 +158,11 @@ Route: `{club}.portal.{root}/catalog/{tourId}/register`
 
 **Prerequisite:** P6-1-N-015 (theming file tree) ✅
 
-**Do:** Manual smoke doc + Playwright SMK-PTL-01 path documented.
+**Do:** UI spec docs + Playwright SMK-PTL-01 / SMK-MKT-03 path documented.
 
-**Verify:** milestone complete
+**Authority:** [marketing-catalog-ui.md](../../workspaces/denali/marketing-catalog-ui.md) · [portal-registration-ui.md](../../workspaces/denali/portal-registration-ui.md)
+
+**Verify:** milestone complete · `guard:public-catalog-m17` · `guest-theme-stack.spec.ts` G-P6-UI-06/07/08 · portal/marketing `test:smoke` (explicit YES)
 
 ---
 

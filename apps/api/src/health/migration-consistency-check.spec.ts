@@ -17,6 +17,7 @@ describe("migration-consistency-check", () => {
       unappliedMigrations: [],
       expectedMigrationCount: 38,
       appliedMigrationCount: 38,
+      tourPublishedPolicyDriftCount: 0,
     });
     assert.equal(report.ok, true);
     assert.equal(report.signal, "CONSISTENCY_OK");
@@ -74,6 +75,36 @@ describe("migration-consistency-check", () => {
     });
     assert.equal(report.ok, false);
     assert.equal(report.signal, "CONSISTENCY_MISSING_TABLES");
+  });
+
+  it("blocks when tour published policy drift and rollout fatal gate is enabled", () => {
+    const report = buildMigrationConsistencyReport({
+      missingTables: [],
+      missingExposureTables: [],
+      unappliedMigrations: [],
+      expectedMigrationCount: 38,
+      appliedMigrationCount: 38,
+      tourPublishedPolicyDriftCount: 2,
+      tourPublishedRolloutGateFatal: true,
+    });
+    assert.equal(report.ok, false);
+    assert.equal(report.signal, "CONSISTENCY_TOUR_PUBLISHED_POLICY_DRIFT");
+    assert.equal(report.tourPublishedPolicyDriftCount, 2);
+  });
+
+  it("warn-only when tour published policy drift and fatal gate is disabled", () => {
+    const report = buildMigrationConsistencyReport({
+      missingTables: [],
+      missingExposureTables: [],
+      unappliedMigrations: [],
+      expectedMigrationCount: 38,
+      appliedMigrationCount: 38,
+      tourPublishedPolicyDriftCount: 1,
+      tourPublishedRolloutGateFatal: false,
+    });
+    assert.equal(report.ok, true);
+    assert.equal(report.signal, "CONSISTENCY_OK");
+    assert.equal(report.tourPublishedPolicyDriftCount, 1);
   });
 
   it("computeUnappliedMigrations lists disk migrations absent from DB", () => {

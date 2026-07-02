@@ -1,0 +1,8 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": "Club tour",
+  "description": "Summary",
+  "eventStatus": "https://schema.org/EventScheduled",
+  "dateModified": "2026-07-01T08:00:00.000Z"
+}

@@ -1,9 +1,11 @@
 import { formatCanonicalPathToLabel } from "./format-canonical-path-label";
 
-type DenaliTranslator = (
+export type DenaliTranslator = ((
   key: string,
   values?: Record<string, string | number | Date>
-) => string;
+) => string) & {
+  readonly has?: (key: string) => boolean;
+};
 
 function canonicalPathToFieldMessageKey(canonicalPath: string): string {
   return `fields.${canonicalPath}`;
@@ -20,6 +22,12 @@ function resolveDenaliStepLabelFallback(stepId: string): string {
 
 export function resolveDenaliFieldLabel(t: DenaliTranslator, canonicalPath: string): string {
   const key = canonicalPathToFieldMessageKey(canonicalPath);
+  if (typeof t.has === "function") {
+    if (t.has(key)) {
+      return t(key);
+    }
+    return formatCanonicalPathToLabel(canonicalPath);
+  }
   try {
     const label = t(key);
     if (label !== key && label.length > 0) {
@@ -29,6 +37,51 @@ export function resolveDenaliFieldLabel(t: DenaliTranslator, canonicalPath: stri
     // Missing message keys fall back to formatted path.
   }
   return formatCanonicalPathToLabel(canonicalPath);
+}
+
+function readEnumOptionLabel(t: DenaliTranslator, key: string, _fallback: string): string | null {
+  if (typeof t.has === "function") {
+    return t.has(key) ? t(key) : null;
+  }
+  try {
+    const label = t(key);
+    return label !== key && label.length > 0 ? label : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Localize enum/select tokens for flat primitive fields (transport mode, payment mode, etc.). */
+export function resolveDenaliEnumOptionLabel(
+  t: DenaliTranslator,
+  canonicalPath: string,
+  value: string
+): string {
+  const slug = value.trim();
+  if (slug.length === 0) {
+    return value;
+  }
+
+  const candidates: readonly string[] = [
+    `enumOptions.${canonicalPath}.${slug}`,
+    canonicalPath === "transport.mode" || canonicalPath.endsWith(".mode")
+      ? `transportModes.${slug}`
+      : null,
+    canonicalPath === "pricing.paymentMode" ? `paymentModes.${slug}` : null,
+    canonicalPath === "publishStatus" || canonicalPath.endsWith(".publishStatus")
+      ? `review.publishStatus.${slug}`
+      : null,
+    `tourKinds.${slug}`,
+  ].filter((entry): entry is string => entry != null);
+
+  for (const key of candidates) {
+    const label = readEnumOptionLabel(t, key, slug);
+    if (label != null) {
+      return label;
+    }
+  }
+
+  return slug.replace(/_/g, " ");
 }
 
 export function resolveDenaliStepLabel(t: DenaliTranslator, stepId: string): string {

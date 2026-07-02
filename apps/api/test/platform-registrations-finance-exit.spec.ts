@@ -52,7 +52,10 @@ describe("platform-registrations-finance-exit (P5-E optional)", () => {
       "utf8"
     );
     const tours = readFileSync(join(repoRoot, "apps/api/src/tours/tours.service.ts"), "utf8");
-    const urbanRoutes = readFileSync(join(repoRoot, "apps/api/src/urban/urban.routes.ts"), "utf8");
+    const urbanRoutes = readFileSync(
+      join(repoRoot, "packages/workspaces/urban/src/http/product.routes.ts"),
+      "utf8"
+    );
 
     assert.match(canonical, /assertPaidTourOpenCommerceGateOnPublishTransition/);
     assert.match(tours, /commerce,/);

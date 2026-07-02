@@ -13,6 +13,8 @@ import { LocalizedDatePicker } from "@/components/i18n/localized-date-picker";
 import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 
+import { resolveDenaliEnumOptionLabel } from "@app-tour/workspace-denali/ui/adapters/field-labels";
+
 import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
 import { resolveWizardFieldLabel } from "./wizard-label-surface-registry";
 
@@ -43,7 +45,10 @@ type WizardFieldRendererProps = {
   readonly selectPlaceholder: string;
 };
 
-export function parseEnumOptions(field: RenderFieldPlan): readonly SelectOption[] {
+export function parseEnumOptions(
+  field: RenderFieldPlan,
+  resolveOptionLabel?: (value: string) => string
+): readonly SelectOption[] {
   const raw = field.uiHints?.enumOptions;
   if (!raw) {
     return [];
@@ -55,7 +60,10 @@ export function parseEnumOptions(field: RenderFieldPlan): readonly SelectOption[
     }
     return parsed.map((entry) => {
       const value = String(entry);
-      return { value, label: value };
+      return {
+        value,
+        label: resolveOptionLabel?.(value) ?? value,
+      };
     });
   } catch {
     return [];
@@ -91,8 +99,11 @@ function renderEnumField({
   onChange,
   label,
   selectPlaceholder,
-}: WizardFieldRendererProps): ReactNode {
-  const options = parseEnumOptions(field);
+  resolveOptionLabel,
+}: WizardFieldRendererProps & {
+  readonly resolveOptionLabel?: (value: string) => string;
+}): ReactNode {
+  const options = parseEnumOptions(field, resolveOptionLabel);
   return (
     <label {...fieldMarkerProps(field)}>
       <span>{label}</span>
@@ -238,6 +249,15 @@ export function WizardField({
   const tField = useTranslations("wizard.field");
   const translate = translateWorkspaceMessage ?? ((key: string) => key);
   const label = resolveWizardFieldLabel(fieldLabelSurfaceId, translate, field.canonicalPath);
+  const resolveOptionLabel =
+    translateWorkspaceMessage != null
+      ? (optionValue: string) =>
+          resolveDenaliEnumOptionLabel(
+            translateWorkspaceMessage,
+            field.canonicalPath,
+            optionValue
+          )
+      : undefined;
 
   if (field.hidden) {
     return null;
@@ -265,14 +285,24 @@ export function WizardField({
 
   const render = WIZARD_FIELD_RENDERERS[field.kind];
   if (render) {
-    return render({
-      field,
-      value,
-      onChange,
-      label,
-      dataTestId,
-      selectPlaceholder: tField("selectPlaceholder"),
-    });
+    return field.kind === "enum"
+      ? renderEnumField({
+          field,
+          value,
+          onChange,
+          label,
+          dataTestId,
+          selectPlaceholder: tField("selectPlaceholder"),
+          resolveOptionLabel,
+        })
+      : render({
+          field,
+          value,
+          onChange,
+          label,
+          dataTestId,
+          selectPlaceholder: tField("selectPlaceholder"),
+        });
   }
 
   return (

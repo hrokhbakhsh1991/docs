@@ -5,5 +5,6 @@
  */
 
 import "@app-tour/workspace-denali/theme/denali-admin.css";
+import "@app-tour/workspace-guest-club/theme/tokens.css";
 import "@app-tour/workspace-starter/theme/tokens.css";
 import "@app-tour/workspace-urban/theme/tokens.css";

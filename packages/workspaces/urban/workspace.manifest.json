@@ -2,6 +2,7 @@
   "id": "urban",
   "version": 1,
   "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
   "package": "@app-tour/workspace-urban",
   "workspaceTypes": ["urban"],
   "plugin": {
@@ -18,6 +19,7 @@
   },
   "httpRoutes": {
     "handlerPackage": "@app-tour/workspace-urban/http",
+    "loadHandlersFromPackage": true,
     "groups": [
       {
         "manifestExport": "URBAN_HTTP_ROUTE_MANIFEST",
@@ -51,6 +53,7 @@
     "messageNamespace": "urban"
   },
   "devBootstrap": {
+    "pluginTenantIds": ["00000000-0000-4000-8000-000000000004"],
     "wizardTemplate": {
       "module": "./settings/urbanMinimalWizardTemplate",
       "buildExport": "buildUrbanMinimalWizardTemplatePayload",
@@ -84,5 +87,52 @@
       "status": 403
     }
   ],
-  "themeStylesheets": ["theme/tokens.css"]
+  "themeStylesheets": ["theme/tokens.css"],
+  "guestThemeStylesheets": {
+    "marketing": ["theme/urban-marketing.css"]
+  },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "urbanCatalogRegistrationFlowSurface",
+    "steps": {
+      "mode": "compose",
+    "reuseAuthStepsFrom": "shared",
+    "components": {
+        "intake": "UrbanIntakeStep",
+        "done": "UrbanDoneStep"
+      }
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": { "cityFilter": true },
+    "detailSections": {
+      "difficulty": false,
+      "fitness": false,
+      "itinerary": false,
+      "policies": false
+    }
+  },
+  "memberProfile": {
+    "editableFields": ["displayName"],
+    "readOnlyFields": ["email"],
+    "sections": [
+      {
+        "id": "identity",
+        "fields": ["displayName", "email"]
+      }
+    ]
+  },
+  "guestSeo": {
+    "marketing": {
+      "listTitleKey": "seo.toursTitle",
+      "listDescriptionKey": "seo.toursDescription",
+      "jsonLd": {
+        "required": true,
+        "schemaTypes": ["Event"],
+        "builderExport": "buildUrbanEventJsonLd",
+        "richResultsProfile": "event-v1"
+      },
+      "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": true },
+      "pagination": { "noindexQueryParams": ["cursor", "city"] }
+    }
+  }
 }

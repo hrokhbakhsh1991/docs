@@ -19,6 +19,7 @@ import { TourStorageDbAdapter } from "../src/db/tour-storage.adapter";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { ToursService } from "../src/tours/tours.service";
 import {
+  OPERATOR_SMOKE_PARTICIPANT_TOUR_ID,
   OPERATOR_SMOKE_PUBLISHED_TOUR_ID,
   captureMarketingRevalidateFetch,
   drainScheduledRevalidate,
@@ -489,7 +490,8 @@ describe("club-catalog-publish-http (P4-A PW)", { concurrency: false }, () => {
       OPERATOR_SMOKE.tenantId
     );
     assert.equal(response.status, 200);
-    assert.equal(response.items.length, 1);
-    assert.equal(response.items[0]?.id, OPERATOR_SMOKE_PUBLISHED_TOUR_ID);
+    assert.equal(response.items.length, 4);
+    assert.ok(response.items.some((item) => item.id === OPERATOR_SMOKE_PUBLISHED_TOUR_ID));
+    assert.ok(response.items.some((item) => item.id === OPERATOR_SMOKE_PARTICIPANT_TOUR_ID));
   });
 });

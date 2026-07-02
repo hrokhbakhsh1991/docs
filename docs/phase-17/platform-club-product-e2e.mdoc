@@ -10,7 +10,7 @@ execution_spec: TEMP/p4/p4-d-product-e2e.md
 
 # Club product E2E exit (P4-D)
 
-Phase exit gate: **`p4:gate`** + optional **`p4:e2e-gate`** Playwright + §J closure in [`TEMP/p4-exit-checklist.md`](../../TEMP/p4-exit-checklist.md).
+Phase exit gate: **`p4:gate`** + optional **`p4:e2e-gate`** Playwright + §J closure in [`platform-club-product-surfaces.mdoc`](platform-club-product-surfaces.mdoc) · [`phase-15-closure.mdoc`](../phase-15/phase-15-closure.mdoc).
 
 **Doc SoT:** this file · **Nano spec:** [`TEMP/p4/p4-d-product-e2e.md`](../../TEMP/p4/p4-d-product-e2e.md) v1.0
 
@@ -50,6 +50,25 @@ pnpm run guard:import-boundary
 pnpm run guard:public-catalog-m17
 pnpm run guard:p3-denali-covenant
 
+pnpm --filter @app-tour/guest-surface-host run test
+pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test \
+  test/resolve-catalog-list-features.spec.ts \
+  test/resolve-catalog-detail-sections.spec.ts \
+  test/resolve-catalog-registration-support.spec.ts \
+  test/catalog-registration-dispatch.spec.ts \
+  test/public-catalog-transport-intake.spec.ts \
+  test/compute-public-catalog-registration-price.spec.ts \
+  test/registration-intake.contract.spec.ts \
+  test/product-neutral-core.contract.spec.ts
+
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/denali-registration.spec.ts \
+  test/identity-me.spec.ts
+
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test \
+  test/resolve-denali-registration-transport.spec.ts \
+  test/denali-registration-validation.spec.ts
+
 pnpm --filter @apps/api exec node --import tsx --test \
   test/marketing-catalog-revalidate.spec.ts \
   test/club-catalog-publish-integration.spec.ts \
@@ -70,7 +89,8 @@ pnpm --filter @apps/portal test
 pnpm --filter @apps/web exec node --import tsx --test \
   test/portal-registration-redirect.spec.ts \
   test/catalog-register-redirect-page.spec.ts \
-  test/platform-club-surfaces-tab.spec.ts
+  test/platform-club-surfaces-tab.spec.ts \
+  test/format-registration-intake.spec.ts
 ```
 
 Wire: `"p4:gate": "bash scripts/p4-club-product-gate.sh"` · `"p4:e2e-gate": "bash scripts/p4-club-product-e2e-gate.sh"`.
@@ -85,7 +105,7 @@ Heavy Playwright — **`p4:e2e-gate`** only; **Architect YES** for CI merge proo
 | -------------- | ------------------------------------- | ------------ |
 | SMK-MKT-01..04 | `marketing-catalog-smoke.spec.ts`     | marketing    |
 | SMK-PTL-01     | `portal-registration-smoke.spec.ts`   | portal       |
-| SMK-DREG-01    | `denali-catalog-registration.spec.ts` · `playwright.denali.config.ts` | web → portal |
+| SMK-DREG-01    | Superseded by SMK-PTL-01 — `portal-registration-smoke.spec.ts` · `playwright.portal.config.ts` (DEC-P11-014; removed `playwright.denali.config.ts`) | portal |
 
 Fixture tour `…0210` — seed smoke anchor; live operator publish E2E deferred until Architect YES.
 
@@ -95,7 +115,7 @@ Fixture tour `…0210` — seed smoke anchor; live operator publish E2E deferred
 
 | Spec                                 | IDs         | Asserts                                    |
 | ------------------------------------ | ----------- | ------------------------------------------ |
-| `platform-club-product-exit.spec.ts` | EX-01…EX-03 | gate script · M17 · closure docs           |
+| `platform-club-product-exit.spec.ts` | EX-01…EX-03 · **EX-02c** | gate script · M17 · registration intake · closure docs in `docs/phase-17` |
 | Gate run                             | EX-01b      | `P4_CLUB_PRODUCT_GATE_OK`                  |
 | M17 guard                            | EX-02       | in chain                                   |
 | E2E alt                              | E2E-01      | PW-01 in gate · fixture doc for Playwright |
@@ -127,6 +147,8 @@ pnpm run p4:e2e-gate      # Playwright smokes — Architect YES
 
 - [`platform-club-catalog-publish.mdoc`](platform-club-catalog-publish.mdoc)
 - [`platform-portal-registration.mdoc`](platform-portal-registration.mdoc)
+- [`marketing-catalog-ui.md`](../workspaces/denali/marketing-catalog-ui.md) · [`portal-registration-ui.md`](../workspaces/denali/portal-registration-ui.md)
 - [`platform-club-surfaces-config.mdoc`](platform-club-surfaces-config.mdoc)
 - [`phase-15-closure.mdoc`](../phase-15/phase-15-closure.mdoc)
-- `TEMP/p4-exit-checklist.md`
+- [`platform-club-product-surfaces.mdoc`](platform-club-product-surfaces.mdoc)
+- [`phase-15-closure.mdoc`](../phase-15/phase-15-closure.mdoc)

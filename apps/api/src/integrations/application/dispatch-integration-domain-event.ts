@@ -12,6 +12,7 @@ import {
   enrichCanonicalDeliveryPayload,
   type CanonicalDeliveryPayload,
 } from "./enrich-canonical-delivery-payload";
+import { resolveDeliveryReferenceDisplayValues } from "./resolve-delivery-reference-display-values";
 import type { ExposureIntent, ExposureFieldDecorations } from "../../exposure/exposure-intent";
 import type { ExposureProfile } from "../../exposure/exposure-profile";
 import {
@@ -50,6 +51,7 @@ import {
 } from "../../exposure/build-field-exposure-engine-input";
 import { adjustShadowParityForIntentionalMismatches } from "../../exposure/shadow-parity-intentional-mismatch";
 import { resolveFieldExposureRuntimeTruthSource } from "../../exposure/resolve-runtime-truth-source";
+import { resolveIntegrationDispatchPayload } from "./resolve-integration-dispatch-payload";
 
 export const FIELD_EXPOSURE_DECISION_ENGINE_SHADOW_ENV =
   "FIELD_EXPOSURE_DECISION_ENGINE_SHADOW" as const;
@@ -309,6 +311,7 @@ export type DispatchIntegrationDomainEventDeps = {
   readonly deliveryRepository?: ReturnType<typeof createIntegrationDeliveryRepository>;
   readonly resolveWorkspaceType?: typeof resolveWorkspaceTypeForTenant;
   readonly enrichCanonicalDeliveryPayload?: typeof enrichCanonicalDeliveryPayload;
+  readonly resolveDeliveryReferenceDisplayValues?: typeof resolveDeliveryReferenceDisplayValues;
   readonly resolvePersistedExposureProfileForContext?: typeof resolvePersistedExposureProfileForContext;
   readonly resolveExposureDecision?: typeof resolveExposureDecision;
   readonly runFieldExposureDecisionEngineShadow?: typeof runForwardFieldExposureDecisionEngineShadow;
@@ -368,6 +371,8 @@ export async function dispatchIntegrationDomainEvent(
   const deliveryRepository = deps.deliveryRepository ?? createIntegrationDeliveryRepository();
   const resolveWorkspaceType = deps.resolveWorkspaceType ?? resolveWorkspaceTypeForTenant;
   const enrichDeliveryPayload = deps.enrichCanonicalDeliveryPayload ?? enrichCanonicalDeliveryPayload;
+  const resolveReferenceDisplayValues =
+    deps.resolveDeliveryReferenceDisplayValues ?? resolveDeliveryReferenceDisplayValues;
   const resolvePersistedProfile =
     deps.resolvePersistedExposureProfileForContext ?? resolvePersistedExposureProfileForContext;
   const resolveExposure = deps.resolveExposureDecision ?? resolveExposureDecision;
@@ -378,10 +383,7 @@ export async function dispatchIntegrationDomainEvent(
   const runtimeMode = resolveFieldExposureRuntimeMode();
 
   const workspaceType = await resolveWorkspaceType(row.tenantId);
-  const payload =
-    typeof row.payload === "object" && row.payload !== null
-      ? (row.payload as Record<string, unknown>)
-      : {};
+  const payload = resolveIntegrationDispatchPayload(row);
 
   const decisions = await policyEngine.evaluate({
     tenantId: row.tenantId,
@@ -521,6 +523,17 @@ export async function dispatchIntegrationDomainEvent(
       });
     }
 
+    const referenceDisplayValues =
+      deliveryPolicy === null
+        ? {}
+        : await resolveReferenceDisplayValues({
+            tenantId: row.tenantId,
+            workspaceType,
+            payload,
+            eligibleFieldIds: activeDeliveryFieldIds.fieldIds,
+            definitions: deliveryPolicy.definitions,
+          });
+
     const enriched =
       deliveryPolicy === null
         ? null
@@ -528,6 +541,7 @@ export async function dispatchIntegrationDomainEvent(
             payload,
             eligibleFieldIds: activeDeliveryFieldIds.fieldIds,
             definitions: deliveryPolicy.definitions,
+            referenceDisplayValues,
           });
 
     const authoritativeDeliveryFields = {

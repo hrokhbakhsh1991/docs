@@ -13,7 +13,7 @@ import { createRequestListener } from "../src/app";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
 import { resetPublicRegistrationThrottleForTests } from "../src/registrations/public-registration-throttle.ts";
-import { resetUrbanRegistrationRepositoryForTests } from "../src/urban/in-memory-urban-registration.repository";
+import { resetUrbanRegistrationRepositoryForTests } from "@app-tour/workspace-urban/http";
 import { setCachedTenantThemeById } from "../src/tenant/tenant-registry-cache";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
@@ -141,9 +141,18 @@ describe("Phase 8.2 — urban catalog + registration HTTP", () => {
       { headers: publicHeaders() }
     );
     assert.equal(response.status, 200);
-    const data = (response.body as { data?: { id?: string; publishStatus?: string } }).data;
+    const data = (response.body as {
+      data?: {
+        id?: string;
+        publishStatus?: string;
+        listSubtitle?: string;
+        showListPrice?: boolean;
+      };
+    }).data;
     assert.equal(data?.id, URBAN_PUBLISHED_TOUR_ID);
     assert.equal(data?.publishStatus, "published");
+    assert.ok(typeof data?.listSubtitle === "string" && data.listSubtitle.length > 0);
+    assert.equal(data?.showListPrice, false);
   });
 
   it("UREG-8.2-01 POST /urban/registrations creates confirmed row when seats available", async () => {

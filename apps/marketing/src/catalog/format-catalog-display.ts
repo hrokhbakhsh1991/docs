@@ -1,19 +1,36 @@
 import type { MarketingCatalogCard } from "./catalog-types";
 
-/** Workspace-agnostic subtitle line (category vs city/venue). */
-export function formatCatalogCardSubtitle(
-  card: MarketingCatalogCard,
-  pluginId: string
-): string {
-  if (pluginId === "urban") {
-    return [card.city, card.venueName].filter(Boolean).join(" · ") || "—";
+type CatalogPresentationFields = Pick<
+  MarketingCatalogCard,
+  "listSubtitle" | "listDescription" | "showListPrice" | "priceAmount"
+>;
+
+/** Normalized subtitle from egress presentation fields (Track A). */
+export function formatCatalogCardSubtitle(card: MarketingCatalogCard): string {
+  const normalized = card.listSubtitle?.trim();
+  if (normalized !== undefined && normalized.length > 0) {
+    return normalized;
   }
-  return card.category ?? "";
+  const category = card.category?.trim();
+  if (category !== undefined && category.length > 0) {
+    return category;
+  }
+  const urbanLine = [card.city, card.venueName]
+    .filter((part): part is string => part != null && part.trim().length > 0)
+    .join(" · ");
+  if (urbanLine.length > 0) {
+    return urbanLine;
+  }
+  return "—";
 }
 
-/** Description line — Denali shortDescription or Urban catalogSummary. */
+/** Description line — prefers normalized `listDescription`. */
 export function formatCatalogCardDescription(card: MarketingCatalogCard): string | null {
-  const text = card.shortDescription?.trim() || card.catalogSummary?.trim() || "";
+  const text =
+    card.listDescription?.trim() ||
+    card.shortDescription?.trim() ||
+    card.catalogSummary?.trim() ||
+    "";
   return text.length > 0 ? text : null;
 }
 
@@ -24,10 +41,20 @@ export function formatCatalogCardDates(
   datesTbaLabel: string
 ): string {
   if (card.departureAt != null || card.endAt != null) {
-    return formatCatalogDateRange(card.departureAt ?? null, card.endAt ?? null, dateLocale, datesTbaLabel);
+    return formatCatalogDateRange(
+      card.departureAt ?? null,
+      card.endAt ?? null,
+      dateLocale,
+      datesTbaLabel
+    );
   }
   if (card.startDate != null || card.endDate != null) {
-    return formatCatalogDateRange(card.startDate ?? null, card.endDate ?? null, dateLocale, datesTbaLabel);
+    return formatCatalogDateRange(
+      card.startDate ?? null,
+      card.endDate ?? null,
+      dateLocale,
+      datesTbaLabel
+    );
   }
   return datesTbaLabel;
 }
@@ -81,6 +108,9 @@ export function formatCatalogDateRange(
   return `${startLabel} – ${endLabel}`;
 }
 
-export function shouldShowCatalogPrice(pluginId: string, amount: number | null | undefined): boolean {
-  return pluginId !== "urban" && amount != null;
+export function shouldShowCatalogPrice(card: CatalogPresentationFields): boolean {
+  if (card.showListPrice === false) {
+    return false;
+  }
+  return card.priceAmount != null;
 }

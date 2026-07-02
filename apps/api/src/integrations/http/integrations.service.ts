@@ -16,12 +16,17 @@ import {
 import { deleteConnectionExposureIntentsInTransaction } from "../../exposure/connection-exposure-intent-scope";
 import { assertWorkspaceExposureModuleAccess } from "../../settings/settings-exposure-module-access";
 import { emitSettingsResourceAudit } from "../../settings/settings-audit-emitter";
+import { shouldWarnTourPublishedPolicyDrift } from "../../health/tour-published-policy-drift";
 import { isIntegrationSubsystemReady } from "../../health/integration-subsystem-gate";
 import { resolveWorkspaceTypeForTenant } from "../../tenant/resolve-workspace-type";
 import { getIntegrationProvider } from "../platform/integration-provider-registry";
 import type { IntegrationCapability } from "../platform/integration-capability";
 import { isIntegrationCapability } from "../platform/integration-capability";
 import { resolveIntegrationProviderSurface } from "../platform/resolve-integration-surface";
+import {
+  mapEffectiveCatalogToPublicEventPolicies,
+  resolveEffectiveIntegrationEventCatalog,
+} from "../platform/resolve-effective-integration-event-catalog";
 import {
   buildWorkspaceIntegrationSurfaceMeta,
   type WorkspaceIntegrationSurfaceMetaResponse,
@@ -455,10 +460,42 @@ async function hasTelegramIntegrationConnectionRow(
   });
 }
 
+function resolvePublicEventPolicies(input: {
+  readonly workspaceType: string | null;
+  readonly provider: IntegrationProviderId;
+  readonly persistedPolicies: readonly { readonly eventType: string; readonly enabled: boolean }[];
+}) {
+  return mapEffectiveCatalogToPublicEventPolicies(
+    resolveEffectiveIntegrationEventCatalog({
+      workspaceType: input.workspaceType,
+      providerId: input.provider,
+      persistedPolicies: input.persistedPolicies,
+    }),
+  );
+}
+
 function legacyTelegramToPublicDto(
   legacy: LegacyTelegramBotInspection,
   input: { readonly fallbackSuppressed: boolean }
 ): IntegrationConnectionPublicDto {
+  const eventPolicies = resolvePublicEventPolicies({
+    workspaceType: legacy.workspaceType,
+    provider: "telegram",
+    persistedPolicies: [],
+  });
+  const loadWarnings: IntegrationConnectionLoadWarning[] = shouldWarnTourPublishedPolicyDrift({
+    workspaceType: legacy.workspaceType,
+    provider: "telegram",
+    enabled: legacy.enabled,
+    status: legacy.enabled ? "enabled" : "disabled",
+    persistedPolicies: eventPolicies.map((policy) => ({
+      eventType: policy.eventType,
+      enabled: policy.enabled,
+    })),
+  })
+    ? ["TOUR_PUBLISHED_POLICY_DRIFT"]
+    : [];
+
   return {
     id: buildLegacyTelegramSyntheticId(legacy.id),
     tenantId: legacy.tenantId,
@@ -470,12 +507,7 @@ function legacyTelegramToPublicDto(
     config: { channelId: legacy.channelId },
     hasSecret: legacy.botToken.trim().length > 0,
     secretRefMasked: null,
-    eventPolicies: [
-      {
-        eventType: "TourCreated",
-        enabled: true,
-      },
-    ],
+    eventPolicies,
     exposureIntents: [],
     createdAt: legacy.createdAt.toISOString(),
     updatedAt: legacy.updatedAt.toISOString(),
@@ -484,6 +516,7 @@ function legacyTelegramToPublicDto(
     actionsAllowed: legacyIntegrationActionsAllowed(),
     isActiveDeliverySource: false,
     fallbackSuppressed: input.fallbackSuppressed,
+    ...(loadWarnings.length > 0 ? { loadWarnings } : {}),
   };
 }
 
@@ -537,6 +570,28 @@ async function loadConnectionPoliciesAndIntents(
   return { policies, exposureIntents, loadWarnings };
 }
 
+function appendTourPublishedPolicyDriftWarning(
+  row: IntegrationConnectionRecord & { createdAt?: Date; updatedAt?: Date },
+  policies: readonly { readonly eventType: string; readonly enabled: boolean }[],
+  loadWarnings: IntegrationConnectionLoadWarning[],
+): void {
+  if (
+    shouldWarnTourPublishedPolicyDrift({
+      workspaceType: row.workspaceType,
+      provider: row.provider,
+      enabled: row.enabled,
+      status: row.status,
+      persistedPolicies: policies.map((policy) => ({
+        eventType: policy.eventType,
+        enabled: policy.enabled,
+      })),
+    }) &&
+    !loadWarnings.includes("TOUR_PUBLISHED_POLICY_DRIFT")
+  ) {
+    loadWarnings.push("TOUR_PUBLISHED_POLICY_DRIFT");
+  }
+}
+
 async function toPublicDto(
   tenantId: string,
   row: IntegrationConnectionRecord & { createdAt?: Date; updatedAt?: Date }
@@ -545,6 +600,7 @@ async function toPublicDto(
     tenantId,
     row.id,
   );
+  appendTourPublishedPolicyDriftWarning(row, policies, loadWarnings);
 
   return {
     id: row.id,
@@ -557,10 +613,14 @@ async function toPublicDto(
     config: row.config,
     hasSecret: row.secretRef !== null && row.secretRef.length > 0,
     secretRefMasked: maskSecretRef(row.secretRef),
-    eventPolicies: policies.map((policy) => ({
-      eventType: policy.eventType,
-      enabled: policy.enabled,
-    })),
+    eventPolicies: resolvePublicEventPolicies({
+      workspaceType: row.workspaceType,
+      provider: row.provider,
+      persistedPolicies: policies.map((policy) => ({
+        eventType: policy.eventType,
+        enabled: policy.enabled,
+      })),
+    }),
     exposureIntents,
     createdAt: row.createdAt?.toISOString() ?? new Date(0).toISOString(),
     updatedAt: row.updatedAt?.toISOString() ?? new Date(0).toISOString(),

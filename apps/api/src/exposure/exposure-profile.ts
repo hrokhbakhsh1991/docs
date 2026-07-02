@@ -8,7 +8,10 @@ export type ExposureCatalogSource =
   | typeof REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED
   | typeof PUBLISHED_WIZARD_TEMPLATE_EXPOSURE_CATALOG_SOURCE;
 
-/** Stable product slug for Denali Telegram TourCreated seeded profile. */
+/** Stable product slug for Denali Telegram TourPublished seeded profile. */
+export const DENALI_TELEGRAM_TOUR_PUBLISHED_PROFILE_SLUG = "telegram_tour_published" as const;
+
+/** @deprecated Legacy TourCreated profile — Telegram now uses TourPublished. */
 export const DENALI_TELEGRAM_TOUR_CREATED_PROFILE_SLUG = "telegram_tour_created" as const;
 
 export type ExposureProfileSource =

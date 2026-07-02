@@ -1,0 +1,60 @@
+#!/usr/bin/env node
+/**
+ * PF-4 — guest plugin conformance guard bundle (fail-fast).
+ * @see docs/dev/guest-plugin-conformance.md
+ */
+import { spawnSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+
+/** @type {{ name: string; cmd: string[] }[]} */
+const STEPS = [
+  { name: "registry_fresh", cmd: ["node", "scripts/generate-workspace-registry.mjs", "--check"] },
+  { name: "intake_plugin_registry", cmd: ["node", "scripts/guards/guard-intake-plugin-registry.mjs"] },
+  { name: "guest_extension_schema", cmd: ["node", "scripts/guards/guard-guest-extension-schema.mjs"] },
+  { name: "no_default_fallback", cmd: ["node", "scripts/guards/guard-no-default-fallback.mjs"] },
+  { name: "generated_banner", cmd: ["node", "scripts/guards/guard-generated-banner.mjs"] },
+  { name: "feature_flag_boundary", cmd: ["node", "scripts/guards/guard-feature-flag-boundary.mjs"] },
+  { name: "guest_e2e_hooks", cmd: ["node", "scripts/guards/guard-guest-e2e-hooks.mjs"] },
+  { name: "structured_errors", cmd: ["node", "scripts/guards/guard-structured-errors.mjs"] },
+  { name: "no_todo_guest", cmd: ["node", "scripts/guards/guard-no-todo-guest.mjs"] },
+  { name: "guest_reuse_from", cmd: ["node", "scripts/guards/guard-guest-reuse-from.mjs"] },
+  { name: "guest_frozen_shell", cmd: ["node", "scripts/guards/guard-guest-frozen-shell.mjs"] },
+  { name: "guest_api_shell", cmd: ["node", "scripts/guards/guard-guest-api-shell.mjs"] },
+  { name: "guest_consumer_deps", cmd: ["node", "scripts/guards/guard-guest-consumer-deps.mjs"] },
+  {
+    name: "guest_conformance_dual_verify",
+    cmd: ["node", "--test", "scripts/test/workspace-guest-conformance.spec.mjs"],
+  },
+  { name: "guest_seo", cmd: ["node", "scripts/guards/guard-guest-seo.mjs"] },
+  { name: "guest_seo_e2e_hooks", cmd: ["node", "scripts/guards/guard-guest-seo-e2e-hooks.mjs"] },
+];
+
+const failures = [];
+
+for (const step of STEPS) {
+  const result = spawnSync(step.cmd[0], step.cmd.slice(1), {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+  if (result.status === 0) {
+    console.log(`PASS guest_conformance/${step.name}`);
+    continue;
+  }
+  failures.push(step.name);
+  console.error(`FAIL guest_conformance/${step.name}`);
+  const output = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
+  if (output.length > 0) {
+    console.error(output);
+  }
+}
+
+if (failures.length > 0) {
+  console.error(`guard-guest-plugin-conformance: FAIL (${failures.join(", ")})`);
+  process.exit(1);
+}
+
+console.log("guard-guest-plugin-conformance: PASS");

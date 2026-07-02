@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
-import { CatalogTourListItem } from "@/catalog/catalog-tour-list-item";
+import { CatalogTourList } from "@/catalog/catalog-tour-list";
+import { CatalogCityFilterForm } from "@/catalog/catalog-city-filter-form";
 import { fetchCatalogList } from "@/catalog/fetch-catalog-list";
-import { buildMarketingToursListMetadata } from "@/seo/build-marketing-metadata";
+import { isAppLocale, routing } from "@/i18n/routing";
+import { buildMarketingToursListMetadata, shouldNoindexMarketingListPage } from "@/seo/build-marketing-metadata";
+import {
+  buildMarketingCatalogListJsonLd,
+  shouldEmitMarketingCatalogListJsonLd,
+} from "@/seo/build-marketing-catalog-list-jsonld";
+import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
+import { resolveCatalogListFeatures, resolveGuestSeoForPlugin } from "@app-tour/workspace-sdk";
 
 export const dynamic = "force-dynamic";
 
@@ -29,18 +37,38 @@ function buildToursQuery(input: { readonly cursor?: string; readonly city?: stri
   return serialized.length > 0 ? `?${serialized}` : "";
 }
 
-export async function generateMetadata(): Promise<Metadata> {
-  const headerList = await headers();
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [{ cursor, city }, headerList, localeRaw] = await Promise.all([
+    searchParams,
+    headers(),
+    getLocale(),
+  ]);
   const host = headerList.get("host") ?? "localhost:3002";
-  const branding = await fetchPublicTenantBrandingForHost(host);
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+  const [branding, bootstrap] = await Promise.all([
+    fetchPublicTenantBrandingForHost(host),
+    resolveMarketingBootstrapForHost(host),
+  ]);
+  const guestSeo = resolveGuestSeoForPlugin(bootstrap.pluginId).marketing;
   const t = await getTranslations("catalog");
   const siteName = branding.displayName ?? t("nav.defaultSiteName");
-  const title = `${siteName} — ${t("nav.tours")}`;
+  const title = guestSeo.listTitleKey
+    ? t(guestSeo.listTitleKey, { siteName })
+    : `${siteName} — ${t("nav.tours")}`;
+  const description = guestSeo.listDescriptionKey
+    ? t(guestSeo.listDescriptionKey, { siteName })
+    : t("metadata.listDescription", { siteName });
+  const noindex = shouldNoindexMarketingListPage(
+    { cursor, city },
+    guestSeo.pagination?.noindexQueryParams
+  );
   return buildMarketingToursListMetadata({
     host,
     siteName,
     title,
-    description: t("metadata.listDescription", { siteName }),
+    description,
+    locale,
+    ...(noindex ? { robots: { index: false, follow: true } } : {}),
   });
 }
 
@@ -49,6 +77,7 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3002";
   const bootstrap = await resolveMarketingBootstrapForHost(host);
+  const listFeatures = resolveCatalogListFeatures(bootstrap.pluginId);
   const t = await getTranslations("catalog");
   const { items, nextCursor } = await fetchCatalogList({
     ...bootstrap,
@@ -56,35 +85,49 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
     city,
     limit: DEFAULT_PAGE_LIMIT,
   });
+  const listJsonLd =
+    shouldEmitMarketingCatalogListJsonLd({ cursor }) && items.length > 0
+      ? buildMarketingCatalogListJsonLd({
+          host,
+          listLabel: t("list.title"),
+          items: items.map((item) => ({
+            tourId: item.id,
+            title: item.title?.trim() || t("detail.defaultTourTitle"),
+          })),
+        })
+      : null;
 
   return (
     <main data-marketing-catalog>
-      <h1>{t("list.title")}</h1>
-      {bootstrap.pluginId === "urban" ? (
-        <form method="get" data-marketing-city-filter>
-          <label htmlFor="city">{t("list.cityLabel")}</label>
-          <input id="city" name="city" type="search" defaultValue={city ?? ""} placeholder={t("list.cityPlaceholder")} />
-          <button type="submit">{t("list.applyFilter")}</button>
-          {city ? (
-            <Link href="/tours" data-marketing-city-clear>
-              {t("list.clearFilter")}
-            </Link>
-          ) : null}
-        </form>
+      <header data-marketing-catalog-header>
+        <h1 data-marketing-catalog-title>{t("list.title")}</h1>
+      </header>
+      {listFeatures.cityFilter ? (
+        <CatalogCityFilterForm
+          defaultCity={city ?? ""}
+          cityLabel={t("list.cityLabel")}
+          cityPlaceholder={t("list.cityPlaceholder")}
+          applyLabel={t("list.applyFilter")}
+          clearLabel={t("list.clearFilter")}
+          showClear={city != null && city.trim().length > 0}
+        />
       ) : null}
       {items.length === 0 ? (
         <p data-marketing-catalog-empty>{t("list.empty")}</p>
       ) : (
-        <ul data-marketing-catalog-grid>
-          {items.map((tour) => (
-            <CatalogTourListItem key={tour.id} tour={tour} pluginId={bootstrap.pluginId} />
-          ))}
-        </ul>
+        <CatalogTourList items={items} pluginId={bootstrap.pluginId} />
       )}
       {nextCursor ? (
-        <p data-marketing-catalog-pagination>
+        <nav data-marketing-catalog-pagination>
           <Link href={`/tours${buildToursQuery({ city, cursor: nextCursor })}`}>{t("list.loadMore")}</Link>
-        </p>
+        </nav>
+      ) : null}
+      {listJsonLd != null ? (
+        <script
+          type="application/ld+json"
+          data-marketing-catalog-list-jsonld
+          dangerouslySetInnerHTML={{ __html: serializeMarketingJsonLd(listJsonLd) }}
+        />
       ) : null}
     </main>
   );

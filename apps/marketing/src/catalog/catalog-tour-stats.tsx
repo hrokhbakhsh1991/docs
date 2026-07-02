@@ -1,0 +1,68 @@
+import { getLocale, getTranslations } from "next-intl/server";
+
+import { resolveCatalogDetailSections } from "@app-tour/workspace-sdk";
+
+import type { MarketingCatalogCard } from "./catalog-types";
+import {
+  formatCatalogPrice,
+  shouldShowCatalogPrice,
+} from "./format-catalog-display";
+import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
+
+export type CatalogTourStatsProps = {
+  readonly tour: MarketingCatalogCard;
+  readonly testId: "card" | "detail";
+  readonly pluginId: string;
+};
+
+export async function CatalogTourStats({ tour, testId, pluginId }: CatalogTourStatsProps) {
+  const sections = resolveCatalogDetailSections(pluginId);
+  const t = await getTranslations("catalog");
+  const localeRaw = await getLocale();
+  const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
+  const dateLocale = resolveIntlDateLocale(locale);
+  const showPrice = shouldShowCatalogPrice(tour);
+  const capacityLabel =
+    tour.spotsRemaining != null
+      ? t("detail.spotsRemaining", { count: tour.spotsRemaining })
+      : tour.totalCapacity != null
+        ? t("detail.capacity", { count: tour.totalCapacity })
+        : null;
+
+  const hasStats =
+    capacityLabel != null ||
+    showPrice ||
+    (sections.difficulty && tour.difficultyLevel != null) ||
+    (sections.fitness && tour.fitnessLevel != null);
+
+  if (!hasStats) {
+    return null;
+  }
+
+  const statsProps =
+    testId === "card"
+      ? ({ "data-marketing-catalog-card-stats": true } as const)
+      : ({ "data-marketing-catalog-detail-stats": true } as const);
+
+  return (
+    <ul {...statsProps}>
+      {capacityLabel ? <li>{capacityLabel}</li> : null}
+      {showPrice ? (
+        <li>
+          {formatCatalogPrice(
+            tour.priceAmount,
+            tour.priceCurrency,
+            dateLocale,
+            t("detail.priceOnRequest"),
+          )}
+        </li>
+      ) : null}
+      {sections.difficulty && tour.difficultyLevel != null ? (
+        <li>{t("detail.difficulty", { level: tour.difficultyLevel })}</li>
+      ) : null}
+      {sections.fitness && tour.fitnessLevel ? (
+        <li>{t("detail.fitness", { level: tour.fitnessLevel })}</li>
+      ) : null}
+    </ul>
+  );
+}

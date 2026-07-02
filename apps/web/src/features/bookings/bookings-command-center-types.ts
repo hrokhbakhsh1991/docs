@@ -36,6 +36,7 @@ export type BookingListItem = {
   readonly paymentStatus: "unpaid" | "partial" | "paid";
   readonly departureAt: string;
   readonly submittedAt: string;
+  readonly registrationIntake?: Readonly<Record<string, unknown>>;
 };
 
 export type BookingsListResponse = {

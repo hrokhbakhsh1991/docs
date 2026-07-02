@@ -84,6 +84,12 @@ completed_nanos_behavioral:
   - id: P6-4-N-006
     proof: "VPS staging infra isolated — tour_db_staging · app-tour-staging · :23000-23003"
     date: "2026-06-23"
+  - id: P6-1-N-014-portal-full
+    proof: "apps/portal test:smoke 14/14 (SMK-PTL-01/02/04/05/06 · DEN-PROF-01..03 · DEN-INTAKE-01..03 · DEN-TRANS-01..03) — warmup globalSetup (tours 210/212/213/214) · hydration-gated profile save + logout · MARKETING_PUBLIC_BASE_URL→/health · card-driven transport (no pluginId branch)"
+    date: "2026-07-02"
+  - id: P6-1-N-014-transport-isolation
+    proof: "DEN-TRANS-01..03 read POST /api/catalog/registrations body → transport.kind omitted (bus) · personal_car (opt-in) · no_car_dong (shared_cars). MEM-04 bookings-member-isolation.spec.ts view=mine scoped to submittedByUserId. Smoke tours …213/…214 seeded in-memory + Prisma (seedOperatorSmokeTransportTours) · DCAT-01/P6-VS-01-01/PW-DN-01 count 2→4."
+    date: "2026-07-02"
 
 agent_loop:
   - regression: pnpm run p6:gate

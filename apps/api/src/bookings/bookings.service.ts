@@ -55,7 +55,24 @@ function toListItem(record: BookingRecord): BookingListItem {
     paymentStatus: record.paymentStatus,
     departureAt: record.departureAt,
     submittedAt: record.submittedAt,
+    ...(record.registrationIntake !== undefined
+      ? { registrationIntake: record.registrationIntake }
+      : {}),
   };
+}
+
+function readRegistrationIntakeNationalId(
+  intake: Readonly<Record<string, unknown>> | undefined
+): string | null {
+  if (intake === undefined) {
+    return null;
+  }
+  const nationalId = intake.nationalId;
+  if (typeof nationalId !== "string") {
+    return null;
+  }
+  const trimmed = nationalId.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function matchesSearch(record: BookingRecord, q: string | undefined): boolean {
@@ -194,6 +211,71 @@ export async function sumApprovedPartySizeByTourIds(
   }
   const repo = getBookingsRepository();
   return repo.sumApprovedPartySizeByTourIds(tenantId, tourIds);
+}
+
+export async function findGuestBookingDuplicateByUser(
+  tenantId: string,
+  tourId: string,
+  guestUserId: string
+): Promise<BookingRecord | null> {
+  const normalizedUserId = guestUserId.trim();
+  if (normalizedUserId.length === 0) {
+    return null;
+  }
+  const repo = getBookingsRepository();
+  const rows = await repo.listByTenant(tenantId);
+  return (
+    rows.find(
+      (row) =>
+        row.tourId === tourId &&
+        row.status !== "cancelled" &&
+        row.status !== "rejected" &&
+        row.submittedByUserId === normalizedUserId
+    ) ?? null
+  );
+}
+
+export async function findGuestBookingDuplicateByGuestLabel(
+  tenantId: string,
+  tourId: string,
+  guestLabel: string
+): Promise<BookingRecord | null> {
+  const normalizedLabel = guestLabel.trim().toLocaleLowerCase();
+  if (normalizedLabel.length === 0) {
+    return null;
+  }
+  const repo = getBookingsRepository();
+  const rows = await repo.listByTenant(tenantId);
+  return (
+    rows.find(
+      (row) =>
+        row.tourId === tourId &&
+        row.status !== "cancelled" &&
+        row.status !== "rejected" &&
+        row.guestLabel.trim().toLocaleLowerCase() === normalizedLabel
+    ) ?? null
+  );
+}
+
+export async function findGuestBookingDuplicateByTourNationalId(
+  tenantId: string,
+  tourId: string,
+  nationalId: string
+): Promise<BookingRecord | null> {
+  const normalizedNationalId = nationalId.trim();
+  if (normalizedNationalId.length === 0) {
+    return null;
+  }
+  const repo = getBookingsRepository();
+  const rows = await repo.listByTenant(tenantId);
+  return (
+    rows.find((row) => {
+      if (row.tourId !== tourId || row.status === "cancelled" || row.status === "rejected") {
+        return false;
+      }
+      return readRegistrationIntakeNationalId(row.registrationIntake) === normalizedNationalId;
+    }) ?? null
+  );
 }
 
 export async function findGuestBookingDuplicate(

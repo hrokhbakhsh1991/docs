@@ -207,12 +207,132 @@ export {
   type PublicCatalogItinerarySegment,
   type PublicCatalogSurface,
   type PublicCatalogTourInput,
+  type PublicCatalogTransportMode,
+  type PublicCatalogTransportSnapshot,
+  isPublicCatalogOrganizedTransportMode,
 } from "./tour/public-catalog.contract";
 export {
   resolveCatalogListApiPath,
   resolveCatalogTourApiPath,
   UnknownCatalogPluginError,
 } from "./catalog/resolve-catalog-api-path";
+export {
+  resolveGuestConformanceLevelForPlugin,
+  GuestConformanceNotConfiguredError,
+  type WorkspaceGuestConformanceLevel,
+} from "./catalog/resolve-guest-conformance-level";
+export { WORKSPACE_GUEST_CONFORMANCE_LEVELS } from "./catalog/workspace-guest-conformance.generated";
+export {
+  resolveCatalogListFeatures,
+  type CatalogListFeatures,
+  UnknownCatalogPresentationPluginError,
+} from "./catalog/resolve-catalog-list-features";
+export {
+  resolveCatalogDetailSections,
+  type CatalogDetailSections,
+} from "./catalog/resolve-catalog-detail-sections";
+export {
+  resolveGuestSeoForPlugin,
+  GuestSeoNotConfiguredError,
+  type WorkspaceGuestSeoConfig,
+  type WorkspaceGuestSeoMarketing,
+} from "./catalog/resolve-guest-seo-for-plugin";
+export { WORKSPACE_GUEST_SEO } from "./catalog/workspace-guest-seo.generated";
+export { validateStructuredData, type StructuredDataValidationResult } from "./seo/validate-structured-data";
+export { supportsCatalogRegistration } from "./catalog/resolve-catalog-registration-support";
+export {
+  resolveCatalogRegistrationApiPath,
+  UnknownCatalogRegistrationPluginError,
+} from "./catalog/resolve-catalog-registration-api-path";
+export {
+  type FieldRules,
+  type IntakeField,
+  type IntakeFieldType,
+  type IntakeFieldWidget,
+  type IntakeSchema,
+  type IntakeSchemaContext,
+  type IntakeSchemaFeatures,
+  type IntakeSchemaTourRequirements,
+  type IntakeSchemaValidationIssue,
+  type WorkspaceCatalogIntakeSchemaProvider,
+} from "./catalog/intake-schema";
+export {
+  type WorkspaceCatalogIntakeSurface,
+} from "./catalog/workspace-catalog-intake-surface";
+export {
+  type WorkspaceCatalogIntakeTransportSurface,
+} from "./catalog/catalog-intake-transport-surface";
+export {
+  clearWorkspaceIntakePluginRegistryForTests,
+  getWorkspaceIntakePlugin,
+  listWorkspaceIntakePluginIds,
+  registerWorkspaceIntakePlugin,
+} from "./catalog/workspace-intake-plugin-registry";
+export {
+  clearWorkspaceRegistrationFlowRegistryForTests,
+  getWorkspaceRegistrationFlowPlugin,
+  listWorkspaceRegistrationFlowPluginIds,
+  registerWorkspaceRegistrationFlowPlugin,
+} from "./catalog/workspace-registration-flow-registry";
+export {
+  type FlowEvent,
+  type FlowRuntimeState,
+  type FlowSubmitPayload,
+  type FlowValidationIssue,
+  type IntakeFlowDefinition,
+  type RegistrationFlowContext,
+  type RegistrationFlowDispatch,
+  type RegistrationFlowStepProps,
+  type RegistrationFlowTourRequirements,
+  type WorkspaceCatalogRegistrationFlowSurface,
+  mergeFlowState,
+  transitionFlowStep,
+} from "./catalog/registration-flow.contract";
+export {
+  IntakePluginNotRegisteredError,
+  resolveEffectiveIntakeSchema,
+  resolveIntakeSchema,
+  resolveIntakeSubmitValues,
+  validateIntakeSchemaValues,
+} from "./catalog/resolve-intake-schema";
+export {
+  MEMBER_PROFILE_FIELD_IDS,
+  type MemberProfileFieldId,
+} from "./profile/member-profile-field-id";
+export {
+  MEMBER_PROFILE_DISPLAY_NAME_MAX_LENGTH,
+  MEMBER_PROFILE_FATHER_NAME_MAX_LENGTH,
+  validateMemberProfileBirthDate,
+  validateMemberProfileDisplayName,
+  validateMemberProfileFatherName,
+  validateMemberProfileNationalId,
+  resolveMemberProfileFieldValidator,
+  type MemberProfileFieldValidator,
+} from "./profile/member-profile-validators";
+export {
+  resolveMemberProfileCapabilities,
+  MemberProfileNotConfiguredError,
+  type MemberProfileCapabilities,
+  type MemberProfileSection,
+} from "./profile/resolve-member-profile-capabilities";
+export {
+  buildCatalogRegistrationUpstreamRequest,
+  CatalogRegistrationPayloadInvalidError,
+  type CatalogRegistrationPortalPayload,
+  type CatalogRegistrationUpstreamRequest,
+} from "./catalog/build-catalog-registration-upstream-request";
+export {
+  PUBLIC_CATALOG_REGISTRATION_TRANSPORT_KINDS,
+  type PublicCatalogRegistrationTransportKind,
+  type PublicCatalogTransportIntakeState,
+} from "./catalog/public-catalog-transport-intake";
+export {
+  formatRegistrationIntakeTransportLabel,
+  parseRegistrationIntakeRecord,
+  type RegistrationIntakeRecord,
+  type RegistrationIntakeTransport,
+  type RegistrationRegistrantTarget,
+} from "./operator/bookings/registration-intake.contract";
 export {
   type DenaliPhotoRemintPlanEntry,
   type WizardPhotoRemintPlanEntry,

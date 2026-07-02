@@ -31,6 +31,7 @@ import {
   createDenaliWizardSubmitFieldLabelResolver,
   resolveWizardSubmitErrorMessage,
 } from "@/wizard/resolve-wizard-submit-error-message";
+import { createWizardSubmitErrorTranslator } from "@/wizard/create-wizard-submit-error-translator";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { WizardSubmitErrorAlert } from "@/wizard/wizard-submit-error-alert";
 import {
@@ -96,17 +97,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
             raw: readyCore.submitError,
             context: "edit",
             translateFieldLabel: createDenaliWizardSubmitFieldLabelResolver((key) => tDenali(key)),
-            t: {
-              translate: (key, values) => tWizard(key, values),
-              has: (key) => {
-                try {
-                  tWizard(key);
-                  return true;
-                } catch {
-                  return false;
-                }
-              },
-            },
+            t: createWizardSubmitErrorTranslator(tWizard),
           });
           const priceLabel = formatTourPrice(
             detail.projection.priceAmount,

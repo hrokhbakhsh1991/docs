@@ -10,12 +10,22 @@ import { describe, it } from "node:test";
 import {
   assertPackageWebModule,
   discoverManifests,
+  extractCatalogPathsFromManifest,
   generateDevBootstrapBindings,
   generateOutboxSideEffects,
   generateSdkBindings,
   generateSettingsEnrichers,
   generateWizardMediaBackendRouteBindings,
   generateWizardMediaRouteBindings,
+  generateWorkspaceCatalogPaths,
+  generateWorkspaceCatalogListFeatures,
+  generateWorkspaceCatalogDetailSections,
+  generateWorkspaceMemberProfileCapabilities,
+  generateWorkspaceDevPluginIds,
+  generateWorkspaceGuestConformance,
+  resolveGuestConformanceLevel,
+  generateWorkspaceRegistrationFlowPlugins,
+  generateWorkspaceHttpRoutes,
   generateWorkspaceThemeStylesheets,
 } from "../generate-workspace-registry.mjs";
 
@@ -26,10 +36,10 @@ const FIXTURE_MANIFEST = join(
 );
 
 describe("workspace registry drop-in (P7-T06)", () => {
-  it("trunk manifests discover starter, denali, urban", () => {
+  it("trunk manifests discover starter, denali, urban, guest-club", () => {
     const manifests = discoverManifests();
     const ids = manifests.map((m) => m.id).sort();
-    assert.deepEqual(ids, ["denali", "starter", "urban"]);
+    assert.deepEqual(ids, ["denali", "guest-club", "starter", "urban"]);
   });
 
   it("climbing-club fixture merges into generated bindings without packages/workspaces/climbing-club", () => {
@@ -67,7 +77,7 @@ describe("workspace registry drop-in (P7-T06)", () => {
   it("P15-W-B6 generateWizardMediaRouteBindings maps denali legacy BFF alias", () => {
     const manifests = discoverManifests();
     const generated = generateWizardMediaRouteBindings(manifests);
-    assert.match(generated, /"wizard-photos": "\/api\/tours\/wizard-photos"/);
+    assert.match(generated, /"wizard-photos": "\/api\/wizard-media\/wizard-photos"/);
     assert.match(generated, /isKnownWizardMediaRouteBffKey/);
     assert.throws(
       () =>
@@ -126,20 +136,17 @@ describe("workspace registry drop-in (P7-T06)", () => {
     );
   });
 
-  it("P0-PR-1 generateSettingsEnrichers maps denali tour_themes and equipment", () => {
+  it("P0-PR-1 generateSettingsEnrichers emits passthrough when no manifest bindings", () => {
     const manifests = discoverManifests();
     const generated = generateSettingsEnrichers(manifests);
-    assert.match(generated, /resolveThemeCompatibleCategories/);
-    assert.match(generated, /resolveEquipmentCompatibleCategories/);
+    assert.match(generated, /WORKSPACE_SETTINGS_ENRICHER_BINDINGS = \[\] as const/);
     assert.match(generated, /enrichSettingsModuleList/);
-    assert.match(generated, /settingsModuleId: "tour_themes"/);
-    assert.match(generated, /settingsModuleId: "equipment"/);
   });
 
   it("P0-PR-1 generateDevBootstrapBindings emits denali and urban wizard templates", () => {
     const manifests = discoverManifests();
     const generated = generateDevBootstrapBindings(manifests);
-    assert.match(generated, /buildDenaliFullWizardTemplatePayload/);
+    assert.match(generated, /buildDenaliTenantWizardTemplatePayload/);
     assert.match(generated, /buildUrbanMinimalWizardTemplatePayload/);
     assert.match(generated, /DENALI_SMOKE_TENANT_ID/);
     assert.match(generated, /URBAN_SMOKE_TENANT_ID/);
@@ -158,5 +165,165 @@ describe("workspace registry drop-in (P7-T06)", () => {
         }),
       /should use @app-tour\/workspace-\* package export/
     );
+  });
+
+  it("PF-0.1 extractCatalogPathsFromManifest resolves denali and urban list paths", () => {
+    const manifests = discoverManifests();
+    const denali = manifests.find((m) => m.id === "denali");
+    const urban = manifests.find((m) => m.id === "urban");
+    const starter = manifests.find((m) => m.id === "starter");
+    assert.ok(denali);
+    assert.ok(urban);
+    assert.ok(starter);
+    assert.deepEqual(extractCatalogPathsFromManifest(denali), {
+      pluginId: "denali",
+      listPath: "/denali/catalog",
+    });
+    assert.deepEqual(extractCatalogPathsFromManifest(urban), {
+      pluginId: "urban",
+      listPath: "/urban/catalog",
+    });
+    assert.equal(extractCatalogPathsFromManifest(starter), null);
+  });
+
+  it("PF-0.1 generateWorkspaceCatalogPaths matches legacy SDK map", () => {
+    const manifests = discoverManifests();
+    const generated = generateWorkspaceCatalogPaths(manifests);
+    assert.match(generated, /"denali": "\/denali\/catalog"/);
+    assert.match(generated, /"urban": "\/urban\/catalog"/);
+    assert.match(generated, /"guest-club": "\/guest-club\/catalog"/);
+    assert.doesNotMatch(generated, /"starter":/);
+  });
+
+  it("PF-0.1b generateWorkspaceHttpRoutes uses underscore const prefixes for hyphen workspace ids", () => {
+    const generated = generateWorkspaceHttpRoutes(discoverManifests());
+    assert.match(generated, /GUEST_CLUB_GUEST_CLUB_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS/);
+    assert.doesNotMatch(generated, /GUEST-CLUB_/);
+  });
+
+  it("PF-0.5 generateWorkspaceGuestConformance assigns L0/L1/L2/L3", () => {
+    const manifests = discoverManifests();
+    const generated = generateWorkspaceGuestConformance(manifests);
+    assert.match(generated, /"denali": "L3"/);
+    assert.match(generated, /"urban": "L3"/);
+    assert.match(generated, /"starter": "L0"/);
+  });
+
+  it("PF-0.3 generateWorkspaceRegistrationFlowPlugins emits denali bundle and urban compose", () => {
+    const manifests = discoverManifests();
+    const generated = generateWorkspaceRegistrationFlowPlugins(manifests);
+    assert.match(generated, /denaliCatalogRegistrationFlowSurface/);
+    assert.match(generated, /denaliRegistrationFlowSteps/);
+    assert.match(generated, /urbanCatalogRegistrationFlowSurface/);
+    assert.match(generated, /phone: CatalogRegistrationPhoneStep/);
+    assert.match(generated, /intake: UrbanIntakeStep/);
+    assert.match(generated, /done: UrbanDoneStep/);
+    assert.doesNotMatch(generated, /"starter"/);
+  });
+
+  it("PF-0.3 compose mode rejects unknown reuse source", () => {
+    assert.throws(
+      () =>
+        generateWorkspaceRegistrationFlowPlugins([
+          {
+            id: "bad",
+            package: "@app-tour/workspace-bad",
+            catalogRegistrationFlow: {
+              surfaceExport: "badCatalogRegistrationFlowSurface",
+              steps: {
+                mode: "compose",
+                reuseFrom: "missing",
+                components: { intake: "BadIntakeStep", done: "BadDoneStep" },
+              },
+            },
+          },
+        ]),
+      /reuse source unknown workspace "missing"/
+    );
+  });
+
+  it("PF-1.1 generateWorkspaceCatalogListFeatures matches manifest presentation", () => {
+    const manifests = discoverManifests();
+    const generated = generateWorkspaceCatalogListFeatures(manifests);
+    assert.match(generated, /"denali": Object.freeze\(\{ cityFilter: false \}\)/);
+    assert.match(generated, /"urban": Object.freeze\(\{ cityFilter: true \}\)/);
+    assert.doesNotMatch(generated, /"starter":/);
+  });
+
+  it("PF-1.1 generateWorkspaceCatalogDetailSections matches manifest presentation", () => {
+    const manifests = discoverManifests();
+    const generated = generateWorkspaceCatalogDetailSections(manifests);
+    assert.match(generated, /"denali": Object.freeze\(\{\s+difficulty: true,/);
+    assert.match(generated, /"urban": Object.freeze\(\{\s+difficulty: false,/);
+  });
+
+  it("PF-1.3 generateWorkspaceDevPluginIds maps smoke tenant UUIDs", () => {
+    const manifests = discoverManifests();
+    const generated = generateWorkspaceDevPluginIds(manifests);
+    assert.match(generated, /"00000000-0000-4000-8000-000000000003": "denali"/);
+    assert.match(generated, /"00000000-0000-4000-8000-000000000014": "denali"/);
+    assert.match(generated, /"00000000-0000-4000-8000-000000000004": "urban"/);
+  });
+
+  it("PF-1.3 rejects duplicate tenant UUID across workspaces", () => {
+    const manifests = discoverManifests();
+    assert.throws(
+      () =>
+        generateWorkspaceDevPluginIds([
+          ...manifests,
+          {
+            id: "dup",
+            devBootstrap: {
+              pluginTenantIds: ["00000000-0000-4000-8000-000000000004"],
+            },
+          },
+        ]),
+      /already mapped to "urban"/
+    );
+  });
+
+  it("PF-2.1 generateWorkspaceMemberProfileCapabilities emits denali and urban rows", () => {
+    const manifests = discoverManifests();
+    const generated = generateWorkspaceMemberProfileCapabilities(manifests);
+    assert.match(generated, /"denali": Object.freeze\(\{/);
+    assert.match(generated, /"nationalId","fatherName","birthDate"/);
+    assert.match(generated, /"urban": Object.freeze\(\{/);
+    assert.match(generated, /"displayName"/);
+    assert.doesNotMatch(generated, /"starter":/);
+  });
+
+  it("PF-2.1 rejects overlapping editable and readOnly fields", () => {
+    assert.throws(
+      () =>
+        generateWorkspaceMemberProfileCapabilities([
+          {
+            id: "bad",
+            memberProfile: {
+              editableFields: ["displayName"],
+              readOnlyFields: ["displayName"],
+            },
+          },
+        ]),
+      /cannot be both editable and readOnly/
+    );
+  });
+
+  it("PF-3 guest-club trunk manifest is L3 with full guest codegen surface", () => {
+    const trunk = discoverManifests();
+    const guestClub = trunk.find((m) => m.id === "guest-club");
+    assert.ok(guestClub, "packages/workspaces/guest-club/workspace.manifest.json must exist");
+    assert.equal(resolveGuestConformanceLevel(guestClub), "L3");
+    const generated = generateWorkspaceGuestConformance(trunk);
+    assert.match(generated, /"guest-club": "L3"/);
+    assert.match(generateWorkspaceCatalogPaths(trunk), /"guest-club": "\/guest-club\/catalog"/);
+    assert.match(
+      generateWorkspaceRegistrationFlowPlugins(trunk),
+      /guestClubCatalogRegistrationFlowSurface/
+    );
+
+    const fixturePath = join(REPO_ROOT, "test/fixtures/workspaces/guest-club/workspace.manifest.json");
+    const fixture = JSON.parse(readFileSync(fixturePath, "utf8"));
+    assert.equal(fixture.guestExtensionsVersion, guestClub.guestExtensionsVersion);
+    assert.equal(fixture.httpRoutes.handlerPackage, guestClub.httpRoutes.handlerPackage);
   });
 });

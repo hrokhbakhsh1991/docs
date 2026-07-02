@@ -99,6 +99,8 @@ export function buildDenaliFullWizardTemplateSteps(): readonly DenaliWizardTempl
         field("participants.minimumAge", true),
         field("participants.minRequiredPeaks"),
         field("participants.nationalIdRequired"),
+        field("participants.fatherNameRequired"),
+        field("participants.birthDateRequired"),
       ],
     },
     {

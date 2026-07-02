@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { buildExposureSelectableFieldCatalog } from "./exposure-field-catalog";
 import {
-  DENALI_TELEGRAM_TOUR_CREATED_PROFILE_SLUG,
+  DENALI_TELEGRAM_TOUR_PUBLISHED_PROFILE_SLUG,
   REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED,
 } from "./exposure-profile";
 import {
@@ -26,27 +26,27 @@ describe("resolveRegistrySeededExposureProfile", () => {
     );
   });
 
-  it("seeds Denali telegram TourCreated defaults from deliverable registry tags", () => {
+  it("seeds Denali telegram TourPublished defaults from deliverable registry tags", () => {
     const selectableIds = buildExposureSelectableFieldCatalog("denali").map((field) => field.id);
     const profile = resolveRegistrySeededExposureProfile({
       workspaceType: "denali",
       entityType: "tour",
       surface: "telegram",
       audience: "external_channel",
-      trigger: "TourCreated",
+      trigger: "TourPublished",
     });
 
-    assert.equal(profile?.id, "denali.telegram.TourCreated");
+    assert.equal(profile?.id, "denali.telegram.TourPublished");
     assert.equal(profile?.source, REGISTRY_DELIVERABLE_EXPOSURE_PROFILE_SEED);
     assert.deepEqual(profile?.defaultFieldIds, selectableIds);
     assert.ok(profile?.defaultFieldIds.includes("title"));
     assert.ok(profile?.defaultFieldIds.includes("denali.destination"));
-    assert.equal(profile?.defaultTemplateId, "Tour created: {{title}}");
+    assert.equal(profile?.defaultTemplateId, "Tour published: {{title}}");
     assert.equal(
       `${profile?.workspaceType}.${profile?.surface}.${profile?.trigger}`,
-      "denali.telegram.TourCreated",
+      "denali.telegram.TourPublished",
     );
-    assert.equal(DENALI_TELEGRAM_TOUR_CREATED_PROFILE_SLUG, "telegram_tour_created");
+    assert.equal(DENALI_TELEGRAM_TOUR_PUBLISHED_PROFILE_SLUG, "telegram_tour_published");
   });
 
   it("resolveExposureProfileDefaultFieldIds matches legacy deliverable defaults", () => {

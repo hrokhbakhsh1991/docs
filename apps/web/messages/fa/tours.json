@@ -153,6 +153,7 @@
     "table": {
       "guest": "مهمان",
       "party": "نفرات",
+      "transportIntake": "انتخاب حمل",
       "departure": "حرکت",
       "submitted": "ثبت",
       "actions": "عملیات",

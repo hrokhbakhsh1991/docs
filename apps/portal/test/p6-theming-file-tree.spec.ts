@@ -47,6 +47,7 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
     assert.deepEqual(parsed.guestThemeStylesheets?.portal, ["theme/denali-portal.css"]);
     assert.deepEqual(parsed.guestThemeStylesheets?.marketing, ["theme/denali-marketing.css"]);
     assert.match(readRepo("packages/workspaces/denali/theme/denali-portal.css"), /data-catalog-registration-page/);
+    assert.match(readRepo("packages/workspaces/denali/theme/denali-portal.css"), /data-portal-member-registrations/);
     assert.match(readRepo("packages/workspaces/denali/theme/denali-marketing.css"), /data-marketing-header/);
   });
 
@@ -60,14 +61,24 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
     }
   });
 
-  it("P6-TREE-06 generated guest theme ingress imports denali skins", () => {
+  it("P6-TREE-06 generated guest theme ingress imports denali + urban marketing skins", () => {
     assert.match(
       readRepo("apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"),
       /denali-portal\.css/
     );
-    assert.match(
-      readRepo("apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"),
-      /denali-marketing\.css/
+    const marketingBootstrap = readRepo(
+      "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
     );
+    assert.match(marketingBootstrap, /denali-marketing\.css/);
+    assert.match(marketingBootstrap, /urban-marketing\.css/);
+  });
+
+  it("P6-TREE-07 urban manifest registers marketing guest skin", () => {
+    const manifest = readRepo("packages/workspaces/urban/workspace.manifest.json");
+    const parsed = JSON.parse(manifest) as {
+      guestThemeStylesheets?: { marketing?: string[] };
+    };
+    assert.deepEqual(parsed.guestThemeStylesheets?.marketing, ["theme/urban-marketing.css"]);
+    assert.match(readRepo("packages/workspaces/urban/theme/urban-marketing.css"), /data-marketing-header/);
   });
 });

@@ -33,7 +33,8 @@ export type ExposureIntentPublic = {
 
 export type IntegrationConnectionLoadWarning =
   | "POLICIES_UNAVAILABLE"
-  | "EXPOSURE_INTENTS_UNAVAILABLE";
+  | "EXPOSURE_INTENTS_UNAVAILABLE"
+  | "TOUR_PUBLISHED_POLICY_DRIFT";
 
 export type IntegrationConnectionPublic = {
   readonly id: string;
@@ -49,6 +50,8 @@ export type IntegrationConnectionPublic = {
   readonly eventPolicies: readonly {
     readonly eventType: string;
     readonly enabled: boolean;
+    readonly deprecated?: boolean;
+    readonly supersededBy?: string;
   }[];
   readonly exposureIntents: readonly ExposureIntentPublic[];
   readonly createdAt: string;
@@ -245,6 +248,10 @@ export function parseIntegrationConnectionPublic(payload: unknown): IntegrationC
           .map((entry) => ({
             eventType: typeof entry.eventType === "string" ? entry.eventType : "",
             enabled: entry.enabled === true,
+            ...(entry.deprecated === true ? { deprecated: true as const } : {}),
+            ...(typeof entry.supersededBy === "string" && entry.supersededBy.length > 0
+              ? { supersededBy: entry.supersededBy }
+              : {}),
           }))
       : [],
     exposureIntents: (Array.isArray(record.exposureIntents)

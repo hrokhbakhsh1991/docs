@@ -1,0 +1,108 @@
+---
+title: Integration event catalog
+format: markdoc
+doc_role: architecture_sot
+---
+
+# Integration event catalog
+
+Stripe-style domain facts consumed by the integration dispatcher (webhook-equivalent). Events are emitted **inside the aggregate TX** via `outbox_events`; relay and workers deliver asynchronously.
+
+## Rules
+
+| Rule | Detail |
+| ---- | ------ |
+| One event = one business fact | Past-tense PascalCase (`TourPublished`, not `PublishTour`) |
+| Idempotency | `domainEventId` deterministic per transition |
+| Snapshot at emit | `deliverySnapshot` frozen in outbox payload (Stripe `data.object` equivalent) |
+| No provider HTTP in TX | Telegram/Slack only in integration delivery worker |
+
+## Events
+
+### `TourCreated`
+
+| Field | Value |
+| ----- | ----- |
+| Aggregate | `tour` |
+| When | New tour row inserted |
+| Payload | `{ tenantId, tourId }` (thin — internal consumers) |
+| Consumers | Denali finance ledger (`workspace.manifest.json` events) |
+| Integration | **Not** mapped to Telegram (use `TourPublished`) |
+
+### `TourPublished` (v1)
+
+| Field | Value |
+| ----- | ----- |
+| Aggregate | `tour` |
+| When | `publishStatus` transitions to published/active, **including create-with-publish** |
+| `domainEventId` | `TourPublished:{tourId}:{rowVersion}` |
+| Consumers | Integration dispatcher → Telegram `message.send` |
+| Denali surface | `denali-integration.surface.ts` — default policy + template |
+
+Payload schema v1:
+
+```json
+{
+  "schemaVersion": 1,
+  "tenantId": "uuid",
+  "tourId": "uuid",
+  "rowVersion": 1,
+  "publishStatus": "active",
+  "title": "string | null",
+  "occurredAt": "ISO-8601",
+  "deliverySnapshot": { }
+}
+```
+
+`deliverySnapshot` is a frozen copy of `canonical.data` at emit time for field enrichment.
+
+For **Denali**, title lives at canonical path `title` (from `basicInfo.title` ingress projection), not starter `basics.title`. The outbox envelope field `title` may be `null` when `deriveTourProjections` only reads `basics`; dispatch merges `deliverySnapshot` for Telegram formatting.
+
+### Admin UI — deprecated `TourCreated` (denali / telegram)
+
+Persisted `TourCreated` policies are marked `deprecated: true` with `supersededBy: TourPublished` in the effective catalog. Operators configure **TourPublished** under Settings → Exposure. Legacy intents are remapped via INT-002c CLI before go-live.
+
+### `registration.approved`
+
+Existing booking approval event — see bookings repository outbox enqueue.
+
+## Rollout
+
+Telegram delivery requires **INT-002** after emit (INT-001):
+
+- [TourPublished Telegram rollout plan](./tour-published-telegram-rollout-plan.mdoc)
+- [Operator runbook](./runbooks/tour-published-telegram-delivery.mdoc)
+
+## Rollout
+
+Telegram delivery requires **INT-002** after emit (INT-001):
+
+- [TourPublished Telegram rollout plan](./tour-published-telegram-rollout-plan.mdoc) — implementation status + operator DoD
+- [Operator runbook](./runbooks/tour-published-telegram-delivery.mdoc) — deploy checklist, drift SQL, remap CLI
+
+## Verification
+
+```bash
+# Unit — payload + dispatch merge + TourPublished dispatch idempotency
+pnpm --filter @apps/api exec node --import tsx --test \
+  src/canonical/build-tour-published-outbox-payload.spec.ts \
+  src/integrations/application/resolve-integration-dispatch-payload.spec.ts \
+  src/integrations/application/dispatch-integration-domain-event.spec.ts
+
+# Rollout closure (L0)
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/tour-published-rollout-closure.contract.spec.ts
+
+# Web — event list + load warning partition
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/build-exposure-event-type-list.spec.ts \
+  test/integration-connection-load-warnings.spec.ts
+
+# Integration L2/L3 — outbox + dispatch (DATABASE_URL)
+export DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev'
+export DATABASE_URL_ADMIN="$DATABASE_URL"
+pnpm --filter @apps/api run db:migrate:deploy
+STORAGE_DRIVER=prisma NODE_ENV=test \
+  pnpm --filter @apps/api exec node --import tsx --test \
+  test/4-integration/tour-published-outbox.spec.ts
+```

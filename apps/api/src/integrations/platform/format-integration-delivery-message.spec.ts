@@ -7,14 +7,14 @@ import {
 } from "./format-integration-delivery-message";
 
 describe("format integration delivery message", () => {
-  it("uses Denali TourCreated template from workspace surface", () => {
+  it("uses Denali TourPublished template from workspace surface", () => {
     assert.equal(
       formatIntegrationDeliveryMessage({
         workspaceType: "denali",
-        eventType: "TourCreated",
+        eventType: "TourPublished",
         payload: { title: "Alpine Day", aggregateId: "tour-1" },
       }),
-      "Tour created: Alpine Day"
+      "Tour published: Alpine Day"
     );
   });
 
@@ -22,7 +22,7 @@ describe("format integration delivery message", () => {
     assert.equal(
       formatIntegrationDeliveryMessage({
         workspaceType: "denali",
-        eventType: "TourCreated",
+        eventType: "TourPublished",
         payload: {
           title: "Alpine Day",
           aggregateId: "tour-1",
@@ -35,7 +35,7 @@ describe("format integration delivery message", () => {
         },
       }),
       [
-        "Tour created: Alpine Day",
+        "Tour published: Alpine Day",
         "Destination: Kerman",
         "Title: Alpine Day",
         "Start Date Time: 2026-06-28",
@@ -47,7 +47,7 @@ describe("format integration delivery message", () => {
     assert.equal(
       formatIntegrationDeliveryMessage({
         workspaceType: "denali",
-        eventType: "TourCreated",
+        eventType: "TourPublished",
         payload: {
           title: "Alpine Day",
           aggregateId: "tour-1",
@@ -63,7 +63,7 @@ describe("format integration delivery message", () => {
         },
       }),
       [
-        "Tour created: Alpine Day",
+        "Tour published: Alpine Day",
         "✅ 📍 Meeting Point: Jamshidiyeh Park",
         "✅ 🎒 Gear Items: Breakfast, water, baton",
       ].join("\n"),
@@ -74,7 +74,7 @@ describe("format integration delivery message", () => {
     assert.equal(
       formatIntegrationDeliveryMessage({
         workspaceType: "denali",
-        eventType: "TourCreated",
+        eventType: "TourPublished",
         payload: {
           title: "Alpine Day",
           aggregateId: "tour-1",
@@ -86,7 +86,7 @@ describe("format integration delivery message", () => {
           },
         },
       }),
-      "New tour Alpine Day (TourCreated)",
+      "New tour Alpine Day (TourPublished)",
     );
   });
 
@@ -94,7 +94,7 @@ describe("format integration delivery message", () => {
     assert.equal(
       formatIntegrationDeliveryMessage({
         workspaceType: "denali",
-        eventType: "TourCreated",
+        eventType: "TourPublished",
         payload: {
           title: "Alpine Day",
           aggregateId: "tour-1",
@@ -103,7 +103,7 @@ describe("format integration delivery message", () => {
           integrationDeliveryFieldValues: { title: "Alpine Day" },
         },
       }),
-      "New tour Alpine Day (TourCreated)"
+      "New tour Alpine Day (TourPublished)"
     );
   });
 
@@ -171,7 +171,7 @@ describe("format integration delivery message", () => {
     assert.equal(
       formatIntegrationDeliveryMessage({
         workspaceType: "denali",
-        eventType: "TourCreated",
+        eventType: "TourPublished",
         payload: {
           title: "Alpine Day",
           aggregateId: "tour-1",
@@ -183,7 +183,7 @@ describe("format integration delivery message", () => {
           },
         },
       }),
-      "Tour created: Alpine Day\nTitle: Alpine Day",
+      "Tour published: Alpine Day\nTitle: Alpine Day",
     );
   });
 });

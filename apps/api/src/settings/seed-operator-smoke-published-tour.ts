@@ -1,9 +1,15 @@
 import {
   OPERATOR_SMOKE_DRAFT_TOUR_ID,
+  OPERATOR_SMOKE_PARTICIPANT_TOUR_ID,
   OPERATOR_SMOKE_SEED_TOUR_ID,
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
+  OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
   buildOperatorSmokeDraftTour,
+  buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTour,
+  buildOperatorSmokeTransportBusTour,
+  buildOperatorSmokeTransportSharedCarsTour,
 } from "../fixtures/operator-smoke-published-tour.fixture";
 import { OPERATOR_SMOKE_TENANT_ID } from "./seed-operator-smoke-catalog";
 import { getPrismaAdmin } from "../db/prisma";
@@ -104,4 +110,54 @@ export async function seedOperatorSmokeDraftTour(tenantId: string): Promise<void
     },
     "operator smoke draft tour seeded"
   );
+}
+
+/** Idempotent — participant-requirements tour for DEN-INTAKE / DEN-PROF staging (…000212). */
+export async function seedOperatorSmokeParticipantRequirementsTour(tenantId: string): Promise<void> {
+  const repo = new PrismaTourRepository();
+  const existing = await repo.getById(OPERATOR_SMOKE_PARTICIPANT_TOUR_ID, tenantId);
+  if (existing !== null) {
+    return;
+  }
+
+  await repo.save(buildOperatorSmokeParticipantRequirementsTour({ tenantId }));
+  logger.info(
+    {
+      event: "db.seed.operator_smoke_participant_tour",
+      tenantId,
+      tourId: OPERATOR_SMOKE_PARTICIPANT_TOUR_ID,
+    },
+    "operator smoke participant-requirements tour seeded"
+  );
+}
+
+/** Idempotent — transport smoke tours for DEN-TRANS staging (…000213 bus · …000214 shared_cars). */
+export async function seedOperatorSmokeTransportTours(tenantId: string): Promise<void> {
+  const repo = new PrismaTourRepository();
+
+  const bus = await repo.getById(OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID, tenantId);
+  if (bus === null) {
+    await repo.save(buildOperatorSmokeTransportBusTour({ tenantId }));
+    logger.info(
+      {
+        event: "db.seed.operator_smoke_transport_bus_tour",
+        tenantId,
+        tourId: OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+      },
+      "operator smoke transport (bus) tour seeded"
+    );
+  }
+
+  const shared = await repo.getById(OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID, tenantId);
+  if (shared === null) {
+    await repo.save(buildOperatorSmokeTransportSharedCarsTour({ tenantId }));
+    logger.info(
+      {
+        event: "db.seed.operator_smoke_transport_shared_cars_tour",
+        tenantId,
+        tourId: OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
+      },
+      "operator smoke transport (shared_cars) tour seeded"
+    );
+  }
 }

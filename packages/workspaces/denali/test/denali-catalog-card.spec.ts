@@ -46,5 +46,8 @@ describe("denali-catalog-card", () => {
     assert.equal(card.priceCurrency, "IRR");
     assert.equal(card.totalCapacity, 12);
     assert.equal(card.coverImageUrl, "https://cdn.example/cover.jpg");
+    assert.equal(card.listSubtitle, "mountain_day");
+    assert.equal(card.listDescription, "Alpine day hike");
+    assert.equal(card.showListPrice, true);
   });
 });

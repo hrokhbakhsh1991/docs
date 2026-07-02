@@ -23,10 +23,11 @@ export class FetchTourClient implements TourClient {
     const body: unknown = await res.json().catch(() => null);
     if (!res.ok) {
       const parsed = parseTourApiErrorBody(body);
-      const err: TourClientError = {
+      const err: TourClientError & { correlationId?: string } = {
         status: res.status,
         code: parsed.code,
         message: parsed.message,
+        ...(parsed.correlationId !== undefined ? { correlationId: parsed.correlationId } : {}),
       };
       throw err;
     }
@@ -44,10 +45,11 @@ export class FetchTourClient implements TourClient {
     const body: unknown = await res.json().catch(() => null);
     if (!res.ok) {
       const parsed = parseTourApiErrorBody(body);
-      const err: TourClientError = {
+      const err: TourClientError & { correlationId?: string } = {
         status: res.status,
         code: parsed.code,
         message: parsed.message,
+        ...(parsed.correlationId !== undefined ? { correlationId: parsed.correlationId } : {}),
       };
       throw err;
     }

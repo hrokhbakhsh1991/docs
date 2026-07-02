@@ -138,8 +138,9 @@ export function resolveExposureDecision(
       payload: input.payload,
     }) ?? [];
 
-  const messageTemplate =
-    selection.messageTemplate ?? input.profile.defaultTemplateId ?? null;
+  // Profile defaultTemplateId mirrors the integration-surface header seed only — not a custom
+  // delivery override. formatIntegrationDeliveryMessage reads the surface header directly.
+  const messageTemplate = selection.messageTemplate;
   const resolvedCandidateFieldIds = engineCandidateFieldIds ?? restrictedCandidateFieldIds;
   const engineSelectedFieldIds =
     input.engineDecisions === undefined

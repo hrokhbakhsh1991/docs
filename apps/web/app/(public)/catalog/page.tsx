@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 import {
   resolveMarketingPublicBaseUrl,
@@ -24,5 +24,5 @@ export default async function UrbanCatalogRedirectPage({ searchParams }: PagePro
   if (!shouldRedirectCatalogToMarketing(host)) {
     return <CatalogMarketingUnavailable marketingBaseUrl={marketingBaseUrl} />;
   }
-  redirect(resolveMarketingToursUrl(host, cursor));
+  permanentRedirect(resolveMarketingToursUrl(host, cursor));
 }

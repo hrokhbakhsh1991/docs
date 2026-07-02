@@ -21,6 +21,7 @@ import type {
   WorkspaceWizardDraftMeta,
 } from "./workspace-wizard-draft-envelope";
 import type { WorkspaceDraftTombstoneBinding } from "../draft/workspace-draft-tombstone-binding";
+import type { WorkspaceCatalogIntakeSurface } from "../catalog/workspace-catalog-intake-surface";
 
 export type { WorkspaceWizardMediaHooks };
 export type { WorkspaceWizardDraftEnvelope, WorkspaceWizardDraftMeta };
@@ -64,4 +65,6 @@ export interface WorkspacePlugin {
   readonly wizardHost?: WorkspaceWizardHostHooks;
   /** Phase 11 Track A — server PATCH tombstone diff (workspace-specific root set). */
   readonly draftTombstone?: WorkspaceDraftTombstoneBinding;
+  /** Public catalog registration intake — schema + upstream dispatch (portal Track A). */
+  readonly catalogIntake?: WorkspaceCatalogIntakeSurface;
 }

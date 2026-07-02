@@ -16,11 +16,11 @@ import type { UsersListResponse } from "../adapters/catalog-types";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { resolveCodedErrorMessage } from "../adapters/i18n-errors";
 import { Input } from "../adapters/platform-primitives";
+import { LeaderPickerAvatar } from "../components/leader-picker-avatar";
 import { CheckIcon } from "../components/icons/tour-service-icons";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
 import { parseStringArray } from "../logic/denali-array-field-utils";
 import {
-  leaderDisplayInitials,
   partitionLeaderChipPreview,
   resolveDenaliLeaderPickerDefaultExpanded,
   truncateLeaderDisplayName,
@@ -122,9 +122,13 @@ export function DenaliLeaderUserIdsField({
         .map((userId) => {
           const user = userById.get(userId);
           if (user == null) {
-            return { userId, displayName: userId };
+            return { userId, displayName: userId, avatarUrl: null };
           }
-          return { userId, displayName: user.displayName };
+          return {
+            userId,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl ?? null,
+          };
         })
         .filter((entry) => entry.displayName.length > 0),
     [selected, userById]
@@ -206,9 +210,11 @@ export function DenaliLeaderUserIdsField({
                 role="listitem"
                 data-testid={DENALI_LEADERS_TEST_IDS.chip}
               >
-                <span className="denali-leader-picker__chip-avatar" aria-hidden>
-                  {leaderDisplayInitials(user.displayName)}
-                </span>
+                <LeaderPickerAvatar
+                  displayName={user.displayName}
+                  avatarUrl={user.avatarUrl}
+                  size="chip"
+                />
                 <span className="denali-leader-picker__chip-name">
                   {truncateLeaderDisplayName(user.displayName)}
                 </span>
@@ -296,9 +302,11 @@ export function DenaliLeaderUserIdsField({
                       }
                       onClick={() => toggleLeader(user.userId)}
                     >
-                      <span className="denali-leader-picker__avatar" aria-hidden>
-                        {leaderDisplayInitials(user.displayName)}
-                      </span>
+                      <LeaderPickerAvatar
+                        displayName={user.displayName}
+                        avatarUrl={user.avatarUrl}
+                        size="card"
+                      />
                       <span className="denali-leader-picker__body">
                         <span className="denali-leader-picker__name">{user.displayName}</span>
                         {user.phone ? (

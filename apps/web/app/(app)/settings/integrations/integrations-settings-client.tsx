@@ -51,6 +51,7 @@ import type {
   WorkspaceIntegrationSurfaceMetaResponse,
   WorkspaceIntegrationsListResponse,
 } from "@/integrations/integrations-types";
+import { IntegrationConnectionLoadWarningsBanner } from "@/integrations/IntegrationConnectionLoadWarningsBanner";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
@@ -933,17 +934,13 @@ export function IntegrationsSettingsClient({
                 </p>
               ) : null}
 
-              {detailError === null &&
-              detail !== null &&
-              detail.loadWarnings !== undefined &&
-              detail.loadWarnings.length > 0 ? (
-                <div
-                  className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100"
-                  role="status"
-                  data-testid="integrations-detail-degraded"
-                >
-                  {t("detailDegradedBanner")}
-                </div>
+              {detailError === null && detail !== null ? (
+                <IntegrationConnectionLoadWarningsBanner
+                  loadWarnings={detail.loadWarnings}
+                  tourPublishedPolicyDriftLabel={t("tourPublishedPolicyDriftBanner")}
+                  detailDegradedLabel={t("detailDegradedBanner")}
+                  testId="integrations-connection-load-warnings"
+                />
               ) : null}
 
               {activeItem !== null && !detailLoading ? (

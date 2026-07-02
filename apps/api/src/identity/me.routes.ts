@@ -7,8 +7,12 @@ import { MembershipNotFoundError } from "./in-memory-identity.repository";
 import {
   getOperatorProfile,
   patchOperatorProfile,
+  ProfileBirthDateInvalidError,
   ProfileDisplayNameInvalidError,
+  ProfileEmailInvalidError,
+  ProfileFatherNameInvalidError,
   ProfileGenderInvalidError,
+  ProfileNationalIdInvalidError,
 } from "./me.service";
 import { readIdentityRequestBody } from "./read-identity-request-body";
 import { requireOperatorSession } from "./require-operator-session";
@@ -26,12 +30,27 @@ function readNullableStringField(body: unknown, key: string): string | null | un
   return typeof value === "string" ? value : undefined;
 }
 
-function parsePatchProfileBody(body: unknown): { displayName?: string; gender?: string | null } {
+function parsePatchProfileBody(body: unknown): {
+  displayName?: string;
+  email?: string | null;
+  gender?: string | null;
+  nationalId?: string;
+  fatherName?: string;
+  birthDate?: string;
+} {
   const displayName = readStringField(body, "displayName");
+  const email = readNullableStringField(body, "email");
   const gender = readNullableStringField(body, "gender");
+  const nationalId = readStringField(body, "nationalId");
+  const fatherName = readStringField(body, "fatherName");
+  const birthDate = readStringField(body, "birthDate");
   return {
     ...(displayName === undefined ? {} : { displayName }),
+    ...(email === undefined ? {} : { email }),
     ...(gender === undefined ? {} : { gender }),
+    ...(nationalId === undefined ? {} : { nationalId }),
+    ...(fatherName === undefined ? {} : { fatherName }),
+    ...(birthDate === undefined ? {} : { birthDate }),
   };
 }
 
@@ -83,6 +102,22 @@ export async function handlePatchIdentityMe(
       return;
     }
     if (error instanceof ProfileGenderInvalidError) {
+      sendHttpError(res, 400, { error: "validation_error", code: error.code });
+      return;
+    }
+    if (error instanceof ProfileNationalIdInvalidError) {
+      sendHttpError(res, 400, { error: "validation_error", code: error.code });
+      return;
+    }
+    if (error instanceof ProfileFatherNameInvalidError) {
+      sendHttpError(res, 400, { error: "validation_error", code: error.code });
+      return;
+    }
+    if (error instanceof ProfileEmailInvalidError) {
+      sendHttpError(res, 400, { error: "validation_error", code: error.code });
+      return;
+    }
+    if (error instanceof ProfileBirthDateInvalidError) {
       sendHttpError(res, 400, { error: "validation_error", code: error.code });
       return;
     }

@@ -55,9 +55,15 @@ describe("guest-surface-host", () => {
   });
 
   it("resolveDevPluginIdForTenantId uses UUID map not hostname", async () => {
-    const { resolveDevPluginIdForTenantId } = await import("../src/resolve-dev-plugin-id");
+    const { resolveDevPluginIdForTenantId, DevPluginIdUnresolvedError } = await import(
+      "../src/resolve-dev-plugin-id"
+    );
     assert.equal(resolveDevPluginIdForTenantId("00000000-0000-4000-8000-000000000014"), "denali");
-    assert.equal(resolveDevPluginIdForTenantId("00000000-0000-4000-8000-000000000099"), "denali");
+    assert.equal(resolveDevPluginIdForTenantId("00000000-0000-4000-8000-000000000004"), "urban");
+    assert.throws(
+      () => resolveDevPluginIdForTenantId("00000000-0000-4000-8000-000000000099"),
+      DevPluginIdUnresolvedError
+    );
   });
 
   it("fetchPublicTenantContextForHost calls onBeforeFetch", async () => {

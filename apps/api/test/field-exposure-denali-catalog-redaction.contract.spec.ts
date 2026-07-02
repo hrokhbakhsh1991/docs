@@ -47,4 +47,13 @@ describe("field exposure Denali catalog redaction contract (10.3)", () => {
     assert.match(host, /buildDenaliExposureResolverPort/);
     assert.match(host, /resolveExposureResolverPort/);
   });
+
+  it("falls back to seeded defaults when Prisma unavailable (DB-less smoke)", () => {
+    const resolver = readFileSync(
+      join(REPO_ROOT, "apps/api/src/exposure/resolve-denali-surface-exposure.ts"),
+      "utf8",
+    );
+    assert.match(resolver, /tryResolvePersistedExposureProfile/);
+    assert.match(resolver, /tryFindExposureIntent/);
+  });
 });

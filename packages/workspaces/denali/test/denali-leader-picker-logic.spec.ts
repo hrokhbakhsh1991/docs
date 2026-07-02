@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  hasLeaderPickerAvatarUrl,
   leaderDisplayInitials,
   partitionLeaderChipPreview,
   resolveDenaliLeaderPickerDefaultExpanded,
@@ -37,5 +38,12 @@ describe("denali-leader-picker-logic", () => {
   it("truncates long display names", () => {
     const long = "محمدرضا محمدیان پور";
     assert.equal(truncateLeaderDisplayName(long, 10), "محمدرضا م…");
+  });
+
+  it("detects usable leader avatar URLs", () => {
+    assert.equal(hasLeaderPickerAvatarUrl("https://cdn.example/avatar.jpg"), true);
+    assert.equal(hasLeaderPickerAvatarUrl(null), false);
+    assert.equal(hasLeaderPickerAvatarUrl(""), false);
+    assert.equal(hasLeaderPickerAvatarUrl("   "), false);
   });
 });

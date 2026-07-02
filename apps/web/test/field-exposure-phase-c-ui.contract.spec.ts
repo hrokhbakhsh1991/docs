@@ -36,15 +36,18 @@ describe("field exposure phase C UI contract", () => {
     assert.doesNotMatch(client, /samplePayload:\s*\{\}/);
   });
 
-  it("embeds engine preview in the transitional integration editor", () => {
+  it("ships engine preview client for control-plane and simulation surfaces only", () => {
     const panel = readFileSync(INTEGRATION_PANEL, "utf8");
+    const controlPlanePage = join(
+      REPO_ROOT,
+      "apps/web/app/(app)/settings/exposure/control-plane/exposure-control-plane-client.tsx",
+    );
+    const controlPlane = readFileSync(controlPlanePage, "utf8");
 
-    assert.match(panel, /ExposureEnginePreviewPanel/);
-    assert.match(panel, /fetchExposureEnginePreview/);
-    assert.match(panel, /refreshPreview/);
-    assert.match(panel, /void refreshPreview\(eventType\)/);
-    assert.match(panel, /useEffect\([\s\S]*refreshPreview/);
-    assert.doesNotMatch(panel, /fetchWorkspaceExposureControlPlane/);
+    assert.doesNotMatch(panel, /ExposureEnginePreviewPanel/);
+    assert.doesNotMatch(panel, /fetchExposureEnginePreview/);
+    assert.match(controlPlane, /ExposureEnginePreviewPanel/);
+    assert.match(controlPlane, /enginePreviewTitle/);
   });
 
   it("ships parser unit coverage for samplePayload and engine-selected ids", () => {

@@ -37,12 +37,14 @@ describe("resolve-workspace-exposure-surfaces", () => {
     assert.ok(publicList !== null);
     assert.equal(publicList?.triggerStorageKey, "always");
 
-    assert.equal(findWorkspaceExposureSurfaceDefinition("urban", "public_list"), null);
+    const urbanPublicList = findWorkspaceExposureSurfaceDefinition("urban", "public_list");
+    assert.ok(urbanPublicList !== null);
+    assert.equal(urbanPublicList?.triggerStorageKey, "always");
   });
 
   it("detects workspace exposure support", () => {
     assert.equal(workspaceSupportsExposureSurfaces("denali"), true);
     assert.equal(workspaceSupportsExposureSurfaces("starter"), true);
-    assert.equal(workspaceSupportsExposureSurfaces("urban"), false);
+    assert.equal(workspaceSupportsExposureSurfaces("urban"), true);
   });
 });

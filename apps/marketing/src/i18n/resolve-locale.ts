@@ -16,13 +16,18 @@ export function resolveLocaleFromCookieValue(value: string | undefined): AppLoca
 }
 
 export async function resolveRequestLocale(): Promise<AppLocale> {
+  const headerList = await headers();
+  const fromHeader = resolveLocaleFromCookieValue(headerList.get("x-marketing-locale") ?? undefined);
+  if (fromHeader !== null) {
+    return fromHeader;
+  }
+
   const cookieStore = await cookies();
   const fromCookie = resolveLocaleFromCookieValue(cookieStore.get(LOCALE_COOKIE_NAME)?.value);
   if (fromCookie !== null) {
     return fromCookie;
   }
 
-  const headerList = await headers();
   const host = headerList.get("host")?.trim() ?? "";
   if (host.length > 0) {
     const branding = await fetchPublicTenantBrandingForHost(host);

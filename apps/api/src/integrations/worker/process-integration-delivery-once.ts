@@ -9,6 +9,7 @@ import {
   recordIntegrationDeliveryFailed,
   recordIntegrationDeliverySuccess,
 } from "../../observability/metrics";
+import { reclaimStaleProcessingIntegrationDeliveryJobs } from "./integration-delivery-processing-reclaim";
 
 const MAX_DELIVERY_ATTEMPTS = 8;
 
@@ -105,14 +106,27 @@ export async function processIntegrationDeliveryOnce(
   readonly done: number;
   readonly retried: number;
   readonly dead: number;
+  readonly reclaimed: number;
 }> {
+  const reclaimed = await reclaimStaleProcessingIntegrationDeliveryJobs();
   const claimed = await deps.deliveryRepository.claimPendingBatch(batchSize);
   let done = 0;
   let retried = 0;
   let dead = 0;
 
   for (const job of claimed) {
-    const outcome = await executeIntegrationDeliveryJob(job);
+    let outcome: { readonly ok: boolean; readonly error?: Record<string, unknown> };
+    try {
+      outcome = await executeIntegrationDeliveryJob(job);
+    } catch (error: unknown) {
+      outcome = {
+        ok: false,
+        error: {
+          code: "INTEGRATION_DELIVERY_UNHANDLED",
+          message: error instanceof Error ? error.message : String(error),
+        },
+      };
+    }
     if (outcome.ok) {
       await deps.deliveryRepository.markDone(job.tenantId, job.id);
       recordIntegrationDeliverySuccess({
@@ -158,7 +172,7 @@ export async function processIntegrationDeliveryOnce(
     retried += 1;
   }
 
-  return { claimed: claimed.length, done, retried, dead };
+  return { claimed: claimed.length, done, retried, dead, reclaimed };
 }
 
 export function readIntegrationDeliveryBatchSize(): number {

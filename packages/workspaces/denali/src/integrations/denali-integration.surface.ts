@@ -11,12 +11,12 @@ export const denaliIntegrationSurface = Object.freeze({
       configFields: [{ id: "channelId", kind: "string" as const, requiredOnCreate: true }],
       credentialFields: [{ id: "botToken", kind: "secret" as const, requiredOnCreate: true }],
       defaultCapabilities: ["message.send"] as const,
-      defaultEventPolicies: [{ eventType: "TourCreated", enabled: true }],
-      eventMappings: [{ eventType: "TourCreated", capability: "message.send" }],
+      defaultEventPolicies: [{ eventType: "TourPublished", enabled: true }],
+      eventMappings: [{ eventType: "TourPublished", capability: "message.send" }],
     },
   ],
   messageTemplates: {
-    TourCreated: "Tour created: {{title}}",
+    TourPublished: "Tour published: {{title}}",
   },
 }) satisfies WorkspaceIntegrationSurface;
 

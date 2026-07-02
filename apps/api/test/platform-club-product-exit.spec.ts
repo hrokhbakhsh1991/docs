@@ -12,8 +12,8 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const gateScriptPath = join(repoRoot, "scripts/p4-club-product-gate.sh");
 const e2eGatePath = join(repoRoot, "scripts/p4-club-product-e2e-gate.sh");
 const packageJsonPath = join(repoRoot, "package.json");
-const exitChecklistPath = join(repoRoot, "TEMP/p4-exit-checklist.md");
-const assessmentPath = join(repoRoot, "TEMP/wizard-denali-enterprise-assessment.md");
+const exitSurfacesDocPath = join(repoRoot, "docs/phase-17/platform-club-product-surfaces.mdoc");
+const exitE2eDocPath = join(repoRoot, "docs/phase-17/platform-club-product-e2e.mdoc");
 const umbrellaDocPath = join(repoRoot, "docs/phase-17/platform-club-product-surfaces.mdoc");
 const closureDocPath = join(repoRoot, "docs/phase-15/phase-15-closure.mdoc");
 const publishServiceSpecPath = join(repoRoot, "apps/api/test/club-catalog-publish-service.spec.ts");
@@ -34,6 +34,7 @@ describe("platform-club-product-exit (P4-D EX)", () => {
     assert.match(gate, /seed-tenant-site-surfaces\.spec\.ts/);
     assert.match(gate, /tenant-site-surfaces-maintenance\.spec\.ts/);
     assert.match(gate, /P4_CLUB_PRODUCT_GATE_OK/);
+    assert.match(gate, /denali-registration\.spec\.ts/);
   });
 
   it("EX-01b package.json wires p4:gate and p4:e2e-gate", () => {
@@ -49,17 +50,32 @@ describe("platform-club-product-exit (P4-D EX)", () => {
     assert.ok(m17Index >= 0 && apiIndex > m17Index);
   });
 
-  it("EX-03 exit checklist and assessment document P4 closure", () => {
-    const checklist = readFileSync(exitChecklistPath, "utf8");
-    assert.match(checklist, /status:\s*complete/);
-    assert.match(checklist, /nano_done:\s*48/);
-    assert.match(checklist, /P4-D complete/);
+  it("EX-02b p4:gate runs guest-surface-host + SDK catalog specs after M17", () => {
+    const gate = readFileSync(gateScriptPath, "utf8");
+    assert.match(gate, /guest-surface-host run test/);
+    assert.match(gate, /resolve-catalog-list-features\.spec\.ts/);
+    const m17Index = gate.indexOf("guard:public-catalog-m17");
+    const guestIndex = gate.indexOf("guest-surface-host run test");
+    assert.ok(m17Index >= 0 && guestIndex > m17Index);
+  });
 
-    const assessment = readFileSync(assessmentPath, "utf8");
-    assert.match(assessment, /Product surfaces \(P4\)/);
-    assert.match(assessment, /G1.*landed|G1.*✅/);
-    assert.match(assessment, /G3.*landed|G3.*✅/);
-    assert.match(assessment, /G5.*landed|G5.*✅/);
+  it("EX-02c p4:gate runs registration intake specs (SDK + API + web ops parser)", () => {
+    const gate = readFileSync(gateScriptPath, "utf8");
+    assert.match(gate, /catalog-registration-dispatch\.spec\.ts/);
+    assert.match(gate, /registration-intake\.contract\.spec\.ts/);
+    assert.match(gate, /denali-registration\.spec\.ts/);
+    assert.match(gate, /format-registration-intake\.spec\.ts/);
+  });
+
+  it("EX-03 exit docs record P4 closure (docs/ authority — not TEMP)", () => {
+    const surfaces = readFileSync(exitSurfacesDocPath, "utf8");
+    assert.match(surfaces, /P4-D \| 10\s+\| 10/);
+    assert.match(surfaces, /G3.*landed|G3.*✅/);
+    assert.match(surfaces, /G5.*landed|G5.*✅/);
+
+    const e2eDoc = readFileSync(exitE2eDocPath, "utf8");
+    assert.match(e2eDoc, /p4:gate/);
+    assert.match(e2eDoc, /denali-registration/);
 
     const closure = readFileSync(closureDocPath, "utf8");
     assert.match(closure, /P4 Club product surfaces/);
@@ -76,7 +92,7 @@ describe("platform-club-product-exit (P4-D EX)", () => {
     const e2eGate = readFileSync(e2eGatePath, "utf8");
     assert.match(e2eGate, /playwright\.marketing\.config\.ts/);
     assert.match(e2eGate, /playwright\.portal\.config\.ts/);
-    assert.match(e2eGate, /playwright\.denali\.config\.ts/);
+    assert.doesNotMatch(e2eGate, /playwright\.denali\.config\.ts/);
     assert.match(e2eGate, /P4_CLUB_PRODUCT_E2E_GATE_OK/);
   });
 

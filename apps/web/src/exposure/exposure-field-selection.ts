@@ -149,40 +149,6 @@ export function setExposureCustomizeFields(
   return { customizeFields: false, selectedFieldIds: [] };
 }
 
-export type ExposureFieldReorderDirection = "up" | "down";
-
-/**
- * Reorders one selected field within the effective selection. Enters override mode and
- * preserves catalog-only ids in their current relative order.
- */
-export function reorderExposureSelectedFieldId(
-  state: ExposureFieldSelectionState,
-  catalogFieldIds: readonly string[],
-  fieldId: string,
-  direction: ExposureFieldReorderDirection,
-): ExposureFieldSelectionState {
-  const ordered = resolveEffectiveSelectedFieldIds(state, catalogFieldIds).filter((id) =>
-    catalogFieldIds.includes(id),
-  );
-  const index = ordered.indexOf(fieldId);
-  if (index === -1) {
-    return state;
-  }
-  const targetIndex = direction === "up" ? index - 1 : index + 1;
-  if (targetIndex < 0 || targetIndex >= ordered.length) {
-    return state;
-  }
-  const nextSelected = [...ordered];
-  const current = nextSelected[index];
-  const target = nextSelected[targetIndex];
-  if (current === undefined || target === undefined) {
-    return state;
-  }
-  nextSelected[index] = target;
-  nextSelected[targetIndex] = current;
-  return { customizeFields: true, selectedFieldIds: nextSelected };
-}
-
 /** Maps catalog fields to the caller's selected-id order (unknown ids skipped). */
 export function resolveExposureCatalogFieldsInSelectedOrder(
   fields: readonly ExposureCatalogField[],
@@ -197,43 +163,6 @@ export function resolveExposureCatalogFieldsInSelectedOrder(
     }
   }
   return ordered;
-}
-
-export function setExposureFieldDecorationPrefix(
-  decorations: ExposureFieldDecorations,
-  fieldId: string,
-  prefix: string,
-): ExposureFieldDecorations {
-  const trimmed = prefix.trim();
-  if (trimmed.length === 0) {
-    const next = { ...decorations };
-    delete next[fieldId];
-    return next;
-  }
-  return { ...decorations, [fieldId]: { prefix: trimmed } };
-}
-
-export function parseExposureFieldDecorationsFromPersisted(
-  raw: unknown,
-): ExposureFieldDecorations {
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    return {};
-  }
-  const parsed: Record<string, ExposureFieldDecoration> = {};
-  for (const [fieldId, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      continue;
-    }
-    const prefix = (value as Record<string, unknown>).prefix;
-    if (typeof prefix !== "string") {
-      continue;
-    }
-    const trimmed = prefix.trim();
-    if (trimmed.length > 0) {
-      parsed[fieldId] = { prefix: trimmed };
-    }
-  }
-  return parsed;
 }
 
 export type ExposureFieldDecoration = {
@@ -361,16 +290,15 @@ export function exposureContextsEqual(
 
 /**
  * Maps panel state into the native exposure-intent PATCH body (full context + field override).
+ * Legacy `fieldDecorations` are always cleared — emoji/ordering live in the template canvas.
  */
 export function resolveExposureIntentPatchInput(input: {
   readonly selection: ExposureFieldSelectionState;
   readonly context: ExposureChecklistContext;
   readonly template: string;
-  readonly fieldDecorations?: ExposureFieldDecorations;
 }): ExposureIntentPatchInput {
   const selectionSaveInput = resolveExposureSelectionSaveInput(input.selection);
   const trimmedTemplate = input.template.trim();
-  const decorations = input.fieldDecorations ?? {};
   return {
     enabled: selectionSaveInput.enabled,
     selectedFieldIds: [...selectionSaveInput.selectedFieldIds],
@@ -378,7 +306,7 @@ export function resolveExposureIntentPatchInput(input: {
     audience: input.context.audience,
     trigger: input.context.trigger,
     templateId: trimmedTemplate.length === 0 ? null : trimmedTemplate,
-    fieldDecorations: Object.keys(decorations).length > 0 ? decorations : null,
+    fieldDecorations: null,
   };
 }
 

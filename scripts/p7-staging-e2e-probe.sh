@@ -113,6 +113,9 @@ rsync -az \
 rsync -az \
   "${ROOT}/apps/api/src/settings/seed-operator-smoke-published-tour.ts" \
   "${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/apps/api/src/settings/"
+rsync -az \
+  "${ROOT}/apps/api/src/fixtures/operator-smoke-published-tour.fixture.ts" \
+  "${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/apps/api/src/fixtures/"
 
 echo "== VPS pre-seed (identity · VS-01 · Ali Rezaei pending) =="
 ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" bash -s <<EOF

@@ -3,32 +3,60 @@ import type {
   IntegrationProviderSurfaceMeta,
 } from "@/integrations/integrations-types";
 
+function isDeprecatedEventPolicy(
+  policy: IntegrationConnectionPublic["eventPolicies"][number],
+): boolean {
+  return policy.deprecated === true;
+}
+
+function deprecatedEventTypes(
+  policies: IntegrationConnectionPublic["eventPolicies"],
+): ReadonlySet<string> {
+  const deprecated = new Set<string>();
+  for (const policy of policies) {
+    if (isDeprecatedEventPolicy(policy) && policy.eventType.length > 0) {
+      deprecated.add(policy.eventType);
+    }
+  }
+  return deprecated;
+}
+
+function addRoutableEventType(seen: Set<string>, eventType: string, deprecated: ReadonlySet<string>): void {
+  if (eventType.length === 0 || deprecated.has(eventType)) {
+    return;
+  }
+  seen.add(eventType);
+}
+
 /** Event types exposed in exposure UI for a connection (policies, intents, provider defaults). */
 export function buildExposureEventTypeList(
   connection: IntegrationConnectionPublic,
   providerSurface: IntegrationProviderSurfaceMeta | null,
 ): readonly string[] {
   const seen = new Set<string>();
+  const deprecated = deprecatedEventTypes(connection.eventPolicies);
+
   for (const policy of providerSurface?.defaultEventPolicies ?? []) {
-    if (policy.eventType.length > 0) {
-      seen.add(policy.eventType);
-    }
+    addRoutableEventType(seen, policy.eventType, deprecated);
   }
+
   for (const policy of connection.eventPolicies) {
-    if (policy.eventType.length > 0) {
-      seen.add(policy.eventType);
+    if (!isDeprecatedEventPolicy(policy)) {
+      addRoutableEventType(seen, policy.eventType, deprecated);
     }
   }
+
   for (const intent of connection.exposureIntents) {
-    if (intent.eventType.length > 0) {
-      seen.add(intent.eventType);
-    }
-    if (intent.trigger.length > 0) {
-      seen.add(intent.trigger);
-    }
+    addRoutableEventType(seen, intent.eventType, deprecated);
+    addRoutableEventType(seen, intent.trigger, deprecated);
   }
+
   if (seen.size === 0 && connection.provider === "telegram") {
-    seen.add("TourCreated");
+    const surfaceDefault = providerSurface?.defaultEventPolicies.find(
+      (policy) => policy.enabled,
+    )?.eventType;
+    seen.add(surfaceDefault ?? "TourPublished");
   }
+
   return [...seen].sort((left, right) => left.localeCompare(right));
 }

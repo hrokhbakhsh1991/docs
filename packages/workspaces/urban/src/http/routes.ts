@@ -1,4 +1,4 @@
-export { configureUrbanHttpHost, resetUrbanHttpHostForTests } from "./host-runtime";
+export { configureUrbanHttpHost, resetUrbanHttpHostForTests, getUrbanHttpHost } from "./host-runtime";
 export type { UrbanHttpHostPorts, UrbanProductRouteDeps } from "./host-ports";
 export { URBAN_HTTP_ROUTE_MANIFEST } from "./routes-manifest";
 

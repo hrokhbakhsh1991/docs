@@ -1,3 +1,5 @@
+import "@app-tour/workspace-plugin-host/register";
+
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
@@ -5,7 +7,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { isAppLocale, resolveTextDirection, routing } from "@/i18n/routing";
-import { inter, resolveAppFontClassName, resolveAppFontFamilyCss, vazirmatn } from "@/i18n/app-fonts";
+import { inter, resolveAppFontClassName, resolveAppFontFamilyCss, vazirmatn, calistoga } from "@/i18n/app-fonts";
 import { PortalProviders } from "@/shell/portal-providers";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -44,7 +46,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html
       lang={locale}
       dir={dir}
-      className={`${vazirmatn.variable} ${inter.variable} ${fontClassName}`}
+      className={`${vazirmatn.variable} ${inter.variable} ${calistoga.variable} ${fontClassName}`}
       style={{ ["--font-family-base" as string]: fontFamilyBase }}
     >
       <body

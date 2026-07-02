@@ -30,10 +30,8 @@ export function MemberReceiptUploadForm({ registrationId }: Props) {
   }
 
   return (
-    <div data-portal-member-receipt-upload className="space-y-3">
-      <label className="block text-sm font-medium" htmlFor="receipt-file">
-        {t("label")}
-      </label>
+    <div data-portal-member-receipt-upload>
+      <label htmlFor="receipt-file">{t("label")}</label>
       <input
         ref={fileInputRef}
         id="receipt-file"
@@ -41,14 +39,15 @@ export function MemberReceiptUploadForm({ registrationId }: Props) {
         type="file"
         accept="image/*,.pdf"
         required
+        disabled={status === "uploading"}
       />
       <button
         type="button"
         data-portal-member-receipt-submit
-        className="rounded-md border px-3 py-2 text-sm"
+        disabled={status === "uploading"}
         onClick={() => void uploadReceipt()}
       >
-        {t("submit")}
+        {status === "uploading" ? t("uploading") : t("submit")}
       </button>
       {status === "done" ? (
         <p role="status" data-portal-member-receipt-success>

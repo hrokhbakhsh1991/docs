@@ -1,0 +1,47 @@
+{
+  "contractVersion": "v1",
+  "frozenAt": "2026-07-01",
+  "migrationPolicy": "Explicit contractVersion bump + snapshot update required for any new field or shape change.",
+  "memberProfileFieldIds": [
+    "avatarUrl",
+    "birthDate",
+    "displayName",
+    "email",
+    "fatherName",
+    "gender",
+    "mobile",
+    "nationalId"
+  ],
+  "memberProfileView": {
+    "ok": true,
+    "contractVersion": "v1",
+    "profile": {
+      "userId": "string",
+      "tenantId": "string",
+      "role": "string",
+      "fields": "Partial<Record<MemberProfileFieldId, string | null>>",
+      "capabilities": {
+        "editableFields": "MemberProfileFieldId[]",
+        "readOnlyFields": "MemberProfileFieldId[]",
+        "sections": "optional MemberProfileSection[]"
+      }
+    }
+  },
+  "memberProfilePatch": {
+    "contractVersion": "optional v1",
+    "fields": "Partial<Record<MemberProfileFieldId, string | null>>"
+  },
+  "memberProfileApiError": {
+    "code": "string",
+    "message": "string",
+    "fieldErrors": "optional Partial<Record<MemberProfileFieldId, string>>"
+  },
+  "identityUpstreamAllowlist": [
+    "apps/portal/app/api/me/profile/route.ts",
+    "apps/portal/app/api/me/avatar/route.ts",
+    "apps/portal/app/api/me/avatar/url/route.ts",
+    "apps/portal/app/api/me/mobile/request-otp/route.ts",
+    "apps/portal/app/api/me/mobile/verify/route.ts"
+  ],
+  "portalProfileEntrypoint": "/api/me/profile"
+}

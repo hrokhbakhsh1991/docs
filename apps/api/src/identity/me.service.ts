@@ -56,6 +56,9 @@ async function toProfileResponse(
     mobile: user.mobile,
     displayName: resolveDisplayName(user, membership),
     email: membership.email?.trim() ?? null,
+    nationalId: membership.nationalId?.trim() ?? null,
+    fatherName: membership.fatherName?.trim() ?? null,
+    birthDate: membership.birthDate?.trim() ?? null,
     gender: membership.gender ?? null,
     avatarUrl,
   };
@@ -76,19 +79,65 @@ export async function getOperatorProfile(
   return toProfileResponse(user, membership);
 }
 
+export class ProfileNationalIdInvalidError extends Error {
+  readonly code = "PROFILE_NATIONAL_ID_INVALID" as const;
+
+  constructor() {
+    super("PROFILE_NATIONAL_ID_INVALID");
+    this.name = "ProfileNationalIdInvalidError";
+  }
+}
+
+export class ProfileFatherNameInvalidError extends Error {
+  readonly code = "PROFILE_FATHER_NAME_INVALID" as const;
+
+  constructor() {
+    super("PROFILE_FATHER_NAME_INVALID");
+    this.name = "ProfileFatherNameInvalidError";
+  }
+}
+
+export class ProfileBirthDateInvalidError extends Error {
+  readonly code = "PROFILE_BIRTH_DATE_INVALID" as const;
+
+  constructor() {
+    super("PROFILE_BIRTH_DATE_INVALID");
+    this.name = "ProfileBirthDateInvalidError";
+  }
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export class ProfileEmailInvalidError extends Error {
+  readonly code = "PROFILE_EMAIL_INVALID" as const;
+
+  constructor() {
+    super("PROFILE_EMAIL_INVALID");
+    this.name = "ProfileEmailInvalidError";
+  }
+}
+
 export async function patchOperatorProfile(
   auth: TenantAuthContext,
   patch: PatchOperatorProfileRequest
 ): Promise<OperatorProfileResponse> {
   const hasDisplayName = "displayName" in patch;
+  const hasEmail = "email" in patch;
   const hasGender = "gender" in patch;
-  if (!hasDisplayName && !hasGender) {
+  const hasNationalId = "nationalId" in patch;
+  const hasFatherName = "fatherName" in patch;
+  const hasBirthDate = "birthDate" in patch;
+  if (!hasDisplayName && !hasEmail && !hasGender && !hasNationalId && !hasFatherName && !hasBirthDate) {
     return getOperatorProfile(auth);
   }
 
   const profilePatch: {
     displayName?: string;
+    email?: string;
     gender?: OperatorProfileGender | null;
+    nationalId?: string;
+    fatherName?: string;
+    birthDate?: string;
   } = {};
 
   if (hasDisplayName) {
@@ -97,6 +146,18 @@ export async function patchOperatorProfile(
       throw new ProfileDisplayNameInvalidError();
     }
     profilePatch.displayName = trimmed;
+  }
+
+  if (hasEmail) {
+    if (patch.email === null) {
+      profilePatch.email = "";
+    } else {
+      const trimmed = patch.email?.trim() ?? "";
+      if (trimmed.length > 0 && (trimmed.length > 320 || !EMAIL_PATTERN.test(trimmed))) {
+        throw new ProfileEmailInvalidError();
+      }
+      profilePatch.email = trimmed;
+    }
   }
 
   if (hasGender) {
@@ -108,6 +169,30 @@ export async function patchOperatorProfile(
       throw new ProfileGenderInvalidError();
     }
     profilePatch.gender = patch.gender ?? null;
+  }
+
+  if (hasNationalId) {
+    const trimmed = patch.nationalId?.trim() ?? "";
+    if (trimmed.length > 0 && !/^\d{10}$/.test(trimmed)) {
+      throw new ProfileNationalIdInvalidError();
+    }
+    profilePatch.nationalId = trimmed;
+  }
+
+  if (hasFatherName) {
+    const trimmed = patch.fatherName?.trim() ?? "";
+    if (trimmed.length > 200) {
+      throw new ProfileFatherNameInvalidError();
+    }
+    profilePatch.fatherName = trimmed;
+  }
+
+  if (hasBirthDate) {
+    const trimmed = patch.birthDate?.trim() ?? "";
+    if (trimmed.length > 0 && !/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      throw new ProfileBirthDateInvalidError();
+    }
+    profilePatch.birthDate = trimmed;
   }
 
   const repo = getIdentityRepository();

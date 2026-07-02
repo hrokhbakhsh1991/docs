@@ -54,8 +54,8 @@ function canonical(extra: Record<string, unknown> = {}) {
       participants: { fitnessLevel: "medium" },
       pricing: { basePricePerPerson: 2500000 },
       photos: [
-        { id: "p1", url: "https://cdn.example/day1.jpg" },
         { url: "https://cdn.example/cover.jpg" },
+        { id: "p1", url: "https://cdn.example/day1.jpg" },
       ],
       ...extra,
     },
@@ -101,6 +101,20 @@ describe("denali-catalog-itinerary.spec.ts", () => {
     assert.equal(card.structuredData?.name, "Festival Trek");
     const itinerary = card.structuredData?.itinerary as { itemListElement?: unknown[] } | undefined;
     assert.equal(itinerary?.itemListElement?.length, 1);
+  });
+
+  it("DN-CAT-07 buildDenaliTouristTripJsonLd includes offers image and dateModified", () => {
+    const card = toDenaliCatalogCard({
+      id: TOUR_ID,
+      canonical: canonical(),
+      catalogUpdatedAt: "2026-06-02T10:00:00.000Z",
+    });
+    const jsonLd = buildDenaliTouristTripJsonLd(card);
+    const offers = jsonLd.offers as { price?: number; priceCurrency?: string } | undefined;
+    assert.equal(offers?.price, 2500000);
+    assert.equal(offers?.priceCurrency, "IRR");
+    assert.equal(jsonLd.image, "https://cdn.example/cover.jpg");
+    assert.equal(jsonLd.dateModified, "2026-06-02T10:00:00.000Z");
   });
 
   it("DN-CAT-06 buildDenaliTouristTripJsonLd includes day descriptions", () => {

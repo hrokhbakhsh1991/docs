@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { resolveCatalogListApiPath } from "@app-tour/workspace-sdk";
+import { resolveCatalogListApiPath, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
 
 import {
   resolveCatalogFetchCache,
@@ -18,6 +18,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const host = headerList.get("host") ?? "localhost:3002";
   const { tenantId, pluginId } = await resolveMarketingBootstrapForHost(host);
   const path = resolveCatalogListApiPath(pluginId);
+  const listFeatures = resolveCatalogListFeatures(pluginId);
   const incoming = new URL(request.url);
   const query = new URLSearchParams();
   const cursor = incoming.searchParams.get("cursor");
@@ -29,7 +30,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (limit !== null && limit.trim().length > 0) {
     query.set("limit", limit.trim());
   }
-  if (pluginId === "urban" && city !== null && city.trim().length > 0) {
+  if (listFeatures.cityFilter && city !== null && city.trim().length > 0) {
     query.set("city", city.trim());
   }
   const suffix = query.size > 0 ? `?${query.toString()}` : "";

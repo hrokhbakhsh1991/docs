@@ -5,7 +5,9 @@ import { ProvisioningService } from "../src/internal/provisioning.service.ts";
 import {
   ensureOperatorSmokePublishedTourPolicies,
   seedOperatorSmokeDraftTour,
+  seedOperatorSmokeParticipantRequirementsTour,
   seedOperatorSmokePublishedTour,
+  seedOperatorSmokeTransportTours,
 } from "../src/settings/seed-operator-smoke-published-tour.ts";
 
 async function main(): Promise<void> {
@@ -14,6 +16,8 @@ async function main(): Promise<void> {
   await seedOperatorSmokePublishedTour(operator.id);
   await ensureOperatorSmokePublishedTourPolicies(operator.id);
   await seedOperatorSmokeDraftTour(operator.id);
+  await seedOperatorSmokeParticipantRequirementsTour(operator.id);
+  await seedOperatorSmokeTransportTours(operator.id);
   console.log("ENSURE_OPERATOR_SMOKE_VS01_OK", operator.id);
 }
 

@@ -1,20 +1,11 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { CatalogTourDetail } from "@/catalog/catalog-tour-detail";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
-import { CatalogCoverImage } from "@/catalog/catalog-cover-image";
-import { CatalogItinerarySection } from "@/catalog/catalog-itinerary-section";
-import {
-  formatCatalogCardDates,
-  formatCatalogCardDescription,
-  formatCatalogCardSubtitle,
-  formatCatalogPrice,
-  shouldShowCatalogPrice,
-} from "@/catalog/format-catalog-display";
-import { resolveIntlDateLocale, isAppLocale, type AppLocale } from "@/i18n/routing";
+import { isAppLocale, routing } from "@/i18n/routing";
 import { resolveWebRegistrationUrl } from "@/portal/resolve-web-registration-url";
 import {
   buildMarketingNotFoundMetadata,
@@ -31,8 +22,9 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { tourId } = await params;
-  const headerList = await headers();
+  const [headerList, localeRaw] = await Promise.all([headers(), getLocale()]);
   const host = headerList.get("host") ?? "localhost:3002";
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const bootstrap = await resolveMarketingBootstrapForHost(host);
   const t = await getTranslations("catalog");
   const [branding, tour] = await Promise.all([
@@ -53,8 +45,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     siteName,
     tour,
     tourId,
-    pluginId: bootstrap.pluginId,
     defaultTourTitle: t("detail.defaultTourTitle"),
+    pluginId: bootstrap.pluginId,
+    locale,
   });
 }
 
@@ -63,72 +56,17 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3002";
   const bootstrap = await resolveMarketingBootstrapForHost(host);
-  const t = await getTranslations("catalog");
-  const localeRaw = await getLocale();
-  const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
-  const dateLocale = resolveIntlDateLocale(locale);
   const tour = await fetchCatalogTour({ ...bootstrap, tourId });
 
   if (tour === null) {
     notFound();
   }
 
-  const description = formatCatalogCardDescription(tour);
-  const subtitle = formatCatalogCardSubtitle(tour, bootstrap.pluginId);
   const registrationUrl = resolveWebRegistrationUrl(host, tourId, bootstrap.pluginId);
 
   return (
-    <main data-marketing-catalog-tour-detail>
-      <h1>{tour.title || t("detail.defaultTourTitle")}</h1>
-      {tour.coverImageUrl ? <CatalogCoverImage src={tour.coverImageUrl} /> : null}
-      {description ? <p>{description}</p> : null}
-      <p>
-        {[subtitle, formatCatalogCardDates(tour, dateLocale, t("detail.datesTba"))]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
-      {shouldShowCatalogPrice(bootstrap.pluginId, tour.priceAmount) ? (
-        <p>{formatCatalogPrice(tour.priceAmount, tour.priceCurrency, dateLocale, t("detail.priceOnRequest"))}</p>
-      ) : null}
-      {tour.spotsRemaining != null ? (
-        <p>{t("detail.spotsRemaining", { count: tour.spotsRemaining })}</p>
-      ) : tour.totalCapacity != null ? (
-        <p>{t("detail.capacity", { count: tour.totalCapacity })}</p>
-      ) : null}
-      {tour.difficultyLevel != null ? (
-        <p>{t("detail.difficulty", { level: tour.difficultyLevel })}</p>
-      ) : null}
-      {tour.fitnessLevel ? <p>{t("detail.fitness", { level: tour.fitnessLevel })}</p> : null}
-      {tour.itineraryDays != null && tour.itineraryDays.length > 0 ? (
-        <CatalogItinerarySection
-          days={tour.itineraryDays}
-          heading={t("detail.itineraryHeading")}
-          dayLabel={(dayNumber) => t("detail.itineraryDay", { day: dayNumber })}
-          segmentsHeading={t("detail.itinerarySegments")}
-        />
-      ) : null}
-      {tour.policiesText ? (
-        <section data-tour-policies>
-          <h2>{t("detail.policiesHeading")}</h2>
-          <p data-tour-policies-text>{tour.policiesText}</p>
-        </section>
-      ) : null}
-      {tour.structuredData != null ? (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(tour.structuredData) }}
-        />
-      ) : null}
-      {registrationUrl ? (
-        <p>
-          <a href={registrationUrl} data-marketing-register>
-            {t("detail.register")}
-          </a>
-        </p>
-      ) : null}
-      <p>
-        <Link href="/tours">{t("detail.backToTours")}</Link>
-      </p>
+    <main data-marketing-catalog-detail-page>
+      <CatalogTourDetail tour={tour} registrationUrl={registrationUrl} pluginId={bootstrap.pluginId} />
     </main>
   );
 }

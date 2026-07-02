@@ -14,7 +14,14 @@ export const DENALI_LEADER_CHIP_PREVIEW_LIMIT = 3;
 export type DenaliLeaderPickerUser = {
   readonly userId: string;
   readonly displayName: string;
+  readonly avatarUrl?: string | null;
 };
+
+export function hasLeaderPickerAvatarUrl(
+  avatarUrl: string | null | undefined
+): avatarUrl is string {
+  return typeof avatarUrl === "string" && avatarUrl.trim().length > 0;
+}
 
 /** Picker stays open when empty; collapses to chip summary once leaders are chosen. */
 export function resolveDenaliLeaderPickerDefaultExpanded(selectedCount: number): boolean {

@@ -61,6 +61,8 @@
     "participants": {
       "gearItems": "تجهیزات الزامی",
       "nationalIdRequired": "کد ملی در زمان ثبت‌نام الزامی است",
+      "fatherNameRequired": "نام پدر در زمان ثبت‌نام الزامی است",
+      "birthDateRequired": "تاریخ تولد در زمان ثبت‌نام الزامی است",
       "minimumAge": "حداقل سن",
       "maximumAge": "حداکثر سن",
       "fitnessLevel": "سطح آمادگی بدنی",
@@ -88,6 +90,7 @@
     "pricing": {
       "requiresPayment": "تور پولی (ثبت‌نام با پرداخت)",
       "basePricePerPerson": "قیمت به ازای هر نفر (تومان)",
+      "paymentMode": "روش پرداخت",
       "includesTourInsurance": "این تور شامل بیمه مسئولیت گروهی سازمان‌دهنده است"
     },
     "policies": {
@@ -125,6 +128,9 @@
     "train": "قطار",
     "shared_cars": "ماشین‌های مشترک (دنگ)",
     "none": "بدون حمل‌ونقل سازمان‌یافته"
+  },
+  "paymentModes": {
+    "offline_receipt": "رسید / پرداخت آفلاین"
   },
   "composites": {
     "common": {

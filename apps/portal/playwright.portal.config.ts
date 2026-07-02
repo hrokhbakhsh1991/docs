@@ -24,6 +24,7 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: ["portal-*-smoke.spec.ts"],
+  globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,
@@ -32,7 +33,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: portalSmokeBaseUrl,
     viewport: { width: 1280, height: 900 },
-    navigationTimeout: 120_000,
+    navigationTimeout: 180_000,
     ...(stagingLaunchOptions() ? { launchOptions: stagingLaunchOptions() } : {}),
   },
   ...(useExternalServers

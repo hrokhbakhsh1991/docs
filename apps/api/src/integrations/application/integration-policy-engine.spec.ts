@@ -11,15 +11,15 @@ import { NATIVE_EXPOSURE_INTENT_SOURCE } from "../../exposure/exposure-intent";
 
 const NATIVE_INTENT = {
   id: "native-1",
-  profileId: "denali.telegram.TourCreated",
+  profileId: "denali.telegram.TourPublished",
   workspaceType: "denali",
   entityType: "tour",
   surface: "telegram",
   audience: "external_channel",
-  trigger: "TourCreated",
+  trigger: "TourPublished",
   scope: {
     connectionId: "conn-1",
-    eventType: "TourCreated",
+    eventType: "TourPublished",
   },
   mode: "override_fields" as const,
   selectedFieldIds: ["title"],
@@ -87,7 +87,7 @@ describe("integration-policy-engine", () => {
               id: "p1",
               tenantId: "tenant-a",
               integrationConnectionId: "conn-1",
-              eventType: "TourCreated",
+              eventType: "TourPublished",
               enabled: false,
             },
           ];
@@ -97,7 +97,7 @@ describe("integration-policy-engine", () => {
     });
     const decisions = await engine.evaluate({
       tenantId: "tenant-a",
-      eventType: "TourCreated",
+      eventType: "TourPublished",
       workspaceType: "denali",
     });
     assert.equal(decisions.length, 0);
@@ -112,7 +112,7 @@ describe("integration-policy-engine", () => {
               id: "p1",
               tenantId: "tenant-a",
               integrationConnectionId: "conn-1",
-              eventType: "TourCreated",
+              eventType: "TourPublished",
               enabled: true,
             },
           ];
@@ -122,7 +122,7 @@ describe("integration-policy-engine", () => {
     });
     const decisions = await engine.evaluate({
       tenantId: "tenant-a",
-      eventType: "TourCreated",
+      eventType: "TourPublished",
       workspaceType: "denali",
     });
     assert.equal(decisions.length, 1);
@@ -130,7 +130,7 @@ describe("integration-policy-engine", () => {
     assert.deepEqual(decisions[0]?.exposureCoordinate, {
       surface: "telegram",
       audience: "external_channel",
-      trigger: "TourCreated",
+      trigger: "TourPublished",
     });
   });
 
@@ -143,7 +143,7 @@ describe("integration-policy-engine", () => {
               id: "p1",
               tenantId: "tenant-a",
               integrationConnectionId: "conn-1",
-              eventType: "TourCreated",
+              eventType: "TourPublished",
               enabled: true,
             },
           ];
@@ -156,13 +156,13 @@ describe("integration-policy-engine", () => {
         async findForContext(input) {
           assert.deepEqual(input, {
             tenantId: "tenant-a",
-            profileId: "denali.telegram.TourCreated",
+            profileId: "denali.telegram.TourPublished",
             surface: "telegram",
             audience: "external_channel",
-            trigger: "TourCreated",
+            trigger: "TourPublished",
             scope: {
               connectionId: "conn-1",
-              eventType: "TourCreated",
+              eventType: "TourPublished",
             },
           });
           return NATIVE_INTENT;
@@ -171,7 +171,7 @@ describe("integration-policy-engine", () => {
     });
     const decisions = await engine.evaluate({
       tenantId: "tenant-a",
-      eventType: "TourCreated",
+      eventType: "TourPublished",
       workspaceType: "denali",
     });
     assert.equal(decisions.length, 1);
@@ -179,7 +179,7 @@ describe("integration-policy-engine", () => {
     assert.deepEqual(decisions[0]?.exposureCoordinate, {
       surface: "telegram",
       audience: "external_channel",
-      trigger: "TourCreated",
+      trigger: "TourPublished",
     });
   });
 
@@ -190,7 +190,7 @@ describe("integration-policy-engine", () => {
       trigger: "TourPublished",
       scope: {
         connectionId: "conn-1",
-        eventType: "TourCreated",
+        eventType: "TourPublished",
       },
     };
     const engine = createIntegrationPolicyEngine({
@@ -201,7 +201,7 @@ describe("integration-policy-engine", () => {
               id: "p1",
               tenantId: "tenant-a",
               integrationConnectionId: "conn-1",
-              eventType: "TourCreated",
+              eventType: "TourPublished",
               enabled: true,
             },
           ];
@@ -215,7 +215,7 @@ describe("integration-policy-engine", () => {
     });
     const decisions = await engine.evaluate({
       tenantId: "tenant-a",
-      eventType: "TourCreated",
+      eventType: "TourPublished",
       workspaceType: "denali",
     });
 
@@ -251,7 +251,7 @@ describe("integration-policy-engine", () => {
     });
     const decisions = await engine.evaluate({
       tenantId: "tenant-a",
-      eventType: "TourCreated",
+      eventType: "TourPublished",
       workspaceType: "denali",
     });
     assert.equal(decisions.length, 1);
@@ -259,7 +259,7 @@ describe("integration-policy-engine", () => {
     assert.deepEqual(decisions[0]?.exposureCoordinate, {
       surface: "telegram",
       audience: "external_channel",
-      trigger: "TourCreated",
+      trigger: "TourPublished",
     });
   });
 

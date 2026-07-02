@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -19,13 +20,18 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   const t = await getTranslations("portalMember.detail");
 
   return (
-    <section data-portal-member-registration-detail>
-      <h1 className="mb-2 text-xl font-semibold">{row.tourTitle}</h1>
-      <p className="mb-4 text-sm text-muted-foreground">
+    <main data-portal-member-registration-detail>
+      <p>
+        <Link href="/me/registrations">{t("backToList")}</Link>
+      </p>
+      <h1>{row.tourTitle}</h1>
+      <p data-portal-member-registration-status>
         {t("statusLine", { status: row.status, paymentStatus: row.paymentStatus })}
       </p>
-      <p className="mb-6 text-sm">{t("departure", { departureAt: row.departureAt })}</p>
+      <p data-portal-member-registration-departure>
+        {t("departure", { departureAt: row.departureAt })}
+      </p>
       <MemberReceiptUploadForm registrationId={row.id} />
-    </section>
+    </main>
   );
 }

@@ -13,6 +13,23 @@ export type DenaliProductRouteDeps = {
   readonly publicDestinationPort?: DenaliPublicDestinationPort;
   readonly exposureResolverPort?: DenaliExposureResolverPort;
   readonly reminderFeedPort?: DenaliReminderFeedPort;
+  readonly resolveGuestMembership?: (
+    tenantId: string,
+    userId: string
+  ) => Promise<{
+    readonly nationalId?: string | null;
+    readonly fatherName?: string | null;
+    readonly birthDate?: string | null;
+  } | null>;
+  readonly saveGuestProfileFields?: (
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly nationalId?: string;
+      readonly fatherName?: string;
+      readonly birthDate?: string;
+    }
+  ) => Promise<void>;
 };
 
 export type DenaliProductHttpHostPorts = {

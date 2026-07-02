@@ -151,7 +151,7 @@ Theming (Layer 0–3) is **visual**. **Field shapes** are workspace-owned in `pa
 | ------- | ----- | ------- |
 | Colors, radius, motion | `theme/*.css` | Denali mist page background |
 | Form fields, validation | `ui/fields/*`, HTTP routes | Denali `partySize` vs Urban `notes` |
-| Registration intake | `apps/portal` feature + workspace dispatch | `pluginId === "denali"` POST path |
+| Registration intake | `apps/portal` shell + SDK dispatch | `buildCatalogRegistrationUpstreamRequest(pluginId)` |
 
 **Do not** solve field differences with CSS alone. **Do not** solve colors in workspace TypeScript.
 
@@ -177,9 +177,10 @@ Theming (Layer 0–3) is **visual**. **Field shapes** are workspace-owned in `pa
 ✅ workspace manifest: themeStylesheets + guestThemeStylesheets
 ✅ generate:workspace-registry → portal + marketing guest stylesheet bundles
 ✅ layout: data-workspace-plugin + data-app-surface on <body>
-✅ denali-portal.css + denali-marketing.css scoped skins
+✅ denali-portal.css + denali-marketing.css scoped skins (MASTER tokens · Calistoga headings)
+✅ portal next.config allowedDevOrigins: *.portal.localhost (Playwright cross-host dev)
 ✅ TenantThemeProvider passes branding primary (already wired)
-✅ specs: guest-theme-stack + workspace skin contract
+✅ specs: guest-theme-stack + workspace skin contract · UI specs in docs/workspaces/denali/
 ```
 
 ---
@@ -203,7 +204,8 @@ pnpm --filter @apps/web test -- test/denali-admin-theme.spec.ts
 
 ## 9. References
 
-- [p6-theming-file-tree.md](p6/p6-theming-file-tree.md) — mandatory file layout (P6-1-N-015)
+- [`p6-theming-file-tree.md`](p6/p6-theming-file-tree.md) — mandatory file layout (P6-1-N-015)
+- [`marketing-catalog-ui.md`](../workspaces/denali/marketing-catalog-ui.md) · [`portal-registration-ui.md`](../workspaces/denali/portal-registration-ui.md)
 - [W3C Design Tokens Format Module 2025.10](https://www.designtokens.org/)
 - [Tailwind v4 `@theme` / `@theme inline`](https://tailwindcss.com/docs/theme)
 - [`p6-implementation-standards.mdoc`](p6-implementation-standards.mdoc)

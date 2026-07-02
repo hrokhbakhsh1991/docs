@@ -71,6 +71,7 @@
   "devDependencies": {
     "@app-tour/config": "workspace:*",
     "@app-tour/workspace-denali": "workspace:*",
+    "@app-tour/workspace-guest-club": "workspace:*",
     "@app-tour/workspace-urban": "workspace:*",
     "@happy-dom/global-registrator": "^17.4.4",
     "@playwright/test": "^1.51.1",

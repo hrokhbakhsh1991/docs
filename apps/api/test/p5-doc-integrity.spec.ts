@@ -122,11 +122,11 @@ describe("p5-doc-integrity (DOC-SYNC)", () => {
   it("DOC-SYNC-05 no stale denali git-diff gate in docs", () => {
     const e2e = read("docs/phase-17/platform-club-product-e2e.mdoc");
     const catalog = read("docs/phase-17/platform-club-catalog-publish.mdoc");
-    const p4exit = read("TEMP/p4-exit-checklist.md");
+    const surfaces = read("docs/phase-17/platform-club-product-surfaces.mdoc");
     assert.doesNotMatch(e2e, /git diff --quiet packages\/workspaces\/denali/);
     assert.doesNotMatch(catalog, /git diff --quiet packages\/workspaces\/denali/);
-    assert.doesNotMatch(p4exit, /git diff --quiet packages\/workspaces\/denali/);
-    assert.match(p4exit, /guard:p3-denali-covenant/);
+    assert.doesNotMatch(surfaces, /git diff --quiet packages\/workspaces\/denali/);
+    assert.match(e2e, /guard:p3-denali-covenant/);
   });
 
   it("DOC-SYNC-06 completed nanos reflected in FILE-MAP", () => {

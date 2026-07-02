@@ -10,6 +10,9 @@ import type { MembershipRewardsRecord } from "./in-memory-identity.repository";
 export type MembershipMetadataFields = {
   readonly displayName?: string;
   readonly email?: string;
+  readonly nationalId?: string;
+  readonly fatherName?: string;
+  readonly birthDate?: string;
   readonly gender?: OperatorProfileGender;
   readonly rewards?: MembershipRewardsRecord;
   readonly avatar?: OperatorMembershipAvatar;
@@ -84,6 +87,18 @@ export function readMembershipMetadata(
     typeof record.email === "string" && record.email.trim().length > 0
       ? record.email.trim()
       : undefined;
+  const nationalId =
+    typeof record.nationalId === "string" && record.nationalId.trim().length > 0
+      ? record.nationalId.trim()
+      : undefined;
+  const fatherName =
+    typeof record.fatherName === "string" && record.fatherName.trim().length > 0
+      ? record.fatherName.trim()
+      : undefined;
+  const birthDate =
+    typeof record.birthDate === "string" && record.birthDate.trim().length > 0
+      ? record.birthDate.trim()
+      : undefined;
   const rewards = readRewards(metadata);
   const avatar = readAvatar(record);
   const gender =
@@ -93,6 +108,9 @@ export function readMembershipMetadata(
   return {
     ...(displayName !== undefined ? { displayName } : {}),
     ...(email !== undefined ? { email } : {}),
+    ...(nationalId !== undefined ? { nationalId } : {}),
+    ...(fatherName !== undefined ? { fatherName } : {}),
+    ...(birthDate !== undefined ? { birthDate } : {}),
     ...(gender !== undefined ? { gender } : {}),
     ...(rewards !== undefined ? { rewards } : {}),
     ...(avatar !== undefined ? { avatar } : {}),
@@ -125,6 +143,15 @@ export function writeMembershipMetadata(input: MembershipMetadataFields): Prisma
   return {
     ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
     ...(input.email !== undefined && input.email.length > 0 ? { email: input.email } : {}),
+    ...(input.nationalId !== undefined && input.nationalId.length > 0
+      ? { nationalId: input.nationalId }
+      : {}),
+    ...(input.fatherName !== undefined && input.fatherName.length > 0
+      ? { fatherName: input.fatherName }
+      : {}),
+    ...(input.birthDate !== undefined && input.birthDate.length > 0
+      ? { birthDate: input.birthDate }
+      : {}),
     ...(input.gender !== undefined ? { gender: input.gender } : {}),
     ...(input.rewards !== undefined ? writeRewards(input.rewards) : {}),
     ...(input.avatar !== undefined ? { avatar: writeAvatar(input.avatar) } : {}),
@@ -146,6 +173,9 @@ export function mergeMembershipMetadata(
   return writeMembershipMetadata({
     displayName: patch.displayName !== undefined ? patch.displayName : current.displayName,
     email: patch.email !== undefined ? patch.email : current.email,
+    nationalId: patch.nationalId !== undefined ? patch.nationalId : current.nationalId,
+    fatherName: patch.fatherName !== undefined ? patch.fatherName : current.fatherName,
+    birthDate: patch.birthDate !== undefined ? patch.birthDate : current.birthDate,
     rewards: patch.rewards !== undefined ? patch.rewards : current.rewards,
     ...(nextGender !== undefined ? { gender: nextGender } : {}),
     ...(nextAvatar !== undefined ? { avatar: nextAvatar } : {}),

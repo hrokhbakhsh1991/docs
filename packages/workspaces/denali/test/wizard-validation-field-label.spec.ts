@@ -5,6 +5,8 @@ import { resolveDenaliWizardValidationFieldLabel } from "../src/ui/adapters/wiza
 
 const messages: Record<string, string> = {
   "composites.pricingParticipants.sectionTitle": "Participant requirements",
+  "composites.destination.sectionTitle": "Destination",
+  "composites.destinationCatalogMetric.peakHeight.sectionTitle": "Peak height (m)",
   "fields.participants.minimumAge": "Minimum age",
 };
 
@@ -30,6 +32,23 @@ describe("resolveDenaliWizardValidationFieldLabel", () => {
         translateWorkspaceMessage: mockDenaliTranslator,
       }),
       "Minimum age"
+    );
+  });
+
+  it("DN-VLABEL-04 resolves destination composite ids via section title", () => {
+    assert.equal(
+      resolveDenaliWizardValidationFieldLabel({
+        canonicalPath: "denali.destination",
+        translateWorkspaceMessage: mockDenaliTranslator,
+      }),
+      "Destination"
+    );
+    assert.equal(
+      resolveDenaliWizardValidationFieldLabel({
+        canonicalPath: "denali.destination-catalog-metric.peak-height",
+        translateWorkspaceMessage: mockDenaliTranslator,
+      }),
+      "Peak height (m)"
     );
   });
 

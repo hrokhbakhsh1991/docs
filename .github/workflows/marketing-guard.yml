@@ -12,16 +12,79 @@ on:
       - "apps/web/app/(public)/catalog/**"
       - "apps/web/src/auth/identity-bff-headers.ts"
       - "apps/portal/tests/e2e/portal-registration-smoke.spec.ts"
-      - "apps/web/tests/e2e/fixtures/catalog-registration-otp.ts"
+      - "apps/portal/tests/e2e/fixtures/catalog-registration-otp.ts"
+      - "apps/portal/app/catalog/**"
+      - "apps/portal/app/api/catalog/registrations/**"
+      - "apps/portal/test/catalog-registration-intake-form-contract.spec.ts"
+      - "apps/portal/test/portal-catalog-registrations-dispatch.spec.ts"
+      - "apps/portal/test/portal-catalog-registrations-bff.spec.ts"
+      - "apps/portal/test/public-catalog-registration-flow-contract.spec.ts"
+      - "apps/portal/test/resolve-intake-defaults.spec.ts"
+      - "apps/api/test/identity-me.spec.ts"
+      - "apps/api/src/openapi/denali-catalog-openapi.ts"
+      - "apps/portal/app/me/profile/**"
+      - "apps/portal/app/api/me/profile/**"
+      - "apps/portal/src/me/member-profile*"
+      - "apps/portal/test/portal-member-profile-bff.spec.ts"
+      - "scripts/guards/guard-portal-member-profile-boundary.mjs"
+      - "scripts/guards/architecture-truth-guard.mjs"
+      - "scripts/guards/lib/member-profile-architecture-truth.mjs"
+      - "scripts/guards/lib/member-profile-semantic-drift.mjs"
+      - "scripts/docs/check-architecture-doc-sync.mjs"
+      - "docs/phase-19/platform-portal-member-profile.mdoc"
+      - "docs/phase-19/platform-portal-member.mdoc"
+      - "docs/workspaces/denali/portal-member-profile.md"
+      - "packages/workspace-sdk/test/catalog-registration-dispatch.spec.ts"
+      - "packages/workspaces/denali/test/denali-catalog-transport-intake.spec.ts"
+      - "packages/workspace-sdk/test/registration-intake.contract.spec.ts"
+      - "packages/workspace-sdk/test/product-neutral-core.contract.spec.ts"
+      - "packages/workspace-sdk/src/operator/bookings/registration-intake.contract.ts"
+      - "docs/phase-19/platform-portal-registration-intake.mdoc"
+      - "scripts/p4-club-product-gate.sh"
+      - "scripts/p6-denali-product-gate.sh"
+      - "apps/web/test/format-registration-intake.spec.ts"
+      - "apps/api/test/platform-club-product-exit.spec.ts"
+      - "packages/workspaces/denali/test/resolve-denali-registration-transport.spec.ts"
+      - "packages/workspaces/denali/test/denali-registration-validation.spec.ts"
       - "apps/api/src/identity/public-auth*"
       - "apps/api/src/marketing/**"
       - "apps/api/test/public-auth*"
       - "packages/workspaces/urban/src/catalog/**"
       - "packages/workspaces/urban/src/http/resolve-urban-public-auth.ts"
       - "packages/workspaces/urban/src/urban.plugin.ts"
+      - "packages/workspaces/urban/theme/urban-marketing.css"
+      - "packages/workspaces/denali/theme/denali-marketing.css"
+      - "apps/api/src/exposure/resolve-denali-surface-exposure.ts"
+      - "apps/api/src/exposure/resolve-urban-surface-exposure.ts"
+      - "apps/marketing/playwright.marketing-urban.config.ts"
+      - "apps/marketing/scripts/smoke-marketing-urban-e2e-servers.mjs"
+      - "apps/marketing/tests/e2e/marketing-urban-catalog-smoke.spec.ts"
       - "apps/api/src/canonical/canonical-tour.service.ts"
       - "apps/api/test/marketing-catalog-revalidate.spec.ts"
       - "docs/workspaces/denali/public-catalog.md"
+      - "docs/workspaces/denali/marketing-catalog-ui.md"
+      - "docs/workspaces/denali/portal-registration-ui.md"
+      - "docs/dev/guest-seo-conformance.md"
+      - "docs/dev/guest-seo-e2e-hooks.yaml"
+      - "docs/dev/adr-guest-plugin/ADR-GP-004-guest-seo-manifest.md"
+      - "design-system/denali-club/MASTER.md"
+      - ".gitignore"
+      - "packages/workspaces/denali/theme/denali-portal.css"
+      - "packages/workspace-sdk/src/catalog/**"
+      - "packages/guest-surface-host/**"
+      - "packages/guest-surface-host/test/resolve-tour-ops-api-base-url.spec.ts"
+      - "scripts/guards/guard-public-catalog-m17.mjs"
+      - "scripts/guards/guard-marketing-semantic-seo.mjs"
+      - "scripts/guards/guard-guest-seo.mjs"
+      - "scripts/validate-json-ld.mjs"
+      - "scripts/test/fixtures/jsonld/**"
+      - "apps/marketing/lighthouserc.json"
+      - "apps/portal/next.config.ts"
+      - "apps/portal/app/layout.tsx"
+      - "apps/portal/src/i18n/app-fonts.google.ts"
+      - "apps/portal/test/guest-theme-stack.spec.ts"
+      - "apps/marketing/.env.local.example"
+      - "apps/portal/.env.local.example"
       - "packages/workspace-sdk/src/theme/**"
       - ".github/workflows/marketing-guard.yml"
   workflow_dispatch:
@@ -38,7 +101,23 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @app-tour/workspace-sdk run build
+      - run: pnpm --filter @app-tour/guest-surface-host run build
+      - run: pnpm --filter @app-tour/guest-surface-host run test
+      - run: pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/resolve-catalog-list-features.spec.ts test/resolve-catalog-detail-sections.spec.ts test/resolve-catalog-registration-support.spec.ts test/catalog-registration-dispatch.spec.ts test/registration-intake.contract.spec.ts test/product-neutral-core.contract.spec.ts && pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/denali-catalog-transport-intake.spec.ts
+      - run: pnpm --filter @apps/portal exec node --import tsx --test test/portal-catalog-registrations-dispatch.spec.ts test/portal-catalog-registrations-bff.spec.ts test/catalog-registration-intake-form-contract.spec.ts test/public-catalog-registration-flow-contract.spec.ts test/resolve-intake-defaults.spec.ts test/portal-member-profile-bff.spec.ts
+      - run: pnpm run guard:portal-member-profile-boundary
+      - run: pnpm run guard:architecture-truth
+      - run: pnpm --filter @apps/api exec node --import tsx --test test/denali-registration.spec.ts test/identity-me.spec.ts
+      - run: pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/resolve-denali-registration-transport.spec.ts test/denali-registration-validation.spec.ts
+      - run: pnpm --filter @apps/api exec node --import tsx --test test/platform-club-product-exit.spec.ts
       - run: pnpm --filter @apps/marketing run lint
+      - run: pnpm run guard:marketing-semantic-seo
+      - run: pnpm run guard:marketing-seo-prod
+      - run: pnpm run guard:marketing-meta-quality
+      - run: pnpm run guard:marketing-hreflang
+      - run: pnpm run guard:marketing-sitemap-host
+      - run: pnpm run guard:jsonld-xss
+      - run: node scripts/validate-json-ld.mjs --all-fixtures
       - run: pnpm --filter @apps/marketing run test
 
   marketing-smoke:
@@ -56,10 +135,25 @@ jobs:
       - run: pnpm --filter @app-tour/workspace-sdk run build
       - run: pnpm --filter @app-tour/workspace-denali run build
       - run: pnpm --filter @app-tour/workspace-urban run build
+      - run: pnpm --filter @app-tour/guest-surface-host run build
+      - run: pnpm --filter @app-tour/guest-surface-host run test
       - run: pnpm run guard:public-catalog-m17
+      - run: pnpm run guard:marketing-semantic-seo
+      - run: pnpm run guard:marketing-seo-prod
+      - run: pnpm run guard:marketing-meta-quality
+      - run: pnpm run guard:marketing-hreflang
+      - run: pnpm run guard:marketing-sitemap-host
+      - run: pnpm run guard:jsonld-xss
+      - run: node scripts/validate-json-ld.mjs --all-fixtures
       - run: pnpm --filter @apps/marketing exec playwright install --with-deps chromium
       - name: SMK-MKT-01..03
         env:
           CI: "true"
           STORAGE_DRIVER: memory
         run: pnpm --filter @apps/marketing run test:smoke
+      - name: SMK-MKT-06..09 SEO
+        env:
+          CI: "true"
+          STORAGE_DRIVER: memory
+          PW_NO_REUSE_SERVER: "1"
+        run: pnpm --filter @apps/marketing run test:smoke:seo

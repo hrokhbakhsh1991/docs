@@ -33,6 +33,16 @@ host_gaps:
   H-P6-04: resolved — p6-host-tenant-parity.spec.ts
   H-P6-05: resolved — host-subdomain-map.md runbook
 gate: pnpm run p6:gate
+catalog_ui_specs:
+  marketing: docs/workspaces/denali/marketing-catalog-ui.md
+  portal: docs/workspaces/denali/portal-registration-ui.md
+  portal_intake_platform: docs/phase-19/platform-portal-registration-intake.mdoc
+  portal_member_profile_platform: docs/phase-19/platform-portal-member-profile.mdoc
+  portal_member_profile_denali: docs/workspaces/denali/portal-member-profile.md
+  portal_member_registrations_denali: docs/workspaces/denali/portal-member-registrations.md
+  portal_member_profile_guard: scripts/guards/guard-portal-member-profile-boundary.mjs
+  authority: docs/workspaces/denali/public-catalog.md
+  m17_guard: scripts/guards/guard-public-catalog-m17.mjs
 vertical_slice: ../platform-denali-vertical-slice.mdoc
 agent_navigator: ../AGENT-NAVIGATOR.md
 agent_snapshot: AGENT-CURRENT-PHASE.yaml

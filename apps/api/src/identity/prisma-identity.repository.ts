@@ -23,18 +23,19 @@ import type {
   UserRoleAuditRecord,
 } from "./in-memory-identity.repository";
 import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
-import {
-  mergeMembershipMetadata,
-  readMembershipMetadata,
-  writeMembershipMetadata,
-  writePublicProfileMetadata,
-} from "./membership-metadata";
+import { MobileAlreadyRegisteredError } from "./identity.errors";
 import {
   InviteNotFoundError,
   MembershipNotFoundError,
   OwnershipTransferForbiddenError,
   OwnershipTransferTargetInvalidError,
 } from "./in-memory-identity.repository";
+import {
+  mergeMembershipMetadata,
+  readMembershipMetadata,
+  writeMembershipMetadata,
+  writePublicProfileMetadata,
+} from "./membership-metadata";
 
 function normalizeMobile(mobile: string): string {
   return canonicalizeLoginMobile(mobile);
@@ -63,6 +64,9 @@ function toMembershipRecord(row: {
     ...(row.workspaceId !== null ? { workspaceId: row.workspaceId } : {}),
     ...(metadata.displayName !== undefined ? { displayName: metadata.displayName } : {}),
     ...(metadata.email !== undefined ? { email: metadata.email } : {}),
+    ...(metadata.nationalId !== undefined ? { nationalId: metadata.nationalId } : {}),
+    ...(metadata.fatherName !== undefined ? { fatherName: metadata.fatherName } : {}),
+    ...(metadata.birthDate !== undefined ? { birthDate: metadata.birthDate } : {}),
     ...(metadata.gender !== undefined ? { gender: metadata.gender } : {}),
     ...(metadata.rewards !== undefined ? { rewards: metadata.rewards } : {}),
     ...(metadata.avatar !== undefined ? { avatar: metadata.avatar } : {}),
@@ -387,7 +391,11 @@ export class PrismaIdentityRepository implements IdentityRepository {
     userId: string,
     patch: {
       readonly displayName?: string;
+      readonly email?: string;
       readonly gender?: OperatorProfileGender | null;
+      readonly nationalId?: string;
+      readonly fatherName?: string;
+      readonly birthDate?: string;
     }
   ): Promise<IdentityMembershipRecord> {
     const updated = await withTenantRls(tenantId, async (tx) => {
@@ -402,7 +410,11 @@ export class PrismaIdentityRepository implements IdentityRepository {
         data: {
           membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
             ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
+            ...(patch.email !== undefined ? { email: patch.email.trim() } : {}),
             ...("gender" in patch ? { gender: patch.gender ?? null } : {}),
+            ...(patch.nationalId !== undefined ? { nationalId: patch.nationalId.trim() } : {}),
+            ...(patch.fatherName !== undefined ? { fatherName: patch.fatherName.trim() } : {}),
+            ...(patch.birthDate !== undefined ? { birthDate: patch.birthDate.trim() } : {}),
           }),
         },
       });
@@ -554,6 +566,39 @@ export class PrismaIdentityRepository implements IdentityRepository {
     });
 
     return { user, membership };
+  }
+
+  async updateUserMobile(userId: string, newMobile: string): Promise<IdentityUserRecord> {
+    const normalized = normalizeMobile(newMobile);
+    try {
+      await getPrisma().$transaction(async (tx) => {
+        const existing = await tx.user.findUnique({ where: { mobile: normalized } });
+        if (existing !== null && existing.id !== userId) {
+          throw new MobileAlreadyRegisteredError();
+        }
+        await tx.user.update({
+          where: { id: userId },
+          data: { mobile: normalized },
+        });
+        await tx.userTenant.updateMany({
+          where: { userId },
+          data: { sessionVersion: { increment: 1 } },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new MobileAlreadyRegisteredError();
+      }
+      throw error;
+    }
+    const row = await getPrisma().user.findUnique({ where: { id: userId } });
+    if (row === null) {
+      throw new MembershipNotFoundError(userId);
+    }
+    return { id: row.id, mobile: row.mobile };
   }
 
   seedMembership(_record: IdentityMembershipRecord): void {

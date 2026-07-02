@@ -12,8 +12,10 @@ import {
   isUrbanTourPublished,
   toUrbanPublicCatalogCard,
 } from "./catalog/urban-public-catalog-surface";
+import { urbanCatalogIntakeSurface } from "./catalog/urban-catalog-intake";
 import { extractUrbanTourListProjection } from "./list/tour-list-projection";
 import { urbanOperatorSettingsSurface } from "./settings/urban-settings.manifest";
+import { urbanExposureSurface } from "./exposure/urban-exposure.surface";
 
 /** Relative to workspace package root — published via package exports. */
 export const URBAN_THEME_TOKENS_STYLESHEET = "theme/tokens.css" as const;
@@ -332,12 +334,14 @@ export function createUrbanWorkspacePlugin(): WorkspacePlugin {
       isPublished: isUrbanTourPublished,
       toCatalogCard: toUrbanPublicCatalogCard,
     }),
+    catalogIntake: urbanCatalogIntakeSurface,
     tourList: deepFreezeValue({
       extractTourListProjection: extractUrbanTourListProjection,
     }),
     wizardHost: deepFreezeValue({ ...urbanWizardHostHooks }),
     draftTombstone: noopWorkspaceDraftTombstoneBinding,
     operatorSettings: deepFreezeValue({ ...urbanOperatorSettingsSurface }),
+    exposureSurface: deepFreezeValue({ ...urbanExposureSurface }),
   });
 }
 

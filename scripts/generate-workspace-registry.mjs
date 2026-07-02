@@ -408,17 +408,17 @@ export const WORKSPACE_WIZARD_CLONE_REMINT_BINDINGS = [] as const;
 
   for (const m of withClone) {
     const cr = m.wizardCloneRemint;
-    const exportNames = [
-      cr.workspaceTypeExport,
+    const photosExportNames = [
       cr.executeRemintExport,
       cr.assertDestKeyExport,
       cr.readConfigExport,
     ];
     if (cr.executeTourRemintExport != null) {
-      exportNames.push(cr.executeTourRemintExport);
+      photosExportNames.push(cr.executeTourRemintExport);
     }
     const spec = importSpecifier(m.package, cr.module);
-    importLines.add(`import { ${exportNames.join(", ")} } from "${spec}";`);
+    importLines.add(`import { ${cr.workspaceTypeExport} } from "${m.package}";`);
+    importLines.add(`import { ${photosExportNames.join(", ")} } from "${spec}";`);
     if (cr.serverRemintModule != null && cr.remintCanonicalExport != null) {
       const serverSpec = importSpecifier(m.package, cr.serverRemintModule);
       importLines.add(`import { ${cr.remintCanonicalExport} } from "${serverSpec}";`);
@@ -931,6 +931,13 @@ ${smokeBlocks.length > 0 ? smokeBlocks.join("\n") : ""}
 }
 
 /**
+ * @param {string} workspaceId
+ */
+function workspaceManifestConstPrefix(workspaceId) {
+  return workspaceId.replace(/-/g, "_").toUpperCase();
+}
+
+/**
  * @param {ReturnType<typeof discoverManifests>} manifests
  */
 export function generateWorkspaceHttpRoutes(manifests) {
@@ -967,7 +974,7 @@ export function generateWorkspaceHttpRoutes(manifests) {
         );
       }
       importLines.add(`import { ${group.manifestExport} } from "${handlerPackage}";`);
-      const staticConst = `${m.id.toUpperCase()}_${group.manifestExport}_STATIC_HANDLERS`;
+      const staticConst = `${workspaceManifestConstPrefix(m.id)}_${group.manifestExport}_STATIC_HANDLERS`;
       staticManifestBlocks.push(
         `const ${staticConst} = ${JSON.stringify(group.staticHandlers, null, 2)} as const satisfies Record<string, WorkspaceHttpHandlerKey>;`
       );
@@ -979,7 +986,7 @@ export function generateWorkspaceHttpRoutes(manifests) {
       }
 
       const paramHandlers = group.paramHandlers ?? {};
-      const paramConst = `${m.id.toUpperCase()}_${group.manifestExport}_PARAM_HANDLERS`;
+      const paramConst = `${workspaceManifestConstPrefix(m.id)}_${group.manifestExport}_PARAM_HANDLERS`;
       paramManifestBlocks.push(
         `const ${paramConst} = ${JSON.stringify(paramHandlers, null, 2)} as const satisfies Record<string, WorkspaceHttpHandlerKey>;`
       );
@@ -1306,7 +1313,984 @@ ${cases}
 `;
 }
 
+const CATALOG_LIST_ROUTE_KEY = /^GET \/[^/]+\/catalog$/;
+const CATALOG_DETAIL_ROUTE_KEY = /^GET \/[^/]+\/catalog\/:tourId$/;
+
+function parseGetRoutePath(routeKey) {
+  const spaceIndex = routeKey.indexOf(" ");
+  if (spaceIndex <= 0) {
+    throw new Error(`Invalid HTTP route key "${routeKey}" — expected "METHOD /path"`);
+  }
+  const method = routeKey.slice(0, spaceIndex);
+  if (method !== "GET") {
+    return null;
+  }
+  return routeKey.slice(spaceIndex + 1);
+}
+
+/**
+ * Extract guest catalog list path from manifest httpRoutes (PF-0.1).
+ * @param {Record<string, unknown>} manifest
+ * @returns {{ readonly pluginId: string, readonly listPath: string } | null}
+ */
+export function extractCatalogPathsFromManifest(manifest) {
+  const httpRoutes = manifest.httpRoutes;
+  if (httpRoutes === undefined || !Array.isArray(httpRoutes.groups)) {
+    return null;
+  }
+
+  let listPath = null;
+
+  for (let groupIndex = 0; groupIndex < httpRoutes.groups.length; groupIndex += 1) {
+    const group = httpRoutes.groups[groupIndex];
+    const staticHandlers = group.staticHandlers ?? {};
+    for (const routeKey of Object.keys(staticHandlers)) {
+      if (!CATALOG_LIST_ROUTE_KEY.test(routeKey)) {
+        continue;
+      }
+      const path = parseGetRoutePath(routeKey);
+      if (path === null) {
+        continue;
+      }
+      if (listPath !== null && listPath !== path) {
+        throw new Error(
+          `${manifest.id}: ambiguous catalog list route in httpRoutes.groups[${groupIndex}]`
+        );
+      }
+      listPath = path;
+    }
+
+    const paramHandlers = group.paramHandlers ?? {};
+    for (const routeKey of Object.keys(paramHandlers)) {
+      if (!CATALOG_DETAIL_ROUTE_KEY.test(routeKey)) {
+        continue;
+      }
+      const path = parseGetRoutePath(routeKey);
+      if (path === null) {
+        continue;
+      }
+      const basePath = path.replace(/\/:tourId$/, "");
+      if (listPath !== null && listPath !== basePath) {
+        throw new Error(
+          `${manifest.id}: catalog list/detail path mismatch in httpRoutes.groups[${groupIndex}]`
+        );
+      }
+      listPath = basePath;
+    }
+  }
+
+  if (listPath === null) {
+    return null;
+  }
+
+  return Object.freeze({
+    pluginId: manifest.id,
+    listPath,
+  });
+}
+
+export function generateWorkspaceCatalogPaths(manifests) {
+  /** @type {Record<string, string>} */
+  const listPaths = {};
+  for (const manifest of manifests) {
+    const extracted = extractCatalogPathsFromManifest(manifest);
+    if (manifest.guestCatalog?.enabled === true && extracted === null) {
+      throw new Error(`${manifest.id}: guestCatalog.enabled requires catalog httpRoutes`);
+    }
+    if (extracted === null) {
+      continue;
+    }
+    if (manifest.guestCatalog?.enabled === true && extracted.listPath.length === 0) {
+      throw new Error(`${manifest.id}: guestCatalog.enabled requires catalog httpRoutes`);
+    }
+    listPaths[extracted.pluginId] = extracted.listPath;
+  }
+
+  const entries = Object.entries(listPaths)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([pluginId, listPath]) => `  ${JSON.stringify(pluginId)}: ${JSON.stringify(listPath)},`)
+    .join("\n");
+
+  return `${BANNER}
+/** Guest catalog list paths — derived from workspace.manifest.json httpRoutes. */
+export const WORKSPACE_CATALOG_LIST_PATHS: Readonly<Record<string, string>> = Object.freeze({
+${entries}
+});
+`;
+}
+
+export function generateWorkspaceGuestConformance(manifests) {
+  const entries = manifests
+    .map((manifest) => {
+      const level = resolveGuestConformanceLevel(manifest);
+      return `  ${JSON.stringify(manifest.id)}: ${JSON.stringify(level)},`;
+    })
+    .join("\n");
+
+  return `${BANNER}
+/** Guest surface conformance level (PF-0.5 stub — manifest-derived only). */
+export const WORKSPACE_GUEST_CONFORMANCE_LEVELS: Readonly<
+  Record<string, "L0" | "L1" | "L2" | "L3">
+> = Object.freeze({
+${entries}
+});
+
+export type WorkspaceGuestConformanceLevel = "L0" | "L1" | "L2" | "L3";
+`;
+}
+
+/** @param {ReturnType<typeof discoverManifests>[number]} manifest */
+export function resolveGuestConformanceLevel(manifest) {
+  const hasCatalogRoutes = extractCatalogPathsFromManifest(manifest) !== null;
+  const hasRegistrationFlow = manifest.catalogRegistrationFlow !== undefined;
+  const hasMemberProfile = manifest.memberProfile !== undefined;
+  if (hasCatalogRoutes && hasRegistrationFlow && hasMemberProfile) {
+    return "L3";
+  }
+  if (hasCatalogRoutes && hasRegistrationFlow) {
+    return "L2";
+  }
+  if (hasCatalogRoutes) {
+    return "L1";
+  }
+  return "L0";
+}
+
+const GUEST_EXTENSION_MANIFEST_KEYS = [
+  "guestExtensionsVersion",
+  "guestCatalog",
+  "guestThemeStylesheets",
+  "catalogPresentation",
+  "catalogRegistrationFlow",
+  "memberProfile",
+  "guestSeo",
+];
+
+/**
+ * PF-3.1 / Phase 10.3 — every manifest with httpRoutes must codegen handler loaders from workspace package.
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertHttpRoutesManifest(manifest) {
+  const httpRoutes = manifest.httpRoutes;
+  if (httpRoutes === undefined) {
+    return;
+  }
+  if (httpRoutes.loadHandlersFromPackage !== true) {
+    throw new Error(
+      `${manifest.id}: httpRoutes.loadHandlersFromPackage: true is required (handlers live in workspace package)`
+    );
+  }
+  if (typeof httpRoutes.handlerPackage !== "string" || httpRoutes.handlerPackage.length === 0) {
+    throw new Error(`${manifest.id}: httpRoutes.handlerPackage must be a non-empty string`);
+  }
+}
+
+/**
+ * PF-1.8 — admission control for guest-facing manifest extensions.
+ * This is intentionally local and explicit rather than a runtime dependency on AJV.
+ *
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertGuestExtensionsManifest(manifest) {
+  const hasCatalogRoutes = extractCatalogPathsFromManifest(manifest) !== null;
+  const hasGuestExtension =
+    hasCatalogRoutes ||
+    GUEST_EXTENSION_MANIFEST_KEYS.some((key) => manifest[key] !== undefined);
+
+  if (!hasGuestExtension) {
+    return;
+  }
+
+  if (manifest.guestExtensionsVersion !== 1) {
+    throw new Error(`${manifest.id}: guestExtensionsVersion: 1 is required for guest-capable manifests`);
+  }
+
+  if (manifest.guestCatalog !== undefined) {
+    const guestCatalog = manifest.guestCatalog;
+    if (typeof guestCatalog !== "object" || Array.isArray(guestCatalog)) {
+      throw new Error(`${manifest.id}: guestCatalog must be an object`);
+    }
+    if (guestCatalog.enabled !== undefined && typeof guestCatalog.enabled !== "boolean") {
+      throw new Error(`${manifest.id}: guestCatalog.enabled must be boolean`);
+    }
+  }
+
+  if (manifest.guestThemeStylesheets !== undefined) {
+    const themes = manifest.guestThemeStylesheets;
+    if (typeof themes !== "object" || Array.isArray(themes)) {
+      throw new Error(`${manifest.id}: guestThemeStylesheets must be an object`);
+    }
+    for (const surface of ["portal", "marketing"]) {
+      if (themes[surface] === undefined) {
+        continue;
+      }
+      if (
+        !Array.isArray(themes[surface]) ||
+        themes[surface].some((entry) => typeof entry !== "string" || entry.length === 0)
+      ) {
+        throw new Error(`${manifest.id}: guestThemeStylesheets.${surface} must be a string array`);
+      }
+    }
+  }
+}
+
+const MEMBER_PROFILE_FIELD_IDS = new Set([
+  "displayName",
+  "mobile",
+  "email",
+  "nationalId",
+  "fatherName",
+  "birthDate",
+  "gender",
+  "avatarUrl",
+]);
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertMemberProfileManifest(manifest) {
+  const profile = manifest.memberProfile;
+  if (profile === undefined) {
+    return;
+  }
+  if (typeof profile !== "object") {
+    throw new Error(`${manifest.id}: memberProfile must be an object`);
+  }
+  for (const key of ["editableFields", "readOnlyFields"]) {
+    const fields = profile[key];
+    if (!Array.isArray(fields) || fields.length === 0) {
+      throw new Error(`${manifest.id}: memberProfile.${key} must be a non-empty string array`);
+    }
+    for (const fieldId of fields) {
+      if (typeof fieldId !== "string" || !MEMBER_PROFILE_FIELD_IDS.has(fieldId)) {
+        throw new Error(`${manifest.id}: memberProfile.${key} contains invalid field "${fieldId}"`);
+      }
+    }
+  }
+  const editable = new Set(profile.editableFields);
+  for (const fieldId of profile.readOnlyFields) {
+    if (editable.has(fieldId)) {
+      throw new Error(`${manifest.id}: memberProfile field "${fieldId}" cannot be both editable and readOnly`);
+    }
+  }
+  if (profile.sections !== undefined) {
+    if (!Array.isArray(profile.sections)) {
+      throw new Error(`${manifest.id}: memberProfile.sections must be an array`);
+    }
+    const exposed = new Set([...profile.editableFields, ...profile.readOnlyFields]);
+    for (const section of profile.sections) {
+      if (typeof section?.id !== "string" || section.id.length === 0) {
+        throw new Error(`${manifest.id}: memberProfile.sections[].id is required`);
+      }
+      if (!Array.isArray(section.fields) || section.fields.length === 0) {
+        throw new Error(`${manifest.id}: memberProfile.sections[${section.id}].fields is required`);
+      }
+      for (const fieldId of section.fields) {
+        if (!exposed.has(fieldId)) {
+          throw new Error(
+            `${manifest.id}: memberProfile.sections[${section.id}] references unknown field "${fieldId}"`
+          );
+        }
+      }
+    }
+  }
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceMemberProfileCapabilities(manifests) {
+  /** @type {Record<string, object>} */
+  const capabilities = {};
+  for (const manifest of manifests) {
+    assertMemberProfileManifest(manifest);
+    if (manifest.memberProfile === undefined) {
+      continue;
+    }
+    const profile = manifest.memberProfile;
+    const sectionBlocks =
+      profile.sections === undefined
+        ? ""
+        : profile.sections
+            .map(
+              (section) => `      Object.freeze({
+        id: ${JSON.stringify(section.id)},
+        fields: Object.freeze(${JSON.stringify(section.fields)} as const satisfies readonly MemberProfileFieldId[]),
+      }),`
+            )
+            .join("\n");
+    const sectionsEmit =
+      profile.sections === undefined
+        ? ""
+        : `,
+    sections: Object.freeze([
+${sectionBlocks}
+    ])`;
+    const mobileChangeEmit =
+      profile.mobileChangeViaOtp === true ? `,
+    mobileChangeViaOtp: true` : "";
+    capabilities[manifest.id] = `  ${JSON.stringify(manifest.id)}: Object.freeze({
+    editableFields: Object.freeze(${JSON.stringify(profile.editableFields)} as const satisfies readonly MemberProfileFieldId[]),
+    readOnlyFields: Object.freeze(${JSON.stringify(profile.readOnlyFields)} as const satisfies readonly MemberProfileFieldId[])${sectionsEmit}${mobileChangeEmit}
+  }),`;
+  }
+
+  const entries = Object.values(capabilities).join("\n");
+
+  return `${BANNER}
+import type { MemberProfileFieldId } from "./member-profile-field-id";
+
+export type GeneratedMemberProfileCapabilities = Readonly<{
+  readonly editableFields: readonly MemberProfileFieldId[];
+  readonly readOnlyFields: readonly MemberProfileFieldId[];
+  readonly mobileChangeViaOtp?: boolean;
+  readonly sections?: readonly Readonly<{
+    readonly id: string;
+    readonly fields: readonly MemberProfileFieldId[];
+  }>[];
+}>;
+
+/** Portal member profile capability rows — derived from workspace.manifest.json memberProfile. */
+export const WORKSPACE_MEMBER_PROFILE_CAPABILITIES: Readonly<
+  Record<string, GeneratedMemberProfileCapabilities>
+> = Object.freeze({
+${entries}
+});
+`;
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertCatalogPresentationManifest(manifest) {
+  const hasCatalogRoutes = extractCatalogPathsFromManifest(manifest) !== null;
+  const presentation = manifest.catalogPresentation;
+  if (!hasCatalogRoutes) {
+    if (presentation !== undefined) {
+      throw new Error(`${manifest.id}: catalogPresentation requires catalog httpRoutes`);
+    }
+    return;
+  }
+  if (presentation === undefined || typeof presentation !== "object") {
+    throw new Error(`${manifest.id}: catalogPresentation is required when catalog httpRoutes exist`);
+  }
+  const listFeatures = presentation.listFeatures;
+  if (listFeatures === undefined || typeof listFeatures.cityFilter !== "boolean") {
+    throw new Error(`${manifest.id}: catalogPresentation.listFeatures.cityFilter must be boolean`);
+  }
+  const detailSections = presentation.detailSections;
+  if (detailSections === undefined || typeof detailSections !== "object") {
+    throw new Error(`${manifest.id}: catalogPresentation.detailSections is required`);
+  }
+  for (const key of ["difficulty", "fitness", "itinerary", "policies"]) {
+    if (typeof detailSections[key] !== "boolean") {
+      throw new Error(`${manifest.id}: catalogPresentation.detailSections.${key} must be boolean`);
+    }
+  }
+}
+
+/**
+ * @param {unknown} value
+ * @param {string} path
+ */
+function assertGuestSeoString(value, path) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${path} must be a non-empty string`);
+  }
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertGuestSeoManifest(manifest) {
+  const guestSeo = manifest.guestSeo;
+  if (guestSeo === undefined) {
+    return;
+  }
+  if (typeof guestSeo !== "object" || Array.isArray(guestSeo)) {
+    throw new Error(`${manifest.id}: guestSeo must be an object`);
+  }
+  const marketing = guestSeo.marketing;
+  if (marketing === undefined || typeof marketing !== "object" || Array.isArray(marketing)) {
+    throw new Error(`${manifest.id}: guestSeo.marketing is required`);
+  }
+  for (const key of ["listTitleKey", "listDescriptionKey", "detailTitleTemplate"]) {
+    if (marketing[key] !== undefined) {
+      assertGuestSeoString(marketing[key], `${manifest.id}: guestSeo.marketing.${key}`);
+    }
+  }
+  const jsonLd = marketing.jsonLd;
+  if (jsonLd === undefined || typeof jsonLd !== "object" || Array.isArray(jsonLd)) {
+    throw new Error(`${manifest.id}: guestSeo.marketing.jsonLd is required`);
+  }
+  if (typeof jsonLd.required !== "boolean") {
+    throw new Error(`${manifest.id}: guestSeo.marketing.jsonLd.required must be boolean`);
+  }
+  if (
+    !Array.isArray(jsonLd.schemaTypes) ||
+    jsonLd.schemaTypes.length === 0 ||
+    jsonLd.schemaTypes.some((entry) => typeof entry !== "string" || entry.length === 0)
+  ) {
+    throw new Error(`${manifest.id}: guestSeo.marketing.jsonLd.schemaTypes must be a non-empty string array`);
+  }
+  assertGuestSeoString(jsonLd.builderExport, `${manifest.id}: guestSeo.marketing.jsonLd.builderExport`);
+  if (jsonLd.richResultsProfile !== undefined) {
+    assertGuestSeoString(
+      jsonLd.richResultsProfile,
+      `${manifest.id}: guestSeo.marketing.jsonLd.richResultsProfile`
+    );
+  }
+  const openGraph = marketing.openGraph;
+  if (openGraph !== undefined) {
+    if (typeof openGraph !== "object" || Array.isArray(openGraph)) {
+      throw new Error(`${manifest.id}: guestSeo.marketing.openGraph must be an object`);
+    }
+    if (openGraph.type !== undefined) {
+      assertGuestSeoString(openGraph.type, `${manifest.id}: guestSeo.marketing.openGraph.type`);
+    }
+    if (
+      openGraph.twitterCard !== undefined &&
+      openGraph.twitterCard !== "summary" &&
+      openGraph.twitterCard !== "summary_large_image"
+    ) {
+      throw new Error(
+        `${manifest.id}: guestSeo.marketing.openGraph.twitterCard must be summary or summary_large_image`
+      );
+    }
+  }
+  const sitemap = marketing.sitemap;
+  if (sitemap !== undefined) {
+    if (typeof sitemap !== "object" || Array.isArray(sitemap)) {
+      throw new Error(`${manifest.id}: guestSeo.marketing.sitemap must be an object`);
+    }
+    const allowedChangefreq = new Set([
+      "always",
+      "hourly",
+      "daily",
+      "weekly",
+      "monthly",
+      "yearly",
+      "never",
+    ]);
+    if (sitemap.changefreq !== undefined && !allowedChangefreq.has(sitemap.changefreq)) {
+      throw new Error(`${manifest.id}: guestSeo.marketing.sitemap.changefreq is invalid`);
+    }
+    if (
+      sitemap.priority !== undefined &&
+      (typeof sitemap.priority !== "number" || sitemap.priority < 0 || sitemap.priority > 1)
+    ) {
+      throw new Error(`${manifest.id}: guestSeo.marketing.sitemap.priority must be between 0 and 1`);
+    }
+    if (sitemap.includeImages !== undefined && typeof sitemap.includeImages !== "boolean") {
+      throw new Error(`${manifest.id}: guestSeo.marketing.sitemap.includeImages must be boolean`);
+    }
+  }
+  const pagination = marketing.pagination;
+  if (pagination !== undefined) {
+    if (typeof pagination !== "object" || Array.isArray(pagination)) {
+      throw new Error(`${manifest.id}: guestSeo.marketing.pagination must be an object`);
+    }
+    const params = pagination.noindexQueryParams;
+    if (
+      params !== undefined &&
+      (!Array.isArray(params) ||
+        params.some((entry) => typeof entry !== "string" || entry.length === 0))
+    ) {
+      throw new Error(
+        `${manifest.id}: guestSeo.marketing.pagination.noindexQueryParams must be a string array`
+      );
+    }
+  }
+}
+
+/**
+ * @param {Record<string, unknown>} marketing
+ */
+function serializeGuestSeoMarketingObject(marketing) {
+  const lines = [];
+  for (const key of ["listTitleKey", "listDescriptionKey", "detailTitleTemplate"]) {
+    if (marketing[key] !== undefined) {
+      lines.push(`      ${key}: ${JSON.stringify(marketing[key])},`);
+    }
+  }
+  const jsonLd = /** @type {Record<string, unknown>} */ (marketing.jsonLd);
+  lines.push("      jsonLd: Object.freeze({");
+  lines.push(`        required: ${jsonLd.required},`);
+  lines.push(
+    `        schemaTypes: Object.freeze(${JSON.stringify(jsonLd.schemaTypes)}),`
+  );
+  lines.push(`        builderExport: ${JSON.stringify(jsonLd.builderExport)},`);
+  if (jsonLd.richResultsProfile !== undefined) {
+    lines.push(
+      `        richResultsProfile: ${JSON.stringify(jsonLd.richResultsProfile)},`
+    );
+  }
+  lines.push("      }),");
+  const openGraph = marketing.openGraph;
+  if (openGraph !== undefined && typeof openGraph === "object" && !Array.isArray(openGraph)) {
+    lines.push("      openGraph: Object.freeze({");
+    const og = /** @type {Record<string, unknown>} */ (openGraph);
+    if (og.type !== undefined) {
+      lines.push(`        type: ${JSON.stringify(og.type)},`);
+    }
+    if (og.twitterCard !== undefined) {
+      lines.push(`        twitterCard: ${JSON.stringify(og.twitterCard)},`);
+    }
+    lines.push("      }),");
+  }
+  const sitemap = marketing.sitemap;
+  if (sitemap !== undefined && typeof sitemap === "object" && !Array.isArray(sitemap)) {
+    lines.push("      sitemap: Object.freeze({");
+    const sm = /** @type {Record<string, unknown>} */ (sitemap);
+    if (sm.changefreq !== undefined) {
+      lines.push(`        changefreq: ${JSON.stringify(sm.changefreq)},`);
+    }
+    if (sm.priority !== undefined) {
+      lines.push(`        priority: ${sm.priority},`);
+    }
+    if (sm.includeImages !== undefined) {
+      lines.push(`        includeImages: ${sm.includeImages},`);
+    }
+    lines.push("      }),");
+  }
+  const pagination = marketing.pagination;
+  if (pagination !== undefined && typeof pagination === "object" && !Array.isArray(pagination)) {
+    const params = /** @type {Record<string, unknown>} */ (pagination).noindexQueryParams;
+    if (Array.isArray(params)) {
+      lines.push("      pagination: Object.freeze({");
+      lines.push(`        noindexQueryParams: Object.freeze(${JSON.stringify(params)}),`);
+      lines.push("      }),");
+    }
+  }
+  return lines.join("\n");
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceGuestSeo(manifests) {
+  /** @type {Record<string, object>} */
+  const seoByPlugin = {};
+  for (const manifest of manifests) {
+    assertGuestSeoManifest(manifest);
+    if (manifest.guestSeo === undefined) {
+      continue;
+    }
+    seoByPlugin[manifest.id] = Object.freeze({
+      marketing: manifest.guestSeo.marketing,
+    });
+  }
+
+  const entries = Object.entries(seoByPlugin)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([pluginId, config]) => {
+      const marketing = /** @type {Record<string, unknown>} */ (config.marketing);
+      return `  ${JSON.stringify(pluginId)}: Object.freeze({
+    marketing: Object.freeze({
+${serializeGuestSeoMarketingObject(marketing)}
+    }),
+  }),`;
+    })
+    .join("\n");
+
+  return `${BANNER}
+export type WorkspaceGuestSeoJsonLd = Readonly<{
+  readonly required: boolean;
+  readonly schemaTypes: readonly string[];
+  readonly builderExport: string;
+  readonly richResultsProfile?: string;
+}>;
+
+export type WorkspaceGuestSeoMarketing = Readonly<{
+  readonly listTitleKey?: string;
+  readonly listDescriptionKey?: string;
+  readonly detailTitleTemplate?: string;
+  readonly jsonLd: WorkspaceGuestSeoJsonLd;
+  readonly openGraph?: Readonly<{
+    readonly type?: string;
+    readonly twitterCard?: "summary" | "summary_large_image";
+  }>;
+  readonly sitemap?: Readonly<{
+    readonly changefreq?:
+      | "always"
+      | "hourly"
+      | "daily"
+      | "weekly"
+      | "monthly"
+      | "yearly"
+      | "never";
+    readonly priority?: number;
+    readonly includeImages?: boolean;
+  }>;
+  readonly pagination?: Readonly<{
+    readonly noindexQueryParams?: readonly string[];
+  }>;
+}>;
+
+export type WorkspaceGuestSeoConfig = Readonly<{
+  readonly marketing: WorkspaceGuestSeoMarketing;
+}>;
+
+/** Guest marketing SEO policy — derived from workspace.manifest.json guestSeo. */
+export const WORKSPACE_GUEST_SEO: Readonly<Record<string, WorkspaceGuestSeoConfig>> = Object.freeze({
+${entries}
+});
+`;
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceCatalogListFeatures(manifests) {
+  /** @type {Record<string, { cityFilter: boolean }>} */
+  const features = {};
+  for (const manifest of manifests) {
+    assertCatalogPresentationManifest(manifest);
+    if (manifest.catalogPresentation === undefined) {
+      continue;
+    }
+    features[manifest.id] = Object.freeze({
+      cityFilter: manifest.catalogPresentation.listFeatures.cityFilter,
+    });
+  }
+
+  const entries = Object.entries(features)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([pluginId, value]) =>
+        `  ${JSON.stringify(pluginId)}: Object.freeze({ cityFilter: ${value.cityFilter} }),`
+    )
+    .join("\n");
+
+  return `${BANNER}
+/** Marketing catalog list features — derived from workspace.manifest.json catalogPresentation. */
+export const WORKSPACE_CATALOG_LIST_FEATURES: Readonly<
+  Record<string, Readonly<{ readonly cityFilter: boolean }>>
+> = Object.freeze({
+${entries}
+});
+`;
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceCatalogDetailSections(manifests) {
+  /** @type {Record<string, Record<string, boolean>>} */
+  const sections = {};
+  for (const manifest of manifests) {
+    assertCatalogPresentationManifest(manifest);
+    if (manifest.catalogPresentation === undefined) {
+      continue;
+    }
+    const detailSections = manifest.catalogPresentation.detailSections;
+    sections[manifest.id] = Object.freeze({
+      difficulty: detailSections.difficulty,
+      fitness: detailSections.fitness,
+      itinerary: detailSections.itinerary,
+      policies: detailSections.policies,
+    });
+  }
+
+  const entries = Object.entries(sections)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([pluginId, value]) => {
+      return `  ${JSON.stringify(pluginId)}: Object.freeze({
+    difficulty: ${value.difficulty},
+    fitness: ${value.fitness},
+    itinerary: ${value.itinerary},
+    policies: ${value.policies},
+  }),`;
+    })
+    .join("\n");
+
+  return `${BANNER}
+/** Marketing catalog detail section gates — derived from workspace.manifest.json catalogPresentation. */
+export const WORKSPACE_CATALOG_DETAIL_SECTIONS: Readonly<
+  Record<
+    string,
+    Readonly<{
+      readonly difficulty: boolean;
+      readonly fitness: boolean;
+      readonly itinerary: boolean;
+      readonly policies: boolean;
+    }>
+  >
+> = Object.freeze({
+${entries}
+});
+`;
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertDevBootstrapPluginTenantIds(manifest) {
+  const devBootstrap = manifest.devBootstrap;
+  if (devBootstrap === undefined) {
+    return;
+  }
+  const ids = devBootstrap.pluginTenantIds;
+  if (ids === undefined) {
+    return;
+  }
+  if (!Array.isArray(ids) || ids.length === 0 || ids.some((id) => typeof id !== "string" || id.length === 0)) {
+    throw new Error(`${manifest.id}: devBootstrap.pluginTenantIds must be a non-empty string array`);
+  }
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceDevPluginIds(manifests) {
+  /** @type {Record<string, string>} */
+  const tenantToPlugin = {};
+  for (const manifest of manifests) {
+    assertDevBootstrapPluginTenantIds(manifest);
+    const ids = manifest.devBootstrap?.pluginTenantIds;
+    if (ids === undefined) {
+      continue;
+    }
+    for (const tenantId of ids) {
+      if (tenantToPlugin[tenantId] !== undefined && tenantToPlugin[tenantId] !== manifest.id) {
+        throw new Error(
+          `${manifest.id}: devBootstrap.pluginTenantIds tenant ${tenantId} already mapped to "${tenantToPlugin[tenantId]}"`
+        );
+      }
+      tenantToPlugin[tenantId] = manifest.id;
+    }
+  }
+
+  const entries = Object.entries(tenantToPlugin)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([tenantId, pluginId]) => `  ${JSON.stringify(tenantId)}: ${JSON.stringify(pluginId)},`)
+    .join("\n");
+
+  return `${BANNER}
+/** Dev-only tenant UUID → workspace plugin id (guest-surface-host). */
+export const DEV_PLUGIN_ID_BY_TENANT_ID: Readonly<Record<string, string>> = Object.freeze({
+${entries}
+});
+`;
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ * @param {ReturnType<typeof discoverManifests>} allManifests
+ */
+export function assertCatalogRegistrationFlowManifest(manifest, allManifests) {
+  const cfg = manifest.catalogRegistrationFlow;
+  if (cfg === undefined) {
+    return;
+  }
+  if (typeof cfg.surfaceExport !== "string" || cfg.surfaceExport.length === 0) {
+    throw new Error(`${manifest.id}: catalogRegistrationFlow.surfaceExport is required`);
+  }
+  const steps = cfg.steps;
+  if (steps === undefined || typeof steps !== "object") {
+    throw new Error(`${manifest.id}: catalogRegistrationFlow.steps is required`);
+  }
+  if (steps.mode === "bundle") {
+    if (typeof steps.export !== "string" || steps.export.length === 0) {
+      throw new Error(`${manifest.id}: catalogRegistrationFlow.steps.export is required for bundle mode`);
+    }
+    return;
+  }
+  if (steps.mode === "compose") {
+    const authSource = steps.reuseAuthStepsFrom ?? steps.reuseFrom;
+    if (typeof authSource !== "string" || authSource.length === 0) {
+      throw new Error(
+        `${manifest.id}: catalogRegistrationFlow.steps.reuseAuthStepsFrom or reuseFrom is required for compose mode`
+      );
+    }
+    if (authSource !== "shared") {
+      const source = allManifests.find((m) => m.id === authSource);
+      if (source === undefined) {
+        throw new Error(
+          `${manifest.id}: catalogRegistrationFlow.steps reuse source unknown workspace "${authSource}"`
+        );
+      }
+      if (source.catalogRegistrationFlow === undefined) {
+        throw new Error(
+          `${manifest.id}: catalogRegistrationFlow reuse source "${authSource}" has no catalogRegistrationFlow block`
+        );
+      }
+    }
+    const components = steps.components;
+    if (components === undefined || typeof components !== "object") {
+      throw new Error(`${manifest.id}: catalogRegistrationFlow.steps.components is required for compose mode`);
+    }
+    for (const key of ["intake", "done"]) {
+      if (typeof components[key] !== "string" || components[key].length === 0) {
+        throw new Error(`${manifest.id}: catalogRegistrationFlow.steps.components.${key} is required`);
+      }
+    }
+    return;
+  }
+  throw new Error(`${manifest.id}: catalogRegistrationFlow.steps.mode must be "bundle" or "compose"`);
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceRegistrationFlowPlugins(manifests) {
+  for (const manifest of manifests) {
+    assertCatalogRegistrationFlowManifest(manifest, manifests);
+  }
+
+  const configured = manifests.filter((m) => m.catalogRegistrationFlow !== undefined);
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const registerBlocks = [];
+
+  for (const manifest of configured) {
+    const cfg = manifest.catalogRegistrationFlow;
+    const surfaceSpec = `${manifest.package}/catalog-registration-flow`;
+    importLines.add(
+      `import { ${cfg.surfaceExport} } from "${surfaceSpec}";`
+    );
+
+    if (cfg.steps.mode === "bundle") {
+      const stepsSpec = `${manifest.package}/catalog-registration-flow/react`;
+      importLines.add(`import { ${cfg.steps.export} } from "${stepsSpec}";`);
+      registerBlocks.push(`  registerWorkspaceRegistrationFlowPlugin({
+    id: ${JSON.stringify(manifest.id)},
+    catalogRegistrationFlow: ${cfg.surfaceExport},
+  });
+  registerWorkspaceRegistrationFlowSteps(${JSON.stringify(manifest.id)}, ${cfg.steps.export});`);
+      continue;
+    }
+
+    const authSource = cfg.steps.reuseAuthStepsFrom ?? cfg.steps.reuseFrom;
+    const localSpec = `${manifest.package}/catalog-registration-flow/react`;
+    importLines.add(
+      `import { ${cfg.steps.components.intake}, ${cfg.steps.components.done} } from "${localSpec}";`
+    );
+
+    if (authSource === "shared") {
+      importLines.add(
+        `import { CatalogRegistrationOtpStep, CatalogRegistrationPhoneStep, CatalogRegistrationProfileStep } from "@app-tour/catalog-registration-flow-ui/react";`
+      );
+      registerBlocks.push(`  registerWorkspaceRegistrationFlowPlugin({
+    id: ${JSON.stringify(manifest.id)},
+    catalogRegistrationFlow: ${cfg.surfaceExport},
+  });
+  registerWorkspaceRegistrationFlowSteps(${JSON.stringify(manifest.id)}, {
+    phone: CatalogRegistrationPhoneStep,
+    otp: CatalogRegistrationOtpStep,
+    profile: CatalogRegistrationProfileStep,
+    intake: ${cfg.steps.components.intake},
+    done: ${cfg.steps.components.done},
+  });`);
+      continue;
+    }
+
+    const source = manifests.find((m) => m.id === authSource);
+    if (source === undefined) {
+      throw new Error(`${manifest.id}: internal error resolving auth step reuse source`);
+    }
+    const reuseSpec = `${source.package}/catalog-registration-flow/react`;
+    importLines.add(
+      `import { DenaliOtpStep, DenaliPhoneStep, DenaliProfileStep } from "${reuseSpec}";`
+    );
+    registerBlocks.push(`  registerWorkspaceRegistrationFlowPlugin({
+    id: ${JSON.stringify(manifest.id)},
+    catalogRegistrationFlow: ${cfg.surfaceExport},
+  });
+  registerWorkspaceRegistrationFlowSteps(${JSON.stringify(manifest.id)}, {
+    phone: DenaliPhoneStep,
+    otp: DenaliOtpStep,
+    profile: DenaliProfileStep,
+    intake: ${cfg.steps.components.intake},
+    done: ${cfg.steps.components.done},
+  });`);
+  }
+
+  return `${BANNER}
+import { registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
+${[...importLines].sort().join("\n")}
+
+import { registerWorkspaceRegistrationFlowSteps } from "./registration-flow";
+
+export function registerWorkspaceRegistrationFlowPluginsFromManifest(): void {
+${registerBlocks.join("\n\n")}
+}
+`;
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertCatalogRegistrationTransportInitializerManifest(manifest) {
+  const cfg = manifest.catalogRegistrationFlow;
+  if (cfg === undefined || cfg.transportInitializerExport === undefined) {
+    return;
+  }
+  if (typeof cfg.transportInitializerExport !== "string" || cfg.transportInitializerExport.length === 0) {
+    throw new Error(
+      `${manifest.id}: catalogRegistrationFlow.transportInitializerExport must be a non-empty string`
+    );
+  }
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceRegistrationTransportInitializers(manifests) {
+  for (const manifest of manifests) {
+    assertCatalogRegistrationTransportInitializerManifest(manifest);
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const callLines = [];
+
+  for (const manifest of manifests) {
+    const exportName = manifest.catalogRegistrationFlow?.transportInitializerExport;
+    if (exportName === undefined) {
+      continue;
+    }
+    const spec = `${manifest.package}/catalog-registration-flow`;
+    importLines.add(`import { ${exportName} } from "${spec}";`);
+    callLines.push(`  ${exportName}();`);
+  }
+
+  const body =
+    callLines.length > 0
+      ? callLines.join("\n")
+      : "  // no workspace declares catalogRegistrationFlow.transportInitializerExport";
+
+  return `${BANNER}
+${[...importLines].sort().join("\n")}
+
+export function registerWorkspaceRegistrationTransportInitializersFromManifest(): void {
+${body}
+}
+`;
+}
+
+export function generateWorkspaceIntakePluginBootstrap(manifests) {
+  const importLines = manifests.map((m) => {
+    const spec = importSpecifier(m.package, m.plugin.entry);
+    return `import { ${m.plugin.export} } from "${spec}";`;
+  });
+
+  const pluginCalls = manifests.map((m) => `    ${m.plugin.export}(),`).join("\n");
+
+  return `${BANNER}
+import { registerWorkspaceIntakePlugin } from "@app-tour/workspace-sdk";
+${importLines.join("\n")}
+
+export function registerWorkspaceIntakePluginsFromManifest(): void {
+  for (const plugin of [
+${pluginCalls}
+  ]) {
+    if (plugin.catalogIntake === undefined) {
+      continue;
+    }
+    registerWorkspaceIntakePlugin({
+      id: plugin.id,
+      catalogIntake: plugin.catalogIntake,
+    });
+  }
+}
+`;
+}
+
 export function generateAllOutputs(manifests) {
+  for (const manifest of manifests) {
+    assertGuestExtensionsManifest(manifest);
+    assertHttpRoutesManifest(manifest);
+  }
+
   return {
     sdk: generateSdkBindings(manifests),
     api: generateApiRegistry(manifests),
@@ -1325,6 +2309,16 @@ export function generateAllOutputs(manifests) {
     themeStylesheets: generateWorkspaceThemeStylesheets(manifests),
     guestThemeStylesheetsPortal: generateGuestThemeStylesheets(manifests, "portal"),
     guestThemeStylesheetsMarketing: generateGuestThemeStylesheets(manifests, "marketing"),
+    workspaceIntakePlugins: generateWorkspaceIntakePluginBootstrap(manifests),
+    registrationFlowPlugins: generateWorkspaceRegistrationFlowPlugins(manifests),
+    registrationTransportInitializers: generateWorkspaceRegistrationTransportInitializers(manifests),
+    catalogPaths: generateWorkspaceCatalogPaths(manifests),
+    catalogListFeatures: generateWorkspaceCatalogListFeatures(manifests),
+    catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
+    devPluginIds: generateWorkspaceDevPluginIds(manifests),
+    memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
+    guestConformance: generateWorkspaceGuestConformance(manifests),
+    guestSeo: generateWorkspaceGuestSeo(manifests),
     outbox: generateOutboxSideEffects(manifests),
     settingsEnrichers: generateSettingsEnrichers(manifests),
     devBootstrap: generateDevBootstrapBindings(manifests),
@@ -1378,6 +2372,46 @@ const OUTPUT_PATHS = {
   guestThemeStylesheetsMarketing: join(
     REPO_ROOT,
     "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+  ),
+  workspaceIntakePlugins: join(
+    REPO_ROOT,
+    "packages/workspace-plugin-host/src/workspace-intake-plugins.generated.ts"
+  ),
+  registrationFlowPlugins: join(
+    REPO_ROOT,
+    "packages/workspace-plugin-host/src/workspace-registration-flow-plugins.generated.ts"
+  ),
+  registrationTransportInitializers: join(
+    REPO_ROOT,
+    "packages/workspace-plugin-host/src/workspace-registration-transport-initializers.generated.ts"
+  ),
+  catalogPaths: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-catalog-paths.generated.ts"
+  ),
+  catalogListFeatures: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-catalog-list-features.generated.ts"
+  ),
+  catalogDetailSections: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-catalog-detail-sections.generated.ts"
+  ),
+  devPluginIds: join(
+    REPO_ROOT,
+    "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts"
+  ),
+  memberProfileCapabilities: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/profile/workspace-member-profile-capabilities.generated.ts"
+  ),
+  guestConformance: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-guest-conformance.generated.ts"
+  ),
+  guestSeo: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-guest-seo.generated.ts"
   ),
   outbox: join(REPO_ROOT, "apps/api/src/workspace/workspace-outbox-side-effects.generated.ts"),
   settingsEnrichers: join(
@@ -1434,6 +2468,16 @@ function main() {
       "themeStylesheets",
       "guestThemeStylesheetsPortal",
       "guestThemeStylesheetsMarketing",
+      "workspaceIntakePlugins",
+      "registrationFlowPlugins",
+      "registrationTransportInitializers",
+      "catalogPaths",
+      "catalogListFeatures",
+      "catalogDetailSections",
+      "devPluginIds",
+      "memberProfileCapabilities",
+      "guestConformance",
+      "guestSeo",
       "outbox",
       "settingsEnrichers",
       "devBootstrap",
@@ -1477,6 +2521,19 @@ function main() {
     OUTPUT_PATHS.guestThemeStylesheetsMarketing,
     generated.guestThemeStylesheetsMarketing
   );
+  writeFileSync(OUTPUT_PATHS.workspaceIntakePlugins, generated.workspaceIntakePlugins);
+  writeFileSync(OUTPUT_PATHS.registrationFlowPlugins, generated.registrationFlowPlugins);
+  writeFileSync(
+    OUTPUT_PATHS.registrationTransportInitializers,
+    generated.registrationTransportInitializers
+  );
+  writeFileSync(OUTPUT_PATHS.catalogPaths, generated.catalogPaths);
+  writeFileSync(OUTPUT_PATHS.catalogListFeatures, generated.catalogListFeatures);
+  writeFileSync(OUTPUT_PATHS.catalogDetailSections, generated.catalogDetailSections);
+  writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
+  writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
+  writeFileSync(OUTPUT_PATHS.guestConformance, generated.guestConformance);
+  writeFileSync(OUTPUT_PATHS.guestSeo, generated.guestSeo);
   writeFileSync(OUTPUT_PATHS.outbox, generated.outbox);
   writeFileSync(OUTPUT_PATHS.settingsEnrichers, generated.settingsEnrichers);
   writeFileSync(OUTPUT_PATHS.devBootstrap, generated.devBootstrap);
@@ -1485,7 +2542,7 @@ function main() {
   writeFileSync(OUTPUT_PATHS.httpErrorMap, generated.httpErrorMap);
 
   console.log(
-    `generate:workspace-registry — ${manifests.length} manifest(s) → SDK, API, web, tour-write, wizard-media, wizard-surfaces, wizard-labels, wizard-clone-remint, wizard-create, theme-stylesheets, outbox, settings-enrichers, dev-bootstrap, http-routes, http-errors`
+    `generate:workspace-registry — ${manifests.length} manifest(s) → SDK, API, web, tour-write, wizard-media, wizard-surfaces, wizard-labels, wizard-clone-remint, wizard-create, theme-stylesheets, workspace-intake-plugins, registration-flow-plugins, registration-transport-initializers, catalog-paths, catalog-presentation, dev-plugin-ids, member-profile, guest-conformance, guest-seo, outbox, settings-enrichers, dev-bootstrap, http-routes, http-errors`
   );
 }
 

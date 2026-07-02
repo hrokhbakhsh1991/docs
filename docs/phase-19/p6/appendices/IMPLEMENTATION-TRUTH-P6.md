@@ -104,6 +104,20 @@ p7_unblocked: true
 | `p6-guest-slice` | Flow.tsx marker read | `buildDevPortalPublicBaseUrl` + e2e gate wiring |
 | `marketing-catalog-revalidate` | Not in `p6:gate` | Added to `p6-denali-product-gate.sh` (P6-1-N-008) |
 
+**Portal smoke expansion (2026-07-02):** `apps/portal` `test:smoke` grew **3/3 → 14/14** — added DEN-PROF-01..03, DEN-INTAKE-01..03, SMK-PTL-05, SMK-PTL-06 (logout), and DEN-TRANS-01..03 (card-driven transport intake). Flake fixes: `portal-smoke-global-setup.ts` warms `/catalog/[tourId]/register` for tours 210/212/213/214 (first dev compile can exceed 90s > navigationTimeout), `member-profile-form.tsx` gates save on hydration (`data-member-profile-ready`), `MemberLogoutButton` gates click (`data-public-auth-logout-ready`), smoke servers pin `MARKETING_PUBLIC_BASE_URL` to portal `/health` (post-logout `/` must not chase marketing `:3002`), SMK-PTL-06 asserts middleware `307`/`401` instead of full browser goto to `/me/registrations`.
+
+**Transport E2E + MEM-04 + staging seed (2026-07-02):** Two new smoke tours carry canonical `transport.*` — `…000213` (`bus` + `allowPersonalCar` + `transportCost`) and `…000214` (`shared_cars` + `dongAmount`). `portal-registration-transport-smoke.spec.ts` (DEN-TRANS-01..03) reads the outgoing `POST /api/catalog/registrations` body to prove `transport.kind` is omitted for organized-bus default, `personal_car` after opt-in, and `no_car_dong` for shared_cars — with **no** `pluginId==="denali"` branch in the portal. MEM-04 is proven by `apps/api/test/bookings-member-isolation.spec.ts`: `GET /bookings?view=mine` filters by `submittedByUserId`, so one member never sees another member's booking row. Staging parity: `seed-operator-smoke-published-tour.ts` now exposes `seedOperatorSmokeParticipantRequirementsTour` (…212) + `seedOperatorSmokeTransportTours` (…213/…214), wired into `ensure-operator-smoke-vs01-staging.ts` so Postgres staging carries all four published tours. Catalog count assertions (`DCAT-01`, `P6-VS-01-01`, `PW-DN-01`) updated `2 → 4`.
+
+**Portal registration UI hardening (2026-06-30):**
+
+| Layer | Change |
+| ----- | ------ |
+| Docs | `portal-registration-ui.md` · cross-refs in `public-catalog.md`, `host-subdomain-map.md`, `platform-portal-otp-flow.mdoc` |
+| Theming | `denali-portal.css` MASTER tokens + Calistoga in portal layout |
+| Guard | M17 incl. SDK catalog + registration dispatch + guest BFF + env templates (dynamic count) |
+| Dev | tracked `.env.local.example` · `!.env.local.example` · portal `allowedDevOrigins` · `apps/api/.env.local.example` for Postgres |
+| Proof | `guard:public-catalog-m17` dynamic PASS · SDK-CAT + registration intake specs in `p6:gate` + `p4:gate` · portal unit · smokes 4/4 each |
+
 ---
 
 ## Closure honesty matrix

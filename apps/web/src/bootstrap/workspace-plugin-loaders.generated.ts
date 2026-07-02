@@ -20,6 +20,10 @@ export async function loadWorkspacePluginByIdFromRegistry(
       const mod = await import("@app-tour/workspace-denali/plugin");
       return mod.getDenaliWorkspacePlugin();
     }
+    case "guest-club": {
+      const mod = await import("@app-tour/workspace-guest-club/guest-club.plugin");
+      return mod.getGuestClubWorkspacePlugin();
+    }
     case "starter": {
       const mod = await import("@app-tour/workspace-starter");
       return mod.getStarterWorkspacePlugin();

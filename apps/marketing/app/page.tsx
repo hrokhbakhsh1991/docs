@@ -1,9 +1,42 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
+import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
 import { buildPlatformAdminUrl } from "@/platform/build-platform-admin-url";
 import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
+import { buildMarketingSiteMetadata } from "@/seo/build-marketing-metadata";
+import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const [headerList, localeRaw] = await Promise.all([headers(), getLocale()]);
+  const host = headerList.get("host") ?? "localhost:3002";
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+
+  if (isPlatformMotherHost(host)) {
+    return { title: "Platform" };
+  }
+
+  const branding = await fetchPublicTenantBrandingForHost(host);
+  const t = await getTranslations("catalog");
+  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+  const homeT = await getTranslations("catalog.home");
+
+  return {
+    ...buildMarketingSiteMetadata({
+      host,
+      siteName,
+      toursLabel: t("nav.tours"),
+      locale,
+    }),
+    title: homeT("title"),
+    description: homeT("lead"),
+    alternates: {
+      canonical: resolveMarketingLocalePath("/", locale),
+    },
+  };
+}
 
 export default async function MarketingHomePage() {
   const headerList = await headers();
@@ -28,10 +61,13 @@ export default async function MarketingHomePage() {
 
   return (
     <main data-marketing-home>
-      <h1>{t("title")}</h1>
-      <p>
-        <Link href="/tours">{t("browseTours")}</Link>
-      </p>
+      <header data-marketing-home-header>
+        <h1 data-marketing-home-title>{t("title")}</h1>
+        <p data-marketing-home-lead>{t("lead")}</p>
+      </header>
+      <Link href="/tours" data-marketing-home-cta>
+        {t("browseTours")}
+      </Link>
     </main>
   );
 }

@@ -19,7 +19,7 @@ describe("resolve integration surface", () => {
       isDefaultIntegrationEventEnabled({
         workspaceType: "denali",
         providerId: "telegram",
-        eventType: "TourCreated",
+        eventType: "TourPublished",
       }),
       true
     );
@@ -28,7 +28,7 @@ describe("resolve integration surface", () => {
         workspaceType: "denali",
         providerId: "telegram",
       }),
-      ["TourCreated"]
+      ["TourPublished"]
     );
   });
 

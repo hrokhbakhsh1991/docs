@@ -5,11 +5,16 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { resolveTextDirection, isAppLocale, routing } from "@/i18n/routing";
-import { inter, resolveAppFontClassName, resolveAppFontFamilyCss, vazirmatn } from "@/i18n/app-fonts";
+import { inter, resolveAppFontClassName, resolveAppFontFamilyCss, vazirmatn, calistoga } from "@/i18n/app-fonts";
 import { MaintenancePage } from "@/platform/maintenance-page";
 import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
 import { PlatformMotherShell } from "@/platform/platform-mother-shell";
-import { buildMarketingSiteMetadata } from "@/seo/build-marketing-metadata";
+import { buildMarketingLayoutJsonLd } from "@/seo/build-layout-jsonld";
+import {
+  buildMarketingSiteMetadata,
+  buildMarketingSurfaceNoindexMetadata,
+} from "@/seo/build-marketing-metadata";
+import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
 import { MarketingProviders } from "@/shell/marketing-providers";
 import { MarketingShell } from "@/shell/marketing-shell";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
@@ -23,14 +28,34 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const headerList = await headers();
+  const [headerList, localeRaw] = await Promise.all([headers(), getLocale()]);
   const host = headerList.get("host") ?? "localhost:3002";
-  const branding = await fetchPublicTenantBrandingForHost(host);
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const t = await getTranslations("catalog");
+
+  if (isPlatformMotherHost(host)) {
+    return buildMarketingSurfaceNoindexMetadata({
+      title: t("metadata.motherTitle"),
+      description: t("metadata.motherDescription"),
+    });
+  }
+
+  const siteSurfaces = await resolveMarketingSiteSurfacesForHost(host);
+  if (!isMarketingSurfaceEnabled(siteSurfaces)) {
+    return buildMarketingSurfaceNoindexMetadata({
+      title: t("metadata.maintenanceTitle"),
+      description: t("metadata.maintenanceDescription"),
+    });
+  }
+
+  const branding = await fetchPublicTenantBrandingForHost(host);
   const siteName = branding.displayName ?? t("nav.defaultSiteName");
   return {
-    ...buildMarketingSiteMetadata({ host, siteName, toursLabel: t("nav.tours") }),
+    ...buildMarketingSiteMetadata({ host, siteName, toursLabel: t("nav.tours"), locale }),
     description: t("metadata.siteDescription", { siteName }),
+    icons: {
+      icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    },
   };
 }
 
@@ -71,6 +96,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     displayName: branding.displayName ?? undefined,
     primaryColor: branding.primaryColor ?? undefined,
   };
+  const siteName = branding.displayName ?? (await getTranslations("catalog"))("nav.defaultSiteName");
+  const layoutJsonLd = buildMarketingLayoutJsonLd({ host, siteName });
   const fontClassName = resolveAppFontClassName(locale);
   const fontFamilyBase = resolveAppFontFamilyCss(locale);
 
@@ -78,7 +105,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html
       lang={locale}
       dir={dir}
-      className={`${vazirmatn.variable} ${inter.variable} ${fontClassName}`}
+      className={`${vazirmatn.variable} ${inter.variable} ${calistoga.variable} ${fontClassName}`}
       style={{ ["--font-family-base" as string]: fontFamilyBase }}
     >
       <body
@@ -91,6 +118,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <MarketingShell branding={branding}>{children}</MarketingShell>
           </MarketingProviders>
         </NextIntlClientProvider>
+        <script
+          type="application/ld+json"
+          data-marketing-layout-jsonld
+          dangerouslySetInnerHTML={{ __html: serializeMarketingJsonLd(layoutJsonLd) }}
+        />
       </body>
     </html>
   );

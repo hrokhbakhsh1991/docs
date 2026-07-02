@@ -24,7 +24,8 @@ packages/design-tokens/src/
 packages/workspaces/<workspace>/theme/
   denali-admin.css       ← operator bundle (admin only)
   denali-portal.css      ← guest portal skin
-  denali-marketing.css   ← public catalog skin
+  denali-marketing.css   ← public catalog skin (Denali)
+  urban-marketing.css    ← public catalog skin (Urban)
   tokens.css             ← --ws-color-accent contract (starter/urban)
 
 packages/workspaces/<workspace>/workspace.manifest.json
@@ -48,8 +49,11 @@ apps/marketing/
   app/globals.css                    ← guest-shell + tailwind ONLY
   app/layout.tsx                     ← guest-theme-stylesheets + fonts + data-* attrs
   src/bootstrap/workspace-guest-theme-stylesheets.generated.ts
+  src/catalog/                       ← public catalog UI (see marketing-catalog-ui.md)
   src/i18n/app-fonts.ts
 ```
+
+**Catalog UI spec:** [marketing-catalog-ui.md](../../../workspaces/denali/marketing-catalog-ui.md) · [portal-registration-ui.md](../../../workspaces/denali/portal-registration-ui.md) · extends [public-catalog.md](../../../workspaces/denali/public-catalog.md).
 
 ---
 
@@ -72,8 +76,9 @@ Admin uses `data-workspace-plugin` only (no `data-app-surface`).
 | Denali admin | `body[data-workspace-plugin="denali"]` |
 | Denali portal | `body[data-app-surface="portal"][data-workspace-plugin="denali"]` |
 | Denali marketing | `body[data-app-surface="marketing"][data-workspace-plugin="denali"]` |
+| Urban marketing | `body[data-app-surface="marketing"][data-workspace-plugin="urban"]` |
 
-Urban/starter: add `urban-portal.css` / `urban-marketing.css` when P6+ needs guest chrome — same manifest keys.
+Urban portal skin (`urban-portal.css`) deferred until Urban portal product needs guest chrome — Urban marketing skin (`urban-marketing.css`) is **landed** via `guestThemeStylesheets.marketing`.
 
 ---
 

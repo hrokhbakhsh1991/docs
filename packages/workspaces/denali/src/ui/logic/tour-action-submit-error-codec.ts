@@ -4,6 +4,7 @@ export type TourActionSubmitErrorPayload = {
   readonly status: number;
   readonly code: string;
   readonly message: string;
+  readonly correlationId?: string;
 };
 
 export function encodeTourActionSubmitError(payload: TourActionSubmitErrorPayload): string {

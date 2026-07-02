@@ -20,3 +20,7 @@ export {
   OPERATOR_SMOKE_TENANT_ID,
   resolveDevPluginIdForTenantId,
 } from "./resolve-dev-plugin-id";
+export {
+  assertGuestBffProductionConfig,
+  resolveTourOpsApiBaseUrl,
+} from "./resolve-tour-ops-api-base-url";

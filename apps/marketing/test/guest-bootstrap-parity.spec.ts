@@ -32,4 +32,13 @@ describe("guest bootstrap parity — P8-0-N-005 / P9-0-N-001 / P9-2-N-001", () =
     assert.match(shared, /isDevGuestHostAllowed/);
     assert.doesNotMatch(shared, /hostname\.includes/);
   });
+
+  it("marketing and portal env re-export shared guest BFF API base", () => {
+    for (const app of ["marketing", "portal"] as const) {
+      const env = readFileSync(join(repoRoot, `apps/${app}/src/env.ts`), "utf8");
+      assert.match(env, /@app-tour\/guest-surface-host/);
+      assert.match(env, /resolveTourOpsApiBaseUrl/);
+      assert.match(env, /assertGuestBffProductionConfig/);
+    }
+  });
 });

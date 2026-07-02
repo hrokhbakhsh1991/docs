@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { supportsCatalogRegistration } from "@app-tour/workspace-sdk";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -22,7 +23,7 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
   const backHref = resolveMarketingTourDetailUrl(host, tourId);
   const t = await getTranslations("catalogRegistration");
 
-  if (bootstrap.pluginId !== "denali" && bootstrap.pluginId !== "urban") {
+  if (!supportsCatalogRegistration(bootstrap.pluginId)) {
     notFound();
   }
 
@@ -47,6 +48,11 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
         tourId={tourId}
         tourTitle={tourTitle}
         tourPoliciesText={tour.policiesText ?? null}
+        tourPriceAmount={tour.priceAmount ?? null}
+        tourTransport={tour.transport}
+        tourNationalIdRequired={tour.nationalIdRequired === true}
+        tourFatherNameRequired={tour.fatherNameRequired === true}
+        tourBirthDateRequired={tour.birthDateRequired === true}
         backHref={backHref}
       />
       <p>

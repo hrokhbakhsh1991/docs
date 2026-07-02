@@ -22,6 +22,10 @@ module.exports = {
             name: "@app-tour/workspace-urban",
             message: "Marketing shell must not static-import workspace plugins — use API + workspace-sdk",
           },
+          {
+            name: "@app-tour/workspace-guest-club",
+            message: "Marketing shell must not static-import workspace plugins — use API + workspace-sdk",
+          },
         ],
       },
     ],

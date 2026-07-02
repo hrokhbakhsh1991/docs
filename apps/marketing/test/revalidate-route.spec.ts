@@ -72,7 +72,7 @@ describe("POST /api/revalidate (P4-A RR)", () => {
     assert.equal(body.error, "TENANT_ID_REQUIRED");
   });
 
-  it("RR-04 authorized request reaches revalidateTag with tenant tag", async () => {
+  it("RR-04 authorized request reaches revalidateTag with tenant catalog tag", async () => {
     setSecret("expected-secret");
     let caught: unknown;
     try {
@@ -92,5 +92,16 @@ describe("POST /api/revalidate (P4-A RR)", () => {
     }
     assert.match(String(caught), /marketing-catalog-/);
     assert.match(String(caught), new RegExp(TENANT_ID));
+  });
+
+  it("RR-05 revalidate route purges catalog and seo tags", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const source = readFileSync(
+      fileURLToPath(new URL("../app/api/revalidate/route.ts", import.meta.url)),
+      "utf8"
+    );
+    assert.match(source, /buildMarketingSeoCacheTag/);
+    assert.match(source, /revalidateTag\(seoTag\)/);
   });
 });

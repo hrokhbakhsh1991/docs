@@ -12,7 +12,18 @@ on:
       - "apps/portal/**"
       - "apps/marketing/**"
       - "packages/workspaces/denali/**"
+      - "packages/workspaces/urban/**"
       - "packages/tenant-kernel/**"
+      - "packages/guest-surface-host/**"
+      - "packages/workspace-sdk/**"
+      - "scripts/guards/guard-public-catalog-m17.mjs"
+      - "scripts/guards/guard-portal-member-profile-boundary.mjs"
+      - "scripts/guards/architecture-truth-guard.mjs"
+      - "scripts/guards/lib/member-profile-architecture-truth.mjs"
+      - "scripts/guards/lib/member-profile-semantic-drift.mjs"
+      - "design-system/denali-club/**"
+      - "docs/workspaces/denali/**"
+      - ".gitignore"
       - "scripts/p6-*.sh"
       - "scripts/smoke-p6-host-bind.mjs"
       - "docs/phase-19/**"
@@ -26,7 +37,18 @@ on:
       - "apps/portal/**"
       - "apps/marketing/**"
       - "packages/workspaces/denali/**"
+      - "packages/workspaces/urban/**"
       - "packages/tenant-kernel/**"
+      - "packages/guest-surface-host/**"
+      - "packages/workspace-sdk/**"
+      - "scripts/guards/guard-public-catalog-m17.mjs"
+      - "scripts/guards/guard-portal-member-profile-boundary.mjs"
+      - "scripts/guards/architecture-truth-guard.mjs"
+      - "scripts/guards/lib/member-profile-architecture-truth.mjs"
+      - "scripts/guards/lib/member-profile-semantic-drift.mjs"
+      - "design-system/denali-club/**"
+      - "docs/workspaces/denali/**"
+      - ".gitignore"
       - "scripts/p6-*.sh"
       - "scripts/smoke-p6-host-bind.mjs"
       - "docs/phase-19/**"
@@ -68,6 +90,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm --filter @app-tour/workspace-sdk run build
+      - run: pnpm --filter @app-tour/guest-surface-host run build
       - run: pnpm --filter @app-tour/workspace-denali run build
 
       - name: p6:gate
@@ -100,12 +124,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm --filter @app-tour/workspace-sdk run build
+      - run: pnpm --filter @app-tour/guest-surface-host run build
       - run: pnpm --filter @app-tour/workspace-denali run build
+      - run: pnpm --filter @app-tour/workspace-urban run build
 
       - name: Configure operator dev hosts
         run: |
           grep -q 'operator.admin.localhost' /etc/hosts || \
-            echo '127.0.0.1 operator.localhost operator.portal.localhost operator.admin.localhost' | sudo tee -a /etc/hosts
+            echo '127.0.0.1 operator.localhost operator.portal.localhost operator.admin.localhost denali.localhost denali.portal.localhost urban.localhost urban.portal.localhost' | sudo tee -a /etc/hosts
 
       - name: Install Playwright (web · portal · marketing)
         run: |
