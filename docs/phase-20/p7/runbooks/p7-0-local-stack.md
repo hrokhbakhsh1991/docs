@@ -27,7 +27,7 @@ pnpm --filter @apps/api run db:seed
 ## 2. `/etc/hosts`
 
 ```text
-127.0.0.1 operator.localhost operator.portal.localhost operator.admin.localhost shop.operator.localhost
+127.0.0.1 operator.localhost operator.portal.localhost operator.admin.localhost
 ```
 
 ---

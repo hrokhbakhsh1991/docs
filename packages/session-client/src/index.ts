@@ -14,6 +14,16 @@ export {
   type SessionTokenValidationStatus,
 } from "./validate-session-token";
 export {
+  isJwtVerifyConfigured,
+  readJwtVerifyConfig,
+  type JwtVerifyConfig,
+} from "./jwt-verify-config";
+export {
+  validateSessionTokenAsync,
+  type SessionTokenAsyncValidation,
+} from "./validate-session-token-async";
+export { verifySessionJwtSignature } from "./verify-session-jwt-signature";
+export {
   buildSessionCookieOptions,
   clearSessionCookieOnResponse,
   createSessionCookieHelpers,
@@ -21,4 +31,5 @@ export {
   setSessionCookieOnResponse,
   type SessionCookieHelpers,
   type SessionCookieOptions,
+  type SessionCookieWriteOptions,
 } from "./session-cookie";

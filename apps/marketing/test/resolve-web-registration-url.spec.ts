@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  resolvePortalMemberAreaUrl,
   resolvePortalPublicBaseUrl,
   resolveWebRegistrationUrl,
   supportsCatalogRegistration,
@@ -54,5 +55,27 @@ describe("resolve-web-registration-url", () => {
         process.env.PORTAL_PUBLIC_BASE_URL = prior;
       }
     }
+  });
+
+  it("MKT-12 custom apex marketing host maps to portal.denali.club", () => {
+    assert.equal(
+      resolvePortalPublicBaseUrl("denali.club"),
+      "http://portal.denali.club:3003"
+    );
+    assert.equal(
+      resolveWebRegistrationUrl("denali.club", "tour-abc", "denali"),
+      "http://portal.denali.club:3003/catalog/tour-abc/register"
+    );
+  });
+
+  it("MKT-13 static member area link to portal (PCMS-03)", () => {
+    assert.equal(
+      resolvePortalMemberAreaUrl("denali.club"),
+      "http://portal.denali.club:3003/me/registrations"
+    );
+    assert.equal(
+      resolvePortalMemberAreaUrl("shop.urban.localhost:3002"),
+      "http://urban.portal.localhost:3003/me/registrations"
+    );
   });
 });

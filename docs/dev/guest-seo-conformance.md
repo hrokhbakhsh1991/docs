@@ -136,12 +136,12 @@ pnpm run guard:marketing-hreflang
 pnpm run guard:marketing-sitemap-host
 pnpm run guard:marketing-prod-image-hosts
 pnpm run guard:jsonld-xss
-pnpm run crawl:marketing-sitemap -- --smoke-host shop.operator.localhost:3002
+pnpm run crawl:marketing-sitemap -- --smoke-host operator.localhost:3002
 pnpm --filter @apps/marketing run test:lighthouse
 pnpm --filter @apps/marketing run test:lighthouse:strict
 ```
 
-`test:lighthouse` / `test:lighthouse:strict` boot `smoke-marketing-lighthouse-servers.mjs` (API + `next dev`), map `shop.operator.localhost` via Chrome flags, and assert SEO on `/tours`. Performance/CWV are **warn** on local dev smoke (production `next start` gate is post-deploy).
+`test:lighthouse` / `test:lighthouse:strict` boot `smoke-marketing-lighthouse-servers.mjs` (API + `next dev`), map `operator.localhost` via Chrome flags (`lighthouserc.json`), and assert SEO on `/tours`. Performance/CWV are **warn** on local dev smoke (production `next start` gate is post-deploy).
 
 Live sitemap crawl validates no query strings and host-aligned `<loc>` entries when marketing smoke is up.
 

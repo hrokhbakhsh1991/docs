@@ -138,6 +138,7 @@
     "phase-4:resilience-regression-gate": "node ./scripts/phase-4-resilience-regression-gate.mjs",
     "db:migrate:deploy": "node ./scripts/db-migrate-deploy.mjs",
     "db:seed": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/db-seed.ts",
+    "seed:wrs-denali-club-domains": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/seed-wrs-denali-club-domains.ts",
     "export:workspace-definition": "node --import tsx scripts/export-workspace-definition.ts",
     "seed:workspace-definitions": "NODE_ENV=development node --import tsx --env-file=.env --env-file=.env.local scripts/run-seed-workspace-definitions.ts",
     "test:phase-5": "NODE_ENV=test node --import tsx --test test/phase-5.contract.spec.ts",

@@ -62,7 +62,11 @@ for (const file of listTsFiles(SDK_CATALOG)) {
 }
 
 const registrationsRoute = read("apps/portal/app/api/catalog/registrations/route.ts");
-if (!registrationsRoute.includes("@app-tour/workspace-plugin-host/register")) {
+// API route may use intake-register (intake-only bootstrap) instead of full register (UI flow plugins).
+const hasIntakeRegistryBootstrap =
+  registrationsRoute.includes("@app-tour/workspace-plugin-host/register") ||
+  registrationsRoute.includes("@app-tour/workspace-plugin-host/intake-register");
+if (!hasIntakeRegistryBootstrap) {
   violations.push("catalog registrations API route must bootstrap workspace intake plugin registry");
 }
 

@@ -5,12 +5,14 @@ import "@app-tour/workspace-plugin-host/register";
 import {
   getWorkspaceRegistrationFlowPlugin,
   type FlowEvent,
+  type FlowRuntimeState,
   type PublicCatalogTransportSnapshot,
   type RegistrationFlowContext,
 } from "@app-tour/workspace-sdk";
 import { getWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";
+import { hydrateCatalogRegistrationIntakeAfterSession } from "@app-tour/catalog-registration-flow-ui";
 import { useTranslations } from "next-intl";
-import { useCallback, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
 import { resolveCatalogRegistrationErrorMessage } from "@/features/catalog/resolve-catalog-registration-error";
 
@@ -26,6 +28,7 @@ type PublicCatalogRegistrationFlowProps = {
   readonly tourFatherNameRequired?: boolean;
   readonly tourBirthDateRequired?: boolean;
   readonly backHref: string;
+  readonly initialRuntimeState?: FlowRuntimeState;
 };
 
 export function PublicCatalogRegistrationFlow({
@@ -40,6 +43,7 @@ export function PublicCatalogRegistrationFlow({
   tourFatherNameRequired = false,
   tourBirthDateRequired = false,
   backHref,
+  initialRuntimeState,
 }: PublicCatalogRegistrationFlowProps) {
   const t = useTranslations("catalogRegistration");
   const flowPlugin = getWorkspaceRegistrationFlowPlugin(workspace);
@@ -81,11 +85,50 @@ export function PublicCatalogRegistrationFlow({
       flowPlugin !== null
         ? flowPlugin.catalogRegistrationFlow.resolveNextStep(current, event, context)
         : current,
-    flowPlugin !== null ? flowPlugin.catalogRegistrationFlow.createInitialState(context) : {
-        currentStep: "",
-        data: {},
-      }
+    initialRuntimeState ??
+      (flowPlugin !== null
+        ? flowPlugin.catalogRegistrationFlow.createInitialState(context)
+        : {
+            currentStep: "",
+            data: {},
+          })
   );
+
+  const [resumedWithoutServer, setResumedWithoutServer] = useState(false);
+
+  useEffect(() => {
+    if (initialRuntimeState !== undefined || flowPlugin === null) {
+      return;
+    }
+    if (state.currentStep !== "phone") {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/me/profile");
+        if (!res.ok || cancelled) {
+          return;
+        }
+        const body = (await res.json()) as { ok?: boolean; profile?: { tenantId?: string } };
+        if (body.ok !== true || body.profile?.tenantId !== tenantId) {
+          return;
+        }
+        setResumedWithoutServer(true);
+        await hydrateCatalogRegistrationIntakeAfterSession(context, state, dispatch);
+      } catch {
+        // guest flow — stay on phone
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [context, flowPlugin, initialRuntimeState, state.currentStep, tenantId]);
+
+  const resumeAtIntake =
+    state.currentStep === "intake" &&
+    initialRuntimeState === undefined &&
+    resumedWithoutServer;
 
   const resolveError = useCallback(
     (code: string) => resolveCatalogRegistrationErrorMessage(t, code),
@@ -102,6 +145,11 @@ export function PublicCatalogRegistrationFlow({
   }
 
   return (
-    <Step context={context} state={state} dispatch={dispatch} resolveError={resolveError} />
+    <div
+      data-public-registration-flow
+      {...(resumeAtIntake ? { "data-registration-resume": "intake" } : {})}
+    >
+      <Step context={context} state={state} dispatch={dispatch} resolveError={resolveError} />
+    </div>
   );
 }

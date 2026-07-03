@@ -1,0 +1,244 @@
+---
+title: Workspace Routing Standard (WRS-001)
+standard_id: WRS-001
+version: 1.0.0
+status: active
+extends:
+  - docs/phase-19/p6-host-addressing-architecture.mdoc
+  - docs/phase-15/platform-host-multilevel.mdoc
+  - docs/standards/member-session-portal-authority.mdoc
+code_sot:
+  - packages/tenant-kernel/src/host/parse-multi-level-tenant-host.ts
+  - packages/tenant-kernel/src/host/build-dev-portal-public-base-url.ts
+  - packages/tenant-kernel/src/host/build-dev-marketing-public-base-url.ts
+  - packages/guest-surface-host/src/resolve-marketing-public-base-url.ts
+  - packages/guest-surface-host/src/resolve-portal-public-base-url.ts
+  - packages/tenant-kernel/src/host/parse-custom-apex-host.ts
+  - packages/guest-surface-host/src/phase-43-host-tenant-ids.ts
+  - apps/api/src/platform/build-club-site-urls.ts
+  - scripts/guards/guard-wrs-routing.mjs
+mandatory_for:
+  - apps/marketing
+  - apps/portal
+  - apps/web
+  - packages/guest-surface-host
+---
+
+# Workspace Routing Standard (WRS-001)
+
+**Purpose:** Single enterprise contract for hosts, paths, and cross-app links across all clubs and workspace plugins.
+
+**Principle:** Host resolves **tenantId** only. `pluginId` comes from tenant registry — never from another club hostname.
+
+---
+
+## 1. Terminology
+
+| Term | Definition | Example |
+| ---- | ---------- | ------- |
+| Platform | SaaS operator (not a club) | `localhost`, `example.com` |
+| Tenant / Club | Isolated customer | label `denali` |
+| Workspace Plugin | Product vertical | `denali`, `urban` |
+| Surface | App role | marketing · portal · admin |
+| Custom apex | Customer DNS in `tenant_domains` | `denali.club` |
+
+---
+
+## 2. Canonical surfaces (MUST)
+
+```text
+┌──────────┬─────────────────┬──────────────────────┬─────────────────────────┐
+│ Surface  │ App             │ Kernel outcome       │ Responsibility          │
+├──────────┼─────────────────┼──────────────────────┼─────────────────────────┤
+│ Public   │ apps/marketing  │ club_apex            │ Landing, SEO, /tours    │
+│ User     │ apps/portal     │ club_portal          │ Register, /me/*         │
+│ Operator │ apps/web        │ club_admin           │ Dashboard, wizard       │
+└──────────┴─────────────────┴──────────────────────┴─────────────────────────┘
+```
+
+All three surfaces share **same tenantId**.
+
+---
+
+## 3. Host patterns (MUST)
+
+### 3.1 Platform default
+
+Parser order (`parseMultiLevelTenantHost` — only SoT):
+
+```text
+1. admin.{root}              → platform_admin
+2. {club}.admin.{root}       → club_admin
+3. {club}.portal.{root}      → club_portal
+4. {club}.{root}             → club_apex
+5. {root}                    → apex (platform mother)
+```
+
+Dev ports: web 3000 · api 3001 · marketing 3002 · portal 3003.
+
+### 3.2 Custom apex (production)
+
+| Surface | FQDN | tenant_domains.surface |
+| ------- | ---- | ---------------------- |
+| Public | `{apex}` | marketing |
+| User | `portal.{apex}` | portal |
+| Operator | `admin.{apex}` | admin |
+
+**Denali example:**
+
+```text
+denali.club              → landing + /tours
+portal.denali.club       → user portal
+admin.denali.club        → operator panel
+```
+
+### 3.3 Dev vs prod naming (intentional asymmetry)
+
+| Surface | Dev | Prod |
+| ------- | --- | ---- |
+| Public | `denali.localhost:3002` | `denali.club` |
+| User | `denali.portal.localhost:3003` | `portal.denali.club` |
+| Admin | `denali.admin.localhost:3000` | `admin.denali.club` |
+
+WRS-D-ASYM-01: Platform wildcard TLS uses `{club}.portal.{root}` in dev; customer DNS uses `portal.{apex}` in prod. Same surfaces, different label order.
+
+---
+
+## 4. Route catalog
+
+### 4.1 Marketing (public)
+
+| Path | Purpose |
+| ---- | ------- |
+| `/` | Club landing |
+| `/tours` | **Public catalog list** |
+| `/tours/{id}` | Tour detail + registration CTA |
+
+WRS-PATH-01: Public tour browsing **only** on marketing `/tours`.
+
+### 4.2 Portal (user)
+
+| Path | Purpose |
+| ---- | ------- |
+| `/` | Guest → marketing base; member → `/me/registrations` |
+| `/catalog/{id}/register` | OTP + intake |
+| `/me/registrations` | Member list (auth) |
+
+WRS-PATH-02: Portal has **no** `/tours`.
+
+### 4.3 Web (operator)
+
+| Path | Purpose |
+| ---- | ------- |
+| `/tours` | Operator tour list (auth) — NOT public catalog |
+| `/catalog/*` | 308 → marketing `/tours` |
+| `/platform/*` | Platform super-admin only |
+
+WRS-PATH-03: `:3000/tours` ≠ `:3002/tours`.
+
+### 4.4 Cross-surface navigation
+
+```text
+Marketing CTA     → Portal /catalog/{id}/register
+Portal home guest → Marketing /
+Web /catalog/*    → Marketing /tours (308)
+In-app tour links → relative /tours/{id} (same host)
+```
+
+---
+
+## 5. Ingress resolution (API — MUST)
+
+```text
+Host / x-forwarded-host
+  ├─ strip shop. if present (ingress only)
+  ├─ parseMultiLevelTenantHost
+  ├─ else tenant_domains (verified + SSL)
+  └─ resolveRegisteredTenantBySubdomain → tenantId + pluginId
+```
+
+---
+
+## 6. Cross-app URL builders (MUST)
+
+| Direction | Builder | Package |
+| --------- | ------- | ------- |
+| Any → Marketing | `buildDevMarketingPublicBaseUrl` | tenant-kernel |
+| Any → Portal | `buildDevPortalPublicBaseUrl` | tenant-kernel |
+| Provision | `buildClubSiteUrls` | apps/api |
+
+WRS-URL-01: No duplicated host logic in apps.
+
+WRS-URL-02: Prod override via `MARKETING_PUBLIC_BASE_URL` / `PORTAL_PUBLIC_BASE_URL`.
+
+WRS-URL-03: NEVER prepend `shop.` on egress.
+
+### Dev marketing base algorithm
+
+```text
+1. strip port, strip shop. prefix
+2. parseMultiLevelTenantHost
+3. club_apex | club_admin | club_portal → http://{subdomain}.{root}:3002
+4. configured env → return as-is
+5. custom apex (outside platform root) — WRS-D-ASYM-01 prod sibling hosts:
+   - ingress `portal.{apex}` | `admin.{apex}` → marketing `{apex}` (https prod / http+port dev)
+   - ingress `{apex}` (marketing) → unchanged for marketing; portal egress → `portal.{apex}`
+```
+
+`tryParseCustomApexHost` in tenant-kernel implements step 5. Required when `MARKETING_PUBLIC_BASE_URL` / `PORTAL_PUBLIC_BASE_URL` are unset (dev Host-header smoke, partial prod env).
+
+---
+
+## 7. Legacy (DEPRECATED)
+
+| Legacy | Canonical | Sunset |
+| ------ | --------- | ------ |
+| shop.{club}.{root}:3002 | {club}.{root}:3002 | Phase 4 |
+| {club}.{root}:3003 | {club}.portal.{root}:3003 | ingress-only |
+| {club}.{root}:3000 | {club}.admin.{root}:3000 | ingress-only |
+
+---
+
+## 8. Platform mother
+
+| Host | App |
+| ---- | --- |
+| `{root}:3002` | Platform marketing shell |
+| `admin.{root}:3000` | Platform Control Center |
+
+WRS-PLATFORM-01: `localhost:3002` is NOT a club.
+
+---
+
+## 9. Forbidden patterns
+
+- `shop.{club}.portal.{root}` or `shop.{club}.admin.{root}` as redirect targets
+- `{pluginId}.{root}` as host
+- Hardcoded cross-app URLs in components
+- Different tenantId per surface for same club
+
+---
+
+## 10. Verification
+
+```bash
+pnpm --filter @app-tour/tenant-kernel test
+pnpm --filter @app-tour/guest-surface-host test
+pnpm --filter @app-tour/session-client test
+pnpm --filter @apps/api run test -- test/p6-host-tenant-parity.spec.ts test/wrs-custom-apex-ingress.spec.ts test/resolve-smoke-custom-apex-host.spec.ts
+pnpm --filter @apps/portal test
+pnpm --filter @apps/portal run test:smoke          # SMK-PTL-07
+pnpm --filter @apps/portal run test:smoke:custom-apex  # SMK-PTL-08
+node scripts/smoke-p6-host-bind.mjs
+pnpm run seed:wrs-denali-club-domains   # dev Postgres
+pnpm run smoke:wrs-custom-apex          # denali.club + portal + admin (memory: WRS_SMOKE_CUSTOM_APEX=1)
+pnpm run smoke:pcms-custom-apex
+pnpm run guard:wrs-routing
+pnpm run guard:wrs-stale-docs
+pnpm run guard:pcms-authority
+pnpm run test:changed
+```
+
+## Phase 5 — custom apex cutover
+
+Runbook: [denali-club-cutover.md](../phase-19/p6/runbooks/denali-club-cutover.md)

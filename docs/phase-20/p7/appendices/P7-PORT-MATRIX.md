@@ -32,7 +32,7 @@ decision: DEC-P7-010
 | API listen | `http://127.0.0.1:4000` (typical `.env.local`) |
 | `TOUR_OPS_API_URL` (web/marketing/portal) | `http://127.0.0.1:4000` |
 | Admin URL | `http://operator.admin.localhost:3000` |
-| Marketing URL | `http://operator.localhost:3002` (alias `shop.operator.localhost:3002` for legacy smoke) |
+| Marketing URL | `http://operator.localhost:3002` (legacy ingress `shop.operator.localhost:3002` strip-only) |
 | Portal URL | `http://operator.portal.localhost:3003` |
 | Dev flags | `ALLOW_DEV_WEB_SESSION=true` · `AUTH_ALLOW_DEV_STATIC_OTP=true` |
 

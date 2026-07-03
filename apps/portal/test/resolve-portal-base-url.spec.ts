@@ -21,10 +21,10 @@ describe("resolve-portal-base-url", () => {
     );
   });
 
-  it("PTL-02 marketing back-link uses shop prefix", () => {
+  it("PTL-02 marketing back-link uses canonical club apex (no shop prefix)", () => {
     assert.equal(
-      resolveMarketingTourDetailUrl("denali.localhost:3003", "tour-abc"),
-      "http://shop.denali.localhost:3002/tours/tour-abc"
+      resolveMarketingTourDetailUrl("denali.portal.localhost:3003", "tour-abc"),
+      "http://denali.localhost:3002/tours/tour-abc"
     );
   });
 });

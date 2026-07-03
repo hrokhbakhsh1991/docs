@@ -37,7 +37,7 @@ Close **end-to-end Denali product** for the first club — three **separate apps
 | User | `https://portal.denali.club` |
 | Admin | `https://admin.denali.club` (target; ingress via `tenant_domains` + platform subdomain) |
 
-**Dev legacy smoke** (still supported): `shop.{club}.localhost:3002` · `{club}.localhost:3003` · `{club}.localhost:3000`.
+**Dev legacy ingress** (strip-only, not canonical): `shop.{club}.localhost:3002` still resolves same tenant when Host header uses legacy alias. See [WRS-001](../../standards/workspace-routing-standard.mdoc).
 
 All surfaces resolve the **same `tenantId`** via `GET /public/tenant-context` (platform parse → `tenant_domains`).
 

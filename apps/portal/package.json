@@ -13,8 +13,9 @@
     "build": "next build",
     "prelint": "pnpm run guard:import-boundary && pnpm run guard:portal-member-profile-boundary && pnpm run guard:architecture-truth",
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 0 && tsc --noEmit",
-    "test": "node --import tsx --test test/**/*.spec.ts",
+    "test": "node --import ./test/css-hook.mjs --import tsx --test test/**/*.spec.ts",
     "test:smoke": "playwright test -c playwright.portal.config.ts",
+    "test:smoke:custom-apex": "playwright test -c playwright.portal-custom-apex.config.ts",
     "test:smoke:install": "playwright install chromium",
     "start": "next start --port 3003"
   },

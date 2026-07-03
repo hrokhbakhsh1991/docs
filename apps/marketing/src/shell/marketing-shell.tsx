@@ -7,10 +7,15 @@ import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-
 
 export type MarketingShellProps = {
   readonly branding: PublicTenantBrandingSnapshot;
+  readonly portalMemberAreaUrl: string;
   readonly children: ReactNode;
 };
 
-export async function MarketingShell({ branding, children }: MarketingShellProps) {
+export async function MarketingShell({
+  branding,
+  portalMemberAreaUrl,
+  children,
+}: MarketingShellProps) {
   const t = await getTranslations("catalog");
   const title = branding.displayName ?? t("nav.defaultSiteName");
 
@@ -25,6 +30,9 @@ export async function MarketingShell({ branding, children }: MarketingShellProps
         </Link>
         <nav>
           <Link href="/tours">{t("nav.tours")}</Link>
+          <a href={portalMemberAreaUrl} data-marketing-portal-member>
+            {t("nav.memberArea")}
+          </a>
           <MarketingLocaleSwitcher />
         </nav>
       </header>

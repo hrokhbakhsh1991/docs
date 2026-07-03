@@ -31,12 +31,16 @@ const MOBILE_REQUEST_BFF_ROUTE_REL = "apps/portal/app/api/me/mobile/request-otp/
 const MOBILE_VERIFY_BFF_ROUTE_REL = "apps/portal/app/api/me/mobile/verify/route.ts";
 const SESSION_PROFILE_ROUTE_REL = "apps/portal/app/api/public-auth/session-profile/route.ts";
 
+const RESUME_PROFILE_LOADER_REL =
+  "apps/portal/src/me/fetch-member-profile-from-session.server.ts";
+
 const IDENTITY_ME_ALLOWLIST = new Set([
   PROFILE_BFF_ROUTE_REL,
   AVATAR_BFF_ROUTE_REL,
   AVATAR_URL_BFF_ROUTE_REL,
   MOBILE_REQUEST_BFF_ROUTE_REL,
   MOBILE_VERIFY_BFF_ROUTE_REL,
+  RESUME_PROFILE_LOADER_REL,
 ]);
 
 /** @typedef {{ file: string, line?: number, type: string, severity: "LOW" | "MEDIUM" | "HIGH", message: string }} ArchitectureTruthFinding */

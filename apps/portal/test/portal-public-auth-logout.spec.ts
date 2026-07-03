@@ -10,7 +10,11 @@ import { SESSION_TOKEN_COOKIE } from "../src/auth/build-session-cookie";
 describe("portal public-auth logout — MEM-AUTH-01", () => {
   it("MEM-AUTH-01 POST /api/public-auth/logout clears member session cookie", async () => {
     const { POST } = await import("../app/api/public-auth/logout/route");
-    const res = await POST();
+    const req = new Request("http://denali.portal.localhost:3003/api/public-auth/logout", {
+      method: "POST",
+      headers: { host: "denali.portal.localhost:3003" },
+    });
+    const res = await POST(req);
     assert.equal(res.status, 200);
     const body = (await res.json()) as { ok?: boolean };
     assert.equal(body.ok, true);

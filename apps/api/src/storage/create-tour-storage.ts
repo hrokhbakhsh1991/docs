@@ -49,6 +49,9 @@ export function createTourStorageRepository(): TourStorageImplementation {
       dualSmokeMemoryStore = new InMemoryTourRepository();
       dualSmokeMemoryStore.ensureUrbanPhase81PublishedTour();
       dualSmokeMemoryStore.ensureOperatorSmokeSeedTour();
+      if (!isProductionAuthMode()) {
+        dualSmokeMemoryStore.ensureDenaliDevSmokeSeedTour();
+      }
     }
     return dualSmokeMemoryStore;
   }
@@ -63,6 +66,9 @@ export function createTourStorageRepository(): TourStorageImplementation {
     if (operatorSmokeMemoryStore === undefined) {
       operatorSmokeMemoryStore = new InMemoryTourRepository();
       operatorSmokeMemoryStore.ensureOperatorSmokeSeedTour();
+      if (!isProductionAuthMode()) {
+        operatorSmokeMemoryStore.ensureDenaliDevSmokeSeedTour();
+      }
     }
     return operatorSmokeMemoryStore;
   }

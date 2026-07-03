@@ -1,10 +1,10 @@
-import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 
 import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server";
+import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 
 export default async function MeRegistrationsPage() {
-  const host = (await headers()).get("host") ?? "localhost:3003";
+  const host = await readPortalIngressHost();
   const items = await fetchMemberRegistrations(host);
   const t = await getTranslations("portalMember.registrations");
 

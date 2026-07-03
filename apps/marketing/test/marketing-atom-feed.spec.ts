@@ -6,7 +6,7 @@ import { buildMarketingAtomFeed } from "../src/seo/build-marketing-atom-feed";
 describe("buildMarketingAtomFeed", () => {
   it("MKT-40 emits Atom feed with tour entry links", () => {
     const xml = buildMarketingAtomFeed({
-      host: "shop.operator.localhost:3002",
+      host: "operator.localhost:3002",
       siteName: "Operator Smoke",
       tours: [
         {

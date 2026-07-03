@@ -34,7 +34,7 @@ pnpm run p6:e2e-gate   # p6:gate + VS-01 + portal + marketing smokes
 | Smoke club | `operator` |
 | Tenant ID | `00000000-0000-4000-8000-000000000014` |
 | Dev OTP | `1234` (`AUTH_ALLOW_DEV_STATIC_OTP=true`) |
-| `/etc/hosts` | `operator.localhost` · `operator.portal.localhost` · `operator.admin.localhost` · `shop.operator.localhost` · `urban.localhost` (SMK-MKT-05) |
+| `/etc/hosts` | `operator.localhost` · `operator.portal.localhost` · `operator.admin.localhost` · `denali.localhost` · `urban.localhost` (SMK-MKT-05) |
 
 Start stack (example — adjust to your local scripts):
 

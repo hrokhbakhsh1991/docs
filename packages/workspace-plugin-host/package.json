@@ -14,6 +14,10 @@
       "types": "./dist/register.d.ts",
       "default": "./dist/register.js"
     },
+    "./intake-register": {
+      "types": "./dist/intake-register.d.ts",
+      "default": "./dist/intake-register.js"
+    },
     "./registration-flow": {
       "types": "./dist/registration-flow.d.ts",
       "default": "./dist/registration-flow.js"

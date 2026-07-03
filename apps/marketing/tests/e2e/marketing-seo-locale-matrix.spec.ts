@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const DENALI_BASE = process.env.SMOKE_DENALI_BASE_URL ?? "http://shop.operator.localhost:3002";
+const DENALI_BASE = process.env.SMOKE_DENALI_BASE_URL ?? "http://operator.localhost:3002";
 const URBAN_BASE = process.env.SMOKE_URBAN_BASE_URL ?? "http://urban.localhost:3002";
 
 async function assertHreflangMatrix(

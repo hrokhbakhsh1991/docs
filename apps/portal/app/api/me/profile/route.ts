@@ -26,6 +26,7 @@ import {
   resolveMemberProfileTraceId,
 } from "@/me/member-profile-trace.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 function jsonMemberProfileError(
   code: string,
@@ -48,7 +49,7 @@ function jsonMemberProfileSuccess(payload: unknown, traceId: string): NextRespon
 }
 
 function resolveIngressHost(req: Request): string {
-  return req.headers.get("host") ?? "localhost:3003";
+  return resolvePortalIngressHost(req);
 }
 
 function readSessionUserId(headers: Record<string, string>): string | null {

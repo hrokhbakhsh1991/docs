@@ -1,4 +1,9 @@
 export { PHASE_43_HOST_TENANT_IDS, resolveTenantIdFromIngressLabel } from "./phase-43-host-tenant-ids";
+export {
+  CANONICAL_SMOKE_OPERATOR_MARKETING_BASE_URL,
+  CANONICAL_SMOKE_OPERATOR_PORTAL_BASE_URL,
+  CANONICAL_SMOKE_URBAN_MARKETING_BASE_URL,
+} from "./canonical-smoke-urls";
 export { isDevGuestHostAllowed, isDevWebSessionAllowed } from "./is-dev-guest-host-allowed";
 export { resolvePublicBrandingHost } from "./resolve-public-branding-host";
 export {
@@ -20,6 +25,16 @@ export {
   OPERATOR_SMOKE_TENANT_ID,
   resolveDevPluginIdForTenantId,
 } from "./resolve-dev-plugin-id";
+export {
+  resolveMarketingPublicBaseUrl,
+  resolveMarketingTourDetailUrl,
+  resolveMarketingToursUrl,
+} from "./resolve-marketing-public-base-url";
+export {
+  resolvePortalPublicBaseUrl,
+  resolvePortalRegistrationUrl,
+  resolvePortalMemberAreaUrl,
+} from "./resolve-portal-public-base-url";
 export {
   assertGuestBffProductionConfig,
   resolveTourOpsApiBaseUrl,

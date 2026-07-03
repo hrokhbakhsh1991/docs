@@ -1,10 +1,12 @@
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { supportsCatalogRegistration } from "@app-tour/workspace-sdk";
+import type { FlowRuntimeState } from "@app-tour/workspace-sdk";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
+import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
 import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
+import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
 import { PublicCatalogRegistrationFlow } from "./public-catalog-registration-flow";
@@ -17,8 +19,7 @@ type PageProps = {
 
 export default async function CatalogRegisterPage({ params }: PageProps) {
   const { tourId } = await params;
-  const headerList = await headers();
-  const host = headerList.get("host") ?? "localhost:3003";
+  const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
   const backHref = resolveMarketingTourDetailUrl(host, tourId);
   const t = await getTranslations("catalogRegistration");
@@ -39,8 +40,34 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
   const tourTitle = tour.title || "Tour";
   const workspace = bootstrap.pluginId;
 
+  const registrationContext = {
+    pluginId: workspace,
+    tenantId: bootstrap.tenantId,
+    tourId,
+    tourTitle,
+    tourPoliciesText: tour.policiesText ?? null,
+    tourPriceAmount: tour.priceAmount ?? null,
+    tourTransport: tour.transport,
+    tourRequirements: {
+      nationalIdRequired: tour.nationalIdRequired === true,
+      fatherNameRequired: tour.fatherNameRequired === true,
+      birthDateRequired: tour.birthDateRequired === true,
+    },
+    backHref,
+  };
+
+  const resumeInitialState: FlowRuntimeState | null = await buildRegistrationResumeInitialState(
+    host,
+    bootstrap.tenantId,
+    registrationContext
+  );
+
   return (
-    <main data-catalog-registration-page data-workspace={workspace}>
+    <main
+      data-catalog-registration-page
+      data-workspace={workspace}
+      {...(resumeInitialState !== null ? { "data-registration-resume": "intake" } : {})}
+    >
       <h1>{t("pageTitle", { tourTitle })}</h1>
       <PublicCatalogRegistrationFlow
         workspace={workspace}
@@ -54,6 +81,7 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
         tourFatherNameRequired={tour.fatherNameRequired === true}
         tourBirthDateRequired={tour.birthDateRequired === true}
         backHref={backHref}
+        initialRuntimeState={resumeInitialState ?? undefined}
       />
       <p>
         <a href={backHref}>{t("backToTour")}</a>

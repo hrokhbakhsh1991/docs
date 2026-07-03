@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { fetchMemberRegistrations } from "@/me/fetch-member-registrations.server";
+import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 
 import { MemberReceiptUploadForm } from "./member-receipt-upload-form";
 
@@ -11,7 +11,7 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function MeRegistrationDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const host = (await headers()).get("host") ?? "localhost:3003";
+  const host = await readPortalIngressHost();
   const items = await fetchMemberRegistrations(host);
   const row = items.find((item) => item.id === id);
   if (row === undefined) {

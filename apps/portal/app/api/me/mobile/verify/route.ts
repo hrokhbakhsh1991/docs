@@ -77,7 +77,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       },
       { status: 200 }
     );
-    setSessionCookieOnResponse(res.headers, sessionToken);
+    setSessionCookieOnResponse(res.headers, sessionToken, host);
     return res;
   } catch {
     return NextResponse.json({ ok: false, code: "BACKEND_UNREACHABLE" }, { status: 502 });

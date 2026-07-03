@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 import type { MemberProfileViewPayload } from "./member-profile-types";
+import { resolvePortalSelfFetchOrigin } from "./resolve-portal-self-fetch-origin";
 
 export async function fetchMemberProfile(host: string): Promise<MemberProfileViewPayload | null> {
   const cookieStore = await cookies();
@@ -12,12 +13,15 @@ export async function fetchMemberProfile(host: string): Promise<MemberProfileVie
     return null;
   }
 
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const { origin, ingressHost } = resolvePortalSelfFetchOrigin(host);
   let res: Response;
   try {
-    res = await fetch(`${protocol}://${host}/api/me/profile`, {
+    res = await fetch(`${origin}/api/me/profile`, {
       method: "GET",
-      headers: { cookie: cookieHeader },
+      headers: {
+        cookie: cookieHeader,
+        "x-forwarded-host": ingressHost,
+      },
       cache: "no-store",
     });
   } catch {

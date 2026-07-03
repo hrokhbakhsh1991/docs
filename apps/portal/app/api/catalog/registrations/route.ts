@@ -1,4 +1,4 @@
-import "@app-tour/workspace-plugin-host/register";
+import "@app-tour/workspace-plugin-host/intake-register";
 
 import { NextResponse } from "next/server";
 
@@ -11,6 +11,7 @@ import {
 import { buildCatalogRegistrationHeaders } from "@/catalog/build-catalog-registration-headers.server";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 type RegistrationBody = {
   readonly tourId?: unknown;
@@ -27,7 +28,7 @@ type RegistrationBody = {
 };
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const host = req.headers.get("host") ?? "localhost:3003";
+  const host = resolvePortalIngressHost(req);
   const bootstrap = await resolvePortalBootstrapForHost(host);
   const body = (await req.json().catch(() => ({}))) as RegistrationBody;
 

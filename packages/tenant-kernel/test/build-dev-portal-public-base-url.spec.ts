@@ -48,4 +48,15 @@ describe("buildDevPortalPublicBaseUrl", () => {
       "https://portal.denali.club"
     );
   });
+
+  it("WRS-CAX-09 custom apex marketing host maps to portal sibling", () => {
+    assert.equal(
+      buildDevPortalPublicBaseUrl({
+        ingressHost: "denali.club",
+        rootDomain: "localhost",
+        portalPort: "3003",
+      }),
+      "http://portal.denali.club:3003"
+    );
+  });
 });

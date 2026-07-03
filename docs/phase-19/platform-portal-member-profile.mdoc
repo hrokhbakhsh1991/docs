@@ -34,7 +34,7 @@ This document is the **single source of truth** for aligning:
 
 | ID | Invariant |
 | -- | --------- |
-| **INV-MP-01** | **Profile BFF family** — text fields via `GET/PATCH /api/me/profile`; avatar via `POST/DELETE/GET /api/me/avatar*`; mobile change via `POST /api/me/mobile/*`. Portal must not call upstream `identity/me` except through these BFF routes. |
+| **INV-MP-01** | **Profile BFF family** — text fields via `GET/PATCH /api/me/profile`; avatar via `POST/DELETE/GET /api/me/avatar*`; mobile change via `POST /api/me/mobile/*`. Portal must not call upstream `identity/me` except through these BFF routes. **Exception (PCMS-REG-01):** `fetch-member-profile-from-session.server.ts` is allowlisted — same upstream as profile BFF GET for catalog registration SSR resume only. |
 | **INV-MP-02** | **No workspace imports in portal** — `apps/portal` must not static-import `packages/workspaces/*` or `@app-tour/workspace-{id}`. |
 | **INV-MP-03** | **Identity owns persistence** — `GET/PATCH /identity/me` is the only API persistence surface; storage = `UserTenant.membershipMetadata` via `me.service` / repository. |
 | **INV-MP-04** | **Single canonical contract** — `MemberProfileView` / `MemberProfilePatch` in `@app-tour/workspace-sdk`; portal BFF maps to/from `identity/me` internally. |
@@ -51,7 +51,7 @@ This document is the **single source of truth** for aligning:
 | ---- | ------------ |
 | Member cookie | `atour_mb_session` (`SESSION_COOKIE_NAMES.member` in `@app-tour/session-client`) |
 | Operator cookie | `atour_op_session` — not used by portal member flows |
-| JWT validation | `validateSessionToken` in portal middleware + BFF |
+| JWT validation | `validateSessionTokenAsync` in portal middleware + BFF (RS256 when `AUTH_JWT_*` set) |
 | Tenant binding | `sessionTenantMatchesHost` on `/me/*` and `/api/me/*` |
 
 ---
@@ -100,6 +100,8 @@ Legacy `session-profile` BFF and direct portal `identity/me` SSR were removed in
 | `apps/portal/app/api/me/profile/route.ts` | Canonical profile BFF | **M2** |
 | `apps/portal/src/me/member-profile-bff.server.ts` | SDK mapping + patch validation | **M2** |
 | `apps/portal/src/me/fetch-member-profile.server.ts` | SSR same-origin profile fetch | **M3** |
+| `apps/portal/src/me/fetch-member-profile-from-session.server.ts` | PCMS catalog resume SSR (allowlisted `identity/me`) | **PCMS-REG-01** |
+| `apps/portal/src/catalog/build-registration-resume-initial-state.server.ts` | Skip OTP when member session valid | **PCMS-REG-01** |
 | `apps/portal/src/me/member-profile-contract.server.ts` | Contract v1 + unified errors | **M5** |
 | `apps/portal/src/me/member-profile-cache.server.ts` | GET cache + PATCH invalidation | **M5** |
 | `apps/portal/src/me/member-profile-observability.server.ts` | PII-free BFF telemetry | **M5** |

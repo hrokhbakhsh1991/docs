@@ -2,6 +2,10 @@ import {
   DEFAULT_TENANT_HOST_RESERVED_LABELS,
   parseReservedLabelsCsv,
 } from "./constants";
+import {
+  formatCustomApexSurfaceUrl,
+  tryParseCustomApexHost,
+} from "./parse-custom-apex-host";
 import { parseMultiLevelTenantHost } from "./parse-multi-level-tenant-host";
 
 export type BuildDevPortalPublicBaseUrlInput = {
@@ -36,6 +40,22 @@ export function buildDevPortalPublicBaseUrl(input: BuildDevPortalPublicBaseUrlIn
 
   if (outcome.kind === "club_portal") {
     return `http://${withoutShop}:${port}`;
+  }
+
+  const custom = tryParseCustomApexHost(withoutShop, root, reserved);
+  if (custom.matched) {
+    if (custom.surface === "portal") {
+      return formatCustomApexSurfaceUrl({
+        host: withoutShop,
+        port,
+        rootDomain: root,
+      });
+    }
+    return formatCustomApexSurfaceUrl({
+      host: `portal.${custom.apex}`,
+      port,
+      rootDomain: root,
+    });
   }
 
   return `http://${withoutShop}:${port}`;

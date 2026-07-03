@@ -44,6 +44,7 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     const page = readFileSync(pagePath, "utf8");
     assert.match(page, /tourNationalIdRequired=/);
     assert.match(flow, /tourRequirements:/);
+    assert.match(page, /buildRegistrationResumeInitialState/);
   });
 
   it("P8-03 OTP orchestration lives in shared catalog-registration-flow-ui", () => {

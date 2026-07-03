@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { resolveMarketingPublicBaseUrl } from "@app-tour/guest-surface-host";
 import { resolveGuestSeoForPlugin, type WorkspaceGuestSeoMarketing } from "@app-tour/workspace-sdk";
 
 import type { MarketingCatalogCard } from "@/catalog/catalog-types";
@@ -50,16 +51,9 @@ function buildMarketingTwitterMetadata(
   return twitter;
 }
 
-/** Absolute marketing origin for canonical/OG URLs. */
+/** Absolute marketing origin for canonical/OG URLs (WRS — normalized club apex, no shop. egress). */
 export function resolveMarketingPublicOrigin(host: string): string {
-  const configured = process.env.MARKETING_PUBLIC_BASE_URL?.trim();
-  if (configured !== undefined && configured.length > 0) {
-    return configured.replace(/\/$/, "");
-  }
-
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "localhost";
-  const port = host.split(":")[1]?.trim() || process.env.MARKETING_DEV_PORT?.trim() || "3002";
-  return `http://${hostname}:${port}`;
+  return resolveMarketingPublicBaseUrl(host);
 }
 
 export function buildMarketingSiteMetadata(input: {

@@ -15,6 +15,7 @@ import {
   buildMarketingSurfaceNoindexMetadata,
 } from "@/seo/build-marketing-metadata";
 import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
+import { resolvePortalMemberAreaUrl } from "@app-tour/guest-surface-host";
 import { MarketingProviders } from "@/shell/marketing-providers";
 import { MarketingShell } from "@/shell/marketing-shell";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
@@ -100,6 +101,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const layoutJsonLd = buildMarketingLayoutJsonLd({ host, siteName });
   const fontClassName = resolveAppFontClassName(locale);
   const fontFamilyBase = resolveAppFontFamilyCss(locale);
+  const portalMemberAreaUrl = resolvePortalMemberAreaUrl(host);
 
   return (
     <html
@@ -115,7 +117,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <MarketingProviders theme={theme}>
-            <MarketingShell branding={branding}>{children}</MarketingShell>
+            <MarketingShell branding={branding} portalMemberAreaUrl={portalMemberAreaUrl}>
+              {children}
+            </MarketingShell>
           </MarketingProviders>
         </NextIntlClientProvider>
         <script

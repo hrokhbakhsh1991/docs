@@ -34,4 +34,15 @@ describe("portal build-session-cookie — P8-1-N-001", () => {
       else process.env.NODE_ENV = priorNode;
     }
   });
+
+  it("PCMS-COOK-05 custom apex host sets Domain on Set-Cookie", async () => {
+    const { setSessionCookieOnResponse, resolveMemberSessionCookieDomainForHost } = await import(
+      "../src/auth/build-session-cookie"
+    );
+    assert.equal(resolveMemberSessionCookieDomainForHost("portal.denali.club:3003"), "denali.club");
+    const headers = new Headers();
+    setSessionCookieOnResponse(headers, "jwt-token", "portal.denali.club:3003");
+    const setCookie = headers.get("set-cookie") ?? "";
+    assert.match(setCookie, /Domain=denali\.club/);
+  });
 });

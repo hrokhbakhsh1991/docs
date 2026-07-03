@@ -40,6 +40,8 @@ Two addressing layers coexist — both are standard enterprise SaaS:
 
 **Rule:** Host resolves **tenantId** only. Workspace type comes from tenant registry after lookup — never from hostname of another club.
 
+**WRS SoT:** [workspace-routing-standard.mdoc](../../standards/workspace-routing-standard.mdoc) (WRS-001) — cross-app URL builders, smoke canonical hosts, egress guard.
+
 ---
 
 ## 2. Canonical surfaces (frozen)
@@ -159,6 +161,22 @@ legacy portal alias         →  http://{club}.localhost:3003/...  (portal resol
 
 For custom domains, set **`PORTAL_PUBLIC_BASE_URL`** per club (or derive from `tenant_domains` in P6-0+).
 
+### 5.4 Reverse bridge (portal / admin → marketing)
+
+`resolveMarketingPublicBaseUrl` (web catalog redirect · portal home) uses **`buildDevMarketingPublicBaseUrl`** from `@app-tour/tenant-kernel`:
+
+```text
+{club}.portal.{root}:3003   →  http://{club}.{root}:3002
+{club}.admin.{root}:3000    →  http://{club}.{root}:3002
+{club}.{root}:3002          →  http://{club}.{root}:3002
+shop.{club}.{root} (ingress) →  strip shop. → same as club apex
+MARKETING_PUBLIC_BASE_URL   →  override (custom apex prod, e.g. https://denali.club)
+```
+
+**WRS-URL-03:** Egress MUST NOT prepend `shop.` — legacy `shop.{club}` is ingress-only (strip before parse).
+
+Industry alignment: subdomain tenant routing (WorkOS · AWS SaaS · Vercel platforms) + custom apex DB map; content paths (`/tours`) stay on marketing host, not extra subdomains.
+
 ---
 
 ## 6. Trunk gaps (post-P6 closure)
@@ -170,6 +188,8 @@ For custom domains, set **`PORTAL_PUBLIC_BASE_URL`** per club (or derive from `t
 | H-P6-03 | Custom admin host not in `tenant_domains` surface v1 | deferred post-P6 |
 | H-P6-04 | `p6-host-tenant-parity.spec.ts` | ✅ P6-0-N-002 |
 | H-P6-05 | `host-subdomain-map.md` runbook | ✅ P6-0-N-001 |
+| H-P6-06 | Cross-app marketing URL prepended legacy `shop.` on egress | ✅ WRS · `buildDevMarketingPublicBaseUrl` + guest-surface-host |
+| H-P6-07 | SEO canonical emitted legacy `shop.` host | ✅ WRS · `resolveMarketingPublicOrigin` uses kernel builder |
 
 ---
 
@@ -201,9 +221,15 @@ Club hosts must **never** resolve platform mother tenant.
 
 ```bash
 pnpm --filter @app-tour/tenant-kernel test
-pnpm --filter @apps/api run test -- test/p6-host-tenant-parity.spec.ts   # P6-0-N-002
-node scripts/smoke-p6-host-bind.mjs                                       # P6-0-N-007
+pnpm --filter @apps/api run test -- test/p6-host-tenant-parity.spec.ts test/wrs-custom-apex-ingress.spec.ts
+node scripts/smoke-p6-host-bind.mjs
+pnpm run seed:wrs-denali-club-domains   # dev Postgres — denali.club rows
+pnpm run smoke:wrs-custom-apex          # needs API on :3001 + seed
+pnpm run guard:wrs-routing
+pnpm run guard:wrs-stale-docs
 ```
+
+SoT: [workspace-routing-standard.mdoc](../../standards/workspace-routing-standard.mdoc) · cutover: [denali-club-cutover.md](p6/runbooks/denali-club-cutover.md)
 
 ---
 

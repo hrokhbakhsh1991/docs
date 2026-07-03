@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   /** Playwright + local dev: browser on `{club}.portal.localhost:3003`, Next on `localhost:3003`. */
-  allowedDevOrigins: ["portal.localhost", "*.portal.localhost"],
+  allowedDevOrigins: ["portal.localhost", "*.portal.localhost", "portal.denali.club", "denali.club"],
   transpilePackages: [
     "@app-tour/design-tokens",
     "@app-tour/theme-react",

@@ -18,6 +18,7 @@ const IDENTITY_ME_ALLOWLIST = new Set([
   "apps/portal/app/api/me/avatar/url/route.ts",
   "apps/portal/app/api/me/mobile/request-otp/route.ts",
   "apps/portal/app/api/me/mobile/verify/route.ts",
+  "apps/portal/src/me/fetch-member-profile-from-session.server.ts",
 ]);
 
 const PROFILE_DOMAIN_PREFIXES = [

@@ -1,6 +1,11 @@
 import { decodeJwtPayload, isJwtExpired } from "./decode-jwt-payload";
 
-export type SessionTokenValidationStatus = "valid" | "missing" | "expired" | "invalid_claims";
+export type SessionTokenValidationStatus =
+  | "valid"
+  | "missing"
+  | "expired"
+  | "invalid_claims"
+  | "invalid_signature";
 
 export type SessionTokenValidation =
   | { status: "valid"; userId: string; tenantId: string; role?: string; workspaceId?: string }

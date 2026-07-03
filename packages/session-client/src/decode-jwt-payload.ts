@@ -7,6 +7,9 @@ export type SessionJwtClaims = {
   role?: string;
   exp?: number;
   iat?: number;
+  sess_ver?: string | number;
+  iss?: string;
+  aud?: string | string[];
   platform_impersonation_readonly?: boolean;
 };
 

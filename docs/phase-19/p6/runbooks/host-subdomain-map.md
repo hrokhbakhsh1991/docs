@@ -63,7 +63,9 @@ Env: `/etc/app-tour-staging/` · DB: `tour_db_staging` · MinIO: `app-tour-stagi
 
 All must resolve **same `tenantId`** (`…000014`).
 
-Playwright marketing smoke default: `http://shop.operator.localhost:3002/tours` (`playwright.marketing.config.ts`).
+Playwright marketing smoke default: `http://operator.localhost:3002/tours` (`playwright.marketing.config.ts`).
+
+**Legacy sunset (WRS Phase 4):** `shop.{club}.localhost` remains **ingress-only** (strip before parse) — not used in smoke defaults, env examples, or redirect egress. Cutover runbook: [denali-club-cutover.md](denali-club-cutover.md).
 
 Urban marketing smoke (SMK-MKT-05): `http://urban.localhost:3002/tours` (`playwright.marketing-urban.config.ts` · `pnpm --filter @apps/marketing run test:smoke:urban`).
 
@@ -97,12 +99,13 @@ Catalog UI specs: [marketing-catalog-ui.md](../../../workspaces/denali/marketing
 127.0.0.1 operator.localhost
 127.0.0.1 operator.portal.localhost
 127.0.0.1 operator.admin.localhost
-127.0.0.1 shop.operator.localhost
 127.0.0.1 denali.localhost
 127.0.0.1 denali.portal.localhost
 127.0.0.1 denali.admin.localhost
 127.0.0.1 urban.localhost
 127.0.0.1 urban.portal.localhost
+# Legacy ingress-only (optional — WRS sunset):
+# 127.0.0.1 shop.operator.localhost
 ```
 
 ---
@@ -204,7 +207,7 @@ Customer may later attach `tenant_domains` for `myclub.ir` apex.
 □ tenant-kernel multi-level parse specs green
 □ p6-host-tenant-parity.spec.ts green (P6-0-N-002)
 □ smoke-p6-host-bind.mjs exits 0 (P6-0-N-007)
-□ shop.operator CTA lands on portal register route
+□ operator.localhost CTA lands on portal register route
 □ operator.admin login resolves same tenant as marketing
 □ denali.localhost:3002 + denali.portal.localhost:3003 resolve tenant …000003 (Postgres dev)
 □ guard:public-catalog-m17 green (dynamic count)

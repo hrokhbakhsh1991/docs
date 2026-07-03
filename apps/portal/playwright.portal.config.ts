@@ -23,7 +23,7 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["portal-*-smoke.spec.ts"],
+  testMatch: ["portal-registration-smoke.spec.ts", "portal-registration-resume-smoke.spec.ts", "portal-member-profile-smoke.spec.ts"],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,
   forbidOnly: !!process.env.CI,

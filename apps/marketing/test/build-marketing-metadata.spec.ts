@@ -14,16 +14,30 @@ import {
 } from "../src/seo/build-marketing-metadata";
 
 describe("build-marketing-metadata", () => {
-  it("MKT-13 resolves marketing origin from host", () => {
+  it("MKT-13 normalizes legacy shop ingress to canonical marketing origin", () => {
     assert.equal(
       resolveMarketingPublicOrigin("shop.operator.localhost:3002"),
-      "http://shop.operator.localhost:3002"
+      "http://operator.localhost:3002"
+    );
+  });
+
+  it("MKT-13b canonical host unchanged", () => {
+    assert.equal(
+      resolveMarketingPublicOrigin("operator.localhost:3002"),
+      "http://operator.localhost:3002"
+    );
+  });
+
+  it("MKT-13c custom apex portal ingress maps to marketing apex", () => {
+    assert.equal(
+      resolveMarketingPublicOrigin("portal.denali.club"),
+      "http://denali.club:3002"
     );
   });
 
   it("MKT-14 tours list metadata uses tenant display name", () => {
     const metadata = buildMarketingToursListMetadata({
-      host: "shop.operator.localhost:3002",
+      host: "operator.localhost:3002",
       siteName: "Operator Smoke",
       title: "Operator Smoke — Tours",
       description: "Published tour catalog for Operator Smoke.",
@@ -34,7 +48,7 @@ describe("build-marketing-metadata", () => {
 
   it("MKT-15 tour detail metadata includes OG image", () => {
     const metadata = buildMarketingTourDetailMetadata({
-      host: "shop.operator.localhost:3002",
+      host: "operator.localhost:3002",
       siteName: "Operator Smoke",
       pluginId: "denali",
       tour: {
@@ -59,7 +73,7 @@ describe("build-marketing-metadata", () => {
 
   it("MKT-32 tour detail OG image declares width and height", () => {
     const metadata = buildMarketingTourDetailMetadata({
-      host: "shop.operator.localhost:3002",
+      host: "operator.localhost:3002",
       siteName: "Operator Smoke",
       pluginId: "denali",
       tour: {
@@ -80,7 +94,7 @@ describe("build-marketing-metadata", () => {
 
   it("MKT-29 tours list metadata includes Twitter card", () => {
     const metadata = buildMarketingToursListMetadata({
-      host: "shop.operator.localhost:3002",
+      host: "operator.localhost:3002",
       siteName: "Operator Smoke",
       title: "Operator Smoke — Tours",
       description: "Published tour catalog for Operator Smoke.",
@@ -108,7 +122,7 @@ describe("build-marketing-metadata", () => {
 
   it("MKT-33b list metadata forwards robots noindex policy", () => {
     const metadata = buildMarketingToursListMetadata({
-      host: "shop.operator.localhost:3002",
+      host: "operator.localhost:3002",
       siteName: "Operator Smoke",
       title: "Tours",
       description: "List",
@@ -119,7 +133,7 @@ describe("build-marketing-metadata", () => {
 
   it("MKT-31 emits reciprocal hreflang alternates for English detail pages", () => {
     const metadata = buildMarketingTourDetailMetadata({
-      host: "shop.operator.localhost:3002",
+      host: "operator.localhost:3002",
       siteName: "Operator Smoke",
       pluginId: "denali",
       locale: "en",
@@ -136,15 +150,15 @@ describe("build-marketing-metadata", () => {
     assert.equal(metadata.alternates?.canonical, "/en/tours/t1");
     assert.equal(
       metadata.alternates?.languages?.["fa-IR"],
-      "http://shop.operator.localhost:3002/tours/t1"
+      "http://operator.localhost:3002/tours/t1"
     );
     assert.equal(
       metadata.alternates?.languages?.["en-US"],
-      "http://shop.operator.localhost:3002/en/tours/t1"
+      "http://operator.localhost:3002/en/tours/t1"
     );
     assert.equal(
       metadata.alternates?.languages?.["x-default"],
-      "http://shop.operator.localhost:3002/tours/t1"
+      "http://operator.localhost:3002/tours/t1"
     );
   });
 });

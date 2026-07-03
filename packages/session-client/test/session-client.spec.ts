@@ -5,6 +5,7 @@ import {
   SESSION_COOKIE_NAMES,
   createSessionCookieHelpers,
   decodeJwtPayload,
+  setSessionCookieOnResponse,
   validateSessionToken,
 } from "../src/index";
 
@@ -31,5 +32,12 @@ describe("session-client", () => {
     const member = createSessionCookieHelpers(SESSION_COOKIE_NAMES.member);
     assert.equal(member.cookieName, "atour_mb_session");
     assert.equal(member.buildSessionCookieOptions("tok").name, "atour_mb_session");
+  });
+
+  it("PCMS-COOK-04 setSessionCookieOnResponse includes Domain when provided", () => {
+    const headers = new Headers();
+    setSessionCookieOnResponse(headers, "atour_mb_session", "tok", { domain: "denali.club" });
+    const setCookie = headers.get("set-cookie") ?? "";
+    assert.match(setCookie, /Domain=denali\.club/);
   });
 });

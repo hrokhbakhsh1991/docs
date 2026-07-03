@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
 const marketingSmokeBaseUrl =
-  process.env.SMOKE_MARKETING_BASE_URL ?? "http://shop.operator.localhost:3002";
+  process.env.SMOKE_MARKETING_BASE_URL ?? "http://operator.localhost:3002";
 
 export default defineConfig({
   testDir: "./tests/e2e",

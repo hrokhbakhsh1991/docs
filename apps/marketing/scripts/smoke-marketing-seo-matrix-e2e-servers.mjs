@@ -193,10 +193,10 @@ try {
       env: marketingEnv,
       stdio: "inherit",
     });
-    await waitForUrl("http://shop.operator.localhost:3002/health");
+    await waitForUrl("http://operator.localhost:3002/health");
   } else {
     console.log("smoke-marketing-seo-matrix-e2e-servers: reusing marketing on 3002");
-    await waitForUrl("http://shop.operator.localhost:3002/health", 30_000);
+    await waitForUrl("http://operator.localhost:3002/health", 30_000);
   }
 
   console.log("smoke-marketing-seo-matrix-e2e-servers: API + marketing ready (matrix smoke)");

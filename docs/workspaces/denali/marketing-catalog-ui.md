@@ -168,7 +168,7 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | SMK-MKT-03 | `marketing-catalog-smoke.spec.ts` | tour-detail, register, portal OTP flow |
 | Itinerary | same (Denali tour) | itinerary, segment-photos |
 
-Default Playwright base URLs: operator `http://shop.operator.localhost:3002` (`playwright.marketing.config.ts`); urban `http://urban.localhost:3002` (`playwright.marketing-urban.config.ts` · `pnpm run test:smoke:urban`).
+Default Playwright base URLs: operator `http://operator.localhost:3002` (`playwright.marketing.config.ts`); urban `http://urban.localhost:3002` (`playwright.marketing-urban.config.ts` · `pnpm run test:smoke:urban`).
 
 ---
 

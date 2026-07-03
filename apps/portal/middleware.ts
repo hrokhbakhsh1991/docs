@@ -5,8 +5,11 @@ import {
   SESSION_TOKEN_COOKIE,
   clearSessionCookieOnResponse,
 } from "@/auth/build-session-cookie";
-import { validateSessionToken } from "@app-tour/session-client";
+import { validateSessionTokenAsync } from "@app-tour/session-client";
+import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
+import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 function isProtectedMemberPath(pathname: string): boolean {
   return pathname === "/me" || pathname.startsWith("/me/") || pathname.startsWith("/api/me/");
@@ -22,49 +25,74 @@ function jsonAuthError(status: number, code: string, message: string): NextRespo
   return NextResponse.json({ ok: false, error: { code, message } }, { status });
 }
 
-function redirectHome(request: NextRequest, clearCookie: boolean): NextResponse {
+function redirectHome(request: NextRequest, clearCookie: boolean, host: string): NextResponse {
   const home = request.nextUrl.clone();
   home.pathname = "/";
   home.search = "";
   const response = NextResponse.redirect(home);
   if (clearCookie) {
-    clearSessionCookieOnResponse(response.headers);
+    clearSessionCookieOnResponse(response.headers, host);
   }
   return response;
 }
 
-export function middleware(request: NextRequest): NextResponse {
+async function resolvePortalTenantIdForHost(host: string): Promise<string | null> {
+  try {
+    const bootstrap = await resolvePortalBootstrapForHost(host);
+    return bootstrap.tenantId;
+  } catch {
+    return null;
+  }
+}
+
+export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
-  const host = request.headers.get("host") ?? "";
+  const host = resolvePortalIngressHost(request);
 
   if (!isProtectedMemberPath(pathname)) {
     return forwardPathname(request, pathname);
   }
 
+  const resolvedPortalTenantId = await resolvePortalTenantIdForHost(host);
   const token = request.cookies.get(SESSION_TOKEN_COOKIE)?.value;
-  const validation = validateSessionToken(token);
+  const validation = await validateSessionTokenAsync(token);
+  const failClosedWhenUnresolved = !isDevWebSessionAllowed();
 
   if (validation.status === "valid") {
-    if (!sessionTenantMatchesHost(validation.tenantId, host)) {
+    if (
+      !sessionTenantMatchesHost(validation.tenantId, host, {
+        resolvedPortalTenantId,
+        failClosedWhenUnresolved,
+      })
+    ) {
       if (pathname.startsWith("/api/me/")) {
         const res = jsonAuthError(
           403,
           "AUTH_TENANT_HOST_MISMATCH",
           "Session tenant does not match workspace host"
         );
-        clearSessionCookieOnResponse(res.headers);
+        clearSessionCookieOnResponse(res.headers, host);
         return res;
       }
-      return redirectHome(request, true);
+      return redirectHome(request, true, host);
     }
     return forwardPathname(request, pathname);
   }
 
   if (pathname.startsWith("/api/me/")) {
+    if (validation.status === "invalid_signature") {
+      const res = jsonAuthError(401, "AUTH_INVALID_TOKEN", "Session token signature invalid");
+      clearSessionCookieOnResponse(res.headers, host);
+      return res;
+    }
     return jsonAuthError(401, "AUTH_UNAUTHENTICATED", "Authentication required");
   }
 
-  return redirectHome(request, Boolean(token?.trim()));
+  return redirectHome(
+    request,
+    Boolean(token?.trim()) || validation.status === "invalid_signature",
+    host
+  );
 }
 
 export const config = {

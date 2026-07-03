@@ -1,12 +1,12 @@
-import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 
 import { fetchMemberProfile } from "@/me/fetch-member-profile.server";
+import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 
 import { MemberProfileForm } from "./member-profile-form";
 
 export default async function MeProfilePage() {
-  const host = (await headers()).get("host") ?? "localhost:3003";
+  const host = await readPortalIngressHost();
   const profilePayload = await fetchMemberProfile(host);
   const t = await getTranslations("portalMember.profile");
 

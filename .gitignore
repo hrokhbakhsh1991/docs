@@ -23,6 +23,7 @@ legacy/.aider.*
 legacy/apps/web/.next/
 apps/*/.next/
 apps/*/test-results/
+apps/marketing/.lighthouseci/
 legacy/apps/web/playwright-report/
 legacy/apps/web/test-results/
 legacy/apps/web/storybook-static/
@@ -33,4 +34,5 @@ legacy/reports/phase-0-environment-*
 # TEMP/
 # Lowercase scratch dir: git-ignored but Cursor-readable (not in .cursorignore)
 tmp/
+temp/
 .aider*

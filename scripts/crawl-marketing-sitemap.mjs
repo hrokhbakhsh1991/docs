@@ -6,7 +6,7 @@ import http from "node:http";
 import https from "node:https";
 
 function parseArgs(argv) {
-  const args = { host: "shop.operator.localhost:3002", path: "/sitemap.xml" };
+  const args = { host: "operator.localhost:3002", path: "/sitemap.xml" };
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === "--smoke-host" && argv[i + 1]) {
       args.host = argv[i + 1];

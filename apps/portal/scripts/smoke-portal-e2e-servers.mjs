@@ -53,6 +53,7 @@ const apiEnv = {
   NODE_ENV: "test",
   STORAGE_DRIVER: "memory",
   OPERATOR_SMOKE_E2E_SEED: "1",
+  WRS_SMOKE_CUSTOM_APEX: "1",
   PORT: "3001",
   TENANT_RATE_LIMIT_ENABLED: "false",
   AUTH_ALLOW_DEV_STATIC_OTP: "true",
@@ -62,18 +63,25 @@ delete apiEnv.DATABASE_URL_ADMIN;
 
 const portalSmokeHost =
   process.env.SMOKE_PORTAL_BASE_URL?.trim() || "http://operator.portal.localhost:3003";
+const isCustomApexSmoke = portalSmokeHost.includes("denali.club");
+const marketingPublicBaseUrl =
+  process.env.MARKETING_PUBLIC_BASE_URL?.trim() ||
+  (isCustomApexSmoke
+    ? "http://denali.club:3002"
+    : `${portalSmokeHost.replace(/\/$/, "")}/health`);
 
 const portalEnv = {
   ...process.env,
+  ...jwtEnv,
   NODE_ENV: "development",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
   API_INTERNAL_URL: "http://127.0.0.1:3001",
+  PORTAL_INTERNAL_URL: "http://127.0.0.1:3003",
   TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,
   TOUR_OPS_DEV_WORKSPACE_ID: "ws-operator-smoke",
   PORTAL_DEV_PORT: "3003",
-  // Logout → `/` redirects unauthenticated users to marketing; keep smoke self-contained.
-  MARKETING_PUBLIC_BASE_URL: `${portalSmokeHost.replace(/\/$/, "")}/health`,
+  MARKETING_PUBLIC_BASE_URL: marketingPublicBaseUrl,
 };
 
 const api = spawn("node", ["--import", "tsx", "src/main.ts"], {

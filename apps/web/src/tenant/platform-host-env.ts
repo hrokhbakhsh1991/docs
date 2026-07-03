@@ -1,3 +1,4 @@
+import { resolvePublicBrandingHost } from "@app-tour/guest-surface-host";
 import { parseReservedLabelsCsv } from "@app-tour/tenant-kernel";
 
 export function readPlatformRootDomainWeb(): string {
@@ -9,7 +10,7 @@ export function readPlatformRootDomainWeb(): string {
 }
 
 export function normalizeHostHeader(host: string): string {
-  return host.split(":")[0]?.trim().toLowerCase() ?? "";
+  return resolvePublicBrandingHost(host);
 }
 
 export function readWebReservedHostLabels(): Set<string> {

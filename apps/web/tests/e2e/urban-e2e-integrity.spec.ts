@@ -17,7 +17,7 @@ import {
 const URBAN_PUBLIC_BASE_URL = process.env.SMOKE_WEB_BASE_URL ?? "http://urban.localhost:3000";
 const URBAN_PORTAL_BASE_URL = process.env.SMOKE_PORTAL_BASE_URL ?? "http://urban.localhost:3003";
 const URBAN_MARKETING_BASE_URL =
-  process.env.SMOKE_MARKETING_BASE_URL ?? "http://shop.urban.localhost:3002";
+  process.env.SMOKE_MARKETING_BASE_URL ?? "http://urban.localhost:3002";
 const PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
 const PUBLISHED_TOUR_TITLE = "Berlin city highlights";
 const REGISTRATION_EMAIL = `smk-p8-02-${Date.now()}@urban-smoke.local`;

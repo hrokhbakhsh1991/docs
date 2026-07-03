@@ -6,9 +6,9 @@
       "startServerReadyPattern": "lighthouse smoke ready",
       "startServerReadyTimeout": 360000,
       "settings": {
-        "chromeFlags": "--host-resolver-rules=MAP shop.operator.localhost 127.0.0.1"
+        "chromeFlags": "--host-resolver-rules=MAP operator.localhost 127.0.0.1"
       },
-      "url": ["http://shop.operator.localhost:3002/tours"]
+      "url": ["http://operator.localhost:3002/tours"]
     },
     "assert": {
       "assertions": {

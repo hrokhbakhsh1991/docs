@@ -1,17 +1,16 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
+import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
 import { MemberLogoutButton } from "./member-logout-button";
 
 export default async function MeLayout({ children }: { children: ReactNode }) {
-  const headerList = await headers();
-  const host = headerList.get("host") ?? "localhost:3003";
+  const host = await readPortalIngressHost();
   const session = await readPublicCatalogSessionFromCookies();
   if (session === null) {
     redirect("/");

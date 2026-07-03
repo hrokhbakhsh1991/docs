@@ -39,7 +39,7 @@ behavioral_status: VERIFIED_BEHAVIORAL
 | ------------ | ---------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | SMK-DREG-01  | Denali portal OTP + intake         | `apps/web/tests/e2e/denali-catalog-registration.spec.ts`       | `operator.localhost:3003` · `apps/portal` · `pnpm --filter @apps/web run test:e2e:denali` |
 | SMK-PTL-01   | Portal-owned registration smoke    | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts`        | `operator.localhost:3003` · `pnpm --filter @apps/portal run test:smoke` |
-| SMK-MKT-03   | Marketing CTA → portal OTP → intake | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts`     | `shop.operator.localhost:3002` → portal register · `pnpm --filter @apps/marketing run test:smoke` |
+| SMK-MKT-03   | Marketing CTA → portal OTP → intake | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts`     | `operator.localhost:3002` → portal register · `pnpm --filter @apps/marketing run test:smoke` |
 | SMK-MKT-05   | Urban marketing catalog browse + detail | `apps/marketing/tests/e2e/marketing-urban-catalog-smoke.spec.ts` | `urban.localhost:3002` · urban skin · city filter · `PW_NO_REUSE_SERVER=1 pnpm --filter @apps/marketing run test:smoke:urban` |
 
 Authority: [`docs/workspaces/denali/public-catalog.md`](../../workspaces/denali/public-catalog.md) · UI specs: [marketing-catalog-ui.md](../../workspaces/denali/marketing-catalog-ui.md) · [portal-registration-ui.md](../../workspaces/denali/portal-registration-ui.md) · guard `pnpm run guard:public-catalog-m17` (dynamic count · also in `p6:gate` / `p4:gate`).

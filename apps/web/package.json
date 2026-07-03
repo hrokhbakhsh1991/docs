@@ -39,6 +39,7 @@
   "dependencies": {
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/draft-engine": "workspace:*",
+    "@app-tour/guest-surface-host": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/session-client": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
