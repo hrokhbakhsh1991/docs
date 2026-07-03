@@ -57,5 +57,16 @@ describe("denali-wizard-template-catalog-meta.spec.ts", () => {
     );
     assert.equal(meta.registryDefaultRequired, true);
     assert.equal(meta.parentCanonicalPath, null);
+    assert.equal(meta.templateFrozen, false);
+  });
+
+  it("DENALI-TPL-META-05 title is template frozen for catalog list", () => {
+    const meta = resolveDenaliWizardTemplateCatalogFieldMeta(
+      "title",
+      "denali_basic",
+      ["title", "category"]
+    );
+    assert.equal(meta.templateFrozen, true);
+    assert.equal(meta.templateFrozenRequired, true);
   });
 });

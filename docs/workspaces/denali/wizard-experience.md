@@ -48,7 +48,10 @@ Tenant `wizard_template` JSON in `tenant_config` may be trimmed in Settings. Den
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
 | INV-DENALI-WIZ-001 | `ensureDenaliTourKindTemplateSteps` — inject visible `category` on `denali_basic` when missing                                    |
 | INV-DENALI-WIZ-005 | `ensureDenaliMatrixRequiredTemplateSteps` — inject matrix-required paths (e.g. `program.shortDescription`)                        |
+| INV-DENALI-WIZ-008 | `DENALI_FROZEN_TEMPLATE_FIELDS` — catalog-critical paths always injected; Settings template UI checkbox disabled; API PUT normalizes + rejects stripped publish payloads |
 | Form profile       | Default `workspaceFormProfile` → `denali_pilot` when tenant payload omits `baseProfile` (via `resolveDenaliWorkspaceFormProfile`) |
+
+**Frozen set (INV-DENALI-WIZ-008):** `category`, `title`, `destinationId`, `startDateTime`, `capacityMax`, `program.themeIds`, `photos`, `transport.mode` — always on in Settings template; cannot be unchecked.
 
 `category` mounts composite **`denali.tour-kind-basics`** (category + duration + event variant picker). Trimming DB overlay does **not** remove tour-kind UI once the hook runs.
 

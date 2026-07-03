@@ -51,7 +51,9 @@ export function resolveDenaliWizardTemplateFieldDisplayHints(
   const includesLabels = meta.compositeChildPaths.map((path) => resolveFieldLabel(path));
 
   let createTourHint: string | null = null;
-  if (meta.matrixInjectedRequired) {
+  if (meta.templateFrozen) {
+    createTourHint = tSettings("hints.templateFrozen");
+  } else if (meta.matrixInjectedRequired) {
     createTourHint = tSettings("hints.matrixInjectedRequired");
   } else if (meta.registryDefaultRequired) {
     createTourHint = tSettings("hints.matrixDefaultRequired");

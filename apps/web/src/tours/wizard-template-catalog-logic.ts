@@ -113,8 +113,12 @@ export function isWizardTemplateCatalogFieldSelected(
 export function toggleWizardTemplateCatalogField(
   steps: readonly WizardTemplateStepRef[],
   field: WizardTemplateCatalogField,
-  selected: boolean
+  selected: boolean,
+  options?: { readonly isFrozen?: (canonicalPath: string) => boolean }
 ): WizardTemplateStepRef[] {
+  if (!selected && options?.isFrozen?.(field.canonicalPath) === true) {
+    return [...steps];
+  }
   if (!isWizardTemplateCatalogFieldSelectable(field)) {
     return [...steps];
   }

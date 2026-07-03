@@ -1,5 +1,10 @@
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
+import {
+  assertDenaliFrozenWizardTemplateFieldsPresent,
+  DenaliWizardTemplateFrozenFieldMissingError,
+  normalizeDenaliWizardTemplatePayloadSteps,
+} from "@app-tour/workspace-denali";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForTenantContext } from "../workspace/resolve-workspace-plugin-for-tenant-context";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
@@ -53,6 +58,15 @@ export class SettingsWizardRoadmapFieldError extends Error {
   constructor(readonly canonicalPath: string) {
     super(`SETTINGS_WIZARD_ROADMAP_FIELD:${canonicalPath}`);
     this.name = "SettingsWizardRoadmapFieldError";
+  }
+}
+
+export class SettingsWizardFrozenFieldMissingError extends Error {
+  readonly code = "SETTINGS_WIZARD_FROZEN_FIELD_MISSING" as const;
+
+  constructor(readonly canonicalPath: string) {
+    super(`SETTINGS_WIZARD_FROZEN_FIELD_MISSING:${canonicalPath}`);
+    this.name = "SettingsWizardFrozenFieldMissingError";
   }
 }
 
@@ -113,4 +127,35 @@ export async function assertWizardTemplateFieldsKnown(
       }
     }
   }
+}
+
+export async function assertDenaliWizardTemplateFrozenFieldsForTenant(
+  tenantId: string,
+  payload: WizardTemplatePayloadV1
+): Promise<void> {
+  if (payload.published !== true || payload.steps === undefined || payload.steps.length === 0) {
+    return;
+  }
+  const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
+  if (workspaceType !== "denali") {
+    return;
+  }
+  try {
+    assertDenaliFrozenWizardTemplateFieldsPresent(payload);
+  } catch (error) {
+    if (error instanceof DenaliWizardTemplateFrozenFieldMissingError) {
+      throw new SettingsWizardFrozenFieldMissingError(error.canonicalPath);
+    }
+    throw error;
+  }
+}
+
+export function normalizeDenaliWizardTemplatePayloadForTenant(
+  workspaceType: string,
+  payload: WizardTemplatePayloadV1
+): WizardTemplatePayloadV1 {
+  if (workspaceType !== "denali") {
+    return payload;
+  }
+  return normalizeDenaliWizardTemplatePayloadSteps(payload) as WizardTemplatePayloadV1;
 }

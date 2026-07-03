@@ -2,13 +2,19 @@ import { DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR } from "../composites/denali-comp
 import { DENALI_COMPOSITE_BY_CANONICAL_PATH } from "../composites/denali-composite-registry";
 import { DENALI_FIELD_DEFINITIONS } from "../field-registry/denaliFieldRegistryData";
 import type { DenaliFieldDefinition } from "../field-registry/denaliFieldRegistryData";
-import { DENALI_MATRIX_REQUIRED_TEMPLATE_FIELDS } from "../wizard/ensure-tour-kind-template-field";
+import {
+  DENALI_MATRIX_REQUIRED_TEMPLATE_FIELDS,
+  isDenaliFrozenTemplateCanonicalPath,
+  resolveDenaliFrozenTemplateFieldDefaultRequired,
+} from "../wizard/ensure-tour-kind-template-field";
 
 export type DenaliWizardTemplateCatalogFieldMeta = {
   readonly parentCanonicalPath: string | null;
   readonly compositeChildPaths: readonly string[];
   readonly matrixInjectedRequired: boolean;
   readonly registryDefaultRequired: boolean;
+  readonly templateFrozen: boolean;
+  readonly templateFrozenRequired: boolean;
   readonly contextualWatchCanonical: string | null;
   readonly isCompositeAnchor: boolean;
 };
@@ -99,11 +105,17 @@ export function resolveDenaliWizardTemplateCatalogFieldMeta(
     parentCanonicalPath = contextualWatchCanonical;
   }
 
+  const templateFrozen = isDenaliFrozenTemplateCanonicalPath(canonicalPath);
+
   return {
     parentCanonicalPath,
     compositeChildPaths,
     matrixInjectedRequired: isDenaliMatrixInjectedRequired(stepId, canonicalPath),
     registryDefaultRequired: def?.ruleDefaults.required === true,
+    templateFrozen,
+    templateFrozenRequired: templateFrozen
+      ? resolveDenaliFrozenTemplateFieldDefaultRequired(canonicalPath)
+      : false,
     contextualWatchCanonical,
     isCompositeAnchor: compositeChildPaths.length > 0,
   };

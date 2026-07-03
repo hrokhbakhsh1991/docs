@@ -58,6 +58,10 @@ import {
   patchDenaliWizardTemplateLongDescriptionVisibility,
 } from "@app-tour/workspace-denali/settings/wizard-template-long-description";
 import { resolveDenaliWizardTemplateCatalogFieldMeta } from "@app-tour/workspace-denali/settings/wizard-template-catalog-meta";
+import {
+  isDenaliFrozenTemplateCanonicalPath,
+  normalizeDenaliWizardTemplatePayloadSteps,
+} from "@app-tour/workspace-denali";
 import { resolveDenaliWizardTemplateFieldDisplayHints } from "@/tours/wizard-template-field-display-hints";
 
 type WizardTemplateClientProps = {
@@ -74,6 +78,17 @@ function createEmptyWizardTemplatePayload(): WizardTemplatePayload {
     published: false,
     steps: [],
   };
+}
+
+
+function normalizeDenaliWizardTemplatePayloadForSettings(
+  pluginId: string,
+  payload: WizardTemplatePayload
+): WizardTemplatePayload {
+  if (pluginId !== "denali" || payload.published !== true) {
+    return payload;
+  }
+  return normalizeDenaliWizardTemplatePayloadSteps(payload) as WizardTemplatePayload;
 }
 
 function parseInitialWizardTemplatePayload(response: unknown | null | undefined): WizardTemplatePayload | null {
@@ -98,7 +113,11 @@ export function WizardTemplateClient({
   const canManage = isAdminOrOwnerRole(session.role);
   const skipInitialTemplateFetchRef = useRef(initialTemplateResponse != null);
   const [payload, setPayload] = useState<WizardTemplatePayload>(() => {
-    return parseInitialWizardTemplatePayload(initialTemplateResponse) ?? createEmptyWizardTemplatePayload();
+    const parsed = parseInitialWizardTemplatePayload(initialTemplateResponse);
+    if (parsed == null) {
+      return createEmptyWizardTemplatePayload();
+    }
+    return normalizeDenaliWizardTemplatePayloadForSettings(pluginId, parsed);
   });
   const catalog = useMemo(() => {
     if (initialCatalog != null) {
@@ -168,7 +187,12 @@ export function WizardTemplateClient({
       })
       .then((config) => {
         if (!cancelled) {
-          setPayload(parseWizardTemplateResponse(config));
+          setPayload(
+            normalizeDenaliWizardTemplatePayloadForSettings(
+              pluginId,
+              parseWizardTemplateResponse(config)
+            )
+          );
         }
       })
       .catch((fetchError: unknown) => {
@@ -388,28 +412,36 @@ export function WizardTemplateClient({
                             ? resolveDenaliFieldKindLabel(tDenali, field.kind)
                             : formatWizardTemplateFieldKindLabel(field.kind);
                         const stepFieldPaths = step.fields.map((entry) => entry.canonicalPath);
-                        const fieldDisplayHints =
+                        const fieldMeta =
                           pluginId === "denali"
-                            ? resolveDenaliWizardTemplateFieldDisplayHints(
-                                (key, values) => t(key, values),
-                                tDenali,
-                                (path) => resolveDenaliFieldLabel(tDenali, path),
-                                resolveDenaliWizardTemplateCatalogFieldMeta(
-                                  field.canonicalPath,
-                                  step.stepId,
-                                  stepFieldPaths
-                                )
+                            ? resolveDenaliWizardTemplateCatalogFieldMeta(
+                                field.canonicalPath,
+                                step.stepId,
+                                stepFieldPaths
                               )
                             : null;
-                        const checked = isWizardTemplateCatalogFieldSelected(
-                          payload.steps ?? [],
-                          field.canonicalPath
-                        );
+                        const templateFrozen = fieldMeta?.templateFrozen === true;
+                        const checked =
+                          templateFrozen ||
+                          isWizardTemplateCatalogFieldSelected(payload.steps ?? [], field.canonicalPath);
                         const selectable = field.selectable;
                         const overlay = resolveWizardTemplateFieldRef(
                           payload.steps ?? [],
                           field.canonicalPath
                         );
+                        const requiredLocked =
+                          templateFrozen &&
+                          (fieldMeta?.templateFrozenRequired === true ||
+                            fieldMeta?.registryDefaultRequired === true);
+                        const fieldDisplayHints =
+                          fieldMeta != null
+                            ? resolveDenaliWizardTemplateFieldDisplayHints(
+                                (key, values) => t(key, values),
+                                tDenali,
+                                (path) => resolveDenaliFieldLabel(tDenali, path),
+                                fieldMeta
+                              )
+                            : null;
                         return (
                           <li key={field.canonicalPath} className="space-y-2 text-sm">
                             <div className="flex items-start gap-2">
@@ -418,6 +450,7 @@ export function WizardTemplateClient({
                                 data-testid={WIZARD_TEMPLATE_CATALOG_TEST_IDS.fieldToggle}
                                 data-canonical-path={field.canonicalPath}
                                 data-selectable={selectable ? "true" : "false"}
+                                data-template-frozen={templateFrozen ? "true" : "false"}
                                 checked={checked}
                                 onChange={(event) =>
                                   setPayload((current) => ({
@@ -425,11 +458,16 @@ export function WizardTemplateClient({
                                     steps: toggleWizardTemplateCatalogField(
                                       current.steps ?? [],
                                       field,
-                                      event.target.checked
+                                      event.target.checked,
+                                      pluginId === "denali"
+                                        ? {
+                                            isFrozen: isDenaliFrozenTemplateCanonicalPath,
+                                          }
+                                        : undefined
                                     ),
                                   }))
                                 }
-                                disabled={!canManage || !selectable}
+                                disabled={!canManage || !selectable || templateFrozen}
                               />
                               <div className="space-y-0.5">
                                 <Label htmlFor={`wizard-field-${field.canonicalPath}`}>
@@ -478,14 +516,14 @@ export function WizardTemplateClient({
                                 ) : null}
                               </div>
                             </div>
-                            {checked && selectable ? (
+                            {checked && (selectable || templateFrozen) ? (
                               <div className="ms-6 flex flex-wrap items-center gap-4">
                                 <div className="flex items-center gap-2">
                                   <Checkbox
                                     id={`wizard-required-${field.canonicalPath}`}
                                     data-testid={WIZARD_TEMPLATE_CATALOG_TEST_IDS.fieldRequired}
                                     data-canonical-path={field.canonicalPath}
-                                    checked={overlay?.required === true}
+                                    checked={overlay?.required === true || requiredLocked}
                                     onChange={(event) =>
                                       setPayload((current) => ({
                                         ...current,
@@ -496,7 +534,7 @@ export function WizardTemplateClient({
                                         ),
                                       }))
                                     }
-                                    disabled={!canManage}
+                                    disabled={!canManage || requiredLocked}
                                   />
                                   <Label htmlFor={`wizard-required-${field.canonicalPath}`}>
                                     {t("requiredLabel")}

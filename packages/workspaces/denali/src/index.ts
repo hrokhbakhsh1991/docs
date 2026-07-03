@@ -39,10 +39,18 @@ export {
 } from "./settings/denaliFullWizardTemplate";
 export {
   DENALI_TOUR_KIND_CANONICAL_PATH,
+  DENALI_FROZEN_TEMPLATE_FIELDS,
+  assertDenaliFrozenWizardTemplateFieldsPresent,
+  DenaliWizardTemplateFrozenFieldMissingError,
   ensureDenaliTourKindAllowedPaths,
   ensureDenaliTourKindTemplateSteps,
+  ensureDenaliFrozenAllowedPaths,
+  ensureDenaliFrozenTemplateSteps,
   ensureDenaliMatrixRequiredAllowedPaths,
   ensureDenaliMatrixRequiredTemplateSteps,
+  isDenaliFrozenTemplateCanonicalPath,
+  listDenaliFrozenTemplateCanonicalPaths,
+  normalizeDenaliWizardTemplatePayloadSteps,
 } from "./wizard/ensure-tour-kind-template-field";
 export { normalizeDenaliWizardTemplateGate } from "./wizard/normalize-denali-wizard-template-gate";
 export {

@@ -1,6 +1,7 @@
 /**
  * INV-DENALI-WIZ-001 — tour kind (canonical `category`) is mandatory on create wizard.
- * Tenant template overlays may trim optional fields but must not remove classification.
+ * INV-DENALI-WIZ-008 — catalog-critical fields cannot be disabled in tenant template overlay.
+ * Tenant template overlays may trim optional fields but must not remove frozen set.
  */
 
 export const DENALI_TOUR_KIND_CANONICAL_PATH = "category" as const;
@@ -20,27 +21,33 @@ export type DenaliWizardTemplateStepRef = {
   readonly fields: readonly DenaliWizardTemplateFieldRef[];
 };
 
-const CATEGORY_FIELD: DenaliWizardTemplateFieldRef = {
-  canonicalPath: DENALI_TOUR_KIND_CANONICAL_PATH,
-  required: true,
-};
+/**
+ * Catalog + wizard core fields — always injected and not disableable in Settings template UI.
+ * `program.themeIds` is the composite anchor for short description (INV-DENALI-WIZ-006).
+ */
+export const DENALI_FROZEN_TEMPLATE_FIELDS: Readonly<
+  Record<string, readonly DenaliWizardTemplateFieldRef[]>
+> = Object.freeze({
+  denali_basic: Object.freeze([
+    { canonicalPath: "category", required: true },
+    { canonicalPath: "title", required: true },
+    { canonicalPath: "destinationId", required: true },
+    { canonicalPath: "startDateTime", required: true },
+    { canonicalPath: "capacityMax", required: true },
+  ]),
+  denali_photos: Object.freeze([
+    { canonicalPath: "program.themeIds" },
+    { canonicalPath: "photos" },
+  ]),
+  denali_logistics: Object.freeze([{ canonicalPath: "transport.mode", required: true }]),
+});
 
-function stepHasVisibleCategory(step: DenaliWizardTemplateStepRef): boolean {
-  if (step.enabled === false) {
-    return false;
-  }
-  return step.fields.some(
-    (field) =>
-      field.canonicalPath.trim() === DENALI_TOUR_KIND_CANONICAL_PATH && field.hidden !== true
-  );
-}
-
-/** Matrix-required fields tenant templates must not strip (submit + render parity). */
+/** @deprecated Use DENALI_FROZEN_TEMPLATE_FIELDS — kept for matrix-inject tests and docs cross-refs. */
 export const DENALI_MATRIX_REQUIRED_TEMPLATE_FIELDS: Readonly<
   Record<string, readonly DenaliWizardTemplateFieldRef[]>
-> = {
+> = Object.freeze({
   denali_photos: [{ canonicalPath: "program.shortDescription", required: true }],
-};
+});
 
 function stepHasVisibleField(step: DenaliWizardTemplateStepRef, canonicalPath: string): boolean {
   if (step.enabled === false) {
@@ -51,14 +58,38 @@ function stepHasVisibleField(step: DenaliWizardTemplateStepRef, canonicalPath: s
   );
 }
 
+function stepHasVisibleFrozenField(
+  steps: readonly DenaliWizardTemplateStepRef[],
+  canonicalPath: string
+): boolean {
+  return steps.some(
+    (step) =>
+      step.enabled !== false &&
+      step.fields.some(
+        (field) => field.canonicalPath.trim() === canonicalPath && field.hidden !== true
+      )
+  );
+}
+
 function injectFieldsOnStep<T extends DenaliWizardTemplateStepRef>(
   steps: readonly T[],
   stepId: string,
-  fields: readonly DenaliWizardTemplateFieldRef[]
+  fields: readonly DenaliWizardTemplateFieldRef[],
+  createIfMissing = false
 ): readonly T[] {
   const stepIndex = steps.findIndex((step) => step.stepId === stepId);
   if (stepIndex < 0) {
-    return steps;
+    if (!createIfMissing || fields.length === 0) {
+      return steps;
+    }
+    return [
+      ...steps,
+      {
+        stepId,
+        enabled: true,
+        fields: [...fields],
+      } as unknown as T,
+    ];
   }
   const step = steps[stepIndex]!;
   const missing = fields.filter(
@@ -69,6 +100,91 @@ function injectFieldsOnStep<T extends DenaliWizardTemplateStepRef>(
   }
   const nextStep = { ...step, fields: [...missing, ...step.fields] } as unknown as T;
   return steps.map((item, index) => (index === stepIndex ? nextStep : item));
+}
+
+export function listDenaliFrozenTemplateCanonicalPaths(): readonly string[] {
+  return Object.freeze(
+    Object.values(DENALI_FROZEN_TEMPLATE_FIELDS).flatMap((fields) =>
+      fields.map((field) => field.canonicalPath.trim())
+    )
+  );
+}
+
+export function isDenaliFrozenTemplateCanonicalPath(canonicalPath: string): boolean {
+  const trimmed = canonicalPath.trim();
+  return listDenaliFrozenTemplateCanonicalPaths().includes(trimmed);
+}
+
+export function resolveDenaliFrozenTemplateFieldDefaultRequired(
+  canonicalPath: string
+): boolean {
+  const trimmed = canonicalPath.trim();
+  for (const fields of Object.values(DENALI_FROZEN_TEMPLATE_FIELDS)) {
+    const match = fields.find((field) => field.canonicalPath.trim() === trimmed);
+    if (match != null) {
+      return match.required === true;
+    }
+  }
+  return false;
+}
+
+/** Inject frozen fields when tenant template omitted them (INV-DENALI-WIZ-008). */
+export function ensureDenaliFrozenTemplateSteps<T extends DenaliWizardTemplateStepRef>(
+  steps: readonly T[]
+): readonly T[] {
+  let result = steps;
+  for (const [stepId, fields] of Object.entries(DENALI_FROZEN_TEMPLATE_FIELDS)) {
+    result = injectFieldsOnStep(result, stepId, fields, true);
+  }
+  return result;
+}
+
+export function ensureDenaliFrozenAllowedPaths(paths: readonly string[]): readonly string[] {
+  const frozen = listDenaliFrozenTemplateCanonicalPaths();
+  const missing = frozen.filter((path) => !paths.includes(path));
+  return missing.length === 0 ? paths : [...missing, ...paths];
+}
+
+export class DenaliWizardTemplateFrozenFieldMissingError extends Error {
+  readonly code = "SETTINGS_WIZARD_FROZEN_FIELD_MISSING" as const;
+
+  constructor(readonly canonicalPath: string) {
+    super(`SETTINGS_WIZARD_FROZEN_FIELD_MISSING:${canonicalPath}`);
+    this.name = "DenaliWizardTemplateFrozenFieldMissingError";
+  }
+}
+
+/** Fail closed on PUT when published template omits a frozen field (pre-normalize guard). */
+export function assertDenaliFrozenWizardTemplateFieldsPresent(payload: {
+  readonly published?: boolean;
+  readonly steps?: readonly DenaliWizardTemplateStepRef[];
+}): void {
+  if (payload.published !== true || payload.steps === undefined || payload.steps.length === 0) {
+    return;
+  }
+  for (const path of listDenaliFrozenTemplateCanonicalPaths()) {
+    if (!stepHasVisibleFrozenField(payload.steps, path)) {
+      throw new DenaliWizardTemplateFrozenFieldMissingError(path);
+    }
+  }
+}
+
+export type DenaliWizardTemplatePayloadLike = {
+  readonly published?: boolean;
+  readonly steps?: readonly DenaliWizardTemplateStepRef[];
+};
+
+/** Normalize published tenant template before persist (Settings PUT). */
+export function normalizeDenaliWizardTemplatePayloadSteps<T extends DenaliWizardTemplatePayloadLike>(
+  payload: T
+): T {
+  if (payload.published !== true || payload.steps === undefined) {
+    return payload;
+  }
+  return {
+    ...payload,
+    steps: ensureDenaliFrozenTemplateSteps(payload.steps),
+  } as T;
 }
 
 /** Inject matrix-required fields when tenant template omitted them (INV-DENALI-WIZ-005). */
@@ -90,41 +206,14 @@ export function ensureDenaliMatrixRequiredAllowedPaths(paths: readonly string[])
   return missing.length === 0 ? paths : [...missing, ...paths];
 }
 
-/** Inject `category` on `denali_basic` when tenant template omitted tour kind. */
+/** @deprecated Prefer `ensureDenaliFrozenTemplateSteps` — kept for INV-DENALI-WIZ-001 export parity. */
 export function ensureDenaliTourKindTemplateSteps<T extends DenaliWizardTemplateStepRef>(
   steps: readonly T[]
 ): readonly T[] {
-  if (steps.some(stepHasVisibleCategory)) {
-    return steps;
-  }
-
-  const basicIndex = steps.findIndex((step) => step.stepId === DENALI_TOUR_KIND_STEP_ID);
-  if (basicIndex >= 0) {
-    const basic = steps[basicIndex]!;
-    const withoutCategory = basic.fields.filter(
-      (field) => field.canonicalPath.trim() !== DENALI_TOUR_KIND_CANONICAL_PATH
-    );
-    const nextBasic = {
-      ...basic,
-      fields: [CATEGORY_FIELD, ...withoutCategory],
-    } as unknown as T;
-    return steps.map((step, index) => (index === basicIndex ? nextBasic : step));
-  }
-
-  return [
-    {
-      stepId: DENALI_TOUR_KIND_STEP_ID,
-      label: "Basic",
-      enabled: true,
-      fields: [CATEGORY_FIELD],
-    } as unknown as T,
-    ...steps,
-  ];
+  return ensureDenaliFrozenTemplateSteps(steps);
 }
 
+/** @deprecated Prefer `ensureDenaliFrozenAllowedPaths`. */
 export function ensureDenaliTourKindAllowedPaths(paths: readonly string[]): readonly string[] {
-  if (paths.includes(DENALI_TOUR_KIND_CANONICAL_PATH)) {
-    return paths;
-  }
-  return [DENALI_TOUR_KIND_CANONICAL_PATH, ...paths];
+  return ensureDenaliFrozenAllowedPaths(paths);
 }

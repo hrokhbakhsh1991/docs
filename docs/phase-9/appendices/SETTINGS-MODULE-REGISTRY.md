@@ -489,6 +489,7 @@ Each catalog row may show:
 | **والد / Parent**     | Composite dependent → anchor path; sibling fields under same composite prefix (e.g. `participants.nationalIdRequired` → `participants.minimumAge` section); contextual `watchCanonical` for gated fields |
 | **شامل / Includes**   | Composite anchor → `DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR` child paths (labels)                                                                                                                          |
 | **الزام در ساخت تور** | `DENALI_MATRIX_REQUIRED_TEMPLATE_FIELDS` inject (e.g. `program.shortDescription`) or registry `ruleDefaults.required`                                                                                    |
+| **قفل تمپلیت (لیست تور)** | `DENALI_FROZEN_TEMPLATE_FIELDS` (INV-DENALI-WIZ-008) — checkbox disabled; PUT normalizes via `normalizeDenaliWizardTemplatePayloadSteps`                                                                 |
 
 Logic: `denali-wizard-template-catalog-meta.ts` · labels via `resolveDenaliFieldLabel` / composite `sectionTitle` i18n.
 

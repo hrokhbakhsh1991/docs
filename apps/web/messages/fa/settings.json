@@ -318,6 +318,7 @@
     "hints": {
       "parentField": "والد: {name}",
       "compositeIncludes": "شامل: {names}",
+      "templateFrozen": "همیشه در تمپلیت فعال است — برای لیست و ساخت تور قابل حذف نیست",
       "matrixInjectedRequired": "هنگام ساخت تور همیشه الزامی است (قانون ماتریس)",
       "matrixDefaultRequired": "در ماتریس Denali پیش‌فرض الزامی است",
       "conditionalOnParent": "فقط وقتی «{parent}» فعال باشد در ویزارد دیده می‌شود",

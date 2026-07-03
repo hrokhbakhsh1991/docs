@@ -318,6 +318,7 @@
     "hints": {
       "parentField": "Parent: {name}",
       "compositeIncludes": "Includes: {names}",
+      "templateFrozen": "Always enabled in template — required for tour list and create wizard",
       "matrixInjectedRequired": "Always required when creating a tour (matrix rule)",
       "matrixDefaultRequired": "Required by default in the Denali rule matrix",
       "conditionalOnParent": "Shown in the wizard only when “{parent}” is enabled",

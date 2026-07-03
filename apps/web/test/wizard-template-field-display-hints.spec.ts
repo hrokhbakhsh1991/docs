@@ -31,4 +31,19 @@ describe("wizard-template-field-display-hints.spec.ts", () => {
     assert.equal(hints.parentLabel, "section");
     assert.equal(hints.createTourHint, "optional");
   });
+
+  it("WEB-TPL-HINT-02 templateFrozen hint for title", () => {
+    const meta = resolveDenaliWizardTemplateCatalogFieldMeta(
+      "title",
+      "denali_basic",
+      ["title", "category"]
+    );
+    const hints = resolveDenaliWizardTemplateFieldDisplayHints(
+      tSettings,
+      () => "section",
+      (path) => path,
+      meta
+    );
+    assert.equal(hints.createTourHint, "hints.templateFrozen");
+  });
 });
