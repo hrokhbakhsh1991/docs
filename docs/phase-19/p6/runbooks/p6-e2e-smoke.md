@@ -55,6 +55,7 @@ node apps/marketing/scripts/smoke-marketing-e2e-servers.mjs
 | **SMK-P6-HOST-01** | — | API | `scripts/smoke-p6-host-bind.mjs` | `node scripts/smoke-p6-host-bind.mjs` | same `tenantId` ×3 hosts |
 | **SMK-P6-VS-01** | VS-01 | web | `p6-admin-publish-smoke.spec.ts` | `playwright.operator.config.ts -g SMK-P6-VS-01` | draft hidden · publish → catalog |
 | **SMK-P6-MKT-02** | VS-02 | marketing | `marketing-catalog-smoke.spec.ts` | `@apps/marketing test:smoke` | tour list visible |
+| **SMK-P6-MKT-HOME** | VS-02a | marketing | `marketing-home-smoke.spec.ts` | `@apps/marketing test:smoke:home` | `/` full hooks · urban minimal · mobile |
 | **SMK-P6-MKT-05** | VS-02b | marketing | `marketing-urban-catalog-smoke.spec.ts` | `@apps/marketing test:smoke:urban` | urban skin · city filter |
 | **SMK-P6-MKT-03** | VS-03 | marketing→portal | `SMK-MKT-03` in same file | same | CTA lands portal · success marker |
 | **SMK-P6-PTL-01** | VS-03 | portal | `portal-registration-smoke.spec.ts` | `@apps/portal test:smoke` | `[data-public-registration-success]` |

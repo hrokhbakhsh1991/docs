@@ -16,6 +16,7 @@ import {
 } from "@/seo/build-marketing-metadata";
 import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
 import { resolvePortalMemberAreaUrl } from "@app-tour/guest-surface-host";
+import { resolveGuestLandingFeatures } from "@app-tour/workspace-sdk";
 import { MarketingProviders } from "@/shell/marketing-providers";
 import { MarketingShell } from "@/shell/marketing-shell";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
@@ -102,6 +103,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const fontClassName = resolveAppFontClassName(locale);
   const fontFamilyBase = resolveAppFontFamilyCss(locale);
   const portalMemberAreaUrl = resolvePortalMemberAreaUrl(host);
+  const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
 
   return (
     <html
@@ -117,7 +119,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <MarketingProviders theme={theme}>
-            <MarketingShell branding={branding} portalMemberAreaUrl={portalMemberAreaUrl}>
+            <MarketingShell
+              branding={branding}
+              portalMemberAreaUrl={portalMemberAreaUrl}
+              landing={landing}
+            >
               {children}
             </MarketingShell>
           </MarketingProviders>

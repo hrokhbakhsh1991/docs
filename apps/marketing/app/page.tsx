@@ -1,13 +1,23 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { renderHomePage } from "@/home/render-home-page";
+import { fetchHomeCatalogItems } from "@/home/fetch-home-catalog-items";
+import { fetchCatalogList } from "@/catalog/fetch-catalog-list";
 import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
 import { buildPlatformAdminUrl } from "@/platform/build-platform-admin-url";
 import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
-import { buildMarketingSiteMetadata } from "@/seo/build-marketing-metadata";
+import {
+  buildMarketingSiteMetadata,
+  MARKETING_OG_IMAGE_HEIGHT,
+  MARKETING_OG_IMAGE_WIDTH,
+} from "@/seo/build-marketing-metadata";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
+import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
+import { resolveGuestLandingFeatures, resolveGuestSeoForPlugin } from "@app-tour/workspace-sdk";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const [headerList, localeRaw] = await Promise.all([headers(), getLocale()]);
@@ -18,10 +28,19 @@ export async function generateMetadata(): Promise<Metadata> {
     return { title: "Platform" };
   }
 
+  const bootstrap = await resolveMarketingBootstrapForHost(host);
+  const guestSeo = resolveGuestSeoForPlugin(bootstrap.pluginId).marketing;
+  const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
   const branding = await fetchPublicTenantBrandingForHost(host);
   const t = await getTranslations("catalog");
   const siteName = branding.displayName ?? t("nav.defaultSiteName");
-  const homeT = await getTranslations("catalog.home");
+
+  const title = guestSeo.homeTitleKey
+    ? t(guestSeo.homeTitleKey, { siteName })
+    : siteName;
+  const description = guestSeo.homeDescriptionKey
+    ? t(guestSeo.homeDescriptionKey, { siteName })
+    : t("metadata.siteDescription", { siteName });
 
   return {
     ...buildMarketingSiteMetadata({
@@ -30,11 +49,24 @@ export async function generateMetadata(): Promise<Metadata> {
       toursLabel: t("nav.tours"),
       locale,
     }),
-    title: homeT("title"),
-    description: homeT("lead"),
+    title,
+    description,
     alternates: {
       canonical: resolveMarketingLocalePath("/", locale),
     },
+    ...(landing.sections.hero
+      ? {
+          openGraph: {
+            images: [
+              {
+                url: "/home/hero-og.webp",
+                width: MARKETING_OG_IMAGE_WIDTH,
+                height: MARKETING_OG_IMAGE_HEIGHT,
+              },
+            ],
+          },
+        }
+      : {}),
   };
 }
 
@@ -57,17 +89,21 @@ export default async function MarketingHomePage() {
     );
   }
 
-  const t = await getTranslations("catalog.home");
+  const bootstrap = await resolveMarketingBootstrapForHost(host);
+  const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
+  const branding = await fetchPublicTenantBrandingForHost(host);
+  const catalogItems = await fetchHomeCatalogItems({
+    landing,
+    tenantId: bootstrap.tenantId,
+    pluginId: bootstrap.pluginId,
+    fetchCatalogList,
+  });
 
-  return (
-    <main data-marketing-home>
-      <header data-marketing-home-header>
-        <h1 data-marketing-home-title>{t("title")}</h1>
-        <p data-marketing-home-lead>{t("lead")}</p>
-      </header>
-      <Link href="/tours" data-marketing-home-cta>
-        {t("browseTours")}
-      </Link>
-    </main>
-  );
+  return renderHomePage({
+    landing,
+    branding,
+    catalogItems,
+    pluginId: bootstrap.pluginId,
+    host,
+  });
 }

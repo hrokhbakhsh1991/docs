@@ -54,11 +54,11 @@ describe("applyDenaliCatalogCardExposure", () => {
     assert.equal(offers, undefined);
   });
 
-  it("excludes delivery-only fields from catalog card bindings", () => {
+  it("excludes no-op and delivery-only fields from catalog bindings", () => {
     const bindingFieldIds = DENALI_CATALOG_CARD_EXPOSURE_BINDINGS.map((entry) => entry.fieldId);
+    assert.ok(bindingFieldIds.includes("denali.pricing-payment"));
     assert.ok(!bindingFieldIds.includes("denali.approximate-return-time"));
     assert.ok(!bindingFieldIds.includes("denali.location-zones"));
     assert.ok(!bindingFieldIds.includes("capacityMin"));
-    assert.ok(!bindingFieldIds.includes("denali.pricing-payment"));
   });
 });

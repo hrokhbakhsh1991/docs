@@ -1,0 +1,164 @@
+/**
+ * HOME-UNIT-08 — PR-8 premium section gates + hooks.
+ */
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { deriveHomeGalleryPhotos } from "../src/home/derive-home-gallery-photos";
+import { resolveHomeCatalogFetchLimit } from "../src/home/resolve-home-catalog-fetch-limit";
+import { resolveHomeSectionVisibility } from "../src/home/home-section-gates";
+import { resolveHomeTourCoverUrl } from "../src/home/resolve-home-tour-cover-url";
+import { MARKETING_FALLBACK_TOUR_COVER_PATH } from "../src/home/home-marketing-assets";
+import { buildHomeHeroSpotlights, DEFAULT_HERO_SPOTLIGHT_ID } from "../src/home/hero-3d/build-home-hero-spotlights";
+import { buildMarketingHomeJsonLd } from "../src/seo/build-marketing-home-jsonld";
+import { resolveMarketingHeroImageUrl } from "../src/tenant/resolve-marketing-hero-image-url";
+import { FULL_LANDING, PREMIUM_LANDING } from "./home-landing-fixtures";
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+
+describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
+  it("resolveHomeCatalogFetchLimit uses gallery floor of 6", () => {
+    const landing = {
+      ...FULL_LANDING,
+      sections: {
+        ...FULL_LANDING.sections,
+        latestTours: false,
+        latestToursLimit: 0,
+        featuredTours: false,
+        featuredToursLimit: 0,
+        categories: false,
+        gallery: true,
+      },
+    };
+    assert.equal(resolveHomeCatalogFetchLimit(landing), 6);
+  });
+
+  it("resolveHomeSectionVisibility gates PR-8 sections", () => {
+    assert.deepEqual(resolveHomeSectionVisibility(PREMIUM_LANDING, 2, 1, 2), {
+      hero: true,
+      heroSearch: true,
+      featured: true,
+      latest: true,
+      categories: true,
+      destinations: true,
+      trust: true,
+      whyDenali: true,
+      journey: true,
+      testimonials: true,
+      gallery: true,
+      equipment: true,
+      blogTeaser: false,
+      faq: true,
+      finalCta: true,
+    });
+  });
+
+  it("deriveHomeGalleryPhotos dedupes cover URLs and adds static fallbacks", () => {
+    assert.equal(
+      deriveHomeGalleryPhotos(
+        [
+          { id: "1", coverImageUrl: "https://cdn/a.jpg", title: "A" },
+          { id: "2", coverImageUrl: "https://cdn/a.jpg", title: "B" },
+          { id: "3", coverImageUrl: "https://cdn/b.jpg", title: "C" },
+        ],
+        "Tour"
+      ).length,
+      5
+    );
+    assert.equal(deriveHomeGalleryPhotos([], "Tour").length, 3);
+  });
+
+  it("resolveHomeTourCoverUrl falls back when catalog cover missing", () => {
+    assert.equal(resolveHomeTourCoverUrl(null), MARKETING_FALLBACK_TOUR_COVER_PATH);
+    assert.equal(resolveHomeTourCoverUrl("  "), MARKETING_FALLBACK_TOUR_COVER_PATH);
+    assert.equal(resolveHomeTourCoverUrl("https://cdn/cover.jpg"), "https://cdn/cover.jpg");
+  });
+
+  it("resolveMarketingHeroImageUrl prefers branding override", () => {
+    assert.equal(
+      resolveMarketingHeroImageUrl({
+        displayName: null,
+        primaryColor: null,
+        logoUrl: null,
+        defaultLocale: null,
+        marketingHeroUrl: "https://cdn/hero.jpg",
+      }),
+      "https://cdn/hero.jpg"
+    );
+    assert.equal(
+      resolveMarketingHeroImageUrl({
+        displayName: null,
+        primaryColor: null,
+        logoUrl: null,
+        defaultLocale: null,
+      }),
+      "/home/hero.webp"
+    );
+  });
+
+  it("buildHomeHeroSpotlights maps destinations with damavand default", () => {
+    const spotlights = buildHomeHeroSpotlights((key) => key);
+    assert.equal(spotlights.length, 3);
+    assert.equal(spotlights.find((item) => item.id === DEFAULT_HERO_SPOTLIGHT_ID)?.name, "home.full.destinations.damavand.name");
+    assert.match(spotlights[0]?.toursHref ?? "", /^\/tours\?q=/);
+    assert.match(spotlights[0]?.imagePath ?? "", /^\/home\/destinations\//);
+  });
+
+  it("buildMarketingHomeJsonLd emits ItemList", () => {
+    const jsonLd = buildMarketingHomeJsonLd({
+      host: "operator.localhost:3002",
+      listLabel: "Latest",
+      items: [{ tourId: "t1", title: "North Ridge" }],
+    });
+    assert.equal(jsonLd?.["@type"], "ItemList");
+  });
+
+  it("GuestHomeFull wires gallery, equipment, jsonld, hero image", () => {
+    const fullSource = readFileSync(
+      join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"),
+      "utf8"
+    );
+    assert.match(fullSource, /sections\.gallery/);
+    assert.match(fullSource, /sections\.equipment/);
+    assert.match(fullSource, /<HomeGallery/);
+    assert.match(fullSource, /<HomeEquipment/);
+    assert.match(fullSource, /<HomePageJsonLd/);
+    assert.match(fullSource, /heroImageUrl/);
+
+    assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-gallery.tsx"), "utf8"),
+      /data-marketing-home-gallery/
+    );
+    assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-equipment.tsx"), "utf8"),
+      /data-marketing-home-equipment/
+    );
+    assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-blog-teaser.tsx"), "utf8"),
+      /data-marketing-home-blog/
+    );
+    assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"), "utf8"),
+      /data-marketing-home id="main-content"/
+    );
+    assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
+      /data-marketing-home-hero-cinematic/
+    );
+    assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
+      /HomeHeroStaticParallax/
+    );
+    assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
+      /data-marketing-home-hero-background/
+    );
+    assert.doesNotMatch(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
+      /HomeHeroMountainStageClient/
+    );
+  });
+});

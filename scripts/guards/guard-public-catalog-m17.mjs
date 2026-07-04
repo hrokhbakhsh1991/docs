@@ -41,6 +41,7 @@ const REQUIRED_FILES = [
   "apps/web/app/(public)/catalog/[tourId]/register/page.tsx",
   "apps/web/src/portal/resolve-portal-registration-redirect.ts",
   "apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts",
+  "apps/marketing/tests/e2e/marketing-home-smoke.spec.ts",
   "apps/marketing/tests/e2e/marketing-urban-catalog-smoke.spec.ts",
   "apps/marketing/tests/e2e/marketing-seo-jsonld.spec.ts",
   "apps/marketing/tests/e2e/marketing-seo-head.spec.ts",
@@ -60,6 +61,7 @@ const REQUIRED_FILES = [
   "scripts/guards/guard-marketing-meta-quality.mjs",
   "scripts/guards/guard-marketing-sitemap-host.mjs",
   "scripts/guards/guard-marketing-hreflang.mjs",
+  "scripts/guards/guard-marketing-home-hooks.mjs",
   "scripts/guards/guard-jsonld-xss.mjs",
   "scripts/crawl-marketing-sitemap.mjs",
   "apps/marketing/scripts/smoke-marketing-lighthouse-servers.mjs",
@@ -69,6 +71,7 @@ const REQUIRED_FILES = [
   "apps/marketing/lighthouserc.json",
   "apps/marketing/lighthouserc.strict.json",
   "apps/marketing/playwright.marketing-urban.config.ts",
+  "apps/marketing/playwright.marketing-home.config.ts",
   "apps/marketing/scripts/smoke-marketing-urban-e2e-servers.mjs",
   "apps/api/src/exposure/resolve-denali-surface-exposure.ts",
   "apps/api/src/exposure/resolve-urban-surface-exposure.ts",
@@ -488,8 +491,9 @@ assertCheck(
   read("docs/dev/guest-seo-e2e-hooks.yaml").includes("SMK-MKT-10") &&
     read("docs/dev/guest-seo-e2e-hooks.yaml").includes("SMK-MKT-11") &&
     read("docs/dev/guest-seo-e2e-hooks.yaml").includes("SMK-MKT-13") &&
+    read("docs/dev/guest-seo-e2e-hooks.yaml").includes("SMK-MKT-17") &&
     read("docs/dev/guest-seo-e2e-hooks.yaml").includes("SMK-MKT-104"),
-  "guest-seo-e2e-hooks.yaml must list SMK-MKT-10/11/13/104"
+  "guest-seo-e2e-hooks.yaml must list SMK-MKT-10/11/13/17/104"
 );
 
 assertCheck(
@@ -506,6 +510,13 @@ assertCheck(
       "MARKETING_IMAGE_REMOTE_HOSTS"
     ),
   "guard-marketing-prod-image-hosts must enforce image host allowlist policy"
+);
+
+assertCheck(
+  "m17_marketing_home_hooks_guard",
+  exists("scripts/guards/guard-marketing-home-hooks.mjs") &&
+    read("scripts/guards/guard-marketing-home-hooks.mjs").includes("SMK-MKT-HOME-01"),
+  "guard-marketing-home-hooks must enforce home hook + smoke closure"
 );
 
 if (failures.length > 0) {

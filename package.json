@@ -179,6 +179,7 @@
     "guard:marketing-meta-quality": "node scripts/guards/guard-marketing-meta-quality.mjs",
     "guard:marketing-sitemap-host": "node scripts/guards/guard-marketing-sitemap-host.mjs",
     "guard:marketing-hreflang": "node scripts/guards/guard-marketing-hreflang.mjs",
+    "guard:marketing-home-hooks": "node scripts/guards/guard-marketing-home-hooks.mjs",
     "guard:marketing-prod-image-hosts": "node scripts/guards/guard-marketing-prod-image-hosts.mjs",
     "guard:jsonld-xss": "node scripts/guards/guard-jsonld-xss.mjs",
     "crawl:marketing-sitemap": "node scripts/crawl-marketing-sitemap.mjs",

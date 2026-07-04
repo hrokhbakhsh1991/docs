@@ -3,10 +3,23 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { applyMarketingCatalogListPipeline } from "@/catalog/apply-marketing-catalog-list-pipeline";
 import { CatalogTourList } from "@/catalog/catalog-tour-list";
-import { CatalogCityFilterForm } from "@/catalog/catalog-city-filter-form";
+import { CatalogTourFilterBar } from "@/catalog/catalog-tour-filter-bar";
+import {
+  buildCatalogListHref,
+  buildCatalogListQuery,
+  catalogFiltersToNoindexSearchParams,
+  catalogFiltersToQueryInput,
+  catalogListHasActiveFilters,
+  catalogListHasClientFilters,
+  parseCatalogListFilters,
+  resolveCatalogListFetchLimit,
+  type CatalogListQueryInputRaw,
+} from "@/catalog/catalog-list-query";
+import { deriveCatalogFilterOptions } from "@/catalog/derive-catalog-filter-options";
 import { fetchCatalogList } from "@/catalog/fetch-catalog-list";
-import { isAppLocale, routing } from "@/i18n/routing";
+import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
 import { buildMarketingToursListMetadata, shouldNoindexMarketingListPage } from "@/seo/build-marketing-metadata";
 import {
   buildMarketingCatalogListJsonLd,
@@ -19,30 +32,17 @@ import { resolveCatalogListFeatures, resolveGuestSeoForPlugin } from "@app-tour/
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_PAGE_LIMIT = 20;
-
 type PageProps = {
-  readonly searchParams: Promise<{ readonly cursor?: string; readonly city?: string }>;
+  readonly searchParams: Promise<CatalogListQueryInputRaw>;
 };
 
-function buildToursQuery(input: { readonly cursor?: string; readonly city?: string }): string {
-  const query = new URLSearchParams();
-  if (input.city !== undefined && input.city.trim().length > 0) {
-    query.set("city", input.city.trim());
-  }
-  if (input.cursor !== undefined && input.cursor.trim().length > 0) {
-    query.set("cursor", input.cursor.trim());
-  }
-  const serialized = query.toString();
-  return serialized.length > 0 ? `?${serialized}` : "";
-}
-
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const [{ cursor, city }, headerList, localeRaw] = await Promise.all([
+  const [queryInput, headerList, localeRaw] = await Promise.all([
     searchParams,
     headers(),
     getLocale(),
   ]);
+  const filters = parseCatalogListFilters(queryInput);
   const host = headerList.get("host") ?? "localhost:3002";
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const [branding, bootstrap] = await Promise.all([
@@ -59,7 +59,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     ? t(guestSeo.listDescriptionKey, { siteName })
     : t("metadata.listDescription", { siteName });
   const noindex = shouldNoindexMarketingListPage(
-    { cursor, city },
+    catalogFiltersToNoindexSearchParams(filters),
     guestSeo.pagination?.noindexQueryParams
   );
   return buildMarketingToursListMetadata({
@@ -73,20 +73,37 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 }
 
 export default async function MarketingToursPage({ searchParams }: PageProps) {
-  const { cursor, city } = await searchParams;
-  const headerList = await headers();
+  const queryInput = await searchParams;
+  const filters = parseCatalogListFilters(queryInput);
+  const [headerList, localeRaw] = await Promise.all([headers(), getLocale()]);
   const host = headerList.get("host") ?? "localhost:3002";
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+  const listPath = resolveMarketingLocalePath("/tours", locale);
   const bootstrap = await resolveMarketingBootstrapForHost(host);
   const listFeatures = resolveCatalogListFeatures(bootstrap.pluginId);
+  const serverListFilters = listFeatures.serverListFilters;
   const t = await getTranslations("catalog");
-  const { items, nextCursor } = await fetchCatalogList({
+  const clientFiltersActive = catalogListHasClientFilters(filters, serverListFilters);
+  const fetchLimit = resolveCatalogListFetchLimit(filters, serverListFilters);
+  const { items: fetchedItems, nextCursor } = await fetchCatalogList({
     ...bootstrap,
-    cursor,
-    city,
-    limit: DEFAULT_PAGE_LIMIT,
+    cursor: filters.cursor,
+    city: filters.city,
+    limit: fetchLimit,
+    filters,
   });
+  const filterOptions = deriveCatalogFilterOptions({
+    pluginId: bootstrap.pluginId,
+    items: fetchedItems,
+    activeFilters: filters,
+  });
+  const { items, matchedCount } = applyMarketingCatalogListPipeline(
+    fetchedItems,
+    filters,
+    serverListFilters
+  );
   const listJsonLd =
-    shouldEmitMarketingCatalogListJsonLd({ cursor }) && items.length > 0
+    shouldEmitMarketingCatalogListJsonLd({ cursor: filters.cursor }) && items.length > 0
       ? buildMarketingCatalogListJsonLd({
           host,
           listLabel: t("list.title"),
@@ -96,30 +113,63 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
           })),
         })
       : null;
+  const loadMoreHref =
+    nextCursor != null ? buildCatalogListHref(listPath, filters, nextCursor) : null;
+  const firstPageHref =
+    filters.cursor != null ? buildCatalogListHref(listPath, filters) : null;
+  const isPaginated = filters.cursor != null || nextCursor != null;
+  const showFilterScopeNotice = clientFiltersActive && nextCursor != null;
+  const resultsLabel = isPaginated
+    ? t("list.resultsCountPage", { count: matchedCount })
+    : clientFiltersActive
+      ? t("list.resultsCountFiltered", { count: matchedCount })
+      : t("list.resultsCount", { count: matchedCount });
 
   return (
     <main data-marketing-catalog>
       <header data-marketing-catalog-header>
         <h1 data-marketing-catalog-title>{t("list.title")}</h1>
+        <p data-marketing-catalog-lead>{t("list.lead")}</p>
       </header>
-      {listFeatures.cityFilter ? (
-        <CatalogCityFilterForm
-          defaultCity={city ?? ""}
-          cityLabel={t("list.cityLabel")}
-          cityPlaceholder={t("list.cityPlaceholder")}
-          applyLabel={t("list.applyFilter")}
-          clearLabel={t("list.clearFilter")}
-          showClear={city != null && city.trim().length > 0}
-        />
+      <CatalogTourFilterBar
+        filters={filters}
+        options={filterOptions}
+        showCityFilter={listFeatures.cityFilter}
+        defaultCity={filters.city ?? ""}
+        serverListFilters={serverListFilters}
+        pluginId={bootstrap.pluginId}
+      />
+      {showFilterScopeNotice ? (
+        <p data-marketing-catalog-filter-notice role="status">
+          {t("list.filterScopeNotice")}
+        </p>
       ) : null}
+      <p data-marketing-catalog-results role="status">
+        {resultsLabel}
+      </p>
       {items.length === 0 ? (
-        <p data-marketing-catalog-empty>{t("list.empty")}</p>
+        <p data-marketing-catalog-empty>
+          {catalogListHasActiveFilters(filters, serverListFilters)
+            ? t("list.emptyFiltered")
+            : t("list.empty")}
+        </p>
       ) : (
         <CatalogTourList items={items} pluginId={bootstrap.pluginId} />
       )}
-      {nextCursor ? (
+      {loadMoreHref != null || firstPageHref != null ? (
         <nav data-marketing-catalog-pagination>
-          <Link href={`/tours${buildToursQuery({ city, cursor: nextCursor })}`}>{t("list.loadMore")}</Link>
+          {firstPageHref != null ? (
+            <Link href={firstPageHref} data-marketing-catalog-pagination-first>
+              {t("list.paginationFirstPage")}
+            </Link>
+          ) : null}
+          {loadMoreHref != null ? (
+            <Link href={loadMoreHref} data-marketing-catalog-pagination-next>
+              {items.length === 0 && clientFiltersActive
+                ? t("list.loadMoreSearch")
+                : t("list.loadMore")}
+            </Link>
+          ) : null}
         </nav>
       ) : null}
       {listJsonLd != null ? (

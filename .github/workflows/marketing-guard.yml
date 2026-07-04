@@ -35,7 +35,9 @@ on:
       - "docs/phase-19/platform-portal-member.mdoc"
       - "docs/workspaces/denali/portal-member-profile.md"
       - "packages/workspace-sdk/test/catalog-registration-dispatch.spec.ts"
-      - "packages/workspaces/denali/test/denali-catalog-transport-intake.spec.ts"
+      - "packages/workspaces/denali/src/catalog/filter-denali-catalog-list.ts"
+      - "packages/workspaces/denali/test/filter-denali-catalog-list.spec.ts"
+      - "apps/api/test/denali-catalog.spec.ts"
       - "packages/workspace-sdk/test/registration-intake.contract.spec.ts"
       - "packages/workspace-sdk/test/product-neutral-core.contract.spec.ts"
       - "packages/workspace-sdk/src/operator/bookings/registration-intake.contract.ts"
@@ -59,10 +61,14 @@ on:
       - "apps/marketing/playwright.marketing-urban.config.ts"
       - "apps/marketing/scripts/smoke-marketing-urban-e2e-servers.mjs"
       - "apps/marketing/tests/e2e/marketing-urban-catalog-smoke.spec.ts"
+      - "apps/marketing/tests/e2e/marketing-home-smoke.spec.ts"
+      - "apps/marketing/playwright.marketing-home.config.ts"
       - "apps/api/src/canonical/canonical-tour.service.ts"
       - "apps/api/test/marketing-catalog-revalidate.spec.ts"
       - "docs/workspaces/denali/public-catalog.md"
       - "docs/workspaces/denali/marketing-catalog-ui.md"
+      - "docs/workspaces/denali/marketing-landing.mdoc"
+      - "design-system/denali-club/pages/home.md"
       - "docs/workspaces/denali/portal-registration-ui.md"
       - "docs/dev/guest-seo-conformance.md"
       - "docs/dev/guest-seo-e2e-hooks.yaml"
@@ -75,6 +81,7 @@ on:
       - "packages/guest-surface-host/test/resolve-tour-ops-api-base-url.spec.ts"
       - "scripts/guards/guard-public-catalog-m17.mjs"
       - "scripts/guards/guard-marketing-semantic-seo.mjs"
+      - "scripts/guards/guard-marketing-home-hooks.mjs"
       - "scripts/guards/guard-guest-seo.mjs"
       - "scripts/validate-json-ld.mjs"
       - "scripts/test/fixtures/jsonld/**"
@@ -103,7 +110,8 @@ jobs:
       - run: pnpm --filter @app-tour/workspace-sdk run build
       - run: pnpm --filter @app-tour/guest-surface-host run build
       - run: pnpm --filter @app-tour/guest-surface-host run test
-      - run: pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/resolve-catalog-list-features.spec.ts test/resolve-catalog-detail-sections.spec.ts test/resolve-catalog-registration-support.spec.ts test/catalog-registration-dispatch.spec.ts test/registration-intake.contract.spec.ts test/product-neutral-core.contract.spec.ts && pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/denali-catalog-transport-intake.spec.ts
+      - run: pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/resolve-catalog-list-features.spec.ts test/resolve-catalog-detail-sections.spec.ts test/resolve-catalog-registration-support.spec.ts test/catalog-registration-dispatch.spec.ts test/registration-intake.contract.spec.ts test/product-neutral-core.contract.spec.ts && pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/filter-denali-catalog-list.spec.ts test/denali-catalog-transport-intake.spec.ts
+      - run: pnpm --filter @apps/api exec node --import tsx --test test/denali-catalog.spec.ts
       - run: pnpm --filter @apps/portal exec node --import tsx --test test/portal-catalog-registrations-dispatch.spec.ts test/portal-catalog-registrations-bff.spec.ts test/catalog-registration-intake-form-contract.spec.ts test/public-catalog-registration-flow-contract.spec.ts test/resolve-intake-defaults.spec.ts test/portal-member-profile-bff.spec.ts
       - run: pnpm run guard:portal-member-profile-boundary
       - run: pnpm run guard:architecture-truth
@@ -112,6 +120,7 @@ jobs:
       - run: pnpm --filter @apps/api exec node --import tsx --test test/platform-club-product-exit.spec.ts
       - run: pnpm --filter @apps/marketing run lint
       - run: pnpm run guard:marketing-semantic-seo
+      - run: pnpm run guard:marketing-home-hooks
       - run: pnpm run guard:marketing-seo-prod
       - run: pnpm run guard:marketing-meta-quality
       - run: pnpm run guard:marketing-hreflang
@@ -121,7 +130,7 @@ jobs:
       - run: pnpm --filter @apps/marketing run test
 
   marketing-smoke:
-    name: Marketing Playwright smoke (SMK-MKT-01..03)
+    name: Marketing Playwright smoke (SMK-MKT-01..04, SMK-MKT-16)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -138,6 +147,7 @@ jobs:
       - run: pnpm --filter @app-tour/guest-surface-host run build
       - run: pnpm --filter @app-tour/guest-surface-host run test
       - run: pnpm run guard:public-catalog-m17
+      - run: pnpm run guard:marketing-home-hooks
       - run: pnpm run guard:marketing-semantic-seo
       - run: pnpm run guard:marketing-seo-prod
       - run: pnpm run guard:marketing-meta-quality
@@ -146,11 +156,16 @@ jobs:
       - run: pnpm run guard:jsonld-xss
       - run: node scripts/validate-json-ld.mjs --all-fixtures
       - run: pnpm --filter @apps/marketing exec playwright install --with-deps chromium
-      - name: SMK-MKT-01..03
+      - name: SMK-MKT-01..04, SMK-MKT-16
         env:
           CI: "true"
           STORAGE_DRIVER: memory
         run: pnpm --filter @apps/marketing run test:smoke
+      - name: SMK-MKT-HOME-01..06
+        env:
+          CI: "true"
+          STORAGE_DRIVER: memory
+        run: pnpm --filter @apps/marketing run test:smoke:home
       - name: SMK-MKT-06..09 SEO
         env:
           CI: "true"

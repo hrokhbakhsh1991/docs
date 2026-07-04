@@ -14,6 +14,7 @@ const ALLOWLIST_PATHS = new Set([
   path.join(SDK_SRC, "catalog/resolve-catalog-detail-sections.ts"),
   path.join(SDK_SRC, "catalog/resolve-catalog-registration-support.ts"),
   path.join(SDK_SRC, "catalog/resolve-catalog-registration-api-path.ts"),
+  path.join(SDK_SRC, "catalog/resolve-guest-landing-features.ts"),
   path.join(SDK_SRC, "catalog/resolve-catalog-intake-capabilities.ts"),
   path.join(SDK_SRC, "catalog/build-catalog-registration-upstream-request.ts"),
   path.join(SDK_SRC, "profile/resolve-member-profile-capabilities.ts"),

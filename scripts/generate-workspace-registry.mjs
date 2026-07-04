@@ -1464,6 +1464,7 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "catalogRegistrationFlow",
   "memberProfile",
   "guestSeo",
+  "guestLanding",
 ];
 
 /**
@@ -1676,6 +1677,25 @@ export function assertCatalogPresentationManifest(manifest) {
   if (listFeatures === undefined || typeof listFeatures.cityFilter !== "boolean") {
     throw new Error(`${manifest.id}: catalogPresentation.listFeatures.cityFilter must be boolean`);
   }
+  const serverListFilters = listFeatures.serverListFilters ?? [];
+  if (!Array.isArray(serverListFilters)) {
+    throw new Error(`${manifest.id}: catalogPresentation.listFeatures.serverListFilters must be an array`);
+  }
+  const allowedServerListFilters = new Set([
+    "q",
+    "category",
+    "difficulty",
+    "fitness",
+    "availability",
+    "sort",
+  ]);
+  for (const param of serverListFilters) {
+    if (typeof param !== "string" || !allowedServerListFilters.has(param)) {
+      throw new Error(
+        `${manifest.id}: catalogPresentation.listFeatures.serverListFilters invalid entry: ${String(param)}`
+      );
+    }
+  }
   const detailSections = presentation.detailSections;
   if (detailSections === undefined || typeof detailSections !== "object") {
     throw new Error(`${manifest.id}: catalogPresentation.detailSections is required`);
@@ -1683,6 +1703,105 @@ export function assertCatalogPresentationManifest(manifest) {
   for (const key of ["difficulty", "fitness", "itinerary", "policies"]) {
     if (typeof detailSections[key] !== "boolean") {
       throw new Error(`${manifest.id}: catalogPresentation.detailSections.${key} must be boolean`);
+    }
+  }
+  assertGuestLandingManifest(manifest);
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertGuestLandingManifest(manifest) {
+  const landing = manifest.guestLanding;
+  if (landing === undefined || typeof landing !== "object" || Array.isArray(landing)) {
+    throw new Error(`${manifest.id}: guestLanding is required when catalogPresentation exists`);
+  }
+  const variant = landing.variant;
+  if (variant !== "full" && variant !== "minimal") {
+    throw new Error(`${manifest.id}: guestLanding.variant must be "full" or "minimal"`);
+  }
+  const i18nProfile = landing.i18nProfile;
+  if (i18nProfile !== "full" && i18nProfile !== "minimal") {
+    throw new Error(`${manifest.id}: guestLanding.i18nProfile must be "full" or "minimal"`);
+  }
+  const sections = landing.sections;
+  if (sections === undefined || typeof sections !== "object" || Array.isArray(sections)) {
+    throw new Error(`${manifest.id}: guestLanding.sections is required`);
+  }
+  for (const key of [
+    "hero",
+    "latestTours",
+    "trust",
+    "finalCta",
+    "faq",
+    "footer",
+    "whyDenali",
+    "journey",
+    "testimonials",
+    "featuredTours",
+    "categories",
+    "destinations",
+    "heroSearch",
+    "gallery",
+    "equipment",
+    "blogTeaser",
+  ]) {
+    if (typeof sections[key] !== "boolean") {
+      throw new Error(`${manifest.id}: guestLanding.sections.${key} must be boolean`);
+    }
+  }
+  const limit = sections.latestToursLimit;
+  if (typeof limit !== "number" || !Number.isInteger(limit) || limit < 0 || limit > 12) {
+    throw new Error(`${manifest.id}: guestLanding.sections.latestToursLimit must be 0..12`);
+  }
+  const featuredLimit = sections.featuredToursLimit;
+  if (
+    typeof featuredLimit !== "number" ||
+    !Number.isInteger(featuredLimit) ||
+    featuredLimit < 0 ||
+    featuredLimit > 12
+  ) {
+    throw new Error(`${manifest.id}: guestLanding.sections.featuredToursLimit must be 0..12`);
+  }
+  if (variant === "minimal") {
+    if (
+      sections.hero ||
+      sections.latestTours ||
+      sections.trust ||
+      sections.finalCta ||
+      sections.faq ||
+      sections.footer ||
+      sections.whyDenali ||
+      sections.journey ||
+      sections.testimonials ||
+      sections.featuredTours ||
+      sections.categories ||
+      sections.destinations ||
+      sections.heroSearch ||
+      sections.gallery ||
+      sections.equipment ||
+      sections.blogTeaser ||
+      limit !== 0 ||
+      featuredLimit !== 0
+    ) {
+      throw new Error(`${manifest.id}: guestLanding minimal variant requires all sections false and limit 0`);
+    }
+    if (i18nProfile !== "minimal") {
+      throw new Error(`${manifest.id}: guestLanding minimal variant requires i18nProfile "minimal"`);
+    }
+  }
+  if (variant === "full") {
+    if (!sections.hero || !sections.trust || !sections.finalCta) {
+      throw new Error(`${manifest.id}: guestLanding full variant requires hero, trust, and finalCta`);
+    }
+    if (sections.latestTours && limit < 1) {
+      throw new Error(`${manifest.id}: guestLanding full variant with latestTours requires limit >= 1`);
+    }
+    if (sections.featuredTours && featuredLimit < 1) {
+      throw new Error(`${manifest.id}: guestLanding full variant with featuredTours requires limit >= 1`);
+    }
+    if (i18nProfile !== "full") {
+      throw new Error(`${manifest.id}: guestLanding full variant requires i18nProfile "full"`);
     }
   }
 }
@@ -1712,7 +1831,7 @@ export function assertGuestSeoManifest(manifest) {
   if (marketing === undefined || typeof marketing !== "object" || Array.isArray(marketing)) {
     throw new Error(`${manifest.id}: guestSeo.marketing is required`);
   }
-  for (const key of ["listTitleKey", "listDescriptionKey", "detailTitleTemplate"]) {
+  for (const key of ["listTitleKey", "listDescriptionKey", "detailTitleTemplate", "homeTitleKey", "homeDescriptionKey"]) {
     if (marketing[key] !== undefined) {
       assertGuestSeoString(marketing[key], `${manifest.id}: guestSeo.marketing.${key}`);
     }
@@ -1806,7 +1925,7 @@ export function assertGuestSeoManifest(manifest) {
  */
 function serializeGuestSeoMarketingObject(marketing) {
   const lines = [];
-  for (const key of ["listTitleKey", "listDescriptionKey", "detailTitleTemplate"]) {
+  for (const key of ["listTitleKey", "listDescriptionKey", "detailTitleTemplate", "homeTitleKey", "homeDescriptionKey"]) {
     if (marketing[key] !== undefined) {
       lines.push(`      ${key}: ${JSON.stringify(marketing[key])},`);
     }
@@ -1901,6 +2020,8 @@ export type WorkspaceGuestSeoMarketing = Readonly<{
   readonly listTitleKey?: string;
   readonly listDescriptionKey?: string;
   readonly detailTitleTemplate?: string;
+  readonly homeTitleKey?: string;
+  readonly homeDescriptionKey?: string;
   readonly jsonLd: WorkspaceGuestSeoJsonLd;
   readonly openGraph?: Readonly<{
     readonly type?: string;
@@ -1935,8 +2056,112 @@ ${entries}
 }
 
 /** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceGuestLanding(manifests) {
+  /** @type {Record<string, object>} */
+  const landingByPlugin = {};
+  for (const manifest of manifests) {
+    if (manifest.catalogPresentation === undefined) {
+      continue;
+    }
+    assertGuestLandingManifest(manifest);
+    const landing = manifest.guestLanding;
+    landingByPlugin[manifest.id] = Object.freeze({
+      variant: landing.variant,
+      sections: Object.freeze({
+        hero: landing.sections.hero,
+        latestTours: landing.sections.latestTours,
+        latestToursLimit: landing.sections.latestToursLimit,
+        trust: landing.sections.trust,
+        finalCta: landing.sections.finalCta,
+        faq: landing.sections.faq,
+        footer: landing.sections.footer,
+        whyDenali: landing.sections.whyDenali,
+        journey: landing.sections.journey,
+        testimonials: landing.sections.testimonials,
+        featuredTours: landing.sections.featuredTours,
+        featuredToursLimit: landing.sections.featuredToursLimit,
+        categories: landing.sections.categories,
+        destinations: landing.sections.destinations,
+        heroSearch: landing.sections.heroSearch,
+        gallery: landing.sections.gallery,
+        equipment: landing.sections.equipment,
+        blogTeaser: landing.sections.blogTeaser,
+      }),
+      i18nProfile: landing.i18nProfile,
+    });
+  }
+
+  const entries = Object.entries(landingByPlugin)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([pluginId, value]) =>
+        `  ${JSON.stringify(pluginId)}: Object.freeze({
+    variant: ${JSON.stringify(value.variant)},
+    sections: Object.freeze({
+      hero: ${value.sections.hero},
+      latestTours: ${value.sections.latestTours},
+      latestToursLimit: ${value.sections.latestToursLimit},
+      trust: ${value.sections.trust},
+      finalCta: ${value.sections.finalCta},
+      faq: ${value.sections.faq},
+      footer: ${value.sections.footer},
+      whyDenali: ${value.sections.whyDenali},
+      journey: ${value.sections.journey},
+      testimonials: ${value.sections.testimonials},
+      featuredTours: ${value.sections.featuredTours},
+      featuredToursLimit: ${value.sections.featuredToursLimit},
+      categories: ${value.sections.categories},
+      destinations: ${value.sections.destinations},
+      heroSearch: ${value.sections.heroSearch},
+      gallery: ${value.sections.gallery},
+      equipment: ${value.sections.equipment},
+      blogTeaser: ${value.sections.blogTeaser},
+    }),
+    i18nProfile: ${JSON.stringify(value.i18nProfile)},
+  }),`
+    )
+    .join("\n");
+
+  return `${BANNER}
+export type GuestLandingVariant = "full" | "minimal";
+
+export type GuestLandingFeatures = Readonly<{
+  readonly variant: GuestLandingVariant;
+  readonly sections: Readonly<{
+    readonly hero: boolean;
+    readonly latestTours: boolean;
+    readonly latestToursLimit: number;
+    readonly trust: boolean;
+    readonly finalCta: boolean;
+    readonly faq: boolean;
+    readonly footer: boolean;
+    readonly whyDenali: boolean;
+    readonly journey: boolean;
+    readonly testimonials: boolean;
+    readonly featuredTours: boolean;
+    readonly featuredToursLimit: number;
+    readonly categories: boolean;
+    readonly destinations: boolean;
+    readonly heroSearch: boolean;
+    readonly gallery: boolean;
+    readonly equipment: boolean;
+    readonly blogTeaser: boolean;
+  }>;
+  readonly i18nProfile: "full" | "minimal";
+}>;
+
+/** Guest marketing landing gates — derived from workspace.manifest.json guestLanding. */
+export const WORKSPACE_GUEST_LANDING: Readonly<
+  Record<string, GuestLandingFeatures>
+> = Object.freeze({
+${entries}
+});
+`;
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
 export function generateWorkspaceCatalogListFeatures(manifests) {
-  /** @type {Record<string, { cityFilter: boolean }>} */
+  /** @type {Record<string, { cityFilter: boolean; serverListFilters: string[] }>} */
   const features = {};
   for (const manifest of manifests) {
     assertCatalogPresentationManifest(manifest);
@@ -1945,21 +2170,27 @@ export function generateWorkspaceCatalogListFeatures(manifests) {
     }
     features[manifest.id] = Object.freeze({
       cityFilter: manifest.catalogPresentation.listFeatures.cityFilter,
+      serverListFilters: Object.freeze(
+        [...(manifest.catalogPresentation.listFeatures.serverListFilters ?? [])].sort()
+      ),
     });
   }
 
   const entries = Object.entries(features)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(
-      ([pluginId, value]) =>
-        `  ${JSON.stringify(pluginId)}: Object.freeze({ cityFilter: ${value.cityFilter} }),`
-    )
+    .map(([pluginId, value]) => {
+      const serverFilters = `[${value.serverListFilters.map((param) => JSON.stringify(param)).join(", ")}]`;
+      return `  ${JSON.stringify(pluginId)}: Object.freeze({ cityFilter: ${value.cityFilter}, serverListFilters: Object.freeze(${serverFilters}) }),`;
+    })
     .join("\n");
 
   return `${BANNER}
 /** Marketing catalog list features — derived from workspace.manifest.json catalogPresentation. */
 export const WORKSPACE_CATALOG_LIST_FEATURES: Readonly<
-  Record<string, Readonly<{ readonly cityFilter: boolean }>>
+  Record<
+    string,
+    Readonly<{ readonly cityFilter: boolean; readonly serverListFilters: readonly string[] }>
+  >
 > = Object.freeze({
 ${entries}
 });
@@ -2319,6 +2550,7 @@ export function generateAllOutputs(manifests) {
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     guestConformance: generateWorkspaceGuestConformance(manifests),
     guestSeo: generateWorkspaceGuestSeo(manifests),
+    guestLanding: generateWorkspaceGuestLanding(manifests),
     outbox: generateOutboxSideEffects(manifests),
     settingsEnrichers: generateSettingsEnrichers(manifests),
     devBootstrap: generateDevBootstrapBindings(manifests),
@@ -2413,6 +2645,10 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-guest-seo.generated.ts"
   ),
+  guestLanding: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-guest-landing.generated.ts"
+  ),
   outbox: join(REPO_ROOT, "apps/api/src/workspace/workspace-outbox-side-effects.generated.ts"),
   settingsEnrichers: join(
     REPO_ROOT,
@@ -2478,6 +2714,7 @@ function main() {
       "memberProfileCapabilities",
       "guestConformance",
       "guestSeo",
+      "guestLanding",
       "outbox",
       "settingsEnrichers",
       "devBootstrap",
@@ -2534,6 +2771,7 @@ function main() {
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.guestConformance, generated.guestConformance);
   writeFileSync(OUTPUT_PATHS.guestSeo, generated.guestSeo);
+  writeFileSync(OUTPUT_PATHS.guestLanding, generated.guestLanding);
   writeFileSync(OUTPUT_PATHS.outbox, generated.outbox);
   writeFileSync(OUTPUT_PATHS.settingsEnrichers, generated.settingsEnrichers);
   writeFileSync(OUTPUT_PATHS.devBootstrap, generated.devBootstrap);

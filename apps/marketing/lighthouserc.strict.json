@@ -8,7 +8,10 @@
       "settings": {
         "chromeFlags": "--host-resolver-rules=MAP operator.localhost 127.0.0.1"
       },
-      "url": ["http://operator.localhost:3002/tours"]
+      "url": [
+        "http://operator.localhost:3002/",
+        "http://operator.localhost:3002/tours"
+      ]
     },
     "assert": {
       "assertions": {

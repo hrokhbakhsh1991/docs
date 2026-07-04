@@ -82,6 +82,30 @@ describe("guest-theme-stack.spec.ts — marketing", () => {
     assert.match(skin, /design-system\/denali-club\/MASTER\.md/);
     assert.match(skin, /background: var\(--color-accent\)/);
     assert.match(skin, /--font-heading: var\(--font-heading-en/);
+    assert.match(skin, /--mkt-text-h1:/);
+    assert.match(skin, /--mkt-shadow-card:/);
+    assert.match(skin, /section\[data-marketing-home-hero\]/);
+    assert.match(skin, /section\[data-marketing-home-latest\]/);
+    assert.match(skin, /section\[data-marketing-home-trust\]/);
+    assert.match(skin, /section\[data-marketing-home-final-cta\]/);
+    assert.match(skin, /section\[data-marketing-home-faq\]/);
+    assert.match(skin, /section\[data-marketing-home-why\]/);
+    assert.match(skin, /section\[data-marketing-home-journey\]/);
+    assert.match(skin, /section\[data-marketing-home-testimonials\]/);
+    assert.match(skin, /footer\[data-marketing-footer\]/);
+    assert.match(skin, /details\[data-marketing-nav-drawer\]/);
+    assert.match(skin, /div\[data-marketing-catalog-toolbar\]/);
+    assert.match(skin, /div\[data-marketing-catalog-filter-bar-head\]/);
+    assert.match(skin, /div\[data-marketing-catalog-category-chip-row\]/);
+    assert.match(skin, /button\[data-marketing-catalog-filter-apply\]/);
+    assert.match(skin, /form\[data-marketing-catalog-filters\]/);
+    assert.match(skin, /div\[data-marketing-catalog-active-filters\]/);
+    assert.match(skin, /figure\[data-marketing-catalog-card-media\]/);
+    assert.match(skin, /--mkt-trust-logo-max-height: 3rem/);
+    assert.match(skin, /url\("\/home\/hero\.webp"\)/);
+    assert.match(skin, /header\[data-marketing-header\][\s\S]*position: sticky/);
+    assert.doesNotMatch(skin, /header\[data-marketing-home-header\]/);
+    assert.doesNotMatch(skin, /font-size: 1\.75rem;/);
   });
 
   it("G-P6-UI-08 layout loads Calistoga heading variable", () => {

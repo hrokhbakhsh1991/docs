@@ -29,6 +29,7 @@ describe("build-catalog-tour-meta-line", () => {
       "Dates TBA"
     );
     assert.doesNotMatch(line, /^ · /);
+    assert.doesNotMatch(line, /^— · /);
     assert.match(line, /Jul/);
   });
 });

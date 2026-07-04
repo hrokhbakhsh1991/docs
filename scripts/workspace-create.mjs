@@ -115,6 +115,30 @@ export function buildGuestManifestObject(id) {
         policies: false,
       },
     },
+    guestLanding: {
+      variant: "minimal",
+      sections: {
+        hero: false,
+        latestTours: false,
+        latestToursLimit: 0,
+        trust: false,
+        finalCta: false,
+        faq: false,
+        footer: false,
+        whyDenali: false,
+        journey: false,
+        testimonials: false,
+        featuredTours: false,
+        featuredToursLimit: 0,
+        categories: false,
+        destinations: false,
+        heroSearch: false,
+        gallery: false,
+        equipment: false,
+        blogTeaser: false,
+      },
+      i18nProfile: "minimal",
+    },
     memberProfile: {
       editableFields: ["displayName"],
       readOnlyFields: ["email"],
@@ -122,6 +146,10 @@ export function buildGuestManifestObject(id) {
     },
     guestSeo: {
       marketing: {
+        homeTitleKey: "seo.homeTitle",
+        homeDescriptionKey: "seo.homeDescription",
+        listTitleKey: "seo.toursTitle",
+        listDescriptionKey: "seo.toursDescription",
         jsonLd: {
           required: true,
           schemaTypes: ["Event"],

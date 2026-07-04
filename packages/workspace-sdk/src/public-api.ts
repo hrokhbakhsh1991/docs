@@ -203,6 +203,8 @@ export {
 } from "./tour/tour-list-projection.contract";
 export {
   type PublicCatalogCard,
+  type PublicCatalogGearItem,
+  type PublicCatalogGatheringPoint,
   type PublicCatalogItineraryDay,
   type PublicCatalogItinerarySegment,
   type PublicCatalogSurface,
@@ -224,13 +226,22 @@ export {
 export { WORKSPACE_GUEST_CONFORMANCE_LEVELS } from "./catalog/workspace-guest-conformance.generated";
 export {
   resolveCatalogListFeatures,
+  catalogListSupportsServerFilter,
   type CatalogListFeatures,
+  type CatalogListServerFilterParam,
   UnknownCatalogPresentationPluginError,
 } from "./catalog/resolve-catalog-list-features";
 export {
   resolveCatalogDetailSections,
   type CatalogDetailSections,
 } from "./catalog/resolve-catalog-detail-sections";
+export {
+  resolveGuestLandingFeatures,
+  UnknownGuestLandingPluginError,
+  type GuestLandingFeatures,
+  type GuestLandingVariant,
+} from "./catalog/resolve-guest-landing-features";
+export { WORKSPACE_GUEST_LANDING } from "./catalog/workspace-guest-landing.generated";
 export {
   resolveGuestSeoForPlugin,
   GuestSeoNotConfiguredError,

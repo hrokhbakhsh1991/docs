@@ -21,6 +21,10 @@ hooks:
     description: Paginated tours list (?cursor) emits noindex follow robots meta
     spec: apps/marketing/tests/e2e/marketing-seo-pagination.spec.ts
     command: pnpm --filter @apps/marketing run test:smoke:seo
+  - id: SMK-MKT-17
+    description: Filtered tours list (?category) emits noindex follow robots meta (PR-22.1)
+    spec: apps/marketing/tests/e2e/marketing-seo-pagination.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke:seo
   - id: SMK-MKT-11
     description: Denali tour detail JSON-LD includes offers and cover image
     spec: apps/marketing/tests/e2e/marketing-seo-jsonld.spec.ts

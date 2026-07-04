@@ -88,13 +88,14 @@ pnpm --filter @apps/marketing run test:lighthouse   # requires smoke servers (he
 
 | Artifact | Role |
 | -------- | ---- |
-| `build-marketing-metadata.ts` | `pagination.noindexQueryParams` → `robots: { index: false, follow: true }` on `/tours?cursor` / `?city` |
+| `build-marketing-metadata.ts` | `pagination.noindexQueryParams` → `robots: { index: false, follow: true }` on `/tours?cursor`, `?city`, and PR-22 filter params (`q`, `category`, `difficulty`, `fitness`, `availability`, `sort`) |
 | `build-marketing-catalog-list-jsonld.ts` | `ItemList` JSON-LD on first-page `/tours` (no `cursor`) |
 | `build-marketing-sitemap.ts` | Tour detail URLs include `images[]` when `coverImageUrl` is set |
 | `catalog-tour-breadcrumb.tsx` | Visible `<nav aria-label="Breadcrumb">` aligned with BreadcrumbList JSON-LD |
 | `guard-marketing-seo-prod.mjs` | Production closure — `MARKETING_PUBLIC_BASE_URL` must be `https://` in prod |
 | `lighthouserc.json` | SEO ≥ 90 **and** Performance ≥ 85 + CWV budgets |
 | SMK-MKT-10 | `/tours?cursor=…` emits `noindex, follow` |
+| SMK-MKT-17 | `/tours?category=…` (and other filter params) emits `noindex, follow` (PR-22.1) |
 | SMK-MKT-11 | Denali detail JSON-LD includes `offers` + `image` |
 
 Production deploys must set `MARKETING_PUBLIC_BASE_URL=https://…` so `metadataBase` and canonical URLs are HTTPS-only (`guard-marketing-seo-prod.mjs`).

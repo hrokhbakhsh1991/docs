@@ -120,6 +120,26 @@ describe("build-marketing-metadata", () => {
     );
   });
 
+  it("MKT-33c applies noindex when denali catalog filter params are present", () => {
+    const denaliNoindex = [
+      "cursor",
+      "city",
+      "q",
+      "category",
+      "difficulty",
+      "fitness",
+      "availability",
+      "sort",
+    ];
+    assert.equal(shouldNoindexMarketingListPage({ q: "ridge" }, denaliNoindex), true);
+    assert.equal(
+      shouldNoindexMarketingListPage({ category: "mountain_multi" }, denaliNoindex),
+      true
+    );
+    assert.equal(shouldNoindexMarketingListPage({ sort: "departure_asc" }, denaliNoindex), true);
+    assert.equal(shouldNoindexMarketingListPage({}, denaliNoindex), false);
+  });
+
   it("MKT-33b list metadata forwards robots noindex policy", () => {
     const metadata = buildMarketingToursListMetadata({
       host: "operator.localhost:3002",

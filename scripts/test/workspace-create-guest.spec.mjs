@@ -63,6 +63,24 @@ describe("workspace:create --guest", () => {
       );
       assert.match(generateWorkspaceCatalogListFeatures([manifest]), /"alpine-club"/);
       assert.match(generateWorkspaceCatalogDetailSections([manifest]), /"alpine-club"/);
+      assert.deepEqual(manifest.guestLanding, {
+        variant: "minimal",
+        sections: {
+          hero: false,
+          latestTours: false,
+          latestToursLimit: 0,
+          trust: false,
+          finalCta: false,
+          faq: false,
+          footer: false,
+          whyDenali: false,
+          journey: false,
+          testimonials: false,
+        },
+        i18nProfile: "minimal",
+      });
+      assert.equal(manifest.guestSeo.marketing.homeTitleKey, "seo.homeTitle");
+      assert.equal(manifest.guestSeo.marketing.homeDescriptionKey, "seo.homeDescription");
       assert.match(generateWorkspaceDevPluginIds([manifest]), /"alpine-club"/);
       assert.match(generateWorkspaceMemberProfileCapabilities([manifest]), /"alpine-club"/);
       assert.match(generateWorkspaceGuestConformance([manifest]), /"alpine-club": "L3"/);

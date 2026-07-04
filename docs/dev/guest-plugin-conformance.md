@@ -56,6 +56,11 @@ Generator admission checks run before output generation. Missing `guestExtension
     "transportInitializerExport": "register<Workspace>CatalogRegistrationTransportInitializer"
   },
   "memberProfile": { "editableFields": ["displayName"], "readOnlyFields": ["email"], "sections": [] },
+  "guestLanding": {
+    "variant": "minimal",
+    "sections": { "hero": false, "latestTours": false, "latestToursLimit": 0, "trust": false, "finalCta": false },
+    "i18nProfile": "minimal"
+  },
   "devBootstrap": { "pluginTenantIds": ["…"], "smokeTenant": {} }
 }
 ```
@@ -105,6 +110,9 @@ See [`guest-registration-e2e-hooks.yaml`](./guest-registration-e2e-hooks.yaml) �
 - [ADR-GP-002](./adr-guest-plugin/ADR-GP-002-guest-extension-schema.md) — guest extension schema admission
 - [ADR-GP-003](./adr-guest-plugin/ADR-GP-003-workspace-create-guest.md) — `workspace:create --guest`
 - [ADR-GP-004](./adr-guest-plugin/ADR-GP-004-guest-seo-manifest.md) — `guestSeo` manifest + codegen
+- [ADR-GP-005](./adr-guest-plugin/ADR-GP-005-guest-landing-manifest.md) — `guestLanding` manifest + `resolveGuestLandingFeatures` (L3+ guest-capable; required before marketing `/` UI)
+
+Guest-capable workspaces (L2+ with `catalogPresentation`) must declare `guestLanding` before marketing home ships — see [marketing-landing.mdoc](../workspaces/denali/marketing-landing.mdoc) PR-0.
 
 ## G4 closure checklist
 

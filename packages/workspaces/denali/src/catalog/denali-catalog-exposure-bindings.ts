@@ -14,9 +14,8 @@ function clearStringField(
   return Object.freeze({ ...card, [key]: null });
 }
 
-function clearItinerary(card: PublicCatalogCard): PublicCatalogCard {
-  const next = { ...card };
-  delete (next as { itineraryDays?: unknown }).itineraryDays;
+function clearGatheringFields(card: PublicCatalogCard): PublicCatalogCard {
+  const next = { ...card, gatheringPoint: null, meetingPointText: null };
   return Object.freeze(next);
 }
 
@@ -26,13 +25,23 @@ function clearStructuredData(card: PublicCatalogCard): PublicCatalogCard {
   return Object.freeze(next);
 }
 
+function clearPhotos(card: PublicCatalogCard): PublicCatalogCard {
+  const next = { ...clearStringField(card, "coverImageUrl") };
+  delete (next as { photoUrls?: unknown }).photoUrls;
+  return Object.freeze(next);
+}
+
 /** Maps registry field ids to catalog card redaction steps. */
 export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardExposureBinding[] =
   Object.freeze([
     { fieldId: "title", applyHidden: (card) => Object.freeze({ ...card, title: "Untitled tour" }) },
     {
       fieldId: "denali.destination",
-      applyHidden: (card) => clearStringField(card, "category"),
+      applyHidden: (card) =>
+        Object.freeze({
+          ...clearStringField(card, "category"),
+          destinationLabel: null,
+        }),
     },
     {
       fieldId: "denali.datetime",
@@ -47,8 +56,12 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
       applyHidden: (card) => clearStringField(card, "priceAmount"),
     },
     {
+      fieldId: "denali.pricing-payment",
+      applyHidden: (card) => clearStringField(card, "paymentMode"),
+    },
+    {
       fieldId: "denali.photos",
-      applyHidden: (card) => clearStringField(card, "coverImageUrl"),
+      applyHidden: (card) => clearPhotos(card),
     },
     {
       fieldId: "capacityMax",
@@ -56,11 +69,11 @@ export const DENALI_CATALOG_CARD_EXPOSURE_BINDINGS: readonly DenaliCatalogCardEx
     },
     {
       fieldId: "meetingPoint",
-      applyHidden: (card) => clearItinerary(card),
+      applyHidden: (card) => clearGatheringFields(card),
     },
     {
       fieldId: "startPointLocationText",
-      applyHidden: (card) => clearItinerary(card),
+      applyHidden: (card) => clearStringField(card, "meetingPointText"),
     },
   ]);
 

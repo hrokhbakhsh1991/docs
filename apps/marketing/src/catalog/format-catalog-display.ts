@@ -72,6 +72,7 @@ export function formatCatalogPrice(
     style: "currency",
     currency: currency?.trim() || "IRR",
     maximumFractionDigits: 0,
+    ...(dateLocale.startsWith("fa") ? { numberingSystem: "arabext" } : {}),
   }).format(amount);
 }
 
@@ -81,6 +82,15 @@ export function formatCatalogDateRange(
   dateLocale: string,
   datesTbaLabel: string
 ): string {
+  const formatOptions: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    ...(dateLocale.startsWith("fa")
+      ? { calendar: "persian", numberingSystem: "arabext" }
+      : {}),
+  };
+
   if (!departureAt) {
     return datesTbaLabel;
   }
@@ -88,11 +98,7 @@ export function formatCatalogDateRange(
   if (Number.isNaN(start.getTime())) {
     return datesTbaLabel;
   }
-  const startLabel = start.toLocaleDateString(dateLocale, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const startLabel = start.toLocaleDateString(dateLocale, formatOptions);
   if (!endAt) {
     return startLabel;
   }
@@ -100,11 +106,7 @@ export function formatCatalogDateRange(
   if (Number.isNaN(end.getTime())) {
     return startLabel;
   }
-  const endLabel = end.toLocaleDateString(dateLocale, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const endLabel = end.toLocaleDateString(dateLocale, formatOptions);
   return `${startLabel} – ${endLabel}`;
 }
 

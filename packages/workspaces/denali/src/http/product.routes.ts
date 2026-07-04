@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { getDenaliCatalogTour, listDenaliCatalog } from "./catalog.service";
+import { parseDenaliCatalogListQuery } from "../catalog/filter-denali-catalog-list";
 import { getDenaliDashboardTour } from "./dashboard.service";
 import { getDenaliProductHttpHost } from "./product-host-runtime";
 import type { DenaliProductRouteDeps } from "./product-host-ports";
@@ -16,6 +17,14 @@ function parseCatalogListQuery(url: URL) {
   return {
     cursor: url.searchParams.get("cursor") ?? undefined,
     limit: Number.isFinite(limit) ? limit : undefined,
+    listQuery: parseDenaliCatalogListQuery({
+      q: url.searchParams.get("q") ?? undefined,
+      category: url.searchParams.get("category") ?? undefined,
+      difficulty: url.searchParams.get("difficulty") ?? undefined,
+      fitness: url.searchParams.get("fitness") ?? undefined,
+      availability: url.searchParams.get("availability") ?? undefined,
+      sort: url.searchParams.get("sort") ?? undefined,
+    }),
   };
 }
 
@@ -46,7 +55,9 @@ export async function handleGetDenaliCatalog(
           bookingPort,
           destinationPort,
           exposurePort,
-          ...query,
+          cursor: query.cursor,
+          limit: query.limit,
+          listQuery: query.listQuery,
         });
         host.sendJson(res, 200, {
           success: true,

@@ -15,6 +15,8 @@ export type WorkspaceGuestSeoMarketing = Readonly<{
   readonly listTitleKey?: string;
   readonly listDescriptionKey?: string;
   readonly detailTitleTemplate?: string;
+  readonly homeTitleKey?: string;
+  readonly homeDescriptionKey?: string;
   readonly jsonLd: WorkspaceGuestSeoJsonLd;
   readonly openGraph?: Readonly<{
     readonly type?: string;
@@ -47,6 +49,8 @@ export const WORKSPACE_GUEST_SEO: Readonly<Record<string, WorkspaceGuestSeoConfi
     marketing: Object.freeze({
       listTitleKey: "seo.toursTitle",
       listDescriptionKey: "seo.toursDescription",
+      homeTitleKey: "seo.homeTitle",
+      homeDescriptionKey: "seo.homeDescription",
       jsonLd: Object.freeze({
         required: true,
         schemaTypes: Object.freeze(["TouristTrip"]),
@@ -59,7 +63,7 @@ export const WORKSPACE_GUEST_SEO: Readonly<Record<string, WorkspaceGuestSeoConfi
         includeImages: true,
       }),
       pagination: Object.freeze({
-        noindexQueryParams: Object.freeze(["cursor","city"]),
+        noindexQueryParams: Object.freeze(["cursor","city","q","category","difficulty","fitness","availability","sort"]),
       }),
     }),
   }),
@@ -67,6 +71,8 @@ export const WORKSPACE_GUEST_SEO: Readonly<Record<string, WorkspaceGuestSeoConfi
     marketing: Object.freeze({
       listTitleKey: "seo.toursTitle",
       listDescriptionKey: "seo.toursDescription",
+      homeTitleKey: "seo.homeTitle",
+      homeDescriptionKey: "seo.homeDescription",
       jsonLd: Object.freeze({
         required: true,
         schemaTypes: Object.freeze(["Event"]),
@@ -87,6 +93,8 @@ export const WORKSPACE_GUEST_SEO: Readonly<Record<string, WorkspaceGuestSeoConfi
     marketing: Object.freeze({
       listTitleKey: "seo.toursTitle",
       listDescriptionKey: "seo.toursDescription",
+      homeTitleKey: "seo.homeTitle",
+      homeDescriptionKey: "seo.homeDescription",
       jsonLd: Object.freeze({
         required: true,
         schemaTypes: Object.freeze(["Event"]),

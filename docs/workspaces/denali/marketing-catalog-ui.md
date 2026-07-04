@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-MARKETING-CATALOG-UI
-version: "2026-06-30-v1"
+version: "2026-07-04-v3"
 extends: public-catalog.md
 apps: [marketing]
 phase: P6-1
@@ -16,6 +16,77 @@ Workspace-agnostic **presentation shell** for public tour catalog in `apps/marke
 
 ---
 
+## PR-21 Catalog discovery shell (2026-07-04) — active
+
+**Goal:** Modern `/tours` page — editorial cards + user filters aligned with Denali admin egress (`PublicCatalogCard`). **PR-22** adds server-side list filters on `GET /denali/catalog`.
+
+### Admin required → list card (Denali)
+
+| Wizard / publish gate | Canonical path | `PublicCatalogCard` | Card UI (PR-21) |
+|----------------------|----------------|---------------------|-----------------|
+| Tour kind | `category` | `category`, `listSubtitle` | Category badge on cover |
+| Title | `title` | `title` | H2 |
+| Destination | `destinationId` | — (detail-only today) | — |
+| Start | `startDateTime` | `departureAt` | Dates row |
+| End (multi-day) | `endDateTime` | `endAt` | Date range |
+| Capacity | `capacityMax` | `totalCapacity`, `spotsRemaining` | Spots pill / sold-out badge |
+| Short description | `program.shortDescription` | `listDescription`, `shortDescription` | Body copy (clamp) |
+| Cover | `photos[0]` | `coverImageUrl` | 16:9 media + fallback |
+| Price | `pricing.basePricePerPerson` | `priceAmount`, `showListPrice` | Price chip on cover |
+| Difficulty | `program.difficultyLevel` | `difficultyLevel` | Stat pill + filter |
+| Fitness | `participants.fitnessLevel` | `fitnessLevel` | Stat pill + filter |
+| Transport | `transport.mode` | `transport` | Detail / registration only |
+| Policies | `policies.*` | `policiesText`, cancellation fields | Detail only |
+
+Exposure redaction (`denali-catalog-exposure-bindings`) may hide mapped fields — card omits empty rows (fail-soft).
+
+### Filter pipeline (URL → API or client)
+
+**Denali (PR-22):** When `resolveCatalogListFeatures().serverListFilters` includes a param, marketing forwards it on `GET /denali/catalog` / BFF `GET /api/catalog`; Denali applies filter + sort on the full published set **before** cursor pagination. Marketing **also** runs `filterMarketingCatalogItems` + `sortMarketingCatalogItems` on the fetched batch (idempotent safety net when API/cache is stale). **Fetch limit:** default **20** per cursor page when Denali server owns the active narrowing filters; widen to **50** only when a narrowing filter is **client-only** (Urban/guest-club). Filtered requests use `cache: no-store`.
+
+**Pagination (PR-24):** Cursor-based pages (`?cursor=<tourId>`) replace the list batch (not infinite append). `load-more` and `first-page` links use `resolveMarketingLocalePath("/tours")`. Active filter pills and filter form omit `cursor` (reset to page 1). Results line uses `list.resultsCountPage` when `cursor` or `nextCursor` is set.
+
+**Denali category UX (PR-23):** Marketing shows two admin-aligned families only — **کوهنوردی** (`category=mountain`) and **طبیعت‌گردی** (`category=nature`) — no تک‌روزه/چندروزه chips. Server + client match `mountain_*` / `nature_*` slugs. Difficulty select uses wizard range **1–10** (step 0.5); fitness uses `low` / `medium` / `high`.
+
+**Urban / guest-club:** Only `city` is server-side; other filters run client-side on the fetched batch (fetch limit 50 when client filters active — PR-21.1).
+
+| Query | Denali server | Client fallback |
+|-------|---------------|-----------------|
+| `q` | Title, category slug, description (Latin; Persian label search not yet) | Same on current page batch |
+| `category` | Exact slug or `mountain`/`nature` family | Same (family prefix match) |
+| `difficulty` | Snapped `difficultyLevel` (0.5 step) | Same |
+| `fitness` | Exact `fitnessLevel` | Same |
+| `availability=open` | `spotsRemaining > 0` or unknown capacity | Same |
+| `sort` | `newest`, `departure_asc`/`desc`, `price_asc`/`desc`, `difficulty_asc` | Same |
+| `cursor` | API pagination (preserved in load-more) | Same |
+| `city` | — | Urban server filter only (SDK gate) |
+
+**Modules:** `catalog-list-query.ts`, `build-catalog-list-fetch-query.ts`, `catalog-tour-filter-bar.tsx`, `derive-catalog-filter-options.ts`, `apply-marketing-catalog-list-pipeline.ts`, `filter-marketing-catalog-items.ts`, `sort-marketing-catalog-items.ts`.
+
+**Hooks:** `data-marketing-catalog-toolbar`, `data-marketing-catalog-filters`, `data-marketing-catalog-category-chips`, `data-marketing-catalog-active-filters`, `data-marketing-catalog-results`, `data-marketing-catalog-card-media`, `data-marketing-catalog-card-category`, `data-marketing-catalog-card-dates`, `data-marketing-catalog-card-price`, `data-marketing-catalog-clear-filters`.
+
+**SEO (PR-22.1):** Any active filter query (`q`, `category`, `difficulty`, `fitness`, `availability`, `sort`, `city`) sets `robots: noindex` via `catalogFiltersToNoindexSearchParams()` + manifest `noindexQueryParams`.
+
+### Verify
+
+fa `/tours` — filter bar, localized category chips, Persian digits on stats; SMK-MKT-01 unchanged selectors on card root/title/cta.
+
+### Risks and mitigations (PR-21.1 → PR-22)
+
+| Risk | Mitigation |
+|------|------------|
+| Client filters only see current API page | **PR-22:** Denali `GET /denali/catalog` applies `q`/`category`/… **before** cursor slice; marketing passes params when `serverListFilters` manifest lists them |
+| Urban / guest-club without server filters | Client pipeline + optional fetch limit 50 (PR-21.1) |
+| Active URL filter missing from dropdown | `deriveCatalogFilterOptions` merges active filters |
+| Load-more dropped filters | `catalogFiltersToQueryInput` rebuilds query |
+| Duplicate price/capacity on card | `CatalogTourStats omitOverlayFields` |
+| BFF list route missing PR-22 params | **PR-22.1:** `buildCatalogListFetchQuery` shared by `fetch-catalog-list.ts` + `app/api/catalog/route.ts` |
+| Filtered list pages indexed | **PR-22.1:** manifest `noindexQueryParams` + `catalogFiltersToNoindexSearchParams()` on `/tours` metadata |
+| Dismiss filter keeps stale cursor | **PR-22.1:** `buildCatalogListQueryWithoutFilters` omits `cursor` when rebuilding pill href |
+| Persian label search | Still slug/title/description only until localized search index |
+
+---
+
 ## Route → component tree
 
 ```text
@@ -24,13 +95,21 @@ app/layout.tsx
   └── page routes
 
 app/page.tsx                          → home CTA → /tours
-app/tours/page.tsx                    → CatalogTourList
-  └── CatalogTourCard (per item)
-        └── CatalogTourStats (list)
-app/tours/[tourId]/page.tsx           → CatalogTourDetail
-  └── CatalogTourStats (detail)
-  └── CatalogItinerarySection (when itineraryDays present)
-  └── CatalogTourDetailPolicies (when policies/cancellation present)
+app/tours/page.tsx                    → CatalogTourFilterBar + CatalogTourList
+  └── CatalogTourFilterBar (GET filters, category chips, active pills)
+  └── CatalogTourList
+        └── CatalogTourCard (per item)
+              └── CatalogTourStats (list, omitOverlayFields)
+app/api/catalog/route.ts              → BFF passthrough (same query builder as fetch)
+app/tours/[tourId]/page.tsx           → CatalogTourDetail (PR-D — see § PR-D)
+  └── CatalogTourDetailHeroGallery (Denali, PR-D6 mosaic) · overflow → CatalogTourDetailGallery
+  └── intro: back link + hero only (no visible breadcrumb — JSON-LD breadcrumb retained)
+  └── header: title + optional destination
+  └── CatalogTourDetailFacts (PR-D2 bento)
+  └── CatalogTourDetailRegisterCta · CatalogTourDetailBookingRail · CatalogTourDetailStickyBar
+  └── CatalogTourDetailJumpNav
+  └── CatalogTourDetailReadiness · Logistics · GearServices · RegisterPreview · Faq
+  └── CatalogItinerarySection · CatalogTourDetailPolicies
 ```
 
 ### Pure logic (no JSX)
@@ -55,7 +134,9 @@ Marketing calls workspace-sdk resolvers — **no** `if (pluginId === …)` in `a
 
 | Resolver | Module | Marketing use |
 |----------|--------|---------------|
-| `resolveCatalogListFeatures` | `resolve-catalog-list-features.ts` | Urban city filter (`data-marketing-city-filter`) |
+| `resolveGuestLandingFeatures` | `resolve-guest-landing-features.ts` | Home `/` variant (full vs minimal) + section gates |
+| `resolveCatalogListFeatures` | `resolve-catalog-list-features.ts` | Urban city filter; Denali `serverListFilters` + marketing fetch query |
+| `catalogListSupportsServerFilter` | `resolve-catalog-list-features.ts` | Gate upstream query params in `build-catalog-list-fetch-query.ts` |
 | `resolveCatalogDetailSections` | `resolve-catalog-detail-sections.ts` | Itinerary / policies visibility |
 | `supportsCatalogRegistration` | `resolve-catalog-registration-support.ts` | Register CTA (`data-marketing-register`) — manifest **L2+** (`catalogRegistrationFlow`); no runtime intake registry required in marketing |
 
@@ -92,16 +173,62 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | Hook | Location |
 |------|----------|
 | `data-marketing-header` | `marketing-shell.tsx` |
-| `data-marketing-brand` | brand link → `/tours` |
+| `data-marketing-brand` | brand link → `/` |
 | `data-marketing-logo` | tenant logo img |
 | `data-marketing-locale-switcher` | header locale toggle |
 
-### Home
+### Home (`/`)
 
 | Hook | Location |
 |------|----------|
 | `data-marketing-home` | `app/page.tsx` main |
-| `data-marketing-home-cta` | link → `/tours` |
+| `data-marketing-home-hero` | hero section |
+| `data-marketing-home-title` | hero h1 |
+| `data-marketing-home-lead` | hero lead |
+| `data-marketing-home-cta` | primary CTA → `/tours` |
+| `data-marketing-home-search` | hero GET search form → `/tours?q=` |
+| `data-marketing-home-featured` | featured bento (same catalog sort as latest) |
+| `data-marketing-home-featured-header-row` | title + view-all row (PR-20N) |
+| `data-marketing-home-featured-view-all` | «همه تورها» link |
+| `data-marketing-home-featured-lead` | section lead under header |
+| `data-marketing-home-featured-bento` | bento grid container (card sheet) |
+| `data-marketing-home-featured-card` | per-tour card in featured bento |
+| `data-marketing-home-featured-card-body` | caption stack / pick text column |
+| `data-marketing-home-featured-cta` | flagship «مشاهده برنامه» |
+| `data-marketing-home-featured-picks-list` | supporting picks stack |
+| `data-marketing-home-latest` | latest published tours block |
+| `data-marketing-home-latest-row` | horizontal scroll (mobile) / grid (≥640px) container |
+| `data-marketing-home-latest-card` | per-tour card in latest row |
+| `data-marketing-home-latest-cover` | 16:9 cover figure (`CatalogCoverImage` or placeholder) |
+| `data-marketing-home-latest-meta` | tour date/location meta line |
+| `data-marketing-home-latest-price` | formatted price line |
+| `data-marketing-home-categories` | category explorer from catalog `category` |
+| `data-marketing-home-category-chip` | link → `/tours?category=` |
+| `data-marketing-home-destinations` | static destination cards (i18n seed) |
+| `data-marketing-home-destination-card` | per-destination article |
+| `data-marketing-brand-title` | shell brand display name |
+| `data-marketing-home-trust` | trust / branding block |
+| `data-marketing-home-why` | Why Denali bento (4 tiles) |
+| `data-marketing-home-journey` | tour journey timeline |
+| `data-marketing-home-testimonials` | participant quote cards |
+| `data-marketing-home-testimonial-card-featured` | first quote — hero pull-quote span (PR-20K) |
+| `data-marketing-home-gallery` | cinematic bento mosaic (PR-20L) |
+| `data-marketing-home-gallery-item-primary` | dominant hero tile |
+| `data-marketing-home-gallery-support` | supporting bento cluster |
+| `data-marketing-home-gallery-link` / `-caption` | overlay link + title/CTA |
+| `data-marketing-home-equipment` | static gear checklist |
+| `data-marketing-home-blog` | blog teaser stub (CMS-gated) |
+| `data-marketing-home-jsonld` | ItemList JSON-LD on `/` |
+| `data-marketing-home-faq` | FAQ accordion (`#faq`) + FAQPage JSON-LD |
+| `data-marketing-home-final-cta` | bottom CTA band |
+| `data-marketing-nav-drawer` | mobile nav `<details>` (shell) |
+| `data-marketing-nav-drawer-toggle` | drawer summary control |
+| `data-marketing-nav-drawer-panel` | drawer link panel |
+| `data-marketing-header-cta` | sticky header CTA (full landing, mobile) |
+| `data-marketing-skip-link` | skip to `#main-content` (full landing) |
+| `data-marketing-footer` | site footer (4 columns + newsletter stub) |
+
+Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-HOME-01..03,05,06 · unit: HOME-UNIT-01..08 · SDK: SDK-HOME-01..03
 
 ### List (`/tours`)
 
@@ -110,24 +237,43 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | `data-marketing-catalog` | page main |
 | `data-marketing-catalog-header` | list header |
 | `data-marketing-catalog-title` | h1 |
+| `data-marketing-catalog-lead` | list lead (PR-21) |
+| `data-marketing-catalog-toolbar` | filter bar wrapper (PR-21) |
+| `data-marketing-catalog-filters` | GET filter form (PR-21) |
+| `data-marketing-catalog-category-chips` | category chip row (PR-21) |
+| `data-marketing-catalog-category-chip` | per-category link (PR-21) |
+| `data-marketing-catalog-results` | filtered count (PR-21) |
+| `data-marketing-catalog-filter-notice` | page-local filter scope warning (PR-21.1; Urban/client-only) |
+| `data-marketing-catalog-active-filters` | dismissible active filter pills (PR-22.1) |
+| `data-marketing-catalog-active-filter` | per-filter pill link (`-id=` slug) |
+| `data-marketing-catalog-clear-filters` | reset all filters (PR-21) |
 | `data-marketing-catalog-grid` | `catalog-tour-list.tsx` ul |
 | `data-marketing-catalog-grid-item` | li per tour |
 | `data-marketing-catalog-empty` | empty state |
-| `data-marketing-catalog-pagination` | load-more nav |
+| `data-marketing-catalog-pagination` | load-more / first-page nav (PR-24) |
+| `data-marketing-catalog-pagination-next` | load-more link |
+| `data-marketing-catalog-pagination-first` | back to first page (when `cursor` set) |
 | `data-marketing-city-filter` | Urban city filter form |
 | `data-marketing-city-clear` | clear city filter link |
+| `data-marketing-catalog-filter-active` | active q/category filter label on list |
 
 ### List card
 
 | Hook | Location |
 |------|----------|
 | `data-marketing-catalog-card` | `catalog-tour-card.tsx` article |
+| `data-marketing-catalog-card-media` | cover figure + price/scarcity overlays (PR-21) |
 | `data-marketing-catalog-card-cover` | cover link |
 | `data-marketing-catalog-cover` | `catalog-cover-image.tsx` img |
+| `data-marketing-catalog-card-category` | localized category pill in card body (below title) |
+| `data-marketing-catalog-card-price` | price chip on cover (PR-21) |
+| `data-marketing-catalog-card-spots` | scarcity / sold-out badge (PR-21) |
+| `data-marketing-catalog-card-dates` | departure date line (PR-21) |
 | `data-marketing-catalog-card-title` | h2 |
-| `data-marketing-catalog-card-description` | description p |
-| `data-marketing-catalog-card-meta` | subtitle + dates line |
-| `data-marketing-catalog-card-stats` | stats ul (list) |
+| `data-marketing-catalog-card-summary` | at-a-glance line: duration · difficulty · fitness · capacity (Denali list) |
+| `data-marketing-catalog-card-description` | Urban fallback body copy |
+| `data-marketing-catalog-card-meta` | subtitle + dates line (detail) |
+| `data-marketing-catalog-card-stats` | stats ul (detail; removed from Denali list card) |
 | `data-marketing-catalog-card-cta` | view tour link |
 
 ### Detail (`/tours/[tourId]`)
@@ -163,12 +309,255 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 
 | ID | Spec | Hooks exercised |
 |----|------|-----------------|
-| SMK-MKT-01 | `marketing-catalog-smoke.spec.ts` | catalog, header, tour title |
+| SMK-MKT-HOME-01..03,05,06 | `marketing-home-smoke.spec.ts` | home hero, latest (conditional), trust, final-cta, mobile, urban isolation |
+| *(HOME-04)* | `home-fail-soft.spec.ts` | unit only — empty latest block (not E2E) |
+| SMK-MKT-01 | `marketing-catalog-smoke.spec.ts` | catalog, header, toolbar, tour title |
+| SMK-MKT-16 | same | server category filter, active pill dismiss (PR-22) |
 | SMK-MKT-05 | `marketing-urban-catalog-smoke.spec.ts` | urban skin, city filter, no itinerary |
 | SMK-MKT-03 | `marketing-catalog-smoke.spec.ts` | tour-detail, register, portal OTP flow |
+| SMK-MKT-16 | same | PR-22 category filter + active pill dismiss |
+| SMK-MKT-17 | `marketing-seo-pagination.spec.ts` | filtered list `noindex, follow` (PR-22.1) |
 | Itinerary | same (Denali tour) | itinerary, segment-photos |
 
-Default Playwright base URLs: operator `http://operator.localhost:3002` (`playwright.marketing.config.ts`); urban `http://urban.localhost:3002` (`playwright.marketing-urban.config.ts` · `pnpm run test:smoke:urban`).
+Default Playwright base URLs: operator `http://operator.localhost:3002` (`playwright.marketing.config.ts`); urban `http://urban.localhost:3002` (`playwright.marketing-urban.config.ts` · `pnpm run test:smoke:urban`); home `/` iPhone 13 (`playwright.marketing-home.config.ts` · `pnpm run test:smoke:home`).
+
+---
+
+## PR-D Tour detail PDP — outdoor/hiking (2026-07-04) — planned
+
+**Goal:** `/tours/[tourId]` as a **conversion + outdoor decision-support PDP** for Denali mountain/nature tours — not a generic travel stub. Layout/conversion (PR-D1/D2) ships first without API changes; outdoor-critical content (PR-D2b–D5) requires **doc-first** egress on `PublicCatalogCard` + exposure binding fixes in `packages/workspaces/denali`.
+
+**Authority chain:** wizard fields → `toDenaliCatalogCard` → exposure redaction → marketing RSC (no `@app-tour/workspace-*` imports in marketing).
+
+**Design inputs:** industry PDP order (hero → facts → CTA → itinerary → logistics → policies); ui-ux-pro-max **UX checklist only** (touch targets, sticky padding, smooth scroll, color+text) — **not** skill default colors/fonts/motion.
+
+### Current baseline (pre–PR-D)
+
+Linear stack: breadcrumb → back → title → cover → shortDescription → meta → stats ul → itinerary → policies → single sticky CTA. Missing: above-fold CTA, outdoor metrics, logistics/map, gear/services, transport UI, destination label, gallery, registration preview, FAQ.
+
+### Target section order (RTL · fa-first)
+
+```text
+0. Breadcrumb + back
+1. Hero (cover → gallery when PR-D6)
+2. Title + destination label + category badge
+3. Quick facts bento: price · capacity/scarcity · dates · duration hint
+4. Outdoor readiness (mountain/nature conditional cells)
+5. CTA primary (+ sold-out when spotsRemaining === 0)
+6. Short description
+7. Jump nav → #readiness #itinerary #logistics #gear #policies #register
+8. Long description (optional, PR-D4)
+9. Itinerary (accordion when >2 days, PR-D2)
+10. Logistics: gathering/start + map link · transport · return time (PR-D3)
+11. Gear + included/excluded + insurance (PR-D4)
+12. Policies + cancellation (existing)
+13. Know-before-register + FAQ accordion (PR-D5)
+14. CTA secondary
+15. Sticky bar (mobile) / booking rail (desktop)
+```
+
+**Mobile fold order (critical):** cover → title → bento → CTA — **not** title-before-cover (AtlasPerk / Viator mobile stack).
+
+**Desktop (≥1024px):** two-column grid — main column (§1–13) + sticky booking rail (price, capacity, CTA duplicate of §5).
+
+---
+
+### Risk register — high-risk gaps and mitigations
+
+Every row is a **must-address** item before calling PR-D complete. Severity: **P0** conversion/trust blocker · **P1** outdoor decision blocker · **P2** polish/deferred with explicit gate.
+
+| ID | Risk | Sev | Mitigation (phase) | Acceptance |
+|----|------|-----|-------------------|------------|
+| R-D01 | Single CTA at page bottom; attention drop before scroll | P0 | PR-D1: **one visible register control per viewport** — booking rail (desktop ≥64rem) · sticky bar (mobile); no duplicate inline CTAs in main column | SMK-MKT-03 green; one `[data-marketing-register]` visible |
+| R-D02 | Mobile title-before-hero breaks industry fold | P0 | PR-D1: CSS `order` or JSX split — preserve existing hooks on title/cover | Visual: cover first ≤768px |
+| R-D03 | Stats as plain `ul` — poor scan for price/capacity/scarcity | P0 | PR-D2: bento grid `data-marketing-catalog-detail-facts`; sold-out badge when `spotsRemaining === 0` | CTA disabled + i18n `detail.soldOut` when full |
+| R-D04 | No sticky price+CTA on mobile scroll | P0 | PR-D1: `data-marketing-catalog-detail-sticky-bar` + `padding-bottom` on article = bar height + safe-area | No content hidden under bar |
+| R-D05 | Sticky nav/bar overlaps first section | P0 | PR-D1: compensate scroll-margin on `#` targets; body padding per ui-ux-pro-max sticky-nav rule | Jump nav lands without overlap |
+| R-D06 | **Outdoor readiness missing** — hiking hours, peak, trail km, elevation, min age | P1 | PR-D2b: `CatalogTourDetailReadiness` + egress fields on card (see Data egress) | Mountain tour shows peak+hours+minAge when set |
+| R-D07 | Difficulty/fitness alone insufficient for hike/no-go decision | P1 | PR-D2b: readiness block **above** long copy; link text to policies | User sees physical bar before itinerary |
+| R-D08 | **Destination name** not shown (only category slug) | P1 | PR-D3: egress `destinationLabel` from `destinationId` + `destinationNameById` (already resolved in `catalog.service.ts`) | H1 subtitle or meta shows human name |
+| R-D09 | **Meeting/gathering point** absent — Baymard: map required | P1 | PR-D3: egress `gatheringPrimary` (label + lat/lng); map **link** (OSM/Google) phase 1 — no heavy embed | Link opens when coords exist |
+| R-D10 | Legacy `meetingPoint` / `startPointLocationText` on exposure but not on card | P1 | PR-D3: map to card text fields; prefer `gatheringPoints[0]` when present | Fail-soft: hide section when all empty |
+| R-D11 | **Exposure binding bug:** hiding `meetingPoint` redacts `itineraryDays` | P0 | PR-D3: fix `denali-catalog-exposure-bindings.ts` — dedicated card keys, never `clearItinerary` for logistics fields | Unit test in `denali-catalog-exposure.spec.ts` |
+| R-D12 | `denali.destination` exposure maps to `category` redaction — conflates slug vs label | P1 | PR-D3: separate `destinationLabel` egress; category slug stays for filters | Redact label without breaking category chip |
+| R-D13 | **Transport** on card (`transport` snapshot) but UI silent | P1 | PR-D3: `CatalogTourDetailLogistics` shows mode + optional cost/dong/personal-car | Uses existing `PublicCatalogTransportSnapshot` |
+| R-D14 | Return time missing for single-day tours | P1 | PR-D3: egress `approximateReturnTime` on card (wizard field `denali.approximate-return-time` — **not** a catalog exposure binding; phase-10 guard) | Visible when data present on card |
+| R-D15 | **Gear list** absent — top hiking PDP expectation | P1 | PR-D4: egress `gearItems[]` → checklist UI | Section hidden when empty |
+| R-D16 | Included/excluded services absent | P1 | PR-D4: egress `includedServices` / `excludedServices` | Two-column or accordion mobile |
+| R-D17 | Tour insurance flag invisible | P1 | PR-D4: egress `includesTourInsurance` boolean | Trust line in gear/services block |
+| R-D18 | **longDescription** not on card | P1 | PR-D4: egress `longDescription`; plain text / preserve line breaks | Below short description |
+| R-D19 | Single cover only — weak trust | P1 | PR-D6: hero mosaic (1 large + 2 stacked, 16:9) at fold; overflow grid + «+N more» when >3 photos; **PR-9 static fallbacks** (`/home/fallback-tour-cover.webp` + `/home/gallery/0*.webp`) pad when API returns <4 photos — hook `data-marketing-catalog-detail-gallery-fallback` | ≥3 photos → mosaic; LCP on primary |
+| R-D20 | Registration surprises (national ID, age) after CTA click | P1 | PR-D5: `CatalogTourDetailRegisterPreview` from existing card flags (`nationalIdRequired`, `minimumAge`, …) | Lists intake flags without admin change |
+| R-D21 | No FAQ / objection handling (weather, fitness worry) | P1 | PR-D5: tour FAQ from admin fields (`fitnessPrerequisiteText`, cancellation lines) first; static i18n fallback only when empty | Admin text replaces generic block |
+| R-D22 | `paymentMode` invisible pre-register | P2 | PR-D5: egress + one line in policies or register preview | Optional |
+| R-D23 | Leader/guide credentials absent | P2 | **Deferred PR-D7** — needs public-safe leader egress policy; document in `public-catalog.md` before code | Explicit defer; not PR-D DoD |
+| R-D24 | Reviews/testimonials | — | **Out of scope** — no review system | Do not stub fake social proof |
+| R-D25 | Date picker / pay on marketing | — | **Out of scope** — portal owns registration + payment | CTA → portal only |
+| R-D26 | Motion-heavy / parallax (ui-ux-pro-max skill default) | P0 | CSS transitions ≤200ms; `prefers-reduced-motion: reduce` disables transform | No scroll-jacking |
+| R-D27 | Breaking E2E hooks | P0 | Additive hooks only; keep `data-marketing-catalog-tour-detail`, `data-marketing-register`, itinerary/policies hooks | SMK-MKT-02/03/itinerary unchanged |
+| R-D28 | API/egress without docs (guard-docs) | P0 | Update **`public-catalog.md`** + this file **before** `denali-catalog-card.ts` / contract changes | Husky green |
+| R-D29 | JSON-LD stale after exposure redaction | P0 | PR-D5: verify `refreshDenaliCatalogStructuredData` after new fields; marketing graph unchanged contract | SMK-MKT-06 |
+| R-D30 | Persian digits on new numeric surfaces | P1 | Extend PR Persian digits table to readiness, logistics, gear counts | fa locale arabext |
+| R-D31 | Mountain vs nature conditional cells wrong | P1 | PR-D2b: render cells from `category` family (`mountain_*` / `nature_*`) — mirror list filter semantics PR-23 | Nature hides peak; mountain hides trail km |
+| R-D32 | Exposure-off field shows empty shell | P1 | **Data-gated + exposure-gated:** no DOM node when redacted or null | No “—” placeholders for hidden fields |
+| R-D33 | Dual CTA divergent URLs | P0 | Single `registrationUrl` prop threaded to all CTAs | Assert same href in component test |
+| R-D34 | Urban workspace regression | P0 | All new sections Denali-only via `pluginId` / section gates; Urban detail unchanged | SMK-MKT-05 |
+
+---
+
+### Phase plan
+
+| Phase | Scope | API / denali package | Marketing only |
+|-------|--------|----------------------|----------------|
+| **PR-D1** | Hero-first mobile, jump nav (smooth scroll), primary CTA above fold, sticky bar skeleton, scroll padding | No | Yes |
+| **PR-D2** | Bento quick facts, sold-out state, desktop booking rail, itinerary accordion (>2 days) | No | Yes |
+| **PR-D2b** | Outdoor readiness section + i18n | **Yes** — extend `PublicCatalogCard` + mapper | Yes |
+| **PR-D3** | Logistics, destination label, map link, transport UI, exposure binding fix R-D11/R-D12 | **Yes** | Yes |
+| **PR-D4** | Gear, included/excluded, insurance, longDescription | **Yes** | Yes |
+| **PR-D5** | Register preview, FAQ, paymentMode line, JSON-LD verify R-D29 | Partial egress | Yes |
+| **PR-D6** | Photo gallery (multi-image) | **Yes** — `photoUrls` | Yes |
+| **PR-D7** | Leader/guide public block | **Deferred** — product + egress policy | TBD |
+
+**Implementation order:** D1 → D2 (ship UX win) → doc-first bundle **D2b + D3 + D4** (outdoor core) → D5 → D6. Do **not** start D2b until `public-catalog.md` card extension table is merged.
+
+---
+
+### Data egress — `PublicCatalogCard` extensions (PR-D2b–D6)
+
+Marketing reads JSON only. New fields are **optional** on the SDK contract; Denali mapper sets them; exposure bindings redact per field id.
+
+| Card field (proposed) | Wizard / canonical source | Exposure field id | Section |
+|----------------------|---------------------------|-------------------|---------|
+| `destinationLabel` | `destinationId` → name map | `denali.destination` (label only; slug stays) | Hero/meta |
+| `hikingHoursApprox` | `program.hikingHoursApprox` | new or program gate | Readiness |
+| `hikingGoHours` / `hikingReturnHours` | program | optional | Readiness |
+| `peakHeightMeters` | `tripDetails.overview.peakHeight` | optional | Readiness (mountain) |
+| `trailDistanceKm` | `tripDetails.overview.trailDistanceKm` | optional | Readiness (nature) |
+| `elevationGainMeters` | `tripDetails.metrics.elevationGain` | optional | Readiness (mountain) |
+| `minimumAge` | `participants.minimumAge` | TBD (`denali.pricing-participants` or new) | Readiness |
+| `maximumAge` | `participants.maximumAge` | optional | Readiness |
+| `fitnessPrerequisiteText` | participants | optional | FAQ / readiness |
+| `approximateReturnTime` | `basicInfo.approximateReturnTime` | — (egress; wizard field not catalog-bound) | Logistics |
+| `gatheringLabel` | `gatheringPoints[0]` or `startPoint` | `meetingPoint` / zones | Logistics |
+| `gatheringLat` / `gatheringLng` | locationData coords | same | Map link |
+| `longDescription` | `program.longDescription` | optional | Body |
+| `gearItems` | `participants.gearItems` | optional | Gear |
+| `includedServices` / `excludedServices` | tripDetails.logistics | optional | Services |
+| `includesTourInsurance` | pricing | optional | Services |
+| `paymentMode` | `pricing.paymentMode` | `denali.pricing-payment` | Register preview |
+| `photoUrls` | `photos[]` signed URLs | `denali.photos` | Gallery |
+
+**Registration flags (already on card):** `nationalIdRequired`, `fatherNameRequired`, `birthDateRequired`, `transport` — surface in PR-D5 preview only.
+
+**Exposure binding fix (R-D11):** replace `meetingPoint` / `startPointLocationText` handlers that call `clearItinerary` with redaction of logistics card keys only.
+
+---
+
+### New presentation hooks (additive)
+
+| Hook | Phase | Location |
+|------|-------|----------|
+| `data-marketing-catalog-detail-hero` | D1 | hero wrapper |
+| `data-marketing-catalog-detail-facts` | D2 | bento grid |
+| `data-marketing-catalog-detail-cta-primary` | D1 | above-fold CTA |
+| `data-marketing-catalog-detail-sticky-bar` | D1 | mobile sticky |
+| `data-marketing-catalog-detail-jump-nav` | D1 | section pills |
+| `data-marketing-catalog-detail-readiness` | D2b | outdoor block |
+| `data-marketing-catalog-detail-logistics` | D3 | logistics section |
+| `data-marketing-catalog-detail-map-link` | D3 | external map anchor |
+| `data-marketing-catalog-detail-gear` | D4 | gear checklist |
+| `data-marketing-catalog-detail-services` | D4 | included/excluded |
+| `data-marketing-catalog-detail-register-preview` | D5 | intake preview |
+| `data-marketing-catalog-detail-faq` | D5 | FAQ accordion |
+| `data-marketing-catalog-detail-hero-gallery` | D6 | hero mosaic wrapper (layout single/duo/mosaic) |
+| `data-marketing-catalog-detail-gallery-more` | D6 | «+N more» anchor to overflow grid |
+| `data-marketing-catalog-detail-gallery` | D6 | overflow photo grid (`#catalog-detail-gallery`) |
+| `data-marketing-catalog-detail-booking-rail` | D2 | desktop aside |
+
+Existing hooks in § Detail (`data-marketing-register`, `data-marketing-catalog-itinerary`, …) **must not** be removed or repurposed.
+
+---
+
+### Component tree (post–PR-D)
+
+```text
+app/tours/[tourId]/page.tsx
+  └── CatalogTourDetail
+        ├── CatalogTourBreadcrumb
+        ├── CatalogTourDetailHero (cover + gallery D6)
+        ├── CatalogTourDetailHeader (title, destination, back)
+        ├── CatalogTourDetailFacts (bento D2)
+        ├── CatalogTourDetailReadiness (D2b)
+        ├── CatalogTourDetailCta (primary D1)
+        ├── shortDescription / longDescription
+        ├── CatalogTourDetailJumpNav (D1)
+        ├── CatalogItinerarySection (accordion wrapper D2)
+        ├── CatalogTourDetailLogistics (D3)
+        ├── CatalogTourDetailGear + CatalogTourDetailServices (D4)
+        ├── CatalogTourDetailPolicies (existing)
+        ├── CatalogTourDetailRegisterPreview (D5)
+        ├── CatalogTourDetailFaq (D5)
+        ├── CatalogTourDetailCta (secondary)
+        ├── CatalogTourDetailStickyBar | CatalogTourDetailBookingRail (D1/D2)
+        └── JSON-LD scripts (existing)
+```
+
+Pure logic modules (no JSX): extend `build-catalog-tour-meta-line.ts`, add `build-catalog-map-link.ts`, `build-catalog-readiness-cells.ts` (category-family gates).
+
+---
+
+### Verify (PR-D closure)
+
+| Check | Command / smoke |
+|-------|-----------------|
+| Layout + CTA | SMK-MKT-02, SMK-MKT-03 |
+| Itinerary + photos | existing Denali smoke selectors |
+| Exposure binding | `pnpm --filter @app-tour/workspace-denali test denali-catalog-exposure` |
+| Contract | extend `packages/workspace-sdk/test/resolve-catalog-detail-sections.spec.ts` if gates change |
+| Persian digits | manual fa `/tours/{id}` + extend § Persian digits table |
+| Urban isolation | SMK-MKT-05 — no new Denali sections |
+| Doc guard | `pnpm run guard-docs` when denali package touched |
+| Fast-track (pre-commit) | `pnpm run phase-6:fast-track` after code lands |
+
+**PR-D Definition of Done:** all **P0** and **P1** rows in Risk register closed; P2/deferred rows explicitly listed in Roadmap; no admin panel changes.
+
+#### Implementation status (2026-07-04)
+
+| Phase | Status | Risks closed |
+|-------|--------|--------------|
+| PR-D1 | **Done** | R-D01, R-D02, R-D04, R-D05, R-D26, R-D27, R-D33 |
+| PR-D2 | **Done** | R-D03, R-D34 (Urban unchanged); partial R-D02 sold-out; desktop dedup price/capacity bento vs booking rail |
+| PR-D2b | **Done** | R-D06, R-D07, R-D31 |
+| PR-D3 | **Done** | R-D08–R-D14, R-D32; R-D11 exposure fix + `denali-catalog-exposure-prd.spec.ts` |
+| PR-D4 | **Done** | R-D15–R-D18 |
+| PR-D5 | **Done** | R-D20, R-D21, R-D22 (paymentMode line in register preview); R-D29 JSON-LD refresh verified |
+| PR-D6 | **Done** | R-D19 |
+| PR-D7 | **Deferred** | R-D23 |
+| **Cross-cut** | **Done** | R-D30 Persian digits table; R-D33 single `registrationUrl` state |
+
+**Landed modules:** `resolve-marketing-denali-plugin.ts` (`isDenaliMarketingPlugin`) + `resolve-catalog-detail-denali-pdp-gates.ts` (central PR-D section gates for detail PDP); `catalog-tour-detail-facts.tsx`, `catalog-tour-detail-register-cta.tsx`, `catalog-tour-detail-jump-nav.tsx`, `catalog-tour-detail-sticky-bar.tsx`, `catalog-tour-detail-booking-rail.tsx`, `build-catalog-tour-detail-facts.ts`, `resolve-catalog-tour-registration-state.ts`; **PR-D2b–D6:** `read-denali-catalog-detail-egress.ts`, `catalog-tour-detail-readiness.tsx`, `catalog-tour-detail-logistics.tsx`, `catalog-tour-detail-gear-services.tsx`, `catalog-tour-detail-gallery.tsx`, `build-catalog-readiness-cells.ts`, `build-catalog-map-link.ts`; **PR-D5:** `catalog-tour-detail-register-preview.tsx`, `catalog-tour-detail-faq.tsx`, `build-catalog-register-preview-items.ts`; layout/CSS in `denali-marketing.css` (detail block); accordion in `catalog-itinerary-section.tsx`.
+
+---
+
+## Persian digits on tour detail (2026-07-04)
+
+When locale is `fa`, numeric copy on `/tours/[tourId]` uses Eastern Arabic (Persian) numerals:
+
+| Surface | Mechanism |
+|---------|-----------|
+| Itinerary day label | ICU `{day, number}` + `formats.number.default.numberingSystem: arabext` in `src/i18n/request.ts` |
+| Segment lines (time, inline digits) | `formatCatalogItinerarySegmentLine` → `toLocalizedDigits` (`src/i18n/format-localized-digits.ts`) |
+| Day title / summary (API text with digits) | `CatalogItinerarySection` localizes visible strings |
+| Stats capacity / spots | ICU `{count, number}` in `messages/fa/catalog.json` |
+| Cancellation hours / penalty | ICU `{hours, number}` / `{percent, number}` |
+| Meta dates + price | `formatCatalogDateRange` / `formatCatalogPrice` with `numberingSystem: arabext` when `fa-IR` |
+| **PR-D readiness** | peak, trail km, elevation, hiking hours, min/max age — `buildCatalogReadinessCells` + ICU `{hours,meters,km,years, number}` with `toLocalizedDigits` on prerequisite text (`catalog-tour-detail-readiness.tsx`) |
+| **PR-D logistics** | return time via `toLocalizedDigits`; transport cost/dong via `formatCatalogPrice` (`arabext` when `fa-IR`) |
+| **PR-D register preview** | min/max age via ICU `{years, number}` in `detail.registerPreview.*` |
+| **PR-D gallery alt** | ICU `{index, number}` in `detail.gallery.photoAlt` |
+| **PR-D facts / sticky / rail** | capacity, spots, difficulty — same ICU paths as list stats (`detail.facts`, `detail.capacity`, `detail.spotsRemaining`) |
+
+English locale keeps Latin digits (`latn`).
 
 ---
 
@@ -179,6 +568,7 @@ Default Playwright base URLs: operator `http://operator.localhost:3002` (`playwr
 | No catalog CSS in `app/globals.css` | guest-shell + tailwind import only |
 | Workspace skin | `guestThemeStylesheets.marketing` in manifest → generated bootstrap |
 | Layout tokens | `--catalog-grid-columns`, `--catalog-detail-max-width` in `denali-marketing.css` |
+| rem-first units | `--mkt-text-*`, `--mkt-radius-*`, `--mkt-shadow-*`, `--mkt-lift-*` — spacing via `--space-*` (rem). **No raw px** for spacing/typography; `px` only for `--mkt-border-width` fallback (1px) and breakpoints |
 | Design-system SoT | [`design-system/denali-club/MASTER.md`](../../../design-system/denali-club/MASTER.md) → mapped in `denali-marketing.css` root tokens (`--color-primary`, `--color-accent` CTAs) |
 | Primitives | P6: `@app-tour/ui-primitives/input` + `/button` on Urban city filter; nav CTAs stay `Link`/`<a>` + workspace skin |
 
@@ -203,6 +593,8 @@ Enterprise hardening **complete** for Denali + Urban. All items below landed:
 | M17 guard + tracked env templates (dynamic count) | Done |
 
 Deferred (non-blocker): Track B `catalogUi` manifest · shared CSS partial until workspace #3.
+
+**Active (2026-07-04):** **PR-D1–D6** tour detail PDP landed (layout, bento facts, dual CTA, sticky bar, booking rail, jump nav, itinerary accordion, readiness, logistics, gear/services, gallery, register preview, FAQ). **PR-D7** (leader/guide) deferred — see § PR-D risk register R-D23.
 
 ---
 

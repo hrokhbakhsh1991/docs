@@ -1,9 +1,12 @@
+import type { CatalogListFilters } from "./catalog-list-query";
+import { buildCatalogListFetchQuery } from "./build-catalog-list-fetch-query";
+import { catalogListHasNarrowingFilters } from "./catalog-list-query";
 import type { MarketingCatalogListResponse, MarketingCatalogListResult } from "./catalog-types";
 import {
   resolveCatalogFetchCache,
   resolveCatalogFetchNext,
 } from "./catalog-fetch-options";
-import { resolveCatalogListApiPath, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
+import { resolveCatalogListApiPath } from "@app-tour/workspace-sdk";
 
 import { resolveTourOpsApiBaseUrl } from "../env";
 
@@ -13,29 +16,21 @@ export async function fetchCatalogList(input: {
   readonly cursor?: string;
   readonly limit?: number;
   readonly city?: string;
+  readonly filters?: CatalogListFilters;
 }): Promise<MarketingCatalogListResult> {
   const path = resolveCatalogListApiPath(input.pluginId);
-  const query = new URLSearchParams();
-  if (input.cursor !== undefined && input.cursor.trim().length > 0) {
-    query.set("cursor", input.cursor.trim());
-  }
-  if (input.limit !== undefined) {
-    query.set("limit", String(input.limit));
-  }
-  if (
-    resolveCatalogListFeatures(input.pluginId).cityFilter &&
-    input.city !== undefined &&
-    input.city.trim().length > 0
-  ) {
-    query.set("city", input.city.trim());
-  }
+  const query = buildCatalogListFetchQuery(input);
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  const bypassCache =
+    resolveCatalogFetchCache() === "no-store" ||
+    (input.filters != null &&
+      (catalogListHasNarrowingFilters(input.filters) || input.filters.sort !== "newest"));
 
   const res = await fetch(`${resolveTourOpsApiBaseUrl()}${path}${suffix}`, {
     method: "GET",
     headers: { "x-tenant-id": input.tenantId },
-    cache: resolveCatalogFetchCache(),
-    next: resolveCatalogFetchNext(input.tenantId),
+    cache: bypassCache ? "no-store" : resolveCatalogFetchCache(),
+    next: bypassCache ? undefined : resolveCatalogFetchNext(input.tenantId),
   });
   if (!res.ok) {
     throw new Error(`MARKETING_CATALOG_FETCH_FAILED:${res.status}`);

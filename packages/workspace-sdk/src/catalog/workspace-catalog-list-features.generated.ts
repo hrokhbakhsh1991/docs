@@ -6,9 +6,12 @@
 
 /** Marketing catalog list features — derived from workspace.manifest.json catalogPresentation. */
 export const WORKSPACE_CATALOG_LIST_FEATURES: Readonly<
-  Record<string, Readonly<{ readonly cityFilter: boolean }>>
+  Record<
+    string,
+    Readonly<{ readonly cityFilter: boolean; readonly serverListFilters: readonly string[] }>
+  >
 > = Object.freeze({
-  "denali": Object.freeze({ cityFilter: false }),
-  "guest-club": Object.freeze({ cityFilter: false }),
-  "urban": Object.freeze({ cityFilter: true }),
+  "denali": Object.freeze({ cityFilter: false, serverListFilters: Object.freeze(["availability", "category", "difficulty", "fitness", "q", "sort"]) }),
+  "guest-club": Object.freeze({ cityFilter: false, serverListFilters: Object.freeze([]) }),
+  "urban": Object.freeze({ cityFilter: true, serverListFilters: Object.freeze([]) }),
 });

@@ -1,11 +1,16 @@
 import type { PublicCatalogItinerarySegment } from "@app-tour/workspace-sdk";
 
+import type { AppLocale } from "@/i18n/routing";
+import { toLocalizedDigits } from "@/i18n/format-localized-digits";
+
 export function formatCatalogItinerarySegmentLine(
-  segment: PublicCatalogItinerarySegment
+  segment: PublicCatalogItinerarySegment,
+  locale: AppLocale = "fa"
 ): string {
-  return [segment.startTime, segment.title, segment.locationLabel]
+  const line = [segment.startTime, segment.title, segment.locationLabel]
     .filter((part) => part != null && part.length > 0)
     .join(" — ");
+  return toLocalizedDigits(line, locale);
 }
 
 export function readCatalogItinerarySegmentPhotoUrls(

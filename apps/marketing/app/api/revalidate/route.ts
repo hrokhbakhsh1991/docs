@@ -38,4 +38,4 @@ export async function POST(request: Request): Promise<NextResponse> {
   revalidateTag(seoTag);
 
   return NextResponse.json({ revalidated: true, tags: [catalogTag, seoTag] });
-}برر
+}

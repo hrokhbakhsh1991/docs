@@ -92,6 +92,19 @@ describe("denali-catalog-itinerary.spec.ts", () => {
     assert.deepEqual(ids, ["dest-1"]);
   });
 
+  it("DN-CAT-12 projectDenaliCatalogItinerary resolves storageKey photos via photoUrlById", () => {
+    const data = canonical({
+      photos: [{ id: "p1", storageKey: "tenant/tours/t1/photos/p1" }],
+    }).data;
+    const projected = projectDenaliCatalogItinerary(data, {
+      photoUrlById: new Map([["p1", "https://minio.example/signed-p1"]]),
+    });
+    assert.equal(
+      projected?.[0]?.segments[0]?.photoUrls?.[0],
+      "https://minio.example/signed-p1"
+    );
+  });
+
   it("DN-CAT-05 toDenaliCatalogCard attaches itineraryDays difficulty fitness and structuredData", () => {
     const card = toDenaliCatalogCard({ id: TOUR_ID, canonical: canonical() });
     assert.equal(card.difficultyLevel, 6);

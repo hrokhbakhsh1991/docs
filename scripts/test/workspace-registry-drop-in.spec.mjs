@@ -20,6 +20,8 @@ import {
   generateWorkspaceCatalogPaths,
   generateWorkspaceCatalogListFeatures,
   generateWorkspaceCatalogDetailSections,
+  generateWorkspaceGuestLanding,
+  assertGuestLandingManifest,
   generateWorkspaceMemberProfileCapabilities,
   generateWorkspaceDevPluginIds,
   generateWorkspaceGuestConformance,
@@ -255,6 +257,54 @@ describe("workspace registry drop-in (P7-T06)", () => {
     const generated = generateWorkspaceCatalogDetailSections(manifests);
     assert.match(generated, /"denali": Object.freeze\(\{\s+difficulty: true,/);
     assert.match(generated, /"urban": Object.freeze\(\{\s+difficulty: false,/);
+  });
+
+  it("PR-0 generateWorkspaceGuestLanding matches manifest guestLanding", () => {
+    const manifests = discoverManifests();
+    const generated = generateWorkspaceGuestLanding(manifests);
+    assert.match(generated, /"denali": Object.freeze\(\{\s+variant: "full"/);
+    assert.match(generated, /latestToursLimit: 6/);
+    assert.match(generated, /"urban": Object.freeze\(\{\s+variant: "minimal"/);
+    assert.match(generated, /"guest-club": Object.freeze\(\{\s+variant: "minimal"/);
+    assert.doesNotMatch(generated, /"starter":/);
+  });
+
+  it("PR-0 assertGuestLandingManifest rejects minimal variant with full i18nProfile", () => {
+    assert.throws(
+      () =>
+        assertGuestLandingManifest({
+          id: "bad",
+          catalogPresentation: { listFeatures: { cityFilter: false }, detailSections: {} },
+          guestLanding: {
+            variant: "minimal",
+            i18nProfile: "full",
+            sections: {
+              hero: false,
+              latestTours: false,
+              latestToursLimit: 0,
+              trust: false,
+              finalCta: false,
+              faq: false,
+              footer: false,
+              whyDenali: false,
+              journey: false,
+              testimonials: false,
+            },
+          },
+        }),
+      /minimal variant requires i18nProfile "minimal"/
+    );
+  });
+
+  it("PR-0 assertGuestLandingManifest requires guestLanding when catalogPresentation exists", () => {
+    assert.throws(
+      () =>
+        assertGuestLandingManifest({
+          id: "bad",
+          catalogPresentation: { listFeatures: { cityFilter: false }, detailSections: {} },
+        }),
+      /guestLanding is required/
+    );
   });
 
   it("PF-1.3 generateWorkspaceDevPluginIds maps smoke tenant UUIDs", () => {

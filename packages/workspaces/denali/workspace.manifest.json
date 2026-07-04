@@ -140,7 +140,10 @@
     }
   },
   "catalogPresentation": {
-    "listFeatures": { "cityFilter": false },
+    "listFeatures": {
+      "cityFilter": false,
+      "serverListFilters": ["q", "category", "difficulty", "fitness", "availability", "sort"]
+    },
     "detailSections": {
       "difficulty": true,
       "fitness": true,
@@ -163,8 +166,34 @@
       }
     ]
   },
+  "guestLanding": {
+    "variant": "full",
+    "sections": {
+      "hero": true,
+      "latestTours": true,
+      "latestToursLimit": 6,
+      "trust": true,
+      "finalCta": true,
+    "faq": true,
+    "footer": true,
+    "whyDenali": true,
+    "journey": true,
+    "testimonials": true,
+    "featuredTours": true,
+    "featuredToursLimit": 3,
+    "categories": true,
+    "destinations": true,
+    "heroSearch": true,
+    "gallery": true,
+    "equipment": true,
+    "blogTeaser": false
+    },
+    "i18nProfile": "full"
+  },
   "guestSeo": {
     "marketing": {
+      "homeTitleKey": "seo.homeTitle",
+      "homeDescriptionKey": "seo.homeDescription",
       "listTitleKey": "seo.toursTitle",
       "listDescriptionKey": "seo.toursDescription",
       "jsonLd": {
@@ -174,7 +203,18 @@
         "richResultsProfile": "tourist-trip-v1"
       },
       "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": true },
-      "pagination": { "noindexQueryParams": ["cursor", "city"] }
+      "pagination": {
+        "noindexQueryParams": [
+          "cursor",
+          "city",
+          "q",
+          "category",
+          "difficulty",
+          "fitness",
+          "availability",
+          "sort"
+        ]
+      }
     }
   },
   "devBootstrap": {

@@ -151,7 +151,8 @@ pnpm --filter @apps/portal run test:smoke:custom-apex
 
 ## Step 4 — E2E checklist
 
-- [ ] `https://denali.club/` — landing renders club branding
+- [ ] `https://denali.club/` — landing renders club branding (GuestHomeFull: hero, latest, trust, final CTA)
+- [ ] SDK-HOME-01..03 + SMK-P6-MKT-HOME green on main before prod deploy
 - [ ] `https://denali.club/tours` — catalog list (same tenant as admin publish)
 - [ ] Tour detail CTA → `https://portal.denali.club/catalog/{id}/register`
 - [ ] Marketing header «ثبت‌نام‌های من» → `https://portal.denali.club/me/registrations` (static link; portal handles auth)
@@ -175,5 +176,6 @@ Memory smoke (`OPERATOR_SMOKE_E2E_SEED=1`): tour `…0210` is seeded on both ten
 
 - [workspace-routing-standard.mdoc](../../../standards/workspace-routing-standard.mdoc)
 - [member-session-portal-authority.mdoc](../../../standards/member-session-portal-authority.mdoc)
+- [marketing-landing.mdoc](../../../workspaces/denali/marketing-landing.mdoc) — landing spec v7
 - [host-subdomain-map.md](host-subdomain-map.md)
 - [p6-host-addressing-architecture.mdoc](../../p6-host-addressing-architecture.mdoc) §3.2

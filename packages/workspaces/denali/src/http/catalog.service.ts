@@ -8,6 +8,13 @@ import { withSpotsRemaining } from "../catalog/compute-spots-remaining";
 import { applyDenaliCatalogCardExposure } from "../catalog/denali-catalog-exposure-bindings";
 import { isDenaliTourPublished } from "../catalog/denali-publish-status";
 import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
+import { resolveDenaliCatalogPhotoEnrichment } from "../catalog/enrich-denali-catalog-photo-urls";
+import {
+  filterDenaliCatalogTourAvailability,
+  filterDenaliCatalogTourRecords,
+  sortDenaliCatalogTourRecords,
+  type DenaliCatalogListQuery,
+} from "../catalog/filter-denali-catalog-list";
 import { collectItinerarySegmentDestinationIds } from "../catalog/project-denali-catalog-itinerary";
 import { DenaliWorkspaceRequiredError } from "./errors/denali-workspace-required.error";
 import type { DenaliExposureResolverPort } from "./ports/exposure-resolver.port";
@@ -85,10 +92,16 @@ async function mapTourToExposureAwareCard(params: {
     canonical: params.tour.canonical,
     catalogUpdatedAt: params.tour.catalogUpdatedAt ?? params.tour.createdAt,
   };
-  const card = toDenaliCatalogCard(
-    tourInput,
-    params.destinationNameById === undefined ? undefined : { destinationNameById: params.destinationNameById },
-  );
+  const data = params.tour.canonical.data;
+  const photoEnrichment = isRecord(data)
+    ? await resolveDenaliCatalogPhotoEnrichment(data, params.tenantId)
+    : undefined;
+  const card = toDenaliCatalogCard(tourInput, {
+    ...(params.destinationNameById === undefined
+      ? {}
+      : { destinationNameById: params.destinationNameById }),
+    ...(photoEnrichment === undefined ? {} : { photoEnrichment }),
+  });
   return applyCatalogExposure({
     tenantId: params.tenantId,
     tour: tourInput,
@@ -132,19 +145,29 @@ export async function listDenaliCatalog(params: {
   readonly exposurePort?: DenaliExposureResolverPort;
   readonly limit?: number;
   readonly cursor?: string;
+  readonly listQuery?: DenaliCatalogListQuery;
 }): Promise<DenaliCatalogListResult> {
   if (params.workspaceType !== "denali") {
     throw new DenaliWorkspaceRequiredError();
   }
 
   const limit = Math.min(Math.max(params.limit ?? 20, 1), 50);
+  const listQuery = params.listQuery ?? {};
   const page = await params.store.listPage(
     { tenantId: params.tenantId },
     { limit: Number.MAX_SAFE_INTEGER }
   );
 
   let published = page.items.filter((tour) => isDenaliTourPublished(tour.canonical));
-  published.sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  published = [...filterDenaliCatalogTourRecords(published, listQuery)];
+  published = [
+    ...(await filterDenaliCatalogTourAvailability(published, {
+      tenantId: params.tenantId,
+      availability: listQuery.availability,
+      bookingPort: params.bookingPort,
+    })),
+  ];
+  published = [...sortDenaliCatalogTourRecords(published, listQuery.sort ?? "newest")];
 
   let startIdx = 0;
   if (params.cursor !== undefined) {

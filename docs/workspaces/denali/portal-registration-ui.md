@@ -221,7 +221,7 @@ Bookings command center inspection panel and tour transport roster read `registr
 
 ```bash
 pnpm --filter @apps/portal run test:smoke              # 14 tests · SMK-PTL-* · DEN-PROF-* · DEN-INTAKE-* · DEN-TRANS-*
-pnpm --filter @apps/marketing run test:smoke           # SMK-MKT-01..04
+pnpm --filter @apps/marketing run test:smoke           # SMK-MKT-01..04, SMK-MKT-16
 pnpm --filter @apps/marketing run test:smoke:urban     # SMK-MKT-05
 pnpm --filter @apps/web run test:e2e:urban --grep SMK-P8  # P8-01..04
 ```

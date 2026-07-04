@@ -27,6 +27,19 @@ export type PublicCatalogItineraryDay = {
   readonly segments: readonly PublicCatalogItinerarySegment[];
 };
 
+/** Egress-safe gear row for public catalog detail (Denali). */
+export type PublicCatalogGearItem = {
+  readonly name: string;
+  readonly isRequired: boolean;
+};
+
+/** Egress-safe gathering / meeting location for public catalog detail. */
+export type PublicCatalogGatheringPoint = {
+  readonly label: string;
+  readonly latitude?: number | null;
+  readonly longitude?: number | null;
+};
+
 /** Egress-safe list card — workspaces extend via additional fields at API layer. */
 export type PublicCatalogCard = {
   readonly id: string;
@@ -66,6 +79,27 @@ export type PublicCatalogCard = {
   readonly showListPrice?: boolean;
   /** ISO-8601 catalog freshness for sitemap lastmod and JSON-LD dateModified (workspace egress). */
   readonly catalogUpdatedAt?: string | null;
+  /** PR-D — resolved destination display name (Denali). */
+  readonly destinationLabel?: string | null;
+  readonly longDescription?: string | null;
+  readonly hikingHoursApprox?: number | null;
+  readonly hikingGoHours?: number | null;
+  readonly hikingReturnHours?: number | null;
+  readonly peakHeightMeters?: number | null;
+  readonly trailDistanceKm?: number | null;
+  readonly elevationGainMeters?: number | null;
+  readonly minimumAge?: number | null;
+  readonly maximumAge?: number | null;
+  readonly fitnessPrerequisiteText?: string | null;
+  readonly approximateReturnTime?: string | null;
+  readonly gatheringPoint?: PublicCatalogGatheringPoint | null;
+  readonly meetingPointText?: string | null;
+  readonly gearItems?: readonly PublicCatalogGearItem[];
+  readonly includedServices?: readonly string[];
+  readonly excludedServices?: readonly string[];
+  readonly includesTourInsurance?: boolean;
+  readonly paymentMode?: string | null;
+  readonly photoUrls?: readonly string[];
 };
 
 export type PublicCatalogTourInput = {

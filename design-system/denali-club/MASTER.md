@@ -8,7 +8,7 @@
 
 **Project:** Denali Club
 **Generated:** 2026-06-30 03:35:19
-**Category:** Coworking Space
+**Category:** Mountain / outdoor tour club (public marketing)
 
 ---
 
@@ -51,22 +51,26 @@
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--space-xs` | `4px` / `0.25rem` | Tight gaps |
-| `--space-sm` | `8px` / `0.5rem` | Icon gaps, inline spacing |
-| `--space-md` | `16px` / `1rem` | Standard padding |
-| `--space-lg` | `24px` / `1.5rem` | Section padding |
-| `--space-xl` | `32px` / `2rem` | Large gaps |
-| `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
+| `--space-xs` | `0.25rem` | Tight gaps |
+| `--space-sm` | `0.5rem` | Icon gaps, inline spacing |
+| `--space-md` | `1rem` | Standard padding |
+| `--space-lg` | `1.5rem` | Section padding |
+| `--space-xl` | `2rem` | Large gaps |
+| `--space-2xl` | `3rem` | Section margins |
+| `--space-3xl` | `4rem` | Hero padding |
+
+**Unit policy:** spacing, typography, radius, and elevation use **`rem`** (via `@app-tour/design-tokens` `--space-*` or skin `--mkt-*` tokens). Use **`px` only** for `--border-width-default` (1px hairlines) and `--layout-min-tap-target` (44px a11y). Breakpoints stay in `px` (`640`, `1024`).
+
+Denali marketing skin tokens: `--mkt-text-*`, `--mkt-radius-*`, `--mkt-shadow-*`, `--mkt-lift-*` in `packages/workspaces/denali/theme/denali-marketing.css`.
 
 ### Shadow Depths
 
 | Level | Value | Usage |
 |-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
+| `--shadow-sm` | `0 0.0625rem 0.125rem rgba(0,0,0,0.05)` | Subtle lift |
+| `--shadow-md` | `0 0.25rem 0.375rem rgba(0,0,0,0.1)` | Cards, buttons |
+| `--shadow-lg` | `0 0.625rem 0.9375rem rgba(0,0,0,0.1)` | Modals, dropdowns |
+| `--shadow-xl` | `0 1.25rem 1.5625rem rgba(0,0,0,0.15)` | Hero images, featured cards |
 
 ---
 

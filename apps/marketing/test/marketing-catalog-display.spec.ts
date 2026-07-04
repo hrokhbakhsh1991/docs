@@ -41,6 +41,20 @@ describe("marketing catalog display", () => {
     assert.match(label, /Jul/);
   });
 
+  it("MKT-03b fa dates use Persian calendar labels", () => {
+    const label = formatCatalogCardDates(
+      {
+        id: "1",
+        departureAt: "2026-07-01T08:00:00.000Z",
+        endAt: "2026-07-03T18:00:00.000Z",
+      },
+      "fa-IR",
+      "تاریخ اعلام می‌شود"
+    );
+    assert.doesNotMatch(label, /Jul/);
+    assert.match(label, /[\u06F0-\u06F9]/);
+  });
+
   it("MKT-04 urban cards hide price row via showListPrice", () => {
     assert.equal(shouldShowCatalogPrice({ showListPrice: false, priceAmount: 1000 }), false);
     assert.equal(shouldShowCatalogPrice({ showListPrice: true, priceAmount: 1000 }), true);

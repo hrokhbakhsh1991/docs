@@ -22,6 +22,8 @@ test("SMK-MKT-01 denali operator public catalog browse", async ({ page, context 
   await page.goto("/tours");
   await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
   await expect(page.locator("[data-marketing-header]")).toBeVisible();
+  await expect(page.locator("[data-marketing-catalog-toolbar]")).toBeVisible();
+  await expect(page.locator("[data-marketing-catalog-filters]")).toBeVisible();
   await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
 });
 
@@ -69,6 +71,8 @@ test("SMK-MKT-02 tour detail and back navigation", async ({ page }) => {
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
   });
+  await expect(page.locator("[data-marketing-catalog-detail-jump-nav]")).toBeVisible();
+  await expect(page.locator("[data-marketing-catalog-detail-faq]")).toBeVisible();
   await page.locator("[data-marketing-catalog-tour-detail] a[href='/tours']").click();
   await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
 });
@@ -82,4 +86,16 @@ test("SMK-MKT-04 tour detail renders multi-day itinerary and segment photos", as
   await expect(page.getByText("Summit push")).toBeVisible();
   await expect(page.getByText(/Ridge ascent/)).toBeVisible();
   await expect(page.locator("[data-marketing-catalog-segment-photos] img")).toHaveCount(1);
+});
+
+test("SMK-MKT-16 denali catalog server filter shows active pill and dismisses", async ({ page }) => {
+  await page.goto("/tours?category=mountain", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
+  await expect(page.locator('[data-marketing-catalog-active-filter-id="category"]')).toBeVisible();
+
+  await page.locator('[data-marketing-catalog-active-filter-id="category"]').click();
+  await expect(page).toHaveURL(/\/tours(?:\?|$)/);
+  await expect(page).not.toHaveURL(/category=/);
+  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
 });

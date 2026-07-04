@@ -5,7 +5,7 @@ doc_id: DENALI-PUBLIC-CATALOG
 version: "2026-06-30-v26"
 workspace: denali
 stack: workspace-sdk · workspace-denali/http · apps/marketing
-authority: MIGRATION-MAP.md §3.5 · TEMP/denali-public-marketing-app-roadmap.md
+authority: MIGRATION-MAP.md §3.5 · docs/workspaces/denali/marketing-landing.mdoc
 p4_phase_doc: docs/phase-17/platform-club-catalog-publish.mdoc
 decisions: [ADR-MKT-001, ADR-MKT-002, ADR-MKT-003, ADR-MKT-004]
 ```
@@ -42,7 +42,23 @@ Wizard review step (Phase 11) persists `publishStatus`; admin must set `active` 
 | Auth | `x-tenant-id` required; no session |
 | Rate limit | Read tier |
 | Filter | Published tours only (`publishStatus: active`) |
+| Query (PR-22) | `q`, `category`, `difficulty`, `fitness`, `availability=open`, `sort` — applied **before** cursor pagination on full published set |
 | Pagination | `cursor` (tour id), `limit` (default 20, max 50) |
+
+| Query | Match rule |
+|-------|------------|
+| `q` | Case-insensitive substring on `title`, `category`, `program.shortDescription` |
+| `category` | Exact slug **or** marketing family `mountain` / `nature` (matches `mountain_*` / `nature_*` from admin wizard) |
+| `difficulty` | Exact `program.difficultyLevel` integer |
+| `fitness` | Exact `participants.fitnessLevel` string |
+| `availability=open` | `capacityMax − Σ approved.partySize > 0` (unknown capacity passes) |
+| `sort` | `newest` (default), `departure_asc`, `departure_desc`, `price_asc`, `price_desc`, `difficulty_asc` |
+
+Marketing passes supported params when `resolveCatalogListFeatures(pluginId).serverListFilters` includes the key (manifest `catalogPresentation.listFeatures.serverListFilters`).
+
+**API verify (memory driver):** `DCAT-08..10` in `apps/api/test/denali-catalog.spec.ts` — category filter, `q` title search, `sort=departure_asc`. Run: `pnpm --filter @apps/api exec node --import tsx --test test/denali-catalog.spec.ts`.
+
+**Marketing verify:** `SMK-MKT-16` (category filter + active pill) in `marketing-catalog-smoke.spec.ts`; `SMK-MKT-17` (filtered list noindex) in `marketing-seo-pagination.spec.ts`.
 
 Response:
 
@@ -74,7 +90,7 @@ Distinct from **operator** `TourListProjection` — no draft rows, no ops-only f
 | `priceCurrency` | `IRR` (default) |
 | `difficultyLevel` | `program.difficultyLevel` |
 | `fitnessLevel` | `participants.fitnessLevel` |
-| `coverImageUrl` | first `photos` entry |
+| `coverImageUrl` | first canonical photo row — prefer egress-safe `https` `url`; when the row has only `storageKey` (MinIO wizard/tour object), `catalog.service` signs a presigned read URL before JSON egress (same tenant key scope as operator list cover signing; TTL 3600s) |
 | `totalCapacity` | `capacityMax` |
 | `spotsRemaining` | `max(0, capacityMax − Σ approved.partySize)` — see DEC-P11-013 |
 | `policiesText` | `policies.policiesText` — egress-safe cancellation / terms copy (P7-1-N-008) |
@@ -83,6 +99,45 @@ Distinct from **operator** `TourListProjection` — no draft rows, no ops-only f
 | `listSubtitle` | normalized egress — Denali: `category` |
 | `listDescription` | normalized egress — Denali: `program.shortDescription` |
 | `showListPrice` | normalized egress — Denali: `true`; Urban: `false` |
+
+### PR-D detail egress (2026-07-04)
+
+Outdoor PDP fields on `PublicCatalogCard` — Denali mapper only; Urban omits. Marketing renders when present (fail-soft). Exposure redaction in `denali-catalog-exposure-bindings.ts`.
+
+| Field | Canonical source | Exposure field id |
+|-------|------------------|-------------------|
+| `destinationLabel` | `destinationId` → destination catalog name | `denali.destination` (label only; `category` slug redaction unchanged for list) |
+| `longDescription` | `program.longDescription` | — (always when set) |
+| `hikingHoursApprox` | `program.hikingHoursApprox` | — |
+| `hikingGoHours` / `hikingReturnHours` | `program.hikingGoHours` / `program.hikingReturnHours` | — |
+| `peakHeightMeters` | `tripDetails.overview.peakHeight` | — |
+| `trailDistanceKm` | `tripDetails.overview.trailDistanceKm` | — |
+| `elevationGainMeters` | `tripDetails.metrics.elevationGain` | — |
+| `minimumAge` / `maximumAge` | `participants.minimumAge` / `maximumAge` | — |
+| `fitnessPrerequisiteText` | `participants.fitnessPrerequisiteText` | — |
+| `approximateReturnTime` | `approximateReturnTime` | — (egress when set; wizard exposure `denali.approximate-return-time` is delivery-only — not in catalog bindings) |
+| `gatheringPoint` | primary `tripDetails.logistics.gatheringPoints[]` or `startPoint` coords | `meetingPoint` |
+| `meetingPointText` | legacy `meetingPoint` / `startPointLocationText` | `meetingPoint` / `startPointLocationText` |
+| `gearItems` | `participants.gearItems[]` → `{ name, isRequired }` | — |
+| `includedServices` / `excludedServices` | `tripDetails.logistics.includedServices` / `excludedServices` | — |
+| `includesTourInsurance` | `pricing.includesTourInsurance` | — |
+| `paymentMode` | `pricing.paymentMode` | `denali.pricing-payment` |
+| `photoUrls` | all canonical `photos[]` https or signed keys (ordered) | `denali.photos` (clears gallery + cover) |
+
+**Binding fix (R-D11):** `meetingPoint` / `startPointLocationText` no longer redact `itineraryDays`.
+
+Mapper: `read-denali-catalog-detail-egress.ts` · tests: `denali-catalog-detail-egress.spec.ts` · exposure PR-D: `denali-catalog-exposure-prd.spec.ts`.
+
+**Deferred PR-D7 (leader/guide):** no public egress for guide credentials until product policy defines redaction — see [marketing-catalog-ui.md](./marketing-catalog-ui.md) R-D23.
+
+Wizard uploads persist canonical photo rows with **`storageKey`** (tenant-scoped MinIO object key) rather than a public `https` `url`. Operator list signing (`enrichTourListProjectionCoverImageUrl`) already presigns cover keys before JSON egress; **public catalog** mirrors that in `catalog.service` → `resolveDenaliCatalogPhotoEnrichment`:
+
+1. **Cover** — `readDenaliFirstPhotoHttpsUrl` when present; else presign first row `storageKey` (TTL 3600s; key scope = `isDenaliOperatorTourPhotoReadKeyAllowed`).
+2. **Itinerary segment photos** — `buildDenaliCatalogPhotoUrlById` presigns each referenced photo id; `projectDenaliCatalogItinerary` merges into segment `photoUrls`.
+3. **Exposure** — when `denali.photos` is hidden, `coverImageUrl` is redacted after enrichment (unchanged).
+4. **Dev** — presign requires MinIO env (`readMinioPhotoConfigFromEnv`); without config, `coverImageUrl` stays `null` and marketing falls back to placeholder.
+
+Marketing `CatalogCoverImage` uses `unoptimized` for hosts outside `MARKETING_IMAGE_REMOTE_HOSTS` (typical for presigned MinIO URLs).
 
 ### Presentation fields (Track A)
 
@@ -125,8 +180,10 @@ Shell resolves catalog HTTP path via `resolveCatalogListApiPath(pluginId)`:
 `apps/marketing/app/api/catalog/route.ts`:
 
 1. Resolve `tenantId` + `pluginId` from Host (`tenant-kernel` dev map).
-2. `GET {TOUR_OPS_API_URL}{resolveCatalogListApiPath(pluginId)}` with `x-tenant-id`.
-3. Return shaped JSON to RSC pages — browser does not call API directly.
+2. Parse list query params (`cursor`, `limit`, `city`, and PR-22 filters when manifest `serverListFilters` allows).
+3. Build upstream query via shared `buildCatalogListFetchQuery()` (same module as RSC `fetchCatalogList`).
+4. `GET {TOUR_OPS_API_URL}{resolveCatalogListApiPath(pluginId)}?…` with `x-tenant-id`.
+5. Return shaped JSON to RSC pages — browser does not call API directly.
 
 Dev hosts (P6 canonical — authority [p6-host-addressing-architecture.mdoc](../../phase-19/p6-host-addressing-architecture.mdoc)):
 
@@ -308,6 +365,8 @@ Publish revalidate purges **two** Next.js tags per tenant:
 | SMK-MKT-07 | `marketing-seo-head.spec.ts` |
 | SMK-MKT-08 | `marketing-seo-sitemap.spec.ts` |
 | SMK-MKT-09 | `marketing-seo-hreflang.spec.ts` |
+| SMK-MKT-10 | `marketing-seo-pagination.spec.ts` — `?cursor` noindex |
+| SMK-MKT-17 | same — PR-22 filter params (`?category=…`) noindex |
 
 Run: `pnpm --filter @apps/marketing run test:smoke:seo`
 
@@ -403,7 +462,7 @@ Workspace guest skin: `packages/workspaces/denali/theme/denali-marketing.css` (s
 | **ADR-MKT-001** | `apps/marketing` stays workspace-agnostic — tenant/plugin from bootstrap; no static `@app-tour/workspace-*` imports |
 | **ADR-MKT-002** | Denali public catalog HTTP (`GET /denali/catalog*`) owned by workspace-denali/http |
 | **ADR-MKT-003** | `PublicCatalogCard` contract + plugin `publicCatalog` publish gate / card mapper |
-| **ADR-MKT-004** | SDK resolver registry: API paths, list/detail features, registration support, intake capabilities + upstream dispatch — product literals allowed in `resolve-catalog-*.ts` · `build-catalog-registration-upstream-request.ts` (see `product-neutral-core.contract.spec.ts` allowlist) |
+| **ADR-MKT-004** | SDK resolver registry: API paths, list/detail features, **guest landing variant** (`resolveGuestLandingFeatures`), registration support, intake capabilities + upstream dispatch — product literals allowed in `resolve-catalog-*.ts` · `resolve-guest-landing-features.ts` · `build-catalog-registration-upstream-request.ts` (see `product-neutral-core.contract.spec.ts` allowlist) |
 
 **Status (2026-06-30):** Track A implemented — workspace mappers set `listSubtitle`, `listDescription`, `showListPrice` on egress. Marketing catalog helpers consume JSON only (legacy `city`/`venueName` fallback retained for old payloads).
 
@@ -432,6 +491,8 @@ Checklist for workspace `{id}` (e.g. third plugin after Denali/Urban):
 | 4b | Register list features, detail sections, registration gate | `resolve-catalog-list-features.ts` · `resolve-catalog-detail-sections.ts` · `resolve-catalog-registration-support.ts` |
 | 4c | Register intake capabilities + upstream dispatch | `resolve-catalog-intake-capabilities.ts` · `build-catalog-registration-upstream-request.ts` · [platform-portal-registration-intake.mdoc](../../phase-19/platform-portal-registration-intake.mdoc) |
 | 4d | Dev host label → tenant UUID + pluginId | `packages/guest-surface-host/src/phase-43-host-tenant-ids.ts` · `resolve-dev-plugin-id.ts` (`SMOKE_TENANT_PLUGIN_IDS`) |
+| 4e | Register guest landing variant | `guestLanding` in manifest · `resolve-guest-landing-features.ts` — see [marketing-landing.mdoc](./marketing-landing.mdoc) §18 · [ADR-GP-005](../../dev/adr-guest-plugin/ADR-GP-005-guest-landing-manifest.md) |
+| 4f | Register home SEO keys | `guestSeo.marketing.homeTitleKey` · `homeDescriptionKey` |
 | 5 | Exposure surfaces (`public_list`, `public_details`) | workspace exposure bindings + `catalog.service.ts` |
 | 6 | Guest marketing skin (when product-ready) | `theme/{id}-marketing.css` + `guestThemeStylesheets.marketing` |
 | 7 | Regenerate bootstrap | `pnpm run generate:workspace-registry` |
@@ -618,7 +679,9 @@ sequenceDiagram
 | Session intake headers | `apps/portal/src/catalog/build-catalog-registration-headers.server.ts` |
 | Public auth BFF | `apps/portal/app/api/public-auth/*` (portal-only post-P9) |
 | Web catalog redirect shim | `apps/web/app/(public)/catalog/**` — 307 only; **no** `apps/web` public-auth |
-| Enterprise roadmap (TEMP) | `TEMP/marketing-public-catalog-enterprise-roadmap.md` |
+| Marketing landing spec | [`marketing-landing.mdoc`](./marketing-landing.mdoc) |
+| Landing task checklist (TEMP) | `TEMP/denali-marketing-ui-roadmap.md` |
+| Landing design overrides | `design-system/denali-club/pages/home.md` |
 
 ## Sequence
 
