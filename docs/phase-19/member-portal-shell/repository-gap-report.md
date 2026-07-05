@@ -77,7 +77,7 @@
 | ---- | ------ |
 | Architect sign-off DL-01..42 | **PENDING SIGN-OFF** |
 | RFC + WRS addendum PR merge | **PENDING SIGN-OFF** |
-| Git push `DEV` → origin | ✅ `ff9089d0` |
+| Git push `DEV` → origin | ✅ `2b6eac10` |
 | SMK-PTL-01..09 Playwright | ✅ green (main + custom apex; 600s/720s cold-compile timeouts) |
 | DEN-PROF-01..04 profile smokes | ✅ green — authenticated intake resume fixture aligned with SMK-PTL-07 |
 
