@@ -118,17 +118,19 @@ p7_unblocked: true
 | Dev | tracked `.env.local.example` · `!.env.local.example` · portal `allowedDevOrigins` · `apps/api/.env.local.example` for Postgres |
 | Proof | `guard:public-catalog-m17` dynamic PASS · SDK-CAT + registration intake specs in `p6:gate` + `p4:gate` · portal unit · smokes 4/4 each |
 
-**PS-1 member portal shell (2026-07-05):** Phase 1 platform frame landed per [member-portal-shell/implementation-gates.mdoc](../../member-portal-shell/implementation-gates.mdoc) §6 Phase 1 exit. Inline `<nav>` removed from `app/me/layout.tsx`; member chrome lives in `apps/portal/src/shell/*` (`PortalMemberShell`, header, bottom nav, user menu). Landmarks: `[data-portal-shell]` root (dual legacy `[data-portal-member-shell]`), `[data-portal-shell-header]`, `[data-portal-shell-main]`, `[data-portal-shell-bottom-nav]`. Registration path stays outside `me/layout.tsx` — no bottom nav on `/catalog/*/register` (DL-01). Denali theme: dual CSS selectors in `denali-portal.css`. **Proof tier:** STATIC (`portal-member-shell.spec.ts` PS1-SHELL-01..05) + existing SMK-PTL-02..08 E2E.
+**PS-1 member portal shell (2026-07-05):** Phase 1 platform frame landed per [member-portal-shell/implementation-gates.mdoc](../../member-portal-shell/implementation-gates.mdoc) §6 Phase 1 exit. Inline `<nav>` removed from `app/me/layout.tsx`; member chrome lives in `apps/portal/src/shell/*` (`PortalMemberShell`, header, bottom nav, user menu). Landmarks: `[data-portal-shell]` root, `[data-portal-shell-header]`, `[data-portal-shell-main]`, `[data-portal-shell-bottom-nav]`. Registration path stays outside `me/layout.tsx` — no bottom nav on `/catalog/*/register` (DL-01). Denali theme: `[data-portal-shell]` selectors only (PS-7 legacy sunset). **Proof tier:** STATIC (`portal-member-shell.spec.ts` PS1-SHELL-01..05) + SMK-PTL-02..08 E2E.
 
 **PS-2 member portal registry (2026-07-05):** Manifest-driven nav per [member-portal-registry-schema.mdoc](../../member-portal-shell/member-portal-registry-schema.mdoc). Denali `memberPortal` block in `workspace.manifest.json` (`trips` → `/me/registrations`, `profile` → user menu). Codegen → `WORKSPACE_MEMBER_PORTAL_SURFACES` + `resolveMemberPortalModules` / `resolveMemberPortalDefaultRoutePath`. Portal shell consumes registry via `resolvePortalMemberNavForPlugin`; bare `/me` redirect uses `defaultPrimaryModuleId`. **Proof tier:** STATIC PS2-SHELL-01..03 + SDK PS2 specs + `guard-member-portal-registry.mjs`.
 
-**PS-3 GSH member URL builder (2026-07-05):** `resolvePortalMemberModuleUrl(host, moduleId?)` in `@app-tour/guest-surface-host` per [builder-migration-contract.mdoc](../../member-portal-shell/builder-migration-contract.mdoc). Registry route resolution + frozen `/me/registrations` fallback; `resolvePortalMemberAreaUrl` delegates (deprecated). PCMS-003 §5 updated. **Proof tier:** GSH `GSH-PS3-*` · `guard-member-url-builder.mjs`.
+**PS-3 GSH member URL builder (2026-07-05):** `resolvePortalMemberModuleUrl(host, moduleId?)` in `@app-tour/guest-surface-host` per [builder-migration-contract.mdoc](../../member-portal-shell/builder-migration-contract.mdoc). Registry route resolution + frozen `/me/registrations` fallback. `resolvePortalMemberAreaUrl` **removed** in PS-7 (CL-01). PCMS-003 §5 updated. **Proof tier:** GSH `GSH-PS3-*` · `guard-member-url-builder.mjs`.
 
 **PS-4 cross-surface integration (2026-07-05):** `guestCrossSurfaceNav` manifest + codegen; marketing shell consumes `resolveMarketingShellNavLinks` (no `FULL_LANDING_NAV_LINKS`); Denali club nav excludes `/about`/`/contact` (DL-37). Registration done steps use `context.memberModuleHref` (GSH-injected). Portal `robots.ts` + noindex on `/me/*` and register. **Proof tier:** SDK PS4 · MKT-PS4 · PS4-SEO · guards GCSN/egress/seo.
 
 **PS-5 — platform home + entitlements + dispatcher (2026-07-05):** Platform `home`; entitlements via `GET /identity/me/entitlements` (API) proxied by portal BFF; shell nav ∩ entitlements; home aggregate; module dispatcher.
 
-**PS-6 partial (2026-07-05):** entitlement gate; tier evaluator + BFF cache; hub `/me/more`; L4; GCSN `memberModuleId`; embedded shell tag; `POST /api/me/entitlements/invalidate`. **PS-7 prep:** marketing uses `resolvePortalMemberModuleUrl` only. **Next:** CL-01 GSH export removal, legacy CSS sunset.
+**PS-6 scale / embedded (2026-07-05):** `MemberModuleEntitlementGate` on static module pages; `MemberMoreHubEntitlementGate` on `/me/more`; tier evaluator + BFF cache (30s TTL) + invalidation on logout/profile; L4 guest conformance; GCSN `memberModuleId`; embedded shell tag (`data-embedded-host`); hidden Denali `wallet` module for `denied[]` path. **Proof tier:** PS6-* specs · SMK-PTL-09 · guards.
+
+**PS-7 cleanup (2026-07-05):** CL-01 removed `resolvePortalMemberAreaUrl` from GSH public API; CL-03/04 removed legacy `[data-portal-member-shell]` DOM/CSS — single `[data-portal-shell]` contract in `denali-portal.css`. **Proof tier:** `guard:member-portal-shell` 6/6 · SMK-PTL-01..09 · SMK-PTL-08 custom apex · DEN-PROF-01..04 · `DEV` `66396a17`.
 
 | PS-1 artifact | Path |
 | ------------- | ---- |
@@ -139,7 +141,7 @@ p7_unblocked: true
 | Bare `/me` redirect | `apps/portal/app/me/page.tsx` |
 | Logout hook (SMK-PTL-06) | `apps/portal/src/me/member-logout-button.tsx` |
 | i18n | `messages/en|fa/portalMember.json` (`nav.trips`, `skipToMain`, `primaryNav`) |
-| Theme dual selectors | `packages/workspaces/denali/theme/denali-portal.css` |
+| Theme selectors | `packages/workspaces/denali/theme/denali-portal.css` (`[data-portal-shell]` only — PS-7) |
 | Static proof | `apps/portal/test/portal-member-shell.spec.ts` |
 | Smoke config | `apps/portal/playwright.portal.config.ts` includes `portal-member-smoke.spec.ts` (SMK-PTL-02/04/05/06) |
 
@@ -158,7 +160,6 @@ p7_unblocked: true
 | ------------- | ---- |
 | Module URL builder | `packages/guest-surface-host/src/resolve-portal-member-module-url.ts` |
 | Host → pluginId | `packages/guest-surface-host/src/resolve-plugin-id-from-ingress-host.ts` |
-| Deprecated delegate | `resolvePortalMemberAreaUrl` in same module |
 | GSH tests | `packages/guest-surface-host/test/resolve-portal-public-base-url.spec.ts` GSH-PS3-* |
 | Guard | `scripts/guards/guard-member-url-builder.mjs` |
 | PCMS update | `docs/standards/member-session-portal-authority.mdoc` §5 |

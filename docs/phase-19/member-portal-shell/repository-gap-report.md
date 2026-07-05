@@ -77,7 +77,7 @@
 | ---- | ------ |
 | Architect sign-off DL-01..42 | **PENDING SIGN-OFF** |
 | RFC + WRS addendum PR merge | **PENDING SIGN-OFF** |
-| Git push `DEV` → origin | ✅ `2b6eac10` |
+| Git push `DEV` → origin | ✅ `66396a17` |
 | SMK-PTL-01..09 Playwright | ✅ green (main + custom apex; 600s/720s cold-compile timeouts) |
 | DEN-PROF-01..04 profile smokes | ✅ green — authenticated intake resume fixture aligned with SMK-PTL-07 |
 
@@ -108,7 +108,7 @@
 
 | Priority | Work | Phase |
 | -------- | ---- | ----- |
-| P0 | Architect sign-off pack | 0 |
+| P0 | Architect sign-off pack — run verification bundle in [decision-log.mdoc](./decision-log.mdoc#sign-off-record) | 0 |
 | P1 | ~~SMK-PTL-01..09 Playwright green~~ | ✅ Done |
 | P2 | BP-7 billing → `portalModuleGrants` | Product |
 

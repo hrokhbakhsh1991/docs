@@ -75,9 +75,9 @@ Custom apex (per tenant): `denali.club` · `portal.denali.club` · `admin.denali
 | [p6/appendices/OTP-SCOPE-P6.md](p6/appendices/OTP-SCOPE-P6.md) | OTP share scope |
 | [p6/FILE-MAP.md](p6/FILE-MAP.md) | Full file index |
 
-## Member Portal Shell RFC (post-P6 — pending sign-off)
+## Member Portal Shell RFC (PS-1..PS-7 repo complete — Architect sign-off pending)
 
-Architecture promotion from Blueprint v9. **Documentation only — not implementation authorization.**
+Architecture promotion from Blueprint v9. **Implementation landed on `DEV`; governance merge pending.**
 
 | Document | Role |
 | -------- | ---- |
@@ -90,8 +90,8 @@ Architecture promotion from Blueprint v9. **Documentation only — not implement
 | [member-portal-shell/guest-cross-surface-nav-schema.mdoc](member-portal-shell/guest-cross-surface-nav-schema.mdoc) | guestCrossSurfaceNav schema (DL-05) |
 | [member-portal-shell/glossary.mdoc](member-portal-shell/glossary.mdoc) | Canonical terminology |
 | [member-portal-shell/implementation-gates.mdoc](member-portal-shell/implementation-gates.mdoc) | Phase prerequisites, DoD, rollback |
-| [member-portal-shell/repository-gap-report.md](member-portal-shell/repository-gap-report.md) | PS-1..PS-5 closure audit + PS-6 open gaps |
-| [member-portal-shell/readiness-report.md](member-portal-shell/readiness-report.md) | Readiness assessment |
+| [member-portal-shell/repository-gap-report.md](member-portal-shell/repository-gap-report.md) | PS-1..PS-7 closure audit + open governance gaps |
+| [member-portal-shell/readiness-report.md](member-portal-shell/readiness-report.md) | Readiness assessment (~98%) |
 | [member-portal-shell/member-portal-registry-schema.mdoc](member-portal-shell/member-portal-registry-schema.mdoc) | memberPortal registry + dispatcher schema |
 | [platform-portal-member-entitlements.mdoc](platform-portal-member-entitlements.mdoc) | Entitlements BFF contract (DL-09) — **shipped bootstrap** |
 | [../standards/wrs-portal-member-routing-addendum.mdoc](../standards/wrs-portal-member-routing-addendum.mdoc) | WRS routing addendum (DL-41) |
