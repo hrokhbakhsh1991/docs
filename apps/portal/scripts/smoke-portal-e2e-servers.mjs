@@ -16,7 +16,7 @@ const portalDir = path.join(repoRoot, "apps/portal");
 const operatorSmokeTenantId =
   process.env.TOUR_OPS_DEV_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000014";
 
-function waitForUrl(url, timeoutMs = 300_000) {
+function waitForUrl(url, timeoutMs = 600_000) {
   const deadline = Date.now() + timeoutMs;
   return new Promise((resolve, reject) => {
     const tick = () => {
@@ -29,7 +29,7 @@ function waitForUrl(url, timeoutMs = 300_000) {
         retry();
       });
       req.on("error", retry);
-      req.setTimeout(2_000, () => {
+      req.setTimeout(180_000, () => {
         req.destroy();
         retry();
       });

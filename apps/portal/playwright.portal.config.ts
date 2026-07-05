@@ -48,7 +48,7 @@ export default defineConfig({
           command: "node scripts/smoke-portal-e2e-servers.mjs",
           url: `${portalSmokeBaseUrl}/health`,
           reuseExistingServer: !process.env.CI && process.env.PW_NO_REUSE_SERVER !== "1",
-          timeout: 360_000,
+          timeout: 720_000,
           stdout: "pipe",
           stderr: "pipe",
         },

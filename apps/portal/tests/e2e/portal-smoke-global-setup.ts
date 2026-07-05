@@ -11,7 +11,7 @@ const PARTICIPANT_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000212";
 const TRANSPORT_BUS_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000213";
 const TRANSPORT_SHARED_SMOKE_TOUR_ID = "00000000-0000-4000-8000-000000000214";
 
-function waitForUrl(url: string, timeoutMs = 360_000): Promise<void> {
+function waitForUrl(url: string, timeoutMs = 600_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let inFlight = false;
 
@@ -53,8 +53,9 @@ function waitForUrl(url: string, timeoutMs = 360_000): Promise<void> {
 
 export default async function globalSetup(): Promise<void> {
   const base =
+    process.env.PORTAL_INTERNAL_URL?.replace(/\/$/, "") ??
     process.env.SMOKE_PORTAL_BASE_URL?.replace(/\/$/, "") ??
-    "http://operator.portal.localhost:3003";
+    "http://127.0.0.1:3003";
 
   await waitForUrl(`${base}/catalog/${DEFAULT_SMOKE_TOUR_ID}/register`);
   await waitForUrl(`${base}/catalog/${PARTICIPANT_SMOKE_TOUR_ID}/register`);

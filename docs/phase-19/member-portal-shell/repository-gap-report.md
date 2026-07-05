@@ -18,9 +18,9 @@
 | PS-6 Scale / embedded | ✅ Complete (bootstrap; mini-app bridge deferred) |
 | PS-7 Cleanup (BP-8) | ✅ CL-01 + CL-03/04/05 (deprecated export + legacy shell CSS/DOM) |
 
-**Implementation readiness:** **~92%** (PS-6 + PS-7 partial closed; governance + smoke remain).
+**Implementation readiness:** **~98%** (repo + smoke verification complete; Architect governance remains).
 
-**Verification (2026-07-05 closure):** `pnpm run guard:member-portal-shell` **6/6 PASS** · portal **150/150** unit · SDK **316/316** · API-ME-ENT-* **2/2** · SMK-PTL-09 **defined** (smoke env not run).
+**Verification (2026-07-05):** `guard:member-portal-shell` **6/6 PASS** · portal **150/150** unit · SDK **316/316** · API-ME-ENT-* **2/2** · pushed `DEV` → origin · **SMK-PTL-01..09 + SMK-PTL-08 custom apex green** · DEN-PROF-* profile smokes green after fixture fix.
 
 ---
 
@@ -77,8 +77,9 @@
 | ---- | ------ |
 | Architect sign-off DL-01..42 | **PENDING SIGN-OFF** |
 | RFC + WRS addendum PR merge | **PENDING SIGN-OFF** |
-| Git commit PS-2..PS-7 work | ✅ `41036845` on `DEV` |
-| SMK-PTL-09 Playwright run | **DEFINED** — requires smoke env |
+| Git push `DEV` → origin | ✅ `ff9089d0` |
+| SMK-PTL-01..09 Playwright | ✅ green (main + custom apex; 600s/720s cold-compile timeouts) |
+| DEN-PROF-01..04 profile smokes | ✅ green — authenticated intake resume fixture aligned with SMK-PTL-07 |
 
 ---
 
@@ -107,11 +108,10 @@
 
 | Priority | Work | Phase |
 | -------- | ---- | ----- |
-| P0 | **git push** `DEV` → origin | Delivery |
-| P1 | Architect sign-off pack | 0 |
-| P2 | SMK-PTL-01..09 Playwright (smoke stack) | Verification |
-| P3 | BP-7 billing → `portalModuleGrants` | Product |
+| P0 | Architect sign-off pack | 0 |
+| P1 | ~~SMK-PTL-01..09 Playwright green~~ | ✅ Done |
+| P2 | BP-7 billing → `portalModuleGrants` | Product |
 
 ---
 
-*Gap report v2.2.0 · PS-1..PS-7 closure · 2026-07-05*
+*Gap report v2.3.0 · PS-1..PS-7 closure + smoke verification · 2026-07-05*

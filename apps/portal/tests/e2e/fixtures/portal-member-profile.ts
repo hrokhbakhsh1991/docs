@@ -2,12 +2,6 @@ import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 import {
-  CATALOG_DEV_OTP,
-  fillCatalogOtp,
-  gotoPortalRegistration,
-  requestRegistrationOtp,
-} from "./catalog-registration-otp";
-import {
   OPERATOR_PUBLISHED_TOUR_ID,
   OPERATOR_SMOKE_PARTICIPANT_TOUR_ID,
 } from "./complete-portal-registration";
@@ -88,12 +82,15 @@ export async function saveMemberProfileFields(
 
 export async function openRegistrationIntakeForAuthenticatedMember(
   page: Page,
-  phone: string,
+  _phone: string,
   tourId: string = OPERATOR_PUBLISHED_TOUR_ID
 ): Promise<void> {
-  await gotoPortalRegistration(page, tourId);
-  await requestRegistrationOtp(page, phone);
-  await fillCatalogOtp(page, CATALOG_DEV_OTP);
+  await page.goto(`/catalog/${tourId}/register`, { waitUntil: "domcontentloaded" });
+  await expect(
+    page.locator('[data-catalog-registration-page][data-registration-resume="intake"]')
+  ).toBeVisible({ timeout: 120_000 });
+  await expect(page.locator("[data-public-registration-phone]")).toHaveCount(0);
+  await expect(page.locator("[data-public-registration-otp]")).toHaveCount(0);
   await expect(page.locator("[data-public-registration-intake]")).toBeVisible({
     timeout: 60_000,
   });

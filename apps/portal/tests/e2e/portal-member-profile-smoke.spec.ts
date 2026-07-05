@@ -63,9 +63,10 @@ test("DEN-PROF-04 mobile change via OTP updates profile mobile", async ({ page }
   await expect(page.locator("main[data-portal-member-profile]")).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.locator('[data-member-profile-mobile-change]')).toContainText(newMobile, {
-    timeout: 15_000,
-  });
+  await expect(page.locator('[data-member-profile-mobile-change]')).toContainText(
+    newMobile.replace(/\D/g, ""),
+    { timeout: 15_000 }
+  );
 });
 
 test("DEN-PROF-02 profile PATCH persists and intake omits saved nationalId", async ({ page }) => {

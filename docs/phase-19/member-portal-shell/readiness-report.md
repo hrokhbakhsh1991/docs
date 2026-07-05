@@ -13,12 +13,12 @@
 | Architecture & decisions | **98%** | DL-30 resolved; traceability matrix complete |
 | Official documentation pack | **95%** | All review required changes applied |
 | Routing verification | **92%** | Builder authority + WRS §4 link added |
-| Repository implementation | **88%** | PS-1..PS-6 landed locally; only PS-1 committed |
-| Guards & smoke readiness | **92%** | `guard:member-portal-shell` 6/6 · SMK-PTL-01..09 defined · portal **150/150** unit |
+| Repository implementation | **98%** | PS-1..PS-7 landed on `DEV` (`41036845`, `ff9089d0`, verification pass) |
+| Guards & smoke readiness | **98%** | `guard:member-portal-shell` 6/6 · SMK-PTL-01..09 + SMK-PTL-08 · DEN-PROF-01..04 green |
 
 ### **Documentation readiness for RFC merge: 95%**
 
-### **Implementation readiness: ~88%** (PS-1..PS-6 repo complete 2026-07-05; PS-7 + governance pending)
+### **Implementation readiness: ~98%** (PS-1..PS-7 repo + smoke verification complete 2026-07-05; Architect governance pending)
 
 ---
 
@@ -59,9 +59,9 @@ Full matrix: [decision-log.mdoc](./decision-log.mdoc#traceability-matrix)
 | R-HI-01 | High | **Closed** | Builder Migration Contract |
 | R-HI-02 | High | **Mitigated** | `platform-portal-member-entitlements.mdoc` skeleton |
 | R-HI-03 | High | **Mitigated** | `guest-cross-surface-nav-schema.mdoc` |
-| R-ME-01 | Medium | Open (impl) | PS-4 manifest nav |
-| R-ME-02 | Medium | **Closed (PS-1 interim)** | `app/me/page.tsx` redirects to `/me/registrations` until PS-2 registry |
-| R-ME-03 | Medium | Open (impl) | PS-4 portal SEO |
+| R-ME-01 | Medium | **Closed (PS-4)** | Manifest `guestCrossSurfaceNav` |
+| R-ME-02 | Medium | **Closed (PS-2)** | Registry default via `resolveMemberPortalDefaultRoutePath` |
+| R-ME-03 | Medium | **Closed (PS-4)** | Portal SEO + `guard-member-seo` |
 | R-LO-01 | Low | **Closed** | WRS §4 companion link |
 
 ---
@@ -86,11 +86,11 @@ Record approval in [decision-log.mdoc](./decision-log.mdoc) sign-off record afte
 
 ## 7. Final architectural verdict
 
-## **READY FOR RFC MERGE** · **PS-1 SHELL LANDED (2026-07-05)**
+## **READY FOR RFC MERGE** · **PS-1..PS-7 REPO COMPLETE (2026-07-05)**
 
-The promotion pack closes all documentation gaps from the architectural review. **PS-1** platform shell frame is implemented in `apps/portal/src/shell/*` (see [IMPLEMENTATION-TRUTH-P6.md](../p6/appendices/IMPLEMENTATION-TRUTH-P6.md)). Next authorized work: **PS-2** registry codegen.
+The promotion pack closes all documentation gaps from the architectural review. **PS-1..PS-7** are implemented on `DEV` (see [repository-gap-report.md](./repository-gap-report.md) and [IMPLEMENTATION-TRUTH-P6.md](../p6/appendices/IMPLEMENTATION-TRUTH-P6.md)). Remaining work is **Architect sign-off** (DL-01..42) and deferred product (BP-5 wallet UI, BP-7 billing webhooks, Telegram bridge).
 
-**Not authorized by this verdict:** Guard script implementation, manifest schema JSON, or entitlements BFF (PS-5+).
+**Not authorized by this verdict:** Post-PS-7 product routes or billing webhook wiring.
 
 ---
 
