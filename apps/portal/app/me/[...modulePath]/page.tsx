@@ -16,7 +16,7 @@ type MemberModuleDispatcherPageProps = {
   readonly params: Promise<{ readonly modulePath: string[] }>;
 };
 
-/** PS-5 catch-all — static `app/me/*/page.tsx` routes win (DL-28). */
+/** PS-5 catch-all — static app/me routes win over dispatcher (DL-28). */
 export default async function MemberModuleDispatcherPage({
   params,
 }: MemberModuleDispatcherPageProps) {

@@ -2,7 +2,7 @@
 
 **Status:** **PS-1..PS-7 REPO COMPLETE** · Architect sign-off **PENDING** · Committed on `DEV`  
 **Date:** 2026-07-05 (closure pass)  
-**Purpose:** Inventory **remaining** work after PS-1 through PS-6 implementation landing.
+**Purpose:** Inventory **remaining** work after PS-1 through PS-7 implementation landing.
 
 ---
 
@@ -24,7 +24,7 @@
 
 ---
 
-## 2. Closed gaps (PS-1..PS-6 — no action)
+## 2. Closed gaps (PS-1..PS-7 — no action)
 
 | Area | Evidence |
 | ---- | -------- |
@@ -107,10 +107,11 @@
 
 | Priority | Work | Phase |
 | -------- | ---- | ----- |
-| P0 | Architect sign-off pack | 0 |
-| P1 | SMK-PTL-09 in smoke env | PS-5/6 verification |
-| P2 | BP-7 billing → `portalModuleGrants` | Product |
+| P0 | **git push** `DEV` → origin | Delivery |
+| P1 | Architect sign-off pack | 0 |
+| P2 | SMK-PTL-01..09 Playwright (smoke stack) | Verification |
+| P3 | BP-7 billing → `portalModuleGrants` | Product |
 
 ---
 
-*Gap report v2.1.0 · PS-1..PS-6 closure · 2026-07-05*
+*Gap report v2.2.0 · PS-1..PS-7 closure · 2026-07-05*

@@ -33,6 +33,8 @@ legacy/reports/phase-0-environment-*
 # Local planning scratch (optional — uncomment to keep TEMP out of git)
 # TEMP/
 # Lowercase scratch dir: git-ignored but Cursor-readable (not in .cursorignore)
-tmp/
+.tmp/
 temp/
 .aider*
+.venv/
+**/.venv*/
