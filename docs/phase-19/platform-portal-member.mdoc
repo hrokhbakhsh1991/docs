@@ -61,12 +61,14 @@ Portal `/me` is **not** the operator admin panel (`apps/web`). Product rule: ope
 | `GET/PATCH /api/me/profile` | member session | **Landed M2** — sole profile BFF |
 | `POST /api/public-auth/logout` | none (idempotent) | Clear `atour_mb_session` · **Landed** 2026-07-02 |
 
-API upstream (frozen — reuse Phase 9.5 member filter):
+API upstream (frozen — reuse Phase 9.5 member filter + PS-5 entitlements):
 
 | BFF route | Upstream API | Scope |
 | --------- | ------------ | ----- |
 | `GET /api/me/registrations` | `GET /bookings?view=mine` | session user + tenant RLS |
 | `POST /api/me/registrations/[id]/receipt` | `POST /bookings/{registrationId}/receipts` | member-only; ensures pending manual payment then `POST /finance/receipts` |
+| `GET /api/me/entitlements` | `GET /identity/me/entitlements` | Registry effective modules for tenant workspace (bootstrap grant-all) |
+| `GET /api/me/home` | Portal-composed | Registry + entitlements aggregate (bootstrap) |
 
 **BFF steps (frozen):**
 

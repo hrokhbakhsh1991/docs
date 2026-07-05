@@ -32,8 +32,8 @@ This contract defines **zero-ambiguity** behavior for migrating from `resolvePor
 
 | Builder | Package | Status today | Target |
 | ------- | ------- | ------------ | ------ |
-| `resolvePortalMemberAreaUrl(host)` | `guest-surface-host` | **Active** — hardcodes `/me/registrations` | **Deprecated** — delegates per §4 |
-| `resolvePortalMemberModuleUrl(host, moduleId?)` | `guest-surface-host` | **Not implemented** | **Primary** from Phase 3 |
+| `resolvePortalMemberModuleUrl(host, moduleId?)` | `guest-surface-host` | **Implemented PS-3** | **Primary** |
+| `resolvePortalMemberAreaUrl(host)` | `guest-surface-host` | **Deprecated** — delegates | **Deprecated** until Cleanup |
 
 **Out of scope:** `resolvePortalRegistrationUrl`, marketing builders, web redirect shims — see [routing-builders-authority.mdoc](./routing-builders-authority.mdoc).
 
@@ -137,7 +137,7 @@ export function resolvePortalMemberAreaUrl(host: string): string {
 | 5 | Entitlements | module-scoped URLs | delegate |
 | 6 | Telegram adapter | uses module URL builder | delegate |
 | 7 | Scale | no builder change | delegate |
-| **8** | **Cleanup** | remove deprecated export; update all call sites | **removed** |
+| **8** | **Cleanup** | remove deprecated export; update all call sites | **removed (2026-07-05)** |
 
 ---
 
@@ -145,7 +145,7 @@ export function resolvePortalMemberAreaUrl(host: string): string {
 
 1. **Phase 3:** Add `resolvePortalMemberModuleUrl`; change `resolvePortalMemberAreaUrl` body to delegate; add `@deprecated` JSDoc; extend GSH tests.
 2. **Phase 3–7:** `guard-member-url-builder` warns on new call sites importing deprecated symbol (see [guard-member-portal-registry.md](../../dev/guard-member-portal-registry.md)).
-3. **Cleanup Phase:** Remove export; CI fail on any import of `resolvePortalMemberAreaUrl`; update PCMS-003, marketing, tests.
+3. **Cleanup Phase (2026-07-05):** Export removed; `guard-member-url-builder` fails if symbol re-exported; PCMS-003 updated.
 
 **No breaking removal** before Cleanup Phase gate green.
 

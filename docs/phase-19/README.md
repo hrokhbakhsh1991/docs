@@ -90,9 +90,10 @@ Architecture promotion from Blueprint v9. **Documentation only — not implement
 | [member-portal-shell/guest-cross-surface-nav-schema.mdoc](member-portal-shell/guest-cross-surface-nav-schema.mdoc) | guestCrossSurfaceNav schema (DL-05) |
 | [member-portal-shell/glossary.mdoc](member-portal-shell/glossary.mdoc) | Canonical terminology |
 | [member-portal-shell/implementation-gates.mdoc](member-portal-shell/implementation-gates.mdoc) | Phase prerequisites, DoD, rollback |
-| [member-portal-shell/repository-gap-report.md](member-portal-shell/repository-gap-report.md) | Repo gaps before implementation |
+| [member-portal-shell/repository-gap-report.md](member-portal-shell/repository-gap-report.md) | PS-1..PS-5 closure audit + PS-6 open gaps |
 | [member-portal-shell/readiness-report.md](member-portal-shell/readiness-report.md) | Readiness assessment |
-| [platform-portal-member-entitlements.mdoc](platform-portal-member-entitlements.mdoc) | Entitlements BFF contract skeleton (DL-09) |
+| [member-portal-shell/member-portal-registry-schema.mdoc](member-portal-shell/member-portal-registry-schema.mdoc) | memberPortal registry + dispatcher schema |
+| [platform-portal-member-entitlements.mdoc](platform-portal-member-entitlements.mdoc) | Entitlements BFF contract (DL-09) — **shipped bootstrap** |
 | [../standards/wrs-portal-member-routing-addendum.mdoc](../standards/wrs-portal-member-routing-addendum.mdoc) | WRS routing addendum (DL-41) |
 | [../dev/guard-member-portal-registry.md](../dev/guard-member-portal-registry.md) | Guard specifications |
 | [../standards/member-session-portal-authority.mdoc](../standards/member-session-portal-authority.mdoc) | PCMS-003 Phase 3 follow-up §5.1 |

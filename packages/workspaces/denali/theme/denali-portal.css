@@ -153,20 +153,17 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalo
   color: var(--color-text-link, var(--primary));
 }
 
-/* Member shell — /me/registrations · /me/profile (dual: data-portal-shell + legacy) */
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell],
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-member-shell] {
+/* Member shell — /me/registrations · /me/profile (data-portal-shell) */
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell]
   max-width: 36rem;
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell] nav a,
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-member-shell] nav a,
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell] nav a
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
   [data-portal-shell-bottom-nav]
   a,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   [data-portal-shell-bottom-nav]
   a,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -174,7 +171,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-header]
   a,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   [data-portal-shell-header]
   a {
   color: var(--color-text-link, var(--primary));
@@ -182,14 +178,12 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   text-decoration: none;
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell] nav a:hover,
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-member-shell] nav a:hover,
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell] nav a:hover
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell]
   [data-portal-shell-bottom-nav]
   a:hover,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   [data-portal-shell-bottom-nav]
   a:hover,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -197,7 +191,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-header]
   a:hover,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   [data-portal-shell-header]
   a:hover {
   text-decoration: underline;
@@ -208,7 +201,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   nav
   [data-public-auth-logout],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   nav
   [data-public-auth-logout],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -216,7 +208,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-header]
   [data-public-auth-logout],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   [data-portal-shell-header]
   [data-public-auth-logout] {
   margin-inline-start: auto;
@@ -234,7 +225,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   nav
   [data-public-auth-logout]:hover:not(:disabled),
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   nav
   [data-public-auth-logout]:hover:not(:disabled),
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -242,7 +232,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-header]
   [data-public-auth-logout]:hover:not(:disabled),
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   [data-portal-shell-header]
   [data-public-auth-logout]:hover:not(:disabled) {
   text-decoration: underline;
@@ -253,7 +242,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   nav
   [data-public-auth-logout]:disabled,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   nav
   [data-public-auth-logout]:disabled,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
@@ -261,7 +249,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-shell-header]
   [data-public-auth-logout]:disabled,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-shell]
   [data-portal-shell-header]
   [data-public-auth-logout]:disabled {
   opacity: 0.6;
@@ -416,6 +403,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-registrations],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-home],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-registration-detail] {
   display: flex;
   flex-direction: column;
@@ -424,6 +413,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-registrations]
+  h1,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-home]
   h1,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-registration-detail]

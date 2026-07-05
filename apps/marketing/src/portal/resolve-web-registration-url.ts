@@ -3,12 +3,12 @@ import { supportsCatalogRegistration } from "@app-tour/workspace-sdk";
 import {
   resolvePortalPublicBaseUrl,
   resolvePortalRegistrationUrl,
-  resolvePortalMemberAreaUrl,
+  resolvePortalMemberModuleUrl,
 } from "@app-tour/guest-surface-host";
 
 export { supportsCatalogRegistration };
 
-export { resolvePortalPublicBaseUrl, resolvePortalRegistrationUrl, resolvePortalMemberAreaUrl };
+export { resolvePortalPublicBaseUrl, resolvePortalRegistrationUrl, resolvePortalMemberModuleUrl };
 
 /** @deprecated Use `resolvePortalPublicBaseUrl` — kept for transitional imports. */
 export const resolveWebPublicBaseUrl = resolvePortalPublicBaseUrl;

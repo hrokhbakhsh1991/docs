@@ -68,7 +68,8 @@
   },
   "success": {
     "message": "درخواست شما برای {tourTitle} ثبت شد. متشکریم!",
-    "backToTour": "بازگشت به تور"
+    "backToTour": "بازگشت به تور",
+    "viewRegistrations": "مشاهده ثبت‌نام‌های من"
   },
   "errors": {
     "MOBILE_REQUIRED": "شماره موبایل معتبر وارد کنید.",

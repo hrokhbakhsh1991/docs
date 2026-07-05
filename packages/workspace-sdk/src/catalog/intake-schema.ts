@@ -48,7 +48,7 @@ export type IntakeSchemaContext = {
     readonly birthDate?: string;
     readonly email?: string;
   };
-  /** Catalog egress flags — Denali gates participant fields before session hide. */
+  /** Catalog egress flags — workspace gates participant fields before session hide. */
   readonly tourRequirements?: IntakeSchemaTourRequirements;
 };
 

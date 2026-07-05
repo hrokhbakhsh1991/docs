@@ -1,0 +1,81 @@
+---
+title: Embedded Host Adapter (Telegram WebApp)
+standard_id: MPS-EMB-001
+version: 1.0.0
+status: active
+extends:
+  - decision-log.mdoc
+  - builder-migration-contract.mdoc
+---
+
+# Embedded Host Adapter — Telegram WebApp (PS-6)
+
+**Decisions:** DL-13, DL-16  
+**Package:** `@app-tour/guest-surface-host` subpath — no portal fork.
+
+---
+
+## 1. Scope
+
+| In scope (PS-6) | Out of scope |
+| --------------- | ------------ |
+| Detect Telegram WebApp host context | Full Telegram SDK bridge |
+| Reuse `resolvePortalMemberModuleUrl` for module deep links | Wallet / payment flows |
+| Export types for portal shell chrome suppression | Mini-app auth token exchange |
+
+---
+
+## 2. Detection
+
+```typescript
+type EmbeddedMemberPortalHost = "telegram" | null;
+
+/** Returns host kind when running inside Telegram WebApp; null on normal browser. */
+function resolveEmbeddedMemberPortalHost(input: {
+  readonly userAgent?: string | null;
+  readonly searchParams?: URLSearchParams | Readonly<Record<string, string>>;
+}): EmbeddedMemberPortalHost;
+```
+
+| Signal | Weight |
+| ------ | ------ |
+| `window.Telegram?.WebApp` (client) | authoritative when present |
+| `User-Agent` contains `Telegram` | server hint only |
+| `?tgWebApp=1` query (dev smoke) | opt-in override for Playwright |
+
+**Rule:** Server routes MUST NOT trust query override in production — gated by `NODE_ENV !== "production"` or explicit dev host allowlist.
+
+---
+
+## 3. URL builder integration
+
+Embedded hosts use the same module URL builder as marketing egress (PS-3):
+
+```text
+resolvePortalMemberModuleUrl({ host, pluginId, moduleId })
+  → https://{club}.portal.{root}/me/{module}
+```
+
+No absolute shop.* or marketing hardcodes (WRS-001).
+
+---
+
+## 4. Portal shell consequences (future)
+
+| Chrome | Normal browser | Telegram embedded |
+| ------ | -------------- | ----------------- |
+| Bottom nav | visible | visible (compact safe-area) |
+| Marketing cross-links | visible | optional suppress via `data-embedded-host="telegram"` |
+| Logout | full session clear | same — DL-17 cache invalidation on logout |
+
+Portal consumption is **wired (PS-6):** `apps/portal/app/me/layout.tsx` sets `data-embedded-host` on `PortalMemberShell` when GSH detects Telegram.
+
+---
+
+## 5. Traceability
+
+| Artifact | Path |
+| -------- | ---- |
+| GSH export | `packages/guest-surface-host/src/embedded/resolve-embedded-member-portal-host.ts` |
+| Builder contract | [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) §6 Phase 6 |
+| Tests | `packages/guest-surface-host/test/resolve-embedded-member-portal-host.spec.ts` |

@@ -124,6 +124,9 @@ const PORTAL_BFF_ROUTES = [
   "apps/portal/app/api/public-auth/register-complete/route.ts",
   "apps/portal/app/api/public-auth/logout/route.ts",
   "apps/portal/app/api/me/profile/route.ts",
+  "apps/portal/app/api/me/entitlements/route.ts",
+  "apps/portal/app/api/me/entitlements/invalidate/route.ts",
+  "apps/portal/app/api/me/home/route.ts",
 ];
 
 for (const rel of PORTAL_BFF_ROUTES) {

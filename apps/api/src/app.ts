@@ -29,6 +29,7 @@ import {
 } from "./identity/auth.routes";
 import { handleAcceptInvite } from "./identity/invites.routes";
 import { handleGetIdentityMe, handlePatchIdentityMe } from "./identity/me.routes";
+import { handleGetIdentityMeEntitlements } from "./identity/me.entitlements.routes";
 import {
   handlePublicPhonePreflight,
   handlePublicRegisterComplete,
@@ -215,6 +216,11 @@ async function dispatchRequest(
 
   if (method === "GET" && url.pathname === "/identity/me") {
     await handleGetIdentityMe(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/identity/me/entitlements") {
+    await handleGetIdentityMeEntitlements(req, res);
     return;
   }
 

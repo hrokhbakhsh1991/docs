@@ -134,3 +134,28 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
   const blockedMeApi = await page.request.get("/api/me/registrations");
   expect(blockedMeApi.status(), "BFF must reject unauthenticated /api/me/*").toBe(401);
 });
+
+test("SMK-PTL-09 entitled modules appear in shell nav (PS-5)", async ({ page }) => {
+  const email = `smk-ptl-09-${Date.now()}@denali-smoke.local`;
+  const phone = `+1555${String(Date.now()).slice(-7)}`;
+
+  await completePortalCatalogRegistration(page, {
+    email,
+    fullName: "Portal Entitlements Smoke",
+    phone,
+  });
+
+  await page.locator('[data-public-registration-success] a[href="/me/registrations"]').click();
+  await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
+    timeout: 60_000,
+  });
+
+  const entitlementsResponse = await page.request.get("/api/me/entitlements");
+  expect(entitlementsResponse.ok(), "entitlements BFF must succeed for session").toBeTruthy();
+  const entitlementsBody = (await entitlementsResponse.json()) as { granted?: string[] };
+  expect(entitlementsBody.granted).toContain("member.module.home");
+  expect(entitlementsBody.granted).toContain("member.module.trips");
+
+  await expect(page.getByTestId("portal-shell-nav-home")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId("portal-shell-nav-trips")).toBeVisible();
+});

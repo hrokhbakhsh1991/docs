@@ -28,6 +28,7 @@ type PublicCatalogRegistrationFlowProps = {
   readonly tourFatherNameRequired?: boolean;
   readonly tourBirthDateRequired?: boolean;
   readonly backHref: string;
+  readonly memberModuleHref: string;
   readonly initialRuntimeState?: FlowRuntimeState;
 };
 
@@ -43,6 +44,7 @@ export function PublicCatalogRegistrationFlow({
   tourFatherNameRequired = false,
   tourBirthDateRequired = false,
   backHref,
+  memberModuleHref,
   initialRuntimeState,
 }: PublicCatalogRegistrationFlowProps) {
   const t = useTranslations("catalogRegistration");
@@ -64,9 +66,11 @@ export function PublicCatalogRegistrationFlow({
         birthDateRequired: tourBirthDateRequired,
       },
       backHref,
+      memberModuleHref,
     }),
     [
       backHref,
+      memberModuleHref,
       tenantId,
       tourBirthDateRequired,
       tourFatherNameRequired,

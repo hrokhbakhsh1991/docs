@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
@@ -8,10 +9,15 @@ import { buildRegistrationResumeInitialState } from "@/catalog/build-registratio
 import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+import { resolvePortalMemberModuleUrl } from "@app-tour/guest-surface-host";
 
 import { PublicCatalogRegistrationFlow } from "./public-catalog-registration-flow";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 type PageProps = {
   readonly params: Promise<{ readonly tourId: string }>;
@@ -22,6 +28,7 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
   const backHref = resolveMarketingTourDetailUrl(host, tourId);
+  const memberModuleHref = resolvePortalMemberModuleUrl(host);
   const t = await getTranslations("catalogRegistration");
 
   if (!supportsCatalogRegistration(bootstrap.pluginId)) {
@@ -54,6 +61,7 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
       birthDateRequired: tour.birthDateRequired === true,
     },
     backHref,
+    memberModuleHref,
   };
 
   const resumeInitialState: FlowRuntimeState | null = await buildRegistrationResumeInitialState(
@@ -81,6 +89,7 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
         tourFatherNameRequired={tour.fatherNameRequired === true}
         tourBirthDateRequired={tour.birthDateRequired === true}
         backHref={backHref}
+        memberModuleHref={memberModuleHref}
         initialRuntimeState={resumeInitialState ?? undefined}
       />
       <p>

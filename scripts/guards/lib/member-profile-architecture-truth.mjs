@@ -33,6 +33,8 @@ const SESSION_PROFILE_ROUTE_REL = "apps/portal/app/api/public-auth/session-profi
 
 const RESUME_PROFILE_LOADER_REL =
   "apps/portal/src/me/fetch-member-profile-from-session.server.ts";
+const ENTITLEMENTS_UPSTREAM_LOADER_REL =
+  "apps/portal/src/me/member-entitlements-bff.server.ts";
 
 const IDENTITY_ME_ALLOWLIST = new Set([
   PROFILE_BFF_ROUTE_REL,
@@ -41,6 +43,7 @@ const IDENTITY_ME_ALLOWLIST = new Set([
   MOBILE_REQUEST_BFF_ROUTE_REL,
   MOBILE_VERIFY_BFF_ROUTE_REL,
   RESUME_PROFILE_LOADER_REL,
+  ENTITLEMENTS_UPSTREAM_LOADER_REL,
 ]);
 
 /** @typedef {{ file: string, line?: number, type: string, severity: "LOW" | "MEDIUM" | "HIGH", message: string }} ArchitectureTruthFinding */

@@ -5,13 +5,13 @@ import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-
 
 export type MarketingFooterProps = {
   readonly branding: PublicTenantBrandingSnapshot;
-  readonly portalMemberAreaUrl: string;
+  readonly portalMemberModuleUrl: string;
   readonly showFaqLink: boolean;
 };
 
 export async function MarketingFooter({
   branding,
-  portalMemberAreaUrl,
+  portalMemberModuleUrl,
   showFaqLink,
 }: MarketingFooterProps) {
   const t = await getTranslations("catalog");
@@ -42,7 +42,7 @@ export async function MarketingFooter({
               </li>
             ) : null}
             <li>
-              <a href={portalMemberAreaUrl}>{t("home.full.footer.resourcesMember")}</a>
+              <a href={portalMemberModuleUrl}>{t("home.full.footer.resourcesMember")}</a>
             </li>
           </ul>
         </div>

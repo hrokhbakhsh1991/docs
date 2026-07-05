@@ -20,7 +20,7 @@ extends:
   - member-portal-shell/phase-mapping.mdoc
   - member-portal-shell/cleanup-roadmap.mdoc
   - member-portal-shell/guest-cross-surface-nav-schema.mdoc
-  - member-portal-shell/glossary.mdoc
+  - member-portal-shell/member-portal-registry-schema.mdoc
   - platform-portal-member-entitlements.mdoc
 mandatory_for:
   - apps/portal
@@ -45,13 +45,15 @@ code_sot:
 
 ## 1. Overview
 
-### 1.1 Problem (pre-PS-1) · current state (PS-1 landed 2026-07-05)
+### 1.1 Problem (pre-PS-1) · current state (PS-2 landed 2026-07-05)
 
 **Before PS-1:** Portal was a **registration-centric MVP** (P6-3) with inline nav in `app/me/layout.tsx`, hardcoded links, no platform shell frame.
 
-**After PS-1 (today):** Platform shell frame lives in `apps/portal/src/shell/*` — header, bottom nav (Trips → `/me/registrations`), user menu (Profile + Logout). Inline layout nav removed. Bare `/me` redirects to frozen alias. **Still missing (PS-2+):** manifest-driven member modules, registry codegen, entitlements BFF, GSH `resolvePortalMemberModuleUrl`.
+**After PS-1:** Platform shell frame in `apps/portal/src/shell/*` — header, bottom nav, user menu (Profile + Logout). Inline layout nav removed.
 
-**Proof:** [IMPLEMENTATION-TRUTH-P6.md](./p6/appendices/IMPLEMENTATION-TRUTH-P6.md) PS-1 block · `portal-member-shell.spec.ts` · SMK-PTL-02..08.
+**After PS-5 (2026-07-05):** Platform `home`, entitlements API + BFF proxy, shell nav gating, home aggregate, module dispatcher. **Next (PS-6):** plan-based entitlement deny rules, BFF cache, embedded hosts.
+
+**Proof:** [IMPLEMENTATION-TRUTH-P6.md](./p6/appendices/IMPLEMENTATION-TRUTH-P6.md) PS-1/PS-2/PS-3 blocks · [builder-migration-contract.mdoc](./member-portal-shell/builder-migration-contract.mdoc) · GSH `GSH-PS3-*` tests · SMK-PTL-02..08.
 
 ### 1.2 Solution
 

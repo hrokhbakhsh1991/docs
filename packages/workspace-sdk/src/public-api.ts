@@ -327,6 +327,60 @@ export {
   type MemberProfileSection,
 } from "./profile/resolve-member-profile-capabilities";
 export {
+  MEMBER_PORTAL_RESERVED_MODULE_IDS,
+  validateMemberPortalManifest,
+  type MemberModuleManifest,
+  type MemberNavTier,
+  type MemberPortalReservedModuleId,
+  type MemberPortalSurface,
+} from "./portal/member-module-manifest";
+export {
+  evaluateMemberPortalEntitlements,
+  evaluateMemberPortalEntitlementsForSurface,
+  listMemberPortalDefaultGrantedEntitlementKeys,
+  type MemberEntitlementDenial,
+  type MemberEntitlementDenialReason,
+  type MemberPortalEntitlementsEvaluation,
+} from "./portal/evaluate-member-portal-entitlements";
+export {
+  MEMBER_PORTAL_HUB_VIRTUALISATION_THRESHOLD,
+  MEMBER_PORTAL_MORE_ROUTE_PATH,
+  resolveMemberPortalHubPresentation,
+  resolveMemberPortalSecondaryModules,
+  shouldRenderMemberPortalMoreHub,
+  type MemberPortalHubPresentation,
+  type MemberPortalHubPresentationMode,
+} from "./portal/resolve-member-portal-hub";
+export {
+  resolveMemberPortalDefaultRoutePath,
+  resolveMemberPortalModuleRoutePath,
+  resolveMemberPortalModuleByRoutePath,
+  resolveMemberPortalModules,
+  listMemberPortalEntitlementKeys,
+  MemberPortalNotConfiguredError,
+  MemberPortalUnknownRouteError,
+  type ResolvedMemberPortalSurface,
+} from "./portal/resolve-member-portal-modules";
+export {
+  PLATFORM_MEMBER_PORTAL_HOME_MODULE,
+  mergePlatformMemberPortalModules,
+  memberPortalEntitlementKey,
+} from "./portal/platform-member-portal-modules";
+export {
+  GUEST_CROSS_SURFACE_PLATFORM_MOTHER_ONLY_PATHS,
+  validateGuestCrossSurfaceNavLinks,
+  type GuestCrossSurfaceNavEgressKind,
+  type GuestCrossSurfaceNavLink,
+  type GuestCrossSurfaceNavSurface,
+  type GuestCrossSurfaceNavSurfaceKind,
+  type GuestCrossSurfaceNavVisibility,
+} from "./catalog/guest-cross-surface-nav";
+export {
+  GuestCrossSurfaceNavNotConfiguredError,
+  requireGuestCrossSurfaceNav,
+  resolveGuestCrossSurfaceNav,
+} from "./catalog/resolve-guest-cross-surface-nav";
+export {
   buildCatalogRegistrationUpstreamRequest,
   CatalogRegistrationPayloadInvalidError,
   type CatalogRegistrationPortalPayload,

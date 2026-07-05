@@ -14,12 +14,14 @@ describe("marketing shell — PCMS-03", () => {
   it("MKT-PCMS-01 shell exposes static portal member area link", () => {
     const shell = readFileSync(path.join(marketingRoot, "src/shell/marketing-shell.tsx"), "utf8");
     assert.match(shell, /data-marketing-portal-member/);
-    assert.match(shell, /portalMemberAreaUrl/);
+    assert.match(shell, /portalMemberModuleUrl/);
+    assert.doesNotMatch(shell, /resolvePortalMemberAreaUrl/);
   });
 
-  it("MKT-PCMS-02 layout resolves portal member area URL", () => {
+  it("MKT-PCMS-02 layout resolves portal member module URL", () => {
     const layout = readFileSync(path.join(marketingRoot, "app/layout.tsx"), "utf8");
-    assert.match(layout, /resolvePortalMemberAreaUrl/);
-    assert.match(layout, /portalMemberAreaUrl=/);
+    assert.match(layout, /resolvePortalMemberModuleUrl/);
+    assert.match(layout, /portalMemberModuleUrl=/);
+    assert.doesNotMatch(layout, /resolvePortalMemberAreaUrl/);
   });
 });

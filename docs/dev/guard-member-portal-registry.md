@@ -1,6 +1,6 @@
 # Guard Specification — Member Portal Shell
 
-**Status:** **PENDING SIGN-OFF** — documentation only. **No guard scripts implemented in this pack.**
+**Status:** **ACTIVE** — `guard-member-portal-registry.mjs` implemented (PS-2).
 
 **Authority:** [platform-portal-member-shell-architecture.mdoc](../phase-19/platform-portal-member-shell-architecture.mdoc) · [implementation-gates.mdoc](../phase-19/member-portal-shell/implementation-gates.mdoc)
 
@@ -159,14 +159,14 @@
 
 | Guard | Doc | Script | Blocks |
 | ----- | --- | ------ | ------ |
-| guard-member-shell | ✓ | PS-1 impl | Wrong shell mode |
+| guard-member-shell | ✓ | **Implemented** (`guard-member-shell.mjs`) | Wrong shell mode |
 | guard-member-no-hardcoded-links | ✓ | PS-1 impl | Inline nav |
-| guard-member-portal-registry | ✓ | PS-2 impl | Hardcoded nav |
-| guard-member-module-id-reserved | ✓ | PS-2 impl | Invalid module id |
-| guard-member-url-builder | ✓ | PS-3 impl | GSH hardcode |
-| guard-guest-cross-surface-nav | ✓ | PS-4 impl | 404 nav links |
-| guard-workspace-member-egress | ✓ | PS-4 impl | Workspace hrefs |
-| guard-member-seo | ✓ | PS-4 impl | Crawl leak |
+| guard-member-portal-registry | ✓ | ✓ PS-2 | Hardcoded nav |
+| guard-member-module-id-reserved | ✓ | ✓ PS-2 (codegen) | Invalid module id |
+| guard-member-url-builder | ✓ | ✓ PS-3 | GSH hardcode |
+| guard-guest-cross-surface-nav | ✓ | ✓ PS-4 | 404 nav links |
+| guard-workspace-member-egress | ✓ | ✓ PS-4 | Workspace hrefs |
+| guard-member-seo | ✓ | ✓ PS-4 | Crawl leak |
 
 ---
 

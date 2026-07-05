@@ -9,25 +9,20 @@ import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
 
 import { MarketingFooter } from "./marketing-footer";
 import { MARKETING_HEADER_OVERLAY_REQUEST_HEADER } from "./resolve-marketing-header-overlay";
+import type { MarketingShellNavItem } from "./resolve-marketing-shell-nav.server";
 
 export type MarketingShellProps = {
   readonly branding: PublicTenantBrandingSnapshot;
-  readonly portalMemberAreaUrl: string;
+  readonly portalMemberModuleUrl: string;
+  readonly primaryNavLinks: readonly MarketingShellNavItem[];
   readonly landing: GuestLandingFeatures;
   readonly children: ReactNode;
 };
 
-/** Primary nav order: inline-start → inline-end (Home first in RTL = rightmost). */
-const FULL_LANDING_NAV_LINKS = [
-  { href: "/", key: "nav.home" as const, hook: "home" },
-  { href: "/tours", key: "nav.tours" as const, hook: "tours" },
-  { href: "/about", key: "nav.about" as const, hook: "about" },
-  { href: "/contact", key: "nav.contact" as const, hook: "contact" },
-] as const;
-
 export async function MarketingShell({
   branding,
-  portalMemberAreaUrl,
+  portalMemberModuleUrl,
+  primaryNavLinks,
   landing,
   children,
 }: MarketingShellProps) {
@@ -61,14 +56,14 @@ export async function MarketingShell({
 
           {isFullLanding ? (
             <nav data-marketing-header-nav aria-label={t("nav.primary")}>
-              {FULL_LANDING_NAV_LINKS.map((item) => (
+              {primaryNavLinks.map((item) => (
                 <Link
-                  key={item.hook}
+                  key={item.id}
                   href={item.href}
                   data-marketing-nav-link
-                  data-marketing-nav-link-id={item.hook}
+                  data-marketing-nav-link-id={item.id}
                 >
-                  {t(item.key)}
+                  {t(item.labelKey)}
                 </Link>
               ))}
             </nav>
@@ -77,7 +72,7 @@ export async function MarketingShell({
           <div data-marketing-header-end>
             <div data-marketing-header-toolbar>
               <a
-                href={portalMemberAreaUrl}
+                href={portalMemberModuleUrl}
                 data-marketing-portal-member
                 data-marketing-header-sign-in
                 aria-label={t("nav.signIn")}
@@ -99,14 +94,14 @@ export async function MarketingShell({
               </summary>
               <nav data-marketing-nav-drawer-panel aria-label={t("nav.primary")}>
                 {isFullLanding
-                  ? FULL_LANDING_NAV_LINKS.map((item) => (
+                  ? primaryNavLinks.map((item) => (
                       <Link
-                        key={item.hook}
+                        key={item.id}
                         href={item.href}
                         data-marketing-nav-link
-                        data-marketing-nav-link-id={item.hook}
+                        data-marketing-nav-link-id={item.id}
                       >
-                        {t(item.key)}
+                        {t(item.labelKey)}
                       </Link>
                     ))
                   : (
@@ -120,7 +115,7 @@ export async function MarketingShell({
                   </Link>
                 ) : null}
                 <a
-                  href={portalMemberAreaUrl}
+                  href={portalMemberModuleUrl}
                   data-marketing-portal-member
                   data-marketing-header-sign-in
                 >
@@ -136,7 +131,7 @@ export async function MarketingShell({
       {landing.sections.footer ? (
         <MarketingFooter
           branding={branding}
-          portalMemberAreaUrl={portalMemberAreaUrl}
+          portalMemberModuleUrl={portalMemberModuleUrl}
           showFaqLink={landing.sections.faq}
         />
       ) : null}

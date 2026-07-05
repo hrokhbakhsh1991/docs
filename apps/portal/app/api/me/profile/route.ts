@@ -8,6 +8,10 @@ import {
   readMemberProfileCache,
   writeMemberProfileCache,
 } from "@/me/member-profile-cache.server";
+import {
+  buildMemberEntitlementsCacheKey,
+  invalidateMemberEntitlementsCacheForMember,
+} from "@/me/member-entitlements-cache.server";
 import { buildMemberProfileApiError, normalizeMemberProfilePatchBody } from "@/me/member-profile-contract.server";
 import {
   buildMemberProfileView,
@@ -230,6 +234,11 @@ export async function PATCH(req: Request): Promise<NextResponse> {
 
   const cacheKey = resolveCacheKey(view.profile.tenantId, view.profile.userId, bootstrap.pluginId);
   invalidateMemberProfileCache(cacheKey);
+  invalidateMemberEntitlementsCacheForMember({
+    tenantId: view.profile.tenantId,
+    userId: view.profile.userId,
+    pluginId: bootstrap.pluginId,
+  });
   logMemberProfileEvent({
     traceId,
     kind: "cache_invalidate",

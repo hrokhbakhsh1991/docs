@@ -1,12 +1,14 @@
 {
   "nav": {
+    "home": "Home",
     "trips": "Trips",
     "registrations": "My registrations",
     "profile": "Profile",
     "logout": "Log out",
     "loggingOut": "Logging out…",
     "skipToMain": "Skip to main content",
-    "primaryNav": "Primary navigation"
+    "primaryNav": "Primary navigation",
+    "more": "More"
   },
   "registrations": {
     "title": "My registrations",
@@ -88,6 +90,23 @@
       "INVALID_PAYLOAD": "Invalid profile data.",
       "PROFILE_PATCH_FAILED": "Save failed."
     }
+  },
+  "home": {
+    "title": "Home",
+    "lede": "Your member hub — more modules arrive as your workspace enables them."
+  },
+  "hub": {
+    "title": "More",
+    "empty": "No additional modules are available yet."
+  },
+  "unauthorized": {
+    "title": "Access not available",
+    "description": "You do not have access to the {moduleId} module.",
+    "backToHome": "Back to home"
+  },
+  "moduleStub": {
+    "lede": "This module is registered but not fully built yet.",
+    "backToHome": "Back to home"
   },
   "detail": {
     "backToList": "← Back to my registrations",

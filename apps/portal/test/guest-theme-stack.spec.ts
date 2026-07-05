@@ -46,6 +46,7 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     );
     assert.match(skin, /main\[data-catalog-registration-page\]/);
     assert.match(skin, /main\[data-portal-member-registrations\]/);
+    assert.match(skin, /main\[data-portal-member-home\]/);
     assert.match(skin, /main\[data-portal-member-profile\]/);
     assert.match(skin, /\[data-portal-shell\]/);
     assert.match(skin, /\[data-portal-shell-bottom-nav\]/);

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  resolvePortalMemberAreaUrl,
+  resolvePortalMemberModuleUrl,
   resolvePortalPublicBaseUrl,
   resolveWebRegistrationUrl,
   supportsCatalogRegistration,
@@ -68,13 +68,13 @@ describe("resolve-web-registration-url", () => {
     );
   });
 
-  it("MKT-13 static member area link to portal (PCMS-03)", () => {
+  it("MKT-13 static member module link to portal (PCMS-03)", () => {
     assert.equal(
-      resolvePortalMemberAreaUrl("denali.club"),
+      resolvePortalMemberModuleUrl("denali.club"),
       "http://portal.denali.club:3003/me/registrations"
     );
     assert.equal(
-      resolvePortalMemberAreaUrl("shop.urban.localhost:3002"),
+      resolvePortalMemberModuleUrl("shop.urban.localhost:3002"),
       "http://urban.portal.localhost:3003/me/registrations"
     );
   });

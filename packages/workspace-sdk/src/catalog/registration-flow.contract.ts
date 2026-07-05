@@ -16,6 +16,8 @@ export type RegistrationFlowContext = {
   readonly tourTransport?: PublicCatalogTransportSnapshot;
   readonly tourRequirements?: RegistrationFlowTourRequirements;
   readonly backHref: string;
+  /** GSH-resolved member module URL — workspace done steps MUST use this (DL-38). */
+  readonly memberModuleHref: string;
 };
 
 export type IntakeFlowDefinition = {

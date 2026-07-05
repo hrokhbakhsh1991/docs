@@ -91,20 +91,18 @@ Cookie write points: `verify-otp` (returning member), `register-complete` (new g
 
 ## 5. Marketing portal link (PCMS-03)
 
-Marketing header exposes a static link to portal `/me/registrations` via `resolvePortalMemberAreaUrl(host)`. No session probe on marketing — portal middleware handles auth redirect.
+Marketing header exposes a static link to the member default module via `resolvePortalMemberModuleUrl(host)` (PS-3+). **PS-7 (2026-07-05):** deprecated `resolvePortalMemberAreaUrl` removed from GSH — use `resolvePortalMemberModuleUrl` only. No session probe on marketing — portal middleware handles auth redirect.
 
-### 5.1 PCMS-003 Phase 3 follow-up (documented — not yet applied)
+**Default module route:** Resolved from workspace `memberPortal.defaultPrimaryModuleId` (Denali Phase 2: `trips` → `/me/registrations`). The path `/me/registrations` remains a **permanent alias** independent of default (DL-03).
 
-**Status:** Tracked; **PCMS body unchanged until PS-3 / BP-3a** lands the [Builder Migration Contract](../phase-19/member-portal-shell/builder-migration-contract.mdoc).
+### 5.1 PCMS-003 Phase 3 follow-up — applied (2026-07-05)
 
 | Field | Value |
 | ----- | ----- |
 | **Trigger** | `resolvePortalMemberModuleUrl` merged in GSH + delegation live |
-| **PCMS-003 update** | Replace hardcoded `/me/registrations` prose with: marketing egress uses `resolvePortalMemberModuleUrl(host)` (default module); `/me/registrations` remains permanent route alias (DL-03) |
-| **Traceability** | DL-22 · DL-26 · WRS addendum §7.1 · `guard-member-url-builder` |
-| **Cleanup** | Remove `resolvePortalMemberAreaUrl` references in PS-7 / BP-8 |
-
-Until Phase 3, §5 above remains accurate for repository truth.
+| **PCMS-003 update** | Marketing egress uses registry default module URL; frozen alias documented above |
+| **Traceability** | DL-22 · DL-26 · [builder-migration-contract.mdoc](../phase-19/member-portal-shell/builder-migration-contract.mdoc) · `guard-member-url-builder` |
+| **Cleanup** | Marketing migrated to `resolvePortalMemberModuleUrl` (PS-7 prep); remove deprecated export in BP-8 |
 
 ---
 

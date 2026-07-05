@@ -16,6 +16,8 @@ export type MembershipMetadataFields = {
   readonly gender?: OperatorProfileGender;
   readonly rewards?: MembershipRewardsRecord;
   readonly avatar?: OperatorMembershipAvatar;
+  /** PS-6 — explicit hidden-tier module grants (module ids). */
+  readonly portalModuleGrants?: readonly string[];
 };
 
 function readRewards(metadata: Prisma.JsonValue | undefined): MembershipRewardsRecord | undefined {
@@ -105,6 +107,7 @@ export function readMembershipMetadata(
     typeof record.gender === "string" && isOperatorProfileGender(record.gender)
       ? record.gender
       : undefined;
+  const portalModuleGrants = readPortalModuleGrantsArray(record.portalModuleGrants);
   return {
     ...(displayName !== undefined ? { displayName } : {}),
     ...(email !== undefined ? { email } : {}),
@@ -114,7 +117,16 @@ export function readMembershipMetadata(
     ...(gender !== undefined ? { gender } : {}),
     ...(rewards !== undefined ? { rewards } : {}),
     ...(avatar !== undefined ? { avatar } : {}),
+    ...(portalModuleGrants.length > 0 ? { portalModuleGrants } : {}),
   };
+}
+
+function readPortalModuleGrantsArray(raw: unknown): readonly string[] {
+  if (!Array.isArray(raw)) {
+    return Object.freeze([]);
+  }
+  const moduleIds = raw.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
+  return Object.freeze([...new Set(moduleIds)]);
 }
 
 function writeRewards(rewards: MembershipRewardsRecord): Prisma.InputJsonObject {
@@ -155,6 +167,9 @@ export function writeMembershipMetadata(input: MembershipMetadataFields): Prisma
     ...(input.gender !== undefined ? { gender: input.gender } : {}),
     ...(input.rewards !== undefined ? writeRewards(input.rewards) : {}),
     ...(input.avatar !== undefined ? { avatar: writeAvatar(input.avatar) } : {}),
+    ...(input.portalModuleGrants !== undefined && input.portalModuleGrants.length > 0
+      ? { portalModuleGrants: [...input.portalModuleGrants] }
+      : {}),
   };
 }
 

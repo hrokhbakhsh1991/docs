@@ -38,6 +38,7 @@ export type IdentityMembershipRecord = {
   readonly gender?: OperatorProfileGender;
   readonly rewards?: MembershipRewardsRecord;
   readonly avatar?: OperatorMembershipAvatar;
+  readonly portalModuleGrants?: readonly string[];
 };
 
 export type OtpChallengeRecord = {

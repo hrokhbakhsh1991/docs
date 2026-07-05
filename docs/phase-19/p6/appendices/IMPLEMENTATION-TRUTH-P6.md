@@ -118,7 +118,17 @@ p7_unblocked: true
 | Dev | tracked `.env.local.example` · `!.env.local.example` · portal `allowedDevOrigins` · `apps/api/.env.local.example` for Postgres |
 | Proof | `guard:public-catalog-m17` dynamic PASS · SDK-CAT + registration intake specs in `p6:gate` + `p4:gate` · portal unit · smokes 4/4 each |
 
-**PS-1 member portal shell (2026-07-05):** Phase 1 platform frame landed per [member-portal-shell/implementation-gates.mdoc](../../member-portal-shell/implementation-gates.mdoc) §6 Phase 1 exit. Inline `<nav>` removed from `app/me/layout.tsx`; member chrome lives in `apps/portal/src/shell/*` (`PortalMemberShell`, header, bottom nav, user menu). Landmarks: `[data-portal-shell]` root (dual legacy `[data-portal-member-shell]`), `[data-portal-shell-header]`, `[data-portal-shell-main]`, `[data-portal-shell-bottom-nav]`. Bare `GET /me` → `redirect("/me/registrations")` in `app/me/page.tsx` (DL-40 interim until PS-2 registry). Registration path stays outside `me/layout.tsx` — no bottom nav on `/catalog/*/register` (DL-01). Denali theme: dual CSS selectors in `denali-portal.css`. **Proof tier:** STATIC (`portal-member-shell.spec.ts` PS1-SHELL-01..05) + existing SMK-PTL-02..08 E2E. **Not in scope:** registry codegen (PS-2), GSH URL resolver (PS-3), entitlements (PS-5+).
+**PS-1 member portal shell (2026-07-05):** Phase 1 platform frame landed per [member-portal-shell/implementation-gates.mdoc](../../member-portal-shell/implementation-gates.mdoc) §6 Phase 1 exit. Inline `<nav>` removed from `app/me/layout.tsx`; member chrome lives in `apps/portal/src/shell/*` (`PortalMemberShell`, header, bottom nav, user menu). Landmarks: `[data-portal-shell]` root (dual legacy `[data-portal-member-shell]`), `[data-portal-shell-header]`, `[data-portal-shell-main]`, `[data-portal-shell-bottom-nav]`. Registration path stays outside `me/layout.tsx` — no bottom nav on `/catalog/*/register` (DL-01). Denali theme: dual CSS selectors in `denali-portal.css`. **Proof tier:** STATIC (`portal-member-shell.spec.ts` PS1-SHELL-01..05) + existing SMK-PTL-02..08 E2E.
+
+**PS-2 member portal registry (2026-07-05):** Manifest-driven nav per [member-portal-registry-schema.mdoc](../../member-portal-shell/member-portal-registry-schema.mdoc). Denali `memberPortal` block in `workspace.manifest.json` (`trips` → `/me/registrations`, `profile` → user menu). Codegen → `WORKSPACE_MEMBER_PORTAL_SURFACES` + `resolveMemberPortalModules` / `resolveMemberPortalDefaultRoutePath`. Portal shell consumes registry via `resolvePortalMemberNavForPlugin`; bare `/me` redirect uses `defaultPrimaryModuleId`. **Proof tier:** STATIC PS2-SHELL-01..03 + SDK PS2 specs + `guard-member-portal-registry.mjs`.
+
+**PS-3 GSH member URL builder (2026-07-05):** `resolvePortalMemberModuleUrl(host, moduleId?)` in `@app-tour/guest-surface-host` per [builder-migration-contract.mdoc](../../member-portal-shell/builder-migration-contract.mdoc). Registry route resolution + frozen `/me/registrations` fallback; `resolvePortalMemberAreaUrl` delegates (deprecated). PCMS-003 §5 updated. **Proof tier:** GSH `GSH-PS3-*` · `guard-member-url-builder.mjs`.
+
+**PS-4 cross-surface integration (2026-07-05):** `guestCrossSurfaceNav` manifest + codegen; marketing shell consumes `resolveMarketingShellNavLinks` (no `FULL_LANDING_NAV_LINKS`); Denali club nav excludes `/about`/`/contact` (DL-37). Registration done steps use `context.memberModuleHref` (GSH-injected). Portal `robots.ts` + noindex on `/me/*` and register. **Proof tier:** SDK PS4 · MKT-PS4 · PS4-SEO · guards GCSN/egress/seo.
+
+**PS-5 — platform home + entitlements + dispatcher (2026-07-05):** Platform `home`; entitlements via `GET /identity/me/entitlements` (API) proxied by portal BFF; shell nav ∩ entitlements; home aggregate; module dispatcher.
+
+**PS-6 partial (2026-07-05):** entitlement gate; tier evaluator + BFF cache; hub `/me/more`; L4; GCSN `memberModuleId`; embedded shell tag; `POST /api/me/entitlements/invalidate`. **PS-7 prep:** marketing uses `resolvePortalMemberModuleUrl` only. **Next:** CL-01 GSH export removal, legacy CSS sunset.
 
 | PS-1 artifact | Path |
 | ------------- | ---- |
@@ -132,6 +142,50 @@ p7_unblocked: true
 | Theme dual selectors | `packages/workspaces/denali/theme/denali-portal.css` |
 | Static proof | `apps/portal/test/portal-member-shell.spec.ts` |
 | Smoke config | `apps/portal/playwright.portal.config.ts` includes `portal-member-smoke.spec.ts` (SMK-PTL-02/04/05/06) |
+
+| PS-2 artifact | Path |
+| ------------- | ---- |
+| Schema doc | `docs/phase-19/member-portal-shell/member-portal-registry-schema.mdoc` |
+| Denali manifest block | `packages/workspaces/denali/workspace.manifest.json` → `memberPortal` |
+| SDK types + validation | `packages/workspace-sdk/src/portal/member-module-manifest.ts` |
+| Generated registry | `packages/workspace-sdk/src/portal/workspace-member-portal-surfaces.generated.ts` |
+| Resolver API | `packages/workspace-sdk/src/portal/resolve-member-portal-modules.ts` |
+| Portal nav adapter | `apps/portal/src/shell/resolve-portal-member-nav.server.ts` |
+| Codegen | `scripts/generate-workspace-registry.mjs` → `assertMemberPortalManifest` |
+| Guard | `scripts/guards/guard-member-portal-registry.mjs` · `pnpm run guard:member-portal-registry` |
+
+| PS-3 artifact | Path |
+| ------------- | ---- |
+| Module URL builder | `packages/guest-surface-host/src/resolve-portal-member-module-url.ts` |
+| Host → pluginId | `packages/guest-surface-host/src/resolve-plugin-id-from-ingress-host.ts` |
+| Deprecated delegate | `resolvePortalMemberAreaUrl` in same module |
+| GSH tests | `packages/guest-surface-host/test/resolve-portal-public-base-url.spec.ts` GSH-PS3-* |
+| Guard | `scripts/guards/guard-member-url-builder.mjs` |
+| PCMS update | `docs/standards/member-session-portal-authority.mdoc` §5 |
+
+| PS-4 artifact | Path |
+| ------------- | ---- |
+| Cross-surface nav schema | `docs/phase-19/member-portal-shell/guest-cross-surface-nav-schema.mdoc` |
+| Denali `guestCrossSurfaceNav` | `packages/workspaces/denali/workspace.manifest.json` |
+| Generated nav map | `packages/workspace-sdk/src/catalog/workspace-guest-cross-surface-nav.generated.ts` |
+| Marketing nav resolver | `apps/marketing/src/shell/resolve-marketing-shell-nav.server.ts` |
+| Registration egress | `RegistrationFlowContext.memberModuleHref` + portal register page |
+| Portal SEO | `apps/portal/app/robots.ts` · `app/me/layout.tsx` metadata |
+| Guards | `guard-guest-cross-surface-nav` · `guard-workspace-member-egress` · `guard-member-seo` |
+
+| PS-5 artifact | Path |
+| ------------- | ---- |
+| Platform home merge | `packages/workspace-sdk/src/portal/platform-member-portal-modules.ts` |
+| Route resolver | `resolveMemberPortalModuleByRoutePath` in `resolve-member-portal-modules.ts` |
+| Entitlements BFF | `apps/portal/app/api/me/entitlements/route.ts` |
+| Entitlements upstream | `apps/api/src/identity/me.entitlements.service.ts` · `GET /identity/me/entitlements` |
+| Home aggregate | `apps/portal/src/me/member-home-bff.server.ts` · `GET /api/me/home` |
+| Home page | `apps/portal/app/me/home/page.tsx` |
+| Module dispatcher | `apps/portal/app/me/[...modulePath]/page.tsx` |
+| Unauthorized UX | `apps/portal/src/me/member-module-unauthorized.tsx` (DL-21) |
+| Shell entitlements | `resolve-member-entitlements-for-shell.server.ts` · nav ∩ `granted` |
+| Meta guard | `pnpm run guard:member-portal-shell` |
+| Proof | SDK PS5-* · PS5-HOME/ENT/NAV/DISP · API-ME-ENT-* · SMK-PTL-09 |
 
 ---
 
@@ -162,6 +216,7 @@ p7_unblocked: true
 | Portal public-auth BFF | `apps/portal/app/api/public-auth/*` | Handler tests in `p6:gate` ✅ |
 | Member `/me` BFF | `app/api/me/registrations/route.ts` | Handler 401 in portal gate |
 | Member portal shell (PS-1) | `apps/portal/src/shell/*` + `app/me/layout.tsx` | STATIC `portal-member-shell.spec.ts` · E2E SMK-PTL-02..08 |
+| Member portal registry (PS-2) | `workspace.manifest.json` memberPortal + `workspace-sdk/src/portal/*` | STATIC PS2 + SDK PS2 · `guard-member-portal-registry` |
 | Bookings ops | `apps/api/src/bookings/` | In-memory HTTP in gate |
 | Host parity API | `p6-host-tenant-parity.spec.ts` | In-memory listener ✅ |
 | Denali plugin | `packages/workspaces/denali/` | Platform phase-6 package tests |

@@ -6,12 +6,12 @@
 
 /** Guest surface conformance level (PF-0.5 stub — manifest-derived only). */
 export const WORKSPACE_GUEST_CONFORMANCE_LEVELS: Readonly<
-  Record<string, "L0" | "L1" | "L2" | "L3">
+  Record<string, "L0" | "L1" | "L2" | "L3" | "L4">
 > = Object.freeze({
-  "denali": "L3",
+  "denali": "L4",
   "guest-club": "L3",
   "starter": "L0",
   "urban": "L3",
 });
 
-export type WorkspaceGuestConformanceLevel = "L0" | "L1" | "L2" | "L3";
+export type WorkspaceGuestConformanceLevel = "L0" | "L1" | "L2" | "L3" | "L4";

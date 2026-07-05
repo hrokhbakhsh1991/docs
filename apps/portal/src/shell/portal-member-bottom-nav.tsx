@@ -6,9 +6,14 @@ import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
-import { PHASE1_PRIMARY_NAV, PORTAL_MEMBER_SHELL_TEST_IDS } from "./portal-member-nav.types";
+import type { PortalMemberNavItem } from "./portal-member-nav.types";
+import { PORTAL_MEMBER_SHELL_TEST_IDS } from "./portal-member-nav.types";
 
-export function PortalMemberBottomNav() {
+export type PortalMemberBottomNavProps = {
+  readonly items: readonly PortalMemberNavItem[];
+};
+
+export function PortalMemberBottomNav({ items }: PortalMemberBottomNavProps) {
   const pathname = usePathname();
   const t = useTranslations("portalMember.nav");
 
@@ -20,7 +25,7 @@ export function PortalMemberBottomNav() {
       aria-label={t("primaryNav")}
     >
       <ul className="mx-auto flex max-w-3xl items-stretch justify-around gap-1 py-2">
-        {PHASE1_PRIMARY_NAV.map((item) => {
+        {items.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (

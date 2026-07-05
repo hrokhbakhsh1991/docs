@@ -33,8 +33,17 @@ export {
 export {
   resolvePortalPublicBaseUrl,
   resolvePortalRegistrationUrl,
-  resolvePortalMemberAreaUrl,
 } from "./resolve-portal-public-base-url";
+export {
+  resolvePortalMemberModuleUrl,
+  FROZEN_MEMBER_TRIPS_ROUTE_PATH,
+} from "./resolve-portal-member-module-url";
+export { resolvePluginIdFromIngressHost } from "./resolve-plugin-id-from-ingress-host";
+export {
+  isEmbeddedMemberPortalHost,
+  resolveEmbeddedMemberPortalHost,
+  type EmbeddedMemberPortalHost,
+} from "./embedded/resolve-embedded-member-portal-host";
 export {
   assertGuestBffProductionConfig,
   resolveTourOpsApiBaseUrl,

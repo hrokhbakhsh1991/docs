@@ -239,5 +239,62 @@
       "codeExport": "DENALI_REGISTRATION_DUPLICATE",
       "status": 409
     }
-  ]
+  ],
+  "guestCrossSurfaceNav": {
+    "version": 1,
+    "links": [
+      {
+        "id": "home",
+        "labelKey": "nav.home",
+        "surface": "marketing",
+        "path": "/",
+        "visibleWhen": "club"
+      },
+      {
+        "id": "tours",
+        "labelKey": "nav.tours",
+        "surface": "marketing",
+        "path": "/tours",
+        "visibleWhen": "club"
+      },
+      {
+        "id": "my-trips",
+        "labelKey": "nav.myTrips",
+        "surface": "portal_egress",
+        "egress": "member_module",
+        "memberModuleId": "trips",
+        "visibleWhen": "always"
+      }
+    ]
+  },
+  "memberPortal": {
+    "manifestVersion": 1,
+    "defaultPrimaryModuleId": "trips",
+    "modules": [
+      {
+        "id": "trips",
+        "routePath": "/me/registrations",
+        "nav": {
+          "tier": "primary",
+          "labelKey": "trips"
+        }
+      },
+      {
+        "id": "profile",
+        "routePath": "/me/profile",
+        "nav": {
+          "tier": "user_menu",
+          "labelKey": "profile"
+        }
+      },
+      {
+        "id": "wallet",
+        "routePath": "/me/wallet",
+        "nav": {
+          "tier": "hidden",
+          "labelKey": "wallet"
+        }
+      }
+    ]
+  }
 }

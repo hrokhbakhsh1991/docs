@@ -313,6 +313,12 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     operationId: "getIdentityMe",
   },
   {
+    method: "GET",
+    path: "/identity/me/entitlements",
+    summary: "Read authenticated member module entitlements",
+    operationId: "getIdentityMeEntitlements",
+  },
+  {
     method: "PATCH",
     path: "/identity/me",
     summary: "Patch authenticated operator profile",

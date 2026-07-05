@@ -1430,12 +1430,12 @@ export function generateWorkspaceGuestConformance(manifests) {
   return `${BANNER}
 /** Guest surface conformance level (PF-0.5 stub — manifest-derived only). */
 export const WORKSPACE_GUEST_CONFORMANCE_LEVELS: Readonly<
-  Record<string, "L0" | "L1" | "L2" | "L3">
+  Record<string, "L0" | "L1" | "L2" | "L3" | "L4">
 > = Object.freeze({
 ${entries}
 });
 
-export type WorkspaceGuestConformanceLevel = "L0" | "L1" | "L2" | "L3";
+export type WorkspaceGuestConformanceLevel = "L0" | "L1" | "L2" | "L3" | "L4";
 `;
 }
 
@@ -1445,6 +1445,9 @@ export function resolveGuestConformanceLevel(manifest) {
   const hasRegistrationFlow = manifest.catalogRegistrationFlow !== undefined;
   const hasMemberProfile = manifest.memberProfile !== undefined;
   if (hasCatalogRoutes && hasRegistrationFlow && hasMemberProfile) {
+    if (manifest.memberPortal !== undefined) {
+      return "L4";
+    }
     return "L3";
   }
   if (hasCatalogRoutes && hasRegistrationFlow) {
@@ -1463,9 +1466,21 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "catalogPresentation",
   "catalogRegistrationFlow",
   "memberProfile",
+  "memberPortal",
+  "guestCrossSurfaceNav",
   "guestSeo",
   "guestLanding",
 ];
+
+const MEMBER_PORTAL_NAV_TIERS = new Set(["primary", "secondary", "hidden", "user_menu"]);
+const MEMBER_PORTAL_RESERVED_MODULE_IDS = new Set(["home", "more", "api", "catalog"]);
+const MEMBER_PORTAL_L4_REFERENCE_PLUGIN_IDS = new Set(["denali"]);
+const MEMBER_PORTAL_L3_MEMBER_PORTAL_EXEMPT_PLUGIN_IDS = new Set([
+  "urban",
+  "starter",
+  "guest-club",
+]);
+const MEMBER_PORTAL_PRIMARY_TIER_CAP = 5;
 
 /**
  * PF-3.1 / Phase 10.3 — every manifest with httpRoutes must codegen handler loaders from workspace package.
@@ -1595,6 +1610,339 @@ export function assertMemberProfileManifest(manifest) {
       }
     }
   }
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertMemberPortalManifest(manifest) {
+  const memberPortal = manifest.memberPortal;
+  if (memberPortal === undefined) {
+    return;
+  }
+  if (typeof memberPortal !== "object" || Array.isArray(memberPortal)) {
+    throw new Error(`${manifest.id}: memberPortal must be an object`);
+  }
+  if (memberPortal.manifestVersion !== 1) {
+    throw new Error(`${manifest.id}: memberPortal.manifestVersion must be 1`);
+  }
+  if (
+    typeof memberPortal.defaultPrimaryModuleId !== "string" ||
+    memberPortal.defaultPrimaryModuleId.length === 0
+  ) {
+    throw new Error(`${manifest.id}: memberPortal.defaultPrimaryModuleId is required`);
+  }
+  if (!Array.isArray(memberPortal.modules) || memberPortal.modules.length === 0) {
+    throw new Error(`${manifest.id}: memberPortal.modules must be a non-empty array`);
+  }
+
+  const seenIds = new Set();
+  let primaryCount = 0;
+
+  for (const module of memberPortal.modules) {
+    if (typeof module?.id !== "string" || module.id.length === 0) {
+      throw new Error(`${manifest.id}: memberPortal.modules[].id is required`);
+    }
+    if (MEMBER_PORTAL_RESERVED_MODULE_IDS.has(module.id)) {
+      throw new Error(`${manifest.id}: MEMBER_PORTAL_RESERVED_MODULE_ID:${module.id}`);
+    }
+    if (seenIds.has(module.id)) {
+      throw new Error(`${manifest.id}: MEMBER_PORTAL_DUPLICATE_ID:${module.id}`);
+    }
+    seenIds.add(module.id);
+
+    if (typeof module.routePath !== "string" || !module.routePath.startsWith("/me/")) {
+      throw new Error(`${manifest.id}: MEMBER_PORTAL_INVALID_ROUTE:${module.id}:${module.routePath ?? ""}`);
+    }
+
+    const nav = module.nav;
+    if (typeof nav !== "object" || nav === null) {
+      throw new Error(`${manifest.id}: memberPortal.modules[${module.id}].nav is required`);
+    }
+    if (!MEMBER_PORTAL_NAV_TIERS.has(nav.tier)) {
+      throw new Error(`${manifest.id}: MEMBER_PORTAL_UNKNOWN_NAV_TIER:${nav.tier}`);
+    }
+    if (nav.tier === "primary") {
+      primaryCount += 1;
+    }
+    if (typeof nav.labelKey !== "string" || nav.labelKey.length === 0) {
+      throw new Error(`${manifest.id}: memberPortal.modules[${module.id}].nav.labelKey is required`);
+    }
+  }
+
+  if (primaryCount > MEMBER_PORTAL_PRIMARY_TIER_CAP) {
+    throw new Error(`${manifest.id}: MEMBER_PORTAL_PRIMARY_OVERFLOW`);
+  }
+  if (!seenIds.has(memberPortal.defaultPrimaryModuleId)) {
+    throw new Error(
+      `${manifest.id}: MEMBER_PORTAL_UNKNOWN_DEFAULT:${memberPortal.defaultPrimaryModuleId}`
+    );
+  }
+
+  const level = resolveGuestConformanceLevel(manifest);
+  if (
+    level === "L3" &&
+    manifest.memberPortal !== undefined &&
+    !MEMBER_PORTAL_L3_MEMBER_PORTAL_EXEMPT_PLUGIN_IDS.has(manifest.id) &&
+    !MEMBER_PORTAL_L4_REFERENCE_PLUGIN_IDS.has(manifest.id)
+  ) {
+    throw new Error(
+      `${manifest.id}: MEMBER_PORTAL_L3_PREMATURE_DECLARATION — memberPortal requires L4 promotion (DL-18)`
+    );
+  }
+}
+
+/** Fail closed when L4 reference workspaces lack memberPortal (PS-6 / DL-18). */
+export function assertMemberPortalL4ReferenceWorkspaces(manifests) {
+  for (const pluginId of MEMBER_PORTAL_L4_REFERENCE_PLUGIN_IDS) {
+    const manifest = manifests.find((entry) => entry.id === pluginId);
+    if (manifest === undefined) {
+      throw new Error(`MEMBER_PORTAL_L4_REFERENCE_MISSING_MANIFEST:${pluginId}`);
+    }
+    if (manifest.memberPortal === undefined) {
+      throw new Error(`MEMBER_PORTAL_L4_REFERENCE_MISSING_BLOCK:${pluginId}`);
+    }
+    if (resolveGuestConformanceLevel(manifest) !== "L4") {
+      throw new Error(`MEMBER_PORTAL_L4_REFERENCE_LEVEL:${pluginId}`);
+    }
+  }
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceMemberPortalSurfaces(manifests) {
+  /** @type {Record<string, object>} */
+  const surfaces = {};
+  for (const manifest of manifests) {
+    assertMemberPortalManifest(manifest);
+    if (manifest.memberPortal === undefined) {
+      continue;
+    }
+    const memberPortal = manifest.memberPortal;
+    const moduleBlocks = memberPortal.modules
+      .map(
+        (module) => `      Object.freeze({
+        id: ${JSON.stringify(module.id)},
+        routePath: ${JSON.stringify(module.routePath)},
+        nav: Object.freeze({
+          tier: ${JSON.stringify(module.nav.tier)},
+          labelKey: ${JSON.stringify(module.nav.labelKey)},
+        }),
+      }),`
+      )
+      .join("\n");
+
+    surfaces[manifest.id] = `  ${JSON.stringify(manifest.id)}: Object.freeze({
+    manifestVersion: 1 as const,
+    defaultPrimaryModuleId: ${JSON.stringify(memberPortal.defaultPrimaryModuleId)},
+    modules: Object.freeze([
+${moduleBlocks}
+    ] as const satisfies readonly MemberModuleManifest[]),
+  }),`;
+  }
+
+  const entries =
+    Object.keys(surfaces).length === 0
+      ? ""
+      : Object.entries(surfaces)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([, block]) => block)
+          .join("\n");
+
+  return `${BANNER}
+import type { MemberModuleManifest, MemberPortalSurface } from "./member-module-manifest";
+
+/** Member portal module registry rows — derived from workspace.manifest.json memberPortal. */
+export const WORKSPACE_MEMBER_PORTAL_SURFACES: Readonly<
+  Record<string, MemberPortalSurface>
+> = Object.freeze({
+${entries}
+});
+`;
+}
+
+const GCSN_PLATFORM_MOTHER_ONLY_PATHS = new Set(["/about", "/contact", "/pricing"]);
+const GCSN_LINK_ID_PATTERN = /^[a-z][a-z0-9-]{1,31}$/;
+const GCSN_MAX_LINKS = 8;
+const GCSN_WARN_LINKS = 6;
+const GCSN_RESERVED_MEMBER_MODULE_IDS = new Set(["more", "api", "catalog"]);
+const GCSN_PLATFORM_MEMBER_MODULE_IDS = new Set(["home"]);
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+function listGuestCrossSurfaceMemberModuleIds(manifest) {
+  /** @type {Set<string>} */
+  const allowed = new Set(GCSN_PLATFORM_MEMBER_MODULE_IDS);
+  const memberPortal = manifest.memberPortal;
+  if (memberPortal !== undefined && Array.isArray(memberPortal.modules)) {
+    for (const module of memberPortal.modules) {
+      if (typeof module?.id === "string" && module.id.length > 0) {
+        allowed.add(module.id);
+      }
+    }
+  }
+  return allowed;
+}
+
+/**
+ * @param {ReturnType<typeof discoverManifests>[number]} manifest
+ */
+export function assertGuestCrossSurfaceNavManifest(manifest) {
+  const guestCrossSurfaceNav = manifest.guestCrossSurfaceNav;
+  if (guestCrossSurfaceNav === undefined) {
+    return;
+  }
+  if (typeof guestCrossSurfaceNav !== "object" || Array.isArray(guestCrossSurfaceNav)) {
+    throw new Error(`${manifest.id}: guestCrossSurfaceNav must be an object`);
+  }
+  if (guestCrossSurfaceNav.version !== 1) {
+    throw new Error(`${manifest.id}: guestCrossSurfaceNav.version must be 1`);
+  }
+  if (!Array.isArray(guestCrossSurfaceNav.links) || guestCrossSurfaceNav.links.length === 0) {
+    throw new Error(`${manifest.id}: guestCrossSurfaceNav.links must be a non-empty array`);
+  }
+  if (guestCrossSurfaceNav.links.length > GCSN_MAX_LINKS) {
+    throw new Error(`${manifest.id}: GCSN-LINK-OVERFLOW`);
+  }
+  if (
+    guestCrossSurfaceNav.links.length > GCSN_WARN_LINKS &&
+    process.env.WARN_GCSN_LINK_COUNT !== "0"
+  ) {
+    console.warn(
+      `WARN_GCSN_LINK_COUNT:${manifest.id}: guestCrossSurfaceNav.links exceeds ${GCSN_WARN_LINKS}`
+    );
+  }
+
+  const seenIds = new Set();
+  for (const link of guestCrossSurfaceNav.links) {
+    if (typeof link?.id !== "string" || !GCSN_LINK_ID_PATTERN.test(link.id)) {
+      throw new Error(`${manifest.id}: GCSN-INVALID-ID:${link?.id ?? ""}`);
+    }
+    if (seenIds.has(link.id)) {
+      throw new Error(`${manifest.id}: GCSN-DUP-ID:${link.id}`);
+    }
+    seenIds.add(link.id);
+
+    if (typeof link.labelKey !== "string" || link.labelKey.length === 0) {
+      throw new Error(`${manifest.id}: guestCrossSurfaceNav.links[${link.id}].labelKey is required`);
+    }
+    if (link.surface !== "marketing" && link.surface !== "portal_egress") {
+      throw new Error(`${manifest.id}: GCSN-INVALID-SURFACE:${link.id}`);
+    }
+
+    const visibleWhen = link.visibleWhen ?? "club";
+
+    if (link.surface === "marketing") {
+      if (typeof link.path !== "string" || !link.path.startsWith("/")) {
+        throw new Error(`${manifest.id}: GCSN-INVALID-PATH:${link.id}`);
+      }
+      if (link.path.startsWith("/me")) {
+        throw new Error(`${manifest.id}: GCSN-PORTAL-PATH:${link.id}`);
+      }
+      if (link.path.includes("://")) {
+        throw new Error(`${manifest.id}: GCSN-ABSOLUTE:${link.id}`);
+      }
+      if (link.egress !== undefined) {
+        throw new Error(`${manifest.id}: GCSN-EGRESS-PATH:${link.id}`);
+      }
+      if (visibleWhen === "club" && GCSN_PLATFORM_MOTHER_ONLY_PATHS.has(link.path)) {
+        throw new Error(`${manifest.id}: GCSN-404-RISK:${link.id}:${link.path}`);
+      }
+    }
+
+    if (link.surface === "portal_egress") {
+      if (link.path !== undefined) {
+        throw new Error(`${manifest.id}: GCSN-EGRESS-PATH:${link.id}`);
+      }
+      if (
+        link.egress !== "member_module" &&
+        link.egress !== "marketing_home" &&
+        link.egress !== "marketing_tours"
+      ) {
+        throw new Error(`${manifest.id}: GCSN-INVALID-EGRESS:${link.id}`);
+      }
+      if (link.egress === "member_module") {
+        if (typeof link.memberModuleId !== "string" || link.memberModuleId.length === 0) {
+          throw new Error(`${manifest.id}: GCSN-MISSING-MEMBER-MODULE-ID:${link.id}`);
+        }
+        if (GCSN_RESERVED_MEMBER_MODULE_IDS.has(link.memberModuleId)) {
+          throw new Error(`${manifest.id}: GCSN-RESERVED-MEMBER-MODULE-ID:${link.id}`);
+        }
+        if (manifest.memberPortal !== undefined) {
+          const allowedModuleIds = listGuestCrossSurfaceMemberModuleIds(manifest);
+          if (!allowedModuleIds.has(link.memberModuleId)) {
+            throw new Error(
+              `${manifest.id}: GCSN-UNKNOWN-MEMBER-MODULE-ID:${link.id}:${link.memberModuleId}`
+            );
+          }
+        }
+      }
+    }
+
+    if (link.memberModuleId !== undefined && link.egress !== "member_module") {
+      throw new Error(`${manifest.id}: GCSN-MEMBER-MODULE-ID-EGRESS:${link.id}`);
+    }
+  }
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceGuestCrossSurfaceNav(manifests) {
+  /** @type {Record<string, string>} */
+  const surfaces = {};
+  for (const manifest of manifests) {
+    assertGuestCrossSurfaceNavManifest(manifest);
+    if (manifest.guestCrossSurfaceNav === undefined) {
+      continue;
+    }
+    const nav = manifest.guestCrossSurfaceNav;
+    const linkBlocks = nav.links
+      .map((link) => {
+        const pathEmit =
+          link.path === undefined ? "" : `\n        path: ${JSON.stringify(link.path)},`;
+        const egressEmit =
+          link.egress === undefined ? "" : `\n        egress: ${JSON.stringify(link.egress)},`;
+        const memberModuleIdEmit =
+          link.memberModuleId === undefined
+            ? ""
+            : `\n        memberModuleId: ${JSON.stringify(link.memberModuleId)},`;
+        const visibleEmit =
+          link.visibleWhen === undefined
+            ? ""
+            : `\n        visibleWhen: ${JSON.stringify(link.visibleWhen)},`;
+        return `      Object.freeze({
+        id: ${JSON.stringify(link.id)},
+        labelKey: ${JSON.stringify(link.labelKey)},
+        surface: ${JSON.stringify(link.surface)},${pathEmit}${egressEmit}${memberModuleIdEmit}${visibleEmit}
+      }),`;
+      })
+      .join("\n");
+
+    surfaces[manifest.id] = `  ${JSON.stringify(manifest.id)}: Object.freeze({
+    version: 1 as const,
+    links: Object.freeze([
+${linkBlocks}
+    ] as const satisfies readonly GuestCrossSurfaceNavLink[]),
+  }),`;
+  }
+
+  const entries =
+    Object.keys(surfaces).length === 0
+      ? ""
+      : Object.entries(surfaces)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([, block]) => block)
+          .join("\n");
+
+  return `${BANNER}
+import type { GuestCrossSurfaceNavLink, GuestCrossSurfaceNavSurface } from "./guest-cross-surface-nav";
+
+/** Guest cross-surface nav rows — derived from workspace.manifest.json guestCrossSurfaceNav. */
+export const WORKSPACE_GUEST_CROSS_SURFACE_NAV: Readonly<
+  Record<string, GuestCrossSurfaceNavSurface>
+> = Object.freeze({
+${entries}
+});
+`;
 }
 
 /** @param {ReturnType<typeof discoverManifests>} manifests */
@@ -2548,6 +2896,8 @@ export function generateAllOutputs(manifests) {
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
+    memberPortalSurfaces: generateWorkspaceMemberPortalSurfaces(manifests),
+    guestCrossSurfaceNav: generateWorkspaceGuestCrossSurfaceNav(manifests),
     guestConformance: generateWorkspaceGuestConformance(manifests),
     guestSeo: generateWorkspaceGuestSeo(manifests),
     guestLanding: generateWorkspaceGuestLanding(manifests),
@@ -2637,6 +2987,14 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "packages/workspace-sdk/src/profile/workspace-member-profile-capabilities.generated.ts"
   ),
+  memberPortalSurfaces: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/portal/workspace-member-portal-surfaces.generated.ts"
+  ),
+  guestCrossSurfaceNav: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-guest-cross-surface-nav.generated.ts"
+  ),
   guestConformance: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-guest-conformance.generated.ts"
@@ -2679,6 +3037,7 @@ function main() {
   const checkOnly = process.argv.includes("--check");
   const strictWebModules = process.argv.includes("--strict");
   const manifests = discoverManifests();
+  assertMemberPortalL4ReferenceWorkspaces(manifests);
   assertWizardI18nAssets(manifests);
   assertManifestWebModules(manifests, { strict: strictWebModules });
   const generated = generateAllOutputs(manifests);
@@ -2712,6 +3071,8 @@ function main() {
       "catalogDetailSections",
       "devPluginIds",
       "memberProfileCapabilities",
+      "memberPortalSurfaces",
+      "guestCrossSurfaceNav",
       "guestConformance",
       "guestSeo",
       "guestLanding",
@@ -2769,6 +3130,8 @@ function main() {
   writeFileSync(OUTPUT_PATHS.catalogDetailSections, generated.catalogDetailSections);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
+  writeFileSync(OUTPUT_PATHS.memberPortalSurfaces, generated.memberPortalSurfaces);
+  writeFileSync(OUTPUT_PATHS.guestCrossSurfaceNav, generated.guestCrossSurfaceNav);
   writeFileSync(OUTPUT_PATHS.guestConformance, generated.guestConformance);
   writeFileSync(OUTPUT_PATHS.guestSeo, generated.guestSeo);
   writeFileSync(OUTPUT_PATHS.guestLanding, generated.guestLanding);

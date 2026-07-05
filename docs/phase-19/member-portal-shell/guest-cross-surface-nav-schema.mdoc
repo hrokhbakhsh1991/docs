@@ -2,7 +2,7 @@
 title: Guest Cross-Surface Navigation Manifest Schema
 standard_id: MPS-GCSN-001
 version: 1.0.0
-status: pending_sign_off
+status: active
 extends:
   - ../platform-portal-member-shell-architecture.mdoc
   - ../../standards/wrs-portal-member-routing-addendum.mdoc
@@ -63,6 +63,7 @@ extends:
 | `surface` | `"marketing"` \| `"portal_egress"` | Yes | Target surface class |
 | `path` | `string` | Conditional | Relative path on **marketing** host — required when `surface=marketing` |
 | `egress` | `"member_module"` \| `"marketing_home"` \| `"marketing_tours"` | Conditional | Required when `surface=portal_egress` — resolved via GSH at render |
+| `memberModuleId` | `string` | Conditional | **Required** when `egress=member_module` — must exist in effective `memberPortal` registry (`home` or workspace module id) |
 | `visibleWhen` | `"always"` \| `"club"` \| `"platform_mother"` | No (default `club`) | Host visibility rule (DL-37) |
 
 ---
@@ -77,6 +78,10 @@ extends:
 | `visibleWhen=club` + path in platform-mother-only set | `GCSN-404-RISK` |
 | Absolute URL in `path` | `GCSN-ABSOLUTE` |
 | `portal_egress` + raw path | `GCSN-EGRESS-PATH` |
+| `egress=member_module` without `memberModuleId` | `GCSN-MISSING-MEMBER-MODULE-ID` |
+| `memberModuleId` not in effective registry | `GCSN-UNKNOWN-MEMBER-MODULE-ID` |
+| `memberModuleId` ∈ `{ more, api, catalog }` | `GCSN-RESERVED-MEMBER-MODULE-ID` |
+| `memberModuleId` on non-`member_module` egress | `GCSN-MEMBER-MODULE-ID-EGRESS` |
 
 ### 4.1 Platform-mother-only paths
 
@@ -118,6 +123,7 @@ When `visibleWhen` is **`platform_mother`**, allowed.
         "labelKey": "nav.myTrips",
         "surface": "portal_egress",
         "egress": "member_module",
+        "memberModuleId": "trips",
         "visibleWhen": "always"
       }
     ]
@@ -125,7 +131,7 @@ When `visibleWhen` is **`platform_mother`**, allowed.
 }
 ```
 
-**Render:** `member_module` → `resolvePortalMemberModuleUrl(host)` at marketing render boundary.
+**Render:** `member_module` → `resolvePortalMemberModuleUrl(host, link.memberModuleId)` at marketing render boundary.
 
 ### 5.2 Platform mother (about link)
 
@@ -164,4 +170,4 @@ When `visibleWhen` is **`platform_mother`**, allowed.
 
 ---
 
-*Schema doc v1.0.0 · PENDING SIGN-OFF · No JSON implementation in this PR*
+*Schema doc v1.0.0 · active · Implemented PS-4*

@@ -22,20 +22,21 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     assert.doesNotMatch(layout, /href="\/me\/registrations"/);
   });
 
-  it("PS1-SHELL-02 shell package exposes dual landmarks", () => {
+  it("PS1-SHELL-02 shell package exposes canonical landmarks", () => {
     const shell = readPortal("src/shell/portal-member-shell.tsx");
     const header = readPortal("src/shell/portal-member-header.tsx");
     const bottomNav = readPortal("src/shell/portal-member-bottom-nav.tsx");
     assert.match(shell, /data-portal-shell/);
-    assert.match(shell, /data-portal-member-shell/);
+    assert.doesNotMatch(shell, /data-portal-member-shell/);
     assert.match(shell, /data-portal-shell-main/);
     assert.match(header, /data-portal-shell-header/);
     assert.match(bottomNav, /data-portal-shell-bottom-nav/);
   });
 
-  it("PS1-SHELL-03 bare /me redirects to frozen alias", () => {
+  it("PS1-SHELL-03 bare /me redirects via member registry default", () => {
     const page = readPortal("app/me/page.tsx");
-    assert.match(page, /redirect\("\/me\/registrations"\)/);
+    assert.match(page, /resolveMemberPortalDefaultRoutePath/);
+    assert.doesNotMatch(page, /redirect\("\/me\/registrations"\)/);
   });
 
   it("PS1-SHELL-04 registration page is outside member shell layout", () => {
@@ -51,5 +52,44 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     const logout = readPortal("src/me/member-logout-button.tsx");
     assert.match(logout, /data-public-auth-logout/);
     assert.match(logout, /data-public-auth-logout-ready/);
+  });
+});
+
+describe("portal-member-shell.spec.ts — PS-2 registry nav", () => {
+  it("PS2-SHELL-01 me layout resolves registry nav for pluginId", () => {
+    const layout = readPortal("app/me/layout.tsx");
+    assert.match(layout, /resolvePortalMemberNavForPlugin/);
+    assert.match(layout, /primaryNav=/);
+    assert.match(layout, /userMenuNav=/);
+    assert.doesNotMatch(layout, /href="\/me\/registrations"/);
+    assert.doesNotMatch(layout, /href="\/me\/profile"/);
+  });
+
+  it("PS2-SHELL-02 bottom nav consumes registry items prop", () => {
+    const bottomNav = readPortal("src/shell/portal-member-bottom-nav.tsx");
+    assert.match(bottomNav, /items\.map/);
+    assert.doesNotMatch(bottomNav, /PHASE1_PRIMARY_NAV/);
+    assert.doesNotMatch(bottomNav, /href="\/me\/registrations"/);
+  });
+
+  it("PS2-SHELL-03 user menu consumes registry items prop", () => {
+    const userMenu = readPortal("src/shell/portal-member-user-menu.tsx");
+    assert.match(userMenu, /items\.map/);
+    assert.doesNotMatch(userMenu, /href="\/me\/profile"/);
+  });
+});
+
+describe("portal-member-shell.spec.ts — PS-5 entitlements nav", () => {
+  it("PS5-SHELL-01 me layout intersects registry nav with entitlements", () => {
+    const layout = readPortal("app/me/layout.tsx");
+    assert.match(layout, /resolveMemberEntitlementsForShell/);
+    assert.match(layout, /resolvePortalMemberNavForPlugin/);
+    assert.match(layout, /grantedEntitlementKeys/);
+  });
+
+  it("PS5-SHELL-02 nav resolver requires granted entitlement keys", () => {
+    const resolver = readPortal("src/shell/resolve-portal-member-nav.server.ts");
+    assert.match(resolver, /memberPortalEntitlementKey/);
+    assert.match(resolver, /grantedEntitlementKeys/);
   });
 });

@@ -42,6 +42,15 @@ describe("workspace guest conformance dual verify (PF-0.5.2)", () => {
     assert.match(generated, /"guest-club": "L3"/);
   });
 
+  it("denali reference manifest resolves to L4 when memberPortal present", () => {
+    const manifests = discoverManifests();
+    const denali = manifests.find((manifest) => manifest.id === "denali");
+    assert.ok(denali);
+    assert.equal(resolveGuestConformanceLevel(denali), "L4");
+    const generated = generateWorkspaceGuestConformance(manifests);
+    assert.match(generated, /"denali": "L4"/);
+  });
+
   it("guest-capable manifests require guestExtensionsVersion: 1", () => {
     const bad = buildGuestManifestObject("bad-guest");
     delete bad.guestExtensionsVersion;

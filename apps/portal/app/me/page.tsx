@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 
-/**
- * DL-40 — bare `/me` namespace root redirects to default primary module.
- * Phase 1 interim: frozen alias until PS-2 registry (DL-06).
- */
-export default function MeIndexPage() {
-  redirect("/me/registrations");
+import { resolveMemberPortalDefaultRoutePath } from "@app-tour/workspace-sdk";
+
+import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
+import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+
+export default async function MePage() {
+  const host = await readPortalIngressHost();
+  const bootstrap = await resolvePortalBootstrapForHost(host);
+  redirect(resolveMemberPortalDefaultRoutePath(bootstrap.pluginId));
 }

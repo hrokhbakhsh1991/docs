@@ -550,6 +550,9 @@ importers:
       '@app-tour/tenant-kernel':
         specifier: workspace:*
         version: link:../tenant-kernel
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../workspace-sdk
     devDependencies:
       '@app-tour/config':
         specifier: workspace:*

@@ -48,8 +48,11 @@ const marketingShell = readRepo("apps/marketing/src/shell/marketing-shell.tsx");
 if (!marketingShell.includes("data-marketing-portal-member")) {
   violations.push("marketing-shell.tsx: missing data-marketing-portal-member link");
 }
-if (!marketingShell.includes("portalMemberAreaUrl")) {
-  violations.push("marketing-shell.tsx: missing portalMemberAreaUrl prop");
+if (!marketingShell.includes("portalMemberModuleUrl")) {
+  violations.push("marketing-shell.tsx: missing portalMemberModuleUrl prop");
+}
+if (marketingShell.includes("resolvePortalMemberAreaUrl")) {
+  violations.push("marketing-shell.tsx: use resolvePortalMemberModuleUrl (PS-7 prep)");
 }
 
 const portalMiddleware = readRepo("apps/portal/middleware.ts");

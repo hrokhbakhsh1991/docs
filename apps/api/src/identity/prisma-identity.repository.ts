@@ -70,6 +70,9 @@ function toMembershipRecord(row: {
     ...(metadata.gender !== undefined ? { gender: metadata.gender } : {}),
     ...(metadata.rewards !== undefined ? { rewards: metadata.rewards } : {}),
     ...(metadata.avatar !== undefined ? { avatar: metadata.avatar } : {}),
+    ...(metadata.portalModuleGrants !== undefined && metadata.portalModuleGrants.length > 0
+      ? { portalModuleGrants: metadata.portalModuleGrants }
+      : {}),
   };
 }
 

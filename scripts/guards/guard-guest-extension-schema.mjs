@@ -33,6 +33,12 @@ if (!fs.existsSync(SCHEMA_PATH)) {
   if (schema.properties?.memberProfile?.additionalProperties !== false) {
     violations.push("schema must make memberProfile additionalProperties false");
   }
+  if (schema.properties?.memberPortal?.additionalProperties !== false) {
+    violations.push("schema must make memberPortal additionalProperties false");
+  }
+  if (schema.properties?.guestCrossSurfaceNav?.additionalProperties !== false) {
+    violations.push("schema must make guestCrossSurfaceNav additionalProperties false");
+  }
   if (schema.properties?.guestSeo?.additionalProperties !== false) {
     violations.push("schema must make guestSeo additionalProperties false");
   }

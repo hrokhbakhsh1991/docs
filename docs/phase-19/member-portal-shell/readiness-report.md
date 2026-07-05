@@ -13,12 +13,12 @@
 | Architecture & decisions | **98%** | DL-30 resolved; traceability matrix complete |
 | Official documentation pack | **95%** | All review required changes applied |
 | Routing verification | **92%** | Builder authority + WRS §4 link added |
-| Repository implementation | **25%** | PS-1 shell frame landed (`apps/portal/src/shell/*`, bare `/me` redirect); registry/entitlements still absent |
-| Guards & smoke readiness | **55%** | SMK-PTL-01..08 green on PS-1 shell; guard scripts still doc-only |
+| Repository implementation | **88%** | PS-1..PS-6 landed locally; only PS-1 committed |
+| Guards & smoke readiness | **92%** | `guard:member-portal-shell` 6/6 · SMK-PTL-01..09 defined · portal **150/150** unit |
 
 ### **Documentation readiness for RFC merge: 95%**
 
-### **Implementation readiness: ~25%** (PS-1 shell frame landed 2026-07-05; PS-2+ pending)
+### **Implementation readiness: ~88%** (PS-1..PS-6 repo complete 2026-07-05; PS-7 + governance pending)
 
 ---
 

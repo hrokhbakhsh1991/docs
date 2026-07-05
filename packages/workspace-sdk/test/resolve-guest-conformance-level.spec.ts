@@ -7,8 +7,8 @@ import {
 } from "../src/catalog/resolve-guest-conformance-level";
 
 describe("resolveGuestConformanceLevelForPlugin", () => {
-  it("SDK-GCONF-01 resolves denali and urban as L3", () => {
-    assert.equal(resolveGuestConformanceLevelForPlugin("denali"), "L3");
+  it("SDK-GCONF-01 resolves denali as L4 reference and urban as L3", () => {
+    assert.equal(resolveGuestConformanceLevelForPlugin("denali"), "L4");
     assert.equal(resolveGuestConformanceLevelForPlugin("urban"), "L3");
   });
 

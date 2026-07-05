@@ -68,7 +68,8 @@
   },
   "success": {
     "message": "Registration received for {tourTitle}. Thank you!",
-    "backToTour": "Back to tour"
+    "backToTour": "Back to tour",
+    "viewRegistrations": "View my registrations"
   },
   "errors": {
     "MOBILE_REQUIRED": "Enter a valid mobile number.",

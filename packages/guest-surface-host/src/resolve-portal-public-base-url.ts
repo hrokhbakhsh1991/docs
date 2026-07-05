@@ -14,8 +14,3 @@ export function resolvePortalRegistrationUrl(host: string, tourId: string): stri
   const id = tourId.trim();
   return `${resolvePortalPublicBaseUrl(host)}/catalog/${encodeURIComponent(id)}/register`;
 }
-
-/** PCMS-003 — static marketing link to member area (no session probe). */
-export function resolvePortalMemberAreaUrl(host: string): string {
-  return `${resolvePortalPublicBaseUrl(host)}/me/registrations`;
-}

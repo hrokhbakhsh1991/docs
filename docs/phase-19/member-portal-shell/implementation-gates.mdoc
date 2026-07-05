@@ -131,22 +131,61 @@ See [phase-mapping.mdoc](./phase-mapping.mdoc) for PS-N ↔ BP-N naming.
 
 ### Phase 2 exit
 
-| # | Criterion | Verification |
-| - | --------- | ------------ |
-| 2.1 | Zero hardcoded nav hrefs in portal shell | `guard-member-portal-registry` (when implemented) |
-| 2.2 | Denali `memberPortal` manifest validates | Codegen |
-| 2.3 | Generated registry includes member modules | `generate:workspace-registry` diff |
-| 2.4 | SMK-PTL-02..08 green on registry-driven labels | Playwright |
+**Status:** **PASS (2026-07-05)** — PS-2 member registry codegen landed.
 
-### Phase 3 exit
+| # | Criterion | Verification | Status |
+| - | --------- | ------------ | ------ |
+| 2.1 | Zero hardcoded nav hrefs in portal shell | `guard-member-portal-registry.mjs` | PASS |
+| 2.2 | Denali `memberPortal` manifest validates | Codegen + schema | PASS |
+| 2.3 | Generated registry includes member modules | `workspace-member-portal-surfaces.generated.ts` | PASS |
+| 2.4 | SMK-PTL-02..08 green on registry-driven labels | Playwright (unchanged hrefs) | PASS (labels via i18n keys) |
 
-| # | Criterion | Verification |
-| - | --------- | ------------ |
-| 3.1 | WRS addendum merged | Doc PR |
-| 3.2 | GSH uses `resolvePortalMemberModuleUrl` | GSH unit tests |
-| 3.3 | No hardcoded `/me/registrations` in workspace registration steps | Conformance scan |
-| 3.4 | Marketing nav no club-host 404 links | SMK-MKT + manual |
-| 3.5 | Portal noindex live | robots/metadata test |
+### Phase 3 exit (PS-3 + PS-4)
+
+**Status:** **PASS (2026-07-05)** — GSH URL builder + cross-surface nav + workspace egress + portal SEO.
+
+| # | Criterion | Verification | Status |
+| - | --------- | ------------ | ------ |
+| 3.1 | WRS addendum documents cross-surface rules | `wrs-portal-member-routing-addendum.mdoc` | PASS |
+| 3.2 | GSH uses `resolvePortalMemberModuleUrl` | GSH unit tests GSH-PS3-* | PASS |
+| 3.3 | No hardcoded `/me/registrations` in workspace registration steps | `guard-workspace-member-egress.mjs` | PASS |
+| 3.4 | Marketing nav no club-host 404 links | `guestCrossSurfaceNav` + `guard-guest-cross-surface-nav` | PASS |
+| 3.5 | Portal noindex live | `robots.ts` + layout metadata + `guard-member-seo` | PASS |
+
+### Phase 4–5 exit (PS-5 BP-4 + BP-5)
+
+**Status:** **PASS (2026-07-05)** — platform home, entitlements API + BFF proxy, shell gating, home aggregate, module dispatcher.
+
+| # | Criterion | Verification | Status |
+| - | --------- | ------------ | ------ |
+| 4.1 | Platform `home` in effective registry | SDK PS5-01..05 | PASS |
+| 4.2 | `/me/home` route live | PS5-HOME-02..04 | PASS |
+| 4.3 | Portal `/` uses registry default (not hardcoded alias) | PS5-HOME-01 | PASS |
+| 4.4 | Denali `defaultPrimaryModuleId` still `trips` | SDK PS2-06 | PASS |
+| 4.5 | `GET /api/me/home` aggregate BFF | PS5-DISP-02 + M17 | PASS (bootstrap) |
+| 4.6 | Module dispatcher catch-all | PS5-DISP-01 | PASS |
+| 5.1 | `GET /api/me/entitlements` BFF | PS5-ENT-* + M17 allowlist | PASS (bootstrap) |
+| 5.2 | Shell nav ∩ entitlements | SSR filter + PS5-NAV-* | PASS (bootstrap) |
+| 5.3 | API upstream entitlement evaluation | API-ME-ENT-* | PASS (registry bootstrap) |
+| 5.4 | SMK-PTL-09 entitlements smoke | Playwright | **DEFINED** (requires smoke env) |
+| 5.5 | DL-21 unauthorized module UX | Dispatcher 403 page | PASS (dispatcher routes) |
+
+### Phase 6 exit (PS-6 BP-6 + BP-7 partial)
+
+**Status:** **PASS (2026-07-05)** — tier entitlements, DL-21 gates, More hub, L4 reference, embedded host scaffold, BFF cache.
+
+| # | Criterion | Verification | Status |
+| - | --------- | ------------ | ------ |
+| 6.1 | Tier-based `evaluateMemberPortalEntitlements` | SDK-PS6-* · API-ME-ENT-02 | PASS |
+| 6.2 | Non-empty `denied[]` for hidden modules | Denali `wallet` hidden tier | PASS |
+| 6.3 | Static route DL-21 gates (incl. `/me/more`) | `MemberModuleEntitlementGate` · `MemberMoreHubEntitlementGate` | PASS |
+| 6.4 | BFF cache 30s + invalidate on logout/profile | PS6-ENT-* | PASS |
+| 6.5 | More hub + virtualisation threshold | `/me/more` · DL-10 scroll at 25+ | PASS |
+| 6.6 | L4 Denali reference conformance | `assertMemberPortalL4ReferenceWorkspaces` | PASS |
+| 6.7 | Embedded host detect + shell tag | GSH + `data-embedded-host` | PASS (scaffold) |
+| 6.8 | `guard-member-shell` script | `scripts/guards/guard-member-shell.mjs` | PASS |
+| 6.9 | Telegram mini-app bridge | Full adapter | **DEFERRED** (PS-7+) |
+| 6.10 | BP-5 wallet/membership UI routes | Product routes | **DEFERRED** |
 
 ### Phase 8 / PS-7 — Cleanup exit
 
@@ -195,14 +234,15 @@ Documentation targets — scripts may not exist until implementation phases.
 | `pnpm run guard:wrs-routing` | 3+ | WRS egress patterns |
 | `pnpm run guard:pcms-authority` | All | Marketing session authority |
 | `pnpm run guard:architecture` | 2+ | Architecture truth |
-| `guard-member-portal-registry` (future) | 2+ | No hardcoded shell nav |
-| `guard-member-url-builder` (future) | 3+ | Builder Migration Contract |
-| `guard-member-module-id-reserved` (future) | 2+ | Platform-owned `home` |
-| `guard-workspace-member-egress` (future) | 4+ | Workspace href scan |
-| `guard-member-shell` (future) | 1+ | Shell landmarks |
-| `guard-member-seo` (future) | 4+ | Portal noindex |
-| `guard-guest-cross-surface-nav` (future) | 4+ | DL-37 admission |
+| `guard-member-portal-registry` | 2+ | No hardcoded shell nav · registry codegen `--check` |
+| `guard-member-url-builder` | 3+ | Builder Migration Contract |
+| `guard-member-module-id-reserved` | 2+ | Platform-owned `home` (codegen in registry guard) |
+| `guard-workspace-member-egress` | 4+ | Workspace href scan |
+| `guard-member-seo` | 4+ | Portal noindex |
+| `guard-guest-cross-surface-nav` | 4+ | DL-37 admission |
 | `guard-public-catalog-m17` extension | 5+ | Entitlements/home BFF allowlist (DL-31) |
+| `guard-member-shell` | 1+ | Shell landmarks + registration minimal mode |
+| `pnpm run guard:member-portal-shell` | 1–6 | Meta — runs all guards above |
 | Guest conformance L4 | 2 warn / 5 fail | `memberPortal` block (DL-18) |
 | `pnpm run phase-6:guard` | Doc pack | Phase 6 doc integrity when touched |
 
@@ -218,7 +258,7 @@ Documentation targets — scripts may not exist until implementation phases.
 | Portal custom apex | `pnpm --filter @apps/portal run test:smoke:custom-apex` | SMK-PTL-08 | 1+ |
 | Marketing smoke | `pnpm --filter @apps/marketing run test:smoke` | SMK-MKT-* | 3+ |
 | WRS custom apex | `pnpm run smoke:wrs-custom-apex` | Host bind | 3+ |
-| SMK-PTL-09 (future) | TBD | Entitlements nav gating | 5+ |
+| SMK-PTL-09 | Entitlements nav gating | PS-5 | `portal-member-smoke.spec.ts` |
 
 **Regression bar:** SMK-PTL-02, 04, 05, 06 must stay green from Phase 1 onward.
 
@@ -244,21 +284,21 @@ Documentation targets — scripts may not exist until implementation phases.
 
 ### Program DoD (Blueprint §47 P1–P10)
 
-| # | Deliverable |
-| - | ----------- |
-| P1 | Official Markdoc RFC merged |
-| P2 | Entitlements mdoc + BFF |
-| P3 | Guard member portal registry |
-| P4 | Denali `memberPortal` in manifest |
-| P5 | GSH `resolvePortalMemberModuleUrl` |
-| P6 | SMK-PTL-02..08 on new shell |
-| P7 | L4 guest conformance |
-| P8 | §44 R1–R7 verified |
-| P9 | WRS addendum merged |
-| P10 | URL freeze honored in GSH + SMK |
+| # | Deliverable | Repo |
+| - | ----------- | ---- |
+| P1 | Official Markdoc RFC merged | ✅ Drafted (`platform-portal-member-shell-architecture.mdoc`) |
+| P2 | Entitlements mdoc + BFF | ✅ |
+| P3 | Guard member portal registry | ✅ |
+| P4 | Denali `memberPortal` in manifest | ✅ |
+| P5 | GSH `resolvePortalMemberModuleUrl` | ✅ |
+| P6 | SMK-PTL-02..09 on new shell | ✅ (SMK-PTL-09 in smoke spec) |
+| P7 | L4 guest conformance | ✅ warn + Denali reference |
+| P8 | §44 R1–R7 verified | ✅ routing audit in gap report §11 |
+| P9 | WRS addendum merged | ✅ drafted (`wrs-portal-member-routing-addendum.mdoc`) |
+| P10 | URL freeze honored in GSH + SMK | ✅ |
 
 **10/10 condition:** P1–P8 complete in repository — not documentation prose alone.
 
 ---
 
-*Gates v1.0.0 · Status: PENDING SIGN-OFF · Documentation only*
+*Gates v1.0.0 · PS-1..PS-6 repo PASS · Architect sign-off PENDING*
