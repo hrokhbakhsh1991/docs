@@ -10,11 +10,11 @@
 
 | Layer | Status |
 | ----- | ------ |
-| PS-1 Platform shell | ✅ Landed (committed `10f92ee6`) |
-| PS-2 Member registry codegen | ✅ Landed (uncommitted) |
-| PS-3 GSH URL builder | ✅ Landed (uncommitted) |
-| PS-4 Cross-surface integration | ✅ Landed (uncommitted) |
-| PS-5 Home + entitlements + dispatcher | ✅ Landed (uncommitted) |
+| PS-1 Platform shell | ✅ `10f92ee6` + `41036845` |
+| PS-2 Member registry codegen | ✅ `41036845` |
+| PS-3 GSH URL builder | ✅ `41036845` |
+| PS-4 Cross-surface integration | ✅ `41036845` |
+| PS-5 Home + entitlements + dispatcher | ✅ `41036845` |
 | PS-6 Scale / embedded | ✅ Complete (bootstrap; mini-app bridge deferred) |
 | PS-7 Cleanup (BP-8) | ✅ CL-01 + CL-03/04/05 (deprecated export + legacy shell CSS/DOM) |
 
@@ -77,7 +77,7 @@
 | ---- | ------ |
 | Architect sign-off DL-01..42 | **PENDING SIGN-OFF** |
 | RFC + WRS addendum PR merge | **PENDING SIGN-OFF** |
-| Git commit PS-2..PS-7 work | ✅ `694620f0` |
+| Git commit PS-2..PS-7 work | ✅ `41036845` on `DEV` |
 | SMK-PTL-09 Playwright run | **DEFINED** — requires smoke env |
 
 ---
