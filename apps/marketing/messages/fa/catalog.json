@@ -185,7 +185,13 @@
     "gallery": {
       "heading": "گالری تصاویر",
       "photoAlt": "{title} — تصویر {index, number}",
-      "morePhotos": "+{count, number} عکس دیگر"
+      "morePhotos": "+{count, number} عکس دیگر",
+      "morePhotosOpen": "مشاهده {count, number} عکس دیگر در گالری",
+      "openPhoto": "بزرگ‌نمایی تصویر {index, number}",
+      "lightboxClose": "بستن گالری",
+      "lightboxPrev": "تصویر قبلی",
+      "lightboxNext": "تصویر بعدی",
+      "lightboxCounter": "{current} از {total}"
     },
     "registerPreview": {
       "heading": "پیش از ثبت‌نام",
@@ -300,15 +306,15 @@
         "explore": "مشاهده تورها",
         "alborz": {
           "name": "البرز",
-          "description": "قله‌ها و مسیرهای کلاسیک شمال تهران."
+          "description": "مسیرهای محبوب شمال تهران — از پیاده‌روی روزانه تا صعودهای کلاسیک."
         },
         "damavand": {
           "name": "دماوند",
-          "description": "بلندترین قله ایران — برنامه‌های فصلی."
+          "description": "صعود فصلی با برنامه مشخص — مناسب کوهنوردان آماده ارتفاع."
         },
         "zardkuh": {
           "name": "زردکوه",
-          "description": "قله‌های چهارمحال و بختیاری."
+          "description": "قله‌های بکر زاگرس — طبیعت دست‌نخورده و مسیرهای متنوع."
         }
       },
       "search": {
@@ -318,9 +324,16 @@
       },
       "gallery": {
         "title": "گالری سفر",
-        "lead": "عکس‌های واقعی از برنامه‌های منتشرشده — هر تصویر پنجره‌ای به یک سفر.",
-        "viewTour": "مشاهده تور",
-        "browseAll": "همه تورها"
+        "lead": "لحظه‌های واقعی از کوه و طبیعت — برای الهام، نه لینک به تور.",
+        "browseAll": "همه تورها",
+        "scrollPrev": "عکس قبلی",
+        "scrollNext": "عکس بعدی",
+        "openPhoto": "بزرگ‌نمایی تصویر {index}",
+        "photos": {
+          "01": "قله در مه صبحگاهی",
+          "02": "پیاده‌روی در مسیر سنگی",
+          "03": "اردوگاه در غروب"
+        }
       },
       "equipment": {
         "title": "چک‌لیست تجهیزات",

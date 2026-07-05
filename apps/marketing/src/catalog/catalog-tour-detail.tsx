@@ -4,6 +4,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { resolveCatalogDetailSections } from "@app-tour/workspace-sdk";
 
+import { CatalogTourDetailPhotoLightboxShell } from "./catalog-tour-detail-photo-lightbox-shell";
+import { CatalogTourDetailPhotoLightboxTrigger } from "./catalog-tour-detail-photo-lightbox";
 import { CatalogCoverImage } from "./catalog-cover-image";
 import { CatalogTourDetailBookingRail } from "./catalog-tour-detail-booking-rail";
 import { CatalogTourDetailFacts } from "./catalog-tour-detail-facts";
@@ -94,102 +96,114 @@ export async function CatalogTourDetail({
   });
 
   return (
-    <article
-      data-marketing-catalog-tour-detail
-      {...(registration.canRegister ? { "data-marketing-catalog-detail-has-sticky": true } : {})}
-      {...(showRegisterBlock ? { "data-marketing-catalog-detail-has-booking-rail": true } : {})}
-    >
-      <div data-marketing-catalog-detail-layout>
-        <div data-marketing-catalog-detail-main>
-          <div data-marketing-catalog-detail-intro>
-            <Link href="/tours" data-marketing-catalog-detail-back>
-              {t("detail.backToTours")}
-            </Link>
+    <CatalogTourDetailPhotoLightboxShell tour={tour} title={title}>
+      <article
+        data-marketing-catalog-tour-detail
+        {...(registration.canRegister ? { "data-marketing-catalog-detail-has-sticky": true } : {})}
+        {...(showRegisterBlock ? { "data-marketing-catalog-detail-has-booking-rail": true } : {})}
+      >
+        <div data-marketing-catalog-detail-layout>
+          <div data-marketing-catalog-detail-main>
+            <div data-marketing-catalog-detail-intro>
+              <Link href="/tours" data-marketing-catalog-detail-back>
+                {t("detail.backToTours")}
+              </Link>
 
-            {denaliPdp.showHeroGallery ? (
-              <CatalogTourDetailHeroGallery tour={tour} title={title} />
-            ) : tour.coverImageUrl ? (
-              <figure data-marketing-catalog-detail-cover data-marketing-catalog-detail-hero>
-                <CatalogCoverImage src={tour.coverImageUrl} alt={title} width={960} height={540} />
-              </figure>
-            ) : null}
-
-            <header data-marketing-catalog-detail-header>
-              <h1 data-marketing-catalog-detail-title>{title}</h1>
-              {destinationLabel.length > 0 ? (
-                <p data-marketing-catalog-detail-destination>{destinationLabel}</p>
+              {denaliPdp.showHeroGallery ? (
+                <CatalogTourDetailHeroGallery tour={tour} title={title} />
+              ) : tour.coverImageUrl ? (
+                <figure data-marketing-catalog-detail-cover data-marketing-catalog-detail-hero>
+                  <CatalogTourDetailPhotoLightboxTrigger
+                    index={0}
+                    ariaLabel={t("detail.gallery.openPhoto", { index: 1 })}
+                  >
+                    <CatalogCoverImage
+                      src={tour.coverImageUrl}
+                      alt={title}
+                      width={960}
+                      height={540}
+                    />
+                  </CatalogTourDetailPhotoLightboxTrigger>
+                </figure>
               ) : null}
-            </header>
+
+              <header data-marketing-catalog-detail-header>
+                <h1 data-marketing-catalog-detail-title>{title}</h1>
+                {destinationLabel.length > 0 ? (
+                  <p data-marketing-catalog-detail-destination>{destinationLabel}</p>
+                ) : null}
+              </header>
+            </div>
+
+            {metaLine ? <p data-marketing-catalog-detail-meta>{metaLine}</p> : null}
+
+            <CatalogTourDetailFacts
+              tour={tour}
+              pluginId={pluginId}
+              registrationUrl={registrationUrl}
+            />
+
+            <CatalogTourDetailJumpNav
+              showReadiness={denaliPdp.showReadiness}
+              showItinerary={showItinerary}
+              showLogistics={denaliPdp.showLogistics}
+              showGear={denaliPdp.showGear}
+              showGallery={denaliPdp.showGalleryNav}
+              showPolicies={showPolicies}
+              showRegisterPreview={denaliPdp.showRegisterPreview}
+              showFaq={denaliPdp.showFaq}
+            />
+
+            {description ? <p data-marketing-catalog-detail-description>{description}</p> : null}
+            {longDescription.length > 0 ? (
+              <div data-marketing-catalog-detail-long-description>{longDescription}</div>
+            ) : null}
+
+            {isDenali ? <CatalogTourDetailReadiness tour={tour} pluginId={pluginId} /> : null}
+            {isDenali ? <CatalogTourDetailGallery tour={tour} title={title} /> : null}
+
+            <div data-marketing-catalog-detail-body>
+              {showItinerary ? (
+                <CatalogItinerarySection
+                  days={tour.itineraryDays!}
+                  heading={t("detail.itineraryHeading")}
+                  dayLabel={(dayNumber) => t("detail.itineraryDay", { day: dayNumber })}
+                  segmentsHeading={t("detail.itinerarySegments")}
+                  locale={locale}
+                  sectionId="catalog-detail-itinerary"
+                  useAccordion={tour.itineraryDays!.length > 2}
+                />
+              ) : null}
+
+              {isDenali ? <CatalogTourDetailLogistics tour={tour} /> : null}
+              {isDenali ? <CatalogTourDetailGearServices tour={tour} /> : null}
+
+              {showPolicies ? (
+                <div id="catalog-detail-policies">
+                  <CatalogTourDetailPolicies tour={tour} />
+                </div>
+              ) : null}
+
+              {denaliPdp.showRegisterPreview ? (
+                <CatalogTourDetailRegisterPreview tour={tour} />
+              ) : null}
+              {denaliPdp.showFaq ? <CatalogTourDetailFaq tour={tour} /> : null}
+            </div>
           </div>
 
-          {metaLine ? <p data-marketing-catalog-detail-meta>{metaLine}</p> : null}
-
-          <CatalogTourDetailFacts
-            tour={tour}
-            pluginId={pluginId}
-            registrationUrl={registrationUrl}
-          />
-
-          <CatalogTourDetailJumpNav
-            showReadiness={denaliPdp.showReadiness}
-            showItinerary={showItinerary}
-            showLogistics={denaliPdp.showLogistics}
-            showGear={denaliPdp.showGear}
-            showGallery={denaliPdp.showGalleryNav}
-            showPolicies={showPolicies}
-            showRegisterPreview={denaliPdp.showRegisterPreview}
-            showFaq={denaliPdp.showFaq}
-          />
-
-          {description ? <p data-marketing-catalog-detail-description>{description}</p> : null}
-          {longDescription.length > 0 ? (
-            <div data-marketing-catalog-detail-long-description>{longDescription}</div>
-          ) : null}
-
-          {isDenali ? <CatalogTourDetailReadiness tour={tour} pluginId={pluginId} /> : null}
-          {isDenali ? <CatalogTourDetailGallery tour={tour} title={title} /> : null}
-
-          <div data-marketing-catalog-detail-body>
-            {showItinerary ? (
-              <CatalogItinerarySection
-                days={tour.itineraryDays!}
-                heading={t("detail.itineraryHeading")}
-                dayLabel={(dayNumber) => t("detail.itineraryDay", { day: dayNumber })}
-                segmentsHeading={t("detail.itinerarySegments")}
-                locale={locale}
-                sectionId="catalog-detail-itinerary"
-                useAccordion={tour.itineraryDays!.length > 2}
-              />
-            ) : null}
-
-            {isDenali ? <CatalogTourDetailLogistics tour={tour} /> : null}
-            {isDenali ? <CatalogTourDetailGearServices tour={tour} /> : null}
-
-            {showPolicies ? (
-              <div id="catalog-detail-policies">
-                <CatalogTourDetailPolicies tour={tour} />
-              </div>
-            ) : null}
-
-            {denaliPdp.showRegisterPreview ? (
-              <CatalogTourDetailRegisterPreview tour={tour} />
-            ) : null}
-            {denaliPdp.showFaq ? <CatalogTourDetailFaq tour={tour} /> : null}
-          </div>
+          <CatalogTourDetailBookingRail tour={tour} registration={registration} />
         </div>
 
-        <CatalogTourDetailBookingRail tour={tour} registration={registration} />
-      </div>
+        <CatalogTourDetailStickyBar tour={tour} registration={registration} />
 
-      <CatalogTourDetailStickyBar tour={tour} registration={registration} />
-
-      {detailJsonLdGraph != null ? (
-        <script
-          type="application/ld+json"
-          data-marketing-catalog-jsonld-graph
-          dangerouslySetInnerHTML={{ __html: serializeMarketingJsonLd(detailJsonLdGraph) }}
-        />
-      ) : null}
-    </article>
+        {detailJsonLdGraph != null ? (
+          <script
+            type="application/ld+json"
+            data-marketing-catalog-jsonld-graph
+            dangerouslySetInnerHTML={{ __html: serializeMarketingJsonLd(detailJsonLdGraph) }}
+          />
+        ) : null}
+      </article>
+    </CatalogTourDetailPhotoLightboxShell>
   );
 }

@@ -6,6 +6,7 @@ import {
   tourUsesCatalogDetailPhotoFallbacks,
 } from "./build-catalog-tour-photo-set";
 import { CatalogCoverImage } from "./catalog-cover-image";
+import { CatalogTourDetailPhotoLightboxTrigger } from "./catalog-tour-detail-photo-lightbox";
 import type { MarketingCatalogCard } from "./catalog-types";
 
 export type CatalogTourDetailGalleryProps = {
@@ -29,26 +30,32 @@ export async function CatalogTourDetailGallery({ tour, title }: CatalogTourDetai
       data-marketing-catalog-detail-gallery
       id="catalog-detail-gallery"
       aria-label={t("detail.gallery.heading")}
-      {...(usesFallbackPhotos
-        ? { "data-marketing-catalog-detail-gallery-fallback": true }
-        : {})}
+      {...(usesFallbackPhotos ? { "data-marketing-catalog-detail-gallery-fallback": true } : {})}
     >
       <h2>{t("detail.gallery.heading")}</h2>
       <ul data-marketing-catalog-detail-gallery-grid>
-        {overflowPhotos.map((photoUrl, index) => (
-          <li key={photoUrl}>
-            <CatalogCoverImage
-              src={photoUrl}
-              alt={t("detail.gallery.photoAlt", {
-                title,
-                index: heroVisibleCount + index + 1,
-              })}
-              width={640}
-              height={427}
-              cover
-            />
-          </li>
-        ))}
+        {overflowPhotos.map((photoUrl, index) => {
+          const photoIndex = heroVisibleCount + index;
+          return (
+            <li key={photoUrl}>
+              <CatalogTourDetailPhotoLightboxTrigger
+                index={photoIndex}
+                ariaLabel={t("detail.gallery.openPhoto", { index: photoIndex + 1 })}
+              >
+                <CatalogCoverImage
+                  src={photoUrl}
+                  alt={t("detail.gallery.photoAlt", {
+                    title,
+                    index: photoIndex + 1,
+                  })}
+                  width={640}
+                  height={427}
+                  cover
+                />
+              </CatalogTourDetailPhotoLightboxTrigger>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

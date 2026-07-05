@@ -12,9 +12,13 @@ import { resolveHomeCatalogFetchLimit } from "../src/home/resolve-home-catalog-f
 import { resolveHomeSectionVisibility } from "../src/home/home-section-gates";
 import { resolveHomeTourCoverUrl } from "../src/home/resolve-home-tour-cover-url";
 import { MARKETING_FALLBACK_TOUR_COVER_PATH } from "../src/home/home-marketing-assets";
-import { buildHomeHeroSpotlights, DEFAULT_HERO_SPOTLIGHT_ID } from "../src/home/hero-3d/build-home-hero-spotlights";
+import {
+  buildHomeHeroSpotlights,
+  DEFAULT_HERO_SPOTLIGHT_ID,
+} from "../src/home/hero-3d/build-home-hero-spotlights";
 import { buildMarketingHomeJsonLd } from "../src/seo/build-marketing-home-jsonld";
 import { resolveMarketingHeroImageUrl } from "../src/tenant/resolve-marketing-hero-image-url";
+import { resolveHomeHeroCarouselSlides } from "../src/home/resolve-home-hero-carousel-slides";
 import { FULL_LANDING, PREMIUM_LANDING } from "./home-landing-fixtures";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -56,25 +60,28 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     });
   });
 
-  it("deriveHomeGalleryPhotos dedupes cover URLs and adds static fallbacks", () => {
-    assert.equal(
-      deriveHomeGalleryPhotos(
-        [
-          { id: "1", coverImageUrl: "https://cdn/a.jpg", title: "A" },
-          { id: "2", coverImageUrl: "https://cdn/a.jpg", title: "B" },
-          { id: "3", coverImageUrl: "https://cdn/b.jpg", title: "C" },
-        ],
-        "Tour"
-      ).length,
-      5
-    );
-    assert.equal(deriveHomeGalleryPhotos([], "Tour").length, 3);
+  it("deriveHomeGalleryPhotos returns static showcase set", () => {
+    const photos = deriveHomeGalleryPhotos((key) => key);
+    assert.equal(photos.length, 3);
+    assert.equal(photos[0]?.id, "gallery-01");
+    assert.equal(photos[0]?.src, "/home/gallery/01.webp");
+    assert.equal(photos[0]?.alt, "home.full.gallery.photos.01");
   });
 
   it("resolveHomeTourCoverUrl falls back when catalog cover missing", () => {
     assert.equal(resolveHomeTourCoverUrl(null), MARKETING_FALLBACK_TOUR_COVER_PATH);
     assert.equal(resolveHomeTourCoverUrl("  "), MARKETING_FALLBACK_TOUR_COVER_PATH);
     assert.equal(resolveHomeTourCoverUrl("https://cdn/cover.jpg"), "https://cdn/cover.jpg");
+  });
+
+  it("resolveHomeHeroCarouselSlides dedupes and caps static hero frames", () => {
+    const slides = resolveHomeHeroCarouselSlides("/home/hero.webp");
+    assert.equal(slides.length, 4);
+    assert.equal(slides[0], "/home/hero.webp");
+    assert.equal(
+      resolveHomeHeroCarouselSlides("https://cdn/custom-hero.jpg")[0],
+      "https://cdn/custom-hero.jpg"
+    );
   });
 
   it("resolveMarketingHeroImageUrl prefers branding override", () => {
@@ -102,7 +109,10 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
   it("buildHomeHeroSpotlights maps destinations with damavand default", () => {
     const spotlights = buildHomeHeroSpotlights((key) => key);
     assert.equal(spotlights.length, 3);
-    assert.equal(spotlights.find((item) => item.id === DEFAULT_HERO_SPOTLIGHT_ID)?.name, "home.full.destinations.damavand.name");
+    assert.equal(
+      spotlights.find((item) => item.id === DEFAULT_HERO_SPOTLIGHT_ID)?.name,
+      "home.full.destinations.damavand.name"
+    );
     assert.match(spotlights[0]?.toursHref ?? "", /^\/tours\?q=/);
     assert.match(spotlights[0]?.imagePath ?? "", /^\/home\/destinations\//);
   });
@@ -133,6 +143,10 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
       /data-marketing-home-gallery/
     );
     assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-gallery-showcase.tsx"), "utf8"),
+      /HomeGalleryShowcase/
+    );
+    assert.match(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-equipment.tsx"), "utf8"),
       /data-marketing-home-equipment/
     );
@@ -154,7 +168,11 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     );
     assert.match(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
-      /data-marketing-home-hero-background/
+      /HomeHeroCarouselMedia/
+    );
+    assert.match(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),
+      /data-marketing-home-hero-overlay-scrim/
     );
     assert.doesNotMatch(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),

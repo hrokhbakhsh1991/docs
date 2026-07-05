@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import type { MarketingCatalogCard } from "@/catalog/catalog-types";
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
 
 import { HomeFeaturedTourCard } from "./home-featured-tour-card";
+import { HomeSectionViewAllLink } from "./home-section-view-all-link";
 
 export type HomeFeaturedProps = {
   readonly items: readonly MarketingCatalogCard[];
@@ -25,11 +25,11 @@ export async function HomeFeatured({ items, pluginId, branding }: HomeFeaturedPr
   return (
     <section data-marketing-home-featured>
       <header>
-        <div data-marketing-home-featured-header-row>
+        <div data-marketing-home-section-header-row data-marketing-home-featured-header-row>
           <h2>{t("home.full.featured.title", copy)}</h2>
-          <Link href="/tours" data-marketing-home-featured-view-all>
+          <HomeSectionViewAllLink data-marketing-home-featured-view-all>
             {t("home.full.featured.viewAll")}
-          </Link>
+          </HomeSectionViewAllLink>
         </div>
         <p data-marketing-home-featured-lead>{t("home.full.featured.lead")}</p>
       </header>

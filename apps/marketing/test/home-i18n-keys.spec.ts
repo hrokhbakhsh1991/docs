@@ -59,8 +59,13 @@ const REQUIRED_HOME_KEYS = [
   "home.full.search.submit",
   "home.full.gallery.title",
   "home.full.gallery.lead",
-  "home.full.gallery.viewTour",
   "home.full.gallery.browseAll",
+  "home.full.gallery.scrollPrev",
+  "home.full.gallery.scrollNext",
+  "home.full.gallery.openPhoto",
+  "home.full.gallery.photos.01",
+  "home.full.gallery.photos.02",
+  "home.full.gallery.photos.03",
   "home.full.equipment.title",
   "home.full.equipment.lead",
   "home.full.blog.title",
@@ -150,11 +155,7 @@ describe("home-i18n-keys.spec.ts — HOME-UNIT-02", () => {
     const enKeys = collectHomeKeys(en);
     const faKeys = collectHomeKeys(fa);
 
-    assert.deepEqual(
-      enKeys.sort(),
-      faKeys.sort(),
-      "fa/en home key sets must match"
-    );
+    assert.deepEqual(enKeys.sort(), faKeys.sort(), "fa/en home key sets must match");
     assert.deepEqual(
       enKeys.sort(),
       [...REQUIRED_HOME_KEYS].sort(),

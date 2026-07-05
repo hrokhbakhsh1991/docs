@@ -11,10 +11,10 @@ workspace_skin: denali
 skill_upstream: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
 skill_local: .cursor/skills/ui-ux-pro-max/SKILL.md
 authority_chain:
-  - docs/workspaces/denali/marketing-landing.mdoc          # engineering SoT (LOCK §16.2)
-  - design-system/denali-club/MASTER.md                    # brand tokens (never skill-overridden)
-  - design-system/denali-club/pages/home.md                # page overrides
-  - docs/workspaces/denali/marketing-catalog-ui.md         # hooks (immutable)
+  - docs/workspaces/denali/marketing-landing.mdoc # engineering SoT (LOCK §16.2)
+  - design-system/denali-club/MASTER.md # brand tokens (never skill-overridden)
+  - design-system/denali-club/pages/home.md # page overrides
+  - docs/workspaces/denali/marketing-catalog-ui.md # hooks (immutable)
 prerequisite: PR-0..3 merged or equivalent — SDK + smoke green
 forbidden_phase: PR-0..3 re-open (manifest, resolver, hook renames)
 ```
@@ -33,13 +33,13 @@ Raise **visual quality** of Denali `/` from ~3.5/10 to **9+/10** (mobile-first, 
 
 [ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) is a searchable design-intelligence skill (~67 styles, 161 palettes, landing patterns, UX guidelines). **Best use for us:**
 
-| Do | Don't |
-|----|-------|
-| Run `--design-system` once for **layout / section / CTA / anti-pattern** ideas | Copy skill **colors** or **fonts** blindly |
-| Run `--domain landing` for hero + social-proof structure | Adopt **Immersive/Scroll-Story** (perf + a11y cost; conflicts with RSC-first) |
-| Run `--domain ux` for mobile-first, touch, reduced-motion | Add fake stats, parallax, heavy client JS |
-| Run `--domain style` for **effects keywords** (scroll-snap, hover 200ms) | Replace Calistoga / emerald brand |
-| Log decisions in **CP-SKILL** (§5) | Change hooks, SDK, or `apps/marketing` plugin branches |
+| Do                                                                             | Don't                                                                         |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Run `--design-system` once for **layout / section / CTA / anti-pattern** ideas | Copy skill **colors** or **fonts** blindly                                    |
+| Run `--domain landing` for hero + social-proof structure                       | Adopt **Immersive/Scroll-Story** (perf + a11y cost; conflicts with RSC-first) |
+| Run `--domain ux` for mobile-first, touch, reduced-motion                      | Add fake stats, parallax, heavy client JS                                     |
+| Run `--domain style` for **effects keywords** (scroll-snap, hover 200ms)       | Replace Calistoga / emerald brand                                             |
+| Log decisions in **CP-SKILL** (§5)                                             | Change hooks, SDK, or `apps/marketing` plugin branches                        |
 
 Local copy: `.cursor/skills/ui-ux-pro-max/` (same API as upstream).
 
@@ -51,16 +51,16 @@ Local copy: `.cursor/skills/ui-ux-pro-max/` (same API as upstream).
 
 From [`marketing-landing.mdoc`](./marketing-landing.mdoc) §16.2 + [`MASTER.md`](../../../design-system/denali-club/MASTER.md):
 
-| Key | Value | Notes |
-|-----|-------|-------|
-| Primary | `#059669` | Hero overlay base |
-| Accent / CTA | `#D97706` | Buttons, final band |
-| Heading | Calistoga | `--font-heading-en` |
-| Body | Inter / Vazirmatn | fa/en |
-| Parallax full-page | **OFF** | Performance + a11y |
-| Fake stats / metrics | **OFF** | Legal + trust |
-| Stack | Next RSC + CSS skin | Max 1 client boundary |
-| Icons | Lucide (already in marketing) | No emoji as UI icons |
+| Key                  | Value                         | Notes                 |
+| -------------------- | ----------------------------- | --------------------- |
+| Primary              | `#059669`                     | Hero overlay base     |
+| Accent / CTA         | `#D97706`                     | Buttons, final band   |
+| Heading              | Calistoga                     | `--font-heading-en`   |
+| Body                 | Inter / Vazirmatn             | fa/en                 |
+| Parallax full-page   | **OFF**                       | Performance + a11y    |
+| Fake stats / metrics | **OFF**                       | Legal + trust         |
+| Stack                | Next RSC + CSS skin           | Max 1 client boundary |
+| Icons                | Lucide (already in marketing) | No emoji as UI icons  |
 
 ### 3.2 Immutable engineering surface
 
@@ -139,12 +139,12 @@ python3 .cursor/skills/ui-ux-pro-max/scripts/search.py \
 
 Skill pattern **Hero + Testimonials + CTA** maps cleanly to our architecture:
 
-| Our block | Hook | Adopt from skill | Reject from skill |
-|-----------|------|------------------|-------------------|
-| Hero | `data-marketing-home-hero` | Full-bleed photo + scrim; sticky CTA; 32px+ display type on ≥1024px | Immersive full-screen JS; dark navy palette |
-| Latest | `data-marketing-home-latest` | Card elevation, scroll-snap mobile, cover-first cards | Feature grid with 6+ icons |
-| Trust | `data-marketing-home-trust` | Logo + short tagline (real branding) | Fake review counts / star ratings |
-| Final CTA | `data-marketing-home-final-cta` | Repeat primary CTA after social proof | Second divergent CTA copy |
+| Our block | Hook                            | Adopt from skill                                                    | Reject from skill                           |
+| --------- | ------------------------------- | ------------------------------------------------------------------- | ------------------------------------------- |
+| Hero      | `data-marketing-home-hero`      | Full-bleed photo + scrim; sticky CTA; 32px+ display type on ≥1024px | Immersive full-screen JS; dark navy palette |
+| Latest    | `data-marketing-home-latest`    | Card elevation, scroll-snap mobile, cover-first cards               | Feature grid with 6+ icons                  |
+| Trust     | `data-marketing-home-trust`     | Logo + short tagline (real branding)                                | Fake review counts / star ratings           |
+| Final CTA | `data-marketing-home-final-cta` | Repeat primary CTA after social proof                               | Second divergent CTA copy                   |
 
 ### Step 4 — Implement PR-4 (CSS-first)
 
@@ -167,29 +167,29 @@ Manual: 375px RTL · no `overflow-x` on body · hero LCP ≤2.5s (manual Lightho
 
 After Step 1–2, fill this table before writing code:
 
-| Skill suggestion | Verdict | Reason |
-|------------------|---------|--------|
-| Colors `#1E3A5F` / Outfit fonts | **REJECT** | Conflicts LOCK §3.1 |
-| Pattern: Hero + Testimonials + CTA | **ADOPT** | Matches 4-block manifest |
-| Pattern: Scroll-Triggered Storytelling | **REJECT** | Perf + hook stability |
-| Style: Vibrant block-based | **PARTIAL** | Large section gaps + scroll-snap only |
-| UX: prefers-reduced-motion | **ADOPT** | Already required §12 |
-| UX: touch ≥44px, gap ≥8px | **ADOPT** | CTA + card taps |
-| Immersive/interactive experience | **REJECT** | Client JS budget = 1 boundary max |
+| Skill suggestion                       | Verdict     | Reason                                |
+| -------------------------------------- | ----------- | ------------------------------------- |
+| Colors `#1E3A5F` / Outfit fonts        | **REJECT**  | Conflicts LOCK §3.1                   |
+| Pattern: Hero + Testimonials + CTA     | **ADOPT**   | Matches 4-block manifest              |
+| Pattern: Scroll-Triggered Storytelling | **REJECT**  | Perf + hook stability                 |
+| Style: Vibrant block-based             | **PARTIAL** | Large section gaps + scroll-snap only |
+| UX: prefers-reduced-motion             | **ADOPT**   | Already required §12                  |
+| UX: touch ≥44px, gap ≥8px              | **ADOPT**   | CTA + card taps                       |
+| Immersive/interactive experience       | **REJECT**  | Client JS budget = 1 boundary max     |
 
-**One-line rule:** *Layout and motion vocabulary from skill; brand tokens from MASTER only.*
+**One-line rule:** _Layout and motion vocabulary from skill; brand tokens from MASTER only._
 
 ---
 
 ## 6. Visual target rubric (PR-4 done = 9/10)
 
-| Score | Visual criteria |
-|-------|-----------------|
-| 3/10 | Current — flat gradient, text-only cards, no hero.webp |
-| 6/10 | hero.webp + scrim + Calistoga scale; cards with cover images |
-| 8/10 | + trust block designed; no desktop scrollbar; polish hover/focus |
-| 9/10 | + Lighthouse LCP ≤2.5s mobile; competitive vs outdoor tour landings |
-| 10/10 | + Lighthouse CI on `/` + tenant hero override plan (post-MVP) |
+| Score | Visual criteria                                                     |
+| ----- | ------------------------------------------------------------------- |
+| 3/10  | Current — flat gradient, text-only cards, no hero.webp              |
+| 6/10  | hero.webp + scrim + Calistoga scale; cards with cover images        |
+| 8/10  | + trust block designed; no desktop scrollbar; polish hover/focus    |
+| 9/10  | + Lighthouse LCP ≤2.5s mobile; competitive vs outdoor tour landings |
+| 10/10 | + Lighthouse CI on `/` + tenant hero override plan (post-MVP)       |
 
 **10/10 visual does not require SDK changes.**
 
@@ -199,10 +199,10 @@ After Step 1–2, fill this table before writing code:
 
 ### 7.1 Assets (P0)
 
-| Asset | Path | Spec | Done |
-|-------|------|------|------|
-| Hero photo | `apps/marketing/public/home/hero.webp` | ≤1920w · ≤200KB · mountain/outdoor | ✅ 177KB |
-| OG crop | `apps/marketing/public/home/hero-og.webp` | 1200×630 | ✅ 94KB |
+| Asset      | Path                                      | Spec                               | Done     |
+| ---------- | ----------------------------------------- | ---------------------------------- | -------- |
+| Hero photo | `apps/marketing/public/home/hero.webp`    | ≤1920w · ≤200KB · mountain/outdoor | ✅ 177KB |
+| OG crop    | `apps/marketing/public/home/hero-og.webp` | 1200×630                           | ✅ 94KB  |
 
 Fallback remains CSS gradient if file missing (§9 assets in engineering spec).
 
@@ -279,16 +279,16 @@ Upstream docs: [ui-ux-pro-max-skill README](https://github.com/nextlevelbuilder/
 
 ## 9. Anti-patterns (skill + web landing best practice)
 
-| Anti-pattern | Why blocked |
-|--------------|-------------|
-| Skill default navy/gold palette | Breaks Denali emerald brand |
-| Outfit / Work Sans from skill output | Breaks Calistoga + Inter/Vazirmatn |
-| Full-page parallax / scroll-jacking | LCP, a11y, RSC-first |
-| Fake “500+ climbers” stats | Spec §1.2 non-goals |
-| Carousel auto-play | Motion + mobile UX |
-| Desktop horizontal scrollbar on latest | SMK-MKT-HOME-02 fail |
-| `data-marketing-catalog-card` on home | guard-home-hooks |
-| Changing urban minimal home | SMK-MKT-HOME-05 |
+| Anti-pattern                           | Why blocked                        |
+| -------------------------------------- | ---------------------------------- |
+| Skill default navy/gold palette        | Breaks Denali emerald brand        |
+| Outfit / Work Sans from skill output   | Breaks Calistoga + Inter/Vazirmatn |
+| Full-page parallax / scroll-jacking    | LCP, a11y, RSC-first               |
+| Fake “500+ climbers” stats             | Spec §1.2 non-goals                |
+| Carousel auto-play                     | Motion + mobile UX                 |
+| Desktop horizontal scrollbar on latest | SMK-MKT-HOME-02 fail               |
+| `data-marketing-catalog-card` on home  | guard-home-hooks                   |
+| Changing urban minimal home            | SMK-MKT-HOME-05                    |
 
 ---
 
@@ -317,12 +317,12 @@ pnpm run guard:marketing-home-hooks
 
 ## 11. Related docs
 
-| Doc | Role |
-|-----|------|
-| [marketing-landing.mdoc](./marketing-landing.mdoc) | Engineering PR-0..3 |
-| [marketing-catalog-ui.md](./marketing-catalog-ui.md) | Hooks |
-| [home.md](../../../design-system/denali-club/pages/home.md) | Page typography overrides |
-| [MASTER.md](../../../design-system/denali-club/MASTER.md) | Brand tokens |
+| Doc                                                                           | Role                      |
+| ----------------------------------------------------------------------------- | ------------------------- |
+| [marketing-landing.mdoc](./marketing-landing.mdoc)                            | Engineering PR-0..3       |
+| [marketing-catalog-ui.md](./marketing-catalog-ui.md)                          | Hooks                     |
+| [home.md](../../../design-system/denali-club/pages/home.md)                   | Page typography overrides |
+| [MASTER.md](../../../design-system/denali-club/MASTER.md)                     | Brand tokens              |
 | [ADR-GP-005](../../dev/adr-guest-plugin/ADR-GP-005-guest-landing-manifest.md) | Manifest (frozen in PR-4) |
 
 ---
@@ -347,13 +347,13 @@ All §7 checklist items complete. OG wired to `hero-og.webp`. Final CTA reuses `
 
 ### Scope (allowed)
 
-| Layer | Files |
-|-------|-------|
-| CSS | `packages/workspaces/denali/theme/denali-marketing.css` |
-| Home presentation | `apps/marketing/src/home/*.tsx` (hooks frozen) |
-| Assets | `apps/marketing/public/home/**` |
-| i18n | `home.full.hero.ctaSecondary` fa/en |
-| Cover fallback | `resolve-home-tour-cover-url.ts`, `home-marketing-assets.ts` |
+| Layer             | Files                                                        |
+| ----------------- | ------------------------------------------------------------ |
+| CSS               | `packages/workspaces/denali/theme/denali-marketing.css`      |
+| Home presentation | `apps/marketing/src/home/*.tsx` (hooks frozen)               |
+| Assets            | `apps/marketing/public/home/**`                              |
+| i18n              | `home.full.hero.ctaSecondary` fa/en                          |
+| Cover fallback    | `resolve-home-tour-cover-url.ts`, `home-marketing-assets.ts` |
 
 ### P0 — Data fallbacks
 
@@ -430,27 +430,27 @@ flowchart LR
   Stage --> Canvas
 ```
 
-| Concern | Decision |
-|---------|----------|
-| Client boundary | One `dynamic(..., { ssr: false })` wrapper; Three.js only in `@apps/marketing` |
-| Hooks | Existing `data-marketing-home-*` preserved; additive `data-marketing-home-hero-immersive` + stage attrs (not smoke-gated) |
-| Motion | `prefers-reduced-motion: reduce` → static destination image, no Canvas, orbit ring animation off |
-| Stats panel | Public geographic facts only (elevation, region) from i18n — **no** live temp/wind/visibility |
-| Destination switch | Thumbnail picker; 360° prev/next nudge `OrbitControls`, not carousel index |
-| Default spotlight | `damavand` |
-| LCP | Loading shell `data-marketing-home-hero-stage-loading`; hero brand + CTAs render in RSC |
+| Concern            | Decision                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Client boundary    | One `dynamic(..., { ssr: false })` wrapper; Three.js only in `@apps/marketing`                                            |
+| Hooks              | Existing `data-marketing-home-*` preserved; additive `data-marketing-home-hero-immersive` + stage attrs (not smoke-gated) |
+| Motion             | `prefers-reduced-motion: reduce` → static destination image, no Canvas, orbit ring animation off                          |
+| Stats panel        | Public geographic facts only (elevation, region) from i18n — **no** live temp/wind/visibility                             |
+| Destination switch | Thumbnail picker; 360° prev/next nudge `OrbitControls`, not carousel index                                                |
+| Default spotlight  | `damavand`                                                                                                                |
+| LCP                | Loading shell `data-marketing-home-hero-stage-loading`; hero brand + CTAs render in RSC                                   |
 
 ### Files
 
-| Layer | Path |
-|-------|------|
-| RSC hero | `apps/marketing/src/home/home-hero.tsx` |
-| Spotlight builder | `build-home-hero-spotlights.ts`, `home-hero-spotlight-types.ts` |
-| Client stage | `home-hero-mountain-stage.tsx`, `home-hero-mountain-stage-client.tsx` |
-| R3F canvas | `home-hero-mountain-canvas.tsx` |
-| CSS | `denali-marketing.css` — immersive grid, glass stats, orbit ring, picker |
-| i18n | `home.full.hero.spotlight.*` fa/en |
-| deps | `three`, `@react-three/fiber`, `@react-three/drei` |
+| Layer             | Path                                                                     |
+| ----------------- | ------------------------------------------------------------------------ |
+| RSC hero          | `apps/marketing/src/home/home-hero.tsx`                                  |
+| Spotlight builder | `build-home-hero-spotlights.ts`, `home-hero-spotlight-types.ts`          |
+| Client stage      | `home-hero-mountain-stage.tsx`, `home-hero-mountain-stage-client.tsx`    |
+| R3F canvas        | `home-hero-mountain-canvas.tsx`                                          |
+| CSS               | `denali-marketing.css` — immersive grid, glass stats, orbit ring, picker |
+| i18n              | `home.full.hero.spotlight.*` fa/en                                       |
+| deps              | `three`, `@react-three/fiber`, `@react-three/drei`                       |
 
 ### Verify
 
@@ -468,12 +468,12 @@ pnpm run guard:marketing-home-hooks
 
 **Goal:** Strip all landing **appearance** so design can restart from scratch. Infrastructure unchanged.
 
-| Kept | Cleared |
-|------|---------|
+| Kept                                    | Cleared                                                |
+| --------------------------------------- | ------------------------------------------------------ |
 | `guest-home-full` fetch + section gates | PR-9/PR-10 hero CSS (Ken Burns, glass, 3D grid, orbit) |
-| Frozen `data-marketing-home-*` hooks | 3D hero stage (R3F) removed from render path |
-| i18n keys, manifest, JSON-LD wiring | Section markup → hook-only shells |
-| Smoke / guard / unit tests | Decorative assets in section UI |
+| Frozen `data-marketing-home-*` hooks    | 3D hero stage (R3F) removed from render path           |
+| i18n keys, manifest, JSON-LD wiring     | Section markup → hook-only shells                      |
+| Smoke / guard / unit tests              | Decorative assets in section UI                        |
 
 **Activation:** `main[data-marketing-home-canvas="blank"]` on `GuestHomeFull`.
 
@@ -487,14 +487,14 @@ pnpm run guard:marketing-home-hooks
 
 **Goal:** Mobile-first glass header for full landing — floats over future fullscreen 3D hero.
 
-| Element | Hook / behaviour |
-|---------|------------------|
-| Overlay mode | `data-marketing-header-overlay` on **home only** (`/` · `/en`) when `landing.variant === "full"` — middleware sets `x-marketing-header-overlay` |
-| Brand | `data-marketing-brand` + logo or Mountain fallback |
-| Primary nav (desktop ≥1024px) | `data-marketing-header-nav` — Home, Tours, About, Contact |
-| Actions | `data-marketing-header-actions` — locale, account (`data-marketing-portal-member`), CTA |
-| Mobile drawer | `data-marketing-nav-drawer` — full nav + locale + CTA (smoke SMK-MKT-HOME-08) |
-| Catalog / detail / inner routes | Solid sticky header (`position: sticky`) — no overlay; content is not offset under fixed header |
+| Element                         | Hook / behaviour                                                                                                                                |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overlay mode                    | `data-marketing-header-overlay` on **home only** (`/` · `/en`) when `landing.variant === "full"` — middleware sets `x-marketing-header-overlay` |
+| Brand                           | `data-marketing-brand` + logo or Mountain fallback                                                                                              |
+| Primary nav (desktop ≥1024px)   | `data-marketing-header-nav` — Home, Tours, About, Contact                                                                                       |
+| Actions                         | `data-marketing-header-actions` — locale, account (`data-marketing-portal-member`), CTA                                                         |
+| Mobile drawer                   | `data-marketing-nav-drawer` — full nav + locale + CTA (smoke SMK-MKT-HOME-08)                                                                   |
+| Catalog / detail / inner routes | Solid sticky header (`position: sticky`) — no overlay; content is not offset under fixed header                                                 |
 
 **CSS token:** `--mkt-header-height: 4rem` — hero can offset under fixed overlay later.
 
@@ -504,13 +504,13 @@ pnpm run guard:marketing-home-hooks
 
 **ui-ux-pro-max:** Liquid Glass overlay · Lucide icons · 150ms hover · tab order = visual order · sticky offset via `--mkt-header-height`.
 
-| Issue | Fix |
-|-------|-----|
+| Issue                      | Fix                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------ |
 | «ثبت‌نام‌های من» in header | Marketing is anonymous → **`nav.signIn`** (ورود / Sign in); `memberArea` footer only |
-| Grid 4 items / 3 cols | `brand \| nav \| header-end` (toolbar + drawer) |
-| Nav priority | Tours → About → Contact → Home (logo = home) |
-| Toolbar order (end) | Locale → Sign in (icon) → CTA (amber, last = most prominent in RTL) |
-| Mobile drawer | Nav → CTA → locale → sign in text |
+| Grid 4 items / 3 cols      | `brand \| nav \| header-end` (toolbar + drawer)                                      |
+| Nav priority               | Tours → About → Contact → Home (logo = home)                                         |
+| Toolbar order (end)        | Locale → Sign in (icon) → CTA (amber, last = most prominent in RTL)                  |
+| Mobile drawer              | Nav → CTA → locale → sign in text                                                    |
 
 ---
 
@@ -518,22 +518,22 @@ pnpm run guard:marketing-home-hooks
 
 **Goal:** Wire immersive R3F hero under fixed transparent header (`PR-12`).
 
-| Concern | Decision |
-|---------|----------|
-| Viewport | `min-height: 100dvh`; layout `padding-top: var(--mkt-header-height)` |
-| Hooks | `data-marketing-home-hero-immersive`; title/lead in `header[data-marketing-home-hero-brand]`; search in `data-marketing-home-hero-content` |
-| Blank canvas | Removed from `main` — post-hero sections remain hook shells until redesigned |
-| Motion | `prefers-reduced-motion` → static destination image (existing stage logic) |
+| Concern      | Decision                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Viewport     | `min-height: 100dvh`; layout `padding-top: var(--mkt-header-height)`                                                                       |
+| Hooks        | `data-marketing-home-hero-immersive`; title/lead in `header[data-marketing-home-hero-brand]`; search in `data-marketing-home-hero-content` |
+| Blank canvas | Removed from `main` — post-hero sections remain hook shells until redesigned                                                               |
+| Motion       | `prefers-reduced-motion` → static destination image (existing stage logic)                                                                 |
 
 ### PR-13b Hero stripped for redesign (2026-07-04) — active
 
 **Goal:** Remove immersive / 3D hero; keep **header (PR-12)** and frozen hooks for smoke.
 
-| Kept | Removed |
-|------|---------|
+| Kept                                                             | Removed                                                |
+| ---------------------------------------------------------------- | ------------------------------------------------------ |
 | `data-marketing-home-hero`, `-title`, `-lead`, `-cta`, `-search` | `data-marketing-home-hero-immersive`, R3F stage import |
-| Header overlay (`PR-12`) | Fullscreen hero CSS / Ken Burns on home hero |
-| `home-hero-mountain-*.tsx` files (future reuse) | Render path |
+| Header overlay (`PR-12`)                                         | Fullscreen hero CSS / Ken Burns on home hero           |
+| `home-hero-mountain-*.tsx` files (future reuse)                  | Render path                                            |
 
 **Shell:** `data-marketing-home-hero-empty` — minimal placeholder under fixed header until new hero lands.
 
@@ -566,28 +566,28 @@ apps/marketing/src/home/
 
 ### Hero DOM (hooks preserved)
 
-| Layer | Hook |
-|-------|------|
-| Section | `data-marketing-home-hero` + `data-marketing-home-hero-cinematic` |
-| Background | `img[data-marketing-home-hero-background]` — `--mkt-hero-image` fallback in CSS |
-| Overlays | `data-marketing-home-hero-overlay-*` (vignette, bottom, atmosphere, headline glow) |
-| Eyebrow | `p[data-marketing-home-hero-eyebrow]` |
-| Copy stack | `div[data-marketing-home-hero-copy]` — eyebrow + title + lead (PR-20O) |
-| Title / lead | `h1[data-marketing-home-title]`, `p[data-marketing-home-lead]` |
-| CTAs | `a[data-marketing-home-cta]`, `a[data-marketing-home-cta-secondary]` |
-| Search | `form[data-marketing-home-search]` |
-| Scroll | `span[data-marketing-home-hero-scroll-hint]` |
-| Parallax root | `div[data-marketing-home-hero-parallax-root]` — client boundary |
+| Layer         | Hook                                                                               |
+| ------------- | ---------------------------------------------------------------------------------- |
+| Section       | `data-marketing-home-hero` + `data-marketing-home-hero-cinematic`                  |
+| Background    | `img[data-marketing-home-hero-background]` — `--mkt-hero-image` fallback in CSS    |
+| Overlays      | `data-marketing-home-hero-overlay-*` (vignette, bottom, atmosphere, headline glow) |
+| Eyebrow       | `p[data-marketing-home-hero-eyebrow]`                                              |
+| Copy stack    | `div[data-marketing-home-hero-copy]` — eyebrow + title + lead (PR-20O)             |
+| Title / lead  | `h1[data-marketing-home-title]`, `p[data-marketing-home-lead]`                     |
+| CTAs          | `a[data-marketing-home-cta]`, `a[data-marketing-home-cta-secondary]`               |
+| Search        | `form[data-marketing-home-search]`                                                 |
+| Scroll        | `span[data-marketing-home-hero-scroll-hint]`                                       |
+| Parallax root | `div[data-marketing-home-hero-parallax-root]` — client boundary                    |
 
 ### Motion
 
-| Concern | Decision |
-|---------|----------|
-| Ken Burns | `scale(1)` → `scale(1.06)` over **26s** `ease-out` `alternate` |
-| Parallax | Desktop only; `--mkt-hero-parallax-x/y` max **10px** |
-| Reduced motion | No Ken Burns animation; no parallax |
-| Mobile ≤639px | Same image; no parallax; static background |
-| LCP | `fetchPriority="high"` on hero `img` |
+| Concern        | Decision                                                       |
+| -------------- | -------------------------------------------------------------- |
+| Ken Burns      | `scale(1)` → `scale(1.06)` over **26s** `ease-out` `alternate` |
+| Parallax       | Desktop only; `--mkt-hero-parallax-x/y` max **10px**           |
+| Reduced motion | No Ken Burns animation; no parallax                            |
+| Mobile ≤639px  | Same image; no parallax; static background                     |
+| LCP            | `fetchPriority="high"` on hero `img`                           |
 
 ### Removed from production path
 
@@ -615,35 +615,35 @@ pnpm run guard:marketing-home-hooks
 
 ### Scope (allowed)
 
-| Layer | Change |
-|-------|--------|
-| CSS | `denali-marketing.css` — PR-16 block: hero polish, section bands, footer, scroll reveal, card-ready rules |
-| Hero client | `hero-static/home-hero-static-parallax.tsx` — scroll `--mkt-hero-scroll-shift` only (existing boundary) |
-| Docs | This section |
+| Layer       | Change                                                                                                    |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| CSS         | `denali-marketing.css` — PR-16 block: hero polish, section bands, footer, scroll reveal, card-ready rules |
+| Hero client | `hero-static/home-hero-static-parallax.tsx` — scroll `--mkt-hero-scroll-shift` only (existing boundary)   |
+| Docs        | This section                                                                                              |
 
 ### Hero motion (PR-15 + PR-16)
 
-| Concern | Decision |
-|---------|----------|
-| Ken Burns | 32s alternate (PR-16); disabled under `prefers-reduced-motion` |
-| Pointer parallax | Unchanged — ≤10px desktop (`--mkt-hero-parallax-x/y`) |
-| Scroll parallax | `--mkt-hero-scroll-shift` max **24px**; rAF-throttled scroll on hero section |
-| Atmosphere | Subtle 18s opacity pulse on overlay (GPU opacity only) |
-| Content enter | Existing `mkt-hero-enter` stagger preserved |
-| CTAs | Primary + ghost hover lift; focus-visible rings unchanged |
-| Search | Glass `backdrop-filter` + solid fallback |
-| Scroll hint | Refined chevron dot animation; hidden reduced-motion |
+| Concern          | Decision                                                                     |
+| ---------------- | ---------------------------------------------------------------------------- |
+| Ken Burns        | 32s alternate (PR-16); disabled under `prefers-reduced-motion`               |
+| Pointer parallax | Unchanged — ≤10px desktop (`--mkt-hero-parallax-x/y`)                        |
+| Scroll parallax  | `--mkt-hero-scroll-shift` max **24px**; rAF-throttled scroll on hero section |
+| Atmosphere       | Subtle 18s opacity pulse on overlay (GPU opacity only)                       |
+| Content enter    | Existing `mkt-hero-enter` stagger preserved                                  |
+| CTAs             | Primary + ghost hover lift; focus-visible rings unchanged                    |
+| Search           | Glass `backdrop-filter` + solid fallback                                     |
+| Scroll hint      | Refined chevron dot animation; hidden reduced-motion                         |
 
 ### Sections & shell
 
-| Area | PR-16 restore |
-|------|----------------|
-| Post-hero rhythm | Section padding, max-width, alternating muted bands |
-| Latest overlap | Negative `margin-block-start` under hero fade |
-| Trust / final CTA | Gradient bands (PR-4/9 patterns) |
-| Footer | Grid layout for `data-marketing-footer-*` |
-| Scroll reveal | `@supports (animation-timeline: view())` on post-hero sections; fallback one-shot `mkt-home-reveal` |
-| Card hooks | Destination / featured / latest cover rules restored for when section markup returns |
+| Area              | PR-16 restore                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| Post-hero rhythm  | Section padding, max-width, alternating muted bands                                                 |
+| Latest overlap    | Negative `margin-block-start` under hero fade                                                       |
+| Trust / final CTA | Gradient bands (PR-4/9 patterns)                                                                    |
+| Footer            | Grid layout for `data-marketing-footer-*`                                                           |
+| Scroll reveal     | `@supports (animation-timeline: view())` on post-hero sections; fallback one-shot `mkt-home-reveal` |
+| Card hooks        | Destination / featured / latest cover rules restored for when section markup returns                |
 
 ### Forbidden
 
@@ -667,32 +667,32 @@ Browser QA: desktop ≥1024 · tablet 768 · mobile 375 · RTL fa · `prefers-re
 
 ### Restored markup (hooks unchanged)
 
-| Section | Container hooks | Inner hooks |
-|---------|-----------------|-------------|
-| Latest | `-latest` | `-latest-row`, `-latest-card`, `-latest-cover`, `-latest-meta`, `-latest-price` |
-| Featured | `-featured` | `-featured-bento`, `-featured-card`, `-featured-cover`, `-featured-meta`, `-featured-price` |
-| Categories | `-categories` | `-categories-row`, `-category-chip` |
-| Destinations | `-destinations` | `-destinations-row`, `-destination-card`, `-destination-card-body`, `-destination-link` |
-| Trust | `-trust` | logo / ShieldCheck · tagline |
-| Why | `-why` `#why-denali` | `-why-grid`, `-why-tile` |
-| Journey | `-journey` | `-journey-steps`, `-journey-step` |
-| Testimonials | `-testimonials` | `-testimonials-row`, `-testimonial-card` |
-| Gallery | `-gallery` | `-gallery-grid`, `-gallery-item`, `-gallery-item-primary`, `-gallery-support` |
-| Equipment | `-equipment` | `-equipment-list`, `-equipment-item` |
-| Blog | `-blog` | `-blog-stub` |
-| FAQ | `-faq` `#faq` | `-faq-list`, `-faq-item`, `-faq-question`, `-faq-answer` |
-| Final CTA | `-final-cta` | reuses `data-marketing-home-cta` |
+| Section      | Container hooks      | Inner hooks                                                                                 |
+| ------------ | -------------------- | ------------------------------------------------------------------------------------------- |
+| Latest       | `-latest`            | `-latest-row`, `-latest-card`, `-latest-cover`, `-latest-meta`, `-latest-price`             |
+| Featured     | `-featured`          | `-featured-bento`, `-featured-card`, `-featured-cover`, `-featured-meta`, `-featured-price` |
+| Categories   | `-categories`        | `-categories-row`, `-category-chip`                                                         |
+| Destinations | `-destinations`      | `-destinations-row`, `-destination-card`, `-destination-card-body`, `-destination-link`     |
+| Trust        | `-trust`             | logo / ShieldCheck · tagline                                                                |
+| Why          | `-why` `#why-denali` | `-why-grid`, `-why-tile`                                                                    |
+| Journey      | `-journey`           | `-journey-steps`, `-journey-step`                                                           |
+| Testimonials | `-testimonials`      | `-testimonials-row`, `-testimonial-card`                                                    |
+| Gallery      | `-gallery`           | `-gallery-grid`, `-gallery-item`, `-gallery-item-primary`, `-gallery-support`               |
+| Equipment    | `-equipment`         | `-equipment-list`, `-equipment-item`                                                        |
+| Blog         | `-blog`              | `-blog-stub`                                                                                |
+| FAQ          | `-faq` `#faq`        | `-faq-list`, `-faq-item`, `-faq-question`, `-faq-answer`                                    |
+| Final CTA    | `-final-cta`         | reuses `data-marketing-home-cta`                                                            |
 
 ### Visual system
 
-| Token / rule | Use |
-|--------------|-----|
-| Section header | `header` + `h2` (`--mkt-text-h2`) + optional lead + view-all link |
-| Cards | `--mkt-shadow-card` · hover `--mkt-shadow-card-hover` + `--mkt-lift-md` |
-| Latest / testimonials mobile | horizontal scroll-snap · hidden scrollbar |
-| Featured @1024 | bento primary spans 2 rows |
-| Why @640 | first tile spans 2 cols |
-| CTAs | unified min-height 2.75rem · focus-visible rings |
+| Token / rule                 | Use                                                                     |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| Section header               | `header` + `h2` (`--mkt-text-h2`) + optional lead + view-all link       |
+| Cards                        | `--mkt-shadow-card` · hover `--mkt-shadow-card-hover` + `--mkt-lift-md` |
+| Latest / testimonials mobile | horizontal scroll-snap · hidden scrollbar                               |
+| Featured @1024               | bento primary spans 2 rows                                              |
+| Why @640                     | first tile spans 2 cols                                                 |
+| CTAs                         | unified min-height 2.75rem · focus-visible rings                        |
 
 **CSS:** PR-16.5 block in `denali-marketing.css` — section headers, card bodies, grids (latest/featured/bento/why/journey/testimonials/gallery/equipment/faq/destinations/categories), trust band, final CTA inverted button, footer newsletter polish.
 
@@ -706,11 +706,11 @@ Same as PR-16 + browser QA all breakpoints.
 
 **Fix:** «مسیر یک تور» timeline badges used CSS `counter(..., decimal-leading-zero)` — browsers always emit Latin `01`–`04`; `toLocalizedDigits` and next-intl `arabext` do not apply to generated content.
 
-| Layer | Decision |
-|-------|----------|
-| Markup | `home-journey.tsx` renders `span[data-marketing-home-journey-step-index]` with `formatLocalizedNumber(step, locale, { minimumIntegerDigits: 2 })` |
-| CSS | PR-20Q disables `::before` counter; styles the span with the same badge geometry as PR-16 journey timeline |
-| i18n helper | `format-localized-digits.ts` adds `formatLocalizedNumber` via `Intl.NumberFormat` + `arabext` for fa |
+| Layer       | Decision                                                                                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Markup      | `home-journey.tsx` renders `span[data-marketing-home-journey-step-index]` with `formatLocalizedNumber(step, locale, { minimumIntegerDigits: 2 })` |
+| CSS         | PR-20Q disables `::before` counter; styles the span with the same badge geometry as PR-16 journey timeline                                        |
+| i18n helper | `format-localized-digits.ts` adds `formatLocalizedNumber` via `Intl.NumberFormat` + `arabext` for fa                                              |
 
 **Hooks:** `data-marketing-home-journey-step-index` (existing `-journey-step` unchanged).
 
@@ -734,13 +734,13 @@ Visual after hero — title fully visible before flagship card.
 
 **Goal:** Rebuild hero text hierarchy and button alignment for RTL — brand-first, no misaligned CTAs. **Scope:** `home-hero.tsx`, i18n `home.full.hero.eyebrow`, `denali-marketing.css` PR-20O.
 
-| Layer | Decision |
-|-------|----------|
+| Layer      | Decision                                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------------------------- |
 | Copy stack | `hero-copy`: eyebrow (category) → H1 (`displayName`) → lead (value prop) — **not** Damavand tagline as eyebrow |
-| Eyebrow | fa: natural case + accent bar; en: uppercase meta |
-| H1 | `text-wrap: balance`; max-width tuned per locale |
-| Actions | CSS grid 1×2 (mobile stack → sm+ equal columns); `align-self: stretch` overrides global `flex-start` |
-| CTAs | Primary accent filled; secondary glass outline; both center-aligned text |
+| Eyebrow    | fa: natural case + accent bar; en: uppercase meta                                                              |
+| H1         | `text-wrap: balance`; max-width tuned per locale                                                               |
+| Actions    | CSS grid 1×2 (mobile stack → sm+ equal columns); `align-self: stretch` overrides global `flex-start`           |
+| CTAs       | Primary accent filled; secondary glass outline; both center-aligned text                                       |
 
 **Hooks added:** `data-marketing-home-hero-copy`.
 
@@ -754,13 +754,13 @@ Visual 375 / 768 RTL · `home-i18n-keys` · smoke hero visible.
 
 **Goal:** Rebuild «پیشنهاد {siteName}» from scratch — aligned header, travel bento, no divider-line picks. **Scope:** `home-featured.tsx`, `home-featured-tour-card.tsx`, `denali-marketing.css` PR-20N.
 
-| Layer | Decision |
-|-------|----------|
-| Header | `featured-header-row`: title (start) + «همه تورها» (end); lead below — mirrors Latest (PR-20G) |
-| Sheet | Bento lives in elevated `--card` panel — **no** negative overlap on title (PR-20P) |
-| Flagship | Full-bleed cover + gradient caption + badge + «مشاهده برنامه» glass CTA |
-| Picks | `featured-picks-list`: rounded mini-cards with gap — **no** `border-block-end` rules |
-| Copy | Badge «برنامه شاخص»; picks «سایر پیشنهادها» — avoids duplicate siteName noise |
+| Layer    | Decision                                                                                       |
+| -------- | ---------------------------------------------------------------------------------------------- |
+| Header   | `featured-header-row`: title (start) + «همه تورها» (end); lead below — mirrors Latest (PR-20G) |
+| Sheet    | Bento lives in elevated `--card` panel — **no** negative overlap on title (PR-20P)             |
+| Flagship | Full-bleed cover + gradient caption + badge + «مشاهده برنامه» glass CTA                        |
+| Picks    | `featured-picks-list`: rounded mini-cards with gap — **no** `border-block-end` rules           |
+| Copy     | Badge «برنامه شاخص»; picks «سایر پیشنهادها» — avoids duplicate siteName noise                  |
 
 **Hooks:** `data-marketing-home-featured-header-row`, `-view-all`, `-lead`, `-picks-list`, `-card-body`, `-cta`.
 
@@ -776,24 +776,121 @@ Visual 375 / 768 / 1280 · `home-i18n-keys` · `guard:marketing-home-hooks`.
 
 ---
 
-## PR-20L Cinematic travel gallery mosaic (2026-07-04) — active
+## PR-20L Cinematic travel gallery mosaic (2026-07-04) — superseded by PR-21
 
-**Goal:** Elevate «گالری سفر» to premium travel-journal quality — exhibition-wall bento, not a flat photo grid. **Scope:** `home-gallery.tsx` (captions + CTA labels), `denali-marketing.css` PR-20L block, i18n `viewTour` / `browseAll`.
+**Status:** Frozen. Dark bento mosaic replaced by light filmstrip layout.
 
-| Pattern | Decision (vs. competitors) |
-|---------|----------------------------|
-| Section frame | Dark forest cinematic band (Shutter / NG-style) — photos are the hero |
-| Mosaic grid | Tight 3px gutters inside rounded frame; primary spread + dense bento support |
-| Bento spans | Panorama row, portrait tall cell, wide footer strip — `grid-auto-flow: dense` |
-| Hover | Ken Burns scale (1.05–1.07) + cell lift + caption CTA brighten |
-| Caption | Gradient overlay + tour title + «مشاهده تور» / browse fallback |
-| Motion | `prefers-reduced-motion` disables zoom/lift |
+---
 
-**Hooks added:** `data-marketing-home-gallery-link`, `data-marketing-home-gallery-caption`, `-caption-title`, `-caption-action`.
+## PR-21 Wanderlust filmstrip gallery (2026-07-05) — active
+
+**Goal:** Replace the dark chaotic bento mosaic with a travel-magazine pattern that invites exploration — cinematic hero + horizontal filmstrip. **Scope:** `home-gallery.tsx`, `denali-marketing.css` PR-21 block.
+
+| Pattern         | Decision                                                                            |
+| --------------- | ----------------------------------------------------------------------------------- |
+| Section surface | Light emerald wash (brand-aligned) — not dark forest band                           |
+| Hero            | Full-width 21:9 primary photo with always-visible caption                           |
+| Filmstrip       | Horizontal scroll-snap row (max 6 photos); edge fade mask                           |
+| Card rhythm     | Alternating 4:5 / 5:6 portrait aspects — postcard feel                              |
+| Hover           | Ken Burns zoom + caption slide-up on filmstrip cells                                |
+| Header          | Title + «همه تورها» view-all (mirrors Latest/Featured)                              |
+| Navigation      | Prev/next pill buttons overlay filmstrip; thin scrollbar fallback; RTL-aware scroll |
+| Anchor          | `id="gallery"` on section                                                           |
+| Motion          | `prefers-reduced-motion` — static images, captions always visible                   |
+
+**Hooks added:** `data-marketing-home-gallery-header-row`, `-view-all`, `-lead`, `-filmstrip`, `-scroll-prev`, `-scroll-next` (section hook unchanged).
+
+**Client boundary:** `home-gallery-filmstrip.tsx` — scroll-by-step only (no carousel autoplay).
+
+**Reference:** Travel-magazine hero + Apple Photos horizontal filmstrip (scroll-snap, no autoplay).
 
 ### Verify
 
-Visual 375 / 768 / 1280 · `home-i18n-keys` · `guard:marketing-home-hooks`.
+Visual 375 / 768 / 1280 · `guard:marketing-home-hooks` · fa RTL filmstrip swipe.
+
+---
+
+## PR-23 Static showcase gallery (2026-07-05) — active
+
+**Goal:** Gallery as inspiration carousel — static assets only (admin upload deferred). No tour PDP links; click opens lightbox.
+
+| Layer     | Decision                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------- |
+| Photo SoT | `MARKETING_GALLERY_STATIC_ITEMS` in `home-marketing-assets.ts` (`/home/gallery/01–03.webp`) |
+| Derive    | `deriveHomeGalleryPhotos(translate)` — no catalog covers                                    |
+| Hero      | Prev/next rotates primary 21:9 cell                                                         |
+| Filmstrip | Thumbnails select active photo; horizontal scroll unchanged                                 |
+| Click     | `CatalogTourDetailPhotoLightbox` — zoom-in, not `/tours/{id}`                               |
+| Header    | «همه تورها» remains section-level link only                                                 |
+
+**Hooks added:** `data-marketing-home-gallery-hero-controls`, `-hero-prev`, `-hero-next`, `-thumb`, `-zoom-hint`, `-item-active`.
+
+**Client:** `home-gallery-showcase.tsx`.
+
+### Verify
+
+Static analysis · `guard:marketing-home-hooks` · home i18n keys · 375px carousel + lightbox.
+
+---
+
+## PR-24 Hero carousel + unified scrim (2026-07-05) — active
+
+**Goal:** Rotate plain outdoor hero photos with crossfade + Ken Burns; fixed scrim keeps headline/CTA legible regardless of slide color temperature.
+
+| Layer   | Decision                                                                          |
+| ------- | --------------------------------------------------------------------------------- |
+| Slides  | `MARKETING_HERO_CAROUSEL_SLIDES` — hero.webp + 3 destination frames               |
+| Timing  | 7s auto-advance · 1.35s opacity crossfade                                         |
+| Overlay | `data-marketing-home-hero-overlay-scrim` above photos, below copy (z-index stack) |
+| Motion  | Ken Burns on active slide only; `prefers-reduced-motion` → first frame static     |
+| Client  | `home-hero-carousel-media.tsx` inside existing parallax shell                     |
+
+**Hooks added:** `data-marketing-home-hero-carousel`, `-slide`, `-overlay-scrim`.
+
+### Verify
+
+375 / 768 / 1280 · reduced-motion first frame · fa RTL copy unchanged.
+
+---
+
+## PR-25 Unified section view-all control (2026-07-05) — active
+
+**Goal:** Featured · Latest · Gallery headers share one header-row layout and pill-shaped «همه تورها» link (aligned inline-end, same size).
+
+| Piece      | Decision                                                                          |
+| ---------- | --------------------------------------------------------------------------------- |
+| Component  | `HomeSectionViewAllLink` → `data-marketing-home-section-view-all`                 |
+| Header row | `data-marketing-home-section-header-row` + section hook (featured/latest/gallery) |
+| Shape      | 2.5rem min-height outline pill — not underline text                               |
+| Layout     | CSS grid `1fr auto` — title / pill on one row, vertically centered                |
+| Latest fix | Lead moved outside header-row (matches Featured/Gallery)                          |
+| Closure    | PR-25b at stylesheet end overrides PR-20 featured/latest/gallery legacy           |
+
+### Verify
+
+fa RTL · 375px — title start / pill end on same baseline row.
+
+---
+
+## PR-22 Destination portrait + blur reveal (2026-07-05) — active
+
+**Goal:** Fix mobile destination cards (portrait aspect) and reveal rich copy on hover/focus with photo blur.
+
+| Layer                        | Decision                                                                               |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| Mobile layout                | Horizontal scroll-snap row; cards `aspect-ratio: 3/4` (portrait)                       |
+| Tablet / desktop             | 2-col → 3-col grid; ratio `4/5` at ≥1024px                                             |
+| Default overlay              | Title + tagline (from `home.full.hero.spotlight.{id}.tagline`)                         |
+| Reveal on hover/focus/active | Blur + darken photo; show description, elevation·region meta, explore CTA              |
+| Copy SoT                     | `home.full.destinations.{id}.description` + spotlight `elevationValue` / `regionValue` |
+| Touch                        | `:active` + `:focus-within` (article `tabIndex={0}`)                                   |
+| Reduced motion               | No zoom; copy always visible                                                           |
+
+**Hooks added:** `-destination-tagline`, `-destination-description`, `-destination-meta`, `-destination-elevation`, `-destination-region`, `-destination-meta-sep`.
+
+### Verify
+
+Visual 375 portrait swipe · hover blur on desktop · fa/en copy · `guard:marketing-home-hooks`.
 
 ---
 
@@ -801,14 +898,14 @@ Visual 375 / 768 / 1280 · `home-i18n-keys` · `guard:marketing-home-hooks`.
 
 **Goal:** Replace PR-19 stacked divider lines with magazine-style social proof — featured pull-quote + supporting cards. **Scope:** `home-testimonials.tsx` (`data-marketing-home-testimonial-card-featured`), `denali-marketing.css` PR-20K block.
 
-| Pattern | Decision |
-|---------|----------|
-| Layout | Mobile stack → tablet 2-col grid; first quote spans full width |
-| Featured | Larger italic serif quote, gradient top accent, premium shadow |
-| Supporting | Rounded cards with gap — **no** `border-block-end` dividers or side spine |
-| Attribution | Em-dash rule (`figcaption::before`) — editorial byline |
-| Section | Warm linen band (radial tints), centered section title |
-| Motion | Hover lift on cards; respects `prefers-reduced-motion` |
+| Pattern     | Decision                                                                  |
+| ----------- | ------------------------------------------------------------------------- |
+| Layout      | Mobile stack → tablet 2-col grid; first quote spans full width            |
+| Featured    | Larger italic serif quote, gradient top accent, premium shadow            |
+| Supporting  | Rounded cards with gap — **no** `border-block-end` dividers or side spine |
+| Attribution | Em-dash rule (`figcaption::before`) — editorial byline                    |
+| Section     | Warm linen band (radial tints), centered section title                    |
+| Motion      | Hover lift on cards; respects `prefers-reduced-motion`                    |
 
 **Reference:** Editorial journal testimonial blocks (magazine pull-quote + featured hero card + 3-column support grid).
 
@@ -822,10 +919,10 @@ Visual on 375 / 768 / 1280 — no horizontal rules between quotes; `pnpm run gua
 
 **Goal:** «چرا …؟» copy uses `branding.displayName` — no hardcoded «Denali» in fa/en strings. **Scope:** `home-hero.tsx`, `home-why.tsx`, `home.full.hero.ctaSecondary`, `home.full.why.title`.
 
-| Surface | `{siteName}` from admin workspace branding |
-|---------|---------------------------------------------|
-| Hero CTA secondary | `چرا {siteName}؟` |
-| Why section `h2` | same pattern |
+| Surface            | `{siteName}` from admin workspace branding |
+| ------------------ | ------------------------------------------ |
+| Hero CTA secondary | `چرا {siteName}؟`                          |
+| Why section `h2`   | same pattern                               |
 
 **Note:** Fragment anchor `#why-denali` unchanged (stable hook); visible text is tenant-driven.
 
@@ -839,12 +936,12 @@ Same as PR-20I + `home-i18n-keys`.
 
 **Goal:** Category chips show localized tour-kind labels, not raw canonical slugs (`mountain_multi`). **Scope:** `home-categories.tsx`, `resolve-marketing-category-label.ts`, `home.full.categories.labels.*` i18n, `denali-marketing.css` chip selectors.
 
-| Layer | Decision |
-|-------|----------|
-| Display | `resolveMarketingCategoryLabel(slug)` → `home.full.categories.labels.{slug}` |
-| Filter | `href` keeps canonical slug for `/tours?category=` |
-| Hook | `data-marketing-home-category-chip-id` = slug; visible text = label |
-| CSS | `--mkt-text-small`, foreground on chip, comfortable padding, wrap-friendly row |
+| Layer   | Decision                                                                       |
+| ------- | ------------------------------------------------------------------------------ |
+| Display | `resolveMarketingCategoryLabel(slug)` → `home.full.categories.labels.{slug}`   |
+| Filter  | `href` keeps canonical slug for `/tours?category=`                             |
+| Hook    | `data-marketing-home-category-chip-id` = slug; visible text = label            |
+| CSS     | `--mkt-text-small`, foreground on chip, comfortable padding, wrap-friendly row |
 
 **Forbidden:** Denali workspace import in marketing · routing/gates · catalog API changes.
 
@@ -858,12 +955,12 @@ Same as PR-20H + `home-i18n-keys` label keys.
 
 **Goal:** All home tour rows show legible dates — Persian calendar for `fa`, no em-dash subtitle mash, CSS wins over PR-20C `0.6875rem` clamps. **Scope:** `format-catalog-display.ts`, home featured/latest cards, `denali-marketing.css` `main[data-marketing-home]` meta selectors.
 
-| Layer | Decision |
-|-------|----------|
-| Formatter | `formatCatalogDateRange` → `calendar: persian` when `dateLocale` is fa* |
-| Meta line | `buildCatalogTourMetaLine` skips placeholder subtitle `—` |
-| Home cards | Featured + Latest render **dates only** in `-meta` hook |
-| CSS | PR-20H block: `--mkt-text-meta`, wrap, `tabular-nums`; featured picks + latest overrides |
+| Layer      | Decision                                                                                 |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| Formatter  | `formatCatalogDateRange` → `calendar: persian` when `dateLocale` is fa\*                 |
+| Meta line  | `buildCatalogTourMetaLine` skips placeholder subtitle `—`                                |
+| Home cards | Featured + Latest render **dates only** in `-meta` hook                                  |
+| CSS        | PR-20H block: `--mkt-text-meta`, wrap, `tabular-nums`; featured picks + latest overrides |
 
 **Forbidden:** Catalog detail page redesign · routing/gates · new hooks.
 
@@ -877,11 +974,11 @@ Same as PR-20G + `build-catalog-tour-meta-line` + `marketing-catalog-display` sp
 
 **Goal:** Latest section header reads RTL-native (title inline-start, view-all inline-end); card dates legible at scan density. **Scope:** `latest` markup hooks + `denali-marketing.css` latest selectors only.
 
-| Layer | Decision |
-|-------|----------|
-| Header | 2×2 grid: row1 = `h2` (col1/start) + `viewAll` (col2/end); row2 = full-width lead |
-| Card meta | Dates only (no subtitle mash); `0.8125rem`, wrap allowed, no ellipsis clamp |
-| Row layout | Thumb 2-row span; title + price row1; dates span cols 2–end row2 |
+| Layer      | Decision                                                                          |
+| ---------- | --------------------------------------------------------------------------------- |
+| Header     | 2×2 grid: row1 = `h2` (col1/start) + `viewAll` (col2/end); row2 = full-width lead |
+| Card meta  | Dates only (no subtitle mash); `0.8125rem`, wrap allowed, no ellipsis clamp       |
+| Row layout | Thumb 2-row span; title + price row1; dates span cols 2–end row2                  |
 
 **Forbidden:** Featured · other sections · routing/gates.
 
@@ -895,14 +992,14 @@ Same as PR-20C.
 
 **Goal:** One dominant aspiration image — magazine spread, not a uniform photo grid. **Scope:** `gallery` selectors + minimal markup in `home-gallery.tsx`; CSS in `denali-marketing.css`.
 
-| Lever | Decision |
-|-------|----------|
+| Lever       | Decision                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
 | Composition | Primary hero cell (~1.7fr) + `data-marketing-home-gallery-support` stack/filmstrip for remaining photos |
-| Primary | Cinematic aspect, bottom vignette gradient, no card lift/shadow chrome |
-| Supporting | Smaller frames — hairline or borderless, mixed aspect via nth-child, no hover lift |
-| Section | Flat page ground + top rule; display heading + muted lead (not catalog band) |
-| Repetition | Strip PR-18 equal-card treatment from support cells; primary owns visual weight |
-| Hierarchy | `main > section[gallery]` specificity wins PR-18/PR-20 mosaic grid rules |
+| Primary     | Cinematic aspect, bottom vignette gradient, no card lift/shadow chrome                                  |
+| Supporting  | Smaller frames — hairline or borderless, mixed aspect via nth-child, no hover lift                      |
+| Section     | Flat page ground + top rule; display heading + muted lead (not catalog band)                            |
+| Repetition  | Strip PR-18 equal-card treatment from support cells; primary owns visual weight                         |
+| Hierarchy   | `main > section[gallery]` specificity wins PR-18/PR-20 mosaic grid rules                                |
 
 **Markup (minimal):** wrap photos `[1..]` in `data-marketing-home-gallery-support`; keep `data-marketing-home-gallery-item-primary` on first figure.
 
@@ -918,13 +1015,13 @@ Same as PR-20E + visual QA gallery at 375 / 768 / 1280.
 
 **Goal:** Closing beat of the page journey — whitespace-led invitation to begin an adventure, not an orange promo banner. **Scope:** `final-cta` selectors only in `denali-marketing.css`.
 
-| Lever | Decision |
-|-------|----------|
-| Surface | Transparent page ground + top rule; remove accent band / stripe overlays |
-| Spacing | Generous `--mkt-finale-space-y`; body stack with headline → lead → CTA rhythm |
-| Typography | Heading display on `h2`; lead muted body copy; narrow measure (~14ch / ~32ch) |
-| CTA | Single primary pill on emerald (not accent-on-accent); no glow/lift |
-| Hierarchy | `main > section[final-cta]` specificity wins generic section + PR-18 banner rules |
+| Lever      | Decision                                                                          |
+| ---------- | --------------------------------------------------------------------------------- |
+| Surface    | Transparent page ground + top rule; remove accent band / stripe overlays          |
+| Spacing    | Generous `--mkt-finale-space-y`; body stack with headline → lead → CTA rhythm     |
+| Typography | Heading display on `h2`; lead muted body copy; narrow measure (~14ch / ~32ch)     |
+| CTA        | Single primary pill on emerald (not accent-on-accent); no glow/lift               |
+| Hierarchy  | `main > section[final-cta]` specificity wins generic section + PR-18 banner rules |
 
 **Forbidden:** Other sections · routing/gates · new components/data.
 
@@ -938,13 +1035,13 @@ Same as PR-20D + visual QA hero→footer scroll.
 
 **Goal:** Each content type reads as a distinct card family before copy — tours (image/feed), journey (timeline), testimonials (pull quotes), equipment (checklist), FAQ (disclosure). **Scope:** `denali-marketing.css` card selectors only; no new components or data.
 
-| Family | Visual DNA |
-|--------|------------|
+| Family                  | Visual DNA                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
 | Tours (Featured/Latest) | Strip PR-18 premium card chrome; keep PR-20B flagship + PR-20C feed rows (image-led / index) |
-| Journey | Numbered spine timeline — counter badges on rail, icon nodes, no boxed cards |
-| Testimonials | Pull-quote column — inline-start rule, giant opening quote, heading type, ruled stack |
-| Equipment | Checklist panel — square tick marks, inset list frame, no card shadows |
-| FAQ | Ruled disclosure — `+`/`−` summary affordance, indented answers, no rounded accordion boxes |
+| Journey                 | Numbered spine timeline — counter badges on rail, icon nodes, no boxed cards                 |
+| Testimonials            | Pull-quote column — inline-start rule, giant opening quote, heading type, ruled stack        |
+| Equipment               | Checklist panel — square tick marks, inset list frame, no card shadows                       |
+| FAQ                     | Ruled disclosure — `+`/`−` summary affordance, indented answers, no rounded accordion boxes  |
 
 **Forbidden:** New components/folders · data/i18n · routing/gates · Latest/Featured layout regressions.
 
@@ -958,13 +1055,13 @@ Same as PR-20C.
 
 **Goal:** Latest reads as a compact browse index — lower visual weight than Featured, higher row density, faster scan. **Scope:** Latest section markup hooks + `denali-marketing.css` latest selectors only.
 
-| Layer | Decision |
-|-------|----------|
-| Section | Flat page surface (no muted band); top rule only; tighter `padding-block` |
-| Header | Compact toolbar: `h2` + inline `viewAll`; lead as meta line (`data-marketing-home-latest-lead`) |
-| Feed | Single-column list always (override legacy 2/3-col grid breakpoints) |
-| Row density | 3rem thumb · tighter vertical padding · single-line title · meta + price on second line |
-| Hierarchy | Smaller type scale than Featured picks; no cards, shadows, or hover lift |
+| Layer       | Decision                                                                                        |
+| ----------- | ----------------------------------------------------------------------------------------------- |
+| Section     | Flat page surface (no muted band); top rule only; tighter `padding-block`                       |
+| Header      | Compact toolbar: `h2` + inline `viewAll`; lead as meta line (`data-marketing-home-latest-lead`) |
+| Feed        | Single-column list always (override legacy 2/3-col grid breakpoints)                            |
+| Row density | 3rem thumb · tighter vertical padding · single-line title · meta + price on second line         |
+| Hierarchy   | Smaller type scale than Featured picks; no cards, shadows, or hover lift                        |
 
 **Forbidden:** Featured · other sections · routing/gates · decorative-only effects.
 
@@ -978,13 +1075,13 @@ Same as PR-20B.
 
 **Goal:** Within one second, a visitor knows which program is the flagship — magazine spread + supporting editor picks, not another tour list. **Scope:** Featured section markup + `denali-marketing.css` featured selectors only.
 
-| Layer | Decision |
-|-------|----------|
-| Flagship | First item only; visible `data-marketing-home-featured-flagship-label` badge; cinematic cover + overlay caption (PR-20 grid) |
-| Supporting picks | Remaining items wrapped in `aside[data-marketing-home-featured-picks]` with `picksLabel`; compact thumb rows, no price |
-| Composition | Mobile: flagship stack → ruled “more picks” band; Desktop: ~1.75fr flagship + 1fr sidebar rail separated by inline rule |
-| Hierarchy | Flagship min-height + wider aspect; sidebar label + smaller type; picks never match flagship scale |
-| i18n | `featured.*` uses `{siteName}` from `branding.displayName` (admin workspace name) — not static «editor» copy |
+| Layer            | Decision                                                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Flagship         | First item only; visible `data-marketing-home-featured-flagship-label` badge; cinematic cover + overlay caption (PR-20 grid) |
+| Supporting picks | Remaining items wrapped in `aside[data-marketing-home-featured-picks]` with `picksLabel`; compact thumb rows, no price       |
+| Composition      | Mobile: flagship stack → ruled “more picks” band; Desktop: ~1.75fr flagship + 1fr sidebar rail separated by inline rule      |
+| Hierarchy        | Flagship min-height + wider aspect; sidebar label + smaller type; picks never match flagship scale                           |
+| i18n             | `featured.*` uses `{siteName}` from `branding.displayName` (admin workspace name) — not static «editor» copy                 |
 
 **Forbidden:** Latest · other sections · routing/gates · decorative-only effects.
 
@@ -998,15 +1095,15 @@ Same as PR-20 + `home-i18n-keys` for new copy keys.
 
 **Goal:** One continuous scene from cinematic hero into featured flagship — overlap, typographic bridge, flagship intrusion. **Scope:** `hero-cinematic` + `featured` selectors only.
 
-| Lever | Decision |
-|-------|----------|
-| Overlap | Deeper section pull; primary card negative margin rises into hero band |
-| Hero exit | Taller layout padding + extended bottom fade (not a new sheet) |
-| Typography | Kicker echoes hero eyebrow; featured `h2` steps down (bridge, not catalog headline) |
-| Composition | Header in interstitial band; editor picks separated below flagship |
-| Continuity | Transparent featured chapter; flagship image is Act II object |
+| Lever          | Decision                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overlap        | Deeper section pull; primary card negative margin rises into hero band                                                                                                                                                                                                                                                                                                                                     |
+| Hero exit      | Taller layout padding + extended bottom fade (not a new sheet)                                                                                                                                                                                                                                                                                                                                             |
+| Typography     | Kicker echoes hero eyebrow; featured `h2` steps down (bridge, not catalog headline)                                                                                                                                                                                                                                                                                                                        |
+| Composition    | Header in interstitial band; editor picks separated below flagship                                                                                                                                                                                                                                                                                                                                         |
+| Continuity     | Transparent featured chapter; flagship image is Act II object                                                                                                                                                                                                                                                                                                                                              |
 | Spacing tokens | Guest theme defines `--space-1`…`6` and `--space-8` only; PR-20A synthesizes hero-bridge steps via `--mkt-act2-space-*`. **PR-mobile-gutter (2026-07-04):** shell block also defines `--space-10` / `--space-12` as `calc()` aliases — required because footer + section `padding: var(--space-10) …` is **invalid** when the var is missing (computed padding becomes `0`, footer appears flush to edges) |
-| Specificity | Featured padding uses `main > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden=\"true\"])` so Act II `padding-block` wins over generic `main > section:not(...)` rhythm |
+| Specificity    | Featured padding uses `main > section[data-marketing-home-featured]:not([hidden]):not([aria-hidden=\"true\"])` so Act II `padding-block` wins over generic `main > section:not(...)` rhythm                                                                                                                                                                                                                |
 
 **Forbidden:** Other sections · routing/gates · decorative-only pass.
 
@@ -1020,15 +1117,15 @@ Same as PR-20.
 
 **Goal:** Magazine chapter art direction — Featured ≠ Latest, hero narrative bridge, distinct card families, editorial gallery, typographic finale. **Not** a shadow/gradient polish pass.
 
-| Priority | Editorial decision |
-|----------|-------------------|
-| P1 Featured vs Latest | Featured = one flagship spread + compact editor's picks; Latest = vertical browse feed (thumbnail + meta rows) |
-| P2 Hero → Featured | Transparent chapter (no catalog sheet); flagship card overlaps hero as Act II object |
-| P5 Final CTA | Display headline + lead copy + single invitation CTA; whitespace-led finale |
-| P6 Card families | Tours (image-led vs feed rows), Journey (timeline), Testimonials (pull quotes), Equipment (checklist), FAQ (ruled accordion) |
-| P8 Gallery | First cell spans mosaic hero; aspiration-led composition |
-| Typography | Section-specific display scale; Featured steps forward, Latest steps back |
-| Mobile | Featured column (not swipe lane); Latest vertical feed; testimonials stacked quotes |
+| Priority              | Editorial decision                                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| P1 Featured vs Latest | Featured = one flagship spread + compact editor's picks; Latest = vertical browse feed (thumbnail + meta rows)               |
+| P2 Hero → Featured    | Transparent chapter (no catalog sheet); flagship card overlaps hero as Act II object                                         |
+| P5 Final CTA          | Display headline + lead copy + single invitation CTA; whitespace-led finale                                                  |
+| P6 Card families      | Tours (image-led vs feed rows), Journey (timeline), Testimonials (pull quotes), Equipment (checklist), FAQ (ruled accordion) |
+| P8 Gallery            | First cell spans mosaic hero; aspiration-led composition                                                                     |
+| Typography            | Section-specific display scale; Featured steps forward, Latest steps back                                                    |
+| Mobile                | Featured column (not swipe lane); Latest vertical feed; testimonials stacked quotes                                          |
 
 **Markup (minimal):** `featured.lead`, `latest.lead`, `finalCta.lead` i18n; gallery `data-marketing-home-gallery-item-primary` on first cell.
 
@@ -1046,16 +1143,16 @@ Same as PR-18 + `home-i18n-keys` for new copy keys.
 
 ### Visible deltas (must be noticeable)
 
-| Area | PR-18 |
-|------|-------|
-| Spacing | Token bump (`--mkt-section-pad-y` → `calc(space-12 + space-4)`); section headers get emerald accent bar + larger `--mkt-section-header-gap` |
-| Cards | Layered `--mkt-shadow-card-premium`; primary-tint border; gradient card surface; cover inset ring; price pill; primary featured accent stripe |
-| Hero → featured | Deeper overlap (`-space-12`), taller bridge gradient, larger sheet radius + shadow |
-| Mobile featured | Scroll edge fade mask; primary card 92vw hero tile |
-| Mobile destinations | Horizontal scroll-snap; Damavand card oversized anchor |
-| Mobile testimonials | Editorial cards with primary spine; first card wider |
-| Final CTA | Full-band cinematic gradient, min-height, larger display headline, pill CTA with glow |
-| Motion | Replace generic section-child fade with per-type view() reveals (cards / quotes / destinations / journey steps / CTA / headers) |
+| Area                | PR-18                                                                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Spacing             | Token bump (`--mkt-section-pad-y` → `calc(space-12 + space-4)`); section headers get emerald accent bar + larger `--mkt-section-header-gap`   |
+| Cards               | Layered `--mkt-shadow-card-premium`; primary-tint border; gradient card surface; cover inset ring; price pill; primary featured accent stripe |
+| Hero → featured     | Deeper overlap (`-space-12`), taller bridge gradient, larger sheet radius + shadow                                                            |
+| Mobile featured     | Scroll edge fade mask; primary card 92vw hero tile                                                                                            |
+| Mobile destinations | Horizontal scroll-snap; Damavand card oversized anchor                                                                                        |
+| Mobile testimonials | Editorial cards with primary spine; first card wider                                                                                          |
+| Final CTA           | Full-band cinematic gradient, min-height, larger display headline, pill CTA with glow                                                         |
+| Motion              | Replace generic section-child fade with per-type view() reveals (cards / quotes / destinations / journey steps / CTA / headers)               |
 
 ### Forbidden
 
@@ -1073,23 +1170,23 @@ Same as PR-16.5 + visual before/after on 375 / 768 / 1280.
 
 ### Scroll choreography
 
-| Layer | Decision |
-|-------|----------|
-| Hero → content | `::after` gradient bridge + featured section overlap (`margin-block-start` negative) |
-| Hero scroll | Existing `--mkt-hero-scroll-shift`; PR-17 adds subtle `--mkt-hero-content-opacity` fade in parallax client |
+| Layer          | Decision                                                                                                        |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| Hero → content | `::after` gradient bridge + featured section overlap (`margin-block-start` negative)                            |
+| Hero scroll    | Existing `--mkt-hero-scroll-shift`; PR-17 adds subtle `--mkt-hero-content-opacity` fade in parallax client      |
 | Section reveal | `@supports (animation-timeline: view())` on direct children with staggered `animation-range`; fallback one-shot |
-| Variation | Per-section `--mkt-section-reveal` keyframe (rise / scale / soft) — no gimmicks |
-| Reduced motion | All scroll/reveal/stagger disabled; opacity pinned to 1 |
+| Variation      | Per-section `--mkt-section-reveal` keyframe (rise / scale / soft) — no gimmicks                                 |
+| Reduced motion | All scroll/reveal/stagger disabled; opacity pinned to 1                                                         |
 
 ### Rhythm & polish
 
-| Area | PR-17 |
-|------|-------|
-| Section padding | `--mkt-section-pad-y` / `-lg`; headers `--mkt-section-header-gap` below title block |
-| Featured mobile | Horizontal scroll-snap carousel (not vertical stack); primary card wider + taller cover |
-| Featured desktop | Bento unchanged; refined radius, elevation, primary ring |
-| Latest | Overlap removed — bridge owned by featured |
-| Final CTA | Taller band, centered max-width headline, increased gap before CTA |
+| Area             | PR-17                                                                                   |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| Section padding  | `--mkt-section-pad-y` / `-lg`; headers `--mkt-section-header-gap` below title block     |
+| Featured mobile  | Horizontal scroll-snap carousel (not vertical stack); primary card wider + taller cover |
+| Featured desktop | Bento unchanged; refined radius, elevation, primary ring                                |
+| Latest           | Overlap removed — bridge owned by featured                                              |
+| Final CTA        | Taller band, centered max-width headline, increased gap before CTA                      |
 
 ### Forbidden
 
@@ -1107,21 +1204,21 @@ Same as PR-16.5.
 
 **Goal:** Complete abandoned R3F path — **evolve** `home-hero-mountain-canvas.tsx` internally; **reconnect** `home-hero.tsx`; preserve stage client, spotlights, hooks, shell header (PR-12).
 
-| Layer | Change |
-|-------|--------|
-| RSC `home-hero.tsx` | `data-marketing-home-hero-immersive` + `buildHomeHeroSpotlights` + `HomeHeroMountainStageClient` |
-| `home-hero-mountain-stage.tsx` | Mobile low-power tier; pointer parallax pass-through; static fallback |
-| `home-hero-mountain-canvas.tsx` | Stratovolcano mesh, fog, clouds, HDRI, 90s orbit, no OrbitControls drag |
-| `denali-marketing.css` | PR-14 fullscreen canvas under header; lower-third HTML overlay |
-| Unchanged | `stage-client`, `build-home-hero-spotlights`, types, smoke hooks, SDK |
+| Layer                           | Change                                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ |
+| RSC `home-hero.tsx`             | `data-marketing-home-hero-immersive` + `buildHomeHeroSpotlights` + `HomeHeroMountainStageClient` |
+| `home-hero-mountain-stage.tsx`  | Mobile low-power tier; pointer parallax pass-through; static fallback                            |
+| `home-hero-mountain-canvas.tsx` | Stratovolcano mesh, fog, clouds, HDRI, 90s orbit, no OrbitControls drag                          |
+| `denali-marketing.css`          | PR-14 fullscreen canvas under header; lower-third HTML overlay                                   |
+| Unchanged                       | `stage-client`, `build-home-hero-spotlights`, types, smoke hooks, SDK                            |
 
-| Concern | Decision |
-|---------|----------|
-| Camera | Slow dolly/breathe; **no** free OrbitControls orbit |
-| Orbit period | ~90s idle revolution |
-| Reduced motion / mobile ≤639px | Static destination WebP (existing pattern) |
-| Mountain | Procedural Damavand stratovolcano — not generic cone |
-| Plume | Fumarole haze at crater — factual, not fantasy |
+| Concern                        | Decision                                             |
+| ------------------------------ | ---------------------------------------------------- |
+| Camera                         | Slow dolly/breathe; **no** free OrbitControls orbit  |
+| Orbit period                   | ~90s idle revolution                                 |
+| Reduced motion / mobile ≤639px | Static destination WebP (existing pattern)           |
+| Mountain                       | Procedural Damavand stratovolcano — not generic cone |
+| Plume                          | Fumarole haze at crater — factual, not fantasy       |
 
 ### Verify
 
@@ -1141,10 +1238,10 @@ pnpm run guard:marketing-home-hooks
 
 **Fix (CSS-only, shell block):**
 
-| Token | Value |
-|-------|-------|
-| `--space-10` | `calc(var(--space-8) + var(--space-2))` → 3.5rem |
-| `--space-12` | `calc(var(--space-8) + var(--space-4))` → 4rem |
+| Token                      | Value                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| `--space-10`               | `calc(var(--space-8) + var(--space-2))` → 3.5rem                                |
+| `--space-12`               | `calc(var(--space-8) + var(--space-4))` → 4rem                                  |
 | `--catalog-page-padding-x` | `max(var(--space-4), safe-area insets)` mobile; `max(var(--space-6), …)` ≥640px |
 
 **Footer:** `padding-block-start: var(--space-10)` · `padding-block-end: max(var(--space-6), env(safe-area-inset-bottom))` · `padding-inline: var(--catalog-page-padding-x)`.
@@ -1152,4 +1249,3 @@ pnpm run guard:marketing-home-hooks
 **Catalog main:** same gutter token + safe-area bottom on `/tours`.
 
 **Verify:** DevTools → `footer[data-marketing-footer]` computed padding ≠ `0`; scroll to page bottom on `/` and `/tours` at 375px.
-

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import type { MarketingCatalogCard } from "@/catalog/catalog-types";
 
 import { HomeLatestTourCard } from "./home-latest-tour-card";
+import { HomeSectionViewAllLink } from "./home-section-view-all-link";
 
 export type HomeLatestToursProps = {
   readonly items: readonly MarketingCatalogCard[];
@@ -16,13 +16,13 @@ export async function HomeLatestTours({ items, pluginId }: HomeLatestToursProps)
   return (
     <section data-marketing-home-latest>
       <header>
-        <div data-marketing-home-latest-header-row>
+        <div data-marketing-home-section-header-row data-marketing-home-latest-header-row>
           <h2>{t("home.full.latest.title")}</h2>
-          <Link href="/tours" data-marketing-home-latest-view-all>
+          <HomeSectionViewAllLink data-marketing-home-latest-view-all>
             {t("home.full.latest.viewAll")}
-          </Link>
-          <p data-marketing-home-latest-lead>{t("home.full.latest.lead")}</p>
+          </HomeSectionViewAllLink>
         </div>
+        <p data-marketing-home-latest-lead>{t("home.full.latest.lead")}</p>
       </header>
       <div data-marketing-home-latest-row>
         {items.map((tour) => (

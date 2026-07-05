@@ -7,6 +7,8 @@ import { Button } from "@app-tour/ui-primitives/button";
 import { Input } from "@app-tour/ui-primitives/input";
 
 import { HomeHeroStaticParallax } from "./hero-static/home-hero-static-parallax";
+import { HomeHeroCarouselMedia } from "./hero-static/home-hero-carousel-media";
+import { resolveHomeHeroCarouselSlides } from "./resolve-home-hero-carousel-slides";
 
 export type HomeHeroProps = {
   readonly branding: PublicTenantBrandingSnapshot;
@@ -18,18 +20,14 @@ export async function HomeHero({ branding, showSearch, heroImageUrl }: HomeHeroP
   const t = await getTranslations("catalog");
   const siteName = branding.displayName ?? t("nav.defaultSiteName");
   const copy = { siteName };
+  const heroSlides = resolveHomeHeroCarouselSlides(heroImageUrl);
 
   return (
     <section data-marketing-home-hero data-marketing-home-hero-cinematic>
       <HomeHeroStaticParallax>
         <div data-marketing-home-hero-media aria-hidden="true">
-          <img
-            src={heroImageUrl}
-            alt=""
-            data-marketing-home-hero-background
-            fetchPriority="high"
-            decoding="async"
-          />
+          <HomeHeroCarouselMedia slides={heroSlides} />
+          <div data-marketing-home-hero-overlay-scrim />
           <div data-marketing-home-hero-overlay-vignette />
           <div data-marketing-home-hero-overlay-bottom />
           <div data-marketing-home-hero-overlay-atmosphere />
@@ -64,10 +62,7 @@ export async function HomeHero({ branding, showSearch, heroImageUrl }: HomeHeroP
               </form>
             ) : null}
           </div>
-          <span
-            data-marketing-home-hero-scroll-hint
-            aria-label={t("home.full.hero.scrollHint")}
-          />
+          <span data-marketing-home-hero-scroll-hint aria-label={t("home.full.hero.scrollHint")} />
         </div>
       </HomeHeroStaticParallax>
     </section>

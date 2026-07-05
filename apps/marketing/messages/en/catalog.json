@@ -185,7 +185,13 @@
     "gallery": {
       "heading": "Photo gallery",
       "photoAlt": "{title} — photo {index, number}",
-      "morePhotos": "+{count, number} more photos"
+      "morePhotos": "+{count, number} more photos",
+      "morePhotosOpen": "View {count, number} more photos in gallery",
+      "openPhoto": "Enlarge photo {index, number}",
+      "lightboxClose": "Close gallery",
+      "lightboxPrev": "Previous photo",
+      "lightboxNext": "Next photo",
+      "lightboxCounter": "{current} of {total}"
     },
     "registerPreview": {
       "heading": "Before you register",
@@ -300,15 +306,15 @@
         "explore": "Browse tours",
         "alborz": {
           "name": "Alborz",
-          "description": "Classic peaks and trails north of Tehran."
+          "description": "Popular routes north of Tehran — from day hikes to classic summit programs."
         },
         "damavand": {
           "name": "Damavand",
-          "description": "Iran's highest peak — seasonal programs."
+          "description": "Seasonal ascent programs for climbers ready for high altitude."
         },
         "zardkuh": {
           "name": "Zardkuh",
-          "description": "Chaharmahal & Bakhtiari highlands."
+          "description": "Pristine Zagros summits — varied trails and alpine scenery."
         }
       },
       "search": {
@@ -318,9 +324,16 @@
       },
       "gallery": {
         "title": "Trip gallery",
-        "lead": "Real photos from published programs — each frame opens a journey.",
-        "viewTour": "View tour",
-        "browseAll": "All tours"
+        "lead": "Real moments from the mountains — inspiration only, not tour links.",
+        "browseAll": "All tours",
+        "scrollPrev": "Previous photo",
+        "scrollNext": "Next photo",
+        "openPhoto": "Open photo {index}",
+        "photos": {
+          "01": "Summit in morning mist",
+          "02": "Hiking a rocky trail",
+          "03": "Camp at sunset"
+        }
       },
       "equipment": {
         "title": "Gear checklist",

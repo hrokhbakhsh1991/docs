@@ -42,10 +42,7 @@ export async function GuestHomeFull({
 }: GuestHomeFullProps) {
   const t = await getTranslations("catalog");
   const categories = deriveHomeCategories(catalogItems);
-  const galleryPhotos = deriveHomeGalleryPhotos(
-    catalogItems,
-    t("detail.defaultTourTitle")
-  );
+  const galleryPhotos = deriveHomeGalleryPhotos((key) => t(key));
   const sections = resolveHomeSectionVisibility(
     landing,
     catalogItems.length,
@@ -76,9 +73,7 @@ export async function GuestHomeFull({
       {sections.featured ? (
         <HomeFeatured items={featuredItems} pluginId={pluginId} branding={branding} />
       ) : null}
-      {sections.latest ? (
-        <HomeLatestTours items={latestItems} pluginId={pluginId} />
-      ) : null}
+      {sections.latest ? <HomeLatestTours items={latestItems} pluginId={pluginId} /> : null}
       {sections.categories ? <HomeCategories categories={categories} /> : null}
       {sections.destinations ? <HomeDestinations /> : null}
       {sections.trust ? <HomeTrust branding={branding} /> : null}
