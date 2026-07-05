@@ -6,7 +6,7 @@ import { supportsCatalogRegistration } from "@app-tour/workspace-sdk";
 import type { FlowRuntimeState } from "@app-tour/workspace-sdk";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
-import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
+import { resolvePortalRegistrationBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 import { resolvePortalMemberModuleUrl } from "@app-tour/guest-surface-host";
@@ -15,19 +15,37 @@ import { PublicCatalogRegistrationFlow } from "./public-catalog-registration-flo
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
-
 type PageProps = {
   readonly params: Promise<{ readonly tourId: string }>;
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { tourId } = await params;
+  const host = await readPortalIngressHost();
+  const bootstrap = await resolvePortalBootstrapForHost(host);
+  const t = await getTranslations("catalogRegistration");
+
+  if (!supportsCatalogRegistration(bootstrap.pluginId)) {
+    return { title: t("pageTitle", { tourTitle: tourId }), robots: { index: false, follow: false } };
+  }
+
+  const tour = await fetchCatalogTour({
+    tenantId: bootstrap.tenantId,
+    pluginId: bootstrap.pluginId,
+    tourId,
+  });
+
+  return {
+    title: t("pageTitle", { tourTitle: tour?.title ?? tourId }),
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function CatalogRegisterPage({ params }: PageProps) {
   const { tourId } = await params;
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
-  const backHref = resolveMarketingTourDetailUrl(host, tourId);
+  const backHref = resolvePortalRegistrationBackHref(host, tourId);
   const memberModuleHref = resolvePortalMemberModuleUrl(host);
   const t = await getTranslations("catalogRegistration");
 

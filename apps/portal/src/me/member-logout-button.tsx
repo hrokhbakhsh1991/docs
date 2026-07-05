@@ -1,12 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, type JSX } from "react";
 
 export function MemberLogoutButton(): JSX.Element {
   const t = useTranslations("portalMember.nav");
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -21,9 +19,8 @@ export function MemberLogoutButton(): JSX.Element {
     setLoading(true);
     try {
       await fetch("/api/public-auth/logout", { method: "POST" });
-      router.push("/");
-      router.refresh();
-    } finally {
+      window.location.assign("/");
+    } catch {
       setLoading(false);
     }
   }

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
 import { fetchMemberProfile } from "@/me/fetch-member-profile.server";
@@ -6,6 +7,11 @@ import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server"
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
 import { MemberProfileForm } from "./member-profile-form";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("portalMember.profile");
+  return { title: t("title") };
+}
 
 export default async function MeProfilePage() {
   const host = await readPortalIngressHost();

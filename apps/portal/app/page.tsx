@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { resolveMemberPortalDefaultRoutePath } from "@app-tour/workspace-sdk";
 
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
-import { resolveMarketingPublicBaseUrl } from "@/marketing/resolve-marketing-public-url";
+import { resolvePortalGuestEgressUrl } from "@/marketing/resolve-portal-guest-egress-url.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
@@ -17,5 +17,5 @@ export default async function PortalHomePage() {
     redirect(resolveMemberPortalDefaultRoutePath(bootstrap.pluginId));
   }
 
-  redirect(resolveMarketingPublicBaseUrl(host));
+  redirect(resolvePortalGuestEgressUrl(host));
 }

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
@@ -35,6 +36,11 @@ function HubModuleList({
       ))}
     </ul>
   );
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("portalMember.hub");
+  return { title: t("title") };
 }
 
 export default async function MeMorePage() {

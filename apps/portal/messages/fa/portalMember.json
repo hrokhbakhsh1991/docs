@@ -13,7 +13,19 @@
   "registrations": {
     "title": "ثبت‌نام‌های من",
     "empty": "هنوز ثبت‌نامی ندارید.",
-    "statusLine": "{status} · {paymentStatus} · {departureAt}"
+    "statusLine": "{status} · {paymentStatus} · {departureAt}",
+    "statusLabels": {
+      "pending": "در انتظار",
+      "approved": "تأیید شده",
+      "waitlisted": "لیست انتظار",
+      "rejected": "رد شده",
+      "cancelled": "لغو شده"
+    },
+    "paymentStatusLabels": {
+      "unpaid": "پرداخت نشده",
+      "partial": "پرداخت جزئی",
+      "paid": "پرداخت شده"
+    }
   },
   "profile": {
     "title": "پروفایل من",

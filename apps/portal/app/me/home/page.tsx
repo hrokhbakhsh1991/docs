@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
@@ -6,6 +7,11 @@ import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate
 import { resolveMemberEntitlementsForShell } from "@/me/resolve-member-entitlements-for-shell.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("portalMember.home");
+  return { title: t("title") };
+}
 
 export default async function MeHomePage() {
   const t = await getTranslations("portalMember.home");

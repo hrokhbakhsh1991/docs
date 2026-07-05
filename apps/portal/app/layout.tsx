@@ -18,8 +18,11 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Registration",
-  description: "Tour registration",
+  title: {
+    default: "Portal",
+    template: "%s · Portal",
+  },
+  description: "Tour member portal",
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
