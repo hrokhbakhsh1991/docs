@@ -39,7 +39,7 @@ extends:
 | -- | ------------ | -------- |
 | P1-01 | GP-01, GP-02 complete | Sign-off record |
 | P1-02 | DL-01, DL-02, DL-27 signed | Decision log |
-| P1-03 | Shell CSS hooks: `[data-portal-shell]` + legacy dual selectors | Denali portal CSS migration plan |
+| P1-03 | Shell CSS hooks: `[data-portal-shell]` (legacy dual selectors sunset PS-7) | Denali portal CSS |
 | P1-04 | `app/me/page.tsx` or equivalent redirect for bare `/me` (DL-40) | Route handler |
 | P1-05 | Portal SEO metadata plan approved (DL-39) — may land P1 or P3 | robots/metadata spec |
 
@@ -94,7 +94,7 @@ See [phase-mapping.mdoc](./phase-mapping.mdoc) for PS-N ↔ BP-N naming.
 | BP | PS | Goal | Key prerequisites |
 | -- | -- | ---- | ----------------- |
 | **4** | **5** | Member home (platform `home`) | PS-3+4 complete; DL-06, DL-19; `/me/home`; registry default |
-| **5** | **5** | Entitlements + scale | PS-5 partial; DL-09, DL-24, DL-28, DL-31; entitlements mdoc; SMK-PTL-09 |
+| **5** | **5** | Entitlements + scale | PS-5 complete; DL-09, DL-24, DL-28, DL-31; entitlements mdoc; SMK-PTL-09 |
 | **6** | **6** | Embedded host (Telegram) | BP-5 wallet/membership routes; DL-13, DL-16 |
 | **7** | **6** | Enterprise scale (50+) | BP-6 complete; DL-10, DL-14, DL-17 |
 | **8** | **7** | **Cleanup** | [cleanup-roadmap.mdoc](./cleanup-roadmap.mdoc) CL-GATE-01..08 |
@@ -167,7 +167,7 @@ See [phase-mapping.mdoc](./phase-mapping.mdoc) for PS-N ↔ BP-N naming.
 | 5.1 | `GET /api/me/entitlements` BFF | PS5-ENT-* + M17 allowlist | PASS (bootstrap) |
 | 5.2 | Shell nav ∩ entitlements | SSR filter + PS5-NAV-* | PASS (bootstrap) |
 | 5.3 | API upstream entitlement evaluation | API-ME-ENT-* | PASS (registry bootstrap) |
-| 5.4 | SMK-PTL-09 entitlements smoke | Playwright | **DEFINED** (requires smoke env) |
+| 5.4 | SMK-PTL-09 entitlements smoke | Playwright | PASS |
 | 5.5 | DL-21 unauthorized module UX | Dispatcher 403 page | PASS (dispatcher routes) |
 
 ### Phase 6 exit (PS-6 BP-6 + BP-7 partial)
@@ -188,6 +188,8 @@ See [phase-mapping.mdoc](./phase-mapping.mdoc) for PS-N ↔ BP-N naming.
 | 6.10 | BP-5 wallet/membership UI routes | Product routes | **DEFERRED** |
 
 ### Phase 8 / PS-7 — Cleanup exit
+
+**Status:** **PASS (2026-07-05)** — deprecated GSH export removed; legacy shell DOM/CSS sunset; smoke regression green.
 
 | # | Criterion | Verification |
 | - | --------- | ------------ |
@@ -294,7 +296,7 @@ Documentation targets — scripts may not exist until implementation phases.
 | P5 | GSH `resolvePortalMemberModuleUrl` | ✅ |
 | P6 | SMK-PTL-02..09 on new shell | ✅ (SMK-PTL-09 in smoke spec) |
 | P7 | L4 guest conformance | ✅ warn + Denali reference |
-| P8 | §44 R1–R7 verified | ✅ routing audit in gap report §11 |
+| P8 | §44 R1–R7 verified | ✅ [routing-builders-authority.mdoc](./routing-builders-authority.mdoc) + guards |
 | P9 | WRS addendum merged | ✅ drafted (`wrs-portal-member-routing-addendum.mdoc`) |
 | P10 | URL freeze honored in GSH + SMK | ✅ |
 

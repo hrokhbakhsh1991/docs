@@ -236,7 +236,7 @@ GSH migration: [builder-migration-contract.mdoc](./member-portal-shell/builder-m
 | Transition | Builder | Authority |
 | ---------- | ------- | --------- |
 | Marketing → Portal register | `resolvePortalRegistrationUrl` | GSH |
-| Marketing → Portal member | `resolvePortalMemberModuleUrl` (PS-3+); `resolvePortalMemberAreaUrl` delegates until Cleanup | GSH |
+| Marketing → Portal member | `resolvePortalMemberModuleUrl` (PS-3+; sole GSH member egress since PS-7) | GSH |
 | Portal guest `/` → Marketing | `resolveMarketingPublicBaseUrl` | GSH |
 | Portal register back → Marketing tour | `resolveMarketingTourDetailUrl` | GSH |
 | Web `/catalog/*` → Marketing | `resolveMarketingToursUrl` / web catalog redirect helper | Web shim (Tier C) |

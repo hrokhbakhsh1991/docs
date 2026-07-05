@@ -130,7 +130,7 @@ p7_unblocked: true
 
 **PS-6 scale / embedded (2026-07-05):** `MemberModuleEntitlementGate` on static module pages; `MemberMoreHubEntitlementGate` on `/me/more`; tier evaluator + BFF cache (30s TTL) + invalidation on logout/profile; L4 guest conformance; GCSN `memberModuleId`; embedded shell tag (`data-embedded-host`); hidden Denali `wallet` module for `denied[]` path. **Proof tier:** PS6-* specs · SMK-PTL-09 · guards.
 
-**PS-7 cleanup (2026-07-05):** CL-01 removed `resolvePortalMemberAreaUrl` from GSH public API; CL-03/04 removed legacy `[data-portal-member-shell]` DOM/CSS — single `[data-portal-shell]` contract in `denali-portal.css`. **Proof tier:** `guard:member-portal-shell` 6/6 · SMK-PTL-01..09 · SMK-PTL-08 custom apex · DEN-PROF-01..04 · `DEV` `66454d60`.
+**PS-7 cleanup (2026-07-05):** CL-01 removed `resolvePortalMemberAreaUrl` from GSH public API; CL-03/04 removed legacy `[data-portal-member-shell]` DOM/CSS — single `[data-portal-shell]` contract in `denali-portal.css`. **Proof tier:** `guard:member-portal-shell` 6/6 · SMK-PTL-01..09 · SMK-PTL-08 custom apex · DEN-PROF-01..04 · smoke closure `2b6eac10`.
 
 | PS-1 artifact | Path |
 | ------------- | ---- |

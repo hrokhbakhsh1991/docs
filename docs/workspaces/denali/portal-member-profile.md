@@ -110,7 +110,7 @@ app/me/layout.tsx
 
 Smoke warmup: `apps/portal/tests/e2e/portal-smoke-global-setup.ts` pre-compiles `/catalog/{210,212}/register` before Playwright navigation (first dev compile can exceed 90s).
 
-Covered by `MEM-PROF-01` in `portal-member-registrations.spec.ts` and **DEN-PROF-01..03** in `portal-member-profile-smoke.spec.ts`.
+Covered by `MEM-PROF-01` in `portal-member-registrations.spec.ts` and **DEN-PROF-01..04** in `portal-member-profile-smoke.spec.ts`.
 
 ---
 
@@ -120,8 +120,8 @@ Covered by `MEM-PROF-01` in `portal-member-registrations.spec.ts` and **DEN-PROF
 | ---- | ------ |
 | Scope | `body[data-app-surface="portal"][data-workspace-plugin="denali"]` |
 | Skin file | `packages/workspaces/denali/theme/denali-portal.css` |
-| Profile shell | `main[data-portal-member-profile]` + `[data-portal-member-shell]` nav (2026-07-02) |
-| E2E | `portal-member-profile-smoke.spec.ts` — DEN-PROF-01..03 |
+| Profile shell | `main[data-portal-member-profile]` inside `[data-portal-shell]` member chrome (PS-7) |
+| E2E | `portal-member-profile-smoke.spec.ts` — DEN-PROF-01..04 |
 
 Design SoT: `design-system/denali-club/MASTER.md` (primary `#059669`).
 

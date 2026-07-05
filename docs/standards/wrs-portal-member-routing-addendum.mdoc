@@ -260,8 +260,7 @@ All cross-host URLs **must** use Guest Surface Host (GSH) builders — WRS-URL-0
 | Transition | Builder | Authority | Migration |
 | ---------- | ------- | --------- | --------- |
 | Tour detail register CTA | `resolvePortalRegistrationUrl(host, tourId)` | GSH | Stable |
-| Header/footer member area (today) | `resolvePortalMemberAreaUrl(host)` | GSH | **Deprecated** — delegates PS-3+ |
-| Header/footer member area (target) | `resolvePortalMemberModuleUrl(host, moduleId?)` | GSH | **Primary PS-3+** |
+| Header/footer member area | `resolvePortalMemberModuleUrl(host, moduleId?)` | GSH | **Primary PS-3+** (sole builder since PS-7) |
 
 **PCMS rule:** Marketing does **not** probe member session — static egress link only ([member-session-portal-authority.mdoc](./member-session-portal-authority.mdoc)).
 

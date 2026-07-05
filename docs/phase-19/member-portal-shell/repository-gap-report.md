@@ -77,7 +77,7 @@
 | ---- | ------ |
 | Architect sign-off DL-01..42 | **PENDING SIGN-OFF** |
 | RFC + WRS addendum PR merge | **PENDING SIGN-OFF** |
-| Git push `DEV` → origin | ✅ `66454d60` |
+| Git push `DEV` → origin | ✅ `e890114c` (HEAD) |
 | SMK-PTL-01..09 Playwright | ✅ green (main + custom apex; 600s/720s cold-compile timeouts) |
 | DEN-PROF-01..04 profile smokes | ✅ green — authenticated intake resume fixture aligned with SMK-PTL-07 |
 
@@ -114,4 +114,19 @@
 
 ---
 
-*Gap report v2.3.0 · PS-1..PS-7 closure + smoke verification · 2026-07-05*
+## 7. Phase audit matrix (2026-07-05)
+
+| Phase | Gate exit | Guards / proof | Smoke | Status |
+| ----- | --------- | -------------- | ----- | ------ |
+| PS-0 Doc pack | Phase 0 checklist drafted | Doc pack in `docs/phase-19/member-portal-shell/` | — | ✅ Drafted · Architect sign-off pending |
+| PS-1 Shell | §6 Phase 1 exit | `guard-member-shell` · PS1-SHELL-* | SMK-PTL-01..08 | ✅ PASS |
+| PS-2 Registry | §6 Phase 2 exit | `guard-member-portal-registry` · PS2-* | SMK-PTL-02..08 labels | ✅ PASS |
+| PS-3 GSH URL | §6 Phase 3 exit 3.2 | `guard-member-url-builder` · GSH-PS3-* | SMK-PTL-02/04/06 | ✅ PASS |
+| PS-4 Cross-surface | §6 Phase 3 exit 3.1–3.5 | GCSN · egress · SEO guards | SMK-PTL-07/08 | ✅ PASS |
+| PS-5 Home + entitlements | §6 Phase 4–5 exit | PS5-* · API-ME-ENT-* | SMK-PTL-09 | ✅ PASS |
+| PS-6 Scale | §6 Phase 6 exit | PS6-* · L4 · cache | SMK-PTL-09 · `/me/more` | ✅ PASS (Telegram/wallet UI deferred) |
+| PS-7 Cleanup | §6 Phase 8 exit | CL-01..05 · `guard:member-portal-shell` 6/6 | SMK-PTL-02/04 · DEN-PROF-01..04 | ✅ PASS |
+
+---
+
+*Gap report v2.4.0 · full phase audit · 2026-07-05*

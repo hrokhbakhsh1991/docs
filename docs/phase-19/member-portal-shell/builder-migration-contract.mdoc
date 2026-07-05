@@ -32,8 +32,8 @@ This contract defines **zero-ambiguity** behavior for migrating from `resolvePor
 
 | Builder | Package | Status today | Target |
 | ------- | ------- | ------------ | ------ |
-| `resolvePortalMemberModuleUrl(host, moduleId?)` | `guest-surface-host` | **Implemented PS-3** | **Primary** |
-| `resolvePortalMemberAreaUrl(host)` | `guest-surface-host` | **Deprecated** — delegates | **Deprecated** until Cleanup |
+| `resolvePortalMemberModuleUrl(host, moduleId?)` | `guest-surface-host` | **Primary (PS-3+)** | **Primary** |
+| `resolvePortalMemberAreaUrl(host)` | `guest-surface-host` | **Removed PS-7 (CL-01)** | — (historical only) |
 
 **Out of scope:** `resolvePortalRegistrationUrl`, marketing builders, web redirect shims — see [routing-builders-authority.mdoc](./routing-builders-authority.mdoc).
 
@@ -53,11 +53,9 @@ This contract defines **zero-ambiguity** behavior for migrating from `resolvePor
 
 **Fail-closed (codegen/runtime):** Unknown `moduleId` → throw at build time (codegen) or resolve to `defaultPrimaryModuleId` at runtime (implementation detail — must be documented in GSH spec PR).
 
-### 2.2 `resolvePortalMemberAreaUrl(host)` (deprecated)
+### 2.2 `resolvePortalMemberAreaUrl(host)` (removed PS-7)
 
-**Semantic name:** “Member area entry URL for cross-host static egress (PCMS-003).”
-
-**Not** synonymous with “default primary module” after Phase 4 — but **must remain SMK-compatible** via delegation rules in §4.
+**Historical:** Cross-host member egress builder deprecated PS-3, removed in Cleanup Phase (2026-07-05). All call sites use `resolvePortalMemberModuleUrl` only. See §4 for delegation rules that applied PS-3..PS-6.
 
 ---
 
@@ -73,18 +71,17 @@ resolvePortalMemberModuleUrl(host)
 
 resolvePortalMemberModuleUrl(host, "trips")
   → always "{portalBase}/me/registrations"  (permanent alias — DL-03)
-
-resolvePortalMemberAreaUrl(host)  [deprecated]
-  → identical to resolvePortalMemberModuleUrl(host)  (delegation — §4)
 ```
+
+**PS-7 note:** `resolvePortalMemberAreaUrl` removed from GSH public API — use `resolvePortalMemberModuleUrl` only.
 
 **Invariant:** `{portalBase}/me/registrations` must remain reachable from both builders when `defaultPrimaryModuleId` is `home` or any other module (alias is route-level, not module-id-level).
 
 ---
 
-## 4. Delegation (deprecated builder)
+## 4. Delegation (historical — PS-3 through PS-6)
 
-From **Phase 3 implementation** until **Cleanup Phase** (see [cleanup-roadmap.mdoc](./cleanup-roadmap.mdoc)):
+From **Phase 3** through **Cleanup Phase entry**, the deprecated builder delegated:
 
 ```typescript
 // Contract (conceptual — not implementation)
@@ -95,7 +92,7 @@ export function resolvePortalMemberAreaUrl(host: string): string {
 
 | Rule | Detail |
 | ---- | ------ |
-| Export preserved | `resolvePortalMemberAreaUrl` **remains exported** through Cleanup Phase |
+| Export preserved | PS-3 through PS-6 only — **removed PS-7 (CL-01)** |
 | Implementation | Single-line delegate to `resolvePortalMemberModuleUrl(host)` — no independent path logic |
 | JSDoc | `@deprecated Use resolvePortalMemberModuleUrl. Removed in Cleanup Phase.` |
 | Tests | Existing GSH spec expectations updated to assert delegation equivalence |
@@ -161,7 +158,7 @@ export function resolvePortalMemberAreaUrl(host: string): string {
 | SMK-PTL-05 | Phase 4+ (when default → `home`) | `/` → `/me/home` — **explicit smoke update PR** |
 | SMK-PTL-06 | Always | Logout unchanged |
 | SMK-PTL-07/08 | Always | Host bind unchanged |
-| GSH unit spec | Phase 3+ | `resolvePortalMemberAreaUrl(h) === resolvePortalMemberModuleUrl(h)` |
+| GSH unit spec | Phase 3–6 | Delegation equivalence test (removed with export PS-7) |
 
 **Rule:** No Phase 3 GSH PR merges unless SMK-PTL-02/04/06/07/08 green **and** delegation unit test green.
 
@@ -172,10 +169,10 @@ export function resolvePortalMemberAreaUrl(host: string): string {
 | Guarantee | Duration |
 | --------- | -------- |
 | `/me/registrations` URL valid | Permanent (URL freeze) |
-| `resolvePortalMemberAreaUrl` exported | Phase 3 through Phase 7 |
-| Delegation equivalence | Phase 3 through Phase 7 |
-| Hardcoded `/me/registrations` in GSH | Until Phase 3 PR merges |
-| Marketing can use deprecated API | Until Cleanup Phase |
+| `resolvePortalMemberAreaUrl` exported | PS-3 through PS-6 only — **removed PS-7** |
+| Delegation equivalence | PS-3 through PS-6 only |
+| Hardcoded `/me/registrations` in GSH | Frozen alias fallback in `resolvePortalMemberModuleUrl` only |
+| Marketing member egress | `resolvePortalMemberModuleUrl` only (PS-7+) |
 
 ---
 

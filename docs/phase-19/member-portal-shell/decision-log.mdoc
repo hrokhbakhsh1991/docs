@@ -23,7 +23,7 @@ extends:
 | Date | _Pending_ |
 | Scope | DL-01 … DL-42 |
 | **Status** | **PENDING SIGN-OFF** |
-| Repo verification bundle | `66454d60` on `DEV` — see [repository-gap-report.md](./repository-gap-report.md) §1 |
+| Repo verification bundle | `2b6eac10` on `DEV` (smoke closure) · docs HEAD `e890114c` — see [repository-gap-report.md](./repository-gap-report.md) §1 |
 | Verification commands | `pnpm run guard:member-portal-shell` · `pnpm --filter @apps/portal test` · `pnpm --filter @apps/portal run test:smoke` · `pnpm --filter @apps/portal run test:smoke:custom-apex` |
 | Verification status (2026-07-05) | Guards **6/6 PASS** · portal unit **150/150** · SDK **316/316** · SMK-PTL-01..09 + SMK-PTL-08 · DEN-PROF-01..04 |
 
@@ -268,8 +268,8 @@ extends:
 | ----- | ----- |
 | **Status** | **PENDING SIGN-OFF** |
 | **Context** | Hardcoded `/me/registrations` at `resolve-portal-public-base-url.ts` L19–20. |
-| **Decision** | Add `resolvePortalMemberModuleUrl(host, moduleId?)`; deprecate `resolvePortalMemberAreaUrl` to delegate to `defaultPrimaryModuleId`. |
-| **Consequences** | All cross-host member links track registry default. |
+| **Decision** | Add `resolvePortalMemberModuleUrl(host, moduleId?)`; deprecated `resolvePortalMemberAreaUrl` delegated PS-3..PS-6; **removed PS-7 (CL-01)**. |
+| **Consequences** | All cross-host member links use registry-aware builder only. |
 | **Dependencies** | DL-06; DL-38; URL freeze |
 | **Open questions** | None — see [builder-migration-contract.mdoc](./builder-migration-contract.mdoc). |
 
