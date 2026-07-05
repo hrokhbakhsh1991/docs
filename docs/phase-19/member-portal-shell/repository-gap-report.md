@@ -1,6 +1,6 @@
 # Member Portal Shell — Repository Gap Report
 
-**Status:** **PS-1..PS-7 REPO COMPLETE** · Architect sign-off **PENDING** · Committed `694620f0`  
+**Status:** **PS-1..PS-7 REPO COMPLETE** · Architect sign-off **PENDING** · Committed on `DEV`  
 **Date:** 2026-07-05 (closure pass)  
 **Purpose:** Inventory **remaining** work after PS-1 through PS-6 implementation landing.
 
