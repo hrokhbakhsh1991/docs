@@ -118,6 +118,21 @@ p7_unblocked: true
 | Dev | tracked `.env.local.example` · `!.env.local.example` · portal `allowedDevOrigins` · `apps/api/.env.local.example` for Postgres |
 | Proof | `guard:public-catalog-m17` dynamic PASS · SDK-CAT + registration intake specs in `p6:gate` + `p4:gate` · portal unit · smokes 4/4 each |
 
+**PS-1 member portal shell (2026-07-05):** Phase 1 platform frame landed per [member-portal-shell/implementation-gates.mdoc](../../member-portal-shell/implementation-gates.mdoc) §6 Phase 1 exit. Inline `<nav>` removed from `app/me/layout.tsx`; member chrome lives in `apps/portal/src/shell/*` (`PortalMemberShell`, header, bottom nav, user menu). Landmarks: `[data-portal-shell]` root (dual legacy `[data-portal-member-shell]`), `[data-portal-shell-header]`, `[data-portal-shell-main]`, `[data-portal-shell-bottom-nav]`. Bare `GET /me` → `redirect("/me/registrations")` in `app/me/page.tsx` (DL-40 interim until PS-2 registry). Registration path stays outside `me/layout.tsx` — no bottom nav on `/catalog/*/register` (DL-01). Denali theme: dual CSS selectors in `denali-portal.css`. **Proof tier:** STATIC (`portal-member-shell.spec.ts` PS1-SHELL-01..05) + existing SMK-PTL-02..08 E2E. **Not in scope:** registry codegen (PS-2), GSH URL resolver (PS-3), entitlements (PS-5+).
+
+| PS-1 artifact | Path |
+| ------------- | ---- |
+| Shell frame | `apps/portal/src/shell/portal-member-shell.tsx` |
+| Header / bottom nav / user menu | `portal-member-header.tsx`, `portal-member-bottom-nav.tsx`, `portal-member-user-menu.tsx` |
+| Nav types + test ids | `portal-member-nav.types.ts` |
+| Member layout wrapper | `apps/portal/app/me/layout.tsx` |
+| Bare `/me` redirect | `apps/portal/app/me/page.tsx` |
+| Logout hook (SMK-PTL-06) | `apps/portal/src/me/member-logout-button.tsx` |
+| i18n | `messages/en|fa/portalMember.json` (`nav.trips`, `skipToMain`, `primaryNav`) |
+| Theme dual selectors | `packages/workspaces/denali/theme/denali-portal.css` |
+| Static proof | `apps/portal/test/portal-member-shell.spec.ts` |
+| Smoke config | `apps/portal/playwright.portal.config.ts` includes `portal-member-smoke.spec.ts` (SMK-PTL-02/04/05/06) |
+
 ---
 
 ## Closure honesty matrix
@@ -146,6 +161,7 @@ p7_unblocked: true
 | Portal register | `public-catalog-registration-flow.tsx` | E2E SMK-PTL-01 |
 | Portal public-auth BFF | `apps/portal/app/api/public-auth/*` | Handler tests in `p6:gate` ✅ |
 | Member `/me` BFF | `app/api/me/registrations/route.ts` | Handler 401 in portal gate |
+| Member portal shell (PS-1) | `apps/portal/src/shell/*` + `app/me/layout.tsx` | STATIC `portal-member-shell.spec.ts` · E2E SMK-PTL-02..08 |
 | Bookings ops | `apps/api/src/bookings/` | In-memory HTTP in gate |
 | Host parity API | `p6-host-tenant-parity.spec.ts` | In-memory listener ✅ |
 | Denali plugin | `packages/workspaces/denali/` | Platform phase-6 package tests |

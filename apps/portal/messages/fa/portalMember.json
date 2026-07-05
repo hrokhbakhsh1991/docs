@@ -1,9 +1,12 @@
 {
   "nav": {
+    "trips": "سفرها",
     "registrations": "ثبت‌نام‌های من",
     "profile": "پروفایل",
     "logout": "خروج",
-    "loggingOut": "در حال خروج…"
+    "loggingOut": "در حال خروج…",
+    "skipToMain": "رفتن به محتوای اصلی",
+    "primaryNav": "ناوبری اصلی"
   },
   "registrations": {
     "title": "ثبت‌نام‌های من",

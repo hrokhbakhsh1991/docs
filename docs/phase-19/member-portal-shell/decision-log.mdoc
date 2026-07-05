@@ -1,0 +1,547 @@
+---
+title: Member Portal Shell — Architecture Decision Log
+standard_id: MPS-DL-001
+version: 1.1.0
+status: pending_sign_off
+source: docs/temp/DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md (v9)
+extends:
+  - ../platform-portal-member-shell-architecture.mdoc
+  - ../../standards/wrs-portal-member-routing-addendum.mdoc
+  - builder-migration-contract.mdoc
+  - phase-mapping.mdoc
+---
+
+# Member Portal Shell — Architecture Decision Log (DL-01 … DL-42)
+
+**Authority:** Decisions extracted from Blueprint v9. **Every entry status: PENDING SIGN-OFF.**
+
+## Sign-off record
+
+| Field | Value |
+| ----- | ----- |
+| Architect | _Pending_ |
+| Date | _Pending_ |
+| Scope | DL-01 … DL-42 |
+| **Status** | **PENDING SIGN-OFF** |
+
+---
+
+## Decisions
+
+### DL-01 — Registration shell mode
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | P6-3 conversion focus; SMK-PTL-06; PCMS-REG-01 resume on register page only. |
+| **Decision** | Minimal shell on `/catalog/{tourId}/register`; full shell on all `/me/*`. Registration excluded from member registry. |
+| **Consequences** | Registration never shows bottom nav; graduation to full shell at `/me/*`. |
+| **Dependencies** | PCMS-REG-01; §9 registration policy |
+| **Open questions** | None — closed in blueprint. |
+
+### DL-02 — Hub / Profile placement (Denali reference IA)
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Five touch targets; profile is not a daily-switch tab. |
+| **Decision** | Bottom nav: Home · Trips · Wallet · Membership · More. Profile in user menu only. |
+| **Consequences** | Denali reference binding; other workspaces may differ within cap rules. |
+| **Dependencies** | DL-04; §22 Denali reference |
+| **Open questions** | Per-workspace IA override rules beyond Denali. |
+
+### DL-03 — Trips route naming
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Avoids WRS confusion with marketing `/tours`; SMK-PTL backward compatibility. |
+| **Decision** | Registry module id `trips`; route `/me/registrations` retained as permanent alias. |
+| **Consequences** | SMK-PTL-02/04/05 keep `/me/registrations` href; label uses trips semantics. |
+| **Dependencies** | DL-06; WRS-PATH-01/02; URL freeze §48 |
+| **Open questions** | None. |
+
+### DL-04 — Primary nav overflow (>5 modules)
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Mirrors `validateSettingsManifest` strictness. |
+| **Decision** | Codegen hard fail if >5 primary tier modules declared. |
+| **Consequences** | Forces explicit secondary/hidden tiering. |
+| **Dependencies** | Operator settings registry pattern |
+| **Open questions** | None. |
+
+### DL-05 — Shared public navigation source
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Duplication in `marketing-shell.tsx` L21–26. |
+| **Decision** | New manifest block `guestCrossSurfaceNav` replaces hardcoded `FULL_LANDING_NAV_LINKS`. |
+| **Consequences** | Phase 3 delivers manifest-driven marketing + portal header egress. |
+| **Dependencies** | DL-37; WRS addendum |
+| **Open questions** | None — see [guest-cross-surface-nav-schema.mdoc](./guest-cross-surface-nav-schema.mdoc). |
+
+### DL-06 — Default authenticated portal entry
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Today `apps/portal/app/page.tsx` L12 → `/me/registrations`. |
+| **Decision** | `defaultPrimaryModuleId` in member registry replaces hardcoded redirect in `app/page.tsx`. |
+| **Consequences** | Portal `/` redirect becomes registry-driven; alias path preserved. |
+| **Dependencies** | DL-03; DL-22 |
+| **Open questions** | None. |
+
+### DL-07 — Guest conformance L4
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Urban/starter remain L3 until member app needed. |
+| **Decision** | L4 = L3 + `memberPortal` registry block required for member-app label. |
+| **Consequences** | Conformance codegen gains L4 tier. |
+| **Dependencies** | DL-18; guest-plugin-conformance.md |
+| **Open questions** | Exact L4 CI fail timing. |
+
+### DL-08 — Marketing logged-in indicator
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Marketing must not read member session. |
+| **Decision** | No — egress link only per PCMS-001. |
+| **Consequences** | Static link via GSH; no authenticated marketing UI. |
+| **Dependencies** | PCMS-001; guard-pcms-authority |
+| **Open questions** | None — permanent (RA-02). |
+
+### DL-09 — Entitlement wire format
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Matches `/api/me/*` + `buildMemberApiHeaders`. |
+| **Decision** | `GET /api/me/entitlements` portal BFF; not JWT embed; not client-only. |
+| **Consequences** | Shell SSR intersects registry with entitlements. |
+| **Dependencies** | DL-23; middleware; entitlements mdoc (future) |
+| **Open questions** | Upstream API field names (Phase 5 impl PR). Contract: [platform-portal-member-entitlements.mdoc](../platform-portal-member-entitlements.mdoc). |
+
+### DL-10 — Hub virtualisation threshold
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Navigation IA stability at scale. |
+| **Decision** | Plain hub list until 25 secondary modules; virtualised list at 25+ (Phase 7). |
+| **Consequences** | Phase 7 performance work. |
+| **Dependencies** | DL-02; §12 scalability |
+| **Open questions** | Virtualisation UX details deferred to Phase 7. |
+
+### DL-11 — Module deprecation
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | No silent route removal. |
+| **Decision** | `moduleVersion` in manifest + RFC sunset note; SMK updated on removal. |
+| **Consequences** | Sunset process required. |
+| **Dependencies** | DL-28; SMK matrix |
+| **Open questions** | Deprecation HTTP headers optional. |
+
+### DL-12 — returnUrl / portalReturn contract
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | MAP §3.6 intent; prevents open redirect. |
+| **Decision** | Query `portalReturn` on register egress; allowlist relative paths on marketing host only. |
+| **Consequences** | Not implemented in repo today. |
+| **Dependencies** | PCMS; MIGRATION-MAP §3.6 |
+| **Open questions** | Implementation phase for portalReturn. |
+
+### DL-13 — Telegram / embedded host adapter
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | URL + host concerns stay one package. |
+| **Decision** | Extend `@app-tour/guest-surface-host` with embedded-host exports; no portal fork. |
+| **Consequences** | Phase 6 adapter. |
+| **Dependencies** | DL-16 |
+| **Open questions** | Adapter API surface in Phase 6. |
+
+### DL-14 — Phase 7 search ownership
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Prevents global search of operator/finance rows. |
+| **Decision** | Platform indexes registry metadata; workspace indexes module content internally. |
+| **Consequences** | Phase 7 only. |
+| **Dependencies** | DL-15 |
+| **Open questions** | Search UI ownership. |
+
+### DL-15 — Member wallet vs operator finance
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Denali `httpRoutes` finance is operator-scoped (`apps/api` `/finance/*`). |
+| **Decision** | Separate member finance HTTP routes; member BFF proxies; actor=member RLS. Never portal BFF to operator `/finance/*`. |
+| **Consequences** | Wallet module uses member-scoped API only. |
+| **Dependencies** | BF-02; Denali manifest |
+| **Open questions** | Member finance route design per workspace. |
+
+### DL-16 — Embedded host package location
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Same as DL-13. |
+| **Decision** | Subpath of guest-surface-host, not new monorepo app. |
+| **Consequences** | Single package for cross-surface + embedded URLs. |
+| **Dependencies** | DL-13 |
+| **Open questions** | None. |
+
+### DL-17 — Entitlement BFF cache TTL
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | SR-03; profile cache precedent. |
+| **Decision** | Phase 5: TTL=0. Phase 7: optional 30s private BFF cache; invalidate on logout + membership mutation. |
+| **Consequences** | API always re-checks on mutation. |
+| **Dependencies** | DL-09; member-profile-cache.server.ts |
+| **Open questions** | Exact TTL tuning in Phase 7. |
+
+### DL-18 — L4 enforcement strictness
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | OQ-02 closed in blueprint. |
+| **Decision** | Phase 2: codegen warn if L3 declares `memberPortal`. Phase 5: CI fail if Denali lacks block. Urban/starter exempt. |
+| **Consequences** | Phased conformance enforcement. |
+| **Dependencies** | DL-07; generate-workspace-registry |
+| **Open questions** | None. |
+
+### DL-19 — Member home data architecture
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | OQ-03 closed. |
+| **Decision** | `GET /api/me/home` BFF aggregates upstreams — server composition. |
+| **Consequences** | Phase 4 home module. |
+| **Dependencies** | DL-09; DL-31 allowlist |
+| **Open questions** | Aggregate response shape in Phase 4. |
+
+### DL-20 — Notifications module
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | OQ-04 closed. |
+| **Decision** | Phase 1–6: header badge slot. Phase 7: optional hidden `notifications` module. |
+| **Consequences** | Avoids premature registry bloat. |
+| **Dependencies** | DL-02 |
+| **Open questions** | Badge BFF timing. |
+
+### DL-21 — Unauthorized module deep link
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Preserves member session. |
+| **Decision** | 403 in-portal page + BFF JSON deny — not marketing redirect. |
+| **Consequences** | Distinct unauthorized UX. |
+| **Dependencies** | DL-09; §41 dispatcher |
+| **Open questions** | 403 body codes. |
+
+### DL-22 — GSH member area URL
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Hardcoded `/me/registrations` at `resolve-portal-public-base-url.ts` L19–20. |
+| **Decision** | Add `resolvePortalMemberModuleUrl(host, moduleId?)`; deprecate `resolvePortalMemberAreaUrl` to delegate to `defaultPrimaryModuleId`. |
+| **Consequences** | All cross-host member links track registry default. |
+| **Dependencies** | DL-06; DL-38; URL freeze |
+| **Open questions** | None — see [builder-migration-contract.mdoc](./builder-migration-contract.mdoc). |
+
+### DL-23 — Shell bootstrap fetch order
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Avoid N+1 SSR. |
+| **Decision** | SSR: bootstrap → registry → entitlements BFF → nav; module outlet parallel. |
+| **Consequences** | Performance contract. |
+| **Dependencies** | DL-09; header propagation §40 |
+| **Open questions** | Optional coalesce in Phase 7. |
+
+### DL-24 — Module route scaffold
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Static folders do not scale to 50 modules. |
+| **Decision** | Single `app/me/[[...modulePath]]/page.tsx` dispatcher beyond Phase 5. |
+| **Consequences** | Phase 5+ only. |
+| **Dependencies** | DL-28; NS-03 |
+| **Open questions** | Dispatcher implementation details. |
+
+### DL-25 — P6 freeze docs superseded?
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | P6 docs frozen. |
+| **Decision** | Extend, never supersede — add INV-PS-* / INV-ME-* cross-refs. |
+| **Consequences** | New mdoc references INV-MP-*. |
+| **Dependencies** | platform-portal-member.mdoc; §34 coexistence |
+| **Open questions** | None. |
+
+### DL-26 — Marketing footer member link
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Footer uses `portalMemberAreaUrl` today. |
+| **Decision** | Same GSH resolver as header — track `defaultPrimaryModuleId`. |
+| **Consequences** | Header/footer parity. |
+| **Dependencies** | DL-22; marketing-footer.tsx |
+| **Open questions** | None. |
+
+### DL-27 — Denali CSS hook migration
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | 50+ rules in `denali-portal.css`. |
+| **Decision** | Dual selectors `[data-portal-shell]` + legacy `[data-portal-member-*]` until SMK green. |
+| **Consequences** | Hook migration in Phase 1. |
+| **Dependencies** | SMK-PTL; TH-01 |
+| **Open questions** | Legacy selector sunset date. |
+
+### DL-28 — Catch-all vs static routes
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | NS-03 shadow risk. |
+| **Decision** | Phase 1–4 static only. Phase 5+ dispatcher; static wins. |
+| **Consequences** | Phased adoption. |
+| **Dependencies** | DL-24; §41 coexistence |
+| **Open questions** | Reserved path table in codegen. |
+
+### DL-29 — SSR failure UX
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | ERR-01; SS-01. |
+| **Decision** | Degraded shell + retry — never silent empty nav. |
+| **Consequences** | Support diagnosability. |
+| **Dependencies** | DL-09; observability §33 |
+| **Open questions** | Error code taxonomy. |
+
+### DL-30 — Reserved module ids
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | NS-01; NS-04; Denali IA includes platform Home module at `/me/home`. |
+| **Decision** | **Platform-owned id:** `home` — workspace manifests MUST NOT declare moduleId `home`. **Namespace-reserved:** `more`, `api`, `catalog` — codegen blocklist. |
+| **Consequences** | Platform delivers `/me/home` (BP-4); workspaces reference `home` via effective registry merge only. No conflict with URL freeze alias `/me/registrations`. Validation via `guard-member-module-id-reserved`. |
+| **Dependencies** | DL-02; DL-19; RFC §4.3.1; WRS addendum §3.1 |
+| **Open questions** | Additional namespace-reserved ids only. |
+
+### DL-31 — M17 BFF allowlist extension
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | M17-01. |
+| **Decision** | Extend `guard-public-catalog-m17.mjs` for `/api/me/entitlements`, `/api/me/home`. |
+| **Consequences** | Profile boundary guard authoritative. |
+| **Dependencies** | DL-09; guard-portal-member-profile-boundary |
+| **Open questions** | None. |
+
+### DL-32 — architecture-truth extension
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | M17-03. |
+| **Decision** | Add shell + entitlements to architecture-truth-guard HIGH set. |
+| **Consequences** | Drift detection. |
+| **Dependencies** | DL-31 |
+| **Open questions** | Exact file list in guard spec. |
+
+### DL-33 — Module URL state
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | WRS clarity. |
+| **Decision** | Path segments only — no nav in query string. |
+| **Consequences** | Deep links use paths. |
+| **Dependencies** | WRS addendum |
+| **Open questions** | None. |
+
+### DL-34 — Registry freshness gate
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | SUP-01. |
+| **Decision** | `generate:workspace-registry` mandatory in CI on manifest diff. |
+| **Consequences** | Generated registries match manifests. |
+| **Dependencies** | guard-guest-plugin-conformance |
+| **Open questions** | CI wiring. |
+
+### DL-35 — Risk register maintenance
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | §44 audit. |
+| **Decision** | New BFF/module requires risk + traceability row before merge. |
+| **Consequences** | Doc-code parity. |
+| **Dependencies** | §26 traceability |
+| **Open questions** | Automation vs PR template. |
+
+### DL-36 — Routing design pivot
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Enterprise routing audit 2026-07-05. |
+| **Decision** | No pivot — keep WRS, `/me/*`, registration outside shell, GSH. |
+| **Consequences** | Blueprint v9 confirms direction. |
+| **Dependencies** | WRS-001; PCMS-001 |
+| **Open questions** | None. |
+
+### DL-37 — Cross-surface nav admission
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | `/about`, `/contact` 404 on club hosts. |
+| **Decision** | `guestCrossSurfaceNav` validated against surface allowlist. |
+| **Consequences** | Codegen rejects invalid paths. |
+| **Dependencies** | DL-05; §49 admission |
+| **Open questions** | Platform-mother allowlist. |
+
+### DL-38 — Workspace registration success CTA
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | denali/urban registration steps. |
+| **Decision** | GSH `resolvePortalMemberModuleUrl` — not raw `/me/registrations` href. |
+| **Consequences** | Workspace egress via injected URL. |
+| **Dependencies** | DL-22; §50 egress |
+| **Open questions** | Plugin-host injection mechanism. |
+
+### DL-39 — Portal crawl policy
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | No portal `robots.ts` today. |
+| **Decision** | `/me/*` and `/catalog/*/register` noindex,nofollow. |
+| **Consequences** | Member routes never indexed. |
+| **Dependencies** | RT-04; §51 SEO |
+| **Open questions** | robots.ts vs metadata. |
+
+### DL-40 — Bare `/me` path
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | No `app/me/page.tsx`. |
+| **Decision** | 302 to `defaultPrimaryModuleId` — never 404 after middleware. |
+| **Consequences** | Namespace root redirect. |
+| **Dependencies** | DL-06; middleware.ts |
+| **Open questions** | None. |
+
+### DL-41 — WRS addendum gate
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | WRS §4 lags code. |
+| **Decision** | Phase 3 blocked until WRS addendum merged. |
+| **Consequences** | Doc before manifest nav. |
+| **Dependencies** | wrs-portal-member-routing-addendum.mdoc |
+| **Open questions** | Inline WRS §4 merge optional at Cleanup (DL-41 satisfied by companion link). |
+
+### DL-42 — Register path families
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **PENDING SIGN-OFF** |
+| **Context** | Repository route inventory. |
+| **Decision** | Three distinct families: portal `/catalog/{id}/register`, web shim, operator `/tours/{id}/register`. |
+| **Consequences** | Never merge paths. |
+| **Dependencies** | PCMS; WRS addendum §6 |
+| **Open questions** | None. |
+
+
+---
+
+*Promoted from Blueprint v9 · Architecture documentation only · Not implementation authorization*
+---
+
+## Traceability matrix
+
+| DL | Blueprint | WRS / Addendum | PCMS | RFC | Guard | Gate |
+| -- | --------- | -------------- | ---- | --- | ----- | ---- |
+| DL-01 | §9 shell modes | addendum §2.4 | REG-01 | §4.5, §6.3 | guard-member-shell | P1 |
+| DL-02 | §22 IA | addendum §3.2 | — | §6.2 | guard-member-portal-registry | P2 |
+| DL-03 | §48 freeze | addendum §3.1, §8 | — | §5.2 | — | all |
+| DL-04 | registry | addendum §3.2 | — | §4.3 | guard-member-portal-registry | P2 |
+| DL-05 | §49 | addendum §4.2 | — | §5.4 | guard-guest-cross-surface-nav | P3 |
+| DL-06 | §48 | addendum §2.3 | — | §5.2 | guard-member-no-hardcoded-links | P4/5 |
+| DL-07 | L4 | — | — | §4.6 | guest conformance L4 | P2 |
+| DL-08 | RA-02 | addendum §7.1 | §1 | §3 NG-03 | guard-pcms-authority | all |
+| DL-09 | §6 | — | — | §4.4 | M17 extension | P5 |
+| DL-10 | §12 | — | — | §7 BP-7 | — | P7 |
+| DL-11 | §11 | — | — | — | — | P5+ |
+| DL-12 | MAP §3.6 | addendum §7.6 | — | — | — | future |
+| DL-13 | §6 embed | — | — | §7 BP-6 | — | P6 |
+| DL-14 | §7 search | — | — | §7 BP-7 | — | P7 |
+| DL-15 | finance | — | — | §3 NG-05 | guard-import-boundary | all |
+| DL-16 | §6 embed | — | — | §7 BP-6 | — | P6 |
+| DL-17 | SR-03 | — | — | entitlements §5 | — | P7 |
+| DL-18 | OQ-02 | — | — | §4.6 | L4 conformance | P2/5 |
+| DL-19 | §6 home | addendum §3.1 | — | entitlements | M17 | P4/5 |
+| DL-20 | OQ-04 | — | — | — | — | P7 |
+| DL-21 | §41 | — | — | entitlements §4 | — | P5 |
+| DL-22 | §50 | addendum §7 + BMC | §5.1 follow-up | BMC | guard-member-url-builder | P3 |
+| DL-23 | §40 | — | — | §4.5 | — | P5 |
+| DL-24 | §41 | addendum §3.3 | — | §5.3 | — | P5 |
+| DL-25 | §34 | — | — | §4.1 | — | all |
+| DL-26 | §50 | addendum §7.1 | §5.1 | BMC | guard-member-url-builder | P3 |
+| DL-27 | TH-01 | — | — | cleanup CL-03 | guard-member-shell | P1/P7 |
+| DL-28 | NS-03 | addendum §3.3 | — | §5.3 | — | P5 |
+| DL-29 | ERR-01 | — | — | — | — | P5 |
+| DL-30 | NS-01 | addendum §3.1 | — | §4.3.1 | guard-member-module-id-reserved | P2 |
+| DL-31 | M17-01 | — | — | entitlements | guard-public-catalog-m17 | P5 |
+| DL-32 | M17-03 | — | — | — | architecture-truth | P5 |
+| DL-33 | WRS | addendum | — | §5 | — | all |
+| DL-34 | SUP-01 | — | — | §4.3 | guard-member-portal-registry | P2 |
+| DL-35 | §44 | — | — | — | — | all |
+| DL-36 | §54 | addendum | — | §1.3 | — | P0 |
+| DL-37 | §49 | addendum §4.2 | — | GCSN schema | guard-guest-cross-surface-nav | P3 |
+| DL-38 | §50 | addendum §7.5 | — | routing authority | guard-workspace-member-egress | P3 |
+| DL-39 | §51 | addendum §9 | — | — | guard-member-seo | P3 |
+| DL-40 | §52 | addendum §2.2 | — | §5.2 | guard-member-shell | P1 |
+| DL-41 | §53 | WRS §4 link | — | addendum | guard-wrs-stale-docs | P3 |
+| DL-42 | §54 | addendum §6 | REG paths | §5.5 | — | all |
+
+*BMC = [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) · GCSN = [guest-cross-surface-nav-schema.mdoc](./guest-cross-surface-nav-schema.mdoc)*
+

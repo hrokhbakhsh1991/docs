@@ -1,9 +1,12 @@
 {
   "nav": {
+    "trips": "Trips",
     "registrations": "My registrations",
     "profile": "Profile",
     "logout": "Log out",
-    "loggingOut": "Logging out…"
+    "loggingOut": "Logging out…",
+    "skipToMain": "Skip to main content",
+    "primaryNav": "Primary navigation"
   },
   "registrations": {
     "title": "My registrations",

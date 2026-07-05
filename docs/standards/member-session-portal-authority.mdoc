@@ -93,6 +93,19 @@ Cookie write points: `verify-otp` (returning member), `register-complete` (new g
 
 Marketing header exposes a static link to portal `/me/registrations` via `resolvePortalMemberAreaUrl(host)`. No session probe on marketing — portal middleware handles auth redirect.
 
+### 5.1 PCMS-003 Phase 3 follow-up (documented — not yet applied)
+
+**Status:** Tracked; **PCMS body unchanged until PS-3 / BP-3a** lands the [Builder Migration Contract](../phase-19/member-portal-shell/builder-migration-contract.mdoc).
+
+| Field | Value |
+| ----- | ----- |
+| **Trigger** | `resolvePortalMemberModuleUrl` merged in GSH + delegation live |
+| **PCMS-003 update** | Replace hardcoded `/me/registrations` prose with: marketing egress uses `resolvePortalMemberModuleUrl(host)` (default module); `/me/registrations` remains permanent route alias (DL-03) |
+| **Traceability** | DL-22 · DL-26 · WRS addendum §7.1 · `guard-member-url-builder` |
+| **Cleanup** | Remove `resolvePortalMemberAreaUrl` references in PS-7 / BP-8 |
+
+Until Phase 3, §5 above remains accurate for repository truth.
+
 ---
 
 ## 6.5 Memory smoke tour seed (SMK-PTL-07 / SMK-PTL-08)

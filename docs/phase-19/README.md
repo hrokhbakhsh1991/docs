@@ -75,6 +75,30 @@ Custom apex (per tenant): `denali.club` · `portal.denali.club` · `admin.denali
 | [p6/appendices/OTP-SCOPE-P6.md](p6/appendices/OTP-SCOPE-P6.md) | OTP share scope |
 | [p6/FILE-MAP.md](p6/FILE-MAP.md) | Full file index |
 
+## Member Portal Shell RFC (post-P6 — pending sign-off)
+
+Architecture promotion from Blueprint v9. **Documentation only — not implementation authorization.**
+
+| Document | Role |
+| -------- | ---- |
+| [platform-portal-member-shell-architecture.mdoc](platform-portal-member-shell-architecture.mdoc) | RFC — goals, architecture, routing, phases |
+| [member-portal-shell/decision-log.mdoc](member-portal-shell/decision-log.mdoc) | DL-01 … DL-42 + traceability matrix |
+| [member-portal-shell/builder-migration-contract.mdoc](member-portal-shell/builder-migration-contract.mdoc) | GSH builder migration (DL-22) |
+| [member-portal-shell/routing-builders-authority.mdoc](member-portal-shell/routing-builders-authority.mdoc) | GSH vs web shim vs portal-local |
+| [member-portal-shell/phase-mapping.mdoc](member-portal-shell/phase-mapping.mdoc) | PS-N ↔ BP-N ↔ gates ↔ DL |
+| [member-portal-shell/cleanup-roadmap.mdoc](member-portal-shell/cleanup-roadmap.mdoc) | BP-8 / PS-7 cleanup phase |
+| [member-portal-shell/guest-cross-surface-nav-schema.mdoc](member-portal-shell/guest-cross-surface-nav-schema.mdoc) | guestCrossSurfaceNav schema (DL-05) |
+| [member-portal-shell/glossary.mdoc](member-portal-shell/glossary.mdoc) | Canonical terminology |
+| [member-portal-shell/implementation-gates.mdoc](member-portal-shell/implementation-gates.mdoc) | Phase prerequisites, DoD, rollback |
+| [member-portal-shell/repository-gap-report.md](member-portal-shell/repository-gap-report.md) | Repo gaps before implementation |
+| [member-portal-shell/readiness-report.md](member-portal-shell/readiness-report.md) | Readiness assessment |
+| [platform-portal-member-entitlements.mdoc](platform-portal-member-entitlements.mdoc) | Entitlements BFF contract skeleton (DL-09) |
+| [../standards/wrs-portal-member-routing-addendum.mdoc](../standards/wrs-portal-member-routing-addendum.mdoc) | WRS routing addendum (DL-41) |
+| [../dev/guard-member-portal-registry.md](../dev/guard-member-portal-registry.md) | Guard specifications |
+| [../standards/member-session-portal-authority.mdoc](../standards/member-session-portal-authority.mdoc) | PCMS-003 Phase 3 follow-up §5.1 |
+
+Source blueprint (temporary): [../temp/DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md](../temp/DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md)
+
 ## Superseded (v1.0)
 
 Old EPIC ids `P6-A` … `P6-D` replaced in v2.0 — see `DOC-SYNC-INDEX.yaml` `deprecated_epics`.

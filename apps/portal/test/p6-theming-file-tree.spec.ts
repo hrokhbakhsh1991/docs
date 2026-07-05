@@ -48,6 +48,7 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
     assert.deepEqual(parsed.guestThemeStylesheets?.marketing, ["theme/denali-marketing.css"]);
     assert.match(readRepo("packages/workspaces/denali/theme/denali-portal.css"), /data-catalog-registration-page/);
     assert.match(readRepo("packages/workspaces/denali/theme/denali-portal.css"), /data-portal-member-registrations/);
+    assert.match(readRepo("packages/workspaces/denali/theme/denali-portal.css"), /data-portal-shell/);
     assert.match(readRepo("packages/workspaces/denali/theme/denali-marketing.css"), /data-marketing-header/);
   });
 

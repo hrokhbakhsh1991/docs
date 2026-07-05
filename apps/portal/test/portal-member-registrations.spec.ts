@@ -86,17 +86,20 @@ describe("portal-member-registrations", () => {
     assert.match(skin, /\[data-public-auth-logout\]/);
   });
 
-  it("MEM-AUTH-02 member layout wires logout BFF", () => {
-    const layout = readFileSync(join(repoRoot, "apps/portal/app/me/layout.tsx"), "utf8");
+  it("MEM-AUTH-02 member shell wires logout BFF", () => {
+    const userMenu = readFileSync(
+      join(repoRoot, "apps/portal/src/shell/portal-member-user-menu.tsx"),
+      "utf8"
+    );
     const logoutButton = readFileSync(
-      join(repoRoot, "apps/portal/app/me/member-logout-button.tsx"),
+      join(repoRoot, "apps/portal/src/me/member-logout-button.tsx"),
       "utf8"
     );
     const logoutRoute = readFileSync(
       join(repoRoot, "apps/portal/app/api/public-auth/logout/route.ts"),
       "utf8"
     );
-    assert.match(layout, /MemberLogoutButton/);
+    assert.match(userMenu, /MemberLogoutButton/);
     assert.match(logoutButton, /data-public-auth-logout/);
     assert.match(logoutButton, /data-public-auth-logout-ready/);
     assert.match(logoutButton, /\/api\/public-auth\/logout/);
@@ -111,8 +114,8 @@ describe("portal-member-registrations", () => {
     assert.match(loadMessages, /portalMember\.json/);
     const fa = readFileSync(join(repoRoot, "apps/portal/messages/fa/portalMember.json"), "utf8");
     const en = readFileSync(join(repoRoot, "apps/portal/messages/en/portalMember.json"), "utf8");
-    assert.match(fa, /"title"/);
-    assert.match(en, /"title"/);
+    assert.match(fa, /"trips"/);
+    assert.match(en, /"trips"/);
   });
 
   it("MEM-PROF-01 profile page uses canonical profile BFF", () => {

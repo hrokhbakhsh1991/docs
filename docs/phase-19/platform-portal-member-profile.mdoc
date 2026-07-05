@@ -93,7 +93,8 @@ Legacy `session-profile` BFF and direct portal `identity/me` SSR were removed in
 
 | Path | Role today | Freeze alignment |
 | ---- | ---------- | ---------------- |
-| `apps/portal/app/me/layout.tsx` | `/me` shell + nav | KEEP — presentation |
+| `apps/portal/app/me/layout.tsx` | Session guards + `PortalMemberShell` wrapper (PS-1) | KEEP — presentation |
+| `apps/portal/src/shell/*` | Platform member shell frame (header, bottom nav, user menu) | **PS-1** |
 | `apps/portal/app/me/profile/page.tsx` | SSR profile load | **M3** — `fetchMemberProfile` → `/api/me/profile` |
 | `apps/portal/app/me/profile/member-profile-form.tsx` | Capability-driven form | **M3** — `PATCH /api/me/profile` |
 | `apps/portal/app/api/public-auth/session-profile/route.ts` | Legacy profile GET/PATCH | **REMOVED M4** |

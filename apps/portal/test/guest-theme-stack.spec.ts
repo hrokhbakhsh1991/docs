@@ -47,6 +47,8 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     assert.match(skin, /main\[data-catalog-registration-page\]/);
     assert.match(skin, /main\[data-portal-member-registrations\]/);
     assert.match(skin, /main\[data-portal-member-profile\]/);
+    assert.match(skin, /\[data-portal-shell\]/);
+    assert.match(skin, /\[data-portal-shell-bottom-nav\]/);
     assert.match(skin, /#059669/);
     assert.match(skin, /denali-club\/MASTER\.md/);
   });

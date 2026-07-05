@@ -1,0 +1,374 @@
+---
+title: WRS Portal Member Routing Addendum
+standard_id: WRS-001-ADDENDUM-PORTAL-MEMBER
+version: 1.0.0
+status: pending_sign_off
+extends:
+  - workspace-routing-standard.mdoc
+  - ../phase-19/platform-portal-member-shell-architecture.mdoc
+  - ../phase-19/member-portal-shell/builder-migration-contract.mdoc
+  - ../phase-19/member-portal-shell/guest-cross-surface-nav-schema.mdoc
+  - member-session-portal-authority.mdoc
+mandatory_for:
+  - apps/portal
+  - apps/marketing
+  - apps/web
+  - packages/guest-surface-host
+  - packages/workspaces/denali
+  - packages/workspaces/urban
+code_sot:
+  - apps/portal/middleware.ts
+  - apps/portal/app/page.tsx
+  - packages/guest-surface-host/src/resolve-portal-public-base-url.ts
+  - apps/marketing/src/shell/marketing-shell.tsx
+  - apps/web/app/(public)/catalog/[tourId]/register/page.tsx
+  - apps/web/app/(app)/tours/[id]/register/page.tsx
+---
+
+# WRS Portal Member Routing Addendum
+
+**Status:** **PENDING SIGN-OFF** — mandatory companion to [WRS-001](./workspace-routing-standard.mdoc) §4 before Phase 3 cross-surface nav implementation (DL-41).
+
+**Purpose:** Document every portal member route, future module routing, cross-surface transitions, and register-path families verified by the 2026-07-05 routing audit. **Does not replace WRS-001** — extends §4 where WRS lags repository truth.
+
+**Source:** Blueprint v9 §48–53, DL-36..42, enterprise routing audit.
+
+---
+
+## 1. Relationship to WRS-001
+
+| WRS-001 §4 today | This addendum |
+| ---------------- | ------------- |
+| Portal `/`, `/catalog/{id}/register`, `/me/registrations` | Adds `/me/profile`, `/me`, locale paths, BFF inventory, planned module paths |
+| Cross-surface one-liner | Full transition matrix with GSH builders |
+| No register-path families | Three families documented (DL-42) |
+| No SEO boundary | Portal crawl policy (DL-39) |
+
+**Merge timeline (DL-41):** Phase 3 (PS-4) blocked until this addendum is merged. WRS-001 §4 now links here as mandatory companion.
+
+### Companion contracts in this addendum
+
+| Topic | Section | Document |
+| ----- | ------- | -------- |
+| Builder Migration Contract | §7.1 | [builder-migration-contract.mdoc](../phase-19/member-portal-shell/builder-migration-contract.mdoc) |
+| Module Registry + reserved ids | §3 | RFC §4.3.1 · DL-30 |
+| Platform-owned Member Home | §3.1 | `/me/home` — id `home` |
+| URL freeze | §8 | DL-03, DL-22 |
+| Routing builder authority | §7 | [routing-builders-authority.mdoc](../phase-19/member-portal-shell/routing-builders-authority.mdoc) |
+| guestCrossSurfaceNav | §4.2 | [guest-cross-surface-nav-schema.mdoc](../phase-19/member-portal-shell/guest-cross-surface-nav-schema.mdoc) |
+
+---
+
+## 2. Portal member namespace (`/me/*`)
+
+### 2.1 Verified routes (implemented)
+
+| Path | Auth | Purpose | Repo | Smoke |
+| ---- | ---- | ------- | ---- | ----- |
+| `/me` | member session (middleware) | **Namespace root — no page today** | Protected in `middleware.ts`; **no** `app/me/page.tsx` → 404 after auth | — |
+| `/me/registrations` | member session | Member trip/registration list | `app/me/registrations/page.tsx` | SMK-PTL-02, SMK-PTL-05 |
+| `/me/registrations/{id}` | member session | Detail + receipt upload | `app/me/registrations/[id]/page.tsx` | SMK-PTL-04 |
+| `/me/profile` | member session | Capability-driven profile edit | `app/me/profile/page.tsx` | SMK-PTL-07 |
+
+**WRS-PATH-02 unchanged:** Portal has **no** `/tours`. Public catalog browsing remains marketing-only.
+
+### 2.2 Bare `/me` policy (DL-40) — planned
+
+| Request | Current behavior | Target behavior |
+| ------- | ---------------- | --------------- |
+| `GET /me` + valid session | Middleware passes → **404** (no page) | **302** → `defaultPrimaryModuleId` route |
+| `GET /me` + no session | Middleware → `/` | Unchanged |
+
+`/me` is a **namespace root only** — never a content page.
+
+### 2.3 Portal root `/` (verified)
+
+| Session | Behavior | Repo |
+| ------- | -------- | ---- |
+| Guest | Redirect to marketing public base (GSH) | `app/page.tsx` |
+| Member | **Hardcoded** redirect to `/me/registrations` | `app/page.tsx` L12 |
+
+**Target (DL-06):** Redirect to `defaultPrimaryModuleId` from member registry; `/me/registrations` remains permanent alias.
+
+### 2.4 Registration (outside member shell)
+
+| Path | Auth | Shell mode | Repo |
+| ---- | ---- | ---------- | ---- |
+| `/catalog/{tourId}/register` | public-auth session | **Minimal** — no bottom nav (DL-01) | `app/catalog/[tourId]/register/page.tsx` |
+
+**Invariant:** Registration paths **never** move under `/me/*` (DL-01, DL-42).
+
+### 2.5 Portal BFF routes (verified)
+
+| Path | Auth | Purpose |
+| ---- | ---- | ------- |
+| `GET /api/me/registrations` | member | List proxy → `GET /bookings?view=mine` |
+| `POST /api/me/registrations/{id}/receipt` | member | Receipt upload BFF |
+| `GET/PATCH /api/me/profile` | member | Profile BFF (PCMS profile freeze) |
+| `POST /api/public-auth/logout` | none (idempotent) | Clear `atour_mb_session` |
+| `POST /api/public-auth/*` | varies | OTP / register-complete (P6-1) |
+
+**Planned (RFC, not in repo):**
+
+| Path | Purpose | Decision |
+| ---- | ------- | -------- |
+| `GET /api/me/entitlements` | Nav ∩ registry gating | DL-09 |
+| `GET /api/me/home` | Home module aggregate | DL-19 |
+
+Semantics: [member-session-portal-authority.mdoc](./member-session-portal-authority.mdoc), [platform-portal-member.mdoc](../phase-19/platform-portal-member.mdoc).
+
+---
+
+## 3. Future module routing (planned — not implemented)
+
+Member Application Platform adds manifest-driven modules under `/me/*`.
+
+### 3.1 Module id vs route (DL-03, DL-30)
+
+| Module id | Route | Status | Owner |
+| --------- | ----- | ------ | ----- |
+| `trips` | `/me/registrations` | **Alias frozen** | Workspace |
+| `profile` | `/me/profile` | Implemented | Workspace |
+| `home` | `/me/home` | Planned BP-4 | **Platform-owned** — workspace MUST NOT declare |
+| `wallet`, `membership`, … | `/me/{id}` | Planned | Workspace |
+| `{moduleId}` | manifest `routePath` | Planned BP-5+ | Workspace |
+
+#### Reserved module ids (DL-30)
+
+**Platform-owned (platform delivers module; workspace MUST NOT declare in manifest):**
+
+| id | Route | Notes |
+| -- | ----- | ----- |
+| `home` | `/me/home` | Denali bottom-nav “Home” references platform module |
+
+**Namespace-reserved (codegen blocklist — not a deliverable module):**
+
+| id | Reason |
+| -- | ------ |
+| `more` | Shell “More” hub slot |
+| `api` | BFF `/api/me/*` namespace |
+| `catalog` | Registration `/catalog/*` namespace |
+
+**Validation:** `guard-member-module-id-reserved` fails workspace manifest entries for any id above.
+
+**No conflict:** `/me/home` is a **route**; `home` is a **reserved module id** owned by the platform. Workspaces may list `home` in nav tier ordering via generated effective registry — they do not declare the module block.
+
+### 3.2 Navigation tiers (member shell)
+
+| Tier | Max | Example |
+| ---- | --- | ------- |
+| Primary | 5 | Bottom nav: Home, Trips, Wallet, Membership, More |
+| Secondary | N | More hub |
+| Hidden | N | Deep link only |
+| Cross-surface | N | Header egress → marketing |
+
+**Codegen rule (DL-04):** >5 primary modules → fail-closed.
+
+### 3.3 Dynamic dispatcher (DL-24, DL-28)
+
+| Phase | Routing strategy |
+| ----- | ---------------- |
+| 1–4 | Static `app/me/{module}/page.tsx` folders |
+| 5+ | `app/me/[[...modulePath]]/page.tsx` dispatcher |
+| Always | Static routes **win** over catch-all |
+
+**Reserved module ids (DL-30):** See §3.1 — `home` is platform-owned; `more`, `api`, `catalog` are namespace-reserved.
+
+**Not planned on portal:** `/me/catalog/*`, `/me/tours/*` — violates WRS-PATH-02.
+
+---
+
+## 4. Marketing routes (cross-surface context)
+
+### 4.1 Verified public catalog paths
+
+| Path | Purpose | Notes |
+| ---- | ------- | ----- |
+| `/` | Club landing | |
+| `/tours` | Public catalog list | WRS-PATH-01 |
+| `/tours/{tourId}` | Tour detail + register CTA | CTA → portal register |
+| `/en/*`, `/en/tours/*` | Locale-prefixed routes | `middleware.ts`, `resolveMarketingLocalePath` |
+
+### 4.2 Platform-mother-only paths (DL-37)
+
+These routes call `notFound()` on **club_apex** hosts unless platform-mother tenant:
+
+| Path | File |
+| ---- | ---- |
+| `/about` | `apps/marketing/app/about/page.tsx` |
+| `/contact` | `apps/marketing/app/contact/page.tsx` |
+| `/pricing` | `apps/marketing/app/pricing/page.tsx` |
+
+**Audit finding:** `FULL_LANDING_NAV_LINKS` in `marketing-shell.tsx` L21–26 links `/about`, `/contact` on all club hosts → **404 on club tenants**. Target: `guestCrossSurfaceNav` manifest with `visibleWhen: platform_mother` (DL-05, DL-37).
+
+### 4.3 Marketing SEO (verified — contrast with portal)
+
+Marketing has `robots.ts`, `sitemap.ts`, pagination noindex. Portal has **no** `robots.ts` today (DL-39 gap).
+
+---
+
+## 5. Web (operator) routes affecting cross-surface flow
+
+### 5.1 Verified paths
+
+| Path | Surface intent | Behavior |
+| ---- | -------------- | -------- |
+| `/tours` | Operator tour list | **Not** public catalog (WRS-PATH-03) |
+| `/tours/{id}/register` | Operator session registration | `apps/web/app/(app)/tours/[id]/register/page.tsx` — **distinct from public registration** |
+| `/catalog/*` | Legacy shim | 308 → marketing `/tours` (when redirect enabled) |
+| `/catalog/{tourId}/register` | Web egress shim | Redirect to portal register only |
+
+### 5.2 `MARKETING_CATALOG_REDIRECT` (verified)
+
+| Env | Behavior | Repo |
+| --- | -------- | ---- |
+| default / unset | Web `/catalog/*` → marketing | `apps/web/src/marketing/resolve-marketing-public-url.ts` |
+| `MARKETING_CATALOG_REDIRECT=false` | Redirect disabled | Same file — test `WEB-MKT-06` |
+
+### 5.3 Broken legacy alias (verified)
+
+| Path | Status |
+| ---- | ------ |
+| `(app)/settings/tour-form-defaults` | Listed in operator route parity inventory; **no live page** — broken alias |
+
+Documented for operator nav only — **not** a portal/member route. Fix is out of scope for member shell RFC unless operator settings work proceeds separately.
+
+---
+
+## 6. Register path families (DL-42)
+
+Three families — **must never merge**:
+
+| Family | Canonical path | App | Session | Purpose |
+| ------ | -------------- | --- | ------- | ------- |
+| **A — Public member registration** | `/catalog/{tourId}/register` | Portal | `atour_mb_session` (public-auth) | OTP + intake — **canonical** |
+| **B — Web egress shim** | `/catalog/{tourId}/register` | Web (public) | Redirect only | Hands off to portal |
+| **C — Operator registration** | `/tours/{tourId}/register` | Web (app) | `atour_op_session` | Operator workflow — not public |
+
+Marketing CTA always targets **Family A** on portal host via `resolvePortalRegistrationUrl`.
+
+---
+
+## 7. Cross-surface routing matrix
+
+All cross-host URLs **must** use Guest Surface Host (GSH) builders — WRS-URL-01 — except **web redirect shims** (Tier C) documented in [routing-builders-authority.mdoc](../phase-19/member-portal-shell/routing-builders-authority.mdoc).
+
+**Builder Migration Contract:** [builder-migration-contract.mdoc](../phase-19/member-portal-shell/builder-migration-contract.mdoc) — governs `resolvePortalMemberModuleUrl` and deprecated `resolvePortalMemberAreaUrl`.
+
+### 7.1 Marketing → Portal
+
+| Transition | Builder | Authority | Migration |
+| ---------- | ------- | --------- | --------- |
+| Tour detail register CTA | `resolvePortalRegistrationUrl(host, tourId)` | GSH | Stable |
+| Header/footer member area (today) | `resolvePortalMemberAreaUrl(host)` | GSH | **Deprecated** — delegates PS-3+ |
+| Header/footer member area (target) | `resolvePortalMemberModuleUrl(host, moduleId?)` | GSH | **Primary PS-3+** |
+
+**PCMS rule:** Marketing does **not** probe member session — static egress link only ([member-session-portal-authority.mdoc](./member-session-portal-authority.mdoc)).
+
+### 7.2 Portal → Marketing
+
+| Transition | Builder | Target |
+| ---------- | ------- | ------ |
+| Guest `/` (no session) | `resolveMarketingPublicBaseUrl(host)` | Marketing `/` |
+| Register back / tour egress | `resolveMarketingTourDetailUrl(host, tourId)` | Marketing `/tours/{tourId}` |
+| Logout → home | Client `router.push("/")` then marketing redirect | Marketing or portal `/` per smoke env |
+
+### 7.3 Web → Portal
+
+| Transition | Builder | Authority | Notes |
+| ---------- | ------- | --------- | ----- |
+| Public catalog register shim | `resolvePortalRegistrationRedirectUrl` | **apps/web** Tier C | Not GSH — redirect-only |
+
+### 7.4 Web → Marketing
+
+| Transition | Builder | Target |
+| ---------- | ------- | ------ |
+| `/catalog/*` redirect | `resolveMarketingToursUrl` / catalog redirect helper | Marketing `/tours` |
+| Tour links (in-app) | Relative `/tours/{id}` on marketing host | Same host |
+
+### 7.5 Registration success redirects (workspace plugins)
+
+| Today (non-compliant) | Target |
+| -------------------- | ------ |
+| `<a href="/me/registrations">` in `denali-registration-flow.steps.tsx` L361 | Platform-injected GSH URL |
+| Same in `urban-registration-flow.steps.tsx` L154 | Same |
+
+Relative `/me/*` hrefs work only on portal host — fail if CTA renders cross-host (DL-38).
+
+### 7.6 Registration redirect query params (planned)
+
+| Param | Surface | Rule |
+| ----- | ------- | ---- |
+| `portalReturn` | Marketing register egress | Allowlist relative paths on marketing host only (DL-12) — **not implemented** |
+
+---
+
+## 8. URL freeze table (immutable)
+
+Aligned with RFC §6 and Blueprint §48:
+
+| URL | Surface | Notes |
+| --- | ------- | ----- |
+| `/tours`, `/tours/{id}` | Marketing | Public catalog |
+| `/catalog/{tourId}/register` | Portal | Never under `/me/*` |
+| `/me/registrations`, `/me/registrations/{id}` | Portal | Permanent alias for module `trips` |
+| `/me/profile` | Portal | Profile module |
+| `/` | Portal | Redirect hub — not bookmark target |
+| `/me` | Portal | Redirect only (DL-40) |
+
+**Breaking change rule:** Default member entry may change only if `/me/registrations` alias is retained.
+
+---
+
+## 9. Portal SEO & crawl boundary (DL-39) — planned
+
+| Path class | Index policy | Repo today |
+| ---------- | ------------ | ---------- |
+| `/me/*` | noindex, nofollow | **Missing** |
+| `/catalog/*/register` | noindex, nofollow | **Missing** |
+| `/api/*` | Disallow crawlers | **Missing** |
+| `/` | noindex (redirect hub) | **Missing** |
+
+Deliverable: portal `robots.ts` and/or layout metadata — documentation only in this addendum.
+
+---
+
+## 10. WRS §4 proposed merge checklist
+
+When architect approves inline WRS update, add to WRS-001 §4.2:
+
+- [ ] `/me/profile`
+- [ ] `/me` redirect policy
+- [ ] Portal BFF path inventory (reference PCMS + platform-portal-member)
+- [ ] Cross-surface matrix (reference this addendum §7)
+- [ ] Register path families §6
+- [ ] Locale marketing paths
+- [ ] Platform-mother-only marketing paths
+- [ ] Web operator `/tours/{id}/register` vs portal `/catalog/{id}/register`
+- [ ] Planned `/me/{moduleId}/*` marked **planned**
+
+---
+
+## 11. Verification references
+
+| Audit | Location |
+| ----- | -------- |
+| Routing audit verdict | Blueprint v9 §54 |
+| URL freeze | Blueprint v9 §48 |
+| Cross-surface admission | Blueprint v9 §49 |
+| Workspace egress | Blueprint v9 §50 |
+| Routing verification pass | Blueprint v9 §55 |
+
+| Smoke ID | Route exercised |
+| -------- | --------------- |
+| SMK-PTL-01 | Portal registration |
+| SMK-PTL-02 | `/me/registrations` list |
+| SMK-PTL-04 | `/me/registrations/{id}` receipt |
+| SMK-PTL-05 | `/` → `/me/registrations` |
+| SMK-PTL-06 | Logout + middleware |
+| SMK-PTL-07 | Resume registration (PCMS) |
+| SMK-PTL-08 | Custom apex host bind |
+
+---
+
+*Addendum v1.0.0 · Status: PENDING SIGN-OFF · Documentation only · DL-41 gate for Phase 3*

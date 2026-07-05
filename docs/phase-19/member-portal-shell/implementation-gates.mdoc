@@ -1,0 +1,264 @@
+---
+title: Member Portal Shell — Implementation Gates
+standard_id: MPS-GATES-001
+version: 1.0.0
+status: pending_sign_off
+extends:
+  - ../platform-portal-member-shell-architecture.mdoc
+  - decision-log.mdoc
+  - phase-mapping.mdoc
+  - cleanup-roadmap.mdoc
+  - builder-migration-contract.mdoc
+  - ../../standards/wrs-portal-member-routing-addendum.mdoc
+---
+
+# Member Portal Shell — Implementation Gates
+
+**Status:** **PENDING SIGN-OFF** — defines when implementation may start and how each phase closes. **Not implementation authorization.**
+
+---
+
+## 1. Global prerequisites (all phases)
+
+| ID | Prerequisite | Status |
+| -- | ------------ | ------ |
+| GP-01 | RFC merged: [platform-portal-member-shell-architecture.mdoc](../platform-portal-member-shell-architecture.mdoc) | **PENDING SIGN-OFF** |
+| GP-02 | Decision log DL-01..42 architect sign-off | **PENDING SIGN-OFF** |
+| GP-03 | WRS addendum merged + WRS §4 companion link | **PENDING SIGN-OFF** (DL-41 blocks PS-4) |
+| GP-04 | Guard specs published: [guard-member-portal-registry.md](../../dev/guard-member-portal-registry.md) | Drafted |
+| GP-05 | Blueprint v9 routing gate §55 (R-RT1..R-RT6) reviewed | **PENDING SIGN-OFF** |
+| GP-06 | No change to frozen contracts without new RFC | Active |
+
+---
+
+## 2. Phase 1 prerequisites — Platform shell frame
+
+**Goal:** Replace inline `app/me/layout.tsx` nav with platform shell landmarks; registration stays minimal shell.
+
+| ID | Prerequisite | Evidence |
+| -- | ------------ | -------- |
+| P1-01 | GP-01, GP-02 complete | Sign-off record |
+| P1-02 | DL-01, DL-02, DL-27 signed | Decision log |
+| P1-03 | Shell CSS hooks: `[data-portal-shell]` + legacy dual selectors | Denali portal CSS migration plan |
+| P1-04 | `app/me/page.tsx` or equivalent redirect for bare `/me` (DL-40) | Route handler |
+| P1-05 | Portal SEO metadata plan approved (DL-39) — may land P1 or P3 | robots/metadata spec |
+
+**Phase 1 must NOT:**
+
+- Introduce member registry codegen
+- Change `/me/registrations` URL
+- Add catch-all dispatcher
+
+---
+
+## 3. Phase 2 prerequisites — Member registry codegen
+
+**Goal:** Manifest-driven nav; zero hardcoded shell links.
+
+| ID | Prerequisite | Evidence |
+| -- | ------------ | -------- |
+| P2-01 | Phase 1 exit checklist complete | §6 |
+| P2-02 | DL-04, DL-07, DL-18, DL-30, DL-34 signed | Decision log |
+| P2-03 | `memberPortal` block schema in workspace manifest | Schema + codegen |
+| P2-04 | `generate:workspace-registry` in CI on manifest diff | CI log |
+| P2-05 | Denali manifest includes reference IA (5 primary max) | `workspace.manifest.json` |
+| P2-06 | L4 warn path for L3 workspaces declaring `memberPortal` | guest conformance |
+
+**Phase 2 must NOT:**
+
+- Ship entitlements BFF
+- Replace GSH member URL (Phase 3)
+
+---
+
+## 4. Phase 3 prerequisites — Cross-surface navigation
+
+**Goal:** GSH module URL resolver; manifest-driven marketing nav; WRS doc sync.
+
+| ID | Prerequisite | Evidence |
+| -- | ------------ | -------- |
+| P3-01 | Phase 2 exit checklist complete | §6 |
+| P3-02 | **WRS addendum merged (DL-41)** — hard gate | GP-03 |
+| P3-03 | DL-05, DL-22, DL-26, DL-37, DL-38 signed | Decision log |
+| P3-04 | `resolvePortalMemberModuleUrl` in GSH | Unit tests |
+| P3-05 | `guestCrossSurfaceNav` replaces `FULL_LANDING_NAV_LINKS` | Marketing shell |
+| P3-06 | Workspace registration steps use injected egress URL | Denali + Urban flows |
+| P3-07 | Portal `robots.ts` / noindex for `/me/*`, `/catalog/*/register` | DL-39 |
+
+---
+
+## 5. Phase 4–8 prerequisites (summary)
+
+See [phase-mapping.mdoc](./phase-mapping.mdoc) for PS-N ↔ BP-N naming.
+
+| BP | PS | Goal | Key prerequisites |
+| -- | -- | ---- | ----------------- |
+| **4** | **5** | Member home (platform `home`) | PS-3+4 complete; DL-06, DL-19; `/me/home`; registry default |
+| **5** | **5** | Entitlements + scale | PS-5 partial; DL-09, DL-24, DL-28, DL-31; entitlements mdoc; SMK-PTL-09 |
+| **6** | **6** | Embedded host (Telegram) | BP-5 wallet/membership routes; DL-13, DL-16 |
+| **7** | **6** | Enterprise scale (50+) | BP-6 complete; DL-10, DL-14, DL-17 |
+| **8** | **7** | **Cleanup** | [cleanup-roadmap.mdoc](./cleanup-roadmap.mdoc) CL-GATE-01..08 |
+
+---
+
+## 6. Phase completion checklist
+
+### Phase 0 — RFC promotion (documentation)
+
+| # | Deliverable | Status |
+| - | ----------- | ------ |
+| 0.1 | RFC mdoc in `docs/phase-19/` | Drafted |
+| 0.2 | WRS addendum | Drafted |
+| 0.3 | Decision log DL-01..42 | Drafted |
+| 0.4 | Implementation gates (this doc) | Drafted |
+| 0.5 | Guard specification | Drafted |
+| 0.6 | Gap + readiness reports | Drafted |
+| 0.7 | Architect sign-off on DL-01..42 | **PENDING SIGN-OFF** |
+| 0.8 | RFC PR merged | **PENDING SIGN-OFF** |
+
+### Phase 1 exit
+
+**Status:** **PASS (2026-07-05)** — PS-1 implementation complete.
+
+| # | Criterion | Verification | Status |
+| - | --------- | ------------ | ------ |
+| 1.1 | Inline nav removed from `me/layout.tsx` | Code review | PASS |
+| 1.2 | Shell landmarks present (`data-portal-shell`, nav slots) | CSS + DOM · `portal-member-shell.spec.ts` | PASS |
+| 1.3 | Registration path has minimal shell only | SMK-PTL-01 + PS1-SHELL-04 | PASS |
+| 1.4 | Bare `/me` redirects (not 404) | `app/me/page.tsx` · PS1-SHELL-03 | PASS |
+| 1.5 | SMK-PTL-02..07 green | `pnpm --filter @apps/portal run test:smoke` | PASS |
+| 1.6 | SMK-PTL-08 custom apex green | `pnpm --filter @apps/portal run test:smoke:custom-apex` | PASS |
+
+### Phase 2 exit
+
+| # | Criterion | Verification |
+| - | --------- | ------------ |
+| 2.1 | Zero hardcoded nav hrefs in portal shell | `guard-member-portal-registry` (when implemented) |
+| 2.2 | Denali `memberPortal` manifest validates | Codegen |
+| 2.3 | Generated registry includes member modules | `generate:workspace-registry` diff |
+| 2.4 | SMK-PTL-02..08 green on registry-driven labels | Playwright |
+
+### Phase 3 exit
+
+| # | Criterion | Verification |
+| - | --------- | ------------ |
+| 3.1 | WRS addendum merged | Doc PR |
+| 3.2 | GSH uses `resolvePortalMemberModuleUrl` | GSH unit tests |
+| 3.3 | No hardcoded `/me/registrations` in workspace registration steps | Conformance scan |
+| 3.4 | Marketing nav no club-host 404 links | SMK-MKT + manual |
+| 3.5 | Portal noindex live | robots/metadata test |
+
+### Phase 8 / PS-7 — Cleanup exit
+
+| # | Criterion | Verification |
+| - | --------- | ------------ |
+| 8.1 | `resolvePortalMemberAreaUrl` removed | GSH export scan |
+| 8.2 | Legacy CSS hooks removed | CL-03 checklist |
+| 8.3 | No `FULL_LANDING_NAV_LINKS` | Marketing source |
+| 8.4 | SMK-PTL-02/04 still green | Playwright |
+| 8.5 | PCMS-003 updated | Doc review |
+
+See [cleanup-roadmap.mdoc](./cleanup-roadmap.mdoc).
+
+### Phases 4–7 exit
+
+See Blueprint §45 and §47 P1–P10 proof checklist.
+
+---
+
+## 7. Rollback criteria
+
+Rollback **per phase** — do not revert prior frozen URLs.
+
+| Phase | Rollback trigger | Action |
+| ----- | ---------------- | ------ |
+| 1 | SMK-PTL-02..08 fail after shell merge | Revert shell PR; keep inline nav |
+| 1 | Registration shows full shell bottom nav | Hotfix — violates DL-01 |
+| 2 | Codegen breaks Urban/starter L3 builds | Disable L4 fail; warn only (DL-18) |
+| 3 | Marketing nav 404 on club hosts | Revert manifest nav; restore hardcoded links temporarily |
+| 3 | GSH URL breaks SMK-PTL-05 | Keep `/me/registrations` alias in resolver |
+| 5 | Entitlements deny valid members | TTL=0 + bypass flag; disable nav gating |
+| Any | `/me/registrations` URL removed or broken | **Stop ship** — violates URL freeze |
+
+**Alias invariant:** `/me/registrations` must remain reachable after any rollback that keeps member shell shipped.
+
+---
+
+## 8. Required green guards
+
+Documentation targets — scripts may not exist until implementation phases.
+
+| Guard | Phase required | Purpose |
+| ----- | -------------- | ------- |
+| `pnpm run guard:docs` | All | Doc-code covenant |
+| `pnpm run guard:import-boundary` | All | Package boundaries |
+| `pnpm run guard:wrs-routing` | 3+ | WRS egress patterns |
+| `pnpm run guard:pcms-authority` | All | Marketing session authority |
+| `pnpm run guard:architecture` | 2+ | Architecture truth |
+| `guard-member-portal-registry` (future) | 2+ | No hardcoded shell nav |
+| `guard-member-url-builder` (future) | 3+ | Builder Migration Contract |
+| `guard-member-module-id-reserved` (future) | 2+ | Platform-owned `home` |
+| `guard-workspace-member-egress` (future) | 4+ | Workspace href scan |
+| `guard-member-shell` (future) | 1+ | Shell landmarks |
+| `guard-member-seo` (future) | 4+ | Portal noindex |
+| `guard-guest-cross-surface-nav` (future) | 4+ | DL-37 admission |
+| `guard-public-catalog-m17` extension | 5+ | Entitlements/home BFF allowlist (DL-31) |
+| Guest conformance L4 | 2 warn / 5 fail | `memberPortal` block (DL-18) |
+| `pnpm run phase-6:guard` | Doc pack | Phase 6 doc integrity when touched |
+
+**Fast-track before PR (recommended):** `pnpm run pre-commit:fast && pnpm run guard:import-boundary`
+
+---
+
+## 9. Required Playwright suites
+
+| Suite | Command | Scenarios | Phase |
+| ----- | ------- | --------- | ----- |
+| Portal smoke | `pnpm --filter @apps/portal run test:smoke` | SMK-PTL-01..07 | 1+ |
+| Portal custom apex | `pnpm --filter @apps/portal run test:smoke:custom-apex` | SMK-PTL-08 | 1+ |
+| Marketing smoke | `pnpm --filter @apps/marketing run test:smoke` | SMK-MKT-* | 3+ |
+| WRS custom apex | `pnpm run smoke:wrs-custom-apex` | Host bind | 3+ |
+| SMK-PTL-09 (future) | TBD | Entitlements nav gating | 5+ |
+
+**Regression bar:** SMK-PTL-02, 04, 05, 06 must stay green from Phase 1 onward.
+
+---
+
+## 10. Definition of Done
+
+### Documentation DoD (Phase 0 — this promotion)
+
+- [ ] RFC + addendum + decision log + gates + guard spec + reports merged
+- [ ] DL-01..42 each marked **PENDING SIGN-OFF** until architect records approval
+- [ ] Phase-19 README links new pack
+- [ ] No application code in doc-only PR
+
+### Phase 1 implementation DoD
+
+- [x] Platform shell renders on all `/me/*` routes
+- [x] Registration excluded from full shell
+- [x] Bare `/me` redirect live
+- [x] SMK-PTL-02..08 green
+- [x] Traceability row per Blueprint §26 for each invariant (IMPLEMENTATION-TRUTH-P6 PS-1 block)
+- [x] Guard spec updated with any scope change (doc-only; script deferred PS-2+)
+
+### Program DoD (Blueprint §47 P1–P10)
+
+| # | Deliverable |
+| - | ----------- |
+| P1 | Official Markdoc RFC merged |
+| P2 | Entitlements mdoc + BFF |
+| P3 | Guard member portal registry |
+| P4 | Denali `memberPortal` in manifest |
+| P5 | GSH `resolvePortalMemberModuleUrl` |
+| P6 | SMK-PTL-02..08 on new shell |
+| P7 | L4 guest conformance |
+| P8 | §44 R1–R7 verified |
+| P9 | WRS addendum merged |
+| P10 | URL freeze honored in GSH + SMK |
+
+**10/10 condition:** P1–P8 complete in repository — not documentation prose alone.
+
+---
+
+*Gates v1.0.0 · Status: PENDING SIGN-OFF · Documentation only*

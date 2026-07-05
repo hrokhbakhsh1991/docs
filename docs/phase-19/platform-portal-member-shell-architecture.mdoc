@@ -1,0 +1,395 @@
+---
+title: Member Portal Shell & Navigation Architecture (RFC)
+standard_id: MPS-RFC-001
+version: 1.0.0
+status: pending_sign_off
+phase: 19-post-p6
+app: apps/portal
+source: docs/temp/DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md (v9)
+extends:
+  - platform-portal-member.mdoc
+  - platform-portal-member-profile.mdoc
+  - platform-portal-registration-intake.mdoc
+  - ../standards/workspace-routing-standard.mdoc
+  - ../standards/member-session-portal-authority.mdoc
+  - ../standards/wrs-portal-member-routing-addendum.mdoc
+  - member-portal-shell/decision-log.mdoc
+  - member-portal-shell/implementation-gates.mdoc
+  - member-portal-shell/builder-migration-contract.mdoc
+  - member-portal-shell/routing-builders-authority.mdoc
+  - member-portal-shell/phase-mapping.mdoc
+  - member-portal-shell/cleanup-roadmap.mdoc
+  - member-portal-shell/guest-cross-surface-nav-schema.mdoc
+  - member-portal-shell/glossary.mdoc
+  - platform-portal-member-entitlements.mdoc
+mandatory_for:
+  - apps/portal
+  - apps/marketing
+  - packages/guest-surface-host
+  - packages/workspace-sdk
+  - packages/workspaces/denali
+code_sot:
+  - apps/portal/middleware.ts
+  - apps/portal/app/me/layout.tsx
+  - packages/guest-surface-host/src/resolve-portal-public-base-url.ts
+  - scripts/generate-workspace-registry.mjs
+---
+
+# Member Portal Shell & Navigation Architecture
+
+**Status:** **PENDING SIGN-OFF** — RFC promotion from Blueprint v9. **Not implementation authorization.**
+
+**Source of truth:** [`docs/temp/DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md`](../temp/DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md) v9. This RFC distills that blueprint; it does not invent new architecture.
+
+---
+
+## 1. Overview
+
+### 1.1 Problem (pre-PS-1) · current state (PS-1 landed 2026-07-05)
+
+**Before PS-1:** Portal was a **registration-centric MVP** (P6-3) with inline nav in `app/me/layout.tsx`, hardcoded links, no platform shell frame.
+
+**After PS-1 (today):** Platform shell frame lives in `apps/portal/src/shell/*` — header, bottom nav (Trips → `/me/registrations`), user menu (Profile + Logout). Inline layout nav removed. Bare `/me` redirects to frozen alias. **Still missing (PS-2+):** manifest-driven member modules, registry codegen, entitlements BFF, GSH `resolvePortalMemberModuleUrl`.
+
+**Proof:** [IMPLEMENTATION-TRUTH-P6.md](./p6/appendices/IMPLEMENTATION-TRUTH-P6.md) PS-1 block · `portal-member-shell.spec.ts` · SMK-PTL-02..08.
+
+### 1.2 Solution
+
+Evolve to a **mobile-first Member Application Platform** via three platform extensions (unchanged from Blueprint):
+
+1. **Member Module Registry** — workspace manifest block mirroring operator settings registry pattern
+2. **Platform Portal Shell** — header, bottom nav (max 5 primary), hub, user menu, shell modes
+3. **Member Entitlements BFF** — `GET /api/me/entitlements` intersected with registry for nav + route access
+
+### 1.3 Routing audit verdict (2026-07-05)
+
+Enterprise routing audit **confirmed** the design path — **no pivot**:
+
+| KEEP | REFINE (documentation + implementation gates) |
+| ---- | --------------------------------------------- |
+| WRS host/surface model | WRS addendum ([wrs-portal-member-routing-addendum.mdoc](../standards/wrs-portal-member-routing-addendum.mdoc)) |
+| `/me/*` member namespace | Bare `/me` redirect (DL-40) |
+| `/catalog/*/register` outside shell | — |
+| GSH cross-host builders | `resolvePortalMemberModuleUrl` (DL-22) |
+| Registry + Shell + Entitlements | URL freeze table §6 |
+
+---
+
+## 2. Goals
+
+| ID | Goal |
+| -- | ---- |
+| G-01 | Manifest-driven member navigation — zero hardcoded nav in portal shell |
+| G-02 | Workspace isolation — Urban can ship 2 modules with zero portal source edits |
+| G-03 | Mobile-first shell — bottom nav, safe area, Telegram-ready (Phase 6 adapter) |
+| G-04 | Scale to 50+ modules via registry + dispatcher without IA collapse |
+| G-05 | API-enforced entitlements — decorative nav forbidden (DL-09) |
+| G-06 | Preserve frozen URLs — `/me/registrations` alias permanent (DL-03, §6) |
+| G-07 | PCMS + WRS compliance — marketing anonymous; no portal `/tours` |
+| G-08 | Traceable guards + smoke — every invariant maps to guard or SMK-ID |
+
+---
+
+## 3. Non-goals
+
+| ID | Non-goal |
+| -- | -------- |
+| NG-01 | Merge marketing and portal apps |
+| NG-02 | Move registration under `/me/*` or member registry |
+| NG-03 | Marketing authenticated session UI (PCMS) |
+| NG-04 | Replace Tenant Kernel, WRS surfaces, PCMS, BFF pattern, profile INV-MP-* |
+| NG-05 | Operator finance routes on portal BFF (DL-15) |
+| NG-06 | `pluginId ===` branching in `apps/portal` (INV-MP-05) |
+| NG-07 | Per-module portal `layout.tsx` forks |
+| NG-08 | Client-only entitlement gating |
+| NG-09 | Portal SEO / public catalog browsing |
+
+---
+
+## 4. Architecture
+
+### 4.1 Frozen contracts (unchanged)
+
+| Contract | Authority |
+| -------- | --------- |
+| Tenant Kernel / host parsing | `packages/tenant-kernel` |
+| WRS-001 surfaces | [workspace-routing-standard.mdoc](../standards/workspace-routing-standard.mdoc) |
+| PCMS-001 member session | [member-session-portal-authority.mdoc](../standards/member-session-portal-authority.mdoc) |
+| Profile capability model | [platform-portal-member-profile.mdoc](./platform-portal-member-profile.mdoc) |
+| Registration intake | [platform-portal-registration-intake.mdoc](./platform-portal-registration-intake.mdoc) |
+| BFF + `buildMemberApiHeaders` | [platform-portal-member.mdoc](./platform-portal-member.mdoc) |
+| Guest Surface Host URL builders | `packages/guest-surface-host` |
+| Theme cascade | P6 theming docs |
+
+### 4.2 Platform vs workspace ownership
+
+| Platform owns | Workspace owns |
+| ------------- | -------------- |
+| Shell frame, slots, nav tier caps | `memberPortal` manifest block |
+| Shell modes (minimal / full / redirect) | Module API + BFF upstream logic |
+| Session/tenant presentation | Entitlement rule declarations |
+| Cross-surface egress rendering (GSH) | Registration flow steps |
+| Codegen validation (mirror settings registry) | `memberProfile` field capabilities |
+| Entitlements BFF surface | Portal theme skin content |
+
+### 4.3 Member Module Registry
+
+Mirrors operator `SettingsModuleManifest` pattern:
+
+| Operator (shipped) | Member (RFC) |
+| ------------------ | ------------ |
+| `SettingsModuleManifest` | Member module manifest types |
+| `operatorSettings` in workspace manifest | `memberPortal` block |
+| `operator.settings.{moduleId}` CASL | `member.module.{moduleId}` entitlement |
+| Settings hub in `apps/web` | Portal module hub + bottom nav |
+| Codegen → generated resolver | Codegen → `resolveMemberPortalModules(pluginId)` |
+
+**Conflict rules (codegen fail-closed):** duplicate ids, >5 primary tier, reserved ids (DL-30), invalid route roots, workspace declaration of platform-owned ids.
+
+#### 4.3.1 Platform-owned vs workspace-owned modules (DL-30)
+
+| Class | Module ids | Route | Workspace manifest | Owner |
+| ----- | ---------- | ----- | ------------------ | ----- |
+| **Platform-owned** | `home` | `/me/home` | **MUST NOT declare** | Platform shell — shipped BP-4 |
+| **Workspace-owned** | `trips`, `profile`, `wallet`, … | manifest `routePath` | Declared in `memberPortal` | Workspace |
+| **Namespace-reserved** | `more`, `api`, `catalog` | n/a | **MUST NOT declare** | Shell / routing namespace |
+
+**Why `home` does not conflict with `/me/home`:** The **route** `/me/home` is a platform-delivered page. The **module id** `home` is reserved so workspaces cannot collide with the platform home module or override its route. Workspaces reference `home` in nav tiers by id, but the module definition lives in **platform registry defaults**, not workspace manifest.
+
+**Registry validation:** Codegen rejects `memberPortal.modules[].id === "home"` with `RESERVED-PLATFORM-OWNED`. Platform injects `home` into effective registry at runtime/codegen merge.
+
+**Migration:** Phase 2 codegen active; platform `home` stub in generated registry Phase 4; no workspace manifest entry ever required.
+
+### 4.4 Member Entitlements (DL-09)
+
+**Wire format:** `GET /api/me/entitlements` portal BFF → API member entitlements upstream.
+
+**Not chosen:** JWT embed (PCMS scope); client-only fetch (wrong first paint).
+
+**Shell rule:** `navModules = registryModules ∩ entitlements.granted`.
+
+See [platform-portal-member-entitlements.mdoc](./platform-portal-member-entitlements.mdoc). Exact upstream API schema: Phase 5 implementation PR.
+
+### 4.5 Shell state machine
+
+| State | Entry | Chrome |
+| ----- | ----- | ------ |
+| `REDIRECT_UNAUTH` | No JWT on `/me/*` | None → `/` |
+| `REDIRECT_AUTH_HOME` | Valid JWT on `/` | None → default module |
+| `REGISTRATION_MINIMAL` | `/catalog/*/register` | Brand + back egress only |
+| `MEMBER_FULL` | Valid JWT on `/me/*` | Header + bottom nav + outlet |
+| `API_MEMBER` | `/api/me/*` | No shell |
+
+**Invariant:** Never `MEMBER_FULL` on registration path (DL-01).
+
+### 4.6 Guest conformance L4 (DL-07)
+
+**L4** = L3 guest conformance + `memberPortal` registry block required for workspaces shipping member app navigation.
+
+Enforcement phased per DL-18.
+
+---
+
+## 5. Routing
+
+Authoritative routing detail: [wrs-portal-member-routing-addendum.mdoc](../standards/wrs-portal-member-routing-addendum.mdoc).
+
+### 5.1 Routing invariants
+
+| Invariant | Repo evidence |
+| --------- | ------------- |
+| Member namespace `/me/*` only | `apps/portal/middleware.ts` |
+| Registration `/catalog/{tourId}/register` outside `/me` | `app/catalog/.../register/page.tsx` |
+| No portal `/tours` | WRS-PATH-02 |
+| Cross-host URLs via GSH | `packages/guest-surface-host/` |
+| Operator `/tours` ≠ marketing `/tours` | WRS-PATH-03 (host-separated) |
+
+### 5.2 URL freeze table (immutable)
+
+| URL | Surface | Notes |
+| --- | ------- | ----- |
+| `/me/registrations` | Portal | **Permanent alias** — module id `trips` (DL-03) |
+| `/me/registrations/{id}` | Portal | Deep route |
+| `/me/profile` | Portal | User menu + module |
+| `/catalog/{tourId}/register` | Portal | Never under `/me/*` |
+| `/` | Portal | Redirect hub — not bookmark target |
+| `/tours`, `/tours/{id}` | Marketing | WRS-PATH-01 |
+| `/me` | Portal | Redirect to `defaultPrimaryModuleId` (DL-40) — not content |
+
+**Breaking change rule:** Default member entry may change only with `/me/registrations` alias retained (DL-22, DL-38).
+
+### 5.3 Dynamic route coexistence (DL-28)
+
+| Phase | Strategy |
+| ----- | -------- |
+| 1–4 | Static `app/me/registrations`, `app/me/profile`, future `app/me/home` |
+| 5+ | `app/me/[[...modulePath]]/page.tsx` dispatcher; static routes win |
+| Never | Dispatcher on `/catalog/*` or `/api/me/*` |
+
+### 5.4 Cross-surface navigation
+
+Authoritative builder registry: [routing-builders-authority.mdoc](./member-portal-shell/routing-builders-authority.mdoc).  
+GSH migration: [builder-migration-contract.mdoc](./member-portal-shell/builder-migration-contract.mdoc).
+
+| Transition | Builder | Authority |
+| ---------- | ------- | --------- |
+| Marketing → Portal register | `resolvePortalRegistrationUrl` | GSH |
+| Marketing → Portal member | `resolvePortalMemberModuleUrl` (PS-3+); `resolvePortalMemberAreaUrl` delegates until Cleanup | GSH |
+| Portal guest `/` → Marketing | `resolveMarketingPublicBaseUrl` | GSH |
+| Portal register back → Marketing tour | `resolveMarketingTourDetailUrl` | GSH |
+| Web `/catalog/*` → Marketing | `resolveMarketingToursUrl` / web catalog redirect helper | Web shim (Tier C) |
+| Web `/catalog/*/register` → Portal | `resolvePortalRegistrationRedirectUrl` | **Web shim** — `apps/web`, not GSH |
+
+**Admission rule (DL-37):** `guestCrossSurfaceNav` manifest entries must not link to routes that 404 on target host (e.g. `/about` on club tenants today).
+
+### 5.5 Register path families (DL-42)
+
+| Family | Path | Surface | Purpose |
+| ------ | ---- | ------- | ------- |
+| Public member registration | `/catalog/{id}/register` | Portal | OTP + intake (canonical) |
+| Web egress shim | `/catalog/{id}/register` | Web | Redirect to portal only |
+| Operator registration | `/tours/{id}/register` | Web | Operator session — **not** public registration |
+
+These must **never merge**.
+
+---
+
+## 6. Member shell
+
+### 6.1 Navigation tiers
+
+| Tier | Max | Renderer |
+| ---- | --- | -------- |
+| Primary | 5 | Bottom nav |
+| Secondary | N | More hub (by family) |
+| Hidden | N | Deep link only |
+| Cross-surface | N | Header egress → marketing |
+
+### 6.2 Denali reference IA (DL-02)
+
+**Bottom nav:** Home · Trips · Wallet · Membership · More  
+**User menu:** Profile (+ logout)
+
+Module id `trips` → route `/me/registrations` (alias).
+
+### 6.3 Shell modes (DL-01)
+
+| Mode | Routes |
+| ---- | ------ |
+| Minimal | `/catalog/{id}/register` — no bottom nav |
+| Full | `/me/*` authenticated |
+| Redirect | Unauthenticated `/me/*` → `/` → marketing |
+
+---
+
+## 7. Migration phases
+
+Canonical naming: [phase-mapping.mdoc](./member-portal-shell/phase-mapping.mdoc) (Portal Shell PS-N ↔ Blueprint BP-N).
+
+| BP | PS | Deliverable | Exit proof |
+| -- | -- | ----------- | ---------- |
+| **0** | **0** | RFC + sign-off | DL-01..42 signed |
+| **1** | **1** | Portal shell frame | SMK-PTL hooks; bare `/me` redirect |
+| **2** | **2** | Member registry codegen | Zero inline nav; Denali manifest |
+| **3** | **3+4** | GSH builder + cross-surface nav | Builder contract; WRS addendum; manifest nav |
+| **4** | **5** | Member home (platform `home`) | `/me/home`; `/` → `defaultPrimaryModuleId` |
+| **5** | **5** | Entitlements + dispatcher | `/api/me/entitlements`; 10+ modules |
+| **6** | **6** | Embedded host (Telegram) | GSH adapter |
+| **7** | **6** | Enterprise scale (50+) | Hub virtualisation |
+| **8** | **7** | **Cleanup** | [cleanup-roadmap.mdoc](./member-portal-shell/cleanup-roadmap.mdoc) |
+
+Detailed gates: [member-portal-shell/implementation-gates.mdoc](./member-portal-shell/implementation-gates.mdoc).
+
+---
+
+## 8. Rollout strategy
+
+1. **Doc-first:** Merge this RFC + WRS addendum + decision log sign-off before any `apps/portal` shell code.
+2. **Alias-safe:** Ship shell + registry without changing `/me/registrations` URLs; SMK-PTL-02..08 must stay green.
+3. **Phased static → dispatcher:** No catch-all until Phase 5 (DL-28).
+4. **Denali first:** Reference workspace binds IA in manifest; Urban/starter exempt until L4 needed (DL-18).
+5. **Rollback per phase:** [implementation-gates.mdoc](./member-portal-shell/implementation-gates.mdoc) § Rollback.
+
+---
+
+## 9. Risks
+
+Full register: Blueprint §13 (142 mitigated + 4 accepted in Blueprint). Summary categories:
+
+| Category | Examples |
+| -------- | -------- |
+| Architectural AR-* | Hardcoded nav, registry without validation |
+| Routing RT-* | GSH hardcode, `/me` 404, WRS lag, portal noindex |
+| Session SR-* | PCMS, tenant bind, stale entitlements |
+| BFF BF-* | Operator finance exposure, allowlist drift |
+| Migration MR-* | SMK-PTL regressions |
+
+**Residual accepted (PENDING SIGN-OFF):**
+
+| ID | Risk | Accepted until |
+| -- | ---- | -------------- |
+| RA-01 | Cross-host transition latency | Phase 7 |
+| RA-02 | No marketing logged-in indicator | Permanent (PCMS) |
+| RA-03 | JWT role not restricted on portal | Phase 5 security review |
+| RA-04 | force-dynamic root performance | Phase 7 |
+
+---
+
+## 10. Guard updates (documentation only)
+
+Future guard specifications — **not implemented in this RFC PR:**
+
+| Guard | Purpose | Doc |
+| ----- | ------- | --- |
+| `guard-member-portal-registry` | Registry + no inline nav | [guard-member-portal-registry.md](../dev/guard-member-portal-registry.md) |
+| `guard-member-module-id-reserved` | Platform-owned `home` blocklist | Same |
+| `guard-member-url-builder` | Builder Migration Contract | Same |
+| `guard-workspace-member-egress` | No `href="/me/` in workspaces | Same |
+| `guard-member-shell` | Shell landmarks + modes | Same |
+| `guard-guest-cross-surface-nav` | Manifest nav admission (DL-37) | Same |
+| `guard-member-seo` | Portal noindex (DL-39) | Same |
+| WRS extension | New portal paths require RFC | Same §5 |
+| Guest conformance L4 | `memberPortal` block admission | guest-plugin-conformance.md |
+| Extend `guard-public-catalog-m17` | Entitlements/home BFF allowlist (DL-31) | entitlements mdoc |
+
+---
+
+## 11. Implementation gates
+
+**No implementation until:**
+
+| Gate | Criterion | Status |
+| ---- | --------- | ------ |
+| G-RFC | This RFC merged to `docs/phase-19/` | **PENDING SIGN-OFF** |
+| G-DL | DL-01..42 architect sign-off | **PENDING SIGN-OFF** |
+| G-WRS | WRS addendum merged or linked as mandatory companion | **PENDING SIGN-OFF** |
+| G-GUARD | Guard specs published (may land with Phase 1 code) | Spec drafted |
+| G-P1 | Phase 1 preconditions per implementation-gates | Blocked until G-RFC + G-DL |
+
+Full checklist: [member-portal-shell/implementation-gates.mdoc](./member-portal-shell/implementation-gates.mdoc).
+
+---
+
+## 12. Related documents
+
+| Document | Path |
+| -------- | ---- |
+| Decision log DL-01..42 | [member-portal-shell/decision-log.mdoc](./member-portal-shell/decision-log.mdoc) |
+| DL traceability matrix | [member-portal-shell/decision-log.mdoc](./member-portal-shell/decision-log.mdoc#traceability-matrix) |
+| Builder Migration Contract | [member-portal-shell/builder-migration-contract.mdoc](./member-portal-shell/builder-migration-contract.mdoc) |
+| Routing builder authority | [member-portal-shell/routing-builders-authority.mdoc](./member-portal-shell/routing-builders-authority.mdoc) |
+| Phase mapping | [member-portal-shell/phase-mapping.mdoc](./member-portal-shell/phase-mapping.mdoc) |
+| Cleanup roadmap | [member-portal-shell/cleanup-roadmap.mdoc](./member-portal-shell/cleanup-roadmap.mdoc) |
+| guestCrossSurfaceNav schema | [member-portal-shell/guest-cross-surface-nav-schema.mdoc](./member-portal-shell/guest-cross-surface-nav-schema.mdoc) |
+| Entitlements contract | [platform-portal-member-entitlements.mdoc](./platform-portal-member-entitlements.mdoc) |
+| Glossary | [member-portal-shell/glossary.mdoc](./member-portal-shell/glossary.mdoc) |
+| Implementation gates | [member-portal-shell/implementation-gates.mdoc](./member-portal-shell/implementation-gates.mdoc) |
+| Repository gap report | [member-portal-shell/repository-gap-report.md](./member-portal-shell/repository-gap-report.md) |
+| Readiness report | [member-portal-shell/readiness-report.md](./member-portal-shell/readiness-report.md) |
+| WRS addendum | [wrs-portal-member-routing-addendum.mdoc](../standards/wrs-portal-member-routing-addendum.mdoc) |
+| Guard spec | [guard-member-portal-registry.md](../dev/guard-member-portal-registry.md) |
+| Source blueprint (temporary) | [DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md](../temp/DENALI-PORTAL-SHELL-NAVIGATION-BLUEPRINT.md) |
+
+---
+
+*RFC version 1.0.0 · Status: PENDING SIGN-OFF · Architecture documentation only*

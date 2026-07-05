@@ -153,24 +153,71 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalo
   color: var(--color-text-link, var(--primary));
 }
 
-/* Member shell — /me/registrations · /me/profile */
+/* Member shell — /me/registrations · /me/profile (dual: data-portal-shell + legacy) */
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell],
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-member-shell] {
   max-width: 36rem;
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-member-shell] nav a {
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell] nav a,
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-member-shell] nav a,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  [data-portal-shell-bottom-nav]
+  a,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-shell]
+  [data-portal-shell-bottom-nav]
+  a,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  [data-portal-shell-header]
+  a,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-shell]
+  [data-portal-shell-header]
+  a {
   color: var(--color-text-link, var(--primary));
   font-weight: 500;
   text-decoration: none;
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-member-shell] nav a:hover {
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell] nav a:hover,
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-member-shell] nav a:hover,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  [data-portal-shell-bottom-nav]
+  a:hover,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-shell]
+  [data-portal-shell-bottom-nav]
+  a:hover,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  [data-portal-shell-header]
+  a:hover,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-shell]
+  [data-portal-shell-header]
+  a:hover {
   text-decoration: underline;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  nav
+  [data-public-auth-logout],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-shell]
   nav
+  [data-public-auth-logout],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  [data-portal-shell-header]
+  [data-public-auth-logout],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-shell]
+  [data-portal-shell-header]
   [data-public-auth-logout] {
   margin-inline-start: auto;
   color: var(--color-text-link, var(--primary));
@@ -183,15 +230,39 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  nav
+  [data-public-auth-logout]:hover:not(:disabled),
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-shell]
   nav
+  [data-public-auth-logout]:hover:not(:disabled),
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  [data-portal-shell-header]
+  [data-public-auth-logout]:hover:not(:disabled),
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-shell]
+  [data-portal-shell-header]
   [data-public-auth-logout]:hover:not(:disabled) {
   text-decoration: underline;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  nav
+  [data-public-auth-logout]:disabled,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
   [data-portal-member-shell]
   nav
+  [data-public-auth-logout]:disabled,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  [data-portal-shell-header]
+  [data-public-auth-logout]:disabled,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-shell]
+  [data-portal-shell-header]
   [data-public-auth-logout]:disabled {
   opacity: 0.6;
   cursor: not-allowed;

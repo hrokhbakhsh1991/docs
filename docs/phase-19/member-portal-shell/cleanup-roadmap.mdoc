@@ -1,0 +1,93 @@
+---
+title: Member Portal Shell — Cleanup Phase (BP-8 / PS-7)
+standard_id: MPS-CLEANUP-001
+version: 1.0.0
+status: pending_sign_off
+extends:
+  - phase-mapping.mdoc
+  - builder-migration-contract.mdoc
+  - implementation-gates.mdoc
+---
+
+# Cleanup Phase (BP-8 / PS-7)
+
+**Purpose:** Dedicated phase for retiring migration artifacts after PS-5 (Migration) and PS-6 (Scale) are green. **No new features** — removal and consolidation only.
+
+**Gate:** Cleanup may not start until BP-5 exit (entitlements + dispatcher) and SMK-PTL-02..08 green on final shell.
+
+---
+
+## 1. Cleanup inventory
+
+| ID | Item | Introduced | Remove when | Owner | Guard |
+| -- | ---- | ---------- | ----------- | ----- | ----- |
+| CL-01 | `resolvePortalMemberAreaUrl` export | P6 / GSH | PS-7 | GSH | `guard-member-url-builder` |
+| CL-02 | GSH hardcoded `/me/registrations` path logic | P6 | PS-3 complete (delegate only) | GSH | `guard-member-url-builder` |
+| CL-03 | Legacy CSS `[data-portal-member-*]` selectors | P6 | PS-7 (after SMK green on `[data-portal-shell]`) | Denali portal CSS | `guard-member-shell` |
+| CL-04 | Dual selector period `[data-portal-shell]` + legacy | PS-1 | PS-7 | Portal shell | manual |
+| CL-05 | `FULL_LANDING_NAV_LINKS` hardcoded array | P6 marketing | PS-4 complete | Marketing | `guard-guest-cross-surface-nav` |
+| CL-06 | Inline nav in `app/me/layout.tsx` | P6 | PS-1 complete — verify removed | Portal | `guard-member-no-hardcoded-links` |
+| CL-07 | Workspace `href="/me/registrations"` in registration steps | P6 | PS-4 complete | Workspaces | `guard-workspace-member-egress` |
+| CL-08 | Temporary `/me/registrations` as default in `app/page.tsx` | P6 | PS-5 when registry default live | Portal | `guard-member-portal-registry` |
+| CL-09 | Blueprint temp file authority | PS-0 | Optional archive to `docs/phase-19/archive/` | Docs | — |
+| CL-10 | `@deprecated` JSDoc on delegated builder | PS-3 | PS-7 removal | GSH | — |
+
+---
+
+## 2. Cleanup phase gates (CL-GATE)
+
+| # | Criterion | Verification |
+| - | --------- | ------------ |
+| CL-GATE-01 | PS-5 entitlements green | SMK-PTL-09 + Phase 5 exit |
+| CL-GATE-02 | All call sites use `resolvePortalMemberModuleUrl` | `guard-member-url-builder` fail on deprecated import |
+| CL-GATE-03 | SMK-PTL-02/04/06/07/08 green | Playwright |
+| CL-GATE-04 | No inline portal shell nav | `guard-member-no-hardcoded-links` |
+| CL-GATE-05 | Marketing nav manifest-only | `guard-guest-cross-surface-nav` |
+| CL-GATE-06 | PCMS-003 documents primary builder only | Doc review |
+| CL-GATE-07 | WRS §4 inline merge complete (optional) | Architect choice |
+| CL-GATE-08 | Legacy CSS hooks removed from Denali skin | Visual + SMK DOM hooks |
+
+---
+
+## 3. Migration completion checklist
+
+- [ ] CL-01: Remove `resolvePortalMemberAreaUrl` from GSH public API
+- [ ] CL-02: Confirm no literal `/me/registrations` in GSH except alias tests
+- [ ] CL-03–04: Remove legacy DOM/CSS hooks; single `[data-portal-shell]` contract
+- [ ] CL-05: Delete `FULL_LANDING_NAV_LINKS`
+- [ ] CL-06: Confirm `me/layout.tsx` is outlet-only
+- [ ] CL-07: Zero raw `/me/` hrefs in workspace registration packages
+- [ ] CL-08: Portal `/` uses registry `defaultPrimaryModuleId` only
+- [ ] CL-10: Update GSH README and PCMS-003
+
+---
+
+## 4. What is NOT removed in Cleanup
+
+| Item | Reason |
+| ---- | ------ |
+| `/me/registrations` route | URL freeze — permanent alias (DL-03) |
+| Static `app/me/registrations/**` pages | Alias implementation |
+| `resolvePortalRegistrationUrl` | Permanent registration builder |
+| SMK-PTL-02/04 | Regression bar on alias |
+
+---
+
+## 5. Rollback
+
+If Cleanup PR breaks SMK-PTL-02/04: **revert Cleanup PR only** — do not revert PS-5 entitlements or alias routes.
+
+---
+
+## 6. Traceability
+
+| Artifact | Link |
+| -------- | ---- |
+| Phase map | [phase-mapping.mdoc](./phase-mapping.mdoc) PS-7 / BP-8 |
+| Builder contract | [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) §6–7 |
+| DL | DL-22, DL-27 |
+| Gates | [implementation-gates.mdoc](./implementation-gates.mdoc) — add Cleanup section |
+
+---
+
+*Cleanup roadmap v1.0.0 · PENDING SIGN-OFF*

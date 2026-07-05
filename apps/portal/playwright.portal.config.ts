@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * User portal registration smoke — SMK-PTL-01
+ * Portal E2E smoke — SMK-PTL-01..07 (+ DEN-PROF in profile spec)
  * @see docs/phase-11/subphases/11.18-portal-e2e-smoke.md
  */
 const useExternalServers = process.env.PW_EXTERNAL_SERVERS === "1";
@@ -23,7 +23,12 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["portal-registration-smoke.spec.ts", "portal-registration-resume-smoke.spec.ts", "portal-member-profile-smoke.spec.ts"],
+  testMatch: [
+    "portal-registration-smoke.spec.ts",
+    "portal-registration-resume-smoke.spec.ts",
+    "portal-member-profile-smoke.spec.ts",
+    "portal-member-smoke.spec.ts",
+  ],
   globalSetup: "./tests/e2e/portal-smoke-global-setup.ts",
   retries: process.env.CI || process.env.PW_EXTERNAL_SERVERS === "1" ? 1 : 0,
   forbidOnly: !!process.env.CI,

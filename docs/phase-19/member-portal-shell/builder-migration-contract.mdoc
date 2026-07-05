@@ -1,0 +1,195 @@
+---
+title: GSH Builder Migration Contract (DL-22)
+standard_id: MPS-BMC-001
+version: 1.0.0
+status: pending_sign_off
+extends:
+  - ../platform-portal-member-shell-architecture.mdoc
+  - routing-builders-authority.mdoc
+  - ../../standards/wrs-portal-member-routing-addendum.mdoc
+mandatory_for:
+  - packages/guest-surface-host
+  - apps/marketing
+  - packages/workspaces/denali
+  - packages/workspaces/urban
+code_sot:
+  - packages/guest-surface-host/src/resolve-portal-public-base-url.ts
+  - packages/guest-surface-host/test/resolve-portal-public-base-url.spec.ts
+---
+
+# GSH Builder Migration Contract
+
+**Status:** **PENDING SIGN-OFF**  
+**Decision:** DL-22  
+**Phase introduced:** Portal Shell Phase 3 / Blueprint Phase 3  
+**PCMS follow-up:** PCMS-003 updated in same phase (see [member-session-portal-authority.mdoc](../../standards/member-session-portal-authority.mdoc) §5.1)
+
+This contract defines **zero-ambiguity** behavior for migrating from `resolvePortalMemberAreaUrl` to `resolvePortalMemberModuleUrl`. No application code in this document.
+
+---
+
+## 1. Scope
+
+| Builder | Package | Status today | Target |
+| ------- | ------- | ------------ | ------ |
+| `resolvePortalMemberAreaUrl(host)` | `guest-surface-host` | **Active** — hardcodes `/me/registrations` | **Deprecated** — delegates per §4 |
+| `resolvePortalMemberModuleUrl(host, moduleId?)` | `guest-surface-host` | **Not implemented** | **Primary** from Phase 3 |
+
+**Out of scope:** `resolvePortalRegistrationUrl`, marketing builders, web redirect shims — see [routing-builders-authority.mdoc](./routing-builders-authority.mdoc).
+
+---
+
+## 2. API semantics (target)
+
+### 2.1 `resolvePortalMemberModuleUrl(host, moduleId?)`
+
+| Parameter | Required | Behavior |
+| --------- | -------- | -------- |
+| `host` | Yes | Ingress host for WRS tenant resolution (same as all GSH builders) |
+| `moduleId` | No | When omitted → resolve **`defaultPrimaryModuleId`** from generated member registry for host's `pluginId` |
+| `moduleId` | Yes | Resolve **route path** for that module from registry |
+
+**Return value:** Absolute URL `{portalBase}{routePath}` where `routePath` is registry-resolved (e.g. `/me/home`, `/me/registrations`).
+
+**Fail-closed (codegen/runtime):** Unknown `moduleId` → throw at build time (codegen) or resolve to `defaultPrimaryModuleId` at runtime (implementation detail — must be documented in GSH spec PR).
+
+### 2.2 `resolvePortalMemberAreaUrl(host)` (deprecated)
+
+**Semantic name:** “Member area entry URL for cross-host static egress (PCMS-003).”
+
+**Not** synonymous with “default primary module” after Phase 4 — but **must remain SMK-compatible** via delegation rules in §4.
+
+---
+
+## 3. Fallback behaviour
+
+Fallback chain when registry is unavailable (Phase 1–2 before codegen, or degraded SSR):
+
+```text
+resolvePortalMemberModuleUrl(host)
+  1. Generated registry → defaultPrimaryModuleId → routePath
+  2. Fallback: moduleId "trips" → routePath "/me/registrations"  (URL freeze)
+  3. Never throw for missing registry in GSH — use frozen alias
+
+resolvePortalMemberModuleUrl(host, "trips")
+  → always "{portalBase}/me/registrations"  (permanent alias — DL-03)
+
+resolvePortalMemberAreaUrl(host)  [deprecated]
+  → identical to resolvePortalMemberModuleUrl(host)  (delegation — §4)
+```
+
+**Invariant:** `{portalBase}/me/registrations` must remain reachable from both builders when `defaultPrimaryModuleId` is `home` or any other module (alias is route-level, not module-id-level).
+
+---
+
+## 4. Delegation (deprecated builder)
+
+From **Phase 3 implementation** until **Cleanup Phase** (see [cleanup-roadmap.mdoc](./cleanup-roadmap.mdoc)):
+
+```typescript
+// Contract (conceptual — not implementation)
+export function resolvePortalMemberAreaUrl(host: string): string {
+  return resolvePortalMemberModuleUrl(host); // delegates to defaultPrimaryModuleId
+}
+```
+
+| Rule | Detail |
+| ---- | ------ |
+| Export preserved | `resolvePortalMemberAreaUrl` **remains exported** through Cleanup Phase |
+| Implementation | Single-line delegate to `resolvePortalMemberModuleUrl(host)` — no independent path logic |
+| JSDoc | `@deprecated Use resolvePortalMemberModuleUrl. Removed in Cleanup Phase.` |
+| Tests | Existing GSH spec expectations updated to assert delegation equivalence |
+
+**When `defaultPrimaryModuleId` becomes `home` (Phase 4):**
+
+| Builder | Resolves to | SMK impact |
+| ------- | ----------- | ---------- |
+| `resolvePortalMemberModuleUrl(host)` | `{portalBase}/me/home` | SMK-PTL-05 updated to assert `/` → `/me/home` **only when** default changes (explicit smoke PR) |
+| `resolvePortalMemberAreaUrl(host)` | Same as above (delegates) | PCMS-003 marketing link follows default — **not** frozen to `/me/registrations` |
+| Frozen alias route | `/me/registrations` still valid | SMK-PTL-02/04 **unchanged** — alias independent of default |
+
+**PCMS-003 clarification:** Marketing “member area” egress link tracks **`defaultPrimaryModuleId`**, not the frozen alias path. The alias exists for bookmarks, workspace CTAs during migration, and SMK-PTL-02/04 — not for PCMS static egress after Phase 4.
+
+---
+
+## 5. Compatibility matrix
+
+| Consumer | Phase 1–2 | Phase 3–4 | Phase 5+ | Cleanup |
+| -------- | --------- | --------- | -------- | ------- |
+| Marketing header/footer | `resolvePortalMemberAreaUrl` | delegate | delegate | `resolvePortalMemberModuleUrl` only |
+| PCMS-003 doc | `/me/registrations` hardcoded | delegation | updated text | updated text |
+| Workspace registration CTA | hardcoded `href="/me/..."` | injected `resolvePortalMemberModuleUrl(host)` | same | same |
+| GSH unit tests | `/me/registrations` | delegation + module URL tests | + module id tests | remove deprecated tests |
+| SMK-PTL-05 | `/` → `/me/registrations` | unchanged until default changes | update when default → `home` | green |
+| SMK-PTL-02/04 | `/me/registrations` | **always green** | **always green** | **always green** |
+
+---
+
+## 6. Migration timeline
+
+| Phase | Portal Shell | Builder work | `resolvePortalMemberAreaUrl` |
+| ----- | ------------ | ------------ | ---------------------------- |
+| 0 | RFC merge | Contract signed (this doc) | unchanged — hardcoded |
+| 1 | Portal shell | none | unchanged |
+| 2 | Member registry | codegen produces `defaultPrimaryModuleId` | unchanged |
+| **3** | URL builder | **Implement** `resolvePortalMemberModuleUrl`; delegate deprecated API | **delegate** |
+| 4 | Member home | default may become `home`; alias `/me/registrations` retained | delegate |
+| 5 | Entitlements | module-scoped URLs | delegate |
+| 6 | Telegram adapter | uses module URL builder | delegate |
+| 7 | Scale | no builder change | delegate |
+| **8** | **Cleanup** | remove deprecated export; update all call sites | **removed** |
+
+---
+
+## 7. Deprecation strategy
+
+1. **Phase 3:** Add `resolvePortalMemberModuleUrl`; change `resolvePortalMemberAreaUrl` body to delegate; add `@deprecated` JSDoc; extend GSH tests.
+2. **Phase 3–7:** `guard-member-url-builder` warns on new call sites importing deprecated symbol (see [guard-member-portal-registry.md](../../dev/guard-member-portal-registry.md)).
+3. **Cleanup Phase:** Remove export; CI fail on any import of `resolvePortalMemberAreaUrl`; update PCMS-003, marketing, tests.
+
+**No breaking removal** before Cleanup Phase gate green.
+
+---
+
+## 8. Smoke-test compatibility
+
+| Smoke | Must pass when | Assertion |
+| ----- | -------------- | --------- |
+| SMK-PTL-02 | Always | List at `/me/registrations` |
+| SMK-PTL-04 | Always | Detail under `/me/registrations/{id}` |
+| SMK-PTL-05 | Phase 1–3 | `/` → `/me/registrations` |
+| SMK-PTL-05 | Phase 4+ (when default → `home`) | `/` → `/me/home` — **explicit smoke update PR** |
+| SMK-PTL-06 | Always | Logout unchanged |
+| SMK-PTL-07/08 | Always | Host bind unchanged |
+| GSH unit spec | Phase 3+ | `resolvePortalMemberAreaUrl(h) === resolvePortalMemberModuleUrl(h)` |
+
+**Rule:** No Phase 3 GSH PR merges unless SMK-PTL-02/04/06/07/08 green **and** delegation unit test green.
+
+---
+
+## 9. Backwards compatibility guarantees
+
+| Guarantee | Duration |
+| --------- | -------- |
+| `/me/registrations` URL valid | Permanent (URL freeze) |
+| `resolvePortalMemberAreaUrl` exported | Phase 3 through Phase 7 |
+| Delegation equivalence | Phase 3 through Phase 7 |
+| Hardcoded `/me/registrations` in GSH | Until Phase 3 PR merges |
+| Marketing can use deprecated API | Until Cleanup Phase |
+
+---
+
+## 10. Traceability
+
+| Artifact | Link |
+| -------- | ---- |
+| Blueprint | v9 §50, DL-22 |
+| WRS | [wrs-portal-member-routing-addendum.mdoc](../../standards/wrs-portal-member-routing-addendum.mdoc) §7.1 |
+| PCMS | PCMS-003 follow-up §5.1 |
+| RFC | [platform-portal-member-shell-architecture.mdoc](../platform-portal-member-shell-architecture.mdoc) §5.4 |
+| Guard | `guard-member-url-builder` |
+| Gate | [implementation-gates.mdoc](./implementation-gates.mdoc) Phase 3 exit 3.2 |
+
+---
+
+*Contract v1.0.0 · PENDING SIGN-OFF · Documentation only*

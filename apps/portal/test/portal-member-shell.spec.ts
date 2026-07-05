@@ -1,0 +1,55 @@
+/**
+ * PS-1 — platform member shell landmarks
+ */
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+const portalRoot = join(repoRoot, "apps/portal");
+
+function readPortal(relativePath: string): string {
+  return readFileSync(join(portalRoot, relativePath), "utf8");
+}
+
+describe("portal-member-shell.spec.ts — PS-1", () => {
+  it("PS1-SHELL-01 me layout uses PortalMemberShell without inline nav", () => {
+    const layout = readPortal("app/me/layout.tsx");
+    assert.match(layout, /PortalMemberShell/);
+    assert.doesNotMatch(layout, /<nav/);
+    assert.doesNotMatch(layout, /href="\/me\/registrations"/);
+  });
+
+  it("PS1-SHELL-02 shell package exposes dual landmarks", () => {
+    const shell = readPortal("src/shell/portal-member-shell.tsx");
+    const header = readPortal("src/shell/portal-member-header.tsx");
+    const bottomNav = readPortal("src/shell/portal-member-bottom-nav.tsx");
+    assert.match(shell, /data-portal-shell/);
+    assert.match(shell, /data-portal-member-shell/);
+    assert.match(shell, /data-portal-shell-main/);
+    assert.match(header, /data-portal-shell-header/);
+    assert.match(bottomNav, /data-portal-shell-bottom-nav/);
+  });
+
+  it("PS1-SHELL-03 bare /me redirects to frozen alias", () => {
+    const page = readPortal("app/me/page.tsx");
+    assert.match(page, /redirect\("\/me\/registrations"\)/);
+  });
+
+  it("PS1-SHELL-04 registration page is outside member shell layout", () => {
+    const registerPage = readPortal("app/catalog/[tourId]/register/page.tsx");
+    assert.match(registerPage, /data-catalog-registration-page/);
+    assert.doesNotMatch(registerPage, /PortalMemberShell/);
+    assert.doesNotMatch(registerPage, /data-portal-shell-bottom-nav/);
+  });
+
+  it("PS1-SHELL-05 logout hook preserved in user menu", () => {
+    const userMenu = readPortal("src/shell/portal-member-user-menu.tsx");
+    assert.match(userMenu, /MemberLogoutButton/);
+    const logout = readPortal("src/me/member-logout-button.tsx");
+    assert.match(logout, /data-public-auth-logout/);
+    assert.match(logout, /data-public-auth-logout-ready/);
+  });
+});
