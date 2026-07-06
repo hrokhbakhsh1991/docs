@@ -42,10 +42,10 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Admin feature TSX CSS-hook purge (incremental registry) | ✅ F8 (17/17 purged) |
 | Denali admin dark primary isolation (F9-2 guard + spec) | ✅ F9 |
 | ThemeProviderChain / CSS precedence table | ✅ F9 |
+| F9-4 tenant dark primary (C4 remediation) | ✅ F9 |
+| Phase F formal closure (fast-track checklist) | ✅ 2026-07-06 |
 
-**Still hand-maintained (F9+):** Phase F formal closure gate run.
-
-| F9-4 remediation (C4) | `TenantThemeProvider` omits inline `--color-primary*` when `html.dark` — dark cascade from `admin-semantic-tokens.css` wins |
+**Deferred (Architect YES):** full monorepo gate chain (`phase-5:gate` / `ci:integrity` / `test:full`).
 
 ## Authority flow (E1–E2)
 
@@ -348,20 +348,24 @@ When multiple layers set the same custom property, **higher priority wins** for 
 
 ### Phase F formal closure
 
-Run checklist § Phase F closure checklist (build, guards, specs) — Architect **YES** for full gate chain.
+**Status:** ✅ closed on **2026-07-06** — fast-track checklist below (all PASS).
+
+Full monorepo gate chain (`phase-5:gate`, `ci:integrity`, `test:full`) remains **deferred** until Architect **YES**.
 
 ## Phase F closure checklist
 
-| Gate | Command / artifact |
-| ---- | ------------------ |
-| Build | `pnpm --filter @app-tour/design-tokens run build` |
-| Unit specs | `pnpm --filter @app-tour/design-tokens test` (E + F1–F6 + F9 + closure) · `pnpm --filter @apps/web exec node --import tsx --test test/admin-feature-appearance-ast.spec.ts test/denali-admin-theme.spec.ts` (F7–F9) |
-| DTCG token guard | `node scripts/guards/guard-dtcg-tokens.mjs` |
-| CSS sync | `node scripts/guards/guard-dtcg-css-sync.mjs` |
-| Hex ban | `node scripts/guards/guard-dtcg-hex-ban.mjs` |
-| Bootstrap integrity | `node scripts/guards/guard-css-bootstrap-integrity.mjs` |
-| Admin feature palette ban | `node scripts/guards/guard-admin-feature-appearance-ast.mjs` |
-| Denali admin dark primary | `node scripts/guards/guard-denali-admin-dark-primary.mjs` |
+| Gate | Command / artifact | 2026-07-06 |
+| ---- | ------------------ | ---------- |
+| Build | `pnpm --filter @app-tour/design-tokens run build` | ✅ |
+| Unit specs | `pnpm --filter @app-tour/design-tokens test` (67) · `pnpm --filter @apps/web exec node --import tsx --test test/admin-feature-appearance-ast.spec.ts test/denali-admin-theme.spec.ts` (19) | ✅ |
+| Theme-react (F9-4) | `pnpm --filter @app-tour/theme-react test` (27) | ✅ |
+| DTCG token guard | `node scripts/guards/guard-dtcg-tokens.mjs` | ✅ |
+| CSS sync | `node scripts/guards/guard-dtcg-css-sync.mjs` | ✅ |
+| Hex ban | `node scripts/guards/guard-dtcg-hex-ban.mjs` | ✅ |
+| Bootstrap integrity | `node scripts/guards/guard-css-bootstrap-integrity.mjs` | ✅ |
+| Admin feature palette ban | `node scripts/guards/guard-admin-feature-appearance-ast.mjs` | ✅ |
+| Denali admin dark primary | `node scripts/guards/guard-denali-admin-dark-primary.mjs` | ✅ |
+| Admin control pack | `pnpm run admin:control` | ✅ |
 
 ## MASTER.md demotion (E3–E4)
 

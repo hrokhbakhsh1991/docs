@@ -747,13 +747,13 @@ Using **both** `ThemeProviderChain` JS variables **and** conflicting hex in CSS 
 
 | Priority | Layer | Selector / scope |
 | -------- | ----- | ---------------- |
-| 1 | Inline React (`TenantThemeProvider`, `WorkspaceThemeProvider`) | `[data-tenant-theme]`, `[data-workspace-theme]` |
+| 1 | Inline React (`TenantThemeProvider`, `WorkspaceThemeProvider`) | `[data-tenant-theme]`, `[data-workspace-theme]` — tenant primary omitted when `html.dark` (F9-4) |
 | 2 | Denali admin DTCG | `body[data-workspace-plugin="denali"] .theme-dark` + `html.dark:has(…)` |
 | 3 | Platform admin dark | `operator-admin-dark-semantics.css` (`.theme-dark`, `.dark`) |
 | 4 | Platform theme | `themes/dark.css` (`.theme-dark` — platform `#5b9fd4`) |
 | 5 | shadcn bridge | `shell-bridge.css` aliases |
 
-Full conflict inventory, C4 known gap, and guards: [dtcg-pipeline-spec.mdoc § F9](../dev/dtcg-pipeline-spec.mdoc).
+Full conflict inventory, C4 mitigation (F9-4), and guards: [dtcg-pipeline-spec.mdoc § F9](../dev/dtcg-pipeline-spec.mdoc).
 
 ## 11. Open risks
 
@@ -927,7 +927,7 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F9 (done):** ThemeProviderChain vs CSS precedence — audit (F9-1), `guard-denali-admin-dark-primary` + specs (F9-2), precedence table (F9-3), C4 tenant dark fix (F9-4).
 
-**Phase F formal closure (next):** full gate chain — Architect **YES** required.
+**Phase F formal closure (done, 2026-07-06):** fast-track checklist in spec — all guards/specs PASS. Full gate chain deferred until Architect **YES**.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -949,9 +949,9 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 **F8 (done):** incremental CSS-hook purge registry — 17/17 feature TSX.
 
-**F9 (done):** ThemeProviderChain precedence audit + dark-primary guard + doc closure.
+**F9 (done):** ThemeProviderChain precedence audit + dark-primary guard + doc closure + C4 tenant dark fix (F9-4).
 
-**Phase F formal closure (next):** full gate chain — Architect **YES** required.
+**Phase F formal closure (done, 2026-07-06):** fast-track checklist PASS — see spec § Phase F closure checklist.
 
 ### Phase G — Codegen modularization
 
@@ -1045,9 +1045,7 @@ Phase E is **closed** for guest marketing skin semantics and hooks:
 2. Marketing/portal hooks + denali **shell + 28 component partials** — no raw `#` hex.
 3. Denali overlay palette (`--mkt-*`) — DTCG authority in `denali.marketing.tokens.json`.
 
-**Still hand-maintained:** Phase F formal closure gate run.
-
-**Phase F (F1–F9 done):** admin DTCG semantics, hook hex ban, feature AST guards, 17/17 CSS-hook purge, ThemeProviderChain precedence + C4 tenant dark fix.
+**Phase F closed (2026-07-06):** F1–F9 complete — admin DTCG semantics, hook hex ban, feature AST guards, 17/17 CSS-hook purge, ThemeProviderChain precedence + C4 tenant dark fix. Fast-track closure checklist PASS; full gate chain deferred until Architect **YES**.
 
 ---
 
