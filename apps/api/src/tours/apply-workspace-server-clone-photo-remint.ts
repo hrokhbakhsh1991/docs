@@ -2,12 +2,20 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import type { TourRecord } from "../db/tour-record";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
-import type { ToursService } from "./tours.service";
+import type { UpdateTourBody } from "./update-tour.schema";
 import { resolveWizardCloneRemintBinding } from "./workspace-wizard-clone-remint-dispatch";
+
+export type WorkspaceServerClonePhotoRemintPort = {
+  updateTour(
+    auth: TenantAuthContext,
+    tourId: string,
+    body: UpdateTourBody
+  ): Promise<TourRecord>;
+};
 
 /** Post-create MinIO copy + canonical patch for server tour clone (DEC-P11-011). */
 export async function applyWorkspaceServerClonePhotoRemint(
-  toursService: ToursService,
+  toursService: WorkspaceServerClonePhotoRemintPort,
   auth: TenantAuthContext,
   record: TourRecord
 ): Promise<TourRecord> {

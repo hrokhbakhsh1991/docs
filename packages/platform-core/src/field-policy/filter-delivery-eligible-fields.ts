@@ -14,7 +14,7 @@ export type FilterDeliveryEligibleFieldsInput = {
 
 /**
  * Provider-agnostic exposure eligibility filter using an explicit ExposureSurface
- * (e.g. `telegram`), not the legacy ambiguous `delivery` surface name.
+ * (e.g. a messaging channel id), not the legacy ambiguous `delivery` surface name.
  */
 export function filterDeliveryEligibleFields(
   input: FilterDeliveryEligibleFieldsInput,

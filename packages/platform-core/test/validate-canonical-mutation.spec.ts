@@ -124,7 +124,7 @@ describe("mutation attack — validateCanonicalDocument path", () => {
     assert.equal(outcome.value.ok, true);
   });
 
-  it("composite path set to array reports structured ingress/validation failure, not TypeError", () => {
+  it("composite path set to array is accepted at ingress without TypeError (Phase 11.10)", () => {
     const engine = loadPlatformWizard(pluginWithCompositeMeta());
     const document = documentWithRuntimePoison({
       schemaVersion: 1,
@@ -140,16 +140,7 @@ describe("mutation attack — validateCanonicalDocument path", () => {
     const outcome = runValidateCanonical(engine, document);
     assertNoRawThrow(outcome, "composite array");
     assert.equal(outcome.kind, "result");
-    assert.equal(outcome.value.ok, false);
-    assert.ok(
-      outcome.value.violations.some(
-        (v) =>
-          v.code === "CANONICAL_TYPE_MISMATCH" ||
-          v.code === "SANITIZE_ARRAY_NOT_ALLOWED" ||
-          v.code === "CANONICAL_INVALID_DATA",
-      ),
-      `expected structured violation, got ${JSON.stringify(outcome.value.violations)}`,
-    );
+    assert.equal(outcome.value.ok, true);
   });
 
   it("required path absent while homoglyph path populated reports UNKNOWN_CANONICAL_PATH", () => {

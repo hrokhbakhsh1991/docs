@@ -1,4 +1,5 @@
 # Local dev stack — Postgres + Redis + MinIO (Phase 6.7 photos; see docs/phase-6/appendices/env-runtime-matrix.md)
+# Postgres: `postgres` superuser + `app_tour` NOSUPERUSER app role (P4-E-RLS-01; matches CI phase-4-gate).
 services:
   postgres:
     image: postgres:16
@@ -6,18 +7,19 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: app_tour_dev
-      POSTGRES_USER: app_tour
-      POSTGRES_PASSWORD: app_tour
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "${DB_PORT:-5433}:5432"
+      - "${DB_PORT:-5434}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app_tour_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ../docs/phase-4/dev/init:/docker-entrypoint-initdb.d:ro
 
   redis:
     image: redis:7

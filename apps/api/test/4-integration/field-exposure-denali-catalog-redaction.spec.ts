@@ -128,7 +128,7 @@ describe(
     const tenantId = integrationTenantId();
     const runId = randomUUID().slice(0, 8);
     const tourId = randomUUID();
-    const actorUserId = "field-exposure-catalog-redaction-admin";
+    const actorUserId = randomUUID();
     let admin: PrismaClient;
     let listener: ReturnType<typeof createRequestListener>;
     const priorStorageDriver = process.env.STORAGE_DRIVER;
@@ -180,10 +180,10 @@ describe(
       assert.equal(data.endAt, "2026-07-03T18:00:00.000Z");
     });
 
-    it("redacts hidden catalog fields after public_list surface override", async () => {
+    it("redacts hidden catalog fields after public_details surface override", async () => {
       const patch = await requestJson(listener, {
         method: "PATCH",
-        path: "/workspaces/denali/exposure/surfaces/public_list",
+        path: "/workspaces/denali/exposure/surfaces/public_details",
         headers: adminHeaders(tenantId, actorUserId),
         body: {
           enabled: true,

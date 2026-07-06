@@ -106,7 +106,13 @@ configureUrbanHttpHost({
     assertPublicRegistrationThrottle,
     readIdempotencyKey,
     hashIdempotentRequest,
-    runIdempotentHttpMutation,
+    runIdempotentHttpMutation: ((tenantId, idempotencyKey, requestHash, finish) =>
+      runIdempotentHttpMutation(
+        tenantId,
+        idempotencyKey,
+        requestHash,
+        finish as () => Promise<Record<string, unknown>>,
+      )) as import("@app-tour/workspace-urban/http").UrbanHttpHostPorts["registration"]["runIdempotentHttpMutation"],
     idempotencyKeyRequiredCode: IDEMPOTENCY_KEY_REQUIRED,
     decideRegistrationStatus: (input) =>
       assertRegistrationCapacityDecision(resolveRegistrationCapacityDecision(input)),

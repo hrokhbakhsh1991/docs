@@ -5,7 +5,7 @@ import type {
   OperatorMembershipAvatar,
   OperatorProfileGender,
 } from "@app-tour/workspace-sdk";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type { InvitableWorkspaceRole } from "./users.types";
 import { getPrisma } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
@@ -376,7 +376,6 @@ export class PrismaIdentityRepository implements IdentityRepository {
       if (row === null) {
         throw new MembershipNotFoundError(userId);
       }
-      const metadata = readMembershipMetadata(row.membershipMetadata);
       return tx.userTenant.update({
         where: { userId_tenantId: { userId, tenantId } },
         data: {
@@ -394,7 +393,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
     userId: string,
     patch: {
       readonly displayName?: string;
-      readonly email?: string;
+      readonly email?: string | null;
       readonly gender?: OperatorProfileGender | null;
       readonly nationalId?: string;
       readonly fatherName?: string;
@@ -411,14 +410,19 @@ export class PrismaIdentityRepository implements IdentityRepository {
       return tx.userTenant.update({
         where: { userId_tenantId: { userId, tenantId } },
         data: {
-          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
-            ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
-            ...(patch.email !== undefined ? { email: patch.email.trim() } : {}),
-            ...("gender" in patch ? { gender: patch.gender ?? null } : {}),
-            ...(patch.nationalId !== undefined ? { nationalId: patch.nationalId.trim() } : {}),
-            ...(patch.fatherName !== undefined ? { fatherName: patch.fatherName.trim() } : {}),
-            ...(patch.birthDate !== undefined ? { birthDate: patch.birthDate.trim() } : {}),
-          }),
+          membershipMetadata: mergeMembershipMetadata(
+            row.membershipMetadata,
+            {
+              ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
+              ...(patch.email !== undefined
+                ? { email: patch.email === null ? undefined : patch.email.trim() }
+                : {}),
+              ...("gender" in patch ? { gender: patch.gender ?? null } : {}),
+              ...(patch.nationalId !== undefined ? { nationalId: patch.nationalId.trim() } : {}),
+              ...(patch.fatherName !== undefined ? { fatherName: patch.fatherName.trim() } : {}),
+              ...(patch.birthDate !== undefined ? { birthDate: patch.birthDate.trim() } : {}),
+            } as Parameters<typeof mergeMembershipMetadata>[1],
+          ),
         },
       });
     });
@@ -440,7 +444,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
       return tx.userTenant.update({
         where: { userId_tenantId: { userId, tenantId } },
         data: {
-          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, { avatar }),
+          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
+            avatar,
+          } as Parameters<typeof mergeMembershipMetadata>[1]),
         },
       });
     });

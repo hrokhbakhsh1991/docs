@@ -71,6 +71,7 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
       import("../routes/internal/db-pool-hold"),
       import("../routes/internal/outbox-replay"),
       import("../tours/tours.routes"),
+      import("../routes/platform/workspaces"),
     ]).then(
       ([
         metrics,
@@ -81,6 +82,7 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         dbPoolHold,
         outboxReplay,
         tours,
+        _platformWorkspaces,
       ]) => ({
         handleInternalMetrics: metrics.handleInternalMetrics,
         handleCacheInvalidate: cacheInvalidate.handleCacheInvalidate,

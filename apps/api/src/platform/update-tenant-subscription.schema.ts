@@ -13,25 +13,29 @@ export function parseUpdateTenantSubscriptionBody(body: unknown): UpdateTenantSu
     throw new PlatformValidation("INVALID_BODY");
   }
   const record = body as Record<string, unknown>;
-  const result: UpdateTenantSubscriptionBody = {};
+  let planId: UpdateTenantSubscriptionBody["planId"] | undefined;
+  let status: UpdateTenantSubscriptionBody["status"] | undefined;
 
   if (record.planId !== undefined) {
     if (typeof record.planId !== "string" || !PLAN_IDS.has(record.planId)) {
       throw new PlatformValidation("INVALID_PLAN_ID");
     }
-    result.planId = record.planId as UpdateTenantSubscriptionBody["planId"];
+    planId = record.planId as UpdateTenantSubscriptionBody["planId"];
   }
 
   if (record.status !== undefined) {
     if (typeof record.status !== "string" || !STATUS_VALUES.has(record.status)) {
       throw new PlatformValidation("INVALID_STATUS");
     }
-    result.status = record.status as UpdateTenantSubscriptionBody["status"];
+    status = record.status as UpdateTenantSubscriptionBody["status"];
   }
 
-  if (result.planId === undefined && result.status === undefined) {
+  if (planId === undefined && status === undefined) {
     throw new PlatformValidation("EMPTY_PATCH");
   }
 
-  return result;
+  return {
+    ...(planId === undefined ? {} : { planId }),
+    ...(status === undefined ? {} : { status }),
+  };
 }

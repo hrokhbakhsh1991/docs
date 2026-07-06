@@ -133,7 +133,7 @@ describe(
     const tenantId = integrationTenantId();
     const runId = randomUUID().slice(0, 8);
     const tourId = randomUUID();
-    const actorUserId = "field-exposure-reminder-feed-admin";
+    const actorUserId = randomUUID();
     const registeredUserId = "field-exposure-reminder-feed-member";
     let admin: PrismaClient;
     let listener: ReturnType<typeof createRequestListener>;

@@ -729,7 +729,7 @@ ${registryLines}
 
 /** Load workspace skin CSS for the active plugin only (dynamic import). */
 export async function importGuest${surfaceCamel}ThemeForPlugin(pluginId: string): Promise<void> {
-${surface === "portal" ? "  await import(WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN);\n" : ""}${surface === "marketing" ? "  await import(WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN);\n" : ""}  switch (pluginId) {
+${surface === "portal" ? '  await import("@app-tour/workspace-starter/theme/starter-portal.css");\n' : ""}${surface === "marketing" ? '  await import("@app-tour/workspace-starter/theme/starter-marketing.css");\n' : ""}  switch (pluginId) {
 ${switchCases}
     default:
       return;
@@ -972,6 +972,8 @@ export function generateSettingsEnrichers(manifests) {
       bindings.push({
         workspaceType,
         settingsModuleId,
+        resourceType:
+          settingsModuleId === "equipment" ? "EquipmentResource" : "TourThemeResource",
         enrichListBody: `items.map((item) => Object.freeze({
       ...item,
       ${JSON.stringify(targetField)}: ${exportName}(item[${JSON.stringify(sourceField)}]),
@@ -984,7 +986,7 @@ export function generateSettingsEnrichers(manifests) {
     return `${BANNER}
 export const WORKSPACE_SETTINGS_ENRICHER_BINDINGS = [] as const;
 
-export function enrichSettingsModuleList<T>(workspaceType: string, moduleId: string, items: readonly T[]): T[] {
+export function enrichSettingsModuleList<T>(_workspaceType: string, _moduleId: string, items: readonly T[]): T[] {
   return [...items];
 }
 `;
@@ -1002,7 +1004,7 @@ export function enrichSettingsModuleList<T>(workspaceType: string, moduleId: str
     (b) => `  {
     workspaceType: ${JSON.stringify(b.workspaceType)},
     settingsModuleId: ${JSON.stringify(b.settingsModuleId)},
-    enrichList: (items) => ${b.enrichListBody},
+    enrichList: (items: readonly ${b.resourceType}[]) => ${b.enrichListBody},
   },`
   );
 
@@ -1021,7 +1023,7 @@ export function enrichSettingsModuleList<T>(workspaceType: string, moduleId: str
   if (binding === undefined) {
     return [...items];
   }
-  return binding.enrichList(items) as T[];
+  return binding.enrichList(items as never) as T[];
 }
 `;
 }
@@ -1167,7 +1169,7 @@ import {
   manifestPathToParamRegex,
   staticRoutesFromManifest,
 } from "./workspace-route-manifest-bridge";
-import type { WorkspaceHttpMethod } from "./workspace-http-types";
+import type { WorkspaceHttpMethod } from "./workspace-http-method";
 
 ${[...importLines].sort().join("\n")}
 

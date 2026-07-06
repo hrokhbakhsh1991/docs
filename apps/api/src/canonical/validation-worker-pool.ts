@@ -60,6 +60,10 @@ function workerExecArgv(): string[] {
 }
 
 function resolveWorkerScriptPath(): string {
+  const sameDirTs = path.join(__dirname, "validation-worker-entry.ts");
+  if (fs.existsSync(sameDirTs)) {
+    return sameDirTs;
+  }
   const candidates = [
     path.join(__dirname, "validation-worker-entry.js"),
     path.join(__dirname, "../../dist/canonical/validation-worker-entry.js"),
@@ -75,9 +79,10 @@ function resolveWorkerScriptPath(): string {
 
 function createWorker(): Worker {
   const scriptPath = resolveWorkerScriptPath();
-  const useCompiledWorker = scriptPath.endsWith(".js");
-  return new Worker(useCompiledWorker ? pathToFileURL(scriptPath) : scriptPath, {
-    execArgv: useCompiledWorker ? [] : workerExecArgv(),
+  const workerTarget = scriptPath.endsWith(".js") ? pathToFileURL(scriptPath) : scriptPath;
+  // tsx resolves extensionless ESM imports in dist output (worker thread has no Bundler resolver).
+  return new Worker(workerTarget, {
+    execArgv: workerExecArgv(),
   });
 }
 

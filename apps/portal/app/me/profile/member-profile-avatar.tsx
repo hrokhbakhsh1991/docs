@@ -77,7 +77,6 @@ export function MemberProfileAvatar({
         aria-hidden={avatarUrl === null}
       >
         {avatarUrl !== null && avatarUrl.length > 0 ? (
-          // eslint-disable-next-line @next/next/no-img-element -- presigned URL from storage
           <img src={avatarUrl} alt="" className="member-profile-avatar__image" />
         ) : (
           <span className="member-profile-avatar__initials">{initials}</span>

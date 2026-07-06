@@ -10,12 +10,14 @@ import {
   bootstrapIntegrationProviders,
   resetIntegrationProviderBootstrapForTests,
 } from "./bootstrap-integration-providers";
+import { forceIntegrationSubsystemReadyForTests } from "../../health/integration-subsystem-gate";
 import { createTelegramProviderAdapter } from "../providers/telegram";
 
 describe("integration-provider-registry", () => {
   beforeEach(() => {
     resetIntegrationProviderRegistryForTests();
     resetIntegrationProviderBootstrapForTests();
+    forceIntegrationSubsystemReadyForTests();
   });
 
   it("registers telegram via bootstrapIntegrationProviders", () => {

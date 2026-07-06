@@ -83,7 +83,8 @@ export function parseWorkspaceDefinitionExportFile(raw: unknown): WorkspaceDefin
   if (typeof assertWorkspaceDefinitionPayload === "function") {
     assertWorkspaceDefinitionPayload(payload);
   }
-  const expected = computeWorkspaceDefinitionPayloadChecksum(payload);
+  const typedPayload = payload as WorkspaceDefinitionPayload;
+  const expected = computeWorkspaceDefinitionPayloadChecksum(typedPayload);
   if (checksum !== expected) {
     throw new Error("WORKSPACE_DEFINITION_EXPORT_CHECKSUM_MISMATCH");
   }
@@ -92,7 +93,7 @@ export function parseWorkspaceDefinitionExportFile(raw: unknown): WorkspaceDefin
     displayName,
     workspaceType,
     version,
-    payload,
+    payload: typedPayload,
     checksum,
   };
 }

@@ -94,9 +94,9 @@ describe("denali-draft-systemic-closure.spec.ts — Phase 4", () => {
     const quarantine = readWebSource("src/draft/draft-quarantine-banner.tsx");
     assert.match(quarantine, /draft-quarantine-revert/);
     const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
-    const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
+    const flatEditChrome = readWebSource("src/wizard/denali-flat-edit-chrome.tsx");
     assert.match(createChrome, /DraftSyncChrome/);
-    assert.match(flatEdit, /DraftSyncChrome/);
+    assert.match(flatEditChrome, /DraftSyncChrome/);
   });
 
   it("WEB-P11-CLOSE-10 react useDraftEngine forwards schemaGate to engine", () => {

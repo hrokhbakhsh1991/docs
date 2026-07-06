@@ -297,7 +297,7 @@ async function enqueueTourPublishedOutboxIfPublic(
       projections: input.projections,
       publishStatusLabel: publishStatusLabel ?? "active",
       occurredAt: input.createdAt,
-    }),
+    }) as Prisma.InputJsonValue,
     domainEventId: buildTourPublishedDomainEventId(input.tourId, input.rowVersion),
     correlationId: getActiveTraceId(),
     createdAt: input.createdAt,

@@ -8,7 +8,7 @@ import {
   manifestPathToParamRegex,
   staticRoutesFromManifest,
 } from "./workspace-route-manifest-bridge";
-import type { WorkspaceHttpMethod } from "./workspace-http-types";
+import type { WorkspaceHttpMethod } from "./workspace-http-method";
 
 import { CATALOG_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/http";
 import { FINANCE_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/http";

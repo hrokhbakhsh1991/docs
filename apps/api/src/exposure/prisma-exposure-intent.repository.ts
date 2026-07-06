@@ -126,11 +126,13 @@ export class PrismaExposureIntentRepository implements ExposureIntentRepository 
     const scopeHash = exposureIntentScopeHash(normalizedScope);
     const selectedFieldIds =
       input.mode === "override_fields" ? [...(input.selectedFieldIds ?? [])] : null;
-    const fieldDecorations =
+    const selectedFieldIdsPayload: Prisma.InputJsonValue | typeof Prisma.JsonNull =
+      selectedFieldIds === null ? Prisma.JsonNull : selectedFieldIds;
+    const fieldDecorationsPayload: Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined =
       input.fieldDecorations === undefined
         ? undefined
         : input.fieldDecorations === null
-          ? null
+          ? Prisma.JsonNull
           : (input.fieldDecorations as Prisma.InputJsonValue);
 
     return withTenantRls(input.tenantId, async (tx) => {
@@ -156,8 +158,8 @@ export class PrismaExposureIntentRepository implements ExposureIntentRepository 
           scope: normalizedScope as Prisma.InputJsonValue,
           scopeHash,
           mode: input.mode,
-          selectedFieldIds,
-          ...(fieldDecorations === undefined ? {} : { fieldDecorations }),
+          selectedFieldIds: selectedFieldIdsPayload,
+          ...(fieldDecorationsPayload === undefined ? {} : { fieldDecorations: fieldDecorationsPayload }),
           templateOverrideId: input.templateOverrideId ?? null,
           updatedByUserId: input.updatedByUserId ?? null,
           createdByUserId: input.updatedByUserId ?? null,
@@ -166,8 +168,8 @@ export class PrismaExposureIntentRepository implements ExposureIntentRepository 
           workspaceType: input.workspaceType,
           entityType: input.entityType,
           mode: input.mode,
-          selectedFieldIds,
-          ...(fieldDecorations === undefined ? {} : { fieldDecorations }),
+          selectedFieldIds: selectedFieldIdsPayload,
+          ...(fieldDecorationsPayload === undefined ? {} : { fieldDecorations: fieldDecorationsPayload }),
           templateOverrideId: input.templateOverrideId ?? null,
           updatedByUserId: input.updatedByUserId ?? null,
         },

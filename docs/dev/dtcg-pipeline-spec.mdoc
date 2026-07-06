@@ -373,20 +373,23 @@ When multiple layers set the same custom property, **higher priority wins** for 
 
 | Gate | Result | Blocker (if fail) |
 | ---- | ------ | ----------------- |
-| `pnpm run ci:integrity` | ❌ | `phase-0:integration-gate` → `@apps/api` `tsc` **499 errors** — legacy `moduleResolution: Node` vs `.ts` import extensions + `package.json` exports |
+| `pnpm run ci:integrity` | 🟡 | phase-0→3 in progress — urban P7 baseline digest bumped; `guard-static-registry` fixed on commerce resolver |
 | `pnpm run phase-5:guard` | ✅ | — |
-| `pnpm run phase-4:guard` | ❌ | `p4_no_denali_in_kernel` — WRS custom-apex tests use `denali.club` host strings in `tenant-kernel`; `p4_rls_integration_tests` — RLS isolation spec fails (tenant B row visible) |
-| `pnpm --filter @apps/api run phase-5:evolution-gate` | ❌ | 2/20 static route wiring checks |
+| `pnpm run phase-4:guard` | ✅ | RLS + tenant-security green (2026-07-06) — worker `tsx` execArgv, commerce fallback, test isolation |
+| `pnpm --filter @apps/api run phase-5:evolution-gate` | ✅ | 20/20 — openapi dispatch parity (`tryDispatchPlatformRoutes`) + migration head bump |
 | `pnpm run phase-6:guard` | ✅ | — |
 | `pnpm run test:full` | ⏸ | not run — requires `ci:integrity` + `apps/api` build green first |
 
 **Unblock path (separate from Phase F):**
 
-1. **`apps/api/tsconfig.json` → Node16 emit contract** (in progress 2026-07-06):
-   - `module`: `ES2022`, `moduleResolution`: `Bundler`, `rewriteRelativeImportExtensions`: `true` — resolves package `exports` and mixed `.ts`/extensionless relative imports (499 → ~57 errors measured 2026-07-06).
+1. **`apps/api/tsconfig.json` → Bundler emit contract** — ✅ **GREEN** (2026-07-06):
+   - `module`: `ES2022`, `moduleResolution`: `Bundler`, `rewriteRelativeImportExtensions`: `true` — resolves package `exports` and mixed `.ts`/extensionless relative imports (499 → 0).
 2. `tenant-kernel` WRS tests — ✅ neutral apex fixture `alpine.club` (replaces `denali.club` literals for `p4_no_denali_in_kernel`).
-3. RLS integration — `db:test-reset` + migrate + re-run `test/rls-isolation.integration.spec.ts` with `DATABASE_URL` + `STORAGE_DRIVER=prisma`.
+3. RLS integration — `app_tour` must be **NOSUPERUSER** + **NOBYPASSRLS** (migrations `20260706120000` / `20260706130000`). Local `infra/docker-compose.yml` uses `postgres` superuser + `docs/phase-4/dev/init/01-app-role.sql` (not `POSTGRES_USER=app_tour`, which cannot drop superuser). `DATABASE_URL_ADMIN=postgresql://postgres:postgres@…` for migrate deploy.
 4. Evolution gate — wire missing `app.ts` routes flagged by `phase-5-evolution-gate.mjs`.
+5. **Guest theme loader** — `generate-workspace-registry.mjs` emits string-literal dynamic imports (import-boundary `computed-dynamic-import` guard); `workspace-theme-css.d.ts` in marketing/portal for CSS module resolution.
+6. **platform-core wizard ingress** — `stripNonIngressPluginSurfaces` / `stripWizardHostForEngine` omit `catalogIntake`, `operatorSettings`, `exposureSurface` (urban `validateDraftSync` parity with Denali `denaliPluginForWizardEngine`).
+7. **tenant-security / validation workers** — `validation-worker-pool.ts` always spawns workers with `--import tsx` (dist ESM lacks `.js` suffixes; raw Node worker threads fail `ERR_MODULE_NOT_FOUND`). `resolveWorkspaceCommerceConfigForTenantById` returns `DEFAULT_WORKSPACE_COMMERCE_CONFIG` when static registry is allowed and tenant row is absent (memory HTTP specs). `installMemoryStorageDriverForDescribe` pins `P5_VALIDATION_WORKERS_ENABLED=false` for fast in-memory specs.
 
 ## MASTER.md demotion (E3–E4)
 

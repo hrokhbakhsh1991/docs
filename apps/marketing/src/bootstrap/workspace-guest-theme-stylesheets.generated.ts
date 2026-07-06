@@ -17,7 +17,7 @@ export const WORKSPACE_GUEST_MARKETING_THEME_REGISTRY = Object.freeze({
 
 /** Load workspace skin CSS for the active plugin only (dynamic import). */
 export async function importGuestMarketingThemeForPlugin(pluginId: string): Promise<void> {
-  await import(WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN);
+  await import("@app-tour/workspace-starter/theme/starter-marketing.css");
   switch (pluginId) {
     case "denali":
       await import("@app-tour/workspace-denali/theme/denali-marketing.css");

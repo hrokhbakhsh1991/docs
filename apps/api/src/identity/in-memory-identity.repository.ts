@@ -480,6 +480,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     userId: string,
     patch: {
       readonly displayName?: string;
+      readonly email?: string | null;
       readonly gender?: OperatorProfileGender | null;
       readonly nationalId?: string;
       readonly fatherName?: string;
@@ -494,7 +495,14 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     let updated: IdentityMembershipRecord = {
       ...row,
       ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
-      ...(patch.email !== undefined ? { email: patch.email.trim().length > 0 ? patch.email.trim() : undefined } : {}),
+      ...(patch.email !== undefined
+        ? {
+            email:
+              patch.email === null || patch.email.trim().length === 0
+                ? undefined
+                : patch.email.trim(),
+          }
+        : {}),
       ...(patch.nationalId !== undefined ? { nationalId: patch.nationalId.trim() } : {}),
       ...(patch.fatherName !== undefined ? { fatherName: patch.fatherName.trim() } : {}),
       ...(patch.birthDate !== undefined ? { birthDate: patch.birthDate.trim() } : {}),

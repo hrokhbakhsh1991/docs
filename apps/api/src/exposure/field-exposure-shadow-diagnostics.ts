@@ -48,7 +48,6 @@ export function resolveFieldExposureShadowDiagnostics(
       trigger: input.eventType,
       scope: {
         connectionId: input.connectionId,
-        eventType: input.eventType,
       },
     },
     eventType: input.eventType,

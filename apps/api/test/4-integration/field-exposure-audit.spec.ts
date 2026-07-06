@@ -105,7 +105,7 @@ describe(
     const tenantId = integrationTenantId();
     const runId = randomUUID().slice(0, 8);
     const connectionId = randomUUID();
-    const actorUserId = "field-exposure-audit-admin";
+    const actorUserId = randomUUID();
     let admin: PrismaClient;
     let listener: ReturnType<typeof createRequestListener>;
     const priorStorageDriver = process.env.STORAGE_DRIVER;
@@ -162,7 +162,7 @@ describe(
     it("records audit event on connection exposure-intent PATCH", async () => {
       const response = await requestJson(listener, {
         method: "PATCH",
-        path: `/integrations/${connectionId}/exposure-intents/TourCreated`,
+        path: `/integrations/${connectionId}/exposure-intents/TourPublished`,
         tenantId,
         userId: actorUserId,
         body: {
@@ -179,11 +179,11 @@ describe(
       const match = events.find(
         (event) =>
           event.action === "settings.exposure.patch" &&
-          event.resourceId === `${connectionId}:TourCreated`,
+          event.resourceId === `${connectionId}:TourPublished`,
       );
       assert.ok(match, JSON.stringify(events));
       assert.equal(match?.resourceType, "exposure");
-      assert.match(match?.summary ?? "", /TourCreated/);
+      assert.match(match?.summary ?? "", /TourPublished/);
     });
 
     it("records audit event on workspace surface exposure PATCH", async () => {

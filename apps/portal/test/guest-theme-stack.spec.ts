@@ -55,7 +55,7 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     const generated = readFileSync(bootstrapPath, "utf8");
     assert.match(generated, /WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN/);
     assert.match(generated, /@app-tour\/workspace-starter\/theme\/starter-portal\.css/);
-    assert.match(generated, /await import\(WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN\)/);
+    assert.match(generated, /await import\("@app-tour\/workspace-starter\/theme\/starter-portal\.css"\)/);
     const fallback = readFileSync(fallbackPortalShellPath, "utf8");
     assert.match(fallback, /\[data-portal-shell\]/);
     assert.match(fallback, /\[data-portal-shell-header\]/);

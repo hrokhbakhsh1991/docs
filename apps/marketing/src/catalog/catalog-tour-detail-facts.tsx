@@ -83,7 +83,7 @@ export async function CatalogTourDetailFacts({
     datesValue: formatCatalogCardDates(tour, dateLocale, t("detail.datesTba")),
     difficultyValue,
     fitnessValue,
-    categoryValue: categoryValue.length > 0 ? categoryValue : null,
+    categoryValue: categoryValue != null && categoryValue.length > 0 ? categoryValue : null,
     isSoldOut: registration.isSoldOut,
     omitMetaLineDuplicates: true,
   });

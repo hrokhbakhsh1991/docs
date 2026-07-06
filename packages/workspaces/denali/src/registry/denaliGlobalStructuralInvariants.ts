@@ -7,6 +7,11 @@ export const DENALI_GLOBAL_STRUCTURAL_INVARIANTS: readonly DenaliGlobalStructura
     targetCanonical: "transport.allowPersonalCar",
     modes: ["shared_cars"],
   },
+  {
+    kind: "clearFieldWhenTransportMode",
+    targetCanonical: "transport.dongAmount",
+    modes: ["organizer_vehicle", "bus", "minibus", "train", "none"],
+  },
   { kind: "syncProgramItineraryToDayCount" },
   { kind: "pruneItinerarySegmentPhotoIds" },
 ];

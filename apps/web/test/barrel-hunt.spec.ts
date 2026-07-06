@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 const SRC_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 const BARREL = /^@app-tour\/ui-primitives$/;
 const SUBPATH =
-  /^@app-tour\/ui-primitives\/(button|input|select|checkbox|field-shell|alert|badge)$/;
+  /^@app-tour\/ui-primitives\/(button|input|select|checkbox|field-shell|alert|badge|otp-segment-input-logic)$/;
 
 function listSourceFiles(dir: string, out: string[] = []): string[] {
   for (const ent of readdirSync(dir, { withFileTypes: true })) {

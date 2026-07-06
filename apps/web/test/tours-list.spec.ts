@@ -186,7 +186,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/tours-page-client.tsx"),
       "utf8"
     );
-    assert.match(skeleton, /aspect-\[16\/9\]/);
+    assert.match(skeleton, /DenaliSkeleton size="hero"/);
     assert.match(skeleton, /CardHeader/);
     assert.match(skeleton, /CardFooter/);
     assert.match(skeleton, /TOURS_LIST_TEST_IDS\.listSkeleton/);

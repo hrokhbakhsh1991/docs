@@ -208,7 +208,7 @@ function blockOperatorOnWrongHost(request: NextRequest, host: string): NextRespo
 
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
-  const host = request.headers.get("host") ?? "";
+  const host = request.headers.get("host") ?? request.nextUrl.host ?? "";
 
   const platformResponse = handlePlatformAdminHost(request, host);
   if (platformResponse !== null) {

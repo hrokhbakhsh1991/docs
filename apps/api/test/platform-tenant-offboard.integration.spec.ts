@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
-import http from "node:http";
 import { afterEach, describe, it } from "node:test";
 
-import { createRequestListener } from "../src/app.ts";
-import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
-
-installMemoryStorageDriverForDescribe();
+import { PlatformTenantRepository } from "../src/platform/platform-tenant.repository.ts";
+import { handlePlatformAuditExportGet } from "../src/routes/platform/audit-export-get.ts";
+import { handlePlatformTenantsOffboardPost } from "../src/routes/platform/tenants-offboard-post.ts";
 
 const env = process.env as Record<string, string | undefined>;
 const envSnapshot = {
@@ -23,47 +21,53 @@ afterEach(() => {
   }
 });
 
-async function platformHttpJson(
-  method: "GET" | "POST",
-  path: string,
-  opts?: { headers?: Record<string, string> }
-) {
-  const listener = createRequestListener({ toursService: createTestToursService() });
-  return new Promise<{ status: number; body: Record<string, unknown> }>((resolve, reject) => {
-    const s = http.createServer(listener);
-    s.listen(0, () => {
-      const a = s.address();
-      if (!a || typeof a === "string") {
-        s.close();
-        reject(new Error("no addr"));
-        return;
-      }
-      const r = http.request(
-        {
-          hostname: "127.0.0.1",
-          port: a.port,
-          path,
-          method,
-          headers: opts?.headers ?? {},
-        },
-        (res) => {
-          const c: Buffer[] = [];
-          res.on("data", (x) => c.push(x as Buffer));
-          res.on("end", () => {
-            s.close();
-            const t = Buffer.concat(c).toString("utf8");
-            resolve({ status: res.statusCode ?? 0, body: t ? JSON.parse(t) : {} });
-          });
-        }
-      );
-      r.on("error", (e) => {
-        s.close();
-        reject(e);
-      });
-      r.end();
-    });
-  });
+function makeMockReq(headers: Record<string, string | undefined>, url = "/platform/v1/audit/export") {
+  return { headers, url, method: "GET" } as never;
 }
+
+function makeMockRes() {
+  let status = 0;
+  let body = "";
+  return {
+    writeHead: (s: number, _h?: Record<string, string>) => {
+      status = s;
+    },
+    end: (b: string) => {
+      body = b;
+    },
+    _get: () => ({ status, body: body ? JSON.parse(body) : {} }),
+  } as never;
+}
+
+const supportAuthRepository = {
+  async findByPhone(phone: string) {
+    if (phone === "+10000000099") {
+      return { phone, role: "support", createdAt: new Date() };
+    }
+    return null;
+  },
+  async listAll() {
+    return [];
+  },
+  async upsert() {
+    throw new Error("not used");
+  },
+};
+
+const ownerAuthRepository = {
+  async findByPhone(phone: string) {
+    if (phone === "+989121234567") {
+      return { phone, role: "owner", createdAt: new Date() };
+    }
+    return null;
+  },
+  async listAll() {
+    return [];
+  },
+  async upsert() {
+    throw new Error("not used");
+  },
+};
 
 function platformOwnerHeaders() {
   return { Authorization: "Bearer test", "X-Platform-Ops-Phone": "+989121234567" };
@@ -74,33 +78,46 @@ function platformSupportHeaders() {
 }
 
 describe("platform tenant offboard integration", () => {
-  it("PE-01 POST offboard support returns 403 or 500 without DB", async () => {
+  it("PE-01 POST offboard support returns 403 without owner role", async () => {
     process.env.PLATFORM_OPS_BEARER_TOKEN = "test";
-    process.env.PLATFORM_OPS_PHONES = "+989121234567,+10000000099";
-    const res = await platformHttpJson("POST", "/platform/v1/tenants/t1/offboard", {
-      headers: platformSupportHeaders(),
+    delete env.PLATFORM_OPS_PHONES;
+    const req = makeMockReq(platformSupportHeaders());
+    const res = makeMockRes();
+    await handlePlatformTenantsOffboardPost(req, res, "t1", {
+      auth: { repository: supportAuthRepository },
     });
-    assert.ok(res.status === 403 || res.status === 500);
+    const out = res._get();
+    assert.equal(out.status, 403);
+    assert.equal(out.body.code, "PLATFORM_FORBIDDEN");
   });
 
-  it("PE-02 POST offboard owner returns 200 or 404 when tenant missing", async () => {
+  it("PE-02 POST offboard owner returns 404 when tenant missing", async () => {
     process.env.PLATFORM_OPS_BEARER_TOKEN = "test";
-    process.env.PLATFORM_OPS_PHONES = "+989121234567";
-    const res = await platformHttpJson("POST", "/platform/v1/tenants/t1/offboard", {
-      headers: platformOwnerHeaders(),
+    delete env.PLATFORM_OPS_PHONES;
+    const repository = new PlatformTenantRepository({
+      tenant: { findUnique: async () => null },
+    } as never);
+    const req = makeMockReq(platformOwnerHeaders());
+    const res = makeMockRes();
+    await handlePlatformTenantsOffboardPost(req, res, "t1", {
+      auth: { repository: ownerAuthRepository },
+      offboard: { repository },
     });
-    assert.ok(res.status === 200 || res.status === 404 || res.status === 500);
-    if (res.status === 200) {
-      assert.equal((res.body.tenant as { status?: string })?.status, "offboarding");
-    }
+    const out = res._get();
+    assert.equal(out.status, 404);
+    assert.equal(out.body.code, "NOT_FOUND");
   });
 
-  it("PE-03 GET audit export support returns 403 or 500 without DB", async () => {
+  it("PE-03 GET audit export support returns 403 without owner role", async () => {
     process.env.PLATFORM_OPS_BEARER_TOKEN = "test";
-    process.env.PLATFORM_OPS_PHONES = "+989121234567,+10000000099";
-    const res = await platformHttpJson("GET", "/platform/v1/audit/export", {
-      headers: platformSupportHeaders(),
+    delete env.PLATFORM_OPS_PHONES;
+    const req = makeMockReq(platformSupportHeaders());
+    const res = makeMockRes();
+    await handlePlatformAuditExportGet(req, res, {
+      auth: { repository: supportAuthRepository },
     });
-    assert.ok(res.status === 403 || res.status === 500);
+    const out = res._get();
+    assert.equal(out.status, 403);
+    assert.equal(out.body.code, "PLATFORM_FORBIDDEN");
   });
 });

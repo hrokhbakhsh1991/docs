@@ -183,4 +183,15 @@ export type WorkspaceWizardHostHooks = {
       readonly selectableLeaderIds?: readonly string[];
     };
   }) => unknown;
+  /** Post-engine validation filter (workspace-specific composite/storage parity). */
+  readonly filterEngineValidationResult?: (
+    result: {
+      readonly ok: boolean;
+      readonly violations: readonly { readonly code?: string; readonly message: string }[];
+    },
+    data: Readonly<Record<string, unknown>>
+  ) => {
+    readonly ok: boolean;
+    readonly violations: readonly { readonly code?: string; readonly message: string }[];
+  };
 };

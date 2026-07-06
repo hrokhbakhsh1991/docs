@@ -41,7 +41,7 @@ describe("guest-theme-stack.spec.ts — marketing", () => {
     const generated = readFileSync(bootstrapPath, "utf8");
     assert.match(generated, /WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN/);
     assert.match(generated, /@app-tour\/workspace-starter\/theme\/starter-marketing\.css/);
-    assert.match(generated, /await import\(WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN\)/);
+    assert.match(generated, /await import\("@app-tour\/workspace-starter\/theme\/starter-marketing\.css"\)/);
     const starterSkin = readFileSync(
       join(repoRoot, "packages/workspaces/starter/theme/starter-marketing.css"),
       "utf8"

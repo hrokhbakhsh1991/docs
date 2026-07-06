@@ -9,7 +9,6 @@ import {
   writeMemberProfileCache,
 } from "@/me/member-profile-cache.server";
 import {
-  buildMemberEntitlementsCacheKey,
   invalidateMemberEntitlementsCacheForMember,
 } from "@/me/member-entitlements-cache.server";
 import { buildMemberProfileApiError, normalizeMemberProfilePatchBody } from "@/me/member-profile-contract.server";

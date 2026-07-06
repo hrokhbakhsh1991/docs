@@ -25,11 +25,12 @@ const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 function authHeaders(
   tenantId: string,
   role: "admin" | "member",
+  userId: string,
 ): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
     "x-authenticated-tenant-id": tenantId,
-    "x-user-id": `field-exposure-rbac-${role}`,
+    "x-user-id": userId,
     "x-actor-role": role,
     "x-membership-status": "ACTIVE",
     "x-workspace-id": "denali",
@@ -43,6 +44,7 @@ async function requestJson(
     readonly path: string;
     readonly tenantId: string;
     readonly role: "admin" | "member";
+    readonly userId: string;
     readonly body?: unknown;
   },
 ): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -64,7 +66,7 @@ async function requestJson(
           path: input.path,
           method: input.method,
           headers: {
-            ...authHeaders(input.tenantId, input.role),
+            ...authHeaders(input.tenantId, input.role, input.userId),
             ...(payload === undefined
               ? {}
               : {
@@ -110,6 +112,10 @@ describe(
     const tenantId = integrationTenantId();
     const runId = randomUUID().slice(0, 8);
     const connectionId = randomUUID();
+    const rbacUserIds = {
+      admin: randomUUID(),
+      member: randomUUID(),
+    } as const;
     let admin: PrismaClient;
     let listener: ReturnType<typeof createRequestListener>;
     const priorStorageDriver = process.env.STORAGE_DRIVER;
@@ -168,6 +174,7 @@ describe(
         path: "/workspaces/denali/exposure/catalog",
         tenantId,
         role: "member",
+        userId: rbacUserIds.member,
       });
       assert.equal(response.status, 200, JSON.stringify(response.body));
       assert.ok(Array.isArray(response.body.fields));
@@ -176,9 +183,10 @@ describe(
     it("forbids member PATCH on connection exposure-intent", async () => {
       const response = await requestJson(listener, {
         method: "PATCH",
-        path: `/integrations/${connectionId}/exposure-intents/TourCreated`,
+        path: `/integrations/${connectionId}/exposure-intents/TourPublished`,
         tenantId,
         role: "member",
+        userId: rbacUserIds.member,
         body: {
           enabled: false,
           selectedFieldIds: [],
@@ -191,9 +199,10 @@ describe(
     it("allows admin PATCH on connection exposure-intent", async () => {
       const response = await requestJson(listener, {
         method: "PATCH",
-        path: `/integrations/${connectionId}/exposure-intents/TourCreated`,
+        path: `/integrations/${connectionId}/exposure-intents/TourPublished`,
         tenantId,
         role: "admin",
+        userId: rbacUserIds.admin,
         body: {
           enabled: true,
           selectedFieldIds: ["title"],
@@ -208,6 +217,7 @@ describe(
         path: "/workspaces/denali/exposure/surfaces/public_list",
         tenantId,
         role: "member",
+        userId: rbacUserIds.member,
         body: {
           enabled: true,
           selectedFieldIds: ["title"],

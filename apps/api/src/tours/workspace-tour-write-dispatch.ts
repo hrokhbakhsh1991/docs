@@ -58,6 +58,29 @@ function buildBindingMaps() {
 const { patchMergers, publishFieldGates, ownerSurfaces, ownerAsserts, memberPatchForbidden } =
   buildBindingMaps();
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Root-level shallow merge for starter/default workspaces without a manifest merger. */
+function mergeDefaultCanonicalPatchData(
+  existing: CanonicalPatchData,
+  patch: CanonicalPatchData | undefined,
+): CanonicalPatchData {
+  if (patch === undefined) {
+    return existing;
+  }
+  const next: CanonicalPatchData = { ...existing };
+  for (const [key, value] of Object.entries(patch)) {
+    if (isRecord(value) && isRecord(existing[key])) {
+      next[key] = { ...(existing[key] as Record<string, unknown>), ...value };
+    } else {
+      next[key] = value;
+    }
+  }
+  return next;
+}
+
 export function mergeCanonicalPatchDataForWorkspace(
   workspaceType: string,
   existing: CanonicalPatchData,
@@ -67,7 +90,7 @@ export function mergeCanonicalPatchDataForWorkspace(
   if (merger !== undefined) {
     return merger(existing, patch);
   }
-  return patch === undefined ? existing : patch;
+  return mergeDefaultCanonicalPatchData(existing, patch);
 }
 
 export function tourPatchTouchesProtectedPublishFields(

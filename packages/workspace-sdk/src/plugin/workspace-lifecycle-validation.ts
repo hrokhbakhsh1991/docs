@@ -17,6 +17,13 @@ export function validateLifecycleGraph(
   for (const transition of lifecycle.allowedTransitions) {
     states.add(transition.from);
     states.add(transition.to);
+    if (
+      transition.from === lifecycle.publishStatus &&
+      transition.to === lifecycle.initialStatus
+    ) {
+      // Unpublish edge (publish → initial) is allowed without treating the graph as cyclic.
+      continue;
+    }
     const edges = adjacency.get(transition.from) ?? [];
     edges.push(transition.to);
     adjacency.set(transition.from, edges);

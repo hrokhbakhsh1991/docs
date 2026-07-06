@@ -17,3 +17,7 @@ export function PlatformCompositeFallback({ compositeId }: PlatformCompositeFall
     </div>
   );
 }
+
+export function renderPlatformCompositeFallback(compositeId: string) {
+  return <PlatformCompositeFallback compositeId={compositeId} />;
+}

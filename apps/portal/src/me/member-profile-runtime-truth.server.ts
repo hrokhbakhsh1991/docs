@@ -82,8 +82,7 @@ function logMemberProfileEnforcementEvent(input: {
 function collectRuntimeArchitectureDrifts(
   context: MemberProfileRuntimeEnforcementContext
 ): Array<{ readonly driftType: MemberProfileRuntimeDriftType; readonly message: string }> {
-  /** @type {Array<{ driftType: MemberProfileRuntimeDriftType, message: string }>} */
-  const drifts = [];
+  const drifts: Array<{ readonly driftType: MemberProfileRuntimeDriftType; readonly message: string }> = [];
   const snapshot = readMemberProfileContractSnapshot();
   const sdkFieldIds = readSdkFieldIds();
   const mappedFieldIds = sortedUnique(context.mappedFieldIds);

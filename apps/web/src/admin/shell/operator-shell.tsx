@@ -54,8 +54,8 @@ export function OperatorShell({
   const handleExitImpersonation = useCallback(async () => {
     // TODO P2-B-v1.1 audit END on logout
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/auth/login";
-  }, []);
+    navigateAfterLogout(router);
+  }, [router]);
 
   return (
     <TenantBrandingProvider

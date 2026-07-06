@@ -1,11 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import {
-  OtpChallengeInvalidError,
-  OtpExpiredError,
-  OtpInvalidError,
-} from "../../identity/identity.errors.ts";
-import { verifyMobileOtp } from "../../identity/otp.service.ts";
 import { normalizeLoginMobile } from "../../identity/phone-login-authorization.ts";
 import { PlatformForbidden, PlatformValidation } from "../../platform/platform.errors.ts";
 import { resolvePlatformOpsPhoneAccess } from "../../platform/resolve-platform-ops-phone-access.ts";

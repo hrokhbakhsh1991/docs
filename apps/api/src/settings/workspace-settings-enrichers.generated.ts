@@ -4,8 +4,35 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-export const WORKSPACE_SETTINGS_ENRICHER_BINDINGS = [] as const;
+import { resolveThemeCompatibleCategories } from "@app-tour/workspace-denali/settings/theme-compatible-categories";
+import { resolveEquipmentCompatibleCategories } from "@app-tour/workspace-denali/settings/equipment-compatible-categories";
+import type { EquipmentResource, TourThemeResource } from "./settings.types";
+
+export const WORKSPACE_SETTINGS_ENRICHER_BINDINGS = [
+  {
+    workspaceType: "denali",
+    settingsModuleId: "tour_themes",
+    enrichList: (items: readonly TourThemeResource[]) => items.map((item) => Object.freeze({
+      ...item,
+      "compatibleCategories": resolveThemeCompatibleCategories(item["formProfile"]),
+    })),
+  },
+  {
+    workspaceType: "denali",
+    settingsModuleId: "equipment",
+    enrichList: (items: readonly EquipmentResource[]) => items.map((item) => Object.freeze({
+      ...item,
+      "compatibleCategories": resolveEquipmentCompatibleCategories(item["category"]),
+    })),
+  },
+] as const;
 
 export function enrichSettingsModuleList<T>(workspaceType: string, moduleId: string, items: readonly T[]): T[] {
-  return [...items];
+  const binding = WORKSPACE_SETTINGS_ENRICHER_BINDINGS.find(
+    (entry) => entry.workspaceType === workspaceType && entry.settingsModuleId === moduleId
+  );
+  if (binding === undefined) {
+    return [...items];
+  }
+  return binding.enrichList(items as never) as T[];
 }

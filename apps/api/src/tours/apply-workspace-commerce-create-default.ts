@@ -7,6 +7,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function isPartialStarterLegacyCreateBody(data: Record<string, unknown>): boolean {
+  return isRecord(data.basics) && !isRecord(data.details);
+}
+
 /**
  * P5-C-N-005 — apply workspace commerce paymentMode default on tour create ingress.
  */
@@ -62,20 +66,23 @@ export function applyWorkspaceCommerceDefaultToCreateBody(
   }
 
   const roots = body.roots;
-  if (roots !== undefined) {
-    if (roots.includes("pricing")) {
+  if (roots === undefined) {
+    if (isPartialStarterLegacyCreateBody(nextData)) {
       return { ...body, data: nextData };
     }
     return {
       ...body,
-      roots: [...roots, "pricing"],
+      roots: [...new Set([...Object.keys(nextData), "pricing"])],
       data: nextData,
     };
   }
 
+  if (roots.includes("pricing")) {
+    return { ...body, data: nextData };
+  }
   return {
     ...body,
-    roots: [...new Set([...Object.keys(nextData), "pricing"])],
+    roots: [...roots, "pricing"],
     data: nextData,
   };
 }

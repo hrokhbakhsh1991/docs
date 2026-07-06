@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@app-tour/catalog-registration-auth": "workspace:*",
+    "@app-tour/catalog-registration-flow-ui": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/guest-surface-host": "workspace:*",
     "@app-tour/session-client": "workspace:*",

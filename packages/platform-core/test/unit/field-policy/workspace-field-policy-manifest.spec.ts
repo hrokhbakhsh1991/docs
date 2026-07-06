@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { adaptWorkspaceFieldPolicyManifest } from "../../../src/field-policy/adapters/workspace-field-policy-manifest.js";
-import { starterWorkspacePlugin } from "@app-tour/workspace-sdk";
+import { starterWorkspacePlugin } from "@app-tour/workspace-sdk/plugin";
 import type { WorkspaceFieldPolicyManifest } from "@app-tour/workspace-sdk/registry";
 
 const STARTER_FIELD_POLICY_MANIFEST = starterWorkspacePlugin.fieldPolicy!;

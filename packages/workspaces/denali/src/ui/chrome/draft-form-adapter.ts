@@ -48,16 +48,13 @@ export function syncDenaliFormToTourWizardDraft(
   for (const [canonicalPath, formPath] of Object.entries(rules.canonicalToFormPathMap)) {
     const formValue = getNestedFormValue(form, formPath);
     const draftValue = getCanonicalValue(draft, canonicalPath);
-    if (!shouldPersistCanonicalPathFromForm(canonicalPath)) {
-      if (formValue === undefined && draftValue !== undefined) {
-        next = setCanonicalValue(next, canonicalPath, undefined);
-      }
-      continue;
-    }
     if (formValue === undefined) {
       if (draftValue !== undefined) {
         next = setCanonicalValue(next, canonicalPath, undefined);
       }
+      continue;
+    }
+    if (!shouldPersistCanonicalPathFromForm(canonicalPath)) {
       continue;
     }
     const mapped =

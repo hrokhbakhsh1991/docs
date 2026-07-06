@@ -35,13 +35,13 @@ function resolveCrossSurfaceHref(host: string, link: GuestCrossSurfaceNavLink): 
   }
   switch (link.egress) {
     case "member_module":
-      return resolvePortalMemberModuleUrl(host, link.memberModuleId);
+      return resolvePortalMemberModuleUrl(host, link.memberModuleId) ?? "/";
     case "marketing_home":
       return "/";
     case "marketing_tours":
       return "/tours";
     default:
-      return resolvePortalMemberModuleUrl(host, link.memberModuleId);
+      return resolvePortalMemberModuleUrl(host, link.memberModuleId) ?? "/";
   }
 }
 

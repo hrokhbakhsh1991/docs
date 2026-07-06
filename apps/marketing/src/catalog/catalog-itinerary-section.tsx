@@ -21,7 +21,7 @@ type CatalogItinerarySectionProps = {
 
 function CatalogItineraryDayBody({
   day,
-  dayLabel,
+  dayLabel: _dayLabel,
   segmentsHeading,
   locale,
 }: {

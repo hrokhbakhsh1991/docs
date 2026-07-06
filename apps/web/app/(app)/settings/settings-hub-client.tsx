@@ -38,6 +38,9 @@ export function SettingsHubClient({
   const [loading, setLoading] = useState(initialModules === null);
 
   useEffect(() => {
+    if (initialModules !== null) {
+      return;
+    }
     let cancelled = false;
     void fetch("/api/settings/modules", { cache: "no-store" })
       .then(async (response) => {
@@ -71,7 +74,7 @@ export function SettingsHubClient({
     return () => {
       cancelled = true;
     };
-  }, [pluginId]);
+  }, [pluginId, initialModules]);
 
   const groups = modules === null ? [] : groupSettingsModulesByNav(modules.items);
 

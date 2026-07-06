@@ -1,5 +1,4 @@
 import { PlatformWizardEngine } from "@app-tour/platform-core";
-import { filterDenaliCanonicalValidationResult } from "@app-tour/workspace-denali/wizard/validation";
 import {
   assertCanonicalDocument,
   CanonicalDocumentValidationError,
@@ -11,10 +10,7 @@ import {
 import { resolveWorkspaceCurrentSchemaVersion } from "../canonical/schema-version-policy";
 import { throwSchemaVersionMismatch } from "../canonical/schema-version-mismatch";
 import { isValidationFailure, throwValidationFailure } from "../canonical/validation-failure";
-import {
-  assertCatalogRefIntegrity,
-  type CatalogRefAllowlists,
-} from "../canonical/assert-catalog-ref-integrity.ts";
+import { assertCatalogRefIntegrity } from "../canonical/assert-catalog-ref-integrity.ts";
 import {
   stripFormProfileFieldsFromCanonicalData,
   filterDenaliRootsAfterProfileStrip,
@@ -27,7 +23,6 @@ import { readTenantWorkspaceMetadataBinding } from "../workspace-metadata/read-t
 import type { PlatformTenantRepository } from "../platform/platform-tenant.repository.ts";
 import { resolveWorkspacePluginForTenantContext } from "../workspace/resolve-workspace-plugin-for-tenant-context.ts";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
-import type { CreateTourBody } from "./create-tour.schema";
 import {
   enrichStarterDocumentForDenaliOperatorList,
   pickStarterCreateDataForValidation,
@@ -37,8 +32,10 @@ import { runWorkspaceValidationHooks } from "./run-workspace-validation-hooks";
 import {
   resolveValidationMode,
   runValidationModePublishGate,
-  type ValidationMode,
 } from "./resolve-validation-mode";
+import type { ValidateBeforePersistInput } from "./canonical-validation-sync.types";
+
+export type { ValidateBeforePersistInput, ValidationMode } from "./canonical-validation-sync.types";
 
 export function resolveValidationDimensions(
   plugin: WorkspacePlugin,
@@ -65,18 +62,6 @@ export function resolveValidationDimensions(
   return Object.fromEntries(matrix.map((key) => [key, validationVariant]));
 }
 
-export type ValidateBeforePersistInput = {
-  readonly body: CreateTourBody;
-  readonly tenantId: string;
-  readonly workspaceType: string;
-  /** RuleContext variant — `default` (advanced) or `basic` (degraded). DEC-014. */
-  readonly validationVariant?: "default" | "basic";
-  /** P5-B-N-005 — draft-relaxed vs publish-strict (inferred from publishStatus when omitted). */
-  readonly validationMode?: ValidationMode;
-  /** P5-B-N-008 — inject tenant catalog allowlists (production enrich loads automatically). */
-  readonly catalogRefAllowlists?: CatalogRefAllowlists;
-};
-
 const DEFAULT_ENGINE_CACHE_SIZE = 8;
 
 type CachedEngine = {
@@ -102,7 +87,7 @@ export function buildValidationEngineCacheKey(
   tenantId: string,
   workspaceType: string,
   validationVariant: "default" | "basic",
-  metadataFingerprint = PACKAGE_METADATA_FINGERPRINT
+  metadataFingerprint: string = PACKAGE_METADATA_FINGERPRINT
 ): string {
   return `${tenantId.trim()}:${workspaceType}:${validationVariant}:${metadataFingerprint}`;
 }
@@ -297,11 +282,12 @@ function validateCanonicalDocumentWithEngine(
       document.data as Record<string, unknown>
     ),
   });
-  if (input.workspaceType === "denali") {
-    result = filterDenaliCanonicalValidationResult(
+  const filterResult = validationPlugin.wizardHost?.filterEngineValidationResult;
+  if (filterResult != null) {
+    result = filterResult(
       result,
       document.data as Record<string, unknown>
-    );
+    ) as typeof result;
   }
 
   if (!result.ok) {

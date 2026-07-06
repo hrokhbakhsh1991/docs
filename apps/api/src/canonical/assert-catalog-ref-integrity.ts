@@ -47,9 +47,8 @@ function assertAllowedIdsAtPath(
     return null;
   }
   return {
-    fieldId,
     code: "CATALOG_REF_INTEGRITY_FAILED",
-    message: `CATALOG_REF_INTEGRITY_FAILED:${canonicalPath}:${stale.join(",")}`,
+    message: `CATALOG_REF_INTEGRITY_FAILED:${canonicalPath}:${fieldId}:${stale.join(",")}`,
   };
 }
 

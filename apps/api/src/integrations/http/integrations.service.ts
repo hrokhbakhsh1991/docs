@@ -31,7 +31,6 @@ import {
   buildWorkspaceIntegrationSurfaceMeta,
   type WorkspaceIntegrationSurfaceMetaResponse,
 } from "../platform/integration-surface-meta";
-import { buildExposureSelectableFieldCatalog } from "../../exposure/exposure-field-catalog";
 import type {
   IntegrationConnectionLoadWarning,
   IntegrationConnectionPublicDto,
@@ -39,6 +38,7 @@ import type {
   IntegrationTestConnectionResult,
   WorkspaceIntegrationsListResponse,
 } from "../platform/integration-connection.types";
+export type { IntegrationConnectionPublicDto } from "../platform/integration-connection.types";
 import type { IntegrationProviderId } from "../platform/integration-provider.types";
 import {
   buildIntegrationSecretRef,
@@ -600,7 +600,7 @@ async function toPublicDto(
     tenantId,
     row.id,
   );
-  appendTourPublishedPolicyDriftWarning(row, policies, loadWarnings);
+  appendTourPublishedPolicyDriftWarning(row, policies, [...loadWarnings]);
 
   return {
     id: row.id,

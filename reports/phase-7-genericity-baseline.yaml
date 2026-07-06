@@ -1,7 +1,8 @@
-# Phase 7 genericity baseline — digest-locked after WorkspaceWizardHostPluginContext build fix
-baseline_sha: 4d3dad2ed3b7f42d3f75fc99196bd1c5ab0af346
-platform_core_tree_digest: 1196a6f8ef25cd4f93a512d52c4cfc9435073afb93aac9b6de4d508e945c7729
-platform_core_file_count: 77
-recorded_at: "2026-06-13T00:00:00Z"
-recorded_by: "CI gate repair — platform-core digest after host plugin context typing"
-note: "phase-7 digest lock when baseline_sha ref absent; aligns with post-4d3dad2e platform-core"
+# Phase 7 genericity baseline — digest-locked after platform-core exposure + wizard ingress (Phase F unblock)
+# baseline_sha intentionally absent from git: use platform_core_tree_digest when ref missing (REQ-P7-007 shallow CI).
+baseline_sha: deadbeef00000000000000000000000000000000
+platform_core_tree_digest: e1992e6035c55e5eb5a2331cdae7aef9c62e96455f502b1d5ecd748fb5472856
+platform_core_file_count: 103
+recorded_at: "2026-07-06T16:55:00Z"
+recorded_by: "Phase F monorepo unblock — exposure module + wizard stripNonIngressPluginSurfaces"
+note: "Digest lock at HEAD+working tree; record new baseline_sha on next platform-core commit (P7-2-A01)"

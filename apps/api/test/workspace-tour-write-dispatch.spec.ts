@@ -9,6 +9,7 @@ import { URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-urb
 
 import {
   assertTourPublishFieldOwner,
+  mergeCanonicalPatchDataForWorkspace,
   operatorMemberTourPatchForbidden,
   tourPublishFieldOwnerSurface,
 } from "../src/tours/workspace-tour-write-dispatch";
@@ -62,5 +63,19 @@ describe("workspace-tour-write-dispatch.spec.ts — P15-P-B4", () => {
         surface: DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
       })
     );
+  });
+
+  it("API-P15-B4-05 starter default merge preserves sibling roots on fragment PATCH", () => {
+    const existing = {
+      basics: { title: "Seed" },
+      details: { summary: "ok" },
+      pricing: { paymentMode: "gateway" },
+    };
+    const merged = mergeCanonicalPatchDataForWorkspace("starter", existing, {
+      basics: { title: "Updated" },
+    });
+    assert.equal((merged.basics as { title: string }).title, "Updated");
+    assert.deepEqual(merged.details, { summary: "ok" });
+    assert.deepEqual(merged.pricing, { paymentMode: "gateway" });
   });
 });

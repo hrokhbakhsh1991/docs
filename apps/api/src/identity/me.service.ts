@@ -5,6 +5,7 @@ import { getIdentityRepository } from "./create-identity-repository";
 import type { IdentityMembershipRecord, IdentityUserRecord } from "./in-memory-identity.repository";
 import { MembershipNotFoundError } from "./in-memory-identity.repository";
 import type { OperatorProfileResponse, PatchOperatorProfileRequest } from "./me.types";
+export type { OperatorProfileResponse, PatchOperatorProfileRequest } from "./me.types";
 import { resolveOperatorAvatarUrlForMembership } from "./operator-avatar-storage";
 
 export const PROFILE_DISPLAY_NAME_MAX_LENGTH = 80;

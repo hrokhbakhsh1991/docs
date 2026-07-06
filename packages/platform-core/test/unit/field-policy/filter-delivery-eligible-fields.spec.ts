@@ -6,7 +6,7 @@ import {
   filterDeliveryEligibleFields,
   FIELD_POLICY_ENTITY_PATH,
 } from "../../../src/field-policy/index.js";
-import { starterWorkspacePlugin } from "@app-tour/workspace-sdk";
+import { starterWorkspacePlugin } from "@app-tour/workspace-sdk/plugin";
 
 const STARTER_FIELD_POLICY_MANIFEST = starterWorkspacePlugin.fieldPolicy!;
 
@@ -21,6 +21,7 @@ describe("filterDeliveryEligibleFields", () => {
     const eligible = filterDeliveryEligibleFields({
       tenantId: "tenant-1",
       workspaceType: "starter",
+      exposureSurface: "delivery",
       candidateFieldIds: ["details.summary", "basics.featured", "basics.title"],
       entityState: {},
       definitions: adapted.definitions,
@@ -40,6 +41,7 @@ describe("filterDeliveryEligibleFields", () => {
     const eligible = filterDeliveryEligibleFields({
       tenantId: "tenant-1",
       workspaceType: "starter",
+      exposureSurface: "delivery",
       candidateFieldIds: ["basics.title", "details.summary"],
       entityState: {},
       definitions: adapted.definitions,

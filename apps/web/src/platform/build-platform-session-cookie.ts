@@ -1,10 +1,13 @@
-export const PLATFORM_SESSION_COOKIE = "platform_session";
-export const PLATFORM_SESSION_MAX_AGE_SECONDS = 604_800;
+import {
+  PLATFORM_SESSION_COOKIE,
+  PLATFORM_SESSION_MAX_AGE_SECONDS,
+} from "./platform-session-types";
 
-export type PlatformOpsSessionPayload = {
-  readonly phone: string;
-  readonly role: "owner" | "admin" | "support";
-};
+export {
+  PLATFORM_SESSION_COOKIE,
+  PLATFORM_SESSION_MAX_AGE_SECONDS,
+  type PlatformOpsSessionPayload,
+} from "./platform-session-types";
 
 export function buildPlatformSessionCookieHeader(sessionToken: string): string {
   const parts = [

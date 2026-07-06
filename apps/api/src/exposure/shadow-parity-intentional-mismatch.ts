@@ -4,6 +4,8 @@
  * Runtime field selection no longer has an accepted cutover scope. This registry exists only so
  * operators can suppress already-triaged shadow parity mismatches by exact coordinate + field id.
  */
+import type { ShadowParityReport } from "./compare-shadow-vs-legacy";
+
 export const FIELD_EXPOSURE_INTENTIONAL_SHADOW_PARITY_MISMATCHES: readonly {
   readonly workspaceType: string;
   readonly eventType: string;
@@ -25,19 +27,8 @@ export function createShadowParityIntentionalMismatchAdjuster(
     readonly workspaceType: string;
     readonly eventType: string;
     readonly surface: string;
-    readonly report: {
-      readonly matches: boolean;
-      readonly mismatchCount: number;
-      readonly fieldReports: readonly {
-        readonly fieldId: string;
-        readonly mismatch: string | null;
-      }[];
-    };
-  }): {
-    readonly matches: boolean;
-    readonly mismatchCount: number;
-    readonly fieldReports: typeof input.report.fieldReports;
-  } {
+    readonly report: ShadowParityReport;
+  }): ShadowParityReport {
     const fieldReports = input.report.fieldReports.map((report) => {
       const isIntentional = intentionalMismatches.some(
         (entry) =>
@@ -69,19 +60,8 @@ export function adjustShadowParityForIntentionalMismatches(input: {
   readonly workspaceType: string;
   readonly eventType: string;
   readonly surface: string;
-  readonly report: {
-    readonly matches: boolean;
-    readonly mismatchCount: number;
-    readonly fieldReports: readonly {
-      readonly fieldId: string;
-      readonly mismatch: string | null;
-    }[];
-  };
-}): {
-  readonly matches: boolean;
-  readonly mismatchCount: number;
-  readonly fieldReports: typeof input.report.fieldReports;
-} {
+  readonly report: ShadowParityReport;
+}): ShadowParityReport {
   return createShadowParityIntentionalMismatchAdjuster(
     FIELD_EXPOSURE_INTENTIONAL_SHADOW_PARITY_MISMATCHES,
   )(input);

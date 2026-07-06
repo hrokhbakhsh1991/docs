@@ -14,6 +14,7 @@ import {
   ProfileGenderInvalidError,
   ProfileNationalIdInvalidError,
 } from "./me.service";
+import type { PatchOperatorProfileRequest } from "./me.types";
 import { readIdentityRequestBody } from "./read-identity-request-body";
 import { requireOperatorSession } from "./require-operator-session";
 
@@ -30,14 +31,7 @@ function readNullableStringField(body: unknown, key: string): string | null | un
   return typeof value === "string" ? value : undefined;
 }
 
-function parsePatchProfileBody(body: unknown): {
-  displayName?: string;
-  email?: string | null;
-  gender?: string | null;
-  nationalId?: string;
-  fatherName?: string;
-  birthDate?: string;
-} {
+function parsePatchProfileBody(body: unknown): PatchOperatorProfileRequest {
   const displayName = readStringField(body, "displayName");
   const email = readNullableStringField(body, "email");
   const gender = readNullableStringField(body, "gender");
@@ -51,7 +45,7 @@ function parsePatchProfileBody(body: unknown): {
     ...(nationalId === undefined ? {} : { nationalId }),
     ...(fatherName === undefined ? {} : { fatherName }),
     ...(birthDate === undefined ? {} : { birthDate }),
-  };
+  } as PatchOperatorProfileRequest;
 }
 
 export async function handleGetIdentityMe(

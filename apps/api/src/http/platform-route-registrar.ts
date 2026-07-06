@@ -27,7 +27,6 @@ const TENANT_DOMAIN_BY_ID_PATTERN = /^\/platform\/v1\/tenants\/([^/]+)\/domains\
 const TENANT_SUBSCRIPTION_MARK_PAID_PATTERN =
   /^\/platform\/v1\/tenants\/([^/]+)\/subscription\/mark-paid$/;
 const TENANT_SUBSCRIPTION_PATTERN = /^\/platform\/v1\/tenants\/([^/]+)\/subscription$/;
-const BILLING_RUN_PAST_DUE_PATTERN = /^\/platform\/v1\/billing\/run-past-due-check$/;
 const DOMAINS_SSL_SUMMARY_PATTERN = /^\/platform\/v1\/domains\/ssl-summary$/;
 const DOMAINS_RUN_SSL_EXPIRY_PATTERN = /^\/platform\/v1\/domains\/run-ssl-expiry-check$/;
 const TENANT_OFFBOARD_PATTERN = /^\/platform\/v1\/tenants\/([^/]+)\/offboard$/;

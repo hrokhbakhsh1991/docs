@@ -43,9 +43,13 @@ if ! psql "$BOOTSTRAP_URL" -v ON_ERROR_STOP=1 -tc "SELECT 1 FROM pg_database WHE
 fi
 
 TOUR_DB_ADMIN="postgresql://app_tour:app_tour@${HOST}:${PORT}/tour_db"
+POSTGRES_ADMIN="postgresql://postgres:postgres@${HOST}:${PORT}/tour_db"
 APP_ROLE_SQL="${ROOT}/docs/phase-4/dev/init/01-app-role.sql"
-if [[ -f "$APP_ROLE_SQL" ]] && psql_ok "$TOUR_DB_ADMIN"; then
-  log "applying 01-app-role.sql on tour_db (idempotent)"
+if [[ -f "$APP_ROLE_SQL" ]] && psql_ok "$POSTGRES_ADMIN"; then
+  log "applying 01-app-role.sql via postgres (idempotent NOBYPASSRLS)"
+  psql "$POSTGRES_ADMIN" -v ON_ERROR_STOP=1 -f "$APP_ROLE_SQL" >/dev/null
+elif [[ -f "$APP_ROLE_SQL" ]] && psql_ok "$TOUR_DB_ADMIN"; then
+  log "applying 01-app-role.sql on tour_db (postgres unavailable — best effort)"
   psql "$TOUR_DB_ADMIN" -v ON_ERROR_STOP=0 -f "$APP_ROLE_SQL" >/dev/null 2>&1 || true
 fi
 

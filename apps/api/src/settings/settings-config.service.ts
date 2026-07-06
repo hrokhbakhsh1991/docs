@@ -6,7 +6,6 @@ import {
   assertDenaliWizardTemplateFrozenFieldsForTenant,
   assertWizardTemplateFieldsKnown,
   normalizeDenaliWizardTemplatePayloadForTenant,
-  SettingsWizardUnknownFieldError,
 } from "./wizard-template-catalog";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import {
@@ -339,9 +338,9 @@ async function putWizardTemplateConfig(
 
   let payload = normalizeWizardTemplatePayload(body.payload as unknown as Record<string, unknown>);
   const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+  await assertWizardTemplateFieldsKnown(auth.tenantId, payload);
   await assertDenaliWizardTemplateFrozenFieldsForTenant(auth.tenantId, payload);
   payload = normalizeDenaliWizardTemplatePayloadForTenant(workspaceType, payload);
-  await assertWizardTemplateFieldsKnown(auth.tenantId, payload);
   const repo = getSettingsConfigRepository();
   const saved = await repo.put(auth.tenantId, configKey, {
     configVersion: expectedVersion,

@@ -8,9 +8,7 @@ import { CatalogTourList } from "@/catalog/catalog-tour-list";
 import { CatalogTourFilterBar } from "@/catalog/catalog-tour-filter-bar";
 import {
   buildCatalogListHref,
-  buildCatalogListQuery,
   catalogFiltersToNoindexSearchParams,
-  catalogFiltersToQueryInput,
   catalogListHasActiveFilters,
   catalogListHasClientFilters,
   parseCatalogListFilters,

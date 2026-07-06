@@ -33,7 +33,9 @@ export async function hydrateMembershipFromDb(
   repo: IdentityRepository = getIdentityRepository(),
   deps: { resolveTenantStatus?: import("./assert-tenant-active-for-login.ts").TenantLoginStatusResolver } = {}
 ): Promise<TenantAuthContext> {
-  await assertTenantActiveForOperatorLogin(tenantId, deps);
+  await assertTenantActiveForOperatorLogin(tenantId, {
+    resolveStatus: deps.resolveTenantStatus,
+  });
 
   const membership = await repo.findMembership(userId, tenantId);
   if (membership === null || membership.status !== "ACTIVE") {

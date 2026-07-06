@@ -6,7 +6,6 @@ import { getWorkspaceDraftEventsRepository } from "./create-workspace-draft-even
 import { getWorkspaceDraftsRepository } from "./create-workspace-drafts-repository";
 import {
   WorkspaceDraftForbiddenError,
-  WorkspaceDraftInvalidBodyError,
   WorkspaceDraftNotFoundError,
   WorkspaceDraftTombstoneInvariantError,
 } from "./workspace-drafts.errors";

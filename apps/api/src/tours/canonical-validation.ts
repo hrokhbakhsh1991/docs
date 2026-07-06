@@ -3,10 +3,9 @@ import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 import { isWorkspaceMetadataEnabled } from "../workspace-metadata/is-workspace-metadata-enabled.ts";
 import { runValidationOffThread } from "../canonical/validation-worker-pool";
 import type { CreateTourBody } from "./create-tour.schema";
-import type { ValidateBeforePersistInput } from "./canonical-validation-sync";
+import type { ValidateBeforePersistInput } from "./canonical-validation-sync.types";
 import {
   validateCanonicalBeforePersistAsync,
-  validateCanonicalBeforePersistSync,
 } from "./canonical-validation-sync";
 import { resolveDenaliCatalogRefAllowlists } from "../canonical/resolve-denali-catalog-ref-allowlists.ts";
 
@@ -22,7 +21,7 @@ async function enrichValidateBeforePersistInput(
   };
 }
 
-export type { ValidateBeforePersistInput } from "./canonical-validation-sync";
+export type { ValidateBeforePersistInput } from "./canonical-validation-sync.types";
 export {
   buildValidationEngineCacheKey,
   getOrCreateValidationEngine,

@@ -6,10 +6,10 @@ import {
 import { validateDenaliPublishReadinessSync } from "@app-tour/workspace-denali/wizard/validation";
 
 import { readTourPublishStatusLabel } from "../canonical/workspace-canonical-tour-dispatch.ts";
-import type { ValidateBeforePersistInput } from "./canonical-validation-sync.ts";
+import type { ValidateBeforePersistInput, ValidationMode } from "./canonical-validation-sync.types";
 import { getDenaliWizardRulesModuleSync } from "./denali-wizard-rules-module-sync.ts";
 
-export type ValidationMode = "draft" | "publish";
+export type { ValidationMode } from "./canonical-validation-sync.types";
 
 function readEffectivePublishStatusLabel(
   workspaceType: string,

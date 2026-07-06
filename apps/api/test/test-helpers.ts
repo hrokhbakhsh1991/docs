@@ -55,8 +55,10 @@ export function installMemoryStorageDriverForDescribe(): void {
   const priorRedisUrl = process.env.REDIS_URL;
   const priorRelay = process.env.OUTBOX_RELAY_ENABLED;
   const priorReconcile = process.env.PROJECTION_AUTO_RECONCILE_ENABLED;
+  const priorValidationWorkers = process.env.P5_VALIDATION_WORKERS_ENABLED;
   before(() => {
     process.env.STORAGE_DRIVER = "memory";
+    process.env.P5_VALIDATION_WORKERS_ENABLED = "false";
     delete process.env.DATABASE_URL;
     delete process.env.DATABASE_URL_ADMIN;
     delete process.env.REDIS_URL;
@@ -96,6 +98,11 @@ export function installMemoryStorageDriverForDescribe(): void {
       delete process.env.PROJECTION_AUTO_RECONCILE_ENABLED;
     } else {
       process.env.PROJECTION_AUTO_RECONCILE_ENABLED = priorReconcile;
+    }
+    if (priorValidationWorkers === undefined) {
+      delete process.env.P5_VALIDATION_WORKERS_ENABLED;
+    } else {
+      process.env.P5_VALIDATION_WORKERS_ENABLED = priorValidationWorkers;
     }
     resetBookingsRepositorySingletonForTests();
     resetIdentityRepositorySingletonForTests();

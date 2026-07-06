@@ -567,14 +567,14 @@ resolveWorkspacePluginIdForType("denali"); // → null (تا فاز ۶)
 
 | Rule                                    | from                          | to                                                                                                           |
 | --------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `apps-web-no-workspaces-except-starter` | `apps/web`                    | `packages/workspaces/*` except **starter** and **denali** (denali/urban: `workspace-plugin-loaders.generated.ts` only — Phase 10) |
+| `apps-web-no-workspaces-except-starter` | `apps/web`                    | `packages/workspaces/*` except **starter**, **denali**, **urban**, and **guest-club** (product workspaces only via codegen loaders — Phase 10) |
 | `workspace-starter-no-apps`             | `packages/workspaces/starter` | `apps/`                                                                                                      |
 | `workspace-starter-allowed-deps`        | `packages/workspaces/starter` | packages خارج از allow-list                                                                                  |
 | `apps-web-no-legacy`                    | `apps/web`                    | `legacy/`                                                                                                    |
-| `apps-web-allowed-packages`             | `apps/web`                    | packages خارج از allow-list (incl. `workspaces/denali` devDep for lazy chunk)                                |
+| `apps-web-allowed-packages`             | `apps/web`                    | packages خارج از allow-list (incl. `tenant-kernel`, `session-client`, `guest-surface-host`, `workspaces/denali\|urban\|guest-club`) |
 | `apps-api-no-ui-primitives`             | `apps/api`                    | ui-primitives / theme-react / design-tokens                                                                  |
 | `apps-api-no-legacy`                    | `apps/api`                    | `legacy/`                                                                                                    |
-| `apps-api-allowed-packages`             | `apps/api`                    | packages خارج از allow-list (incl. `workspaces/denali` — Phase 6.5 bootstrap)                                |
+| `apps-api-allowed-packages`             | `apps/api`                    | packages خارج از allow-list (incl. `workspaces/denali\|urban\|guest-club` — Phase 6.5 / 10 bootstrap)       |
 
 ### 7.2 دستور
 

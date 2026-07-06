@@ -22,11 +22,11 @@ import { integrationTenantId } from "../test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
-function authHeaders(tenantId: string): Record<string, string> {
+function authHeaders(tenantId: string, userId: string): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
     "x-authenticated-tenant-id": tenantId,
-    "x-user-id": "field-exposure-intent-patch",
+    "x-user-id": userId,
     "x-actor-role": "admin",
     "x-membership-status": "ACTIVE",
     "x-workspace-id": "ws-field-exposure-intent",
@@ -39,6 +39,7 @@ async function requestJson(
     readonly method: string;
     readonly path: string;
     readonly tenantId: string;
+    readonly userId: string;
     readonly body?: unknown;
   },
 ): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -60,7 +61,7 @@ async function requestJson(
           path: input.path,
           method: input.method,
           headers: {
-            ...authHeaders(input.tenantId),
+            ...authHeaders(input.tenantId, input.userId),
             ...(payload === undefined
               ? {}
               : {
@@ -106,6 +107,7 @@ describe(
     const tenantId = integrationTenantId();
     const runId = randomUUID().slice(0, 8);
     const connectionId = randomUUID();
+    const actorUserId = randomUUID();
     let admin: PrismaClient;
     let listener: ReturnType<typeof createRequestListener>;
     const priorStorageDriver = process.env.STORAGE_DRIVER;
@@ -161,11 +163,12 @@ describe(
     it("persists selectedFieldIds on PATCH and returns them on GET detail", async () => {
       const patch = await requestJson(listener, {
         method: "PATCH",
-        path: `/integrations/${connectionId}/exposure-intents/TourCreated`,
+        path: `/integrations/${connectionId}/exposure-intents/TourPublished`,
         tenantId,
+        userId: actorUserId,
         body: {
           enabled: true,
-          selectedFieldIds: ["title", "datetime"],
+          selectedFieldIds: ["title", "denali.datetime"],
         },
       });
 
@@ -173,24 +176,25 @@ describe(
       const patchIntents = patch.body.exposureIntents;
       assert.ok(Array.isArray(patchIntents));
       const patched = (patchIntents as Array<Record<string, unknown>>).find(
-        (intent) => intent.eventType === "TourCreated",
+        (intent) => intent.eventType === "TourPublished",
       );
       assert.ok(patched);
-      assert.deepEqual(patched?.selectedFieldIds, ["title", "datetime"]);
+      assert.deepEqual(patched?.selectedFieldIds, ["title", "denali.datetime"]);
 
       const detail = await requestJson(listener, {
         method: "GET",
         path: `/integrations/${connectionId}`,
         tenantId,
+        userId: actorUserId,
       });
       assert.equal(detail.status, 200, JSON.stringify(detail.body));
       const detailIntents = detail.body.exposureIntents;
       assert.ok(Array.isArray(detailIntents));
       const loaded = (detailIntents as Array<Record<string, unknown>>).find(
-        (intent) => intent.eventType === "TourCreated",
+        (intent) => intent.eventType === "TourPublished",
       );
       assert.ok(loaded);
-      assert.deepEqual(loaded?.selectedFieldIds, ["title", "datetime"]);
+      assert.deepEqual(loaded?.selectedFieldIds, ["title", "denali.datetime"]);
     });
   },
 );

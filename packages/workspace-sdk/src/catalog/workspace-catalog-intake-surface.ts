@@ -1,4 +1,7 @@
-import type { CatalogRegistrationPortalPayload, CatalogRegistrationUpstreamRequest } from "./build-catalog-registration-upstream-request";
+import type {
+  CatalogRegistrationPortalPayload,
+  CatalogRegistrationUpstreamRequest,
+} from "./catalog-registration-upstream.types";
 import type { WorkspaceCatalogIntakeTransportSurface } from "./catalog-intake-transport-surface";
 import type { IntakeSchema, IntakeSchemaContext } from "./intake-schema";
 

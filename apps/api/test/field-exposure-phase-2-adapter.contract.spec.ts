@@ -39,9 +39,9 @@ describe("field exposure phase 2 adapter contract", () => {
 
   it("dispatch routes field selection through native exposure intent", () => {
     const dispatch = readFileSync(DISPATCH_SOURCE, "utf8");
-    assert.match(dispatch, /activeExposureIntentSelection/);
+    assert.match(dispatch, /resolveExposureDecision/);
     assert.match(dispatch, /exposureIntent: decision\.exposureIntent/);
-    assert.match(dispatch, /resolveExposureIntentCandidateFieldIds/);
+    assert.match(dispatch, /resolveActiveDeliveryFieldIds/);
   });
 
   it("phase 2 guard passes on repository closure state", () => {

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import type { WizardCompositeFieldRenderProps } from "@/wizard/wizard-surface-types";
 
-import { renderPlatformCompositeFallback } from "./platform-composite-field";
+import { renderPlatformCompositeFallback } from "./platform-composite-fallback";
 import { renderPlatformItineraryCompositeField } from "./composites/platform-itinerary-field";
 import { renderPlatformLocationCompositeField } from "./composites/platform-location-field";
 import { renderPlatformPhotosCompositeField } from "./composites/platform-photos-field";

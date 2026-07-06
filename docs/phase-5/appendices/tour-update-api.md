@@ -30,6 +30,17 @@ Verification: `apps/api/test/5.5-audit-events.spec.ts` — `PATCH /tours/:id` af
 
 `PATCH /tours/:id` uses the **write** tenant rate-limit tier (DEC-015).
 
+## Canonical patch merge (starter / default workspace)
+
+Denali and Urban register `mergeCanonicalPatchData` in `workspace.manifest.json` (codegen → `workspace-tour-write-bindings.generated.ts`). Workspaces without a binding use the API **root-level shallow merge** fallback:
+
+1. For each key in the PATCH `data` object, merge into the stored canonical `data` (object roots are shallow-merged; scalar roots are replaced).
+2. `roots` on the merged body default to the stored tour roots unless the PATCH body supplies `roots` explicitly.
+
+This preserves roots injected on create (e.g. `pricing` from P5-C commerce defaults) when operators PATCH only `basics` / `details` fragments. Replacing the entire `data` object on PATCH would drop sibling roots and fail pre-TX validation (`CANONICAL_ROOT_UNKNOWN`).
+
+Verification: `apps/api/test/4-integration/schema-version-compat.spec.ts` — `SV-PATCH-OK`.
+
 ## Migration
 
 Apply [`20260605170000_tours_row_version`](../../../apps/api/prisma/migrations/20260605170000_tours_row_version/migration.sql) before Postgres integration tests:

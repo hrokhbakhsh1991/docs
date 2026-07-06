@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { buildDenaliTenantWizardTemplatePayload } from "@app-tour/workspace-denali";
 
@@ -19,6 +19,22 @@ import { PUBLISHED_WIZARD_TEMPLATE_EXPOSURE_CATALOG_SOURCE } from "./exposure-pr
 const TENANT_ID = "00000000-0000-4000-8000-000000000099";
 
 describe("resolveTenantExposureSelectableCatalog", () => {
+  const priorStorageDriver = process.env.STORAGE_DRIVER;
+
+  before(() => {
+    process.env.STORAGE_DRIVER = "memory";
+    resetSettingsConfigRepositorySingletonForTests();
+  });
+
+  after(() => {
+    if (priorStorageDriver === undefined) {
+      delete process.env.STORAGE_DRIVER;
+    } else {
+      process.env.STORAGE_DRIVER = priorStorageDriver;
+    }
+    resetSettingsConfigRepositorySingletonForTests();
+  });
+
   it("falls back to deliverable seed when tenant has no wizard template", async () => {
     resetSettingsConfigRepositoryForTests();
     resetSettingsConfigRepositorySingletonForTests();

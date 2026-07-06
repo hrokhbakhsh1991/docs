@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { assertPlatformOpsAuth } from "../../platform/assert-platform-ops-auth.ts";
 import { assertPlatformOpsOwnerRole } from "../../platform/assert-platform-ops-role.ts";
+import type { PlatformOpsUserRepository } from "../../platform/platform-ops-user.repository.ts";
 import { exportPlatformAuditCsv } from "../../platform/export-platform-audit-csv.ts";
 import { listPlatformAuditEventsFiltered } from "../../platform/list-platform-audit-events-filtered.ts";
 import {
@@ -23,10 +24,11 @@ function parseDateParam(value: string | null, fallback: Date): Date {
 
 export async function handlePlatformAuditExportGet(
   req: IncomingMessage,
-  res: ServerResponse
+  res: ServerResponse,
+  deps: { auth?: { repository?: PlatformOpsUserRepository } } = {}
 ): Promise<void> {
   try {
-    const ctx = await assertPlatformOpsAuth(req.headers as Record<string, string | undefined>);
+    const ctx = await assertPlatformOpsAuth(req.headers as Record<string, string | undefined>, deps.auth);
     assertPlatformOpsOwnerRole(ctx);
   } catch (err: unknown) {
     if (err instanceof PlatformUnauthorized || (err as { code?: string })?.code === "PLATFORM_UNAUTHORIZED") {

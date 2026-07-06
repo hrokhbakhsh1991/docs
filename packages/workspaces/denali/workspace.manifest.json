@@ -223,6 +223,22 @@
       }
     }
   },
+  "settingsEnrichers": [
+    {
+      "settingsModuleId": "tour_themes",
+      "module": "./settings/theme-compatible-categories",
+      "export": "resolveThemeCompatibleCategories",
+      "targetField": "compatibleCategories",
+      "sourceField": "formProfile"
+    },
+    {
+      "settingsModuleId": "equipment",
+      "module": "./settings/equipment-compatible-categories",
+      "export": "resolveEquipmentCompatibleCategories",
+      "targetField": "compatibleCategories",
+      "sourceField": "category"
+    }
+  ],
   "devBootstrap": {
     "pluginTenantIds": [
       "00000000-0000-4000-8000-000000000003",
@@ -240,6 +256,11 @@
     }
   },
   "httpErrors": [
+    {
+      "isErrorExport": "isDenaliOwnerRequiredError",
+      "codeExport": "DENALI_OWNER_REQUIRED",
+      "status": 403
+    },
     {
       "isErrorExport": "isDenaliRegistrationDuplicateError",
       "codeExport": "DENALI_REGISTRATION_DUPLICATE",

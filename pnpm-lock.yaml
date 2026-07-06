@@ -211,6 +211,9 @@ importers:
       '@app-tour/catalog-registration-auth':
         specifier: workspace:*
         version: link:../../packages/catalog-registration-auth
+      '@app-tour/catalog-registration-flow-ui':
+        specifier: workspace:*
+        version: link:../../packages/catalog-registration-flow-ui
       '@app-tour/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens

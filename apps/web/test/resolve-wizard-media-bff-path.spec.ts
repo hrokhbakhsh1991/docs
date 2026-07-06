@@ -11,8 +11,8 @@ import {
 } from "../src/wizard/resolve-wizard-media-bff-path";
 
 describe("resolve-wizard-media-bff-path.spec.ts (P13-2)", () => {
-  it("P13-2-01 denali mediaRouteKey resolves to legacy BFF path", () => {
-    assert.equal(resolveWizardMediaBffPath("wizard-photos"), "/api/tours/wizard-photos");
+  it("P13-2-01 denali mediaRouteKey resolves to manifest BFF path", () => {
+    assert.equal(resolveWizardMediaBffPath("wizard-photos"), "/api/wizard-media/wizard-photos");
   });
 
   it("P13-2-02 unknown mediaRouteKey uses neutral BFF path", () => {
@@ -20,7 +20,7 @@ describe("resolve-wizard-media-bff-path.spec.ts (P13-2)", () => {
       resolveWizardMediaBffPath("future-workspace-media"),
       "/api/wizard-media/future-workspace-media"
     );
-    assert.equal(resolveWizardMediaBffPath(""), "/api/tours/wizard-photos");
+    assert.equal(resolveWizardMediaBffPath(""), "/api/wizard-media/wizard-photos");
   });
 
   it("P13-2-03 neutral BFF path is workspace-plugin keyed", () => {

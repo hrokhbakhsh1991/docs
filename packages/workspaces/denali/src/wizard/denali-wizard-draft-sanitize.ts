@@ -65,15 +65,15 @@ function syncDenaliFormToDraftEnvelope(
 ): CanonicalWizardDraftEnvelope {
   let next = draft;
   for (const [canonicalPath, formPath] of Object.entries(rules.canonicalToFormPathMap)) {
-    if (!shouldPersistCanonicalPathFromForm(canonicalPath)) {
-      continue;
-    }
     const formValue = getNestedFormValue(form, formPath);
     const draftValue = getCanonicalValueFromDraft(next, canonicalPath);
     if (formValue === undefined) {
       if (draftValue !== undefined) {
         next = setCanonicalValueOnDraft(next, canonicalPath, undefined);
       }
+      continue;
+    }
+    if (!shouldPersistCanonicalPathFromForm(canonicalPath)) {
       continue;
     }
     const mapped = coerceScalarFormValueForDraft(formValue);

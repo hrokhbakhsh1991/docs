@@ -47,8 +47,8 @@ describe("field exposure phase 8 enterprise hardening contract", () => {
   it("serves a native exposure catalog response independent from integration meta", async () => {
     const catalog = await getWorkspaceExposureCatalog(
       {
-        tenantId: "00000000-0000-0000-0000-000000000001",
-        userId: "00000000-0000-0000-0000-000000000002",
+        tenantId: "00000000-0000-4000-8000-000000000014",
+        userId: "00000000-0000-4000-8000-000000000101",
         workspaceId: "denali",
         role: "owner",
       },
@@ -103,7 +103,7 @@ describe("field exposure phase 8 enterprise hardening contract", () => {
 
     const client = readFileSync(INTEGRATIONS_CLIENT, "utf8");
     assert.match(client, /fetchWorkspaceExposureCatalog/);
-    assert.match(client, /integrationExposureCatalogFields/);
+    assert.match(client, /exposureCatalog\?\.fields/);
   });
 
   it("authoritative exposure resolver records versioned audit metadata", () => {

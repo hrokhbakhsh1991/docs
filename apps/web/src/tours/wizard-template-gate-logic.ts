@@ -136,7 +136,9 @@ export function buildDefaultPublishedWizardSteps(
   plugin?: Pick<WorkspacePlugin, "wizard" | "fieldRegistry">
 ): readonly WizardTemplateStepRef[] {
   const titlePath = resolveWizardTemplateSeedCanonicalPath(pluginId, plugin);
-  const stepId = plugin?.wizard?.steps?.[0]?.stepId ?? "basics";
+  const stepId =
+    plugin?.wizard?.steps?.[0]?.stepId?.trim() ||
+    (pluginId === "denali" ? "denali_basic" : "basics");
   return [
     {
       stepId,

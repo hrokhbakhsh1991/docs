@@ -14,6 +14,10 @@ import {
   normalizeWizardTemplatePayloadForPut,
 } from "./settings-config.service";
 import {
+  SettingsWizardFrozenFieldMissingError,
+  SettingsWizardRoadmapFieldError,
+} from "./wizard-template-catalog";
+import {
   assertSettingsExploreMutationForbidden,
   listSettingsExplore,
   SettingsExploreNotSupportedError,
@@ -374,6 +378,22 @@ function handleSettingsRouteError(res: ServerResponse, error: unknown): void {
     return;
   }
   if (error instanceof SettingsWizardUnknownFieldError) {
+    sendHttpError(res, 400, {
+      error: "invalid_body",
+      code: error.code,
+      canonicalPath: error.canonicalPath,
+    });
+    return;
+  }
+  if (error instanceof SettingsWizardFrozenFieldMissingError) {
+    sendHttpError(res, 400, {
+      error: "invalid_body",
+      code: error.code,
+      canonicalPath: error.canonicalPath,
+    });
+    return;
+  }
+  if (error instanceof SettingsWizardRoadmapFieldError) {
     sendHttpError(res, 400, {
       error: "invalid_body",
       code: error.code,

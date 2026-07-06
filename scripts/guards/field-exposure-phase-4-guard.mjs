@@ -247,7 +247,10 @@ function main() {
   }
 
   const integrationsService = readText(INTEGRATIONS_SERVICE);
-  if (!integrationsService?.includes("buildExposureSelectableFieldCatalog")) {
+  const validatesExposureCatalog =
+    integrationsService?.includes("buildExposureSelectableFieldCatalog") ||
+    integrationsService?.includes("exposureSelectableCatalogFieldIds");
+  if (!validatesExposureCatalog) {
     failures.push("integrations service must validate against exposure selectable catalog");
   }
 

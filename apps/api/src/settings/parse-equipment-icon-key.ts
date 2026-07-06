@@ -1,6 +1,6 @@
 import { isKnownEquipmentIconKey } from "@app-tour/workspace-denali/settings/equipment-icon-registry";
 
-import { SettingsResourceInvalidError } from "./settings.service";
+import { SettingsResourceInvalidError } from "./settings-resource-errors";
 
 export function parseEquipmentIconKeyInput(
   value: unknown

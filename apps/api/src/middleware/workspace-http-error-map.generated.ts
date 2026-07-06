@@ -4,6 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
+import { isDenaliOwnerRequiredError, DENALI_OWNER_REQUIRED } from "@app-tour/workspace-denali/http";
 import { isDenaliRegistrationDuplicateError, DENALI_REGISTRATION_DUPLICATE } from "@app-tour/workspace-denali/http";
 import { isUrbanOwnerRequiredError, URBAN_OWNER_REQUIRED } from "@app-tour/workspace-urban/http";
 import { isUrbanRegistrationClosedError, URBAN_REGISTRATION_CLOSED } from "@app-tour/workspace-urban/http";
@@ -18,6 +19,12 @@ type WorkspaceHttpErrorBinding = {
 };
 
 export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpErrorBinding[] = [
+  {
+    workspaceId: "denali",
+    status: 403,
+    isError: isDenaliOwnerRequiredError,
+    code: DENALI_OWNER_REQUIRED,
+  },
   {
     workspaceId: "denali",
     status: 409,
@@ -51,6 +58,7 @@ export const WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS: readonly WorkspaceHttpError
 ];
 
 export const WORKSPACE_HTTP_ERROR_CODE_STATUS = {
+  [DENALI_OWNER_REQUIRED]: 403,
   [DENALI_REGISTRATION_DUPLICATE]: 409,
   [URBAN_OWNER_REQUIRED]: 403,
   [URBAN_WORKSPACE_REQUIRED]: 404,

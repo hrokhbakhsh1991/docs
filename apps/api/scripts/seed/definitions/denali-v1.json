@@ -20,8 +20,11 @@
           "kind": "text",
           "required": true,
           "tags": [
-            "core"
-          ]
+            "core",
+            "deliverable"
+          ],
+          "adminLabel": "Tour Title",
+          "group": "General"
         },
         {
           "id": "publishStatus",
@@ -33,6 +36,7 @@
             "core",
             "wizard_overlay_exclude"
           ],
+          "group": "General",
           "enumOptions": [
             "draft",
             "active"
@@ -47,6 +51,7 @@
           "tags": [
             "core"
           ],
+          "group": "General",
           "enumOptions": [
             "mountain_day",
             "mountain_multi",
@@ -67,11 +72,14 @@
           "kind": "text",
           "required": true,
           "tags": [
-            "destination"
-          ]
+            "destination",
+            "deliverable"
+          ],
+          "adminLabel": "Tour Destination",
+          "group": "Location"
         },
         {
-          "id": "tripDetails.overview.peakHeight",
+          "id": "denali.destination-catalog-metric.peak-height",
           "canonicalPath": "tripDetails.overview.peakHeight",
           "stepId": "denali_basic",
           "kind": "number",
@@ -79,7 +87,20 @@
           "tags": [
             "altitude_mountain",
             "altitude_hidden"
-          ]
+          ],
+          "group": "General"
+        },
+        {
+          "id": "denali.destination-catalog-metric.trail-distance",
+          "canonicalPath": "tripDetails.overview.trailDistanceKm",
+          "stepId": "denali_basic",
+          "kind": "number",
+          "required": false,
+          "tags": [
+            "trail_nature",
+            "trail_hidden"
+          ],
+          "group": "General"
         },
         {
           "id": "denali.datetime",
@@ -88,8 +109,11 @@
           "kind": "date",
           "required": true,
           "tags": [
-            "core"
-          ]
+            "core",
+            "deliverable"
+          ],
+          "adminLabel": "Start Date",
+          "group": "Schedule"
         },
         {
           "id": "denali.datetime-end",
@@ -98,8 +122,11 @@
           "kind": "date",
           "required": false,
           "tags": [
-            "core"
-          ]
+            "core",
+            "deliverable"
+          ],
+          "adminLabel": "End Date",
+          "group": "Schedule"
         },
         {
           "id": "capacityMax",
@@ -108,8 +135,11 @@
           "kind": "number",
           "required": true,
           "tags": [
-            "core"
-          ]
+            "core",
+            "deliverable"
+          ],
+          "adminLabel": "Maximum Capacity",
+          "group": "General"
         },
         {
           "id": "capacityMin",
@@ -118,8 +148,11 @@
           "kind": "number",
           "required": false,
           "tags": [
-            "optional_basic"
-          ]
+            "optional_basic",
+            "deliverable"
+          ],
+          "adminLabel": "Minimum Capacity",
+          "group": "General"
         },
         {
           "id": "meetingPoint",
@@ -128,8 +161,11 @@
           "kind": "text",
           "required": false,
           "tags": [
+            "deliverable",
             "wizard_overlay_exclude"
-          ]
+          ],
+          "adminLabel": "Meeting Point",
+          "group": "Location"
         },
         {
           "id": "startPointLocationText",
@@ -139,8 +175,11 @@
           "required": false,
           "tags": [
             "optional_basic",
+            "deliverable",
             "wizard_overlay_exclude"
-          ]
+          ],
+          "adminLabel": "Start Point",
+          "group": "Location"
         },
         {
           "id": "denali.approximate-return-time",
@@ -149,18 +188,22 @@
           "kind": "text",
           "required": false,
           "tags": [
-            "optional_basic"
-          ]
+            "optional_basic",
+            "deliverable"
+          ],
+          "adminLabel": "Approximate Return Time",
+          "group": "Schedule"
         },
         {
           "id": "denali.leader-user-ids",
           "canonicalPath": "leaderUserIds",
           "stepId": "denali_basic",
-          "kind": "text",
+          "kind": "composite",
           "required": false,
           "tags": [
             "optional_basic"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "requiresLocalGuide",
@@ -170,7 +213,8 @@
           "required": false,
           "tags": [
             "optional_basic"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "localGuideName",
@@ -180,7 +224,8 @@
           "required": false,
           "tags": [
             "optional_basic"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "requiresManualAdminApproval",
@@ -190,7 +235,8 @@
           "required": false,
           "tags": [
             "optional_basic"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.social-media-link",
@@ -200,27 +246,30 @@
           "required": false,
           "tags": [
             "optional_basic"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.program-content",
           "canonicalPath": "program.themeIds",
           "stepId": "denali_photos",
-          "kind": "text",
+          "kind": "composite",
           "required": false,
           "tags": [
             "core"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.guide-language-ids",
           "canonicalPath": "program.guideLanguageIds",
           "stepId": "denali_program",
-          "kind": "text",
+          "kind": "composite",
           "required": false,
           "tags": [
             "optional_program"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.difficulty-level",
@@ -231,7 +280,8 @@
           "tags": [
             "outdoor_program",
             "event_program_hidden"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "program.hikingHoursApprox",
@@ -242,7 +292,8 @@
           "tags": [
             "outdoor_program",
             "event_program_hidden"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "program.hikingGoHours",
@@ -253,7 +304,8 @@
           "tags": [
             "outdoor_program",
             "event_program_hidden"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "program.hikingReturnHours",
@@ -264,7 +316,8 @@
           "tags": [
             "outdoor_program",
             "event_program_hidden"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.elevation-gain",
@@ -275,18 +328,20 @@
           "tags": [
             "altitude_mountain",
             "altitude_hidden"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.itinerary",
           "canonicalPath": "program.itinerary",
           "stepId": "denali_program",
-          "kind": "text",
+          "kind": "composite",
           "required": false,
           "tags": [
             "itinerary_hidden",
             "itinerary_visible"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.transport-mode",
@@ -297,6 +352,7 @@
           "tags": [
             "core"
           ],
+          "group": "General",
           "enumOptions": [
             "organizer_vehicle",
             "bus",
@@ -310,12 +366,13 @@
           "id": "denali.gathering-points",
           "canonicalPath": "gatheringPoints",
           "stepId": "denali_logistics",
-          "kind": "text",
+          "kind": "composite",
           "required": false,
           "tags": [
             "outdoor_logistics_location",
             "event_logistics_hidden"
-          ]
+          ],
+          "group": "Location"
         },
         {
           "id": "denali.location-zones",
@@ -325,38 +382,45 @@
           "required": false,
           "tags": [
             "outdoor_logistics_location",
-            "event_logistics_hidden"
-          ]
+            "event_logistics_hidden",
+            "deliverable"
+          ],
+          "adminLabel": "Location Zones",
+          "group": "Location",
+          "adminDescription": "Start, summit, camp and end location zones."
         },
         {
           "id": "denali.gear",
           "canonicalPath": "participants.gearItems",
           "stepId": "denali_logistics",
-          "kind": "text",
+          "kind": "composite",
           "required": false,
           "tags": [
             "gear"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.tour-services",
           "canonicalPath": "tripDetails.logistics.includedServices",
           "stepId": "denali_logistics",
-          "kind": "text",
+          "kind": "composite",
           "required": false,
           "tags": [
             "core"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.custom-services",
           "canonicalPath": "tripDetails.overview.customServiceLabels",
           "stepId": "denali_logistics",
-          "kind": "text",
+          "kind": "composite",
           "required": false,
           "tags": [
             "core"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "tripDetails.overview.nonAttendanceDetails",
@@ -366,17 +430,21 @@
           "required": false,
           "tags": [
             "core"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.photos",
           "canonicalPath": "photos",
           "stepId": "denali_photos",
-          "kind": "text",
+          "kind": "composite",
           "required": false,
           "tags": [
-            "core"
-          ]
+            "core",
+            "deliverable"
+          ],
+          "adminLabel": "Tour Photos",
+          "group": "Media"
         },
         {
           "id": "denali.pricing-payment",
@@ -385,8 +453,11 @@
           "kind": "boolean",
           "required": false,
           "tags": [
-            "core"
-          ]
+            "core",
+            "deliverable"
+          ],
+          "adminLabel": "Payment Requirements",
+          "group": "Pricing"
         },
         {
           "id": "pricing.paymentMode",
@@ -398,6 +469,7 @@
             "core",
             "wizard_overlay_exclude"
           ],
+          "group": "Pricing",
           "enumOptions": [
             "offline_receipt"
           ]
@@ -410,7 +482,30 @@
           "required": false,
           "tags": [
             "core"
-          ]
+          ],
+          "group": "General"
+        },
+        {
+          "id": "participants.fatherNameRequired",
+          "canonicalPath": "participants.fatherNameRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "core"
+          ],
+          "group": "General"
+        },
+        {
+          "id": "participants.birthDateRequired",
+          "canonicalPath": "participants.birthDateRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "core"
+          ],
+          "group": "Schedule"
         },
         {
           "id": "policies.cancellationDeadlineHours",
@@ -420,7 +515,8 @@
           "required": false,
           "tags": [
             "policies_pricing"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "policies.cancellationPenaltyPercentage",
@@ -430,7 +526,8 @@
           "required": false,
           "tags": [
             "policies_pricing"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "policies.policiesText",
@@ -440,7 +537,8 @@
           "required": false,
           "tags": [
             "policies_pricing"
-          ]
+          ],
+          "group": "General"
         },
         {
           "id": "denali.pricing-participants",
@@ -450,8 +548,11 @@
           "required": true,
           "tags": [
             "mountain_participants",
-            "non_mountain_participants_hidden"
-          ]
+            "non_mountain_participants_hidden",
+            "deliverable"
+          ],
+          "adminLabel": "Participant Pricing",
+          "group": "Pricing"
         },
         {
           "id": "denali.peak-experience",
@@ -462,6 +563,102 @@
           "tags": [
             "mountain_participants",
             "non_mountain_participants_hidden"
+          ],
+          "group": "General"
+        },
+        {
+          "id": "participants.medicationsRequired",
+          "canonicalPath": "participants.medicationsRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "mountain_participants",
+            "non_mountain_participants_hidden",
+            "wizard_palette_roadmap"
+          ]
+        },
+        {
+          "id": "participants.allergiesRequired",
+          "canonicalPath": "participants.allergiesRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "mountain_participants",
+            "non_mountain_participants_hidden",
+            "wizard_palette_roadmap"
+          ]
+        },
+        {
+          "id": "participants.dietaryRequirementsRequired",
+          "canonicalPath": "participants.dietaryRequirementsRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "mountain_participants",
+            "non_mountain_participants_hidden",
+            "wizard_palette_roadmap"
+          ]
+        },
+        {
+          "id": "participants.medicalDeclarationRequired",
+          "canonicalPath": "participants.medicalDeclarationRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "mountain_participants",
+            "non_mountain_participants_hidden",
+            "wizard_palette_roadmap"
+          ]
+        },
+        {
+          "id": "participants.emergencyContactRequired",
+          "canonicalPath": "participants.emergencyContactRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "mountain_participants",
+            "non_mountain_participants_hidden",
+            "wizard_palette_roadmap"
+          ]
+        },
+        {
+          "id": "participants.physicalLimitationsRequired",
+          "canonicalPath": "participants.physicalLimitationsRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "mountain_participants",
+            "non_mountain_participants_hidden",
+            "wizard_palette_roadmap"
+          ]
+        },
+        {
+          "id": "participants.evacuationInsuranceRequired",
+          "canonicalPath": "participants.evacuationInsuranceRequired",
+          "stepId": "denali_pricing",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "mountain_participants",
+            "non_mountain_participants_hidden",
+            "wizard_palette_roadmap"
+          ]
+        },
+        {
+          "id": "policies.medicalFitnessDeclarationRequired",
+          "canonicalPath": "policies.medicalFitnessDeclarationRequired",
+          "stepId": "denali_legal",
+          "kind": "boolean",
+          "required": false,
+          "tags": [
+            "policies_pricing",
+            "wizard_palette_roadmap"
           ]
         }
       ]
@@ -527,6 +724,16 @@
               "hidden": false
             },
             {
+              "fieldId": "participants.birthDateRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.fatherNameRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "denali.gear",
               "required": false,
               "hidden": false
@@ -662,9 +869,14 @@
               "hidden": true
             },
             {
-              "fieldId": "tripDetails.overview.peakHeight",
+              "fieldId": "denali.destination-catalog-metric.peak-height",
               "required": true,
               "hidden": false
+            },
+            {
+              "fieldId": "denali.destination-catalog-metric.trail-distance",
+              "required": false,
+              "hidden": true
             }
           ]
         },
@@ -721,6 +933,16 @@
               "hidden": false
             },
             {
+              "fieldId": "participants.birthDateRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.fatherNameRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "denali.gear",
               "required": false,
               "hidden": false
@@ -856,9 +1078,14 @@
               "hidden": true
             },
             {
-              "fieldId": "tripDetails.overview.peakHeight",
+              "fieldId": "denali.destination-catalog-metric.peak-height",
               "required": true,
               "hidden": false
+            },
+            {
+              "fieldId": "denali.destination-catalog-metric.trail-distance",
+              "required": false,
+              "hidden": true
             }
           ]
         },
@@ -915,6 +1142,16 @@
               "hidden": false
             },
             {
+              "fieldId": "participants.birthDateRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.fatherNameRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "denali.gear",
               "required": false,
               "hidden": false
@@ -1050,9 +1287,14 @@
               "hidden": true
             },
             {
-              "fieldId": "tripDetails.overview.peakHeight",
+              "fieldId": "denali.destination-catalog-metric.peak-height",
               "required": false,
               "hidden": true
+            },
+            {
+              "fieldId": "denali.destination-catalog-metric.trail-distance",
+              "required": false,
+              "hidden": false
             }
           ]
         },
@@ -1109,6 +1351,16 @@
               "hidden": false
             },
             {
+              "fieldId": "participants.birthDateRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.fatherNameRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "denali.gear",
               "required": false,
               "hidden": false
@@ -1244,9 +1496,14 @@
               "hidden": true
             },
             {
-              "fieldId": "tripDetails.overview.peakHeight",
+              "fieldId": "denali.destination-catalog-metric.peak-height",
               "required": false,
               "hidden": true
+            },
+            {
+              "fieldId": "denali.destination-catalog-metric.trail-distance",
+              "required": false,
+              "hidden": false
             }
           ]
         },
@@ -1303,6 +1560,16 @@
               "hidden": false
             },
             {
+              "fieldId": "participants.birthDateRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.fatherNameRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "denali.gear",
               "required": false,
               "hidden": false
@@ -1438,7 +1705,12 @@
               "hidden": true
             },
             {
-              "fieldId": "tripDetails.overview.peakHeight",
+              "fieldId": "denali.destination-catalog-metric.peak-height",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.destination-catalog-metric.trail-distance",
               "required": false,
               "hidden": true
             }
@@ -1497,6 +1769,16 @@
               "hidden": false
             },
             {
+              "fieldId": "participants.birthDateRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.fatherNameRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "denali.gear",
               "required": false,
               "hidden": false
@@ -1632,7 +1914,12 @@
               "hidden": true
             },
             {
-              "fieldId": "tripDetails.overview.peakHeight",
+              "fieldId": "denali.destination-catalog-metric.peak-height",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.destination-catalog-metric.trail-distance",
               "required": false,
               "hidden": true
             }
@@ -1691,6 +1978,16 @@
               "hidden": false
             },
             {
+              "fieldId": "participants.birthDateRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.fatherNameRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "denali.gear",
               "required": false,
               "hidden": false
@@ -1826,7 +2123,12 @@
               "hidden": true
             },
             {
-              "fieldId": "tripDetails.overview.peakHeight",
+              "fieldId": "denali.destination-catalog-metric.peak-height",
+              "required": false,
+              "hidden": true
+            },
+            {
+              "fieldId": "denali.destination-catalog-metric.trail-distance",
               "required": false,
               "hidden": true
             }
@@ -1885,6 +2187,16 @@
               "hidden": false
             },
             {
+              "fieldId": "participants.birthDateRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
+              "fieldId": "participants.fatherNameRequired",
+              "required": false,
+              "hidden": false
+            },
+            {
               "fieldId": "denali.gear",
               "required": false,
               "hidden": false
@@ -2020,9 +2332,14 @@
               "hidden": true
             },
             {
-              "fieldId": "tripDetails.overview.peakHeight",
+              "fieldId": "denali.destination-catalog-metric.peak-height",
               "required": true,
               "hidden": false
+            },
+            {
+              "fieldId": "denali.destination-catalog-metric.trail-distance",
+              "required": false,
+              "hidden": true
             }
           ]
         }
@@ -2074,5 +2391,5 @@
       "wizardCapacityStepRedundant": false
     }
   },
-  "checksum": "21a62242ee82e5cf9345901db4b1f2f49174165282f98fba5218b1312442ca15"
+  "checksum": "1fb584ad5aa50d9f0472e15930803fccb154c3b1e2fefc58bf921e2d9daf2795"
 }

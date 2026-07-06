@@ -186,7 +186,6 @@ export function CatalogTourDetailPhotoLightbox({
               </>
             ) : null}
             {/* Full-resolution source in modal — display size only in page grid */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={activePhoto.src}
               alt={activePhoto.alt}

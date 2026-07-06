@@ -13,6 +13,7 @@ import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type"
 import { enrichSettingsModuleList } from "./workspace-settings-enrichers.generated";
 import { parseEquipmentIconKeyInput } from "./parse-equipment-icon-key";
 import { normalizeThemeIdsInput } from "./parse-theme-ids";
+import { SettingsResourceInvalidError } from "./settings-resource-errors";
 import type {
   CreateEquipmentRequest,
   CreateGuideLanguageRequest,
@@ -57,14 +58,7 @@ export class SettingsModuleNotSupportedError extends Error {
   }
 }
 
-export class SettingsResourceInvalidError extends Error {
-  readonly code = "SETTINGS_RESOURCE_INVALID" as const;
-
-  constructor() {
-    super("SETTINGS_RESOURCE_INVALID");
-    this.name = "SettingsResourceInvalidError";
-  }
-}
+export { SettingsResourceInvalidError } from "./settings-resource-errors";
 
 const SUPPORTED_REFERENCE_MODULES = new Set([
   "equipment",

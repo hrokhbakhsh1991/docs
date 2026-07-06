@@ -34,6 +34,38 @@ const VALID_PAYLOAD = {
   ],
 };
 
+const STARTER_TENANT_ID = "00000000-0000-4000-8000-000000000001";
+
+const DENALI_PUBLISHED_FROZEN_STEPS = [
+  {
+    stepId: "denali_basic",
+    label: "Basic",
+    enabled: true,
+    fields: [
+      { canonicalPath: "category" },
+      { canonicalPath: "title" },
+      { canonicalPath: "destinationId" },
+      { canonicalPath: "startDateTime" },
+      { canonicalPath: "capacityMax" },
+    ],
+  },
+  {
+    stepId: "denali_photos",
+    label: "Photos",
+    enabled: true,
+    fields: [
+      { canonicalPath: "program.themeIds" },
+      { canonicalPath: "photos" },
+    ],
+  },
+  {
+    stepId: "denali_logistics",
+    label: "Logistics",
+    enabled: true,
+    fields: [{ canonicalPath: "transport.mode" }],
+  },
+] as const;
+
 describe("settings-config-version.spec.ts — Phase 9.6 API", () => {
   const client = installHttpTestClient(createConfigTestListener);
 
@@ -119,14 +151,7 @@ describe("settings-config-version.spec.ts — Phase 9.6 API", () => {
             fieldRulesOverlay: {
               "program.longDescription": { visibility: "hidden" },
             },
-            steps: [
-              {
-                stepId: "denali_photos",
-                label: "Photos",
-                enabled: true,
-                fields: [{ canonicalPath: "program.themeIds" }],
-              },
-            ],
+            steps: [...DENALI_PUBLISHED_FROZEN_STEPS],
           },
         },
       }
@@ -175,7 +200,14 @@ describe("settings-config-version.spec.ts — Phase 9.6 API", () => {
         "PUT",
         "/settings/config/wizard_template",
         {
-          headers: operatorAuthHeaders(),
+          headers: {
+            "x-tenant-id": STARTER_TENANT_ID,
+            "x-authenticated-tenant-id": STARTER_TENANT_ID,
+            "x-user-id": OPERATOR_SMOKE.ownerUserId,
+            "x-actor-role": "owner",
+            "x-membership-status": "ACTIVE",
+            "x-workspace-id": "ws-public-dev",
+          },
           body: {
             configVersion: 1,
             payload: {

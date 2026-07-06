@@ -252,16 +252,17 @@ async function buildConnectionContexts(input: {
           });
     const activeExposureIntent = intentResolution.exposureIntent;
     const eventPolicy = input.connection.eventPolicies.find(
-      (policy) => policy.eventType === eventType,
+      (policy: { readonly eventType: string; readonly enabled: boolean }) =>
+        policy.eventType === eventType,
     );
     const samplePayload = resolveSamplePayload(eventType);
     const storedContext =
       activeExposureIntent === null
         ? null
         : {
-            surface: activeExposureIntent.surface,
-            audience: activeExposureIntent.audience,
-            trigger: activeExposureIntent.trigger,
+            surface: activeExposureIntent.surface ?? effectiveContext.surface,
+            audience: activeExposureIntent.audience ?? effectiveContext.audience,
+            trigger: activeExposureIntent.trigger ?? effectiveContext.trigger,
           };
 
     contexts.push({

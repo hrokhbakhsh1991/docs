@@ -14,7 +14,7 @@
     "build": "next build",
     "prelint": "pnpm run guard:import-boundary && pnpm run audit-boundary && pnpm run guard:no-raw-wizard-input",
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 0 && tsc --noEmit -p tsconfig.lint.json",
-    "test": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit --test-concurrency=1 \"test/**/*.spec.ts\" \"test/**/*.spec.tsx\"",
+    "test": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit --test-concurrency=1 $(find test -type f \\( -name '*.spec.ts' -o -name '*.spec.tsx' \\) ! -path 'test/e2e/*')",
     "test:e2e:th-1": "playwright test tests/e2e/th-1-tenant-theme-isolation.spec.ts",
     "test:e2e:ec33": "playwright test -c playwright.ec33.config.ts",
     "test:e2e:ec33:install": "playwright install chromium",

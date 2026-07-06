@@ -22,11 +22,11 @@ import { integrationTenantId } from "../test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
-function authHeaders(tenantId: string): Record<string, string> {
+function authHeaders(tenantId: string, userId: string): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
     "x-authenticated-tenant-id": tenantId,
-    "x-user-id": "field-exposure-lifecycle",
+    "x-user-id": userId,
     "x-actor-role": "admin",
     "x-membership-status": "ACTIVE",
     "x-workspace-id": "denali",
@@ -39,6 +39,7 @@ async function request(
     readonly method: string;
     readonly path: string;
     readonly tenantId: string;
+    readonly userId: string;
     readonly body?: unknown;
   },
 ): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -60,7 +61,7 @@ async function request(
           path: input.path,
           method: input.method,
           headers: {
-            ...authHeaders(input.tenantId),
+            ...authHeaders(input.tenantId, input.userId),
             ...(payload === undefined
               ? {}
               : {
@@ -106,6 +107,7 @@ describe(
     const tenantId = integrationTenantId();
     const runId = randomUUID().slice(0, 8);
     const connectionId = randomUUID();
+    const actorUserId = randomUUID();
     let admin: PrismaClient;
     let listener: ReturnType<typeof createRequestListener>;
     const priorStorageDriver = process.env.STORAGE_DRIVER;
@@ -161,8 +163,9 @@ describe(
     it("deletes connection-scoped exposure intents when integration connection is deleted", async () => {
       const patch = await request(listener, {
         method: "PATCH",
-        path: `/integrations/${connectionId}/exposure-intents/TourCreated`,
+        path: `/integrations/${connectionId}/exposure-intents/TourPublished`,
         tenantId,
+        userId: actorUserId,
         body: {
           enabled: true,
           selectedFieldIds: ["title"],
@@ -187,6 +190,7 @@ describe(
         method: "DELETE",
         path: `/integrations/${connectionId}`,
         tenantId,
+        userId: actorUserId,
       });
       assert.equal(deleted.status, 204, JSON.stringify(deleted.body));
 

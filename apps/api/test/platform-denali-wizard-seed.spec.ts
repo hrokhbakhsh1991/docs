@@ -22,7 +22,7 @@ describe("platform denali wizard seed on create", () => {
 
   it("published", () => {
     assert.match(seedSource, /payload\.published === true/);
-    assert.match(bindingsSource, /minPublishedSteps:\s*6/);
+    assert.match(bindingsSource, /minPublishedSteps:\s*2/);
     assert.match(denaliTemplateSource, /published:\s*true/);
     assert.match(sagaSource, /seedWorkspaceWizardTemplateInTransaction/);
   });

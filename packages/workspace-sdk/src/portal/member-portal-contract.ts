@@ -1,11 +1,12 @@
 import type { MemberModuleManifest, MemberPortalSurface } from "./member-module-manifest";
+import type { MemberPortalAvailability } from "./member-portal-availability";
 import { mergePlatformMemberPortalModules } from "./platform-member-portal-modules";
 import {
   WORKSPACE_MEMBER_PORTAL_CONTRACTS,
   type MemberPortalContractRow,
 } from "./workspace-member-portal-contracts.generated";
 
-export type MemberPortalAvailability = "off" | "minimal" | "full";
+export type { MemberPortalAvailability } from "./member-portal-availability";
 
 export type MemberPortalContract =
   | { readonly availability: "off" }

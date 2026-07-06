@@ -5,7 +5,7 @@
  */
 
 import type { MemberModuleManifest } from "./member-module-manifest";
-import type { MemberPortalAvailability } from "./member-portal-contract";
+import type { MemberPortalAvailability } from "./member-portal-availability";
 
 export type MemberPortalContractRow =
   | { readonly availability: "off" }

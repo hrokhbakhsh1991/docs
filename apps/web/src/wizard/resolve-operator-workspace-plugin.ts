@@ -7,7 +7,7 @@ import {
   isOperatorWorkspaceMetadataEnabledForTenant,
   isOperatorWorkspaceMetadataTenantAllowlistConfigured,
 } from "./is-operator-workspace-metadata-enabled-for-tenant";
-import { loadWorkspacePluginById } from "./load-workspace-plugin";
+import { loadWorkspacePluginByIdFromRegistry } from "../bootstrap/workspace-plugin-loaders.generated";
 
 export type OperatorWorkspaceMetadataBinding = {
   readonly definitionId: string;
@@ -76,7 +76,7 @@ function shouldUseOperatorMetadataPath(input: ResolveOperatorWorkspacePluginInpu
 export async function resolveOperatorWorkspacePlugin(
   input: ResolveOperatorWorkspacePluginInput
 ): Promise<WorkspacePlugin> {
-  const loadPackage = input.loadPackagePlugin ?? loadWorkspacePluginById;
+  const loadPackage = input.loadPackagePlugin ?? loadWorkspacePluginByIdFromRegistry;
   const packagePlugin = await loadPackage(input.pluginId);
 
   if (!shouldUseOperatorMetadataPath(input)) {

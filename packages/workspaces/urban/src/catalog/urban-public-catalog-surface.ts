@@ -1,20 +1,11 @@
-import type { PublicCatalogCard, PublicCatalogTourInput } from "@app-tour/workspace-sdk";
+import type { PublicCatalogTourInput } from "@app-tour/workspace-sdk";
 
 import { buildUrbanEventJsonLd } from "./build-urban-event-jsonld";
 import { isUrbanTourPublished, toUrbanCatalogCard } from "../http/publish-status";
+import type { UrbanPublicCatalogEgress } from "./urban-public-catalog-egress.types";
 
 export { isUrbanTourPublished };
-
-/** Urban HTTP egress — SDK card + M2b extension fields for marketing JSON. */
-export type UrbanPublicCatalogEgress = PublicCatalogCard & {
-  readonly city?: string | null;
-  readonly venueName?: string | null;
-  readonly catalogSummary?: string | null;
-  readonly startDate?: string | null;
-  readonly endDate?: string | null;
-  readonly publishedAt?: string | null;
-  readonly publishStatus?: string | null;
-};
+export type { UrbanPublicCatalogEgress } from "./urban-public-catalog-egress.types";
 
 function joinListSubtitle(city: string | null, venueName: string | null): string | null {
   const parts = [city, venueName].filter((part): part is string => part != null && part.length > 0);

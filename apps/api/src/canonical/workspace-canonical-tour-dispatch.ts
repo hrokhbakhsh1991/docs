@@ -72,9 +72,8 @@ export const migrateCanonicalNotImplemented: MigrateCanonicalHook = () => {
 
 export function resolveMigrateCanonicalHook(workspaceType: string): MigrateCanonicalHook {
   const binding = resolveBinding(workspaceType);
-  const migrate = binding?.migrateCanonical;
-  if (migrate === undefined) {
+  if (binding === undefined || !("migrateCanonical" in binding)) {
     return migrateCanonicalNotImplemented;
   }
-  return migrate as MigrateCanonicalHook;
+  return binding.migrateCanonical as MigrateCanonicalHook;
 }

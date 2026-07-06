@@ -161,7 +161,7 @@ describe(
     it("rejects unknown selectedFieldIds with 400 invalid_body", async () => {
       const response = await requestJson(listener, {
         method: "PATCH",
-        path: `/integrations/${connectionId}/exposure-intents/TourCreated`,
+        path: `/integrations/${connectionId}/exposure-intents/TourPublished`,
         tenantId,
         body: {
           enabled: true,
@@ -193,12 +193,12 @@ describe(
     it("rejects template referencing field outside selection with 400 invalid_body", async () => {
       const response = await requestJson(listener, {
         method: "PATCH",
-        path: `/integrations/${connectionId}/exposure-intents/TourCreated`,
+        path: `/integrations/${connectionId}/exposure-intents/TourPublished`,
         tenantId,
         body: {
           enabled: true,
           selectedFieldIds: ["title"],
-          templateId: "Tour {{field:datetime}}",
+          templateId: "Tour {{field:denali.datetime}}",
         },
       });
 
@@ -210,7 +210,7 @@ describe(
     it("rejects invalid enabled type with 400 invalid_body", async () => {
       const response = await requestJson(listener, {
         method: "PATCH",
-        path: `/integrations/${connectionId}/exposure-intents/TourCreated`,
+        path: `/integrations/${connectionId}/exposure-intents/TourPublished`,
         tenantId,
         body: {
           enabled: "yes",

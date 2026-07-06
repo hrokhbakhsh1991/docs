@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import type { Prisma } from "@prisma/client";
 import { runProvisionTransaction } from "./run-provision-transaction";
 import { createTenantSubscriptionOnProvision } from "./create-tenant-subscription-on-provision.ts";
 import { seedTenantBrandingConfig } from "./seed-tenant-branding-config";

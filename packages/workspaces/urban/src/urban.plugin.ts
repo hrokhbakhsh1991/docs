@@ -242,7 +242,10 @@ export const URBAN_WIZARD_SURFACE = deepFreezeValue({
 export const URBAN_LIFECYCLE = deepFreezeValue({
   initialStatus: "DRAFT",
   publishStatus: "PUBLISHED",
-  allowedTransitions: [{ from: "DRAFT", to: "PUBLISHED" }],
+  allowedTransitions: [
+    { from: "DRAFT", to: "PUBLISHED" },
+    { from: "PUBLISHED", to: "DRAFT" },
+  ],
 });
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

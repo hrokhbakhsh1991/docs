@@ -6,7 +6,6 @@ import type { RenderFieldPlan } from "@app-tour/platform-core";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 
-import { PlatformCompositeFallback } from "./platform-composite-fallback";
 import { resolvePlatformCompositeRenderer } from "./platform-composite-renderers";
 
 type PlatformCompositeFieldProps = {
@@ -40,6 +39,3 @@ export function PlatformCompositeField({
   });
 }
 
-export function renderPlatformCompositeFallback(compositeId: string): ReactNode {
-  return <PlatformCompositeFallback compositeId={compositeId} />;
-}

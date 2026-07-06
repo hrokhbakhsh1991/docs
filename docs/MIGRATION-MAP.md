@@ -241,7 +241,7 @@ New guest-capable workspace **must not** hand-edit SDK resolver maps, portal she
 | Scaffold (L3) | `pnpm run workspace:create -- <id> --guest` |
 | Regenerate | `pnpm run generate:workspace-registry` |
 | Freshness | `pnpm run guard:workspace-registry-fresh` |
-| Consumer deps | Wire `@app-tour/workspace-<id>` on `workspace-plugin-host`, `apps/api`, `apps/web`, `apps/marketing` — see [10.7](../phase-10/subphases/10.7-enforcement-dx.md) · `pnpm run guard:guest-consumer-deps` |
+| Consumer deps | Wire `@app-tour/workspace-<id>` on `workspace-plugin-host`, `apps/api`, `apps/web`, `apps/marketing` — see [10.7](phase-10/subphases/10.7-enforcement-dx.md) · `pnpm run guard:guest-consumer-deps` |
 | Conformance | `pnpm run guard:guest-plugin-conformance` |
 
 Manifest blocks: `httpRoutes`, `catalogPresentation`, `catalogRegistrationFlow` (optional `transportInitializerExport`), `memberProfile`, `devBootstrap`. Details: [`docs/dev/guest-plugin-conformance.md`](dev/guest-plugin-conformance.md).

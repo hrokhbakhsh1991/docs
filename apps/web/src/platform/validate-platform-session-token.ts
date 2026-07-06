@@ -1,6 +1,6 @@
 import { decodeJwtPayload, isJwtExpired } from "@app-tour/session-client";
 
-import type { PlatformOpsSessionPayload } from "./build-platform-session-cookie";
+import type { PlatformOpsSessionPayload } from "./platform-session-types";
 
 export type PlatformSessionValidation =
   | { status: "valid"; session: PlatformOpsSessionPayload }

@@ -3,7 +3,6 @@ import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 import { loadWorkspacePluginByIdFromRegistry } from "../bootstrap/workspace-plugin-loaders.generated";
 import {
   resolveOperatorWorkspacePlugin,
-  type OperatorWorkspaceMetadataBinding,
   type ResolveOperatorWorkspacePluginInput,
 } from "./resolve-operator-workspace-plugin";
 
@@ -21,7 +20,6 @@ export async function loadWorkspacePluginById(pluginId: string): Promise<Workspa
   return loadWorkspacePluginByIdFromRegistry(pluginId);
 }
 
-/** P5-B-N-009 — operator Strangler Fig loader (metadata path when flag + binding active). */
 export async function loadOperatorWorkspacePlugin(
   input: Omit<ResolveOperatorWorkspacePluginInput, "loadPackagePlugin">
 ): Promise<WorkspacePlugin> {

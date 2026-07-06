@@ -4,12 +4,14 @@ import { afterEach, before, beforeEach, describe, it } from "node:test";
 import { exportSPKI, generateKeyPair, SignJWT } from "jose";
 
 import { createRequestListener } from "../src/app";
+import { resetValidationWorkerPoolForTests } from "../src/canonical/validation-worker-pool";
 import { encodeDevBearerToken } from "../src/tenant-kernel/parse-bearer";
 import {
   UNAUTHORIZED_DEV_BEARER_DISABLED,
   UNAUTHORIZED_MISSING_WORKSPACE_ID,
 } from "../src/tenant-kernel/auth-errors";
-import { createTestToursService, integrationTenantId } from "./test-helpers";
+import { resetValidationEngineCacheForTests } from "../src/tours/canonical-validation-sync";
+import { createTestToursService, installMemoryStorageDriverForDescribe, integrationTenantId } from "./test-helpers";
 
 const ENV_SNAPSHOT = {
   NODE_ENV: process.env.NODE_ENV,
@@ -23,8 +25,9 @@ const ENV_SNAPSHOT = {
 let jwtPublicKeyPem = "";
 let jwtPrivateKey: CryptoKey;
 
+installMemoryStorageDriverForDescribe();
+
 before(async () => {
-  process.env.STORAGE_DRIVER = "memory";
   const pair = await generateKeyPair("RS256");
   jwtPrivateKey = pair.privateKey;
   jwtPublicKeyPem = await exportSPKI(pair.publicKey);
@@ -52,9 +55,14 @@ async function signProductionJwt(
 
 beforeEach(() => {
   process.env.STORAGE_DRIVER = "memory";
+  process.env.P5_VALIDATION_WORKERS_ENABLED = "false";
+  process.env.P5_VALIDATION_WORKER_POOL_SIZE = "0";
+  delete process.env.DATABASE_URL;
+  delete process.env.DATABASE_URL_ADMIN;
+  delete process.env.APPS_API_PRODUCTION_AUTH_HARNESS;
 });
 
-afterEach(() => {
+afterEach(async () => {
   process.env.NODE_ENV = ENV_SNAPSHOT.NODE_ENV;
   process.env.AUTH_ALLOW_DEV_BEARER = ENV_SNAPSHOT.AUTH_ALLOW_DEV_BEARER;
   process.env.AUTH_JWT_PUBLIC_KEY = ENV_SNAPSHOT.AUTH_JWT_PUBLIC_KEY;
@@ -62,6 +70,8 @@ afterEach(() => {
   process.env.AUTH_JWT_AUDIENCE = ENV_SNAPSHOT.AUTH_JWT_AUDIENCE;
   process.env.APPS_API_PRODUCTION_AUTH_HARNESS = ENV_SNAPSHOT.APPS_API_PRODUCTION_AUTH_HARNESS;
   process.env.STORAGE_DRIVER = "memory";
+  await resetValidationWorkerPoolForTests();
+  resetValidationEngineCacheForTests();
 });
 
 type JsonResponse = {
@@ -149,10 +159,33 @@ describe("tenant-security (TenantKernel ingress)", () => {
   const tenantA = integrationTenantId();
   const tenantJwt = integrationTenantId();
 
-  before(() => {
+  beforeEach(() => {
     listener = createRequestListener({
       toursService: createTestToursService(),
     });
+  });
+
+  // Run first — later specs mutate production auth env; dev bearer happy path is order-sensitive.
+  it("POST with dev Bearer (no headers) succeeds when dev bearer allowed in test env", async () => {
+    process.env.NODE_ENV = "test";
+    process.env.AUTH_ALLOW_DEV_BEARER = "true";
+    const authorization = encodeDevBearerToken({
+      userId: "jwt-user",
+      tenantId: tenantJwt,
+      role: "member",
+      status: "ACTIVE",
+      workspaceId: "ws-jwt",
+    });
+
+    const res = await requestJson(listener, {
+      method: "POST",
+      path: "/tours",
+      headers: { Authorization: authorization },
+      body: { data: { basics: { title: "JWT tour" }, details: { summary: "" } } },
+    });
+
+    assert.equal(res.status, 201);
+    assert.equal((res.body as { tenantId: string }).tenantId, tenantJwt);
   });
 
   it("POST without x-workspace-id returns 401 UNAUTHORIZED_MISSING_WORKSPACE_ID", async () => {
@@ -208,28 +241,6 @@ describe("tenant-security (TenantKernel ingress)", () => {
 
     assert.equal(res.status, 401);
     assert.equal((res.body as { error?: string }).error, UNAUTHORIZED_DEV_BEARER_DISABLED);
-  });
-
-  it("POST with dev Bearer (no headers) succeeds when dev bearer allowed in test env", async () => {
-    process.env.NODE_ENV = "test";
-    process.env.AUTH_ALLOW_DEV_BEARER = "true";
-    const authorization = encodeDevBearerToken({
-      userId: "jwt-user",
-      tenantId: tenantJwt,
-      role: "member",
-      status: "ACTIVE",
-      workspaceId: "ws-jwt",
-    });
-
-    const res = await requestJson(listener, {
-      method: "POST",
-      path: "/tours",
-      headers: { Authorization: authorization },
-      body: { data: { basics: { title: "JWT tour" }, details: { summary: "" } } },
-    });
-
-    assert.equal(res.status, 201);
-    assert.equal((res.body as { tenantId: string }).tenantId, tenantJwt);
   });
 
   it("JWT with conflicting tenant_id and tenantId claims returns 401 (F-11)", async () => {

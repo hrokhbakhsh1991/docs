@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 
 import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
 
@@ -23,8 +23,11 @@ import type {
   ReviewReceiptBody,
   SubmitReceiptBody,
 } from "@app-tour/workspace-denali/http";
-import type { FinanceLedgerOutboxRow, FinanceRepositoryPort, FinanceSummaryRow } from "./finance.repository";
-import { createFinanceRepository } from "./finance.repository";
+import type { FinanceLedgerOutboxRow, FinanceSummaryRow } from "./finance.repository";
+import {
+  createFinanceRepository,
+  type FinanceRepositoryPort,
+} from "./finance-repository.factory";
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
 import {
   buildPaymentScheduleItems,

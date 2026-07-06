@@ -4,6 +4,7 @@ import {
 } from "@app-tour/workspace-sdk/metadata";
 
 import type { PlatformTenantRepository } from "../platform/platform-tenant.repository.ts";
+import { findTenantById, canResolveDevTenantRegistryFallback, isStaticTenantRegistryAllowed } from "../tenant/tenant-registry.ts";
 import { isWorkspaceMetadataEnabled } from "./is-workspace-metadata-enabled.ts";
 import {
   isWorkspaceMetadataEnabledForTenant,
@@ -78,6 +79,19 @@ export async function resolveWorkspaceCommerceConfigForTenantById(
 ): Promise<WorkspaceCommerceConfig> {
   const binding = await readTenantWorkspaceMetadataBinding(tenantId, deps);
   if (!binding) {
+    if (isStaticTenantRegistryAllowed() || canResolveDevTenantRegistryFallback()) {
+      const registered = findTenantById(tenantId.trim());
+      if (registered) {
+        return resolveWorkspaceCommerceConfigForTenant({
+          workspaceType: registered.workspaceType,
+          tenantId,
+          metadataBinding: null,
+        });
+      }
+    }
+    if (isStaticTenantRegistryAllowed()) {
+      return DEFAULT_WORKSPACE_COMMERCE_CONFIG;
+    }
     throw new Error(`TENANT_NOT_FOUND:${tenantId}`);
   }
   return resolveWorkspaceCommerceConfigForTenant({

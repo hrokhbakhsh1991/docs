@@ -1,3 +1,4 @@
+import type { ValidationResult } from "@app-tour/platform-core";
 import type { RenderStepPlan } from "@app-tour/platform-core";
 import type { WorkspaceWizardHostHooks } from "@app-tour/workspace-sdk";
 
@@ -12,6 +13,7 @@ import {
   createDenaliWizardDraftSessionId,
   isDenaliWizardDraftSessionId,
 } from "../photos/wizard-draft-session-id";
+import { filterDenaliCanonicalValidationResult } from "./denali-wizard-validation";
 import { readDenaliCanonicalBasics } from "../adapters/canonical-basics";
 import { applyDenaliInvariantState } from "../normalize/invariantState";
 import { resolveDenaliRuleSetFromTemplate } from "../normalize/resolveRuleModel";
@@ -90,7 +92,7 @@ function applyContextualFieldRules(input: {
 }
 
 /** Phase 12.0 — Denali reference implementation of generic wizard host hooks. */
-export const denaliWizardHostHooks: WorkspaceWizardHostHooks = Object.freeze({
+export const denaliWizardHostHooks = Object.freeze({
   reviewStepId: "review",
   reviewSurfaceId: "denali",
   validationSurfaceId: "denali",
@@ -119,22 +121,44 @@ export const denaliWizardHostHooks: WorkspaceWizardHostHooks = Object.freeze({
     isAssetSessionId: isDenaliWizardDraftSessionId,
     mediaRouteKey: "wizard-photos",
   }),
-  prepareDraftEnvelope: (form, meta) =>
+  prepareDraftEnvelope: (form: unknown, meta: unknown) =>
     denaliPrepareDraftEnvelope(form, meta as DenaliWizardDraftMeta),
-  hydrateDraftEnvelope: ({ remote, fallbackForm, fallbackMeta }) =>
+  hydrateDraftEnvelope: ({
+    remote,
+    fallbackForm,
+    fallbackMeta,
+  }: {
+    readonly remote: unknown;
+    readonly fallbackForm: unknown;
+    readonly fallbackMeta: unknown;
+  }) =>
     denaliHydrateDraftEnvelope(
       remote as DenaliWizardDraftEnvelope<typeof fallbackForm> | null | undefined,
       fallbackForm,
       fallbackMeta as Partial<DenaliWizardDraftMeta> | undefined
     ),
-  normalizeRemoteEnvelope: (envelope) =>
+  normalizeRemoteEnvelope: (envelope: {
+    readonly form: unknown;
+    readonly meta: unknown;
+  }) =>
     denaliHydrateDraftEnvelope(
       envelope as DenaliWizardDraftEnvelope<typeof envelope.form>,
       envelope.form,
       envelope.meta as DenaliWizardDraftMeta
     ),
-  mergeDraftEnvelope: (local, server) => mergeDenaliWizardDraftEnvelope(local, server),
+  mergeDraftEnvelope: (local: unknown, server: unknown) =>
+    mergeDenaliWizardDraftEnvelope(
+      local as Parameters<typeof mergeDenaliWizardDraftEnvelope>[0],
+      server as Parameters<typeof mergeDenaliWizardDraftEnvelope>[1]
+    ),
   normalizeWizardTemplateGate: normalizeDenaliWizardTemplateGate,
-});
+  filterEngineValidationResult: (
+    result: {
+      readonly ok: boolean;
+      readonly violations: readonly { readonly code?: string; readonly message: string }[];
+    },
+    data: Readonly<Record<string, unknown>>
+  ) => filterDenaliCanonicalValidationResult(result as ValidationResult, data),
+}) as WorkspaceWizardHostHooks;
 
 export { loadDenaliWizardRulesModule, resolveDenaliMatrixDimensionsFromDraft, applyContextualFieldRules };

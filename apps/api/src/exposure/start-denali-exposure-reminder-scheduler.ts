@@ -1,7 +1,7 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 import { DENALI_REMINDER_OFFSETS } from "@app-tour/workspace-denali/exposure";
 
-import { prisma } from "../db/prisma";
+import { getPrisma } from "../db/prisma";
 import { logger } from "../observability/logger";
 
 import { upsertDenaliReminderActivation } from "./denali-reminder-activation.repository";
@@ -58,6 +58,7 @@ export async function processDenaliExposureReminderSchedulerOnce(): Promise<Proc
   const now = new Date();
   const windowEnd = new Date(now.getTime() + SCHEDULER_LOOKAHEAD_MS);
 
+  const prisma = getPrisma();
   const tenants = await prisma.tenant.findMany({
     where: { workspaceType: "denali", status: "active" },
     select: { id: true },

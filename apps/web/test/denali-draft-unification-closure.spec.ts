@@ -41,6 +41,7 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
     const createHook = readWebSource("src/wizard/use-denali-create-tour-wizard.ts");
     const createChrome = readWebSource("src/wizard/create-tour-wizard-chrome.tsx");
     const flatEditHook = readWebSource("src/wizard/use-denali-flat-edit-page.ts");
+    const flatEditChrome = readWebSource("src/wizard/denali-flat-edit-chrome.tsx");
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx");
     for (const source of [createHook, flatEditHook]) {
       assert.match(source, /resolveDenaliDraftConflictStrategy/);
@@ -48,7 +49,8 @@ describe("denali-draft-unification-closure.spec.ts — Tracks A–C", () => {
       assert.match(source, /createDenaliDraftOnPushSuccess/);
     }
     assert.match(createChrome, /conflictReloadNotice=\{props\.draftSync\.conflictReloadNotice\}/);
-    assert.match(flatEdit, /conflictReloadNotice=\{readyCore\.draftSync\.conflictReloadNotice\}/);
+    assert.match(flatEditChrome, /conflictReloadNotice=\{props\.draftSync\.conflictReloadNotice\}/);
+    assert.match(flatEdit, /draftSync=\{draftSyncEngine\}/);
   });
 
   it("WEB-P11-UNIFY-04 merge module has no mergeDeletedRoots union helper", () => {

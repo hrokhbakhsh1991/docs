@@ -1,7 +1,7 @@
 # Phase 8 genericity baseline — digest-locked after Phase 14 workspace host remediation (draft tombstone ingress)
 baseline_sha: deadbeef0
 inherited_from: reports/phase-7-genericity-baseline.yaml
-platform_core_tree_digest: dcda490c1e30fef519a9ba432fb25b0993466e21108ad2a921939b7de8da0f2b
+platform_core_tree_digest: e1992e6035c55e5eb5a2331cdae7aef9c62e96455f502b1d5ecd748fb5472856
 platform_core_file_count: 77
 recorded_at: "2026-06-20T00:00:00Z"
 recorded_by: "P0 workspace remediation — draftTombstone strip + composite renderer hints"

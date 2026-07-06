@@ -4,10 +4,12 @@ import type { ExposureIntent } from "./exposure-intent";
 import type { ExposureIntentRepository } from "./exposure-intent.repository";
 import type { FieldExposureRuntimeCoordinate } from "./resolve-runtime-truth-source";
 
+import type { ExposureIntentScope } from "./exposure-intent.repository";
+
 export function buildConnectionExposureIntentScope(input: {
   readonly connectionId: string;
   readonly eventType: string;
-}): ExposureIntent["scope"] {
+}): ExposureIntentScope {
   return {
     connectionId: input.connectionId,
     eventType: input.eventType,

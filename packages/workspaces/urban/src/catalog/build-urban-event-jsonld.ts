@@ -1,4 +1,4 @@
-import type { UrbanPublicCatalogEgress } from "./urban-public-catalog-surface";
+import type { UrbanPublicCatalogEgress } from "./urban-public-catalog-egress.types";
 
 type EventJsonLd = {
   readonly "@context": "https://schema.org";
