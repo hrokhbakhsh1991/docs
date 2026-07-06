@@ -8,6 +8,7 @@ import { DashboardKpiCell } from "@/admin/patterns/dashboard-kpi-cell";
 import {
   DashboardFinanceKpiGrid,
   DashboardWidgetCard,
+  DashboardWidgetError,
   DashboardWidgetFooterLink,
 } from "@/admin/patterns/dashboard-widget-card";
 import {
@@ -96,9 +97,7 @@ export function FinanceDashboardWidget({
         </DashboardFinanceKpiGrid>
       ) : null}
       {!loading && error ? (
-        <p className="text-sm text-destructive" role="alert">
-          {localizeFinanceMessage(tValidation, tErrors, error)}
-        </p>
+        <DashboardWidgetError>{localizeFinanceMessage(tValidation, tErrors, error)}</DashboardWidgetError>
       ) : null}
       {!loading && !error ? (
         <DashboardFinanceKpiGrid testId={FINANCE_DASHBOARD_WIDGET_TEST_IDS.kpiStrip}>

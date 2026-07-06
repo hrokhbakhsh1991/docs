@@ -44,6 +44,10 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
       "apps/web/src/admin/patterns/page-header.tsx",
       "apps/web/src/admin/patterns/settings-page-header.tsx",
       "apps/web/src/admin/patterns/dashboard-widget-card.tsx",
+      "apps/web/src/admin/dashboard/dashboard-bookings-widget.tsx",
+      "apps/web/src/admin/dashboard/dashboard-overview-widget.tsx",
+      "apps/web/src/admin/dashboard/dashboard-tours-widget.tsx",
+      "apps/web/src/admin/dashboard/dashboard-registrations-widget.tsx",
     ]);
   });
 
@@ -69,6 +73,9 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
       "[data-denali-settings-back-link]",
       "[data-denali-dashboard-widget]",
       "[data-denali-dashboard-kpi-grid]",
+      "[data-denali-dashboard-widget-error]",
+      "[data-denali-dashboard-tour-row]",
+      "[data-denali-dashboard-registration-row]",
     ]) {
       assert.match(skin, new RegExp(hook.replace(/[[\]]/g, "\\$&")));
     }

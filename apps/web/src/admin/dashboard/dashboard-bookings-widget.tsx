@@ -8,6 +8,7 @@ import { DashboardKpiCell } from "@/admin/patterns/dashboard-kpi-cell";
 import {
   DashboardKpiGrid,
   DashboardWidgetCard,
+  DashboardWidgetError,
   DashboardWidgetFooterLink,
 } from "@/admin/patterns/dashboard-widget-card";
 import {
@@ -97,9 +98,7 @@ export function DashboardBookingsWidget({
         </DashboardKpiGrid>
       ) : null}
       {!loading && error ? (
-        <p className="text-sm text-destructive" role="alert">
-          {resolveDashboardErrorMessage(tErrors, error)}
-        </p>
+        <DashboardWidgetError>{resolveDashboardErrorMessage(tErrors, error)}</DashboardWidgetError>
       ) : null}
       {!loading && !error ? (
         <DashboardKpiGrid testId={DASHBOARD_WIDGETS_TEST_IDS.bookingsKpi}>

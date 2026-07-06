@@ -19,6 +19,10 @@ export const ADMIN_FEATURE_PURGED_FILES = [
   "apps/web/src/admin/patterns/page-header.tsx",
   "apps/web/src/admin/patterns/settings-page-header.tsx",
   "apps/web/src/admin/patterns/dashboard-widget-card.tsx",
+  "apps/web/src/admin/dashboard/dashboard-bookings-widget.tsx",
+  "apps/web/src/admin/dashboard/dashboard-overview-widget.tsx",
+  "apps/web/src/admin/dashboard/dashboard-tours-widget.tsx",
+  "apps/web/src/admin/dashboard/dashboard-registrations-widget.tsx",
 ];
 
 /** @type {readonly string[]} */

@@ -7,11 +7,15 @@ import { useEffect, useMemo, useState } from "react";
 import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
 import {
+  DashboardTourListRow,
   DashboardWidgetCard,
+  DashboardWidgetError,
   DashboardWidgetFooterLink,
+  DashboardWidgetList,
+  DashboardWidgetListEmptyItem,
+  DashboardWidgetRowStack,
 } from "@/admin/patterns/dashboard-widget-card";
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DASHBOARD_WIDGETS_TEST_IDS,
@@ -90,20 +94,18 @@ export function DashboardToursWidget({ initialTours = null }: DashboardToursWidg
       }
     >
       {loading ? (
-        <div className="space-y-2">
+        <DashboardWidgetRowStack>
           <DenaliSkeleton size="row" />
           <DenaliSkeleton size="row" />
-        </div>
+        </DashboardWidgetRowStack>
       ) : null}
       {!loading && error ? (
-        <p className="text-sm text-destructive" role="alert">
-          {resolveDashboardErrorMessage(tErrors, error)}
-        </p>
+        <DashboardWidgetError>{resolveDashboardErrorMessage(tErrors, error)}</DashboardWidgetError>
       ) : null}
       {!loading && !error ? (
-        <ul className="flex flex-1 flex-col gap-2" data-testid={DASHBOARD_WIDGETS_TEST_IDS.toursList}>
+        <DashboardWidgetList testId={DASHBOARD_WIDGETS_TEST_IDS.toursList}>
           {recentTours.length === 0 ? (
-            <li className="flex flex-1 items-center">
+            <DashboardWidgetListEmptyItem>
               <DenaliEmptyState
                 description={t("tours.empty")}
                 action={
@@ -112,26 +114,18 @@ export function DashboardToursWidget({ initialTours = null }: DashboardToursWidg
                   </Button>
                 }
               />
-            </li>
+            </DashboardWidgetListEmptyItem>
           ) : (
             recentTours.map((tour) => (
-              <li
+              <DashboardTourListRow
                 key={tour.id}
-                className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5"
-              >
-                <Link
-                  href={dashboardTourWorkspaceHref(tour.id)}
-                  className="min-w-0 flex-1 truncate text-start text-sm font-medium text-foreground hover:text-primary hover:underline"
-                >
-                  {tour.title}
-                </Link>
-                <Badge variant="secondary" className="shrink-0 whitespace-nowrap text-xs">
-                  {t(`tourStatus.${tour.uiStatus}`)}
-                </Badge>
-              </li>
+                href={dashboardTourWorkspaceHref(tour.id)}
+                title={tour.title}
+                statusLabel={t(`tourStatus.${tour.uiStatus}`)}
+              />
             ))
           )}
-        </ul>
+        </DashboardWidgetList>
       ) : null}
     </DashboardWidgetCard>
   );

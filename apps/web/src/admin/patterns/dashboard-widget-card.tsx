@@ -74,3 +74,78 @@ export function DashboardFinanceKpiGrid({ children, testId }: DashboardKpiGridPr
     </div>
   );
 }
+
+type DashboardWidgetErrorProps = {
+  readonly children: ReactNode;
+};
+
+export function DashboardWidgetError({ children }: DashboardWidgetErrorProps) {
+  return (
+    <p data-denali-dashboard-widget-error role="alert">
+      {children}
+    </p>
+  );
+}
+
+type DashboardWidgetRowStackProps = {
+  readonly children: ReactNode;
+};
+
+export function DashboardWidgetRowStack({ children }: DashboardWidgetRowStackProps) {
+  return <div data-denali-dashboard-widget-row-stack>{children}</div>;
+}
+
+type DashboardWidgetListProps = {
+  readonly children: ReactNode;
+  readonly testId?: string;
+};
+
+export function DashboardWidgetList({ children, testId }: DashboardWidgetListProps) {
+  return (
+    <ul data-denali-dashboard-widget-list data-testid={testId}>
+      {children}
+    </ul>
+  );
+}
+
+type DashboardWidgetListEmptyItemProps = {
+  readonly children: ReactNode;
+};
+
+export function DashboardWidgetListEmptyItem({ children }: DashboardWidgetListEmptyItemProps) {
+  return <li data-denali-dashboard-widget-list-empty>{children}</li>;
+}
+
+type DashboardTourListRowProps = {
+  readonly href: string;
+  readonly title: string;
+  readonly statusLabel: string;
+};
+
+export function DashboardTourListRow({ href, title, statusLabel }: DashboardTourListRowProps) {
+  return (
+    <li data-denali-dashboard-tour-row>
+      <Link href={href} data-denali-dashboard-tour-row-link>
+        {title}
+      </Link>
+      <span data-denali-dashboard-tour-row-status>{statusLabel}</span>
+    </li>
+  );
+}
+
+type DashboardRegistrationListRowProps = {
+  readonly title: string;
+  readonly countLabel: string;
+};
+
+export function DashboardRegistrationListRow({
+  title,
+  countLabel,
+}: DashboardRegistrationListRowProps) {
+  return (
+    <li data-denali-dashboard-registration-row>
+      <span data-denali-dashboard-registration-row-title>{title}</span>
+      <span data-denali-dashboard-registration-row-count>{countLabel}</span>
+    </li>
+  );
+}

@@ -6,8 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
 import {
+  DashboardRegistrationListRow,
   DashboardWidgetCard,
+  DashboardWidgetError,
   DashboardWidgetFooterLink,
+  DashboardWidgetList,
+  DashboardWidgetListEmptyItem,
+  DashboardWidgetRowStack,
 } from "@/admin/patterns/dashboard-widget-card";
 import {
   DASHBOARD_WIDGETS_TEST_IDS,
@@ -89,36 +94,30 @@ export function DashboardRegistrationsWidget({
       }
     >
       {loading ? (
-        <div className="space-y-2">
+        <DashboardWidgetRowStack>
           <DenaliSkeleton size="row" />
           <DenaliSkeleton size="row" />
-        </div>
+        </DashboardWidgetRowStack>
       ) : null}
       {!loading && error ? (
-        <p className="text-sm text-destructive" role="alert">
-          {resolveDashboardErrorMessage(tErrors, error)}
-        </p>
+        <DashboardWidgetError>{resolveDashboardErrorMessage(tErrors, error)}</DashboardWidgetError>
       ) : null}
       {!loading && !error ? (
-        <ul className="flex flex-1 flex-col gap-2">
+        <DashboardWidgetList>
           {queueChips.length === 0 ? (
-            <li className="flex flex-1 items-center">
+            <DashboardWidgetListEmptyItem>
               <DenaliEmptyState description={t("registrations.empty")} icon="trees" />
-            </li>
+            </DashboardWidgetListEmptyItem>
           ) : (
             queueChips.map((chip) => (
-              <li
+              <DashboardRegistrationListRow
                 key={chip.tourId}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-sm"
-              >
-                <span className="min-w-0 flex-1 truncate text-start">{chip.tourTitle}</span>
-                <span className="shrink-0 text-end text-xs font-medium tabular-nums sm:text-sm">
-                  {t("registrations.pendingOnTour", { count: chip.pendingCount })}
-                </span>
-              </li>
+                title={chip.tourTitle}
+                countLabel={t("registrations.pendingOnTour", { count: chip.pendingCount })}
+              />
             ))
           )}
-        </ul>
+        </DashboardWidgetList>
       ) : null}
     </DashboardWidgetCard>
   );
