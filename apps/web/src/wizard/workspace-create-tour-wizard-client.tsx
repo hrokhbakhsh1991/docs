@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import { encodeTourActionSubmitError } from "@app-tour/workspace-denali/ui/logic/tour-action-submit-error-codec";
+import { encodeTourActionSubmitErrorForPlugin } from "@/bootstrap/workspace-tour-action-submit-bindings.generated";
 import type { WorkspacePlugin, WorkspaceWizardDraftMeta } from "@app-tour/workspace-sdk";
 
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
@@ -263,7 +263,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
       const result = await createTourAction(payload as { data: typeof draft.data });
       if (!result.ok) {
         setSubmitError(
-          encodeTourActionSubmitError({
+          encodeTourActionSubmitErrorForPlugin(pluginId, {
             status: result.status,
             code: result.code,
             message: result.message,

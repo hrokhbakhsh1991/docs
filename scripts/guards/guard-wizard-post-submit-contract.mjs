@@ -32,7 +32,9 @@ const workspaceClient = read("apps/web/src/wizard/workspace-create-tour-wizard-c
 const denaliCore = read("packages/workspaces/denali/src/ui/chrome/use-create-tour-wizard-core.ts");
 const postSubmit = read("apps/web/src/tours/run-create-tour-post-submit-success.ts");
 const postSubmitDiscard = read("apps/web/src/tours/create-tour-post-submit-discard.ts");
-const photoShim = read("apps/web/src/i18n/resolve-denali-photo-upload-error.ts");
+const photoBindings = read(
+  "apps/web/src/bootstrap/workspace-photo-upload-errors-bindings.generated.ts"
+);
 
 assertMatch("denali hook uses runCreateTourPostSubmitSuccess", denaliHook, /runCreateTourPostSubmitSuccess/);
 assertMatch(
@@ -42,6 +44,9 @@ assertMatch(
 );
 assertMatch("denali hook passes discardRemoteDraft", denaliHook, /discardRemoteDraft/);
 assertNoMatch("denali hook does not call draftSync.clearDraft on create success", denaliHook, /clearDraft:\s*\(\)\s*=>\s*draftSync\.clearDraft\(\)/);
+
+assertMatch("photo bindings delegate to denali codec surface", photoBindings, /@app-tour\/workspace-denali\/ui\/adapters\/photo-upload-errors-surface/);
+assertNoMatch("photo bindings have no duplicated alias table", photoBindings, /PHOTO_ERROR_CODE_ALIASES/);
 
 assertMatch("workspace client uses runCreateTourPostSubmitSuccess", workspaceClient, /runCreateTourPostSubmitSuccess/);
 assertMatch(
@@ -68,8 +73,5 @@ assertNoMatch(
   workspaceClient,
   /deleteWorkspaceDraftSnapshot/
 );
-
-assertMatch("photo shim re-exports denali codec", photoShim, /@app-tour\/workspace-denali\/ui\/adapters\/photo-upload-errors/);
-assertNoMatch("photo shim has no duplicated alias table", photoShim, /PHOTO_ERROR_CODE_ALIASES/);
 
 console.log("guard-wizard-post-submit-contract: PASS");

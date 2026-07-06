@@ -1,18 +1,16 @@
-import {
-  DENALI_DESTINATION_LOCATION_TYPES,
-  denaliDestinationMetadataFieldsForType,
-  normalizeDenaliDestinationLocationType,
-  type DenaliDestinationLocationType,
-} from "@app-tour/workspace-denali/settings/destination-location-types";
+import { resolveSettingsDestinationSurface } from "@/bootstrap/workspace-settings-destination-bindings.generated";
 
 import { normalizeNumericInputValue, toAsciiDigits } from "@/i18n/format-localized-digits";
 
+import type { DestinationLocationType } from "./destination-settings-surface-types";
 import type { DestinationResource } from "./settings-module-types";
+
+export type { DestinationLocationType };
 
 export type DestinationFormDraft = {
   readonly regionId: string;
   readonly name: string;
-  readonly locationType: DenaliDestinationLocationType;
+  readonly locationType: DestinationLocationType;
   readonly altitudeM: string;
   readonly typicalTrailDistanceKm: string;
 };
@@ -25,13 +23,27 @@ export const EMPTY_DESTINATION_FORM_DRAFT: DestinationFormDraft = {
   typicalTrailDistanceKm: "",
 };
 
+function requireDestinationSurface(pluginId: string) {
+  const surface = resolveSettingsDestinationSurface(pluginId);
+  if (surface == null) {
+    throw new Error(`No destination settings surface for plugin: ${pluginId}`);
+  }
+  return surface;
+}
+
+export function destinationLocationTypesForPlugin(pluginId: string) {
+  return requireDestinationSurface(pluginId).locationTypes;
+}
+
 export function destinationFormDraftFromResource(
-  destination: DestinationResource
+  destination: DestinationResource,
+  pluginId: string
 ): DestinationFormDraft {
+  const surface = requireDestinationSurface(pluginId);
   return {
     regionId: destination.regionId,
     name: destination.name,
-    locationType: normalizeDenaliDestinationLocationType(destination.locationType),
+    locationType: surface.normalizeLocationType(destination.locationType),
     altitudeM:
       destination.altitudeM !== null && destination.altitudeM > 0
         ? String(destination.altitudeM)
@@ -68,12 +80,14 @@ export function parseOptionalPositiveFloatField(raw: string): number | null | un
 }
 
 function readMetadataForLocationType(
-  draft: DestinationFormDraft
+  draft: DestinationFormDraft,
+  pluginId: string
 ): {
   altitudeM: number | null | undefined;
   typicalTrailDistanceKm: number | null | undefined;
 } {
-  const metadataFields = denaliDestinationMetadataFieldsForType(draft.locationType);
+  const surface = requireDestinationSurface(pluginId);
+  const metadataFields = surface.metadataFieldsForType(draft.locationType);
   const altitudeM = metadataFields.includes("altitudeM")
     ? parseOptionalPositiveIntField(draft.altitudeM)
     : undefined;
@@ -83,11 +97,14 @@ function readMetadataForLocationType(
   return { altitudeM, typicalTrailDistanceKm };
 }
 
-export function buildDestinationCreateBody(draft: DestinationFormDraft): Record<string, unknown> | null {
+export function buildDestinationCreateBody(
+  draft: DestinationFormDraft,
+  pluginId: string
+): Record<string, unknown> | null {
   if (draft.name.trim().length === 0 || draft.regionId.trim().length === 0) {
     return null;
   }
-  const { altitudeM, typicalTrailDistanceKm } = readMetadataForLocationType(draft);
+  const { altitudeM, typicalTrailDistanceKm } = readMetadataForLocationType(draft, pluginId);
   if (altitudeM === null || typicalTrailDistanceKm === null) {
     return null;
   }
@@ -102,16 +119,18 @@ export function buildDestinationCreateBody(draft: DestinationFormDraft): Record<
 }
 
 export function buildDestinationPatchBody(
-  draft: DestinationFormDraft
+  draft: DestinationFormDraft,
+  pluginId: string
 ): Record<string, unknown> | null {
   if (draft.name.trim().length === 0 || draft.regionId.trim().length === 0) {
     return null;
   }
-  const { altitudeM, typicalTrailDistanceKm } = readMetadataForLocationType(draft);
+  const surface = requireDestinationSurface(pluginId);
+  const { altitudeM, typicalTrailDistanceKm } = readMetadataForLocationType(draft, pluginId);
   if (altitudeM === null || typicalTrailDistanceKm === null) {
     return null;
   }
-  const metadataFields = denaliDestinationMetadataFieldsForType(draft.locationType);
+  const metadataFields = surface.metadataFieldsForType(draft.locationType);
   return {
     name: draft.name.trim(),
     regionId: draft.regionId.trim(),
@@ -124,13 +143,18 @@ export function buildDestinationPatchBody(
 }
 
 export function destinationMetadataFieldsForForm(
-  locationType: DenaliDestinationLocationType
+  locationType: DestinationLocationType,
+  pluginId: string
 ): readonly ("altitudeM" | "typicalTrailDistanceKm")[] {
-  return denaliDestinationMetadataFieldsForType(locationType);
+  return requireDestinationSurface(pluginId).metadataFieldsForType(locationType);
 }
 
-export function formatDestinationMetadataSummary(destination: DestinationResource): string | null {
-  const locationType = normalizeDenaliDestinationLocationType(destination.locationType);
+export function formatDestinationMetadataSummary(
+  destination: DestinationResource,
+  pluginId: string
+): string | null {
+  const surface = requireDestinationSurface(pluginId);
+  const locationType = surface.normalizeLocationType(destination.locationType);
   if (locationType === "peak" && destination.altitudeM !== null && destination.altitudeM > 0) {
     return `${destination.altitudeM}m`;
   }
@@ -143,5 +167,3 @@ export function formatDestinationMetadataSummary(destination: DestinationResourc
   }
   return null;
 }
-
-export { DENALI_DESTINATION_LOCATION_TYPES };

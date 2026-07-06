@@ -46,7 +46,7 @@ Platform apps (`apps/web`, `apps/portal`, `apps/marketing`, `apps/api`) and plat
 
 Workspace-specific behavior is reached **only** through generated bindings keyed by resolved `pluginId` at runtime.
 
-**Violation today (Phase C sprint 1 resolved 2026-07-06):** Urban API guards and `pluginId === "denali"` in tours/wizard-template page clients replaced by manifest codegen (`operatorCapabilities`, `WORKSPACE_CATALOG_LIST_FEATURES`, `wizardTemplateEditor` bindings). **Sprint 2:** tour edit uses `isExtendedOperatorSession`. **Sprint 3 (C3):** marketing catalog bindings — `resolveMarketingCatalogSurface` replaces direct `@app-tour/workspace-denali/marketing` in `apps/marketing/src/catalog`. **Remaining:** broader `apps/web` Denali direct imports (~70 allowlisted files), full admin purge (C4).
+**Violation today (Phase C sprint 1 resolved 2026-07-06):** Urban API guards and `pluginId === "denali"` in tours/wizard-template page clients replaced by manifest codegen. **Sprint 5:** six P0-T-161 settings/codec files migrated to bindings — `P0-T-161 hits: []` for non-allowlisted sources. **Remaining:** ~70 denali shell orchestration files on explicit allowlist (C4 continuation).
 
 ### P3 — Codegen derives everything discoverable
 
@@ -807,9 +807,22 @@ Using **both** `ThemeProviderChain` JS variables **and** conflicting hex in CSS 
 - `wizard-field.tsx` enum option labels delegate to `resolveWizardEnumOptionLabel` via codegen `WizardLabelResolver` (no direct `@app-tour/workspace-denali/ui/adapters/field-labels`).
 - Composite loading fallback uses `data-wizard-composite-loading` — no `fieldId.startsWith("denali.")` branch.
 
+**Sprint 5 (2026-07-06) — C4 settings + tour codec bindings:**
+
+Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
+
+| Block | Consumer |
+| ----- | -------- |
+| `tourActionSubmitCodec` | `workspace-create-tour-wizard-client`, `resolve-wizard-submit-error-message` |
+| `settingsDestinationSurface` | `destination-form-logic`, `locations-settings-client` |
+| `settingsEquipmentUi` | `equipment-settings-client` |
+| `photoUploadErrors` | generated only (legacy `resolve-denali-photo-upload-error` shim removed) |
+
+`destination-form-logic` and settings clients resolve surfaces via `pluginId` from operator session — no direct `@app-tour/workspace-denali` imports in those six P0-T-161 hits.
+
 **Remaining:**
 
-- Remove direct `@app-tour/workspace-denali` imports from `apps/web` (C3–C4).
+- Shrink P0-T-161 allowlist (~70 denali shell orchestration files) as orchestration migrates to bindings.
 - Replace remaining `pluginId === "denali"` outside sprint-1 surfaces.
 
 ### Phase D — Appearance decomposition

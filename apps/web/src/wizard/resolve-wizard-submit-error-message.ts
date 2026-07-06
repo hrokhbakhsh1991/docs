@@ -1,4 +1,4 @@
-import { decodeTourActionSubmitError } from "@app-tour/workspace-denali/ui/logic/tour-action-submit-error-codec";
+import { decodeTourActionSubmitError } from "@/bootstrap/workspace-tour-action-submit-bindings.generated";
 
 import { resolveDenaliValidationIssueLabel } from "@/wizard/denali/denali-validation-issue-label";
 import { localizeDenaliValidationIssueMessage } from "@/wizard/denali/denali-localize-validation-message";

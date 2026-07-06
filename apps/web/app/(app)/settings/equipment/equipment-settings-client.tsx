@@ -5,9 +5,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { resolveSettingsEquipmentUiSurface } from "@/bootstrap/workspace-settings-equipment-ui-bindings.generated";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
-import { EquipmentCatalogAvatar } from "@app-tour/workspace-denali/ui/components/equipment-catalog-avatar";
-import { EquipmentIconPicker } from "@app-tour/workspace-denali/ui/components/equipment-icon-picker";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,11 @@ type EquipmentSettingsClientProps = {
 };
 
 export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProps) {
+  const equipmentUi = resolveSettingsEquipmentUiSurface(session.pluginId);
+  if (equipmentUi == null) {
+    throw new Error(`No equipment settings UI surface for plugin: ${session.pluginId}`);
+  }
+  const { EquipmentCatalogAvatar, EquipmentIconPicker } = equipmentUi;
   const t = useTranslations("settings.equipment");
   const tErrors = useTranslations("settings.errors");
   const tCommon = useTranslations("common");

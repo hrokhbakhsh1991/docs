@@ -289,5 +289,21 @@
   "marketingCatalog": {
     "module": "./marketing/marketing-catalog-surface",
     "export": "denaliMarketingCatalogSurface"
+  },
+  "settingsDestinationSurface": {
+    "module": "./settings/destination-settings-surface",
+    "export": "denaliDestinationSettingsSurface"
+  },
+  "settingsEquipmentUi": {
+    "module": "./ui/settings/settings-equipment-ui-surface",
+    "export": "denaliSettingsEquipmentUiSurface"
+  },
+  "tourActionSubmitCodec": {
+    "module": "./ui/logic/tour-action-submit-codec-surface",
+    "export": "denaliTourActionSubmitCodec"
+  },
+  "photoUploadErrors": {
+    "module": "./ui/adapters/photo-upload-errors-surface",
+    "export": "denaliPhotoUploadErrorsSurface"
   }
 }

@@ -24,6 +24,10 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "wizard-surface-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "wizard-label-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-template-editor-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-settings-destination-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-settings-equipment-ui-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-tour-action-submit-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-photo-upload-errors-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {

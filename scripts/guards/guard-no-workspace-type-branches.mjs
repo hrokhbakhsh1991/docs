@@ -63,6 +63,11 @@ const C2_TARGETS = [
 const C4_WEB_TARGETS = [
   "apps/web/app/(app)/tours/[id]/edit/tour-edit-page-client.tsx",
   "apps/web/src/wizard/wizard-field.tsx",
+  "apps/web/src/features/settings/destination-form-logic.ts",
+  "apps/web/src/wizard/resolve-wizard-submit-error-message.ts",
+  "apps/web/src/wizard/workspace-create-tour-wizard-client.tsx",
+  "apps/web/app/(app)/settings/equipment/equipment-settings-client.tsx",
+  "apps/web/app/(app)/settings/locations/locations-settings-client.tsx",
 ];
 
 const isDenaliLocalPattern = /\bisDenali\b/;

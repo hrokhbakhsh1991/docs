@@ -15,12 +15,13 @@ import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-
 import {
   buildDestinationCreateBody,
   buildDestinationPatchBody,
-  DENALI_DESTINATION_LOCATION_TYPES,
   destinationFormDraftFromResource,
+  destinationLocationTypesForPlugin,
   destinationMetadataFieldsForForm,
   EMPTY_DESTINATION_FORM_DRAFT,
   formatDestinationMetadataSummary,
   type DestinationFormDraft,
+  type DestinationLocationType,
 } from "@/features/settings/destination-form-logic";
 import { parseLocationsResponse } from "@/features/settings/locations-logic";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
@@ -29,7 +30,6 @@ import {
   type DestinationResource,
   type RegionResource,
 } from "@/features/settings/settings-module-types";
-import type { DenaliDestinationLocationType } from "@app-tour/workspace-denali/settings/destination-location-types";
 
 type LocationsSettingsClientProps = {
   readonly session: OperatorSessionContext;
@@ -39,12 +39,14 @@ function DestinationMetadataFields({
   draft,
   onChange,
   t,
+  pluginId,
 }: {
   readonly draft: DestinationFormDraft;
   readonly onChange: (next: DestinationFormDraft) => void;
   readonly t: ReturnType<typeof useTranslations<"settings.locations">>;
+  readonly pluginId: string;
 }) {
-  const metadataFields = destinationMetadataFieldsForForm(draft.locationType);
+  const metadataFields = destinationMetadataFieldsForForm(draft.locationType, pluginId);
   if (metadataFields.length === 0) {
     return null;
   }
@@ -80,6 +82,8 @@ function DestinationMetadataFields({
 }
 
 export function LocationsSettingsClient({ session }: LocationsSettingsClientProps) {
+  const pluginId = session.pluginId;
+  const destinationLocationTypes = destinationLocationTypesForPlugin(pluginId);
   const t = useTranslations("settings.locations");
   const tErrors = useTranslations("settings.errors");
   const tCommon = useTranslations("common");
@@ -186,8 +190,8 @@ export function LocationsSettingsClient({ session }: LocationsSettingsClientProp
     }
     const isEditing = editingDestinationId !== null;
     const body = isEditing
-      ? buildDestinationPatchBody(destinationForm)
-      : buildDestinationCreateBody(destinationForm);
+      ? buildDestinationPatchBody(destinationForm, pluginId)
+      : buildDestinationCreateBody(destinationForm, pluginId);
     if (body === null) {
       setError("DESTINATION_INVALID_METADATA");
       return;
@@ -245,11 +249,11 @@ export function LocationsSettingsClient({ session }: LocationsSettingsClientProp
 
   const startEditingDestination = (destination: DestinationResource) => {
     setEditingDestinationId(destination.id);
-    setDestinationForm(destinationFormDraftFromResource(destination));
+    setDestinationForm(destinationFormDraftFromResource(destination, pluginId));
   };
 
   const resolveLocationTypeLabel = (locationType: string | null) => {
-    const entry = DENALI_DESTINATION_LOCATION_TYPES.find((row) => row.value === locationType);
+    const entry = destinationLocationTypes.find((row) => row.value === locationType);
     return entry ? t(entry.settingsLabelKey) : t("locationTypeGeneric");
   };
 
@@ -409,13 +413,13 @@ export function LocationsSettingsClient({ session }: LocationsSettingsClientProp
                       onChange={(event) =>
                         setDestinationForm((current) => ({
                           ...current,
-                          locationType: event.target.value as DenaliDestinationLocationType,
+                          locationType: event.target.value as DestinationLocationType,
                           altitudeM: "",
                           typicalTrailDistanceKm: "",
                         }))
                       }
                     >
-                      {DENALI_DESTINATION_LOCATION_TYPES.map((entry) => (
+                      {destinationLocationTypes.map((entry) => (
                         <option key={entry.value} value={entry.value}>
                           {t(entry.settingsLabelKey)}
                         </option>
@@ -426,6 +430,7 @@ export function LocationsSettingsClient({ session }: LocationsSettingsClientProp
                     draft={destinationForm}
                     onChange={setDestinationForm}
                     t={t}
+                    pluginId={pluginId}
                   />
                   <div className="flex flex-wrap items-end gap-2 sm:col-span-2">
                     <Button type="submit" disabled={saving || regions.length === 0}>
@@ -457,7 +462,7 @@ export function LocationsSettingsClient({ session }: LocationsSettingsClientProp
                 <p className="text-sm text-muted-foreground">{t("noDestinations")}</p>
               ) : (
                 destinations.map((destination) => {
-                  const metadataSummary = formatDestinationMetadataSummary(destination);
+                  const metadataSummary = formatDestinationMetadataSummary(destination, pluginId);
                   return (
                     <div
                       key={destination.id}

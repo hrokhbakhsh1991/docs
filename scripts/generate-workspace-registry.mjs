@@ -1629,6 +1629,10 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "operatorCapabilities",
   "wizardTemplateEditor",
   "marketingCatalog",
+  "settingsDestinationSurface",
+  "settingsEquipmentUi",
+  "tourActionSubmitCodec",
+  "photoUploadErrors",
 ];
 
 /**
@@ -1733,6 +1737,27 @@ export function assertGuestExtensionsManifest(manifest) {
     }
     if (typeof catalog.export !== "string" || catalog.export.length === 0) {
       throw new Error(`${manifest.id}: marketingCatalog.export must be a non-empty string`);
+    }
+  }
+
+  for (const key of [
+    "settingsDestinationSurface",
+    "settingsEquipmentUi",
+    "tourActionSubmitCodec",
+    "photoUploadErrors",
+  ]) {
+    const block = manifest[key];
+    if (block === undefined) {
+      continue;
+    }
+    if (typeof block !== "object" || Array.isArray(block)) {
+      throw new Error(`${manifest.id}: ${key} must be an object`);
+    }
+    if (typeof block.module !== "string" || block.module.length === 0) {
+      throw new Error(`${manifest.id}: ${key}.module must be a non-empty string`);
+    }
+    if (typeof block.export !== "string" || block.export.length === 0) {
+      throw new Error(`${manifest.id}: ${key}.export must be a non-empty string`);
     }
   }
 }
@@ -2674,6 +2699,218 @@ export function resolveMarketingCatalogSurface(
 `;
 }
 
+/**
+ * @param {ReturnType<typeof discoverManifests>} manifests
+ * @param {string} manifestKey
+ * @param {string} typeImportPath
+ * @param {string} typeName
+ * @param {string} recordConst
+ * @param {string} resolveFn
+ * @param {string} aliasPrefix
+ */
+function generatePluginSurfaceBindings(
+  manifests,
+  manifestKey,
+  typeImportPath,
+  typeName,
+  recordConst,
+  resolveFn,
+  aliasPrefix
+) {
+  const withSurface = manifests.filter((m) => m[manifestKey] !== undefined);
+  if (withSurface.length === 0) {
+    return `${BANNER}
+import type { ${typeName} } from "${typeImportPath}";
+
+export function ${resolveFn}(
+  _pluginId: string
+): ${typeName} | null {
+  return null;
+}
+`;
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const entries = [];
+
+  for (const m of withSurface) {
+    const block = m[manifestKey];
+    if (typeof block.module !== "string" || typeof block.export !== "string") {
+      throw new Error(`${m.id}: ${manifestKey} requires module and export`);
+    }
+    const alias = `${aliasPrefix}_${m.id.replace(/-/g, "_")}`;
+    const importFrom = importSpecifier(m.package, block.module);
+    importLines.add(`import { ${block.export} as ${alias} } from "${importFrom}";`);
+    entries.push(`  ${JSON.stringify(m.id)}: ${alias},`);
+  }
+
+  return `${BANNER}
+import type { ${typeName} } from "${typeImportPath}";
+${[...importLines].join("\n")}
+
+const ${recordConst}: Readonly<Record<string, ${typeName}>> = Object.freeze({
+${entries.join("\n")}
+});
+
+export function ${resolveFn}(
+  pluginId: string
+): ${typeName} | null {
+  return ${recordConst}[pluginId] ?? null;
+}
+`;
+}
+
+export function generateSettingsDestinationBindings(manifests) {
+  return generatePluginSurfaceBindings(
+    manifests,
+    "settingsDestinationSurface",
+    "@/features/settings/destination-settings-surface-types",
+    "DestinationSettingsSurface",
+    "SETTINGS_DESTINATION_SURFACES",
+    "resolveSettingsDestinationSurface",
+    "destination_surface"
+  );
+}
+
+export function generateSettingsEquipmentUiBindings(manifests) {
+  return generatePluginSurfaceBindings(
+    manifests,
+    "settingsEquipmentUi",
+    "@/features/settings/settings-equipment-ui-types",
+    "SettingsEquipmentUiSurface",
+    "SETTINGS_EQUIPMENT_UI_SURFACES",
+    "resolveSettingsEquipmentUiSurface",
+    "equipment_ui"
+  );
+}
+
+export function generateTourActionSubmitBindings(manifests) {
+  const withCodec = manifests.filter((m) => m.tourActionSubmitCodec !== undefined);
+  if (withCodec.length === 0) {
+    return `${BANNER}
+export type TourActionSubmitErrorPayload = {
+  readonly status: number;
+  readonly code: string;
+  readonly message: string;
+  readonly correlationId?: string;
+};
+
+export function encodeTourActionSubmitErrorForPlugin(
+  _pluginId: string,
+  _payload: TourActionSubmitErrorPayload
+): string {
+  throw new Error("No tour action submit codec registered");
+}
+
+export function decodeTourActionSubmitError(
+  _raw: string
+): TourActionSubmitErrorPayload | null {
+  return null;
+}
+`;
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const codecEntries = [];
+
+  for (const m of withCodec) {
+    const block = m.tourActionSubmitCodec;
+    if (typeof block.module !== "string" || typeof block.export !== "string") {
+      throw new Error(`${m.id}: tourActionSubmitCodec requires module and export`);
+    }
+    const alias = `codec_${m.id.replace(/-/g, "_")}`;
+    const importFrom = importSpecifier(m.package, block.module);
+    importLines.add(`import { ${block.export} as ${alias} } from "${importFrom}";`);
+    codecEntries.push(`  ${JSON.stringify(m.id)}: ${alias},`);
+  }
+
+  const firstAlias = `codec_${withCodec[0].id.replace(/-/g, "_")}`;
+
+  return `${BANNER}
+import type { TourActionSubmitErrorPayload } from "@app-tour/workspace-denali/ui/logic/tour-action-submit-error-codec";
+${[...importLines].join("\n")}
+
+const TOUR_ACTION_SUBMIT_CODECS = Object.freeze({
+${codecEntries.join("\n")}
+});
+
+export type { TourActionSubmitErrorPayload };
+
+export function encodeTourActionSubmitErrorForPlugin(
+  pluginId: string,
+  payload: TourActionSubmitErrorPayload
+): string {
+  const codec = TOUR_ACTION_SUBMIT_CODECS[pluginId as keyof typeof TOUR_ACTION_SUBMIT_CODECS];
+  if (codec == null) {
+    throw new Error(\`No tour action submit codec for plugin: \${pluginId}\`);
+  }
+  return codec.encode(payload);
+}
+
+export function decodeTourActionSubmitError(
+  raw: string
+): TourActionSubmitErrorPayload | null {
+  for (const codec of Object.values(TOUR_ACTION_SUBMIT_CODECS)) {
+    const decoded = codec.decode(raw);
+    if (decoded != null) {
+      return decoded;
+    }
+  }
+  return null;
+}
+
+/** @deprecated Use encodeTourActionSubmitErrorForPlugin — retained for tests */
+export function encodeTourActionSubmitError(
+  payload: TourActionSubmitErrorPayload
+): string {
+  return ${firstAlias}.encode(payload);
+}
+`;
+}
+
+export function generatePhotoUploadErrorsBindings(manifests) {
+  const withSurface = manifests.filter((m) => m.photoUploadErrors !== undefined);
+  if (withSurface.length === 0) {
+    return `${BANNER}
+export function resolvePhotoUploadError(
+  _t: (key: string, values?: Record<string, string | number>) => string,
+  _code: string | null | undefined
+): string | null {
+  return null;
+}
+`;
+  }
+
+  const m = withSurface[0];
+  const block = m.photoUploadErrors;
+  if (typeof block.module !== "string" || typeof block.export !== "string") {
+    throw new Error(`${m.id}: photoUploadErrors requires module and export`);
+  }
+  const importFrom = importSpecifier(m.package, block.module);
+  const alias = `photo_errors_${m.id.replace(/-/g, "_")}`;
+
+  return `${BANNER}
+import { ${block.export} as ${alias} } from "${importFrom}";
+
+export const PHOTO_UPLOAD_ERROR_MESSAGE_KEYS = ${alias}.messageKeys;
+
+export const extractPhotoApiErrorCode = ${alias}.extractApiErrorCode;
+export const normalizePhotoErrorCode = ${alias}.normalizeErrorCode;
+export const parsePhotoApiErrorCode = ${alias}.parseApiErrorCode;
+
+export function resolvePhotoUploadError(
+  t: (key: string, values?: Record<string, string | number>) => string,
+  code: string | null | undefined
+): string | null {
+  return ${alias}.resolvePhotoUploadError(t, code);
+}
+`;
+}
+
 /** @param {ReturnType<typeof discoverManifests>} manifests */
 export function generateWorkspaceCatalogListFeatures(manifests) {
   /** @type {Record<string, { cityFilter: boolean; serverListFilters: string[] }>} */
@@ -3064,6 +3301,10 @@ export function generateAllOutputs(manifests) {
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
     wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
     marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
+    settingsDestinationBindings: generateSettingsDestinationBindings(manifests),
+    settingsEquipmentUiBindings: generateSettingsEquipmentUiBindings(manifests),
+    tourActionSubmitBindings: generateTourActionSubmitBindings(manifests),
+    photoUploadErrorsBindings: generatePhotoUploadErrorsBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -3162,6 +3403,22 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/marketing/src/bootstrap/workspace-marketing-catalog-bindings.generated.ts"
   ),
+  settingsDestinationBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-settings-destination-bindings.generated.ts"
+  ),
+  settingsEquipmentUiBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-settings-equipment-ui-bindings.generated.ts"
+  ),
+  tourActionSubmitBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-tour-action-submit-bindings.generated.ts"
+  ),
+  photoUploadErrorsBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-photo-upload-errors-bindings.generated.ts"
+  ),
   devPluginIds: join(
     REPO_ROOT,
     "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts"
@@ -3259,6 +3516,10 @@ function main() {
       "operatorCapabilities",
       "wizardTemplateEditorBindings",
       "marketingCatalogBindings",
+      "settingsDestinationBindings",
+      "settingsEquipmentUiBindings",
+      "tourActionSubmitBindings",
+      "photoUploadErrorsBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -3322,6 +3583,10 @@ function main() {
   writeFileSync(OUTPUT_PATHS.operatorCapabilities, generated.operatorCapabilities);
   writeFileSync(OUTPUT_PATHS.wizardTemplateEditorBindings, generated.wizardTemplateEditorBindings);
   writeFileSync(OUTPUT_PATHS.marketingCatalogBindings, generated.marketingCatalogBindings);
+  writeFileSync(OUTPUT_PATHS.settingsDestinationBindings, generated.settingsDestinationBindings);
+  writeFileSync(OUTPUT_PATHS.settingsEquipmentUiBindings, generated.settingsEquipmentUiBindings);
+  writeFileSync(OUTPUT_PATHS.tourActionSubmitBindings, generated.tourActionSubmitBindings);
+  writeFileSync(OUTPUT_PATHS.photoUploadErrorsBindings, generated.photoUploadErrorsBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

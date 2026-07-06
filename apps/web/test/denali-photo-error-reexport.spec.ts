@@ -10,12 +10,15 @@ import { describe, it } from "node:test";
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("denali-photo-error-reexport.spec.ts", () => {
-  it("WEB-P11-6-04 web i18n shim re-exports denali photo-upload-errors only", () => {
+  it("WEB-P11-6-04 web photo bindings delegate to denali photo-upload-errors surface only", () => {
     const source = readFileSync(
-      join(WEB_ROOT, "src/i18n/resolve-denali-photo-upload-error.ts"),
+      join(WEB_ROOT, "src/bootstrap/workspace-photo-upload-errors-bindings.generated.ts"),
       "utf8"
     );
-    assert.match(source, /from "@app-tour\/workspace-denali\/ui\/adapters\/photo-upload-errors"/);
+    assert.match(
+      source,
+      /from "@app-tour\/workspace-denali\/ui\/adapters\/photo-upload-errors-surface"/
+    );
     assert.doesNotMatch(source, /PHOTO_ERROR_CODE_ALIASES/);
     assert.doesNotMatch(source, /function extractDenaliPhotoApiErrorCode/);
   });
