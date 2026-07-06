@@ -1,4 +1,4 @@
-import { DENALI_COMPOSITE_BY_CANONICAL_PATH } from "@app-tour/workspace-denali/composites";
+import { DENALI_COMPOSITE_BY_CANONICAL_PATH } from "@/bootstrap/workspace-wizard-composite-registry-bindings.generated";
 
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 

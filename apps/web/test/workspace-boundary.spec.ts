@@ -39,6 +39,7 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-form-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-page-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-create-view-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-composite-registry-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {
@@ -46,9 +47,6 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
     return true;
   }
   const rel = file.slice(WEB_ROOT.length + 1);
-  if (rel.startsWith("src/wizard/denali/")) {
-    return true;
-  }
   if (rel.startsWith("src/tours/")) {
     return true;
   }
@@ -200,7 +198,8 @@ describe("Phase 3.3 workspace boundary", () => {
 
   it("P15-W-C2 denali web adapters live under wizard/denali", () => {
     assert.ok(existsSync(join(SRC_DIR, "wizard/denali")));
-    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-flat-edit-form.tsx")));
+    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-catalog-sanitize.ts")));
+    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-validation-issue-label.ts")));
   });
 
   it("P15-W-C2 denali shell avoids self-referential @/wizard/denali imports", () => {

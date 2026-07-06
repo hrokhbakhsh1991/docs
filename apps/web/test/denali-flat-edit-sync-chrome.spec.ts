@@ -41,7 +41,7 @@ describe("denali-flat-edit-sync-chrome.spec.ts — Phase 5B", () => {
       "utf8"
     );
     assert.match(flatEdit, /navLocked=\{readyCore\.draftSync\.navLocked\}/);
-    assert.match(formShim, /@app-tour\/workspace-denali\/ui\/chrome\/denali-flat-edit-form/);
+    assert.match(formShim, /workspace-wizard-flat-edit-form-bindings\.generated/);
     assert.match(form, /fieldset disabled=\{navLocked\}/);
   });
 

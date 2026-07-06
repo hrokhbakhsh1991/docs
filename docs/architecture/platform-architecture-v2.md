@@ -850,9 +850,15 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 - `resolve-bootstrap-workspace-plugin` delegates to `resolveSyncWorkspacePluginFromRegistry` with starter fallback.
 - `resolve-bootstrap-workspace-plugin.client` uses codegen for starter/urban; Denali keeps lightweight shell stub (no crypto graph).
 
+**Sprint 11 (2026-07-06) — C4 wizard/denali adapter purge:**
+
+- `wizardCompositeRegistry` manifest → `workspace-wizard-composite-registry-bindings.generated.ts`.
+- `denali-validation-issue-label` uses composite registry bindings (no direct `@app-tour/workspace-denali/composites`).
+- Removed dead web duplicates: flat-edit-form, tour-create-payload, draft-form-adapter, tour-kind-labels, review-surface, field-focus-registry.
+
 **Remaining:**
 
-- Shrink P0-T-161 allowlist (~70 denali shell orchestration files) as orchestration migrates to bindings.
+- C4 `apps/web` production purge: **complete** — only codegen `*.generated.ts` loaders retain `@app-tour/workspace-denali` imports.
 - Replace remaining `pluginId === "denali"` outside sprint-1 surfaces.
 
 ### Phase D — Appearance decomposition

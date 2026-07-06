@@ -3221,6 +3221,21 @@ export const DenaliCreateTourWizardView = ${alias}.CreateTourWizardView;
   );
 }
 
+export function generateWizardCompositeRegistryBindings(manifests) {
+  return generateSingleWorkspaceSurfaceBindings(
+    manifests,
+    "wizardCompositeRegistry",
+    "wizard_composite_registry",
+    "denaliWizardCompositeRegistrySurface",
+    {
+      empty: `export const DENALI_COMPOSITE_BY_CANONICAL_PATH: Readonly<Record<string, string>> = Object.freeze({});`,
+      withSurface: (alias) => `
+export const DENALI_COMPOSITE_BY_CANONICAL_PATH = ${alias}.compositeByCanonicalPath;
+`,
+    }
+  );
+}
+
 export function generatePhotoUploadErrorsBindings(manifests) {
   const withSurface = manifests.filter((m) => m.photoUploadErrors !== undefined);
   if (withSurface.length === 0) {
@@ -3665,6 +3680,7 @@ export function generateAllOutputs(manifests) {
     wizardFlatEditFormBindings: generateWizardFlatEditFormBindings(manifests),
     wizardFlatEditPageBindings: generateWizardFlatEditPageBindings(manifests),
     wizardCreateViewBindings: generateWizardCreateViewBindings(manifests),
+    wizardCompositeRegistryBindings: generateWizardCompositeRegistryBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -3823,6 +3839,10 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-wizard-create-view-bindings.generated.ts"
   ),
+  wizardCompositeRegistryBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-composite-registry-bindings.generated.ts"
+  ),
   devPluginIds: join(
     REPO_ROOT,
     "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts"
@@ -3935,6 +3955,7 @@ function main() {
       "wizardFlatEditFormBindings",
       "wizardFlatEditPageBindings",
       "wizardCreateViewBindings",
+      "wizardCompositeRegistryBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -4013,6 +4034,7 @@ function main() {
   writeFileSync(OUTPUT_PATHS.wizardFlatEditFormBindings, generated.wizardFlatEditFormBindings);
   writeFileSync(OUTPUT_PATHS.wizardFlatEditPageBindings, generated.wizardFlatEditPageBindings);
   writeFileSync(OUTPUT_PATHS.wizardCreateViewBindings, generated.wizardCreateViewBindings);
+  writeFileSync(OUTPUT_PATHS.wizardCompositeRegistryBindings, generated.wizardCompositeRegistryBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

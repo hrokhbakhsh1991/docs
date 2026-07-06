@@ -349,5 +349,9 @@
   "wizardCreateView": {
     "module": "./ui/chrome/wizard-create-view-surface",
     "export": "denaliWizardCreateViewSurface"
+  },
+  "wizardCompositeRegistry": {
+    "module": "./composites/wizard-composite-registry-surface",
+    "export": "denaliWizardCompositeRegistrySurface"
   }
 }
