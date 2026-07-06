@@ -54,7 +54,7 @@ describe("denali-wizard-theme.spec.ts", () => {
     const skin = readFileSync(join(DENALI_THEME_DIR, "wizard-skin.css"), "utf8");
     assert.match(
       skin,
-      /html\.dark:has\(body\[data-workspace-plugin="denali"\]\) \[data-new-tour-wizard\][\s\S]*--color-primary:\s*#5eead4/
+      /html\.dark:has\(body\[data-workspace-plugin="denali"\]\) \[data-new-tour-wizard\][\s\S]*--color-primary:\s*var\(--color-primary\)/
     );
   });
 
@@ -116,7 +116,7 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(calendarCss, /button\[aria-pressed="true"\]/);
     assert.match(
       calendarCss,
-      /html\.dark:has\(body\[data-workspace-plugin="denali"\]\)[\s\S]*--denali-wizard-calendar-primary:\s*#5eead4/
+      /--denali-wizard-calendar-primary:\s*var\(--color-primary\)/
     );
     const fields = readFileSync(join(DENALI_THEME_DIR, "wizard-fields.css"), "utf8");
     assert.doesNotMatch(fields, /data-selected="true"/);

@@ -104,6 +104,13 @@ if (!existsSync(WORKSPACES_ROOT)) {
     const adminSkinHook = path.join(themeDir, "admin-skin.css");
     auditSkinHookCss(adminSkinHook, `packages/workspaces/${workspaceId}/theme/admin-skin.css`);
 
+    for (const hookName of ["finance-skin.css", "wizard-skin.css", "wizard-calendar.css"]) {
+      auditSkinHookCss(
+        path.join(themeDir, hookName),
+        `packages/workspaces/${workspaceId}/theme/${hookName}`,
+      );
+    }
+
     const marketingHook = path.join(themeDir, "marketing/tokens.css");
     auditSkinHookCss(marketingHook, `packages/workspaces/${workspaceId}/theme/marketing/tokens.css`);
 

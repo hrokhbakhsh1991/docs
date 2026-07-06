@@ -30,8 +30,9 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Denali `mkt.*` overlay tokens in marketing DTCG slice | ✅ E5 |
 | Denali admin semantic CSS (`admin-semantic-tokens.css`) from DTCG | ✅ F1 |
 | Admin skin hook hex ban (`admin-skin.css` — hooks only) | ✅ F1 |
+| Finance + wizard shell hooks hex-free (`finance-skin`, `wizard-skin`, `wizard-calendar`) | ✅ F2 |
 
-**Still hand-maintained (F2+ / Phase F):** `primitives.css`, `rgba()` in shadows/motion, `wizard-*.css`, `finance-skin.css`, admin TSX Tailwind.
+**Still hand-maintained (F3+ / Phase F):** `primitives.css`, `rgba()` in shadows/motion, `wizard-fields.css`, admin TSX Tailwind.
 
 ## Authority flow (E1–E2)
 
@@ -86,6 +87,7 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 | `dtcg-e4-skin-semantic.spec.mjs` | Unit: marketing/portal semantic slices → `@generated` CSS; hook files hex-free |
 | `dtcg-e5-marketing-components.spec.mjs` | Unit: denali `mkt.*` tokens; shell + components have no raw `#` hex |
 | `dtcg-f1-admin-skin.spec.mjs` | Unit: `denali.admin.tokens.json` blocks → `admin-semantic-tokens.css`; `admin-skin.css` hex-free |
+| `dtcg-f2-admin-hooks.spec.mjs` | Unit: finance + wizard shell hooks hex-free; calendar aliases semantic vars |
 
 Reference syntax: `{color.primary}` → `var(--color-primary)`; `{flat.focus-ring-color}` → `var(--focus-ring-color)` (flat group emits unprefixed shadcn aliases).
 
@@ -129,11 +131,18 @@ Admin semantic slices use a **`blocks[]`** array — each block has its own `sco
 
 Denali F1 scope: `denali.admin.tokens.json` → `admin-semantic-tokens.css`; `admin-skin.css` imports semantic layer and wires operator sidebar, empty states, bookings inbox, focus rings via `var()` / `color-mix()` only.
 
-## F2+ (not in F1)
+## Admin hook hex ban (F2)
 
-- DTCG for `primitives.css` platform scale
-- `wizard-*.css`, `finance-skin.css` admin hooks
-- AST guards on `apps/web` admin TSX; shadcn var-only migration
+Finance + wizard **shell** hooks reference admin semantic vars only — no raw `#` hex:
+
+| Hook file | Hex policy | Semantic source |
+| --------- | ---------- | --------------- |
+| `finance-skin.css` | `var()` / `color-mix()` only | `--color-*`, `--denali-*` from `admin-semantic-tokens.css` |
+| `wizard-skin.css` | same | dark wizard re-bind uses inherited `var(--color-primary)` (admin DTCG) |
+| `wizard-calendar.css` | same | `--denali-wizard-calendar-*` aliases `--color-primary*` |
+| `wizard-fields.css` | **F3** — category chip palette DTCG | (not in F2) |
+
+## F3+ (not in F2)
 
 ## MASTER.md demotion (E3–E4)
 

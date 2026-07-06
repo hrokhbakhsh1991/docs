@@ -3,16 +3,9 @@
  * @see docs/workspaces/denali/wizard-experience.md § Date picker exception
  */
 body[data-workspace-plugin="denali"] {
-  --denali-wizard-calendar-primary: var(--denali-forest-600, #0f766e);
-  --denali-wizard-calendar-primary-fg: #ffffff;
-  --denali-wizard-calendar-primary-hover: var(--denali-forest-700, #0f5c4a);
-}
-
-html.dark:has(body[data-workspace-plugin="denali"]),
-body[data-workspace-plugin="denali"] .theme-dark {
-  --denali-wizard-calendar-primary: #5eead4;
-  --denali-wizard-calendar-primary-fg: #0f140f;
-  --denali-wizard-calendar-primary-hover: #99f6e4;
+  --denali-wizard-calendar-primary: var(--color-primary);
+  --denali-wizard-calendar-primary-fg: var(--color-primary-fg);
+  --denali-wizard-calendar-primary-hover: var(--color-primary-hover);
 }
 
 body[data-workspace-plugin="denali"] [data-denali-wizard-calendar-popover] {

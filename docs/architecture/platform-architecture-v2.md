@@ -897,7 +897,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F1 (done):** Denali `denali.admin.tokens.json` with `blocks[]` (light + dark) → `theme/admin-semantic-tokens.css`. `admin-skin.css` demoted to hook-only (`@import` + layout); `guard-dtcg-hex-ban` F1 scope.
 
-**F2+ (next):** `primitives.css` DTCG; `wizard-*.css` / `finance-skin.css`; admin TSX appearance guards.
+**F2 (done):** `finance-skin.css`, `wizard-skin.css`, `wizard-calendar.css` hex-free — reference `admin-semantic-tokens.css` vars.
+
+**F3+ (next):** `wizard-fields.css` category chips DTCG; `primitives.css`; admin TSX appearance guards.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -905,7 +907,9 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 **F1 (done):** Denali admin semantic DTCG (`denali.admin.tokens.json` → `admin-semantic-tokens.css`); `admin-skin.css` hook-only.
 
-**F2+ (open):**
+**F2 (done):** Finance + wizard shell hooks (`finance-skin`, `wizard-skin`, `wizard-calendar`) hex-free via admin semantic vars.
+
+**F3+ (open):**
 - AST guards on `apps/web` feature TSX.
 - Migrate shadcn usage to var-only utilities.
 - Consolidate `ThemeProviderChain` vs CSS precedence.

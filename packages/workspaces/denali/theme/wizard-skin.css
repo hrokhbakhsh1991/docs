@@ -391,10 +391,10 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-field-path].wi
 
 html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard],
 body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] {
-  /* Re-bind below tenant inline theme so ui-primitives buttons track Denali dark teal */
-  --color-primary: #5eead4;
-  --color-primary-fg: #0f140f;
-  --color-primary-hover: #99f6e4;
+  /* Re-bind wizard subtree to admin semantic tokens (inherits from body dark block) */
+  --color-primary: var(--color-primary);
+  --color-primary-fg: var(--color-primary-fg);
+  --color-primary-hover: var(--color-primary-hover);
   --primary: var(--color-primary);
   --primary-foreground: var(--color-primary-fg);
 }
