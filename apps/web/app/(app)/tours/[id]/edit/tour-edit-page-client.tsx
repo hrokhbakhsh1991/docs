@@ -25,6 +25,7 @@ import {
 } from "@/features/tours/tour-list-formatters";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
+import { DenaliWizardCatalogPrefetchProvider } from "@/wizard/denali/denali-wizard-catalog-prefetch-context";
 
 import { DenaliFlatEditPageClient } from "./denali-flat-edit-page-client";
 import { TourStatusBadge } from "../../tour-status-badge";
@@ -44,11 +45,9 @@ export function TourEditPageClient({
   const canEdit = canMutateTour(session.role);
   if (isDenali && canEdit) {
     return (
-      <DenaliFlatEditPageClient
-        session={session}
-        tourId={tourId}
-        initialLocationsResponse={initialLocationsResponse}
-      />
+      <DenaliWizardCatalogPrefetchProvider initialLocationsResponse={initialLocationsResponse}>
+        <DenaliFlatEditPageClient session={session} tourId={tourId} />
+      </DenaliWizardCatalogPrefetchProvider>
     );
   }
   return <TourEditTitlePageClient session={session} tourId={tourId} />;

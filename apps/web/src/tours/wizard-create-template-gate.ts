@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
@@ -44,15 +44,31 @@ type UseWizardTemplateGateInput = {
   readonly loadPlugin: () => Promise<WorkspacePlugin>;
   readonly initialWorkspaceFormProfile: string;
   readonly unresolvedWorkspaceFormProfile: (plugin: WorkspacePlugin) => string;
+  readonly initialTemplateResponse?: unknown | null;
 };
 
 /** Phase 15.2 P15-W-B1a — shared tour-wizard-template fetch + gate state. */
 export function useWizardTemplateGate(input: UseWizardTemplateGateInput): WizardTemplateGateState {
-  const [gate, setGate] = useState<WizardTemplateGateState>(() =>
-    createLoadingWizardTemplateGateState(input.initialWorkspaceFormProfile)
-  );
+  const skipInitialGateFetchRef = useRef(input.initialTemplateResponse != null);
+  const [gate, setGate] = useState<WizardTemplateGateState>(() => {
+    if (input.initialTemplateResponse != null) {
+      try {
+        return resolveWizardTemplateGateState(
+          input.initialTemplateResponse,
+          input.pluginId
+        );
+      } catch {
+        // fall through to loading state
+      }
+    }
+    return createLoadingWizardTemplateGateState(input.initialWorkspaceFormProfile);
+  });
 
   useEffect(() => {
+    if (skipInitialGateFetchRef.current) {
+      skipInitialGateFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     void (async () => {
       try {
@@ -86,6 +102,7 @@ export function useWizardTemplateGate(input: UseWizardTemplateGateInput): Wizard
     input.loadPlugin,
     input.initialWorkspaceFormProfile,
     input.unresolvedWorkspaceFormProfile,
+    input.initialTemplateResponse,
   ]);
 
   return gate;

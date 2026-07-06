@@ -70,6 +70,10 @@
       "types": "./dist/settings/denali-wizard-template-catalog-meta.d.ts",
       "default": "./dist/settings/denali-wizard-template-catalog-meta.js"
     },
+    "./settings/wizard-template-editor": {
+      "types": "./dist/settings/wizard-template-editor.d.ts",
+      "default": "./dist/settings/wizard-template-editor.js"
+    },
     "./settings/wizard-template-roadmap": {
       "types": "./dist/settings/denali-wizard-template-roadmap.d.ts",
       "default": "./dist/settings/denali-wizard-template-roadmap.js"

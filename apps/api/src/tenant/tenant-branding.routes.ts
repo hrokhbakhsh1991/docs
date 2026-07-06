@@ -8,7 +8,7 @@ import { handleHttpError, sendHttpError } from "../middleware/error-interceptor"
 import { requireOperatorSession } from "../identity/require-operator-session";
 import { readIdentityRequestBody } from "../identity/read-identity-request-body";
 import { SettingsModuleNotSupportedError, SettingsMutationForbiddenError } from "../settings/settings.service";
-import { SettingsWorkspaceForbiddenError } from "../settings/settings-workspace-guard";
+import { SettingsWorkspaceForbiddenError } from "../settings/settings-workspace-errors";
 import { SettingsModuleUnknownError } from "../settings/settings-registry";
 
 import {

@@ -13,9 +13,10 @@ const WORKSPACE_SHELL = join(WEB_ROOT, "src/wizard/workspace-create-tour-shell.t
 describe("create-page-split.spec.ts (P13-4)", () => {
   it("P13-4-01 router delegates by pluginId without Denali imports", () => {
     const router = readFileSync(ROUTER, "utf8");
-    assert.equal(router.split("\n").length < 30, true);
+    assert.equal(router.split("\n").length < 35, true);
     assert.match(router, /DenaliCreateTourWizardClient/);
     assert.match(router, /WorkspaceCreateTourWizardShell/);
+    assert.match(router, /initialTemplateResponse/);
     assert.doesNotMatch(router, /@app-tour\/workspace-denali/);
   });
 

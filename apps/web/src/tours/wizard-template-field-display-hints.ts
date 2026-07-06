@@ -1,5 +1,7 @@
 import type { DenaliWizardTemplateCatalogFieldMeta } from "@app-tour/workspace-denali/settings/wizard-template-catalog-meta";
 import { resolveDenaliCompositeRendererIdForAnchor } from "@app-tour/workspace-denali/settings/wizard-template-catalog-meta";
+import type { WizardTemplateEditorSurface } from "@/wizard/wizard-template-editor-types";
+import type { WizardTemplateFieldDisplayHints } from "@/wizard/wizard-template-editor-types";
 
 type DenaliTranslator = (key: string, values?: Record<string, string | number>) => string;
 
@@ -29,11 +31,25 @@ export function resolveDenaliTemplateCompositeSectionLabel(
   return null;
 }
 
-export type DenaliWizardTemplateFieldDisplayHints = {
-  readonly parentLabel: string | null;
-  readonly includesLabels: readonly string[];
-  readonly createTourHint: string | null;
-};
+export type DenaliWizardTemplateFieldDisplayHints = WizardTemplateFieldDisplayHints;
+
+export function resolveWizardTemplateFieldDisplayHints(
+  editor: WizardTemplateEditorSurface | null,
+  tSettings: (key: string, values?: Record<string, string | number>) => string,
+  tDenali: DenaliTranslator,
+  resolveFieldLabel: (canonicalPath: string) => string,
+  meta: NonNullable<ReturnType<WizardTemplateEditorSurface["resolveCatalogFieldMeta"]>>
+): WizardTemplateFieldDisplayHints | null {
+  if (editor?.messageNamespace !== "denali") {
+    return null;
+  }
+  return resolveDenaliWizardTemplateFieldDisplayHints(
+    tSettings,
+    tDenali,
+    resolveFieldLabel,
+    meta as DenaliWizardTemplateCatalogFieldMeta
+  );
+}
 
 export function resolveDenaliWizardTemplateFieldDisplayHints(
   tSettings: (key: string, values?: Record<string, string | number>) => string,

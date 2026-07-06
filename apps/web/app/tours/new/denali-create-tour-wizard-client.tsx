@@ -22,13 +22,21 @@ import {
   CreateTourWizardSubmitFooter,
 } from "@/wizard/create-tour-wizard-chrome";
 import { useDenaliCreateTourWizard } from "@/wizard/use-denali-create-tour-wizard";
+import { DenaliWizardCatalogPrefetchProvider } from "@/wizard/denali/denali-wizard-catalog-prefetch-context";
 import { WorkspaceWizardHost } from "@/wizard/workspace-wizard-host";
 
-export function DenaliCreateTourWizardClient() {
+type DenaliCreateTourWizardClientProps = {
+  readonly initialTemplateResponse?: unknown | null;
+  readonly initialLocationsResponse?: unknown | null;
+};
+
+function DenaliCreateTourWizardClientInner({
+  initialTemplateResponse = null,
+}: Pick<DenaliCreateTourWizardClientProps, "initialTemplateResponse">) {
   const t = useTranslations("wizard");
   const tDenali = useWorkspaceWizardTranslator("denali");
   const session = useAppSession();
-  const wizard = useDenaliCreateTourWizard();
+  const wizard = useDenaliCreateTourWizard({ initialTemplateResponse });
 
   const resolveSubmitError = useCallback(
     (code: string) =>
@@ -89,5 +97,16 @@ export function DenaliCreateTourWizardClient() {
         ),
       }}
     />
+  );
+}
+
+export function DenaliCreateTourWizardClient({
+  initialTemplateResponse = null,
+  initialLocationsResponse = null,
+}: DenaliCreateTourWizardClientProps) {
+  return (
+    <DenaliWizardCatalogPrefetchProvider initialLocationsResponse={initialLocationsResponse}>
+      <DenaliCreateTourWizardClientInner initialTemplateResponse={initialTemplateResponse} />
+    </DenaliWizardCatalogPrefetchProvider>
   );
 }

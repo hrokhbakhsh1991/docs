@@ -31,7 +31,7 @@ import {
   SettingsResourceInvalidError,
   SettingsResourceNotFoundError,
 } from "./settings.service";
-import { SettingsWorkspaceForbiddenError } from "./settings-workspace-guard";
+import { SettingsWorkspaceForbiddenError } from "./settings-workspace-errors";
 import type {
   CreateEquipmentRequest,
   CreateGuideLanguageRequest,

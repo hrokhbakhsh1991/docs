@@ -76,12 +76,15 @@
     "workspaceTypeExport": "DENALI_WORKSPACE_TYPE",
     "mergeExport": "mergeDenaliCanonicalPatchData",
     "publishGateExport": "denaliTourPatchRequiresOwner",
-    "publishSurfaceExport": "DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
+    "publishSurfaceExport": "DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE",
+    "forbidOperatorMemberTourPatch": true
   },
   "canonicalTour": {
     "publishStatusModule": "./tours",
     "publishStatusReadExport": "readDenaliTourPublishStatusFromCanonical",
-    "publishTransitionExport": "detectDenaliTourPublishTransition"
+    "publishTransitionExport": "detectDenaliTourPublishTransition",
+    "migrateModule": "./acl",
+    "migrateExport": "migrateDenaliCanonical"
   },
   "wizardMedia": {
     "module": "./photos",
@@ -274,5 +277,13 @@
     "manifestVersion": 2,
     "availability": "full",
     "preset": "guest-full-v1"
+  },
+  "operatorCapabilities": {
+    "usersDirectory": true,
+    "reconciliationTriage": true
+  },
+  "wizardTemplateEditor": {
+    "module": "./settings/wizard-template-editor",
+    "export": "denaliWizardTemplateEditor"
   }
 }

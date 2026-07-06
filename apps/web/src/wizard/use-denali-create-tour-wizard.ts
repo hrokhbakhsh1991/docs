@@ -59,7 +59,9 @@ import { useWorkspaceIntegrationRuntimeState } from "@/integrations/use-workspac
 export type { DenaliCreateTourWizardScreen };
 
 /** Phase 15.2 P15-W-B1e — Denali create wizard orchestration hook (shell wiring). */
-export function useDenaliCreateTourWizard() {
+export function useDenaliCreateTourWizard(options: {
+  readonly initialTemplateResponse?: unknown | null;
+} = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const session = useAppSession();
@@ -72,6 +74,7 @@ export function useDenaliCreateTourWizard() {
     loadPlugin: loadDenaliPlugin,
     initialWorkspaceFormProfile: resolveInitialWorkspaceFormProfile(denaliPlugin),
     unresolvedWorkspaceFormProfile: resolveInitialWorkspaceFormProfile,
+    initialTemplateResponse: options.initialTemplateResponse ?? null,
   });
   const integrationRuntime = useWorkspaceIntegrationRuntimeState(session.workspaceId);
   const [draftResumeEpoch, setDraftResumeEpoch] = useState(0);

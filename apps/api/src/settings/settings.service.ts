@@ -1,4 +1,5 @@
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
+import { operatorCapabilitySupportsReconciliationTriage } from "@app-tour/workspace-sdk";
 
 import { emitSettingsResourceAudit } from "./settings-audit-emitter";
 import { SettingsResourceNotFoundError } from "./in-memory-settings-resources.repository";
@@ -12,10 +13,6 @@ import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type"
 import { enrichSettingsModuleList } from "./workspace-settings-enrichers.generated";
 import { parseEquipmentIconKeyInput } from "./parse-equipment-icon-key";
 import { normalizeThemeIdsInput } from "./parse-theme-ids";
-import {
-  assertDenaliOperatorSettingsWorkspace,
-  isUrbanOperatorSettingsWorkspace,
-} from "./settings-workspace-guard";
 import type {
   CreateEquipmentRequest,
   CreateGuideLanguageRequest,
@@ -118,16 +115,13 @@ const RECONCILIATION_TRIAGE_MODULE: SettingsModuleMetadata = {
 export async function listSettingsModules(
   auth: TenantAuthContext
 ): Promise<SettingsModulesListResponse> {
-  if (await isUrbanOperatorSettingsWorkspace(auth.tenantId)) {
-    return { items: [ACCOUNT_PROFILE_MODULE] };
-  }
   const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
   const pluginModules = await listSettingsModuleMetadataForTenant(auth.tenantId);
   const items: SettingsModuleMetadata[] = [
     ACCOUNT_PROFILE_MODULE,
     ...toModuleMetadata(pluginModules),
   ];
-  if (workspaceType === "denali") {
+  if (operatorCapabilitySupportsReconciliationTriage(workspaceType)) {
     items.push(RECONCILIATION_TRIAGE_MODULE);
   }
   return { items };
@@ -153,7 +147,6 @@ export async function listSettingsResources(
   | TourPresetsListResponse
   | LocationsListResponse
 > {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   await assertReferenceDataModule(auth.tenantId, moduleId);
   const repo = getSettingsResourcesRepository();
 
@@ -207,7 +200,6 @@ export async function createSettingsResource(
   | RegionResource
   | DestinationResource
 > {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   assertAdminOrOwner(auth);
   await assertReferenceDataModule(auth.tenantId, moduleId);
   const repo = getSettingsResourcesRepository();
@@ -381,7 +373,6 @@ export async function patchSettingsResource(
   | RegionResource
   | DestinationResource
 > {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   assertAdminOrOwner(auth);
   await assertReferenceDataModule(auth.tenantId, moduleId);
   const repo = getSettingsResourcesRepository();
@@ -503,7 +494,6 @@ export async function deleteSettingsResource(
   moduleId: string,
   itemId: string
 ): Promise<void> {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   assertAdminOrOwner(auth);
   await assertReferenceDataModule(auth.tenantId, moduleId);
   const repo = getSettingsResourcesRepository();

@@ -1,4 +1,5 @@
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
+import { operatorCapabilitySupportsUsersDirectory } from "@app-tour/workspace-sdk";
 
 export class UsersWorkspaceForbiddenError extends Error {
   readonly code = "USERS_WORKSPACE_FORBIDDEN" as const;
@@ -9,10 +10,10 @@ export class UsersWorkspaceForbiddenError extends Error {
   }
 }
 
-/** Denali operator product — Urban host must not expose team directory (RULE-P9-002). */
+/** Operator team directory — gated by manifest operatorCapabilities.usersDirectory. */
 export async function assertOperatorUsersWorkspace(tenantId: string): Promise<void> {
   const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
-  if (workspaceType === "urban") {
+  if (!operatorCapabilitySupportsUsersDirectory(workspaceType)) {
     throw new UsersWorkspaceForbiddenError();
   }
 }

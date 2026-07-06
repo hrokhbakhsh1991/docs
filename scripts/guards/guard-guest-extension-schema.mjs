@@ -62,6 +62,12 @@ if (!fs.existsSync(SCHEMA_PATH)) {
   if (schema.properties?.guestSeo?.additionalProperties !== false) {
     violations.push("schema must make guestSeo additionalProperties false");
   }
+  if (schema.properties?.operatorCapabilities?.additionalProperties !== false) {
+    violations.push("schema must make operatorCapabilities additionalProperties false");
+  }
+  if (schema.properties?.wizardTemplateEditor?.additionalProperties !== false) {
+    violations.push("schema must make wizardTemplateEditor additionalProperties false");
+  }
 }
 
 for (const manifest of discoverManifests()) {

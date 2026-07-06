@@ -21,7 +21,6 @@ import type {
   WizardTemplatePayloadV1,
 } from "./settings.types";
 import { SettingsMutationForbiddenError } from "./settings.service";
-import { assertSettingsConfigWorkspaceAllowed } from "./settings-workspace-guard";
 
 export { SettingsWizardUnknownFieldError } from "./wizard-template-catalog";
 export class SettingsConfigVersionUnsupportedError extends Error {
@@ -317,7 +316,6 @@ export async function getSettingsConfig(
   auth: TenantAuthContext,
   configKey: string
 ): Promise<SettingsConfigResponse> {
-  await assertSettingsConfigWorkspaceAllowed(auth.tenantId, configKey);
   await assertSupportedConfigKey(auth.tenantId, configKey);
   if (configKey === "wizard_template") {
     return getWizardTemplateConfig(auth, configKey);
@@ -395,7 +393,6 @@ export async function putSettingsConfig(
   configKey: string,
   body: PutSettingsConfigRequest
 ): Promise<SettingsConfigResponse> {
-  await assertSettingsConfigWorkspaceAllowed(auth.tenantId, configKey);
   assertAdminOrOwner(auth);
   await assertSupportedConfigKey(auth.tenantId, configKey);
   if (configKey === "wizard_template") {

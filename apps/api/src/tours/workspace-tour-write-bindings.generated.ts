@@ -16,6 +16,7 @@ export const WORKSPACE_TOUR_WRITE_BINDINGS = [
     mergeCanonicalPatch: mergeDenaliCanonicalPatchData,
     publishFieldGate: denaliTourPatchRequiresOwner,
     publishOwnerSurface: DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
+    forbidOperatorMemberTourPatch: true as const,
   },
   {
     workspaceType: URBAN_WORKSPACE_TYPE,

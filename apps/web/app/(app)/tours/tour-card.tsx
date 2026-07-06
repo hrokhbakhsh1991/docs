@@ -28,7 +28,7 @@ import { TourListCoverImage } from "@/features/tours/tour-list-cover-image";
 type TourCardProps = {
   readonly tour: TourListProjection;
   readonly canManage: boolean;
-  readonly isDenali?: boolean;
+  readonly showExtendedCard?: boolean;
 };
 
 function TourCardCover({
@@ -50,7 +50,7 @@ function TourCardCover({
   );
 }
 
-export function TourCard({ tour, canManage, isDenali = false }: TourCardProps) {
+export function TourCard({ tour, canManage, showExtendedCard = false }: TourCardProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.card");
   const tFormat = useTranslations("tours.format");
@@ -62,7 +62,7 @@ export function TourCard({ tour, canManage, isDenali = false }: TourCardProps) {
       tFormat("seatsWithCapacity", { accepted, capacity }),
     open: (accepted) => tFormat("seatsOpen", { accepted }),
   });
-  const durationSlug = isDenali ? resolveDenaliTourKindDuration(tour.category) : null;
+  const durationSlug = showExtendedCard ? resolveDenaliTourKindDuration(tour.category) : null;
   const durationLabel =
     durationSlug !== null ? resolveDenaliTourDurationLabel(tDenali, durationSlug) : null;
 
@@ -106,7 +106,7 @@ export function TourCard({ tour, canManage, isDenali = false }: TourCardProps) {
       </CardHeader>
       <CardContent className="flex-1">
         {tour.shortDescription ? (
-          <p className={`text-sm text-muted-foreground ${isDenali ? "line-clamp-3" : "line-clamp-2"}`}>
+          <p className={`text-sm text-muted-foreground ${showExtendedCard ? "line-clamp-3" : "line-clamp-2"}`}>
             {tour.shortDescription}
           </p>
         ) : (

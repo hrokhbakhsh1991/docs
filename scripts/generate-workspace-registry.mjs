@@ -1626,6 +1626,8 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "guestSeo",
   "guestLanding",
   "guestConformance",
+  "operatorCapabilities",
+  "wizardTemplateEditor",
 ];
 
 /**
@@ -1692,6 +1694,31 @@ export function assertGuestExtensionsManifest(manifest) {
       ) {
         throw new Error(`${manifest.id}: guestThemeStylesheets.${surface} must be a string array`);
       }
+    }
+  }
+
+  if (manifest.operatorCapabilities !== undefined) {
+    const capabilities = manifest.operatorCapabilities;
+    if (typeof capabilities !== "object" || Array.isArray(capabilities)) {
+      throw new Error(`${manifest.id}: operatorCapabilities must be an object`);
+    }
+    for (const key of ["usersDirectory", "reconciliationTriage"]) {
+      if (capabilities[key] !== undefined && typeof capabilities[key] !== "boolean") {
+        throw new Error(`${manifest.id}: operatorCapabilities.${key} must be boolean`);
+      }
+    }
+  }
+
+  if (manifest.wizardTemplateEditor !== undefined) {
+    const editor = manifest.wizardTemplateEditor;
+    if (typeof editor !== "object" || Array.isArray(editor)) {
+      throw new Error(`${manifest.id}: wizardTemplateEditor must be an object`);
+    }
+    if (typeof editor.module !== "string" || editor.module.length === 0) {
+      throw new Error(`${manifest.id}: wizardTemplateEditor.module must be a non-empty string`);
+    }
+    if (typeof editor.export !== "string" || editor.export.length === 0) {
+      throw new Error(`${manifest.id}: wizardTemplateEditor.export must be a non-empty string`);
     }
   }
 }
@@ -2506,6 +2533,88 @@ ${entries}
 }
 
 /** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceOperatorCapabilities(manifests) {
+  /** @type {Record<string, { usersDirectory: boolean; reconciliationTriage: boolean }>} */
+  const capabilities = {};
+  for (const manifest of manifests) {
+    const operatorCapabilities = manifest.operatorCapabilities;
+    if (operatorCapabilities === undefined) {
+      continue;
+    }
+    capabilities[manifest.id] = Object.freeze({
+      usersDirectory: operatorCapabilities.usersDirectory === true,
+      reconciliationTriage: operatorCapabilities.reconciliationTriage === true,
+    });
+  }
+
+  const entries = Object.entries(capabilities)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([pluginId, value]) =>
+        `  ${JSON.stringify(pluginId)}: Object.freeze({ usersDirectory: ${value.usersDirectory}, reconciliationTriage: ${value.reconciliationTriage} }),`
+    )
+    .join("\n");
+
+  return `${BANNER}
+/** Operator API capabilities — derived from workspace.manifest.json operatorCapabilities. */
+export const WORKSPACE_OPERATOR_CAPABILITIES: Readonly<
+  Record<
+    string,
+    Readonly<{ readonly usersDirectory: boolean; readonly reconciliationTriage: boolean }>
+  >
+> = Object.freeze({
+${entries}
+});
+`;
+}
+
+export function generateWizardTemplateEditorBindings(manifests) {
+  const withEditor = manifests.filter((m) => m.wizardTemplateEditor !== undefined);
+  if (withEditor.length === 0) {
+    return `${BANNER}
+import type { WizardTemplateEditorSurface } from "@/wizard/wizard-template-editor-types";
+
+export function resolveWizardTemplateEditor(
+  _pluginId: string
+): WizardTemplateEditorSurface | null {
+  return null;
+}
+`;
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const editorEntries = [];
+
+  for (const m of withEditor) {
+    const editor = m.wizardTemplateEditor;
+    if (typeof editor.module !== "string" || typeof editor.export !== "string") {
+      throw new Error(`${m.id}: wizardTemplateEditor requires module and export`);
+    }
+    const alias = `editor_${m.id.replace(/-/g, "_")}`;
+    const importFrom = importSpecifier(m.package, editor.module);
+    importLines.add(`import { ${editor.export} as ${alias} } from "${importFrom}";`);
+    editorEntries.push(`  ${JSON.stringify(m.id)}: ${alias},`);
+  }
+
+  return `${BANNER}
+import type { WizardTemplateEditorSurface } from "@/wizard/wizard-template-editor-types";
+${[...importLines].join("\n")}
+
+const WIZARD_TEMPLATE_EDITORS: Readonly<Record<string, WizardTemplateEditorSurface>> = Object.freeze({
+${editorEntries.join("\n")}
+});
+
+export function resolveWizardTemplateEditor(
+  pluginId: string
+): WizardTemplateEditorSurface | null {
+  return WIZARD_TEMPLATE_EDITORS[pluginId] ?? null;
+}
+`;
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
 export function generateWorkspaceCatalogListFeatures(manifests) {
   /** @type {Record<string, { cityFilter: boolean; serverListFilters: string[] }>} */
   const features = {};
@@ -2892,6 +3001,8 @@ export function generateAllOutputs(manifests) {
     catalogPaths: generateWorkspaceCatalogPaths(manifests),
     catalogListFeatures: generateWorkspaceCatalogListFeatures(manifests),
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
+    operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
+    wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -2977,6 +3088,14 @@ const OUTPUT_PATHS = {
   catalogDetailSections: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-catalog-detail-sections.generated.ts"
+  ),
+  operatorCapabilities: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/operator/workspace-operator-capabilities.generated.ts"
+  ),
+  wizardTemplateEditorBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts"
   ),
   devPluginIds: join(
     REPO_ROOT,
@@ -3072,6 +3191,8 @@ function main() {
       "catalogPaths",
       "catalogListFeatures",
       "catalogDetailSections",
+      "operatorCapabilities",
+      "wizardTemplateEditorBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -3132,6 +3253,8 @@ function main() {
   writeFileSync(OUTPUT_PATHS.catalogPaths, generated.catalogPaths);
   writeFileSync(OUTPUT_PATHS.catalogListFeatures, generated.catalogListFeatures);
   writeFileSync(OUTPUT_PATHS.catalogDetailSections, generated.catalogDetailSections);
+  writeFileSync(OUTPUT_PATHS.operatorCapabilities, generated.operatorCapabilities);
+  writeFileSync(OUTPUT_PATHS.wizardTemplateEditorBindings, generated.wizardTemplateEditorBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

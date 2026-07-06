@@ -46,7 +46,7 @@ Platform apps (`apps/web`, `apps/portal`, `apps/marketing`, `apps/api`) and plat
 
 Workspace-specific behavior is reached **only** through generated bindings keyed by resolved `pluginId` at runtime.
 
-**Violation today:** `apps/web` settings/tours clients; `apps/api` urban guards; `apps/web` direct Denali UI imports.
+**Violation today (Phase C sprint 1 resolved 2026-07-06):** Urban API guards and `pluginId === "denali"` in tours/wizard-template page clients replaced by manifest codegen (`operatorCapabilities`, `WORKSPACE_CATALOG_LIST_FEATURES`, `wizardTemplateEditor` bindings). **Remaining:** broader `apps/web` Denali direct imports (~70 allowlisted files), marketing catalog (C3), full admin purge (C4).
 
 ### P3 — Codegen derives everything discoverable
 
@@ -411,7 +411,8 @@ This section removes ambiguity. **Appearance** = anything a user perceives as lo
 | `memberProfile` | Profile field capabilities |
 | `guestLanding` / `guestSeo` | Marketing landing + SEO |
 | `guestConformance` | Conformance flags |
-| `wizardSurfaces` / `wizardI18n` / `wizardMedia` | Admin wizard bindings |
+| `operatorCapabilities` | Operator API capability flags (`usersDirectory`, `reconciliationTriage`) |
+| `wizardTemplateEditor` | Admin wizard template extended editor bindings |
 | `tourWrite` / `canonicalTour` | Tour mutation bindings |
 | `events` | Outbox side effects |
 | `devBootstrap` | Dev/smoke seed bindings |
@@ -650,6 +651,8 @@ Assumptions for scale:
 
 Explicit blacklist. Guards should enforce; until they do, code review must reject.
 
+**Enforcement (Phase B–C):** `guard-no-workspace-ids-in-codegen` (codegen); `guard-no-workspace-type-branches` (`apps/api/src` urban branches; `tours-page-client` + `wizard-template-client` denali branches). Script: `pnpm run guard:no-workspace-type-branches`.
+
 ### Identity branching
 
 ```typescript
@@ -779,9 +782,18 @@ Using **both** `ThemeProviderChain` JS variables **and** conflicting hex in CSS 
 
 ### Phase C — Platform boundary purge
 
-- Remove direct `@app-tour/workspace-denali` imports from `apps/web`.
-- Replace `pluginId === "denali"` with generated capability lookups.
-- Replace `workspaceType === "urban"` API guards with manifest-driven flags.
+**Sprint 1 (2026-07-06):**
+
+- `operatorCapabilities` in manifest → `WORKSPACE_OPERATOR_CAPABILITIES` (API users directory + reconciliation triage).
+- Settings/config gates use `settings-registry` only; urban `workspaceType` guards removed.
+- `wizardTemplateEditor` manifest → `workspace-wizard-template-editor-bindings.generated.ts`.
+- Tours list category filter uses `resolveCatalogListFeatures` (not `pluginId === "denali"`).
+- Guard: `guard-no-workspace-type-branches` (API urban branches + C2 page clients).
+
+**Remaining:**
+
+- Remove direct `@app-tour/workspace-denali` imports from `apps/web` (C3–C4).
+- Replace remaining `pluginId === "denali"` outside sprint-1 surfaces.
 
 ### Phase D — Appearance decomposition
 

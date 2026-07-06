@@ -235,12 +235,12 @@ describe("tenant-branding.spec.ts", () => {
     assert.equal(response.body.code, "TENANT_BRAND_LOGO_CONTENT_TYPE_INVALID");
   });
 
-  it("API-TB-10 urban tenant GET /settings/branding forbidden", async () => {
+  it("API-TB-10 urban tenant GET /settings/branding is module unknown", async () => {
     const response = await requestHttp(port, "GET", "/settings/branding", {
       headers: urbanOwnerHeaders(),
     });
-    assert.equal(response.status, 403);
-    assert.equal(response.body.code, "SETTINGS_WORKSPACE_FORBIDDEN");
+    assert.equal(response.status, 404);
+    assert.equal(response.body.code, "SETTINGS_MODULE_UNKNOWN");
   });
 
   it("API-TB-08 GET /public/tenant-branding resolves host label", async () => {
@@ -377,7 +377,7 @@ describe("tenant-branding.spec.ts", () => {
     assert.equal(getResponse.body.code, "TENANT_BRAND_LOGO_NOT_SET");
   });
 
-  it("API-TB-13 urban tenant PATCH /settings/branding forbidden", async () => {
+  it("API-TB-13 urban tenant PATCH /settings/branding is module unknown", async () => {
     const response = await requestHttp(port, "PATCH", "/settings/branding", {
       headers: {
         ...urbanOwnerHeaders(),
@@ -385,7 +385,7 @@ describe("tenant-branding.spec.ts", () => {
       },
       body: JSON.stringify({ displayName: "Urban Try" }),
     });
-    assert.equal(response.status, 403);
-    assert.equal(response.body.code, "SETTINGS_WORKSPACE_FORBIDDEN");
+    assert.equal(response.status, 404);
+    assert.equal(response.body.code, "SETTINGS_MODULE_UNKNOWN");
   });
 });

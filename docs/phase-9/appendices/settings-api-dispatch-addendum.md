@@ -56,7 +56,7 @@ On successful `putSettingsConfig` (including wizard template alias):
 
 ## Urban regression
 
-Routes under `/urban/settings` remain owner-only — **not** replaced by this addendum. Denali `/settings/*` **hidden** on urban host: `GET /settings/modules` returns `account_profile` only; resource/config/explore routers return **403** `SETTINGS_WORKSPACE_FORBIDDEN` (`settings-workspace-guard.ts`).
+Routes under `/urban/settings` remain owner-only — **not** replaced by this addendum. On urban host, Denali-only settings modules are absent from the tenant manifest: `GET /settings/modules` returns `account_profile` plus urban `operatorSettings.modules` (e.g. `tour_wizard_template`); resource/branding/config routes for unknown modules return **404** `SETTINGS_MODULE_UNKNOWN` / `SETTINGS_CONFIG_UNKNOWN` (Phase C — registry-only; `settings-workspace-guard.ts` removed).
 
 ## Literal insertion block
 

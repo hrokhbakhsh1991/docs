@@ -48,24 +48,24 @@ describe("settings-urban-regression.spec.ts — Phase 9.6 API", () => {
     });
   });
 
-  it("API-9.6-URB-01 GET /settings/modules on urban host returns account only", async () => {
+  it("API-9.6-URB-01 GET /settings/modules on urban host returns registry modules only", async () => {
     const response = await client.requestJson<ModulesResponse>("GET", "/settings/modules", {
       headers: urbanOwnerHeaders(),
     });
     assert.equal(response.status, 200);
     const ids = (response.body.items ?? []).map((item) => item.id);
-    assert.deepEqual(ids, ["account_profile"]);
+    assert.deepEqual(ids, ["account_profile", "tour_wizard_template"]);
   });
 
-  it("API-9.6-URB-03 GET /settings/branding on urban host returns 403", async () => {
+  it("API-9.6-URB-03 GET /settings/branding on urban host returns module unknown", async () => {
     const response = await client.requestJson<ModulesResponse>("GET", "/settings/branding", {
       headers: urbanOwnerHeaders(),
     });
-    assert.equal(response.status, 403);
-    assert.equal(response.body.code, "SETTINGS_WORKSPACE_FORBIDDEN");
+    assert.equal(response.status, 404);
+    assert.equal(response.body.code, "SETTINGS_MODULE_UNKNOWN");
   });
 
-  it("API-9.6-URB-02 POST /settings/resources/equipment on urban host returns 403", async () => {
+  it("API-9.6-URB-02 POST /settings/resources/equipment on urban host returns module unknown", async () => {
     const response = await client.requestJson<ModulesResponse>(
       "POST",
       "/settings/resources/equipment",
@@ -74,7 +74,7 @@ describe("settings-urban-regression.spec.ts — Phase 9.6 API", () => {
         body: { name: "Urban forbidden equipment" },
       }
     );
-    assert.equal(response.status, 403);
-    assert.equal(response.body.code, "SETTINGS_WORKSPACE_FORBIDDEN");
+    assert.equal(response.status, 404);
+    assert.equal(response.body.code, "SETTINGS_MODULE_UNKNOWN");
   });
 });

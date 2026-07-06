@@ -65,13 +65,13 @@ describe("settings-urban-wizard-template-config.spec.ts — P15-P-B2", () => {
     assert.ok((response.body.payload?.steps?.length ?? 0) >= 2);
   });
 
-  it("API-P15-B2-02 urban owner GET /settings/config/presets_advanced stays forbidden", async () => {
+  it("API-P15-B2-02 urban owner GET /settings/config/presets_advanced is registry-blocked", async () => {
     const response = await client.requestJson<ConfigResponse>(
       "GET",
       "/settings/config/presets_advanced",
       { headers: urbanOwnerHeaders() }
     );
-    assert.equal(response.status, 403);
-    assert.equal(response.body.code, "SETTINGS_WORKSPACE_FORBIDDEN");
+    assert.equal(response.status, 404);
+    assert.equal(response.body.code, "SETTINGS_CONFIG_UNKNOWN");
   });
 });

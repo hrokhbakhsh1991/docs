@@ -6,6 +6,7 @@
 
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
 import { readDenaliTourPublishStatusFromCanonical, detectDenaliTourPublishTransition } from "@app-tour/workspace-denali/tours";
+import { migrateDenaliCanonical } from "@app-tour/workspace-denali/acl";
 import { URBAN_WORKSPACE_TYPE } from "@app-tour/workspace-urban";
 import { readUrbanTourPublishStatusFromCanonical, detectUrbanTourPublishTransition } from "@app-tour/workspace-urban/tours";
 
@@ -14,6 +15,7 @@ export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [
     workspaceType: DENALI_WORKSPACE_TYPE,
     readPublishStatusFromCanonical: readDenaliTourPublishStatusFromCanonical,
     detectPublishTransition: detectDenaliTourPublishTransition,
+    migrateCanonical: migrateDenaliCanonical,
   },
   {
     workspaceType: URBAN_WORKSPACE_TYPE,

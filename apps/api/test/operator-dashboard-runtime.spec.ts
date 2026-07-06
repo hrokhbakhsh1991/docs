@@ -90,13 +90,13 @@ describe("operator-dashboard-runtime.spec.ts — P15-P-A2", () => {
     assert.equal(response.status, 200);
   });
 
-  it("API-P15-A2-04 urban GET /settings/branding returns 403 not 500", async () => {
+  it("API-P15-A2-04 urban GET /settings/branding returns module unknown not 500", async () => {
     const response = await client.requestJson<JsonBody>("GET", "/settings/branding", {
       headers: urbanOwnerHeaders(),
     });
     assertNotServerError(response.status, "urban GET /settings/branding");
-    assert.equal(response.status, 403);
-    assert.equal(response.body.code, "SETTINGS_WORKSPACE_FORBIDDEN");
+    assert.equal(response.status, 404);
+    assert.equal(response.body.code, "SETTINGS_MODULE_UNKNOWN");
   });
 
   it("API-P15-A2-05 denali GET /finance/reports/summary returns 200 empty summary on memory", async () => {

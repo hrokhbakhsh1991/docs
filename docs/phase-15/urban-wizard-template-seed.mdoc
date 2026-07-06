@@ -28,15 +28,17 @@ Same pattern as Denali: skip when existing payload is `published: true` with `st
 
 `bootstrapUrbanWizardTemplateIfNeeded()` runs on every non-production API listen — mirrors `bootstrapDenaliWizardTemplatesIfNeeded`. Urban E2E (`STORAGE_DRIVER=memory`, `URBAN_SMOKE_E2E_SEED=1`) gets a published template without manual `db:seed` or Playwright publish step.
 
-## API access (P15-P-B2)
+## API access (P15-P-B2 / Phase C)
 
-Urban tenants were blocked by `assertDenaliOperatorSettingsWorkspace` on all `/settings/config/*` routes. **Only** `wizard_template` is opened for urban; Denali-only configs (`presets_advanced`, reference data) stay forbidden.
+Urban settings access is **registry-only** — no `workspaceType === "urban"` guard. Unknown modules/config keys fail closed via `settings-registry` (`SETTINGS_MODULE_UNKNOWN` / `SETTINGS_CONFIG_UNKNOWN`).
 
 | Route | Urban owner |
 |-------|-------------|
 | `GET/PUT /settings/config/wizard_template` | ✅ when `operatorSettings.modules` includes `tour_wizard_template` |
-| Other `/settings/config/*` | 403 `SETTINGS_WORKSPACE_FORBIDDEN` |
-| `/settings/modules` | unchanged — urban hub stays `account_profile` only |
+| Other `/settings/config/*` | `SettingsConfigUnknownError` (registry — module not in urban manifest) |
+| `/settings/modules` | `account_profile` + plugin `operatorSettings.modules` (urban: `tour_wizard_template` only) |
+
+**Phase C (2026-07-06):** Removed `settings-workspace-guard.ts` urban/denali branches. Config and module access are **registry-only** via `resolveSettingsModuleByConfigKeyForTenant` / `resolveSettingsModuleForTenant`. Operator-only surfaces (users directory, reconciliation triage) use manifest `operatorCapabilities` codegen (`WORKSPACE_OPERATOR_CAPABILITIES`).
 
 Plugin manifest: `@app-tour/workspace-urban` → `urbanOperatorSettingsSurface.modules` (`tour_wizard_template`, `configKey: wizard_template`).
 

@@ -61,13 +61,24 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.doesNotMatch(source, /startsWith\(["']denali\./);
   });
 
+  it("P14-0b-04b wizard template editor bindings are codegen-only", () => {
+    const source = readFileSync(
+      join(import.meta.dirname, "../src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts"),
+      "utf8"
+    );
+    assert.match(source, /resolveWizardTemplateEditor/);
+    assert.match(source, /denaliWizardTemplateEditor/);
+    assert.match(source, /@app-tour\/workspace-denali\/settings\/wizard-template-editor/);
+  });
+
   it("P14-0b-04 wizard-template-client has no pluginId denali branches", () => {
     const source = readFileSync(
       join(import.meta.dirname, "../app/(app)/settings/tour-wizard-template/wizard-template-client.tsx"),
       "utf8"
     );
     assert.doesNotMatch(source, /pluginId\s*===\s*["']denali["']/);
-    assert.match(source, /useWorkspaceWizardTranslator/);
+    assert.doesNotMatch(source, /@app-tour\/workspace-denali/);
+    assert.match(source, /resolveWizardTemplateEditor/);
     assert.match(source, /WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS/);
   });
 

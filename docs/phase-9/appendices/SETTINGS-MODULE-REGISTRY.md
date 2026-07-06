@@ -618,10 +618,11 @@ settings.config.put   — resourceId = config_key (wizard_template | presets_adv
 
 | Artifact            | Path                                                     | Behavior                                                                                 |
 | ------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Workspace guard     | `apps/api/src/settings/settings-workspace-guard.ts`      | `workspaceType === urban` → Denali modules **403** / hidden from `GET /settings/modules` |
-| Modules filter      | `apps/api/src/settings/settings.service.ts`              | Urban: `[account_profile]` only · Denali: manifest + account + `reconciliation_triage`   |
-| Reconciliation card | `settings/reconciliation-triage` R1 findings board (9.7) | `finance_ops` nav group · Denali-only                                                    |
-| Urban regression    | `settings-urban-regression.spec.ts`                      | API-9.6-URB-01..02                                                                       |
+| Registry gate       | `apps/api/src/settings/settings-registry.ts`             | Urban: modules from `operatorSettings.modules` only · unknown module → **404**           |
+| Modules list        | `apps/api/src/settings/settings.service.ts`              | Urban: `account_profile` + manifest modules · Denali: + `reconciliation_triage` via `operatorCapabilities` |
+| Operator caps       | `WORKSPACE_OPERATOR_CAPABILITIES` (codegen)              | `usersDirectory`, `reconciliationTriage` — no workspace-type branches in API           |
+| Reconciliation card | `settings/reconciliation-triage` R1 findings board (9.7) | `finance_ops` nav group · `reconciliationTriage: true` manifests only                  |
+| Urban regression    | `settings-urban-regression.spec.ts`                      | API-9.6-URB-01..03                                                                       |
 
 **RULE-P9-002:** Urban owner uses `/settings/urban` + `/urban/settings` — not Denali equipment/config routers.
 

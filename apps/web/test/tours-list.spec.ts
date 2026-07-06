@@ -191,6 +191,9 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     assert.match(pageClient, /isInitialLoad/);
     assert.match(pageClient, /isRefetching/);
     assert.match(pageClient, /aria-busy=\{isRefetching/);
+    assert.doesNotMatch(pageClient, /\bisDenali\b/);
+    assert.match(pageClient, /resolveCatalogListFeatures/);
+    assert.match(pageClient, /hasCategoryFilter/);
   });
 
   it("WEB-P11-6-05 tours list shows created notice and strips query param", () => {

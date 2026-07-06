@@ -17,8 +17,8 @@ P-A2 adds a **memory-driver regression spec** that probes dashboard-critical rou
 | Route | Denali smoke | Urban smoke | Expected (happy path) |
 |-------|--------------|-------------|------------------------|
 | `GET /tours?view=operator` | operator `000…014` | urban `000…004` | **200** — operator session + list projection |
-| `GET /settings/branding` | denali owner | urban owner | **200** / **403** (`SETTINGS_WORKSPACE_FORBIDDEN`) |
-| `GET /settings/modules` | denali owner | urban owner | **200** — full module hub / `account_profile` only |
+| `GET /settings/branding` | denali owner | urban owner | **200** / **404** (`SETTINGS_MODULE_UNKNOWN`) |
+| `GET /settings/modules` | denali owner | urban owner | **200** — full module hub / `account_profile` + urban manifest modules |
 | `GET /finance/reports/summary` | denali owner | urban owner | **200** empty summary (memory, no `DATABASE_URL`) / **404** urban unsupported |
 
 Urban finance nav is hidden in web shell; API must fail closed (**403/404**) without **500**.

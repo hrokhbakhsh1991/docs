@@ -13,7 +13,9 @@ rg -q 'buildUrbanMinimalWizardTemplatePayload' packages/workspaces/urban/src/ind
 rg -q 'tour_wizard_template' packages/workspaces/urban/src/settings/urban-settings.manifest.ts
 rg -q 'operatorSettings' packages/workspaces/urban/src/urban.plugin.ts
 rg -q 'extractUrbanTourListProjection' packages/workspaces/urban/src/urban.plugin.ts
-rg -q 'assertSettingsConfigWorkspaceAllowed' apps/api/src/settings/settings-workspace-guard.ts
+! test -f apps/api/src/settings/settings-workspace-guard.ts
+rg -q 'resolveSettingsModuleByConfigKeyForTenant' apps/api/src/settings/settings-config.service.ts
+rg -q 'operatorCapabilitySupportsUsersDirectory' apps/api/src/identity/users-workspace-guard.ts
 rg -q 'EMPTY_PUBLIC_TENANT_BRANDING' apps/web/app/api/public/tenant-branding/route.ts
 ! rg -q 'getDenaliWorkspacePlugin' apps/api/src/settings/settings-registry.ts
 rg -q 'WORKSPACE_CANONICAL_TOUR_BINDINGS' apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts

@@ -13,6 +13,7 @@
 | `guard-member-portal-registry` | `scripts/guards/guard-member-portal-registry.mjs` | pre-commit / PR | **fail** | Platform | PS-2+ |
 | `guard-member-portal-contract` | `scripts/guards/guard-member-portal-contract.mjs` | pre-commit / PR | **fail** | Platform | PS-2+ |
 | `guard-no-workspace-ids-in-codegen` | `scripts/guards/guard-no-workspace-ids-in-codegen.mjs` | guest conformance bundle | **fail** | Platform | Phase B |
+| `guard-no-workspace-type-branches` | `scripts/guards/guard-no-workspace-type-branches.mjs` | guest conformance bundle | **fail** | Platform | Phase C |
 | `guard-member-module-id-reserved` | (sub-rule of registry guard) | pre-commit / PR | **fail** | Platform | PS-2+ |
 | `guard-member-url-builder` | `scripts/guards/guard-member-url-builder.mjs` | PR | **fail** | Platform | PS-3+ |
 | `guard-workspace-member-egress` | `scripts/guards/guard-workspace-member-egress.mjs` | PR | **fail** | Platform | PS-4+ |

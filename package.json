@@ -173,6 +173,7 @@
     "guard:member-portal-registry": "node scripts/guards/guard-member-portal-registry.mjs",
     "guard:member-portal-contract": "node scripts/guards/guard-member-portal-contract.mjs",
     "guard:no-workspace-ids-in-codegen": "node scripts/guards/guard-no-workspace-ids-in-codegen.mjs",
+    "guard:no-workspace-type-branches": "node scripts/guards/guard-no-workspace-type-branches.mjs",
     "guard:member-url-builder": "node scripts/guards/guard-member-url-builder.mjs",
     "guard:guest-cross-surface-nav": "node scripts/guards/guard-guest-cross-surface-nav.mjs",
     "guard:workspace-member-egress": "node scripts/guards/guard-workspace-member-egress.mjs",

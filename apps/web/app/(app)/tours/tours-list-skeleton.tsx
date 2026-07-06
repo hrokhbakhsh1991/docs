@@ -3,11 +3,11 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { TOURS_LIST_TEST_IDS } from "@/features/tours/query-model";
 
 type ToursListToolbarSkeletonProps = {
-  readonly isDenali?: boolean;
+  readonly hasCategoryFilter?: boolean;
 };
 
-/** Mirrors search + status + optional Denali category groups + sort toolbar layout. */
-export function ToursListToolbarSkeleton({ isDenali = false }: ToursListToolbarSkeletonProps) {
+/** Mirrors search + status + optional category groups + sort toolbar layout. */
+export function ToursListToolbarSkeleton({ hasCategoryFilter = false }: ToursListToolbarSkeletonProps) {
   return (
     <div className="space-y-4" data-testid={TOURS_LIST_TEST_IDS.toolbarSkeleton}>
       <DenaliSkeleton className="h-10 w-full max-w-xl rounded-md" />
@@ -19,7 +19,7 @@ export function ToursListToolbarSkeleton({ isDenali = false }: ToursListToolbarS
         <DenaliSkeleton className="h-9 w-20 rounded-md" />
       </div>
 
-      {isDenali ? (
+      {hasCategoryFilter ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <DenaliSkeleton className="h-4 w-24 rounded-md" />

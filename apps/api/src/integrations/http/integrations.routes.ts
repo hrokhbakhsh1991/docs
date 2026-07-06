@@ -27,7 +27,7 @@ import {
   SettingsModuleNotSupportedError,
   SettingsMutationForbiddenError,
 } from "../../settings/settings.service";
-import { SettingsWorkspaceForbiddenError } from "../../settings/settings-workspace-guard";
+import { SettingsWorkspaceForbiddenError } from "../../settings/settings-workspace-errors";
 
 function mapIntegrationRouteError(res: ServerResponse, error: unknown): void {
   if (error instanceof SettingsMutationForbiddenError) {

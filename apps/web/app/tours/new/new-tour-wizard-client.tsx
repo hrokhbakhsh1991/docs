@@ -9,18 +9,23 @@ import { WorkspaceCreateTourWizardShell } from "@/wizard/workspace-create-tour-s
 
 import { DenaliCreateTourWizardClient } from "./denali-create-tour-wizard-client";
 
-function NewTourWizardClientInner() {
+type NewTourWizardClientProps = {
+  readonly initialTemplateResponse?: unknown | null;
+  readonly initialLocationsResponse?: unknown | null;
+};
+
+function NewTourWizardClientInner(props: NewTourWizardClientProps) {
   const session = useAppSession();
   if (WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(session.pluginId)) {
-    return <DenaliCreateTourWizardClient />;
+    return <DenaliCreateTourWizardClient {...props} />;
   }
   return <WorkspaceCreateTourWizardShell />;
 }
 
-export function NewTourWizardClient() {
+export function NewTourWizardClient(props: NewTourWizardClientProps) {
   return (
     <Suspense fallback={<CreateTourWizardLoadingMessage />}>
-      <NewTourWizardClientInner />
+      <NewTourWizardClientInner {...props} />
     </Suspense>
   );
 }

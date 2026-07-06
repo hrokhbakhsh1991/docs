@@ -232,6 +232,11 @@ export {
   UnknownCatalogPresentationPluginError,
 } from "./catalog/resolve-catalog-list-features";
 export {
+  operatorCapabilitySupportsUsersDirectory,
+  operatorCapabilitySupportsReconciliationTriage,
+} from "./operator/resolve-operator-capabilities";
+export { WORKSPACE_OPERATOR_CAPABILITIES } from "./operator/workspace-operator-capabilities.generated";
+export {
   resolveCatalogDetailSections,
   type CatalogDetailSections,
 } from "./catalog/resolve-catalog-detail-sections";

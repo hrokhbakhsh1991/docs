@@ -27,7 +27,7 @@ import {
   TOUR_CATEGORY_FILTER_GROUPS,
   type TourCategoryFilter,
 } from "@/features/tours/tour-list-category-logic";
-import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
+import { catalogListSupportsServerFilter, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
 import {
   queryStatusToUiStatus,
   TOUR_STATUS_UI_OPTIONS,
@@ -36,6 +36,7 @@ import {
   uiStatusToQueryStatus,
   type TourStatusUiFilter,
 } from "@/features/tours/tours-list-logic";
+import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
 import { TourCard } from "./tour-card";
 import { ToursListSkeleton, ToursListToolbarSkeleton } from "./tours-list-skeleton";
@@ -64,7 +65,12 @@ export function OperatorToursPageClient({
   const tDenali = useTranslations("denali");
   const tErrors = useTranslations("tours.errors");
   const tCommon = useTranslations("common");
-  const isDenali = session.pluginId === "denali";
+  const catalogListFeatures = useMemo(
+    () => resolveCatalogListFeatures(session.pluginId),
+    [session.pluginId]
+  );
+  const hasCategoryFilter = catalogListSupportsServerFilter(catalogListFeatures, "category");
+  const showExtendedCard = hasCategoryFilter;
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -224,7 +230,7 @@ export function OperatorToursPageClient({
       ) : null}
 
       {isInitialLoad ? (
-        <ToursListToolbarSkeleton isDenali={isDenali} />
+        <ToursListToolbarSkeleton hasCategoryFilter={hasCategoryFilter} />
       ) : (
         <div className="space-y-4">
           <div className="relative max-w-xl">
@@ -266,7 +272,7 @@ export function OperatorToursPageClient({
             </div>
           </div>
 
-          {isDenali ? (
+          {hasCategoryFilter ? (
             <div className="space-y-3" data-testid={TOURS_LIST_TEST_IDS.category}>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">{t("categoryFilterLabel")}</span>
@@ -381,7 +387,7 @@ export function OperatorToursPageClient({
         >
           {items.map((tour) => (
             <li key={tour.id}>
-              <TourCard tour={tour} canManage={showCreate} isDenali={isDenali} />
+              <TourCard tour={tour} canManage={showCreate} showExtendedCard={showExtendedCard} />
             </li>
           ))}
         </ul>

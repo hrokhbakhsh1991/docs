@@ -23,6 +23,7 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-theme-stylesheets.generated.ts"),
   join(SRC_DIR, "bootstrap", "wizard-surface-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "wizard-label-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-template-editor-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {
@@ -66,9 +67,6 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
     return true;
   }
   if (rel.endsWith("denali-flat-edit-page-client.tsx")) {
-    return true;
-  }
-  if (rel === "app/(app)/settings/tour-wizard-template/wizard-template-client.tsx") {
     return true;
   }
   if (
