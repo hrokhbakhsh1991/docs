@@ -33,6 +33,9 @@ describe("resolve-marketing-catalog-category-label.spec.ts — PR-23 card", () =
   });
 
   it("MKT-CAT-03 filter chip label still resolves group keys", () => {
-    assert.equal(resolveMarketingCatalogCategoryFilterLabel("mountain", translate), "کوهنوردی");
+    assert.equal(
+      resolveMarketingCatalogCategoryFilterLabel("mountain", translate, "denali"),
+      "کوهنوردی"
+    );
   });
 });

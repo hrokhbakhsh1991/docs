@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const marketingRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const catalogDir = join(marketingRoot, "src/catalog");
+const bootstrapDir = join(marketingRoot, "src/bootstrap");
 
 const FORBIDDEN_DENALI_FILES = [
   "denali-catalog-filter-config.ts",
@@ -28,30 +29,36 @@ describe("marketing-workspace-denali-boundary.spec.ts — MKT-6", () => {
     }
   });
 
-  it("MKT-WS-02 catalog TSX/TS import Denali helpers from workspace package", () => {
+  it("MKT-WS-02 catalog sources use codegen marketing bindings not workspace-denali imports", () => {
     const sources = readdirSync(catalogDir)
       .filter((name) => name.endsWith(".ts") || name.endsWith(".tsx"))
       .map((name) => join(catalogDir, name));
 
-    const denaliConsumers = sources.filter((path) => {
+    for (const path of sources) {
       const text = readFileSync(path, "utf8");
-      return (
-        text.includes("isDenaliMarketingPlugin") ||
-        text.includes("DENALI_MARKETING_") ||
-        text.includes("resolveDenaliCatalogDetailPdpGates") ||
-        text.includes("resolveDenaliMarketingCategoryFamily")
+      assert.doesNotMatch(
+        text,
+        /@app-tour\/workspace-denali/,
+        `${path} must not import @app-tour/workspace-denali directly`
       );
-    });
-
-    for (const path of denaliConsumers) {
-      const text = readFileSync(path, "utf8");
-      if (text.includes("isDenaliMarketingPlugin") || text.includes("DENALI_MARKETING_")) {
-        assert.match(
-          text,
-          /@app-tour\/workspace-denali\/marketing/,
-          `${path} must import Denali catalog helpers from workspace package`
-        );
-      }
     }
+
+    const bindings = readFileSync(
+      join(bootstrapDir, "workspace-marketing-catalog-bindings.generated.ts"),
+      "utf8"
+    );
+    assert.match(bindings, /resolveMarketingCatalogSurface/);
+    assert.match(bindings, /denaliMarketingCatalogSurface/);
+    assert.match(bindings, /@app-tour\/workspace-denali\/marketing\/marketing-catalog-surface/);
+  });
+
+  it("MKT-C3-01 derive and filter catalog helpers delegate to marketing catalog surface", () => {
+    const derive = readFileSync(join(catalogDir, "derive-catalog-filter-options.ts"), "utf8");
+    const filter = readFileSync(join(catalogDir, "filter-marketing-catalog-items.ts"), "utf8");
+    const detail = readFileSync(join(catalogDir, "catalog-tour-detail.tsx"), "utf8");
+    assert.match(derive, /resolveMarketingCatalogSurface/);
+    assert.match(filter, /resolveMarketingCatalogSurface/);
+    assert.match(detail, /resolveMarketingCatalogSurface/);
+    assert.doesNotMatch(detail, /isDenaliMarketingPlugin/);
   });
 });

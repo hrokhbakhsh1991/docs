@@ -5,10 +5,9 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { isAppLocale, resolveMarketingLocalePath, type AppLocale } from "@/i18n/routing";
 
 import {
-  DENALI_MARKETING_DIFFICULTY_MAX,
-  isDenaliMarketingCategoryGroup,
-  isDenaliMarketingPlugin,
-} from "@app-tour/workspace-denali/marketing";
+  hasMarketingCatalogSurface,
+  resolveMarketingCatalogSurface,
+} from "./resolve-marketing-catalog-surface";
 import { resolveMarketingCatalogCategoryFilterLabel } from "@/catalog/resolve-marketing-catalog-category-label";
 
 import {
@@ -45,12 +44,16 @@ function buildCategoryChipHref(
   })}`;
 }
 
-function resolveActiveCategoryGroup(filters: CatalogListFilters): string {
+function resolveActiveCategoryGroup(
+  filters: CatalogListFilters,
+  pluginId: string
+): string {
   const category = filters.category?.trim() ?? "";
   if (category.length === 0) {
     return "";
   }
-  if (isDenaliMarketingCategoryGroup(category)) {
+  const surface = resolveMarketingCatalogSurface(pluginId);
+  if (surface != null && surface.isCategoryGroup(category)) {
     return category;
   }
   if (category.startsWith("mountain_")) {
@@ -64,11 +67,12 @@ function resolveActiveCategoryGroup(filters: CatalogListFilters): string {
 
 function formatDifficultyOptionLabel(
   level: number,
-  translate: (key: string, values?: Record<string, string | number>) => string
+  translate: (key: string, values?: Record<string, string | number>) => string,
+  difficultyMax: number
 ): string {
   return translate("list.filters.difficultyOption", {
     level,
-    max: DENALI_MARKETING_DIFFICULTY_MAX,
+    max: difficultyMax,
   });
 }
 
@@ -85,9 +89,11 @@ export async function CatalogTourFilterBar({
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const listPath = resolveMarketingLocalePath("/tours", locale);
   const formAction = listPath;
-  const activeCategoryGroup = resolveActiveCategoryGroup(filters);
+  const activeCategoryGroup = resolveActiveCategoryGroup(filters, pluginId);
   const filtersActive = catalogListHasActiveFilters(filters, serverListFilters);
-  const isDenali = isDenaliMarketingPlugin(pluginId);
+  const catalogSurface = resolveMarketingCatalogSurface(pluginId);
+  const hasExtendedCatalogFilters = hasMarketingCatalogSurface(pluginId);
+  const difficultyMax = catalogSurface?.difficultyMax ?? 10;
 
   return (
     <div data-marketing-catalog-toolbar>
@@ -106,7 +112,7 @@ export async function CatalogTourFilterBar({
         </Link>
       </div>
 
-      {isDenali && options.categories.length > 0 ? (
+      {hasExtendedCatalogFilters && options.categories.length > 0 ? (
         <div data-marketing-catalog-category-chips>
           <p data-marketing-catalog-filter-section-label>{t("list.filters.categoryLabel")}</p>
           <div data-marketing-catalog-category-chip-row>
@@ -130,7 +136,7 @@ export async function CatalogTourFilterBar({
                   ? { "data-marketing-catalog-category-chip-active": true }
                   : {})}
               >
-                {resolveMarketingCatalogCategoryFilterLabel(category, t)}
+                {resolveMarketingCatalogCategoryFilterLabel(category, t, pluginId)}
               </Link>
             ))}
           </div>
@@ -179,7 +185,7 @@ export async function CatalogTourFilterBar({
             </select>
           </label>
 
-          {(isDenali || options.difficulties.length > 0 || filters.difficulty != null) && (
+          {(hasExtendedCatalogFilters || options.difficulties.length > 0 || filters.difficulty != null) && (
             <label data-marketing-catalog-filter-field>
               <span data-marketing-catalog-filter-field-label>{t("list.filters.difficultyLabel")}</span>
               <select
@@ -192,14 +198,14 @@ export async function CatalogTourFilterBar({
                   : options.difficulties
                 ).map((level) => (
                   <option key={level} value={String(level)}>
-                    {formatDifficultyOptionLabel(level, t)}
+                    {formatDifficultyOptionLabel(level, t, difficultyMax)}
                   </option>
                 ))}
               </select>
             </label>
           )}
 
-          {(isDenali || options.fitnessLevels.length > 0 || (filters.fitness != null && filters.fitness.length > 0)) && (
+          {(hasExtendedCatalogFilters || options.fitnessLevels.length > 0 || (filters.fitness != null && filters.fitness.length > 0)) && (
             <label data-marketing-catalog-filter-field>
               <span data-marketing-catalog-filter-field-label>{t("list.filters.fitnessLabel")}</span>
               <select name="fitness" defaultValue={filters.fitness ?? ""}>
@@ -273,7 +279,7 @@ export async function CatalogTourFilterBar({
                 data-marketing-catalog-active-filter-id="category"
               >
                 {t("list.categoryActive", {
-                  category: resolveMarketingCatalogCategoryFilterLabel(activeCategoryGroup, t),
+                  category: resolveMarketingCatalogCategoryFilterLabel(activeCategoryGroup, t, pluginId),
                 })}
               </Link>
             ) : null}
@@ -283,7 +289,7 @@ export async function CatalogTourFilterBar({
                 data-marketing-catalog-active-filter
                 data-marketing-catalog-active-filter-id="difficulty"
               >
-                {formatDifficultyOptionLabel(filters.difficulty, t)}
+                {formatDifficultyOptionLabel(filters.difficulty, t, difficultyMax)}
               </Link>
             ) : null}
             {filters.fitness != null && filters.fitness.length > 0 ? (

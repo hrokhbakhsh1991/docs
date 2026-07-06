@@ -1,8 +1,8 @@
 import type { MarketingCatalogCard } from "./catalog-types";
 import {
-  DENALI_MARKETING_DIFFICULTY_MAX,
-  isDenaliMarketingPlugin,
-} from "@app-tour/workspace-denali/marketing";
+  hasMarketingCatalogSurface,
+  resolveMarketingCatalogSurface,
+} from "./resolve-marketing-catalog-surface";
 import { resolveMarketingCatalogFitnessLevelLabel } from "./resolve-marketing-catalog-fitness-label";
 
 /** Whole-day span between departure and end (minimum 1). */
@@ -52,7 +52,12 @@ export function buildCatalogListCardSummary(
   translate: (key: string, values?: Record<string, string | number>) => string,
   options: BuildCatalogListCardSummaryOptions
 ): string | null {
-  if (!isDenaliMarketingPlugin(options.pluginId)) {
+  if (!hasMarketingCatalogSurface(options.pluginId)) {
+    return null;
+  }
+
+  const surface = resolveMarketingCatalogSurface(options.pluginId);
+  if (surface == null) {
     return null;
   }
 
@@ -71,7 +76,7 @@ export function buildCatalogListCardSummary(
     parts.push(
       translate("list.card.summary.difficulty", {
         level: tour.difficultyLevel,
-        max: DENALI_MARKETING_DIFFICULTY_MAX,
+        max: surface.difficultyMax,
       })
     );
   }

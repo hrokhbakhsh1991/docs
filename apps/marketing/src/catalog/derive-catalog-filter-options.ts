@@ -1,10 +1,5 @@
 import type { CatalogListFilters } from "./catalog-list-query";
-import {
-  DENALI_MARKETING_CATEGORY_GROUPS,
-  DENALI_MARKETING_DIFFICULTY_LEVELS,
-  DENALI_MARKETING_FITNESS_LEVELS,
-  isDenaliMarketingPlugin,
-} from "@app-tour/workspace-denali/marketing";
+import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 import type { MarketingCatalogCard } from "./catalog-types";
 
 export type CatalogFilterOptions = {
@@ -25,10 +20,11 @@ function isDeriveCatalogFilterOptionsInput(
   return !Array.isArray(value) && "items" in value;
 }
 
-function deriveDenaliFilterOptions(
+function deriveSurfaceFilterOptions(
+  surface: NonNullable<ReturnType<typeof resolveMarketingCatalogSurface>>,
   activeFilters?: Pick<CatalogListFilters, "category" | "difficulty" | "fitness">
 ): CatalogFilterOptions {
-  const categories = new Set<string>(DENALI_MARKETING_CATEGORY_GROUPS);
+  const categories = new Set<string>(surface.categoryGroups);
   const activeCategory = activeFilters?.category?.trim();
   if (activeCategory != null && activeCategory.length > 0) {
     categories.add(activeCategory);
@@ -36,8 +32,8 @@ function deriveDenaliFilterOptions(
 
   return {
     categories: [...categories],
-    difficulties: [...DENALI_MARKETING_DIFFICULTY_LEVELS],
-    fitnessLevels: [...DENALI_MARKETING_FITNESS_LEVELS],
+    difficulties: [...surface.difficultyLevels],
+    fitnessLevels: [...surface.fitnessLevels],
   };
 }
 
@@ -82,7 +78,7 @@ function deriveDynamicFilterOptions(
   };
 }
 
-/** Filter controls — Denali uses admin-aligned fixed options; Urban derives from batch. */
+/** Filter controls — workspace surfaces use manifest-aligned fixed options; others derive from batch. */
 export function deriveCatalogFilterOptions(
   items: readonly MarketingCatalogCard[],
   activeFilters?: Pick<CatalogListFilters, "category" | "difficulty" | "fitness">
@@ -93,8 +89,9 @@ export function deriveCatalogFilterOptions(
   activeFilters?: Pick<CatalogListFilters, "category" | "difficulty" | "fitness">
 ): CatalogFilterOptions {
   if (isDeriveCatalogFilterOptionsInput(itemsOrInput)) {
-    if (isDenaliMarketingPlugin(itemsOrInput.pluginId)) {
-      return deriveDenaliFilterOptions(itemsOrInput.activeFilters);
+    const surface = resolveMarketingCatalogSurface(itemsOrInput.pluginId);
+    if (surface != null) {
+      return deriveSurfaceFilterOptions(surface, itemsOrInput.activeFilters);
     }
     return deriveDynamicFilterOptions(itemsOrInput.items, itemsOrInput.activeFilters);
   }

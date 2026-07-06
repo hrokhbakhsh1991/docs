@@ -166,6 +166,10 @@
       "types": "./dist/marketing/index.d.ts",
       "default": "./dist/marketing/index.js"
     },
+    "./marketing/marketing-catalog-surface": {
+      "types": "./dist/marketing/marketing-catalog-surface.d.ts",
+      "default": "./dist/marketing/marketing-catalog-surface.js"
+    },
     "./theme/admin-skin.css": "./theme/admin-skin.css",
     "./messages/fa/wizard.json": "./messages/fa/wizard.json",
     "./messages/en/wizard.json": "./messages/en/wizard.json",

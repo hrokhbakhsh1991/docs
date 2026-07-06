@@ -285,5 +285,9 @@
   "wizardTemplateEditor": {
     "module": "./settings/wizard-template-editor",
     "export": "denaliWizardTemplateEditor"
+  },
+  "marketingCatalog": {
+    "module": "./marketing/marketing-catalog-surface",
+    "export": "denaliMarketingCatalogSurface"
   }
 }

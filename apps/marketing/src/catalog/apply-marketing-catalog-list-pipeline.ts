@@ -13,16 +13,21 @@ export type MarketingCatalogListPipelineResult = {
 export function applyMarketingCatalogListPipeline(
   fetchedItems: readonly MarketingCatalogCard[],
   filters: CatalogListFilters,
-  _serverListFilters: readonly string[] = []
+  serverListFilters: readonly string[] = [],
+  pluginId?: string
 ): MarketingCatalogListPipelineResult {
-  void _serverListFilters;
-  const filteredItems = filterMarketingCatalogItems(fetchedItems, {
-    q: filters.q,
-    category: filters.category,
-    difficulty: filters.difficulty,
-    fitness: filters.fitness,
-    availability: filters.availability,
-  });
+  void serverListFilters;
+  const filteredItems = filterMarketingCatalogItems(
+    fetchedItems,
+    {
+      q: filters.q,
+      category: filters.category,
+      difficulty: filters.difficulty,
+      fitness: filters.fitness,
+      availability: filters.availability,
+    },
+    pluginId
+  );
   const items = sortMarketingCatalogItems(filteredItems, filters.sort);
   return {
     items,

@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { buildCatalogReadinessCells } from "./build-catalog-readiness-cells";
 import type { MarketingCatalogCard } from "./catalog-types";
-import { resolveDenaliMarketingCategoryFamily } from "@app-tour/workspace-denali/marketing";
+import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 import { isAppLocale, type AppLocale } from "@/i18n/routing";
 import { toLocalizedDigits } from "@/i18n/format-localized-digits";
 
@@ -13,6 +13,7 @@ export type CatalogTourDetailReadinessProps = {
 
 export async function CatalogTourDetailReadiness({
   tour,
+  pluginId,
 }: CatalogTourDetailReadinessProps) {
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();
@@ -20,9 +21,10 @@ export async function CatalogTourDetailReadiness({
   const localizeNumber = (value: number) =>
     toLocalizedDigits(String(value), locale);
 
+  const surface = resolveMarketingCatalogSurface(pluginId);
   const cells = buildCatalogReadinessCells({
     tour,
-    family: resolveDenaliMarketingCategoryFamily(tour.category),
+    family: surface?.resolveCategoryFamily(tour.category) ?? null,
     labels: {
       hikingHours: t("detail.readiness.hikingHours"),
       hikingGoHours: t("detail.readiness.hikingGoHours"),

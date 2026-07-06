@@ -1,5 +1,5 @@
 import type { MarketingCatalogCard } from "./catalog-types";
-import type { DenaliMarketingCategoryGroup } from "@app-tour/workspace-denali/marketing";
+import type { MarketingCategoryGroup } from "./marketing-catalog-surface-types";
 
 export type CatalogReadinessCell = {
   readonly id: string;
@@ -9,7 +9,7 @@ export type CatalogReadinessCell = {
 
 export type BuildCatalogReadinessCellsInput = {
   readonly tour: MarketingCatalogCard;
-  readonly family: DenaliMarketingCategoryGroup | null;
+  readonly family: MarketingCategoryGroup | null;
   readonly labels: {
     readonly hikingHours: string;
     readonly hikingGoHours: string;

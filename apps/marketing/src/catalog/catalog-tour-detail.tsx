@@ -22,9 +22,9 @@ import { CatalogTourDetailPolicies } from "./catalog-tour-detail-policies";
 import { CatalogTourDetailRegisterPreview } from "./catalog-tour-detail-register-preview";
 import { buildCatalogTourMetaLine } from "./build-catalog-tour-meta-line";
 import {
-  isDenaliMarketingPlugin,
-  resolveDenaliCatalogDetailPdpGates,
-} from "@app-tour/workspace-denali/marketing";
+  hasMarketingCatalogSurface,
+  resolveMarketingCatalogSurface,
+} from "./resolve-marketing-catalog-surface";
 
 import { tourHasRegisterPreviewData } from "./build-catalog-register-preview-items";
 import { tourHasOverflowGalleryPhotos } from "./build-catalog-tour-photo-set";
@@ -59,12 +59,22 @@ export async function CatalogTourDetail({
   pluginId,
 }: CatalogTourDetailProps) {
   const sections = resolveCatalogDetailSections(pluginId);
-  const denaliPdp = resolveDenaliCatalogDetailPdpGates(pluginId, {
-    tour,
-    hasOverflowGallery: tourHasOverflowGalleryPhotos(tour),
-    hasRegisterPreview: tourHasRegisterPreviewData(tour),
-  });
-  const isDenali = isDenaliMarketingPlugin(pluginId);
+  const catalogSurface = resolveMarketingCatalogSurface(pluginId);
+  const detailPdpGates =
+    catalogSurface?.resolveDetailPdpGates({
+      tour,
+      hasOverflowGallery: tourHasOverflowGalleryPhotos(tour),
+      hasRegisterPreview: tourHasRegisterPreviewData(tour),
+    }) ?? {
+      showHeroGallery: false,
+      showReadiness: false,
+      showLogistics: false,
+      showGear: false,
+      showGalleryNav: false,
+      showRegisterPreview: false,
+      showFaq: false,
+    };
+  const hasExtendedCatalogLayout = hasMarketingCatalogSurface(pluginId);
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
@@ -118,7 +128,7 @@ export async function CatalogTourDetail({
                 {t("detail.backToTours")}
               </Link>
 
-              {denaliPdp.showHeroGallery ? (
+              {detailPdpGates.showHeroGallery ? (
                 <CatalogTourDetailHeroGallery tour={tour} title={title} />
               ) : tour.coverImageUrl ? (
                 <figure data-marketing-catalog-detail-cover data-marketing-catalog-detail-hero>
@@ -153,14 +163,14 @@ export async function CatalogTourDetail({
             />
 
             <CatalogTourDetailJumpNav
-              showReadiness={denaliPdp.showReadiness}
+              showReadiness={detailPdpGates.showReadiness}
               showItinerary={showItinerary}
-              showLogistics={denaliPdp.showLogistics}
-              showGear={denaliPdp.showGear}
-              showGallery={denaliPdp.showGalleryNav}
+              showLogistics={detailPdpGates.showLogistics}
+              showGear={detailPdpGates.showGear}
+              showGallery={detailPdpGates.showGalleryNav}
               showPolicies={showPolicies}
-              showRegisterPreview={denaliPdp.showRegisterPreview}
-              showFaq={denaliPdp.showFaq}
+              showRegisterPreview={detailPdpGates.showRegisterPreview}
+              showFaq={detailPdpGates.showFaq}
             />
 
             {description ? <p data-marketing-catalog-detail-description>{description}</p> : null}
@@ -168,8 +178,8 @@ export async function CatalogTourDetail({
               <div data-marketing-catalog-detail-long-description>{longDescription}</div>
             ) : null}
 
-            {isDenali ? <CatalogTourDetailReadiness tour={tour} pluginId={pluginId} /> : null}
-            {isDenali ? <CatalogTourDetailGallery tour={tour} title={title} /> : null}
+            {hasExtendedCatalogLayout ? <CatalogTourDetailReadiness tour={tour} pluginId={pluginId} /> : null}
+            {hasExtendedCatalogLayout ? <CatalogTourDetailGallery tour={tour} title={title} /> : null}
 
             <div data-marketing-catalog-detail-body>
               {showItinerary ? (
@@ -184,8 +194,8 @@ export async function CatalogTourDetail({
                 />
               ) : null}
 
-              {isDenali ? <CatalogTourDetailLogistics tour={tour} /> : null}
-              {isDenali ? <CatalogTourDetailGearServices tour={tour} /> : null}
+              {hasExtendedCatalogLayout ? <CatalogTourDetailLogistics tour={tour} /> : null}
+              {hasExtendedCatalogLayout ? <CatalogTourDetailGearServices tour={tour} /> : null}
 
               {showPolicies ? (
                 <div id="catalog-detail-policies">
@@ -193,10 +203,10 @@ export async function CatalogTourDetail({
                 </div>
               ) : null}
 
-              {denaliPdp.showRegisterPreview ? (
+              {detailPdpGates.showRegisterPreview ? (
                 <CatalogTourDetailRegisterPreview tour={tour} />
               ) : null}
-              {denaliPdp.showFaq ? <CatalogTourDetailFaq tour={tour} /> : null}
+              {detailPdpGates.showFaq ? <CatalogTourDetailFaq tour={tour} /> : null}
             </div>
           </div>
 

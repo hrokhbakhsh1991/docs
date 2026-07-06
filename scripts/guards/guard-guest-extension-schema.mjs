@@ -68,6 +68,9 @@ if (!fs.existsSync(SCHEMA_PATH)) {
   if (schema.properties?.wizardTemplateEditor?.additionalProperties !== false) {
     violations.push("schema must make wizardTemplateEditor additionalProperties false");
   }
+  if (schema.properties?.marketingCatalog?.additionalProperties !== false) {
+    violations.push("schema must make marketingCatalog additionalProperties false");
+  }
 }
 
 for (const manifest of discoverManifests()) {

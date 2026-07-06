@@ -5,7 +5,7 @@ import { resolveHomeTourCoverUrl } from "@/home/resolve-home-tour-cover-url";
 
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import { buildCatalogListCardSummary } from "./build-catalog-list-card-summary";
-import { isDenaliMarketingPlugin } from "@app-tour/workspace-denali/marketing";
+import { hasMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 
 import { CatalogCoverImage } from "./catalog-cover-image";
 import type { MarketingCatalogCard } from "./catalog-types";
@@ -29,10 +29,10 @@ export async function CatalogTourCard({ tour, pluginId }: CatalogTourCardProps) 
   const dateLocale = resolveIntlDateLocale(locale);
   const detailHref = `/tours/${tour.id}`;
   const title = tour.title?.trim() || t("detail.untitled");
-  const isDenali = isDenaliMarketingPlugin(pluginId);
+  const hasExtendedCatalogLayout = hasMarketingCatalogSurface(pluginId);
   const summaryLine = buildCatalogListCardSummary(tour, t, { pluginId });
   const description =
-    !isDenali && summaryLine == null ? formatCatalogCardDescription(tour) : null;
+    !hasExtendedCatalogLayout && summaryLine == null ? formatCatalogCardDescription(tour) : null;
   const datesLine = formatCatalogCardDates(tour, dateLocale, t("detail.datesTba"));
   const categorySlug = tour.category?.trim();
   const categoryLabel = resolveMarketingCatalogCardCategoryLabel(categorySlug, t);

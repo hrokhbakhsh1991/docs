@@ -1628,6 +1628,7 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "guestConformance",
   "operatorCapabilities",
   "wizardTemplateEditor",
+  "marketingCatalog",
 ];
 
 /**
@@ -1719,6 +1720,19 @@ export function assertGuestExtensionsManifest(manifest) {
     }
     if (typeof editor.export !== "string" || editor.export.length === 0) {
       throw new Error(`${manifest.id}: wizardTemplateEditor.export must be a non-empty string`);
+    }
+  }
+
+  if (manifest.marketingCatalog !== undefined) {
+    const catalog = manifest.marketingCatalog;
+    if (typeof catalog !== "object" || Array.isArray(catalog)) {
+      throw new Error(`${manifest.id}: marketingCatalog must be an object`);
+    }
+    if (typeof catalog.module !== "string" || catalog.module.length === 0) {
+      throw new Error(`${manifest.id}: marketingCatalog.module must be a non-empty string`);
+    }
+    if (typeof catalog.export !== "string" || catalog.export.length === 0) {
+      throw new Error(`${manifest.id}: marketingCatalog.export must be a non-empty string`);
     }
   }
 }
@@ -2614,6 +2628,52 @@ export function resolveWizardTemplateEditor(
 `;
 }
 
+export function generateMarketingCatalogBindings(manifests) {
+  const withCatalog = manifests.filter((m) => m.marketingCatalog !== undefined);
+  if (withCatalog.length === 0) {
+    return `${BANNER}
+import type { MarketingCatalogSurface } from "@/catalog/marketing-catalog-surface-types";
+
+export function resolveMarketingCatalogSurface(
+  _pluginId: string
+): MarketingCatalogSurface | null {
+  return null;
+}
+`;
+  }
+
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const catalogEntries = [];
+
+  for (const m of withCatalog) {
+    const catalog = m.marketingCatalog;
+    if (typeof catalog.module !== "string" || typeof catalog.export !== "string") {
+      throw new Error(`${m.id}: marketingCatalog requires module and export`);
+    }
+    const alias = `catalog_${m.id.replace(/-/g, "_")}`;
+    const importFrom = importSpecifier(m.package, catalog.module);
+    importLines.add(`import { ${catalog.export} as ${alias} } from "${importFrom}";`);
+    catalogEntries.push(`  ${JSON.stringify(m.id)}: ${alias},`);
+  }
+
+  return `${BANNER}
+import type { MarketingCatalogSurface } from "@/catalog/marketing-catalog-surface-types";
+${[...importLines].join("\n")}
+
+const MARKETING_CATALOG_SURFACES: Readonly<Record<string, MarketingCatalogSurface>> = Object.freeze({
+${catalogEntries.join("\n")}
+});
+
+export function resolveMarketingCatalogSurface(
+  pluginId: string
+): MarketingCatalogSurface | null {
+  return MARKETING_CATALOG_SURFACES[pluginId] ?? null;
+}
+`;
+}
+
 /** @param {ReturnType<typeof discoverManifests>} manifests */
 export function generateWorkspaceCatalogListFeatures(manifests) {
   /** @type {Record<string, { cityFilter: boolean; serverListFilters: string[] }>} */
@@ -3003,6 +3063,7 @@ export function generateAllOutputs(manifests) {
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
     wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
+    marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -3096,6 +3157,10 @@ const OUTPUT_PATHS = {
   wizardTemplateEditorBindings: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-wizard-template-editor-bindings.generated.ts"
+  ),
+  marketingCatalogBindings: join(
+    REPO_ROOT,
+    "apps/marketing/src/bootstrap/workspace-marketing-catalog-bindings.generated.ts"
   ),
   devPluginIds: join(
     REPO_ROOT,
@@ -3193,6 +3258,7 @@ function main() {
       "catalogDetailSections",
       "operatorCapabilities",
       "wizardTemplateEditorBindings",
+      "marketingCatalogBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -3255,6 +3321,7 @@ function main() {
   writeFileSync(OUTPUT_PATHS.catalogDetailSections, generated.catalogDetailSections);
   writeFileSync(OUTPUT_PATHS.operatorCapabilities, generated.operatorCapabilities);
   writeFileSync(OUTPUT_PATHS.wizardTemplateEditorBindings, generated.wizardTemplateEditorBindings);
+  writeFileSync(OUTPUT_PATHS.marketingCatalogBindings, generated.marketingCatalogBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

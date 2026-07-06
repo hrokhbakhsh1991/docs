@@ -1,20 +1,22 @@
 import {
-  isDenaliMarketingCategoryGroup,
-  type DenaliMarketingCategoryGroup,
-} from "@app-tour/workspace-denali/marketing";
+  resolveMarketingCatalogSurface,
+} from "./resolve-marketing-catalog-surface";
+import type { MarketingCategoryGroup } from "./marketing-catalog-surface-types";
 
 /** Chip / pill label for catalog category filter (group or legacy slug). */
 export function resolveMarketingCatalogCategoryFilterLabel(
   category: string,
-  translate: (key: string) => string
+  translate: (key: string) => string,
+  pluginId?: string
 ): string {
   const normalized = category.trim();
   if (normalized.length === 0) {
     return normalized;
   }
 
-  if (isDenaliMarketingCategoryGroup(normalized)) {
-    const groupKey = `list.filters.categoryGroups.${normalized as DenaliMarketingCategoryGroup}`;
+  const surface = pluginId != null ? resolveMarketingCatalogSurface(pluginId) : null;
+  if (surface != null && surface.isCategoryGroup(normalized)) {
+    const groupKey = `list.filters.categoryGroups.${normalized as MarketingCategoryGroup}`;
     const groupLabel = translate(groupKey);
     if (groupLabel !== groupKey && groupLabel.trim().length > 0) {
       return groupLabel;
@@ -30,7 +32,13 @@ export function resolveMarketingCatalogCategoryFilterLabel(
   return normalized.replace(/_/g, " ");
 }
 
-function resolveDenaliCategoryGroupKey(slug: string): DenaliMarketingCategoryGroup | null {
+function resolveCategoryGroupKey(
+  slug: string,
+  surface: ReturnType<typeof resolveMarketingCatalogSurface>
+): MarketingCategoryGroup | null {
+  if (surface != null) {
+    return surface.resolveCategoryFamily(slug);
+  }
   if (slug.startsWith("mountain_")) {
     return "mountain";
   }
@@ -43,7 +51,8 @@ function resolveDenaliCategoryGroupKey(slug: string): DenaliMarketingCategoryGro
 /** Localized category line on list/detail cards (wizard slug → fa/en label). */
 export function resolveMarketingCatalogCardCategoryLabel(
   categorySlug: string | null | undefined,
-  translate: (key: string) => string
+  translate: (key: string) => string,
+  pluginId?: string
 ): string | null {
   const normalized = categorySlug?.trim() ?? "";
   if (normalized.length === 0) {
@@ -56,7 +65,8 @@ export function resolveMarketingCatalogCardCategoryLabel(
     return slugLabel;
   }
 
-  const group = resolveDenaliCategoryGroupKey(normalized);
+  const surface = pluginId != null ? resolveMarketingCatalogSurface(pluginId) : null;
+  const group = resolveCategoryGroupKey(normalized, surface);
   if (group != null) {
     const groupKey = `list.filters.categoryGroups.${group}`;
     const groupLabel = translate(groupKey);

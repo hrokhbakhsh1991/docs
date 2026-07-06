@@ -100,7 +100,8 @@ export default async function MarketingToursPage({ searchParams }: PageProps) {
   const { items, matchedCount } = applyMarketingCatalogListPipeline(
     fetchedItems,
     filters,
-    serverListFilters
+    serverListFilters,
+    bootstrap.pluginId
   );
   const listJsonLd =
     shouldEmitMarketingCatalogListJsonLd({ cursor: filters.cursor }) && items.length > 0

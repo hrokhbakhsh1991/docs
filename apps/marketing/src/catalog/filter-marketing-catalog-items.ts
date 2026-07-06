@@ -1,8 +1,5 @@
 import type { CatalogListFilters } from "./catalog-list-query";
-import {
-  matchesDenaliMarketingCategoryFilter,
-  snapDenaliCatalogDifficultyLevel,
-} from "@app-tour/workspace-denali/marketing";
+import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 import type { MarketingCatalogCard } from "./catalog-types";
 
 function readSearchHaystack(item: MarketingCatalogCard): string {
@@ -38,22 +35,30 @@ export function filterMarketingCatalogItems(
   filters: Pick<
     CatalogListFilters,
     "q" | "category" | "difficulty" | "fitness" | "availability"
-  >
+  >,
+  pluginId?: string
 ): readonly MarketingCatalogCard[] {
+  const surface = pluginId != null ? resolveMarketingCatalogSurface(pluginId) : null;
   let filtered = items;
 
   const category = filters.category?.trim();
   if (category != null && category.length > 0) {
-    filtered = filtered.filter((item) => matchesDenaliMarketingCategoryFilter(item.category, category));
+    filtered = filtered.filter((item) => {
+      if (surface != null) {
+        return surface.matchesCategoryFilter(item.category, category);
+      }
+      return item.category?.trim() === category;
+    });
   }
 
   if (filters.difficulty != null) {
-    const target = snapDenaliCatalogDifficultyLevel(filters.difficulty);
+    const target = surface?.snapDifficultyLevel(filters.difficulty) ?? filters.difficulty;
     filtered = filtered.filter((item) => {
       if (item.difficultyLevel == null) {
         return false;
       }
-      return snapDenaliCatalogDifficultyLevel(item.difficultyLevel) === target;
+      const itemLevel = surface?.snapDifficultyLevel(item.difficultyLevel) ?? item.difficultyLevel;
+      return itemLevel === target;
     });
   }
 

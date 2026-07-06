@@ -7,7 +7,7 @@ import {
   formatCatalogPrice,
   shouldShowCatalogPrice,
 } from "./format-catalog-display";
-import { DENALI_MARKETING_DIFFICULTY_MAX } from "@app-tour/workspace-denali/marketing";
+import { resolveMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 import { resolveMarketingCatalogFitnessLabel } from "./resolve-marketing-catalog-fitness-label";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
 
@@ -59,6 +59,9 @@ export async function CatalogTourStats({
       ? ({ "data-marketing-catalog-card-stats": true } as const)
       : ({ "data-marketing-catalog-detail-stats": true } as const);
 
+  const surface = resolveMarketingCatalogSurface(pluginId);
+  const difficultyMax = surface?.difficultyMax ?? 10;
+
   return (
     <ul {...statsProps}>
       {capacityLabel ? <li>{capacityLabel}</li> : null}
@@ -76,7 +79,7 @@ export async function CatalogTourStats({
         <li>
           {t("detail.difficulty", {
             level: tour.difficultyLevel,
-            max: DENALI_MARKETING_DIFFICULTY_MAX,
+            max: difficultyMax,
           })}
         </li>
       ) : null}

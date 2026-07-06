@@ -77,6 +77,23 @@ function tourHasReadinessData(tour: DenaliMarketingCatalogTour): boolean {
   );
 }
 
+/** PR-D Denali PDP section gates — data-gated. */
+export function buildDenaliMarketingCatalogDetailPdpGates(
+  input: ResolveDenaliCatalogDetailPdpGatesInput,
+): CatalogDetailDenaliPdpGates {
+  const { tour, hasOverflowGallery, hasRegisterPreview } = input;
+
+  return Object.freeze({
+    showHeroGallery: true,
+    showReadiness: tourHasReadinessData(tour),
+    showLogistics: tourHasLogistics(tour),
+    showGear: tourHasGearOrServices(tour),
+    showGalleryNav: hasOverflowGallery,
+    showRegisterPreview: hasRegisterPreview,
+    showFaq: true,
+  });
+}
+
 /** PR-D Denali PDP section gates — data-gated; non-Denali plugins get all false. */
 export function resolveDenaliCatalogDetailPdpGates(
   pluginId: string,
@@ -94,15 +111,5 @@ export function resolveDenaliCatalogDetailPdpGates(
     });
   }
 
-  const { tour, hasOverflowGallery, hasRegisterPreview } = input;
-
-  return Object.freeze({
-    showHeroGallery: true,
-    showReadiness: tourHasReadinessData(tour),
-    showLogistics: tourHasLogistics(tour),
-    showGear: tourHasGearOrServices(tour),
-    showGalleryNav: hasOverflowGallery,
-    showRegisterPreview: hasRegisterPreview,
-    showFaq: true,
-  });
+  return buildDenaliMarketingCatalogDetailPdpGates(input);
 }

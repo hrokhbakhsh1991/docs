@@ -25,6 +25,15 @@
         "export": { "type": "string", "minLength": 1 }
       }
     },
+    "marketingCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
     "guestCatalog": {
       "type": "object",
       "additionalProperties": false,

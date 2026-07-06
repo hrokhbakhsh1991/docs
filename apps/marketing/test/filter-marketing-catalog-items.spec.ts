@@ -51,7 +51,8 @@ describe("filter-marketing-catalog-items.spec.ts — HOME-UNIT-07", () => {
           { id: "1", title: "Alpine", category: "mountain_multi" },
           { id: "2", title: "Woods", category: "nature_day" },
         ],
-        { category: "mountain" }
+        { category: "mountain" },
+        "denali"
       ).map((item) => item.id),
       ["1"]
     );

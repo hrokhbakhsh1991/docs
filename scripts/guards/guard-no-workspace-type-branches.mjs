@@ -4,6 +4,7 @@
  * C1: no workspaceType === "urban" in apps/api/src (except generated + tests).
  * C2: no pluginId === "denali" in tours/wizard-template page clients.
  * C4: no isDenaliOperatorSession / isDenali in tour-edit page client.
+ * C3: no @app-tour/workspace-denali imports in apps/marketing/src/catalog.
  * @see docs/architecture/platform-architecture-v2.md
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -98,6 +99,19 @@ for (const rel of C4_TARGETS) {
     }
     if (isDenaliLocalPattern.test(lines[i])) {
       violations.push(`${rel}:${i + 1}: forbidden isDenali local — ${lines[i].trim()}`);
+    }
+  }
+}
+
+const MARKETING_CATALOG_ROOT = path.join(REPO_ROOT, "apps/marketing/src/catalog");
+const denaliImportPattern = /@app-tour\/workspace-denali/;
+
+for (const abs of walkTsFiles(MARKETING_CATALOG_ROOT)) {
+  const rel = path.relative(REPO_ROOT, abs);
+  const lines = readFileSync(abs, "utf8").split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    if (denaliImportPattern.test(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden workspace-denali import in marketing catalog — ${lines[i].trim()}`);
     }
   }
 }

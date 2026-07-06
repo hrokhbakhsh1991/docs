@@ -46,7 +46,7 @@ Platform apps (`apps/web`, `apps/portal`, `apps/marketing`, `apps/api`) and plat
 
 Workspace-specific behavior is reached **only** through generated bindings keyed by resolved `pluginId` at runtime.
 
-**Violation today (Phase C sprint 1 resolved 2026-07-06):** Urban API guards and `pluginId === "denali"` in tours/wizard-template page clients replaced by manifest codegen (`operatorCapabilities`, `WORKSPACE_CATALOG_LIST_FEATURES`, `wizardTemplateEditor` bindings). **Sprint 2 (in progress):** tour edit flat-shell routing uses `isExtendedOperatorSession` (codegen `WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS`) instead of `isDenaliOperatorSession`. **Remaining:** broader `apps/web` Denali direct imports (~70 allowlisted files), marketing catalog bindings (C3), full admin purge (C4).
+**Violation today (Phase C sprint 1 resolved 2026-07-06):** Urban API guards and `pluginId === "denali"` in tours/wizard-template page clients replaced by manifest codegen (`operatorCapabilities`, `WORKSPACE_CATALOG_LIST_FEATURES`, `wizardTemplateEditor` bindings). **Sprint 2:** tour edit uses `isExtendedOperatorSession`. **Sprint 3 (C3):** marketing catalog bindings — `resolveMarketingCatalogSurface` replaces direct `@app-tour/workspace-denali/marketing` in `apps/marketing/src/catalog`. **Remaining:** broader `apps/web` Denali direct imports (~70 allowlisted files), full admin purge (C4).
 
 ### P3 — Codegen derives everything discoverable
 
@@ -794,6 +794,13 @@ Using **both** `ThemeProviderChain` JS variables **and** conflicting hex in CSS 
 
 - Tour edit flat-shell router (`tour-edit-page-client.tsx`) uses `isExtendedOperatorSession` — lookup against codegen `WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS` (same set as extended create chrome); `isDenaliOperatorSession` retained as deprecated alias for tests only.
 - Guard extended: `tour-edit-page-client.tsx` must not import `isDenaliOperatorSession` or bind `isDenali` locals.
+
+**Sprint 3 (2026-07-06) — C3 marketing catalog:**
+
+- `marketingCatalog` manifest block → `apps/marketing/src/bootstrap/workspace-marketing-catalog-bindings.generated.ts`.
+- Denali filter/PDP/category-family logic exported as `denaliMarketingCatalogSurface` from workspace package.
+- `apps/marketing/src/catalog/**` uses `resolveMarketingCatalogSurface(pluginId)` — zero direct `@app-tour/workspace-denali` imports in catalog sources.
+- Guard extended: `apps/marketing/src/catalog` scanned for workspace-denali imports.
 
 **Remaining:**
 
