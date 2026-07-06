@@ -885,10 +885,11 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 ### Phase E — DTCG pipeline (design token implementation)
 
-- DTCG generates L1 CSS + TS.
-- Workspace DTCG slices generate `theme/tokens.css`.
-- CI bans raw hex outside generated artifacts.
-- Demote `MASTER.md` to non-authoritative.
+**E1 (done):** DTCG is build authority for `themes/light.css`. `generate-dtcg-theme.mjs` emits from `dtcg/platform.tokens.json`; `color.accent` maps to `--color-accent` (not `--color-warning`). `guard-dtcg-css-sync` runs `--check` drift detection.
+
+**E2+ (next):** Generate `themes/dark.css`; workspace `dtcg/workspaces/<id>.tokens.json` → `theme/tokens.css`; CI hex ban; demote `MASTER.md`.
+
+Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 ### Phase F — Admin appearance program
 
@@ -978,32 +979,19 @@ The **direction** is enterprise-grade. The **implementation** is a strong Phase-
 
 ### Is this architecture stable enough to begin the Design Token implementation?
 
-## **NO**
+## **PARTIAL — E1 platform light theme only**
 
-### Justification
+### Justification (updated 2026-07-06)
 
-Design token implementation is not merely adding `dtcg/*.json` files—it requires **inverting authority** so DTCG **generates** `themes/light.css`, `semantics.css`, workspace `theme/tokens.css`, and the shadcn bridge. Today:
+Phase B and Phase D prerequisites are **complete**. E1 inverts authority for the **platform light palette** only:
 
-1. **`themes/light.css` is the de facto authority**; DTCG validates six keys against it (`generate-tokens.mjs`). Implementing tokens on top of this **cements the wrong direction**.
+1. **`dtcg/platform.tokens.json`** is the source of truth for `themes/light.css` (generated).
+2. **`color.accent` → `--color-accent`** — semantic map corrected (no longer aliased to `--color-warning`).
+3. **Still hand-maintained:** `themes/dark.css`, `primitives.css`, workspace skin hex, admin TSX Tailwind.
 
-2. **Three parallel palette authorities** (platform CSS, workspace `MASTER.md`, workspace skin hex) will **fight** any generated output until Phase D demotes them.
+**Continue E2+ only with:** dark theme DTCG slice, workspace token generation, hex CI ban — not ad-hoc hex edits in `light.css`.
 
-3. **`platform-neutral-portal.css`** and **`shell-bridge.css`** contain appearance that will **override or duplicate** generated variables—the cascade owner is undefined.
-
-4. **DTCG semantic mapping is already wrong** (`color.accent` → `--color-warning`). Starting implementation locks incorrect semantics.
-
-5. **Admin has no appearance architecture** to receive tokens—generated platform CSS will not flow through hundreds of hardcoded Tailwind classes.
-
-6. **Phase B–D prerequisites** (preset removal, boundary purge, appearance decomposition) are **unresolved**. Token work without them produces a third parallel system.
-
-**Begin DTCG implementation only after:**
-
-- Phase B complete (no workspace names in codegen/guards).
-- Phase D.1–D.2 complete (bridge split; platform-default skin re-homed).
-- This document accepted as freeze baseline.
-- Token pipeline spec in §8 accepted with corrected semantic map.
-
-**Allowed before gate opens:** DTCG schema design, token inventory, migration inventory, guard specifications—**no CSS generation commits**.
+**Allowed before E2:** workspace DTCG schema design, migration inventory — no workspace CSS generation commits until dark + workspace slices are specified.
 
 ---
 

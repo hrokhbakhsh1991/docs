@@ -6,6 +6,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { generateDtcgLightTheme } from "./generate-dtcg-theme.mjs";
+
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const semanticsPath = path.join(packageRoot, "src/semantics.css");
 const metaPath = path.join(packageRoot, "tokens.meta.json");
@@ -47,49 +49,9 @@ function unionTypeLiteral(names) {
 }
 
 
-const DTCG_TO_LIGHT_CSS = Object.freeze({
-  "color.primary": "--color-primary",
-  "color.accent": "--color-warning",
-  "color.bg-page": "--color-bg-page",
-  "color.text-default": "--color-text-primary",
-  "color.text-muted": "--color-text-muted",
-  "color.border-default": "--color-border-default",
-});
-
-function readCssVarValue(cssText, varName) {
-  const re = new RegExp(`${varName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*([^;]+);`);
-  const match = cssText.match(re);
-  return match ? match[1].trim().toLowerCase() : null;
-}
-
-function validateDtcgCssSync(packageRoot) {
-  const dtcgPath = path.join(packageRoot, "dtcg/platform.tokens.json");
-  const lightPath = path.join(packageRoot, "src/themes/light.css");
-  if (!fs.existsSync(dtcgPath) || !fs.existsSync(lightPath)) {
-    console.error("generate-tokens: missing DTCG or light theme for sync validation");
-    process.exit(1);
-  }
-  const dtcg = JSON.parse(fs.readFileSync(dtcgPath, "utf8"));
-  const lightCss = fs.readFileSync(lightPath, "utf8");
-  for (const [dtcgPathKey, cssVar] of Object.entries(DTCG_TO_LIGHT_CSS)) {
-    const parts = dtcgPathKey.split(".");
-    let node = dtcg;
-    for (const part of parts) {
-      node = node?.[part];
-    }
-    const dtcgValue = typeof node?.$value === "string" ? node.$value.trim().toLowerCase() : null;
-    const cssValue = readCssVarValue(lightCss, cssVar);
-    if (dtcgValue === null || cssValue === null || dtcgValue !== cssValue) {
-      console.error(
-        `generate-tokens: DTCG ${dtcgPathKey} (${dtcgValue}) out of sync with ${cssVar} (${cssValue})`,
-      );
-      process.exit(1);
-    }
-  }
-}
-
-
 function main() {
+  generateDtcgLightTheme();
+
   if (!fs.existsSync(semanticsPath)) {
     console.error("generate-tokens: missing src/semantics.css");
     process.exit(1);
@@ -99,7 +61,6 @@ function main() {
     process.exit(1);
   }
 
-  validateDtcgCssSync(packageRoot);
   const semanticsCss = fs.readFileSync(semanticsPath, "utf8");
   const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
   const semanticNames = extractSemanticVars(semanticsCss);

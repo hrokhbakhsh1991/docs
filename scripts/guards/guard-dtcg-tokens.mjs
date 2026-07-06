@@ -32,6 +32,9 @@ if (!existsSync(DTCG)) {
     if (!parsed.color?.accent?.$type || !parsed.color?.accent?.$value) {
       violations.push("platform.tokens.json must define color.accent with $type and $value");
     }
+    if (!parsed.color?.["accent-fg"]?.$type || !parsed.color?.["accent-fg"]?.$value) {
+      violations.push("platform.tokens.json must define color.accent-fg with $type and $value");
+    }
     if (!parsed.space?.["4"]?.$value) {
       violations.push("platform.tokens.json must define space.4 dimension");
     }

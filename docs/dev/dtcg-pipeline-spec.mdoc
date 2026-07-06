@@ -1,0 +1,64 @@
+---
+title: DTCG pipeline specification
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/architecture/platform-architecture-v2.md
+---
+
+# DTCG pipeline specification
+
+Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generated output.
+
+## Gate status (2026-07-06)
+
+| Prerequisite | Status |
+| ------------ | ------ |
+| Phase B — boundary purge | ✅ |
+| Phase D — appearance decomposition | ✅ |
+| Corrected semantic map (`color.accent` → `--color-accent`) | ✅ E1 |
+| `themes/light.css` generated from DTCG | ✅ E1 |
+
+**Still hand-maintained (E2+):** `themes/dark.css`, `primitives.css`, workspace `theme/tokens.css`, skin hook files.
+
+## Authority flow (E1)
+
+```text
+dtcg/platform.tokens.json
+        │
+        ▼
+generate-dtcg-theme.mjs  ──► src/themes/light.css (@generated)
+        │
+        ▼
+generate-tokens.mjs      ──► src/generated/*.ts
+```
+
+## Semantic map (platform light)
+
+| DTCG path | CSS variable | Notes |
+| --------- | ------------ | ----- |
+| `color.primary` | `--color-primary` | Brand primary |
+| `color.primary-hover` | `--color-primary-hover` | |
+| `color.primary-fg` | `--color-primary-fg` | |
+| `color.accent` | `--color-accent` | CTA accent — **not** `--color-warning` |
+| `color.accent-fg` | `--color-accent-fg` | |
+| `color.bg-page` | `--color-bg-page` | |
+| `color.warning` | `--color-warning` | Status semantic (may match accent value on platform default) |
+| `focus.ring-color` | `--focus-ring-color` | |
+
+Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` → `--color-text-primary`).
+
+## Guards
+
+| Guard | Role |
+| ----- | ---- |
+| `guard-dtcg-tokens` | Schema + required keys in `platform.tokens.json` |
+| `guard-dtcg-css-sync` | Runs `generate-dtcg-theme.mjs --check` (no drift) |
+| `dtcg-light-generation.spec.mjs` | Unit: accent maps to `--color-accent`, file is `@generated` |
+
+## E2+ (not in E1)
+
+- Generate `themes/dark.css` from `dtcg/platform.dark.tokens.json` or theme slice
+- `dtcg/workspaces/<id>.tokens.json` → `packages/workspaces/<id>/theme/tokens.css`
+- CI ban raw hex outside `@generated` CSS
+- Demote `MASTER.md` to export-only
