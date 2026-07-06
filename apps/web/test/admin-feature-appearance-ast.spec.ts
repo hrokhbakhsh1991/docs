@@ -43,6 +43,7 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
       "apps/web/src/admin/patterns/denali-empty-state.tsx",
       "apps/web/src/admin/patterns/page-header.tsx",
       "apps/web/src/admin/patterns/settings-page-header.tsx",
+      "apps/web/src/admin/patterns/dashboard-widget-card.tsx",
     ]);
   });
 
@@ -66,6 +67,8 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
       "[data-denali-empty-state-action]",
       "[data-denali-page-header-title]",
       "[data-denali-settings-back-link]",
+      "[data-denali-dashboard-widget]",
+      "[data-denali-dashboard-kpi-grid]",
     ]) {
       assert.match(skin, new RegExp(hook.replace(/[[\]]/g, "\\$&")));
     }

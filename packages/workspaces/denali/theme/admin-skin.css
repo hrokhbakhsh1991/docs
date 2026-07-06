@@ -54,6 +54,120 @@ body[data-workspace-plugin="denali"] [data-operator-dashboard-grid] [data-denali
   border-color: color-mix(in oklch, var(--sidebar-border) 65%, var(--color-border-default));
 }
 
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget] {
+  display: flex;
+  height: 100%;
+  min-height: 18rem;
+  flex-direction: column;
+  border-radius: var(--radius, 0.625rem);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-header] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-default) 50%, transparent);
+  padding: 1.25rem 1.25rem 0.75rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-title] {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.375;
+  color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-description] {
+  margin: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  text-align: start;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-body] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-content] {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-footer] {
+  margin-top: auto;
+  flex-shrink: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-default) 50%, transparent);
+  padding-top: 0.75rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-footer-link] {
+  display: inline-flex;
+  width: 100%;
+  max-width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--color-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-footer-link]:hover {
+  text-decoration: underline;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-footer-label] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-footer-chevron] {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+html[dir="rtl"] body[data-workspace-plugin="denali"] [data-denali-dashboard-widget-footer-chevron] {
+  transform: rotate(180deg);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-kpi-grid] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-dashboard-finance-kpi-grid] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  body[data-workspace-plugin="denali"] [data-denali-dashboard-finance-kpi-grid] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 body[data-workspace-plugin="denali"] [data-dashboard-widget-footer] a {
   color: var(--sidebar-primary);
 }

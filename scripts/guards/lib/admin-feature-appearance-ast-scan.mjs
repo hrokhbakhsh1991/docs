@@ -18,6 +18,7 @@ export const ADMIN_FEATURE_PURGED_FILES = [
   "apps/web/src/admin/patterns/denali-empty-state.tsx",
   "apps/web/src/admin/patterns/page-header.tsx",
   "apps/web/src/admin/patterns/settings-page-header.tsx",
+  "apps/web/src/admin/patterns/dashboard-widget-card.tsx",
 ];
 
 /** @type {readonly string[]} */

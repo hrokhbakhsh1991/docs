@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
 import { DashboardKpiCell } from "@/admin/patterns/dashboard-kpi-cell";
 import {
+  DashboardFinanceKpiGrid,
   DashboardWidgetCard,
   DashboardWidgetFooterLink,
 } from "@/admin/patterns/dashboard-widget-card";
@@ -88,11 +89,11 @@ export function FinanceDashboardWidget({
       }
     >
       {loading ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <DashboardFinanceKpiGrid>
           <DenaliSkeleton size="kpi" />
           <DenaliSkeleton size="kpi" />
           <DenaliSkeleton size="kpi" />
-        </div>
+        </DashboardFinanceKpiGrid>
       ) : null}
       {!loading && error ? (
         <p className="text-sm text-destructive" role="alert">
@@ -100,10 +101,7 @@ export function FinanceDashboardWidget({
         </p>
       ) : null}
       {!loading && !error ? (
-        <div
-          className="grid grid-cols-1 gap-3 sm:grid-cols-3"
-          data-testid={FINANCE_DASHBOARD_WIDGET_TEST_IDS.kpiStrip}
-        >
+        <DashboardFinanceKpiGrid testId={FINANCE_DASHBOARD_WIDGET_TEST_IDS.kpiStrip}>
           {kpiCards.map((card) => (
             <DashboardKpiCell
               key={card.id}
@@ -112,7 +110,7 @@ export function FinanceDashboardWidget({
               variant="finance"
             />
           ))}
-        </div>
+        </DashboardFinanceKpiGrid>
       ) : null}
     </DashboardWidgetCard>
   );

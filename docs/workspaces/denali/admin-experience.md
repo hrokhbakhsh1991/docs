@@ -33,7 +33,9 @@ Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge
 
 **TSX (F8-2 purged):** `denali-skeleton.tsx` (`size` → `data-denali-skeleton-size`); `denali-empty-state.tsx` (`data-denali-empty-state-*`).
 
-**TSX (F8-3 purged):** `page-header.tsx`, `settings-page-header.tsx` — `data-denali-page-header-*` / `data-denali-settings-*` in `admin-skin.css`.
+**TSX (F8-3 purged):** `page-header.tsx`, `settings-page-header.tsx` — `data-denali-page-header-*` / `data-denali-settings-*`.
+
+**TSX (F8-4 purged):** `dashboard-widget-card.tsx` — widget shell + `DashboardKpiGrid` / `DashboardFinanceKpiGrid`.
 
 ## Host wiring
 
@@ -96,7 +98,7 @@ Visual language (Denali only): mist gradient surface, forest `--sidebar-primary`
 | `denali-skeleton.tsx` | Shimmer skeleton (Denali CSS only; falls back to shadcn pulse elsewhere) |
 | `denali-empty-state.tsx` | Mountain mark + dashed panel + optional CTA |
 | `dashboard-kpi-cell.tsx` | KPI tile — `line-clamp-2` label + `data-denali-kpi` / finance variant |
-| `dashboard-widget-card.tsx` | Equal-height widget shell (header / body / footer) |
+| `dashboard-widget-card.tsx` | Equal-height widget shell — `data-denali-dashboard-widget-*` (F8-4 purged) |
 | `page-header.tsx` | Title / description / actions — `data-denali-page-header-*` hooks (F8-3 purged) |
 
 ## Primary palette

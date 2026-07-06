@@ -112,9 +112,16 @@ describe("denali-admin-theme.spec.ts", () => {
     assert.doesNotMatch(pageHeader, /className=/);
     assert.match(settingsHeader, /data-denali-settings-back-link/);
     assert.doesNotMatch(settingsHeader, /className=/);
+    const widgetCard = readFileSync(
+      join(import.meta.dirname, "../src/admin/patterns/dashboard-widget-card.tsx"),
+      "utf8"
+    );
+    assert.match(widgetCard, /data-denali-dashboard-widget/);
+    assert.doesNotMatch(widgetCard, /className=/);
     const skin = readFileSync(join(DENALI_THEME_DIR, "admin-skin.css"), "utf8");
     assert.match(skin, /\[data-denali-empty-state\]/);
     assert.match(skin, /\[data-denali-page-header\]/);
+    assert.match(skin, /\[data-denali-dashboard-widget\]/);
     assert.match(skin, /\[data-operator-nav-cta\]/);
   });
 

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
 import { DashboardKpiCell } from "@/admin/patterns/dashboard-kpi-cell";
 import {
-  DASHBOARD_KPI_GRID_CLASS,
+  DashboardKpiGrid,
   DashboardWidgetCard,
   DashboardWidgetFooterLink,
 } from "@/admin/patterns/dashboard-widget-card";
@@ -104,12 +104,12 @@ export function DashboardOverviewWidget({
       }
     >
       {loading ? (
-        <div className={DASHBOARD_KPI_GRID_CLASS}>
+        <DashboardKpiGrid>
           <DenaliSkeleton size="kpi" />
           <DenaliSkeleton size="kpi" />
           <DenaliSkeleton size="kpi" />
           <DenaliSkeleton size="kpi" />
-        </div>
+        </DashboardKpiGrid>
       ) : null}
       {!loading && error ? (
         <p className="text-sm text-destructive" role="alert">
@@ -117,7 +117,7 @@ export function DashboardOverviewWidget({
         </p>
       ) : null}
       {!loading && !error ? (
-        <div className={DASHBOARD_KPI_GRID_CLASS} data-testid={DASHBOARD_WIDGETS_TEST_IDS.overviewKpi}>
+        <DashboardKpiGrid testId={DASHBOARD_WIDGETS_TEST_IDS.overviewKpi}>
           {kpiCards.map((card) => (
             <DashboardKpiCell
               key={card.id}
@@ -125,7 +125,7 @@ export function DashboardOverviewWidget({
               value={formatLocalizedNumber(card.value, locale)}
             />
           ))}
-        </div>
+        </DashboardKpiGrid>
       ) : null}
     </DashboardWidgetCard>
   );
