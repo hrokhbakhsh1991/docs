@@ -41,7 +41,7 @@ body[data-workspace-plugin="denali"] [data-denali-skeleton="shimmer"] {
   background: linear-gradient(
     90deg,
     var(--color-bg-muted) 0%,
-    var(--denali-mist-100, #e8efe8) 50%,
+    var(--denali-mist-100) 50%,
     var(--color-bg-muted) 100%
   );
   background-size: 200% 100%;

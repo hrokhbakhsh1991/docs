@@ -9,6 +9,10 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const DTCG = path.join(REPO_ROOT, "packages/design-tokens/dtcg/platform.tokens.json");
 const DTCG_DARK = path.join(REPO_ROOT, "packages/design-tokens/dtcg/platform.dark.tokens.json");
+const DTCG_PRIMITIVES = path.join(
+  REPO_ROOT,
+  "packages/design-tokens/dtcg/platform.primitives.tokens.json"
+);
 const STARTER_DTCG = path.join(
   REPO_ROOT,
   "packages/design-tokens/dtcg/workspaces/starter.tokens.json"
@@ -56,6 +60,42 @@ function validatePlatformDtcg(filePath, label) {
 
 validatePlatformDtcg(DTCG, "platform.tokens.json");
 validatePlatformDtcg(DTCG_DARK, "platform.dark.tokens.json");
+
+/**
+ * @param {string} filePath
+ * @param {string} label
+ */
+function validatePlatformPrimitivesDtcg(filePath, label) {
+  if (!existsSync(filePath)) {
+    violations.push(`${label} missing`);
+    return;
+  }
+  const raw = readFileSync(filePath, "utf8");
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    violations.push(`${label} is not valid JSON`);
+    return;
+  }
+  if (!raw.includes("design-tokens.github.io")) {
+    violations.push(`${label} must declare DTCG $schema`);
+  }
+  if (!parsed.space?.["4"]?.$value) {
+    violations.push(`${label} must define space.4 dimension`);
+  }
+  if (!parsed.radius?.md?.$value) {
+    violations.push(`${label} must define radius.md dimension`);
+  }
+  if (!parsed.shadow?.card?.$value) {
+    violations.push(`${label} must define shadow.card`);
+  }
+  if (!parsed.font?.["family-base"]?.$value) {
+    violations.push(`${label} must define font.family-base`);
+  }
+}
+
+validatePlatformPrimitivesDtcg(DTCG_PRIMITIVES, "platform.primitives.tokens.json");
 
 if (!existsSync(DTCG)) {
   violations.push("packages/design-tokens/dtcg/platform.tokens.json missing");

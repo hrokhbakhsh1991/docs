@@ -63,6 +63,11 @@ for (const themeFile of ["light.css", "dark.css"]) {
   );
 }
 
+auditDtcgOutputCss(
+  path.join(REPO_ROOT, "packages/design-tokens/src/primitives.css"),
+  "packages/design-tokens/src/primitives.css",
+);
+
 if (!existsSync(WORKSPACES_ROOT)) {
   violations.push("packages/workspaces missing");
 } else {
@@ -117,6 +122,10 @@ if (!existsSync(WORKSPACES_ROOT)) {
       "wizard-skin.css",
       "wizard-calendar.css",
       "wizard-fields.css",
+      "wizard-stepper.css",
+      "wizard-review.css",
+      "wizard-interactions.css",
+      "animations.css",
     ]) {
       auditSkinHookCss(
         path.join(themeDir, hookName),

@@ -9,7 +9,11 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const pkgRoot = path.join(REPO_ROOT, "packages/design-tokens");
 
-for (const script of ["./scripts/generate-dtcg-theme.mjs", "./scripts/generate-workspace-dtcg-css.mjs"]) {
+for (const script of [
+  "./scripts/generate-dtcg-primitives.mjs",
+  "./scripts/generate-dtcg-theme.mjs",
+  "./scripts/generate-workspace-dtcg-css.mjs",
+]) {
   const r = spawnSync("node", [script, "--check"], {
     cwd: pkgRoot,
     encoding: "utf8",
