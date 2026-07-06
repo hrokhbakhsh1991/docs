@@ -42,7 +42,7 @@ describe("dtcg-dark-generation.spec.mjs", () => {
     const slice = JSON.parse(
       readFileSync(join(packageRoot, "dtcg/workspaces/starter.tokens.json"), "utf8")
     );
-    const expected = `${generateWorkspaceTokensCss(slice, "dtcg/workspaces/starter.tokens.json")}\n`;
+    const expected = `${generateWorkspaceTokensCss(slice, "dtcg/workspaces/starter.tokens.json", "starter.tokens.json", "starter")}\n`;
     const tokens = readFileSync(
       join(repoRoot, "packages/workspaces/starter/theme/tokens.css"),
       "utf8"

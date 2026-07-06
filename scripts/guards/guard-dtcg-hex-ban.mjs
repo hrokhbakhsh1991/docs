@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Phase E3 — DTCG output CSS must be @generated; no hand-maintained hex in token authority files.
+ * Phase E3–E4 — DTCG outputs must be @generated; skin hooks must not contain raw # hex.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -41,6 +41,21 @@ function auditDtcgOutputCss(filePath, label, options = {}) {
   }
 }
 
+/**
+ * @param {string} filePath
+ * @param {string} label
+ */
+function auditSkinHookCss(filePath, label) {
+  if (!existsSync(filePath)) {
+    return;
+  }
+  const content = readFileSync(filePath, "utf8");
+  const hexMatches = content.match(HEX_RE) ?? [];
+  if (hexMatches.length > 0) {
+    violations.push(`${label} is a skin hook — raw # hex forbidden (use DTCG semantic-tokens.css)`);
+  }
+}
+
 for (const themeFile of ["light.css", "dark.css"]) {
   auditDtcgOutputCss(
     path.join(DESIGN_TOKENS_THEMES, themeFile),
@@ -52,14 +67,43 @@ if (!existsSync(WORKSPACES_ROOT)) {
   violations.push("packages/workspaces missing");
 } else {
   for (const workspaceId of readdirSync(WORKSPACES_ROOT).sort()) {
-    const tokensPath = path.join(WORKSPACES_ROOT, workspaceId, "theme/tokens.css");
-    if (!existsSync(tokensPath)) {
+    const themeDir = path.join(WORKSPACES_ROOT, workspaceId, "theme");
+    if (!existsSync(themeDir)) {
       continue;
     }
-    auditDtcgOutputCss(
-      tokensPath,
-      `packages/workspaces/${workspaceId}/theme/tokens.css`,
-    );
+
+    const tokensPath = path.join(themeDir, "tokens.css");
+    if (existsSync(tokensPath)) {
+      auditDtcgOutputCss(tokensPath, `packages/workspaces/${workspaceId}/theme/tokens.css`);
+    }
+
+    const marketingSemantic = path.join(themeDir, "marketing/semantic-tokens.css");
+    if (existsSync(marketingSemantic)) {
+      auditDtcgOutputCss(
+        marketingSemantic,
+        `packages/workspaces/${workspaceId}/theme/marketing/semantic-tokens.css`,
+      );
+    }
+
+    const portalSemantic = path.join(themeDir, "portal-semantic-tokens.css");
+    if (existsSync(portalSemantic)) {
+      auditDtcgOutputCss(
+        portalSemantic,
+        `packages/workspaces/${workspaceId}/theme/portal-semantic-tokens.css`,
+      );
+    }
+
+    const marketingHook = path.join(themeDir, "marketing/tokens.css");
+    auditSkinHookCss(marketingHook, `packages/workspaces/${workspaceId}/theme/marketing/tokens.css`);
+
+    for (const fileName of readdirSync(themeDir)) {
+      if (fileName.endsWith("-portal.css")) {
+        auditSkinHookCss(
+          path.join(themeDir, fileName),
+          `packages/workspaces/${workspaceId}/theme/${fileName}`,
+        );
+      }
+    }
   }
 }
 

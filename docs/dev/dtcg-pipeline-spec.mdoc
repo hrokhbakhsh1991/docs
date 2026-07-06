@@ -23,8 +23,11 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | `guest-club` / `urban` / `denali` workspace DTCG slices | ✅ E3 |
 | `theme/tokens.css` hex ban (must be `@generated`) | ✅ E3 |
 | `design-language/MASTER.md` demoted to design brief | ✅ E3 |
+| Skin semantic CSS (`marketing/semantic-tokens.css`, `portal-semantic-tokens.css`) from DTCG | ✅ E4 |
+| Skin hook hex ban (`*-portal.css`, `marketing/tokens.css` — hooks only) | ✅ E4 |
+| `design-system/denali-club/MASTER.md` demoted to redirect / export only | ✅ E4 |
 
-**Still hand-maintained (E4+):** `primitives.css`, skin hook files (`*-portal.css`, `*-marketing.css`), `design-system/denali-club/MASTER.md`.
+**Still hand-maintained (E5+):** `primitives.css`, marketing layout tokens in `marketing/tokens.css`, portal layout hooks, per-component marketing CSS.
 
 ## Authority flow (E1–E2)
 
@@ -43,6 +46,8 @@ dtcg/workspaces/<id>.tokens.json  (starter · guest-club · urban · denali)
         │
         ▼
 generate-workspace-dtcg-css.mjs ──► packages/workspaces/<id>/theme/tokens.css (@generated)
+        │                         theme/marketing/semantic-tokens.css (@generated, E4)
+        │                         theme/portal-semantic-tokens.css (@generated, E4)
         │
         ▼
 generate-tokens.mjs      ──► src/generated/*.ts
@@ -69,7 +74,7 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 | ----- | ---- |
 | `guard-dtcg-tokens` | Schema + required keys in platform light/dark + all workspace slices |
 | `guard-dtcg-css-sync` | Runs `generate-dtcg-theme.mjs --check` and `generate-workspace-dtcg-css.mjs --check` (no drift) |
-| `guard-dtcg-hex-ban` | `theme/tokens.css` + platform themes must be `@generated`; no raw hex in non-generated DTCG outputs |
+| `guard-dtcg-hex-ban` | DTCG outputs must be `@generated`; skin hooks (`*-portal.css`, `marketing/tokens.css`) must not contain raw `#` hex |
 | `dtcg-light-generation.spec.mjs` | Unit: accent maps to `--color-accent`, light file is `@generated` |
 | `dtcg-dark-generation.spec.mjs` | Unit: dark shadows/accent, starter tokens `var(--color-primary)` only |
 | `dtcg-e3-workspace-slices.spec.mjs` | Unit: guest-club / urban / denali slices → committed `tokens.css` |
@@ -85,11 +90,25 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 
 Reference syntax: `{color.primary}` resolves to `var(--color-primary)` in `generate-workspace-dtcg-css.mjs`.
 
-## MASTER.md demotion (E3)
+| `dtcg-e4-skin-semantic.spec.mjs` | Unit: marketing/portal semantic slices → `@generated` CSS; hook files hex-free |
 
-`packages/workspaces/<id>/design-language/MASTER.md` is a **design brief / export only**. Runtime authority is the matching `dtcg/workspaces/<id>.tokens.json` slice. Designers may keep hex tables for communication; engineers edit DTCG JSON and run `pnpm --filter @app-tour/design-tokens build`.
+## Skin hook contract (E4)
 
-## E4+ (not in E3)
+Hand-authored skin files **must not** contain `#` hex literals. Color semantics live in DTCG slices:
 
-- CI hex ban on skin hook files (`*-portal.css`, marketing tokens)
-- Demote `design-system/denali-club/MASTER.md` to export-only
+| DTCG slice | Generated output | Hand-authored hook |
+| ---------- | ---------------- | ------------------ |
+| `<id>.marketing.tokens.json` | `theme/marketing/semantic-tokens.css` | `theme/marketing/tokens.css` — `@import` + layout/`var()` aliases only |
+| `<id>.portal.tokens.json` | `theme/portal-semantic-tokens.css` | `<id>-portal.css` — `@import` + layout hooks only |
+| `<id>.tokens.json` | `theme/tokens.css` | (none — full file generated) |
+
+`rgba()` / `color-mix()` in layout shadows remain allowed in hook files until a later motion/elevation DTCG schema exists.
+
+## MASTER.md demotion (E3–E4)
+
+`packages/workspaces/<id>/design-language/MASTER.md` is a **design brief / export only**. Runtime authority is the matching `dtcg/workspaces/<id>*.tokens.json` slices. `design-system/denali-club/MASTER.md` is a **legacy redirect** — do not edit; update workspace DTCG slices and run `pnpm --filter @app-tour/design-tokens build`.
+
+## E5+ (not in E4)
+
+- DTCG for per-component marketing CSS partials
+- Demote remaining skin hex in `rgba()` fallbacks where platform semantics exist

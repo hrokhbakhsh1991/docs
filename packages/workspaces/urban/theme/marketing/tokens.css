@@ -1,22 +1,10 @@
 /**
- * Urban public marketing — catalog shell skin (M2b).
- * Scoped: marketing surface + urban workspace only.
+ * Urban public marketing — catalog shell skin (layout + shadcn aliases).
+ * Color semantics: theme/marketing/semantic-tokens.css (@generated from DTCG).
  */
+@import "./semantic-tokens.css";
+
 body[data-app-surface="marketing"][data-workspace-plugin="urban"] {
-  --urban-accent-600: #2563eb;
-  --urban-surface-50: #f8fafc;
-  --urban-surface-100: #f1f5f9;
-
-  --color-primary: var(--urban-accent-600);
-  --color-primary-fg: #ffffff;
-  --color-bg-page: var(--urban-surface-50);
-  --color-bg-surface: #ffffff;
-  --color-bg-muted: var(--urban-surface-100);
-  --color-text-primary: #1a1f26;
-  --color-text-muted: #64748b;
-  --color-text-link: var(--urban-accent-600);
-  --color-border-default: #e2e8f0;
-
   --background: var(--color-bg-page);
   --foreground: var(--color-text-primary);
   --card: var(--color-bg-surface);

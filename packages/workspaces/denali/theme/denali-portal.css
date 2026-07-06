@@ -1,27 +1,10 @@
 /**
- * Denali guest portal — registration + /me shell skin.
- * Scoped: portal surface + denali workspace only.
- * Token SoT: packages/workspaces/denali/design-language/MASTER.md (primary #059669 · accent CTA #D97706).
+ * Denali guest portal — registration + /me shell skin (layout hooks).
+ * Color semantics: theme/portal-semantic-tokens.css (@generated from DTCG).
  */
+@import "./portal-semantic-tokens.css";
+
 body[data-app-surface="portal"][data-workspace-plugin="denali"] {
-  --color-primary: #059669;
-  --color-primary-hover: #047857;
-  --color-primary-fg: #ffffff;
-  --color-secondary: #10b981;
-  --color-accent: #d97706;
-  --color-accent-fg: #ffffff;
-  --color-bg-page: #ecfdf5;
-  --color-bg-surface: #ffffff;
-  --color-bg-muted: #f0f8f6;
-  --color-text-primary: #0f172a;
-  --color-text-muted: #64748b;
-  --color-text-link: var(--color-primary);
-  --color-border-default: #e1f2ed;
-  --color-border-subtle: #e1f2ed;
-  --color-focus-ring: rgb(5 150 105 / 0.35);
-
-  --radius: 0.5rem;
-
   --background: var(--color-bg-page);
   --foreground: var(--color-text-primary);
   --card: var(--color-bg-surface);
@@ -32,8 +15,6 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] {
   --muted-foreground: var(--color-text-muted);
   --border: var(--color-border-default);
   --input: var(--color-border-subtle);
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
   --font-heading: var(--font-heading-en, var(--font-sans-en, inherit));
 }
 

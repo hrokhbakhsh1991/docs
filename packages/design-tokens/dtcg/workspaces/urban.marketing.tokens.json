@@ -1,0 +1,21 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "urban",
+  "scopeSelector": "body[data-app-surface=\"marketing\"][data-workspace-plugin=\"urban\"]",
+  "urban": {
+    "accent-600": { "$type": "color", "$value": "#2563eb" },
+    "surface-50": { "$type": "color", "$value": "#f8fafc" },
+    "surface-100": { "$type": "color", "$value": "#f1f5f9" }
+  },
+  "color": {
+    "primary": { "$type": "color", "$value": "{urban.accent-600}" },
+    "primary-fg": { "$type": "color", "$value": "#ffffff" },
+    "bg-page": { "$type": "color", "$value": "{urban.surface-50}" },
+    "bg-surface": { "$type": "color", "$value": "#ffffff" },
+    "bg-muted": { "$type": "color", "$value": "{urban.surface-100}" },
+    "text-primary": { "$type": "color", "$value": "#1a1f26" },
+    "text-muted": { "$type": "color", "$value": "#64748b" },
+    "text-link": { "$type": "color", "$value": "{urban.accent-600}" },
+    "border-default": { "$type": "color", "$value": "#e2e8f0" }
+  }
+}

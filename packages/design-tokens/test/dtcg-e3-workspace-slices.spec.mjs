@@ -14,12 +14,16 @@ const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(packageRoot, "..", "..");
 const workspacesDtcgDir = join(packageRoot, "dtcg/workspaces");
 
+function isWorkspaceBrandSlice(fileName) {
+  return /^[^.]+\.tokens\.json$/.test(fileName);
+}
+
 describe("dtcg-e3-workspace-slices.spec.mjs", () => {
   const slices = readdirSync(workspacesDtcgDir)
-    .filter((name) => name.endsWith(".tokens.json"))
+    .filter((name) => name.endsWith(".tokens.json") && isWorkspaceBrandSlice(name))
     .sort();
 
-  it("E3-01 all workspace slices include workspaceId and ws.color-accent", () => {
+  it("E3-01 workspace brand slices include workspaceId and ws.color-accent", () => {
     assert.deepEqual(slices, [
       "denali.tokens.json",
       "guest-club.tokens.json",
@@ -37,7 +41,7 @@ describe("dtcg-e3-workspace-slices.spec.mjs", () => {
     const workspaceId = fileName.replace(/\.tokens\.json$/, "");
     it(`E3-02 ${workspaceId} theme/tokens.css is @generated from DTCG`, () => {
       const slice = JSON.parse(readFileSync(join(workspacesDtcgDir, fileName), "utf8"));
-      const expected = `${generateWorkspaceTokensCss(slice, `dtcg/workspaces/${fileName}`)}\n`;
+      const expected = `${generateWorkspaceTokensCss(slice, `dtcg/workspaces/${fileName}`, fileName, workspaceId)}\n`;
       const tokens = readFileSync(
         join(repoRoot, "packages/workspaces", workspaceId, "theme/tokens.css"),
         "utf8",
@@ -51,7 +55,12 @@ describe("dtcg-e3-workspace-slices.spec.mjs", () => {
     const slice = JSON.parse(
       readFileSync(join(workspacesDtcgDir, "guest-club.tokens.json"), "utf8"),
     );
-    const css = generateWorkspaceTokensCss(slice, "dtcg/workspaces/guest-club.tokens.json");
+    const css = generateWorkspaceTokensCss(
+      slice,
+      "dtcg/workspaces/guest-club.tokens.json",
+      "guest-club.tokens.json",
+      "guest-club",
+    );
     assert.match(css, /--ws-color-accent:\s*#2563eb;/);
   });
 });

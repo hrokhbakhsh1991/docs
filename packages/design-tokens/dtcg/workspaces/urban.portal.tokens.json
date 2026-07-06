@@ -1,0 +1,10 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "urban",
+  "scopeSelector": "body[data-app-surface=\"portal\"][data-workspace-plugin=\"urban\"]",
+  "color": {
+    "primary": { "$type": "color", "$value": "#2563eb" },
+    "primary-hover": { "$type": "color", "$value": "#1d4ed8" },
+    "primary-fg": { "$type": "color", "$value": "#ffffff" }
+  }
+}

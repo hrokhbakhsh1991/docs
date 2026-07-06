@@ -1,5 +1,8 @@
-# Design System Master File (relocated)
+# Design System Master File (relocated — Phase E4)
 
-Canonical SoT: [`packages/workspaces/denali/design-language/MASTER.md`](../../../packages/workspaces/denali/design-language/MASTER.md)
+> **Authority:** This path is a **legacy redirect only**. Do not edit.
+> **Build authority:** `packages/design-tokens/dtcg/workspaces/denali*.tokens.json` → generated `theme/*.css`.
+> **Design brief:** [`packages/workspaces/denali/design-language/MASTER.md`](../../../packages/workspaces/denali/design-language/MASTER.md)
 
-This path is retained for legacy doc links and CI references. Do not edit here — update the workspace package copy.
+Canonical SoT for human-readable brand notes: workspace `design-language/MASTER.md` (export only).
+Runtime color values: DTCG JSON slices — run `pnpm --filter @app-tour/design-tokens build`.

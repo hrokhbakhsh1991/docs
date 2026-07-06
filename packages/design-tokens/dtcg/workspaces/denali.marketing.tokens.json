@@ -1,0 +1,19 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "denali",
+  "scopeSelector": "body[data-app-surface=\"marketing\"][data-workspace-plugin=\"denali\"]",
+  "color": {
+    "primary": { "$type": "color", "$value": "#059669" },
+    "primary-fg": { "$type": "color", "$value": "#ffffff" },
+    "secondary": { "$type": "color", "$value": "#10b981" },
+    "accent": { "$type": "color", "$value": "#d97706" },
+    "accent-fg": { "$type": "color", "$value": "#ffffff" },
+    "bg-page": { "$type": "color", "$value": "#ecfdf5" },
+    "bg-surface": { "$type": "color", "$value": "#ffffff" },
+    "bg-muted": { "$type": "color", "$value": "#f0f8f6" },
+    "text-primary": { "$type": "color", "$value": "#0f172a" },
+    "text-muted": { "$type": "color", "$value": "#64748b" },
+    "text-link": { "$type": "color", "$value": "{color.primary}" },
+    "border-default": { "$type": "color", "$value": "#e1f2ed" }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "guest-club",
+  "scopeSelector": "body[data-app-surface=\"marketing\"][data-workspace-plugin=\"guest-club\"]",
+  "color": {
+    "primary": { "$type": "color", "$value": "{ws.color-accent}" },
+    "primary-fg": { "$type": "color", "$value": "#ffffff" },
+    "bg-page": { "$type": "color", "$value": "#f8fafc" },
+    "text-primary": { "$type": "color", "$value": "#1a1f26" },
+    "text-muted": { "$type": "color", "$value": "#64748b" },
+    "border-default": { "$type": "color", "$value": "#e2e8f0" }
+  }
+}

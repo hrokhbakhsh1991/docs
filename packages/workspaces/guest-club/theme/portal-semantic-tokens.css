@@ -1,0 +1,9 @@
+/** @generated — do not edit; source: dtcg/workspaces/guest-club.portal.tokens.json — run pnpm build in @app-tour/design-tokens */
+/**
+ * guest-club portal semantic colors (DTCG authority).
+ */
+body[data-app-surface="portal"][data-workspace-plugin="guest-club"] {
+  --color-primary: #0f766e;
+  --color-primary-fg: #ffffff;
+}
+

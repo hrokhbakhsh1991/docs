@@ -82,6 +82,53 @@ if (!existsSync(DTCG_DARK)) {
  * @param {string} filePath
  * @param {string} label
  */
+function validateSkinSemanticDtcg(filePath, label) {
+  if (!existsSync(filePath)) {
+    violations.push(`${label} missing`);
+    return;
+  }
+  const raw = readFileSync(filePath, "utf8");
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    violations.push(`${label} is not valid JSON`);
+    return;
+  }
+  if (!raw.includes("design-tokens.github.io")) {
+    violations.push(`${label} must declare DTCG $schema`);
+  }
+  if (typeof parsed.workspaceId !== "string" || parsed.workspaceId.trim().length === 0) {
+    violations.push(`${label} must define workspaceId`);
+  }
+  if (typeof parsed.scopeSelector !== "string" || parsed.scopeSelector.trim().length === 0) {
+    violations.push(`${label} must define scopeSelector`);
+  }
+  const hasColorGroup =
+    parsed.color && typeof parsed.color === "object" && Object.keys(parsed.color).length > 0;
+  if (!hasColorGroup) {
+    violations.push(`${label} must define color.* semantic tokens`);
+  }
+}
+
+/**
+ * @param {string} fileName
+ */
+function isWorkspaceBrandSlice(fileName) {
+  return /^[^.]+\.tokens\.json$/.test(fileName);
+}
+
+/**
+ * @param {string} fileName
+ */
+function isSkinSemanticSlice(fileName) {
+  return /\.(marketing|portal)\.tokens\.json$/.test(fileName);
+}
+
+/**
+ * @param {string} filePath
+ * @param {string} label
+ */
 function validateWorkspaceDtcg(filePath, label) {
   if (!existsSync(filePath)) {
     violations.push(`${label} missing`);
@@ -116,7 +163,14 @@ if (!existsSync(WORKSPACES_DTCG_DIR)) {
     violations.push("dtcg/workspaces must contain at least one *.tokens.json slice");
   }
   for (const fileName of workspaceSlices) {
-    validateWorkspaceDtcg(path.join(WORKSPACES_DTCG_DIR, fileName), fileName);
+    const filePath = path.join(WORKSPACES_DTCG_DIR, fileName);
+    if (isWorkspaceBrandSlice(fileName)) {
+      validateWorkspaceDtcg(filePath, fileName);
+    } else if (isSkinSemanticSlice(fileName)) {
+      validateSkinSemanticDtcg(filePath, fileName);
+    } else {
+      violations.push(`${fileName}: unrecognized workspace DTCG slice filename`);
+    }
   }
 }
 

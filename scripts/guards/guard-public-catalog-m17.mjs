@@ -196,20 +196,20 @@ assertCheck(
 
 assertCheck(
   "m17_denali_marketing_skin_master_tokens",
-  read("packages/workspaces/denali/theme/marketing/tokens.css").includes("#059669") &&
+  read("packages/workspaces/denali/theme/marketing/semantic-tokens.css").includes("@generated") &&
+    read("packages/workspaces/denali/theme/marketing/semantic-tokens.css").includes("#059669") &&
     read("packages/workspaces/denali/theme/denali-marketing.css").includes(
       "packages/workspaces/denali/design-language/MASTER.md"
     ),
-  "denali marketing skin must map workspace design-language MASTER tokens",
+  "denali marketing skin must use DTCG semantic-tokens.css",
 );
 
 assertCheck(
   "m17_denali_portal_skin_master_tokens",
-  read("packages/workspaces/denali/theme/denali-portal.css").includes("#059669") &&
-    read("packages/workspaces/denali/theme/denali-portal.css").includes(
-      "packages/workspaces/denali/design-language/MASTER.md"
-    ),
-  "denali-portal.css must map workspace design-language MASTER tokens",
+  read("packages/workspaces/denali/theme/portal-semantic-tokens.css").includes("@generated") &&
+    read("packages/workspaces/denali/theme/portal-semantic-tokens.css").includes("#059669") &&
+    read("packages/workspaces/denali/theme/denali-portal.css").includes("portal-semantic-tokens.css"),
+  "denali-portal.css must import DTCG portal-semantic-tokens.css",
 );
 
 const portalRegistrationDoc = read("docs/workspaces/denali/portal-registration-ui.md");

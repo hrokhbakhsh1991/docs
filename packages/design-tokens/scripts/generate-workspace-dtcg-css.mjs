@@ -1,5 +1,5 @@
 /**
- * Generates workspace theme/tokens.css from DTCG workspace slices (Phase E2).
+ * Generates workspace theme CSS from DTCG workspace slices (Phase E2–E4).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -27,6 +27,7 @@ export function resolveDtcgReferenceValue(raw) {
 
 /**
  * @param {Record<string, unknown>} slice
+ * @param {string[]} prefix
  */
 export function flattenWorkspaceDtcgTokens(slice, prefix) {
   return flattenDtcgTokens(slice, prefix).map((entry) => ({
@@ -36,10 +37,61 @@ export function flattenWorkspaceDtcgTokens(slice, prefix) {
 }
 
 /**
+ * @param {string} fileName
+ * @param {string} workspaceId
+ */
+export function resolveWorkspaceSliceOutputRelativePath(fileName, workspaceId) {
+  if (fileName === `${workspaceId}.tokens.json`) {
+    return "theme/tokens.css";
+  }
+  if (fileName === `${workspaceId}.marketing.tokens.json`) {
+    return "theme/marketing/semantic-tokens.css";
+  }
+  if (fileName === `${workspaceId}.portal.tokens.json`) {
+    return "theme/portal-semantic-tokens.css";
+  }
+  throw new Error(`unknown workspace DTCG slice filename: ${fileName}`);
+}
+
+/**
+ * @param {string} fileName
+ * @param {string} workspaceId
+ */
+function sliceCssDescription(fileName, workspaceId) {
+  if (fileName === `${workspaceId}.tokens.json`) {
+    return `Workspace brand tokens — ${workspaceId} plugin.\n * Host loads via WorkspaceThemeContract.optionalStylesheet after CASL + ingress.`;
+  }
+  if (fileName.endsWith(".marketing.tokens.json")) {
+    return `${workspaceId} marketing semantic colors (DTCG authority).`;
+  }
+  if (fileName.endsWith(".portal.tokens.json")) {
+    return `${workspaceId} portal semantic colors (DTCG authority).`;
+  }
+  return `${workspaceId} workspace tokens.`;
+}
+
+/**
+ * @param {string} fileName
+ * @param {Record<string, unknown>} dtcg
+ */
+export function resolveWorkspaceIdFromSlice(fileName, dtcg) {
+  if (typeof dtcg.workspaceId === "string" && dtcg.workspaceId.trim().length > 0) {
+    return dtcg.workspaceId.trim();
+  }
+  const match = fileName.match(/^([^.]+)\./);
+  if (match?.[1]) {
+    return match[1];
+  }
+  return fileName.replace(/\.tokens\.json$/, "");
+}
+
+/**
  * @param {Record<string, unknown>} dtcg
  * @param {string} sourceLabel
+ * @param {string} fileName
+ * @param {string} workspaceId
  */
-export function generateWorkspaceTokensCss(dtcg, sourceLabel) {
+export function generateWorkspaceTokensCss(dtcg, sourceLabel, fileName, workspaceId) {
   const scopeSelector =
     typeof dtcg.scopeSelector === "string" && dtcg.scopeSelector.trim().length > 0
       ? dtcg.scopeSelector.trim()
@@ -51,9 +103,11 @@ export function generateWorkspaceTokensCss(dtcg, sourceLabel) {
     if (WORKSPACE_METADATA_KEYS.has(key)) {
       continue;
     }
-    if (value && typeof value === "object") {
-      entries.push(...flattenWorkspaceDtcgTokens(value, [key]));
+    if (!value || typeof value !== "object") {
+      continue;
     }
+    const prefix = key === "flat" ? [] : [key];
+    entries.push(...flattenWorkspaceDtcgTokens(value, prefix));
   }
 
   entries.sort((left, right) => left.cssVar.localeCompare(right.cssVar));
@@ -62,8 +116,7 @@ export function generateWorkspaceTokensCss(dtcg, sourceLabel) {
 
   return `/** @generated — do not edit; source: ${sourceLabel} — run pnpm build in @app-tour/design-tokens */
 /**
- * Workspace brand tokens — ${typeof dtcg.workspaceId === "string" ? dtcg.workspaceId : "workspace"} plugin.
- * Host loads via WorkspaceThemeContract.optionalStylesheet after CASL + ingress.
+ * ${sliceCssDescription(fileName, workspaceId)}
  */
 ${scopeSelector} {
 ${body}
@@ -91,13 +144,11 @@ export function generateWorkspaceDtcgCss(options = {}) {
   for (const fileName of slices) {
     const slicePath = path.join(workspacesDtcgDir, fileName);
     const dtcg = JSON.parse(fs.readFileSync(slicePath, "utf8"));
-    const workspaceId =
-      typeof dtcg.workspaceId === "string" && dtcg.workspaceId.trim().length > 0
-        ? dtcg.workspaceId.trim()
-        : fileName.replace(/\.tokens\.json$/, "");
-    const outputPath = path.join(repoRoot, "packages/workspaces", workspaceId, "theme/tokens.css");
+    const workspaceId = resolveWorkspaceIdFromSlice(fileName, dtcg);
+    const outputRelativePath = resolveWorkspaceSliceOutputRelativePath(fileName, workspaceId);
+    const outputPath = path.join(repoRoot, "packages/workspaces", workspaceId, outputRelativePath);
     const sourceLabel = `dtcg/workspaces/${fileName}`;
-    const nextCss = `${generateWorkspaceTokensCss(dtcg, sourceLabel)}\n`;
+    const nextCss = `${generateWorkspaceTokensCss(dtcg, sourceLabel, fileName, workspaceId)}\n`;
 
     if (options.check) {
       if (!fs.existsSync(outputPath)) {
@@ -117,7 +168,7 @@ export function generateWorkspaceDtcgCss(options = {}) {
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     fs.writeFileSync(outputPath, nextCss);
     console.log(
-      `generate-workspace-dtcg-css: wrote packages/workspaces/${workspaceId}/theme/tokens.css`,
+      `generate-workspace-dtcg-css: wrote packages/workspaces/${workspaceId}/${outputRelativePath}`,
     );
   }
 }

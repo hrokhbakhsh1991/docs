@@ -1,0 +1,13 @@
+/** @generated — do not edit; source: dtcg/workspaces/guest-club.marketing.tokens.json — run pnpm build in @app-tour/design-tokens */
+/**
+ * guest-club marketing semantic colors (DTCG authority).
+ */
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] {
+  --color-bg-page: #f8fafc;
+  --color-border-default: #e2e8f0;
+  --color-primary: var(--ws-color-accent);
+  --color-primary-fg: #ffffff;
+  --color-text-muted: #64748b;
+  --color-text-primary: #1a1f26;
+}
+

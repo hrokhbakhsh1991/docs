@@ -1,22 +1,10 @@
 /**
- * Denali public marketing — catalog shell skin.
- * Scoped: marketing surface + denali workspace only.
- * Token SoT: packages/workspaces/denali/design-language/MASTER.md (primary #059669 · accent CTA #D97706).
+ * Denali public marketing — catalog shell skin (layout + shadcn aliases).
+ * Color semantics: theme/marketing/semantic-tokens.css (@generated from DTCG).
  */
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
-  --color-primary: #059669;
-  --color-primary-fg: #ffffff;
-  --color-secondary: #10b981;
-  --color-accent: #d97706;
-  --color-accent-fg: #ffffff;
-  --color-bg-page: #ecfdf5;
-  --color-bg-surface: #ffffff;
-  --color-bg-muted: #f0f8f6;
-  --color-text-primary: #0f172a;
-  --color-text-muted: #64748b;
-  --color-text-link: var(--color-primary);
-  --color-border-default: #e1f2ed;
+@import "./semantic-tokens.css";
 
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
   --background: var(--color-bg-page);
   --foreground: var(--color-text-primary);
   --card: var(--color-bg-surface);

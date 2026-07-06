@@ -1,14 +1,9 @@
 /**
- * Urban guest portal skin stub — PTL-8a.
- * Scoped: portal surface + urban workspace only.
+ * Urban guest portal skin stub — PTL-8a (layout hooks).
+ * Color semantics: theme/portal-semantic-tokens.css (@generated from DTCG).
  */
 @import "./tokens.css";
-
-body[data-app-surface="portal"][data-workspace-plugin="urban"] {
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-fg: #ffffff;
-}
+@import "./portal-semantic-tokens.css";
 
 body[data-app-surface="portal"][data-workspace-plugin="urban"] [data-portal-shell] {
   min-height: 100dvh;

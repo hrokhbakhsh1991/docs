@@ -1,0 +1,25 @@
+/** @generated — do not edit; source: dtcg/workspaces/denali.portal.tokens.json — run pnpm build in @app-tour/design-tokens */
+/**
+ * denali portal semantic colors (DTCG authority).
+ */
+body[data-app-surface="portal"][data-workspace-plugin="denali"] {
+  --color-accent: #d97706;
+  --color-accent-fg: #ffffff;
+  --color-bg-muted: #f0f8f6;
+  --color-bg-page: #ecfdf5;
+  --color-bg-surface: #ffffff;
+  --color-border-default: #e1f2ed;
+  --color-border-subtle: #e1f2ed;
+  --color-focus-ring: rgb(5 150 105 / 0.35);
+  --color-primary: #059669;
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: #047857;
+  --color-secondary: #10b981;
+  --color-text-link: var(--color-primary);
+  --color-text-muted: #64748b;
+  --color-text-primary: #0f172a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --radius: 0.5rem;
+}
+
