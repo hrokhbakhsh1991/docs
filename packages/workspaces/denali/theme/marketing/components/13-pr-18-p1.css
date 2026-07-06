@@ -259,8 +259,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-home-featured-bento] {
   gap: var(--space-5);
-  -webkit-mask-image: linear-gradient(to inline-end, transparent, #000 4%, #000 96%, transparent);
-  mask-image: linear-gradient(to inline-end, transparent, #000 4%, #000 96%, transparent);
+  -webkit-mask-image: linear-gradient(to inline-end, transparent, var(--mkt-mask-ink) 4%, var(--mkt-mask-ink) 96%, transparent);
+  mask-image: linear-gradient(to inline-end, transparent, var(--mkt-mask-ink) 4%, var(--mkt-mask-ink) 96%, transparent);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -317,8 +317,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     linear-gradient(
       135deg,
       var(--color-accent) 0%,
-      color-mix(in srgb, var(--color-accent) 88%, #b45309) 45%,
-      #92400e 100%
+      color-mix(in srgb, var(--color-accent) 88%, var(--mkt-accent-mid)) 45%,
+      var(--mkt-accent-deep) 100%
     );
 }
 

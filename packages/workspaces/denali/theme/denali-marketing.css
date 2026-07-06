@@ -1,6 +1,6 @@
 /**
  * Denali public marketing — catalog shell skin (split entry).
- * Token SoT: packages/workspaces/denali/design-language/MASTER.md (primary #059669 · accent CTA #D97706).
+ * Color semantics: theme/marketing/semantic-tokens.css (@generated from DTCG).
  * Partials live under theme/marketing/ (≤500 lines each).
  */
 @import "./marketing/tokens.css";

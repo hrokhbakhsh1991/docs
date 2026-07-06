@@ -15,5 +15,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
   --color-text-link: var(--color-primary);
   --color-text-muted: #64748b;
   --color-text-primary: #0f172a;
+  --mkt-accent-deep: #92400e;
+  --mkt-accent-mid: #b45309;
+  --mkt-destructive: #dc2626;
+  --mkt-destructive-strong: #b91c1c;
+  --mkt-hero-ink: #0b1220;
+  --mkt-mask-ink: #000000;
+  --mkt-on-overlay: #ffffff;
+  --mkt-overlay-icon: #fbbf24;
 }
 

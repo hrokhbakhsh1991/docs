@@ -225,7 +225,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   div[data-marketing-catalog-detail-fact-sold-out="true"]
   dd {
-  color: var(--destructive, #dc2626);
+  color: var(--mkt-destructive);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Phase E3–E4 — DTCG outputs must be @generated; skin hooks must not contain raw # hex.
+ * Phase E3–E5 — DTCG outputs must be @generated; skin hooks must not contain raw # hex.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -95,6 +95,28 @@ if (!existsSync(WORKSPACES_ROOT)) {
 
     const marketingHook = path.join(themeDir, "marketing/tokens.css");
     auditSkinHookCss(marketingHook, `packages/workspaces/${workspaceId}/theme/marketing/tokens.css`);
+
+    const marketingDir = path.join(themeDir, "marketing");
+    if (existsSync(marketingDir)) {
+      const marketingShell = path.join(marketingDir, "shell.css");
+      auditSkinHookCss(
+        marketingShell,
+        `packages/workspaces/${workspaceId}/theme/marketing/shell.css`,
+      );
+
+      const componentsDir = path.join(marketingDir, "components");
+      if (existsSync(componentsDir)) {
+        for (const fileName of readdirSync(componentsDir).sort()) {
+          if (!fileName.endsWith(".css")) {
+            continue;
+          }
+          auditSkinHookCss(
+            path.join(componentsDir, fileName),
+            `packages/workspaces/${workspaceId}/theme/marketing/components/${fileName}`,
+          );
+        }
+      }
+    }
 
     for (const fileName of readdirSync(themeDir)) {
       if (fileName.endsWith("-portal.css")) {

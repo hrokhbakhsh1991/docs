@@ -53,7 +53,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   flex-direction: column;
   gap: var(--space-2);
   padding: calc(var(--space-8) + var(--space-2)) var(--space-5) var(--space-6);
-  color: #ffffff;
+  color: var(--mkt-on-overlay);
   background: linear-gradient(
     to top,
     rgba(15, 23, 42, 0.92) 0%,

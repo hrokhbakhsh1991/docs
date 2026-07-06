@@ -225,7 +225,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   background: linear-gradient(
     135deg,
     var(--color-primary) 0%,
-    color-mix(in srgb, var(--color-primary) 82%, #000) 100%
+    color-mix(in srgb, var(--color-primary) 82%, var(--mkt-mask-ink)) 100%
   );
   cursor: pointer;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary) 28%, transparent);
@@ -445,8 +445,8 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   article[data-marketing-catalog-card][data-marketing-catalog-card-sold-out]
   span[data-marketing-catalog-card-spots] {
-  color: var(--destructive-foreground, #fff);
-  background: var(--destructive, #b91c1c);
+  color: var(--mkt-on-overlay);
+  background: var(--mkt-destructive-strong);
   border-color: transparent;
 }
 

@@ -113,7 +113,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   min-width: 11rem;
   padding: var(--space-3) var(--space-6);
   border-radius: var(--radius-md);
-  background: #ffffff;
+  background: var(--color-bg-surface);
   color: var(--color-accent);
   font-weight: 600;
   text-decoration: none;

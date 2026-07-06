@@ -174,7 +174,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
   h3
   a {
-  color: #ffffff;
+  color: var(--mkt-on-overlay);
   text-decoration: none;
 }
 
@@ -202,7 +202,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border: 0.125rem solid rgb(255 255 255 / 0.5);
   border-radius: var(--radius-md);
   background: rgb(255 255 255 / 0.12);
-  color: #ffffff;
+  color: var(--mkt-on-overlay);
   font-size: var(--mkt-text-small);
   font-weight: 600;
   text-decoration: none;

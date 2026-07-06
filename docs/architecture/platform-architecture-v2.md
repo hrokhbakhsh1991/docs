@@ -893,7 +893,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **E4 (done):** DTCG generates `theme/marketing/semantic-tokens.css` and `theme/portal-semantic-tokens.css` for guest-club, urban, denali. `guard-dtcg-hex-ban` extended — `*-portal.css` and `marketing/tokens.css` are hook-only (no `#` hex). `design-system/denali-club/MASTER.md` confirmed as legacy redirect.
 
-**E5+ (next):** Component-level marketing CSS DTCG; admin appearance program (Phase F).
+**E5 (done):** Denali `mkt.*` overlay tokens in `denali.marketing.tokens.json`. All `marketing/shell.css` + `marketing/components/*.css` hooks are `#` hex-free (`guard-dtcg-hex-ban` E5 scope). guest-club marketing hooks aligned.
+
+**E6+ / Phase F (next):** `primitives.css` DTCG; admin appearance program.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -969,7 +971,7 @@ Scores reflect **conformance to this v2 spec**, not code volume or test count.
 | Shell structure (L2) | **7** | Fallback split; minor L2 appearance leak |
 | Skin / appearance (guest) | **5** | platform-neutral + stubs + hex |
 | Skin / appearance (admin) | **3** | shadcn + Tailwind dominant |
-| Design tokens / DTCG readiness | **7** | Skin semantics generated; component CSS hex remains |
+| Design tokens / DTCG readiness | **8** | Phase E closed for guest marketing; primitives + admin remain |
 | Routing / tenant (WRS, PCMS) | **8** | Documented standards + guards |
 | Scalability to 50+ workspaces | **5** | Possible after B–G; not today |
 | Guard / control plane | **7** | Strong guest; gaps on admin/tokens |
@@ -985,20 +987,19 @@ The **direction** is enterprise-grade. The **implementation** is a strong Phase-
 
 ### Is this architecture stable enough to begin the Design Token implementation?
 
-## **PARTIAL — E4 skin semantic tokens under DTCG**
+## **CLOSED — E5 marketing component hooks under DTCG semantics**
 
 ### Justification (updated 2026-07-06)
 
-E1–E4 invert authority through workspace and skin **semantic** layers:
+Phase E is **closed** for guest marketing skin semantics and hooks:
 
-1. Platform light/dark themes — generated.
-2. All workspace `theme/tokens.css` — generated.
-3. Marketing + portal **color semantics** — generated (`semantic-tokens.css`, `portal-semantic-tokens.css`).
-4. Skin **hooks** (`*-portal.css`, `marketing/tokens.css`) — layout and `var()` aliases only; `guard-dtcg-hex-ban` blocks `#` hex.
+1. Platform + workspace + skin semantic layers — generated from DTCG.
+2. Marketing/portal hooks + denali **shell + 28 component partials** — no raw `#` hex.
+3. Denali overlay palette (`--mkt-*`) — DTCG authority in `denali.marketing.tokens.json`.
 
-**Still hand-maintained:** `primitives.css`, marketing layout tokens, portal layout rules, component marketing partials, admin TSX Tailwind.
+**Still hand-maintained:** `primitives.css`, `rgba()` shadows, admin TSX Tailwind.
 
-**Continue E5+ / Phase F** for component CSS and admin appearance — not ad-hoc hex in skin hooks.
+**Continue Phase F** for admin appearance — not ad-hoc hex in marketing hooks.
 
 ---
 

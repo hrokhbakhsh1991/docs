@@ -55,7 +55,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.03em;
-  color: #ffffff;
+  color: var(--mkt-on-overlay);
   text-wrap: balance;
 }
 
@@ -134,7 +134,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   a[data-marketing-home-cta-secondary] {
   border: 0.125rem solid rgb(255 255 255 / 0.52);
   background: rgb(255 255 255 / 0.1);
-  color: #ffffff;
+  color: var(--mkt-on-overlay);
   backdrop-filter: blur(0.25rem);
   box-shadow: none;
 }

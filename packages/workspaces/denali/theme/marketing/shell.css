@@ -45,7 +45,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border-bottom-color: rgba(255, 255, 255, 0.14);
   background: rgba(8, 12, 20, 0.42);
   box-shadow: none;
-  color: #ffffff;
+  color: var(--mkt-on-overlay);
 }
 
 @supports (backdrop-filter: blur(0.75rem)) {
@@ -109,7 +109,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-brand]
   svg[data-marketing-brand-icon] {
-  color: #fbbf24;
+  color: var(--mkt-overlay-icon);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"] img[data-marketing-logo] {
@@ -291,7 +291,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   > summary[data-marketing-nav-drawer-toggle] {
   border-color: rgba(255, 255, 255, 0.22);
   background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  color: var(--mkt-on-overlay);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -336,7 +336,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border-radius: var(--radius-lg);
   background: rgba(15, 23, 42, 0.94);
   box-shadow: 0 1rem 2.5rem rgba(15, 23, 42, 0.45);
-  color: #ffffff;
+  color: var(--mkt-on-overlay);
 }
 
 @supports (backdrop-filter: blur(1rem)) {
@@ -437,7 +437,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   button[aria-pressed="true"] {
   border-color: var(--color-accent);
   background: rgba(217, 119, 6, 0.18);
-  color: #ffffff;
+  color: var(--mkt-on-overlay);
 }
 
 @media (min-width: 1024px) {

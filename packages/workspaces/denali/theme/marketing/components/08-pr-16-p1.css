@@ -234,7 +234,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     linear-gradient(
       135deg,
       var(--color-accent) 0%,
-      color-mix(in srgb, var(--color-accent) 85%, #92400e) 100%
+      color-mix(in srgb, var(--color-accent) 85%, var(--mkt-accent-deep)) 100%
     );
   color: var(--color-accent-fg);
   text-align: center;
