@@ -280,7 +280,7 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 ```text
 body[data-workspace-plugin="denali"][data-app-surface="admin"]
 └─ PlatformThemeProvider → div.theme-dark | div.theme-light     ← toggle target
-   └─ TenantThemeProvider → div[data-tenant-theme] style=inline --color-primary, --ws-*
+   └─ TenantThemeProvider → div[data-tenant-theme] style=inline --color-primary* (light only; omitted when html.dark per F9-4)
       └─ WorkspaceThemeProvider → div[data-workspace-theme] style=workspace cssVariables
          └─ operator shell + feature children (shadcn, Radix portals)
 ```
@@ -323,14 +323,15 @@ Without the third arm, shadcn `bg-primary` inside `div.theme-dark` keeps platfor
 | Provider | Inline keys | Conflicts with admin semantic |
 | -------- | ----------- | ------------------------------ |
 | `PlatformThemeProvider` | none (class only) | — |
-| `TenantThemeProvider` | `--color-primary`, `--color-primary-hover`, `--color-text-link`, tenant `cssVariables` | **C4** — primary family bleeds into dark subtree |
+| `TenantThemeProvider` | `--color-primary`, `--color-primary-hover`, `--color-text-link`, tenant `cssVariables` | **C4** ✅ F9-4 — primary family omitted when `html.dark` |
 | `WorkspaceThemeProvider` | normalized `workspaceTheme.cssVariables` | **C5** — accent/brand overrides |
 
-**F9-2+ remediation candidates** (no code in F9-1 — doc only):
+**Open remediation (post-F9-4):**
 
-1. **C4:** stop mapping `primaryColor` to `--color-primary` on tenant div in admin + dark, or scope tenant inline to light-only (`theme-light` subtree).
-2. **C6:** extend `denali.admin.tokens.json` dark block with `color.danger|success|warning|info` (+ `flat.destructive`) or accept platform status hues.
-3. **C1–C3 long-term:** gate platform `.theme-dark` palette behind non-Denali body (`:not(:has(body[data-workspace-plugin="denali"]))`) in generated CSS — requires DTCG generator change (Phase G adjacency).
+1. **C6:** extend `denali.admin.tokens.json` dark block with `color.danger|success|warning|info` (+ `flat.destructive`) or accept platform status hues.
+2. **C1–C3 long-term:** gate platform `.theme-dark` palette behind non-Denali body (`:not(:has(body[data-workspace-plugin="denali"]))`) in generated CSS — requires DTCG generator change (Phase G adjacency).
+
+**Closed:** C4 — F9-4 `omitPrimaryColor` in `TenantThemeProvider` / `buildTenantThemeStyle`.
 
 #### F9-3 — CSS precedence table (admin dark mode)
 
