@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import type { TourListProjection } from "@/features/tours/operator-tours-types";
 import { TOURS_LIST_TEST_IDS } from "@/features/tours/query-model";
 import {
-  resolveDenaliTourKindDuration,
+  resolveTourKindDuration,
 } from "@/features/tours/tour-list-category-logic";
 import {
   formatTourDeparture,
@@ -26,6 +26,7 @@ import { TourStatusBadge } from "./tour-status-badge";
 import { TourListCoverImage } from "@/features/tours/tour-list-cover-image";
 
 type TourCardProps = {
+  readonly pluginId: string;
   readonly tour: TourListProjection;
   readonly canManage: boolean;
   readonly showExtendedCard?: boolean;
@@ -50,7 +51,7 @@ function TourCardCover({
   );
 }
 
-export function TourCard({ tour, canManage, showExtendedCard = false }: TourCardProps) {
+export function TourCard({ pluginId, tour, canManage, showExtendedCard = false }: TourCardProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.card");
   const tFormat = useTranslations("tours.format");
@@ -62,7 +63,7 @@ export function TourCard({ tour, canManage, showExtendedCard = false }: TourCard
       tFormat("seatsWithCapacity", { accepted, capacity }),
     open: (accepted) => tFormat("seatsOpen", { accepted }),
   });
-  const durationSlug = showExtendedCard ? resolveDenaliTourKindDuration(tour.category) : null;
+  const durationSlug = showExtendedCard ? resolveTourKindDuration(pluginId, tour.category) : null;
   const durationLabel =
     durationSlug !== null ? resolveDenaliTourDurationLabel(tDenali, durationSlug) : null;
 
@@ -83,7 +84,7 @@ export function TourCard({ tour, canManage, showExtendedCard = false }: TourCard
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-center gap-2">
           <TourStatusBadge status={tour.uiStatus} />
-          <TourCategoryBadge category={tour.category} />
+          <TourCategoryBadge pluginId={pluginId} category={tour.category} />
           {durationLabel ? (
             <Badge
               variant="secondary"

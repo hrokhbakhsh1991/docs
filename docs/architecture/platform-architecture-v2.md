@@ -820,6 +820,11 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 `destination-form-logic` and settings clients resolve surfaces via `pluginId` from operator session — no direct `@app-tour/workspace-denali` imports in those six P0-T-161 hits.
 
+**Sprint 6 (2026-07-06) — C4 tour list + wizard template hints:**
+
+- `tourListCategoryFilter` manifest → `workspace-tour-list-category-bindings.generated.ts`; `tour-list-category-logic` drops allowlist entry.
+- `WizardTemplateEditorSurface.resolveCompositeRendererIdForAnchor` — `wizard-template-field-display-hints` no longer imports denali catalog-meta directly.
+
 **Remaining:**
 
 - Shrink P0-T-161 allowlist (~70 denali shell orchestration files) as orchestration migrates to bindings.

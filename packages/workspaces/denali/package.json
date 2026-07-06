@@ -122,6 +122,10 @@
       "types": "./dist/tours/index.d.ts",
       "default": "./dist/tours/index.js"
     },
+    "./tours/tour-list-category-surface": {
+      "types": "./dist/tours/tour-list-category-surface.d.ts",
+      "default": "./dist/tours/tour-list-category-surface.js"
+    },
     "./photos": {
       "types": "./dist/photos/index.d.ts",
       "default": "./dist/photos/index.js"

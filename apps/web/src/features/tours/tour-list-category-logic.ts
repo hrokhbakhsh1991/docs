@@ -1,62 +1,61 @@
-import {
-  DENALI_TOUR_CATEGORY_VALUES,
-  DENALI_TOUR_KIND_VALUES,
-  type DenaliTourCategorySlug,
-  type DenaliTourDurationSlug,
-} from "@app-tour/workspace-denali/ui/logic/denali-tour-kind-labels";
+import { resolveTourListCategorySurface } from "@/bootstrap/workspace-tour-list-category-bindings.generated";
+
+import type { TourListCategoryFilterGroup } from "./tour-list-category-surface-types";
 
 export const TOUR_CATEGORY_FILTER_ALL = "all" as const;
 
-export type TourCategoryFilter = typeof TOUR_CATEGORY_FILTER_ALL | (typeof DENALI_TOUR_KIND_VALUES)[number];
+export type TourCategoryFilter =
+  | typeof TOUR_CATEGORY_FILTER_ALL
+  | (string & {});
 
-export const TOUR_CATEGORY_FILTER_OPTIONS = [
-  TOUR_CATEGORY_FILTER_ALL,
-  ...DENALI_TOUR_KIND_VALUES,
-] as const;
+export type { TourListCategoryFilterGroup as TourCategoryFilterGroup };
 
-export type TourCategoryFilterGroup = {
-  readonly id: DenaliTourCategorySlug;
-  readonly slugs: readonly (typeof DENALI_TOUR_KIND_VALUES)[number][];
-};
+function requireTourListCategorySurface(pluginId: string) {
+  const surface = resolveTourListCategorySurface(pluginId);
+  if (surface == null) {
+    throw new Error(`No tour list category surface for plugin: ${pluginId}`);
+  }
+  return surface;
+}
 
-/** Denali-only grouped chips — URL still uses flat `category=` slugs. */
-export const TOUR_CATEGORY_FILTER_GROUPS: readonly TourCategoryFilterGroup[] = [
-  {
-    id: "mountain",
-    slugs: ["mountain_day", "mountain_multi"],
-  },
-  {
-    id: "nature",
-    slugs: ["nature_day", "nature_multi"],
-  },
-  {
-    id: "desert",
-    slugs: ["desert_day", "desert_multi"],
-  },
-  {
-    id: "event",
-    slugs: ["event_reading", "event_reading_multi", "event_cinema", "event_cinema_multi"],
-  },
-] as const;
+export function tourCategoryFilterOptionsForPlugin(
+  pluginId: string
+): readonly (typeof TOUR_CATEGORY_FILTER_ALL | string)[] {
+  const surface = requireTourListCategorySurface(pluginId);
+  return [TOUR_CATEGORY_FILTER_ALL, ...surface.tourKindValues];
+}
 
-export function isDenaliTourCategory(value: string | null): value is (typeof DENALI_TOUR_KIND_VALUES)[number] {
-  if (value === null) {
+export function tourCategoryFilterGroupsForPlugin(
+  pluginId: string
+): readonly TourListCategoryFilterGroup[] {
+  return requireTourListCategorySurface(pluginId).filterGroups;
+}
+
+export function isTourKindSlug(pluginId: string, value: string | null): boolean {
+  const surface = resolveTourListCategorySurface(pluginId);
+  if (surface == null) {
     return false;
   }
-  return (DENALI_TOUR_KIND_VALUES as readonly string[]).includes(value);
+  return surface.isTourKindSlug(value);
 }
 
-export function isDenaliTourCategoryGroup(value: string): value is DenaliTourCategorySlug {
-  return (DENALI_TOUR_CATEGORY_VALUES as readonly string[]).includes(value);
+export function isTourCategoryGroup(pluginId: string, value: string): boolean {
+  const surface = resolveTourListCategorySurface(pluginId);
+  if (surface == null) {
+    return false;
+  }
+  return surface.isTourCategoryGroup(value);
 }
 
-export function resolveDenaliTourKindDuration(
+export function resolveTourKindDuration(
+  pluginId: string,
   category: string | null
-): DenaliTourDurationSlug | null {
-  if (!isDenaliTourCategory(category)) {
+): "single_day" | "multi_day" | null {
+  const surface = resolveTourListCategorySurface(pluginId);
+  if (surface == null) {
     return null;
   }
-  return category.endsWith("_multi") ? "multi_day" : "single_day";
+  return surface.resolveTourKindDuration(category);
 }
 
 export function matchesTourCategoryFilter(
@@ -67,4 +66,17 @@ export function matchesTourCategoryFilter(
     return true;
   }
   return category === filter;
+}
+
+/** @deprecated Use isTourKindSlug(pluginId, value) */
+export function isDenaliTourCategory(pluginId: string, value: string | null): boolean {
+  return isTourKindSlug(pluginId, value);
+}
+
+/** @deprecated Use resolveTourKindDuration(pluginId, category) */
+export function resolveDenaliTourKindDuration(
+  pluginId: string,
+  category: string | null
+): "single_day" | "multi_day" | null {
+  return resolveTourKindDuration(pluginId, category);
 }

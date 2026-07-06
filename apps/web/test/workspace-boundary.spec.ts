@@ -28,6 +28,7 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-settings-equipment-ui-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-tour-action-submit-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-photo-upload-errors-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-tour-list-category-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {
@@ -56,9 +57,6 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
     return true;
   }
   if (rel.startsWith("src/tours/")) {
-    return true;
-  }
-  if (rel === "src/features/tours/tour-list-category-logic.ts") {
     return true;
   }
   if (rel === "src/wizard/create-tour-wizard-chrome.tsx") {

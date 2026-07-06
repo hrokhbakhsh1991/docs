@@ -3,7 +3,8 @@ import { describe, it } from "node:test";
 
 import { resolveDenaliWizardTemplateCatalogFieldMeta } from "@app-tour/workspace-denali/settings/wizard-template-catalog-meta";
 
-import { resolveDenaliWizardTemplateFieldDisplayHints } from "../src/tours/wizard-template-field-display-hints";
+import { resolveWizardTemplateEditor } from "../src/bootstrap/workspace-wizard-template-editor-bindings.generated";
+import { resolveWizardTemplateFieldDisplayHintsFromMeta } from "../src/tours/wizard-template-field-display-hints";
 
 describe("wizard-template-field-display-hints.spec.ts", () => {
   const tSettings = (key: string, values?: Record<string, string | number>) => {
@@ -17,12 +18,15 @@ describe("wizard-template-field-display-hints.spec.ts", () => {
   };
 
   it("WEB-TPL-HINT-01 optional create hint for nationalIdRequired", () => {
+    const editor = resolveWizardTemplateEditor("denali");
+    assert.ok(editor != null);
     const meta = resolveDenaliWizardTemplateCatalogFieldMeta(
       "participants.nationalIdRequired",
       "denali_pricing",
       ["participants.minimumAge", "participants.nationalIdRequired"]
     );
-    const hints = resolveDenaliWizardTemplateFieldDisplayHints(
+    const hints = resolveWizardTemplateFieldDisplayHintsFromMeta(
+      editor!,
       tSettings,
       () => "section",
       (path) => path,
@@ -33,12 +37,15 @@ describe("wizard-template-field-display-hints.spec.ts", () => {
   });
 
   it("WEB-TPL-HINT-02 templateFrozen hint for title", () => {
+    const editor = resolveWizardTemplateEditor("denali");
+    assert.ok(editor != null);
     const meta = resolveDenaliWizardTemplateCatalogFieldMeta(
       "title",
       "denali_basic",
       ["title", "category"]
     );
-    const hints = resolveDenaliWizardTemplateFieldDisplayHints(
+    const hints = resolveWizardTemplateFieldDisplayHintsFromMeta(
+      editor!,
       tSettings,
       () => "section",
       (path) => path,

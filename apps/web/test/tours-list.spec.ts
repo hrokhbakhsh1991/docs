@@ -22,8 +22,8 @@ import {
   uiStatusToQueryStatus,
 } from "../src/features/tours/tours-list-logic";
 import {
-  resolveDenaliTourKindDuration,
-  TOUR_CATEGORY_FILTER_GROUPS,
+  resolveTourKindDuration,
+  tourCategoryFilterGroupsForPlugin,
 } from "../src/features/tours/tour-list-category-logic";
 import {
   formatTourDeparture,
@@ -31,6 +31,8 @@ import {
   formatTourSeats,
 } from "../src/features/tours/tour-list-formatters";
 import { formatLocalizedNumber } from "../src/i18n/format-localized-digits";
+
+const PLUGIN_ID = "denali";
 
 describe("tours-list.spec.ts — Phase 9.3 Web", () => {
   it("WEB-9.3-01 tour list exposes page landmarks (CP-9.3-L06)", () => {
@@ -51,7 +53,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       sortBy: "title",
       sortDir: "asc",
     });
-    const parsed = parseTourListQuery(new URLSearchParams(serialized));
+    const parsed = parseTourListQuery(PLUGIN_ID, new URLSearchParams(serialized));
     assert.equal(parsed.search, "alpine");
     assert.equal(parsed.status, "completed");
     assert.equal(parsed.page, 2);
@@ -88,7 +90,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
       category: "mountain_day",
     });
     assert.match(serialized, /category=mountain_day/);
-    const parsed = parseTourListQuery(new URLSearchParams(serialized));
+    const parsed = parseTourListQuery(PLUGIN_ID, new URLSearchParams(serialized));
     assert.equal(parsed.category, "mountain_day");
     assert.equal(
       tourListQueryHasFilters({ ...DEFAULT_TOUR_LIST_QUERY, category: "mountain_day" }),
@@ -104,7 +106,7 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
     });
     assert.match(serialized, /sort_by=departure_at/);
     assert.match(serialized, /sort_dir=asc/);
-    const parsed = parseTourListQuery(new URLSearchParams(serialized));
+    const parsed = parseTourListQuery(PLUGIN_ID, new URLSearchParams(serialized));
     assert.equal(parsed.sortBy, "departure_at");
     assert.equal(parsed.sortDir, "asc");
   });
@@ -132,15 +134,15 @@ describe("tours-list.spec.ts — Phase 9.3 Web", () => {
   });
 
   it("WEB-9.3-09 Denali duration chip derives from category slug", () => {
-    assert.equal(resolveDenaliTourKindDuration("mountain_day"), "single_day");
-    assert.equal(resolveDenaliTourKindDuration("mountain_multi"), "multi_day");
-    assert.equal(resolveDenaliTourKindDuration("event_reading"), "single_day");
-    assert.equal(resolveDenaliTourKindDuration("event_cinema_multi"), "multi_day");
-    assert.equal(resolveDenaliTourKindDuration(null), null);
+    assert.equal(resolveTourKindDuration(PLUGIN_ID, "mountain_day"), "single_day");
+    assert.equal(resolveTourKindDuration(PLUGIN_ID, "mountain_multi"), "multi_day");
+    assert.equal(resolveTourKindDuration(PLUGIN_ID, "event_reading"), "single_day");
+    assert.equal(resolveTourKindDuration(PLUGIN_ID, "event_cinema_multi"), "multi_day");
+    assert.equal(resolveTourKindDuration(PLUGIN_ID, null), null);
   });
 
   it("WEB-9.3-10 category filter groups cover all Denali slugs", () => {
-    const slugs = TOUR_CATEGORY_FILTER_GROUPS.flatMap((group) => group.slugs);
+    const slugs = tourCategoryFilterGroupsForPlugin(PLUGIN_ID).flatMap((group) => group.slugs);
     assert.equal(slugs.length, 10);
     assert.ok(slugs.includes("mountain_day"));
     assert.ok(slugs.includes("event_cinema_multi"));

@@ -9,6 +9,7 @@ import {
 } from "./denali-wizard-template-long-description";
 import {
   resolveDenaliWizardTemplateCatalogFieldMeta,
+  resolveDenaliCompositeRendererIdForAnchor,
   type DenaliWizardTemplateCatalogFieldMeta,
 } from "./denali-wizard-template-catalog-meta";
 
@@ -25,6 +26,7 @@ export type DenaliWizardTemplateEditorSurface = {
     stepId: string,
     stepFieldPaths: readonly string[]
   ) => DenaliWizardTemplateCatalogFieldMeta | null;
+  readonly resolveCompositeRendererIdForAnchor: (anchorCanonicalPath: string) => string | null;
   readonly isFrozenTemplateCanonicalPath: (canonicalPath: string) => boolean;
   readonly normalizePublishedPayloadSteps: <T extends { published?: boolean }>(payload: T) => T;
 };
@@ -38,6 +40,7 @@ export const denaliWizardTemplateEditor: DenaliWizardTemplateEditorSurface = Obj
     ),
   patchLongDescriptionVisibility: patchDenaliWizardTemplateLongDescriptionVisibility,
   resolveCatalogFieldMeta: resolveDenaliWizardTemplateCatalogFieldMeta,
+  resolveCompositeRendererIdForAnchor: resolveDenaliCompositeRendererIdForAnchor,
   isFrozenTemplateCanonicalPath: isDenaliFrozenTemplateCanonicalPath,
   normalizePublishedPayloadSteps<T extends { published?: boolean }>(payload: T): T {
     if (payload.published !== true) {

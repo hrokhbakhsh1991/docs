@@ -3,7 +3,7 @@ export type TourListStatusFilter = "all" | "active" | "completed" | "archived";
 import {
   TOUR_CATEGORY_FILTER_ALL,
   type TourCategoryFilter,
-  isDenaliTourCategory,
+  isTourKindSlug,
 } from "./tour-list-category-logic";
 
 export type TourListQueryModel = {
@@ -76,7 +76,10 @@ export function serializeTourListQuery(query: TourListQueryModel): string {
   return params.toString();
 }
 
-export function parseTourListQuery(searchParams: URLSearchParams): TourListQueryModel {
+export function parseTourListQuery(
+  pluginId: string,
+  searchParams: URLSearchParams
+): TourListQueryModel {
   const statusRaw = searchParams.get("status");
   const status =
     statusRaw === "active" || statusRaw === "completed" || statusRaw === "archived"
@@ -92,7 +95,7 @@ export function parseTourListQuery(searchParams: URLSearchParams): TourListQuery
   const limitRaw = Number(searchParams.get("limit") ?? "10");
   const categoryRaw = searchParams.get("category");
   const category =
-    categoryRaw !== null && isDenaliTourCategory(categoryRaw)
+    categoryRaw !== null && isTourKindSlug(pluginId, categoryRaw)
       ? categoryRaw
       : TOUR_CATEGORY_FILTER_ALL;
 

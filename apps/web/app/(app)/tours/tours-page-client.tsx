@@ -24,7 +24,7 @@ import {
 } from "@/features/tours/query-model";
 import {
   TOUR_CATEGORY_FILTER_ALL,
-  TOUR_CATEGORY_FILTER_GROUPS,
+  tourCategoryFilterGroupsForPlugin,
   type TourCategoryFilter,
 } from "@/features/tours/tour-list-category-logic";
 import { catalogListSupportsServerFilter, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
@@ -71,12 +71,16 @@ export function OperatorToursPageClient({
   );
   const hasCategoryFilter = catalogListSupportsServerFilter(catalogListFeatures, "category");
   const showExtendedCard = hasCategoryFilter;
+  const categoryFilterGroups = useMemo(
+    () => (hasCategoryFilter ? tourCategoryFilterGroupsForPlugin(session.pluginId) : []),
+    [hasCategoryFilter, session.pluginId]
+  );
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const query = useMemo(
-    () => parseTourListQuery(new URLSearchParams(searchParams.toString())),
-    [searchParams]
+    () => parseTourListQuery(session.pluginId, new URLSearchParams(searchParams.toString())),
+    [searchParams, session.pluginId]
   );
   const [searchInput, setSearchInput] = useState(query.search);
   const [data, setData] = useState<OperatorTourListResponse | null>(initialToursList);
@@ -285,7 +289,7 @@ export function OperatorToursPageClient({
                   {t("categoryAll")}
                 </Button>
               </div>
-              {TOUR_CATEGORY_FILTER_GROUPS.map((group) => (
+              {categoryFilterGroups.map((group) => (
                 <div key={group.id} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                   <span className="min-w-20 text-xs font-medium text-muted-foreground">
                     {resolveDenaliTourCategoryGroupLabel(tDenali, group.id)}
@@ -387,7 +391,12 @@ export function OperatorToursPageClient({
         >
           {items.map((tour) => (
             <li key={tour.id}>
-              <TourCard tour={tour} canManage={showCreate} showExtendedCard={showExtendedCard} />
+              <TourCard
+                pluginId={session.pluginId}
+                tour={tour}
+                canManage={showCreate}
+                showExtendedCard={showExtendedCard}
+              />
             </li>
           ))}
         </ul>

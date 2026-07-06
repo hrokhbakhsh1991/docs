@@ -305,5 +305,9 @@
   "photoUploadErrors": {
     "module": "./ui/adapters/photo-upload-errors-surface",
     "export": "denaliPhotoUploadErrorsSurface"
+  },
+  "tourListCategoryFilter": {
+    "module": "./tours/tour-list-category-surface",
+    "export": "denaliTourListCategorySurface"
   }
 }

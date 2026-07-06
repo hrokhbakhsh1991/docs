@@ -68,6 +68,8 @@ const C4_WEB_TARGETS = [
   "apps/web/src/wizard/workspace-create-tour-wizard-client.tsx",
   "apps/web/app/(app)/settings/equipment/equipment-settings-client.tsx",
   "apps/web/app/(app)/settings/locations/locations-settings-client.tsx",
+  "apps/web/src/features/tours/tour-list-category-logic.ts",
+  "apps/web/src/tours/wizard-template-field-display-hints.ts",
 ];
 
 const isDenaliLocalPattern = /\bisDenali\b/;

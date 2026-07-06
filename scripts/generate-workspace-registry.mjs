@@ -1633,6 +1633,7 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "settingsEquipmentUi",
   "tourActionSubmitCodec",
   "photoUploadErrors",
+  "tourListCategoryFilter",
 ];
 
 /**
@@ -1745,6 +1746,7 @@ export function assertGuestExtensionsManifest(manifest) {
     "settingsEquipmentUi",
     "tourActionSubmitCodec",
     "photoUploadErrors",
+    "tourListCategoryFilter",
   ]) {
     const block = manifest[key];
     if (block === undefined) {
@@ -2872,6 +2874,18 @@ export function encodeTourActionSubmitError(
 `;
 }
 
+export function generateTourListCategoryBindings(manifests) {
+  return generatePluginSurfaceBindings(
+    manifests,
+    "tourListCategoryFilter",
+    "@/features/tours/tour-list-category-surface-types",
+    "TourListCategorySurface",
+    "TOUR_LIST_CATEGORY_SURFACES",
+    "resolveTourListCategorySurface",
+    "tour_list_category"
+  );
+}
+
 export function generatePhotoUploadErrorsBindings(manifests) {
   const withSurface = manifests.filter((m) => m.photoUploadErrors !== undefined);
   if (withSurface.length === 0) {
@@ -3305,6 +3319,7 @@ export function generateAllOutputs(manifests) {
     settingsEquipmentUiBindings: generateSettingsEquipmentUiBindings(manifests),
     tourActionSubmitBindings: generateTourActionSubmitBindings(manifests),
     photoUploadErrorsBindings: generatePhotoUploadErrorsBindings(manifests),
+    tourListCategoryBindings: generateTourListCategoryBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -3419,6 +3434,10 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-photo-upload-errors-bindings.generated.ts"
   ),
+  tourListCategoryBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-tour-list-category-bindings.generated.ts"
+  ),
   devPluginIds: join(
     REPO_ROOT,
     "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts"
@@ -3520,6 +3539,7 @@ function main() {
       "settingsEquipmentUiBindings",
       "tourActionSubmitBindings",
       "photoUploadErrorsBindings",
+      "tourListCategoryBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -3587,6 +3607,7 @@ function main() {
   writeFileSync(OUTPUT_PATHS.settingsEquipmentUiBindings, generated.settingsEquipmentUiBindings);
   writeFileSync(OUTPUT_PATHS.tourActionSubmitBindings, generated.tourActionSubmitBindings);
   writeFileSync(OUTPUT_PATHS.photoUploadErrorsBindings, generated.photoUploadErrorsBindings);
+  writeFileSync(OUTPUT_PATHS.tourListCategoryBindings, generated.tourListCategoryBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

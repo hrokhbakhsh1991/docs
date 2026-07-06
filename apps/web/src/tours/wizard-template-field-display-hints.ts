@@ -1,9 +1,10 @@
-import type { DenaliWizardTemplateCatalogFieldMeta } from "@app-tour/workspace-denali/settings/wizard-template-catalog-meta";
-import { resolveDenaliCompositeRendererIdForAnchor } from "@app-tour/workspace-denali/settings/wizard-template-catalog-meta";
-import type { WizardTemplateEditorSurface } from "@/wizard/wizard-template-editor-types";
-import type { WizardTemplateFieldDisplayHints } from "@/wizard/wizard-template-editor-types";
+import type {
+  WizardTemplateCatalogFieldMeta,
+  WizardTemplateEditorSurface,
+  WizardTemplateFieldDisplayHints,
+} from "@/wizard/wizard-template-editor-types";
 
-type DenaliTranslator = (key: string, values?: Record<string, string | number>) => string;
+type WizardTemplateTranslator = (key: string, values?: Record<string, string | number>) => string;
 
 function compositeIdToSectionTitleKey(compositeId: string): string {
   const slug = compositeId.replace(/^denali\./, "");
@@ -11,17 +12,18 @@ function compositeIdToSectionTitleKey(compositeId: string): string {
   return `composites.${camel}.sectionTitle`;
 }
 
-export function resolveDenaliTemplateCompositeSectionLabel(
-  tDenali: DenaliTranslator,
+export function resolveTemplateCompositeSectionLabel(
+  editor: WizardTemplateEditorSurface,
+  tWorkspace: WizardTemplateTranslator,
   anchorCanonicalPath: string
 ): string | null {
-  const compositeId = resolveDenaliCompositeRendererIdForAnchor(anchorCanonicalPath);
+  const compositeId = editor.resolveCompositeRendererIdForAnchor(anchorCanonicalPath);
   if (compositeId == null) {
     return null;
   }
   const sectionKey = compositeIdToSectionTitleKey(compositeId);
   try {
-    const label = tDenali(sectionKey);
+    const label = tWorkspace(sectionKey);
     if (label !== sectionKey && label.length > 0) {
       return label;
     }
@@ -31,36 +33,36 @@ export function resolveDenaliTemplateCompositeSectionLabel(
   return null;
 }
 
-export type DenaliWizardTemplateFieldDisplayHints = WizardTemplateFieldDisplayHints;
-
 export function resolveWizardTemplateFieldDisplayHints(
   editor: WizardTemplateEditorSurface | null,
-  tSettings: (key: string, values?: Record<string, string | number>) => string,
-  tDenali: DenaliTranslator,
+  tSettings: WizardTemplateTranslator,
+  tWorkspace: WizardTemplateTranslator,
   resolveFieldLabel: (canonicalPath: string) => string,
-  meta: NonNullable<ReturnType<WizardTemplateEditorSurface["resolveCatalogFieldMeta"]>>
+  meta: WizardTemplateCatalogFieldMeta
 ): WizardTemplateFieldDisplayHints | null {
-  if (editor?.messageNamespace !== "denali") {
+  if (editor == null) {
     return null;
   }
-  return resolveDenaliWizardTemplateFieldDisplayHints(
+  return resolveWizardTemplateFieldDisplayHintsFromMeta(
+    editor,
     tSettings,
-    tDenali,
+    tWorkspace,
     resolveFieldLabel,
-    meta as DenaliWizardTemplateCatalogFieldMeta
+    meta
   );
 }
 
-export function resolveDenaliWizardTemplateFieldDisplayHints(
-  tSettings: (key: string, values?: Record<string, string | number>) => string,
-  tDenali: DenaliTranslator,
+export function resolveWizardTemplateFieldDisplayHintsFromMeta(
+  editor: WizardTemplateEditorSurface,
+  tSettings: WizardTemplateTranslator,
+  tWorkspace: WizardTemplateTranslator,
   resolveFieldLabel: (canonicalPath: string) => string,
-  meta: DenaliWizardTemplateCatalogFieldMeta
-): DenaliWizardTemplateFieldDisplayHints {
+  meta: WizardTemplateCatalogFieldMeta
+): WizardTemplateFieldDisplayHints {
   let parentLabel: string | null = null;
   if (meta.parentCanonicalPath != null) {
     parentLabel =
-      resolveDenaliTemplateCompositeSectionLabel(tDenali, meta.parentCanonicalPath) ??
+      resolveTemplateCompositeSectionLabel(editor, tWorkspace, meta.parentCanonicalPath) ??
       resolveFieldLabel(meta.parentCanonicalPath);
   }
 
@@ -85,3 +87,6 @@ export function resolveDenaliWizardTemplateFieldDisplayHints(
     createTourHint,
   };
 }
+
+/** @deprecated Use resolveWizardTemplateFieldDisplayHintsFromMeta */
+export const resolveDenaliWizardTemplateFieldDisplayHints = resolveWizardTemplateFieldDisplayHintsFromMeta;
