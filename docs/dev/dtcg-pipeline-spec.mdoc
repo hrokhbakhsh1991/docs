@@ -40,8 +40,10 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Denali `theme/` publish set covers admin `@import` chain | ✅ F closure |
 | Admin feature TSX palette/hex AST ban (`patterns/`, `dashboard/`, `onboarding/`) | ✅ F7 |
 | Admin feature TSX CSS-hook purge (incremental registry) | ✅ F8 (17/17 purged) |
+| Denali admin dark primary isolation (F9-2 guard + spec) | ✅ F9 |
+| ThemeProviderChain / CSS precedence table | ✅ F9 |
 
-**Still hand-maintained (F9+):** `ThemeProviderChain` / tenant inline vs Denali cascade (F9-2 guard); precedence table closure (F9-3); Phase F formal closure gate run.
+**Still hand-maintained (F9+):** tenant inline dark primary (C4 — known gap); Phase F formal closure gate run.
 
 ## Authority flow (E1–E2)
 
@@ -265,8 +267,8 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 | Step | Work |
 | ---- | ---- |
 | F9-1 | Audit: enumerate all `.theme-dark` / `ThemeProviderChain` inline vars that conflict with `admin-semantic-tokens.css` | ✅ (see § F9-1 audit below) |
-| F9-2 | Guard or spec: Denali admin primary in dark mode ≠ platform `#5b9fd4` (extend `denali-admin-theme` or Playwright `SMK-P9-DENALI-THEME`) |
-| F9-3 | Doc closure: precedence table in `dtcg-pipeline-spec` + `platform-architecture-v2` |
+| F9-2 | Guard or spec: Denali admin primary in dark mode ≠ platform `#5b9fd4` (extend `denali-admin-theme` or Playwright `SMK-P9-DENALI-THEME`) | ✅ `guard-denali-admin-dark-primary` · `WEB-DENALI-THEME-14` · `SMK-P9-DENALI-THEME` |
+| F9-3 | Doc closure: precedence table in `dtcg-pipeline-spec` + `platform-architecture-v2` | ✅ (see § F9-3 below) |
 
 #### F9-1 audit — ThemeProviderChain vs Denali admin semantics (2026-07-06)
 
@@ -327,15 +329,19 @@ Without the third arm, shadcn `bg-primary` inside `div.theme-dark` keeps platfor
 2. **C6:** extend `denali.admin.tokens.json` dark block with `color.danger|success|warning|info` (+ `flat.destructive`) or accept platform status hues.
 3. **C1–C3 long-term:** gate platform `.theme-dark` palette behind non-Denali body (`:not(:has(body[data-workspace-plugin="denali"]))`) in generated CSS — requires DTCG generator change (Phase G adjacency).
 
-**F9-3 precedence table** (draft — full closure in F9-3):
+#### F9-3 — CSS precedence table (admin dark mode)
 
-| Priority (high → low) | Layer | Selector / scope |
-| --------------------- | ----- | ---------------- |
-| 1 | Inline React style | `[data-tenant-theme]`, `[data-workspace-theme]` |
-| 2 | Denali admin DTCG | `body[data-workspace-plugin="denali"] .theme-dark` + `html.dark:has(…)` |
-| 3 | Platform admin dark semantics | `.theme-dark`, `.dark` (`operator-admin-dark-semantics.css`) |
-| 4 | Platform theme | `.theme-dark` (`themes/dark.css`) |
-| 5 | shadcn bridge | `shell-bridge.css` aliases |
+When multiple layers set the same custom property, **higher priority wins** for descendants. Denali admin requires the triple cascade (F9-1) so layer 2 beats layers 3–5 on `div.theme-dark`.
+
+| Priority | Layer | Selector / scope | Applies to | Overrides |
+| -------- | ----- | ---------------- | ---------- | --------- |
+| 1 | Inline React style | `[data-tenant-theme]`, `[data-workspace-theme]` | Tenant / workspace subtree | Parent-inherited CSS vars on descendants[^c4] |
+| 2 | Denali admin DTCG | `html.dark:has(body[data-workspace-plugin="denali"])`, `.dark body[data-workspace-plugin="denali"]`, `body[data-workspace-plugin="denali"] .theme-dark` | Body, portals, `PlatformThemeProvider` root | Platform `.theme-dark` palette (C1–C3) |
+| 3 | Platform admin dark semantics | `.theme-dark`, `.dark` in `operator-admin-dark-semantics.css` | Non-Denali admin fallback | `themes/dark.css` where duplicated |
+| 4 | Platform theme | `.theme-dark` in `themes/dark.css` | All `ThemeProviderChain` dark subtrees | — |
+| 5 | shadcn bridge | `:root`, `.theme-dark` in `shell-bridge.css` | Tailwind `@theme inline` aliases | Maps to `--color-*` from layers above |
+
+[^c4]: **Known gap (C4):** `TenantThemeProvider` inline `--color-primary` (tenant brand, often `#0f766e`) wins over inherited Denali dark `#5eead4` for its subtree. Wizard mitigates via `wizard-skin.css` re-bind on `[data-new-tour-wizard]`; admin shell remediation deferred. Static F9-2 guard + `SMK-P9-DENALI-THEME` assert body-level `--primary` only.
 
 ### Phase F formal closure
 

@@ -741,9 +741,19 @@ body[data-workspace-plugin="denali"] { ... }
 
 ### Dual appearance ingress (admin)
 
-Using **both** `ThemeProviderChain` JS variables **and** conflicting hex in CSS for the same semantic without documented precedence.
+Using **both** `ThemeProviderChain` JS variables **and** conflicting hex in CSS for the same semantic without documented precedence is forbidden.
 
----
+**Denali admin dark mode** — resolved precedence (Phase F9, 2026-07-06):
+
+| Priority | Layer | Selector / scope |
+| -------- | ----- | ---------------- |
+| 1 | Inline React (`TenantThemeProvider`, `WorkspaceThemeProvider`) | `[data-tenant-theme]`, `[data-workspace-theme]` |
+| 2 | Denali admin DTCG | `body[data-workspace-plugin="denali"] .theme-dark` + `html.dark:has(…)` |
+| 3 | Platform admin dark | `operator-admin-dark-semantics.css` (`.theme-dark`, `.dark`) |
+| 4 | Platform theme | `themes/dark.css` (`.theme-dark` — platform `#5b9fd4`) |
+| 5 | shadcn bridge | `shell-bridge.css` aliases |
+
+Full conflict inventory, C4 known gap, and guards: [dtcg-pipeline-spec.mdoc § F9](../dev/dtcg-pipeline-spec.mdoc).
 
 ## 11. Open risks
 
@@ -915,7 +925,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F8 (done):** CSS-hook purge — 17/17 feature TSX (`patterns/`, `dashboard/`, `onboarding/`) zero `className`; hooks in `admin-skin.css`.
 
-**F9+ (next):** `ThemeProviderChain` vs CSS precedence (dual cascade audit); Phase F formal closure gate run.
+**F9 (done):** ThemeProviderChain vs CSS precedence — audit (F9-1), `guard-denali-admin-dark-primary` + specs (F9-2), precedence table (F9-3).
+
+**Phase F formal closure (next):** full gate chain — Architect **YES** required.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -937,7 +949,9 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 **F8 (done):** incremental CSS-hook purge registry — 17/17 feature TSX.
 
-**F9+ (next):** `ThemeProviderChain` vs CSS precedence; formal Phase F closure.
+**F9 (done):** ThemeProviderChain precedence audit + dark-primary guard + doc closure.
+
+**Phase F formal closure (next):** full gate chain — Architect **YES** required.
 
 ### Phase G — Codegen modularization
 
