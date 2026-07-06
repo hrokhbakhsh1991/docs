@@ -1,0 +1,22 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "color": {
+    "surface": {
+      "$type": "color",
+      "$value": "{color.bg-surface}",
+      "$description": "Component surface alias — not raw theme key"
+    },
+    "surface-muted": {
+      "$type": "color",
+      "$value": "{color.bg-muted}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{color.border-default}"
+    },
+    "focus-ring": {
+      "$type": "color",
+      "$value": "{focus.ring-color}"
+    }
+  }
+}

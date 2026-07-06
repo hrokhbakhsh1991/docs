@@ -903,7 +903,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F4 (done):** `platform.primitives.tokens.json` → `primitives.css`; denali `animations.css` + wizard partials in hex-ban scope.
 
-**F5+ (next):** `semantics.css` DTCG; admin feature TSX AST guards; `operator-admin-appearance.css`.
+**F5 (done):** `platform.semantics.tokens.json` → `semantics.css`; `interactions.css` in hex-ban scope.
+
+**F6+ (next):** `operator-admin-appearance.css`; admin feature TSX AST guards.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -917,7 +919,9 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 **F4 (done):** Platform primitives DTCG (`platform.primitives.tokens.json` → `primitives.css`).
 
-**F5+ (open):**
+**F5 (done):** Platform semantics DTCG (`platform.semantics.tokens.json` → `semantics.css`).
+
+**F6+ (open):**
 - AST guards on `apps/web` feature TSX.
 - Migrate shadcn usage to var-only utilities.
 - Consolidate `ThemeProviderChain` vs CSS precedence.
@@ -988,7 +992,7 @@ Scores reflect **conformance to this v2 spec**, not code volume or test count.
 | Shell structure (L2) | **7** | Fallback split; minor L2 appearance leak |
 | Skin / appearance (guest) | **5** | platform-neutral + stubs + hex |
 | Skin / appearance (admin) | **3** | shadcn + Tailwind dominant |
-| Design tokens / DTCG readiness | **9** | Phase E + F1–F4: guest marketing, admin/wizard CSS, platform primitives under DTCG; semantics remain |
+| Design tokens / DTCG readiness | **9** | L0 platform stack (primitives + semantics + themes) under DTCG; operator-admin-appearance + admin TSX remain |
 | Routing / tenant (WRS, PCMS) | **8** | Documented standards + guards |
 | Scalability to 50+ workspaces | **5** | Possible after B–G; not today |
 | Guard / control plane | **7** | Strong guest; gaps on admin/tokens |
@@ -1014,9 +1018,9 @@ Phase E is **closed** for guest marketing skin semantics and hooks:
 2. Marketing/portal hooks + denali **shell + 28 component partials** — no raw `#` hex.
 3. Denali overlay palette (`--mkt-*`) — DTCG authority in `denali.marketing.tokens.json`.
 
-**Still hand-maintained:** `semantics.css`, `operator-admin-appearance.css`, admin TSX Tailwind.
+**Still hand-maintained:** `operator-admin-appearance.css`, admin feature TSX Tailwind.
 
-**Continue Phase F** — F1–F4 CSS layers under DTCG; F5+ semantics + admin feature TSX guards.
+**Continue Phase F** — L0 DTCG complete (F4–F5); F6+ operator-admin-appearance + admin feature TSX guards.
 
 ---
 

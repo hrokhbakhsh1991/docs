@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { generateDtcgPlatformThemes } from "./generate-dtcg-theme.mjs";
 import { generateDtcgPrimitives } from "./generate-dtcg-primitives.mjs";
+import { generateDtcgSemantics } from "./generate-dtcg-semantics.mjs";
 import { generateWorkspaceDtcgCss } from "./generate-workspace-dtcg-css.mjs";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -53,6 +54,7 @@ function unionTypeLiteral(names) {
 
 function main() {
   generateDtcgPrimitives();
+  generateDtcgSemantics();
   generateDtcgPlatformThemes();
   generateWorkspaceDtcgCss();
 

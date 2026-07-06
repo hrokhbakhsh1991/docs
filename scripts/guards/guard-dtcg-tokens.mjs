@@ -13,6 +13,10 @@ const DTCG_PRIMITIVES = path.join(
   REPO_ROOT,
   "packages/design-tokens/dtcg/platform.primitives.tokens.json"
 );
+const DTCG_SEMANTICS = path.join(
+  REPO_ROOT,
+  "packages/design-tokens/dtcg/platform.semantics.tokens.json"
+);
 const STARTER_DTCG = path.join(
   REPO_ROOT,
   "packages/design-tokens/dtcg/workspaces/starter.tokens.json"
@@ -96,6 +100,36 @@ function validatePlatformPrimitivesDtcg(filePath, label) {
 }
 
 validatePlatformPrimitivesDtcg(DTCG_PRIMITIVES, "platform.primitives.tokens.json");
+
+/**
+ * @param {string} filePath
+ * @param {string} label
+ */
+function validatePlatformSemanticsDtcg(filePath, label) {
+  if (!existsSync(filePath)) {
+    violations.push(`${label} missing`);
+    return;
+  }
+  const raw = readFileSync(filePath, "utf8");
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    violations.push(`${label} is not valid JSON`);
+    return;
+  }
+  if (!raw.includes("design-tokens.github.io")) {
+    violations.push(`${label} must declare DTCG $schema`);
+  }
+  if (!parsed.color?.surface?.$value) {
+    violations.push(`${label} must define color.surface alias`);
+  }
+  if (!parsed.color?.["focus-ring"]?.$value) {
+    violations.push(`${label} must define color.focus-ring alias`);
+  }
+}
+
+validatePlatformSemanticsDtcg(DTCG_SEMANTICS, "platform.semantics.tokens.json");
 
 if (!existsSync(DTCG)) {
   violations.push("packages/design-tokens/dtcg/platform.tokens.json missing");

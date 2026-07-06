@@ -68,6 +68,11 @@ auditDtcgOutputCss(
   "packages/design-tokens/src/primitives.css",
 );
 
+auditDtcgOutputCss(
+  path.join(REPO_ROOT, "packages/design-tokens/src/semantics.css"),
+  "packages/design-tokens/src/semantics.css",
+);
+
 if (!existsSync(WORKSPACES_ROOT)) {
   violations.push("packages/workspaces missing");
 } else {
@@ -119,6 +124,7 @@ if (!existsSync(WORKSPACES_ROOT)) {
 
     for (const hookName of [
       "finance-skin.css",
+      "interactions.css",
       "wizard-skin.css",
       "wizard-calendar.css",
       "wizard-fields.css",

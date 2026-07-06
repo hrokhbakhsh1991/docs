@@ -1,11 +1,13 @@
+/** @generated — do not edit; source: dtcg/platform.semantics.tokens.json — run pnpm build in @app-tour/design-tokens */
 /**
  * Semantic aliases — components read these, not raw theme keys.
  */
 :root,
 .theme-light,
 .theme-dark {
-  --color-surface: var(--color-bg-surface);
-  --color-surface-muted: var(--color-bg-muted);
   --color-border: var(--color-border-default);
   --color-focus-ring: var(--focus-ring-color);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-muted: var(--color-bg-muted);
 }
+

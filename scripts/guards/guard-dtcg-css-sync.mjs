@@ -11,6 +11,7 @@ const pkgRoot = path.join(REPO_ROOT, "packages/design-tokens");
 
 for (const script of [
   "./scripts/generate-dtcg-primitives.mjs",
+  "./scripts/generate-dtcg-semantics.mjs",
   "./scripts/generate-dtcg-theme.mjs",
   "./scripts/generate-workspace-dtcg-css.mjs",
 ]) {
