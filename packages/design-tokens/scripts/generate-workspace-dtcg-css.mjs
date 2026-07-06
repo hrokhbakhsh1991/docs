@@ -1,5 +1,5 @@
 /**
- * Generates workspace theme CSS from DTCG workspace slices (Phase E2–E4).
+ * Generates workspace theme CSS from DTCG workspace slices (Phase E2–F1).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -11,7 +11,7 @@ const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const repoRoot = path.resolve(packageRoot, "../..");
 const workspacesDtcgDir = path.join(packageRoot, "dtcg/workspaces");
 
-const WORKSPACE_METADATA_KEYS = new Set(["$schema", "workspaceId", "scopeSelector"]);
+const WORKSPACE_METADATA_KEYS = new Set(["$schema", "workspaceId", "scopeSelector", "blocks"]);
 
 /**
  * @param {string} raw
@@ -20,7 +20,11 @@ export function resolveDtcgReferenceValue(raw) {
   const trimmed = raw.trim();
   const refMatch = trimmed.match(/^\{([a-z0-9.-]+)\}$/i);
   if (refMatch) {
-    return `var(--${refMatch[1].replace(/\./g, "-")})`;
+    const path = refMatch[1];
+    if (path.startsWith("flat.")) {
+      return `var(--${path.slice("flat.".length).replace(/\./g, "-")})`;
+    }
+    return `var(--${path.replace(/\./g, "-")})`;
   }
   return trimmed;
 }
@@ -50,6 +54,9 @@ export function resolveWorkspaceSliceOutputRelativePath(fileName, workspaceId) {
   if (fileName === `${workspaceId}.portal.tokens.json`) {
     return "theme/portal-semantic-tokens.css";
   }
+  if (fileName === `${workspaceId}.admin.tokens.json`) {
+    return "theme/admin-semantic-tokens.css";
+  }
   throw new Error(`unknown workspace DTCG slice filename: ${fileName}`);
 }
 
@@ -66,6 +73,9 @@ function sliceCssDescription(fileName, workspaceId) {
   }
   if (fileName.endsWith(".portal.tokens.json")) {
     return `${workspaceId} portal semantic colors (DTCG authority).`;
+  }
+  if (fileName.endsWith(".admin.tokens.json")) {
+    return `${workspaceId} admin semantic tokens — light + dark (DTCG authority).`;
   }
   return `${workspaceId} workspace tokens.`;
 }
@@ -86,21 +96,18 @@ export function resolveWorkspaceIdFromSlice(fileName, dtcg) {
 }
 
 /**
- * @param {Record<string, unknown>} dtcg
- * @param {string} sourceLabel
- * @param {string} fileName
- * @param {string} workspaceId
+ * @param {Record<string, unknown>} block
  */
-export function generateWorkspaceTokensCss(dtcg, sourceLabel, fileName, workspaceId) {
+export function generateWorkspaceScopeBlock(block) {
   const scopeSelector =
-    typeof dtcg.scopeSelector === "string" && dtcg.scopeSelector.trim().length > 0
-      ? dtcg.scopeSelector.trim()
+    typeof block.scopeSelector === "string" && block.scopeSelector.trim().length > 0
+      ? block.scopeSelector.trim()
       : "[data-workspace-theme]";
 
   /** @type {{ cssVar: string; value: string }[]} */
   const entries = [];
-  for (const [key, value] of Object.entries(dtcg)) {
-    if (WORKSPACE_METADATA_KEYS.has(key)) {
+  for (const [key, value] of Object.entries(block)) {
+    if (key === "scopeSelector") {
       continue;
     }
     if (!value || typeof value !== "object") {
@@ -114,13 +121,37 @@ export function generateWorkspaceTokensCss(dtcg, sourceLabel, fileName, workspac
 
   const body = entries.map((entry) => `  ${entry.cssVar}: ${entry.value};`).join("\n");
 
+  return `${scopeSelector} {
+${body}
+}`;
+}
+
+/**
+ * @param {Record<string, unknown>} dtcg
+ * @param {string} sourceLabel
+ * @param {string} fileName
+ * @param {string} workspaceId
+ */
+export function generateWorkspaceTokensCss(dtcg, sourceLabel, fileName, workspaceId) {
+  /** @type {Record<string, unknown>[]} */
+  const blocks = Array.isArray(dtcg.blocks)
+    ? dtcg.blocks
+    : [
+        {
+          scopeSelector: dtcg.scopeSelector,
+          ...Object.fromEntries(
+            Object.entries(dtcg).filter(([key]) => !WORKSPACE_METADATA_KEYS.has(key)),
+          ),
+        },
+      ];
+
+  const body = blocks.map((block) => generateWorkspaceScopeBlock(block)).join("\n\n");
+
   return `/** @generated — do not edit; source: ${sourceLabel} — run pnpm build in @app-tour/design-tokens */
 /**
  * ${sliceCssDescription(fileName, workspaceId)}
  */
-${scopeSelector} {
 ${body}
-}
 `;
 }
 

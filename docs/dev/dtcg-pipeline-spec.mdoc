@@ -28,8 +28,10 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | `design-system/denali-club/MASTER.md` demoted to redirect / export only | ✅ E4 |
 | Marketing `shell.css` + `components/*.css` hex-free (var-only hooks) | ✅ E5 |
 | Denali `mkt.*` overlay tokens in marketing DTCG slice | ✅ E5 |
+| Denali admin semantic CSS (`admin-semantic-tokens.css`) from DTCG | ✅ F1 |
+| Admin skin hook hex ban (`admin-skin.css` — hooks only) | ✅ F1 |
 
-**Still hand-maintained (E6+ / Phase F):** `primitives.css`, `rgba()` in shadows/motion, admin TSX Tailwind.
+**Still hand-maintained (F2+ / Phase F):** `primitives.css`, `rgba()` in shadows/motion, `wizard-*.css`, `finance-skin.css`, admin TSX Tailwind.
 
 ## Authority flow (E1–E2)
 
@@ -50,6 +52,7 @@ dtcg/workspaces/<id>.tokens.json  (starter · guest-club · urban · denali)
 generate-workspace-dtcg-css.mjs ──► packages/workspaces/<id>/theme/tokens.css (@generated)
         │                         theme/marketing/semantic-tokens.css (@generated, E4)
         │                         theme/portal-semantic-tokens.css (@generated, E4)
+        │                         theme/admin-semantic-tokens.css (@generated, F1 — blocks[])
         │
         ▼
 generate-tokens.mjs      ──► src/generated/*.ts
@@ -76,14 +79,15 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 | ----- | ---- |
 | `guard-dtcg-tokens` | Schema + required keys in platform light/dark + all workspace slices |
 | `guard-dtcg-css-sync` | Runs `generate-dtcg-theme.mjs --check` and `generate-workspace-dtcg-css.mjs --check` (no drift) |
-| `guard-dtcg-hex-ban` | DTCG outputs `@generated`; skin hooks + `marketing/shell.css` + `marketing/components/*.css` must not contain raw `#` hex |
+| `guard-dtcg-hex-ban` | DTCG outputs `@generated`; skin hooks + `marketing/shell.css` + `marketing/components/*.css` + `admin-skin.css` must not contain raw `#` hex |
 | `dtcg-light-generation.spec.mjs` | Unit: accent maps to `--color-accent`, light file is `@generated` |
 | `dtcg-dark-generation.spec.mjs` | Unit: dark shadows/accent, starter tokens `var(--color-primary)` only |
 | `dtcg-e3-workspace-slices.spec.mjs` | Unit: guest-club / urban / denali slices → committed `tokens.css` |
 | `dtcg-e4-skin-semantic.spec.mjs` | Unit: marketing/portal semantic slices → `@generated` CSS; hook files hex-free |
 | `dtcg-e5-marketing-components.spec.mjs` | Unit: denali `mkt.*` tokens; shell + components have no raw `#` hex |
+| `dtcg-f1-admin-skin.spec.mjs` | Unit: `denali.admin.tokens.json` blocks → `admin-semantic-tokens.css`; `admin-skin.css` hex-free |
 
-## Workspace DTCG slices (E3)
+Reference syntax: `{color.primary}` → `var(--color-primary)`; `{flat.focus-ring-color}` → `var(--focus-ring-color)` (flat group emits unprefixed shadcn aliases).
 
 | Workspace | `ws.color-accent` value | Generated CSS |
 | --------- | ----------------------- | ------------- |
@@ -92,9 +96,7 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 | `denali` | `{color.primary}` | `var(--color-primary)` |
 | `guest-club` | `#2563eb` (scaffold brand) | literal hex in `@generated` file only |
 
-Reference syntax: `{color.primary}` resolves to `var(--color-primary)` in `generate-workspace-dtcg-css.mjs`.
-
-## Skin hook contract (E4)
+## Workspace DTCG slices (E3)
 
 Hand-authored skin files **must not** contain `#` hex literals. Color semantics live in DTCG slices:
 
@@ -117,10 +119,21 @@ Hand-authored skin files **must not** contain `#` hex literals. Color semantics 
 
 Denali overlay palette (`--mkt-on-overlay`, `--mkt-overlay-icon`, `--mkt-hero-ink`, `--mkt-mask-ink`, accent/destructive shades) lives in `denali.marketing.tokens.json` → `semantic-tokens.css`.
 
-## E6+ (not in E5)
+## Admin skin hook contract (F1)
+
+| DTCG slice | Generated output | Hand-authored hook |
+| ---------- | ---------------- | ------------------ |
+| `<id>.admin.tokens.json` | `theme/admin-semantic-tokens.css` | `admin-skin.css` — `@import` + layout hooks only |
+
+Admin semantic slices use a **`blocks[]`** array — each block has its own `scopeSelector` (light body scope + dark triple cascade). Token groups per block: `denali.*` brand palette, `color.*` platform semantics, `flat.*` shadcn aliases (`flat` → unprefixed `--primary`, `--sidebar-*`, etc.).
+
+Denali F1 scope: `denali.admin.tokens.json` → `admin-semantic-tokens.css`; `admin-skin.css` imports semantic layer and wires operator sidebar, empty states, bookings inbox, focus rings via `var()` / `color-mix()` only.
+
+## F2+ (not in F1)
 
 - DTCG for `primitives.css` platform scale
-- Phase F — admin appearance program
+- `wizard-*.css`, `finance-skin.css` admin hooks
+- AST guards on `apps/web` admin TSX; shadcn var-only migration
 
 ## MASTER.md demotion (E3–E4)
 

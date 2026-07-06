@@ -1,73 +1,8 @@
 /**
- * Denali operator admin skin — platform + shadcn semantic tokens.
- * Scoped to host body attribute (portal-safe for Radix overlays on document.body).
+ * Denali operator admin skin — layout hooks only.
+ * Color semantics: theme/admin-semantic-tokens.css (@generated from DTCG).
  */
-body[data-workspace-plugin="denali"] {
-  --denali-forest-700: #0f5c4a;
-  --denali-forest-600: #0f766e;
-  --denali-forest-500: #14b8a6;
-  --denali-alpine-600: #31547e;
-  --denali-bark-600: #765832;
-  --denali-mist-50: #f4f7f4;
-  --denali-mist-100: #e8efe8;
-  --denali-shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
-  --denali-shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.06), 0 8px 20px rgb(15 23 42 / 0.08);
-
-  --radius: 0.625rem;
-
-  --color-primary: var(--denali-forest-600);
-  --color-primary-hover: var(--denali-forest-700);
-  --color-primary-fg: #ffffff;
-  --color-bg-page: var(--denali-mist-50);
-  --color-bg-surface: #ffffff;
-  --color-bg-muted: var(--denali-mist-100);
-  --color-text-primary: #1a1f26;
-  --color-text-secondary: #4a5244;
-  --color-text-muted: #6f7768;
-  --color-text-link: var(--denali-forest-600);
-  --color-border-default: #dce5dc;
-  --color-border-subtle: #e8efe8;
-  --color-info: var(--denali-alpine-600);
-  --color-info-bg: #e8f0f8;
-  --color-success: #166534;
-  --color-success-bg: #dcfce7;
-  --color-warning: #b45309;
-  --color-warning-bg: #fff7ed;
-  --focus-ring-color: rgb(15 118 110 / 0.35);
-  --focus-ring-offset: #ffffff;
-
-  --background: var(--color-bg-page);
-  --foreground: var(--color-text-primary);
-  --card: var(--color-bg-surface);
-  --card-foreground: var(--color-text-primary);
-  --popover: var(--color-bg-surface);
-  --popover-foreground: var(--color-text-primary);
-  --primary: var(--color-primary);
-  --primary-foreground: var(--color-primary-fg);
-  --secondary: var(--color-bg-muted);
-  --secondary-foreground: var(--color-text-primary);
-  --muted: var(--color-bg-muted);
-  --muted-foreground: var(--color-text-muted);
-  --accent: var(--denali-mist-100);
-  --accent-foreground: var(--denali-forest-700);
-  --destructive: var(--color-danger, #dc2626);
-  --destructive-foreground: #ffffff;
-  --border: var(--color-border-default);
-  --input: var(--color-border-subtle);
-  --ring: var(--focus-ring-color);
-  --ring-offset-background: var(--color-bg-surface);
-
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1a1f26;
-  --sidebar-primary: var(--denali-forest-600);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--denali-mist-100);
-  --sidebar-accent-foreground: var(--denali-forest-700);
-  --sidebar-border: #dce5dc;
-  --shell-sidebar-width: 16.5rem;
-
-  --shadow-card: var(--denali-shadow-card);
-}
+@import "./admin-semantic-tokens.css";
 
 body[data-workspace-plugin="denali"] [data-operator-sidebar] {
   background: linear-gradient(
@@ -104,7 +39,7 @@ html.dark:has(body[data-workspace-plugin="denali"]) [data-operator-sidebar],
 body[data-workspace-plugin="denali"] .theme-dark [data-operator-sidebar] {
   background: linear-gradient(
     180deg,
-    color-mix(in oklch, var(--sidebar) 92%, #242c24) 0%,
+    color-mix(in oklch, var(--sidebar) 92%, var(--color-bg-muted)) 0%,
     var(--sidebar) 30%,
     var(--sidebar) 100%
   );
@@ -170,9 +105,9 @@ body[data-workspace-plugin="denali"] [data-radix-dialog-overlay] {
 }
 
 body[data-workspace-plugin="denali"] [data-denali-category-badge] {
-  border-color: color-mix(in oklch, var(--denali-bark-600, #765832) 35%, var(--color-border-default));
-  background: color-mix(in oklch, var(--denali-bark-600, #765832) 12%, var(--color-bg-surface));
-  color: var(--denali-bark-600, #765832);
+  border-color: color-mix(in oklch, var(--denali-bark-600) 35%, var(--color-border-default));
+  background: color-mix(in oklch, var(--denali-bark-600) 12%, var(--color-bg-surface));
+  color: var(--denali-bark-600);
 }
 
 body[data-workspace-plugin="denali"] [data-denali-bookings-inbox] [data-denali-inbox-header] {
@@ -196,48 +131,4 @@ body[data-workspace-plugin="denali"] textarea:focus-visible,
 body[data-workspace-plugin="denali"] select:focus-visible {
   border-color: color-mix(in oklch, var(--color-primary) 45%, var(--color-border-default));
   box-shadow: 0 0 0 3px var(--focus-ring-color);
-}
-
-html.dark:has(body[data-workspace-plugin="denali"]),
-.dark body[data-workspace-plugin="denali"],
-body[data-workspace-plugin="denali"] .theme-dark {
-  --color-primary: #5eead4;
-  --color-primary-hover: #99f6e4;
-  --color-primary-fg: #0f140f;
-  --color-bg-page: #161b13;
-  --color-bg-surface: #1f2620;
-  --color-bg-muted: #242c24;
-  --color-text-primary: #e8ebe6;
-  --color-text-secondary: #b0b8aa;
-  --color-text-muted: #7d8778;
-  --color-text-link: #5eead4;
-  --color-border-default: #2f382f;
-  --color-border-subtle: #1f261f;
-  --focus-ring-color: rgb(94 234 212 / 0.4);
-  --focus-ring-offset: #1f2620;
-
-  --background: var(--color-bg-page);
-  --foreground: var(--color-text-primary);
-  --card: var(--color-bg-surface);
-  --card-foreground: var(--color-text-primary);
-  --primary: var(--color-primary);
-  --primary-foreground: var(--color-primary-fg);
-  --secondary: var(--color-bg-muted);
-  --secondary-foreground: var(--color-text-primary);
-  --muted: var(--color-bg-muted);
-  --muted-foreground: var(--color-text-muted);
-  --accent: #242c24;
-  --accent-foreground: #5eead4;
-  --border: var(--color-border-default);
-  --input: var(--color-border-subtle);
-  --ring: var(--focus-ring-color);
-
-  --sidebar: #1a211a;
-  --sidebar-foreground: #e8ebe6;
-  --sidebar-primary: #5eead4;
-  --sidebar-primary-foreground: #0f140f;
-  --sidebar-accent: #242c24;
-  --sidebar-accent-foreground: #5eead4;
-  --sidebar-border: #2f382f;
-  --shell-sidebar-width: 16.5rem;
 }

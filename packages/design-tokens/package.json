@@ -35,7 +35,7 @@
   "scripts": {
     "build": "node ./scripts/generate-tokens.mjs && node ./scripts/build.mjs && tsc -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test test/tokens-meta.contract.spec.mjs test/shell-bridge-decomposition.spec.mjs test/bootstrap-surface-parity.spec.mjs test/dtcg-light-generation.spec.mjs test/dtcg-dark-generation.spec.mjs test/dtcg-e3-workspace-slices.spec.mjs test/dtcg-e4-skin-semantic.spec.mjs test/dtcg-e5-marketing-components.spec.mjs"
+    "test": "node --test test/tokens-meta.contract.spec.mjs test/shell-bridge-decomposition.spec.mjs test/bootstrap-surface-parity.spec.mjs test/dtcg-light-generation.spec.mjs test/dtcg-dark-generation.spec.mjs test/dtcg-e3-workspace-slices.spec.mjs test/dtcg-e4-skin-semantic.spec.mjs test/dtcg-e5-marketing-components.spec.mjs test/dtcg-f1-admin-skin.spec.mjs"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",

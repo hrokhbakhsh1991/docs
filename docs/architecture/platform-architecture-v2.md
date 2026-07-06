@@ -895,12 +895,17 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **E5 (done):** Denali `mkt.*` overlay tokens in `denali.marketing.tokens.json`. All `marketing/shell.css` + `marketing/components/*.css` hooks are `#` hex-free (`guard-dtcg-hex-ban` E5 scope). guest-club marketing hooks aligned.
 
-**E6+ / Phase F (next):** `primitives.css` DTCG; admin appearance program.
+**F1 (done):** Denali `denali.admin.tokens.json` with `blocks[]` (light + dark) → `theme/admin-semantic-tokens.css`. `admin-skin.css` demoted to hook-only (`@import` + layout); `guard-dtcg-hex-ban` F1 scope.
+
+**F2+ (next):** `primitives.css` DTCG; `wizard-*.css` / `finance-skin.css`; admin TSX appearance guards.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 ### Phase F — Admin appearance program
 
+**F1 (done):** Denali admin semantic DTCG (`denali.admin.tokens.json` → `admin-semantic-tokens.css`); `admin-skin.css` hook-only.
+
+**F2+ (open):**
 - AST guards on `apps/web` feature TSX.
 - Migrate shadcn usage to var-only utilities.
 - Consolidate `ThemeProviderChain` vs CSS precedence.
@@ -971,7 +976,7 @@ Scores reflect **conformance to this v2 spec**, not code volume or test count.
 | Shell structure (L2) | **7** | Fallback split; minor L2 appearance leak |
 | Skin / appearance (guest) | **5** | platform-neutral + stubs + hex |
 | Skin / appearance (admin) | **3** | shadcn + Tailwind dominant |
-| Design tokens / DTCG readiness | **8** | Phase E closed for guest marketing; primitives + admin remain |
+| Design tokens / DTCG readiness | **8** | Phase E closed for guest marketing; F1 admin semantics; primitives + wizard remain |
 | Routing / tenant (WRS, PCMS) | **8** | Documented standards + guards |
 | Scalability to 50+ workspaces | **5** | Possible after B–G; not today |
 | Guard / control plane | **7** | Strong guest; gaps on admin/tokens |
@@ -997,9 +1002,9 @@ Phase E is **closed** for guest marketing skin semantics and hooks:
 2. Marketing/portal hooks + denali **shell + 28 component partials** — no raw `#` hex.
 3. Denali overlay palette (`--mkt-*`) — DTCG authority in `denali.marketing.tokens.json`.
 
-**Still hand-maintained:** `primitives.css`, `rgba()` shadows, admin TSX Tailwind.
+**Still hand-maintained:** `primitives.css`, `rgba()` shadows, `wizard-*.css`, `finance-skin.css`, admin TSX Tailwind.
 
-**Continue Phase F** for admin appearance — not ad-hoc hex in marketing hooks.
+**Continue Phase F** — F1 admin semantics done; F2+ wizard/finance skins and TSX guards.
 
 ---
 

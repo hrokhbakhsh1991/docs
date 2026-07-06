@@ -55,11 +55,13 @@ describe("denali-admin-theme.spec.ts", () => {
   });
 
   it("WEB-DENALI-THEME-05 admin skin scopes to body data-workspace-plugin", () => {
+    const semantic = readFileSync(join(DENALI_THEME_DIR, "admin-semantic-tokens.css"), "utf8");
     const skin = readFileSync(join(DENALI_THEME_DIR, "admin-skin.css"), "utf8");
-    assert.match(skin, /body\[data-workspace-plugin="denali"\]/);
-    assert.match(skin, /html\.dark:has\(body\[data-workspace-plugin="denali"\]\)/);
-    assert.match(skin, /body\[data-workspace-plugin="denali"\] \.theme-dark/);
-    assert.match(skin, /--color-primary:\s*#5eead4/);
+    assert.match(semantic, /body\[data-workspace-plugin="denali"\]/);
+    assert.match(semantic, /html\.dark:has\(body\[data-workspace-plugin="denali"\]\)/);
+    assert.match(semantic, /body\[data-workspace-plugin="denali"\] \.theme-dark/);
+    assert.match(semantic, /--color-primary:\s*#5eead4/);
+    assert.match(skin, /@import "\.\/admin-semantic-tokens\.css"/);
   });
 
   it("WEB-DENALI-THEME-06 interactions wire nav + card surfaces", () => {

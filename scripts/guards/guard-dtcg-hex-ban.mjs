@@ -93,6 +93,17 @@ if (!existsSync(WORKSPACES_ROOT)) {
       );
     }
 
+    const adminSemantic = path.join(themeDir, "admin-semantic-tokens.css");
+    if (existsSync(adminSemantic)) {
+      auditDtcgOutputCss(
+        adminSemantic,
+        `packages/workspaces/${workspaceId}/theme/admin-semantic-tokens.css`,
+      );
+    }
+
+    const adminSkinHook = path.join(themeDir, "admin-skin.css");
+    auditSkinHookCss(adminSkinHook, `packages/workspaces/${workspaceId}/theme/admin-skin.css`);
+
     const marketingHook = path.join(themeDir, "marketing/tokens.css");
     auditSkinHookCss(marketingHook, `packages/workspaces/${workspaceId}/theme/marketing/tokens.css`);
 

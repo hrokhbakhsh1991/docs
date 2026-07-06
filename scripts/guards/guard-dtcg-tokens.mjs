@@ -81,8 +81,10 @@ if (!existsSync(DTCG_DARK)) {
 /**
  * @param {string} filePath
  * @param {string} label
+ * @param {{ allowBlocks?: boolean }} [options]
  */
-function validateSkinSemanticDtcg(filePath, label) {
+function validateSkinSemanticDtcg(filePath, label, options = {}) {
+  const { allowBlocks = false } = options;
   if (!existsSync(filePath)) {
     violations.push(`${label} missing`);
     return;
@@ -101,6 +103,28 @@ function validateSkinSemanticDtcg(filePath, label) {
   if (typeof parsed.workspaceId !== "string" || parsed.workspaceId.trim().length === 0) {
     violations.push(`${label} must define workspaceId`);
   }
+
+  if (Array.isArray(parsed.blocks)) {
+    if (!allowBlocks) {
+      violations.push(`${label} must define scopeSelector (blocks not allowed for this slice)`);
+      return;
+    }
+    if (parsed.blocks.length < 2) {
+      violations.push(`${label} must define at least two blocks (light + dark)`);
+    }
+    for (const [index, block] of parsed.blocks.entries()) {
+      if (typeof block.scopeSelector !== "string" || block.scopeSelector.trim().length === 0) {
+        violations.push(`${label} blocks[${index}] must define scopeSelector`);
+      }
+      const hasColorGroup =
+        block.color && typeof block.color === "object" && Object.keys(block.color).length > 0;
+      if (!hasColorGroup) {
+        violations.push(`${label} blocks[${index}] must define color.* semantic tokens`);
+      }
+    }
+    return;
+  }
+
   if (typeof parsed.scopeSelector !== "string" || parsed.scopeSelector.trim().length === 0) {
     violations.push(`${label} must define scopeSelector`);
   }
@@ -123,6 +147,13 @@ function isWorkspaceBrandSlice(fileName) {
  */
 function isSkinSemanticSlice(fileName) {
   return /\.(marketing|portal)\.tokens\.json$/.test(fileName);
+}
+
+/**
+ * @param {string} fileName
+ */
+function isAdminSemanticSlice(fileName) {
+  return /\.admin\.tokens\.json$/.test(fileName);
 }
 
 /**
@@ -168,6 +199,8 @@ if (!existsSync(WORKSPACES_DTCG_DIR)) {
       validateWorkspaceDtcg(filePath, fileName);
     } else if (isSkinSemanticSlice(fileName)) {
       validateSkinSemanticDtcg(filePath, fileName);
+    } else if (isAdminSemanticSlice(fileName)) {
+      validateSkinSemanticDtcg(filePath, fileName, { allowBlocks: true });
     } else {
       violations.push(`${fileName}: unrecognized workspace DTCG slice filename`);
     }
