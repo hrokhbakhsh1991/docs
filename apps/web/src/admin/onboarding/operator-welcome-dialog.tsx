@@ -66,68 +66,56 @@ export function OperatorWelcomeDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-h-[85vh] overflow-y-auto sm:max-w-md"
+        data-denali-welcome-dialog
         data-denali-surface="card"
         data-testid={OPERATOR_WELCOME_TEST_IDS.dialog}
       >
-        <DialogHeader className="space-y-3 text-start">
-          <div
-            className="flex items-center gap-3"
-            data-testid={OPERATOR_WELCOME_TEST_IDS.brandMark}
-          >
-            <TenantBrandMark
-              className="size-11 shrink-0 rounded-lg object-contain"
-              imageClassName="size-11 shrink-0 rounded-lg object-contain"
-              pluginId={pluginId}
-              workspaceLabel={workspaceLabel}
-            />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {workspaceLabel}
-              </p>
+        <DialogHeader data-denali-welcome-header>
+          <div data-denali-welcome-brand-row data-testid={OPERATOR_WELCOME_TEST_IDS.brandMark}>
+            <TenantBrandMark pluginId={pluginId} workspaceLabel={workspaceLabel} />
+            <div data-denali-welcome-brand-copy>
+              <p data-denali-welcome-workspace-label>{workspaceLabel}</p>
             </div>
           </div>
           <DialogTitle data-testid={OPERATOR_WELCOME_TEST_IDS.title}>
             {isOwner ? t("titleOwner", { displayName }) : t("title", { displayName })}
           </DialogTitle>
-          <DialogDescription className="space-y-2 break-words text-base text-foreground/90">
-            <span className="block">
+          <DialogDescription data-denali-welcome-description>
+            <span data-denali-welcome-description-line>
               {isOwner
                 ? t("subtitleOwner", { workspaceLabel })
                 : t("subtitle", { workspaceLabel })}
             </span>
-            {tagline ? (
-              <span className="block text-sm text-muted-foreground">{tagline}</span>
-            ) : null}
+            {tagline ? <span data-denali-welcome-tagline>{tagline}</span> : null}
           </DialogDescription>
-          <p className="break-words text-sm leading-relaxed text-muted-foreground">{t("lead")}</p>
+          <p data-denali-welcome-lead>{t("lead")}</p>
         </DialogHeader>
 
-        <ul className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-4 text-sm">
+        <ul data-denali-welcome-bullets>
           {content.bullets.map((bullet) => (
-            <li key={bullet.id} className="flex gap-2">
-              <span aria-hidden className="text-primary">
+            <li key={bullet.id} data-denali-welcome-bullet>
+              <span aria-hidden data-denali-welcome-bullet-icon>
                 ✓
               </span>
-              <span className="min-w-0 break-words">{t(`bullets.${bullet.id}`)}</span>
+              <span data-denali-welcome-bullet-text>{t(`bullets.${bullet.id}`)}</span>
             </li>
           ))}
         </ul>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+        <DialogFooter data-denali-welcome-footer>
           <Button
+            data-denali-welcome-cta
             data-testid={OPERATOR_WELCOME_TEST_IDS.dismissCta}
             onClick={requestClose}
             type="button"
             variant="outline"
-            className="h-auto min-h-10 whitespace-normal py-2"
           >
             {t("later")}
           </Button>
           <Button
             asChild
+            data-denali-welcome-cta
             data-testid={OPERATOR_WELCOME_TEST_IDS.primaryCta}
-            className="h-auto min-h-10 whitespace-normal py-2"
           >
             <Link href={OPERATOR_WIZARD_PATH} onClick={requestClose}>
               {t("primaryCta")}

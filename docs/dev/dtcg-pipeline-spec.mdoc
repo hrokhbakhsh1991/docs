@@ -39,7 +39,7 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Admin bootstrap CSS-G-02 (no guest cross-surface imports) | ✅ F closure |
 | Denali `theme/` publish set covers admin `@import` chain | ✅ F closure |
 | Admin feature TSX palette/hex AST ban (`patterns/`, `dashboard/`, `onboarding/`) | ✅ F7 |
-| Admin feature TSX CSS-hook purge (incremental registry) | 🔄 F8 (11/17 purged) |
+| Admin feature TSX CSS-hook purge (incremental registry) | 🔄 F8 (13/17 purged) |
 
 **Still hand-maintained (F8+):** remaining admin feature TSX under F7 semantic Tailwind until purged; `ThemeProviderChain` vs CSS precedence.
 
@@ -240,6 +240,7 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 | F8-3 | `patterns/settings-page-header.tsx` | `data-denali-settings-page-header-*` | ✅ |
 | F8-4 | `patterns/dashboard-widget-card.tsx` | `data-denali-dashboard-widget-*`, `DashboardKpiGrid` | ✅ |
 | F8-5 | `dashboard/dashboard-*-widget.tsx` (×4) | `DashboardWidgetError`, `DashboardWidgetRowStack`, `DashboardWidgetList`, `DashboardTourListRow`, `DashboardRegistrationListRow` in `dashboard-widget-card.tsx`; hooks `data-denali-dashboard-widget-error`, `data-denali-dashboard-tour-row-*`, `data-denali-dashboard-registration-row-*` in `admin-skin.css` | ✅ |
+| F8-6 | `patterns/denali-confirm-dialog.tsx`, `onboarding/operator-welcome-dialog.tsx` | `data-denali-confirm-dialog-*`, `data-denali-welcome-*` (brand row, bullets, CTA wrap) | ✅ |
 
 **Guard:** `guard-admin-feature-appearance-ast` runs F7 palette ban on all feature TSX **and** F8 zero-`className` on purged files.
 

@@ -23,6 +23,8 @@ export const ADMIN_FEATURE_PURGED_FILES = [
   "apps/web/src/admin/dashboard/dashboard-overview-widget.tsx",
   "apps/web/src/admin/dashboard/dashboard-tours-widget.tsx",
   "apps/web/src/admin/dashboard/dashboard-registrations-widget.tsx",
+  "apps/web/src/admin/patterns/denali-confirm-dialog.tsx",
+  "apps/web/src/admin/onboarding/operator-welcome-dialog.tsx",
 ];
 
 /** @type {readonly string[]} */

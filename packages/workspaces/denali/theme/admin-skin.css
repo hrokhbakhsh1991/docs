@@ -324,6 +324,144 @@ body[data-workspace-plugin="denali"] [data-radix-dialog-overlay] {
   background-color: rgb(0 0 0 / 0.5);
 }
 
+body[data-workspace-plugin="denali"] [data-denali-confirm-dialog] {
+  max-width: min(100%, 28rem);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-confirm-dialog-header] {
+  text-align: start;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-confirm-dialog-footer] {
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  body[data-workspace-plugin="denali"] [data-denali-confirm-dialog-footer] {
+    justify-content: flex-end;
+  }
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-dialog] {
+  max-height: 85vh;
+  overflow-y: auto;
+  max-width: min(100%, 28rem);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-header] {
+  text-align: start;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-header] > * + * {
+  margin-top: 0.75rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-brand-row] {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-brand-row] [data-tenant-brand-logo],
+body[data-workspace-plugin="denali"] [data-denali-welcome-brand-row] [data-tenant-brand-initial],
+body[data-workspace-plugin="denali"] [data-denali-welcome-brand-row] [data-denali-logo-mark] {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg, 0.5rem);
+  object-fit: contain;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-brand-copy] {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-workspace-label] {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-description] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  color: color-mix(in srgb, var(--color-text-primary) 90%, transparent);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-description-line],
+body[data-workspace-plugin="denali"] [data-denali-welcome-tagline] {
+  display: block;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-tagline] {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-lead] {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.625;
+  color: var(--color-text-secondary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-bullets] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 1rem;
+  list-style: none;
+  border-radius: var(--radius-lg, 0.5rem);
+  border: 1px solid color-mix(in srgb, var(--color-border-default) 60%, transparent);
+  background: color-mix(in srgb, var(--color-bg-muted) 30%, transparent);
+  font-size: 0.875rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-bullet] {
+  display: flex;
+  gap: 0.5rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-bullet-icon] {
+  color: var(--color-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-bullet-text] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-footer] {
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  body[data-workspace-plugin="denali"] [data-denali-welcome-footer] {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+body[data-workspace-plugin="denali"] [data-denali-welcome-cta] {
+  height: auto;
+  min-height: 2.5rem;
+  white-space: normal;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
 body[data-workspace-plugin="denali"] [data-denali-category-badge] {
   border-color: color-mix(in oklch, var(--denali-bark-600) 35%, var(--color-border-default));
   background: color-mix(in oklch, var(--denali-bark-600) 12%, var(--color-bg-surface));

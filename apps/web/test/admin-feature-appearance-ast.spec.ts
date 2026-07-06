@@ -48,6 +48,8 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
       "apps/web/src/admin/dashboard/dashboard-overview-widget.tsx",
       "apps/web/src/admin/dashboard/dashboard-tours-widget.tsx",
       "apps/web/src/admin/dashboard/dashboard-registrations-widget.tsx",
+      "apps/web/src/admin/patterns/denali-confirm-dialog.tsx",
+      "apps/web/src/admin/onboarding/operator-welcome-dialog.tsx",
     ]);
   });
 
@@ -76,6 +78,9 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
       "[data-denali-dashboard-widget-error]",
       "[data-denali-dashboard-tour-row]",
       "[data-denali-dashboard-registration-row]",
+      "[data-denali-confirm-dialog]",
+      "[data-denali-welcome-dialog]",
+      "[data-denali-welcome-bullets]",
     ]) {
       assert.match(skin, new RegExp(hook.replace(/[[\]]/g, "\\$&")));
     }

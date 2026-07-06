@@ -55,7 +55,7 @@ export function DenaliConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-md"
+        data-denali-confirm-dialog
         data-denali-surface="card"
         data-testid={dialogTestId}
         onPointerDownOutside={(event) => {
@@ -69,11 +69,11 @@ export function DenaliConfirmDialog({
           }
         }}
       >
-        <DialogHeader className="text-start">
+        <DialogHeader data-denali-confirm-dialog-header>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <DialogFooter className="gap-2 sm:justify-end">
+        <DialogFooter data-denali-confirm-dialog-footer>
           <Button
             type="button"
             variant="outline"
