@@ -159,7 +159,7 @@ export function UsersDirectoryTable({
                 </td>
                 <td className={`${BODY_CELL} font-medium`}>
                   <div className="flex min-w-0 items-center gap-3">
-                    <UsersDirectoryAvatar user={user} className="h-9 w-9 shrink-0" />
+                    <UsersDirectoryAvatar user={user} size="sm" />
                     <span className="truncate">{user.displayName}</span>
                   </div>
                 </td>

@@ -204,7 +204,7 @@ export function UsersDirectoryMobileCard({
         ) : null}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
-            <UsersDirectoryAvatar user={user} className="h-10 w-10 shrink-0" />
+            <UsersDirectoryAvatar user={user} size="md" />
             <div className="min-w-0">
               <p className="truncate font-medium">{user.displayName}</p>
               <p className="truncate text-sm text-muted-foreground">{user.phone ?? "—"}</p>

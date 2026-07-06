@@ -265,6 +265,13 @@ body[data-workspace-plugin="denali"] [data-denali-dashboard-registration-row-cou
   font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
 }
+
+@media (min-width: 640px) {
+  body[data-workspace-plugin="denali"] [data-denali-dashboard-registration-row-count] {
+    font-size: 0.875rem;
+  }
+}
+
 body[data-workspace-plugin="denali"] [data-dashboard-widget-footer] a {
   color: var(--sidebar-primary);
 }
@@ -462,10 +469,49 @@ body[data-workspace-plugin="denali"] [data-denali-welcome-cta] {
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
 }
+
 body[data-workspace-plugin="denali"] [data-denali-category-badge] {
+  width: fit-content;
   border-color: color-mix(in oklch, var(--denali-bark-600) 35%, var(--color-border-default));
   background: color-mix(in oklch, var(--denali-bark-600) 12%, var(--color-bg-surface));
   color: var(--denali-bark-600);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-profile-avatar][data-denali-profile-avatar-size="lg"] {
+  width: 4rem;
+  height: 4rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-profile-avatar][data-denali-profile-avatar-size="sm"] {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-profile-avatar][data-denali-profile-avatar-size="md"] {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-profile-avatar-image] {
+  object-fit: cover;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-profile-avatar-fallback] {
+  background: var(--color-bg-muted);
+  color: var(--color-text-secondary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-profile-avatar-icon] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-profile-avatar][data-denali-profile-avatar-size="sm"] [data-denali-profile-avatar-icon],
+body[data-workspace-plugin="denali"] [data-denali-profile-avatar][data-denali-profile-avatar-size="md"] [data-denali-profile-avatar-icon] {
+  width: 1rem;
+  height: 1rem;
 }
 
 body[data-workspace-plugin="denali"] [data-denali-bookings-inbox] [data-denali-inbox-header] {

@@ -913,9 +913,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F7 (done):** `guard-admin-feature-appearance-ast` — admin feature TSX (`patterns/`, `dashboard/`, `onboarding/`) bans palette scale + arbitrary hex in `className`; semantic shadcn tokens allowed.
 
-**F8 (F8-1–4 done):** CSS-hook purge through dashboard-widget-card + KPI grid helpers.
+**F8 (done):** CSS-hook purge — 17/17 feature TSX (`patterns/`, `dashboard/`, `onboarding/`) zero `className`; hooks in `admin-skin.css`.
 
-**F9+ (next):** continue F8 registry; `ThemeProviderChain` vs CSS precedence.
+**F9+ (next):** `ThemeProviderChain` vs CSS precedence (dual cascade audit); Phase F formal closure gate run.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -935,7 +935,9 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 **F7 (done):** `guard-admin-feature-appearance-ast` — palette/hex ban on feature TSX.
 
-**F8 (in progress):** incremental CSS-hook purge registry (F8-1: booking timeline + KPI cell).
+**F8 (done):** incremental CSS-hook purge registry — 17/17 feature TSX.
+
+**F9+ (next):** `ThemeProviderChain` vs CSS precedence; formal Phase F closure.
 
 ### Phase G — Codegen modularization
 

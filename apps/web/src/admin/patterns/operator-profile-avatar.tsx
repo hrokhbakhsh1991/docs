@@ -5,14 +5,14 @@ import { useEffect, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { resolveOperatorAvatarPreviewUrl } from "@/features/settings/profile-avatar-client";
-import { cn } from "@/lib/utils";
+
+type OperatorProfileAvatarSize = "lg" | "sm" | "md";
 
 type OperatorProfileAvatarProps = {
   readonly userId: string;
   readonly displayName?: string | null;
   readonly avatarUrl?: string | null;
-  readonly className?: string;
-  readonly fallbackClassName?: string;
+  readonly size?: OperatorProfileAvatarSize;
   readonly testId?: string;
   readonly resolvePreview?: boolean;
   readonly fallbackMode?: "initials" | "icon";
@@ -36,8 +36,7 @@ export function OperatorProfileAvatar({
   userId,
   displayName = null,
   avatarUrl: initialAvatarUrl = null,
-  className,
-  fallbackClassName,
+  size = "lg",
   testId,
   resolvePreview = false,
   fallbackMode = "initials",
@@ -77,31 +76,29 @@ export function OperatorProfileAvatar({
 
   return (
     <Avatar
-      {...(isAccountMenuChrome ? { "data-operator-profile-avatar": true } : {})}
-      className={isAccountMenuChrome ? className : cn("h-16 w-16", className)}
+      data-denali-profile-avatar
+      {...(isAccountMenuChrome
+        ? { "data-operator-profile-avatar": true }
+        : { "data-denali-profile-avatar-size": size })}
       data-testid={testId}
     >
       {avatarUrl !== null && avatarUrl.length > 0 ? (
         <AvatarImage
           src={avatarUrl}
           alt=""
-          {...(isAccountMenuChrome ? {} : { className: "object-cover" })}
+          data-denali-profile-avatar-image
           data-operator-profile-avatar-image={isAccountMenuChrome ? true : undefined}
         />
       ) : null}
       <AvatarFallback
-        className={
-          isAccountMenuChrome
-            ? fallbackClassName
-            : cn("bg-muted text-muted-foreground", fallbackClassName)
-        }
+        data-denali-profile-avatar-fallback
         data-operator-profile-avatar-fallback={isAccountMenuChrome ? true : undefined}
       >
         {showIconFallback ? (
           <User
-            {...(isAccountMenuChrome
-              ? { "data-operator-profile-avatar-icon": true, "aria-hidden": true }
-              : { className: "h-5 w-5", "aria-hidden": true })}
+            data-denali-profile-avatar-icon
+            data-operator-profile-avatar-icon={isAccountMenuChrome ? true : undefined}
+            aria-hidden
           />
         ) : (
           fallbackInitials

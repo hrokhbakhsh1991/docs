@@ -50,6 +50,10 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
       "apps/web/src/admin/dashboard/dashboard-registrations-widget.tsx",
       "apps/web/src/admin/patterns/denali-confirm-dialog.tsx",
       "apps/web/src/admin/onboarding/operator-welcome-dialog.tsx",
+      "apps/web/src/admin/patterns/tour-category-badge.tsx",
+      "apps/web/src/admin/patterns/operator-profile-avatar.tsx",
+      "apps/web/src/admin/onboarding/operator-welcome-gate.tsx",
+      "apps/web/src/admin/dashboard/dashboard-widget-registry.tsx",
     ]);
   });
 
@@ -81,6 +85,7 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
       "[data-denali-confirm-dialog]",
       "[data-denali-welcome-dialog]",
       "[data-denali-welcome-bullets]",
+      "[data-denali-profile-avatar]",
     ]) {
       assert.match(skin, new RegExp(hook.replace(/[[\]]/g, "\\$&")));
     }

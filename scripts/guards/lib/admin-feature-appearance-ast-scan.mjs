@@ -25,6 +25,10 @@ export const ADMIN_FEATURE_PURGED_FILES = [
   "apps/web/src/admin/dashboard/dashboard-registrations-widget.tsx",
   "apps/web/src/admin/patterns/denali-confirm-dialog.tsx",
   "apps/web/src/admin/onboarding/operator-welcome-dialog.tsx",
+  "apps/web/src/admin/patterns/tour-category-badge.tsx",
+  "apps/web/src/admin/patterns/operator-profile-avatar.tsx",
+  "apps/web/src/admin/onboarding/operator-welcome-gate.tsx",
+  "apps/web/src/admin/dashboard/dashboard-widget-registry.tsx",
 ];
 
 /** @type {readonly string[]} */

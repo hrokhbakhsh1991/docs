@@ -39,9 +39,9 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Admin bootstrap CSS-G-02 (no guest cross-surface imports) | ✅ F closure |
 | Denali `theme/` publish set covers admin `@import` chain | ✅ F closure |
 | Admin feature TSX palette/hex AST ban (`patterns/`, `dashboard/`, `onboarding/`) | ✅ F7 |
-| Admin feature TSX CSS-hook purge (incremental registry) | 🔄 F8 (13/17 purged) |
+| Admin feature TSX CSS-hook purge (incremental registry) | ✅ F8 (17/17 purged) |
 
-**Still hand-maintained (F8+):** remaining admin feature TSX under F7 semantic Tailwind until purged; `ThemeProviderChain` vs CSS precedence.
+**Still hand-maintained (F9+):** `ThemeProviderChain` vs CSS precedence; Phase F formal closure gate run.
 
 ## Authority flow (E1–E2)
 
@@ -228,7 +228,7 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 
 **Goal:** migrate feature TSX from semantic Tailwind `className` to `data-*` hooks + `admin-skin.css` (same contract as shell I0, applied incrementally).
 
-**Purged registry** (`ADMIN_FEATURE_PURGED_FILES` in `admin-feature-appearance-ast-scan.mjs`): files in the registry must have **zero** `className` attributes. All other feature TSX remain under F7 (semantic Tailwind allowed).
+**Purged registry** (`ADMIN_FEATURE_PURGED_FILES` in `admin-feature-appearance-ast-scan.mjs`): all 17 feature TSX under `patterns/`, `dashboard/`, `onboarding/` — **zero** `className` attributes each.
 
 | Sprint | File | Hooks |
 | ------ | ---- | ----- |
@@ -241,13 +241,34 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 | F8-4 | `patterns/dashboard-widget-card.tsx` | `data-denali-dashboard-widget-*`, `DashboardKpiGrid` | ✅ |
 | F8-5 | `dashboard/dashboard-*-widget.tsx` (×4) | `DashboardWidgetError`, `DashboardWidgetRowStack`, `DashboardWidgetList`, `DashboardTourListRow`, `DashboardRegistrationListRow` in `dashboard-widget-card.tsx`; hooks `data-denali-dashboard-widget-error`, `data-denali-dashboard-tour-row-*`, `data-denali-dashboard-registration-row-*` in `admin-skin.css` | ✅ |
 | F8-6 | `patterns/denali-confirm-dialog.tsx`, `onboarding/operator-welcome-dialog.tsx` | `data-denali-confirm-dialog-*`, `data-denali-welcome-*` (brand row, bullets, CTA wrap) | ✅ |
+| F8-7 | `patterns/tour-category-badge.tsx`, `patterns/operator-profile-avatar.tsx` | `data-denali-category-badge` width; `data-denali-profile-avatar-size` (`lg`/`sm`/`md`) | ✅ |
+
+**F8 closure:** 17/17 feature TSX purged — full `patterns/`, `dashboard/`, `onboarding/` scan dirs have zero `className` on all files.
 
 **Guard:** `guard-admin-feature-appearance-ast` runs F7 palette ban on all feature TSX **and** F8 zero-`className` on purged files.
 
-## F9+ (not in F8)
+## F9+ (post-F8)
 
-- Continue F8 registry until all `patterns/`, `dashboard/`, `onboarding/` are purged
-- `ThemeProviderChain` vs CSS precedence (broader platform work)
+### F9 — ThemeProviderChain vs CSS precedence
+
+**Problem:** operator dark toggle sets `html.dark` and `ThemeProviderChain`’s inner `.theme-dark`. Platform `globals.css` / design-token theme layers can assign platform blue to `.theme-dark`, overriding body-scoped Denali DTCG vars for shell children (see [`admin-experience.md`](../workspaces/denali/admin-experience.md) § Dark mode cascade).
+
+**Contract (already partial in `admin-skin.css`):**
+
+1. `html.dark:has(body[data-workspace-plugin="denali"])` — document root + portals
+2. `body[data-workspace-plugin="denali"] .theme-dark` — provider subtree inside shell
+
+**F9 deliverables:**
+
+| Step | Work |
+| ---- | ---- |
+| F9-1 | Audit: enumerate all `.theme-dark` / `ThemeProviderChain` inline vars that conflict with `admin-semantic-tokens.css` |
+| F9-2 | Guard or spec: Denali admin primary in dark mode ≠ platform `#5b9fd4` (extend `denali-admin-theme` or Playwright `SMK-P9-DENALI-THEME`) |
+| F9-3 | Doc closure: precedence table in `dtcg-pipeline-spec` + `platform-architecture-v2` |
+
+### Phase F formal closure
+
+Run checklist § Phase F closure checklist (build, guards, specs) — Architect **YES** for full gate chain.
 
 ## Phase F closure checklist
 
