@@ -927,7 +927,7 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F9 (done):** ThemeProviderChain vs CSS precedence — audit (F9-1), `guard-denali-admin-dark-primary` + specs (F9-2), precedence table (F9-3), C4 tenant dark fix (F9-4).
 
-**Phase F formal closure (done, 2026-07-06):** fast-track checklist in spec — all guards/specs PASS. Full gate chain deferred until Architect **YES**.
+**Phase F formal closure (done, 2026-07-06):** fast-track checklist PASS. Full monorepo gate attempted — not green; see spec § Full gate run.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
