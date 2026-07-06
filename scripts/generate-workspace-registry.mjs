@@ -717,6 +717,10 @@ export function generateGuestThemeStylesheetLoader(manifests, surface) {
 /** Starter workspace owns the default portal L3 skin (Phase D.2). */
 export const WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN =
   "@app-tour/workspace-starter/theme/starter-portal.css" as const;
+` : ""}${surface === "marketing" ? `
+/** Starter workspace owns the default marketing L3 skin (Phase D.3). */
+export const WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN =
+  "@app-tour/workspace-starter/theme/starter-marketing.css" as const;
 ` : ""}
 /** Manifest paths per workspace plugin (documentation / guards). */
 export const WORKSPACE_GUEST_${surface.toUpperCase()}_THEME_REGISTRY = Object.freeze({
@@ -725,7 +729,7 @@ ${registryLines}
 
 /** Load workspace skin CSS for the active plugin only (dynamic import). */
 export async function importGuest${surfaceCamel}ThemeForPlugin(pluginId: string): Promise<void> {
-${surface === "portal" ? "  await import(WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN);\n" : ""}  switch (pluginId) {
+${surface === "portal" ? "  await import(WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN);\n" : ""}${surface === "marketing" ? "  await import(WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN);\n" : ""}  switch (pluginId) {
 ${switchCases}
     default:
       return;

@@ -1,5 +1,6 @@
 /**
- * Platform fallback — marketing tenant shell appearance (shadow-first).
+ * Platform fallback — marketing tenant shell structure (L2).
+ * Appearance lives in starter theme/starter-marketing.css (L3 default skin via guest loader).
  * Scope: body[data-app-surface="marketing"] only.
  */
 body[data-app-surface="marketing"] [data-marketing-shell],

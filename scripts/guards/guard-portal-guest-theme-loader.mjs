@@ -26,6 +26,9 @@ if (/^import ["']@app-tour\/workspace-/m.test(generated)) {
 if (!generated.includes("importGuestPortalThemeForPlugin")) {
   violations.push("portal bootstrap must export importGuestPortalThemeForPlugin (PTL-7)");
 }
+if (!generated.includes("WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN")) {
+  violations.push("portal bootstrap must export WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN (Phase D.2)");
+}
 if (!layout.includes("await importGuestPortalThemeForPlugin(bootstrap.pluginId)")) {
   violations.push("portal layout must load skin for active pluginId only (R-01)");
 }

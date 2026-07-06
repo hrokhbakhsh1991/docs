@@ -26,7 +26,7 @@
 | **Purpose** | Bootstrap CSS trees contain no workspace leakage |
 | **Inputs** | `portal-bootstrap.css`, `marketing-bootstrap.css`, `admin-bootstrap.css`, transitive `@import` under `packages/design-tokens/src/` |
 | **Failure conditions** | `data-workspace-plugin=`, `.denali-`, `.urban-`, `.guest-club-`, `@app-tour/workspace-`, `packages/workspaces/` |
-| **Cross-surface** | `portal-bootstrap` must not import `fallback-guest-marketing-shell`; `marketing-bootstrap` must not import `fallback-guest-portal-shell` |
+| **Cross-surface** | `portal-bootstrap` must not import marketing fallback or operator CSS; `marketing-bootstrap` must not import portal fallback or operator CSS; `admin-bootstrap` must not import guest fallbacks or `guest-body-reset.css` |
 | **L2 structure-only** | `fallback-guest-*-shell.css` must not use semantic color vars, `color-mix`, `backdrop-filter`, or `box-shadow` |
 
 ## ESLint — guest inline appearance

@@ -24,10 +24,14 @@ Strict four-layer appearance stack. **globals.css is not a layer** — import-on
 | App | Bootstrap entry | Imports |
 | --- | --------------- | ------- |
 | Portal | `portal-bootstrap.css` | L0 index + shell-bridge + portal shell fallback + body reset + platform infra (no L3 skin) |
-| Marketing | `marketing-bootstrap.css` | L0 index + shell-bridge + marketing shell fallback + body reset + platform infra |
+| Marketing | `marketing-bootstrap.css` | L0 index + shell-bridge + marketing shell fallback + body reset + platform infra (no L3 skin) |
 | Admin (`apps/web`) | `admin-bootstrap.css` | L0 index + shell-bridge + operator-shell-structure + operator-admin-appearance |
 
 **Portal L3:** `starter/theme/starter-portal.css` via `importGuestPortalThemeForPlugin` (base), then workspace portal skins.
+
+**Marketing L3:** `starter/theme/starter-marketing.css` via `importGuestMarketingThemeForPlugin` (base), then workspace marketing skins.
+
+**Admin:** no guest fallbacks; operator structure + appearance only.
 
 **Cross-surface rule:** portal bootstrap must not import marketing fallback CSS and vice versa.
 

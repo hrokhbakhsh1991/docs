@@ -63,4 +63,14 @@ Existing `data-*` hooks are never removed — `data-slot` is additive only.
 | L3 default (portal) | `starter/theme/starter-portal.css` | Shell + `/me` appearance (starter workspace) |
 | L3 workspace | `packages/workspaces/<id>/theme/*-portal.css` | Brand overrides on `body[data-workspace-plugin]` |
 
-Both L2 and L3 default are imported from `portal-bootstrap.css`. Workspace skins load dynamically in portal layout.
+L3 default portal skin loads dynamically in portal layout (`WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN`), not from `portal-bootstrap.css`.
+
+## Marketing skin stack
+
+| Layer | File | Owns |
+| ----- | ---- | ---- |
+| L2 structure | `fallback-guest-marketing-shell.css` | Layout on `data-marketing-shell*` hooks only |
+| L3 default (marketing) | `starter/theme/starter-marketing.css` | Shell chrome appearance (starter workspace) |
+| L3 workspace | `packages/workspaces/<id>/theme/*-marketing.css` | Brand overrides on `body[data-workspace-plugin]` |
+
+L3 default marketing skin loads dynamically in marketing layout (`WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN`), not from `marketing-bootstrap.css`.

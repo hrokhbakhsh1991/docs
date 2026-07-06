@@ -4,6 +4,10 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
+/** Starter workspace owns the default marketing L3 skin (Phase D.3). */
+export const WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN =
+  "@app-tour/workspace-starter/theme/starter-marketing.css" as const;
+
 /** Manifest paths per workspace plugin (documentation / guards). */
 export const WORKSPACE_GUEST_MARKETING_THEME_REGISTRY = Object.freeze({
   "denali": Object.freeze(["theme/denali-marketing.css"]),
@@ -13,6 +17,7 @@ export const WORKSPACE_GUEST_MARKETING_THEME_REGISTRY = Object.freeze({
 
 /** Load workspace skin CSS for the active plugin only (dynamic import). */
 export async function importGuestMarketingThemeForPlugin(pluginId: string): Promise<void> {
+  await import(WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN);
   switch (pluginId) {
     case "denali":
       await import("@app-tour/workspace-denali/theme/denali-marketing.css");

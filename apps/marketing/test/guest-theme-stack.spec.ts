@@ -30,6 +30,26 @@ describe("guest-theme-stack.spec.ts — marketing", () => {
     assert.doesNotMatch(css, /header\[data-marketing-header\]/);
   });
 
+  it("G-P6-UI-02a marketing-bootstrap is L2-only; default marketing skin via guest loader", () => {
+    const marketingBootstrap = readFileSync(
+      join(repoRoot, "packages/design-tokens/src/marketing-bootstrap.css"),
+      "utf8"
+    );
+    assert.match(marketingBootstrap, /fallback-guest-marketing-shell\.css/);
+    assert.doesNotMatch(marketingBootstrap, /fallback-guest-portal-shell\.css/);
+    assert.doesNotMatch(marketingBootstrap, /starter-marketing\.css/);
+    const generated = readFileSync(bootstrapPath, "utf8");
+    assert.match(generated, /WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN/);
+    assert.match(generated, /@app-tour\/workspace-starter\/theme\/starter-marketing\.css/);
+    assert.match(generated, /await import\(WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN\)/);
+    const starterSkin = readFileSync(
+      join(repoRoot, "packages/workspaces/starter/theme/starter-marketing.css"),
+      "utf8"
+    );
+    assert.match(starterSkin, /header\[data-marketing-header\]/);
+    assert.match(starterSkin, /footer\[data-marketing-footer\]/);
+  });
+
   it("G-P6-UI-02b layout marks marketing surface + workspace plugin", () => {
     const layout = readFileSync(layoutPath, "utf8");
     assert.match(layout, /data-app-surface="marketing"/);

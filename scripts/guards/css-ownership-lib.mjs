@@ -79,6 +79,23 @@ export function assertGlobalsImportOnly(globalsContent, relPath) {
 }
 
 
+/** @param {string} content @param {string[]} forbiddenFragments */
+export function findForbiddenCssImports(content, forbiddenFragments) {
+  /** @type {string[]} */
+  const violations = [];
+  const importRe = /@import\s+["']([^"']+)["']/g;
+  let match;
+  while ((match = importRe.exec(content)) !== null) {
+    const ref = match[1];
+    for (const fragment of forbiddenFragments) {
+      if (ref.includes(fragment)) {
+        violations.push(fragment);
+      }
+    }
+  }
+  return violations;
+}
+
 /** @param {string} content @param {string} relPath */
 export function findL2FallbackViolations(content, relPath) {
   /** @type {string[]} */

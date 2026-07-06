@@ -878,7 +878,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **D2 (done):** `platform-neutral-portal.css` re-homed to `packages/workspaces/starter/theme/starter-portal.css`. `portal-bootstrap.css` is L0–L2 only; `importGuestPortalThemeForPlugin` always loads `WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN` first, then workspace-specific portal skins.
 
-**D3 (next):** Align marketing portal/admin bootstrap parity (cross-surface import guards).
+**D3 (done):** `starter/theme/starter-marketing.css` default marketing L3 skin via `WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN`. Guest bootstraps (portal + marketing) share L0–L2 stack; `admin-bootstrap` is operator-only. `guard-css-bootstrap-integrity` blocks cross-surface and guest↔admin leakage.
+
+**Phase D: closed.**
 
 
 ### Phase E — DTCG pipeline (design token implementation)

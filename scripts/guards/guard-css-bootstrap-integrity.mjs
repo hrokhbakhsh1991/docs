@@ -7,7 +7,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { findBootstrapViolations, findL2FallbackViolations, readCssImportTree } from "./css-ownership-lib.mjs";
+import {
+  findBootstrapViolations,
+  findForbiddenCssImports,
+  findL2FallbackViolations,
+  readCssImportTree,
+} from "./css-ownership-lib.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const TOKENS_SRC = path.join(REPO_ROOT, "packages/design-tokens/src");
@@ -15,22 +20,34 @@ const TOKENS_SRC = path.join(REPO_ROOT, "packages/design-tokens/src");
 /** @type {string[]} */
 const violations = [];
 
-/** @type {{ name: string; entry: string; forbiddenImport: string | null }[]} */
+/** @type {{ name: string; entry: string; forbiddenImports: string[] }[]} */
 const BOOTSTRAPS = [
   {
     name: "portal-bootstrap",
     entry: path.join(TOKENS_SRC, "portal-bootstrap.css"),
-    forbiddenImport: "fallback-guest-marketing-shell.css",
+    forbiddenImports: [
+      "fallback-guest-marketing-shell.css",
+      "operator-shell-structure.css",
+      "operator-admin-appearance.css",
+    ],
   },
   {
     name: "marketing-bootstrap",
     entry: path.join(TOKENS_SRC, "marketing-bootstrap.css"),
-    forbiddenImport: "fallback-guest-portal-shell.css",
+    forbiddenImports: [
+      "fallback-guest-portal-shell.css",
+      "operator-shell-structure.css",
+      "operator-admin-appearance.css",
+    ],
   },
   {
     name: "admin-bootstrap",
     entry: path.join(TOKENS_SRC, "admin-bootstrap.css"),
-    forbiddenImport: null,
+    forbiddenImports: [
+      "fallback-guest-portal-shell.css",
+      "fallback-guest-marketing-shell.css",
+      "guest-body-reset.css",
+    ],
   },
 ];
 
@@ -47,11 +64,8 @@ for (const bootstrap of BOOTSTRAPS) {
     }
     const rel = path.relative(REPO_ROOT, file.path);
     violations.push(...findBootstrapViolations(file.content, rel));
-    if (
-      bootstrap.forbiddenImport !== null &&
-      file.content.includes(bootstrap.forbiddenImport)
-    ) {
-      violations.push(`${bootstrap.name}: cross-surface import ${bootstrap.forbiddenImport} in ${rel}`);
+    for (const forbiddenImport of findForbiddenCssImports(file.content, bootstrap.forbiddenImports)) {
+      violations.push(`${bootstrap.name}: cross-surface import ${forbiddenImport} in ${rel}`);
     }
   }
 }

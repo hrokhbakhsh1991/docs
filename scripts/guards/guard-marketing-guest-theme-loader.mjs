@@ -25,6 +25,9 @@ if (/^import ["']@app-tour\/workspace-/m.test(generated)) {
 if (!generated.includes("importGuestMarketingThemeForPlugin")) {
   violations.push("marketing bootstrap must export importGuestMarketingThemeForPlugin");
 }
+if (!generated.includes("WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN")) {
+  violations.push("marketing bootstrap must export WORKSPACE_GUEST_MARKETING_DEFAULT_SKIN (Phase D.3)");
+}
 if (!layout.includes("await importGuestMarketingThemeForPlugin(bootstrap.pluginId)")) {
   violations.push("marketing layout must load skin for active pluginId only");
 }
