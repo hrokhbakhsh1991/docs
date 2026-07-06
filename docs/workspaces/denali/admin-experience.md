@@ -109,7 +109,7 @@ Visual language (Denali only): mist gradient surface, forest `--sidebar-primary`
 
 ### Dark mode cascade
 
-Operator toggle sets `html.dark` **and** flips `ThemeProviderChain`’s inner `div.theme-dark`. `apps/web/app/globals.css` assigns platform blue `#5b9fd4` to `.theme-dark`, which would override body-scoped Denali tokens for all shell children.
+Operator toggle sets `html.dark` **and** flips `ThemeProviderChain`’s inner `div.theme-dark`. The admin bootstrap chain (`globals.css` → `admin-bootstrap.css` → `index.css` / `themes/dark.css` + `operator-admin-dark-semantics.css`) assigns platform blue `#5b9fd4` to `.theme-dark`, which would override body-scoped Denali tokens for shell children unless the triple cascade in `admin-semantic-tokens.css` wins.
 
 Denali dark rules therefore target **both**:
 

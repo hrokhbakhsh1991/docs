@@ -41,7 +41,7 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Admin feature TSX palette/hex AST ban (`patterns/`, `dashboard/`, `onboarding/`) | ✅ F7 |
 | Admin feature TSX CSS-hook purge (incremental registry) | ✅ F8 (17/17 purged) |
 
-**Still hand-maintained (F9+):** `ThemeProviderChain` vs CSS precedence; Phase F formal closure gate run.
+**Still hand-maintained (F9+):** `ThemeProviderChain` / tenant inline vs Denali cascade (F9-2 guard); precedence table closure (F9-3); Phase F formal closure gate run.
 
 ## Authority flow (E1–E2)
 
@@ -262,9 +262,78 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 
 | Step | Work |
 | ---- | ---- |
-| F9-1 | Audit: enumerate all `.theme-dark` / `ThemeProviderChain` inline vars that conflict with `admin-semantic-tokens.css` |
+| F9-1 | Audit: enumerate all `.theme-dark` / `ThemeProviderChain` inline vars that conflict with `admin-semantic-tokens.css` | ✅ (see § F9-1 audit below) |
 | F9-2 | Guard or spec: Denali admin primary in dark mode ≠ platform `#5b9fd4` (extend `denali-admin-theme` or Playwright `SMK-P9-DENALI-THEME`) |
 | F9-3 | Doc closure: precedence table in `dtcg-pipeline-spec` + `platform-architecture-v2` |
+
+#### F9-1 audit — ThemeProviderChain vs Denali admin semantics (2026-07-06)
+
+**DOM chain** (`ThemeProviderChain` → operator shell):
+
+```text
+body[data-workspace-plugin="denali"][data-app-surface="admin"]
+└─ PlatformThemeProvider → div.theme-dark | div.theme-light     ← toggle target
+   └─ TenantThemeProvider → div[data-tenant-theme] style=inline --color-primary, --ws-*
+      └─ WorkspaceThemeProvider → div[data-workspace-theme] style=workspace cssVariables
+         └─ operator shell + feature children (shadcn, Radix portals)
+```
+
+Operator dark toggle (`operator-theme-mode.ts`) writes **both** `html.dark` on `<html>` and `theme-dark` on the `PlatformThemeProvider` root (same contract as Playwright `SMK-P9-DENALI-THEME`).
+
+**Admin CSS load order** (via `apps/web/app/globals.css` → `admin-bootstrap.css`):
+
+| # | File | `.theme-dark` role |
+| - | ---- | ------------------ |
+| 1 | `index.css` → `themes/dark.css` | Platform palette on `.theme-dark` — `--color-primary: #5b9fd4` |
+| 2 | `shell-bridge.css` | shadcn aliases `--primary`, `--sidebar-primary` → `var(--color-primary)` |
+| 3 | `operator-admin-dark-semantics.css` | Duplicate platform dark palette on `.theme-dark`, `.dark` |
+| 4 | `denali-admin.css` → `admin-semantic-tokens.css` | Denali DTCG dark block on triple cascade (below) |
+
+**Denali dark authority selector** (`denali.admin.tokens.json` block 2 → `admin-semantic-tokens.css`):
+
+```text
+html.dark:has(body[data-workspace-plugin="denali"]),
+.dark body[data-workspace-plugin="denali"],
+body[data-workspace-plugin="denali"] .theme-dark
+```
+
+Without the third arm, shadcn `bg-primary` inside `div.theme-dark` keeps platform `#5b9fd4` even when `body` exposes teal `--primary` via the first two arms only.
+
+**Conflict inventory**
+
+| ID | Source | Mechanism | Dark value (platform) | Denali authority | Severity | Mitigation today |
+| -- | ------ | --------- | --------------------- | ---------------- | -------- | ---------------- |
+| C1 | `themes/dark.css` | `.theme-dark { --color-primary }` | `#5b9fd4` | `#5eead4` | **P0** | Triple cascade on `.theme-dark` div (specificity 0,2,1) |
+| C2 | `operator-admin-dark-semantics.css` | `.theme-dark`, `.dark` full palette | platform GitHub dark | Denali forest dark | **P0** for primary | Same as C1; file is platform admin fallback — Denali skin loads after bootstrap |
+| C3 | `shell-bridge.css` | `.theme-dark { --primary: var(--color-primary) }` | aliases C1 | `{flat.primary}` in DTCG | **P0** | Denali flat aliases in semantic block override `--primary` on matched selector |
+| C4 | `TenantThemeProvider` | inline `style` on `[data-tenant-theme]` | `--color-primary` from tenant DB (`#0f766e` default) | dark `#5eead4` | **P1** | Inline wins over inherited parent vars for **tenant subtree** — dark accent can stay light-brand teal until F9 fix |
+| C5 | `WorkspaceThemeProvider` | inline `style` on `[data-workspace-theme]` | workspace `cssVariables` / `tokens.css` | admin semantic block | **P2** | Usually defers to `--ws-color-accent`; admin semantic sets shadcn `--accent` |
+| C6 | `themes/dark.css` + `operator-admin-dark-semantics.css` | status tokens not in Denali dark DTCG block | `--color-danger` `#ff7b72`, `--color-success` `#56d364`, `--color-warning` `#e3b341`, `--color-info` `#79c0ff` | light-block only in `denali.admin.tokens.json` | **P2** | No Denali dark override — destructive/warning/success badges use platform GitHub hues |
+| C7 | `ui-primitives/Select/select-affordance.css` | `.theme-dark [data-ui-select]` chevron stroke | `#a8b0a4` | cosmetic | **P3** | Decorative SVG stroke only |
+
+**React providers — inline vars set on chain** (`packages/theme-react`):
+
+| Provider | Inline keys | Conflicts with admin semantic |
+| -------- | ----------- | ------------------------------ |
+| `PlatformThemeProvider` | none (class only) | — |
+| `TenantThemeProvider` | `--color-primary`, `--color-primary-hover`, `--color-text-link`, tenant `cssVariables` | **C4** — primary family bleeds into dark subtree |
+| `WorkspaceThemeProvider` | normalized `workspaceTheme.cssVariables` | **C5** — accent/brand overrides |
+
+**F9-2+ remediation candidates** (no code in F9-1 — doc only):
+
+1. **C4:** stop mapping `primaryColor` to `--color-primary` on tenant div in admin + dark, or scope tenant inline to light-only (`theme-light` subtree).
+2. **C6:** extend `denali.admin.tokens.json` dark block with `color.danger|success|warning|info` (+ `flat.destructive`) or accept platform status hues.
+3. **C1–C3 long-term:** gate platform `.theme-dark` palette behind non-Denali body (`:not(:has(body[data-workspace-plugin="denali"]))`) in generated CSS — requires DTCG generator change (Phase G adjacency).
+
+**F9-3 precedence table** (draft — full closure in F9-3):
+
+| Priority (high → low) | Layer | Selector / scope |
+| --------------------- | ----- | ---------------- |
+| 1 | Inline React style | `[data-tenant-theme]`, `[data-workspace-theme]` |
+| 2 | Denali admin DTCG | `body[data-workspace-plugin="denali"] .theme-dark` + `html.dark:has(…)` |
+| 3 | Platform admin dark semantics | `.theme-dark`, `.dark` (`operator-admin-dark-semantics.css`) |
+| 4 | Platform theme | `.theme-dark` (`themes/dark.css`) |
+| 5 | shadcn bridge | `shell-bridge.css` aliases |
 
 ### Phase F formal closure
 
