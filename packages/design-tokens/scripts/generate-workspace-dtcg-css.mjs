@@ -1,5 +1,5 @@
 /**
- * Generates workspace theme CSS from DTCG workspace slices (Phase E2–F1).
+ * Generates workspace theme CSS from DTCG workspace slices (Phase E2–F3).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -57,6 +57,9 @@ export function resolveWorkspaceSliceOutputRelativePath(fileName, workspaceId) {
   if (fileName === `${workspaceId}.admin.tokens.json`) {
     return "theme/admin-semantic-tokens.css";
   }
+  if (fileName === `${workspaceId}.wizard.tokens.json`) {
+    return "theme/wizard-semantic-tokens.css";
+  }
   throw new Error(`unknown workspace DTCG slice filename: ${fileName}`);
 }
 
@@ -76,6 +79,9 @@ function sliceCssDescription(fileName, workspaceId) {
   }
   if (fileName.endsWith(".admin.tokens.json")) {
     return `${workspaceId} admin semantic tokens — light + dark (DTCG authority).`;
+  }
+  if (fileName.endsWith(".wizard.tokens.json")) {
+    return `${workspaceId} wizard tone palette + field semantics (DTCG authority).`;
   }
   return `${workspaceId} workspace tokens.`;
 }

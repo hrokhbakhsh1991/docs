@@ -101,10 +101,23 @@ if (!existsSync(WORKSPACES_ROOT)) {
       );
     }
 
+    const wizardSemantic = path.join(themeDir, "wizard-semantic-tokens.css");
+    if (existsSync(wizardSemantic)) {
+      auditDtcgOutputCss(
+        wizardSemantic,
+        `packages/workspaces/${workspaceId}/theme/wizard-semantic-tokens.css`,
+      );
+    }
+
     const adminSkinHook = path.join(themeDir, "admin-skin.css");
     auditSkinHookCss(adminSkinHook, `packages/workspaces/${workspaceId}/theme/admin-skin.css`);
 
-    for (const hookName of ["finance-skin.css", "wizard-skin.css", "wizard-calendar.css"]) {
+    for (const hookName of [
+      "finance-skin.css",
+      "wizard-skin.css",
+      "wizard-calendar.css",
+      "wizard-fields.css",
+    ]) {
       auditSkinHookCss(
         path.join(themeDir, hookName),
         `packages/workspaces/${workspaceId}/theme/${hookName}`,

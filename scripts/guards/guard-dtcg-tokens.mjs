@@ -157,6 +157,49 @@ function isAdminSemanticSlice(fileName) {
 }
 
 /**
+ * @param {string} fileName
+ */
+function isWizardSemanticSlice(fileName) {
+  return /\.wizard\.tokens\.json$/.test(fileName);
+}
+
+/**
+ * @param {string} filePath
+ * @param {string} label
+ */
+function validateWizardSemanticDtcg(filePath, label) {
+  if (!existsSync(filePath)) {
+    violations.push(`${label} missing`);
+    return;
+  }
+  const raw = readFileSync(filePath, "utf8");
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    violations.push(`${label} is not valid JSON`);
+    return;
+  }
+  if (!raw.includes("design-tokens.github.io")) {
+    violations.push(`${label} must declare DTCG $schema`);
+  }
+  if (typeof parsed.workspaceId !== "string" || parsed.workspaceId.trim().length === 0) {
+    violations.push(`${label} must define workspaceId`);
+  }
+  if (typeof parsed.scopeSelector !== "string" || parsed.scopeSelector.trim().length === 0) {
+    violations.push(`${label} must define scopeSelector`);
+  }
+  const hasToneGroup =
+    parsed.wiz?.tone && typeof parsed.wiz.tone === "object" && Object.keys(parsed.wiz.tone).length > 0;
+  if (!hasToneGroup) {
+    violations.push(`${label} must define wiz.tone.* palette tokens`);
+  }
+  if (!parsed.color?.danger?.$type || !parsed.color?.danger?.$value) {
+    violations.push(`${label} must define color.danger with $type and $value`);
+  }
+}
+
+/**
  * @param {string} filePath
  * @param {string} label
  */
@@ -201,6 +244,8 @@ if (!existsSync(WORKSPACES_DTCG_DIR)) {
       validateSkinSemanticDtcg(filePath, fileName);
     } else if (isAdminSemanticSlice(fileName)) {
       validateSkinSemanticDtcg(filePath, fileName, { allowBlocks: true });
+    } else if (isWizardSemanticSlice(fileName)) {
+      validateWizardSemanticDtcg(filePath, fileName);
     } else {
       violations.push(`${fileName}: unrecognized workspace DTCG slice filename`);
     }

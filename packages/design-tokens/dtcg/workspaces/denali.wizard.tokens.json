@@ -1,0 +1,53 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "denali",
+  "scopeSelector": "body[data-workspace-plugin=\"denali\"]",
+  "color": {
+    "danger": { "$type": "color", "$value": "#dc2626" }
+  },
+  "wiz": {
+    "tone": {
+      "forest": {
+        "source": { "$type": "color", "$value": "#0f766e" },
+        "fg": { "$type": "color", "$value": "#0f5c4a" },
+        "dark-source": { "$type": "color", "$value": "#5eead4" },
+        "dark-fg": { "$type": "color", "$value": "#99f6e4" }
+      },
+      "sky": {
+        "source": { "$type": "color", "$value": "#0369a1" },
+        "fg": { "$type": "color", "$value": "#075985" },
+        "fg-gear": { "$type": "color", "$value": "#0c4a6e" },
+        "dark-source": { "$type": "color", "$value": "#7dd3fc" },
+        "dark-fg": { "$type": "color", "$value": "#bae6fd" }
+      },
+      "purple": {
+        "source": { "$type": "color", "$value": "#7c3aed" },
+        "fg": { "$type": "color", "$value": "#5b21b6" },
+        "dark-source": { "$type": "color", "$value": "#c4b5fd" },
+        "dark-fg": { "$type": "color", "$value": "#ddd6fe" }
+      },
+      "orange": {
+        "source": { "$type": "color", "$value": "#c2410c" },
+        "fg": { "$type": "color", "$value": "#9a3412" }
+      },
+      "amber": {
+        "source": { "$type": "color", "$value": "#b45309" },
+        "fg": { "$type": "color", "$value": "#92400e" },
+        "dark-source": { "$type": "color", "$value": "#fcd34d" },
+        "dark-fg": { "$type": "color", "$value": "#fde68a" }
+      },
+      "rose": {
+        "source": { "$type": "color", "$value": "#be123c" },
+        "fg": { "$type": "color", "$value": "#9f1239" },
+        "dark-source": { "$type": "color", "$value": "#fda4af" },
+        "dark-fg": { "$type": "color", "$value": "#fecdd3" }
+      },
+      "emerald": {
+        "source": { "$type": "color", "$value": "#047857" },
+        "fg": { "$type": "color", "$value": "#065f46" },
+        "dark-source": { "$type": "color", "$value": "#6ee7b7" },
+        "dark-fg": { "$type": "color", "$value": "#a7f3d0" }
+      }
+    }
+  }
+}

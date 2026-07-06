@@ -1,6 +1,9 @@
 /**
- * Denali wizard fields + composites.
+ * Denali wizard fields + composites (layout hooks).
+ * Tone palette: theme/wizard-semantic-tokens.css (@generated from DTCG).
  */
+@import "./wizard-semantic-tokens.css";
+
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .workspace-wizard__step-header {
   margin-bottom: var(--space-5, 1.25rem);
   padding-bottom: var(--space-4, 1rem);
@@ -462,7 +465,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-compo
   top: 50%;
   transform: translateY(-50%);
   font-size: 0.75rem;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
   pointer-events: none;
 }
 
@@ -485,7 +488,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-compo
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__location-suggestion-empty {
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__location-suggestion {
@@ -509,7 +512,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-compo
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__location-coords {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__map-wrap {
@@ -529,7 +532,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-compo
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__location-map-hint {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-wizard-composite__map-skeleton {
@@ -835,33 +838,33 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker_
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__swatch.denali-theme-picker__swatch--tone-0 {
-  background: color-mix(in oklch, #0f766e 14%, var(--color-bg-muted));
-  color: var(--denali-forest-700, #0f5c4a);
+  background: color-mix(in oklch, var(--wiz-tone-forest-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-forest-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__swatch.denali-theme-picker__swatch--tone-1 {
-  background: color-mix(in oklch, #0369a1 14%, var(--color-bg-muted));
-  color: #0c4a6e;
+  background: color-mix(in oklch, var(--wiz-tone-sky-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-sky-fg-gear);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__swatch.denali-theme-picker__swatch--tone-2 {
-  background: color-mix(in oklch, #7c3aed 14%, var(--color-bg-muted));
-  color: #5b21b6;
+  background: color-mix(in oklch, var(--wiz-tone-purple-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-purple-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__swatch.denali-theme-picker__swatch--tone-3 {
-  background: color-mix(in oklch, #c2410c 14%, var(--color-bg-muted));
-  color: #9a3412;
+  background: color-mix(in oklch, var(--wiz-tone-orange-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-orange-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__swatch.denali-theme-picker__swatch--tone-4 {
-  background: color-mix(in oklch, #b45309 14%, var(--color-bg-muted));
-  color: #92400e;
+  background: color-mix(in oklch, var(--wiz-tone-amber-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-amber-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__swatch.denali-theme-picker__swatch--tone-5 {
-  background: color-mix(in oklch, #be123c 14%, var(--color-bg-muted));
-  color: #9f1239;
+  background: color-mix(in oklch, var(--wiz-tone-rose-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-rose-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__body {
@@ -915,7 +918,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker_
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__check--visible {
   border-color: var(--color-primary);
   background: var(--color-primary);
-  color: var(--color-primary-contrast, #fff);
+  color: var(--color-primary-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-gear-picker__requirement {
@@ -985,33 +988,33 @@ body[data-workspace-plugin="denali"] .denali-equipment-icon {
 }
 
 body[data-workspace-plugin="denali"] .denali-gear-picker__swatch[data-equipment-catalog-avatar].denali-theme-picker__swatch--tone-0 {
-  background: color-mix(in oklch, #0f766e 14%, var(--color-bg-muted));
-  color: var(--denali-forest-700, #0f5c4a);
+  background: color-mix(in oklch, var(--wiz-tone-forest-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-forest-fg);
 }
 
 body[data-workspace-plugin="denali"] .denali-gear-picker__swatch[data-equipment-catalog-avatar].denali-theme-picker__swatch--tone-1 {
-  background: color-mix(in oklch, #0369a1 14%, var(--color-bg-muted));
-  color: #0c4a6e;
+  background: color-mix(in oklch, var(--wiz-tone-sky-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-sky-fg-gear);
 }
 
 body[data-workspace-plugin="denali"] .denali-gear-picker__swatch[data-equipment-catalog-avatar].denali-theme-picker__swatch--tone-2 {
-  background: color-mix(in oklch, #7c3aed 14%, var(--color-bg-muted));
-  color: #5b21b6;
+  background: color-mix(in oklch, var(--wiz-tone-purple-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-purple-fg);
 }
 
 body[data-workspace-plugin="denali"] .denali-gear-picker__swatch[data-equipment-catalog-avatar].denali-theme-picker__swatch--tone-3 {
-  background: color-mix(in oklch, #c2410c 14%, var(--color-bg-muted));
-  color: #9a3412;
+  background: color-mix(in oklch, var(--wiz-tone-orange-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-orange-fg);
 }
 
 body[data-workspace-plugin="denali"] .denali-gear-picker__swatch[data-equipment-catalog-avatar].denali-theme-picker__swatch--tone-4 {
-  background: color-mix(in oklch, #b45309 14%, var(--color-bg-muted));
-  color: #92400e;
+  background: color-mix(in oklch, var(--wiz-tone-amber-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-amber-fg);
 }
 
 body[data-workspace-plugin="denali"] .denali-gear-picker__swatch[data-equipment-catalog-avatar].denali-theme-picker__swatch--tone-5 {
-  background: color-mix(in oklch, #be123c 14%, var(--color-bg-muted));
-  color: #9f1239;
+  background: color-mix(in oklch, var(--wiz-tone-rose-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-rose-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-equipment-icon-picker] {
@@ -1250,8 +1253,8 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picke
   height: 2.5rem;
   border-radius: 999px;
   overflow: hidden;
-  background: color-mix(in oklch, var(--denali-forest-600, #0f766e) 14%, var(--color-bg-muted));
-  color: var(--denali-forest-700, #0f5c4a);
+  background: color-mix(in oklch, var(--denali-forest-600) 14%, var(--color-bg-muted));
+  color: var(--denali-forest-700);
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -1273,8 +1276,8 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picke
 
 html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard] .denali-leader-picker__avatar,
 body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] .denali-leader-picker__avatar {
-  background: color-mix(in oklch, #5eead4 18%, var(--color-bg-muted));
-  color: #99f6e4;
+  background: color-mix(in oklch, var(--wiz-tone-forest-dark-source) 18%, var(--color-bg-muted));
+  color: var(--wiz-tone-forest-dark-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picker__body {
@@ -1322,9 +1325,9 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picke
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picker__badge--leader {
-  border: 1px solid color-mix(in oklch, var(--denali-forest-600, #0f766e) 35%, transparent);
-  background: color-mix(in oklch, var(--denali-forest-600, #0f766e) 10%, var(--color-bg-surface));
-  color: var(--denali-forest-700, #0f5c4a);
+  border: 1px solid color-mix(in oklch, var(--denali-forest-600) 35%, transparent);
+  background: color-mix(in oklch, var(--denali-forest-600) 10%, var(--color-bg-surface));
+  color: var(--denali-forest-700);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picker__badge--admin {
@@ -1357,7 +1360,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picke
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picker__check--visible {
   border-color: var(--color-primary);
   background: var(--color-primary);
-  color: var(--color-primary-foreground, #fff);
+  color: var(--color-primary-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picker__header-row {
@@ -1493,8 +1496,8 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picke
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picker__chip-remove:hover {
-  background: color-mix(in oklch, var(--color-danger, #dc2626) 12%, transparent);
-  color: var(--color-danger, #dc2626);
+  background: color-mix(in oklch, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-leader-picker__summary--panel {
@@ -1704,69 +1707,69 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker__swatch--tone-0 {
-  background: color-mix(in oklch, #0f766e 14%, var(--color-bg-muted));
-  color: #0f5c4a;
+  background: color-mix(in oklch, var(--wiz-tone-forest-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-forest-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker__swatch--tone-1 {
-  background: color-mix(in oklch, #0369a1 14%, var(--color-bg-muted));
-  color: #075985;
+  background: color-mix(in oklch, var(--wiz-tone-sky-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-sky-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker__swatch--tone-2 {
-  background: color-mix(in oklch, #b45309 14%, var(--color-bg-muted));
-  color: #92400e;
+  background: color-mix(in oklch, var(--wiz-tone-amber-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-amber-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker__swatch--tone-3 {
-  background: color-mix(in oklch, #7c3aed 14%, var(--color-bg-muted));
-  color: #5b21b6;
+  background: color-mix(in oklch, var(--wiz-tone-purple-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-purple-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker__swatch--tone-4 {
-  background: color-mix(in oklch, #be123c 14%, var(--color-bg-muted));
-  color: #9f1239;
+  background: color-mix(in oklch, var(--wiz-tone-rose-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-rose-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker__swatch--tone-5 {
-  background: color-mix(in oklch, #047857 14%, var(--color-bg-muted));
-  color: #065f46;
+  background: color-mix(in oklch, var(--wiz-tone-emerald-source) 14%, var(--color-bg-muted));
+  color: var(--wiz-tone-emerald-fg);
 }
 
 html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard] .denali-theme-picker__swatch--tone-0,
 body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] .denali-theme-picker__swatch--tone-0 {
-  background: color-mix(in oklch, #5eead4 18%, var(--color-bg-muted));
-  color: #99f6e4;
+  background: color-mix(in oklch, var(--wiz-tone-forest-dark-source) 18%, var(--color-bg-muted));
+  color: var(--wiz-tone-forest-dark-fg);
 }
 
 html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard] .denali-theme-picker__swatch--tone-1,
 body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] .denali-theme-picker__swatch--tone-1 {
-  background: color-mix(in oklch, #7dd3fc 18%, var(--color-bg-muted));
-  color: #bae6fd;
+  background: color-mix(in oklch, var(--wiz-tone-sky-dark-source) 18%, var(--color-bg-muted));
+  color: var(--wiz-tone-sky-dark-fg);
 }
 
 html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard] .denali-theme-picker__swatch--tone-2,
 body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] .denali-theme-picker__swatch--tone-2 {
-  background: color-mix(in oklch, #fcd34d 18%, var(--color-bg-muted));
-  color: #fde68a;
+  background: color-mix(in oklch, var(--wiz-tone-amber-dark-source) 18%, var(--color-bg-muted));
+  color: var(--wiz-tone-amber-dark-fg);
 }
 
 html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard] .denali-theme-picker__swatch--tone-3,
 body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] .denali-theme-picker__swatch--tone-3 {
-  background: color-mix(in oklch, #c4b5fd 18%, var(--color-bg-muted));
-  color: #ddd6fe;
+  background: color-mix(in oklch, var(--wiz-tone-purple-dark-source) 18%, var(--color-bg-muted));
+  color: var(--wiz-tone-purple-dark-fg);
 }
 
 html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard] .denali-theme-picker__swatch--tone-4,
 body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] .denali-theme-picker__swatch--tone-4 {
-  background: color-mix(in oklch, #fda4af 18%, var(--color-bg-muted));
-  color: #fecdd3;
+  background: color-mix(in oklch, var(--wiz-tone-rose-dark-source) 18%, var(--color-bg-muted));
+  color: var(--wiz-tone-rose-dark-fg);
 }
 
 html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard] .denali-theme-picker__swatch--tone-5,
 body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard] .denali-theme-picker__swatch--tone-5 {
-  background: color-mix(in oklch, #6ee7b7 18%, var(--color-bg-muted));
-  color: #a7f3d0;
+  background: color-mix(in oklch, var(--wiz-tone-emerald-dark-source) 18%, var(--color-bg-muted));
+  color: var(--wiz-tone-emerald-dark-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker__body {
@@ -1818,7 +1821,7 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-theme-picker__check--visible {
   border-color: var(--color-primary);
   background: var(--color-primary);
-  color: var(--color-primary-foreground, #fff);
+  color: var(--color-primary-fg);
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] [data-denali-difficulty-level] .denali-difficulty-level__panel {
@@ -1978,8 +1981,8 @@ body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-tour-service
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-tour-services__column--included {
-  border-color: color-mix(in oklch, var(--denali-forest-600, #0f766e) 28%, var(--color-border-subtle));
-  background: color-mix(in oklch, var(--denali-forest-600, #0f766e) 5%, var(--color-bg-surface));
+  border-color: color-mix(in oklch, var(--denali-forest-600) 28%, var(--color-border-subtle));
+  background: color-mix(in oklch, var(--denali-forest-600) 5%, var(--color-bg-surface));
 }
 
 body[data-workspace-plugin="denali"] [data-new-tour-wizard] .denali-tour-services__column--self {

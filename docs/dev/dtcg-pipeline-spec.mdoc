@@ -31,8 +31,9 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Denali admin semantic CSS (`admin-semantic-tokens.css`) from DTCG | ✅ F1 |
 | Admin skin hook hex ban (`admin-skin.css` — hooks only) | ✅ F1 |
 | Finance + wizard shell hooks hex-free (`finance-skin`, `wizard-skin`, `wizard-calendar`) | ✅ F2 |
+| Wizard tone palette DTCG + `wizard-fields.css` hex ban | ✅ F3 |
 
-**Still hand-maintained (F3+ / Phase F):** `primitives.css`, `rgba()` in shadows/motion, `wizard-fields.css`, admin TSX Tailwind.
+**Still hand-maintained (F4+ / Phase F):** `primitives.css`, `rgba()` in shadows/motion, admin TSX Tailwind.
 
 ## Authority flow (E1–E2)
 
@@ -54,6 +55,7 @@ generate-workspace-dtcg-css.mjs ──► packages/workspaces/<id>/theme/tokens.
         │                         theme/marketing/semantic-tokens.css (@generated, E4)
         │                         theme/portal-semantic-tokens.css (@generated, E4)
         │                         theme/admin-semantic-tokens.css (@generated, F1 — blocks[])
+        │                         theme/wizard-semantic-tokens.css (@generated, F3)
         │
         ▼
 generate-tokens.mjs      ──► src/generated/*.ts
@@ -88,6 +90,7 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 | `dtcg-e5-marketing-components.spec.mjs` | Unit: denali `mkt.*` tokens; shell + components have no raw `#` hex |
 | `dtcg-f1-admin-skin.spec.mjs` | Unit: `denali.admin.tokens.json` blocks → `admin-semantic-tokens.css`; `admin-skin.css` hex-free |
 | `dtcg-f2-admin-hooks.spec.mjs` | Unit: finance + wizard shell hooks hex-free; calendar aliases semantic vars |
+| `dtcg-f3-wizard-fields.spec.mjs` | Unit: `denali.wizard.tokens.json` → `wizard-semantic-tokens.css`; `wizard-fields.css` hex-free |
 
 Reference syntax: `{color.primary}` → `var(--color-primary)`; `{flat.focus-ring-color}` → `var(--focus-ring-color)` (flat group emits unprefixed shadcn aliases).
 
@@ -140,9 +143,20 @@ Finance + wizard **shell** hooks reference admin semantic vars only — no raw `
 | `finance-skin.css` | `var()` / `color-mix()` only | `--color-*`, `--denali-*` from `admin-semantic-tokens.css` |
 | `wizard-skin.css` | same | dark wizard re-bind uses inherited `var(--color-primary)` (admin DTCG) |
 | `wizard-calendar.css` | same | `--denali-wizard-calendar-*` aliases `--color-primary*` |
-| `wizard-fields.css` | **F3** — category chip palette DTCG | (not in F2) |
+| `wizard-fields.css` | `var()` / `color-mix()` only | `--wiz-tone-*` from `wizard-semantic-tokens.css` |
 
-## F3+ (not in F2)
+## Wizard fields hook contract (F3)
+
+| DTCG slice | Generated output | Hand-authored hook |
+| ---------- | ---------------- | ------------------ |
+| `<id>.wizard.tokens.json` | `theme/wizard-semantic-tokens.css` | `wizard-fields.css` — `@import` + layout/`color-mix()` hooks only |
+
+`wiz.tone.*` groups define swatch source/fg pairs (forest, sky, purple, orange, amber, rose, emerald) plus dark variants. Gear picker uses `wiz.tone.sky.fg-gear` where fg differs from theme picker.
+
+## F4+ (not in F3)
+
+- DTCG for `primitives.css` platform scale
+- AST guards on `apps/web` admin TSX; shadcn var-only migration
 
 ## MASTER.md demotion (E3–E4)
 
