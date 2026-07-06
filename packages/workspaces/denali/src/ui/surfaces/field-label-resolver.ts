@@ -3,6 +3,7 @@ import {
   resolveDenaliFieldLabel,
   resolveDenaliStepLabel,
 } from "../adapters/field-labels";
+import { resolveDenaliValidationIssueLabel } from "../adapters/wizard-validation-field-label";
 
 import type { WizardLabelResolver } from "./wizard-surface-types";
 
@@ -16,5 +17,7 @@ export function createDenaliFieldLabelResolver(): WizardLabelResolver {
     resolveStepLabel: (translate, stepId) => resolveDenaliStepLabel(translate, stepId),
     resolveEnumOptionLabel: (translate, canonicalPath, value) =>
       resolveDenaliEnumOptionLabel(translate, canonicalPath, value),
+    resolveValidationIssueLabel: (translate, pathOrCompositeId) =>
+      resolveDenaliValidationIssueLabel(translate, pathOrCompositeId),
   });
 }

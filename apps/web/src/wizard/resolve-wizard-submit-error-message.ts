@@ -1,6 +1,6 @@
 import { decodeTourActionSubmitError } from "@/bootstrap/workspace-tour-action-submit-bindings.generated";
+import { resolveGeneratedLabelResolver } from "@/bootstrap/wizard-label-bindings.generated";
 
-import { resolveDenaliValidationIssueLabel } from "@/wizard/denali/denali-validation-issue-label";
 import { localizeDenaliValidationIssueMessage } from "@/wizard/denali/denali-localize-validation-message";
 import { resolveWizardValidationIssueMessage } from "@/wizard/resolve-wizard-validation-issue-message";
 import { parsePlatformValidationMessage } from "@/wizard/parse-platform-validation-segments";
@@ -197,5 +197,14 @@ export function resolveWizardSubmitErrorMessage(input: {
 export function createDenaliWizardSubmitFieldLabelResolver(
   translateDenali: (key: string) => string
 ): (path: string) => string {
-  return (path: string) => resolveDenaliValidationIssueLabel(translateDenali, path);
+  const resolver = resolveGeneratedLabelResolver("denali");
+  return (path: string) => {
+    if (resolver?.resolveValidationIssueLabel != null) {
+      return resolver.resolveValidationIssueLabel(translateDenali, path);
+    }
+    if (resolver != null) {
+      return resolver.resolveFieldLabel(translateDenali, path);
+    }
+    return path;
+  };
 }

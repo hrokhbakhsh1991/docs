@@ -37,6 +37,10 @@ export type WizardLabelResolver = {
     canonicalPath: string,
     value: string
   ) => string;
+  readonly resolveValidationIssueLabel?: (
+    translate: (key: string) => string,
+    pathOrCompositeId: string
+  ) => string;
 };
 
 /** Opaque completion snapshot — workspace surfaces define their own shape. */

@@ -353,5 +353,8 @@
   "wizardCompositeRegistry": {
     "module": "./composites/wizard-composite-registry-surface",
     "export": "denaliWizardCompositeRegistrySurface"
+  },
+  "settingsHubFallback": {
+    "enabled": true
   }
 }

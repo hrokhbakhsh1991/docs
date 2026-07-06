@@ -19,6 +19,10 @@ export type WizardLabelResolver = {
     canonicalPath: string,
     value: string
   ) => string;
+  readonly resolveValidationIssueLabel?: (
+    translate: (key: string) => string,
+    pathOrCompositeId: string
+  ) => string;
 };
 
 export type WizardStepDescriptor = {

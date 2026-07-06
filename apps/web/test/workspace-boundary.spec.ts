@@ -199,7 +199,7 @@ describe("Phase 3.3 workspace boundary", () => {
   it("P15-W-C2 denali web adapters live under wizard/denali", () => {
     assert.ok(existsSync(join(SRC_DIR, "wizard/denali")));
     assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-catalog-sanitize.ts")));
-    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-validation-issue-label.ts")));
+    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-localize-validation-message.ts")));
   });
 
   it("P15-W-C2 denali shell avoids self-referential @/wizard/denali imports", () => {

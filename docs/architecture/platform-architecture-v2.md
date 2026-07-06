@@ -856,10 +856,15 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 - `denali-validation-issue-label` uses composite registry bindings (no direct `@app-tour/workspace-denali/composites`).
 - Removed dead web duplicates: flat-edit-form, tour-create-payload, draft-form-adapter, tour-kind-labels, review-surface, field-focus-registry.
 
+**Sprint 12 (2026-07-06) — C close: pluginId branch purge:**
+
+- `WizardLabelResolver.resolveValidationIssueLabel` — Denali composite-aware validation labels via label bindings (no `fieldLabelSurfaceId === "denali"` branch).
+- `settingsHubFallback` manifest → `workspace-settings-hub-fallback-bindings.generated.ts`; consistency guard uses registry lookup (no `pluginId !== "denali"` branch).
+
 **Remaining:**
 
 - C4 `apps/web` production purge: **complete** — only codegen `*.generated.ts` loaders retain `@app-tour/workspace-denali` imports.
-- Replace remaining `pluginId === "denali"` outside sprint-1 surfaces.
+- Phase C: **closed** — production `pluginId === "denali"` branches eliminated outside codegen loaders.
 
 ### Phase D — Appearance decomposition
 

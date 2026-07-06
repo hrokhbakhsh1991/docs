@@ -1,5 +1,4 @@
-import { resolveDenaliValidationIssueLabel } from "./denali/denali-validation-issue-label";
-import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
+import { resolveGeneratedLabelResolver } from "@/bootstrap/wizard-label-bindings.generated";
 
 /** Resolve a human field label for validation issue rows (falls back to canonical path). */
 export function resolveWizardValidationFieldLabel(input: {
@@ -7,15 +6,17 @@ export function resolveWizardValidationFieldLabel(input: {
   readonly fieldLabelSurfaceId?: string;
   readonly translateWorkspaceMessage?: (key: string) => string;
 }): string {
-  const labelSurface = resolveWizardCompositeSurface(input.fieldLabelSurfaceId);
-  if (labelSurface != null && input.translateWorkspaceMessage != null) {
-    if (input.fieldLabelSurfaceId === "denali") {
-      return resolveDenaliValidationIssueLabel(
-        input.translateWorkspaceMessage,
-        input.canonicalPath
-      );
-    }
-    return labelSurface.resolveFieldLabel(input.translateWorkspaceMessage, input.canonicalPath);
+  const translate = input.translateWorkspaceMessage;
+  if (translate == null) {
+    return input.canonicalPath;
+  }
+
+  const resolver = resolveGeneratedLabelResolver(input.fieldLabelSurfaceId);
+  if (resolver?.resolveValidationIssueLabel != null) {
+    return resolver.resolveValidationIssueLabel(translate, input.canonicalPath);
+  }
+  if (resolver != null) {
+    return resolver.resolveFieldLabel(translate, input.canonicalPath);
   }
   return input.canonicalPath;
 }

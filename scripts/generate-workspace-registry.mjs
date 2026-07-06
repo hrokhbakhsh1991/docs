@@ -3236,6 +3236,53 @@ export const DENALI_COMPOSITE_BY_CANONICAL_PATH = ${alias}.compositeByCanonicalP
   );
 }
 
+export function generateSettingsHubFallbackBindings(manifests) {
+  const withFallback = manifests.filter((m) => m.settingsHubFallback?.enabled === true);
+  if (withFallback.length === 0) {
+    return `${BANNER}
+import type { SettingsModuleMetadata } from "@/features/settings/settings-module-types";
+
+export type SettingsHubFallbackPolicy = {
+  readonly requiredModuleIds: readonly string[];
+  readonly fallbackModules: Readonly<Record<string, SettingsModuleMetadata>>;
+};
+
+export function resolveSettingsHubFallbackPolicy(_pluginId: string): SettingsHubFallbackPolicy | null {
+  return null;
+}
+`;
+  }
+
+  const denaliManifest = withFallback.find((m) => m.id === "denali");
+  if (denaliManifest == null) {
+    throw new Error("settingsHubFallback: enabled workspaces must include denali for web fallback policy");
+  }
+
+  return `${BANNER}
+import type { SettingsModuleMetadata } from "@/features/settings/settings-module-types";
+import { DENALI_BACKEND_REQUIRED_MODULE_IDS } from "@/features/settings/denali-required-settings-modules.generated";
+import { DENALI_FALLBACK_SETTINGS_MODULES } from "@/features/settings/denali-fallback-settings-modules";
+
+export type SettingsHubFallbackPolicy = {
+  readonly requiredModuleIds: readonly string[];
+  readonly fallbackModules: Readonly<Record<string, SettingsModuleMetadata>>;
+};
+
+const SETTINGS_HUB_FALLBACK_POLICIES = Object.freeze({
+  ${JSON.stringify(denaliManifest.id)}: Object.freeze({
+    requiredModuleIds: DENALI_BACKEND_REQUIRED_MODULE_IDS,
+    fallbackModules: DENALI_FALLBACK_SETTINGS_MODULES,
+  }),
+});
+
+export function resolveSettingsHubFallbackPolicy(pluginId: string): SettingsHubFallbackPolicy | null {
+  return SETTINGS_HUB_FALLBACK_POLICIES[pluginId as keyof typeof SETTINGS_HUB_FALLBACK_POLICIES] ?? null;
+}
+
+export { DENALI_BACKEND_REQUIRED_MODULE_IDS };
+`;
+}
+
 export function generatePhotoUploadErrorsBindings(manifests) {
   const withSurface = manifests.filter((m) => m.photoUploadErrors !== undefined);
   if (withSurface.length === 0) {
@@ -3681,6 +3728,7 @@ export function generateAllOutputs(manifests) {
     wizardFlatEditPageBindings: generateWizardFlatEditPageBindings(manifests),
     wizardCreateViewBindings: generateWizardCreateViewBindings(manifests),
     wizardCompositeRegistryBindings: generateWizardCompositeRegistryBindings(manifests),
+    settingsHubFallbackBindings: generateSettingsHubFallbackBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -3843,6 +3891,10 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-wizard-composite-registry-bindings.generated.ts"
   ),
+  settingsHubFallbackBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-settings-hub-fallback-bindings.generated.ts"
+  ),
   devPluginIds: join(
     REPO_ROOT,
     "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts"
@@ -3956,6 +4008,7 @@ function main() {
       "wizardFlatEditPageBindings",
       "wizardCreateViewBindings",
       "wizardCompositeRegistryBindings",
+      "settingsHubFallbackBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -4035,6 +4088,7 @@ function main() {
   writeFileSync(OUTPUT_PATHS.wizardFlatEditPageBindings, generated.wizardFlatEditPageBindings);
   writeFileSync(OUTPUT_PATHS.wizardCreateViewBindings, generated.wizardCreateViewBindings);
   writeFileSync(OUTPUT_PATHS.wizardCompositeRegistryBindings, generated.wizardCompositeRegistryBindings);
+  writeFileSync(OUTPUT_PATHS.settingsHubFallbackBindings, generated.settingsHubFallbackBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

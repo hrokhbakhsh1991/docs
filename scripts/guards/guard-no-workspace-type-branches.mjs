@@ -87,7 +87,9 @@ const C4_WEB_TARGETS = [
   "apps/web/app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx",
   "apps/web/app/tours/new/denali-create-tour-wizard-client.tsx",
   "apps/web/src/bootstrap/resolve-bootstrap-workspace-plugin.ts",
-  "apps/web/src/bootstrap/resolve-bootstrap-workspace-plugin.client.ts",
+  "apps/web/src/features/settings/settings-module-consistency-guard.ts",
+  "apps/web/src/wizard/wizard-validation-field-label.ts",
+  "apps/web/src/wizard/resolve-wizard-submit-error-message.ts",
 ];
 
 const isDenaliLocalPattern = /\bisDenali\b/;
