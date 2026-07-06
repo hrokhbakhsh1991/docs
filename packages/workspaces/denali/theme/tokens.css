@@ -1,8 +1,9 @@
+/** @generated — do not edit; source: dtcg/workspaces/denali.tokens.json — run pnpm build in @app-tour/design-tokens */
 /**
- * Workspace brand tokens — denali plugin (Phase 6.3 theme ingress).
+ * Workspace brand tokens — denali plugin.
  * Host loads via WorkspaceThemeContract.optionalStylesheet after CASL + ingress.
- * All custom properties MUST use --ws-* (enforced in test/composites.contract.spec.ts).
  */
 [data-workspace-theme] {
   --ws-color-accent: var(--color-primary);
 }
+

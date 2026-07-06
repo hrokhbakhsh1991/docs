@@ -1,5 +1,7 @@
 # Design System Master File — Urban
 
+> **Authority (Phase E3):** Design brief / export only. Build authority is `packages/design-tokens/dtcg/workspaces/urban.tokens.json` → `theme/tokens.css` (`@generated`).
+
 **Project:** Urban workspace (generic city tours)
 **Category:** Minimal guest marketing + catalog
 

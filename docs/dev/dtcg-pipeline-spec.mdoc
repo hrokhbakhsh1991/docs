@@ -20,8 +20,11 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | `themes/light.css` generated from DTCG | ✅ E1 |
 | `themes/dark.css` generated from DTCG | ✅ E2 |
 | `starter/theme/tokens.css` generated from workspace DTCG slice | ✅ E2 |
+| `guest-club` / `urban` / `denali` workspace DTCG slices | ✅ E3 |
+| `theme/tokens.css` hex ban (must be `@generated`) | ✅ E3 |
+| `design-language/MASTER.md` demoted to design brief | ✅ E3 |
 
-**Still hand-maintained (E3+):** `primitives.css`, non-starter workspace `theme/tokens.css`, skin hook files.
+**Still hand-maintained (E4+):** `primitives.css`, skin hook files (`*-portal.css`, `*-marketing.css`), `design-system/denali-club/MASTER.md`.
 
 ## Authority flow (E1–E2)
 
@@ -36,10 +39,10 @@ dtcg/platform.dark.tokens.json
         ▼
 generate-dtcg-theme.mjs  ──► src/themes/dark.css (@generated)
         │
-dtcg/workspaces/starter.tokens.json
+dtcg/workspaces/<id>.tokens.json  (starter · guest-club · urban · denali)
         │
         ▼
-generate-workspace-dtcg-css.mjs ──► packages/workspaces/starter/theme/tokens.css (@generated)
+generate-workspace-dtcg-css.mjs ──► packages/workspaces/<id>/theme/tokens.css (@generated)
         │
         ▼
 generate-tokens.mjs      ──► src/generated/*.ts
@@ -64,13 +67,29 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 
 | Guard | Role |
 | ----- | ---- |
-| `guard-dtcg-tokens` | Schema + required keys in platform light/dark + starter workspace slice |
+| `guard-dtcg-tokens` | Schema + required keys in platform light/dark + all workspace slices |
 | `guard-dtcg-css-sync` | Runs `generate-dtcg-theme.mjs --check` and `generate-workspace-dtcg-css.mjs --check` (no drift) |
+| `guard-dtcg-hex-ban` | `theme/tokens.css` + platform themes must be `@generated`; no raw hex in non-generated DTCG outputs |
 | `dtcg-light-generation.spec.mjs` | Unit: accent maps to `--color-accent`, light file is `@generated` |
 | `dtcg-dark-generation.spec.mjs` | Unit: dark shadows/accent, starter tokens `var(--color-primary)` only |
+| `dtcg-e3-workspace-slices.spec.mjs` | Unit: guest-club / urban / denali slices → committed `tokens.css` |
 
-## E3+ (not in E2)
+## Workspace DTCG slices (E3)
 
-- CI ban raw hex outside `@generated` CSS
-- Demote `MASTER.md` to export-only
-- `dtcg/workspaces/guest-club|urban|denali.tokens.json` → workspace `theme/tokens.css`
+| Workspace | `ws.color-accent` value | Generated CSS |
+| --------- | ----------------------- | ------------- |
+| `starter` | `{color.primary}` | `var(--color-primary)` |
+| `urban` | `{color.primary}` | `var(--color-primary)` |
+| `denali` | `{color.primary}` | `var(--color-primary)` |
+| `guest-club` | `#2563eb` (scaffold brand) | literal hex in `@generated` file only |
+
+Reference syntax: `{color.primary}` resolves to `var(--color-primary)` in `generate-workspace-dtcg-css.mjs`.
+
+## MASTER.md demotion (E3)
+
+`packages/workspaces/<id>/design-language/MASTER.md` is a **design brief / export only**. Runtime authority is the matching `dtcg/workspaces/<id>.tokens.json` slice. Designers may keep hex tables for communication; engineers edit DTCG JSON and run `pnpm --filter @app-tour/design-tokens build`.
+
+## E4+ (not in E3)
+
+- CI hex ban on skin hook files (`*-portal.css`, marketing tokens)
+- Demote `design-system/denali-club/MASTER.md` to export-only

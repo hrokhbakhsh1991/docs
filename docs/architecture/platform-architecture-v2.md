@@ -889,7 +889,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **E2 (done):** `themes/dark.css` generated from `dtcg/platform.dark.tokens.json` (includes `shadow.*` + `color.accent`). Starter workspace `theme/tokens.css` generated from `dtcg/workspaces/starter.tokens.json` via `generate-workspace-dtcg-css.mjs` (`ws.color-accent` → `var(--color-primary)` under `[data-workspace-theme]`).
 
-**E3+ (next):** CI hex ban; demote `MASTER.md`; guest-club / urban / denali workspace token slices.
+**E3 (done):** Workspace DTCG slices for `guest-club`, `urban`, `denali` → `theme/tokens.css`. `guard-dtcg-hex-ban` enforces `@generated` on all workspace `theme/tokens.css` and platform light/dark themes. `design-language/MASTER.md` demoted to design brief (DTCG is build authority).
+
+**E4+ (next):** Hex ban on skin hook files; demote `design-system/denali-club/MASTER.md`.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -965,7 +967,7 @@ Scores reflect **conformance to this v2 spec**, not code volume or test count.
 | Shell structure (L2) | **7** | Fallback split; minor L2 appearance leak |
 | Skin / appearance (guest) | **5** | platform-neutral + stubs + hex |
 | Skin / appearance (admin) | **3** | shadcn + Tailwind dominant |
-| Design tokens / DTCG readiness | **5** | Light+dark+starter generated; hex sprawl elsewhere |
+| Design tokens / DTCG readiness | **6** | All workspace tokens.css generated; skin hex remains |
 | Routing / tenant (WRS, PCMS) | **8** | Documented standards + guards |
 | Scalability to 50+ workspaces | **5** | Possible after B–G; not today |
 | Guard / control plane | **7** | Strong guest; gaps on admin/tokens |
@@ -981,20 +983,21 @@ The **direction** is enterprise-grade. The **implementation** is a strong Phase-
 
 ### Is this architecture stable enough to begin the Design Token implementation?
 
-## **PARTIAL — E2 platform light + dark + starter workspace tokens**
+## **PARTIAL — E3 all workspace tokens.css + platform themes under DTCG**
 
 ### Justification (updated 2026-07-06)
 
-Phase B and Phase D prerequisites are **complete**. E1–E2 invert authority for **platform light/dark palettes** and **starter workspace brand tokens**:
+Phase B and Phase D prerequisites are **complete**. E1–E3 invert authority for **platform light/dark palettes** and **all certified workspace `theme/tokens.css` files**:
 
 1. **`dtcg/platform.tokens.json`** → `themes/light.css` (generated).
 2. **`dtcg/platform.dark.tokens.json`** → `themes/dark.css` (generated; shadow group included).
-3. **`dtcg/workspaces/starter.tokens.json`** → `packages/workspaces/starter/theme/tokens.css` (generated; `var()` references only).
+3. **`dtcg/workspaces/<id>.tokens.json`** → `packages/workspaces/<id>/theme/tokens.css` (generated; starter/urban/denali use `var()` references; guest-club scaffold keeps `#2563eb` in DTCG JSON only).
 4. **`color.accent` → `--color-accent`** — semantic map corrected (no longer aliased to `--color-warning`).
+5. **`guard-dtcg-hex-ban`** — workspace `theme/tokens.css` and platform themes must be `@generated`.
 
-**Still hand-maintained:** `primitives.css`, non-starter workspace skin hex, admin TSX Tailwind.
+**Still hand-maintained:** `primitives.css`, skin hook CSS (`denali-portal.css`, marketing tokens), admin TSX Tailwind, `design-system/denali-club/MASTER.md`.
 
-**Continue E3+ only with:** hex CI ban, remaining workspace DTCG slices — not ad-hoc hex edits in generated theme files.
+**Continue E4+ only with:** skin-file hex ban, denali-club MASTER demotion — not ad-hoc hex edits in `theme/tokens.css`.
 
 ---
 

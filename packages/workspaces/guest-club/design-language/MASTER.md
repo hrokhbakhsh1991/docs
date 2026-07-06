@@ -1,5 +1,7 @@
 # Design System Master File — Guest Club
 
+> **Authority (Phase E3):** Design brief / export only. Build authority is `packages/design-tokens/dtcg/workspaces/guest-club.tokens.json` → `theme/tokens.css` (`@generated`).
+
 **Project:** Guest Club (smoke / scaffold workspace)
 **Category:** Minimal landing + catalog SEO smoke
 

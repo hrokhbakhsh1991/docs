@@ -31,6 +31,11 @@ export const PLATFORM_CONTROL_STEPS = [
     closes: "R-08b",
   },
   {
+    name: "dtcg_hex_ban",
+    cmd: ["node", "scripts/guards/guard-dtcg-hex-ban.mjs"],
+    closes: "R-08c",
+  },
+  {
     name: "skin_specificity",
     cmd: ["node", "scripts/guards/guard-skin-specificity.mjs"],
     closes: "R-10",

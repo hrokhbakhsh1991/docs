@@ -2,7 +2,7 @@
 /**
  * R-08 / I1 — DTCG token scaffold must exist and use valid $type/$value.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,6 +12,10 @@ const DTCG_DARK = path.join(REPO_ROOT, "packages/design-tokens/dtcg/platform.dar
 const STARTER_DTCG = path.join(
   REPO_ROOT,
   "packages/design-tokens/dtcg/workspaces/starter.tokens.json"
+);
+const WORKSPACES_DTCG_DIR = path.join(
+  REPO_ROOT,
+  "packages/design-tokens/dtcg/workspaces"
 );
 const STYLES_SRC = path.join(REPO_ROOT, "packages/design-tokens/src/index.css");
 const DESIGN_TOKENS_PKG = path.join(REPO_ROOT, "packages/design-tokens/package.json");
@@ -74,15 +78,54 @@ if (!existsSync(DTCG_DARK)) {
   }
 }
 
+/**
+ * @param {string} filePath
+ * @param {string} label
+ */
+function validateWorkspaceDtcg(filePath, label) {
+  if (!existsSync(filePath)) {
+    violations.push(`${label} missing`);
+    return;
+  }
+  const raw = readFileSync(filePath, "utf8");
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    violations.push(`${label} is not valid JSON`);
+    return;
+  }
+  if (!raw.includes("design-tokens.github.io")) {
+    violations.push(`${label} must declare DTCG $schema`);
+  }
+  if (typeof parsed.workspaceId !== "string" || parsed.workspaceId.trim().length === 0) {
+    violations.push(`${label} must define workspaceId`);
+  }
+  if (!parsed.ws?.["color-accent"]?.$type || !parsed.ws?.["color-accent"]?.$value) {
+    violations.push(`${label} must define ws.color-accent with $type and $value`);
+  }
+}
+
+if (!existsSync(WORKSPACES_DTCG_DIR)) {
+  violations.push("dtcg/workspaces directory missing");
+} else {
+  const workspaceSlices = readdirSync(WORKSPACES_DTCG_DIR)
+    .filter((name) => name.endsWith(".tokens.json"))
+    .sort();
+  if (workspaceSlices.length === 0) {
+    violations.push("dtcg/workspaces must contain at least one *.tokens.json slice");
+  }
+  for (const fileName of workspaceSlices) {
+    validateWorkspaceDtcg(path.join(WORKSPACES_DTCG_DIR, fileName), fileName);
+  }
+}
+
 if (!existsSync(STARTER_DTCG)) {
   violations.push("dtcg/workspaces/starter.tokens.json missing");
 } else {
   const starter = JSON.parse(readFileSync(STARTER_DTCG, "utf8"));
   if (starter.workspaceId !== "starter") {
     violations.push("starter.tokens.json workspaceId must be starter");
-  }
-  if (!starter.ws?.["color-accent"]?.$value) {
-    violations.push("starter.tokens.json must define ws.color-accent");
   }
 }
 

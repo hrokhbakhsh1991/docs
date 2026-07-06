@@ -1,5 +1,7 @@
 # Design System Master File
 
+> **Authority (Phase E3):** Design brief / export only for workspace `theme/tokens.css`. Build authority is `packages/design-tokens/dtcg/workspaces/denali.tokens.json` → `theme/tokens.css` (`@generated`). Full Denali brand palette remains in skin files until E4 skin DTCG migration.
+
 > **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
 > If that file exists, its rules **override** this Master file.
 > If not, strictly follow the rules below.

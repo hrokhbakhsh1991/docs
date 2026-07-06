@@ -1,0 +1,12 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "urban",
+  "scopeSelector": "[data-workspace-theme]",
+  "ws": {
+    "color-accent": {
+      "$type": "color",
+      "$value": "{color.primary}",
+      "$description": "Urban accent references platform primary"
+    }
+  }
+}

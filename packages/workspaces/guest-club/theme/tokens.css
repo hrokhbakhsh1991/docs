@@ -1,4 +1,9 @@
-/* GuestClub workspace theme — extend --ws-* tokens */
+/** @generated — do not edit; source: dtcg/workspaces/guest-club.tokens.json — run pnpm build in @app-tour/design-tokens */
+/**
+ * Workspace brand tokens — guest-club plugin.
+ * Host loads via WorkspaceThemeContract.optionalStylesheet after CASL + ingress.
+ */
 [data-workspace-theme] {
   --ws-color-accent: #2563eb;
 }
+
