@@ -382,8 +382,9 @@ When multiple layers set the same custom property, **higher priority wins** for 
 
 **Unblock path (separate from Phase F):**
 
-1. `apps/api/tsconfig.json` → `module`/`moduleResolution: Node16` + `rewriteRelativeImportExtensions` (reduces ~499 → ~150 errors; remainder is API branch debt).
-2. `tenant-kernel` WRS tests — use neutral apex fixture (`club.example`) or guard allowlist for host literals.
+1. **`apps/api/tsconfig.json` → Node16 emit contract** (in progress 2026-07-06):
+   - `module`: `ES2022`, `moduleResolution`: `Bundler`, `rewriteRelativeImportExtensions`: `true` — resolves package `exports` and mixed `.ts`/extensionless relative imports (499 → ~57 errors measured 2026-07-06).
+2. `tenant-kernel` WRS tests — ✅ neutral apex fixture `alpine.club` (replaces `denali.club` literals for `p4_no_denali_in_kernel`).
 3. RLS integration — `db:test-reset` + migrate + re-run `test/rls-isolation.integration.spec.ts` with `DATABASE_URL` + `STORAGE_DRIVER=prisma`.
 4. Evolution gate — wire missing `app.ts` routes flagged by `phase-5-evolution-gate.mjs`.
 

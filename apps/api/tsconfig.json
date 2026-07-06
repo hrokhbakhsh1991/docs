@@ -7,6 +7,9 @@
     "lib": ["ES2022"],
     "types": ["node"],
     "baseUrl": ".",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "rewriteRelativeImportExtensions": true,
     "paths": {
       "@app-tour/workspace-denali": ["../../packages/workspaces/denali/dist/index"],
       "@app-tour/workspace-denali/plugin": ["../../packages/workspaces/denali/dist/denali.plugin"],

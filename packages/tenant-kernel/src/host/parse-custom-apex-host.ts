@@ -9,7 +9,7 @@ export type ParsedCustomApexHost =
 
 /**
  * WRS §3.2 — detect customer apex hosts outside platform `{club}.{root}` namespace.
- * Examples: denali.club, portal.denali.club, admin.denali.club
+ * Examples: alpine.club, portal.alpine.club, admin.alpine.club
  */
 export function tryParseCustomApexHost(
   hostname: string,

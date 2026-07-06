@@ -18,22 +18,22 @@ describe("buildDevMarketingPublicBaseUrl", () => {
   it("WRS-MKT-02 maps club portal host to club marketing apex (not shop.portal)", () => {
     assert.equal(
       buildDevMarketingPublicBaseUrl({
-        ingressHost: "denali.portal.localhost:3003",
+        ingressHost: "alpine.portal.localhost:3003",
         rootDomain: "localhost",
         marketingPort: "3002",
       }),
-      "http://denali.localhost:3002"
+      "http://alpine.localhost:3002"
     );
   });
 
   it("WRS-MKT-03 maps club admin host to club marketing apex", () => {
     assert.equal(
       buildDevMarketingPublicBaseUrl({
-        ingressHost: "denali.admin.localhost:3000",
+        ingressHost: "alpine.admin.localhost:3000",
         rootDomain: "localhost",
         marketingPort: "3002",
       }),
-      "http://denali.localhost:3002"
+      "http://alpine.localhost:3002"
     );
   });
 
@@ -51,12 +51,12 @@ describe("buildDevMarketingPublicBaseUrl", () => {
   it("WRS-MKT-05 honors MARKETING_PUBLIC_BASE_URL override via configuredBaseUrl", () => {
     assert.equal(
       buildDevMarketingPublicBaseUrl({
-        ingressHost: "denali.portal.localhost:3003",
+        ingressHost: "alpine.portal.localhost:3003",
         rootDomain: "localhost",
         marketingPort: "3002",
-        configuredBaseUrl: "https://denali.club",
+        configuredBaseUrl: "https://alpine.club",
       }),
-      "https://denali.club"
+      "https://alpine.club"
     );
   });
 

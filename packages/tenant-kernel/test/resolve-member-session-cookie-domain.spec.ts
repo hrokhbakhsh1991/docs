@@ -6,19 +6,19 @@ import { resolveMemberSessionCookieDomain } from "../src/host/resolve-member-ses
 describe("resolveMemberSessionCookieDomain", () => {
   it("PCMS-COOK-01 custom apex portal returns registrable apex", () => {
     assert.equal(
-      resolveMemberSessionCookieDomain("portal.denali.club:3003", "localhost"),
-      "denali.club"
+      resolveMemberSessionCookieDomain("portal.alpine.club:3003", "localhost"),
+      "alpine.club"
     );
   });
 
   it("PCMS-COOK-02 platform portal localhost returns undefined", () => {
     assert.equal(
-      resolveMemberSessionCookieDomain("denali.portal.localhost:3003", "localhost"),
+      resolveMemberSessionCookieDomain("alpine.portal.localhost:3003", "localhost"),
       undefined
     );
   });
 
   it("PCMS-COOK-03 marketing custom apex returns same registrable apex", () => {
-    assert.equal(resolveMemberSessionCookieDomain("denali.club", "localhost"), "denali.club");
+    assert.equal(resolveMemberSessionCookieDomain("alpine.club", "localhost"), "alpine.club");
   });
 });

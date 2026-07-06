@@ -1,7 +1,7 @@
 {
   "gate": "phase-4",
   "date": "2026-07-06",
-  "gitSha": "b9b7dc02",
+  "gitSha": "1022ed3a",
   "ok": false,
   "checks": [
     {
@@ -51,7 +51,7 @@
       "id": "p4_no_denali_in_kernel",
       "description": "rg -i denali packages/tenant-kernel platform-events → 0",
       "required": true,
-      "ok": false,
+      "ok": true,
       "detail": null
     },
     {
@@ -67,7 +67,7 @@
       "description": "apps/api RLS + tenant-security integration (DATABASE_URL + STORAGE_DRIVER=prisma)",
       "required": true,
       "ok": false,
-      "detail": "▶ RLS isolation (integration)\n  ✖ P4-E-RLS-01: tenant A session cannot SELECT tenant B tour row (5.730603ms)\n✖ RLS isolation (integration) (201.320882ms)\nℹ tests 1\nℹ suites 1\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 426.495013\n\n✖ failing tests:\n\ntest at test/rls-isolation.integration.spec.ts:6:193\n✖ P4-E-RLS-01: tenant A session cannot SELECT tenant B tour row (5.730603ms)\n  AssertionError [ERR_ASSERTION]: RLS must hide tenant B row when app.current_tenant_id is tenant "
+      "detail": "▶ RLS isolation (integration)\n  ✖ P4-E-RLS-01: tenant A session cannot SELECT tenant B tour row (5.35895ms)\n✖ RLS isolation (integration) (159.497193ms)\nℹ tests 1\nℹ suites 1\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 413.031115\n\n✖ failing tests:\n\ntest at test/rls-isolation.integration.spec.ts:6:193\n✖ P4-E-RLS-01: tenant A session cannot SELECT tenant B tour row (5.35895ms)\n  AssertionError [ERR_ASSERTION]: RLS must hide tenant B row when app.current_tenant_id is tenant A\n"
     },
     {
       "id": "p4_anti_hollow_tests",

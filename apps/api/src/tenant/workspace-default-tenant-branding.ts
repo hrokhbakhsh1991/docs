@@ -36,6 +36,8 @@ export function resolveDefaultTenantBranding(workspaceType: string): TenantTheme
     ...(preset.cssVariables !== undefined
       ? { cssVariables: { ...preset.cssVariables } }
       : {}),
-    ...(preset.defaultLocale !== undefined ? { defaultLocale: preset.defaultLocale } : {}),
+    ...("defaultLocale" in preset && preset.defaultLocale !== undefined
+      ? { defaultLocale: preset.defaultLocale }
+      : {}),
   };
 }

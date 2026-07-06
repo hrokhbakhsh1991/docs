@@ -5,6 +5,7 @@ const WORKSPACE_DRAFT_EVENT_ACTION_RANK: Record<
   number
 > = {
   deleted: 3,
+  tombstone_violation: 4,
   updated: 2,
   created: 1,
 };

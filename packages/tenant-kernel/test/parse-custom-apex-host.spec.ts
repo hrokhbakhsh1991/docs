@@ -10,20 +10,20 @@ import {
 
 describe("tryParseCustomApexHost", () => {
   it("WRS-CAX-01 detects marketing custom apex", () => {
-    const parsed = tryParseCustomApexHost("denali.club", "localhost", new Set());
+    const parsed = tryParseCustomApexHost("alpine.club", "localhost", new Set());
     assert.equal(parsed.matched, true);
     if (parsed.matched) {
       assert.equal(parsed.surface, "marketing_apex");
-      assert.equal(parsed.apex, "denali.club");
+      assert.equal(parsed.apex, "alpine.club");
     }
   });
 
   it("WRS-CAX-02 detects portal custom apex sibling", () => {
-    const parsed = tryParseCustomApexHost("portal.denali.club", "localhost", new Set());
+    const parsed = tryParseCustomApexHost("portal.alpine.club", "localhost", new Set());
     assert.equal(parsed.matched, true);
     if (parsed.matched) {
       assert.equal(parsed.surface, "portal");
-      assert.equal(parsed.apex, "denali.club");
+      assert.equal(parsed.apex, "alpine.club");
     }
   });
 
@@ -34,58 +34,58 @@ describe("tryParseCustomApexHost", () => {
 });
 
 describe("custom apex cross-surface URLs", () => {
-  it("WRS-CAX-04 marketing ingress portal.denali.club → denali.club", () => {
+  it("WRS-CAX-04 marketing ingress portal.alpine.club → alpine.club", () => {
     assert.equal(
       buildDevMarketingPublicBaseUrl({
-        ingressHost: "portal.denali.club",
+        ingressHost: "portal.alpine.club",
         rootDomain: "localhost",
         marketingPort: "3002",
       }),
-      "http://denali.club:3002"
+      "http://alpine.club:3002"
     );
   });
 
-  it("WRS-CAX-05 marketing ingress denali.club stays on apex", () => {
+  it("WRS-CAX-05 marketing ingress alpine.club stays on apex", () => {
     assert.equal(
       buildDevMarketingPublicBaseUrl({
-        ingressHost: "denali.club",
+        ingressHost: "alpine.club",
         rootDomain: "localhost",
         marketingPort: "3002",
       }),
-      "http://denali.club:3002"
+      "http://alpine.club:3002"
     );
   });
 
-  it("WRS-CAX-06 portal egress from denali.club → portal.denali.club", () => {
+  it("WRS-CAX-06 portal egress from alpine.club → portal.alpine.club", () => {
     assert.equal(
       buildDevPortalPublicBaseUrl({
-        ingressHost: "denali.club",
+        ingressHost: "alpine.club",
         rootDomain: "localhost",
         portalPort: "3003",
       }),
-      "http://portal.denali.club:3003"
+      "http://portal.alpine.club:3003"
     );
   });
 
   it("WRS-CAX-07 portal ingress stays on portal host", () => {
     assert.equal(
       buildDevPortalPublicBaseUrl({
-        ingressHost: "portal.denali.club:3003",
+        ingressHost: "portal.alpine.club:3003",
         rootDomain: "localhost",
         portalPort: "3003",
       }),
-      "http://portal.denali.club:3003"
+      "http://portal.alpine.club:3003"
     );
   });
 
   it("WRS-CAX-08 prod custom apex uses https without port", () => {
     assert.equal(
       formatCustomApexSurfaceUrl({
-        host: "portal.denali.club",
+        host: "portal.alpine.club",
         port: "3003",
         rootDomain: "example.com",
       }),
-      "https://portal.denali.club"
+      "https://portal.alpine.club"
     );
   });
 });

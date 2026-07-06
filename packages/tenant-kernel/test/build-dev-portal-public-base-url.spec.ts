@@ -43,20 +43,20 @@ describe("buildDevPortalPublicBaseUrl", () => {
         ingressHost: "shop.operator.localhost:3002",
         rootDomain: "localhost",
         portalPort: "3003",
-        configuredBaseUrl: "https://portal.denali.club",
+        configuredBaseUrl: "https://portal.alpine.club",
       }),
-      "https://portal.denali.club"
+      "https://portal.alpine.club"
     );
   });
 
   it("WRS-CAX-09 custom apex marketing host maps to portal sibling", () => {
     assert.equal(
       buildDevPortalPublicBaseUrl({
-        ingressHost: "denali.club",
+        ingressHost: "alpine.club",
         rootDomain: "localhost",
         portalPort: "3003",
       }),
-      "http://portal.denali.club:3003"
+      "http://portal.alpine.club:3003"
     );
   });
 });
