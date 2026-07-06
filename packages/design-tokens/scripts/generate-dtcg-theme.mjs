@@ -1,26 +1,20 @@
 /**
  * Generates platform theme CSS from DTCG JSON (Phase E — build authority).
- * E1 scope: themes/light.css color + focus tokens only.
+ * E1: themes/light.css · E2: themes/dark.css
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const dtcgPath = path.join(packageRoot, "dtcg/platform.tokens.json");
+const lightDtcgPath = path.join(packageRoot, "dtcg/platform.tokens.json");
+const darkDtcgPath = path.join(packageRoot, "dtcg/platform.dark.tokens.json");
 const lightCssPath = path.join(packageRoot, "src/themes/light.css");
+const darkCssPath = path.join(packageRoot, "src/themes/dark.css");
 
-/** Groups emitted into themes/light.css (E1). Primitives stay in primitives.css until E2. */
 const LIGHT_THEME_GROUPS = new Set(["color", "focus"]);
+const DARK_THEME_GROUPS = new Set(["color", "focus", "shadow"]);
 
-const GENERATED_HEADER = `/** @generated — do not edit; source: dtcg/platform.tokens.json — run pnpm build in @app-tour/design-tokens */
-/**
- * Light theme — platform semantic colors (DTCG authority).
- */`;
-
-/**
- * @param {string[]} parts e.g. ["color", "primary"] → --color-primary
- */
 export function dtcgPathToCssVar(parts) {
   return `--${parts.join("-")}`;
 }
@@ -57,11 +51,13 @@ export function flattenDtcgTokens(node, prefix = []) {
 
 /**
  * @param {Record<string, unknown>} dtcg
+ * @param {Set<string>} groups
+ * @param {{ selectors: string; colorScheme: string; source: string; title: string }} config
  */
-export function generateLightThemeCss(dtcg) {
+export function generatePlatformThemeCss(dtcg, groups, config) {
   /** @type {{ parts: string[]; value: string }[]} */
   const themeEntries = [];
-  for (const group of LIGHT_THEME_GROUPS) {
+  for (const group of groups) {
     const slice = dtcg[group];
     if (slice && typeof slice === "object") {
       themeEntries.push(...flattenDtcgTokens(slice, [group]));
@@ -74,44 +70,87 @@ export function generateLightThemeCss(dtcg) {
     .map(({ parts, value }) => `  ${dtcgPathToCssVar(parts)}: ${value};`)
     .join("\n");
 
-  return `${GENERATED_HEADER}
-:root,
-.theme-light {
+  return `/** @generated — do not edit; source: ${config.source} — run pnpm build in @app-tour/design-tokens */
+/**
+ * ${config.title}
+ */
+${config.selectors} {
 ${body}
 
-  color-scheme: light;
+  color-scheme: ${config.colorScheme};
 }
 `;
 }
 
 /**
+ * @param {Record<string, unknown>} dtcg
+ */
+export function generateLightThemeCss(dtcg) {
+  return generatePlatformThemeCss(dtcg, LIGHT_THEME_GROUPS, {
+    selectors: ":root,\n.theme-light",
+    colorScheme: "light",
+    source: "dtcg/platform.tokens.json",
+    title: "Light theme — platform semantic colors (DTCG authority).",
+  });
+}
+
+/**
+ * @param {Record<string, unknown>} dtcg
+ */
+export function generateDarkThemeCss(dtcg) {
+  return generatePlatformThemeCss(dtcg, DARK_THEME_GROUPS, {
+    selectors: ".theme-dark",
+    colorScheme: "dark",
+    source: "dtcg/platform.dark.tokens.json",
+    title: "Dark theme — platform semantic colors (DTCG authority).",
+  });
+}
+
+function assertThemeFile({ check, cssPath, nextCss, label }) {
+  if (check) {
+    if (!fs.existsSync(cssPath)) {
+      console.error(`generate-dtcg-theme --check: ${label} missing (run build)`);
+      process.exit(1);
+    }
+    const current = fs.readFileSync(cssPath, "utf8");
+    if (current !== nextCss) {
+      console.error(`generate-dtcg-theme --check: ${label} is out of sync with DTCG`);
+      process.exit(1);
+    }
+    return;
+  }
+  fs.mkdirSync(path.dirname(cssPath), { recursive: true });
+  fs.writeFileSync(cssPath, nextCss);
+  console.log(`generate-dtcg-theme: wrote ${path.relative(packageRoot, cssPath)}`);
+}
+
+/**
  * @param {{ check?: boolean }} [options]
  */
-export function generateDtcgLightTheme(options = {}) {
-  if (!fs.existsSync(dtcgPath)) {
+export function generateDtcgPlatformThemes(options = {}) {
+  if (!fs.existsSync(lightDtcgPath)) {
     console.error("generate-dtcg-theme: missing dtcg/platform.tokens.json");
     process.exit(1);
   }
-  const dtcg = JSON.parse(fs.readFileSync(dtcgPath, "utf8"));
-  const nextCss = `${generateLightThemeCss(dtcg)}\n`;
-
-  if (options.check) {
-    if (!fs.existsSync(lightCssPath)) {
-      console.error("generate-dtcg-theme --check: themes/light.css missing (run build)");
-      process.exit(1);
-    }
-    const current = fs.readFileSync(lightCssPath, "utf8");
-    if (current !== nextCss) {
-      console.error("generate-dtcg-theme --check: themes/light.css is out of sync with DTCG");
-      process.exit(1);
-    }
-    return nextCss;
+  if (!fs.existsSync(darkDtcgPath)) {
+    console.error("generate-dtcg-theme: missing dtcg/platform.dark.tokens.json");
+    process.exit(1);
   }
 
-  fs.mkdirSync(path.dirname(lightCssPath), { recursive: true });
-  fs.writeFileSync(lightCssPath, nextCss);
-  console.log(`generate-dtcg-theme: wrote themes/light.css (${nextCss.split("\n").length} lines)`);
-  return nextCss;
+  const lightDtcg = JSON.parse(fs.readFileSync(lightDtcgPath, "utf8"));
+  const darkDtcg = JSON.parse(fs.readFileSync(darkDtcgPath, "utf8"));
+  const lightCss = `${generateLightThemeCss(lightDtcg)}\n`;
+  const darkCss = `${generateDarkThemeCss(darkDtcg)}\n`;
+
+  assertThemeFile({ check: options.check, cssPath: lightCssPath, nextCss: lightCss, label: "themes/light.css" });
+  assertThemeFile({ check: options.check, cssPath: darkCssPath, nextCss: darkCss, label: "themes/dark.css" });
+
+  return { lightCss, darkCss };
+}
+
+/** @param {{ check?: boolean }} [options] */
+export function generateDtcgLightTheme(options = {}) {
+  return generateDtcgPlatformThemes(options);
 }
 
 if (import.meta.url === new URL(process.argv[1], "file:").href) {

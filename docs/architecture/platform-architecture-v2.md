@@ -887,7 +887,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **E1 (done):** DTCG is build authority for `themes/light.css`. `generate-dtcg-theme.mjs` emits from `dtcg/platform.tokens.json`; `color.accent` maps to `--color-accent` (not `--color-warning`). `guard-dtcg-css-sync` runs `--check` drift detection.
 
-**E2+ (next):** Generate `themes/dark.css`; workspace `dtcg/workspaces/<id>.tokens.json` → `theme/tokens.css`; CI hex ban; demote `MASTER.md`.
+**E2 (done):** `themes/dark.css` generated from `dtcg/platform.dark.tokens.json` (includes `shadow.*` + `color.accent`). Starter workspace `theme/tokens.css` generated from `dtcg/workspaces/starter.tokens.json` via `generate-workspace-dtcg-css.mjs` (`ws.color-accent` → `var(--color-primary)` under `[data-workspace-theme]`).
+
+**E3+ (next):** CI hex ban; demote `MASTER.md`; guest-club / urban / denali workspace token slices.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -963,7 +965,7 @@ Scores reflect **conformance to this v2 spec**, not code volume or test count.
 | Shell structure (L2) | **7** | Fallback split; minor L2 appearance leak |
 | Skin / appearance (guest) | **5** | platform-neutral + stubs + hex |
 | Skin / appearance (admin) | **3** | shadcn + Tailwind dominant |
-| Design tokens / DTCG readiness | **3** | Validate-only; hex sprawl |
+| Design tokens / DTCG readiness | **5** | Light+dark+starter generated; hex sprawl elsewhere |
 | Routing / tenant (WRS, PCMS) | **8** | Documented standards + guards |
 | Scalability to 50+ workspaces | **5** | Possible after B–G; not today |
 | Guard / control plane | **7** | Strong guest; gaps on admin/tokens |
@@ -979,19 +981,20 @@ The **direction** is enterprise-grade. The **implementation** is a strong Phase-
 
 ### Is this architecture stable enough to begin the Design Token implementation?
 
-## **PARTIAL — E1 platform light theme only**
+## **PARTIAL — E2 platform light + dark + starter workspace tokens**
 
 ### Justification (updated 2026-07-06)
 
-Phase B and Phase D prerequisites are **complete**. E1 inverts authority for the **platform light palette** only:
+Phase B and Phase D prerequisites are **complete**. E1–E2 invert authority for **platform light/dark palettes** and **starter workspace brand tokens**:
 
-1. **`dtcg/platform.tokens.json`** is the source of truth for `themes/light.css` (generated).
-2. **`color.accent` → `--color-accent`** — semantic map corrected (no longer aliased to `--color-warning`).
-3. **Still hand-maintained:** `themes/dark.css`, `primitives.css`, workspace skin hex, admin TSX Tailwind.
+1. **`dtcg/platform.tokens.json`** → `themes/light.css` (generated).
+2. **`dtcg/platform.dark.tokens.json`** → `themes/dark.css` (generated; shadow group included).
+3. **`dtcg/workspaces/starter.tokens.json`** → `packages/workspaces/starter/theme/tokens.css` (generated; `var()` references only).
+4. **`color.accent` → `--color-accent`** — semantic map corrected (no longer aliased to `--color-warning`).
 
-**Continue E2+ only with:** dark theme DTCG slice, workspace token generation, hex CI ban — not ad-hoc hex edits in `light.css`.
+**Still hand-maintained:** `primitives.css`, non-starter workspace skin hex, admin TSX Tailwind.
 
-**Allowed before E2:** workspace DTCG schema design, migration inventory — no workspace CSS generation commits until dark + workspace slices are specified.
+**Continue E3+ only with:** hex CI ban, remaining workspace DTCG slices — not ad-hoc hex edits in generated theme files.
 
 ---
 

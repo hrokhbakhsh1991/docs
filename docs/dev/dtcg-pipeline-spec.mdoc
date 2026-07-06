@@ -18,16 +18,28 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Phase D — appearance decomposition | ✅ |
 | Corrected semantic map (`color.accent` → `--color-accent`) | ✅ E1 |
 | `themes/light.css` generated from DTCG | ✅ E1 |
+| `themes/dark.css` generated from DTCG | ✅ E2 |
+| `starter/theme/tokens.css` generated from workspace DTCG slice | ✅ E2 |
 
-**Still hand-maintained (E2+):** `themes/dark.css`, `primitives.css`, workspace `theme/tokens.css`, skin hook files.
+**Still hand-maintained (E3+):** `primitives.css`, non-starter workspace `theme/tokens.css`, skin hook files.
 
-## Authority flow (E1)
+## Authority flow (E1–E2)
 
 ```text
 dtcg/platform.tokens.json
         │
         ▼
 generate-dtcg-theme.mjs  ──► src/themes/light.css (@generated)
+        │
+dtcg/platform.dark.tokens.json
+        │
+        ▼
+generate-dtcg-theme.mjs  ──► src/themes/dark.css (@generated)
+        │
+dtcg/workspaces/starter.tokens.json
+        │
+        ▼
+generate-workspace-dtcg-css.mjs ──► packages/workspaces/starter/theme/tokens.css (@generated)
         │
         ▼
 generate-tokens.mjs      ──► src/generated/*.ts
@@ -52,13 +64,13 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 
 | Guard | Role |
 | ----- | ---- |
-| `guard-dtcg-tokens` | Schema + required keys in `platform.tokens.json` |
-| `guard-dtcg-css-sync` | Runs `generate-dtcg-theme.mjs --check` (no drift) |
-| `dtcg-light-generation.spec.mjs` | Unit: accent maps to `--color-accent`, file is `@generated` |
+| `guard-dtcg-tokens` | Schema + required keys in platform light/dark + starter workspace slice |
+| `guard-dtcg-css-sync` | Runs `generate-dtcg-theme.mjs --check` and `generate-workspace-dtcg-css.mjs --check` (no drift) |
+| `dtcg-light-generation.spec.mjs` | Unit: accent maps to `--color-accent`, light file is `@generated` |
+| `dtcg-dark-generation.spec.mjs` | Unit: dark shadows/accent, starter tokens `var(--color-primary)` only |
 
-## E2+ (not in E1)
+## E3+ (not in E2)
 
-- Generate `themes/dark.css` from `dtcg/platform.dark.tokens.json` or theme slice
-- `dtcg/workspaces/<id>.tokens.json` → `packages/workspaces/<id>/theme/tokens.css`
 - CI ban raw hex outside `@generated` CSS
 - Demote `MASTER.md` to export-only
+- `dtcg/workspaces/guest-club|urban|denali.tokens.json` → workspace `theme/tokens.css`

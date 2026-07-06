@@ -1,8 +1,9 @@
+/** @generated — do not edit; source: dtcg/workspaces/starter.tokens.json — run pnpm build in @app-tour/design-tokens */
 /**
- * Workspace brand tokens — starter plugin (Phase 3.1).
+ * Workspace brand tokens — starter plugin.
  * Host loads via WorkspaceThemeContract.optionalStylesheet after CASL + ingress.
- * All custom properties MUST use --ws-* (enforced in test/starter.theme-tokens.spec.ts).
  */
 [data-workspace-theme] {
   --ws-color-accent: var(--color-primary);
 }
+
