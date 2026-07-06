@@ -123,8 +123,12 @@ describe("denali-admin-theme.spec.ts", () => {
     assert.match(shell, /data-operator-shell/);
     assert.match(shell, /data-workspace-plugin=\{pluginId\}/);
     assert.match(shell, /data-operator-sidebar/);
-    assert.match(shell, /sticky top-14/);
-    assert.match(shell, /h-\[calc\(100dvh-3\.5rem\)\]/);
+    const operatorStructure = readFileSync(
+      join(import.meta.dirname, "../../../packages/design-tokens/src/operator-shell-structure.css"),
+      "utf8"
+    );
+    assert.match(operatorStructure, /\[data-operator-sidebar\][\s\S]*position:\s*sticky/);
+    assert.match(operatorStructure, /\[data-operator-sidebar\][\s\S]*height:\s*calc\(100dvh - 3\.5rem\)/);
     const nav = readFileSync(
       join(import.meta.dirname, "../src/admin/shell/operator-nav.tsx"),
       "utf8"
@@ -140,7 +144,7 @@ describe("denali-admin-theme.spec.ts", () => {
       join(import.meta.dirname, "../src/admin/shell/operator-header.tsx"),
       "utf8"
     );
-    assert.match(header, /backdrop-blur-md/);
+    assert.match(operatorStructure, /\[data-operator-header\][\s\S]*backdrop-filter:\s*blur/);
     assert.match(header, /data-operator-header/);
     assert.match(header, /data-denali-tenant-badge/);
     assert.match(header, /OperatorBreadcrumb/);

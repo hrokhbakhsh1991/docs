@@ -868,9 +868,18 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 ### Phase D — Appearance decomposition
 
-- Split `shell-bridge.css` (bridge vs operator structure).
-- Reclassify `platform-neutral-portal.css` → starter workspace default skin.
-- Align marketing portal/admin bootstrap parity.
+**D1 (done):** `shell-bridge.css` trimmed to L1b var-map only (`@theme inline` + shadcn semantic aliases). Operator admin layout extracted to `operator-shell-structure.css` (admin-bootstrap only). Duplicate dark palette block removed from shell-bridge — guest uses `themes/dark.css`; admin uses `operator-admin-appearance.css`.
+
+| File | Layer | Surfaces |
+| ---- | ----- | -------- |
+| `shell-bridge.css` | L1b bridge | portal, marketing, admin |
+| `operator-shell-structure.css` | L2 structure | admin only |
+| `operator-admin-appearance.css` | L2 appearance + dark `.dark` palette | admin only |
+
+**D2 (next):** Reclassify `platform-neutral-portal.css` → starter workspace default skin; wire portal bootstrap via generated guest theme loader instead of design-tokens L3.
+
+**D3 (next):** Align marketing portal/admin bootstrap parity (cross-surface import guards).
+
 
 ### Phase E — DTCG pipeline (design token implementation)
 

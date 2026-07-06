@@ -18,9 +18,13 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
   it("P6-TREE-01 design-tokens exports shell-bridge + surface bootstraps", () => {
     const pkg = readRepo("packages/design-tokens/package.json");
     assert.match(pkg, /"\.\/shell-bridge\.css"/);
+    assert.match(pkg, /"\.\/operator-shell-structure\.css"/);
     assert.match(pkg, /"\.\/portal-bootstrap\.css"/);
     assert.match(pkg, /"\.\/marketing-bootstrap\.css"/);
     assert.match(readRepo("packages/design-tokens/src/portal-bootstrap.css"), /shell-bridge\.css/);
+    assert.match(readRepo("packages/design-tokens/src/admin-bootstrap.css"), /operator-shell-structure\.css/);
+    const bridge = readRepo("packages/design-tokens/src/shell-bridge.css");
+    assert.doesNotMatch(bridge, /\[data-operator-/);
   });
 
   it("P6-TREE-02 guest globals are import-only", () => {

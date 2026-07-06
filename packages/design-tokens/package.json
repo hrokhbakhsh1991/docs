@@ -22,6 +22,7 @@
     "./fallback-guest-marketing-shell.css": "./dist/fallback-guest-marketing-shell.css",
     "./platform-neutral-portal.css": "./dist/platform-neutral-portal.css",
     "./shell-bridge.css": "./dist/shell-bridge.css",
+    "./operator-shell-structure.css": "./dist/operator-shell-structure.css",
     "./semantic": {
       "types": "./dist/generated/semantic-tokens.d.ts",
       "default": "./dist/generated/semantic-tokens.js"
@@ -35,7 +36,7 @@
   "scripts": {
     "build": "node ./scripts/generate-tokens.mjs && node ./scripts/build.mjs && tsc -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test test/tokens-meta.contract.spec.mjs"
+    "test": "node --test test/tokens-meta.contract.spec.mjs test/shell-bridge-decomposition.spec.mjs"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",

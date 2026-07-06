@@ -66,6 +66,10 @@ fs.copyFileSync(
   path.join(distDir, "fallback-guest-marketing-shell.css")
 );
 fs.copyFileSync(path.join(srcDir, "shell-bridge.css"), path.join(distDir, "shell-bridge.css"));
+fs.copyFileSync(
+  path.join(srcDir, "operator-shell-structure.css"),
+  path.join(distDir, "operator-shell-structure.css")
+);
 fs.copyFileSync(path.join(srcDir, "primitives.css"), path.join(distDir, "primitives.css"));
 fs.copyFileSync(path.join(srcDir, "semantics.css"), path.join(distDir, "semantics.css"));
 copyDir("themes");
