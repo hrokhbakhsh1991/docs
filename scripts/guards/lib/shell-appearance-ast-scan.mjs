@@ -8,7 +8,7 @@ import { guardRequire } from "./guard-require.mjs";
 const ts = guardRequire("typescript");
 
 /** Tailwind / layout tokens that belong in workspace skin, not shell TSX. */
-const APPEARANCE_PATTERN =
+export const APPEARANCE_PATTERN =
   /(?:^|\s)(?:bg-|text-|border-|shadow-|backdrop-|rounded-|font-|px-|py-|gap-|flex\b|min-h-|sr-only|focus:|hidden\b|sticky\b|shrink-|overflow-|max-w|w-\[|md:|start-|h-|w-)/;
 
 /** @typedef {{ surface: string; files: string[]; exempt?: string[] }} ShellAppearanceScope */

@@ -27,7 +27,9 @@ Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge
 | `animations.css` | `denali-fade-up`, skeleton shimmer (`prefers-reduced-motion` safe) |
 | `tokens.css` | @generated — workspace brand contract |
 
-**TSX (F7):** `patterns/`, `dashboard/`, `onboarding/` may use semantic shadcn classes (`text-muted-foreground`, `bg-primary`, …). Palette scale colors and `#` arbitrary values are blocked by `guard-admin-feature-appearance-ast`.
+**TSX (F7):** `patterns/`, `dashboard/`, `onboarding/` may use semantic shadcn classes unless listed in the F8 purged registry.
+
+**TSX (F8-1 purged):** `booking-activity-timeline.tsx`, `dashboard-kpi-cell.tsx` — zero `className`; styling via `data-booking-timeline-*` / `data-denali-kpi-*` in `admin-skin.css`.
 
 ## Host wiring
 

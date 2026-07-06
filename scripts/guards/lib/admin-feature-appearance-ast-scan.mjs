@@ -11,6 +11,12 @@ import { extractExpressionStrings } from "./shell-appearance-ast-scan.mjs";
 const ts = guardRequire("typescript");
 
 /** @type {readonly string[]} */
+export const ADMIN_FEATURE_PURGED_FILES = [
+  "apps/web/src/admin/patterns/booking-activity-timeline.tsx",
+  "apps/web/src/admin/patterns/dashboard-kpi-cell.tsx",
+];
+
+/** @type {readonly string[]} */
 export const ADMIN_FEATURE_SCAN_DIRS = [
   "apps/web/src/admin/patterns",
   "apps/web/src/admin/dashboard",
@@ -94,6 +100,64 @@ function visitFeatureNode(node, sf, relPath, violations) {
     }
   }
   ts.forEachChild(node, (child) => visitFeatureNode(child, sf, relPath, violations));
+}
+
+/**
+ * @param {import("typescript").Node} node
+ * @param {import("typescript").SourceFile} sf
+ * @param {string} relPath
+ * @param {string[]} violations
+ */
+function visitPurgedFeatureNode(node, sf, relPath, violations) {
+  if (ts.isJsxAttribute(node) && node.name.getText(sf) === "className") {
+    const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+    violations.push(
+      `${relPath}:${line + 1} [F8 purged] className forbidden — use data-* hooks + admin-skin.css`,
+    );
+  }
+  ts.forEachChild(node, (child) => visitPurgedFeatureNode(child, sf, relPath, violations));
+}
+
+/**
+ * @param {string} repoRoot
+ * @param {readonly string[]} [purgedFiles]
+ * @returns {{ violations: string[]; scanned: number }}
+ */
+export function scanAdminFeaturePurgedAppearance(
+  repoRoot,
+  purgedFiles = ADMIN_FEATURE_PURGED_FILES,
+) {
+  /** @type {string[]} */
+  const violations = [];
+  let scanned = 0;
+
+  for (const relPath of purgedFiles) {
+    const absFile = path.join(repoRoot, relPath);
+    if (!fs.existsSync(absFile)) {
+      violations.push(`${relPath} [F8 purged] missing file`);
+      continue;
+    }
+    scanned += 1;
+    const source = fs.readFileSync(absFile, "utf8");
+    const sf = ts.createSourceFile(relPath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    visitPurgedFeatureNode(sf, sf, relPath, violations);
+  }
+
+  return { violations, scanned };
+}
+
+/**
+ * @param {string} repoRoot
+ * @returns {{ violations: string[]; scanned: number; purgedScanned: number }}
+ */
+export function scanAdminFeatureAppearanceAll(repoRoot) {
+  const palette = scanAdminFeatureAppearance(repoRoot);
+  const purged = scanAdminFeaturePurgedAppearance(repoRoot);
+  return {
+    violations: [...palette.violations, ...purged.violations],
+    scanned: palette.scanned,
+    purgedScanned: purged.scanned,
+  };
 }
 
 /**

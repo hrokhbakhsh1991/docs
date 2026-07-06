@@ -95,7 +95,8 @@ describe("denali-admin-theme.spec.ts", () => {
       "utf8"
     );
     assert.match(kpiCell, /data-denali-kpi/);
-    assert.match(kpiCell, /line-clamp-2/);
+    assert.match(kpiCell, /data-denali-kpi-label/);
+    assert.doesNotMatch(kpiCell, /className=/);
     const skin = readFileSync(join(DENALI_THEME_DIR, "admin-skin.css"), "utf8");
     assert.match(skin, /\[data-denali-empty-state\]/);
     assert.match(skin, /\[data-operator-nav-cta\]/);
@@ -110,6 +111,8 @@ describe("denali-admin-theme.spec.ts", () => {
       "utf8"
     );
     assert.match(timeline, /data-denali-booking-timeline/);
+    assert.match(timeline, /data-booking-timeline-detail/);
+    assert.doesNotMatch(timeline, /className=/);
     const categoryBadge = readFileSync(
       join(import.meta.dirname, "../src/admin/patterns/tour-category-badge.tsx"),
       "utf8"

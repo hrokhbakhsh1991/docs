@@ -6,11 +6,11 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { scanAdminFeatureAppearance } from "./lib/admin-feature-appearance-ast-scan.mjs";
+import { scanAdminFeatureAppearanceAll } from "./lib/admin-feature-appearance-ast-scan.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-const { violations, scanned } = scanAdminFeatureAppearance(REPO_ROOT);
+const { violations, scanned, purgedScanned } = scanAdminFeatureAppearanceAll(REPO_ROOT);
 
 if (violations.length > 0) {
   console.error("guard-admin-feature-appearance-ast: FAIL");
@@ -20,4 +20,6 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log(`guard-admin-feature-appearance-ast: PASS (${scanned} feature files)`);
+console.log(
+  `guard-admin-feature-appearance-ast: PASS (${scanned} feature files, ${purgedScanned} F8-purged)`,
+);

@@ -122,8 +122,97 @@ body[data-workspace-plugin="denali"] [data-denali-booking-list] [data-booking-ro
   background: color-mix(in srgb, var(--color-bg-muted) 40%, transparent);
 }
 
-body[data-workspace-plugin="denali"] [data-denali-booking-timeline] [data-booking-timeline-item] p:last-child {
+body[data-workspace-plugin="denali"] [data-denali-booking-timeline] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-booking-timeline] [data-booking-timeline-item] {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-booking-timeline] [data-booking-timeline-item]:last-child {
+  padding-bottom: 0;
+}
+
+body[data-workspace-plugin="denali"] [data-booking-timeline-marker] {
+  position: relative;
+  display: flex;
+  margin-top: 0.375rem;
+  width: 0.5rem;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+body[data-workspace-plugin="denali"] [data-booking-timeline-dot] {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-booking-timeline-rail] {
+  position: absolute;
+  top: 0.75rem;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border-default);
+}
+
+body[data-workspace-plugin="denali"] [data-booking-timeline-body] {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+body[data-workspace-plugin="denali"] [data-booking-timeline-label] {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+body[data-workspace-plugin="denali"] [data-booking-timeline-detail] {
+  margin: 0;
+  font-size: 0.875rem;
   color: var(--color-text-primary);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-kpi],
+body[data-workspace-plugin="denali"] [data-denali-finance-kpi] {
+  display: flex;
+  min-height: 5.25rem;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: var(--radius-lg, 0.5rem);
+  border: 1px solid color-mix(in srgb, var(--color-border-default) 60%, transparent);
+  background: color-mix(in srgb, var(--color-bg-muted) 25%, transparent);
+  padding: 0.75rem;
+  text-align: start;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-kpi-label] {
+  margin: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+  line-height: 1.375;
+  color: var(--color-text-muted);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-kpi-value] {
+  margin: 0.5rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 body[data-workspace-plugin="denali"] input:focus-visible,

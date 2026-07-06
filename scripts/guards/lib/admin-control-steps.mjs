@@ -23,6 +23,6 @@ export const ADMIN_CONTROL_STEPS = [
   {
     name: "admin_feature_appearance_ast",
     cmd: ["node", "scripts/guards/guard-admin-feature-appearance-ast.mjs"],
-    closes: "F7",
+    closes: "F7/F8",
   },
 ];

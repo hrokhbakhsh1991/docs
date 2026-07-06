@@ -913,7 +913,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F7 (done):** `guard-admin-feature-appearance-ast` — admin feature TSX (`patterns/`, `dashboard/`, `onboarding/`) bans palette scale + arbitrary hex in `className`; semantic shadcn tokens allowed.
 
-**F8+ (next):** full feature appearance purge to CSS hooks; `ThemeProviderChain` vs CSS precedence.
+**F8 (F8-1 done):** CSS-hook purge pilot — `booking-activity-timeline.tsx`, `dashboard-kpi-cell.tsx` (zero `className`; `admin-skin.css` hooks).
+
+**F9+ (next):** continue F8 registry; `ThemeProviderChain` vs CSS precedence.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -931,9 +933,9 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 **F6 (done):** Admin dark semantics DTCG + `operator-admin-appearance.css` decomposition.
 
-**F7+ (open):**
-- Full appearance purge on admin feature TSX (F7 allows semantic Tailwind).
-- Consolidate `ThemeProviderChain` vs CSS precedence.
+**F7 (done):** `guard-admin-feature-appearance-ast` — palette/hex ban on feature TSX.
+
+**F8 (in progress):** incremental CSS-hook purge registry (F8-1: booking timeline + KPI cell).
 
 ### Phase G — Codegen modularization
 
@@ -1029,7 +1031,7 @@ Phase E is **closed** for guest marketing skin semantics and hooks:
 
 **Still hand-maintained:** admin feature TSX semantic Tailwind (F7 guards palette/hex; F8+ full CSS-hook purge).
 
-**Continue Phase F** — F6 admin dark decomposition done; F7+ feature TSX guards.
+**Continue Phase F** — F7 palette guard done; F8 incremental CSS-hook purge in progress.
 
 ---
 

@@ -39,8 +39,9 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Admin bootstrap CSS-G-02 (no guest cross-surface imports) | ✅ F closure |
 | Denali `theme/` publish set covers admin `@import` chain | ✅ F closure |
 | Admin feature TSX palette/hex AST ban (`patterns/`, `dashboard/`, `onboarding/`) | ✅ F7 |
+| Admin feature TSX CSS-hook purge (incremental registry) | 🔄 F8 (F8-1 done) |
 
-**Still hand-maintained (F8+):** full appearance purge of admin feature TSX (semantic Tailwind allowed under F7); `ThemeProviderChain` vs CSS precedence.
+**Still hand-maintained (F8+):** remaining admin feature TSX under F7 semantic Tailwind until purged; `ThemeProviderChain` vs CSS precedence.
 
 ## Authority flow (E1–E2)
 
@@ -223,9 +224,22 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 
 **Future F8+:** migrate remaining appearance `className` to `data-*` hooks + workspace skin (full I0-style purge for features).
 
-## F8+ (not in F7)
+## F8 — Admin feature CSS-hook purge (incremental)
 
-- Full appearance purge of admin feature TSX (semantic Tailwind → CSS hooks)
+**Goal:** migrate feature TSX from semantic Tailwind `className` to `data-*` hooks + `admin-skin.css` (same contract as shell I0, applied incrementally).
+
+**Purged registry** (`ADMIN_FEATURE_PURGED_FILES` in `admin-feature-appearance-ast-scan.mjs`): files in the registry must have **zero** `className` attributes. All other feature TSX remain under F7 (semantic Tailwind allowed).
+
+| Sprint | File | Hooks |
+| ------ | ---- | ----- |
+| F8-1 | `patterns/booking-activity-timeline.tsx` | `data-booking-timeline-*` | ✅ |
+| F8-1 | `patterns/dashboard-kpi-cell.tsx` | `data-denali-kpi-*` | ✅ |
+
+**Guard:** `guard-admin-feature-appearance-ast` runs F7 palette ban on all feature TSX **and** F8 zero-`className` on purged files.
+
+## F9+ (not in F8)
+
+- Continue F8 registry until all `patterns/`, `dashboard/`, `onboarding/` are purged
 - `ThemeProviderChain` vs CSS precedence (broader platform work)
 
 ## Phase F closure checklist
@@ -233,7 +247,7 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 | Gate | Command / artifact |
 | ---- | ------------------ |
 | Build | `pnpm --filter @app-tour/design-tokens run build` |
-| Unit specs | `pnpm --filter @app-tour/design-tokens test` (F1–F6 + E slices) |
+| Unit specs | `pnpm --filter @app-tour/design-tokens test` (E + F1–F6 + closure) · `pnpm --filter @apps/web exec node --import tsx --test test/admin-feature-appearance-ast.spec.ts` (F7–F8) |
 | DTCG token guard | `node scripts/guards/guard-dtcg-tokens.mjs` |
 | CSS sync | `node scripts/guards/guard-dtcg-css-sync.mjs` |
 | Hex ban | `node scripts/guards/guard-dtcg-hex-ban.mjs` |
