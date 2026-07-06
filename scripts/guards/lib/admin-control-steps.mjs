@@ -25,4 +25,9 @@ export const ADMIN_CONTROL_STEPS = [
     cmd: ["node", "scripts/guards/guard-admin-feature-appearance-ast.mjs"],
     closes: "F7/F8",
   },
+  {
+    name: "denali_admin_dark_primary",
+    cmd: ["node", "scripts/guards/guard-denali-admin-dark-primary.mjs"],
+    closes: "F9-2",
+  },
 ];

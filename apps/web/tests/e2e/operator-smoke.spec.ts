@@ -88,6 +88,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
       getComputedStyle(el).getPropertyValue("--primary").trim().toLowerCase()
     );
     expect(darkPrimary).toBe("#5eead4");
+    expect(darkPrimary).not.toBe("#5b9fd4");
 
     const darkButtonBg = await cta.evaluate((el) => {
       const button = el.querySelector("button");

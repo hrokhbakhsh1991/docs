@@ -211,4 +211,21 @@ describe("denali-admin-theme.spec.ts", () => {
     assert.match(layout, /data-app-surface="admin"/);
     assert.match(layout, /data-workspace-plugin=\{bootstrap\.pluginId\}/);
   });
+
+  it("WEB-DENALI-THEME-14 dark primary is Denali teal not platform blue (F9-2)", () => {
+    const semantic = readFileSync(join(DENALI_THEME_DIR, "admin-semantic-tokens.css"), "utf8");
+    const platformDark = readFileSync(
+      join(REPO_ROOT, "packages/design-tokens/src/themes/dark.css"),
+      "utf8",
+    );
+    assert.match(semantic, /--color-primary:\s*#5eead4/);
+    assert.doesNotMatch(semantic, /#5b9fd4/);
+    assert.match(semantic, /body\[data-workspace-plugin="denali"\] \.theme-dark/);
+    const darkSection = semantic.slice(
+      semantic.indexOf('html.dark:has(body[data-workspace-plugin="denali"])'),
+    );
+    assert.match(darkSection, /--primary:\s*var\(--color-primary\)/);
+    assert.match(platformDark, /--color-primary:\s*#5b9fd4/);
+    // C4 (TenantThemeProvider inline --color-primary) is runtime-only — covered by SMK-P9-DENALI-THEME E2E.
+  });
 });

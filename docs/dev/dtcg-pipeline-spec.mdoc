@@ -114,7 +114,9 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 | `dtcg-f5-semantics.spec.mjs` | Unit: `platform.semantics.tokens.json` → `semantics.css`; interactions hook hex-free |
 | `dtcg-f6-admin-appearance.spec.mjs` | Unit: admin dark semantics from `platform.dark`; `operator-admin-appearance.css` hook-only |
 | `guard-admin-feature-appearance-ast` | AST: admin feature TSX `className` — no palette scale colors or `#` arbitrary values (F7) |
+| `guard-denali-admin-dark-primary` | F9-2: Denali admin dark `--color-primary` is `#5eead4`, not platform `#5b9fd4`; triple cascade arm present |
 | `admin-feature-appearance-ast.spec.ts` | Unit: F7 scan passes on `patterns/`, `dashboard/`, `onboarding/` |
+| `dtcg-f9-admin-dark-primary.spec.mjs` | Unit: F9-2 DTCG dark block + semantic CSS primary isolation |
 
 Reference syntax: `{color.primary}` → `var(--color-primary)`; `{flat.focus-ring-color}` → `var(--focus-ring-color)` (flat group emits unprefixed shadcn aliases).
 
@@ -350,6 +352,7 @@ Run checklist § Phase F closure checklist (build, guards, specs) — Architect 
 | Hex ban | `node scripts/guards/guard-dtcg-hex-ban.mjs` |
 | Bootstrap integrity | `node scripts/guards/guard-css-bootstrap-integrity.mjs` |
 | Admin feature palette ban | `node scripts/guards/guard-admin-feature-appearance-ast.mjs` |
+| Denali admin dark primary | `node scripts/guards/guard-denali-admin-dark-primary.mjs` |
 
 ## MASTER.md demotion (E3–E4)
 
