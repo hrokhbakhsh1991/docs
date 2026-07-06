@@ -1,53 +1,9 @@
-
 /**
- * Operator admin — extended platform dark semantics (beyond guest shell-bridge).
+ * Operator admin — platform wizard shell + validation hooks (L2).
+ * Dark semantics: operator-admin-dark-semantics.css (DTCG build output).
  */
-.dark,
-.dark .theme-light,
-.theme-dark {
-  --color-primary: #5b9fd4;
-  --color-primary-hover: #7eb3df;
-  --color-primary-fg: #0d1117;
-
-  --color-bg-page: #0d1117;
-  --color-bg-surface: #161b22;
-  --color-bg-muted: #21262d;
-  --color-bg-disabled: #30363d;
-
-  --color-text-primary: #e8eaed;
-  --color-text-secondary: #aeb4bd;
-  --color-text-muted: #7e8793;
-  --color-text-link: #7eb3df;
-
-  --color-border-default: #30363d;
-  --color-border-strong: #484f58;
-  --color-border-subtle: #21262d;
-
-  --color-success: #56d364;
-  --color-success-bg: rgba(46, 160, 67, 0.18);
-  --color-warning: #e3b341;
-  --color-warning-bg: rgba(227, 179, 65, 0.15);
-  --color-danger: #ff7b72;
-  --color-danger-bg: rgba(248, 81, 73, 0.15);
-  --color-info: #79c0ff;
-  --color-info-bg: rgba(121, 192, 255, 0.12);
-
-  --focus-ring-color: rgba(130, 175, 220, 0.55);
-  --focus-ring-offset: #161b22;
-
-  color-scheme: dark;
-}
-
-body {
-  margin: 0;
-  font-family: var(--font-family-base);
-  background: var(--background);
-  color: var(--foreground);
-}
-
-html[dir="rtl"] body {
-  text-align: start;
-}
+@import "./operator-admin-dark-semantics.css";
+@import "./guest-body-reset.css";
 
 /* Phase 3 shell */
 .app-shell__header {
@@ -232,9 +188,9 @@ html[dir="rtl"] body {
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
-  border: 1px solid color-mix(in oklch, var(--color-danger, #c5222d) 30%, var(--color-border-default, #ddd));
+  border: 1px solid color-mix(in oklch, var(--color-danger) 30%, var(--color-border-default));
   border-radius: var(--radius-md, 0.375rem);
-  background: color-mix(in oklch, var(--color-danger-bg, #fcebec) 60%, var(--color-bg-surface, #fff));
+  background: color-mix(in oklch, var(--color-danger-bg) 60%, var(--color-bg-surface));
 }
 
 .workspace-wizard-validation__heading {
@@ -247,7 +203,7 @@ html[dir="rtl"] body {
   margin: 0;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--color-danger, #c5222d);
+  color: var(--color-danger);
 }
 
 .workspace-wizard-validation__groups {
@@ -257,9 +213,9 @@ html[dir="rtl"] body {
 }
 
 .workspace-wizard-validation__group {
-  border: 1px solid var(--color-border-subtle, #eee);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm, 0.25rem);
-  background: var(--color-bg-surface, #fff);
+  background: var(--color-bg-surface);
   overflow: hidden;
 }
 
@@ -268,8 +224,8 @@ html[dir="rtl"] body {
   width: 100%;
   padding: var(--space-3) var(--space-4);
   border: 0;
-  border-bottom: 1px solid var(--color-border-subtle, #eee);
-  background: var(--color-bg-muted, #f5f5f5);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-muted);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 700;
@@ -304,7 +260,7 @@ html[dir="rtl"] body {
 
 .workspace-wizard-validation__issue-message {
   font-size: 0.8125rem;
-  color: var(--color-danger, #c5222d);
+  color: var(--color-danger);
 }
 
 .workspace-wizard__step-validation {

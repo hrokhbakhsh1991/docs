@@ -895,6 +895,8 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **E5 (done):** Denali `mkt.*` overlay tokens in `denali.marketing.tokens.json`. All `marketing/shell.css` + `marketing/components/*.css` hooks are `#` hex-free (`guard-dtcg-hex-ban` E5 scope). guest-club marketing hooks aligned.
 
+**Phase F (F1–F6 done):** Admin/wizard skin DTCG + platform L0 stack + `operator-admin-appearance` decomposition. See [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
+
 **F1 (done):** Denali `denali.admin.tokens.json` with `blocks[]` (light + dark) → `theme/admin-semantic-tokens.css`. `admin-skin.css` demoted to hook-only (`@import` + layout); `guard-dtcg-hex-ban` F1 scope.
 
 **F2 (done):** `finance-skin.css`, `wizard-skin.css`, `wizard-calendar.css` hex-free — reference `admin-semantic-tokens.css` vars.
@@ -905,7 +907,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F5 (done):** `platform.semantics.tokens.json` → `semantics.css`; `interactions.css` in hex-ban scope.
 
-**F6+ (next):** `operator-admin-appearance.css`; admin feature TSX AST guards.
+**F6 (done):** `operator-admin-dark-semantics.css` from `platform.dark.tokens.json`; `operator-admin-appearance.css` hook-only.
+
+**F7+ (next):** admin feature TSX AST guards; `operator-shell-structure.css`.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -921,7 +925,9 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 **F5 (done):** Platform semantics DTCG (`platform.semantics.tokens.json` → `semantics.css`).
 
-**F6+ (open):**
+**F6 (done):** Admin dark semantics DTCG + `operator-admin-appearance.css` decomposition.
+
+**F7+ (open):**
 - AST guards on `apps/web` feature TSX.
 - Migrate shadcn usage to var-only utilities.
 - Consolidate `ThemeProviderChain` vs CSS precedence.
@@ -992,7 +998,7 @@ Scores reflect **conformance to this v2 spec**, not code volume or test count.
 | Shell structure (L2) | **7** | Fallback split; minor L2 appearance leak |
 | Skin / appearance (guest) | **5** | platform-neutral + stubs + hex |
 | Skin / appearance (admin) | **3** | shadcn + Tailwind dominant |
-| Design tokens / DTCG readiness | **9** | L0 platform stack (primitives + semantics + themes) under DTCG; operator-admin-appearance + admin TSX remain |
+| Design tokens / DTCG readiness | **9** | L0 + admin dark under DTCG; operator-admin hooks hex-free; admin feature TSX remains |
 | Routing / tenant (WRS, PCMS) | **8** | Documented standards + guards |
 | Scalability to 50+ workspaces | **5** | Possible after B–G; not today |
 | Guard / control plane | **7** | Strong guest; gaps on admin/tokens |
@@ -1018,9 +1024,9 @@ Phase E is **closed** for guest marketing skin semantics and hooks:
 2. Marketing/portal hooks + denali **shell + 28 component partials** — no raw `#` hex.
 3. Denali overlay palette (`--mkt-*`) — DTCG authority in `denali.marketing.tokens.json`.
 
-**Still hand-maintained:** `operator-admin-appearance.css`, admin feature TSX Tailwind.
+**Still hand-maintained:** admin feature TSX Tailwind; `operator-shell-structure.css` dev banner.
 
-**Continue Phase F** — L0 DTCG complete (F4–F5); F6+ operator-admin-appearance + admin feature TSX guards.
+**Continue Phase F** — F6 admin dark decomposition done; F7+ feature TSX guards.
 
 ---
 

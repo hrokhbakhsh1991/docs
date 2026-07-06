@@ -73,6 +73,35 @@ auditDtcgOutputCss(
   "packages/design-tokens/src/semantics.css",
 );
 
+auditDtcgOutputCss(
+  path.join(REPO_ROOT, "packages/design-tokens/src/operator-admin-dark-semantics.css"),
+  "packages/design-tokens/src/operator-admin-dark-semantics.css",
+);
+
+/**
+ * @param {string} filePath
+ * @param {string} label
+ */
+function auditPlatformHookCss(filePath, label) {
+  if (!existsSync(filePath)) {
+    return;
+  }
+  const content = readFileSync(filePath, "utf8");
+  if (GENERATED_RE.test(content.slice(0, 120)) && content.includes("do not edit")) {
+    violations.push(`${label} must be a hand-authored hook (not @generated)`);
+    return;
+  }
+  const hexMatches = content.match(HEX_RE) ?? [];
+  if (hexMatches.length > 0) {
+    violations.push(`${label} is a platform hook — raw # hex forbidden`);
+  }
+}
+
+auditPlatformHookCss(
+  path.join(REPO_ROOT, "packages/design-tokens/src/operator-admin-appearance.css"),
+  "packages/design-tokens/src/operator-admin-appearance.css",
+);
+
 if (!existsSync(WORKSPACES_ROOT)) {
   violations.push("packages/workspaces missing");
 } else {

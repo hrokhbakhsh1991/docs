@@ -1,6 +1,6 @@
 /**
  * Generates platform theme CSS from DTCG JSON (Phase E — build authority).
- * E1: themes/light.css · E2: themes/dark.css
+ * E1: themes/light.css · E2: themes/dark.css · F6: operator-admin-dark-semantics.css
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -11,6 +11,7 @@ const lightDtcgPath = path.join(packageRoot, "dtcg/platform.tokens.json");
 const darkDtcgPath = path.join(packageRoot, "dtcg/platform.dark.tokens.json");
 const lightCssPath = path.join(packageRoot, "src/themes/light.css");
 const darkCssPath = path.join(packageRoot, "src/themes/dark.css");
+const adminDarkCssPath = path.join(packageRoot, "src/operator-admin-dark-semantics.css");
 
 const LIGHT_THEME_GROUPS = new Set(["color", "focus"]);
 const DARK_THEME_GROUPS = new Set(["color", "focus", "shadow"]);
@@ -106,6 +107,18 @@ export function generateDarkThemeCss(dtcg) {
   });
 }
 
+/**
+ * @param {Record<string, unknown>} dtcg
+ */
+export function generateAdminDarkSemanticsCss(dtcg) {
+  return generatePlatformThemeCss(dtcg, DARK_THEME_GROUPS, {
+    selectors: ".dark,\n.dark .theme-light,\n.theme-dark",
+    colorScheme: "dark",
+    source: "dtcg/platform.dark.tokens.json",
+    title: "Operator admin dark semantics — admin .dark cascade (DTCG authority).",
+  });
+}
+
 function assertThemeFile({ check, cssPath, nextCss, label }) {
   if (check) {
     if (!fs.existsSync(cssPath)) {
@@ -141,11 +154,18 @@ export function generateDtcgPlatformThemes(options = {}) {
   const darkDtcg = JSON.parse(fs.readFileSync(darkDtcgPath, "utf8"));
   const lightCss = `${generateLightThemeCss(lightDtcg)}\n`;
   const darkCss = `${generateDarkThemeCss(darkDtcg)}\n`;
+  const adminDarkCss = `${generateAdminDarkSemanticsCss(darkDtcg)}\n`;
 
   assertThemeFile({ check: options.check, cssPath: lightCssPath, nextCss: lightCss, label: "themes/light.css" });
   assertThemeFile({ check: options.check, cssPath: darkCssPath, nextCss: darkCss, label: "themes/dark.css" });
+  assertThemeFile({
+    check: options.check,
+    cssPath: adminDarkCssPath,
+    nextCss: adminDarkCss,
+    label: "operator-admin-dark-semantics.css",
+  });
 
-  return { lightCss, darkCss };
+  return { lightCss, darkCss, adminDarkCss };
 }
 
 /** @param {{ check?: boolean }} [options] */

@@ -54,6 +54,10 @@ fs.copyFileSync(
   path.join(distDir, "operator-admin-appearance.css")
 );
 fs.copyFileSync(
+  path.join(srcDir, "operator-admin-dark-semantics.css"),
+  path.join(distDir, "operator-admin-dark-semantics.css")
+);
+fs.copyFileSync(
   path.join(srcDir, "fallback-guest-portal-shell.css"),
   path.join(distDir, "fallback-guest-portal-shell.css")
 );

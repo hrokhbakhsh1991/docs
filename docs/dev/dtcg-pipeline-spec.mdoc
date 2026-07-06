@@ -34,8 +34,9 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Wizard tone palette DTCG + `wizard-fields.css` hex ban | ✅ F3 |
 | Platform `primitives.css` from DTCG + denali motion/wizard partial hex ban | ✅ F4 |
 | Platform `semantics.css` from DTCG + denali `interactions.css` hex ban | ✅ F5 |
+| `operator-admin-dark-semantics.css` from DTCG + appearance hook hex ban | ✅ F6 |
 
-**Still hand-maintained (F6+ / Phase F):** `rgba()` in `operator-admin-appearance.css`, admin feature TSX Tailwind.
+**Still hand-maintained (F7+ / Phase F):** admin feature TSX Tailwind; `operator-shell-structure.css` dev banner hex.
 
 ## Authority flow (E1–E2)
 
@@ -59,6 +60,7 @@ dtcg/platform.dark.tokens.json
         │
         ▼
 generate-dtcg-theme.mjs  ──► src/themes/dark.css (@generated)
+        │                 operator-admin-dark-semantics.css (@generated, F6 — admin .dark cascade)
         │
 dtcg/workspaces/<id>.tokens.json  (starter · guest-club · urban · denali)
         │
@@ -105,6 +107,7 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 | `dtcg-f3-wizard-fields.spec.mjs` | Unit: `denali.wizard.tokens.json` → `wizard-semantic-tokens.css`; `wizard-fields.css` hex-free |
 | `dtcg-f4-primitives.spec.mjs` | Unit: `platform.primitives.tokens.json` → `primitives.css`; denali motion/wizard partial hooks hex-free |
 | `dtcg-f5-semantics.spec.mjs` | Unit: `platform.semantics.tokens.json` → `semantics.css`; interactions hook hex-free |
+| `dtcg-f6-admin-appearance.spec.mjs` | Unit: admin dark semantics from `platform.dark`; `operator-admin-appearance.css` hook-only |
 
 Reference syntax: `{color.primary}` → `var(--color-primary)`; `{flat.focus-ring-color}` → `var(--focus-ring-color)` (flat group emits unprefixed shadcn aliases).
 
@@ -181,10 +184,19 @@ Finance + wizard **shell** hooks reference admin semantic vars only — no raw `
 | ---------- | ---------------- | ----- |
 | `platform.semantics.tokens.json` | `src/semantics.css` | `@generated` — component aliases (`--color-surface`, `--color-border`, …) reference theme vars |
 
-## F6+ (not in F5)
+## Operator admin appearance (F6)
 
-- `operator-admin-appearance.css` decomposition / motion DTCG
+| Output | Source | Hand-authored hook |
+| ------ | ------ | ------------------ |
+| `operator-admin-dark-semantics.css` | `platform.dark.tokens.json` (`.dark` cascade selectors) | — |
+| `operator-admin-appearance.css` | — | wizard platform shell + validation hooks; `@import` dark semantics + `guest-body-reset.css` |
+
+Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin file removed — both generated from the same DTCG slice with different selectors.
+
+## F7+ (not in F6)
+
 - AST guards expansion on `apps/web` admin **feature** TSX (shell already I0)
+- `operator-shell-structure.css` dev banner tokens
 
 ## MASTER.md demotion (E3–E4)
 
