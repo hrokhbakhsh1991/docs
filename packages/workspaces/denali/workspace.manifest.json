@@ -333,5 +333,17 @@
   "wizardCreateChrome": {
     "module": "./ui/chrome/wizard-create-chrome-surface",
     "export": "denaliWizardCreateChromeSurface"
+  },
+  "wizardFlatEditChrome": {
+    "module": "./ui/chrome/wizard-flat-edit-chrome-surface",
+    "export": "denaliWizardFlatEditChromeSurface"
+  },
+  "wizardFlatEditForm": {
+    "module": "./ui/chrome/wizard-flat-edit-form-surface",
+    "export": "denaliWizardFlatEditFormSurface"
+  },
+  "wizardFlatEditPage": {
+    "module": "./ui/chrome/wizard-flat-edit-page-surface",
+    "export": "denaliWizardFlatEditPageSurface"
   }
 }

@@ -8,6 +8,7 @@ import { denaliWizardDraftShellSurface as wizard_draft_shell_denali } from "@app
 
 export const createDenaliWizardDraftSessionId = wizard_draft_shell_denali.createWizardDraftSessionId;
 export const DENALI_CREATE_TOUR_DRAFT_KEY = wizard_draft_shell_denali.createTourDraftKey;
+export const denaliEditTourDraftKey = wizard_draft_shell_denali.editTourDraftKey;
 export const DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE = wizard_draft_shell_denali.operatorDraftNamespace;
 export const createDenaliDraftSchemaGate = wizard_draft_shell_denali.createDraftSchemaGate;
 export const denaliHydrateDraftEnvelope = wizard_draft_shell_denali.hydrateDraftEnvelope;

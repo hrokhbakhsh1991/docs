@@ -3,6 +3,7 @@ import {
   createDenaliWizardDraftSessionId,
   DENALI_CREATE_TOUR_DRAFT_KEY,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
+  denaliEditTourDraftKey,
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
   isDenaliFreshStartEnvelope,
@@ -16,6 +17,7 @@ import { applyDenaliDefaultTourKind } from "../logic/denali-default-tour-kind";
 export type DenaliWizardDraftShellSurface = {
   readonly getWorkspacePlugin: typeof getDenaliWorkspacePlugin;
   readonly createTourDraftKey: typeof DENALI_CREATE_TOUR_DRAFT_KEY;
+  readonly editTourDraftKey: typeof denaliEditTourDraftKey;
   readonly operatorDraftNamespace: typeof DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE;
   readonly createWizardDraftSessionId: typeof createDenaliWizardDraftSessionId;
   readonly createDraftSchemaGate: typeof createDenaliDraftSchemaGate;
@@ -31,6 +33,7 @@ export type DenaliWizardDraftShellSurface = {
 export const denaliWizardDraftShellSurface: DenaliWizardDraftShellSurface = Object.freeze({
   getWorkspacePlugin: getDenaliWorkspacePlugin,
   createTourDraftKey: DENALI_CREATE_TOUR_DRAFT_KEY,
+  editTourDraftKey: denaliEditTourDraftKey,
   operatorDraftNamespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
   createWizardDraftSessionId: createDenaliWizardDraftSessionId,
   createDraftSchemaGate: createDenaliDraftSchemaGate,

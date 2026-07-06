@@ -3116,6 +3116,7 @@ export function generateWizardDraftShellBindings(manifests) {
       withSurface: (alias, m) => `
 export const createDenaliWizardDraftSessionId = ${alias}.createWizardDraftSessionId;
 export const DENALI_CREATE_TOUR_DRAFT_KEY = ${alias}.createTourDraftKey;
+export const denaliEditTourDraftKey = ${alias}.editTourDraftKey;
 export const DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE = ${alias}.operatorDraftNamespace;
 export const createDenaliDraftSchemaGate = ${alias}.createDraftSchemaGate;
 export const denaliHydrateDraftEnvelope = ${alias}.hydrateDraftEnvelope;
@@ -3144,6 +3145,62 @@ export function generateWizardCreateChromeBindings(manifests) {
 export const useDenaliCreateTourWizardCore = ${alias}.useCreateTourWizardCore;
 export const isDraftEssentiallyEmpty = ${alias}.isDraftEssentiallyEmpty;
 export type { DenaliCreateTourWizardScreen } from "@app-tour/workspace-denali/ui/chrome/wizard-create-chrome-surface";
+`,
+    }
+  );
+}
+
+export function generateWizardFlatEditChromeBindings(manifests) {
+  return generateSingleWorkspaceSurfaceBindings(
+    manifests,
+    "wizardFlatEditChrome",
+    "wizard_flat_edit_chrome",
+    "denaliWizardFlatEditChromeSurface",
+    {
+      empty: "",
+      withSurface: (alias, m) => `
+export const useDenaliFlatEditPageCore = ${alias}.useFlatEditPageCore;
+export const loadDenaliSubmitCatalogIds = ${alias}.loadSubmitCatalog;
+export type {
+  DenaliFlatEditTourDetail,
+  DenaliFlatEditTourLoadResult,
+} from "${importSpecifier(m.package, "./ui/chrome/wizard-flat-edit-chrome-surface")}";
+`,
+    }
+  );
+}
+
+export function generateWizardFlatEditFormBindings(manifests) {
+  return generateSingleWorkspaceSurfaceBindings(
+    manifests,
+    "wizardFlatEditForm",
+    "wizard_flat_edit_form",
+    "denaliWizardFlatEditFormSurface",
+    {
+      empty: "",
+      withSurface: (alias, m) => `
+export const DenaliFlatEditForm = ${alias}.FlatEditForm;
+export const DENALI_FLAT_EDIT_TEST_IDS = ${alias}.testIds;
+export type {
+  DenaliFlatEditFormProps,
+  DenaliTourWizardDraft,
+} from "${importSpecifier(m.package, "./ui/chrome/wizard-flat-edit-form-surface")}";
+`,
+    }
+  );
+}
+
+export function generateWizardFlatEditPageBindings(manifests) {
+  return generateSingleWorkspaceSurfaceBindings(
+    manifests,
+    "wizardFlatEditPage",
+    "wizard_flat_edit_page",
+    "denaliWizardFlatEditPageSurface",
+    {
+      empty: "",
+      withSurface: (alias) => `
+export const DenaliFlatEditPageView = ${alias}.FlatEditPageView;
+export const DenaliFlatEditValidationList = ${alias}.FlatEditValidationList;
 `,
     }
   );
@@ -3589,6 +3646,9 @@ export function generateAllOutputs(manifests) {
     wizardTemplatePresetBindings: generateWizardTemplatePresetBindings(manifests),
     wizardDraftShellBindings: generateWizardDraftShellBindings(manifests),
     wizardCreateChromeBindings: generateWizardCreateChromeBindings(manifests),
+    wizardFlatEditChromeBindings: generateWizardFlatEditChromeBindings(manifests),
+    wizardFlatEditFormBindings: generateWizardFlatEditFormBindings(manifests),
+    wizardFlatEditPageBindings: generateWizardFlatEditPageBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -3731,6 +3791,18 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-wizard-create-chrome-bindings.generated.ts"
   ),
+  wizardFlatEditChromeBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-flat-edit-chrome-bindings.generated.ts"
+  ),
+  wizardFlatEditFormBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-flat-edit-form-bindings.generated.ts"
+  ),
+  wizardFlatEditPageBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-flat-edit-page-bindings.generated.ts"
+  ),
   devPluginIds: join(
     REPO_ROOT,
     "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts"
@@ -3839,6 +3911,9 @@ function main() {
       "wizardTemplatePresetBindings",
       "wizardDraftShellBindings",
       "wizardCreateChromeBindings",
+      "wizardFlatEditChromeBindings",
+      "wizardFlatEditFormBindings",
+      "wizardFlatEditPageBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -3913,6 +3988,9 @@ function main() {
   writeFileSync(OUTPUT_PATHS.wizardTemplatePresetBindings, generated.wizardTemplatePresetBindings);
   writeFileSync(OUTPUT_PATHS.wizardDraftShellBindings, generated.wizardDraftShellBindings);
   writeFileSync(OUTPUT_PATHS.wizardCreateChromeBindings, generated.wizardCreateChromeBindings);
+  writeFileSync(OUTPUT_PATHS.wizardFlatEditChromeBindings, generated.wizardFlatEditChromeBindings);
+  writeFileSync(OUTPUT_PATHS.wizardFlatEditFormBindings, generated.wizardFlatEditFormBindings);
+  writeFileSync(OUTPUT_PATHS.wizardFlatEditPageBindings, generated.wizardFlatEditPageBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

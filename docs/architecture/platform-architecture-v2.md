@@ -837,6 +837,12 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 - `resolveSyncWorkspacePluginFromRegistry` in `workspace-plugin-loaders.generated.ts`.
 - `denali-wizard-rules`, `denali-wizard-template-preset`, `denali-wizard-draft-shell`, `use-denali-create-tour-wizard` — no direct `@app-tour/workspace-denali` imports.
 
+**Sprint 9 (2026-07-06) — C4 flat-edit orchestration:**
+
+- `wizardFlatEditChrome`, `wizardFlatEditForm`, `wizardFlatEditPage` manifest blocks → bootstrap bindings.
+- `wizardDraftShell` extended with `editTourDraftKey` for edit-draft namespace.
+- `use-denali-flat-edit-page`, `denali-flat-edit-form-shell`, `denali-flat-edit-page-client` — no direct `@app-tour/workspace-denali` imports.
+
 **Remaining:**
 
 - Shrink P0-T-161 allowlist (~70 denali shell orchestration files) as orchestration migrates to bindings.

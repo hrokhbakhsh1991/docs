@@ -3,23 +3,24 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { DraftSchemaGate } from "@app-tour/draft-engine";
+import type { UpdateTourPayload } from "@app-tour/workspace-sdk";
+
+import { isOwnerRole, type OperatorSessionContext } from "@/admin/require-operator-session";
+import { resolveSyncWorkspacePluginFromRegistry } from "@/bootstrap/workspace-plugin-loaders.generated";
 import {
-  createDenaliWizardDraftSessionId,
   createDenaliDraftSchemaGate,
+  createDenaliWizardDraftSessionId,
   denaliEditTourDraftKey,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
-} from "@app-tour/workspace-denali/draft";
-import type { DraftSchemaGate } from "@app-tour/draft-engine";
-import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
-import type { UpdateTourPayload } from "@app-tour/workspace-sdk";
-import { loadDenaliSubmitCatalogIds } from "@app-tour/workspace-denali/ui/adapters/submit-catalog-fetch";
+  resolveDenaliDraftMerge,
+} from "@/bootstrap/workspace-wizard-draft-shell-bindings.generated";
 import {
+  loadDenaliSubmitCatalogIds,
   useDenaliFlatEditPageCore,
   type DenaliFlatEditTourDetail,
   type DenaliFlatEditTourLoadResult,
-} from "@app-tour/workspace-denali/ui/chrome/use-flat-edit-page-core";
-
-import { isOwnerRole, type OperatorSessionContext } from "@/admin/require-operator-session";
+} from "@/bootstrap/workspace-wizard-flat-edit-chrome-bindings.generated";
 import { normalizeDenaliRemoteEnvelope } from "@/draft/denali-draft-normalize-remote";
 import type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
 import { resolveDraftUnificationV3Mode } from "@/draft/draft-unification-v3";
@@ -27,7 +28,6 @@ import {
   createDenaliDraftOnPushSuccess,
   resolveDenaliDraftConflictStrategy,
 } from "@/draft/draft-unification-v3-options";
-import { resolveDenaliDraftMerge } from "@app-tour/workspace-denali/draft";
 import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import { parseLocationsResponse } from "@/features/settings/locations-logic";
@@ -50,7 +50,9 @@ const INITIAL_GATE: WizardTemplateGateState = {
   fieldOverlays: new Map(),
   seedLabel: "",
   fieldRulesOverlay: {},
-  workspaceFormProfile: resolveInitialWorkspaceFormProfile(getDenaliWorkspacePlugin()),
+  workspaceFormProfile: resolveInitialWorkspaceFormProfile(
+    resolveSyncWorkspacePluginFromRegistry("denali")
+  ),
 };
 
 function toFlatEditTourDetail(detail: OperatorTourDetailResponse): DenaliFlatEditTourDetail {
@@ -76,7 +78,7 @@ export type UseDenaliFlatEditPageInput = {
 export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPageInput) {
   const appSession = useAppSession();
   const router = useRouter();
-  const plugin = useMemo(() => getDenaliWorkspacePlugin(), []);
+  const plugin = useMemo(() => resolveSyncWorkspacePluginFromRegistry("denali"), []);
   const wizardSessionId = useMemo(() => createDenaliWizardDraftSessionId(), []);
   const editDraftKey = useMemo(() => denaliEditTourDraftKey(tourId), [tourId]);
   const envelopeMeta = useMemo(() => ({ currentStepIndex: 0, wizardSessionId }), [wizardSessionId]);

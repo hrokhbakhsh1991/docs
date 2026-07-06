@@ -265,6 +265,18 @@
       "types": "./dist/ui/chrome/wizard-create-chrome-surface.d.ts",
       "default": "./dist/ui/chrome/wizard-create-chrome-surface.js"
     },
+    "./ui/chrome/wizard-flat-edit-chrome-surface": {
+      "types": "./dist/ui/chrome/wizard-flat-edit-chrome-surface.d.ts",
+      "default": "./dist/ui/chrome/wizard-flat-edit-chrome-surface.js"
+    },
+    "./ui/chrome/wizard-flat-edit-form-surface": {
+      "types": "./dist/ui/chrome/wizard-flat-edit-form-surface.d.ts",
+      "default": "./dist/ui/chrome/wizard-flat-edit-form-surface.js"
+    },
+    "./ui/chrome/wizard-flat-edit-page-surface": {
+      "types": "./dist/ui/chrome/wizard-flat-edit-page-surface.d.ts",
+      "default": "./dist/ui/chrome/wizard-flat-edit-page-surface.js"
+    },
     "./ui/operator-ui-components-surface": {
       "types": "./dist/ui/operator-ui-components-surface.d.ts",
       "default": "./dist/ui/operator-ui-components-surface.js"

@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback } from "react";
 
-import { DenaliFlatEditPageView } from "@app-tour/workspace-denali/ui/flat-edit";
-import { DenaliFlatEditValidationList } from "@app-tour/workspace-denali/ui/chrome/denali-flat-edit-validation-list";
+import {
+  DenaliFlatEditPageView,
+  DenaliFlatEditValidationList,
+} from "@/bootstrap/workspace-wizard-flat-edit-page-bindings.generated";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";

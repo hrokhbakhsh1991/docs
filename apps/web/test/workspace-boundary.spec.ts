@@ -35,6 +35,9 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-wizard-template-preset-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-draft-shell-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-create-chrome-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-chrome-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-form-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-page-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {
@@ -45,19 +48,10 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
   if (rel.startsWith("src/wizard/denali/")) {
     return true;
   }
-  if (
-    rel === "src/wizard/use-denali-flat-edit-page.ts" ||
-    rel === "src/wizard/denali-flat-edit-form-shell.tsx"
-  ) {
-    return true;
-  }
   if (rel.startsWith("src/bootstrap/resolve-bootstrap-workspace-plugin")) {
     return true;
   }
   if (rel === "app/tours/new/denali-create-tour-wizard-client.tsx") {
-    return true;
-  }
-  if (rel.endsWith("denali-flat-edit-page-client.tsx")) {
     return true;
   }
   if (rel.startsWith("src/tours/")) {
@@ -204,7 +198,8 @@ describe("Phase 3.3 workspace boundary", () => {
       join(SRC_DIR, "wizard/use-denali-flat-edit-page.ts"),
       "utf8"
     );
-    assert.match(flatEditHook, /@app-tour\/workspace-denali\/ui\/adapters\/submit-catalog-fetch/);
+    assert.match(flatEditHook, /workspace-wizard-flat-edit-chrome-bindings\.generated/);
+    assert.match(flatEditHook, /loadDenaliSubmitCatalogIds/);
     assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-catalog-sanitize.ts")));
   });
 
@@ -226,14 +221,16 @@ describe("Phase 3.3 workspace boundary", () => {
     const binding = readFileSync(join(SRC_DIR, "wizard/denali-wizard-draft-shell.ts"), "utf8");
     assert.match(binding, /workspace-wizard-draft-shell-bindings\.generated/);
     const flatEdit = readFileSync(join(SRC_DIR, "wizard/denali-flat-edit-form-shell.tsx"), "utf8");
-    assert.match(flatEdit, /@app-tour\/workspace-denali\/ui\/chrome\/denali-flat-edit-form/);
+    assert.match(flatEdit, /workspace-wizard-flat-edit-form-bindings\.generated/);
     const createClient = readFileSync(join(APP_DIR, "tours/new/denali-create-tour-wizard-client.tsx"), "utf8");
     assert.match(createClient, /@app-tour\/workspace-denali\/ui\/create-wizard/);
     const flatEditClient = readFileSync(
       join(APP_DIR, "(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx"),
       "utf8"
     );
-    assert.match(flatEditClient, /@app-tour\/workspace-denali\/ui\/flat-edit/);
+    assert.match(flatEditClient, /workspace-wizard-flat-edit-page-bindings\.generated/);
+    const flatEditHook = readFileSync(join(SRC_DIR, "wizard/use-denali-flat-edit-page.ts"), "utf8");
+    assert.match(flatEditHook, /workspace-wizard-flat-edit-chrome-bindings\.generated/);
   });
 
   it("P15-W-C2 denali package fields use local adapters (no shell @/ imports)", () => {
@@ -294,7 +291,7 @@ describe("Phase 3.3 workspace boundary", () => {
       const source = readFileSync(join(SRC_DIR, "wizard", name), "utf8");
       importCount += (source.match(/from "@\//g) ?? []).length;
     }
-    assert.ok(importCount <= 38, `denali @/ imports=${importCount}, max=38`);
+    assert.ok(importCount <= 42, `denali @/ imports=${importCount}, max=42`);
   });
 
   it("P15-W-B3 draft unification wiring is present (ops smoke remains manual)", () => {

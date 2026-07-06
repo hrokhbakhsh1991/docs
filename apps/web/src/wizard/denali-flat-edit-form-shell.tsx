@@ -4,14 +4,12 @@ import {
   DenaliFlatEditForm as DenaliFlatEditFormCore,
   DENALI_FLAT_EDIT_TEST_IDS,
   type DenaliFlatEditFormProps as DenaliFlatEditFormCoreProps,
-} from "@app-tour/workspace-denali/ui/chrome/denali-flat-edit-form";
-
+  type DenaliTourWizardDraft as TourWizardDraft,
+} from "@/bootstrap/workspace-wizard-flat-edit-form-bindings.generated";
 import {
   applyWizardTemplateToRenderPlan,
   filterRenderPlanByCanonicalPaths,
 } from "@/tours/wizard-template-gate-logic";
-
-import type { DenaliTourWizardDraft as TourWizardDraft } from "@app-tour/workspace-denali/draft/tour-wizard";
 
 import { WizardField } from "./wizard-field";
 
