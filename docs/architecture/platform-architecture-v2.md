@@ -913,7 +913,7 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F7 (done):** `guard-admin-feature-appearance-ast` — admin feature TSX (`patterns/`, `dashboard/`, `onboarding/`) bans palette scale + arbitrary hex in `className`; semantic shadcn tokens allowed.
 
-**F8 (F8-1–2 done):** CSS-hook purge — timeline, KPI, skeleton (`size` presets), empty-state.
+**F8 (F8-1–3 done):** CSS-hook purge — timeline, KPI, skeleton, empty-state, page-header, settings-page-header.
 
 **F9+ (next):** continue F8 registry; `ThemeProviderChain` vs CSS precedence.
 

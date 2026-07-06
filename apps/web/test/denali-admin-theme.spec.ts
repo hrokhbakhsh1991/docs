@@ -100,8 +100,21 @@ describe("denali-admin-theme.spec.ts", () => {
     assert.match(kpiCell, /data-denali-kpi/);
     assert.match(kpiCell, /data-denali-kpi-label/);
     assert.doesNotMatch(kpiCell, /className=/);
+    const pageHeader = readFileSync(
+      join(import.meta.dirname, "../src/admin/patterns/page-header.tsx"),
+      "utf8"
+    );
+    const settingsHeader = readFileSync(
+      join(import.meta.dirname, "../src/admin/patterns/settings-page-header.tsx"),
+      "utf8"
+    );
+    assert.match(pageHeader, /data-denali-page-header/);
+    assert.doesNotMatch(pageHeader, /className=/);
+    assert.match(settingsHeader, /data-denali-settings-back-link/);
+    assert.doesNotMatch(settingsHeader, /className=/);
     const skin = readFileSync(join(DENALI_THEME_DIR, "admin-skin.css"), "utf8");
     assert.match(skin, /\[data-denali-empty-state\]/);
+    assert.match(skin, /\[data-denali-page-header\]/);
     assert.match(skin, /\[data-operator-nav-cta\]/);
   });
 
