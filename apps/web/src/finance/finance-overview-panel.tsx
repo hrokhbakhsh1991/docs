@@ -120,7 +120,7 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <DenaliSkeleton key={index} className="h-24 w-full rounded-xl" />
+            <DenaliSkeleton key={index} size="user-card" />
           ))}
         </div>
       ) : null}

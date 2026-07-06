@@ -392,8 +392,8 @@ export function BookingsPageClient({
 
       {bodyState.type === "loading" ? (
         <div className="space-y-3">
-          <DenaliSkeleton className="h-24 w-full" />
-          <DenaliSkeleton className="h-48 w-full" />
+          <DenaliSkeleton size="block" />
+          <DenaliSkeleton size="panel" />
         </div>
       ) : null}
 

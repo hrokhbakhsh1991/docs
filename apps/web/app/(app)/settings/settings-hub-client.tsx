@@ -81,8 +81,8 @@ export function SettingsHubClient({
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">
-          <DenaliSkeleton className="h-28 w-full rounded-xl" />
-          <DenaliSkeleton className="h-28 w-full rounded-xl" />
+          <DenaliSkeleton size="settings-card" />
+          <DenaliSkeleton size="settings-card" />
         </div>
       ) : null}
 

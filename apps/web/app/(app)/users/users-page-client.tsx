@@ -820,7 +820,7 @@ export function UsersPageClient({
       {bodyState.type === "loading" ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, index) => (
-            <DenaliSkeleton key={index} className="h-24 w-full rounded-xl" />
+            <DenaliSkeleton key={index} size="user-card" />
           ))}
         </div>
       ) : null}

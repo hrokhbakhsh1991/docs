@@ -10,28 +10,28 @@ type ToursListToolbarSkeletonProps = {
 export function ToursListToolbarSkeleton({ hasCategoryFilter = false }: ToursListToolbarSkeletonProps) {
   return (
     <div className="space-y-4" data-testid={TOURS_LIST_TEST_IDS.toolbarSkeleton}>
-      <DenaliSkeleton className="h-10 w-full max-w-xl rounded-md" />
+      <DenaliSkeleton size="search" />
 
       <div className="flex flex-wrap gap-2">
-        <DenaliSkeleton className="h-9 w-14 rounded-md" />
-        <DenaliSkeleton className="h-9 w-20 rounded-md" />
-        <DenaliSkeleton className="h-9 w-16 rounded-md" />
-        <DenaliSkeleton className="h-9 w-20 rounded-md" />
+        <DenaliSkeleton size="chip-xs" />
+        <DenaliSkeleton size="chip-md" />
+        <DenaliSkeleton size="chip-sm" />
+        <DenaliSkeleton size="chip-md" />
       </div>
 
       {hasCategoryFilter ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <DenaliSkeleton className="h-4 w-24 rounded-md" />
-            <DenaliSkeleton className="h-9 w-16 rounded-md" />
+            <DenaliSkeleton size="label-lg" />
+            <DenaliSkeleton size="chip-sm" />
           </div>
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <DenaliSkeleton className="h-4 w-20 rounded-md" />
+              <DenaliSkeleton size="label-md" />
               <div className="flex flex-wrap gap-1">
-                <DenaliSkeleton className="h-9 w-24 rounded-md" />
-                <DenaliSkeleton className="h-9 w-28 rounded-md" />
-                <DenaliSkeleton className="h-9 w-20 rounded-md" />
+                <DenaliSkeleton size="chip-lg" />
+                <DenaliSkeleton size="chip-xl" />
+                <DenaliSkeleton size="chip-md" />
               </div>
             </div>
           ))}
@@ -39,11 +39,11 @@ export function ToursListToolbarSkeleton({ hasCategoryFilter = false }: ToursLis
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        <DenaliSkeleton className="h-4 w-16 rounded-md" />
-        <DenaliSkeleton className="h-9 w-24 rounded-md" />
-        <DenaliSkeleton className="h-9 w-28 rounded-md" />
-        <DenaliSkeleton className="h-9 w-20 rounded-md" />
-        <DenaliSkeleton className="h-9 w-28 rounded-md" />
+        <DenaliSkeleton size="label-sm" />
+        <DenaliSkeleton size="chip-lg" />
+        <DenaliSkeleton size="chip-xl" />
+        <DenaliSkeleton size="chip-md" />
+        <DenaliSkeleton size="chip-xl" />
       </div>
     </div>
   );
@@ -57,25 +57,25 @@ export function TourCardSkeleton() {
       className="flex h-full flex-col overflow-hidden shadow-sm"
       data-testid={TOURS_LIST_TEST_IDS.cardSkeleton}
     >
-      <DenaliSkeleton className="aspect-[16/9] w-full rounded-none" />
+      <DenaliSkeleton size="hero" />
       <CardHeader className="space-y-3 pb-2">
         <div className="flex flex-wrap items-center gap-2">
-          <DenaliSkeleton className="h-5 w-14 rounded-full" />
-          <DenaliSkeleton className="h-5 w-20 rounded-full" />
-          <DenaliSkeleton className="h-5 w-16 rounded-full" />
+          <DenaliSkeleton size="badge-sm" />
+          <DenaliSkeleton size="badge-lg" />
+          <DenaliSkeleton size="badge-md" />
         </div>
-        <DenaliSkeleton className="h-6 w-4/5 max-w-full rounded-md" />
-        <DenaliSkeleton className="h-4 w-3/5 max-w-full rounded-md" />
+        <DenaliSkeleton size="title" />
+        <DenaliSkeleton size="subtitle" />
       </CardHeader>
       <CardContent className="flex-1 space-y-2">
-        <DenaliSkeleton className="h-3 w-full rounded-md" />
-        <DenaliSkeleton className="h-3 w-full rounded-md" />
-        <DenaliSkeleton className="h-3 w-2/3 rounded-md" />
+        <DenaliSkeleton size="line-full" />
+        <DenaliSkeleton size="line-full" />
+        <DenaliSkeleton size="line-partial" />
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
-        <DenaliSkeleton className="h-9 w-20 rounded-md" />
-        <DenaliSkeleton className="h-9 w-24 rounded-md" />
-        <DenaliSkeleton className="h-9 w-16 rounded-md" />
+        <DenaliSkeleton size="chip-md" />
+        <DenaliSkeleton size="chip-lg" />
+        <DenaliSkeleton size="chip-sm" />
       </CardFooter>
     </Card>
   );

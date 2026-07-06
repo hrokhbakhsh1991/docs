@@ -91,8 +91,8 @@ export function DashboardToursWidget({ initialTours = null }: DashboardToursWidg
     >
       {loading ? (
         <div className="space-y-2">
-          <DenaliSkeleton className="h-11 w-full" />
-          <DenaliSkeleton className="h-11 w-full" />
+          <DenaliSkeleton size="row" />
+          <DenaliSkeleton size="row" />
         </div>
       ) : null}
       {!loading && error ? (

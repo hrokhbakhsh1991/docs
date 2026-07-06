@@ -89,9 +89,9 @@ export function FinanceDashboardWidget({
     >
       {loading ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <DenaliSkeleton className="h-[5.25rem] w-full" />
-          <DenaliSkeleton className="h-[5.25rem] w-full" />
-          <DenaliSkeleton className="h-[5.25rem] w-full" />
+          <DenaliSkeleton size="kpi" />
+          <DenaliSkeleton size="kpi" />
+          <DenaliSkeleton size="kpi" />
         </div>
       ) : null}
       {!loading && error ? (

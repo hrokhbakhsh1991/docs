@@ -14,6 +14,8 @@ const ts = guardRequire("typescript");
 export const ADMIN_FEATURE_PURGED_FILES = [
   "apps/web/src/admin/patterns/booking-activity-timeline.tsx",
   "apps/web/src/admin/patterns/dashboard-kpi-cell.tsx",
+  "apps/web/src/admin/patterns/denali-skeleton.tsx",
+  "apps/web/src/admin/patterns/denali-empty-state.tsx",
 ];
 
 /** @type {readonly string[]} */

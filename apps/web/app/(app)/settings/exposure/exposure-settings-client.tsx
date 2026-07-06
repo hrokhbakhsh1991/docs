@@ -337,7 +337,7 @@ export function ExposureSettingsClient({
                 </CardHeader>
                 <CardContent className="pt-6">
                   {loadingDetail || activeItem === null ? (
-                    <DenaliSkeleton className="h-40 w-full rounded-lg" />
+                    <DenaliSkeleton size="panel-lg" />
                   ) : detailError !== null ? (
                     <p className="text-sm text-muted-foreground">{t("detailLoadFailed")}</p>
                   ) : catalogError !== null || !catalogReady ? (
@@ -409,7 +409,7 @@ export function ExposureSettingsClient({
                 </CardHeader>
                 <CardContent className="pt-6">
                   {loadingDetail || activeItem === null ? (
-                    <DenaliSkeleton className="h-40 w-full rounded-lg" />
+                    <DenaliSkeleton size="panel-lg" />
                   ) : detailError !== null ? (
                     <p className="text-sm text-muted-foreground">{t("detailLoadFailed")}</p>
                   ) : catalogError !== null || !catalogReady ? (

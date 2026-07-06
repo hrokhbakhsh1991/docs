@@ -81,6 +81,15 @@ body[data-workspace-plugin="denali"] [data-denali-empty-state] [data-denali-empt
   color: var(--color-primary);
 }
 
+body[data-workspace-plugin="denali"] [data-denali-empty-state] [data-denali-empty-state-icon] svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+body[data-workspace-plugin="denali"] [data-denali-empty-state] [data-denali-empty-state-action] {
+  padding-top: 0.25rem;
+}
+
 body[data-workspace-plugin="denali"] [data-denali-empty-state] [data-denali-empty-state-text] {
   margin: 0;
   font-size: 0.875rem;

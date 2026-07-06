@@ -90,10 +90,10 @@ export function DashboardBookingsWidget({
     >
       {loading ? (
         <div className={DASHBOARD_KPI_GRID_CLASS}>
-          <DenaliSkeleton className="h-[5.25rem] w-full" />
-          <DenaliSkeleton className="h-[5.25rem] w-full" />
-          <DenaliSkeleton className="h-[5.25rem] w-full" />
-          <DenaliSkeleton className="h-[5.25rem] w-full" />
+          <DenaliSkeleton size="kpi" />
+          <DenaliSkeleton size="kpi" />
+          <DenaliSkeleton size="kpi" />
+          <DenaliSkeleton size="kpi" />
         </div>
       ) : null}
       {!loading && error ? (

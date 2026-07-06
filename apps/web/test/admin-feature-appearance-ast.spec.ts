@@ -39,6 +39,8 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
     assert.deepEqual(ADMIN_FEATURE_PURGED_FILES, [
       "apps/web/src/admin/patterns/booking-activity-timeline.tsx",
       "apps/web/src/admin/patterns/dashboard-kpi-cell.tsx",
+      "apps/web/src/admin/patterns/denali-skeleton.tsx",
+      "apps/web/src/admin/patterns/denali-empty-state.tsx",
     ]);
   });
 
@@ -47,18 +49,23 @@ describe("admin-feature-appearance-ast.spec.ts", () => {
     assert.deepEqual(violations, []);
   });
 
-  it("F8-03 booking timeline and KPI hooks wired in admin skin", () => {
+  it("F8-03 booking timeline, KPI, skeleton, and empty-state hooks in theme CSS", () => {
     const skin = readFileSync(
       `${REPO_ROOT}/packages/workspaces/denali/theme/admin-skin.css`,
       "utf8",
     );
+    const animations = readFileSync(
+      `${REPO_ROOT}/packages/workspaces/denali/theme/animations.css`,
+      "utf8",
+    );
     for (const hook of [
       "[data-booking-timeline-dot]",
-      "[data-booking-timeline-label]",
       "[data-denali-kpi-label]",
-      "[data-denali-kpi-value]",
+      "[data-denali-empty-state-action]",
     ]) {
       assert.match(skin, new RegExp(hook.replace(/[[\]]/g, "\\$&")));
     }
+    assert.match(animations, /\[data-denali-skeleton-size="kpi"\]/);
+    assert.match(animations, /\[data-denali-skeleton-size="hero"\]/);
   });
 });

@@ -89,7 +89,10 @@ describe("denali-admin-theme.spec.ts", () => {
       "utf8"
     );
     assert.match(skeleton, /data-denali-skeleton="shimmer"/);
+    assert.match(skeleton, /data-denali-skeleton-size/);
+    assert.doesNotMatch(skeleton, /className=/);
     assert.match(empty, /data-denali-empty-state/);
+    assert.doesNotMatch(empty, /className=/);
     const kpiCell = readFileSync(
       join(import.meta.dirname, "../src/admin/patterns/dashboard-kpi-cell.tsx"),
       "utf8"

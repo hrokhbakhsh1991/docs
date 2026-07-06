@@ -25,10 +25,10 @@ export function DenaliEmptyState({
   return (
     <div data-denali-empty-state>
       <div data-denali-empty-state-icon aria-hidden>
-        <Icon className="h-5 w-5" />
+        <Icon />
       </div>
       <p data-denali-empty-state-text>{description}</p>
-      {action ? <div className="pt-1">{action}</div> : null}
+      {action ? <div data-denali-empty-state-action>{action}</div> : null}
     </div>
   );
 }

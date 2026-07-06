@@ -31,6 +31,8 @@ Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge
 
 **TSX (F8-1 purged):** `booking-activity-timeline.tsx`, `dashboard-kpi-cell.tsx` — zero `className`; styling via `data-booking-timeline-*` / `data-denali-kpi-*` in `admin-skin.css`.
 
+**TSX (F8-2 purged):** `denali-skeleton.tsx` (`size` prop → `data-denali-skeleton-size` in `animations.css`); `denali-empty-state.tsx` (`data-denali-empty-state-*` in `admin-skin.css`).
+
 ## Host wiring
 
 1. `apps/web/app/layout.tsx` — `data-workspace-plugin` on `<body>`; imports `denali-admin.css`
@@ -47,7 +49,7 @@ Roadmap draft used `html[data-workspace="denali"]`. Implementation uses **`body[
 |-----------|-----|
 | `data-denali-surface="card"` | KPI/settings cards — hover lift |
 | `data-denali-animate="fade-up"` | Dashboard stagger entrance |
-| `data-denali-skeleton="shimmer"` | Loading placeholders (`DenaliSkeleton`) |
+| `data-denali-skeleton="shimmer"` | Loading placeholders (`DenaliSkeleton` — `size` prop → `data-denali-skeleton-size`) |
 | `data-denali-empty-state` | Illustrated empty blocks (`DenaliEmptyState`) |
 | `data-denali-quick-actions` | Dashboard shortcut row in `PageHeader` actions |
 | `data-operator-dashboard-grid` | Responsive 12-col widget grid — equal-height slots |
