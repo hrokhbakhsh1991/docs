@@ -352,7 +352,7 @@ Run checklist § Phase F closure checklist (build, guards, specs) — Architect 
 | Gate | Command / artifact |
 | ---- | ------------------ |
 | Build | `pnpm --filter @app-tour/design-tokens run build` |
-| Unit specs | `pnpm --filter @app-tour/design-tokens test` (E + F1–F6 + closure) · `pnpm --filter @apps/web exec node --import tsx --test test/admin-feature-appearance-ast.spec.ts` (F7–F8) |
+| Unit specs | `pnpm --filter @app-tour/design-tokens test` (E + F1–F6 + F9 + closure) · `pnpm --filter @apps/web exec node --import tsx --test test/admin-feature-appearance-ast.spec.ts test/denali-admin-theme.spec.ts` (F7–F9) |
 | DTCG token guard | `node scripts/guards/guard-dtcg-tokens.mjs` |
 | CSS sync | `node scripts/guards/guard-dtcg-css-sync.mjs` |
 | Hex ban | `node scripts/guards/guard-dtcg-hex-ban.mjs` |

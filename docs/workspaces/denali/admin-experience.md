@@ -27,15 +27,21 @@ Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge
 | `animations.css` | `denali-fade-up`, skeleton shimmer (`prefers-reduced-motion` safe) |
 | `tokens.css` | @generated — workspace brand contract |
 
-**TSX (F7):** `patterns/`, `dashboard/`, `onboarding/` may use semantic shadcn classes unless listed in the F8 purged registry.
+**TSX (F7):** non-purged feature TSX under `patterns/`, `dashboard/`, `onboarding/` may use semantic shadcn classes only (palette ban).
 
-**TSX (F8-1 purged):** `booking-activity-timeline.tsx`, `dashboard-kpi-cell.tsx` — zero `className`; styling via `data-booking-timeline-*` / `data-denali-kpi-*` in `admin-skin.css`.
+**TSX (F8 done — 17/17 purged):** all feature TSX in `patterns/`, `dashboard/`, `onboarding/` — zero `className`; hooks in `admin-skin.css`. Sprint highlights:
 
-**TSX (F8-2 purged):** `denali-skeleton.tsx` (`size` → `data-denali-skeleton-size`); `denali-empty-state.tsx` (`data-denali-empty-state-*`).
+| Sprint | Files | Hooks |
+| ------ | ----- | ----- |
+| F8-1 | `booking-activity-timeline`, `dashboard-kpi-cell` | `data-booking-timeline-*`, `data-denali-kpi-*` |
+| F8-2 | `denali-skeleton`, `denali-empty-state` | `data-denali-skeleton-size`, `data-denali-empty-state-*` |
+| F8-3 | `page-header`, `settings-page-header` | `data-denali-page-header-*`, `data-denali-settings-*` |
+| F8-4 | `dashboard-widget-card` | `data-denali-dashboard-widget-*`, KPI grids |
+| F8-5 | `dashboard-*-widget` (×4) | `DashboardWidgetError`, list row helpers |
+| F8-6 | `denali-confirm-dialog`, `operator-welcome-dialog` | `data-denali-confirm-*`, `data-denali-welcome-*` |
+| F8-7 | `tour-category-badge`, `operator-profile-avatar` | `data-denali-category-badge`, `data-denali-profile-avatar-size` |
 
-**TSX (F8-3 purged):** `page-header.tsx`, `settings-page-header.tsx` — `data-denali-page-header-*` / `data-denali-settings-*`.
-
-**TSX (F8-4 purged):** `dashboard-widget-card.tsx` — widget shell + `DashboardKpiGrid` / `DashboardFinanceKpiGrid`.
+**F9 (done):** `guard-denali-admin-dark-primary` — dark `--color-primary` `#5eead4` ≠ platform `#5b9fd4`; precedence table in [dtcg-pipeline-spec § F9](../../dev/dtcg-pipeline-spec.mdoc).
 
 ## Host wiring
 
@@ -123,6 +129,8 @@ Without (2), shadcn `bg-primary` buttons (sidebar CTA) keep platform blue in dar
 ```bash
 pnpm --filter @app-tour/workspace-denali test
 pnpm --filter @apps/web test -- test/denali-admin-theme.spec.ts
+node scripts/guards/guard-denali-admin-dark-primary.mjs
+node scripts/guards/guard-admin-feature-appearance-ast.mjs
 ```
 
 Manual: `http://denali.localhost:3000/dashboard` — primary buttons teal-green, not platform blue `#1e5a8e`.
@@ -141,7 +149,7 @@ cd apps/web && PW_EXTERNAL_SERVERS=1 PLAYWRIGHT_BASE_URL=http://denali.localhost
   npx playwright test -c playwright.operator.config.ts -g "SMK-P9-DENALI-THEME|SMK-P9-WIZARD-THEME"
 ```
 
-Unit contracts: `apps/web/test/denali-admin-theme.spec.ts` (bootstrap + CSS bundle), `denali-wizard-theme.spec.ts` (wizard bridge).
+Unit contracts: `apps/web/test/denali-admin-theme.spec.ts` (bootstrap + CSS bundle incl. `WEB-DENALI-THEME-14` F9-2), `denali-wizard-theme.spec.ts` (wizard bridge).
 
 Dev DB branding must match `#0f766e` — re-run `pnpm --filter @apps/api run db:seed` if tenant-config still returns legacy `#059669`.
 

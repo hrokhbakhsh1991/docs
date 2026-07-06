@@ -1045,9 +1045,9 @@ Phase E is **closed** for guest marketing skin semantics and hooks:
 2. Marketing/portal hooks + denali **shell + 28 component partials** — no raw `#` hex.
 3. Denali overlay palette (`--mkt-*`) — DTCG authority in `denali.marketing.tokens.json`.
 
-**Still hand-maintained:** admin feature TSX semantic Tailwind (F7 guards palette/hex; F8+ full CSS-hook purge).
+**Still hand-maintained:** tenant inline dark primary on `TenantThemeProvider` (C4 — see [dtcg-pipeline-spec § F9](../dev/dtcg-pipeline-spec.mdoc)); Phase F formal closure gate run.
 
-**Continue Phase F** — F7 palette guard done; F8 incremental CSS-hook purge in progress.
+**Phase F (F1–F9 done):** admin DTCG semantics, hook hex ban, feature AST guards, 17/17 CSS-hook purge, ThemeProviderChain precedence + `guard-denali-admin-dark-primary`.
 
 ---
 
