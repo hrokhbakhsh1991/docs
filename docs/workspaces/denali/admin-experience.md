@@ -17,11 +17,15 @@ Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge
 
 | File | Role |
 |------|------|
-| `packages/workspaces/denali/theme/denali-admin.css` | Bundle entry (`@import` skin + motion + tokens) |
-| `admin-skin.css` | Platform `--color-*` + shadcn `--primary`, `--sidebar-*`, radius, mist surfaces |
-| `interactions.css` | Motion tokens, button press, nav transitions, card hover |
+| `packages/workspaces/denali/theme/denali-admin.css` | Bundle entry (`@import` skin + motion + wizard) |
+| `admin-semantic-tokens.css` | @generated — admin light/dark semantics (`denali.admin.tokens.json`) |
+| `admin-skin.css` | Hook — layout/sidebar/bookings; `@import` semantic layer |
+| `wizard-semantic-tokens.css` | @generated — tone swatch palette (`denali.wizard.tokens.json`) |
+| `wizard-fields.css` | Hook — field composites; `@import` wizard semantic layer |
+| `finance-skin.css` / `wizard-skin.css` / `wizard-calendar.css` | Hooks — reference admin semantic vars |
+| `interactions.css` | Motion tokens, button press, nav transitions |
 | `animations.css` | `denali-fade-up`, skeleton shimmer (`prefers-reduced-motion` safe) |
-| `tokens.css` | Contract `--ws-color-accent` only |
+| `tokens.css` | @generated — workspace brand contract |
 
 ## Host wiring
 

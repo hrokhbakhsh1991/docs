@@ -541,15 +541,8 @@
   "files": [
     "dist",
     "messages",
-    "theme/tokens.css",
-    "theme/denali-admin.css",
-    "theme/denali-portal.css",
-    "theme/denali-marketing.css",
-    "theme/marketing",
-    "design-language",
-    "theme/admin-skin.css",
-    "theme/interactions.css",
-    "theme/animations.css"
+    "theme",
+    "design-language"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.ui.json",

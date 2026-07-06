@@ -3,7 +3,18 @@
  * Dark semantics: operator-admin-dark-semantics.css (DTCG build output).
  */
 @import "./operator-admin-dark-semantics.css";
-@import "./guest-body-reset.css";
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-family-base);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+html[dir="rtl"] body {
+  text-align: start;
+}
 
 /* Phase 3 shell */
 .app-shell__header {

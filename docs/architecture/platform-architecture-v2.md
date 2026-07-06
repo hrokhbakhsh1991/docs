@@ -909,7 +909,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F6 (done):** `operator-admin-dark-semantics.css` from `platform.dark.tokens.json`; `operator-admin-appearance.css` hook-only.
 
-**F7+ (next):** admin feature TSX AST guards; `operator-shell-structure.css`.
+**F closure (done):** bootstrap CSS-G-02 fix (inline admin body reset); `operator-shell-structure.css` hex ban; denali `theme/` npm pack set; `dtcg-f-closure.spec.mjs`.
+
+**F7+ (next):** admin feature TSX AST guards; `ThemeProviderChain` vs CSS precedence.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -1024,7 +1026,7 @@ Phase E is **closed** for guest marketing skin semantics and hooks:
 2. Marketing/portal hooks + denali **shell + 28 component partials** — no raw `#` hex.
 3. Denali overlay palette (`--mkt-*`) — DTCG authority in `denali.marketing.tokens.json`.
 
-**Still hand-maintained:** admin feature TSX Tailwind; `operator-shell-structure.css` dev banner.
+**Still hand-maintained:** admin feature TSX Tailwind.
 
 **Continue Phase F** — F6 admin dark decomposition done; F7+ feature TSX guards.
 

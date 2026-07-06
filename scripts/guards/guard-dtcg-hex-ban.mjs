@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Phase E3–E5 — DTCG outputs must be @generated; skin hooks must not contain raw # hex.
+ * Phase E3–F6 — DTCG outputs must be @generated; skin/platform hooks must not contain raw # hex.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -100,6 +100,11 @@ function auditPlatformHookCss(filePath, label) {
 auditPlatformHookCss(
   path.join(REPO_ROOT, "packages/design-tokens/src/operator-admin-appearance.css"),
   "packages/design-tokens/src/operator-admin-appearance.css",
+);
+
+auditPlatformHookCss(
+  path.join(REPO_ROOT, "packages/design-tokens/src/operator-shell-structure.css"),
+  "packages/design-tokens/src/operator-shell-structure.css",
 );
 
 if (!existsSync(WORKSPACES_ROOT)) {

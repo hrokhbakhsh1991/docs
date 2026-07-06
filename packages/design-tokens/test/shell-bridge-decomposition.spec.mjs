@@ -27,6 +27,8 @@ describe("shell-bridge-decomposition.spec.mjs", () => {
   it("D1-02 operator shell structure is admin-bootstrap only", () => {
     const structure = readSrc("operator-shell-structure.css");
     assert.match(structure, /\[data-operator-shell\]/);
+    assert.equal(structure.match(/#[0-9a-fA-F]{3,8}\b/g), null);
+    assert.match(structure, /\[data-operator-impersonation-banner\][\s\S]*var\(--color-warning\)/);
     const adminBootstrap = readSrc("admin-bootstrap.css");
     assert.match(adminBootstrap, /operator-shell-structure\.css/);
     const portalBootstrap = readSrc("portal-bootstrap.css");

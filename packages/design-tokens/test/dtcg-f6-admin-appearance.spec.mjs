@@ -42,14 +42,16 @@ describe("dtcg-f6-admin-appearance.spec.mjs", () => {
       "utf8",
     );
     assert.match(appearance, /@import "\.\/operator-admin-dark-semantics\.css"/);
-    assert.match(appearance, /@import "\.\/guest-body-reset\.css"/);
+    assert.doesNotMatch(appearance, /guest-body-reset\.css/);
+    assert.match(appearance, /body\s*\{/);
     assert.equal(appearance.match(HEX_RE), null);
     assert.match(appearance, /\.workspace-wizard-shell\s*\{/);
     assert.match(appearance, /var\(--color-danger\)/);
   });
 
-  it("F6-04 admin-bootstrap still imports operator-admin-appearance", () => {
+  it("F6-04 admin-bootstrap imports appearance without guest cross-surface leak", () => {
     const bootstrap = readFileSync(join(packageRoot, "src/admin-bootstrap.css"), "utf8");
     assert.match(bootstrap, /operator-admin-appearance\.css/);
+    assert.doesNotMatch(bootstrap, /guest-body-reset\.css/);
   });
 });

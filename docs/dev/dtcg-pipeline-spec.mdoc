@@ -35,8 +35,11 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | Platform `primitives.css` from DTCG + denali motion/wizard partial hex ban | ✅ F4 |
 | Platform `semantics.css` from DTCG + denali `interactions.css` hex ban | ✅ F5 |
 | `operator-admin-dark-semantics.css` from DTCG + appearance hook hex ban | ✅ F6 |
+| `operator-shell-structure.css` platform hook hex ban | ✅ F closure |
+| Admin bootstrap CSS-G-02 (no guest cross-surface imports) | ✅ F closure |
+| Denali `theme/` publish set covers admin `@import` chain | ✅ F closure |
 
-**Still hand-maintained (F7+ / Phase F):** admin feature TSX Tailwind; `operator-shell-structure.css` dev banner hex.
+**Still hand-maintained (F7+ / Phase F):** admin feature TSX Tailwind.
 
 ## Authority flow (E1–E2)
 
@@ -189,14 +192,33 @@ Finance + wizard **shell** hooks reference admin semantic vars only — no raw `
 | Output | Source | Hand-authored hook |
 | ------ | ------ | ------------------ |
 | `operator-admin-dark-semantics.css` | `platform.dark.tokens.json` (`.dark` cascade selectors) | — |
-| `operator-admin-appearance.css` | — | wizard platform shell + validation hooks; `@import` dark semantics + `guest-body-reset.css` |
+| `operator-admin-appearance.css` | — | wizard platform shell + validation hooks; `@import` dark semantics; inline body reset |
 
 Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin file removed — both generated from the same DTCG slice with different selectors.
 
-## F7+ (not in F6)
+## Phase F closure (post-F6)
+
+| Fix | Rationale |
+| --- | --------- |
+| `operator-admin-appearance.css` inline body reset | F6 mistakenly `@import`ed `guest-body-reset.css` — violates CSS-G-02 admin-bootstrap boundary |
+| `operator-shell-structure.css` impersonation banner | `#f59e0b` → `var(--color-warning)`; file added to `guard-dtcg-hex-ban` platform hooks |
+| `@app-tour/workspace-denali` `files: ["theme"]` | `denali-admin.css` `@import` chain includes generated semantic CSS + wizard partials — partial `files` list broke npm pack |
+
+## F7+ (not in Phase F closure)
 
 - AST guards expansion on `apps/web` admin **feature** TSX (shell already I0)
-- `operator-shell-structure.css` dev banner tokens
+- `ThemeProviderChain` vs CSS precedence (broader platform work)
+
+## Phase F closure checklist
+
+| Gate | Command / artifact |
+| ---- | ------------------ |
+| Build | `pnpm --filter @app-tour/design-tokens run build` |
+| Unit specs | `pnpm --filter @app-tour/design-tokens test` (F1–F6 + E slices) |
+| DTCG token guard | `node scripts/guards/guard-dtcg-tokens.mjs` |
+| CSS sync | `node scripts/guards/guard-dtcg-css-sync.mjs` |
+| Hex ban | `node scripts/guards/guard-dtcg-hex-ban.mjs` |
+| Bootstrap integrity | `node scripts/guards/guard-css-bootstrap-integrity.mjs` |
 
 ## MASTER.md demotion (E3–E4)
 
