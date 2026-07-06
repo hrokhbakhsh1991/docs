@@ -825,6 +825,12 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 - `tourListCategoryFilter` manifest → `workspace-tour-list-category-bindings.generated.ts`; `tour-list-category-logic` drops allowlist entry.
 - `WizardTemplateEditorSurface.resolveCompositeRendererIdForAnchor` — `wizard-template-field-display-hints` no longer imports denali catalog-meta directly.
 
+**Sprint 7 (2026-07-06) — C4 operator UI + draft chrome:**
+
+- `operatorUiComponents` manifest → component shims (`denali-time-input`, map, slider) delegate to generated bindings.
+- `wizardDraftUnification` manifest → `draft-unification-v3-options` tombstone log via bindings (no direct `@app-tour/workspace-denali/draft`).
+- `create-tour-wizard-chrome` accepts `currentDraftKey` prop — uses `platformCreateTourDraftKey` at call site.
+
 **Remaining:**
 
 - Shrink P0-T-161 allowlist (~70 denali shell orchestration files) as orchestration migrates to bindings.

@@ -8,7 +8,7 @@ import {
   resolveDraftUnificationV3Mode,
   type DraftUnificationV3Mode,
 } from "./draft-unification-v3";
-import { logDenaliTombstoneShadowMismatch } from "@app-tour/workspace-denali/draft";
+import { logWizardDraftTombstoneShadowMismatch } from "@/bootstrap/workspace-wizard-draft-unification-bindings.generated";
 import type { NewTourWizardDraftEnvelope } from "./denali-wizard-draft-types";
 
 export function resolveDenaliDraftConflictStrategy(
@@ -25,7 +25,7 @@ export function createDenaliDraftOnPushSuccess(
   baselineData: NewTourWizardDraftEnvelope | undefined,
 ) => void {
   return (localPayload, serverPayload, baselineData) => {
-    logDenaliTombstoneShadowMismatch(
+    logWizardDraftTombstoneShadowMismatch(
       mode,
       baselineData,
       localPayload.data,

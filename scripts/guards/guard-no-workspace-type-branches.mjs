@@ -70,6 +70,14 @@ const C4_WEB_TARGETS = [
   "apps/web/app/(app)/settings/locations/locations-settings-client.tsx",
   "apps/web/src/features/tours/tour-list-category-logic.ts",
   "apps/web/src/tours/wizard-template-field-display-hints.ts",
+  "apps/web/src/draft/draft-unification-v3-options.ts",
+  "apps/web/src/wizard/create-tour-wizard-chrome.tsx",
+  "apps/web/src/components/i18n/denali-time-input.tsx",
+  "apps/web/src/components/i18n/localized-datetime-picker.tsx",
+  "apps/web/src/components/ui/denali-difficulty-range-slider.tsx",
+  "apps/web/src/components/ui/map/denali-location-picker-map.tsx",
+  "apps/web/src/components/ui/map/denali-location-picker-map-inner.tsx",
+  "apps/web/src/components/ui/map/leaflet-default-icon.ts",
 ];
 
 const isDenaliLocalPattern = /\bisDenali\b/;

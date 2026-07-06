@@ -2,4 +2,4 @@ export {
   DenaliLocationPickerMapInner,
   type DenaliMapCoordinates,
   type DenaliLocationPickerMapInnerProps,
-} from "@app-tour/workspace-denali/ui/components/location-picker-map";
+} from "@/bootstrap/workspace-operator-ui-components-bindings.generated";

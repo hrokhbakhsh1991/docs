@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { joinDatetimeLocal, splitDatetimeLocal } from "@/i18n/datetime-format";
 import type { AppLocale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
-import { DenaliWizardDatetimePicker } from "@app-tour/workspace-denali/ui/components/localized-datetime-picker";
+import { DenaliWizardDatetimePicker } from "@/bootstrap/workspace-operator-ui-components-bindings.generated";
 
 import { DenaliTimeInput } from "./denali-time-input";
 import { Label } from "../ui/label";

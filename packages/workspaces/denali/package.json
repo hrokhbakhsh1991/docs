@@ -30,6 +30,10 @@
       "types": "./dist/draft/index.d.ts",
       "default": "./dist/draft/index.js"
     },
+    "./draft/wizard-draft-unification-surface": {
+      "types": "./dist/draft/wizard-draft-unification-surface.d.ts",
+      "default": "./dist/draft/wizard-draft-unification-surface.js"
+    },
     "./draft/tour-wizard": {
       "types": "./dist/draft/denali-tour-wizard-draft.d.ts",
       "default": "./dist/draft/denali-tour-wizard-draft.js"
@@ -244,6 +248,10 @@
     "./ui/settings/settings-equipment-ui-surface": {
       "types": "./dist/ui/settings/settings-equipment-ui-surface.d.ts",
       "default": "./dist/ui/settings/settings-equipment-ui-surface.js"
+    },
+    "./ui/operator-ui-components-surface": {
+      "types": "./dist/ui/operator-ui-components-surface.d.ts",
+      "default": "./dist/ui/operator-ui-components-surface.js"
     },
     "./ui/test-ids/*": {
       "types": "./dist/ui/test-ids/*.d.ts",

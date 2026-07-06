@@ -309,5 +309,13 @@
   "tourListCategoryFilter": {
     "module": "./tours/tour-list-category-surface",
     "export": "denaliTourListCategorySurface"
+  },
+  "operatorUiComponents": {
+    "module": "./ui/operator-ui-components-surface",
+    "export": "denaliOperatorUiComponentsSurface"
+  },
+  "wizardDraftUnification": {
+    "module": "./draft/wizard-draft-unification-surface",
+    "export": "denaliWizardDraftUnificationSurface"
   }
 }

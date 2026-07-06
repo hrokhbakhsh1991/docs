@@ -11,7 +11,6 @@ import { WizardSubmitErrorAlert } from "@/wizard/wizard-submit-error-alert";
 import type { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import type { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
-import { DENALI_CREATE_TOUR_DRAFT_KEY } from "@app-tour/workspace-denali/draft";
 import {
   TOUR_PRESET_PREFILL_TEST_IDS,
 } from "@/tours/tour-preset-prefill-logic";
@@ -163,6 +162,7 @@ type DenaliDraftSyncChrome = Pick<
 >;
 
 export function CreateTourWizardDenaliHeader(props: {
+  readonly currentDraftKey: string;
   readonly draftSync: DenaliDraftSyncChrome;
   readonly draftIndex: Pick<ReturnType<typeof useWorkspaceDraftIndex>, "items" | "loading">;
   readonly clearDraftPending: boolean;
@@ -224,7 +224,7 @@ export function CreateTourWizardDenaliHeader(props: {
           <WorkspaceDraftIndexSummary
             items={props.draftIndex.items}
             loading={props.draftIndex.loading}
-            currentDraftKey={DENALI_CREATE_TOUR_DRAFT_KEY}
+            currentDraftKey={props.currentDraftKey}
           />
           {props.clearDraftError ? (
             <p

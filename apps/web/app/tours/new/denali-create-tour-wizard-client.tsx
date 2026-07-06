@@ -22,6 +22,7 @@ import {
   CreateTourWizardSubmitFooter,
 } from "@/wizard/create-tour-wizard-chrome";
 import { useDenaliCreateTourWizard } from "@/wizard/use-denali-create-tour-wizard";
+import { platformCreateTourDraftKey } from "@/wizard/platform-wizard-draft-binding";
 import { DenaliWizardCatalogPrefetchProvider } from "@/wizard/denali/denali-wizard-catalog-prefetch-context";
 import { WorkspaceWizardHost } from "@/wizard/workspace-wizard-host";
 
@@ -59,7 +60,12 @@ function DenaliCreateTourWizardClientInner({
         renderLoading: (props) => <CreateTourWizardLoadingMessage {...props} />,
         renderCloneError: (props) => <CreateTourWizardCloneError {...props} />,
         renderNotConfigured: () => <CreateTourWizardNotConfigured />,
-        renderHeader: (props) => <CreateTourWizardDenaliHeader {...props} />,
+        renderHeader: (props) => (
+          <CreateTourWizardDenaliHeader
+            {...props}
+            currentDraftKey={platformCreateTourDraftKey("denali")}
+          />
+        ),
         renderSeedBanner: (props) => <CreateTourWizardSeedBanner {...props} />,
         renderPresetBanner: (props) => <CreateTourWizardPresetBanner {...props} />,
         renderSubmitFooter: (props) => (

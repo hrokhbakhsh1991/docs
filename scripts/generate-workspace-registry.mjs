@@ -1634,6 +1634,8 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "tourActionSubmitCodec",
   "photoUploadErrors",
   "tourListCategoryFilter",
+  "operatorUiComponents",
+  "wizardDraftUnification",
 ];
 
 /**
@@ -1747,6 +1749,8 @@ export function assertGuestExtensionsManifest(manifest) {
     "tourActionSubmitCodec",
     "photoUploadErrors",
     "tourListCategoryFilter",
+    "operatorUiComponents",
+    "wizardDraftUnification",
   ]) {
     const block = manifest[key];
     if (block === undefined) {
@@ -2886,6 +2890,94 @@ export function generateTourListCategoryBindings(manifests) {
   );
 }
 
+export function generateOperatorUiComponentsBindings(manifests) {
+  const withSurface = manifests.filter((m) => m.operatorUiComponents !== undefined);
+  if (withSurface.length === 0) {
+    return `${BANNER}
+export function resolveOperatorUiComponentsSurface(_pluginId: string): null {
+  return null;
+}
+`;
+  }
+
+  const m = withSurface[0];
+  const block = m.operatorUiComponents;
+  if (typeof block.module !== "string" || typeof block.export !== "string") {
+    throw new Error(`${m.id}: operatorUiComponents requires module and export`);
+  }
+  const importFrom = importSpecifier(m.package, block.module);
+  const alias = `ui_${m.id.replace(/-/g, "_")}`;
+
+  return `${BANNER}
+import { ${block.export} as ${alias} } from "${importFrom}";
+import type { ComponentProps } from "react";
+
+const OPERATOR_UI_COMPONENTS = Object.freeze({
+  ${JSON.stringify(m.id)}: ${alias},
+});
+
+export function resolveOperatorUiComponentsSurface(pluginId: string) {
+  return OPERATOR_UI_COMPONENTS[pluginId as keyof typeof OPERATOR_UI_COMPONENTS] ?? null;
+}
+
+export const DenaliTimeInput = ${alias}.TimeInput;
+export type DenaliTimeInputProps = ComponentProps<typeof DenaliTimeInput>;
+export type DenaliTimeInputAppearance = DenaliTimeInputProps["appearance"];
+
+export const DenaliDifficultyRangeSlider = ${alias}.DifficultyRangeSlider;
+export type DenaliDifficultyRangeSliderProps = ComponentProps<typeof DenaliDifficultyRangeSlider>;
+
+export const DenaliLocationPickerMap = ${alias}.LocationPickerMap;
+export const DenaliLocationPickerMapInner = ${alias}.LocationPickerMapInner;
+export const ensureLeafletDefaultIcon = ${alias}.ensureLeafletDefaultIcon;
+export type {
+  DenaliMapCoordinates,
+  DenaliLocationPickerMapInnerProps,
+} from "${importSpecifier(m.package, "./ui/components/map/denali-location-picker-map")}";
+
+export const DenaliWizardDatetimePicker = ${alias}.WizardDatetimePicker;
+`;
+}
+
+export function generateWizardDraftUnificationBindings(manifests) {
+  const withSurface = manifests.filter((m) => m.wizardDraftUnification !== undefined);
+  if (withSurface.length === 0) {
+    return `${BANNER}
+export function logWizardDraftTombstoneShadowMismatch(
+  _mode: string,
+  _baseline: unknown,
+  _local: unknown,
+  _server: unknown
+): void {}
+`;
+  }
+
+  const m = withSurface[0];
+  const block = m.wizardDraftUnification;
+  if (typeof block.module !== "string" || typeof block.export !== "string") {
+    throw new Error(`${m.id}: wizardDraftUnification requires module and export`);
+  }
+  const importFrom = importSpecifier(m.package, block.module);
+  const alias = `draft_unification_${m.id.replace(/-/g, "_")}`;
+
+  return `${BANNER}
+import { ${block.export} as ${alias} } from "${importFrom}";
+
+export function logWizardDraftTombstoneShadowMismatch(
+  ...args: Parameters<typeof ${alias}.logTombstoneShadowMismatch>
+): void {
+  ${alias}.logTombstoneShadowMismatch(...args);
+}
+
+export function resolveWizardDraftCreateTourDraftKey(pluginId: string): string | null {
+  if (pluginId === ${JSON.stringify(m.id)}) {
+    return ${alias}.createTourDraftKey;
+  }
+  return null;
+}
+`;
+}
+
 export function generatePhotoUploadErrorsBindings(manifests) {
   const withSurface = manifests.filter((m) => m.photoUploadErrors !== undefined);
   if (withSurface.length === 0) {
@@ -3320,6 +3412,8 @@ export function generateAllOutputs(manifests) {
     tourActionSubmitBindings: generateTourActionSubmitBindings(manifests),
     photoUploadErrorsBindings: generatePhotoUploadErrorsBindings(manifests),
     tourListCategoryBindings: generateTourListCategoryBindings(manifests),
+    operatorUiComponentsBindings: generateOperatorUiComponentsBindings(manifests),
+    wizardDraftUnificationBindings: generateWizardDraftUnificationBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -3438,6 +3532,14 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-tour-list-category-bindings.generated.ts"
   ),
+  operatorUiComponentsBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-operator-ui-components-bindings.generated.ts"
+  ),
+  wizardDraftUnificationBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-draft-unification-bindings.generated.ts"
+  ),
   devPluginIds: join(
     REPO_ROOT,
     "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts"
@@ -3540,6 +3642,8 @@ function main() {
       "tourActionSubmitBindings",
       "photoUploadErrorsBindings",
       "tourListCategoryBindings",
+      "operatorUiComponentsBindings",
+      "wizardDraftUnificationBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -3608,6 +3712,8 @@ function main() {
   writeFileSync(OUTPUT_PATHS.tourActionSubmitBindings, generated.tourActionSubmitBindings);
   writeFileSync(OUTPUT_PATHS.photoUploadErrorsBindings, generated.photoUploadErrorsBindings);
   writeFileSync(OUTPUT_PATHS.tourListCategoryBindings, generated.tourListCategoryBindings);
+  writeFileSync(OUTPUT_PATHS.operatorUiComponentsBindings, generated.operatorUiComponentsBindings);
+  writeFileSync(OUTPUT_PATHS.wizardDraftUnificationBindings, generated.wizardDraftUnificationBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

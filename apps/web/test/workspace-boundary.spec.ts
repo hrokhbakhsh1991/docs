@@ -29,6 +29,8 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-tour-action-submit-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-photo-upload-errors-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-tour-list-category-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-operator-ui-components-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-draft-unification-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {
@@ -56,28 +58,13 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
   if (rel.startsWith("src/bootstrap/resolve-bootstrap-workspace-plugin")) {
     return true;
   }
-  if (rel.startsWith("src/tours/")) {
-    return true;
-  }
-  if (rel === "src/wizard/create-tour-wizard-chrome.tsx") {
-    return true;
-  }
-  if (rel === "src/draft/draft-unification-v3-options.ts") {
-    return true;
-  }
   if (rel === "app/tours/new/denali-create-tour-wizard-client.tsx") {
     return true;
   }
   if (rel.endsWith("denali-flat-edit-page-client.tsx")) {
     return true;
   }
-  if (
-    rel === "src/components/i18n/denali-time-input.tsx" ||
-    rel === "src/components/i18n/localized-datetime-picker.tsx" ||
-    rel === "src/components/i18n/localized-numeric-input.tsx" ||
-    rel === "src/components/ui/denali-difficulty-range-slider.tsx" ||
-    rel.startsWith("src/components/ui/map/")
-  ) {
+  if (rel.startsWith("src/tours/")) {
     return true;
   }
   return false;
@@ -319,8 +306,8 @@ describe("Phase 3.3 workspace boundary", () => {
     assert.match(binding, /resolveDenaliDraftConflictStrategy/);
     assert.match(binding, /draft-unification-v3-options/);
     const options = readFileSync(join(SRC_DIR, "draft/draft-unification-v3-options.ts"), "utf8");
-    assert.match(options, /logDenaliTombstoneShadowMismatch/);
-    assert.match(options, /@app-tour\/workspace-denali\/draft/);
+    assert.match(options, /logWizardDraftTombstoneShadowMismatch/);
+    assert.match(options, /workspace-wizard-draft-unification-bindings\.generated/);
     assert.ok(!existsSync(join(SRC_DIR, "draft/draft-unification-v3-shadow.ts")));
     assert.ok(existsSync(join(WEB_ROOT, "scripts/denali-draft-unification-smoke.mjs")));
     const pkg = JSON.parse(readFileSync(PACKAGE_JSON, "utf8")) as {
