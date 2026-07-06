@@ -48,6 +48,7 @@
     },
     "./theme/tokens.css": "./theme/tokens.css",
     "./theme/urban-marketing.css": "./theme/urban-marketing.css",
+    "./theme/urban-portal.css": "./theme/urban-portal.css",
     "./messages/fa/wizard.json": "./messages/fa/wizard.json",
     "./messages/en/wizard.json": "./messages/en/wizard.json"
   },
@@ -55,6 +56,9 @@
     "dist",
     "theme/tokens.css",
     "theme/urban-marketing.css",
+    "theme/urban-portal.css",
+    "theme/marketing",
+    "design-language",
     "messages"
   ],
   "scripts": {

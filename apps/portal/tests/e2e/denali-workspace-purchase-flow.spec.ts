@@ -24,7 +24,7 @@ test.describe("Denali workspace purchase flow", () => {
     await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 120_000 });
     await expect(page.getByText(DENALI_TOUR_TITLE).first()).toBeVisible({ timeout: 60_000 });
 
-    await page.locator(`a[href="/tours/${DENALI_TOUR_ID}"]`).first().click();
+    await page.locator(`a[href="/tours/${DENALI_TOUR_ID}"]`).first().first().click();
     await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
       timeout: 60_000,
     });
@@ -35,7 +35,7 @@ test.describe("Denali workspace purchase flow", () => {
       page.waitForURL(/denali\.portal\.localhost:3003\/catalog\/[^/]+\/register/, {
         timeout: 120_000,
       }),
-      registerLink.click(),
+      registerLink.first().click(),
     ]);
 
     await page.waitForSelector("[data-public-registration-phone][data-registration-ready]", {
@@ -59,7 +59,7 @@ test.describe("Denali workspace purchase flow", () => {
       timeout: 60_000,
     });
 
-    await page.locator('[data-public-registration-success] a[href="/me/registrations"]').click();
+    await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
     await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
       timeout: 60_000,
     });

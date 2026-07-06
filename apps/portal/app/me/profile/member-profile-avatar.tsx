@@ -88,7 +88,6 @@ export function MemberProfileAvatar({
           ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          className="sr-only"
           data-member-profile-avatar-upload
           onChange={(event) => {
             const file = event.target.files?.[0];
@@ -116,9 +115,9 @@ export function MemberProfileAvatar({
           </button>
         ) : null}
       </div>
-      <p className="text-xs text-muted-foreground">{t("avatarHint")}</p>
+      <p data-member-profile-avatar-hint>{t("avatarHint")}</p>
       {error !== null ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert">
           {error}
         </p>
       ) : null}

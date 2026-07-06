@@ -1,0 +1,484 @@
+/* PR-20D — card family audit (scoped) */
+
+/* Tours — image flagship / feed rows only (neutralize shared premium card chrome) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-latest-card],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary]) {
+  overflow: visible;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  transition: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-latest-card]::before,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card]:not(
+    [data-marketing-home-featured-card-primary]
+  )::before {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-latest-card]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card]:not(
+    [data-marketing-home-featured-card-primary]
+  ):hover {
+  transform: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary] {
+  overflow: hidden;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  transition: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]::before {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-latest-card]
+  > div,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]
+  > div {
+  padding: 0;
+  gap: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-latest-cover]::after {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  p[data-marketing-home-latest-price] {
+  display: block;
+  align-self: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--muted-foreground);
+}
+
+/* Journey — numbered timeline (not cards) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  ol[data-marketing-home-journey-steps] {
+  counter-reset: mkt-journey-step;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  padding-inline-start: var(--space-6);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-inline-start: 0.125rem solid color-mix(in srgb, var(--color-primary) 40%, var(--border));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-journey-step] {
+  counter-increment: mkt-journey-step;
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  align-items: start;
+  padding: var(--space-5) 0 var(--space-5) var(--space-4);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-journey-step]::before {
+  content: counter(mkt-journey-step, decimal-leading-zero);
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--space-6) - 0.9375rem);
+  top: var(--space-5);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-primary-fg);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 0.1875rem var(--background);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-journey-step]
+  svg {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: start;
+  width: 1.375rem;
+  height: 1.375rem;
+  margin: 0;
+  padding: var(--space-1);
+  color: var(--color-primary);
+  border: var(--mkt-border-width) solid color-mix(in srgb, var(--color-primary) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-journey-step]
+  h3 {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  font-size: var(--mkt-text-small);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-journey-step]
+  p {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  font-size: var(--mkt-text-body);
+  line-height: 1.55;
+  color: var(--foreground);
+}
+
+/* Testimonials — pull-quote stack (not carousel cards) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-home-testimonials-row] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-inline: 0;
+  padding-inline: 0;
+  overflow: visible;
+  scroll-snap-type: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card] {
+  flex: none;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: var(--space-6) 0 var(--space-6) var(--space-5);
+  border: none;
+  border-block-end: var(--mkt-border-width) solid var(--border);
+  border-inline-start: 0.25rem solid var(--color-primary);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]:last-child {
+  border-block-end: none;
+  padding-block-end: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]::before {
+  content: "\201C";
+  position: static;
+  display: block;
+  margin-block-end: var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 2.75rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  blockquote {
+  margin: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  blockquote
+  p {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-heading);
+  font-size: var(--mkt-type-pull-quote);
+  font-style: italic;
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin-block-start: var(--space-4);
+  padding-block-start: 0;
+  border-top: none;
+  font-size: var(--mkt-text-meta);
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-home-testimonial-name] {
+  font-weight: 600;
+  font-style: normal;
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-home-testimonial-role]::before {
+  content: "·";
+  margin-inline-end: var(--space-2);
+  color: var(--border);
+}
+
+/* Equipment — checklist panel (not tour cards) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  ul[data-marketing-home-equipment-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  list-style: none;
+  border: var(--mkt-border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-muted) 65%, var(--background));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-equipment-item] {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border: none;
+  border-block-end: var(--mkt-border-width) solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  font-size: var(--mkt-text-small);
+  line-height: 1.45;
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-equipment-item]:last-child {
+  border-block-end: none;
+  padding-block-end: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-equipment-item]::before {
+  content: "";
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-block-start: 0.125rem;
+  border: 0.125rem solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in srgb, var(--color-primary) 12%, var(--card));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 8.5L6.5 11.5L12.5 4.5' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 0.625rem;
+  box-shadow: none;
+}
+
+/* FAQ — ruled disclosure (not boxed accordion cards) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-home-faq-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-block-start: var(--mkt-border-width) solid var(--border);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item] {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  border-block-end: var(--mkt-border-width) solid var(--border);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item]
+  summary[data-marketing-home-faq-question] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: auto;
+  padding: var(--space-4) var(--space-6) var(--space-4) 0;
+  font-size: var(--mkt-text-small);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--foreground);
+  cursor: pointer;
+  list-style: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item]
+  summary[data-marketing-home-faq-question]::-webkit-details-marker {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item]
+  summary[data-marketing-home-faq-question]::after {
+  content: "+";
+  position: absolute;
+  inset-inline-end: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item][open]
+  summary[data-marketing-home-faq-question]::after {
+  content: "−";
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item][open]
+  summary[data-marketing-home-faq-question] {
+  border: none;
+  background: transparent;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  p[data-marketing-home-faq-answer] {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4) var(--space-4);
+  border-inline-start: 0.125rem solid var(--border);
+  margin-inline-start: var(--space-1);
+  margin-block-end: var(--space-4);
+  font-size: var(--mkt-text-meta);
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+@media (min-width: 768px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-testimonials-row] {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    figure[data-marketing-home-testimonial-card] {
+    flex: none;
+    width: 100%;
+    max-width: 38rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-home-journey-steps] {
+    padding-inline-start: var(--space-8);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-home-journey-step]::before {
+    inset-inline-start: calc(-1 * var(--space-8) - 0.9375rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-home-journey-steps] {
+    padding-inline-start: 0;
+    border-inline-start: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-home-journey-steps]::before {
+    display: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-home-journey-step] {
+    padding: var(--space-5) var(--space-4);
+    border-block-end: var(--mkt-border-width) solid var(--border);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-home-journey-step]:last-child {
+    border-block-end: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-home-journey-step]::before {
+    position: static;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    inset-inline-start: auto;
+    top: auto;
+    box-shadow: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ul[data-marketing-home-equipment-list] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-6);
+    row-gap: 0;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-home-equipment-item]:nth-last-child(-n + 2) {
+    border-block-end: none;
+  }
+}

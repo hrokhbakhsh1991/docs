@@ -37,6 +37,19 @@ async function assertL4ReferenceConformance() {
 
 await assertL4ReferenceConformance();
 
+const contractCheck = spawnSync("node", ["scripts/guards/guard-member-portal-contract.mjs"], {
+  cwd: REPO_ROOT,
+  encoding: "utf8",
+  stdio: "pipe",
+});
+if (contractCheck.status !== 0) {
+  violations.push("guard-member-portal-contract.mjs failed");
+  const output = `${contractCheck.stdout ?? ""}${contractCheck.stderr ?? ""}`.trim();
+  if (output.length > 0) {
+    violations.push(output);
+  }
+}
+
 const hardcodedHrefPattern = /href=["'`]\/me\/(registrations|profile)/;
 const allowlist = new Set([
   path.join(PORTAL_SHELL_DIR, "resolve-portal-member-nav.server.ts"),

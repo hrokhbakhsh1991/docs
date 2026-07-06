@@ -29,6 +29,7 @@ import {
   generateWorkspaceRegistrationFlowPlugins,
   generateWorkspaceHttpRoutes,
   generateWorkspaceThemeStylesheets,
+  generateAdminThemeStylesheetLoader,
 } from "../generate-workspace-registry.mjs";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -57,15 +58,16 @@ describe("workspace registry drop-in (P7-T06)", () => {
     );
   });
 
-  it("P15-W-B5 generateWorkspaceThemeStylesheets imports manifest theme CSS", () => {
+  it("P15-W-B5 generateAdminThemeStylesheetLoader emits dynamic admin skin loader", () => {
     const manifests = discoverManifests();
-    const generated = generateWorkspaceThemeStylesheets(manifests);
+    const generated = generateAdminThemeStylesheetLoader(manifests);
+    assert.match(generated, /importAdminThemeForPlugin/);
+    assert.match(generated, /WORKSPACE_ADMIN_THEME_REGISTRY/);
     assert.match(generated, /@app-tour\/workspace-denali\/theme\/denali-admin\.css/);
-    assert.match(generated, /@app-tour\/workspace-starter\/theme\/tokens\.css/);
-    assert.match(generated, /@app-tour\/workspace-urban\/theme\/tokens\.css/);
+    assert.doesNotMatch(generated, /^import ["']@app-tour\/workspace-/m);
     assert.throws(
       () =>
-        generateWorkspaceThemeStylesheets([
+        generateAdminThemeStylesheetLoader([
           {
             id: "bad-theme",
             package: "@app-tour/workspace-bad",

@@ -47,6 +47,9 @@ node scripts/guards/field-exposure-phase-11-guard.mjs
 echo "pre-commit-fast: guard-wizard-post-submit"
 node scripts/guards/guard-wizard-post-submit-contract.mjs
 
+echo "pre-commit-fast: guard-css-globals"
+node scripts/guards/guard-css-globals-import-only.mjs
+
 echo "pre-commit-fast: check-node-engine"
 node scripts/guards/check-node-engine.mjs
 

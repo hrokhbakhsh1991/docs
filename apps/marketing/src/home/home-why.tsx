@@ -32,7 +32,7 @@ export async function HomeWhy({ branding }: HomeWhyProps) {
           const Icon = WHY_TILE_ICONS[id];
           return (
             <article key={id} data-marketing-home-why-tile>
-              <Icon aria-hidden="true" size={24} strokeWidth={2.25} />
+              <Icon aria-hidden="true" data-marketing-home-why-tile-icon />
               <h3>{t(`home.full.why.${id}.title`)}</h3>
               <p>{t(`home.full.why.${id}.description`)}</p>
             </article>

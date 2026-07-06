@@ -1,0 +1,238 @@
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] header[data-marketing-header] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] a[data-marketing-brand] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 600;
+  text-decoration: none;
+  color: inherit;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] img[data-marketing-logo] {
+  display: block;
+  width: auto;
+  max-height: 2rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  details[data-marketing-nav-drawer] {
+  margin-inline-start: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  details[data-marketing-nav-drawer]
+  > summary[data-marketing-nav-drawer-toggle] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  details[data-marketing-nav-drawer]
+  > summary::-webkit-details-marker {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  nav[data-marketing-nav-drawer-panel] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  nav[data-marketing-nav-drawer-panel]
+  a {
+  font-weight: 500;
+  color: var(--color-text-link, var(--primary));
+  text-decoration: none;
+}
+
+@media (max-width: 639px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+    details[data-marketing-nav-drawer]:not([open])
+    nav[data-marketing-nav-drawer-panel] {
+    display: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+    details[data-marketing-nav-drawer][open]
+    nav[data-marketing-nav-drawer-panel] {
+    position: fixed;
+    inset-inline: var(--space-4);
+    top: calc(4.5rem + var(--space-2));
+    z-index: 30;
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    box-shadow: var(--catalog-card-shadow);
+  }
+}
+
+@media (min-width: 640px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+    details[data-marketing-nav-drawer]
+    > summary {
+    display: none;
+  }
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] div[data-marketing-locale-switcher] {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  div[data-marketing-locale-switcher]
+  button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  div[data-marketing-locale-switcher]
+  button[aria-pressed="true"] {
+  font-weight: 600;
+  border-color: var(--primary);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] div[data-marketing-catalog],
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] [data-slot="page-catalog"] {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--catalog-page-max-width);
+  margin-inline: auto;
+  padding: var(--catalog-page-padding-y) var(--catalog-page-padding-x);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  header[data-marketing-catalog-header] {
+  margin-bottom: var(--space-4);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  h1[data-marketing-catalog-title] {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] ul[data-marketing-catalog-grid] {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  display: grid;
+  grid-template-columns: repeat(var(--catalog-grid-columns), minmax(0, 1fr));
+  gap: var(--catalog-card-gap);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  li[data-marketing-catalog-grid-item] {
+  min-width: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] article[data-marketing-catalog-card] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--catalog-card-radius);
+  background: var(--card);
+  box-shadow: var(--catalog-card-shadow, 0 4px 6px rgba(15, 23, 42, 0.08));
+  overflow: hidden;
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] article[data-marketing-catalog-card]:hover {
+  box-shadow: 0 10px 15px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  a[data-marketing-catalog-card-cover] {
+  display: block;
+  line-height: 0;
+  text-decoration: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  a[data-marketing-catalog-card-cover]
+  img[data-marketing-catalog-cover] {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  div[data-marketing-catalog-card-body] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--catalog-card-padding);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  h2[data-marketing-catalog-card-title] {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  h2[data-marketing-catalog-card-title]
+  a {
+  color: inherit;
+  text-decoration: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  p[data-marketing-catalog-card-meta] {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] footer[data-marketing-footer] {
+  margin-top: auto;
+  padding: var(--space-6) var(--catalog-page-padding-x);
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"]
+  div[data-marketing-catalog-toolbar] {
+  margin-bottom: var(--space-4);
+}

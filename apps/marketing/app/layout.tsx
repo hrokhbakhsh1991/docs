@@ -24,8 +24,8 @@ import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-b
 import { isMarketingSurfaceEnabled } from "@/tenant/marketing-site-surfaces";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
 import { resolveMarketingSiteSurfacesForHost } from "@/tenant/resolve-marketing-site-surfaces";
+import { importGuestMarketingThemeForPlugin } from "@/bootstrap/workspace-guest-theme-stylesheets.generated";
 
-import "@/bootstrap/workspace-guest-theme-stylesheets.generated";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +75,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   if (isPlatformMotherHost(host)) {
     return (
       <html lang={locale} dir={dir}>
-        <body>
+        <body data-app-surface="marketing" data-workspace-plugin="platform">
           <PlatformMotherShell>{children}</PlatformMotherShell>
         </body>
       </html>
@@ -86,7 +86,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   if (!isMarketingSurfaceEnabled(siteSurfaces)) {
     return (
       <html lang={locale} dir={dir}>
-        <body data-marketing-surface-maintenance>
+        <body
+          data-app-surface="marketing"
+          data-workspace-plugin="platform"
+          data-marketing-surface-maintenance
+        >
           <MaintenancePage title="فروشگاه" />
         </body>
       </html>
@@ -95,10 +99,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   const branding = await fetchPublicTenantBrandingForHost(host);
   const bootstrap = await resolveMarketingBootstrapForHost(host);
-  const theme = {
-    displayName: branding.displayName ?? undefined,
-    primaryColor: branding.primaryColor ?? undefined,
-  };
+  await importGuestMarketingThemeForPlugin(bootstrap.pluginId);
   const siteName = branding.displayName ?? (await getTranslations("catalog"))("nav.defaultSiteName");
   const layoutJsonLd = buildMarketingLayoutJsonLd({ host, siteName });
   const fontClassName = resolveAppFontClassName(locale);
@@ -120,7 +121,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         data-tenant-id={bootstrap.tenantId}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <MarketingProviders theme={theme}>
+          <MarketingProviders>
             <MarketingShell
               branding={branding}
               portalMemberModuleUrl={portalMemberModuleUrl}

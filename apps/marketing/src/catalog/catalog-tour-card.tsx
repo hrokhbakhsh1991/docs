@@ -5,7 +5,7 @@ import { resolveHomeTourCoverUrl } from "@/home/resolve-home-tour-cover-url";
 
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import { buildCatalogListCardSummary } from "./build-catalog-list-card-summary";
-import { isDenaliMarketingPlugin } from "./resolve-marketing-denali-plugin";
+import { isDenaliMarketingPlugin } from "@app-tour/workspace-denali/marketing";
 
 import { CatalogCoverImage } from "./catalog-cover-image";
 import type { MarketingCatalogCard } from "./catalog-types";

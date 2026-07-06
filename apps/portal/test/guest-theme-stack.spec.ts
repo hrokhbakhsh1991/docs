@@ -20,11 +20,16 @@ const denaliPortalSkinPath = join(
   repoRoot,
   "packages/workspaces/denali/theme/denali-portal.css"
 );
+const portalBootstrapPath = join(repoRoot, "packages/design-tokens/src/portal-bootstrap.css");
+const fallbackPortalShellPath = join(
+  repoRoot,
+  "packages/design-tokens/src/fallback-guest-portal-shell.css"
+);
 
 describe("guest-theme-stack.spec.ts — portal", () => {
   it("G-P6-UI-01 globals are import-only (no page rules)", () => {
     const css = readFileSync(globalsPath, "utf8").trim();
-    assert.match(css, /@import "@app-tour\/design-tokens\/guest-shell\.css"/);
+    assert.match(css, /@import "@app-tour\/design-tokens\/portal-bootstrap\.css"/);
     assert.match(css, /@import "tailwindcss"/);
     assert.doesNotMatch(css, /main\[data-catalog-registration-page\]/);
   });
@@ -33,12 +38,36 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     const layout = readFileSync(layoutPath, "utf8");
     assert.match(layout, /data-app-surface="portal"/);
     assert.match(layout, /data-workspace-plugin=\{bootstrap\.pluginId\}/);
-    assert.match(layout, /workspace-guest-theme-stylesheets\.generated/);
+    assert.match(layout, /importGuestPortalThemeForPlugin/);
+    assert.match(layout, /await importGuestPortalThemeForPlugin\(bootstrap\.pluginId\)/);
+    assert.doesNotMatch(
+      layout,
+      /import ["']@\/bootstrap\/workspace-guest-theme-stylesheets\.generated["'];\s*$/
+    );
+  });
+
+  it("G-P6-UI-01c portal-bootstrap imports L2 structure + L3 neutral skin", () => {
+    const portalBootstrap = readFileSync(portalBootstrapPath, "utf8");
+    assert.match(portalBootstrap, /fallback-guest-portal-shell\.css/);
+    assert.match(portalBootstrap, /platform-neutral-portal\.css/);
+    assert.doesNotMatch(portalBootstrap, /fallback-guest-marketing-shell\.css/);
+    const fallback = readFileSync(fallbackPortalShellPath, "utf8");
+    assert.match(fallback, /\[data-portal-shell\]/);
+    assert.match(fallback, /\[data-portal-shell-header\]/);
+    assert.match(fallback, /\[data-portal-shell-bottom-nav\]/);
+    assert.doesNotMatch(fallback, /var\(--primary\)/);
+    const neutralPath = join(repoRoot, "packages/design-tokens/src/platform-neutral-portal.css");
+    const neutral = readFileSync(neutralPath, "utf8");
+    assert.match(neutral, /\[data-portal-shell-nav-link\]\[data-active="true"\]/);
+    assert.match(neutral, /main\[data-portal-member-profile\]/);
   });
 
   it("G-P6-UI-06 denali portal skin scoped to workspace", () => {
     const generated = readFileSync(bootstrapPath, "utf8");
+    assert.match(generated, /importGuestPortalThemeForPlugin/);
+    assert.match(generated, /WORKSPACE_GUEST_PORTAL_THEME_REGISTRY/);
     assert.match(generated, /@app-tour\/workspace-denali\/theme\/denali-portal\.css/);
+    assert.doesNotMatch(generated, /^import ["']@app-tour\/workspace-/m);
     const skin = readFileSync(denaliPortalSkinPath, "utf8");
     assert.match(
       skin,
@@ -50,8 +79,9 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     assert.match(skin, /main\[data-portal-member-profile\]/);
     assert.match(skin, /\[data-portal-shell\]/);
     assert.match(skin, /\[data-portal-shell-bottom-nav\]/);
+    assert.match(skin, /\[data-portal-shell-nav-link\]\[data-active="true"\]/);
     assert.match(skin, /#059669/);
-    assert.match(skin, /denali-club\/MASTER\.md/);
+    assert.match(skin, /design-language\/MASTER\.md/);
   });
 
   it("G-P6-UI-07 portal layout loads Calistoga heading font", () => {

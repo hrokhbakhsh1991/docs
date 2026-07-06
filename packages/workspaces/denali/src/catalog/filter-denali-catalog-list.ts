@@ -1,5 +1,6 @@
 import type { DenaliTourRecord } from "../http/ports/tour-store.port";
 import type { DenaliPublicBookingPort } from "../http/ports/public-booking.port";
+import { matchesDenaliCatalogCategoryFilter } from "../marketing/catalog-filter-config";
 import {
   readDenaliCatalogDifficultyLevel,
   readDenaliCatalogFitnessLevel,
@@ -132,22 +133,6 @@ function compareNullableNumbers(a: number | null, b: number | null): number {
     return -1;
   }
   return a - b;
-}
-
-/** Match flat slug or marketing category family (`mountain` / `nature`). */
-export function matchesDenaliCatalogCategoryFilter(
-  tourCategory: string | null | undefined,
-  filterCategory: string
-): boolean {
-  const slug = tourCategory?.trim() ?? "";
-  const filter = filterCategory.trim();
-  if (slug.length === 0 || filter.length === 0) {
-    return false;
-  }
-  if (filter === "mountain" || filter === "nature") {
-    return slug.startsWith(`${filter}_`);
-  }
-  return slug === filter;
 }
 
 /** Canonical-field filters before card egress (PR-22). */
@@ -299,3 +284,5 @@ export function sortDenaliCatalogTourRecords(
 
   return sorted;
 }
+
+export { matchesDenaliCatalogCategoryFilter } from "../marketing/catalog-filter-config";

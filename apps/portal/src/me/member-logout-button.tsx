@@ -32,7 +32,6 @@ export function MemberLogoutButton(): JSX.Element {
       data-public-auth-logout-ready={ready ? "true" : undefined}
       disabled={loading || !ready}
       onClick={() => void handleLogout()}
-      className="text-sm"
     >
       {loading ? t("loggingOut") : t("logout")}
     </button>

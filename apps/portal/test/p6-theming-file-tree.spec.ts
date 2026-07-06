@@ -15,11 +15,12 @@ function readRepo(relativePath: string): string {
 }
 
 describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
-  it("P6-TREE-01 design-tokens exports shell-bridge + guest-shell", () => {
+  it("P6-TREE-01 design-tokens exports shell-bridge + surface bootstraps", () => {
     const pkg = readRepo("packages/design-tokens/package.json");
     assert.match(pkg, /"\.\/shell-bridge\.css"/);
-    assert.match(pkg, /"\.\/guest-shell\.css"/);
-    assert.match(readRepo("packages/design-tokens/src/guest-shell.css"), /shell-bridge\.css/);
+    assert.match(pkg, /"\.\/portal-bootstrap\.css"/);
+    assert.match(pkg, /"\.\/marketing-bootstrap\.css"/);
+    assert.match(readRepo("packages/design-tokens/src/portal-bootstrap.css"), /shell-bridge\.css/);
   });
 
   it("P6-TREE-02 guest globals are import-only", () => {
@@ -31,9 +32,9 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
     }
   });
 
-  it("P6-TREE-03 admin globals compose shell-bridge", () => {
+  it("P6-TREE-03 admin globals compose admin-bootstrap", () => {
     const css = readRepo("apps/web/app/globals.css");
-    assert.match(css, /@import "@app-tour\/design-tokens\/shell-bridge\.css"/);
+    assert.match(css, /@import "@app-tour\/design-tokens\/admin-bootstrap\.css"/);
     assert.doesNotMatch(css, /@theme inline/);
   });
 
@@ -49,7 +50,12 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
     assert.match(readRepo("packages/workspaces/denali/theme/denali-portal.css"), /data-catalog-registration-page/);
     assert.match(readRepo("packages/workspaces/denali/theme/denali-portal.css"), /data-portal-member-registrations/);
     assert.match(readRepo("packages/workspaces/denali/theme/denali-portal.css"), /data-portal-shell/);
-    assert.match(readRepo("packages/workspaces/denali/theme/denali-marketing.css"), /data-marketing-header/);
+    const denaliMarketing = readRepo("packages/workspaces/denali/theme/denali-marketing.css");
+    assert.match(denaliMarketing, /marketing\/shell\.css/);
+    assert.match(
+      readRepo("packages/workspaces/denali/theme/marketing/shell.css"),
+      /data-marketing-header/
+    );
   });
 
   it("P6-TREE-05 guest layouts wire bootstrap + workspace plugin + fonts", () => {
@@ -80,6 +86,11 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
       guestThemeStylesheets?: { marketing?: string[] };
     };
     assert.deepEqual(parsed.guestThemeStylesheets?.marketing, ["theme/urban-marketing.css"]);
-    assert.match(readRepo("packages/workspaces/urban/theme/urban-marketing.css"), /data-marketing-header/);
+    const urbanMarketing = readRepo("packages/workspaces/urban/theme/urban-marketing.css");
+    assert.match(urbanMarketing, /marketing\/shell\.css/);
+    assert.match(
+      readRepo("packages/workspaces/urban/theme/marketing/shell.css"),
+      /data-marketing-header/
+    );
   });
 });

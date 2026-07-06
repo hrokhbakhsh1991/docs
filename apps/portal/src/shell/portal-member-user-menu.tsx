@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import { cn } from "@/lib/utils";
 import { MemberLogoutButton } from "@/me/member-logout-button";
 
 import type { PortalMemberNavItem } from "./portal-member-nav.types";
@@ -18,22 +17,17 @@ export function PortalMemberUserMenu({ items }: PortalMemberUserMenuProps) {
   const t = useTranslations("portalMember.nav");
 
   return (
-    <div
-      data-portal-shell-user-menu
-      className="flex flex-wrap items-center justify-end gap-3 text-sm"
-    >
+    <div data-portal-shell-user-menu data-slot="shell-user-menu">
       {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.href}
             href={item.href}
+            data-portal-shell-nav-link
+            data-active={active ? "true" : undefined}
             data-testid={item.testId}
             aria-current={active ? "page" : undefined}
-            className={cn(
-              "font-medium no-underline",
-              active ? "text-primary" : "text-foreground/80 hover:text-foreground"
-            )}
           >
             {t(item.labelKey)}
           </Link>

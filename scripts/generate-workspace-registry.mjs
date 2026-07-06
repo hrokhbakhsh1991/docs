@@ -6,6 +6,22 @@ import path from "node:path";
 const { dirname, join } = path;
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import {
+  assertMemberPortalL4ReferenceWorkspaces,
+  assertMemberPortalManifest,
+  generateWorkspaceMemberPortalContracts,
+  generateWorkspaceMemberPortalSurfaces,
+  normalizeMemberPortalAvailability,
+  resolveEffectiveMemberPortalConfig,
+} from "./member-portal-contract-codegen.mjs";
+
+export {
+  assertMemberPortalL4ReferenceWorkspaces,
+  assertMemberPortalManifest,
+  normalizeMemberPortalAvailability,
+  resolveEffectiveMemberPortalConfig,
+};
+
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_WORKSPACES_DIR = join(REPO_ROOT, "packages/workspaces");
 
@@ -546,6 +562,61 @@ ${[...importLines].sort().join("\n")}
 `;
 }
 
+
+/**
+ * Per-plugin dynamic admin CSS loader — no eager import of all workspace admin skins.
+ * @param {import("./generate-workspace-registry.mjs").WorkspaceManifest[]} manifests
+ */
+export function generateAdminThemeStylesheetLoader(manifests) {
+  /** @type {{ id: string; package: string; sheets: string[] }[]} */
+  const entries = [];
+  for (const m of manifests) {
+    const sheets = Array.isArray(m.themeStylesheets) ? m.themeStylesheets : [];
+    if (sheets.length === 0) {
+      continue;
+    }
+    for (const sheet of sheets) {
+      if (typeof sheet !== "string" || sheet.trim().length === 0) {
+        throw new Error(`${m.id}: themeStylesheets entries must be non-empty strings`);
+      }
+    }
+    entries.push({ id: m.id, package: m.package, sheets: [...sheets] });
+  }
+  entries.sort((left, right) => left.id.localeCompare(right.id));
+
+  const registryLines = entries
+    .map(
+      (entry) =>
+        `  ${JSON.stringify(entry.id)}: Object.freeze([${entry.sheets.map((s) => JSON.stringify(s)).join(", ")}]),`
+    )
+    .join("\n");
+
+  const switchCases = entries
+    .map((entry) => {
+      const imports = entry.sheets
+        .map((sheet) => `      await import("${entry.package}/${sheet}");`)
+        .join("\n");
+      return `    case ${JSON.stringify(entry.id)}:\n${imports}\n      return;`;
+    })
+    .join("\n\n");
+
+  return `${BANNER}
+/** Manifest paths per workspace plugin (documentation / guards). */
+export const WORKSPACE_ADMIN_THEME_REGISTRY = Object.freeze({
+${registryLines}
+}) as Readonly<Record<string, readonly string[]>>;
+
+/** Load workspace admin skin CSS for the active plugin only (dynamic import). */
+export async function importAdminThemeForPlugin(pluginId: string): Promise<void> {
+  switch (pluginId) {
+${switchCases}
+    default:
+      return;
+  }
+}
+`;
+}
+
 export function generateGuestThemeStylesheets(manifests, surface) {
   if (typeof surface !== "string" || surface.trim().length === 0) {
     throw new Error("generateGuestThemeStylesheets: surface is required");
@@ -578,6 +649,84 @@ export function generateGuestThemeStylesheets(manifests, surface) {
   }
   return `${BANNER}
 ${[...importLines].sort().join("\n")}
+`;
+}
+
+/**
+ * Per-plugin dynamic CSS loader (marketing MKT-7 — no eager import of all workspace skins).
+ * @param {import("./generate-workspace-registry.mjs").WorkspaceManifest[]} manifests
+ * @param {string} surface
+ */
+export function generateGuestThemeStylesheetLoader(manifests, surface) {
+  if (typeof surface !== "string" || surface.trim().length === 0) {
+    throw new Error("generateGuestThemeStylesheetLoader: surface is required");
+  }
+
+  const surfaceCamel =
+    surface === "marketing"
+      ? "Marketing"
+      : surface.charAt(0).toUpperCase() + surface.slice(1);
+
+  /** @type {{ id: string; package: string; sheets: string[] }[]} */
+  const entries = [];
+
+  for (const m of manifests) {
+    const guest = m.guestThemeStylesheets;
+    if (guest === undefined || guest === null) {
+      continue;
+    }
+    if (typeof guest !== "object" || Array.isArray(guest)) {
+      throw new Error(`${m.id}: guestThemeStylesheets must be an object keyed by app surface`);
+    }
+    const sheets = guest[surface];
+    if (sheets === undefined) {
+      continue;
+    }
+    if (!Array.isArray(sheets) || sheets.length === 0) {
+      throw new Error(`${m.id}: guestThemeStylesheets.${surface} must be a non-empty array`);
+    }
+    for (const sheet of sheets) {
+      if (typeof sheet !== "string" || sheet.trim().length === 0) {
+        throw new Error(
+          `${m.id}: guestThemeStylesheets.${surface} entries must be non-empty strings`
+        );
+      }
+    }
+    entries.push({ id: m.id, package: m.package, sheets: [...sheets] });
+  }
+
+  entries.sort((left, right) => left.id.localeCompare(right.id));
+
+  const registryLines = entries
+    .map(
+      (entry) =>
+        `  ${JSON.stringify(entry.id)}: Object.freeze([${entry.sheets.map((s) => JSON.stringify(s)).join(", ")}]),`
+    )
+    .join("\n");
+
+  const switchCases = entries
+    .map((entry) => {
+      const imports = entry.sheets
+        .map((sheet) => `      await import("${entry.package}/${sheet}");`)
+        .join("\n");
+      return `    case ${JSON.stringify(entry.id)}:\n${imports}\n      return;`;
+    })
+    .join("\n\n");
+
+  return `${BANNER}
+/** Manifest paths per workspace plugin (documentation / guards). */
+export const WORKSPACE_GUEST_${surface.toUpperCase()}_THEME_REGISTRY = Object.freeze({
+${registryLines}
+}) as Readonly<Record<string, readonly string[]>>;
+
+/** Load workspace skin CSS for the active plugin only (dynamic import). */
+export async function importGuest${surfaceCamel}ThemeForPlugin(pluginId: string): Promise<void> {
+  switch (pluginId) {
+${switchCases}
+    default:
+      return;
+  }
+}
 `;
 }
 
@@ -1445,7 +1594,13 @@ export function resolveGuestConformanceLevel(manifest) {
   const hasRegistrationFlow = manifest.catalogRegistrationFlow !== undefined;
   const hasMemberProfile = manifest.memberProfile !== undefined;
   if (hasCatalogRoutes && hasRegistrationFlow && hasMemberProfile) {
-    if (manifest.memberPortal !== undefined) {
+    if (manifest.guestConformance?.memberApp === true) {
+      const availability = normalizeMemberPortalAvailability(manifest);
+      if (availability === "off") {
+        throw new Error(
+          `${manifest.id}: guestConformance.memberApp requires memberPortal availability minimal|full`
+        );
+      }
       return "L4";
     }
     return "L3";
@@ -1470,17 +1625,8 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "guestCrossSurfaceNav",
   "guestSeo",
   "guestLanding",
+  "guestConformance",
 ];
-
-const MEMBER_PORTAL_NAV_TIERS = new Set(["primary", "secondary", "hidden", "user_menu"]);
-const MEMBER_PORTAL_RESERVED_MODULE_IDS = new Set(["home", "more", "api", "catalog"]);
-const MEMBER_PORTAL_L4_REFERENCE_PLUGIN_IDS = new Set(["denali"]);
-const MEMBER_PORTAL_L3_MEMBER_PORTAL_EXEMPT_PLUGIN_IDS = new Set([
-  "urban",
-  "starter",
-  "guest-club",
-]);
-const MEMBER_PORTAL_PRIMARY_TIER_CAP = 5;
 
 /**
  * PF-3.1 / Phase 10.3 — every manifest with httpRoutes must codegen handler loaders from workspace package.
@@ -1612,154 +1758,6 @@ export function assertMemberProfileManifest(manifest) {
   }
 }
 
-/**
- * @param {ReturnType<typeof discoverManifests>[number]} manifest
- */
-export function assertMemberPortalManifest(manifest) {
-  const memberPortal = manifest.memberPortal;
-  if (memberPortal === undefined) {
-    return;
-  }
-  if (typeof memberPortal !== "object" || Array.isArray(memberPortal)) {
-    throw new Error(`${manifest.id}: memberPortal must be an object`);
-  }
-  if (memberPortal.manifestVersion !== 1) {
-    throw new Error(`${manifest.id}: memberPortal.manifestVersion must be 1`);
-  }
-  if (
-    typeof memberPortal.defaultPrimaryModuleId !== "string" ||
-    memberPortal.defaultPrimaryModuleId.length === 0
-  ) {
-    throw new Error(`${manifest.id}: memberPortal.defaultPrimaryModuleId is required`);
-  }
-  if (!Array.isArray(memberPortal.modules) || memberPortal.modules.length === 0) {
-    throw new Error(`${manifest.id}: memberPortal.modules must be a non-empty array`);
-  }
-
-  const seenIds = new Set();
-  let primaryCount = 0;
-
-  for (const module of memberPortal.modules) {
-    if (typeof module?.id !== "string" || module.id.length === 0) {
-      throw new Error(`${manifest.id}: memberPortal.modules[].id is required`);
-    }
-    if (MEMBER_PORTAL_RESERVED_MODULE_IDS.has(module.id)) {
-      throw new Error(`${manifest.id}: MEMBER_PORTAL_RESERVED_MODULE_ID:${module.id}`);
-    }
-    if (seenIds.has(module.id)) {
-      throw new Error(`${manifest.id}: MEMBER_PORTAL_DUPLICATE_ID:${module.id}`);
-    }
-    seenIds.add(module.id);
-
-    if (typeof module.routePath !== "string" || !module.routePath.startsWith("/me/")) {
-      throw new Error(`${manifest.id}: MEMBER_PORTAL_INVALID_ROUTE:${module.id}:${module.routePath ?? ""}`);
-    }
-
-    const nav = module.nav;
-    if (typeof nav !== "object" || nav === null) {
-      throw new Error(`${manifest.id}: memberPortal.modules[${module.id}].nav is required`);
-    }
-    if (!MEMBER_PORTAL_NAV_TIERS.has(nav.tier)) {
-      throw new Error(`${manifest.id}: MEMBER_PORTAL_UNKNOWN_NAV_TIER:${nav.tier}`);
-    }
-    if (nav.tier === "primary") {
-      primaryCount += 1;
-    }
-    if (typeof nav.labelKey !== "string" || nav.labelKey.length === 0) {
-      throw new Error(`${manifest.id}: memberPortal.modules[${module.id}].nav.labelKey is required`);
-    }
-  }
-
-  if (primaryCount > MEMBER_PORTAL_PRIMARY_TIER_CAP) {
-    throw new Error(`${manifest.id}: MEMBER_PORTAL_PRIMARY_OVERFLOW`);
-  }
-  if (!seenIds.has(memberPortal.defaultPrimaryModuleId)) {
-    throw new Error(
-      `${manifest.id}: MEMBER_PORTAL_UNKNOWN_DEFAULT:${memberPortal.defaultPrimaryModuleId}`
-    );
-  }
-
-  const level = resolveGuestConformanceLevel(manifest);
-  if (
-    level === "L3" &&
-    manifest.memberPortal !== undefined &&
-    !MEMBER_PORTAL_L3_MEMBER_PORTAL_EXEMPT_PLUGIN_IDS.has(manifest.id) &&
-    !MEMBER_PORTAL_L4_REFERENCE_PLUGIN_IDS.has(manifest.id)
-  ) {
-    throw new Error(
-      `${manifest.id}: MEMBER_PORTAL_L3_PREMATURE_DECLARATION — memberPortal requires L4 promotion (DL-18)`
-    );
-  }
-}
-
-/** Fail closed when L4 reference workspaces lack memberPortal (PS-6 / DL-18). */
-export function assertMemberPortalL4ReferenceWorkspaces(manifests) {
-  for (const pluginId of MEMBER_PORTAL_L4_REFERENCE_PLUGIN_IDS) {
-    const manifest = manifests.find((entry) => entry.id === pluginId);
-    if (manifest === undefined) {
-      throw new Error(`MEMBER_PORTAL_L4_REFERENCE_MISSING_MANIFEST:${pluginId}`);
-    }
-    if (manifest.memberPortal === undefined) {
-      throw new Error(`MEMBER_PORTAL_L4_REFERENCE_MISSING_BLOCK:${pluginId}`);
-    }
-    if (resolveGuestConformanceLevel(manifest) !== "L4") {
-      throw new Error(`MEMBER_PORTAL_L4_REFERENCE_LEVEL:${pluginId}`);
-    }
-  }
-}
-
-/** @param {ReturnType<typeof discoverManifests>} manifests */
-export function generateWorkspaceMemberPortalSurfaces(manifests) {
-  /** @type {Record<string, object>} */
-  const surfaces = {};
-  for (const manifest of manifests) {
-    assertMemberPortalManifest(manifest);
-    if (manifest.memberPortal === undefined) {
-      continue;
-    }
-    const memberPortal = manifest.memberPortal;
-    const moduleBlocks = memberPortal.modules
-      .map(
-        (module) => `      Object.freeze({
-        id: ${JSON.stringify(module.id)},
-        routePath: ${JSON.stringify(module.routePath)},
-        nav: Object.freeze({
-          tier: ${JSON.stringify(module.nav.tier)},
-          labelKey: ${JSON.stringify(module.nav.labelKey)},
-        }),
-      }),`
-      )
-      .join("\n");
-
-    surfaces[manifest.id] = `  ${JSON.stringify(manifest.id)}: Object.freeze({
-    manifestVersion: 1 as const,
-    defaultPrimaryModuleId: ${JSON.stringify(memberPortal.defaultPrimaryModuleId)},
-    modules: Object.freeze([
-${moduleBlocks}
-    ] as const satisfies readonly MemberModuleManifest[]),
-  }),`;
-  }
-
-  const entries =
-    Object.keys(surfaces).length === 0
-      ? ""
-      : Object.entries(surfaces)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([, block]) => block)
-          .join("\n");
-
-  return `${BANNER}
-import type { MemberModuleManifest, MemberPortalSurface } from "./member-module-manifest";
-
-/** Member portal module registry rows — derived from workspace.manifest.json memberPortal. */
-export const WORKSPACE_MEMBER_PORTAL_SURFACES: Readonly<
-  Record<string, MemberPortalSurface>
-> = Object.freeze({
-${entries}
-});
-`;
-}
-
 const GCSN_PLATFORM_MOTHER_ONLY_PATHS = new Set(["/about", "/contact", "/pricing"]);
 const GCSN_LINK_ID_PATTERN = /^[a-z][a-z0-9-]{1,31}$/;
 const GCSN_MAX_LINKS = 8;
@@ -1773,9 +1771,9 @@ const GCSN_PLATFORM_MEMBER_MODULE_IDS = new Set(["home"]);
 function listGuestCrossSurfaceMemberModuleIds(manifest) {
   /** @type {Set<string>} */
   const allowed = new Set(GCSN_PLATFORM_MEMBER_MODULE_IDS);
-  const memberPortal = manifest.memberPortal;
-  if (memberPortal !== undefined && Array.isArray(memberPortal.modules)) {
-    for (const module of memberPortal.modules) {
+  const config = resolveEffectiveMemberPortalConfig(manifest);
+  if (config.availability !== "off") {
+    for (const module of config.modules) {
       if (typeof module?.id === "string" && module.id.length > 0) {
         allowed.add(module.id);
       }
@@ -2885,9 +2883,9 @@ export function generateAllOutputs(manifests) {
     workspaceWizardMessages: generateWorkspaceWizardMessageLoads(manifests),
     wizardCloneRemint: generateWizardCloneRemintBindings(manifests),
     wizardCreate: generateWizardCreateBindings(manifests),
-    themeStylesheets: generateWorkspaceThemeStylesheets(manifests),
-    guestThemeStylesheetsPortal: generateGuestThemeStylesheets(manifests, "portal"),
-    guestThemeStylesheetsMarketing: generateGuestThemeStylesheets(manifests, "marketing"),
+    themeStylesheets: generateAdminThemeStylesheetLoader(manifests),
+    guestThemeStylesheetsPortal: generateGuestThemeStylesheetLoader(manifests, "portal"),
+    guestThemeStylesheetsMarketing: generateGuestThemeStylesheetLoader(manifests, "marketing"),
     workspaceIntakePlugins: generateWorkspaceIntakePluginBootstrap(manifests),
     registrationFlowPlugins: generateWorkspaceRegistrationFlowPlugins(manifests),
     registrationTransportInitializers: generateWorkspaceRegistrationTransportInitializers(manifests),
@@ -2896,6 +2894,7 @@ export function generateAllOutputs(manifests) {
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
+    memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
     memberPortalSurfaces: generateWorkspaceMemberPortalSurfaces(manifests),
     guestCrossSurfaceNav: generateWorkspaceGuestCrossSurfaceNav(manifests),
     guestConformance: generateWorkspaceGuestConformance(manifests),
@@ -2987,6 +2986,10 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "packages/workspace-sdk/src/profile/workspace-member-profile-capabilities.generated.ts"
   ),
+  memberPortalContracts: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/portal/workspace-member-portal-contracts.generated.ts"
+  ),
   memberPortalSurfaces: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/portal/workspace-member-portal-surfaces.generated.ts"
@@ -3071,6 +3074,7 @@ function main() {
       "catalogDetailSections",
       "devPluginIds",
       "memberProfileCapabilities",
+      "memberPortalContracts",
       "memberPortalSurfaces",
       "guestCrossSurfaceNav",
       "guestConformance",
@@ -3130,6 +3134,7 @@ function main() {
   writeFileSync(OUTPUT_PATHS.catalogDetailSections, generated.catalogDetailSections);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
+  writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);
   writeFileSync(OUTPUT_PATHS.memberPortalSurfaces, generated.memberPortalSurfaces);
   writeFileSync(OUTPUT_PATHS.guestCrossSurfaceNav, generated.guestCrossSurfaceNav);
   writeFileSync(OUTPUT_PATHS.guestConformance, generated.guestConformance);

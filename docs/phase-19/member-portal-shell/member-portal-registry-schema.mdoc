@@ -12,7 +12,47 @@ extends:
 
 **Authority:** Mirrors operator `SettingsModuleManifest` (Phase 9.6). Codegen source: `workspace.manifest.json` → `packages/workspace-sdk/src/portal/workspace-member-portal-surfaces.generated.ts`.
 
-## 1. Block shape
+## 1. Block shape (`manifestVersion: 2`)
+
+```json
+{
+  "guestConformance": { "memberApp": true },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "minimal",
+    "preset": "guest-minimal-v1"
+  }
+}
+```
+
+| Field | Type | Required | Notes |
+| ----- | ---- | -------- | ----- |
+| `availability` | `off` \| `minimal` \| `full` | yes (v2) | **SSOT** — runtime, GSH, and portal branch on this enum |
+| `preset` | `guest-minimal-v1` \| `denali-full-v1` | when modules empty | Codegen expands canonical module sets |
+| `includePlatformHome` | boolean | optional | Default: `false` for minimal, `true` for full |
+| `defaultPrimaryModuleId` | string | when no preset | Must exist in effective modules |
+| `modules` | array | when no preset | Workspace-owned modules only (DL-30) |
+
+**Presets**
+
+| Preset | Modules | Platform `home` |
+| ------ | ------- | ------------- |
+| `guest-minimal-v1` | `trips`, `profile` | no |
+| `denali-full-v1` | `trips`, `profile`, `wallet` | yes |
+
+**Explicit off (L3 catalog-only workspaces)**
+
+```json
+{ "memberPortal": { "manifestVersion": 2, "availability": "off" } }
+```
+
+Absent `memberPortal` block normalizes to `availability: off` at codegen.
+
+### v1 migration
+
+`manifestVersion: 1` with modules is normalized to `minimal` (or `full` for denali) until manifests upgrade.
+
+## 1.1 Legacy v1 block (deprecated)
 
 ```json
 {
@@ -108,15 +148,20 @@ Error code: `MEMBER_PORTAL_RESERVED_MODULE_ID:{id}`.
 | `validateMemberPortalManifest(modules, defaultPrimaryModuleId)` | Runtime/test validation |
 | `MemberPortalNotConfiguredError` | Fail-closed when block absent |
 
-## 6. L4 conformance (DL-07, DL-18)
+## 6. L4 conformance (DL-07 — DL-18 superseded)
 
-| Phase | Enforcement |
-| ----- | ----------- |
-| PS-2 | Codegen **warn** if L3 workspace (not Denali reference) declares `memberPortal` |
-| PS-5 | CI **fail** if Denali lacks block; urban/starter exempt |
-| **PS-6** | `WORKSPACE_GUEST_CONFORMANCE_LEVELS` emits **`L4`** when L3 criteria + `memberPortal` block; guard fails if reference workspace (`denali`) is not L4 |
+| Rule | Enforcement |
+| ---- | ----------- |
+| L4 label | `guestConformance.memberApp: true` ↔ `availability: full` (bidirectional) |
+| Denali reference | `availability: full` + `memberApp: true` (CI `guard-member-portal-contract`) |
+| Urban / guest-club trunk | `availability: minimal` at L3 (no `memberApp` until L4 promotion) |
+| Runtime | `resolveMemberPortalContract(pluginId)` — never infers from conformance level |
 
-L4 = L3 guest conformance + required `memberPortal` for workspaces shipping member-app navigation.
+L4 = L3 guest conformance + explicit member-app promotion. **Not** merely “has memberPortal block.”
+
+Codegen emits `WORKSPACE_MEMBER_PORTAL_CONTRACTS` (SSOT) and `WORKSPACE_MEMBER_PORTAL_SURFACES` (enabled subset).
+
+**Portal egress (DL-38 extension):** `apps/portal/app/me/**` must resolve member URLs via `resolve-member-portal-routes.server.ts` (`resolveMemberPortalModuleRoutePath` / `tryResolveMemberPortalDefaultRoutePath`). Hardcoded `/me/*` hrefs fail `guard-member-shell`.
 
 ### 6.1 More hub (PS-6 / DL-10)
 

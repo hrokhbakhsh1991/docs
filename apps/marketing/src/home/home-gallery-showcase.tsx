@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { CatalogCoverImage } from "@/catalog/catalog-cover-image";
 import {
   CatalogTourDetailPhotoLightbox,
@@ -16,7 +17,6 @@ import { HomeGalleryFilmstrip } from "./home-gallery-filmstrip";
 export type HomeGalleryShowcaseLabels = Readonly<{
   readonly scrollPrev: string;
   readonly scrollNext: string;
-  readonly openPhoto: string;
   readonly lightbox: CatalogTourDetailPhotoLightboxLabels;
 }>;
 
@@ -28,6 +28,7 @@ export type HomeGalleryShowcaseProps = Readonly<{
 const MAX_FILMSTRIP_PHOTOS = 5;
 
 export function HomeGalleryShowcase({ photos, labels }: HomeGalleryShowcaseProps) {
+  const t = useTranslations("catalog");
   const [activeIndex, setActiveIndex] = useState(0);
 
   const clampedIndex = Math.min(Math.max(activeIndex, 0), Math.max(photos.length - 1, 0));
@@ -53,7 +54,7 @@ export function HomeGalleryShowcase({ photos, labels }: HomeGalleryShowcaseProps
     return null;
   }
 
-  const openPhotoLabel = labels.openPhoto.replace("{index}", String(clampedIndex + 1));
+  const openPhotoLabel = t("home.full.gallery.openPhoto", { index: clampedIndex + 1 });
 
   return (
     <CatalogTourDetailPhotoLightbox photos={lightboxPhotos} labels={labels.lightbox}>

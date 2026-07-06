@@ -57,10 +57,7 @@ describe("resolve-portal-member-module-url — PS-3", () => {
     );
   });
 
-  it("GSH-PS3-05 unknown host falls back to frozen alias without throw", () => {
-    assert.equal(
-      resolvePortalMemberModuleUrl("unknown.example"),
-      "http://portal.unknown.example:3003/me/registrations"
-    );
+  it("GSH-PS3-05 unknown host returns null when member portal cannot resolve", () => {
+    assert.equal(resolvePortalMemberModuleUrl("unknown.example"), null);
   });
 });

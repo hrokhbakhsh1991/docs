@@ -1,0 +1,419 @@
+/* PR-20N header row + view-all — superseded by PR-25 grid (see file end PR-25b closure) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  section[data-marketing-home-featured]
+  > header
+  h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.25rem, 2.8vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--foreground);
+  text-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  p[data-marketing-home-featured-lead] {
+  margin: 0;
+  max-width: 40ch;
+  font-size: var(--mkt-text-meta);
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  p[data-marketing-home-featured-kicker] {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-home-featured-bento] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+  padding: var(--space-4);
+  border-radius: calc(var(--radius-lg) + var(--space-1));
+  border: var(--mkt-border-width) solid color-mix(in srgb, var(--border) 88%, transparent);
+  background: var(--card);
+  box-shadow: var(--mkt-shadow-card-premium);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card] {
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card]::before {
+  content: none;
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary] {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  min-height: clamp(18rem, 56vw, 30rem);
+  border-radius: calc(var(--radius-md) + var(--space-1));
+  isolation: isolate;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  figure[data-marketing-home-featured-cover] {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: unset;
+  border-radius: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  figure[data-marketing-home-featured-cover]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgb(0 0 0 / 0.12) 0%,
+    rgb(0 0 0 / 0) 38%,
+    rgb(0 0 0 / 0.55) 100%
+  );
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  figure[data-marketing-home-featured-cover]
+  a {
+  display: block;
+  height: 100%;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  figure[data-marketing-home-featured-cover]
+  img {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  object-fit: cover;
+  transition: transform 1.1s var(--mkt-ease-out);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]:hover
+  figure[data-marketing-home-featured-cover]
+  img {
+  transform: scale(1.05);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  div[data-marketing-home-featured-card-body] {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-5) var(--space-5);
+  text-align: start;
+  background: linear-gradient(
+    to top,
+    rgb(6 12 10 / 0.94) 0%,
+    rgb(6 12 10 / 0.5) 52%,
+    transparent 100%
+  );
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  p[data-marketing-home-featured-flagship-label] {
+  position: absolute;
+  inset-block-start: var(--space-4);
+  inset-inline-start: var(--space-4);
+  z-index: 3;
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--color-primary-fg);
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  h3 {
+  margin: 0;
+  font-size: clamp(1.25rem, 3.6vw, 1.875rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  h3
+  a {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  p[data-marketing-home-featured-meta],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  p[data-marketing-home-featured-price] {
+  margin: 0;
+  font-size: var(--mkt-text-meta);
+  line-height: 1.45;
+  color: rgb(255 255 255 / 0.82);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-home-featured-cta] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  margin-block-start: var(--space-1);
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-4);
+  border: 0.125rem solid rgb(255 255 255 / 0.5);
+  border-radius: var(--radius-md);
+  background: rgb(255 255 255 / 0.12);
+  color: #ffffff;
+  font-size: var(--mkt-text-small);
+  font-weight: 600;
+  text-decoration: none;
+  backdrop-filter: blur(0.35rem);
+  transition:
+    background-color var(--mkt-motion-fast) ease,
+    border-color var(--mkt-motion-fast) ease;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-home-featured-cta]:hover {
+  background: rgb(255 255 255 / 0.2);
+  border-color: rgb(255 255 255 / 0.72);
+  transform: none;
+  box-shadow: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-block-start: none;
+  border-inline-start: none;
+  background: transparent;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  p[data-marketing-home-featured-picks-label] {
+  margin: 0;
+  font-size: var(--mkt-text-meta);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-home-featured-picks-list] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary]) {
+  display: grid;
+  grid-template-columns: 4.75rem minmax(0, 1fr);
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  align-items: center;
+  margin: 0;
+  padding: var(--space-3);
+  border: var(--mkt-border-width) solid var(--border);
+  border-block-end: var(--mkt-border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--background) 88%, var(--card));
+  box-shadow: none;
+  transition:
+    border-color var(--mkt-motion-fast) ease,
+    transform var(--mkt-motion-fast) var(--mkt-ease-out);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not(
+    [data-marketing-home-featured-card-primary]
+  ):hover {
+  transform: translateY(var(--mkt-lift-sm));
+  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--border));
+  box-shadow: var(--mkt-shadow-card);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  figure[data-marketing-home-featured-cover] {
+  grid-row: 1 / span 2;
+  grid-column: 1;
+  width: 4.75rem;
+  height: 4.75rem;
+  min-height: 0;
+  aspect-ratio: 1;
+  margin: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  figure[data-marketing-home-featured-cover]
+  img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  div[data-marketing-home-featured-card-body] {
+  display: contents;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  h3 {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  font-size: var(--mkt-text-small);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  h3
+  a {
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  p[data-marketing-home-featured-meta] {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  font-size: var(--mkt-text-meta);
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  p[data-marketing-home-featured-price],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  a[data-marketing-home-featured-cta],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  p[data-marketing-home-featured-flagship-label] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-featured-bento] {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: var(--space-5);
+    padding: var(--space-5);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary] {
+    min-height: 100%;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    aside[data-marketing-home-featured-picks] {
+    justify-content: center;
+    padding-inline-start: 0;
+    margin-block-start: 0;
+    border-inline-start: none;
+    padding-block-start: 0;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    p[data-marketing-home-featured-picks-label] {
+    margin-block-end: var(--space-1);
+  }
+}
+
+@media (min-width: 1024px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-featured-bento] {
+    grid-template-columns: minmax(0, 1.62fr) minmax(0, 0.88fr);
+    min-height: calc(var(--space-8) + var(--space-8) + var(--space-8));
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-home-featured]
+    > header
+    h2 {
+    font-size: clamp(1.375rem, 2.4vw, 2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]:hover
+    figure[data-marketing-home-featured-cover]
+    img,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    aside[data-marketing-home-featured-picks]
+    article[data-marketing-home-featured-card]:not(
+      [data-marketing-home-featured-card-primary]
+    ):hover {
+    transform: none;
+  }
+}

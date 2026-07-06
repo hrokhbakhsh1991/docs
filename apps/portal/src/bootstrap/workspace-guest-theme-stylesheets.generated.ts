@@ -4,4 +4,28 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import "@app-tour/workspace-denali/theme/denali-portal.css";
+/** Manifest paths per workspace plugin (documentation / guards). */
+export const WORKSPACE_GUEST_PORTAL_THEME_REGISTRY = Object.freeze({
+  "denali": Object.freeze(["theme/denali-portal.css"]),
+  "guest-club": Object.freeze(["theme/guest-club-portal.css"]),
+  "urban": Object.freeze(["theme/urban-portal.css"]),
+}) as Readonly<Record<string, readonly string[]>>;
+
+/** Load workspace skin CSS for the active plugin only (dynamic import). */
+export async function importGuestPortalThemeForPlugin(pluginId: string): Promise<void> {
+  switch (pluginId) {
+    case "denali":
+      await import("@app-tour/workspace-denali/theme/denali-portal.css");
+      return;
+
+    case "guest-club":
+      await import("@app-tour/workspace-guest-club/theme/guest-club-portal.css");
+      return;
+
+    case "urban":
+      await import("@app-tour/workspace-urban/theme/urban-portal.css");
+      return;
+    default:
+      return;
+  }
+}

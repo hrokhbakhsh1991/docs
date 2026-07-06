@@ -4,7 +4,33 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import "@app-tour/workspace-denali/theme/denali-admin.css";
-import "@app-tour/workspace-guest-club/theme/tokens.css";
-import "@app-tour/workspace-starter/theme/tokens.css";
-import "@app-tour/workspace-urban/theme/tokens.css";
+/** Manifest paths per workspace plugin (documentation / guards). */
+export const WORKSPACE_ADMIN_THEME_REGISTRY = Object.freeze({
+  "denali": Object.freeze(["theme/denali-admin.css"]),
+  "guest-club": Object.freeze(["theme/tokens.css"]),
+  "starter": Object.freeze(["theme/tokens.css"]),
+  "urban": Object.freeze(["theme/tokens.css"]),
+}) as Readonly<Record<string, readonly string[]>>;
+
+/** Load workspace admin skin CSS for the active plugin only (dynamic import). */
+export async function importAdminThemeForPlugin(pluginId: string): Promise<void> {
+  switch (pluginId) {
+    case "denali":
+      await import("@app-tour/workspace-denali/theme/denali-admin.css");
+      return;
+
+    case "guest-club":
+      await import("@app-tour/workspace-guest-club/theme/tokens.css");
+      return;
+
+    case "starter":
+      await import("@app-tour/workspace-starter/theme/tokens.css");
+      return;
+
+    case "urban":
+      await import("@app-tour/workspace-urban/theme/tokens.css");
+      return;
+    default:
+      return;
+  }
+}

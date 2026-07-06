@@ -35,7 +35,7 @@ export async function HomeJourney() {
               <span data-marketing-home-journey-step-index aria-hidden="true">
                 {stepLabel}
               </span>
-              <Icon aria-hidden="true" size={22} strokeWidth={2.25} />
+              <Icon aria-hidden="true" data-marketing-home-journey-step-icon />
               <h3>{t(`home.full.journey.${id}.title`)}</h3>
               <p>{t(`home.full.journey.${id}.description`)}</p>
             </li>

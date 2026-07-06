@@ -1,3 +1,4 @@
+import { createCatalogRegistrationFlowInitialData } from "@app-tour/catalog-registration-auth";
 import { RenderIntakeForm } from "@app-tour/catalog-intake-ui";
 import {
   mergeFlowState,
@@ -144,15 +145,17 @@ export function UrbanIntakeStep({
 export function UrbanDoneStep({ context }: RegistrationFlowStepProps): JSX.Element {
   const t = useTranslations("catalogRegistration");
   const attrs = urbanCatalogRegistrationFlowSurface.successDataAttributes?.(
-    { currentStep: "done", data: {} },
+    { currentStep: "done", data: createCatalogRegistrationFlowInitialData() },
     context
   ) ?? { "data-urban-registration-success": true };
   return (
     <div data-public-registration-success {...attrs}>
       <p role="status">{t("success.message", { tourTitle: context.tourTitle })}</p>
-      <p>
-        <a href={context.memberModuleHref}>{t("success.viewRegistrations")}</a>
-      </p>
+      {context.memberModuleHref !== null ? (
+        <p>
+          <a href={context.memberModuleHref}>{t("success.viewRegistrations")}</a>
+        </p>
+      ) : null}
       <p>
         <a href={context.backHref}>{t("success.backToTour")}</a>
       </p>

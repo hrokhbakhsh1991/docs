@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { resolveMemberPortalDefaultRoutePath } from "@app-tour/workspace-sdk";
+import { tryResolveMemberPortalDefaultRoutePath } from "@app-tour/workspace-sdk";
 
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import { resolvePortalGuestEgressUrl } from "@/marketing/resolve-portal-guest-egress-url.server";
@@ -14,7 +14,10 @@ export default async function PortalHomePage() {
   const session = await readPublicCatalogSessionFromCookies();
   if (session !== null) {
     const bootstrap = await resolvePortalBootstrapForHost(host);
-    redirect(resolveMemberPortalDefaultRoutePath(bootstrap.pluginId));
+    const memberRoute = tryResolveMemberPortalDefaultRoutePath(bootstrap.pluginId);
+    if (memberRoute !== null) {
+      redirect(memberRoute);
+    }
   }
 
   redirect(resolvePortalGuestEgressUrl(host));

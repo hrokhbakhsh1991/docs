@@ -298,7 +298,13 @@ export {
   type WorkspaceCatalogRegistrationFlowSurface,
   mergeFlowState,
   transitionFlowStep,
+  applyCatalogRegistrationFlowEvent,
 } from "./catalog/registration-flow.contract";
+export {
+  defineCatalogRegistrationFlowSurface,
+  type CatalogRegistrationFlowState,
+  type DefineCatalogRegistrationFlowSurfaceInput,
+} from "./catalog/define-catalog-registration-flow-surface";
 export {
   IntakePluginNotRegisteredError,
   resolveEffectiveIntakeSchema,
@@ -357,8 +363,15 @@ export {
   resolveMemberPortalModuleByRoutePath,
   resolveMemberPortalModules,
   listMemberPortalEntitlementKeys,
+  tryResolveMemberPortalDefaultRoutePath,
   MemberPortalNotConfiguredError,
   MemberPortalUnknownRouteError,
+  MemberPortalDisabledError,
+  assertMemberPortalEnabled,
+  isMemberPortalEnabled,
+  resolveMemberPortalContract,
+  type MemberPortalAvailability,
+  type MemberPortalContract,
   type ResolvedMemberPortalSurface,
 } from "./portal/resolve-member-portal-modules";
 export {

@@ -4,6 +4,28 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import "@app-tour/workspace-denali/theme/denali-marketing.css";
-import "@app-tour/workspace-guest-club/theme/marketing.css";
-import "@app-tour/workspace-urban/theme/urban-marketing.css";
+/** Manifest paths per workspace plugin (documentation / guards). */
+export const WORKSPACE_GUEST_MARKETING_THEME_REGISTRY = Object.freeze({
+  "denali": Object.freeze(["theme/denali-marketing.css"]),
+  "guest-club": Object.freeze(["theme/marketing/marketing.css"]),
+  "urban": Object.freeze(["theme/urban-marketing.css"]),
+}) as Readonly<Record<string, readonly string[]>>;
+
+/** Load workspace skin CSS for the active plugin only (dynamic import). */
+export async function importGuestMarketingThemeForPlugin(pluginId: string): Promise<void> {
+  switch (pluginId) {
+    case "denali":
+      await import("@app-tour/workspace-denali/theme/denali-marketing.css");
+      return;
+
+    case "guest-club":
+      await import("@app-tour/workspace-guest-club/theme/marketing/marketing.css");
+      return;
+
+    case "urban":
+      await import("@app-tour/workspace-urban/theme/urban-marketing.css");
+      return;
+    default:
+      return;
+  }
+}

@@ -82,6 +82,10 @@ on:
       - "scripts/guards/guard-public-catalog-m17.mjs"
       - "scripts/guards/guard-marketing-semantic-seo.mjs"
       - "scripts/guards/guard-marketing-home-hooks.mjs"
+      - "scripts/guards/marketing-control-pack.mjs"
+      - "scripts/guards/control-authority.mjs"
+      - "scripts/guards/lib/run-control-pack.mjs"
+      - ".github/workflows/control-authority-guard.yml"
       - "scripts/guards/guard-guest-seo.mjs"
       - "scripts/validate-json-ld.mjs"
       - "scripts/test/fixtures/jsonld/**"
@@ -119,6 +123,7 @@ jobs:
       - run: pnpm --filter @app-tour/workspace-denali exec node --import tsx --test test/resolve-denali-registration-transport.spec.ts test/denali-registration-validation.spec.ts
       - run: pnpm --filter @apps/api exec node --import tsx --test test/platform-club-product-exit.spec.ts
       - run: pnpm --filter @apps/marketing run lint
+      - run: pnpm run control:ci
       - run: pnpm run guard:marketing-semantic-seo
       - run: pnpm run guard:marketing-home-hooks
       - run: pnpm run guard:marketing-seo-prod

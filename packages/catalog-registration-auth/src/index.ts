@@ -6,22 +6,31 @@ export type PublicRegistrationApiError = {
   readonly error?: { readonly code?: string };
 };
 
+export {
+  PUBLIC_REGISTRATION_DEV_OTP,
+  PUBLIC_REGISTRATION_DEV_PHONE,
+  initialPublicRegistrationOtp,
+  initialPublicRegistrationPhone,
+} from "./public-registration-dev-defaults";
+
 export const PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC = 45;
-export const PUBLIC_REGISTRATION_DEV_PHONE = "+15550009901";
-export const PUBLIC_REGISTRATION_DEV_OTP = "1234";
 export const PUBLIC_REGISTRATION_MIN_MOBILE_DIGITS = 8;
 
 export function readPublicRegistrationErrorCode(data: PublicRegistrationApiError): string {
   return typeof data.error?.code === "string" ? data.error.code : "network";
 }
 
-export function initialPublicRegistrationPhone(): string {
-  return process.env.NODE_ENV === "development" ? PUBLIC_REGISTRATION_DEV_PHONE : "";
-}
-
-export function initialPublicRegistrationOtp(): string {
-  return process.env.NODE_ENV === "development" ? PUBLIC_REGISTRATION_DEV_OTP : "";
-}
+export {
+  type CatalogRegistrationFlowState,
+  type CatalogRegistrationSavedSelfIntakeDefaults,
+  type CatalogRegistrationTransportIntakeState,
+  CatalogRegistrationFlowStateError,
+  CATALOG_REGISTRATION_FLOW_STATE_KEYS,
+  assertCatalogRegistrationFlowState,
+  createCatalogRegistrationFlowInitialData,
+  createCatalogRegistrationFlowRuntimeState,
+  readCatalogRegistrationFlowState,
+} from "./registration-flow-state";
 
 export function isPublicRegistrationMobileValid(mobile: string): boolean {
   const digits = mobile.replace(/\D/g, "");

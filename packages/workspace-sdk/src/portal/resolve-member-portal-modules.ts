@@ -2,10 +2,13 @@ import type { WorkspacePluginId } from "../plugin/workspace-plugin-id";
 
 import type { MemberModuleManifest, MemberPortalSurface } from "./member-module-manifest";
 import {
+  assertMemberPortalEnabled,
+  MemberPortalDisabledError,
+  resolveMemberPortalContract,
+} from "./member-portal-contract";
+import {
   memberPortalEntitlementKey,
-  mergePlatformMemberPortalModules,
 } from "./platform-member-portal-modules";
-import { WORKSPACE_MEMBER_PORTAL_SURFACES } from "./workspace-member-portal-surfaces.generated";
 
 export class MemberPortalNotConfiguredError extends Error {
   readonly code = "MEMBER_PORTAL_NOT_CONFIGURED" as const;
@@ -27,16 +30,20 @@ export class MemberPortalUnknownRouteError extends Error {
 
 export type ResolvedMemberPortalSurface = MemberPortalSurface;
 
-function resolveEffectiveSurface(pluginId: WorkspacePluginId | string): MemberPortalSurface {
-  const generated = WORKSPACE_MEMBER_PORTAL_SURFACES[pluginId];
-  if (generated === undefined) {
-    throw new MemberPortalNotConfiguredError(pluginId);
+export {
+  MemberPortalDisabledError,
+  type MemberPortalAvailability,
+  type MemberPortalContract,
+  isMemberPortalEnabled,
+  resolveMemberPortalContract,
+} from "./member-portal-contract";
+
+function requireEnabledSurface(pluginId: WorkspacePluginId | string): MemberPortalSurface {
+  const contract = resolveMemberPortalContract(pluginId);
+  if (contract.availability === "off") {
+    throw new MemberPortalDisabledError(pluginId);
   }
-  return Object.freeze({
-    manifestVersion: generated.manifestVersion,
-    defaultPrimaryModuleId: generated.defaultPrimaryModuleId,
-    modules: mergePlatformMemberPortalModules(generated.modules),
-  });
+  return contract.surface;
 }
 
 function findModuleRoutePath(modules: readonly MemberModuleManifest[], moduleId: string): string {
@@ -51,12 +58,12 @@ function findModuleRoutePath(modules: readonly MemberModuleManifest[], moduleId:
 export function resolveMemberPortalModules(
   pluginId: WorkspacePluginId | string
 ): ResolvedMemberPortalSurface {
-  return Object.freeze(resolveEffectiveSurface(pluginId));
+  return Object.freeze(requireEnabledSurface(pluginId));
 }
 
-/** Route for `defaultPrimaryModuleId` — portal `/` and bare `/me` redirect (DL-06). */
+/** Route for `defaultPrimaryModuleId` when member portal is enabled (DL-06). */
 export function resolveMemberPortalDefaultRoutePath(pluginId: WorkspacePluginId | string): string {
-  const surface = resolveEffectiveSurface(pluginId);
+  const surface = requireEnabledSurface(pluginId);
   return findModuleRoutePath(surface.modules, surface.defaultPrimaryModuleId);
 }
 
@@ -65,7 +72,7 @@ export function resolveMemberPortalModuleRoutePath(
   pluginId: WorkspacePluginId | string,
   moduleId: string
 ): string {
-  const surface = resolveEffectiveSurface(pluginId);
+  const surface = requireEnabledSurface(pluginId);
   return findModuleRoutePath(surface.modules, moduleId);
 }
 
@@ -74,7 +81,7 @@ export function resolveMemberPortalModuleByRoutePath(
   pluginId: WorkspacePluginId | string,
   routePath: string
 ): MemberModuleManifest {
-  const surface = resolveEffectiveSurface(pluginId);
+  const surface = requireEnabledSurface(pluginId);
   const module = surface.modules.find((entry) => entry.routePath === routePath);
   if (module === undefined) {
     throw new MemberPortalUnknownRouteError(routePath);
@@ -84,6 +91,19 @@ export function resolveMemberPortalModuleByRoutePath(
 
 /** Entitlement keys for effective registry modules (PS-5 bootstrap — DL-09). */
 export function listMemberPortalEntitlementKeys(pluginId: WorkspacePluginId | string): readonly string[] {
-  const surface = resolveEffectiveSurface(pluginId);
+  const surface = requireEnabledSurface(pluginId);
   return Object.freeze(surface.modules.map((module) => memberPortalEntitlementKey(module.id)));
 }
+
+/** Enabled check for portal routing without throwing. */
+export function tryResolveMemberPortalDefaultRoutePath(
+  pluginId: WorkspacePluginId | string
+): string | null {
+  const contract = resolveMemberPortalContract(pluginId);
+  if (contract.availability === "off") {
+    return null;
+  }
+  return findModuleRoutePath(contract.surface.modules, contract.surface.defaultPrimaryModuleId);
+}
+
+export { assertMemberPortalEnabled };

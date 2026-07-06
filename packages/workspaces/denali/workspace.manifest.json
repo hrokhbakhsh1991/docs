@@ -2,6 +2,9 @@
   "id": "denali",
   "version": 1,
   "guestExtensionsVersion": 1,
+  "guestConformance": {
+    "memberApp": true
+  },
   "package": "@app-tour/workspace-denali",
   "workspaceTypes": ["denali"],
   "plugin": {
@@ -268,33 +271,8 @@
     ]
   },
   "memberPortal": {
-    "manifestVersion": 1,
-    "defaultPrimaryModuleId": "trips",
-    "modules": [
-      {
-        "id": "trips",
-        "routePath": "/me/registrations",
-        "nav": {
-          "tier": "primary",
-          "labelKey": "trips"
-        }
-      },
-      {
-        "id": "profile",
-        "routePath": "/me/profile",
-        "nav": {
-          "tier": "user_menu",
-          "labelKey": "profile"
-        }
-      },
-      {
-        "id": "wallet",
-        "routePath": "/me/wallet",
-        "nav": {
-          "tier": "hidden",
-          "labelKey": "wallet"
-        }
-      }
-    ]
+    "manifestVersion": 2,
+    "availability": "full",
+    "preset": "denali-full-v1"
   }
 }

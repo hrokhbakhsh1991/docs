@@ -130,7 +130,6 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
       }}
       data-portal-member-profile
       data-member-profile-ready={ready ? "true" : undefined}
-      className="space-y-8"
     >
       <MemberProfileAvatar
         userId={profile.userId}
@@ -140,8 +139,8 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
       />
 
       {sections.map((section) => (
-        <fieldset key={section.id} className="space-y-4">
-          <legend className="text-sm font-semibold">{t(sectionLegendKey(section.id))}</legend>
+        <fieldset key={section.id}>
+          <legend>{t(sectionLegendKey(section.id))}</legend>
           {section.fields.map((fieldId) => {
             const label = t(`fieldLabels.${fieldId}`);
             if (readOnlyFieldSet.has(fieldId)) {
@@ -161,10 +160,10 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
               }
               return (
                 <div key={fieldId} data-member-profile-field={fieldId}>
-                  <p className="text-sm font-medium">{label}</p>
-                  <p className="text-sm text-muted-foreground">{profile.fields[fieldId] ?? "—"}</p>
+                  <p>{label}</p>
+                  <p>{profile.fields[fieldId] ?? "—"}</p>
                   {fieldId === "mobile" && !mobileChangeViaOtp ? (
-                    <p className="mt-1 text-xs text-muted-foreground">{t("mobileReadOnlyHint")}</p>
+                    <p data-member-profile-field-hint>{t("mobileReadOnlyHint")}</p>
                   ) : null}
                 </div>
               );
@@ -194,12 +193,12 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
       ))}
 
       {error !== null ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert">
           {error}
         </p>
       ) : null}
       {message !== null ? (
-        <p role="status" className="text-sm text-muted-foreground">
+        <p role="status">
           {message}
         </p>
       ) : null}

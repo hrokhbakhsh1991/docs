@@ -78,6 +78,7 @@
     }
   },
   "dependencies": {
+    "@app-tour/catalog-registration-auth": "workspace:*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

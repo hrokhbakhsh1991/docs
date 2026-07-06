@@ -1,5 +1,5 @@
 import type { MarketingCatalogCard } from "./catalog-types";
-import type { DenaliMarketingCategoryGroup } from "./denali-catalog-filter-config";
+import type { DenaliMarketingCategoryGroup } from "@app-tour/workspace-denali/marketing";
 
 export type CatalogReadinessCell = {
   readonly id: string;

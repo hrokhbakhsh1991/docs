@@ -32,7 +32,7 @@ describe("home-fail-soft.spec.ts — HOME-UNIT-03", () => {
     assert.match(fullSource, /resolveHomeSectionVisibility/);
     assert.match(fullSource, /sections\.latest/);
     assert.match(fullSource, /catalogItems/);
-    assert.match(fullSource, /id="main-content"/);
+    assert.doesNotMatch(fullSource, /id="main-content"/);
     assert.match(latestSource, /data-marketing-home-latest/);
     assert.doesNotMatch(latestSource, /data-marketing-catalog-card/);
   });

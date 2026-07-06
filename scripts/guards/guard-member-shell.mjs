@@ -42,6 +42,27 @@ if (/PortalMemberBottomNav|data-portal-shell-bottom-nav/.test(registerFlow)) {
   violations.push("catalog registration flow: must not render full member bottom nav (DL-01)");
 }
 
+const hardcodedMemberHref = /href=\{?["'`]\/me\//;
+const meAppDir = path.join(REPO_ROOT, "apps/portal/app/me");
+function scanPortalMeTsx(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      scanPortalMeTsx(full);
+      continue;
+    }
+    if (!entry.name.endsWith(".tsx")) {
+      continue;
+    }
+    const rel = path.relative(REPO_ROOT, full);
+    const source = fs.readFileSync(full, "utf8");
+    if (hardcodedMemberHref.test(source) && !source.includes("resolve-member-portal-routes.server")) {
+      violations.push(`${rel}: hardcoded /me/ href — use resolve-member-portal-routes.server`);
+    }
+  }
+}
+scanPortalMeTsx(meAppDir);
+
 if (violations.length > 0) {
   console.error("guard-member-shell: FAIL");
   for (const violation of violations) {

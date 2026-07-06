@@ -16,6 +16,7 @@ type OperatorProfileAvatarProps = {
   readonly testId?: string;
   readonly resolvePreview?: boolean;
   readonly fallbackMode?: "initials" | "icon";
+  readonly shellChrome?: "account-menu";
 };
 
 function initialsFromLabel(label: string): string {
@@ -40,6 +41,7 @@ export function OperatorProfileAvatar({
   testId,
   resolvePreview = false,
   fallbackMode = "initials",
+  shellChrome,
 }: OperatorProfileAvatarProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
 
@@ -71,13 +73,39 @@ export function OperatorProfileAvatar({
   const fallbackInitials = resolveFallbackInitials(displayName, userId);
   const showIconFallback = fallbackMode === "icon" || fallbackInitials === "OP";
 
+  const isAccountMenuChrome = shellChrome === "account-menu";
+
   return (
-    <Avatar className={cn("h-16 w-16", className)} data-testid={testId}>
+    <Avatar
+      {...(isAccountMenuChrome ? { "data-operator-profile-avatar": true } : {})}
+      className={isAccountMenuChrome ? className : cn("h-16 w-16", className)}
+      data-testid={testId}
+    >
       {avatarUrl !== null && avatarUrl.length > 0 ? (
-        <AvatarImage src={avatarUrl} alt="" className="object-cover" />
+        <AvatarImage
+          src={avatarUrl}
+          alt=""
+          {...(isAccountMenuChrome ? {} : { className: "object-cover" })}
+          data-operator-profile-avatar-image={isAccountMenuChrome ? true : undefined}
+        />
       ) : null}
-      <AvatarFallback className={cn("bg-muted text-muted-foreground", fallbackClassName)}>
-        {showIconFallback ? <User className="h-5 w-5" aria-hidden /> : fallbackInitials}
+      <AvatarFallback
+        className={
+          isAccountMenuChrome
+            ? fallbackClassName
+            : cn("bg-muted text-muted-foreground", fallbackClassName)
+        }
+        data-operator-profile-avatar-fallback={isAccountMenuChrome ? true : undefined}
+      >
+        {showIconFallback ? (
+          <User
+            {...(isAccountMenuChrome
+              ? { "data-operator-profile-avatar-icon": true, "aria-hidden": true }
+              : { className: "h-5 w-5", "aria-hidden": true })}
+          />
+        ) : (
+          fallbackInitials
+        )}
       </AvatarFallback>
     </Avatar>
   );

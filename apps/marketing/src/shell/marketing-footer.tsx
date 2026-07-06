@@ -5,7 +5,7 @@ import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-
 
 export type MarketingFooterProps = {
   readonly branding: PublicTenantBrandingSnapshot;
-  readonly portalMemberModuleUrl: string;
+  readonly portalMemberModuleUrl: string | null;
   readonly showFaqLink: boolean;
 };
 
@@ -19,7 +19,7 @@ export async function MarketingFooter({
   const year = new Date().getFullYear();
 
   return (
-    <footer data-marketing-footer>
+    <footer data-marketing-footer data-slot="footer">
       <div data-marketing-footer-grid>
         <div data-marketing-footer-column>
           <h2>{siteName}</h2>
@@ -41,9 +41,11 @@ export async function MarketingFooter({
                 <Link href="/#faq">{t("home.full.footer.resourcesFaq")}</Link>
               </li>
             ) : null}
-            <li>
-              <a href={portalMemberModuleUrl}>{t("home.full.footer.resourcesMember")}</a>
-            </li>
+            {portalMemberModuleUrl !== null ? (
+              <li>
+                <a href={portalMemberModuleUrl}>{t("home.full.footer.resourcesMember")}</a>
+              </li>
+            ) : null}
           </ul>
         </div>
         <div data-marketing-footer-column>

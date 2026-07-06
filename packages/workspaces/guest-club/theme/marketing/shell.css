@@ -1,0 +1,64 @@
+/* Guest-club marketing shell chrome */
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] header[data-marketing-header] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border-default);
+  background: #ffffff;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"]
+  details[data-marketing-nav-drawer] {
+  margin-inline-start: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"]
+  details[data-marketing-nav-drawer]
+  > summary {
+  display: inline-flex;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  list-style: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"]
+  details[data-marketing-nav-drawer]
+  > summary::-webkit-details-marker {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"]
+  nav[data-marketing-nav-drawer-panel] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] footer[data-marketing-footer] {
+  margin-top: auto;
+  padding: var(--space-6) var(--space-4);
+  border-top: 1px solid var(--color-border-default);
+  background: #ffffff;
+}
+
+@media (max-width: 639px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="guest-club"]
+    details[data-marketing-nav-drawer]:not([open])
+    nav[data-marketing-nav-drawer-panel] {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="guest-club"]
+    details[data-marketing-nav-drawer]
+    > summary {
+    display: none;
+  }
+}

@@ -31,12 +31,11 @@ export async function HomeGallery({ photos }: HomeGalleryProps) {
         labels={{
           scrollPrev: t("home.full.gallery.scrollPrev"),
           scrollNext: t("home.full.gallery.scrollNext"),
-          openPhoto: t("home.full.gallery.openPhoto"),
           lightbox: {
             close: t("detail.gallery.lightboxClose"),
             prev: t("detail.gallery.lightboxPrev"),
             next: t("detail.gallery.lightboxNext"),
-            openPhoto: t("detail.gallery.openPhoto"),
+            openPhoto: t("detail.gallery.openPhoto", { index: 1 }),
             counter: t("detail.gallery.lightboxCounter"),
           },
         }}

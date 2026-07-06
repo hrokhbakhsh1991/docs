@@ -1,0 +1,262 @@
+/* PR-20G — latest header alignment + date readability (scoped) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  section[data-marketing-home-latest]
+  > header {
+  margin-block-end: var(--space-4);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-home-latest-header-row] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  width: 100%;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  section[data-marketing-home-latest]
+  > header
+  h2 {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  margin: 0;
+  font-size: clamp(1.0625rem, 2vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-home-latest-view-all] {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
+  margin: 0;
+  padding: 0;
+  min-height: auto;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  font-size: var(--mkt-text-meta);
+  font-weight: 600;
+  color: var(--color-text-link, var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  white-space: nowrap;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  p[data-marketing-home-latest-lead] {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 0;
+  max-width: none;
+  font-size: var(--mkt-text-meta);
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-latest-card] {
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  row-gap: var(--space-1);
+  align-items: start;
+  padding: calc(var(--space-2) + var(--space-1)) 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-latest-card]
+  figure[data-marketing-home-latest-cover] {
+  width: 3.25rem;
+  margin-block-start: 0.125rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-latest-card]
+  h3 {
+  align-self: center;
+  font-size: var(--mkt-text-small);
+  line-height: 1.35;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-latest-card]
+  p[data-marketing-home-latest-price] {
+  font-size: var(--mkt-text-meta);
+  line-height: 1.4;
+  padding-block-start: 0.125rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-latest-card]
+  p[data-marketing-home-latest-meta] {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  font-size: var(--mkt-text-meta);
+  line-height: 1.45;
+  color: var(--muted-foreground);
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-latest-header-row] {
+    column-gap: var(--space-6);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-latest-card] {
+    grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+    padding-block: var(--space-3);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-latest-card]
+    figure[data-marketing-home-latest-cover] {
+    width: 3.5rem;
+  }
+}
+
+/* PR-20H — landing-wide tour date readability (scoped) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  p[data-marketing-home-latest-meta],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  p[data-marketing-home-featured-meta] {
+  font-size: var(--mkt-text-meta);
+  line-height: 1.45;
+  color: var(--muted-foreground);
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+  p[data-marketing-home-featured-meta] {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  aside[data-marketing-home-featured-picks]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  p[data-marketing-home-featured-meta] {
+  font-size: var(--mkt-text-meta);
+  line-height: 1.45;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  p[data-marketing-home-latest-price],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  article[data-marketing-home-featured-card]:not([data-marketing-home-featured-card-primary])
+  p[data-marketing-home-featured-price] {
+  font-size: var(--mkt-text-meta);
+  line-height: 1.4;
+}
+
+/* PR-20I — categories chip labels (scoped) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  > section[data-marketing-home-categories]:not([hidden]):not([aria-hidden="true"]) {
+  background: transparent;
+  border-block-start: var(--mkt-border-width) solid var(--border);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-categories]
+  > header
+  h2 {
+  margin: 0;
+  font-size: clamp(1.0625rem, 2vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-categories]
+  > header
+  p {
+  margin: 0;
+  max-width: 36rem;
+  font-size: var(--mkt-text-meta);
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  div[data-marketing-home-categories-row] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  a[data-marketing-home-category-chip] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: var(--mkt-border-width) solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: var(--mkt-text-small);
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: none;
+  text-align: center;
+  white-space: normal;
+  box-shadow: none;
+  transition:
+    background-color var(--mkt-motion-fast) ease,
+    border-color var(--mkt-motion-fast) ease;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  a[data-marketing-home-category-chip]:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--card));
+  color: var(--foreground);
+}
+
+@media (min-width: 640px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    div[data-marketing-home-categories-row] {
+    gap: var(--space-3);
+  }
+}

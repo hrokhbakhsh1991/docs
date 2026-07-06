@@ -20,12 +20,12 @@ export default async function MarketingNotFound() {
   const toursHref = resolveMarketingLocalePath("/tours", locale);
 
   return (
-    <main data-marketing-not-found>
+    <div data-marketing-not-found>
       <h1>{t("title")}</h1>
       <p>{t("body")}</p>
       <p>
         <Link href={toursHref}>{t("back")}</Link>
       </p>
-    </main>
+    </div>
   );
 }

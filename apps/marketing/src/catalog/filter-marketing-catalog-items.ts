@@ -2,7 +2,7 @@ import type { CatalogListFilters } from "./catalog-list-query";
 import {
   matchesDenaliMarketingCategoryFilter,
   snapDenaliCatalogDifficultyLevel,
-} from "./denali-catalog-filter-config";
+} from "@app-tour/workspace-denali/marketing";
 import type { MarketingCatalogCard } from "./catalog-types";
 
 function readSearchHaystack(item: MarketingCatalogCard): string {

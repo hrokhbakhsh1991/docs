@@ -43,6 +43,7 @@ export default async function MemberModuleDispatcherPage({
 
   return (
     <MemberModuleStub
+      pluginId={bootstrap.pluginId}
       moduleId={moduleManifest.id}
       labelKey={moduleManifest.nav.labelKey}
       routePath={moduleManifest.routePath}

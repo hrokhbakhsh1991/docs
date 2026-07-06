@@ -12,10 +12,6 @@ import { resolveHomeCatalogFetchLimit } from "../src/home/resolve-home-catalog-f
 import { resolveHomeSectionVisibility } from "../src/home/home-section-gates";
 import { resolveHomeTourCoverUrl } from "../src/home/resolve-home-tour-cover-url";
 import { MARKETING_FALLBACK_TOUR_COVER_PATH } from "../src/home/home-marketing-assets";
-import {
-  buildHomeHeroSpotlights,
-  DEFAULT_HERO_SPOTLIGHT_ID,
-} from "../src/home/hero-3d/build-home-hero-spotlights";
 import { buildMarketingHomeJsonLd } from "../src/seo/build-marketing-home-jsonld";
 import { resolveMarketingHeroImageUrl } from "../src/tenant/resolve-marketing-hero-image-url";
 import { resolveHomeHeroCarouselSlides } from "../src/home/resolve-home-hero-carousel-slides";
@@ -106,17 +102,6 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     );
   });
 
-  it("buildHomeHeroSpotlights maps destinations with damavand default", () => {
-    const spotlights = buildHomeHeroSpotlights((key) => key);
-    assert.equal(spotlights.length, 3);
-    assert.equal(
-      spotlights.find((item) => item.id === DEFAULT_HERO_SPOTLIGHT_ID)?.name,
-      "home.full.destinations.damavand.name"
-    );
-    assert.match(spotlights[0]?.toursHref ?? "", /^\/tours\?q=/);
-    assert.match(spotlights[0]?.imagePath ?? "", /^\/home\/destinations\//);
-  });
-
   it("buildMarketingHomeJsonLd emits ItemList", () => {
     const jsonLd = buildMarketingHomeJsonLd({
       host: "operator.localhost:3002",
@@ -156,7 +141,11 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     );
     assert.match(
       readFileSync(join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"), "utf8"),
-      /data-marketing-home id="main-content"/
+      /data-marketing-home/
+    );
+    assert.doesNotMatch(
+      readFileSync(join(repoRoot, "apps/marketing/src/home/guest-home-full.tsx"), "utf8"),
+      /id="main-content"/
     );
     assert.match(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-hero.tsx"), "utf8"),

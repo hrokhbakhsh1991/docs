@@ -40,25 +40,26 @@ export function OperatorAccountMenu({
         <Button
           variant="outline"
           size="icon"
-          className="rounded-full"
+          data-operator-account-menu-trigger
           data-testid={OPERATOR_NAV_TEST_IDS.accountMenu}
           aria-label={tApp("accountMenu")}
         >
-          <OperatorProfileAvatar
-            userId={session.userId}
-            displayName={displayName}
-            avatarUrl={avatarUrl}
-            className="h-8 w-8"
-            fallbackClassName="text-xs"
-          />
+          <span data-operator-account-menu-avatar>
+            <OperatorProfileAvatar
+              userId={session.userId}
+              displayName={displayName}
+              avatarUrl={avatarUrl}
+              shellChrome="account-menu"
+            />
+          </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel className="font-normal">
-          <div className="text-xs text-muted-foreground">
+      <DropdownMenuContent align="end" data-operator-account-menu-panel>
+        <DropdownMenuLabel data-operator-account-menu-label>
+          <div data-operator-account-menu-meta>
             {tApp("roleLabel", { role: session.role })}
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div data-operator-account-menu-meta>
             {tApp("workspaceLabel", { workspace: brandTitle || session.workspaceType })}
           </div>
         </DropdownMenuLabel>

@@ -16,6 +16,13 @@
     "test": "node --import ./test/css-hook.mjs --import tsx --test test/**/*.spec.ts",
     "test:smoke": "playwright test -c playwright.portal.config.ts",
     "test:smoke:custom-apex": "playwright test -c playwright.portal-custom-apex.config.ts",
+    "test:smoke:visual": "playwright test -c playwright.portal-visual.config.ts",
+    "test:smoke:visual:update": "playwright test -c playwright.portal-visual.config.ts --update-snapshots",
+    "test:smoke:visual:urban": "playwright test -c playwright.portal-visual-urban.config.ts",
+    "test:smoke:visual:urban:update": "playwright test -c playwright.portal-visual-urban.config.ts --update-snapshots",
+    "test:smoke:visual:guest-club": "playwright test -c playwright.portal-visual-guest-club.config.ts",
+    "test:smoke:visual:guest-club:update": "playwright test -c playwright.portal-visual-guest-club.config.ts --update-snapshots",
+    "test:smoke:visual:matrix": "pnpm run test:smoke:visual && pnpm run test:smoke:visual:urban && pnpm run test:smoke:visual:guest-club",
     "test:smoke:install": "playwright install chromium",
     "start": "next start --port 3003"
   },

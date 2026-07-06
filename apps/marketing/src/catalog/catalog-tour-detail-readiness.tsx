@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { buildCatalogReadinessCells } from "./build-catalog-readiness-cells";
 import type { MarketingCatalogCard } from "./catalog-types";
-import { resolveDenaliMarketingCategoryFamily } from "./resolve-denali-marketing-category-family";
+import { resolveDenaliMarketingCategoryFamily } from "@app-tour/workspace-denali/marketing";
 import { isAppLocale, type AppLocale } from "@/i18n/routing";
 import { toLocalizedDigits } from "@/i18n/format-localized-digits";
 

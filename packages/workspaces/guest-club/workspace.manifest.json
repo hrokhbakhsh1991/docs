@@ -49,7 +49,10 @@
   ],
   "guestThemeStylesheets": {
     "marketing": [
-      "theme/marketing.css"
+      "theme/marketing/marketing.css"
+    ],
+    "portal": [
+      "theme/guest-club-portal.css"
     ]
   },
   "catalogRegistrationFlow": {
@@ -130,5 +133,10 @@
       "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": false },
       "pagination": { "noindexQueryParams": ["cursor"] }
     }
+  },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "minimal",
+    "preset": "guest-minimal-v1"
   }
 }

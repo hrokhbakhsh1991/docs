@@ -28,15 +28,15 @@ export async function PortalMemberShell({
   return (
     <div
       data-portal-shell
+      data-slot="shell"
       {...(embeddedHost !== null && embeddedHost !== undefined
         ? { "data-embedded-host": embeddedHost }
         : {})}
-      className="mx-auto flex min-h-[100dvh] max-w-3xl flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))]"
     >
       <a
         href={`#${PORTAL_MEMBER_SHELL_TEST_IDS.main}`}
+        data-portal-shell-skip-link
         data-testid={PORTAL_MEMBER_SHELL_TEST_IDS.skipLink}
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:shadow start-4"
       >
         {t("skipToMain")}
       </a>
@@ -46,7 +46,7 @@ export async function PortalMemberShell({
       <div
         id={PORTAL_MEMBER_SHELL_TEST_IDS.main}
         data-portal-shell-main
-        className="flex flex-1 flex-col px-4 py-8"
+        data-slot="shell-main"
       >
         {children}
       </div>

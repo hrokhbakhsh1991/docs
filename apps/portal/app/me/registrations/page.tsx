@@ -8,6 +8,9 @@ import {
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
+import {
+  resolveMemberPortalTripsDetailPath,
+} from "@/me/resolve-member-portal-routes.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
@@ -41,7 +44,9 @@ export default async function MeRegistrationsPage() {
           <ul>
             {rows.map(({ item, statusLabel, paymentStatusLabel, departureLabel }) => (
               <li key={item.id} data-portal-member-registration-row>
-                <a href={`/me/registrations/${encodeURIComponent(item.id)}`}>{item.tourTitle}</a>
+                <a href={resolveMemberPortalTripsDetailPath(bootstrap.pluginId, item.id)}>
+                  {item.tourTitle}
+                </a>
                 <p>
                   {t("statusLine", {
                     status: statusLabel,

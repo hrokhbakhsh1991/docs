@@ -64,14 +64,15 @@ export function OperatorShell({
       initialDisplayName={displayName}
     >
     <div
-      className="flex min-h-[100dvh] flex-col bg-background"
       data-operator-shell
+      data-slot="shell"
       data-workspace-plugin={pluginId}
       data-user-id={session.userId}
     >
       <a
         href={`#${OPERATOR_NAV_TEST_IDS.main}`}
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:shadow start-4"
+        data-operator-skip-link
+        data-slot="shell-skip-link"
         data-testid={OPERATOR_NAV_TEST_IDS.skipLink}
       >
         {tApp("skipToMain")}
@@ -89,16 +90,11 @@ export function OperatorShell({
       />
 
       {impersonationReadonly ? (
-        <div
-          data-operator-impersonation-banner
-          role="status"
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm"
-        >
+        <div data-operator-impersonation-banner role="status">
           <span>نمای پشتیبانی — فقط خواندن — 30 دقیقه</span>
           <button
             type="button"
             data-operator-exit-impersonation
-            className="rounded-md border border-border bg-background px-3 py-1 text-sm"
             onClick={() => void handleExitImpersonation()}
           >
             خروج
@@ -109,12 +105,13 @@ export function OperatorShell({
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent
           side={drawerSide}
-          className="flex h-full w-[min(100%,var(--shell-sidebar-width,16.5rem))] flex-col border-sidebar-border bg-sidebar p-0 text-sidebar-foreground md:hidden"
+          data-operator-mobile-drawer
+          data-slot="shell-nav-drawer"
         >
-          <SheetHeader className="shrink-0 border-b border-sidebar-border px-4 py-4 text-start">
+          <SheetHeader data-operator-mobile-drawer-header data-slot="shell-nav-drawer-header">
             <OperatorSheetTitle />
           </SheetHeader>
-          <div className="flex min-h-0 flex-1 flex-col px-3 py-4">
+          <div data-operator-mobile-drawer-body data-slot="shell-nav-drawer-panel">
             <OperatorNav
               items={navItems}
               workspaceLabel={workspaceLabel}
@@ -126,13 +123,13 @@ export function OperatorShell({
         </SheetContent>
       </Sheet>
 
-      <div className="flex min-h-0 flex-1">
+      <div data-operator-shell-body>
         <aside
           data-operator-sidebar
-          className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[var(--shell-sidebar-width,16.5rem)] shrink-0 self-start border-e border-sidebar-border bg-sidebar text-sidebar-foreground md:flex md:flex-col"
+          data-slot="shell-sidebar"
           aria-hidden={false}
         >
-          <div className="flex min-h-0 flex-1 flex-col px-3 py-4">
+          <div data-operator-sidebar-inner>
             <OperatorNav
               items={navItems}
               workspaceLabel={workspaceLabel}
@@ -143,11 +140,12 @@ export function OperatorShell({
         </aside>
         <main
           id={OPERATOR_NAV_TEST_IDS.main}
-          className="flex-1 overflow-auto p-5 md:p-8"
+          data-operator-main
+          data-slot="shell-main"
           data-testid={OPERATOR_NAV_TEST_IDS.main}
           onScroll={(event) => setHeaderScrolled(event.currentTarget.scrollTop > 4)}
         >
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+          <div data-operator-main-inner>{children}</div>
         </main>
       </div>
     </div>

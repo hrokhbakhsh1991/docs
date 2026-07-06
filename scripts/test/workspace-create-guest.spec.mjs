@@ -49,6 +49,7 @@ describe("workspace:create --guest", () => {
       assert.ok(existsSync(join(dir, "src/catalog/registration-flow/registration-flow.steps.tsx")));
       assert.ok(existsSync(join(dir, "src/http/routes.ts")));
       assert.ok(existsSync(join(dir, "theme/marketing.css")));
+      assert.ok(existsSync(join(dir, "design-language/MASTER.md")));
 
       const packageJson = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
       assert.ok(packageJson.exports["./catalog-registration-flow"]);

@@ -1,7 +1,7 @@
 /**
  * Denali guest portal — registration + /me shell skin.
  * Scoped: portal surface + denali workspace only.
- * Token SoT: design-system/denali-club/MASTER.md (primary #059669 · accent CTA #D97706).
+ * Token SoT: packages/workspaces/denali/design-language/MASTER.md (primary #059669 · accent CTA #D97706).
  */
 body[data-app-surface="portal"][data-workspace-plugin="denali"] {
   --color-primary: #059669;
@@ -153,9 +153,16 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalo
   color: var(--color-text-link, var(--primary));
 }
 
-/* Member shell — data-portal-shell (PS-7) */
-body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell] {
+/* Member shell — data-portal-shell (PS-7) — workspace overrides on platform fallback */
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell],
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-slot="shell"] {
   max-width: 36rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell-bottom-nav]
+  [data-portal-shell-nav-link][data-active="true"] {
+  background-color: color-mix(in oklab, var(--primary) 10%, transparent);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-shell] nav a,

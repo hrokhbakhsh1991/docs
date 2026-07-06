@@ -146,6 +146,18 @@ describe("denali-admin-theme.spec.ts", () => {
     assert.match(header, /OperatorBreadcrumb/);
   });
 
+  it("WEB-DENALI-THEME-11 logo mark asset + breadcrumb logic", () => {
+    const logo = readFileSync(join(DENALI_THEME_DIR, "assets/logo-mark.svg"), "utf8");
+    assert.match(logo, /<svg/);
+    const brand = readFileSync(
+      join(import.meta.dirname, "../src/admin/shell/operator-brand.tsx"),
+      "utf8"
+    );
+    assert.match(brand, /TenantBrandMark/);
+    const interactions = readFileSync(join(DENALI_THEME_DIR, "interactions.css"), "utf8");
+    assert.match(interactions, /\[data-operator-header\]\[data-denali-header-scrolled\]/);
+  });
+
   it("WEB-DENALI-THEME-12 finance skin wires alpine KPI + date picker", () => {
     const finance = readFileSync(join(DENALI_THEME_DIR, "finance-skin.css"), "utf8");
     assert.match(finance, /\[data-denali-finance-kpi\]/);
@@ -162,15 +174,9 @@ describe("denali-admin-theme.spec.ts", () => {
     assert.match(picker, /data-denali-date-picker/);
   });
 
-  it("WEB-DENALI-THEME-11 logo mark asset + breadcrumb logic", () => {
-    const logo = readFileSync(join(DENALI_THEME_DIR, "assets/logo-mark.svg"), "utf8");
-    assert.match(logo, /<svg/);
-    const brand = readFileSync(
-      join(import.meta.dirname, "../src/admin/shell/operator-brand.tsx"),
-      "utf8"
-    );
-    assert.match(brand, /TenantBrandMark/);
-    const interactions = readFileSync(join(DENALI_THEME_DIR, "interactions.css"), "utf8");
-    assert.match(interactions, /\[data-operator-header\]\[data-denali-header-scrolled\]/);
+  it("WEB-DENALI-THEME-13 root layout exposes data-app-surface admin body contract", () => {
+    const layout = readFileSync(join(import.meta.dirname, "../app/layout.tsx"), "utf8");
+    assert.match(layout, /data-app-surface="admin"/);
+    assert.match(layout, /data-workspace-plugin=\{bootstrap\.pluginId\}/);
   });
 });

@@ -1,0 +1,30 @@
+/* Guest-club catalog + home page hooks */
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] div[data-marketing-catalog],
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] [data-slot="page-catalog"] {
+  padding: var(--space-6) var(--space-4);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"]
+  div[data-marketing-catalog-toolbar] {
+  margin-bottom: var(--space-4);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] article[data-marketing-catalog-card] {
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"]
+  figure[data-marketing-catalog-detail-cover] {
+  margin: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] div[data-marketing-home],
+body[data-app-surface="marketing"][data-workspace-plugin="guest-club"] [data-slot="page-home"] {
+  padding: var(--space-6) var(--space-4);
+}

@@ -11,10 +11,10 @@ export function PortalMemberHeader({ workspaceLabel, userMenuNav }: PortalMember
   return (
     <header
       data-portal-shell-header
+      data-slot="shell-header"
       data-testid={PORTAL_MEMBER_SHELL_TEST_IDS.header}
-      className="sticky top-0 z-40 flex min-h-14 items-center justify-between gap-3 border-b border-border/50 bg-background/90 px-4 py-3 backdrop-blur-md"
     >
-      <span className="truncate text-sm font-semibold">{workspaceLabel}</span>
+      <span data-portal-shell-workspace-label>{workspaceLabel}</span>
       <PortalMemberUserMenu items={userMenuNav} />
     </header>
   );

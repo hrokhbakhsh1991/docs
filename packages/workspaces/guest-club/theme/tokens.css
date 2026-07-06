@@ -1,4 +1,4 @@
 /* GuestClub workspace theme — extend --ws-* tokens */
-:root {
+[data-workspace-theme] {
   --ws-color-accent: #2563eb;
 }

@@ -791,6 +791,9 @@ importers:
 
   packages/workspace-sdk:
     dependencies:
+      '@app-tour/catalog-registration-auth':
+        specifier: workspace:*
+        version: link:../catalog-registration-auth
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -898,6 +901,9 @@ importers:
 
   packages/workspaces/guest-club:
     dependencies:
+      '@app-tour/catalog-registration-auth':
+        specifier: workspace:*
+        version: link:../../catalog-registration-auth
       '@app-tour/design-tokens':
         specifier: workspace:*
         version: link:../../design-tokens

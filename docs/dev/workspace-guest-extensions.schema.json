@@ -134,36 +134,91 @@
       }
     },
     "memberPortal": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["manifestVersion", "defaultPrimaryModuleId", "modules"],
-      "properties": {
-        "manifestVersion": { "const": 1 },
-        "defaultPrimaryModuleId": { "type": "string", "minLength": 1 },
-        "modules": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["id", "routePath", "nav"],
-            "properties": {
-              "id": { "type": "string", "minLength": 1 },
-              "routePath": { "type": "string", "pattern": "^/me/" },
-              "nav": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["manifestVersion", "availability"],
+          "properties": {
+            "manifestVersion": { "const": 2 },
+            "availability": { "const": "off" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["manifestVersion", "availability"],
+          "properties": {
+            "manifestVersion": { "const": 2 },
+            "availability": { "enum": ["minimal", "full"] },
+            "preset": { "enum": ["guest-minimal-v1", "denali-full-v1"] },
+            "includePlatformHome": { "type": "boolean" },
+            "defaultPrimaryModuleId": { "type": "string", "minLength": 1 },
+            "modules": {
+              "type": "array",
+              "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["tier", "labelKey"],
+                "required": ["id", "routePath", "nav"],
                 "properties": {
-                  "tier": {
-                    "enum": ["primary", "secondary", "hidden", "user_menu"]
-                  },
-                  "labelKey": { "type": "string", "minLength": 1 }
+                  "id": { "type": "string", "minLength": 1 },
+                  "routePath": { "type": "string", "pattern": "^/me/" },
+                  "nav": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["tier", "labelKey"],
+                    "properties": {
+                      "tier": {
+                        "enum": ["primary", "secondary", "hidden", "user_menu"]
+                      },
+                      "labelKey": { "type": "string", "minLength": 1 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["manifestVersion", "defaultPrimaryModuleId", "modules"],
+          "properties": {
+            "manifestVersion": { "const": 1 },
+            "defaultPrimaryModuleId": { "type": "string", "minLength": 1 },
+            "modules": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "routePath", "nav"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1 },
+                  "routePath": { "type": "string", "pattern": "^/me/" },
+                  "nav": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["tier", "labelKey"],
+                    "properties": {
+                      "tier": {
+                        "enum": ["primary", "secondary", "hidden", "user_menu"]
+                      },
+                      "labelKey": { "type": "string", "minLength": 1 }
+                    }
+                  }
                 }
               }
             }
           }
         }
+      ]
+    },
+    "guestConformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "memberApp": { "type": "boolean" }
       }
     },
     "guestCrossSurfaceNav": {

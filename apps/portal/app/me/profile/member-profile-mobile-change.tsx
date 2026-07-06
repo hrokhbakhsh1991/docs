@@ -100,8 +100,8 @@ export function MemberProfileMobileChange({
   if (step === "phone") {
     return (
       <div data-member-profile-mobile-change data-member-profile-mobile-change-request>
-        <p className="text-sm font-medium">{t("fieldLabels.mobile")}</p>
-        <p className="mb-3 text-sm text-muted-foreground">{t("mobileChange.phoneDescription")}</p>
+        <p>{t("fieldLabels.mobile")}</p>
+        <p>{t("mobileChange.phoneDescription")}</p>
         <label htmlFor="profile-mobile-change-phone">{t("mobileChange.newPhoneLabel")}</label>
         <Input
           id="profile-mobile-change-phone"
@@ -111,11 +111,11 @@ export function MemberProfileMobileChange({
           autoComplete="tel"
         />
         {error !== null ? (
-          <p role="alert" className="mt-2 text-sm text-destructive">
+          <p role="alert">
             {error}
           </p>
         ) : null}
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div data-member-profile-action-row>
           <button
             type="button"
             disabled={loading}
@@ -141,8 +141,8 @@ export function MemberProfileMobileChange({
   if (step === "otp") {
     return (
       <div data-member-profile-mobile-change data-member-profile-mobile-change-verify>
-        <p className="text-sm font-medium">{t("fieldLabels.mobile")}</p>
-        <p className="mb-3 text-sm text-muted-foreground">{t("mobileChange.otpDescription")}</p>
+        <p>{t("fieldLabels.mobile")}</p>
+        <p>{t("mobileChange.otpDescription")}</p>
         <label htmlFor="profile-mobile-change-otp">{t("mobileChange.otpLabel")}</label>
         <Input
           id="profile-mobile-change-otp"
@@ -152,11 +152,11 @@ export function MemberProfileMobileChange({
           autoComplete="one-time-code"
         />
         {error !== null ? (
-          <p role="alert" className="mt-2 text-sm text-destructive">
+          <p role="alert">
             {error}
           </p>
         ) : null}
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div data-member-profile-action-row>
           <button type="button" disabled={loading} onClick={() => void handleVerify()}>
             {loading ? t("mobileChange.verifying") : t("mobileChange.verify")}
           </button>
@@ -177,12 +177,11 @@ export function MemberProfileMobileChange({
 
   return (
     <div data-member-profile-field="mobile" data-member-profile-mobile-change>
-      <p className="text-sm font-medium">{t("fieldLabels.mobile")}</p>
-      <p className="text-sm text-muted-foreground">{currentMobile ?? "—"}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{t("mobileChange.viewHint")}</p>
+      <p>{t("fieldLabels.mobile")}</p>
+      <p>{currentMobile ?? "—"}</p>
+      <p data-member-profile-field-hint>{t("mobileChange.viewHint")}</p>
       <button
         type="button"
-        className="mt-2"
         data-member-profile-mobile-change-start
         onClick={() => {
           setStep("phone");

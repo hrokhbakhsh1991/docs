@@ -1,0 +1,6 @@
+/**
+ * Guest-club marketing skin — split entry (import-only).
+ */
+@import "./tokens.css";
+@import "./shell.css";
+@import "./components/01-catalog.css";

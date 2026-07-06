@@ -7,7 +7,7 @@ import {
   formatCatalogPrice,
   shouldShowCatalogPrice,
 } from "./format-catalog-display";
-import { DENALI_MARKETING_DIFFICULTY_MAX } from "./denali-catalog-filter-config";
+import { DENALI_MARKETING_DIFFICULTY_MAX } from "@app-tour/workspace-denali/marketing";
 import { resolveMarketingCatalogFitnessLabel } from "./resolve-marketing-catalog-fitness-label";
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
 

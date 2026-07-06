@@ -357,9 +357,11 @@ export function DenaliDoneStep({ context, state }: RegistrationFlowStepProps) {
   return (
     <div data-public-registration-success {...attrs}>
       <p role="status">{t("success.message", { tourTitle: context.tourTitle })}</p>
-      <p>
-        <a href={context.memberModuleHref}>{t("success.viewRegistrations")}</a>
-      </p>
+      {context.memberModuleHref !== null ? (
+        <p>
+          <a href={context.memberModuleHref}>{t("success.viewRegistrations")}</a>
+        </p>
+      ) : null}
       <p>
         <a href={context.backHref}>{t("success.backToTour")}</a>
       </p>

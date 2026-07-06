@@ -5,17 +5,26 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  MemberPortalNotConfiguredError,
+  isMemberPortalEnabled,
+  MemberPortalDisabledError,
   MemberPortalUnknownRouteError,
   listMemberPortalEntitlementKeys,
+  resolveMemberPortalContract,
   resolveMemberPortalDefaultRoutePath,
   resolveMemberPortalModuleRoutePath,
   resolveMemberPortalModuleByRoutePath,
   resolveMemberPortalModules,
+  tryResolveMemberPortalDefaultRoutePath,
 } from "../src/portal/resolve-member-portal-modules";
 import { mergePlatformMemberPortalModules } from "../src/portal/platform-member-portal-modules";
 
 describe("resolve-member-portal-modules.spec.ts — workspace-sdk", () => {
+  it("SDK-MPC-01 starter contract is off", () => {
+    assert.deepEqual(resolveMemberPortalContract("starter"), { availability: "off" });
+    assert.equal(isMemberPortalEnabled("starter"), false);
+    assert.equal(tryResolveMemberPortalDefaultRoutePath("starter"), null);
+  });
+
   it("SDK-PS2-05 resolveMemberPortalModules returns Denali home + trips + profile + hidden wallet", () => {
     const surface = resolveMemberPortalModules("denali");
     assert.equal(surface.defaultPrimaryModuleId, "trips");
@@ -30,6 +39,16 @@ describe("resolve-member-portal-modules.spec.ts — workspace-sdk", () => {
     assert.equal(trips.nav.tier, "primary");
   });
 
+  it("SDK-MPC-02 urban minimal contract omits platform home", () => {
+    const contract = resolveMemberPortalContract("urban");
+    assert.equal(contract.availability, "minimal");
+    if (contract.availability === "off") {
+      assert.fail("expected minimal");
+    }
+    assert.equal(contract.surface.modules.some((module) => module.id === "home"), false);
+    assert.equal(contract.surface.modules.length, 2);
+  });
+
   it("SDK-PS2-06 resolveMemberPortalDefaultRoutePath returns frozen alias", () => {
     assert.equal(resolveMemberPortalDefaultRoutePath("denali"), "/me/registrations");
   });
@@ -38,11 +57,8 @@ describe("resolve-member-portal-modules.spec.ts — workspace-sdk", () => {
     assert.equal(resolveMemberPortalModuleRoutePath("denali", "profile"), "/me/profile");
   });
 
-  it("SDK-PS2-08 throws when memberPortal block absent", () => {
-    assert.throws(
-      () => resolveMemberPortalModules("starter"),
-      MemberPortalNotConfiguredError
-    );
+  it("SDK-PS2-08 throws MemberPortalDisabledError when availability is off", () => {
+    assert.throws(() => resolveMemberPortalModules("starter"), MemberPortalDisabledError);
   });
 
   it("SDK-PS5-01 resolveMemberPortalModuleRoutePath resolves platform home", () => {

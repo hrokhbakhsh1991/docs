@@ -1,3 +1,4 @@
+import type { CatalogRegistrationFlowState } from "@app-tour/catalog-registration-auth";
 import type { PublicCatalogTransportSnapshot } from "../tour/public-catalog-transport";
 
 export type RegistrationFlowTourRequirements = {
@@ -17,7 +18,7 @@ export type RegistrationFlowContext = {
   readonly tourRequirements?: RegistrationFlowTourRequirements;
   readonly backHref: string;
   /** GSH-resolved member module URL — workspace done steps MUST use this (DL-38). */
-  readonly memberModuleHref: string;
+  readonly memberModuleHref: string | null;
 };
 
 export type IntakeFlowDefinition = {
@@ -27,12 +28,12 @@ export type IntakeFlowDefinition = {
 
 export type FlowRuntimeState = {
   readonly currentStep: string;
-  readonly data: Readonly<Record<string, unknown>>;
+  readonly data: CatalogRegistrationFlowState;
 };
 
 export type FlowEvent =
   | { readonly type: "transition"; readonly to: string }
-  | { readonly type: "merge"; readonly patch: Readonly<Record<string, unknown>> };
+  | { readonly type: "merge"; readonly patch: Partial<CatalogRegistrationFlowState> };
 
 export type FlowValidationIssue = {
   readonly stepId: string;
@@ -53,13 +54,33 @@ export type RegistrationFlowStepProps = {
 export function mergeFlowState(
   _state: FlowRuntimeState,
   dispatch: RegistrationFlowDispatch,
-  patch: Readonly<Record<string, unknown>>
+  patch: Partial<CatalogRegistrationFlowState>
 ): void {
   dispatch({ type: "merge", patch });
 }
 
 export function transitionFlowStep(dispatch: RegistrationFlowDispatch, stepId: string): void {
   dispatch({ type: "transition", to: stepId });
+}
+
+/** Canonical merge/transition reducer — workspace surfaces must not reimplement. */
+export function applyCatalogRegistrationFlowEvent(
+  state: FlowRuntimeState,
+  event: FlowEvent
+): FlowRuntimeState {
+  if (event.type === "merge") {
+    return Object.freeze({
+      currentStep: state.currentStep,
+      data: Object.freeze({ ...state.data, ...event.patch }),
+    });
+  }
+  if (event.type === "transition") {
+    return Object.freeze({
+      currentStep: event.to,
+      data: state.data,
+    });
+  }
+  return state;
 }
 
 /** Workspace-owned catalog registration interaction flow (state machine — no React). */

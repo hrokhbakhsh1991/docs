@@ -27,15 +27,39 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     const header = readPortal("src/shell/portal-member-header.tsx");
     const bottomNav = readPortal("src/shell/portal-member-bottom-nav.tsx");
     assert.match(shell, /data-portal-shell/);
+    assert.match(shell, /data-slot="shell"/);
     assert.doesNotMatch(shell, /data-portal-member-shell/);
     assert.match(shell, /data-portal-shell-main/);
+    assert.match(shell, /data-portal-shell-skip-link/);
     assert.match(header, /data-portal-shell-header/);
+    assert.match(header, /data-slot="shell-header"/);
     assert.match(bottomNav, /data-portal-shell-bottom-nav/);
+    assert.match(bottomNav, /data-portal-shell-nav-link/);
+    assert.match(bottomNav, /data-active=/);
+  });
+
+  it("PS1-SHELL-02b shell TSX has no appearance className (skin owns visuals)", () => {
+    const shellFiles = [
+      "src/shell/portal-member-shell.tsx",
+      "src/shell/portal-member-header.tsx",
+      "src/shell/portal-member-bottom-nav.tsx",
+      "src/shell/portal-member-user-menu.tsx",
+    ];
+    const appearancePattern =
+      /className=\{?("|\{)[^"]*(?:bg-|text-|border-|shadow-|backdrop-|rounded-|font-|px-|py-|gap-|max-w)/;
+    for (const file of shellFiles) {
+      const source = readPortal(file);
+      assert.doesNotMatch(
+        source,
+        appearancePattern,
+        `${file} must not contain appearance Tailwind className`
+      );
+    }
   });
 
   it("PS1-SHELL-03 bare /me redirects via member registry default", () => {
     const page = readPortal("app/me/page.tsx");
-    assert.match(page, /resolveMemberPortalDefaultRoutePath/);
+    assert.match(page, /tryResolveMemberPortalDefaultRoutePath/);
     assert.doesNotMatch(page, /redirect\("\/me\/registrations"\)/);
   });
 

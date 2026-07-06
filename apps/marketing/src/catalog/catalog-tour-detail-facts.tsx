@@ -9,7 +9,7 @@ import {
   formatCatalogPrice,
   shouldShowCatalogPrice,
 } from "./format-catalog-display";
-import { DENALI_MARKETING_DIFFICULTY_MAX } from "./denali-catalog-filter-config";
+import { DENALI_MARKETING_DIFFICULTY_MAX } from "@app-tour/workspace-denali/marketing";
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import { resolveMarketingCatalogFitnessLabel } from "./resolve-marketing-catalog-fitness-label";
 import { resolveCatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";

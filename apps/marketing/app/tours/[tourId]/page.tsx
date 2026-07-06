@@ -65,8 +65,8 @@ export default async function MarketingTourDetailPage({ params }: PageProps) {
   const registrationUrl = resolveWebRegistrationUrl(host, tourId, bootstrap.pluginId);
 
   return (
-    <main data-marketing-catalog-detail-page>
+    <div data-marketing-catalog-detail-page data-slot="page-catalog-detail">
       <CatalogTourDetail tour={tour} registrationUrl={registrationUrl} pluginId={bootstrap.pluginId} />
-    </main>
+    </div>
   );
 }

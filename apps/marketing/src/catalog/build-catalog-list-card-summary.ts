@@ -1,6 +1,8 @@
 import type { MarketingCatalogCard } from "./catalog-types";
-import { DENALI_MARKETING_DIFFICULTY_MAX } from "./denali-catalog-filter-config";
-import { isDenaliMarketingPlugin } from "./resolve-marketing-denali-plugin";
+import {
+  DENALI_MARKETING_DIFFICULTY_MAX,
+  isDenaliMarketingPlugin,
+} from "@app-tour/workspace-denali/marketing";
 import { resolveMarketingCatalogFitnessLevelLabel } from "./resolve-marketing-catalog-fitness-label";
 
 /** Whole-day span between departure and end (minimum 1). */

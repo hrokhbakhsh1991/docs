@@ -216,7 +216,7 @@ Rollback **per phase** — do not revert prior frozen URLs.
 | ----- | ---------------- | ------ |
 | 1 | SMK-PTL-02..08 fail after shell merge | Revert shell PR; keep inline nav |
 | 1 | Registration shows full shell bottom nav | Hotfix — violates DL-01 |
-| 2 | Codegen breaks Urban/starter L3 builds | Disable L4 fail; warn only (DL-18) |
+| 2 | Codegen breaks trunk workspace builds | Fix manifest `availability` / preset; contract guard fails closed |
 | 3 | Marketing nav 404 on club hosts | Revert manifest nav; restore hardcoded links temporarily |
 | 3 | GSH URL breaks SMK-PTL-05 | Keep `/me/registrations` alias in resolver |
 | 5 | Entitlements deny valid members | TTL=0 + bypass flag; disable nav gating |
@@ -246,7 +246,7 @@ Documentation targets — scripts may not exist until implementation phases.
 | `guard-public-catalog-m17` extension | 5+ | Entitlements/home BFF allowlist (DL-31) |
 | `guard-member-shell` | 1+ | Shell landmarks + registration minimal mode |
 | `pnpm run guard:member-portal-shell` | 1–6 | Meta — runs all guards above |
-| Guest conformance L4 | 2 warn / 5 fail | `memberPortal` block (DL-18) |
+| Guest conformance L4 | PS-2+ fail | `guestConformance.memberApp` + `memberPortal.availability` (`guard-member-portal-contract`) |
 | `pnpm run phase-6:guard` | Doc pack | Phase 6 doc integrity when touched |
 
 **Fast-track before PR (recommended):** `pnpm run pre-commit:fast && pnpm run guard:import-boundary`

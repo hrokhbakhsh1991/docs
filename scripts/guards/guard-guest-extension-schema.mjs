@@ -14,6 +14,26 @@ import {
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SCHEMA_PATH = path.join(REPO_ROOT, "docs/dev/workspace-guest-extensions.schema.json");
 
+/** @param {unknown} prop */
+function isClosedObjectSchema(prop) {
+  if (prop === null || typeof prop !== "object") {
+    return false;
+  }
+  if (/** @type {{ additionalProperties?: boolean }} */ (prop).additionalProperties === false) {
+    return true;
+  }
+  const oneOf = /** @type {{ oneOf?: unknown[] }} */ (prop).oneOf;
+  if (Array.isArray(oneOf) && oneOf.length > 0) {
+    return oneOf.every(
+      (branch) =>
+        branch !== null &&
+        typeof branch === "object" &&
+        /** @type {{ additionalProperties?: boolean }} */ (branch).additionalProperties === false
+    );
+  }
+  return false;
+}
+
 /** @type {string[]} */
 const violations = [];
 
@@ -33,7 +53,7 @@ if (!fs.existsSync(SCHEMA_PATH)) {
   if (schema.properties?.memberProfile?.additionalProperties !== false) {
     violations.push("schema must make memberProfile additionalProperties false");
   }
-  if (schema.properties?.memberPortal?.additionalProperties !== false) {
+  if (!isClosedObjectSchema(schema.properties?.memberPortal)) {
     violations.push("schema must make memberPortal additionalProperties false");
   }
   if (schema.properties?.guestCrossSurfaceNav?.additionalProperties !== false) {

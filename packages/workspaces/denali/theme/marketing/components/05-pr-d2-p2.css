@@ -1,0 +1,54 @@
+
+@media (min-width: 1024px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
+    --catalog-grid-columns: 3;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    h1[data-marketing-catalog-title] {
+    font-size: var(--mkt-text-h1);
+  }
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header]
+  nav
+  a,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-catalog-detail-back],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  nav[data-marketing-catalog-pagination]
+  a,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  h2[data-marketing-catalog-card-title]
+  a,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-catalog-card-cta] {
+  color: var(--color-text-link, var(--primary));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-home-cta],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-register] {
+  color: var(--color-accent-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    a[data-marketing-home-cta]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-cta-primary]
+    a[data-marketing-register]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    footer[data-marketing-catalog-detail-actions]
+    a[data-marketing-register]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-booking-rail-cta]
+    a[data-marketing-register]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-sticky-bar]
+    a[data-marketing-register]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-catalog-card]:hover {
+    transform: none;
+  }
+}

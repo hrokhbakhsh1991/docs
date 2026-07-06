@@ -13,7 +13,7 @@ describe("portal-home-redirect — PS-5", () => {
   it("PS5-HOME-01 session redirects via registry defaultPrimaryModuleId", () => {
     const page = readFileSync(join(repoRoot, "apps/portal/app/page.tsx"), "utf8");
     assert.match(page, /readPublicCatalogSessionFromCookies/);
-    assert.match(page, /resolveMemberPortalDefaultRoutePath/);
+    assert.match(page, /tryResolveMemberPortalDefaultRoutePath/);
     assert.doesNotMatch(page, /redirect\("\/me\/registrations"\)/);
   });
 

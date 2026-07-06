@@ -1,0 +1,125 @@
+/**
+ * Platform fallback — portal member shell structure (L2).
+ * Appearance lives in platform-neutral-portal.css (L3 default skin).
+ * Scope: body[data-app-surface="portal"] only.
+ * @see docs/standards/css-ownership-model.mdoc
+ */
+
+/* --- Shell root --- */
+body[data-app-surface="portal"] [data-portal-shell],
+body[data-app-surface="portal"] [data-slot="shell"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  margin-inline: auto;
+  max-width: 48rem;
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* --- Skip link (a11y structure) --- */
+body[data-app-surface="portal"] [data-portal-shell-skip-link] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+body[data-app-surface="portal"] [data-portal-shell-skip-link]:focus {
+  position: absolute;
+  inset-block-start: 1rem;
+  inset-inline-start: 1rem;
+  z-index: 50;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* --- Header --- */
+body[data-app-surface="portal"] [data-portal-shell-header],
+body[data-app-surface="portal"] [data-slot="shell-header"] {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 40;
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+body[data-app-surface="portal"] [data-portal-shell-workspace-label] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- User menu --- */
+body[data-app-surface="portal"] [data-portal-shell-user-menu],
+body[data-app-surface="portal"] [data-slot="shell-user-menu"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"] [data-portal-shell-user-menu] [data-portal-shell-nav-link] {
+  text-decoration: none;
+}
+
+/* --- Main content frame --- */
+body[data-app-surface="portal"] [data-portal-shell-main],
+body[data-app-surface="portal"] [data-slot="shell-main"] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: var(--space-8) var(--space-4);
+}
+
+/* --- Bottom navigation --- */
+body[data-app-surface="portal"] [data-portal-shell-bottom-nav],
+body[data-app-surface="portal"] [data-slot="shell-nav"] {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 40;
+  padding-inline: var(--space-4);
+  padding-block-end: env(safe-area-inset-bottom, 0px);
+}
+
+body[data-app-surface="portal"] [data-portal-shell-bottom-nav] ul {
+  display: flex;
+  max-width: 48rem;
+  margin-inline: auto;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+  list-style: none;
+  margin-block: 0;
+  padding-inline: 0;
+}
+
+body[data-app-surface="portal"] [data-portal-shell-bottom-nav] li {
+  flex: 1 1 0%;
+}
+
+body[data-app-surface="portal"] [data-portal-shell-nav-link] {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--space-2);
+  text-align: center;
+  text-decoration: none;
+}

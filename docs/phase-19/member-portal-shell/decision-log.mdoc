@@ -222,11 +222,12 @@ extends:
 
 | Field | Value |
 | ----- | ----- |
-| **Status** | **PENDING SIGN-OFF** |
-| **Context** | OQ-02 closed in blueprint. |
-| **Decision** | Phase 2: codegen warn if L3 declares `memberPortal`. Phase 5: CI fail if Denali lacks block. Urban/starter exempt. |
-| **Consequences** | Phased conformance enforcement. |
-| **Dependencies** | DL-07; generate-workspace-registry |
+| **Status** | **SUPERSEDED** (2026-07-06) — unified member portal contract |
+| **Context** | OQ-02 closed in blueprint. Prior phased warn/fail + Urban/starter exempt model contradicted runtime fail-closed. |
+| **Decision (superseded)** | ~~Phase 2: codegen warn if L3 declares `memberPortal`. Phase 5: CI fail if Denali lacks block. Urban/starter exempt.~~ |
+| **Replacement** | `memberPortal.availability` (`off` \| `minimal` \| `full`) is SSOT. L4 requires `guestConformance.memberApp: true` **and** availability ≠ `off`. Urban/guest-club use `minimal` (not exempt). Enforcement: `guard-member-portal-contract.mjs` + generated `WORKSPACE_MEMBER_PORTAL_CONTRACTS`. |
+| **Consequences** | No workspace is exempt from declaring availability; trunk workspaces pinned to `minimal`, Denali to `full`. |
+| **Dependencies** | DL-07; [member-portal-registry-schema.mdoc](./member-portal-registry-schema.mdoc) §6 |
 | **Open questions** | None. |
 
 ### DL-19 — Member home data architecture

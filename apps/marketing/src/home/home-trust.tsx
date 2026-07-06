@@ -16,9 +16,9 @@ export async function HomeTrust({ branding }: HomeTrustProps) {
       {branding.logoUrl ? (
         <img src={branding.logoUrl} alt="" data-marketing-logo height={48} width={48} />
       ) : (
-        <Mountain aria-hidden="true" size={28} strokeWidth={2.25} />
+        <Mountain aria-hidden="true" data-marketing-home-trust-brand-icon />
       )}
-      <ShieldCheck aria-hidden="true" size={20} strokeWidth={2.25} />
+      <ShieldCheck aria-hidden="true" data-marketing-home-trust-shield-icon />
       <p>{t("home.full.trust.tagline")}</p>
       <span data-marketing-home-trust-brand>{siteName}</span>
     </section>

@@ -30,13 +30,6 @@ function readString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function readInteger(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return null;
-  }
-  return Number.isInteger(value) ? value : Math.trunc(value);
-}
-
 function snapCatalogDifficultyLevel(value: number): number {
   const snapped = Math.round(value / 0.5) * 0.5;
   return Math.min(10, Math.max(1, snapped));

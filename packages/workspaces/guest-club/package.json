@@ -35,12 +35,15 @@
       "types": "./dist/http/routes.d.ts",
       "default": "./dist/http/routes.js"
     },
-    "./theme/marketing.css": "./theme/marketing.css"
+    "./theme/marketing/marketing.css": "./theme/marketing/marketing.css",
+    "./theme/guest-club-portal.css": "./theme/guest-club-portal.css"
   },
   "files": [
     "dist",
     "theme/tokens.css",
-    "theme/marketing.css"
+    "theme/marketing",
+    "theme/guest-club-portal.css",
+    "design-language"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.flow.json",
@@ -48,6 +51,7 @@
     "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
   },
   "dependencies": {
+    "@app-tour/catalog-registration-auth": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*"

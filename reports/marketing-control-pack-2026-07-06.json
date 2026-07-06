@@ -1,0 +1,109 @@
+{
+  "pack": "marketing-control-pack",
+  "status": "PASS",
+  "ctl_state": "GOVERNING",
+  "blockers": [],
+  "results": [
+    {
+      "name": "control_plane_active",
+      "ok": true,
+      "criticalRisk": "R-05",
+      "output": "guard-control-plane-r05: PASS (ctl=ACTIVE)"
+    },
+    {
+      "name": "marketing_dead_hero_3d",
+      "ok": true,
+      "closes": "MKT-0",
+      "output": "guard-marketing-dead-hero-3d: PASS"
+    },
+    {
+      "name": "marketing_critical_r04",
+      "ok": true,
+      "criticalRisk": "R-04",
+      "output": "guard-marketing-critical-risks: PASS"
+    },
+    {
+      "name": "marketing_landmark",
+      "ok": true,
+      "closes": "MKT-8",
+      "output": "guard-marketing-landmark: PASS"
+    },
+    {
+      "name": "marketing_fallback_shell",
+      "ok": true,
+      "closes": "MKT-21",
+      "output": "guard-marketing-fallback-shell: PASS"
+    },
+    {
+      "name": "marketing_page_icons",
+      "ok": true,
+      "closes": "MKT-13b",
+      "output": "guard-marketing-page-icons: PASS"
+    },
+    {
+      "name": "marketing_locale",
+      "ok": true,
+      "closes": "MKT-14",
+      "output": "guard-marketing-locale: PASS"
+    },
+    {
+      "name": "marketing_nav_manifest",
+      "ok": true,
+      "closes": "MKT-22",
+      "output": "guard-marketing-nav-manifest: PASS"
+    },
+    {
+      "name": "marketing_primitives",
+      "ok": true,
+      "closes": "MKT-16",
+      "output": "guard-marketing-primitives: PASS"
+    },
+    {
+      "name": "guest_theme_loader",
+      "ok": true,
+      "closes": "INV-06",
+      "output": "guard-marketing-guest-theme-loader: PASS"
+    },
+    {
+      "name": "marketing_skin_coverage",
+      "ok": true,
+      "closes": "MKT-15d",
+      "output": "guard-marketing-skin-coverage: PASS"
+    },
+    {
+      "name": "marketing_skin_import_integrity",
+      "ok": true,
+      "closes": "R-06",
+      "output": "guard-marketing-skin-import-integrity: PASS"
+    },
+    {
+      "name": "denali_boundary",
+      "ok": true,
+      "closes": "INV-07",
+      "output": "guard-marketing-denali-boundary: PASS"
+    },
+    {
+      "name": "skin_size",
+      "ok": true,
+      "closes": "INV-08",
+      "output": "guard-marketing-skin-size: PASS"
+    },
+    {
+      "name": "public_catalog_m17",
+      "ok": true,
+      "output": "PASS m17_file_public-auth.routes.ts\nPASS m17_file_public-auth-openapi.ts\nPASS m17_file_public-auth.spec.ts\nPASS m17_file_public-catalog-registration-flow.tsx\nPASS m17_file_route.ts\nPASS m17_file_playwright.portal.config.ts\nPASS m17_file_portal-registration-smoke.spec.ts\nPASS m17_file_catalog-registration-otp.ts\nPASS m17_file_page.tsx\nPASS m17_file_resolve-portal-registration-redirect.ts\nPASS m17_file_marketing-catalog-smoke.spec.ts\nPASS m17_file_marketing-home-smoke.spec.ts\nPASS m17_file_marketing-urban-catalog-smoke.spec.ts\nPASS m17_file_marketing-seo-jsonld.spec.ts\nPASS m17_file_marketing-seo-head.spec.ts\nPASS m17_file_marketing-seo-sitemap.spec.ts\nPASS m17_file_marketing-seo-hreflang.spec.ts\nPASS m17_file_marketing-seo-pagination.spec.ts\nPASS m17_file_playwright.marketing-seo.config.ts\nPASS m17_file_guest-seo-conformance.md\nPASS m17_file_guest-seo-e2e-hooks.yaml\nPASS m17_file_ADR-GP-004-guest-seo-manifest.md\nPASS m17_file_resolve-guest-seo-for-plugin.ts\nPASS m17_file_workspace-guest-seo.generated.ts\nPASS m17_file_guard-guest-seo.mjs\nPASS m17_file_guard-guest-seo-e2e-hooks.mjs\nPASS m17_file_guard-marketing-semantic-seo.mjs\nPASS m17_file_guard-marketing-seo-prod.mjs\nPASS m17_file_guard-marketing-meta-quality.mjs\nPASS m17_file_guard-marketing-sitemap-host.mjs\nPASS m17_file_guard-marketing-hreflang.mjs\nPASS m17_file_guard-marketing-home-hooks.mjs\nPASS m17_file_guard-jsonld-xss.mjs\nPASS m17_file_crawl-marketing-sitemap.mjs\nPASS m17_file_smoke-marketing-lighthouse-servers.mjs\nPASS m17_file_icon.svg\nPASS m17_file_web-catalog-seo-redirect.spec.ts\nPASS m17_file_validate-json-ld.mjs\nPASS m17_file_lighthouserc.json\nPASS m17_file_lighthouserc.strict.json\nPASS m17_file_playwright.marketing-urban.config.ts\nPASS m17_file_playwright.marketing-home.config.ts\nPASS m17_file_smoke-marketing-urban-e2e-servers.mjs\nPASS m17_file_resolve-denali-surface-exposure.ts\nPASS m17_file_resolve-urban-surface-exposure.ts\nPASS m17_file_resolve-catalog-list-features.ts\nPASS m17_file_resolve-catalog-detail-sections.ts\nPASS m17_file_resolve-catalog-registration-support.ts\nPASS m17_file_resolve-catalog-list-features.spec.ts\nPASS m17_file_resolve-catalog-detail-sections.spec.ts\nPASS m17_file_resolve-catalog-registration-support.spec.ts\nPASS m17_file_urban-marketing.css\nPASS m17_file_urban-catalog-exposure-bindings.ts\nPASS m17_file_public-catalog.md\nPASS m17_file_marketing-catalog-ui.md\nPASS m17_file_portal-registration-ui.md\nPASS m17_file_platform-portal-registration-intake.mdoc\nPASS m17_file_build-catalog-registration-upstream-request.ts\nPASS m17_file_resolve-catalog-registration-api-path.ts\nPASS m17_file_catalog-intake-transport-surface.ts\nPASS m17_file_public-catalog-transport-intake.ts\nPASS m17_file_denali-catalog-transport-intake.ts\nPASS m17_file_denali-registration-flow.steps.tsx\nPASS m17_file_denali-catalog-transport-intake.spec.ts\nPASS m17_file_registration-intake.contract.spec.ts\nPASS m17_file_denali-catalog-openapi.ts\nPASS m17_file_denali-registration.spec.ts\nPASS m17_file_platform-club-product-exit.spec.ts\nPASS m17_file_identity-me.spec.ts\nPASS m17_file_member-profile-form.tsx\nPASS m17_file_format-registration-intake.spec.ts\nPASS m17_file_p4-club-product-gate.sh\nPASS m17_file_p6-denali-product-gate.sh\nPASS m17_file_resolve-denali-registration-transport.spec.ts\nPASS m17_file_denali-registration-validation.spec.ts\nPASS m17_file_.env.local.example\nPASS m17_file_.env.local.example\nPASS m17_file_resolve-tour-ops-api-base-url.ts\nPASS m17_file_resolve-tour-ops-api-base-url.spec.ts\nPASS m17_file_denali-portal.css\nPASS m17_file_MASTER.md\nPASS m17_file_MASTER.md\nPASS m17_portal_bff_phone-preflight\nPASS m17_portal_bff_request-otp\nPASS m17_portal_bff_verify-otp\nPASS m17_portal_bff_register-complete\nPASS m17_portal_bff_logout\nPASS m17_portal_bff_profile\nPASS m17_portal_bff_entitlements\nPASS m17_portal_bff_invalidate\nPASS m17_portal_bff_home\nPASS m17_dispatch_/public/auth/phone-preflight\nPASS m17_dispatch_/public/auth/request-otp\nPASS m17_dispatch_/public/auth/verify-otp\nPASS m17_dispatch_/public/auth/register/complete\nPASS m17_openapi_publicPhonePreflight\nPASS m17_openapi_publicRequestOtp\nPASS m17_openapi_publicVerifyOtp\nPASS m17_openapi_publicRegisterComplete\nPASS m17_web_register_redirects_to_portal\nPASS m17_portal_register_bootstrap\nPASS m17_portal_verify_otp_sets_session_cookie\nPASS m17_portal_intake_denali_and_urban\nPASS m17_denali_marketing_skin_master_tokens\nPASS m17_denali_portal_skin_master_tokens\nPASS m17_portal_registration_ui_doc\nPASS m17_portal_allowed_dev_origins\nPASS m17_doc_smoke_ids\nPASS m17_next_workspaces_slug_unambiguous\nPASS m17_marketing_guest_theme_bootstrap\nPASS m17_denali_exposure_db_less_fallback\nPASS m17_urban_exposure_db_less_fallback\nPASS m17_portal_member_profile_hook\nPASS m17_portal_registration_transport_hooks\nPASS m17_denali_catalog_openapi_registration_body\nPASS m17_member_profile_bff_upstream\nPASS m17_session_profile_removed\nPASS m17_e2e_fixture_transport_intake\nPASS m17_gitignore_tracks_env_local_example\nPASS m17_guest_bff_dev_api_fallback\nPASS m17_sdk_catalog_resolver_exports\nPASS m17_platform_portal_registration_intake_doc\nPASS m17_portal_registration_bff_sdk_dispatch\nPASS m17_sdk_product_neutral_registration_allowlist\nPASS m17_p6_gate_registration_intake_specs\nPASS m17_p4_gate_registration_intake_specs\nPASS m17_p4_exit_spec_registration_intake\nPASS m17_seo_guest_conformance_doc\nPASS m17_seo_e2e_hooks_manifest\nPASS m17_seo_revalidate_dual_tags\nPASS m17_seo_sdk_resolver_export\nPASS m17_seo_marketing_metadata_plugin_resolver\nPASS m17_seo_validate_json_ld_script\nPASS m17_seo_semantic_guard\nPASS m17_seo_lighthouse_config\nPASS m17_seo_prod_guard\nPASS m17_seo_e2e_hooks_smoke_ten\nPASS m17_seo_atom_feed_route\nPASS m17_seo_prod_image_hosts_guard\nPASS m17_marketing_home_hooks_guard\n\nguard-public-catalog-m17 — 140/140 PASS"
+    },
+    {
+      "name": "shell_contract",
+      "ok": true,
+      "closes": "INV-01",
+      "output": "▶ marketing-shell-contract.spec.ts — MKT-SHELL landmarks\n  ✔ MKT-SHELL-01 shell exposes canonical data-slot landmarks (0.749276ms)\n  ✔ MKT-SHELL-02 shell TSX has no appearance className or Lucide size props (skin owns visuals) (0.466026ms)\n  ✔ MKT-SHELL-03 shell nav is manifest-driven, not hardcoded (0.174105ms)\n✔ marketing-shell-contract.spec.ts — MKT-SHELL landmarks (2.94281ms)\nℹ tests 3\nℹ suites 1\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 141.650983"
+    }
+  ],
+  "execution_allowed": true,
+  "ctl_status": "ACTIVE",
+  "policy": "failure-first",
+  "completed": false,
+  "governing": true,
+  "date": "2026-07-06"
+}

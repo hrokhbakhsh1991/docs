@@ -1,0 +1,65 @@
+---
+title: CSS ownership model
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/standards/shell-skin-primitives-contract.mdoc
+---
+
+# CSS ownership model
+
+Strict four-layer appearance stack. **globals.css is not a layer** — import-only bootstrap per app surface.
+
+## Layers
+
+| Layer | Package | Owns | Forbidden |
+| ----- | ------- | ---- | --------- |
+| **L0 Tokens** | `@app-tour/design-tokens` (`primitives`, `semantics`, `themes`) | `--color-*`, `--space-*`, `--radius` | `data-*` selectors, page rules |
+| **L1 Primitives** | `@app-tour/ui-primitives` | Atom CSS modules bound to L0 | Shell hooks, workspace scope |
+| **L2 Shell** | `design-tokens` bootstrap fallbacks (`fallback-guest-*`, `operator-admin-appearance` structure) | Layout on `data-slot` / `data-*` hooks | Brand hex colors, workspace names |
+| **L3 Skin** | `packages/workspaces/<id>/theme/` | Scoped overrides on `body[data-app-surface][data-workspace-plugin]` | `:root` unscoped tokens, `!important` (except Radix escape allowlist) |
+
+## Bootstrap manifests (globals.css imports)
+
+| App | Bootstrap entry | Imports |
+| --- | --------------- | ------- |
+| Portal | `portal-bootstrap.css` | L0 index + shell-bridge + portal shell fallback + body reset + platform infra |
+| Marketing | `marketing-bootstrap.css` | L0 index + shell-bridge + marketing shell fallback + body reset + platform infra |
+| Admin (`apps/web`) | `admin-bootstrap.css` | L0 index + shell-bridge + operator wizard/shell structure |
+
+**Cross-surface rule:** portal bootstrap must not import marketing fallback CSS and vice versa.
+
+**Workspace rule:** bootstrap trees must not contain workspace plugin selectors, `denali-*` / `urban-*` class names, or `@app-tour/workspace-*` imports.
+
+## Runtime ingress (guest surfaces)
+
+Guest portal and marketing **must not** wrap content in `TenantThemeProvider` for appearance. Workspace skin (L3) is the brand SSOT.
+
+Allowed inline on `html` only:
+
+- `--font-family-base` (font loading contract)
+
+Allowed inline on components:
+
+- Geometry tied to data (`width: N%` on progress fills)
+
+Forbidden inline:
+
+- `--color-*`, `--primary`, `--background`, `--border`, `--accent`, `--foreground`
+
+Admin may use `TenantThemeProvider` under `/settings/branding` preview only (future); operator shell uses workspace skin + `WorkspaceThemeProvider` for `--ws-color-accent`.
+
+## Enforcement
+
+See [guard-css-integrity.md](../dev/guard-css-integrity.md):
+
+- `guard-css-globals-import-only` — pre-commit
+- `guard-css-bootstrap-integrity` — guest conformance bundle
+- ESLint `no-inline-appearance-vars` on portal/marketing TSX
+
+## Migration status (2026-07-06)
+
+- Phase 1: bootstrap split (`portal-bootstrap`, `marketing-bootstrap`, `admin-bootstrap`)
+- Phase 1: `denali-wizard-content-quality*` moved from platform CSS to Denali `wizard-review.css`
+- Phase 1: guest providers drop `TenantThemeProvider`
+- Phase 2: L2 structure-only fallbacks; `platform-neutral-portal.css`; `/me` appearance in skin; dynamic admin theme loader

@@ -69,7 +69,7 @@ describe("portal-member-registrations", () => {
       "utf8"
     );
     assert.match(page, /main data-portal-member-registration-detail/);
-    assert.match(page, /\/me\/registrations/);
+    assert.match(page, /resolveMemberPortalTripsListPath/);
     assert.match(form, /data-portal-member-receipt-upload/);
     assert.match(form, /data-portal-member-receipt-submit/);
     assert.match(form, /disabled=\{status === "uploading"\}/);

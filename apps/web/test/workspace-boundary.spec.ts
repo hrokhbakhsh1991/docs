@@ -178,18 +178,20 @@ describe("Phase 3.3 workspace boundary", () => {
     }
   });
 
-  it("P15-W-B5 root layout loads theme CSS via manifest codegen", () => {
+  it("P15-W-B5 root layout loads theme CSS via dynamic admin loader", () => {
     assert.ok(!existsSync(join(SRC_DIR, "providers/workspace-theme-stylesheet.ts")));
     const layout = readFileSync(join(APP_DIR, "layout.tsx"), "utf8");
-    assert.match(layout, /workspace-theme-stylesheets\.generated/);
+    assert.match(layout, /importAdminThemeForPlugin/);
+    assert.match(layout, /await importAdminThemeForPlugin\(resolved\.session\.pluginId\)/);
     assert.doesNotMatch(layout, /@app-tour\/workspace-denali\/theme\/denali-admin\.css/);
     const generated = readFileSync(
       join(SRC_DIR, "bootstrap/workspace-theme-stylesheets.generated.ts"),
       "utf8"
     );
+    assert.match(generated, /importAdminThemeForPlugin/);
+    assert.match(generated, /WORKSPACE_ADMIN_THEME_REGISTRY/);
     assert.match(generated, /@app-tour\/workspace-denali\/theme\/denali-admin\.css/);
-    assert.match(generated, /@app-tour\/workspace-starter\/theme\/tokens\.css/);
-    assert.match(generated, /@app-tour\/workspace-urban\/theme\/tokens\.css/);
+    assert.doesNotMatch(generated, /^import ["']@app-tour\/workspace-/m);
   });
 
   it("P15-W-B6 wizard media BFF paths are manifest-generated", () => {

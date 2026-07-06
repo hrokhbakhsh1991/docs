@@ -186,9 +186,9 @@ See [platform-portal-member-entitlements.mdoc](./platform-portal-member-entitlem
 
 ### 4.6 Guest conformance L4 (DL-07)
 
-**L4** = L3 guest conformance + `memberPortal` registry block required for workspaces shipping member app navigation.
+**L4** = L3 guest conformance + `guestConformance.memberApp: true` + `memberPortal.availability` ≠ `off` (see [member-portal-registry-schema.mdoc](./member-portal-shell/member-portal-registry-schema.mdoc) §6).
 
-Enforcement phased per DL-18.
+Enforced by `guard-member-portal-contract.mjs` (DL-18 superseded 2026-07-06).
 
 ---
 
@@ -309,7 +309,7 @@ Detailed gates: [member-portal-shell/implementation-gates.mdoc](./member-portal-
 1. **Doc-first:** Merge this RFC + WRS addendum + decision log sign-off before any `apps/portal` shell code.
 2. **Alias-safe:** Ship shell + registry without changing `/me/registrations` URLs; SMK-PTL-02..08 must stay green.
 3. **Phased static → dispatcher:** No catch-all until Phase 5 (DL-28).
-4. **Denali first:** Reference workspace binds IA in manifest; Urban/starter exempt until L4 needed (DL-18).
+4. **Denali first:** Reference workspace binds IA in manifest (`availability: full`); trunk workspaces use `minimal` (urban, guest-club) — not exempt (DL-18 superseded).
 5. **Rollback per phase:** [implementation-gates.mdoc](./member-portal-shell/implementation-gates.mdoc) § Rollback.
 
 ---

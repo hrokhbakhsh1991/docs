@@ -21,8 +21,13 @@ import { CatalogTourDetailFaq } from "./catalog-tour-detail-faq";
 import { CatalogTourDetailPolicies } from "./catalog-tour-detail-policies";
 import { CatalogTourDetailRegisterPreview } from "./catalog-tour-detail-register-preview";
 import { buildCatalogTourMetaLine } from "./build-catalog-tour-meta-line";
-import { resolveCatalogDetailDenaliPdpGates } from "./resolve-catalog-detail-denali-pdp-gates";
-import { isDenaliMarketingPlugin } from "./resolve-marketing-denali-plugin";
+import {
+  isDenaliMarketingPlugin,
+  resolveDenaliCatalogDetailPdpGates,
+} from "@app-tour/workspace-denali/marketing";
+
+import { tourHasRegisterPreviewData } from "./build-catalog-register-preview-items";
+import { tourHasOverflowGalleryPhotos } from "./build-catalog-tour-photo-set";
 import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-catalog-category-label";
 import type { MarketingCatalogCard } from "./catalog-types";
 import { formatCatalogCardDescription } from "./format-catalog-display";
@@ -54,7 +59,11 @@ export async function CatalogTourDetail({
   pluginId,
 }: CatalogTourDetailProps) {
   const sections = resolveCatalogDetailSections(pluginId);
-  const denaliPdp = resolveCatalogDetailDenaliPdpGates(pluginId, tour);
+  const denaliPdp = resolveDenaliCatalogDetailPdpGates(pluginId, {
+    tour,
+    hasOverflowGallery: tourHasOverflowGalleryPhotos(tour),
+    hasRegisterPreview: tourHasRegisterPreviewData(tour),
+  });
   const isDenali = isDenaliMarketingPlugin(pluginId);
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();

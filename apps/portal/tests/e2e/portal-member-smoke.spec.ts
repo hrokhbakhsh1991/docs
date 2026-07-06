@@ -17,7 +17,7 @@ test("SMK-PTL-02 member /me lists registration after catalog intake (VS-04)", as
     phone: DEV_PHONE,
   });
 
-  await page.locator('[data-public-registration-success] a[href="/me/registrations"]').click();
+  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
   await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
     timeout: 60_000,
   });
@@ -56,8 +56,8 @@ test("SMK-PTL-04 member uploads offline receipt on registration detail (VS-05)",
     phone: RECEIPT_PHONE,
   });
 
-  await page.locator('[data-public-registration-success] a[href="/me/registrations"]').click();
-  await page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE }).click();
+  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
+  await page.getByRole("link", { name: OPERATOR_PUBLISHED_TOUR_TITLE }).first().click();
   await expect(page.locator("[data-portal-member-receipt-upload]")).toBeVisible({
     timeout: 60_000,
   });
@@ -77,7 +77,7 @@ test("SMK-PTL-04 member uploads offline receipt on registration detail (VS-05)",
         mimeType: "image/jpeg",
         buffer: Buffer.from("smoke-receipt-jpeg"),
       });
-      await page.locator("[data-portal-member-receipt-submit]").click();
+      await page.locator("[data-portal-member-receipt-submit]").first().click();
     })(),
   ]);
   const uploadBody = await uploadRes.text();
@@ -97,7 +97,7 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
     phone,
   });
 
-  await page.locator('[data-public-registration-success] a[href="/me/registrations"]').click();
+  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
   await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
     timeout: 60_000,
   });
@@ -112,7 +112,7 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
         res.request().method() === "POST" && res.url().includes("/api/public-auth/logout"),
       { timeout: 60_000 }
     ),
-    logoutButton.click(),
+    logoutButton.first().click(),
   ]);
   const logoutBody = await logoutResponse.text();
   expect(
@@ -145,7 +145,7 @@ test("SMK-PTL-09 entitled modules appear in shell nav (PS-5)", async ({ page }) 
     phone,
   });
 
-  await page.locator('[data-public-registration-success] a[href="/me/registrations"]').click();
+  await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
   await expect(page.locator("[data-portal-member-registrations]")).toBeVisible({
     timeout: 60_000,
   });

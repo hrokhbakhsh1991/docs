@@ -16,16 +16,10 @@ function HubModuleList({
   readonly payload: MemberHubPayload;
   readonly labelForKey: (labelKey: string) => string;
 }) {
-  const listClassName =
-    payload.presentation.mode === "virtualised"
-      ? "max-h-[min(70dvh,32rem)] overflow-y-auto overscroll-contain"
-      : undefined;
-
   return (
     <ul
       data-portal-member-hub-list
       data-portal-member-hub-mode={payload.presentation.mode}
-      className={listClassName}
     >
       {payload.modules.map((module) => (
         <li key={module.id}>

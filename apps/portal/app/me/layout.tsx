@@ -4,7 +4,9 @@ import { headers } from "next/headers";
 import type { ReactNode } from "react";
 
 import { resolveEmbeddedMemberPortalHost } from "@app-tour/guest-surface-host";
+import { isMemberPortalEnabled } from "@app-tour/workspace-sdk";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
+import { MemberPortalDisabled } from "@/me/member-portal-disabled";
 import { PortalMemberShell } from "@/shell/portal-member-shell";
 import { resolvePortalMemberNavForPlugin } from "@/shell/resolve-portal-member-nav.server";
 import { resolveMemberEntitlementsForShell } from "@/me/resolve-member-entitlements-for-shell.server";
@@ -26,6 +28,9 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   const bootstrap = await resolvePortalBootstrapForHost(host);
   if (session.tenantId !== bootstrap.tenantId) {
     redirect("/");
+  }
+  if (!isMemberPortalEnabled(bootstrap.pluginId)) {
+    return <MemberPortalDisabled />;
   }
 
   const branding = await fetchPublicTenantBrandingForHost(host);

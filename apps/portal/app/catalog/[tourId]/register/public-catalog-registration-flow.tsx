@@ -11,6 +11,10 @@ import {
 } from "@app-tour/workspace-sdk";
 import { getWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";
 import { hydrateCatalogRegistrationIntakeAfterSession } from "@app-tour/catalog-registration-flow-ui";
+import {
+  assertCatalogRegistrationFlowState,
+  createCatalogRegistrationFlowRuntimeState,
+} from "@app-tour/catalog-registration-auth";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
@@ -28,7 +32,7 @@ type PublicCatalogRegistrationFlowProps = {
   readonly tourFatherNameRequired?: boolean;
   readonly tourBirthDateRequired?: boolean;
   readonly backHref: string;
-  readonly memberModuleHref: string;
+  readonly memberModuleHref: string | null;
   readonly initialRuntimeState?: FlowRuntimeState;
 };
 
@@ -85,17 +89,20 @@ export function PublicCatalogRegistrationFlow({
   );
 
   const [state, dispatch] = useReducer(
-    (current, event: FlowEvent) =>
-      flowPlugin !== null
-        ? flowPlugin.catalogRegistrationFlow.resolveNextStep(current, event, context)
-        : current,
+    (current, event: FlowEvent) => {
+      const next =
+        flowPlugin !== null
+          ? flowPlugin.catalogRegistrationFlow.resolveNextStep(current, event, context)
+          : current;
+      if (process.env.NODE_ENV !== "production" && flowPlugin !== null) {
+        assertCatalogRegistrationFlowState(next.data);
+      }
+      return next;
+    },
     initialRuntimeState ??
       (flowPlugin !== null
         ? flowPlugin.catalogRegistrationFlow.createInitialState(context)
-        : {
-            currentStep: "",
-            data: {},
-          })
+        : createCatalogRegistrationFlowRuntimeState({ initialStep: "" }))
   );
 
   const [resumedWithoutServer, setResumedWithoutServer] = useState(false);

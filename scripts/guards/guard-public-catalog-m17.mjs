@@ -110,6 +110,7 @@ const REQUIRED_FILES = [
   "packages/guest-surface-host/src/resolve-tour-ops-api-base-url.ts",
   "packages/guest-surface-host/test/resolve-tour-ops-api-base-url.spec.ts",
   "packages/workspaces/denali/theme/denali-portal.css",
+  "packages/workspaces/denali/design-language/MASTER.md",
   "design-system/denali-club/MASTER.md",
 ];
 
@@ -195,16 +196,20 @@ assertCheck(
 
 assertCheck(
   "m17_denali_marketing_skin_master_tokens",
-  read("packages/workspaces/denali/theme/denali-marketing.css").includes("#059669") &&
-    read("packages/workspaces/denali/theme/denali-marketing.css").includes("denali-club/MASTER.md"),
-  "denali-marketing.css must map denali-club MASTER tokens",
+  read("packages/workspaces/denali/theme/marketing/tokens.css").includes("#059669") &&
+    read("packages/workspaces/denali/theme/denali-marketing.css").includes(
+      "packages/workspaces/denali/design-language/MASTER.md"
+    ),
+  "denali marketing skin must map workspace design-language MASTER tokens",
 );
 
 assertCheck(
   "m17_denali_portal_skin_master_tokens",
   read("packages/workspaces/denali/theme/denali-portal.css").includes("#059669") &&
-    read("packages/workspaces/denali/theme/denali-portal.css").includes("denali-club/MASTER.md"),
-  "denali-portal.css must map denali-club MASTER tokens",
+    read("packages/workspaces/denali/theme/denali-portal.css").includes(
+      "packages/workspaces/denali/design-language/MASTER.md"
+    ),
+  "denali-portal.css must map workspace design-language MASTER tokens",
 );
 
 const portalRegistrationDoc = read("docs/workspaces/denali/portal-registration-ui.md");
@@ -247,8 +252,9 @@ const marketingThemeBootstrap = read(
 assertCheck(
   "m17_marketing_guest_theme_bootstrap",
   marketingThemeBootstrap.includes("denali-marketing.css") &&
-    marketingThemeBootstrap.includes("urban-marketing.css"),
-  "generate:workspace-registry must emit denali + urban marketing skins in marketing bootstrap"
+    marketingThemeBootstrap.includes("urban-marketing.css") &&
+    marketingThemeBootstrap.includes("importGuestMarketingThemeForPlugin"),
+  "generate:workspace-registry must emit per-plugin marketing skin loader (denali + urban)"
 );
 
 const denaliExposureResolver = read("apps/api/src/exposure/resolve-denali-surface-exposure.ts");

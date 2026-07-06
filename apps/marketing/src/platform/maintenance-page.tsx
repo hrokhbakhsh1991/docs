@@ -2,14 +2,12 @@ import { buildPlatformAdminUrl } from "./build-platform-admin-url";
 
 export function MaintenancePage({ title }: { readonly title: string }) {
   return (
-    <main data-platform-maintenance className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <p className="text-muted-foreground">این بخش در دست تعمیر است.</p>
-      <div className="flex flex-wrap gap-4 text-sm">
-        <a href="/" className="underline">
-          صفحه اصلی
-        </a>
-        <a href={buildPlatformAdminUrl()} data-platform-admin-cta className="underline">
+    <main data-platform-maintenance data-slot="shell-main">
+      <h1>{title}</h1>
+      <p data-platform-maintenance-lead>این بخش در دست تعمیر است.</p>
+      <div data-platform-maintenance-links>
+        <a href="/">صفحه اصلی</a>
+        <a href={buildPlatformAdminUrl()} data-platform-admin-cta>
           ورود PlatformOps
         </a>
       </div>

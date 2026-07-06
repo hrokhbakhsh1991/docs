@@ -4,11 +4,11 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { isAppLocale, resolveMarketingLocalePath, type AppLocale } from "@/i18n/routing";
 
-import { isDenaliMarketingPlugin } from "@/catalog/resolve-marketing-denali-plugin";
 import {
   DENALI_MARKETING_DIFFICULTY_MAX,
   isDenaliMarketingCategoryGroup,
-} from "@/catalog/denali-catalog-filter-config";
+  isDenaliMarketingPlugin,
+} from "@app-tour/workspace-denali/marketing";
 import { resolveMarketingCatalogCategoryFilterLabel } from "@/catalog/resolve-marketing-catalog-category-label";
 
 import {
@@ -93,7 +93,7 @@ export async function CatalogTourFilterBar({
     <div data-marketing-catalog-toolbar>
       <div data-marketing-catalog-filter-bar-head>
         <div data-marketing-catalog-filter-bar-title-row>
-          <SlidersHorizontal aria-hidden="true" data-marketing-catalog-filter-bar-icon size={18} />
+          <SlidersHorizontal aria-hidden="true" data-marketing-catalog-filter-bar-icon />
           <p data-marketing-catalog-filter-bar-title>{t("list.filters.panelTitle")}</p>
         </div>
         <Link
@@ -101,7 +101,7 @@ export async function CatalogTourFilterBar({
           data-marketing-catalog-clear-filters
           {...(filtersActive ? { "data-marketing-catalog-clear-filters-active": true } : {})}
         >
-          <RotateCcw aria-hidden="true" size={16} />
+          <RotateCcw aria-hidden="true" data-marketing-catalog-clear-filters-icon />
           <span>{t("list.filters.reset")}</span>
         </Link>
       </div>
@@ -142,7 +142,7 @@ export async function CatalogTourFilterBar({
           <label data-marketing-catalog-filter-search>
             <span data-marketing-catalog-filter-field-label>{t("list.filters.searchLabel")}</span>
             <span data-marketing-catalog-filter-search-input-wrap>
-              <Search aria-hidden="true" data-marketing-catalog-filter-search-icon size={18} />
+              <Search aria-hidden="true" data-marketing-catalog-filter-search-icon />
               <input
                 type="search"
                 name="q"

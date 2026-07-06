@@ -36,7 +36,6 @@ export {
 } from "./resolve-portal-public-base-url";
 export {
   resolvePortalMemberModuleUrl,
-  FROZEN_MEMBER_TRIPS_ROUTE_PATH,
 } from "./resolve-portal-member-module-url";
 export { resolvePluginIdFromIngressHost } from "./resolve-plugin-id-from-ingress-host";
 export {

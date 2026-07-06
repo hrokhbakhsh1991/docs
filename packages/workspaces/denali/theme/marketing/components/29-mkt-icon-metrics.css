@@ -1,0 +1,73 @@
+/**
+ * MKT-13 / MKT-13b — Lucide icon metrics (shell + page chrome).
+ */
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-brand]
+  svg[data-marketing-brand-icon] {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-header-sign-in]
+  svg[data-marketing-header-sign-in-icon] {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  summary[data-marketing-nav-drawer-toggle]
+  svg[data-marketing-nav-drawer-toggle-icon] {
+  width: 1.375rem;
+  height: 1.375rem;
+  flex-shrink: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  svg[data-marketing-catalog-filter-bar-icon] {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-catalog-clear-filters]
+  svg[data-marketing-catalog-clear-filters-icon] {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  svg[data-marketing-catalog-filter-search-icon] {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  section[data-marketing-home-trust]
+  > svg[data-marketing-home-trust-brand-icon] {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  section[data-marketing-home-trust]
+  svg[data-marketing-home-trust-shield-icon] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  article[data-marketing-home-why-tile]
+  svg[data-marketing-home-why-tile-icon] {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-journey-step]
+  svg[data-marketing-home-journey-step-icon] {
+  width: 1.375rem;
+  height: 1.375rem;
+}

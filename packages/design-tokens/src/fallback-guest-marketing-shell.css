@@ -1,0 +1,34 @@
+/**
+ * Platform fallback — marketing tenant shell appearance (shadow-first).
+ * Scope: body[data-app-surface="marketing"] only.
+ */
+body[data-app-surface="marketing"] [data-marketing-shell],
+body[data-app-surface="marketing"] [data-slot="shell"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+body[data-app-surface="marketing"] [data-marketing-shell-main],
+body[data-app-surface="marketing"] [data-slot="shell-main"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body[data-app-surface="marketing"] header[data-marketing-header],
+body[data-app-surface="marketing"] [data-slot="shell-header"] {
+  display: block;
+}
+
+body[data-app-surface="marketing"] nav[data-marketing-header-nav],
+body[data-app-surface="marketing"] [data-slot="shell-nav"] {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+body[data-app-surface="marketing"] [data-marketing-locale-switcher] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}

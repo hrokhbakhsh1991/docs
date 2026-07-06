@@ -158,6 +158,10 @@
     "./theme/denali-admin.css": "./theme/denali-admin.css",
     "./theme/denali-portal.css": "./theme/denali-portal.css",
     "./theme/denali-marketing.css": "./theme/denali-marketing.css",
+    "./marketing": {
+      "types": "./dist/marketing/index.d.ts",
+      "default": "./dist/marketing/index.js"
+    },
     "./theme/admin-skin.css": "./theme/admin-skin.css",
     "./messages/fa/wizard.json": "./messages/fa/wizard.json",
     "./messages/en/wizard.json": "./messages/en/wizard.json",
@@ -477,6 +481,8 @@
     "theme/denali-admin.css",
     "theme/denali-portal.css",
     "theme/denali-marketing.css",
+    "theme/marketing",
+    "design-language",
     "theme/admin-skin.css",
     "theme/interactions.css",
     "theme/animations.css"

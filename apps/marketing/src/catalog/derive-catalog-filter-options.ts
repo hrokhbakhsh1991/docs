@@ -3,8 +3,8 @@ import {
   DENALI_MARKETING_CATEGORY_GROUPS,
   DENALI_MARKETING_DIFFICULTY_LEVELS,
   DENALI_MARKETING_FITNESS_LEVELS,
-} from "./denali-catalog-filter-config";
-import { isDenaliMarketingPlugin } from "./resolve-marketing-denali-plugin";
+  isDenaliMarketingPlugin,
+} from "@app-tour/workspace-denali/marketing";
 import type { MarketingCatalogCard } from "./catalog-types";
 
 export type CatalogFilterOptions = {

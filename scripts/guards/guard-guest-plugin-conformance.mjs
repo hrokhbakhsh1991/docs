@@ -30,6 +30,9 @@ const STEPS = [
   },
   { name: "guest_seo", cmd: ["node", "scripts/guards/guard-guest-seo.mjs"] },
   { name: "guest_seo_e2e_hooks", cmd: ["node", "scripts/guards/guard-guest-seo-e2e-hooks.mjs"] },
+  { name: "registration_flow_state", cmd: ["node", "scripts/guards/guard-registration-flow-state.mjs"] },
+  { name: "member_portal_contract", cmd: ["node", "scripts/guards/guard-member-portal-contract.mjs"] },
+  { name: "css_bootstrap_integrity", cmd: ["node", "scripts/guards/guard-css-bootstrap-integrity.mjs"] },
 ];
 
 const failures = [];

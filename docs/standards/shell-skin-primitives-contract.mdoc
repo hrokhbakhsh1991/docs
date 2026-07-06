@@ -1,0 +1,66 @@
+---
+title: Shell · Skin · Primitives contract
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/phase-19/p6-enterprise-theming-architecture.mdoc
+---
+
+# Shell · Skin · Primitives contract
+
+Four-layer enforcement for guest and admin surfaces. **Marketing shell is the reference implementation.**
+
+## Layers
+
+| Layer | Package / location | Owns |
+| ----- | ------------------ | ---- |
+| Design tokens | `@app-tour/design-tokens` | Semantic CSS variables, `@theme` bridge |
+| UI primitives | `@app-tour/ui-primitives` | Atoms only — token-bound CSS modules |
+| Shell | `apps/*/src/**/shell/` | Structure, landmarks, `data-*` hooks, providers |
+| Workspace skin | `packages/workspaces/<id>/theme/*.css` | All visual appearance |
+
+## Body contract
+
+```html
+<body
+  data-app-surface="portal | marketing | admin"
+  data-workspace-plugin="{pluginId}"
+  data-tenant-id="{tenantId}"
+>
+```
+
+## Shell `data-slot` contract (additive)
+
+| Slot | Portal hook | Marketing hook | Admin hook |
+| ---- | ----------- | -------------- | ---------- |
+| `shell` | `data-portal-shell` | — | `data-operator-shell` |
+| `shell-header` | `data-portal-shell-header` | `data-marketing-header` | `data-operator-header` |
+| `shell-main` | `data-portal-shell-main` | `#main-content` | `#operator-main` |
+| `shell-nav` | `data-portal-shell-bottom-nav` | `data-marketing-header-nav` | `data-operator-sidebar` |
+| `footer` | — | `data-marketing-footer` | — |
+
+Existing `data-*` hooks are never removed — `data-slot` is additive only.
+
+## Shell forbidden in TSX
+
+- Appearance Tailwind: `bg-*`, `text-*`, `border-*`, `shadow-*`, `backdrop-*`, `rounded-*` (visual)
+- Typography utilities: `text-sm`, `font-semibold`, etc.
+- `@/components/ui/*` (shadcn)
+- Inline visual `style`
+
+## Shadow-first migration
+
+1. Add `data-slot` / `data-active` / missing hooks
+2. Replicate computed styles in skin CSS (`platform-neutral-portal.css` or workspace skin)
+3. Verify E2E parity
+4. Remove shell `className` appearance
+
+## Portal skin stack
+
+| Layer | File | Owns |
+| ----- | ---- | ---- |
+| L2 structure | `fallback-guest-portal-shell.css` | Layout on `data-portal-shell*` hooks only |
+| L3 default | `platform-neutral-portal.css` | Shell + `/me` appearance (platform neutral) |
+| L3 workspace | `packages/workspaces/<id>/theme/*-portal.css` | Brand overrides on `body[data-workspace-plugin]` |
+
+Both L2 and L3 default are imported from `portal-bootstrap.css`. Workspace skins load dynamically in portal layout.

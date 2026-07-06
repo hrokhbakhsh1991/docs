@@ -1,7 +1,7 @@
 import {
   isDenaliMarketingCategoryGroup,
   type DenaliMarketingCategoryGroup,
-} from "./denali-catalog-filter-config";
+} from "@app-tour/workspace-denali/marketing";
 
 /** Chip / pill label for catalog category filter (group or legacy slug). */
 export function resolveMarketingCatalogCategoryFilterLabel(

@@ -76,13 +76,9 @@ export default async function MarketingHomePage() {
 
   if (isPlatformMotherHost(host)) {
     return (
-      <main data-platform-mother-home className="mx-auto max-w-2xl space-y-6">
-        <h1 className="text-3xl font-semibold">پلتفرم مدیریت باشگاه کوهنوردی</h1>
-        <a
-          href={buildPlatformAdminUrl()}
-          data-platform-admin-cta
-          className="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-        >
+      <main data-platform-mother-home data-slot="shell-main">
+        <h1>پلتفرم مدیریت باشگاه کوهنوردی</h1>
+        <a href={buildPlatformAdminUrl()} data-platform-admin-cta>
           ورود PlatformOps
         </a>
       </main>

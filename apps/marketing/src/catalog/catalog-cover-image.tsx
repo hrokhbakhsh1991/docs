@@ -32,11 +32,7 @@ export function CatalogCoverImage({
       unoptimized={unoptimized}
       priority={priority}
       data-marketing-catalog-cover
-      style={
-        cover
-          ? { width: "100%", height: "100%", objectFit: "cover", display: "block" }
-          : { maxWidth: "100%", height: "auto", display: "block" }
-      }
+      {...(cover ? { "data-marketing-catalog-cover-fill": true } : {})}
     />
   );
 }

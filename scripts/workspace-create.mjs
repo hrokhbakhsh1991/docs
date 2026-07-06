@@ -336,6 +336,32 @@ describe("${ctx.id} workspace scaffold", () => {
   );
 }
 
+function writeDesignLanguage(dir, ctx) {
+  mkdirSync(join(dir, "design-language"), { recursive: true });
+  writeFileSync(
+    join(dir, "design-language", "MASTER.md"),
+    `# Design System Master File — ${ctx.pascal}
+
+**Project:** ${ctx.pascal} workspace
+**Category:** Guest marketing scaffold (replace before launch)
+
+## Color Palette
+
+| Role | Hex | CSS Variable |
+|------|-----|--------------|
+| Accent | \`#2563EB\` | \`--ws-color-accent\` / \`--color-primary\` |
+
+**Skin entry:** \`packages/workspaces/${ctx.id}/theme/marketing.css\`
+
+## Rules
+
+- Map brand tokens in \`theme/marketing/tokens.css\` or \`theme/marketing.css\`
+- Shell TSX: structure + \`data-*\` only; appearance in workspace CSS
+- Update this file when brand is finalized
+`
+  );
+}
+
 function writeTheme(dir, ctx, guest) {
   writeFileSync(
     join(dir, "theme", "tokens.css"),
@@ -463,8 +489,8 @@ function writeGuestRegistrationFlow(dir, ctx) {
   FlowRuntimeState,
   IntakeFlowDefinition,
   RegistrationFlowContext,
-  WorkspaceCatalogRegistrationFlowSurface,
 } from "@app-tour/workspace-sdk";
+import { defineCatalogRegistrationFlowSurface } from "@app-tour/workspace-sdk";
 
 const STEPS = ["phone", "otp", "profile", "intake", "done"] as const;
 
@@ -473,44 +499,46 @@ const DEFINITION: IntakeFlowDefinition = Object.freeze({
   steps: STEPS,
 });
 
-function createEmptyData(): Readonly<Record<string, unknown>> {
-  return Object.freeze({ fullName: "", email: "", partySize: "1", notes: "" });
-}
-
-export const ${ctx.registrationFlowSurfaceExport}: WorkspaceCatalogRegistrationFlowSurface =
-  Object.freeze({
-    definition: DEFINITION,
-    createInitialState: (_context: RegistrationFlowContext): FlowRuntimeState =>
-      Object.freeze({ currentStep: DEFINITION.initialStep, data: createEmptyData() }),
-    resolveNextStep: (
-      state: FlowRuntimeState,
-      event: FlowEvent,
-      _context: RegistrationFlowContext
-    ): FlowRuntimeState => {
-      if (event.type === "merge") {
-        return Object.freeze({
-          currentStep: state.currentStep,
-          data: Object.freeze({ ...state.data, ...event.patch }),
-        });
-      }
-      if (event.type === "transition") {
-        return Object.freeze({ currentStep: event.to, data: state.data });
-      }
-      return state;
-    },
-    successDataAttributes: () => Object.freeze({ ${JSON.stringify(`data-${ctx.id}-registration-success`)}: true }),
-  });
+export const ${ctx.registrationFlowSurfaceExport} = defineCatalogRegistrationFlowSurface({
+  definition: DEFINITION,
+  resolveNextStep: (
+    state: FlowRuntimeState,
+    event: FlowEvent,
+    _context: RegistrationFlowContext
+  ): FlowRuntimeState => {
+    if (event.type === "merge") {
+      return Object.freeze({
+        currentStep: state.currentStep,
+        data: Object.freeze({ ...state.data, ...event.patch }),
+      });
+    }
+    if (event.type === "transition") {
+      return Object.freeze({ currentStep: event.to, data: state.data });
+    }
+    return state;
+  },
+  successDataAttributes: () => Object.freeze({ ${JSON.stringify(`data-${ctx.id}-registration-success`)}: true }),
+});
 `
   );
   writeFileSync(
     join(flowDir, "registration-flow.steps.tsx"),
-    `import { mergeFlowState, transitionFlowStep, type RegistrationFlowStepProps } from "@app-tour/workspace-sdk";
+    `import { readCatalogRegistrationFlowState } from "@app-tour/catalog-registration-auth";
+import { mergeFlowState, transitionFlowStep, type RegistrationFlowStepProps } from "@app-tour/workspace-sdk";
 import { type FormEvent, type JSX } from "react";
 
 export function ${ctx.intakeStepExport}({ state, dispatch }: RegistrationFlowStepProps): JSX.Element {
-  const data = state.data as Readonly<Record<string, string>>;
+  const data = readCatalogRegistrationFlowState(state.data);
 
   function update(fieldId: string, value: string): void {
+    if (fieldId === "fullName") {
+      mergeFlowState(state, dispatch, { intakeName: value });
+      return;
+    }
+    if (fieldId === "email") {
+      mergeFlowState(state, dispatch, { intakeEmail: value });
+      return;
+    }
     mergeFlowState(state, dispatch, { [fieldId]: value });
   }
 
@@ -525,7 +553,8 @@ export function ${ctx.intakeStepExport}({ state, dispatch }: RegistrationFlowSte
         Full name
         <input
           name="fullName"
-          value={data.fullName ?? ""}
+          data-intake-field="fullName"
+          value={data.intakeName}
           onChange={(event) => update("fullName", event.currentTarget.value)}
         />
       </label>
@@ -534,7 +563,8 @@ export function ${ctx.intakeStepExport}({ state, dispatch }: RegistrationFlowSte
         <input
           name="email"
           type="email"
-          value={data.email ?? ""}
+          data-intake-field="email"
+          value={data.intakeEmail}
           onChange={(event) => update("email", event.currentTarget.value)}
         />
       </label>
@@ -544,7 +574,8 @@ export function ${ctx.intakeStepExport}({ state, dispatch }: RegistrationFlowSte
           name="partySize"
           type="number"
           min={1}
-          value={data.partySize ?? "1"}
+          data-intake-field="partySize"
+          value={data.partySize}
           onChange={(event) => update("partySize", event.currentTarget.value)}
         />
       </label>
@@ -698,6 +729,9 @@ export function scaffoldWorkspace({ repoRoot = REPO_ROOT, id, guest = false }) {
   writeIndex(dir, ctx, guest);
   writeScaffoldSpec(dir, ctx);
   writeTheme(dir, ctx, guest);
+  if (guest) {
+    writeDesignLanguage(dir, ctx);
+  }
   if (guest) {
     writeGuestCatalog(dir, ctx);
     writeGuestRegistrationFlow(dir, ctx);

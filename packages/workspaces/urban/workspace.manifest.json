@@ -89,7 +89,8 @@
   ],
   "themeStylesheets": ["theme/tokens.css"],
   "guestThemeStylesheets": {
-    "marketing": ["theme/urban-marketing.css"]
+    "marketing": ["theme/urban-marketing.css"],
+    "portal": ["theme/urban-portal.css"]
   },
   "catalogRegistrationFlow": {
     "surfaceExport": "urbanCatalogRegistrationFlowSurface",
@@ -160,5 +161,10 @@
       "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": true },
       "pagination": { "noindexQueryParams": ["cursor", "city"] }
     }
+  },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "minimal",
+    "preset": "guest-minimal-v1"
   }
 }

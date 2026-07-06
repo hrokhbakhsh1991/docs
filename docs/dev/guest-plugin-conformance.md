@@ -11,8 +11,11 @@
 | **L1** | Catalog `httpRoutes` (`GET /{id}/catalog`) |
 | **L2** | L1 + `catalogRegistrationFlow` |
 | **L3** | L2 + `memberProfile` + `catalogPresentation` |
+| **L4** | L3 + `guestConformance.memberApp: true` + `memberPortal.availability: full` |
 
 Generator: `scripts/generate-workspace-registry.mjs` → `resolveGuestConformanceLevel()` → `packages/workspace-sdk/src/catalog/workspace-guest-conformance.generated.ts`.
+
+Member portal SSOT: `memberPortal.availability` in manifest → `WORKSPACE_MEMBER_PORTAL_CONTRACTS` (see [member-portal-registry-schema.mdoc](../phase-19/member-portal-shell/member-portal-registry-schema.mdoc)).
 
 Runtime resolver: `resolveGuestConformanceLevelForPlugin(pluginId)` — fail-closed (`GuestConformanceNotConfiguredError`).
 
@@ -97,8 +100,38 @@ Fail-fast sequential checks:
 14. `scripts/test/workspace-guest-conformance.spec.mjs`
 15. `guard-guest-seo.mjs` — L2+ `guestSeo` manifest + JSON-LD builder export (ADR-GP-004)
 16. `guard-guest-seo-e2e-hooks.mjs` — SEO smoke yaml → spec paths exist
+17. `guard-registration-flow-state.mjs` — canonical flow state SSOT (no `createEmptyData`, key-set drift test)
 
 Wired to `pnpm run phase-6:fast-track` and [`.github/workflows/phase-10-guard.yml`](../../.github/workflows/phase-10-guard.yml) (`pnpm run guard:guest-plugin-conformance`).
+
+## Canonical registration flow state (SSOT)
+
+Platform-owned shape for `FlowRuntimeState.data` lives in `@app-tour/catalog-registration-auth`:
+
+| Symbol | Role |
+| ------ | ---- |
+| `CatalogRegistrationFlowState` | Typed bag (auth + intake + transport) |
+| `CATALOG_REGISTRATION_FLOW_STATE_KEYS` | Ordered key manifest for drift detection |
+| `createCatalogRegistrationFlowInitialData()` | **Sole** producer of empty data |
+| `createCatalogRegistrationFlowRuntimeState()` | `{ currentStep, data }` bootstrap |
+| `assertCatalogRegistrationFlowState()` | Fail-fast runtime guard (dev + tests) |
+| `applyCatalogRegistrationFlowEvent()` | **Sole** merge/transition reducer for `resolveNextStep` |
+
+Workspaces **must not** define local `createEmptyData()` or inline `event.type === "merge"` in surfaces. Surfaces use `defineCatalogRegistrationFlowSurface()` from `@app-tour/workspace-sdk`, which injects `createInitialState` from the canonical helper. `resolveNextStep` must delegate to `applyCatalogRegistrationFlowEvent(state, event)`.
+
+```mermaid
+flowchart LR
+  AUTH["@app-tour/catalog-registration-auth\nregistration-flow-state.ts"]
+  SDK["workspace-sdk\ndefineCatalogRegistrationFlowSurface"]
+  WS["packages/workspaces/*/registration-flow.surface.ts"]
+  PORTAL["apps/portal reducer"]
+  AUTH --> SDK --> WS --> PORTAL
+  PORTAL -->|"assert (dev)"| AUTH
+```
+
+**Guard:** `scripts/guards/guard-registration-flow-state.mjs` (step 17 in `guard:guest-plugin-conformance`) — bans `createEmptyData` in workspace surfaces, requires `defineCatalogRegistrationFlowSurface` + `applyCatalogRegistrationFlowEvent`, runs `registration-flow-state.spec.ts` for key-set drift.
+
+**Migration (existing workspaces):** Replace local `createEmptyData` + manual `createInitialState` with `defineCatalogRegistrationFlowSurface`. Drop alias state keys (`fullName`, `email` in flow bag); intake UI may keep `data-intake-field="fullName"` for schema/E2E selectors while writing `intakeName` / `intakeEmail` only.
 
 ## E2E hooks
 

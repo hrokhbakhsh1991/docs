@@ -1,0 +1,9 @@
+/**
+ * Marketing guest app bootstrap — L0 tokens + L2 marketing shell structure only.
+ * Workspace brand: dynamic L3 skin import in apps/marketing layout.
+ */
+@import "./index.css";
+@import "./shell-bridge.css";
+@import "./fallback-guest-marketing-shell.css";
+@import "./guest-body-reset.css";
+@import "./platform-infra-shell.css";

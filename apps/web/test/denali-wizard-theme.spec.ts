@@ -44,9 +44,9 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.equal(WIZARD_BRIDGE_TEST_IDS.backTours, "wizard-bridge-back-tours");
   });
 
-  it("WEB-DENALI-WIZARD-05 globals keeps platform fallback only", () => {
+  it("WEB-DENALI-WIZARD-05 globals imports admin-bootstrap only", () => {
     const globals = readFileSync(join(import.meta.dirname, "../app/globals.css"), "utf8");
-    assert.match(globals, /platform fallback/);
+    assert.match(globals, /admin-bootstrap\.css/);
     assert.doesNotMatch(globals, /workspace-wizard__step-title/);
   });
 
@@ -61,8 +61,11 @@ describe("denali-wizard-theme.spec.ts", () => {
   it("WEB-DENALI-WIZARD-07 step shell avoids tailwind layout utilities", () => {
     const shell = readFileSync(join(import.meta.dirname, "../src/wizard/wizard-step-shell.tsx"), "utf8");
     assert.doesNotMatch(shell, /space-y-/);
-    const globals = readFileSync(join(import.meta.dirname, "../app/globals.css"), "utf8");
-    assert.match(globals, /\.workspace-wizard-shell\s*\{[\s\S]*gap:/);
+    const adminAppearance = readFileSync(
+      join(REPO_ROOT, "packages/design-tokens/src/operator-admin-appearance.css"),
+      "utf8"
+    );
+    assert.match(adminAppearance, /\.workspace-wizard-shell\s*\{[\s\S]*gap:/);
   });
 
   it("WEB-DENALI-WIZARD-11 wizard datetime BEM + bridge primitive toggle (WZ-P1)", () => {
@@ -283,13 +286,27 @@ describe("denali-wizard-theme.spec.ts", () => {
     assert.match(schema, /isDenaliHttpsImageUrl/);
   });
 
+  it("WEB-DENALI-WIZARD-14 content-quality styles live in denali skin only", () => {
+    const adminAppearance = readFileSync(
+      join(REPO_ROOT, "packages/design-tokens/src/operator-admin-appearance.css"),
+      "utf8"
+    );
+    assert.doesNotMatch(adminAppearance, /\.denali-wizard-content-quality/);
+    const review = readFileSync(join(DENALI_THEME_DIR, "wizard-review.css"), "utf8");
+    assert.match(review, /\.denali-wizard-content-quality/);
+    assert.match(review, /body\[data-workspace-plugin="denali"\]/);
+  });
+
   it("WEB-DENALI-WIZARD-13 phase 4 maintenance (WZ-P2-01…05)", () => {
     const skin = readFileSync(join(DENALI_THEME_DIR, "wizard-skin.css"), "utf8");
     assert.match(skin, /wizard-bridge-shell__back--primary/);
     assert.doesNotMatch(skin, /scaleX\(-1\)/);
-    const globals = readFileSync(join(import.meta.dirname, "../app/globals.css"), "utf8");
-    assert.match(globals, /data-wizard-step-state="current"/);
-    assert.doesNotMatch(globals, /data-step-state/);
+    const adminAppearance = readFileSync(
+      join(REPO_ROOT, "packages/design-tokens/src/operator-admin-appearance.css"),
+      "utf8"
+    );
+    assert.match(adminAppearance, /data-wizard-step-state="current"/);
+    assert.doesNotMatch(adminAppearance, /data-step-state/);
     const stepShell = readFileSync(
       join(import.meta.dirname, "../src/wizard/wizard-step-shell.tsx"),
       "utf8"

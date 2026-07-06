@@ -18,7 +18,7 @@ import {
   toSerializableBootstrap,
 } from "@/tenant/tenant-kernel";
 
-import "@/bootstrap/workspace-theme-stylesheets.generated";
+import { importAdminThemeForPlugin } from "@/bootstrap/workspace-theme-stylesheets.generated";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -53,6 +53,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     );
   }
 
+  await importAdminThemeForPlugin(resolved.session.pluginId);
   const tenantTheme = await fetchTenantThemeForContext(resolved.context, host);
   const bootstrap = toSerializableBootstrap(resolved, tenantTheme ?? undefined);
   const dir = resolveTextDirection(locale);
@@ -68,6 +69,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       style={{ ["--font-family-base" as string]: fontFamilyBase }}
     >
       <body
+        data-app-surface="admin"
         data-tenant-id={resolved.context.tenantId}
         data-workspace-plugin={bootstrap.pluginId}
         data-locale={locale}

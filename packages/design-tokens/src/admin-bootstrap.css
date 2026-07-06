@@ -1,0 +1,7 @@
+/**
+ * Operator admin bootstrap — L0 tokens + L2 shell/wizard structure.
+ * Workspace brand: static/dynamic L3 admin skin (denali-admin.css, tokens.css).
+ */
+@import "./index.css";
+@import "./shell-bridge.css";
+@import "./operator-admin-appearance.css";

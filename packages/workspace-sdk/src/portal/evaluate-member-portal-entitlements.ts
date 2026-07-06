@@ -5,7 +5,7 @@
 
 import type { MemberModuleManifest, MemberPortalSurface } from "./member-module-manifest";
 import { memberPortalEntitlementKey } from "./platform-member-portal-modules";
-import { resolveMemberPortalModules } from "./resolve-member-portal-modules";
+import { resolveMemberPortalContract } from "./member-portal-contract";
 
 export type MemberEntitlementDenialReason =
   | "not_entitled"
@@ -79,7 +79,11 @@ export function evaluateMemberPortalEntitlements(
   pluginId: string,
   options?: { readonly explicitModuleIds?: readonly string[] }
 ): MemberPortalEntitlementsEvaluation {
-  return evaluateMemberPortalEntitlementsForSurface(resolveMemberPortalModules(pluginId), options);
+  const contract = resolveMemberPortalContract(pluginId);
+  if (contract.availability === "off") {
+    return Object.freeze({ allKeys: [], granted: [], denied: [] });
+  }
+  return evaluateMemberPortalEntitlementsForSurface(contract.surface, options);
 }
 
 /** Default-granted keys only — modules with primary/secondary/user_menu tier. */

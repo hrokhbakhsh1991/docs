@@ -62,7 +62,7 @@ export async function GuestHomeFull({
   }));
 
   return (
-    <main data-marketing-home id="main-content">
+    <div data-marketing-home data-slot="page-home">
       {sections.hero ? (
         <HomeHero
           branding={branding}
@@ -86,6 +86,6 @@ export async function GuestHomeFull({
       {sections.blogTeaser ? <HomeBlogTeaser /> : null}
       {sections.finalCta ? <HomeFinalCta /> : null}
       {sections.latest ? <HomePageJsonLd host={host} items={jsonLdItems} /> : null}
-    </main>
+    </div>
   );
 }

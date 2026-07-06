@@ -1,15 +1,24 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { resolveMemberPortalBackTargetPath } from "./resolve-member-portal-routes.server";
+
 type MemberModuleStubProps = {
+  readonly pluginId: string;
   readonly moduleId: string;
   readonly labelKey: string;
   readonly routePath: string;
 };
 
-export async function MemberModuleStub({ moduleId, labelKey, routePath }: MemberModuleStubProps) {
+export async function MemberModuleStub({
+  pluginId,
+  moduleId,
+  labelKey,
+  routePath,
+}: MemberModuleStubProps) {
   const tNav = await getTranslations("portalMember.nav");
   const tStub = await getTranslations("portalMember.moduleStub");
+  const backHref = resolveMemberPortalBackTargetPath(pluginId);
 
   return (
     <main
@@ -19,7 +28,7 @@ export async function MemberModuleStub({ moduleId, labelKey, routePath }: Member
     >
       <h1>{tNav(labelKey)}</h1>
       <p>{tStub("lede")}</p>
-      <Link href="/me/home">{tStub("backToHome")}</Link>
+      {backHref !== null ? <Link href={backHref}>{tStub("backToHome")}</Link> : null}
     </main>
   );
 }

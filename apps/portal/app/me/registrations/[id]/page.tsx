@@ -10,6 +10,7 @@ import {
   localizeMemberRegistrationStatus,
 } from "@/me/format-member-registration-display.server";
 import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate";
+import { resolveMemberPortalTripsListPath } from "@/me/resolve-member-portal-routes.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
@@ -45,7 +46,7 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
       <main data-portal-member-registration-detail>
         <p>
-          <Link href="/me/registrations">{t("backToList")}</Link>
+          <Link href={resolveMemberPortalTripsListPath(bootstrap.pluginId)}>{t("backToList")}</Link>
         </p>
         <h1>{row.tourTitle}</h1>
         <p data-portal-member-registration-status>
