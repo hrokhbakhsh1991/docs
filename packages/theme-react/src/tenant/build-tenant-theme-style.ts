@@ -9,17 +9,28 @@ export function normalizeCssVariableName(key: string): string {
   return key.trim().replace(/^--/, "");
 }
 
+export type BuildTenantThemeStyleOptions = {
+  /** When true, skip tenant primaryColor inline vars so CSS dark cascade (e.g. Denali admin) wins. @see docs/dev/dtcg-pipeline-spec.mdoc § F9-4 */
+  readonly omitPrimaryColor?: boolean;
+};
+
+const PRIMARY_TOKEN_KEYS = new Set(["color-primary", "color-primary-hover", "color-text-link"]);
+
 /**
  * @internal DOM mapping — requires sealed tenant theme (see {@link TenantThemeProvider}).
  * Safety seal: WeakSet + {@link validateTenantTheme} re-check before DOM mapping.
  */
-export function buildTenantThemeStyle(theme: SealedTenantTheme): CSSProperties {
+export function buildTenantThemeStyle(
+  theme: SealedTenantTheme,
+  options: BuildTenantThemeStyleOptions = {},
+): CSSProperties {
   assertTenantThemeSealed(theme);
   const safe = validateTenantTheme(theme);
   const tokens: Record<string, string> = {};
+  const omitPrimary = options.omitPrimaryColor === true;
 
   const primaryColor = safe.primaryColor?.trim();
-  if (primaryColor) {
+  if (primaryColor && !omitPrimary) {
     tokens["color-primary"] = primaryColor;
     tokens["color-primary-hover"] = primaryColor;
     tokens["color-text-link"] = primaryColor;
@@ -28,9 +39,13 @@ export function buildTenantThemeStyle(theme: SealedTenantTheme): CSSProperties {
   if (safe.cssVariables) {
     for (const [key, value] of Object.entries(safe.cssVariables)) {
       const normalized = normalizeCssVariableName(key);
-      if (normalized && value.trim()) {
-        tokens[normalized] = value.trim();
+      if (!normalized || !value.trim()) {
+        continue;
       }
+      if (omitPrimary && PRIMARY_TOKEN_KEYS.has(normalized)) {
+        continue;
+      }
+      tokens[normalized] = value.trim();
     }
   }
 

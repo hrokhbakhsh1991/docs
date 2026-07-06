@@ -41,7 +41,7 @@ Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge
 | F8-6 | `denali-confirm-dialog`, `operator-welcome-dialog` | `data-denali-confirm-*`, `data-denali-welcome-*` |
 | F8-7 | `tour-category-badge`, `operator-profile-avatar` | `data-denali-category-badge`, `data-denali-profile-avatar-size` |
 
-**F9 (done):** `guard-denali-admin-dark-primary` — dark `--color-primary` `#5eead4` ≠ platform `#5b9fd4`; precedence table in [dtcg-pipeline-spec § F9](../../dev/dtcg-pipeline-spec.mdoc).
+**F9 (done):** `guard-denali-admin-dark-primary` + precedence table; **F9-4:** tenant inline primary omitted when `html.dark`.
 
 ## Host wiring
 

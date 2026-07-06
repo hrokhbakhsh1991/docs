@@ -925,7 +925,7 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F8 (done):** CSS-hook purge — 17/17 feature TSX (`patterns/`, `dashboard/`, `onboarding/`) zero `className`; hooks in `admin-skin.css`.
 
-**F9 (done):** ThemeProviderChain vs CSS precedence — audit (F9-1), `guard-denali-admin-dark-primary` + specs (F9-2), precedence table (F9-3).
+**F9 (done):** ThemeProviderChain vs CSS precedence — audit (F9-1), `guard-denali-admin-dark-primary` + specs (F9-2), precedence table (F9-3), C4 tenant dark fix (F9-4).
 
 **Phase F formal closure (next):** full gate chain — Architect **YES** required.
 
@@ -1045,9 +1045,9 @@ Phase E is **closed** for guest marketing skin semantics and hooks:
 2. Marketing/portal hooks + denali **shell + 28 component partials** — no raw `#` hex.
 3. Denali overlay palette (`--mkt-*`) — DTCG authority in `denali.marketing.tokens.json`.
 
-**Still hand-maintained:** tenant inline dark primary on `TenantThemeProvider` (C4 — see [dtcg-pipeline-spec § F9](../dev/dtcg-pipeline-spec.mdoc)); Phase F formal closure gate run.
+**Still hand-maintained:** Phase F formal closure gate run.
 
-**Phase F (F1–F9 done):** admin DTCG semantics, hook hex ban, feature AST guards, 17/17 CSS-hook purge, ThemeProviderChain precedence + `guard-denali-admin-dark-primary`.
+**Phase F (F1–F9 done):** admin DTCG semantics, hook hex ban, feature AST guards, 17/17 CSS-hook purge, ThemeProviderChain precedence + C4 tenant dark fix.
 
 ---
 

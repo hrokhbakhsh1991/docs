@@ -226,6 +226,6 @@ describe("denali-admin-theme.spec.ts", () => {
     );
     assert.match(darkSection, /--primary:\s*var\(--color-primary\)/);
     assert.match(platformDark, /--color-primary:\s*#5b9fd4/);
-    // C4 (TenantThemeProvider inline --color-primary) is runtime-only — covered by SMK-P9-DENALI-THEME E2E.
+    // C4 mitigated in F9-4: TenantThemeProvider omits inline primary when html.dark (theme-react).
   });
 });

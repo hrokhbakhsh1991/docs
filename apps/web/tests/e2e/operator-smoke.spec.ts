@@ -90,6 +90,11 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     expect(darkPrimary).toBe("#5eead4");
     expect(darkPrimary).not.toBe("#5b9fd4");
 
+    const tenantDarkPrimary = await page.locator("[data-tenant-theme]").evaluate((el) =>
+      getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
+    );
+    expect(tenantDarkPrimary).toBe("#5eead4");
+
     const darkButtonBg = await cta.evaluate((el) => {
       const button = el.querySelector("button");
       if (!(button instanceof HTMLElement)) {
