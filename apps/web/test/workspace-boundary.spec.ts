@@ -38,6 +38,7 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-chrome-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-form-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-page-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-create-view-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {
@@ -46,12 +47,6 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
   }
   const rel = file.slice(WEB_ROOT.length + 1);
   if (rel.startsWith("src/wizard/denali/")) {
-    return true;
-  }
-  if (rel.startsWith("src/bootstrap/resolve-bootstrap-workspace-plugin")) {
-    return true;
-  }
-  if (rel === "app/tours/new/denali-create-tour-wizard-client.tsx") {
     return true;
   }
   if (rel.startsWith("src/tours/")) {
@@ -223,7 +218,7 @@ describe("Phase 3.3 workspace boundary", () => {
     const flatEdit = readFileSync(join(SRC_DIR, "wizard/denali-flat-edit-form-shell.tsx"), "utf8");
     assert.match(flatEdit, /workspace-wizard-flat-edit-form-bindings\.generated/);
     const createClient = readFileSync(join(APP_DIR, "tours/new/denali-create-tour-wizard-client.tsx"), "utf8");
-    assert.match(createClient, /@app-tour\/workspace-denali\/ui\/create-wizard/);
+    assert.match(createClient, /workspace-wizard-create-view-bindings\.generated/);
     const flatEditClient = readFileSync(
       join(APP_DIR, "(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx"),
       "utf8"

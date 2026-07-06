@@ -345,5 +345,9 @@
   "wizardFlatEditPage": {
     "module": "./ui/chrome/wizard-flat-edit-page-surface",
     "export": "denaliWizardFlatEditPageSurface"
+  },
+  "wizardCreateView": {
+    "module": "./ui/chrome/wizard-create-view-surface",
+    "export": "denaliWizardCreateViewSurface"
   }
 }

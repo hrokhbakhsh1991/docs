@@ -1,5 +1,6 @@
 /**
  * Client-safe workspace plugin resolver — no Denali clone / node:crypto graph.
+ * Starter and urban resolve via codegen registry; Denali uses a lightweight shell stub.
  * @see docs/workspaces/denali/public-catalog.md — Client bootstrap (M17 P3)
  */
 import {
@@ -7,13 +8,13 @@ import {
   WORKSPACE_THEME_CSS_VARIABLE,
   workspaceThemePresets,
 } from "@app-tour/workspace-sdk";
-import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
-import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
+
+import { resolveSyncWorkspacePluginFromRegistry } from "./workspace-plugin-loaders.generated";
 
 const DENALI_THEME_ADMIN_STYLESHEET = "theme/denali-admin.css" as const;
 
 function getDenaliClientShellPlugin(): WorkspacePlugin {
-  const starter = getStarterWorkspacePlugin();
+  const starter = resolveSyncWorkspacePluginFromRegistry("starter");
   return {
     ...starter,
     id: "denali",
@@ -29,11 +30,11 @@ function getDenaliClientShellPlugin(): WorkspacePlugin {
 }
 
 const pluginsById = new Map<string, WorkspacePlugin>([
-  ["starter", getStarterWorkspacePlugin()],
+  ["starter", resolveSyncWorkspacePluginFromRegistry("starter")],
   ["denali", getDenaliClientShellPlugin()],
-  ["urban", getUrbanWorkspacePlugin()],
+  ["urban", resolveSyncWorkspacePluginFromRegistry("urban")],
 ]);
 
 export function resolveBootstrapWorkspacePluginClient(pluginId: string): WorkspacePlugin {
-  return pluginsById.get(pluginId) ?? getStarterWorkspacePlugin();
+  return pluginsById.get(pluginId) ?? resolveSyncWorkspacePluginFromRegistry("starter");
 }

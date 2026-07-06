@@ -1,18 +1,15 @@
 /**
  * Sync workspace plugin resolver for host bootstrap (server + client hydrate).
- * Static imports from published workspace packages — allowed in apps/web host only.
+ * Delegates to codegen registry map — no direct workspace package imports here.
  */
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
-import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
-import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
-import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
 
-const pluginsById = new Map<string, WorkspacePlugin>([
-  ["starter", getStarterWorkspacePlugin()],
-  ["denali", getDenaliWorkspacePlugin()],
-  ["urban", getUrbanWorkspacePlugin()],
-]);
+import { resolveSyncWorkspacePluginFromRegistry } from "./workspace-plugin-loaders.generated";
 
 export function resolveBootstrapWorkspacePlugin(pluginId: string): WorkspacePlugin {
-  return pluginsById.get(pluginId) ?? getStarterWorkspacePlugin();
+  try {
+    return resolveSyncWorkspacePluginFromRegistry(pluginId);
+  } catch {
+    return resolveSyncWorkspacePluginFromRegistry("starter");
+  }
 }

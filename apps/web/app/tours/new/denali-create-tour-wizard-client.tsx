@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback } from "react";
 
-import { DenaliCreateTourWizardView } from "@app-tour/workspace-denali/ui/create-wizard";
+import { DenaliCreateTourWizardView } from "@/bootstrap/workspace-wizard-create-view-bindings.generated";
 
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { createWizardSubmitErrorTranslator } from "@/wizard/create-wizard-submit-error-translator";

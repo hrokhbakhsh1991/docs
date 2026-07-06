@@ -277,6 +277,10 @@
       "types": "./dist/ui/chrome/wizard-flat-edit-page-surface.d.ts",
       "default": "./dist/ui/chrome/wizard-flat-edit-page-surface.js"
     },
+    "./ui/chrome/wizard-create-view-surface": {
+      "types": "./dist/ui/chrome/wizard-create-view-surface.d.ts",
+      "default": "./dist/ui/chrome/wizard-create-view-surface.js"
+    },
     "./ui/operator-ui-components-surface": {
       "types": "./dist/ui/operator-ui-components-surface.d.ts",
       "default": "./dist/ui/operator-ui-components-surface.js"

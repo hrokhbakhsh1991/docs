@@ -3206,6 +3206,21 @@ export const DenaliFlatEditValidationList = ${alias}.FlatEditValidationList;
   );
 }
 
+export function generateWizardCreateViewBindings(manifests) {
+  return generateSingleWorkspaceSurfaceBindings(
+    manifests,
+    "wizardCreateView",
+    "wizard_create_view",
+    "denaliWizardCreateViewSurface",
+    {
+      empty: "",
+      withSurface: (alias) => `
+export const DenaliCreateTourWizardView = ${alias}.CreateTourWizardView;
+`,
+    }
+  );
+}
+
 export function generatePhotoUploadErrorsBindings(manifests) {
   const withSurface = manifests.filter((m) => m.photoUploadErrors !== undefined);
   if (withSurface.length === 0) {
@@ -3649,6 +3664,7 @@ export function generateAllOutputs(manifests) {
     wizardFlatEditChromeBindings: generateWizardFlatEditChromeBindings(manifests),
     wizardFlatEditFormBindings: generateWizardFlatEditFormBindings(manifests),
     wizardFlatEditPageBindings: generateWizardFlatEditPageBindings(manifests),
+    wizardCreateViewBindings: generateWizardCreateViewBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -3803,6 +3819,10 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-wizard-flat-edit-page-bindings.generated.ts"
   ),
+  wizardCreateViewBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-create-view-bindings.generated.ts"
+  ),
   devPluginIds: join(
     REPO_ROOT,
     "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts"
@@ -3914,6 +3934,7 @@ function main() {
       "wizardFlatEditChromeBindings",
       "wizardFlatEditFormBindings",
       "wizardFlatEditPageBindings",
+      "wizardCreateViewBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -3991,6 +4012,7 @@ function main() {
   writeFileSync(OUTPUT_PATHS.wizardFlatEditChromeBindings, generated.wizardFlatEditChromeBindings);
   writeFileSync(OUTPUT_PATHS.wizardFlatEditFormBindings, generated.wizardFlatEditFormBindings);
   writeFileSync(OUTPUT_PATHS.wizardFlatEditPageBindings, generated.wizardFlatEditPageBindings);
+  writeFileSync(OUTPUT_PATHS.wizardCreateViewBindings, generated.wizardCreateViewBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

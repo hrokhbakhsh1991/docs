@@ -843,6 +843,13 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 - `wizardDraftShell` extended with `editTourDraftKey` for edit-draft namespace.
 - `use-denali-flat-edit-page`, `denali-flat-edit-form-shell`, `denali-flat-edit-page-client` — no direct `@app-tour/workspace-denali` imports.
 
+**Sprint 10 (2026-07-06) — C4 create client + bootstrap plugin resolver:**
+
+- `wizardCreateView` manifest → `workspace-wizard-create-view-bindings.generated.ts`.
+- `denali-create-tour-wizard-client` imports view via bindings (no `@app-tour/workspace-denali/ui/create-wizard`).
+- `resolve-bootstrap-workspace-plugin` delegates to `resolveSyncWorkspacePluginFromRegistry` with starter fallback.
+- `resolve-bootstrap-workspace-plugin.client` uses codegen for starter/urban; Denali keeps lightweight shell stub (no crypto graph).
+
 **Remaining:**
 
 - Shrink P0-T-161 allowlist (~70 denali shell orchestration files) as orchestration migrates to bindings.
