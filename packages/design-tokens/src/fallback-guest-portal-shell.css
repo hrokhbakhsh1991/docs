@@ -1,6 +1,6 @@
 /**
  * Platform fallback — portal member shell structure (L2).
- * Appearance lives in platform-neutral-portal.css (L3 default skin).
+ * Appearance lives in starter theme/starter-portal.css (L3 default skin via guest loader).
  * Scope: body[data-app-surface="portal"] only.
  * @see docs/standards/css-ownership-model.mdoc
  */

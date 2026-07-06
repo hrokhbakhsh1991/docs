@@ -54,10 +54,6 @@ fs.copyFileSync(
   path.join(distDir, "operator-admin-appearance.css")
 );
 fs.copyFileSync(
-  path.join(srcDir, "platform-neutral-portal.css"),
-  path.join(distDir, "platform-neutral-portal.css")
-);
-fs.copyFileSync(
   path.join(srcDir, "fallback-guest-portal-shell.css"),
   path.join(distDir, "fallback-guest-portal-shell.css")
 );

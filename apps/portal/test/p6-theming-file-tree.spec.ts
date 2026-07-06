@@ -25,6 +25,12 @@ describe("p6-theming-file-tree.spec.ts — P6-1-N-015", () => {
     assert.match(readRepo("packages/design-tokens/src/admin-bootstrap.css"), /operator-shell-structure\.css/);
     const bridge = readRepo("packages/design-tokens/src/shell-bridge.css");
     assert.doesNotMatch(bridge, /\[data-operator-/);
+    const portalBootstrap = readRepo("packages/design-tokens/src/portal-bootstrap.css");
+    assert.doesNotMatch(portalBootstrap, /platform-neutral-portal\.css/);
+    const guestLoader = readRepo(
+      "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+    );
+    assert.match(guestLoader, /WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN/);
   });
 
   it("P6-TREE-02 guest globals are import-only", () => {

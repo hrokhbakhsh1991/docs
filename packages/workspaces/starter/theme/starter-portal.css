@@ -1,7 +1,8 @@
 /**
- * Platform neutral portal skin (L3 default) — appearance for member shell + /me modules.
- * Workspace skins override on body[data-workspace-plugin].
- * @see docs/phase-19/p6/css-ownership-migration.mdoc
+ * Starter workspace default portal skin (L3) — member shell + /me module appearance.
+ * Loaded for every portal tenant via importGuestPortalThemeForPlugin (base layer).
+ * Workspace skins (denali-portal.css, …) override on body[data-workspace-plugin].
+ * @see docs/architecture/platform-architecture-v2.md § Phase D.2
  */
 
 /* --- Shell chrome appearance --- */

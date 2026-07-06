@@ -20,7 +20,6 @@
     "./platform-infra-shell.css": "./dist/platform-infra-shell.css",
     "./operator-admin-appearance.css": "./dist/operator-admin-appearance.css",
     "./fallback-guest-marketing-shell.css": "./dist/fallback-guest-marketing-shell.css",
-    "./platform-neutral-portal.css": "./dist/platform-neutral-portal.css",
     "./shell-bridge.css": "./dist/shell-bridge.css",
     "./operator-shell-structure.css": "./dist/operator-shell-structure.css",
     "./semantic": {

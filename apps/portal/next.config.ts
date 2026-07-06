@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     "@app-tour/workspace-sdk",
     "@app-tour/workspace-plugin-host",
     "@app-tour/workspace-denali",
+    "@app-tour/workspace-starter",
     "@app-tour/workspace-urban",
     "@app-tour/catalog-intake-ui",
     "@app-tour/catalog-registration-auth",

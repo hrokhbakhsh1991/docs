@@ -66,7 +66,7 @@ The platform defines **contracts** (interfaces, reducers, hook shapes, manifest 
 
 All visual appearance—color, typography, borders, shadows, decorative motion—on guest surfaces **must** live in workspace skin CSS (L4) or explicitly declared platform-default skin CSS loaded with the same rules. Shell TSX and platform packages **must not** carry appearance Tailwind or raw hex.
 
-**Violation today:** `platform-neutral-portal.css` in `@app-tour/design-tokens`; hundreds of appearance classes in `apps/web` feature TSX; `shell-bridge.css` and `operator-admin-appearance.css` duplicate dark palettes.
+**Violation today:** hundreds of appearance classes in `apps/web` feature TSX; `shell-bridge.css` and `operator-admin-appearance.css` duplicate dark palettes (D1 split partial).
 
 ### P7 — Tokens own color values (target)
 
@@ -330,7 +330,7 @@ This section removes ambiguity. **Appearance** = anything a user perceives as lo
 | **Feature UI appearance (guest)** | L5 skin | workspace theme component CSS | Denali marketing components model |
 | **Feature UI appearance (admin)** | L5 skin + L6 | `admin-skin.css`, wizard skins | **Today mostly L6 Tailwind — non-compliant** |
 | **Skins** | L5 workspace | `packages/workspaces/<id>/theme/` | Scoped: `body[data-app-surface][data-workspace-plugin]` |
-| **Platform default skin** | L5 via `starter` workspace (target) | Not `design-tokens` package | **Redesign:** move `platform-neutral-portal.css` |
+| **Platform default skin** | L5 via `starter` workspace | `starter/theme/starter-portal.css` | **D2 done** — no longer in `design-tokens` |
 | **Fallbacks** | L2 structure only | `fallback-guest-portal-shell.css` | Appearance forbidden |
 | **Platform CSS (bootstrap)** | Composition | `*-bootstrap.css` | Import-only chain |
 | **Bridge CSS** | L1b | `shell-bridge.css` | Var map only (target) |
@@ -876,7 +876,7 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 | `operator-shell-structure.css` | L2 structure | admin only |
 | `operator-admin-appearance.css` | L2 appearance + dark `.dark` palette | admin only |
 
-**D2 (next):** Reclassify `platform-neutral-portal.css` → starter workspace default skin; wire portal bootstrap via generated guest theme loader instead of design-tokens L3.
+**D2 (done):** `platform-neutral-portal.css` re-homed to `packages/workspaces/starter/theme/starter-portal.css`. `portal-bootstrap.css` is L0–L2 only; `importGuestPortalThemeForPlugin` always loads `WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN` first, then workspace-specific portal skins.
 
 **D3 (next):** Align marketing portal/admin bootstrap parity (cross-surface import guards).
 

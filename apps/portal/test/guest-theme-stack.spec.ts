@@ -46,20 +46,25 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     );
   });
 
-  it("G-P6-UI-01c portal-bootstrap imports L2 structure + L3 neutral skin", () => {
+  it("G-P6-UI-01c portal-bootstrap is L2-only; default portal skin via guest loader", () => {
     const portalBootstrap = readFileSync(portalBootstrapPath, "utf8");
     assert.match(portalBootstrap, /fallback-guest-portal-shell\.css/);
-    assert.match(portalBootstrap, /platform-neutral-portal\.css/);
+    assert.doesNotMatch(portalBootstrap, /platform-neutral-portal\.css/);
+    assert.doesNotMatch(portalBootstrap, /starter-portal\.css/);
     assert.doesNotMatch(portalBootstrap, /fallback-guest-marketing-shell\.css/);
+    const generated = readFileSync(bootstrapPath, "utf8");
+    assert.match(generated, /WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN/);
+    assert.match(generated, /@app-tour\/workspace-starter\/theme\/starter-portal\.css/);
+    assert.match(generated, /await import\(WORKSPACE_GUEST_PORTAL_DEFAULT_SKIN\)/);
     const fallback = readFileSync(fallbackPortalShellPath, "utf8");
     assert.match(fallback, /\[data-portal-shell\]/);
     assert.match(fallback, /\[data-portal-shell-header\]/);
     assert.match(fallback, /\[data-portal-shell-bottom-nav\]/);
     assert.doesNotMatch(fallback, /var\(--primary\)/);
-    const neutralPath = join(repoRoot, "packages/design-tokens/src/platform-neutral-portal.css");
-    const neutral = readFileSync(neutralPath, "utf8");
-    assert.match(neutral, /\[data-portal-shell-nav-link\]\[data-active="true"\]/);
-    assert.match(neutral, /main\[data-portal-member-profile\]/);
+    const starterSkinPath = join(repoRoot, "packages/workspaces/starter/theme/starter-portal.css");
+    const starterSkin = readFileSync(starterSkinPath, "utf8");
+    assert.match(starterSkin, /\[data-portal-shell-nav-link\]\[data-active="true"\]/);
+    assert.match(starterSkin, /main\[data-portal-member-profile\]/);
   });
 
   it("G-P6-UI-06 denali portal skin scoped to workspace", () => {

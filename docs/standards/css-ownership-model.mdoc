@@ -23,9 +23,11 @@ Strict four-layer appearance stack. **globals.css is not a layer** — import-on
 
 | App | Bootstrap entry | Imports |
 | --- | --------------- | ------- |
-| Portal | `portal-bootstrap.css` | L0 index + shell-bridge + portal shell fallback + body reset + platform infra |
+| Portal | `portal-bootstrap.css` | L0 index + shell-bridge + portal shell fallback + body reset + platform infra (no L3 skin) |
 | Marketing | `marketing-bootstrap.css` | L0 index + shell-bridge + marketing shell fallback + body reset + platform infra |
 | Admin (`apps/web`) | `admin-bootstrap.css` | L0 index + shell-bridge + operator-shell-structure + operator-admin-appearance |
+
+**Portal L3:** `starter/theme/starter-portal.css` via `importGuestPortalThemeForPlugin` (base), then workspace portal skins.
 
 **Cross-surface rule:** portal bootstrap must not import marketing fallback CSS and vice versa.
 
@@ -62,4 +64,4 @@ See [guard-css-integrity.md](../dev/guard-css-integrity.md):
 - Phase 1: bootstrap split (`portal-bootstrap`, `marketing-bootstrap`, `admin-bootstrap`)
 - Phase 1: `denali-wizard-content-quality*` moved from platform CSS to Denali `wizard-review.css`
 - Phase 1: guest providers drop `TenantThemeProvider`
-- Phase 2: L2 structure-only fallbacks; `platform-neutral-portal.css`; `/me` appearance in skin; dynamic admin theme loader
+- Phase 2: L2 structure-only fallbacks; portal `/me` appearance in starter `theme/starter-portal.css`; dynamic guest + admin theme loaders
