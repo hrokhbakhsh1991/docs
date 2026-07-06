@@ -59,6 +59,9 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
   it("WEB-13.6-01 wizard-field has no denali prefix fallback", () => {
     const source = readFileSync(join(import.meta.dirname, "../src/wizard/wizard-field.tsx"), "utf8");
     assert.doesNotMatch(source, /startsWith\(["']denali\./);
+    assert.doesNotMatch(source, /@app-tour\/workspace-denali/);
+    assert.match(source, /resolveWizardEnumOptionLabel/);
+    assert.match(source, /data-wizard-composite-loading/);
   });
 
   it("P14-0b-04b wizard template editor bindings are codegen-only", () => {

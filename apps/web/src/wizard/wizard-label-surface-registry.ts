@@ -24,3 +24,16 @@ export function resolveWizardStepLabel(
   }
   return formatCanonicalPathToLabel(stepId);
 }
+
+export function resolveWizardEnumOptionLabel(
+  surfaceId: string | undefined,
+  translate: (key: string) => string,
+  canonicalPath: string,
+  value: string
+): string {
+  const resolver = resolveGeneratedLabelResolver(surfaceId);
+  if (resolver?.resolveEnumOptionLabel != null) {
+    return resolver.resolveEnumOptionLabel(translate, canonicalPath, value);
+  }
+  return value;
+}

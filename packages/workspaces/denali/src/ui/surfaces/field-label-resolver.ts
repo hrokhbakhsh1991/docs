@@ -1,4 +1,8 @@
-import { resolveDenaliFieldLabel, resolveDenaliStepLabel } from "../adapters/field-labels";
+import {
+  resolveDenaliEnumOptionLabel,
+  resolveDenaliFieldLabel,
+  resolveDenaliStepLabel,
+} from "../adapters/field-labels";
 
 import type { WizardLabelResolver } from "./wizard-surface-types";
 
@@ -10,5 +14,7 @@ export function createDenaliFieldLabelResolver(): WizardLabelResolver {
     resolveFieldLabel: (translate, canonicalPath) =>
       resolveDenaliFieldLabel(translate, canonicalPath),
     resolveStepLabel: (translate, stepId) => resolveDenaliStepLabel(translate, stepId),
+    resolveEnumOptionLabel: (translate, canonicalPath, value) =>
+      resolveDenaliEnumOptionLabel(translate, canonicalPath, value),
   });
 }

@@ -802,6 +802,11 @@ Using **both** `ThemeProviderChain` JS variables **and** conflicting hex in CSS 
 - `apps/marketing/src/catalog/**` uses `resolveMarketingCatalogSurface(pluginId)` — zero direct `@app-tour/workspace-denali` imports in catalog sources.
 - Guard extended: `apps/marketing/src/catalog` scanned for workspace-denali imports.
 
+**Sprint 4 (2026-07-06) — C4 wizard-field:**
+
+- `wizard-field.tsx` enum option labels delegate to `resolveWizardEnumOptionLabel` via codegen `WizardLabelResolver` (no direct `@app-tour/workspace-denali/ui/adapters/field-labels`).
+- Composite loading fallback uses `data-wizard-composite-loading` — no `fieldId.startsWith("denali.")` branch.
+
 **Remaining:**
 
 - Remove direct `@app-tour/workspace-denali` imports from `apps/web` (C3–C4).

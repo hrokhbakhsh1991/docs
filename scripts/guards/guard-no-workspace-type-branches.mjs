@@ -3,7 +3,7 @@
  * Phase C — platform must not branch on workspace ids in guarded surfaces.
  * C1: no workspaceType === "urban" in apps/api/src (except generated + tests).
  * C2: no pluginId === "denali" in tours/wizard-template page clients.
- * C4: no isDenaliOperatorSession / isDenali in tour-edit page client.
+ * C4: no isDenaliOperatorSession / isDenali / denali imports in guarded web surfaces.
  * C3: no @app-tour/workspace-denali imports in apps/marketing/src/catalog.
  * @see docs/architecture/platform-architecture-v2.md
  */
@@ -60,12 +60,15 @@ const C2_TARGETS = [
   "apps/web/app/(app)/settings/tour-wizard-template/wizard-template-client.tsx",
 ];
 
-const C4_TARGETS = [
+const C4_WEB_TARGETS = [
   "apps/web/app/(app)/tours/[id]/edit/tour-edit-page-client.tsx",
+  "apps/web/src/wizard/wizard-field.tsx",
 ];
 
 const isDenaliLocalPattern = /\bisDenali\b/;
 const isDenaliOperatorSessionPattern = /isDenaliOperatorSession/;
+const denaliFieldIdPrefixPattern = /startsWith\(["']denali\./;
+const denaliImportPattern = /@app-tour\/workspace-denali/;
 
 for (const abs of walkTsFiles(API_ROOT)) {
   const rel = path.relative(REPO_ROOT, abs);
@@ -90,7 +93,7 @@ for (const rel of C2_TARGETS) {
   }
 }
 
-for (const rel of C4_TARGETS) {
+for (const rel of C4_WEB_TARGETS) {
   const abs = path.join(REPO_ROOT, rel);
   const lines = readFileSync(abs, "utf8").split("\n");
   for (let i = 0; i < lines.length; i += 1) {
@@ -100,11 +103,16 @@ for (const rel of C4_TARGETS) {
     if (isDenaliLocalPattern.test(lines[i])) {
       violations.push(`${rel}:${i + 1}: forbidden isDenali local — ${lines[i].trim()}`);
     }
+    if (denaliFieldIdPrefixPattern.test(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden denali fieldId prefix branch — ${lines[i].trim()}`);
+    }
+    if (denaliImportPattern.test(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden workspace-denali import — ${lines[i].trim()}`);
+    }
   }
 }
 
 const MARKETING_CATALOG_ROOT = path.join(REPO_ROOT, "apps/marketing/src/catalog");
-const denaliImportPattern = /@app-tour\/workspace-denali/;
 
 for (const abs of walkTsFiles(MARKETING_CATALOG_ROOT)) {
   const rel = path.relative(REPO_ROOT, abs);

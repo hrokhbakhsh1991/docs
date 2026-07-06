@@ -32,6 +32,11 @@ export type WizardLabelResolver = {
     translate: (key: string) => string,
     stepId: string
   ) => string;
+  readonly resolveEnumOptionLabel?: (
+    translate: (key: string) => string,
+    canonicalPath: string,
+    value: string
+  ) => string;
 };
 
 /** Opaque completion snapshot — workspace surfaces define their own shape. */

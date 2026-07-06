@@ -14,6 +14,11 @@ export type WizardLabelResolver = {
     translate: (key: string) => string,
     stepId: string
   ) => string;
+  readonly resolveEnumOptionLabel?: (
+    translate: (key: string) => string,
+    canonicalPath: string,
+    value: string
+  ) => string;
 };
 
 export type WizardStepDescriptor = {

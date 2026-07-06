@@ -13,10 +13,11 @@ import { LocalizedDatePicker } from "@/components/i18n/localized-date-picker";
 import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 
-import { resolveDenaliEnumOptionLabel } from "@app-tour/workspace-denali/ui/adapters/field-labels";
-
 import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
-import { resolveWizardFieldLabel } from "./wizard-label-surface-registry";
+import {
+  resolveWizardEnumOptionLabel,
+  resolveWizardFieldLabel,
+} from "./wizard-label-surface-registry";
 
 /** Kinds wired to ui-primitives subpaths in the Phase 3 shell. */
 export const SUPPORTED_WIZARD_FIELD_KINDS = [
@@ -252,7 +253,8 @@ export function WizardField({
   const resolveOptionLabel =
     translateWorkspaceMessage != null
       ? (optionValue: string) =>
-          resolveDenaliEnumOptionLabel(
+          resolveWizardEnumOptionLabel(
+            fieldLabelSurfaceId,
             translateWorkspaceMessage,
             field.canonicalPath,
             optionValue
@@ -278,8 +280,8 @@ export function WizardField({
         wizardRuleEvalContext,
       });
     }
-    if (field.kind === "composite" || field.fieldId.startsWith("denali.")) {
-      return <p data-denali-wizard-composite-loading aria-busy="true" />;
+    if (field.kind === "composite") {
+      return <p data-wizard-composite-loading aria-busy="true" />;
     }
   }
 
