@@ -951,7 +951,7 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 **F9 (done):** ThemeProviderChain precedence audit + dark-primary guard + doc closure + C4 tenant dark fix (F9-4).
 
-**Phase F formal closure (done, 2026-07-06):** fast-track checklist PASS — see spec § Phase F closure checklist.
+**Phase F formal closure (done, 2026-07-06):** fast-track checklist PASS. Full monorepo gate attempted same day — **not green** (`ci:integrity` blocked on `@apps/api` tsc; `phase-4:guard` RLS + kernel host literal). Phase F token scope is closed; unblock path in [dtcg-pipeline-spec.mdoc § Full gate run](../dev/dtcg-pipeline-spec.mdoc).
 
 ### Phase G — Codegen modularization
 

@@ -45,7 +45,7 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | F9-4 tenant dark primary (C4 remediation) | ✅ F9 |
 | Phase F formal closure (fast-track checklist) | ✅ 2026-07-06 |
 
-**Deferred (Architect YES):** full monorepo gate chain (`phase-5:gate` / `ci:integrity` / `test:full`).
+**Phase F scope:** ✅ closed (fast-track + F guards). **Monorepo full gate:** ❌ blocked on pre-existing DEV debt (see § Full gate run below).
 
 ## Authority flow (E1–E2)
 
@@ -349,9 +349,9 @@ When multiple layers set the same custom property, **higher priority wins** for 
 
 ### Phase F formal closure
 
-**Status:** ✅ closed on **2026-07-06** — fast-track checklist below (all PASS).
+**Status:** ✅ **Phase F scope closed** on **2026-07-06** — fast-track checklist below (all PASS).
 
-Full monorepo gate chain (`phase-5:gate`, `ci:integrity`, `test:full`) remains **deferred** until Architect **YES**.
+**Full monorepo gate (Architect YES, 2026-07-06):** attempted — **not green**; blockers are **outside Phase F** (see § Full gate run). Phase F token work is not the regression source.
 
 ## Phase F closure checklist
 
@@ -367,7 +367,25 @@ Full monorepo gate chain (`phase-5:gate`, `ci:integrity`, `test:full`) remains *
 | Admin feature palette ban | `node scripts/guards/guard-admin-feature-appearance-ast.mjs` | ✅ |
 | Denali admin dark primary | `node scripts/guards/guard-denali-admin-dark-primary.mjs` | ✅ |
 | Admin control pack | `pnpm run admin:control` | ✅ |
-| Playwright runtime (optional) | `pnpm exec playwright test -c apps/web/playwright.operator.config.ts tests/e2e/operator-smoke.spec.ts -g "SMK-P9-DENALI-THEME"` | ⏸ needs API + OTP stack |
+| Playwright runtime (optional) | `pnpm exec playwright test -c apps/web/playwright.operator.config.ts tests/e2e/operator-smoke.spec.ts -g "SMK-P9-DENALI-THEME"` | ⏸ OTP/BFF stack |
+
+### Full gate run (Architect YES, 2026-07-06)
+
+| Gate | Result | Blocker (if fail) |
+| ---- | ------ | ----------------- |
+| `pnpm run ci:integrity` | ❌ | `phase-0:integration-gate` → `@apps/api` `tsc` **499 errors** — legacy `moduleResolution: Node` vs `.ts` import extensions + `package.json` exports |
+| `pnpm run phase-5:guard` | ✅ | — |
+| `pnpm run phase-4:guard` | ❌ | `p4_no_denali_in_kernel` — WRS custom-apex tests use `denali.club` host strings in `tenant-kernel`; `p4_rls_integration_tests` — RLS isolation spec fails (tenant B row visible) |
+| `pnpm --filter @apps/api run phase-5:evolution-gate` | ❌ | 2/20 static route wiring checks |
+| `pnpm run phase-6:guard` | ✅ | — |
+| `pnpm run test:full` | ⏸ | not run — requires `ci:integrity` + `apps/api` build green first |
+
+**Unblock path (separate from Phase F):**
+
+1. `apps/api/tsconfig.json` → `module`/`moduleResolution: Node16` + `rewriteRelativeImportExtensions` (reduces ~499 → ~150 errors; remainder is API branch debt).
+2. `tenant-kernel` WRS tests — use neutral apex fixture (`club.example`) or guard allowlist for host literals.
+3. RLS integration — `db:test-reset` + migrate + re-run `test/rls-isolation.integration.spec.ts` with `DATABASE_URL` + `STORAGE_DRIVER=prisma`.
+4. Evolution gate — wire missing `app.ts` routes flagged by `phase-5-evolution-gate.mjs`.
 
 ## MASTER.md demotion (E3–E4)
 

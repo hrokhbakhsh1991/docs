@@ -1,0 +1,88 @@
+{
+  "gate": "phase-5",
+  "date": "2026-07-06",
+  "gitSha": "b9b7dc02",
+  "ok": true,
+  "checks": [
+    {
+      "id": "p5_boot_manifest",
+      "description": "docs/phase-5/appendices/BOOT-MANIFEST.yaml",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_deprecated_registry",
+      "description": "docs/phase-5/appendices/DEPRECATED-ENTRYPOINTS.md",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_canonical_schema_doc",
+      "enforcementId": "REQ-P5-007",
+      "description": "docs/phase-5-canonical-schema.md (DEL-P5-001)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_sql_migration",
+      "description": "infra/sql/002_phase5_data_layer.sql",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_prisma_models",
+      "description": "Prisma OutboxEvent + AuditEvent + canonical_data map",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_with_canonical_transaction",
+      "description": "withCanonicalTransaction API file",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_contract_spec",
+      "enforcementId": "REQ-P5-024",
+      "description": "apps/api/test/phase-5.contract.spec.ts",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_anti_hollow",
+      "description": "anti-hollow Phase 5 artifacts",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_doc_hardening",
+      "description": "doc execution system hardening (target score >= 95)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_repo_alignment",
+      "description": "docs ↔ enterprise tenant repo alignment",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p5_cross_phase_continuity",
+      "description": "Phases 0–5 cross-phase continuity docs + backlinks",
+      "required": true,
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "note": "Full phase-5:gate includes build test phase-4:gate — run via package.json"
+}
