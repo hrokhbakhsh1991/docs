@@ -20,4 +20,9 @@ export const ADMIN_CONTROL_STEPS = [
     cmd: ["node", "scripts/guards/guard-admin-globals-r03.mjs"],
     criticalRisk: "R-03",
   },
+  {
+    name: "admin_feature_appearance_ast",
+    cmd: ["node", "scripts/guards/guard-admin-feature-appearance-ast.mjs"],
+    closes: "F7",
+  },
 ];

@@ -911,7 +911,9 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 
 **F closure (done):** bootstrap CSS-G-02 fix (inline admin body reset); `operator-shell-structure.css` hex ban; denali `theme/` npm pack set; `dtcg-f-closure.spec.mjs`.
 
-**F7+ (next):** admin feature TSX AST guards; `ThemeProviderChain` vs CSS precedence.
+**F7 (done):** `guard-admin-feature-appearance-ast` — admin feature TSX (`patterns/`, `dashboard/`, `onboarding/`) bans palette scale + arbitrary hex in `className`; semantic shadcn tokens allowed.
+
+**F8+ (next):** full feature appearance purge to CSS hooks; `ThemeProviderChain` vs CSS precedence.
 
 Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
@@ -930,8 +932,7 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 **F6 (done):** Admin dark semantics DTCG + `operator-admin-appearance.css` decomposition.
 
 **F7+ (open):**
-- AST guards on `apps/web` feature TSX.
-- Migrate shadcn usage to var-only utilities.
+- Full appearance purge on admin feature TSX (F7 allows semantic Tailwind).
 - Consolidate `ThemeProviderChain` vs CSS precedence.
 
 ### Phase G — Codegen modularization
@@ -1026,7 +1027,7 @@ Phase E is **closed** for guest marketing skin semantics and hooks:
 2. Marketing/portal hooks + denali **shell + 28 component partials** — no raw `#` hex.
 3. Denali overlay palette (`--mkt-*`) — DTCG authority in `denali.marketing.tokens.json`.
 
-**Still hand-maintained:** admin feature TSX Tailwind.
+**Still hand-maintained:** admin feature TSX semantic Tailwind (F7 guards palette/hex; F8+ full CSS-hook purge).
 
 **Continue Phase F** — F6 admin dark decomposition done; F7+ feature TSX guards.
 

@@ -38,8 +38,9 @@ Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generate
 | `operator-shell-structure.css` platform hook hex ban | ✅ F closure |
 | Admin bootstrap CSS-G-02 (no guest cross-surface imports) | ✅ F closure |
 | Denali `theme/` publish set covers admin `@import` chain | ✅ F closure |
+| Admin feature TSX palette/hex AST ban (`patterns/`, `dashboard/`, `onboarding/`) | ✅ F7 |
 
-**Still hand-maintained (F7+ / Phase F):** admin feature TSX Tailwind.
+**Still hand-maintained (F8+):** full appearance purge of admin feature TSX (semantic Tailwind allowed under F7); `ThemeProviderChain` vs CSS precedence.
 
 ## Authority flow (E1–E2)
 
@@ -111,6 +112,8 @@ Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` →
 | `dtcg-f4-primitives.spec.mjs` | Unit: `platform.primitives.tokens.json` → `primitives.css`; denali motion/wizard partial hooks hex-free |
 | `dtcg-f5-semantics.spec.mjs` | Unit: `platform.semantics.tokens.json` → `semantics.css`; interactions hook hex-free |
 | `dtcg-f6-admin-appearance.spec.mjs` | Unit: admin dark semantics from `platform.dark`; `operator-admin-appearance.css` hook-only |
+| `guard-admin-feature-appearance-ast` | AST: admin feature TSX `className` — no palette scale colors or `#` arbitrary values (F7) |
+| `admin-feature-appearance-ast.spec.ts` | Unit: F7 scan passes on `patterns/`, `dashboard/`, `onboarding/` |
 
 Reference syntax: `{color.primary}` → `var(--color-primary)`; `{flat.focus-ring-color}` → `var(--focus-ring-color)` (flat group emits unprefixed shadcn aliases).
 
@@ -204,9 +207,25 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 | `operator-shell-structure.css` impersonation banner | `#f59e0b` → `var(--color-warning)`; file added to `guard-dtcg-hex-ban` platform hooks |
 | `@app-tour/workspace-denali` `files: ["theme"]` | `denali-admin.css` `@import` chain includes generated semantic CSS + wizard partials — partial `files` list broke npm pack |
 
-## F7+ (not in Phase F closure)
+## F7 — Admin feature appearance AST (palette ban)
 
-- AST guards expansion on `apps/web` admin **feature** TSX (shell already I0)
+**Scope:** `apps/web/src/admin/{patterns,dashboard,onboarding}/**/*.tsx` — **not** shell (I0 already covers `operator-shell.tsx`, `operator-header.tsx`, `operator-nav.tsx`, `operator-account-menu.tsx`).
+
+**Contract:** feature TSX may use **semantic** shadcn/Tailwind tokens (`text-muted-foreground`, `bg-primary`, `border-border/50`, `text-destructive`, …) and layout utilities (`flex`, `gap-*`, `truncate`, …). **Forbidden** in `className`:
+
+| Class pattern | Example | Why |
+| ------------- | ------- | --- |
+| Tailwind palette scale | `bg-red-500`, `text-slate-600` | bypasses DTCG semantic vars |
+| Raw named colors | `bg-white`, `text-black` | use `*-foreground` / `bg-background` |
+| Arbitrary hex | `bg-[#1e5a8e]` | hex belongs in DTCG `@generated` CSS only |
+
+**Guard:** `node scripts/guards/guard-admin-feature-appearance-ast.mjs` (also in `admin-control-pack`).
+
+**Future F8+:** migrate remaining appearance `className` to `data-*` hooks + workspace skin (full I0-style purge for features).
+
+## F8+ (not in F7)
+
+- Full appearance purge of admin feature TSX (semantic Tailwind → CSS hooks)
 - `ThemeProviderChain` vs CSS precedence (broader platform work)
 
 ## Phase F closure checklist
@@ -219,6 +238,7 @@ Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin fil
 | CSS sync | `node scripts/guards/guard-dtcg-css-sync.mjs` |
 | Hex ban | `node scripts/guards/guard-dtcg-hex-ban.mjs` |
 | Bootstrap integrity | `node scripts/guards/guard-css-bootstrap-integrity.mjs` |
+| Admin feature palette ban | `node scripts/guards/guard-admin-feature-appearance-ast.mjs` |
 
 ## MASTER.md demotion (E3–E4)
 

@@ -64,7 +64,7 @@ export const SHELL_APPEARANCE_SCOPES = [
  * @param {import("typescript").Expression} expr
  * @returns {string[]}
  */
-function extractExpressionStrings(expr) {
+export function extractExpressionStrings(expr) {
   if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) {
     return [expr.text];
   }
