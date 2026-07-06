@@ -32,7 +32,7 @@ export const MEMBER_PORTAL_PRESETS = {
       },
     ],
   },
-  "denali-full-v1": {
+  "guest-full-v1": {
     defaultPrimaryModuleId: "trips",
     includePlatformHome: true,
     modules: [
@@ -66,20 +66,16 @@ export function normalizeMemberPortalAvailability(manifest) {
   if (typeof memberPortal !== "object" || Array.isArray(memberPortal)) {
     throw new Error(`${manifest.id}: memberPortal must be an object`);
   }
-  if (memberPortal.manifestVersion === 2) {
-    const availability = memberPortal.availability;
-    if (availability === "off" || availability === "minimal" || availability === "full") {
-      return availability;
-    }
-    throw new Error(`${manifest.id}: memberPortal.availability must be off|minimal|full`);
+  if (memberPortal.manifestVersion !== 2) {
+    throw new Error(
+      `${manifest.id}: memberPortal.manifestVersion must be 2 (v1 removed — set availability explicitly)`,
+    );
   }
-  if (memberPortal.manifestVersion === 1) {
-    if (Array.isArray(memberPortal.modules) && memberPortal.modules.length > 0) {
-      return manifest.id === "denali" ? "full" : "minimal";
-    }
-    return "off";
+  const availability = memberPortal.availability;
+  if (availability === "off" || availability === "minimal" || availability === "full") {
+    return availability;
   }
-  throw new Error(`${manifest.id}: memberPortal.manifestVersion must be 1 or 2`);
+  throw new Error(`${manifest.id}: memberPortal.availability must be off|minimal|full`);
 }
 
 /**

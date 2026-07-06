@@ -41,12 +41,6 @@ for (const manifest of manifests) {
   if (config.availability !== availability) {
     violations.push(`${manifest.id}: contract config availability mismatch`);
   }
-  if (manifest.id === "denali" && availability !== "full") {
-    violations.push("denali: reference workspace requires availability full");
-  }
-  if ((manifest.id === "urban" || manifest.id === "guest-club") && availability !== "minimal") {
-    violations.push(`${manifest.id}: trunk workspace requires availability minimal`);
-  }
   if (manifest.guestConformance?.memberApp === true && availability === "off") {
     violations.push(`${manifest.id}: guestConformance.memberApp conflicts with availability off`);
   }

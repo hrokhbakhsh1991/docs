@@ -151,7 +151,7 @@
           "properties": {
             "manifestVersion": { "const": 2 },
             "availability": { "enum": ["minimal", "full"] },
-            "preset": { "enum": ["guest-minimal-v1", "denali-full-v1"] },
+            "preset": { "enum": ["guest-minimal-v1", "guest-full-v1"] },
             "includePlatformHome": { "type": "boolean" },
             "defaultPrimaryModuleId": { "type": "string", "minLength": 1 },
             "modules": {

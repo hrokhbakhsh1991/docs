@@ -273,6 +273,6 @@
   "memberPortal": {
     "manifestVersion": 2,
     "availability": "full",
-    "preset": "denali-full-v1"
+    "preset": "guest-full-v1"
   }
 }

@@ -12,6 +12,7 @@
 | ----- | ------------- | -------- | -------- | ----- | ----- |
 | `guard-member-portal-registry` | `scripts/guards/guard-member-portal-registry.mjs` | pre-commit / PR | **fail** | Platform | PS-2+ |
 | `guard-member-portal-contract` | `scripts/guards/guard-member-portal-contract.mjs` | pre-commit / PR | **fail** | Platform | PS-2+ |
+| `guard-no-workspace-ids-in-codegen` | `scripts/guards/guard-no-workspace-ids-in-codegen.mjs` | guest conformance bundle | **fail** | Platform | Phase B |
 | `guard-member-module-id-reserved` | (sub-rule of registry guard) | pre-commit / PR | **fail** | Platform | PS-2+ |
 | `guard-member-url-builder` | `scripts/guards/guard-member-url-builder.mjs` | PR | **fail** | Platform | PS-3+ |
 | `guard-workspace-member-egress` | `scripts/guards/guard-workspace-member-egress.mjs` | PR | **fail** | Platform | PS-4+ |
@@ -45,7 +46,7 @@
 | ----- | ----- |
 | **Purpose** | Unified member portal contract — manifest `availability` ↔ generated `WORKSPACE_MEMBER_PORTAL_CONTRACTS` |
 | **Inputs** | `packages/workspaces/*/workspace.manifest.json`, codegen output |
-| **Failure conditions** | Stale registry; Denali ≠ `full`; urban/guest-club ≠ `minimal`; `memberApp: true` with `availability: off`; L4 reference workspace drift |
+| **Failure conditions** | Stale registry; `memberApp: true` with `availability: off`; `memberApp: true` with `availability !== full`; L4 reference workspace drift; manifest ↔ generated contract mismatch |
 | **CI stage** | `guard:guest-plugin-conformance` bundle; `guard:member-portal-shell` |
 | **Severity** | **fail** |
 | **Owner** | Platform architecture |

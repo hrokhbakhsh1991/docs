@@ -28,7 +28,7 @@ extends:
 | Field | Type | Required | Notes |
 | ----- | ---- | -------- | ----- |
 | `availability` | `off` \| `minimal` \| `full` | yes (v2) | **SSOT** — runtime, GSH, and portal branch on this enum |
-| `preset` | `guest-minimal-v1` \| `denali-full-v1` | when modules empty | Codegen expands canonical module sets |
+| `preset` | `guest-minimal-v1` \| `guest-full-v1` | when modules empty | Codegen expands canonical module sets (workspace-neutral names) |
 | `includePlatformHome` | boolean | optional | Default: `false` for minimal, `true` for full |
 | `defaultPrimaryModuleId` | string | when no preset | Must exist in effective modules |
 | `modules` | array | when no preset | Workspace-owned modules only (DL-30) |
@@ -38,7 +38,7 @@ extends:
 | Preset | Modules | Platform `home` |
 | ------ | ------- | ------------- |
 | `guest-minimal-v1` | `trips`, `profile` | no |
-| `denali-full-v1` | `trips`, `profile`, `wallet` | yes |
+| `guest-full-v1` | `trips`, `profile`, `wallet` | yes |
 
 **Explicit off (L3 catalog-only workspaces)**
 
@@ -48,11 +48,11 @@ extends:
 
 Absent `memberPortal` block normalizes to `availability: off` at codegen.
 
-### v1 migration
+### v1 rejection (Phase B)
 
-`manifestVersion: 1` with modules is normalized to `minimal` (or `full` for denali) until manifests upgrade.
+Codegen **fail-closed** on `memberPortal.manifestVersion: 1`. All production workspaces must use v2 with explicit `availability`. Preset keys are workspace-neutral (`guest-minimal-v1`, `guest-full-v1`) — never workspace ids.
 
-## 1.1 Legacy v1 block (deprecated)
+## 1.1 Legacy v1 block (removed — do not use)
 
 ```json
 {
