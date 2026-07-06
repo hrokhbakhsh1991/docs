@@ -30,11 +30,16 @@ export type OperatorSessionContext = {
   readonly pluginId: string;
 };
 
-export function isDenaliOperatorSession(session: OperatorSessionContext): boolean {
+export function isExtendedOperatorSession(session: OperatorSessionContext): boolean {
   return (
     isExtendedOperatorWorkspace(session.pluginId) ||
     isExtendedOperatorWorkspace(session.workspaceType)
   );
+}
+
+/** @deprecated Use {@link isExtendedOperatorSession} — Denali-named alias for legacy tests. */
+export function isDenaliOperatorSession(session: OperatorSessionContext): boolean {
+  return isExtendedOperatorSession(session);
 }
 
 export type RequireOperatorSessionWebParams = {

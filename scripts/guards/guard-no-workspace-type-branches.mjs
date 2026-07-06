@@ -3,6 +3,7 @@
  * Phase C — platform must not branch on workspace ids in guarded surfaces.
  * C1: no workspaceType === "urban" in apps/api/src (except generated + tests).
  * C2: no pluginId === "denali" in tours/wizard-template page clients.
+ * C4: no isDenaliOperatorSession / isDenali in tour-edit page client.
  * @see docs/architecture/platform-architecture-v2.md
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -58,6 +59,13 @@ const C2_TARGETS = [
   "apps/web/app/(app)/settings/tour-wizard-template/wizard-template-client.tsx",
 ];
 
+const C4_TARGETS = [
+  "apps/web/app/(app)/tours/[id]/edit/tour-edit-page-client.tsx",
+];
+
+const isDenaliLocalPattern = /\bisDenali\b/;
+const isDenaliOperatorSessionPattern = /isDenaliOperatorSession/;
+
 for (const abs of walkTsFiles(API_ROOT)) {
   const rel = path.relative(REPO_ROOT, abs);
   if (isApiExcluded(rel)) {
@@ -77,6 +85,19 @@ for (const rel of C2_TARGETS) {
   for (let i = 0; i < lines.length; i += 1) {
     if (pluginIdPattern.test(lines[i])) {
       violations.push(`${rel}:${i + 1}: forbidden pluginId denali branch — ${lines[i].trim()}`);
+    }
+  }
+}
+
+for (const rel of C4_TARGETS) {
+  const abs = path.join(REPO_ROOT, rel);
+  const lines = readFileSync(abs, "utf8").split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    if (isDenaliOperatorSessionPattern.test(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden isDenaliOperatorSession — ${lines[i].trim()}`);
+    }
+    if (isDenaliLocalPattern.test(lines[i])) {
+      violations.push(`${rel}:${i + 1}: forbidden isDenali local — ${lines[i].trim()}`);
     }
   }
 }

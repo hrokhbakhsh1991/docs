@@ -46,7 +46,7 @@ Platform apps (`apps/web`, `apps/portal`, `apps/marketing`, `apps/api`) and plat
 
 Workspace-specific behavior is reached **only** through generated bindings keyed by resolved `pluginId` at runtime.
 
-**Violation today (Phase C sprint 1 resolved 2026-07-06):** Urban API guards and `pluginId === "denali"` in tours/wizard-template page clients replaced by manifest codegen (`operatorCapabilities`, `WORKSPACE_CATALOG_LIST_FEATURES`, `wizardTemplateEditor` bindings). **Remaining:** broader `apps/web` Denali direct imports (~70 allowlisted files), marketing catalog (C3), full admin purge (C4).
+**Violation today (Phase C sprint 1 resolved 2026-07-06):** Urban API guards and `pluginId === "denali"` in tours/wizard-template page clients replaced by manifest codegen (`operatorCapabilities`, `WORKSPACE_CATALOG_LIST_FEATURES`, `wizardTemplateEditor` bindings). **Sprint 2 (in progress):** tour edit flat-shell routing uses `isExtendedOperatorSession` (codegen `WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS`) instead of `isDenaliOperatorSession`. **Remaining:** broader `apps/web` Denali direct imports (~70 allowlisted files), marketing catalog bindings (C3), full admin purge (C4).
 
 ### P3 — Codegen derives everything discoverable
 
@@ -789,6 +789,11 @@ Using **both** `ThemeProviderChain` JS variables **and** conflicting hex in CSS 
 - `wizardTemplateEditor` manifest → `workspace-wizard-template-editor-bindings.generated.ts`.
 - Tours list category filter uses `resolveCatalogListFeatures` (not `pluginId === "denali"`).
 - Guard: `guard-no-workspace-type-branches` (API urban branches + C2 page clients).
+
+**Sprint 2 (2026-07-06):**
+
+- Tour edit flat-shell router (`tour-edit-page-client.tsx`) uses `isExtendedOperatorSession` — lookup against codegen `WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS` (same set as extended create chrome); `isDenaliOperatorSession` retained as deprecated alias for tests only.
+- Guard extended: `tour-edit-page-client.tsx` must not import `isDenaliOperatorSession` or bind `isDenali` locals.
 
 **Remaining:**
 
