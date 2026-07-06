@@ -31,6 +31,10 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-tour-list-category-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-operator-ui-components-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-draft-unification-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-rules-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-template-preset-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-draft-shell-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-create-chrome-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {
@@ -42,15 +46,7 @@ function isWorkspaceProductImportAllowed(file: string): boolean {
     return true;
   }
   if (
-    rel === "src/bootstrap/denali-wizard-rules.ts" ||
-    rel === "src/bootstrap/denali-wizard-template-preset.ts"
-  ) {
-    return true;
-  }
-  if (
-    rel === "src/wizard/use-denali-create-tour-wizard.ts" ||
     rel === "src/wizard/use-denali-flat-edit-page.ts" ||
-    rel === "src/wizard/denali-wizard-draft-shell.ts" ||
     rel === "src/wizard/denali-flat-edit-form-shell.tsx"
   ) {
     return true;
@@ -228,7 +224,7 @@ describe("Phase 3.3 workspace boundary", () => {
       assert.doesNotMatch(source, /from "@\/wizard\/denali\//);
     }
     const binding = readFileSync(join(SRC_DIR, "wizard/denali-wizard-draft-shell.ts"), "utf8");
-    assert.match(binding, /@app-tour\/workspace-denali\/ui\/chrome\/draft-binding/);
+    assert.match(binding, /workspace-wizard-draft-shell-bindings\.generated/);
     const flatEdit = readFileSync(join(SRC_DIR, "wizard/denali-flat-edit-form-shell.tsx"), "utf8");
     assert.match(flatEdit, /@app-tour\/workspace-denali\/ui\/chrome\/denali-flat-edit-form/);
     const createClient = readFileSync(join(APP_DIR, "tours/new/denali-create-tour-wizard-client.tsx"), "utf8");
@@ -298,7 +294,7 @@ describe("Phase 3.3 workspace boundary", () => {
       const source = readFileSync(join(SRC_DIR, "wizard", name), "utf8");
       importCount += (source.match(/from "@\//g) ?? []).length;
     }
-    assert.ok(importCount <= 35, `denali @/ imports=${importCount}, max=35`);
+    assert.ok(importCount <= 38, `denali @/ imports=${importCount}, max=38`);
   });
 
   it("P15-W-B3 draft unification wiring is present (ops smoke remains manual)", () => {

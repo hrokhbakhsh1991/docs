@@ -831,6 +831,12 @@ Manifest blocks → `apps/web/src/bootstrap/*.generated.ts`:
 - `wizardDraftUnification` manifest → `draft-unification-v3-options` tombstone log via bindings (no direct `@app-tour/workspace-denali/draft`).
 - `create-tour-wizard-chrome` accepts `currentDraftKey` prop — uses `platformCreateTourDraftKey` at call site.
 
+**Sprint 8 (2026-07-06) — C4 wizard bootstrap + create orchestration:**
+
+- `wizardRules`, `wizardTemplatePreset`, `wizardDraftShell`, `wizardCreateChrome` manifest blocks → bootstrap bindings.
+- `resolveSyncWorkspacePluginFromRegistry` in `workspace-plugin-loaders.generated.ts`.
+- `denali-wizard-rules`, `denali-wizard-template-preset`, `denali-wizard-draft-shell`, `use-denali-create-tour-wizard` — no direct `@app-tour/workspace-denali` imports.
+
 **Remaining:**
 
 - Shrink P0-T-161 allowlist (~70 denali shell orchestration files) as orchestration migrates to bindings.

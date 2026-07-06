@@ -317,5 +317,21 @@
   "wizardDraftUnification": {
     "module": "./draft/wizard-draft-unification-surface",
     "export": "denaliWizardDraftUnificationSurface"
+  },
+  "wizardRules": {
+    "module": "./wizard/wizard-rules-surface",
+    "export": "denaliWizardRulesSurface"
+  },
+  "wizardTemplatePreset": {
+    "module": "./settings/wizard-template-preset-surface",
+    "export": "denaliWizardTemplatePresetSurface"
+  },
+  "wizardDraftShell": {
+    "module": "./ui/chrome/wizard-draft-shell-surface",
+    "export": "denaliWizardDraftShellSurface"
+  },
+  "wizardCreateChrome": {
+    "module": "./ui/chrome/wizard-create-chrome-surface",
+    "export": "denaliWizardCreateChromeSurface"
   }
 }

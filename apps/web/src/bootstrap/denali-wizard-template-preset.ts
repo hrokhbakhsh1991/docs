@@ -1,8 +1,5 @@
 import type { WizardTemplatePayload } from "@/features/settings/wizard-template-types";
-
-let denaliWizardTemplatePresetPromise: Promise<
-  (seedLabel?: string) => WizardTemplatePayload
-> | null = null;
+import { loadFullWizardTemplatePreset } from "@/bootstrap/workspace-wizard-template-preset-bindings.generated";
 
 /**
  * Lazy Denali full wizard template — sole web entry for Settings "Load full template".
@@ -10,8 +7,5 @@ let denaliWizardTemplatePresetPromise: Promise<
 export function loadDenaliFullWizardTemplatePreset(
   seedLabel?: string
 ): Promise<WizardTemplatePayload> {
-  denaliWizardTemplatePresetPromise ??= import("@app-tour/workspace-denali/plugin").then(
-    (mod) => mod.buildDenaliFullWizardTemplatePayload
-  );
-  return denaliWizardTemplatePresetPromise.then((build) => build(seedLabel));
+  return loadFullWizardTemplatePreset("denali", seedLabel);
 }

@@ -82,6 +82,10 @@
       "types": "./dist/settings/wizard-template-editor.d.ts",
       "default": "./dist/settings/wizard-template-editor.js"
     },
+    "./settings/wizard-template-preset-surface": {
+      "types": "./dist/settings/wizard-template-preset-surface.d.ts",
+      "default": "./dist/settings/wizard-template-preset-surface.js"
+    },
     "./settings/wizard-template-roadmap": {
       "types": "./dist/settings/denali-wizard-template-roadmap.d.ts",
       "default": "./dist/settings/denali-wizard-template-roadmap.js"
@@ -89,6 +93,10 @@
     "./wizard/rules-loader": {
       "types": "./dist/wizard/rules-loader.d.ts",
       "default": "./dist/wizard/rules-loader.js"
+    },
+    "./wizard/wizard-rules-surface": {
+      "types": "./dist/wizard/wizard-rules-surface.d.ts",
+      "default": "./dist/wizard/wizard-rules-surface.js"
     },
     "./wizard/build-field-step-resolver": {
       "types": "./dist/wizard/build-field-step-resolver.d.ts",
@@ -248,6 +256,14 @@
     "./ui/settings/settings-equipment-ui-surface": {
       "types": "./dist/ui/settings/settings-equipment-ui-surface.d.ts",
       "default": "./dist/ui/settings/settings-equipment-ui-surface.js"
+    },
+    "./ui/chrome/wizard-draft-shell-surface": {
+      "types": "./dist/ui/chrome/wizard-draft-shell-surface.d.ts",
+      "default": "./dist/ui/chrome/wizard-draft-shell-surface.js"
+    },
+    "./ui/chrome/wizard-create-chrome-surface": {
+      "types": "./dist/ui/chrome/wizard-create-chrome-surface.d.ts",
+      "default": "./dist/ui/chrome/wizard-create-chrome-surface.js"
     },
     "./ui/operator-ui-components-surface": {
       "types": "./dist/ui/operator-ui-components-surface.d.ts",

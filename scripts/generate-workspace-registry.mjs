@@ -1426,6 +1426,18 @@ ${pluginCalls}
 }
 
 export function generateWebLoaders(manifests) {
+  const syncImports = manifests.map((m) => {
+    const web = m.web ?? m.plugin;
+    const spec = importSpecifier(m.package, web.entry);
+    return `import { ${web.export} } from "${spec}";`;
+  });
+  const syncEntries = manifests
+    .map((m) => {
+      const web = m.web ?? m.plugin;
+      return `  ${JSON.stringify(m.id)}: ${web.export}(),`;
+    })
+    .join("\n");
+
   const cases = manifests
     .map((m) => {
       const web = m.web ?? m.plugin;
@@ -1439,6 +1451,19 @@ export function generateWebLoaders(manifests) {
 
   return `${BANNER}
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+${syncImports.join("\n")}
+
+const SYNC_WORKSPACE_PLUGINS: Readonly<Record<string, WorkspacePlugin>> = Object.freeze({
+${syncEntries}
+});
+
+export function resolveSyncWorkspacePluginFromRegistry(pluginId: string): WorkspacePlugin {
+  const plugin = SYNC_WORKSPACE_PLUGINS[pluginId];
+  if (plugin == null) {
+    throw new Error(\`WORKSPACE_PLUGIN_NOT_FOUND:\${pluginId}\`);
+  }
+  return plugin;
+}
 
 const pluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
 
@@ -1636,6 +1661,10 @@ const GUEST_EXTENSION_MANIFEST_KEYS = [
   "tourListCategoryFilter",
   "operatorUiComponents",
   "wizardDraftUnification",
+  "wizardRules",
+  "wizardTemplatePreset",
+  "wizardDraftShell",
+  "wizardCreateChrome",
 ];
 
 /**
@@ -1751,6 +1780,10 @@ export function assertGuestExtensionsManifest(manifest) {
     "tourListCategoryFilter",
     "operatorUiComponents",
     "wizardDraftUnification",
+    "wizardRules",
+    "wizardTemplatePreset",
+    "wizardDraftShell",
+    "wizardCreateChrome",
   ]) {
     const block = manifest[key];
     if (block === undefined) {
@@ -2978,6 +3011,144 @@ export function resolveWizardDraftCreateTourDraftKey(pluginId: string): string |
 `;
 }
 
+function generateSingleWorkspaceSurfaceBindings(
+  manifests,
+  manifestKey,
+  aliasPrefix,
+  surfaceExportName,
+  bodyLines
+) {
+  const withSurface = manifests.filter((m) => m[manifestKey] !== undefined);
+  if (withSurface.length === 0) {
+    return `${BANNER}\n${bodyLines.empty}\n`;
+  }
+  const m = withSurface[0];
+  const block = m[manifestKey];
+  if (typeof block.module !== "string" || typeof block.export !== "string") {
+    throw new Error(`${m.id}: ${manifestKey} requires module and export`);
+  }
+  const importFrom = importSpecifier(m.package, block.module);
+  const alias = `${aliasPrefix}_${m.id.replace(/-/g, "_")}`;
+  return `${BANNER}
+import { ${block.export} as ${alias} } from "${importFrom}";
+${bodyLines.withSurface(alias, m)}
+`;
+}
+
+export function generateWizardRulesBindings(manifests) {
+  return generateSingleWorkspaceSurfaceBindings(
+    manifests,
+    "wizardRules",
+    "wizard_rules",
+    "denaliWizardRulesSurface",
+    {
+      empty: `export function getWizardRulesModuleSync(_pluginId: string): never {
+  throw new Error("No wizard rules surface registered");
+}`,
+      withSurface: (alias) => `
+export type WizardRulesModule = {
+  readonly evaluateFormFieldRule: typeof ${alias}.evaluateFormFieldRule;
+  readonly applyDenaliInvariantState: typeof ${alias}.applyDenaliInvariantState;
+  readonly resolveDenaliRuleSetFromTemplate: typeof ${alias}.resolveDenaliRuleSetFromTemplate;
+  readonly buildDefaultForm: () => Record<string, unknown>;
+  readonly readCanonicalBasics: typeof ${alias}.readDenaliCanonicalBasics;
+  readonly canonicalToFormPathMap: typeof ${alias}.canonicalToFormPathMap;
+  readonly tourKindValues: typeof ${alias}.tourKindValues;
+};
+
+let wizardRulesModule: WizardRulesModule | null = null;
+
+export function getWizardRulesModuleSync(pluginId: string): WizardRulesModule {
+  if (pluginId !== "denali") {
+    throw new Error(\`No wizard rules surface for plugin: \${pluginId}\`);
+  }
+  wizardRulesModule ??= Object.freeze({
+    evaluateFormFieldRule: ${alias}.evaluateFormFieldRule,
+    applyDenaliInvariantState: ${alias}.applyDenaliInvariantState,
+    resolveDenaliRuleSetFromTemplate: ${alias}.resolveDenaliRuleSetFromTemplate,
+    buildDefaultForm: ${alias}.buildDenaliTourCreateDefaultValues,
+    readCanonicalBasics: ${alias}.readDenaliCanonicalBasics,
+    canonicalToFormPathMap: ${alias}.canonicalToFormPathMap,
+    tourKindValues: ${alias}.tourKindValues,
+  }) as WizardRulesModule;
+  return wizardRulesModule;
+}
+
+export function loadWizardRulesModule(pluginId: string): Promise<WizardRulesModule> {
+  return Promise.resolve(getWizardRulesModuleSync(pluginId));
+}`,
+    }
+  );
+}
+
+export function generateWizardTemplatePresetBindings(manifests) {
+  return generateSingleWorkspaceSurfaceBindings(
+    manifests,
+    "wizardTemplatePreset",
+    "wizard_template_preset",
+    "denaliWizardTemplatePresetSurface",
+    {
+      empty: `export function loadFullWizardTemplatePreset(_pluginId: string, _seedLabel?: string): Promise<never> {
+  return Promise.reject(new Error("No wizard template preset surface registered"));
+}`,
+      withSurface: (alias) => `
+export function loadFullWizardTemplatePreset(
+  pluginId: string,
+  seedLabel?: string
+): Promise<import("@/features/settings/wizard-template-types").WizardTemplatePayload> {
+  if (pluginId !== "denali") {
+    return Promise.reject(new Error(\`No wizard template preset for plugin: \${pluginId}\`));
+  }
+  return Promise.resolve(${alias}.buildFullTemplatePreset(seedLabel));
+}`,
+    }
+  );
+}
+
+export function generateWizardDraftShellBindings(manifests) {
+  return generateSingleWorkspaceSurfaceBindings(
+    manifests,
+    "wizardDraftShell",
+    "wizard_draft_shell",
+    "denaliWizardDraftShellSurface",
+    {
+      empty: "",
+      withSurface: (alias, m) => `
+export const createDenaliWizardDraftSessionId = ${alias}.createWizardDraftSessionId;
+export const DENALI_CREATE_TOUR_DRAFT_KEY = ${alias}.createTourDraftKey;
+export const DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE = ${alias}.operatorDraftNamespace;
+export const createDenaliDraftSchemaGate = ${alias}.createDraftSchemaGate;
+export const denaliHydrateDraftEnvelope = ${alias}.hydrateDraftEnvelope;
+export const denaliPrepareDraftEnvelope = ${alias}.prepareDraftEnvelope;
+export const isDenaliFreshStartEnvelope = ${alias}.isFreshStartEnvelope;
+export const resolveDenaliDraftMerge = ${alias}.resolveDraftMerge;
+export const emptyDenaliTourWizardDraft = ${alias}.emptyTourWizardDraft;
+export const applyDenaliDefaultTourKind = ${alias}.applyDefaultTourKind;
+export const buildDenaliCreatePrefilledFormCore = ${alias}.buildCreatePrefilledFormCore;
+export const getDenaliWorkspacePluginFromDraftShell = ${alias}.getWorkspacePlugin;
+export type { DenaliWizardDraftMeta } from "${importSpecifier(m.package, "./draft")}";
+`,
+    }
+  );
+}
+
+export function generateWizardCreateChromeBindings(manifests) {
+  return generateSingleWorkspaceSurfaceBindings(
+    manifests,
+    "wizardCreateChrome",
+    "wizard_create_chrome",
+    "denaliWizardCreateChromeSurface",
+    {
+      empty: "",
+      withSurface: (alias) => `
+export const useDenaliCreateTourWizardCore = ${alias}.useCreateTourWizardCore;
+export const isDraftEssentiallyEmpty = ${alias}.isDraftEssentiallyEmpty;
+export type { DenaliCreateTourWizardScreen } from "@app-tour/workspace-denali/ui/chrome/wizard-create-chrome-surface";
+`,
+    }
+  );
+}
+
 export function generatePhotoUploadErrorsBindings(manifests) {
   const withSurface = manifests.filter((m) => m.photoUploadErrors !== undefined);
   if (withSurface.length === 0) {
@@ -3414,6 +3585,10 @@ export function generateAllOutputs(manifests) {
     tourListCategoryBindings: generateTourListCategoryBindings(manifests),
     operatorUiComponentsBindings: generateOperatorUiComponentsBindings(manifests),
     wizardDraftUnificationBindings: generateWizardDraftUnificationBindings(manifests),
+    wizardRulesBindings: generateWizardRulesBindings(manifests),
+    wizardTemplatePresetBindings: generateWizardTemplatePresetBindings(manifests),
+    wizardDraftShellBindings: generateWizardDraftShellBindings(manifests),
+    wizardCreateChromeBindings: generateWizardCreateChromeBindings(manifests),
     devPluginIds: generateWorkspaceDevPluginIds(manifests),
     memberProfileCapabilities: generateWorkspaceMemberProfileCapabilities(manifests),
     memberPortalContracts: generateWorkspaceMemberPortalContracts(manifests),
@@ -3540,6 +3715,22 @@ const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-wizard-draft-unification-bindings.generated.ts"
   ),
+  wizardRulesBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-rules-bindings.generated.ts"
+  ),
+  wizardTemplatePresetBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-template-preset-bindings.generated.ts"
+  ),
+  wizardDraftShellBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-draft-shell-bindings.generated.ts"
+  ),
+  wizardCreateChromeBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-create-chrome-bindings.generated.ts"
+  ),
   devPluginIds: join(
     REPO_ROOT,
     "packages/guest-surface-host/src/workspace-dev-plugin-ids.generated.ts"
@@ -3644,6 +3835,10 @@ function main() {
       "tourListCategoryBindings",
       "operatorUiComponentsBindings",
       "wizardDraftUnificationBindings",
+      "wizardRulesBindings",
+      "wizardTemplatePresetBindings",
+      "wizardDraftShellBindings",
+      "wizardCreateChromeBindings",
       "devPluginIds",
       "memberProfileCapabilities",
       "memberPortalContracts",
@@ -3714,6 +3909,10 @@ function main() {
   writeFileSync(OUTPUT_PATHS.tourListCategoryBindings, generated.tourListCategoryBindings);
   writeFileSync(OUTPUT_PATHS.operatorUiComponentsBindings, generated.operatorUiComponentsBindings);
   writeFileSync(OUTPUT_PATHS.wizardDraftUnificationBindings, generated.wizardDraftUnificationBindings);
+  writeFileSync(OUTPUT_PATHS.wizardRulesBindings, generated.wizardRulesBindings);
+  writeFileSync(OUTPUT_PATHS.wizardTemplatePresetBindings, generated.wizardTemplatePresetBindings);
+  writeFileSync(OUTPUT_PATHS.wizardDraftShellBindings, generated.wizardDraftShellBindings);
+  writeFileSync(OUTPUT_PATHS.wizardCreateChromeBindings, generated.wizardCreateChromeBindings);
   writeFileSync(OUTPUT_PATHS.devPluginIds, generated.devPluginIds);
   writeFileSync(OUTPUT_PATHS.memberProfileCapabilities, generated.memberProfileCapabilities);
   writeFileSync(OUTPUT_PATHS.memberPortalContracts, generated.memberPortalContracts);

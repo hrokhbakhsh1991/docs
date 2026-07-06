@@ -78,6 +78,10 @@ const C4_WEB_TARGETS = [
   "apps/web/src/components/ui/map/denali-location-picker-map.tsx",
   "apps/web/src/components/ui/map/denali-location-picker-map-inner.tsx",
   "apps/web/src/components/ui/map/leaflet-default-icon.ts",
+  "apps/web/src/bootstrap/denali-wizard-rules.ts",
+  "apps/web/src/bootstrap/denali-wizard-template-preset.ts",
+  "apps/web/src/wizard/use-denali-create-tour-wizard.ts",
+  "apps/web/src/wizard/denali-wizard-draft-shell.ts",
 ];
 
 const isDenaliLocalPattern = /\bisDenali\b/;

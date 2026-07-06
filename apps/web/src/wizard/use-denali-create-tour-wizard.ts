@@ -3,11 +3,15 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 import type { DraftSchemaGate } from "@app-tour/draft-engine";
 
+import { resolveSyncWorkspacePluginFromRegistry } from "@/bootstrap/workspace-plugin-loaders.generated";
+import {
+  isDraftEssentiallyEmpty,
+  useDenaliCreateTourWizardCore,
+  type DenaliCreateTourWizardScreen,
+} from "@/bootstrap/workspace-wizard-create-chrome-bindings.generated";
 import { resolveDraftUnificationV3Mode } from "@/draft/draft-unification-v3";
-import { isDraftEssentiallyEmpty } from "@app-tour/workspace-denali/wizard/resolve-initial-step-index";
 import { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
 import { useDenaliWizardClearDraft } from "@/draft/use-denali-wizard-clear-draft";
@@ -50,13 +54,11 @@ import {
   type DenaliWizardDraftMeta,
   type NewTourWizardDraftEnvelope,
 } from "./denali-wizard-draft-shell";
-import {
-  useDenaliCreateTourWizardCore,
-  type DenaliCreateTourWizardScreen,
-} from "@app-tour/workspace-denali/ui/chrome/use-create-tour-wizard-core";
 import { useWorkspaceIntegrationRuntimeState } from "@/integrations/use-workspace-integration-runtime-state";
 
 export type { DenaliCreateTourWizardScreen };
+
+const DENALI_PLUGIN_ID = "denali";
 
 /** Phase 15.2 P15-W-B1e — Denali create wizard orchestration hook (shell wiring). */
 export function useDenaliCreateTourWizard(options: {
@@ -67,8 +69,14 @@ export function useDenaliCreateTourWizard(options: {
   const session = useAppSession();
   const cloneTourId = useMemo(() => resolveCloneTourId(searchParams.get("clone")), [searchParams]);
   const presetId = useMemo(() => resolvePresetId(searchParams.get("preset")), [searchParams]);
-  const denaliPlugin = useMemo(() => getDenaliWorkspacePlugin(), []);
-  const loadDenaliPlugin = useCallback(async () => getDenaliWorkspacePlugin(), []);
+  const denaliPlugin = useMemo(
+    () => resolveSyncWorkspacePluginFromRegistry(DENALI_PLUGIN_ID),
+    []
+  );
+  const loadDenaliPlugin = useCallback(
+    async () => resolveSyncWorkspacePluginFromRegistry(DENALI_PLUGIN_ID),
+    []
+  );
   const gate = useWizardTemplateGate({
     pluginId: session.pluginId,
     loadPlugin: loadDenaliPlugin,

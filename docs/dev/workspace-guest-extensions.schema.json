@@ -97,6 +97,42 @@
         "export": { "type": "string", "minLength": 1 }
       }
     },
+    "wizardRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardTemplatePreset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardDraftShell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardCreateChrome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
     "guestCatalog": {
       "type": "object",
       "additionalProperties": false,

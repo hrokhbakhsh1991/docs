@@ -378,7 +378,7 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     );
     assert.match(hook, /denali-wizard-draft-shell/);
     assert.match(hook, /DENALI_CREATE_TOUR_DRAFT_KEY/);
-    assert.match(binding, /@app-tour\/workspace-denali\/draft/);
+    assert.match(binding, /workspace-wizard-draft-shell-bindings\.generated/);
     assert.match(binding, /denali-wizard-draft-types/);
     assert.match(binding, /resolveDenaliDraftMerge/);
     assert.doesNotMatch(binding, /denali-wizard-draft-merge/);

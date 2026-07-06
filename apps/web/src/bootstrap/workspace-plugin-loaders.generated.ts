@@ -5,6 +5,25 @@
  */
 
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
+import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/guest-club.plugin";
+import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
+import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
+
+const SYNC_WORKSPACE_PLUGINS: Readonly<Record<string, WorkspacePlugin>> = Object.freeze({
+  "denali": getDenaliWorkspacePlugin(),
+  "guest-club": getGuestClubWorkspacePlugin(),
+  "starter": getStarterWorkspacePlugin(),
+  "urban": getUrbanWorkspacePlugin(),
+});
+
+export function resolveSyncWorkspacePluginFromRegistry(pluginId: string): WorkspacePlugin {
+  const plugin = SYNC_WORKSPACE_PLUGINS[pluginId];
+  if (plugin == null) {
+    throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);
+  }
+  return plugin;
+}
 
 const pluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
 
