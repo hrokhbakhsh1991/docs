@@ -6,7 +6,7 @@ Phase I hardens workspace platform **runtime scale** on `DEV`:
 - **I2 — Plugin load cache:** `workspace-plugin-load-cache.ts` + codegen-wired `loadWorkspacePluginByIdFromRegistry` with revision bust, max-entry cap, and `invalidateWorkspacePluginLoadCache()` for dev/tests.
 - **Docs:** [`docs/dev/workspace-scale-hardening.mdoc`](docs/dev/workspace-scale-hardening.mdoc) · architecture v2 § Phase I.
 
-**Prerequisite:** Phase G+H should land first (or merge together) — registry modularization + production certification.
+**Prerequisite:** Phase G+H on same `DEV` branch — prefer `pnpm run phase-g-h:create-pr` for a single G+H+I PR; use this script only for I-only follow-up PRs.
 
 ## Enforcement stack
 

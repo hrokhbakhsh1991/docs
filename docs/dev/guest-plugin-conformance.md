@@ -160,7 +160,7 @@ Guest-capable workspaces (L2+ with `catalogPresentation`) must declare `guestLan
 | **G1** | Fail-closed resolvers (no `?? "denali"`) | **Closed** | `guard-no-default-fallback.mjs` |
 | **G2** | Scaffold + trunk reference (`guest-club`) | **Closed** | `packages/workspaces/guest-club` · `workspace:create --guest` |
 | **G3** | Consumer deps + API shell plugin-first | **Closed** | `guard-guest-consumer-deps.mjs` · `guard-guest-api-shell.mjs` · `phase-10:guard` (urban shims removed) |
-| **G4** | E2E canary re-run + Architect sign-off | **Closed** 2026-07-02 | **Guest hooks (16):** SMK-PTL-01..06 · DEN-PROF-01..03 · DEN-INTAKE-01..03 · DEN-TRANS-01..03 · SMK-MKT-03 · SMK-P8-02 **PASS**. **Portal** `test:smoke` **14/14** · **Marketing** `test:smoke` 4/4 · **Urban marketing** SMK-MKT-05 2/2 · **Urban integrity** SMK-P8-01..04 4/4 · **guest-club** unit 1/1 · **SDK registration** 8/8 · **registry scripts** 29/29 · guards 16/16 + phase-10 8/8 |
+| **G4** | E2E canary re-run + Architect sign-off | **Closed** 2026-07-02 | **Guest hooks (16):** SMK-PTL-01..06 · DEN-PROF-01..03 · DEN-INTAKE-01..03 · DEN-TRANS-01..03 · SMK-MKT-03 · SMK-P8-02 **PASS**. **Portal** `test:smoke` **14/14** · **Marketing** `test:smoke` 4/4 · **Urban marketing** SMK-MKT-05 2/2 · **Urban integrity** SMK-P8-01..04 4/4 · **guest-club** unit 1/1 · **SDK registration** 8/8 · **registry scripts** 29/29 · guards 16/16 + phase-10 11/11 |
 
 Active waivers: **none** ([`waivers/README.md`](./waivers/README.md)).
 
@@ -190,7 +190,7 @@ node --test scripts/test/workspace-registry-drop-in.spec.mjs
 | SDK registration dispatch | `resolve-catalog-registration-support` + dispatch **8/8** |
 | Zero active waivers | [`waivers/README.md`](./waivers/README.md) |
 | Guard bundle | `pnpm run guard:guest-plugin-conformance` **14/14** |
-| Phase 10 host invariants | `pnpm run phase-10:guard` **8/8** |
+| Phase 10 host invariants | `pnpm run phase-10:guard` **11/11** (incl. I1 theme budget + I2 plugin load cache) |
 | Registry drop-in | `node --test scripts/test/workspace-registry-drop-in.spec.mjs` **22/22** (suite total **29/29** with PF scripts) |
 | API urban shims removed | `apps/api/src/urban/` absent · `guard-guest-api-shell` PASS |
 

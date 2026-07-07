@@ -16,15 +16,15 @@ if ! gh auth status >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Running phase-g-h:fast-track before PR..."
-pnpm run phase-g-h:fast-track
+echo "Running phase-i:closure before PR..."
+pnpm run phase-i:closure
 
 git push -u origin DEV
 
 gh pr create \
   --base main \
   --head DEV \
-  --title "Phase G+H: workspace registry modularization + production certification" \
+  --title "Phase G+H+I: registry modularization, production certification, scale hardening" \
   --body-file docs/dev/phase-g-h-pr-body.md
 
 echo "create-phase-g-h-pr: done"

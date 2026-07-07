@@ -196,6 +196,6 @@ Full monorepo gate (`ci:integrity`) deferred until Phase I closure PR — same p
 | Full I closure bundle | `pnpm run phase-i:closure` | ✅ |
 | Phase 10 host invariants (includes I1+I2 guards) | `pnpm run phase-10:guard` | ✅ 11/11 |
 
-**PR:** `pnpm run phase-i:create-pr` (after `gh auth login`) or [compare main...DEV](https://github.com/hrokhbakhsh1991/docs/compare/main...DEV).
+**PR:** `pnpm run phase-i:create-pr` or `pnpm run phase-g-h:create-pr` (after `gh auth login`) — both target `DEV`→`main` (includes G+H+I). Commit `1d12cbb3` closes I1+I2.
 
 **Deferred:** I3 lazy sync registry · `ci:integrity` full gate (Architect YES only).

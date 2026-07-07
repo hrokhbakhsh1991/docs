@@ -2,19 +2,20 @@
 
 - **Phase G:** Modularize `scripts/generate-workspace-registry.mjs` into `scripts/codegen/workspace-registry/` (orchestrator + domain modules). Generated `*.generated.ts` outputs unchanged.
 - **Phase H:** Production certification axis (`productionTier: stub | certified`) — manifest schema, codegen registry, SDK resolver, `provisionTenantProduction` + platform saga fail-closed gates, `guard:workspace-certification` + proof matrix, Super Admin UX (badges + disabled stub onboarding).
+- **Phase I:** Scale hardening — `guard:theme-import-budget` (admin ≤1, guest ≤2 CSS imports per path) + `workspace-plugin-load-cache.ts` (promise cache, revision bust, max entries = trunk plugin count).
 
 Closes architecture risk **R10** (stub workspaces falsely equal to reference in prod matrix).
 
-## Verification (fast-track — PASS on DEV)
+## Verification (closure bundle — PASS on DEV)
 
 ```bash
-pnpm run phase-g-h:fast-track
+pnpm run phase-i:closure   # G+H regression + I1/I2 guards
 ```
 
 | Area | Checks |
 | ---- | ------ |
-| Codegen | `guard:workspace-registry-fresh`, drop-in 27/27 |
-| Guards | `phase-10:guard`, `guard:guest-plugin-conformance`, `guard:workspace-certification` |
+| Codegen | `guard:workspace-registry-fresh`, drop-in 28/28 |
+| Guards | `phase-10:guard` **11/11**, `guard:guest-plugin-conformance`, `guard:workspace-certification`, `guard:theme-import-budget`, `guard:workspace-plugin-load-cache` |
 | H1–H3 | production-certification spec 4/4, certification-guard spec 5/5 |
 | H2 API | provision-tenant-production 7/7, error-interceptor 422 |
 | H4 | list-platform-workspaces 4/4, Super Admin specs, smoke-platform-create-club |
@@ -28,7 +29,8 @@ pnpm run phase-g-h:fast-track
 
 - [workspace-registry-codegen-modularization.mdoc](docs/dev/workspace-registry-codegen-modularization.mdoc)
 - [workspace-certification.mdoc](docs/dev/workspace-certification.mdoc)
-- [platform-architecture-v2.md § Phase G/H](docs/architecture/platform-architecture-v2.md)
+- [workspace-scale-hardening.mdoc](docs/dev/workspace-scale-hardening.mdoc)
+- [platform-architecture-v2.md § Phase G/H/I](docs/architecture/platform-architecture-v2.md)
 
 ## Test plan
 
