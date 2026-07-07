@@ -786,7 +786,7 @@ Full conflict inventory, C4 mitigation (F9-4), and guards: [dtcg-pipeline-spec.m
 
 - Published this document.
 - Halt structural debates; track divergence as debt tickets.
-- **Current execution track (2026-07-07):** Phase G+H+I closed on `DEV` — merge PR to `main` pending (`pnpm run phase-g-h:handoff`).
+- **Current execution track (2026-07-07):** Phase G+H+I on `DEV` — PR [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) to `main` open.
 
 ### Phase B — Authority cleanup (configuration)
 

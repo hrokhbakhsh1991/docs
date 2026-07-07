@@ -167,7 +167,7 @@ Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace 
 | Prerequisite | Status |
 | ------------ | ------ |
 | Phase G on `DEV` (codegen modular) | ✅ |
-| Phase G + H + I merge PR to `main` | ⏳ **ready** — `pnpm run phase-g-h:handoff` · or GHA workflow `phase-g-h-create-pr` on branch `DEV` |
+| Phase G + H + I merge PR to `main` | ✅ [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) open |
 | H0 Architect review | ✅ (DEV closure) |
 | Trunk baseline table (`denali` certified; others stub) | ✅ |
 
@@ -273,7 +273,7 @@ node apps/web/scripts/smoke-platform-create-club.mjs
 | `workspace-production-certification-badge.spec.ts` | ✅ 3/3 |
 | `smoke-platform-create-club.mjs` structural H4 checks | ✅ |
 
-**Phase H closure (H0–H4 on `DEV`):** complete — **G+H+I** merge PR pending. Options: `gh auth login` + `pnpm run phase-g-h:create-pr` · GHA workflow [`phase-g-h-create-pr`](../../.github/workflows/phase-g-h-create-pr.yml) (branch `DEV`) · manual compare. GHA `phase-10-guard` green on `DEV` @ `cbb36841`. Handoff: `pnpm run phase-g-h:handoff`. Full `ci:integrity` deferred per Architect YES policy.
+**Phase H closure (H0–H4 on `DEV`):** complete — **G+H+I** merge PR [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) open. GHA `phase-10-guard` green on `DEV` @ `61954281`. Full `ci:integrity` deferred per Architect YES policy.
 
 ### Phase H closure verification (2026-07-07)
 
