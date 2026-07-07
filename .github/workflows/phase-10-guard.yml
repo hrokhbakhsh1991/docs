@@ -104,6 +104,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @app-tour/workspace-sdk run build
       - run: pnpm run phase-10:guard
       - run: pnpm run guard:theme-import-budget
       - run: node --test scripts/test/theme-import-budget-guard.spec.mjs

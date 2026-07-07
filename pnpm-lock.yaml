@@ -235,12 +235,24 @@ importers:
       '@app-tour/ui-primitives':
         specifier: workspace:*
         version: link:../../packages/ui-primitives
+      '@app-tour/workspace-denali':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/denali
+      '@app-tour/workspace-guest-club':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/guest-club
       '@app-tour/workspace-plugin-host':
         specifier: workspace:*
         version: link:../../packages/workspace-plugin-host
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk
+      '@app-tour/workspace-starter':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/starter
+      '@app-tour/workspace-urban':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/urban
       '@tailwindcss/postcss':
         specifier: ^4.3.0
         version: 4.3.0

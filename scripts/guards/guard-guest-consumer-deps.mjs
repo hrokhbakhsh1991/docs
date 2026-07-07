@@ -38,6 +38,11 @@ const CONSUMERS = [
     ],
   },
   {
+    label: "apps/portal",
+    pkgJson: "apps/portal/package.json",
+    generated: ["apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"],
+  },
+  {
     label: "apps/marketing",
     pkgJson: "apps/marketing/package.json",
     generated: ["apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"],
