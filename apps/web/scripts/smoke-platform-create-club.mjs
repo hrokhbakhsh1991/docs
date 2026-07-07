@@ -31,6 +31,13 @@ const submit = readFileSync(
 assert.match(submit, /Idempotency-Key/);
 assert.match(submit, /\/tenants/);
 
+const identity = readFileSync(
+  path.join(webDir, "src/platform/create-club/step-identity.tsx"),
+  "utf8"
+);
+assert.match(identity, /production blocked/);
+assert.match(identity, /workspace-production-certification-badge/);
+
 console.log("smoke-platform-create-club: structural checks passed");
 console.log("");
 console.log("Manual smoke (dev):");

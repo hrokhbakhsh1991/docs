@@ -1,5 +1,7 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+
+import { WorkspaceProductionCertificationBadge } from "./workspace-production-certification-badge";
+import { tryResolveWorkspaceProductionTier } from "./resolve-workspace-production-tier";
 
 type PlatformTenantRow = {
   readonly id: string;
@@ -39,7 +41,15 @@ export function PlatformClubsTable({ items }: PlatformClubsTableProps) {
                   {item.subdomain}
                 </Link>
               </td>
-              <td className="px-4 py-3">{item.workspaceType}</td>
+              <td className="px-4 py-3">
+                <span className="inline-flex items-center gap-2">
+                  <span>{item.workspaceType}</span>
+                  {(() => {
+                    const tier = tryResolveWorkspaceProductionTier(item.workspaceType);
+                    return tier ? <WorkspaceProductionCertificationBadge tier={tier} /> : null;
+                  })()}
+                </span>
+              </td>
               <td className="px-4 py-3">
                 <span
                   data-status={item.status}

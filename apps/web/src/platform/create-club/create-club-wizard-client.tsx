@@ -18,7 +18,12 @@ import { validateOwnerPhoneClient } from "./validate-owner-phone";
 const STEP_TITLES = ["Identity", "Sites", "Owner", "Review"] as const;
 
 type WorkspacesResponse = {
-  workspaces?: Array<{ id?: string; displayName?: string }>;
+  workspaces?: Array<{
+    id?: string;
+    displayName?: string;
+    productionTier?: "stub" | "certified";
+    productionOnboardingAllowed?: boolean;
+  }>;
 };
 
 export function CreateClubWizardClient() {
@@ -43,8 +48,13 @@ export function CreateClubWizardClient() {
         }
         const items = Array.isArray(body.workspaces) ? body.workspaces : [];
         const options = items
-          .filter((item): item is { id: string; displayName?: string } => typeof item?.id === "string")
-          .map((item) => ({ id: item.id, displayName: item.displayName }));
+          .filter((item): item is { id: string; displayName?: string; productionTier?: "stub" | "certified"; productionOnboardingAllowed?: boolean } => typeof item?.id === "string")
+          .map((item) => ({
+            id: item.id,
+            displayName: item.displayName,
+            productionTier: item.productionTier,
+            productionOnboardingAllowed: item.productionOnboardingAllowed,
+          }));
         if (!cancelled) {
           setWorkspaces(options);
         }

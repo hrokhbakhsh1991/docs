@@ -160,7 +160,7 @@ Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace 
 | **H1** | Schema + codegen + SDK resolver | ✅ |
 | **H2** | `provisionTenantProduction` fail-closed | ✅ |
 | **H3** | `guard:workspace-certification` + proof matrix rows + drop-in spec | ✅ |
-| **H4 (optional)** | Super Admin badge + disabled prod create for stub | UX spec + smoke |
+| **H4 (optional)** | Super Admin badge + disabled prod create for stub | ✅ |
 
 ## Prerequisites before H1 code
 
@@ -235,3 +235,37 @@ Per `pluginId` with `productionTier: certified` in the generated registry, the p
 | CI `phase-10-guard.yml` | ✅ |
 
 **Next slice:** **H4 (optional)** — Super Admin stub/certified badge + disabled prod create for stub.
+
+## Super Admin UX (H4)
+
+**Surfaces:** `apps/web/src/platform/` — create-club wizard + club detail overview.
+
+| Behavior | Implementation |
+| -------- | -------------- |
+| Workspace catalog | `GET /platform/v1/workspaces` returns `productionTier` + `productionOnboardingAllowed` from `WORKSPACE_PRODUCTION_CERTIFICATION` |
+| Create club picker | Stub options **disabled**; certified badge on `denali` |
+| Client validation | `validateIdentityStep` rejects `productionTier: stub` |
+| Platform saga | `runProvisionTenantSaga` calls `assertProductionCertifiedWorkspaceType` (same gate as H2) |
+| Club detail | `WorkspaceProductionCertificationBadge` beside `workspaceType` |
+
+**Excluded from catalog:** `starter` (operator scaffold — not a club workspace target).
+
+```bash
+pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test test/use-create-club-wizard.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test test/workspace-production-certification-badge.spec.ts
+node apps/web/scripts/smoke-platform-create-club.mjs
+```
+
+## H4 status (2026-07-07)
+
+| Artifact | Status |
+| -------- | ------ |
+| `listPlatformWorkspaces()` certification fields | ✅ |
+| `runProvisionTenantSaga` production gate | ✅ |
+| Create-club stub options disabled + badges | ✅ |
+| Club detail + clubs table badges | ✅ |
+| `workspace-production-certification-badge.spec.ts` | ✅ 3/3 |
+| `smoke-platform-create-club.mjs` structural H4 checks | ✅ |
+
+**Phase H closure:** H0–H4 complete on `DEV` — full `ci:integrity` deferred per Architect YES policy.

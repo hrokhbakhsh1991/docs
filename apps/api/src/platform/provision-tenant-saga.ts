@@ -14,6 +14,7 @@ import { buildClubSiteUrls } from "./build-club-site-urls";
 import { invalidateTenantRegistryCache } from "../tenant/tenant-registry-cache";
 import { assertSubdomainAvailable } from "./assert-subdomain-available";
 import { resolveDefaultTenantBranding } from "../tenant/workspace-default-tenant-branding";
+import { assertProductionCertifiedWorkspaceType } from "../internal/assert-production-certified-workspace";
 
 export type ProvisionTenantSagaInput = {
   readonly subdomain: string;
@@ -55,6 +56,7 @@ export async function runProvisionTenantSaga(
 ): Promise<ProvisionTenantSagaResult> {
   // Validate subdomain before transaction
   await assertSubdomainAvailable(input.subdomain);
+  assertProductionCertifiedWorkspaceType(input.workspaceType);
 
   const result = await runProvisionTransaction(async (tx) => {
     // 1. Create tenant row

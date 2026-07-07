@@ -983,7 +983,7 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 | H1 manifest + codegen + resolver | ✅ |
 | H2 `provisionTenantProduction` fail-closed | ✅ |
 | H3 `guard:workspace-certification` + proof matrix | ✅ |
-| H4 Super Admin UX (optional) | ⏳ |
+| H4 Super Admin UX (optional) | ✅ |
 
 - **Technical L0–L4** (guest conformance) exists — Phase H adds **productionTier: stub \| certified**.
 - **certified** required for `provisionTenantProduction`; dev provisioning unchanged.

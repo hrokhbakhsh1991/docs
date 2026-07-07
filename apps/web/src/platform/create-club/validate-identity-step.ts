@@ -1,5 +1,11 @@
 import type { CreateClubDraft, WorkspaceOption } from "./use-create-club-wizard";
-import { validateSubdomainClient } from "./validate-subdomain";
+
+function isWorkspaceOptionProductionAllowed(option: WorkspaceOption): boolean {
+  if (option.productionOnboardingAllowed === true) {
+    return true;
+  }
+  return option.productionTier === "certified";
+}
 
 export function validateIdentityStep(
   draft: CreateClubDraft,
@@ -11,12 +17,12 @@ export function validateIdentityStep(
   if (draft.workspaceType.trim().length === 0) {
     return "Select a workspace";
   }
-  if (!workspaceOptions.some((option) => option.id === draft.workspaceType)) {
+  const selected = workspaceOptions.find((option) => option.id === draft.workspaceType);
+  if (!selected) {
     return "Invalid workspace selection";
   }
-  const subdomain = validateSubdomainClient(draft.subdomain);
-  if (!subdomain.ok) {
-    return subdomain.message;
+  if (!isWorkspaceOptionProductionAllowed(selected)) {
+    return "Selected workspace is not certified for production onboarding";
   }
   return null;
 }

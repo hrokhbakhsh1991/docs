@@ -15,6 +15,7 @@ import {
   readPlatformIdempotencyKey,
   runWithPlatformIdempotency,
 } from "./tenants-create-idempotency.ts";
+import { WorkspaceNotCertifiedForProductionError } from "../../internal/provisioning.errors.ts";
 
 export async function handlePlatformTenantsCreate(
   req: IncomingMessage,
@@ -73,6 +74,18 @@ export async function handlePlatformTenantsCreate(
     res.writeHead(201, { "Content-Type": "application/json" });
     res.end(JSON.stringify(response));
   } catch (err: unknown) {
+    if (err instanceof WorkspaceNotCertifiedForProductionError) {
+      res.writeHead(422, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: "workspace_not_certified_for_production",
+          code: err.code,
+          workspaceType: err.workspaceType,
+          pluginId: err.pluginId,
+        })
+      );
+      return;
+    }
     if (err instanceof PlatformValidation || (err as { code?: string })?.code === "PLATFORM_VALIDATION") {
       res.writeHead(422, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "validation_failed", code: "PLATFORM_VALIDATION" }));

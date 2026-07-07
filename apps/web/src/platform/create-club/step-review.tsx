@@ -1,6 +1,8 @@
 "use client";
 
 import { buildClubSitePreviewUrls } from "./build-club-site-preview";
+import { WorkspaceProductionCertificationBadge } from "../workspace-production-certification-badge";
+import { tryResolveWorkspaceProductionTier } from "../resolve-workspace-production-tier";
 import type { CreateClubDraft } from "./use-create-club-wizard";
 
 export type StepReviewProps = {
@@ -12,6 +14,7 @@ export type StepReviewProps = {
 
 export function StepReview({ draft, submitting, error, onConfirm }: StepReviewProps) {
   const urls = buildClubSitePreviewUrls(draft.subdomain);
+  const productionTier = tryResolveWorkspaceProductionTier(draft.workspaceType);
 
   return (
     <div className="space-y-4" data-step="review">
@@ -22,7 +25,10 @@ export function StepReview({ draft, submitting, error, onConfirm }: StepReviewPr
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-muted-foreground">Workspace</dt>
-          <dd className="font-medium">{draft.workspaceType}</dd>
+          <dd className="flex items-center gap-2 font-medium">
+            <span>{draft.workspaceType}</span>
+            {productionTier ? <WorkspaceProductionCertificationBadge tier={productionTier} /> : null}
+          </dd>
         </div>
         {draft.displayName.trim().length > 0 ? (
           <div className="flex justify-between gap-4">

@@ -133,7 +133,7 @@ No Prisma internals or `theme` blob in list/get responses.
 
 ## Workspaces catalog
 
-`GET /platform/v1/workspaces` returns `{ "workspaces": [{ "id", "types", "displayName" }] }` from `listPlatformWorkspaces()` (registry-backed, `denali` minimum).
+`GET /platform/v1/workspaces` returns `{ "workspaces": [{ "id", "types", "displayName", "productionTier", "productionOnboardingAllowed" }] }` from `listPlatformWorkspaces()` (registry-backed certification map; `starter` excluded).
 
 ## P2-B — Support impersonation
 

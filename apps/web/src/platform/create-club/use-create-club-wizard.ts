@@ -11,6 +11,8 @@ export type CreateClubDraft = {
 export type WorkspaceOption = {
   readonly id: string;
   readonly displayName?: string;
+  readonly productionTier?: "stub" | "certified";
+  readonly productionOnboardingAllowed?: boolean;
 };
 
 export function createInitialCreateClubDraft(): CreateClubDraft {

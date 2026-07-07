@@ -13,6 +13,8 @@ import { TabSites } from "./tab-sites";
 import { TabWorkspaceDefinition } from "./tab-workspace-definition";
 import { downloadTenantGdprExport } from "./download-tenant-gdpr-export";
 import type { PlatformClubDetail } from "./platform-club-detail.types";
+import { WorkspaceProductionCertificationBadge } from "../workspace-production-certification-badge";
+import { tryResolveWorkspaceProductionTier } from "../resolve-workspace-production-tier";
 
 export type PlatformClubDetailClientProps = {
   readonly initialDetail: PlatformClubDetail;
@@ -32,6 +34,7 @@ export function PlatformClubDetailClient({
   const [error, setError] = useState<string | null>(null);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [clientReady, setClientReady] = useState(false);
+  const workspaceProductionTier = tryResolveWorkspaceProductionTier(detail.tenant.workspaceType);
 
   useEffect(() => {
     setClientReady(true);
@@ -156,7 +159,12 @@ export function PlatformClubDetailClient({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{detail.tenant.subdomain}</h1>
-          <p className="text-sm text-muted-foreground">{detail.tenant.workspaceType}</p>
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>{detail.tenant.workspaceType}</span>
+            {workspaceProductionTier ? (
+              <WorkspaceProductionCertificationBadge tier={workspaceProductionTier} />
+            ) : null}
+          </p>
         </div>
         <span
           data-status={detail.tenant.status}
@@ -208,7 +216,12 @@ export function PlatformClubDetailClient({
           </div>
           <div>
             <dt className="text-muted-foreground">Workspace</dt>
-            <dd className="font-medium">{detail.tenant.workspaceType}</dd>
+            <dd className="flex flex-wrap items-center gap-2 font-medium">
+              <span>{detail.tenant.workspaceType}</span>
+              {workspaceProductionTier ? (
+                <WorkspaceProductionCertificationBadge tier={workspaceProductionTier} />
+              ) : null}
+            </dd>
           </div>
         </dl>
       ) : null}

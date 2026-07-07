@@ -2,6 +2,7 @@
 
 import { Input } from "@app-tour/ui-primitives/input";
 
+import { WorkspaceProductionCertificationBadge } from "../workspace-production-certification-badge";
 import type { CreateClubDraft, WorkspaceOption } from "./use-create-club-wizard";
 
 export type StepIdentityProps = {
@@ -11,7 +12,16 @@ export type StepIdentityProps = {
   readonly error?: string | null;
 };
 
+function isWorkspaceOptionProductionAllowed(option: WorkspaceOption): boolean {
+  if (option.productionOnboardingAllowed === true) {
+    return true;
+  }
+  return option.productionTier === "certified";
+}
+
 export function StepIdentity({ draft, workspaces, onChange, error }: StepIdentityProps) {
+  const selected = workspaces.find((workspace) => workspace.id === draft.workspaceType);
+
   return (
     <div className="space-y-4" data-step="identity">
       <div>
@@ -50,12 +60,37 @@ export function StepIdentity({ draft, workspaces, onChange, error }: StepIdentit
           onChange={(event) => onChange({ workspaceType: event.target.value })}
         >
           <option value="">Select workspace…</option>
-          {workspaces.map((workspace) => (
-            <option key={workspace.id} value={workspace.id}>
-              {workspace.displayName ?? workspace.id}
-            </option>
-          ))}
+          {workspaces.map((workspace) => {
+            const allowed = isWorkspaceOptionProductionAllowed(workspace);
+            return (
+              <option key={workspace.id} value={workspace.id} disabled={!allowed}>
+                {workspace.displayName ?? workspace.id}
+                {!allowed ? " (stub — production blocked)" : ""}
+              </option>
+            );
+          })}
         </select>
+        {selected?.productionTier ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Production tier</span>
+            <WorkspaceProductionCertificationBadge tier={selected.productionTier} />
+            {selected.productionTier === "stub" ? (
+              <span className="text-muted-foreground">
+                Stub workspaces cannot onboard production clubs.
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+        <ul className="mt-3 space-y-1 text-xs text-muted-foreground" data-workspace-certification-legend>
+          {workspaces.map((workspace) =>
+            workspace.productionTier ? (
+              <li key={workspace.id} className="flex items-center gap-2">
+                <span className="font-medium text-foreground">{workspace.displayName ?? workspace.id}</span>
+                <WorkspaceProductionCertificationBadge tier={workspace.productionTier} />
+              </li>
+            ) : null
+          )}
+        </ul>
       </div>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>

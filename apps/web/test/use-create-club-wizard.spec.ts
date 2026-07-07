@@ -53,8 +53,18 @@ describe("validate identity step", () => {
   it("requires workspace select", () => {
     const draft = createInitialCreateClubDraft();
     draft.subdomain = "valid-club";
-    const error = validateIdentityStep(draft, [{ id: "denali", displayName: "Denali" }]);
+    const error = validateIdentityStep(draft, [{ id: "denali", displayName: "Denali", productionTier: "certified", productionOnboardingAllowed: true }]);
     assert.match(error ?? "", /workspace/i);
+  });
+
+  it("rejects stub workspace selection", () => {
+    const draft = createInitialCreateClubDraft();
+    draft.workspaceType = "urban";
+    const error = validateIdentityStep(draft, [
+      { id: "denali", displayName: "Denali", productionTier: "certified", productionOnboardingAllowed: true },
+      { id: "urban", displayName: "Urban", productionTier: "stub", productionOnboardingAllowed: false },
+    ]);
+    assert.match(error ?? "", /not certified/i);
   });
 });
 

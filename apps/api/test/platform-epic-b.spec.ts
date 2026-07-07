@@ -33,5 +33,6 @@ describe("platform EPIC B gate", () => {
     const sagaSource = readFileSync(new URL("../src/platform/provision-tenant-saga.ts", import.meta.url), "utf8");
     assert.match(sagaSource, /invalidateTenantRegistryCache/);
     assert.match(sagaSource, /seedWorkspaceWizardTemplateInTransaction/);
+    assert.match(sagaSource, /assertProductionCertifiedWorkspaceType/);
   });
 });
