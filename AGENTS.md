@@ -39,7 +39,7 @@ pnpm run phase-10:guard             # Phase 10 host invariants + certification g
 pnpm run guard:workspace-certification  # Phase H CERT-04 proof matrix
 pnpm run phase-i:fast-track            # Phase I guards (fast)
 pnpm run phase-i:closure               # G+H regression + I1/I2 closure bundle
-pnpm run phase-g-h:fast-track       # Phase G+H closure bundle before DEV→main PR
+pnpm run phase-g-h:create-pr           # DEV→main PR (needs gh auth login)
 pnpm run generate:workspace-registry  # after workspace.manifest.json change
 pnpm run workspace:create -- <id>   # scaffold packages/workspaces/<id>
 pnpm run test:changed               # git-aware unit tests (origin/main...HEAD, cached)
