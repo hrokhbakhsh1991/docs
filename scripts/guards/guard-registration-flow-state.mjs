@@ -67,9 +67,14 @@ for (const file of surfaces) {
 }
 
 const driftTest = spawnSync(
-  "pnpm",
-  ["--filter", "@app-tour/catalog-registration-auth", "run", "test"],
-  { cwd: REPO_ROOT, encoding: "utf8", stdio: "pipe" }
+  process.execPath,
+  ["--import", "tsx", "--test", "test/**/*.spec.ts"],
+  {
+    cwd: path.join(REPO_ROOT, "packages/catalog-registration-auth"),
+    encoding: "utf8",
+    stdio: "pipe",
+    env: { ...process.env, NODE_ENV: "test" },
+  }
 );
 if (driftTest.status !== 0) {
   violations.push("catalog-registration-auth registration-flow-state.spec.ts drift check failed");
