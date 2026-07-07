@@ -1005,10 +1005,22 @@ Full `ci:integrity` deferred until merge PR — Architect YES only.
 
 **Local PR bundle:** `pnpm run phase-g-h:fast-track`
 
-### Phase I — Scale hardening
+### Phase I — Scale hardening (I0 started 2026-07-07)
 
-- Performance budget for dynamic theme imports.
-- Cache strategy for generated registry in dev/prod builds.
+**Spec:** [workspace-scale-hardening.mdoc](../dev/workspace-scale-hardening.mdoc)
+
+| Slice | Status |
+| ----- | ------ |
+| I0 doc pack (theme budget + loader cache policy) | ✅ |
+| I1 `guard:theme-import-budget` | ⏳ |
+| I2 registry load cache policy + dev invalidation | ⏳ |
+| I3 lazy sync plugin registry (optional) | ⏳ |
+
+- **I1:** ≤1 dynamic theme CSS import per surface per request (`importAdminThemeForPlugin`, guest loaders).
+- **I2:** Document and harden `loadWorkspacePluginByIdFromRegistry` promise cache; address eager sync plugin map at scale.
+- **Prerequisite:** Phase G+H closed on `DEV`; `pnpm run phase-g-h:fast-track` green. G+H merge PR recommended before I1 lands on `main`.
+
+**Not in scope:** API `tenant-registry-cache` (DEC-068/074 — already shipped).
 
 ---
 

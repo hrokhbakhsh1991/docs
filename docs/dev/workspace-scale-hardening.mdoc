@@ -1,0 +1,140 @@
+---
+title: Workspace scale hardening (Phase I)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/architecture/platform-architecture-v2.md
+  - docs/phase-19/p6-enterprise-theming-architecture.mdoc
+  - docs/dev/workspace-registry-codegen-modularization.mdoc
+---
+
+# Workspace scale hardening (Phase I)
+
+Phase I hardens **runtime scale** for the manifest-driven workspace platform: bounded cost for **dynamic theme CSS imports** and a coherent **plugin/registry load cache** in dev and production builds. Phase G (codegen modular) and Phase H (production certification) are **closed on `DEV`** — Phase I does not change manifest authority or certification tiers.
+
+**Authority:** [platform-architecture-v2.md § Phase I](../architecture/platform-architecture-v2.md#phase-i--scale-hardening) · **Theming ingress:** [p6-enterprise-theming-architecture.mdoc](../phase-19/p6-enterprise-theming-architecture.mdoc) · **Codegen host:** [workspace-registry-codegen-modularization.mdoc](./workspace-registry-codegen-modularization.mdoc)
+
+## Readiness gate (start I0?)
+
+| Prerequisite | Status | Blocks I0 doc? | Blocks I1 code? |
+| ------------ | ------ | -------------- | --------------- |
+| Phase G modular codegen on `DEV` | ✅ | No | No |
+| Phase H certification (H0–H4) on `DEV` | ✅ | No | No |
+| `pnpm run phase-g-h:fast-track` green | ✅ | No | No |
+| G+H merge PR → `main` | ⏳ | **No** (I0 parallel on `DEV`) | **Recommended** before I1 merge |
+| `ci:integrity` full gate | ⏳ deferred | No | Architect YES only |
+| Phase I0 Architect review | ⏳ | — | **Yes** for I1+ |
+
+**Answer:** **Yes — you can start Phase I now** with **I0 (this doc)** on `DEV`. I1 implementation should wait for Architect sign-off on budgets below. G+H PR can land in parallel.
+
+## Problem
+
+| Symptom | Risk at scale |
+| ------- | ------------- |
+| `importAdminThemeForPlugin` / guest theme loaders use per-plugin dynamic `import()` with no budget | Cold-start latency, unbounded parallel CSS fetches on tenant switch |
+| `loadWorkspacePluginByIdFromRegistry` has in-memory `Map` cache but no TTL/size policy documented | Memory growth in long-lived dev servers; unclear prod behavior across workers |
+| Plugin loaders generated file still **static-imports all sync plugins** at module init | Every workspace bundle pays parse cost even when tenant uses one `pluginId` |
+| No guard tying theme import count to active `pluginId` | Regression when new workspaces add skins |
+
+Tenant **registry** cache (API `tenant-registry-cache.ts`, DEC-068/074) is **out of scope** for Phase I — already implemented. Phase I targets **frontend generated registry** + **theme CSS ingress**.
+
+## Non-goals (Phase I)
+
+- Changing `workspace.manifest.json` schema or certification (`productionTier`)
+- Redis / multi-replica invalidation for API tenant cache (future platform ops)
+- Full `ci:integrity` as Phase I exit gate
+- Removing sync plugin imports entirely (I2 may narrow, not rewrite plugin host)
+- Member portal preset manifest-only admission (Phase B / G adjacency)
+
+## Two workstreams
+
+```text
+apps/*/layout.tsx
+    → importAdminThemeForPlugin(pluginId)     ← I1 theme budget
+    → importGuest*ThemeForPlugin(pluginId)
+
+apps/web bootstrap
+    → loadWorkspacePluginByIdFromRegistry()  ← I2 loader cache
+    → workspace-plugin-loaders.generated.ts (sync + dynamic)
+```
+
+| Stream | Source | Generated consumer | Success metric |
+| ------ | ------ | ------------------ | -------------- |
+| **I1 Theme import budget** | `themeStylesheets` / `guestThemeStylesheets` in manifest | `workspace-*-theme-stylesheets.generated.ts` | ≤1 network chunk per surface per request; guard PASS |
+| **I2 Registry load cache** | `workspace-plugin-loaders.generated.ts` | `loadWorkspacePluginByIdFromRegistry` | Documented TTL/size; dev HMR safe; prod single-flight |
+
+## I1 — Theme import performance budget (target)
+
+### Normative budget
+
+| Surface | App | Max dynamic CSS imports per request | Notes |
+| ------- | --- | ----------------------------------- | ----- |
+| Admin | `apps/web` | **1** active `pluginId` | `layout.tsx` awaits `importAdminThemeForPlugin` |
+| Marketing | `apps/marketing` | **1** | `importGuestMarketingThemeForPlugin` |
+| Portal | `apps/portal` | **1** | `importGuestPortalThemeForPlugin` |
+
+**Rules:**
+
+1. Layouts must not import more than one workspace skin CSS chain per resolved `pluginId`.
+2. Generated loaders must not `import()` inactive plugins' theme files (switch-only).
+3. Guard `guard:theme-import-budget` (I1) — static scan of layouts + generated theme loaders.
+
+### Baseline (trunk today)
+
+- `importAdminThemeForPlugin` — switch on 4 plugins; one dynamic import per call ✅ pattern correct, no budget guard yet.
+- Guest marketing/portal — same pattern via `workspace-guest-theme-stylesheets.generated.ts`.
+
+## I2 — Generated registry cache strategy (target)
+
+### Current behavior
+
+```typescript
+// workspace-plugin-loaders.generated.ts (excerpt)
+const pluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
+```
+
+- **Per-process** memoization of dynamic import promise — good for single-flight.
+- **Sync** `SYNC_WORKSPACE_PLUGINS` eagerly constructs all trunk plugins at module load — scales O(workspaces) at boot.
+
+### Target policy (I2)
+
+| Env | Policy |
+| --- | ------ |
+| **Production** | Keep promise cache; document max entries (= trunk plugin count); no cross-tenant bleed (key = `pluginId` only) |
+| **Dev (Next HMR)** | Cache bust on `workspace-plugin-loaders.generated.ts` mtime or explicit `invalidateWorkspacePluginLoadCache()` for tests |
+| **Codegen** | Optional lazy sync map — only plugins with `devBootstrap` or active tenant in dev (deferred sub-slice I2b) |
+
+**Invariant:** Phase G per-domain `--check` unchanged; I2 must not edit generated files by hand.
+
+## Slice plan
+
+| Slice | Scope | Exit criteria |
+| ----- | ----- | ------------- |
+| **I0 (doc)** | This document + architecture § Phase I cross-link | Architect review |
+| **I1** | `guard:theme-import-budget` + layout/spec proof | CI via `phase-10-guard` or dedicated workflow path |
+| **I2** | Loader cache policy module + dev invalidation + doc | Spec + guard optional |
+| **I3 (optional)** | Lazy sync plugin registry codegen | Architect YES — bundle size win |
+
+## Verification (each slice)
+
+```bash
+pnpm run phase-g-h:fast-track          # prerequisite — G+H regression
+pnpm run guard:workspace-registry-fresh
+pnpm run phase-10:guard
+# I1+
+pnpm run guard:theme-import-budget     # I1 (to be added)
+```
+
+Full monorepo gate (`ci:integrity`) deferred until Phase I closure PR — same policy as Phase G/H.
+
+## I0 status (2026-07-07)
+
+| Artifact | Status |
+| -------- | ------ |
+| Phase I problem + two-stream model | ✅ |
+| I1 theme budget table | ✅ draft |
+| I2 cache policy draft | ✅ draft |
+| Architecture v2 cross-link | ✅ |
+| Architect review | ⏳ |
+
+**Next slice:** **I1** — `guard:theme-import-budget` (blocked on I0 Architect approval).
