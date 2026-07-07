@@ -18,3 +18,4 @@ plugins:
       CERT-05:
         status: partial
         runbook: docs/phase-23/runbooks/p10-second-club-onboarding.md
+        note: includes productionTier gate (Phase H); workspace-specific runbook optional

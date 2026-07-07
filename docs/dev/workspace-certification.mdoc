@@ -148,7 +148,7 @@ Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace 
 | **CERT-02** | `guard:guest-plugin-conformance` | PASS |
 | **CERT-03** | Workspace Playwright smokes (from [`guest-registration-e2e-hooks.yaml`](./guest-registration-e2e-hooks.yaml)) | PASS (G4 bundle) |
 | **CERT-04** | `guard:workspace-certification` (new) — manifest tier matches generated registry + proof manifest | ✅ H3 |
-| **CERT-05** | Onboarding runbook exists under `docs/phase-23/runbooks/` or `docs/workspaces/<id>/` | denali: partial; second-club runbook is platform-level |
+| **CERT-05** | Onboarding runbook exists under `docs/phase-23/runbooks/` or `docs/workspaces/<id>/` | denali: **partial** — platform runbook includes `productionTier` gate ([p10-second-club-onboarding.md](../phase-23/runbooks/p10-second-club-onboarding.md)); workspace-specific runbook optional |
 
 **Promotion path (stub → certified):** PR that (1) sets `productionTier: "certified"`, (2) adds proof rows to workspace-specific matrix in this doc or `docs/workspaces/<id>/certification.md`, (3) greens CERT-03 for that `pluginId`, (4) Architect sign-off.
 
@@ -273,7 +273,7 @@ node apps/web/scripts/smoke-platform-create-club.mjs
 | `workspace-production-certification-badge.spec.ts` | ✅ 3/3 |
 | `smoke-platform-create-club.mjs` structural H4 checks | ✅ |
 
-**Phase H closure (H0–H4 on `DEV`):** complete — **G+H+I** merge PR pending (`gh auth login` or manual compare). GHA `phase-10-guard` green on `DEV` @ `fb8bb575`. Handoff: `pnpm run phase-g-h:handoff`. Full `ci:integrity` deferred per Architect YES policy.
+**Phase H closure (H0–H4 on `DEV`):** complete — **G+H+I** merge PR pending (`gh auth login` or manual compare). GHA `phase-10-guard` green on `DEV` @ `958044b2`. Handoff: `pnpm run phase-g-h:handoff`. Full `ci:integrity` deferred per Architect YES policy.
 
 ### Phase H closure verification (2026-07-07)
 

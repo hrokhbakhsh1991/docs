@@ -29,9 +29,9 @@
 
 | Surface | Skin file |
 |---------|-----------|
-| Marketing | `theme/urban-marketing.css` |
-| Portal | not yet scaffolded |
-| Admin | not yet scaffolded |
+| Marketing | `theme/urban-marketing.css` (overlay on `starter/theme/starter-marketing.css`) |
+| Portal | `theme/urban-portal.css` (overlay on `starter/theme/starter-portal.css` — Phase D.2) |
+| Admin | not in scope (L3 guest workspace — operator admin uses workspace plugin host only) |
 
 ## Rules
 

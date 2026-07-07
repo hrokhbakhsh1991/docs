@@ -28,6 +28,9 @@ legacy/apps/web/playwright-report/
 legacy/apps/web/test-results/
 legacy/apps/web/storybook-static/
 legacy/apps/web/.memlab/
+
+# Local scratch (never commit)
+TEMP/
 legacy/reports/phase-0-environment-*
 
 # Local planning scratch (optional — uncomment to keep TEMP out of git)

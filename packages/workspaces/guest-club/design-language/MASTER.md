@@ -23,9 +23,9 @@
 
 | Surface | Skin file |
 |---------|-----------|
-| Marketing | `theme/marketing.css` |
-| Portal | not yet scaffolded |
-| Admin | not yet scaffolded |
+| Marketing | `theme/marketing.css` (overlay on starter marketing default) |
+| Portal | `theme/guest-club-portal.css` (overlay on `starter/theme/starter-portal.css` — Phase D.2) |
+| Admin | not in scope (L3 scaffold — no operator admin skin) |
 
 ## Rules
 
