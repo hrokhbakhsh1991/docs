@@ -23,9 +23,14 @@ const { DENALI_CATALOG_OPENAPI_OVERRIDES } = await import(
   pathToFileURL(path.join(ROOT, "src/openapi/denali-catalog-openapi.ts")).href
 );
 
+const { PLATFORM_WORKSPACE_CERTIFICATION_OPENAPI_OVERRIDES } = await import(
+  pathToFileURL(path.join(ROOT, "src/openapi/platform-workspace-certification-openapi.ts")).href
+);
+
 const OPENAPI_OVERRIDES = {
   ...PUBLIC_AUTH_OPENAPI_OVERRIDES,
   ...DENALI_CATALOG_OPENAPI_OVERRIDES,
+  ...PLATFORM_WORKSPACE_CERTIFICATION_OPENAPI_OVERRIDES,
 };
 
 const DEFAULT_RESPONSES = {

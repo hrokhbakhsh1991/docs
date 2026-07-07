@@ -45,6 +45,19 @@ pnpm run generate:workspace-registry
 pnpm run workspace:create -- <id>   # new workspace scaffold
 ```
 
+## Platform architecture (post-Phase 10)
+
+| Topic | Doc |
+| ----- | --- |
+| Architecture v2 (Phases F–I) | [`architecture/platform-architecture-v2.md`](architecture/platform-architecture-v2.md) |
+| Phase G — registry codegen modularization | [`dev/workspace-registry-codegen-modularization.mdoc`](dev/workspace-registry-codegen-modularization.mdoc) ✅ DEV |
+| Phase H — production certification | [`dev/workspace-certification.mdoc`](dev/workspace-certification.mdoc) ✅ DEV |
+
+```bash
+pnpm run guard:workspace-certification   # Phase H fast gate
+pnpm run guard:workspace-registry-fresh
+```
+
 ## Legacy
 
 [`legacy/`](../legacy/) — monorepo قبلی؛ مرجع port Denali (فاز ۶).

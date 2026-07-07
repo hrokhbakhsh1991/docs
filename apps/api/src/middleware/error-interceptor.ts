@@ -42,7 +42,7 @@ import {
   TOUR_WRITE_CONCURRENCY_EXCEEDED,
 } from "../http/tour-write-concurrency-budget";
 import { ProvisioningDevOnlyError } from "../internal/provisioning-guard";
-import { TenantProvisionConflictError } from "../internal/provisioning.errors";
+import { TenantProvisionConflictError, WorkspaceNotCertifiedForProductionError } from "../internal/provisioning.errors";
 import {
   OutboxReplayNotFailedError,
   OutboxReplayNotFoundError,
@@ -188,6 +188,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("TOUR_LIFECYCLE_")) return 400;
   if (message.startsWith("SCHEMA_VERSION_MISMATCH")) return 400;
   if (message.startsWith("WORKSPACE_PLUGIN_NOT_BOUND")) return 400;
+  if (message.startsWith("WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION")) return 422;
   if (message.startsWith("WORKSPACE_PLUGIN_NOT_FOUND")) return 500;
   if (message.startsWith("CANONICAL_SYNC_VALIDATION_FAILED")) return 409;
   if (message.startsWith("TOUR_VERSION_CONFLICT")) return 409;
@@ -551,6 +552,21 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
 
   if (error instanceof TenantProvisionConflictError) {
     sendHttpError(res, 409, { error: error.code, code: error.code }, correlationId);
+    return;
+  }
+
+  if (error instanceof WorkspaceNotCertifiedForProductionError) {
+    sendHttpError(
+      res,
+      422,
+      {
+        error: "workspace_not_certified_for_production",
+        code: error.code,
+        workspaceType: error.workspaceType,
+        pluginId: error.pluginId,
+      },
+      correlationId
+    );
     return;
   }
 

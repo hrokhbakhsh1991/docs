@@ -35,7 +35,8 @@ pnpm --filter @apps/portal run test:smoke  # SMK-PTL-* portal E2E (incl. SMK-PTL
 pnpm --filter @apps/portal run test:smoke:custom-apex  # SMK-PTL-08 custom apex E2E
 pnpm run phase-9:guard              # Phase 9 doc pack — 32 charter gates
 pnpm run guard:p9-boundary-diff     # Phase 9 PR boundary allowlist (9.1+)
-pnpm run phase-10:guard             # Phase 10 workspace host invariants (fast)
+pnpm run phase-10:guard             # Phase 10 host invariants + certification guard (fast)
+pnpm run guard:workspace-certification  # Phase H CERT-04 proof matrix
 pnpm run generate:workspace-registry  # after workspace.manifest.json change
 pnpm run workspace:create -- <id>   # scaffold packages/workspaces/<id>
 pnpm run test:changed               # git-aware unit tests (origin/main...HEAD, cached)

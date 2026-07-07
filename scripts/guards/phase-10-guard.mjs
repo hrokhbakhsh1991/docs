@@ -131,6 +131,16 @@ assertCheck(
   `workspace-finance/ unexpected files (DEC-P10-006): ${workspaceFinanceUnexpected.join(", ")}`
 );
 
+const certGuard = spawnSync("node", ["scripts/guards/guard-workspace-certification.mjs"], {
+  cwd: REPO_ROOT,
+  encoding: "utf8",
+});
+assertCheck(
+  "p10_workspace_certification_guard",
+  certGuard.status === 0,
+  (certGuard.stdout ?? "") + (certGuard.stderr ?? "") || "guard-workspace-certification failed"
+);
+
 if (failures.length > 0) {
   console.error(`phase-10-guard: FAIL (${failures.length})`);
   process.exit(1);

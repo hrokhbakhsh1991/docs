@@ -156,7 +156,7 @@ Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace 
 
 | Slice | Scope | Exit criteria |
 | ----- | ----- | ------------- |
-| **H0 (doc)** | This document + architecture § Phase H + guest-conformance cross-link | Architect review |
+| **H0 (doc)** | This document + architecture § Phase H + guest-conformance cross-link | ✅ |
 | **H1** | Schema + codegen + SDK resolver | ✅ |
 | **H2** | `provisionTenantProduction` fail-closed | ✅ |
 | **H3** | `guard:workspace-certification` + proof matrix rows + drop-in spec | ✅ |
@@ -181,6 +181,13 @@ node --test scripts/test/workspace-registry-drop-in.spec.mjs
 # H3+
 pnpm run guard:workspace-certification
 pnpm --filter @apps/api exec node --import tsx --test test/provision-tenant-production.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test test/workspace-not-certified-error-interceptor.spec.ts
+# H4
+pnpm --filter @apps/web exec node --import tsx --test test/workspace-production-certification-badge.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test test/submit-create-club-certification.spec.ts
+node apps/web/scripts/smoke-platform-create-club.mjs
+pnpm --filter @apps/api run openapi:generate
 ```
 
 Full monorepo gate (`ci:integrity`) deferred until Phase H closure PR — same policy as Phase G.
@@ -279,6 +286,8 @@ node apps/web/scripts/smoke-platform-create-club.mjs
 | `provision-tenant-production.spec.ts` (H2) | 7/7 |
 | `list-platform-workspaces.spec.ts` (H4 API) | 4/4 |
 | `workspace-production-certification-badge.spec.ts` (H4 UI) | 3/3 |
+| `submit-create-club-certification.spec.ts` (H4 UX errors) | 2/2 |
+| `workspace-not-certified-error-interceptor.spec.ts` (H2 API) | 1/1 |
 | Drop-in spec H3 cases | 2/2 |
 
 **Commits (DEV):** `8d18c446` H0 · `4f76d31a` H1 · `4590d09e` H2 · `e7ef0181` H3 · `5edb6eb3` H4

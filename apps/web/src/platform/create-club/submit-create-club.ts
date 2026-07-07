@@ -9,6 +9,16 @@ export type CreateClubSubmitResult =
   | { readonly ok: true; readonly tenantId: string; readonly redirectPath: string }
   | { readonly ok: false; readonly message: string };
 
+export function resolveCreateClubErrorMessage(body: {
+  readonly error?: string;
+  readonly code?: string;
+}): string {
+  if (body.code === "WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION") {
+    return "This workspace is not certified for production club onboarding";
+  }
+  return body.error ?? body.code ?? "Failed to create club";
+}
+
 export async function submitCreateClubRequest(
   draft: CreateClubDraft
 ): Promise<CreateClubSubmitResult> {
@@ -36,7 +46,7 @@ export async function submitCreateClubRequest(
   if (!response.ok) {
     return {
       ok: false,
-      message: body.error ?? body.code ?? "Failed to create club",
+      message: resolveCreateClubErrorMessage(body),
     };
   }
 

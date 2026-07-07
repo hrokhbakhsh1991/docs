@@ -152,7 +152,7 @@ pnpm run phase-6:fast-track
 pnpm run test:changed
 ```
 
-Full monorepo gate (`ci:integrity`) deferred until Phase G closure PR — same policy as Phase F.
+Full monorepo gate (`ci:integrity`) deferred until Phase G+H merge PR — same policy as Phase F.
 
 ## G1 status (2026-07-07)
 
@@ -173,8 +173,6 @@ Orchestrator imports the above; entry script re-exports test-facing symbols. **~
 | `guard:import-boundary` | PASS |
 | `guard:architecture` | PASS (0 depcruise violations) |
 | `workspace-registry-drop-in.spec.mjs` | 25/25 pass |
-
-Next slice: **G2** — extract domain modules (first: `domains/core-registry.mjs` ✅).
 
 ## G2 progress (2026-07-07)
 

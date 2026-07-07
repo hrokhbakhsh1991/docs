@@ -230,7 +230,56 @@
         "summary": "List workspace types available for platform provisioning",
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Workspace catalog with production certification tier (Phase H4)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "workspaces"
+                  ],
+                  "properties": {
+                    "workspaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "types",
+                          "displayName",
+                          "productionTier",
+                          "productionOnboardingAllowed"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "types": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "displayName": {
+                            "type": "string"
+                          },
+                          "productionTier": {
+                            "type": "string",
+                            "enum": [
+                              "stub",
+                              "certified"
+                            ]
+                          },
+                          "productionOnboardingAllowed": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "201": {
             "description": "Created"
@@ -317,6 +366,32 @@
           },
           "409": {
             "description": "Conflict"
+          },
+          "422": {
+            "description": "Workspace not certified for production onboarding (Phase H2)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "workspace_not_certified_for_production"
+                    },
+                    "code": {
+                      "type": "string",
+                      "example": "WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION"
+                    },
+                    "workspaceType": {
+                      "type": "string"
+                    },
+                    "pluginId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
           "429": {
             "description": "Rate limited"
