@@ -266,8 +266,8 @@ Moved `scripts/member-portal-contract-codegen.mjs` into `scripts/codegen/workspa
 | `8d18c446`–`5edb6eb3` | Phase H H0–H4 |
 | `46f688dd`–`07308630` | Gap closure, CI YAML, `phase-g-h:fast-track` |
 | `1d12cbb3` | Phase I I1+I2 (theme budget + plugin load cache) |
-| `d74b5498` | G+H+I PR pack unification |
+| `7ec86b34` | GHA `phase-10-guard` green on `DEV` (guards-only fast path) |
 
 **PR:** `pnpm run phase-g-h:create-pr` or [compare main...DEV](https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1)
 
-**Pre-merge verify:** `pnpm run phase-i:closure` (required). `ci:integrity` — Architect YES only.
+**Pre-merge verify:** `pnpm run phase-i:closure` (required). GHA `phase-10-guard` green on `DEV` @ `7ec86b34`. `ci:integrity` — Architect YES only.

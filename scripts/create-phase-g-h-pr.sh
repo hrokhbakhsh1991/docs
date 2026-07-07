@@ -36,3 +36,4 @@ gh pr create \
   --body-file docs/dev/phase-g-h-pr-body.md
 
 echo "create-phase-g-h-pr: done"
+echo "GHA phase-10-guard: https://github.com/hrokhbakhsh1991/docs/actions/workflows/phase-10-guard.yml"

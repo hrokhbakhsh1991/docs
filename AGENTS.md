@@ -35,7 +35,8 @@ pnpm --filter @apps/portal run test:smoke  # SMK-PTL-* portal E2E (incl. SMK-PTL
 pnpm --filter @apps/portal run test:smoke:custom-apex  # SMK-PTL-08 custom apex E2E
 pnpm run phase-9:guard              # Phase 9 doc pack — 32 charter gates
 pnpm run guard:p9-boundary-diff     # Phase 9 PR boundary allowlist (9.1+)
-pnpm run phase-10:guard             # Phase 10 host invariants + certification guard (fast)
+pnpm run phase-10:guard             # Phase 10 host invariants — 11/11 (incl. I1+I2 + certification)
+pnpm run build:workspace-sdk-for-guards  # catalog-registration-auth → sdk (fresh checkout / GHA)
 pnpm run guard:workspace-certification  # Phase H CERT-04 proof matrix
 pnpm run phase-i:fast-track            # Phase I guards (fast)
 pnpm run phase-i:closure               # G+H regression + I1/I2 closure bundle

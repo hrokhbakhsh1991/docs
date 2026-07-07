@@ -52,7 +52,7 @@ pnpm run workspace:create -- <id>   # new workspace scaffold
 | Architecture v2 (Phases F–I) | [`architecture/platform-architecture-v2.md`](architecture/platform-architecture-v2.md) |
 | Phase G — registry codegen modularization | [`dev/workspace-registry-codegen-modularization.mdoc`](dev/workspace-registry-codegen-modularization.mdoc) ✅ DEV |
 | Phase H — production certification | [`dev/workspace-certification.mdoc`](dev/workspace-certification.mdoc) ✅ DEV |
-| Phase I — scale hardening | [`dev/workspace-scale-hardening.mdoc`](dev/workspace-scale-hardening.mdoc) ✅ I1+I2 on `DEV` |
+| Phase I — scale hardening | [`dev/workspace-scale-hardening.mdoc`](dev/workspace-scale-hardening.mdoc) ✅ I0–I2 · GHA green on `DEV` |
 
 ```bash
 pnpm run guard:workspace-certification   # Phase H fast gate
