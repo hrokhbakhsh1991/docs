@@ -8,7 +8,7 @@ cd "$ROOT"
 
 echo "== Phase G+H fast-track =="
 
-pnpm --filter @app-tour/workspace-sdk run build
+bash scripts/ci/build-workspace-sdk-for-guards.sh
 
 pnpm run guard:workspace-registry-fresh
 pnpm run phase-10:guard

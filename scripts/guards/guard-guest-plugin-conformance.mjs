@@ -15,15 +15,19 @@ function ensureWorkspaceSdkBuilt() {
   if (fs.existsSync(SDK_DIST)) {
     return;
   }
-  console.log("guard-guest-plugin-conformance: building workspace-sdk (dist missing — guest_seo / validate-json-ld)");
-  const build = spawnSync("pnpm", ["--filter", "@app-tour/workspace-sdk", "run", "build"], {
-    cwd: REPO_ROOT,
-    encoding: "utf8",
-    stdio: "inherit",
-  });
-  if (build.status !== 0) {
-    console.error("guard-guest-plugin-conformance: workspace-sdk build failed");
-    process.exit(1);
+  console.log(
+    "guard-guest-plugin-conformance: building catalog-registration-auth + workspace-sdk (dist missing)"
+  );
+  for (const filter of ["@app-tour/catalog-registration-auth", "@app-tour/workspace-sdk"]) {
+    const build = spawnSync("pnpm", ["--filter", filter, "run", "build"], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      stdio: "inherit",
+    });
+    if (build.status !== 0) {
+      console.error(`guard-guest-plugin-conformance: ${filter} build failed`);
+      process.exit(1);
+    }
   }
 }
 

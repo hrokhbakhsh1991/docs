@@ -112,13 +112,12 @@ jobs:
       - run: pnpm run guard:workspace-plugin-load-cache
       - run: node --test scripts/test/workspace-plugin-load-cache-guard.spec.mjs
       - run: pnpm --filter @apps/web exec node --import tsx --test test/workspace-plugin-load-cache.spec.ts
-      - run: pnpm --filter @app-tour/workspace-sdk run build
+      - run: bash scripts/ci/build-workspace-sdk-for-guards.sh
       - run: bash scripts/ci/guest-conformance-each.sh
       - run: node --test scripts/test/workspace-registry-drop-in.spec.mjs
       - run: node --test scripts/test/workspace-production-certification.spec.mjs
       - run: pnpm run guard:workspace-certification
       - run: node --test scripts/test/workspace-certification-guard.spec.mjs
-      - run: pnpm --filter @app-tour/workspace-sdk run build
       - run: pnpm --filter @apps/api exec node --import tsx --test test/provision-tenant-production.spec.ts
       - run: pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
       - run: pnpm --filter @apps/api exec node --import tsx --test test/workspace-not-certified-error-interceptor.spec.ts
