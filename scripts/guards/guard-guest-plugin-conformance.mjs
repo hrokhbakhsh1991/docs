@@ -56,6 +56,8 @@ export const GUEST_CONFORMANCE_STEPS = [
   { name: "member_portal_contract", cmd: ["node", "scripts/guards/guard-member-portal-contract.mjs"] },
   { name: "no_workspace_ids_in_codegen", cmd: ["node", "scripts/guards/guard-no-workspace-ids-in-codegen.mjs"] },
   { name: "no_workspace_type_branches", cmd: ["node", "scripts/guards/guard-no-workspace-type-branches.mjs"] },
+  { name: "workspace_peer_import", cmd: ["node", "scripts/guards/guard-workspace-peer-import.mjs"] },
+  { name: "workspace_plugin_surface", cmd: ["node", "scripts/guards/guard-workspace-plugin-surface.mjs"] },
   { name: "css_bootstrap_integrity", cmd: ["node", "scripts/guards/guard-css-bootstrap-integrity.mjs"] },
 ];
 

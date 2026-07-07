@@ -1,0 +1,109 @@
+---
+title: HTTP error handling standard
+description: Client-safe error envelopes, Prisma mapping, and CI leak guards (Audit Point 14).
+---
+
+# HTTP error handling standard
+
+Codifies how `@apps/api` maps thrown errors to HTTP responses without leaking engine text (SQL, Prisma invocation paths, stack).
+
+## Single entry — `handleHttpError`
+
+**Module:** [`apps/api/src/middleware/error-interceptor.ts`](../../apps/api/src/middleware/error-interceptor.ts)
+
+Route handlers and platform ops endpoints must delegate unknown failures to `handleHttpError(res, err)` — never serialize `(err as Error).message` directly into `res.end` / `sendHttpError` unless the value is a **stable domain code** (see below).
+
+Platform reference: [`tenants-create.ts`](../../apps/api/src/routes/platform/tenants-create.ts) (catch → `handleHttpError`).
+
+## Platform routes — `handlePlatformRouteError`
+
+**Module:** [`apps/api/src/routes/platform/platform-route-errors.ts`](../../apps/api/src/routes/platform/platform-route-errors.ts)
+
+Platform ops handlers share a thin wrapper that:
+
+1. Maps `PlatformUnauthorized` / `PlatformForbidden` → fixed 401/403 envelopes (`respondPlatformAuthError`).
+2. Maps `PlatformValidation` → 422 `validation_failed` (`respondPlatformValidationError`).
+3. Delegates all other failures to `handleHttpError` (Prisma P2002→409, P2003→422, opaque 500 otherwise).
+
+Never return raw `verification.message`, `(err as Error).message`, or `{ error: "internal_error" }` literals from catch blocks — use `handlePlatformRouteError(res, err)` so logging stays server-side via pino (no `console.error(err.stack)`).
+
+## Prisma mapping — `mapPrismaErrorToAppError`
+
+Known Prisma request errors are normalized **before** the generic `error.message` fallback:
+
+| Prisma code | HTTP | `error` | `code` |
+|-------------|------|---------|--------|
+| `P2002` | 409 | `conflict` | `UNIQUE_CONSTRAINT_VIOLATION` |
+| `P2003` | 422 | `foreign_key_violation` | `FOREIGN_KEY_VIOLATION` |
+| `P2025` | 404 | `not_found` | `RECORD_NOT_FOUND` |
+
+Connection/auth failures (`P1000`, etc.) continue through [`database-connection-error.ts`](../../apps/api/src/db/database-connection-error.ts) → 503 `DATABASE_UNAVAILABLE`.
+
+Any other `PrismaClient*Error` without explicit mapping → **500** `{ error: "internal_error" }` (logged server-side only).
+
+## Client-safe domain tokens
+
+The message fallback path accepts only **opaque tokens** — no spaces, max 64 chars, snake/SCREAMING_SNAKE:
+
+- Allowed: `TOUR_NOT_FOUND`, `validation_failed`, `PLATFORM_UNAUTHORIZED`
+- Rejected (→ 500 opaque): `Unique constraint failed on the fields: (email)`, `Invalid prisma.operatorRegistration.create() invocation...`
+
+Implementation: `isClientSafeErrorToken()` in `error-interceptor.ts`.
+
+**Exception — ingress validation prefixes:** Errors whose message starts with `ZOD_VALIDATION_FAILED` or `CANONICAL_VALIDATION_FAILED` map to **400** before the opaque-token gate. The HTTP body includes the full prefixed message in `error` (field paths allowed) and a stable `code` (`ZOD_VALIDATION_FAILED` / `CANONICAL_VALIDATION_FAILED`). Without this branch, messages containing spaces would incorrectly fall through to **500** `internal_error`.
+
+## Logging vs response
+
+- **Response:** correlation id + stable `error` / `code` fields only.
+- **Logs:** pino `logger.error({ err, ... })` — full Error object server-side; never echo stack/SQL to clients.
+
+Remove `console.*` from route handlers; use pino (see `guard:no-console-src`).
+
+## CI guard — `guard:catch-error-leak`
+
+**Script:** [`scripts/guards/guard-catch-error-leak.mjs`](../../scripts/guards/guard-catch-error-leak.mjs)
+
+**Scope:** `apps/api/src/**/*.ts` (all handlers, services, routes under `identity/`, `tours/`, `exposure/`, etc. — excludes `*.spec.ts`, `*.generated.ts`)
+
+**Allowlist:** `middleware/error-interceptor.ts` (central mapper), `canonical/validation-worker-entry.ts` (worker IPC, not HTTP).
+
+**Rules:**
+
+1. Ban `(err as Error).message` in API sources.
+2. Ban HTTP bodies that embed `.message` variables in `res.end(JSON.stringify(...))` or `sendHttpError(...)` payloads (must use fixed literals or `handleHttpError`).
+
+**Run:**
+
+```bash
+pnpm run guard:catch-error-leak
+```
+
+Included in `phase-6:defensive-guards` and `phase-6:fast-track`.
+
+## Guard — `guard:api-workspace-isolation`
+
+**Script:** [`scripts/guards/guard-api-workspace-isolation.mjs`](../../scripts/guards/guard-api-workspace-isolation.mjs)
+
+**Scope:** `apps/api/src/**` (includes `identity/`, `tours/`, `exposure/`, `settings/` route modules — not only `routes/`)
+
+**Rules:**
+
+1. **Zero tolerance:** `@app-tour/workspace-*/host/settings/*` — use `@app-tour/workspace-*/settings/*` contract.
+2. **Ratchet:** other `@app-tour/workspace-*/host/*` imports allowed only in `*.generated.ts` or `HOST_IMPORT_LEGACY_ALLOWLIST` inside the guard script (shrink as bindings absorb wiring).
+
+**Run:** `pnpm run guard:api-workspace-isolation` (alias: `guard:api-workspace-settings-import`)
+
+Included in `phase-6:defensive-guards` after `guard:workspace-export-surface`.
+
+## Identity auth routes — stable domain codes (P3)
+
+Pre-login routes under `apps/api/src/identity/auth.routes.ts` and `public-auth.routes.ts` must not echo raw `error.message` in JSON bodies. Use `sendIdentityDomainError(res, status, error)` so both `error` and `code` fields carry the **stable domain token** (`MOBILE_INVALID`, `OTP_RATE_LIMITED`, etc.).
+
+Log OTP debug events with `error.code` only — never raw upstream messages.
+
+## Verification specs
+
+| Spec | Covers |
+|------|--------|
+| `test/platform-provision.spec.ts` | AP14 hotfix — no engine text on 500 |
+| `src/middleware/error-interceptor-prisma.spec.ts` | P2002/P2003/P2025 mapping + opaque unmapped Prisma |

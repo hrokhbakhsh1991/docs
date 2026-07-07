@@ -1,0 +1,10 @@
+{
+  "baselineFileCount": 4,
+  "allowlist": [
+    "scripts/guards/guard-no-todo-guest.mjs",
+    "scripts/guards/lib/anti-hollow-phase4.mjs",
+    "scripts/guards/lib/anti-hollow-phase8.mjs",
+    "apps/web/src/admin/shell/operator-shell.tsx"
+  ],
+  "description": "Ratchet for TODO/FIXME markers — baseline must not grow without explicit baseline bump."
+}

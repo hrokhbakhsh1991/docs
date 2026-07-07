@@ -49,19 +49,19 @@ function mapExposureRouteError(res: ServerResponse, error: unknown): void {
     return;
   }
   if (error instanceof ExposureEnginePreviewInvalidQueryError) {
-    sendHttpError(res, 400, { error: "invalid_query", code: error.code, message: error.message });
+    sendHttpError(res, 400, { error: "invalid_query", code: error.code });
     return;
   }
   if (error instanceof ExposureEnginePreviewUnavailableError) {
-    sendHttpError(res, 422, { error: "unavailable", code: error.code, message: error.message });
+    sendHttpError(res, 422, { error: "unavailable", code: error.code });
     return;
   }
   if (error instanceof ExposureSimulationInvalidBodyError) {
-    sendHttpError(res, 400, { error: "invalid_body", code: error.code, message: error.message });
+    sendHttpError(res, 400, { error: "invalid_body", code: error.code });
     return;
   }
   if (error instanceof ExposureCatalogFieldNotAllowedError) {
-    sendHttpError(res, 400, { error: "invalid_body", code: error.code, message: error.message });
+    sendHttpError(res, 400, { error: "invalid_body", code: error.code });
     return;
   }
   if (error instanceof IntegrationNotFoundError) {
