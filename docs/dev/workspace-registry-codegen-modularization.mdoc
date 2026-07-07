@@ -256,19 +256,16 @@ Moved `scripts/member-portal-contract-codegen.mjs` into `scripts/codegen/workspa
 | `guard-guest-plugin-conformance` | PASS |
 | `phase-i:closure` | PASS |
 
-### Merge readiness (`origin/DEV`)
+### Merge closure (`main` — PR [#19](https://github.com/hrokhbakhsh1991/docs/pull/19))
+
+**Merged:** `6b27d9f6` · docs closure `2a4451ef` · `phase-i:closure` ✅ on `main`.
 
 | Commit | Scope |
 | ------ | ----- |
 | `d7d5d6a5` | Phase G modularization (G0–G4) |
-| `f5a7eab8` | Architecture v2 Phase G notes |
-| `373b2d7c` | Gate fixes (marketing starter, finance allowlist) |
 | `8d18c446`–`5edb6eb3` | Phase H H0–H4 |
-| `46f688dd`–`07308630` | Gap closure, CI YAML, `phase-g-h:fast-track` |
-| `1d12cbb3` | Phase I I1+I2 (theme budget + plugin load cache) |
-| `cbb36841` | Doc gap closure (MASTER surfaces, CERT-05, TEMP gitignore) |
-| `958044b2` | GHA green + Phase C `wizardTemplateGate` |
+| `1d12cbb3` | Phase I I1+I2 |
+| `318146bc` | Phase C `wizardTemplateGate` |
+| `61954281`–`2a4451ef` | PR #19 merge + closure docs |
 
-**PR:** `pnpm run phase-g-h:create-pr` or [compare main...DEV](https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1)
-
-**Pre-merge verify:** `pnpm run phase-i:closure` (required). GHA `phase-10-guard` green on `DEV` @ `958044b2`. Handoff: `pnpm run phase-g-h:handoff`. `ci:integrity` — Architect YES only.
+**Verify on trunk:** `pnpm run phase-i:closure` · `ci:integrity` — Architect YES only.

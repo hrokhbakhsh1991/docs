@@ -37,6 +37,7 @@ pnpm run phase-i:closure   # G+H regression + I1/I2 guards
 - [x] GHA `phase-10-guard` green on `DEV` (`61954281`)
 - [x] PR [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) merged to `main` (`6b27d9f6`)
 - [x] GHA `phase-10-guard` green on PR
-- [ ] Proof matrix: `docs/dev/workspace-certification-proof-matrix.yaml` (denali certified)
-- [ ] Super Admin `/platform/clubs/new` — urban/guest-club disabled; denali certified badge
-- [ ] `POST /platform/v1/tenants` with `workspaceType: urban` returns 422 `WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION`
+- [x] Proof matrix — `guard:workspace-certification` + `workspace-certification-proof-matrix.yaml` (denali certified)
+- [x] Super Admin specs — `use-create-club-wizard` rejects stub · badge spec · `smoke-platform-create-club.mjs` structural
+- [x] `POST /platform/v1/tenants` urban → 422 — `provision-tenant-production.spec.ts` + `workspace-not-certified-error-interceptor.spec.ts`
+- [ ] Manual smoke: Super Admin `/platform/clubs/new` in dev (PLATFORM_OPS_PHONES + local stack)

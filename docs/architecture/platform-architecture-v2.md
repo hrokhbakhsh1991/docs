@@ -1007,9 +1007,10 @@ Full `ci:integrity` deferred until merge PR — Architect YES only.
 | I0 doc pack (theme budget + loader cache policy) | ✅ |
 | I1 `guard:theme-import-budget` | ✅ |
 | I2 registry load cache policy + dev invalidation | ✅ |
-| I3 lazy sync plugin registry (optional) | ⏳ |
-| I closure (`phase-i:closure`) | ✅ |
-| GHA `phase-10-guard` on `DEV` | ✅ green `958044b2` |
+| I3 lazy sync plugin registry (optional) | ⏳ Architect YES |
+| G+H+I merge to `main` | ✅ [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) |
+| I closure (`phase-i:closure`) | ✅ on `main` |
+| GHA `phase-10-guard` on PR #19 | ✅ |
 
 - **I1:** Bounded dynamic theme CSS imports per surface — admin ≤1, guest ≤2 (starter base + plugin overlay); `guard:theme-import-budget`.
 - **I2:** `workspace-plugin-load-cache.ts` — promise cache keyed by `pluginId`, max entries = trunk count, revision bust on codegen regen; `invalidateWorkspacePluginLoadCache()` for dev/tests.
