@@ -50,7 +50,7 @@ import {
   type BulkUsersMutationResponse,
   type MembershipAuditEventKind,
 } from "./users.types";
-import { resolveOperatorAvatarUrlForMembership } from "./operator-avatar-storage";
+import { resolveOperatorAvatarUrlsForMemberships } from "./operator-avatar-storage";
 import { assertOperatorUsersWorkspace } from "./users-workspace-guard";
 
 export class UsersDirectoryForbiddenError extends Error {
@@ -134,16 +134,12 @@ function displayNameForUser(
   return user.mobile;
 }
 
-async function toDirectoryRow(
+function buildDirectoryRow(
   user: IdentityUserRecord,
-  membership: IdentityMembershipRecord
-): Promise<UsersDirectoryRow> {
+  membership: IdentityMembershipRecord,
+  avatarUrl: string | null
+): UsersDirectoryRow {
   const rewards = membership.rewards;
-  const avatarUrl = await resolveOperatorAvatarUrlForMembership(
-    membership.tenantId,
-    user.id,
-    membership.avatar?.storageKey
-  );
   return {
     userId: user.id,
     tenantId: membership.tenantId,
@@ -161,6 +157,31 @@ async function toDirectoryRow(
     isSelectableLeader: rewards?.isSelectableLeader ?? false,
     labels: rewards?.labels ?? [],
   };
+}
+
+type MembershipWithUserPair = {
+  readonly user: IdentityUserRecord;
+  readonly membership: IdentityMembershipRecord;
+};
+
+async function directoryRowsFromPairs(
+  pairs: readonly MembershipWithUserPair[]
+): Promise<UsersDirectoryRow[]> {
+  const avatarUrls = await resolveOperatorAvatarUrlsForMemberships(
+    pairs.map(({ membership, user }) => ({
+      tenantId: membership.tenantId,
+      userId: user.id,
+      storageKey: membership.avatar?.storageKey,
+    }))
+  );
+  return pairs.map(({ membership, user }, index) =>
+    buildDirectoryRow(user, membership, avatarUrls[index] ?? null)
+  );
+}
+
+async function directoryRowFromPair(pair: MembershipWithUserPair): Promise<UsersDirectoryRow> {
+  const [row] = await directoryRowsFromPairs([pair]);
+  return row;
 }
 
 function matchesSearch(row: UsersDirectoryRow, search: string | undefined): boolean {
@@ -214,19 +235,14 @@ export async function listUsersDirectory(
   await assertUsersDirectoryAccess(auth);
 
   const memberships = await repo.listMembershipsByTenant(auth.tenantId);
-  const rows = (
-    await Promise.all(
-      memberships.map(async (membership) => {
-        const user = await repo.findUserById(membership.userId);
-        if (user === null) {
-          return null;
-        }
-        return await toDirectoryRow(user, membership);
-      })
-    )
-  )
-    .filter((row): row is UsersDirectoryRow => row !== null)
-    .filter(
+  const pairs: MembershipWithUserPair[] = [];
+  for (const membership of memberships) {
+    const user = await repo.findUserById(membership.userId);
+    if (user !== null) {
+      pairs.push({ user, membership });
+    }
+  }
+  const rows = (await directoryRowsFromPairs(pairs)).filter(
       (row) =>
         matchesSearch(row, query.search) &&
         matchesRole(row, query.role) &&
@@ -334,16 +350,17 @@ function assertPatchableRole(role: string): PatchableWorkspaceRole {
   return role;
 }
 
-export async function patchWorkspaceUserRole(
+async function patchWorkspaceUserRoleCore(
   auth: TenantAuthContext,
   targetUserId: string,
-  body: PatchUserRoleRequest,
-  repo: IdentityRepository = getIdentityRepository()
-): Promise<PatchUserRoleResponse> {
-  await assertUsersDirectoryAccess(auth);
-  const newRole = assertPatchableRole(body.role);
-  const membership = await repo.findMembership(targetUserId, auth.tenantId);
-  if (membership === null) {
+  newRole: PatchableWorkspaceRole,
+  repo: IdentityRepository,
+  prefetch?: BulkUserMutationPrefetch
+): Promise<MembershipWithUserPair> {
+  const membership =
+    prefetch?.memberships.get(targetUserId) ??
+    (await repo.findMembership(targetUserId, auth.tenantId));
+  if (membership == null) {
     throw new MembershipNotFoundError(targetUserId);
   }
 
@@ -368,11 +385,21 @@ export async function patchWorkspaceUserRole(
     oldRole,
     newRole,
   });
-  const user = await repo.findUserById(targetUserId);
-  if (user === null) {
-    throw new MembershipNotFoundError(targetUserId);
-  }
-  return await toDirectoryRow(user, updated);
+  const user = await resolveUserForDirectoryRow(targetUserId, repo, prefetch);
+  return { user, membership: updated };
+}
+
+export async function patchWorkspaceUserRole(
+  auth: TenantAuthContext,
+  targetUserId: string,
+  body: PatchUserRoleRequest,
+  repo: IdentityRepository = getIdentityRepository(),
+  prefetch?: BulkUserMutationPrefetch
+): Promise<PatchUserRoleResponse> {
+  await assertUsersDirectoryAccess(auth);
+  const newRole = assertPatchableRole(body.role);
+  const pair = await patchWorkspaceUserRoleCore(auth, targetUserId, newRole, repo, prefetch);
+  return directoryRowFromPair(pair);
 }
 
 export async function removeWorkspaceUser(
@@ -420,9 +447,11 @@ export class MembershipStatusConflictError extends Error {
 async function assertManageableMembership(
   auth: TenantAuthContext,
   targetUserId: string,
-  repo: IdentityRepository
+  repo: IdentityRepository,
+  prefetchedMembership?: IdentityMembershipRecord
 ): Promise<IdentityMembershipRecord> {
-  const membership = await repo.findMembership(targetUserId, auth.tenantId);
+  const membership =
+    prefetchedMembership ?? (await repo.findMembership(targetUserId, auth.tenantId));
   if (membership === null) {
     throw new MembershipNotFoundError(targetUserId);
   }
@@ -440,13 +469,18 @@ async function assertManageableMembership(
   return membership;
 }
 
-export async function suspendWorkspaceUser(
+async function suspendWorkspaceUserCore(
   auth: TenantAuthContext,
   targetUserId: string,
-  repo: IdentityRepository = getIdentityRepository()
-): Promise<UsersDirectoryRow> {
-  await assertUsersDirectoryAccess(auth);
-  const membership = await assertManageableMembership(auth, targetUserId, repo);
+  repo: IdentityRepository,
+  prefetch?: BulkUserMutationPrefetch
+): Promise<MembershipWithUserPair> {
+  const membership = await assertManageableMembership(
+    auth,
+    targetUserId,
+    repo,
+    prefetch?.memberships.get(targetUserId)
+  );
   if (membership.status === "SUSPENDED") {
     throw new MembershipStatusConflictError("MEMBERSHIP_ALREADY_SUSPENDED");
   }
@@ -460,20 +494,33 @@ export async function suspendWorkspaceUser(
     oldRole: "ACTIVE",
     newRole: "SUSPENDED",
   });
-  const user = await repo.findUserById(targetUserId);
-  if (user === null) {
-    throw new MembershipNotFoundError(targetUserId);
-  }
-  return await toDirectoryRow(user, updated);
+  const user = await resolveUserForDirectoryRow(targetUserId, repo, prefetch);
+  return { user, membership: updated };
 }
 
-export async function reactivateWorkspaceUser(
+export async function suspendWorkspaceUser(
   auth: TenantAuthContext,
   targetUserId: string,
-  repo: IdentityRepository = getIdentityRepository()
+  repo: IdentityRepository = getIdentityRepository(),
+  prefetch?: BulkUserMutationPrefetch
 ): Promise<UsersDirectoryRow> {
   await assertUsersDirectoryAccess(auth);
-  const membership = await assertManageableMembership(auth, targetUserId, repo);
+  const pair = await suspendWorkspaceUserCore(auth, targetUserId, repo, prefetch);
+  return directoryRowFromPair(pair);
+}
+
+async function reactivateWorkspaceUserCore(
+  auth: TenantAuthContext,
+  targetUserId: string,
+  repo: IdentityRepository,
+  prefetch?: BulkUserMutationPrefetch
+): Promise<MembershipWithUserPair> {
+  const membership = await assertManageableMembership(
+    auth,
+    targetUserId,
+    repo,
+    prefetch?.memberships.get(targetUserId)
+  );
   if (membership.status !== "SUSPENDED") {
     throw new MembershipStatusConflictError("MEMBERSHIP_NOT_SUSPENDED");
   }
@@ -487,11 +534,19 @@ export async function reactivateWorkspaceUser(
     oldRole: "SUSPENDED",
     newRole: "ACTIVE",
   });
-  const user = await repo.findUserById(targetUserId);
-  if (user === null) {
-    throw new MembershipNotFoundError(targetUserId);
-  }
-  return await toDirectoryRow(user, updated);
+  const user = await resolveUserForDirectoryRow(targetUserId, repo, prefetch);
+  return { user, membership: updated };
+}
+
+export async function reactivateWorkspaceUser(
+  auth: TenantAuthContext,
+  targetUserId: string,
+  repo: IdentityRepository = getIdentityRepository(),
+  prefetch?: BulkUserMutationPrefetch
+): Promise<UsersDirectoryRow> {
+  await assertUsersDirectoryAccess(auth);
+  const pair = await reactivateWorkspaceUserCore(auth, targetUserId, repo, prefetch);
+  return directoryRowFromPair(pair);
 }
 
 function normalizeRewardsPatch(body: PatchUserRewardsRequest): MembershipRewardsRecord {
@@ -554,7 +609,7 @@ export async function patchWorkspaceUserRewards(
   if (user === null) {
     throw new MembershipNotFoundError(targetUserId);
   }
-  return await toDirectoryRow(user, updated);
+  return directoryRowFromPair({ user, membership: updated });
 }
 
 export async function transferWorkspaceOwnership(
@@ -690,19 +745,71 @@ function bulkFailureCode(error: unknown): string {
   return "BULK_USER_MUTATION_FAILED";
 }
 
-async function runBulkMutation(
+export type BulkUserMutationPrefetch = {
+  readonly memberships: ReadonlyMap<string, IdentityMembershipRecord>;
+  readonly users: ReadonlyMap<string, IdentityUserRecord>;
+};
+
+async function loadBulkUserMutationPrefetch(
+  auth: TenantAuthContext,
   userIds: readonly string[],
-  mutate: (userId: string) => Promise<UsersDirectoryRow>
+  repo: IdentityRepository
+): Promise<BulkUserMutationPrefetch> {
+  const memberships = new Map<string, IdentityMembershipRecord>();
+  const users = new Map<string, IdentityUserRecord>();
+  await Promise.all(
+    userIds.map(async (userId) => {
+      const [membership, user] = await Promise.all([
+        repo.findMembership(userId, auth.tenantId),
+        repo.findUserById(userId),
+      ]);
+      if (membership !== null) {
+        memberships.set(userId, membership);
+      }
+      if (user !== null) {
+        users.set(userId, user);
+      }
+    })
+  );
+  return { memberships, users };
+}
+
+async function resolveUserForDirectoryRow(
+  userId: string,
+  repo: IdentityRepository,
+  prefetch?: BulkUserMutationPrefetch
+): Promise<IdentityUserRecord> {
+  const cached = prefetch?.users.get(userId);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const user = await repo.findUserById(userId);
+  if (user === null) {
+    throw new MembershipNotFoundError(userId);
+  }
+  return user;
+}
+
+async function runBulkMutation(
+  auth: TenantAuthContext,
+  userIds: readonly string[],
+  repo: IdentityRepository,
+  mutate: (
+    userId: string,
+    prefetch: BulkUserMutationPrefetch
+  ) => Promise<MembershipWithUserPair>
 ): Promise<BulkUsersMutationResponse> {
-  const items: UsersDirectoryRow[] = [];
+  const prefetch = await loadBulkUserMutationPrefetch(auth, userIds, repo);
+  const successPairs: MembershipWithUserPair[] = [];
   const failures: BulkUsersMutationFailure[] = [];
   for (const userId of userIds) {
     try {
-      items.push(await mutate(userId));
+      successPairs.push(await mutate(userId, prefetch));
     } catch (error: unknown) {
       failures.push({ userId, code: bulkFailureCode(error) });
     }
   }
+  const items = await directoryRowsFromPairs(successPairs);
   return { items, failures };
 }
 
@@ -714,7 +821,9 @@ export async function bulkPatchWorkspaceUserRoles(
 ): Promise<BulkUsersMutationResponse> {
   await assertUsersDirectoryAccess(auth);
   const targets = normalizeBulkUserIds(userIds);
-  return runBulkMutation(targets, (userId) => patchWorkspaceUserRole(auth, userId, { role }, repo));
+  return runBulkMutation(auth, targets, repo, (userId, prefetch) =>
+    patchWorkspaceUserRoleCore(auth, userId, role, repo, prefetch)
+  );
 }
 
 export async function bulkSuspendWorkspaceUsers(
@@ -724,7 +833,9 @@ export async function bulkSuspendWorkspaceUsers(
 ): Promise<BulkUsersMutationResponse> {
   await assertUsersDirectoryAccess(auth);
   const targets = normalizeBulkUserIds(userIds);
-  return runBulkMutation(targets, (userId) => suspendWorkspaceUser(auth, userId, repo));
+  return runBulkMutation(auth, targets, repo, (userId, prefetch) =>
+    suspendWorkspaceUserCore(auth, userId, repo, prefetch)
+  );
 }
 
 export async function bulkReactivateWorkspaceUsers(
@@ -734,7 +845,9 @@ export async function bulkReactivateWorkspaceUsers(
 ): Promise<BulkUsersMutationResponse> {
   await assertUsersDirectoryAccess(auth);
   const targets = normalizeBulkUserIds(userIds);
-  return runBulkMutation(targets, (userId) => reactivateWorkspaceUser(auth, userId, repo));
+  return runBulkMutation(auth, targets, repo, (userId, prefetch) =>
+    reactivateWorkspaceUserCore(auth, userId, repo, prefetch)
+  );
 }
 
 export async function bulkRemoveWorkspaceUsers(
@@ -744,25 +857,26 @@ export async function bulkRemoveWorkspaceUsers(
 ): Promise<BulkUsersMutationResponse> {
   await assertUsersDirectoryAccess(auth);
   const targets = normalizeBulkUserIds(userIds);
-  const items: UsersDirectoryRow[] = [];
+  const prefetch = await loadBulkUserMutationPrefetch(auth, targets, repo);
+  const snapshotPairs: MembershipWithUserPair[] = [];
   const failures: BulkUsersMutationFailure[] = [];
   for (const userId of targets) {
     try {
-      const membership = await repo.findMembership(userId, auth.tenantId);
-      if (membership === null) {
+      const membership = prefetch.memberships.get(userId);
+      if (membership === undefined) {
         throw new MembershipNotFoundError(userId);
       }
-      const user = await repo.findUserById(userId);
-      if (user === null) {
+      const user = prefetch.users.get(userId);
+      if (user === undefined) {
         throw new MembershipNotFoundError(userId);
       }
-      const snapshot = await toDirectoryRow(user, membership);
       await removeWorkspaceUser(auth, userId, repo);
-      items.push(snapshot);
+      snapshotPairs.push({ user, membership });
     } catch (error: unknown) {
       failures.push({ userId, code: bulkFailureCode(error) });
     }
   }
+  const items = await directoryRowsFromPairs(snapshotPairs);
   return { items, failures };
 }
 

@@ -1,0 +1,247 @@
+---
+title: CI defensive guards
+description: Repository RLS discipline and CI automation to prevent tenant-scope drift (Phase 5).
+---
+
+# CI defensive guards
+
+Codifies **Postgres RLS session binding** rules for `@apps/api` repository layers and the CI guard that catches drift before merge.
+
+Related: [`list-projection-guards.mdoc`](list-projection-guards.mdoc) (AP5 bookings two-step) · [`error-handling-standard.mdoc`](error-handling-standard.mdoc) (AP14).
+
+## RLS policy contract (tenant-scoped tables)
+
+Every tenant-owned table must ship:
+
+```sql
+ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
+ALTER TABLE <table> FORCE ROW LEVEL SECURITY;
+CREATE POLICY <table>_tenant_isolation ON <table>
+  USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
+  WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+```
+
+App pool role (`app_tour`) uses `NOBYPASSRLS`; queries without `withTenantRls` return zero rows.
+
+## Repository rules
+
+| Pattern | When | Example |
+|---------|------|---------|
+| **`withTenantRls(tenantId, tx => …)`** | Tenant known at call site | `listPendingInvitesByTenant`, `createPendingInvite` |
+| **Admin probe + RLS fetch** | PK-only lookup; tenant unknown at repo boundary | `listOutboxByAggregate` — admin `select: { tenantId }` then `withTenantRls` outbox read |
+| **Tenant-scoped PK read** | Tenant known at call site | `getById(id, tenantId)` — `withTenantRls` only (no admin probe) |
+| **Global / non-tenant tables** | Exempt from guard | `users`, `mobile_otp_challenges`, platform registry |
+
+Implementation: [`apps/api/src/db/with-tenant-rls.ts`](../../apps/api/src/db/with-tenant-rls.ts).
+
+## Identity — `operator_pending_invites` (Phase 5)
+
+Table gained RLS in migration `20260707110000_operator_pending_invites_rls`.
+
+| Repository method | Pattern |
+|-------------------|---------|
+| `createPendingInvite` | `withTenantRls(input.tenantId, tx => tx.operatorPendingInvite.create(...))` |
+| `listPendingInvitesByTenant` | `withTenantRls(tenantId, tx => tx.findMany(...))` |
+| `findPendingInvite(tenantId, inviteId)` | `withTenantRls` + `findFirst({ inviteId, tenantId })` |
+| `findPendingInviteByToken(tenantId, token)` | `withTenantRls` + `findFirst({ inviteToken, tenantId })` |
+| `revokePendingInvite(tenantId, inviteId)` | `withTenantRls` + `delete({ where: { inviteId } })` |
+| `acceptPendingInvite(tenantId, token, userId)` | Scoped token lookup inside `withTenantRls` transaction |
+
+Service callers pass `auth.tenantId` from [`invites.service.ts`](../../apps/api/src/identity/invites.service.ts) and [`users.service.ts`](../../apps/api/src/identity/users.service.ts).
+
+## Guard — `guard:repository-rls`
+
+**Script:** [`scripts/guards/guard-repository-rls.mjs`](../../scripts/guards/guard-repository-rls.mjs)
+
+**Scope:** `apps/api/src/**/*.repository.ts` (excludes `in-memory-*.repository.ts`)
+
+**Rule:** A repository method that calls `getPrisma().<tenantModel>` must contain `withTenantRls(` in the same method body, **or** use `getPrismaAdmin()` (admin probe allowlist), **or** appear in `LEGACY_ALLOWLIST`.
+
+**Initial tenant models:** `operatorPendingInvite`, `operatorRegistration`, `tour`, `userTenant`, `outboxEvent`, `payment`, `paymentReceipt`, `exposureProfile`, `exposureIntent`, `integrationConnection`, `integrationDeliveryJob`.
+
+**Run:**
+
+```bash
+pnpm run guard:repository-rls
+```
+
+Included in `phase-6:fast-track` after `guard:catch-error-leak`.
+
+## Guard — `guard:bookings-getbyid-tenant-scope`
+
+**Script:** [`scripts/guards/guard-bookings-getbyid-tenant-scope.mjs`](../../scripts/guards/guard-bookings-getbyid-tenant-scope.mjs)
+
+**Scope:** `apps/api/src/bookings/prisma-bookings.repository.ts`
+
+**Rules:**
+
+1. `getById` signature includes `tenantId: string`.
+2. `getById` body uses `withTenantRls` and does **not** call `getPrismaAdmin()`.
+3. Any `getPrismaAdmin().operatorRegistration` probe in the file uses `select: { tenantId: true }` only (today: `listOutboxByAggregate`).
+
+**Run:**
+
+```bash
+pnpm run guard:bookings-getbyid-tenant-scope
+```
+
+Included in `phase-6:fast-track` after `guard:repository-rls`.
+
+## Guard — `guard:unbounded-list` (AP15 tightened)
+
+**Script:** [`scripts/guards/guard-unbounded-list.mjs`](../../scripts/guards/guard-unbounded-list.mjs)
+
+**Scope:** `apps/api/src/**/*.repository.ts` (excludes `in-memory-*.repository.ts`, `platform/`)
+
+**Rule:** Tenant-scoped `findMany` must include **`take:`** or **`select:` with bounded `where.in`**. `select` alone (full tenant scan) **FAILs**.
+
+**Run:** `pnpm run guard:unbounded-list`
+
+## Guard — `guard:repository-n-plus-one` (AP15b)
+
+**Script:** [`scripts/guards/guard-repository-n-plus-one.mjs`](../../scripts/guards/guard-repository-n-plus-one.mjs)
+
+**Rule:** No `await` + Prisma delegate call inside `for` loops in repository files (batch exceptions allowlisted per file).
+
+**Run:** `pnpm run guard:repository-n-plus-one`
+
+## Audit — `audit:findmany-scan`
+
+**Script:** [`scripts/audit-findmany-scan.mjs`](../../scripts/audit-findmany-scan.mjs)
+
+**Rule:** FAIL when any repository `findMany` uses `select` without `take` (select-only unbounded).
+
+Wired into `phase-6:fast-track` after `guard:repository-n-plus-one`.
+
+## Specs
+
+| Spec | IDs |
+|------|-----|
+| `test/identity-pending-invite-rls.spec.ts` | ID-RLS-01..08 static repo + guards + directory batch |
+| `test/settings-audit-list-projection.spec.ts` | SET-AUD-01..03 audit trail bounds |
+| `test/integration-list-projection.spec.ts` | INT-LIST-01..03 no credentials on list paths |
+| `test/workspace-draft-events-list.spec.ts` | DRF-EVT-01..02 SQL-bound draft events |
+| `test/exposure-batch-reads.spec.ts` | EXP-BATCH-01..03 exposure batch reads |
+| `test/operator-avatar-batch.spec.ts` | AVT-BATCH-01/02 avatar presign batch (no MinIO when keys empty) |
+| `test/service-batch-patterns.spec.ts` | SVC-BATCH-01..05 bulk prefetch + avatar batch + integration policy sync |
+| `test/identity-directory-pagination.spec.ts` | ID-DIR-04 listUsersDirectory uses `directoryRowsFromPairs(pairs)` |
+| `test/identity-users.spec.ts` | invite CRUD regression |
+| `test/users-resend-invite.spec.ts` | scoped resend lookup |
+
+## Identity — directory avatar batching (Phase 5c)
+
+Operator directory responses include signed avatar URLs. The service must **not** call MinIO setup per row.
+
+| Layer | Pattern |
+|-------|---------|
+| [`operator-avatar-storage.ts`](../../apps/api/src/identity/operator-avatar-storage.ts) | `resolveOperatorAvatarUrlsForMemberships` — one env read + one MinIO client per batch |
+| [`users.service.ts`](../../apps/api/src/identity/users.service.ts) | `directoryRowsFromPairs` maps `{ user, membership }[]` → `UsersDirectoryRow[]` with batched presign |
+
+Read-path rules:
+
+- **No** `ensureTenantBrandLogoBucket` on directory load (upload path still ensures bucket on `putOperatorAvatar`).
+- **Early exit** when no row has a non-empty `storageKey` — all `avatarUrl: null` without touching MinIO.
+- **`listUsersDirectory`**: build membership/user pairs, one `directoryRowsFromPairs(pairs)`, then filter/sort/paginate in memory (SQL pagination is a separate follow-up).
+- **Bulk mutations** (`runBulkMutation`, `bulkRemoveWorkspaceUsers`): collect `{ user, membership }` success pairs, then one `directoryRowsFromPairs` at the end.
+
+**Static checks:** `test/operator-avatar-batch.spec.ts` (AVT-BATCH-01/02) · `test/service-batch-patterns.spec.ts` (SVC-BATCH-03..05) · `test/identity-directory-pagination.spec.ts` (ID-DIR-04).
+
+## Identity — directory SQL pagination (deferred)
+
+Future work moves filter/sort/pagination into the repository (ID-DIR-01..03):
+
+| Repository method | Pattern |
+|-------------------|---------|
+| `listMembershipsWithUsersByTenant(tenantId)` | `withTenantRls` + `userTenant.findMany({ include: { user: { select: { id, mobile } } } })` |
+| `findUsersByIds(userIds)` | Global `users.findMany({ where: { id: { in } }, take: uniqueIds.length })` — batched actor lookup in role history |
+
+## Exposure — batch intent reads (Phase 5d)
+
+| Repository method | Pattern |
+|-------------------|---------|
+| `findForContexts(contexts[])` | Single `withTenantRls` + `findMany({ OR: [...keys] })` keyed by profile/surface/audience/trigger/scopeHash |
+| `listForConnectionScope` (control plane) | Hoist **once per connection** before event-type loop; pass `connectionIntents` into `resolveConnectionExposureIntentForRoute` |
+
+## Identity — bulk mutation prefetch (Phase 5e)
+
+| Pattern | Detail |
+|---------|--------|
+| `loadBulkUserMutationPrefetch` | Parallel membership + user lookups before bulk loop (repo batch methods optional follow-up) |
+| `runBulkMutation` | Passes prefetch into per-user mutators — skips redundant membership/user lookups; batch avatar presign via `directoryRowsFromPairs(successPairs)` |
+| `bulkRemoveWorkspaceUsers` | Same prefetch helper as role/status bulk paths |
+
+## Integrations — event policy sync (Phase 5e)
+
+Policy upserts belong in infrastructure, not `*service.ts` loops:
+
+| Module | Role |
+|--------|------|
+| `sync-integration-event-policies.ts` | `parseIntegrationEventPolicyPatches` + `syncIntegrationEventPoliciesInTransaction` |
+| `patchIntegration` | Validates against provider `defaultEventPolicies`, delegates sync to infrastructure |
+
+## Deferred (Phase 5b+)
+
+- `guard-workspace-export-surface` — Denali `package.json` allowlist (Phase 6)
+
+## Cross-tenant admin paths (Phase 5b)
+
+Some operations intentionally span all tenant memberships for a global user (e.g. mobile change invalidates sessions everywhere). These **must** use `getPrismaAdmin()` — never `getPrisma().userTenant.*` without `withTenantRls`, because app pool RLS would silently update zero rows.
+
+| Method | Pattern |
+|--------|---------|
+| `updateUserMobile` | `getPrisma()` transaction for global `users` row; then `getPrismaAdmin().userTenant.updateMany({ where: { userId } })` to bump `sessionVersion` on all memberships |
+
+## Guard — `guard:service-n-plus-one`
+
+**Script:** [`scripts/guards/guard-service-n-plus-one.mjs`](../../scripts/guards/guard-service-n-plus-one.mjs)
+
+**Scope:** `apps/api/src/**/*service.ts`
+
+**Rule:** A service method must not contain `await` + repository/Prisma read/write inside `for`/`for-of`/`for-in`/`while` loops or `array.map(async …)` / `Promise.all(…map(async))` unless the method is on `LEGACY_ALLOWLIST` (known baseline violations) or `ADMIN_ALLOWLIST` (migration/dev-only paths).
+
+**Suspicious patterns in loop bodies:** `.find*`, `.list*`, `.get*`, `.create*`, `.update*`, `.upsert*`, `.remove*`, `getPrisma`, `withTenantRls`, `Repository(`.
+
+**Run:**
+
+```bash
+pnpm run guard:service-n-plus-one
+```
+
+Included in `phase-6:fast-track` after `guard:repository-rls`.
+
+## Exposure control plane — batch reads (Phase 5f)
+
+The control plane previously issued per-connection and per-event-type repository calls inside loops. Batch contracts:
+
+| Repository | Batch method | Replaces |
+|------------|--------------|----------|
+| `ExposureIntentRepository` | `listForConnectionScopes({ tenantId, connectionIds })` | N× `listForConnectionScope` in `Promise.all(…map(async))` |
+| `ExposureIntentRepository` | `findForContexts(contexts)` (existing) | Per-event `findForContext` legacy fallback |
+| `ExposureProfileRepository` | `ensureSeededProfiles({ tenantId, seeds })` | Per-context `ensureSeededProfile` in event loop |
+
+**Orchestration:** `getWorkspaceExposureControlPlane` prefetches intents + legacy lookups + profiles in ≤3 queries, then builds contexts synchronously via `buildConnectionContextsFromPrefetch` (no `await` in loops).
+
+**Static checks:** `test/exposure-batch-reads.spec.ts` (EXP-BATCH-01..04).
+
+## CI wiring (defensive bundle)
+
+The AP14/AP15 guards below are bundled in **`phase-6:defensive-guards`** ([`scripts/phase-6-defensive-guards.sh`](../../scripts/phase-6-defensive-guards.sh)) — single source of truth for local and CI static enforcement.
+
+| Path | Command / workflow | When |
+|------|-------------------|------|
+| **Local iteration** | `pnpm run phase-6:defensive-guards` | After API/repo changes (~2–5 min, no Postgres) |
+| **Local full loop** | `pnpm run phase-6:fast-track` | `pre-commit:fast` + defensive bundle |
+| **GHA PR (static)** | Job `defensive-guards` in [`.github/workflows/phase-6-gate.yml`](../../.github/workflows/phase-6-gate.yml) | Every PR + push to `main` (parallel, no Postgres) |
+| **GHA PR (registry)** | `guard:workspace-registry-fresh` in [`.github/workflows/phase-3-gate.yml`](../../.github/workflows/phase-3-gate.yml) | Every PR before `phase-3:gate` |
+| **GHA behavioral** | Job `fast-closure` in `phase-6-gate.yml` | Build + test + Postgres (unchanged) |
+
+**Bundle contents:** `guard:import-boundary`, denali/urban plugin surfaces, `guard:workspace-plugin-surface` (via guest-plugin-conformance), workspace export surface, `guard:api-workspace-isolation`, field-policy, unbounded-list, repository-n-plus-one, `audit:findmany-scan`, list-projection-openapi, catch-error-leak (all `apps/api/src/**`), repository-rls, bookings-getbyid-tenant-scope, service-n-plus-one, WRS/PCMS, guest-plugin-conformance (includes `guard:workspace-peer-import`), `guard:workspace-onboard-contract`, `guard:workspace-certification`, `guard:admin-inline-color`, `guard:todo-debt-budget`, `phase-6:guard`.
+
+**Workspace onboarding:** `pnpm run workspace:onboard -- <id> [--guest]` runs install, codegen, domain checks, build, test, and conformance guards ([`scripts/workspace-onboard.mjs`](../../scripts/workspace-onboard.mjs)).
+
+**Import boundary:** `IMPORT_BOUNDARY_SCAN_ROOTS` includes all of `packages/workspaces/`; relative `types/legacy/` imports within a workspace package are allowed (Denali product types, not monorepo `legacy/`).
+
+**Not in bundle (separate workflows):** `control:ci` (CTL-CORE visual packs), `phase-10-guard` (path-filtered workspace host invariants).
+
+**Also in `ci:integrity`:** `guard:workspace-registry-fresh` (early) + full `phase-6:defensive-guards` (after evolution gate).
+

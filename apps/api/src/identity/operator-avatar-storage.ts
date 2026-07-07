@@ -9,11 +9,15 @@ import {
 import {
   createTenantBrandLogoMinioClient,
   ensureTenantBrandLogoBucket,
-  getTenantBrandLogoSignedReadUrl,
   readTenantBrandLogoMinioConfigFromEnv,
 } from "../tenant/workspace-branding-photo-storage";
 
 export { readTenantBrandLogoMinioConfigFromEnv as readOperatorAvatarMinioConfigFromEnv };
+
+const OPERATOR_AVATAR_READ_URL_TTL_SECONDS = 300;
+
+type MinioPhotoConfig = NonNullable<ReturnType<typeof readTenantBrandLogoMinioConfigFromEnv>>;
+type MinioPhotoClient = ReturnType<typeof createTenantBrandLogoMinioClient>;
 
 export function assertOperatorAvatarUploadContentType(contentType: string): void {
   const normalized = contentType.trim().toLowerCase();
@@ -73,11 +77,82 @@ export async function getOperatorAvatarSignedReadUrl(input: {
   readonly expiresInSeconds?: number;
 }): Promise<string> {
   assertOperatorAvatarKeyScope(input.storageKey, input.tenantId, input.userId);
-  return getTenantBrandLogoSignedReadUrl({
-    tenantId: input.tenantId,
-    storageKey: input.storageKey,
-    expiresInSeconds: input.expiresInSeconds,
-  });
+  const config = readTenantBrandLogoMinioConfigFromEnv();
+  if (config === null) {
+    throw new Error("MINIO_NOT_CONFIGURED");
+  }
+  const client = createTenantBrandLogoMinioClient(config);
+  return client.presignedGetObject(
+    config.bucket,
+    input.storageKey,
+    input.expiresInSeconds ?? OPERATOR_AVATAR_READ_URL_TTL_SECONDS
+  );
+}
+
+export type OperatorAvatarMembershipRef = {
+  readonly tenantId: string;
+  readonly userId: string;
+  readonly storageKey: string | undefined;
+};
+
+function hasNonEmptyAvatarStorageKey(input: OperatorAvatarMembershipRef): boolean {
+  return (input.storageKey?.trim() ?? "").length > 0;
+}
+
+async function presignOperatorAvatarReadUrl(
+  config: MinioPhotoConfig,
+  client: MinioPhotoClient,
+  input: OperatorAvatarMembershipRef,
+  expiresInSeconds: number
+): Promise<string | null> {
+  const normalized = input.storageKey?.trim() ?? "";
+  if (normalized.length === 0) {
+    return null;
+  }
+  try {
+    assertOperatorAvatarKeyScope(normalized, input.tenantId, input.userId);
+    return await client.presignedGetObject(config.bucket, normalized, expiresInSeconds);
+  } catch {
+    return null;
+  }
+}
+
+async function presignOperatorAvatarReadUrls(
+  config: MinioPhotoConfig,
+  client: MinioPhotoClient,
+  inputs: readonly OperatorAvatarMembershipRef[],
+  expiresInSeconds: number
+): Promise<readonly (string | null)[]> {
+  return Promise.all(
+    inputs.map((input) => presignOperatorAvatarReadUrl(config, client, input, expiresInSeconds))
+  );
+}
+
+/**
+ * Batch presign for directory list — one env config read + one MinIO client per page (read path; no bucketExists).
+ */
+export async function resolveOperatorAvatarUrlsForMemberships(
+  inputs: readonly OperatorAvatarMembershipRef[]
+): Promise<readonly (string | null)[]> {
+  if (inputs.length === 0) {
+    return [];
+  }
+  if (!inputs.some(hasNonEmptyAvatarStorageKey)) {
+    return inputs.map(() => null);
+  }
+
+  const config = readTenantBrandLogoMinioConfigFromEnv();
+  if (config === null) {
+    return inputs.map(() => null);
+  }
+
+  const client = createTenantBrandLogoMinioClient(config);
+  return presignOperatorAvatarReadUrls(
+    config,
+    client,
+    inputs,
+    OPERATOR_AVATAR_READ_URL_TTL_SECONDS
+  );
 }
 
 export async function resolveOperatorAvatarUrlForMembership(
@@ -85,17 +160,8 @@ export async function resolveOperatorAvatarUrlForMembership(
   userId: string,
   storageKey: string | undefined
 ): Promise<string | null> {
-  const normalized = storageKey?.trim() ?? "";
-  if (normalized.length === 0) {
-    return null;
-  }
-  try {
-    return await getOperatorAvatarSignedReadUrl({
-      tenantId,
-      userId,
-      storageKey: normalized,
-    });
-  } catch {
-    return null;
-  }
+  const [url] = await resolveOperatorAvatarUrlsForMemberships([
+    { tenantId, userId, storageKey },
+  ]);
+  return url ?? null;
 }
