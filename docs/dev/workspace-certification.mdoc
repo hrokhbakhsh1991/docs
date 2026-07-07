@@ -132,11 +132,11 @@ input.workspaceType
 
 ### Secondary hooks (H2 / H3)
 
-| Surface | Behavior |
-| ------- | -------- |
-| Platform ops API | Same check as `provisionTenantProduction` |
-| Super Admin (H4) | UI badge stub/certified; disable prod create for stub |
-| Marketing / portal deploy docs | Runbook references certification tier |
+| Surface | Behavior | Status |
+| ------- | -------- | ------ |
+| Platform ops API (`POST /platform/v1/tenants`) | `runProvisionTenantSaga` → `assertProductionCertifiedWorkspaceType` + 422 | ✅ H4 |
+| Super Admin (H4) | UI badge stub/certified; disable prod create for stub | ✅ |
+| Marketing / portal deploy docs | Runbook references certification tier | ⏳ platform runbook only (CERT-05 partial) |
 
 ## Proof matrix (H3)
 
@@ -290,4 +290,10 @@ node apps/web/scripts/smoke-platform-create-club.mjs
 | `workspace-not-certified-error-interceptor.spec.ts` (H2 API) | 1/1 |
 | Drop-in spec H3 cases | 2/2 |
 
-**Commits (DEV):** `8d18c446` H0 · `4f76d31a` H1 · `4590d09e` H2 · `e7ef0181` H3 · `5edb6eb3` H4
+**Commits (DEV):** `8d18c446` H0 · `4f76d31a` H1 · `4590d09e` H2 · `e7ef0181` H3 · `5edb6eb3` H4 · `46f688dd` gap closure
+
+**One-shot PR verify:**
+
+```bash
+pnpm run phase-g-h:fast-track
+```

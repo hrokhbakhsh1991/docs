@@ -1003,6 +1003,8 @@ pnpm --filter @apps/web exec node --import tsx --test test/workspace-production-
 
 Full `ci:integrity` deferred until merge PR — Architect YES only.
 
+**Local PR bundle:** `pnpm run phase-g-h:fast-track`
+
 ### Phase I — Scale hardening
 
 - Performance budget for dynamic theme imports.

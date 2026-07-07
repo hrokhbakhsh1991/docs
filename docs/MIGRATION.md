@@ -56,6 +56,7 @@ pnpm run workspace:create -- <id>   # new workspace scaffold
 ```bash
 pnpm run guard:workspace-certification   # Phase H fast gate
 pnpm run guard:workspace-registry-fresh
+pnpm run phase-g-h:fast-track            # G+H PR closure bundle
 ```
 
 ## Legacy

@@ -223,5 +223,16 @@ cd apps/api && NODE_ENV=test node --import tsx --test test/0-security/als-high-l
 ## GitHub Actions
 
 - Phase 3: `.github/workflows/phase-3-gate.yml` runs `pnpm run phase-3:gate` on PR/push.
+- Phase 10 + G+H: `.github/workflows/phase-10-guard.yml` — registry, guest conformance, workspace certification, H2/H4 API+UI specs.
 - API nightly: `.github/workflows/api-nightly.yml` — scheduled `test:nightly:cold-start` (enforce) + `test:nightly:slow-sink`; not on trunk PR path.
 - Phase 4 RLS: run `pnpm run test:full` (or `phase-4:gate` with env) in a job with Postgres — not part of fast pre-commit.
+
+## Phase G+H closure fast-track (DEV → main PR)
+
+Single bundle — target under ~5 min (excludes `ci:integrity`):
+
+```bash
+pnpm run phase-g-h:fast-track
+```
+
+Authority: [`workspace-certification.mdoc`](./workspace-certification.mdoc) · [`workspace-registry-codegen-modularization.mdoc`](./workspace-registry-codegen-modularization.mdoc).

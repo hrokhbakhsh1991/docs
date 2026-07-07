@@ -61,6 +61,12 @@ on:
       - "docs/dev/guest-registration-e2e-hooks.yaml"
       - "docs/dev/adr-guest-plugin/**"
       - "docs/phase-10/**"
+      - "apps/web/test/submit-create-club-certification.spec.ts"
+      - "apps/api/src/openapi/platform-workspace-certification-openapi.ts"
+      - "apps/api/openapi/openapi.json"
+      - "apps/api/scripts/generate-openapi.mjs"
+      - "apps/api/src/middleware/error-interceptor.ts"
+      - "apps/web/src/platform/create-club/submit-create-club.ts"
       - ".github/workflows/phase-10-guard.yml"
   workflow_dispatch:
 
@@ -80,11 +86,10 @@ jobs:
       - run: node --test scripts/test/workspace-registry-drop-in.spec.mjs
       - run: node --test scripts/test/workspace-production-certification.spec.mjs
       - run: pnpm run guard:workspace-certification
+      - run: node --test scripts/test/workspace-certification-guard.spec.mjs
       - run: pnpm --filter @apps/api exec node --import tsx --test test/provision-tenant-production.spec.ts
       - run: pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
-      - "apps/api/src/openapi/platform-workspace-certification-openapi.ts"
-      - "apps/api/src/middleware/error-interceptor.ts"
-      - "apps/api/test/workspace-not-certified-error-interceptor.spec.ts"
-      - "apps/web/test/submit-create-club-certification.spec.ts"
       - run: pnpm --filter @apps/api exec node --import tsx --test test/workspace-not-certified-error-interceptor.spec.ts
+      - run: pnpm --filter @apps/web exec node --import tsx --test test/workspace-production-certification-badge.spec.ts
+      - run: pnpm --filter @apps/web exec node --import tsx --test test/use-create-club-wizard.spec.ts
       - run: pnpm --filter @apps/web exec node --import tsx --test test/submit-create-club-certification.spec.ts
