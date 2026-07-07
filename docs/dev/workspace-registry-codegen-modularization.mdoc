@@ -250,10 +250,11 @@ Moved `scripts/member-portal-contract-codegen.mjs` into `scripts/codegen/workspa
 | `guard:architecture` / `guard:import-boundary` | PASS |
 | `guard:no-workspace-ids-in-codegen` | PASS |
 | `guard:member-portal-registry` | PASS |
-| `workspace-registry-drop-in.spec.mjs` | 25/25 |
+| `workspace-registry-drop-in.spec.mjs` | 28/28 |
 | `phase-6:guard` | PASS |
-| `phase-10:guard` | PASS |
+| `phase-10:guard` | PASS (11/11) |
 | `guard-guest-plugin-conformance` | PASS |
+| `phase-i:closure` | PASS |
 
 ### Merge readiness (`origin/DEV`)
 
@@ -264,7 +265,9 @@ Moved `scripts/member-portal-contract-codegen.mjs` into `scripts/codegen/workspa
 | `373b2d7c` | Gate fixes (marketing starter, finance allowlist) |
 | `8d18c446`–`5edb6eb3` | Phase H H0–H4 |
 | `46f688dd`–`07308630` | Gap closure, CI YAML, `phase-g-h:fast-track` |
+| `1d12cbb3` | Phase I I1+I2 (theme budget + plugin load cache) |
+| `d74b5498` | G+H+I PR pack unification |
 
 **PR:** `pnpm run phase-g-h:create-pr` or [compare main...DEV](https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1)
 
-**Pre-merge verify:** `pnpm run phase-g-h:fast-track` (required). `ci:integrity` — Architect YES only.
+**Pre-merge verify:** `pnpm run phase-i:closure` (required). `ci:integrity` — Architect YES only.
