@@ -28,7 +28,8 @@ echo "phase-6:defensive-guards: identity directory static specs"
 pnpm --filter @apps/api exec node --import tsx --test \
   test/operator-avatar-batch.spec.ts \
   test/service-batch-patterns.spec.ts \
-  test/identity-directory-pagination.spec.ts
+  test/identity-directory-pagination.spec.ts \
+  test/bookings-member-summary-projection.spec.ts
 
 pnpm run guard:wrs-stale-docs
 pnpm run guard:pcms-authority
