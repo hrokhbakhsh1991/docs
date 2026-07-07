@@ -52,6 +52,10 @@ import {
 } from "../infrastructure/prisma-integration-policy.repository";
 import { createIntegrationConnectionRepository } from "../infrastructure/prisma-integration-connection.repository";
 import {
+  parseIntegrationEventPolicyPatches,
+  syncIntegrationEventPoliciesInTransaction,
+} from "../infrastructure/sync-integration-event-policies";
+import {
   recordIntegrationConnectionCreated,
   recordIntegrationConnectionCreateFailed,
 } from "../../observability/metrics";
@@ -571,7 +575,7 @@ async function loadConnectionPoliciesAndIntents(
 }
 
 function appendTourPublishedPolicyDriftWarning(
-  row: IntegrationConnectionRecord & { createdAt?: Date; updatedAt?: Date },
+  row: IntegrationConnectionRecord,
   policies: readonly { readonly eventType: string; readonly enabled: boolean }[],
   loadWarnings: IntegrationConnectionLoadWarning[],
 ): void {
@@ -594,7 +598,7 @@ function appendTourPublishedPolicyDriftWarning(
 
 async function toPublicDto(
   tenantId: string,
-  row: IntegrationConnectionRecord & { createdAt?: Date; updatedAt?: Date }
+  row: IntegrationConnectionRecord
 ): Promise<IntegrationConnectionPublicDto> {
   const { policies, exposureIntents, loadWarnings } = await loadConnectionPoliciesAndIntents(
     tenantId,
@@ -622,8 +626,8 @@ async function toPublicDto(
       })),
     }),
     exposureIntents,
-    createdAt: row.createdAt?.toISOString() ?? new Date(0).toISOString(),
-    updatedAt: row.updatedAt?.toISOString() ?? new Date(0).toISOString(),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
     backingSource: "integration_connection",
     legacySourceId: null,
     actionsAllowed: integrationConnectionActionsAllowed(),
@@ -747,18 +751,7 @@ export async function listWorkspaceIntegrations(
       workspaceType,
     });
 
-    connectionItems = await Promise.all(
-      rows.map(async (row) => {
-        const full = await withTenantRls(auth.tenantId, async (tx) =>
-          tx.integrationConnection.findUnique({ where: { id: row.id } })
-        );
-        return toPublicDto(auth.tenantId, {
-          ...row,
-          createdAt: full?.createdAt,
-          updatedAt: full?.updatedAt,
-        });
-      })
-    );
+    connectionItems = await Promise.all(rows.map((row) => toPublicDto(auth.tenantId, row)));
   } catch {
     // Degraded operator settings read when integration schema is not fully armed.
   }
@@ -864,26 +857,20 @@ export async function patchIntegration(
     }
 
     if (Array.isArray(record.eventPolicies)) {
-      for (const entry of record.eventPolicies) {
-        if (typeof entry !== "object" || entry === null) continue;
-        const policy = entry as Record<string, unknown>;
-        const eventType = typeof policy.eventType === "string" ? policy.eventType.trim() : "";
-        if (eventType.length === 0) continue;
-        const enabled = policy.enabled === true;
-        await tx.integrationEventPolicy.upsert({
-          where: {
-            integrationConnectionId_eventType: {
-              integrationConnectionId: existing.id,
-              eventType,
-            },
-          },
-          create: {
-            tenantId: auth.tenantId,
-            integrationConnectionId: existing.id,
-            eventType,
-            enabled,
-          },
-          update: { enabled },
+      const meta = buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
+      const providerMeta = meta.providers.find((provider) => provider.id === existing.provider);
+      const allowedEventTypes = new Set(
+        providerMeta?.defaultEventPolicies.map((policy) => policy.eventType) ?? []
+      );
+      const policyPatches = parseIntegrationEventPolicyPatches(
+        record.eventPolicies,
+        allowedEventTypes
+      );
+      if (policyPatches.length > 0) {
+        await syncIntegrationEventPoliciesInTransaction(tx, {
+          tenantId: auth.tenantId,
+          connectionId: existing.id,
+          policies: policyPatches,
         });
       }
     }
@@ -1377,6 +1364,8 @@ function mapRow(row: {
   config: Prisma.JsonValue;
   credentials: Prisma.JsonValue;
   secretRef: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }): IntegrationConnectionRecord {
   const capabilitiesRaw = Array.isArray(row.capabilities) ? row.capabilities : [];
   const capabilities = capabilitiesRaw.filter(
@@ -1400,5 +1389,7 @@ function mapRow(row: {
       typeof row.credentials === "object" && row.credentials !== null
         ? (row.credentials as Record<string, unknown>)
         : {},
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }

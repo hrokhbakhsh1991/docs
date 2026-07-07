@@ -154,9 +154,8 @@ Operator directory paginates in the repository — not load-all then filter/slic
 |-------------------|---------|
 | `countMembershipsDirectory` | `withTenantRls` + `userTenant.count({ where: buildUserTenantDirectoryWhere(...) })` |
 | `listMembershipsWithUsersDirectoryPage` | SQL `skip`/`take` or raw `ORDER BY displayName` for name sorts |
-| `findUsersByIds(userIds)` | Global `users.findMany({ where: { id: { in } }, take: uniqueIds.length })` — bulk prefetch + role history |
+| `findUsersByIds(userIds)` | Global `users.findMany` with bounded `in` — bulk prefetch, role history actor lookup |
 | `findMembershipsByUserIds(tenantId, userIds)` | `userTenant.findMany` with bounded `in` — bulk mutation prefetch |
-| `findUsersByIds(userIds)` | Used by `getWorkspaceUserRoleHistory` actor batch lookup |
 
 Filters: [`users-directory-list-projection.ts`](../../apps/api/src/identity/users-directory-list-projection.ts) · in-memory sort parity: [`users-directory-query.ts`](../../apps/api/src/identity/users-directory-query.ts).
 
