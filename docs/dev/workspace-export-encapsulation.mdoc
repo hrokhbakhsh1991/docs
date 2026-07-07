@@ -1,0 +1,43 @@
+---
+title: Workspace export encapsulation
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/denali-plugin-encapsulation.mdoc
+---
+
+# Workspace export encapsulation
+
+Canonical reference for Phase 6 P2 export surfaces across all workspaces (`denali`, `urban`, `starter`, `guest-club`).
+
+## Contract vs host
+
+| Layer | `package.json` keys | Consumer rule |
+| ----- | ------------------- | ------------- |
+| **Plugin contract** | `.`, `./plugin`, `./theme/*`, `./settings/*` | Registry, theme loaders, settings enrichers, operator settings surfaces |
+| **Host modules** | `./host/*` | API HTTP wiring, wizard UI, finance, photos, smoke fixtures |
+
+Root barrel (`@app-tour/workspace-*`) must **only** re-export plugin contract symbols. Platform settings dispatch imports **`./settings/...`**; other host wiring uses explicit `./host/...` subpaths (or `./plugin`).
+
+## Settings contract revert (2026-07)
+
+Phase 6 P2 briefly moved settings modules under `./host/settings/*`. That coupled `apps/api` to Denali host internals. Settings modules declared in manifest (`settingsEnrichers`, `devBootstrap`, settings web surfaces) now export as **`./settings/*`** again; codegen `importSpecifier()` preserves the manifest path without `/host/` prefix.
+
+## Migration (post-P2 completion)
+
+| Former | Target |
+| ------ | ------ |
+| `@app-tour/workspace-denali/host/settings/*` | `@app-tour/workspace-denali/settings/*` |
+| `@app-tour/workspace-denali` (finance, photos, draft, acl, smoke) | `@app-tour/workspace-denali/host/<module>` |
+| `@app-tour/workspace-denali` (`getDenaliWorkspacePlugin`) | `@app-tour/workspace-denali/plugin` |
+| `@app-tour/workspace-urban` (`URBAN_SMOKE_*`, validation) | `@app-tour/workspace-urban/host/smoke/*` or `/host/http` |
+| `@app-tour/workspace-urban` (`getUrbanWorkspacePlugin`) | `@app-tour/workspace-urban/plugin` |
+
+Codemod: `node scripts/codemods/retarget-denali-urban-root-imports.mjs`
+
+## CI
+
+- `pnpm run guard:workspace-export-surface` — export key allowlist
+- `pnpm run guard:denali-plugin-surface` / `guard:urban-plugin-surface` — `./plugin` symbol allowlist
+
+See also: [`denali-plugin-encapsulation.mdoc`](denali-plugin-encapsulation.mdoc) for codegen `importSpecifier()` rules and migration map.

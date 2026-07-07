@@ -1,0 +1,104 @@
+---
+title: Denali plugin export encapsulation
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/workspace-plugin-bootstrap-resilience.mdoc
+---
+
+# Denali plugin export encapsulation
+
+`@app-tour/workspace-denali/plugin` is the **host contract entry** referenced by `workspace.manifest.json` (`plugin.entry`, `plugin.export`).
+
+Phase 6 P2 splits workspace **package.json exports** into three layers:
+
+1. **Plugin Contract** — `./`, `./plugin`, `./theme/*`, `./settings/*` (manifest-declared settings modules; platform API and web bootstrap may import without crossing host encapsulation).
+2. **Host modules** — everything else manifest-bound under `./host/*` (HTTP handlers, wizard UI, finance, photos, smoke fixtures).
+3. **Internal** — `src/internal.ts` barrels; never exported.
+
+All four workspaces (`denali`, `urban`, `starter`, `guest-club`) follow the same rule; CI enforces it via `guard:workspace-export-surface`.
+
+## Allowed `./plugin` exports (Denali)
+
+| Symbol | Purpose |
+| ------ | ------- |
+| `getDenaliWorkspacePlugin` | Manifest `plugin.export` — returns frozen `WorkspacePlugin` |
+| `createDenaliWorkspacePlugin` | Factory for tests and fresh instances |
+| `DENALI_WORKSPACE_PLUGIN_ID` | Stable plugin id (`"denali"`) |
+| `DENALI_WORKSPACE_TYPE` | Workspace-type binding |
+| `DENALI_THEME_TOKENS_STYLESHEET` | Theme codegen path |
+| `DENALI_THEME_ADMIN_STYLESHEET` | Admin skin bundle path |
+
+Urban mirrors the same six-symbol contract (`guard:urban-plugin-surface`). Guest-club and starter expose plugin factory + theme identity on `./plugin` / root only.
+
+## `./settings/*` contract surface
+
+Manifest-bound **operator settings** modules (`settingsEnrichers`, `devBootstrap.wizardTemplate`, `web.surfaces` for settings UI) export as `./settings/<module>` keys — **not** under `./host/settings/*`. This keeps `apps/api` settings dispatch (`workspace-settings-enrichers.generated.ts`, `parse-equipment-icon-key.ts`) on a stable platform contract instead of Denali host internals.
+
+| Manifest field | Example `module` | Generated import |
+| -------------- | ---------------- | ---------------- |
+| `settingsEnrichers[].module` | `./settings/theme-compatible-categories` | `@app-tour/workspace-denali/settings/theme-compatible-categories` |
+| `devBootstrap.wizardTemplate.module` | `./settings/denaliFullWizardTemplate` | `@app-tour/workspace-denali/settings/denaliFullWizardTemplate` |
+| `web.surfaces[].module` (settings) | `./settings/wizard-template-editor` | `@app-tour/workspace-denali/settings/wizard-template-editor` |
+
+**Codegen rule:** `importSpecifier(pkg, entry)` treats `./settings/*` as contract (no `/host/` prefix). See `isWorkspaceContractExportPath()` in `scripts/codegen/workspace-registry/utils.mjs`.
+
+**API isolation guard:** `guard:api-workspace-isolation` scans **`apps/api/src/**`** — forbids `@app-tour/workspace-*/host/settings/*` everywhere; other `@app-tour/workspace-*/host/*` imports only in `*.generated.ts` or the shrinking legacy allowlist in [`guard-api-workspace-isolation.mjs`](../../scripts/guards/guard-api-workspace-isolation.mjs).
+
+## `./host/*` export surface
+
+Non-contract modules (HTTP handlers, wizard UI, finance adapters, draft helpers, smoke fixtures, i18n JSON) are exported only as `./host/<path>` keys in `package.json`. The sync script `scripts/sync-workspace-host-exports.mjs` keeps dist paths aligned with `src/`.
+
+**Codegen rule:** `importSpecifier(pkg, entry)` in `scripts/codegen/workspace-registry/utils.mjs` maps manifest module paths to `@app-tour/workspace-*/host/...` unless `entry` is contract (`./plugin`, `./theme/*`, `./settings/*`, or package root).
+
+Example manifest → import:
+
+| Manifest field | Example value | Generated import |
+| -------------- | ------------- | ---------------- |
+| `settingsEnrichers[].module` | `./settings/equipment-compatible-categories` | `@app-tour/workspace-denali/settings/equipment-compatible-categories` |
+| `httpRoutes.handlerPackage` | `@app-tour/workspace-denali/host/http` | `@app-tour/workspace-denali/host/http` |
+| `catalogRegistrationFlow.surfaceModule` | `./catalog-registration-flow` | `@app-tour/workspace-denali/host/catalog-registration-flow` |
+| `web.surfaces[].webModule` | `./ui/composite-surface` | `@app-tour/workspace-denali/host/ui/composite-surface` |
+
+## `internal.ts` convention
+
+- Path: `packages/workspaces/<id>/src/internal.ts` (Urban: split from former fat plugin)
+- **Not** listed in `package.json` `exports` — workspace-private barrel only
+- In-workspace imports: `from "../internal"` or leaf module paths
+- Cross-package consumers must use `./settings/*`, `./host/*` subpaths, or plugin contract — never deep `src/` paths
+
+## CI enforcement
+
+| Guard | Scope |
+| ----- | ----- |
+| `pnpm run guard:denali-plugin-surface` | `./plugin` export allowlist (6 symbols) |
+| `pnpm run guard:urban-plugin-surface` | `./plugin` export allowlist (5 symbols) |
+| `pnpm run guard:workspace-export-surface` | All workspace `package.json` — contract + `./settings/*` + `./host/*` keys |
+| `pnpm run guard:api-workspace-isolation` | `apps/api/src/**` — settings contract + host import ratchet |
+
+Wired into `phase-6:fast-track`.
+
+## Migration map (pre-P2 → post-P2)
+
+| Former import | New import |
+| ------------- | ---------- |
+| `@app-tour/workspace-denali/wizard/wizard-rules-surface` | `@app-tour/workspace-denali/host/wizard/wizard-rules-surface` |
+| `@app-tour/workspace-denali/adapters/canonical-basics` | `@app-tour/workspace-denali/host/adapters/canonical-basics` |
+| `@app-tour/workspace-denali/http` | `@app-tour/workspace-denali/host/http` |
+| `@app-tour/workspace-denali/ui/*` | `@app-tour/workspace-denali/host/ui/*` |
+| `@app-tour/workspace-denali/messages/*/wizard.json` | `@app-tour/workspace-denali/host/messages/*/wizard.json` |
+| `@app-tour/workspace-guest-club/guest-club.plugin` | `@app-tour/workspace-guest-club/plugin` |
+| `@app-tour/workspace-starter/exposure` | `@app-tour/workspace-starter/host/exposure` |
+| `@app-tour/workspace-urban/http` | `@app-tour/workspace-urban/host/http` |
+| `@app-tour/workspace-denali/host/settings/*` (regression) | `@app-tour/workspace-denali/settings/*` |
+| `@app-tour/workspace-denali` (root barrel — finance, photos, …) | `@app-tour/workspace-denali/host/<module>` or `/plugin` |
+
+Contract paths **unchanged:** `@app-tour/workspace-*/plugin`, `@app-tour/workspace-*/theme/*`, `@app-tour/workspace-*/settings/*`.
+
+## Regenerate after manifest or export changes
+
+```bash
+pnpm run generate:workspace-registry
+```
+
+Produces 57 outputs from four manifests (HTTP routes, plugin loaders, wizard bindings, registration transport, theme CSS, etc.).

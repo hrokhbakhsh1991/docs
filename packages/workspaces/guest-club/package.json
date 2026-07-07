@@ -10,28 +10,28 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./guest-club.plugin": {
+    "./plugin": {
       "types": "./dist/guest-club.plugin.d.ts",
       "default": "./dist/guest-club.plugin.js"
     },
     "./theme/tokens.css": "./theme/tokens.css",
-    "./catalog": {
+    "./host/catalog": {
       "types": "./dist/catalog/index.d.ts",
       "default": "./dist/catalog/index.js"
     },
-    "./catalog-registration-flow": {
+    "./host/catalog-registration-flow": {
       "types": "./dist/catalog/registration-flow/index.d.ts",
       "default": "./dist/catalog/registration-flow/index.js"
     },
-    "./catalog-registration-flow/react": {
+    "./host/catalog-registration-flow/react": {
       "types": "./dist/catalog/registration-flow/react.d.ts",
       "default": "./dist/catalog/registration-flow/react.js"
     },
-    "./http": {
+    "./host/http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
     },
-    "./http/routes": {
+    "./host/http/routes": {
       "types": "./dist/http/routes.d.ts",
       "default": "./dist/http/routes.js"
     },

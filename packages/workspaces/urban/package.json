@@ -14,43 +14,51 @@
       "types": "./dist/urban.plugin.d.ts",
       "default": "./dist/urban.plugin.js"
     },
-    "./catalog-registration-flow": {
+    "./host/catalog-registration-flow": {
       "types": "./dist/catalog/registration-flow/index.d.ts",
       "default": "./dist/catalog/registration-flow/index.js"
     },
-    "./catalog-registration-flow/react": {
+    "./host/catalog-registration-flow/react": {
       "types": "./dist/catalog/registration-flow/react.d.ts",
       "default": "./dist/catalog/registration-flow/react.js"
     },
-    "./http": {
+    "./host/http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
     },
-    "./http/routes": {
+    "./host/http/routes": {
       "types": "./dist/http/routes.d.ts",
       "default": "./dist/http/routes.js"
     },
-    "./tours": {
+    "./host/tours": {
       "types": "./dist/tours/index.d.ts",
       "default": "./dist/tours/index.js"
     },
-    "./auth": {
+    "./host/auth": {
       "types": "./dist/auth/index.d.ts",
       "default": "./dist/auth/index.js"
     },
-    "./catalog": {
+    "./host/catalog": {
       "types": "./dist/catalog/index.d.ts",
       "default": "./dist/catalog/index.js"
     },
-    "./exposure": {
+    "./host/exposure": {
       "types": "./dist/exposure/index.d.ts",
       "default": "./dist/exposure/index.js"
+    },
+    "./host/smoke/phase-7-urban-smoke-tenant": {
+      "types": "./dist/smoke/phase-7-urban-smoke-tenant.d.ts",
+      "default": "./dist/smoke/phase-7-urban-smoke-tenant.js"
+    },
+    "./settings/urbanMinimalWizardTemplate": {
+      "types": "./dist/settings/urbanMinimalWizardTemplate.d.ts",
+      "default": "./dist/settings/urbanMinimalWizardTemplate.js"
     },
     "./theme/tokens.css": "./theme/tokens.css",
     "./theme/urban-marketing.css": "./theme/urban-marketing.css",
     "./theme/urban-portal.css": "./theme/urban-portal.css",
-    "./messages/fa/wizard.json": "./messages/fa/wizard.json",
-    "./messages/en/wizard.json": "./messages/en/wizard.json"
+    "./host/messages/fa/wizard.json": "./messages/fa/wizard.json",
+    "./host/messages/en/wizard.json": "./messages/en/wizard.json"
   },
   "files": [
     "dist",
