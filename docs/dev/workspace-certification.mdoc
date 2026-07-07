@@ -190,7 +190,7 @@ node apps/web/scripts/smoke-platform-create-club.mjs
 pnpm --filter @apps/api run openapi:generate
 ```
 
-Full monorepo gate (`ci:integrity`) deferred until Phase H closure PR — same policy as Phase G.
+Full monorepo gate (`ci:integrity`) deferred per Architect YES policy — G+H merged via [#19](https://github.com/hrokhbakhsh1991/docs/pull/19).
 
 ## H1 status (2026-07-07)
 
@@ -292,23 +292,13 @@ node apps/web/scripts/smoke-platform-create-club.mjs
 
 **Commits (DEV):** `d7d5d6a5` G · `4f76d31a` H1 · `4590d09e` H2 · `e7ef0181` H3 · `5edb6eb3` H4 · `46f688dd` gaps · `736816ce` closure · `07308630` CI · `1d12cbb3` I1+I2 · `d74b5498` PR pack
 
-**One-shot PR verify:**
+**Trunk verify (post-merge):**
 
 ```bash
-pnpm run phase-i:closure   # G+H regression + I1/I2 guards
+pnpm run phase-i:closure   # G+H regression + I1/I2 guards on main
+pnpm run phase-g-h:handoff
 ```
 
-**Create PR (Architect approved):**
+**Merged:** [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) (`6b27d9f6` · docs `03755f09`).
 
-```bash
-pnpm run phase-g-h:create-pr
-# or manually:
-gh auth login
-gh pr create --base main --head DEV \
-  --title "Phase G+H+I: registry modularization, production certification, scale hardening" \
-  --body-file docs/dev/phase-g-h-pr-body.md
-```
-
-Compare UI: https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1
-
-**Phase I:** **I0–I2 closed** on `DEV` — see [workspace-scale-hardening.mdoc](./workspace-scale-hardening.mdoc). I3 optional (Architect YES).
+**Phase I:** **I0–I2 closed** on `main` — see [workspace-scale-hardening.mdoc](./workspace-scale-hardening.mdoc). I3 optional (Architect YES).

@@ -34,7 +34,7 @@ pnpm run phase-i:closure   # G+H regression + I1/I2 guards
 ## Test plan
 
 - [x] `pnpm run phase-i:closure` green locally
-- [x] GHA `phase-10-guard` green on `DEV` (`61954281`)
+- [x] GHA `phase-10-guard` green on PR #19 (merged to `main`)
 - [x] PR [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) merged to `main` (`6b27d9f6`)
 - [x] GHA `phase-10-guard` green on PR
 - [x] Proof matrix — `guard:workspace-certification` + `workspace-certification-proof-matrix.yaml` (denali certified)

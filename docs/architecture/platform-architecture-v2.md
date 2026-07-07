@@ -1014,7 +1014,7 @@ Full `ci:integrity` deferred until merge PR — Architect YES only.
 
 - **I1:** Bounded dynamic theme CSS imports per surface — admin ≤1, guest ≤2 (starter base + plugin overlay); `guard:theme-import-budget`.
 - **I2:** `workspace-plugin-load-cache.ts` — promise cache keyed by `pluginId`, max entries = trunk count, revision bust on codegen regen; `invalidateWorkspacePluginLoadCache()` for dev/tests.
-- **Local PR bundle:** `pnpm run phase-i:closure` · `pnpm run phase-g-h:handoff` · `pnpm run phase-g-h:create-pr`
+- **Local verify on trunk:** `pnpm run phase-i:closure` · `pnpm run phase-g-h:handoff`
 
 **Not in scope:** API `tenant-registry-cache` (DEC-068/074 — already shipped).
 
