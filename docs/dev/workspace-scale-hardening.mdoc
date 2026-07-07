@@ -21,11 +21,11 @@ Phase I hardens **runtime scale** for the manifest-driven workspace platform: bo
 | Phase G modular codegen on `DEV` | ✅ | No | No |
 | Phase H certification (H0–H4) on `DEV` | ✅ | No | No |
 | `pnpm run phase-g-h:fast-track` green | ✅ | No | No |
-| G+H merge PR → `main` | ⏳ | **No** (I0 parallel on `DEV`) | **Recommended** before I1 merge |
+| G+H+I merge PR → `main` | ⏳ **ready** — `gh auth login` + `pnpm run phase-g-h:create-pr` | No | No |
 | `ci:integrity` full gate | ⏳ deferred | No | Architect YES only |
-| Phase I0 Architect review | ✅ | I1 implemented on `DEV` | — |
+| Phase I0–I2 on `DEV` | ✅ | — | — |
 
-**Answer:** Phase I **I0–I2 are closed on `DEV`**. I3 (lazy sync registry) remains optional — Architect YES only. G+H merge PR recommended before I lands on `main`.
+**Answer:** Phase I **I0–I2 are closed on `DEV`** and pushed to `origin/DEV`. Open merge PR via `pnpm run phase-g-h:create-pr` (runs `phase-i:closure` first). I3 optional — Architect YES only.
 
 ## Problem
 

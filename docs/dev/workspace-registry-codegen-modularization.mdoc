@@ -172,7 +172,7 @@ Orchestrator imports the above; entry script re-exports test-facing symbols. **~
 | `generate:workspace-registry --check` | PASS (4 manifests, zero `*.generated.ts` drift) |
 | `guard:import-boundary` | PASS |
 | `guard:architecture` | PASS (0 depcruise violations) |
-| `workspace-registry-drop-in.spec.mjs` | 25/25 pass |
+| `workspace-registry-drop-in.spec.mjs` | 28/28 pass |
 
 ## G2 progress (2026-07-07)
 
@@ -209,7 +209,7 @@ Orchestrator imports the above; entry script re-exports test-facing symbols. **~
 | unknown `--domain=invalid` | throws with valid id list |
 | `guard:import-boundary` | PASS |
 | `guard:architecture` | PASS |
-| `workspace-registry-drop-in.spec.mjs` | 25/25 pass |
+| `workspace-registry-drop-in.spec.mjs` | 28/28 pass |
 
 **G3 complete.** **G4 complete (2026-07-07)** — member portal fold below.
 
@@ -235,7 +235,7 @@ Moved `scripts/member-portal-contract-codegen.mjs` into `scripts/codegen/workspa
 | `guard:no-workspace-ids-in-codegen` | PASS (target path updated) |
 | `guard:member-portal-registry` | PASS |
 
-**Phase G closure (G0–G4):** monolith fully modularized; drop-in spec green (25/25). Optional future work: preset manifest-only admission (remove `MEMBER_PORTAL_PRESETS` object when all workspaces inline modules).
+**Phase G closure (G0–G4):** monolith fully modularized; drop-in spec green (28/28 incl. Phase I2 codegen test). Optional future work: preset manifest-only admission (remove `MEMBER_PORTAL_PRESETS` object when all workspaces inline modules).
 
 **Phase H (closed):** [workspace-certification.mdoc](./workspace-certification.mdoc) — H0–H4 on `DEV` (`productionTier`, provision gates, guard, Super Admin UX).
 

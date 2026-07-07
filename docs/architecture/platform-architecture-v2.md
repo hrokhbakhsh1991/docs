@@ -989,21 +989,13 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 - **certified** required for `provisionTenantProduction`; dev provisioning unchanged.
 - Closes risk **R10** (stub workspaces in prod matrix) — `productionTier` + provision gates + Super Admin UX.
 
-**Closure verification (fast-track):**
+**Closure verification:**
 
 ```bash
-pnpm run guard:workspace-certification
-pnpm run phase-10:guard
-node --test scripts/test/workspace-certification-guard.spec.mjs
-node --test scripts/test/workspace-production-certification.spec.mjs
-pnpm --filter @apps/api exec node --import tsx --test test/provision-tenant-production.spec.ts
-pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
-pnpm --filter @apps/web exec node --import tsx --test test/workspace-production-certification-badge.spec.ts
+pnpm run phase-i:closure
 ```
 
 Full `ci:integrity` deferred until merge PR — Architect YES only.
-
-**Local PR bundle:** `pnpm run phase-i:closure`
 
 ### Phase I — Scale hardening (I0–I2 closed 2026-07-07)
 

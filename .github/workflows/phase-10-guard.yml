@@ -7,7 +7,10 @@ on:
   push:
     branches:
       - main
+      - DEV
   pull_request:
+    branches:
+      - main
     paths:
       - "packages/workspaces/**"
       - "packages/workspace-sdk/**"
@@ -81,12 +84,16 @@ on:
       - "apps/portal/app/layout.tsx"
       - "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
       - "apps/marketing/app/layout.tsx"
+      - "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
       - "scripts/guards/guard-workspace-plugin-load-cache.mjs"
       - "scripts/guards/lib/workspace-plugin-load-cache-guard.mjs"
       - "scripts/test/workspace-plugin-load-cache-guard.spec.mjs"
       - "apps/web/src/bootstrap/workspace-plugin-load-cache.ts"
       - "apps/web/test/workspace-plugin-load-cache.spec.ts"
       - "apps/api/test/workspace-not-certified-error-interceptor.spec.ts"
+  workflow_dispatch:
+
+jobs:
   phase-10-guard:
     runs-on: ubuntu-latest
     steps:
