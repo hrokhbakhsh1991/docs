@@ -250,5 +250,17 @@ Moved `scripts/member-portal-contract-codegen.mjs` into `scripts/codegen/workspa
 | `guard:member-portal-registry` | PASS |
 | `workspace-registry-drop-in.spec.mjs` | 25/25 |
 | `phase-6:guard` | PASS |
+| `phase-10:guard` | PASS |
+| `guard-guest-plugin-conformance` | PASS |
 
-`pre-commit:fast` / `test:changed` — run before merge PR (git-aware; may take several minutes).
+### Merge readiness (`origin/DEV`)
+
+| Commit | Scope |
+| ------ | ----- |
+| `d7d5d6a5` | Phase G modularization (G0–G4) |
+| `f5a7eab8` | Architecture v2 closure notes |
+| `373b2d7c` | Marketing starter dep + finance factory allowlist (gates) |
+
+PR: [`main...DEV`](https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1) — requires `gh auth` locally or GitHub UI.
+
+`pre-commit:fast` / `test:changed` — run before merge (git-aware; may take several minutes). `ci:integrity` — Architect YES only.
