@@ -15,6 +15,8 @@
 
 Generator: `scripts/generate-workspace-registry.mjs` → `resolveGuestConformanceLevel()` → `packages/workspace-sdk/src/catalog/workspace-guest-conformance.generated.ts`.
 
+**Production certification (Phase H):** separate axis `stub | certified` — see [workspace-certification.mdoc](./workspace-certification.mdoc). Technical L3 ≠ production-ready.
+
 Member portal SSOT: `memberPortal.availability` in manifest → `WORKSPACE_MEMBER_PORTAL_CONTRACTS` (see [member-portal-registry-schema.mdoc](../phase-19/member-portal-shell/member-portal-registry-schema.mdoc)).
 
 Runtime resolver: `resolveGuestConformanceLevelForPlugin(pluginId)` — fail-closed (`GuestConformanceNotConfiguredError`).

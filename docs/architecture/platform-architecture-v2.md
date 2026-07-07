@@ -764,14 +764,14 @@ Full conflict inventory, C4 mitigation (F9-4), and guards: [dtcg-pipeline-spec.m
 |----|------|----------|--------|-------------|-------------------|-------------------------|
 | R1 | DTCG not build authority | **Critical** | Token implementation rebuild twice | **High** | Drift, wrong colors in prod | Invert pipeline before coding |
 | R2 | Denali privilege in `apps/web` | **Critical** | New workspaces need platform edits | **High** | 100 workspaces = 100 branches | Generated wizard bindings only |
-| R3 | Monolithic codegen | **High** | Merge pain, slow CI | **High** | Team parallelism collapses | Split domain generators |
+| R3 | Monolithic codegen | **High** | Merge pain, slow CI | **High** | Team parallelism collapses | **Resolved Phase G** — domain modules + per-domain `--check` |
 | R4 | Admin appearance in TSX | **High** | Theming impossible at scale | **High** | White-label admin fails | Admin skin program + AST guards |
 | R5 | `platform-neutral-portal` in design-tokens | **High** | Split skin ownership | **Medium** | Cascade bugs at 100 themes | Move to starter workspace skin |
 | R6 | Member portal presets | **Medium** | Violates P1 | **High** | New IA requires codegen edit | Manifest-only modules |
 | R7 | MASTER.md parallel SSOT | **Medium** | Designer/dev drift | **High** | Wrong brand in workspace | Generate or demote |
 | R8 | shell-bridge scope creep | **Medium** | Bridge changes break admin+guest | **Medium** | Fragile theming | Split bridge vs operator CSS |
 | R9 | Urban API guards | **Medium** | Workspace #5 needs API patch | **Medium** | API not plugin-generic | Manifest-driven capability flags |
-| R10 | Stub workspaces in prod matrix | **Low** | False confidence in equality | **High** | Visual/regression gaps | Conformance tiers: stub vs certified |
+| R10 | Stub workspaces in prod matrix | **Low** | False confidence in equality | **High** | Visual/regression gaps | **Phase H** — `productionTier` + prod provision gate ([workspace-certification.mdoc](../dev/workspace-certification.mdoc)) |
 | R11 | DTCG `accent`→`warning` mapping | **Low** | Wrong semantic generation | **Medium** | Broken CTA colors | Fix schema before generate |
 | R12 | 69 guards without admin coverage | **Medium** | Green CI, red admin debt | **High** | Security/brand inconsistency | Extend appearance AST to admin |
 | R13 | Over-engineered guard surface | **Low** | Maintenance cost | **Medium** | Slower iteration | Consolidate to schema-driven guards |
@@ -973,10 +973,23 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 - **Invariant preserved:** generated `*.generated.ts` byte-identical through Phase G closure.
 - Legacy `scripts/member-portal-contract-codegen.mjs` is a re-export shim only.
 
-### Phase H — Workspace certification
+### Phase H — Workspace certification (H0 in progress)
 
-- Define stub vs certified conformance tiers.
-- Require certified tier for production tenant onboarding.
+**Spec:** [workspace-certification.mdoc](../dev/workspace-certification.mdoc)
+
+| Slice | Status |
+| ----- | ------ |
+| H0 doc pack (stub vs certified, enforcement, proof matrix) | ✅ draft |
+| H1 manifest + codegen (`workspace-production-certification.generated.ts`) | ⏳ |
+| H2 `provisionTenantProduction` fail-closed | ⏳ |
+| H3 `guard:workspace-certification` + proof matrix | ⏳ |
+| H4 Super Admin UX (optional) | ⏳ |
+
+- **Technical L0–L4** (guest conformance) exists — Phase H adds **productionTier: stub \| certified**.
+- **certified** required for `provisionTenantProduction`; dev provisioning unchanged.
+- Closes risk **R10** (stub workspaces in prod matrix).
+
+**Prerequisite:** Phase G PR merge recommended before H1 codegen.
 
 ### Phase I — Scale hardening
 
