@@ -35,6 +35,7 @@ describe("workspace:create --guest", () => {
       const manifest = JSON.parse(readFileSync(join(dir, "workspace.manifest.json"), "utf8"));
 
       assert.equal(manifest.guestExtensionsVersion, 1);
+      assert.deepEqual(manifest.guestConformance, { productionTier: "stub" });
       assert.equal(manifest.httpRoutes.loadHandlersFromPackage, true);
       assert.equal(resolveGuestConformanceLevel(manifest), "L3");
       assert.deepEqual(manifest.catalogRegistrationFlow.steps, {
@@ -77,6 +78,14 @@ describe("workspace:create --guest", () => {
           whyDenali: false,
           journey: false,
           testimonials: false,
+          featuredTours: false,
+          featuredToursLimit: 0,
+          categories: false,
+          destinations: false,
+          heroSearch: false,
+          gallery: false,
+          equipment: false,
+          blogTeaser: false,
         },
         i18nProfile: "minimal",
       });

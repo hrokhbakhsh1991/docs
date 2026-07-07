@@ -67,6 +67,9 @@ export function buildGuestManifestObject(id) {
     workspaceTypes: [ctx.id],
     plugin: { entry: `./${ctx.id}.plugin`, export: ctx.exportFn },
     web: { entry: `./${ctx.id}.plugin`, export: ctx.exportFn },
+    guestConformance: {
+      productionTier: "stub",
+    },
     http: { prefix: basePath, module: "./http/routes" },
     httpRoutes: {
       handlerPackage: `${ctx.pkgName}/http`,

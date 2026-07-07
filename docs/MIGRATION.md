@@ -59,7 +59,8 @@ pnpm run guard:workspace-certification   # Phase H fast gate
 pnpm run guard:workspace-registry-fresh
 pnpm run phase-g-h:fast-track            # G+H PR closure bundle
 pnpm run phase-i:closure               # G+H + I1/I2 closure bundle
-pnpm run phase-i:create-pr             # DEV→main PR (needs gh auth)
+pnpm run phase-g-h:handoff             # merge PR checklist (no gh)
+pnpm run phase-g-h:create-pr           # DEV→main PR (needs gh auth; runs closure first)
 pnpm run guard:theme-import-budget       # I1 guard only
 pnpm run guard:workspace-plugin-load-cache  # I2 guard only
 ```

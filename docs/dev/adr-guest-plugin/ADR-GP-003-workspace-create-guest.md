@@ -12,6 +12,7 @@ The default scaffold creates an L0 workspace plugin. Guest-ready workspaces need
 
 `pnpm run workspace:create -- <id> --guest` emits an L3 manifest and minimal package stubs:
 
+- `guestConformance.productionTier: "stub"` (explicit — matches trunk scaffolds; codegen defaults omitted tier to stub anyway);
 - catalog list/detail and registration HTTP stubs;
 - shared-auth compose registration flow;
 - intake surface;

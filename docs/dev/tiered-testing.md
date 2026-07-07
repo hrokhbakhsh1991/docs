@@ -223,16 +223,24 @@ cd apps/api && NODE_ENV=test node --import tsx --test test/0-security/als-high-l
 ## GitHub Actions
 
 - Phase 3: `.github/workflows/phase-3-gate.yml` runs `pnpm run phase-3:gate` on PR/push.
-- Phase 10 + G+H: `.github/workflows/phase-10-guard.yml` — registry, guest conformance, workspace certification, H2/H4 API+UI specs.
+- Phase 10 + G+H+I: `.github/workflows/phase-10-guard.yml` — registry freshness, guest conformance, certification guards, I1/I2 guards + script tests. **H2/H4 API+web integration specs run in local `phase-i:closure` only** (full workspace build chain; not GHA fast path).
 - API nightly: `.github/workflows/api-nightly.yml` — scheduled `test:nightly:cold-start` (enforce) + `test:nightly:slow-sink`; not on trunk PR path.
 - Phase 4 RLS: run `pnpm run test:full` (or `phase-4:gate` with env) in a job with Postgres — not part of fast pre-commit.
 
-## Phase G+H closure fast-track (DEV → main PR)
+## Phase G+H+I closure fast-track (DEV → main PR)
 
-Single bundle — target under ~5 min (excludes `ci:integrity`):
+**Full bundle (recommended before merge):**
+
+```bash
+pnpm run phase-i:closure      # G+H regression + I1/I2 guards (~10 min)
+pnpm run phase-g-h:handoff    # print PR checklist (no gh)
+pnpm run phase-g-h:create-pr  # after gh auth login
+```
+
+**G+H only (subset):**
 
 ```bash
 pnpm run phase-g-h:fast-track
 ```
 
-Authority: [`workspace-certification.mdoc`](./workspace-certification.mdoc) · [`workspace-registry-codegen-modularization.mdoc`](./workspace-registry-codegen-modularization.mdoc).
+Authority: [`workspace-certification.mdoc`](./workspace-certification.mdoc) · [`workspace-registry-codegen-modularization.mdoc`](./workspace-registry-codegen-modularization.mdoc) · [`workspace-scale-hardening.mdoc`](./workspace-scale-hardening.mdoc).
