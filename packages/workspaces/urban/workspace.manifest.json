@@ -3,6 +3,9 @@
   "version": 1,
   "pluginApiVersion": 1,
   "guestExtensionsVersion": 1,
+  "guestConformance": {
+    "productionTier": "stub"
+  },
   "package": "@app-tour/workspace-urban",
   "workspaceTypes": ["urban"],
   "plugin": {

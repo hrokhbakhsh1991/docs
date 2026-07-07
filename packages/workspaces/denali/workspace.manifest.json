@@ -3,7 +3,8 @@
   "version": 1,
   "guestExtensionsVersion": 1,
   "guestConformance": {
-    "memberApp": true
+    "memberApp": true,
+    "productionTier": "certified"
   },
   "package": "@app-tour/workspace-denali",
   "workspaceTypes": ["denali"],

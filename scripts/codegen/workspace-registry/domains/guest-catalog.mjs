@@ -131,6 +131,53 @@ export type WorkspaceGuestConformanceLevel = "L0" | "L1" | "L2" | "L3" | "L4";
 }
 
 /** @param {ReturnType<typeof discoverManifests>[number]} manifest */
+export function resolveProductionCertificationTier(manifest) {
+  const raw = manifest.guestConformance?.productionTier;
+  if (raw === undefined) {
+    return "stub";
+  }
+  if (raw !== "stub" && raw !== "certified") {
+    throw new Error(
+      `${manifest.id}: guestConformance.productionTier must be "stub" or "certified"`
+    );
+  }
+  if (manifest.id === "starter" && raw === "certified") {
+    throw new Error(`${manifest.id}: WORKSPACE_STARTER_NOT_CERTIFIABLE`);
+  }
+  if (raw === "certified") {
+    const level = resolveGuestConformanceLevel(manifest);
+    if (level === "L0" || level === "L1" || level === "L2") {
+      throw new Error(`${manifest.id}: WORKSPACE_CERTIFICATION_L3_REQUIRED`);
+    }
+    if (manifest.guestConformance?.memberApp === true && level !== "L4") {
+      throw new Error(`${manifest.id}: WORKSPACE_CERTIFICATION_L4_REQUIRED`);
+    }
+  }
+  return raw;
+}
+
+/** @param {ReturnType<typeof discoverManifests>} manifests */
+export function generateWorkspaceProductionCertification(manifests) {
+  const entries = manifests
+    .map((manifest) => {
+      const tier = resolveProductionCertificationTier(manifest);
+      return `  ${JSON.stringify(manifest.id)}: ${JSON.stringify(tier)},`;
+    })
+    .join("\n");
+
+  return `${BANNER}
+/** Production onboarding tier (Phase H — manifest-derived only). */
+export const WORKSPACE_PRODUCTION_CERTIFICATION: Readonly<
+  Record<string, "stub" | "certified">
+> = Object.freeze({
+${entries}
+});
+
+export type WorkspaceProductionCertificationTier = "stub" | "certified";
+`;
+}
+
+/** @param {ReturnType<typeof discoverManifests>[number]} manifest */
 export function resolveGuestConformanceLevel(manifest) {
   const hasCatalogRoutes = extractCatalogPathsFromManifest(manifest) !== null;
   const hasRegistrationFlow = manifest.catalogRegistrationFlow !== undefined;
@@ -296,6 +343,25 @@ export function assertGuestExtensionsManifest(manifest) {
     if (typeof block.export !== "string" || block.export.length === 0) {
       throw new Error(`${manifest.id}: ${key}.export must be a non-empty string`);
     }
+  }
+
+  if (manifest.guestConformance !== undefined) {
+    const guestConformance = manifest.guestConformance;
+    if (typeof guestConformance !== "object" || Array.isArray(guestConformance)) {
+      throw new Error(`${manifest.id}: guestConformance must be an object`);
+    }
+    for (const key of Object.keys(guestConformance)) {
+      if (key !== "memberApp" && key !== "productionTier") {
+        throw new Error(`${manifest.id}: unknown guestConformance key "${key}"`);
+      }
+    }
+    if (
+      guestConformance.memberApp !== undefined &&
+      typeof guestConformance.memberApp !== "boolean"
+    ) {
+      throw new Error(`${manifest.id}: guestConformance.memberApp must be boolean`);
+    }
+    resolveProductionCertificationTier(manifest);
   }
 }
 

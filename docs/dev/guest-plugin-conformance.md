@@ -30,6 +30,7 @@ Runtime resolver: `resolveGuestConformanceLevelForPlugin(pluginId)` — fail-clo
 | `workspace-catalog-detail-sections.generated.ts` | `resolveCatalogDetailSections()` |
 | `workspace-member-profile-capabilities.generated.ts` | `resolveMemberProfileCapabilities()` |
 | `workspace-guest-conformance.generated.ts` | `resolveGuestConformanceLevelForPlugin()` |
+| `workspace-production-certification.generated.ts` | `resolveProductionCertificationForPlugin()` (Phase H) |
 | `workspace-guest-seo.generated.ts` | `resolveGuestSeoForPlugin()` (ADR-GP-004) |
 | `workspace-dev-plugin-ids.generated.ts` | `resolveDevPluginIdForTenantId()` (dev) |
 | `workspace-registration-flow-plugins.generated.ts` | `registerWorkspaceRegistrationFlowPluginsFromManifest()` |

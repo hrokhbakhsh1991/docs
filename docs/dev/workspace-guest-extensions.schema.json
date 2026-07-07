@@ -396,7 +396,8 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "memberApp": { "type": "boolean" }
+        "memberApp": { "type": "boolean" },
+        "productionTier": { "enum": ["stub", "certified"] }
       }
     },
     "guestCrossSurfaceNav": {

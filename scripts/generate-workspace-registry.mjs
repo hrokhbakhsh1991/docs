@@ -43,10 +43,12 @@ import {
   generateWorkspaceCatalogListFeatures,
   generateWorkspaceCatalogPaths,
   generateWorkspaceGuestConformance,
+  generateWorkspaceProductionCertification,
   generateWorkspaceGuestCrossSurfaceNav,
   generateWorkspaceGuestLanding,
   generateWorkspaceGuestSeo,
   resolveGuestConformanceLevel,
+  resolveProductionCertificationTier,
 } from "./codegen/workspace-registry/domains/guest-catalog.mjs";
 import {
   assertDevBootstrapPluginTenantIds,
@@ -139,6 +141,8 @@ export {
   generateWorkspaceCatalogPaths,
   generateWorkspaceGuestConformance,
   resolveGuestConformanceLevel,
+  generateWorkspaceProductionCertification,
+  resolveProductionCertificationTier,
   assertGuestExtensionsManifest,
   assertGuestCrossSurfaceNavManifest,
   assertCatalogPresentationManifest,

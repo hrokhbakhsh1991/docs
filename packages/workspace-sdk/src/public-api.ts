@@ -225,6 +225,12 @@ export {
 } from "./catalog/resolve-guest-conformance-level";
 export { WORKSPACE_GUEST_CONFORMANCE_LEVELS } from "./catalog/workspace-guest-conformance.generated";
 export {
+  resolveProductionCertificationForPlugin,
+  ProductionCertificationNotConfiguredError,
+  type WorkspaceProductionCertificationTier,
+} from "./catalog/resolve-production-certification";
+export { WORKSPACE_PRODUCTION_CERTIFICATION } from "./catalog/workspace-production-certification.generated";
+export {
   resolveCatalogListFeatures,
   catalogListSupportsServerFilter,
   type CatalogListFeatures,

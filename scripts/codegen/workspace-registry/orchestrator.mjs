@@ -42,10 +42,12 @@ import {
   generateWorkspaceCatalogListFeatures,
   generateWorkspaceCatalogPaths,
   generateWorkspaceGuestConformance,
+  generateWorkspaceProductionCertification,
   generateWorkspaceGuestCrossSurfaceNav,
   generateWorkspaceGuestLanding,
   generateWorkspaceGuestSeo,
   resolveGuestConformanceLevel,
+  resolveProductionCertificationTier,
 } from "./domains/guest-catalog.mjs";
 import {
   assertDevBootstrapPluginTenantIds,
@@ -149,6 +151,7 @@ export const DOMAIN_OUTPUT_KEYS = {
     "catalogListFeatures",
     "catalogDetailSections",
     "guestConformance",
+    "productionCertification",
     "guestSeo",
     "guestLanding",
     "guestCrossSurfaceNav",
@@ -215,6 +218,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "memberPortalSurfaces",
   "guestCrossSurfaceNav",
   "guestConformance",
+  "productionCertification",
   "guestSeo",
   "guestLanding",
   "outbox",
@@ -281,6 +285,7 @@ export function generateAllOutputs(manifests) {
     memberPortalSurfaces: generateWorkspaceMemberPortalSurfaces(manifests),
     guestCrossSurfaceNav: generateWorkspaceGuestCrossSurfaceNav(manifests),
     guestConformance: generateWorkspaceGuestConformance(manifests),
+    productionCertification: generateWorkspaceProductionCertification(manifests),
     guestSeo: generateWorkspaceGuestSeo(manifests),
     guestLanding: generateWorkspaceGuestLanding(manifests),
     outbox: generateOutboxSideEffects(manifests),
@@ -464,6 +469,10 @@ export const OUTPUT_PATHS = {
   guestConformance: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/catalog/workspace-guest-conformance.generated.ts"
+  ),
+  productionCertification: join(
+    REPO_ROOT,
+    "packages/workspace-sdk/src/catalog/workspace-production-certification.generated.ts"
   ),
   guestSeo: join(
     REPO_ROOT,

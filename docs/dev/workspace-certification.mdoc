@@ -157,8 +157,8 @@ Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace 
 | Slice | Scope | Exit criteria |
 | ----- | ----- | ------------- |
 | **H0 (doc)** | This document + architecture § Phase H + guest-conformance cross-link | Architect review |
-| **H1** | Schema + `assertProductionCertificationManifest` + codegen output | `--check` PASS; no drift in existing `*.generated.ts` except new file |
-| **H2** | `provisionTenantProduction` fail-closed + structured error + API spec | `provision-tenant-production.spec.ts` extended |
+| **H1** | Schema + codegen + SDK resolver | ✅ |
+| **H2** | `provisionTenantProduction` fail-closed | ⏳ |
 | **H3** | `guard:workspace-certification` + proof matrix rows + drop-in spec | CI via `phase-10-guard` or dedicated workflow path |
 | **H4 (optional)** | Super Admin badge + disabled prod create for stub | UX spec + smoke |
 
@@ -185,13 +185,15 @@ pnpm --filter @apps/api exec node --import tsx --test test/provision-tenant-prod
 
 Full monorepo gate (`ci:integrity`) deferred until Phase H closure PR — same policy as Phase G.
 
-## H0 status (2026-07-07)
+## H1 status (2026-07-07)
 
 | Artifact | Status |
 | -------- | ------ |
-| This spec | ✅ draft for Architect review |
-| Architecture v2 cross-link | ✅ (pending sync in same PR) |
-| guest-plugin-conformance cross-link | ✅ (pending sync in same PR) |
-| Manifest / codegen / API changes | ⏳ H1+ |
+| `guestConformance.productionTier` in schema + manifests | ✅ |
+| `WORKSPACE_PRODUCTION_CERTIFICATION` generated | ✅ |
+| `resolveProductionCertificationForPlugin()` | ✅ |
+| Admission in `assertGuestExtensionsManifest` | ✅ |
+| `workspace-production-certification.spec.mjs` | ✅ 4/4 |
+| SDK `resolve-production-certification.spec.ts` | ✅ 2/2 |
 
-**Next slice:** Architect approval → **H1** manifest field + generated registry + admission asserts in `guest-catalog.mjs`.
+**Next slice:** **H2** — `provisionTenantProduction` fail-closed for `stub` tier.
