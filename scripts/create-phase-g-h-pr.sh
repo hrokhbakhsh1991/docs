@@ -20,6 +20,9 @@ fi
 if ! gh auth status >/dev/null 2>&1; then
   echo "create-phase-g-h-pr: run 'gh auth login' then re-run this script"
   echo ""
+  echo "Without local gh — trigger GitHub Actions workflow on branch DEV:"
+  echo "  https://github.com/hrokhbakhsh1991/docs/actions/workflows/phase-g-h-create-pr.yml"
+  echo ""
   echo "Manual PR (closure already verified above):"
   echo "  $COMPARE_URL"
   echo "  Title: Phase G+H+I: registry modularization, production certification, scale hardening"

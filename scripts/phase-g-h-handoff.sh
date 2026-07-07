@@ -34,7 +34,9 @@ GHA phase-10-guard: green on DEV push (see ${GHA})
 
 Create PR (pick one):
   A) gh auth login && pnpm run phase-g-h:create-pr
-  B) Manual: ${COMPARE}
+  B) GitHub Actions: branch DEV → workflow "phase-g-h-create-pr" → Run workflow
+     https://github.com/hrokhbakhsh1991/docs/actions/workflows/phase-g-h-create-pr.yml
+  C) Manual: ${COMPARE}
      Title: Phase G+H+I: registry modularization, production certification, scale hardening
      Body:  docs/dev/phase-g-h-pr-body.md
 

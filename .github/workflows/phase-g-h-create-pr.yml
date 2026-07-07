@@ -1,0 +1,42 @@
+# Create DEV→main PR for Phase G+H+I closure (no local gh auth required).
+# Trigger: Actions → phase-g-h-create-pr → Run workflow (branch: DEV).
+# Authority: docs/dev/phase-g-h-pr-body.md
+
+name: phase-g-h-create-pr
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: DEV
+
+      - name: Create PR if none open (DEV → main)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          TITLE="Phase G+H+I: registry modularization, production certification, scale hardening"
+          EXISTING="$(gh pr list --repo "$REPO" --base main --head DEV --state open --json number --jq 'length')"
+          if [ "$EXISTING" != "0" ]; then
+            echo "Open PR already exists:"
+            gh pr list --repo "$REPO" --base main --head DEV --state open
+            exit 0
+          fi
+          gh pr create \
+            --repo "$REPO" \
+            --base main \
+            --head DEV \
+            --title "$TITLE" \
+            --body-file docs/dev/phase-g-h-pr-body.md
+          echo "phase-g-h-create-pr: done"
+          gh pr list --repo "$REPO" --base main --head DEV --state open --json url --jq '.[0].url'

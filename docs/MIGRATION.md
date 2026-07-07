@@ -61,6 +61,7 @@ pnpm run phase-g-h:fast-track            # G+H PR closure bundle
 pnpm run phase-i:closure               # G+H + I1/I2 closure bundle
 pnpm run phase-g-h:handoff             # merge PR checklist (no gh)
 pnpm run phase-g-h:create-pr           # DEV→main PR (needs gh auth; runs closure first)
+# Or: GitHub Actions → phase-g-h-create-pr on branch DEV (no local gh)
 pnpm run guard:theme-import-budget       # I1 guard only
 pnpm run guard:workspace-plugin-load-cache  # I2 guard only
 ```
