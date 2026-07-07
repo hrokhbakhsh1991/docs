@@ -260,9 +260,11 @@ Moved `scripts/member-portal-contract-codegen.mjs` into `scripts/codegen/workspa
 | Commit | Scope |
 | ------ | ----- |
 | `d7d5d6a5` | Phase G modularization (G0–G4) |
-| `f5a7eab8` | Architecture v2 closure notes |
-| `373b2d7c` | Marketing starter dep + finance factory allowlist (gates) |
+| `f5a7eab8` | Architecture v2 Phase G notes |
+| `373b2d7c` | Gate fixes (marketing starter, finance allowlist) |
+| `8d18c446`–`5edb6eb3` | Phase H H0–H4 |
+| `46f688dd`–`07308630` | Gap closure, CI YAML, `phase-g-h:fast-track` |
 
-PR: [`main...DEV`](https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1) — requires `gh auth` locally or GitHub UI.
+**PR:** `pnpm run phase-g-h:create-pr` or [compare main...DEV](https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1)
 
-`pre-commit:fast` / `test:changed` — run before merge (git-aware; may take several minutes). `ci:integrity` — Architect YES only.
+**Pre-merge verify:** `pnpm run phase-g-h:fast-track` (required). `ci:integrity` — Architect YES only.

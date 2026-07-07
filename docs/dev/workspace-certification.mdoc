@@ -290,10 +290,23 @@ node apps/web/scripts/smoke-platform-create-club.mjs
 | `workspace-not-certified-error-interceptor.spec.ts` (H2 API) | 1/1 |
 | Drop-in spec H3 cases | 2/2 |
 
-**Commits (DEV):** `8d18c446` H0 · `4f76d31a` H1 · `4590d09e` H2 · `e7ef0181` H3 · `5edb6eb3` H4 · `46f688dd` gap closure
+**Commits (DEV):** `d7d5d6a5` G · `4f76d31a` H1 · `4590d09e` H2 · `e7ef0181` H3 · `5edb6eb3` H4 · `46f688dd` gaps · `736816ce` closure · `07308630` CI fast-track
 
 **One-shot PR verify:**
 
 ```bash
 pnpm run phase-g-h:fast-track
 ```
+
+**Create PR (Architect approved):**
+
+```bash
+pnpm run phase-g-h:create-pr
+# or manually:
+gh auth login
+gh pr create --base main --head DEV \
+  --title "Phase G+H: workspace registry modularization + production certification" \
+  --body-file docs/dev/phase-g-h-pr-body.md
+```
+
+Compare UI: https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1

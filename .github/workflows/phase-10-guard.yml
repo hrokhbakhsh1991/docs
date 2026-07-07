@@ -67,8 +67,9 @@ on:
       - "apps/api/scripts/generate-openapi.mjs"
       - "apps/api/src/middleware/error-interceptor.ts"
       - "apps/web/src/platform/create-club/submit-create-club.ts"
-      - ".github/workflows/phase-10-guard.yml"
-  workflow_dispatch:
+      - "scripts/phase-g-h-fast-track.sh"
+      - "package.json"
+      - "apps/api/test/workspace-not-certified-error-interceptor.spec.ts"
 
 jobs:
   phase-10-guard:

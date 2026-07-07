@@ -228,6 +228,7 @@
     "build:operator-vps": "bash scripts/vps-deploy/build-operator-vps.sh",
     "phase-10:guard": "node scripts/guards/phase-10-guard.mjs",
     "phase-g-h:fast-track": "bash scripts/phase-g-h-fast-track.sh",
+    "phase-g-h:create-pr": "bash scripts/create-phase-g-h-pr.sh",
     "guard:public-catalog-m17": "node scripts/guards/guard-public-catalog-m17.mjs",
     "guard:portal-member-profile-boundary": "node scripts/guards/guard-portal-member-profile-boundary.mjs",
     "guard:architecture-truth": "node scripts/guards/architecture-truth-guard.mjs",
