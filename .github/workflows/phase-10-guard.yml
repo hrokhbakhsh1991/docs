@@ -20,7 +20,11 @@ on:
       - "scripts/generate-workspace-registry.mjs"
       - "scripts/codegen/workspace-registry/**"
       - "scripts/member-portal-contract-codegen.mjs"
-      - "scripts/test/workspace-production-certification.spec.mjs"
+      - "scripts/guards/guard-workspace-certification.mjs"
+      - "scripts/guards/lib/workspace-certification-guard.mjs"
+      - "scripts/test/workspace-certification-guard.spec.mjs"
+      - "docs/dev/workspace-certification.mdoc"
+      - "docs/dev/workspace-certification-proof-matrix.yaml"
       - "scripts/test/workspace-registry-drop-in.spec.mjs"
       - "packages/workspace-sdk/src/catalog/workspace-production-certification.generated.ts"
       - "scripts/workspace-create.mjs"
@@ -59,3 +63,5 @@ jobs:
       - run: pnpm run guard:guest-plugin-conformance
       - run: node --test scripts/test/workspace-registry-drop-in.spec.mjs
       - run: node --test scripts/test/workspace-production-certification.spec.mjs
+      - run: pnpm run guard:workspace-certification
+      - run: node --test scripts/test/workspace-certification-guard.spec.mjs

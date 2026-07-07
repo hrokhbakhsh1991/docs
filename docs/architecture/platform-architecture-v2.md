@@ -982,7 +982,7 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 | H0 doc pack (stub vs certified, enforcement, proof matrix) | ✅ |
 | H1 manifest + codegen + resolver | ✅ |
 | H2 `provisionTenantProduction` fail-closed | ✅ |
-| H3 `guard:workspace-certification` + proof matrix | ⏳ |
+| H3 `guard:workspace-certification` + proof matrix | ✅ |
 | H4 Super Admin UX (optional) | ⏳ |
 
 - **Technical L0–L4** (guest conformance) exists — Phase H adds **productionTier: stub \| certified**.

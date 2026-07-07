@@ -26,6 +26,8 @@ import {
   generateWorkspaceDevPluginIds,
   generateWorkspaceGuestConformance,
   resolveGuestConformanceLevel,
+  generateWorkspaceProductionCertification,
+  resolveProductionCertificationTier,
   generateWorkspaceRegistrationFlowPlugins,
   generateWorkspaceHttpRoutes,
   generateWorkspaceThemeStylesheets,
@@ -394,5 +396,32 @@ describe("workspace registry drop-in (P7-T06)", () => {
     const fixture = JSON.parse(readFileSync(fixturePath, "utf8"));
     assert.equal(fixture.guestExtensionsVersion, guestClub.guestExtensionsVersion);
     assert.equal(fixture.httpRoutes.handlerPackage, guestClub.httpRoutes.handlerPackage);
+  });
+
+  it("Phase H3: trunk production certification — only denali certified", () => {
+    const manifests = discoverManifests();
+    const generated = generateWorkspaceProductionCertification(manifests);
+    assert.match(generated, /"denali": "certified"/);
+    assert.match(generated, /"urban": "stub"/);
+    assert.match(generated, /"guest-club": "stub"/);
+    assert.match(generated, /"starter": "stub"/);
+    for (const manifest of manifests) {
+      const tier = resolveProductionCertificationTier(manifest);
+      if (manifest.id === "denali") {
+        assert.equal(tier, "certified");
+      } else {
+        assert.equal(tier, "stub");
+      }
+    }
+  });
+
+  it("Phase H3: drop-in fixture defaults production tier to stub", () => {
+    const fixture = JSON.parse(
+      readFileSync(join(REPO_ROOT, "test/fixtures/workspaces/climbing-club/workspace.manifest.json"), "utf8")
+    );
+    assert.equal(resolveProductionCertificationTier(fixture), "stub");
+    const merged = [...discoverManifests(), fixture];
+    const generated = generateWorkspaceProductionCertification(merged);
+    assert.match(generated, /"climbing-club": "stub"/);
   });
 });

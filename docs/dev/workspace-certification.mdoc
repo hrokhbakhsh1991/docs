@@ -147,7 +147,7 @@ Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace 
 | **CERT-01** | `guard:workspace-registry-fresh` | PASS |
 | **CERT-02** | `guard:guest-plugin-conformance` | PASS |
 | **CERT-03** | Workspace Playwright smokes (from [`guest-registration-e2e-hooks.yaml`](./guest-registration-e2e-hooks.yaml)) | PASS (G4 bundle) |
-| **CERT-04** | `guard:workspace-certification` (new) — manifest tier matches generated registry + proof manifest | H3 |
+| **CERT-04** | `guard:workspace-certification` (new) — manifest tier matches generated registry + proof manifest | ✅ H3 |
 | **CERT-05** | Onboarding runbook exists under `docs/phase-23/runbooks/` or `docs/workspaces/<id>/` | denali: partial; second-club runbook is platform-level |
 
 **Promotion path (stub → certified):** PR that (1) sets `productionTier: "certified"`, (2) adds proof rows to workspace-specific matrix in this doc or `docs/workspaces/<id>/certification.md`, (3) greens CERT-03 for that `pluginId`, (4) Architect sign-off.
@@ -159,7 +159,7 @@ Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace 
 | **H0 (doc)** | This document + architecture § Phase H + guest-conformance cross-link | Architect review |
 | **H1** | Schema + codegen + SDK resolver | ✅ |
 | **H2** | `provisionTenantProduction` fail-closed | ✅ |
-| **H3** | `guard:workspace-certification` + proof matrix rows + drop-in spec | CI via `phase-10-guard` or dedicated workflow path |
+| **H3** | `guard:workspace-certification` + proof matrix rows + drop-in spec | ✅ |
 | **H4 (optional)** | Super Admin badge + disabled prod create for stub | UX spec + smoke |
 
 ## Prerequisites before H1 code
@@ -206,4 +206,32 @@ Full monorepo gate (`ci:integrity`) deferred until Phase H closure PR — same p
 | Dev `provisionTenant()` / seeds unchanged | ✅ |
 | `provision-tenant-production.spec.ts` (H2 cases) | ✅ 7/7 |
 
-**Next slice:** **H3** — `guard:workspace-certification` + proof matrix rows + drop-in spec.
+## Proof manifest (H3)
+
+**File:** [`workspace-certification-proof-matrix.yaml`](./workspace-certification-proof-matrix.yaml) — consumed by `scripts/guards/guard-workspace-certification.mjs`.
+
+Per `pluginId` with `productionTier: certified` in the generated registry, the proof manifest must declare **CERT-01..CERT-05**:
+
+| Proof | Guard check |
+| ----- | ----------- |
+| **CERT-01** | Declared `pass`; guard runs `generate-workspace-registry.mjs --check` |
+| **CERT-02** | Declared `pass` (enforced separately by `guard:guest-plugin-conformance` in CI) |
+| **CERT-03** | Declared `pass` + `hookIds` list; each id must exist in `guest-registration-e2e-hooks.yaml` with an on-disk spec |
+| **CERT-04** | Declared `pass`; guard dual-verifies manifest `productionTier` ↔ `WORKSPACE_PRODUCTION_CERTIFICATION` |
+| **CERT-05** | `pass` or `partial` + optional `runbook` path must exist on disk |
+
+**Stub plugins** (`urban`, `guest-club`, `starter`) omit proof rows — guard asserts they are **not** `certified` in the generated registry.
+
+**Promotion:** add a `plugins.<id>` block with green proofs before setting `productionTier: certified` in the manifest.
+
+## H3 status (2026-07-07)
+
+| Artifact | Status |
+| -------- | ------ |
+| `workspace-certification-proof-matrix.yaml` | ✅ |
+| `guard-workspace-certification.mjs` (CERT-04 + proof manifest) | ✅ |
+| `workspace-certification-guard.spec.mjs` | ✅ 5/5 |
+| Drop-in spec H3 cases | ✅ 2/2 |
+| CI `phase-10-guard.yml` | ✅ |
+
+**Next slice:** **H4 (optional)** — Super Admin stub/certified badge + disabled prod create for stub.

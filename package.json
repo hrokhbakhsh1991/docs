@@ -179,6 +179,7 @@
     "guard:workspace-registry-domain-dev": "node scripts/generate-workspace-registry.mjs --check --domain=dev",
     "guard:workspace-registry-domain-operator": "node scripts/generate-workspace-registry.mjs --check --domain=operator",
     "guard:guest-plugin-conformance": "node scripts/guards/guard-guest-plugin-conformance.mjs",
+    "guard:workspace-certification": "node scripts/guards/guard-workspace-certification.mjs",
     "guard:css-globals": "node scripts/guards/guard-css-globals-import-only.mjs",
     "guard:css-bootstrap-integrity": "node scripts/guards/guard-css-bootstrap-integrity.mjs",
     "guard:member-portal-registry": "node scripts/guards/guard-member-portal-registry.mjs",
