@@ -1005,20 +1005,21 @@ Full `ci:integrity` deferred until merge PR — Architect YES only.
 
 **Local PR bundle:** `pnpm run phase-g-h:fast-track`
 
-### Phase I — Scale hardening (I0 started 2026-07-07)
+### Phase I — Scale hardening (I0–I2 closed 2026-07-07)
 
 **Spec:** [workspace-scale-hardening.mdoc](../dev/workspace-scale-hardening.mdoc)
 
 | Slice | Status |
 | ----- | ------ |
 | I0 doc pack (theme budget + loader cache policy) | ✅ |
-| I1 `guard:theme-import-budget` | ⏳ |
-| I2 registry load cache policy + dev invalidation | ⏳ |
+| I1 `guard:theme-import-budget` | ✅ |
+| I2 registry load cache policy + dev invalidation | ✅ |
 | I3 lazy sync plugin registry (optional) | ⏳ |
+| I closure (`phase-i:closure`) | ✅ |
 
-- **I1:** ≤1 dynamic theme CSS import per surface per request (`importAdminThemeForPlugin`, guest loaders).
-- **I2:** Document and harden `loadWorkspacePluginByIdFromRegistry` promise cache; address eager sync plugin map at scale.
-- **Prerequisite:** Phase G+H closed on `DEV`; `pnpm run phase-g-h:fast-track` green. G+H merge PR recommended before I1 lands on `main`.
+- **I1:** Bounded dynamic theme CSS imports per surface — admin ≤1, guest ≤2 (starter base + plugin overlay); `guard:theme-import-budget`.
+- **I2:** `workspace-plugin-load-cache.ts` — promise cache keyed by `pluginId`, max entries = trunk count, revision bust on codegen regen; `invalidateWorkspacePluginLoadCache()` for dev/tests.
+- **Local PR bundle:** `pnpm run phase-i:closure` · `pnpm run phase-i:create-pr`
 
 **Not in scope:** API `tenant-registry-cache` (DEC-068/074 — already shipped).
 

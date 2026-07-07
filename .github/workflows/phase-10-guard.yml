@@ -68,10 +68,25 @@ on:
       - "apps/api/src/middleware/error-interceptor.ts"
       - "apps/web/src/platform/create-club/submit-create-club.ts"
       - "scripts/phase-g-h-fast-track.sh"
+      - "scripts/phase-i-closure-fast-track.sh"
+      - "scripts/create-phase-i-pr.sh"
+      - "docs/dev/phase-i-pr-body.md"
       - "package.json"
+      - "scripts/guards/guard-theme-import-budget.mjs"
+      - "scripts/guards/lib/theme-import-budget-guard.mjs"
+      - "scripts/test/theme-import-budget-guard.spec.mjs"
+      - "docs/dev/workspace-scale-hardening.mdoc"
+      - "apps/web/app/layout.tsx"
+      - "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts"
+      - "apps/portal/app/layout.tsx"
+      - "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+      - "apps/marketing/app/layout.tsx"
+      - "scripts/guards/guard-workspace-plugin-load-cache.mjs"
+      - "scripts/guards/lib/workspace-plugin-load-cache-guard.mjs"
+      - "scripts/test/workspace-plugin-load-cache-guard.spec.mjs"
+      - "apps/web/src/bootstrap/workspace-plugin-load-cache.ts"
+      - "apps/web/test/workspace-plugin-load-cache.spec.ts"
       - "apps/api/test/workspace-not-certified-error-interceptor.spec.ts"
-
-jobs:
   phase-10-guard:
     runs-on: ubuntu-latest
     steps:
@@ -83,6 +98,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run phase-10:guard
+      - run: pnpm run guard:theme-import-budget
+      - run: node --test scripts/test/theme-import-budget-guard.spec.mjs
+      - run: pnpm run guard:workspace-plugin-load-cache
+      - run: node --test scripts/test/workspace-plugin-load-cache-guard.spec.mjs
+      - run: pnpm --filter @apps/web exec node --import tsx --test test/workspace-plugin-load-cache.spec.ts
       - run: pnpm run guard:guest-plugin-conformance
       - run: node --test scripts/test/workspace-registry-drop-in.spec.mjs
       - run: node --test scripts/test/workspace-production-certification.spec.mjs

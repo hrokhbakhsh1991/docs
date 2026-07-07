@@ -141,6 +141,28 @@ assertCheck(
   (certGuard.stdout ?? "") + (certGuard.stderr ?? "") || "guard-workspace-certification failed"
 );
 
+const themeBudgetGuard = spawnSync("node", ["scripts/guards/guard-theme-import-budget.mjs"], {
+  cwd: REPO_ROOT,
+  encoding: "utf8",
+});
+assertCheck(
+  "p10_theme_import_budget",
+  themeBudgetGuard.status === 0,
+  (themeBudgetGuard.stdout ?? "") + (themeBudgetGuard.stderr ?? "") || "guard-theme-import-budget failed"
+);
+
+const pluginLoadCacheGuard = spawnSync(
+  "node",
+  ["scripts/guards/guard-workspace-plugin-load-cache.mjs"],
+  { cwd: REPO_ROOT, encoding: "utf8" }
+);
+assertCheck(
+  "p10_workspace_plugin_load_cache",
+  pluginLoadCacheGuard.status === 0,
+  (pluginLoadCacheGuard.stdout ?? "") + (pluginLoadCacheGuard.stderr ?? "") ||
+    "guard-workspace-plugin-load-cache failed"
+);
+
 if (failures.length > 0) {
   console.error(`phase-10-guard: FAIL (${failures.length})`);
   process.exit(1);

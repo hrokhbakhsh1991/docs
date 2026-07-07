@@ -52,14 +52,16 @@ pnpm run workspace:create -- <id>   # new workspace scaffold
 | Architecture v2 (Phases F–I) | [`architecture/platform-architecture-v2.md`](architecture/platform-architecture-v2.md) |
 | Phase G — registry codegen modularization | [`dev/workspace-registry-codegen-modularization.mdoc`](dev/workspace-registry-codegen-modularization.mdoc) ✅ DEV |
 | Phase H — production certification | [`dev/workspace-certification.mdoc`](dev/workspace-certification.mdoc) ✅ DEV |
-| Phase I — scale hardening | [`dev/workspace-scale-hardening.mdoc`](dev/workspace-scale-hardening.mdoc) 🔄 I0 |
+| Phase I — scale hardening | [`dev/workspace-scale-hardening.mdoc`](dev/workspace-scale-hardening.mdoc) ✅ I1+I2 on `DEV` |
 
 ```bash
 pnpm run guard:workspace-certification   # Phase H fast gate
 pnpm run guard:workspace-registry-fresh
 pnpm run phase-g-h:fast-track            # G+H PR closure bundle
-# Phase I (after I0 Architect review):
-# pnpm run guard:theme-import-budget     # I1 — not yet implemented
+pnpm run phase-i:closure               # G+H + I1/I2 closure bundle
+pnpm run phase-i:create-pr             # DEV→main PR (needs gh auth)
+pnpm run guard:theme-import-budget       # I1 guard only
+pnpm run guard:workspace-plugin-load-cache  # I2 guard only
 ```
 
 ## Legacy

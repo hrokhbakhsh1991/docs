@@ -32,6 +32,7 @@ import {
   generateWorkspaceHttpRoutes,
   generateWorkspaceThemeStylesheets,
   generateAdminThemeStylesheetLoader,
+  generateWebLoaders,
 } from "../generate-workspace-registry.mjs";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -423,5 +424,15 @@ describe("workspace registry drop-in (P7-T06)", () => {
     const merged = [...discoverManifests(), fixture];
     const generated = generateWorkspaceProductionCertification(merged);
     assert.match(generated, /"climbing-club": "stub"/);
+  });
+
+  it("Phase I2 generateWebLoaders wires workspace-plugin-load-cache policy", () => {
+    const manifests = discoverManifests();
+    const generated = generateWebLoaders(manifests);
+    assert.match(generated, /workspace-plugin-load-cache/);
+    assert.match(generated, /getOrCreateWorkspacePluginLoad/);
+    assert.match(generated, /WORKSPACE_PLUGIN_REGISTRY_REVISION/);
+    assert.match(generated, /WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 4/);
+    assert.doesNotMatch(generated, /const pluginLoadCache\s*=\s*new Map/);
   });
 });

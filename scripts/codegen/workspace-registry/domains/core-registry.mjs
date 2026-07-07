@@ -74,9 +74,25 @@ export function generateWebLoaders(manifests) {
     })
     .join("\n");
 
+  const sortedIds = manifests.map((m) => m.id).sort();
+  const registryRevision = sortedIds.join(",");
+  const maxEntries = sortedIds.length;
+
   return `${BANNER}
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import {
+  getOrCreateWorkspacePluginLoad,
+  invalidateWorkspacePluginLoadCache,
+} from "./workspace-plugin-load-cache";
 ${syncImports.join("\n")}
+
+/** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION = ${JSON.stringify(registryRevision)};
+
+/** Upper bound for per-process plugin load cache (= trunk plugin count). */
+export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = ${maxEntries};
+
+export { invalidateWorkspacePluginLoadCache };
 
 const SYNC_WORKSPACE_PLUGINS: Readonly<Record<string, WorkspacePlugin>> = Object.freeze({
 ${syncEntries}
@@ -90,24 +106,23 @@ export function resolveSyncWorkspacePluginFromRegistry(pluginId: string): Worksp
   return plugin;
 }
 
-const pluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
-
 export async function loadWorkspacePluginByIdFromRegistry(
   pluginId: string
 ): Promise<WorkspacePlugin> {
-  const cached = pluginLoadCache.get(pluginId);
-  if (cached) return cached;
-
-  const loadPromise = (async () => {
-    switch (pluginId) {
+  return getOrCreateWorkspacePluginLoad(
+    pluginId,
+    async () => {
+      switch (pluginId) {
 ${cases}
-      default:
-        throw new Error(\`WORKSPACE_PLUGIN_NOT_FOUND:\${pluginId}\`);
+        default:
+          throw new Error(\`WORKSPACE_PLUGIN_NOT_FOUND:\${pluginId}\`);
+      }
+    },
+    {
+      registryRevision: WORKSPACE_PLUGIN_REGISTRY_REVISION,
+      maxEntries: WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES,
     }
-  })();
-
-  pluginLoadCache.set(pluginId, loadPromise);
-  return loadPromise;
+  );
 }
 `;
 }
