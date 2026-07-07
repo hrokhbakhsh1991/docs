@@ -317,6 +317,24 @@ export function assertGuestExtensionsManifest(manifest) {
     }
   }
 
+  if (manifest.wizardTemplateGate !== undefined) {
+    const gate = manifest.wizardTemplateGate;
+    if (typeof gate !== "object" || Array.isArray(gate)) {
+      throw new Error(`${manifest.id}: wizardTemplateGate must be an object`);
+    }
+    const stepId = gate.defaultPublishedStepId;
+    if (typeof stepId !== "string" || stepId.trim().length === 0) {
+      throw new Error(
+        `${manifest.id}: wizardTemplateGate.defaultPublishedStepId must be a non-empty string`
+      );
+    }
+    for (const key of Object.keys(gate)) {
+      if (key !== "defaultPublishedStepId") {
+        throw new Error(`${manifest.id}: unknown wizardTemplateGate key "${key}"`);
+      }
+    }
+  }
+
   for (const key of [
     "settingsDestinationSurface",
     "settingsEquipmentUi",

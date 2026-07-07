@@ -1,5 +1,7 @@
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
+import { resolveWizardTemplateGateDefaultPublishedStepId } from "@/bootstrap/workspace-wizard-template-gate-bindings.generated";
+
 import { parseWizardTemplateResponse } from "@/features/settings/wizard-template-logic";
 import type {
   WizardTemplateConfigResponse,
@@ -138,7 +140,7 @@ export function buildDefaultPublishedWizardSteps(
   const titlePath = resolveWizardTemplateSeedCanonicalPath(pluginId, plugin);
   const stepId =
     plugin?.wizard?.steps?.[0]?.stepId?.trim() ||
-    (pluginId === "denali" ? "denali_basic" : "basics");
+    resolveWizardTemplateGateDefaultPublishedStepId(pluginId);
   return [
     {
       stepId,

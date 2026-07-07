@@ -17,6 +17,7 @@ proof_tier: OPS
 
 - Wildcard staging TLS green ([P10-1-N-001](../appendices/P10-VERIFICATION-COMMANDS.yaml)) **or** Profile B IP smoke for interim proof
 - `smoke-four-process.sh` green on target env
+- **Production certification (Phase H):** onboard only **`productionTier: certified`** workspaces (trunk: `denali`). Stub workspaces (`urban`, `guest-club`) are rejected by `POST /platform/v1/tenants` with `422 WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION`. See [workspace-certification.mdoc](../../dev/workspace-certification.mdoc).
 - **Forbidden in this runbook:** `PUBLIC_TENANT_FALLBACK_HOSTS` as sole routing · raw `:3002` IP-only URLs as exit proof
 
 ---

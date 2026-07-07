@@ -107,6 +107,7 @@ import {
   generateWizardRulesBindings,
   generateWizardSurfaceBindings,
   generateWizardTemplateEditorBindings,
+  generateWizardTemplateGateBindings,
   generateWizardTemplatePresetBindings,
   generateWorkspaceWizardMessageLoads,
 } from "./domains/wizard-admin.mjs";
@@ -135,6 +136,7 @@ export const DOMAIN_OUTPUT_KEYS = {
     "operatorUiComponentsBindings",
     "wizardDraftUnificationBindings",
     "wizardRulesBindings",
+    "wizardTemplateGateBindings",
     "wizardTemplatePresetBindings",
     "wizardDraftShellBindings",
     "wizardCreateChromeBindings",
@@ -203,6 +205,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "operatorUiComponentsBindings",
   "wizardDraftUnificationBindings",
   "wizardRulesBindings",
+  "wizardTemplateGateBindings",
   "wizardTemplatePresetBindings",
   "wizardDraftShellBindings",
   "wizardCreateChromeBindings",
@@ -270,6 +273,7 @@ export function generateAllOutputs(manifests) {
     operatorUiComponentsBindings: generateOperatorUiComponentsBindings(manifests),
     wizardDraftUnificationBindings: generateWizardDraftUnificationBindings(manifests),
     wizardRulesBindings: generateWizardRulesBindings(manifests),
+    wizardTemplateGateBindings: generateWizardTemplateGateBindings(manifests),
     wizardTemplatePresetBindings: generateWizardTemplatePresetBindings(manifests),
     wizardDraftShellBindings: generateWizardDraftShellBindings(manifests),
     wizardCreateChromeBindings: generateWizardCreateChromeBindings(manifests),
@@ -409,6 +413,10 @@ export const OUTPUT_PATHS = {
   wizardRulesBindings: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-wizard-rules-bindings.generated.ts"
+  ),
+  wizardTemplateGateBindings: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-wizard-template-gate-bindings.generated.ts"
   ),
   wizardTemplatePresetBindings: join(
     REPO_ROOT,

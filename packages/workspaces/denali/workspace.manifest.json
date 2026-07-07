@@ -348,6 +348,9 @@
     "module": "./settings/wizard-template-preset-surface",
     "export": "denaliWizardTemplatePresetSurface"
   },
+  "wizardTemplateGate": {
+    "defaultPublishedStepId": "denali_basic"
+  },
   "wizardDraftShell": {
     "module": "./ui/chrome/wizard-draft-shell-surface",
     "export": "denaliWizardDraftShellSurface"

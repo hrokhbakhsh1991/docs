@@ -46,13 +46,13 @@ Platform apps (`apps/web`, `apps/portal`, `apps/marketing`, `apps/api`) and plat
 
 Workspace-specific behavior is reached **only** through generated bindings keyed by resolved `pluginId` at runtime.
 
-**Violation today (Phase C sprint 1 resolved 2026-07-06):** Urban API guards and `pluginId === "denali"` in tours/wizard-template page clients replaced by manifest codegen. **Sprint 5:** six P0-T-161 settings/codec files migrated to bindings — `P0-T-161 hits: []` for non-allowlisted sources. **Remaining:** ~70 denali shell orchestration files on explicit allowlist (C4 continuation).
+**Phase C closed (2026-07-06):** production `pluginId === "denali"` / `workspaceType === "urban"` branches eliminated outside generated loaders + test-only paths. `guard-no-workspace-type-branches` enforces C1–C4. **2026-07-07:** `wizardTemplateGate.defaultPublishedStepId` manifest → codegen — last `wizard-template-gate-logic.ts` branch removed.
 
 ### P3 — Codegen derives everything discoverable
 
 If the platform needs to know “which workspaces expose X,” the answer is **generated**, not hand-maintained. Run: `pnpm run generate:workspace-registry`.
 
-**Outputs today:** 30+ `.generated.ts` files (see §7).
+**Outputs today:** 59 codegen outputs (see §7) — modular orchestrator under `scripts/codegen/workspace-registry/` (Phase G).
 
 ### P4 — Runtime never branches on workspace identity for product behavior
 
@@ -66,13 +66,13 @@ The platform defines **contracts** (interfaces, reducers, hook shapes, manifest 
 
 All visual appearance—color, typography, borders, shadows, decorative motion—on guest surfaces **must** live in workspace skin CSS (L4) or explicitly declared platform-default skin CSS loaded with the same rules. Shell TSX and platform packages **must not** carry appearance Tailwind or raw hex.
 
-**Violation today:** hundreds of appearance classes in `apps/web` feature TSX; `shell-bridge.css` and `operator-admin-appearance.css` duplicate dark palettes (D1 split partial).
+**Phase F partial (2026-07-06):** F7/F8 purge `patterns/`, `dashboard/`, `onboarding/` feature TSX to CSS hooks. **Remaining:** broader `apps/web` feature surfaces still use semantic Tailwind in `className` outside F8 registry — admin appearance debt (not guest shell).
 
 ### P7 — Tokens own color values (target)
 
 No authoritative color may exist outside the token pipeline. CSS files, TSX, and docs may **reference** `var(--*)` only. Raw `#hex` in hand-maintained files is forbidden once DTCG pipeline is active.
 
-**Violation today:** `themes/light.css`, workspace `theme/*.css`, `MASTER.md` hex tables, `shell-bridge.css` operator rules.
+**Phase E/F (2026-07-06):** DTCG is build authority for platform + workspace `theme/tokens.css`, light/dark themes, guest skin semantics, and admin semantic layers. `guard-dtcg-hex-ban` enforces `@generated` on authority CSS. `design-language/MASTER.md` is design brief only.
 
 ### P8 — Apps never import workspace implementations directly
 
@@ -124,7 +124,7 @@ L6  Runtime (apps, API, dynamic loaders)
 | **Human editable** | Yes — **only** hand-edited value source (target) |
 | **Generated** | No |
 
-**Today:** `dtcg/platform.tokens.json` is a partial mirror; `themes/light.css` is de facto authority. **Migration required before DTCG implementation.**
+**Today (2026-07-07):** DTCG JSON under `packages/design-tokens/dtcg/` is the **hand-edited value source**; `generate-dtcg-*.mjs` emits platform and workspace CSS. See [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 ### L1 — Generated platform CSS + types
 
@@ -134,8 +134,8 @@ L6  Runtime (apps, API, dynamic loaders)
 | **Owner** | `@app-tour/design-tokens` |
 | **Allowed dependencies** | L0 only |
 | **Forbidden dependencies** | `data-*` selectors, workspace scopes, raw hex (target) |
-| **Human editable** | **No** (target); today yes — technical debt |
-| **Generated** | Yes (target) |
+| **Human editable** | **No** — regenerate via `pnpm --filter @app-tour/design-tokens build` |
+| **Generated** | Yes |
 
 ### L1b — Framework bridge
 
@@ -539,9 +539,9 @@ scripts/member-portal-contract-codegen.mjs  # G4 shim → domains/member-portal.
 
 ---
 
-## 8. Design token architecture (future — specification only)
+## 8. Design token architecture (implemented — Phase E/F)
 
-**Do not implement until Architecture Confidence gate passes (see end).**
+**Authority:** [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc). DTCG JSON is input; CSS is generated output. Full monorepo gate (`ci:integrity`) deferred — Architect YES only.
 
 ### Pipeline (target)
 
@@ -782,10 +782,11 @@ Full conflict inventory, C4 mitigation (F9-4), and guards: [dtcg-pipeline-spec.m
 
 **No code in this freeze — phases only.**
 
-### Phase A — Architecture freeze (current)
+### Phase A — Architecture freeze (complete 2026-07-06)
 
-- Publish this document.
+- Published this document.
 - Halt structural debates; track divergence as debt tickets.
+- **Current execution track (2026-07-07):** Phase G+H+I closed on `DEV` — merge PR to `main` pending (`pnpm run phase-g-h:handoff`).
 
 ### Phase B — Authority cleanup (configuration)
 
@@ -1008,7 +1009,7 @@ Full `ci:integrity` deferred until merge PR — Architect YES only.
 | I2 registry load cache policy + dev invalidation | ✅ |
 | I3 lazy sync plugin registry (optional) | ⏳ |
 | I closure (`phase-i:closure`) | ✅ |
-| GHA `phase-10-guard` on `DEV` | ✅ green `c4d3af8d` |
+| GHA `phase-10-guard` on `DEV` | ✅ green `fb8bb575` |
 
 - **I1:** Bounded dynamic theme CSS imports per surface — admin ≤1, guest ≤2 (starter base + plugin overlay); `guard:theme-import-budget`.
 - **I2:** `workspace-plugin-load-cache.ts` — promise cache keyed by `pluginId`, max entries = trunk count, revision bust on codegen regen; `invalidateWorkspacePluginLoadCache()` for dev/tests.
@@ -1030,24 +1031,24 @@ Full `ci:integrity` deferred until merge PR — Architect YES only.
 
 ### What is weak
 
-- **Token authority is fiction today** — too many parallel palettes.
-- **Admin is not architected** — it is a feature-rich app with shadcn defaults.
-- **Workspace equality is marketing** — stubs coexist with Denali full stack.
+- **Token authority is fiction today** — **partially resolved E/F**; remaining admin feature TSX outside F8 purge.
+- **Admin is not architected** — it is a feature-rich app with shadcn defaults (F7/F8 scoped subset only).
+- **Workspace equality is marketing** — **mitigated Phase H** (`productionTier` + provision gate); stubs remain technically L3.
 - **Codegen monolith** — **resolved Phase G (2026-07-07)** — domain modules + per-domain `--check`.
 - **Member portal presets** — folded into `domains/member-portal.mjs`; `MEMBER_PORTAL_PRESETS` catalog remains until manifest-only admission.
 
 ### What is over-engineered
 
-- 69 guards while admin appearance unguarded — misprioritized enforcement.
-- `platform-neutral-portal.css` as third appearance layer — complexity without clear owner.
-- Duplicate dark palettes in `shell-bridge.css` and `operator-admin-appearance.css`.
+- 69 guards while admin appearance unguarded outside F8 registry — misprioritized enforcement (improving with phase-10 + I guards).
+- `platform-neutral-portal.css` — **resolved D2** (re-homed to `starter/theme/starter-portal.css`).
+- Duplicate dark palettes — **resolved F6** (`operator-admin-dark-semantics.css` under DTCG).
 
 ### What must be redesigned (not patched)
 
-1. Token pipeline (DTCG as input, not mirror).
-2. Admin appearance model (skin + vars, not Tailwind soup).
+1. ~~Token pipeline (DTCG as input, not mirror).~~ **Done — Phase E/F (2026-07-06).**
+2. Admin appearance model (skin + vars, not Tailwind soup) — **F7/F8 partial**; broader purge remains.
 3. ~~Codegen orchestration (monolith → modules).~~ **Done — Phase G (2026-07-07).**
-4. Platform-default guest skin ownership (design-tokens package → starter workspace).
+4. ~~Platform-default guest skin ownership~~ **Done — Phase D** (`starter/theme/starter-portal.css`, `starter-marketing.css`).
 
 ---
 
@@ -1058,22 +1059,22 @@ Scores reflect **conformance to this v2 spec**, not code volume or test count.
 | Subsystem | Score | Rationale |
 |-----------|-------|-----------|
 | Manifest / workspace discovery | **8** | Real manifests, discovery, scaffold; presets leak |
-| Codegen / generated registry | **8** | Domain modules + orchestrator; per-domain `--check`; member-portal folded (preset catalog remains) |
+| Codegen / generated registry | **9** | Domain modules + orchestrator; 59 outputs; per-domain `--check` |
 | Platform boundary (guest) | **8** | Dynamic loaders, no tenant theme on guest |
-| Platform boundary (admin / API) | **4** | Denali imports, urban guards, TSX appearance |
+| Platform boundary (admin / API) | **5** | C closed — generated loaders only; admin TSX appearance debt |
 | Registration contract | **7** | Shared reducer; triple surface wrappers remain |
 | Member portal contract | **6** | v2 manifest works; presets + named guards |
 | Catalog / guest marketing | **7** | Manifest-driven; Denali-heavy CSS |
-| Shell structure (L2) | **7** | Fallback split; minor L2 appearance leak |
-| Skin / appearance (guest) | **5** | platform-neutral + stubs + hex |
-| Skin / appearance (admin) | **3** | shadcn + Tailwind dominant |
-| Design tokens / DTCG readiness | **9** | L0 + admin dark under DTCG; operator-admin hooks hex-free; admin feature TSX remains |
+| Shell structure (L2) | **7** | D1/D2 split; bootstrap integrity guard |
+| Skin / appearance (guest) | **7** | DTCG guest semantics E4/E5; starter default skins D2/D3 |
+| Skin / appearance (admin) | **5** | DTCG admin semantics F1–F6; F8 subset purged; rest Tailwind |
+| Design tokens / DTCG readiness | **9** | L0 + admin dark under DTCG; hex-ban guards |
 | Routing / tenant (WRS, PCMS) | **8** | Documented standards + guards |
-| Scalability to 50+ workspaces | **5** | Possible after B–G; not today |
-| Guard / control plane | **7** | Strong guest; gaps on admin/tokens |
-| Documentation coherence | **6** | Good standards; contradictions in practice |
+| Scalability to 50+ workspaces | **6** | G modular codegen + I1/I2 guards on `DEV`; merge pending |
+| Guard / control plane | **8** | Guest + certification + phase-10 11/11 |
+| Documentation coherence | **7** | Standards + phase docs; §1/§8 synced 2026-07-07 |
 
-### Overall architecture confidence: **6 / 10**
+### Overall architecture confidence: **7 / 10**
 
 The **direction** is enterprise-grade. The **implementation** is a strong Phase-1 platform with one reference workspace carried on platform shoulders.
 

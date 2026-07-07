@@ -115,6 +115,14 @@
         "export": { "type": "string", "minLength": 1 }
       }
     },
+    "wizardTemplateGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultPublishedStepId"],
+      "properties": {
+        "defaultPublishedStepId": { "type": "string", "minLength": 1 }
+      }
+    },
     "wizardDraftShell": {
       "type": "object",
       "additionalProperties": false,

@@ -136,7 +136,7 @@ input.workspaceType
 | ------- | -------- | ------ |
 | Platform ops API (`POST /platform/v1/tenants`) | `runProvisionTenantSaga` → `assertProductionCertifiedWorkspaceType` + 422 | ✅ H4 |
 | Super Admin (H4) | UI badge stub/certified; disable prod create for stub | ✅ |
-| Marketing / portal deploy docs | Runbook references certification tier | ⏳ platform runbook only (CERT-05 partial) |
+| Marketing / portal deploy docs | Runbook references certification tier | ✅ platform runbook § Production certification (CERT-05) |
 
 ## Proof matrix (H3)
 
@@ -273,7 +273,7 @@ node apps/web/scripts/smoke-platform-create-club.mjs
 | `workspace-production-certification-badge.spec.ts` | ✅ 3/3 |
 | `smoke-platform-create-club.mjs` structural H4 checks | ✅ |
 
-**Phase H closure (H0–H4 on `DEV`):** complete — **G+H+I** merge PR pending (`gh auth login` or manual compare). GHA `phase-10-guard` green on `DEV` @ `c4d3af8d`. Handoff: `pnpm run phase-g-h:handoff`. Full `ci:integrity` deferred per Architect YES policy.
+**Phase H closure (H0–H4 on `DEV`):** complete — **G+H+I** merge PR pending (`gh auth login` or manual compare). GHA `phase-10-guard` green on `DEV` @ `fb8bb575`. Handoff: `pnpm run phase-g-h:handoff`. Full `ci:integrity` deferred per Architect YES policy.
 
 ### Phase H closure verification (2026-07-07)
 

@@ -873,6 +873,29 @@ export function loadWizardRulesModule(pluginId: string): Promise<WizardRulesModu
   );
 }
 
+export function generateWizardTemplateGateBindings(manifests) {
+  const platformDefault = "basics";
+  const entries = manifests.map((m) => {
+    const raw = m.wizardTemplateGate?.defaultPublishedStepId;
+    const stepId =
+      typeof raw === "string" && raw.trim().length > 0 ? raw.trim() : platformDefault;
+    return `  ${JSON.stringify(m.id)}: ${JSON.stringify(stepId)},`;
+  });
+
+  return `${BANNER}
+/** Manifest-derived default step id when publishing an empty wizard template. */
+export const WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID: Readonly<
+  Record<string, string>
+> = Object.freeze({
+${entries.join("\n")}
+});
+
+export function resolveWizardTemplateGateDefaultPublishedStepId(pluginId: string): string {
+  return WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID[pluginId] ?? ${JSON.stringify(platformDefault)};
+}
+`;
+}
+
 export function generateWizardTemplatePresetBindings(manifests) {
   return generateSingleWorkspaceSurfaceBindings(
     manifests,

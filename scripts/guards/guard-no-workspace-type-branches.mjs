@@ -58,6 +58,7 @@ const API_ROOT = path.join(REPO_ROOT, "apps/api/src");
 const C2_TARGETS = [
   "apps/web/app/(app)/tours/tours-page-client.tsx",
   "apps/web/app/(app)/settings/tour-wizard-template/wizard-template-client.tsx",
+  "apps/web/src/tours/wizard-template-gate-logic.ts",
 ];
 
 const C4_WEB_TARGETS = [
