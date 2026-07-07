@@ -241,8 +241,8 @@ MASTER.md → runtime palette without CSS emission
 ```text
 workspace.manifest.json          ← ONLY human config authority
         ↓
-scripts/generate-workspace-registry.mjs
-scripts/member-portal-contract-codegen.mjs (must merge into registry; no parallel presets)
+scripts/generate-workspace-registry.mjs  (thin entry)
+scripts/codegen/workspace-registry/orchestrator.mjs + domains/*.mjs
         ↓
 *.generated.ts (L4)
         ↓
@@ -492,8 +492,8 @@ All production workspaces must pass the **same manifest schema** and conformance
 
 | Script | Responsibility |
 |--------|----------------|
-| `scripts/generate-workspace-registry.mjs` | Monolithic: all manifest → generated outputs (~3,160 lines) |
-| `scripts/member-portal-contract-codegen.mjs` | Member portal normalization (should be submodule of registry) |
+| `scripts/generate-workspace-registry.mjs` | Thin entry (~207 lines); orchestrator in `scripts/codegen/workspace-registry/orchestrator.mjs`; domain emitters under `domains/` |
+| `scripts/member-portal-contract-codegen.mjs` | G4 re-export shim → `domains/member-portal.mjs` |
 | `packages/design-tokens/scripts/generate-tokens.mjs` | TS types from `semantics.css`; DTCG validate-only |
 
 Entry: `pnpm run generate:workspace-registry` (`--check` for CI).
@@ -512,17 +512,20 @@ Entry: `pnpm run generate:workspace-registry` (`--check` for CI).
 | Registration | `generateWorkspaceRegistrationFlowPlugins` |
 | Guest marketing | guestLanding, guestSeo, guestCrossSurfaceNav |
 
-### Future split (recommended — not implemented)
+### Future split (Phase G — complete)
+
+Canonical module plan: [workspace-registry-codegen-modularization.mdoc](../dev/workspace-registry-codegen-modularization.mdoc).
 
 ```text
-scripts/codegen/
-  workspace-registry.mjs      # orchestrator only
-  http-routes.mjs
-  wizard-bindings.mjs
-  guest-surface.mjs
-  member-portal.mjs
-  catalog.mjs
-  theme-loaders.mjs
+scripts/codegen/workspace-registry/
+  constants.mjs           # G1 ✅
+  manifest-loader.mjs     # G1 ✅
+  validation.mjs          # G1 ✅
+  utils.mjs               # G1 ✅
+  orchestrator.mjs        # G3 ✅ — OUTPUT_PATHS, generateAllOutputs, CLI + --domain
+  domains/*.mjs           # G2 ✅ + member-portal.mjs (G4 ✅)
+scripts/generate-workspace-registry.mjs   # thin entry + re-exports (G3 ✅)
+scripts/member-portal-contract-codegen.mjs  # G4 shim → domains/member-portal.mjs
 ```
 
 **Why:** At 50+ workspaces, monolithic regeneration creates merge contention and opaque failures. Orchestrator + domain modules match Shopify/Stripe internal codegen patterns.
@@ -953,10 +956,22 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 **Phase F formal closure (done, 2026-07-06):** fast-track checklist PASS. Full monorepo gate attempted same day — **not green** (`ci:integrity` blocked on `@apps/api` tsc; `phase-4:guard` RLS + kernel host literal). Phase F token scope is closed; unblock path in [dtcg-pipeline-spec.mdoc § Full gate run](../dev/dtcg-pipeline-spec.mdoc).
 
-### Phase G — Codegen modularization
+### Phase G — Codegen modularization (G0–G4 complete)
 
-- Split `generate-workspace-registry.mjs` into domain modules.
-- Per-domain `--check` in CI.
+**Spec:** [workspace-registry-codegen-modularization.mdoc](../dev/workspace-registry-codegen-modularization.mdoc)
+
+| Slice | Status |
+| ----- | ------ |
+| G0 doc pack | ✅ |
+| G1 shared loader + validation modules | ✅ |
+| G2 domain emitters (`domains/*.mjs`) | ✅ |
+| G3 orchestrator + per-domain `--check` | ✅ |
+| G4 member-portal fold (`domains/member-portal.mjs`) | ✅ |
+
+- Monolith split into domain modules under `scripts/codegen/workspace-registry/`.
+- Per-domain `--check --domain=<id>` + `guard:workspace-registry-domain-*` npm scripts.
+- **Invariant preserved:** generated `*.generated.ts` byte-identical through Phase G closure.
+- Legacy `scripts/member-portal-contract-codegen.mjs` is a re-export shim only.
 
 ### Phase H — Workspace certification
 
@@ -985,8 +1000,8 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 - **Token authority is fiction today** — too many parallel palettes.
 - **Admin is not architected** — it is a feature-rich app with shadcn defaults.
 - **Workspace equality is marketing** — stubs coexist with Denali full stack.
-- **Codegen monolith** — will not survive 100 workspaces without split.
-- **Member portal presets** — amateur parallel registry inside enterprise codegen.
+- **Codegen monolith** — **resolved Phase G (2026-07-07)** — domain modules + per-domain `--check`.
+- **Member portal presets** — folded into `domains/member-portal.mjs`; `MEMBER_PORTAL_PRESETS` catalog remains until manifest-only admission.
 
 ### What is over-engineered
 

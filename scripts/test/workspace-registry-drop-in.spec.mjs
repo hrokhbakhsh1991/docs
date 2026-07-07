@@ -140,10 +140,13 @@ describe("workspace registry drop-in (P7-T06)", () => {
     );
   });
 
-  it("P0-PR-1 generateSettingsEnrichers emits passthrough when no manifest bindings", () => {
+  it("P0-PR-1 generateSettingsEnrichers emits denali bindings from manifest", () => {
     const manifests = discoverManifests();
     const generated = generateSettingsEnrichers(manifests);
-    assert.match(generated, /WORKSPACE_SETTINGS_ENRICHER_BINDINGS = \[\] as const/);
+    assert.match(generated, /WORKSPACE_SETTINGS_ENRICHER_BINDINGS = \[/);
+    assert.match(generated, /workspaceType: "denali"/);
+    assert.match(generated, /resolveThemeCompatibleCategories/);
+    assert.match(generated, /resolveEquipmentCompatibleCategories/);
     assert.match(generated, /enrichSettingsModuleList/);
   });
 
@@ -205,10 +208,10 @@ describe("workspace registry drop-in (P7-T06)", () => {
     assert.doesNotMatch(generated, /GUEST-CLUB_/);
   });
 
-  it("PF-0.5 generateWorkspaceGuestConformance assigns L0/L1/L2/L3", () => {
+  it("PF-0.5 generateWorkspaceGuestConformance assigns L0/L3/L4", () => {
     const manifests = discoverManifests();
     const generated = generateWorkspaceGuestConformance(manifests);
-    assert.match(generated, /"denali": "L3"/);
+    assert.match(generated, /"denali": "L4"/);
     assert.match(generated, /"urban": "L3"/);
     assert.match(generated, /"starter": "L0"/);
   });
@@ -249,8 +252,14 @@ describe("workspace registry drop-in (P7-T06)", () => {
   it("PF-1.1 generateWorkspaceCatalogListFeatures matches manifest presentation", () => {
     const manifests = discoverManifests();
     const generated = generateWorkspaceCatalogListFeatures(manifests);
-    assert.match(generated, /"denali": Object.freeze\(\{ cityFilter: false \}\)/);
-    assert.match(generated, /"urban": Object.freeze\(\{ cityFilter: true \}\)/);
+    assert.match(
+      generated,
+      /"denali": Object.freeze\(\{ cityFilter: false, serverListFilters: Object.freeze\(\["availability", "category", "difficulty", "fitness", "q", "sort"\]\) \}\)/
+    );
+    assert.match(
+      generated,
+      /"urban": Object.freeze\(\{ cityFilter: true, serverListFilters: Object.freeze\(\[\]\) \}\)/
+    );
     assert.doesNotMatch(generated, /"starter":/);
   });
 
@@ -291,6 +300,14 @@ describe("workspace registry drop-in (P7-T06)", () => {
               whyDenali: false,
               journey: false,
               testimonials: false,
+              featuredTours: false,
+              featuredToursLimit: 0,
+              categories: false,
+              destinations: false,
+              heroSearch: false,
+              gallery: false,
+              equipment: false,
+              blogTeaser: false,
             },
           },
         }),

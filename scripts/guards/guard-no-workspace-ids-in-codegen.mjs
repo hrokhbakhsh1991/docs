@@ -12,7 +12,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 /** @type {{ file: string; patterns: RegExp[] }}[] */
 const TARGETS = [
   {
-    file: "scripts/member-portal-contract-codegen.mjs",
+    file: "scripts/codegen/workspace-registry/domains/member-portal.mjs",
     patterns: [
       /manifest\.id\s*===\s*["'](?:denali|urban|guest-club)["']/,
       /["'](?:denali|urban|guest-club)-(?:full|minimal)-v\d+["']/,
