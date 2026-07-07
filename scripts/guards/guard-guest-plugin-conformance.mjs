@@ -4,13 +4,14 @@
  * @see docs/dev/guest-plugin-conformance.md
  */
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 /** @type {{ name: string; cmd: string[] }[]} */
-const STEPS = [
+export const GUEST_CONFORMANCE_STEPS = [
   { name: "registry_fresh", cmd: ["node", "scripts/generate-workspace-registry.mjs", "--check"] },
   { name: "intake_plugin_registry", cmd: ["node", "scripts/guards/guard-intake-plugin-registry.mjs"] },
   { name: "guest_extension_schema", cmd: ["node", "scripts/guards/guard-guest-extension-schema.mjs"] },
@@ -37,27 +38,58 @@ const STEPS = [
   { name: "css_bootstrap_integrity", cmd: ["node", "scripts/guards/guard-css-bootstrap-integrity.mjs"] },
 ];
 
-const failures = [];
+/**
+ * @param {typeof GUEST_CONFORMANCE_STEPS} steps
+ * @returns {string[]}
+ */
+export function runGuestConformanceSteps(steps) {
+  /** @type {string[]} */
+  const failures = [];
 
-for (const step of STEPS) {
-  const result = spawnSync(step.cmd[0], step.cmd.slice(1), {
-    cwd: REPO_ROOT,
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-  if (result.status === 0) {
-    console.log(`PASS guest_conformance/${step.name}`);
-    continue;
+  for (const step of steps) {
+    const result = spawnSync(step.cmd[0], step.cmd.slice(1), {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      stdio: "pipe",
+    });
+    if (result.status === 0) {
+      console.log(`PASS guest_conformance/${step.name}`);
+      continue;
+    }
+    failures.push(step.name);
+    console.error(`FAIL guest_conformance/${step.name}`);
+    const output = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
+    if (output.length > 0) {
+      console.error(output);
+    }
   }
-  failures.push(step.name);
-  console.error(`FAIL guest_conformance/${step.name}`);
-  const output = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
-  if (output.length > 0) {
-    console.error(output);
-  }
+
+  return failures;
 }
 
+const sliceArg = process.argv[2];
+const steps =
+  sliceArg == null
+    ? GUEST_CONFORMANCE_STEPS
+    : (() => {
+        const [start, end] = sliceArg.split(":").map((value) => Number(value));
+        if (!Number.isInteger(start) || !Number.isInteger(end)) {
+          console.error("guard-guest-plugin-conformance: invalid slice (use start:end)");
+          process.exit(2);
+        }
+        return GUEST_CONFORMANCE_STEPS.slice(start, end);
+      })();
+
+const failures = runGuestConformanceSteps(steps);
+
 if (failures.length > 0) {
+  const summary = failures.map((name) => `- \`${name}\``).join("\n");
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    fs.appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      `### Guest conformance failures\n${summary}\n`
+    );
+  }
   console.error(`guard-guest-plugin-conformance: FAIL (${failures.join(", ")})`);
   process.exit(1);
 }

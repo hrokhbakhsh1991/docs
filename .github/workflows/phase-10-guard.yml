@@ -110,7 +110,8 @@ jobs:
       - run: pnpm run guard:workspace-plugin-load-cache
       - run: node --test scripts/test/workspace-plugin-load-cache-guard.spec.mjs
       - run: pnpm --filter @apps/web exec node --import tsx --test test/workspace-plugin-load-cache.spec.ts
-      - run: pnpm run guard:guest-plugin-conformance
+      - run: node scripts/guards/guard-guest-plugin-conformance.mjs 0:11
+      - run: node scripts/guards/guard-guest-plugin-conformance.mjs 11:21
       - run: node --test scripts/test/workspace-registry-drop-in.spec.mjs
       - run: node --test scripts/test/workspace-production-certification.spec.mjs
       - run: pnpm run guard:workspace-certification
