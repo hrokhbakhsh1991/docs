@@ -9,6 +9,23 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const SDK_DIST = path.join(REPO_ROOT, "packages/workspace-sdk/dist/index.js");
+
+function ensureWorkspaceSdkBuilt() {
+  if (fs.existsSync(SDK_DIST)) {
+    return;
+  }
+  console.log("guard-guest-plugin-conformance: building workspace-sdk (dist missing — guest_seo / validate-json-ld)");
+  const build = spawnSync("pnpm", ["--filter", "@app-tour/workspace-sdk", "run", "build"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    stdio: "inherit",
+  });
+  if (build.status !== 0) {
+    console.error("guard-guest-plugin-conformance: workspace-sdk build failed");
+    process.exit(1);
+  }
+}
 
 /** @type {{ name: string; cmd: string[] }[]} */
 export const GUEST_CONFORMANCE_STEPS = [
@@ -90,6 +107,8 @@ const steps =
           }
           return GUEST_CONFORMANCE_STEPS.slice(start, end);
         })();
+
+ensureWorkspaceSdkBuilt();
 
 const failures = runGuestConformanceSteps(steps);
 
