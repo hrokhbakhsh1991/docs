@@ -34,7 +34,7 @@ pnpm run phase-i:closure   # G+H regression + I1/I2 guards
 ## Test plan
 
 - [x] `pnpm run phase-i:closure` green locally
-- [x] GHA `phase-10-guard` green on `DEV` (`958044b2`)
+- [x] GHA `phase-10-guard` green on `DEV` (`27917db9`)
 - [ ] CI `phase-10-guard` green on merge PR to `main`
 - [ ] Proof matrix: `docs/dev/workspace-certification-proof-matrix.yaml` (denali certified)
 - [ ] Super Admin `/platform/clubs/new` — urban/guest-club disabled; denali certified badge

@@ -41,8 +41,8 @@ pnpm run guard:workspace-certification  # Phase H CERT-04 proof matrix
 pnpm run phase-i:fast-track            # Phase I guards (fast)
 pnpm run phase-i:closure               # G+H regression + I1/I2 closure bundle
 pnpm run phase-g-h:handoff             # merge PR checklist (no gh)
-pnpm run phase-g-h:create-pr           # DEV→main PR (needs gh auth login)
-# Or: GitHub Actions → phase-g-h-create-pr workflow on branch DEV (no local gh)
+pnpm run phase-g-h:create-pr           # DEV→main PR (gh auth or GITHUB_TOKEN)
+pnpm run phase-g-h:create-pr-api        # DEV→main PR via GITHUB_TOKEN only
 pnpm run generate:workspace-registry  # after workspace.manifest.json change
 pnpm run workspace:create -- <id>   # scaffold packages/workspaces/<id>
 pnpm run test:changed               # git-aware unit tests (origin/main...HEAD, cached)

@@ -235,6 +235,7 @@
     "build:workspace-sdk-for-guards": "bash scripts/ci/build-workspace-sdk-for-guards.sh",
     "phase-i:create-pr": "bash scripts/create-phase-i-pr.sh",
     "phase-g-h:create-pr": "bash scripts/create-phase-g-h-pr.sh",
+    "phase-g-h:create-pr-api": "bash scripts/create-phase-g-h-pr-api.sh",
     "phase-g-h:handoff": "bash scripts/phase-g-h-handoff.sh",
     "guard:public-catalog-m17": "node scripts/guards/guard-public-catalog-m17.mjs",
     "guard:portal-member-profile-boundary": "node scripts/guards/guard-portal-member-profile-boundary.mjs",

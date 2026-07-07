@@ -18,6 +18,10 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 
 if ! gh auth status >/dev/null 2>&1; then
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    echo "create-phase-g-h-pr: gh not logged in — using GITHUB_TOKEN API path..."
+    exec bash scripts/create-phase-g-h-pr-api.sh
+  fi
   echo "create-phase-g-h-pr: run 'gh auth login' then re-run this script"
   echo ""
   echo "Without local gh — trigger GitHub Actions workflow on branch DEV:"
