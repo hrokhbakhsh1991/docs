@@ -68,7 +68,7 @@ for (const file of surfaces) {
 
 const driftTest = spawnSync(
   process.execPath,
-  ["--import", "tsx", "--test", "test/**/*.spec.ts"],
+  ["--import", "tsx", "--test", "test/registration-flow-state.spec.ts"],
   {
     cwd: path.join(REPO_ROOT, "packages/catalog-registration-auth"),
     encoding: "utf8",

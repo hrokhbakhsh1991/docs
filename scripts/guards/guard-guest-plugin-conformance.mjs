@@ -50,7 +50,7 @@ export function runGuestConformanceSteps(steps) {
     const result = spawnSync(step.cmd[0], step.cmd.slice(1), {
       cwd: REPO_ROOT,
       encoding: "utf8",
-      stdio: "pipe",
+      stdio: process.env.GITHUB_ACTIONS === "true" ? "inherit" : "pipe",
     });
     if (result.status === 0) {
       console.log(`PASS guest_conformance/${step.name}`);
@@ -68,17 +68,28 @@ export function runGuestConformanceSteps(steps) {
 }
 
 const sliceArg = process.argv[2];
+const onlyIdx = process.argv.indexOf("--only");
 const steps =
-  sliceArg == null
-    ? GUEST_CONFORMANCE_STEPS
-    : (() => {
-        const [start, end] = sliceArg.split(":").map((value) => Number(value));
-        if (!Number.isInteger(start) || !Number.isInteger(end)) {
-          console.error("guard-guest-plugin-conformance: invalid slice (use start:end)");
+  onlyIdx >= 0
+    ? (() => {
+        const name = process.argv[onlyIdx + 1];
+        const match = GUEST_CONFORMANCE_STEPS.filter((step) => step.name === name);
+        if (match.length === 0) {
+          console.error(`guard-guest-plugin-conformance: unknown step ${name}`);
           process.exit(2);
         }
-        return GUEST_CONFORMANCE_STEPS.slice(start, end);
-      })();
+        return match;
+      })()
+    : sliceArg == null
+      ? GUEST_CONFORMANCE_STEPS
+      : (() => {
+          const [start, end] = sliceArg.split(/[:-]/).map((value) => Number(value));
+          if (!Number.isInteger(start) || !Number.isInteger(end)) {
+            console.error("guard-guest-plugin-conformance: invalid slice (use start:end)");
+            process.exit(2);
+          }
+          return GUEST_CONFORMANCE_STEPS.slice(start, end);
+        })();
 
 const failures = runGuestConformanceSteps(steps);
 
