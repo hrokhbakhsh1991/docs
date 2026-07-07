@@ -20,7 +20,7 @@
 
 The Workspace Platform is a **manifest-driven, multi-tenant, multi-workspace** monorepo. Workspaces are **plugins**, not forks. The platform owns **behavior, contracts, and structure**; workspaces own **configuration and brand appearance** within contract bounds.
 
-**Current state (honest):** Guest surfaces (portal, marketing) are **ahead** of admin on contract purity. Token and appearance authority is **fragmented**. One workspace (Denali) is a **reference implementation**, not a peer of stub workspaces. A monolithic codegen script (~3,160 lines) works but will not scale cleanly to 100 workspaces without modularization.
+**Current state (honest):** Guest surfaces (portal, marketing) are **ahead** of admin on contract purity. Token and appearance authority is **fragmented**. One workspace (Denali) is a **reference implementation**, not a peer of stub workspaces. Workspace registry codegen is **modular** (Phase G, 2026-07-07) — thin entry + `scripts/codegen/workspace-registry/domains/*.mjs` + per-domain `--check`.
 
 **Target state:** One configuration authority (`workspace.manifest.json`), one visual value authority (DTCG), generated registries, zero workspace-ID branching in platform apps, skin-owned appearance, platform-owned behavior.
 
@@ -1013,7 +1013,7 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 1. Token pipeline (DTCG as input, not mirror).
 2. Admin appearance model (skin + vars, not Tailwind soup).
-3. Codegen orchestration (monolith → modules).
+3. ~~Codegen orchestration (monolith → modules).~~ **Done — Phase G (2026-07-07).**
 4. Platform-default guest skin ownership (design-tokens package → starter workspace).
 
 ---
@@ -1025,7 +1025,7 @@ Scores reflect **conformance to this v2 spec**, not code volume or test count.
 | Subsystem | Score | Rationale |
 |-----------|-------|-----------|
 | Manifest / workspace discovery | **8** | Real manifests, discovery, scaffold; presets leak |
-| Codegen / generated registry | **7** | Broad coverage; monolith + parallel preset script |
+| Codegen / generated registry | **8** | Domain modules + orchestrator; per-domain `--check`; member-portal folded (preset catalog remains) |
 | Platform boundary (guest) | **8** | Dynamic loaders, no tenant theme on guest |
 | Platform boundary (admin / API) | **4** | Denali imports, urban guards, TSX appearance |
 | Registration contract | **7** | Shared reducer; triple surface wrappers remain |
