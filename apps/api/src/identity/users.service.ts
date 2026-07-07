@@ -14,7 +14,10 @@ import {
 } from "./in-memory-identity.repository";
 import { getIdentityRepository } from "./create-identity-repository";
 import { createMobileOtpChallenge } from "./otp.service";
-import { compileUserBookingSummary } from "./compile-user-booking-summary";
+import {
+  compileUserBookingSummaryFromCounts,
+} from "./compile-user-booking-summary";
+import { MAX_MEMBER_BOOKINGS_RECENT_TRIPS } from "../bookings/bookings-member-summary-projection";
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
 import { decodeUsersDirectoryCursor, encodeUsersDirectoryCursor } from "./users-directory-cursor";
 import { normalizeMembershipRole } from "./hydrate-membership";
@@ -624,18 +627,16 @@ export async function getWorkspaceUserRoleHistory(
   }
 
   const rows = await repo.listUserRoleHistoryRows(auth.tenantId, targetUserId);
-  const items: UserRoleHistoryItem[] = [];
-  for (const row of rows) {
-    const actor = await repo.findUserById(row.actorUserId);
-    items.push({
-      eventKind: row.eventKind ?? "role_change",
-      actorUserId: row.actorUserId,
-      actorMobile: actor?.mobile ?? row.actorUserId,
-      oldRole: row.oldRole,
-      newRole: row.newRole,
-      createdAt: row.createdAt.toISOString(),
-    });
-  }
+  const actorIds = [...new Set(rows.map((row) => row.actorUserId))];
+  const actors = await repo.findUsersByIds(actorIds);
+  const items: UserRoleHistoryItem[] = rows.map((row) => ({
+    eventKind: row.eventKind ?? "role_change",
+    actorUserId: row.actorUserId,
+    actorMobile: actors.get(row.actorUserId)?.mobile ?? row.actorUserId,
+    oldRole: row.oldRole,
+    newRole: row.newRole,
+    createdAt: row.createdAt.toISOString(),
+  }));
   return { items };
 }
 
@@ -651,9 +652,21 @@ export async function getWorkspaceUserBookingSummary(
   }
 
   const bookingsRepo = getBookingsRepository();
-  const tenantBookings = await bookingsRepo.listByTenant(auth.tenantId);
-  const memberBookings = tenantBookings.filter((row) => row.submittedByUserId === targetUserId);
-  return compileUserBookingSummary(memberBookings);
+  const now = new Date();
+  const [totalTrips, cancelledTrips, completedTrips, recentTrips] = await Promise.all([
+    bookingsRepo.countBookingsBySubmittedUser(auth.tenantId, targetUserId),
+    bookingsRepo.countCancelledBookingsBySubmittedUser(auth.tenantId, targetUserId),
+    bookingsRepo.countCompletedTripsBySubmittedUser(auth.tenantId, targetUserId, now),
+    bookingsRepo.listRecentBySubmittedUser(
+      auth.tenantId,
+      targetUserId,
+      MAX_MEMBER_BOOKINGS_RECENT_TRIPS
+    ),
+  ]);
+  return compileUserBookingSummaryFromCounts(
+    { totalTrips, completedTrips, cancelledTrips },
+    recentTrips
+  );
 }
 
 const BULK_USER_IDS_MAX = 50;

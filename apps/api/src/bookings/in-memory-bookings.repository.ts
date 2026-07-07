@@ -1,11 +1,35 @@
 import { randomUUID } from "node:crypto";
 
+import {
+  compareBookingsBySubmittedAtDesc,
+  isBookingAfterKeysetCursor,
+  matchesBookingListFilters,
+  startOfUtcDay,
+} from "./booking-list-query";
 import type {
+  ActiveDuplicateByEmailInput,
+  ActiveDuplicateByGuestLabelInput,
+  ActiveDuplicateByNationalIdInput,
+  ActiveDuplicateByUserInput,
+  BookingListPageInput,
+  BookingListPageOutput,
   BookingOutboxRecord,
   BookingRecord,
   BookingStatus,
+  BookingTourChip,
+  BookingsSummaryCounts,
   CreateBookingRequest,
 } from "./bookings.types";
+import {
+  isActiveDuplicateBookingStatus,
+  readRegistrationIntakeNationalId,
+} from "./booking-active-duplicate";
+import { MAX_OUTBOX_EVENTS_PER_AGGREGATE } from "./bookings-outbox-projection";
+import {
+  CANCELLED_BOOKING_STATUSES,
+  MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
+  MAX_MEMBER_BOOKINGS_LIST_CAP,
+} from "./bookings-member-summary-projection";
 
 type RepositorySnapshot = {
   readonly bookings: Map<string, BookingRecord>;
@@ -91,6 +115,11 @@ function cloneBooking(record: BookingRecord): BookingRecord {
   return { ...record };
 }
 
+function toBookingListRecord(record: BookingRecord): BookingRecord {
+  const { registrationIntake: _omit, ...listRecord } = record;
+  return listRecord;
+}
+
 function snapshotState(): RepositorySnapshot {
   return {
     bookings: new Map(bookingsStore),
@@ -110,12 +139,43 @@ export function resetBookingsStoresForTests(): void {
 }
 
 export type BookingsRepository = {
+  /** @deprecated Test/perf baseline only — delegates to listByTenantPage (cap 500). */
   listByTenant(tenantId: string): Promise<BookingRecord[]>;
+  listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput>;
+  listBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<BookingRecord[]>;
+  countBookingsBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<number>;
+  countCancelledBookingsBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string
+  ): Promise<number>;
+  countCompletedTripsBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string,
+    now: Date
+  ): Promise<number>;
+  listRecentBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string,
+    limit: number
+  ): Promise<BookingRecord[]>;
+  findActiveDuplicateByUser(input: ActiveDuplicateByUserInput): Promise<BookingRecord | null>;
+  findActiveDuplicateByGuestLabel(
+    input: ActiveDuplicateByGuestLabelInput
+  ): Promise<BookingRecord | null>;
+  findActiveDuplicateByEmail(input: ActiveDuplicateByEmailInput): Promise<BookingRecord | null>;
+  findActiveDuplicateByNationalId(
+    input: ActiveDuplicateByNationalIdInput
+  ): Promise<BookingRecord | null>;
+  countByListFilters(
+    input: Omit<BookingListPageInput, "limit" | "cursor">
+  ): Promise<number>;
+  getBookingsSummaryCounts(tenantId: string, now: Date): Promise<BookingsSummaryCounts>;
+  listTourChipsByTenant(tenantId: string): Promise<readonly BookingTourChip[]>;
   sumApprovedPartySizeByTourIds(
     tenantId: string,
     tourIds: readonly string[]
   ): Promise<Readonly<Record<string, number>>>;
-  getById(id: string): Promise<BookingRecord | null>;
+  getById(id: string, tenantId: string): Promise<BookingRecord | null>;
   listOutboxByAggregate(aggregateId: string): Promise<BookingOutboxRecord[]>;
   createBooking(input: {
     tenantId: string;
@@ -153,7 +213,228 @@ export class InMemoryBookingsRepository implements BookingsRepository {
   }
 
   async listByTenant(tenantId: string): Promise<BookingRecord[]> {
-    return [...bookingsStore.values()].filter((row) => row.tenantId === tenantId);
+    const page = await this.listByTenantPage({
+      tenantId,
+      limit: MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
+    });
+    return [...page.items];
+  }
+
+  private memberBookingsForUser(tenantId: string, submittedByUserId: string): BookingRecord[] {
+    return [...bookingsStore.values()].filter(
+      (row) => row.tenantId === tenantId && row.submittedByUserId === submittedByUserId
+    );
+  }
+
+  async listBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string
+  ): Promise<BookingRecord[]> {
+    return this.memberBookingsForUser(tenantId, submittedByUserId)
+      .sort(
+        (left, right) =>
+          new Date(right.departureAt).getTime() - new Date(left.departureAt).getTime() ||
+          right.id.localeCompare(left.id)
+      )
+      .slice(0, MAX_MEMBER_BOOKINGS_LIST_CAP)
+      .map(toBookingListRecord);
+  }
+
+  async countBookingsBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string
+  ): Promise<number> {
+    return this.memberBookingsForUser(tenantId, submittedByUserId).length;
+  }
+
+  async countCancelledBookingsBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string
+  ): Promise<number> {
+    const cancelled = new Set<string>(CANCELLED_BOOKING_STATUSES);
+    return this.memberBookingsForUser(tenantId, submittedByUserId).filter((row) =>
+      cancelled.has(row.status)
+    ).length;
+  }
+
+  async countCompletedTripsBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string,
+    now: Date
+  ): Promise<number> {
+    const cancelled = new Set<string>(CANCELLED_BOOKING_STATUSES);
+    return this.memberBookingsForUser(tenantId, submittedByUserId).filter((row) => {
+      if (cancelled.has(row.status)) {
+        return false;
+      }
+      const departure = new Date(row.departureAt);
+      return !Number.isNaN(departure.getTime()) && departure.getTime() < now.getTime();
+    }).length;
+  }
+
+  async listRecentBySubmittedUser(
+    tenantId: string,
+    submittedByUserId: string,
+    limit: number
+  ): Promise<BookingRecord[]> {
+    const capped = Math.min(Math.max(limit, 1), MAX_MEMBER_BOOKINGS_LIST_CAP);
+    return this.memberBookingsForUser(tenantId, submittedByUserId)
+      .sort(
+        (left, right) =>
+          new Date(right.departureAt).getTime() - new Date(left.departureAt).getTime() ||
+          right.id.localeCompare(left.id)
+      )
+      .slice(0, capped)
+      .map(toBookingListRecord);
+  }
+
+  async findActiveDuplicateByUser(
+    input: ActiveDuplicateByUserInput
+  ): Promise<BookingRecord | null> {
+    const normalizedUserId = input.submittedByUserId.trim();
+    if (normalizedUserId.length === 0) {
+      return null;
+    }
+    const hit = [...bookingsStore.values()].find(
+      (row) =>
+        row.tenantId === input.tenantId &&
+        row.tourId === input.tourId &&
+        isActiveDuplicateBookingStatus(row.status) &&
+        row.submittedByUserId === normalizedUserId
+    );
+    return hit === undefined ? null : cloneBooking(hit);
+  }
+
+  async findActiveDuplicateByGuestLabel(
+    input: ActiveDuplicateByGuestLabelInput
+  ): Promise<BookingRecord | null> {
+    const normalizedLabel = input.guestLabel.trim().toLocaleLowerCase();
+    if (normalizedLabel.length === 0) {
+      return null;
+    }
+    const hit = [...bookingsStore.values()].find(
+      (row) =>
+        row.tenantId === input.tenantId &&
+        row.tourId === input.tourId &&
+        isActiveDuplicateBookingStatus(row.status) &&
+        row.guestLabel.trim().toLocaleLowerCase() === normalizedLabel
+    );
+    return hit === undefined ? null : cloneBooking(hit);
+  }
+
+  async findActiveDuplicateByEmail(
+    input: ActiveDuplicateByEmailInput
+  ): Promise<BookingRecord | null> {
+    const normalizedEmail = input.email.trim().toLowerCase();
+    if (normalizedEmail.length === 0) {
+      return null;
+    }
+    const hit = [...bookingsStore.values()].find(
+      (row) =>
+        row.tenantId === input.tenantId &&
+        row.tourId === input.tourId &&
+        isActiveDuplicateBookingStatus(row.status) &&
+        (row.guestEmail?.trim().toLowerCase() ?? "") === normalizedEmail
+    );
+    return hit === undefined ? null : cloneBooking(hit);
+  }
+
+  async findActiveDuplicateByNationalId(
+    input: ActiveDuplicateByNationalIdInput
+  ): Promise<BookingRecord | null> {
+    const normalizedNationalId = input.nationalId.trim();
+    if (normalizedNationalId.length === 0) {
+      return null;
+    }
+    const hit = [...bookingsStore.values()].find(
+      (row) =>
+        row.tenantId === input.tenantId &&
+        row.tourId === input.tourId &&
+        isActiveDuplicateBookingStatus(row.status) &&
+        readRegistrationIntakeNationalId(row.registrationIntake) === normalizedNationalId
+    );
+    return hit === undefined ? null : cloneBooking(hit);
+  }
+
+  async listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput> {
+    let rows = [...bookingsStore.values()].filter((row) => row.tenantId === input.tenantId);
+    rows = rows.filter((row) => matchesBookingListFilters(row, input));
+
+    if (input.cursor !== undefined && input.cursor.length > 0) {
+      const cursorRow = bookingsStore.get(input.cursor);
+      if (cursorRow !== undefined && cursorRow.tenantId === input.tenantId) {
+        rows = rows.filter((row) =>
+          isBookingAfterKeysetCursor(row, {
+            submittedAt: cursorRow.submittedAt,
+            id: cursorRow.id,
+          })
+        );
+      }
+    }
+
+    rows.sort(compareBookingsBySubmittedAtDesc);
+
+    const pageRows = rows.slice(0, input.limit + 1);
+    const hasMore = pageRows.length > input.limit;
+    const items = pageRows.slice(0, input.limit).map(toBookingListRecord);
+
+    return {
+      items,
+      nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
+    };
+  }
+
+  async countByListFilters(
+    input: Omit<BookingListPageInput, "limit" | "cursor">
+  ): Promise<number> {
+    return [...bookingsStore.values()].filter(
+      (row) => row.tenantId === input.tenantId && matchesBookingListFilters(row, input)
+    ).length;
+  }
+
+  async getBookingsSummaryCounts(tenantId: string, now: Date): Promise<BookingsSummaryCounts> {
+    const rows = [...bookingsStore.values()].filter((row) => row.tenantId === tenantId);
+    const dayStart = startOfUtcDay(now);
+    const departuresEnd = new Date(now);
+    departuresEnd.setUTCDate(departuresEnd.getUTCDate() + 7);
+
+    return {
+      pending: rows.filter((row) => row.status === "pending").length,
+      waitlist: rows.filter((row) => row.status === "waitlisted").length,
+      approvedToday: rows.filter((row) => {
+        if (row.status !== "approved" || row.approvedAt === null) {
+          return false;
+        }
+        return new Date(row.approvedAt) >= dayStart;
+      }).length,
+      departures7d: rows.filter((row) => {
+        const departure = new Date(row.departureAt);
+        return departure >= now && departure <= departuresEnd;
+      }).length,
+    };
+  }
+
+  async listTourChipsByTenant(tenantId: string): Promise<readonly BookingTourChip[]> {
+    const rows = [...bookingsStore.values()].filter((row) => row.tenantId === tenantId);
+    const byTour = new Map<string, BookingTourChip>();
+    for (const row of rows) {
+      const existing = byTour.get(row.tourId);
+      if (existing === undefined) {
+        byTour.set(row.tourId, {
+          tourId: row.tourId,
+          tourTitle: row.tourTitle,
+          pendingCount: row.status === "pending" ? 1 : 0,
+          totalCount: 1,
+        });
+        continue;
+      }
+      byTour.set(row.tourId, {
+        ...existing,
+        pendingCount: existing.pendingCount + (row.status === "pending" ? 1 : 0),
+        totalCount: existing.totalCount + 1,
+      });
+    }
+    return [...byTour.values()].sort((left, right) => right.pendingCount - left.pendingCount);
   }
 
   async sumApprovedPartySizeByTourIds(
@@ -178,13 +459,19 @@ export class InMemoryBookingsRepository implements BookingsRepository {
     return totals;
   }
 
-  async getById(id: string): Promise<BookingRecord | null> {
+  async getById(id: string, tenantId: string): Promise<BookingRecord | null> {
     const row = bookingsStore.get(id);
-    return row === undefined ? null : cloneBooking(row);
+    if (row === undefined || row.tenantId !== tenantId) {
+      return null;
+    }
+    return cloneBooking(row);
   }
 
   async listOutboxByAggregate(aggregateId: string): Promise<BookingOutboxRecord[]> {
-    return outboxStore.filter((row) => row.aggregateId === aggregateId);
+    const rows = outboxStore
+      .filter((row) => row.aggregateId === aggregateId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return rows.slice(0, MAX_OUTBOX_EVENTS_PER_AGGREGATE).map((row) => ({ ...row }));
   }
 
   async createBooking(input: {

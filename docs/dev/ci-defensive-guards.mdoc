@@ -156,6 +156,7 @@ Operator directory paginates in the repository — not load-all then filter/slic
 | `listMembershipsWithUsersDirectoryPage` | SQL `skip`/`take` or raw `ORDER BY displayName` for name sorts |
 | `findUsersByIds(userIds)` | Global `users.findMany({ where: { id: { in } }, take: uniqueIds.length })` — bulk prefetch + role history |
 | `findMembershipsByUserIds(tenantId, userIds)` | `userTenant.findMany` with bounded `in` — bulk mutation prefetch |
+| `findUsersByIds(userIds)` | Used by `getWorkspaceUserRoleHistory` actor batch lookup |
 
 Filters: [`users-directory-list-projection.ts`](../../apps/api/src/identity/users-directory-list-projection.ts) · in-memory sort parity: [`users-directory-query.ts`](../../apps/api/src/identity/users-directory-query.ts).
 
@@ -173,6 +174,18 @@ Filters: [`users-directory-list-projection.ts`](../../apps/api/src/identity/user
 | `loadBulkUserMutationPrefetch` | `findMembershipsByUserIds` + `findUsersByIds` before bulk loop |
 | `runBulkMutation` | Passes prefetch into per-user mutators — skips redundant membership/user lookups; batch avatar presign via `directoryRowsFromPairs(successPairs)` |
 | `bulkRemoveWorkspaceUsers` | Same prefetch helper as role/status bulk paths |
+
+## Identity — member booking summary (Phase 5e)
+
+`getWorkspaceUserBookingSummary` must not call `listByTenant` then filter in memory.
+
+| Pattern | Detail |
+|---------|--------|
+| Count queries | `countBookingsBySubmittedUser`, `countCancelledBookingsBySubmittedUser`, `countCompletedTripsBySubmittedUser` |
+| Recent trips | `listRecentBySubmittedUser(tenantId, userId, MAX_MEMBER_BOOKINGS_RECENT_TRIPS)` |
+| Service | `compileUserBookingSummaryFromCounts` in [`compile-user-booking-summary.ts`](../../apps/api/src/identity/compile-user-booking-summary.ts) |
+
+**Static checks:** `test/bookings-member-summary-projection.spec.ts` (BK-MEM-01..03).
 
 ## Integrations — event policy sync (Phase 5e)
 
