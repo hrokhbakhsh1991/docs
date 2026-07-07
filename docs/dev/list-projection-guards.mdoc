@@ -1,0 +1,268 @@
+---
+title: List projection guards
+description: CI guards for bounded repository list reads and OpenAPI list response contracts (Audit Point 15).
+---
+
+# List projection guards
+
+Codifies performance standards for **operator bookings** and **tour** list paths: repository `findMany` must be bounded or projected, and public list OpenAPI schemas must not expose internal JSON blobs.
+
+## Repository guard — `guard:unbounded-list`
+
+**Script:** [`scripts/guards/guard-unbounded-list.mjs`](../../scripts/guards/guard-unbounded-list.mjs)
+
+**Scope:** `apps/api/src/**/*.repository.ts` (excludes `platform/` admin repos and `in-memory-*.repository.ts`)
+
+**Rule:** Every tenant-scoped `*.findMany` call (see delegate list in guard script) must include **`take:`**. `select:` alone (full tenant scan) **FAILs**. Bounded `where.in` with a documented caller cap is also accepted.
+
+**Legacy allowlist:** Empty — finance, exposure profile seeding, and workspace draft snapshots were remediated in the performance backlog (2026-07-07). New deferrals require an explicit doc entry and guard allowlist line.
+
+**Delegates scanned:** `operatorRegistration`, `tour`, `userTenant`, `operatorPendingInvite`, `operatorSettingsAuditEvent`, `integrationConnection`, `integrationEventPolicy`, `workspaceDraftEvent`, `outboxEvent`, and other tenant models — see [`guard-unbounded-list.mjs`](../../scripts/guards/guard-unbounded-list.mjs).
+
+## Bookings duplicate-finder paths (AP15 — Faz 2)
+
+Guest registration duplicate checks must **not** call unbounded `listByTenant`. Each rule maps to a repository method under `withTenantRls`:
+
+| Service helper | Repository method | Query shape |
+|----------------|-------------------|-------------|
+| `findGuestBookingDuplicateByUser` | `findActiveDuplicateByUser` | `findFirst` + `submittedByUserId` |
+| `findGuestBookingDuplicateByGuestLabel` | `findActiveDuplicateByGuestLabel` | `findFirst` + `guestLabel` insensitive |
+| `findGuestBookingDuplicate` | `findActiveDuplicateByEmail` | `findFirst` + normalized email |
+| `findGuestBookingDuplicateByTourNationalId` | `findActiveDuplicateByNationalId` | `findFirst` + JSON path `registrationIntake.nationalId` |
+
+Shared filter: `status NOT IN ('cancelled', 'rejected')` — see `booking-active-duplicate.ts`.
+
+User directory summary (`getWorkspaceUserBookingSummary`) uses **SQL counts** plus `listRecentBySubmittedUser(tenantId, userId, MAX_MEMBER_BOOKINGS_RECENT_TRIPS)` — not a full member booking scan.
+
+`listBySubmittedUser` is capped at `MAX_MEMBER_BOOKINGS_LIST_CAP` (500) with `BOOKING_LIST_SELECT` for legacy/test callers.
+
+`listByTenant` is **deprecated** — delegates to `listByTenantPage` with `MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED` (500), not an unbounded scan.
+
+Constants: `bookings-member-summary-projection.ts`.
+
+**Static checks:** `test/bookings-member-summary-projection.spec.ts` (BK-MEM-01..03)
+
+## Finance registration invoice facts (AP15 — P1)
+
+`getRegistrationInvoiceFacts` must not full-scan payments or prepayment outbox rows per registration.
+
+| Path | Bound / aggregate |
+|------|-------------------|
+| Prepayment sum | SQL `SUM` on `outbox_events.payload->>'amountMinor'` |
+| Paid sum | SQL `SUM` on `payments.amount` where `status = 'Paid'` |
+| `paymentAmountsMinor` | `findMany` + `take: MAX_PAYMENTS_PER_REGISTRATION` (50) |
+| `findPaymentStatusesByRegistration` | same cap |
+
+Shared helper: `finance/load-registration-invoice-facts.ts` · constants: `finance-list-projection.ts`.
+
+**Static checks:** `test/finance-invoice.spec.ts` (integration, requires Postgres) · `test/finance-registration-invoice-facts.spec.ts` (FIN-INV-01..03)
+
+## Identity directory / invites (AP15 — Phase 5)
+
+Tenant-scoped membership and pending-invite lists must not use unbounded `findMany`. Repository constants live in `identity-list-projection.ts`:
+
+| Method | Bound | Projection |
+|--------|-------|------------|
+| `listMembershipsByTenant` | `take: MAX_IDENTITY_MEMBERSHIPS_PER_TENANT` (500) | `MEMBERSHIP_LIST_SELECT` |
+| `listMembershipsWithUsersByTenant` | same | membership select + `user: { select: { id, mobile } }` |
+| `listPendingInvitesByTenant` | `take: MAX_PENDING_INVITES_PER_TENANT` (200) | `PENDING_INVITE_LIST_SELECT` |
+| `findPendingInviteByPhone` | `findFirst` (no list scan) | `PENDING_INVITE_LIST_SELECT` |
+
+All paths remain under `withTenantRls(tenantId, …)` — RLS policies unchanged.
+
+**Static checks:** `test/identity-list-projection.spec.ts` (ID-LIST-01..03)
+
+## Settings audit trail (AP15 — P1)
+
+Append-only `operatorSettingsAuditEvent` reads must not scan unbounded rows.
+
+| Method | Bound | Projection / pagination |
+|--------|-------|-------------------------|
+| `listByTenantPage` | `take: limit + 1` (max 500) | `SETTINGS_AUDIT_LIST_SELECT` + keyset `(occurredAt desc, id desc)` |
+| `listByTenant` | delegates to page with `MAX_SETTINGS_AUDIT_EVENTS_PER_TENANT` | same select |
+
+Constants: `settings-audit-list-projection.ts`.
+
+**Static checks:** `test/settings-audit-list-projection.spec.ts` (SET-AUD-01..03)
+
+## Integration connection lists (AP15 — P1)
+
+List paths must **not** load `credentials` Json from Postgres. Detail paths (`findFirst` / `findUnique` by id) may load full rows.
+
+| Method | Bound | Projection |
+|--------|-------|------------|
+| `listForWorkspace` | `take: MAX_INTEGRATION_CONNECTIONS_PER_WORKSPACE` (50) | `INTEGRATION_CONNECTION_LIST_SELECT` |
+| `listEnabledConnectionsForScope` | same cap | same select (policy engine uses capabilities, not credentials) |
+| `listPoliciesForConnection` | `take: MAX_INTEGRATION_EVENT_POLICIES_PER_CONNECTION` (100) | `INTEGRATION_EVENT_POLICY_LIST_SELECT` |
+
+Constants: `integration-list-projection.ts`.
+
+**Static checks:** `test/integration-list-projection.spec.ts` (INT-LIST-01..03)
+
+## Workspace draft events (AP15 — P1)
+
+`listByDraft` must push `take: limit` and `orderBy` into SQL — no fetch-all + in-memory `.slice()`.
+
+| Method | Bound | Order |
+|--------|-------|-------|
+| `listByDraft` | `take: limit` (service clamps 1..100) | `occurredAt desc`, `id desc` |
+
+**Static checks:** `test/workspace-draft-events-list.spec.ts` (DRF-EVT-01..02)
+
+## Bookings outbox by aggregate (AP15 — P1)
+
+| Method | Bound | Notes |
+|--------|-------|-------|
+| `listOutboxByAggregate` | `take: MAX_OUTBOX_EVENTS_PER_AGGREGATE` (100) | admin `tenantId` probe only; RLS fetch with `orderBy: createdAt asc` |
+
+Constants: `bookings-outbox-projection.ts`.
+
+**Static checks:** `test/bookings-safety.spec.ts` BK-SAFE-07
+
+## Settings catalogs (AP15 — P3)
+
+Seven tenant-scoped workspace catalog lists must not scan unbounded rows.
+
+| Method | Bound | Projection |
+|--------|-------|------------|
+| `listEquipment` | `take: MAX_SETTINGS_CATALOG` (500) | `EQUIPMENT_LIST_SELECT` |
+| `listTourThemes` | same | `TOUR_THEME_LIST_SELECT` |
+| `listGuideLanguages` | same | `GUIDE_LANGUAGE_LIST_SELECT` |
+| `listTourPresets` | same | `TOUR_PRESET_LIST_SELECT` |
+| `listRegions` | same | `REGION_LIST_SELECT` |
+| `listDestinations` | same | `DESTINATION_LIST_SELECT` |
+
+Constants: `settings-catalog-list-projection.ts`.
+
+**Static checks:** `test/settings-catalog-list-projection.spec.ts` (SET-CAT-01..02)
+
+## Exposure intent connection lists (AP15 — P3)
+
+Connection-scoped intent reads must cap row count and use explicit column projection (avoid implicit full-row loads on large Json fields).
+
+| Method | Bound | Projection |
+|--------|-------|------------|
+| `listForConnectionScope` | `take: MAX_EXPOSURE_INTENTS_PER_CONNECTION` (100) | `EXPOSURE_INTENT_LIST_SELECT` |
+| `listForConnectionScopes` | `take: MAX_EXPOSURE_INTENTS_CONNECTION_BATCH` (500); per-connection cap when grouping | `EXPOSURE_INTENT_LIST_SELECT` |
+
+Constants: `exposure-intent-list-projection.ts`.
+
+**Static checks:** `test/exposure-intent-list-projection.spec.ts` (EXP-INT-01..02)
+
+## Platform past-due subscriptions (AP15 — P3)
+
+Cross-tenant billing sweeps must batch — no unbounded `findMany` on `tenantSubscription`.
+
+| Method | Bound | Notes |
+|--------|-------|-------|
+| `listExpiredPastDueBatch` | `take: MAX_PAST_DUE_SUBSCRIPTION_BATCH` (50) + keyset cursor on `tenantId` | `processPastDueSubscriptions` loops until drained |
+
+Constants: `platform-subscription-list-projection.ts`.
+
+**Static checks:** `test/platform-billing-past-due.spec.ts`
+
+## Users directory pagination (AP15 — P3)
+
+Operator directory must paginate in the repository — not load `MAX_IDENTITY_MEMBERSHIPS_PER_TENANT` then filter/slice in `users.service`.
+
+| Method | Role |
+|--------|------|
+| `countMembershipsDirectory` | SQL `count` with filter WHERE (role, status, search) |
+| `listMembershipsWithUsersDirectoryPage` | SQL `skip`/`take` or raw ORDER BY displayName for name sorts |
+
+Filters: `users-directory-list-projection.ts` · sort helpers: `users-directory-query.ts`.
+
+**Static checks:** `test/identity-directory-pagination.spec.ts` (ID-DIR-01..04) · `test/users-directory-sort.spec.ts` (behavior) · `test/operator-avatar-batch.spec.ts` (AVT-BATCH-01/02)
+
+**Run:**
+
+```bash
+pnpm run guard:unbounded-list
+```
+
+## OpenAPI guard — `guard:list-projection-openapi`
+
+**Script:** [`scripts/guards/guard-list-projection-openapi.mjs`](../../scripts/guards/guard-list-projection-openapi.mjs)
+
+**Spec:** [`apps/api/openapi/openapi.json`](../../apps/api/openapi/openapi.json) (generated from [`list-projection-openapi.ts`](../../apps/api/src/openapi/list-projection-openapi.ts))
+
+**Operations with strict list schemas:**
+
+| `operationId` | Response schema | Banned fields |
+|---------------|---------------|---------------|
+| `listBookings` | `BookingsListResponse` → `BookingListItem[]` | `registrationIntake`, `canonical`, `data` |
+| `getBookingsSummary` | `BookingsSummaryResponse` | same |
+| `listTours` | `ToursListResponse` | `canonical` (projection only) |
+
+`BookingListItem` uses `additionalProperties: false` so clients and CI cannot add blob fields without updating the guard.
+
+**Regenerate OpenAPI after route/schema changes:**
+
+```bash
+pnpm --filter @apps/api run openapi:generate
+pnpm run guard:list-projection-openapi
+```
+
+## CI — `phase-6:fast-track`
+
+Both guards run in the default Phase 6 fast path (before `phase-6:guard`):
+
+```bash
+pnpm run phase-6:fast-track
+```
+
+## Bookings detail path (AP5 — tenant-scoped `getById`)
+
+`getById` is **exempt** from list projection guards: the detail path may return full `registrationIntake` JSON. Security and performance rules differ from list reads.
+
+### Tenant-scoped signature (`PrismaBookingsRepository.getById`)
+
+All booking detail reads use **`getById(id, tenantId)`** — same contract as `PrismaTourRepository.getById`. Callers must pass `auth.tenantId` (member receipt SMK-PTL-04, operator finance paths). Cross-tenant UUID guess returns **`null`** at the DB layer (`findFirst({ id, tenantId })` inside `withTenantRls`).
+
+```typescript
+async getById(id: string, tenantId: string): Promise<BookingRecord | null> {
+  return withTenantRls(tenantId, async (tx) => {
+    const row = await tx.operatorRegistration.findFirst({ where: { id, tenantId } });
+    return row === null ? null : toBookingRecord(row);
+  });
+}
+```
+
+Do **not** add admin PK probes to `getById` — tenant scope is mandatory at the repository boundary (aligns with Phase 5 tour reads; `guard:bookings-getbyid-tenant-scope` enforces).
+
+### Admin probe (tenant unknown at repo boundary)
+
+When the caller truly lacks `tenantId`, use a **separate** method — not `getById`. Today only `listOutboxByAggregate(aggregateId)` admin-probes `select: { tenantId: true }` then loads outbox rows under `withTenantRls`. Never fetch full `operatorRegistration` rows via `getPrismaAdmin()`.
+
+Reference mutation pattern: `approveWithOutbox` — `findFirst({ id, tenantId })` inside `withTenantRls` in `prisma-bookings.repository.ts`.
+
+Caller authz remains mandatory: `finance.service.ts` passes `auth.tenantId` into `getById` and asserts `booking.submittedByUserId === auth.userId`.
+
+## Implementation references
+
+| Concern | Code |
+|---------|------|
+| Bookings list projection | `BOOKING_LIST_SELECT` in `prisma-bookings.repository.ts` |
+| Bookings keyset | `listByTenantPage` — `(submittedAt desc, id desc)` |
+| Bookings duplicate finders | `findActiveDuplicateBy*` in `prisma-bookings.repository.ts` |
+| User booking summary | count + `listRecentBySubmittedUser` — `bookings-member-summary-projection.ts` |
+| Deprecated listByTenant | `listByTenantPage` cap 500 |
+| Bookings detail RLS | `getById(id, tenantId)` — `withTenantRls` + `findFirst({ id, tenantId })` |
+| Tours list pagination | `prisma-tour.repository.ts` `listByTenantPage` (`take: limit + 1`) |
+| Tours list projection | `TOUR_LIST_PAGE_SELECT` in `prisma-tour.repository.ts` |
+| Operator tour list load | `listOperatorToursPage` — one bounded page per request (`operator-tour-list-db-query.ts`) |
+| Tours keyset index | `idx_tours_tenant_created_id` on `(tenant_id, created_at, id)` |
+| Bookings outbox cap | `listOutboxByAggregate` — `MAX_OUTBOX_EVENTS_PER_AGGREGATE` |
+| Settings audit keyset | `listByTenantPage` in `prisma-settings-audit.repository.ts` |
+| Integration list (no credentials) | `integration-list-projection.ts` |
+| Draft events SQL bound | `listByDraft` — `take` + `orderBy` in Prisma |
+
+## Tour operator list path (AP15 — DB-side pagination)
+
+Operator HTTP list (`listToursOperator`) issues **one** bounded `listOperatorToursPage` query per request. Filters on denormalized columns: `title` (search), `publishStatus` (status bucket), sort on `title` / `startDate` / `createdAt`. Category filter still applies post-projection on the page (canonical field).
+
+Constants and SQL shape: `operator-tour-list-db-query.ts` (`OPERATOR_TOUR_LIST_SELECT`).
+
+Legacy materialize-all path (`loadAllTourRecordsViaListPage`) is no longer used by operator list.
+
+Indexes: `idx_tours_tenant_title`, `idx_tours_tenant_created_id`, `idx_tours_tenant_publish_catalog`.

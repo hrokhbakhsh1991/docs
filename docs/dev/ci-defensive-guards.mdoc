@@ -141,19 +141,23 @@ Read-path rules:
 
 - **No** `ensureTenantBrandLogoBucket` on directory load (upload path still ensures bucket on `putOperatorAvatar`).
 - **Early exit** when no row has a non-empty `storageKey` — all `avatarUrl: null` without touching MinIO.
-- **`listUsersDirectory`**: build membership/user pairs, one `directoryRowsFromPairs(pairs)`, then filter/sort/paginate in memory (SQL pagination is a separate follow-up).
+- **`listUsersDirectory`**: SQL pagination via `countMembershipsDirectory` + `listMembershipsWithUsersDirectoryPage`, then one `directoryRowsFromPairs(pairs)` for avatar presign.
 - **Bulk mutations** (`runBulkMutation`, `bulkRemoveWorkspaceUsers`): collect `{ user, membership }` success pairs, then one `directoryRowsFromPairs` at the end.
 
-**Static checks:** `test/operator-avatar-batch.spec.ts` (AVT-BATCH-01/02) · `test/service-batch-patterns.spec.ts` (SVC-BATCH-03..05) · `test/identity-directory-pagination.spec.ts` (ID-DIR-04).
+**Static checks:** `test/operator-avatar-batch.spec.ts` (AVT-BATCH-01/02) · `test/service-batch-patterns.spec.ts` (SVC-BATCH-03..05) · `test/identity-directory-pagination.spec.ts` (ID-DIR-01..04).
 
-## Identity — directory SQL pagination (deferred)
+## Identity — directory SQL pagination (Phase 5c — repository)
 
-Future work moves filter/sort/pagination into the repository (ID-DIR-01..03):
+Operator directory paginates in the repository — not load-all then filter/slice in `users.service`.
 
 | Repository method | Pattern |
 |-------------------|---------|
-| `listMembershipsWithUsersByTenant(tenantId)` | `withTenantRls` + `userTenant.findMany({ include: { user: { select: { id, mobile } } } })` |
-| `findUsersByIds(userIds)` | Global `users.findMany({ where: { id: { in } }, take: uniqueIds.length })` — batched actor lookup in role history |
+| `countMembershipsDirectory` | `withTenantRls` + `userTenant.count({ where: buildUserTenantDirectoryWhere(...) })` |
+| `listMembershipsWithUsersDirectoryPage` | SQL `skip`/`take` or raw `ORDER BY displayName` for name sorts |
+| `findUsersByIds(userIds)` | Global `users.findMany({ where: { id: { in } }, take: uniqueIds.length })` — bulk prefetch + role history |
+| `findMembershipsByUserIds(tenantId, userIds)` | `userTenant.findMany` with bounded `in` — bulk mutation prefetch |
+
+Filters: [`users-directory-list-projection.ts`](../../apps/api/src/identity/users-directory-list-projection.ts) · in-memory sort parity: [`users-directory-query.ts`](../../apps/api/src/identity/users-directory-query.ts).
 
 ## Exposure — batch intent reads (Phase 5d)
 
@@ -166,7 +170,7 @@ Future work moves filter/sort/pagination into the repository (ID-DIR-01..03):
 
 | Pattern | Detail |
 |---------|--------|
-| `loadBulkUserMutationPrefetch` | Parallel membership + user lookups before bulk loop (repo batch methods optional follow-up) |
+| `loadBulkUserMutationPrefetch` | `findMembershipsByUserIds` + `findUsersByIds` before bulk loop |
 | `runBulkMutation` | Passes prefetch into per-user mutators — skips redundant membership/user lookups; batch avatar presign via `directoryRowsFromPairs(successPairs)` |
 | `bulkRemoveWorkspaceUsers` | Same prefetch helper as role/status bulk paths |
 
@@ -235,7 +239,7 @@ The AP14/AP15 guards below are bundled in **`phase-6:defensive-guards`** ([`scri
 | **GHA PR (registry)** | `guard:workspace-registry-fresh` in [`.github/workflows/phase-3-gate.yml`](../../.github/workflows/phase-3-gate.yml) | Every PR before `phase-3:gate` |
 | **GHA behavioral** | Job `fast-closure` in `phase-6-gate.yml` | Build + test + Postgres (unchanged) |
 
-**Bundle contents:** `guard:import-boundary`, denali/urban plugin surfaces, `guard:workspace-plugin-surface` (via guest-plugin-conformance), workspace export surface, `guard:api-workspace-isolation`, field-policy, unbounded-list, repository-n-plus-one, `audit:findmany-scan`, list-projection-openapi, catch-error-leak (all `apps/api/src/**`), repository-rls, bookings-getbyid-tenant-scope, service-n-plus-one, WRS/PCMS, guest-plugin-conformance (includes `guard:workspace-peer-import`), `guard:workspace-onboard-contract`, `guard:workspace-certification`, `guard:admin-inline-color`, `guard:todo-debt-budget`, `phase-6:guard`.
+**Bundle contents:** `guard:import-boundary`, denali/urban plugin surfaces, `guard:workspace-plugin-surface` (via guest-plugin-conformance), workspace export surface, `guard:api-workspace-isolation`, field-policy, unbounded-list, repository-n-plus-one, `audit:findmany-scan`, list-projection-openapi, catch-error-leak (all `apps/api/src/**`), repository-rls, bookings-getbyid-tenant-scope, service-n-plus-one, **identity directory static specs** (`operator-avatar-batch`, `service-batch-patterns`, `identity-directory-pagination`), WRS/PCMS, guest-plugin-conformance (includes `guard:workspace-peer-import`), `guard:workspace-onboard-contract`, `guard:workspace-certification`, `guard:admin-inline-color`, `guard:todo-debt-budget`, `phase-6:guard`.
 
 **Workspace onboarding:** `pnpm run workspace:onboard -- <id> [--guest]` runs install, codegen, domain checks, build, test, and conformance guards ([`scripts/workspace-onboard.mjs`](../../scripts/workspace-onboard.mjs)).
 

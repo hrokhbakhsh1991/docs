@@ -184,49 +184,6 @@ async function directoryRowFromPair(pair: MembershipWithUserPair): Promise<Users
   return row;
 }
 
-function matchesSearch(row: UsersDirectoryRow, search: string | undefined): boolean {
-  if (search === undefined || search.trim().length === 0) {
-    return true;
-  }
-  const needle = search.trim().toLocaleLowerCase();
-  const haystacks = [row.displayName, row.phone ?? "", row.email ?? ""];
-  return haystacks.some((value) => value.toLocaleLowerCase().includes(needle));
-}
-
-function matchesRole(row: UsersDirectoryRow, role: UsersListQuery["role"]): boolean {
-  if (role === undefined || role === "all") {
-    return true;
-  }
-  return row.role === role;
-}
-
-function matchesStatus(row: UsersDirectoryRow, status: UsersListQuery["status"]): boolean {
-  if (status === undefined || status === "all") {
-    return true;
-  }
-  if (status === "suspended") {
-    return row.status === "SUSPENDED";
-  }
-  return row.status === "ACTIVE";
-}
-
-function sortContactKey(row: UsersDirectoryRow): string {
-  return (row.email ?? row.phone ?? row.displayName).toLocaleLowerCase();
-}
-
-function sortRows(rows: UsersDirectoryRow[], sort: UsersListQuery["sort"]): UsersDirectoryRow[] {
-  const sorted = [...rows];
-  sorted.sort((left, right) => {
-    if (sort === "email_asc" || sort === "email_desc") {
-      const delta = sortContactKey(left).localeCompare(sortContactKey(right));
-      return sort === "email_desc" ? -delta : delta;
-    }
-    const delta = left.displayName.localeCompare(right.displayName);
-    return sort === "name_desc" ? -delta : delta;
-  });
-  return sorted;
-}
-
 export async function listUsersDirectory(
   auth: TenantAuthContext,
   query: UsersListQuery,
@@ -234,31 +191,31 @@ export async function listUsersDirectory(
 ): Promise<UsersListResponse> {
   await assertUsersDirectoryAccess(auth);
 
-  const memberships = await repo.listMembershipsByTenant(auth.tenantId);
-  const pairs: MembershipWithUserPair[] = [];
-  for (const membership of memberships) {
-    const user = await repo.findUserById(membership.userId);
-    if (user !== null) {
-      pairs.push({ user, membership });
-    }
-  }
-  const rows = (await directoryRowsFromPairs(pairs)).filter(
-      (row) =>
-        matchesSearch(row, query.search) &&
-        matchesRole(row, query.role) &&
-        matchesStatus(row, query.status)
-    );
+  const filters = {
+    search: query.search,
+    role: query.role,
+    status: query.status,
+  };
+  const skip = decodeUsersDirectoryCursor(query.cursor);
+  const [total, pairs] = await Promise.all([
+    repo.countMembershipsDirectory(auth.tenantId, filters),
+    repo.listMembershipsWithUsersDirectoryPage(
+      auth.tenantId,
+      filters,
+      query.sort,
+      skip,
+      query.limit
+    ),
+  ]);
 
-  const sorted = sortRows(rows, query.sort);
-  const offset = decodeUsersDirectoryCursor(query.cursor);
-  const limited = sorted.slice(offset, offset + query.limit);
-  const nextOffset = offset + limited.length;
+  const items = await directoryRowsFromPairs(pairs);
+  const nextOffset = skip + items.length;
   const nextCursor =
-    nextOffset < sorted.length ? encodeUsersDirectoryCursor(nextOffset) : undefined;
+    nextOffset < total ? encodeUsersDirectoryCursor(nextOffset) : undefined;
 
   return {
-    items: limited,
-    total: sorted.length,
+    items,
+    total,
     ...(nextCursor !== undefined ? { nextCursor } : {}),
   };
 }
@@ -755,22 +712,10 @@ async function loadBulkUserMutationPrefetch(
   userIds: readonly string[],
   repo: IdentityRepository
 ): Promise<BulkUserMutationPrefetch> {
-  const memberships = new Map<string, IdentityMembershipRecord>();
-  const users = new Map<string, IdentityUserRecord>();
-  await Promise.all(
-    userIds.map(async (userId) => {
-      const [membership, user] = await Promise.all([
-        repo.findMembership(userId, auth.tenantId),
-        repo.findUserById(userId),
-      ]);
-      if (membership !== null) {
-        memberships.set(userId, membership);
-      }
-      if (user !== null) {
-        users.set(userId, user);
-      }
-    })
-  );
+  const [memberships, users] = await Promise.all([
+    repo.findMembershipsByUserIds(auth.tenantId, userIds),
+    repo.findUsersByIds(userIds),
+  ]);
   return { memberships, users };
 }
 

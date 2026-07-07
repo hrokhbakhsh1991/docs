@@ -9,11 +9,20 @@ import type {
 
 import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
 import { MobileAlreadyRegisteredError } from "./identity.errors";
-import type { InvitableWorkspaceRole } from "./users.types";
+import type { InvitableWorkspaceRole, UsersListQuery } from "./users.types";
+import {
+  matchesDirectoryPair,
+  sortDirectoryPairs,
+} from "./users-directory-query";
 
 export type IdentityUserRecord = {
   readonly id: string;
   readonly mobile: string;
+};
+
+export type MembershipWithUserRecord = {
+  readonly membership: IdentityMembershipRecord;
+  readonly user: IdentityUserRecord;
 };
 
 export type MembershipRewardsRecord = {
@@ -106,16 +115,40 @@ export type RegisterPublicGuestResult = {
 export type IdentityRepository = {
   findUserByMobile(mobile: string): Promise<IdentityUserRecord | null>;
   findUserById(userId: string): Promise<IdentityUserRecord | null>;
+  findUsersByIds(userIds: readonly string[]): Promise<ReadonlyMap<string, IdentityUserRecord>>;
   findMembership(userId: string, tenantId: string): Promise<IdentityMembershipRecord | null>;
+  findMembershipsByUserIds(
+    tenantId: string,
+    userIds: readonly string[]
+  ): Promise<ReadonlyMap<string, IdentityMembershipRecord>>;
   listMembershipsByTenant(tenantId: string): Promise<readonly IdentityMembershipRecord[]>;
+  listMembershipsWithUsersByTenant(
+    tenantId: string
+  ): Promise<readonly MembershipWithUserRecord[]>;
+  countMembershipsDirectory(
+    tenantId: string,
+    filters: UsersDirectoryListFilters
+  ): Promise<number>;
+  listMembershipsWithUsersDirectoryPage(
+    tenantId: string,
+    filters: UsersDirectoryListFilters,
+    sort: UsersListQuery["sort"],
+    skip: number,
+    limit: number
+  ): Promise<readonly MembershipWithUserRecord[]>;
   createOtpChallenge(mobile: string, codeHash: string): Promise<{ challengeId: string }>;
   findOtpChallenge(challengeId: string): Promise<OtpChallengeRecord | null>;
   markOtpChallengeUsed(challengeId: string): Promise<void>;
   createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord>;
   listPendingInvitesByTenant(tenantId: string): Promise<readonly PendingInviteRecord[]>;
-  findPendingInvite(inviteId: string): Promise<PendingInviteRecord | null>;
-  findPendingInviteByToken(inviteToken: string): Promise<PendingInviteRecord | null>;
+  findPendingInviteByPhone(tenantId: string, phone: string): Promise<PendingInviteRecord | null>;
+  findPendingInvite(tenantId: string, inviteId: string): Promise<PendingInviteRecord | null>;
+  findPendingInviteByToken(
+    tenantId: string,
+    inviteToken: string
+  ): Promise<PendingInviteRecord | null>;
   acceptPendingInvite(
+    tenantId: string,
     inviteToken: string,
     userId: string
   ): Promise<IdentityMembershipRecord | null>;
@@ -204,12 +237,72 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     return this.usersById.get(userId) ?? null;
   }
 
+  async findUsersByIds(userIds: readonly string[]): Promise<ReadonlyMap<string, IdentityUserRecord>> {
+    const map = new Map<string, IdentityUserRecord>();
+    for (const userId of new Set(userIds)) {
+      const user = this.usersById.get(userId);
+      if (user !== undefined) {
+        map.set(userId, user);
+      }
+    }
+    return map;
+  }
+
   async findMembership(userId: string, tenantId: string): Promise<IdentityMembershipRecord | null> {
     return this.memberships.get(membershipKey(userId, tenantId)) ?? null;
   }
 
+  async findMembershipsByUserIds(
+    tenantId: string,
+    userIds: readonly string[]
+  ): Promise<ReadonlyMap<string, IdentityMembershipRecord>> {
+    const map = new Map<string, IdentityMembershipRecord>();
+    for (const userId of new Set(userIds)) {
+      const membership = this.memberships.get(membershipKey(userId, tenantId));
+      if (membership !== undefined) {
+        map.set(userId, membership);
+      }
+    }
+    return map;
+  }
+
   async listMembershipsByTenant(tenantId: string): Promise<readonly IdentityMembershipRecord[]> {
     return [...this.memberships.values()].filter((row) => row.tenantId === tenantId);
+  }
+
+  async listMembershipsWithUsersByTenant(
+    tenantId: string
+  ): Promise<readonly MembershipWithUserRecord[]> {
+    const memberships = await this.listMembershipsByTenant(tenantId);
+    const pairs: MembershipWithUserRecord[] = [];
+    for (const membership of memberships) {
+      const user = await this.findUserById(membership.userId);
+      if (user !== null) {
+        pairs.push({ membership, user });
+      }
+    }
+    return pairs;
+  }
+
+  async countMembershipsDirectory(
+    tenantId: string,
+    filters: UsersDirectoryListFilters
+  ): Promise<number> {
+    const pairs = await this.listMembershipsWithUsersByTenant(tenantId);
+    return pairs.filter((pair) => matchesDirectoryPair(pair, filters)).length;
+  }
+
+  async listMembershipsWithUsersDirectoryPage(
+    tenantId: string,
+    filters: UsersDirectoryListFilters,
+    sort: UsersListQuery["sort"],
+    skip: number,
+    limit: number
+  ): Promise<readonly MembershipWithUserRecord[]> {
+    const pairs = await this.listMembershipsWithUsersByTenant(tenantId);
+    const filtered = pairs.filter((pair) => matchesDirectoryPair(pair, filters));
+    const sorted = sortDirectoryPairs(filtered, sort);
+    return sorted.slice(skip, skip + limit);
   }
 
   async createOtpChallenge(mobile: string, codeHash: string): Promise<{ challengeId: string }> {
@@ -342,25 +435,48 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     );
   }
 
-  async findPendingInvite(inviteId: string): Promise<PendingInviteRecord | null> {
-    const row = this.invites.get(inviteId);
-    return row === undefined ? null : { ...row };
+  async findPendingInviteByPhone(
+    tenantId: string,
+    phone: string
+  ): Promise<PendingInviteRecord | null> {
+    const normalized = normalizeMobile(phone);
+    return (
+      [...this.invites.values()].find(
+        (row) =>
+          row.tenantId === tenantId && row.status === "INVITED" && row.phone === normalized
+      ) ?? null
+    );
   }
 
-  async findPendingInviteByToken(inviteToken: string): Promise<PendingInviteRecord | null> {
+  async findPendingInvite(
+    tenantId: string,
+    inviteId: string
+  ): Promise<PendingInviteRecord | null> {
+    const row = this.invites.get(inviteId);
+    if (row === undefined || row.tenantId !== tenantId || row.status !== "INVITED") {
+      return null;
+    }
+    return { ...row };
+  }
+
+  async findPendingInviteByToken(
+    tenantId: string,
+    inviteToken: string
+  ): Promise<PendingInviteRecord | null> {
     const inviteId = this.invitesByToken.get(inviteToken.trim());
     if (inviteId === undefined) {
       return null;
     }
-    return this.findPendingInvite(inviteId);
+    return this.findPendingInvite(tenantId, inviteId);
   }
 
   async acceptPendingInvite(
+    tenantId: string,
     inviteToken: string,
     userId: string
   ): Promise<IdentityMembershipRecord | null> {
-    const invite = await this.findPendingInviteByToken(inviteToken);
-    if (invite === null || invite.status !== "INVITED") {
+    const invite = await this.findPendingInviteByToken(tenantId, inviteToken);
+    if (invite === null) {
       return null;
     }
 
