@@ -109,6 +109,7 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "compile-invoice-balances.ts",
   "finance-schedule-store.ts",
   "finance.repository.ts",
+  "finance-repository.factory.ts",
   "finance.service.ts",
   "prisma-workspace-outbox-reader.ts",
   "prisma-workspace-outbox-writer.ts",

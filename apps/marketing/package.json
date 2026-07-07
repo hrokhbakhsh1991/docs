@@ -39,6 +39,7 @@
     "@app-tour/workspace-denali": "workspace:*",
     "@app-tour/workspace-guest-club": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
+    "@app-tour/workspace-starter": "workspace:*",
     "@app-tour/workspace-urban": "workspace:*",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
