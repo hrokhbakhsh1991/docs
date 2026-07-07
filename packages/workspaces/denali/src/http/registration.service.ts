@@ -9,6 +9,7 @@ import { DenaliWorkspaceRequiredError } from "./errors/denali-workspace-required
 import type { DenaliPublicBookingPort } from "./ports/public-booking.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
 import type { DenaliRegistrationPostBody } from "./schemas/denali-registration-post.schema";
+import { normalizeDenaliRegistrationTransportIntake } from "./resolve-denali-registration-transport";
 
 function readTourCapacity(canonical: CanonicalDocument): number | null {
   const data = canonical.data;
@@ -21,6 +22,20 @@ function readTourCapacity(canonical: CanonicalDocument): number | null {
     : null;
 }
 
+export type DenaliGuestMembershipSnapshot = {
+  readonly nationalId?: string | null;
+  readonly fatherName?: string | null;
+  readonly birthDate?: string | null;
+};
+
+export type DenaliGuestProfilePatch = {
+  readonly nationalId?: string;
+  readonly fatherName?: string;
+  readonly birthDate?: string;
+};
+
+const PUBLIC_CATALOG_GUEST_USER_ID = "00000000-0000-4000-0000-000000000001";
+
 export async function createDenaliRegistration(params: {
   readonly tenantId: string;
   readonly workspaceType: string;
@@ -28,6 +43,15 @@ export async function createDenaliRegistration(params: {
   readonly body: DenaliRegistrationPostBody;
   readonly store: DenaliTourStorePort;
   readonly bookingPort: DenaliPublicBookingPort;
+  readonly resolveGuestMembership?: (
+    tenantId: string,
+    userId: string
+  ) => Promise<DenaliGuestMembershipSnapshot | null>;
+  readonly saveGuestProfileFields?: (
+    tenantId: string,
+    userId: string,
+    patch: DenaliGuestProfilePatch
+  ) => Promise<void>;
 }): Promise<{ readonly id: string; readonly status: string }> {
   if (params.workspaceType !== "denali") {
     throw new DenaliWorkspaceRequiredError();
@@ -44,29 +68,110 @@ export async function createDenaliRegistration(params: {
   }
 
   const capacity = readTourCapacity(tour.canonical);
+  const card = toDenaliCatalogCard(tour);
+  const guestMembership =
+    params.resolveGuestMembership === undefined
+      ? null
+      : await params.resolveGuestMembership(params.tenantId, params.guestUserId);
+  const profileNationalId = guestMembership?.nationalId?.trim() ?? "";
+  const profileFatherName = guestMembership?.fatherName?.trim() ?? "";
+  const profileBirthDate = guestMembership?.birthDate?.trim() ?? "";
+  const registrantTarget = params.body.registrantTarget ?? "self";
+
   validateDenaliRegistrationPayload(
     {
+      registrantTarget,
       contact: params.body.contact,
       partySize: params.body.partySize,
+      transport: params.body.transport,
     },
-    { capacity }
+    {
+      capacity,
+      nationalIdRequired: card.nationalIdRequired === true,
+      fatherNameRequired: card.fatherNameRequired === true,
+      birthDateRequired: card.birthDateRequired === true,
+      profileNationalId: profileNationalId.length > 0 ? profileNationalId : null,
+      profileFatherName: profileFatherName.length > 0 ? profileFatherName : null,
+      profileBirthDate: profileBirthDate.length > 0 ? profileBirthDate : null,
+    }
   );
 
-  const duplicate = await params.bookingPort.findDuplicateByTourEmail(
-    params.tenantId,
-    params.body.tourId,
-    params.body.contact.email
+  const normalizedTransport = normalizeDenaliRegistrationTransportIntake(
+    params.body.transport,
+    { transport: card.transport }
   );
+
+  const email = params.body.contact.email?.trim() ?? "";
+  const guestLabel = params.body.contact.fullName.trim();
+  const intakeNationalId = params.body.contact.nationalId?.trim() ?? "";
+
+  let duplicate: { readonly id: string } | null = null;
+  if (registrantTarget === "other") {
+    if (intakeNationalId.length > 0) {
+      duplicate = await params.bookingPort.findDuplicateByTourGuestNationalId(
+        params.tenantId,
+        params.body.tourId,
+        intakeNationalId
+      );
+    }
+    if (duplicate === null) {
+      duplicate = await params.bookingPort.findDuplicateByTourGuestLabel(
+        params.tenantId,
+        params.body.tourId,
+        guestLabel
+      );
+    }
+  } else if (params.guestUserId !== PUBLIC_CATALOG_GUEST_USER_ID) {
+    duplicate = await params.bookingPort.findDuplicateByTourGuest(
+      params.tenantId,
+      params.body.tourId,
+      params.guestUserId
+    );
+  } else if (email.length > 0) {
+    duplicate = await params.bookingPort.findDuplicateByTourEmail(
+      params.tenantId,
+      params.body.tourId,
+      email
+    );
+  }
   if (duplicate !== null) {
     throw new DenaliRegistrationDuplicateError();
   }
 
-  const card = toDenaliCatalogCard(tour);
   const departureAt = card.departureAt?.trim();
   if (departureAt === undefined || departureAt.length === 0) {
     const err = new Error("ZOD_VALIDATION_FAILED");
     (err as Error & { details?: unknown }).details = { tourId: ["TOUR_DEPARTURE_NOT_SET"] };
     throw err;
+  }
+
+  if (
+    registrantTarget === "self" &&
+    params.saveGuestProfileFields !== undefined
+  ) {
+    const intakeNationalId = params.body.contact.nationalId?.trim() ?? "";
+    const intakeFatherName = params.body.contact.fatherName?.trim() ?? "";
+    const intakeBirthDate = params.body.contact.birthDate?.trim() ?? "";
+    const profilePatch: DenaliGuestProfilePatch = {
+      ...(card.nationalIdRequired === true &&
+      profileNationalId.length === 0 &&
+      intakeNationalId.length > 0
+        ? { nationalId: intakeNationalId }
+        : {}),
+      ...(card.fatherNameRequired === true &&
+      profileFatherName.length === 0 &&
+      intakeFatherName.length > 0
+        ? { fatherName: intakeFatherName }
+        : {}),
+      ...(card.birthDateRequired === true &&
+      profileBirthDate.length === 0 &&
+      intakeBirthDate.length > 0
+        ? { birthDate: intakeBirthDate }
+        : {}),
+    };
+    if (Object.keys(profilePatch).length > 0) {
+      await params.saveGuestProfileFields(params.tenantId, params.guestUserId, profilePatch);
+    }
   }
 
   return params.bookingPort.createPendingBooking({
@@ -75,9 +180,14 @@ export async function createDenaliRegistration(params: {
     tourId: params.body.tourId,
     tourTitle: card.title,
     guestLabel: params.body.contact.fullName,
-    guestEmail: params.body.contact.email,
+    ...(email.length > 0 ? { guestEmail: email } : {}),
     ...(params.body.contact.phone !== undefined ? { guestPhone: params.body.contact.phone } : {}),
     partySize: params.body.partySize,
     departureAt,
+    registrationIntake: {
+      registrantTarget,
+      transport: normalizedTransport,
+      ...(intakeNationalId.length > 0 ? { nationalId: intakeNationalId } : {}),
+    },
   });
 }

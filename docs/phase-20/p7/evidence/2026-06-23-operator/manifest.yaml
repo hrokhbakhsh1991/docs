@@ -1,0 +1,44 @@
+evidence_pack_version: "1.0"
+club_id: operator
+tenant_id: 00000000-0000-4000-8000-000000000014
+staging_profile: B
+git_sha: 4cc9197d35db732724b5ac7229d2110bc0bd7a1b
+deploy_date: "2026-06-23"
+operator: "AI Agent (Simulated Customer)"
+architect: "Bob (AI Agent)"
+
+gates:
+  p7_gate: PASS
+  p7_staging_gate: PASS
+  p7_staging_e2e: PASS
+  finance_ops_t3: PASS
+
+vertical_slice:
+  VS-01: PASS
+  VS-02: PASS
+  VS-03: PASS
+  VS-04: PASS
+  VS-05: PASS
+  VS-06: PASS
+  VS-07: PASS
+  VS-08: PASS
+
+urls:
+  admin: "http://89.45.89.206:23000/auth/login"
+  marketing: "http://89.45.89.206:23002/tours"
+  portal: "http://89.45.89.206:23003"
+  api: "http://89.45.89.206:23001/health"
+
+waiver:
+  profile_c_sms: false
+  reason: ""
+
+notes: |
+  T2 via p7:staging-e2e-probe (SSH tunnel 127.0.0.1:230xx) — PASS 2026-06-23 re-run after VS-07 finance reset.
+  T3 finance-ops 4/4 on VPS tour_db_staging.
+  VPS hotfix sync: prisma getById admin · seed tour guard · pending booking finance reset.
+  VS-08 = p7:gate PASS (DEV_STATIC).
+  T4 architect dry-run: `pnpm run p7:t4-architect-dry-run` — PASS 2026-06-23
+  T4 customer session: pending — walkthrough-results.md manual column
+  T4 prep: `pnpm run p7:t4-prep` · session card: `pnpm run p7:t4-session-brief`
+  T4 ready: `pnpm run p7:t4-ready` — P7_T4_READY_OK 2026-06-23

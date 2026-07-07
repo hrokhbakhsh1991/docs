@@ -14,7 +14,7 @@ import {
   SUPPORTED_WIZARD_FIELD_KINDS,
   WizardField,
 } from "../src/wizard/wizard-field";
-import { DENALI_COMPOSITE_TEST_IDS } from "../src/wizard/denali/denali-location-types";
+import { DENALI_COMPOSITE_TEST_IDS } from "@app-tour/workspace-denali/ui/logic/denali-location-types";
 
 let testMessages: AbstractIntlMessages;
 

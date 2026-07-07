@@ -1,0 +1,102 @@
+---
+title: P4 — Club product surfaces (umbrella)
+phase: 17
+format: markdoc
+prerequisite: P1 ✅ · P2 ✅
+quality: 9.9
+doc_role: architecture_sot_index
+---
+
+# Club product surfaces (P4 — umbrella)
+
+Close P1 §J product gaps: **publish → catalog**, **portal registration**, **club surfaces control**.
+
+**Nano index:** [`platform-club-product-e2e.mdoc`](platform-club-product-e2e.mdoc) · **Exit:** [`platform-club-product-surfaces.mdoc`](platform-club-product-surfaces.mdoc) § gap register
+
+**Status (2026-06-21):** doc 9.9 · **P4 complete** (48/48 nanos · A–D closed)
+
+---
+
+## Implementation progress
+
+| EPIC | Nanos | Done | Blocker |
+| ---- | ----- | ---- | ------- |
+| P4-A | 12    | 12   | —       |
+| P4-B | 14    | 14   | —       |
+| P4-C | 12    | 12   | —       |
+| P4-D | 10    | 10   | —       |
+
+---
+
+## Dependency graph
+
+```mermaid
+flowchart LR
+  A[P4-A catalog publish] --> B[P4-B portal registration]
+  B --> C[P4-C site surfaces]
+  C --> D[P4-D p4 gate exit]
+  P3[P3 metadata parallel] -.-> A
+```
+
+---
+
+## Assertion index (cross-EPIC)
+
+| Prefix       | EPIC | Spec area                    |
+| ------------ | ---- | ---------------------------- |
+| RV / CP / RR | P4-A | revalidate + catalog publish |
+| BR / PR      | P4-B | portal URL bridge            |
+| SF           | P4-C | Super Admin surfaces         |
+| EX / E2E     | P4-D | phase exit gate              |
+
+## EPIC map
+
+| EPIC | Doc                                                                      | Nano | Focus                |
+| ---- | ------------------------------------------------------------------------ | ---- | -------------------- |
+| P4-A | [platform-club-catalog-publish.mdoc](platform-club-catalog-publish.mdoc) | 12   | publish → revalidate |
+| P4-B | [platform-portal-registration.mdoc](platform-portal-registration.mdoc)   | 14   | portal-primary OTP   |
+| P4-C | [platform-club-surfaces-config.mdoc](platform-club-surfaces-config.mdoc) | 12   | `site_surfaces` UI   |
+| P4-D | [platform-club-product-e2e.mdoc](platform-club-product-e2e.mdoc)         | 10   | `p4:gate` exit       |
+
+---
+
+## Critical review — truth table
+
+| Claim                        | Verdict                                                                                                                                                                  | Evidence                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| M17 portal flow exists       | ✅ Built                                                                                                                                                                 | `guard-public-catalog-m17` dynamic PASS                |
+| M11 unit specs exist         | ✅ Built                                                                                                                                                                 | `marketing-catalog-revalidate.spec.ts`                 |
+| Atomic persist TX            | `atomic-canonical-tour-persist.ts` — no inline revalidate; **`CanonicalTourService`** calls `maybeScheduleMarketingCatalogRevalidate` after atomic create/update returns |
+| Operator publish→catalog E2E | ⚠️ PW-01 in gate · Playwright fixture `…0210`                                                                                                                            | `club-catalog-publish-service.spec.ts` · `p4:e2e-gate` |
+| Super Admin surfaces UI      | ✅ Built                                                                                                                                                                 | P4-C SF specs · `tab-sites.tsx` badges                 |
+| `p4:gate`                    | ✅ Composed                                                                                                                                                              | `scripts/p4-club-product-gate.sh` + EX spec            |
+
+---
+
+## Gap register (frozen)
+
+| ID  | Gap                                                  | EPIC | Status                                |
+| --- | ---------------------------------------------------- | ---- | ------------------------------------- |
+| G1  | DRY helper `maybeScheduleMarketingCatalogRevalidate` | P4-A | ✅ landed                             |
+| G2  | Live operator publish → catalog Playwright           | P4-D | v1 closed — PW-01 + RV/CP in `p4:gate` · browser E2E optional (`p4:e2e-gate`) |
+| G3  | `site_surfaces` Super Admin UI                       | P4-C | ✅ landed                             |
+| G4  | Prod env `MARKETING_REVALIDATE_*`                    | P4-A | documented                            |
+| G5  | M17 in gate chain                                    | P4-D | ✅ in `p4:gate`                       |
+
+---
+
+## Verification
+
+```bash
+pnpm run p4:gate
+```
+
+Parallel with P3 metadata platform — no hard block.
+
+---
+
+## References
+
+- [`public-catalog.md`](../workspaces/denali/public-catalog.md)
+- [`phase-15-closure.mdoc`](../phase-15/phase-15-closure.mdoc)
+- [`platform-control-center-ui.mdoc`](../phase-15/platform-control-center-ui.mdoc)

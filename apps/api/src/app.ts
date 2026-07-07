@@ -1,20 +1,25 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import "./http/configure-denali-catalog-http-host";
-import "./http/configure-denali-finance-http-host";
-import "./http/configure-urban-http-host";
-import type { ProvisioningService } from "./internal/provisioning.service";
+import {
+  handleApproveBooking,
+  handleBulkApproveBookings,
+  handleCreateBooking,
+  handleGetBookingsSummary,
+  handleListBookings,
+  handlePostBookingReceipt,
+  handleRejectBooking,
+} from "./bookings/bookings.routes";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
-import { buildWorkspaceRouteHandlers } from "./boot/lazy-workspace-finance-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
-import { handleHealth } from "./health/health.routes";
-import { resolveTraceIdFromHeaders } from "./observability/resolve-trace-id";
-import { runWithTraceContext } from "./observability/trace-request-context";
-import { handleHttpError, sendHttpError } from "./middleware/error-interceptor";
-import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
-import type { MapEnrichRouteDeps } from "./routes/api-v2/map-enrich.routes";
+import { buildWorkspaceRouteHandlers } from "./boot/lazy-workspace-finance-handlers";
 import type { TourStorageRepository } from "./db/tour.repository";
-import type { ToursRouteDeps } from "./tours/tours.routes";
+import { handleHealth } from "./health/health.routes";
+import "./http/configure-urban-http-host";
+import "./http/configure-workspace-denali-product-http-host";
+import "./http/configure-workspace-finance-http-host";
+import { tryDispatchPlatformRoutes } from "./http/platform-route-registrar";
+import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
+import { tryDispatchWorkspaceRoutes } from "./http/workspace-route-registrar";
 import {
   handleGetAuthAbilityContext,
   handleGetAuthSession,
@@ -22,17 +27,15 @@ import {
   handleRequestOtp,
   handleVerifyOtp,
 } from "./identity/auth.routes";
+import { handleAcceptInvite } from "./identity/invites.routes";
+import { handleGetIdentityMe, handlePatchIdentityMe } from "./identity/me.routes";
+import { handleGetIdentityMeEntitlements } from "./identity/me.entitlements.routes";
 import {
   handlePublicPhonePreflight,
   handlePublicRegisterComplete,
   handlePublicRequestOtp,
   handlePublicVerifyOtp,
 } from "./identity/public-auth.routes";
-import { handleAcceptInvite } from "./identity/invites.routes";
-import {
-  handleGetIdentityMe,
-  handlePatchIdentityMe,
-} from "./identity/me.routes";
 import {
   handleBulkPatchUserRole,
   handleBulkReactivateUsers,
@@ -52,14 +55,11 @@ import {
   handleSuspendUser,
   handleTransferWorkspaceOwnership,
 } from "./identity/users.routes";
-import {
-  handleApproveBooking,
-  handleBulkApproveBookings,
-  handleCreateBooking,
-  handleGetBookingsSummary,
-  handleListBookings,
-  handleRejectBooking,
-} from "./bookings/bookings.routes";
+import type { ProvisioningService } from "./internal/provisioning.service";
+import { handleHttpError, sendHttpError } from "./middleware/error-interceptor";
+import { resolveTraceIdFromHeaders } from "./observability/resolve-trace-id";
+import { runWithTraceContext } from "./observability/trace-request-context";
+import type { MapEnrichRouteDeps } from "./routes/api-v2/map-enrich.routes";
 import {
   handleCreateSettingsResource,
   handleDeleteSettingsResource,
@@ -75,6 +75,8 @@ import {
   handlePutTourPresetsAdvancedAlias,
   handlePutTourWizardTemplateAlias,
 } from "./settings/settings.routes";
+import type { ToursRouteDeps } from "./tours/tours.routes";
+import type { UrbanProductRouteDeps } from "@app-tour/workspace-urban/http";
 import {
   handleDeleteWorkspaceDraft,
   handleGetWorkspaceDraft,
@@ -82,9 +84,8 @@ import {
   handleListWorkspaceDrafts,
   handlePatchWorkspaceDraft,
 } from "./workspace-drafts/workspace-drafts.routes";
-import type { UrbanProductRouteDeps } from "./urban/urban.routes";
-import { tryDispatchWorkspaceRoutes } from "./http/workspace-route-registrar";
-import type { FinanceService } from "./denali-finance/finance.service";
+import type { FinanceService } from "./workspace-finance/finance.service";
+import "./workspace-finance/register-workspace-finance-deps";
 
 export type AppDeps = Partial<ToursRouteDeps> &
   Partial<UrbanProductRouteDeps> &
@@ -111,6 +112,12 @@ async function dispatchRequest(
 
   if (method === "GET" && url.pathname === "/internal/metrics") {
     await handlers.handleInternalMetrics(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/internal/consistency/migrations") {
+    const { handleMigrationConsistency } = await import("./routes/internal/migration-consistency");
+    await handleMigrationConsistency(req, res);
     return;
   }
 
@@ -148,6 +155,13 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "POST" && url.pathname === "/internal/payments/webhook") {
+    const { handlePaymentsWebhook } =
+      await import("./integrations/webhooks/payments-webhook.controller.ts");
+    await handlePaymentsWebhook(req, res);
+    return;
+  }
+
   if (method === "POST" && url.pathname === "/auth/phone-preflight") {
     await handlePhonePreflight(req, res);
     return;
@@ -160,6 +174,13 @@ async function dispatchRequest(
 
   if (method === "POST" && url.pathname === "/auth/verify-otp") {
     await handleVerifyOtp(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/auth/accept-platform-impersonation") {
+    const { handleAcceptPlatformImpersonation } =
+      await import("./identity/accept-platform-impersonation.ts");
+    await handleAcceptPlatformImpersonation(req, res);
     return;
   }
 
@@ -198,8 +219,43 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "GET" && url.pathname === "/identity/me/entitlements") {
+    await handleGetIdentityMeEntitlements(req, res);
+    return;
+  }
+
   if (method === "PATCH" && url.pathname === "/identity/me") {
     await handlePatchIdentityMe(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/identity/me/avatar") {
+    const { handleUploadIdentityMeAvatar } = await import("./identity/me.avatar.routes");
+    await handleUploadIdentityMeAvatar(req, res);
+    return;
+  }
+
+  if (method === "DELETE" && url.pathname === "/identity/me/avatar") {
+    const { handleDeleteIdentityMeAvatar } = await import("./identity/me.avatar.routes");
+    await handleDeleteIdentityMeAvatar(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/identity/me/avatar/url") {
+    const { handleGetIdentityMeAvatarUrl } = await import("./identity/me.avatar.routes");
+    await handleGetIdentityMeAvatarUrl(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/identity/me/mobile/request-otp") {
+    const { handlePostIdentityMeMobileRequestOtp } = await import("./identity/me.mobile.routes");
+    await handlePostIdentityMeMobileRequestOtp(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/identity/me/mobile/verify") {
+    const { handlePostIdentityMeMobileVerify } = await import("./identity/me.mobile.routes");
+    await handlePostIdentityMeMobileVerify(req, res);
     return;
   }
 
@@ -291,9 +347,7 @@ async function dispatchRequest(
     }
   }
 
-  const ownershipTransferMatch = url.pathname.match(
-    /^\/workspaces\/([^/]+)\/ownership-transfer$/
-  );
+  const ownershipTransferMatch = url.pathname.match(/^\/workspaces\/([^/]+)\/ownership-transfer$/);
   if (ownershipTransferMatch && method === "POST") {
     await handleTransferWorkspaceOwnership(req, res, ownershipTransferMatch[1]!);
     return;
@@ -328,6 +382,12 @@ async function dispatchRequest(
   const bookingRejectMatch = url.pathname.match(/^\/bookings\/([^/]+)\/reject$/);
   if (method === "POST" && bookingRejectMatch) {
     await handleRejectBooking(req, res, bookingRejectMatch[1]!);
+    return;
+  }
+
+  const bookingReceiptMatch = url.pathname.match(/^\/bookings\/([^/]+)\/receipts$/);
+  if (method === "POST" && bookingReceiptMatch) {
+    await handlePostBookingReceipt(req, res, bookingReceiptMatch[1]!);
     return;
   }
 
@@ -376,34 +436,6 @@ async function dispatchRequest(
 
   if (method === "PATCH" && tourMatch) {
     await handlers.handlePatchTour(req, res, tourDeps, tourMatch[1]!);
-    return;
-  }
-
-  if (method === "GET" && url.pathname === "/urban/settings") {
-    await handlers.handleGetUrbanSettings(req, res);
-    return;
-  }
-
-  if (method === "PATCH" && url.pathname === "/urban/settings") {
-    await handlers.handlePatchUrbanSettings(req, res);
-    return;
-  }
-
-  const urbanProductDeps = { tourStore: deps.tourStore };
-
-  if (method === "GET" && url.pathname === "/urban/catalog") {
-    await handlers.handleGetUrbanCatalog(req, res, urbanProductDeps);
-    return;
-  }
-
-  const urbanCatalogTourMatch = url.pathname.match(/^\/urban\/catalog\/([^/]+)$/);
-  if (method === "GET" && urbanCatalogTourMatch) {
-    await handlers.handleGetUrbanCatalogTour(req, res, urbanCatalogTourMatch[1]!, urbanProductDeps);
-    return;
-  }
-
-  if (method === "POST" && url.pathname === "/urban/registrations") {
-    await handlers.handlePostUrbanRegistration(req, res, urbanProductDeps);
     return;
   }
 
@@ -500,9 +532,7 @@ async function dispatchRequest(
     }
   }
 
-  const settingsResourceItemMatch = url.pathname.match(
-    /^\/settings\/resources\/([^/]+)\/([^/]+)$/
-  );
+  const settingsResourceItemMatch = url.pathname.match(/^\/settings\/resources\/([^/]+)\/([^/]+)$/);
   if (settingsResourceItemMatch) {
     const moduleId = settingsResourceItemMatch[1]!;
     const itemId = settingsResourceItemMatch[2]!;
@@ -572,13 +602,191 @@ async function dispatchRequest(
     }
   }
 
-  const workspaceHandlers = await buildWorkspaceRouteHandlers(handlers);
+  const workspaceHandlers = await buildWorkspaceRouteHandlers();
   if (
     await tryDispatchWorkspaceRoutes(method, url.pathname, req, res, workspaceHandlers, {
       tourStore: deps.tourStore,
       financeService: deps.financeService,
     })
   ) {
+    return;
+  }
+
+  const workspaceIntegrationsMatch = url.pathname.match(/^\/workspaces\/([^/]+)\/integrations$/);
+  if (workspaceIntegrationsMatch) {
+    const workspaceId = decodeURIComponent(workspaceIntegrationsMatch[1]!);
+    if (method === "POST") {
+      const { handleCreateWorkspaceIntegration } =
+        await import("./integrations/http/integrations.routes");
+      await handleCreateWorkspaceIntegration(req, res, workspaceId);
+      return;
+    }
+    if (method === "GET") {
+      const { handleListWorkspaceIntegrations } =
+        await import("./integrations/http/integrations.routes");
+      await handleListWorkspaceIntegrations(req, res, workspaceId);
+      return;
+    }
+  }
+
+  const workspaceIntegrationsMetaMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/integrations\/meta$/
+  );
+  if (workspaceIntegrationsMetaMatch && method === "GET") {
+    const { handleGetWorkspaceIntegrationMeta } =
+      await import("./integrations/http/integrations.routes");
+    await handleGetWorkspaceIntegrationMeta(
+      req,
+      res,
+      decodeURIComponent(workspaceIntegrationsMetaMatch[1]!)
+    );
+    return;
+  }
+
+  const workspaceExposureCatalogMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/exposure\/catalog$/
+  );
+  if (workspaceExposureCatalogMatch && method === "GET") {
+    const { handleGetWorkspaceExposureCatalog } = await import("./exposure/exposure.routes");
+    await handleGetWorkspaceExposureCatalog(
+      req,
+      res,
+      decodeURIComponent(workspaceExposureCatalogMatch[1]!)
+    );
+    return;
+  }
+
+  const workspaceExposureControlPlaneMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/exposure\/control-plane$/,
+  );
+  if (workspaceExposureControlPlaneMatch && method === "GET") {
+    const { handleGetWorkspaceExposureControlPlane } = await import("./exposure/exposure.routes");
+    await handleGetWorkspaceExposureControlPlane(
+      req,
+      res,
+      decodeURIComponent(workspaceExposureControlPlaneMatch[1]!),
+    );
+    return;
+  }
+
+  const workspaceExposureSurfacesMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/exposure\/surfaces$/,
+  );
+  if (workspaceExposureSurfacesMatch && method === "GET") {
+    const { handleGetWorkspaceExposureSurfaces } = await import("./exposure/exposure.routes");
+    await handleGetWorkspaceExposureSurfaces(
+      req,
+      res,
+      decodeURIComponent(workspaceExposureSurfacesMatch[1]!),
+    );
+    return;
+  }
+
+  const workspaceSurfaceExposureIntentMatch = url.pathname.match(
+    /^\/workspaces\/([^/]+)\/exposure\/surfaces\/([^/]+)$/,
+  );
+  if (workspaceSurfaceExposureIntentMatch && method === "PATCH") {
+    const { handlePatchWorkspaceSurfaceExposureIntent } = await import("./exposure/exposure.routes");
+    await handlePatchWorkspaceSurfaceExposureIntent(
+      req,
+      res,
+      decodeURIComponent(workspaceSurfaceExposureIntentMatch[1]!),
+      decodeURIComponent(workspaceSurfaceExposureIntentMatch[2]!),
+    );
+    return;
+  }
+
+  if (url.pathname === "/exposure/engine-preview" && method === "GET") {
+    const { handleGetExposureEnginePreview } = await import("./exposure/exposure.routes");
+    await handleGetExposureEnginePreview(req, res);
+    return;
+  }
+
+  if (url.pathname === "/exposure/simulate" && method === "POST") {
+    const { handlePostExposureSimulation } = await import("./exposure/exposure.routes");
+    await handlePostExposureSimulation(req, res);
+    return;
+  }
+
+  if (url.pathname === "/exposure/diff" && method === "POST") {
+    const { handlePostExposureDiff } = await import("./exposure/exposure.routes");
+    await handlePostExposureDiff(req, res);
+    return;
+  }
+
+  const integrationByIdMatch = url.pathname.match(/^\/integrations\/([^/]+)$/);
+  if (integrationByIdMatch) {
+    const integrationId = decodeURIComponent(integrationByIdMatch[1]!);
+    if (method === "GET") {
+      const { handleGetIntegration } = await import("./integrations/http/integrations.routes");
+      await handleGetIntegration(req, res, integrationId);
+      return;
+    }
+    if (method === "PATCH") {
+      const { handlePatchIntegration } = await import("./integrations/http/integrations.routes");
+      await handlePatchIntegration(req, res, integrationId);
+      return;
+    }
+    if (method === "DELETE") {
+      const { handleDeleteIntegration } = await import("./integrations/http/integrations.routes");
+      await handleDeleteIntegration(req, res, integrationId);
+      return;
+    }
+  }
+
+  const integrationEventPolicyMatch = url.pathname.match(
+    /^\/integrations\/([^/]+)\/event-policies\/([^/]+)$/
+  );
+  if (method === "PATCH" && integrationEventPolicyMatch) {
+    const { handlePatchIntegrationEventPolicy } =
+      await import("./integrations/http/integrations.routes");
+    await handlePatchIntegrationEventPolicy(
+      req,
+      res,
+      decodeURIComponent(integrationEventPolicyMatch[1]!),
+      decodeURIComponent(integrationEventPolicyMatch[2]!)
+    );
+    return;
+  }
+
+  const integrationExposureIntentMatch = url.pathname.match(
+    /^\/integrations\/([^/]+)\/exposure-intents\/([^/]+)$/
+  );
+  if (method === "PATCH" && integrationExposureIntentMatch) {
+    const { handlePatchConnectionExposureIntent } =
+      await import("./integrations/http/integrations.routes");
+    await handlePatchConnectionExposureIntent(
+      req,
+      res,
+      decodeURIComponent(integrationExposureIntentMatch[1]!),
+      decodeURIComponent(integrationExposureIntentMatch[2]!)
+    );
+    return;
+  }
+
+  const integrationTestMatch = url.pathname.match(/^\/integrations\/([^/]+)\/test-connection$/);
+  if (method === "POST" && integrationTestMatch) {
+    const { handleTestIntegrationConnection } =
+      await import("./integrations/http/integrations.routes");
+    await handleTestIntegrationConnection(req, res, decodeURIComponent(integrationTestMatch[1]!));
+    return;
+  }
+
+  const integrationEnableMatch = url.pathname.match(/^\/integrations\/([^/]+)\/enable$/);
+  if (method === "POST" && integrationEnableMatch) {
+    const { handleEnableIntegration } = await import("./integrations/http/integrations.routes");
+    await handleEnableIntegration(req, res, decodeURIComponent(integrationEnableMatch[1]!));
+    return;
+  }
+
+  const integrationDisableMatch = url.pathname.match(/^\/integrations\/([^/]+)\/disable$/);
+  if (method === "POST" && integrationDisableMatch) {
+    const { handleDisableIntegration } = await import("./integrations/http/integrations.routes");
+    await handleDisableIntegration(req, res, decodeURIComponent(integrationDisableMatch[1]!));
+    return;
+  }
+
+  if (await tryDispatchPlatformRoutes(method, url.pathname, req, res)) {
     return;
   }
 

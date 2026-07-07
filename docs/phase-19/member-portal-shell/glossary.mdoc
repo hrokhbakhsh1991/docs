@@ -1,0 +1,34 @@
+---
+title: Member Portal Shell — Glossary
+standard_id: MPS-GLOSS-001
+version: 1.0.0
+status: pending_sign_off
+extends:
+  - ../platform-portal-member-shell-architecture.mdoc
+---
+
+# Glossary
+
+Canonical terms for the Member Portal Shell RFC pack. Use these spellings in all related docs.
+
+| Term | Definition |
+| ---- | ---------- |
+| **Alias route** | Frozen path independent of module id (e.g. `/me/registrations` for module `trips`) |
+| **Blueprint phase (BP-N)** | RFC §7 migration phase 0–8 |
+| **Builder Migration Contract** | [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) — DL-22 |
+| **Cleanup Phase (PS-7 / BP-8)** | Dedicated retirement phase — [cleanup-roadmap.mdoc](./cleanup-roadmap.mdoc) |
+| **defaultPrimaryModuleId** | Registry field for portal `/` and bare `/me` redirect target |
+| **Dispatcher** | `app/me/[[...modulePath]]/page.tsx` — BP-5+ only |
+| **GSH** | `packages/guest-surface-host` — cross-host URL authority |
+| **Guest conformance L4** | L3 + required `memberPortal` block (DL-07) |
+| **memberPortal** | Workspace manifest block for member module registry |
+| **Platform-owned module** | Module id reserved for platform delivery — workspace MUST NOT declare (DL-30) |
+| **Portal Shell phase (PS-N)** | Product rollout name — [phase-mapping.mdoc](./phase-mapping.mdoc) |
+| **Primary tier** | Bottom nav — max 5 modules (DL-04) |
+| **Registration minimal shell** | Brand + back only on `/catalog/*/register` (DL-01) |
+| **URL freeze** | Immutable paths — RFC §5.2, WRS addendum §8 |
+| **Workspace-owned module** | Declared in `memberPortal` manifest (e.g. `trips`, `wallet`) |
+
+---
+
+*Glossary v1.0.0*

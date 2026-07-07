@@ -1,0 +1,122 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "color": {
+    "primary": {
+      "$type": "color",
+      "$value": "#5b9fd4"
+    },
+    "primary-hover": {
+      "$type": "color",
+      "$value": "#7eb3df"
+    },
+    "primary-fg": {
+      "$type": "color",
+      "$value": "#0d1117"
+    },
+    "accent": {
+      "$type": "color",
+      "$value": "#e3b341",
+      "$description": "Platform CTA accent on dark surfaces"
+    },
+    "accent-fg": {
+      "$type": "color",
+      "$value": "#0d1117"
+    },
+    "bg-page": {
+      "$type": "color",
+      "$value": "#0d1117"
+    },
+    "bg-surface": {
+      "$type": "color",
+      "$value": "#161b22"
+    },
+    "bg-muted": {
+      "$type": "color",
+      "$value": "#21262d"
+    },
+    "bg-disabled": {
+      "$type": "color",
+      "$value": "#30363d"
+    },
+    "text-primary": {
+      "$type": "color",
+      "$value": "#e8eaed"
+    },
+    "text-secondary": {
+      "$type": "color",
+      "$value": "#aeb4bd"
+    },
+    "text-muted": {
+      "$type": "color",
+      "$value": "#7e8793"
+    },
+    "text-link": {
+      "$type": "color",
+      "$value": "#7eb3df"
+    },
+    "border-default": {
+      "$type": "color",
+      "$value": "#30363d"
+    },
+    "border-strong": {
+      "$type": "color",
+      "$value": "#484f58"
+    },
+    "border-subtle": {
+      "$type": "color",
+      "$value": "#21262d"
+    },
+    "success": {
+      "$type": "color",
+      "$value": "#56d364"
+    },
+    "success-bg": {
+      "$type": "color",
+      "$value": "rgba(46, 160, 67, 0.18)"
+    },
+    "warning": {
+      "$type": "color",
+      "$value": "#e3b341"
+    },
+    "warning-bg": {
+      "$type": "color",
+      "$value": "rgba(227, 179, 65, 0.15)"
+    },
+    "danger": {
+      "$type": "color",
+      "$value": "#ff7b72"
+    },
+    "danger-bg": {
+      "$type": "color",
+      "$value": "rgba(248, 81, 73, 0.15)"
+    },
+    "info": {
+      "$type": "color",
+      "$value": "#79c0ff"
+    },
+    "info-bg": {
+      "$type": "color",
+      "$value": "rgba(121, 192, 255, 0.12)"
+    }
+  },
+  "focus": {
+    "ring-color": {
+      "$type": "color",
+      "$value": "rgba(130, 175, 220, 0.55)"
+    },
+    "ring-offset": {
+      "$type": "color",
+      "$value": "#161b22"
+    }
+  },
+  "shadow": {
+    "card": {
+      "$type": "shadow",
+      "$value": "0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.35)"
+    },
+    "popover": {
+      "$type": "shadow",
+      "$value": "0 8px 24px rgba(0, 0, 0, 0.45)"
+    }
+  }
+}

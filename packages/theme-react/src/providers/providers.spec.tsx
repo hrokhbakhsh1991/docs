@@ -222,6 +222,27 @@ describe("theme providers", () => {
     );
   });
 
+  it("TenantThemeProvider omits inline primary when html.dark (F9-4)", () => {
+    document.documentElement.classList.add("dark");
+    try {
+      const { container } = render(
+        <TenantThemeProvider
+          theme={{
+            primaryColor: "#0f766e",
+            cssVariables: { "--color-border": "#ccc" },
+          }}
+        >
+          <span>x</span>
+        </TenantThemeProvider>,
+      );
+      const root = container.querySelector("[data-tenant-theme]") as HTMLElement;
+      assert.equal(root.style.getPropertyValue("--color-primary"), "");
+      assert.equal(root.style.getPropertyValue("--color-border"), "#ccc");
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
   it("rejects invalid theme via ingress guard", () => {
     assert.throws(() =>
       render(

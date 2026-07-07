@@ -38,6 +38,10 @@ function themeFromJson(theme: unknown): TenantThemeConfig {
       ? (record.cssVariables as Record<string, string>)
       : undefined;
   const displayName = typeof record.displayName === "string" ? record.displayName : undefined;
+  const defaultLocale =
+    record.defaultLocale === "en" || record.defaultLocale === "fa"
+      ? record.defaultLocale
+      : undefined;
   const logoRaw = record.logo;
   const logo =
     logoRaw !== null &&
@@ -54,6 +58,7 @@ function themeFromJson(theme: unknown): TenantThemeConfig {
     ...(primaryColor !== undefined ? { primaryColor } : {}),
     ...(cssVariables !== undefined ? { cssVariables } : {}),
     ...(displayName !== undefined ? { displayName } : {}),
+    ...(defaultLocale !== undefined ? { defaultLocale } : {}),
     ...(logo !== undefined ? { logo } : {}),
   };
 }

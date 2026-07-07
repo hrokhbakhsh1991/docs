@@ -9,7 +9,9 @@ export function denaliPluginForWizardEngine(plugin: WorkspacePlugin): WorkspaceP
     tourList: _tourList,
     tourClone: _tourClone,
     publicCatalog: _publicCatalog,
+    catalogIntake: _catalogIntake,
     wizardHost: _wizardHost,
+    draftTombstone: _draftTombstone,
     ...wizardPlugin
   } = plugin;
   return wizardPlugin as WorkspacePlugin;

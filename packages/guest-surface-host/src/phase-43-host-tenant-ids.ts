@@ -1,0 +1,17 @@
+/** Phase 4.3 dev host → tenant UUID map (marketing + portal union). */
+export const PHASE_43_HOST_TENANT_IDS: Readonly<Record<string, string>> = {
+  "tenant-a": "00000000-0000-4000-8000-000000000001",
+  "tenant-b": "00000000-0000-4000-8000-000000000002",
+  denali: "00000000-0000-4000-8000-000000000003",
+  urban: "00000000-0000-4000-8000-000000000004",
+  alborz: "00000000-0000-4000-8000-000000000003",
+  "urban-owner": "00000000-0000-4000-8000-000000000004",
+  "urban-member": "00000000-0000-4000-8000-000000000004",
+  operator: "00000000-0000-4000-8000-000000000014",
+  "guest-club": "eb29a07b-40bb-4e06-9e35-522cb22dab02",
+};
+
+export function resolveTenantIdFromIngressLabel(label: string): string | null {
+  const normalized = label.trim().toLowerCase();
+  return PHASE_43_HOST_TENANT_IDS[normalized] ?? null;
+}

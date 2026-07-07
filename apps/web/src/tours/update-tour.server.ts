@@ -7,31 +7,11 @@ import type { UpdateTourPayload } from "@app-tour/workspace-sdk";
 import { readSessionTokenFromCookies } from "@/auth/read-session-token.server";
 import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
 
+import { parseTourApiErrorBody } from "./parse-tour-api-error-body";
+
 export type UpdateTourActionResult =
   | { readonly ok: true; readonly rowVersion: number }
   | { readonly ok: false; readonly status: number; readonly code: string; readonly message: string };
-
-function parseApiErrorCode(body: unknown): string {
-  if (body === null || typeof body !== "object") {
-    return "unknown_error";
-  }
-  const record = body as Record<string, unknown>;
-  if (typeof record.code === "string" && record.code.trim().length > 0) {
-    return record.code.trim();
-  }
-  if (typeof record.error === "string" && record.error.trim().length > 0) {
-    return record.error.trim();
-  }
-  if (
-    record.error !== null &&
-    typeof record.error === "object" &&
-    "code" in record.error &&
-    typeof (record.error as { code?: unknown }).code === "string"
-  ) {
-    return String((record.error as { code: string }).code);
-  }
-  return "unknown_error";
-}
 
 export async function updateTourAction(
   tourId: string,
@@ -60,12 +40,12 @@ export async function updateTourAction(
 
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    const code = parseApiErrorCode(body);
+    const parsed = parseTourApiErrorBody(body);
     return {
       ok: false,
       status: response.status,
-      code,
-      message: code,
+      code: parsed.code,
+      message: parsed.message,
     };
   }
 

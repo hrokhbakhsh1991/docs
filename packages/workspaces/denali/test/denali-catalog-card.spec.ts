@@ -46,5 +46,27 @@ describe("denali-catalog-card", () => {
     assert.equal(card.priceCurrency, "IRR");
     assert.equal(card.totalCapacity, 12);
     assert.equal(card.coverImageUrl, "https://cdn.example/cover.jpg");
+    assert.equal(card.listSubtitle, "mountain_day");
+    assert.equal(card.listDescription, "Alpine day hike");
+    assert.equal(card.showListPrice, true);
+  });
+
+  it("DN-CAT-12 storageKey-only cover resolves via photoEnrichment", () => {
+    const signedCover = "https://minio.example/signed-cover";
+    const card = toDenaliCatalogCard(
+      {
+        id: TOUR_ID,
+        canonical: canonical("active", {
+          photos: [{ storageKey: "tenant-a/tours/t1/photos/cover" }],
+        }),
+      },
+      {
+        photoEnrichment: {
+          coverImageUrl: signedCover,
+          photoUrlById: new Map(),
+        },
+      }
+    );
+    assert.equal(card.coverImageUrl, signedCover);
   });
 });

@@ -1,0 +1,72 @@
+---
+title: Phase 15 — Urban wizard template seed
+phase: 15
+format: markdoc
+---
+
+# Urban wizard template seed (P15-P-D0)
+
+## Problem
+
+`db-seed.ts` seeds Denali `wizard_template` via `seedDenaliFullWizardTemplate`, but the **urban** smoke tenant (`urban.localhost`, `00000000-0000-4000-8000-000000000004`) had no published operator template. Urban create wizard gates on `GET /api/settings/config/wizard_template` — without a seed, dev hosts show **not-configured**.
+
+## Source of truth
+
+| Layer | Module | Responsibility |
+|-------|--------|----------------|
+| Package | `@app-tour/workspace-urban` → `buildUrbanMinimalWizardTemplatePayload()` | Steps/fields from `URBAN_FIELD_REGISTRY` |
+| API | `seed-urban-wizard-template.ts` | Idempotent `settings_config` row (`configKey: wizard_template`) |
+| Provisioning | `ProvisioningService.seedUrbanSmokeTenant()` | Ensures tenant row exists before template seed |
+| Dev seed | `db-seed.ts` | Calls urban tenant + template after denali seeds |
+| Dev boot | `bootstrap-urban-wizard-template.ts` | Same idempotent seed on API `warmPostListen` (memory + dev) |
+
+## Idempotency
+
+Same pattern as Denali: skip when existing payload is `published: true` with `steps.length >= 2` (`urban_tour` + `review`).
+
+## Bootstrap vs db:seed
+
+`bootstrapUrbanWizardTemplateIfNeeded()` runs on every non-production API listen — mirrors `bootstrapDenaliWizardTemplatesIfNeeded`. Urban E2E (`STORAGE_DRIVER=memory`, `URBAN_SMOKE_E2E_SEED=1`) gets a published template without manual `db:seed` or Playwright publish step.
+
+## API access (P15-P-B2 / Phase C)
+
+Urban settings access is **registry-only** — no `workspaceType === "urban"` guard. Unknown modules/config keys fail closed via `settings-registry` (`SETTINGS_MODULE_UNKNOWN` / `SETTINGS_CONFIG_UNKNOWN`).
+
+| Route | Urban owner |
+|-------|-------------|
+| `GET/PUT /settings/config/wizard_template` | ✅ when `operatorSettings.modules` includes `tour_wizard_template` |
+| Other `/settings/config/*` | `SettingsConfigUnknownError` (registry — module not in urban manifest) |
+| `/settings/modules` | `account_profile` + plugin `operatorSettings.modules` (urban: `tour_wizard_template` only) |
+
+**Phase C (2026-07-06):** Removed `settings-workspace-guard.ts` urban/denali branches. Config and module access are **registry-only** via `resolveSettingsModuleByConfigKeyForTenant` / `resolveSettingsModuleForTenant`. Operator-only surfaces (users directory, reconciliation triage) use manifest `operatorCapabilities` codegen (`WORKSPACE_OPERATOR_CAPABILITIES`).
+
+Plugin manifest: `@app-tour/workspace-urban` → `urbanOperatorSettingsSurface.modules` (`tour_wizard_template`, `configKey: wizard_template`).
+
+## Settings registry tenant dispatch (P15-P-B1)
+
+`settings-registry.ts` resolves operator settings modules **only** through workspace plugins — no Denali singleton import or sync fallback.
+
+| Function | Resolution |
+|----------|------------|
+| `listSettingsModuleMetadataForTenant(tenantId)` | `resolveWorkspaceTypeForTenant` → `resolveWorkspacePluginForType(workspaceType).operatorSettings.modules ?? []` |
+| `resolveSettingsModuleForTenant` | lookup by `moduleId` in tenant list |
+| `resolveSettingsModuleByConfigKeyForTenant` | lookup `kind: tenant_config` + `configKey` |
+
+Removed in P15-P-B1:
+
+- `getDenaliWorkspacePlugin()` import (violated `guard-workspace-registry-imports`)
+- `listDenaliFallbackSettingsModules()` Denali-only bypass
+- Deprecated sync exports: `listSettingsModuleMetadata()`, `resolveSettingsModule()`, `resolveSettingsModuleByConfigKey()` — zero callers remained
+
+Denali modules still come from `@app-tour/workspace-denali` plugin `operatorSettings.modules` via the generated plugin registry, same as urban.
+
+## Verify
+
+```bash
+pnpm run phase-15:platform-fast-gate
+node --test apps/api/test/seed-urban-wizard-template.spec.ts
+node --test packages/workspaces/urban/test/urban-minimal-wizard-template.spec.ts
+pnpm --filter @apps/api run db:seed   # development only
+# API dev boot → urban smoke tenant has wizard_template without db:seed
+# GET /api/settings/config/wizard_template on urban tenant → published steps
+```

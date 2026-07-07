@@ -1,8 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-import type { ActorRole, MembershipStatus } from "@app-tour/workspace-sdk";
+import type {
+  ActorRole,
+  MembershipStatus,
+  OperatorMembershipAvatar,
+  OperatorProfileGender,
+} from "@app-tour/workspace-sdk";
 
 import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
+import { MobileAlreadyRegisteredError } from "./identity.errors";
 import type { InvitableWorkspaceRole } from "./users.types";
 
 export type IdentityUserRecord = {
@@ -26,7 +32,13 @@ export type IdentityMembershipRecord = {
   readonly workspaceId?: string;
   readonly displayName?: string;
   readonly email?: string;
+  readonly nationalId?: string;
+  readonly fatherName?: string;
+  readonly birthDate?: string;
+  readonly gender?: OperatorProfileGender;
   readonly rewards?: MembershipRewardsRecord;
+  readonly avatar?: OperatorMembershipAvatar;
+  readonly portalModuleGrants?: readonly string[];
 };
 
 export type OtpChallengeRecord = {
@@ -129,6 +141,23 @@ export type IdentityRepository = {
     userId: string,
     displayName: string
   ): Promise<IdentityMembershipRecord>;
+  updateMembershipProfileFields(
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly displayName?: string;
+      readonly email?: string;
+      readonly gender?: OperatorProfileGender | null;
+      readonly nationalId?: string;
+      readonly fatherName?: string;
+      readonly birthDate?: string;
+    }
+  ): Promise<IdentityMembershipRecord>;
+  updateMembershipAvatar(
+    tenantId: string,
+    userId: string,
+    avatar: OperatorMembershipAvatar | null
+  ): Promise<IdentityMembershipRecord>;
   transferWorkspaceOwnership(
     tenantId: string,
     previousOwnerUserId: string,
@@ -140,6 +169,7 @@ export type IdentityRepository = {
     targetUserId: string
   ): Promise<readonly UserRoleAuditRecord[]>;
   registerPublicGuest(input: RegisterPublicGuestInput): Promise<RegisterPublicGuestResult>;
+  updateUserMobile(userId: string, newMobile: string): Promise<IdentityUserRecord>;
   seedMembership(record: IdentityMembershipRecord): void;
   seedUser(user: IdentityUserRecord): void;
   seedPendingInvite(record: PendingInviteRecord): void;
@@ -159,6 +189,9 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     const nodeEnv = process.env.NODE_ENV?.trim();
     if (nodeEnv === "development" || nodeEnv === "test") {
       seedOperatorSmokeDevFixture(repo);
+      if (process.env.URBAN_SMOKE_E2E_SEED === "1") {
+        seedUrbanSmokeE2eFixture(repo);
+      }
     }
     return repo;
   }
@@ -245,6 +278,31 @@ export class InMemoryIdentityRepository implements IdentityRepository {
 
     this.memberships.set(key, membership);
     return { user, membership };
+  }
+
+  async updateUserMobile(userId: string, newMobile: string): Promise<IdentityUserRecord> {
+    const user = this.usersById.get(userId);
+    if (user === undefined) {
+      throw new MembershipNotFoundError(userId);
+    }
+    const normalized = normalizeMobile(newMobile);
+    const existing = this.usersByMobile.get(normalized);
+    if (existing !== undefined && existing.id !== userId) {
+      throw new MobileAlreadyRegisteredError();
+    }
+    this.usersByMobile.delete(normalizeMobile(user.mobile));
+    const updated: IdentityUserRecord = { id: userId, mobile: normalized };
+    this.usersById.set(userId, updated);
+    this.usersByMobile.set(normalized, updated);
+    for (const [key, membership] of this.memberships.entries()) {
+      if (membership.userId === userId) {
+        this.memberships.set(key, {
+          ...membership,
+          sessionVersion: membership.sessionVersion + 1,
+        });
+      }
+    }
+    return updated;
   }
 
   seedMembership(record: IdentityMembershipRecord): void {
@@ -414,15 +472,62 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     userId: string,
     displayName: string
   ): Promise<IdentityMembershipRecord> {
+    return this.updateMembershipProfileFields(tenantId, userId, { displayName });
+  }
+
+  async updateMembershipProfileFields(
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly displayName?: string;
+      readonly email?: string | null;
+      readonly gender?: OperatorProfileGender | null;
+      readonly nationalId?: string;
+      readonly fatherName?: string;
+      readonly birthDate?: string;
+    }
+  ): Promise<IdentityMembershipRecord> {
     const key = membershipKey(userId, tenantId);
     const row = this.memberships.get(key);
     if (row === undefined) {
       throw new MembershipNotFoundError(userId);
     }
-    const updated: IdentityMembershipRecord = {
+    let updated: IdentityMembershipRecord = {
       ...row,
-      displayName: displayName.trim(),
+      ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
+      ...(patch.email !== undefined
+        ? {
+            email:
+              patch.email === null || patch.email.trim().length === 0
+                ? undefined
+                : patch.email.trim(),
+          }
+        : {}),
+      ...(patch.nationalId !== undefined ? { nationalId: patch.nationalId.trim() } : {}),
+      ...(patch.fatherName !== undefined ? { fatherName: patch.fatherName.trim() } : {}),
+      ...(patch.birthDate !== undefined ? { birthDate: patch.birthDate.trim() } : {}),
     };
+    if (patch.gender === null) {
+      updated = (({ gender: _removed, ...rest }) => rest)(updated);
+    } else if (patch.gender !== undefined) {
+      updated = { ...updated, gender: patch.gender };
+    }
+    this.memberships.set(key, updated);
+    return updated;
+  }
+
+  async updateMembershipAvatar(
+    tenantId: string,
+    userId: string,
+    avatar: OperatorMembershipAvatar | null
+  ): Promise<IdentityMembershipRecord> {
+    const key = membershipKey(userId, tenantId);
+    const row = this.memberships.get(key);
+    if (row === undefined) {
+      throw new MembershipNotFoundError(userId);
+    }
+    const updated: IdentityMembershipRecord =
+      avatar === null ? (({ avatar: _removed, ...rest }) => rest)({ ...row }) : { ...row, avatar };
     this.memberships.set(key, updated);
     return updated;
   }
@@ -526,6 +631,13 @@ export class OwnershipTransferTargetInvalidError extends Error {
 
 /** Phase 6.6 denali host — sync resolve-host-tenant.ts `denali` label */
 const DENALI_DEV_HOST_TENANT_ID = "00000000-0000-4000-8000-000000000003";
+/** Phase 8.4 urban smoke — sync URBAN_SMOKE_E2E fixture */
+const URBAN_SMOKE_E2E_TENANT_ID = "00000000-0000-4000-8000-000000000004";
+const URBAN_SMOKE_E2E_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";
+const URBAN_SMOKE_E2E_OWNER_USER_ID = "00000000-0000-4000-8000-000000000401";
+const URBAN_SMOKE_E2E_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000402";
+const URBAN_SMOKE_E2E_OWNER_MOBILE = "+15550004001";
+const URBAN_SMOKE_E2E_MEMBER_MOBILE = "+15550004002";
 /** Phase 9.8 operator smoke — sync OPERATOR_SMOKE.tenantId */
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
 const OPERATOR_SMOKE_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101";
@@ -542,12 +654,9 @@ function resolveOperatorSmokeOwnerSeed(): {
   readonly mobile: string;
   readonly displayName: string;
 } {
-  const mobile =
-    process.env.OPERATOR_OWNER_MOBILE?.trim() || DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE;
-  const userId =
-    process.env.OPERATOR_OWNER_USER_ID?.trim() || OPERATOR_SMOKE_OWNER_USER_ID;
-  const displayName =
-    process.env.OPERATOR_OWNER_DISPLAY_NAME?.trim() || "Smoke Owner";
+  const mobile = process.env.OPERATOR_OWNER_MOBILE?.trim() || DEFAULT_OPERATOR_SMOKE_OWNER_MOBILE;
+  const userId = process.env.OPERATOR_OWNER_USER_ID?.trim() || OPERATOR_SMOKE_OWNER_USER_ID;
+  const displayName = process.env.OPERATOR_OWNER_DISPLAY_NAME?.trim() || "Smoke Owner";
   return { userId, mobile, displayName };
 }
 
@@ -601,6 +710,29 @@ function seedOperatorSmokeDevFixture(repo: InMemoryIdentityRepository): void {
     });
     seedOperatorSmokeTeamRoster(repo, OPERATOR_SMOKE_TENANT_ID);
   }
+}
+
+function seedUrbanSmokeE2eFixture(repo: InMemoryIdentityRepository): void {
+  repo.seedUser({ id: URBAN_SMOKE_E2E_OWNER_USER_ID, mobile: URBAN_SMOKE_E2E_OWNER_MOBILE });
+  repo.seedUser({ id: URBAN_SMOKE_E2E_MEMBER_USER_ID, mobile: URBAN_SMOKE_E2E_MEMBER_MOBILE });
+  repo.seedMembership({
+    userId: URBAN_SMOKE_E2E_OWNER_USER_ID,
+    tenantId: URBAN_SMOKE_E2E_TENANT_ID,
+    role: "owner",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: URBAN_SMOKE_E2E_WORKSPACE_ID,
+    displayName: "Urban Smoke Owner",
+  });
+  repo.seedMembership({
+    userId: URBAN_SMOKE_E2E_MEMBER_USER_ID,
+    tenantId: URBAN_SMOKE_E2E_TENANT_ID,
+    role: "member",
+    status: "ACTIVE",
+    sessionVersion: 1,
+    workspaceId: URBAN_SMOKE_E2E_WORKSPACE_ID,
+    displayName: "Urban Smoke Member",
+  });
 }
 
 function membershipKey(userId: string, tenantId: string): string {

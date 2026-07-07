@@ -1,0 +1,31 @@
+{
+  "name": "@app-tour/catalog-intake-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Schema-driven catalog intake field renderers",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@app-tour/ui-primitives": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "typescript": "5.9.3"
+  }
+}

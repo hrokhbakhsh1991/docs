@@ -1,0 +1,29 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "denali",
+  "scopeSelector": "body[data-app-surface=\"marketing\"][data-workspace-plugin=\"denali\"]",
+  "color": {
+    "primary": { "$type": "color", "$value": "#059669" },
+    "primary-fg": { "$type": "color", "$value": "#ffffff" },
+    "secondary": { "$type": "color", "$value": "#10b981" },
+    "accent": { "$type": "color", "$value": "#d97706" },
+    "accent-fg": { "$type": "color", "$value": "#ffffff" },
+    "bg-page": { "$type": "color", "$value": "#ecfdf5" },
+    "bg-surface": { "$type": "color", "$value": "#ffffff" },
+    "bg-muted": { "$type": "color", "$value": "#f0f8f6" },
+    "text-primary": { "$type": "color", "$value": "#0f172a" },
+    "text-muted": { "$type": "color", "$value": "#64748b" },
+    "text-link": { "$type": "color", "$value": "{color.primary}" },
+    "border-default": { "$type": "color", "$value": "#e1f2ed" }
+  },
+  "mkt": {
+    "on-overlay": { "$type": "color", "$value": "#ffffff", "$description": "Text/icons on dark marketing overlays" },
+    "overlay-icon": { "$type": "color", "$value": "#fbbf24", "$description": "Hero overlay brand icon accent" },
+    "hero-ink": { "$type": "color", "$value": "#0b1220", "$description": "Dark hero section ink" },
+    "mask-ink": { "$type": "color", "$value": "#000000", "$description": "Mask gradient ink (technical)" },
+    "accent-mid": { "$type": "color", "$value": "#b45309", "$description": "Accent gradient mid-stop" },
+    "accent-deep": { "$type": "color", "$value": "#92400e", "$description": "Accent gradient deep-stop" },
+    "destructive": { "$type": "color", "$value": "#dc2626", "$description": "Marketing destructive surface" },
+    "destructive-strong": { "$type": "color", "$value": "#b91c1c", "$description": "Marketing destructive emphasis" }
+  }
+}

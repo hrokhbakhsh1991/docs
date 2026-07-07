@@ -1,0 +1,39 @@
+# Runbook — field exposure environment flags
+
+```yaml
+runbook_version: "2026-06-29-v1"
+map_ref: docs/architecture/field-exposure-system.md
+```
+
+## Flags
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `FIELD_EXPOSURE_RUNTIME_MODE` | `legacy` | Runtime truth source: `legacy` \| `shadow` \| `engine` — controls forward delivery field selection |
+| `FIELD_EXPOSURE_ENGINE_FAIL_CLOSED` | unset / `false` | When `true`, skip integration enqueue if exposure selector fails (9.10) |
+| `FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL` | unset / `false` | When `true`, missing exposure DB tables block integration mutations (9.1b) |
+
+## Safe rollout order
+
+```text
+1. Deploy code + migrations (exposure_intents, exposure_profiles, reminder activations)
+2. prisma generate + API restart
+3. Observe metrics (fail-closed false)
+4. Staging: FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL=true
+5. Staging: FIELD_EXPOSURE_ENGINE_FAIL_CLOSED=true
+6. Production: same after parity tests green (test:exposure:integration)
+```
+
+## Runtime mode notes
+
+- **`legacy`** — delivery field ids from integration policy / legacy mapper (production default during migration).
+- **`shadow`** — engine runs in parallel; legacy still authoritative for enqueue.
+- **`engine`** — engine authoritative; requires parity gate sign-off (Phase 6+ cutover).
+
+Changing `FIELD_EXPOSURE_RUNTIME_MODE` without staging validation can change Telegram field sets — treat as **product-visible** change.
+
+## Related runbooks
+
+- Empty delivery: `docs/dev/runbooks/exposure-empty-delivery.mdoc`
+- Gate blocked: `docs/dev/runbooks/integration-gate-blocked.mdoc`
+- Consistency guard: `docs/dev/system-consistency-guard.mdoc`

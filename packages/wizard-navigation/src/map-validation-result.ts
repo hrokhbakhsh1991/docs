@@ -23,6 +23,7 @@ export function mapValidationResultToIssues(
     return {
       path,
       message: violation.message,
+      code: violation.code,
       ...(stepId !== undefined ? { stepId } : {}),
     };
   });

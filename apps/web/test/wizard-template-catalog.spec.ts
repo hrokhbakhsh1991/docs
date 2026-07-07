@@ -34,6 +34,7 @@ describe("wizard-template-catalog.spec.ts — W-track", () => {
       stepId: "basics",
       fieldId: "basics.title",
       kind: "text",
+      selectable: true,
     };
     const steps = toggleWizardTemplateCatalogField([], field, true);
     assert.equal(isWizardTemplateCatalogFieldSelected(steps, "basics.title"), true);
@@ -42,7 +43,7 @@ describe("wizard-template-catalog.spec.ts — W-track", () => {
   });
 
   it("WEB-9.6-CAT-03 formats denali step labels", () => {
-    assert.equal(formatWizardTemplateStepLabel("denali_basic"), "اطلاعات پایه");
+    assert.equal(formatWizardTemplateStepLabel("denali_basic"), "Denali Basic");
   });
 
   it("WEB-9.6-CAT-04 excludes denali Layer C paths from builder palette", () => {
@@ -58,6 +59,26 @@ describe("wizard-template-catalog.spec.ts — W-track", () => {
     assert.equal(paths.includes("publishStatus"), false);
     assert.equal(paths.includes("pricing.paymentMode"), false);
     assert.ok(paths.includes("title"));
+  });
+
+  it("WEB-9.6-CAT-08 lists denali roadmap fields as disabled palette rows", () => {
+    const catalog = buildWizardTemplateCatalogFromPlugin(getDenaliWorkspacePlugin());
+    const pricing = catalog.find((step) => step.stepId === "denali_pricing");
+    const medications = pricing?.fields.find(
+      (field) => field.canonicalPath === "participants.medicationsRequired"
+    );
+    assert.ok(medications);
+    assert.equal(medications?.selectable, false);
+
+    const toggled = toggleWizardTemplateCatalogField([], medications!, true);
+    assert.equal(isWizardTemplateCatalogFieldSelected(toggled, "participants.medicationsRequired"), false);
+
+    const legal = catalog.find((step) => step.stepId === "denali_legal");
+    const medicalPolicy = legal?.fields.find(
+      (field) => field.canonicalPath === "policies.medicalFitnessDeclarationRequired"
+    );
+    assert.ok(medicalPolicy);
+    assert.equal(medicalPolicy?.selectable, false);
   });
 
   it("WEB-9.6-CAT-06 filters catalog by human label or path", () => {
@@ -115,6 +136,7 @@ describe("wizard-template-catalog.spec.ts — W-track", () => {
       stepId: "basics",
       fieldId: "basics.title",
       kind: "text",
+      selectable: true,
     };
     const selected = toggleWizardTemplateCatalogField([], field, true);
     const required = updateWizardTemplateFieldOverlay(selected, "basics.title", {

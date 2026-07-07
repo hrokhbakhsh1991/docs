@@ -41,6 +41,7 @@ export function buildDenaliFullWizardTemplateSteps(): readonly DenaliWizardTempl
         field("title", true),
         field("destinationId", true),
         field("tripDetails.overview.peakHeight"),
+        field("tripDetails.overview.trailDistanceKm"),
         field("startDateTime", true),
         field("endDateTime"),
         field("approximateReturnTime"),
@@ -98,6 +99,8 @@ export function buildDenaliFullWizardTemplateSteps(): readonly DenaliWizardTempl
         field("participants.minimumAge", true),
         field("participants.minRequiredPeaks"),
         field("participants.nationalIdRequired"),
+        field("participants.fatherNameRequired"),
+        field("participants.birthDateRequired"),
       ],
     },
     {

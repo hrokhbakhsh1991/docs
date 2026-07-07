@@ -9,6 +9,7 @@ import { WORKSPACE_THEME_CSS_VARIABLE } from "@app-tour/workspace-sdk";
 import { DENALI_FIELD_DEFINITIONS } from "../src/field-registry/denaliFieldRegistryData";
 import {
   getDenaliCompositeRegistry,
+  resolveDenaliCompositeRendererId,
   resolveDenaliFieldRenderer,
   shouldRenderDenaliRegistryField,
 } from "../src/composites";
@@ -37,12 +38,13 @@ describe("composites.contract.spec.ts (REQ-P6-010, RULE-P6-014)", () => {
     const registry = getDenaliCompositeRegistry();
     const plugin = getDenaliWorkspacePlugin();
 
-    for (const field of plugin.fieldRegistry.fields) {
-      if (!field.id.startsWith("denali.")) continue;
-      assert.match(field.id, /^denali\./, `composite field id must be denali.* — got ${field.id}`);
+    for (const field of DENALI_FIELD_DEFINITIONS.filter(shouldRenderDenaliRegistryField)) {
+      const compositeId = resolveDenaliCompositeRendererId(field);
+      if (compositeId == null) continue;
+      assert.match(compositeId, /^denali\./, `composite field id must be denali.* — got ${compositeId}`);
       assert.ok(
-        field.id in registry,
-        `composite field ${field.id} missing from getDenaliCompositeRegistry()`
+        compositeId in registry,
+        `composite field ${compositeId} missing from getDenaliCompositeRegistry()`
       );
     }
   });
@@ -50,7 +52,10 @@ describe("composites.contract.spec.ts (REQ-P6-010, RULE-P6-014)", () => {
   it("plugin field registry has no orphan composite kinds", () => {
     const plugin = getDenaliWorkspacePlugin();
     const renderableCount = DENALI_FIELD_DEFINITIONS.filter(shouldRenderDenaliRegistryField).length;
-    assert.equal(plugin.fieldRegistry.fields.length, renderableCount);
+    const paletteRoadmapCount = DENALI_FIELD_DEFINITIONS.filter(
+      (def) => (def.settingsSurface ?? "section") === "palette_roadmap"
+    ).length;
+    assert.equal(plugin.fieldRegistry.fields.length, renderableCount + paletteRoadmapCount);
   });
 
   it("theme/tokens.css exists, uses --ws-* only, and is exported by plugin", () => {

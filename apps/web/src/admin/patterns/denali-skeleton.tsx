@@ -1,17 +1,38 @@
 import type { HTMLAttributes } from "react";
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+/** Preset skeleton dimensions — styled in `animations.css` under denali workspace. */
+export type DenaliSkeletonSize =
+  | "kpi"
+  | "row"
+  | "block"
+  | "panel"
+  | "panel-xl"
+  | "panel-lg"
+  | "settings-card"
+  | "user-card"
+  | "search"
+  | "chip-xs"
+  | "chip-sm"
+  | "chip-md"
+  | "chip-lg"
+  | "chip-xl"
+  | "label-sm"
+  | "label-md"
+  | "label-lg"
+  | "badge-sm"
+  | "badge-md"
+  | "badge-lg"
+  | "title"
+  | "subtitle"
+  | "line-full"
+  | "line-partial"
+  | "hero";
 
-export type DenaliSkeletonProps = HTMLAttributes<HTMLDivElement>;
+export type DenaliSkeletonProps = Omit<HTMLAttributes<HTMLDivElement>, "className"> & {
+  readonly size: DenaliSkeletonSize;
+};
 
-/** Denali shimmer when `body[data-workspace-plugin="denali"]`; otherwise shadcn pulse. */
-export function DenaliSkeleton({ className, ...props }: DenaliSkeletonProps) {
-  return (
-    <Skeleton
-      className={cn(className)}
-      data-denali-skeleton="shimmer"
-      {...props}
-    />
-  );
+/** Denali shimmer when `body[data-workspace-plugin="denali"]`; size via `data-denali-skeleton-size`. */
+export function DenaliSkeleton({ size, ...props }: DenaliSkeletonProps) {
+  return <div data-denali-skeleton="shimmer" data-denali-skeleton-size={size} {...props} />;
 }

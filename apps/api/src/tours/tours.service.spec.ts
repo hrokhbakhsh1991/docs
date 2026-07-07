@@ -33,7 +33,7 @@ describe("ToursService", { concurrency: false }, () => {
 
   const activeMember: TenantAuthContext = {
     userId: "user-1",
-    tenantId: "tenant-a",
+    tenantId: "00000000-0000-4000-8000-000000000001",
     role: "member",
     status: "ACTIVE",
     workspaceId: "ws-1",
@@ -65,7 +65,7 @@ describe("ToursService", { concurrency: false }, () => {
     const record = await service.createTour(activeMember, {
       data: { basics: { title: "Service layer" }, details: { summary: "ok" } },
     });
-    assert.equal(record.tenantId, "tenant-a");
+    assert.equal(record.tenantId, "00000000-0000-4000-8000-000000000001");
     assert.equal(record.canonical.data?.basics?.title, "Service layer");
   });
 });

@@ -6,14 +6,14 @@ import { describe, it } from "node:test";
 
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
 
-import { loadDenaliWizardRulesModule } from "../src/bootstrap/denali-wizard-rules";
+import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/wizard/rules-loader";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
-import { buildDenaliWizardRuleEvalContext } from "../src/wizard/denali/denali-wizard-ui-context";
+import { buildDenaliWizardRuleEvalContext } from "@app-tour/workspace-denali/wizard/submit";
 import {
   validateDenaliPublishReadinessSync,
   validateDenaliPublishTransitionSync,
-} from "../src/wizard/denali/denali-wizard-validation";
+} from "@app-tour/workspace-denali/ui/chrome/wizard-validation";
 
 describe("denali-publish-readiness.spec.ts", () => {
   it("WEB-12.6-01 publish transition runs rule-engine matrix via host hook", async () => {

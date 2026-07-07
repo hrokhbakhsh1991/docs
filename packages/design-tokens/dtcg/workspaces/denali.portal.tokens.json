@@ -1,0 +1,27 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "denali",
+  "scopeSelector": "body[data-app-surface=\"portal\"][data-workspace-plugin=\"denali\"]",
+  "color": {
+    "primary": { "$type": "color", "$value": "#059669" },
+    "primary-hover": { "$type": "color", "$value": "#047857" },
+    "primary-fg": { "$type": "color", "$value": "#ffffff" },
+    "secondary": { "$type": "color", "$value": "#10b981" },
+    "accent": { "$type": "color", "$value": "#d97706" },
+    "accent-fg": { "$type": "color", "$value": "#ffffff" },
+    "bg-page": { "$type": "color", "$value": "#ecfdf5" },
+    "bg-surface": { "$type": "color", "$value": "#ffffff" },
+    "bg-muted": { "$type": "color", "$value": "#f0f8f6" },
+    "text-primary": { "$type": "color", "$value": "#0f172a" },
+    "text-muted": { "$type": "color", "$value": "#64748b" },
+    "text-link": { "$type": "color", "$value": "{color.primary}" },
+    "border-default": { "$type": "color", "$value": "#e1f2ed" },
+    "border-subtle": { "$type": "color", "$value": "#e1f2ed" },
+    "focus-ring": { "$type": "color", "$value": "rgb(5 150 105 / 0.35)" }
+  },
+  "flat": {
+    "destructive": { "$type": "color", "$value": "#dc2626" },
+    "destructive-foreground": { "$type": "color", "$value": "#ffffff" },
+    "radius": { "$type": "dimension", "$value": "0.5rem" }
+  }
+}

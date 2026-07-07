@@ -2,6 +2,8 @@ export type ValidationIssue = {
   readonly path: string;
   readonly message: string;
   readonly stepId?: string;
+  /** Platform / workspace violation code for i18n lookup (Phase 2). */
+  readonly code?: string;
 };
 
 export type FieldFocusRegistry = {

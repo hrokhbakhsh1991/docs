@@ -21,6 +21,9 @@ export function localizeDenaliValidationIssueMessage(
   if (/expects kind "boolean" but got/.test(message)) {
     return t("validation.invalidBoolean", { field: fieldLabel });
   }
+  if (/expects kind "text" but got/.test(message)) {
+    return t("validation.invalidText", { field: fieldLabel });
+  }
   if (/expects kind "string" but got/.test(message)) {
     return t("validation.invalidText", { field: fieldLabel });
   }

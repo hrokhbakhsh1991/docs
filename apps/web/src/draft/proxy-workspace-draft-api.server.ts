@@ -44,6 +44,20 @@ type ProxyWorkspaceDraftEventsOptions = {
   readonly key: string;
 };
 
+function isWorkspaceDraftNotFoundPayload(payload: Record<string, unknown> | null): boolean {
+  if (payload === null) {
+    return false;
+  }
+  if (payload.code === "WORKSPACE_DRAFT_NOT_FOUND") {
+    return true;
+  }
+  const nestedError = payload.error;
+  if (nestedError !== null && typeof nestedError === "object") {
+    return (nestedError as Record<string, unknown>).code === "WORKSPACE_DRAFT_NOT_FOUND";
+  }
+  return false;
+}
+
 export async function proxyWorkspaceDraftEventsApiRequest(
   req: Request,
   options: ProxyWorkspaceDraftEventsOptions
@@ -128,6 +142,7 @@ export async function proxyWorkspaceDraftApiRequest(
   }
 
   const incoming = new URL(req.url);
+  const idempotencyKey = req.headers.get("idempotency-key")?.trim();
 
   try {
     const apiBase = resolveTourOpsApiBaseUrl();
@@ -139,6 +154,9 @@ export async function proxyWorkspaceDraftApiRequest(
           Authorization: `Bearer ${sessionToken}`,
           host: incoming.host.split(":")[0] ?? "localhost",
           ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...(idempotencyKey != null && idempotencyKey.length > 0
+            ? { "Idempotency-Key": idempotencyKey }
+            : {}),
         },
         ...(options.body !== undefined ? { body: options.body } : {}),
         cache: "no-store",
@@ -146,12 +164,16 @@ export async function proxyWorkspaceDraftApiRequest(
     );
     const payload =
       backendRes.status === 204
-        ? {}
+        ? null
         : ((await backendRes.json().catch(() => ({}))) as Record<string, unknown>);
+    if (backendRes.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
+    // Absent draft is normal during clone clear / first open — 204 avoids red 404 in DevTools.
     if (
       options.method === "GET" &&
       backendRes.status === 404 &&
-      payload.code === "WORKSPACE_DRAFT_NOT_FOUND"
+      isWorkspaceDraftNotFoundPayload(payload)
     ) {
       return new NextResponse(null, { status: 204 });
     }

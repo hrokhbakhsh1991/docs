@@ -7,21 +7,22 @@ import { useTranslations } from "next-intl";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   USERS_DIRECTORY_TEST_IDS,
   type InvitableWorkspaceRole,
   type UsersDirectoryRow,
 } from "@/features/users/users-directory-types";
-import { assignableRolesForActor, canEditUserRewards, canManageUserRow } from "@/features/users/users-page-logic";
+import {
+  assignableRolesForActor,
+  canEditUserRewards,
+  canManageUserRow,
+} from "@/features/users/users-page-logic";
 import { collectUserRowMicroBadges } from "@/features/users/users-rewards-logic";
+import { formatOperatorProfileGenderLabel } from "@/features/operator-profile/gender";
 
 import { UserMicroBadges } from "./users-directory-user-micro-badges";
+import { UsersDirectoryAvatar } from "./users-directory-avatar";
 
 type UsersDirectoryRowActionsSheetProps = {
   readonly user: UsersDirectoryRow | null;
@@ -182,10 +183,12 @@ export function UsersDirectoryMobileCard({
   onOpenDetails,
 }: UsersDirectoryMobileCardProps) {
   const t = useTranslations("users");
+  const tCommon = useTranslations("common");
   const manageable = canManageUserRow(session.role, session.userId, user);
   const canRewards = canEditUserRewards(session.role, session.userId, user);
   const isSuspended = user.status === "SUSPENDED";
   const microBadges = collectUserRowMicroBadges(user);
+  const genderLabel = formatOperatorProfileGenderLabel(user.gender, tCommon);
 
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm">
@@ -200,8 +203,21 @@ export function UsersDirectoryMobileCard({
           />
         ) : null}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{user.displayName}</p>
-          <p className="truncate text-sm text-muted-foreground">{user.phone ?? "—"}</p>
+          <div className="flex items-center gap-3">
+            <UsersDirectoryAvatar user={user} size="md" />
+            <div className="min-w-0">
+              <p className="truncate font-medium">{user.displayName}</p>
+              <p className="truncate text-sm text-muted-foreground">{user.phone ?? "—"}</p>
+              {genderLabel !== null ? (
+                <p
+                  className="truncate text-sm text-muted-foreground"
+                  data-testid={USERS_DIRECTORY_TEST_IDS.rowGender}
+                >
+                  {genderLabel}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Badge variant="secondary">{t(`roles.${user.role}`)}</Badge>

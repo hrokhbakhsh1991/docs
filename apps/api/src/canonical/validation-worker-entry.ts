@@ -1,7 +1,7 @@
 import { parentPort } from "node:worker_threads";
 
-import { validateCanonicalBeforePersistSync } from "../tours/canonical-validation";
-import type { ValidateBeforePersistInput } from "../tours/canonical-validation";
+import { validateCanonicalBeforePersistSync } from "../tours/canonical-validation-sync.js";
+import type { ValidateBeforePersistInput } from "../tours/canonical-validation-sync.js";
 
 type WorkerRequest = {
   readonly jobId: number;

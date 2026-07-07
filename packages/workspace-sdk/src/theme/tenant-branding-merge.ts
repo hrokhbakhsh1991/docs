@@ -28,18 +28,24 @@ export function resolveEffectiveTenantBranding(
   stored: TenantThemeConfig,
   fallback: TenantThemeConfig
 ): TenantThemeConfig {
-  if (!isTenantBrandingEmpty(stored)) {
-    return stored;
-  }
-  if (isTenantBrandingEmpty(fallback)) {
-    return {};
+  if (isTenantBrandingEmpty(stored)) {
+    if (isTenantBrandingEmpty(fallback)) {
+      return {};
+    }
+    return {
+      ...(fallback.primaryColor !== undefined ? { primaryColor: fallback.primaryColor } : {}),
+      ...(fallback.cssVariables !== undefined
+        ? { cssVariables: { ...fallback.cssVariables } }
+        : {}),
+      ...(fallback.displayName !== undefined ? { displayName: fallback.displayName } : {}),
+      ...(fallback.logo !== undefined ? { logo: { ...fallback.logo } } : {}),
+      ...(fallback.defaultLocale !== undefined ? { defaultLocale: fallback.defaultLocale } : {}),
+    };
   }
   return {
-    ...(fallback.primaryColor !== undefined ? { primaryColor: fallback.primaryColor } : {}),
-    ...(fallback.cssVariables !== undefined
-      ? { cssVariables: { ...fallback.cssVariables } }
+    ...stored,
+    ...(stored.defaultLocale === undefined && fallback.defaultLocale !== undefined
+      ? { defaultLocale: fallback.defaultLocale }
       : {}),
-    ...(fallback.displayName !== undefined ? { displayName: fallback.displayName } : {}),
-    ...(fallback.logo !== undefined ? { logo: { ...fallback.logo } } : {}),
   };
 }

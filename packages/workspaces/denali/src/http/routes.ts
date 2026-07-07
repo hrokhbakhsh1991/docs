@@ -18,6 +18,8 @@ export { CATALOG_HTTP_ROUTE_MANIFEST, FINANCE_HTTP_ROUTE_MANIFEST } from "./rout
 export {
   handleGetDenaliCatalog,
   handleGetDenaliCatalogTour,
+  handleGetDenaliDashboardTour,
+  handleGetDenaliReminderFeed,
   handlePostDenaliRegistration,
 } from "./product.routes";
 export {

@@ -1,0 +1,82 @@
+{
+  "generatedAt": "2026-07-06T23:30:54.726Z",
+  "gitSha": "9b3a023b",
+  "phase": "0.6",
+  "thresholds": {},
+  "metrics": {
+    "workspace_sdk_test_count": 324,
+    "workspace_sdk_test_it_source": 297,
+    "workspace_sdk_spec_files": 65,
+    "workspace_sdk_export_count": 4,
+    "workspace_sdk_source_files": 148,
+    "denali_coupling_contract_ok": true,
+    "legacy_import_contract_ok": true,
+    "new_packages": [
+      "catalog-intake-ui",
+      "catalog-registration-auth",
+      "catalog-registration-flow-ui",
+      "config",
+      "design-tokens",
+      "draft-engine",
+      "guest-surface-host",
+      "platform-core",
+      "platform-events",
+      "session-client",
+      "tenant-kernel",
+      "theme-react",
+      "ui-primitives",
+      "wizard-navigation",
+      "workspace-plugin-host",
+      "workspace-sdk",
+      "workspaces"
+    ],
+    "platform_core_exists": true,
+    "apps_exists": true
+  },
+  "layers": {
+    "packages/config": {
+      "enforced": true,
+      "source": "denali-coupling.contract.spec.ts"
+    },
+    "packages/workspace-sdk": {
+      "enforced": true,
+      "source": "denali-coupling.contract.spec.ts"
+    },
+    "packages/platform-core": {
+      "enforced": false,
+      "source": "outside foundation scan"
+    },
+    "packages/workspaces": {
+      "enforced": false,
+      "source": "outside foundation scan"
+    }
+  },
+  "couplingContracts": {
+    "denaliOk": true,
+    "legacyOk": true,
+    "denaliDetail": null,
+    "legacyDetail": null
+  },
+  "testRun": {
+    "ok": true,
+    "testCount": 324
+  },
+  "exit06": {
+    "pass": true,
+    "checks": [
+      {
+        "id": "t2_denali_coupling_contract",
+        "ok": true,
+        "expected": "denali-coupling.contract.spec.ts PASS",
+        "actual": true
+      },
+      {
+        "id": "t3_legacy_import_contract",
+        "ok": true,
+        "expected": "legacy-import.contract.spec.ts PASS",
+        "actual": true
+      }
+    ],
+    "note": "coupling contract tests (denali + legacy depcruise) + SDK test floor"
+  }
+}

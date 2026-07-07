@@ -1,0 +1,145 @@
+{
+  "id": "guest-club",
+  "version": 1,
+  "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
+  "guestConformance": {
+    "productionTier": "stub"
+  },
+  "package": "@app-tour/workspace-guest-club",
+  "workspaceTypes": [
+    "guest-club"
+  ],
+  "plugin": {
+    "entry": "./guest-club.plugin",
+    "export": "getGuestClubWorkspacePlugin"
+  },
+  "web": {
+    "entry": "./guest-club.plugin",
+    "export": "getGuestClubWorkspacePlugin"
+  },
+  "http": {
+    "prefix": "/guest-club",
+    "module": "./http/routes"
+  },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-guest-club/http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "GUEST_CLUB_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /guest-club/catalog": "handleGetGuestClubCatalog",
+          "POST /guest-club/registrations": "handlePostGuestClubRegistration"
+        },
+        "paramHandlers": {
+          "GET /guest-club/catalog/:tourId": "handleGetGuestClubCatalogTour"
+        }
+      }
+    ]
+  },
+  "devBootstrap": {
+    "pluginTenantIds": [
+      "eb29a07b-40bb-4e06-9e35-522cb22dab02"
+    ],
+    "smokeTenant": {
+      "tenantIdExport": "GUEST_CLUB_SMOKE_TENANT_ID",
+      "subdomainExport": "GUEST_CLUB_SMOKE_SUBDOMAIN"
+    }
+  },
+  "themeStylesheets": [
+    "theme/tokens.css"
+  ],
+  "guestThemeStylesheets": {
+    "marketing": [
+      "theme/marketing/marketing.css"
+    ],
+    "portal": [
+      "theme/guest-club-portal.css"
+    ]
+  },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "guestClubCatalogRegistrationFlowSurface",
+    "steps": {
+      "mode": "compose",
+      "reuseAuthStepsFrom": "shared",
+      "components": {
+        "intake": "GuestClubIntakeStep",
+        "done": "GuestClubDoneStep"
+      }
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": {
+      "cityFilter": false
+    },
+    "detailSections": {
+      "difficulty": false,
+      "fitness": false,
+      "itinerary": false,
+      "policies": false
+    }
+  },
+  "memberProfile": {
+    "editableFields": [
+      "displayName"
+    ],
+    "readOnlyFields": [
+      "email"
+    ],
+    "sections": [
+      {
+        "id": "identity",
+        "fields": [
+          "displayName",
+          "email"
+        ]
+      }
+    ]
+  },
+  "guestLanding": {
+    "variant": "minimal",
+    "sections": {
+      "hero": false,
+      "latestTours": false,
+      "latestToursLimit": 0,
+      "trust": false,
+      "finalCta": false,
+    "faq": false,
+    "footer": false,
+    "whyDenali": false,
+    "journey": false,
+    "testimonials": false,
+    "featuredTours": false,
+    "featuredToursLimit": 0,
+    "categories": false,
+    "destinations": false,
+    "heroSearch": false,
+    "gallery": false,
+    "equipment": false,
+    "blogTeaser": false
+    },
+    "i18nProfile": "minimal"
+  },
+  "guestSeo": {
+    "marketing": {
+      "homeTitleKey": "seo.homeTitle",
+      "homeDescriptionKey": "seo.homeDescription",
+      "listTitleKey": "seo.toursTitle",
+      "listDescriptionKey": "seo.toursDescription",
+      "jsonLd": {
+        "required": true,
+        "schemaTypes": ["Event"],
+        "builderExport": "buildGuestClubEventJsonLd",
+        "richResultsProfile": "event-stub-v1"
+      },
+      "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": false },
+      "pagination": { "noindexQueryParams": ["cursor"] }
+    }
+  },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "minimal",
+    "preset": "guest-minimal-v1"
+  }
+}

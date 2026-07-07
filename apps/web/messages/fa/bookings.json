@@ -51,7 +51,19 @@
     "party": "تعداد نفرات",
     "departure": "حرکت",
     "payment": "پرداخت",
-    "status": "وضعیت"
+    "status": "وضعیت",
+    "registrantTarget": "ثبت‌نام برای",
+    "transport": "حمل‌ونقل",
+    "nationalId": "کد ملی"
+  },
+  "intake": {
+    "registrantSelf": "خودم",
+    "registrantOther": "دیگری",
+    "transportPrimary": "حمل سازمان‌یافته",
+    "transportPersonalCar": "ماشین شخصی",
+    "transportNoCarDong": "بدون ماشین — دونگ",
+    "transportNoCarAcquaintance": "بدون ماشین — با آشنا",
+    "transportOccupants": "{count, number} نفر"
   },
   "approve": "تأیید",
   "reject": "رد",

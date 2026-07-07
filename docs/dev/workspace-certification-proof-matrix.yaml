@@ -1,0 +1,21 @@
+# Phase H3 — workspace production certification proof matrix
+# Consumed by scripts/guards/guard-workspace-certification.mjs
+# Authority: docs/dev/workspace-certification.mdoc
+version: 1
+plugins:
+  denali:
+    proofs:
+      CERT-01: pass
+      CERT-02: pass
+      CERT-03:
+        status: pass
+        hookIds:
+          - SMK-PTL-01
+          - SMK-PTL-02
+          - SMK-MKT-03
+          - DEN-PROF-01
+      CERT-04: pass
+      CERT-05:
+        status: partial
+        runbook: docs/phase-23/runbooks/p10-second-club-onboarding.md
+        note: includes productionTier gate (Phase H); workspace-specific runbook optional

@@ -1,4 +1,4 @@
-import type { TourPresetResource } from "@/features/settings/settings-module-types";
+import type { TourPresetResource, TourThemeResource } from "@/features/settings/settings-module-types";
 
 import {
   getCanonicalStringValue,
@@ -29,6 +29,15 @@ export function findActiveTourPreset(
     return null;
   }
   return match;
+}
+
+export function readActiveThemeIds(
+  items: readonly Pick<TourThemeResource, "id" | "isActive">[]
+): readonly string[] {
+  return items
+    .filter((item) => item.isActive !== false)
+    .map((item) => item.id.trim())
+    .filter((id) => id.length > 0);
 }
 
 export function applyTourPresetToDraft(

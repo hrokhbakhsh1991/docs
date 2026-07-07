@@ -19,7 +19,7 @@ import {
   STARTER_WORKSPACE_TYPE,
   isWorkspaceSdkValidationError,
 } from "../src/index.js";
-import { createFreshStarterPlugin } from "./lib/immutable-harness.js";
+import { createFreshStarterPlugin, pluginPayloadForStorageIngress } from "./lib/immutable-harness.js";
 
 describe("createFreshStarterPlugin()", () => {
   it("exposes id and version", () => {
@@ -333,7 +333,9 @@ describe("CanonicalDocument", () => {
   });
 
   it("parseWorkspacePluginFromStorage validates plugins", () => {
-    const plugin = parseWorkspacePluginFromStorage(createFreshStarterPlugin());
+    const plugin = parseWorkspacePluginFromStorage(
+      pluginPayloadForStorageIngress(createFreshStarterPlugin())
+    );
     assert.equal(plugin.id, STARTER_WORKSPACE_PLUGIN_ID);
   });
 });

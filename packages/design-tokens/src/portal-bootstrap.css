@@ -1,0 +1,9 @@
+/**
+ * Portal guest app bootstrap — L0 tokens + L2 portal shell structure only.
+ * Workspace brand: dynamic L3 skin import in apps/portal layout.
+ */
+@import "./index.css";
+@import "./shell-bridge.css";
+@import "./fallback-guest-portal-shell.css";
+@import "./guest-body-reset.css";
+@import "./platform-infra-shell.css";

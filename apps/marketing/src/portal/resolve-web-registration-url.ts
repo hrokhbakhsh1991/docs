@@ -1,20 +1,14 @@
-/** Whether marketing detail should link to web registration intake. */
-export function supportsCatalogRegistration(pluginId: string): boolean {
-  return pluginId === "urban" || pluginId === "denali";
-}
+import { supportsCatalogRegistration } from "@app-tour/workspace-sdk";
 
-/** Resolve user portal base URL from marketing host (inverse of M2b shop prefix). */
-export function resolvePortalPublicBaseUrl(host: string): string {
-  const configured = process.env.PORTAL_PUBLIC_BASE_URL?.trim();
-  if (configured !== undefined && configured.length > 0) {
-    return configured.replace(/\/$/, "");
-  }
+import {
+  resolvePortalPublicBaseUrl,
+  resolvePortalRegistrationUrl,
+  resolvePortalMemberModuleUrl,
+} from "@app-tour/guest-surface-host";
 
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "localhost";
-  const port = process.env.PORTAL_DEV_PORT?.trim() || "3003";
-  const portalHost = hostname.startsWith("shop.") ? hostname.slice("shop.".length) : hostname;
-  return `http://${portalHost}:${port}`;
-}
+export { supportsCatalogRegistration };
+
+export { resolvePortalPublicBaseUrl, resolvePortalRegistrationUrl, resolvePortalMemberModuleUrl };
 
 /** @deprecated Use `resolvePortalPublicBaseUrl` — kept for transitional imports. */
 export const resolveWebPublicBaseUrl = resolvePortalPublicBaseUrl;
@@ -32,5 +26,5 @@ export function resolveWebRegistrationUrl(
   if (id.length === 0) {
     return null;
   }
-  return `${resolvePortalPublicBaseUrl(host)}/catalog/${encodeURIComponent(id)}/register`;
+  return resolvePortalRegistrationUrl(host, id);
 }

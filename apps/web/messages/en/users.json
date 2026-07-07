@@ -101,6 +101,7 @@
   "table": {
     "name": "Name",
     "phone": "Phone",
+    "gender": "Gender",
     "role": "Role",
     "status": "Status",
     "badges": "Badges",

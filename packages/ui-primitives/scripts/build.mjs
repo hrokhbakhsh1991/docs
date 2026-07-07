@@ -14,7 +14,7 @@ function copyCssModules(dir, rel = "") {
       copyCssModules(srcPath, relPath);
       continue;
     }
-    if (!entry.name.endsWith(".module.css")) {
+    if (!entry.name.endsWith(".css")) {
       continue;
     }
     const destPath = path.join(distDir, relPath);

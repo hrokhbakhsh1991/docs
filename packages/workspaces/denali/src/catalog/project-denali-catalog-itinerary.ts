@@ -30,11 +30,9 @@ function readString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function readInteger(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return null;
-  }
-  return Number.isInteger(value) ? value : Math.trunc(value);
+function snapCatalogDifficultyLevel(value: number): number {
+  const snapped = Math.round(value / 0.5) * 0.5;
+  return Math.min(10, Math.max(1, snapped));
 }
 
 function buildPhotoUrlById(photos: unknown): ReadonlyMap<string, string> {
@@ -114,7 +112,24 @@ function dayHasPublicContent(day: ReturnType<typeof parseDenaliItineraryDays>[nu
 
 export type ProjectDenaliCatalogItineraryOptions = {
   readonly destinationNameById?: ReadonlyMap<string, string>;
+  /** Signed MinIO read URLs keyed by canonical photo id (public catalog enrichment). */
+  readonly photoUrlById?: ReadonlyMap<string, string>;
 };
+
+function mergePhotoUrlById(
+  photos: unknown,
+  enrichment?: ReadonlyMap<string, string>
+): ReadonlyMap<string, string> {
+  const fromHttps = buildPhotoUrlById(photos);
+  if (enrichment == null || enrichment.size === 0) {
+    return fromHttps;
+  }
+  const merged = new Map(fromHttps);
+  for (const [id, url] of enrichment) {
+    merged.set(id, url);
+  }
+  return merged;
+}
 
 /** Collect segment `destinationId` values from canonical itinerary (for host catalog enrichment). */
 export function collectItinerarySegmentDestinationIds(data: Record<string, unknown>): readonly string[] {
@@ -136,7 +151,7 @@ export function projectDenaliCatalogItinerary(
   data: Record<string, unknown>,
   options?: ProjectDenaliCatalogItineraryOptions
 ): readonly PublicCatalogItineraryDay[] | undefined {
-  const photoUrlById = buildPhotoUrlById(data.photos);
+  const photoUrlById = mergePhotoUrlById(data.photos, options?.photoUrlById);
   const destinationNameById = options?.destinationNameById;
   const days = parseDenaliItineraryDays(readCanonicalPath(data, "program.itinerary")).filter(
     dayHasPublicContent
@@ -168,7 +183,17 @@ export function projectDenaliCatalogItinerary(
 }
 
 export function readDenaliCatalogDifficultyLevel(data: Record<string, unknown>): number | null {
-  return readInteger(readCanonicalPath(data, "program.difficultyLevel"));
+  const raw = readCanonicalPath(data, "program.difficultyLevel");
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return snapCatalogDifficultyLevel(raw);
+  }
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    const parsed = Number.parseFloat(raw.trim());
+    if (Number.isFinite(parsed)) {
+      return snapCatalogDifficultyLevel(parsed);
+    }
+  }
+  return null;
 }
 
 export function readDenaliCatalogFitnessLevel(data: Record<string, unknown>): string | null {

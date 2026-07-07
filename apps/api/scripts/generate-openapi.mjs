@@ -19,6 +19,20 @@ const { PUBLIC_AUTH_OPENAPI_OVERRIDES } = await import(
   pathToFileURL(path.join(ROOT, "src/openapi/public-auth-openapi.ts")).href
 );
 
+const { DENALI_CATALOG_OPENAPI_OVERRIDES } = await import(
+  pathToFileURL(path.join(ROOT, "src/openapi/denali-catalog-openapi.ts")).href
+);
+
+const { PLATFORM_WORKSPACE_CERTIFICATION_OPENAPI_OVERRIDES } = await import(
+  pathToFileURL(path.join(ROOT, "src/openapi/platform-workspace-certification-openapi.ts")).href
+);
+
+const OPENAPI_OVERRIDES = {
+  ...PUBLIC_AUTH_OPENAPI_OVERRIDES,
+  ...DENALI_CATALOG_OPENAPI_OVERRIDES,
+  ...PLATFORM_WORKSPACE_CERTIFICATION_OPENAPI_OVERRIDES,
+};
+
 const DEFAULT_RESPONSES = {
   200: { description: "Success" },
   201: { description: "Created" },
@@ -40,7 +54,7 @@ const paths = {};
 for (const route of DISPATCH_ROUTES) {
   const oasPath = toOpenApiPath(route.path);
   paths[oasPath] ??= {};
-  const override = PUBLIC_AUTH_OPENAPI_OVERRIDES[route.operationId] ?? {};
+  const override = OPENAPI_OVERRIDES[route.operationId] ?? {};
   const overrideResponses =
     override.responses !== undefined && typeof override.responses === "object"
       ? override.responses

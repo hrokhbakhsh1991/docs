@@ -19,6 +19,7 @@ function toEquipment(row: {
   tenantId: string;
   name: string;
   category: string | null;
+  iconKey: string | null;
   themeIds: unknown;
   sortOrder: number;
   createdAt: Date;
@@ -29,6 +30,7 @@ function toEquipment(row: {
     tenantId: row.tenantId,
     name: row.name,
     category: row.category,
+    iconKey: row.iconKey,
     themeIds: parseThemeIdsJson(row.themeIds),
     sortOrder: row.sortOrder,
     createdAt: row.createdAt.toISOString(),
@@ -135,6 +137,7 @@ function toDestination(row: {
   name: string;
   locationType: string | null;
   altitudeM: number | null;
+  typicalTrailDistanceKm: number | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: Date;
@@ -147,11 +150,32 @@ function toDestination(row: {
     name: row.name,
     locationType: row.locationType,
     altitudeM: row.altitudeM,
+    typicalTrailDistanceKm: row.typicalTrailDistanceKm,
     isActive: row.isActive,
     sortOrder: row.sortOrder,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+function normalizeOptionalPositiveFloat(value: number | null | undefined): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (!Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return Math.round(value * 100) / 100;
+}
+
+function normalizeOptionalPositiveInt(value: number | null | undefined): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (!Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return Math.trunc(value);
 }
 
 async function resolveUniqueSlug(
@@ -200,7 +224,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
 
   async createEquipment(
     tenantId: string,
-    input: { name: string; category?: string; themeIds?: readonly string[] }
+    input: { name: string; category?: string; iconKey?: string | null; themeIds?: readonly string[] }
   ): Promise<EquipmentResource> {
     const existing = await this.listEquipment(tenantId);
     const row = await withTenantRls(tenantId, (tx) =>
@@ -209,6 +233,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
           tenantId,
           name: input.name,
           category: input.category ?? null,
+          iconKey: input.iconKey ?? null,
           themeIds: input.themeIds ?? [],
           sortOrder: existing.length,
         },
@@ -220,7 +245,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
   async patchEquipment(
     tenantId: string,
     itemId: string,
-    input: { name?: string; category?: string | null; themeIds?: readonly string[] }
+    input: { name?: string; category?: string | null; iconKey?: string | null; themeIds?: readonly string[] }
   ): Promise<EquipmentResource> {
     const current = await this.getEquipment(tenantId, itemId);
     if (current === null) {
@@ -232,6 +257,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
         data: {
           ...(input.name !== undefined ? { name: input.name } : {}),
           ...(input.category !== undefined ? { category: input.category } : {}),
+          ...(input.iconKey !== undefined ? { iconKey: input.iconKey } : {}),
           ...(input.themeIds !== undefined ? { themeIds: [...input.themeIds] } : {}),
         },
       })
@@ -256,6 +282,7 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
       const data = {
         name: record.name,
         category: record.category,
+        iconKey: record.iconKey ?? null,
         themeIds: [...record.themeIds],
         sortOrder: record.sortOrder,
         updatedAt: new Date(record.updatedAt),
@@ -668,7 +695,13 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
 
   async createDestination(
     tenantId: string,
-    input: { regionId: string; name: string; locationType?: string; altitudeM?: number | null }
+    input: {
+      regionId: string;
+      name: string;
+      locationType?: string;
+      altitudeM?: number | null;
+      typicalTrailDistanceKm?: number | null;
+    }
   ): Promise<DestinationResource> {
     const region = await this.getRegion(tenantId, input.regionId);
     if (region === null) {
@@ -684,12 +717,8 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
           regionId: input.regionId,
           name: input.name,
           locationType: input.locationType ?? null,
-          altitudeM:
-            input.altitudeM !== undefined &&
-            input.altitudeM !== null &&
-            Number.isFinite(input.altitudeM)
-              ? input.altitudeM
-              : null,
+          altitudeM: normalizeOptionalPositiveInt(input.altitudeM),
+          typicalTrailDistanceKm: normalizeOptionalPositiveFloat(input.typicalTrailDistanceKm),
           sortOrder: existing.length,
         },
       })
@@ -726,6 +755,8 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
       name?: string;
       regionId?: string;
       locationType?: string | null;
+      altitudeM?: number | null;
+      typicalTrailDistanceKm?: number | null;
       isActive?: boolean;
     }
   ): Promise<DestinationResource> {
@@ -745,6 +776,12 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
           ...(input.name !== undefined ? { name: input.name } : {}),
           ...(input.regionId !== undefined ? { regionId: input.regionId } : {}),
           ...(input.locationType !== undefined ? { locationType: input.locationType } : {}),
+          ...(input.altitudeM !== undefined
+            ? { altitudeM: normalizeOptionalPositiveInt(input.altitudeM) }
+            : {}),
+          ...(input.typicalTrailDistanceKm !== undefined
+            ? { typicalTrailDistanceKm: normalizeOptionalPositiveFloat(input.typicalTrailDistanceKm) }
+            : {}),
           ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
         },
       })
@@ -782,6 +819,8 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
       country?: string | null;
       regionId?: string;
       locationType?: string | null;
+      altitudeM?: number | null;
+      typicalTrailDistanceKm?: number | null;
       isActive?: boolean;
     }
   ): Promise<RegionResource | DestinationResource> {
@@ -839,6 +878,8 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
         name: record.name,
         regionId: record.regionId,
         locationType: record.locationType,
+        altitudeM: record.altitudeM,
+        typicalTrailDistanceKm: record.typicalTrailDistanceKm,
         isActive: record.isActive,
         sortOrder: record.sortOrder,
         updatedAt: new Date(record.updatedAt),

@@ -14,6 +14,10 @@ import {
   normalizeWizardTemplatePayloadForPut,
 } from "./settings-config.service";
 import {
+  SettingsWizardFrozenFieldMissingError,
+  SettingsWizardRoadmapFieldError,
+} from "./wizard-template-catalog";
+import {
   assertSettingsExploreMutationForbidden,
   listSettingsExplore,
   SettingsExploreNotSupportedError,
@@ -31,7 +35,7 @@ import {
   SettingsResourceInvalidError,
   SettingsResourceNotFoundError,
 } from "./settings.service";
-import { SettingsWorkspaceForbiddenError } from "./settings-workspace-guard";
+import { SettingsWorkspaceForbiddenError } from "./settings-workspace-errors";
 import type {
   CreateEquipmentRequest,
   CreateGuideLanguageRequest,
@@ -63,19 +67,38 @@ function readThemeIdsField(body: unknown): string[] | undefined {
   );
 }
 
+function readOptionalStringOrNullField(
+  body: unknown,
+  key: string
+): string | null | undefined {
+  if (typeof body !== "object" || body === null || !(key in body)) {
+    return undefined;
+  }
+  const value = (body as Record<string, unknown>)[key];
+  if (value === null) {
+    return null;
+  }
+  return typeof value === "string" ? value : undefined;
+}
+
 function parseCreateBody(body: unknown): CreateEquipmentRequest | null {
   const name = readStringField(body, "name");
   const category = readStringField(body, "category");
+  const iconKey = readOptionalStringOrNullField(body, "iconKey");
   if (name.length === 0) {
     return null;
   }
   if (typeof body === "object" && body !== null && "themeIds" in body && !Array.isArray((body as Record<string, unknown>).themeIds)) {
     return null;
   }
+  if (iconKey !== undefined && iconKey !== null && typeof iconKey !== "string") {
+    return null;
+  }
   const themeIds = readThemeIdsField(body);
   return {
     name,
     ...(category.length > 0 ? { category } : {}),
+    ...(iconKey !== undefined ? { iconKey } : {}),
     ...(themeIds !== undefined ? { themeIds } : {}),
   };
 }
@@ -141,14 +164,16 @@ function parseCreateBodyForModule(
     if (entity === "destination") {
       const regionId = readStringField(body, "regionId");
       const locationType = readStringField(body, "locationType");
-      const altitudeM = readNumberField(body, "altitudeM");
+      const altitudeM = readOptionalNumberField(body, "altitudeM");
+      const typicalTrailDistanceKm = readOptionalNumberField(body, "typicalTrailDistanceKm");
       if (name.length === 0 || regionId.length === 0) return null;
       return {
         entity: "destination",
         regionId,
         name,
         ...(locationType.length > 0 ? { locationType } : {}),
-        ...(altitudeM !== null ? { altitudeM } : {}),
+        ...(altitudeM !== undefined ? { altitudeM } : {}),
+        ...(typicalTrailDistanceKm !== undefined ? { typicalTrailDistanceKm } : {}),
       };
     }
     return null;
@@ -207,6 +232,8 @@ function parsePatchBodyForModule(
       typeof body === "object" && body !== null && "locationType" in body
         ? (body as Record<string, unknown>).locationType
         : undefined;
+    const altitudeM = readOptionalNumberField(body, "altitudeM");
+    const typicalTrailDistanceKm = readOptionalNumberField(body, "typicalTrailDistanceKm");
     const isActive = readBooleanField(body, "isActive");
     return {
       ...(name.length > 0 ? { name } : {}),
@@ -215,6 +242,8 @@ function parsePatchBodyForModule(
       ...(locationTypeRaw === null || typeof locationTypeRaw === "string"
         ? { locationType: locationTypeRaw ?? null }
         : {}),
+      ...(altitudeM !== undefined ? { altitudeM } : {}),
+      ...(typicalTrailDistanceKm !== undefined ? { typicalTrailDistanceKm } : {}),
       ...(isActive !== undefined ? { isActive } : {}),
     };
   }
@@ -225,6 +254,7 @@ function parsePatchBodyForModule(
 function parsePatchBody(body: unknown): {
   name?: string;
   category?: string | null;
+  iconKey?: string | null;
   themeIds?: string[];
 } {
   const name = readStringField(body, "name");
@@ -236,12 +266,14 @@ function parsePatchBody(body: unknown): {
       : typeof categoryRaw === "string"
         ? categoryRaw.trim()
         : undefined;
+  const iconKey = readOptionalStringOrNullField(body, "iconKey");
   const hasThemeIds = typeof body === "object" && body !== null && "themeIds" in body;
   const themeIds = hasThemeIds ? readThemeIdsField(body) : undefined;
 
   return {
     ...(name.length > 0 ? { name } : {}),
     ...(hasCategory ? { category: category ?? null } : {}),
+    ...(iconKey !== undefined ? { iconKey } : {}),
     ...(hasThemeIds && themeIds !== undefined ? { themeIds } : {}),
   };
 }
@@ -249,6 +281,14 @@ function parsePatchBody(body: unknown): {
 function readNumberField(body: unknown, key: string): number | null {
   if (typeof body !== "object" || body === null) return null;
   const value = (body as Record<string, unknown>)[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readOptionalNumberField(body: unknown, key: string): number | null | undefined {
+  if (typeof body !== "object" || body === null) return undefined;
+  if (!(key in (body as Record<string, unknown>))) return undefined;
+  const value = (body as Record<string, unknown>)[key];
+  if (value === null) return null;
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
@@ -338,6 +378,22 @@ function handleSettingsRouteError(res: ServerResponse, error: unknown): void {
     return;
   }
   if (error instanceof SettingsWizardUnknownFieldError) {
+    sendHttpError(res, 400, {
+      error: "invalid_body",
+      code: error.code,
+      canonicalPath: error.canonicalPath,
+    });
+    return;
+  }
+  if (error instanceof SettingsWizardFrozenFieldMissingError) {
+    sendHttpError(res, 400, {
+      error: "invalid_body",
+      code: error.code,
+      canonicalPath: error.canonicalPath,
+    });
+    return;
+  }
+  if (error instanceof SettingsWizardRoadmapFieldError) {
     sendHttpError(res, 400, {
       error: "invalid_body",
       code: error.code,

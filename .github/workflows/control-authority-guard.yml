@@ -1,0 +1,32 @@
+# CTL-CORE v2 — control authority runtime gate (always-on)
+name: control-authority-guard
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "apps/marketing/**"
+      - "apps/portal/**"
+      - "apps/web/**"
+      - "packages/workspaces/**/theme/**"
+      - "scripts/guards/**"
+      - ".github/workflows/control-authority-guard.yml"
+      - ".github/workflows/marketing-guard.yml"
+      - ".github/workflows/portal-control-guard.yml"
+  workflow_dispatch:
+
+jobs:
+  control-authority:
+    name: CTL-CORE authority (hard block)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run control:ci

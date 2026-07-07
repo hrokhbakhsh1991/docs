@@ -3,20 +3,98 @@
     "siteDescription": "Browse published tours from {siteName}.",
     "listDescription": "Published tour catalog for {siteName}.",
     "notFoundTitle": "Tour not found",
-    "notFoundDescription": "This tour is not published or does not exist."
+    "notFoundDescription": "This tour is not published or does not exist.",
+    "motherTitle": "Platform administration",
+    "motherDescription": "Operator platform entry.",
+    "maintenanceTitle": "Shop unavailable",
+    "maintenanceDescription": "The shop is temporarily disabled."
+  },
+  "seo": {
+    "homeTitle": "{siteName}",
+    "homeDescription": "Browse published programs from {siteName}.",
+    "toursTitle": "{siteName} — Tours",
+    "toursDescription": "Published tour catalog for {siteName}."
   },
   "nav": {
     "tours": "Tours",
-    "defaultSiteName": "Tours"
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "memberArea": "My registrations",
+    "myTrips": "My trips",
+    "signIn": "Sign in",
+    "account": "Account",
+    "primary": "Primary navigation",
+    "defaultSiteName": "Tours",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "skipToContent": "Skip to main content"
   },
   "list": {
     "title": "Tours",
+    "lead": "Browse published programs — filter by type, dates, and difficulty.",
     "empty": "No published tours yet.",
+    "emptyFiltered": "No tours match your filters. Try clearing filters or load more.",
+    "viewTour": "View tour",
     "loadMore": "Load more",
+    "resultsCount": "{count, number} programs",
+    "resultsCountPage": "{count, number} programs on this page",
+    "resultsCountFiltered": "{count, number} matching on this page",
+    "paginationFirstPage": "Back to first page",
+    "filterScopeNotice": "Filters apply to loaded programs only. Load more to search further pages.",
+    "loadMoreSearch": "Load more to continue search",
     "cityLabel": "City",
     "cityPlaceholder": "Filter by city",
+    "cityActive": "City: {city}",
     "applyFilter": "Apply",
-    "clearFilter": "Clear"
+    "clearFilter": "Clear",
+    "searchActive": "Search results for “{query}”",
+    "categoryActive": "Category: {category}",
+    "filters": {
+      "searchLabel": "Search",
+      "searchPlaceholder": "Tour name or keyword…",
+      "panelTitle": "Filter programs",
+      "activeLabel": "Active filters",
+      "reset": "Reset",
+      "availabilityLabel": "Availability",
+      "sortLabel": "Sort",
+      "sort": {
+        "newest": "Newest",
+        "departureAsc": "Departure (soonest)",
+        "departureDesc": "Departure (latest)",
+        "priceAsc": "Price (low to high)",
+        "priceDesc": "Price (high to low)",
+        "difficultyAsc": "Difficulty (easiest first)"
+      },
+      "difficultyLabel": "Difficulty level",
+      "difficultyOption": "{level, number} of {max, number}",
+      "fitnessLabel": "Required fitness",
+      "availabilityOpen": "Open spots only",
+      "categoryLabel": "Program type",
+      "categoryGroups": {
+        "mountain": "Mountaineering",
+        "nature": "Nature tours"
+      },
+      "allCategories": "All",
+      "all": "All",
+      "apply": "Apply filters",
+      "clearAll": "Clear all filters",
+      "fitnessLevels": {
+        "low": "Low fitness",
+        "medium": "Medium fitness",
+        "high": "High fitness"
+      }
+    },
+    "card": {
+      "soldOut": "Sold out",
+      "summary": {
+        "singleDay": "Single day",
+        "multiDay": "{days, number} days",
+        "difficulty": "Difficulty {level, number} of {max, number}",
+        "capacity": "Max {count, number} guests",
+        "openSpots": "{count, number} spots left"
+      }
+    }
   },
   "detail": {
     "untitled": "Untitled tour",
@@ -25,22 +103,379 @@
     "register": "Register",
     "capacity": "Capacity: {count}",
     "spotsRemaining": "{count} spots remaining",
-    "difficulty": "Difficulty: {level}",
-    "fitness": "Fitness: {level}",
+    "difficulty": "Difficulty: {level, number} of {max, number}",
+    "fitness": "Required fitness: {level}",
     "itineraryHeading": "Day-by-day program",
     "itineraryDay": "Day {day, number}",
     "itinerarySegments": "Program sections",
+    "policiesHeading": "Policies & terms",
+    "cancellationDeadline": "Cancellation deadline: {hours} hours before departure",
+    "cancellationPenalty": "Cancellation penalty: {percent}%",
     "priceOnRequest": "Price on request",
-    "datesTba": "Dates TBA"
+    "datesTba": "Dates TBA",
+    "soldOut": "Fully booked",
+    "difficultyShort": "{level, number} of {max, number}",
+    "facts": {
+      "price": "Price",
+      "capacity": "Capacity",
+      "dates": "Dates",
+      "difficulty": "Difficulty",
+      "fitness": "Fitness",
+      "category": "Category"
+    },
+    "jumpNav": {
+      "label": "Jump to section",
+      "readiness": "Readiness",
+      "itinerary": "Itinerary",
+      "logistics": "Logistics",
+      "gear": "Gear",
+      "gallery": "Gallery",
+      "policies": "Policies",
+      "registerPreview": "Before you register",
+      "faq": "FAQ",
+      "register": "Register"
+    },
+    "readiness": {
+      "heading": "Physical readiness",
+      "hikingHours": "Hiking hours",
+      "hikingGoHours": "Outbound hours",
+      "hikingReturnHours": "Return hours",
+      "peakHeight": "Peak height",
+      "trailDistance": "Trail distance",
+      "elevationGain": "Elevation gain",
+      "minimumAge": "Minimum age",
+      "maximumAge": "Maximum age",
+      "hoursValue": "{hours} h",
+      "metersValue": "{meters} m",
+      "kilometersValue": "{km} km",
+      "ageValue": "{years} years"
+    },
+    "logistics": {
+      "heading": "Time & place",
+      "gathering": "Meeting point",
+      "map": "Map",
+      "openMap": "View on map",
+      "returnTime": "Approx. return time",
+      "transport": "Transport",
+      "transportCost": "Transport cost",
+      "dongAmount": "Fuel share",
+      "personalCar": "Personal car",
+      "personalCarAllowed": "Allowed"
+    },
+    "transport": {
+      "modes": {
+        "organizerVehicle": "Organizer vehicle",
+        "bus": "Bus",
+        "minibus": "Minibus",
+        "train": "Train",
+        "sharedCars": "Shared cars",
+        "none": "No transport"
+      }
+    },
+    "gear": {
+      "heading": "What to bring",
+      "required": "Required",
+      "optional": "Optional"
+    },
+    "services": {
+      "heading": "Services",
+      "included": "Included",
+      "excluded": "Not included",
+      "insuranceIncluded": "Tour insurance included"
+    },
+    "gallery": {
+      "heading": "Photo gallery",
+      "photoAlt": "{title} — photo {index, number}",
+      "morePhotos": "+{count, number} more photos",
+      "morePhotosOpen": "View {count, number} more photos in gallery",
+      "openPhoto": "Enlarge photo {index, number}",
+      "lightboxClose": "Close gallery",
+      "lightboxPrev": "Previous photo",
+      "lightboxNext": "Next photo",
+      "lightboxCounter": "{current} of {total}"
+    },
+    "registerPreview": {
+      "heading": "Before you register",
+      "lead": "The member portal may ask for the following when you sign up:",
+      "nationalId": "National ID number",
+      "fatherName": "Father's name",
+      "birthDate": "Date of birth",
+      "minimumAge": "Minimum age: {years, number} years",
+      "maximumAge": "Maximum age: {years, number} years",
+      "transportIntake": "Transport preference or vehicle details",
+      "payment": "Payment method: {mode}",
+      "paymentModes": {
+        "offlineReceipt": "Offline receipt / bank transfer",
+        "gateway": "Online payment"
+      }
+    },
+    "faq": {
+      "heading": "Frequently asked questions",
+      "fitnessPrerequisiteQuestion": "Fitness requirements for this tour",
+      "cancellationQuestion": "Cancellation policy for this tour",
+      "q1": {
+        "question": "How do I register for this tour?",
+        "answer": "Tap Register on this page. You complete registration through the member portal with the details listed above."
+      },
+      "q2": {
+        "question": "What happens if the weather is bad?",
+        "answer": "Programs may be adjusted or postponed for safety. The club communicates changes before departure when possible."
+      },
+      "q3": {
+        "question": "I'm worried about my fitness level — can I still join?",
+        "answer": "Check the physical readiness section and difficulty level on this page. Contact the club if you are unsure before registering."
+      },
+      "q4": {
+        "question": "What equipment do I need?",
+        "answer": "Each tour lists required gear on this page. Sturdy footwear, layered clothing, and water are common minimums."
+      },
+      "q5": {
+        "question": "What is the cancellation policy?",
+        "answer": "Cancellation deadlines and any penalty are published in the policies section of this tour."
+      }
+    }
   },
   "home": {
-    "title": "Marketing",
-    "browseTours": "Browse tours"
+    "title": "Mountain tours",
+    "lead": "Browse published programs and register online.",
+    "browseTours": "Browse tours",
+    "full": {
+      "hero": {
+        "eyebrow": "Mountain & nature programs",
+        "lead": "Published trips with qualified guides, fixed dates, and online registration.",
+        "ctaPrimary": "Browse tours",
+        "ctaSecondary": "Why {siteName}?",
+        "scrollHint": "Scroll to explore",
+        "spotlight": {
+          "rotateLabel": "360° rotation",
+          "rotatePrev": "Rotate left",
+          "rotateNext": "Rotate right",
+          "exploreTours": "Tours in this region",
+          "stats": {
+            "elevation": "Elevation",
+            "region": "Region"
+          },
+          "alborz": {
+            "tagline": "Classic peaks",
+            "elevationValue": "4,850 m (Alam-Kuh)",
+            "regionValue": "Alborz range"
+          },
+          "damavand": {
+            "tagline": "Roof of Iran",
+            "elevationValue": "5,610 m",
+            "regionValue": "Alborz range"
+          },
+          "zardkuh": {
+            "tagline": "Zagros summits",
+            "elevationValue": "4,550 m (Zard-Kuh)",
+            "regionValue": "Chaharmahal & Bakhtiari"
+          }
+        }
+      },
+      "latest": {
+        "title": "Latest published programs",
+        "lead": "A quick browse of everything new — scan and compare.",
+        "viewAll": "View all tours"
+      },
+      "featured": {
+        "title": "Recommended by {siteName}",
+        "lead": "One flagship program to start with — from our published catalog.",
+        "flagshipLabel": "Flagship program",
+        "picksLabel": "More picks",
+        "viewAll": "View all tours",
+        "viewProgram": "View program"
+      },
+      "categories": {
+        "title": "Browse by category",
+        "lead": "Find programs by type.",
+        "labels": {
+          "mountain_day": "Mountain — single day",
+          "mountain_multi": "Mountain — multi day",
+          "nature_day": "Nature — single day",
+          "nature_multi": "Nature — multi day",
+          "desert_day": "Desert — single day",
+          "desert_multi": "Desert — multi day",
+          "event_reading": "Event — reading (single day)",
+          "event_reading_multi": "Event — reading (multi day)",
+          "event_cinema": "Event — cinema (single day)",
+          "event_cinema_multi": "Event — cinema (multi day)"
+        }
+      },
+      "destinations": {
+        "title": "Popular destinations",
+        "lead": "Regions we run programs in often.",
+        "explore": "Browse tours",
+        "alborz": {
+          "name": "Alborz",
+          "description": "Popular routes north of Tehran — from day hikes to classic summit programs."
+        },
+        "damavand": {
+          "name": "Damavand",
+          "description": "Seasonal ascent programs for climbers ready for high altitude."
+        },
+        "zardkuh": {
+          "name": "Zardkuh",
+          "description": "Pristine Zagros summits — varied trails and alpine scenery."
+        }
+      },
+      "search": {
+        "label": "Search tours",
+        "placeholder": "Tour name or destination…",
+        "submit": "Search"
+      },
+      "gallery": {
+        "title": "Trip gallery",
+        "lead": "Real moments from the mountains — inspiration only, not tour links.",
+        "browseAll": "All tours",
+        "scrollPrev": "Previous photo",
+        "scrollNext": "Next photo",
+        "openPhoto": "Open photo {index}",
+        "photos": {
+          "01": "Summit in morning mist",
+          "02": "Hiking a rocky trail",
+          "03": "Camp at sunset"
+        }
+      },
+      "equipment": {
+        "title": "Gear checklist",
+        "lead": "Common minimums — each tour page lists full requirements.",
+        "boots": {
+          "label": "Sturdy trail footwear"
+        },
+        "layers": {
+          "label": "Layered clothing and wind layer"
+        },
+        "pack": {
+          "label": "Day pack and water"
+        },
+        "headlamp": {
+          "label": "Headlamp when the program requires it"
+        }
+      },
+      "blog": {
+        "title": "Blog",
+        "lead": "Club stories and updates",
+        "stub": "Coming soon — the blog section will open here."
+      },
+      "trust": {
+        "tagline": "Hiking club · planned and safe trips"
+      },
+      "why": {
+        "title": "Why {siteName}?",
+        "lead": "Programs focus on qualified guides, safety, and a supportive group experience.",
+        "guide": {
+          "title": "Experienced guides",
+          "description": "Every trip runs with a lead who knows the route and conditions."
+        },
+        "safety": {
+          "title": "Safety first",
+          "description": "Safety rules and briefings are shared before departure."
+        },
+        "equipment": {
+          "title": "Clear gear lists",
+          "description": "Each tour publishes equipment so you can prepare with confidence."
+        },
+        "community": {
+          "title": "Hiking community",
+          "description": "Travel with like-minded people — no unnecessary pressure or hype."
+        }
+      },
+      "journey": {
+        "title": "Your tour journey",
+        "lead": "From choosing a program to returning home — every step is clear.",
+        "register": {
+          "title": "Register",
+          "description": "Pick a tour and complete registration through the member portal."
+        },
+        "prepare": {
+          "title": "Prepare",
+          "description": "Review gear and trip details on the tour page."
+        },
+        "summit": {
+          "title": "On the trail",
+          "description": "Follow the day plan with your guide and group."
+        },
+        "return": {
+          "title": "Return",
+          "description": "After the program ends, feedback and records stay in the portal."
+        }
+      },
+      "testimonials": {
+        "title": "Participant stories",
+        "t1": {
+          "quote": "Planning was transparent — we knew exactly what to expect before we left.",
+          "name": "Sara M.",
+          "role": "Tour participant"
+        },
+        "t2": {
+          "quote": "Our guide knew the route well and the group atmosphere was professional and friendly.",
+          "name": "Amir K.",
+          "role": "Tour participant"
+        },
+        "t3": {
+          "quote": "The gear list was clear upfront — my first organized hike felt calm and prepared.",
+          "name": "Niloufar R.",
+          "role": "Tour participant"
+        }
+      },
+      "finalCta": {
+        "title": "Ready for your next trip?",
+        "lead": "Take the next step — choose a program that fits you.",
+        "cta": "Browse tours"
+      },
+      "faq": {
+        "title": "Frequently asked questions",
+        "q1": {
+          "question": "How do I register for a tour?",
+          "answer": "Choose a program from the tours page and tap Register. You complete registration through the member portal."
+        },
+        "q2": {
+          "question": "What equipment do I need?",
+          "answer": "Each tour page lists required gear. Sturdy footwear, layered clothing, and water are common minimums."
+        },
+        "q3": {
+          "question": "Do I need prior experience?",
+          "answer": "Every tour publishes fitness and difficulty levels. Read the tour details before registering."
+        },
+        "q4": {
+          "question": "What is the cancellation policy?",
+          "answer": "Cancellation deadlines and any penalty are published in each tour's policies section."
+        },
+        "q5": {
+          "question": "How is safety handled?",
+          "answer": "Programs run with qualified guides and a defined itinerary. Safety instructions are shared before departure."
+        },
+        "q6": {
+          "question": "How can I contact the club?",
+          "answer": "Use the member portal or the contact details in the site footer."
+        }
+      },
+      "footer": {
+        "brandLead": "Mountain and nature programs with clear planning.",
+        "toursTitle": "Tours",
+        "toursBrowse": "Browse all tours",
+        "resourcesTitle": "Resources",
+        "resourcesFaq": "FAQ",
+        "resourcesMember": "My registrations",
+        "contactTitle": "Contact",
+        "contactLead": "Coordinate through the member portal.",
+        "newsletterTitle": "Newsletter",
+        "newsletterStub": "Coming soon — newsletter signup will open here.",
+        "copyright": "© {year} {siteName}"
+      }
+    },
+    "minimal": {
+      "title": "{siteName}",
+      "lead": "View published programs",
+      "cta": "Browse tours"
+    }
   },
   "notFound": {
     "title": "Tour not found",
     "body": "This tour is not published or does not exist.",
-    "back": "Back to tours"
+    "back": "Back to tours",
+    "metadataTitle": "Tour not found",
+    "metadataDescription": "This tour is not published or does not exist."
   },
   "locale": {
     "fa": "فارسی",

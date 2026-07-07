@@ -40,30 +40,30 @@ trunk_baseline:
 
 ### 1.2 Runtime (trunk — 2026-06-08)
 
-| Layer                             | Status        | Notes                                            |
-| --------------------------------- | ------------- | ------------------------------------------------ |
-| `GET /users` + `POST /users/invite` | ✅ R1       | in-memory identity repo · `users.routes.ts`      |
-| `GET /users/invites` + revoke/resend | ✅ R2      | `users.service.ts` · tenant-scoped queue         |
-| `PATCH /users/{id}/role` + `DELETE /users/{id}` | ✅ R3      | rank policy · sessionVersion bump · not self/owner |
-| `PATCH /users/{id}/rewards`                     | ✅ R4      | membership rewards metadata · admin/owner gate     |
-| `POST /workspaces/{tenantId}/ownership-transfer` | ✅ R4   | owner-only · in-memory role swap + sessionVersion bump |
-| `POST /auth/invite/{token}/accept` | ✅ R5      | authenticated accept · phone match · tenant scope  |
-| Pending-invite OTP login           | ✅ R6      | `verify-otp` issues session when invite matches phone (SMK-P9-03) |
-| `apps/web/app/auth/invite/[token]` | ✅ R5      | login redirect · post-login accept chain           |
-| `apps/web/app/(app)/users/`       | ✅ R1+R4      | directory · pending · row actions · rewards modal   |
-| `UserTenant.role` 3-tier enum     | ❌ pending 9.1 | `005_identity_production_delta.sql` not on trunk |
-| `isAdminOrOwner` grant            | ✅ SDK        | wired in users handlers R1                       |
-| `users-directory.spec.ts`         | ✅ R1+R2      | gate · tab query · pending landmarks             |
-| `operator-smoke.spec.ts` SMK-P9-03 | ✅ R6 E2E    | Playwright invite → accept → directory member row |
+| Layer                                            | Status         | Notes                                                             |
+| ------------------------------------------------ | -------------- | ----------------------------------------------------------------- |
+| `GET /users` + `POST /users/invite`              | ✅ R1          | in-memory identity repo · `users.routes.ts`                       |
+| `GET /users/invites` + revoke/resend             | ✅ R2          | `users.service.ts` · tenant-scoped queue                          |
+| `PATCH /users/{id}/role` + `DELETE /users/{id}`  | ✅ R3          | rank policy · sessionVersion bump · not self/owner                |
+| `PATCH /users/{id}/rewards`                      | ✅ R4          | membership rewards metadata · admin/owner gate                    |
+| `POST /workspaces/{tenantId}/ownership-transfer` | ✅ R4          | owner-only · in-memory role swap + sessionVersion bump            |
+| `POST /auth/invite/{token}/accept`               | ✅ R5          | authenticated accept · phone match · tenant scope                 |
+| Pending-invite OTP login                         | ✅ R6          | `verify-otp` issues session when invite matches phone (SMK-P9-03) |
+| `apps/web/app/auth/invite/[token]`               | ✅ R5          | login redirect · post-login accept chain                          |
+| `apps/web/app/(app)/users/`                      | ✅ R1+R4       | directory · pending · row actions · rewards modal                 |
+| `UserTenant.role` 3-tier enum                    | ❌ pending 9.1 | `005_identity_production_delta.sql` not on trunk                  |
+| `isAdminOrOwner` grant                           | ✅ SDK         | wired in users handlers R1                                        |
+| `users-directory.spec.ts`                        | ✅ R1+R2       | gate · tab query · pending landmarks                              |
+| `operator-smoke.spec.ts` SMK-P9-03               | ✅ R6 E2E      | Playwright invite → accept → directory member row                 |
 
 ### 1.3 Legacy parity inventory
 
 | Feature            | Legacy                                | 9.4 target                                               |
 | ------------------ | ------------------------------------- | -------------------------------------------------------- |
 | Route              | `(app)/users`                         | same                                                     |
-| Directory gate     | `isLeaderRole` (= owner **or** admin) | **`isOwner`** — DEC-P9-018 |
+| Directory gate     | `isLeaderRole` (= owner **or** admin) | **`isOwner`** — DEC-P9-018                               |
 | Invite roles       | admin · member · viewer               | **admin · member · viewer** (DEC-P9-019)                 |
-| Role filter        | 6 values incl. leader/viewer          | **all · owner · admin · member · viewer**                  |
+| Role filter        | 6 values incl. leader/viewer          | **all · owner · admin · member · viewer**                |
 | Tabs               | Active · Pending invites              | same                                                     |
 | Search debounce    | 350ms                                 | same                                                     |
 | Sort               | name · email asc/desc                 | same                                                     |
@@ -78,16 +78,16 @@ trunk_baseline:
 
 ## 2. Design north star
 
-| Principle                        | Implementation                                                                        |
-| -------------------------------- | ------------------------------------------------------------------------------------- |
+| Principle                        | Implementation                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
 | **4 team roles**                 | Persisted `UserTenant.role` ∈ `{ owner, admin, member, viewer }` — DEC-P9-019 (amends DEC-P9-015) |
-| **No finance/tour sub-roles**    | Tour mutate + finance = **admin/owner** + tenant modules — not a 4th role             |
-| **Mobile-first**                 | Card list `<768px`; table `≥768px`; row actions → bottom sheet on mobile (DEC-P9-013) |
-| **URL as SoT**                   | `DirectoryListUiState` ↔ `?search=&role=&sort=`                                       |
-| **Permission preview on invite** | Role select shows 2-line capability summary (fa/en)                                   |
-| **Fail-closed API**              | Member GET `/users` → **403** · never empty 200 with hidden rows                      |
-| **Operator stack**               | Tailwind v4 + shadcn in `(app)/users/**` only (DEC-P9-013 R1)                         |
-| **Legacy hydrate**               | DB `leader` → `admin` · `viewer` persisted as `viewer` (DEC-P9-019)                        |
+| **No finance/tour sub-roles**    | Tour mutate + finance = **admin/owner** + tenant modules — not a 4th role                         |
+| **Mobile-first**                 | Card list `<768px`; table `≥768px`; row actions → bottom sheet on mobile (DEC-P9-013)             |
+| **URL as SoT**                   | `DirectoryListUiState` ↔ `?search=&role=&sort=`                                                   |
+| **Permission preview on invite** | Role select shows 2-line capability summary (fa/en)                                               |
+| **Fail-closed API**              | Member GET `/users` → **403** · never empty 200 with hidden rows                                  |
+| **Operator stack**               | Tailwind v4 + shadcn in `(app)/users/**` only (DEC-P9-013 R1)                                     |
+| **Legacy hydrate**               | DB `leader` → `admin` · `viewer` persisted as `viewer` (DEC-P9-019)                               |
 
 ---
 
@@ -144,7 +144,7 @@ No per-user capability toggles in 9.4 MVP — module gating is **tenant-level** 
 | Target is owner          | **403** — use ownership transfer                |
 | Actor assigns owner      | **403** `RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN`  |
 | Actor rank ≤ target rank | **403** `RBAC_INSUFFICIENT_ROLE_PRIVILEGE`      |
-| Invite assignable roles  | `admin` \| `member` \| `viewer` (DEC-P9-019)      |
+| Invite assignable roles  | `admin` \| `member` \| `viewer` (DEC-P9-019)    |
 | Session invalidation     | Bump `UserTenant.sessionVersion` on role change |
 
 **UI selectable roles (row menu):**
@@ -195,7 +195,7 @@ Authority: [`users-api-dispatch-addendum.md`](users-api-dispatch-addendum.md) v2
 | Param    | Type   | Notes                                                 |
 | -------- | ------ | ----------------------------------------------------- |
 | `search` | string | Name · phone · email substring                        |
-| `role`   | enum   | `all` \| `owner` \| `admin` \| `member` \| `viewer` |
+| `role`   | enum   | `all` \| `owner` \| `admin` \| `member` \| `viewer`   |
 | `sort`   | token  | `name_asc` · `name_desc` · `email_asc` · `email_desc` |
 | `cursor` | string | Opaque offset token — infinite scroll (R4)            |
 | `limit`  | int    | Default **50** (legacy)                               |
@@ -226,10 +226,10 @@ type InvitableWorkspaceRole = "admin" | "member" | "viewer";
 
 ### 5.4 Suspend / reactivate (R1)
 
-| Route | Effect |
-| ----- | ------ |
-| `PATCH /users/{userId}/suspend` | `status → SUSPENDED` · `sessionVersion++` · row stays in directory |
-| `PATCH /users/{userId}/reactivate` | `status → ACTIVE` · `sessionVersion++` |
+| Route                              | Effect                                                             |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| `PATCH /users/{userId}/suspend`    | `status → SUSPENDED` · `sessionVersion++` · row stays in directory |
+| `PATCH /users/{userId}/reactivate` | `status → ACTIVE` · `sessionVersion++`                             |
 
 **UX (owner actor):**
 
@@ -261,12 +261,12 @@ When `POST /auth/verify-otp` finds a **user row** but **no ACTIVE membership**, 
 
 Owner **Resend** on the pending tab calls `POST /users/invites/{inviteId}/resend`:
 
-| Step | Behavior |
-| ---- | -------- |
-| 1 | API validates owner + tenant-scoped invite row |
-| 2 | `createMobileOtpChallenge(phone)` — SMS/dev log delivery identical to login OTP |
-| 3 | Rate limit per invitee mobile (10/min) — UI maps **429** `OTP_RATE_LIMITED` |
-| 4 | Response includes `otpSent: true`; no `challengeId` in owner response |
+| Step | Behavior                                                                        |
+| ---- | ------------------------------------------------------------------------------- |
+| 1    | API validates owner + tenant-scoped invite row                                  |
+| 2    | `createMobileOtpChallenge(phone)` — SMS/dev log delivery identical to login OTP |
+| 3    | Rate limit per invitee mobile (10/min) — UI maps **429** `OTP_RATE_LIMITED`     |
+| 4    | Response includes `otpSent: true`; no `challengeId` in owner response           |
 
 **Invitee flow:** mobile login → authorized (pending invite exists) → request OTP → verify → `pendingInvite: true` session → accept invite link or dashboard accept when `?invite=` present.
 
@@ -276,10 +276,10 @@ Owner **Resend** on the pending tab calls `POST /users/invites/{inviteId}/resend
 
 Owner opens **Details** on an active roster row (desktop table + mobile card menu):
 
-| Tab | Data source | UX |
-| --- | ----------- | -- |
-| **Activity history** | `GET /users/{id}/role-history` | Timeline: `eventKind` (`role_change` · `status_change` · `rewards_change` · `member_removed`) · actor mobile · timestamp |
-| **Trips** | `GET /users/{id}/booking-summary` | Count chips + recent trip list (tour title · status · departure) |
+| Tab                  | Data source                       | UX                                                                                                                       |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Activity history** | `GET /users/{id}/role-history`    | Timeline: `eventKind` (`role_change` · `status_change` · `rewards_change` · `member_removed`) · actor mobile · timestamp |
+| **Trips**            | `GET /users/{id}/booking-summary` | Count chips + recent trip list (tour title · status · departure)                                                         |
 
 Sheet component: `users-member-detail-sheet.tsx` · landmarks `operator-users-member-detail` · `operator-users-member-history` · `operator-users-member-trips`.
 
@@ -289,12 +289,12 @@ Empty states: no audit rows yet · no bookings submitted by member.
 
 Desktop table supports checkbox selection on **manageable** rows (not self · not owner). Toolbar appears when ≥1 selected:
 
-| Action | API | Notes |
-| ------ | --- | ----- |
+| Action      | API                                          | Notes                                                |
+| ----------- | -------------------------------------------- | ---------------------------------------------------- |
 | Change role | `PATCH /users/bulk/role` `{ userIds, role }` | Same rank policy as single PATCH · audit per success |
-| Suspend | `PATCH /users/bulk/suspend` `{ userIds }` | Skips already-suspended with failure row |
-| Reactivate | `PATCH /users/bulk/reactivate` `{ userIds }` | Skips non-suspended with failure row |
-| Remove | `POST /users/bulk/remove` `{ userIds }` | Same removal policy as `DELETE /users/{id}` |
+| Suspend     | `PATCH /users/bulk/suspend` `{ userIds }`    | Skips already-suspended with failure row             |
+| Reactivate  | `PATCH /users/bulk/reactivate` `{ userIds }` | Skips non-suspended with failure row                 |
+| Remove      | `POST /users/bulk/remove` `{ userIds }`      | Same removal policy as `DELETE /users/{id}`          |
 
 **Response (all bulk routes):** `{ items: UsersDirectoryRow[], failures: { userId, code }[] }` — partial success allowed. Empty `userIds` → **400** `BULK_USER_IDS_REQUIRED`. Max **50** IDs per request → **400** `BULK_USER_IDS_LIMIT_EXCEEDED`.
 
@@ -356,18 +356,20 @@ apps/web/app/(app)/users/
 └─────────────────────────────────────┘
 ```
 
-**Desktop (≥768px):** responsive `<table>` — Name · Phone · Role · Status · Badges · Last active · Actions (inline).
+**Desktop (≥768px):** responsive `<table>` — Name (avatar thumbnail + `displayName`) · Phone · Gender · Role · Status · Badges · Last active · Actions (inline).
 
 **Mobile (`<768px`):** card list + **bottom sheet** for row actions (DEC-P9-013 R4); infinite scroll sentinel at list foot.
 
+**Row avatar (S9-R7 parity):** each roster row renders `avatarUrl` from `GET /users` (signed MinIO read when `membership_metadata.avatar.storageKey` exists). When `avatarUrl` is `null`, the UI shows a **User** icon placeholder (`OperatorProfileAvatar` · `fallbackMode="icon"`). Component: `users-directory-avatar.tsx` · landmark `operator-users-row-avatar`.
+
 ### 6.4 Invite modal
 
-| Field     | Control      | Notes                                 |
-| --------- | ------------ | ------------------------------------- |
-| Phone     | `Input` tel  | Required · E.164 normalize            |
-| Name note | `Input` text | Optional — localStorage parity legacy |
+| Field     | Control                 | Notes                                            |
+| --------- | ----------------------- | ------------------------------------------------ |
+| Phone     | `Input` tel             | Required · E.164 normalize                       |
+| Name note | `Input` text            | Optional — localStorage parity legacy            |
 | Role      | `Select` / button group | **admin** · **member** · **viewer** (DEC-P9-019) |
-| Preview   | static text (2 lines)     | Changes with role selection (R4)                 |
+| Preview   | static text (2 lines)   | Changes with role selection (R4)                 |
 
 **Role preview copy (fa example):**
 
@@ -393,13 +395,13 @@ Badge count on tab when `pendingCount > 0`.
 
 ### 6.7 Rewards modal (R2 · legacy parity)
 
-| Field | Control | API field |
-| ----- | ------- | --------- |
-| Permanent discount | numeric input 0–100 | `permanentDiscountPercentage` |
-| Loyalty tier | radio **none** · **VIP** · **GOLD** | `badges`: `VIP_MEMBER` \| `GOLD_CLUB` (mutually exclusive) |
-| Selectable tour leader | checkbox | `isSelectableLeader` |
-| Leader buddy badge | checkbox | `badges` includes `LEADER_BUDDY` |
-| Labels | tag editor (add/remove chips, max 32 × 64 chars) | `labels[]` |
+| Field                  | Control                                          | API field                                                  |
+| ---------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
+| Permanent discount     | numeric input 0–100                              | `permanentDiscountPercentage`                              |
+| Loyalty tier           | radio **none** · **VIP** · **GOLD**              | `badges`: `VIP_MEMBER` \| `GOLD_CLUB` (mutually exclusive) |
+| Selectable tour leader | checkbox                                         | `isSelectableLeader`                                       |
+| Leader buddy badge     | checkbox                                         | `badges` includes `LEADER_BUDDY`                           |
+| Labels                 | tag editor (add/remove chips, max 32 × 64 chars) | `labels[]`                                                 |
 
 **Row micro-badges (desktop + mobile cards):** discount `%` chip · VIP · GOLD · label chips · «راهنما» when selectable leader · Leader buddy badge · suspended status column.
 
@@ -409,13 +411,13 @@ Badge count on tab when `pendingCount > 0`.
 
 Owner-only section at foot of `(app)/users` active tab.
 
-| Step | UX |
-| ---- | -- |
-| 1 | Fetch roster candidates (`GET /users?limit=100`) — eligible: **ACTIVE** `admin` \| `member`, not self |
-| 2 | Select new owner (native `<select>` or button group) |
-| 3 | Confirm dialog (fa/en) — irreversible; previous owner becomes **admin** |
-| 4 | BFF `POST /api/tenants/{tenantId}/ownership-transfer` → API `POST /workspaces/{tenantId}/ownership-transfer` `{ newOwnerUserId }` |
-| 5 | Success → `POST /api/auth/logout` → redirect `/auth/login?access=ownership-transferred` |
+| Step | UX                                                                                                                                |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Fetch roster candidates (`GET /users?limit=100`) — eligible: **ACTIVE** `admin` \| `member`, not self                             |
+| 2    | Select new owner (native `<select>` or button group)                                                                              |
+| 3    | Confirm dialog (fa/en) — irreversible; previous owner becomes **admin**                                                           |
+| 4    | BFF `POST /api/tenants/{tenantId}/ownership-transfer` → API `POST /workspaces/{tenantId}/ownership-transfer` `{ newOwnerUserId }` |
+| 5    | Success → `POST /api/auth/logout` → redirect `/auth/login?access=ownership-transferred`                                           |
 
 **Landmarks:** `operator-users-ownership-transfer` · `operator-users-ownership-select` · `operator-users-ownership-submit`
 
@@ -423,7 +425,7 @@ Owner-only section at foot of `(app)/users` active tab.
 
 ### 6.9 CSV export
 
-Client-side export of **currently loaded + filtered** roster (legacy parity). Filename: `users-{tenantSlug}-{iso-date}.csv`. Columns: name, phone, email, role, status.
+Client-side export of **currently loaded + filtered** roster (legacy parity). Filename: `users-{tenantSlug}-{iso-date}.csv`. Columns: name, phone, email, gender, role, status.
 
 ---
 
@@ -451,12 +453,12 @@ Client-side export of **currently loaded + filtered** roster (legacy parity). Fi
 
 ## 7.1 Implementation rounds (R1 focus)
 
-| Round       | Deliverables                                      | Proof              |
-| ----------- | ------------------------------------------------- | ------------------ |
-| **S9.4-R0** | Doc pack · schema · traceability                  | `phase-9:guard`    |
+| Round       | Deliverables                                       | Proof                     |
+| ----------- | -------------------------------------------------- | ------------------------- |
+| **S9.4-R0** | Doc pack · schema · traceability                   | `phase-9:guard`           |
 | **S9.4-R1** | `GET /users` · `POST /users/invite` · directory UI | CP-9.4-01..03 · CP-9.4-09 |
-| **S9.4-R2** | Pending invites tab · revoke/resend                 | CP-9.4-04          |
-| **S9.4-R3** | Role PATCH · remove · rewards · CSV               | CP-9.4-06..08      |
+| **S9.4-R2** | Pending invites tab · revoke/resend                | CP-9.4-04                 |
+| **S9.4-R3** | Role PATCH · remove · rewards · CSV                | CP-9.4-06..08             |
 
 ---
 

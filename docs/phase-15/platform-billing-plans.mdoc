@@ -1,0 +1,37 @@
+---
+title: Phase 15 / P2-C — Platform billing & plans
+phase: 15
+format: markdoc
+---
+
+# Platform SaaS billing (P2-C)
+
+Super Admin billing for club subscriptions — separate from Denali club `/finance/*`.
+
+## Data model
+
+| Table | Purpose |
+|-------|---------|
+| `platform_plans` | Plan catalog (`standard`, `enterprise`) |
+| `tenant_subscriptions` | One row per tenant — plan, status, period end |
+
+Provision hook: `createTenantSubscriptionOnProvision` after tenant create (plan `standard`, 30-day period).
+
+## API
+
+| Method | Path | RBAC |
+|--------|------|------|
+| GET | `/platform/v1/plans` | ops auth (all roles) |
+| PATCH | `/platform/v1/tenants/{id}/subscription` | write (owner/admin) |
+| POST | `/platform/v1/tenants/{id}/subscription/mark-paid` | owner only |
+| POST | `/platform/v1/billing/run-past-due-check` | owner only |
+
+Feature gate: `assertTenantPlatformFeature(tenantId, "custom_domain")` on domains POST — standard plan → **403** `PLATFORM_FEATURE_FORBIDDEN`.
+
+## UI
+
+Super Admin club detail → **Billing** tab (`data-tab="billing"`). Owner sees plan select + mark-paid; support/admin read-only.
+
+Seed: `seedPlatformPlans()` via `db:seed`.
+
+See also: [`platform-impersonation.mdoc`](platform-impersonation.mdoc) · [`platform-control-center-api.mdoc`](platform-control-center-api.mdoc)

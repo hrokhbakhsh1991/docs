@@ -7,9 +7,8 @@ import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
-import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
 import { PageHeader } from "@/admin/patterns/page-header";
-import { resolveDenaliTourKindLabel } from "@/i18n/denali-wizard-labels";
+import { resolveDenaliTourKindLabel, resolveDenaliTourCategoryGroupLabel } from "@/i18n/denali-wizard-labels";
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -25,10 +24,10 @@ import {
 } from "@/features/tours/query-model";
 import {
   TOUR_CATEGORY_FILTER_ALL,
-  TOUR_CATEGORY_FILTER_OPTIONS,
+  tourCategoryFilterGroupsForPlugin,
   type TourCategoryFilter,
 } from "@/features/tours/tour-list-category-logic";
-import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
+import { catalogListSupportsServerFilter, resolveCatalogListFeatures } from "@app-tour/workspace-sdk";
 import {
   queryStatusToUiStatus,
   TOUR_STATUS_UI_OPTIONS,
@@ -37,8 +36,10 @@ import {
   uiStatusToQueryStatus,
   type TourStatusUiFilter,
 } from "@/features/tours/tours-list-logic";
+import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
 import { TourCard } from "./tour-card";
+import { ToursListSkeleton, ToursListToolbarSkeleton } from "./tours-list-skeleton";
 
 type OperatorToursPageClientProps = {
   readonly session: OperatorSessionContext;
@@ -51,6 +52,7 @@ function canManageTours(role: OperatorSessionContext["role"]): boolean {
 
 const SORT_COLUMNS: readonly TourListQueryModel["sortBy"][] = [
   "created_at",
+  "departure_at",
   "title",
   "price",
 ] as const;
@@ -63,13 +65,22 @@ export function OperatorToursPageClient({
   const tDenali = useTranslations("denali");
   const tErrors = useTranslations("tours.errors");
   const tCommon = useTranslations("common");
-  const isDenali = session.pluginId === "denali";
+  const catalogListFeatures = useMemo(
+    () => resolveCatalogListFeatures(session.pluginId),
+    [session.pluginId]
+  );
+  const hasCategoryFilter = catalogListSupportsServerFilter(catalogListFeatures, "category");
+  const showExtendedCard = hasCategoryFilter;
+  const categoryFilterGroups = useMemo(
+    () => (hasCategoryFilter ? tourCategoryFilterGroupsForPlugin(session.pluginId) : []),
+    [hasCategoryFilter, session.pluginId]
+  );
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const query = useMemo(
-    () => parseTourListQuery(new URLSearchParams(searchParams.toString())),
-    [searchParams]
+    () => parseTourListQuery(session.pluginId, new URLSearchParams(searchParams.toString())),
+    [searchParams, session.pluginId]
   );
   const [searchInput, setSearchInput] = useState(query.search);
   const [data, setData] = useState<OperatorTourListResponse | null>(initialToursList);
@@ -77,6 +88,8 @@ export function OperatorToursPageClient({
   const [loading, setLoading] = useState(initialToursList === null);
   const [fetchNonce, setFetchNonce] = useState(0);
   const skipInitialFetchRef = useRef(initialToursList !== null);
+  const capturedCreatedNoticeRef = useRef(false);
+  const [createdNoticeTourId, setCreatedNoticeTourId] = useState<string | null>(null);
 
   const replaceQuery = useCallback(
     (next: TourListQueryModel) => {
@@ -88,6 +101,21 @@ export function OperatorToursPageClient({
   useEffect(() => {
     setSearchInput(query.search);
   }, [query.search]);
+
+  useEffect(() => {
+    const createdId = searchParams.get("created")?.trim() ?? "";
+    if (createdId.length === 0) {
+      return;
+    }
+    if (!capturedCreatedNoticeRef.current) {
+      capturedCreatedNoticeRef.current = true;
+      setCreatedNoticeTourId(createdId);
+    }
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("created");
+    const suffix = next.toString();
+    router.replace(suffix.length > 0 ? `${pathname}?${suffix}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -140,6 +168,8 @@ export function OperatorToursPageClient({
   const totalPages = data ? tourListTotalPages(data.total, data.limit) : 1;
   const hasFilters = tourListQueryHasFilters(query);
   const items = data?.items ?? [];
+  const isInitialLoad = loading && data === null;
+  const isRefetching = loading && data !== null;
   const showEmptyCatalog = !loading && !error && items.length === 0 && !hasFilters;
   const showEmptyFilter = !loading && !error && items.length === 0 && hasFilters;
 
@@ -193,15 +223,18 @@ export function OperatorToursPageClient({
         }
       />
 
-      {loading ? (
-        <div className="space-y-3">
-          <DenaliSkeleton className="h-10 w-full max-w-xl rounded-md" />
-          <div className="flex flex-wrap gap-2">
-            <DenaliSkeleton className="h-9 w-16 rounded-md" />
-            <DenaliSkeleton className="h-9 w-20 rounded-md" />
-            <DenaliSkeleton className="h-9 w-20 rounded-md" />
-          </div>
-        </div>
+      {createdNoticeTourId !== null ? (
+        <p
+          className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-foreground"
+          role="status"
+          data-testid={TOURS_LIST_TEST_IDS.createdNotice}
+        >
+          {t("createdNotice")}
+        </p>
+      ) : null}
+
+      {isInitialLoad ? (
+        <ToursListToolbarSkeleton hasCategoryFilter={hasCategoryFilter} />
       ) : (
         <div className="space-y-4">
           <div className="relative max-w-xl">
@@ -220,41 +253,62 @@ export function OperatorToursPageClient({
             data-testid={TOURS_LIST_TEST_IDS.status}
           >
             <div className="flex flex-wrap gap-2">
-              {TOUR_STATUS_UI_OPTIONS.map((option) => (
-                <Button
-                  key={option}
-                  type="button"
-                  size="sm"
-                  variant={statusUi === option ? "default" : "outline"}
-                  onClick={() => handleStatusChange(option)}
-                >
-                  {t(`status.${option}`)}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {isDenali ? (
-            <div
-              className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center"
-              data-testid={TOURS_LIST_TEST_IDS.category}
-            >
-              <span className="text-sm text-muted-foreground">{t("categoryFilterLabel")}</span>
-              <div className="flex flex-wrap gap-2">
-                {TOUR_CATEGORY_FILTER_OPTIONS.map((option) => (
+              {TOUR_STATUS_UI_OPTIONS.map((option) => {
+                const isArchived = option === "archived";
+                return (
                   <Button
                     key={option}
                     type="button"
                     size="sm"
-                    variant={query.category === option ? "default" : "outline"}
-                    onClick={() => handleCategoryChange(option)}
+                    variant={statusUi === option ? "default" : "outline"}
+                    disabled={isArchived}
+                    title={isArchived ? t("status.archivedHint") : undefined}
+                    onClick={() => {
+                      if (!isArchived) {
+                        handleStatusChange(option);
+                      }
+                    }}
                   >
-                    {option === TOUR_CATEGORY_FILTER_ALL
-                      ? t("categoryAll")
-                      : resolveDenaliTourKindLabel(tDenali, option)}
+                    {t(`status.${option}`)}
                   </Button>
-                ))}
+                );
+              })}
+            </div>
+          </div>
+
+          {hasCategoryFilter ? (
+            <div className="space-y-3" data-testid={TOURS_LIST_TEST_IDS.category}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground">{t("categoryFilterLabel")}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={query.category === TOUR_CATEGORY_FILTER_ALL ? "default" : "outline"}
+                  onClick={() => handleCategoryChange(TOUR_CATEGORY_FILTER_ALL)}
+                >
+                  {t("categoryAll")}
+                </Button>
               </div>
+              {categoryFilterGroups.map((group) => (
+                <div key={group.id} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <span className="min-w-20 text-xs font-medium text-muted-foreground">
+                    {resolveDenaliTourCategoryGroupLabel(tDenali, group.id)}
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {group.slugs.map((slug) => (
+                      <Button
+                        key={slug}
+                        type="button"
+                        size="sm"
+                        variant={query.category === slug ? "default" : "outline"}
+                        onClick={() => handleCategoryChange(slug)}
+                      >
+                        {resolveDenaliTourKindLabel(tDenali, slug)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : null}
 
@@ -280,13 +334,7 @@ export function OperatorToursPageClient({
         </div>
       )}
 
-      {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <DenaliSkeleton key={index} className="h-48 w-full rounded-xl" />
-          ))}
-        </div>
-      ) : null}
+      {isInitialLoad ? <ToursListSkeleton /> : null}
 
       {error ? (
         <div
@@ -335,14 +383,20 @@ export function OperatorToursPageClient({
         </Card>
       ) : null}
 
-      {!loading && !error && items.length > 0 ? (
+      {!isInitialLoad && !error && items.length > 0 ? (
         <ul
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3${isRefetching ? " opacity-60" : ""}`}
           data-testid={TOURS_LIST_TEST_IDS.list}
+          aria-busy={isRefetching ? true : undefined}
         >
           {items.map((tour) => (
             <li key={tour.id}>
-              <TourCard tour={tour} canManage={showCreate} />
+              <TourCard
+                pluginId={session.pluginId}
+                tour={tour}
+                canManage={showCreate}
+                showExtendedCard={showExtendedCard}
+              />
             </li>
           ))}
         </ul>

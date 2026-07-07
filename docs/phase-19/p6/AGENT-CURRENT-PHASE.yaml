@@ -1,0 +1,98 @@
+# P6 — Machine snapshot (fast-close 2026-06-23)
+# Authority: appendices/IMPLEMENTATION-TRUTH-P6.md · p6-fast-close.yaml
+
+snapshot_version: "2026-06-23-fast-close"
+pack_version: "2.3"
+navigator: ../AGENT-NAVIGATOR.md
+agent_start: AGENT-START.md
+doc_sot: ../platform-denali-first-customer.mdoc
+remaining_checklist: p6-remaining-checklist.md
+fast_close: p6-fast-close.yaml
+
+status: CLOSED_FAST
+doc_pack_status: COMPLETE
+code_status: DEV_SLICE_CLOSED
+closure_honesty: "Local p6:gate + p6:e2e-gate green · VPS staging infra + host-bind smoke · full VPS gates deferred P7"
+gate_staging: pnpm run p6:staging-gate
+gate_staging_preflight: pnpm run p6:staging-preflight
+gate_staging_deploy_verify: pnpm run p6:staging-deploy-verify
+gate_closure: P6_FAST_CLOSE=1 pnpm run p6:closure
+
+nano_done_doc: 58
+nano_done_behavioral: 37
+nano_done_behavioral_note: "Honest tier sum: e2e 8 + api_memory 28 + staging_postgres 1 — not 58 strict"
+nano_total: 58
+proof_tiers:
+  doc: 58
+  e2e_vertical_slice: 8
+  api_memory_in_gate: 28
+  static_wiring: 12
+  deferred_p7: 9
+  deferred_p10: 4
+exit_nano: P6-4-N-008
+current_task: none
+milestone_guest_slice: P6-1-N-014
+gate_static: pnpm run p6:gate
+gate_live_host: node scripts/smoke-p6-host-bind.mjs
+gate_e2e: pnpm run p6:e2e-gate
+gate_ci: .github/workflows/p6-denali-gate.yml
+
+epics:
+  P6-0: { nanos: 9, done_doc: 9, done_behavioral: 9, status: COMPLETE, last_proof: P6-0-N-007 }
+  P6-1: { nanos: 15, done_doc: 15, done_behavioral: 15, status: COMPLETE, last_proof: P6-1-N-014 }
+  P6-2: { nanos: 16, done_doc: 16, done_behavioral: 16, status: COMPLETE, last_proof: P6-2-N-016 }
+  P6-3: { nanos: 10, done_doc: 10, done_behavioral: 10, status: COMPLETE, last_proof: P6-3-N-007 }
+  P6-4: { nanos: 8, done_doc: 8, done_behavioral: 8, status: COMPLETE, last_proof: P6-4-N-008 }
+
+vertical_slice:
+  VS-01: E2E_PASS
+  VS-02: E2E_PASS
+  VS-03: E2E_PASS
+  VS-04: E2E_PASS
+  VS-05: E2E_PASS
+  VS-06: E2E_PASS
+  VS-07: E2E_PASS
+  VS-08: E2E_PASS
+
+blockers: []
+
+p7_blocked: false
+p7_note: "P6 fast-closed — VPS full gates in P7 staging-gate runbook"
+
+deferred_to_p7:
+  - P6-REM-A7
+  - P6-REM-A8
+  - P6-REM-B1
+  - P6-REM-B2
+  - P6-REM-B3
+  - P6-REM-E3
+  - build-operator-vps DEV green
+
+completed_nanos_behavioral:
+  - id: P6-0-N-007
+    proof: "TOUR_OPS_API_URL=http://127.0.0.1:3001 node scripts/smoke-p6-host-bind.mjs → P6_HOST_BIND_SMOKE_OK"
+    date: "2026-06-22"
+  - id: P6-0-N-007-staging
+    proof: "VPS TOUR_OPS_API_URL=http://127.0.0.1:23001 smoke-p6-host-bind.mjs → P6_HOST_BIND_SMOKE_OK"
+    date: "2026-06-23"
+  - id: P6-1-N-014
+    proof: "apps/marketing test:smoke 4/4 + apps/portal test:smoke 3/3"
+    date: "2026-06-22"
+  - id: P6-4-N-007
+    proof: "pnpm run p6:e2e-gate → P6_E2E_GATE_OK (local)"
+    date: "2026-06-22"
+  - id: P6-4-N-006
+    proof: "VPS staging infra isolated — tour_db_staging · app-tour-staging · :23000-23003"
+    date: "2026-06-23"
+  - id: P6-1-N-014-portal-full
+    proof: "apps/portal test:smoke 14/14 (SMK-PTL-01/02/04/05/06 · DEN-PROF-01..03 · DEN-INTAKE-01..03 · DEN-TRANS-01..03) — warmup globalSetup (tours 210/212/213/214) · hydration-gated profile save + logout · MARKETING_PUBLIC_BASE_URL→/health · card-driven transport (no pluginId branch)"
+    date: "2026-07-02"
+  - id: P6-1-N-014-transport-isolation
+    proof: "DEN-TRANS-01..03 read POST /api/catalog/registrations body → transport.kind omitted (bus) · personal_car (opt-in) · no_car_dong (shared_cars). MEM-04 bookings-member-isolation.spec.ts view=mine scoped to submittedByUserId. Smoke tours …213/…214 seeded in-memory + Prisma (seedOperatorSmokeTransportTours) · DCAT-01/P6-VS-01-01/PW-DN-01 count 2→4."
+    date: "2026-07-02"
+
+agent_loop:
+  - regression: pnpm run p6:gate
+  - e2e_local: pnpm run p6:e2e-gate
+  - closure_fast: P6_FAST_CLOSE=1 pnpm run p6:closure
+  - staging_depth: "P7 — p7:staging-gate on VPS after DEV build green"

@@ -64,8 +64,13 @@ run_as_app "
 "
 
 log "sync web BFF upstream port with api.env"
+bash "$DEPLOY_PATH/scripts/vps-deploy/ensure-p8-profile-b-fallback.sh"
 bash "$DEPLOY_PATH/scripts/vps-deploy/sync-web-api-url-port.sh"
-bash "$DEPLOY_PATH/scripts/vps-deploy/verify-env-coherence.sh"
+if [[ -f "$ENV_DIR/marketing.env" && -f "$ENV_DIR/portal.env" ]]; then
+  ENV_DIR="$ENV_DIR" bash "$DEPLOY_PATH/scripts/vps-deploy/verify-env-coherence.sh" --all
+else
+  ENV_DIR="$ENV_DIR" bash "$DEPLOY_PATH/scripts/vps-deploy/verify-env-coherence.sh"
+fi
 
 log "refresh systemd units"
 bash "$DEPLOY_PATH/scripts/vps-deploy/install-systemd-units.sh"
@@ -76,6 +81,12 @@ bash "$DEPLOY_PATH/scripts/vps-deploy/stop-stale-listeners.sh"
 log "restart services"
 systemctl restart app-tour-api.service
 systemctl restart app-tour-web.service
+if [[ -f "$ENV_DIR/marketing.env" ]]; then
+  systemctl restart app-tour-marketing.service
+fi
+if [[ -f "$ENV_DIR/portal.env" ]]; then
+  systemctl restart app-tour-portal.service
+fi
 
 # shellcheck source=lib/ports.sh
 source "$DEPLOY_PATH/scripts/vps-deploy/lib/ports.sh"
@@ -86,14 +97,37 @@ fi
 if ! wait_for_port_listen "$WEB_PORT" 30 1; then
   die "web did not bind :${WEB_PORT} — check journalctl -u app-tour-web"
 fi
+if [[ -f "$ENV_DIR/marketing.env" ]]; then
+  MKT_PORT="$(read_env_port "$ENV_DIR/marketing.env" PORT 3002)"
+  if ! wait_for_port_listen "$MKT_PORT" 30 1; then
+    die "marketing did not bind :${MKT_PORT} — check journalctl -u app-tour-marketing"
+  fi
+fi
+if [[ -f "$ENV_DIR/portal.env" ]]; then
+  PTL_PORT="$(read_env_port "$ENV_DIR/portal.env" PORT 3003)"
+  if ! wait_for_port_listen "$PTL_PORT" 30 1; then
+    die "portal did not bind :${PTL_PORT} — check journalctl -u app-tour-portal"
+  fi
+fi
 
 log "infra profile"
 bash "$DEPLOY_PATH/scripts/vps-deploy/show-infra-profile.sh" "$ENV_DIR/api.env" || true
 
-log "health"
-bash "$DEPLOY_PATH/scripts/vps-deploy/health-check.sh"
+if [[ -f "$ENV_DIR/marketing.env" && -f "$ENV_DIR/portal.env" ]]; then
+  log "smoke four-process (api + web + marketing + portal)"
+  if ! ENV_DIR="$ENV_DIR" bash "$DEPLOY_PATH/scripts/vps-deploy/smoke-four-process.sh"; then
+    log "SMOKE FAILED — rollback hint: ROLLBACK_SHA=<prev> DEPLOY_PATH=$DEPLOY_PATH ENV_DIR=$ENV_DIR bash $DEPLOY_PATH/scripts/vps-deploy/rollback-vps.sh"
+    die "post-deploy smoke-four-process failed"
+  fi
+else
+  log "health (api + web only — marketing/portal env missing)"
+  if ! ENV_DIR="$ENV_DIR" bash "$DEPLOY_PATH/scripts/vps-deploy/health-check.sh"; then
+    log "HEALTH FAILED — see docs/phase-23/runbooks/p10-incident-four-process.md INC-02"
+    die "post-deploy health-check failed"
+  fi
+fi
 
 log "smoke operator login"
-bash "$DEPLOY_PATH/scripts/vps-deploy/smoke-operator-login.sh"
+ENV_DIR="$ENV_DIR" bash "$DEPLOY_PATH/scripts/vps-deploy/smoke-operator-login.sh"
 
 log "deploy complete"

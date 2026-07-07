@@ -1,0 +1,49 @@
+---
+title: ADR-INT-001 — TourPublished for Telegram channel delivery
+format: markdoc
+doc_role: architecture_sot
+status: accepted
+date: 2026-06-29
+---
+
+# ADR-INT-001 — TourPublished for Telegram channel delivery
+
+## Context
+
+Operators expect a Telegram channel message when a Denali tour becomes public. The platform uses transactional outbox + async integration workers (Stripe webhook pattern).
+
+`TourCreated` fires on insert regardless of draft/publish state. Publish transitions (`draft → active`) previously wrote audit rows only — no outbox event — so integration never ran on publish.
+
+## Decision
+
+1. Emit **`TourPublished`** outbox events when a tour becomes publicly visible (update transition or create-with-publish).
+2. Map **Telegram** integration to `TourPublished` only (not `TourCreated`).
+3. Include **v1 payload envelope** with `deliverySnapshot` (frozen `canonical.data`) at emit time.
+4. Use deterministic `domainEventId`: `TourPublished:{tourId}:{rowVersion}`.
+
+## Consequences
+
+- Finance ledger keeps `TourCreated` side effect unchanged.
+- Existing connections with only `TourCreated` policy need **INT-002 rollout** (policy backfill + optional intent remap) — not manual-only fixes.
+- Dispatcher prefers `deliverySnapshot` for enrichment; legacy thin payloads still supported.
+- Each republish transition emits a new `TourPublished` delivery (by design).
+
+## Rollout (INT-002)
+
+Domain emit (INT-001) is necessary but not sufficient for production Telegram.
+
+**Repo status (2026-06-30):** INT-002a–d code and specs shipped; per-environment migrate + remap + smoke remain operator steps.
+
+Follow:
+
+- [TourPublished Telegram rollout plan](../../dev/tour-published-telegram-rollout-plan.mdoc) — PR train INT-002a–d, DoD split (code vs environment)
+- [Operator runbook](../../dev/runbooks/tour-published-telegram-delivery.mdoc) — deploy checklist, drift SQL, remap CLI
+
+**Deploy order:** effective catalog → policy SQL → intent remap → flags + smoke.
+
+## References
+
+- [Integration event catalog](../../dev/integration-event-catalog.mdoc)
+- [Workspace integration plugin system](../../dev/workspace-integration-plugin-system.mdoc)
+- [TourPublished rollout plan](../../dev/tour-published-telegram-rollout-plan.mdoc)
+- `apps/api/src/canonical/build-tour-published-outbox-payload.ts`

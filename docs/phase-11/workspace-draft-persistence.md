@@ -97,6 +97,27 @@ Same fields as `DraftSyncPayload`. Client sends **current** `version` before wri
 | row `N` | `N` | update → `N + 1` |
 | row `N` | `≠ N` | `409` + server payload in body |
 
+### PATCH Idempotency-Key (Phase 2 observability)
+
+Optional header on PATCH (same pattern as Phase 5 HTTP idempotency — [`http-idempotency.md`](../phase-5/appendices/http-idempotency.md)):
+
+```http
+PATCH /workspaces/{workspaceId}/drafts/{namespace}/{key}
+Idempotency-Key: {intentId}
+Content-Type: application/json
+```
+
+| Rule | Behavior |
+| ---- | -------- |
+| Header **omitted** | No HTTP dedupe (backward compatible) |
+| Same `(tenant_id, key)` + same body hash | Replay cached **200** `DraftSyncPayload` — no second OCC write |
+| Same key + different body hash | `409`-class idempotency error (`IDEMPOTENCY_PAYLOAD_MISMATCH`) |
+| 409 OCC conflict | **Not** cached as success — normal conflict path |
+
+Client: `DraftEngine` assigns `intentId` per push; web adapter forwards it as `Idempotency-Key` on non-keepalive PATCH. BFF proxies the header to `@apps/api`.
+
+Implementation: `runIdempotentHttpMutation` in `handlePatchWorkspaceDraft` when header present; request hash = `SHA256(method + path + rawBody)`.
+
 ### 409 conflict body
 
 ```json
@@ -160,6 +181,7 @@ Append-only table `workspace_draft_events` — one row per successful mutation:
 | `created` | PATCH `version: 0` → new row |
 | `updated` | PATCH matching version → increment |
 | `deleted` | DELETE removed row |
+| `tombstone_violation` | PATCH rejected by envelope tombstone gate (Phase 6) |
 
 ```http
 GET /workspaces/{workspaceId}/drafts/{namespace}/{key}/events?limit=50
@@ -186,6 +208,43 @@ Events are scoped to the authenticated user (same composite key as snapshots). D
 
 Web BFF: `GET /api/workspaces/{workspaceId}/drafts/{namespace}/{key}/events` — client `fetchWorkspaceDraftEvents`.
 
+## Envelope tombstone invariants (Phase 6 — G-API-04)
+
+For allowlisted namespaces (`operator.wizard`), PATCH applies a **two-step** pipeline before persist:
+
+1. **Server recompute (Track A — authoritative)** — load stored snapshot; resolve workspace plugin; compute `meta.deletedRoots` from baseline vs incoming form via `WorkspacePlugin.draftTombstone.resolveTombstoneRoots`. Client-sent `deletedRoots` is a hint only and is **overwritten** on persist.
+2. **Structural invariant** — generic check on the recomputed envelope (no workspace imports in the invariant module).
+
+Baseline for diff = **stored row** `form.data` (empty object on first create). Incoming = PATCH body `form.data`. Plugin binding lives on `WorkspacePlugin`; `@apps/api` resolves plugin by tenant `workspaceType` — **no** `@app-tour/workspace-denali` import in the invariant module (G-API-04 preserved).
+
+**Ingress boundary:** `draftTombstone` contains functions — strip via `denaliPluginForWizardEngine` / `PlatformWizardEngine.create` `stripNonIngressPluginSurfaces` before workspace-sdk plain-tree ingress (same as `wizardHost`, `tourClone`). `@apps/api` uses the **full** runtime plugin, not the wizard-engine subset.
+
+Module (step 2 only): `apps/api/src/workspace-drafts/invariants/envelope-tombstone-invariants.ts`  
+Recompute helper: `apps/api/src/workspace-drafts/reapply-server-envelope-tombstones.ts`
+
+| Check | Condition | HTTP |
+| ----- | --------- | ---- |
+| Pass-through | `data` is not `{ form: { data: object }, meta: object }` | persist opaque blob |
+| Pass-through | `meta.deletedRoots` absent after recompute | persist |
+| `DELETED_ROOTS_NOT_ARRAY` | `deletedRoots` present but not `string[]` | `400` |
+| `TOMBSTONE_RESURRECTION` | any `root ∈ deletedRoots` is an own key of `form.data` (after recompute) | `400` + `keys` |
+
+**Behavioral note:** A client-sent resurrection on **first push** (`version === 0`, empty baseline) becomes **200** after recompute — server sets `deletedRoots` to `[]` because no roots were removed from an empty baseline. This is intentional (fixes client dual-state drift); not a regression of G-API-04.
+
+**Client (Track B):** Web engine omits `meta.deletedRoots` via `normalizeRemote` on remote hydrate and `denaliPrepareDraftEnvelope` on edit; server row may still carry ephemeral tombstones until the next PATCH. See [`denali-wizard-draft-binding.md`](denali-wizard-draft-binding.md) § Tombstone write path and [`web-draft-host.md`](web-draft-host.md) § Remote normalize hook + AckRecord cache.
+
+```json
+{
+  "error": "tombstone_invariant_violation",
+  "code": "TOMBSTONE_RESURRECTION",
+  "keys": ["timetable"]
+}
+```
+
+Rejected PATCH emits audit event `tombstone_violation` (no snapshot version increment). Successful PATCH flow unchanged.
+
+Other namespaces remain fully opaque until explicitly allowlisted via `ENVELOPE_TOMBSTONE_PATCH_NAMESPACES`.
+
 ## Out of scope (later subphases)
 
 - Web list BFF + draft index summary UI → **11.9-T6** ✅
@@ -194,5 +253,7 @@ Web BFF: `GET /api/workspaces/{workspaceId}/drafts/{namespace}/{key}/events` —
 
 ## Verification
 
-- `apps/api/test/workspace-drafts.spec.ts` — create → patch → conflict → delete · list index (API-P11-9-01…04) · events audit (API-P11-9-05…08)
+- `apps/api/test/workspace-drafts.spec.ts` — create → patch → conflict → delete · list index (API-P11-9-01…04) · events audit (API-P11-9-05…08) · PATCH idempotency replay (API-P11-2-07) · payload mismatch (API-P11-2-08)
+- `apps/api/test/workspace-draft-tombstone-invariants.spec.ts` — structural tombstone gate (API-P11-TOMB-01…03, API-P11-GEN-01)
+- `apps/api/test/workspace-draft-server-tombstone.spec.ts` — server authoritative recompute (Track A)
 - Memory driver default in unit tests; prisma path covered by repository contract

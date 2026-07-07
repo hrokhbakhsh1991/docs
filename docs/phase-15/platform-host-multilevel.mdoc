@@ -1,0 +1,89 @@
+---
+title: Phase 15 — Platform multi-level host parsing (P1 EPIC E)
+phase: 15
+format: markdoc
+---
+
+# Multi-level tenant host parsing (P1 EPIC E)
+
+## SoT
+
+Parser lives in **`@app-tour/tenant-kernel`**: `parseMultiLevelTenantHost`, `isPlatformAdminHost`.
+
+| Host pattern | Outcome | Surface |
+|--------------|---------|---------|
+| `admin.{root}` | `platform_admin` | Platform Control Center |
+| `{club}.admin.{root}` | `club_admin` | Club operator panel |
+| `{club}.portal.{root}` | `club_portal` | Public registration portal |
+| `{club}.{root}` | `club_apex` | Marketing / club apex |
+
+Single-level `{label}.{root}` behavior is unchanged for valid tenant labels (`parseWorkspaceTenantLabelFromHost` fallback).
+
+`admin` remains in `DEFAULT_TENANT_HOST_RESERVED_LABELS` for **club apex** labels — platform admin is detected **before** reserved-label checks (DEC-P1-021).
+
+## Web wiring
+
+| Module | Role |
+|--------|------|
+| `apps/web/src/tenant/resolve-multi-level-host.ts` | Env root wrapper around kernel parser |
+| `apps/web/src/platform/is-platform-admin-host.ts` | Re-exports kernel `isPlatformAdminHost` |
+| `apps/web/src/tenant/resolve-host-tenant.ts` | Dev map for `*.admin.localhost`, `*.portal.localhost`, apex |
+| `apps/web/src/tenant/session-host-binding.ts` | Session tenant bind for club admin + legacy apex |
+| `apps/web/middleware.ts` | Platform vs operator isolation |
+
+### Middleware isolation
+
+| Host | `/platform/*` | Operator `/dashboard` etc. |
+|------|---------------|----------------------------|
+| `admin.{root}` | allowed (platform session) | redirect → `/platform` |
+| `{club}.admin.{root}` | **404** | allowed (operator session) |
+| `{club}.{root}` apex | forward (no operator gate on public paths) | **blocked** on protected admin paths |
+| `{club}.portal.{root}` | forward | **blocked** on protected admin paths |
+
+## Marketing / portal
+
+Dev host maps use kernel parser:
+
+- Marketing: `club_apex` → `resolveTenantIdFromDevHost`
+- Portal: `club_portal` (+ legacy `club_apex` during P6-0) → `resolveTenantIdFromDevHost`
+
+Marketing → portal CTA uses `buildDevPortalPublicBaseUrl` (`@app-tour/tenant-kernel`) — maps `club_apex` ingress to `{club}.portal.{root}` dev origin.
+
+## API
+
+`apps/api/src/middleware/resolve-tenant-from-host.ts` — extracts club subdomain from `Host` for ingress alignment (JWT remains auth SoT in production).
+
+Public guest routes **`GET /public/tenant-branding`** and **`GET /public/tenant-context`** call `resolveTenantSubdomainFromHostHeader` (not single-level `parseWorkspaceTenantLabelFromHost` alone) so `{club}.admin.{root}` and `{club}.portal.{root}` resolve to the same subdomain registry row as club apex. Without this, web BFF operator login on club admin hosts falls back to `TOUR_OPS_DEV_TENANT_ID` and pending owner invites fail OTP authorization.
+
+### Session bind vs BFF tenant resolution (P1 EPIC H)
+
+Operator BFF login (`resolveOperatorBffTenantId`) resolves tenant in order: static dev map → **`GET /public/tenant-context`** → `TOUR_OPS_DEV_TENANT_ID` fallback.
+
+Root layout bootstrap (`resolveBootstrapAppSessionForHostAsync`) uses the same **static map → tenant-context** order before env fallback so `AppSession` (`tenantId`, `pluginId`, workspace draft keys) matches the operator JWT on freshly provisioned `{club}.admin.{root}` hosts. When an operator `session` cookie is present, layout re-binds bootstrap from JWT claims (`tenant_id`, `workspace_id`, role) while preserving registry-resolved `pluginId`.
+
+Owner handoff E2E: invite accept must be followed by a **fresh OTP login** so the session JWT carries membership `workspace_id` (not the pre-accept pending-invite dev fallback).
+
+Middleware session bind (`resolveExpectedTenantIdForHost`) must **not** apply the env fallback on **unmapped multi-level club hosts** (`club_admin`, `club_portal`, `club_apex`). Those hosts are provisioned dynamically (platform create-club); only the registry knows `{subdomain} → tenantId`.
+
+| Host | Static map | Session bind expected tenant |
+|------|------------|------------------------------|
+| `denali.admin.localhost` | smoke UUID | strict match |
+| `handoff-abc.admin.localhost` (new club) | none | **null** (fail-open) |
+| `operator.localhost` (legacy apex) | smoke UUID | strict match |
+| unmapped legacy apex | none | `TOUR_OPS_DEV_TENANT_ID` |
+
+When expected tenant is **null**, `sessionTenantMatchesHost` fail-opens (session JWT tenant is trusted). This prevents `AUTH_TENANT_HOST_MISMATCH` on invite accept after OTP login on a freshly provisioned club admin host while keeping strict bind for known smoke subdomains.
+
+## Verify (EPIC E gate)
+
+```bash
+pnpm --filter @app-tour/tenant-kernel test
+cd apps/web && NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit \
+  test/multi-level-host-parse.spec.ts \
+  test/resolve-multi-level-host.spec.ts \
+  test/session-host-binding-multilevel.spec.ts \
+  test/platform-host-isolation.spec.ts \
+  test/platform-middleware-imports.spec.ts
+```
+
+Note: `multi-level-host-parse.spec.ts` lives under `packages/tenant-kernel/test/`; web specs import `@app-tour/tenant-kernel` after `pnpm --filter @app-tour/tenant-kernel run build`.

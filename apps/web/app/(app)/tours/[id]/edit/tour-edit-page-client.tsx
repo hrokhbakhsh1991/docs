@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import { isDenaliOperatorSession, type OperatorSessionContext } from "@/admin/require-operator-session";
+import { isExtendedOperatorSession, type OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import {
 } from "@/features/tours/tour-list-formatters";
 import type { AppLocale } from "@/i18n/routing";
 import { resolveTourErrorMessage } from "@/i18n/resolve-tour-error-message";
+import { DenaliWizardCatalogPrefetchProvider } from "@/wizard/denali/denali-wizard-catalog-prefetch-context";
 
 import { DenaliFlatEditPageClient } from "./denali-flat-edit-page-client";
 import { TourStatusBadge } from "../../tour-status-badge";
@@ -40,15 +41,13 @@ export function TourEditPageClient({
   tourId,
   initialLocationsResponse = null,
 }: TourEditPageClientProps) {
-  const isDenali = isDenaliOperatorSession(session);
+  const useFlatEditShell = isExtendedOperatorSession(session);
   const canEdit = canMutateTour(session.role);
-  if (isDenali && canEdit) {
+  if (useFlatEditShell && canEdit) {
     return (
-      <DenaliFlatEditPageClient
-        session={session}
-        tourId={tourId}
-        initialLocationsResponse={initialLocationsResponse}
-      />
+      <DenaliWizardCatalogPrefetchProvider initialLocationsResponse={initialLocationsResponse}>
+        <DenaliFlatEditPageClient session={session} tourId={tourId} />
+      </DenaliWizardCatalogPrefetchProvider>
     );
   }
   return <TourEditTitlePageClient session={session} tourId={tourId} />;

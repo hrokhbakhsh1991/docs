@@ -1,6 +1,11 @@
 {
   "id": "denali",
   "version": 1,
+  "guestExtensionsVersion": 1,
+  "guestConformance": {
+    "memberApp": true,
+    "productionTier": "certified"
+  },
   "package": "@app-tour/workspace-denali",
   "workspaceTypes": ["denali"],
   "plugin": {
@@ -16,18 +21,365 @@
       "eventType": "TourCreated",
       "module": "./finance/tour-created-ledger",
       "export": "handleTourCreatedLedgerEvent",
-      "workspaceTypes": ["denali"]
+      "workspaceTypes": ["denali"],
+      "hostSideEffect": {
+        "adapterModule": "./finance/api-tour-created-adapter",
+        "export": "runTourCreatedFinanceSideEffect"
+      }
     }
   ],
   "http": {
     "prefix": "/finance",
     "module": "./http/routes"
   },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-denali/http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "CATALOG_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /denali/catalog": "handleGetDenaliCatalog",
+          "GET /denali/reminders/feed": "handleGetDenaliReminderFeed",
+          "POST /denali/registrations": "handlePostDenaliRegistration"
+        },
+        "paramHandlers": {
+          "GET /denali/catalog/:tourId": "handleGetDenaliCatalogTour",
+          "GET /denali/dashboard/tours/:tourId": "handleGetDenaliDashboardTour"
+        }
+      },
+      {
+        "manifestExport": "FINANCE_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /finance/reports/summary": "handleFinanceSummary",
+          "GET /finance/reports/open-payments": "handleFinanceOpenPayments",
+          "GET /finance/reports/ledger-events": "handleFinanceLedgerEvents",
+          "GET /finance/payments": "handleFinanceListPayments",
+          "POST /finance/payments/manual": "handleFinanceCreateManualPayment",
+          "POST /finance/receipts": "handleFinanceSubmitReceipt",
+          "GET /finance/receipts/pending": "handleFinancePendingReceipts",
+          "GET /finance/prepayments": "handleFinanceListPrepayments",
+          "POST /finance/prepayments": "handleFinanceRecordPrepayment",
+          "GET /finance/schedules": "handleFinanceListSchedules",
+          "POST /finance/schedules/generate": "handleFinanceGenerateSchedule"
+        },
+        "paramHandlers": {
+          "PATCH /finance/receipts/:receiptId/review": "handleFinanceReviewReceipt",
+          "GET /finance/receipts/:receiptId/url": "handleFinanceReceiptUrl",
+          "GET /finance/invoices/:registrationId": "handleFinanceGetRegistrationInvoice",
+          "GET /finance/schedules/:registrationId": "handleFinanceGetSchedule"
+        }
+      }
+    ]
+  },
   "tourWrite": {
     "module": "./tours",
     "workspaceTypeExport": "DENALI_WORKSPACE_TYPE",
     "mergeExport": "mergeDenaliCanonicalPatchData",
     "publishGateExport": "denaliTourPatchRequiresOwner",
-    "publishSurfaceExport": "DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
+    "publishSurfaceExport": "DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE",
+    "forbidOperatorMemberTourPatch": true
+  },
+  "canonicalTour": {
+    "publishStatusModule": "./tours",
+    "publishStatusReadExport": "readDenaliTourPublishStatusFromCanonical",
+    "publishTransitionExport": "detectDenaliTourPublishTransition",
+    "migrateModule": "./acl",
+    "migrateExport": "migrateDenaliCanonical"
+  },
+  "wizardMedia": {
+    "module": "./photos",
+    "workspaceTypeExport": "DENALI_WORKSPACE_TYPE",
+    "maxUploadBytesExport": "DENALI_MAX_PHOTO_UPLOAD_BYTES",
+    "isSessionIdExport": "isDenaliWizardDraftSessionId",
+    "isDraftReadKeyAllowedExport": "isDenaliWizardDraftPhotoReadKeyAllowed",
+    "putDraftPhotoExport": "putDenaliWizardDraftPhoto",
+    "getSignedReadUrlExport": "getDenaliTourPhotoSignedReadUrl",
+    "ensureBucketExport": "ensureMinioPhotoBucket",
+    "readConfigExport": "readMinioPhotoConfigFromEnv",
+    "createPhotoClientExport": "createMinioPhotoClient",
+    "mediaRouteKey": "wizard-photos",
+    "legacyBackendUploadPath": "/tours/wizard-photos",
+    "legacyBackendSignedUrlPath": "/tours/wizard-photos/url"
+  },
+  "wizardCloneRemint": {
+    "module": "./photos",
+    "workspaceTypeExport": "DENALI_WORKSPACE_TYPE",
+    "executeRemintExport": "executeDenaliWizardPhotoRemintPlan",
+    "assertDestKeyExport": "assertDenaliWizardDraftDestKey",
+    "readConfigExport": "readMinioPhotoConfigFromEnv",
+    "serverRemintModule": "./clone",
+    "remintCanonicalExport": "remintDenaliClonePhotosInCanonical",
+    "executeTourRemintExport": "executeDenaliTourPhotoRemintPlan"
+  },
+  "themeStylesheets": ["theme/denali-admin.css"],
+  "wizardCreate": {
+    "extendedChrome": true
+  },
+  "wizardSurfaces": {
+    "surfaceId": "denali",
+    "composite": {
+      "webModule": "@app-tour/workspace-denali/ui/composite-surface",
+      "export": "createDenaliCompositeSurface"
+    },
+    "review": {
+      "webModule": "@app-tour/workspace-denali/ui/review-surface",
+      "export": "createDenaliReviewSurface"
+    }
+  },
+  "wizardI18n": {
+    "messageNamespace": "denali",
+    "labelResolver": {
+      "webModule": "@app-tour/workspace-denali/ui/field-label-resolver",
+      "export": "createDenaliFieldLabelResolver"
+    }
+  },
+  "guestThemeStylesheets": {
+    "portal": ["theme/denali-portal.css"],
+    "marketing": ["theme/denali-marketing.css"]
+  },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "denaliCatalogRegistrationFlowSurface",
+    "transportInitializerExport": "registerDenaliCatalogRegistrationTransportInitializer",
+    "steps": {
+      "mode": "bundle",
+      "export": "denaliRegistrationFlowSteps"
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": {
+      "cityFilter": false,
+      "serverListFilters": ["q", "category", "difficulty", "fitness", "availability", "sort"]
+    },
+    "detailSections": {
+      "difficulty": true,
+      "fitness": true,
+      "itinerary": true,
+      "policies": true
+    }
+  },
+  "memberProfile": {
+    "editableFields": ["displayName", "email", "nationalId", "fatherName", "birthDate"],
+    "readOnlyFields": ["mobile"],
+    "mobileChangeViaOtp": true,
+    "sections": [
+      {
+        "id": "identity",
+        "fields": ["displayName", "mobile", "email"]
+      },
+      {
+        "id": "participant",
+        "fields": ["nationalId", "fatherName", "birthDate"]
+      }
+    ]
+  },
+  "guestLanding": {
+    "variant": "full",
+    "sections": {
+      "hero": true,
+      "latestTours": true,
+      "latestToursLimit": 6,
+      "trust": true,
+      "finalCta": true,
+    "faq": true,
+    "footer": true,
+    "whyDenali": true,
+    "journey": true,
+    "testimonials": true,
+    "featuredTours": true,
+    "featuredToursLimit": 3,
+    "categories": true,
+    "destinations": true,
+    "heroSearch": true,
+    "gallery": true,
+    "equipment": true,
+    "blogTeaser": false
+    },
+    "i18nProfile": "full"
+  },
+  "guestSeo": {
+    "marketing": {
+      "homeTitleKey": "seo.homeTitle",
+      "homeDescriptionKey": "seo.homeDescription",
+      "listTitleKey": "seo.toursTitle",
+      "listDescriptionKey": "seo.toursDescription",
+      "jsonLd": {
+        "required": true,
+        "schemaTypes": ["TouristTrip"],
+        "builderExport": "buildDenaliTouristTripJsonLd",
+        "richResultsProfile": "tourist-trip-v1"
+      },
+      "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": true },
+      "pagination": {
+        "noindexQueryParams": [
+          "cursor",
+          "city",
+          "q",
+          "category",
+          "difficulty",
+          "fitness",
+          "availability",
+          "sort"
+        ]
+      }
+    }
+  },
+  "settingsEnrichers": [
+    {
+      "settingsModuleId": "tour_themes",
+      "module": "./settings/theme-compatible-categories",
+      "export": "resolveThemeCompatibleCategories",
+      "targetField": "compatibleCategories",
+      "sourceField": "formProfile"
+    },
+    {
+      "settingsModuleId": "equipment",
+      "module": "./settings/equipment-compatible-categories",
+      "export": "resolveEquipmentCompatibleCategories",
+      "targetField": "compatibleCategories",
+      "sourceField": "category"
+    }
+  ],
+  "devBootstrap": {
+    "pluginTenantIds": [
+      "00000000-0000-4000-8000-000000000003",
+      "00000000-0000-4000-8000-000000000014"
+    ],
+    "wizardTemplate": {
+      "module": "./settings/denaliFullWizardTemplate",
+      "buildExport": "buildDenaliTenantWizardTemplatePayload",
+      "tenantIds": ["00000000-0000-4000-8000-000000000003"],
+      "minPublishedSteps": 2
+    },
+    "smokeTenant": {
+      "tenantIdExport": "DENALI_SMOKE_TENANT_ID",
+      "subdomainExport": "DENALI_SMOKE_SUBDOMAIN"
+    }
+  },
+  "httpErrors": [
+    {
+      "isErrorExport": "isDenaliOwnerRequiredError",
+      "codeExport": "DENALI_OWNER_REQUIRED",
+      "status": 403
+    },
+    {
+      "isErrorExport": "isDenaliRegistrationDuplicateError",
+      "codeExport": "DENALI_REGISTRATION_DUPLICATE",
+      "status": 409
+    }
+  ],
+  "guestCrossSurfaceNav": {
+    "version": 1,
+    "links": [
+      {
+        "id": "home",
+        "labelKey": "nav.home",
+        "surface": "marketing",
+        "path": "/",
+        "visibleWhen": "club"
+      },
+      {
+        "id": "tours",
+        "labelKey": "nav.tours",
+        "surface": "marketing",
+        "path": "/tours",
+        "visibleWhen": "club"
+      },
+      {
+        "id": "my-trips",
+        "labelKey": "nav.myTrips",
+        "surface": "portal_egress",
+        "egress": "member_module",
+        "memberModuleId": "trips",
+        "visibleWhen": "always"
+      }
+    ]
+  },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "full",
+    "preset": "guest-full-v1"
+  },
+  "operatorCapabilities": {
+    "usersDirectory": true,
+    "reconciliationTriage": true
+  },
+  "wizardTemplateEditor": {
+    "module": "./settings/wizard-template-editor",
+    "export": "denaliWizardTemplateEditor"
+  },
+  "marketingCatalog": {
+    "module": "./marketing/marketing-catalog-surface",
+    "export": "denaliMarketingCatalogSurface"
+  },
+  "settingsDestinationSurface": {
+    "module": "./settings/destination-settings-surface",
+    "export": "denaliDestinationSettingsSurface"
+  },
+  "settingsEquipmentUi": {
+    "module": "./ui/settings/settings-equipment-ui-surface",
+    "export": "denaliSettingsEquipmentUiSurface"
+  },
+  "tourActionSubmitCodec": {
+    "module": "./ui/logic/tour-action-submit-codec-surface",
+    "export": "denaliTourActionSubmitCodec"
+  },
+  "photoUploadErrors": {
+    "module": "./ui/adapters/photo-upload-errors-surface",
+    "export": "denaliPhotoUploadErrorsSurface"
+  },
+  "tourListCategoryFilter": {
+    "module": "./tours/tour-list-category-surface",
+    "export": "denaliTourListCategorySurface"
+  },
+  "operatorUiComponents": {
+    "module": "./ui/operator-ui-components-surface",
+    "export": "denaliOperatorUiComponentsSurface"
+  },
+  "wizardDraftUnification": {
+    "module": "./draft/wizard-draft-unification-surface",
+    "export": "denaliWizardDraftUnificationSurface"
+  },
+  "wizardRules": {
+    "module": "./wizard/wizard-rules-surface",
+    "export": "denaliWizardRulesSurface"
+  },
+  "wizardTemplatePreset": {
+    "module": "./settings/wizard-template-preset-surface",
+    "export": "denaliWizardTemplatePresetSurface"
+  },
+  "wizardTemplateGate": {
+    "defaultPublishedStepId": "denali_basic"
+  },
+  "wizardDraftShell": {
+    "module": "./ui/chrome/wizard-draft-shell-surface",
+    "export": "denaliWizardDraftShellSurface"
+  },
+  "wizardCreateChrome": {
+    "module": "./ui/chrome/wizard-create-chrome-surface",
+    "export": "denaliWizardCreateChromeSurface"
+  },
+  "wizardFlatEditChrome": {
+    "module": "./ui/chrome/wizard-flat-edit-chrome-surface",
+    "export": "denaliWizardFlatEditChromeSurface"
+  },
+  "wizardFlatEditForm": {
+    "module": "./ui/chrome/wizard-flat-edit-form-surface",
+    "export": "denaliWizardFlatEditFormSurface"
+  },
+  "wizardFlatEditPage": {
+    "module": "./ui/chrome/wizard-flat-edit-page-surface",
+    "export": "denaliWizardFlatEditPageSurface"
+  },
+  "wizardCreateView": {
+    "module": "./ui/chrome/wizard-create-view-surface",
+    "export": "denaliWizardCreateViewSurface"
+  },
+  "wizardCompositeRegistry": {
+    "module": "./composites/wizard-composite-registry-surface",
+    "export": "denaliWizardCompositeRegistrySurface"
+  },
+  "settingsHubFallback": {
+    "enabled": true
   }
 }

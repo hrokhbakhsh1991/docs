@@ -1,7 +1,9 @@
+/** @generated — do not edit; source: dtcg/workspaces/urban.tokens.json — run pnpm build in @app-tour/design-tokens */
 /**
- * Workspace brand tokens — urban plugin (Phase 7.1).
+ * Workspace brand tokens — urban plugin.
  * Host loads via WorkspaceThemeContract.optionalStylesheet after CASL + ingress.
  */
 [data-workspace-theme] {
   --ws-color-accent: var(--color-primary);
 }
+

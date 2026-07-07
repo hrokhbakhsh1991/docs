@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { leaderDisplayInitials } from "../src/wizard/denali/denali-leader-picker-logic";
+import { leaderDisplayInitials } from "@app-tour/workspace-denali/ui/logic/denali-leader-picker-logic";
 
 describe("denali-leader-picker-logic.spec.ts", () => {
   it("WEB-DENALI-LEADER-01 builds display initials from names", () => {

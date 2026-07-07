@@ -19,6 +19,8 @@ import {
 import type { DenaliContextualRule } from "../field-registry/denali-contextual-rule.types";
 import { getWorkspaceUiCapabilityFlags } from "../types/legacy/shared-contracts";
 
+import { hasDenaliWizardClassification } from "../normalize/resolveRuleModel";
+
 import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
 import { isGroupInsuranceVisible, isPeakExperienceVisible } from "./predicates";
 
@@ -103,6 +105,13 @@ export function evaluateDenaliContextualRule(
       return isPeakExperienceVisible(form);
     case "groupInsuranceVisible":
       return isGroupInsuranceVisible();
+    case "telegramIntegrationActive": {
+      const active = options?.telegramIntegrationActive;
+      if (active === undefined) {
+        return true;
+      }
+      return active;
+    }
     default: {
       const _exhaustive: never = rule;
       return _exhaustive;
@@ -116,6 +125,7 @@ export function evaluateDenaliContextualVisibility(
   options?: DenaliUIContextOptions
 ): boolean {
   if (form == null) return true;
+  if (!hasDenaliWizardClassification(form)) return true;
   const def = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
   if (def?.contextualVisibility == null) return true;
   return evaluateDenaliContextualRule(def.contextualVisibility, form, "visibility", options);
@@ -126,6 +136,7 @@ export function evaluateDenaliContextualRequired(
   form: DenaliCreateTourWizardForm,
   options?: DenaliUIContextOptions
 ): boolean | null {
+  if (!hasDenaliWizardClassification(form)) return null;
   const def = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
   if (def?.contextualRequired == null) return null;
   return evaluateDenaliContextualRule(def.contextualRequired, form, "required", options);

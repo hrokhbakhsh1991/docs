@@ -1,4 +1,4 @@
-import { DraftConflictError, type DraftSyncPayload } from "@app-tour/draft-engine";
+import { DraftConflictError, fetchWithTransientRetry, type DraftSyncPayload } from "@app-tour/draft-engine";
 
 import type {
   WorkspaceDraftEventListItem,
@@ -6,6 +6,8 @@ import type {
   WorkspaceDraftIndexItem,
   WorkspaceDraftIndexResponse,
 } from "./workspace-draft-types";
+
+export const WORKSPACE_DRAFT_PATCH_ABORTED = "WORKSPACE_DRAFT_PATCH_ABORTED" as const;
 
 function draftBffPath(workspaceId: string, namespace: string, key: string): string {
   return `/api/workspaces/${encodeURIComponent(workspaceId)}/drafts/${encodeURIComponent(namespace)}/${encodeURIComponent(key)}`;
@@ -132,7 +134,7 @@ export async function fetchWorkspaceDraftIndex(
   workspaceId: string,
   namespace?: string
 ): Promise<WorkspaceDraftIndexResponse> {
-  const response = await fetch(draftListBffPath(workspaceId, namespace), {
+  const response = await fetchWithTransientRetry(draftListBffPath(workspaceId, namespace), {
     method: "GET",
     cache: "no-store",
   });
@@ -141,6 +143,18 @@ export async function fetchWorkspaceDraftIndex(
   }
   const body = (await response.json()) as unknown;
   return parseWorkspaceDraftIndexResponse(body);
+}
+
+function responseHasJsonContentType(response: Response): boolean {
+  const contentType = response.headers.get("content-type") ?? "";
+  return contentType.toLowerCase().includes("application/json");
+}
+
+async function readJsonResponseBody(response: Response): Promise<unknown> {
+  if (!responseHasJsonContentType(response)) {
+    throw new Error(`WORKSPACE_DRAFT_PATCH_FAILED:${response.status}`);
+  }
+  return (await response.json()) as unknown;
 }
 
 function parseDraftSyncPayload<T>(body: unknown): DraftSyncPayload<T> {
@@ -175,7 +189,7 @@ export async function fetchWorkspaceDraftSnapshot<T>(
   namespace: string,
   key: string
 ): Promise<DraftSyncPayload<T> | null> {
-  const response = await fetch(draftBffPath(workspaceId, namespace, key), {
+  const response = await fetchWithTransientRetry(draftBffPath(workspaceId, namespace, key), {
     method: "GET",
     cache: "no-store",
   });
@@ -189,25 +203,42 @@ export async function fetchWorkspaceDraftSnapshot<T>(
   return parseDraftSyncPayload<T>(body);
 }
 
+export type PatchWorkspaceDraftSnapshotOptions = {
+  readonly signal?: AbortSignal;
+  /** Browser may complete PATCH after page unload; mutually exclusive with signal. */
+  readonly keepalive?: boolean;
+  /** Maps to Idempotency-Key on non-keepalive PATCH (Phase 2). */
+  readonly intentId?: string;
+};
+
 export async function patchWorkspaceDraftSnapshot<T>(
   workspaceId: string,
   namespace: string,
   key: string,
-  payload: DraftSyncPayload<T>
+  payload: DraftSyncPayload<T>,
+  options?: PatchWorkspaceDraftSnapshotOptions
 ): Promise<DraftSyncPayload<T>> {
+  const keepalive = options?.keepalive === true;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (!keepalive && options?.intentId != null && options.intentId.trim().length > 0) {
+    headers["Idempotency-Key"] = options.intentId.trim();
+  }
   const response = await fetch(draftBffPath(workspaceId, namespace, key), {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(payload),
     cache: "no-store",
+    ...(keepalive ? { keepalive: true } : {}),
+    ...(!keepalive && options?.signal !== undefined ? { signal: options.signal } : {}),
   });
-  const body = (await response.json()) as unknown;
   if (response.status === 409) {
+    const body = await readJsonResponseBody(response);
     throw new DraftConflictError(parseDraftSyncPayload<T>(body));
   }
   if (!response.ok) {
     throw new Error(`WORKSPACE_DRAFT_PATCH_FAILED:${response.status}`);
   }
+  const body = await readJsonResponseBody(response);
   return parseDraftSyncPayload<T>(body);
 }
 
@@ -225,5 +256,35 @@ export async function deleteWorkspaceDraftSnapshot(
   }
   if (!response.ok) {
     throw new Error(`WORKSPACE_DRAFT_DELETE_FAILED:${response.status}`);
+  }
+}
+
+/** DELETE then optional GET-verify when response is non-204 success (clear-draft race). */
+export async function deleteWorkspaceDraftSnapshotVerified(
+  workspaceId: string,
+  namespace: string,
+  key: string
+): Promise<void> {
+  const response = await fetch(draftBffPath(workspaceId, namespace, key), {
+    method: "DELETE",
+    cache: "no-store",
+  });
+  if (response.status === 404) {
+    return;
+  }
+  if (response.status === 204) {
+    return;
+  }
+  if (!response.ok) {
+    throw new Error(`WORKSPACE_DRAFT_DELETE_FAILED:${response.status}`);
+  }
+  const stale = await fetchWorkspaceDraftSnapshot<unknown>(workspaceId, namespace, key);
+  if (stale === null) {
+    return;
+  }
+  await deleteWorkspaceDraftSnapshot(workspaceId, namespace, key);
+  const still = await fetchWorkspaceDraftSnapshot<unknown>(workspaceId, namespace, key);
+  if (still !== null) {
+    throw new Error(`WORKSPACE_DRAFT_DELETE_STALE:${still.version}`);
   }
 }

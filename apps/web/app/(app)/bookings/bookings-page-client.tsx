@@ -30,6 +30,7 @@ import {
   serializeBookingsCommandCenterQuery,
   toggleTourChipFilter,
 } from "@/features/bookings/bookings-command-center-logic";
+import { BookingRegistrationIntakeDetails } from "@/features/bookings/booking-registration-intake-details";
 import {
   BOOKINGS_COMMAND_CENTER_TEST_IDS,
   BOOKING_STATUS_FILTER_OPTIONS,
@@ -391,8 +392,8 @@ export function BookingsPageClient({
 
       {bodyState.type === "loading" ? (
         <div className="space-y-3">
-          <DenaliSkeleton className="h-24 w-full" />
-          <DenaliSkeleton className="h-48 w-full" />
+          <DenaliSkeleton size="block" />
+          <DenaliSkeleton size="panel" />
         </div>
       ) : null}
 
@@ -460,6 +461,7 @@ export function BookingsPageClient({
                       </Badge>
                     </dd>
                   </dl>
+                  <BookingRegistrationIntakeDetails booking={selectedBooking} />
                   <BookingActivityTimeline booking={selectedBooking} />
                   {canManageOps &&
                   (selectedBooking.status === "pending" ||

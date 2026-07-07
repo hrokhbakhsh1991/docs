@@ -11,6 +11,8 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.join(ROOT, "src");
 const CONSOLE_RE = /\bconsole\.(log|error|warn|debug|info)\b/;
+/** One-off migration CLIs invoked from apps/api/scripts/* — not HTTP production paths. */
+const SKIP_REL_PREFIXES = ["src/integrations/migration/"];
 
 function walk(dir, out = []) {
   if (!fs.existsSync(dir)) {
@@ -33,7 +35,10 @@ function walk(dir, out = []) {
 const violations = [];
 
 for (const file of walk(SRC)) {
-  const rel = path.relative(ROOT, file);
+  const rel = path.relative(ROOT, file).replaceAll("\\", "/");
+  if (SKIP_REL_PREFIXES.some((prefix) => rel.startsWith(prefix))) {
+    continue;
+  }
   const lines = fs.readFileSync(file, "utf8").split("\n");
   for (let i = 0; i < lines.length; i += 1) {
     if (CONSOLE_RE.test(lines[i])) {

@@ -65,6 +65,10 @@
   "themes": {
     "light": {
       "requiredVariables": [
+        "--color-accent",
+        "--color-accent-fg",
+        "--color-accent",
+        "--color-accent-fg",
         "--color-bg-disabled",
         "--color-bg-muted",
         "--color-bg-page",
@@ -93,6 +97,8 @@
     },
     "dark": {
       "requiredVariables": [
+        "--color-accent",
+        "--color-accent-fg",
         "--color-bg-disabled",
         "--color-bg-muted",
         "--color-bg-page",

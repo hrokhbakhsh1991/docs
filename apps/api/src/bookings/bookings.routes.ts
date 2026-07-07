@@ -5,6 +5,7 @@ import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { readIdentityRequestBody } from "../identity/read-identity-request-body";
 import { requireOperatorSession } from "../identity/require-operator-session";
+import { resolveLazyFinanceService } from "../boot/lazy-finance-service";
 import {
   approveBooking,
   BookingNotFoundError,
@@ -282,6 +283,55 @@ export async function handleRejectBooking(
     }
     if (error instanceof BookingStatusConflictError) {
       sendHttpError(res, 409, { error: "conflict", code: error.code });
+      return;
+    }
+    handleHttpError(res, error);
+  }
+}
+
+function parseMemberReceiptBody(body: unknown): { fileKey: string; note?: string } | null {
+  if (typeof body !== "object" || body === null) {
+    return null;
+  }
+  const record = body as Record<string, unknown>;
+  const fileKey = typeof record.fileKey === "string" ? record.fileKey.trim() : "";
+  if (fileKey.length === 0) {
+    return null;
+  }
+  const note = typeof record.note === "string" ? record.note.trim() : undefined;
+  return note !== undefined && note.length > 0 ? { fileKey, note } : { fileKey };
+}
+
+export async function handlePostBookingReceipt(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    const body = parseMemberReceiptBody(await readIdentityRequestBody(req));
+    if (body === null) {
+      sendHttpError(res, 400, { error: "invalid_payload", code: "FILE_KEY_REQUIRED" });
+      return;
+    }
+
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const financeService = await resolveLazyFinanceService();
+        const receipt = await financeService.submitMemberReceiptForRegistration(auth, {
+          registrationId: bookingId,
+          fileKey: body.fileKey,
+          ...(body.note !== undefined ? { note: body.note } : {}),
+        });
+        sendJson(res, 201, receipt);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "BOOKINGS_FORBIDDEN") {
+      sendHttpError(res, 403, { error: "forbidden", code: "BOOKINGS_FORBIDDEN" });
       return;
     }
     handleHttpError(res, error);

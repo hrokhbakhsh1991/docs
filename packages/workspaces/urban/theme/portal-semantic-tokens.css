@@ -1,0 +1,10 @@
+/** @generated — do not edit; source: dtcg/workspaces/urban.portal.tokens.json — run pnpm build in @app-tour/design-tokens */
+/**
+ * urban portal semantic colors (DTCG authority).
+ */
+body[data-app-surface="portal"][data-workspace-plugin="urban"] {
+  --color-primary: #2563eb;
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: #1d4ed8;
+}
+

@@ -1,0 +1,1380 @@
+# Marketing landing (`/`) — complete production spec
+
+```yaml
+doc_id: DENALI-MARKETING-LANDING
+version: "2026-07-04-v7-implementation-ready"
+status: ACTIVE
+prerequisite: PR-0 SDK guestLanding (merge blocker before any UI)
+route: /
+apps: [marketing]
+workspace_primary: denali
+authority_chain:
+  - design-system/denali-club/pages/home.md
+  - design-system/denali-club/MASTER.md
+  - docs/workspaces/denali/marketing-catalog-ui.md
+  - docs/workspaces/denali/public-catalog.md
+execution_checklist: TEMP/denali-marketing-ui-roadmap.md
+cutover: docs/phase-19/p6/runbooks/denali-club-cutover.md
+ci: .github/workflows/marketing-guard.yml
+skill: .cursor/skills/ui-ux-pro-max/SKILL.md
+adr:
+  - ADR-MKT-001  # marketing workspace-agnostic
+  - ADR-MKT-004  # SDK resolver registry
+  - ADR-GP-005   # guestLanding manifest + resolver
+score_rubric: "10/10 = PR-0 SDK + 4 blocks + multi-project HOME smoke + guard-home-hooks + cutover + skip + lighthouse /"
+enterprise_invariants:
+  - ADR-MKT-001  # no workspace static imports in marketing src
+  - ADR-MKT-004  # resolveGuestLandingFeatures — no pluginId literals in apps/marketing
+  - no fake stats
+  - fail-soft catalog on /
+```
+
+---
+
+## 1. Purpose
+
+Ship a **production-grade** mobile-first landing at `denali.club/` (dev: `denali.localhost:3002/`) that converts guests to `/tours` → portal register. MVP is **4 blocks**; quality bar is **merge blockers + cutover + measurable perf**.
+
+### 1.1 Goals
+
+- Cinematic Denali hero (gradient + optional hero image)
+- Up to 6 **latest** published tours (catalog sort — not curated featured)
+- Trust from **real** tenant branding only
+- Repeat CTA band
+- Multi-tenant safe (Urban/guest-club not broken)
+- Full test + CI coverage for `/`
+
+### 1.2 Non-goals (this release)
+
+| Item | Reason |
+|------|--------|
+| `/tours` list redesign | Separate track |
+| Tour detail page | Separate track |
+| Portal registration UX | portal-registration-ui.md |
+| Stats / fake metrics | Legal/trust |
+| Category bento without API filter | Misleading |
+| FAQ / gallery / why-us | Post-MVP backlog |
+| Full mobile drawer / footer | Post-MVP |
+
+**Merge blocker (not optional):** PR-0 SDK `guestLanding` + `resolveGuestLandingFeatures` — see §18. No `pluginId === "denali"` in `apps/marketing`.
+
+---
+
+## 2. Score rubric
+
+| Score | Criteria |
+|-------|----------|
+| **3/10** | Stub page only (current code) |
+| **5/10** | Docs v7 only — no PR merged |
+| **5.5/10** | Docs v6 only (superseded) |
+| **6/10** | PR-0 SDK + PR-1 Hero, no HOME smoke |
+| **8/10** | 4 blocks + SDK resolver + HOME smoke (operator + urban projects) |
+| **8.5/10** | + guard-home-hooks + HOME-UNIT + CI job + cutover dev verified |
+| **9/10** | + skip link + Lighthouse `/` documented ≤2.5s LCP |
+| **10/10** | + Lighthouse CI on `/` + P6 smoke map entry + tenant hero asset plan |
+
+**Prior review (v5): 5.5/10** · **v6 doc: 8.5/10** · **v7 doc target: 9.5/10** · **code after PR-0..3: 8.5/10**.
+
+---
+
+## 3. Architecture
+
+### 3.0 Enterprise rule (ADR-MKT-004)
+
+`apps/marketing` **must not** branch on `pluginId === "denali"` (or any workspace literal). Landing variant comes from:
+
+```typescript
+import { resolveGuestLandingFeatures } from "@app-tour/workspace-sdk";
+
+const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
+// landing.variant: "full" | "minimal"
+// landing.sections.* — booleans + latestToursLimit
+// landing.i18nProfile — "full" | "minimal"
+```
+
+Same pattern as `resolveCatalogListFeatures` · [`marketing-catalog-ui.md`](./marketing-catalog-ui.md) § SDK resolver registry.
+
+### 3.1 Component tree (RSC-first)
+
+```text
+app/layout.tsx
+  MarketingShell (header — brand → /)
+  └── app/page.tsx (RSC, force-dynamic)
+        ├── isPlatformMotherHost → platform home (UNCHANGED)
+        ├── resolveMarketingBootstrapForHost(host)
+        ├── resolveGuestLandingFeatures(bootstrap.pluginId)
+        ├── fetchPublicTenantBrandingForHost(host)   # deduped fetch w/ layout
+        ├── fetchHomeCatalogItems({ landing, ...bootstrap })  # if any catalog-backed section
+        └── renderHomePage({ landing, branding, catalogItems, pluginId })
+
+renderHomePage:
+  landing.variant === "full"  → GuestHomeFull
+  landing.variant === "minimal" → GuestHomeMinimal
+
+GuestHomeFull (page order):
+  <main data-marketing-home>
+    {hero && <HomeHero showSearch={heroSearch} />}
+    {featured && <HomeFeatured items />}
+    {latest && <HomeLatestTours items />}
+    {categories && <HomeCategories categories />}
+    {destinations && <HomeDestinations />}
+    {trust && <HomeTrust />}
+    {whyDenali && <HomeWhy />}
+    {journey && <HomeJourney />}
+    {testimonials && <HomeTestimonials />}
+    {faq && <HomeFaq />}
+    {finalCta && <HomeFinalCta />}
+  </main>
+
+GuestHomeMinimal:
+  <main data-marketing-home>
+    <h1 data-marketing-home-title>…</h1>
+    <p data-marketing-home-lead>…</p>   # optional per manifest
+    <Link data-marketing-home-cta href="/tours" />
+  </main>
+```
+
+**Naming:** no `Denali*` components in `apps/marketing/src` — workspace-agnostic `GuestHome*`.
+
+**Client boundaries:** max **1** — `HomeLatestTours` only if CSS scroll-snap insufficient.
+
+### 3.2 Data flow
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Page as page.tsx RSC
+  participant SDK as resolveGuestLandingFeatures
+  participant Brand as GET /public/tenant-branding
+  participant Cat as fetchCatalogList
+
+  Browser->>Page: GET /
+  Page->>SDK: pluginId
+  SDK-->>Page: landing sections
+  Page->>Brand: displayName logoUrl
+  alt sections need catalog (latest / featured / categories)
+    Page->>Cat: tenantId pluginId limit=max(...)
+    alt OK
+      Cat-->>Page: items[]
+    else error/empty
+      Cat-->>Page: []
+    end
+  else minimal
+    Page-->>Page: skip catalog
+  end
+  Page-->>Browser: HTML 200
+```
+
+### 3.3 Failure matrix
+
+| Failure | Behavior | HTTP |
+|---------|----------|------|
+| Catalog fetch throws | Hide latest/featured/categories blocks; log warn | 200 |
+| Catalog empty | Hide latest/featured/categories blocks | 200 |
+| Branding fetch fails | Fallback i18n site name | 200 |
+| Unknown pluginId (no manifest) | `UnknownGuestLandingPluginError` thrown — **fail-closed** (same as `UnknownCatalogPresentationPluginError`) | propagates to Next error boundary |
+| Mother host | Platform home | 200 |
+| Maintenance surface | MaintenancePage (layout) | 200 |
+
+**Policy:** No silent fallback to `GuestHomeMinimal` for unknown plugins. New workspace **must** declare `guestLanding` in manifest before marketing deploy. Resolver tests (SDK-HOME-03) enforce throw.
+
+Never 500 on `/` for downstream **catalog** errors only (catalog fail-soft §3.4).
+
+### 3.4 Fetch contract (page.tsx)
+
+```typescript
+const bootstrap = await resolveMarketingBootstrapForHost(host);
+const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
+
+const catalogItems = await fetchHomeCatalogItems({
+  landing,
+  tenantId: bootstrap.tenantId,
+  pluginId: bootstrap.pluginId,
+  fetchCatalogList,
+});
+```
+
+**Limit:** `resolveHomeCatalogFetchLimit(landing)` = `max(latestToursLimit, featuredToursLimit, 12 when categories)`.
+
+**Skip fetch:** when no catalog-backed section is enabled (HOME-UNIT-04).
+
+**Cache:** same `buildMarketingCatalogCacheTag(tenantId)` as `/tours` — home refreshes on catalog revalidate.
+
+---
+
+## 4. Section specifications
+
+### 4.1 Hero
+
+| Attribute | Value |
+|-----------|-------|
+| Hook root | `data-marketing-home-hero` |
+| Title hook | `data-marketing-home-title` — `{displayName}` or i18n template |
+| Lead hook | `data-marketing-home-lead` |
+| CTA hook | `data-marketing-home-cta` → `/tours` |
+| Min height mobile | `min(70vh, 32rem)` |
+| Min height desktop | `min(80vh, 40rem)` |
+| Background | `public/home/hero.webp` OR CSS gradient fallback |
+| Text color | `#fff` on gradient overlay ≥4.5:1 |
+| CTA mobile | full-width, min-height 2.75rem |
+| CTA style | `--color-accent` bg |
+
+**Acceptance:** 375px RTL · no overflow-x · hooks present · works without image file.
+
+### 4.2 Latest published tours (not curated «featured»)
+
+| Attribute | Value |
+|-----------|-------|
+| Hook | `data-marketing-home-latest` |
+| Data | `fetchCatalogList({ ...bootstrap, limit })` — **first N by catalog sort** |
+| Semantics | «Latest / recent published» — **no** pinned/featured API in MVP |
+| Hidden when | `items.length === 0` or `sections.latestTours === false` |
+| Layout mobile | horizontal scroll-snap, card 85vw |
+| Layout ≥1024px | 3-column grid (optional) |
+| Card hook | `data-marketing-home-latest-card` per item (do not reuse list card hook on home) |
+| View all | Link `/tours` with i18n `home.latest.viewAll` |
+
+**Card fields:** `coverImageUrl`, `title`, `listSubtitle`, dates via `buildCatalogTourMetaLine`, `priceAmount` if `showListPrice`, link `/tours/{id}`.
+
+**Acceptance:** shows seeded published tour on operator/denali dev host · hidden when empty · label must not imply editorial curation.
+
+### 4.3 Trust
+
+| Attribute | Value |
+|-----------|-------|
+| Hook | `data-marketing-home-trust` |
+| Data | `branding.logoUrl`, `branding.displayName` |
+| Copy | i18n `home.trust.tagline` — **no invented numbers** |
+| Icon | Lucide `ShieldCheck` or `Mountain` (1.25rem) |
+
+**Acceptance:** logo alt="" decorative if duplicate text present · no stats.
+
+### 4.4 Final CTA
+
+| Attribute | Value |
+|-----------|-------|
+| Hook | `data-marketing-home-final-cta` |
+| Style | full-width band `--color-accent` |
+| CTA | same label as hero primary → `/tours` |
+
+### 4.5 Discovery (PR-7)
+
+| Section | Hook | Data / behavior |
+|---------|------|-----------------|
+| Hero search | `data-marketing-home-search` | GET form → `/tours?q=` |
+| Featured bento | `data-marketing-home-featured` | First N catalog items (same sort as latest); bento layout only |
+| Categories | `data-marketing-home-categories` | Unique `category` from fetched cards; links → `/tours?category=` |
+| Destinations | `data-marketing-home-destinations` | Static i18n seed (`alborz`, `damavand`, `zardkuh`) → `/tours?q=` |
+
+**Fetch:** one `fetchHomeCatalogItems` call; limit = `max(latestToursLimit, featuredToursLimit, 12 if categories)`.
+
+**List filter:** `/tours` applies `filterMarketingCatalogItems` client-side for `q` and `category` (no API param yet).
+
+### 4.6 Premium (PR-8)
+
+| Section | Hook | Data / behavior |
+|---------|------|-----------------|
+| Gallery | `data-marketing-home-gallery` | Unique tour `coverImageUrl` from catalog (max 8) |
+| Equipment | `data-marketing-home-equipment` | Static i18n checklist |
+| Blog teaser | `data-marketing-home-blog` | Stub when `blogTeaser` true (CMS later) |
+| Home JSON-LD | `data-marketing-home-jsonld` | ItemList from latest tour slice |
+| Skip link | `data-marketing-skip-link` | Full landing → `#main-content` |
+| Hero image | `--mkt-hero-image` on hero | Optional `marketingHeroUrl` from branding API |
+
+---
+
+## 5. Multi-tenant matrix
+
+| Host (dev) | pluginId | UI variant | Hooks required |
+|------------|----------|------------|----------------|
+| `denali.localhost:3002` | denali | Full (`variant: full`) | all `-home-*` incl. discovery (PR-7) |
+| `operator.localhost:3002` | denali | Full | all |
+| `urban.localhost:3002` | urban | Minimal | `-home`, `-title`, `-cta` only |
+| guest-club host | guest-club | Minimal | same |
+| platform mother | — | `data-platform-mother-home` | unchanged |
+
+**Rule:** `home.full.*` i18n strings (mountain/outdoor copy) MUST NOT render when `landing.i18nProfile === "minimal"` (SMK-MKT-HOME-05).
+
+---
+
+## 6. Shell changes (PR-1)
+
+| Change | Selector | Acceptance |
+|--------|----------|------------|
+| Brand href `/` | `a[data-marketing-brand]` | SMK manual |
+| Nav wrap 375px | `header[data-marketing-header]` | no horizontal scroll |
+| «تورها» link | keep `/tours` | unchanged |
+
+---
+
+## 7. i18n contract
+
+File: `apps/marketing/messages/{fa,en}/catalog.json`
+
+### 7.1 Key tree (required)
+
+Two profiles — resolver picks subtree via `landing.i18nProfile`:
+
+**`home.full.*`** (denali `variant: full` only):
+
+| Key | fa (draft) | en (draft) |
+|-----|------------|------------|
+| `home.full.hero.lead` | برنامه‌های کوهنوردی و طبیعت‌گردی منتشرشده | Published mountain and nature programs |
+| `home.full.hero.ctaPrimary` | مشاهده تورها | Browse tours |
+| `home.full.latest.title` | آخرین برنامه‌های منتشرشده | Latest published programs |
+| `home.full.latest.viewAll` | همه تورها | View all tours |
+| `home.full.trust.tagline` | باشگاه کوهنوردی · برنامه‌ریزی و ایمنی | Hiking club · planned and safe trips |
+| `home.full.finalCta.title` | آماده سفر بعدی؟ | Ready for your next trip? |
+| `home.full.finalCta.cta` | مشاهده تورها | Browse tours |
+
+**`home.minimal.*`** (urban · guest-club):
+
+| Key | fa | en |
+|-----|----|----|
+| `home.minimal.title` | {siteName} | {siteName} |
+| `home.minimal.lead` | مشاهده برنامه‌های منتشرشده | View published programs |
+| `home.minimal.cta` | مشاهده تورها | Browse tours |
+
+**Shared:** Hero/minimal title uses `branding.displayName ?? t("nav.defaultSiteName")` — not a static mountain title.
+
+### 7.2 SEO keys (manifest-driven)
+
+Add to `guestSeo.marketing` per workspace (like `listTitleKey`):
+
+| Manifest field | denali example | urban example |
+|----------------|----------------|---------------|
+| `homeTitleKey` | `seo.homeTitle` | `seo.homeTitle` |
+| `homeDescriptionKey` | `seo.homeDescription` | `seo.homeDescription` |
+
+`generateMetadata` reads via `resolveGuestSeoForPlugin(pluginId).marketing.homeTitleKey`.
+
+### 7.3 Legacy aliases (remove after smoke green)
+
+| Legacy | Replacement |
+|--------|-------------|
+| `home.title` | displayName injection |
+| `home.lead` | `home.full.hero.lead` or `home.minimal.lead` |
+| `home.browseTours` | `home.full.hero.ctaPrimary` or `home.minimal.cta` |
+
+**HOME-UNIT-02:** fa/en key parity under `home.full.*` and `home.minimal.*`.
+
+---
+
+## 8. CSS contract
+
+File: `packages/workspaces/denali/theme/denali-marketing.css`
+
+Scope: `body[data-app-surface="marketing"][data-workspace-plugin="denali"]`
+
+### 8.1 New selectors (minimum)
+
+```text
+[data-marketing-home]
+[data-marketing-home-hero]
+[data-marketing-home-title]
+[data-marketing-home-lead]
+[data-marketing-home-cta]
+[data-marketing-home-latest]
+[data-marketing-home-latest-card]
+[data-marketing-home-trust]
+[data-marketing-home-final-cta]
+```
+
+### 8.2 Tokens (use existing `--mkt-*`)
+
+| Token | Use |
+|-------|-----|
+| `--mkt-text-display` | hero H1 |
+| `--mkt-text-body` | lead |
+| `--space-8` | section gap |
+| `--mkt-shadow-card` | latest tour cards |
+| `--mkt-border-width` | borders |
+
+**Rule:** no raw px for spacing/type · `@media (prefers-reduced-motion: reduce)` on transforms.
+
+### 8.3 CSS migration (PR-1 blocker)
+
+**Remove** (dead after hero restructure):
+
+```text
+header[data-marketing-home-header]   # in denali-marketing.css + urban-marketing.css
+```
+
+**Add** in `denali-marketing.css` only (full variant):
+
+```text
+section[data-marketing-home-hero]     # min-height, gradient overlay, white text
+[data-marketing-home-latest]          # scroll-snap row
+[data-marketing-home-latest-card]
+[data-marketing-home-trust]
+[data-marketing-home-final-cta]       # accent band full-bleed
+```
+
+**Urban minimal:** keep existing `main[data-marketing-home]` + title/lead/cta rules; **no** hero/latest/trust/final CSS until P16.
+
+**Hero lead color:** on hero overlay use `#fff` / `rgba(255,255,255,0.9)` — not `--muted-foreground`.
+
+**CTA mobile:** `width: 100%` inside hero · `min-height: 2.75rem`.
+
+---
+
+## 9. Assets
+
+| Asset | Path | Spec |
+|-------|------|------|
+| Hero (MVP) | `public/home/hero.webp` | ≤1920w · ≤200KB · **shared across denali plugin tenants** |
+| Hero (post-MVP) | manifest / branding URL | per-tenant override |
+| OG crop | same or `hero-og.webp` | 1200×630 |
+| Favicon | existing `/icon.svg` | unchanged |
+
+**Fallback:** CSS gradient `--color-primary` → dark overlay if file missing.
+
+---
+
+## 10. SEO
+
+| Item | Implementation |
+|------|----------------|
+| title | `guestSeo.marketing.homeTitleKey` + siteName |
+| description | `guestSeo.marketing.homeDescriptionKey` |
+| canonical | `resolveMarketingLocalePath("/", locale)` |
+| OG | title, description, image absolute URL |
+| Twitter | mirror OG |
+| hreflang | existing builders · SMK-MKT-09 pattern for `/` |
+| sitemap | `/` included (`includeHome: true`) |
+| robots | prod index · non-prod noindex (existing) |
+
+**Post-MVP:** `WebSite` JSON-LD on `/`.
+
+---
+
+## 11. Performance
+
+| Metric | Budget | Verify |
+|--------|--------|--------|
+| LCP | ≤ 2.5s mobile | Lighthouse manual |
+| CLS | ≤ 0.1 | reserve hero min-height |
+| INP | ≤ 200ms | no heavy client JS |
+| Hero weight | ≤ 200KB | file size |
+| JS client | 1 boundary max | bundle inspect |
+
+Commands:
+
+```bash
+pnpm --filter @apps/marketing run test:lighthouse   # after deploy local
+```
+
+---
+
+## 12. Accessibility (WCAG 2.1 AA target)
+
+| Check | MVP | Post-MVP |
+|-------|-----|----------|
+| Color contrast 4.5:1 | required | — |
+| Focus visible on CTAs | required | — |
+| Keyboard scroll latest row | required | — |
+| Skip to content | — | P7 |
+| `aria-expanded` FAQ | — | backlog |
+| Reduced motion | required | — |
+| Decorative img alt="" | logo if text adjacent | — |
+
+---
+
+## 13. Security & privacy
+
+| Topic | Rule |
+|-------|------|
+| No PII on `/` | guest page |
+| No secrets in client | env server-only |
+| XSS | no `dangerouslySetInnerHTML` on home |
+| Third-party fonts | Google fonts existing — document in privacy |
+| CSP | inherit Next defaults |
+
+---
+
+## 14. Test matrix
+
+### 14.1 Unit (fast — PR gate)
+
+| ID | File | Assert |
+|----|------|--------|
+| HOME-UNIT-01 | `test/home-landing-resolver.spec.ts` | SDK variant → section hooks present/absent |
+| HOME-UNIT-02 | `test/home-i18n-keys.spec.ts` | fa/en parity `home.full.*` + `home.minimal.*` |
+| HOME-UNIT-03 | `test/home-fail-soft.spec.ts` | `GuestHomeFull` + `catalogItems: []` → no `[data-marketing-home-latest]` |
+| HOME-UNIT-04 | `test/home-skip-catalog-fetch.spec.ts` | `sections.latestTours === false` → `fetchCatalogList` not called |
+| SDK-HOME-01..03 | `packages/workspace-sdk/test/resolve-guest-landing-features.spec.ts` | manifest registry |
+| G-P6-UI-07 | `test/guest-theme-stack.spec.ts` | denali skin + `--mkt-*` |
+
+### 14.2 E2E Playwright (merge blocker)
+
+| ID | Assert |
+|----|--------|
+| SMK-MKT-HOME-01 | denali `/` — hero + trust + final-cta always; `-latest` **only if** catalog seeded (count > 0) |
+| SMK-MKT-HOME-02 | iPhone 13 viewport · no body overflow-x |
+| SMK-MKT-HOME-03 | `/en/` English full/minimal lead visible |
+| SMK-MKT-HOME-04 | *(removed from E2E — covered by HOME-UNIT-03/04)* |
+| SMK-MKT-HOME-05 | urban `/` — no `home.full.*` denylist strings (§29.3) |
+| SMK-MKT-HOME-06 | mother host → `[data-platform-mother-home]` |
+
+Files:
+
+```text
+apps/marketing/tests/e2e/marketing-home-smoke.spec.ts
+apps/marketing/playwright.marketing-home.config.ts
+apps/marketing/scripts/smoke-marketing-home-e2e-servers.mjs   # optional
+```
+
+### 14.3 package.json scripts (to add)
+
+```json
+"test:smoke:home": "playwright test -c playwright.marketing-home.config.ts"
+```
+
+### 14.4 CI
+
+Extend `.github/workflows/marketing-guard.yml` → `marketing-smoke` job:
+
+```yaml
+- name: SMK-MKT-HOME-01..06
+  run: pnpm --filter @apps/marketing run test:smoke:home
+```
+
+Add to `pull_request.paths`:
+
+```text
+docs/workspaces/denali/marketing-landing.mdoc
+design-system/denali-club/pages/home.md
+```
+
+---
+
+## 15. PR strategy
+
+| PR | Scope | Merge blocker | Tests |
+|----|-------|---------------|-------|
+| **PR-0** | SDK `guestLanding` manifest + generator + `resolveGuestLandingFeatures` + `guestSeo.home*` keys | **Yes — before UI** | SDK-HOME-01..03 |
+| **PR-1** | Shell brand `/` + Hero + CSS migration §8.3 + i18n profiles | — | HOME-UNIT-02, G-P6-UI-07 |
+| **PR-2** | Latest tours block + fail-soft fetch §3.4 | — | HOME-UNIT-03, HOME-UNIT-04 |
+| **PR-3** | Trust + Final CTA + smoke multi-project + guard-home-hooks + CI | cutover | HOME-01..06 |
+
+### 15.1 PR review checklist
+
+```text
+[ ] resolveGuestLandingFeatures — zero pluginId literals in apps/marketing
+[ ] no @app-tour/workspace-* import in apps/marketing/src (eslint)
+[ ] hooks match §8.1 + marketing-catalog-ui.md
+[ ] home.full vs home.minimal i18n isolation
+[ ] CSS: no header[data-marketing-home-header] in new markup
+[ ] denali-marketing.css scoped; urban unchanged for full blocks
+[ ] no fake stats · no "featured" curation copy
+[ ] reduced-motion respected
+[ ] mother host untouched
+[ ] generate:workspace-registry run if manifest touched
+```
+
+---
+
+## 16. Skill governance
+
+**Visual polish (PR-4):** [`marketing-landing-visual.mdoc`](./marketing-landing-visual.mdoc)  
+**Complete landing roadmap (PR-4..8):** [`marketing-landing-complete-plan.mdoc`](./marketing-landing-complete-plan.mdoc)
+
+### 16.1 Once (P0.1)
+
+```bash
+python3 .cursor/skills/ui-ux-pro-max/scripts/search.py \
+  "mountain hiking club landing mobile trustworthy" \
+  --design-system -p "Denali Club" -f markdown
+```
+
+### 16.2 LOCK (never override)
+
+| Key | Value |
+|-----|-------|
+| Primary | `#059669` |
+| Accent | `#D97706` |
+| Heading font | Calistoga |
+| Body | Inter / Vazirmatn |
+| Parallax full-page | OFF |
+| Fake stats | OFF |
+| Stack | Next RSC + CSS skin |
+
+### 16.3 CP-SKILL (after any skill run)
+
+Extract layout/CTA ideas only · discard color/font conflicts · one-line decision log.
+
+---
+
+## 17. Local verification
+
+```bash
+# Unit
+pnpm --filter @apps/marketing run test -- test/home-*.spec.ts test/guest-theme-stack.spec.ts
+
+# Dev
+pnpm --filter @apps/marketing run dev
+# http://denali.localhost:3002/
+# http://urban.localhost:3002/
+
+# Smoke (explicit)
+pnpm --filter @apps/marketing run test:smoke:home
+
+# Fast guards
+pnpm run pre-commit:fast   # if touching marketing
+```
+
+---
+
+## 18. SDK — `guestLanding` (PR-0 merge blocker)
+
+### 18.1 Manifest schema
+
+Add to each `packages/workspaces/*/workspace.manifest.json`:
+
+**denali:**
+
+```json
+"guestLanding": {
+  "variant": "full",
+  "sections": {
+    "hero": true,
+    "latestTours": true,
+    "latestToursLimit": 6,
+    "trust": true,
+    "finalCta": true,
+    "faq": true,
+    "footer": true,
+    "whyDenali": true,
+    "journey": true,
+    "testimonials": true,
+    "featuredTours": true,
+    "featuredToursLimit": 3,
+    "categories": true,
+    "destinations": true,
+    "heroSearch": true,
+    "gallery": true,
+    "equipment": true,
+    "blogTeaser": false
+  },
+  "i18nProfile": "full"
+}
+```
+
+**urban · guest-club:**
+
+```json
+"guestLanding": {
+  "variant": "minimal",
+  "sections": {
+    "hero": false,
+    "latestTours": false,
+    "latestToursLimit": 0,
+    "trust": false,
+    "finalCta": false,
+    "faq": false,
+    "footer": false,
+    "whyDenali": false,
+    "journey": false,
+    "testimonials": false,
+    "featuredTours": false,
+    "featuredToursLimit": 0,
+    "categories": false,
+    "destinations": false,
+    "heroSearch": false,
+    "gallery": false,
+    "equipment": false,
+    "blogTeaser": false
+  },
+  "i18nProfile": "minimal"
+}
+```
+
+**PR-5 sections (2026-07-04):** `faq` · `footer` — hooks: `data-marketing-home-faq` · `data-marketing-footer` · `data-marketing-nav-drawer`.
+
+**PR-6 sections (2026-07-04):** `whyDenali` · `journey` · `testimonials` — hooks: `data-marketing-home-why` · `-journey` · `-testimonials`. See [`marketing-landing-complete-plan.mdoc`](./marketing-landing-complete-plan.mdoc) PR-6.
+
+**PR-7 sections (2026-07-04):** `featuredTours` · `featuredToursLimit` · `categories` · `destinations` · `heroSearch` — hooks: `data-marketing-home-featured` · `-categories` · `-destinations` · `-search`. Catalog fetch uses **one** fail-soft call with `limit = max(latestToursLimit, featuredToursLimit, 12 when categories)`; featured uses **same catalog sort** as latest (R10 — no curation API). Categories derive from card `category` field; `/tours?category=` filters client-side post-fetch. Destinations are static i18n seed until exposure API exists. Hero search is GET `/tours?q=` (Urban may also pass `city` when list features allow).
+
+**denali PR-7 manifest excerpt:**
+
+```json
+"featuredTours": true,
+"featuredToursLimit": 3,
+"categories": true,
+"destinations": true,
+"heroSearch": true
+```
+
+**urban · guest-club:** all PR-7 booleans `false`, `featuredToursLimit: 0`.
+
+**Page order (full):** Hero (+ search) → Featured → Latest → Categories → Destinations → Trust → Why → Journey → Testimonials → Gallery → FAQ → Equipment → (Blog) → Final CTA · Footer in shell.
+
+**PR-8 sections (2026-07-04):** `gallery` · `equipment` · `blogTeaser` — hooks: `data-marketing-home-gallery` · `-equipment` · `-blog`. Shell: `data-marketing-skip-link`. Home JSON-LD: `ItemList` on `/` when catalog items present (WebSite remains in layout). Gallery photos = unique `coverImageUrl` from catalog fetch (no media API). Equipment = static i18n checklist. Blog gated off until CMS (`blogTeaser: false` on denali). Per-tenant hero: optional `marketingHeroUrl` on branding snapshot → CSS `--mkt-hero-image`. Lighthouse CI collects `/` + `/tours`.
+
+**denali PR-8 manifest excerpt:**
+
+```json
+"gallery": true,
+"equipment": true,
+"blogTeaser": false
+```
+
+Extend `guestSeo.marketing`:
+
+```json
+"homeTitleKey": "seo.homeTitle",
+"homeDescriptionKey": "seo.homeDescription"
+```
+
+### 18.2 Generator output
+
+`scripts/generate-workspace-registry.mjs` emits:
+
+```text
+packages/workspace-sdk/src/catalog/workspace-guest-landing.generated.ts
+```
+
+Regenerate: `pnpm run generate:workspace-registry`
+
+### 18.3 Resolver
+
+File: `packages/workspace-sdk/src/catalog/resolve-guest-landing-features.ts`
+
+```typescript
+export type GuestLandingVariant = "full" | "minimal";
+
+export type GuestLandingFeatures = Readonly<{
+  readonly variant: GuestLandingVariant;
+  readonly sections: Readonly<{
+    readonly hero: boolean;
+    readonly latestTours: boolean;
+    readonly latestToursLimit: number;
+    readonly trust: boolean;
+    readonly finalCta: boolean;
+    readonly faq: boolean;
+    readonly footer: boolean;
+    readonly whyDenali: boolean;
+    readonly journey: boolean;
+    readonly testimonials: boolean;
+    readonly featuredTours: boolean;
+    readonly featuredToursLimit: number;
+    readonly categories: boolean;
+    readonly destinations: boolean;
+    readonly heroSearch: boolean;
+    readonly gallery: boolean;
+    readonly equipment: boolean;
+    readonly blogTeaser: boolean;
+  }>;
+  readonly i18nProfile: "full" | "minimal";
+}>;
+
+export function resolveGuestLandingFeatures(
+  pluginId: WorkspacePluginId | string
+): GuestLandingFeatures;
+```
+
+Throws `UnknownGuestLandingPluginError` (`GUEST_LANDING_NOT_CONFIGURED`) when manifest missing — same ergonomics as catalog list features.
+
+### 18.4 Tests
+
+| ID | Assert |
+|----|--------|
+| SDK-HOME-01 | denali → full all sections true, limit 6 |
+| SDK-HOME-02 | urban → minimal all sections false |
+| SDK-HOME-03 | unknown pluginId → throws |
+| HOME-UNIT-06 | PR-7 discovery section gates + hooks |
+| HOME-UNIT-07 | `/tours` client-side q/category filter |
+| HOME-UNIT-08 | PR-8 gallery/equipment gates + home JSON-LD + hero override |
+
+### 18.5 Marketing usage (forbidden patterns)
+
+```typescript
+// FORBIDDEN in apps/marketing
+if (pluginId === "denali") { ... }
+import { DenaliHomeFull } from "./denali-home-full";
+
+// REQUIRED
+const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
+```
+
+### 18.6 Generator implementation (PR-0 file list)
+
+Mirror [`generateWorkspaceCatalogListFeatures`](../../../scripts/generate-workspace-registry.mjs):
+
+| Step | File / symbol | Action |
+|------|---------------|--------|
+| 1 | `GUEST_EXTENSION_MANIFEST_KEYS` | Add `"guestLanding"` |
+| 2 | `assertGuestLandingManifest(manifest)` | Validate `variant`, `sections`, `i18nProfile` |
+| 3 | `generateWorkspaceGuestLanding(manifests)` | Emit registry object |
+| 4 | `OUTPUT_PATHS.guestLanding` | `packages/workspace-sdk/src/catalog/workspace-guest-landing.generated.ts` |
+| 5 | `generateAll()` / `writeGenerated()` | Wire guestLanding output |
+| 6 | `assertGuestSeoManifest` | Optional `homeTitleKey`, `homeDescriptionKey` on `guestSeo.marketing` |
+| 7 | `generateWorkspaceGuestSeo` | Extend `WorkspaceGuestSeoMarketing` type with `homeTitleKey?`, `homeDescriptionKey?` |
+| 8 | `packages/workspace-sdk/src/catalog/resolve-guest-landing-features.ts` | Resolver + `UnknownGuestLandingPluginError` |
+| 9 | `packages/workspace-sdk/src/public-api.ts` | Export resolver + types |
+| 10 | `product-neutral-core.contract.spec.ts` | Allowlist new resolver path |
+| 11 | `pnpm run generate:workspace-registry` | Commit generated files |
+
+**`assertGuestLandingManifest` rules:**
+
+```text
+guestLanding.variant ∈ { "full", "minimal" }
+guestLanding.i18nProfile ∈ { "full", "minimal" }
+sections.hero, latestTours, trust, finalCta — boolean
+sections.latestToursLimit — integer ≥ 0
+When variant === "minimal" → all section flags must be false, limit === 0
+When variant === "full" → hero + trust + finalCta true; latestToursLimit 1..12
+```
+
+**Generated shape:**
+
+```typescript
+export const WORKSPACE_GUEST_LANDING: Readonly<
+  Record<string, Readonly<GuestLandingFeatures>>
+> = Object.freeze({
+  denali: Object.freeze({ variant: "full", sections: { ... }, i18nProfile: "full" }),
+  urban: Object.freeze({ variant: "minimal", sections: { ... }, i18nProfile: "minimal" }),
+  "guest-club": Object.freeze({ ... }),
+});
+```
+
+### 18.7 Manifest requiredness
+
+| Workspace | `guestLanding` |
+|-----------|----------------|
+| denali, urban, guest-club | **Required** before PR-0 merge |
+| Any manifest with `catalogPresentation` | **Required** (guest-capable) |
+| L0 starter without catalog | Optional until marketing surface ships |
+| `workspace:create --guest` scaffold | Must emit `guestLanding: minimal` stub — see [ADR-GP-005](../../dev/adr-guest-plugin/ADR-GP-005-guest-landing-manifest.md) |
+
+---
+
+## 19. Risk register
+
+| ID | Risk | Mit | Owner |
+|----|------|-----|-------|
+| R1 | Urban sees Denali copy | SDK i18nProfile + HOME-05 denylist | dev |
+| R2 | Catalog down breaks `/` | fail-soft latest block §3.4 | dev |
+| R3 | Hero LCP regression | image budget + priority | dev |
+| R4 | Hook rename breaks smoke | guard-home-hooks §34 | dev |
+| R5 | Fake stats slipped in | code review + no metrics in i18n | PM |
+| R6 | Skill drift colors | LOCK table §16.2 | dev |
+| R7 | Cutover without smoke | CI HOME multi-project blocker | ops |
+| R8 | New workspace undetected | UnknownGuestLandingPluginError fail-closed | dev |
+| R9 | ADR-MKT-004 regression | eslint + PR checklist + grep CI | dev |
+| R10 | «Featured» misleading copy | use `home.latest.*` keys only | PM |
+
+---
+
+## 20. Rollback runbook
+
+1. `git revert` PR-3 (or full feature branch)
+2. Redeploy marketing via VPS script
+3. Verify `denali.club/` shows skeleton (title + single CTA)
+4. Catalog `/tours` unaffected
+5. No DB rollback
+
+---
+
+## 21. Cutover checklist (denali.club)
+
+From [denali-club-cutover.md](../../phase-19/p6/runbooks/denali-club-cutover.md):
+
+- [ ] `https://denali.club/` — 4 blocks + tenant branding
+- [ ] `https://denali.club/tours` — catalog unchanged
+- [ ] SMK-MKT-HOME-01..06 green in CI on main
+- [ ] OG tags on `/` (SMK manual or HOME-07 future)
+- [ ] Portal guest → marketing `/` redirect works
+- [ ] Lighthouse LCP documented ≤2.5s
+- [ ] `MARKETING_PUBLIC_BASE_URL=https://denali.club` set
+
+---
+
+## 22. Definition of done — 10/10
+
+```text
+MVP (8.5)
+[ ] PR-0 SDK merged first
+[ ] PR-1..3 merged to main
+[ ] 4 blocks denali @ 375/1024 via GuestHomeFull
+[ ] resolveGuestLandingFeatures — zero pluginId literals
+[ ] SMK-MKT-HOME-01..06 green (no skipped urban in CI)
+[ ] HOME-UNIT-01..04 + SDK-HOME-01..03 green
+[ ] guard-home-hooks green
+[ ] guest-theme-stack green
+[ ] marketing-guard CI includes test:smoke:home
+[ ] cutover Step 4 landing checkbox
+[ ] docs v7 + TEMP v9 checklist updated
+[ ] ADR-GP-005 published
+[ ] p6-e2e-smoke.md SMK-P6-MKT-HOME row present
+
+Excellence (→10)
+[ ] Skip link merged (P7)
+[ ] Lighthouse CI gate on / (lighthouserc url + /)
+[ ] Per-tenant hero asset (branding/manifest)
+[ ] urban full landing skin CSS (P16)
+```
+
+---
+
+## 23. File manifest
+
+```text
+apps/marketing/
+  app/page.tsx
+  src/home/
+    render-home-page.tsx            # uses resolveGuestLandingFeatures
+    guest-home-full.tsx
+    guest-home-minimal.tsx
+    home-hero.tsx
+    home-latest-tours.tsx
+    home-latest-tour-card.tsx
+    home-trust.tsx
+    home-final-cta.tsx
+  messages/{fa,en}/catalog.json     # home.full.* + home.minimal.*
+  public/home/hero.webp
+  test/home-landing-resolver.spec.ts
+  test/home-i18n-keys.spec.ts
+  test/home-fail-soft.spec.ts
+  test/home-skip-catalog-fetch.spec.ts
+  tests/e2e/marketing-home-smoke.spec.ts
+  playwright.marketing-home.config.ts # multi-project: operator + urban + mother
+  package.json
+
+packages/workspace-sdk/src/catalog/
+  resolve-guest-landing-features.ts
+  workspace-guest-landing.generated.ts
+  test/resolve-guest-landing-features.spec.ts
+
+packages/workspaces/{denali,urban,guest-club}/workspace.manifest.json
+
+packages/workspaces/denali/theme/denali-marketing.css  # §8.3 migration
+
+scripts/guards/guard-marketing-home-hooks.mjs
+
+docs/workspaces/denali/marketing-landing.mdoc
+design-system/denali-club/pages/home.md
+TEMP/denali-marketing-ui-roadmap.md
+```
+
+---
+
+## 24. Post-MVP backlog (prioritized)
+
+**Full phased plan:** [`marketing-landing-complete-plan.mdoc`](./marketing-landing-complete-plan.mdoc) (PR-4..8, 16-section target, manifest v2).
+
+| P | Item | Phase |
+|---|------|-------|
+| P7 | Skip link + focus management | PR-8 |
+| P8 | Lighthouse CI on `/` (+ keep `/tours`) | PR-8 |
+| P9 | Per-tenant hero URL in branding/manifest | PR-8 |
+| P10 | FAQ accordion | PR-5 |
+| P11 | Gallery strip | PR-8 |
+| P12 | Mobile nav drawer | PR-5 |
+| P13 | Footer | PR-5 |
+| P14 | WebSite + ItemList JSON-LD on `/` | PR-8 |
+| P15 | Category bento + API filter | PR-7 |
+| P16 | urban full landing skin | after denali complete |
+
+---
+
+## 25. Agent prompts
+
+### PR-0
+
+```text
+Implement §18 + §18.6 before any UI.
+
+Files (in order):
+1. packages/workspaces/{denali,urban,guest-club}/workspace.manifest.json — guestLanding + guestSeo.home*
+2. scripts/generate-workspace-registry.mjs — assertGuestLandingManifest, generateWorkspaceGuestLanding, GUEST_EXTENSION_MANIFEST_KEYS
+3. packages/workspace-sdk/src/catalog/workspace-guest-landing.generated.ts (generated)
+4. packages/workspace-sdk/src/catalog/resolve-guest-landing-features.ts
+5. packages/workspace-sdk/test/resolve-guest-landing-features.spec.ts — SDK-HOME-01..03
+6. packages/workspace-sdk/src/public-api.ts — export
+7. product-neutral-core.contract.spec.ts — allowlist
+8. apps/marketing/messages/{fa,en}/catalog.json — seo.homeTitle, seo.homeDescription only (no UI)
+
+Run: pnpm run generate:workspace-registry
+Tests: SDK-HOME-01..03 only. No apps/marketing UI in this PR.
+See ADR-GP-005.
+```
+
+### PR-1
+
+```text
+PR-1 from §15 after PR-0 merged.
+Shell brand → /. Hero + CSS migration §8.3. i18n home.full.* / home.minimal.*
+resolveGuestLandingFeatures in render-home-page — NO pluginId literals.
+Tests: HOME-UNIT-02, guest-theme-stack.
+```
+
+### PR-2
+
+```text
+PR-2 Latest tours §4.2. fetchCatalogList with ...bootstrap spread §3.4.
+Hooks -home-latest. HOME-UNIT-03, HOME-UNIT-04.
+```
+
+### PR-3
+
+```text
+PR-3 Trust §4.3 + Final CTA §4.4 + guard-home-hooks §34 + Playwright multi-project §28.
+SMK-MKT-HOME-01..03,05,06 in CI (no skip urban). marketing-guard.yml §33.
+guard wired in phase-6:guard. Cutover checklist §21.
+```
+
+---
+
+## 26. Baseline diff (current → target)
+
+**Today (`page.tsx`):** stub · `header[data-marketing-home-header]` · legacy i18n · no SDK · no catalog fetch.
+
+**Today (`marketing-shell.tsx`):** brand href `/tours` → **`/`**.
+
+**Target (`page.tsx`):**
+
+```typescript
+export const dynamic = "force-dynamic";
+
+export default async function MarketingHomePage() {
+  const host = (await headers()).get("host") ?? "";
+  if (isPlatformMotherHost(host)) { /* unchanged */ }
+
+  const bootstrap = await resolveMarketingBootstrapForHost(host);
+  const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
+  const branding = await fetchPublicTenantBrandingForHost(host);
+
+  const catalogItems = await fetchHomeCatalogItems({
+    landing,
+    tenantId: bootstrap.tenantId,
+    pluginId: bootstrap.pluginId,
+    fetchCatalogList,
+  });
+
+  return renderHomePage({ landing, branding, catalogItems, pluginId: bootstrap.pluginId });
+}
+```
+
+**Metadata:** `resolveGuestSeoForPlugin` → `homeTitleKey` / `homeDescriptionKey` · OG image `/home/hero.webp` when full hero enabled.
+
+---
+
+## 27. Reference stubs (v6 — SDK-first)
+
+### 27.1 `render-home-page.tsx`
+
+```typescript
+import { resolveGuestLandingFeatures } from "@app-tour/workspace-sdk";
+import { GuestHomeFull } from "./guest-home-full";
+import { GuestHomeMinimal } from "./guest-home-minimal";
+
+export function renderHomePage(input: {
+  landing: ReturnType<typeof resolveGuestLandingFeatures>;
+  branding: PublicTenantBrandingSnapshot;
+  catalogItems: readonly CatalogListItem[];
+  pluginId: string;
+}) {
+  if (input.landing.variant === "full") {
+    return (
+      <GuestHomeFull
+        landing={input.landing}
+        branding={input.branding}
+        catalogItems={input.catalogItems}
+        pluginId={input.pluginId}
+      />
+    );
+  }
+  return <GuestHomeMinimal branding={input.branding} landing={input.landing} />;
+}
+```
+
+### 27.2 `guest-home-full.tsx`
+
+```typescript
+export function GuestHomeFull({ landing, branding, catalogItems, pluginId }) {
+  const sections = resolveHomeSectionVisibility(landing, catalogItems.length, categories.length);
+  return (
+    <main data-marketing-home>
+      {sections.hero ? <HomeHero branding={branding} showSearch={sections.heroSearch} /> : null}
+      {sections.featured ? <HomeFeatured items={featuredSlice} pluginId={pluginId} /> : null}
+      {sections.latest ? <HomeLatestTours items={latestSlice} pluginId={pluginId} /> : null}
+      {sections.categories ? <HomeCategories categories={derived} /> : null}
+      {sections.destinations ? <HomeDestinations /> : null}
+      {landing.sections.trust ? <HomeTrust branding={branding} profile="full" /> : null}
+      {landing.sections.finalCta ? <HomeFinalCta profile="full" /> : null}
+    </main>
+  );
+}
+```
+
+### 27.3 `home-latest-tour-card.tsx`
+
+- Hook: `data-marketing-home-latest-card`
+- Reuse `CatalogCoverImage` + `buildCatalogTourMetaLine` — **do not** mount `data-marketing-catalog-card` on home (guard enforces separation).
+
+---
+
+## 28. Playwright — multi-project (no CI skip)
+
+File: `playwright.marketing-home.config.ts`
+
+```typescript
+export default defineConfig({
+  testDir: "./tests/e2e",
+  testMatch: ["marketing-home-smoke.spec.ts"],
+  projects: [
+    {
+      name: "home-denali",
+      use: { ...devices["iPhone 13"], baseURL: "http://operator.localhost:3002" },
+    },
+    {
+      name: "home-urban",
+      use: { ...devices["iPhone 13"], baseURL: "http://urban.localhost:3002" },
+    },
+    {
+      name: "home-mother",
+      use: { ...devices["Desktop Chrome"], baseURL: process.env.SMOKE_MOTHER_BASE_URL ?? "http://localhost:3002" },
+      testMatch: ["marketing-home-smoke.spec.ts"],
+      grep: /HOME-06/,
+    },
+  ],
+  webServer: { command: "node scripts/smoke-marketing-e2e-servers.mjs", ... },
+});
+```
+
+**CI rule:** `home-denali` + `home-urban` always run. `home-mother` runs when env set or uses dedicated mother dev host from platform docs.
+
+---
+
+## 29. Smoke spec (v6)
+
+### 29.1 Core tests
+
+```typescript
+test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-marketing-home-trust]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-final-cta]")).toBeVisible();
+  const latest = page.locator("[data-marketing-home-latest]");
+  const count = await latest.count();
+  if (count > 0) {
+    await expect(latest).toBeVisible();
+  }
+  // latest optional when catalog empty — empty-latest covered by HOME-UNIT-03
+});
+```
+
+### 29.2 HOME-04 (unit only — not E2E)
+
+| ID | Layer | Assert |
+|----|-------|--------|
+| HOME-UNIT-03 | Unit | `GuestHomeFull` + empty `catalogItems` → no `-latest` hook |
+| HOME-UNIT-04 | Unit | `sections.latestTours === false` → no catalog fetch |
+
+**Do not** E2E HOME-04 on operator (always seeded) or guest-club (minimal never renders `-latest`).
+
+### 29.3 HOME-05 denylist (urban)
+
+Assert **absent** in page text:
+
+```text
+کوهنوردی
+طبیعت‌گردی
+home.full.hero.lead English: "Published mountain and nature"
+```
+
+Assert **present:** `[data-marketing-home-title]` + `[data-marketing-home-cta]` only (minimal).
+
+---
+
+## 30. Unit tests
+
+| ID | File | Assert |
+|----|------|--------|
+| HOME-UNIT-01 | `home-landing-resolver.spec.ts` | mock landing features → correct hooks |
+| HOME-UNIT-02 | `home-i18n-keys.spec.ts` | `home.full` + `home.minimal` parity |
+| HOME-UNIT-03 | `home-fail-soft.spec.ts` | empty `catalogItems` → no `-latest` hook |
+| HOME-UNIT-04 | `home-skip-catalog-fetch.spec.ts` | no fetch when `latestTours` false |
+| SDK-HOME-* | workspace-sdk | manifest registry |
+
+---
+
+## 31. Edge cases (extended)
+
+| Case | Expected |
+|------|----------|
+| Unknown pluginId | `UnknownGuestLandingPluginError` at resolve (dev CI catches) |
+| `latestToursLimit: 0` | skip fetch |
+| operator vs denali.club | same full variant · shared hero.webp MVP |
+| Layout + page branding fetch | Next.js fetch dedupe — acceptable double call |
+| Revalidate publish | home latest updates within catalog cache TTL |
+
+---
+
+## 32. Observability
+
+| Event | Level | When |
+|-------|-------|------|
+| `marketing.home.catalog_fetch_failed` | warn | §3.4 catch |
+| `marketing.home.variant` | debug | `{ variant, i18nProfile }` |
+
+---
+
+## 33. CI integration
+
+**marketing-guard.yml** — add paths + step `test:smoke:home` (see §14.4).
+
+**guard-marketing-home-hooks.mjs** — see §34; wire in `pnpm run phase-6:guard`.
+
+**lighthouserc.json** (P8 backlog) — add `"http://operator.localhost:3002/"` alongside `/tours`.
+
+**P6 smoke:** [`p6-e2e-smoke.md`](../../phase-19/p6/runbooks/p6-e2e-smoke.md) — row **SMK-P6-MKT-HOME** (already registered).
+
+---
+
+## 34. Guard — `guard-marketing-home-hooks.mjs`
+
+Static closure (add to `guard-public-catalog-m17` allowlist or `phase-6:guard`):
+
+```javascript
+// Required in apps/marketing
+const HOME_HOOKS = [
+  "data-marketing-home-hero",
+  "data-marketing-home-search",
+  "data-marketing-home-featured",
+  "data-marketing-home-latest",
+  "data-marketing-home-categories",
+  "data-marketing-home-destinations",
+  "data-marketing-home-trust",
+  "data-marketing-home-final-cta",
+];
+
+// Forbidden in apps/marketing/src (ADR-MKT-004)
+const FORBIDDEN = [
+  /pluginId\s*===\s*["']denali["']/,
+  /DenaliHomeFull/,
+  /header\[data-marketing-home-header\]/,  // in new TSX only
+];
+
+// Required in marketing-catalog-ui.md + smoke spec
+assert(marketingHomeSmoke.includes("SMK-MKT-HOME-01"));
+```
+
+Run: `node scripts/guards/guard-marketing-home-hooks.mjs`
+
+**Wire in:**
+
+- `pnpm run phase-6:guard` (required)
+- `guard-public-catalog-m17` allowlist — add:
+  - `scripts/guards/guard-marketing-home-hooks.mjs`
+  - `apps/marketing/tests/e2e/marketing-home-smoke.spec.ts`
+  - `apps/marketing/playwright.marketing-home.config.ts`
+  - `packages/workspace-sdk/src/catalog/resolve-guest-landing-features.ts`
+
+---
+
+## 35. i18n SEO message keys
+
+See §37 for full JSON tree.
+
+---
+
+## 36. generateMetadata (`app/page.tsx`)
+
+```typescript
+export async function generateMetadata(): Promise<Metadata> {
+  const [headerList, localeRaw] = await Promise.all([headers(), getLocale()]);
+  const host = headerList.get("host") ?? "localhost:3002";
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+
+  if (isPlatformMotherHost(host)) {
+    return { title: "Platform" };
+  }
+
+  const bootstrap = await resolveMarketingBootstrapForHost(host);
+  const guestSeo = resolveGuestSeoForPlugin(bootstrap.pluginId).marketing;
+  const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
+  const branding = await fetchPublicTenantBrandingForHost(host);
+  const t = await getTranslations("catalog");
+  const siteName = branding.displayName ?? t("nav.defaultSiteName");
+
+  const title = guestSeo.homeTitleKey
+    ? t(guestSeo.homeTitleKey, { siteName })
+    : siteName;
+  const description = guestSeo.homeDescriptionKey
+    ? t(guestSeo.homeDescriptionKey, { siteName })
+    : t("metadata.siteDescription", { siteName });
+
+  return {
+    ...buildMarketingSiteMetadata({ host, siteName, toursLabel: t("nav.tours"), locale }),
+    title,
+    description,
+    alternates: { canonical: resolveMarketingLocalePath("/", locale) },
+    ...(landing.sections.hero
+      ? { openGraph: { images: [{ url: "/home/hero.webp", width: 1200, height: 630 }] } }
+      : {}),
+  };
+}
+```
+
+---
+
+## 37. i18n JSON example (`catalog.json`)
+
+```json
+{
+  "seo": {
+    "homeTitle": "{siteName}",
+    "homeDescription": "Browse published programs and register online.",
+    "toursTitle": "{siteName} — Tours",
+    "toursDescription": "Published programs for {siteName}."
+  },
+  "home": {
+    "full": {
+      "hero": {
+        "lead": "Published mountain and nature programs",
+        "ctaPrimary": "Browse tours"
+      },
+      "latest": {
+        "title": "Latest published programs",
+        "viewAll": "View all tours"
+      },
+      "trust": {
+        "tagline": "Hiking club · planned and safe trips"
+      },
+      "finalCta": {
+        "title": "Ready for your next trip?",
+        "cta": "Browse tours"
+      }
+    },
+    "minimal": {
+      "title": "{siteName}",
+      "lead": "View published programs",
+      "cta": "Browse tours"
+    }
+  }
+}
+```
+
+Fa mirror under `messages/fa/catalog.json`. Resolver `i18nProfile` selects `home.full` vs `home.minimal` subtree in components.
+
+---
+
+## 38. Onboarding new workspace (landing)
+
+Align with [public-catalog.md](./public-catalog.md) § Adding a workspace:
+
+| Step | Action |
+|------|--------|
+| 1 | Add `guestLanding` block to `workspace.manifest.json` (§18.1) |
+| 2 | Add `guestSeo.marketing.homeTitleKey` + `homeDescriptionKey` |
+| 3 | Run `pnpm run generate:workspace-registry` |
+| 4 | Verify `resolveGuestLandingFeatures("{id}")` in SDK unit test |
+| 5 | Add marketing smoke when product-ready (SMK-MKT-HOME-05 pattern for isolation) |
+| 6 | Document hooks in marketing-catalog-ui.md if new variant added |
+
+**Do not** add `if (pluginId === "{id}")` in `apps/marketing`.
+
+

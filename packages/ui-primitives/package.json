@@ -50,6 +50,10 @@
     "./checkbox": {
       "types": "./dist/Checkbox/Checkbox.d.ts",
       "default": "./dist/Checkbox/Checkbox.js"
+    },
+    "./otp-segment-input-logic": {
+      "types": "./dist/utils/otp-segment-input.logic.d.ts",
+      "default": "./dist/utils/otp-segment-input.logic.js"
     }
   },
   "scripts": {

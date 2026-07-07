@@ -43,7 +43,7 @@ export default async function OperatorToursPage({ searchParams }: OperatorToursP
   }
 
   const params = await searchParams;
-  const query = parseTourListQuery(toUrlSearchParams(params));
+  const query = parseTourListQuery(session.pluginId, toUrlSearchParams(params));
   const initialToursList = await fetchToursListServer(query);
 
   return (

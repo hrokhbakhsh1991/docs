@@ -1,0 +1,85 @@
+/**
+ * Starter workspace default marketing skin (L3) — catalog shell chrome appearance.
+ * Loaded for every marketing tenant via importGuestMarketingThemeForPlugin (base layer).
+ * Workspace skins override on body[data-workspace-plugin].
+ * @see docs/architecture/platform-architecture-v2.md § Phase D.3
+ */
+
+body[data-app-surface="marketing"] a[data-marketing-skip-link]:focus-visible {
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  top: var(--space-2);
+  z-index: 50;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body[data-app-surface="marketing"] header[data-marketing-header],
+body[data-app-surface="marketing"] [data-slot="shell-header"] {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  background-color: color-mix(in oklab, var(--background) 92%, transparent);
+  color: var(--foreground);
+}
+
+@supports (backdrop-filter: blur(12px)) {
+  body[data-app-surface="marketing"] header[data-marketing-header],
+  body[data-app-surface="marketing"] [data-slot="shell-header"] {
+    backdrop-filter: blur(12px);
+  }
+}
+
+body[data-app-surface="marketing"] div[data-marketing-header-inner] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  margin-inline: auto;
+  padding: var(--space-3) var(--space-4);
+  box-sizing: border-box;
+}
+
+body[data-app-surface="marketing"] a[data-marketing-brand] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  min-width: 0;
+  font-weight: 600;
+  text-decoration: none;
+  color: inherit;
+}
+
+body[data-app-surface="marketing"] nav[data-marketing-header-nav] a,
+body[data-app-surface="marketing"] [data-slot="shell-nav"] a {
+  font-weight: 500;
+  color: color-mix(in oklab, var(--foreground) 80%, transparent);
+  text-decoration: none;
+}
+
+body[data-app-surface="marketing"] nav[data-marketing-header-nav] a:hover,
+body[data-app-surface="marketing"] [data-slot="shell-nav"] a:hover {
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"] [data-marketing-locale-switcher] button {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--foreground) 80%, transparent);
+}
+
+body[data-app-surface="marketing"] footer[data-marketing-footer] {
+  margin-top: auto;
+  padding: var(--space-6) var(--space-4);
+  border-top: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  background-color: color-mix(in oklab, var(--background) 95%, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}

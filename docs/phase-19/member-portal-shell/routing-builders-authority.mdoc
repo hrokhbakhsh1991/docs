@@ -1,0 +1,123 @@
+---
+title: Cross-Surface Routing Builder Authority
+standard_id: MPS-RBA-001
+version: 1.0.0
+status: pending_sign_off
+extends:
+  - ../../standards/workspace-routing-standard.mdoc
+  - builder-migration-contract.mdoc
+mandatory_for:
+  - packages/guest-surface-host
+  - apps/marketing
+  - apps/portal
+  - apps/web
+---
+
+# Cross-Surface Routing Builder Authority
+
+**Purpose:** Eliminate ambiguity about **who owns** each URL builder. WRS-URL-01 mandates no duplicated host logic in apps — this document classifies every builder by authority tier.
+
+**Rule:** Cross-host URLs MUST use **Guest Surface Host (GSH)** or **tenant-kernel** primitives. App-local helpers are allowed only for **same-surface** or **redirect-only shims** documented below.
+
+---
+
+## 1. Authority tiers
+
+| Tier | Owner | May emit cross-host URLs? |
+| ---- | ----- | ------------------------- |
+| **A — GSH** | `packages/guest-surface-host` | **Yes** — canonical |
+| **B — Tenant kernel** | `packages/tenant-kernel` | **Yes** — dev/provision bases only |
+| **C — Web redirect shim** | `apps/web` | **Redirect only** — no rendering |
+| **D — Portal-local helper** | `apps/portal` | **Egress to marketing only** — thin wrapper |
+| **E — Forbidden** | Any app inline host math | **No** — `guard-wrs-routing` blocks |
+
+---
+
+## 2. Builder registry
+
+### 2.1 Guest Surface Host (Tier A)
+
+| Builder | Purpose | Lifetime | Migration |
+| ------- | ------- | -------- | --------- |
+| `resolvePortalPublicBaseUrl(host)` | Portal base URL | Permanent | Stable |
+| `resolvePortalRegistrationUrl(host, tourId)` | Marketing/web → portal register | Permanent | Stable |
+| `resolvePortalMemberModuleUrl(host, moduleId?)` | Registry-aware member URL | **Primary PS-3+** | Stable |
+| `resolveMarketingPublicBaseUrl(host)` | Marketing base | Permanent | Stable |
+| `resolveMarketingToursUrl(host, cursor?)` | Marketing catalog list | Permanent | Stable |
+| `resolveMarketingTourDetailUrl(host, tourId)` | Marketing tour detail | Permanent | Stable |
+
+**Authority:** WRS-URL-01 · package `guest-surface-host`  
+**Owner:** Platform routing  
+**CI:** `guard-wrs-routing` (no direct tenant-kernel calls from apps)
+
+### 2.2 Tenant kernel (Tier B)
+
+| Builder | Purpose | Lifetime | Migration |
+| ------- | ------- | -------- | --------- |
+| `buildDevPortalPublicBaseUrl(...)` | Dev portal base | Permanent | GSH wraps this |
+| `buildDevMarketingPublicBaseUrl(...)` | Dev marketing base | Permanent | GSH wraps this |
+| `buildClubSiteUrls(...)` | API provisioning | Permanent | Stable |
+
+**Authority:** WRS §5 · `packages/tenant-kernel`  
+**Owner:** Platform infra  
+**Rule:** Apps MUST NOT call directly — use GSH.
+
+### 2.3 Web redirect shims (Tier C)
+
+| Builder | Location | Purpose | Lifetime | Migration |
+| ------- | -------- | ------- | -------- | --------- |
+| `resolvePortalRegistrationRedirectUrl(host, tourId)` | `apps/web/src/portal/resolve-portal-registration-redirect.ts` | 302 web `/catalog/{id}/register` → portal | Permanent shim | **Not** moving to GSH — redirect-only, web-owned |
+| `resolveMarketingPublicUrl(...)` | `apps/web/src/marketing/resolve-marketing-public-url.ts` | Web `/catalog/*` → marketing | Permanent | Respects `MARKETING_CATALOG_REDIRECT` |
+
+**Authority:** WRS addendum §5 — register family B  
+**Owner:** `apps/web` operator/public shell  
+**Not GSH because:** Redirect happens inside web app route handler; no cross-app rendering.
+
+### 2.4 Portal-local helpers (Tier D)
+
+| Builder | Location | Purpose | Lifetime | Migration |
+| ------- | -------- | ------- | -------- | --------- |
+| `resolveMarketingPublicBaseUrl(host)` (portal re-export) | `apps/portal/src/marketing/resolve-marketing-public-url.ts` | Portal `/` guest redirect → marketing | Permanent | Thin wrapper over GSH or shared helper — must not duplicate host math |
+
+**Authority:** Portal guest egress only  
+**Owner:** `apps/portal`  
+**Rule:** Must delegate to GSH internally or import shared module tested by `guard-wrs-routing`.
+
+---
+
+## 3. Decision tree
+
+```text
+Need a URL?
+├─ Same app, same host, relative path     → relative href OK (e.g. /tours/{id} on marketing)
+├─ Cross-host or absolute                 → GSH (Tier A)
+├─ Web catalog/register redirect only     → Tier C shim
+├─ Portal guest home redirect             → Tier D (wraps GSH)
+└─ Inline template `http://${club}.portal...` → FORBIDDEN
+```
+
+---
+
+## 4. Workspace package rules
+
+| Pattern | Verdict |
+| ------- | ------- |
+| `href="/me/registrations"` in registration flow | **Forbidden Phase 3+** — use injected GSH URL (DL-38) |
+| `href="/catalog/.../register"` on portal host | OK on portal only |
+| Absolute URL built in workspace | **Forbidden** — platform injects at render boundary |
+
+---
+
+## 5. Traceability
+
+| Artifact | Section |
+| -------- | ------- |
+| WRS | §6 Cross-app URL builders |
+| WRS addendum | §7 Cross-surface matrix |
+| Builder migration | [builder-migration-contract.mdoc](./builder-migration-contract.mdoc) |
+| Guard | `guard-member-url-builder`, `guard-workspace-member-egress` |
+| DL | DL-22, DL-38, DL-42 |
+
+---
+
+*Authority registry v1.0.0 · PENDING SIGN-OFF*

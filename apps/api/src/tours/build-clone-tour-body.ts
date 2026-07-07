@@ -1,6 +1,6 @@
 import type { TourRecord } from "../db/tour-record";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
-import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
+import { resolveWorkspacePluginForTenantContext } from "../workspace/resolve-workspace-plugin-for-tenant-context";
 import type { CreateTourBody } from "./create-tour.schema";
 
 export type BuildCloneTourBodyInput = {
@@ -14,7 +14,7 @@ export async function buildCloneTourCreateBody(
   input: BuildCloneTourBodyInput
 ): Promise<CreateTourBody> {
   const workspaceType = await resolveWorkspaceTypeForTenant(input.tenantId);
-  const plugin = resolveWorkspacePluginForType(workspaceType);
+  const plugin = await resolveWorkspacePluginForTenantContext(input.tenantId, workspaceType);
   if (plugin.tourClone === undefined) {
     throw new Error("TOUR_CLONE_UNSUPPORTED");
   }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { filterPickerItemsByQuery } from "../src/wizard/denali/denali-picker-filter-logic";
+import { filterPickerItemsByQuery } from "@app-tour/workspace-denali/ui/logic/denali-picker-filter-logic";
 
 describe("denali-picker-filter-logic.spec.ts", () => {
   it("WEB-DENALI-PICKER-01 filters items by case-insensitive substring", () => {

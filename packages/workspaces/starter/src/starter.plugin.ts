@@ -5,6 +5,8 @@ import {
   type WorkspacePlugin,
 } from "@app-tour/workspace-sdk";
 
+import { starterExposureSurface } from "./exposure/starter-exposure.surface";
+
 const starterWizardHostHooks = createPlatformWizardHostHooks({
   dimensions: { variant: "default" },
 });
@@ -12,7 +14,12 @@ const starterWizardHostHooks = createPlatformWizardHostHooks({
 function attachStarterWizardHost(plugin: WorkspacePlugin): WorkspacePlugin {
   return Object.freeze({
     ...plugin,
-    wizardHost: Object.freeze({ ...starterWizardHostHooks }),
+    exposureSurface: Object.freeze({ ...starterExposureSurface }),
+    wizardHost: Object.freeze({
+      ...starterWizardHostHooks,
+      compositeSurfaceId: "platform",
+      reviewSurfaceId: "platform",
+    }),
   });
 }
 

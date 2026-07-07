@@ -1,0 +1,170 @@
+---
+title: Platform — portal registration intake architecture
+phase: 19
+format: markdoc
+doc_role: architecture_sot
+extends: docs/phase-17/platform-portal-registration.mdoc
+---
+
+# Platform — portal registration intake (multi-workspace)
+
+**Status:** 2026-06-30 · Track A registry in `@app-tour/workspace-sdk`
+
+**Related:** [platform-portal-registration.mdoc](../phase-17/platform-portal-registration.mdoc) · [public-catalog.md](../workspaces/denali/public-catalog.md) § Adding a workspace
+
+---
+
+## Layering (frozen)
+
+```text
+apps/portal (shell)
+  OTP · profile · intake UI slots
+  BFF POST /api/catalog/registrations
+       │
+       ▼
+@app-tour/workspace-sdk (registry + contracts)
+  resolveCatalogRegistrationApiPath(pluginId)
+  resolveCatalogIntakeCapabilities(pluginId)
+  buildCatalogRegistrationUpstreamRequest(pluginId, payload)
+  PublicCatalogTransportSnapshot + transport intake helpers
+  RegistrationIntakeRecord (persisted booking JSON)
+       │
+       ▼
+packages/workspaces/{id} (business rules)
+  HTTP POST /{id}/registrations
+  validate payload · duplicate guards · normalize transport
+  map canonical → PublicCatalogCard egress fields
+       │
+       ▼
+apps/api (host adapters)
+  BookingsRepository.registrationIntake JSONB
+  identity/me profile fields
+```
+
+**Rule:** `apps/portal` and `apps/marketing` **must not** `static-import` `@app-tour/workspace-{id}`. They only use **SDK registries** + catalog card shape from HTTP.
+
+**Rule:** Workspace-specific duplicate logic, transport normalization, and Zod schemas live under `packages/workspaces/{id}/`. SDK owns **cross-workspace contracts** and **portal dispatch**.
+
+---
+
+## SDK registry (Track A)
+
+| Function | Purpose |
+|----------|---------|
+| `supportsCatalogRegistration(pluginId)` | Marketing/register CTA gate — manifest **L2+** (`WORKSPACE_GUEST_CONFORMANCE_LEVELS`); marketing shell does not bootstrap intake plugin registry |
+| `resolveCatalogRegistrationApiPath(pluginId)` | `POST /denali/registrations` · `/urban/registrations` |
+| `resolveCatalogIntakeCapabilities(pluginId)` | Portal UI modules (tabs, transport, email, idempotency) |
+| `buildCatalogRegistrationUpstreamRequest(pluginId, payload)` | BFF body + path + extra headers |
+| `resolvePublicCatalogTransportIntake(...)` | Transport UI visibility (card-driven, no workspace import) |
+| `computePublicCatalogRegistrationPricePerPerson(...)` | Portal price hint only |
+| `parseRegistrationIntakeRecord(raw)` | Operator display / transport roster |
+
+Adding workspace `{id}`:
+
+| Step | Action |
+|------|--------|
+| 1 | Add paths to `resolve-catalog-registration-api-path.ts` |
+| 2 | Add capabilities + request profile to `resolve-catalog-intake-capabilities.ts` |
+| 3 | Extend `build-catalog-registration-upstream-request.ts` if new POST shape |
+| 4 | Implement `POST /{id}/registrations` in workspace HTTP |
+| 5 | Extend `publicCatalog.toCatalogCard` if new egress fields drive intake |
+| 6 | Document workspace deltas in `docs/workspaces/{id}/` (not in portal shell doc) |
+
+---
+
+## Request profiles (v1)
+
+| Profile | Plugins | POST shape |
+|---------|---------|------------|
+| `denali_contact_v1` | denali | `{ tourId, registrantTarget?, contact{...}, partySize, transport? }` |
+| `urban_email_v1` | urban | `{ tourId, contact{ email, fullName, phone? }, partySize, notes? }` + `Idempotency-Key` |
+
+Portal BFF **never** branches on `pluginId === "denali"` inline — it calls `buildCatalogRegistrationUpstreamRequest`.
+
+---
+
+## Intake capabilities matrix
+
+| Capability | Denali | Urban | Default (unknown) |
+|------------|--------|-------|-------------------|
+| `registrantTargetTabs` | yes | no | no |
+| `transportIntake` | yes (when card has `transport`) | no | no |
+| `participantProfileFields` | nationalId, fatherName, birthDate | — | — |
+| `emailAtIntake` | no (profile only) | yes | no |
+| `notesAtIntake` | no | yes | no |
+| `idempotencyKey` | no | yes | no |
+| `successDataAttributes` | — | `data-urban-registration-success` | — |
+
+Transport UI is **card-driven**: when `PublicCatalogCard.transport` is absent, portal shows no transport controls even if `transportIntake` capability is true.
+
+### Denali tour-flag intake gating (2026-07-02)
+
+`IntakeSchemaContext.tourRequirements` carries catalog egress flags (`nationalIdRequired`, `fatherNameRequired`, `birthDateRequired`). Denali `resolveEffectiveSchema` applies:
+
+1. **Tour filter** — omit participant fields when the matching canonical flag is not `true`.
+2. **Session filter** — for `registrantTarget=self`, omit fields already present on `GET /api/me/profile`.
+
+`RegistrationFlowContext.tourRequirements` is populated from catalog detail HTTP (`fetchCatalogTour` in portal). Workspace intake plugins own filter logic; portal shell only passes flags.
+
+Smoke fixture tours (operator tenant `…000014`):
+
+| Tour ID | Title | Purpose |
+|---------|-------|---------|
+| `…000210` | North Ridge Trek | Default registration smoke (SMK-PTL-01) — no participant flags, no transport |
+| `…000211` | Denali draft fixture | Draft 404 probes |
+| `…000212` | Alpine Identity Check | DEN-INTAKE / DEN-PROF — `nationalIdRequired` + `fatherNameRequired` + `birthDateRequired` |
+| `…000213` | Ridge Bus Shuttle | DEN-TRANS-01/02 — `transport.mode=bus` · `allowPersonalCar=true` · `transportCost` (organized default + personal-car opt-in) |
+| `…000214` | Carpool Pass | DEN-TRANS-03 — `transport.mode=shared_cars` · `dongAmount` (mandatory transport follow-up) |
+
+API catalog list returns **four** published tours (`210` + `212` + `213` + `214`) when `ensureOperatorSmokeSeedTour()` runs. Tours `213`/`214` carry canonical `transport.*` so the portal renders transport intake without any workspace import (card-driven via `PublicCatalogCard.transport`).
+
+When `emailAtIntake` is true and member profile has no saved email, portal intake shows an email field (Urban). Profile-step email still pre-fills when present.
+
+When `notesAtIntake` is true, portal shows optional notes textarea (Urban).
+
+---
+
+## Persisted booking metadata
+
+`BookingsRepository.registrationIntake` JSON (egress-safe, ops-only):
+
+```json
+{
+  "registrantTarget": "self",
+  "transport": { "kind": "primary" },
+  "nationalId": "1234567890"
+}
+```
+
+Parsed via SDK `RegistrationIntakeRecord` — operator web imports SDK parser, not workspace packages.
+
+Workspace-specific validation of `transport.kind` remains in `packages/workspaces/denali/` Zod schemas aligned with SDK enum.
+
+---
+
+## Verification (fast path)
+
+| Layer | Spec / guard |
+|-------|----------------|
+| SDK dispatch | `packages/workspace-sdk/test/catalog-registration-dispatch.spec.ts` |
+| SDK transport UI | `packages/workspace-sdk/test/public-catalog-transport-intake.spec.ts` |
+| SDK price hint | `packages/workspace-sdk/test/compute-public-catalog-registration-price.spec.ts` |
+| SDK ops parser | `packages/workspace-sdk/test/registration-intake.contract.spec.ts` |
+| SDK product-neutral | `packages/workspace-sdk/test/product-neutral-core.contract.spec.ts` (registration files allowlisted) |
+| API persistence | `apps/api/test/denali-registration.spec.ts` · `DREG-19-01` |
+| Identity profile | `apps/api/test/identity-me.spec.ts` · `API-9.6-ME-04d` (`fatherName` / `birthDate` PATCH) |
+| Workspace rules | `packages/workspaces/denali/test/resolve-denali-registration-transport.spec.ts` · `denali-registration-validation.spec.ts` |
+| Portal BFF | `apps/portal/test/portal-catalog-registrations-dispatch.spec.ts` |
+| Static closure | `pnpm run guard:public-catalog-m17` |
+| CI / product gate | `pnpm run p6:gate` · `pnpm run p4:gate` — SDK registration specs · `denali-registration.spec.ts` · portal intake contract specs · web `format-registration-intake` · `platform-club-product-exit.spec.ts` (EX-02c) |
+
+---
+
+## Documentation map
+
+| Doc | Scope |
+|-----|-------|
+| **This file** | Platform layering + SDK registry |
+| [platform-portal-registration.mdoc](../phase-17/platform-portal-registration.mdoc) | OTP host + URL bridge |
+| [portal-registration-ui.md](../workspaces/denali/portal-registration-ui.md) | Denali UX deltas + E2E hooks |
+| [public-catalog.md](../workspaces/denali/public-catalog.md) | Catalog API + workspace checklist |

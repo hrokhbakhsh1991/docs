@@ -1,0 +1,79 @@
+---
+title: CSS ownership migration
+format: markdoc
+doc_role: implementation_plan
+extends:
+  - docs/standards/css-ownership-model.mdoc
+---
+
+# CSS ownership migration
+
+## Before / after structure
+
+### Before
+
+```text
+apps/portal/app/globals.css          → guest-shell.css (portal + marketing fallbacks + infra)
+apps/marketing/app/globals.css       → guest-shell.css (same bundle)
+apps/web/app/globals.css             → styles + shell-bridge + operator-admin-appearance
+
+guest-shell.css                      → mixed cross-surface imports + body rules
+operator-admin-appearance.css        → platform wizard + .denali-wizard-content-quality*
+
+PortalProviders / MarketingProviders   → TenantThemeProvider (--color-primary inline bypass)
+guest-club/theme/tokens.css          → :root { --ws-color-accent }
+```
+
+### After (Phase 1 — landed)
+
+```text
+apps/portal/app/globals.css          → portal-bootstrap.css + tailwind
+apps/marketing/app/globals.css       → marketing-bootstrap.css + tailwind
+apps/web/app/globals.css             → admin-bootstrap.css + tailwind
+
+portal-bootstrap.css                 → L0 + bridge + portal fallback + body reset + infra
+marketing-bootstrap.css              → L0 + bridge + marketing fallback + body reset + infra
+admin-bootstrap.css                  → L0 + bridge + operator-admin-appearance (structure)
+
+denali/theme/wizard-review.css       → .denali-wizard-content-quality* (scoped skin)
+
+PortalProviders / MarketingProviders   → PlatformThemeProvider only
+guest-club/theme/tokens.css          → [data-workspace-theme] { --ws-color-accent }
+```
+
+## File refactor map (Phase 1)
+
+| Action | File |
+| ------ | ---- |
+| **Added** | `packages/design-tokens/src/portal-bootstrap.css` |
+| **Added** | `packages/design-tokens/src/marketing-bootstrap.css` |
+| **Added** | `packages/design-tokens/src/admin-bootstrap.css` |
+| **Added** | `packages/design-tokens/src/guest-body-reset.css` |
+| **Added** | `scripts/guards/css-ownership-lib.mjs` |
+| **Added** | `scripts/guards/guard-css-globals-import-only.mjs` |
+| **Added** | `scripts/guards/guard-css-bootstrap-integrity.mjs` |
+| **Modified** | `guest-shell.css` → deprecated alias of `portal-bootstrap.css` |
+| **Modified** | `operator-admin-appearance.css` → removed Denali content-quality block |
+| **Modified** | `wizard-review.css` → added content-quality block |
+| **Modified** | Guest provider TSX + layouts |
+
+## Phase 2 — landed (2026-07-06)
+
+- `starter/theme/starter-portal.css` L3 default portal skin (shell + /me/profile appearance; loaded via guest theme loader)
+- L2 `fallback-guest-portal-shell.css` structure-only
+- Portal `/me/profile` Tailwind purge + `guard-shell-appearance-ast` portal-me scope
+- Dynamic admin skin: `importAdminThemeForPlugin` in `apps/web` layout
+- DTCG ↔ `themes/light.css` sync in `generate-tokens.mjs` + `guard-dtcg-css-sync`
+
+## Phase 3+ (deferred)
+
+- Delete `guest-shell.css` alias after downstream doc updates
+
+## Verification
+
+```bash
+pnpm run guard:css-globals
+pnpm run guard:css-bootstrap-integrity
+pnpm run guard:guest-plugin-conformance
+pnpm --filter @app-tour/design-tokens run build
+```

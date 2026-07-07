@@ -70,4 +70,12 @@ export async function patchUrbanSettings(
   return { urban: readUrbanFromTheme(mergedTheme) };
 }
 
+export async function readUrbanRegistrationPolicyForTenant(
+  tenantId: string
+): Promise<"open" | "waitlist" | "closed"> {
+  const host = getUrbanHttpHost();
+  const theme = await host.settings.resolveTenantThemeJsonById(tenantId);
+  return readUrbanFromTheme(theme).registration.policy;
+}
+
 export { patchThemeUrban } from "./theme-merge";

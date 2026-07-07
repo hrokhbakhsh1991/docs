@@ -1,22 +1,17 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import {
-  DENALI_MAX_PHOTO_UPLOAD_BYTES,
-  ensureMinioPhotoBucket,
-  getDenaliTourPhotoSignedReadUrl,
-  putDenaliWizardDraftPhoto,
-  readMinioPhotoConfigFromEnv,
-} from "@app-tour/workspace-denali";
-
 import { runWithHttpRequestContext } from "../http/bind-request-context";
 import { readBinaryRequestBody } from "../http/read-binary-body";
 import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { requireOperatorSession } from "../identity/require-operator-session";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
+import { isDenaliOperatorTourPhotoReadKeyAllowed } from "@app-tour/workspace-denali";
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import {
+  resolveWizardMediaBinding,
+  type WorkspaceWizardMediaBinding,
+} from "./workspace-wizard-media-dispatch";
 
 function readHeader(req: IncomingMessage, name: string): string {
   const raw = req.headers[name.toLowerCase()];
@@ -26,7 +21,10 @@ function readHeader(req: IncomingMessage, name: string): string {
   return (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? "";
 }
 
-function parseWizardPhotoUploadHeaders(req: IncomingMessage): {
+function parseWizardPhotoUploadHeaders(
+  req: IncomingMessage,
+  media: WorkspaceWizardMediaBinding
+): {
   readonly sessionId: string;
   readonly photoId: string;
   readonly contentType: string;
@@ -35,10 +33,10 @@ function parseWizardPhotoUploadHeaders(req: IncomingMessage): {
   const photoId = readHeader(req, "x-photo-id");
   const contentType = readHeader(req, "content-type").toLowerCase();
 
-  if (!UUID_PATTERN.test(sessionId)) {
+  if (!media.isSessionId(sessionId)) {
     throw new Error("ZOD_VALIDATION_FAILED: x-wizard-session-id must be a UUID");
   }
-  if (!UUID_PATTERN.test(photoId)) {
+  if (!media.isSessionId(photoId)) {
     throw new Error("ZOD_VALIDATION_FAILED: x-photo-id must be a UUID");
   }
   if (contentType.length === 0) {
@@ -48,6 +46,28 @@ function parseWizardPhotoUploadHeaders(req: IncomingMessage): {
   return { sessionId, photoId, contentType };
 }
 
+/** Same message-code pattern as `mapBrandingError` in tenant-branding.routes.ts. */
+function mapWizardPhotoError(res: ServerResponse, error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message === "MINIO_NOT_CONFIGURED") {
+    sendHttpError(res, 503, { error: "service_unavailable", code: "MINIO_NOT_CONFIGURED" });
+    return;
+  }
+  if (message === "PHOTO_STORAGE_FULL") {
+    sendHttpError(res, 507, { error: "storage_full", code: "PHOTO_STORAGE_FULL" });
+    return;
+  }
+  if (message === "PHOTO_STORAGE_UNAVAILABLE") {
+    sendHttpError(res, 503, { error: "service_unavailable", code: "PHOTO_STORAGE_UNAVAILABLE" });
+    return;
+  }
+  if (message.startsWith("DENALI_PHOTO_")) {
+    sendHttpError(res, 400, { error: "invalid_body", code: message });
+    return;
+  }
+  handleHttpError(res, error);
+}
+
 export async function handleUploadWizardPhoto(
   req: IncomingMessage,
   res: ServerResponse
@@ -55,7 +75,8 @@ export async function handleUploadWizardPhoto(
   try {
     const auth = await requireOperatorSession(req);
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
-    if (workspaceType !== "denali") {
+    const media = resolveWizardMediaBinding(workspaceType);
+    if (media === undefined) {
       sendHttpError(res, 403, {
         error: "forbidden",
         code: "WIZARD_PHOTO_UPLOAD_FORBIDDEN",
@@ -63,7 +84,7 @@ export async function handleUploadWizardPhoto(
       return;
     }
 
-    const minioConfig = readMinioPhotoConfigFromEnv();
+    const minioConfig = media.readPhotoConfigFromEnv();
     if (minioConfig === null) {
       sendHttpError(res, 503, {
         error: "service_unavailable",
@@ -72,8 +93,8 @@ export async function handleUploadWizardPhoto(
       return;
     }
 
-    const headers = parseWizardPhotoUploadHeaders(req);
-    const body = await readBinaryRequestBody(req, DENALI_MAX_PHOTO_UPLOAD_BYTES);
+    const headers = parseWizardPhotoUploadHeaders(req, media);
+    const body = await readBinaryRequestBody(req, media.maxUploadBytes);
     if (body.length === 0) {
       sendHttpError(res, 400, { error: "invalid_body", code: "WIZARD_PHOTO_EMPTY" });
       return;
@@ -83,8 +104,8 @@ export async function handleUploadWizardPhoto(
       req,
       auth,
       async () => {
-        await ensureMinioPhotoBucket(minioConfig);
-        const { key } = await putDenaliWizardDraftPhoto({
+        await media.ensurePhotoBucket(minioConfig);
+        const { key } = await media.putDraftPhoto({
           config: minioConfig,
           tenantId: auth.tenantId,
           sessionId: headers.sessionId,
@@ -101,7 +122,7 @@ export async function handleUploadWizardPhoto(
       { rateLimit: "write" }
     );
   } catch (error) {
-    handleHttpError(res, error);
+    mapWizardPhotoError(res, error);
   }
 }
 
@@ -112,7 +133,8 @@ export async function handleGetWizardPhotoUrl(
   try {
     const auth = await requireOperatorSession(req);
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
-    if (workspaceType !== "denali") {
+    const media = resolveWizardMediaBinding(workspaceType);
+    if (media === undefined) {
       sendHttpError(res, 403, {
         error: "forbidden",
         code: "WIZARD_PHOTO_READ_FORBIDDEN",
@@ -120,7 +142,7 @@ export async function handleGetWizardPhotoUrl(
       return;
     }
 
-    const minioConfig = readMinioPhotoConfigFromEnv();
+    const minioConfig = media.readPhotoConfigFromEnv();
     if (minioConfig === null) {
       sendHttpError(res, 503, {
         error: "service_unavailable",
@@ -136,8 +158,7 @@ export async function handleGetWizardPhotoUrl(
       return;
     }
 
-    const draftPrefix = `${auth.tenantId}/wizard-drafts/`;
-    if (!storageKey.startsWith(draftPrefix)) {
+    if (!isDenaliOperatorTourPhotoReadKeyAllowed(auth.tenantId, storageKey)) {
       sendHttpError(res, 403, { error: "forbidden", code: "WIZARD_PHOTO_KEY_FORBIDDEN" });
       return;
     }
@@ -146,7 +167,7 @@ export async function handleGetWizardPhotoUrl(
       req,
       auth,
       async () => {
-        const signedUrl = await getDenaliTourPhotoSignedReadUrl({
+        const signedUrl = await media.getSignedReadUrl({
           config: minioConfig,
           tenantId: auth.tenantId,
           key: storageKey,
@@ -157,6 +178,6 @@ export async function handleGetWizardPhotoUrl(
       { rateLimit: "read" }
     );
   } catch (error) {
-    handleHttpError(res, error);
+    mapWizardPhotoError(res, error);
   }
 }

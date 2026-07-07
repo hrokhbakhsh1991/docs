@@ -1,0 +1,247 @@
+---
+title: P5-C — Workspace commerce config (optional)
+phase: 18
+format: markdoc
+optional: true
+prerequisite: P5-core exit OR Architect enable
+quality: 9.5
+doc_role: architecture_sot
+execution_spec: TEMP/p5/p5-c-workspace-commerce-config.md
+---
+
+# Workspace commerce config (P5-C — optional)
+
+Config layer for **one payment model per workspace** before live PSP wiring. **Not required for Denali customer v1.**
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p5/p5-c-workspace-commerce-config.md`](../../TEMP/p5/p5-c-workspace-commerce-config.md) v2.9
+
+**Status (2026-06-22):** P5-C complete (N-001..010) · current nano P5-D-N-001 (optional integrations)
+
+**Prerequisite:** P5-core exit (`P5-B-N-016`) — Denali operator parity on metadata path complete.
+
+---
+
+## Executive summary
+
+| Layer | P5-C delivers |
+|-------|----------------|
+| **Schema** | `WorkspaceCommerceConfig` — payment mode + optional gateway provider |
+| **Persistence** | Commerce block on workspace definition publish + tenant binding inherit |
+| **Tour default** | Non-Denali tour create sets `pricing.paymentMode` from workspace default |
+| **UI** | Super Admin commerce badge hidden/read-only for `workspaceType=denali` |
+| **Preservation** | PC-07 — Denali stays `offline_receipt`; receipt routes unchanged |
+
+---
+
+## Facts frozen (§Facts — P5-C spec)
+
+| # | Fact | Anchor |
+|---|------|--------|
+| F1 | Denali uses `offline_receipt` today | `denaliCore.schema.ts` · golden fixtures |
+| F2 | Receipt routes live | `POST/PATCH /finance/receipts` |
+| F3 | Platform subscription billing ≠ club PSP | P2-C separate surface |
+| F4 | Gateway mode blocked until P5-D exit | `GU-02` runtime guard (N-009) |
+
+---
+
+## Denali scope (frozen — P5-C-N-001 DOC-C-01)
+
+Denali is **excluded** from commerce configuration UI and gateway wiring in P5-C v1.
+
+| Rule | Detail |
+|------|--------|
+| Payment mode | **`offline_receipt` only** — no Super Admin toggle |
+| Flow | Member upload → admin review (existing finance routes) |
+| P5-C UI | Commerce badge **hidden or read-only** for `workspaceType=denali` |
+| Preservation | **PC-07** — tour canonical `pricing.paymentMode` stays `offline_receipt` |
+
+Cross-ref: [`platform-denali-operator-parity.mdoc`](./platform-denali-operator-parity.mdoc) PC-07 · [`TEMP/p5/PRESERVATION-CHECKLIST.md`](../../TEMP/p5/PRESERVATION-CHECKLIST.md).
+
+```text
+STOP (Denali S0):
+  - No gatewayProvider on Denali tenants
+  - No Super Admin payment-mode toggle for workspaceType=denali
+  - PC-07 + receipt route specs must stay green after every P5-C nano
+```
+
+---
+
+## Commerce schema (frozen — P5-C-N-002)
+
+Implementation: `packages/workspace-sdk/src/metadata/commerce-schema.ts`
+
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| `paymentMode` | `"offline_receipt"` \| `"gateway"` | `"offline_receipt"` | SCH-01 |
+| `gatewayProvider` | `"zibal"` \| `"stripe"` \| `null` | `null` | SCH-02; required when mode is `gateway` |
+| `currency` | `string` | `"IRR"` | ISO-like code for display/settlement metadata |
+
+```json
+{
+  "commerce": {
+    "paymentMode": "offline_receipt",
+    "gatewayProvider": null,
+    "currency": "IRR"
+  }
+}
+```
+
+**Validation rules:**
+
+1. `paymentMode: "gateway"` ⇒ `gatewayProvider` must be set (`GU-01`).
+2. `paymentMode: "offline_receipt"` ⇒ `gatewayProvider` must be `null`.
+3. Selecting `gateway` at runtime returns **503** until P5-D exit (`GU-02`) — schema allows the enum; ingress guard blocks activation.
+
+Gateway PSP wiring (Zibal/Stripe credentials, webhooks) is **P5-D optional** — not P5-C.
+
+---
+
+## Nano map (P5-C)
+
+| Nano | Parent | Assert band | Primary deliverable |
+|------|--------|-------------|---------------------|
+| P5-C-N-001 | T-001 Doc | DOC-C-01..02 | this mdoc + Denali exclusion table |
+| P5-C-N-002 | T-001 Schema | SCH-01..03 | `commerce-schema.ts` |
+| P5-C-N-003 | T-002 Persist | — | merge commerce into definition publish + checksum |
+| P5-C-N-004 | T-002 Binding | — | tenant binding inherits workspace default |
+| P5-C-N-005 | T-002 Tour create | API-03..04 | `tours.service.ts` default paymentMode |
+| P5-C-N-006 | T-003 UI | UI-02 | Super Admin badge (non-Denali only) |
+| P5-C-N-007 | T-003 Guard | GU-01 | single active mode spec |
+| P5-C-N-008 | T-003 Preservation | PC-07 | Denali unchanged spec |
+| P5-C-N-009 | T-003 Guard | GU-02 | gateway blocked until P5-D |
+| P5-C-N-010 | T-004 Exit | EX-C | `platform-workspace-commerce-exit.spec.ts` |
+
+---
+
+## Data flow (non-Denali)
+
+```text
+Super Admin publishes workspace definition
+  → mergeCommerceIntoWorkspaceDefinitionPayload (default offline_receipt when absent)
+  → payload.commerce validated (SCH-01..03)
+  → checksum includes commerce block (N-003)
+
+Tenant binding set
+  → tour create reads workspace commerce default (N-004..005)
+  → pricing.paymentMode written on canonical ingress
+
+Denali tenant
+  → skip commerce UI (N-006)
+  → pricing.paymentMode forced offline_receipt (API-04, PC-07)
+```
+
+---
+
+## Persistence on publish (frozen — P5-C-N-003)
+
+Implementation: `apps/api/src/workspace-metadata/persist-commerce-on-publish.ts`
+
+| Step | Behavior |
+|------|----------|
+| 1 | Incoming publish body may omit `payload.commerce` |
+| 2 | `mergeCommerceIntoWorkspaceDefinitionPayload` injects `DEFAULT_WORKSPACE_COMMERCE_CONFIG` |
+| 3 | `validateWorkspaceDefinitionPayload` accepts optional `commerce` and validates shape |
+| 4 | `computeWorkspaceDefinitionPayloadChecksum` hashes the merged payload (commerce included) |
+
+Wired in `publishPlatformWorkspaceDefinitionVersion` **before** validation — stored version rows always carry an explicit commerce block after P5-C-N-003.
+
+---
+
+## Tenant binding inherit (frozen — P5-C-N-004)
+
+Implementation: `apps/api/src/workspace-metadata/resolve-workspace-commerce-for-tenant.ts`
+
+| Step | Behavior |
+|------|----------|
+| 1 | `parseDefinitionPayload` merges default commerce when DB row predates N-003 |
+| 2 | `resolveWorkspaceCommerceConfigForTenant` reads `payload.commerce` when metadata flag + binding set |
+| 3 | Package path (no binding) → `DEFAULT_WORKSPACE_COMMERCE_CONFIG` |
+| 4 | `workspaceType=denali` → always `{ paymentMode: offline_receipt, gatewayProvider: null }` (PC-07 / API-04) |
+| 5 | Platform row missing → `readTenantWorkspaceMetadataBinding` falls back to static dev registry (no metadata binding) so memory-path `createTour` specs resolve commerce without Postgres |
+
+---
+
+## Tour create default (frozen — P5-C-N-005)
+
+Implementation: `apps/api/src/tours/apply-workspace-commerce-create-default.ts` · wired in `tours.service.ts` `createTour`.
+
+`ToursService` accepts optional `resolveCommerce` dep (tests only) to inject commerce without platform DB.
+
+| Assert | Behavior |
+|--------|----------|
+| API-03 | Non-Denali create merges missing `pricing.paymentMode` from resolved workspace commerce; when `pricing` is injected, `roots` gains `pricing` if absent (canonical ROOT_UNKNOWN guard) |
+| API-04 | Denali create forces `offline_receipt` even when client omits or sends another mode |
+
+---
+
+## Super Admin commerce badge (frozen — P5-C-N-006)
+
+Implementation: `apps/web/src/platform/club-commerce-badge.tsx` · rendered on workspace tab.
+
+| Assert | Behavior |
+|--------|----------|
+| UI-02 | `workspaceType=denali` → read-only `offline_receipt` badge; gateway controls hidden (`data-commerce-gateway-ui="hidden"`) |
+| UI-02b | Non-Denali clubs show commerce badge with resolved `paymentMode` (+ provider label when gateway) |
+| UI-02c | Tenant detail DTO exposes `workspaceCommerce` from `resolveWorkspaceCommerceConfigForTenantById` |
+
+Implementation detail: `GET /platform/v1/tenants/:id` includes `workspaceCommerce`; workspace tab passes it to `ClubCommerceBadge`.
+
+---
+
+## Commerce guards (frozen — P5-C-N-007..009)
+
+| Nano | Spec | Assert | Behavior |
+|------|------|--------|----------|
+| N-007 | `workspace-commerce-single-mode.spec.ts` | GU-01 | Schema rejects `gateway` without `gatewayProvider` |
+| N-008 | `denali-offline-receipt-unchanged.spec.ts` | PC-07 | Denali receipt routes + `offline_receipt` schema unchanged |
+| N-009 | `assert-workspace-commerce-gateway-blocked.ts` | GU-02 | Runtime guard throws `WorkspaceCommerceGatewayBlockedError` (503 + `WORKSPACE_COMMERCE_GATEWAY_BLOCKED`); `ToursService.createTour` rejects before persist; `handleHttpError` maps typed error to HTTP 503 |
+
+Runtime proof (not static wiring):
+
+| Assert | Spec | Behavior |
+|--------|------|----------|
+| GU-02a | `workspace-commerce-gateway-blocked.spec.ts` | Guard throw + `handleHttpError` → 503 JSON |
+| GU-02b | `tour-create-commerce-gateway-blocked.spec.ts` | `createTour` with injected gateway commerce → no storage write |
+
+---
+
+## Non-goals (P5-C v1)
+
+- Live Zibal/Stripe checkout (P5-D)
+- Changing Denali receipt admin review flow
+- Platform subscription billing (P2-C)
+- Urban/starter full PSP parity
+
+---
+
+## Verify
+
+```bash
+pnpm run guard:p3-denali-covenant
+pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/commerce-schema.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test test/platform-club-commerce-badge.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/platform-workspace-commerce-exit.spec.ts \
+  test/workspace-commerce-single-mode.spec.ts \
+  test/denali-offline-receipt-unchanged.spec.ts \
+  test/workspace-commerce-gateway-blocked.spec.ts \
+  test/tour-create-commerce-gateway-blocked.spec.ts \
+  test/workspace-metadata-commerce-inherit.spec.ts \
+  test/tour-create-payment-mode-default.spec.ts
+```
+
+**P5-C EPIC exit:** EX-C-01..03 in `platform-workspace-commerce-exit.spec.ts`.
+
+---
+
+## Assert registry (P5-C)
+
+| Band | IDs | Owner |
+|------|-----|-------|
+| Doc | DOC-C-01..02 | this mdoc |
+| Schema | SCH-01..03 | workspace-sdk metadata |
+| API | API-03..04 | tours.service |
+| UI | UI-02 | Super Admin club tab |
+| Guards | GU-01..02 | commerce guard specs |
+| Preservation | PC-07 | Denali offline_receipt |
+| Exit | EX-C-01..02 | platform-workspace-commerce-exit |

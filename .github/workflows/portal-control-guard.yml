@@ -1,0 +1,30 @@
+# Portal surface — delegates to CTL-CORE authority (always-on)
+name: portal-control-guard
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "apps/portal/**"
+      - "packages/workspaces/*/theme/*-portal.css"
+      - "scripts/guards/portal-control-pack.mjs"
+      - "scripts/guards/guard-portal-guest-theme-loader.mjs"
+      - "scripts/guards/control-authority.mjs"
+      - "scripts/guards/lib/**"
+      - ".github/workflows/portal-control-guard.yml"
+  workflow_dispatch:
+
+jobs:
+  portal-control:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run control:ci

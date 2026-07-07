@@ -8,20 +8,14 @@ import type {
   WizardValidationSurface,
   WizardValidationSurfaceRenderProps,
 } from "./wizard-surface-types";
-
-import { denaliWizardReviewSurface } from "./denali/denali-wizard-review-surface";
+import { resolveGeneratedReviewSurface } from "@/bootstrap/wizard-surface-bindings.generated";
 
 function renderPlatformValidationSummary(props: WizardValidationSurfaceRenderProps): ReactNode {
   return <WorkspaceWizardValidationSummary {...props} />;
 }
 
-const platformValidationSurface: WizardValidationSurface = Object.freeze({
+const platformValidationSurface: WizardReviewSurface = Object.freeze({
   renderValidationSummary: renderPlatformValidationSummary,
-});
-
-const WIZARD_REVIEW_SURFACE_REGISTRY: Readonly<Record<string, WizardReviewSurface>> = Object.freeze({
-  denali: denaliWizardReviewSurface,
-  platform: platformValidationSurface,
 });
 
 export type {
@@ -33,10 +27,10 @@ export type {
 } from "./wizard-surface-types";
 
 export function resolveWizardReviewSurface(surfaceId: string | undefined): WizardReviewSurface | null {
-  if (surfaceId == null || surfaceId.trim().length === 0) {
-    return null;
+  if (surfaceId === "platform") {
+    return platformValidationSurface;
   }
-  return WIZARD_REVIEW_SURFACE_REGISTRY[surfaceId] ?? null;
+  return resolveGeneratedReviewSurface(surfaceId);
 }
 
 /** Step-nav + review validation UI — falls back to reviewSurfaceId, then platform default. */

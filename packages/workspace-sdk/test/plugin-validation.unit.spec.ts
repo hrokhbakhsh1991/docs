@@ -56,6 +56,22 @@ describe("assertWorkspacePlugin", () => {
     );
   });
 
+  it("allows publishStatus to initialStatus unpublish edge", () => {
+    const plugin = {
+      ...createFreshStarterPlugin(),
+
+      lifecycle: {
+        initialStatus: "DRAFT",
+        publishStatus: "OPEN",
+        allowedTransitions: [
+          { from: "DRAFT", to: "OPEN" },
+          { from: "OPEN", to: "DRAFT" },
+        ],
+      },
+    };
+    assert.doesNotThrow(() => assertWorkspacePlugin(plugin));
+  });
+
   it("rejects lifecycle transition cycles", () => {
     const bad = {
       ...createFreshStarterPlugin(),
@@ -65,7 +81,8 @@ describe("assertWorkspacePlugin", () => {
         publishStatus: "OPEN",
         allowedTransitions: [
           { from: "DRAFT", to: "OPEN" },
-          { from: "OPEN", to: "DRAFT" },
+          { from: "OPEN", to: "REVIEW" },
+          { from: "REVIEW", to: "OPEN" },
         ],
       },
     };

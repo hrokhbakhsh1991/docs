@@ -1,12 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DashboardRegistrationListRow,
+  DashboardWidgetCard,
+  DashboardWidgetError,
+  DashboardWidgetFooterLink,
+  DashboardWidgetList,
+  DashboardWidgetListEmptyItem,
+  DashboardWidgetRowStack,
+} from "@/admin/patterns/dashboard-widget-card";
 import {
   DASHBOARD_WIDGETS_TEST_IDS,
   dashboardPendingBookingsHref,
@@ -74,50 +81,44 @@ export function DashboardRegistrationsWidget({
   const queueChips = useMemo(() => selectRegistrationQueueChips(summary), [summary]);
 
   return (
-    <Card data-denali-surface="card" data-testid={DASHBOARD_WIDGETS_TEST_IDS.registrations} className="flex flex-col shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t("registrations.title")}</CardTitle>
-        <CardDescription>
-          {loading ? t("registrations.loading") : t("registrations.pendingCount", { count: summary.pending })}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="mt-auto space-y-4">
-        {loading ? (
-          <div className="space-y-2">
-            <DenaliSkeleton className="h-8 w-full" />
-            <DenaliSkeleton className="h-8 w-full" />
-          </div>
-        ) : null}
-        {!loading && error ? (
-          <p className="text-sm text-destructive" role="alert">
-            {resolveDashboardErrorMessage(tErrors, error)}
-          </p>
-        ) : null}
-        {!loading && !error ? (
-          <ul className="space-y-2">
-            {queueChips.length === 0 ? (
-              <li>
-                <DenaliEmptyState description={t("registrations.empty")} icon="trees" />
-              </li>
-            ) : (
-              queueChips.map((chip) => (
-                <li
-                  key={chip.tourId}
-                  className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"
-                >
-                  <span className="truncate">{chip.tourTitle}</span>
-                  <span className="shrink-0 font-medium">
-                    {t("registrations.pendingOnTour", { count: chip.pendingCount })}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        ) : null}
-        <Link href={dashboardPendingBookingsHref()} className="text-sm text-primary hover:underline">
+    <DashboardWidgetCard
+      testId={DASHBOARD_WIDGETS_TEST_IDS.registrations}
+      title={t("registrations.title")}
+      description={
+        loading ? t("registrations.loading") : t("registrations.pendingCount", { count: summary.pending })
+      }
+      footer={
+        <DashboardWidgetFooterLink href={dashboardPendingBookingsHref()}>
           {t("registrations.reviewPending")}
-        </Link>
-      </CardContent>
-    </Card>
+        </DashboardWidgetFooterLink>
+      }
+    >
+      {loading ? (
+        <DashboardWidgetRowStack>
+          <DenaliSkeleton size="row" />
+          <DenaliSkeleton size="row" />
+        </DashboardWidgetRowStack>
+      ) : null}
+      {!loading && error ? (
+        <DashboardWidgetError>{resolveDashboardErrorMessage(tErrors, error)}</DashboardWidgetError>
+      ) : null}
+      {!loading && !error ? (
+        <DashboardWidgetList>
+          {queueChips.length === 0 ? (
+            <DashboardWidgetListEmptyItem>
+              <DenaliEmptyState description={t("registrations.empty")} icon="trees" />
+            </DashboardWidgetListEmptyItem>
+          ) : (
+            queueChips.map((chip) => (
+              <DashboardRegistrationListRow
+                key={chip.tourId}
+                title={chip.tourTitle}
+                countLabel={t("registrations.pendingOnTour", { count: chip.pendingCount })}
+              />
+            ))
+          )}
+        </DashboardWidgetList>
+      ) : null}
+    </DashboardWidgetCard>
   );
 }

@@ -9,37 +9,83 @@ datasource db {
 }
 
 model Tenant {
-  id            String   @id @default(uuid()) @db.Uuid
-  subdomain     String   @unique
-  workspaceType String   @default("starter") @map("workspace_type")
-  status        String   @default("active")
-  theme         Json     @default("{}")
-  createdAt     DateTime @default(now()) @map("created_at")
-  tours         Tour[]
-  outboxEvents  OutboxEvent[]
-  auditEvents   AuditEvent[]
-  httpIdempotencyRecords HttpIdempotencyRecord[]
-  processedDomainEvents ProcessedDomainEvent[]
-  tenantRoute         TenantRoute?
-  payments            Payment[]
-  paymentReceipts     PaymentReceipt[]
-  urbanRegistrations  UrbanRegistration[]
-  userTenants         UserTenant[]
-  operatorPendingInvites OperatorPendingInvite[]
-  operatorRegistrations OperatorRegistration[]
-  tenantConfigs TenantConfig[]
-  workspaceEquipment WorkspaceEquipment[]
-  workspaceTourThemes WorkspaceTourTheme[]
-  workspaceGuideLanguages WorkspaceGuideLanguage[]
-  workspaceTourPresets WorkspaceTourPreset[]
-  workspaceRegions WorkspaceRegion[]
-  workspaceDestinations WorkspaceDestination[]
+  id                          String                       @id @default(uuid()) @db.Uuid
+  subdomain                   String                       @unique
+  workspaceType               String                       @default("starter") @map("workspace_type")
+  status                      String                       @default("active")
+  theme                       Json                         @default("{}")
+  createdAt                   DateTime                     @default(now()) @map("created_at")
+  offboardingStartedAt        DateTime?                    @map("offboarding_started_at") @db.Timestamptz
+  scheduledDeletionAt         DateTime?                    @map("scheduled_deletion_at") @db.Timestamptz
+  tours                       Tour[]
+  outboxEvents                OutboxEvent[]
+  auditEvents                 AuditEvent[]
+  httpIdempotencyRecords      HttpIdempotencyRecord[]
+  processedDomainEvents       ProcessedDomainEvent[]
+  tenantRoute                 TenantRoute?
+  payments                    Payment[]
+  paymentReceipts             PaymentReceipt[]
+  urbanRegistrations          UrbanRegistration[]
+  userTenants                 UserTenant[]
+  operatorPendingInvites      OperatorPendingInvite[]
+  operatorRegistrations       OperatorRegistration[]
+  tenantConfigs               TenantConfig[]
+  tenantDomains               TenantDomain[]
+  workspaceEquipment          WorkspaceEquipment[]
+  workspaceTourThemes         WorkspaceTourTheme[]
+  workspaceGuideLanguages     WorkspaceGuideLanguage[]
+  workspaceTourPresets        WorkspaceTourPreset[]
+  workspaceRegions            WorkspaceRegion[]
+  workspaceDestinations       WorkspaceDestination[]
   operatorSettingsAuditEvents OperatorSettingsAuditEvent[]
-  operatorUserRoleAudits OperatorUserRoleAudit[]
-  workspaceDraftSnapshots WorkspaceDraftSnapshot[]
-  workspaceDraftEvents    WorkspaceDraftEvent[]
+  operatorUserRoleAudits      OperatorUserRoleAudit[]
+  workspaceDraftSnapshots     WorkspaceDraftSnapshot[]
+  workspaceDraftEvents        WorkspaceDraftEvent[]
+  workspaceTelegramBots       WorkspaceTelegramBot[]
+  integrationConnections      IntegrationConnection[]
+  integrationDeliveryJobs     IntegrationDeliveryJob[]
+  denaliExposureReminderActivations DenaliExposureReminderActivation[]
+  integrationEventPolicies    IntegrationEventPolicy[]
+  exposureProfiles            ExposureProfile[]
+  exposureIntents             ExposureIntent[]
+  integrationSecrets          IntegrationSecret[]
+  subscription                TenantSubscription?
+  workspaceDefinitionId       String?                      @map("workspace_definition_id")
+  workspaceDefinitionVersion  Int?                         @map("workspace_definition_version")
+  workspaceDefinition         WorkspaceDefinition?         @relation(fields: [workspaceDefinitionId], references: [id], onDelete: SetNull)
 
   @@map("tenants")
+}
+
+/// P3-A — logical workspace vertical (metadata platform).
+model WorkspaceDefinition {
+  id          String                       @id
+  displayName String                       @map("display_name")
+  status      String                       @default("draft")
+  createdAt   DateTime                     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime                     @updatedAt @map("updated_at") @db.Timestamptz
+  versions    WorkspaceDefinitionVersion[]
+  tenants     Tenant[]
+
+  @@map("workspace_definitions")
+}
+
+/// P3-A — immutable published metadata snapshot (JSON payload).
+model WorkspaceDefinitionVersion {
+  id                         String              @id @default(uuid()) @db.Uuid
+  definitionId               String              @map("definition_id")
+  version                    Int
+  pluginApiVersion           Int                 @default(1) @map("plugin_api_version")
+  payload                    Json
+  checksum                   String
+  publishedAt                DateTime?           @map("published_at") @db.Timestamptz
+  createdByPlatformOpsUserId String?             @map("created_by_platform_ops_user_id") @db.Uuid
+  createdAt                  DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  definition                 WorkspaceDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@unique([definitionId, version], map: "uq_workspace_definition_versions_def_version")
+  @@index([definitionId], map: "idx_workspace_definition_versions_definition_id")
+  @@map("workspace_definition_versions")
 }
 
 /// Phase 7.7 — pool vs silo connection routing (DEC-P7-004).
@@ -56,21 +102,21 @@ model TenantRoute {
 }
 
 model Tour {
-  id             String    @id @default(uuid()) @db.Uuid
-  tenantId       String    @map("tenant_id") @db.Uuid
-  canonical      Json      @map("canonical_data")
-  title          String?
-  publishStatus  String    @default("draft") @map("publish_status")
-  publishedAt    DateTime? @map("published_at") @db.Timestamptz
-  city           String?
-  venueName      String?   @map("venue_name")
-  startDate      DateTime? @map("start_date") @db.Date
-  endDate        DateTime? @map("end_date") @db.Date
-  schemaVersion  Int       @default(1) @map("schema_version")
-  rowVersion     Int       @default(1) @map("row_version")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  tenant         Tenant    @relation(fields: [tenantId], references: [id])
-  registrations  UrbanRegistration[]
+  id            String              @id @default(uuid()) @db.Uuid
+  tenantId      String              @map("tenant_id") @db.Uuid
+  canonical     Json                @map("canonical_data")
+  title         String?
+  publishStatus String              @default("draft") @map("publish_status")
+  publishedAt   DateTime?           @map("published_at") @db.Timestamptz
+  city          String?
+  venueName     String?             @map("venue_name")
+  startDate     DateTime?           @map("start_date") @db.Date
+  endDate       DateTime?           @map("end_date") @db.Date
+  schemaVersion Int                 @default(1) @map("schema_version")
+  rowVersion    Int                 @default(1) @map("row_version")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  tenant        Tenant              @relation(fields: [tenantId], references: [id])
+  registrations UrbanRegistration[]
 
   @@unique([tenantId, id])
   @@index([tenantId], map: "idx_tours_tenant_id")
@@ -103,19 +149,19 @@ model UrbanRegistration {
 }
 
 model OutboxEvent {
-  id             String    @id @default(uuid()) @db.Uuid
-  tenantId       String    @map("tenant_id") @db.Uuid
-  aggregateType  String    @map("aggregate_type")
-  aggregateId    String    @map("aggregate_id") @db.Uuid
-  eventType      String    @map("event_type")
-  payload        Json      @default("{}")
-  status         String    @default("pending")
-  domainEventId  String?   @map("domain_event_id")
-  correlationId  String?   @map("correlation_id")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  processedAt    DateTime? @map("processed_at")
-  lastError      Json?     @map("last_error")
-  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  aggregateType String    @map("aggregate_type")
+  aggregateId   String    @map("aggregate_id") @db.Uuid
+  eventType     String    @map("event_type")
+  payload       Json      @default("{}")
+  status        String    @default("pending")
+  domainEventId String?   @map("domain_event_id")
+  correlationId String?   @map("correlation_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  processedAt   DateTime? @map("processed_at")
+  lastError     Json?     @map("last_error")
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, domainEventId])
   @@index([tenantId, status, createdAt])
@@ -170,22 +216,22 @@ model ProcessedDomainEvent {
 
 /// Phase 9.7 — manual/online payment intents (R1 legacy parity).
 model Payment {
-  id                String    @id @default(uuid()) @db.Uuid
-  tenantId          String    @map("tenant_id") @db.Uuid
-  registrationId    String    @map("registration_id") @db.Uuid
+  id                String           @id @default(uuid()) @db.Uuid
+  tenantId          String           @map("tenant_id") @db.Uuid
+  registrationId    String           @map("registration_id") @db.Uuid
   amount            String
-  currency          String    @db.VarChar(8)
-  method            String    @default("Manual")
-  provider          String    @default("manual")
-  providerPaymentId String?   @map("provider_payment_id")
-  status            String    @default("Pending")
-  paidAt            DateTime? @map("paid_at")
-  failedAt          DateTime? @map("failed_at")
-  refundedAt        DateTime? @map("refunded_at")
-  ledgerJournalId   String?   @map("ledger_journal_id") @db.Uuid
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  currency          String           @db.VarChar(8)
+  method            String           @default("Manual")
+  provider          String           @default("manual")
+  providerPaymentId String?          @map("provider_payment_id")
+  status            String           @default("Pending")
+  paidAt            DateTime?        @map("paid_at")
+  failedAt          DateTime?        @map("failed_at")
+  refundedAt        DateTime?        @map("refunded_at")
+  ledgerJournalId   String?          @map("ledger_journal_id") @db.Uuid
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  tenant            Tenant           @relation(fields: [tenantId], references: [id])
   receipts          PaymentReceipt[]
 
   @@index([tenantId, status])
@@ -227,17 +273,17 @@ model User {
 
 /// Phase 9.1 — tenant membership + JWT sessionVersion invalidation (DEC-P9-012).
 model UserTenant {
-  userId              String   @map("user_id") @db.Uuid
-  tenantId            String   @map("tenant_id") @db.Uuid
-  role                String
-  status              String   @default("ACTIVE")
-  sessionVersion      Int      @default(1) @map("session_version")
-  workspaceId         String?  @map("workspace_id")
-  membershipMetadata  Json     @default("{}") @map("membership_metadata")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId             String   @map("user_id") @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  role               String
+  status             String   @default("ACTIVE")
+  sessionVersion     Int      @default(1) @map("session_version")
+  workspaceId        String?  @map("workspace_id")
+  membershipMetadata Json     @default("{}") @map("membership_metadata")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@id([userId, tenantId])
   @@index([tenantId, status], map: "idx_user_tenants_tenant_status")
@@ -293,23 +339,24 @@ model OperatorUserRoleAudit {
 
 /// Phase 9.5 — operator Command Center registrations (Denali · not urban_registrations).
 model OperatorRegistration {
-  id                 String    @id @default(uuid()) @db.Uuid
-  tenantId           String    @map("tenant_id") @db.Uuid
-  tourId             String    @map("tour_id") @db.Uuid
-  tourTitle          String    @map("tour_title")
-  guestLabel         String    @map("guest_label")
-  guestEmail         String?   @map("guest_email")
-  guestPhone         String?   @map("guest_phone")
-  partySize          Int       @map("party_size")
-  status             String    @default("pending")
-  paymentStatus      String    @default("unpaid") @map("payment_status")
-  departureAt        DateTime  @map("departure_at")
-  submittedAt        DateTime  @default(now()) @map("submitted_at")
-  submittedByUserId  String    @map("submitted_by_user_id") @db.Uuid
-  approvedAt         DateTime? @map("approved_at")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
-  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  tourId            String    @map("tour_id") @db.Uuid
+  tourTitle         String    @map("tour_title")
+  guestLabel        String    @map("guest_label")
+  guestEmail        String?   @map("guest_email")
+  guestPhone        String?   @map("guest_phone")
+  partySize         Int       @map("party_size")
+  status            String    @default("pending")
+  paymentStatus     String    @default("unpaid") @map("payment_status")
+  departureAt       DateTime  @map("departure_at")
+  submittedAt       DateTime  @default(now()) @map("submitted_at")
+  submittedByUserId String    @map("submitted_by_user_id") @db.Uuid
+  approvedAt        DateTime? @map("approved_at")
+  registrationIntake Json?  @map("registration_intake")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, status, submittedAt(sort: Desc)], map: "idx_operator_registrations_tenant_status")
   @@index([tenantId, tourId, submittedAt(sort: Desc)], map: "idx_operator_registrations_tenant_tour")
@@ -335,6 +382,7 @@ model WorkspaceEquipment {
   tenantId  String   @map("tenant_id") @db.Uuid
   name      String
   category  String?
+  iconKey   String?  @map("icon_key")
   themeIds  Json     @default("[]") @map("theme_ids")
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")
@@ -347,17 +395,17 @@ model WorkspaceEquipment {
 
 /// Phase 9.6 — tour themes catalog.
 model WorkspaceTourTheme {
-  id          String   @id @default(uuid()) @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String                @id @default(uuid()) @db.Uuid
+  tenantId    String                @map("tenant_id") @db.Uuid
   name        String
   slug        String
-  formProfile String?  @map("form_profile")
-  isActive    Boolean  @default(true) @map("is_active")
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  presets   WorkspaceTourPreset[]
+  formProfile String?               @map("form_profile")
+  isActive    Boolean               @default(true) @map("is_active")
+  sortOrder   Int                   @default(0) @map("sort_order")
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  presets     WorkspaceTourPreset[]
 
   @@unique([tenantId, slug])
   @@index([tenantId, sortOrder, name], map: "idx_workspace_tour_themes_tenant_sort")
@@ -401,15 +449,15 @@ model WorkspaceTourPreset {
 
 /// Phase 9.6 — location regions.
 model WorkspaceRegion {
-  id           String                @id @default(uuid()) @db.Uuid
-  tenantId     String                @map("tenant_id") @db.Uuid
+  id           String                 @id @default(uuid()) @db.Uuid
+  tenantId     String                 @map("tenant_id") @db.Uuid
   name         String
   country      String?
-  isActive     Boolean               @default(true) @map("is_active")
-  sortOrder    Int                   @default(0) @map("sort_order")
-  createdAt    DateTime              @default(now()) @map("created_at")
-  updatedAt    DateTime              @updatedAt @map("updated_at")
-  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  isActive     Boolean                @default(true) @map("is_active")
+  sortOrder    Int                    @default(0) @map("sort_order")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   destinations WorkspaceDestination[]
 
   @@index([tenantId, sortOrder, name], map: "idx_workspace_regions_tenant_sort")
@@ -418,18 +466,19 @@ model WorkspaceRegion {
 
 /// Phase 9.6 — location destinations.
 model WorkspaceDestination {
-  id           String          @id @default(uuid()) @db.Uuid
-  tenantId     String          @map("tenant_id") @db.Uuid
-  regionId     String          @map("region_id") @db.Uuid
-  name         String
-  locationType String?         @map("location_type")
-  altitudeM    Int?            @map("altitude_m")
-  isActive     Boolean         @default(true) @map("is_active")
-  sortOrder    Int             @default(0) @map("sort_order")
-  createdAt    DateTime        @default(now()) @map("created_at")
-  updatedAt    DateTime        @updatedAt @map("updated_at")
-  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  region       WorkspaceRegion @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  id                     String          @id @default(uuid()) @db.Uuid
+  tenantId               String          @map("tenant_id") @db.Uuid
+  regionId               String          @map("region_id") @db.Uuid
+  name                   String
+  locationType           String?         @map("location_type")
+  altitudeM              Int?            @map("altitude_m")
+  typicalTrailDistanceKm Float?          @map("typical_trail_distance_km")
+  isActive               Boolean         @default(true) @map("is_active")
+  sortOrder              Int             @default(0) @map("sort_order")
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
+  tenant                 Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  region                 WorkspaceRegion @relation(fields: [regionId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, regionId, sortOrder, name], map: "idx_workspace_destinations_tenant_region")
   @@map("workspace_destinations")
@@ -488,4 +537,237 @@ model WorkspaceDraftEvent {
 
   @@index([tenantId, workspaceId, userId, draftNamespace, draftKey], map: "idx_workspace_draft_events_scope")
   @@map("workspace_draft_events")
+}
+
+/// P1-N-053 — Platform-level audit events (no tenantId, for platform ops).
+model PlatformAuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([action, createdAt])
+  @@map("platform_audit_events")
+}
+
+model PlatformPlan {
+  id            String               @id
+  displayName   String               @map("display_name")
+  priceMonthly  Int?                 @map("price_monthly")
+  currency      String               @default("IRR")
+  features      Json                 @default("{}")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  subscriptions TenantSubscription[]
+
+  @@map("platform_plans")
+}
+
+model TenantSubscription {
+  tenantId         String       @id @map("tenant_id") @db.Uuid
+  planId           String       @map("plan_id")
+  status           String       @default("active")
+  currentPeriodEnd DateTime?    @map("current_period_end") @db.Timestamptz
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  tenant           Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan             PlatformPlan @relation(fields: [planId], references: [id])
+
+  @@index([planId], map: "idx_tenant_subscriptions_plan_id")
+  @@map("tenant_subscriptions")
+}
+
+/// P1-F — custom hostname bindings for club marketing/portal surfaces.
+model TenantDomain {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  hostname          String    @unique
+  surface           String    @default("marketing")
+  status            String    @default("pending")
+  cnameTarget       String    @map("cname_target")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  verifiedAt        DateTime? @map("verified_at")
+  sslStatus         String    @default("pending") @map("ssl_status")
+  sslExpiresAt      DateTime? @map("ssl_expires_at") @db.Timestamptz
+  sslLastError      String?   @map("ssl_last_error")
+  lastObservedCname String?   @map("last_observed_cname")
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], map: "idx_tenant_domains_tenant_id")
+  @@map("tenant_domains")
+}
+
+/// P1-G — platform operator directory (phone + role; no password).
+model PlatformOpsUser {
+  id        String   @id @default(uuid()) @db.Uuid
+  phone     String   @unique
+  role      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_ops_users")
+}
+
+model WorkspaceTelegramBot {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  workspaceType   String   @map("workspace_type")
+  botToken        String   @map("bot_token") @db.VarChar(500)
+  channelId       String   @map("channel_id") @db.VarChar(100)
+  enabled         Boolean  @default(true)
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, workspaceType], map: "unique_tenant_workspace_telegram")
+  @@index([tenantId], map: "idx_workspace_telegram_bots_tenant")
+  @@index([tenantId, workspaceType], map: "idx_workspace_telegram_bots_tenant_workspace")
+  @@map("workspace_telegram_bots")
+}
+
+/// Workspace integration plugin — tenant-scoped provider connection (replaces provider-specific tables).
+model IntegrationConnection {
+  id              String                      @id @default(uuid()) @db.Uuid
+  tenantId        String                      @map("tenant_id") @db.Uuid
+  workspaceType   String?                     @map("workspace_type")
+  provider        String
+  status          String                      @default("disabled")
+  enabled         Boolean                     @default(false)
+  capabilities    Json                        @default("[]")
+  config          Json                        @default("{}")
+  credentials     Json                        @default("{}")
+  secretRef       String?                     @map("secret_ref")
+  createdByUserId String?                     @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime                    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime                    @updatedAt @map("updated_at") @db.Timestamptz
+  tenant          Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventPolicies   IntegrationEventPolicy[]
+
+  @@unique([tenantId, provider, workspaceType], map: "uq_integration_connections_tenant_provider_ws")
+  @@index([tenantId, provider, status], map: "idx_integration_connections_tenant_provider_status")
+  @@index([tenantId, enabled], map: "idx_integration_connections_tenant_enabled")
+  @@map("integration_connections")
+}
+
+/// Per-connection domain event routing policy (data-driven dispatcher input).
+model IntegrationEventPolicy {
+  id                      String                @id @default(uuid()) @db.Uuid
+  tenantId                String                @map("tenant_id") @db.Uuid
+  integrationConnectionId String                @map("integration_connection_id") @db.Uuid
+  eventType               String                @map("event_type")
+  enabled                 Boolean               @default(true)
+  createdAt               DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  tenant                  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connection              IntegrationConnection @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationConnectionId, eventType], map: "uq_integration_event_policies_conn_event")
+  @@index([tenantId, eventType, enabled], map: "idx_integration_event_policies_tenant_event")
+  @@map("integration_event_policies")
+}
+
+/// Native Field Exposure profile defaults — persisted enterprise source (Phase 8b).
+model ExposureProfile {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  workspaceType     String?  @map("workspace_type")
+  profileId         String   @map("profile_id")
+  entityType        String   @map("entity_type")
+  surface           String
+  audience          String
+  trigger           String
+  defaultFieldIds   Json     @default("[]") @map("default_field_ids")
+  defaultTemplateId String?  @map("default_template_id")
+  source            String   @default("native")
+  version           Int      @default(1)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, profileId], map: "uq_exposure_profiles_tenant_profile")
+  @@index([tenantId, workspaceType, surface, audience, trigger], map: "idx_exposure_profiles_context")
+  @@map("exposure_profiles")
+}
+
+/// Native Field Exposure intent — single authoritative field-selection store (Phase 7i).
+model ExposureIntent {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  workspaceType      String?  @map("workspace_type")
+  profileId          String   @map("profile_id")
+  entityType         String   @map("entity_type")
+  surface            String
+  audience           String
+  trigger            String
+  scope              Json     @default("{}")
+  scopeHash          String   @map("scope_hash")
+  mode               String   @default("inherit_profile")
+  selectedFieldIds   Json?    @map("selected_field_ids")
+  fieldDecorations   Json?    @map("field_decorations")
+  templateOverrideId String?  @map("template_override_id")
+  source             String   @default("native")
+  createdByUserId    String?  @map("created_by_user_id") @db.Uuid
+  updatedByUserId    String?  @map("updated_by_user_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, profileId, surface, audience, trigger, scopeHash], map: "uq_exposure_intents_context_scope")
+  @@index([tenantId, workspaceType, profileId], map: "idx_exposure_intents_tenant_ws_profile")
+  @@index([tenantId, surface, audience, trigger], map: "idx_exposure_intents_context")
+  @@map("exposure_intents")
+}
+
+/// Internal secret payload — never exposed via control plane HTTP.
+model IntegrationSecret {
+  secretRef String   @id @map("secret_ref")
+  tenantId  String   @map("tenant_id") @db.Uuid
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], map: "idx_integration_secrets_tenant")
+  @@map("integration_secrets")
+}
+
+/// Async integration delivery queue — decoupled from outbox relay HTTP path.
+model IntegrationDeliveryJob {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  provider      String
+  capability    String
+  domainEventId String    @map("domain_event_id")
+  eventType     String    @map("event_type")
+  payload       Json      @default("{}")
+  status        String    @default("pending")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  nextAttemptAt DateTime? @map("next_attempt_at") @db.Timestamptz
+  lastError     Json?     @map("last_error")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  processedAt   DateTime? @map("processed_at") @db.Timestamptz
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider, capability, domainEventId], map: "uq_integration_delivery_jobs_idempotency")
+  @@index([status, nextAttemptAt, createdAt], map: "idx_integration_delivery_jobs_claim")
+  @@index([tenantId, status, createdAt], map: "idx_integration_delivery_jobs_tenant_status")
+  @@map("integration_delivery_jobs")
+}
+
+/// Denali relative-time reminder feed activations — idempotent per tour + offset.
+model DenaliExposureReminderActivation {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  tourId         String   @map("tour_id") @db.Uuid
+  reminderOffset String   @map("reminder_offset")
+  anchorAt       DateTime @map("anchor_at") @db.Timestamptz
+  activatedAt    DateTime @default(now()) @map("activated_at") @db.Timestamptz
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tourId, reminderOffset], map: "uq_denali_exposure_reminder_activations_idempotency")
+  @@index([tenantId, activatedAt(sort: Desc)], map: "idx_denali_exposure_reminder_activations_tenant_activated")
+  @@map("denali_exposure_reminder_activations")
 }

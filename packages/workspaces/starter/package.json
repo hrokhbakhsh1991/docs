@@ -10,11 +10,19 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./theme/tokens.css": "./theme/tokens.css"
+    "./theme/tokens.css": "./theme/tokens.css",
+    "./theme/starter-portal.css": "./theme/starter-portal.css",
+    "./theme/starter-marketing.css": "./theme/starter-marketing.css",
+    "./exposure": {
+      "types": "./dist/exposure/index.d.ts",
+      "default": "./dist/exposure/index.js"
+    }
   },
   "files": [
     "dist",
-    "theme/tokens.css"
+    "theme/tokens.css",
+    "theme/starter-portal.css",
+    "theme/starter-marketing.css"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

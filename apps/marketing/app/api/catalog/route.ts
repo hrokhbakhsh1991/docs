@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { resolveCatalogListApiPath } from "@app-tour/workspace-sdk";
-
+import { buildCatalogListFetchQuery } from "@/catalog/build-catalog-list-fetch-query";
+import { parseCatalogListFilters } from "@/catalog/catalog-list-query";
 import {
   resolveCatalogFetchCache,
   resolveCatalogFetchNext,
@@ -10,6 +10,7 @@ import {
 } from "@/catalog/catalog-fetch-options";
 import { resolveTourOpsApiBaseUrl } from "@/env";
 import { resolveMarketingBootstrapForHost } from "@/tenant/resolve-marketing-bootstrap";
+import { resolveCatalogListApiPath } from "@app-tour/workspace-sdk";
 
 export const dynamic = "force-dynamic";
 
@@ -19,19 +20,26 @@ export async function GET(request: Request): Promise<NextResponse> {
   const { tenantId, pluginId } = await resolveMarketingBootstrapForHost(host);
   const path = resolveCatalogListApiPath(pluginId);
   const incoming = new URL(request.url);
-  const query = new URLSearchParams();
-  const cursor = incoming.searchParams.get("cursor");
-  const limit = incoming.searchParams.get("limit");
-  const city = incoming.searchParams.get("city");
-  if (cursor !== null && cursor.trim().length > 0) {
-    query.set("cursor", cursor.trim());
-  }
-  if (limit !== null && limit.trim().length > 0) {
-    query.set("limit", limit.trim());
-  }
-  if (pluginId === "urban" && city !== null && city.trim().length > 0) {
-    query.set("city", city.trim());
-  }
+  const limitRaw = incoming.searchParams.get("limit");
+  const limit =
+    limitRaw != null && limitRaw.trim().length > 0 ? Number.parseInt(limitRaw, 10) : undefined;
+  const filters = parseCatalogListFilters({
+    cursor: incoming.searchParams.get("cursor") ?? undefined,
+    city: incoming.searchParams.get("city") ?? undefined,
+    q: incoming.searchParams.get("q") ?? undefined,
+    category: incoming.searchParams.get("category") ?? undefined,
+    difficulty: incoming.searchParams.get("difficulty") ?? undefined,
+    fitness: incoming.searchParams.get("fitness") ?? undefined,
+    availability: incoming.searchParams.get("availability") ?? undefined,
+    sort: incoming.searchParams.get("sort") ?? undefined,
+  });
+  const query = buildCatalogListFetchQuery({
+    pluginId,
+    cursor: filters.cursor,
+    city: filters.city,
+    limit: Number.isFinite(limit) ? limit : undefined,
+    filters,
+  });
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
 
   const upstream = await fetch(`${resolveTourOpsApiBaseUrl()}${path}${suffix}`, {

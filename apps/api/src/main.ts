@@ -8,28 +8,43 @@ import { installGracefulShutdownHandlers } from "./server/graceful-shutdown";
 import { rejectRequestDuringShutdown } from "./http/shutdown-ingress";
 import { resolveWorkerRuntimeRole } from "./server/worker-runtime-role";
 import type { OutboxRelayHandle } from "./outbox/start-outbox-relay";
+import type { DenaliExposureReminderSchedulerHandle } from "./exposure/start-denali-exposure-reminder-scheduler";
 
 type AppRequestListener = (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
 
-async function warmPostListen(): Promise<void> {
+type WarmPostListenHandles = {
+  readonly denaliReminderScheduler: DenaliExposureReminderSchedulerHandle;
+};
+
+async function warmPostListen(): Promise<WarmPostListenHandles> {
   const [
     { startOutboxRelayIfEnabled },
     { startProjectionAutoReconcileIfEnabled },
-    { bootstrapDenaliWizardTemplatesIfNeeded },
+    { bootstrapWorkspaceWizardTemplatesIfNeeded },
     { bootstrapOperatorSmokeCatalogIfNeeded },
     { bootstrapDenaliDevSmokeFixturesIfNeeded },
+    { bootstrapIntegrationProviders },
+    { startIntegrationDeliveryWorkerIfEnabled },
+    { startDenaliExposureReminderSchedulerIfEnabled },
   ] = await Promise.all([
     import("./outbox/start-outbox-relay"),
     import("./outbox/start-projection-auto-reconcile"),
-    import("./settings/bootstrap-denali-wizard-template"),
+    import("./settings/bootstrap-workspace-wizard-templates"),
     import("./settings/bootstrap-operator-smoke-catalog"),
     import("./settings/bootstrap-denali-dev-smoke-fixtures"),
+    import("./integrations/platform/bootstrap-integration-providers"),
+    import("./integrations/worker/start-integration-delivery-worker"),
+    import("./exposure/start-denali-exposure-reminder-scheduler"),
   ]);
+  bootstrapIntegrationProviders();
   startOutboxRelayIfEnabled();
   startProjectionAutoReconcileIfEnabled();
-  await bootstrapDenaliWizardTemplatesIfNeeded();
+  startIntegrationDeliveryWorkerIfEnabled();
+  const denaliReminderScheduler = startDenaliExposureReminderSchedulerIfEnabled();
+  await bootstrapWorkspaceWizardTemplatesIfNeeded();
   await bootstrapOperatorSmokeCatalogIfNeeded();
   await bootstrapDenaliDevSmokeFixturesIfNeeded();
+  return { denaliReminderScheduler };
 }
 
 function createDeferredAppListener(appDeps: AppDeps): AppRequestListener {
@@ -85,6 +100,11 @@ async function bootstrap(): Promise<void> {
     await assertProductionDatabaseIntegrity();
   }
 
+  const { runMigrationConsistencyCheck } = await import("./health/migration-consistency-check");
+  const { applyMigrationConsistencyGate } = await import("./health/integration-subsystem-gate");
+  const consistencyReport = await runMigrationConsistencyCheck();
+  applyMigrationConsistencyGate(consistencyReport);
+
   const mapUpstreamBaseUrl = process.env.MAP_UPSTREAM_BASE_URL?.trim();
   let appDeps: AppDeps = {};
   if (mapUpstreamBaseUrl) {
@@ -101,15 +121,30 @@ async function bootstrap(): Promise<void> {
   const server = createServer(createHealthAwareServerListener(dispatch));
 
   let outboxRelay: OutboxRelayHandle = { stop: async () => {} };
+  let integrationWorker: { stop: () => Promise<void> } = { stop: async () => {} };
+  let denaliReminderScheduler: DenaliExposureReminderSchedulerHandle = { stop: async () => {} };
   if (productionBoot) {
     const { startOutboxRelayIfEnabled } = await import("./outbox/start-outbox-relay");
     const { startProjectionAutoReconcileIfEnabled } =
       await import("./outbox/start-projection-auto-reconcile");
+    const { bootstrapIntegrationProviders } =
+      await import("./integrations/platform/bootstrap-integration-providers");
+    const { startIntegrationDeliveryWorkerIfEnabled } =
+      await import("./integrations/worker/start-integration-delivery-worker");
+    bootstrapIntegrationProviders();
     outboxRelay = startOutboxRelayIfEnabled();
     startProjectionAutoReconcileIfEnabled();
+    integrationWorker = startIntegrationDeliveryWorkerIfEnabled();
   }
 
-  installGracefulShutdownHandlers({ server, outboxRelay });
+  installGracefulShutdownHandlers({
+    server,
+    outboxRelay,
+    onShutdown: async () => {
+      await integrationWorker.stop();
+      await denaliReminderScheduler.stop();
+    },
+  });
 
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
@@ -120,7 +155,8 @@ async function bootstrap(): Promise<void> {
   });
 
   if (!productionBoot) {
-    void warmPostListen();
+    const warmHandles = await warmPostListen();
+    denaliReminderScheduler = warmHandles.denaliReminderScheduler;
   }
 }
 

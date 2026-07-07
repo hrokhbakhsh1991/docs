@@ -14,6 +14,14 @@
       "types": "./dist/urban.plugin.d.ts",
       "default": "./dist/urban.plugin.js"
     },
+    "./catalog-registration-flow": {
+      "types": "./dist/catalog/registration-flow/index.d.ts",
+      "default": "./dist/catalog/registration-flow/index.js"
+    },
+    "./catalog-registration-flow/react": {
+      "types": "./dist/catalog/registration-flow/react.d.ts",
+      "default": "./dist/catalog/registration-flow/react.js"
+    },
     "./http": {
       "types": "./dist/http/index.d.ts",
       "default": "./dist/http/index.js"
@@ -30,27 +38,54 @@
       "types": "./dist/auth/index.d.ts",
       "default": "./dist/auth/index.js"
     },
-    "./theme/tokens.css": "./theme/tokens.css"
+    "./catalog": {
+      "types": "./dist/catalog/index.d.ts",
+      "default": "./dist/catalog/index.js"
+    },
+    "./exposure": {
+      "types": "./dist/exposure/index.d.ts",
+      "default": "./dist/exposure/index.js"
+    },
+    "./theme/tokens.css": "./theme/tokens.css",
+    "./theme/urban-marketing.css": "./theme/urban-marketing.css",
+    "./theme/urban-portal.css": "./theme/urban-portal.css",
+    "./messages/fa/wizard.json": "./messages/fa/wizard.json",
+    "./messages/en/wizard.json": "./messages/en/wizard.json"
   },
   "files": [
     "dist",
-    "theme/tokens.css"
+    "theme/tokens.css",
+    "theme/urban-marketing.css",
+    "theme/urban-portal.css",
+    "theme/marketing",
+    "design-language",
+    "messages"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.flow.json",
     "lint": "tsc --noEmit",
     "test": "node ../../../scripts/verify-phase-7-genericity-proof-rev.mjs && NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
   },
   "dependencies": {
+    "@app-tour/catalog-intake-ui": "workspace:*",
+    "@app-tour/catalog-registration-auth": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
+    "@app-tour/ui-primitives": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
     "zod": "^3.24.2"
+  },
+  "peerDependencies": {
+    "next-intl": "^4.11.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",
     "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"
   }

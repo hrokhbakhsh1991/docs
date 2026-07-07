@@ -1,33 +1,33 @@
 {
   "pageTitle": "داشبورد",
   "metadata": {
-    "description": "نمای کلی اپراتور workspace"
+    "description": "نمای کلی پنل اپراتور"
   },
-  "pageSubtitle": "خوش آمدید — نمای کلی {brandName}",
-  "pageSubtitleOwner": "خوش برگشتی — نمای کلی {brandName} همین‌جاست",
+  "pageSubtitle": "خوش آمدید — {brandName}",
+  "pageSubtitleOwner": "خلاصه وضعیت {brandName}",
   "welcome": {
-    "title": "سلام {displayName}، خوش اومدی!",
-    "titleOwner": "{displayName} عزیز، خوش برگشتی!",
+    "title": "سلام {displayName}، خوش آمدید!",
+    "titleOwner": "{displayName} عزیز، خوش برگشتید!",
     "subtitle": "به پنل {workspaceLabel} خوش آمدید.",
-    "subtitleOwner": "خوشحالم دوباره اینجایی — {workspaceLabel} پنل خودته و همه‌چیز از همین‌جا جلو می‌ره.",
-    "lead": "یک نگاه به وضعیت بنداز، تور تازه بساز، یا رزروها رو چک کن — هر وقت آماده بودی شروع کن.",
-    "primaryCta": "بریم تور جدید بسازیم",
-    "later": "اول داشبورد رو ببینم",
+    "subtitleOwner": "پنل {workspaceLabel} — همه‌چیز از همین‌جا.",
+    "lead": "وضعیت را ببینید، تور بسازید، یا رزروها را بررسی کنید.",
+    "primaryCta": "ساخت تور جدید",
+    "later": "اول داشبورد",
     "bullets": {
-      "dashboard": "داشبورد — تورها، رزروها و ثبت‌نام‌ها یک‌جا",
-      "wizard": "ویزارد دنالی — تور بعدیت رو قدم‌به‌قدم بساز",
-      "team": "تیم و برند — تنظیمات workspace دست خودته"
+      "dashboard": "داشبورد — تور، رزرو و ثبت‌نام یک‌جا",
+      "wizard": "ویزارد دنالی — ساخت گام‌به‌گام تور",
+      "team": "تیم و برند — تنظیمات سازمان"
     }
   },
   "quickActions": {
     "newTour": "تور جدید",
     "allTours": "همه تورها",
-    "bookings": "مرکز رزروها"
+    "bookings": "رزروها"
   },
   "overview": {
     "title": "خلاصه",
     "description": "وضعیت {brandName}",
-    "openBookings": "باز کردن مرکز رزروها"
+    "openBookings": "رفتن به رزروها"
   },
   "tours": {
     "title": "تورها",
@@ -38,8 +38,8 @@
   },
   "bookings": {
     "title": "رزروها",
-    "description": "شاخص‌های خط رزرو",
-    "openCommandCenter": "باز کردن مرکز رزروها"
+    "description": "شاخص‌های رزرو",
+    "openCommandCenter": "رفتن به رزروها"
   },
   "registrations": {
     "title": "ثبت‌نام‌ها",
@@ -47,12 +47,12 @@
     "pendingCount": "{count, number} در انتظار تأیید",
     "empty": "ثبت‌نام در انتظاری نیست.",
     "pendingOnTour": "{count, number} در انتظار",
-    "reviewPending": "بررسی ثبت‌نام‌های در انتظار"
+    "reviewPending": "بررسی در انتظارها"
   },
   "kpi": {
     "active-tours": "تورهای فعال",
     "pending-bookings": "رزروهای در انتظار",
-    "approved-today": "تأییدشده امروز",
+    "approved-today": "تأیید امروز",
     "departures-7d": "حرکت ۷ روز آینده",
     "pending": "در انتظار",
     "waitlist": "لیست انتظار"
@@ -73,12 +73,12 @@
   },
   "finance": {
     "title": "مالی",
-    "description": "شاخص‌های مالی {brandName}",
-    "openCommandCenter": "باز کردن مرکز مالی",
+    "description": "خلاصه مالی {brandName}",
+    "openCommandCenter": "رفتن به امور مالی",
     "kpi": {
-      "pending-manual": "پرداخت‌های دستی در انتظار",
-      "pending-receipts": "رسیدهای در انتظار بررسی",
-      "paid-payments": "پرداخت‌های انجام‌شده"
+      "pending-manual": "پرداخت دستی در انتظار",
+      "pending-receipts": "رسید در انتظار",
+      "paid-payments": "پرداخت‌شده"
     }
   }
 }

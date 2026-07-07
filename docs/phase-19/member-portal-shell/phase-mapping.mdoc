@@ -1,0 +1,90 @@
+---
+title: Phase Mapping — Blueprint · Portal Shell · Gates · DL
+standard_id: MPS-PHASE-MAP-001
+version: 1.0.0
+status: pending_sign_off
+extends:
+  - ../platform-portal-member-shell-architecture.mdoc
+  - implementation-gates.mdoc
+  - cleanup-roadmap.mdoc
+---
+
+# Phase Mapping
+
+**Purpose:** Remove naming ambiguity between Blueprint phases, Portal Shell rollout phases, implementation gates, and DL checkpoints.
+
+---
+
+## 1. Master mapping table
+
+| Portal Shell | Blueprint / RFC | Implementation gate | Primary deliverable | DL checkpoints | Cleanup items |
+| ------------ | ----------------- | --------------------- | ------------------- | -------------- | ------------- |
+| **PS-0** Doc promotion | **BP-0** | GP-01..06, Phase 0 checklist | RFC pack merged + signed | DL-01..42 review | — |
+| **PS-1** Portal shell | **BP-1** | P1-01..05, Phase 1 exit | Shell frame; bare `/me` redirect; minimal registration shell | DL-01, DL-02, DL-27, DL-40 | Legacy CSS sunset in PS-7 (CL-03/04) |
+| **PS-2** Member navigation | **BP-2** | P2-01..06, Phase 2 exit | `memberPortal` manifest + codegen; zero inline nav | DL-04, DL-07, DL-18, DL-30, DL-34 | — |
+| **PS-3** URL builder | **BP-3a** | P3-04, Phase 3 exit 3.2 | `resolvePortalMemberModuleUrl`; builder migration contract | DL-22, DL-26 | Deprecate GSH hardcode |
+| **PS-4** Workspace integration | **BP-3b** | P3-01..07, Phase 3 exit 3.1–3.5 | `guestCrossSurfaceNav`; workspace egress; portal SEO; WRS addendum | DL-05, DL-37, DL-38, DL-39, DL-41 | Remove `FULL_LANDING_NAV_LINKS` |
+| **PS-5** Migration | **BP-4** + **BP-5** | P4 + P5 gates | `/me/home`; entitlements BFF; dispatcher; default entry | DL-06, DL-09, DL-19, DL-24, DL-28, DL-31 | SMK-PTL-05 update when default → `home` |
+| **PS-6** Scale & embedded | **BP-6** + **BP-7** | Phase 5–7 summary gates | Telegram adapter; hub virtualisation; cache | DL-10, DL-13..17 | — |
+| **PS-7** Cleanup | **BP-8** (new) | Cleanup gate CL-01..08 | Retire deprecated builders, legacy hooks, aliases | DL-22 sunset, DL-27 sunset | [cleanup-roadmap.mdoc](./cleanup-roadmap.mdoc) |
+
+**Note:** Blueprint **BP-3** splits into Portal Shell **PS-3** (GSH) and **PS-4** (workspace/marketing) for planning clarity. **Same implementation gate Phase 3** covers both — execute PS-3 before PS-4 within the phase.
+
+---
+
+## 2. Portal Shell → Blueprint quick reference
+
+```text
+PS-0  →  BP-0
+PS-1  →  BP-1
+PS-2  →  BP-2
+PS-3  →  BP-3 (GSH builders)
+PS-4  →  BP-3 (cross-surface + WRS + SEO + workspace egress)
+PS-5  →  BP-4 + BP-5
+PS-6  →  BP-6 + BP-7
+PS-7  →  BP-8 (Cleanup)
+```
+
+---
+
+## 3. Gate dependency chain
+
+```text
+GP-01 RFC merged
+  → GP-02 DL signed
+    → PS-1 / BP-1 (shell)
+      → PS-2 / BP-2 (registry)
+        → PS-3 + PS-4 / BP-3 (requires GP-03 WRS addendum for PS-4)
+          → PS-5 / BP-4+5
+            → PS-6 / BP-6+7
+              → PS-7 / BP-8 Cleanup
+```
+
+---
+
+## 4. DL checkpoint by Portal Shell phase
+
+| Portal Shell | Required DL sign-off before start |
+| ------------ | ----------------------------------- |
+| PS-1 | DL-01, DL-02, DL-27, DL-40 |
+| PS-2 | DL-04, DL-07, DL-18, DL-30, DL-34 |
+| PS-3 | DL-22, DL-26 |
+| PS-4 | DL-05, DL-37, DL-38, DL-39, DL-41 |
+| PS-5 | DL-06, DL-09, DL-19, DL-24, DL-28, DL-31 |
+| PS-6 | DL-10, DL-13, DL-14, DL-16, DL-17 |
+| PS-7 | DL-22 (removal), DL-27 (sunset) |
+
+---
+
+## 5. Terminology (canonical)
+
+| Term | Meaning |
+| ---- | ------- |
+| **Portal Shell phase (PS-N)** | Product rollout name — use in status reports |
+| **Blueprint phase (BP-N)** | RFC §7 migration table |
+| **Implementation gate Phase N** | [implementation-gates.mdoc](./implementation-gates.mdoc) precondition sets |
+| **P6** | Frozen guest/member MVP — not renamed |
+
+---
+
+*Phase mapping v1.0.0 · PENDING SIGN-OFF*

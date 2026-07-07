@@ -4,6 +4,7 @@ import {
   type WorkspaceValidationHooks,
   type WorkspaceViolation,
   WORKSPACE_THEME_CSS_VARIABLE,
+  noopWorkspaceDraftTombstoneBinding,
   workspaceThemePresets,
 } from "@app-tour/workspace-sdk";
 
@@ -11,6 +12,10 @@ import {
   isUrbanTourPublished,
   toUrbanPublicCatalogCard,
 } from "./catalog/urban-public-catalog-surface";
+import { urbanCatalogIntakeSurface } from "./catalog/urban-catalog-intake";
+import { extractUrbanTourListProjection } from "./list/tour-list-projection";
+import { urbanOperatorSettingsSurface } from "./settings/urban-settings.manifest";
+import { urbanExposureSurface } from "./exposure/urban-exposure.surface";
 
 /** Relative to workspace package root — published via package exports. */
 export const URBAN_THEME_TOKENS_STYLESHEET = "theme/tokens.css" as const;
@@ -237,7 +242,10 @@ export const URBAN_WIZARD_SURFACE = deepFreezeValue({
 export const URBAN_LIFECYCLE = deepFreezeValue({
   initialStatus: "DRAFT",
   publishStatus: "PUBLISHED",
-  allowedTransitions: [{ from: "DRAFT", to: "PUBLISHED" }],
+  allowedTransitions: [
+    { from: "DRAFT", to: "PUBLISHED" },
+    { from: "PUBLISHED", to: "DRAFT" },
+  ],
 });
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -300,7 +308,10 @@ export function createUrbanValidationHooks(): WorkspaceValidationHooks {
   };
 }
 
-const urbanWizardHostHooks = createPlatformWizardHostHooks({ dimensions: { tourType: "city" } });
+const urbanWizardHostHooks = Object.freeze({
+  ...createPlatformWizardHostHooks({ dimensions: { tourType: "city" } }),
+  wizardMessageNamespace: "urban",
+});
 
 const urbanTheme = {
   ...workspaceThemePresets["platform-primary"],
@@ -326,7 +337,14 @@ export function createUrbanWorkspacePlugin(): WorkspacePlugin {
       isPublished: isUrbanTourPublished,
       toCatalogCard: toUrbanPublicCatalogCard,
     }),
+    catalogIntake: urbanCatalogIntakeSurface,
+    tourList: deepFreezeValue({
+      extractTourListProjection: extractUrbanTourListProjection,
+    }),
     wizardHost: deepFreezeValue({ ...urbanWizardHostHooks }),
+    draftTombstone: noopWorkspaceDraftTombstoneBinding,
+    operatorSettings: deepFreezeValue({ ...urbanOperatorSettingsSurface }),
+    exposureSurface: deepFreezeValue({ ...urbanExposureSurface }),
   });
 }
 

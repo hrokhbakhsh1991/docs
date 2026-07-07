@@ -1,0 +1,118 @@
+# P9 — Package & app boundary contract (app-fit v1.1)
+# Authority: p9-app-fit.md · guard:import-boundary
+
+contract_id: P9-PACKAGE-BOUNDARY
+version: "1.1"
+pack: P9
+app_fit: p9-app-fit.md
+
+# Target packages (to be created in P9-0)
+packages:
+  guest-surface-host:
+    path: packages/guest-surface-host
+    owns:
+      - resolveTenantIdFromDevHost
+      - PHASE_43_HOST_TENANT_IDS
+      - fetchPublicTenantContextForHost
+      - resolvePublicBrandingHost
+      - isDevGuestHostAllowed
+    may_depend_on:
+      - "@app-tour/tenant-kernel"
+      - "@app-tour/workspace-sdk"
+    must_not_depend_on:
+      - "apps/*"
+      - "packages/workspaces/*"
+
+  session-client:
+    path: packages/session-client
+    owns:
+      - decodeJwtPayload
+      - validateSessionToken
+      - SESSION_COOKIE_NAMES
+    may_depend_on: []
+    must_not_depend_on:
+      - "apps/*"
+      - "next/headers"
+
+# App surface rules (post-P9 exit state)
+apps:
+  web:
+    role: operator_admin
+    port: 3000
+    allowed_local:
+      - "src/tenant/resolve-host-tenant.ts"   # operator dev host map — NOT guest package
+      - "src/tenant/session-host-binding.ts"
+      - "src/tenant/platform-host-env.ts"
+      - "src/tenant/operator-admin-host.ts"
+    allowed_guest_routes:
+      - "/catalog"           # 307 redirect shim — KEEP
+      - "/catalog/*"         # 307 to marketing/portal — no UX
+    forbidden_after_p9:
+      - "app/api/public-auth/**"
+      - "**/public-catalog-registration-flow.tsx"
+      - "**/resolve-public-catalog-bootstrap.server.ts"
+    must_not_duplicate:
+      - portal_public_auth_bff
+      - portal_registration_flow
+
+  marketing:
+    role: public_apex
+    port: 3002
+    must_import_bootstrap_from: "@app-tour/guest-surface-host"
+    forbidden_local:
+      - "src/tenant/resolve-host-tenant.ts"
+      - "src/tenant/fetch-public-tenant-context.ts"
+
+  portal:
+    role: member_guest
+    port: 3003
+    sole_owner:
+      - public_auth_bff_routes
+      - catalog_registration_flow
+      - member_me_routes
+    must_import_bootstrap_from: "@app-tour/guest-surface-host"
+
+  api:
+    role: tenant_authority
+    note: pluginId and tenant-context source of truth
+
+# Dependency direction (enterprise: apps → platform packages → kernel)
+allowed_edges:
+  - from: "apps/marketing"
+    to: ["@app-tour/guest-surface-host", "@app-tour/tenant-kernel", "@app-tour/workspace-sdk"]
+  - from: "apps/portal"
+    to: ["@app-tour/guest-surface-host", "@app-tour/session-client", "@app-tour/tenant-kernel"]
+  - from: "apps/web"
+    to: ["@app-tour/session-client", "@app-tour/tenant-kernel"]
+    not_to: ["@app-tour/guest-surface-host"]  # web operator-only post-P9
+
+forbidden_edges:
+  - from: "apps/web"
+    to: "apps/portal"
+  - from: "apps/portal"
+    to: "apps/web"
+  - from: "apps/marketing"
+    to: "apps/portal"
+  - from: "packages/guest-surface-host"
+    to: "apps/*"
+
+verify_commands:
+  boundary: pnpm run guard:import-boundary
+  target_p9: pnpm run guard:p9-surface-boundary
+  ripgrep_guest_host: 'rg "resolve-host-tenant" apps/marketing apps/portal --glob "*.ts"'
+  ripgrep_web_public_auth: 'rg "app/api/public-auth" apps/web'
+
+guard_rules_to_add:
+  - id: P9-SURF-01
+    description: web must not contain app/api/public-auth route.ts files
+  - id: P9-SURF-02
+    description: marketing and portal must not define local PHASE_43_HOST_TENANT_IDS after P9-0
+  - id: P9-SURF-03
+    description: web must not import @app-tour/guest-surface-host
+  - id: P9-PKG-01
+    description: guest-surface-host must not import from apps/
+
+references:
+  app_fit: p9-app-fit.md
+  audit: p9-code-consolidation-audit.md
+  p8_fit: ../phase-21/p8-app-fit.md

@@ -1,11 +1,39 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 export const CATALOG_DEV_OTP = "1234";
 
 export async function fillCatalogOtp(page: Page, code: string): Promise<void> {
-  const digits = code.split("");
-  for (let index = 0; index < digits.length; index += 1) {
-    await page.locator(`[data-otp-cell="${index}"]`).fill(digits[index] ?? "");
+  const otpStep = page.locator("[data-public-registration-otp]");
+  await otpStep.waitFor({ state: "visible", timeout: 60_000 });
+  const input = otpStep.locator("#otp");
+  await input.click();
+  await input.fill("");
+  await input.pressSequentially(code.replace(/\D/g, ""), { delay: 15 });
+
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" &&
+        res.url().includes("/api/public-auth/verify-otp"),
+      { timeout: 90_000 }
+    ),
+    page.locator('[data-action="verify-otp"]').click(),
+  ]);
+  const body = await response.text();
+  expect(
+    response.ok(),
+    `verify-otp failed (${response.status()}): ${body.slice(0, 240)}`
+  ).toBeTruthy();
+}
+
+async function fillIntakeFieldIfVisible(
+  page: Page,
+  fieldId: string,
+  value: string
+): Promise<void> {
+  const input = page.locator(`[data-intake-field="${fieldId}"]`);
+  if (await input.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    await input.fill(value);
   }
 }
 
@@ -24,8 +52,27 @@ export async function completeCatalogRegistrationIntake(
     timeout: 60_000,
   });
 
-  await page.locator('input[name="email"]').fill(input.email);
-  await page.locator('input[name="fullName"]').fill(input.fullName);
-  await page.getByLabel(/Party size|تعداد نفرات/).fill(input.partySize ?? "2");
-  await page.locator('[data-action="intake-submit"]').click();
+  await fillIntakeFieldIfVisible(page, "fullName", input.fullName);
+  await fillIntakeFieldIfVisible(page, "email", input.email);
+  await fillIntakeFieldIfVisible(page, "partySize", input.partySize ?? "2");
+
+  const partySizeInput = page.getByLabel(/Party size|تعداد نفرات/);
+  if (await partySizeInput.isVisible({ timeout: 500 }).catch(() => false)) {
+    await partySizeInput.fill(input.partySize ?? "2");
+  }
+
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" &&
+        res.url().includes("/api/catalog/registrations"),
+      { timeout: 90_000 }
+    ),
+    page.locator('[data-action="intake-submit"]').click(),
+  ]);
+  const body = await response.text();
+  expect(
+    response.ok(),
+    `catalog registration failed (${response.status()}): ${body.slice(0, 240)}`
+  ).toBeTruthy();
 }

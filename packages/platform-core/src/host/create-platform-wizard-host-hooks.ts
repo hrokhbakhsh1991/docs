@@ -15,7 +15,11 @@ function stripWizardHostForEngine(plugin: WorkspacePlugin): WorkspacePlugin {
     tourList: _tourList,
     tourClone: _tourClone,
     publicCatalog: _publicCatalog,
+    catalogIntake: _catalogIntake,
     wizardHost: _wizardHost,
+    draftTombstone: _draftTombstone,
+    operatorSettings: _operatorSettings,
+    exposureSurface: _exposureSurface,
     ...wizardPlugin
   } = plugin;
   return wizardPlugin as WorkspacePlugin;
@@ -108,5 +112,7 @@ export function createPlatformWizardHostHooks(
       }
       return filterValidationToStep(result, step);
     },
+    prepareSubmitPayload: (input) =>
+      draftToCanonicalDocument(input.draft, input.plugin as WorkspacePlugin),
   });
 }

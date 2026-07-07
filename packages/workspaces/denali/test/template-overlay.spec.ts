@@ -41,4 +41,13 @@ describe("template-overlay.spec.ts", () => {
     assert.ok(model != null);
     assert.equal(findDenaliRuleField(model, "destinationId")?.hidden, true);
   });
+
+  it("DENALI-OVERLAY-04 hides long description via template overlay", () => {
+    const merged = resolveDenaliRuleSetFromOverlay({
+      "program.longDescription": { visibility: "hidden" },
+    });
+    const model = merged.mountain.single_day;
+    assert.ok(model != null);
+    assert.equal(findDenaliRuleField(model, "program.longDescription")?.hidden, true);
+  });
 });

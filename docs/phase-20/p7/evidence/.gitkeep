@@ -1,0 +1,2 @@
+# Evidence folders live here after staging proof (see P7-EVIDENCE-PACK.md).
+# Do not commit secrets — redact DATABASE_URL in logs.

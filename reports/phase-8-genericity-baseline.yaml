@@ -1,8 +1,8 @@
-# Phase 8 genericity baseline — digest-locked after WorkspaceWizardHostPluginContext build fix
-baseline_sha: 4d3dad2ed3b7f42d3f75fc99196bd1c5ab0af346
+# Phase 8 genericity baseline — digest-locked after Phase 14 workspace host remediation (draft tombstone ingress)
+baseline_sha: deadbeef0
 inherited_from: reports/phase-7-genericity-baseline.yaml
-platform_core_tree_digest: 1196a6f8ef25cd4f93a512d52c4cfc9435073afb93aac9b6de4d508e945c7729
+platform_core_tree_digest: e1992e6035c55e5eb5a2331cdae7aef9c62e96455f502b1d5ecd748fb5472856
 platform_core_file_count: 77
-recorded_at: "2026-06-13T00:00:00Z"
-recorded_by: "CI gate repair — platform-core digest after host plugin context typing"
-note: "phase-8 digest lock when baseline_sha ref absent; aligns with post-4d3dad2e platform-core"
+recorded_at: "2026-06-20T00:00:00Z"
+recorded_by: "P0 workspace remediation — draftTombstone strip + composite renderer hints"
+note: "phase-8 digest lock when baseline_sha ref absent; prior digest 81aa16510d6f"

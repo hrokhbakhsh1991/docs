@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 
 import { LOCALE_COOKIE_NAME } from "@/i18n/locale-cookie";
-import { isAppLocale, routing, type AppLocale } from "@/i18n/routing";
+import { isAppLocale, resolveMarketingLocalePath, routing, type AppLocale } from "@/i18n/routing";
 
 function writeLocaleCookie(locale: AppLocale): void {
   document.cookie = `${LOCALE_COOKIE_NAME}=${locale};path=/;max-age=31536000;SameSite=Lax`;
@@ -14,6 +14,7 @@ export function MarketingLocaleSwitcher() {
   const locale = useLocale();
   const t = useTranslations("catalog.locale");
   const router = useRouter();
+  const pathname = usePathname();
   const active = isAppLocale(locale) ? locale : routing.defaultLocale;
 
   return (
@@ -30,7 +31,7 @@ export function MarketingLocaleSwitcher() {
               return;
             }
             writeLocaleCookie(candidate);
-            router.refresh();
+            router.push(resolveMarketingLocalePath(pathname, candidate));
           }}
         >
           {t(candidate)}

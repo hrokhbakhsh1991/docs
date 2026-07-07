@@ -1,0 +1,101 @@
+---
+title: P7 — Implementation standards (staging delivery)
+phase: 20
+format: markdoc
+doc_role: architecture_sot
+mandatory_for: [P7-0, P7-1, P7-2, P7-3]
+extends:
+  - docs/phase-19/p6-implementation-standards.mdoc
+  - docs/phase-20/p7/appendices/P6-P7-BOUNDARY.md
+  - docs/phase-20/p7/appendices/PAYMENT-LEDGER-BOUNDARY.md
+  - docs/phase-20/p7/appendices/P7-EXECUTION-DISCIPLINE.md
+pack_version: "1.4"
+---
+
+# P7 implementation standards
+
+**Rule:** P7 **delivers** the P6 product on staging — same modular boundaries, same three apps, same workspace plugin model. No new architectural layer.
+
+**Execution:** Read [P7-EXECUTION-DISCIPLINE.md](p7/appendices/P7-EXECUTION-DISCIPLINE.md) — walkthrough on staging before any product code; progress = staging proof only.
+
+**Authority stack:** P6 implementation standards → P7 boundaries → EPIC nano.
+
+---
+
+## 1. Layer cake (unchanged from P6)
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ apps/{web|portal|marketing}  — routes + BFF only        │
+├─────────────────────────────────────────────────────────┤
+│ packages/workspaces/denali — plugin rules, HTTP, UI     │
+├─────────────────────────────────────────────────────────┤
+│ apps/api — tenant, canonical, workspace-finance         │
+├─────────────────────────────────────────────────────────┤
+│ packages/workspace-sdk · tenant-kernel                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+P7 adds **deployment profiles** and **staging proof** — not new layers.
+
+---
+
+## 2. Staging profiles (P7-0)
+
+| Profile | Use | Session / OTP |
+| ------- | --- | ------------- |
+| **A** Local dev | Engineer iteration | `ALLOW_DEV_WEB_SESSION` · static OTP ok |
+| **B** VPS IP | First staging | HTTP · coherence scripts |
+| **C** Subdomain | Production-like | TLS · real SMS · dev flags **off** |
+
+Authority: [runbooks/p7-0-env-matrix.md](p7/runbooks/p7-0-env-matrix.md)
+
+---
+
+## 3. Modular change rules by EPIC
+
+| EPIC | Touch surfaces | Pattern |
+| ---- | -------------- | ------- |
+| P7-0 | `deploy/vps/` · env · seed scripts | infra-only PRs |
+| P7-1 | `apps/web/app/tours/new/` · settings seed | Z2 complete — minimal diff |
+| P7-2 | `apps/web/app/(app)/tours/[id]/workspace/` | Z3 additive |
+| P7-3 | E2E configs · gate scripts | verification-only |
+
+---
+
+## 4. Finance (payment vs ledger)
+
+| Layer | P7 change |
+| ----- | --------- |
+| Payment ingress | staging MinIO/fileKey path verified |
+| Ledger spine | **no schema change** — T3 `finance-ops.spec.ts` |
+
+See [appendices/PAYMENT-LEDGER-BOUNDARY.md](p7/appendices/PAYMENT-LEDGER-BOUNDARY.md).
+
+---
+
+## 5. Doc-first (P7)
+
+Before code in `apps/api` · `apps/web` · `apps/marketing` · `apps/portal` · `packages/workspaces/denali`:
+
+1. Update `docs/phase-20/` EPIC or appendix
+2. ONE nano per PR where possible
+3. `pnpm run p7:gate`
+
+---
+
+## 6. Verification
+
+| Check | Command |
+| ----- | ------- |
+| Regression | `pnpm run p7:gate` |
+| Staging smoke | `pnpm run p7:staging-verify` |
+| Wizard preservation | `denali-publish-readiness.spec.ts` |
+
+---
+
+## References
+
+- [p7/appendices/P7-DOC-ARCHITECTURE.md](p7/appendices/P7-DOC-ARCHITECTURE.md)
+- [p7/appendices/PACK-EXTENSION-GUIDE.md](p7/appendices/PACK-EXTENSION-GUIDE.md)
+- [p6-implementation-standards.mdoc](../phase-19/p6-implementation-standards.mdoc)

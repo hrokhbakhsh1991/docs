@@ -16,4 +16,5 @@ export type DenaliContextualRule =
   | { readonly kind: "multiDayEndDateTimeRequired" }
   | { readonly kind: "singleDayTourOnly" }
   | { readonly kind: "peakExperienceVisible" }
-  | { readonly kind: "groupInsuranceVisible" };
+  | { readonly kind: "groupInsuranceVisible" }
+  | { readonly kind: "telegramIntegrationActive" };

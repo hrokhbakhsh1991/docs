@@ -16,15 +16,9 @@ import { getIdentityRepository } from "./create-identity-repository";
 import { createMobileOtpChallenge } from "./otp.service";
 import { compileUserBookingSummary } from "./compile-user-booking-summary";
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
-import {
-  decodeUsersDirectoryCursor,
-  encodeUsersDirectoryCursor,
-} from "./users-directory-cursor";
+import { decodeUsersDirectoryCursor, encodeUsersDirectoryCursor } from "./users-directory-cursor";
 import { normalizeMembershipRole } from "./hydrate-membership";
-import {
-  isLoginMobileFormatValid,
-  normalizeLoginMobile,
-} from "./phone-login-authorization";
+import { isLoginMobileFormatValid, normalizeLoginMobile } from "./phone-login-authorization";
 import {
   evaluateMembershipRemoval,
   evaluateMembershipRoleChange,
@@ -56,6 +50,7 @@ import {
   type BulkUsersMutationResponse,
   type MembershipAuditEventKind,
 } from "./users.types";
+import { resolveOperatorAvatarUrlForMembership } from "./operator-avatar-storage";
 import { assertOperatorUsersWorkspace } from "./users-workspace-guard";
 
 export class UsersDirectoryForbiddenError extends Error {
@@ -139,11 +134,16 @@ function displayNameForUser(
   return user.mobile;
 }
 
-function toDirectoryRow(
+async function toDirectoryRow(
   user: IdentityUserRecord,
   membership: IdentityMembershipRecord
-): UsersDirectoryRow {
+): Promise<UsersDirectoryRow> {
   const rewards = membership.rewards;
+  const avatarUrl = await resolveOperatorAvatarUrlForMembership(
+    membership.tenantId,
+    user.id,
+    membership.avatar?.storageKey
+  );
   return {
     userId: user.id,
     tenantId: membership.tenantId,
@@ -152,7 +152,8 @@ function toDirectoryRow(
     displayName: displayNameForUser(user, membership),
     phone: user.mobile,
     email: null,
-    avatarUrl: null,
+    gender: membership.gender ?? null,
+    avatarUrl,
     joinedAt: null,
     lastActiveAt: null,
     permanentDiscountPercentage: rewards?.permanentDiscountPercentage ?? null,
@@ -220,7 +221,7 @@ export async function listUsersDirectory(
         if (user === null) {
           return null;
         }
-        return toDirectoryRow(user, membership);
+        return await toDirectoryRow(user, membership);
       })
     )
   )
@@ -371,7 +372,7 @@ export async function patchWorkspaceUserRole(
   if (user === null) {
     throw new MembershipNotFoundError(targetUserId);
   }
-  return toDirectoryRow(user, updated);
+  return await toDirectoryRow(user, updated);
 }
 
 export async function removeWorkspaceUser(
@@ -463,7 +464,7 @@ export async function suspendWorkspaceUser(
   if (user === null) {
     throw new MembershipNotFoundError(targetUserId);
   }
-  return toDirectoryRow(user, updated);
+  return await toDirectoryRow(user, updated);
 }
 
 export async function reactivateWorkspaceUser(
@@ -490,7 +491,7 @@ export async function reactivateWorkspaceUser(
   if (user === null) {
     throw new MembershipNotFoundError(targetUserId);
   }
-  return toDirectoryRow(user, updated);
+  return await toDirectoryRow(user, updated);
 }
 
 function normalizeRewardsPatch(body: PatchUserRewardsRequest): MembershipRewardsRecord {
@@ -513,7 +514,10 @@ function normalizeRewardsPatch(body: PatchUserRewardsRequest): MembershipRewards
     rewards.isSelectableLeader = body.isSelectableLeader;
   }
   if (body.labels !== undefined) {
-    if (body.labels.length > 32 || body.labels.some((label) => label.trim().length === 0 || label.length > 64)) {
+    if (
+      body.labels.length > 32 ||
+      body.labels.some((label) => label.trim().length === 0 || label.length > 64)
+    ) {
       throw new Error("REWARDS_LABELS_INVALID");
     }
     rewards.labels = [...body.labels];
@@ -550,7 +554,7 @@ export async function patchWorkspaceUserRewards(
   if (user === null) {
     throw new MembershipNotFoundError(targetUserId);
   }
-  return toDirectoryRow(user, updated);
+  return await toDirectoryRow(user, updated);
 }
 
 export async function transferWorkspaceOwnership(
@@ -662,11 +666,7 @@ export class BulkUserIdsLimitExceededError extends Error {
 
 function normalizeBulkUserIds(userIds: readonly string[]): readonly string[] {
   const unique = [
-    ...new Set(
-      userIds
-        .map((userId) => userId.trim())
-        .filter((userId) => userId.length > 0)
-    ),
+    ...new Set(userIds.map((userId) => userId.trim()).filter((userId) => userId.length > 0)),
   ];
   if (unique.length === 0) {
     throw new BulkUserIdsRequiredError();
@@ -714,9 +714,7 @@ export async function bulkPatchWorkspaceUserRoles(
 ): Promise<BulkUsersMutationResponse> {
   await assertUsersDirectoryAccess(auth);
   const targets = normalizeBulkUserIds(userIds);
-  return runBulkMutation(targets, (userId) =>
-    patchWorkspaceUserRole(auth, userId, { role }, repo)
-  );
+  return runBulkMutation(targets, (userId) => patchWorkspaceUserRole(auth, userId, { role }, repo));
 }
 
 export async function bulkSuspendWorkspaceUsers(
@@ -758,7 +756,7 @@ export async function bulkRemoveWorkspaceUsers(
       if (user === null) {
         throw new MembershipNotFoundError(userId);
       }
-      const snapshot = toDirectoryRow(user, membership);
+      const snapshot = await toDirectoryRow(user, membership);
       await removeWorkspaceUser(auth, userId, repo);
       items.push(snapshot);
     } catch (error: unknown) {

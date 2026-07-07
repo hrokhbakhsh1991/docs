@@ -1,0 +1,396 @@
+---
+title: DTCG pipeline specification
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/architecture/platform-architecture-v2.md
+---
+
+# DTCG pipeline specification
+
+Phase E inverts token authority: **DTCG JSON is input**; CSS and TS are generated output.
+
+## Gate status (2026-07-06)
+
+| Prerequisite | Status |
+| ------------ | ------ |
+| Phase B — boundary purge | ✅ |
+| Phase D — appearance decomposition | ✅ |
+| Corrected semantic map (`color.accent` → `--color-accent`) | ✅ E1 |
+| `themes/light.css` generated from DTCG | ✅ E1 |
+| `themes/dark.css` generated from DTCG | ✅ E2 |
+| `starter/theme/tokens.css` generated from workspace DTCG slice | ✅ E2 |
+| `guest-club` / `urban` / `denali` workspace DTCG slices | ✅ E3 |
+| `theme/tokens.css` hex ban (must be `@generated`) | ✅ E3 |
+| `design-language/MASTER.md` demoted to design brief | ✅ E3 |
+| Skin semantic CSS (`marketing/semantic-tokens.css`, `portal-semantic-tokens.css`) from DTCG | ✅ E4 |
+| Skin hook hex ban (`*-portal.css`, `marketing/tokens.css` — hooks only) | ✅ E4 |
+| `design-system/denali-club/MASTER.md` demoted to redirect / export only | ✅ E4 |
+| Marketing `shell.css` + `components/*.css` hex-free (var-only hooks) | ✅ E5 |
+| Denali `mkt.*` overlay tokens in marketing DTCG slice | ✅ E5 |
+| Denali admin semantic CSS (`admin-semantic-tokens.css`) from DTCG | ✅ F1 |
+| Admin skin hook hex ban (`admin-skin.css` — hooks only) | ✅ F1 |
+| Finance + wizard shell hooks hex-free (`finance-skin`, `wizard-skin`, `wizard-calendar`) | ✅ F2 |
+| Wizard tone palette DTCG + `wizard-fields.css` hex ban | ✅ F3 |
+| Platform `primitives.css` from DTCG + denali motion/wizard partial hex ban | ✅ F4 |
+| Platform `semantics.css` from DTCG + denali `interactions.css` hex ban | ✅ F5 |
+| `operator-admin-dark-semantics.css` from DTCG + appearance hook hex ban | ✅ F6 |
+| `operator-shell-structure.css` platform hook hex ban | ✅ F closure |
+| Admin bootstrap CSS-G-02 (no guest cross-surface imports) | ✅ F closure |
+| Denali `theme/` publish set covers admin `@import` chain | ✅ F closure |
+| Admin feature TSX palette/hex AST ban (`patterns/`, `dashboard/`, `onboarding/`) | ✅ F7 |
+| Admin feature TSX CSS-hook purge (incremental registry) | ✅ F8 (17/17 purged) |
+| Denali admin dark primary isolation (F9-2 guard + spec) | ✅ F9 |
+| ThemeProviderChain / CSS precedence table | ✅ F9 |
+| F9-4 tenant dark primary (C4 remediation) | ✅ F9 |
+| Phase F formal closure (fast-track checklist) | ✅ 2026-07-06 |
+
+**Phase F scope:** ✅ closed (fast-track + F guards). **Monorepo full gate:** ❌ blocked on pre-existing DEV debt (see § Full gate run below).
+
+## Authority flow (E1–E2)
+
+```text
+dtcg/platform.primitives.tokens.json
+        │
+        ▼
+generate-dtcg-primitives.mjs ──► src/primitives.css (@generated, F4)
+        │
+dtcg/platform.semantics.tokens.json
+        │
+        ▼
+generate-dtcg-semantics.mjs  ──► src/semantics.css (@generated, F5)
+        │
+dtcg/platform.tokens.json
+        │
+        ▼
+generate-dtcg-theme.mjs  ──► src/themes/light.css (@generated)
+        │
+dtcg/platform.dark.tokens.json
+        │
+        ▼
+generate-dtcg-theme.mjs  ──► src/themes/dark.css (@generated)
+        │                 operator-admin-dark-semantics.css (@generated, F6 — admin .dark cascade)
+        │
+dtcg/workspaces/<id>.tokens.json  (starter · guest-club · urban · denali)
+        │
+        ▼
+generate-workspace-dtcg-css.mjs ──► packages/workspaces/<id>/theme/tokens.css (@generated)
+        │                         theme/marketing/semantic-tokens.css (@generated, E4)
+        │                         theme/portal-semantic-tokens.css (@generated, E4)
+        │                         theme/admin-semantic-tokens.css (@generated, F1 — blocks[])
+        │                         theme/wizard-semantic-tokens.css (@generated, F3)
+        │
+        ▼
+generate-tokens.mjs      ──► src/generated/*.ts
+```
+
+## Semantic map (platform light)
+
+| DTCG path | CSS variable | Notes |
+| --------- | ------------ | ----- |
+| `color.primary` | `--color-primary` | Brand primary |
+| `color.primary-hover` | `--color-primary-hover` | |
+| `color.primary-fg` | `--color-primary-fg` | |
+| `color.accent` | `--color-accent` | CTA accent — **not** `--color-warning` |
+| `color.accent-fg` | `--color-accent-fg` | |
+| `color.bg-page` | `--color-bg-page` | |
+| `color.warning` | `--color-warning` | Status semantic (may match accent value on platform default) |
+| `focus.ring-color` | `--focus-ring-color` | |
+
+Rule: DTCG path segments join with `-` and prefix `--` (`color.text-primary` → `--color-text-primary`).
+
+## Guards
+
+| Guard | Role |
+| ----- | ---- |
+| `guard-dtcg-tokens` | Schema + required keys in platform light/dark + all workspace slices |
+| `guard-dtcg-css-sync` | Runs `generate-dtcg-primitives.mjs`, `generate-dtcg-semantics.mjs`, `generate-dtcg-theme.mjs`, `generate-workspace-dtcg-css.mjs` `--check` (no drift) |
+| `guard-dtcg-hex-ban` | DTCG outputs `@generated`; skin hooks + `marketing/shell.css` + `marketing/components/*.css` + `admin-skin.css` must not contain raw `#` hex |
+| `dtcg-light-generation.spec.mjs` | Unit: accent maps to `--color-accent`, light file is `@generated` |
+| `dtcg-dark-generation.spec.mjs` | Unit: dark shadows/accent, starter tokens `var(--color-primary)` only |
+| `dtcg-e3-workspace-slices.spec.mjs` | Unit: guest-club / urban / denali slices → committed `tokens.css` |
+| `dtcg-e4-skin-semantic.spec.mjs` | Unit: marketing/portal semantic slices → `@generated` CSS; hook files hex-free |
+| `dtcg-e5-marketing-components.spec.mjs` | Unit: denali `mkt.*` tokens; shell + components have no raw `#` hex |
+| `dtcg-f1-admin-skin.spec.mjs` | Unit: `denali.admin.tokens.json` blocks → `admin-semantic-tokens.css`; `admin-skin.css` hex-free |
+| `dtcg-f2-admin-hooks.spec.mjs` | Unit: finance + wizard shell hooks hex-free; calendar aliases semantic vars |
+| `dtcg-f3-wizard-fields.spec.mjs` | Unit: `denali.wizard.tokens.json` → `wizard-semantic-tokens.css`; `wizard-fields.css` hex-free |
+| `dtcg-f4-primitives.spec.mjs` | Unit: `platform.primitives.tokens.json` → `primitives.css`; denali motion/wizard partial hooks hex-free |
+| `dtcg-f5-semantics.spec.mjs` | Unit: `platform.semantics.tokens.json` → `semantics.css`; interactions hook hex-free |
+| `dtcg-f6-admin-appearance.spec.mjs` | Unit: admin dark semantics from `platform.dark`; `operator-admin-appearance.css` hook-only |
+| `guard-admin-feature-appearance-ast` | AST: admin feature TSX `className` — no palette scale colors or `#` arbitrary values (F7) |
+| `guard-denali-admin-dark-primary` | F9-2: Denali admin dark `--color-primary` is `#5eead4`, not platform `#5b9fd4`; triple cascade arm present |
+| `admin-feature-appearance-ast.spec.ts` | Unit: F7 scan passes on `patterns/`, `dashboard/`, `onboarding/` |
+| `dtcg-f9-admin-dark-primary.spec.mjs` | Unit: F9-2 DTCG dark block + semantic CSS primary isolation |
+
+Reference syntax: `{color.primary}` → `var(--color-primary)`; `{flat.focus-ring-color}` → `var(--focus-ring-color)` (flat group emits unprefixed shadcn aliases).
+
+| Workspace | `ws.color-accent` value | Generated CSS |
+| --------- | ----------------------- | ------------- |
+| `starter` | `{color.primary}` | `var(--color-primary)` |
+| `urban` | `{color.primary}` | `var(--color-primary)` |
+| `denali` | `{color.primary}` | `var(--color-primary)` |
+| `guest-club` | `#2563eb` (scaffold brand) | literal hex in `@generated` file only |
+
+## Workspace DTCG slices (E3)
+
+Hand-authored skin files **must not** contain `#` hex literals. Color semantics live in DTCG slices:
+
+| DTCG slice | Generated output | Hand-authored hook |
+| ---------- | ---------------- | ------------------ |
+| `<id>.marketing.tokens.json` | `theme/marketing/semantic-tokens.css` | `theme/marketing/tokens.css` — `@import` + layout/`var()` aliases only |
+| `<id>.portal.tokens.json` | `theme/portal-semantic-tokens.css` | `<id>-portal.css` — `@import` + layout hooks only |
+| `<id>.tokens.json` | `theme/tokens.css` | (none — full file generated) |
+
+`rgba()` / `color-mix()` in layout shadows remain allowed in hook files until a later motion/elevation DTCG schema exists.
+
+## Marketing component hook contract (E5)
+
+| File class | Hex policy |
+| ---------- | ---------- |
+| `marketing/semantic-tokens.css` | `@generated` — hex allowed in DTCG output only |
+| `marketing/tokens.css` | hook — `var()` / layout only (E4) |
+| `marketing/shell.css` | hook — no `#` hex; overlay colors via `--mkt-*` from DTCG |
+| `marketing/components/*.css` | hook — no `#` hex; reference semantic/`--mkt-*` vars |
+
+Denali overlay palette (`--mkt-on-overlay`, `--mkt-overlay-icon`, `--mkt-hero-ink`, `--mkt-mask-ink`, accent/destructive shades) lives in `denali.marketing.tokens.json` → `semantic-tokens.css`.
+
+## Admin skin hook contract (F1)
+
+| DTCG slice | Generated output | Hand-authored hook |
+| ---------- | ---------------- | ------------------ |
+| `<id>.admin.tokens.json` | `theme/admin-semantic-tokens.css` | `admin-skin.css` — `@import` + layout hooks only |
+
+Admin semantic slices use a **`blocks[]`** array — each block has its own `scopeSelector` (light body scope + dark triple cascade). Token groups per block: `denali.*` brand palette, `color.*` platform semantics, `flat.*` shadcn aliases (`flat` → unprefixed `--primary`, `--sidebar-*`, etc.).
+
+Denali F1 scope: `denali.admin.tokens.json` → `admin-semantic-tokens.css`; `admin-skin.css` imports semantic layer and wires operator sidebar, empty states, bookings inbox, focus rings via `var()` / `color-mix()` only.
+
+## Admin hook hex ban (F2)
+
+Finance + wizard **shell** hooks reference admin semantic vars only — no raw `#` hex:
+
+| Hook file | Hex policy | Semantic source |
+| --------- | ---------- | --------------- |
+| `finance-skin.css` | `var()` / `color-mix()` only | `--color-*`, `--denali-*` from `admin-semantic-tokens.css` |
+| `wizard-skin.css` | same | dark wizard re-bind uses inherited `var(--color-primary)` (admin DTCG) |
+| `wizard-calendar.css` | same | `--denali-wizard-calendar-*` aliases `--color-primary*` |
+| `wizard-fields.css` | `var()` / `color-mix()` only | `--wiz-tone-*` from `wizard-semantic-tokens.css` |
+
+## Wizard fields hook contract (F3)
+
+| DTCG slice | Generated output | Hand-authored hook |
+| ---------- | ---------------- | ------------------ |
+| `<id>.wizard.tokens.json` | `theme/wizard-semantic-tokens.css` | `wizard-fields.css` — `@import` + layout/`color-mix()` hooks only |
+
+`wiz.tone.*` groups define swatch source/fg pairs (forest, sky, purple, orange, amber, rose, emerald) plus dark variants. Gear picker uses `wiz.tone.sky.fg-gear` where fg differs from theme picker.
+
+## Platform primitives (F4)
+
+| DTCG slice | Generated output | Notes |
+| ---------- | ---------------- | ----- |
+| `platform.primitives.tokens.json` | `src/primitives.css` | `@generated` — space, radius, typography, layout, shadow, z-index |
+
+`rgba()` shadows remain in DTCG output only (not in hand-authored hooks).
+
+## Platform semantics (F5)
+
+| DTCG slice | Generated output | Notes |
+| ---------- | ---------------- | ----- |
+| `platform.semantics.tokens.json` | `src/semantics.css` | `@generated` — component aliases (`--color-surface`, `--color-border`, …) reference theme vars |
+
+## Operator admin appearance (F6)
+
+| Output | Source | Hand-authored hook |
+| ------ | ------ | ------------------ |
+| `operator-admin-dark-semantics.css` | `platform.dark.tokens.json` (`.dark` cascade selectors) | — |
+| `operator-admin-appearance.css` | — | wizard platform shell + validation hooks; `@import` dark semantics; inline body reset |
+
+Dark palette duplication between `themes/dark.css` (`.theme-dark`) and admin file removed — both generated from the same DTCG slice with different selectors.
+
+## Phase F closure (post-F6)
+
+| Fix | Rationale |
+| --- | --------- |
+| `operator-admin-appearance.css` inline body reset | F6 mistakenly `@import`ed `guest-body-reset.css` — violates CSS-G-02 admin-bootstrap boundary |
+| `operator-shell-structure.css` impersonation banner | `#f59e0b` → `var(--color-warning)`; file added to `guard-dtcg-hex-ban` platform hooks |
+| `@app-tour/workspace-denali` `files: ["theme"]` | `denali-admin.css` `@import` chain includes generated semantic CSS + wizard partials — partial `files` list broke npm pack |
+
+## F7 — Admin feature appearance AST (palette ban)
+
+**Scope:** `apps/web/src/admin/{patterns,dashboard,onboarding}/**/*.tsx` — **not** shell (I0 already covers `operator-shell.tsx`, `operator-header.tsx`, `operator-nav.tsx`, `operator-account-menu.tsx`).
+
+**Contract:** feature TSX may use **semantic** shadcn/Tailwind tokens (`text-muted-foreground`, `bg-primary`, `border-border/50`, `text-destructive`, …) and layout utilities (`flex`, `gap-*`, `truncate`, …). **Forbidden** in `className`:
+
+| Class pattern | Example | Why |
+| ------------- | ------- | --- |
+| Tailwind palette scale | `bg-red-500`, `text-slate-600` | bypasses DTCG semantic vars |
+| Raw named colors | `bg-white`, `text-black` | use `*-foreground` / `bg-background` |
+| Arbitrary hex | `bg-[#1e5a8e]` | hex belongs in DTCG `@generated` CSS only |
+
+**Guard:** `node scripts/guards/guard-admin-feature-appearance-ast.mjs` (also in `admin-control-pack`).
+
+**F8 (done):** all 17 feature TSX purged to `data-*` hooks — see § F8 below. Non-purged files no longer exist under scan dirs.
+
+## F8 — Admin feature CSS-hook purge (incremental)
+
+**Goal:** migrate feature TSX from semantic Tailwind `className` to `data-*` hooks + `admin-skin.css` (same contract as shell I0, applied incrementally).
+
+**Purged registry** (`ADMIN_FEATURE_PURGED_FILES` in `admin-feature-appearance-ast-scan.mjs`): all 17 feature TSX under `patterns/`, `dashboard/`, `onboarding/` — **zero** `className` attributes each.
+
+| Sprint | File | Hooks |
+| ------ | ---- | ----- |
+| F8-1 | `patterns/booking-activity-timeline.tsx` | `data-booking-timeline-*` | ✅ |
+| F8-1 | `patterns/dashboard-kpi-cell.tsx` | `data-denali-kpi-*` | ✅ |
+| F8-2 | `patterns/denali-skeleton.tsx` | `data-denali-skeleton-size` (+ shimmer in `animations.css`) | ✅ |
+| F8-2 | `patterns/denali-empty-state.tsx` | `data-denali-empty-state-*` | ✅ |
+| F8-3 | `patterns/page-header.tsx` | `data-denali-page-header-*` | ✅ |
+| F8-3 | `patterns/settings-page-header.tsx` | `data-denali-settings-page-header-*` | ✅ |
+| F8-4 | `patterns/dashboard-widget-card.tsx` | `data-denali-dashboard-widget-*`, `DashboardKpiGrid` | ✅ |
+| F8-5 | `dashboard/dashboard-*-widget.tsx` (×4) | `DashboardWidgetError`, `DashboardWidgetRowStack`, `DashboardWidgetList`, `DashboardTourListRow`, `DashboardRegistrationListRow` in `dashboard-widget-card.tsx`; hooks `data-denali-dashboard-widget-error`, `data-denali-dashboard-tour-row-*`, `data-denali-dashboard-registration-row-*` in `admin-skin.css` | ✅ |
+| F8-6 | `patterns/denali-confirm-dialog.tsx`, `onboarding/operator-welcome-dialog.tsx` | `data-denali-confirm-dialog-*`, `data-denali-welcome-*` (brand row, bullets, CTA wrap) | ✅ |
+| F8-7 | `patterns/tour-category-badge.tsx`, `patterns/operator-profile-avatar.tsx` | `data-denali-category-badge` width; `data-denali-profile-avatar-size` (`lg`/`sm`/`md`) | ✅ |
+
+**F8 closure:** 17/17 feature TSX purged — full `patterns/`, `dashboard/`, `onboarding/` scan dirs have zero `className` on all files.
+
+**Guard:** `guard-admin-feature-appearance-ast` runs F7 palette ban on all feature TSX **and** F8 zero-`className` on purged files.
+
+## F9+ (post-F8)
+
+### F9 — ThemeProviderChain vs CSS precedence
+
+**Problem:** operator dark toggle sets `html.dark` and `ThemeProviderChain`’s inner `.theme-dark`. Platform `globals.css` / design-token theme layers can assign platform blue to `.theme-dark`, overriding body-scoped Denali DTCG vars for shell children (see [`admin-experience.md`](../workspaces/denali/admin-experience.md) § Dark mode cascade).
+
+**Contract (already partial in `admin-skin.css`):**
+
+1. `html.dark:has(body[data-workspace-plugin="denali"])` — document root + portals
+2. `body[data-workspace-plugin="denali"] .theme-dark` — provider subtree inside shell
+
+**F9 deliverables:**
+
+| Step | Work |
+| ---- | ---- |
+| F9-1 | Audit: enumerate all `.theme-dark` / `ThemeProviderChain` inline vars that conflict with `admin-semantic-tokens.css` | ✅ (see § F9-1 audit below) |
+| F9-2 | Guard or spec: Denali admin primary in dark mode ≠ platform `#5b9fd4` (extend `denali-admin-theme` or Playwright `SMK-P9-DENALI-THEME`) | ✅ `guard-denali-admin-dark-primary` · `WEB-DENALI-THEME-14` · `SMK-P9-DENALI-THEME` |
+| F9-3 | Doc closure: precedence table in `dtcg-pipeline-spec` + `platform-architecture-v2` | ✅ (see § F9-3 below) |
+| F9-4 | C4 remediation: tenant inline `--color-primary` deferred in dark mode | ✅ `TenantThemeProvider` + `buildTenantThemeStyle({ omitPrimaryColor })` |
+
+#### F9-1 audit — ThemeProviderChain vs Denali admin semantics (2026-07-06)
+
+**DOM chain** (`ThemeProviderChain` → operator shell):
+
+```text
+body[data-workspace-plugin="denali"][data-app-surface="admin"]
+└─ PlatformThemeProvider → div.theme-dark | div.theme-light     ← toggle target
+   └─ TenantThemeProvider → div[data-tenant-theme] style=inline --color-primary* (light only; omitted when html.dark per F9-4)
+      └─ WorkspaceThemeProvider → div[data-workspace-theme] style=workspace cssVariables
+         └─ operator shell + feature children (shadcn, Radix portals)
+```
+
+Operator dark toggle (`operator-theme-mode.ts`) writes **both** `html.dark` on `<html>` and `theme-dark` on the `PlatformThemeProvider` root (same contract as Playwright `SMK-P9-DENALI-THEME`).
+
+**Admin CSS load order** (via `apps/web/app/globals.css` → `admin-bootstrap.css`):
+
+| # | File | `.theme-dark` role |
+| - | ---- | ------------------ |
+| 1 | `index.css` → `themes/dark.css` | Platform palette on `.theme-dark` — `--color-primary: #5b9fd4` |
+| 2 | `shell-bridge.css` | shadcn aliases `--primary`, `--sidebar-primary` → `var(--color-primary)` |
+| 3 | `operator-admin-dark-semantics.css` | Duplicate platform dark palette on `.theme-dark`, `.dark` |
+| 4 | `denali-admin.css` → `admin-semantic-tokens.css` | Denali DTCG dark block on triple cascade (below) |
+
+**Denali dark authority selector** (`denali.admin.tokens.json` block 2 → `admin-semantic-tokens.css`):
+
+```text
+html.dark:has(body[data-workspace-plugin="denali"]),
+.dark body[data-workspace-plugin="denali"],
+body[data-workspace-plugin="denali"] .theme-dark
+```
+
+Without the third arm, shadcn `bg-primary` inside `div.theme-dark` keeps platform `#5b9fd4` even when `body` exposes teal `--primary` via the first two arms only.
+
+**Conflict inventory**
+
+| ID | Source | Mechanism | Dark value (platform) | Denali authority | Severity | Mitigation today |
+| -- | ------ | --------- | --------------------- | ---------------- | -------- | ---------------- |
+| C1 | `themes/dark.css` | `.theme-dark { --color-primary }` | `#5b9fd4` | `#5eead4` | **P0** | Triple cascade on `.theme-dark` div (specificity 0,2,1) |
+| C2 | `operator-admin-dark-semantics.css` | `.theme-dark`, `.dark` full palette | platform GitHub dark | Denali forest dark | **P0** for primary | Same as C1; file is platform admin fallback — Denali skin loads after bootstrap |
+| C3 | `shell-bridge.css` | `.theme-dark { --primary: var(--color-primary) }` | aliases C1 | `{flat.primary}` in DTCG | **P0** | Denali flat aliases in semantic block override `--primary` on matched selector |
+| C4 | `TenantThemeProvider` | inline `style` on `[data-tenant-theme]` | `--color-primary` from tenant DB (`#0f766e` default) | dark `#5eead4` | **P1** | **F9-4:** omit `primaryColor` inline mapping when `html.dark` (`useDocumentDarkMode` in theme-react) |
+| C5 | `WorkspaceThemeProvider` | inline `style` on `[data-workspace-theme]` | workspace `cssVariables` / `tokens.css` | admin semantic block | **P2** | Usually defers to `--ws-color-accent`; admin semantic sets shadcn `--accent` |
+| C6 | `themes/dark.css` + `operator-admin-dark-semantics.css` | status tokens not in Denali dark DTCG block | `--color-danger` `#ff7b72`, `--color-success` `#56d364`, `--color-warning` `#e3b341`, `--color-info` `#79c0ff` | light-block only in `denali.admin.tokens.json` | **P2** | No Denali dark override — destructive/warning/success badges use platform GitHub hues |
+| C7 | `ui-primitives/Select/select-affordance.css` | `.theme-dark [data-ui-select]` chevron stroke | `#a8b0a4` | cosmetic | **P3** | Decorative SVG stroke only |
+
+**React providers — inline vars set on chain** (`packages/theme-react`):
+
+| Provider | Inline keys | Conflicts with admin semantic |
+| -------- | ----------- | ------------------------------ |
+| `PlatformThemeProvider` | none (class only) | — |
+| `TenantThemeProvider` | `--color-primary`, `--color-primary-hover`, `--color-text-link`, tenant `cssVariables` | **C4** ✅ F9-4 — primary family omitted when `html.dark` |
+| `WorkspaceThemeProvider` | normalized `workspaceTheme.cssVariables` | **C5** — accent/brand overrides |
+
+**Open remediation (post-F9-4):**
+
+1. **C6:** extend `denali.admin.tokens.json` dark block with `color.danger|success|warning|info` (+ `flat.destructive`) or accept platform status hues.
+2. **C1–C3 long-term:** gate platform `.theme-dark` palette behind non-Denali body (`:not(:has(body[data-workspace-plugin="denali"]))`) in generated CSS — requires DTCG generator change (Phase G adjacency).
+
+**Closed:** C4 — F9-4 `omitPrimaryColor` in `TenantThemeProvider` / `buildTenantThemeStyle`.
+
+#### F9-3 — CSS precedence table (admin dark mode)
+
+When multiple layers set the same custom property, **higher priority wins** for descendants. Denali admin requires the triple cascade (F9-1) so layer 2 beats layers 3–5 on `div.theme-dark`.
+
+| Priority | Layer | Selector / scope | Applies to | Overrides |
+| -------- | ----- | ---------------- | ---------- | --------- |
+| 1 | Inline React style | `[data-tenant-theme]`, `[data-workspace-theme]` | Tenant / workspace subtree | Parent-inherited CSS vars on descendants[^c4] |
+| 2 | Denali admin DTCG | `html.dark:has(body[data-workspace-plugin="denali"])`, `.dark body[data-workspace-plugin="denali"]`, `body[data-workspace-plugin="denali"] .theme-dark` | Body, portals, `PlatformThemeProvider` root | Platform `.theme-dark` palette (C1–C3) |
+| 3 | Platform admin dark semantics | `.theme-dark`, `.dark` in `operator-admin-dark-semantics.css` | Non-Denali admin fallback | `themes/dark.css` where duplicated |
+| 4 | Platform theme | `.theme-dark` in `themes/dark.css` | All `ThemeProviderChain` dark subtrees | — |
+| 5 | shadcn bridge | `:root`, `.theme-dark` in `shell-bridge.css` | Tailwind `@theme inline` aliases | Maps to `--color-*` from layers above |
+
+[^c4]: **C4 (F9-4 mitigated):** `TenantThemeProvider` skips inline `--color-primary*` when `html.dark` so Denali dark semantic cascade applies to the tenant subtree. Wizard still re-binds `[data-new-tour-wizard]` in `wizard-skin.css` as belt-and-suspenders.
+
+### Phase F formal closure
+
+**Status:** ✅ **Phase F scope closed** on **2026-07-06** — fast-track checklist below (all PASS).
+
+**Full monorepo gate (Architect YES, 2026-07-06):** attempted — **not green**; blockers are **outside Phase F** (see § Full gate run). Phase F token work is not the regression source.
+
+## Phase F closure checklist
+
+| Gate | Command / artifact | 2026-07-06 |
+| ---- | ------------------ | ---------- |
+| Build | `pnpm --filter @app-tour/design-tokens run build` | ✅ |
+| Unit specs | `pnpm --filter @app-tour/design-tokens test` (67) · `pnpm --filter @apps/web exec node --import tsx --test test/admin-feature-appearance-ast.spec.ts test/denali-admin-theme.spec.ts` (19) | ✅ |
+| Theme-react (F9-4) | `pnpm --filter @app-tour/theme-react test` (27) | ✅ |
+| DTCG token guard | `node scripts/guards/guard-dtcg-tokens.mjs` | ✅ |
+| CSS sync | `node scripts/guards/guard-dtcg-css-sync.mjs` | ✅ |
+| Hex ban | `node scripts/guards/guard-dtcg-hex-ban.mjs` | ✅ |
+| Bootstrap integrity | `node scripts/guards/guard-css-bootstrap-integrity.mjs` | ✅ |
+| Admin feature palette ban | `node scripts/guards/guard-admin-feature-appearance-ast.mjs` | ✅ |
+| Denali admin dark primary | `node scripts/guards/guard-denali-admin-dark-primary.mjs` | ✅ |
+| Admin control pack | `pnpm run admin:control` | ✅ |
+| Playwright runtime (optional) | `pnpm exec playwright test -c apps/web/playwright.operator.config.ts tests/e2e/operator-smoke.spec.ts -g "SMK-P9-DENALI-THEME"` | ⏸ OTP/BFF stack |
+
+### Full gate run (Architect YES, 2026-07-06)
+
+| Gate | Result | Blocker (if fail) |
+| ---- | ------ | ----------------- |
+| `pnpm run ci:integrity` | 🟡 | phase-0→3 in progress — urban P7 baseline digest bumped; `guard-static-registry` fixed on commerce resolver |
+| `pnpm run phase-5:guard` | ✅ | — |
+| `pnpm run phase-4:guard` | ✅ | RLS + tenant-security green (2026-07-06) — worker `tsx` execArgv, commerce fallback, test isolation |
+| `pnpm --filter @apps/api run phase-5:evolution-gate` | ✅ | 20/20 — openapi dispatch parity (`tryDispatchPlatformRoutes`) + migration head bump |
+| `pnpm run phase-6:guard` | ✅ | — |
+| `pnpm run test:full` | ⏸ | not run — requires `ci:integrity` + `apps/api` build green first |
+
+**Unblock path (separate from Phase F):**
+
+1. **`apps/api/tsconfig.json` → Bundler emit contract** — ✅ **GREEN** (2026-07-06):
+   - `module`: `ES2022`, `moduleResolution`: `Bundler`, `rewriteRelativeImportExtensions`: `true` — resolves package `exports` and mixed `.ts`/extensionless relative imports (499 → 0).
+2. `tenant-kernel` WRS tests — ✅ neutral apex fixture `alpine.club` (replaces `denali.club` literals for `p4_no_denali_in_kernel`).
+3. RLS integration — `app_tour` must be **NOSUPERUSER** + **NOBYPASSRLS** (migrations `20260706120000` / `20260706130000`). Local `infra/docker-compose.yml` uses `postgres` superuser + `docs/phase-4/dev/init/01-app-role.sql` (not `POSTGRES_USER=app_tour`, which cannot drop superuser). `DATABASE_URL_ADMIN=postgresql://postgres:postgres@…` for migrate deploy.
+4. Evolution gate — wire missing `app.ts` routes flagged by `phase-5-evolution-gate.mjs`.
+5. **Guest theme loader** — `generate-workspace-registry.mjs` emits string-literal dynamic imports (import-boundary `computed-dynamic-import` guard); `workspace-theme-css.d.ts` in marketing/portal for CSS module resolution.
+6. **platform-core wizard ingress** — `stripNonIngressPluginSurfaces` / `stripWizardHostForEngine` omit `catalogIntake`, `operatorSettings`, `exposureSurface` (urban `validateDraftSync` parity with Denali `denaliPluginForWizardEngine`).
+7. **tenant-security / validation workers** — `validation-worker-pool.ts` always spawns workers with `--import tsx` (dist ESM lacks `.js` suffixes; raw Node worker threads fail `ERR_MODULE_NOT_FOUND`). `resolveWorkspaceCommerceConfigForTenantById` returns `DEFAULT_WORKSPACE_COMMERCE_CONFIG` when static registry is allowed and tenant row is absent (memory HTTP specs). `installMemoryStorageDriverForDescribe` pins `P5_VALIDATION_WORKERS_ENABLED=false` for fast in-memory specs.
+
+## MASTER.md demotion (E3–E4)
+
+`packages/workspaces/<id>/design-language/MASTER.md` is a **design brief / export only**. Runtime authority is the matching `dtcg/workspaces/<id>*.tokens.json` slices. `design-system/denali-club/MASTER.md` is a **legacy redirect** — do not edit; update workspace DTCG slices and run `pnpm --filter @app-tour/design-tokens build`.

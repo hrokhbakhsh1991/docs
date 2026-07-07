@@ -1,11 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import {
-  assertDenaliWizardDraftDestKey,
-  executeDenaliWizardPhotoRemintPlan,
-  readMinioPhotoConfigFromEnv,
-} from "@app-tour/workspace-denali";
-
 import { runWithHttpRequestContext } from "../http/bind-request-context";
 import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
@@ -13,6 +7,7 @@ import { requireOperatorSession } from "../identity/require-operator-session";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { readTourRequestBody } from "./read-tour-request-body";
 import { parseClonePhotoRemintBody } from "./clone-photo-remint.schema";
+import { resolveWizardCloneRemintBinding } from "./workspace-wizard-clone-remint-dispatch";
 
 export async function handleClonePhotoRemint(
   req: IncomingMessage,
@@ -24,10 +19,11 @@ export async function handleClonePhotoRemint(
     const auth = await requireOperatorSession(req);
 
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
-    if (workspaceType !== "denali") {
+    const binding = resolveWizardCloneRemintBinding(workspaceType);
+    if (binding === undefined) {
       sendHttpError(res, 403, {
         error: "forbidden",
-        code: "WIZARD_PHOTO_REMINT_FORBIDDEN",
+        code: "WIZARD_CLONE_REMINT_UNBOUND",
       });
       return;
     }
@@ -38,10 +34,10 @@ export async function handleClonePhotoRemint(
     }
 
     for (const entry of body.plan) {
-      assertDenaliWizardDraftDestKey(auth.tenantId, entry.destStorageKey);
+      binding.assertDestKey(auth.tenantId, entry.destStorageKey);
     }
 
-    const minioConfig = readMinioPhotoConfigFromEnv();
+    const minioConfig = binding.readConfigFromEnv();
     if (minioConfig === null) {
       sendHttpError(res, 503, {
         error: "service_unavailable",
@@ -54,7 +50,7 @@ export async function handleClonePhotoRemint(
       req,
       auth,
       async () => {
-        await executeDenaliWizardPhotoRemintPlan({
+        await binding.executeRemint({
           config: minioConfig,
           tenantId: auth.tenantId,
           plan: body.plan,

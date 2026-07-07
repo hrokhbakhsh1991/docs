@@ -3,13 +3,16 @@
  * Authority: docs/phase-9/appendices/TOURS-EDIT-UX.md
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import {
   buildTourTitlePatch,
   canMutateTour,
 } from "../src/features/tours/build-tour-title-patch";
-import { isDenaliOperatorSession } from "../src/admin/require-operator-session";
+import { isExtendedOperatorSession } from "../src/admin/require-operator-session";
 import { TOUR_EDIT_TEST_IDS } from "../src/features/tours/operator-tour-detail-types";
 import type { OperatorTourDetailResponse } from "../src/features/tours/operator-tour-detail-types";
 
@@ -74,9 +77,9 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
     assert.equal(canMutateTour("owner"), true);
   });
 
-  it("WEB-9.3-E05 denali operator session routes to flat edit shell", () => {
+  it("WEB-9.3-E05 extended operator session routes to flat edit shell", () => {
     assert.equal(
-      isDenaliOperatorSession({
+      isExtendedOperatorSession({
         userId: "u1",
         tenantId: "00000000-0000-4000-8000-000000000014",
         role: "owner",
@@ -86,7 +89,7 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
       true
     );
     assert.equal(
-      isDenaliOperatorSession({
+      isExtendedOperatorSession({
         userId: "u1",
         tenantId: "t1",
         role: "owner",
@@ -95,5 +98,37 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
       }),
       false
     );
+  });
+
+  it("WEB-C4-01 tour edit router uses extended operator session gate", () => {
+    const pageClient = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../app/(app)/tours/[id]/edit/tour-edit-page-client.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(pageClient, /isExtendedOperatorSession/);
+    assert.doesNotMatch(pageClient, /isDenaliOperatorSession/);
+    assert.doesNotMatch(pageClient, /\bisDenali\b/);
+  });
+
+  it("WEB-DENALI-FLAT-EDIT-01 flat edit page applies wizard skin scope root", () => {
+    const flatEdit = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/wizard/denali-flat-edit-chrome.tsx"),
+      "utf8"
+    );
+    const pageClient = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../app/(app)/tours/[id]/edit/denali-flat-edit-page-client.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(flatEdit, /data-new-tour-wizard/);
+    assert.match(flatEdit, /data-denali-flat-edit-page/);
+    assert.match(flatEdit, /new-tour-wizard-page__header/);
+    assert.match(pageClient, /DenaliFlatEditPageShell/);
+    assert.match(pageClient, /DenaliFlatEditPageHeader/);
   });
 });

@@ -204,7 +204,7 @@ export function BrandingSettingsClient({
       ) : null}
 
       {loading ? (
-        <DenaliSkeleton className="h-48 w-full rounded-xl" />
+        <DenaliSkeleton size="panel-xl" />
       ) : (
         <Card data-denali-surface="card" className="shadow-sm">
           <CardHeader>

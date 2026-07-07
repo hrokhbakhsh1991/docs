@@ -25,6 +25,7 @@ export type EquipmentResource = {
   readonly id: string;
   readonly name: string;
   readonly category: string | null;
+  readonly iconKey?: string | null;
   readonly themeIds: readonly string[];
   readonly compatibleCategories?: readonly string[];
   readonly sortOrder: number;
@@ -91,6 +92,7 @@ export type DestinationResource = {
   readonly name: string;
   readonly locationType: string | null;
   readonly altitudeM: number | null;
+  readonly typicalTrailDistanceKm: number | null;
   readonly isActive: boolean;
   readonly sortOrder: number;
 };
@@ -107,6 +109,10 @@ export const SETTINGS_HUB_TEST_IDS = {
   profilePage: "operator-settings-profile-page",
   profileForm: "operator-settings-profile-form",
   profileDisplayName: "operator-settings-profile-display-name",
+  profileGender: "operator-settings-profile-gender",
+  profileAvatar: "operator-settings-profile-avatar",
+  profileAvatarUpload: "operator-settings-profile-avatar-upload",
+  profileAvatarRemove: "operator-settings-profile-avatar-remove",
   profileSave: "operator-settings-profile-save",
   equipmentPage: "operator-settings-equipment-page",
   equipmentList: "operator-settings-equipment-list",
@@ -126,6 +132,9 @@ export const SETTINGS_HUB_TEST_IDS = {
   tourPresetsForm: "operator-settings-tour-presets-form",
   presetsAdvancedPage: "operator-presets-advanced-page",
   brandingPage: "operator-settings-branding-page",
+  integrationsPage: "operator-settings-integrations-page",
+  exposurePage: "operator-settings-exposure-page",
+  exposureTelegramPanel: "operator-settings-exposure-telegram-panel",
 } as const;
 
 /** Message keys under the `settings` namespace (`modules.{id}.title`). */
@@ -142,6 +151,8 @@ export const SETTINGS_MODULE_LABEL_KEYS: Record<string, string> = {
   wizard_drafts: "modules.wizard_drafts.title",
   reconciliation_triage: "modules.reconciliation_triage.title",
   workspace_branding: "modules.workspace_branding.title",
+  integrations: "modules.integrations.title",
+  exposure: "modules.exposure.title",
 };
 
 /** @deprecated Use `SETTINGS_MODULE_LABEL_KEYS` — kept for stable imports in tests. */
@@ -160,6 +171,8 @@ export const SETTINGS_MODULE_DESCRIPTION_KEYS: Partial<Record<string, string>> =
   reconciliation_triage: "modules.reconciliation_triage.description",
   account_profile: "modules.account_profile.description",
   workspace_branding: "modules.workspace_branding.description",
+  integrations: "modules.integrations.description",
+  exposure: "modules.exposure.description",
 };
 
 /** @deprecated Use `SETTINGS_MODULE_DESCRIPTION_KEYS`. */

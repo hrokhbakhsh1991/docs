@@ -16,6 +16,7 @@ export type TourListProjection = {
   readonly acceptedCount: number;
   readonly category: string | null;
   readonly coverImageUrl: string | null;
+  readonly coverImageStorageKey: string | null;
   readonly departureAt: string | null;
 };
 

@@ -25,8 +25,20 @@ import { integrationTenantId } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
-const ADMIN_URL =
-  process.env.DATABASE_URL_ADMIN?.trim() ?? "postgresql://postgres:postgres@127.0.0.1:5434/tour_db";
+/** Local Docker uses `app_tour`; stale shell `postgres:postgres@127.0.0.1:5434` must not win over DATABASE_URL. */
+function resolveFinanceOpsAdminUrl(): string {
+  const appUrl = process.env.DATABASE_URL?.trim();
+  const adminUrl = process.env.DATABASE_URL_ADMIN?.trim();
+  const staleLocalPostgresAdmin =
+    adminUrl?.includes("postgres:postgres@127.0.0.1:5434") ?? false;
+  if (adminUrl && !staleLocalPostgresAdmin) {
+    return adminUrl;
+  }
+  if (appUrl) {
+    return appUrl;
+  }
+  return "postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db";
+}
 
 async function ensureFinanceTables(admin: PrismaClient): Promise<void> {
   const rows = await admin.$queryRaw<Array<{ exists: boolean }>>`
@@ -192,7 +204,8 @@ describe("finance-ops.spec.ts — Phase 9.7", { skip: !hasDatabase, concurrency:
     resetLazyRouteHandlersForTests();
     resetLazyFinanceServiceForTests();
     resetLazyWorkspaceFinanceHandlersForTests();
-    admin = new PrismaClient({ datasources: { db: { url: ADMIN_URL } } });
+    const adminUrl = resolveFinanceOpsAdminUrl();
+    admin = new PrismaClient({ datasources: { db: { url: adminUrl } } });
     await ensureFinanceTables(admin);
     await admin.tenant.createMany({
       data: [

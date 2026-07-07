@@ -3,44 +3,479 @@
     "siteDescription": "مشاهده تورهای منتشرشده {siteName}.",
     "listDescription": "فهرست تورهای منتشرشده {siteName}.",
     "notFoundTitle": "تور یافت نشد",
-    "notFoundDescription": "این تور منتشر نشده یا وجود ندارد."
+    "notFoundDescription": "این تور منتشر نشده یا وجود ندارد.",
+    "motherTitle": "پلتفرم مدیریت باشگاه",
+    "motherDescription": "ورود اپراتورهای پلتفرم.",
+    "maintenanceTitle": "فروشگاه در دسترس نیست",
+    "maintenanceDescription": "فروشگاه موقتاً غیرفعال است."
+  },
+  "seo": {
+    "homeTitle": "{siteName}",
+    "homeDescription": "برنامه‌های منتشرشده {siteName} را ببینید.",
+    "toursTitle": "{siteName} — تورها",
+    "toursDescription": "فهرست تورهای منتشرشده {siteName}."
   },
   "nav": {
     "tours": "تورها",
-    "defaultSiteName": "تورها"
+    "home": "صفحه اصلی",
+    "about": "درباره ما",
+    "contact": "ارتباط با ما",
+    "memberArea": "ثبت‌نام‌های من",
+    "myTrips": "سفرهای من",
+    "signIn": "ورود",
+    "account": "حساب کاربری",
+    "primary": "ناوبری اصلی",
+    "defaultSiteName": "تورها",
+    "openMenu": "باز کردن منو",
+    "closeMenu": "بستن منو",
+    "skipToContent": "رفتن به محتوای اصلی"
   },
   "list": {
     "title": "تورها",
+    "lead": "برنامه‌های منتشرشده — فیلتر بر اساس نوع، تاریخ و سختی.",
     "empty": "هنوز تور منتشرشده‌ای وجود ندارد.",
+    "emptyFiltered": "توری با این فیلترها پیدا نشد. فیلترها را پاک کنید یا «نمایش بیشتر» را بزنید.",
+    "viewTour": "مشاهده تور",
     "loadMore": "نمایش بیشتر",
+    "resultsCount": "{count, number} برنامه",
+    "resultsCountPage": "{count, number} برنامه در این صفحه",
+    "resultsCountFiltered": "{count, number} مورد در این صفحه",
+    "paginationFirstPage": "بازگشت به ابتدای فهرست",
+    "filterScopeNotice": "فیلترها فقط روی برنامه‌های بارگذاری‌شده اعمال می‌شوند. برای ادامه جستجو «نمایش بیشتر» را بزنید.",
+    "loadMoreSearch": "نمایش بیشتر برای ادامه جستجو",
     "cityLabel": "شهر",
     "cityPlaceholder": "فیلتر بر اساس شهر",
+    "cityActive": "شهر: {city}",
     "applyFilter": "اعمال",
-    "clearFilter": "حذف فیلتر"
+    "clearFilter": "حذف فیلتر",
+    "searchActive": "نتایج جستجو برای «{query}»",
+    "categoryActive": "دسته: {category}",
+    "filters": {
+      "searchLabel": "جستجو",
+      "searchPlaceholder": "نام تور یا کلیدواژه…",
+      "panelTitle": "فیلتر برنامه‌ها",
+      "activeLabel": "فیلترهای فعال",
+      "reset": "بازنشانی",
+      "availabilityLabel": "ظرفیت",
+      "sortLabel": "مرتب‌سازی",
+      "sort": {
+        "newest": "جدیدترین",
+        "departureAsc": "تاریخ حرکت (نزدیک‌تر)",
+        "departureDesc": "تاریخ حرکت (دورتر)",
+        "priceAsc": "قیمت (کم به زیاد)",
+        "priceDesc": "قیمت (زیاد به کم)",
+        "difficultyAsc": "سختی (آسان‌تر اول)"
+      },
+      "difficultyLabel": "درجه سختی",
+      "difficultyOption": "{level, number} از {max, number}",
+      "fitnessLabel": "توان بدنی مورد نیاز",
+      "availabilityOpen": "فقط با ظرفیت باز",
+      "categoryLabel": "نوع برنامه",
+      "categoryGroups": {
+        "mountain": "کوهنوردی",
+        "nature": "طبیعت‌گردی"
+      },
+      "allCategories": "همه",
+      "all": "همه",
+      "apply": "اعمال فیلترها",
+      "clearAll": "پاک کردن همه فیلترها",
+      "fitnessLevels": {
+        "low": "توان پایین",
+        "medium": "توان متوسط",
+        "high": "توان بالا"
+      }
+    },
+    "card": {
+      "soldOut": "تکمیل ظرفیت",
+      "summary": {
+        "singleDay": "تک‌روزه",
+        "multiDay": "{days, number} روز",
+        "difficulty": "سختی {level, number} از {max, number}",
+        "capacity": "حداکثر {count, number} نفر",
+        "openSpots": "{count, number} جای خالی"
+      }
+    }
   },
   "detail": {
     "untitled": "تور بدون عنوان",
     "defaultTourTitle": "تور",
     "backToTours": "بازگشت به تورها",
     "register": "ثبت‌نام",
-    "capacity": "ظرفیت: {count}",
-    "spotsRemaining": "{count} جای خالی",
-    "difficulty": "سختی: {level}",
-    "fitness": "توان: {level}",
+    "capacity": "ظرفیت: {count, number}",
+    "spotsRemaining": "{count, number} جای خالی",
+    "difficulty": "سطح سختی: {level, number} از {max, number}",
+    "fitness": "توان بدنی: {level}",
     "itineraryHeading": "برنامه روزانه",
     "itineraryDay": "روز {day, number}",
     "itinerarySegments": "بخش‌های برنامه",
+    "policiesHeading": "قوانین و شرایط",
+    "cancellationDeadline": "مهلت لغو: {hours, number} ساعت قبل از حرکت",
+    "cancellationPenalty": "جریمه لغو: {percent, number}٪",
     "priceOnRequest": "قیمت پس از استعلام",
-    "datesTba": "تاریخ اعلام می‌شود"
+    "datesTba": "تاریخ اعلام می‌شود",
+    "soldOut": "ظرفیت تکمیل شده",
+    "difficultyShort": "{level, number} از {max, number}",
+    "facts": {
+      "price": "قیمت",
+      "capacity": "ظرفیت",
+      "dates": "تاریخ",
+      "difficulty": "سختی",
+      "fitness": "توان",
+      "category": "دسته"
+    },
+    "jumpNav": {
+      "label": "پرش به بخش",
+      "readiness": "آمادگی",
+      "itinerary": "برنامه",
+      "logistics": "لجستیک",
+      "gear": "وسایل",
+      "gallery": "گالری",
+      "policies": "قوانین",
+      "registerPreview": "پیش از ثبت‌نام",
+      "faq": "سوالات",
+      "register": "ثبت‌نام"
+    },
+    "readiness": {
+      "heading": "آمادگی جسمی",
+      "hikingHours": "ساعت پیاده‌روی",
+      "hikingGoHours": "ساعت رفت",
+      "hikingReturnHours": "ساعت برگشت",
+      "peakHeight": "ارتفاع قله",
+      "trailDistance": "مسافت مسیر",
+      "elevationGain": "ارتفاع‌گیری",
+      "minimumAge": "حداقل سن",
+      "maximumAge": "حداکثر سن",
+      "hoursValue": "{hours} ساعت",
+      "metersValue": "{meters} متر",
+      "kilometersValue": "{km} کیلومتر",
+      "ageValue": "{years} سال"
+    },
+    "logistics": {
+      "heading": "زمان و مکان",
+      "gathering": "محل تجمع",
+      "map": "نقشه",
+      "openMap": "مشاهده روی نقشه",
+      "returnTime": "ساعت بازگشت تقریبی",
+      "transport": "حمل‌ونقل",
+      "transportCost": "هزینه حمل‌ونقل",
+      "dongAmount": "هزینه دونگی",
+      "personalCar": "خودرو شخصی",
+      "personalCarAllowed": "امکان‌پذیر"
+    },
+    "transport": {
+      "modes": {
+        "organizerVehicle": "وسیله سازمان",
+        "bus": "اتوبوس",
+        "minibus": "مینی‌بوس",
+        "train": "قطار",
+        "sharedCars": "خودروهای مشترک",
+        "none": "بدون حمل‌ونقل"
+      }
+    },
+    "gear": {
+      "heading": "وسایل مورد نیاز",
+      "required": "الزامی",
+      "optional": "اختیاری"
+    },
+    "services": {
+      "heading": "خدمات",
+      "included": "شامل می‌شود",
+      "excluded": "شامل نمی‌شود",
+      "insuranceIncluded": "بیمه تور شامل می‌شود"
+    },
+    "gallery": {
+      "heading": "گالری تصاویر",
+      "photoAlt": "{title} — تصویر {index, number}",
+      "morePhotos": "+{count, number} عکس دیگر",
+      "morePhotosOpen": "مشاهده {count, number} عکس دیگر در گالری",
+      "openPhoto": "بزرگ‌نمایی تصویر {index, number}",
+      "lightboxClose": "بستن گالری",
+      "lightboxPrev": "تصویر قبلی",
+      "lightboxNext": "تصویر بعدی",
+      "lightboxCounter": "{current} از {total}"
+    },
+    "registerPreview": {
+      "heading": "پیش از ثبت‌نام",
+      "lead": "پورتال اعضا ممکن است هنگام ثبت‌نام موارد زیر را بپرسد:",
+      "nationalId": "کد ملی",
+      "fatherName": "نام پدر",
+      "birthDate": "تاریخ تولد",
+      "minimumAge": "حداقل سن: {years, number} سال",
+      "maximumAge": "حداکثر سن: {years, number} سال",
+      "transportIntake": "ترجیح حمل‌ونقل یا جزئیات خودرو",
+      "payment": "روش پرداخت: {mode}",
+      "paymentModes": {
+        "offlineReceipt": "رسید / پرداخت آفلاین",
+        "gateway": "پرداخت آنلاین"
+      }
+    },
+    "faq": {
+      "heading": "سوالات متداول",
+      "fitnessPrerequisiteQuestion": "پیش‌نیاز آمادگی این تور",
+      "cancellationQuestion": "قوانین لغو این تور",
+      "q1": {
+        "question": "چطور در این تور ثبت‌نام کنم؟",
+        "answer": "دکمه ثبت‌نام را بزنید. ثبت‌نام از طریق پورتال اعضا با جزئیات ذکرشده در بالا انجام می‌شود."
+      },
+      "q2": {
+        "question": "اگر آب‌وهوا نامساعد باشد چه می‌شود؟",
+        "answer": "برنامه ممکن است به‌دلیل ایمنی تغییر کند یا به تعویق بیفتد. باشگاه در صورت امکان پیش از حرکت اطلاع می‌دهد."
+      },
+      "q3": {
+        "question": "نگران آمادگی جسمی‌ام هستم — می‌توانم شرکت کنم؟",
+        "answer": "بخش آمادگی جسمی و سطح سختی این صفحه را ببینید. در صورت تردید پیش از ثبت‌نام با باشگاه هماهنگ کنید."
+      },
+      "q4": {
+        "question": "چه تجهیزاتی لازم است؟",
+        "answer": "وسایل موردنیاز در همین صفحه فهرست شده. کفش مناسب، لباس لایه‌ای و آب معمولاً حداقل‌ها هستند."
+      },
+      "q5": {
+        "question": "قوانین لغو چیست؟",
+        "answer": "مهلت لغو و جریمه احتمالی در بخش قوانین همین تور منتشر شده است."
+      }
+    }
   },
   "home": {
-    "title": "بازاریابی",
-    "browseTours": "مشاهده تورها"
+    "title": "تورهای کوهنوردی",
+    "lead": "برنامه‌های منتشرشده را ببینید و ثبت‌نام کنید.",
+    "browseTours": "مشاهده تورها",
+    "full": {
+      "hero": {
+        "eyebrow": "کوهنوردی و طبیعت‌گردی",
+        "lead": "برنامه‌های منتشرشده با راهنمای مجرب، تاریخ مشخص و ثبت‌نام آنلاین.",
+        "ctaPrimary": "مشاهده تورها",
+        "ctaSecondary": "چرا {siteName}؟",
+        "scrollHint": "پیمایش برای ادامه",
+        "spotlight": {
+          "rotateLabel": "چرخش ۳۶۰°",
+          "rotatePrev": "چرخش به چپ",
+          "rotateNext": "چرخش به راست",
+          "exploreTours": "تورهای این مقصد",
+          "stats": {
+            "elevation": "ارتفاع",
+            "region": "منطقه"
+          },
+          "alborz": {
+            "tagline": "قله‌های کلاسیک",
+            "elevationValue": "۴٬۸۵۰ متر (آلم‌کوه)",
+            "regionValue": "رشته کوه البرز"
+          },
+          "damavand": {
+            "tagline": "بام ایران",
+            "elevationValue": "۵٬۶۱۰ متر",
+            "regionValue": "رشته کوه البرز"
+          },
+          "zardkuh": {
+            "tagline": "قله‌های زاگرس",
+            "elevationValue": "۴٬۵۵۰ متر (زردکوه)",
+            "regionValue": "چهارمحال و بختیاری"
+          }
+        }
+      },
+      "latest": {
+        "title": "آخرین برنامه‌های منتشرشده",
+        "lead": "مرور سریع همه برنامه‌های تازه — برای کشف و مقایسه.",
+        "viewAll": "همه تورها"
+      },
+      "featured": {
+        "title": "پیشنهاد {siteName}",
+        "lead": "یک برنامه شاخص برای شروع — از میان برنامه‌های منتشرشده.",
+        "flagshipLabel": "برنامه شاخص",
+        "picksLabel": "سایر پیشنهادها",
+        "viewAll": "همه تورها",
+        "viewProgram": "مشاهده برنامه"
+      },
+      "categories": {
+        "title": "دسته‌بندی برنامه‌ها",
+        "lead": "بر اساس نوع برنامه جستجو کنید.",
+        "labels": {
+          "mountain_day": "کوهنوردی — تک‌روزه",
+          "mountain_multi": "کوهنوردی — چندروزه",
+          "nature_day": "طبیعت — تک‌روزه",
+          "nature_multi": "طبیعت — چندروزه",
+          "desert_day": "کویر — تک‌روزه",
+          "desert_multi": "کویر — چندروزه",
+          "event_reading": "رویداد — کتابخوانی (تک‌روزه)",
+          "event_reading_multi": "رویداد — کتابخوانی (چندروزه)",
+          "event_cinema": "رویداد — سینما (تک‌روزه)",
+          "event_cinema_multi": "رویداد — سینما (چندروزه)"
+        }
+      },
+      "destinations": {
+        "title": "مقاصد محبوب",
+        "lead": "مناطق پرتکرار در برنامه‌های باشگاه.",
+        "explore": "مشاهده تورها",
+        "alborz": {
+          "name": "البرز",
+          "description": "مسیرهای محبوب شمال تهران — از پیاده‌روی روزانه تا صعودهای کلاسیک."
+        },
+        "damavand": {
+          "name": "دماوند",
+          "description": "صعود فصلی با برنامه مشخص — مناسب کوهنوردان آماده ارتفاع."
+        },
+        "zardkuh": {
+          "name": "زردکوه",
+          "description": "قله‌های بکر زاگرس — طبیعت دست‌نخورده و مسیرهای متنوع."
+        }
+      },
+      "search": {
+        "label": "جستجوی تور",
+        "placeholder": "نام تور یا مقصد…",
+        "submit": "جستجو"
+      },
+      "gallery": {
+        "title": "گالری سفر",
+        "lead": "لحظه‌های واقعی از کوه و طبیعت — برای الهام، نه لینک به تور.",
+        "browseAll": "همه تورها",
+        "scrollPrev": "عکس قبلی",
+        "scrollNext": "عکس بعدی",
+        "openPhoto": "بزرگ‌نمایی تصویر {index}",
+        "photos": {
+          "01": "قله در مه صبحگاهی",
+          "02": "پیاده‌روی در مسیر سنگی",
+          "03": "اردوگاه در غروب"
+        }
+      },
+      "equipment": {
+        "title": "چک‌لیست تجهیزات",
+        "lead": "حداقل‌های رایج — جزئیات هر تور در صفحه برنامه.",
+        "boots": {
+          "label": "کفش مناسب کوه و مسیر"
+        },
+        "layers": {
+          "label": "لباس لایه‌ای و ضد باد"
+        },
+        "pack": {
+          "label": "کوله پشتی روزانه + آب"
+        },
+        "headlamp": {
+          "label": "چراغ قوه (در صورت نیاز برنامه)"
+        }
+      },
+      "blog": {
+        "title": "وبلاگ",
+        "lead": "مطالب باشگاه",
+        "stub": "به زودی — بخش وبلاگ فعال می‌شود."
+      },
+      "trust": {
+        "tagline": "باشگاه کوهنوردی · برنامه‌ریزی و ایمنی"
+      },
+      "why": {
+        "title": "چرا {siteName}؟",
+        "lead": "برنامه‌های ما با تمرکز بر راهنمای مجرب، ایمنی و تجربه گروهی طراحی می‌شوند.",
+        "guide": {
+          "title": "راهنمای مجرب",
+          "description": "هر برنامه با سرپرست آشنا به مسیر و شرایط اجرا می‌شود."
+        },
+        "safety": {
+          "title": "ایمنی اول",
+          "description": "قوانین و دستورالعمل‌های ایمنی قبل از حرکت به شرکت‌کنندگان اعلام می‌شود."
+        },
+        "equipment": {
+          "title": "تجهیزات مشخص",
+          "description": "لیست تجهیزات هر تور شفاف است تا آمادگی قبل از حرکت ساده باشد."
+        },
+        "community": {
+          "title": "جامعه کوهنورد",
+          "description": "در کنار افراد هم‌فکر سفر کنید — بدون فشار یا رقابت غیرضروری."
+        }
+      },
+      "journey": {
+        "title": "مسیر یک تور",
+        "lead": "از انتخاب برنامه تا بازگشت — هر مرحله شفاف است.",
+        "register": {
+          "title": "ثبت‌نام",
+          "description": "تور را انتخاب کنید و از پورتال اعضا ثبت‌نام را تکمیل کنید."
+        },
+        "prepare": {
+          "title": "آماده‌سازی",
+          "description": "تجهیزات و اطلاعات سفر را از جزئیات تور بررسی کنید."
+        },
+        "summit": {
+          "title": "اجرای برنامه",
+          "description": "با راهنما و گروه طبق برنامه روزانه حرکت می‌کنید."
+        },
+        "return": {
+          "title": "بازگشت",
+          "description": "پس از پایان برنامه، تجربه و بازخورد در پورتال ثبت می‌شود."
+        }
+      },
+      "testimonials": {
+        "title": "تجربه شرکت‌کنندگان",
+        "t1": {
+          "quote": "برنامه‌ریزی شفاف بود و قبل از حرکت دقیقاً می‌دانستیم چه انتظاری داشته باشیم.",
+          "name": "سارا م.",
+          "role": "شرکت‌کننده تور"
+        },
+        "t2": {
+          "quote": "راهنما مسیر را خوب می‌شناخت و فضای گروه حرفه‌ای و صمیمی بود.",
+          "name": "امیر ک.",
+          "role": "شرکت‌کننده تور"
+        },
+        "t3": {
+          "quote": "لیست تجهیزات از قبل مشخص بود — برای اولین بار کوهنوردی منظم و مطمئن بود.",
+          "name": "نیلوفر ر.",
+          "role": "شرکت‌کننده تور"
+        }
+      },
+      "finalCta": {
+        "title": "آماده سفر بعدی؟",
+        "lead": "قدم بعدی را بردارید — برنامه‌ای را انتخاب کنید که با شما جور دربیاید.",
+        "cta": "مشاهده تورها"
+      },
+      "faq": {
+        "title": "سوالات متداول",
+        "q1": {
+          "question": "چطور در تور ثبت‌نام کنم؟",
+          "answer": "از صفحه تورها برنامه مورد نظر را انتخاب کنید و دکمه ثبت‌نام را بزنید. ثبت‌نام از طریق پورتال اعضا تکمیل می‌شود."
+        },
+        "q2": {
+          "question": "چه تجهیزاتی لازم است؟",
+          "answer": "بسته به نوع برنامه، لیست تجهیزات در صفحه هر تور درج شده است. کفش مناسب، لباس لایه‌ای و آب کافی حداقل‌های مشترک هستند."
+        },
+        "q3": {
+          "question": "آیا تجربه قبلی لازم است؟",
+          "answer": "هر تور سطح fitness و difficulty مشخص دارد. قبل از ثبت‌نام سطح موردنیاز را در جزئیات تور بخوانید."
+        },
+        "q4": {
+          "question": "سیاست لغو چگونه است؟",
+          "answer": "مهلت لغو و جریمه احتمالی برای هر تور در بخش قوانین همان برنامه منتشر می‌شود."
+        },
+        "q5": {
+          "question": "ایمنی چطور رعایت می‌شود؟",
+          "answer": "برنامه‌ها با راهنمای مجرب و برنامه‌ریزی از پیش تعریف‌شده اجرا می‌شوند. دستورالعمل‌های ایمنی قبل از حرکت به شرکت‌کنندگان اعلام می‌شود."
+        },
+        "q6": {
+          "question": "چطور با باشگاه تماس بگیرم؟",
+          "answer": "از طریق پورتال اعضا یا اطلاعات تماس در پایین صفحه می‌توانید با باشگاه در ارتباط باشید."
+        }
+      },
+      "footer": {
+        "brandLead": "برنامه‌های کوهنوردی و طبیعت‌گردی با برنامه‌ریزی شفاف.",
+        "toursTitle": "تورها",
+        "toursBrowse": "مشاهده همه تورها",
+        "resourcesTitle": "منابع",
+        "resourcesFaq": "سوالات متداول",
+        "resourcesMember": "ثبت‌نام‌های من",
+        "contactTitle": "تماس",
+        "contactLead": "برای هماهنگی از پورتال اعضا استفاده کنید.",
+        "newsletterTitle": "خبرنامه",
+        "newsletterStub": "به زودی — عضویت در خبرنامه فعال می‌شود.",
+        "copyright": "© {year} {siteName}"
+      }
+    },
+    "minimal": {
+      "title": "{siteName}",
+      "lead": "مشاهده برنامه‌های منتشرشده",
+      "cta": "مشاهده تورها"
+    }
   },
   "notFound": {
     "title": "تور یافت نشد",
     "body": "این تور منتشر نشده یا وجود ندارد.",
-    "back": "بازگشت به تورها"
+    "back": "بازگشت به تورها",
+    "metadataTitle": "تور یافت نشد",
+    "metadataDescription": "این تور منتشر نشده یا وجود ندارد."
   },
   "locale": {
     "fa": "فارسی",

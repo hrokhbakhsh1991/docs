@@ -1,0 +1,314 @@
+---
+title: Workspace production certification (Phase H)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/architecture/platform-architecture-v2.md
+  - docs/dev/guest-plugin-conformance.md
+---
+
+# Workspace production certification (Phase H)
+
+Phase H adds a **production certification axis** on top of existing guest **technical conformance** (L0–L4). Today every workspace with a manifest can be codegen’d and seeded; **stub** workspaces must not back **production tenant onboarding** for customer-facing clubs.
+
+**Authority:** [platform-architecture-v2.md § Phase H](../architecture/platform-architecture-v2.md#phase-h--workspace-certification) · **Technical levels:** [guest-plugin-conformance.md](./guest-plugin-conformance.md) · **Codegen host:** [workspace-registry-codegen-modularization.mdoc](./workspace-registry-codegen-modularization.mdoc)
+
+## Problem
+
+| Symptom | Risk |
+| ------- | ---- |
+| `urban` (L3) and `guest-club` (L3 scaffold) sit beside `denali` (L4) in the same registry | **False equality** — ops assumes any workspace is production-ready |
+| `provisionTenantProduction` accepts any `workspaceType` | Stub workspaces can reach prod without smoke / runbook proof |
+| No generated “certified for prod” lookup | Platform apps cannot fail-closed at onboarding |
+
+Technical conformance (L0–L4) answers **“what manifest blocks exist?”** Production certification answers **“has this workspace passed the platform’s production proof matrix?”**
+
+## Non-goals (Phase H)
+
+- Replacing L0–L4 or renaming guest conformance levels
+- Certifying **admin-only** workspaces without guest surfaces (starter stays stub-only)
+- Full `ci:integrity` as a Phase H exit gate (same policy as Phase G — Architect YES)
+- Super Admin certification UI (optional **H4** slice)
+- Removing `MEMBER_PORTAL_PRESETS` (Phase B / G adjacency)
+
+## Two-axis model
+
+```text
+workspace.manifest.json
+        │
+        ├─► L0–L4  (deriveGuestConformanceLevel)     ← EXISTS (PF-0.5)
+        │         technical capability / manifest blocks
+        │
+        └─► stub | certified  (productionTier)     ← Phase H
+                  production onboarding authority
+```
+
+| Axis | Source | Generated consumer | Fail-closed resolver |
+| ---- | ------ | -------------------- | -------------------- |
+| **Technical L0–L4** | Manifest blocks (`httpRoutes`, `catalogPresentation`, `memberApp`, …) | `workspace-guest-conformance.generated.ts` | `resolveGuestConformanceLevelForPlugin()` |
+| **Production stub \| certified** | Manifest `guestConformance.productionTier` + proof matrix | `workspace-production-certification.generated.ts` (H1) | `resolveProductionCertificationForPlugin()` (H1) |
+
+### Tier definitions (normative)
+
+| Tier | Meaning | Minimum L-level | Production tenant onboarding |
+| ---- | ------- | --------------- | ---------------------------- |
+| **stub** | Trunk scaffold, second-workspace proof, or incomplete smoke matrix | L0+ | **Denied** via `provisionTenantProduction` |
+| **certified** | Reference or promoted workspace with green proof matrix | **L3+** (L4 when `memberApp: true`) | **Allowed** |
+
+**Rules:**
+
+1. `productionTier: "certified"` requires `guestExtensionsVersion: 1` and L-level ≥ L3.
+2. `productionTier: "certified"` with `guestConformance.memberApp: true` requires L4 (same as today `assertMemberPortalL4ReferenceWorkspaces`).
+3. `starter` is always **stub** — never certifiable for guest prod (wizard scaffold only).
+4. Default when `productionTier` omitted: **stub** (fail-closed for prod onboarding).
+
+### Trunk baseline (H0 — architect approval before H1 codegen)
+
+| `pluginId` | L-level (today) | Proposed `productionTier` | Rationale |
+| ---------- | --------------- | ------------------------- | --------- |
+| `denali` | L4 | `certified` | Reference implementation; G4 smoke matrix green |
+| `urban` | L3 | `stub` | Second workspace proof — not prod onboarding target |
+| `guest-club` | L3 | `stub` | Trunk scaffold (`workspace:create --guest` reference) |
+| `starter` | L0 | `stub` | Non-guest operator scaffold |
+
+## Manifest shape (H1 target)
+
+Additive block under existing `guestConformance`:
+
+```json
+{
+  "guestExtensionsVersion": 1,
+  "guestConformance": {
+    "memberApp": true,
+    "productionTier": "certified"
+  }
+}
+```
+
+Schema admission (codegen, before emit):
+
+- `productionTier` ∈ `{ "stub", "certified" }`
+- `certified` + L-level &lt; L3 → codegen error `WORKSPACE_CERTIFICATION_L3_REQUIRED`
+- `certified` + `memberApp: true` + availability ≠ full → codegen error (reuse L4 gates)
+- `starter` + `certified` → codegen error `WORKSPACE_STARTER_NOT_CERTIFIABLE`
+
+JSON Schema slice: extend [`workspace-guest-extensions.schema.json`](./workspace-guest-extensions.schema.json) in **H1**.
+
+## Codegen (H1)
+
+| Output | Path | Domain module |
+| ------ | ---- | ------------- |
+| `WORKSPACE_PRODUCTION_CERTIFICATION` | `packages/workspace-sdk/src/catalog/workspace-production-certification.generated.ts` | `guest-catalog.mjs` (or `domains/certification.mjs` if split in H2) |
+
+Emitter pattern (sketch):
+
+```typescript
+export const WORKSPACE_PRODUCTION_CERTIFICATION: Readonly<
+  Record<string, "stub" | "certified">
+> = Object.freeze({
+  denali: "certified",
+  urban: "stub",
+  // ...
+});
+```
+
+**Invariant:** banner unchanged; entry script remains `scripts/generate-workspace-registry.mjs`. Add key to `DOMAIN_OUTPUT_KEYS["guest-catalog"]` or new domain id `certification` if outputs split.
+
+## Enforcement (H2)
+
+### Primary hook — production provisioning
+
+`apps/api/src/internal/provisioning.service.ts` → `provisionTenantProduction()`:
+
+```text
+input.workspaceType
+    → resolve pluginId (existing registry)
+    → resolveProductionCertificationForPlugin(pluginId)
+    → if stub: throw WorkspaceNotCertifiedForProductionError
+    → else createTenantRow
+```
+
+**Dev path unchanged:** `provisionTenant()` keeps `assertProvisioningDevelopmentOnly()` — stubs allowed in dev/test seeds.
+
+### Secondary hooks (H2 / H3)
+
+| Surface | Behavior | Status |
+| ------- | -------- | ------ |
+| Platform ops API (`POST /platform/v1/tenants`) | `runProvisionTenantSaga` → `assertProductionCertifiedWorkspaceType` + 422 | ✅ H4 |
+| Super Admin (H4) | UI badge stub/certified; disable prod create for stub | ✅ |
+| Marketing / portal deploy docs | Runbook references certification tier | ✅ platform runbook § Production certification (CERT-05) |
+
+## Proof matrix (H3)
+
+Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace is **certified** only when **all** rows pass:
+
+| Proof id | Command / artifact | `denali` (reference) |
+| -------- | ------------------ | -------------------- |
+| **CERT-01** | `guard:workspace-registry-fresh` | PASS |
+| **CERT-02** | `guard:guest-plugin-conformance` | PASS |
+| **CERT-03** | Workspace Playwright smokes (from [`guest-registration-e2e-hooks.yaml`](./guest-registration-e2e-hooks.yaml)) | PASS (G4 bundle) |
+| **CERT-04** | `guard:workspace-certification` (new) — manifest tier matches generated registry + proof manifest | ✅ H3 |
+| **CERT-05** | Onboarding runbook exists under `docs/phase-23/runbooks/` or `docs/workspaces/<id>/` | denali: **partial** — platform runbook includes `productionTier` gate ([p10-second-club-onboarding.md](../phase-23/runbooks/p10-second-club-onboarding.md)); workspace-specific runbook optional |
+
+**Promotion path (stub → certified):** PR that (1) sets `productionTier: "certified"`, (2) adds proof rows to workspace-specific matrix in this doc or `docs/workspaces/<id>/certification.md`, (3) greens CERT-03 for that `pluginId`, (4) Architect sign-off.
+
+## Slice plan
+
+| Slice | Scope | Exit criteria |
+| ----- | ----- | ------------- |
+| **H0 (doc)** | This document + architecture § Phase H + guest-conformance cross-link | ✅ |
+| **H1** | Schema + codegen + SDK resolver | ✅ |
+| **H2** | `provisionTenantProduction` fail-closed | ✅ |
+| **H3** | `guard:workspace-certification` + proof matrix rows + drop-in spec | ✅ |
+| **H4 (optional)** | Super Admin badge + disabled prod create for stub | ✅ |
+
+## Prerequisites before H1 code
+
+| Prerequisite | Status |
+| ------------ | ------ |
+| Phase G on `DEV` (codegen modular) | ✅ |
+| Phase G + H + I merge PR to `main` | ✅ [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) open |
+| H0 Architect review | ✅ (DEV closure) |
+| Trunk baseline table (`denali` certified; others stub) | ✅ |
+
+## Verification (each slice)
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+pnpm run guard:guest-plugin-conformance
+node --test scripts/test/workspace-registry-drop-in.spec.mjs
+# H3+
+pnpm run guard:workspace-certification
+pnpm --filter @apps/api exec node --import tsx --test test/provision-tenant-production.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test test/workspace-not-certified-error-interceptor.spec.ts
+# H4
+pnpm --filter @apps/web exec node --import tsx --test test/workspace-production-certification-badge.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test test/submit-create-club-certification.spec.ts
+node apps/web/scripts/smoke-platform-create-club.mjs
+pnpm --filter @apps/api run openapi:generate
+```
+
+Full monorepo gate (`ci:integrity`) deferred until Phase H closure PR — same policy as Phase G.
+
+## H1 status (2026-07-07)
+
+| Artifact | Status |
+| -------- | ------ |
+| `guestConformance.productionTier` in schema + manifests | ✅ |
+| `WORKSPACE_PRODUCTION_CERTIFICATION` generated | ✅ |
+| `resolveProductionCertificationForPlugin()` | ✅ |
+| Admission in `assertGuestExtensionsManifest` | ✅ |
+| `workspace-production-certification.spec.mjs` | ✅ 4/4 |
+| SDK `resolve-production-certification.spec.ts` | ✅ 2/2 |
+
+## H2 status (2026-07-07)
+
+| Artifact | Status |
+| -------- | ------ |
+| `WorkspaceNotCertifiedForProductionError` (`WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION`) | ✅ |
+| `assertProductionCertifiedWorkspaceType()` | ✅ |
+| `provisionTenantProduction()` calls assert before DB insert | ✅ |
+| Dev `provisionTenant()` / seeds unchanged | ✅ |
+| `provision-tenant-production.spec.ts` (H2 cases) | ✅ 7/7 |
+
+## Proof manifest (H3)
+
+**File:** [`workspace-certification-proof-matrix.yaml`](./workspace-certification-proof-matrix.yaml) — consumed by `scripts/guards/guard-workspace-certification.mjs`.
+
+Per `pluginId` with `productionTier: certified` in the generated registry, the proof manifest must declare **CERT-01..CERT-05**:
+
+| Proof | Guard check |
+| ----- | ----------- |
+| **CERT-01** | Declared `pass`; guard runs `generate-workspace-registry.mjs --check` |
+| **CERT-02** | Declared `pass` (enforced separately by `guard:guest-plugin-conformance` in CI) |
+| **CERT-03** | Declared `pass` + `hookIds` list; each id must exist in `guest-registration-e2e-hooks.yaml` with an on-disk spec |
+| **CERT-04** | Declared `pass`; guard dual-verifies manifest `productionTier` ↔ `WORKSPACE_PRODUCTION_CERTIFICATION` |
+| **CERT-05** | `pass` or `partial` + optional `runbook` path must exist on disk |
+
+**Stub plugins** (`urban`, `guest-club`, `starter`) omit proof rows — guard asserts they are **not** `certified` in the generated registry.
+
+**Promotion:** add a `plugins.<id>` block with green proofs before setting `productionTier: certified` in the manifest.
+
+## H3 status (2026-07-07)
+
+| Artifact | Status |
+| -------- | ------ |
+| `workspace-certification-proof-matrix.yaml` | ✅ |
+| `guard-workspace-certification.mjs` (CERT-04 + proof manifest) | ✅ |
+| `workspace-certification-guard.spec.mjs` | ✅ 5/5 |
+| Drop-in spec H3 cases | ✅ 2/2 |
+| CI `phase-10-guard.yml` | ✅ |
+
+## Super Admin UX (H4)
+
+**Surfaces:** `apps/web/src/platform/` — create-club wizard + club detail overview.
+
+| Behavior | Implementation |
+| -------- | -------------- |
+| Workspace catalog | `GET /platform/v1/workspaces` returns `productionTier` + `productionOnboardingAllowed` from `WORKSPACE_PRODUCTION_CERTIFICATION` |
+| Create club picker | Stub options **disabled**; certified badge on `denali` |
+| Client validation | `validateIdentityStep` rejects `productionTier: stub` |
+| Platform saga | `runProvisionTenantSaga` calls `assertProductionCertifiedWorkspaceType` (same gate as H2) |
+| Club detail | `WorkspaceProductionCertificationBadge` beside `workspaceType` |
+
+**Excluded from catalog:** `starter` (operator scaffold — not a club workspace target).
+
+```bash
+pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test test/use-create-club-wizard.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test test/workspace-production-certification-badge.spec.ts
+node apps/web/scripts/smoke-platform-create-club.mjs
+```
+
+## H4 status (2026-07-07)
+
+| Artifact | Status |
+| -------- | ------ |
+| `listPlatformWorkspaces()` certification fields | ✅ |
+| `runProvisionTenantSaga` production gate | ✅ |
+| Create-club stub options disabled + badges | ✅ |
+| Club detail + clubs table badges | ✅ |
+| `workspace-production-certification-badge.spec.ts` | ✅ 3/3 |
+| `smoke-platform-create-club.mjs` structural H4 checks | ✅ |
+
+**Phase H closure (H0–H4 on `DEV`):** complete — **G+H+I** merge PR [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) open. GHA `phase-10-guard` green on `DEV` @ `61954281`. Full `ci:integrity` deferred per Architect YES policy.
+
+### Phase H closure verification (2026-07-07)
+
+| Check | Result |
+| ----- | ------ |
+| `guard:workspace-certification` | PASS |
+| `phase-10:guard` | PASS (11/11) |
+| `workspace-certification-guard.spec.mjs` | 5/5 |
+| `workspace-production-certification.spec.mjs` | 4/4 |
+| `provision-tenant-production.spec.ts` (H2) | 7/7 |
+| `list-platform-workspaces.spec.ts` (H4 API) | 4/4 |
+| `workspace-production-certification-badge.spec.ts` (H4 UI) | 3/3 |
+| `submit-create-club-certification.spec.ts` (H4 UX errors) | 2/2 |
+| `workspace-not-certified-error-interceptor.spec.ts` (H2 API) | 1/1 |
+| Drop-in spec H3 cases | 2/2 |
+
+**Commits (DEV):** `d7d5d6a5` G · `4f76d31a` H1 · `4590d09e` H2 · `e7ef0181` H3 · `5edb6eb3` H4 · `46f688dd` gaps · `736816ce` closure · `07308630` CI · `1d12cbb3` I1+I2 · `d74b5498` PR pack
+
+**One-shot PR verify:**
+
+```bash
+pnpm run phase-i:closure   # G+H regression + I1/I2 guards
+```
+
+**Create PR (Architect approved):**
+
+```bash
+pnpm run phase-g-h:create-pr
+# or manually:
+gh auth login
+gh pr create --base main --head DEV \
+  --title "Phase G+H+I: registry modularization, production certification, scale hardening" \
+  --body-file docs/dev/phase-g-h-pr-body.md
+```
+
+Compare UI: https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1
+
+**Phase I:** **I0–I2 closed** on `DEV` — see [workspace-scale-hardening.mdoc](./workspace-scale-hardening.mdoc). I3 optional (Architect YES).

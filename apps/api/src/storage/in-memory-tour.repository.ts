@@ -1,7 +1,16 @@
 import { randomUUID } from "node:crypto";
 
+import {
+  buildOperatorSmokeDraftTour,
+  buildOperatorSmokeParticipantRequirementsTour,
+  buildOperatorSmokePublishedTour,
+  buildOperatorSmokeTransportBusTour,
+  buildOperatorSmokeTransportSharedCarsTour,
+  OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
+  OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
+  OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
+} from "../fixtures/operator-smoke-published-tour.fixture";
 import { OPERATOR_DENALI_SMOKE_TENANT_ID } from "../internal/operator-smoke-tenant-id";
-
 import { deriveTourProjections } from "../canonical/projection-sync";
 import { TourVersionConflictError } from "../tours/tour-version-conflict";
 import { readTourCapLimits } from "../db/tour-cap-config";
@@ -13,7 +22,9 @@ import type {
   TourStorageRepository,
 } from "./tour-storage.interface";
 
-const CROSS_TENANT_SAVE = "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT";
+function tourStorageKey(tenantId: string, id: string): string {
+  return `${tenantId}\u0000${id}`;
+}
 
 const URBAN_PHASE81_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
 const URBAN_PHASE82_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000411";
@@ -21,12 +32,76 @@ const URBAN_PHASE81_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 const URBAN_SILO_ENTERPRISE_TENANT_ID = "00000000-0000-4000-8000-000000000406";
 const URBAN_SILO_ENTERPRISE_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000412";
 const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
-import {
-  buildOperatorSmokeDraftTour,
-  buildOperatorSmokePublishedTour,
-  OPERATOR_SMOKE_DRAFT_TOUR_ID,
-  OPERATOR_SMOKE_SEED_TOUR_ID,
-} from "../fixtures/operator-smoke-published-tour.fixture";
+const OPERATOR_SMOKE_SEED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211";
+const OPERATOR_SMOKE_PARTICIPANT_TOUR_ID = "00000000-0000-4000-8000-000000000212";
+
+function buildOperatorSmokeDenaliCatalogData(input: {
+  readonly title: string;
+  readonly publishStatus: "draft" | "active";
+}): { readonly roots: string[]; readonly data: Record<string, unknown> } {
+  const data: Record<string, unknown> = {
+    title: input.title,
+    publishStatus: input.publishStatus,
+    startDateTime: "2026-07-01T08:00:00.000Z",
+    endDateTime: "2026-07-03T18:00:00.000Z",
+    category: "mountain_multi",
+    capacityMax: 12,
+    program: {
+      shortDescription: "Operator smoke catalog tour",
+      difficultyLevel: 6,
+      hikingHoursApprox: 8,
+      itinerary: [
+        {
+          dayNumber: 1,
+          title: "Summit push",
+          summary: "Early alpine start",
+          segments: [
+            {
+              id: "smk-seg-1",
+              kind: "activity",
+              title: "Ridge ascent",
+              startTime: "06:00",
+              locationLabel: "North Ridge camp",
+              photoIds: ["smk-photo-1"],
+            },
+          ],
+        },
+        {
+          dayNumber: 2,
+          title: "Return leg",
+          segments: [
+            {
+              id: "smk-seg-2",
+              kind: "transport",
+              title: "Descent to trailhead",
+            },
+          ],
+        },
+      ],
+    },
+    participants: { fitnessLevel: "medium" },
+    pricing: { basePricePerPerson: 2500000 },
+    photos: [
+      {
+        id: "smk-photo-1",
+        url: "https://cdn.example/north-ridge.jpg",
+        label: "Ridge panorama",
+        day: 1,
+      },
+    ],
+    basics: { title: input.title },
+    details: { summary: "Operator smoke seed tour" },
+  };
+  if (input.publishStatus === "active") {
+    data.policies = {
+      policiesText: OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
+      cancellationDeadlineHours: 48,
+      cancellationPenaltyPercentage: 20,
+    };
+  }
+  return { data, roots: Object.keys(data).sort() };
+}
 
 function assertTenantId(tenantId: string): void {
   if (typeof tenantId !== "string" || tenantId.trim().length === 0) {
@@ -98,20 +173,77 @@ export class InMemoryTourRepository implements TourStorageRepository {
     }
   }
 
-  /** Phase 9.8 smoke — operator tour for manual booking create (SMK-P9-07). */
-  ensureOperatorSmokeSeedTour(): void {
-    if (!this.byId.has(OPERATOR_SMOKE_SEED_TOUR_ID)) {
-      this.indexTour(buildOperatorSmokePublishedTour({ tenantId: OPERATOR_SMOKE_TENANT_ID }));
+  /** Denali dev host tenant (…000003) — FE-14 / TR-09 memory seed. */
+  ensureDenaliDevSmokeSeedTour(): void {
+    const tenantId = OPERATOR_DENALI_SMOKE_TENANT_ID;
+    if (!this.hasTour(tenantId, OPERATOR_SMOKE_SEED_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokePublishedTour({ tenantId }));
     }
-    if (!this.byId.has(OPERATOR_SMOKE_DRAFT_TOUR_ID)) {
-      this.indexTour(buildOperatorSmokeDraftTour({ tenantId: OPERATOR_SMOKE_TENANT_ID }));
+    if (!this.hasTour(tenantId, OPERATOR_SMOKE_DRAFT_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeDraftTour({ tenantId }));
+    }
+    if (!this.hasTour(tenantId, OPERATOR_SMOKE_PARTICIPANT_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeParticipantRequirementsTour({ tenantId }));
+    }
+    if (!this.hasTour(tenantId, OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeTransportBusTour({ tenantId }));
+    }
+    if (!this.hasTour(tenantId, OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeTransportSharedCarsTour({ tenantId }));
     }
   }
 
-  /** Dev memory — Denali tenant …000003 gets smoke catalog tour …0210 (SMK-P9-ITIN-01). */
-  ensureDenaliDevSmokeSeedTour(): void {
-    this.ensureSmokeTourForTenant(OPERATOR_SMOKE_SEED_TOUR_ID, buildOperatorSmokePublishedTour);
-    this.ensureSmokeTourForTenant(OPERATOR_SMOKE_DRAFT_TOUR_ID, buildOperatorSmokeDraftTour);
+  /** Phase 9.8 smoke — operator tour for manual booking create (SMK-P9-07). */
+  ensureOperatorSmokeSeedTour(): void {
+    if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, OPERATOR_SMOKE_SEED_TOUR_ID)) {
+      const published = buildOperatorSmokeDenaliCatalogData({
+        title: "North Ridge Trek",
+        publishStatus: "active",
+      });
+      const tour: Tour = {
+        id: OPERATOR_SMOKE_SEED_TOUR_ID,
+        tenantId: OPERATOR_SMOKE_TENANT_ID,
+        rowVersion: 1,
+        createdAt: new Date(0).toISOString(),
+        canonical: {
+          schemaVersion: 1,
+          roots: published.roots,
+          data: published.data,
+        },
+      };
+      this.indexTour(tour);
+    }
+    if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, OPERATOR_SMOKE_DRAFT_TOUR_ID)) {
+      const draftCanonical = buildOperatorSmokeDenaliCatalogData({
+        title: "Denali draft fixture",
+        publishStatus: "draft",
+      });
+      const draft: Tour = {
+        id: OPERATOR_SMOKE_DRAFT_TOUR_ID,
+        tenantId: OPERATOR_SMOKE_TENANT_ID,
+        rowVersion: 1,
+        createdAt: new Date(1).toISOString(),
+        canonical: {
+          schemaVersion: 1,
+          roots: draftCanonical.roots,
+          data: draftCanonical.data,
+        },
+      };
+      this.indexTour(draft);
+    }
+    if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, OPERATOR_SMOKE_PARTICIPANT_TOUR_ID)) {
+      this.indexTour(
+        buildOperatorSmokeParticipantRequirementsTour({ tenantId: OPERATOR_SMOKE_TENANT_ID })
+      );
+    }
+    if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID)) {
+      this.indexTour(buildOperatorSmokeTransportBusTour({ tenantId: OPERATOR_SMOKE_TENANT_ID }));
+    }
+    if (!this.hasTour(OPERATOR_SMOKE_TENANT_ID, OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID)) {
+      this.indexTour(
+        buildOperatorSmokeTransportSharedCarsTour({ tenantId: OPERATOR_SMOKE_TENANT_ID })
+      );
+    }
   }
 
   /** Phase 8.3 silo enterprise fixture — published catalog tour on dedicated tenant id. */
@@ -169,8 +301,12 @@ export class InMemoryTourRepository implements TourStorageRepository {
     }
   }
 
+  private hasTour(tenantId: string, id: string): boolean {
+    return this.byId.has(tourStorageKey(tenantId, id));
+  }
+
   private indexTour(tour: Tour): void {
-    this.byId.set(tour.id, tour);
+    this.byId.set(tourStorageKey(tour.tenantId, tour.id), tour);
     let ids = this.idsByTenant.get(tour.tenantId);
     if (ids === undefined) {
       ids = new Set();
@@ -179,42 +315,14 @@ export class InMemoryTourRepository implements TourStorageRepository {
     ids.add(tour.id);
   }
 
-  private unindexTourId(tourId: string, tenantId: string): void {
-    this.idsByTenant.get(tenantId)?.delete(tourId);
-  }
-
-  private ensureSmokeTourForTenant(
-    tourId: string,
-    build: (input: { tenantId: string }) => Tour
-  ): void {
-    const existing = this.byId.get(tourId);
-    if (existing !== undefined && existing.tenantId === OPERATOR_DENALI_SMOKE_TENANT_ID) {
-      return;
-    }
-    if (existing !== undefined) {
-      this.unindexTourId(tourId, existing.tenantId);
-    }
-    this.indexTour(build({ tenantId: OPERATOR_DENALI_SMOKE_TENANT_ID }));
-  }
-
   async getById(id: string, tenantId: string): Promise<Tour | null> {
     assertTenantId(tenantId);
-    const record = this.byId.get(id);
-    if (record === undefined) {
-      return null;
-    }
-    if (record.tenantId !== tenantId) {
-      return null;
-    }
-    return record;
+    return this.byId.get(tourStorageKey(tenantId, id)) ?? null;
   }
 
   async save(tour: Tour): Promise<void> {
     assertTenantId(tour.tenantId);
-    const existing = this.byId.get(tour.id);
-    if (existing !== undefined && existing.tenantId !== tour.tenantId) {
-      throw new Error(CROSS_TENANT_SAVE);
-    }
+    const existing = this.byId.get(tourStorageKey(tour.tenantId, tour.id));
     if (existing === undefined) {
       this.assertCapacity(tour.tenantId);
     }
@@ -234,8 +342,8 @@ export class InMemoryTourRepository implements TourStorageRepository {
     }
     const sorted: Tour[] = [];
     for (const id of ids) {
-      const record = this.byId.get(id);
-      if (record !== undefined && record.tenantId === input.tenantId) {
+      const record = this.byId.get(tourStorageKey(input.tenantId, id));
+      if (record !== undefined) {
         sorted.push(record);
       }
     }
@@ -280,8 +388,8 @@ export class InMemoryTourRepository implements TourStorageRepository {
     expectedRowVersion: number;
   }): Promise<Tour> {
     assertTenantId(input.tenantId);
-    const existing = this.byId.get(input.id);
-    if (existing === undefined || existing.tenantId !== input.tenantId) {
+    const existing = this.byId.get(tourStorageKey(input.tenantId, input.id));
+    if (existing === undefined) {
       throw new TourVersionConflictError();
     }
     if (existing.rowVersion !== input.expectedRowVersion) {

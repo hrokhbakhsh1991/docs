@@ -91,10 +91,22 @@ function toRenderFieldPlan(
   };
 }
 
+/**
+ * Composite UI is driven by `uiHints.compositeId` on the render plan.
+ * Plugins may register a dedicated renderer id (`entry.id`) distinct from
+ * `canonicalPath` while keeping a primitive `kind` for validation.
+ */
+function fieldUsesCompositeRenderer(entry: WorkspaceFieldRegistryEntry): boolean {
+  if (entry.kind === "composite") {
+    return true;
+  }
+  return entry.id !== entry.canonicalPath;
+}
+
 function buildFieldUiHints(
   entry: WorkspaceFieldRegistryEntry
 ): Readonly<Record<string, string>> | undefined {
-  if (entry.kind === "composite") {
+  if (fieldUsesCompositeRenderer(entry)) {
     return { compositeId: entry.id };
   }
   if (entry.kind === "enum" && entry.enumOptions && entry.enumOptions.length > 0) {

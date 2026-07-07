@@ -149,3 +149,121 @@ export function sanitizeItineraryDestinationIdsOnDraft(
   }
   return setCanonicalValueOnDraft(draft, "program.itinerary", pruned);
 }
+
+/** BFF routes for operator catalog fetch during wizard submit (web adapter). */
+export const DENALI_SUBMIT_CATALOG_BFF_PATHS = Object.freeze({
+  equipment: "/api/settings/resources/equipment",
+  tourThemes: "/api/settings/resources/tour_themes",
+  guideLanguages: "/api/settings/resources/guide_languages",
+  locations: "/api/settings/resources/locations",
+  activeUsers: "/api/users?role=all&status=active",
+});
+
+export type DenaliSubmitCatalogIds = {
+  readonly activeEquipmentIds?: readonly string[];
+  readonly activeThemeIds?: readonly string[];
+  readonly activeGuideLanguageIds?: readonly string[];
+  readonly selectableLeaderIds?: readonly string[];
+  readonly activeDestinationIds?: readonly string[];
+};
+
+const LEADER_ELIGIBILITY_REWARD_LABELS = new Set([
+  "admin",
+  "leader",
+  "لیدر",
+  "راهنما",
+]);
+
+export function isWizardLeaderCandidate(user: {
+  readonly userId: string;
+  readonly role: string;
+  readonly isSelectableLeader?: boolean;
+  readonly labels?: readonly string[];
+}): boolean {
+  if (user.isSelectableLeader === true || user.role === "admin" || user.role === "owner") {
+    return true;
+  }
+  for (const label of user.labels ?? []) {
+    if (LEADER_ELIGIBILITY_REWARD_LABELS.has(label.trim().toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function readActiveThemeIds(
+  items: ReadonlyArray<{ id: string; isActive?: boolean }>
+): readonly string[] {
+  return items
+    .filter((item) => item.isActive !== false)
+    .map((item) => item.id.trim())
+    .filter((id) => id.length > 0);
+}
+
+export function readActiveGuideLanguageIds(
+  items: ReadonlyArray<{ id: string; isActive?: boolean }>
+): readonly string[] {
+  return readActiveThemeIds(items);
+}
+
+export function readActiveDestinationIds(
+  items: ReadonlyArray<{ id: string; isActive?: boolean }>
+): readonly string[] {
+  return readActiveThemeIds(items);
+}
+
+export function readSelectableLeaderUserIds(
+  items: ReadonlyArray<{
+    userId: string;
+    role: string;
+    isSelectableLeader?: boolean;
+    labels?: readonly string[];
+  }>
+): readonly string[] {
+  return items
+    .filter((user) => isWizardLeaderCandidate(user))
+    .map((user) => user.userId.trim())
+    .filter((id) => id.length > 0);
+}
+
+export function resolveMainThemeFormProfileFromCatalog(
+  themeIds: unknown,
+  catalog: readonly { id: string; formProfile?: string | null }[]
+): string | undefined {
+  const ids = parseStringArray(themeIds);
+  const firstId = ids[0];
+  if (firstId === undefined) {
+    return undefined;
+  }
+  const profile = catalog.find((theme) => theme.id === firstId)?.formProfile?.trim();
+  return profile !== undefined && profile.length > 0 ? profile : undefined;
+}
+
+export function aggregateDenaliSubmitCatalogIds(input: {
+  readonly equipmentItems?: ReadonlyArray<{ id: string; isActive?: boolean }>;
+  readonly themeItems?: ReadonlyArray<{ id: string; isActive?: boolean }>;
+  readonly guideLanguageItems?: ReadonlyArray<{ id: string; isActive?: boolean }>;
+  readonly destinationItems?: ReadonlyArray<{ id: string; isActive?: boolean }>;
+  readonly userItems?: ReadonlyArray<{
+    userId: string;
+    role: string;
+    isSelectableLeader?: boolean;
+    labels?: readonly string[];
+  }>;
+}): DenaliSubmitCatalogIds {
+  return {
+    ...(input.equipmentItems !== undefined
+      ? { activeEquipmentIds: readActiveThemeIds(input.equipmentItems) }
+      : {}),
+    ...(input.themeItems !== undefined ? { activeThemeIds: readActiveThemeIds(input.themeItems) } : {}),
+    ...(input.guideLanguageItems !== undefined
+      ? { activeGuideLanguageIds: readActiveGuideLanguageIds(input.guideLanguageItems) }
+      : {}),
+    ...(input.destinationItems !== undefined
+      ? { activeDestinationIds: readActiveDestinationIds(input.destinationItems) }
+      : {}),
+    ...(input.userItems !== undefined
+      ? { selectableLeaderIds: readSelectableLeaderUserIds(input.userItems) }
+      : {}),
+  };
+}

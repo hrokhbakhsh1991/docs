@@ -74,6 +74,10 @@ export async function DELETE(req: Request, context: RouteContext): Promise<NextR
     );
   }
 
+  if (backendRes.status === 204) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
   return NextResponse.json(payload, { status: backendRes.status });
 }

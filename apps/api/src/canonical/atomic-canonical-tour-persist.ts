@@ -5,14 +5,18 @@ import type { Prisma } from "@prisma/client";
 
 import {
   AUDIT_ACTION_TOUR_CREATED,
-  AUDIT_ACTION_TOUR_PUBLISHED,
-  AUDIT_ACTION_TOUR_UNPUBLISHED,
-  AUDIT_ACTION_TOUR_UPDATED,
   appendAuditEvent,
+  appendTourPublishTransitionAuditEvent,
+  appendTourUpdatedAuditEvent,
 } from "../audit/audit-logger";
 import { readCanonicalTransactionNow } from "../db/canonical-transaction-now";
 import { withCanonicalTransaction } from "../db/with-canonical-transaction";
 import { getActiveTraceId } from "../observability/trace-request-context";
+import {
+  buildTourPublishedDomainEventId,
+  buildTourPublishedOutboxPayload,
+  isPublicPublishStatusLabel,
+} from "./build-tour-published-outbox-payload";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import { TourVersionConflictError } from "../tours/tour-version-conflict";
 import {
@@ -25,9 +29,8 @@ import { assertTourCapacityInTx } from "./assert-tour-capacity-in-tx";
 import { deriveTourProjections } from "./projection-sync";
 import {
   detectTourPublishTransition,
-  type TourPublishTransitionKind,
-} from "./tour-publish-transition-audit";
-import { readDenaliTourPublishStatusFromCanonical } from "@app-tour/workspace-denali/tours";
+  readTourPublishStatusLabel,
+} from "./workspace-canonical-tour-dispatch";
 
 export type AtomicCanonicalTourPersistInput = {
   readonly tenantId: string;
@@ -126,6 +129,15 @@ async function persistNewTourAtomicallyInContext(
       createdAt: txNow,
     });
 
+    await enqueueTourPublishedOutboxIfPublic(tx, {
+      tenantId: input.tenantId,
+      tourId,
+      rowVersion: 1,
+      canonical: input.canonical,
+      projections,
+      createdAt: txNow,
+    });
+
     if (process.env.P5_ATOMIC_TX_TEST_ABORT === "pre_commit") {
       throw new Error("P5_ATOMIC_TX_TEST_ABORT");
     }
@@ -148,7 +160,8 @@ async function persistNewTourAtomicallyInContext(
 }
 
 /**
- * DEC-047 / AUDIT-GAP-02 — one TX: tour update + `TOUR_UPDATED` audit (no outbox).
+ * DEC-047 / AUDIT-GAP-02 — one TX: tour update + `TOUR_UPDATED` audit;
+ * `TourPublished` outbox when publish transition is detected.
  */
 export async function persistTourUpdateAtomically(
   input: AtomicCanonicalTourUpdateInput
@@ -210,10 +223,8 @@ async function persistTourUpdateAtomicallyInContext(
       throw new Error("P5_ATOMIC_TX_TEST_ABORT");
     }
 
-    await appendAuditEvent(tx, {
-      action: AUDIT_ACTION_TOUR_UPDATED,
-      entityType: "tour",
-      entityId: input.tourId,
+    await appendTourUpdatedAuditEvent(tx, {
+      tourId: input.tourId,
       createdAt: txNow,
     });
 
@@ -223,13 +234,23 @@ async function persistTourUpdateAtomicallyInContext(
       input.canonical
     );
     if (publishTransition != null) {
-      await appendPublishTransitionAuditEvent(tx, {
+      await appendTourPublishTransitionAuditEvent(tx, {
         tourId: input.tourId,
         transition: publishTransition,
-        before: beforeCanonical,
-        after: input.canonical,
+        fromPublishStatus: readTourPublishStatusLabel(getActiveWorkspaceType(), beforeCanonical),
+        toPublishStatus: readTourPublishStatusLabel(getActiveWorkspaceType(), input.canonical),
         createdAt: txNow,
       });
+      if (publishTransition === "published") {
+        await enqueueTourPublishedOutboxIfPublic(tx, {
+          tenantId: input.tenantId,
+          tourId: input.tourId,
+          rowVersion: row.rowVersion,
+          canonical: input.canonical,
+          projections,
+          createdAt: txNow,
+        });
+      }
     }
 
     if (process.env.P5_ATOMIC_TX_TEST_ABORT === "pre_commit") {
@@ -243,6 +264,43 @@ async function persistTourUpdateAtomicallyInContext(
       createdAt: row.createdAt.toISOString(),
       rowVersion: row.rowVersion,
     };
+  });
+}
+
+async function enqueueTourPublishedOutboxIfPublic(
+  tx: Prisma.TransactionClient,
+  input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly rowVersion: number;
+    readonly canonical: CanonicalDocument;
+    readonly projections: ReturnType<typeof deriveTourProjections>;
+    readonly createdAt: Date;
+  },
+): Promise<void> {
+  const workspaceType = getActiveWorkspaceType();
+  const publishStatusLabel = readTourPublishStatusLabel(workspaceType, input.canonical);
+  if (!isPublicPublishStatusLabel(publishStatusLabel)) {
+    return;
+  }
+
+  await enqueueOutboxEvent(tx, {
+    tenantId: input.tenantId,
+    aggregateType: "tour",
+    aggregateId: input.tourId,
+    eventType: "TourPublished",
+    payload: buildTourPublishedOutboxPayload({
+      tenantId: input.tenantId,
+      tourId: input.tourId,
+      rowVersion: input.rowVersion,
+      canonical: input.canonical,
+      projections: input.projections,
+      publishStatusLabel: publishStatusLabel ?? "active",
+      occurredAt: input.createdAt,
+    }) as Prisma.InputJsonValue,
+    domainEventId: buildTourPublishedDomainEventId(input.tourId, input.rowVersion),
+    correlationId: getActiveTraceId(),
+    createdAt: input.createdAt,
   });
 }
 
@@ -261,42 +319,4 @@ function buildTourCreateData(args: {
     schemaVersion: args.projections.schemaVersion,
     createdAt: args.createdAt,
   };
-}
-
-function readPublishStatusLabel(
-  workspaceType: string | undefined,
-  canonical: CanonicalDocument
-): string | undefined {
-  if (workspaceType === "denali") {
-    return readDenaliTourPublishStatusFromCanonical(canonical);
-  }
-  return undefined;
-}
-
-async function appendPublishTransitionAuditEvent(
-  tx: Prisma.TransactionClient,
-  input: {
-    readonly tourId: string;
-    readonly transition: TourPublishTransitionKind;
-    readonly before: CanonicalDocument;
-    readonly after: CanonicalDocument;
-    readonly createdAt: Date;
-  }
-): Promise<void> {
-  const workspaceType = getActiveWorkspaceType();
-  const action =
-    input.transition === "published" ? AUDIT_ACTION_TOUR_PUBLISHED : AUDIT_ACTION_TOUR_UNPUBLISHED;
-  const fromPublishStatus = readPublishStatusLabel(workspaceType, input.before);
-  const toPublishStatus = readPublishStatusLabel(workspaceType, input.after);
-
-  await appendAuditEvent(tx, {
-    action,
-    entityType: "tour",
-    entityId: input.tourId,
-    createdAt: input.createdAt,
-    metadata: {
-      ...(fromPublishStatus !== undefined ? { fromPublishStatus } : {}),
-      ...(toPublishStatus !== undefined ? { toPublishStatus } : {}),
-    },
-  });
 }

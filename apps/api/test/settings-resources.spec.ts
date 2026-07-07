@@ -89,6 +89,35 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
     assert.equal(deleteRes.status, 204);
   });
 
+  it("API-9.6-RES-02b equipment iconKey allowlist enforced", async () => {
+    const invalidRes = await client.requestJson<ResourceResponse>(
+      "POST",
+      "/settings/resources/equipment",
+      {
+        headers: operatorAuthHeaders(),
+        body: {
+          name: "Bad Icon Gear",
+          iconKey: "not_a_real_icon",
+        },
+      }
+    );
+    assert.equal(invalidRes.status, 400);
+
+    const validRes = await client.requestJson<ResourceResponse>(
+      "POST",
+      "/settings/resources/equipment",
+      {
+        headers: operatorAuthHeaders(),
+        body: {
+          name: "Backpack",
+          iconKey: "backpack",
+        },
+      }
+    );
+    assert.equal(validRes.status, 201);
+    assert.equal(validRes.body.iconKey, "backpack");
+  });
+
   it("API-9.6-RES-03 cross-tenant item id denied by RLS", async () => {
     const repo = getSettingsResourcesRepository();
     const foreignTenantId = "00000000-0000-4000-8000-000000000099";
@@ -98,6 +127,7 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
       tenantId: foreignTenantId,
       name: "Foreign Tent",
       category: null,
+      iconKey: null,
       themeIds: [],
       sortOrder: 0,
       createdAt: new Date().toISOString(),
@@ -186,6 +216,36 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
     assert.equal(destinationWithAltitude.status, 201);
     assert.equal(destinationWithAltitude.body.altitudeM, 3964);
 
+    const destinationWithHiking = await client.requestJson<ResourceResponse>(
+      "POST",
+      "/settings/resources/locations",
+      {
+        headers: operatorAuthHeaders(),
+        body: {
+          entity: "destination",
+          regionId,
+          name: "Lavasan trail",
+          locationType: "nature_trail",
+          typicalTrailDistanceKm: 8.5,
+        },
+      }
+    );
+    assert.equal(destinationWithHiking.status, 201);
+    assert.equal(destinationWithHiking.body.typicalTrailDistanceKm, 8.5);
+
+    const destinationId = destinationWithAltitude.body.id as string;
+    const patchRes = await client.requestJson<ResourceResponse>(
+      "PATCH",
+      `/settings/resources/locations/${destinationId}`,
+      {
+        headers: operatorAuthHeaders(),
+        body: { altitudeM: 5671, locationType: "peak" },
+      }
+    );
+    assert.equal(patchRes.status, 200);
+    assert.equal(patchRes.body.altitudeM, 5671);
+    assert.equal(patchRes.body.locationType, "peak");
+
     const listRes = await client.requestJson<ResourceResponse>(
       "GET",
       "/settings/resources/locations",
@@ -197,7 +257,7 @@ describe("settings-resources.spec.ts — Phase 9.6 API", () => {
     const regions = listRes.body.regions as Array<Record<string, unknown>>;
     const destinations = listRes.body.destinations as Array<Record<string, unknown>>;
     assert.equal(regions.length, 1);
-    assert.equal(destinations.length, 2);
+    assert.equal(destinations.length, 3);
 
     const deleteRegionRes = await client.requestJson<ResourceResponse>(
       "DELETE",

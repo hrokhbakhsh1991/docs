@@ -16,30 +16,40 @@ api_port="$(read_env_port "$api_env" PORT 3001)"
 target_url="http://127.0.0.1:${api_port}"
 changed=0
 
-update_key() {
-  local key="$1"
-  local current
-  current="$(read_env_var "$web_env" "$key" || true)"
-  if [[ -z "$current" ]]; then
-    return 0
+sync_env_file() {
+  local env_file="$1"
+  shift
+  local keys=("$@")
+  [[ -f "$env_file" ]] || return 0
+  local file_changed=0
+  for key in "${keys[@]}"; do
+    local current
+    current="$(read_env_var "$env_file" "$key" || true)"
+    if [[ -z "$current" ]]; then
+      continue
+    fi
+    local current_port
+    current_port="$(parse_url_port "$current")"
+    if [[ "$current_port" == "$api_port" ]]; then
+      continue
+    fi
+    if grep -qE "^${key}=" "$env_file"; then
+      sed -i "s|^${key}=.*|${key}=${target_url}|" "$env_file"
+    else
+      printf '\n%s=%s\n' "$key" "$target_url" >>"$env_file"
+    fi
+    echo "sync-web-api-url-port: ${env_file##*/} ${key} ${current} -> ${target_url}"
+    file_changed=1
+  done
+  if [[ "$file_changed" -eq 1 ]]; then
+    changed=1
   fi
-  local current_port
-  current_port="$(parse_url_port "$current")"
-  if [[ "$current_port" == "$api_port" ]]; then
-    return 0
-  fi
-  if grep -qE "^${key}=" "$web_env"; then
-    sed -i "s|^${key}=.*|${key}=${target_url}|" "$web_env"
-  else
-    printf '\n%s=%s\n' "$key" "$target_url" >>"$web_env"
-  fi
-  echo "sync-web-api-url-port: ${key} ${current} -> ${target_url}"
-  changed=1
 }
 
-update_key TOUR_OPS_API_URL
-update_key API_INTERNAL_URL
+sync_env_file "$web_env" TOUR_OPS_API_URL API_INTERNAL_URL
+sync_env_file "${ENV_DIR}/marketing.env" TOUR_OPS_API_URL
+sync_env_file "${ENV_DIR}/portal.env" TOUR_OPS_API_URL
 
 if [[ "$changed" -eq 1 ]]; then
-  echo "sync-web-api-url-port: updated ${web_env}"
+  echo "sync-web-api-url-port: BFF URLs aligned to api PORT ${api_port}"
 fi

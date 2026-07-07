@@ -5,6 +5,7 @@ import {
   consumeTenantRateLimit,
   type TenantRateLimitTier,
 } from "../middleware/tenant-rate-limiter";
+import { assertOperatorImpersonationReadonly } from "../identity/assert-operator-impersonation-readonly";
 import {
   acquireWeightedFairAdmission,
   releaseWeightedFairAdmission,
@@ -60,6 +61,7 @@ export async function runWithHttpRequestContext<T>(
         try {
           const execute = async () => {
             if (options?.rateLimit) {
+              await assertOperatorImpersonationReadonly(req);
               const tier: TenantRateLimitTier =
                 options.rateLimit === true ? "write" : options.rateLimit;
               await consumeTenantRateLimit(tier, rateLimitRoute);

@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import type { ActorRole } from "@app-tour/workspace-sdk";
-import type { Prisma } from "@prisma/client";
+import type {
+  ActorRole,
+  OperatorMembershipAvatar,
+  OperatorProfileGender,
+} from "@app-tour/workspace-sdk";
+import { Prisma } from "@prisma/client";
 import type { InvitableWorkspaceRole } from "./users.types";
 import { getPrisma } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
@@ -19,12 +23,19 @@ import type {
   UserRoleAuditRecord,
 } from "./in-memory-identity.repository";
 import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
+import { MobileAlreadyRegisteredError } from "./identity.errors";
 import {
   InviteNotFoundError,
   MembershipNotFoundError,
   OwnershipTransferForbiddenError,
   OwnershipTransferTargetInvalidError,
 } from "./in-memory-identity.repository";
+import {
+  mergeMembershipMetadata,
+  readMembershipMetadata,
+  writeMembershipMetadata,
+  writePublicProfileMetadata,
+} from "./membership-metadata";
 
 function normalizeMobile(mobile: string): string {
   return canonicalizeLoginMobile(mobile);
@@ -32,92 +43,6 @@ function normalizeMobile(mobile: string): string {
 
 function membershipKey(userId: string, tenantId: string): string {
   return `${userId}:${tenantId}`;
-}
-
-function readRewards(metadata: Prisma.JsonValue | undefined): MembershipRewardsRecord | undefined {
-  if (metadata === null || metadata === undefined || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return undefined;
-  }
-  const record = metadata as Record<string, unknown>;
-  const rewards: MembershipRewardsRecord = {};
-  if ("permanentDiscountPercentage" in record) {
-    const value = record.permanentDiscountPercentage;
-    rewards.permanentDiscountPercentage =
-      value === null || typeof value === "number" ? value : undefined;
-  }
-  if (Array.isArray(record.badges)) {
-    rewards.badges = record.badges.filter((badge): badge is string => typeof badge === "string");
-  }
-  if (typeof record.isSelectableLeader === "boolean") {
-    rewards.isSelectableLeader = record.isSelectableLeader;
-  }
-  if (Array.isArray(record.labels)) {
-    rewards.labels = record.labels.filter((label): label is string => typeof label === "string");
-  }
-  return Object.keys(rewards).length > 0 ? rewards : undefined;
-}
-
-function readMembershipMetadata(metadata: Prisma.JsonValue | undefined): {
-  readonly displayName?: string;
-  readonly email?: string;
-  readonly rewards?: MembershipRewardsRecord;
-} {
-  if (metadata === null || metadata === undefined || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return {};
-  }
-  const record = metadata as Record<string, unknown>;
-  const displayName =
-    typeof record.displayName === "string" && record.displayName.trim().length > 0
-      ? record.displayName.trim()
-      : undefined;
-  const email =
-    typeof record.email === "string" && record.email.trim().length > 0
-      ? record.email.trim()
-      : undefined;
-  const rewards = readRewards(metadata);
-  return {
-    ...(displayName !== undefined ? { displayName } : {}),
-    ...(email !== undefined ? { email } : {}),
-    ...(rewards !== undefined ? { rewards } : {}),
-  };
-}
-
-function writeRewards(rewards: MembershipRewardsRecord): Prisma.InputJsonObject {
-  return {
-    ...(rewards.permanentDiscountPercentage !== undefined
-      ? { permanentDiscountPercentage: rewards.permanentDiscountPercentage }
-      : {}),
-    ...(rewards.badges !== undefined ? { badges: [...rewards.badges] } : {}),
-    ...(rewards.isSelectableLeader !== undefined
-      ? { isSelectableLeader: rewards.isSelectableLeader }
-      : {}),
-    ...(rewards.labels !== undefined ? { labels: [...rewards.labels] } : {}),
-  };
-}
-
-function writeMembershipMetadata(input: {
-  readonly displayName?: string;
-  readonly email?: string;
-  readonly rewards?: MembershipRewardsRecord;
-}): Prisma.InputJsonObject {
-  return {
-    ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
-    ...(input.email !== undefined && input.email.length > 0 ? { email: input.email } : {}),
-    ...(input.rewards !== undefined ? writeRewards(input.rewards) : {}),
-  };
-}
-
-function writePublicProfileMetadata(input: {
-  readonly displayName: string;
-  readonly email?: string;
-  readonly existingMetadata?: Prisma.JsonValue;
-}): Prisma.InputJsonObject {
-  const existing = readMembershipMetadata(input.existingMetadata);
-  return writeMembershipMetadata({
-    displayName: input.displayName,
-    ...(input.email !== undefined ? { email: input.email } : {}),
-    ...(existing.rewards !== undefined ? { rewards: existing.rewards } : {}),
-  });
 }
 
 function toMembershipRecord(row: {
@@ -139,7 +64,15 @@ function toMembershipRecord(row: {
     ...(row.workspaceId !== null ? { workspaceId: row.workspaceId } : {}),
     ...(metadata.displayName !== undefined ? { displayName: metadata.displayName } : {}),
     ...(metadata.email !== undefined ? { email: metadata.email } : {}),
+    ...(metadata.nationalId !== undefined ? { nationalId: metadata.nationalId } : {}),
+    ...(metadata.fatherName !== undefined ? { fatherName: metadata.fatherName } : {}),
+    ...(metadata.birthDate !== undefined ? { birthDate: metadata.birthDate } : {}),
+    ...(metadata.gender !== undefined ? { gender: metadata.gender } : {}),
     ...(metadata.rewards !== undefined ? { rewards: metadata.rewards } : {}),
+    ...(metadata.avatar !== undefined ? { avatar: metadata.avatar } : {}),
+    ...(metadata.portalModuleGrants !== undefined && metadata.portalModuleGrants.length > 0
+      ? { portalModuleGrants: metadata.portalModuleGrants }
+      : {}),
   };
 }
 
@@ -443,14 +376,77 @@ export class PrismaIdentityRepository implements IdentityRepository {
       if (row === null) {
         throw new MembershipNotFoundError(userId);
       }
-      const metadata = readMembershipMetadata(row.membershipMetadata);
       return tx.userTenant.update({
         where: { userId_tenantId: { userId, tenantId } },
         data: {
-          membershipMetadata: writeMembershipMetadata({
+          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
             displayName: displayName.trim(),
-            ...(metadata.rewards !== undefined ? { rewards: metadata.rewards } : {}),
           }),
+        },
+      });
+    });
+    return toMembershipRecord(updated);
+  }
+
+  async updateMembershipProfileFields(
+    tenantId: string,
+    userId: string,
+    patch: {
+      readonly displayName?: string;
+      readonly email?: string | null;
+      readonly gender?: OperatorProfileGender | null;
+      readonly nationalId?: string;
+      readonly fatherName?: string;
+      readonly birthDate?: string;
+    }
+  ): Promise<IdentityMembershipRecord> {
+    const updated = await withTenantRls(tenantId, async (tx) => {
+      const row = await tx.userTenant.findUnique({
+        where: { userId_tenantId: { userId, tenantId } },
+      });
+      if (row === null) {
+        throw new MembershipNotFoundError(userId);
+      }
+      return tx.userTenant.update({
+        where: { userId_tenantId: { userId, tenantId } },
+        data: {
+          membershipMetadata: mergeMembershipMetadata(
+            row.membershipMetadata,
+            {
+              ...(patch.displayName !== undefined ? { displayName: patch.displayName.trim() } : {}),
+              ...(patch.email !== undefined
+                ? { email: patch.email === null ? undefined : patch.email.trim() }
+                : {}),
+              ...("gender" in patch ? { gender: patch.gender ?? null } : {}),
+              ...(patch.nationalId !== undefined ? { nationalId: patch.nationalId.trim() } : {}),
+              ...(patch.fatherName !== undefined ? { fatherName: patch.fatherName.trim() } : {}),
+              ...(patch.birthDate !== undefined ? { birthDate: patch.birthDate.trim() } : {}),
+            } as Parameters<typeof mergeMembershipMetadata>[1],
+          ),
+        },
+      });
+    });
+    return toMembershipRecord(updated);
+  }
+
+  async updateMembershipAvatar(
+    tenantId: string,
+    userId: string,
+    avatar: OperatorMembershipAvatar | null
+  ): Promise<IdentityMembershipRecord> {
+    const updated = await withTenantRls(tenantId, async (tx) => {
+      const row = await tx.userTenant.findUnique({
+        where: { userId_tenantId: { userId, tenantId } },
+      });
+      if (row === null) {
+        throw new MembershipNotFoundError(userId);
+      }
+      return tx.userTenant.update({
+        where: { userId_tenantId: { userId, tenantId } },
+        data: {
+          membershipMetadata: mergeMembershipMetadata(row.membershipMetadata, {
+            avatar,
+          } as Parameters<typeof mergeMembershipMetadata>[1]),
         },
       });
     });
@@ -579,6 +575,39 @@ export class PrismaIdentityRepository implements IdentityRepository {
     });
 
     return { user, membership };
+  }
+
+  async updateUserMobile(userId: string, newMobile: string): Promise<IdentityUserRecord> {
+    const normalized = normalizeMobile(newMobile);
+    try {
+      await getPrisma().$transaction(async (tx) => {
+        const existing = await tx.user.findUnique({ where: { mobile: normalized } });
+        if (existing !== null && existing.id !== userId) {
+          throw new MobileAlreadyRegisteredError();
+        }
+        await tx.user.update({
+          where: { id: userId },
+          data: { mobile: normalized },
+        });
+        await tx.userTenant.updateMany({
+          where: { userId },
+          data: { sessionVersion: { increment: 1 } },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new MobileAlreadyRegisteredError();
+      }
+      throw error;
+    }
+    const row = await getPrisma().user.findUnique({ where: { id: userId } });
+    if (row === null) {
+      throw new MembershipNotFoundError(userId);
+    }
+    return { id: row.id, mobile: row.mobile };
   }
 
   seedMembership(_record: IdentityMembershipRecord): void {

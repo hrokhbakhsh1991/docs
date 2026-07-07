@@ -7,7 +7,7 @@ import { resolveWorkspaceLabelFromMessages } from "@/i18n/resolve-workspace-labe
 import { AppShell } from "@/shell/app-shell";
 import { WizardBridgeShell } from "@/shell/wizard-bridge-shell";
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
-import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
+import { resolveBootstrapAppSessionForHostAsync } from "@/tenant/tenant-kernel";
 
 const DENALI_PLUGIN_ID = "denali";
 
@@ -15,7 +15,7 @@ const DENALI_PLUGIN_ID = "denali";
 export async function ToursWizardLayout({ children }: { children: ReactNode }) {
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
-  const resolved = resolveBootstrapAppSessionForHost(host);
+  const resolved = await resolveBootstrapAppSessionForHostAsync(host);
   const pluginId = resolved.session.pluginId;
   const session = await readOperatorSessionFromCookies();
 

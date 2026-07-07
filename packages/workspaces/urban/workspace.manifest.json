@@ -1,6 +1,11 @@
 {
   "id": "urban",
   "version": 1,
+  "pluginApiVersion": 1,
+  "guestExtensionsVersion": 1,
+  "guestConformance": {
+    "productionTier": "stub"
+  },
   "package": "@app-tour/workspace-urban",
   "workspaceTypes": ["urban"],
   "plugin": {
@@ -15,11 +20,158 @@
     "prefix": "/urban",
     "module": "./http/routes"
   },
+  "httpRoutes": {
+    "handlerPackage": "@app-tour/workspace-urban/http",
+    "loadHandlersFromPackage": true,
+    "groups": [
+      {
+        "manifestExport": "URBAN_HTTP_ROUTE_MANIFEST",
+        "staticHandlers": {
+          "GET /urban/settings": "handleGetUrbanSettings",
+          "PATCH /urban/settings": "handlePatchUrbanSettings",
+          "GET /urban/catalog": "handleGetUrbanCatalog",
+          "POST /urban/registrations": "handlePostUrbanRegistration"
+        },
+        "paramHandlers": {
+          "GET /urban/catalog/:tourId": "handleGetUrbanCatalogTour"
+        }
+      }
+    ]
+  },
   "tourWrite": {
     "module": "./tours",
     "workspaceTypeExport": "URBAN_WORKSPACE_TYPE",
     "mergeExport": "mergeUrbanCanonicalPatchData",
     "publishGateExport": "urbanTourPatchRequiresOwner",
-    "publishSurfaceExport": "URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
+    "publishSurfaceExport": "URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE",
+    "publishOwnerAssertModule": "./http",
+    "publishOwnerAssertExport": "assertWorkspaceOwner"
+  },
+  "canonicalTour": {
+    "publishStatusModule": "./tours",
+    "publishStatusReadExport": "readUrbanTourPublishStatusFromCanonical",
+    "publishTransitionExport": "detectUrbanTourPublishTransition"
+  },
+  "wizardI18n": {
+    "messageNamespace": "urban"
+  },
+  "devBootstrap": {
+    "pluginTenantIds": ["00000000-0000-4000-8000-000000000004"],
+    "wizardTemplate": {
+      "module": "./settings/urbanMinimalWizardTemplate",
+      "buildExport": "buildUrbanMinimalWizardTemplatePayload",
+      "tenantIds": ["00000000-0000-4000-8000-000000000004"],
+      "minPublishedSteps": 2
+    },
+    "smokeTenant": {
+      "tenantIdExport": "URBAN_SMOKE_TENANT_ID",
+      "subdomainExport": "URBAN_SMOKE_SUBDOMAIN"
+    }
+  },
+  "httpErrors": [
+    {
+      "isErrorExport": "isUrbanOwnerRequiredError",
+      "codeExport": "URBAN_OWNER_REQUIRED",
+      "status": 403
+    },
+    {
+      "isErrorExport": "isUrbanWorkspaceRequiredError",
+      "codeExport": "URBAN_WORKSPACE_REQUIRED",
+      "status": 404
+    },
+    {
+      "isErrorExport": "isUrbanRegistrationDuplicateError",
+      "codeExport": "URBAN_REGISTRATION_DUPLICATE",
+      "status": 409
+    },
+    {
+      "isErrorExport": "isUrbanRegistrationClosedError",
+      "codeExport": "URBAN_REGISTRATION_CLOSED",
+      "status": 403
+    }
+  ],
+  "themeStylesheets": ["theme/tokens.css"],
+  "guestThemeStylesheets": {
+    "marketing": ["theme/urban-marketing.css"],
+    "portal": ["theme/urban-portal.css"]
+  },
+  "catalogRegistrationFlow": {
+    "surfaceExport": "urbanCatalogRegistrationFlowSurface",
+    "steps": {
+      "mode": "compose",
+    "reuseAuthStepsFrom": "shared",
+    "components": {
+        "intake": "UrbanIntakeStep",
+        "done": "UrbanDoneStep"
+      }
+    }
+  },
+  "catalogPresentation": {
+    "listFeatures": { "cityFilter": true },
+    "detailSections": {
+      "difficulty": false,
+      "fitness": false,
+      "itinerary": false,
+      "policies": false
+    }
+  },
+  "memberProfile": {
+    "editableFields": ["displayName"],
+    "readOnlyFields": ["email"],
+    "sections": [
+      {
+        "id": "identity",
+        "fields": ["displayName", "email"]
+      }
+    ]
+  },
+  "guestLanding": {
+    "variant": "minimal",
+    "sections": {
+      "hero": false,
+      "latestTours": false,
+      "latestToursLimit": 0,
+      "trust": false,
+      "finalCta": false,
+    "faq": false,
+    "footer": false,
+    "whyDenali": false,
+    "journey": false,
+    "testimonials": false,
+    "featuredTours": false,
+    "featuredToursLimit": 0,
+    "categories": false,
+    "destinations": false,
+    "heroSearch": false,
+    "gallery": false,
+    "equipment": false,
+    "blogTeaser": false
+    },
+    "i18nProfile": "minimal"
+  },
+  "guestSeo": {
+    "marketing": {
+      "homeTitleKey": "seo.homeTitle",
+      "homeDescriptionKey": "seo.homeDescription",
+      "listTitleKey": "seo.toursTitle",
+      "listDescriptionKey": "seo.toursDescription",
+      "jsonLd": {
+        "required": true,
+        "schemaTypes": ["Event"],
+        "builderExport": "buildUrbanEventJsonLd",
+        "richResultsProfile": "event-v1"
+      },
+      "sitemap": { "changefreq": "weekly", "priority": 0.8, "includeImages": true },
+      "pagination": { "noindexQueryParams": ["cursor", "city"] }
+    }
+  },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "minimal",
+    "preset": "guest-minimal-v1"
+  },
+  "operatorCapabilities": {
+    "usersDirectory": false,
+    "reconciliationTriage": false
   }
 }

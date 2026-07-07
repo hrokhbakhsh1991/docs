@@ -1,0 +1,197 @@
+---
+title: P6 — Denali first customer product closure
+phase: 19
+format: markdoc
+prerequisite: P5-core exit (P5-B-N-016)
+quality: 9.6
+doc_role: architecture_sot
+execution_pack: docs/phase-19/p6/
+pack_version: "2.1"
+---
+
+# Denali first customer (P6)
+
+Close **end-to-end Denali product** for the first club — three **separate apps** on **separate subdomains**, guest journey **before** full admin polish.
+
+**Not in P6:** metadata cutover, gateway/commerce (P5-C/D/E), Urban, installments.
+
+---
+
+## Three apps (frozen — dual addressing)
+
+**Authority:** [p6-host-addressing-architecture.mdoc](p6-host-addressing-architecture.mdoc) · runbook [host-subdomain-map.md](p6/runbooks/host-subdomain-map.md)
+
+### Platform default (provision)
+
+| Surface | App | Dev (canonical) | Prod |
+| ------- | --- | --------------- | ---- |
+| **Public** | `apps/marketing` | `{club}.localhost:3002` | `https://{club}.{root}` |
+| **User** | `apps/portal` | `{club}.portal.localhost:3003` | `https://{club}.portal.{root}` |
+| **Admin** | `apps/web` `(app)/` | `{club}.admin.localhost:3000` | `https://{club}.admin.{root}` |
+
+### Custom apex (per club — production white-label)
+
+| Surface | Example |
+| ------- | ------- |
+| Public | `https://denali.club` |
+| User | `https://portal.denali.club` |
+| Admin | `https://admin.denali.club` (target; ingress via `tenant_domains` + platform subdomain) |
+
+**Dev legacy ingress** (strip-only, not canonical): `shop.{club}.localhost:3002` still resolves same tenant when Host header uses legacy alias. See [WRS-001](../../standards/workspace-routing-standard.mdoc).
+
+All surfaces resolve the **same `tenantId`** via `GET /public/tenant-context` (platform parse → `tenant_domains`).
+
+**Workspace isolation:** clubs do not share domains; Denali/Urban is `pluginId` after tenant lookup — not encoded in cross-club hostnames.
+
+---
+
+## Problem (pre-P6)
+
+Admin routes mostly existed but **flows did not connect** (fixed in P6 v2.1).
+
+```text
+Admin builds tour  ✗→  Public catalog empty/wrong tenant   [FIXED P6-0 + P6-1]
+                   ✗→  Portal register unreachable          [FIXED P6-1]
+                   ✗→  Member /me missing                  [FIXED P6-3]
+```
+
+**Closure:** `pnpm run p6:gate` · see [platform-denali-vertical-slice.mdoc](platform-denali-vertical-slice.mdoc).
+
+---
+
+## EPIC map (execution order)
+
+| Order | EPIC | Pack doc | Nanos | Outcome |
+| ----- | ---- | -------- | ----- | ------- |
+| 1 | **P6-0** | [p6-0-host-subdomain.md](p6/p6-0-host-subdomain.md) | 9 | Dual host model + tenant parity |
+| 2 | **P6-1** | [p6-1-guest-slice.md](p6/p6-1-guest-slice.md) | 15 | Public catalog + portal register + **theming file tree** |
+| 3 | **P6-2** | [p6-2-operator-admin.md](p6/p6-2-operator-admin.md) | 16 | Full Denali admin depth |
+| 4 | **P6-3** | [p6-3-member-portal.md](p6/p6-3-member-portal.md) | 10 | `/me` + receipt upload |
+| 5 | **P6-4** | [p6-4-exit-gate.md](p6/p6-4-exit-gate.md) | 8 | Full VS + `p6:gate` |
+
+**Total:** 58 nanos · exit: `P6-4-N-008` · **first milestone:** `P6-1-N-014` requires **P6-0** + **P6-1-N-015**
+
+---
+
+## Vertical slice (phased)
+
+### Milestone M1 — Guest slice (P6-0 + P6-1)
+
+```text
+Admin (minimal): wizard → publishStatus active
+Marketing:       /tours lists tour · detail CTA
+Portal:          OTP register → [data-public-registration-success]
+```
+
+| ID | When |
+| -- | ---- |
+| VS-01 | P6-1 |
+| VS-02 | P6-1 |
+| VS-03 | P6-1 |
+
+### Milestone M2 — Admin ops (P6-2)
+
+| ID | Step |
+| -- | ---- |
+| VS-06 | Operator approves booking |
+| VS-07 | Operator approves receipt |
+
+### Milestone M3 — Member portal (P6-3)
+
+| ID | Step |
+| -- | ---- |
+| VS-04 | Portal `/me/registrations` lists row |
+| VS-05 | Member uploads receipt |
+
+### Milestone M4 — Closure (P6-4)
+
+| ID | Step |
+| -- | ---- |
+| VS-08 | `pnpm run p6:gate` green |
+
+---
+
+## Dependency graph
+
+```mermaid
+flowchart TD
+  P0[P6-0 Host subdomain] --> P1[P6-1 Guest slice]
+  P1 --> P2[P6-2 Admin full]
+  P1 --> P3[P6-3 Member portal]
+  P2 --> P4[P6-4 Exit gate]
+  P3 --> P4
+  P5[P5-core ✅] -.-> P0
+```
+
+**No parallel skip:** P6-2 and P6-3 both require **P6-1** (`GUEST_SLICE_OK`).
+
+---
+
+## Frozen rules
+
+| ID | Rule |
+| -- | ---- |
+| R-01 | Workspace `@app-tour/workspace-denali` only |
+| R-02 | `offline_receipt` only |
+| R-03 | Admin wizard in `apps/web` — not Super Admin |
+| R-04 | Do not delete `denali/src/rules` or `composites` |
+| R-05 | Three apps — do not merge public/register into `apps/web` long-term |
+| R-06 | Package binding OK — metadata cutover not required for customer 1 |
+| R-07 | **Theming:** [p6-theming-file-tree.md](p6/p6-theming-file-tree.md) |
+| R-08 | **Addressing:** [p6-host-addressing-architecture.mdoc](p6-host-addressing-architecture.mdoc) — platform `{club}.{root}` + custom apex per tenant; three surfaces; no cross-club hosts |
+
+Safety: [p6-denali-safety.md](p6/p6-denali-safety.md)
+
+---
+
+## Agent entry
+
+1. [p6/AGENT-START.md](p6/AGENT-START.md) — **status COMPLETE** · regression loop
+2. [AGENT-NAVIGATOR.md](AGENT-NAVIGATOR.md) — decision tree («قدم بعدی چیست؟»)
+3. [p6/AGENT-CURRENT-PHASE.yaml](p6/AGENT-CURRENT-PHASE.yaml) — machine snapshot
+4. **[p6-host-addressing-architecture.mdoc](p6-host-addressing-architecture.mdoc)** — dual host model
+5. **[p6-implementation-standards.mdoc](p6-implementation-standards.mdoc)** — design tokens · BFF · features
+6. [p6/DOC-SYNC-INDEX.md](p6/DOC-SYNC-INDEX.md)
+7. [p6/appendices/IMPLEMENTATION-TRUTH-P6.md](p6/appendices/IMPLEMENTATION-TRUTH-P6.md) — repo truth
+8. [p6/appendices/TRACEABILITY-MATRIX-P6.md](p6/appendices/TRACEABILITY-MATRIX-P6.md) — nano → spec map
+9. [p6/runbooks/p6-e2e-smoke.md](p6/runbooks/p6-e2e-smoke.md) — T2 E2E browser (Architect YES)
+10. [p6/appendices/FINANCE-OPS-P6-NOTE.md](p6/appendices/FINANCE-OPS-P6-NOTE.md) · [p6/appendices/OTP-SCOPE-P6.md](p6/appendices/OTP-SCOPE-P6.md)
+
+---
+
+## Verification tiers
+
+| Tier | Command | When |
+| ---- | ------- | ---- |
+| **T1** (required) | `pnpm run p6:gate` | Every change · VS-08 |
+| **T2** (E2E) | [p6-e2e-smoke.md](p6/runbooks/p6-e2e-smoke.md) | Pre-staging · Architect YES |
+| **T3** (finance DB) | `finance-ops.spec.ts` + [FINANCE-OPS-P6-NOTE.md](p6/appendices/FINANCE-OPS-P6-NOTE.md) | When `DATABASE_URL` set |
+| **T4** (manual) | [first-customer-operator.md](p6/runbooks/first-customer-operator.md) | VS-06/07 sign-off |
+
+---
+
+## Verification (T1)
+
+```bash
+pnpm run guard:p3-denali-covenant
+# After P6-1-N-014: guest slice smoke (see p6-1)
+pnpm run p6:gate    # after P6-4-N-003
+```
+
+---
+
+## Portal OTP (P6-1 core)
+
+Phone → OTP (`1234` dev) → profile (new: name required) → tour intake → success.
+
+→ [`platform-portal-otp-flow.mdoc`](platform-portal-otp-flow.mdoc)
+
+---
+
+## References
+
+- [`p6-host-addressing-architecture.mdoc`](p6-host-addressing-architecture.mdoc)
+- [`public-catalog.md`](../workspaces/denali/public-catalog.md)
+- [`OPERATOR-PRODUCT-SCOPE.md`](../phase-9/appendices/OPERATOR-PRODUCT-SCOPE.md)
+- [`BOOKINGS-OPS-UX.md`](../phase-9/appendices/BOOKINGS-OPS-UX.md)
+- [`FINANCE-OPS-UX.md`](../phase-9/appendices/FINANCE-OPS-UX.md)

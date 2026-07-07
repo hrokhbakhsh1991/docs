@@ -9,6 +9,8 @@ User=@APP_USER@
 Group=@APP_USER@
 WorkingDirectory=@DEPLOY_PATH@
 EnvironmentFile=@ENV_DIR@/web.env
+Environment=DEPLOY_PATH=@DEPLOY_PATH@
+Environment=ENV_DIR=@ENV_DIR@
 ExecStart=@DEPLOY_PATH@/scripts/vps-deploy/start-web.sh
 Restart=on-failure
 RestartSec=5

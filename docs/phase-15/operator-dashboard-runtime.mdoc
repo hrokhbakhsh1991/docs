@@ -1,0 +1,62 @@
+---
+title: Phase 15 — Operator dashboard runtime (P-A2)
+phase: 15
+format: markdoc
+---
+
+# Operator dashboard runtime triage (P15-P-A2)
+
+## Problem
+
+After login, the operator dashboard fans out to several API surfaces. Unhandled exceptions on any of these routes produce **500** responses and break the shell (widgets show generic errors, logs emit `INTERNAL_SERVER_ERROR`).
+
+P-A2 adds a **memory-driver regression spec** that probes dashboard-critical routes for Denali and Urban smoke tenants and asserts `status !== 500`.
+
+## Dashboard probe routes
+
+| Route | Denali smoke | Urban smoke | Expected (happy path) |
+|-------|--------------|-------------|------------------------|
+| `GET /tours?view=operator` | operator `000…014` | urban `000…004` | **200** — operator session + list projection |
+| `GET /settings/branding` | denali owner | urban owner | **200** / **404** (`SETTINGS_MODULE_UNKNOWN`) |
+| `GET /settings/modules` | denali owner | urban owner | **200** — full module hub / `account_profile` + urban manifest modules |
+| `GET /finance/reports/summary` | denali owner | urban owner | **200** empty summary (memory, no `DATABASE_URL`) / **404** urban unsupported |
+
+Urban finance nav is hidden in web shell; API must fail closed (**403/404**) without **500**.
+
+### P15-P-A2 finance gate fix
+
+`assertFinanceWorkspaceGate` previously always queried Prisma admin. Memory specs (`STORAGE_DRIVER=memory`, no `DATABASE_URL`) threw `PrismaClientInitializationError` → **500** on dashboard finance widget.
+
+After fix:
+
+1. Resolve tenant via Postgres when `DATABASE_URL` is set; on miss or Prisma error, fall back to `resolveRegisteredTenantById` (static `DEV_TENANTS` in test).
+2. Urban workspace → `FINANCE_WORKSPACE_UNSUPPORTED` (**404**).
+3. Denali without Postgres persistence → `getSummary` returns zero counts (**200**).
+
+## Test environment
+
+- `NODE_ENV=test`, `STORAGE_DRIVER=memory`
+- Identity seeded via operator / urban smoke fixtures (same as Phase 9.3 / 9.6 specs)
+- Urban tour list uses `InMemoryTourRepository.ensureUrbanPhase81PublishedTour()` via `createTestToursService`
+
+## Regression spec
+
+`apps/api/test/operator-dashboard-runtime.spec.ts`
+
+| Case ID | Assert |
+|---------|--------|
+| API-P15-A2-01 | Denali `GET /tours?view=operator` → 200 |
+| API-P15-A2-02 | Urban `GET /tours?view=operator` → 200 |
+| API-P15-A2-03 | Denali `GET /settings/branding` → 200 |
+| API-P15-A2-04 | Urban `GET /settings/branding` → 403 (not 500) |
+| API-P15-A2-05 | Denali `GET /finance/reports/summary` → not 500 |
+| API-P15-A2-06 | Urban `GET /finance/reports/summary` → not 500 |
+
+## Verify
+
+```bash
+pnpm run phase-15:platform-fast-gate
+node --test apps/api/test/operator-dashboard-runtime.spec.ts
+```
+
+When a probe fails with 500, triage root-cause (seed DB, auth headers, workspaceType resolution) and add a targeted fix — do not soft-fail the route.

@@ -1,0 +1,241 @@
+---
+title: P6 — Host addressing architecture (dual model)
+phase: 19
+format: markdoc
+doc_role: architecture_sot
+mandatory_for: [P6-0, P6-1, P6-2, P6-3, P6-4]
+extends:
+  - docs/phase-15/platform-host-multilevel.mdoc
+  - docs/phase-15/platform-domains-ssl.mdoc
+  - docs/phase-15/public-tenant-branding.mdoc
+code_sot:
+  - packages/tenant-kernel/src/host/parse-multi-level-tenant-host.ts
+  - apps/api/src/tenant/resolve-public-ingress-subdomain.ts
+  - apps/api/src/platform/build-club-site-urls.ts
+  - apps/api/src/platform/resolve-tenant-from-custom-domain.ts
+---
+
+# P6 host addressing architecture
+
+**Goal:** Every club (tenant) is **fully isolated** at the host layer. Workspaces (Denali, Urban) are **product plugins** — they do not share domains and do not reference each other.
+
+Two addressing layers coexist — both are standard enterprise SaaS:
+
+| Layer | Purpose | When |
+| ----- | ------- | ---- |
+| **Platform default** | Provisioned URLs on `PLATFORM_ROOT_DOMAIN` | Dev smoke · onboarding · fallback |
+| **Custom apex zone** | Customer-owned domain (`denali.club`) | Production white-label per club |
+
+---
+
+## 1. Concepts (do not confuse)
+
+| Term | Meaning | Example |
+| ---- | ------- | ------- |
+| **Tenant / club** | Isolated customer row (`tenants.subdomain` → `tenantId`) | `operator`, `alborz` |
+| **Workspace / plugin** | Product vertical (`pluginId`: `denali`, `urban`) | Denali tours vs Urban events |
+| **Surface** | App role (marketing · portal · admin) | Three apps, one tenant |
+| **Root domain** | Platform apex (`PLATFORM_ROOT_DOMAIN`) | `localhost` (dev), `example.com` (prod) |
+| **Custom domain** | Verified FQDN in `tenant_domains` | `denali.club`, `portal.denali.club` |
+
+**Rule:** Host resolves **tenantId** only. Workspace type comes from tenant registry after lookup — never from hostname of another club.
+
+**WRS SoT:** [workspace-routing-standard.mdoc](../../standards/workspace-routing-standard.mdoc) (WRS-001) — cross-app URL builders, smoke canonical hosts, egress guard.
+
+---
+
+## 2. Canonical surfaces (frozen)
+
+Three apps · three host patterns · **same `tenantId`**:
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  SURFACE      APP              KERNEL OUTCOME      PLATFORM URL   │
+├─────────────────────────────────────────────────────────────────┤
+│  Public       apps/marketing   club_apex          {club}.{root}   │
+│  User         apps/portal      club_portal        {club}.portal.{root} │
+│  Operator     apps/web         club_admin        {club}.admin.{root} │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Platform provision helper (`buildClubSiteUrls`):
+
+```typescript
+// apps/api/src/platform/build-club-site-urls.ts
+marketing: `https://${subdomain}.${rootDomain}`;
+portal:    `https://${subdomain}.portal.${rootDomain}`;
+admin:     `https://${subdomain}.admin.${rootDomain}/auth/login`;
+```
+
+Parser order (`parseMultiLevelTenantHost` — `@app-tour/tenant-kernel`):
+
+```text
+1. admin.{root}           → platform_admin (Super Admin — NOT a club)
+2. {club}.admin.{root}    → club_admin
+3. {club}.portal.{root}   → club_portal
+4. {club}.{root}          → club_apex (marketing)
+```
+
+---
+
+## 3. Custom domain model (per-club apex zone)
+
+Each club may own a DNS zone. **Clubs do not share hostnames.**
+
+| Surface | Custom FQDN | `tenant_domains.surface` |
+| ------- | ----------- | ------------------------ |
+| Public | `{apex}` e.g. `denali.club`, `www.denali.club` | `marketing` |
+| User | `portal.{apex}` e.g. `portal.denali.club` | `portal` |
+| Operator | `admin.{apex}` e.g. `admin.denali.club` | `admin` (P6 target; trunk v1 custom ingress: marketing + portal only — see §6) |
+
+Example — two clubs, zero host overlap:
+
+```text
+denali.club              → tenant A · marketing
+portal.denali.club       → tenant A · portal
+admin.denali.club        → tenant A · admin
+
+alborz.ir                → tenant B · marketing
+portal.alborz.ir         → tenant B · portal
+admin.alborz.ir          → tenant B · admin
+```
+
+Workspace plugin (`denali` vs `urban`) is identical across both — only **tenant data** and **theme** differ.
+
+---
+
+## 4. Ingress resolution chain (API — fail-closed)
+
+All public guest routes (`GET /public/tenant-context`, `GET /public/tenant-branding`) use:
+
+```text
+Host / x-forwarded-host
+  │
+  ├─ 1) resolveSubdomainFromPlatformHost
+  │      parseMultiLevelTenantHost → club_admin | club_portal | club_apex
+  │      → subdomain label
+  │
+  ├─ 2) else resolveTenantFromCustomDomainHost
+  │      tenant_domains WHERE hostname = FQDN AND status = verified AND ssl active
+  │      → { tenantId, subdomain, surface }
+  │
+  └─ 3) resolveRegisteredTenantBySubdomain(subdomain) → tenantId + workspaceType + pluginId
+```
+
+**File:** `apps/api/src/tenant/resolve-public-ingress-subdomain.ts`
+
+JWT/session remains auth SoT for operator routes; host is resolution SoT for **guest/public** ingress.
+
+---
+
+## 5. Dev host map (dual — canonical + legacy smoke)
+
+### 5.1 Canonical (aligns with prod parser)
+
+| Surface | Host | Port |
+| ------- | ---- | ---- |
+| Marketing | `{club}.localhost` | 3002 |
+| Portal | `{club}.portal.localhost` | 3003 |
+| Admin | `{club}.admin.localhost` | 3000 |
+
+### 5.2 Legacy smoke aliases (still green in specs — migrate toward §5.1)
+
+| Surface | Legacy host | Notes |
+| ------- | ----------- | ----- |
+| Marketing | `shop.{club}.localhost:3002` | `shop.` strip before portal CTA |
+| Portal | `{club}.localhost:3003` | maps via bootstrap fallback when not `club_portal` |
+| Admin | `{club}.localhost:3000` | club_apex on admin app — session bind uses static map |
+
+**Smoke club label:** `operator` → tenant `00000000-0000-4000-8000-000000000014`.
+
+### 5.3 CTA bridge (marketing → portal)
+
+`resolveWebRegistrationUrl` uses **`buildDevPortalPublicBaseUrl`** from `@app-tour/tenant-kernel`:
+
+```text
+shop.{club}.localhost:3002  →  http://{club}.portal.localhost:3003/catalog/{id}/register  (canonical)
+{club}.localhost:3002       →  same
+PORTAL_PUBLIC_BASE_URL      →  override (custom apex prod)
+legacy portal alias         →  http://{club}.localhost:3003/...  (portal resolver accepts club_apex during migration)
+```
+
+For custom domains, set **`PORTAL_PUBLIC_BASE_URL`** per club (or derive from `tenant_domains` in P6-0+).
+
+### 5.4 Reverse bridge (portal / admin → marketing)
+
+`resolveMarketingPublicBaseUrl` (web catalog redirect · portal home) uses **`buildDevMarketingPublicBaseUrl`** from `@app-tour/tenant-kernel`:
+
+```text
+{club}.portal.{root}:3003   →  http://{club}.{root}:3002
+{club}.admin.{root}:3000    →  http://{club}.{root}:3002
+{club}.{root}:3002          →  http://{club}.{root}:3002
+shop.{club}.{root} (ingress) →  strip shop. → same as club apex
+MARKETING_PUBLIC_BASE_URL   →  override (custom apex prod, e.g. https://denali.club)
+```
+
+**WRS-URL-03:** Egress MUST NOT prepend `shop.` — legacy `shop.{club}` is ingress-only (strip before parse).
+
+Industry alignment: subdomain tenant routing (WorkOS · AWS SaaS · Vercel platforms) + custom apex DB map; content paths (`/tours`) stay on marketing host, not extra subdomains.
+
+---
+
+## 6. Trunk gaps (post-P6 closure)
+
+| ID | Gap | Status |
+| -- | --- | ------ |
+| H-P6-01 | Docs said `shop.{club}.{root}` as prod canonical; code uses `{club}.{root}` apex | ✅ fixed |
+| H-P6-02 | Portal dev canonical `{club}.portal.localhost` | ✅ P6-0-N-003 |
+| H-P6-03 | Custom admin host not in `tenant_domains` surface v1 | deferred post-P6 |
+| H-P6-04 | `p6-host-tenant-parity.spec.ts` | ✅ P6-0-N-002 |
+| H-P6-05 | `host-subdomain-map.md` runbook | ✅ P6-0-N-001 |
+| H-P6-06 | Cross-app marketing URL prepended legacy `shop.` on egress | ✅ WRS · `buildDevMarketingPublicBaseUrl` + guest-surface-host |
+| H-P6-07 | SEO canonical emitted legacy `shop.` host | ✅ WRS · `resolveMarketingPublicOrigin` uses kernel builder |
+
+---
+
+## 7. Environment matrix
+
+| Variable | Purpose |
+| -------- | ------- |
+| `PLATFORM_ROOT_DOMAIN` | Platform apex (`localhost`, `example.com`) |
+| `TENANT_ROOT_DOMAIN` | Alias for public ingress parse (defaults to platform root) |
+| `MARKETING_PUBLIC_BASE_URL` | Override marketing origin (custom domain prod) |
+| `PORTAL_PUBLIC_BASE_URL` | Override portal origin for CTA + redirects |
+| `TENANT_HOST_RESERVED_LABELS` | Reserved subdomain labels (`api`, `www`, …) |
+| `PLATFORM_DOMAIN_VERIFY_STUB` | Dev: skip live DNS verify |
+
+---
+
+## 8. Platform mother (not a club)
+
+| Host | App | Outcome |
+| ---- | --- | ------- |
+| `{root}` / `www.{root}` | `apps/marketing` mother shell | platform marketing |
+| `admin.{root}` | Platform Control Center | `platform_admin` |
+
+Club hosts must **never** resolve platform mother tenant.
+
+---
+
+## 9. P6 verification
+
+```bash
+pnpm --filter @app-tour/tenant-kernel test
+pnpm --filter @apps/api run test -- test/p6-host-tenant-parity.spec.ts test/wrs-custom-apex-ingress.spec.ts
+node scripts/smoke-p6-host-bind.mjs
+pnpm run seed:wrs-denali-club-domains   # dev Postgres — denali.club rows
+pnpm run smoke:wrs-custom-apex          # needs API on :3001 + seed
+pnpm run guard:wrs-routing
+pnpm run guard:wrs-stale-docs
+```
+
+SoT: [workspace-routing-standard.mdoc](../../standards/workspace-routing-standard.mdoc) · cutover: [denali-club-cutover.md](p6/runbooks/denali-club-cutover.md)
+
+---
+
+## 10. References
+
+- [p6/runbooks/host-subdomain-map.md](p6/runbooks/host-subdomain-map.md) — operator runbook
+- [platform-host-multilevel.mdoc](../phase-15/platform-host-multilevel.mdoc)
+- [platform-domains-ssl.mdoc](../phase-15/platform-domains-ssl.mdoc)
+- [public-catalog.md](../workspaces/denali/public-catalog.md)

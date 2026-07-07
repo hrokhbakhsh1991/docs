@@ -51,7 +51,19 @@
     "party": "Party",
     "departure": "Departure",
     "payment": "Payment",
-    "status": "Status"
+    "status": "Status",
+    "registrantTarget": "Registered for",
+    "transport": "Transport",
+    "nationalId": "National ID"
+  },
+  "intake": {
+    "registrantSelf": "Self",
+    "registrantOther": "Someone else",
+    "transportPrimary": "Organized transport",
+    "transportPersonalCar": "Personal car",
+    "transportNoCarDong": "No car — pays dong",
+    "transportNoCarAcquaintance": "No car — acquaintance ride",
+    "transportOccupants": "{count, number} occupants"
   },
   "approve": "Approve",
   "reject": "Reject",

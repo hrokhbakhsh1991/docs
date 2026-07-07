@@ -1,14 +1,24 @@
 import type { PublicCatalogCard, PublicCatalogTourInput } from "@app-tour/workspace-sdk";
 
 import { buildDenaliTouristTripJsonLd } from "./build-denali-tourist-trip-jsonld";
+import type { DenaliCatalogPhotoEnrichment } from "./enrich-denali-catalog-photo-urls";
 import {
   projectDenaliCatalogItinerary,
   readDenaliCatalogDifficultyLevel,
   readDenaliCatalogFitnessLevel,
   type ProjectDenaliCatalogItineraryOptions,
 } from "./project-denali-catalog-itinerary";
+import { readDenaliCatalogDetailEgress } from "./read-denali-catalog-detail-egress";
+import {
+  readDenaliCatalogBirthDateRequired,
+  readDenaliCatalogFatherNameRequired,
+  readDenaliCatalogTransportSnapshot,
+} from "./read-denali-catalog-transport";
+import { readDenaliFirstPhotoHttpsUrl } from "../list/read-denali-first-photo";
 
-export type DenaliCatalogCardOptions = ProjectDenaliCatalogItineraryOptions;
+export type DenaliCatalogCardOptions = ProjectDenaliCatalogItineraryOptions & {
+  readonly photoEnrichment?: DenaliCatalogPhotoEnrichment;
+};
 
 const DEFAULT_PRICE_CURRENCY = "IRR";
 
@@ -43,20 +53,26 @@ function readInteger(value: unknown): number | null {
   return Number.isInteger(value) ? value : Math.trunc(value);
 }
 
-function readCoverImageUrl(photos: unknown): string | null {
-  if (Array.isArray(photos)) {
-    const first = photos[0];
-    return isRecord(first) ? readString(first.url) : null;
+function readCoverImageUrl(
+  photos: unknown,
+  enrichment: DenaliCatalogPhotoEnrichment | undefined
+): string | null {
+  const httpsUrl = readDenaliFirstPhotoHttpsUrl(photos);
+  if (httpsUrl != null) {
+    return httpsUrl;
   }
-  if (!isRecord(photos)) {
-    return null;
-  }
-  const items = photos.items ?? photos.entries ?? photos.photos;
-  if (!Array.isArray(items) || items.length === 0) {
-    return null;
-  }
-  const first = items[0];
-  return isRecord(first) ? readString(first.url) : null;
+  return enrichment?.coverImageUrl ?? null;
+}
+
+function readBoolean(value: unknown): boolean {
+  return value === true;
+}
+
+function readDenaliCatalogNationalIdRequired(data: Record<string, unknown>): boolean {
+  return (
+    readBoolean(readCanonicalPath(data, "participantRequirements.nationalIdRequired")) ||
+    readBoolean(readCanonicalPath(data, "participants.nationalIdRequired"))
+  );
 }
 
 function buildBaseCard(
@@ -64,21 +80,63 @@ function buildBaseCard(
   data: Record<string, unknown>,
   options?: DenaliCatalogCardOptions
 ): PublicCatalogCard {
-  const itineraryDays = projectDenaliCatalogItinerary(data, options);
+  const photoUrlById = options?.photoEnrichment?.photoUrlById ?? options?.photoUrlById;
+  const itineraryOptions: ProjectDenaliCatalogItineraryOptions | undefined =
+    options?.destinationNameById != null || photoUrlById != null
+      ? {
+          ...(options?.destinationNameById != null
+            ? { destinationNameById: options.destinationNameById }
+            : {}),
+          ...(photoUrlById != null ? { photoUrlById } : {}),
+        }
+      : undefined;
+  const itineraryDays = projectDenaliCatalogItinerary(data, itineraryOptions);
+  const category = readString(data.category);
+  const shortDescription = readString(readCanonicalPath(data, "program.shortDescription"));
+  const priceAmount = readInteger(readCanonicalPath(data, "pricing.basePricePerPerson"));
+  const transport = readDenaliCatalogTransportSnapshot(data);
+  const nationalIdRequired = readDenaliCatalogNationalIdRequired(data);
+  const fatherNameRequired = readDenaliCatalogFatherNameRequired(data);
+  const birthDateRequired = readDenaliCatalogBirthDateRequired(data);
+  const catalogUpdatedAt = readString(tour.catalogUpdatedAt);
+  const coverImageUrl = readCoverImageUrl(data.photos, options?.photoEnrichment);
+  const detailEgress = readDenaliCatalogDetailEgress(data, {
+    ...(options?.destinationNameById != null
+      ? { destinationNameById: options.destinationNameById }
+      : {}),
+    ...(photoUrlById != null ? { photoUrlById } : {}),
+    coverImageUrl,
+  });
   return Object.freeze({
     id: tour.id,
     title: readString(data.title) ?? "Untitled tour",
-    shortDescription: readString(readCanonicalPath(data, "program.shortDescription")),
-    category: readString(data.category),
+    shortDescription,
+    category,
     departureAt: readString(data.startDateTime),
     endAt: readString(data.endDateTime),
-    priceAmount: readInteger(readCanonicalPath(data, "pricing.basePricePerPerson")),
+    priceAmount,
     priceCurrency: DEFAULT_PRICE_CURRENCY,
-    coverImageUrl: readCoverImageUrl(data.photos),
+    coverImageUrl,
     totalCapacity: readInteger(data.capacityMax),
     difficultyLevel: readDenaliCatalogDifficultyLevel(data),
     fitnessLevel: readDenaliCatalogFitnessLevel(data),
+    listSubtitle: category,
+    listDescription: shortDescription,
+    showListPrice: true,
+    ...detailEgress,
+    ...(catalogUpdatedAt != null ? { catalogUpdatedAt } : {}),
     ...(itineraryDays != null ? { itineraryDays } : {}),
+    policiesText: readString(readCanonicalPath(data, "policies.policiesText")),
+    cancellationDeadlineHours: readInteger(
+      readCanonicalPath(data, "policies.cancellationDeadlineHours")
+    ),
+    cancellationPenaltyPercentage: readInteger(
+      readCanonicalPath(data, "policies.cancellationPenaltyPercentage")
+    ),
+    ...(nationalIdRequired ? { nationalIdRequired: true } : {}),
+    ...(fatherNameRequired ? { fatherNameRequired: true } : {}),
+    ...(birthDateRequired ? { birthDateRequired: true } : {}),
+    transport,
   });
 }
 
@@ -87,6 +145,11 @@ function attachStructuredData(card: PublicCatalogCard): PublicCatalogCard {
     ...card,
     structuredData: buildDenaliTouristTripJsonLd(card) as unknown as Readonly<Record<string, unknown>>,
   });
+}
+
+/** Rebuild JSON-LD after exposure redaction so offers/image match visible fields. */
+export function refreshDenaliCatalogStructuredData(card: PublicCatalogCard): PublicCatalogCard {
+  return attachStructuredData(card);
 }
 
 /** Map Denali canonical tour row to public marketing card (egress-safe). */
@@ -108,6 +171,10 @@ export function toDenaliCatalogCard(
         priceCurrency: DEFAULT_PRICE_CURRENCY,
         coverImageUrl: null,
         totalCapacity: null,
+        listSubtitle: null,
+        listDescription: null,
+        showListPrice: true,
+        ...(tour.catalogUpdatedAt?.trim() ? { catalogUpdatedAt: tour.catalogUpdatedAt.trim() } : {}),
       })
     );
   }

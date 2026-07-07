@@ -60,6 +60,16 @@ install_env_templates() {
     chmod 640 "$ENV_DIR/web.env"
     log "created $ENV_DIR/web.env"
   fi
+  if [[ ! -f "$ENV_DIR/marketing.env" ]]; then
+    cp "$DEPLOY_PATH/deploy/vps/env/marketing.env.example" "$ENV_DIR/marketing.env"
+    chmod 640 "$ENV_DIR/marketing.env"
+    log "created $ENV_DIR/marketing.env"
+  fi
+  if [[ ! -f "$ENV_DIR/portal.env" ]]; then
+    cp "$DEPLOY_PATH/deploy/vps/env/portal.env.example" "$ENV_DIR/portal.env"
+    chmod 640 "$ENV_DIR/portal.env"
+    log "created $ENV_DIR/portal.env"
+  fi
   chown root:"$APP_USER" "$ENV_DIR"/*.env 2>/dev/null || true
 }
 
@@ -80,8 +90,9 @@ main() {
   install_env_templates
   install_systemd_units
   log "bootstrap done"
-  log "next: edit $ENV_DIR/api.env (DATABASE_URL + DATABASE_URL_ADMIN) and $ENV_DIR/web.env"
-  log "verify: bash $DEPLOY_PATH/scripts/vps-deploy/verify-db-env.sh $ENV_DIR/api.env"
+  log "next: edit $ENV_DIR/api.env (DATABASE_URL + DATABASE_URL_ADMIN)"
+  log "next: edit $ENV_DIR/{web,marketing,portal}.env (TOUR_OPS_API_URL must match api PORT)"
+  log "verify: bash $DEPLOY_PATH/scripts/vps-deploy/verify-env-coherence.sh --all"
   log "deploy: sudo -u $APP_USER bash $DEPLOY_PATH/scripts/vps-deploy/remote-deploy.sh"
 }
 

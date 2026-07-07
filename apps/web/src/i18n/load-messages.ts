@@ -1,3 +1,5 @@
+import { loadWorkspaceWizardMessagesForLocale } from "@/bootstrap/workspace-wizard-message-loads.generated";
+
 import type { AppLocale } from "./routing";
 
 export type AppMessages = Record<string, unknown>;
@@ -16,7 +18,7 @@ async function loadFaMessages(): Promise<AppMessages> {
     { default: tours },
     { default: users },
     { default: wizard },
-    { default: denali },
+    workspaceWizardMessages,
   ] = await Promise.all([
     import("../../messages/fa/app.json"),
     import("../../messages/fa/auth.json"),
@@ -30,7 +32,7 @@ async function loadFaMessages(): Promise<AppMessages> {
     import("../../messages/fa/tours.json"),
     import("../../messages/fa/users.json"),
     import("../../messages/fa/wizard.json"),
-    import("@app-tour/workspace-denali/messages/fa/wizard.json"),
+    loadWorkspaceWizardMessagesForLocale("fa"),
   ]);
 
   return {
@@ -40,13 +42,13 @@ async function loadFaMessages(): Promise<AppMessages> {
     catalogRegistration,
     common,
     dashboard,
-    denali,
     finance,
     nav,
     settings,
     tours,
     users,
     wizard,
+    ...workspaceWizardMessages,
   };
 }
 
@@ -64,7 +66,7 @@ async function loadEnMessages(): Promise<AppMessages> {
     { default: tours },
     { default: users },
     { default: wizard },
-    { default: denali },
+    workspaceWizardMessages,
   ] = await Promise.all([
     import("../../messages/en/app.json"),
     import("../../messages/en/auth.json"),
@@ -78,7 +80,7 @@ async function loadEnMessages(): Promise<AppMessages> {
     import("../../messages/en/tours.json"),
     import("../../messages/en/users.json"),
     import("../../messages/en/wizard.json"),
-    import("@app-tour/workspace-denali/messages/en/wizard.json"),
+    loadWorkspaceWizardMessagesForLocale("en"),
   ]);
 
   return {
@@ -88,13 +90,13 @@ async function loadEnMessages(): Promise<AppMessages> {
     catalogRegistration,
     common,
     dashboard,
-    denali,
     finance,
     nav,
     settings,
     tours,
     users,
     wizard,
+    ...workspaceWizardMessages,
   };
 }
 
@@ -104,7 +106,7 @@ const loaders: Record<AppLocale, () => Promise<AppMessages>> = {
 };
 
 /**
- * Hybrid namespaces — shell messages in apps/web; Denali workspace wizard copy merged (W5B).
+ * Hybrid namespaces — shell messages in apps/web; workspace wizard copy from manifest codegen.
  * Locale paths are static so Webpack can bundle JSON at build time.
  */
 export async function loadAppMessages(locale: AppLocale): Promise<AppMessages> {

@@ -1,0 +1,324 @@
+# P10 — Verification commands (canonical — 16 nanos)
+# Agents: load ONLY current_nano key
+
+manifest_id: P10-VERIFICATION-COMMANDS
+pack_version: "1.0"
+nano_total: 16
+
+P10-1-N-001:
+  epic: P10-1
+  gaps: [G-TLS-01, G-TLS-02, G-TLS-04, G-TLS-09]
+  proof_tier: PROFILE_C
+  repo_status: NOT_STARTED
+  forbidden_until: []
+  summary: Caddy wildcard staging TLS + reverse_proxy loopback 3000-3003
+  commands:
+    - run: test -f deploy/vps/caddy/Caddyfile
+      expect_exit: 0
+    - run: rg "reverse_proxy 127\\.0\\.0\\.1:\\{\\$(WEB|MARKETING|PORTAL)_PORT\\}" deploy/vps/caddy -S
+      expect_exit: 0
+    - run: rg "tls|wildcard|\\*\\." deploy/vps/caddy -i
+      expect_exit: 0
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  files_touch:
+    - deploy/vps/caddy/
+    - deploy/vps/README.md
+  forbidden_shortcuts:
+    - "Caddyfile doc only — no curl HTTPS on staging host"
+    - "on_demand_tls before wildcard staging proven"
+    - "Expose apps on 0.0.0.0:3000-3003 in Profile C mode"
+    - "nginx-only without deploy/vps template in repo"
+
+P10-2-N-001:
+  epic: P10-2
+  gaps: [G-DEP-01, G-DEP-09]
+  proof_tier: PROFILE_C
+  repo_status: PARTIAL
+  forbidden_until: [P10-1-N-001]
+  summary: health-check + smoke-four-process — all 4 units
+  commands:
+    - run: test -f scripts/vps-deploy/smoke-four-process.sh
+      expect_exit: 0
+    - run: bash -n scripts/vps-deploy/smoke-four-process.sh
+      expect_exit: 0
+    - run: rg "3001|3002|3003" scripts/vps-deploy/smoke-four-process.sh
+      expect_exit: 0
+      note: "must not be api+web only"
+    - run: bash scripts/vps-deploy/health-check.sh
+      expect_exit: 0
+      optional: true
+      note: "local or VPS — extend to 4/4 when wired"
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "health-check 2/4 as exit sufficient"
+    - "smoke script exists but never run post-deploy"
+
+P10-2-N-002:
+  epic: P10-2
+  gaps: [G-DEP-02]
+  proof_tier: OPS
+  repo_status: PARTIAL
+  forbidden_until: [P10-2-N-001]
+  summary: GHA deploy-vps post-step or p10-staging-remote-gate.sh
+  commands:
+    - run: rg "smoke-four-process|p10-staging" .github/workflows deploy/vps -S 2>/dev/null || true
+      expect_exit: 0
+      note: "at least one post-deploy hook reference"
+    - run: test -f scripts/p10-staging-remote-gate.sh || rg "smoke-four-process" .github/workflows -q
+      expect_exit: 0
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "Manual smoke only — no CI/remote gate path"
+    - "Deploy green while smoke-four-process red"
+
+P10-3-N-001:
+  epic: P10-3
+  gaps: [G-OPS-01]
+  proof_tier: OPS
+  repo_status: NOT_STARTED
+  forbidden_until: [P10-2-N-001]
+  summary: Four-process incident runbook — systemd restart order
+  commands:
+    - run: test -f docs/phase-23/runbooks/p10-incident-four-process.md
+      expect_exit: 0
+    - run: rg "app-tour-api|app-tour-web|app-tour-marketing|app-tour-portal" docs/phase-23/runbooks/p10-incident-four-process.md
+      expect_exit: 0
+    - run: rg "journalctl|systemctl restart" docs/phase-23/runbooks/p10-incident-four-process.md
+      expect_exit: 0
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "Generic k8s runbook on VPS systemd deploy"
+    - "Runbook without four unit names"
+
+P10-2-N-003:
+  epic: P10-2
+  gaps: [G-DEP-03]
+  proof_tier: DEV_STATIC
+  repo_status: PARTIAL
+  forbidden_until: [P10-2-N-001]
+  summary: package.json build:operator-vps → build-operator-vps.sh
+  commands:
+    - run: node -e "const p=require('./package.json'); process.exit(p.scripts['build:operator-vps']?.includes('build-operator-vps.sh')?0:1)"
+      expect_exit: 0
+    - run: test -x scripts/vps-deploy/build-operator-vps.sh || test -f scripts/vps-deploy/build-operator-vps.sh
+      expect_exit: 0
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "Inline npm build without vps-deploy script"
+    - "build:operator-vps builds only web"
+
+P10-2-N-004:
+  epic: P10-2
+  gaps: [G-DEP-04, G-DEP-05]
+  proof_tier: REGRESSION
+  repo_status: PARTIAL
+  forbidden_until: [P8 exit]
+  summary: Profile C env regression — verify P8 G-ENV closed; extend only if P8 deferred
+  commands:
+    - run: test -f deploy/vps/env/api.env.example && test -f deploy/vps/env/web.env.example && test -f deploy/vps/env/marketing.env.example && test -f deploy/vps/env/portal.env.example
+      expect_exit: 0
+    - run: test -f scripts/vps-deploy/verify-env-coherence.sh
+      expect_exit: 0
+    - run: bash scripts/vps-deploy/verify-env-coherence.sh --help 2>/dev/null || test -f scripts/vps-deploy/verify-env-coherence.sh
+      expect_exit: 0
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "Re-implement 4-file bootstrap when P8 already closed"
+    - "Skip p8:gate regression in P10"
+
+P10-2-N-005:
+  epic: P10-2
+  gaps: [G-DEP-06]
+  proof_tier: PROFILE_C
+  repo_status: PARTIAL
+  forbidden_until: [P10-1-N-001]
+  summary: p7-staging-verify M+P fail-closed on Profile C
+  commands:
+    - run: test -f scripts/p7-staging-verify.sh
+      expect_exit: 0
+    - run: rg "fail|exit 1|WARN" scripts/p7-staging-verify.sh
+      expect_exit: 0
+      note: "M+P must not warn-only on staging HTTPS"
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "Leave M+P as WARN when marketing/portal HTTPS required"
+    - "Skip staging verify after edge deploy"
+
+P10-1-N-002:
+  epic: P10-1
+  gaps: [G-TLS-05, G-TLS-07]
+  proof_tier: PROFILE_C
+  repo_status: PARTIAL
+  forbidden_until: [P10-1-N-001, P8 cookie path]
+  summary: HTTPS forwarded-proto + SESSION_COOKIE_SECURE Profile C smoke
+  commands:
+    - run: rg "X-Forwarded-Proto|forwarded-proto" deploy/vps docs/phase-23 -i
+      expect_exit: 0
+    - run: rg "SESSION_COOKIE_SECURE" deploy/vps/env docs/phase-21 docs/phase-23
+      expect_exit: 0
+    - run: rg "loopback|127\\.0\\.0\\.1:3001" docs/phase-21 docs/phase-23 deploy/vps
+      expect_exit: 0
+      note: "loopback trust — not enterprise edge signing"
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "SESSION_COOKIE_SECURE=true on HTTP Profile B without doc"
+    - "Enterprise x-forwarded-host signing as P10 blocker"
+    - "Public https://api.* as mandatory"
+
+P10-3-N-002:
+  epic: P10-3
+  gaps: [G-TLS-06, G-OPS-04]
+  proof_tier: OPS
+  repo_status: NOT_STARTED
+  forbidden_until: [P10-1-N-001]
+  summary: Cert renewal runbook — wildcard + on-demand path
+  commands:
+    - run: test -f docs/phase-23/runbooks/p10-cert-renewal.md
+      expect_exit: 0
+    - run: rg "renew|caddy|cert" docs/phase-23/runbooks/p10-cert-renewal.md -i
+      expect_exit: 0
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "No renewal steps — assume Let's Encrypt auto forever"
+    - "Cert runbook without staging wildcard mention"
+
+P10-3-N-003:
+  epic: P10-3
+  gaps: [G-DEP-10]
+  proof_tier: OPS
+  repo_status: PARTIAL
+  forbidden_until: [P10-2-N-001]
+  summary: rollback-vps.sh idempotent — smoke fail path
+  commands:
+    - run: test -f scripts/vps-deploy/rollback-vps.sh
+      expect_exit: 0
+    - run: bash -n scripts/vps-deploy/rollback-vps.sh
+      expect_exit: 0
+    - run: rg "git|SHA|systemctl" scripts/vps-deploy/rollback-vps.sh
+      expect_exit: 0
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "Rollback script never dry-run tested"
+    - "Rollback restarts only api+web"
+
+P10-0-N-001:
+  epic: P10-0
+  gaps: [G-DOM-02]
+  proof_tier: PROFILE_C
+  repo_status: NOT_STARTED
+  forbidden_until: [P10-1-N-001]
+  summary: M+P custom apex SSL path — after wildcard staging proven
+  commands:
+    - run: rg "tenant_domains|custom apex|portal\\." docs/phase-23/p10-production-profile.yaml docs/phase-19 -i
+      expect_exit: 0
+    - run: rg "admin\\.\\{apex\\}|admin custom" docs/phase-23/p10-app-fit.md
+      expect_exit: 0
+      note: "admin custom apex must be defer/out-of-scope"
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "Custom apex before wildcard staging HTTPS"
+    - "admin.{customer_apex} as P10 exit requirement"
+
+P10-0-N-002:
+  epic: P10-0
+  gaps: [G-TLS-03, G-TLS-10]
+  proof_tier: PROFILE_C
+  repo_status: NOT_STARTED
+  forbidden_until: [P10-0-N-001, P10-1-N-001]
+  summary: on_demand_tls ask endpoint — verified tenant_domains only (Wave C)
+  commands:
+    - run: rg "on_demand|tls/verify|ask" apps/api deploy/vps docs/phase-23 -i
+      expect_exit: 0
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "on_demand_tls as Wave A day-1"
+    - "Ask endpoint without tenant_domains verification"
+
+P10-0-N-003:
+  epic: P10-0
+  gaps: [G-DOM-04]
+  proof_tier: OPS
+  repo_status: NOT_STARTED
+  forbidden_until: [P10-2-N-001]
+  summary: Second club onboarding runbook — platform subdomain (no prod club required)
+  commands:
+    - run: test -f docs/phase-23/runbooks/p10-second-club-onboarding.md
+      expect_exit: 0
+    - run: rg "PUBLIC_TENANT_FALLBACK|IP hack|:3002" docs/phase-23/runbooks/p10-second-club-onboarding.md
+      expect_exit: 1
+      note: "runbook must not rely on IP fallback"
+    - run: rg "staging|subdomain|tenant" docs/phase-23/runbooks/p10-second-club-onboarding.md -i
+      expect_exit: 0
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "Require live second production customer for exit"
+    - "Second club runbook uses Profile B IP only"
+
+P10-2-N-006:
+  epic: P10-2
+  gaps: [G-DOM-05]
+  proof_tier: PROFILE_C
+  repo_status: NOT_STARTED
+  forbidden_until: [P10-0-N-001, P10-0-N-002]
+  summary: Custom domain HTTPS E2E — M+P apex only
+  commands:
+    - run: rg "custom domain|E2E|apex" docs/phase-23 apps/portal/tests apps/marketing/tests -i 2>/dev/null | head -1
+      expect_exit: 0
+      note: "e2e or documented staging proof"
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "E2E for admin custom apex (trunk v2)"
+    - "Claim custom domain without HTTPS curl proof"
+
+P10-3-N-005:
+  epic: P10-3
+  gaps: [G-DEP-08]
+  proof_tier: DOC
+  repo_status: PARTIAL
+  forbidden_until: [P10-1-N-001, P10-2-N-001]
+  summary: deploy/vps/README Profile C + four-process first
+  commands:
+    - run: rg "Profile C|four.process|3002|3003" deploy/vps/README.md -i
+      expect_exit: 0
+    - run: rg "Profile B|IP.*3000" deploy/vps/README.md -i
+      expect_exit: 0
+      note: "Profile B must remain documented"
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+  forbidden_shortcuts:
+    - "README still 2-process only header"
+    - "Deprecate Profile B in deploy docs"
+
+P10-3-N-006:
+  epic: P10-3
+  gaps: [G-DEP-02, G-OPS-01]
+  proof_tier: DEV_STATIC
+  repo_status: IN_PROGRESS
+  forbidden_until: [P10-3-N-001]
+  summary: p10:gate + p10-pack-integrity — full regression chain
+  commands:
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+    - run: pnpm run p10:gate
+      expect_stdout: P10_PRODUCTION_GRADE_GATE_OK
+    - run: pnpm --filter @apps/api exec node --import tsx --test test/p10-pack-integrity.spec.ts
+      expect_exit: 0
+  forbidden_shortcuts:
+    - "p10:gate without p9:gate chain"
+    - "Claim P10 exit from pack integrity alone (no Profile C smoke)"

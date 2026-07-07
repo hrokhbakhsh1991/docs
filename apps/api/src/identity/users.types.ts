@@ -1,4 +1,4 @@
-import type { ActorRole } from "@app-tour/workspace-sdk";
+import type { ActorRole, OperatorProfileGender } from "@app-tour/workspace-sdk";
 
 import type { BookingPaymentStatus, BookingStatus } from "../bookings/bookings.types";
 
@@ -21,6 +21,7 @@ export type UsersDirectoryRow = {
   readonly displayName: string;
   readonly phone: string | null;
   readonly email: string | null;
+  readonly gender: OperatorProfileGender | null;
   readonly avatarUrl: string | null;
   readonly joinedAt: string | null;
   readonly lastActiveAt: string | null;

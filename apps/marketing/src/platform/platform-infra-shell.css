@@ -1,0 +1,5 @@
+/**
+ * @deprecated MKT-10 — moved to @app-tour/design-tokens/platform-infra-shell.css (via guest-shell.css).
+ * Kept as documentation pointer only; do not import from app globals.
+ */
+@import "@app-tour/design-tokens/platform-infra-shell.css";

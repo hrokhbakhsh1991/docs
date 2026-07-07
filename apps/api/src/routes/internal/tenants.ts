@@ -20,6 +20,9 @@ function provisionResponseBody(tenant: ProvisionedTenant): Record<string, unknow
 
 /**
  * POST /internal/tenants/provision — development/non-production only (4.3-S2).
+ *
+ * @deprecated Use {@link handlePlatformTenantsCreate} via `POST /platform/v1/tenants`
+ * for platform ops club provisioning. This route remains for MAP 4.3 dev seed tests only.
  */
 export async function handleProvisionTenant(
   req: IncomingMessage,

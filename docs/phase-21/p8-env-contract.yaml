@@ -1,0 +1,81 @@
+# P8 — Environment contract (four processes)
+# Authority: deploy/vps/env/*.env.example · verify-env-coherence.sh (target)
+# Status: NORMATIVE for P8 — drift = P8_FAIL
+
+contract_id: P8-ENV-CONTRACT
+version: "1.0"
+pack: P8
+
+# Canonical names — migrate drift aliases in P8-2
+variables:
+  TOUR_OPS_API_URL:
+    required: [web, marketing, portal]
+    must_match_api_port: true
+    example: "http://127.0.0.1:3001"
+
+  PUBLIC_TENANT_FALLBACK_LABEL:
+    required: [api]
+    optional: [web]
+    deprecated_aliases: []
+    example: "alborz"
+
+  PUBLIC_TENANT_FALLBACK_HOSTS:
+    required: [api]
+    optional: [web]
+    deprecated_aliases: [TOUR_OPS_PUBLIC_FALLBACK_HOSTS]
+    example: "89.45.89.206,127.0.0.1"
+
+  TOUR_OPS_DEFAULT_TENANT_ID:
+    required: []
+    optional: [web]
+    note: "Client fallback only until A1 wired — remove after API fallback"
+
+  MARKETING_REVALIDATE_URL:
+    required: [api]
+    optional: []
+
+  MARKETING_REVALIDATE_SECRET:
+    required: [api, marketing]
+    must_match: true
+
+  SESSION_COOKIE_SECURE:
+    required: [web, portal]
+    values: ["true", "false"]
+    note: "false only HTTP staging — both apps must use same resolver"
+
+  AUTH_JWT_PUBLIC_KEY:
+    required: [api, web, portal]
+    must_match: [api, web, portal]
+
+  AUTH_JWT_ISSUER:
+    required: [api, web, portal]
+    must_match: true
+
+  AUTH_JWT_AUDIENCE:
+    required: [api, web, portal]
+    must_match: true
+
+  PORT:
+    per_app:
+      api: 3001
+      web: 3000
+      marketing: 3002
+      portal: 3003
+
+  WEB_BIND_HOST:
+    required: [web, marketing, portal]
+    value: "0.0.0.0"
+
+files:
+  api: /etc/app-tour/api.env
+  web: /etc/app-tour/web.env
+  marketing: /etc/app-tour/marketing.env
+  portal: /etc/app-tour/portal.env
+
+verify_commands:
+  coherence: bash scripts/vps-deploy/verify-env-coherence.sh
+  target_p8: bash scripts/vps-deploy/verify-env-coherence.sh --all
+
+bootstrap:
+  must_create: [api, web, marketing, portal]
+  script: scripts/vps-deploy/bootstrap-server.sh

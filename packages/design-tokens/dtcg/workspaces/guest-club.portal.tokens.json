@@ -1,0 +1,9 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "guest-club",
+  "scopeSelector": "body[data-app-surface=\"portal\"][data-workspace-plugin=\"guest-club\"]",
+  "color": {
+    "primary": { "$type": "color", "$value": "#0f766e" },
+    "primary-fg": { "$type": "color", "$value": "#ffffff" }
+  }
+}

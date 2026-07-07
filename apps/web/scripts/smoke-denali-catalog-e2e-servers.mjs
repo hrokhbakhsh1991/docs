@@ -57,6 +57,8 @@ const apiEnv = {
   TENANT_RATE_LIMIT_ENABLED: "false",
   AUTH_ALLOW_DEV_STATIC_OTP: "true",
 };
+delete apiEnv.DATABASE_URL;
+delete apiEnv.DATABASE_URL_ADMIN;
 
 const portalEnv = {
   ...process.env,
@@ -85,6 +87,10 @@ void waitForUrl("http://127.0.0.1:3001/health")
       stdio: "inherit",
     });
     return waitForUrl("http://127.0.0.1:3003/health");
+  })
+  .then(async () => {
+    console.log("smoke-denali-catalog-e2e-servers: API + portal ready");
+    await new Promise(() => {});
   })
   .catch((error) => {
     console.error(error);

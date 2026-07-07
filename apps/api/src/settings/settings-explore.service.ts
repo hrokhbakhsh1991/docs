@@ -2,7 +2,6 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { getSettingsAuditRepository } from "./create-settings-audit-repository";
 import { resolveSettingsModuleForTenant, SettingsModuleUnknownError } from "./settings-registry";
-import { assertDenaliOperatorSettingsWorkspace } from "./settings-workspace-guard";
 import type { AuditTrailListResponse } from "./settings.types";
 
 export class SettingsExploreReadOnlyError extends Error {
@@ -34,7 +33,6 @@ export async function listSettingsExplore(
   auth: TenantAuthContext,
   moduleId: string
 ): Promise<AuditTrailListResponse> {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   await assertReadonlyExplorerModule(auth.tenantId, moduleId);
   if (moduleId !== "audit_trail") {
     throw new SettingsExploreNotSupportedError(moduleId);

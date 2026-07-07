@@ -1,0 +1,71 @@
+{
+  "name": "@app-tour/workspace-guest-club",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GuestClub workspace plugin — scaffolded by workspace:create",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./guest-club.plugin": {
+      "types": "./dist/guest-club.plugin.d.ts",
+      "default": "./dist/guest-club.plugin.js"
+    },
+    "./theme/tokens.css": "./theme/tokens.css",
+    "./catalog": {
+      "types": "./dist/catalog/index.d.ts",
+      "default": "./dist/catalog/index.js"
+    },
+    "./catalog-registration-flow": {
+      "types": "./dist/catalog/registration-flow/index.d.ts",
+      "default": "./dist/catalog/registration-flow/index.js"
+    },
+    "./catalog-registration-flow/react": {
+      "types": "./dist/catalog/registration-flow/react.d.ts",
+      "default": "./dist/catalog/registration-flow/react.js"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "default": "./dist/http/index.js"
+    },
+    "./http/routes": {
+      "types": "./dist/http/routes.d.ts",
+      "default": "./dist/http/routes.js"
+    },
+    "./theme/marketing/marketing.css": "./theme/marketing/marketing.css",
+    "./theme/guest-club-portal.css": "./theme/guest-club-portal.css"
+  },
+  "files": [
+    "dist",
+    "theme/tokens.css",
+    "theme/marketing",
+    "theme/guest-club-portal.css",
+    "design-language"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.flow.json",
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "@app-tour/catalog-registration-auth": "workspace:*",
+    "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/platform-core": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0"
+  }
+}

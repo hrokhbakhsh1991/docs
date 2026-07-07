@@ -1,0 +1,76 @@
+---
+title: Phase 15 / P2-B — Platform support impersonation
+phase: 15
+format: markdoc
+---
+
+# Platform support impersonation (P2-B)
+
+Read-only operator session for platform ops (`owner` · `admin` · `support`) on **`{club}.admin.{PLATFORM_ROOT_DOMAIN}`** only. Denali workspace package is **not** modified — guards live in API middleware and web operator shell.
+
+## Flow
+
+```text
+Super Admin (admin.{root})
+  Owner tab → POST /platform/v1/tenants/:id/impersonate
+  → audit IMPERSONATE_START
+  → { sessionToken, exchangePath: "/auth/platform-impersonate", expiresAt }
+
+Club admin host
+  GET /auth/platform-impersonate?token=…
+  → POST /api/auth/platform-impersonate (web BFF)
+  → POST /auth/accept-platform-impersonation (API verify JWT)
+  → Set-Cookie session (Max-Age=1800)
+  → redirect /dashboard
+
+Operator shell: data-operator-impersonation-banner
+Write routes (PATCH/POST/DELETE with rateLimit): 403 IMPERSONATION_READ_ONLY
+```
+
+## API routes
+
+| Method | Path | Auth | Role |
+|--------|------|------|------|
+| `POST` | `/platform/v1/tenants/{tenantId}/impersonate` | platform ops Bearer + phone | `assertPlatformOpsImpersonateRole` (owner/admin/support) |
+| `POST` | `/platform/v1/tenants/{tenantId}/impersonate/end` | same | optional body `{ reason?: "manual" \| "timeout" \| "replaced" }` |
+| `POST` | `/auth/accept-platform-impersonation` | none (one-time JWT in body) | verifies impersonation JWT |
+
+### Start response (200)
+
+```json
+{
+  "sessionToken": "<RS256 JWT>",
+  "exchangePath": "/auth/platform-impersonate",
+  "expiresAt": "<ISO-8601>"
+}
+```
+
+JWT claims (30m expiry): `sub`, `tenant_id`, `role: "owner"`, `sess_ver`, `platform_impersonation_readonly: true`, `platform_impersonator` (ops phone).
+
+## Readonly guard
+
+`assertOperatorImpersonationReadonly` runs inside `runWithHttpRequestContext` when `options.rateLimit` is set (write-tier routes). GET/HEAD pass through. Mutations with impersonation JWT → `ImpersonationReadOnlyError` → HTTP **403** `{ "error": "forbidden", "code": "IMPERSONATION_READ_ONLY" }`.
+
+## Audit
+
+| Action | When |
+|--------|------|
+| `IMPERSONATE_START` | successful start |
+| `IMPERSONATE_END` | `POST …/impersonate/end` (operator logout END audit deferred v1.1) |
+
+## Platform billing vs Denali finance
+
+Impersonation and platform billing (P2-C) do not touch `/finance/*` or `packages/workspaces/denali/**`.
+
+## Code map
+
+| Layer | Path |
+|-------|------|
+| Start/end service | `apps/api/src/platform/start-platform-impersonation.ts` |
+| JWT sign | `apps/api/src/platform/sign-platform-impersonation-session-token.ts` |
+| Readonly guard | `apps/api/src/identity/assert-operator-impersonation-readonly.ts` |
+| Web Owner tab | `apps/web/src/platform/club-detail/tab-owner-impersonate.tsx` |
+| Exchange page | `apps/web/app/auth/platform-impersonate/page.tsx` |
+| Operator banner | `apps/web/src/admin/shell/operator-shell.tsx` |
+
+Covenant: `TEMP/p2/p2-denali-safety.md`

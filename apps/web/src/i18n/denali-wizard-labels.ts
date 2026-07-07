@@ -1,5 +1,7 @@
 import type { AppLocale } from "./routing";
 
+import { formatCanonicalPathToLabel } from "./format-canonical-path-label";
+
 export type DenaliWizardMessages = {
   readonly steps: Record<string, string>;
   readonly fields: Record<string, unknown>;
@@ -35,13 +37,7 @@ export function getNestedStringValue(
   return typeof cursor === "string" ? cursor : undefined;
 }
 
-export function formatCanonicalPathToLabel(canonicalPath: string): string {
-  const segment = canonicalPath.split(".").pop() ?? canonicalPath;
-  return segment
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
+export { formatCanonicalPathToLabel } from "./format-canonical-path-label";
 
 /** Composite renderer ids → anchor canonical path for field labels (INV-WIZ-002 widgets). */
 const DENALI_COMPOSITE_LABEL_CANONICAL_PATH: Readonly<Record<string, string>> = {
@@ -177,6 +173,36 @@ export function resolveDenaliTourKindLabel(t: DenaliTranslator, tourKind: string
     // Missing message keys fall back to slug.
   }
   return tourKind.replace(/_/g, " ");
+}
+
+export function resolveDenaliTourCategoryGroupLabel(
+  t: DenaliTranslator,
+  category: string
+): string {
+  try {
+    const label = t(`composites.tourKind.categories.${category}`);
+    if (label !== `composites.tourKind.categories.${category}` && label.length > 0) {
+      return label;
+    }
+  } catch {
+    // Missing message keys fall back to slug.
+  }
+  return category.replace(/_/g, " ");
+}
+
+export function resolveDenaliTourDurationLabel(
+  t: DenaliTranslator,
+  duration: "single_day" | "multi_day"
+): string {
+  try {
+    const label = t(`composites.tourKind.durations.${duration}`);
+    if (label !== `composites.tourKind.durations.${duration}` && label.length > 0) {
+      return label;
+    }
+  } catch {
+    // Missing message keys fall back to slug.
+  }
+  return duration.replace(/_/g, " ");
 }
 
 export function resolveDenaliPublishStatusLabel(t: DenaliTranslator, status: string): string {

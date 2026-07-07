@@ -17,6 +17,8 @@
 | **8** Urban Product Parity | [`phase-8/phase-8-charter.md`](phase-8/phase-8-charter.md) · [`phase-8/phase-8-agent-router.md`](phase-8/phase-8-agent-router.md) |
 | **9** Operator Admin Panel | [`phase-9/phase-9-charter.md`](phase-9/phase-9-charter.md) · [`phase-9/phase-9-agent-router.md`](phase-9/phase-9-agent-router.md) |
 | **10** Workspace Host | [`phase-10/phase-10-charter.md`](phase-10/phase-10-charter.md) · plugin-native host **DONE** (10.1–10.7) |
+| **19** P6 Denali first customer | [`phase-19/README.md`](phase-19/README.md) · [`phase-19/p6/AGENT-START.md`](phase-19/p6/AGENT-START.md) · exit: `pnpm run p6:gate` |
+| **20** P7 Denali customer live | [`phase-20/README.md`](phase-20/README.md) · [`p7/AGENT-START.md`](phase-20/p7/AGENT-START.md) · [`platform-denali-customer-delivery.mdoc`](phase-20/platform-denali-customer-delivery.mdoc) · [`p7/appendices/P7-DOC-ARCHITECTURE.md`](phase-20/p7/appendices/P7-DOC-ARCHITECTURE.md) |
 
 **Cross-phase continuity:** [`appendices/PLATFORM-CONTINUITY-0-6.md`](appendices/PLATFORM-CONTINUITY-0-6.md)
 
@@ -26,12 +28,42 @@ Platform logic = generic · Workspace logic = injectable · Tenant = security bo
 
 ## فاز جاری
 
+**Phase 19 / P6** — Denali first customer — **COMPLETE** (`pnpm run p6:gate`)
+
+**Phase 20 / P7** — Denali customer live — **IN_PROGRESS** (pack v1.4 · doc target 90 · `P7-0-N-002`)
+
+```bash
+pnpm run p6:gate                  # P6 regression (required on every P7 PR)
+# P7 entry: docs/phase-20/p7/AGENT-START.md
+```
+
 **Phase 10** — Workspace Host (plugin-native) — **implementation DONE**
 
 ```bash
 pnpm run phase-10:guard             # host invariants (fast)
 pnpm run generate:workspace-registry
 pnpm run workspace:create -- <id>   # new workspace scaffold
+```
+
+## Platform architecture (post-Phase 10)
+
+| Topic | Doc |
+| ----- | --- |
+| Architecture v2 (Phases F–I) | [`architecture/platform-architecture-v2.md`](architecture/platform-architecture-v2.md) |
+| Phase G — registry codegen modularization | [`dev/workspace-registry-codegen-modularization.mdoc`](dev/workspace-registry-codegen-modularization.mdoc) ✅ DEV |
+| Phase H — production certification | [`dev/workspace-certification.mdoc`](dev/workspace-certification.mdoc) ✅ DEV |
+| Phase I — scale hardening | [`dev/workspace-scale-hardening.mdoc`](dev/workspace-scale-hardening.mdoc) ✅ I0–I2 · GHA green on `DEV` |
+
+```bash
+pnpm run guard:workspace-certification   # Phase H fast gate
+pnpm run guard:workspace-registry-fresh
+pnpm run phase-g-h:fast-track            # G+H PR closure bundle
+pnpm run phase-i:closure               # G+H + I1/I2 closure bundle
+pnpm run phase-g-h:handoff             # merge PR checklist (no gh)
+pnpm run phase-g-h:create-pr           # DEV→main PR (needs gh auth; runs closure first)
+# Or: GitHub Actions → phase-g-h-create-pr on branch DEV (no local gh)
+pnpm run guard:theme-import-budget       # I1 guard only
+pnpm run guard:workspace-plugin-load-cache  # I2 guard only
 ```
 
 ## Legacy

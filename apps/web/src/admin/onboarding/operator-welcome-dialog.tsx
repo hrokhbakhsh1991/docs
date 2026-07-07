@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
+import { WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS } from "@/bootstrap/wizard-create-bindings.generated";
 import { TenantBrandMark } from "@/admin/shell/tenant-brand-mark";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +42,9 @@ export function OperatorWelcomeDialog({
   const tApp = useTranslations("app");
   const workspaceLabel = useTenantBrandTitle();
 
-  const tagline = pluginId === "denali" ? tApp("denaliTagline") : null;
+  const tagline = WORKSPACE_WIZARD_EXTENDED_CREATE_PLUGIN_IDS.has(pluginId)
+    ? tApp("denaliTagline")
+    : null;
   const isOwner = role === "owner";
 
   const requestClose = () => {
@@ -63,56 +66,45 @@ export function OperatorWelcomeDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-h-[85vh] overflow-y-auto sm:max-w-md"
+        data-denali-welcome-dialog
         data-denali-surface="card"
         data-testid={OPERATOR_WELCOME_TEST_IDS.dialog}
       >
-        <DialogHeader className="space-y-3 text-start">
-          <div
-            className="flex items-center gap-3"
-            data-testid={OPERATOR_WELCOME_TEST_IDS.brandMark}
-          >
-            <TenantBrandMark
-              className="size-11 shrink-0 rounded-lg object-contain"
-              imageClassName="size-11 shrink-0 rounded-lg object-contain"
-              pluginId={pluginId}
-              workspaceLabel={workspaceLabel}
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {workspaceLabel}
-              </p>
+        <DialogHeader data-denali-welcome-header>
+          <div data-denali-welcome-brand-row data-testid={OPERATOR_WELCOME_TEST_IDS.brandMark}>
+            <TenantBrandMark pluginId={pluginId} workspaceLabel={workspaceLabel} />
+            <div data-denali-welcome-brand-copy>
+              <p data-denali-welcome-workspace-label>{workspaceLabel}</p>
             </div>
           </div>
           <DialogTitle data-testid={OPERATOR_WELCOME_TEST_IDS.title}>
             {isOwner ? t("titleOwner", { displayName }) : t("title", { displayName })}
           </DialogTitle>
-          <DialogDescription className="space-y-2 text-base text-foreground/90">
-            <span className="block">
+          <DialogDescription data-denali-welcome-description>
+            <span data-denali-welcome-description-line>
               {isOwner
                 ? t("subtitleOwner", { workspaceLabel })
                 : t("subtitle", { workspaceLabel })}
             </span>
-            {tagline ? (
-              <span className="block text-sm text-muted-foreground">{tagline}</span>
-            ) : null}
+            {tagline ? <span data-denali-welcome-tagline>{tagline}</span> : null}
           </DialogDescription>
-          <p className="text-sm leading-relaxed text-muted-foreground">{t("lead")}</p>
+          <p data-denali-welcome-lead>{t("lead")}</p>
         </DialogHeader>
 
-        <ul className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-4 text-sm">
+        <ul data-denali-welcome-bullets>
           {content.bullets.map((bullet) => (
-            <li key={bullet.id} className="flex gap-2">
-              <span aria-hidden className="text-primary">
+            <li key={bullet.id} data-denali-welcome-bullet>
+              <span aria-hidden data-denali-welcome-bullet-icon>
                 ✓
               </span>
-              <span>{t(`bullets.${bullet.id}`)}</span>
+              <span data-denali-welcome-bullet-text>{t(`bullets.${bullet.id}`)}</span>
             </li>
           ))}
         </ul>
 
-        <DialogFooter className="gap-2 sm:justify-between">
+        <DialogFooter data-denali-welcome-footer>
           <Button
+            data-denali-welcome-cta
             data-testid={OPERATOR_WELCOME_TEST_IDS.dismissCta}
             onClick={requestClose}
             type="button"
@@ -120,7 +112,11 @@ export function OperatorWelcomeDialog({
           >
             {t("later")}
           </Button>
-          <Button asChild data-testid={OPERATOR_WELCOME_TEST_IDS.primaryCta}>
+          <Button
+            asChild
+            data-denali-welcome-cta
+            data-testid={OPERATOR_WELCOME_TEST_IDS.primaryCta}
+          >
             <Link href={OPERATOR_WIZARD_PATH} onClick={requestClose}>
               {t("primaryCta")}
             </Link>

@@ -5,6 +5,7 @@ import { mapPublicAuthBffCatchError } from "@/auth/public-auth-bff-error";
 import { buildIdentityBffHeadersAsync } from "@/auth/resolve-identity-bff-tenant";
 import { setSessionCookieOnResponse } from "@/auth/build-session-cookie";
 import { resolveTourOpsApiBaseUrl } from "@/env";
+import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 type RegisterCompleteBody = {
   onboarding_token?: unknown;
@@ -75,6 +76,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     },
     { status: 200 }
   );
-  setSessionCookieOnResponse(res.headers, sessionToken);
+  setSessionCookieOnResponse(res.headers, sessionToken, resolvePortalIngressHost(req));
   return res;
 }

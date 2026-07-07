@@ -70,4 +70,9 @@ describe("urban-workspace-plugin.spec.ts (REQ-P7-009, REQ-P7-010, REQ-P7-011)", 
     assert.equal(plugin.wizard.railId, "urban_base");
     assert.notEqual(plugin.wizard.railId, "denali_base");
   });
+
+  it("P15-15-03: urban plugin exposes tourList.extractTourListProjection", () => {
+    const plugin = resolveWorkspacePluginForType("urban");
+    assert.equal(typeof plugin.tourList?.extractTourListProjection, "function");
+  });
 });

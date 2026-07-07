@@ -1,37 +1,19 @@
+import {
+  resolveTenantIdFromDevHost as resolveGuestDevHostTenantId,
+  resolveTenantIdFromIngressLabel,
+} from "@app-tour/guest-surface-host";
+
 import { isDevWebSessionAllowed } from "./auth-env";
 
-/** Phase 6.6 smoke — sync with `@app-tour/workspace-denali` DENALI_SMOKE_TENANT_ID. */
-const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
-
-/** Phase 7.3 smoke — sync with `@app-tour/workspace-urban` URBAN_SMOKE_TENANT_ID. */
-const URBAN_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000004";
-
-/** MAP 4.3 stable seed UUIDs — must match ProvisioningService / tenant-registry. */
-const PHASE_43_HOST_TENANT_IDS: Record<string, string> = {
-  "tenant-a": "00000000-0000-4000-8000-000000000001",
-  "tenant-b": "00000000-0000-4000-8000-000000000002",
-  denali: DENALI_SMOKE_TENANT_ID,
-  urban: URBAN_SMOKE_TENANT_ID,
-  "urban-owner": URBAN_SMOKE_TENANT_ID,
-  "urban-member": URBAN_SMOKE_TENANT_ID,
-  /** Phase 9.8 operator smoke — sync OPERATOR_SMOKE.tenantId */
-  operator: "00000000-0000-4000-8000-000000000014",
-};
+export { resolveTenantIdFromIngressLabel };
 
 /**
- * Dev-only: map `{label}.localhost` host to seeded tenant UUID for TH-1 e2e.
- * Production ingress resolves tenant via auth — not host env alone.
+ * Dev-only: map operator admin / portal / legacy apex hosts to seeded tenant UUID.
+ * Delegates to `@app-tour/guest-surface-host` (WRS — single PHASE_43 map).
  */
 export function resolveTenantIdFromDevHost(host: string): string | null {
   if (!isDevWebSessionAllowed()) {
     return null;
   }
-
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
-  const match = /^([a-z0-9-]+)\.localhost$/.exec(hostname);
-  if (!match?.[1]) {
-    return null;
-  }
-
-  return PHASE_43_HOST_TENANT_IDS[match[1]] ?? null;
+  return resolveGuestDevHostTenantId(host, "admin");
 }

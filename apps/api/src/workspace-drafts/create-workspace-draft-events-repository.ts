@@ -10,26 +10,47 @@ import {
 import { PrismaWorkspaceDraftEventsRepository } from "./prisma-workspace-draft-events.repository";
 
 let singleton: WorkspaceDraftEventsRepository | null = null;
+let singletonDriver: ReturnType<typeof resolveStorageDriver> | null = null;
 
 export function getWorkspaceDraftEventsRepository(): WorkspaceDraftEventsRepository {
   assertProductionStorageDriver();
 
-  if (singleton === null) {
-    if (resolveStorageDriver() === "prisma") {
-      if (process.env.DATABASE_URL === undefined || process.env.DATABASE_URL.length === 0) {
-        throw new Error(
-          "STORAGE_DRIVER=prisma requires DATABASE_URL for workspace draft events repository"
-        );
-      }
-      singleton = new PrismaWorkspaceDraftEventsRepository();
-    } else {
-      singleton = new InMemoryWorkspaceDraftEventsRepository();
-    }
+  // Test harness pins an in-memory repo while gate env exports STORAGE_DRIVER=prisma.
+  if (
+    singleton instanceof InMemoryWorkspaceDraftEventsRepository &&
+    singletonDriver === "memory"
+  ) {
+    return singleton;
   }
+
+  const driver = resolveStorageDriver();
+  if (singleton !== null && singletonDriver === driver) {
+    return singleton;
+  }
+
+  if (driver === "prisma") {
+    if (process.env.DATABASE_URL === undefined || process.env.DATABASE_URL.length === 0) {
+      throw new Error(
+        "STORAGE_DRIVER=prisma requires DATABASE_URL for workspace draft events repository"
+      );
+    }
+    singleton = new PrismaWorkspaceDraftEventsRepository();
+  } else {
+    singleton = new InMemoryWorkspaceDraftEventsRepository();
+  }
+  singletonDriver = driver;
   return singleton;
 }
 
-export function resetWorkspaceDraftEventsRepositorySingletonForTests(): void {
+export function resetWorkspaceDraftEventsRepositorySingletonForTests(): InMemoryWorkspaceDraftEventsRepository {
   resetWorkspaceDraftEventsRepositoryForTests();
+  const repo = new InMemoryWorkspaceDraftEventsRepository();
+  singleton = repo;
+  singletonDriver = "memory";
+  return repo;
+}
+
+export function clearWorkspaceDraftEventsRepositorySingletonForTests(): void {
   singleton = null;
+  singletonDriver = null;
 }

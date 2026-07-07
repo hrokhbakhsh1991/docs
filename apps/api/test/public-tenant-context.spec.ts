@@ -66,9 +66,20 @@ describe("public-tenant-context", () => {
       "x-forwarded-host": "operator.localhost",
     });
     assert.equal(response.status, 200);
-    const data = (response.body as { data?: { tenantId?: string; pluginId?: string } }).data;
+    const data = (
+      response.body as {
+        data?: {
+          tenantId?: string;
+          pluginId?: string;
+          siteSurfaces?: { admin?: boolean; marketing?: boolean; portal?: boolean };
+        };
+      }
+    ).data;
     assert.equal(data?.tenantId, OPERATOR_SMOKE.tenantId);
     assert.equal(data?.pluginId, "denali");
+    assert.equal(data?.siteSurfaces?.admin, true);
+    assert.equal(data?.siteSurfaces?.marketing, true);
+    assert.equal(data?.siteSurfaces?.portal, true);
   });
 
   it("PTC-02 GET /public/tenant-context resolves urban host", async () => {
@@ -82,11 +93,54 @@ describe("public-tenant-context", () => {
     assert.equal(data?.pluginId, "urban");
   });
 
+  it("PTC-02b GET /public/tenant-context resolves club admin host", async () => {
+    const response = await requestPublic(listener, "/public/tenant-context", {
+      host: "127.0.0.1",
+      "x-forwarded-host": "operator.admin.localhost",
+    });
+    assert.equal(response.status, 200);
+    const data = (response.body as { data?: { tenantId?: string; pluginId?: string } }).data;
+    assert.equal(data?.tenantId, OPERATOR_SMOKE.tenantId);
+    assert.equal(data?.pluginId, "denali");
+  });
+
+  it("PTC-02c GET /public/tenant-context resolves club portal host", async () => {
+    const response = await requestPublic(listener, "/public/tenant-context", {
+      host: "127.0.0.1",
+      "x-forwarded-host": "operator.portal.localhost",
+    });
+    assert.equal(response.status, 200);
+    const data = (response.body as { data?: { tenantId?: string; pluginId?: string } }).data;
+    assert.equal(data?.tenantId, OPERATOR_SMOKE.tenantId);
+    assert.equal(data?.pluginId, "denali");
+  });
+
   it("PTC-03 unknown host returns 404", async () => {
     const response = await requestPublic(listener, "/public/tenant-context", {
       host: "127.0.0.1",
       "x-forwarded-host": "unknown-label.localhost",
     });
     assert.equal(response.status, 404);
+  });
+
+  it("PTC-04 P8-0-N-001 bare IP fallback resolves operator tenant when env set", async () => {
+    const prevLabel = process.env.PUBLIC_TENANT_FALLBACK_LABEL;
+    const prevHosts = process.env.PUBLIC_TENANT_FALLBACK_HOSTS;
+    process.env.PUBLIC_TENANT_FALLBACK_LABEL = "operator";
+    process.env.PUBLIC_TENANT_FALLBACK_HOSTS = "89.45.89.206";
+    try {
+      const response = await requestPublic(listener, "/public/tenant-context", {
+        host: "89.45.89.206",
+        "x-forwarded-host": "89.45.89.206:23001",
+      });
+      assert.equal(response.status, 200);
+      const data = (response.body as { data?: { tenantId?: string } }).data;
+      assert.equal(data?.tenantId, OPERATOR_SMOKE.tenantId);
+    } finally {
+      if (prevLabel === undefined) delete process.env.PUBLIC_TENANT_FALLBACK_LABEL;
+      else process.env.PUBLIC_TENANT_FALLBACK_LABEL = prevLabel;
+      if (prevHosts === undefined) delete process.env.PUBLIC_TENANT_FALLBACK_HOSTS;
+      else process.env.PUBLIC_TENANT_FALLBACK_HOSTS = prevHosts;
+    }
   });
 });

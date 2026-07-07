@@ -7,19 +7,95 @@ on:
   push:
     branches:
       - main
+      - DEV
   pull_request:
+    branches:
+      - main
     paths:
       - "packages/workspaces/**"
       - "packages/workspace-sdk/**"
       - "apps/api/src/workspace/**"
+      - "apps/api/src/internal/assert-production-certified-workspace.ts"
+      - "apps/api/src/internal/provisioning.errors.ts"
+      - "apps/api/src/internal/provisioning.service.ts"
+      - "apps/api/src/platform/list-platform-workspaces.ts"
+      - "apps/api/src/platform/provision-tenant-saga.ts"
+      - "apps/api/src/routes/platform/tenants-create.ts"
+      - "apps/api/test/list-platform-workspaces.spec.ts"
+      - "apps/api/test/provision-tenant-production.spec.ts"
+      - "apps/web/src/platform/create-club/**"
+      - "apps/web/src/platform/workspace-production-certification-badge.tsx"
+      - "apps/web/src/platform/resolve-workspace-production-tier.ts"
+      - "apps/web/src/platform/club-detail/platform-club-detail-client.tsx"
+      - "apps/web/src/platform/platform-clubs-table.tsx"
+      - "apps/web/test/workspace-production-certification-badge.spec.ts"
+      - "apps/web/test/use-create-club-wizard.spec.ts"
+      - "apps/web/scripts/smoke-platform-create-club.mjs"
       - "apps/api/src/outbox/**"
       - "apps/api/src/app.ts"
+      - "apps/api/src/boot/**"
+      - "apps/api/src/http/**"
       - "apps/web/src/bootstrap/workspace-plugin-loaders.generated.ts"
       - "scripts/generate-workspace-registry.mjs"
-      - "scripts/guards/phase-10-guard.mjs"
+      - "scripts/codegen/workspace-registry/**"
+      - "scripts/member-portal-contract-codegen.mjs"
+      - "scripts/guards/guard-workspace-certification.mjs"
+      - "scripts/guards/lib/workspace-certification-guard.mjs"
+      - "scripts/test/workspace-certification-guard.spec.mjs"
+      - "docs/dev/workspace-certification.mdoc"
+      - "docs/dev/workspace-certification-proof-matrix.yaml"
+      - "scripts/test/workspace-registry-drop-in.spec.mjs"
+      - "packages/workspace-sdk/src/catalog/workspace-production-certification.generated.ts"
       - "scripts/workspace-create.mjs"
+      - "scripts/guards/phase-10-guard.mjs"
+      - "scripts/guards/guard-guest-plugin-conformance.mjs"
+      - "scripts/guards/guard-guest-*.mjs"
+      - "scripts/guards/guard-intake-plugin-registry.mjs"
+      - "scripts/guards/guard-no-default-fallback.mjs"
+      - "scripts/guards/guard-generated-banner.mjs"
+      - "scripts/guards/guard-feature-flag-boundary.mjs"
+      - "scripts/guards/guard-structured-errors.mjs"
+      - "scripts/guards/guard-guest-api-shell.mjs"
+      - "scripts/test/workspace-guest-conformance.spec.mjs"
+      - "scripts/test/workspace-create-guest.spec.mjs"
+      - "scripts/test/test-extract-catalog-paths.mjs"
+      - "docs/dev/guest-plugin-conformance.md"
+      - "docs/dev/workspace-guest-extensions.schema.json"
+      - "docs/dev/guest-registration-e2e-hooks.yaml"
+      - "docs/dev/adr-guest-plugin/**"
       - "docs/phase-10/**"
-      - ".github/workflows/phase-10-guard.yml"
+      - "apps/web/test/submit-create-club-certification.spec.ts"
+      - "apps/api/src/openapi/platform-workspace-certification-openapi.ts"
+      - "apps/api/openapi/openapi.json"
+      - "apps/api/scripts/generate-openapi.mjs"
+      - "apps/api/src/middleware/error-interceptor.ts"
+      - "apps/web/src/platform/create-club/submit-create-club.ts"
+      - "scripts/phase-g-h-fast-track.sh"
+      - "scripts/phase-i-closure-fast-track.sh"
+      - "scripts/phase-g-h-handoff.sh"
+      - "scripts/create-phase-g-h-pr.sh"
+      - "scripts/ci/build-workspace-sdk-for-guards.sh"
+      - "scripts/ci/guest-conformance-each.sh"
+      - "scripts/create-phase-i-pr.sh"
+      - "docs/dev/phase-g-h-pr-body.md"
+      - "docs/dev/phase-i-pr-body.md"
+      - "package.json"
+      - "scripts/guards/guard-theme-import-budget.mjs"
+      - "scripts/guards/lib/theme-import-budget-guard.mjs"
+      - "scripts/test/theme-import-budget-guard.spec.mjs"
+      - "docs/dev/workspace-scale-hardening.mdoc"
+      - "apps/web/app/layout.tsx"
+      - "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts"
+      - "apps/portal/package.json"
+      - "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+      - "apps/marketing/app/layout.tsx"
+      - "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
+      - "scripts/guards/guard-workspace-plugin-load-cache.mjs"
+      - "scripts/guards/lib/workspace-plugin-load-cache-guard.mjs"
+      - "scripts/test/workspace-plugin-load-cache-guard.spec.mjs"
+      - "apps/web/src/bootstrap/workspace-plugin-load-cache.ts"
+      - "apps/web/test/workspace-plugin-load-cache.spec.ts"
+      - "apps/api/test/workspace-not-certified-error-interceptor.spec.ts"
   workflow_dispatch:
 
 jobs:
@@ -34,4 +110,14 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run phase-10:guard
+      - run: pnpm run guard:theme-import-budget
+      - run: node --test scripts/test/theme-import-budget-guard.spec.mjs
+      - run: pnpm run guard:workspace-plugin-load-cache
+      - run: node --test scripts/test/workspace-plugin-load-cache-guard.spec.mjs
+      - run: pnpm --filter @apps/web exec node --import tsx --test test/workspace-plugin-load-cache.spec.ts
+      - run: bash scripts/ci/build-workspace-sdk-for-guards.sh
+      - run: bash scripts/ci/guest-conformance-each.sh
       - run: node --test scripts/test/workspace-registry-drop-in.spec.mjs
+      - run: node --test scripts/test/workspace-production-certification.spec.mjs
+      - run: pnpm run guard:workspace-certification
+      - run: node --test scripts/test/workspace-certification-guard.spec.mjs

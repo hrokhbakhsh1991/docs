@@ -1,0 +1,197 @@
+# P6 — Denali first customer gates (Phase 19)
+# Product gate on every PR; full E2E + staging on schedule / manual.
+# @see docs/phase-19/p6/runbooks/p6-e2e-smoke.md
+
+name: p6-denali-gate
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "apps/portal/**"
+      - "apps/marketing/**"
+      - "packages/workspaces/denali/**"
+      - "packages/workspaces/urban/**"
+      - "packages/tenant-kernel/**"
+      - "packages/guest-surface-host/**"
+      - "packages/workspace-sdk/**"
+      - "scripts/guards/guard-public-catalog-m17.mjs"
+      - "scripts/guards/guard-portal-member-profile-boundary.mjs"
+      - "scripts/guards/architecture-truth-guard.mjs"
+      - "scripts/guards/lib/member-profile-architecture-truth.mjs"
+      - "scripts/guards/lib/member-profile-semantic-drift.mjs"
+      - "design-system/denali-club/**"
+      - "docs/workspaces/denali/**"
+      - ".gitignore"
+      - "scripts/p6-*.sh"
+      - "scripts/smoke-p6-host-bind.mjs"
+      - "docs/phase-19/**"
+      - ".github/workflows/p6-denali-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "apps/portal/**"
+      - "apps/marketing/**"
+      - "packages/workspaces/denali/**"
+      - "packages/workspaces/urban/**"
+      - "packages/tenant-kernel/**"
+      - "packages/guest-surface-host/**"
+      - "packages/workspace-sdk/**"
+      - "scripts/guards/guard-public-catalog-m17.mjs"
+      - "scripts/guards/guard-portal-member-profile-boundary.mjs"
+      - "scripts/guards/architecture-truth-guard.mjs"
+      - "scripts/guards/lib/member-profile-architecture-truth.mjs"
+      - "scripts/guards/lib/member-profile-semantic-drift.mjs"
+      - "design-system/denali-club/**"
+      - "docs/workspaces/denali/**"
+      - ".gitignore"
+      - "scripts/p6-*.sh"
+      - "scripts/smoke-p6-host-bind.mjs"
+      - "docs/phase-19/**"
+      - ".github/workflows/p6-denali-gate.yml"
+  workflow_dispatch:
+    inputs:
+      run_e2e_gate:
+        description: Run p6:e2e-gate (browser smokes, ~15 min)
+        type: boolean
+        default: false
+      run_staging_gate:
+        description: Run p6:staging-gate with Postgres finance-ops
+        type: boolean
+        default: false
+  schedule:
+    - cron: "0 4 * * 1"
+
+concurrency:
+  group: p6-denali-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  p6-product-gate:
+    name: P6 product gate (p6:gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: node scripts/guards/check-node-engine.mjs
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @app-tour/workspace-sdk run build
+      - run: pnpm --filter @app-tour/guest-surface-host run build
+      - run: pnpm --filter @app-tour/workspace-denali run build
+
+      - name: p6:gate
+        run: pnpm run p6:gate
+
+  p6-e2e-gate:
+    name: P6 E2E gate (p6:e2e-gate)
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.run_e2e_gate == true) ||
+      (github.event_name == 'schedule')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: p6-product-gate
+
+    env:
+      CI: "true"
+      PW_NO_REUSE_SERVER: "1"
+      NEXT_FONT_OFFLINE: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @app-tour/workspace-sdk run build
+      - run: pnpm --filter @app-tour/guest-surface-host run build
+      - run: pnpm --filter @app-tour/workspace-denali run build
+      - run: pnpm --filter @app-tour/workspace-urban run build
+
+      - name: Configure operator dev hosts
+        run: |
+          grep -q 'operator.admin.localhost' /etc/hosts || \
+            echo '127.0.0.1 operator.localhost operator.portal.localhost operator.admin.localhost denali.localhost denali.portal.localhost urban.localhost urban.portal.localhost' | sudo tee -a /etc/hosts
+
+      - name: Install Playwright (web · portal · marketing)
+        run: |
+          pnpm --filter @apps/web exec playwright install --with-deps chromium
+          pnpm --filter @apps/portal exec playwright install --with-deps chromium
+          pnpm --filter @apps/marketing exec playwright install --with-deps chromium
+
+      - name: p6:e2e-gate
+        run: pnpm run p6:e2e-gate
+
+  p6-staging-gate:
+    name: P6 staging gate (Postgres finance-ops)
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.run_staging_gate == true)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: p6-product-gate
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @app-tour/workspace-denali run build
+
+      - run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - run: pnpm --filter @apps/api run prisma:generate
+
+      - name: p6:staging-gate
+        run: pnpm run p6:staging-gate

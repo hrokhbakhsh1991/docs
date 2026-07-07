@@ -3,7 +3,8 @@
 set -euo pipefail
 
 ENV_DIR="${ENV_DIR:-/etc/app-tour}"
-SMOKE_PHONE="${SMOKE_OPERATOR_PHONE:-+989121000001}"
+SMOKE_PHONE="${SMOKE_OPERATOR_PHONE:-${OPERATOR_OWNER_MOBILE:-+15550001001}}"
+ADMIN_HOST="${SMOKE_OPERATOR_ADMIN_HOST:-operator.admin.localhost}"
 
 read_env_port() {
   local file="$1" key="$2" default="$3"
@@ -80,6 +81,7 @@ otp_body=""
 otp_http=0
 otp_body=$(curl -sS -X POST "$otp_url" \
   -H "Content-Type: application/json" \
+  -H "Host: ${ADMIN_HOST}" \
   -d "{\"phone\":\"${SMOKE_PHONE}\"}" \
   -w $'\n%{http_code}')
 otp_http="${otp_body##*$'\n'}"

@@ -1,0 +1,121 @@
+---
+title: P5-E — Registrations & finance tranche (optional)
+phase: 18
+format: markdoc
+optional: true
+prerequisite: P5-D exit OR offline-only waiver
+quality: 9.5
+doc_role: architecture_sot
+execution_spec: TEMP/p5/p5-e-registrations-finance.md
+status_note: N-001..006 landed
+---
+
+# Registrations & finance tranche (P5-E — optional)
+
+Minimal legacy port: seat capacity, public registration throttle, paid-tour open gate, tour-created finance outbox hook.
+
+**Not full Tour Ops registration module.**
+
+**Nano spec:** [`TEMP/p5/p5-e-registrations-finance.md`](../../TEMP/p5/p5-e-registrations-finance.md)
+
+---
+
+## Legacy anchors (reference only)
+
+| Capability | Legacy path |
+|------------|-------------|
+| Seat capacity | `RegistrationCapacityService` |
+| Public throttle | `public-registration-throttle.ts` |
+| Paid tour OPEN | lifecycle + commerce gate |
+| Tour-created finance | finance outbox on `TourCreated` |
+
+Gap doc: [`legacy-vs-denali-gap-analysis.md`](../../apps/api/docs/legacy-vs-denali-gap-analysis.md) § Rate limits · registration capacity.
+
+**Must not break:** PC-06 receipt flow · PC-07 Denali `offline_receipt` frozen default.
+
+---
+
+## Registration seat capacity (frozen — P5-E-N-002 REG-01..02)
+
+Implementation: `apps/api/src/registrations/registration-capacity.service.ts`
+
+| Assert | Behavior |
+|--------|----------|
+| REG-01 | `resolveRegistrationCapacityDecision` confirms when `acceptedSeats + partySize ≤ tourCapacity` |
+| REG-01b | Unlimited capacity when `tourCapacity === null` |
+| REG-02 | When full + policy `waitlist` → status `waitlist` (not hard reject) |
+| REG-02b | When full + policy `open` → `RegistrationCapacityExceededError` (409) |
+
+Wired in: `apps/api/src/urban/urban-registration.service.ts`
+
+Spec: `apps/api/test/registration-capacity.spec.ts`
+
+---
+
+## Public registration throttle (frozen — P5-E-N-003 REG-03)
+
+Implementation: `apps/api/src/registrations/public-registration-throttle.ts`
+
+| Assert | Behavior |
+|--------|----------|
+| REG-03 | `POST /urban/registrations` calls `assertPublicRegistrationThrottle(clientIp)` before handler |
+| REG-03b | Default 10 requests / 60s per IP (override `PUBLIC_REGISTRATION_THROTTLE_PER_MIN`) |
+| REG-03c | Exceeded → HTTP 429 `PUBLIC_REGISTRATION_THROTTLE_EXCEEDED` |
+
+Spec: covered in `apps/api/test/registration-capacity.spec.ts` (throttle band).
+
+---
+
+## Paid tour OPEN gate (frozen — P5-E-N-004 FIN-01)
+
+Implementation: `apps/api/src/registrations/assert-paid-tour-open-gate.ts`
+
+Wired in: `apps/api/src/canonical/canonical-tour.service.ts` (publish transition) · invoked from `apps/api/src/tours/tours.service.ts` `updateTour`
+
+| Assert | Behavior |
+|--------|----------|
+| FIN-01 | On `detectTourPublishTransition → published`, `assertPaidTourOpenCommerceGate` runs before persist |
+| FIN-01a | `offline_receipt` tenant commerce allows publish PATCH to complete |
+| FIN-01b | Gateway commerce blocked until `P5_D_GATEWAY_ACTIVATION_ENABLED=true` (403 `PAID_TOUR_OPEN_GATE_BLOCKED`) |
+
+Spec: `apps/api/test/paid-tour-open-gate.spec.ts`
+
+---
+
+## Tour-created finance outbox (frozen — P5-E-N-005 FIN-02)
+
+Implementation: `apps/api/src/workspace-finance/tour-created-finance-side-effect.ts` (re-export) · deps in `register-workspace-finance-deps.ts`
+
+| Assert | Behavior |
+|--------|----------|
+| FIN-02 | `runTourCreatedFinanceSideEffect` processes `TourCreated` rows with `registrationId` + `paidAmountMinor` |
+| FIN-02b | Idempotent claim via `tryClaimWorkspaceFinanceProcessedEvent` — replay returns `false` |
+
+Spec: `apps/api/test/tour-created-finance-side-effect.spec.ts` · integration: `denali-finance-outbox.integration.spec.ts`
+
+---
+
+## P5-full exit (frozen — P5-E-N-006 EX-E)
+
+| Assert | Behavior |
+|--------|----------|
+| EX-E-01 | Epic spec preserves PC-06 · PC-07 |
+| EX-E-02 | Path B checklist references `P5-E-N-006` |
+| EX-E-03 | Gate script lists P5-E specs |
+
+Spec: `apps/api/test/platform-registrations-finance-exit.spec.ts`
+
+---
+
+## Verify
+
+```bash
+pnpm run guard:import-boundary
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/registration-capacity.spec.ts \
+  test/paid-tour-open-gate.spec.ts \
+  test/tour-created-finance-side-effect.spec.ts \
+  test/platform-registrations-finance-exit.spec.ts
+```
+
+**P5-full exit:** `P5-E-N-006` · assessment ≥ 9.5/10.

@@ -1,0 +1,27 @@
+/** @generated — do not edit; source: dtcg/workspaces/denali.marketing.tokens.json — run pnpm build in @app-tour/design-tokens */
+/**
+ * denali marketing semantic colors (DTCG authority).
+ */
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
+  --color-accent: #d97706;
+  --color-accent-fg: #ffffff;
+  --color-bg-muted: #f0f8f6;
+  --color-bg-page: #ecfdf5;
+  --color-bg-surface: #ffffff;
+  --color-border-default: #e1f2ed;
+  --color-primary: #059669;
+  --color-primary-fg: #ffffff;
+  --color-secondary: #10b981;
+  --color-text-link: var(--color-primary);
+  --color-text-muted: #64748b;
+  --color-text-primary: #0f172a;
+  --mkt-accent-deep: #92400e;
+  --mkt-accent-mid: #b45309;
+  --mkt-destructive: #dc2626;
+  --mkt-destructive-strong: #b91c1c;
+  --mkt-hero-ink: #0b1220;
+  --mkt-mask-ink: #000000;
+  --mkt-on-overlay: #ffffff;
+  --mkt-overlay-icon: #fbbf24;
+}
+

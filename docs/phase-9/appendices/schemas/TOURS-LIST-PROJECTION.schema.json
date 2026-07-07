@@ -38,6 +38,10 @@
     "acceptedCount": { "type": "integer", "minimum": 0 },
     "category": { "type": ["string", "null"] },
     "coverImageUrl": { "type": ["string", "null"], "format": "uri" },
+    "coverImageStorageKey": {
+      "type": ["string", "null"],
+      "description": "Operator-only MinIO key for BFF signed-read fallback when coverImageUrl is null"
+    },
     "departureAt": { "type": ["string", "null"], "format": "date-time" }
   }
 }

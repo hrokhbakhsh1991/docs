@@ -8,6 +8,7 @@ import {
   buildWizardStepDescriptors,
   canNavigateToWizardStepIndex,
   clampWizardStepIndex,
+  resolveWizardStepIndexAfterPlanChange,
   resolveWizardStepLabel,
   WIZARD_STEP_SHELL_TEST_IDS,
 } from "../src/wizard/wizard-step-shell-logic";
@@ -20,7 +21,7 @@ describe("wizard-step-shell.spec.ts", () => {
       ]),
       "Basic info"
     );
-    assert.equal(resolveWizardStepLabel("denali_photos"), "عکس‌ها");
+    assert.equal(resolveWizardStepLabel("denali_photos"), "Denali Photos");
   });
 
   it("WEB-WIZ-STEP-02 builds descriptors from render plan", () => {
@@ -53,5 +54,33 @@ describe("wizard-step-shell.spec.ts", () => {
     assert.equal(canNavigateToWizardStepIndex(3, 3), true);
     assert.equal(canNavigateToWizardStepIndex(4, 3), false);
     assert.equal(canNavigateToWizardStepIndex(-1, 3), false);
+  });
+
+  it("WEB-WIZ-STEP-06 maps active step by stepId when plan changes", () => {
+    const before = [
+      { stepId: "basics" },
+      { stepId: "program" },
+      { stepId: "review" },
+    ];
+    const after = [
+      { stepId: "basics" },
+      { stepId: "transport" },
+      { stepId: "program" },
+      { stepId: "review" },
+    ];
+    assert.equal(
+      resolveWizardStepIndexAfterPlanChange(1, "program", after),
+      2
+    );
+    assert.equal(
+      resolveWizardStepIndexAfterPlanChange(2, "program", before),
+      1
+    );
+  });
+
+  it("WEB-WIZ-STEP-07 falls back to clamp when anchored stepId is removed", () => {
+    const steps = [{ stepId: "basics" }, { stepId: "review" }];
+    assert.equal(resolveWizardStepIndexAfterPlanChange(3, "program", steps), 1);
+    assert.equal(resolveWizardStepIndexAfterPlanChange(3, null, steps), 1);
   });
 });

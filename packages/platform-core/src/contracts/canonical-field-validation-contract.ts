@@ -10,14 +10,15 @@ import { isEmptyCanonicalValue } from "../utils/canonical-value";
  * |---------|----------------|------------|
  * | Visible required empty path | UNKNOWN_CANONICAL_PATH | — |
  * | Visible value present | assertCanonicalValueMatchesKind | strict |
- * | Hidden non-composite + any value | HIDDEN_FIELD_POISON | — |
+ * | Hidden non-composite + defined non-null value | HIDDEN_FIELD_POISON | — |
  * | Hidden composite + value | allowed at path (leaves validated when visible) | — |
+ * | Visible composite + JSON array | assertCanonicalValueMatchesKind | accepted (Phase 11.10 Denali array ingress) |
  */
 export const CANONICAL_FIELD_VALIDATION_CONTRACT = [
   {
     id: "hidden-non-composite-poison",
     violation: "HIDDEN_FIELD_POISON" as const,
-    when: "effective.hidden && kind !== composite && value !== undefined",
+    when: "effective.hidden && kind !== composite && value !== undefined && value !== null",
   },
   {
     id: "visible-kind-strict",
@@ -37,7 +38,7 @@ export type HiddenFieldPoisonInput = {
 export function hiddenFieldPoisonViolation(
   input: HiddenFieldPoisonInput,
 ): { readonly code: "HIDDEN_FIELD_POISON"; readonly message: string } | null {
-  if (!input.hidden || input.value === undefined) {
+  if (!input.hidden || input.value === undefined || input.value === null) {
     return null;
   }
   if (input.kind === "composite") {

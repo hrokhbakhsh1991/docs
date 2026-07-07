@@ -27,6 +27,8 @@ const SETTINGS_MODULE_BY_PATH: Record<string, string> = {
   "tour-wizard-template": "tour_wizard_template",
   "audit-trail": "audit_trail",
   "reconciliation-triage": "reconciliation_triage",
+  branding: "workspace_branding",
+  integrations: "integrations",
   urban: "urban.title",
 };
 
@@ -80,9 +82,7 @@ export function resolveOperatorBreadcrumbSegments(
     const subPath = path.slice("/settings/".length);
     const moduleKey = SETTINGS_MODULE_BY_PATH[subPath];
     if (moduleKey !== undefined) {
-      const settingsKey = moduleKey.includes(".")
-        ? moduleKey
-        : `modules.${moduleKey}.title`;
+      const settingsKey = moduleKey.includes(".") ? moduleKey : `modules.${moduleKey}.title`;
       return [
         { namespace: "nav", key: "settings", href: "/settings" },
         { namespace: "settings", key: settingsKey },

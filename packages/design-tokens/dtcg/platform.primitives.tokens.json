@@ -1,0 +1,97 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "font": {
+    "family-base": {
+      "$type": "fontFamily",
+      "$value": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    },
+    "family-mono": {
+      "$type": "fontFamily",
+      "$value": "ui-monospace, \"SF Mono\", Consolas, monospace"
+    }
+  },
+  "text": {
+    "body-size": { "$type": "dimension", "$value": "1rem" },
+    "body-weight": { "$type": "fontWeight", "$value": "400" },
+    "body-leading": { "$type": "number", "$value": "1.5" },
+    "small-size": { "$type": "dimension", "$value": "0.875rem" },
+    "small-leading": { "$type": "number", "$value": "1.45" },
+    "micro-size": { "$type": "dimension", "$value": "0.75rem" },
+    "micro-leading": { "$type": "number", "$value": "1.4" },
+    "micro-weight": { "$type": "fontWeight", "$value": "600" },
+    "micro-tracking": { "$type": "dimension", "$value": "0.02em" }
+  },
+  "font-weight": {
+    "semibold": { "$type": "fontWeight", "$value": "600" }
+  },
+  "space": {
+    "0": { "$type": "dimension", "$value": "0" },
+    "1": { "$type": "dimension", "$value": "0.25rem" },
+    "2": { "$type": "dimension", "$value": "0.5rem" },
+    "3": { "$type": "dimension", "$value": "0.75rem" },
+    "4": { "$type": "dimension", "$value": "1rem" },
+    "5": { "$type": "dimension", "$value": "1.5rem" },
+    "6": { "$type": "dimension", "$value": "2rem" },
+    "8": { "$type": "dimension", "$value": "3rem" }
+  },
+  "radius": {
+    "sm": { "$type": "dimension", "$value": "4px" },
+    "md": { "$type": "dimension", "$value": "8px" },
+    "lg": { "$type": "dimension", "$value": "12px" },
+    "full": { "$type": "dimension", "$value": "9999px" }
+  },
+  "layout": {
+    "max-form": { "$type": "dimension", "$value": "32rem" },
+    "min-tap-target": { "$type": "dimension", "$value": "44px" },
+    "icon-slot": { "$type": "dimension", "$value": "1.25rem" },
+    "width-full": { "$type": "dimension", "$value": "100%" },
+    "min-width-none": { "$type": "dimension", "$value": "0" },
+    "flex-grow-full": { "$type": "number", "$value": "1" },
+    "flex-shrink-none": { "$type": "number", "$value": "0" },
+    "display-flex": { "$type": "other", "$value": "flex" },
+    "display-inline-flex": { "$type": "other", "$value": "inline-flex" },
+    "display-block": { "$type": "other", "$value": "block" },
+    "flex-direction-column": { "$type": "other", "$value": "column" },
+    "align-items-center": { "$type": "other", "$value": "center" },
+    "align-items-flex-start": { "$type": "other", "$value": "flex-start" },
+    "justify-content-center": { "$type": "other", "$value": "center" },
+    "white-space-nowrap": { "$type": "other", "$value": "nowrap" },
+    "cursor-pointer": { "$type": "other", "$value": "pointer" },
+    "cursor-not-allowed": { "$type": "other", "$value": "not-allowed" },
+    "border-style-solid": { "$type": "other", "$value": "solid" }
+  },
+  "color": {
+    "text-current": { "$type": "color", "$value": "currentColor" },
+    "bg-transparent": { "$type": "color", "$value": "transparent" }
+  },
+  "line-height": {
+    "tight": { "$type": "number", "$value": "1" },
+    "icon": { "$type": "number", "$value": "{line-height.tight}" }
+  },
+  "border-width": {
+    "default": { "$type": "dimension", "$value": "1px" }
+  },
+  "focus": {
+    "outline-width": { "$type": "dimension", "$value": "2px" },
+    "outline-offset": { "$type": "dimension", "$value": "2px" }
+  },
+  "opacity": {
+    "disabled": { "$type": "number", "$value": "0.5" }
+  },
+  "shadow": {
+    "none": { "$type": "shadow", "$value": "none" },
+    "card": {
+      "$type": "shadow",
+      "$value": "0 1px 2px rgba(15, 18, 22, 0.06), 0 1px 3px rgba(15, 18, 22, 0.08)"
+    },
+    "popover": {
+      "$type": "shadow",
+      "$value": "0 4px 16px rgba(15, 18, 22, 0.12)"
+    }
+  },
+  "z": {
+    "dropdown": { "$type": "number", "$value": "100" },
+    "modal": { "$type": "number", "$value": "300" },
+    "toast": { "$type": "number", "$value": "400" }
+  }
+}

@@ -2,11 +2,11 @@
 
 ```yaml
 ux_spec_id: TOURS-EDIT-UX
-version: "2026-06-08-v1"
+version: "2026-06-24-v2"
 status: LOCKED
 decisions: [DEC-P9-007, DEC-P9-013, DEC-P9-014]
 subphase: "9.3"
-scope: "(app)/tours/[id]/edit R1 — title mutate + read-only meta; workspace/register out of scope"
+scope: "(app)/tours/[id]/edit — R1 title shell; Denali operators use Phase 12.4 flat edit (see supersession)"
 authority: subphases/9.3-tours-operator.md · TOURS-LIST-UX.md · tours-operator-api-dispatch-addendum.md
 pattern: ADMIN-SHELL-UX.md
 legacy_reference:
@@ -17,6 +17,8 @@ trunk_baseline:
 ```
 
 > **Problem:** Operator list links to `/tours/{id}/edit` but trunk has no edit route — View returns 404. Legacy ships full `DenaliTourEditForm`; Phase 9 R1 delivers a **session-gated detail shell** with projection display and optimistic title PATCH.
+
+> **Supersession (Phase 12.4 + styling 2026-06-24):** Denali admin/owner sessions route to **`DenaliFlatEditPageClient`** — full flat form (all wizard sections minus review), save/publish/unpublish, draft autosave. Members and non-Denali tenants keep R1 title-only shell below. Composite field skin: [`wizard-experience.md`](../../workspaces/denali/wizard-experience.md#flat-edit-skin-bridge) — page root `data-new-tour-wizard` via `DenaliFlatEditPageShell`. Authority: [`12.4-denali-flat-edit-form.md`](../../phase-12/subphases/12.4-denali-flat-edit-form.md).
 
 ---
 

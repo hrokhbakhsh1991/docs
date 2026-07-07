@@ -1,0 +1,121 @@
+---
+title: Phase 15 — Platform Control Center ops (P1 EPIC F)
+phase: 15
+format: markdoc
+---
+
+# Platform Control Center — domains, health, audit (P1 EPIC F)
+
+## Create tenant dev hint
+
+`POST /platform/v1/tenants` success body may include optional **`devHostHint`** when `PLATFORM_ROOT_DOMAIN` is `localhost` (dev only). Prod `sites` URLs unchanged.
+
+```json
+{
+  "devHostHint": {
+    "marketingHost": "my-club.localhost",
+    "portalHost": "my-club.portal.localhost",
+    "adminHost": "my-club.admin.localhost"
+  }
+}
+```
+
+## Custom domains
+
+Prisma model **`TenantDomain`** (`tenant_domains`):
+
+| Column | Purpose |
+|--------|---------|
+| `hostname` | Custom hostname (unique) |
+| `tenantId` | Owning tenant |
+| `surface` | `marketing` \| `portal` |
+| `status` | `pending` \| `verified` |
+| `cnameTarget` | Expected CNAME target (platform subdomain host) |
+
+Repository: `PlatformDomainRepository` — admin Prisma only (no tenant RLS).
+
+### Domain API
+
+| Method | Path | Body |
+|--------|------|------|
+| `GET` | `/platform/v1/tenants/{tenantId}/domains` | — |
+| `POST` | `/platform/v1/tenants/{tenantId}/domains` | `{ hostname, surface? }` |
+| `DELETE` | `/platform/v1/tenants/{tenantId}/domains/{domainId}` | — |
+| `POST` | `/platform/v1/tenants/{tenantId}/domains/{domainId}/verify` | — |
+
+POST returns `{ domain, cnameInstructions: { hostname, cnameTarget } }`. Verify performs **live DNS CNAME lookup** when `PLATFORM_DOMAIN_DNS_LOOKUP` is enabled (default on); dev bypass via `PLATFORM_DOMAIN_VERIFY_STUB=pass`. On verify success, **SSL provision** runs via `PLATFORM_SSL_PROVIDER` (`stub` default · `cloudflare` optional).
+
+### SSL columns (P2-D)
+
+| Column | Purpose |
+|--------|---------|
+| `sslStatus` | `pending` \| `active` \| `failed` |
+| `sslExpiresAt` | cert expiry |
+| `sslLastError` | last provision error |
+| `lastObservedCname` | live DNS observation |
+
+### SSL ops API (P2-D)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/platform/v1/domains/ssl-summary` | `{ expiringWithin14Days }` |
+| POST | `/platform/v1/domains/run-ssl-expiry-check` | owner · audit `DOMAIN_SSL_EXPIRING` |
+
+Detail: [`platform-domains-ssl.mdoc`](platform-domains-ssl.mdoc).
+
+## Site health
+
+| Method | Path | Response |
+|--------|------|----------|
+| `GET` | `/platform/v1/tenants/{tenantId}/sites/check` | `{ results: { marketing, portal, admin } }` each `{ url, ok, status }` |
+
+Issues concurrent `HEAD` requests to the three provisioned URLs (`buildClubSiteUrls`).
+
+### Overview unhealthy KPI
+
+The platform **Overview** card `unhealthyCount` is computed server-side in `loadPlatformOverviewStats`:
+
+1. `GET /platform/v1/tenants?limit=100&offset=0` loads the current tenant page.
+2. For each tenant with `status === "active"` (up to **`PLATFORM_OVERVIEW_HEALTH_CHECK_LIMIT`**, default **25**), the BFF calls `GET /platform/v1/tenants/{id}/sites/check`.
+3. Each check response contributes `countUnhealthySiteChecks(results)` — one increment per surface where `ok === false` (marketing, portal, admin).
+4. Failed or skipped health checks contribute **0** (overview stays usable when a club is unreachable).
+
+This caps overview latency when many clubs exist; raise the env limit only in environments where full-fleet health is required on every overview load.
+
+Pure aggregation lives in `platform-overview-aggregation.ts` (`aggregateUnhealthySiteCount`); `loadPlatformOverviewStats` wires it to `proxyPlatformApi`. Behavioral tests: `load-platform-overview-stats.spec.ts` (not only `count-unhealthy-from-sites-check` helper).
+
+## Platform audit log
+
+| Method | Path |
+|--------|------|
+| `GET` | `/platform/v1/audit?limit=50&offset=0` |
+
+Response: `{ items: PlatformAuditEventDto[], total, limit, offset }` — platform events only (`platform_audit_events`), not tenant `audit_events`.
+
+## Web
+
+| Surface | Path |
+|---------|------|
+| Club detail **Domains** tab | list + add + CNAME + verify |
+| Club detail **Sites** tab | Check health button |
+| Audit page | `/platform/audit` |
+| Overview | `unhealthyCount` KPI card |
+| Nav | Audit link |
+
+BFF mirrors `/api/platform/tenants/{id}/domains`, `.../sites/check`, `/api/platform/audit`.
+
+## Verify (EPIC F gate)
+
+```bash
+pnpm --filter @apps/api exec node --test \
+  test/platform-tenants-domains.spec.ts \
+  test/platform-audit-list.spec.ts \
+  test/platform-sites-check.spec.ts \
+  test/create-tenant-response-dto.spec.ts
+
+cd apps/web && NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit \
+  test/platform-bff-domains.spec.ts \
+  test/tab-domains.spec.ts \
+  test/platform-audit-page.spec.ts \
+  test/platform-nav.spec.ts
+```

@@ -1,10 +1,15 @@
 import type { WorkspaceFieldRegistry, WorkspaceRuleSet } from "@app-tour/workspace-sdk";
 
+import {
+  denaliRegistryPresentationFields,
+} from "./field-registry/denali-integration-field-presentation";
 import { DENALI_FIELD_DEFINITIONS } from "./field-registry/denaliFieldRegistryData";
 import {
   resolveDenaliCompositeRendererId,
   resolveDenaliFieldRenderer,
+  resolveDenaliWorkspaceFieldRegistryKind,
 } from "./composites/denali-composite-registry";
+import { WIZARD_PALETTE_ROADMAP_TAG } from "./settings/denali-wizard-template-roadmap";
 import {
   DENALI_RULE_MODEL_CATEGORIES,
   DENALI_RULE_MODEL_DURATIONS,
@@ -29,9 +34,26 @@ export const WIZARD_OVERLAY_EXCLUDE_TAG = "wizard_overlay_exclude" as const;
 
 function denaliFieldRegistryTags(def: (typeof DENALI_FIELD_DEFINITIONS)[number]): readonly string[] | undefined {
   const surface = def.settingsSurface ?? "section";
+  if (surface === "palette_roadmap") {
+    const tags = [...def.tags, WIZARD_PALETTE_ROADMAP_TAG];
+    return tags.length > 0 ? tags : [WIZARD_PALETTE_ROADMAP_TAG];
+  }
   const tags =
     surface === "section" ? [...def.tags] : [...def.tags, WIZARD_OVERLAY_EXCLUDE_TAG];
   return tags.length > 0 ? tags : undefined;
+}
+
+function denaliRoadmapPaletteRegistryField(
+  def: (typeof DENALI_FIELD_DEFINITIONS)[number]
+): WorkspaceFieldRegistry["fields"][number] {
+  return Object.freeze({
+    id: def.canonicalPath,
+    canonicalPath: def.canonicalPath,
+    stepId: def.stepId,
+    kind: "boolean" as const,
+    required: false,
+    tags: denaliFieldRegistryTags(def),
+  });
 }
 
 export function denaliFieldIdForCanonicalPath(canonicalPath: string): string {
@@ -40,12 +62,22 @@ export function denaliFieldIdForCanonicalPath(canonicalPath: string): string {
 
 export function buildDenaliWorkspaceFieldRegistry(): WorkspaceFieldRegistry {
   const fields = DENALI_FIELD_DEFINITIONS.flatMap((def) => {
+    if ((def.settingsSurface ?? "section") === "palette_roadmap") {
+      return [denaliRoadmapPaletteRegistryField(def)];
+    }
     const resolution = resolveDenaliFieldRenderer(def);
     if (resolution == null) return [];
 
     const compositeRendererId = resolveDenaliCompositeRendererId(def);
     const fieldId = compositeRendererId ?? def.canonicalPath;
-    const kind = compositeRendererId != null ? ("composite" as const) : resolution.kind;
+    const kind = resolveDenaliWorkspaceFieldRegistryKind(def, resolution);
+
+    const tags = denaliFieldRegistryTags(def);
+    const presentation = denaliRegistryPresentationFields({
+      id: fieldId,
+      canonicalPath: def.canonicalPath,
+      tags,
+    });
 
     return [
       Object.freeze({
@@ -54,7 +86,8 @@ export function buildDenaliWorkspaceFieldRegistry(): WorkspaceFieldRegistry {
         stepId: def.stepId,
         kind,
         required: def.ruleDefaults.required,
-        tags: denaliFieldRegistryTags(def),
+        tags,
+        ...presentation,
         ...(kind === "enum" && resolution.enumOptions != null
           ? { enumOptions: resolution.enumOptions }
           : {}),

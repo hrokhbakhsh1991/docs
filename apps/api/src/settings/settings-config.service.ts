@@ -2,7 +2,12 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { getSettingsConfigRepository } from "./create-settings-config-repository";
 import { emitSettingsConfigAudit } from "./settings-audit-emitter";
-import { assertWizardTemplateFieldsKnown } from "./wizard-template-catalog";
+import {
+  assertDenaliWizardTemplateFrozenFieldsForTenant,
+  assertWizardTemplateFieldsKnown,
+  normalizeDenaliWizardTemplatePayloadForTenant,
+} from "./wizard-template-catalog";
+import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import {
   resolveSettingsModuleByConfigKeyForTenant,
   SettingsConfigUnknownError,
@@ -15,9 +20,6 @@ import type {
   WizardTemplatePayloadV1,
 } from "./settings.types";
 import { SettingsMutationForbiddenError } from "./settings.service";
-import { assertDenaliOperatorSettingsWorkspace } from "./settings-workspace-guard";
-import { isProductionAuthMode } from "../tenant-kernel/auth-env";
-import { seedDenaliFullWizardTemplate } from "./seed-denali-full-wizard-template";
 
 export { SettingsWizardUnknownFieldError } from "./wizard-template-catalog";
 export class SettingsConfigVersionUnsupportedError extends Error {
@@ -130,6 +132,19 @@ function normalizeWizardTemplateSteps(raw: unknown): WizardTemplatePayloadV1["st
   return steps.length > 0 ? steps : undefined;
 }
 
+function normalizeFieldRulesOverlay(raw: unknown): WizardTemplatePayloadV1["fieldRulesOverlay"] {
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+  const entries = Object.entries(raw as Record<string, unknown>).filter(
+    ([key, value]) => key.trim().length > 0 && value != null && typeof value === "object" && !Array.isArray(value)
+  );
+  if (entries.length === 0) {
+    return undefined;
+  }
+  return Object.fromEntries(entries);
+}
+
 function normalizeWizardTemplatePayload(payload: Record<string, unknown>): WizardTemplatePayloadV1 {
   const seedLabel = typeof payload.seedLabel === "string" ? payload.seedLabel : "";
   const sections = Array.isArray(payload.sections)
@@ -142,12 +157,24 @@ function normalizeWizardTemplatePayload(payload: Record<string, unknown>): Wizar
         }))
     : WIZARD_TEMPLATE_WORKSPACE_DEFAULT.sections.map((section) => ({ ...section }));
 
-  const normalized: WizardTemplatePayloadV1 = {
+  let normalized: WizardTemplatePayloadV1 = {
     seedLabel,
     sections: sections.length > 0 ? sections : WIZARD_TEMPLATE_WORKSPACE_DEFAULT.sections.map((s) => ({ ...s })),
   };
+
+  const baseProfile =
+    typeof payload.baseProfile === "string" ? payload.baseProfile.trim() : "";
+  if (baseProfile.length > 0) {
+    normalized = { ...normalized, baseProfile };
+  }
+
+  const fieldRulesOverlay = normalizeFieldRulesOverlay(payload.fieldRulesOverlay);
+  if (fieldRulesOverlay !== undefined) {
+    normalized = { ...normalized, fieldRulesOverlay };
+  }
+
   if (payload.published === true) {
-    return {
+    normalized = {
       ...normalized,
       published: true,
       ...(normalizeWizardTemplateSteps(payload.steps) !== undefined
@@ -155,6 +182,7 @@ function normalizeWizardTemplatePayload(payload: Record<string, unknown>): Wizar
         : {}),
     };
   }
+
   return normalized;
 }
 
@@ -225,20 +253,7 @@ async function getWizardTemplateConfig(
   configKey: string
 ): Promise<SettingsConfigResponse> {
   const repo = getSettingsConfigRepository();
-  let stored = await repo.get(auth.tenantId, configKey);
-  if (!isProductionAuthMode()) {
-    const payload = stored?.payload as { published?: boolean; steps?: unknown[] } | undefined;
-    const needsSeed =
-      stored === null ||
-      (stored.configVersion >= WIZARD_TEMPLATE_CURRENT_VERSION &&
-        (payload?.published !== true ||
-          !Array.isArray(payload?.steps) ||
-          payload.steps.length <= 5));
-    if (needsSeed) {
-      await seedDenaliFullWizardTemplate(auth.tenantId);
-      stored = await repo.get(auth.tenantId, configKey);
-    }
-  }
+  const stored = await repo.get(auth.tenantId, configKey);
   if (stored === null) {
     return {
       configKey,
@@ -300,7 +315,6 @@ export async function getSettingsConfig(
   auth: TenantAuthContext,
   configKey: string
 ): Promise<SettingsConfigResponse> {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   await assertSupportedConfigKey(auth.tenantId, configKey);
   if (configKey === "wizard_template") {
     return getWizardTemplateConfig(auth, configKey);
@@ -322,8 +336,11 @@ async function putWizardTemplateConfig(
     throw new SettingsConfigVersionUnsupportedError(body.configVersion);
   }
 
-  const payload = normalizeWizardTemplatePayload(body.payload as unknown as Record<string, unknown>);
+  let payload = normalizeWizardTemplatePayload(body.payload as unknown as Record<string, unknown>);
+  const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
   await assertWizardTemplateFieldsKnown(auth.tenantId, payload);
+  await assertDenaliWizardTemplateFrozenFieldsForTenant(auth.tenantId, payload);
+  payload = normalizeDenaliWizardTemplatePayloadForTenant(workspaceType, payload);
   const repo = getSettingsConfigRepository();
   const saved = await repo.put(auth.tenantId, configKey, {
     configVersion: expectedVersion,
@@ -375,7 +392,6 @@ export async function putSettingsConfig(
   configKey: string,
   body: PutSettingsConfigRequest
 ): Promise<SettingsConfigResponse> {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   assertAdminOrOwner(auth);
   await assertSupportedConfigKey(auth.tenantId, configKey);
   if (configKey === "wizard_template") {

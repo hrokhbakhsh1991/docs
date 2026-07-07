@@ -7,6 +7,8 @@ export const CATALOG_HTTP_ROUTE_MANIFEST: readonly {
 }[] = [
   { method: "GET", path: "/denali/catalog" },
   { method: "GET", path: "/denali/catalog/:tourId" },
+  { method: "GET", path: "/denali/dashboard/tours/:tourId" },
+  { method: "GET", path: "/denali/reminders/feed" },
   { method: "POST", path: "/denali/registrations" },
 ] as const;
 

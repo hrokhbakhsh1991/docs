@@ -1,0 +1,51 @@
+# Runbook — integration subsystem gate blocked
+
+```yaml
+runbook_version: "2026-06-29-v1"
+map_ref: docs/dev/system-consistency-guard.mdoc
+implementation:
+  - apps/api/src/health/integration-subsystem-gate.ts
+  - apps/api/src/health/migration-consistency-check.ts
+  - apps/api/src/integrations/http/integrations.service.ts
+```
+
+## Symptoms
+
+- `POST/PATCH/DELETE` on integrations returns **503** or subsystem-not-ready error.
+- Operator can **read** integration list/detail but cannot connect Telegram or save exposure.
+- Boot log: `integration_subsystem_gate` not ready / consistency report `ok: false`.
+
+## Root causes
+
+| Cause | Tables / signal | Fix |
+| ----- | --------------- | --- |
+| Integration migrations not applied | Missing `integration_connections`, `integration_event_policies`, … | `pnpm --filter @apps/api run db:migrate:deploy` |
+| Exposure tables missing (9.1b fatal) | `exposure_intents`, `exposure_profiles`, `denali_exposure_reminder_activations` | Apply exposure migrations; set `FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL=false` temporarily only in dev |
+| Prisma client stale | Schema drift after migrate | `prisma generate` + API restart (see `docs/phase-5/appendices/migrate-deploy-only.md`) |
+| `STORAGE_DRIVER=memory` in prod | Gate may never arm | Use `STORAGE_DRIVER=prisma` with `DATABASE_URL` |
+| TourPublished policy drift (staging+) | `CONSISTENCY_TOUR_PUBLISHED_POLICY_DRIFT` when `TOUR_PUBLISHED_ROLLOUT_GATE_FATAL=true` | Apply migration `20260704100000_backfill_tour_published_event_policies`; see [TourPublished Telegram runbook](./tour-published-telegram-delivery.mdoc) |
+
+## Triage steps
+
+1. Hit `GET /health` — inspect consistency subsection if exposed.
+2. Run migration deploy against the target database.
+3. Verify required tables exist (integration + exposure lists in `migration-consistency-check.ts`).
+4. Restart API process after `prisma generate`.
+5. Re-test `PATCH /integrations/:id/exposure-intents/:eventType` with admin session.
+
+## Warn-only vs fatal (exposure tables)
+
+| Mode | Env | Effect |
+| ---- | --- | ------ |
+| Warn (default) | `FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL` unset/false | Log `CONSISTENCY_MISSING_EXPOSURE_TABLES`; reads degraded with banners |
+| Fatal (staging+) | `FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL=true` | Blocks integration **mutations** until tables present |
+
+## Degraded read (not a gate block)
+
+`GET /integrations/:id` may return `loadWarnings` while gate is open — UI shows banner; this is **not** the same as mutation block.
+
+| Warning | Meaning | Runbook |
+| ------- | ------- | ------- |
+| `POLICIES_UNAVAILABLE` | Policy rows failed to load | Retry; check DB / RLS |
+| `EXPOSURE_INTENTS_UNAVAILABLE` | Intent rows failed to load | Retry; exposure migrations |
+| `TOUR_PUBLISHED_POLICY_DRIFT` | Enabled denali Telegram missing `TourPublished` policy | [TourPublished Telegram delivery](./tour-published-telegram-delivery.mdoc) |

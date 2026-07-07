@@ -178,6 +178,16 @@ describe("tours-operator.spec.ts — Phase 9.3 API", () => {
     assert.deepEqual(titles, sorted);
   });
 
+  it("CP-9.3-L04b sort_by=departure_at accepts query (null departures sort last)", async () => {
+    const list = await client.requestJson<OperatorListResponse>(
+      "GET",
+      "/tours?view=operator&sort_by=departure_at&sort_dir=desc",
+      { headers: operatorAuthHeaders() }
+    );
+    assert.equal(list.status, 200);
+    assert.ok(Array.isArray(list.body.items));
+  });
+
   it("API-9.3-E01 GET /tours/{id} requires operator session (CP-9.3-E01)", async () => {
     const created = await client.requestJson<OperatorListResponse>("POST", "/tours", {
       headers: operatorAuthHeaders(),

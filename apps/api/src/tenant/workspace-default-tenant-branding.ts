@@ -18,6 +18,7 @@ export const DEFAULT_TENANT_BRANDING_BY_WORKSPACE_TYPE = Object.freeze({
   urban: Object.freeze({
     primaryColor: "#0d9488",
     cssVariables: Object.freeze({ "--color-primary": "#0d9488" }),
+    defaultLocale: "en" as const,
   }),
 } satisfies Readonly<Record<string, TenantThemeConfig>>);
 
@@ -34,6 +35,9 @@ export function resolveDefaultTenantBranding(workspaceType: string): TenantTheme
     ...(preset.primaryColor !== undefined ? { primaryColor: preset.primaryColor } : {}),
     ...(preset.cssVariables !== undefined
       ? { cssVariables: { ...preset.cssVariables } }
+      : {}),
+    ...("defaultLocale" in preset && preset.defaultLocale !== undefined
+      ? { defaultLocale: preset.defaultLocale }
       : {}),
   };
 }

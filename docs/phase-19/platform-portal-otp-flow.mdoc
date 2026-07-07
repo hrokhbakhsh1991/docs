@@ -1,0 +1,120 @@
+---
+title: Portal OTP registration flow (Denali guest)
+phase: 19
+format: markdoc
+epic: P6-1
+app: apps/portal
+route: /catalog/{tourId}/register
+---
+
+# Portal OTP flow — phone + 1234 (dev)
+
+Guest registration on **`apps/portal`** (`{club}.portal.{root}`). Authority for P6-1 guest slice.
+
+## Host
+
+Authority: [p6-host-addressing-architecture.mdoc](p6-host-addressing-architecture.mdoc)
+
+| Env | Portal register URL (canonical) | Legacy dev alias |
+| --- | ------------------------------- | ---------------- |
+| Dev | `http://{club}.portal.localhost:3003/catalog/{tourId}/register` | `http://{club}.localhost:3003/...` |
+| Prod (platform) | `https://{club}.portal.{root}/catalog/{tourId}/register` | — |
+| Prod (custom) | `https://portal.{apex}/catalog/{tourId}/register` | `tenant_domains` · `surface=portal` |
+
+Marketing CTA resolves portal origin via `resolveWebRegistrationUrl` → **`buildDevPortalPublicBaseUrl`** (`@app-tour/tenant-kernel`; strips `shop.` when present). Custom apex: set `PORTAL_PUBLIC_BASE_URL`.
+
+---
+
+## Flow (frozen)
+
+```mermaid
+flowchart TD
+  A[phone] --> B[request OTP]
+  B --> C[otp 4 digits]
+  C --> D{user exists + ACTIVE membership?}
+  D -->|yes| E[intake tour form]
+  D -->|no| F[profile: name required · email optional]
+  F --> G[register-complete + session]
+  G --> E
+  E --> H[done success]
+```
+
+| Step | UI marker | API |
+| ---- | --------- | --- |
+| Phone | `data-public-registration-phone` | `POST /api/public-auth/phone-preflight` · `request-otp` |
+| OTP | `data-public-registration-otp` | `POST /api/public-auth/verify-otp` |
+| Profile (new only) | `data-public-registration-profile` | `POST /api/public-auth/register-complete` |
+| Tour intake | `data-public-registration-intake` | `POST /api/catalog/registrations` |
+| Success | `data-public-registration-success` | — |
+
+---
+
+## New vs existing user
+
+| Case | After OTP verify |
+| ---- | ---------------- |
+| **Existing** — mobile in DB + `ACTIVE` membership on tenant | Session cookie set → skip profile → **intake** |
+| **New** — no user or no membership | `requires_registration: true` + `onboarding_token` → **profile** → session → **intake** |
+
+Profile rules:
+
+- **Name (`display_name`):** required
+- **Email:** optional (omitted in API body when empty)
+
+Tour intake (separate step):
+
+- Name, email, party size required for Denali `POST /denali/registrations` (email is tour contact, not account email).
+
+---
+
+## Dev OTP `1234`
+
+| Layer | Mechanism |
+| ----- | --------- |
+| API | `verifyMobileOtp` accepts `1234` when `NODE_ENV` is `development` or `test` and `AUTH_ALLOW_DEV_STATIC_OTP !== false` |
+| Portal UI | Pre-fills OTP in dev · shows `data-dev-otp-hint` |
+| E2E | `CATALOG_DEV_OTP = "1234"` in `catalog-registration-otp.ts` |
+
+Production: real OTP from `createMobileOtpChallenge` (SMS/log per `otp-delivery.ts`).
+
+---
+
+## Implementation map
+
+| File | Role |
+| ---- | ---- |
+| `apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx` | Step machine |
+| `apps/portal/app/api/public-auth/*` | BFF → `apps/api` `/public/auth/*` |
+| `apps/api/src/identity/public-auth.routes.ts` | verify + register-complete |
+| `apps/api/src/identity/otp.service.ts` | dev static `1234` |
+
+---
+
+## P6-1 assertion band
+
+| ID | Assert |
+| -- | ------ |
+| OTP-01 | Phone → OTP step after request-otp |
+| OTP-02 | Dev code `1234` verifies in test/dev |
+| OTP-03 | New user → profile step before intake |
+| OTP-04 | Existing user → skips profile |
+| OTP-05 | Profile rejects empty name |
+| OTP-06 | Profile allows empty email |
+| OTP-07 | Success marker after intake |
+
+Specs: `apps/portal/test/public-catalog-registration-flow-contract.spec.ts` · `portal-public-auth-bff.spec.ts`
+
+---
+
+## Smoke (dev)
+
+```bash
+# API + portal + marketing running (smoke club: operator)
+# 1. operator.localhost:3002/tours/{id}          # WRS canonical dev marketing
+# 2. operator.portal.localhost:3003/catalog/{id}/register
+# 3. phone → OTP 1234 → profile (if new) → intake → success
+```
+
+Playwright: `SMK-PTL-01` in `apps/portal/tests/e2e/portal-registration-smoke.spec.ts`
+
+**UI component tree + E2E hooks:** [portal-registration-ui.md](../workspaces/denali/portal-registration-ui.md) · marketing CTA chain: [marketing-catalog-ui.md](../workspaces/denali/marketing-catalog-ui.md) (`data-marketing-register` → portal).

@@ -12,6 +12,7 @@ export type DenaliMatrixCell = `${DenaliRuleModelCategory}:${DenaliRuleModelDura
 
 export type DenaliMatrixTag =
   | "core"
+  | "deliverable"
   | "optional_basic"
   | "destination"
   | "event_variant"
@@ -21,6 +22,8 @@ export type DenaliMatrixTag =
   | "event_program_hidden"
   | "altitude_mountain"
   | "altitude_hidden"
+  | "trail_nature"
+  | "trail_hidden"
   | "itinerary_hidden"
   | "itinerary_visible"
   | "optional_program"
@@ -42,6 +45,7 @@ export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMa
       "end_datetime_hidden",
       "outdoor_program",
       "altitude_mountain",
+      "trail_hidden",
       "itinerary_hidden",
       "optional_program",
       "transport_notes",
@@ -57,6 +61,7 @@ export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMa
       "end_datetime_required",
       "outdoor_program",
       "altitude_mountain",
+      "trail_hidden",
       "itinerary_visible",
       "optional_program",
       "transport_notes",
@@ -72,6 +77,7 @@ export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMa
       "end_datetime_hidden",
       "outdoor_program",
       "altitude_hidden",
+      "trail_nature",
       "itinerary_hidden",
       "optional_program",
       "transport_notes",
@@ -87,6 +93,7 @@ export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMa
       "end_datetime_required",
       "outdoor_program",
       "altitude_hidden",
+      "trail_nature",
       "itinerary_visible",
       "optional_program",
       "transport_notes",
@@ -102,6 +109,7 @@ export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMa
       "end_datetime_hidden",
       "outdoor_program",
       "altitude_hidden",
+      "trail_hidden",
       "itinerary_hidden",
       "optional_program",
       "transport_notes",
@@ -117,6 +125,7 @@ export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMa
       "end_datetime_required",
       "outdoor_program",
       "altitude_hidden",
+      "trail_hidden",
       "itinerary_visible",
       "optional_program",
       "transport_notes",
@@ -133,6 +142,7 @@ export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMa
       "end_datetime_hidden",
       "event_program_hidden",
       "altitude_hidden",
+      "trail_hidden",
       "itinerary_hidden",
       "optional_program",
       "transport_notes",
@@ -149,6 +159,7 @@ export const DENALI_MATRIX_CELL_TAGS: Record<DenaliMatrixCell, readonly DenaliMa
       "end_datetime_required",
       "event_program_hidden",
       "altitude_hidden",
+      "trail_hidden",
       "itinerary_visible",
       "optional_program",
       "transport_notes",

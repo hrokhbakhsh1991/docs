@@ -40,6 +40,36 @@ if (fs.existsSync(distDir)) {
 }
 fs.mkdirSync(distDir, { recursive: true });
 fs.copyFileSync(path.join(srcDir, "index.css"), path.join(distDir, "index.css"));
+fs.copyFileSync(path.join(srcDir, "guest-shell.css"), path.join(distDir, "guest-shell.css"));
+fs.copyFileSync(path.join(srcDir, "portal-bootstrap.css"), path.join(distDir, "portal-bootstrap.css"));
+fs.copyFileSync(path.join(srcDir, "marketing-bootstrap.css"), path.join(distDir, "marketing-bootstrap.css"));
+fs.copyFileSync(path.join(srcDir, "admin-bootstrap.css"), path.join(distDir, "admin-bootstrap.css"));
+fs.copyFileSync(path.join(srcDir, "guest-body-reset.css"), path.join(distDir, "guest-body-reset.css"));
+fs.copyFileSync(
+  path.join(srcDir, "platform-infra-shell.css"),
+  path.join(distDir, "platform-infra-shell.css")
+);
+fs.copyFileSync(
+  path.join(srcDir, "operator-admin-appearance.css"),
+  path.join(distDir, "operator-admin-appearance.css")
+);
+fs.copyFileSync(
+  path.join(srcDir, "operator-admin-dark-semantics.css"),
+  path.join(distDir, "operator-admin-dark-semantics.css")
+);
+fs.copyFileSync(
+  path.join(srcDir, "fallback-guest-portal-shell.css"),
+  path.join(distDir, "fallback-guest-portal-shell.css")
+);
+fs.copyFileSync(
+  path.join(srcDir, "fallback-guest-marketing-shell.css"),
+  path.join(distDir, "fallback-guest-marketing-shell.css")
+);
+fs.copyFileSync(path.join(srcDir, "shell-bridge.css"), path.join(distDir, "shell-bridge.css"));
+fs.copyFileSync(
+  path.join(srcDir, "operator-shell-structure.css"),
+  path.join(distDir, "operator-shell-structure.css")
+);
 fs.copyFileSync(path.join(srcDir, "primitives.css"), path.join(distDir, "primitives.css"));
 fs.copyFileSync(path.join(srcDir, "semantics.css"), path.join(distDir, "semantics.css"));
 copyDir("themes");

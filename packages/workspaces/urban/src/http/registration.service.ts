@@ -3,6 +3,7 @@ import { validateUrbanRegistrationPayload } from "../urban.plugin";
 import { UrbanRegistrationDuplicateError } from "./errors/urban-registration-conflict.error";
 import { UrbanRegistrationClosedError } from "./errors/urban-registration-closed.error";
 import { UrbanWorkspaceRequiredError } from "./errors/urban-workspace-required.error";
+import { getUrbanHttpHost } from "./host-runtime";
 import { isUrbanTourPublished } from "./publish-status";
 import type { UrbanTourStorePort } from "./ports/tour-store.port";
 import {
@@ -67,6 +68,16 @@ export async function createUrbanRegistration(params: {
     throw new UrbanRegistrationDuplicateError();
   }
 
+  const partySize = params.body.partySize ?? 1;
+  const acceptedSeats = await repo.sumAcceptedPartySize(params.tenantId, params.body.tourId);
+  const host = getUrbanHttpHost();
+  const registrationStatus = host.registration.decideRegistrationStatus({
+    tourCapacity: capacity,
+    acceptedSeats,
+    requestedPartySize: partySize,
+    policy,
+  });
+
   const created = await repo.create({
     tenantId: params.tenantId,
     tourId: params.body.tourId,
@@ -75,6 +86,7 @@ export async function createUrbanRegistration(params: {
     phone: params.body.contact.phone,
     partySize: params.body.partySize,
     notes: params.body.notes,
+    status: registrationStatus,
   });
 
   return { id: created.id, status: created.status };

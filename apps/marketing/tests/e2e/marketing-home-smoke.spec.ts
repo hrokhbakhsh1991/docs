@@ -1,0 +1,111 @@
+import { expect, test } from "@playwright/test";
+
+const OPERATOR_PUBLISHED_TOUR_TITLE = "North Ridge Trek";
+
+const URBAN_DENYLIST = ["کوهنوردی", "طبیعت‌گردی"];
+
+test("SMK-MKT-HOME-01 denali full hooks", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-marketing-home-search]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-trust]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-why]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-journey]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-testimonials]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-equipment]")).toBeVisible();
+  await expect(page.locator("[data-marketing-skip-link]")).toHaveCount(1);
+  await expect(page.locator("[data-marketing-home-destinations]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-faq]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-final-cta]")).toBeVisible();
+
+  const featured = page.locator("[data-marketing-home-featured]");
+  const latest = page.locator("[data-marketing-home-latest]");
+  const categories = page.locator("[data-marketing-home-categories]");
+  const gallery = page.locator("[data-marketing-home-gallery]");
+
+  if ((await featured.count()) > 0) {
+    await expect(featured).toBeVisible();
+  }
+  if ((await latest.count()) > 0) {
+    await expect(latest).toBeVisible();
+    await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
+  }
+  if ((await categories.count()) > 0) {
+    await expect(categories).toBeVisible();
+  }
+  if ((await gallery.count()) > 0) {
+    await expect(gallery).toBeVisible();
+  }
+});
+
+test("SMK-MKT-HOME-02 iPhone viewport has no horizontal body overflow", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-marketing-home]")).toBeVisible({ timeout: 60_000 });
+
+  const overflowX = await page.evaluate(() => {
+    const doc = document.documentElement;
+    return doc.scrollWidth > doc.clientWidth;
+  });
+  expect(overflowX).toBe(false);
+});
+
+test("SMK-MKT-HOME-03 English locale shows home lead", async ({ page, baseURL }) => {
+  await page.goto("/en/");
+  await expect(page.locator("[data-marketing-home]")).toBeVisible({ timeout: 60_000 });
+  const isUrban = baseURL?.includes("urban.localhost") ?? false;
+  if (isUrban) {
+    await expect(page.getByText(/View published programs/i)).toBeVisible();
+  } else {
+    await expect(page.getByText(/Published mountain and nature programs/i)).toBeVisible();
+  }
+});
+
+test("SMK-MKT-HOME-05 urban minimal isolation", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-marketing-home-title]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-marketing-home-cta]")).toBeVisible();
+  await expect(page.locator("[data-marketing-home-hero]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-trust]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-final-cta]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-faq]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-why]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-journey]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-testimonials]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-featured]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-categories]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-destinations]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-search]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-gallery]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-home-equipment]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-skip-link]")).toHaveCount(0);
+  await expect(page.locator("[data-marketing-footer]")).toHaveCount(0);
+
+  const bodyText = await page.locator("body").innerText();
+  for (const denied of URBAN_DENYLIST) {
+    expect(bodyText.includes(denied)).toBe(false);
+  }
+});
+
+test("SMK-MKT-HOME-06 mother host platform home", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-platform-mother-home]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-marketing-home]")).toHaveCount(0);
+});
+
+test("SMK-MKT-HOME-07 denali footer visible", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-marketing-footer]")).toBeVisible();
+  await expect(page.locator("[data-marketing-footer-copyright]")).toBeVisible();
+});
+
+test("SMK-MKT-HOME-08 mobile drawer opens nav panel", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-marketing-nav-drawer]")).toBeVisible({ timeout: 60_000 });
+
+  const drawer = page.locator("[data-marketing-nav-drawer]");
+  await expect(drawer).not.toHaveAttribute("open", "");
+  await page.locator("[data-marketing-nav-drawer-toggle]").click();
+  await expect(drawer).toHaveAttribute("open", "");
+  await expect(page.locator("[data-marketing-nav-drawer-panel] a[href='/tours']").first()).toBeVisible();
+});

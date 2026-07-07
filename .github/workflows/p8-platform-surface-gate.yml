@@ -1,0 +1,70 @@
+# P8 — Platform surface hardening gate (Phase 21)
+# @see docs/phase-21/AGENT-START.md
+
+name: p8-platform-surface-gate
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "apps/portal/**"
+      - "apps/marketing/**"
+      - "packages/tenant-kernel/**"
+      - "scripts/p8-*.sh"
+      - "scripts/p7-denali-delivery-gate.sh"
+      - "scripts/p6-denali-product-gate.sh"
+      - "scripts/smoke-p6-host-bind.mjs"
+      - "scripts/vps-deploy/verify-env-coherence.sh"
+      - "scripts/vps-deploy/remote-deploy.sh"
+      - "deploy/vps/**"
+      - "docs/phase-21/**"
+      - ".github/workflows/p8-platform-surface-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "apps/portal/**"
+      - "apps/marketing/**"
+      - "packages/tenant-kernel/**"
+      - "scripts/p8-*.sh"
+      - "scripts/p7-denali-delivery-gate.sh"
+      - "scripts/p6-denali-product-gate.sh"
+      - "scripts/smoke-p6-host-bind.mjs"
+      - "scripts/vps-deploy/verify-env-coherence.sh"
+      - "scripts/vps-deploy/remote-deploy.sh"
+      - "deploy/vps/**"
+      - "docs/phase-21/**"
+      - ".github/workflows/p8-platform-surface-gate.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: p8-platform-surface-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  p8-product-gate:
+    name: P8 product gate (p8:gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: node scripts/guards/check-node-engine.mjs
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @app-tour/workspace-denali run build
+
+      - name: p8:gate
+        run: pnpm run p8:gate

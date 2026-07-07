@@ -60,7 +60,7 @@ trunk_baseline:
 | URL-synced filters | `?search=&status=&category=&sort=&page=&limit=`           | same model · `category` Denali-only chip UI (2026-06-10) |
 | Status filter UI   | all · draft · active · archived                         | same labels (fa/en)                                    |
 | Search debounce    | 300ms                                                   | same                                                   |
-| Sort columns       | title · price (+ API: created_at, difficulty, category) | **title · price · createdAt** (MVP); category **filter** shipped (sort by category deferred) |
+| Sort columns       | title · price (+ API: created_at, difficulty, category) | **title · price · createdAt · departureAt**; UI labels distinguish **createdAt** («تاریخ ثبت») from **departureAt** («تاریخ حرکت»); category **filter** shipped (sort by category deferred) |
 | Pagination         | offset page/limit                                       | offset (operator UI)                                   |
 | Card grid          | responsive CSS grid                                     | mobile-first 1-col → 2-col → 3-col                     |
 | Row click          | → `/tours/{id}` (detail)                                | → `/tours/{id}/edit` (operator default)                |
@@ -116,7 +116,7 @@ Extends Phase 5 `GET /tours` for **operator mode** without breaking slim cursor 
 | `status`        | enum               | —                                   | —         | `active` · `completed` · `archived` (legacy API buckets) |
 | `page`          | int                | 1                                   | —         | 1-based; ignored when `view=slim` + cursor               |
 | `limit`         | int                | 10                                  | 100       | Operator default **10** (legacy); slim default **50**    |
-| `sort_by`       | enum               | `created_at`                        | —         | `created_at` · `title` · `price`                         |
+| `sort_by`       | enum               | `created_at`                        | —         | `created_at` · `title` · `price` · `departure_at` (2026-06-24) |
 | `sort_dir`      | enum               | `desc`                              | —         | `asc` · `desc`                                           |
 | `cursor`        | string             | —                                   | —         | **slim view only** — unchanged Phase 5                   |
 | `include_total` | bool               | true                                | —         | Set false for keyset-only clients                        |
@@ -210,7 +210,8 @@ sequenceDiagram
 | `priceAmount`      | `costContext.totalAmount` or plugin price resolver |
 | `totalCapacity`    | `capacityMax`                                      |
 | `category`         | `category`                                         |
-| `coverImageUrl`    | `photos[0].url`                                    |
+| `coverImageUrl`    | First photo `url` (HTTPS) or server-signed MinIO read URL from first photo `storageKey` — rows from flat `photos[]` **or** legacy persisted `photosData.photos` (same paths as edit hydrate) |
+| `coverImageStorageKey` | First photo `storageKey` when URL not yet resolved — operator BFF fallback (`2026-06-24`) |
 | `departureAt`      | `startDateTime`                                    |
 
 > **Trunk note (2026-06-08):** Denali canonical persists `publishStatus` (`draft` \| `active`) at the top-level `data` root — not legacy `details.status`. `extractTourListProjection` maps `publishStatus` → `listStatus` / `uiStatus` per §4.1 bucket table until lifecycle FSM lands.

@@ -25,9 +25,24 @@ pnpm run phase-0:covenant-gate      # Phase 0 covenant (alias: phase-0:foundatio
 pnpm run phase-0:trunk-gate         # trunk integrity (alias: phase-0:integration-gate)
 pnpm run phase-0:gate               # covenant-gate then trunk-gate
 pnpm run pre-commit:fast            # same as Husky fast path (<60s target)
+pnpm run guard:wrs-routing          # WRS-001 — no shop.* egress in app src
+pnpm run guard:wrs-stale-docs       # WRS-001 — docs/playwright must not regress to shop.operator canonical
+pnpm run guard:pcms-authority       # PCMS-001 — portal owns member session; marketing anonymous
+pnpm run smoke:wrs-custom-apex      # Phase 5 — custom apex host bind (needs tenant_domains + API)
+pnpm run seed:wrs-denali-club-domains  # dev seed denali.club + portal + admin.denali.club rows
+pnpm run smoke:pcms-custom-apex      # PCMS — denali.club + portal + admin tenant-context smoke
+pnpm --filter @apps/portal run test:smoke  # SMK-PTL-* portal E2E (incl. SMK-PTL-07 resume)
+pnpm --filter @apps/portal run test:smoke:custom-apex  # SMK-PTL-08 custom apex E2E
 pnpm run phase-9:guard              # Phase 9 doc pack — 32 charter gates
 pnpm run guard:p9-boundary-diff     # Phase 9 PR boundary allowlist (9.1+)
-pnpm run phase-10:guard             # Phase 10 workspace host invariants (fast)
+pnpm run phase-10:guard             # Phase 10 host invariants — 11/11 (incl. I1+I2 + certification)
+pnpm run build:workspace-sdk-for-guards  # catalog-registration-auth → sdk (fresh checkout / GHA)
+pnpm run guard:workspace-certification  # Phase H CERT-04 proof matrix
+pnpm run phase-i:fast-track            # Phase I guards (fast)
+pnpm run phase-i:closure               # G+H regression + I1/I2 closure bundle
+pnpm run phase-g-h:handoff             # merge PR checklist (no gh)
+pnpm run phase-g-h:create-pr           # DEV→main PR (gh auth or GITHUB_TOKEN)
+pnpm run phase-g-h:create-pr-api        # DEV→main PR via GITHUB_TOKEN only
 pnpm run generate:workspace-registry  # after workspace.manifest.json change
 pnpm run workspace:create -- <id>   # scaffold packages/workspaces/<id>
 pnpm run test:changed               # git-aware unit tests (origin/main...HEAD, cached)
@@ -59,3 +74,8 @@ After `pnpm install`, Husky runs **`pnpm run pre-commit:fast`** (eslint + pretti
 - Phase 2: [`docs/phase-2-design-system.md`](docs/phase-2-design-system.md)
 
 Quick index: [`docs/MIGRATION.md`](docs/MIGRATION.md).
+
+**Standards (routing + member session):**
+
+- WRS-001: [`docs/standards/workspace-routing-standard.mdoc`](docs/standards/workspace-routing-standard.mdoc)
+- PCMS-001: [`docs/standards/member-session-portal-authority.mdoc`](docs/standards/member-session-portal-authority.mdoc)

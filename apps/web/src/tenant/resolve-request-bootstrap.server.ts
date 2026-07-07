@@ -3,7 +3,7 @@ import { cookies, headers } from "next/headers";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
-import { validateSessionToken } from "@/auth/validate-session-token";
+import { validateSessionToken } from "@app-tour/session-client";
 
 import {
   resolveBootstrapAppSession,

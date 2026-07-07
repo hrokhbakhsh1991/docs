@@ -359,6 +359,10 @@ export async function publishClaimedOutboxRow(row: ClaimedOutboxRow): Promise<vo
 
   await dispatchTourCreatedOutboxSideEffects(toWorkspaceOutboxPublishedRow(row));
 
+  const { dispatchIntegrationDomainEvent } =
+    await import("../integrations/application/dispatch-integration-domain-event");
+  await dispatchIntegrationDomainEvent(toWorkspaceOutboxPublishedRow(row));
+
   await markOutboxDoneWithRetry(row);
 }
 

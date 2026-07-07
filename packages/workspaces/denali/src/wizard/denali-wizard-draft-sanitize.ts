@@ -5,6 +5,8 @@ import {
   type CanonicalWizardDraftEnvelope,
 } from "./canonical-draft-access";
 import type { DenaliWizardRulesModule } from "./denali-wizard-rules-module";
+import { hasDenaliWizardClassification } from "./apply-contextual-render-plan";
+import { shouldPersistCanonicalPathFromForm } from "./denali-canonical-form-sync";
 import { tourWizardDraftToDenaliForm } from "./denali-wizard-form-adapter";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -71,6 +73,9 @@ function syncDenaliFormToDraftEnvelope(
       }
       continue;
     }
+    if (!shouldPersistCanonicalPathFromForm(canonicalPath)) {
+      continue;
+    }
     const mapped = coerceScalarFormValueForDraft(formValue);
     if (JSON.stringify(mapped) !== JSON.stringify(draftValue)) {
       next = setCanonicalValueOnDraft(next, canonicalPath, mapped);
@@ -84,6 +89,9 @@ export function sanitizeDenaliWizardDraftEnvelope(
   rules: DenaliWizardRulesModule,
   evalContext: DenaliWizardRuleEvalContext
 ): CanonicalWizardDraftEnvelope {
+  if (!hasDenaliWizardClassification(draft, rules)) {
+    return draft;
+  }
   const form = tourWizardDraftToDenaliForm(draft, rules);
   const sanitized = rules.applyDenaliInvariantState(
     form,

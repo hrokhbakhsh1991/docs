@@ -11,6 +11,8 @@
  *
  * Stale `schemaVersion` → SCHEMA_VERSION_MISMATCH (workspace current is 1 for starter).
  * PATCH /tours/:id uses the same pre-TX gate after merge (DEC-078 / SV-PATCH-01, SV-PATCH-05, SV-PATCH-09).
+ * Starter/default workspaces shallow-merge PATCH `data` at the root level so commerce-injected roots
+ * (e.g. `pricing`) survive fragment updates (SV-PATCH-05).
  *
  * STORAGE_DRIVER=memory — no Postgres required.
  *
@@ -361,7 +363,7 @@ describe("4-integration — schema version compatibility (memory)", () => {
     assert.equal(after.rowVersion, seeded.rowVersion);
   });
 
-  it("PATCH /tours/:id SV-PATCH-05: partial data missing details root rejects with structured 400", async () => {
+  it("PATCH /tours/:id SV-PATCH-05: partial basics patch merges without dropping details root", async () => {
     const seeded = await seedTourForPatch(listener, tenantId, store);
     const beforeCount = (await store.listByTenant(tenantId)).length;
 
@@ -371,14 +373,18 @@ describe("4-integration — schema version compatibility (memory)", () => {
       data: { basics: { title: "PATCH partial — no details root" } },
     });
     assertNotInternalError(res, "patch-partial-missing-details");
-    assertStructuredReject(res, "patch-partial-missing-details");
+    assert.equal(res.status, 200, JSON.stringify(res.body));
 
     assert.equal((await store.listByTenant(tenantId)).length, beforeCount);
     const after = await store.getById(seeded.id, tenantId);
     assert.ok(after);
     assert.equal(
       (after.canonical.data?.basics as { title?: string } | undefined)?.title,
-      "PATCH seed tour"
+      "PATCH partial — no details root",
+    );
+    assert.equal(
+      (after.canonical.data?.details as { summary?: string } | undefined)?.summary,
+      "seed",
     );
   });
 

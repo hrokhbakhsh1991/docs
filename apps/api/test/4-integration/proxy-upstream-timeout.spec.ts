@@ -102,7 +102,7 @@ describe("4-integration — proxy upstream timeout + circuit breaker (DEC-075)",
 
   it("fails fast when upstream never responds (PI-01)", async () => {
     const upstream = await startHungUpstream();
-    const proxy = new TenantHttpProxy({ upstreamBaseUrl: upstream.baseUrl });
+    const proxy = new TenantHttpProxy({ upstreamBaseUrl: upstream.baseUrl, egressGuard: false });
     const started = Date.now();
 
     await assert.rejects(
@@ -123,7 +123,7 @@ describe("4-integration — proxy upstream timeout + circuit breaker (DEC-075)",
 
   it("opens circuit after repeated upstream 5xx", async () => {
     const upstream = await startStatusUpstream(503);
-    const proxy = new TenantHttpProxy({ upstreamBaseUrl: upstream.baseUrl });
+    const proxy = new TenantHttpProxy({ upstreamBaseUrl: upstream.baseUrl, egressGuard: false });
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await runWithTenantContext(tenantId, async () => {

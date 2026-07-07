@@ -1,0 +1,129 @@
+# P8 — Action plan (fit-aligned v1.1)
+# App fit: p8-app-fit.md — Profile A+B only; P9/P10 items excluded
+
+action_plan_id: P8-ACTION-PLAN
+version: "1.1"
+pack: P8
+status: PLANNED
+prerequisite: P7 BEHAVIORAL_COMPLETE
+app_fit: p8-app-fit.md
+strict_baseline:
+  ingress: 3.5
+  session: 2.5
+  env: 3.5
+exit_target:
+  profile_a: 9.0
+  profile_b_session_cap: 8.0
+  profile_b_ingress: 8.0
+  env: 9.0
+
+# NOT in P8: guest-surface-host (P9) · web public-auth removal (P9) · __Host- cookies (P10) · TLS edge (P10)
+
+waves:
+  A:
+    name: P0 — fits app (Profile B unblock)
+    items:
+      - id: A1
+        gap: G-ING-01
+        action: Wire resolvePublicTenantLabelFromIngressHost in tenant-context
+        files: [apps/api/src/tenant/tenant-branding.routes.ts]
+        epic: P8-0-N-001
+
+      - id: A2
+        gap: G-ING-02
+        action: Remove marketing prod silent smoke fallback
+        files: [apps/marketing/src/tenant/resolve-marketing-bootstrap.ts]
+        epic: P8-0-N-002
+
+      - id: A3
+        gap: [G-SES-01, G-SES-02]
+        action: Distinct cookie names operator vs member — NO __Host- prefix on HTTP Profile B
+        files:
+          - apps/web/src/auth/build-session-cookie.ts
+          - apps/portal/src/auth/build-session-cookie.ts
+        epic: P8-1-N-001
+
+      - id: A4
+        gap: [G-SES-03, G-SES-05]
+        action: Fail-closed JWT tenant_id vs API-resolved host tenant (web + portal)
+        epic: P8-1-N-002
+
+      - id: A5
+        gap: [G-ENV-01, G-ENV-02]
+        action: Bootstrap + verify four env files
+        epic: P8-2-N-001
+
+      - id: A6
+        gap: G-SES-06
+        action: Portal SESSION_COOKIE_SECURE parity with web
+        epic: P8-1-N-004
+
+  B:
+    name: P1 — P8 completion
+    items:
+      - id: B1
+        gap: G-SES-04
+        action: apps/portal/middleware.ts
+        epic: P8-1-N-003
+
+      - id: B2
+        gap: G-ING-04a
+        action: Enforce club_* parser surface kinds — not custom apex DB
+        epic: P8-0-N-003
+
+      - id: B3
+        gap: G-ENV-03
+        action: p8-env-contract.yaml in verify script
+        epic: P8-2-N-002
+
+      - id: B4
+        gap: G-ENV-04
+        action: Fail-fast startup config
+        epic: P8-2-N-004
+
+      - id: B5
+        gap: G-ING-03
+        action: M+P bootstrap error parity
+        epic: P8-0-N-005
+
+      - id: B6
+        gap: G-ING-05a
+        action: Document API loopback-only on VPS — not enterprise edge signing
+        epic: P8-0-N-004
+
+  C:
+    name: P8 gate
+    items:
+      - id: C1
+        action: p8:gate Profile A + B smoke
+        epic: P8-3-N-001
+
+      - id: C2
+        gap: G-ENV-07
+        action: deploy/vps/README four-process
+        epic: P8-3
+
+      - id: C3
+        action: CI verify-env-coherence on deploy/ PR
+        epic: P8-3-N-002
+
+out_of_scope_p8:
+  moved_to_p9:
+    - guest-surface-host package
+    - remove web public-auth BFF
+    - G-ING-06 pluginId heuristic
+    - G-ING-07 triplicate resolve-host-tenant
+  moved_to_p10:
+    - G-SES-07 __Host- cookie prefix
+    - G-ING-04b tenant_domains custom apex surface
+    - G-ING-05b edge signed x-forwarded-host
+    - TLS Caddy templates
+
+p7_overlap:
+  items: [A1, A5]
+  note: May run in P7-0 for Profile B first customer
+
+references:
+  sole_boot: appendices/P8-BOOT-MANIFEST.yaml
+  verification: appendices/P8-VERIFICATION-COMMANDS.yaml
+  app_fit: p8-app-fit.md

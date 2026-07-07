@@ -17,6 +17,7 @@
     "tripDetails": {
       "overview": {
         "peakHeight": "Peak height (m)",
+        "trailDistanceKm": "Trail distance (km)",
         "customServiceLabels": "Custom service labels",
         "nonAttendanceDetails": "Non-attendance details"
       },
@@ -60,12 +61,21 @@
     "participants": {
       "gearItems": "Required gear",
       "nationalIdRequired": "National ID required at registration",
+      "fatherNameRequired": "Father's name required at registration",
+      "birthDateRequired": "Birth date required at registration",
       "minimumAge": "Minimum age",
       "maximumAge": "Maximum age",
       "fitnessLevel": "Fitness level",
       "sportsInsuranceRequired": "Personal sports / mountaineering insurance",
       "fitnessPrerequisiteText": "Fitness / experience prerequisite",
-      "minRequiredPeaks": "Minimum summits climbed (auto-approval)"
+      "minRequiredPeaks": "Minimum summits climbed (auto-approval)",
+      "medicationsRequired": "Collect medications at registration",
+      "allergiesRequired": "Collect allergies (food, medicine, environment)",
+      "dietaryRequirementsRequired": "Collect dietary restrictions",
+      "medicalDeclarationRequired": "Health / medical conditions declaration",
+      "emergencyContactRequired": "Emergency contact at registration",
+      "physicalLimitationsRequired": "Physical or mental limitations disclosure",
+      "evacuationInsuranceRequired": "Medical / evacuation insurance attestation"
     },
     "transport": {
       "mode": "Transport mode",
@@ -80,13 +90,16 @@
     "pricing": {
       "requiresPayment": "Paid tour (registration requires payment)",
       "basePricePerPerson": "Price per person",
+      "paymentMode": "Payment method",
       "includesTourInsurance": "Tour includes organizer group liability insurance"
     },
     "policies": {
       "cancellationDeadlineHours": "Cancellation deadline (hours before departure)",
       "cancellationPenaltyPercentage": "In-window cancellation penalty (%)",
-      "policiesText": "Policies & notes (optional)"
-    }
+      "policiesText": "Policies & notes (optional)",
+      "medicalFitnessDeclarationRequired": "Require medical-fitness acknowledgement at registration"
+    },
+    "publishStatus": "Publish status"
   },
   "fieldKinds": {
     "text": "Text",
@@ -116,6 +129,9 @@
     "shared_cars": "Shared cars (carpool)",
     "none": "No organized transport"
   },
+  "paymentModes": {
+    "offline_receipt": "Offline receipt / bank transfer"
+  },
   "composites": {
     "common": {
       "name": "Name",
@@ -131,6 +147,9 @@
     },
     "tourKind": {
       "placeholder": "Select tour type…",
+      "currentLabel": "Current selection:",
+      "changeHint": "Click to change",
+      "changeLabel": "Change tour category and duration",
       "helper": "Category and duration drive which fields appear (elevation, hiking hours, itinerary, location zones, and more).",
       "categories": {
         "mountain": "Mountain",
@@ -206,12 +225,23 @@
       "httpsUrlRequired": "Image URL must use HTTPS (https://…).",
       "missingPhotoId": "Photo row is missing an id.",
       "uploadFailed": "Upload failed",
+      "uploading": "Uploading…",
+      "previewLoadFailed": "Could not load image preview.",
+      "previewRetry": "Retry",
       "uploadErrors": {
         "PHOTO_INVALID_TYPE": "Only JPEG, PNG, or WebP images are allowed.",
         "PHOTO_FILE_TOO_LARGE": "Image must be 5 MB or smaller.",
         "PHOTO_STORAGE_NOT_CONFIGURED": "Photo storage is not configured. Use an image URL instead.",
+        "PHOTO_STORAGE_FULL": "Photo storage is full. Contact your administrator or use an image URL instead.",
+        "PHOTO_STORAGE_UNAVAILABLE": "Photo storage is temporarily unavailable. Try again or use an image URL.",
+        "PHOTO_AUTH_REQUIRED": "Sign in again to upload photos.",
+        "PHOTO_BACKEND_UNREACHABLE": "Could not reach the server. Check your connection and try again.",
+        "PHOTO_PREVIEW_URL_MISSING": "Preview URL was not returned by the server.",
+        "PHOTO_PREVIEW_HTTPS_REQUIRED": "Image URL must use HTTPS to preview.",
         "PHOTO_UPLOAD_HTTP_ERROR": "Upload failed (HTTP {status, number}).",
-        "PHOTO_MISSING_STORAGE_KEY": "Upload response missing storage key."
+        "PHOTO_MISSING_STORAGE_KEY": "Upload response missing storage key.",
+        "PHOTO_INVALID_UPLOAD_HEADERS": "Invalid upload request headers.",
+        "PHOTO_SERVICE_BUSY": "The server is temporarily busy. Try again in a few seconds."
       },
       "addPhoto": "Add photo",
       "removePhoto": "Remove photo",
@@ -289,15 +319,14 @@
       }
     },
     "socialMedia": {
-      "helper": "Where participants get tour updates. Telegram needs only a channel name; other networks need a full link.",
+      "helper": "Where participants get tour updates and join the group.",
       "telegram": "Telegram",
-      "other": "Other",
-      "telegramFieldLabel": "Channel or username",
-      "urlFieldLabel": "Link",
-      "telegramPlaceholder": "@mychannel",
+      "other": "Other platform",
+      "urlFieldLabel": "Group link",
       "urlPlaceholder": "https://instagram.com/...",
-      "telegramHint": "No full URL needed — enter @username or channel name only.",
-      "urlHint": "Enter the full link starting with https://",
+      "telegramAutoInfo": "With Telegram selected, the group link is created automatically after the tour is published — no manual link needed.",
+      "reviewTelegramAuto": "Telegram — group created automatically",
+      "urlHint": "Enter the full group link starting with https://",
       "invalidTelegram": "Enter a valid Telegram channel or username.",
       "invalidUrl": "Link must start with http:// or https://"
     },
@@ -307,6 +336,10 @@
       "empty": "No leaders yet. Open Users and enable the leader tag for each guide.",
       "openUsers": "Open Users",
       "selectedCount": "{count, number} selected",
+      "expandPicker": "Edit leaders",
+      "collapsePicker": "Close list",
+      "overflowCount": "+{count, number} more",
+      "removeLeader": "Remove {name}",
       "leaderBadge": "Leader",
       "adminBadge": "Admin",
       "searchLabel": "Search leaders",
@@ -323,18 +356,77 @@
       "loading": "Loading equipment…",
       "empty": "No equipment matches the current themes. Add items under Settings → Equipment or pick different themes.",
       "openEquipment": "Open equipment settings",
+      "allThemes": "All themes",
       "selectedCount": "{count, number} items selected",
       "required": "Required",
       "optional": "Optional",
       "requirementGroup": "Requirement for {name}",
       "searchLabel": "Search equipment",
       "searchPlaceholder": "Equipment name…",
-      "searchEmpty": "No equipment matches this search."
+      "searchEmpty": "No equipment matches this search.",
+      "iconPickerLabel": "Equipment icon",
+      "iconPickerHelper": "The same symbol appears in the tour wizard and settings list.",
+      "iconPreviewPlaceholder": "Equipment name",
+      "iconSearchLabel": "Search icons",
+      "iconSearchPlaceholder": "Icon or gear name…",
+      "iconSuggestion": "Suggested: {label}",
+      "iconSuggestionApply": "Apply suggestion",
+      "iconUseInitials": "No icon (name initials)",
+      "iconCategoriesLabel": "Icon categories",
+      "iconCategories": {
+        "hiking": "Hiking",
+        "camp": "Camp",
+        "clothing": "Clothing",
+        "safety": "Safety",
+        "foodWater": "Food & water",
+        "general": "General"
+      },
+      "icons": {
+        "backpack": "Backpack",
+        "trekking_poles": "Trekking poles",
+        "boot": "Hiking boots",
+        "mountain": "Mountain",
+        "map": "Map",
+        "compass": "Compass",
+        "tent": "Tent",
+        "sleeping_bag": "Sleeping bag",
+        "flashlight": "Flashlight",
+        "gloves": "Gloves",
+        "jacket": "Jacket",
+        "glasses": "Glasses",
+        "helmet": "Helmet",
+        "first_aid": "First aid",
+        "life_buoy": "Life jacket",
+        "water_bottle": "Water bottle",
+        "utensils": "Utensils",
+        "rope": "Rope",
+        "tool": "Tool",
+        "camera": "Camera",
+        "umbrella": "Umbrella",
+        "sun": "Sunscreen"
+      }
     },
     "destination": {
+      "sectionTitle": "Destination",
       "loadingPlaceholder": "Loading destinations…",
       "selectPlaceholder": "Select destination",
+      "searchLabel": "Search destinations",
+      "searchPlaceholder": "Type destination name…",
+      "searchEmpty": "No destination matches your search.",
       "empty": "No destinations yet. Add regions and destinations under Settings → Locations."
+    },
+    "destinationCatalogMetric": {
+      "peakHeight": {
+        "sectionTitle": "Peak height (m)"
+      },
+      "trailDistance": {
+        "sectionTitle": "Trail distance (km)"
+      },
+      "digitsPlaceholder": "e.g. 3962",
+      "decimalPlaceholder": "e.g. 5.5",
+      "lockedFromSettings": "This value is stored on the destination in Settings and cannot be edited in the wizard.",
+      "selectDestinationFirst": "Select a destination first.",
+      "savingToSettings": "Saving to destination catalog…"
     },
     "programContent": {
       "helper": "Pick one or more themes to categorize and present this tour.",
@@ -379,12 +471,22 @@
     "photoCount": "{count, number} {count, plural, one {photo} other {photos}}",
     "dayLabel": "Day {day, number}",
     "primaryGathering": "Primary",
+    "editSection": "Edit",
     "stepValidationHeading": "Fix these issues before continuing",
     "validationHeading": "Fix these issues before creating the tour",
     "validationCount": "{count, number} {count, plural, one {issue} other {issues}} to fix",
     "validationStepGroup": "{step} — {count, number} {count, plural, one {issue} other {issues}}",
     "validationGoToStep": "Go to step {step}",
     "validationIssueAction": "Go to {field} and fix this issue",
+    "validation": {
+      "REQUIRED_FIELD_EMPTY": "{field} is required",
+      "CANONICAL_TYPE_MISMATCH": "{field} has an invalid value",
+      "CANONICAL_ROOT_UNKNOWN": "{field} is not allowed in this form",
+      "HIDDEN_FIELD_POISON": "{field} contains a value that must be cleared",
+      "VALIDATION_RULE_REQUIRED_FIELD": "{field} is required",
+      "DENALI_TOUR_TYPE_REQUIRED": "Select a tour type before continuing",
+      "CARDINALITY_VIOLATION": "{field} exceeds allowed limits"
+    },
     "publishStatus": {
       "helper": "Draft tours stay internal until you publish as active.",
       "draft": "Draft",

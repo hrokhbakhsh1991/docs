@@ -1,0 +1,86 @@
+---
+title: Phase 15 — Public tenant branding API
+phase: 15
+format: markdoc
+---
+
+# Public tenant branding (P15-P-A1b)
+
+## Surface
+
+| Layer | Route / module | Auth |
+|-------|----------------|------|
+| API | `GET /public/tenant-branding` | none |
+| Web BFF | `GET /api/public/tenant-branding` | none (middleware-public) |
+| Settings (Denali only) | `GET/PATCH /settings/branding` | session + owner |
+
+Urban tenants **must** receive 200 on the public route and **403** on settings branding — different surfaces by design.
+
+## Request flow
+
+```text
+Host / x-forwarded-host (ingress prefers forwarded)
+  → resolveTenantSubdomainFromHostHeader (P1 EPIC E)
+      club_admin:   {club}.admin.{root}
+      club_portal:  {club}.portal.{root}
+      club_apex:    {club}.{root}  (single-level fallback inside kernel parser)
+  → resolveRegisteredTenantBySubdomain(subdomain)
+  → resolvePublicTenantBrandingBySubdomain
+  → 200 { displayName, primaryColor, logoUrl, defaultLocale }
+```
+
+`GET /public/tenant-context` uses the **same subdomain extraction** so web BFF `resolveOperatorBffTenantId` can bind `{club}.admin.localhost` to the provisioned tenant (required for platform owner handoff E2E).
+
+Ingress prefers `x-forwarded-host` over `Host` (web BFF loopback to API on `127.0.0.1`).
+
+## Response contract
+
+| Field | Type | Source |
+|-------|------|--------|
+| `displayName` | `string \| null` | merged `tenants.theme.displayName` |
+| `primaryColor` | `string \| null` | merged theme or workspace default |
+| `logoUrl` | `string \| null` | signed MinIO URL when logo set; null on storage failure |
+| `defaultLocale` | `"en" \| "fa" \| null` | merged theme; urban default `en` when missing |
+
+## Theme resolution (Postgres vs static registry)
+
+Two registry paths feed the same merge pipeline:
+
+| Path | When | Theme JSON source |
+|------|------|-------------------|
+| **Static** | `NODE_ENV=test` or dev smoke (`DEV_TENANTS`) | In-memory `tenant-registry.ts` rows |
+| **Postgres** | `DATABASE_URL` set in prod-like env | `tenants.theme` JSON column |
+
+Merge steps for every resolved tenant:
+
+1. `themeFromJson(row.theme)` — parse persisted JSON into `TenantThemeConfig` (including `defaultLocale`).
+2. `resolveDefaultTenantBranding(workspaceType)` — workspace-type preset when row is sparse.
+3. `resolveEffectiveTenantBranding(stored, fallback)` — stored non-empty fields win; missing `defaultLocale` inherits from fallback.
+
+### P15-P-A1b fix (defaultLocale gap)
+
+Before Phase 15, Postgres-backed tenants could lose `defaultLocale` because:
+
+- `themeFromJson` omitted `defaultLocale` from the JSON column.
+- `resolveEffectiveTenantBranding` did not merge `defaultLocale` from fallback when stored had `primaryColor` but no locale.
+- Urban workspace default lacked `defaultLocale: "en"`.
+
+After fix: urban public branding returns `defaultLocale: "en"` on both static and Postgres paths when not overridden in `tenants.theme`.
+
+## Error mapping (API direct)
+
+| HTTP | Code | Cause |
+|------|------|-------|
+| 404 | `TENANT_HOST_UNKNOWN` | Host outside `{label}.{TENANT_ROOT_DOMAIN}` |
+| 404 | `TENANT_NOT_FOUND` | Subdomain not in Postgres and no dev fallback |
+
+Web BFF (P15-P-A1a) soft-fails API errors with **200** and null branding — API fixes above ensure real dev hosts return substantive 200 bodies.
+
+## Verify
+
+```bash
+pnpm --filter @app-tour/workspace-sdk test -- test/tenant-branding-merge.spec.ts
+pnpm --filter @apps/api run test:file -- test/tenant-branding.spec.ts
+curl -s -H 'host: urban.localhost' http://127.0.0.1:3001/public/tenant-branding
+curl -s -H 'x-forwarded-host: denali.localhost' http://127.0.0.1:3001/public/tenant-branding
+```

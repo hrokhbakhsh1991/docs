@@ -5,20 +5,52 @@
  */
 
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+import {
+  getOrCreateWorkspacePluginLoad,
+  invalidateWorkspacePluginLoadCache,
+} from "./workspace-plugin-load-cache";
+import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
+import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/guest-club.plugin";
+import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
+import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
 
-const pluginLoadCache = new Map<string, Promise<WorkspacePlugin>>();
+/** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "denali,guest-club,starter,urban";
+
+/** Upper bound for per-process plugin load cache (= trunk plugin count). */
+export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 4;
+
+export { invalidateWorkspacePluginLoadCache };
+
+const SYNC_WORKSPACE_PLUGINS: Readonly<Record<string, WorkspacePlugin>> = Object.freeze({
+  "denali": getDenaliWorkspacePlugin(),
+  "guest-club": getGuestClubWorkspacePlugin(),
+  "starter": getStarterWorkspacePlugin(),
+  "urban": getUrbanWorkspacePlugin(),
+});
+
+export function resolveSyncWorkspacePluginFromRegistry(pluginId: string): WorkspacePlugin {
+  const plugin = SYNC_WORKSPACE_PLUGINS[pluginId];
+  if (plugin == null) {
+    throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);
+  }
+  return plugin;
+}
 
 export async function loadWorkspacePluginByIdFromRegistry(
   pluginId: string
 ): Promise<WorkspacePlugin> {
-  const cached = pluginLoadCache.get(pluginId);
-  if (cached) return cached;
-
-  const loadPromise = (async () => {
-    switch (pluginId) {
+  return getOrCreateWorkspacePluginLoad(
+    pluginId,
+    async () => {
+      switch (pluginId) {
     case "denali": {
       const mod = await import("@app-tour/workspace-denali/plugin");
       return mod.getDenaliWorkspacePlugin();
+    }
+    case "guest-club": {
+      const mod = await import("@app-tour/workspace-guest-club/guest-club.plugin");
+      return mod.getGuestClubWorkspacePlugin();
     }
     case "starter": {
       const mod = await import("@app-tour/workspace-starter");
@@ -28,11 +60,13 @@ export async function loadWorkspacePluginByIdFromRegistry(
       const mod = await import("@app-tour/workspace-urban/plugin");
       return mod.getUrbanWorkspacePlugin();
     }
-      default:
-        throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);
+        default:
+          throw new Error(`WORKSPACE_PLUGIN_NOT_FOUND:${pluginId}`);
+      }
+    },
+    {
+      registryRevision: WORKSPACE_PLUGIN_REGISTRY_REVISION,
+      maxEntries: WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES,
     }
-  })();
-
-  pluginLoadCache.set(pluginId, loadPromise);
-  return loadPromise;
+  );
 }

@@ -1,0 +1,17 @@
+```yaml
+phase: 23
+pack: P10
+pack_version: "1.0"
+status: IN_PROGRESS
+ai_agent_pack: COMPLETE
+doc_quality_target: "85+ai"
+prerequisite: P9_exit_Wave_A_B
+current_task: P10-1-N-001
+current_wave: A
+nano_total: 16
+fail_token: P10_FAIL
+p10_gate: pnpm run p10:gate
+boot_manifest: appendices/P10-BOOT-MANIFEST.yaml
+blocked_until: null
+last_update: 2026-06-23-wave-b-n006
+```

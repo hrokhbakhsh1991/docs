@@ -74,8 +74,7 @@ Registered in Denali + starter manifests. Registry row: [SETTINGS-MODULE-REGISTR
 - Object key tenant-scoped; cross-tenant key rejected on read.
 - No SVG (XSS surface).
 - Cache invalidation: `invalidateTenantRegistryCache` on theme update.
-- **Module gate (BR-10):** `assertWorkspaceBrandingModuleAccess` — resolves `workspace_branding` from tenant manifest; **urban** → `403 SETTINGS_WORKSPACE_FORBIDDEN`; unknown module → `404`.
-- **Workspace guard:** nested inside module gate via `assertDenaliOperatorSettingsWorkspace`.
+- **Module gate (BR-10):** `assertWorkspaceBrandingModuleAccess` — resolves `workspace_branding` from tenant manifest; **urban** (module absent) → `404 SETTINGS_MODULE_UNKNOWN`; unknown module → `404`.
 
 ## UI cascade
 
@@ -96,7 +95,7 @@ Shared fallback: `TenantBrandFallbackMark` — used by `TenantBrandMark` and log
 | Client upload validation | `validateTenantBrandLogoFile` before POST |
 | Login fallback | `pluginId` from host bootstrap — not hardcoded Denali |
 | Module access gate | `assertWorkspaceBrandingModuleAccess` (read/mutate) |
-| Urban API guard | `assertDenaliOperatorSettingsWorkspace` on `/settings/branding*` |
+| Urban API (no module in manifest) | `404 SETTINGS_MODULE_UNKNOWN` on `/settings/branding*` |
 | Member CASL read | `workspace_branding` in `MEMBER_READABLE_SETTINGS_MODULE_IDS` |
 | Cross-shell logo cache | `tenant-branding-logo-cache.ts` — one in-flight fetch; **no** `?v=` on presigned MinIO URLs (breaks signature) |
 | API bytes sniff | `tenant-brand-logo-bytes.ts` in workspace-sdk |
@@ -175,5 +174,5 @@ Phases 1–7 are implemented and covered by automated specs above. Phase 8 manua
 3. save displayName → nav title updates
 4. member → read-only UI (no upload/save)
 5. logout → login shows tenant logo + displayName
-6. urban tenant → branding module hidden + API `403 SETTINGS_WORKSPACE_FORBIDDEN`
+6. urban tenant → branding module hidden + API `404 SETTINGS_MODULE_UNKNOWN`
 7. oversized / wrong file type → localized client error before POST

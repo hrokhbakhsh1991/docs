@@ -77,10 +77,72 @@ describe("tour-list-projection.spec.ts — workspace-denali", () => {
     assert.equal(projection.acceptedCount, 0);
     assert.equal(projection.category, "mountain_day");
     assert.equal(projection.coverImageUrl, null);
+    assert.equal(projection.coverImageStorageKey, null);
     assert.equal(projection.departureAt, "2026-06-01T08:00:00.000Z");
     assert.equal(
       plugin.tourList?.extractTourListProjection(canonical).title,
       projection.title
     );
+  });
+
+  it("DN-9.3-02 coverImageUrl uses https url on first photo", () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const canonical = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: [...plugin.wizard.roots],
+      data: buildDenaliCanonicalData(plugin.wizard.roots, {
+        title: "Cover tour",
+        publishStatus: "active",
+        photos: [{ id: "p1", url: "https://cdn.example.com/cover.jpg" }],
+      }),
+    });
+
+    const fields = extractDenaliTourListProjection(canonical);
+    assert.equal(fields.coverImageUrl, "https://cdn.example.com/cover.jpg");
+    assert.equal(fields.coverImageStorageKey, null);
+  });
+
+  it("DN-9.3-03 coverImageStorageKey uses first photo MinIO key", () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const canonical = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: [...plugin.wizard.roots],
+      data: buildDenaliCanonicalData(plugin.wizard.roots, {
+        title: "MinIO cover tour",
+        publishStatus: "draft",
+        photos: [
+          {
+            id: "p1",
+            storageKey: "tenant/wizard-drafts/session/photos/p1",
+          },
+        ],
+      }),
+    });
+
+    const fields = extractDenaliTourListProjection(canonical);
+    assert.equal(fields.coverImageUrl, null);
+    assert.equal(fields.coverImageStorageKey, "tenant/wizard-drafts/session/photos/p1");
+  });
+
+  it("DN-9.3-04 coverImageStorageKey reads legacy photosData.photos", () => {
+    const fields = extractDenaliTourListProjection({
+      schemaVersion: 1,
+      roots: ["title", "publishStatus", "photosData"],
+      data: {
+        title: "Legacy stored tour",
+        publishStatus: "draft",
+        photosData: {
+          photos: [
+            {
+              id: "p1",
+              storageKey: "tenant/tours/tour-id/photos/p1",
+            },
+          ],
+        },
+      },
+    });
+
+    assert.equal(fields.coverImageUrl, null);
+    assert.equal(fields.coverImageStorageKey, "tenant/tours/tour-id/photos/p1");
   });
 });

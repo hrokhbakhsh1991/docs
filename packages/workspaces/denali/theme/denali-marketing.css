@@ -1,0 +1,35 @@
+/**
+ * Denali public marketing — catalog shell skin (split entry).
+ * Color semantics: theme/marketing/semantic-tokens.css (@generated from DTCG).
+ * Partials live under theme/marketing/ (≤500 lines each).
+ */
+@import "./marketing/tokens.css";
+@import "./marketing/shell.css";
+@import "./marketing/components/01-block-p2.css";
+@import "./marketing/components/02-pr-d6-p1.css";
+@import "./marketing/components/03-pr-d6-p2.css";
+@import "./marketing/components/04-pr-d2-p1.css";
+@import "./marketing/components/05-pr-d2-p2.css";
+@import "./marketing/components/06-pr-15-p1.css";
+@import "./marketing/components/07-pr-15-p2.css";
+@import "./marketing/components/08-pr-16-p1.css";
+@import "./marketing/components/10-pr-16-5-p1.css";
+@import "./marketing/components/11-pr-16-5-p2.css";
+@import "./marketing/components/12-pr-17.css";
+@import "./marketing/components/13-pr-18-p1.css";
+@import "./marketing/components/14-pr-18-p2.css";
+@import "./marketing/components/15-pr-20-p1.css";
+@import "./marketing/components/16-pr-20-p2.css";
+@import "./marketing/components/17-pr-20b.css";
+@import "./marketing/components/18-pr-20d-p1.css";
+@import "./marketing/components/19-pr-20d-p2.css";
+@import "./marketing/components/20-pr-20g.css";
+@import "./marketing/components/21-pr-20k.css";
+@import "./marketing/components/22-pr-21-p1.css";
+@import "./marketing/components/23-pr-21-p2.css";
+@import "./marketing/components/24-pr-20n.css";
+@import "./marketing/components/25-pr-20o.css";
+@import "./marketing/components/26-pr-21-p1.css";
+@import "./marketing/components/27-pr-21-p2.css";
+@import "./marketing/components/28-pr-d6b.css";
+@import "./marketing/components/29-mkt-icon-metrics.css";

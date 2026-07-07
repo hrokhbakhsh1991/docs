@@ -1,0 +1,227 @@
+---
+title: Member Portal Registry — Manifest Schema
+standard_id: MPS-REG-001
+version: 1.0.0
+status: active
+extends:
+  - ../platform-portal-member-shell-architecture.mdoc
+  - implementation-gates.mdoc
+---
+
+# Member Portal Registry — Manifest Schema (PS-2)
+
+**Authority:** Mirrors operator `SettingsModuleManifest` (Phase 9.6). Codegen source: `workspace.manifest.json` → `packages/workspace-sdk/src/portal/workspace-member-portal-surfaces.generated.ts`.
+
+## 1. Block shape (`manifestVersion: 2`)
+
+```json
+{
+  "guestConformance": { "memberApp": true },
+  "memberPortal": {
+    "manifestVersion": 2,
+    "availability": "minimal",
+    "preset": "guest-minimal-v1"
+  }
+}
+```
+
+| Field | Type | Required | Notes |
+| ----- | ---- | -------- | ----- |
+| `availability` | `off` \| `minimal` \| `full` | yes (v2) | **SSOT** — runtime, GSH, and portal branch on this enum |
+| `preset` | `guest-minimal-v1` \| `guest-full-v1` | when modules empty | Codegen expands canonical module sets (workspace-neutral names) |
+| `includePlatformHome` | boolean | optional | Default: `false` for minimal, `true` for full |
+| `defaultPrimaryModuleId` | string | when no preset | Must exist in effective modules |
+| `modules` | array | when no preset | Workspace-owned modules only (DL-30) |
+
+**Presets**
+
+| Preset | Modules | Platform `home` |
+| ------ | ------- | ------------- |
+| `guest-minimal-v1` | `trips`, `profile` | no |
+| `guest-full-v1` | `trips`, `profile`, `wallet` | yes |
+
+**Explicit off (L3 catalog-only workspaces)**
+
+```json
+{ "memberPortal": { "manifestVersion": 2, "availability": "off" } }
+```
+
+Absent `memberPortal` block normalizes to `availability: off` at codegen.
+
+### v1 rejection (Phase B)
+
+Codegen **fail-closed** on `memberPortal.manifestVersion: 1`. All production workspaces must use v2 with explicit `availability`. Preset keys are workspace-neutral (`guest-minimal-v1`, `guest-full-v1`) — never workspace ids.
+
+## 1.1 Legacy v1 block (removed — do not use)
+
+```json
+{
+  "memberPortal": {
+    "manifestVersion": 1,
+    "defaultPrimaryModuleId": "trips",
+    "modules": [
+      {
+        "id": "trips",
+        "routePath": "/me/registrations",
+        "nav": { "tier": "primary", "labelKey": "trips" }
+      },
+      {
+        "id": "profile",
+        "routePath": "/me/profile",
+        "nav": { "tier": "user_menu", "labelKey": "profile" }
+      }
+    ]
+  }
+}
+```
+
+| Field | Type | Required | Notes |
+| ----- | ---- | -------- | ----- |
+| `manifestVersion` | `1` | yes | Breaking changes bump version |
+| `defaultPrimaryModuleId` | string | yes | Portal `/` and bare `/me` redirect target (DL-06, DL-40) |
+| `modules` | array | yes | Non-empty; unique `id` values |
+
+## 2. Module entry
+
+| Field | Type | Required | Notes |
+| ----- | ---- | -------- | ----- |
+| `id` | string | yes | Stable module id; see reserved ids §3 |
+| `routePath` | string | yes | Must match `^/me/` and not equal `/me` |
+| `nav.tier` | enum | yes | `primary` · `secondary` · `hidden` · `user_menu` |
+| `nav.labelKey` | string | yes | Key under `portalMember.nav` i18n namespace |
+
+### 2.1 Navigation tiers
+
+| Tier | Max | Renderer (portal) |
+| ---- | --- | ----------------- |
+| `primary` | **5** (hard fail) | Bottom nav |
+| `secondary` | N | More hub (future) |
+| `hidden` | N | Deep link only |
+| `user_menu` | N | Header user menu |
+
+### 2.2 Entitlement default grant (PS-6)
+
+| Tier | Included in default `granted` without membership override |
+| ---- | -------------------------------------------------------- |
+| `primary`, `secondary`, `user_menu` | yes |
+| `hidden` | **no** — requires `membershipMetadata.portalModuleGrants` module id |
+
+Evaluator: `evaluateMemberPortalEntitlements` in `@app-tour/workspace-sdk`. See [platform-portal-member-entitlements.mdoc](../platform-portal-member-entitlements.mdoc) §3.2.
+
+**Phase 2 Denali binding:** Only `trips` (primary) and `profile` (user_menu) — routes that exist today. Full reference IA (Home · Trips · Wallet · Membership · More) lands when routes ship (BP-4+).
+
+## 3. Reserved module ids (DL-30)
+
+Codegen **fail-closed** if workspace declares:
+
+| id | Class |
+| -- | ----- |
+| `home` | Platform-owned — injected at BP-4; route `/me/home` |
+| `more` | Shell hub slot — route `/me/more` when secondary modules exist (PS-6) |
+| `api` | BFF namespace |
+| `catalog` | Registration namespace |
+
+Error code: `MEMBER_PORTAL_RESERVED_MODULE_ID:{id}`.
+
+## 4. Codegen validation
+
+| Rule | Error code |
+| ---- | ---------- |
+| Duplicate module ids | `MEMBER_PORTAL_DUPLICATE_ID:{id}` |
+| >5 `primary` tier modules | `MEMBER_PORTAL_PRIMARY_OVERFLOW` |
+| Reserved id declared | `MEMBER_PORTAL_RESERVED_MODULE_ID:{id}` |
+| Invalid `routePath` root | `MEMBER_PORTAL_INVALID_ROUTE:{routePath}` |
+| `defaultPrimaryModuleId` not in `modules` | `MEMBER_PORTAL_UNKNOWN_DEFAULT:{id}` |
+| Unknown `nav.tier` | `MEMBER_PORTAL_UNKNOWN_NAV_TIER:{tier}` |
+
+## 5. Generated API (`@app-tour/workspace-sdk`)
+
+| Export | Purpose |
+| ------ | ------- |
+| `WORKSPACE_MEMBER_PORTAL_SURFACES` | Frozen manifest map keyed by `pluginId` |
+| `resolveMemberPortalModules(pluginId)` | Full surface for shell + BFF |
+| `resolveMemberPortalDefaultRoutePath(pluginId)` | Route for `defaultPrimaryModuleId` |
+| `resolveMemberPortalModuleRoutePath(pluginId, moduleId)` | Per-module route (GSH PS-3) |
+| `resolveMemberPortalModuleByRoutePath(pluginId, routePath)` | Reverse lookup for dispatcher (PS-5 / DL-24) |
+| `listMemberPortalEntitlementKeys(pluginId)` | All entitlement keys for effective registry (PS-5) |
+| `evaluateMemberPortalEntitlements(pluginId, options?)` | Tier-aware `granted` + `denied` (PS-6) |
+| `validateMemberPortalManifest(modules, defaultPrimaryModuleId)` | Runtime/test validation |
+| `MemberPortalNotConfiguredError` | Fail-closed when block absent |
+
+## 6. L4 conformance (DL-07 — DL-18 superseded)
+
+| Rule | Enforcement |
+| ---- | ----------- |
+| L4 label | `guestConformance.memberApp: true` ↔ `availability: full` (bidirectional) |
+| Denali reference | `availability: full` + `memberApp: true` (CI `guard-member-portal-contract`) |
+| Urban / guest-club trunk | `availability: minimal` at L3 (no `memberApp` until L4 promotion) |
+| Runtime | `resolveMemberPortalContract(pluginId)` — never infers from conformance level |
+
+L4 = L3 guest conformance + explicit member-app promotion. **Not** merely “has memberPortal block.”
+
+Codegen emits `WORKSPACE_MEMBER_PORTAL_CONTRACTS` (SSOT) and `WORKSPACE_MEMBER_PORTAL_SURFACES` (enabled subset).
+
+**Portal egress (DL-38 extension):** `apps/portal/app/me/**` must resolve member URLs via `resolve-member-portal-routes.server.ts` (`resolveMemberPortalModuleRoutePath` / `tryResolveMemberPortalDefaultRoutePath`). Hardcoded `/me/*` hrefs fail `guard-member-shell`.
+
+### 6.1 More hub (PS-6 / DL-10)
+
+| Tier | Renderer | Route |
+| ---- | -------- | ----- |
+| `secondary` | More hub list | `/me/more` (platform shell slot — not declared in manifest) |
+
+| Secondary module count | Presentation |
+| ---------------------- | ------------ |
+| 0 | No More nav slot |
+| 1–24 | Plain list (`data-portal-member-hub-mode="plain"`) |
+| 25+ | Virtualised scroll container (`data-portal-member-hub-mode="virtualised"`) — full windowing Phase 7 |
+
+SDK: `resolveMemberPortalHubPresentation`, `MEMBER_PORTAL_HUB_VIRTUALISATION_THRESHOLD` (25).
+
+## 7. Regenerate
+
+```bash
+pnpm run generate:workspace-registry
+```
+
+Manifest diff without regenerated output fails `guard-guest-plugin-conformance` (`--check`).
+
+## 8. Platform-owned merge (PS-5 / BP-4, DL-30)
+
+Workspace codegen emits **workspace-declared** modules only. At runtime, `resolveMemberPortalModules` merges platform-owned rows **before** workspace modules:
+
+| id | routePath | nav.tier | Source |
+| -- | --------- | -------- | ------ |
+| `home` | `/me/home` | `primary` | `platform-member-portal-modules.ts` |
+
+**Invariants:**
+
+- Workspace manifests **MUST NOT** declare `home` — codegen fail-closed (`MEMBER_PORTAL_RESERVED_MODULE_ID:home`).
+- `defaultPrimaryModuleId` remains workspace-owned (Denali: `trips` → `/me/registrations` until explicit default migration).
+- Portal `/` and bare `/me` redirect via `resolveMemberPortalDefaultRoutePath` — **not** hardcoded alias paths.
+- Entitlement keys: `member.module.{id}` for every effective module (including platform `home`).
+
+**Portal route:** `apps/portal/app/me/home/page.tsx` — consumes `GET /api/me/home` aggregate (DL-19). Unknown registry routes fall through to `app/me/[...modulePath]/page.tsx` dispatcher (static routes win — DL-28).
+
+## 9. Module dispatcher (PS-5 / DL-24, DL-28)
+
+| Route pattern | Handler |
+| ------------- | ------- |
+| `/me/registrations`, `/me/profile`, `/me/home` | Static `app/me/*/page.tsx` (wins over catch-all) |
+| `/me/{unknown}` | `app/me/[...modulePath]/page.tsx` — registry lookup + entitlement check |
+| `/me` | `app/me/page.tsx` — redirect to `defaultPrimaryModuleId` |
+
+**Unauthorized module (DL-21):** dispatcher renders in-portal 403 (`data-portal-member-unauthorized`) — not marketing redirect.
+
+## 10. Traceability
+
+| Artifact | Path |
+| -------- | ---- |
+| Types | `packages/workspace-sdk/src/portal/member-module-manifest.ts` |
+| Platform merge | `packages/workspace-sdk/src/portal/platform-member-portal-modules.ts` |
+| Generated map | `packages/workspace-sdk/src/portal/workspace-member-portal-surfaces.generated.ts` |
+| Resolver | `packages/workspace-sdk/src/portal/resolve-member-portal-modules.ts` |
+| Dispatcher | `apps/portal/app/me/[...modulePath]/page.tsx` |
+| Codegen | `scripts/generate-workspace-registry.mjs` → `assertMemberPortalManifest` |
+| Denali manifest | `packages/workspaces/denali/workspace.manifest.json` |
+| Portal consumer | `apps/portal/src/shell/*`, `apps/portal/app/me/page.tsx`, `apps/portal/app/me/home/page.tsx` |
+| Guard | `scripts/guards/guard-member-portal-registry.mjs` |

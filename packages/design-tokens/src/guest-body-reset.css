@@ -1,0 +1,15 @@
+/**
+ * Guest surfaces — neutral document reset (L0/L2 boundary).
+ * Semantic colors come from shell-bridge + workspace skin (L3).
+ */
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-family-base);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+html[dir="rtl"] body {
+  text-align: start;
+}

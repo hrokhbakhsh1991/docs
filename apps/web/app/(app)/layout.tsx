@@ -1,18 +1,23 @@
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { requireOperatorSessionWeb } from "@/admin/require-operator-session";
-import type { OperatorSessionContext } from "@/admin/require-operator-session";
+import {
+  requireOperatorSessionWeb,
+  type OperatorSessionContext,
+} from "@/admin/require-operator-session";
 import { OperatorShell } from "@/admin/shell/operator-shell";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
+import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { decodeJwtPayload } from "@app-tour/session-client";
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
 import { resolveWorkspaceLabelFromMessages } from "@/i18n/resolve-workspace-label";
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
 import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { hasDevHostSmokeSessionProfile } from "@/tenant/dev-host-session-profiles";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
+import { fetchOperatorProfileServer } from "@/features/settings/fetch-operator-profile.server";
 
 export const dynamic = "force-dynamic";
 
@@ -57,19 +62,28 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   }
 
   const tenantTheme = await fetchTenantThemeForContext(bootstrap.context, host);
+  const operatorProfile = await fetchOperatorProfileServer();
   const tWorkspaces = await getTranslations("app.workspaces");
   const navItems = resolveOperatorNav({
     session: session!,
     pluginId: bootstrap.session.pluginId,
   });
 
+  const cookieStore = await cookies();
+  const rawSession = cookieStore.get(SESSION_TOKEN_COOKIE)?.value ?? "";
+  const impersonationReadonly =
+    decodeJwtPayload(rawSession)?.platform_impersonation_readonly === true;
+
   return (
     <OperatorShell
       session={session!}
       workspaceLabel={resolveWorkspaceLabelFromMessages(tWorkspaces, bootstrap.session.pluginId)}
       displayName={tenantTheme?.displayName ?? null}
+      operatorProfileDisplayName={operatorProfile?.displayName ?? null}
+      operatorProfileAvatarUrl={operatorProfile?.avatarUrl ?? null}
       pluginId={bootstrap.session.pluginId}
       navItems={navItems}
+      impersonationReadonly={impersonationReadonly}
     >
       {children}
     </OperatorShell>

@@ -1,0 +1,117 @@
+---
+title: System Consistency Guard
+format: markdoc
+doc_role: architecture_sot
+---
+
+# System Consistency Guard
+
+Production safety layer that prevents silent drift between Prisma migrations, live Postgres schema, API runtime integration subsystem state, and Denali settings module visibility.
+
+## Problem class
+
+| Failure                                | Symptom without guard                                                        |
+| -------------------------------------- | ---------------------------------------------------------------------------- |
+| Unapplied integration migrations       | Code expects `integration_connections`; DB has no table; UI shows empty list |
+| Stale API process after plugin rebuild | `/settings/modules` omits `integrations`; Settings hub never links to page   |
+| Partial deployment                     | Integration worker runs against missing schema; operator sees ghost features |
+
+## Components
+
+### 1. Migration consistency check (`apps/api/src/health/migration-consistency-check.ts`)
+
+At API boot (Prisma storage + `DATABASE_URL`):
+
+1. Probe `information_schema.tables` for required integration tables:
+   - `integration_connections`
+   - `integration_delivery_jobs`
+   - `integration_event_policies`
+   - `integration_secrets`
+   - `workspace_telegram_bots`
+2. Probe exposure subsystem tables (warn-first, optional fatal — Phase 9.1):
+   - `exposure_intents`
+   - `exposure_profiles`
+   - `denali_exposure_reminder_activations`
+   - Fatal when `FIELD_EXPOSURE_CONSISTENCY_GATE_FATAL=true` (9.1b)
+3. Compare `prisma/migrations/*/migration.sql` directory names vs `_prisma_migrations` rows with `finished_at IS NOT NULL`.
+4. Emit structured report with signal:
+   - `CONSISTENCY_OK`
+   - `CONSISTENCY_MISSING_TABLES`
+   - `CONSISTENCY_MIGRATION_DRIFT`
+   - `CONSISTENCY_MISSING_EXPOSURE_TABLES` (warn log when 9.1a — exposure tables absent but gate not fatal)
+
+Skipped when storage driver is not `prisma` (memory/tests).
+
+### 2. Integration subsystem gate (`apps/api/src/health/integration-subsystem-gate.ts`)
+
+Process-wide latch set from the migration consistency report:
+
+- `ok === true` → integration subsystem **armed** (`CONSISTENCY_OK` log)
+- `ok === false` → integration subsystem **blocked** (`CONSISTENCY_MISSING_TABLES` or `CONSISTENCY_MIGRATION_DRIFT` fatal log)
+
+When blocked:
+
+- `bootstrapIntegrationProviders()` is a no-op
+- `startIntegrationDeliveryWorkerIfEnabled()` is a no-op
+- Integration **mutations** (create/patch/delete, delivery worker enqueue) return `503` / `INTEGRATION_SYSTEM_NOT_READY`
+- Operator **settings reads** stay available: `listSettingsModules()` still lists `integrations`, and `GET /workspaces/:ws/integrations` (+ meta/detail) return legacy or partial data so the Settings page is never a dead link during migration drift
+
+### 3. Internal probe endpoint
+
+`GET /internal/consistency/migrations`
+
+Returns the latest migration consistency report JSON. Auth: ops JWT in production (metrics read scope); open in development.
+
+### 4. UI module registry guard (`apps/web/src/features/settings/settings-module-consistency-guard.ts`)
+
+After `GET /settings/modules` (server prefetch and client refresh):
+
+- For Denali plugin, required backend module ids come from
+  `denali-required-settings-modules.generated.ts`, generated from the Denali settings manifest
+  inventory (`pnpm run generate:denali-settings-modules` → reads
+  `packages/workspaces/denali/src/settings/denali-settings.manifest.ts`)
+- If manifest-expected id is absent from backend payload → log `CONSISTENCY_UI_DESYNC` / `UI-BACKEND DESYNC DETECTED`
+- Inject Denali fallback metadata for missing hub-critical modules (`workspace_branding`, `integrations`, `exposure`) so the Settings hub keeps the **اتصال‌ها / Connections** card and `/settings/integrations` link during stale API processes or pre-restart gate drift
+
+## Boot sequence (with guard)
+
+```text
+assertAuthEnvironmentIntegrity()
+assertProductionRuntimeIntegrity()
+[production] assertProductionDatabaseIntegrity()
+runMigrationConsistencyCheck()     ← new
+applyMigrationConsistencyGate()    ← new
+server.listen()
+[if integration armed] bootstrapIntegrationProviders + worker
+```
+
+## Observability signals
+
+| Event / log                   | Meaning                                             |
+| ----------------------------- | --------------------------------------------------- |
+| `CONSISTENCY_OK`              | Tables present, no migration drift                  |
+| `CONSISTENCY_MISSING_TABLES`  | Required integration (or exposure fatal) tables absent |
+| `CONSISTENCY_MIGRATION_DRIFT` | Disk migrations not applied to DB                   |
+| `CONSISTENCY_MISSING_EXPOSURE_TABLES` | Exposure tables absent; warn-only until 9.1b fatal env |
+| `CONSISTENCY_UI_DESYNC`       | Denali UI expected module missing from API registry |
+
+All include `service: @apps/api` (API) or web context (UI), ISO `checkedAt` / timestamp.
+
+## Operator recovery
+
+1. `GET /internal/consistency/migrations` — read report
+2. Fix migration files / run `pnpm --filter @apps/api run db:migrate:deploy` (runs `migrate deploy` then `prisma generate`)
+3. Restart API to re-run boot gate
+4. Confirm `/settings/modules` includes `integrations` and `/workspaces/:ws/integrations` returns data (legacy Telegram row is enough) or explicit `INTEGRATION_SYSTEM_NOT_READY` only on write paths until fixed
+
+## Prisma client after migrate (Phase 9.2)
+
+Schema changes without `prisma generate` leave a running Node process with a stale
+`@prisma/client` — symptoms include `Unknown arg` / missing model fields on
+`exposure_intents` writes after deploy.
+
+| Step | Command |
+| ---- | ------- |
+| Deploy + generate (canonical) | `pnpm --filter @apps/api run db:migrate:deploy` |
+| Generate only | `pnpm --filter @apps/api run prisma:generate` |
+| After either | **Restart API** before operator smoke |

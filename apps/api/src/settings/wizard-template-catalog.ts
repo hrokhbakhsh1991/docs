@@ -1,12 +1,21 @@
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
+import {
+  assertDenaliFrozenWizardTemplateFieldsPresent,
+  DenaliWizardTemplateFrozenFieldMissingError,
+  normalizeDenaliWizardTemplatePayloadSteps,
+} from "@app-tour/workspace-denali";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
+import { resolveWorkspacePluginForTenantContext } from "../workspace/resolve-workspace-plugin-for-tenant-context";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 
 import type { WizardTemplatePayloadV1 } from "./settings.types";
 
 /** INV-WIZ-002 — denali Layer C rows carry this tag via `denali-plugin-adapter`. */
 const WIZARD_OVERLAY_EXCLUDE_TAG = "wizard_overlay_exclude" as const;
+
+/** INV-WIZ-009 — roadmap rows visible in palette but not activatable. */
+const WIZARD_PALETTE_ROADMAP_TAG = "wizard_palette_roadmap" as const;
 
 function isWizardTemplatePaletteField(
   field: {
@@ -25,6 +34,12 @@ function isWizardTemplatePaletteField(
   return true;
 }
 
+function isWizardTemplateSelectableField(field: {
+  readonly tags?: readonly string[];
+}): boolean {
+  return !field.tags?.includes(WIZARD_PALETTE_ROADMAP_TAG);
+}
+
 export class SettingsWizardUnknownFieldError extends Error {
   readonly code = "SETTINGS_WIZARD_UNKNOWN_FIELD" as const;
 
@@ -37,11 +52,30 @@ export class SettingsWizardUnknownFieldError extends Error {
 /** Thin-shell bridge until Denali full-create lands — web may save `title` while API workspace is starter. */
 const STARTER_WIZARD_TEMPLATE_PATH_ALIASES = new Set(["title"]);
 
+export class SettingsWizardRoadmapFieldError extends Error {
+  readonly code = "SETTINGS_WIZARD_ROADMAP_FIELD" as const;
+
+  constructor(readonly canonicalPath: string) {
+    super(`SETTINGS_WIZARD_ROADMAP_FIELD:${canonicalPath}`);
+    this.name = "SettingsWizardRoadmapFieldError";
+  }
+}
+
+export class SettingsWizardFrozenFieldMissingError extends Error {
+  readonly code = "SETTINGS_WIZARD_FROZEN_FIELD_MISSING" as const;
+
+  constructor(readonly canonicalPath: string) {
+    super(`SETTINGS_WIZARD_FROZEN_FIELD_MISSING:${canonicalPath}`);
+    this.name = "SettingsWizardFrozenFieldMissingError";
+  }
+}
+
 export function listWizardTemplateCatalogPaths(plugin: WorkspacePlugin): ReadonlySet<string> {
   const inactiveFieldGroups = plugin.wizard.inactiveFieldGroups;
   return new Set(
     plugin.fieldRegistry.fields
       .filter((field) => isWizardTemplatePaletteField(field, inactiveFieldGroups))
+      .filter((field) => isWizardTemplateSelectableField(field))
       .map((field) => field.canonicalPath)
   );
 }
@@ -70,8 +104,9 @@ export async function assertWizardTemplateFieldsKnown(
   }
 
   const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
-  const plugin = resolveWorkspacePluginForType(workspaceType);
+  const plugin = await resolveWorkspacePluginForTenantContext(tenantId, workspaceType);
   const catalog = listWizardTemplateCatalogPaths(plugin);
+  const inactiveFieldGroups = plugin.wizard.inactiveFieldGroups;
 
   for (const step of payload.steps) {
     for (const field of step.fields) {
@@ -79,9 +114,48 @@ export async function assertWizardTemplateFieldsKnown(
       if (path.length === 0) {
         continue;
       }
+      const registryField = plugin.fieldRegistry.fields.find((entry) => entry.canonicalPath === path);
+      if (
+        registryField != null &&
+        isWizardTemplatePaletteField(registryField, inactiveFieldGroups) &&
+        !isWizardTemplateSelectableField(registryField)
+      ) {
+        throw new SettingsWizardRoadmapFieldError(path);
+      }
       if (!isKnownWizardTemplatePath(path, workspaceType, catalog)) {
         throw new SettingsWizardUnknownFieldError(path);
       }
     }
   }
+}
+
+export async function assertDenaliWizardTemplateFrozenFieldsForTenant(
+  tenantId: string,
+  payload: WizardTemplatePayloadV1
+): Promise<void> {
+  if (payload.published !== true || payload.steps === undefined || payload.steps.length === 0) {
+    return;
+  }
+  const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
+  if (workspaceType !== "denali") {
+    return;
+  }
+  try {
+    assertDenaliFrozenWizardTemplateFieldsPresent(payload);
+  } catch (error) {
+    if (error instanceof DenaliWizardTemplateFrozenFieldMissingError) {
+      throw new SettingsWizardFrozenFieldMissingError(error.canonicalPath);
+    }
+    throw error;
+  }
+}
+
+export function normalizeDenaliWizardTemplatePayloadForTenant(
+  workspaceType: string,
+  payload: WizardTemplatePayloadV1
+): WizardTemplatePayloadV1 {
+  if (workspaceType !== "denali") {
+    return payload;
+  }
+  return normalizeDenaliWizardTemplatePayloadSteps(payload) as WizardTemplatePayloadV1;
 }

@@ -1,0 +1,514 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.dev/schemas/workspace-guest-extensions.schema.json",
+  "title": "Workspace Guest Extensions",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "guestExtensionsVersion": {
+      "const": 1
+    },
+    "operatorCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "usersDirectory": { "type": "boolean" },
+        "reconciliationTriage": { "type": "boolean" }
+      }
+    },
+    "wizardTemplateEditor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "marketingCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "settingsDestinationSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "settingsEquipmentUi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tourActionSubmitCodec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "photoUploadErrors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tourListCategoryFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "operatorUiComponents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardDraftUnification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardTemplatePreset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardTemplateGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultPublishedStepId"],
+      "properties": {
+        "defaultPublishedStepId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardDraftShell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardCreateChrome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardFlatEditChrome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardFlatEditForm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardFlatEditPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardCreateView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "wizardCompositeRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": { "type": "string", "minLength": 1 },
+        "export": { "type": "string", "minLength": 1 }
+      }
+    },
+    "settingsHubFallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "guestCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "guestThemeStylesheets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "portal": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "marketing": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "catalogRegistrationFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surfaceExport", "steps"],
+      "properties": {
+        "surfaceExport": { "type": "string", "minLength": 1 },
+        "transportInitializerExport": { "type": "string", "minLength": 1 },
+        "steps": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "export"],
+              "properties": {
+                "mode": { "const": "bundle" },
+                "export": { "type": "string", "minLength": 1 }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "components"],
+              "properties": {
+                "mode": { "const": "compose" },
+                "reuseAuthStepsFrom": { "type": "string", "minLength": 1 },
+                "reuseFrom": { "type": "string", "minLength": 1 },
+                "components": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["intake", "done"],
+                  "properties": {
+                    "intake": { "type": "string", "minLength": 1 },
+                    "done": { "type": "string", "minLength": 1 }
+                  }
+                }
+              },
+              "anyOf": [
+                { "required": ["reuseAuthStepsFrom"] },
+                { "required": ["reuseFrom"] }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "catalogPresentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["listFeatures", "detailSections"],
+      "properties": {
+        "listFeatures": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cityFilter"],
+          "properties": {
+            "cityFilter": { "type": "boolean" }
+          }
+        },
+        "detailSections": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["difficulty", "fitness", "itinerary", "policies"],
+          "properties": {
+            "difficulty": { "type": "boolean" },
+            "fitness": { "type": "boolean" },
+            "itinerary": { "type": "boolean" },
+            "policies": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "memberProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["editableFields", "readOnlyFields"],
+      "properties": {
+        "editableFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "readOnlyFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "fields"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "fields": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "memberPortal": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["manifestVersion", "availability"],
+          "properties": {
+            "manifestVersion": { "const": 2 },
+            "availability": { "const": "off" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["manifestVersion", "availability"],
+          "properties": {
+            "manifestVersion": { "const": 2 },
+            "availability": { "enum": ["minimal", "full"] },
+            "preset": { "enum": ["guest-minimal-v1", "guest-full-v1"] },
+            "includePlatformHome": { "type": "boolean" },
+            "defaultPrimaryModuleId": { "type": "string", "minLength": 1 },
+            "modules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "routePath", "nav"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1 },
+                  "routePath": { "type": "string", "pattern": "^/me/" },
+                  "nav": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["tier", "labelKey"],
+                    "properties": {
+                      "tier": {
+                        "enum": ["primary", "secondary", "hidden", "user_menu"]
+                      },
+                      "labelKey": { "type": "string", "minLength": 1 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["manifestVersion", "defaultPrimaryModuleId", "modules"],
+          "properties": {
+            "manifestVersion": { "const": 1 },
+            "defaultPrimaryModuleId": { "type": "string", "minLength": 1 },
+            "modules": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "routePath", "nav"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1 },
+                  "routePath": { "type": "string", "pattern": "^/me/" },
+                  "nav": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["tier", "labelKey"],
+                    "properties": {
+                      "tier": {
+                        "enum": ["primary", "secondary", "hidden", "user_menu"]
+                      },
+                      "labelKey": { "type": "string", "minLength": 1 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "guestConformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "memberApp": { "type": "boolean" },
+        "productionTier": { "enum": ["stub", "certified"] }
+      }
+    },
+    "guestCrossSurfaceNav": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "links"],
+      "properties": {
+        "version": { "const": 1 },
+        "links": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "labelKey", "surface"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$" },
+              "labelKey": { "type": "string", "minLength": 1 },
+              "surface": { "enum": ["marketing", "portal_egress"] },
+              "path": { "type": "string", "pattern": "^/" },
+              "egress": {
+                "enum": ["member_module", "marketing_home", "marketing_tours"]
+              },
+              "memberModuleId": { "type": "string", "minLength": 1 },
+              "visibleWhen": {
+                "enum": ["always", "club", "platform_mother"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "guestSeo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["marketing"],
+      "properties": {
+        "marketing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["jsonLd"],
+          "properties": {
+            "listTitleKey": { "type": "string", "minLength": 1 },
+            "listDescriptionKey": { "type": "string", "minLength": 1 },
+            "detailTitleTemplate": { "type": "string", "minLength": 1 },
+            "jsonLd": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["required", "schemaTypes", "builderExport"],
+              "properties": {
+                "required": { "type": "boolean" },
+                "schemaTypes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string", "minLength": 1 }
+                },
+                "builderExport": { "type": "string", "minLength": 1 },
+                "richResultsProfile": { "type": "string", "minLength": 1 }
+              }
+            },
+            "openGraph": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "type": { "type": "string", "minLength": 1 },
+                "twitterCard": { "enum": ["summary", "summary_large_image"] }
+              }
+            },
+            "sitemap": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "changefreq": {
+                  "enum": ["always", "hourly", "daily", "weekly", "monthly", "yearly", "never"]
+                },
+                "priority": { "type": "number", "minimum": 0, "maximum": 1 },
+                "includeImages": { "type": "boolean" }
+              }
+            },
+            "pagination": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "noindexQueryParams": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "dependentRequired": {
+    "guestCatalog": ["guestExtensionsVersion"],
+    "guestThemeStylesheets": ["guestExtensionsVersion"],
+    "catalogRegistrationFlow": ["guestExtensionsVersion"],
+    "catalogPresentation": ["guestExtensionsVersion"],
+    "memberProfile": ["guestExtensionsVersion"],
+    "memberPortal": ["guestExtensionsVersion"],
+    "guestCrossSurfaceNav": ["guestExtensionsVersion"],
+    "guestSeo": ["guestExtensionsVersion"]
+  }
+}

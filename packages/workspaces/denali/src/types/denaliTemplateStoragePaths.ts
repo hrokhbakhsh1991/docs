@@ -1,6 +1,7 @@
 /** Registry / rule-model paths that differ from canonicalData JSON storage paths. */
 export const DENALI_TEMPLATE_RULE_PATH_TO_STORAGE_PATH: Readonly<Record<string, string>> = {
   "tripDetails.overview.peakHeight": "overview.peakHeight",
+  "tripDetails.overview.trailDistanceKm": "overview.trailDistanceKm",
   "tripDetails.overview.nonAttendanceDetails": "overview.nonAttendanceDetails",
   "tripDetails.overview.customServiceLabels": "customServiceLabels",
   "tripDetails.metrics.elevationGain": "metrics.elevationGain",

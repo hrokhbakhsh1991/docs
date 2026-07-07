@@ -97,6 +97,12 @@ function appWiresRoute(route) {
   ) {
     return app.includes("tryDispatchWorkspaceRoutes");
   }
+  if (route.path.startsWith("/platform/v1/")) {
+    return app.includes("tryDispatchPlatformRoutes");
+  }
+  if (route.path === "/internal/payments/webhook") {
+    return app.includes('"/internal/payments/webhook"');
+  }
   if (
     route.path === "/public/tenant-branding" ||
     route.path === "/public/tenant-context" ||

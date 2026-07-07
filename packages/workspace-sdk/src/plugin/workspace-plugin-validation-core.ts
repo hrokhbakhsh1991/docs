@@ -1,5 +1,9 @@
 import { sdkOk, type SdkResult } from "../errors/sdk-result";
 import type { WorkspaceFieldRegistry } from "../registry/field-registry";
+import {
+  validateFieldPolicyManifest,
+  type WorkspaceFieldPolicyManifest,
+} from "../registry/field-policy-manifest";
 import { validateWorkspaceFieldRegistry } from "../registry/validate-field-registry";
 import { validateWorkspaceRuleSet } from "../registry/validate-rule-set";
 import {
@@ -20,6 +24,10 @@ import {
   throwWorkspaceValidationError,
   type WorkspaceSdkValidationErrorCode,
 } from "../errors/workspace-validation-errors.js";
+import {
+  safeParseWorkspaceCommerceConfig,
+  type WorkspaceCommerceConfig,
+} from "../metadata/commerce-schema.js";
 
 export {
   throwWorkspaceValidationError,
@@ -280,7 +288,248 @@ export function validateWorkspacePluginCore(value: unknown): PluginResult {
   const lifecycle = validateWorkspaceLifecycleContract(root.value.lifecycle);
   if (!lifecycle.ok) return lifecycle;
 
+  if (root.value.fieldPolicy !== undefined) {
+    const fieldPolicy = requirePlainObject(
+      root.value.fieldPolicy,
+      "plugin.fieldPolicy",
+      "PLUGIN_INVALID_SHAPE"
+    );
+    if (!fieldPolicy.ok) return fieldPolicy;
+    try {
+      validateFieldPolicyManifest(
+        fieldPolicy.value as unknown as WorkspaceFieldPolicyManifest,
+        knownFieldIds
+      );
+    } catch (error: unknown) {
+      return fail(
+        violation(
+          "PLUGIN_INVALID_SHAPE",
+          error instanceof Error ? error.message : String(error)
+        )
+      );
+    }
+  }
+
   return sdkOk(root.value as unknown as WorkspacePlugin);
+}
+
+/** Optional metadata theme block (P3-B — semantic CSS vars only). */
+export type WorkspaceDefinitionThemePayload = {
+  readonly tokens?: Readonly<Record<string, string>>;
+};
+
+/** Data-only workspace metadata persisted in P3-A (no hook functions). */
+export type WorkspaceDefinitionPayload = Pick<
+  WorkspacePlugin,
+  | "id"
+  | "version"
+  | "contractVersion"
+  | "supportedWorkspaceTypes"
+  | "fieldRegistry"
+  | "ruleSet"
+  | "wizard"
+> & {
+  readonly theme?: WorkspaceDefinitionThemePayload;
+  readonly commerce?: WorkspaceCommerceConfig;
+};
+
+const DEFINITION_FORBIDDEN_TOP_LEVEL_KEYS = [
+  "validation",
+  "lifecycle",
+  "wizardHost",
+  "wizardMedia",
+  "registrationOps",
+  "operatorSettings",
+  "integrationSurface",
+  "exposureSurface",
+  "fieldPolicy",
+  "tourList",
+  "publicCatalog",
+  "tourClone",
+  "draftTombstone",
+] as const;
+
+const WORKSPACE_DEFINITION_THEME_TOKEN_KEY = /^--ws-[a-z0-9-]+$/;
+
+function validateDefinitionThemePayload(
+  theme: unknown
+): SdkResult<WorkspaceDefinitionThemePayload | undefined, WorkspaceSdkValidationErrorCode> {
+  if (theme === undefined || theme === null) {
+    return sdkOk(undefined);
+  }
+  const root = requirePlainObject(theme, "payload.theme", "PLUGIN_INVALID_SHAPE");
+  if (!root.ok) {
+    return root;
+  }
+  for (const key of Object.keys(root.value)) {
+    if (key !== "tokens") {
+      return fail(
+        violation(
+          "PLUGIN_INVALID_SHAPE",
+          `payload.theme must only include "tokens" (unexpected "${key}")`
+        )
+      );
+    }
+  }
+  if (root.value.tokens === undefined) {
+    return sdkOk({});
+  }
+  const tokensRoot = requirePlainObject(
+    root.value.tokens,
+    "payload.theme.tokens",
+    "PLUGIN_INVALID_SHAPE"
+  );
+  if (!tokensRoot.ok) {
+    return tokensRoot;
+  }
+  const tokens: Record<string, string> = {};
+  for (const [key, value] of Object.entries(tokensRoot.value)) {
+    if (!WORKSPACE_DEFINITION_THEME_TOKEN_KEY.test(key)) {
+      return fail(
+        violation(
+          "PLUGIN_INVALID_SHAPE",
+          `payload.theme.tokens key must be semantic --ws-* (got "${key}")`
+        )
+      );
+    }
+    if (typeof value !== "string") {
+      return fail(
+        violation("PLUGIN_INVALID_SHAPE", `payload.theme.tokens.${key} must be a string`)
+      );
+    }
+    tokens[key] = value;
+  }
+  return sdkOk({ tokens: Object.freeze(tokens) });
+}
+
+function validateDefinitionCommercePayload(
+  commerce: unknown
+): SdkResult<WorkspaceCommerceConfig | undefined, WorkspaceSdkValidationErrorCode> {
+  if (commerce === undefined || commerce === null) {
+    return sdkOk(undefined);
+  }
+  const parsed = safeParseWorkspaceCommerceConfig(commerce);
+  if (!parsed.success) {
+    const message = parsed.error.issues.map((issue) => issue.message).join("; ");
+    return fail(violation("PLUGIN_INVALID_SHAPE", `payload.commerce invalid: ${message}`));
+  }
+  return sdkOk(parsed.data);
+}
+
+type DefinitionPayloadResult = SdkResult<
+  WorkspaceDefinitionPayload,
+  WorkspaceSdkValidationErrorCode
+>;
+
+function rejectDefinitionForbiddenKeys(
+  record: Record<string, unknown>
+): DefinitionPayloadResult | null {
+  for (const key of DEFINITION_FORBIDDEN_TOP_LEVEL_KEYS) {
+    if (key in record && record[key] !== undefined && record[key] !== null) {
+      return fail(
+        violation(
+          "PLUGIN_FUNCTION_NOT_ALLOWED",
+          `payload must not include "${key}" — persist data-only core; use package overlay for hooks`
+        )
+      );
+    }
+  }
+  for (const [key, value] of Object.entries(record)) {
+    if (typeof value === "function") {
+      return fail(
+        violation("PLUGIN_FUNCTION_NOT_ALLOWED", `payload.${key} must not be a function`)
+      );
+    }
+  }
+  return null;
+}
+
+/**
+ * P3-A — validate DB-persisted workspace definition JSON (fieldRegistry + ruleSet + wizard only).
+ */
+export function validateWorkspaceDefinitionPayload(value: unknown): DefinitionPayloadResult {
+  const root = requirePlainObject(value, "payload", "PLUGIN_INVALID_SHAPE");
+  if (!root.ok) return root;
+
+  const forbidden = rejectDefinitionForbiddenKeys(root.value);
+  if (forbidden) return forbidden;
+
+  const id = requireNonEmptyString(root.value.id, "payload.id", "PLUGIN_INVALID_SHAPE");
+  if (!id.ok) return id;
+
+  const version = requireFiniteNumber(
+    root.value.version,
+    "payload.version",
+    "PLUGIN_INVALID_SHAPE"
+  );
+  if (!version.ok) return version;
+
+  const contractVersion = requireFiniteNumber(
+    root.value.contractVersion,
+    "payload.contractVersion",
+    "PLUGIN_INVALID_SHAPE"
+  );
+  if (!contractVersion.ok) return contractVersion;
+  if (contractVersion.value !== 1) {
+    return fail(
+      violation(
+        "PLUGIN_INVALID_SHAPE",
+        `payload.contractVersion must be 1 (got ${contractVersion.value})`
+      )
+    );
+  }
+
+  const types = requireArray(
+    root.value.supportedWorkspaceTypes,
+    "payload.supportedWorkspaceTypes",
+    "PLUGIN_INVALID_SHAPE"
+  );
+  if (!types.ok) return types;
+  for (const [index, workspaceType] of types.value.entries()) {
+    const typeId = requireNonEmptyString(
+      workspaceType,
+      `payload.supportedWorkspaceTypes[${index}]`,
+      "PLUGIN_INVALID_SHAPE"
+    );
+    if (!typeId.ok) return typeId;
+  }
+
+  const registry = validateWorkspaceFieldRegistry(root.value.fieldRegistry);
+  if (!registry.ok) return registry;
+
+  const knownFieldIds = new Set(registry.value.fields.map((field) => field.id));
+  const ruleSet = validateWorkspaceRuleSet(root.value.ruleSet, knownFieldIds);
+  if (!ruleSet.ok) return ruleSet;
+
+  const wizard = validateWorkspaceWizardSurface(root.value.wizard);
+  if (!wizard.ok) return wizard;
+
+  const alignment = validateCanonicalPathsAlignWithWizard(registry.value, wizard.value);
+  if (!alignment.ok) return alignment;
+
+  const themeResult = validateDefinitionThemePayload(root.value.theme);
+  if (!themeResult.ok) return themeResult;
+
+  const commerceResult = validateDefinitionCommercePayload(root.value.commerce);
+  if (!commerceResult.ok) return commerceResult;
+
+  return sdkOk({
+    id: id.value as WorkspacePlugin["id"],
+    version: version.value,
+    contractVersion: 1,
+    supportedWorkspaceTypes: types.value as WorkspacePlugin["supportedWorkspaceTypes"],
+    fieldRegistry: registry.value,
+    ruleSet: ruleSet.value,
+    wizard: wizard.value,
+    ...(themeResult.value !== undefined ? { theme: themeResult.value } : {}),
+    ...(commerceResult.value !== undefined ? { commerce: commerceResult.value } : {}),
+  });
+}
+
+export function assertWorkspaceDefinitionPayload(
+  value: unknown
+): asserts value is WorkspaceDefinitionPayload {
+  throwOnError(validateWorkspaceDefinitionPayload(value));
 }
 
 /**

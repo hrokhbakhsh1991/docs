@@ -25,6 +25,9 @@ decisions: [DEC-P9-012]
 | GET    | `/api/auth/membership-ability-context` | `GET /auth/ability-context`                 | no                    |
 | GET    | `/api/identity/me`                       | `GET /identity/me`                            | no                    |
 | PATCH  | `/api/identity/me`                       | `PATCH /identity/me`                          | no                    |
+| POST   | `/api/identity/me/avatar`                | `POST /identity/me/avatar`                    | no · binary forward   |
+| DELETE | `/api/identity/me/avatar`                | `DELETE /identity/me/avatar`                  | no                    |
+| GET    | `/api/identity/me/avatar/url`            | `GET /identity/me/avatar/url`                 | no                    |
 | POST   | `/api/auth/phone-preflight`            | `POST /auth/phone-preflight`                | no                    |
 
 `phone-preflight` is listed in `middleware.ts` `PUBLIC_BFF_API_PATHS` (anonymous login classify).

@@ -137,6 +137,42 @@ describe("buildRenderPlan", () => {
     assert.deepEqual(plan, []);
   });
 
+  it("emits compositeId when field id is a plugin renderer id distinct from canonicalPath", () => {
+    const registry: WorkspaceFieldRegistry = {
+      version: 1,
+      fields: [
+        {
+          id: "workspace.photos",
+          canonicalPath: "photos",
+          stepId: "media",
+          kind: "text",
+          required: false,
+        },
+      ],
+    };
+    const ruleSet: WorkspaceRuleSet = {
+      version: 1,
+      matrixDimensions: ["variant"],
+      defaultCellId: "default",
+      cells: [
+        {
+          cellId: "default",
+          dimensions: { variant: "default" },
+          fieldOverrides: [{ fieldId: "workspace.photos", hidden: false }],
+        },
+      ],
+    };
+    const wizard: WorkspaceWizardSurface = {
+      wizardMode: "classic",
+      railId: "test",
+      roots: ["media"],
+      inactiveFieldGroups: [],
+      wizardCapacityStepRedundant: false,
+    };
+    const plan = buildPlan(registry, ruleSet, wizard);
+    assert.deepEqual(plan[0]?.fields[0]?.uiHints, { compositeId: "workspace.photos" });
+  });
+
   it("preserves composite kind with uiHints.compositeId", () => {
     const registry: WorkspaceFieldRegistry = {
       version: 1,

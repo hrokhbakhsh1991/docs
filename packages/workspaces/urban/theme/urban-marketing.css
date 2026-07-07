@@ -1,0 +1,7 @@
+/**
+ * Urban public marketing — catalog shell skin (split entry).
+ */
+@import "./marketing/tokens.css";
+@import "./marketing/shell.css";
+@import "./marketing/components/01-catalog.css";
+@import "./marketing/components/02-pdp-home.css";

@@ -1,0 +1,143 @@
+---
+title: Member Session Portal Authority (PCMS)
+standard_id: PCMS-001
+version: 1.0.0
+status: active
+extends:
+  - docs/standards/workspace-routing-standard.mdoc
+  - docs/phase-19/platform-portal-member.mdoc
+code_sot:
+  - apps/portal/middleware.ts
+  - apps/portal/src/tenant/session-host-binding.ts
+  - apps/portal/src/tenant/resolve-portal-ingress-host.ts
+  - apps/portal/src/tenant/read-portal-ingress-host.server.ts
+  - apps/portal/src/auth/build-session-cookie.ts
+  - apps/portal/app/catalog/[tourId]/register/page.tsx
+  - apps/marketing/src/shell/marketing-shell.tsx
+  - packages/session-client/src/validate-session-token-async.ts
+  - packages/session-client/src/verify-session-jwt-signature.ts
+  - packages/tenant-kernel/src/host/resolve-member-session-cookie-domain.ts
+  - packages/guest-surface-host/src/resolve-portal-public-base-url.ts
+mandatory_for:
+  - apps/portal
+  - apps/marketing
+---
+
+# Member Session Portal Authority (PCMS-001)
+
+**Principle:** Member identity (`atour_mb_session`) is owned by **`apps/portal` only**. Marketing remains anonymous. Operator uses `atour_op_session` on `apps/web` — separate actor.
+
+---
+
+## 1. Surfaces
+
+| Surface | Session | Registration auth |
+| ------- | ------- | ----------------- |
+| Marketing | None | N/A — static CTA links to portal `/me/registrations` (no session probe) |
+| Portal | `atour_mb_session` | OTP inline on `/catalog/{id}/register` OR existing cookie |
+| Web admin | `atour_op_session` | Operator invite login — never member cookie |
+
+---
+
+## 2. Registration resume (PCMS-REG-01)
+
+When a member with valid portal cookie opens `/catalog/{tourId}/register`:
+
+1. Server reads `readPublicCatalogSessionFromCookies()`
+2. Session `tenantId` must match `resolvePortalBootstrapForHost(host).tenantId`
+3. Server prefetches member profile via allowlisted `fetchMemberProfileFromSession` (same upstream as profile BFF) when session cookie is present → initial flow step **`intake`**
+4. When SSR cannot read `Domain=<apex>` cookies (dev Playwright custom apex), client flow hydrates from `/api/me/profile` and sets `data-registration-resume="intake"` on the flow root
+5. No marketing changes required
+
+Custom apex dev smoke (`portal.denali.club`) does not resolve in Node DNS — SSR profile prefetch must not call `http://portal.denali.club:3003/...` directly. Use `PORTAL_INTERNAL_URL` (default dev `http://127.0.0.1:3003`) and forward ingress via **`x-forwarded-host`** (not HTTP `Host` — undici overwrites loopback Host) so tenant bind resolves tenant `…000003`.
+
+OTP remains mandatory for guests without valid member session.
+
+---
+
+## 3. Tenant bind (PCMS-SEC-01)
+
+When portal bootstrap resolves `tenantId` for host:
+
+- Member JWT `tenant_id` **must** match (fail-closed)
+- Mismatch → clear `atour_mb_session` + redirect/`401`
+- When bootstrap + dev host map both fail to resolve tenant: **fail-closed in production** (`failClosedWhenUnresolved`); dev may remain permissive for IP staging
+
+### JWT verify (PCMS-SEC-02)
+
+Portal middleware and `readPublicCatalogSessionFromCookies` use `validateSessionTokenAsync`:
+
+1. Decode claims (`sub`, `tenant_id`, `exp`, `sess_ver`)
+2. When `AUTH_JWT_PUBLIC_KEY` + issuer/audience configured → **RS256 signature verify** (Edge Web Crypto)
+3. Reject forgeries with `invalid_signature` → clear cookie on protected paths
+
+Full `sess_ver` vs DB membership version remains **API authority** on BFF upstream calls (`AUTH_TOKEN_REVOKED`). Middleware signature verify closes the forge gap; revoke is enforced on `/api/*` and `/api/me/*` upstream.
+
+When `AUTH_JWT_*` unset (unit tests / legacy dev), decode-only fallback remains for velocity.
+
+---
+
+## 4. Cookie domain (PCMS-COOK-01)
+
+Default: **host-only** (no `Domain=` attribute) on platform `{club}.{root}` ingress (e.g. `denali.portal.localhost`).
+
+When ingress host resolves as **custom apex** via `tryParseCustomApexHost` (e.g. `portal.denali.club`, `denali.club`), portal sets `Domain=<registrable-apex>` (`denali.club`) on `Set-Cookie` / clear so member session is shared across marketing apex and portal subdomain for that tenant only.
+
+Cookie write points: `verify-otp` (returning member), `register-complete` (new guest after profile), `/api/me/mobile/verify`, logout clear.
+
+**Never** platform-wide `Domain=.platform-root` or `Domain=.localhost`. Derivation is host-based at cookie write time — no `NEXT_PUBLIC_*` env.
+
+---
+
+## 5. Marketing portal link (PCMS-03)
+
+Marketing header exposes a static link to the member default module via `resolvePortalMemberModuleUrl(host)` (PS-3+). **PS-7 (2026-07-05):** deprecated `resolvePortalMemberAreaUrl` removed from GSH — use `resolvePortalMemberModuleUrl` only. No session probe on marketing — portal middleware handles auth redirect.
+
+**Default module route:** Resolved from workspace `memberPortal.defaultPrimaryModuleId` (Denali Phase 2: `trips` → `/me/registrations`). The path `/me/registrations` remains a **permanent alias** independent of default (DL-03).
+
+### 5.1 PCMS-003 Phase 3 follow-up — applied (2026-07-05)
+
+| Field | Value |
+| ----- | ----- |
+| **Trigger** | `resolvePortalMemberModuleUrl` merged in GSH + delegation live |
+| **PCMS-003 update** | Marketing egress uses registry default module URL; frozen alias documented above |
+| **Traceability** | DL-22 · DL-26 · [builder-migration-contract.mdoc](../phase-19/member-portal-shell/builder-migration-contract.mdoc) · `guard-member-url-builder` |
+| **Cleanup** | Marketing migrated to `resolvePortalMemberModuleUrl` (PS-7 prep); remove deprecated export in BP-8 |
+
+---
+
+## 6.5 Memory smoke tour seed (SMK-PTL-07 / SMK-PTL-08)
+
+When API runs with `STORAGE_DRIVER=memory` and `OPERATOR_SMOKE_E2E_SEED=1`, the shared in-memory tour store seeds **both**:
+
+| Tenant | Host context | Published tour `…0210` |
+| ------ | ------------ | ---------------------- |
+| `…000014` | `operator.portal.localhost` (SMK-PTL-07) | `ensureOperatorSmokeSeedTour` |
+| `…000003` | `portal.denali.club` custom apex (SMK-PTL-08) | `ensureDenaliDevSmokeSeedTour` |
+
+`InMemoryTourRepository` indexes tours by composite `(tenantId, id)` — matching Prisma `@@unique([tenantId, id])` — so the same fixture tour id can exist on both tenants without collision.
+
+---
+
+## 6. Forbidden
+
+- Marketing read/write of `atour_mb_session`
+- Shared cookie across platform tenants on `{club}.{root}` hosts
+- Middleware OTP skip (resume decision lives on register **page** server component only)
+- `NEXT_PUBLIC_*` cookie domain env
+
+---
+
+## 7. Verification
+
+```bash
+pnpm run guard:pcms-authority
+pnpm --filter @app-tour/tenant-kernel test
+pnpm --filter @app-tour/session-client test
+pnpm --filter @apps/portal test
+pnpm --filter @apps/portal run test -- test/portal-session-host-bind.spec.ts test/portal-registration-resume.spec.ts test/build-session-cookie.spec.ts
+pnpm --filter @apps/marketing run test -- test/marketing-shell-portal-link.spec.ts test/resolve-web-registration-url.spec.ts
+pnpm --filter @apps/portal run test:smoke  # SMK-PTL-07 registration resume E2E
+pnpm --filter @apps/portal run test:smoke:custom-apex  # SMK-PTL-08 custom apex cookie + resume
+pnpm run smoke:pcms-custom-apex  # API tenant-context for denali.club hosts
+```

@@ -68,5 +68,5 @@ body[data-workspace-plugin="denali"] [data-denali-date-picker] button:hover:not(
 body[data-workspace-plugin="denali"] [data-radix-popper-content-wrapper] [data-denali-date-picker] button[data-selected="true"],
 body[data-workspace-plugin="denali"] [data-radix-popper-content-wrapper] .rdp-day_button[data-selected-single="true"] {
   background: var(--denali-alpine-600);
-  color: #ffffff;
+  color: var(--color-primary-fg);
 }

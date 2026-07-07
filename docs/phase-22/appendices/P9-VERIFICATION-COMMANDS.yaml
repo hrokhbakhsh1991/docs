@@ -1,0 +1,246 @@
+# P9 — Verification commands (canonical — 13 nanos)
+# Agents: load ONLY current_nano key
+
+manifest_id: P9-VERIFICATION-COMMANDS
+pack_version: "1.0"
+nano_total: 13
+
+P9-0-N-001:
+  epic: P9-0
+  gaps: [G-PKG-01, G-BOOT-01, G-BOOT-02, G-BOOT-05, G-BOOT-06]
+  proof_tier: PACKAGE
+  repo_status: PASS
+  summary: Create guest-surface-host — M+P bootstrap only; web must NOT import
+  commands:
+    - run: test -f packages/guest-surface-host/package.json
+      expect_exit: 0
+    - run: rg "@app-tour/guest-surface-host" apps/marketing apps/portal --glob "*.ts"
+      expect_exit: 0
+    - run: rg "guest-surface-host" apps/web --glob "*.ts"
+      expect_exit: 1
+      note: "web must NOT import"
+    - run: 'rg "resolve-host-tenant" apps/marketing apps/portal --glob "*.ts"'
+      expect_exit: 1
+      note: "local copies deleted"
+    - run: pnpm run guard:import-boundary
+      expect_exit: 0
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  files_touch:
+    - packages/guest-surface-host/
+    - apps/marketing/src/tenant/
+    - apps/portal/src/tenant/
+  forbidden_shortcuts:
+    - "Package exists but M+P still use local resolve-host-tenant.ts"
+    - "Include web in guest-surface-host consumers"
+
+P9-0-N-002:
+  epic: P9-0
+  gaps: [G-AUTH-02, G-AUTH-03]
+  proof_tier: PACKAGE
+  repo_status: PASS
+  forbidden_until: [P9-0-N-001]
+  summary: session-client — web + portal only (align P8 cookie constants)
+  commands:
+    - run: test -f packages/session-client/package.json
+      expect_exit: 0
+    - run: rg "@app-tour/session-client" apps/web apps/portal --glob "*.ts"
+      expect_exit: 0
+    - run: rg "@app-tour/session-client" apps/marketing --glob "*.ts"
+      expect_exit: 1
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Duplicate decode-jwt still in apps after package"
+    - "session-client in marketing"
+
+P9-2-N-001:
+  epic: P9-2
+  gaps: [G-BOOT-03]
+  proof_tier: DEV_STATIC
+  repo_status: PASS
+  forbidden_until: [P9-0-N-001]
+  summary: Remove hostname pluginId heuristic — API tenant-context only in prod
+  commands:
+    - run: rg 'hostname\.includes' apps/marketing apps/portal --glob "*bootstrap*"
+      expect_exit: 1
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Move includes(denali) to guest package — delete not relocate"
+
+P9-1-N-001:
+  epic: P9-1
+  gaps: [G-SURF-01, G-SURF-04, G-AUTH-01]
+  proof_tier: SURFACE
+  repo_status: PASS
+  forbidden_until: [P9-0-N-002, P8-1-N-003]
+  summary: Delete web public-auth BFF; trim middleware — KEEP catalog redirects
+  commands:
+    - run: find apps/web/app/api/public-auth -name route.ts 2>/dev/null | wc -l
+      expect_stdout: "0"
+      note: "zero route.ts files"
+    - run: test -f apps/web/app/catalog/page.tsx
+      expect_exit: 0
+      note: "redirect shim kept"
+    - run: pnpm --filter @apps/portal test -- --testPathPattern=public-auth 2>/dev/null || pnpm run p9:gate
+      expect_exit: 0
+      optional: true
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Delete entire apps/web/app/catalog tree"
+    - "Delete public-auth before P8 portal middleware"
+
+P9-1-N-002:
+  epic: P9-1
+  gaps: [G-SURF-02]
+  proof_tier: SURFACE
+  repo_status: PASS
+  forbidden_until: [P9-1-N-001]
+  summary: Delete orphan public-catalog-registration-flow.tsx
+  commands:
+    - run: rg "public-catalog-registration-flow" apps/web --glob "*.tsx"
+      expect_exit: 1
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Leave 563-line orphan because redirects exist"
+
+P9-0-N-003:
+  epic: P9-0
+  gaps: [G-BOOT-04]
+  proof_tier: PACKAGE
+  repo_status: PASS
+  forbidden_until: [P9-0-N-001]
+  summary: isDevGuestHostAllowed — M+P only (not web operator auth-env)
+  commands:
+    - run: rg "isDevGuestHostAllowed" packages/guest-surface-host --glob "*.ts"
+      expect_exit: 0
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Merge web operator auth-env into guest package"
+
+P9-1-N-003:
+  epic: P9-1
+  gaps: [G-SURF-03, G-SURF-05, G-BOOT-08]
+  proof_tier: SURFACE
+  repo_status: PASS
+  forbidden_until: [P9-1-N-002]
+  summary: Remove web catalog bootstrap — not redirect pages
+  commands:
+    - run: rg "isPublicCatalogPath|resolvePublicCatalogRootSession" apps/web/app/layout.tsx
+      expect_exit: 1
+    - run: rg "resolve-public-catalog-bootstrap" apps/web --glob "*.ts"
+      expect_exit: 1
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Remove catalog redirect pages"
+
+P9-1-N-004:
+  epic: P9-1
+  gaps: [G-AUTH-04, G-AUTH-05, G-AUTH-06]
+  proof_tier: BEHAVIORAL
+  repo_status: PASS
+  forbidden_until: [P9-1-N-003]
+  summary: Portal-only catalog session + headers + bff-error
+  commands:
+    - run: rg "build-catalog-registration-headers" apps/web --glob "*.ts"
+      expect_exit: 1
+    - run: rg "build-catalog-registration-headers" apps/portal --glob "*.ts"
+      expect_exit: 0
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Put portal headers in guest-surface-host shared with marketing"
+
+P9-0-N-006:
+  epic: P9-0
+  gaps: [G-BOOT-07]
+  proof_tier: DEV_STATIC
+  repo_status: PASS
+  forbidden_until: [P9-0-N-003]
+  summary: web resolve-multi-level-host → tenant-kernel only
+  commands:
+    - run: rg "parseMultiLevelTenantHost|@app-tour/tenant-kernel" apps/web/src/tenant --glob "*.ts"
+      expect_exit: 0
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Delete web resolve-host-tenant.ts operator map"
+
+P9-3-N-001:
+  epic: P9-3
+  gaps: [G-PKG-02]
+  proof_tier: SURFACE
+  repo_status: PASS
+  forbidden_until: [P9-1-N-001, P9-0-N-001]
+  summary: guard:p9-surface-boundary from p9-package-boundary.yaml
+  commands:
+    - run: pnpm run guard:p9-surface-boundary
+      expect_exit: 0
+      optional: true
+      note: "Required when script exists"
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Manual ripgrep only without guard script"
+
+P9-3-N-002:
+  epic: P9-3
+  gaps: [G-SURF-06]
+  proof_tier: DOC
+  repo_status: PASS
+  forbidden_until: [P9-1-N-001]
+  summary: public-catalog.md portal-only
+  commands:
+    - run: rg "apps/web.*public-auth|portal-only" docs/workspaces/denali/public-catalog.md
+      expect_exit: 0
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Doc still cites web OTP flow"
+
+P9-3-N-003:
+  epic: P9-3
+  gaps: [G-SURF-07]
+  proof_tier: BEHAVIORAL
+  repo_status: PASS
+  forbidden_until: [P9-1-N-001]
+  summary: E2E registration @apps/portal only
+  commands:
+    - run: rg "portal-member-smoke|@apps/portal" apps/portal/tests package.json
+      expect_exit: 0
+    - run: rg "denali-catalog-registration" apps/web --glob "*.spec.ts"
+      expect_exit: 1
+      optional: true
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+  forbidden_shortcuts:
+    - "Web e2e registration kept as primary"
+
+P9-3-N-005:
+  epic: P9-3
+  gaps: []
+  proof_tier: REGRESSION
+  repo_status: PASS
+  forbidden_until: [P9-3-N-001, P9-1-N-004]
+  summary: p9:gate + full regression
+  commands:
+    - run: pnpm run p6:gate
+      expect_stdout: P6_DENALI_PRODUCT_GATE_OK
+    - run: pnpm run p7:gate
+      expect_stdout: P7_DENALI_DELIVERY_GATE_OK
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+    - run: pnpm run p9:gate
+      expect_stdout: P9_CODE_CONSOLIDATION_GATE_OK
+    - run: pnpm run guard:import-boundary
+      expect_exit: 0
+  on_pass_update:
+    - p9-exit-checklist.md#wave-c
+  forbidden_shortcuts:
+    - "p9:gate without p8 regression"
+    - "Claim exit 8.7 from doc pack only"

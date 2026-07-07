@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
-import { getPrisma } from "../db/prisma";
+import { getPrisma, getPrismaAdmin } from "../db/prisma";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import type {
   BookingOutboxRecord,
@@ -31,7 +31,15 @@ function toBookingRecord(row: {
   submittedAt: Date;
   submittedByUserId: string;
   approvedAt: Date | null;
+  registrationIntake?: Prisma.JsonValue | null;
 }): BookingRecord {
+  const registrationIntake =
+    row.registrationIntake !== null &&
+    row.registrationIntake !== undefined &&
+    typeof row.registrationIntake === "object" &&
+    !Array.isArray(row.registrationIntake)
+      ? (row.registrationIntake as Readonly<Record<string, unknown>>)
+      : undefined;
   return {
     id: row.id,
     tenantId: row.tenantId,
@@ -47,6 +55,7 @@ function toBookingRecord(row: {
     submittedAt: row.submittedAt.toISOString(),
     submittedByUserId: row.submittedByUserId,
     approvedAt: row.approvedAt?.toISOString() ?? null,
+    ...(registrationIntake !== undefined ? { registrationIntake } : {}),
   };
 }
 
@@ -109,7 +118,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
   }
 
   async getById(id: string): Promise<BookingRecord | null> {
-    const row = await getPrisma().operatorRegistration.findUnique({ where: { id } });
+    // Primary-key lookup before caller authz (e.g. member receipt) — app pool has NOBYPASSRLS
+    // and queries outside withTenantRls see zero rows on Postgres staging.
+    const row = await getPrismaAdmin().operatorRegistration.findUnique({ where: { id } });
     if (row === null) {
       return null;
     }
@@ -152,6 +163,9 @@ export class PrismaBookingsRepository implements BookingsRepository {
           paymentStatus: input.body.paymentStatus ?? "unpaid",
           departureAt: new Date(input.body.departureAt),
           submittedByUserId: input.submittedByUserId,
+          ...(input.body.registrationIntake !== undefined
+            ? { registrationIntake: input.body.registrationIntake as Prisma.InputJsonValue }
+            : {}),
         },
       })
     );

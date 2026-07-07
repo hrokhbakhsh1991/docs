@@ -1,3 +1,4 @@
+import { assertSafeOutboundUrl } from "../integrations/egress/assert-safe-outbound-url.ts";
 import { requireActiveTenantId } from "../tenant/tenant-request-context";
 import { ProxyUpstreamCircuitBreaker } from "./proxy-upstream-circuit";
 import {
@@ -15,6 +16,10 @@ export type TenantHttpProxyConfig = {
   readonly upstreamBaseUrl: string;
   /** When true, cache successful GET bodies per tenant + URL. */
   readonly cacheResponses?: boolean;
+  /** When false, skip SSRF guard (in-process mock upstream tests only). Default true. */
+  readonly egressGuard?: boolean;
+  /** Explicit host allowlist; defaults to upstream base hostname. */
+  readonly egressAllowedHosts?: readonly string[];
 };
 
 type CacheEntry = {
@@ -56,6 +61,12 @@ export class TenantHttpProxy {
     const method = (init.method ?? "GET").toUpperCase();
     const url = new URL(path, this.config.upstreamBaseUrl).href;
     const timeoutMs = resolveProxyUpstreamTimeoutMs();
+
+    if (this.config.egressGuard !== false) {
+      const allowedHosts =
+        this.config.egressAllowedHosts ?? [new URL(this.config.upstreamBaseUrl).hostname];
+      assertSafeOutboundUrl({ url, allowedHosts });
+    }
 
     if (this.config.cacheResponses === true && method === "GET") {
       const cached = this.cache.get(buildCacheKey(tenantId, method, url));

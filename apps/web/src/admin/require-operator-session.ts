@@ -3,14 +3,19 @@
  */
 import type { TenantAuthz } from "@app-tour/workspace-sdk";
 
+import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
+import {
+  SESSION_COOKIE_MAX_AGE_SECONDS,
+  SESSION_TOKEN_COOKIE,
+} from "@/auth/build-session-cookie";
 
 export const OPERATOR_APP_ROUTE_PREFIX = "/(app)" as const;
 export const OPERATOR_LOGIN_PATH = "/auth/login" as const;
 export const OPERATOR_LOGIN_ALIAS_PATH = "/login" as const;
 export const OPERATOR_DASHBOARD_PATH = "/dashboard" as const;
-export const SESSION_COOKIE_NAME = "session" as const;
-export const SESSION_COOKIE_MAX_AGE_SECONDS = 604_800 as const;
+export const SESSION_COOKIE_NAME = SESSION_TOKEN_COOKIE;
+export { SESSION_COOKIE_MAX_AGE_SECONDS };
 export const SESSION_LOCAL_STORAGE_PREFIX = "tour_ops_session_token:" as const;
 export const OPERATOR_WIZARD_PATH = "/tours/new" as const;
 
@@ -25,8 +30,16 @@ export type OperatorSessionContext = {
   readonly pluginId: string;
 };
 
+export function isExtendedOperatorSession(session: OperatorSessionContext): boolean {
+  return (
+    isExtendedOperatorWorkspace(session.pluginId) ||
+    isExtendedOperatorWorkspace(session.workspaceType)
+  );
+}
+
+/** @deprecated Use {@link isExtendedOperatorSession} — Denali-named alias for legacy tests. */
 export function isDenaliOperatorSession(session: OperatorSessionContext): boolean {
-  return session.pluginId === "denali" || session.workspaceType === "denali";
+  return isExtendedOperatorSession(session);
 }
 
 export type RequireOperatorSessionWebParams = {

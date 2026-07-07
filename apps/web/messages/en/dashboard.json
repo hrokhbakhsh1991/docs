@@ -27,7 +27,7 @@
   "overview": {
     "title": "Overview",
     "description": "{brandName} snapshot",
-    "openBookings": "Open bookings command center"
+    "openBookings": "View bookings"
   },
   "tours": {
     "title": "Tours",
@@ -38,8 +38,8 @@
   },
   "bookings": {
     "title": "Bookings",
-    "description": "Registration pipeline KPIs",
-    "openCommandCenter": "Open bookings command center"
+    "description": "Booking pipeline KPIs",
+    "openCommandCenter": "View bookings"
   },
   "registrations": {
     "title": "Registrations",
@@ -47,7 +47,7 @@
     "pendingCount": "{count, number} pending approval",
     "empty": "No pending registrations.",
     "pendingOnTour": "{count, number} pending",
-    "reviewPending": "Review pending registrations"
+    "reviewPending": "Review pending"
   },
   "kpi": {
     "active-tours": "Active tours",
@@ -74,7 +74,7 @@
   "finance": {
     "title": "Finance",
     "description": "{brandName} finance KPIs",
-    "openCommandCenter": "Open Finance Command Center",
+    "openCommandCenter": "View finance",
     "kpi": {
       "pending-manual": "Pending manual payments",
       "pending-receipts": "Receipts awaiting review",

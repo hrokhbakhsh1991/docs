@@ -1,4 +1,7 @@
 import { configureUrbanHttpHost } from "@app-tour/workspace-urban/http";
+import type { UrbanProductRouteDeps } from "@app-tour/workspace-urban/http";
+
+import { buildUrbanExposureResolverPort } from "../exposure/resolve-urban-surface-exposure";
 
 import type { TourStorageRepository as DbTourStorageRepository } from "../db/tour.repository";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
@@ -14,7 +17,17 @@ import { updateTenantRegistryRow } from "../tenant/update-tenant-registry-row";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { runWithHttpRequestContext } from "./bind-request-context";
 import { parseJsonBody, readJsonBody, readRequestBodyRaw, sendJson } from "./json";
-import type { UrbanProductRouteDeps } from "@app-tour/workspace-urban/http";
+import {
+  hashIdempotentRequest,
+  IDEMPOTENCY_KEY_REQUIRED,
+  readIdempotencyKey,
+  runIdempotentHttpMutation,
+} from "./http-idempotency";
+import { assertPublicRegistrationThrottle } from "../registrations/public-registration-throttle.ts";
+import {
+  assertRegistrationCapacityDecision,
+  resolveRegistrationCapacityDecision,
+} from "../registrations/registration-capacity.service.ts";
 
 type StorageLayerTourRepo = StorageTourStorageRepository & {
   createTour(data: { tenantId: string; canonical: Tour["canonical"] }): Promise<Tour>;
@@ -47,6 +60,13 @@ async function resolveTourStore(deps: UrbanProductRouteDeps) {
   return new TourStorageDbAdapter(createTourStorageRepository());
 }
 
+function resolveExposureResolverPort(deps: UrbanProductRouteDeps) {
+  if (deps.exposureResolverPort !== undefined) {
+    return deps.exposureResolverPort;
+  }
+  return buildUrbanExposureResolverPort();
+}
+
 async function persistTenantTheme(tenantId: string, mergedTheme: Record<string, unknown>): Promise<void> {
   const normalized = tenantId.trim().toLowerCase();
   setCachedTenantThemeById(normalized, mergedTheme);
@@ -76,9 +96,25 @@ configureUrbanHttpHost({
   },
   readUrbanRegistrationRequestBody: readJsonBody,
   resolveTourStore,
+  resolveExposureResolverPort,
   settings: {
     resolveTenantThemeJsonById,
     persistTenantTheme,
     requireActiveTraceId,
+  },
+  registration: {
+    assertPublicRegistrationThrottle,
+    readIdempotencyKey,
+    hashIdempotentRequest,
+    runIdempotentHttpMutation: ((tenantId, idempotencyKey, requestHash, finish) =>
+      runIdempotentHttpMutation(
+        tenantId,
+        idempotencyKey,
+        requestHash,
+        finish as () => Promise<Record<string, unknown>>,
+      )) as import("@app-tour/workspace-urban/http").UrbanHttpHostPorts["registration"]["runIdempotentHttpMutation"],
+    idempotencyKeyRequiredCode: IDEMPOTENCY_KEY_REQUIRED,
+    decideRegistrationStatus: (input) =>
+      assertRegistrationCapacityDecision(resolveRegistrationCapacityDecision(input)),
   },
 });

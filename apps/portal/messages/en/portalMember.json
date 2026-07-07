@@ -1,0 +1,135 @@
+{
+  "nav": {
+    "home": "Home",
+    "trips": "Trips",
+    "registrations": "My registrations",
+    "profile": "Profile",
+    "logout": "Log out",
+    "loggingOut": "Logging out…",
+    "skipToMain": "Skip to main content",
+    "primaryNav": "Primary navigation",
+    "more": "More"
+  },
+  "registrations": {
+    "title": "My registrations",
+    "empty": "No registrations yet.",
+    "statusLine": "{status} · {paymentStatus} · {departureAt}",
+    "statusLabels": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "waitlisted": "Waitlisted",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "paymentStatusLabels": {
+      "unpaid": "Unpaid",
+      "partial": "Partially paid",
+      "paid": "Paid"
+    }
+  },
+  "profile": {
+    "title": "My profile",
+    "description": "These fields pre-fill future tour registrations.",
+    "fieldLabels": {
+      "displayName": "Display name",
+      "email": "Email",
+      "mobile": "Mobile",
+      "nationalId": "National ID",
+      "fatherName": "Father's name",
+      "birthDate": "Birth date",
+      "gender": "Gender",
+      "avatarUrl": "Avatar"
+    },
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Profile saved.",
+    "failed": "Save failed.",
+    "loadFailed": "Could not load profile.",
+    "sectionLabels": {
+      "identity": "Identity",
+      "participant": "Additional details"
+    },
+    "mobileReadOnlyHint": "Mobile number cannot be edited directly on this page.",
+    "mobileChange": {
+      "start": "Change mobile number",
+      "viewHint": "Verified login number. Change requires OTP to the new number.",
+      "phoneDescription": "Enter your new mobile number. We will send a verification code.",
+      "newPhoneLabel": "New mobile number",
+      "sendOtp": "Send code",
+      "sendingOtp": "Sending code…",
+      "otpDescription": "Enter the verification code sent to your new number.",
+      "otpLabel": "Verification code",
+      "verify": "Confirm change",
+      "verifying": "Verifying…",
+      "cancel": "Cancel",
+      "back": "Back",
+      "success": "Mobile number updated.",
+      "errors": {
+        "failed": "Mobile change failed.",
+        "MOBILE_REQUIRED": "Enter a mobile number.",
+        "MOBILE_INVALID": "Enter a valid mobile number.",
+        "MOBILE_UNCHANGED": "This is already your current number.",
+        "MOBILE_ALREADY_REGISTERED": "This number is already registered.",
+        "MOBILE_CHALLENGE_MISMATCH": "Verification does not match the new number.",
+        "OTP_INVALID": "Enter a valid verification code.",
+        "OTP_EXPIRED": "Code expired. Request a new code.",
+        "OTP_CHALLENGE_INVALID": "Verification session expired. Request a new code.",
+        "OTP_RATE_LIMITED": "Too many requests. Try again shortly.",
+        "OTP_PAYLOAD_INVALID": "Enter the verification code.",
+        "OTP_REQUEST_FAILED": "Could not send verification code."
+      }
+    },
+    "avatarUpload": "Choose photo",
+    "avatarUploading": "Uploading…",
+    "avatarRemove": "Remove photo",
+    "avatarHint": "JPG, PNG, or WebP — max 2 MB.",
+    "avatarErrors": {
+      "PROFILE_AVATAR_EMPTY": "File is empty.",
+      "PROFILE_AVATAR_TOO_LARGE": "File is too large.",
+      "PROFILE_AVATAR_TYPE_INVALID": "Image format is not supported.",
+      "uploadFailed": "Photo upload failed.",
+      "removeFailed": "Photo removal failed."
+    },
+    "errors": {
+      "PROFILE_NATIONAL_ID_INVALID": "Enter a valid 10-digit national ID.",
+      "PROFILE_BIRTH_DATE_INVALID": "Enter a valid birth date (YYYY-MM-DD).",
+      "PROFILE_DISPLAY_NAME_INVALID": "Enter a valid display name.",
+      "PROFILE_FATHER_NAME_INVALID": "Enter a valid father's name.",
+      "PROFILE_EMAIL_INVALID": "Enter a valid email address.",
+      "PROFILE_FIELD_READ_ONLY": "This field cannot be edited.",
+      "PROFILE_FIELD_NOT_SUPPORTED": "This field is not supported.",
+      "EMPTY_PATCH": "No changes to save.",
+      "INVALID_PAYLOAD": "Invalid profile data.",
+      "PROFILE_PATCH_FAILED": "Save failed."
+    }
+  },
+  "home": {
+    "title": "Home",
+    "lede": "Your member hub — more modules arrive as your workspace enables them."
+  },
+  "hub": {
+    "title": "More",
+    "empty": "No additional modules are available yet."
+  },
+  "unauthorized": {
+    "title": "Access not available",
+    "description": "You do not have access to the {moduleId} module.",
+    "backToHome": "Back to home"
+  },
+  "moduleStub": {
+    "lede": "This module is registered but not fully built yet.",
+    "backToHome": "Back to home"
+  },
+  "detail": {
+    "backToList": "← Back to my registrations",
+    "statusLine": "Status: {status} · Payment: {paymentStatus}",
+    "departure": "Departure: {departureAt}"
+  },
+  "receipt": {
+    "label": "Upload payment receipt",
+    "submit": "Submit receipt",
+    "uploading": "Uploading…",
+    "uploaded": "Receipt uploaded.",
+    "failed": "Upload failed."
+  }
+}

@@ -3,13 +3,14 @@ import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
 import { disconnectPrisma, getPrisma } from "../src/db/prisma";
+import { withTenantRls } from "../src/db/with-tenant-rls";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
 /**
  * P4-E-RLS-01 — Postgres RLS on `tours` via session `app.current_tenant_id`.
- * Requires: docker compose up + infra/sql/001_tenant_rls.sql applied.
- * Run: DATABASE_URL=postgresql://app_tour:app_tour@127.0.0.1:5433/app_tour_dev pnpm --filter @apps/api test
+ * Requires: docker compose up + migrations applied (tours RLS policy + app_tour NOBYPASSRLS).
+ * Run: DATABASE_URL=postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev pnpm --filter @apps/api exec node --import tsx --test test/rls-isolation.integration.spec.ts
  */
 describe("RLS isolation (integration)", { skip: !hasDatabase, concurrency: false }, () => {
   const tenantA = randomUUID();
@@ -18,6 +19,22 @@ describe("RLS isolation (integration)", { skip: !hasDatabase, concurrency: false
 
   before(async () => {
     const prisma = getPrisma();
+    const [{ rolsuper, rolbypassrls }] = await prisma.$queryRaw<
+      { rolsuper: boolean; rolbypassrls: boolean }[]
+    >`
+      SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user
+    `;
+    assert.equal(
+      rolsuper,
+      false,
+      "app role must be NOSUPERUSER — migrate as DATABASE_URL_ADMIN (20260706130000_app_tour_nosuperuser)"
+    );
+    assert.equal(
+      rolbypassrls,
+      false,
+      "app role must have NOBYPASSRLS — migrate as DATABASE_URL_ADMIN (20260706120000_app_tour_nobypassrls)"
+    );
+
     await prisma.tenant.create({
       data: {
         id: tenantA,
@@ -35,43 +52,36 @@ describe("RLS isolation (integration)", { skip: !hasDatabase, concurrency: false
       },
     });
 
-    // Session-level (false): Prisma uses separate transactions per query; local=true drops setting.
-    await prisma.$executeRaw`
-      SELECT set_config('app.current_tenant_id', ${tenantB}::text, false)
-    `;
-    const tour = await prisma.tour.create({
-      data: {
-        tenantId: tenantB,
-        canonical: {
-          schemaVersion: 1,
-          roots: ["basics"],
-          data: { basics: { title: "tenant-b-tour" } },
+    const tour = await withTenantRls(tenantB, (tx) =>
+      tx.tour.create({
+        data: {
+          tenantId: tenantB,
+          canonical: {
+            schemaVersion: 1,
+            roots: ["basics"],
+            data: { basics: { title: "tenant-b-tour" } },
+          },
         },
-      },
-    });
+      })
+    );
     tourBId = tour.id;
   });
 
   after(async () => {
-    const prisma = getPrisma();
     for (const tenantId of [tenantA, tenantB]) {
-      await prisma.$executeRaw`
-        SELECT set_config('app.current_tenant_id', ${tenantId}::text, false)
-      `;
-      await prisma.tour.deleteMany({ where: { tenantId } });
+      await withTenantRls(tenantId, (tx) => tx.tour.deleteMany({ where: { tenantId } }));
     }
+    const prisma = getPrisma();
     await prisma.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
     await disconnectPrisma();
   });
 
   it("P4-E-RLS-01: tenant A session cannot SELECT tenant B tour row", async () => {
-    const prisma = getPrisma();
-    await prisma.$executeRaw`
-      SELECT set_config('app.current_tenant_id', ${tenantA}::text, false)
-    `;
-    const rows = await prisma.$queryRaw<{ id: string }[]>`
-      SELECT id::text AS id FROM tours WHERE id = ${tourBId}::uuid
-    `;
+    const rows = await withTenantRls(tenantA, (tx) =>
+      tx.$queryRaw<{ id: string }[]>`
+        SELECT id::text AS id FROM tours WHERE id = ${tourBId}::uuid
+      `
+    );
     assert.equal(
       rows.length,
       0,

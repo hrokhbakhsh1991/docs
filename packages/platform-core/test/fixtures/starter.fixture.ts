@@ -7,6 +7,13 @@ export function createTestStarterPlugin(): WorkspacePlugin {
   return createStarterWorkspacePlugin(workspaceThemePresets["platform-primary"]);
 }
 
+/** JSON round-trip for parseWorkspacePluginFromStorage (strips runtime-only functions). */
+export function pluginPayloadForStorageIngress(
+  plugin: WorkspacePlugin,
+): Record<string, unknown> {
+  return JSON.parse(JSON.stringify(plugin)) as Record<string, unknown>;
+}
+
 /** Alias — same factory semantics as {@link createTestStarterPlugin}. */
 export const createFreshStarterPlugin = createTestStarterPlugin;
 

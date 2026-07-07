@@ -30,18 +30,46 @@
   },
   "intake": {
     "title": "ثبت‌نام برای این تور",
+    "termsHeading": "قوانین و شرایط",
+    "registrantTabsLabel": "این ثبت‌نام برای چه کسی است؟",
+    "forSelfTab": "برای خودم",
+    "forOtherTab": "برای دیگری",
     "nameLabel": "نام",
-    "emailLabel": "ایمیل",
+    "knownNameHint": "ثبت‌نام با نام {name}",
+    "nationalIdLabel": "کد ملی",
+    "fatherNameLabel": "نام پدر",
+    "birthDateLabel": "تاریخ تولد",
     "partySizeLabel": "تعداد نفرات",
+    "emailLabel": "ایمیل",
+    "emailRequired": "برای این تور ایمیل الزامی است.",
     "notesLabel": "یادداشت (اختیاری)",
+    "estimatedPrice": "قیمت تقریبی هر نفر: {amount} تومان",
+    "personalCarOptIn": "با ماشین شخصی می‌آیم",
+    "transportLegend": "ماشین شخصی",
+    "hasPersonalCarQuestion": "ماشین شخصی داری؟",
+    "hasPersonalCarYes": "بله",
+    "hasPersonalCarNo": "خیر",
+    "personalCarOccupantsLabel": "چند نفر (شامل خودت)؟",
+    "personalCarOccupants": {
+      "1": "۱ نفر",
+      "2": "۲ نفر",
+      "3": "۳ نفر"
+    },
+    "paysDongQuestion": "دونگ (سهم بنزین) می‌دهی؟",
+    "paysDongYes": "بله، دونگ می‌دهم",
+    "paysDongNo": "خیر — با ماشین آشنا می‌آیم",
     "submit": "ثبت درخواست",
     "submitting": "در حال ارسال…",
-    "emailRequired": "برای ثبت‌نام تور ایمیل الزامی است.",
-    "partySizeInvalid": "تعداد نفرات معتبر وارد کنید."
+    "partySizeInvalid": "تعداد نفرات معتبر وارد کنید.",
+    "nationalIdInvalid": "کد ملی ۱۰ رقمی معتبر وارد کنید.",
+    "fatherNameInvalid": "نام پدر الزامی است.",
+    "birthDateInvalid": "تاریخ تولد معتبر وارد کنید.",
+    "transportIncomplete": "گزینه‌های حمل‌ونقل را کامل کنید."
   },
   "success": {
     "message": "درخواست شما برای {tourTitle} ثبت شد. متشکریم!",
-    "backToTour": "بازگشت به تور"
+    "backToTour": "بازگشت به تور",
+    "viewRegistrations": "مشاهده ثبت‌نام‌های من"
   },
   "errors": {
     "MOBILE_REQUIRED": "شماره موبایل معتبر وارد کنید.",
@@ -55,7 +83,7 @@
     "PUBLIC_CATALOG_TENANT_UNRESOLVED": "ثبت‌نام در این سایت موقتاً در دسترس نیست.",
     "URBAN_REGISTRATION_DUPLICATE": "با این ایمیل قبلاً برای این تور ثبت‌نام کرده‌اید.",
     "URBAN_REGISTRATION_CLOSED": "ثبت‌نام در این workspace بسته است.",
-    "DENALI_REGISTRATION_DUPLICATE": "با این ایمیل قبلاً برای این تور ثبت‌نام کرده‌اید.",
+    "DENALI_REGISTRATION_DUPLICATE": "قبلاً برای این تور ثبت‌نام کرده‌اید.",
     "network": "خطایی رخ داد. دوباره تلاش کنید."
   }
 }

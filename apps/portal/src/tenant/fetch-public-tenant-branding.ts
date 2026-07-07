@@ -1,4 +1,4 @@
-import { resolvePublicBrandingHost } from "./resolve-public-branding-host";
+import { resolvePublicBrandingHost } from "@app-tour/guest-surface-host";
 import { resolveTourOpsApiBaseUrl } from "../env";
 
 export type PublicTenantBrandingSnapshot = {

@@ -52,6 +52,8 @@ export interface DenaliCreateTourWizardForm {
     maximumAge: number | undefined;
     fitnessLevel: string | undefined;
     nationalIdRequired: boolean;
+    fatherNameRequired: boolean;
+    birthDateRequired: boolean;
     sportsInsuranceRequired: boolean;
     minRequiredPeaks: number | undefined;
     fitnessPrerequisiteText: string | undefined;
@@ -73,6 +75,7 @@ export interface DenaliCreateTourWizardForm {
     overview: {
       customServiceLabels: string[];
       peakHeight?: number;
+      trailDistanceKm?: number;
       [key: string]: unknown;
     };
     metrics: Record<string, unknown>;

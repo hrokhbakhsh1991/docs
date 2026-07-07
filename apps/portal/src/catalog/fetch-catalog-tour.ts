@@ -1,15 +1,33 @@
-import { resolveCatalogTourApiPath } from "@app-tour/workspace-sdk";
+import {
+  resolveCatalogTourApiPath,
+  type PublicCatalogTransportSnapshot,
+} from "@app-tour/workspace-sdk";
 
 import { resolveTourOpsApiBaseUrl } from "../env";
 
 export type PortalCatalogTour = {
   readonly id: string;
   readonly title: string;
+  readonly policiesText?: string | null;
+  readonly nationalIdRequired?: boolean;
+  readonly fatherNameRequired?: boolean;
+  readonly birthDateRequired?: boolean;
+  readonly priceAmount?: number | null;
+  readonly transport?: PublicCatalogTransportSnapshot;
 };
 
 type CatalogDetailResponse = {
   readonly success: boolean;
-  readonly data?: { readonly id?: string; readonly title?: string };
+  readonly data?: {
+    readonly id?: string;
+    readonly title?: string;
+    readonly policiesText?: string | null;
+    readonly nationalIdRequired?: boolean;
+    readonly fatherNameRequired?: boolean;
+    readonly birthDateRequired?: boolean;
+    readonly priceAmount?: number | null;
+    readonly transport?: PublicCatalogTransportSnapshot;
+  };
 };
 
 export async function fetchCatalogTour(input: {
@@ -34,5 +52,14 @@ export async function fetchCatalogTour(input: {
   if (data?.id === undefined) {
     return null;
   }
-  return { id: data.id, title: data.title ?? "Tour" };
+  return {
+    id: data.id,
+    title: data.title ?? "Tour",
+    policiesText: data.policiesText ?? null,
+    nationalIdRequired: data.nationalIdRequired === true,
+    fatherNameRequired: data.fatherNameRequired === true,
+    birthDateRequired: data.birthDateRequired === true,
+    priceAmount: typeof data.priceAmount === "number" ? data.priceAmount : null,
+    transport: data.transport,
+  };
 }

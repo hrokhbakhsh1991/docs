@@ -51,7 +51,11 @@ function stripNonIngressPluginSurfaces(plugin: WorkspacePlugin): WorkspacePlugin
     tourList: _tourList,
     tourClone: _tourClone,
     publicCatalog: _publicCatalog,
+    catalogIntake: _catalogIntake,
     wizardHost: _wizardHost,
+    draftTombstone: _draftTombstone,
+    operatorSettings: _operatorSettings,
+    exposureSurface: _exposureSurface,
     ...wizardPlugin
   } = plugin;
   return wizardPlugin as WorkspacePlugin;

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
 
-import { buildPaymentScheduleItems, resetFinanceScheduleStoreForTests } from "../src/denali-finance/finance-schedule-store";
+import { buildPaymentScheduleItems, resetFinanceScheduleStoreForTests } from "../src/workspace-finance/finance-schedule-store";
 
 describe("finance-schedule-store.spec.ts — 9.7 R2", () => {
   it("buildPaymentScheduleItems splits invoice total across deposit + installments", () => {

@@ -1,0 +1,80 @@
+/**
+ * Stable inline size for draft sync chrome — avoids CLS when badge/button labels change.
+ */
+.draft-sync-indicator {
+  display: inline-grid;
+  align-items: center;
+  justify-items: start;
+}
+
+.draft-sync-indicator__sizer {
+  grid-area: 1 / 1;
+  visibility: hidden;
+  display: inline-grid;
+  align-items: center;
+  justify-items: start;
+  pointer-events: none;
+  user-select: none;
+}
+
+.draft-sync-indicator__sizer > * {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+.draft-sync-indicator__surface {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+}
+
+.draft-manual-sync-button.draft-manual-sync-button {
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+}
+
+.draft-manual-sync-button__sizer {
+  grid-area: 1 / 1;
+  visibility: hidden;
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.draft-manual-sync-button__sizer > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+.draft-manual-sync-button__label {
+  grid-area: 1 / 1;
+}
+
+.draft-stable-label-button.draft-stable-label-button {
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+}
+
+.draft-stable-label-button__sizer {
+  grid-area: 1 / 1;
+  visibility: hidden;
+  display: inline-grid;
+  align-items: center;
+  justify-items: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.draft-stable-label-button__sizer > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+.draft-stable-label-button__label {
+  grid-area: 1 / 1;
+}

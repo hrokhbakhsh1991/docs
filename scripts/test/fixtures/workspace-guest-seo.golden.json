@@ -1,0 +1,29 @@
+{
+  "denali": {
+    "schemaTypes": ["TouristTrip"],
+    "builderExport": "buildDenaliTouristTripJsonLd",
+    "richResultsProfile": "tourist-trip-v1",
+    "noindexQueryParams": [
+      "cursor",
+      "city",
+      "q",
+      "category",
+      "difficulty",
+      "fitness",
+      "availability",
+      "sort"
+    ]
+  },
+  "guest-club": {
+    "schemaTypes": ["Event"],
+    "builderExport": "buildGuestClubEventJsonLd",
+    "richResultsProfile": "event-stub-v1",
+    "noindexQueryParams": ["cursor"]
+  },
+  "urban": {
+    "schemaTypes": ["Event"],
+    "builderExport": "buildUrbanEventJsonLd",
+    "richResultsProfile": "event-v1",
+    "noindexQueryParams": ["cursor", "city"]
+  }
+}

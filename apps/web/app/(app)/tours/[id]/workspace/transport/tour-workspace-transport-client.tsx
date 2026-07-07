@@ -13,6 +13,10 @@ import type {
   BookingListItem,
   BookingsListResponse,
 } from "@/features/bookings/bookings-command-center-types";
+import {
+  formatRegistrationIntakeTransportLabel,
+  parseRegistrationIntakeRecord,
+} from "@app-tour/workspace-sdk";
 import { TOUR_WORKSPACE_TEST_IDS } from "@/features/tours/tour-workspace-types";
 import {
   buildTourTransportBookingsQuery,
@@ -34,6 +38,7 @@ export function TourWorkspaceTransportClient({ tourId }: TourWorkspaceTransportC
   const locale = useLocale() as AppLocale;
   const tDenali = useTranslations("denali");
   const tBookings = useTranslations("bookings.status");
+  const tBookingsIntake = useTranslations("bookings.intake");
   const t = useTranslations("tours.workspace.transport");
   const tTable = useTranslations("tours.workspace.table");
   const tWorkspace = useTranslations("tours.workspace");
@@ -120,15 +125,29 @@ export function TourWorkspaceTransportClient({ tourId }: TourWorkspaceTransportC
                 <tr>
                   <th className="px-3 py-2 font-medium">{tTable("guest")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("party")}</th>
+                  <th className="px-3 py-2 font-medium">{tTable("transportIntake")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("departure")}</th>
                   <th className="px-3 py-2 font-medium">{tTable("status")}</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((row) => (
+                {items.map((row) => {
+                  const intakeSummary = parseRegistrationIntakeRecord(row.registrationIntake);
+                  const transportLabel = formatRegistrationIntakeTransportLabel(intakeSummary, {
+                    primary: tBookingsIntake("transportPrimary"),
+                    personalCar: tBookingsIntake("transportPersonalCar"),
+                    noCarDong: tBookingsIntake("transportNoCarDong"),
+                    noCarAcquaintance: tBookingsIntake("transportNoCarAcquaintance"),
+                    occupants: (count) =>
+                      tBookingsIntake("transportOccupants", { count, locale }),
+                  });
+                  return (
                   <tr key={row.id} className="border-b transition-colors last:border-b-0 hover:bg-muted/50">
                     <td className="px-3 py-2 font-medium">{row.guestLabel}</td>
                     <td className="px-3 py-2">{formatLocalizedNumber(row.partySize, locale)}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {transportLabel ?? "—"}
+                    </td>
                     <td className="px-3 py-2">
                       {formatBookingDeparture(row.departureAt, locale)}
                     </td>
@@ -136,7 +155,8 @@ export function TourWorkspaceTransportClient({ tourId }: TourWorkspaceTransportC
                       {tBookings.has(row.status) ? tBookings(row.status) : row.status}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { resolveDenaliFieldLabel } from "@/i18n/denali-wizard-labels";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalValue, setCanonicalValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import { DenaliLocationAddressPicker } from "./denali-location-address-picker";
 import {
@@ -32,16 +33,15 @@ export function DenaliGatheringPointsField({
   const t = useTranslations("denali");
   const tCommon = useTranslations("denali.composites.common");
   const seededRef = useRef(false);
-  const draftRef = useRef(draft);
-  draftRef.current = draft;
+  const draftRef = useLatestWizardDraft(draft);
 
   const points = parseDenaliGatheringPoints(getCanonicalValue(draft, GATHERING_POINTS_PATH));
   const label = resolveDenaliFieldLabel(t, "gatheringPoints");
 
   const updateGatheringPoints = (next: DenaliGatheringPoint[]) => {
-    const nextDraft = setCanonicalValue(draftRef.current, GATHERING_POINTS_PATH, next);
-    draftRef.current = nextDraft;
-    onDraftChange(nextDraft);
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalValue(base, GATHERING_POINTS_PATH, next)
+    );
   };
 
   useEffect(() => {

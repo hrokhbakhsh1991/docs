@@ -1,5 +1,7 @@
 # @app-tour/workspace-denali
 
+> **Maintenance mode (P3-D)** — product workspace plugin; metadata cutover complete on trunk.
+
 **Phase 6.2–6.3 — registry, rules, composites + theme** (product workspace; not a guard probe).
 
 Denali is the first full `WorkspacePlugin` product workspace on trunk. P0 domain files from `legacy/packages/denali-domain/` are ported under `src/` with `types/legacy/` shims (no runtime `legacy/` imports).
@@ -19,6 +21,16 @@ Denali is the first full `WorkspacePlugin` product workspace on trunk. P0 domain
 | `test/composites.contract.spec.ts` | Widget registry + theme ingress (6.3)                         |
 | `test/fixtures/golden/`            | 3 golden wizard JSON fixtures                                 |
 | `theme/tokens.css`                 | `--ws-*` workspace brand tokens                               |
+
+## Metadata export (P3-D)
+
+Workspace metadata definitions are exported from the live Denali plugin for seed parity:
+
+```bash
+pnpm --filter @apps/api run export:workspace-definition -- --workspace denali --out scripts/seed/definitions/denali-v1.json
+```
+
+Regenerate `denali-v1.json` after field-registry or composite changes; DP/RP parity specs compare the export to the package strip.
 
 ## Commands
 

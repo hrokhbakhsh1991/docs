@@ -54,8 +54,8 @@ function canonical(extra: Record<string, unknown> = {}) {
       participants: { fitnessLevel: "medium" },
       pricing: { basePricePerPerson: 2500000 },
       photos: [
-        { id: "p1", url: "https://cdn.example/day1.jpg" },
         { url: "https://cdn.example/cover.jpg" },
+        { id: "p1", url: "https://cdn.example/day1.jpg" },
       ],
       ...extra,
     },
@@ -92,6 +92,19 @@ describe("denali-catalog-itinerary.spec.ts", () => {
     assert.deepEqual(ids, ["dest-1"]);
   });
 
+  it("DN-CAT-12 projectDenaliCatalogItinerary resolves storageKey photos via photoUrlById", () => {
+    const data = canonical({
+      photos: [{ id: "p1", storageKey: "tenant/tours/t1/photos/p1" }],
+    }).data;
+    const projected = projectDenaliCatalogItinerary(data, {
+      photoUrlById: new Map([["p1", "https://minio.example/signed-p1"]]),
+    });
+    assert.equal(
+      projected?.[0]?.segments[0]?.photoUrls?.[0],
+      "https://minio.example/signed-p1"
+    );
+  });
+
   it("DN-CAT-05 toDenaliCatalogCard attaches itineraryDays difficulty fitness and structuredData", () => {
     const card = toDenaliCatalogCard({ id: TOUR_ID, canonical: canonical() });
     assert.equal(card.difficultyLevel, 6);
@@ -101,6 +114,20 @@ describe("denali-catalog-itinerary.spec.ts", () => {
     assert.equal(card.structuredData?.name, "Festival Trek");
     const itinerary = card.structuredData?.itinerary as { itemListElement?: unknown[] } | undefined;
     assert.equal(itinerary?.itemListElement?.length, 1);
+  });
+
+  it("DN-CAT-07 buildDenaliTouristTripJsonLd includes offers image and dateModified", () => {
+    const card = toDenaliCatalogCard({
+      id: TOUR_ID,
+      canonical: canonical(),
+      catalogUpdatedAt: "2026-06-02T10:00:00.000Z",
+    });
+    const jsonLd = buildDenaliTouristTripJsonLd(card);
+    const offers = jsonLd.offers as { price?: number; priceCurrency?: string } | undefined;
+    assert.equal(offers?.price, 2500000);
+    assert.equal(offers?.priceCurrency, "IRR");
+    assert.equal(jsonLd.image, "https://cdn.example/cover.jpg");
+    assert.equal(jsonLd.dateModified, "2026-06-02T10:00:00.000Z");
   });
 
   it("DN-CAT-06 buildDenaliTouristTripJsonLd includes day descriptions", () => {

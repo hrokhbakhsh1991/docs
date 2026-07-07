@@ -1,0 +1,584 @@
+---
+title: P3-D — Workspace metadata cutover & parity
+phase: 16
+format: markdoc
+prerequisite: P3-C-N-014 complete (publish API + builder + club assign tab)
+optional: true
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p3/p3-d-migration-parity.md
+---
+
+# Workspace metadata cutover & parity (P3-D)
+
+Prove **package ↔ metadata parity** for Denali, enable **per-tenant Strangler Fig cutover** without big-bang migration, and close the metadata platform phase with an updated enterprise assessment.
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p3/p3-d-migration-parity.md`](../../TEMP/p3/p3-d-migration-parity.md) v1.3
+
+**Status (2026-06-21):** doc complete · **implementation complete** (12/12 nanos) · parity CI green · prod pilot still staging-only
+
+---
+
+## Executive summary
+
+| Layer | P3-D delivers |
+|-------|----------------|
+| **Shadow parity (CI)** | Export checksum + data-surface deepEqual + golden tour + render plan specs |
+| **Pilot cutover** | `WORKSPACE_METADATA_ENABLED` + per-tenant binding + optional allowlist |
+| **Rollback** | Clear binding / shrink allowlist / flag off — **no** canonical tour rewrite |
+| **Vertical proof** | Starter/climbing metadata tenant with `platform.*` composites (P3-B) |
+| **Denali maintenance** | README banner — field layout SoT moves to DB definitions |
+| **Phase exit** | Assessment ≥ 9/10 + all parity specs green |
+
+---
+
+## Goals
+
+| Goal | Detail |
+|------|--------|
+| Export ↔ seed parity | Live `export:workspace-definition` checksum matches committed `denali-v1.json` |
+| Runtime parity | `adaptMetadataPayloadToWorkspacePlugin` + DB row ≡ package plugin for data surfaces |
+| Golden tour | `tour-publish-ready.json` validates on metadata path (flag + binding) |
+| Render plan parity | `buildRenderPlan` field ids + `compositeId` identical package vs metadata |
+| New vertical proof | Starter/climbing vertical authored in builder (P3-C) runs end-to-end |
+| Cutover | Strangler Fig — tenant binding + env flag; rollback = clear binding |
+| Denali maintenance | Package frozen for new EPICs; metadata is SoT for field layout |
+
+## Non-goals (P3-D v1)
+
+- Big-bang global cutover (`WORKSPACE_METADATA_ENABLED=true` for all prod tenants in one PR)
+- Canonical tour data migration when repointing definition version
+- Metadata-only tenant without package overlay (adapter requires overlay today — document future path)
+- Deprecating `@app-tour/workspace-denali` npm package (maintenance mode, not removal)
+- Upcasters / breaking schema evolution inside same `definitionId`
+- Urban workspace full parity (Denali + one starter vertical sufficient for v1 exit)
+- Production traffic shadow-compare middleware (CI shadow only in v1)
+
+---
+
+## Industry alignment
+
+| Pattern | Source | P3-D mapping |
+|---------|--------|--------------|
+| **Strangler Fig** | [Microsoft Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig) — incremental replace via facade routing | `resolveWorkspacePluginForTenant` facade before package |
+| **Parallel run** | [Pretius phased modernization](https://pretius.com/blog/phased-legacy-modernization) — legacy authoritative until new path proven | Package path default; metadata only when flag + binding |
+| **Shadow execution** | [Kellton shadow QA](https://www.kellton.com/kellton-tech-blog/shadow-execution-framework-legacy-code-qa) — characterize legacy behavior before cutover | CI parity specs run both paths; prod unchanged until pilot |
+| **Feature-flag rollout** | [OneUptime Strangler guide](https://oneuptime.com/blog/post/2026-01-24-strangler-fig-migration-pattern/view) — per-tenant / kill-switch | `WORKSPACE_METADATA_ENABLED` + `WORKSPACE_METADATA_TENANT_ALLOWLIST` |
+| **Branch by abstraction** | Jez Humble / Paul Hammant — stable interface, swap implementation | `WorkspacePlugin` interface unchanged; data from DB or package |
+| **Shadow parity (internal)** | [`industry-alignment-2026.md`](../phase-6/appendices/industry-alignment-2026.md) REQ-P6-015 | Golden fixtures + DP/RP assertion IDs |
+| **Immutable revisions** | [Form.io Form Revisions](https://form.io/features/form-revisions-form-json-schema/) | Parity compares versioned JSON snapshot, not live package mutation |
+| **Tranche governance** | [Averroa Strangler Fig](https://averroa.com/insights/enterprise-software-workflow-automation-insights/custom-development-integration/strangler-fig-pattern-decompose-a-monolith-safely/) — rollback design + audit evidence | Runbook + platform audit `TENANT_DEFINITION_*` |
+
+### Migration stages (frozen)
+
+Aligned with Phase 6 research ([`phase-6-denali-workspace-research.md`](../research/phase-6-denali-workspace-research.md)) and LaunchDarkly migration stages:
+
+```text
+Stage 0 — Off:      package path only (default prod)
+Stage 1 — Shadow:   metadata path runs in CI parity specs; prod still package
+Stage 2 — Pilot:    flag on + binding on 1–2 smoke tenants (staging first)
+Stage 3 — Live:     expand tenant bindings; monitor validation/render metrics
+Stage 4 — Complete: Denali field layout SoT = DB definition; package = hooks/composites only
+```
+
+| Principle | Application |
+|-----------|-------------|
+| Expand before contract | Add metadata tables + loader (P3-A) before removing package data fields |
+| Shadow before cutover | Parity specs must green **before** any prod tenant binding |
+| Per-request routing | `resolveWorkspacePluginForTenantById` — no global switch without flag |
+| Rollback without migration | Clear `workspaceDefinitionId` on tenant → instant package path |
+| Backward-compatible schema | Additive definition evolution only; breaking → new `definitionId` |
+| No routing without monitoring | Pilot requires validation error rate baseline (see § Observability) |
+
+```mermaid
+flowchart TD
+  REQ[API request + tenantId] --> FLAG{WORKSPACE_METADATA_ENABLED?}
+  FLAG -->|false| PKG[resolveWorkspacePluginForType]
+  FLAG -->|true| BIND{tenant.workspaceDefinitionId set?}
+  BIND -->|no| PKG
+  BIND -->|yes| ALLOW{allowlist pass?}
+  ALLOW -->|no| PKG
+  ALLOW -->|yes| DB[(workspace_definition_versions)]
+  DB --> ADP[adaptMetadataPayloadToWorkspacePlugin]
+  ADP --> WP[WorkspacePlugin]
+  PKG --> WP
+  WP --> ENG[PlatformWizardEngine validate / buildRenderPlan]
+```
+
+---
+
+## Two-lever cutover model
+
+| Lever | Scope | Default | Role |
+|-------|-------|---------|------|
+| `WORKSPACE_METADATA_ENABLED` | Process / environment | `false` | Master gate — when false, loader **never** reads DB |
+| `tenants.workspaceDefinitionId` + `workspaceDefinitionVersion` | Per tenant | `null` | Actual cutover — set via Super Admin tab (P3-C) |
+| `WORKSPACE_METADATA_TENANT_ALLOWLIST` (P3-D-N-007) | Optional env | empty = all tenants when flag on | Staged pilot — comma-separated tenant UUIDs |
+
+**Resolution order** (in `resolveWorkspacePluginForTenant`):
+
+```text
+1. packagePlugin = resolveWorkspacePluginForType(workspaceType)   // always load overlay source
+2. if !isWorkspaceMetadataEnabled() → return packagePlugin
+3. if !metadataBinding?.definitionId → return packagePlugin
+4. if allowlist configured && tenantId ∉ allowlist → return packagePlugin   // N-007
+5. row = getPublishedVersion(definitionId, version)
+6. return adaptMetadataPayloadToWorkspacePlugin(row.payload, packagePlugin)
+```
+
+**Cutover recipe (staging pilot):**
+
+1. Seed definitions: `pnpm --filter @apps/api run db:seed` (includes `seedWorkspaceDefinitionsFromDir`)
+2. Set `WORKSPACE_METADATA_ENABLED=true` on API pods (staging only)
+3. Optionally set `WORKSPACE_METADATA_TENANT_ALLOWLIST=<smoke-tenant-uuid>`
+4. Super Admin → club → Workspace tab → assign `denali-tour-ops` @ version 1
+5. Run operator smoke: create tour, validate, publish-ready golden path
+6. Rollback: PATCH clear binding **or** remove tenant from allowlist — no tour rewrite
+
+**Production first PR:** parity specs + docs only — **no** prod flag flip.
+
+---
+
+## Cutover acceptance gates
+
+Objective criteria before promoting Stage 2 → Stage 3 (from industry tranche governance):
+
+| Gate | Criterion | Evidence |
+|------|-----------|----------|
+| G1 Shadow green | All DP/RP/MV/CO specs exit 0 on CI | `workspace-metadata-*-parity.spec.ts` |
+| G2 Ingress wired | P3-A-N-011 — tenant-aware resolve on live persist when `WORKSPACE_METADATA_ENABLED=true` via `validateCanonicalBeforePersistAsync`; sync path only when flag off or worker-thread | IG-01…IG-08 · [`canonical-validation.ts`](../../apps/api/src/tours/canonical-validation.ts) |
+| G3 Export drift | Live Denali export checksum === committed `denali-v1.json` | DP-01 |
+| G4 Golden parity | Metadata path accepts/rejects same violation fieldIds as package | DP-05 |
+| G5 Render parity | Per-step fieldId + compositeId identical | RP-01…RP-04 |
+| G6 Rollback drill | Clear binding → package path within one request | CO-04 + manual smoke |
+| G7 Denali covenant | `pnpm run guard:p3-denali-covenant` — no metadata SoT edits under forbidden paths | EX-03 |
+| G8 Architect YES | Prod pilot or maintenance README | explicit chat approval |
+
+**Do not advance stage** if G1 or G4 fails — fix export/seed/adapter, never patch package fieldRegistry for parity.
+
+---
+
+## Existing code (P3-A/C landed — extend, do not rewrite)
+
+| Module | Status |
+|--------|--------|
+| `export-workspace-definition.ts` + `buildWorkspaceDefinitionExport` | ✅ |
+| `DEFAULT_WORKSPACE_DEFINITION_EXPORTS` (denali, starter, urban) | ✅ |
+| `denali-v1.json` seed snapshot | ✅ |
+| `seed-workspace-definitions.ts` (dev upsert — not production publish) | ✅ |
+| `parseWorkspaceDefinitionExportFile` + checksum verify | ✅ |
+| `adaptMetadataPayloadToWorkspacePlugin` | ✅ |
+| `resolveWorkspacePluginForTenant` / `ById` | ✅ |
+| `readTenantWorkspaceMetadataBinding` + `toTenantWorkspaceMetadataBinding` | ✅ |
+| `isWorkspaceMetadataEnabled` | ✅ |
+| Prisma `tenants.workspaceDefinitionId/Version` | ✅ |
+| Golden fixture `tour-publish-ready.json` | ✅ |
+| `smoke-golden.spec.ts` (package path SMK-P6-06) | ✅ |
+| `workspace-definition-export.spec.ts` (starter round-trip) | ✅ |
+| `workspace-metadata-loader.spec.ts` (flag + binding unit tests) | ✅ |
+| `workspace-definition-tenant-binding.spec.ts` | ✅ |
+| Production ingress tenant-aware resolve | ✅ P3-A-N-011 |
+| `is-workspace-metadata-enabled-for-tenant.ts` | ✅ P3-D-N-007 |
+| Parity specs (`workspace-metadata-denali-parity.spec.ts`) | ✅ P3-D-N-001…N-002 |
+
+### Code anchors (verified 2026-06-21)
+
+| Anchor | Path |
+|--------|------|
+| Export CLI | `apps/api/scripts/export-workspace-definition.ts` |
+| Export builder | `apps/api/src/workspace-metadata/build-workspace-definition-export.ts` |
+| Denali export defaults | `definitionId: "denali-tour-ops"`, `workspaceType: "denali"` |
+| Starter export defaults | `definitionId: "starter-shell"`, `workspaceType: "starter"` |
+| Seed dir | `apps/api/scripts/seed/definitions/*.json` |
+| Adapter merge | `apps/api/src/workspace-metadata/metadata-plugin-adapter.ts:11` |
+| Loader + flag | `apps/api/src/workspace-metadata/load-workspace-plugin-for-tenant.ts:39` |
+| Tenant binding read | `apps/api/src/workspace-metadata/read-tenant-workspace-metadata-binding.ts` |
+| Flag helper | `apps/api/src/workspace-metadata/is-workspace-metadata-enabled.ts` |
+| Golden tour | `packages/workspaces/denali/test/fixtures/golden/tour-publish-ready.json` |
+| Package smoke | `packages/workspaces/denali/test/smoke-golden.spec.ts:44` (SMK-P6-06) |
+| Loader unit tests | `apps/api/test/workspace-metadata-loader.spec.ts` |
+| Export unit tests | `apps/api/test/workspace-definition-export.spec.ts` |
+| Tenant binding tests | `apps/api/test/workspace-definition-tenant-binding.spec.ts` |
+
+### Ingress routing (P3-A-N-011 — G2)
+
+Production persist when `WORKSPACE_METADATA_ENABLED=true`:
+
+```text
+validateCanonicalBeforePersist
+  → validateCanonicalBeforePersistAsync
+  → resolveWorkspacePluginForTenantContext(tenantId, workspaceType)
+```
+
+`validateCanonicalBeforePersistSync` remains for worker threads and when the metadata flag is off — not used for live metadata cutover. P0 files below still call package resolve on **sync-only** paths; parity CI does not require rewriting sync for flag-off dev.
+
+| Priority | File | Call site |
+|----------|------|-----------|
+| P0 (async live) | `tours/canonical-validation.ts` | routes to async when flag on |
+| P0 (sync legacy) | `tours/canonical-validation-sync.ts` | `validateCanonicalBeforePersistSync` |
+| P0 | `tours/build-clone-tour-body.ts` | tenant context resolve ✅ |
+| P0 | `settings/wizard-template-catalog.ts` | template baseline rows |
+| P1 | `tours/list-tours-operator.ts` | list projection |
+| P1 | `tours/get-tour-operator.ts` | detail projection |
+| P1 | `workspace-drafts/workspace-drafts.service.ts` | draft validation |
+| NO v1 | `settings/settings-registry.ts` | package catalog only |
+| NO v1 | `marketing/should-invalidate-marketing-catalog.ts` | public catalog hook |
+
+Parity CI **does not require** sync ingress wiring — specs call loader/adapter directly. Live cutover **does** require flag on + tenant binding.
+
+### Dev seed vs immutable publish (critical)
+
+| Context | Behavior |
+|---------|----------|
+| P3-C production publish | INSERT new version row only — never UPDATE `payload` |
+| Dev `seed-workspace-definitions.ts` | upsert for local iteration — **not** the production contract |
+| P3-D parity CI | Re-export live Denali plugin → compare checksum to committed JSON |
+
+---
+
+## Parity strategy — data surfaces
+
+Compare **data surfaces only** (hooks always from package overlay):
+
+```text
+A = resolveWorkspacePluginForType("denali")           → stripWorkspacePluginToDefinitionPayload
+B = parseWorkspaceDefinitionExportFile(denali-v1.json)
+C = adaptMetadataPayloadToWorkspacePlugin(B.payload, overlay=A)
+```
+
+Assert deep equality on:
+
+- `fieldRegistry` (field ids, kinds, stepIds, canonicalPaths)
+- `ruleSet.rules` (count + stable JSON snapshot)
+- `wizard` (`WorkspaceWizardSurface` — roots, railId, wizardMode, inactiveFieldGroups)
+
+**Do not compare:** `validation`, `lifecycle`, `wizardHost`, `wizardMedia`, finance hooks — these remain package-owned in v1.
+
+### Parity harness helpers (N-001)
+
+Shared test utilities in `workspace-metadata-denali-parity.spec.ts`:
+
+```typescript
+function loadDenaliSeedExport(): WorkspaceDefinitionExportFile {
+  return parseWorkspaceDefinitionExportFile(
+    JSON.parse(readFileSync("scripts/seed/definitions/denali-v1.json", "utf8"))
+  );
+}
+
+function buildLiveDenaliExport(): WorkspaceDefinitionExportFile {
+  const plugin = resolveWorkspacePluginForType("denali");
+  return buildWorkspaceDefinitionExport({
+    plugin,
+    meta: DEFAULT_WORKSPACE_DEFINITION_EXPORTS.denali,
+  });
+}
+
+function stripDataSurfaces(plugin: WorkspacePlugin) {
+  return {
+    fieldRegistry: plugin.fieldRegistry,
+    ruleSet: plugin.ruleSet,
+    wizard: plugin.wizard,
+  };
+}
+```
+
+### Export drift gate (CI)
+
+```bash
+pnpm --filter @apps/api run export:workspace-definition -- --workspace denali \
+  --out /tmp/denali-export.json
+# compare checksum to apps/api/scripts/seed/definitions/denali-v1.json
+```
+
+If checksum diverges:
+
+1. Run export CLI → commit updated `denali-v1.json`
+2. Bump seed version in platform ops if publishing new immutable row
+3. **Do not** edit Denali package fieldRegistry for parity unless Architect YES (true package bug)
+
+---
+
+## Golden tour validation parity
+
+Reuse `tour-publish-ready.json` from Denali fixtures (SMK-P6-06 baseline).
+
+| Path | Plugin source |
+|------|---------------|
+| Package baseline | `getDenaliWorkspacePlugin()` → `PlatformWizardEngine.validateCanonical` |
+| Metadata path | `adaptMetadataPayloadToWorkspacePlugin(denali-v1 payload, overlay)` → same engine |
+
+Assert:
+
+- Both paths accept or reject with same violation **field ids** (order may differ)
+- Metadata path uses in-memory payload (CI) — simulates DB row without Postgres
+- Live path requires `WORKSPACE_METADATA_ENABLED=true` + binding `{ definitionId: "denali-tour-ops", definitionVersion: 1 }`
+
+Reference existing smoke: `SMK-P6-06` in `smoke-golden.spec.ts`.
+
+**DP-06:** `adaptMetadataPayloadToWorkspacePlugin` preserves `overlay.validation` reference (same object identity as package plugin).
+
+---
+
+## Render plan parity
+
+For a synthetic canonical shell covering all `wizard.roots`:
+
+```typescript
+const packagePlugin = resolveWorkspacePluginForType("denali");
+const seed = loadDenaliSeedExport();
+const metadataPlugin = adaptMetadataPayloadToWorkspacePlugin(seed.payload, packagePlugin);
+
+const engineA = PlatformWizardEngine.create(denaliPluginForWizardEngine(packagePlugin));
+const engineB = PlatformWizardEngine.create(denaliPluginForWizardEngine(metadataPlugin));
+
+const shell = buildDenaliCanonicalShell(packagePlugin.wizard.roots);
+const planA = engineA.buildRenderPlan({ data: shell, dimensions: { category: "mountain" } });
+const planB = engineB.buildRenderPlan({ data: shell, dimensions: { category: "mountain" } });
+```
+
+Assert per step:
+
+- Same visible field count (RP-01)
+- Same ordered `fieldId` list (RP-02)
+- Same `uiHints.compositeId` for composite fields (RP-03)
+- Denali seed retains `denali.*` ids — not rewritten to `platform.*` (RP-04)
+
+Metadata path must **not** rewrite composite ids to `platform.*` for Denali seed — alias map is for **new** verticals only (P3-B).
+
+---
+
+## New metadata vertical (starter + platform.*)
+
+Proof that P3-B/C path works without Denali package field layout:
+
+1. Export starter: `pnpm --filter @apps/api run export:workspace-definition -- --workspace starter --out /tmp/starter-v1.json`
+2. Author `climbing-club-v1` via builder publish (P3-C) **or** use `starter-shell` export as fixture
+3. `provision-metadata-vertical.mjs` — create smoke tenant with `workspaceType: "starter"`, assign definition
+4. Operator wizard loads `platform.*` composites (requires P3-B codegen + bindings)
+
+This tenant proves metadata platform v1 — **not** Denali deprecation.
+
+| Export preset | definitionId | workspaceType |
+|---------------|--------------|---------------|
+| denali | `denali-tour-ops` | `denali` |
+| starter | `starter-shell` | `starter` |
+| urban | `urban-minimal` | `urban` (parity optional) |
+
+---
+
+## Per-tenant cutover runbook
+
+### Enable (staging pilot)
+
+| Step | Action |
+|------|--------|
+| 1 | Merge P3-D parity specs green on CI (G1) |
+| 2 | Confirm P3-A-N-011 ingress wired (G2) |
+| 3 | Deploy API with `WORKSPACE_METADATA_ENABLED=true` (staging) |
+| 4 | Set allowlist to pilot tenant UUID(s) if using N-007 helper |
+| 5 | Super Admin assign `denali-tour-ops` v1 on pilot club |
+| 6 | Smoke: operator create/edit/publish tour |
+| 7 | Monitor validation error rate vs baseline (§ Observability) |
+
+### Rollback
+
+| Step | Action |
+|------|--------|
+| 1 | Super Admin → clear workspace definition binding (PATCH null) |
+| 2 | Or remove tenant from `WORKSPACE_METADATA_TENANT_ALLOWLIST` |
+| 3 | Or set `WORKSPACE_METADATA_ENABLED=false` (environment rollback) |
+| 4 | **No** canonical tour migration required — package path resumes immediately |
+
+Audit trail: existing `TENANT_DEFINITION_CLEARED` event.
+
+### Rollback verification (CO-04)
+
+```typescript
+assert.equal(
+  toTenantWorkspaceMetadataBinding({ workspaceDefinitionId: null, workspaceDefinitionVersion: null }),
+  null
+);
+```
+
+---
+
+## Observability during pilot
+
+Per [Averroa guardrails](https://averroa.com/insights/enterprise-software-workflow-automation-insights/custom-development-integration/strangler-fig-pattern-decompose-a-monolith-safely/) — no routing without end-to-end monitoring.
+
+| Signal | Where | Alert threshold (staging pilot) |
+|--------|-------|--------------------------------|
+| `CANONICAL_VALIDATION_FAILED` rate | API logs / metrics | > 2× baseline for pilot tenant |
+| `WORKSPACE_DEFINITION_NOT_FOUND` | loader throws | any occurrence → rollback |
+| Validation engine cache misses | P3-A engine cache key | spike after binding change |
+| Operator 5xx on `/tours/*` | HTTP metrics | any sustained increase |
+
+Log fields (existing): `tenantId`, `workspaceType`, `definitionId`, `definitionVersion` when metadata path active.
+
+---
+
+## Denali maintenance mode (P3-D-N-009)
+
+After parity green + Architect YES:
+
+- Update `packages/workspaces/denali/README.md` with maintenance notice
+- New field layout changes: export → publish new definition version → assign tenants
+- Package changes limited to: hooks, composites React, finance handlers, theme — **not** fieldRegistry edits without export sync
+- No new Denali EPICs on roadmap without explicit Architect approval
+
+---
+
+## Metadata-only mode (deferred post-v1)
+
+Today `adaptMetadataPayloadToWorkspacePlugin` **requires** package overlay — metadata-only plugin fails `assertWorkspacePlugin`.
+
+Future (not P3-D gate):
+
+- Minimal `@app-tour/workspace-starter` overlay providing noop hooks + `platform` composite surface
+- Or inject synthetic overlay in loader for `supportedWorkspaceTypes: ["metadata-only"]`
+
+Document coexist path in assessment; do not implement in P3-D unless Architect expands scope.
+
+---
+
+## Optional env — tenant allowlist (N-007)
+
+```typescript
+// apps/api/src/workspace-metadata/is-workspace-metadata-enabled-for-tenant.ts
+export function isWorkspaceMetadataEnabledForTenant(tenantId: string): boolean {
+  if (!isWorkspaceMetadataEnabled()) return false;
+  const raw = process.env.WORKSPACE_METADATA_TENANT_ALLOWLIST?.trim();
+  if (!raw) return true;
+  const allowed = new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
+  return allowed.has(tenantId);
+}
+```
+
+Wire into `resolveWorkspacePluginForTenant` / `resolveWorkspacePluginForTenantById` before DB load — empty allowlist = all tenants (when flag on).
+
+Pass `tenantId` through `ResolveWorkspacePluginForTenantInput` (extend type in N-007).
+
+---
+
+## Assessment rubric (N-011)
+
+Rewrite `TEMP/wizard-denali-enterprise-assessment.md` with evidence table:
+
+| Dimension | Weight | ≥ 9/10 requires |
+|-----------|--------|-----------------|
+| Metadata platform completeness | 25% | P3-A…C landed; P3-D parity green |
+| Denali safety | 20% | maintenance README; zero unauthorized package edits |
+| Cutover readiness | 20% | runbook + allowlist + rollback drill documented |
+| Test coverage | 20% | DP/RP/MV/CO/EX specs green |
+| Operational clarity | 15% | stage model + gates + observability table |
+
+Minimum phase exit score: **9.0/10** documented with per-dimension scores (EX-02).
+
+---
+
+## File layout
+
+```text
+docs/phase-16/platform-workspace-cutover.mdoc
+apps/api/src/workspace-metadata/is-workspace-metadata-enabled-for-tenant.ts   # N-007
+apps/api/test/workspace-metadata-denali-parity.spec.ts                        # N-001, N-002
+apps/api/test/workspace-metadata-render-plan-parity.spec.ts                   # N-003, N-004
+apps/api/test/workspace-metadata-cutover-allowlist.spec.ts                    # N-008
+apps/api/scripts/provision-metadata-vertical.mjs                              # N-005
+packages/workspaces/starter/test/metadata-vertical-smoke.spec.ts              # N-006
+packages/workspaces/denali/README.md                                          # N-009 (Architect YES)
+TEMP/wizard-denali-enterprise-assessment.md                                   # N-011
+TEMP/ROADMAP-INDEX.md                                                         # N-011
+```
+
+---
+
+## Testing matrix
+
+| Spec | IDs | Asserts |
+|------|-----|---------|
+| `workspace-metadata-denali-parity.spec.ts` | DP-01…DP-07 | export checksum; fieldRegistry; ruleSet; wizard; golden validate; overlay.validation ref; inactiveFieldGroups |
+| `workspace-metadata-render-plan-parity.spec.ts` | RP-01…RP-04 | field count; fieldIds; compositeIds; denali.* preserved |
+| `metadata-vertical-smoke.spec.ts` | MV-01…MV-04 | starter payload valid; assertWorkspacePlugin; platform.* field; buildRenderPlan ≥1 step |
+| `workspace-metadata-cutover-allowlist.spec.ts` | CO-01…CO-05 | flag off; empty allowlist; exclude tenant; rollback null binding; missing row throws |
+| Denali README gate | DM-01…DM-02 | maintenance keywords; metadata/export reference |
+| Phase exit | EX-01…EX-03 | all specs green; assessment ≥ 9/10; scoped denali covenant |
+
+---
+
+## Verification
+
+```bash
+pnpm run guard:import-boundary
+pnpm run guard:p3-denali-covenant
+
+pnpm --filter @apps/api run export:workspace-definition -- --workspace denali \
+  --out /tmp/denali-live.json
+
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/workspace-metadata-denali-parity.spec.ts \
+  test/workspace-metadata-render-plan-parity.spec.ts \
+  test/workspace-metadata-cutover-allowlist.spec.ts \
+  test/workspace-metadata-denali-maintenance.spec.ts \
+  test/workspace-metadata-phase-exit.spec.ts
+
+pnpm --filter @apps/web exec node --import tsx --test \
+  ../../packages/workspaces/starter/test/metadata-vertical-smoke.spec.ts
+```
+
+---
+
+## Implementation status
+
+```text
+Parity harness + DP specs     ✅  N-001 N-002
+Render plan parity            ✅  N-003 N-004
+Metadata vertical script      ✅  N-005 N-006
+Allowlist + cutover           ✅  N-007 N-008
+Denali maintenance README     ✅  N-009 N-010
+Assessment + phase exit       ✅  N-011 N-012
+```
+
+---
+
+## STOP table
+
+| Symptom | Action |
+|---------|--------|
+| Prod `WORKSPACE_METADATA_ENABLED=true` in first P3-D PR | **STOP** — parity specs only first |
+| Edit `packages/workspaces/denali` fieldRegistry for parity | **STOP** — fix export/seed/adapter |
+| Mutate published version rows for parity fix | **STOP** — publish new version |
+| Skip golden tour metadata path | **STOP** — DP-05 required |
+| Cutover before P3-A-N-011 ingress | **STOP** — validation still package-only |
+| Metadata-only tenant without overlay | **STOP** — deferred |
+| Advance pilot without G1/G4 green | **STOP** — shadow parity gate |
+
+---
+
+## Dependency graph
+
+```text
+P3-C-N-014 (builder + assign tab)
+  → P3-D-N-001 export/seed parity harness
+  → … parity + vertical + cutover …
+  → P3-D-N-012 phase exit
+
+P3-A-N-011 (ingress wiring) — hard prerequisite for live cutover, not for CI parity specs
+P3-B-N-014 — required for MV-03 platform.* vertical proof (MV-03 may skip with documented reason if P3-B not merged)
+```
+
+---
+
+## References
+
+- [`platform-workspace-definitions.mdoc`](platform-workspace-definitions.mdoc) — data model + loader
+- [`platform-generic-widgets.mdoc`](platform-generic-widgets.mdoc) — `platform.*` widgets (vertical proof)
+- [`platform-workspace-builder.mdoc`](platform-workspace-builder.mdoc) — publish + assign UI
+- [`phase-6-denali-workspace-research.md`](../research/phase-6-denali-workspace-research.md) — Strangler Fig
+- [`industry-alignment-2026.md`](../phase-6/appendices/industry-alignment-2026.md) — shadow parity REQ-P6-015
+- [`SMOKE-SCENARIO-MAP.md`](../phase-6/appendices/SMOKE-SCENARIO-MAP.md) — SMK-P6-06 golden
+- [Microsoft Strangler Fig pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig)
+- [Phased legacy modernization (parallel run)](https://pretius.com/blog/phased-legacy-modernization)
+- [Shadow execution QA framework](https://www.kellton.com/kellton-tech-blog/shadow-execution-framework-legacy-code-qa)
+- [Feature flags for DB migrations](https://featureflags.io/feature-flags-database-migrations/)
+- `TEMP/p3/p3-d-migration-parity.md` — nano execution spec v1.3

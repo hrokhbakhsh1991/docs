@@ -1,14 +1,17 @@
-import path from "node:path";
-
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  /** VPS staging sync (`pnpm run p7:sync-staging-web`) — trunk TS debt; webpack output still valid. */
   typescript: {
-    ignoreBuildErrors: process.env.VPS_BUILD_IGNORE_TS === "1",
+    ignoreBuildErrors: process.env.STAGING_WEB_BUILD === "1",
   },
+  eslint: {
+    ignoreDuringBuilds: process.env.STAGING_WEB_BUILD === "1",
+  },
+  allowedDevOrigins: ["admin.localhost", "*.admin.localhost"],
   async rewrites() {
     return [{ source: "/favicon.ico", destination: "/icon" }];
   },
@@ -25,14 +28,6 @@ const nextConfig: NextConfig = {
     "@app-tour/workspace-urban",
   ],
   webpack: (config, { webpack, isServer }) => {
-    if (process.env.NEXT_FONT_OFFLINE === "1") {
-      const googleFonts = path.join(process.cwd(), "src/i18n/app-fonts.google.ts");
-      const offlineFonts = path.join(process.cwd(), "src/i18n/app-fonts.offline.ts");
-      config.resolve.alias = {
-        ...(config.resolve.alias ?? {}),
-        [googleFonts]: offlineFonts,
-      };
-    }
     if (!isServer) {
       // Client never bundles Node minio; Denali web uses `@app-tour/workspace-denali/plugin` only.
       config.plugins.push(

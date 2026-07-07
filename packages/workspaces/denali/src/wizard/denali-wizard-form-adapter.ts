@@ -3,7 +3,6 @@ import {
   getCanonicalValueFromDraft,
   type CanonicalWizardDraftEnvelope,
 } from "./canonical-draft-access";
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -36,7 +35,12 @@ function coerceDraftScalar(value: unknown): unknown {
   return value;
 }
 
-/** Map canonical-path draft values into legacy Denali form shape for rule evaluation. */
+/**
+ * Map canonical-path draft values into legacy Denali form shape for rule evaluation.
+ * Composite-dependent paths (e.g. `program.shortDescription`) are included here so publish
+ * readiness and contextual rules see wizard draft values. Form→draft persistence still
+ * uses `shouldPersistCanonicalPathFromForm` in sanitize / sync adapters.
+ */
 export function tourWizardDraftToDenaliForm(
   draft: CanonicalWizardDraftEnvelope,
   rules: DenaliWizardRulesModule

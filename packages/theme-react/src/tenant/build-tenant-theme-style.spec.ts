@@ -17,6 +17,25 @@ describe("buildTenantThemeStyle safety seal", () => {
     assert.equal(style["--color-border"], "#ccc");
   });
 
+  it("omitPrimaryColor skips primary family from primaryColor and cssVariables (F9-4)", () => {
+    const style = buildTenantThemeStyle(
+      validateTenantTheme({
+        primaryColor: "#0f766e",
+        cssVariables: {
+          "--color-primary": "#0f766e",
+          "--color-primary-hover": "#0f766e",
+          "--color-text-link": "#0f766e",
+          "--color-border": "#ccc",
+        },
+      }),
+      { omitPrimaryColor: true },
+    ) as Record<string, string>;
+    assert.equal(style["--color-primary"], undefined);
+    assert.equal(style["--color-primary-hover"], undefined);
+    assert.equal(style["--color-text-link"], undefined);
+    assert.equal(style["--color-border"], "#ccc");
+  });
+
   it("throws UNSEALED_THEME for plain object", () => {
     assert.throws(
       () =>

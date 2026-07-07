@@ -1,4 +1,5 @@
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
+import { operatorCapabilitySupportsReconciliationTriage } from "@app-tour/workspace-sdk";
 
 import { emitSettingsResourceAudit } from "./settings-audit-emitter";
 import { SettingsResourceNotFoundError } from "./in-memory-settings-resources.repository";
@@ -9,13 +10,10 @@ import {
   SettingsModuleUnknownError,
 } from "./settings-registry";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
-import { enrichTourThemesCompatibleCategories } from "./enrich-tour-theme-compatible-categories";
-import { enrichEquipmentListCompatibleCategories } from "./enrich-equipment-compatible-categories";
+import { enrichSettingsModuleList } from "./workspace-settings-enrichers.generated";
+import { parseEquipmentIconKeyInput } from "./parse-equipment-icon-key";
 import { normalizeThemeIdsInput } from "./parse-theme-ids";
-import {
-  assertDenaliOperatorSettingsWorkspace,
-  isUrbanOperatorSettingsWorkspace,
-} from "./settings-workspace-guard";
+import { SettingsResourceInvalidError } from "./settings-resource-errors";
 import type {
   CreateEquipmentRequest,
   CreateGuideLanguageRequest,
@@ -60,14 +58,7 @@ export class SettingsModuleNotSupportedError extends Error {
   }
 }
 
-export class SettingsResourceInvalidError extends Error {
-  readonly code = "SETTINGS_RESOURCE_INVALID" as const;
-
-  constructor() {
-    super("SETTINGS_RESOURCE_INVALID");
-    this.name = "SettingsResourceInvalidError";
-  }
-}
+export { SettingsResourceInvalidError } from "./settings-resource-errors";
 
 const SUPPORTED_REFERENCE_MODULES = new Set([
   "equipment",
@@ -118,16 +109,13 @@ const RECONCILIATION_TRIAGE_MODULE: SettingsModuleMetadata = {
 export async function listSettingsModules(
   auth: TenantAuthContext
 ): Promise<SettingsModulesListResponse> {
-  if (await isUrbanOperatorSettingsWorkspace(auth.tenantId)) {
-    return { items: [ACCOUNT_PROFILE_MODULE] };
-  }
   const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
   const pluginModules = await listSettingsModuleMetadataForTenant(auth.tenantId);
   const items: SettingsModuleMetadata[] = [
     ACCOUNT_PROFILE_MODULE,
     ...toModuleMetadata(pluginModules),
   ];
-  if (workspaceType === "denali") {
+  if (operatorCapabilitySupportsReconciliationTriage(workspaceType)) {
     items.push(RECONCILIATION_TRIAGE_MODULE);
   }
   return { items };
@@ -153,27 +141,20 @@ export async function listSettingsResources(
   | TourPresetsListResponse
   | LocationsListResponse
 > {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   await assertReferenceDataModule(auth.tenantId, moduleId);
   const repo = getSettingsResourcesRepository();
 
   if (moduleId === "equipment") {
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
     const raw = await repo.listEquipment(auth.tenantId);
-    const items =
-      workspaceType === "denali"
-        ? enrichEquipmentListCompatibleCategories(raw)
-        : raw;
+    const items = enrichSettingsModuleList(workspaceType, "equipment", raw);
     return { items, total: items.length };
   }
 
   if (moduleId === "tour_themes") {
     const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
     const raw = await repo.listTourThemes(auth.tenantId);
-    const items =
-      workspaceType === "denali"
-        ? enrichTourThemesCompatibleCategories(raw)
-        : raw;
+    const items = enrichSettingsModuleList(workspaceType, "tour_themes", raw);
     return { items, total: items.length };
   }
 
@@ -213,7 +194,6 @@ export async function createSettingsResource(
   | RegionResource
   | DestinationResource
 > {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   assertAdminOrOwner(auth);
   await assertReferenceDataModule(auth.tenantId, moduleId);
   const repo = getSettingsResourcesRepository();
@@ -229,11 +209,18 @@ export async function createSettingsResource(
     } catch {
       throw new SettingsResourceInvalidError();
     }
+    let iconKey: string | null | undefined;
+    try {
+      iconKey = parseEquipmentIconKeyInput(equipmentBody.iconKey);
+    } catch {
+      throw new SettingsResourceInvalidError();
+    }
     const created = await repo.createEquipment(auth.tenantId, {
       name: equipmentBody.name.trim(),
       ...(equipmentBody.category !== undefined && equipmentBody.category.trim().length > 0
         ? { category: equipmentBody.category.trim() }
         : {}),
+      ...(iconKey !== undefined ? { iconKey } : {}),
       themeIds,
     });
     await emitSettingsResourceAudit(
@@ -293,7 +280,9 @@ export async function createSettingsResource(
     }
     const created = await repo.createTourPreset(auth.tenantId, {
       name: presetBody.name.trim(),
-      ...(presetBody.description !== undefined ? { description: presetBody.description.trim() } : {}),
+      ...(presetBody.description !== undefined
+        ? { description: presetBody.description.trim() }
+        : {}),
       ...(presetBody.themeId !== undefined ? { themeId: presetBody.themeId.trim() } : {}),
       ...(presetBody.isActive !== undefined ? { isActive: presetBody.isActive } : {}),
     });
@@ -342,6 +331,9 @@ export async function createSettingsResource(
         ? { locationType: locationBody.locationType.trim() }
         : {}),
       ...(locationBody.altitudeM !== undefined ? { altitudeM: locationBody.altitudeM } : {}),
+      ...(locationBody.typicalTrailDistanceKm !== undefined
+        ? { typicalTrailDistanceKm: locationBody.typicalTrailDistanceKm }
+        : {}),
     });
     await emitSettingsResourceAudit(
       auth,
@@ -375,7 +367,6 @@ export async function patchSettingsResource(
   | RegionResource
   | DestinationResource
 > {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   assertAdminOrOwner(auth);
   await assertReferenceDataModule(auth.tenantId, moduleId);
   const repo = getSettingsResourcesRepository();
@@ -390,9 +381,16 @@ export async function patchSettingsResource(
         throw new SettingsResourceInvalidError();
       }
     }
+    let iconKey: string | null | undefined;
+    try {
+      iconKey = parseEquipmentIconKeyInput(equipmentBody.iconKey);
+    } catch {
+      throw new SettingsResourceInvalidError();
+    }
     const updated = await repo.patchEquipment(auth.tenantId, itemId, {
       ...(equipmentBody.name !== undefined ? { name: equipmentBody.name.trim() } : {}),
       ...(equipmentBody.category !== undefined ? { category: equipmentBody.category } : {}),
+      ...(iconKey !== undefined ? { iconKey } : {}),
       ...(themeIds !== undefined ? { themeIds } : {}),
     });
     await emitSettingsResourceAudit(
@@ -467,6 +465,10 @@ export async function patchSettingsResource(
     ...(locationBody.country !== undefined ? { country: locationBody.country } : {}),
     ...(locationBody.regionId !== undefined ? { regionId: locationBody.regionId.trim() } : {}),
     ...(locationBody.locationType !== undefined ? { locationType: locationBody.locationType } : {}),
+    ...(locationBody.altitudeM !== undefined ? { altitudeM: locationBody.altitudeM } : {}),
+    ...(locationBody.typicalTrailDistanceKm !== undefined
+      ? { typicalTrailDistanceKm: locationBody.typicalTrailDistanceKm }
+      : {}),
     ...(locationBody.isActive !== undefined ? { isActive: locationBody.isActive } : {}),
   });
   const resourceType = "regionId" in updated ? "destination" : "region";
@@ -486,20 +488,31 @@ export async function deleteSettingsResource(
   moduleId: string,
   itemId: string
 ): Promise<void> {
-  await assertDenaliOperatorSettingsWorkspace(auth.tenantId);
   assertAdminOrOwner(auth);
   await assertReferenceDataModule(auth.tenantId, moduleId);
   const repo = getSettingsResourcesRepository();
 
   if (moduleId === "equipment") {
     await repo.deleteEquipment(auth.tenantId, itemId);
-    await emitSettingsResourceAudit(auth, "delete", moduleId, itemId, `Deleted equipment ${itemId}`);
+    await emitSettingsResourceAudit(
+      auth,
+      "delete",
+      moduleId,
+      itemId,
+      `Deleted equipment ${itemId}`
+    );
     return;
   }
 
   if (moduleId === "tour_themes") {
     await repo.deleteTourTheme(auth.tenantId, itemId);
-    await emitSettingsResourceAudit(auth, "delete", moduleId, itemId, `Deleted tour theme ${itemId}`);
+    await emitSettingsResourceAudit(
+      auth,
+      "delete",
+      moduleId,
+      itemId,
+      `Deleted tour theme ${itemId}`
+    );
     return;
   }
 
@@ -517,7 +530,13 @@ export async function deleteSettingsResource(
 
   if (moduleId === "tour_presets") {
     await repo.deleteTourPreset(auth.tenantId, itemId);
-    await emitSettingsResourceAudit(auth, "delete", moduleId, itemId, `Deleted tour preset ${itemId}`);
+    await emitSettingsResourceAudit(
+      auth,
+      "delete",
+      moduleId,
+      itemId,
+      `Deleted tour preset ${itemId}`
+    );
     return;
   }
 

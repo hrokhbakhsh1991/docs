@@ -1,0 +1,109 @@
+---
+title: Phase 15 / P2-D — Platform domain verify & SSL automation
+phase: 15
+format: markdoc
+---
+
+# Platform custom domains & SSL (P2-D)
+
+Super Admin **Domains** tab is the single pane for CNAME verification, SSL lifecycle, and expiry KPIs. Denali workspace packages are **not** modified — ingress resolves tenant via platform subdomain parse or verified custom hostname only.
+
+## Data model
+
+`tenant_domains` gains SSL columns (migration `20260621140000_tenant_domains_ssl`):
+
+| Column | Purpose |
+|--------|---------|
+| `ssl_status` | `pending` → `provisioning` → `active` \| `failed` |
+| `ssl_expires_at` | Cert expiry (stub: +90d) |
+| `ssl_last_error` | Provider failure message |
+| `last_observed_cname` | Internal — not exposed in DTO v1 |
+
+`status` (CNAME) semantics unchanged: `pending` → `verified`.
+
+**UI “Expired”:** derived when `sslStatus === "active"` and `sslExpiresAt < now()` — no DB value `expired`.
+
+## Verify + SSL flow
+
+```text
+POST /platform/v1/tenants/{id}/domains/{domainId}/verify
+  → verifyTenantDomainCnameLive(hostname, cnameTarget)
+  → 422 { ok: false, message } on CNAME mismatch
+  → markVerified(domainId, lastObservedCname)
+  → audit DOMAIN_VERIFIED (outside transaction)
+  → provisionTenantDomainSsl → stub|cloudflare provider
+  → audit DOMAIN_SSL_PROVISIONED | DOMAIN_SSL_FAILED
+  → 200 { ok: true, domain: TenantDomainDto }
+```
+
+## Public ingress (custom host)
+
+```text
+GET /public/tenant-context  Host: www.custom.example.com
+  → resolvePublicIngressSubdomain(host)
+       1) resolveSubdomainFromPlatformHost (tenant-kernel parse)
+       2) else resolveTenantFromCustomDomainHost (verified + ssl active)
+  → resolvePublicTenantContextBySubdomain (unchanged)
+```
+
+Surfaces v1: **`marketing`** · **`portal`** only — no admin custom host.
+
+## API
+
+| Method | Path | RBAC |
+|--------|------|------|
+| GET | `/platform/v1/tenants/{id}/domains` | ops auth — DTO includes SSL fields |
+| POST | `/platform/v1/tenants/{id}/domains/{domainId}/verify` | write — live DNS + SSL provision |
+| GET | `/platform/v1/domains/ssl-summary` | ops auth (all roles) |
+| POST | `/platform/v1/domains/run-ssl-expiry-check` | owner only |
+
+### ssl-summary response
+
+```json
+{ "expiringWithin14Days": 0 }
+```
+
+### run-ssl-expiry-check response
+
+```json
+{ "expiring": ["www.example.com"], "audited": 1 }
+```
+
+Audits `DOMAIN_SSL_EXPIRING` per hostname in the 14-day window.
+
+## Environment
+
+| Variable | Values | When |
+|----------|--------|------|
+| `PLATFORM_DOMAIN_VERIFY_STUB` | `pass` | Dev/test — CNAME verify always ok without observed match |
+| `PLATFORM_DOMAIN_DNS_LOOKUP` | `live` (default) \| `off` | `off` → lookup returns null |
+| `PLATFORM_SSL_PROVIDER` | `stub` (default) \| `cloudflare` | Factory in `create-platform-ssl-provider.ts` |
+| `PLATFORM_SSL_CLOUDFLARE_API_TOKEN` | secret | Required for cloudflare success path |
+
+## Audit actions
+
+| Action | When |
+|--------|------|
+| `DOMAIN_VERIFIED` | CNAME verify success |
+| `DOMAIN_SSL_PROVISIONED` | SSL active |
+| `DOMAIN_SSL_FAILED` | SSL provisioning failed |
+| `DOMAIN_SSL_EXPIRING` | Manual expiry check (14d window) |
+
+Platform routes append audit via `appendPlatformAuditEventOutsideTx` (no surrounding tenant transaction).
+
+## UI
+
+- Club detail **Domains** tab: `data-ssl-status` badge per row (`domainSslDisplayBadge`)
+- Overview KPI: `data-stat-ssl-expiring` (14-day window from ssl-summary BFF)
+
+## Key modules
+
+| Module | Path |
+|--------|------|
+| Live DNS | `lookup-tenant-domain-cname.ts` |
+| Verify | `verify-tenant-domain.ts` (`verifyTenantDomainCnameLive`) |
+| SSL providers | `platform/ssl/create-platform-ssl-provider.ts` |
+| Provision | `provision-tenant-domain-ssl.ts` |
+| Custom ingress | `resolve-public-ingress-subdomain.ts` |
+
+See also: [`platform-control-center-api.mdoc`](platform-control-center-api.mdoc) · [`platform-billing-plans.mdoc`](platform-billing-plans.mdoc) (custom_domain feature gate)

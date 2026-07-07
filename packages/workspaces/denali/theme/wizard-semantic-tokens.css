@@ -1,0 +1,35 @@
+/** @generated — do not edit; source: dtcg/workspaces/denali.wizard.tokens.json — run pnpm build in @app-tour/design-tokens */
+/**
+ * denali wizard tone palette + field semantics (DTCG authority).
+ */
+body[data-workspace-plugin="denali"] {
+  --color-danger: #dc2626;
+  --wiz-tone-amber-dark-fg: #fde68a;
+  --wiz-tone-amber-dark-source: #fcd34d;
+  --wiz-tone-amber-fg: #92400e;
+  --wiz-tone-amber-source: #b45309;
+  --wiz-tone-emerald-dark-fg: #a7f3d0;
+  --wiz-tone-emerald-dark-source: #6ee7b7;
+  --wiz-tone-emerald-fg: #065f46;
+  --wiz-tone-emerald-source: #047857;
+  --wiz-tone-forest-dark-fg: #99f6e4;
+  --wiz-tone-forest-dark-source: #5eead4;
+  --wiz-tone-forest-fg: #0f5c4a;
+  --wiz-tone-forest-source: #0f766e;
+  --wiz-tone-orange-fg: #9a3412;
+  --wiz-tone-orange-source: #c2410c;
+  --wiz-tone-purple-dark-fg: #ddd6fe;
+  --wiz-tone-purple-dark-source: #c4b5fd;
+  --wiz-tone-purple-fg: #5b21b6;
+  --wiz-tone-purple-source: #7c3aed;
+  --wiz-tone-rose-dark-fg: #fecdd3;
+  --wiz-tone-rose-dark-source: #fda4af;
+  --wiz-tone-rose-fg: #9f1239;
+  --wiz-tone-rose-source: #be123c;
+  --wiz-tone-sky-dark-fg: #bae6fd;
+  --wiz-tone-sky-dark-source: #7dd3fc;
+  --wiz-tone-sky-fg: #075985;
+  --wiz-tone-sky-fg-gear: #0c4a6e;
+  --wiz-tone-sky-source: #0369a1;
+}
+

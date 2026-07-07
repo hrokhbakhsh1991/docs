@@ -12,7 +12,7 @@ export default function MarketingCatalogError({ reset }: ErrorPageProps) {
   const t = useTranslations("catalog.error");
 
   return (
-    <main data-marketing-catalog-error>
+    <div data-marketing-catalog-error>
       <h1>{t("catalogTitle")}</h1>
       <p>{t("catalogBody")}</p>
       <p>
@@ -23,6 +23,6 @@ export default function MarketingCatalogError({ reset }: ErrorPageProps) {
       <p>
         <Link href="/tours">{t("backToTours")}</Link>
       </p>
-    </main>
+    </div>
   );
 }

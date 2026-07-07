@@ -1,10 +1,4 @@
 import {
-  createMinioPhotoClient,
-  ensureMinioPhotoBucket,
-  getDenaliTourPhotoSignedReadUrl,
-  readMinioPhotoConfigFromEnv,
-} from "@app-tour/workspace-denali";
-import {
   assertTenantBrandLogoBytesMatchContentType,
   assertTenantBrandLogoKeyTenantScope,
   buildTenantBrandLogoObjectKey,
@@ -12,7 +6,14 @@ import {
   TENANT_BRAND_LOGO_MAX_BYTES,
 } from "@app-tour/workspace-sdk";
 
-export { readMinioPhotoConfigFromEnv as readTenantBrandLogoMinioConfigFromEnv };
+import {
+  createTenantBrandLogoMinioClient,
+  ensureTenantBrandLogoBucket,
+  getTenantBrandLogoSignedReadUrl,
+  readTenantBrandLogoMinioConfigFromEnv,
+} from "./workspace-branding-photo-storage";
+
+export { readTenantBrandLogoMinioConfigFromEnv };
 
 export function assertTenantBrandLogoUploadContentType(contentType: string): void {
   const normalized = contentType.trim().toLowerCase();
@@ -35,15 +36,15 @@ export async function putTenantBrandLogo(input: {
   }
   assertTenantBrandLogoBytesMatchContentType(input.body, input.contentType);
 
-  const config = readMinioPhotoConfigFromEnv();
+  const config = readTenantBrandLogoMinioConfigFromEnv();
   if (config === null) {
     throw new Error("MINIO_NOT_CONFIGURED");
   }
 
   const storageKey = buildTenantBrandLogoObjectKey(input.tenantId);
   assertTenantBrandLogoKeyTenantScope(storageKey, input.tenantId);
-  await ensureMinioPhotoBucket(config);
-  const client = createMinioPhotoClient(config);
+  await ensureTenantBrandLogoBucket(config);
+  const client = createTenantBrandLogoMinioClient(config);
   await client.putObject(config.bucket, storageKey, input.body, input.body.length, {
     "Content-Type": input.contentType.trim().toLowerCase(),
   });
@@ -55,28 +56,12 @@ export async function deleteTenantBrandLogoObject(input: {
   readonly storageKey: string;
 }): Promise<void> {
   assertTenantBrandLogoKeyTenantScope(input.storageKey, input.tenantId);
-  const config = readMinioPhotoConfigFromEnv();
+  const config = readTenantBrandLogoMinioConfigFromEnv();
   if (config === null) {
     throw new Error("MINIO_NOT_CONFIGURED");
   }
-  const client = createMinioPhotoClient(config);
+  const client = createTenantBrandLogoMinioClient(config);
   await client.removeObject(config.bucket, input.storageKey);
 }
 
-export async function getTenantBrandLogoSignedReadUrl(input: {
-  readonly tenantId: string;
-  readonly storageKey: string;
-  readonly expiresInSeconds?: number;
-}): Promise<string> {
-  assertTenantBrandLogoKeyTenantScope(input.storageKey, input.tenantId);
-  const config = readMinioPhotoConfigFromEnv();
-  if (config === null) {
-    throw new Error("MINIO_NOT_CONFIGURED");
-  }
-  return getDenaliTourPhotoSignedReadUrl({
-    config,
-    tenantId: input.tenantId,
-    key: input.storageKey,
-    expiresInSeconds: input.expiresInSeconds ?? 300,
-  });
-}
+export { getTenantBrandLogoSignedReadUrl };

@@ -1,0 +1,52 @@
+# Caddyfile — Profile C HTTPS (P10-1-N-001)
+# Env: PLATFORM_ROOT_DOMAIN, WEB_PORT, MARKETING_PORT, PORTAL_PORT (from /etc/caddy/caddy.env)
+# Staging example: WEB_PORT=23000 MARKETING_PORT=23002 PORTAL_PORT=23003
+
+{
+	email {$CADDY_ACME_EMAIL:ops@example.com}
+	admin off
+}
+
+*.admin.{$PLATFORM_ROOT_DOMAIN} {
+	reverse_proxy 127.0.0.1:{$WEB_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output file /var/log/caddy/admin-access.log
+		format json
+	}
+}
+
+*.portal.{$PLATFORM_ROOT_DOMAIN} {
+	reverse_proxy 127.0.0.1:{$PORTAL_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output file /var/log/caddy/portal-access.log
+		format json
+	}
+}
+
+*.{$PLATFORM_ROOT_DOMAIN} {
+	reverse_proxy 127.0.0.1:{$MARKETING_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output file /var/log/caddy/marketing-access.log
+		format json
+	}
+}
+
+# API stays loopback-only (127.0.0.1:{$API_PORT}) — BFF uses TOUR_OPS_API_URL

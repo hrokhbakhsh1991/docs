@@ -63,17 +63,35 @@ body[data-workspace-plugin="denali"] [data-denali-surface="card"]:hover {
   border-color: rgb(15 118 110 / 0.12);
 }
 
+body[data-workspace-plugin="denali"] [data-denali-kpi] {
+  border-top: 3px solid var(--denali-forest-500);
+  transition:
+    box-shadow var(--motion-surface),
+    transform var(--motion-surface);
+}
+
+body[data-workspace-plugin="denali"] [data-denali-kpi]:hover {
+  box-shadow: var(--denali-shadow-card-hover);
+}
+
 body[data-workspace-plugin="denali"] [data-operator-nav-link] {
   transition:
     background-color var(--motion-interactive),
     color var(--motion-interactive),
-    padding-inline-start var(--motion-nav-indicator);
+    box-shadow var(--motion-interactive);
 }
 
-body[data-workspace-plugin="denali"] [data-operator-nav-indicator] {
+body[data-workspace-plugin="denali"] [data-operator-nav-icon] {
   transition:
-    inset-inline-start var(--motion-nav-indicator),
-    opacity var(--motion-interactive);
+    background-color var(--motion-interactive),
+    color var(--motion-interactive),
+    border-color var(--motion-interactive),
+    box-shadow var(--motion-interactive),
+    transform var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+body[data-workspace-plugin="denali"] [data-operator-nav-link]:hover [data-operator-nav-icon]:not([data-active="true"]) {
+  transform: translateY(-1px);
 }
 
 body[data-workspace-plugin="denali"] [data-density="compact"] tbody tr {

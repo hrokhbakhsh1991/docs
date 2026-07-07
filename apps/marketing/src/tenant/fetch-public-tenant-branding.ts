@@ -1,4 +1,4 @@
-import { resolvePublicBrandingHost } from "./resolve-public-branding-host";
+import { resolvePublicBrandingHost } from "@app-tour/guest-surface-host";
 import { resolveTourOpsApiBaseUrl } from "../env";
 
 export type PublicTenantBrandingSnapshot = {
@@ -6,6 +6,8 @@ export type PublicTenantBrandingSnapshot = {
   readonly primaryColor: string | null;
   readonly logoUrl: string | null;
   readonly defaultLocale: string | null;
+  /** Optional tenant-specific marketing hero background (PR-8). */
+  readonly marketingHeroUrl?: string | null;
 };
 
 const EMPTY_BRANDING: PublicTenantBrandingSnapshot = {
@@ -35,12 +37,14 @@ export async function fetchPublicTenantBrandingForHost(
       primaryColor?: string | null;
       logoUrl?: string | null;
       defaultLocale?: string | null;
+      marketingHeroUrl?: string | null;
     };
     return {
       displayName: body.displayName?.trim() || null,
       primaryColor: body.primaryColor?.trim() || null,
       logoUrl: body.logoUrl?.trim() || null,
       defaultLocale: body.defaultLocale?.trim() || null,
+      marketingHeroUrl: body.marketingHeroUrl?.trim() || null,
     };
   } catch {
     return EMPTY_BRANDING;

@@ -1,3 +1,9 @@
+import type { WorkspaceWizardMediaHooks } from "./workspace-wizard-media-hooks";
+import type {
+  WorkspaceWizardDraftEnvelope,
+  WorkspaceWizardDraftMeta,
+} from "./workspace-wizard-draft-envelope";
+
 /** Step-scoped or full-draft validation result (matches platform-core ValidationResult shape). */
 export type WizardDraftValidationViolation = {
   readonly code: string;
@@ -53,6 +59,11 @@ export type WorkspaceWizardHostHooks = {
   }) => unknown;
   /** Host renders workspace review/read-back chrome when active step matches reviewStepId. */
   readonly usesReviewStep?: boolean;
+  /**
+   * Canonical path for the review-step field lifted from the engine plan (INV-WIZ-002).
+   * Denali: `"publishStatus"`. Host appends this field on the injected review step only.
+   */
+  readonly reviewFieldCanonicalPath?: string;
   /** Extra data-* attributes on wizard host root (workspace skin markers). */
   readonly hostRootDataAttributes?: Readonly<Record<string, string>>;
   /** Registry key for workspace-specific review/read-back React surface (Phase 12.1). */
@@ -65,6 +76,32 @@ export type WorkspaceWizardHostHooks = {
   readonly wizardMessageNamespace?: string;
   /** Registry key for workspace field label resolver (Phase 12.1b). */
   readonly fieldLabelSurfaceId?: string;
+  /** Phase 13.0 — wizard-scoped async asset upload (session id + BFF route key). */
+  readonly media?: WorkspaceWizardMediaHooks;
+  /** Phase 13.0b — clone form + meta into client envelope (strips server-only meta fields). */
+  readonly prepareDraftEnvelope?: <TForm>(
+    form: TForm,
+    meta: WorkspaceWizardDraftMeta
+  ) => WorkspaceWizardDraftEnvelope<TForm>;
+  /** Phase 13.0b — hydrate remote envelope with fallbacks. */
+  readonly hydrateDraftEnvelope?: <TForm>(input: {
+    readonly remote: WorkspaceWizardDraftEnvelope<TForm> | null | undefined;
+    readonly fallbackForm: TForm;
+    readonly fallbackMeta?: WorkspaceWizardDraftMeta;
+  }) => WorkspaceWizardDraftEnvelope<TForm>;
+  /** Phase 13.0b — post-fetch sanitize (e.g. strip server tombstones from meta). */
+  readonly normalizeRemoteEnvelope?: <TForm>(
+    envelope: WorkspaceWizardDraftEnvelope<TForm>
+  ) => WorkspaceWizardDraftEnvelope<TForm>;
+  /** Phase 14.2 — merge local + server draft envelopes on sync conflict. */
+  readonly mergeDraftEnvelope?: <TForm>(
+    local: WorkspaceWizardDraftEnvelope<TForm>,
+    server: WorkspaceWizardDraftEnvelope<TForm>
+  ) => WorkspaceWizardDraftEnvelope<TForm>;
+  /** Phase 14.0b — workspace-specific wizard template invariant overlay. */
+  readonly normalizeWizardTemplateGate?: (
+    input: import("./workspace-wizard-template-gate").WorkspaceWizardTemplateGateNormalizeInput
+  ) => import("./workspace-wizard-template-gate").WorkspaceWizardTemplateGateNormalizeResult;
   /**
    * Infer initial wizard step on first mount (e.g. resume from draft data).
    * Host calls once when saved step index is 0.
@@ -73,6 +110,7 @@ export type WorkspaceWizardHostHooks = {
     readonly draft: Readonly<Record<string, unknown>>;
     readonly visibleSteps: readonly unknown[];
     readonly savedStepIndex: number;
+    readonly skipFieldInference?: boolean;
   }) => number;
   /** Synchronous canonical validation — host uses for step Next + review summary. */
   readonly validateDraftSync?: (input: {
@@ -145,4 +183,15 @@ export type WorkspaceWizardHostHooks = {
       readonly selectableLeaderIds?: readonly string[];
     };
   }) => unknown;
+  /** Post-engine validation filter (workspace-specific composite/storage parity). */
+  readonly filterEngineValidationResult?: (
+    result: {
+      readonly ok: boolean;
+      readonly violations: readonly { readonly code?: string; readonly message: string }[];
+    },
+    data: Readonly<Record<string, unknown>>
+  ) => {
+    readonly ok: boolean;
+    readonly violations: readonly { readonly code?: string; readonly message: string }[];
+  };
 };

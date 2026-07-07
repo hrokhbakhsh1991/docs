@@ -1,0 +1,67 @@
+# Guest registration E2E hooks — consumed by guard-guest-e2e-hooks.mjs (PF-0.4.5 / G0.5)
+version: 1
+hooks:
+  - id: SMK-PTL-01
+    description: Portal catalog registration OTP + intake
+    spec: apps/portal/tests/e2e/portal-registration-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: SMK-PTL-02
+    description: Member /me lists registration after intake
+    spec: apps/portal/tests/e2e/portal-member-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: SMK-PTL-04
+    description: Member uploads offline receipt on registration detail
+    spec: apps/portal/tests/e2e/portal-member-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: SMK-PTL-05
+    description: Portal home redirects authenticated member to /me/registrations
+    spec: apps/portal/tests/e2e/portal-member-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: SMK-PTL-06
+    description: Member logout clears session and blocks /me/registrations
+    spec: apps/portal/tests/e2e/portal-member-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: SMK-MKT-03
+    description: Marketing CTA → portal OTP → intake chain
+    spec: apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke
+  - id: DEN-PROF-01
+    description: Denali portal /me/profile participant fields visible
+    spec: apps/portal/tests/e2e/portal-member-profile-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: DEN-PROF-02
+    description: Profile PATCH persists · intake omits saved nationalId
+    spec: apps/portal/tests/e2e/portal-member-profile-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: DEN-PROF-03
+    description: Intake hides nationalId when profile already has it
+    spec: apps/portal/tests/e2e/portal-member-profile-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: DEN-INTAKE-01
+    description: Default tour omits participant intake fields
+    spec: apps/portal/tests/e2e/portal-registration-intake-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: DEN-INTAKE-02
+    description: Participant tour shows nationalId/fatherName/birthDate
+    spec: apps/portal/tests/e2e/portal-registration-intake-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: DEN-INTAKE-03
+    description: Other registrant tab on gated tour completes intake
+    spec: apps/portal/tests/e2e/portal-registration-intake-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: DEN-TRANS-01
+    description: Bus tour hides transport UI and omits transport payload
+    spec: apps/portal/tests/e2e/portal-registration-transport-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: DEN-TRANS-02
+    description: Personal-car opt-in persists personal_car with occupants
+    spec: apps/portal/tests/e2e/portal-registration-transport-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: DEN-TRANS-03
+    description: shared_cars tour forces dong follow-up and persists no_car_dong
+    spec: apps/portal/tests/e2e/portal-registration-transport-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+  - id: SMK-P8-02
+    description: Urban public registration intake (OTP + tour intake)
+    spec: apps/web/tests/e2e/urban-e2e-integrity.spec.ts
+    command: pnpm --filter @apps/web run test:e2e:urban --grep SMK-P8-02

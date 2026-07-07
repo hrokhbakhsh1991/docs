@@ -13,10 +13,13 @@ import {
   OtpInvalidError,
 } from "./identity.errors";
 import {
+  AUTH_TENANT_SUSPENDED,
   AuthPhoneNotAuthorizedError,
   MobileInvalidError,
   MobileRequiredError,
+  TenantSuspendedForLoginError,
 } from "./phone-preflight.errors";
+import { assertTenantActiveForOperatorLogin, type TenantLoginStatusResolver } from "./assert-tenant-active-for-login";
 import {
   isLoginMobileFormatValid,
   isPhoneAuthorizedForTenantLogin,
@@ -63,10 +66,24 @@ function assertLoginMobileFormat(mobile: string): void {
   }
 }
 
+type OperatorAuthRouteDeps = {
+  readonly resolveTenantStatus?: TenantLoginStatusResolver;
+};
+
+async function assertOperatorLoginTenantActive(
+  tenantId: string,
+  deps: OperatorAuthRouteDeps
+): Promise<void> {
+  await assertTenantActiveForOperatorLogin(tenantId, {
+    resolveStatus: deps.resolveTenantStatus,
+  });
+}
+
 export async function handlePhonePreflight(
   req: IncomingMessage,
   res: ServerResponse,
-  repo: IdentityRepository = getIdentityRepository()
+  repo: IdentityRepository = getIdentityRepository(),
+  routeDeps: OperatorAuthRouteDeps = {}
 ): Promise<void> {
   try {
     const tenantId = resolveTenantIdFromRequest(req);
@@ -74,11 +91,17 @@ export async function handlePhonePreflight(
     assertLoginMobilePresent(mobile);
     assertLoginMobileFormat(mobile);
 
+    await assertOperatorLoginTenantActive(tenantId, routeDeps);
+
     const authorized = await isPhoneAuthorizedForTenantLogin(tenantId, mobile, repo);
     sendJson(res, 200, { authorized });
   } catch (error) {
     if (error instanceof MobileRequiredError || error instanceof MobileInvalidError) {
       sendJson(res, 400, { error: error.message, code: error.code });
+      return;
+    }
+    if (error instanceof TenantSuspendedForLoginError) {
+      sendJson(res, 403, { error: AUTH_TENANT_SUSPENDED, code: AUTH_TENANT_SUSPENDED });
       return;
     }
     handleHttpError(res, error);
@@ -88,13 +111,16 @@ export async function handlePhonePreflight(
 export async function handleRequestOtp(
   req: IncomingMessage,
   res: ServerResponse,
-  repo: IdentityRepository = getIdentityRepository()
+  repo: IdentityRepository = getIdentityRepository(),
+  routeDeps: OperatorAuthRouteDeps = {}
 ): Promise<void> {
   try {
     const tenantId = resolveTenantIdFromRequest(req);
     const mobile = await readMobileFromBody(req);
     assertLoginMobilePresent(mobile);
     assertLoginMobileFormat(mobile);
+
+    await assertOperatorLoginTenantActive(tenantId, routeDeps);
 
     const authorized = await isPhoneAuthorizedForTenantLogin(tenantId, mobile, repo);
     if (!authorized) {
@@ -106,6 +132,10 @@ export async function handleRequestOtp(
   } catch (error) {
     if (error instanceof MobileRequiredError || error instanceof MobileInvalidError) {
       sendJson(res, 400, { error: error.message, code: error.code });
+      return;
+    }
+    if (error instanceof TenantSuspendedForLoginError) {
+      sendJson(res, 403, { error: AUTH_TENANT_SUSPENDED, code: AUTH_TENANT_SUSPENDED });
       return;
     }
     if (error instanceof AuthPhoneNotAuthorizedError) {
@@ -123,10 +153,13 @@ export async function handleRequestOtp(
 export async function handleVerifyOtp(
   req: IncomingMessage,
   res: ServerResponse,
-  repo: IdentityRepository = getIdentityRepository()
+  repo: IdentityRepository = getIdentityRepository(),
+  routeDeps: OperatorAuthRouteDeps = {}
 ): Promise<void> {
   try {
     const tenantId = resolveTenantIdFromRequest(req);
+    await assertOperatorLoginTenantActive(tenantId, routeDeps);
+
     const body = await readIdentityRequestBody(req);
     const challengeId =
       readStringField(body, "challengeId") || readStringField(body, "challenge_id");
@@ -195,6 +228,10 @@ export async function handleVerifyOtp(
     ) {
       const status = error instanceof OtpChallengeInvalidError ? 400 : 401;
       sendJson(res, status, { error: error.message, code: error.code });
+      return;
+    }
+    if (error instanceof TenantSuspendedForLoginError) {
+      sendJson(res, 403, { error: AUTH_TENANT_SUSPENDED, code: AUTH_TENANT_SUSPENDED });
       return;
     }
     handleHttpError(res, error);

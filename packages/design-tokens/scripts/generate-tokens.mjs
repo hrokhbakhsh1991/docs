@@ -6,6 +6,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { generateDtcgPlatformThemes } from "./generate-dtcg-theme.mjs";
+import { generateDtcgPrimitives } from "./generate-dtcg-primitives.mjs";
+import { generateDtcgSemantics } from "./generate-dtcg-semantics.mjs";
+import { generateWorkspaceDtcgCss } from "./generate-workspace-dtcg-css.mjs";
+
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const semanticsPath = path.join(packageRoot, "src/semantics.css");
 const metaPath = path.join(packageRoot, "tokens.meta.json");
@@ -46,7 +51,13 @@ function unionTypeLiteral(names) {
   return names.map((name) => JSON.stringify(name)).join(" | ");
 }
 
+
 function main() {
+  generateDtcgPrimitives();
+  generateDtcgSemantics();
+  generateDtcgPlatformThemes();
+  generateWorkspaceDtcgCss();
+
   if (!fs.existsSync(semanticsPath)) {
     console.error("generate-tokens: missing src/semantics.css");
     process.exit(1);

@@ -6,7 +6,8 @@
   "sortLabel": "مرتب‌سازی:",
   "empty": "هنوز توری ثبت نشده است.",
   "sort": {
-    "created_at": "تاریخ",
+    "created_at": "تاریخ ثبت",
+    "departure_at": "تاریخ حرکت",
     "title": "عنوان",
     "price": "قیمت"
   },
@@ -16,7 +17,8 @@
     "all": "همه",
     "draft": "پیش‌نویس",
     "active": "فعال",
-    "archived": "بایگانی"
+    "archived": "بایگانی",
+    "archivedHint": "فیلتر بایگانی پس از تکمیل چرخهٔ عمر تور فعال می‌شود."
   },
   "errors": {
     "TOURS_LIST_HTTP_ERROR": "بارگذاری فهرست تورها ناموفق بود (HTTP {status}).",
@@ -24,9 +26,11 @@
   },
   "emptyCatalog": "هنوز توری نیست. اولین تور را بسازید.",
   "emptyFilter": "توری با این فیلترها پیدا نشد. جستجو یا وضعیت را تغییر دهید.",
+  "createdNotice": "تور با موفقیت ساخته شد.",
   "pagination": "صفحه {page, number} از {totalPages, number} · {total, number} تور",
   "card": {
     "noDescription": "بدون توضیحات",
+    "noCover": "بدون تصویر کاور",
     "view": "مشاهده",
     "workspace": "ورک‌اسپیس",
     "duplicate": "کپی (ویزارد)",
@@ -149,6 +153,7 @@
     "table": {
       "guest": "مهمان",
       "party": "نفرات",
+      "transportIntake": "انتخاب حمل",
       "departure": "حرکت",
       "submitted": "ثبت",
       "actions": "عملیات",

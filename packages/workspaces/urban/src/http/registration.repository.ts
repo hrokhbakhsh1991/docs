@@ -21,6 +21,7 @@ export type CreateUrbanRegistrationInput = {
   readonly phone?: string;
   readonly partySize?: number;
   readonly notes?: string;
+  readonly status?: UrbanRegistrationRecord["status"];
 };
 
 export interface UrbanRegistrationRepository {
@@ -29,6 +30,7 @@ export interface UrbanRegistrationRepository {
     tourId: string,
     email: string
   ): Promise<UrbanRegistrationRecord | null>;
+  sumAcceptedPartySize(tenantId: string, tourId: string): Promise<number>;
   create(input: CreateUrbanRegistrationInput): Promise<UrbanRegistrationRecord>;
   clear(): void;
 }
@@ -46,6 +48,17 @@ export class InMemoryUrbanRegistrationRepository implements UrbanRegistrationRep
     email: string
   ): Promise<UrbanRegistrationRecord | null> {
     return this.rows.get(this.key(tenantId, tourId, email)) ?? null;
+  }
+
+  async sumAcceptedPartySize(tenantId: string, tourId: string): Promise<number> {
+    let total = 0;
+    for (const row of this.rows.values()) {
+      if (row.tenantId !== tenantId || row.tourId !== tourId || row.status !== "confirmed") {
+        continue;
+      }
+      total += row.partySize ?? 1;
+    }
+    return total;
   }
 
   async create(input: CreateUrbanRegistrationInput): Promise<UrbanRegistrationRecord> {
@@ -67,7 +80,7 @@ export class InMemoryUrbanRegistrationRepository implements UrbanRegistrationRep
       phone: input.phone?.trim() ?? null,
       partySize: input.partySize ?? null,
       notes: input.notes?.trim() ?? null,
-      status: "waitlist",
+      status: input.status ?? "waitlist",
       createdAt: new Date().toISOString(),
     };
     this.rows.set(this.key(input.tenantId, input.tourId, normalizedEmail), record);

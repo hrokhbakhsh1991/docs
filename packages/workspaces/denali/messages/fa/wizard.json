@@ -17,6 +17,7 @@
     "tripDetails": {
       "overview": {
         "peakHeight": "ارتفاع قله (متر)",
+        "trailDistanceKm": "مسافت مسیر (کیلومتر)",
         "customServiceLabels": "برچسب سرویس‌های سفارشی",
         "nonAttendanceDetails": "جزئیات عدم حضور"
       },
@@ -60,12 +61,21 @@
     "participants": {
       "gearItems": "تجهیزات الزامی",
       "nationalIdRequired": "کد ملی در زمان ثبت‌نام الزامی است",
+      "fatherNameRequired": "نام پدر در زمان ثبت‌نام الزامی است",
+      "birthDateRequired": "تاریخ تولد در زمان ثبت‌نام الزامی است",
       "minimumAge": "حداقل سن",
       "maximumAge": "حداکثر سن",
       "fitnessLevel": "سطح آمادگی بدنی",
       "sportsInsuranceRequired": "بیمه ورزشی / کوهنوردی شخصی (شرکت‌کننده)",
       "fitnessPrerequisiteText": "پیش‌نیاز آمادگی / تجربه",
-      "minRequiredPeaks": "حداقل قله‌های صعودشده (تایید خودکار)"
+      "minRequiredPeaks": "حداقل قله‌های صعودشده (تایید خودکار)",
+      "medicationsRequired": "دریافت داروهای مصرفی در ثبت‌نام",
+      "allergiesRequired": "دریافت حساسیت‌ها (غذا، دارو، محیط)",
+      "dietaryRequirementsRequired": "دریافت محدودیت‌های رژیم غذایی",
+      "medicalDeclarationRequired": "اظهارنامه سلامت / شرایط پزشکی",
+      "emergencyContactRequired": "تماس اضطراری شرکت‌کننده",
+      "physicalLimitationsRequired": "محدودیت‌های جسمی / روانی",
+      "evacuationInsuranceRequired": "بیمه اخلاء / درمانی اضطراری"
     },
     "transport": {
       "mode": "نحوه حمل‌ونقل",
@@ -80,13 +90,16 @@
     "pricing": {
       "requiresPayment": "تور پولی (ثبت‌نام با پرداخت)",
       "basePricePerPerson": "قیمت به ازای هر نفر (تومان)",
+      "paymentMode": "روش پرداخت",
       "includesTourInsurance": "این تور شامل بیمه مسئولیت گروهی سازمان‌دهنده است"
     },
     "policies": {
       "cancellationDeadlineHours": "مهلت لغو (ساعت قبل از حرکت)",
       "cancellationPenaltyPercentage": "درصد جریمه داخل مهلت",
-      "policiesText": "قوانین و توضیحات (اختیاری)"
-    }
+      "policiesText": "قوانین و توضیحات (اختیاری)",
+      "medicalFitnessDeclarationRequired": "الزام اظهار تناسب پزشکی در ثبت‌نام"
+    },
+    "publishStatus": "وضعیت انتشار"
   },
   "fieldKinds": {
     "text": "متن",
@@ -116,6 +129,9 @@
     "shared_cars": "ماشین‌های مشترک (دنگ)",
     "none": "بدون حمل‌ونقل سازمان‌یافته"
   },
+  "paymentModes": {
+    "offline_receipt": "رسید / پرداخت آفلاین"
+  },
   "composites": {
     "common": {
       "name": "نام",
@@ -131,6 +147,9 @@
     },
     "tourKind": {
       "placeholder": "انتخاب نوع تور…",
+      "currentLabel": "انتخاب فعلی:",
+      "changeHint": "برای تغییر کلیک کنید",
+      "changeLabel": "تغییر دسته‌بندی و مدت تور",
       "helper": "دسته‌بندی و مدت برنامه تعیین می‌کند کدام فیلدها نمایش داده شوند (ارتفاع، ساعت پیاده‌روی، برنامه روزانه، نقاط مسیر و غیره).",
       "categories": {
         "mountain": "کوهنوردی",
@@ -206,12 +225,23 @@
       "httpsUrlRequired": "آدرس تصویر باید با https:// شروع شود.",
       "missingPhotoId": "ردیف عکس فاقد شناسه است.",
       "uploadFailed": "آپلود ناموفق بود",
+      "uploading": "در حال آپلود…",
+      "previewLoadFailed": "بارگذاری پیش‌نمایش تصویر ممکن نشد.",
+      "previewRetry": "تلاش مجدد",
       "uploadErrors": {
         "PHOTO_INVALID_TYPE": "فقط تصاویر JPEG، PNG یا WebP مجاز است.",
         "PHOTO_FILE_TOO_LARGE": "حجم تصویر باید حداکثر ۵ مگابایت باشد.",
         "PHOTO_STORAGE_NOT_CONFIGURED": "فضای ذخیره‌سازی عکس پیکربندی نشده است. به‌جای آن URL تصویر وارد کنید.",
+        "PHOTO_STORAGE_FULL": "فضای ذخیره‌سازی عکس پر است. با مدیر تماس بگیرید یا از URL تصویر استفاده کنید.",
+        "PHOTO_STORAGE_UNAVAILABLE": "فضای ذخیره‌سازی موقتاً در دسترس نیست. دوباره تلاش کنید یا URL تصویر وارد کنید.",
+        "PHOTO_AUTH_REQUIRED": "برای آپلود عکس دوباره وارد شوید.",
+        "PHOTO_BACKEND_UNREACHABLE": "ارتباط با سرور برقرار نشد. اتصال را بررسی و دوباره تلاش کنید.",
+        "PHOTO_PREVIEW_URL_MISSING": "آدرس پیش‌نمایش از سرور دریافت نشد.",
+        "PHOTO_PREVIEW_HTTPS_REQUIRED": "برای پیش‌نمایش، URL تصویر باید HTTPS باشد.",
         "PHOTO_UPLOAD_HTTP_ERROR": "آپلود ناموفق بود (HTTP {status, number}).",
-        "PHOTO_MISSING_STORAGE_KEY": "پاسخ آپلود فاقد کلید ذخیره‌سازی است."
+        "PHOTO_MISSING_STORAGE_KEY": "پاسخ آپلود فاقد کلید ذخیره‌سازی است.",
+        "PHOTO_INVALID_UPLOAD_HEADERS": "هدرهای درخواست آپلود نامعتبر است.",
+        "PHOTO_SERVICE_BUSY": "سرور موقتاً شلوغ است. چند ثانیه بعد دوباره تلاش کنید."
       },
       "addPhoto": "افزودن عکس",
       "removePhoto": "حذف عکس",
@@ -289,15 +319,14 @@
       }
     },
     "socialMedia": {
-      "helper": "محل اطلاع‌رسانی تور را مشخص کنید. برای تلگرام فقط نام کانال کافی است؛ برای سایر شبکه‌ها لینک کامل لازم است.",
+      "helper": "محل اطلاع‌رسانی و گروه شرکت‌کنندگان را مشخص کنید.",
       "telegram": "تلگرام",
-      "other": "سایر",
-      "telegramFieldLabel": "نام کانال یا یوزرنیم",
-      "urlFieldLabel": "لینک",
-      "telegramPlaceholder": "@mychannel",
+      "other": "سایر پلتفرم‌ها",
+      "urlFieldLabel": "لینک گروه",
       "urlPlaceholder": "https://instagram.com/...",
-      "telegramHint": "نیازی به وارد کردن لینک کامل نیست — فقط @نام‌کاربری یا نام کانال.",
-      "urlHint": "لینک کامل با https:// وارد کنید.",
+      "telegramAutoInfo": "با انتخاب تلگرام، لینک گروه پس از ایجاد تور به‌صورت خودکار ساخته می‌شود — نیازی به وارد کردن لینک نیست.",
+      "reviewTelegramAuto": "تلگرام — ایجاد خودکار گروه",
+      "urlHint": "لینک کامل گروه را با https:// وارد کنید.",
       "invalidTelegram": "نام کانال یا یوزرنیم تلگرام معتبر نیست.",
       "invalidUrl": "لینک باید با http:// یا https:// شروع شود."
     },
@@ -307,6 +336,10 @@
       "empty": "هنوز راهنمایی ثبت نشده. در بخش کاربران، برای هر نفر برچسب راهنما را فعال کنید.",
       "openUsers": "رفتن به کاربران",
       "selectedCount": "{count, number} نفر انتخاب شده",
+      "expandPicker": "ویرایش راهنمایان",
+      "collapsePicker": "بستن لیست",
+      "overflowCount": "+{count, number} نفر دیگر",
+      "removeLeader": "حذف {name}",
       "leaderBadge": "راهنما",
       "adminBadge": "مدیریت",
       "searchLabel": "جستجوی راهنما",
@@ -323,18 +356,77 @@
       "loading": "در حال بارگذاری تجهیزات…",
       "empty": "تجهیزاتی برای تم‌های فعلی یافت نشد. از تنظیمات → تجهیزات مورد اضافه کنید یا تم دیگری انتخاب کنید.",
       "openEquipment": "رفتن به تجهیزات",
+      "allThemes": "همه تم‌ها",
       "selectedCount": "{count, number} مورد انتخاب شده",
       "required": "الزامی",
       "optional": "اختیاری",
       "requirementGroup": "الزامیت {name} برای شرکت‌کنندگان",
       "searchLabel": "جستجوی تجهیزات",
       "searchPlaceholder": "نام تجهیز…",
-      "searchEmpty": "تجهیزی با این عبارت پیدا نشد."
+      "searchEmpty": "تجهیزی با این عبارت پیدا نشد.",
+      "iconPickerLabel": "نماد تجهیزات",
+      "iconPickerHelper": "نماد در ویزارد ساخت تور و فهرست تنظیمات همین‌طور نمایش داده می‌شود.",
+      "iconPreviewPlaceholder": "نام تجهیز",
+      "iconSearchLabel": "جستجوی نماد",
+      "iconSearchPlaceholder": "نام نماد یا تجهیز…",
+      "iconSuggestion": "پیشنهاد: {label}",
+      "iconSuggestionApply": "اعمال پیشنهاد",
+      "iconUseInitials": "بدون نماد (حروف اول نام)",
+      "iconCategoriesLabel": "دسته نمادها",
+      "iconCategories": {
+        "hiking": "کوهنوردی",
+        "camp": "کمپ",
+        "clothing": "لباس",
+        "safety": "ایمنی",
+        "foodWater": "آب و غذا",
+        "general": "عمومی"
+      },
+      "icons": {
+        "backpack": "کوله‌پشتی",
+        "trekking_poles": "عصای پیاده‌روی",
+        "boot": "کفش کوهنوردی",
+        "mountain": "کوه",
+        "map": "نقشه",
+        "compass": "قطب‌نما",
+        "tent": "چادر",
+        "sleeping_bag": "کیسه خواب",
+        "flashlight": "چراغ قوه",
+        "gloves": "دستکش",
+        "jacket": "کاپشن",
+        "glasses": "عینک",
+        "helmet": "کلاه ایمنی",
+        "first_aid": "کمک‌های اولیه",
+        "life_buoy": "جلیقه نجات",
+        "water_bottle": "بطری آب",
+        "utensils": "قاشق و چنگال",
+        "rope": "طناب",
+        "tool": "ابزار",
+        "camera": "دوربین",
+        "umbrella": "چتر",
+        "sun": "ضد آفتاب"
+      }
     },
     "destination": {
+      "sectionTitle": "مقصد",
       "loadingPlaceholder": "در حال بارگذاری مقصدها…",
       "selectPlaceholder": "انتخاب مقصد",
+      "searchLabel": "جستجوی مقصد",
+      "searchPlaceholder": "نام مقصد را بنویسید…",
+      "searchEmpty": "مقصدی با این عبارت پیدا نشد.",
       "empty": "مقصدی نیست. از تنظیمات → مقصدها و مناطق، مقصد اضافه کنید."
+    },
+    "destinationCatalogMetric": {
+      "peakHeight": {
+        "sectionTitle": "ارتفاع قله (متر)"
+      },
+      "trailDistance": {
+        "sectionTitle": "مسافت مسیر (کیلومتر)"
+      },
+      "digitsPlaceholder": "مثلاً ۳۹۶۲",
+      "decimalPlaceholder": "مثلاً ۵٫۵",
+      "lockedFromSettings": "این مقدار از کاتالوگ مقصد (تنظیمات) ثبت شده و در ویزارد قابل ویرایش نیست.",
+      "selectDestinationFirst": "ابتدا مقصد را انتخاب کنید.",
+      "savingToSettings": "در حال ذخیره در کاتالوگ مقصد…"
     },
     "programContent": {
       "helper": "یک یا چند تم برای دسته‌بندی و نمایش تور انتخاب کنید.",
@@ -379,12 +471,22 @@
     "photoCount": "{count, number} عکس",
     "dayLabel": "روز {day, number}",
     "primaryGathering": "اصلی",
+    "editSection": "ویرایش",
     "stepValidationHeading": "قبل از ادامه این موارد را اصلاح کنید",
     "validationHeading": "قبل از ایجاد تور این موارد را اصلاح کنید",
     "validationCount": "{count, number} مورد نیاز به اصلاح",
     "validationStepGroup": "{step} — {count, number} مورد",
     "validationGoToStep": "رفتن به مرحله {step}",
     "validationIssueAction": "رفتن به فیلد {field} و اصلاح خطا",
+    "validation": {
+      "REQUIRED_FIELD_EMPTY": "{field} الزامی است",
+      "CANONICAL_TYPE_MISMATCH": "مقدار {field} نامعتبر است",
+      "CANONICAL_ROOT_UNKNOWN": "{field} در این فرم مجاز نیست",
+      "HIDDEN_FIELD_POISON": "مقدار {field} باید پاک شود",
+      "VALIDATION_RULE_REQUIRED_FIELD": "{field} الزامی است",
+      "DENALI_TOUR_TYPE_REQUIRED": "قبل از ادامه نوع تور را انتخاب کنید",
+      "CARDINALITY_VIOLATION": "{field} از حد مجاز فراتر رفته است"
+    },
     "publishStatus": {
       "helper": "تور پیش‌نویس تا زمان انتشار فعال، داخلی می‌ماند.",
       "draft": "پیش‌نویس",

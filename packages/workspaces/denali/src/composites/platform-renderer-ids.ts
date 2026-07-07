@@ -35,6 +35,8 @@ export const DENALI_COMPOSITE_RENDERER_IDS = [
   "denali.social-media-link",
   "denali.guide-language-ids",
   "denali.elevation-gain",
+  "denali.destination-catalog-metric.peak-height",
+  "denali.destination-catalog-metric.trail-distance",
   "denali.pricing-participants",
   "denali.pricing-payment",
 ] as const;

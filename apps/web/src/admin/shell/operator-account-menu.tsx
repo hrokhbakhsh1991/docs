@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { OperatorProfileAvatar } from "@/admin/patterns/operator-profile-avatar";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,15 +20,17 @@ import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 
 type OperatorAccountMenuProps = {
   readonly session: OperatorSessionContext;
+  readonly displayName?: string | null;
+  readonly avatarUrl?: string | null;
   readonly onLogout: () => void;
 };
 
-function initialsFromUserId(userId: string): string {
-  const compact = userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 2);
-  return (compact || "OP").toUpperCase();
-}
-
-export function OperatorAccountMenu({ session, onLogout }: OperatorAccountMenuProps) {
+export function OperatorAccountMenu({
+  session,
+  displayName = null,
+  avatarUrl = null,
+  onLogout,
+}: OperatorAccountMenuProps) {
   const tApp = useTranslations("app");
   const brandTitle = useTenantBrandTitle();
 
@@ -38,21 +40,26 @@ export function OperatorAccountMenu({ session, onLogout }: OperatorAccountMenuPr
         <Button
           variant="outline"
           size="icon"
-          className="rounded-full"
+          data-operator-account-menu-trigger
           data-testid={OPERATOR_NAV_TEST_IDS.accountMenu}
           aria-label={tApp("accountMenu")}
         >
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">{initialsFromUserId(session.userId)}</AvatarFallback>
-          </Avatar>
+          <span data-operator-account-menu-avatar>
+            <OperatorProfileAvatar
+              userId={session.userId}
+              displayName={displayName}
+              avatarUrl={avatarUrl}
+              shellChrome="account-menu"
+            />
+          </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel className="font-normal">
-          <div className="text-xs text-muted-foreground">
+      <DropdownMenuContent align="end" data-operator-account-menu-panel>
+        <DropdownMenuLabel data-operator-account-menu-label>
+          <div data-operator-account-menu-meta>
             {tApp("roleLabel", { role: session.role })}
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div data-operator-account-menu-meta>
             {tApp("workspaceLabel", { workspace: brandTitle || session.workspaceType })}
           </div>
         </DropdownMenuLabel>

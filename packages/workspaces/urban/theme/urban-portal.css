@@ -1,0 +1,10 @@
+/**
+ * Urban guest portal skin stub — PTL-8a (layout hooks).
+ * Color semantics: theme/portal-semantic-tokens.css (@generated from DTCG).
+ */
+@import "./tokens.css";
+@import "./portal-semantic-tokens.css";
+
+body[data-app-surface="portal"][data-workspace-plugin="urban"] [data-portal-shell] {
+  min-height: 100dvh;
+}

@@ -20,6 +20,10 @@ type ProfileResponse = {
   readonly displayName?: string;
   readonly mobile?: string;
   readonly role?: string;
+  readonly avatarUrl?: string | null;
+  readonly gender?: string | null;
+  readonly fatherName?: string | null;
+  readonly birthDate?: string | null;
   readonly code?: string;
 };
 
@@ -63,5 +67,84 @@ describe("identity-me.spec.ts — Phase 9.6 S9-R7", () => {
     });
     assert.equal(reread.status, 200);
     assert.equal(reread.body.displayName, "Smoke Owner");
+  });
+
+  it("API-9.6-ME-04 GET /identity/me returns avatarUrl null by default", async () => {
+    const response = await client.requestJson<ProfileResponse>("GET", "/identity/me", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.avatarUrl, null);
+    assert.equal(response.body.gender, null);
+  });
+
+  it("API-9.6-ME-04b PATCH /identity/me updates optional gender", async () => {
+    const patched = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { displayName: "Smoke Owner", gender: "female" },
+    });
+    assert.equal(patched.status, 200);
+    assert.equal(patched.body.gender, "female");
+
+    const cleared = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { gender: null },
+    });
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.body.gender, null);
+  });
+
+  it("API-9.6-ME-04c PATCH /identity/me rejects invalid gender", async () => {
+    const response = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { gender: "invalid" },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, "PROFILE_GENDER_INVALID");
+  });
+
+  it("API-9.6-ME-04d PATCH /identity/me updates fatherName and birthDate", async () => {
+    const patched = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { fatherName: "Ali", birthDate: "1990-05-15" },
+    });
+    assert.equal(patched.status, 200);
+    assert.equal(patched.body.fatherName, "Ali");
+    assert.equal(patched.body.birthDate, "1990-05-15");
+  });
+
+  it("API-9.6-ME-04e PATCH /identity/me rejects invalid birthDate", async () => {
+    const response = await client.requestJson<ProfileResponse>("PATCH", "/identity/me", {
+      headers: operatorAuthHeaders(),
+      body: { birthDate: "not-a-date" },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, "PROFILE_BIRTH_DATE_INVALID");
+  });
+
+  it("API-9.6-ME-05 POST /identity/me/avatar without Content-Type returns 400", async () => {
+    const response = await client.requestJson<ProfileResponse>("POST", "/identity/me/avatar", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(response.status, 400);
+  });
+
+  it("API-9.6-ME-06 GET /identity/me/avatar/url without avatar returns 404", async () => {
+    const response = await client.requestJson<ProfileResponse>("GET", "/identity/me/avatar/url", {
+      headers: operatorAuthHeaders(),
+    });
+    assert.equal(response.status, 404);
+    assert.equal(response.body.code, "OPERATOR_AVATAR_NOT_SET");
+  });
+
+  it("API-9.6-ME-07 POST /identity/me/avatar invalid content-type returns 400", async () => {
+    const response = await client.requestJson<ProfileResponse>("POST", "/identity/me/avatar", {
+      headers: {
+        ...operatorAuthHeaders(),
+        "Content-Type": "image/svg+xml",
+      },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, "OPERATOR_AVATAR_CONTENT_TYPE_INVALID");
   });
 });

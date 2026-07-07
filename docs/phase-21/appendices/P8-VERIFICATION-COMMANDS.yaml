@@ -1,0 +1,299 @@
+# P8 — Verification commands (canonical — 14 nanos)
+# Authority: P8-BOOT-MANIFEST.yaml · p8-action-plan.yaml
+# Agents: load ONLY current_nano key (T1)
+
+manifest_id: P8-VERIFICATION-COMMANDS
+pack_version: "1.0"
+nano_total: 14
+
+P8-0-N-001:
+  epic: P8-0
+  gaps: [G-ING-01]
+  proof_tier: PROFILE_A
+  repo_status: PASS
+  forbidden_until: []
+  summary: Wire API IP fallback for tenant-context on bare hostname
+  commands:
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+    - run: rg "resolvePublicTenantLabelFromIngressHost" apps/api/src --glob "*.ts"
+      expect_stdout: tenant-branding
+      note: "Must be wired in public tenant-context path — not dead import"
+    - run: TOUR_OPS_API_URL=http://127.0.0.1:3001 node scripts/smoke-p6-host-bind.mjs
+      expect_stdout: P6_HOST_BIND_SMOKE_OK
+      requires_env: [TOUR_OPS_API_URL]
+  files_touch:
+    - apps/api/src/tenant/tenant-branding.routes.ts
+    - apps/api/src/tenant/resolve-public-ingress-subdomain.ts
+  on_pass_update:
+    - p8-exit-checklist.md#G-ING-01
+    - appendices/P8-IMPLEMENTATION-TRUTH.md
+  forbidden_shortcuts:
+    - "Hardcode tenant UUID for IP in web only — API must resolve"
+    - "Mark PASS from grep without smoke-p6-host-bind"
+
+P8-0-N-002:
+  epic: P8-0
+  gaps: [G-ING-02]
+  proof_tier: PROFILE_A
+  repo_status: PASS
+  forbidden_until: [P8-0-N-001]
+  summary: Remove marketing prod silent smoke tenant fallback
+  commands:
+    - run: rg "PUBLIC_TENANT_FALLBACK|smokeTenant|00000000-0000-4000-8000-000000000014" apps/marketing/src/tenant --glob "*.ts"
+      expect_stdout_invert: "silent fallback in production branch"
+      note: "Review resolve-marketing-bootstrap — prod must throw/fail-closed"
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - apps/marketing/src/tenant/resolve-marketing-bootstrap.ts
+  forbidden_shortcuts:
+    - "Fail-closed in dev only — NODE_ENV=production path must not fallback"
+
+P8-0-N-003:
+  epic: P8-0
+  gaps: [G-ING-04a]
+  proof_tier: DEV_STATIC
+  repo_status: PASS
+  forbidden_until: [P8-0-N-002, P8-1-N-001]
+  summary: Enforce club_admin vs club_portal vs club_apex in parser
+  commands:
+    - run: pnpm --filter @apps/api exec node --import tsx --test test/p6-host-tenant-parity.spec.ts
+      expect_exit: 0
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - packages/tenant-kernel/
+    - apps/api/src/tenant/resolve-public-ingress-subdomain.ts
+  forbidden_shortcuts:
+    - "Implement G-ING-04b tenant_domains DB enforce — owner P10"
+
+P8-0-N-004:
+  epic: P8-0
+  gaps: [G-ING-05a]
+  proof_tier: DOC
+  repo_status: PASS
+  forbidden_until: [P8-0-N-003]
+  summary: Document API loopback-only on VPS — not enterprise edge signing
+  commands:
+    - run: test -f docs/phase-21/runbooks/p8-api-loopback-vps.md
+      expect_exit: 0
+    - run: rg "127.0.0.1:3001|loopback" docs/phase-21/runbooks/p8-api-loopback-vps.md deploy/vps/README.md
+      expect_exit: 0
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - docs/phase-21/runbooks/p8-api-loopback-vps.md
+    - deploy/vps/README.md
+  forbidden_shortcuts:
+    - "Implement Caddy in P8 — P10 owner"
+
+P8-0-N-005:
+  epic: P8-0
+  gaps: [G-ING-03]
+  proof_tier: PROFILE_A
+  repo_status: PASS
+  forbidden_until: [P8-0-N-004]
+  summary: M+P bootstrap error parity — no silent vs throw mismatch
+  commands:
+    - run: pnpm --filter @apps/marketing test -- --testPathPattern=resolve-marketing-bootstrap 2>/dev/null || pnpm run p8:gate
+      expect_exit: 0
+      optional: true
+    - run: pnpm --filter @apps/portal test -- --testPathPattern=resolve-portal-bootstrap 2>/dev/null || pnpm run p8:gate
+      expect_exit: 0
+      optional: true
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - apps/marketing/src/tenant/resolve-marketing-bootstrap.ts
+    - apps/portal/src/tenant/resolve-portal-bootstrap.ts
+  forbidden_shortcuts:
+    - "Dedup to guest-surface-host — P9; only parity fix in P8"
+
+P8-1-N-001:
+  epic: P8-1
+  gaps: [G-SES-01, G-SES-02]
+  proof_tier: PROFILE_B
+  repo_status: PASS
+  forbidden_until: [P8-0-N-002]
+  summary: Distinct operator vs member cookie names — NO __Host- on HTTP
+  commands:
+    - run: rg "atour_op_session|atour_mb_session|SESSION_COOKIE_NAME" apps/web apps/portal --glob "*session*cookie*"
+      expect_exit: 0
+      note: "Names must differ between web and portal"
+    - run: rg "__Host-" apps/web apps/portal --glob "*.ts"
+      expect_stdout_absent: true
+      note: "__Host- forbidden on Profile B HTTP"
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - apps/web/src/auth/build-session-cookie.ts
+    - apps/portal/src/auth/build-session-cookie.ts
+  forbidden_shortcuts:
+    - "Rename in web only"
+    - "Use __Host- prefix — P10 only with HTTPS"
+
+P8-1-N-002:
+  epic: P8-1
+  gaps: [G-SES-03, G-SES-05]
+  proof_tier: PROFILE_A
+  repo_status: PASS
+  forbidden_until: [P8-1-N-001]
+  summary: JWT tenant_id vs host tenant fail-closed web + portal
+  commands:
+    - run: rg "sessionTenantMatchesHost|fail-closed|tenant_id" apps/web/middleware.ts apps/portal/middleware.ts
+      expect_exit: 0
+    - run: pnpm --filter @apps/web test -- --testPathPattern=session 2>/dev/null || pnpm run p8:gate
+      expect_exit: 0
+      optional: true
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - apps/web/middleware.ts
+    - apps/portal/middleware.ts
+    - apps/web/src/tenant/session-host-binding.ts
+  forbidden_shortcuts:
+    - "Fail-open in production — must fail-closed when mismatch"
+
+P8-1-N-003:
+  epic: P8-1
+  gaps: [G-SES-04]
+  proof_tier: PROFILE_A
+  repo_status: PASS
+  forbidden_until: [P8-1-N-002]
+  summary: Portal middleware session gate
+  commands:
+    - run: test -f apps/portal/middleware.ts
+      expect_exit: 0
+    - run: rg "matcher|middleware" apps/portal/middleware.ts
+      expect_exit: 0
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - apps/portal/middleware.ts
+  forbidden_shortcuts:
+    - "Copy full web middleware to marketing — not needed"
+
+P8-1-N-004:
+  epic: P8-1
+  gaps: [G-SES-06]
+  proof_tier: PROFILE_B
+  repo_status: PASS
+  forbidden_until: [P8-1-N-001]
+  summary: Portal SESSION_COOKIE_SECURE parity with web per profile
+  commands:
+    - run: rg "SESSION_COOKIE_SECURE" apps/portal apps/web deploy/vps/env --glob "*"
+      expect_exit: 0
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - apps/portal/src/auth/build-session-cookie.ts
+    - deploy/vps/env/portal.env.example
+  forbidden_shortcuts:
+    - "Force secure=true on Profile B HTTP — must follow profile (false on B, true on C/P10)"
+
+P8-2-N-001:
+  epic: P8-2
+  gaps: [G-ENV-01, G-ENV-02]
+  proof_tier: PROFILE_B
+  repo_status: PASS
+  forbidden_until: [P8-0-N-001]
+  summary: Bootstrap + verify four env files
+  commands:
+    - run: rg "marketing.env|portal.env" scripts/vps-deploy/bootstrap-server.sh
+      expect_exit: 0
+    - run: bash scripts/vps-deploy/verify-env-coherence.sh --all
+      expect_stdout: "verify-env-coherence: OK"
+      requires_env: [ENV_DIR]
+      optional: true
+      note: "On VPS or with ENV_DIR pointing at /etc/app-tour"
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - scripts/vps-deploy/bootstrap-server.sh
+    - scripts/vps-deploy/verify-env-coherence.sh
+    - deploy/vps/env/marketing.env.example
+    - deploy/vps/env/portal.env.example
+  forbidden_shortcuts:
+    - "README-only four-process — script must copy 4 templates"
+
+P8-2-N-002:
+  epic: P8-2
+  gaps: [G-ENV-03]
+  proof_tier: DEV_STATIC
+  repo_status: PASS
+  forbidden_until: [P8-2-N-001]
+  summary: p8-env-contract.yaml enforced in verify script
+  commands:
+    - run: rg "p8-env-contract|PUBLIC_TENANT|TOUR_OPS_PUBLIC" scripts/vps-deploy/verify-env-coherence.sh docs/phase-21/p8-env-contract.yaml
+      expect_exit: 0
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - docs/phase-21/p8-env-contract.yaml
+    - scripts/vps-deploy/verify-env-coherence.sh
+  forbidden_shortcuts:
+    - "Contract file exists but verify ignores it"
+
+P8-2-N-004:
+  epic: P8-2
+  gaps: [G-ENV-04]
+  proof_tier: DEV_STATIC
+  repo_status: PASS
+  forbidden_until: [P8-2-N-002]
+  summary: Fail-fast startup if JWT / API URL / revalidate missing
+  commands:
+    - run: rg "config:check|fail-fast|AUTH_JWT|TOUR_OPS_API_URL|MARKETING_REVALIDATE" apps/web apps/portal apps/marketing --glob "*.ts"
+      expect_exit: 0
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - apps/web/
+    - apps/portal/
+    - apps/marketing/
+  forbidden_shortcuts:
+    - "Silent undefined JWT verify in portal BFF"
+
+P8-3-N-001:
+  epic: P8-3
+  gaps: [G-ENV-07]
+  proof_tier: REGRESSION
+  repo_status: PASS
+  forbidden_until: [P8-2-N-004, P8-1-N-003]
+  summary: p8:gate + Profile A+B smoke bundle
+  commands:
+    - run: pnpm run p6:gate
+      expect_stdout: P6_DENALI_PRODUCT_GATE_OK
+    - run: pnpm run p7:gate
+      expect_stdout: P7_DENALI_DELIVERY_GATE_OK
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+    - run: TOUR_OPS_API_URL=http://127.0.0.1:3001 node scripts/smoke-p6-host-bind.mjs
+      expect_stdout: P6_HOST_BIND_SMOKE_OK
+      requires_env: [TOUR_OPS_API_URL]
+  files_touch:
+    - scripts/p8-platform-surface-gate.sh
+    - apps/api/test/p8-pack-integrity.spec.ts
+  on_pass_update:
+    - p8-exit-checklist.md#wave-c
+  forbidden_shortcuts:
+    - "p8:gate only without p6+p7 regression"
+    - "Claim P8 exit without Profile B VPS evidence when available"
+
+P8-3-N-002:
+  epic: P8-3
+  gaps: []
+  proof_tier: DEV_STATIC
+  repo_status: PASS
+  forbidden_until: [P8-3-N-001]
+  summary: CI verify-env-coherence on deploy path
+  commands:
+    - run: rg "verify-env-coherence" .github/workflows/deploy-vps.yml scripts/vps-deploy/remote-deploy.sh
+      expect_exit: 0
+    - run: pnpm run p8:gate
+      expect_stdout: P8_PLATFORM_SURFACE_GATE_OK
+  files_touch:
+    - .github/workflows/deploy-vps.yml
+    - scripts/vps-deploy/remote-deploy.sh
+  forbidden_shortcuts:
+    - "Manual-only verify with no deploy hook"

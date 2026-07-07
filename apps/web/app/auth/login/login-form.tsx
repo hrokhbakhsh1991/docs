@@ -34,8 +34,9 @@ type Step = "phone" | "otp";
 
 const RESEND_COOLDOWN_SEC = 45;
 /** Denali dev owner — ASCII in state/API; LocalizedNumericInput shows Persian digits when locale is fa. */
-const DEV_LOGIN_PHONE = "+989121000001";
-const DEV_LOGIN_OTP = "1234";
+const DEV_LOGIN_PHONE =
+  process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "+989190082452";
+const DEV_LOGIN_OTP = process.env.NEXT_PUBLIC_DEV_LOGIN_OTP?.trim() || "1234";
 
 function initialLoginPhone(): string {
   return "";
@@ -155,8 +156,10 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
     }
     setLoading(true);
     setPhoneError(null);
+    const otpPath =
+      pluginId === "platform" ? "/api/platform/auth/request-otp" : "/api/auth/request-otp";
     try {
-      const res = await fetch("/api/auth/request-otp", {
+      const res = await fetch(otpPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -194,8 +197,10 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
     loginInFlightRef.current = true;
     setLoading(true);
     setOtpError(null);
+    const loginPath =
+      pluginId === "platform" ? "/api/platform/auth/login" : "/api/auth/login-web-session";
     try {
-      const res = await fetch("/api/auth/login-web-session", {
+      const res = await fetch(loginPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -212,6 +217,11 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
         if (codeKey === "OTP_CHALLENGE_INVALID" || codeKey === "OTP_EXPIRED") {
           setOtp("");
         }
+        return;
+      }
+
+      if (pluginId === "platform") {
+        window.location.assign("/platform");
         return;
       }
 

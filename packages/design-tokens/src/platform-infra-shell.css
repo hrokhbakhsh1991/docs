@@ -1,0 +1,107 @@
+/**
+ * Platform infra shells (mother host + maintenance) — appearance owned here.
+ * Scoped to data-platform-* hooks only; not workspace tenant skins.
+ */
+[data-platform-mother-shell] {
+  box-sizing: border-box;
+  min-height: 100dvh;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+[data-platform-mother-header] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-4) var(--space-6);
+}
+
+[data-platform-mother-brand] {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+[data-platform-mother-shell] a[data-platform-admin-cta] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+[data-platform-mother-main] {
+  padding: var(--space-8) var(--space-6);
+}
+
+main[data-platform-mother-home] {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 42rem;
+  margin-inline: auto;
+}
+
+main[data-platform-mother-home] h1 {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+main[data-platform-mother-home] a[data-platform-admin-cta] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+main[data-platform-maintenance] {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 32rem;
+  margin-inline: auto;
+  padding: var(--space-6);
+}
+
+main[data-platform-maintenance] h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+main[data-platform-maintenance] p[data-platform-maintenance-lead] {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+div[data-platform-maintenance-links] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: 0.875rem;
+}
+
+main[data-platform-maintenance] a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.125rem;
+}

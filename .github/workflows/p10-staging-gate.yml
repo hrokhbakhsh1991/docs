@@ -1,0 +1,85 @@
+name: P10 Staging Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_path:
+        description: "Path on VPS (default /opt/app-tour-staging)"
+        required: false
+        default: "/opt/app-tour-staging"
+      env_dir:
+        description: "Env directory (default /etc/app-tour-staging)"
+        required: false
+        default: "/etc/app-tour-staging"
+
+concurrency:
+  group: p10-staging-gate
+  cancel-in-progress: false
+
+jobs:
+  four-process-smoke:
+    name: Remote smoke-four-process
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.repository == 'hrokhbakhsh1991/docs'
+    steps:
+      - name: Check VPS secrets
+        id: vps
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -n "$VPS_HOST" ] && [ -n "$VPS_SSH_KEY" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Skipped: VPS_HOST or VPS_SSH_KEY not configured."
+          fi
+
+      - name: Checkout (scripts only)
+        if: steps.vps.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Run remote four-process smoke
+        if: steps.vps.outputs.ready == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_DEPLOY_PATH: ${{ inputs.deploy_path }}
+          ENV_DIR: ${{ inputs.env_dir }}
+        run: bash scripts/p10-staging-remote-gate.sh
+
+      - name: Upload smoke diagnostics on failure
+        if: failure() && steps.vps.outputs.ready == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_DEPLOY_PATH: ${{ inputs.deploy_path }}
+          ENV_DIR: ${{ inputs.env_dir }}
+        run: |
+          mkdir -p /tmp/p10-smoke-fail
+          KEY_FILE="$(mktemp)"
+          printf '%s\n' "$VPS_SSH_KEY" >"$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          USER="${VPS_USER:-root}"
+          ssh -i "$KEY_FILE" -o StrictHostKeyChecking=no "${USER}@${VPS_HOST}" \
+            "journalctl -u app-tour-staging-api -n 40 --no-pager; \
+             journalctl -u app-tour-staging-web -n 40 --no-pager; \
+             journalctl -u app-tour-staging-marketing -n 40 --no-pager; \
+             journalctl -u app-tour-staging-portal -n 40 --no-pager" \
+            > /tmp/p10-smoke-fail/journalctl.txt 2>&1 || true
+          rm -f "$KEY_FILE"
+
+      - name: Attach failure logs
+        if: failure() && steps.vps.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: p10-smoke-fail-logs
+          path: /tmp/p10-smoke-fail/
+          retention-days: 7
+
+      - name: Skip notice
+        if: steps.vps.outputs.ready != 'true'
+        run: echo "Configure VPS secrets to enable remote P10 four-process gate."

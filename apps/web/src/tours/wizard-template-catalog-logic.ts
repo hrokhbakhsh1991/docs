@@ -11,6 +11,9 @@ export { formatWizardTemplateStepLabel };
 /** INV-WIZ-002 — denali Layer C rows carry this tag via `denali-plugin-adapter`. */
 export const WIZARD_OVERLAY_EXCLUDE_TAG = "wizard_overlay_exclude" as const;
 
+/** INV-WIZ-009 — roadmap rows visible in palette but not activatable. */
+export const WIZARD_PALETTE_ROADMAP_TAG = "wizard_palette_roadmap" as const;
+
 export function isWizardTemplatePaletteField(
   field: {
     readonly tags?: readonly string[];
@@ -28,12 +31,25 @@ export function isWizardTemplatePaletteField(
   return true;
 }
 
+export function isWizardTemplateCatalogFieldSelectable(field: {
+  readonly tags?: readonly string[];
+  readonly selectable?: boolean;
+}): boolean {
+  if (field.selectable === false) {
+    return false;
+  }
+  return !field.tags?.includes(WIZARD_PALETTE_ROADMAP_TAG);
+}
+
 export const WIZARD_TEMPLATE_CATALOG_TEST_IDS = {
   fieldList: "operator-wizard-template-field-list",
   fieldSearch: "operator-wizard-template-field-search",
   fieldToggle: "operator-wizard-template-field-toggle",
   fieldRequired: "operator-wizard-template-field-required",
   fieldDefault: "operator-wizard-template-field-default",
+  fieldParent: "operator-wizard-template-field-parent",
+  fieldCreateHint: "operator-wizard-template-field-create-hint",
+  fieldRoadmap: "operator-wizard-template-field-roadmap",
 } as const;
 
 export type WizardTemplateCatalogField = {
@@ -41,6 +57,7 @@ export type WizardTemplateCatalogField = {
   readonly stepId: string;
   readonly fieldId: string;
   readonly kind: string;
+  readonly selectable: boolean;
 };
 
 export type WizardTemplateCatalogStep = {
@@ -69,6 +86,7 @@ export function buildWizardTemplateCatalogFromPlugin(
       stepId: field.stepId,
       fieldId: field.id,
       kind: field.kind,
+      selectable: isWizardTemplateCatalogFieldSelectable(field),
     });
     byStep.set(field.stepId, bucket);
   }
@@ -95,8 +113,15 @@ export function isWizardTemplateCatalogFieldSelected(
 export function toggleWizardTemplateCatalogField(
   steps: readonly WizardTemplateStepRef[],
   field: WizardTemplateCatalogField,
-  selected: boolean
+  selected: boolean,
+  options?: { readonly isFrozen?: (canonicalPath: string) => boolean }
 ): WizardTemplateStepRef[] {
+  if (!selected && options?.isFrozen?.(field.canonicalPath) === true) {
+    return [...steps];
+  }
+  if (!isWizardTemplateCatalogFieldSelectable(field)) {
+    return [...steps];
+  }
   const next = steps.map((step) => ({
     ...step,
     fields: step.fields.map((entry) => ({ ...entry })),
@@ -199,7 +224,10 @@ export function applyWizardTemplatePreset(
   current: WizardTemplatePayload
 ): WizardTemplatePayload {
   const catalogPaths = new Set(
-    catalog.flatMap((step) => step.fields.map((field) => field.canonicalPath))
+    catalog
+      .flatMap((step) => step.fields)
+      .filter((field) => field.selectable)
+      .map((field) => field.canonicalPath)
   );
 
   const steps = (preset.steps ?? [])

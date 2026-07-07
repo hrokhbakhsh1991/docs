@@ -22,6 +22,8 @@ export const DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS = [
   "participants.minRequiredPeaks",
   "participants.minimumAge",
   "participants.nationalIdRequired",
+  "participants.fatherNameRequired",
+  "participants.birthDateRequired",
   "participants.sportsInsuranceRequired",
   "photos",
   "policies.cancellationDeadlineHours",

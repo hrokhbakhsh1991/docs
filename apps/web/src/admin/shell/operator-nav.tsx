@@ -15,9 +15,6 @@ import {
 import { useTranslations } from "next-intl";
 
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 
 import { OperatorBrand } from "./operator-brand";
 import { OPERATOR_NAV_TEST_IDS, type OperatorNavItem } from "./operator-nav.types";
@@ -53,53 +50,53 @@ export function OperatorNav({
   return (
     <nav
       aria-label={tApp("operatorNav")}
+      data-operator-nav
+      data-slot="shell-nav"
       data-testid={OPERATOR_NAV_TEST_IDS.nav}
-      className="flex min-h-0 flex-1 flex-col gap-4"
     >
-      <OperatorBrand
-        workspaceLabel={workspaceLabel}
-        displayName={displayName}
-        pluginId={pluginId}
-      />
-      <ul className="flex flex-col gap-0.5">
-        {items.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const Icon = NAV_ICONS[item.pathKey];
-          return (
-            <li key={item.pathKey}>
-              <Link
-                href={item.href}
-                onClick={onNavigate}
-                aria-current={active ? "page" : undefined}
-                data-operator-nav-link
-                className={cn(
-                  "relative flex min-h-11 items-center gap-2.5 rounded-[var(--radius)] px-3 py-2 text-sm font-medium",
-                  active
-                    ? "bg-primary/8 ps-5 text-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-              >
-                {active ? (
-                  <span
-                    aria-hidden
-                    data-operator-nav-indicator
-                    className="absolute start-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-primary"
-                  />
-                ) : null}
-                {Icon ? <Icon className="h-[18px] w-[18px] shrink-0 opacity-80" aria-hidden /> : null}
-                {tNav(item.pathKey)}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="mt-auto" data-operator-nav-cta>
-        <Separator className="mb-3" />
-        <Link href={OPERATOR_WIZARD_PATH} onClick={onNavigate} data-testid={OPERATOR_NAV_TEST_IDS.newTourCta}>
-          <Button type="button" className="w-full gap-2 shadow-sm">
-            <Plus className="h-4 w-4" />
-            {tApp("newTour")}
-          </Button>
+      <div data-operator-sidebar-header>
+        <OperatorBrand
+          workspaceLabel={workspaceLabel}
+          displayName={displayName}
+          pluginId={pluginId}
+        />
+      </div>
+
+      <div data-operator-sidebar-content>
+        <p data-operator-nav-group-label>{tApp("operatorNavGroup")}</p>
+        <ul data-operator-nav-list>
+          {items.map((item) => {
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const Icon = NAV_ICONS[item.pathKey];
+            return (
+              <li key={item.pathKey} data-operator-nav-item>
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  data-operator-nav-link
+                  data-operator-nav-link-active={active ? "true" : "false"}
+                >
+                  <span data-operator-nav-icon data-active={active ? "true" : "false"}>
+                    {Icon ? <Icon aria-hidden="true" data-operator-nav-icon-svg /> : null}
+                  </span>
+                  <span data-operator-nav-link-label>{tNav(item.pathKey)}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div data-operator-sidebar-footer data-operator-nav-cta>
+        <Link
+          href={OPERATOR_WIZARD_PATH}
+          onClick={onNavigate}
+          data-testid={OPERATOR_NAV_TEST_IDS.newTourCta}
+          data-operator-nav-cta-link
+        >
+          <Plus aria-hidden="true" data-operator-nav-cta-icon />
+          <span>{tApp("newTour")}</span>
         </Link>
       </div>
     </nav>

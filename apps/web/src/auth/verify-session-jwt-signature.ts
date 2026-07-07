@@ -1,4 +1,4 @@
-import { decodeJwtPayload } from "@/auth/decode-jwt-payload";
+import { decodeJwtPayload } from "@app-tour/session-client";
 import { readJwtVerifyConfig } from "@/auth/jwt-verify-config";
 
 function normalizePem(pem: string): string {

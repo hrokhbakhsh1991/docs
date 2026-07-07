@@ -1,0 +1,403 @@
+# Marketing landing — complete plan (MVP → competitive)
+
+```yaml
+doc_id: DENALI-MARKETING-LANDING-PLAN
+version: "2026-07-04-v1"
+status: ACTIVE
+supersedes_backlog: marketing-landing.mdoc §24 (detail moved here)
+parent_spec: docs/workspaces/denali/marketing-landing.mdoc          # engineering v7
+visual_spec: docs/workspaces/denali/marketing-landing-visual.mdoc   # PR-4 skill runbook
+design_page: design-system/denali-club/pages/home.md
+adr: docs/dev/adr-guest-plugin/ADR-GP-005-guest-landing-manifest.md
+target: denali full landing @ denali.club/ — mobile-first, competitive outdoor club
+```
+
+---
+
+## 1. Executive summary
+
+| Layer | Status | Score |
+|-------|--------|-------|
+| Platform SDK + multi-tenant | **Done** (PR-0..3) | 9/10 |
+| Denali 4-block engineering | **Done** (code + smoke) | 8.5/10 |
+| Visual polish | **Done** (PR-4) | ~7/10 |
+| Competitive full landing (16 sections) | **Planned** (PR-4..8) | 0/10 → target 9/10 |
+
+**Truth:** v7 spec intentionally shipped **foundation-first** (4 blocks). Industry outdoor/tour landings use **12–16 sections** (hero storytelling, why-us, FAQ, footer, sticky CTA). This plan closes that gap **without** breaking ADR-MKT-004 or fake stats.
+
+---
+
+## 2. What is done (do not re-open)
+
+| PR | Scope | Status |
+|----|-------|--------|
+| PR-0 | `guestLanding` manifest + generator + `resolveGuestLandingFeatures` | ✅ |
+| PR-1 | Shell brand `/`, Hero scaffold, CSS §8.3, i18n profiles | ✅ |
+| PR-2 | Latest tours + fail-soft `fetchCatalogList` | ✅ |
+| PR-3 | Trust + Final CTA + guard + smoke HOME-01..06 + CI | ✅ |
+| Docs | v7 engineering + visual runbook + ADR-GP-005 | ✅ |
+| workspace:create --guest | `guestLanding: minimal` stub | ✅ |
+
+**Frozen invariants:** no `pluginId === "denali"` in marketing · hooks `data-marketing-home-*` · urban/guest-club minimal until P16 · no fake metrics.
+
+---
+
+## 3. Target page map (top → bottom)
+
+Denali **full** landing when all phases complete:
+
+```text
+┌─ L0 GLOBAL CHROME ─────────────────────────────────────┐
+│  Header (glass/blur, sticky CTA, scroll progress opt.) │
+│  Mobile drawer (nav · member · locale · CTA)           │
+├─ L1 HERO STORYTELLING ─────────────────────────────────┤
+│  Visual (image/video + scrim + grain)                  │
+│  Headline · sub · primary + secondary CTA              │
+│  Trust micro-badge (copy only — no fake numbers)       │
+│  Hero search (mock → catalog query)                    │
+│  Floating cards (API: next tour · seats — optional)    │
+├─ L2 TOURS & DISCOVERY ─────────────────────────────────┤
+│  Latest / upcoming (bento or carousel — catalog)       │
+│  Category explorer (manifest/API tags)                 │
+│  Destination explorer (phase 2 · map later)            │
+├─ L3 TRUST & BRAND ─────────────────────────────────────┤
+│  Why Denali (bento: guide · safety · gear · community) │
+│  Tour journey timeline (register → summit → return)    │
+│  Testimonials (real quotes; video phase 2)             │
+│  Adventure gallery (real tour photos)                  │
+├─ L4 DEPTH & SEO ───────────────────────────────────────┤
+│  FAQ accordion (+ FAQPage JSON-LD)                     │
+│  Equipment / checklist (static i18n phase 1)           │
+│  Blog teaser (3 posts — when CMS exists)               │
+├─ L5 CLOSE ─────────────────────────────────────────────┤
+│  Final CTA band (full-bleed)                           │
+│  Footer (brand · tours · resources · contact · legal)  │
+└────────────────────────────────────────────────────────┘
+```
+
+Urban / guest-club **minimal** (unchanged until P16): Shell + title + lead + single CTA.
+
+---
+
+## 4. Phase roadmap (PR-4 → PR-8)
+
+### Overview
+
+| Phase | Product goal | SDK touch | Primary deliverable |
+|-------|--------------|-----------|---------------------|
+| **PR-4** | Cinematic MVP visual | None | hero.webp, card covers, CSS polish |
+| **PR-5** | Chrome + trust + SEO base | `sections.faq` · `footer` | ✅ drawer, FAQ, footer |
+| **PR-6** | Brand story | `sections.whyDenali` · `journey` · `testimonials` | ✅ done 2026-07-04 |
+| **PR-7** | Discovery | **guestLanding v2** + catalog API | ✅ featured, categories, destinations, hero search |
+| **PR-8** | Premium + excellence | SEO manifest | ✅ gallery, equipment, skip link, home JSON-LD, Lighthouse `/` |
+
+---
+
+### PR-4 — Visual foundation (2–3 days)
+
+**Goal:** 3.5 → 7/10 visual without new sections.
+
+| Item | Detail |
+|------|--------|
+| Assets | `public/home/hero.webp` (≤200KB), optional `hero-og.webp` |
+| CSS | Cinematic hero scrim, Calistoga scale ≥1024px, card cover-first |
+| Latest | Hide scrollbar desktop, scroll-snap mobile, hover lift |
+| Trust / Final | Designed bands (not thin strip) |
+| Skill | [`marketing-landing-visual.mdoc`](./marketing-landing-visual.mdoc) CP-SKILL |
+
+**Tests:** lint · HOME-UNIT-* · guest-theme-stack · guard-home-hooks · smoke optional
+
+**Do not:** new manifest fields · new hooks · client JS libraries
+
+---
+
+### PR-5 — Global chrome + FAQ + footer (3–5 days)
+
+**Goal:** Professional site shell; first “complete page” feel.
+
+| Section | Hooks (new) | Notes |
+|---------|-------------|-------|
+| Header v2 | `data-marketing-header` (enhance) | glass, blur, shadow on scroll, sticky CTA |
+| Mobile drawer | `data-marketing-nav-drawer` | nav, member, locale, CTA |
+| FAQ | `data-marketing-home-faq` | accordion, 6–8 Denali questions, FAQ schema |
+| Footer | `data-marketing-footer` | 4 columns + social + newsletter stub |
+
+**i18n:** `home.full.faq.*`, `home.full.footer.*`
+
+**Manifest (optional v2 preview):**
+
+```json
+"sections": {
+  "headerEnhanced": true,
+  "faq": true,
+  "footer": true
+}
+```
+
+**Tests:** SMK-MKT-HOME-07 (footer visible) · SMK-MKT-HOME-08 (drawer a11y) · extend guard
+
+---
+
+### PR-6 — Brand story blocks (4–6 days)
+
+**Goal:** Answer “why Denali?” — competitive differentiation.
+
+| Section | Hook | Data source |
+|---------|------|-------------|
+| Why Denali bento | `data-marketing-home-why` | i18n tiles (guide, safety, equipment, community) |
+| Tour journey | `data-marketing-home-journey` | i18n timeline steps |
+| Testimonials | `data-marketing-home-testimonials` | i18n + optional `branding` / future CMS |
+
+**Motion:** CSS-only reveals; `prefers-reduced-motion` required. One motion language doc in `design-system/denali-club/pages/home.md`.
+
+**SDK:** `guestLanding.sections` += `whyDenali`, `journey`, `testimonials`
+
+**Tests:** HOME-UNIT-05 (section gates) · SMK-MKT-HOME-05 unchanged for urban
+
+---
+
+### PR-7 — Discovery layer (5–8 days, API-dependent)
+
+**Goal:** Browse intent on `/` not only `/tours`.
+
+| Section | Hook | Dependency |
+|---------|------|------------|
+| Featured bento | `data-marketing-home-featured` | catalog sort + cover URLs |
+| Category explorer | `data-marketing-home-categories` | catalog `category` filter or manifest taxonomy |
+| Destination cards | `data-marketing-home-destinations` | exposure API / static seed dev |
+| Hero search | `data-marketing-home-search` | query → `/tours?city=&…` |
+
+**Rules:** no “featured” curation API in MVP — bento uses **same catalog sort** with layout variant only (R10). Categories only if filter exists in API.
+
+**SDK:** sections += `featuredLayout`, `categories`, `destinations`, `heroSearch`
+
+---
+
+### PR-8 — Premium + 10/10 closure (5–10 days)
+
+| Item | Detail |
+|------|--------|
+| Gallery masonry | `data-marketing-home-gallery` — photos from published tours |
+| Blog teaser | `data-marketing-home-blog` — when route/API exists |
+| Equipment | `data-marketing-home-equipment` — static checklist |
+| JSON-LD | WebSite + ItemList on `/` (P14) |
+| Lighthouse CI | `/` in lighthouserc (P8) |
+| Skip link | P7 |
+| Per-tenant hero | P9 branding URL |
+
+**Community stats:** only if real API (member count) — else **forbidden** (R5).
+
+---
+
+## 5. guestLanding manifest v2 (proposed)
+
+Extend denali manifest; urban stays minimal (all false).
+
+```json
+"guestLanding": {
+  "variant": "full",
+  "i18nProfile": "full",
+  "sections": {
+    "hero": true,
+    "heroSearch": false,
+    "latestTours": true,
+    "latestToursLimit": 6,
+    "featuredLayout": "carousel",
+    "categories": false,
+    "destinations": false,
+    "whyDenali": false,
+    "journey": false,
+    "testimonials": false,
+    "gallery": false,
+    "faq": false,
+    "equipment": false,
+    "blogTeaser": false,
+    "trust": true,
+    "finalCta": true,
+    "footer": false
+  },
+  "presentation": {
+    "heroStyle": "cinematic",
+    "featuredLayout": "carousel",
+    "motionProfile": "subtle"
+  }
+}
+```
+
+**Rollout:** PR-5 enables `faq`, `footer` · PR-6 enables story sections · PR-7 enables discovery · PR-8 enables gallery/blog.
+
+**Generator:** extend `assertGuestLandingManifest` + `generateWorkspaceGuestLanding` (doc-first before code — ADR-GP-006 draft when PR-5 starts).
+
+---
+
+## 6. i18n key tree (full landing)
+
+```text
+home.full.hero.*
+home.full.latest.*
+home.full.trust.*
+home.full.finalCta.*
+home.full.why.*          # PR-6 tiles
+home.full.journey.*      # PR-6 steps
+home.full.testimonials.* # PR-6
+home.full.categories.*   # PR-7 labels
+home.full.destinations.* # PR-7
+home.full.faq.*          # PR-5
+home.full.equipment.*    # PR-8
+home.full.footer.*       # PR-5
+home.full.search.*       # PR-7 placeholders
+home.minimal.*           # unchanged
+```
+
+All keys **fa/en parity** (HOME-UNIT-02 pattern per phase).
+
+---
+
+## 7. Component inventory (marketing home)
+
+Implement incrementally — do not build all at once.
+
+| Tier | Components | Phase |
+|------|------------|-------|
+| T0 | HomeHero, HomeLatestTours, HomeTrust, HomeFinalCta | Done |
+| T1 | MarketingHeaderEnhanced, MobileNavDrawer | PR-5 |
+| T2 | HomeFaq, MarketingFooter | PR-5 |
+| T3 | HomeWhyBento, HomeJourneyTimeline, HomeTestimonials | PR-6 |
+| T4 | HomeFeaturedBento, HomeCategoryGrid, HomeDestinationCards, HomeSearchBar | PR-7 ✅ |
+| T5 | HomeGallery, HomeBlogTeaser, HomeEquipment | PR-8 ✅ |
+
+**Foundation reuse:** `CatalogCoverImage`, `buildCatalogTourMetaLine`, `fetchCatalogList`, Lucide icons.
+
+**Client boundary budget:** max **1** (drawer OR carousel controller — prefer CSS scroll-snap).
+
+---
+
+## 8. Motion system (single language)
+
+Define in `design-system/denali-club/pages/home.md`:
+
+| Token | Use | Forbidden |
+|-------|-----|-----------|
+| `--mkt-motion-fast` | 150ms hover | >500ms loops |
+| `--mkt-motion-reveal` | section enter (CSS) | scroll-jacking |
+| `--mkt-lift-sm/md` | card hover | parallax full-page |
+| `@media (prefers-reduced-motion)` | disable transforms | — |
+
+Allowed: fade, slide-up reveal, lift, border glow on focus.  
+Rejected: magnetic cursor, auto-play carousel, parallax mountains.
+
+---
+
+## 9. API / data matrix
+
+| Section | MVP data | Full data |
+|---------|----------|-----------|
+| Latest | `fetchCatalogList` limit 6 | same |
+| Featured bento | same list, different layout | optional pin API (future) |
+| Categories | — | catalog `category` facet |
+| Destinations | — | exposure / static manifest |
+| Hero search | mock → `/tours` query | catalog filters |
+| Testimonials | i18n static | CMS |
+| Gallery | tour cover URLs | media API |
+| Community stats | **never fake** | members API only |
+| Blog | — | CMS / markdown |
+
+---
+
+## 10. Test & guard milestones
+
+| Milestone | When |
+|-----------|------|
+| HOME-UNIT-01..04 + SDK-HOME | Done |
+| SMK-MKT-HOME-01..06 | Done |
+| guard-marketing-home-hooks | Done |
+| SMK-MKT-HOME-07 footer | PR-5 |
+| SMK-MKT-HOME-08 drawer a11y | PR-5 |
+| HOME-UNIT-05 section gates v2 | PR-6 |
+| HOME-UNIT-06 discovery gates | PR-7 |
+| HOME-UNIT-07 list q/category filter | PR-7 |
+| guard hook allowlist update | each PR adding hooks |
+| HOME-UNIT-08 PR-8 premium gates | PR-8 |
+| Lighthouse `/` + `/tours` | PR-8 |
+| Cutover checklist §21 full 16-block | PR-8 |
+
+---
+
+## 11. Definition of done — “complete landing”
+
+### 11.1 Engineering complete (current target met)
+
+```text
+[x] PR-0..3
+[x] 4 blocks + smoke + guards
+[ ] cutover denali.club on main
+```
+
+### 11.2 Product complete (competitive)
+
+```text
+[ ] PR-4 visual ≥7/10  → **done 2026-07-04**
+[ ] PR-5 header + FAQ + footer  → **done 2026-07-04**
+[ ] PR-6 why + journey + testimonials  → **done 2026-07-04**
+[ ] PR-7 discovery (categories OR destinations minimum one)  → **done 2026-07-04**
+[ ] PR-8 gallery OR blog + Lighthouse CI  → **done 2026-07-04** (gallery + equipment + skip + JSON-LD + Lighthouse `/`; blog stub gated off)
+[ ] No fake stats audit pass
+[ ] urban minimal unchanged (SMK-MKT-HOME-05)
+[ ] Mobile 375px no overflow-x
+```
+
+### 11.3 Score rubric (updated)
+
+| Score | Meaning |
+|-------|---------|
+| 8.5/10 | Today — engineering MVP |
+| 7/10 visual | PR-4 done |
+| 8/10 product | PR-5 + PR-6 |
+| 9/10 product | PR-7 discovery live |
+| 10/10 | PR-8 + Lighthouse CI + cutover + real hero per tenant |
+
+---
+
+## 12. Industry alignment (research summary)
+
+Sources: outdoor/tour landing guides (2025–2026) — hero outcome-led copy, trust below hero, FAQ near CTA, sticky mobile book, real photos, 200–750 words scannable, no hidden pricing on tour pages.
+
+**Adopted into plan:** hero storytelling, FAQ, footer, testimonials, sticky CTA, scannable cards.  
+**Rejected:** fake review counts, immersive scroll-only sites, skill-suggested navy palette.
+
+---
+
+## 13. Agent execution order
+
+```text
+1. Read marketing-landing.mdoc (invariants)
+2. Read marketing-landing-complete-plan.mdoc (this file) — pick next PR
+3. If SDK change → ADR-GP-006 draft + docs first
+4. If visual only → marketing-landing-visual.mdoc + CP-SKILL
+5. Implement one PR per branch
+6. Verify: lint · home tests · guard · smoke (explicit)
+```
+
+---
+
+## 14. Related documents
+
+| Doc | Role |
+|-----|------|
+| [marketing-landing.mdoc](./marketing-landing.mdoc) | Engineering v7 (PR-0..3 SoT) |
+| [marketing-landing-visual.mdoc](./marketing-landing-visual.mdoc) | PR-4 skill + CSS |
+| [marketing-catalog-ui.md](./marketing-catalog-ui.md) | Hook registry |
+| [home.md](../../../design-system/denali-club/pages/home.md) | Typography + motion |
+| [ADR-GP-005](../../dev/adr-guest-plugin/ADR-GP-005-guest-landing-manifest.md) | Manifest v1 |
+| [denali-club-cutover.md](../../phase-19/p6/runbooks/denali-club-cutover.md) | Production cutover |
+
+---
+
+## 15. Decision log
+
+| Date | Decision |
+|------|----------|
+| 2026-07-04 | v7 MVP = 4 blocks; full 16-section landing = PR-4..8 |
+| 2026-07-04 | No fake community stats; bento uses catalog sort not curation API |
+| 2026-07-04 | guestLanding v2 sections for PR-5+; doc-first before generator change |
+| 2026-07-04 | Chromium + viewport for smoke (not WebKit iPhone device) |

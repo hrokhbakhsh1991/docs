@@ -4,8 +4,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
+
 import {
-  appendWorkspaceReviewStepToRenderPlan,
   applyWizardTemplateToRenderPlan,
   buildDefaultPublishedWizardSteps,
   ensureWizardTemplatePublishablePayload,
@@ -13,6 +14,7 @@ import {
   isWizardTemplatePublished,
   resolveWizardTemplateAllowedPaths,
   resolveWizardTemplateGateState,
+  resolveInitialWorkspaceFormProfile,
   WIZARD_TEMPLATE_GATE_TEST_IDS,
 } from "../src/tours/wizard-template-gate-logic";
 
@@ -34,15 +36,16 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
         updatedAt: null,
         payload: { seedLabel: "SMK-P9-SEED", sections: [] },
       },
-      "denali"
+      "denali",
+      getDenaliWorkspacePlugin()
     );
     assert.equal(gate.published, false);
     assert.equal(gate.allowedCanonicalPaths.length, 0);
     assert.equal(isWizardTemplatePublished({ seedLabel: "", sections: [] }), false);
   });
 
-  it("WEB-9.6-WIZ-03 published denali template defaults to title field only", () => {
-    const steps = buildDefaultPublishedWizardSteps("denali");
+  it("WEB-9.6-WIZ-03 published denali template injects mandatory category field", () => {
+    const steps = buildDefaultPublishedWizardSteps("denali", getDenaliWorkspacePlugin());
     assert.equal(steps[0]?.fields[0]?.canonicalPath, "title");
 
     const gate = resolveWizardTemplateGateState(
@@ -53,10 +56,13 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
         updatedAt: null,
         payload: { seedLabel: "", sections: [], published: true },
       },
-      "denali"
+      "denali",
+      getDenaliWorkspacePlugin()
     );
     assert.equal(gate.published, true);
-    assert.deepEqual(gate.allowedCanonicalPaths, ["title"]);
+    assert.ok(gate.allowedCanonicalPaths.includes("category"));
+    assert.ok(gate.allowedCanonicalPaths.includes("title"));
+    assert.equal(gate.templateSteps[0]?.fields[0]?.canonicalPath, "category");
   });
 
   it("WEB-9.6-WIZ-04 filterRenderPlanByCanonicalPaths keeps only allowed fields", () => {
@@ -139,6 +145,41 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
     );
   });
 
+  it("WEB-9.6-WIZ-09 applyWizardTemplateToRenderPlan includes injected category", () => {
+    const plugin = getDenaliWorkspacePlugin();
+    const normalized = plugin.wizardHost?.normalizeWizardTemplateGate?.({
+      templateSteps: [
+        {
+          stepId: "denali_basic",
+          enabled: true,
+          fields: [{ canonicalPath: "title", required: true }],
+        },
+      ],
+      allowedCanonicalPaths: ["title"],
+      workspaceFormProfile: "",
+    });
+    const templateSteps = normalized?.templateSteps ?? [];
+    const plan = applyWizardTemplateToRenderPlan(
+      [
+        {
+          stepId: "denali_basic",
+          fields: [
+            { canonicalPath: "category", fieldId: "denali.tour-kind-basics", kind: "enum" },
+            { canonicalPath: "title", fieldId: "title", kind: "text" },
+          ],
+        },
+      ],
+      templateSteps
+    );
+    assert.equal(plan[0]?.fields[0]?.canonicalPath, "category");
+  });
+
+  it("P14-0b-08 resolveInitialWorkspaceFormProfile uses plugin hook default", () => {
+    const plugin = getDenaliWorkspacePlugin();
+    assert.equal(resolveInitialWorkspaceFormProfile(plugin), "denali_pilot");
+    assert.equal(resolveInitialWorkspaceFormProfile(), "platform_default");
+  });
+
   it("WEB-9.6-WIZ-08 applyWizardTemplateToRenderPlan keeps template-only review step", () => {
     const ordered = applyWizardTemplateToRenderPlan(
       [
@@ -168,41 +209,5 @@ describe("wizard-template-gate.spec.ts — W-track", () => {
     assert.equal(ordered[0]?.stepId, "review");
     assert.equal(ordered[0]?.fields[0]?.canonicalPath, "publishStatus");
     assert.equal(ordered[0]?.fields[0]?.required, true);
-  });
-
-  it("WEB-9.6-WIZ-09 appendWorkspaceReviewStepToRenderPlan injects Layer C review step", () => {
-    const enginePlan = [
-      {
-        stepId: "denali_basic",
-        fields: [
-          {
-            canonicalPath: "publishStatus",
-            fieldId: "publishStatus",
-            kind: "enum",
-            required: false,
-          },
-          { canonicalPath: "title", fieldId: "title", kind: "text", required: true },
-        ],
-      },
-      {
-        stepId: "denali_legal",
-        fields: [{ canonicalPath: "policies.policiesText", fieldId: "policies.policiesText", kind: "text" }],
-      },
-    ];
-    const tenantSteps = [
-      { stepId: "denali_basic", label: "Basic", enabled: true, fields: [{ canonicalPath: "title", required: true }] },
-      { stepId: "denali_legal", label: "Legal", enabled: true, fields: [{ canonicalPath: "policies.policiesText" }] },
-    ];
-    const withoutReview = applyWizardTemplateToRenderPlan(enginePlan, tenantSteps);
-    assert.equal(withoutReview.some((step) => step.stepId === "review"), false);
-
-    const withReview = appendWorkspaceReviewStepToRenderPlan(
-      withoutReview,
-      enginePlan,
-      "review"
-    );
-    assert.equal(withReview.at(-1)?.stepId, "review");
-    assert.equal(withReview.at(-1)?.fields[0]?.canonicalPath, "publishStatus");
-    assert.equal(withReview.at(-1)?.fields[0]?.required, true);
   });
 });

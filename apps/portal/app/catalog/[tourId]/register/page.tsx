@@ -1,10 +1,15 @@
-import { headers } from "next/headers";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { supportsCatalogRegistration } from "@app-tour/workspace-sdk";
+import type { FlowRuntimeState } from "@app-tour/workspace-sdk";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
-import { resolveMarketingTourDetailUrl } from "@/marketing/resolve-marketing-public-url";
+import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
+import { resolvePortalRegistrationBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
+import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
+import { resolvePortalMemberModuleUrl } from "@app-tour/guest-surface-host";
 
 import { PublicCatalogRegistrationFlow } from "./public-catalog-registration-flow";
 
@@ -14,15 +19,37 @@ type PageProps = {
   readonly params: Promise<{ readonly tourId: string }>;
 };
 
-export default async function CatalogRegisterPage({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { tourId } = await params;
-  const headerList = await headers();
-  const host = headerList.get("host") ?? "localhost:3003";
+  const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
-  const backHref = resolveMarketingTourDetailUrl(host, tourId);
   const t = await getTranslations("catalogRegistration");
 
-  if (bootstrap.pluginId !== "denali" && bootstrap.pluginId !== "urban") {
+  if (!supportsCatalogRegistration(bootstrap.pluginId)) {
+    return { title: t("pageTitle", { tourTitle: tourId }), robots: { index: false, follow: false } };
+  }
+
+  const tour = await fetchCatalogTour({
+    tenantId: bootstrap.tenantId,
+    pluginId: bootstrap.pluginId,
+    tourId,
+  });
+
+  return {
+    title: t("pageTitle", { tourTitle: tour?.title ?? tourId }),
+    robots: { index: false, follow: false },
+  };
+}
+
+export default async function CatalogRegisterPage({ params }: PageProps) {
+  const { tourId } = await params;
+  const host = await readPortalIngressHost();
+  const bootstrap = await resolvePortalBootstrapForHost(host);
+  const backHref = resolvePortalRegistrationBackHref(host, tourId);
+  const memberModuleHref = resolvePortalMemberModuleUrl(host);
+  const t = await getTranslations("catalogRegistration");
+
+  if (!supportsCatalogRegistration(bootstrap.pluginId)) {
     notFound();
   }
 
@@ -38,15 +65,50 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
   const tourTitle = tour.title || "Tour";
   const workspace = bootstrap.pluginId;
 
+  const registrationContext = {
+    pluginId: workspace,
+    tenantId: bootstrap.tenantId,
+    tourId,
+    tourTitle,
+    tourPoliciesText: tour.policiesText ?? null,
+    tourPriceAmount: tour.priceAmount ?? null,
+    tourTransport: tour.transport,
+    tourRequirements: {
+      nationalIdRequired: tour.nationalIdRequired === true,
+      fatherNameRequired: tour.fatherNameRequired === true,
+      birthDateRequired: tour.birthDateRequired === true,
+    },
+    backHref,
+    memberModuleHref,
+  };
+
+  const resumeInitialState: FlowRuntimeState | null = await buildRegistrationResumeInitialState(
+    host,
+    bootstrap.tenantId,
+    registrationContext
+  );
+
   return (
-    <main data-catalog-registration-page data-workspace={workspace}>
+    <main
+      data-catalog-registration-page
+      data-workspace={workspace}
+      {...(resumeInitialState !== null ? { "data-registration-resume": "intake" } : {})}
+    >
       <h1>{t("pageTitle", { tourTitle })}</h1>
       <PublicCatalogRegistrationFlow
         workspace={workspace}
         tenantId={bootstrap.tenantId}
         tourId={tourId}
         tourTitle={tourTitle}
+        tourPoliciesText={tour.policiesText ?? null}
+        tourPriceAmount={tour.priceAmount ?? null}
+        tourTransport={tour.transport}
+        tourNationalIdRequired={tour.nationalIdRequired === true}
+        tourFatherNameRequired={tour.fatherNameRequired === true}
+        tourBirthDateRequired={tour.birthDateRequired === true}
         backHref={backHref}
+        memberModuleHref={memberModuleHref}
+        initialRuntimeState={resumeInitialState ?? undefined}
       />
       <p>
         <a href={backHref}>{t("backToTour")}</a>

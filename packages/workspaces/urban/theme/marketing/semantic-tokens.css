@@ -1,0 +1,19 @@
+/** @generated — do not edit; source: dtcg/workspaces/urban.marketing.tokens.json — run pnpm build in @app-tour/design-tokens */
+/**
+ * urban marketing semantic colors (DTCG authority).
+ */
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] {
+  --color-bg-muted: var(--urban-surface-100);
+  --color-bg-page: var(--urban-surface-50);
+  --color-bg-surface: #ffffff;
+  --color-border-default: #e2e8f0;
+  --color-primary: var(--urban-accent-600);
+  --color-primary-fg: #ffffff;
+  --color-text-link: var(--urban-accent-600);
+  --color-text-muted: #64748b;
+  --color-text-primary: #1a1f26;
+  --urban-accent-600: #2563eb;
+  --urban-surface-100: #f1f5f9;
+  --urban-surface-50: #f8fafc;
+}
+

@@ -1,0 +1,173 @@
+---
+title: Guest Cross-Surface Navigation Manifest Schema
+standard_id: MPS-GCSN-001
+version: 1.0.0
+status: active
+extends:
+  - ../platform-portal-member-shell-architecture.mdoc
+  - ../../standards/wrs-portal-member-routing-addendum.mdoc
+  - ../../dev/workspace-guest-extensions.schema.json
+---
+
+# guestCrossSurfaceNav — Manifest Schema (Documentation)
+
+**Decision:** DL-05, DL-37  
+**Phase:** PS-4 / BP-3b  
+**Implementation:** Schema lands in `workspace.manifest.json` guest extensions — **JSON Schema update is a separate implementation PR**. This document is the architectural contract.
+
+---
+
+## 1. Ownership
+
+| Aspect | Owner |
+| ------ | ----- |
+| Schema definition | Platform (`workspace-sdk` codegen) |
+| Link labels + ordering | Workspace manifest |
+| Path validity | Platform codegen (surface allowlist) |
+| Rendering | `apps/marketing` shell (header/footer) |
+| Portal header egress | GSH builders — not manifest absolute URLs |
+
+---
+
+## 2. Manifest location
+
+```json
+{
+  "guestExtensionsVersion": 1,
+  "guestCrossSurfaceNav": {
+    "version": 1,
+    "links": [ /* GuestCrossSurfaceNavLink[] */ ]
+  }
+}
+```
+
+**Replaces:** `FULL_LANDING_NAV_LINKS` in `apps/marketing/src/shell/marketing-shell.tsx`.
+
+---
+
+## 3. Field definitions
+
+### 3.1 `guestCrossSurfaceNav` object
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `version` | `integer` | Yes | Schema version — **must be `1`** |
+| `links` | `array` | Yes | Ordered nav links — max **8** (soft warn at 6) |
+
+### 3.2 `GuestCrossSurfaceNavLink` object
+
+| Field | Type | Required | Description |
+| ----- | ---- | -------- | ----------- |
+| `id` | `string` | Yes | Stable id — `[a-z][a-z0-9-]{1,31}` |
+| `labelKey` | `string` | Yes | i18n key under workspace marketing namespace |
+| `surface` | `"marketing"` \| `"portal_egress"` | Yes | Target surface class |
+| `path` | `string` | Conditional | Relative path on **marketing** host — required when `surface=marketing` |
+| `egress` | `"member_module"` \| `"marketing_home"` \| `"marketing_tours"` | Conditional | Required when `surface=portal_egress` — resolved via GSH at render |
+| `memberModuleId` | `string` | Conditional | **Required** when `egress=member_module` — must exist in effective `memberPortal` registry (`home` or workspace module id) |
+| `visibleWhen` | `"always"` \| `"club"` \| `"platform_mother"` | No (default `club`) | Host visibility rule (DL-37) |
+
+---
+
+## 4. Validation rules (codegen fail-closed)
+
+| Rule | Error code |
+| ---- | ---------- |
+| Duplicate `id` | `GCSN-DUP-ID` |
+| `surface=marketing` + path starts with `/me` | `GCSN-PORTAL-PATH` |
+| `surface=marketing` + path `/tours` on portal manifest block | `GCSN-WRS-PATH-02` |
+| `visibleWhen=club` + path in platform-mother-only set | `GCSN-404-RISK` |
+| Absolute URL in `path` | `GCSN-ABSOLUTE` |
+| `portal_egress` + raw path | `GCSN-EGRESS-PATH` |
+| `egress=member_module` without `memberModuleId` | `GCSN-MISSING-MEMBER-MODULE-ID` |
+| `memberModuleId` not in effective registry | `GCSN-UNKNOWN-MEMBER-MODULE-ID` |
+| `memberModuleId` ∈ `{ more, api, catalog }` | `GCSN-RESERVED-MEMBER-MODULE-ID` |
+| `memberModuleId` on non-`member_module` egress | `GCSN-MEMBER-MODULE-ID-EGRESS` |
+
+### 4.1 Platform-mother-only paths
+
+When `visibleWhen` is **`club`** (default), these paths **fail** validation:
+
+- `/about`
+- `/contact`
+- `/pricing`
+
+When `visibleWhen` is **`platform_mother`**, allowed.
+
+---
+
+## 5. Examples
+
+### 5.1 Denali club tenant (safe)
+
+```json
+{
+  "guestCrossSurfaceNav": {
+    "version": 1,
+    "links": [
+      {
+        "id": "home",
+        "labelKey": "nav.home",
+        "surface": "marketing",
+        "path": "/",
+        "visibleWhen": "club"
+      },
+      {
+        "id": "tours",
+        "labelKey": "nav.tours",
+        "surface": "marketing",
+        "path": "/tours",
+        "visibleWhen": "club"
+      },
+      {
+        "id": "my-trips",
+        "labelKey": "nav.myTrips",
+        "surface": "portal_egress",
+        "egress": "member_module",
+        "memberModuleId": "trips",
+        "visibleWhen": "always"
+      }
+    ]
+  }
+}
+```
+
+**Render:** `member_module` → `resolvePortalMemberModuleUrl(host, link.memberModuleId)` at marketing render boundary.
+
+### 5.2 Platform mother (about link)
+
+```json
+{
+  "id": "about",
+  "labelKey": "nav.about",
+  "surface": "marketing",
+  "path": "/about",
+  "visibleWhen": "platform_mother"
+}
+```
+
+---
+
+## 6. Future compatibility
+
+| Version | Change |
+| ------- | ------ |
+| `1` | Initial — marketing + portal_egress |
+| `2` (reserved) | Locale-prefixed path templates; footer-only links |
+
+**Rule:** Codegen rejects unknown `guestCrossSurfaceNav.version` until RFC amends schema.
+
+---
+
+## 7. Traceability
+
+| Artifact | Link |
+| -------- | ---- |
+| Blueprint | v9 §49 |
+| WRS addendum | §4.2, §7 |
+| DL | DL-05, DL-37 |
+| Guard | `guard-guest-cross-surface-nav` |
+| Gate | Phase 3 exit 3.4 |
+
+---
+
+*Schema doc v1.0.0 · active · Implemented PS-4*

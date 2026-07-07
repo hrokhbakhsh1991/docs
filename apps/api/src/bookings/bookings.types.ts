@@ -29,6 +29,7 @@ export type BookingRecord = {
   readonly submittedAt: string;
   readonly submittedByUserId: string;
   readonly approvedAt: string | null;
+  readonly registrationIntake?: Readonly<Record<string, unknown>>;
 };
 
 export type BookingOutboxRecord = {
@@ -64,6 +65,7 @@ export type BookingListItem = {
   readonly paymentStatus: BookingPaymentStatus;
   readonly departureAt: string;
   readonly submittedAt: string;
+  readonly registrationIntake?: Readonly<Record<string, unknown>>;
 };
 
 export type BookingsListResponse = {
@@ -98,6 +100,7 @@ export type CreateBookingRequest = {
   readonly partySize: number;
   readonly departureAt: string;
   readonly paymentStatus?: BookingPaymentStatus;
+  readonly registrationIntake?: Readonly<Record<string, unknown>>;
 };
 
 export type CreateBookingResponse = {

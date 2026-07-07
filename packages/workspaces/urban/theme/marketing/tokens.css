@@ -1,0 +1,28 @@
+/**
+ * Urban public marketing — catalog shell skin (layout + shadcn aliases).
+ * Color semantics: theme/marketing/semantic-tokens.css (@generated from DTCG).
+ */
+@import "./semantic-tokens.css";
+
+body[data-app-surface="marketing"][data-workspace-plugin="urban"] {
+  --background: var(--color-bg-page);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-surface);
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-primary-fg);
+  --muted-foreground: var(--color-text-muted);
+  --border: var(--color-border-default);
+
+  /* Catalog layout tokens — edit here for grid/spacing without touching components */
+  --catalog-page-max-width: 72rem;
+  --catalog-page-padding-x: var(--space-4);
+  --catalog-page-padding-y: var(--space-6);
+  --catalog-grid-columns: 1;
+  --catalog-card-gap: var(--space-4);
+  --catalog-card-radius: var(--radius-lg);
+  --catalog-card-padding: var(--space-4);
+  --catalog-cover-radius: var(--radius-md);
+  --catalog-detail-max-width: 42rem;
+  --catalog-detail-section-gap: var(--space-6);
+  --catalog-card-shadow: 0 4px 6px rgba(15, 23, 42, 0.08);
+}

@@ -12,12 +12,12 @@ import {
 import {
   isDenaliCompositeImplemented,
   DENALI_IMPLEMENTED_COMPOSITE_IDS,
-} from "../src/wizard/denali/denali-composite-ids";
-import { parseDenaliGearItems } from "../src/wizard/denali/denali-gear-types";
+} from "@app-tour/workspace-denali/ui/composite-ids";
+import { parseDenaliGearItems } from "@app-tour/workspace-denali/ui/logic/denali-gear-types";
 import {
   parseDenaliGatheringPoints,
   parseDenaliLocationData,
-} from "../src/wizard/denali/denali-location-types";
+} from "@app-tour/workspace-denali/ui/logic/denali-location-types";
 
 describe("denali-composite.spec.ts", () => {
   it("WEB-DENALI-COMP-01 exposes implemented location composite ids", () => {
@@ -31,6 +31,8 @@ describe("denali-composite.spec.ts", () => {
       "denali.transport-mode",
       "denali.difficulty-level",
       "denali.elevation-gain",
+      "denali.destination-catalog-metric.peak-height",
+      "denali.destination-catalog-metric.trail-distance",
       "denali.gear",
       "denali.program-content",
       "denali.peak-experience",

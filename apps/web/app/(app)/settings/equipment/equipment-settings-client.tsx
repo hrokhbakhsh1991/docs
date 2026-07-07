@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { resolveSettingsEquipmentUiSurface } from "@/bootstrap/workspace-settings-equipment-ui-bindings.generated";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -28,6 +29,11 @@ type EquipmentSettingsClientProps = {
 };
 
 export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProps) {
+  const equipmentUi = resolveSettingsEquipmentUiSurface(session.pluginId);
+  if (equipmentUi == null) {
+    throw new Error(`No equipment settings UI surface for plugin: ${session.pluginId}`);
+  }
+  const { EquipmentCatalogAvatar, EquipmentIconPicker } = equipmentUi;
   const t = useTranslations("settings.equipment");
   const tErrors = useTranslations("settings.errors");
   const tCommon = useTranslations("common");
@@ -38,6 +44,7 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
   const [themesLoading, setThemesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [iconKey, setIconKey] = useState<string | null>(null);
   const [selectedThemeIds, setSelectedThemeIds] = useState<readonly string[]>([]);
   const [saving, setSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
@@ -122,6 +129,14 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
       .map((id) => themesById.get(id)?.name)
       .filter((label): label is string => label !== undefined && label.length > 0);
 
+  const previewSubtitle = useMemo(() => {
+    const themeLabels = resolveThemeLabels(selectedThemeIds);
+    if (themeLabels.length > 0) {
+      return themeLabels.join("، ");
+    }
+    return t("allThemes");
+  }, [selectedThemeIds, themesById, t]);
+
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canManage || name.trim().length === 0) {
@@ -136,12 +151,14 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
         body: JSON.stringify({
           name: name.trim(),
           themeIds: selectedThemeIds,
+          ...(iconKey !== null ? { iconKey } : {}),
         }),
       });
       if (!response.ok) {
         throw new Error(`EQUIPMENT_CREATE_HTTP_${response.status}`);
       }
       setName("");
+      setIconKey(null);
       setSelectedThemeIds([]);
       refresh();
     } catch (createError: unknown) {
@@ -192,6 +209,13 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
                   required
                 />
               </div>
+
+              <EquipmentIconPicker
+                name={name}
+                value={iconKey}
+                onChange={setIconKey}
+                previewSubtitle={previewSubtitle}
+              />
 
               <div className="space-y-2">
                 <Label>{t("themes")}</Label>
@@ -257,13 +281,20 @@ export function EquipmentSettingsClient({ session }: EquipmentSettingsClientProp
                   key={item.id}
                   className="flex items-center justify-between rounded-lg border p-3"
                 >
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    {themeLabels.length > 0 ? (
-                      <p className="text-xs text-muted-foreground">{themeLabels.join("، ")}</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">{t("allThemes")}</p>
-                    )}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <EquipmentCatalogAvatar
+                      id={item.id}
+                      name={item.name}
+                      iconKey={item.iconKey}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-medium">{item.name}</p>
+                      {themeLabels.length > 0 ? (
+                        <p className="text-xs text-muted-foreground">{themeLabels.join("، ")}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">{t("allThemes")}</p>
+                      )}
+                    </div>
                   </div>
                   {canManage ? (
                     <Button

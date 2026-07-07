@@ -1,4 +1,4 @@
-import type { WorkspaceHttpMethod } from "./workspace-http-types";
+import type { WorkspaceHttpMethod } from "./workspace-http-method";
 
 export type ManifestRoute = {
   readonly method: WorkspaceHttpMethod;

@@ -3,7 +3,7 @@ export type TourListStatusFilter = "all" | "active" | "completed" | "archived";
 import {
   TOUR_CATEGORY_FILTER_ALL,
   type TourCategoryFilter,
-  isDenaliTourCategory,
+  isTourKindSlug,
 } from "./tour-list-category-logic";
 
 export type TourListQueryModel = {
@@ -12,7 +12,7 @@ export type TourListQueryModel = {
   readonly limit: number;
   readonly status: TourListStatusFilter;
   readonly category: TourCategoryFilter;
-  readonly sortBy: "created_at" | "title" | "price";
+  readonly sortBy: "created_at" | "title" | "price" | "departure_at";
   readonly sortDir: "asc" | "desc";
 };
 
@@ -29,7 +29,14 @@ export const TOURS_LIST_TEST_IDS = {
   duplicateServer: "operator-tours-duplicate-server",
   workspace: "operator-tours-workspace",
   retry: "operator-tours-retry",
+  createdNotice: "operator-tours-created-notice",
   category: "operator-tours-category",
+  cardMeta: "operator-tours-card-meta",
+  cardDuration: "operator-tours-card-duration",
+  cardCover: "operator-tours-card-cover",
+  toolbarSkeleton: "operator-tours-toolbar-skeleton",
+  listSkeleton: "operator-tours-list-skeleton",
+  cardSkeleton: "operator-tours-card-skeleton",
 } as const;
 
 export const DEFAULT_TOUR_LIST_QUERY: TourListQueryModel = {
@@ -69,7 +76,10 @@ export function serializeTourListQuery(query: TourListQueryModel): string {
   return params.toString();
 }
 
-export function parseTourListQuery(searchParams: URLSearchParams): TourListQueryModel {
+export function parseTourListQuery(
+  pluginId: string,
+  searchParams: URLSearchParams
+): TourListQueryModel {
   const statusRaw = searchParams.get("status");
   const status =
     statusRaw === "active" || statusRaw === "completed" || statusRaw === "archived"
@@ -77,13 +87,15 @@ export function parseTourListQuery(searchParams: URLSearchParams): TourListQuery
       : "all";
   const sortByRaw = searchParams.get("sort_by");
   const sortBy =
-    sortByRaw === "title" || sortByRaw === "price" ? sortByRaw : "created_at";
+    sortByRaw === "title" || sortByRaw === "price" || sortByRaw === "departure_at"
+      ? sortByRaw
+      : "created_at";
   const sortDir = searchParams.get("sort_dir") === "asc" ? "asc" : "desc";
   const pageRaw = Number(searchParams.get("page") ?? "1");
   const limitRaw = Number(searchParams.get("limit") ?? "10");
   const categoryRaw = searchParams.get("category");
   const category =
-    categoryRaw !== null && isDenaliTourCategory(categoryRaw)
+    categoryRaw !== null && isTourKindSlug(pluginId, categoryRaw)
       ? categoryRaw
       : TOUR_CATEGORY_FILTER_ALL;
 

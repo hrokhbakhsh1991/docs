@@ -143,6 +143,7 @@ describe("4-integration — proxy production wire (DEC-093)", () => {
     const proxy = new TenantHttpProxy({
       upstreamBaseUrl: upstream.baseUrl,
       cacheResponses: true,
+      egressGuard: false,
     });
     const listener = createRequestListener({
       toursService: createTestToursService(),

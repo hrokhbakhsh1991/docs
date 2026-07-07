@@ -1,65 +1,81 @@
+/**
+ * P15-P-B4 — manifest-driven tour PATCH publish-owner dispatch
+ */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-denali/tours";
+import { URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-urban/tours";
+
 import {
+  assertTourPublishFieldOwner,
   mergeCanonicalPatchDataForWorkspace,
-  tourPatchTouchesProtectedPublishFields,
+  operatorMemberTourPatchForbidden,
   tourPublishFieldOwnerSurface,
 } from "../src/tours/workspace-tour-write-dispatch";
 
-describe("workspace-tour-write-dispatch (P4-T05/T06)", () => {
-  it("urban publish-field gate delegates to urban hook", () => {
-    assert.equal(
-      tourPatchTouchesProtectedPublishFields("urban", { roots: ["publishStatus"] }),
-      true
-    );
-    assert.equal(tourPatchTouchesProtectedPublishFields("starter", { roots: ["publishStatus"] }), false);
+describe("workspace-tour-write-dispatch.spec.ts — P15-P-B4", () => {
+  it("API-P15-B4-01 exposes publish owner surfaces from manifest bindings", () => {
+    assert.equal(tourPublishFieldOwnerSurface("denali"), DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE);
+    assert.equal(tourPublishFieldOwnerSurface("urban"), URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE);
   });
 
-  it("urban merge deep-merges via workspace hook", () => {
-    const merged = mergeCanonicalPatchDataForWorkspace(
-      "urban",
-      { tour: { title: "A", status: "draft" } },
-      { tour: { status: "published" } }
-    );
-    assert.deepEqual(merged.tour, { title: "A", status: "published" });
+  it("API-P15-B4-02 operatorMemberTourPatchForbidden is denali-only", () => {
+    assert.equal(operatorMemberTourPatchForbidden("denali"), true);
+    assert.equal(operatorMemberTourPatchForbidden("urban"), false);
+    assert.equal(operatorMemberTourPatchForbidden("starter"), false);
   });
 
-  it("non-urban workspace replaces data root", () => {
-    const merged = mergeCanonicalPatchDataForWorkspace(
-      "starter",
-      { tour: { title: "A" } },
-      { tour: { title: "B" } }
-    );
-    assert.deepEqual(merged, { tour: { title: "B" } });
-  });
-
-  it("exposes urban owner surface id", () => {
-    assert.equal(tourPublishFieldOwnerSurface("urban"), "urban.tour.publish_fields");
-    assert.equal(tourPublishFieldOwnerSurface("starter"), undefined);
-  });
-
-  it("denali publish-field gate delegates to denali hook", () => {
-    assert.equal(
-      tourPatchTouchesProtectedPublishFields("denali", { data: { publishStatus: "active" } }),
-      true
-    );
-    assert.equal(
-      tourPatchTouchesProtectedPublishFields("denali", { data: { title: "Only title" } }),
-      false
+  it("API-P15-B4-03 assertTourPublishFieldOwner rejects urban member on publish surface", () => {
+    const auth = {
+      userId: "00000000-0000-4000-8000-000000000402",
+      tenantId: "00000000-0000-4000-8000-000000000004",
+      role: "member" as const,
+      status: "ACTIVE" as const,
+      workspaceId: "ws-urban-member",
+    };
+    assert.throws(
+      () =>
+        assertTourPublishFieldOwner({
+          auth,
+          workspaceType: "urban",
+          surface: URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
+        }),
+      (error: unknown) => {
+        assert.match(String(error), /URBAN_OWNER_REQUIRED/);
+        return true;
+      }
     );
   });
 
-  it("denali merge shallow-merges root keys", () => {
-    const merged = mergeCanonicalPatchDataForWorkspace(
-      "denali",
-      { title: "A", category: "mountain" },
-      { title: "B" }
+  it("API-P15-B4-04 assertTourPublishFieldOwner allows denali owner on publish surface", () => {
+    const auth = {
+      userId: "00000000-0000-4000-8000-000000000101",
+      tenantId: "00000000-0000-4000-8000-000000000003",
+      role: "owner" as const,
+      status: "ACTIVE" as const,
+      workspaceId: "ws-denali-owner",
+    };
+    assert.doesNotThrow(() =>
+      assertTourPublishFieldOwner({
+        auth,
+        workspaceType: "denali",
+        surface: DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
+      })
     );
-    assert.deepEqual(merged, { title: "B", category: "mountain" });
   });
 
-  it("exposes denali owner surface id", () => {
-    assert.equal(tourPublishFieldOwnerSurface("denali"), "denali.tour.publish_fields");
+  it("API-P15-B4-05 starter default merge preserves sibling roots on fragment PATCH", () => {
+    const existing = {
+      basics: { title: "Seed" },
+      details: { summary: "ok" },
+      pricing: { paymentMode: "gateway" },
+    };
+    const merged = mergeCanonicalPatchDataForWorkspace("starter", existing, {
+      basics: { title: "Updated" },
+    });
+    assert.equal((merged.basics as { title: string }).title, "Updated");
+    assert.deepEqual(merged.details, { summary: "ok" });
+    assert.deepEqual(merged.pricing, { paymentMode: "gateway" });
   });
 });

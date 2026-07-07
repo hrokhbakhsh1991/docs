@@ -28,4 +28,20 @@ describe("users-list-server-prefetch.spec.ts", () => {
     assert.match(panelSource, /initialRoster/);
     assert.match(panelSource, /skipInitialFetchRef/);
   });
+
+  it("USERS-04 ownership roster prefetch respects UI gate", () => {
+    const pageSource = readFileSync(resolve(WEB_ROOT, "app/(app)/users/page.tsx"), "utf8");
+    assert.match(pageSource, /USERS_OWNERSHIP_TRANSFER_UI_ENABLED/);
+  });
+
+  it("USERS-05 users table uses RTL-safe alignment landmarks", () => {
+    const tableSource = readFileSync(
+      resolve(WEB_ROOT, "app/(app)/users/users-directory-table.tsx"),
+      "utf8"
+    );
+    assert.match(tableSource, /data-operator-users-table/);
+    assert.match(tableSource, /border-collapse/);
+    assert.match(tableSource, /align-middle/);
+    assert.match(tableSource, /dir="ltr"/);
+  });
 });

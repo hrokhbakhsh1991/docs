@@ -17,7 +17,7 @@ import {
 const URBAN_PUBLIC_BASE_URL = process.env.SMOKE_WEB_BASE_URL ?? "http://urban.localhost:3000";
 const URBAN_PORTAL_BASE_URL = process.env.SMOKE_PORTAL_BASE_URL ?? "http://urban.localhost:3003";
 const URBAN_MARKETING_BASE_URL =
-  process.env.SMOKE_MARKETING_BASE_URL ?? "http://shop.urban.localhost:3002";
+  process.env.SMOKE_MARKETING_BASE_URL ?? "http://urban.localhost:3002";
 const PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
 const PUBLISHED_TOUR_TITLE = "Berlin city highlights";
 const REGISTRATION_EMAIL = `smk-p8-02-${Date.now()}@urban-smoke.local`;
@@ -42,6 +42,12 @@ test("SMK-P8-02 public registration intake (OTP + tour intake)", async ({ page }
   await expect(page.locator("[data-public-registration-otp]")).toBeVisible({ timeout: 60_000 });
 
   await fillCatalogOtp(page, CATALOG_DEV_OTP);
+
+  const verifyBtn = page.locator('[data-action="verify-otp"]');
+  if (await verifyBtn.isEnabled({ timeout: 3_000 }).catch(() => false)) {
+    await verifyBtn.click();
+  }
+
   await expect(
     page.locator("[data-public-registration-profile], [data-public-registration-intake]")
   ).toBeVisible({ timeout: 60_000 });
@@ -62,8 +68,8 @@ test("SMK-P8-03 owner settings load", async ({ page }) => {
   await expect(page.locator("[data-urban-owner-settings-panel]")).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.getByText(/Catalog enabled|کاتالوگ فعال/)).toBeVisible();
-  await expect(page.getByText(/Registration policy|سیاست ثبت‌نام/)).toBeVisible();
+  await expect(page.getByText(/Catalog enabled|کاتالوگ فعال/i)).toBeVisible();
+  await expect(page.getByText(/Registration policy|سیاست ثبت‌نام/i)).toBeVisible();
   await expect(page.locator("[data-workspace-wizard-forbidden]")).toHaveCount(0);
 });
 

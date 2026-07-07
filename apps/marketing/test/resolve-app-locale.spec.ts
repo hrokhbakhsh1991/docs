@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { resolveAppLocale } from "../src/i18n/resolve-app-locale";
+import { resolveMarketingLocalePath } from "../src/i18n/routing";
 
 describe("resolveAppLocale", () => {
   it("MKT-19 cookie wins over tenant default", () => {
@@ -27,5 +28,14 @@ describe("resolveAppLocale", () => {
       resolveAppLocale({ cookieLocale: null, tenantDefaultLocale: "de" }),
       "fa"
     );
+  });
+});
+
+describe("resolveMarketingLocalePath", () => {
+  it("MKT-31 maps default locale to unprefixed paths and English to /en", () => {
+    assert.equal(resolveMarketingLocalePath("/tours", "fa"), "/tours");
+    assert.equal(resolveMarketingLocalePath("/tours", "en"), "/en/tours");
+    assert.equal(resolveMarketingLocalePath("/en/tours", "fa"), "/tours");
+    assert.equal(resolveMarketingLocalePath("/en/tours/tour-1", "en"), "/en/tours/tour-1");
   });
 });

@@ -14,7 +14,8 @@ import {
   resolveMainThemeFormProfileFromCatalog,
   sanitizeLeaderUserIdsOnDraft,
   sanitizeThemeIdsOnDraft,
-} from "../src/wizard/denali/denali-catalog-sanitize";
+} from "@app-tour/workspace-denali/wizard/catalog-sanitize";
+import { loadDenaliSubmitCatalogIds } from "@app-tour/workspace-denali/ui/adapters/submit-catalog-fetch";
 
 describe("denali-catalog-sanitize.spec.ts", () => {
   it("WEB-11.8-CAT-01 resolves mainThemeFormProfile from first theme", () => {
@@ -63,5 +64,55 @@ describe("denali-catalog-sanitize.spec.ts", () => {
       ]),
       ["d1"]
     );
+  });
+
+  it("P15-W-B1d loadDenaliSubmitCatalogIds aggregates active catalog ids", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+      const url =
+        typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes("/api/settings/resources/equipment")) {
+        return new Response(JSON.stringify({ items: [{ id: "eq-1", isActive: true }] }), {
+          status: 200,
+        });
+      }
+      if (url.includes("/api/settings/resources/tour_themes")) {
+        return new Response(JSON.stringify({ items: [{ id: "t1", isActive: true }] }), {
+          status: 200,
+        });
+      }
+      if (url.includes("/api/settings/resources/guide_languages")) {
+        return new Response(JSON.stringify({ items: [{ id: "gl-1", isActive: true }] }), {
+          status: 200,
+        });
+      }
+      if (url.includes("/api/settings/resources/locations")) {
+        return new Response(
+          JSON.stringify({
+            destinations: [{ id: "d1", regionId: "r1", name: "Alamut", isActive: true }],
+          }),
+          { status: 200 }
+        );
+      }
+      if (url.includes("/api/users")) {
+        return new Response(
+          JSON.stringify({
+            items: [{ userId: "u1", role: "admin", isSelectableLeader: false }],
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response("not found", { status: 404 });
+    };
+    try {
+      const catalog = await loadDenaliSubmitCatalogIds();
+      assert.deepEqual(catalog.activeEquipmentIds, ["eq-1"]);
+      assert.deepEqual(catalog.activeThemeIds, ["t1"]);
+      assert.deepEqual(catalog.activeGuideLanguageIds, ["gl-1"]);
+      assert.deepEqual(catalog.activeDestinationIds, ["d1"]);
+      assert.deepEqual(catalog.selectableLeaderIds, ["u1"]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

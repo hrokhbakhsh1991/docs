@@ -41,7 +41,7 @@ stop_pid_gracefully() {
 }
 
 if command -v systemctl >/dev/null 2>&1; then
-  systemctl stop app-tour-api.service app-tour-web.service 2>/dev/null || true
+  systemctl stop app-tour-api.service app-tour-web.service app-tour-marketing.service app-tour-portal.service 2>/dev/null || true
   sleep 1
 fi
 

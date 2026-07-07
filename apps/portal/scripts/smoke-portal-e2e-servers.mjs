@@ -16,7 +16,7 @@ const portalDir = path.join(repoRoot, "apps/portal");
 const operatorSmokeTenantId =
   process.env.TOUR_OPS_DEV_TENANT_ID?.trim() || "00000000-0000-4000-8000-000000000014";
 
-function waitForUrl(url, timeoutMs = 300_000) {
+function waitForUrl(url, timeoutMs = 600_000) {
   const deadline = Date.now() + timeoutMs;
   return new Promise((resolve, reject) => {
     const tick = () => {
@@ -29,7 +29,7 @@ function waitForUrl(url, timeoutMs = 300_000) {
         retry();
       });
       req.on("error", retry);
-      req.setTimeout(2_000, () => {
+      req.setTimeout(180_000, () => {
         req.destroy();
         retry();
       });
@@ -53,20 +53,35 @@ const apiEnv = {
   NODE_ENV: "test",
   STORAGE_DRIVER: "memory",
   OPERATOR_SMOKE_E2E_SEED: "1",
+  WRS_SMOKE_CUSTOM_APEX: "1",
   PORT: "3001",
   TENANT_RATE_LIMIT_ENABLED: "false",
   AUTH_ALLOW_DEV_STATIC_OTP: "true",
 };
+delete apiEnv.DATABASE_URL;
+delete apiEnv.DATABASE_URL_ADMIN;
+
+const portalSmokeHost =
+  process.env.SMOKE_PORTAL_BASE_URL?.trim() || "http://operator.portal.localhost:3003";
+const isCustomApexSmoke = portalSmokeHost.includes("denali.club");
+const marketingPublicBaseUrl =
+  process.env.MARKETING_PUBLIC_BASE_URL?.trim() ||
+  (isCustomApexSmoke
+    ? "http://denali.club:3002"
+    : `${portalSmokeHost.replace(/\/$/, "")}/health`);
 
 const portalEnv = {
   ...process.env,
+  ...jwtEnv,
   NODE_ENV: "development",
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
   API_INTERNAL_URL: "http://127.0.0.1:3001",
+  PORTAL_INTERNAL_URL: "http://127.0.0.1:3003",
   TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,
   TOUR_OPS_DEV_WORKSPACE_ID: "ws-operator-smoke",
   PORTAL_DEV_PORT: "3003",
+  MARKETING_PUBLIC_BASE_URL: marketingPublicBaseUrl,
 };
 
 const api = spawn("node", ["--import", "tsx", "src/main.ts"], {
@@ -85,6 +100,10 @@ void waitForUrl("http://127.0.0.1:3001/health")
       stdio: "inherit",
     });
     return waitForUrl("http://127.0.0.1:3003/health");
+  })
+  .then(async () => {
+    console.log("smoke-portal-e2e-servers: API + portal ready");
+    await new Promise(() => {});
   })
   .catch((error) => {
     console.error(error);

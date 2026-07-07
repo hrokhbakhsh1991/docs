@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 
 import { resolveDefaultTenantBranding } from "../tenant/workspace-default-tenant-branding";
-import { DENALI_SMOKE_SUBDOMAIN, DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+import {
+  DENALI_SMOKE_SUBDOMAIN,
+  DENALI_SMOKE_TENANT_ID,
+  URBAN_SMOKE_SUBDOMAIN,
+  URBAN_SMOKE_TENANT_ID,
+} from "../settings/resolve-workspace-dev-smoke-tenant";
 
 import { appendAuditEvent, AUDIT_ACTION_TENANT_PROVISIONED } from "../audit/audit-logger";
 import { getPrismaAdmin } from "../db/prisma";
@@ -11,6 +16,7 @@ import { findTenantBySubdomain, isStaticTenantRegistryAllowed } from "../tenant/
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { TenantProvisionConflictError } from "./provisioning.errors";
 import { assertProvisioningDevelopmentOnly } from "./provisioning-guard";
+import { assertProductionCertifiedWorkspaceType } from "./assert-production-certified-workspace";
 
 /** MAP 4.3 — canonical dev seed labels (subphase 4.3). */
 export const PHASE_43_SEED_SUBDOMAINS = ["tenant-a", "tenant-b"] as const;
@@ -22,6 +28,7 @@ export const PHASE_43_SEED_TENANT_IDS: Record<Phase43SeedSubdomain, string> = {
 };
 
 export { DENALI_SMOKE_SUBDOMAIN, DENALI_SMOKE_TENANT_ID };
+export { URBAN_SMOKE_SUBDOMAIN, URBAN_SMOKE_TENANT_ID };
 
 export const TENANT_STATUS_ACTIVE = "active" as const;
 
@@ -88,6 +95,16 @@ export class ProvisioningService {
     });
   }
 
+  /** Phase 7.4 / P15-P-D0 — idempotent urban smoke tenant (`urban.localhost`). */
+  async seedUrbanSmokeTenant(): Promise<ProvisionedTenant> {
+    assertProvisioningDevelopmentOnly();
+    return this.upsertSeedTenant({
+      subdomain: URBAN_SMOKE_SUBDOMAIN,
+      tenantId: URBAN_SMOKE_TENANT_ID,
+      workspaceType: "urban",
+    });
+  }
+
   /** Phase 11.0 — operator smoke tenant (`operator` / `…000014`). */
   async seedOperatorSmokeTenant(): Promise<ProvisionedTenant> {
     assertProvisioningDevelopmentOnly();
@@ -104,6 +121,17 @@ export class ProvisioningService {
   async provisionTenant(input: ProvisionTenantInput): Promise<ProvisionedTenant> {
     assertProvisioningDevelopmentOnly();
     const identity = resolveTenantIdentity(input);
+    await assertTenantNotAlreadyPresent(identity.tenantId, identity.subdomain);
+    return createTenantRow(identity);
+  }
+
+  /**
+   * P1-N-043: Create tenant for production use (no dev guard).
+   * Used by platform ops API for production tenant provisioning.
+   */
+  async provisionTenantProduction(input: ProvisionTenantInput): Promise<ProvisionedTenant> {
+    const identity = resolveTenantIdentity(input);
+    assertProductionCertifiedWorkspaceType(identity.workspaceType);
     await assertTenantNotAlreadyPresent(identity.tenantId, identity.subdomain);
     return createTenantRow(identity);
   }

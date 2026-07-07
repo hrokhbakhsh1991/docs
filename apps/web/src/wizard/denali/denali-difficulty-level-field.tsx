@@ -8,6 +8,7 @@ import type { AppLocale } from "@/i18n/routing";
 import { DenaliDifficultyRangeSlider } from "@/components/ui/denali-difficulty-range-slider";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
+import { commitWizardDraftEdit, useLatestWizardDraft } from "@/wizard/use-latest-wizard-draft";
 
 import {
   DIFFICULTY_LEVEL_MAX,
@@ -38,6 +39,7 @@ export function DenaliDifficultyLevelField({
 }: DenaliDifficultyLevelFieldProps) {
   const t = useTranslations("denali");
   const locale = useLocale() as AppLocale;
+  const draftRef = useLatestWizardDraft(draft);
   const label = resolveDenaliFieldLabel(t, "program.difficultyLevel");
   const raw = getCanonicalStringValue(draft, "program.difficultyLevel");
   const value = useMemo(() => parseDifficultyLevel(raw), [raw]);
@@ -59,8 +61,8 @@ export function DenaliDifficultyLevelField({
   );
 
   const commitValue = (next: number) => {
-    onDraftChange(
-      setCanonicalStringValue(draft, "program.difficultyLevel", formatDifficultyLevelStorage(next))
+    commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+      setCanonicalStringValue(base, "program.difficultyLevel", formatDifficultyLevelStorage(next))
     );
   };
 

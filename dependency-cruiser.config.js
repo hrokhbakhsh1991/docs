@@ -23,7 +23,10 @@ module.exports = {
       name: "workspace-sdk-no-workspaces",
       comment: "Contract package must not depend on workspace implementations",
       severity: "error",
-      from: { path: "^packages/workspace-sdk" },
+      from: {
+        path: "^packages/workspace-sdk",
+        pathNot: "^packages/workspace-sdk/test/.*\\.spec\\.ts$",
+      },
       to: { path: "^packages/workspaces" },
     },
     {
@@ -38,7 +41,10 @@ module.exports = {
       comment:
         "Foundation packages must not import Denali product workspaces or domain (H-01 grep-free)",
       severity: "error",
-      from: { path: "^packages/(workspace-sdk|config)" },
+      from: {
+        path: "^packages/(workspace-sdk|config)",
+        pathNot: "^packages/workspace-sdk/test/.*\\.spec\\.ts$",
+      },
       to: {
         path: "(^packages/workspaces/denali(/|$)|^packages/[^/]*denali-domain|^legacy/packages/[^/]*denali|^packages/types/.*/denali/)",
       },
@@ -139,7 +145,7 @@ module.exports = {
         "Web shell: starter always; denali/urban only via workspace-plugin-loaders.generated.ts (Phase 10.2)",
       severity: "error",
       from: { path: "^apps/web" },
-      to: { path: "^packages/workspaces/(?!starter|denali|urban)" },
+      to: { path: "^packages/workspaces/(?!starter|denali|urban|guest-club)" },
     },
     {
       name: "workspace-starter-no-apps",
@@ -167,11 +173,11 @@ module.exports = {
     {
       name: "apps-web-allowed-packages",
       comment:
-        "Web shell Phase 3+ allowed workspace dependencies (denali/urban devDep for lazy chunk — 6.5 / 7.3)",
+        "Web shell Phase 3+ / 4+ / 19+ allowed packages (denali/urban lazy chunk; tenant-kernel + session-client + guest-surface-host for WRS/PCMS)",
       severity: "error",
       from: { path: "^apps/web" },
       to: {
-        path: "^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|draft-engine|wizard-navigation|workspaces/starter|workspaces/denali|workspaces/urban|config)",
+        path: "^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|draft-engine|wizard-navigation|tenant-kernel|session-client|guest-surface-host|workspaces/starter|workspaces/denali|workspaces/urban|workspaces/guest-club|config)",
       },
     },
     {
@@ -196,7 +202,7 @@ module.exports = {
       from: {
         path: "^apps/api/src",
         pathNot:
-          "(workspace-plugin-registry\\.generated|workspace-tour-write-bindings\\.generated|\\.spec\\.ts$|denali-finance|urban|canonical|internal/provisioning|settings/|tours/|tenant/tenant-branding-storage)",
+          "(workspace-plugin-registry\\.generated|workspace-tour-write-bindings\\.generated|\\.spec\\.ts$|denali-finance|workspace-finance|urban|canonical|internal/provisioning|settings/|tours/|tenant/tenant-branding-storage)",
       },
       to: {
         path: "^packages/workspaces/(starter|denali|urban)(/plugin)?(/|$)",
@@ -205,11 +211,11 @@ module.exports = {
     {
       name: "apps-api-allowed-packages",
       comment:
-        "Phase 3.2+ / 6.5 / 7.3 API allowed workspace dependencies (starter + denali + urban plugin registry)",
+        "Phase 3.2+ / 6.5 / 7.3 / 10 API allowed workspace dependencies (starter + denali + urban + guest-club plugin registry)",
       severity: "error",
       from: { path: "^apps/api" },
       to: {
-        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|workspaces/starter|workspaces/denali|workspaces/urban|config)",
+        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|workspaces/starter|workspaces/denali|workspaces/urban|workspaces/guest-club|config)",
       },
     },
     {

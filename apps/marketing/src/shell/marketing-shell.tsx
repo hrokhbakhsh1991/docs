@@ -1,34 +1,156 @@
+import { LogIn, Menu, Mountain } from "lucide-react";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
-import { MarketingLocaleSwitcher } from "@/i18n/marketing-locale-switcher";
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
+import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
+
+import { MarketingFooter } from "./marketing-footer";
+import { MarketingLocaleSwitcher } from "@/i18n/marketing-locale-switcher";
+import { MARKETING_HEADER_OVERLAY_REQUEST_HEADER } from "./resolve-marketing-header-overlay";
+import type { MarketingShellNavItem } from "./resolve-marketing-shell-nav.server";
 
 export type MarketingShellProps = {
   readonly branding: PublicTenantBrandingSnapshot;
+  readonly portalMemberModuleUrl: string | null;
+  readonly primaryNavLinks: readonly MarketingShellNavItem[];
+  readonly landing: GuestLandingFeatures;
   readonly children: ReactNode;
 };
 
-export async function MarketingShell({ branding, children }: MarketingShellProps) {
+export async function MarketingShell({
+  branding,
+  portalMemberModuleUrl,
+  primaryNavLinks,
+  landing,
+  children,
+}: MarketingShellProps) {
   const t = await getTranslations("catalog");
+  const headerList = await headers();
   const title = branding.displayName ?? t("nav.defaultSiteName");
+  const isFullLanding = landing.variant === "full";
+  const useHeaderOverlay =
+    isFullLanding && headerList.get(MARKETING_HEADER_OVERLAY_REQUEST_HEADER) === "1";
 
   return (
-    <>
-      <header data-marketing-header>
-        <Link href="/tours" data-marketing-brand>
-          {branding.logoUrl ? (
-            <img src={branding.logoUrl} alt="" data-marketing-logo height={32} />
-          ) : null}
-          <span>{title}</span>
-        </Link>
-        <nav>
-          <Link href="/tours">{t("nav.tours")}</Link>
-          <MarketingLocaleSwitcher />
-        </nav>
+    <div data-marketing-shell data-slot="shell">
+      <a href="#main-content" data-marketing-skip-link data-slot="shell-skip-link">
+        {t("nav.skipToContent")}
+      </a>
+      <header
+        data-marketing-header
+        data-slot="shell-header"
+        {...(useHeaderOverlay ? { "data-marketing-header-overlay": true } : {})}
+      >
+        <div data-marketing-header-inner data-slot="shell-header-inner">
+          <Link href="/" data-marketing-brand data-slot="shell-brand">
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt="" data-marketing-logo height={36} width={36} />
+            ) : (
+              <Mountain aria-hidden="true" data-marketing-brand-icon />
+            )}
+            <span data-marketing-brand-title>{title}</span>
+          </Link>
+
+          <nav data-marketing-header-nav data-slot="shell-nav" aria-label={t("nav.primary")}>
+            {(isFullLanding
+              ? primaryNavLinks
+              : [{ id: "tours", href: "/tours", labelKey: "nav.tours" as const }]
+            ).map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                data-marketing-nav-link
+                data-marketing-nav-link-id={item.id}
+              >
+                {t(item.labelKey)}
+              </Link>
+            ))}
+          </nav>
+
+          <div data-marketing-header-end data-slot="shell-header-end">
+            <div data-marketing-header-toolbar data-slot="shell-toolbar">
+              <MarketingLocaleSwitcher />
+              {portalMemberModuleUrl !== null ? (
+                <a
+                  href={portalMemberModuleUrl}
+                  data-marketing-portal-member
+                  data-marketing-header-sign-in
+                  aria-label={t("nav.signIn")}
+                >
+                  <LogIn aria-hidden="true" data-marketing-header-sign-in-icon />
+                  <span data-marketing-header-sign-in-label>{t("nav.signIn")}</span>
+                </a>
+              ) : null}
+              {isFullLanding ? (
+                <Link href="/tours" data-marketing-header-cta>
+                  {t("home.full.hero.ctaPrimary")}
+                </Link>
+              ) : null}
+            </div>
+
+            <details data-marketing-nav-drawer data-slot="shell-nav-drawer">
+              <summary
+                data-marketing-nav-drawer-toggle
+                data-slot="shell-nav-drawer-toggle"
+                aria-label={t("nav.openMenu")}
+              >
+                <Menu aria-hidden="true" data-marketing-nav-drawer-toggle-icon />
+                <span data-marketing-nav-drawer-toggle-label>{t("nav.openMenu")}</span>
+              </summary>
+              <nav
+                data-marketing-nav-drawer-panel
+                data-slot={isFullLanding ? "shell-nav-drawer-panel" : "shell-nav"}
+                aria-label={t("nav.primary")}
+              >
+                {isFullLanding
+                  ? primaryNavLinks.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        data-marketing-nav-link
+                        data-marketing-nav-link-id={item.id}
+                      >
+                        {t(item.labelKey)}
+                      </Link>
+                    ))
+                  : (
+                    <Link href="/tours" data-marketing-nav-link data-marketing-nav-link-id="tours">
+                      {t("nav.tours")}
+                    </Link>
+                  )}
+                {isFullLanding ? (
+                  <Link href="/tours" data-marketing-header-cta>
+                    {t("home.full.hero.ctaPrimary")}
+                  </Link>
+                ) : null}
+                {portalMemberModuleUrl !== null ? (
+                  <a
+                    href={portalMemberModuleUrl}
+                    data-marketing-portal-member
+                    data-marketing-header-sign-in
+                  >
+                    <LogIn aria-hidden="true" data-marketing-header-sign-in-icon />
+                    {t("nav.signIn")}
+                  </a>
+                ) : null}
+              </nav>
+            </details>
+          </div>
+        </div>
       </header>
-      {children}
-    </>
+      <div data-marketing-shell-main data-slot="shell-main" id="main-content">
+        {children}
+      </div>
+      {landing.sections.footer ? (
+        <MarketingFooter
+          branding={branding}
+          portalMemberModuleUrl={portalMemberModuleUrl}
+          showFaqLink={landing.sections.faq}
+        />
+      ) : null}
+    </div>
   );
 }

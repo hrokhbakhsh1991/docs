@@ -1,0 +1,429 @@
+---
+title: P5-B — Denali operator parity on metadata path
+phase: 18
+format: markdoc
+prerequisite: P5-A-N-007 staging pilot safe
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p5/p5-b-denali-operator-parity.md
+extends: docs/phase-16/platform-workspace-cutover.mdoc
+---
+
+# Denali operator parity (P5-B)
+
+Prove **package path ≡ metadata path** for Denali operator workflows when tenant is on pilot/live cutover — **without** deleting or moving `packages/workspaces/denali` rules/composites/UI.
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p5/p5-b-denali-operator-parity.md`](../../TEMP/p5/p5-b-denali-operator-parity.md) v2.1
+
+**Status (2026-06-22):** P5-B complete (N-001..016) · P5-core exit · current nano P5-C-N-003 (commerce persist)
+
+**Prerequisite:** P5-A EPIC complete — staging pilot tooling + `metadataCutoverStage` visibility ([`platform-metadata-cutover-pilot.mdoc`](./platform-metadata-cutover-pilot.mdoc)).
+
+---
+
+## Executive summary
+
+| Layer | P5-B delivers |
+|-------|----------------|
+| **Lifecycle** | Tour FSM transitions + publish readiness gates on metadata path |
+| **Validation** | Draft-relaxed vs publish-strict split |
+| **Operator web** | Resolve workspace plugin from tenant binding when flag on |
+| **Audit** | PATCH + publish events (extend DEC-007 scope) |
+| **Preservation** | PC-01..10 gate spec — wizard · clone · list · settings · receipts unchanged |
+| **P5-core exit** | `P5-B-N-016` |
+
+---
+
+## Critical rule (frozen — AI STOP if violated)
+
+```text
+Parity implementation lives in apps/api/src/canonical/ + specs.
+Metadata DB holds layout/ruleSet SNAPSHOT merged by adapter.
+NEVER delete or “port by removal” denali/src/rules|field-registry|composites|ui.
+```
+
+Denali commerce remains **`offline_receipt` only** — receipt upload + admin review unchanged.
+
+---
+
+## Operator product preservation matrix (DOC-B-02)
+
+Cross-ref checklist: [`TEMP/p5/PRESERVATION-CHECKLIST.md`](../../TEMP/p5/PRESERVATION-CHECKLIST.md). Gate spec: `apps/api/test/p5-preservation-gate.spec.ts` (P5-B-N-014).
+
+| ID | Surface | Package / app anchor | Must pass after P5-B | Verify spec |
+|----|---------|----------------------|----------------------|-------------|
+| PC-01 | Create wizard | `denali.plugin.ts` · golden tour | Golden validates on metadata path | golden + wizard specs |
+| PC-02 | Clone tour | `tourClone` · Phase 11 hydrate | Hydrate envelope identical | clone hydrate specs |
+| PC-03 | Template / preset | `settings/tour_wizard_template` | Template gate + prefill unchanged | template gate specs |
+| PC-04 | Tour list projection | `extractDenaliTourListProjection` | List projection match | operator list specs |
+| PC-05 | Settings ×9 modules | `denali-settings.manifest.ts` | Manifest routes + abilities unchanged | settings-manifest spec |
+| PC-06 | Finance receipts | `POST/PATCH /finance/receipts` | Upload + admin review unchanged | finance-admin.spec |
+| PC-07 | offline_receipt | `denaliCore.schema.ts` · golden | Tour canonical `paymentMode` | schedule-fields spec |
+| PC-08 | Draft persistence | `operator.wizard` namespace | Draft binding unchanged | draft binding specs |
+| PC-09 | Composites UI | composite registry + theme | Widget registry unchanged | composites.contract |
+| PC-10 | Public catalog hooks | P4 publish → catalog chain | Marketing revalidate unchanged | P4 catalog specs |
+
+**STOP rule:** parity code lives in `apps/api/src/canonical/` + specs — never delete or “port by removal” `denali/src/rules|field-registry|composites|ui`.
+
+---
+
+## Gap → owner map (DOC-B-01 — from legacy gap analysis)
+
+Source of truth for gap IDs: [`legacy-vs-denali-gap-analysis.md`](../../apps/api/docs/legacy-vs-denali-gap-analysis.md) § Tour Business Logic.
+
+| Gap ID | Legacy capability | Severity | P5-B owner (file) | Assert band | Out of scope |
+|--------|-------------------|----------|-------------------|-------------|--------------|
+| LC-P0-FSM | Tour lifecycle FSM (`DRAFT→OPEN→CLOSED/CANCELLED`) | P0 | `assert-tour-lifecycle-transition.ts` | LC-01..03 | Urban workspace |
+| LC-P0-PUB | Publish = `DRAFT→OPEN` with readiness gates | P0 | `canonical-tour.service.ts` | LC-04..06 | Gateway payment |
+| VAL-P1-DRAFT | Create relaxed on DRAFT; strict on publish | P1 | `canonical-validation-sync.ts` | VAL-01 | — |
+| VAL-P1-STRIP | Form-profile field strip before persist | P1 | `strip-form-profile-for-submit.ts` | VAL-02b | — |
+| VAL-P1-CAT | Catalog ref integrity (themes, leaders) | P1 | `assert-catalog-ref-integrity.ts` | VAL-03 | — |
+| VAL-P1-GEO | Publish geolocation zones (Denali pilot) | P1 | plugin validation hook (future) | — | P5-B v1 defers to RuleSet snapshot |
+| VAL-P1-PAID | Paid tour amount before OPEN | P1 | — | — | P5-E finance tranche |
+| RP-P3 | Golden tour on metadata path | P0 | parity + integration specs | RP-01..05 | — |
+| AUD-P1-PATCH | Audit on tour PATCH | P1 | `audit-logger.ts` | AUD-02 | — |
+| AUD-P1-PUB | Audit on publish transition | P1 | publish transition audit | AUD-03 | — |
+| WEB-P1 | Operator web resolves metadata plugin | P1 | `resolve-operator-workspace-plugin.ts` | WEB-01..02 | Super Admin wizard |
+| STG-P2 | Staging shell / clone / preset create | P2 | preserved — no regression | PC-02..03 | New use-cases deferred |
+
+P5-B closes **kernel parity** on the metadata path for Denali operator workflows. Product domains (registrations capacity, PSP, egress) remain P5-D/E optional path.
+
+---
+
+## Nano ↔ gap map (frozen — P5-B-N-002)
+
+| Nano | Parent | Gap ID | Assert band | Primary deliverable |
+|------|--------|--------|-------------|---------------------|
+| P5-B-N-003 | T-002 Lifecycle | LC-P0-FSM | LC-01..03 | `assert-tour-lifecycle-transition.ts` |
+| P5-B-N-004 | T-002 Lifecycle | LC-P0-PUB | LC-04..06 | publish gates in `canonical-tour.service.ts` |
+| P5-B-N-005 | T-003 Validation | VAL-P1-DRAFT | VAL-01 | RuleContext `mode: draft\|publish` |
+| P5-B-N-006 | T-004 Metadata proof | RP-P3 | RP-01..04 | golden metadata path spec |
+| P5-B-N-007 | T-003 Validation | VAL-P1-STRIP | VAL-02 | `strip-form-profile-for-submit.ts` |
+| P5-B-N-008 | T-003 Validation | VAL-P1-CAT | VAL-03 | `assert-catalog-ref-integrity.ts` |
+| P5-B-N-009 | T-004 Metadata proof | WEB-P1 | WEB-01..02 | operator web plugin resolve |
+| P5-B-N-010 | T-004 Metadata proof | RP-P3 + PC-07 | E2E-01..03 | publish integration on metadata path |
+| P5-B-N-011 | T-005 Audit | AUD-P1-PATCH | AUD-02 | PATCH audit row |
+| P5-B-N-012 | T-005 Audit | AUD-P1-PUB | AUD-03 | publish audit row |
+| P5-B-N-013 | T-006 Preservation | RP-P3 | RP-02 | client/server `evaluateFormRules` parity |
+| P5-B-N-014 | T-006 Preservation | PC-01..10 | PC-GATE-01..04 | `p5-preservation-gate.spec.ts` |
+| P5-B-N-015 | T-006 Preservation | — | FILE-MAP sync | EPIC-B rows |
+| P5-B-N-016 | T-006 Exit | EX-B | EX-B-01..03 | `platform-denali-operator-parity-exit.spec.ts` |
+
+Doc-only nanos **N-001..002** establish this file; implementation starts at **N-003**.
+
+---
+
+## Tour lifecycle FSM (frozen — P5-B-N-003)
+
+Pure transition matrix enforced in `apps/api/src/canonical/assert-tour-lifecycle-transition.ts` using the workspace plugin `lifecycle` contract (package path) or metadata adapter overlay (pilot path).
+
+| From | To | Allowed (Denali v1) | Assert |
+|------|-----|---------------------|--------|
+| `DRAFT` | `OPEN` | Yes — publish | LC-01 |
+| `OPEN` | `DRAFT` | No | LC-02 |
+| `CANCELLED` | any | No — terminal | LC-03 |
+| `OPEN` | `CLOSED` | Legacy yes — deferred to plugin lifecycle expansion | — |
+
+Denali package declares `DENALI_LIFECYCLE` (`initialStatus: DRAFT`, `publishStatus: OPEN`, single edge `DRAFT→OPEN`). Canonical `publishStatus` (`draft`/`active`) maps via workspace bindings — lifecycle assert runs on **logical** lifecycle states before publish gates (N-004).
+
+```typescript
+assertTourLifecycleTransition({
+  lifecycle: plugin.lifecycle,
+  fromStatus: "DRAFT",
+  toStatus: "OPEN",
+}); // LC-01 pass
+
+assertTourLifecycleTransition({
+  lifecycle: plugin.lifecycle,
+  fromStatus: "OPEN",
+  toStatus: "DRAFT",
+}); // LC-02 throws TOUR_LIFECYCLE_TRANSITION_REJECTED
+```
+
+Spec: `apps/api/test/tour-lifecycle-transition.spec.ts`.
+
+---
+
+## Publish lifecycle gates (frozen — P5-B-N-004)
+
+On tour PATCH, after merge + validation, `CanonicalTourService.updateTour` calls `assertTourPublishLifecycleOnUpdate` before persist:
+
+```text
+existing.canonical + merged patch
+  → runPreTransactionValidation
+  → assertTourPublishLifecycleOnUpdate (LC-04)
+  → persistTourUpdateAtomically
+```
+
+| Assert | Behavior |
+|--------|----------|
+| LC-04 | Publish/unpublish PATCH invokes lifecycle transition assert |
+| LC-05 | Rejected transition → `TourLifecycleTransitionError` → HTTP 400 |
+| LC-06 | Golden Denali draft→active publish passes on package path |
+
+Implementation: `assert-tour-publish-lifecycle-gate.ts` maps canonical `publishStatus` (`draft`/`active`) to plugin lifecycle states (`DRAFT`/`OPEN`) via `readDenaliTourPublishStatusFromCanonical` when urban-style bindings are absent.
+
+Spec: `apps/api/test/tour-publish-transition.spec.ts`.
+
+---
+
+## Draft vs publish validation (frozen — P5-B-N-005)
+
+`ValidateBeforePersistInput.validationMode` (`draft` | `publish`) controls publish-readiness strictness after platform-core `validateCanonical`:
+
+| Mode | Behavior | Assert |
+|------|----------|--------|
+| `draft` | Skips publish-readiness matrix | VAL-01 |
+| `publish` | Runs `wizardHost.validatePublishReadiness` with `publishTransition: true` | VAL-02 |
+
+When omitted, mode is inferred from canonical `publishStatus` (`active`/`published` → `publish`, else `draft`).
+
+Implementation: `resolve-validation-mode.ts` · `denali-wizard-rules-module-sync.ts` · wired in `canonical-validation-sync.ts`.
+
+Spec: `apps/api/test/canonical-validation-draft-vs-publish.spec.ts` (VAL-01..03).
+
+---
+
+## Golden metadata path (frozen — P5-B-N-006)
+
+End-to-end proof that a tenant on the metadata path (`WORKSPACE_METADATA_ENABLED=true` + binding to committed `denali-v1.json` / `denali-tour-ops` v1) matches package behavior for operator publish workflows:
+
+```text
+resolveWorkspacePluginForTenantContext(tenantId, "denali")
+  → loadPublishedVersion(denali-tour-ops, 1) from denali-v1.json seed
+  → adaptMetadataPayloadToWorkspacePlugin(payload, package overlay)
+  → PlatformWizardEngine + publish lifecycle assert
+```
+
+| Assert | Behavior |
+|--------|----------|
+| RP-01 | Flag + binding + seed payload — golden `tour-publish-ready` publish gate passes (metadata ≡ package) |
+| RP-02 | Render plan ordered `fieldId` lists match package path |
+| RP-03 | Render plan `uiHints.compositeId` values match package path |
+| RP-04 | Golden tour `publishStatus` draft→active passes lifecycle assert on metadata plugin overlay |
+
+Package overlay preserves `validation`, `lifecycle`, and `wizardHost` hooks while fieldRegistry/ruleSet/wizard come from metadata payload.
+
+`parseWorkspaceDefinitionExportFile` guards `assertWorkspaceDefinitionPayload` when workspace-sdk dist is stale (same pattern as `load-workspace-plugin-for-tenant.ts`).
+
+Spec: `apps/api/test/workspace-metadata-denali-parity-publish.spec.ts` (RP-01..04). Render-plan-only asserts also live in `workspace-metadata-render-plan-parity.spec.ts`.
+
+---
+
+## Form profile strip (frozen — P5-B-N-007)
+
+Server-side strip removes **top-level** Denali tour-kind alias ghosts (`duration`, `eventVariant`, `summitPoint`, `campPoint`, `endPoint`) before `createCanonicalDocument` in pre-TX validation — parity with client `shouldPersistCanonicalPathFromForm` / sanitize ghost purge. Nested composite dependents (`program.shortDescription`, `pricing.basePricePerPerson`, …) remain in canonical ingress from `prepareDenaliSubmitArtifact`.
+
+| Assert | Behavior |
+|--------|----------|
+| VAL-02b-01 | `duration` / `eventVariant` / dependent nested paths stripped |
+| VAL-02b-02 | Non-denali workspace no-op |
+| VAL-02b-03 | `stripFormProfileForSubmit` rebuilds canonical document |
+| VAL-02b-04 | Plugin ingress roots filtered after strip (duration/eventVariant removed) |
+
+Implementation: `strip-form-profile-for-submit.ts` · wired in `canonical-validation-sync.ts`.
+
+Spec: `apps/api/test/form-profile-strip.spec.ts` (VAL-02b-01..05).
+
+Note: N-005 publish-strict asserts remain **VAL-02** in `canonical-validation-draft-vs-publish.spec.ts`; profile strip band is **VAL-02b** to avoid ID collision.
+
+---
+
+## Catalog ref integrity (frozen — P5-B-N-008)
+
+On Denali **publish** validation, server rejects stale catalog references before persist — parity with client submit sanitize (themes + selectable leaders):
+
+```text
+validateCanonicalBeforePersist
+  → enrich catalogRefAllowlists (tenant themes + leader directory)
+  → validateCanonicalDocumentWithEngine
+  → assertCatalogRefIntegrity when validationMode === publish
+```
+
+| Assert | Behavior |
+|--------|----------|
+| VAL-03 | Stale `program.themeIds` entry fails with `CATALOG_REF_INTEGRITY_FAILED` |
+| VAL-03b | Stale `leaderUserIds` entry fails |
+| VAL-03c | Valid refs pass |
+| VAL-03d | `resolveDenaliCatalogRefAllowlists` loads active themes + selectable leaders |
+| VAL-03e..f | Wired in `canonical-validation-sync.ts` + `canonical-validation.ts` enrich |
+
+Implementation: `assert-catalog-ref-integrity.ts` · `resolve-denali-catalog-ref-allowlists.ts`.
+
+Spec: `apps/api/test/catalog-ref-integrity.spec.ts`.
+
+Note: N-005 metadata publish-gate parity test is labeled **VAL-03m** in `canonical-validation-draft-vs-publish.spec.ts` to avoid ID collision with catalog band.
+
+---
+
+## Operator web plugin resolve (frozen — P5-B-N-009)
+
+Operator wizard resolves workspace plugin through a Strangler Fig facade mirroring API `resolveWorkspacePluginForTenant`:
+
+```text
+resolveOperatorWorkspacePlugin
+  → package loader (registry) when flag off OR binding null OR tenant ∉ allowlist
+  → metadata payload loader + adaptMetadataPayloadToWorkspacePlugin when flag + binding active
+```
+
+| Assert | Behavior |
+|--------|----------|
+| WEB-01 | `WORKSPACE_METADATA_ENABLED` + tenant binding → injectable metadata loader + adapter merge |
+| WEB-02 | No binding (or flag off) → package plugin unchanged; metadata loader not invoked |
+| WEB-03 | `WorkspaceWizardHost` loads plugin through `loadOperatorWorkspacePlugin` (optional `metadataBinding` prop) |
+
+Web-local adapter (`adapt-metadata-payload-to-workspace-plugin.ts`) mirrors API overlay merge — fieldRegistry/ruleSet/wizard from metadata; validation/lifecycle/wizardHost hooks from package.
+
+Env parity with API: `WORKSPACE_METADATA_ENABLED`, `WORKSPACE_METADATA_TENANT_ALLOWLIST`.
+
+Implementation: `resolve-operator-workspace-plugin.ts` · `adapt-metadata-payload-to-workspace-plugin.ts` · wired in `WorkspaceWizardHost` via `loadOperatorWorkspacePlugin`.
+
+Spec: `apps/web/test/operator-metadata-plugin-resolve.spec.ts` (WEB-01..02).
+
+---
+
+## Publish integration metadata path (frozen — P5-B-N-010)
+
+End-to-end harness on metadata tenant path: draft create validation → publish validation → lifecycle assert → P4 catalog side-effect + commerce preservation.
+
+| Assert | Behavior |
+|--------|----------|
+| E2E-01 | Golden `tour-publish-ready` draft→active passes publish gate + lifecycle assert on metadata plugin (≡ package) |
+| E2E-02 | `maybeScheduleMarketingCatalogRevalidate` fires POST after metadata-path publish (P4 parity) |
+| E2E-03 | Canonical `pricing.paymentMode` stays `offline_receipt`; package `validation` hook preserved on metadata overlay |
+
+Harness uses metadata tenant resolve + golden ingress projection (same RP-01 plugin overlay); publish readiness via `runValidationModePublishGate`.
+
+Spec: `apps/api/test/denali-metadata-path-publish-integration.spec.ts` (E2E-01..03).
+
+---
+
+## PATCH audit (frozen — P5-B-N-011)
+
+Extends DEC-007 create-only audit to successful tour PATCH on forensic (Prisma) path:
+
+```text
+PATCH /tours/:id
+  → CanonicalTourService.updateTour
+  → persistTourUpdateAtomically
+  → appendTourUpdatedAuditEvent (TOUR_UPDATED, same TX as tour row)
+```
+
+| Assert | Behavior |
+|--------|----------|
+| AUD-02 | `appendTourUpdatedAuditEvent` writes `TOUR_UPDATED` with tenant ALS + pseudonymized actor |
+| AUD-02b | Atomic update path calls helper (not raw duplicate append) |
+| AUD-02c | `guard:tour-update-audit` locks helper wiring |
+
+Memory driver remains non-forensic (no audit row by design).
+
+Implementation: `appendTourUpdatedAuditEvent` in `audit-logger.ts` · wired in `atomic-canonical-tour-persist.ts`.
+
+Spec: `apps/api/test/tour-patch-audit.spec.ts` (AUD-02..02c).
+
+---
+
+## Publish audit (frozen — P5-B-N-012)
+
+Publish/unpublish transitions append dedicated audit rows in the same forensic TX as `TOUR_UPDATED`:
+
+```text
+persistTourUpdateAtomically
+  → appendTourUpdatedAuditEvent (always on PATCH success)
+  → detectTourPublishTransition
+  → appendTourPublishTransitionAuditEvent (TOUR_PUBLISHED | TOUR_UNPUBLISHED + from/to status)
+```
+
+| Assert | Behavior |
+|--------|----------|
+| AUD-03 | `transition: published` → `TOUR_PUBLISHED` + `fromPublishStatus` / `toPublishStatus` metadata |
+| AUD-03b | `transition: unpublished` → `TOUR_UNPUBLISHED` |
+| AUD-03c | Atomic update path invokes helper after transition detect |
+
+Implementation: `appendTourPublishTransitionAuditEvent` in `audit-logger.ts` · wired in `atomic-canonical-tour-persist.ts`.
+
+Spec: `apps/api/test/tour-publish-audit.spec.ts` (AUD-03..03c).
+
+---
+
+## Client/server rules parity (frozen — P5-B-N-013)
+
+`evaluateFormRules` on the golden `tour-publish-ready` draft fixture must match when driven by package `ruleSet` vs metadata seed (`denali-v1.json`) — client wizard chrome and server metadata adapter share the same contextual visibility matrix.
+
+| Assert | Behavior |
+|--------|----------|
+| RP-05 | Step `denali_basic` (draft step 0) — visible canonical paths identical package ≡ metadata ruleSet |
+| RP-05b | Package plugin `ruleSet` ≡ `buildDenaliWorkspaceRuleSet(denaliRuleSet)` |
+
+Spec: `packages/workspaces/denali/test/client-server-rules-parity.spec.ts` (RP-05..05b).
+
+---
+
+## Non-goals (P5-B v1)
+
+- Urban full parity
+- Removing `@app-tour/workspace-denali` package
+- Gateway / Stripe / Zibal (P5-D optional)
+- Super Admin operator wizard
+- Moving composites into platform UI
+
+---
+
+## Verify
+
+```bash
+pnpm run guard:p3-denali-covenant
+pnpm run p5:gate
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/p5-preservation-gate.spec.ts \
+  test/denali-metadata-path-publish-integration.spec.ts \
+  test/tour-patch-audit.spec.ts \
+  test/tour-publish-audit.spec.ts \
+  test/platform-denali-operator-parity-exit.spec.ts
+pnpm --filter @app-tour/workspace-denali exec node --import tsx --test \
+  test/client-server-rules-parity.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/operator-metadata-plugin-resolve.spec.ts
+```
+
+**P5-core exit:** EX-B-01..03 in TEMP spec · assessment ≥ 9.2/10.
+
+
+---
+
+## Assert registry (P5-B)
+
+| Band | IDs | Owner |
+|------|-----|-------|
+| Lifecycle | LC-01..06 | canonical/ |
+| Validation | VAL-01..03 | canonical-validation-sync |
+| Render parity | RP-01..05 | workspace-metadata parity specs |
+| Operator web | WEB-01..02 | apps/web wizard resolve |
+| E2E | E2E-01..03 | denali-metadata-path-publish-integration |
+| Audit | AUD-02..03 | audit-logger |
+| Preservation | PC-GATE-01..04 | p5-preservation-gate |
+| Exit | EX-B-01..03 | platform-denali-operator-parity-exit |
+
+---
+
+## Clone + template preservation (explicit)
+
+P5-B must **not** alter:
+
+- `denaliHydrateTourCloneDraft` behavior (PC-02)
+- `tour_wizard_template` settings module (PC-03)
+- `denaliFullWizardTemplate` seed paths
+
+Regression tests: Phase 11 clone specs + template gate specs must stay green after each B nano.
+
+---
+
+## Metadata path proof sequence
+
+```text
+1. Bind denali-v1.json published version to smoke tenant
+2. WORKSPACE_METADATA_ENABLED=true + allowlist
+3. resolveWorkspacePluginForTenant → adapter + overlay
+4. Golden tour validate + publish on metadata path
+5. Compare render plan + evaluateFormRules output to package path
+```

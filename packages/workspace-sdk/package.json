@@ -41,6 +41,22 @@
     "./plugin": {
       "types": "./dist/plugin/index.d.ts",
       "default": "./dist/plugin/index.js"
+    },
+    "./metadata": {
+      "types": "./dist/metadata/index.d.ts",
+      "default": "./dist/metadata/index.js"
+    },
+    "./metadata/workspace-definition-payload": {
+      "types": "./dist/metadata/workspace-definition-payload.d.ts",
+      "default": "./dist/metadata/workspace-definition-payload.js"
+    },
+    "./metadata/allowed-platform-renderer-ids": {
+      "types": "./dist/metadata/allowed-platform-renderer-ids.d.ts",
+      "default": "./dist/metadata/allowed-platform-renderer-ids.js"
+    },
+    "./metadata/checksum": {
+      "types": "./dist/metadata/workspace-definition-payload-checksum.d.ts",
+      "default": "./dist/metadata/workspace-definition-payload-checksum.js"
     }
   },
   "scripts": {
@@ -61,9 +77,15 @@
       "optional": true
     }
   },
+  "dependencies": {
+    "@app-tour/catalog-registration-auth": "workspace:*",
+    "zod": "^3.24.2"
+  },
   "devDependencies": {
     "@casl/ability": "^6.7.3",
     "@app-tour/config": "workspace:*",
+    "@app-tour/workspace-denali": "workspace:*",
+    "@app-tour/workspace-urban": "workspace:*",
     "@types/node": "^24.0.0",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"

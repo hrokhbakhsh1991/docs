@@ -1,0 +1,5 @@
+/**
+ * @deprecated Import portal-bootstrap.css or marketing-bootstrap.css per surface.
+ * Alias retained for backward compatibility.
+ */
+@import "./portal-bootstrap.css";

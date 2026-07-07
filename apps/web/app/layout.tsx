@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import type { ReactNode } from "react";
@@ -10,13 +10,15 @@ import { intlFormatsForLocale } from "@/i18n/intl-formats";
 import { isAppLocale, resolveTextDirection, routing } from "@/i18n/routing";
 import { AppProviders } from "@/providers/app-providers";
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
+import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { validateSessionToken } from "@app-tour/session-client";
 import {
-  isPublicCatalogPath,
-  resolvePublicCatalogRootSessionForHost,
-} from "@/tenant/resolve-public-catalog-bootstrap.server";
-import { resolveRequestBootstrapAppSession, toSerializableBootstrap } from "@/tenant/tenant-kernel";
+  resolveBootstrapAppSession,
+  resolveBootstrapAppSessionForHostAsync,
+  toSerializableBootstrap,
+} from "@/tenant/tenant-kernel";
 
-import "@app-tour/workspace-denali/theme/denali-admin.css";
+import { importAdminThemeForPlugin } from "@/bootstrap/workspace-theme-stylesheets.generated";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,10 +32,28 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const [headerList, localeRaw, messages] = await Promise.all([headers(), getLocale(), getMessages()]);
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const host = headerList.get("host") ?? "localhost:3000";
-  const pathname = headerList.get("x-pathname") ?? "";
-  const resolved = isPublicCatalogPath(pathname)
-    ? await resolvePublicCatalogRootSessionForHost(host)
-    : await resolveRequestBootstrapAppSession();
+  let resolved = await resolveBootstrapAppSessionForHostAsync(host);
+
+  const cookieStore = await cookies();
+  const sessionValidation = validateSessionToken(cookieStore.get(SESSION_TOKEN_COOKIE)?.value);
+  if (sessionValidation.status === "valid") {
+    resolved = resolveBootstrapAppSession(
+      {
+        userId: sessionValidation.userId,
+        tenantId: sessionValidation.tenantId,
+        workspaceId:
+          sessionValidation.workspaceId ??
+          resolved.context.workspaceId ??
+          "default",
+        role: (sessionValidation.role ?? resolved.context.role) as typeof resolved.context.role,
+        status: "ACTIVE",
+      },
+      host,
+      { pluginId: resolved.session.pluginId }
+    );
+  }
+
+  await importAdminThemeForPlugin(resolved.session.pluginId);
   const tenantTheme = await fetchTenantThemeForContext(resolved.context, host);
   const bootstrap = toSerializableBootstrap(resolved, tenantTheme ?? undefined);
   const dir = resolveTextDirection(locale);
@@ -49,6 +69,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       style={{ ["--font-family-base" as string]: fontFamilyBase }}
     >
       <body
+        data-app-surface="admin"
         data-tenant-id={resolved.context.tenantId}
         data-workspace-plugin={bootstrap.pluginId}
         data-locale={locale}

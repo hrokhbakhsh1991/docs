@@ -1,39 +1,37 @@
+/** @generated — do not edit; source: dtcg/platform.dark.tokens.json — run pnpm build in @app-tour/design-tokens */
 /**
- * Dark theme — overrides semantic colors (same variable names).
+ * Dark theme — platform semantic colors (DTCG authority).
  */
 .theme-dark {
-  --color-primary: #5b9fd4;
-  --color-primary-hover: #7eb3df;
-  --color-primary-fg: #0d1117;
-
+  --color-accent: #e3b341;
+  --color-accent-fg: #0d1117;
+  --color-bg-disabled: #30363d;
+  --color-bg-muted: #21262d;
   --color-bg-page: #0d1117;
   --color-bg-surface: #161b22;
-  --color-bg-muted: #21262d;
-  --color-bg-disabled: #30363d;
-
-  --color-text-primary: #e8eaed;
-  --color-text-secondary: #aeb4bd;
-  --color-text-muted: #7e8793;
-  --color-text-link: #7eb3df;
-
   --color-border-default: #30363d;
   --color-border-strong: #484f58;
   --color-border-subtle: #21262d;
-
-  --color-success: #56d364;
-  --color-success-bg: rgba(46, 160, 67, 0.18);
-  --color-warning: #e3b341;
-  --color-warning-bg: rgba(227, 179, 65, 0.15);
   --color-danger: #ff7b72;
   --color-danger-bg: rgba(248, 81, 73, 0.15);
   --color-info: #79c0ff;
   --color-info-bg: rgba(121, 192, 255, 0.12);
-
+  --color-primary: #5b9fd4;
+  --color-primary-fg: #0d1117;
+  --color-primary-hover: #7eb3df;
+  --color-success: #56d364;
+  --color-success-bg: rgba(46, 160, 67, 0.18);
+  --color-text-link: #7eb3df;
+  --color-text-muted: #7e8793;
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #aeb4bd;
+  --color-warning: #e3b341;
+  --color-warning-bg: rgba(227, 179, 65, 0.15);
   --focus-ring-color: rgba(130, 175, 220, 0.55);
   --focus-ring-offset: #161b22;
-
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.35);
   --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.45);
 
   color-scheme: dark;
 }
+

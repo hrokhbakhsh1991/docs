@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import {
   datetimeLocalInputToIso,
   isoToDatetimeLocalInput,
-} from "../src/wizard/denali/denali-datetime-utils";
+} from "@app-tour/workspace-denali/ui/logic/denali-datetime-utils";
 
 describe("denali-datetime-utils.spec.ts", () => {
   it("WEB-DENALI-DT-01 round-trips ISO through datetime-local input", () => {

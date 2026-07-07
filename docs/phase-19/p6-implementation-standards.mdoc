@@ -1,0 +1,230 @@
+---
+title: P6 — Implementation standards (Denali three-app stack)
+phase: 19
+format: markdoc
+doc_role: architecture_sot
+mandatory_for: [P6-0, P6-1, P6-2, P6-3]
+extends:
+  - docs/phase-2/subphases/2.1-design-tokens.md
+  - docs/phase-9/appendices/ADMIN-SHELL-UX.md
+  - docs/workspaces/denali/admin-experience.md
+  - docs/phase-19/p6-enterprise-theming-architecture.mdoc
+---
+
+# P6 implementation standards
+
+**Rule:** Guest portal and public marketing must follow the **same trunk stack** as Denali operator admin — not a one-off UI or ad-hoc fetch layer.
+
+**Theming authority:** [`p6-enterprise-theming-architecture.mdoc`](p6-enterprise-theming-architecture.mdoc) — four-layer cascade (primitives → shell-bridge → tenant runtime → workspace skin).
+
+Reference implementation: **`apps/web`** `(app)/` + `auth/login` + `/tours/new` wizard bridge.
+
+---
+
+## 1. Layer cake (do not invert)
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ apps/{web|portal|marketing}  — thin routes + BFF only   │
+├─────────────────────────────────────────────────────────┤
+│ packages/workspaces/denali — product rules, HTTP, UI    │
+├─────────────────────────────────────────────────────────┤
+│ apps/api — identity, tenant, canonical, workspace routes  │
+├─────────────────────────────────────────────────────────┤
+│ packages/workspace-sdk · tenant-kernel · platform-events │
+└─────────────────────────────────────────────────────────┘
+```
+
+| Layer | Allowed in P6 | Forbidden |
+| ----- | ------------- | --------- |
+| `apps/*` | Layout, shell, BFF `app/api/*`, `src/features/*` logic | Business rules copied from legacy; direct DB |
+| `packages/workspaces/denali` | Registration HTTP, catalog card, finance hooks | Import from `apps/*` |
+| `packages/platform-core` | — | **No** P6 product diff (INV-P9-001 carryover) |
+
+---
+
+## 2. Design stack (Phase 2 covenant — same as admin)
+
+Locked order — identical to [`ADMIN-SHELL-UX.md`](../phase-9/appendices/ADMIN-SHELL-UX.md) §1:
+
+| # | Package | Admin (`apps/web`) | Portal / Marketing (P6) |
+| - | ------- | ------------------ | ----------------------- |
+| 1 | `@app-tour/design-tokens` | `styles.css` + inline bridge (or `shell-bridge.css`) | **`guest-shell.css`** = `index.css` + **`shell-bridge.css`** |
+| 2 | Tailwind v4 | `@import "tailwindcss"` once in `globals.css` | Same — **no rules in globals** |
+| 3 | `@app-tour/theme-react` | `ThemeProviderChain` (operator + plugin) | `PlatformThemeProvider` + `TenantThemeProvider` |
+| 4 | Workspace skin | `workspace-theme-stylesheets.generated` | **`workspace-guest-theme-stylesheets.generated`** |
+| 5 | `@app-tour/ui-primitives` | **Subpath only** | Same |
+| 6 | `next-intl` | `messages/{fa,en}/*.json` | Same |
+
+### Primitives (mandatory)
+
+```typescript
+// ✅ OK
+import { Input } from "@app-tour/ui-primitives/input";
+import { Button } from "@app-tour/ui-primitives/button";
+
+// ❌ FAIL — P3-E-BARREL · eslint in apps/web
+import { Input } from "@app-tour/ui-primitives";
+```
+
+### Styling rules
+
+- **No hex in TSX** for semantic colors — use CSS vars (`var(--primary)`, `bg-primary`, token semantics).
+- **No raw `<input>`** in forms — `ui-primitives/input` or `LocalizedNumericInput` (see `apps/web/scripts/guard-no-raw-wizard-input.mjs`).
+- **Tenant primary** flows from `TenantThemeProvider` / branding API — not hard-coded `#0f766e` in components.
+- **RTL:** `dir` on `<html>` from locale; Persian digits via `format-localized-digits` (admin + portal already do this).
+
+### Workspace skin (Denali only)
+
+| App | Skin file | Scope |
+| --- | --------- | ----- |
+| Admin | `denali-admin.css` | `body[data-workspace-plugin="denali"]` |
+| Portal | `denali-portal.css` | `body[data-app-surface="portal"][data-workspace-plugin="denali"]` |
+| Marketing | `denali-marketing.css` | `body[data-app-surface="marketing"][data-workspace-plugin="denali"]` |
+
+Manifest: `guestThemeStylesheets.portal` / `.marketing` → generated bootstrap imports.
+
+Operator chrome patterns (`PageHeader`, `DenaliEmptyState`) live in **`apps/web/src/admin/patterns/`** — **do not copy** into portal; use primitives + minimal guest layout.
+
+---
+
+## 3. App architecture pattern (copy from admin)
+
+### 3.1 Thin route · fat feature
+
+```text
+app/.../page.tsx          ← server: bootstrap, fetch, pass props
+app/.../*-client.tsx      ← client: compose UI
+src/features/<domain>/    ← *-logic.ts (pure) · *-types.ts · copy in messages
+```
+
+Admin examples:
+
+- `apps/web/src/features/bookings/bookings-command-center-logic.ts`
+- `apps/web/src/features/auth/operator-login-logic.ts`
+- `apps/web/app/auth/login/login-form.tsx`
+
+Portal P6-1 target refactor (when touching OTP):
+
+```text
+src/features/auth/public-registration-logic.ts   ← step machine helpers
+src/features/auth/public-registration-types.ts
+app/catalog/.../public-catalog-registration-flow.tsx  ← thin compose
+```
+
+### 3.2 BFF-only browser → API
+
+```text
+Browser  →  /api/public-auth/*  →  apps/api /public/auth/*
+Browser  →  /api/catalog/registrations  →  workspace HTTP
+```
+
+**Never** call `TOUR_OPS_API_URL` from client components. Same pattern as admin `(app)/` BFF routes.
+
+Headers: `x-tenant-id` from host bootstrap (`buildIdentityBffHeadersAsync` / `resolvePortalBootstrapForHost`).
+
+### 3.3 Test hooks (`data-*`)
+
+Stable selectors for Playwright — same discipline as admin:
+
+| Flow | Markers |
+| ---- | ------- |
+| OTP register | `data-public-registration-phone`, `-otp`, `-profile`, `-intake`, `-success` |
+| Operator login | `OPERATOR_LOGIN_TEST_IDS` in `operator-login-copy.ts` |
+
+Do not use CSS class names as sole E2E selectors.
+
+---
+
+## 4. Auth OTP (shared contract — admin vs guest)
+
+Same API spine; different apps and post-login path:
+
+| | Operator admin | Guest portal (P6-1) |
+| --- | ---------------- | ------------------- |
+| App | `apps/web` `:3000` | `apps/portal` `:3003` |
+| UI | `auth/login/login-form.tsx` | `catalog/.../register/public-catalog-registration-flow.tsx` |
+| BFF | `/api/auth/*` (owner session) | `/api/public-auth/*` |
+| API | `/auth/*` | `/public/auth/*` |
+| Dev OTP | `1234` (`otp.service.ts`) | **Same** |
+| After OTP | Dashboard `(app)/` | New → profile (name*) → tour intake |
+
+**Do not fork OTP verify logic** — shared package export:
+
+```typescript
+import {
+  normalizeOtpDigits,
+  OTP_SEGMENT_LENGTH,
+} from "@app-tour/ui-primitives/otp-segment-input-logic";
+```
+
+Apps (`apps/web`, `apps/portal`) keep thin `otp-segment-input.tsx` UI shells; logic lives in `packages/ui-primitives/src/utils/otp-segment-input.logic.ts`. Allowed subpath: `import-boundary-ast.mjs` → `otp-segment-input-logic`. **Full scope:** [p6/appendices/OTP-SCOPE-P6.md](p6/appendices/OTP-SCOPE-P6.md).
+
+Profile step (new user only):
+
+- `display_name` required
+- `email` optional on `register-complete`
+- Denali tour intake does **not** collect email at UI; optional `contact.email` on upstream POST when provided (Urban requires email at intake via SDK capabilities)
+
+---
+
+## 5. Three apps · one tenant
+
+Authority: [p6-host-addressing-architecture.mdoc](p6-host-addressing-architecture.mdoc)
+
+| App | Dev (canonical) | Legacy smoke | Bootstrap |
+| --- | --------------- | ------------ | --------- |
+| Marketing | `{club}.localhost:3002` | `shop.{club}.localhost:3002` | `resolveMarketingBootstrapForHost` |
+| Portal | `{club}.portal.localhost:3003` | `{club}.localhost:3003` | `resolvePortalBootstrapForHost` |
+| Admin | `{club}.admin.localhost:3000` | `{club}.localhost:3000` | `resolveBootstrapAppSessionForHost` |
+
+Prod platform: `{club}.{root}` · `{club}.portal.{root}` · `{club}.admin.{root}`.
+
+Custom apex per tenant: `denali.club` · `portal.denali.club` · `admin.denali.club` (see `tenant_domains`).
+
+All surfaces must resolve **same `tenantId`** for one club (P6-0).
+
+---
+
+## 6. Gap register (honest — fix in P6)
+
+| ID | Gap | EPIC | Fix |
+| -- | --- | ---- | --- |
+| G-P6-UI-01 | Portal `globals.css` missing `@app-tour/design-tokens/guest-shell.css` | P6-1 | ✅ `guest-shell.css` + tailwind bridge |
+| G-P6-UI-02 | Marketing `globals.css` same | P6-1 | ✅ Same |
+| G-P6-UI-03 | Portal uses inline `#f8fafc` fallbacks | P6-1 | ✅ Token semantics (`var(--*)`) |
+| G-P6-UI-04 | Registration flow logic inline in 550-line TSX | P6-1 | ✅ `features/auth/public-registration-logic.ts` |
+| G-P6-UI-05 | OTP component duplicated web/portal | P6-1 | ✅ shared `@app-tour/ui-primitives/otp-segment-input-logic` |
+| G-P6-UI-06 | No `denali-portal.css` / `denali-marketing.css` guest skins | P6-1 | ✅ Workspace skins + manifest `guestThemeStylesheets` |
+| G-P6-UI-07 | No canonical file-tree gate | P6-1 | ✅ `p6-theming-file-tree.md` + `p6-theming-file-tree.spec.ts` |
+| G-P6-UI-08 | Portal dev host cross-origin (`*.portal.localhost` → `localhost:3003`) | P6-1 | ✅ `apps/portal/next.config.ts` `allowedDevOrigins` + `guest-theme-stack.spec.ts` |
+| G-P6-CAT-01 | Marketing `pluginId` forks for list/detail/register | P6-1 | ✅ workspace-sdk `resolve-catalog-*.ts` + SDK-CAT specs in `p6:gate` |
+
+---
+
+## 7. P6 checklist before merging UI
+
+```text
+□ globals.css: guest-shell + tailwind only (no page rules)
+□ workspace-guest-theme-stylesheets.generated imported in layout
+□ body: data-app-surface + data-workspace-plugin + data-tenant-id
+□ ui-primitives subpath only (eslint)
+□ logic in src/features/* — page < 150 lines compose
+□ BFF route — no client API base URL
+□ next-intl keys in fa + en
+□ data-* test hooks preserved or extended
+□ guard:public-catalog-m17 + SDK-CAT + registration intake specs in p6:gate + p4:gate
+□ No new imports from packages/workspaces/* in apps except allowed workspace HTTP types
+```
+
+---
+
+## 8. References
+
+- [`p6-enterprise-theming-architecture.mdoc`](p6-enterprise-theming-architecture.mdoc)
+- [`admin-experience.md`](../workspaces/denali/admin-experience.md)
+- [`platform-portal-otp-flow.mdoc`](platform-portal-otp-flow.mdoc)
+- [`marketing-catalog-ui.md`](../workspaces/denali/marketing-catalog-ui.md)
+- [`portal-registration-ui.md`](../workspaces/denali/portal-registration-ui.md)
+- [`apps/web/docs/P3-E-PRIM-BARREL.md`](../../apps/web/docs/P3-E-PRIM-BARREL.md)
+- [`public-catalog.md`](../workspaces/denali/public-catalog.md)

@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
+    "paths": {
+      "@app-tour/ui-primitives/button": ["../../ui-primitives/dist/Button/Button"],
+      "@app-tour/ui-primitives/checkbox": ["../../ui-primitives/dist/Checkbox/Checkbox"],
+      "@app-tour/ui-primitives/input": ["../../ui-primitives/dist/Input/Input"],
+      "@app-tour/ui-primitives/select": ["../../ui-primitives/dist/Select/Select"]
+    }
+  },
+  "include": [
+    "src/ui/**/*.ts",
+    "src/ui/**/*.tsx",
+    "src/catalog/registration-flow/**/*.ts",
+    "src/catalog/registration-flow/**/*.tsx"
+  ],
+  "exclude": ["src/ui/**/*.spec.ts", "src/ui/**/*.spec.tsx"]
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "guest-club",
+  "scopeSelector": "[data-workspace-theme]",
+  "ws": {
+    "color-accent": {
+      "$type": "color",
+      "$value": "#2563eb",
+      "$description": "Guest-club scaffold accent (smoke workspace brand blue)"
+    }
+  }
+}

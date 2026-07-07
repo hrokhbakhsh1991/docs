@@ -1,0 +1,12 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "starter",
+  "scopeSelector": "[data-workspace-theme]",
+  "ws": {
+    "color-accent": {
+      "$type": "color",
+      "$value": "{color.primary}",
+      "$description": "Starter accent references platform primary"
+    }
+  }
+}

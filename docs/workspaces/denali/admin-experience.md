@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-ADMIN-EXPERIENCE
-version: "2026-06-10"
+version: "2026-06-24"
 workspace: denali
 stack: Tailwind v4 · shadcn/ui · design-tokens · theme-react
 ```
@@ -11,17 +11,37 @@ stack: Tailwind v4 · shadcn/ui · design-tokens · theme-react
 
 Denali operator chrome (`apps/web` `(app)/` routes) uses a **workspace-owned skin** plus tenant primary color. Urban and starter tenants are unaffected — all Denali rules use `body[data-workspace-plugin="denali"]`.
 
-Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge** — see [`wizard-experience.md`](wizard-experience.md).
+Tour create wizard (`/tours/new`) uses the same token bundle via **Wizard Bridge** — see [`wizard-experience.md`](wizard-experience.md). Tour flat edit (`(app)/tours/[id]/edit`) shares composite field skin via `data-new-tour-wizard` on `DenaliFlatEditPageShell` (operator shell layout; no bridge).
 
 ## Theme files
 
 | File | Role |
 |------|------|
-| `packages/workspaces/denali/theme/denali-admin.css` | Bundle entry (`@import` skin + motion + tokens) |
-| `admin-skin.css` | Platform `--color-*` + shadcn `--primary`, `--sidebar-*`, radius, mist surfaces |
-| `interactions.css` | Motion tokens, button press, nav transitions, card hover |
+| `packages/workspaces/denali/theme/denali-admin.css` | Bundle entry (`@import` skin + motion + wizard) |
+| `admin-semantic-tokens.css` | @generated — admin light/dark semantics (`denali.admin.tokens.json`) |
+| `admin-skin.css` | Hook — layout/sidebar/bookings; `@import` semantic layer |
+| `wizard-semantic-tokens.css` | @generated — tone swatch palette (`denali.wizard.tokens.json`) |
+| `wizard-fields.css` | Hook — field composites; `@import` wizard semantic layer |
+| `finance-skin.css` / `wizard-skin.css` / `wizard-calendar.css` | Hooks — reference admin semantic vars |
+| `interactions.css` | Motion tokens, button press, nav transitions |
 | `animations.css` | `denali-fade-up`, skeleton shimmer (`prefers-reduced-motion` safe) |
-| `tokens.css` | Contract `--ws-color-accent` only |
+| `tokens.css` | @generated — workspace brand contract |
+
+**TSX (F7):** non-purged feature TSX under `patterns/`, `dashboard/`, `onboarding/` may use semantic shadcn classes only (palette ban).
+
+**TSX (F8 done — 17/17 purged):** all feature TSX in `patterns/`, `dashboard/`, `onboarding/` — zero `className`; hooks in `admin-skin.css`. Sprint highlights:
+
+| Sprint | Files | Hooks |
+| ------ | ----- | ----- |
+| F8-1 | `booking-activity-timeline`, `dashboard-kpi-cell` | `data-booking-timeline-*`, `data-denali-kpi-*` |
+| F8-2 | `denali-skeleton`, `denali-empty-state` | `data-denali-skeleton-size`, `data-denali-empty-state-*` |
+| F8-3 | `page-header`, `settings-page-header` | `data-denali-page-header-*`, `data-denali-settings-*` |
+| F8-4 | `dashboard-widget-card` | `data-denali-dashboard-widget-*`, KPI grids |
+| F8-5 | `dashboard-*-widget` (×4) | `DashboardWidgetError`, list row helpers |
+| F8-6 | `denali-confirm-dialog`, `operator-welcome-dialog` | `data-denali-confirm-*`, `data-denali-welcome-*` |
+| F8-7 | `tour-category-badge`, `operator-profile-avatar` | `data-denali-category-badge`, `data-denali-profile-avatar-size` |
+
+**F9 (done):** `guard-denali-admin-dark-primary` + precedence table; **F9-4:** tenant inline primary omitted when `html.dark`.
 
 ## Host wiring
 
@@ -39,21 +59,43 @@ Roadmap draft used `html[data-workspace="denali"]`. Implementation uses **`body[
 |-----------|-----|
 | `data-denali-surface="card"` | KPI/settings cards — hover lift |
 | `data-denali-animate="fade-up"` | Dashboard stagger entrance |
-| `data-denali-skeleton="shimmer"` | Loading placeholders (`DenaliSkeleton`) |
+| `data-denali-skeleton="shimmer"` | Loading placeholders (`DenaliSkeleton` — `size` prop → `data-denali-skeleton-size`) |
 | `data-denali-empty-state` | Illustrated empty blocks (`DenaliEmptyState`) |
-| `data-denali-quick-actions` | Dashboard shortcut row below `PageHeader` |
+| `data-denali-quick-actions` | Dashboard shortcut row in `PageHeader` actions |
+| `data-operator-dashboard-grid` | Responsive 12-col widget grid — equal-height slots |
+| `data-dashboard-widget-footer` | Pinned footer link row inside each widget card |
 | `data-density="compact"` | Bookings inbox density |
 | `data-denali-bookings-inbox` | Inbox card — sticky header + zebra rows |
 | `data-denali-booking-timeline` | Inspection panel activity rail |
 | `data-denali-category-badge` | Tour kind chip on list cards (`--denali-bark-600` tint) |
+| `data-operator-sidebar` | Desktop aside — viewport-height sticky rail (`--shell-sidebar-width`) |
+| `data-operator-sidebar-header` | Brand block (logo + tenant title) |
+| `data-operator-sidebar-content` | Scrollable nav group between header and footer |
+| `data-operator-sidebar-footer` | Pinned footer rail (new-tour CTA) |
+| `data-operator-nav-group-label` | Uppercase section label above primary nav links |
+| `data-operator-nav-icon` | Icon tile inside each nav row — filled when active |
 | `data-operator-header` | Sticky operator chrome — scroll elevation via `data-denali-header-scrolled` |
 | `data-denali-tenant-badge` | Compact workspace pill beside breadcrumb (Denali only) |
 | `data-operator-breadcrumb` | Path-derived breadcrumb trail in header |
 | `data-denali-finance-tabs` | Finance command center tab strip |
 | `data-denali-finance-kpi` | KPI cells — alpine accent border (`--denali-alpine-600`) |
+| `data-denali-kpi` | Dashboard widget KPI cells — forest accent (overflow-safe labels) |
 | `data-denali-finance-board` | Installments kanban — column tint by `data-board-column` |
 | `data-denali-finance-progress` | Installment paid-ratio bar (alpine → forest gradient) |
 | `data-denali-date-picker` | Admin + wizard date trigger / calendar popover skin |
+| `data-denali-flat-edit-page` | Flat edit page root — pairs with `data-new-tour-wizard` for wizard composite skin under `(app)/` |
+
+## Operator sidebar layout
+
+Follows the shadcn/ui **Header → Content → Footer** split (without importing the full Sidebar provider — operator shell stays workspace-agnostic):
+
+| Region | Element | Scroll |
+|--------|---------|--------|
+| Header | `data-operator-sidebar-header` · `OperatorBrand` | Fixed |
+| Content | `data-operator-sidebar-content` · `[data-operator-nav-link]` list | `overflow-y-auto` on `<ul>` only |
+| Footer | `data-operator-sidebar-footer` · `[data-operator-nav-cta]` | Fixed |
+
+Visual language (Denali only): mist gradient surface, forest `--sidebar-primary` active row + filled icon tile, `--shell-sidebar-width: 16.5rem`. Tailwind utilities (`bg-sidebar`, `text-sidebar-foreground`, …) bridge from `@app-tour/design-tokens/shell-bridge.css`.
 
 ## Shared patterns (`apps/web/src/admin/patterns/`)
 
@@ -61,7 +103,9 @@ Roadmap draft used `html[data-workspace="denali"]`. Implementation uses **`body[
 |-----------|------|
 | `denali-skeleton.tsx` | Shimmer skeleton (Denali CSS only; falls back to shadcn pulse elsewhere) |
 | `denali-empty-state.tsx` | Mountain mark + dashed panel + optional CTA |
-| `page-header.tsx` | Title / description / actions row |
+| `dashboard-kpi-cell.tsx` | KPI tile — `line-clamp-2` label + `data-denali-kpi` / finance variant |
+| `dashboard-widget-card.tsx` | Equal-height widget shell — `data-denali-dashboard-widget-*` (F8-4 purged) |
+| `page-header.tsx` | Title / description / actions — `data-denali-page-header-*` hooks (F8-3 purged) |
 
 ## Primary palette
 
@@ -71,7 +115,7 @@ Roadmap draft used `html[data-workspace="denali"]`. Implementation uses **`body[
 
 ### Dark mode cascade
 
-Operator toggle sets `html.dark` **and** flips `ThemeProviderChain`’s inner `div.theme-dark`. `apps/web/app/globals.css` assigns platform blue `#5b9fd4` to `.theme-dark`, which would override body-scoped Denali tokens for all shell children.
+Operator toggle sets `html.dark` **and** flips `ThemeProviderChain`’s inner `div.theme-dark`. The admin bootstrap chain (`globals.css` → `admin-bootstrap.css` → `index.css` / `themes/dark.css` + `operator-admin-dark-semantics.css`) assigns platform blue `#5b9fd4` to `.theme-dark`, which would override body-scoped Denali tokens for shell children unless the triple cascade in `admin-semantic-tokens.css` wins.
 
 Denali dark rules therefore target **both**:
 
@@ -85,6 +129,8 @@ Without (2), shadcn `bg-primary` buttons (sidebar CTA) keep platform blue in dar
 ```bash
 pnpm --filter @app-tour/workspace-denali test
 pnpm --filter @apps/web test -- test/denali-admin-theme.spec.ts
+node scripts/guards/guard-denali-admin-dark-primary.mjs
+node scripts/guards/guard-admin-feature-appearance-ast.mjs
 ```
 
 Manual: `http://denali.localhost:3000/dashboard` — primary buttons teal-green, not platform blue `#1e5a8e`.
@@ -103,7 +149,7 @@ cd apps/web && PW_EXTERNAL_SERVERS=1 PLAYWRIGHT_BASE_URL=http://denali.localhost
   npx playwright test -c playwright.operator.config.ts -g "SMK-P9-DENALI-THEME|SMK-P9-WIZARD-THEME"
 ```
 
-Unit contracts: `apps/web/test/denali-admin-theme.spec.ts` (bootstrap + CSS bundle), `denali-wizard-theme.spec.ts` (wizard bridge).
+Unit contracts: `apps/web/test/denali-admin-theme.spec.ts` (bootstrap + CSS bundle incl. `WEB-DENALI-THEME-14` F9-2), `denali-wizard-theme.spec.ts` (wizard bridge).
 
 Dev DB branding must match `#0f766e` — re-run `pnpm --filter @apps/api run db:seed` if tenant-config still returns legacy `#059669`.
 
@@ -118,8 +164,8 @@ Dev DB branding must match `#0f766e` — re-run `pnpm --filter @apps/api run db:
 | Playwright theme smoke | `SMK-P9-DENALI-THEME`, `SMK-P9-WIZARD-THEME` |
 | Urban isolation | `WEB-DENALI-THEME-03`, TH-1 e2e unchanged |
 | Dashboard quick actions + skeleton/empty patterns | `DenaliSkeleton`, `DenaliEmptyState`, `data-denali-quick-actions` |
-| Sticky sidebar CTA + softer sheet overlay | `data-operator-nav-cta`, `[data-radix-dialog-overlay]` |
-| Tours category filter + bark badge | `tour-list-category-logic`, `TourCategoryBadge` |
+| Modern sidebar rail (Header/Content/Footer + sidebar tokens) | `data-operator-sidebar*`, `data-operator-nav-icon`, `shell-bridge.css` |
+| Tours category filter + bark badge | `tour-list-category-logic`, `TourCategoryBadge` — grouped chips (mountain/nature/desert/event) in toolbar; card meta line `data-testid="operator-tours-card-meta"`; cover placeholder when `coverImageUrl` null |
 | Bookings inbox zebra + timeline | `data-denali-bookings-inbox`, `BookingActivityTimeline` |
 
 | Header breadcrumb + tenant badge + main scroll shadow | `operator-breadcrumb.tsx`, `data-denali-header-scrolled` on `<main>` scroll |

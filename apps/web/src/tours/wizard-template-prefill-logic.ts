@@ -1,9 +1,9 @@
 import { parseWizardTemplateResponse } from "@/features/settings/wizard-template-logic";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 import type {
   WizardTemplateConfigResponse,
   WizardTemplateFieldRef,
 } from "@/features/settings/wizard-template-types";
-import { patchDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
 
 import { getCanonicalStringValue, setCanonicalStringValue } from "./tour-wizard-draft-path";
 import type { TourWizardDraft } from "./tour-wizard-draft";
@@ -16,10 +16,25 @@ export const WIZARD_TEMPLATE_PREFILL_TEST_IDS = {
   seedApplied: "operator-wizard-template-seed-applied",
 } as const;
 
-export function resolveWizardTemplateSeedCanonicalPath(pluginId: string): string {
-  return pluginId === "denali"
-    ? WIZARD_TEMPLATE_SEED_CANONICAL_PATH_DENALI
-    : WIZARD_TEMPLATE_SEED_CANONICAL_PATH;
+export function resolveWizardTemplateSeedCanonicalPath(
+  pluginId: string,
+  plugin?: Pick<WorkspacePlugin, "fieldRegistry">
+): string {
+  if (plugin?.fieldRegistry.fields != null) {
+    const paths = plugin.fieldRegistry.fields.map((field) => field.canonicalPath);
+    if (paths.includes("title")) {
+      return "title";
+    }
+    if (paths.includes(WIZARD_TEMPLATE_SEED_CANONICAL_PATH)) {
+      return WIZARD_TEMPLATE_SEED_CANONICAL_PATH;
+    }
+    const dottedTitle = paths.find((path) => path.endsWith(".title"));
+    if (dottedTitle != null) {
+      return dottedTitle;
+    }
+  }
+  void pluginId;
+  return WIZARD_TEMPLATE_SEED_CANONICAL_PATH;
 }
 
 export function extractSeedLabelFromTemplateResponse(payload: unknown): string {
@@ -70,13 +85,16 @@ export function applyWizardTemplateSeedToDraft(
   draft: TourWizardDraft,
   seedLabel: string,
   pluginId = "starter",
-  options?: { readonly overlayDefaultValue?: string }
+  options?: {
+    readonly overlayDefaultValue?: string;
+    readonly plugin?: Pick<WorkspacePlugin, "fieldRegistry">;
+  }
 ): TourWizardDraft {
   const trimmed = seedLabel.trim();
   if (trimmed.length === 0) {
     return draft;
   }
-  const canonicalPath = resolveWizardTemplateSeedCanonicalPath(pluginId);
+  const canonicalPath = resolveWizardTemplateSeedCanonicalPath(pluginId, options?.plugin);
   const currentTitle = getCanonicalStringValue(draft, canonicalPath);
   const overlayDefault = options?.overlayDefaultValue?.trim() ?? "";
   if (
@@ -88,7 +106,7 @@ export function applyWizardTemplateSeedToDraft(
   return setCanonicalStringValue(draft, canonicalPath, trimmed);
 }
 
-function applyDenaliPublishStatusDraftDefault(
+function applyPublishStatusDraftDefault(
   draft: TourWizardDraft,
   fieldOverlays: ReadonlyMap<string, WizardTemplateFieldRef>
 ): TourWizardDraft {
@@ -102,50 +120,30 @@ function applyDenaliPublishStatusDraftDefault(
   return setCanonicalStringValue(draft, "publishStatus", "draft");
 }
 
-/** Align draft with tour-kind UI defaults (mountain + single_day → mountain_day). */
-export function applyDenaliDefaultCategoryDraft(draft: TourWizardDraft): TourWizardDraft {
-  const current = getCanonicalStringValue(draft, "category").trim();
-  if (current.length > 0) {
-    return draft;
-  }
-  const defaultSlug = patchDenaliCanonicalBasics(undefined, {
-    category: "mountain",
-    duration: "single_day",
-  });
-  return setCanonicalStringValue(draft, "category", defaultSlug);
-}
-
-/** Idempotent migration for hydrated operator drafts (category shell, etc.). */
-export function ensureDenaliWizardDraftDefaults(draft: TourWizardDraft): TourWizardDraft {
-  return applyDenaliDefaultCategoryDraft(draft);
-}
-
 export function applyWizardTemplatePrefillToDraft(
   draft: TourWizardDraft,
   seedLabel: string,
   fieldOverlays: ReadonlyMap<string, WizardTemplateFieldRef>,
-  pluginId: string
+  pluginId: string,
+  plugin?: Pick<WorkspacePlugin, "fieldRegistry">
 ): TourWizardDraft {
   const withDefaults = applyWizardTemplateDefaultsToDraft(draft, fieldOverlays);
-  const withPublishDefault =
-    pluginId === "denali"
-      ? applyDenaliPublishStatusDraftDefault(withDefaults, fieldOverlays)
-      : withDefaults;
-  const withCategoryDefault =
-    pluginId === "denali" ? applyDenaliDefaultCategoryDraft(withPublishDefault) : withPublishDefault;
-  const seedPath = resolveWizardTemplateSeedCanonicalPath(pluginId);
+  const withPublishDefault = applyPublishStatusDraftDefault(withDefaults, fieldOverlays);
+  const seedPath = resolveWizardTemplateSeedCanonicalPath(pluginId, plugin);
   const overlayDefault = fieldOverlays.get(seedPath)?.defaultValue;
-  return applyWizardTemplateSeedToDraft(withCategoryDefault, seedLabel, pluginId, {
+  return applyWizardTemplateSeedToDraft(withPublishDefault, seedLabel, pluginId, {
     overlayDefaultValue: overlayDefault,
+    plugin,
   });
 }
 
 export function shouldAttachSeedPrefillTestId(
   canonicalPath: string,
-  pluginId?: string
+  pluginId?: string,
+  plugin?: Pick<WorkspacePlugin, "fieldRegistry">
 ): boolean {
   if (pluginId !== undefined) {
-    return canonicalPath === resolveWizardTemplateSeedCanonicalPath(pluginId);
+    return canonicalPath === resolveWizardTemplateSeedCanonicalPath(pluginId, plugin);
   }
   return (
     canonicalPath === WIZARD_TEMPLATE_SEED_CANONICAL_PATH ||

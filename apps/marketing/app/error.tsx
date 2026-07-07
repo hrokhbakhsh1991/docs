@@ -11,12 +11,12 @@ export default function MarketingError({ reset }: ErrorPageProps) {
   const t = useTranslations("catalog.error");
 
   return (
-    <main data-marketing-error>
+    <div data-marketing-error>
       <h1>{t("title")}</h1>
       <p>{t("body")}</p>
       <button type="button" onClick={() => reset()}>
         {t("retry")}
       </button>
-    </main>
+    </div>
   );
 }

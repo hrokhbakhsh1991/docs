@@ -208,6 +208,9 @@ export class InMemoryBookingsRepository implements BookingsRepository {
       submittedAt: now,
       submittedByUserId: input.submittedByUserId,
       approvedAt: null,
+      ...(input.body.registrationIntake !== undefined
+        ? { registrationIntake: input.body.registrationIntake }
+        : {}),
     };
     bookingsStore.set(record.id, record);
     return cloneBooking(record);

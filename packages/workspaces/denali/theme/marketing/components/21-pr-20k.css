@@ -1,0 +1,251 @@
+/* PR-20K — editorial journal testimonials (2026-07-04) — active
+   Inspiration: magazine pull-quote + featured hero card + supporting grid (Stow / editorial travel journals).
+   Fixes: remove stacked divider lines and carousel spine from PR-19 regressions. */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  section[data-marketing-home-testimonials] {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      ellipse 85% 55% at 12% 0%,
+      color-mix(in srgb, var(--color-primary) 10%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 70% 45% at 92% 100%,
+      color-mix(in srgb, var(--color-accent) 8%, transparent),
+      transparent 52%
+    ),
+    color-mix(in srgb, var(--color-bg-muted) 42%, var(--background));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  section[data-marketing-home-testimonials]
+  > header {
+  text-align: center;
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  section[data-marketing-home-testimonials]
+  > header
+  h2 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-home-testimonials-row] {
+  display: grid;
+  gap: var(--space-4);
+  margin-inline: 0;
+  padding-inline: 0;
+  overflow: visible;
+  scroll-snap-type: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card] {
+  position: relative;
+  flex: none;
+  width: auto;
+  max-width: none;
+  scroll-snap-align: unset;
+  margin: 0;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border: var(--mkt-border-width) solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-block-end: var(--mkt-border-width) solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-inline-start: var(--mkt-border-width) solid
+    color-mix(in srgb, var(--border) 88%, transparent);
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    168deg,
+    var(--card) 0%,
+    color-mix(in srgb, var(--color-primary) 7%, var(--card)) 100%
+  );
+  box-shadow: var(--mkt-shadow-card);
+  transition:
+    transform var(--mkt-motion-fast) var(--mkt-ease-out),
+    box-shadow var(--mkt-motion-fast) var(--mkt-ease-out),
+    border-color var(--mkt-motion-fast) ease;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]:last-child {
+  padding-block-end: var(--space-4);
+  border-block-end: var(--mkt-border-width) solid color-mix(in srgb, var(--border) 88%, transparent);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]:hover {
+  transform: translateY(var(--mkt-lift-sm));
+  box-shadow: var(--mkt-shadow-card-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 22%, var(--border));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card-featured] {
+  padding: var(--space-6);
+  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--border));
+  box-shadow: var(--mkt-shadow-card-premium);
+  background: linear-gradient(
+    155deg,
+    var(--card) 0%,
+    color-mix(in srgb, var(--color-primary) 12%, var(--card)) 55%,
+    color-mix(in srgb, var(--color-accent) 6%, var(--card)) 100%
+  );
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card-featured]::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: var(--space-5);
+  height: 0.1875rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--color-primary),
+    color-mix(in srgb, var(--color-accent) 70%, var(--color-primary))
+  );
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]::before {
+  content: "\201C";
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  inset-block-start: var(--space-2);
+  display: block;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(2.75rem, 8vw, 3.75rem);
+  line-height: 1;
+  color: color-mix(in srgb, var(--color-primary) 38%, transparent);
+  pointer-events: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card-featured]::before {
+  font-size: clamp(3.25rem, 10vw, 4.5rem);
+  color: color-mix(in srgb, var(--color-primary) 48%, transparent);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  blockquote {
+  margin: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  blockquote
+  p {
+  margin: 0;
+  padding-block-start: var(--space-6);
+  font-family: var(--font-heading);
+  font-size: var(--mkt-text-body);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.65;
+  letter-spacing: -0.012em;
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card-featured]
+  blockquote
+  p {
+  padding-block-start: var(--space-7);
+  font-size: var(--mkt-type-pull-quote);
+  line-height: 1.55;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-block-start: var(--space-4);
+  padding-block-start: 0;
+  border-top: none;
+  font-size: var(--mkt-text-meta);
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  figcaption::before {
+  content: "—";
+  display: block;
+  margin-block-end: var(--space-1);
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--color-primary) 72%, var(--foreground));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-home-testimonial-name] {
+  font-weight: 600;
+  font-style: normal;
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-home-testimonial-role] {
+  font-size: var(--mkt-text-meta);
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-home-testimonial-role]::before {
+  content: none;
+}
+
+@media (min-width: 768px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-testimonials-row] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    figure[data-marketing-home-testimonial-card-featured] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1024px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-testimonials-row] {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    figure[data-marketing-home-testimonial-card-featured] {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    figure[data-marketing-home-testimonial-card]:not(
+      [data-marketing-home-testimonial-card-featured]
+    ) {
+    grid-column: span 6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    figure[data-marketing-home-testimonial-card]:hover {
+    transform: none;
+  }
+}

@@ -1,0 +1,106 @@
+/** @generated — do not edit; source: dtcg/workspaces/denali.admin.tokens.json — run pnpm build in @app-tour/design-tokens */
+/**
+ * denali admin semantic tokens — light + dark (DTCG authority).
+ */
+body[data-workspace-plugin="denali"] {
+  --accent: var(--denali-mist-100);
+  --accent-foreground: var(--denali-forest-700);
+  --background: var(--color-bg-page);
+  --border: var(--color-border-default);
+  --card: var(--color-bg-surface);
+  --card-foreground: var(--color-text-primary);
+  --color-bg-muted: var(--denali-mist-100);
+  --color-bg-page: var(--denali-mist-50);
+  --color-bg-surface: #ffffff;
+  --color-border-default: #dce5dc;
+  --color-border-subtle: #e8efe8;
+  --color-info: var(--denali-alpine-600);
+  --color-info-bg: #e8f0f8;
+  --color-primary: var(--denali-forest-600);
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: var(--denali-forest-700);
+  --color-success: #166534;
+  --color-success-bg: #dcfce7;
+  --color-text-link: var(--denali-forest-600);
+  --color-text-muted: #6f7768;
+  --color-text-primary: #1a1f26;
+  --color-text-secondary: #4a5244;
+  --color-warning: #b45309;
+  --color-warning-bg: #fff7ed;
+  --denali-alpine-600: #31547e;
+  --denali-bark-600: #765832;
+  --denali-forest-500: #14b8a6;
+  --denali-forest-600: #0f766e;
+  --denali-forest-700: #0f5c4a;
+  --denali-mist-100: #e8efe8;
+  --denali-mist-50: #f4f7f4;
+  --denali-shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
+  --denali-shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.06), 0 8px 20px rgb(15 23 42 / 0.08);
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --focus-ring-color: rgb(15 118 110 / 0.35);
+  --focus-ring-offset: #ffffff;
+  --foreground: var(--color-text-primary);
+  --input: var(--color-border-subtle);
+  --muted: var(--color-bg-muted);
+  --muted-foreground: var(--color-text-muted);
+  --popover: var(--color-bg-surface);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-primary-fg);
+  --radius: 0.625rem;
+  --ring: var(--focus-ring-color);
+  --ring-offset-background: var(--color-bg-surface);
+  --secondary: var(--color-bg-muted);
+  --secondary-foreground: var(--color-text-primary);
+  --shadow-card: var(--denali-shadow-card);
+  --shell-sidebar-width: 16.5rem;
+  --sidebar: #ffffff;
+  --sidebar-accent: var(--denali-mist-100);
+  --sidebar-accent-foreground: var(--denali-forest-700);
+  --sidebar-border: #dce5dc;
+  --sidebar-foreground: #1a1f26;
+  --sidebar-primary: var(--denali-forest-600);
+  --sidebar-primary-foreground: #ffffff;
+}
+
+html.dark:has(body[data-workspace-plugin="denali"]), .dark body[data-workspace-plugin="denali"], body[data-workspace-plugin="denali"] .theme-dark {
+  --accent: #242c24;
+  --accent-foreground: #5eead4;
+  --background: var(--color-bg-page);
+  --border: var(--color-border-default);
+  --card: var(--color-bg-surface);
+  --card-foreground: var(--color-text-primary);
+  --color-bg-muted: #242c24;
+  --color-bg-page: #161b13;
+  --color-bg-surface: #1f2620;
+  --color-border-default: #2f382f;
+  --color-border-subtle: #1f261f;
+  --color-primary: #5eead4;
+  --color-primary-fg: #0f140f;
+  --color-primary-hover: #99f6e4;
+  --color-text-link: #5eead4;
+  --color-text-muted: #7d8778;
+  --color-text-primary: #e8ebe6;
+  --color-text-secondary: #b0b8aa;
+  --focus-ring-color: rgb(94 234 212 / 0.4);
+  --focus-ring-offset: #1f2620;
+  --foreground: var(--color-text-primary);
+  --input: var(--color-border-subtle);
+  --muted: var(--color-bg-muted);
+  --muted-foreground: var(--color-text-muted);
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-primary-fg);
+  --ring: var(--focus-ring-color);
+  --secondary: var(--color-bg-muted);
+  --secondary-foreground: var(--color-text-primary);
+  --shell-sidebar-width: 16.5rem;
+  --sidebar: #1a211a;
+  --sidebar-accent: #242c24;
+  --sidebar-accent-foreground: #5eead4;
+  --sidebar-border: #2f382f;
+  --sidebar-foreground: #e8ebe6;
+  --sidebar-primary: #5eead4;
+  --sidebar-primary-foreground: #0f140f;
+}
+

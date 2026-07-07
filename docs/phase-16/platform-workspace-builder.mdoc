@@ -1,0 +1,693 @@
+---
+title: P3-C — Super Admin workspace builder
+phase: 16
+format: markdoc
+prerequisite: P3-B-N-014 complete (platform.* widgets + allowlist + surface factory)
+quality: 9.9
+doc_role: architecture_sot
+execution_spec: TEMP/p3/p3-c-workspace-builder.md
+---
+
+# Super Admin workspace builder (P3-C)
+
+Enable platform ops to **author, validate, publish, and assign** workspace metadata definitions from Super Admin — without editing `packages/workspaces/*` source.
+
+**Doc SoT:** this file · **Nano spec:** [`TEMP/p3/p3-c-workspace-builder.md`](../../TEMP/p3/p3-c-workspace-builder.md) v1.3
+
+**Status (2026-06-21):** doc complete · **implementation complete** (14/14 nanos) · P3-C EPIC gate ready
+
+---
+
+## Executive summary
+
+| Layer | P3-C delivers |
+|-------|----------------|
+| **Publish API** | POST create definition + POST publish version + GET version payload |
+| **Builder UI** | Palette, canvas, inspector, rules, headless preview, publish bar |
+| **Club assign** | New tab reusing P3-A PATCH + API DTO already on `tenants-get` |
+| **Audit** | `WORKSPACE_DEFINITION_PUBLISHED` + existing `TENANT_DEFINITION_*` |
+| **RBAC** | Owner-only publish; admin/owner assign; support read-only |
+
+---
+
+## Goals
+
+| Goal | Detail |
+|------|--------|
+| Publish pipeline | Immutable `workspace_definition_versions` rows (INSERT only) |
+| Builder UI | Three-pane + preview — no drag-and-drop library required v1 |
+| Tenant binding | Reuse `PATCH /platform/v1/tenants/:id/workspace-definition` |
+| Denali safety | No `denali.*` in palette; zero `packages/workspaces/denali` diff |
+
+## Non-goals (P3-C v1)
+
+- Operator iframe preview of live club wizard
+- Server-side draft storage (sessionStorage only)
+- Visual drag-and-drop designer
+- Metadata-only tenant without package overlay — P3-D
+- `denali.*` field ids in builder palette
+- Breaking schema migration / upcasters
+
+---
+
+## Industry alignment
+
+| Pattern | Source | P3-C mapping |
+|---------|--------|--------------|
+| **Immutable publish** | [Lineo](https://github.com/NicolaiSchmid/lineo) — PATCH always creates new version frame | POST publish → INSERT version N+1 |
+| **Form revisions** | [Form.io Form Revisions](https://form.io/features/form-revisions-form-json-schema/) | Full JSON snapshot per version |
+| **Schema-first builder** | [FormEngine](https://formengine.io/react-form-builder-library/) — JSON export + runtime render | SDK validate before publish |
+| **Deterministic revisions** | [FormForge](https://github.com/EvanSchleret/formforge) — immutable form revisions + strict validation | checksum + assertWorkspaceDefinitionPayload |
+| **Audit append-only** | [JSON audit trail design](https://jsonic.io/guides/json-audit-trail) — actor, action, resource, timestamp | platform audit events with metadata |
+
+---
+
+## Three-layer architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ P3-C Authoring (Super Admin)                                     │
+│  builder UI → validate → POST publish → audit                    │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ immutable INSERT
+┌────────────────────────────▼────────────────────────────────────┐
+│ P3-A Data plane (Postgres)                                       │
+│  workspace_definitions + workspace_definition_versions           │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ flag + tenant binding
+┌────────────────────────────▼────────────────────────────────────┐
+│ P3-A Runtime (API ingress) + P3-B Widgets (web)                  │
+│  resolveWorkspacePluginForTenantContext → operator wizard        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+P3-C closes the **authoring gap** between export/seed (P3-A A4) and runtime loader (P3-A A3).
+
+---
+
+## Immutable versioning
+
+```text
+workspace_definitions (stable id + displayName + status)
+  └── workspace_definition_versions (immutable payload snapshot per version)
+```
+
+| Action | Behavior |
+|--------|----------|
+| Publish vN+1 | `INSERT` new version row; **never UPDATE** prior `payload` |
+| Latest | `max(version) WHERE publishedAt IS NOT NULL` |
+| Tenant pin | `(workspaceDefinitionId, workspaceDefinitionVersion)` on `tenants` |
+| Rollback | Repoint tenant — **no tour data migration** |
+| Checksum | SHA-256 stable-sorted JSON |
+
+```mermaid
+sequenceDiagram
+  participant UI as Builder UI
+  participant BFF as /api/platform
+  participant API as /platform/v1
+  participant DB as Postgres
+
+  UI->>BFF: POST .../versions { payload }
+  BFF->>API: Bearer + X-Platform-Ops-Phone
+  API->>API: validateWorkspaceDefinitionPayload
+  API->>API: assertRendererAllowlist (P3-B)
+  API->>DB: INSERT version N+1
+  API->>DB: audit WORKSPACE_DEFINITION_PUBLISHED
+  API-->>UI: 201 { version, checksum }
+```
+
+---
+
+## Existing code (extend — do not rewrite)
+
+| Module | Status |
+|--------|--------|
+| Prisma models + tenant FK columns | ✅ P3-A |
+| `WorkspaceDefinitionRepository.createPublishedVersion` | ✅ |
+| `getPublishedVersion` | ✅ |
+| `listPlatformWorkspaceDefinitions` | ✅ |
+| `GET /platform/v1/workspace-definitions` | ✅ |
+| `PATCH .../tenants/:id/workspace-definition` | ✅ |
+| `updatePlatformTenantWorkspaceDefinition` + audit | ✅ |
+| `validateWorkspaceDefinitionPayload` / checksum | ✅ SDK |
+| `PLATFORM_GENERIC_RENDERER_IDS` | ✅ P3-B |
+| `tenants-get` includes `workspaceDefinition` DTO | ✅ API |
+| Web `PlatformClubDetail` includes binding | ✅ N-013 |
+
+### Code anchors (verified 2026-06-21)
+
+| Anchor | Path |
+|--------|------|
+| Publish INSERT | `workspace-definition.repository.ts:48` → `createPublishedVersion` |
+| List | `workspace-definitions-list.ts` |
+| Tenant PATCH | `tenants-workspace-definition-patch.ts` |
+| Assign service | `update-platform-tenant-workspace-definition.ts` |
+| Tenant detail DTO | `platform-tenant-detail.dto.ts:22` → `workspaceDefinition` |
+| Display name lookup | `tenants-get.ts:46-56` |
+| Owner-only assert | `assert-platform-ops-role.ts:10` → `assertPlatformOpsOwnerRole` |
+| Mark-paid reference | `tenants-subscription-mark-paid-post.ts` |
+| Route registrar | `platform-route-registrar.ts` — list, create, publish, GET version, tenant PATCH |
+| BFF proxy | `proxy-platform-api.server.ts` |
+| BFF client | `platform-api-client.ts` |
+| Nav SoT | `platform-nav.ts` — Workspaces item |
+| Billing tab pattern | `tab-billing.tsx` — `isOwner` gating |
+| Create-club wizard | `create-club-wizard-client.tsx` — multi-step UX |
+| Preview engine | `workspace-wizard-host.tsx:281` → `buildRenderPlan` |
+| Boundary spec | `platform-epic-c-boundary.spec.ts` |
+
+### Gaps P3-C closes
+
+- `POST /platform/v1/workspace-definitions` — create logical definition
+- `POST /platform/v1/workspace-definitions/:id/versions` — publish (owner only)
+- `GET /platform/v1/workspace-definitions/:id/versions/:version` — load editor
+- Repository: `createDefinition`, `getNextVersionNumber`
+- Audit: `WORKSPACE_DEFINITION_PUBLISHED`
+- Builder UI + BFF routes + club tab
+
+---
+
+## RBAC matrix
+
+Roles: `owner` | `admin` | `support` (from `platform_session` JWT)
+
+| Action | owner | admin | support |
+|--------|-------|-------|---------|
+| View builder / list definitions | ✅ | ✅ | ✅ |
+| POST create definition | ✅ | ✅ | ❌ |
+| POST publish version | ✅ | ❌ | ❌ |
+| PATCH assign tenant binding | ✅ | ✅ | ❌ |
+| View club workspace tab | ✅ | ✅ | ✅ (read-only) |
+
+| Assert helper | Routes |
+|---------------|--------|
+| `assertPlatformOpsAuth` | all |
+| `assertPlatformOpsWriteRole` | POST create definition, PATCH assign |
+| `assertPlatformOpsOwnerRole` | POST publish version |
+
+Reference owner-only routes: `tenants-subscription-mark-paid-post.ts`, `audit-export-get.ts`, `team.ts` POST.
+
+---
+
+## API surface
+
+Auth: `Authorization: Bearer` + `X-Platform-Ops-Phone` (BFF injects from `platform_session` cookie).
+
+| Method | Path | Role | Status |
+|--------|------|------|--------|
+| `GET` | `/platform/v1/workspace-definitions` | read | ✅ |
+| `POST` | `/platform/v1/workspace-definitions` | write | ✅ N-001 |
+| `GET` | `/platform/v1/workspace-definitions/:id/versions/:version` | read | ✅ N-001 |
+| `POST` | `/platform/v1/workspace-definitions/:id/versions` | **owner** | ✅ N-001 |
+| `PATCH` | `/platform/v1/tenants/:id/workspace-definition` | write | ✅ |
+
+### POST create definition (201)
+
+Request:
+
+```json
+{ "id": "climbing-club-v1", "displayName": "Climbing Club" }
+```
+
+Response:
+
+```json
+{ "id": "climbing-club-v1", "displayName": "Climbing Club", "status": "draft" }
+```
+
+Errors: `409 PLATFORM_DEFINITION_CONFLICT` if id exists.
+
+### POST publish version (201)
+
+Request:
+
+```json
+{
+  "payload": {
+    "id": "climbing-club-v1",
+    "version": 1,
+    "contractVersion": 1,
+    "supportedWorkspaceTypes": ["starter"],
+    "fieldRegistry": { "version": 1, "fields": [] },
+    "ruleSet": { "rules": [], "matrixDimensions": [], "cells": [], "defaultCellId": "default" },
+    "wizard": {
+      "wizardMode": "classic",
+      "railId": "default-rail",
+      "roots": ["basics"],
+      "inactiveFieldGroups": [],
+      "wizardCapacityStepRedundant": false
+    }
+  }
+}
+```
+
+Server rules:
+
+- `payload.id` must match path `:id`
+- Ignore client `version` — assign `getNextVersionNumber()`
+- Reject hooks → `PLUGIN_FUNCTION_NOT_ALLOWED`
+- Reject unknown composite ids → `PLATFORM_RENDERER_NOT_ALLOWED`
+- Store `checksum` from `computeWorkspaceDefinitionPayloadChecksum`
+
+Response:
+
+```json
+{
+  "definitionId": "climbing-club-v1",
+  "version": 2,
+  "checksum": "abc…",
+  "publishedAt": "2026-06-21T12:00:00.000Z"
+}
+```
+
+### GET version (200)
+
+```json
+{
+  "definitionId": "climbing-club-v1",
+  "version": 2,
+  "checksum": "abc…",
+  "publishedAt": "2026-06-21T12:00:00.000Z",
+  "payload": { "...": "WorkspaceDefinitionPayload" }
+}
+```
+
+### Error catalog
+
+| HTTP | Code | When |
+|------|------|------|
+| 401 | `PLATFORM_UNAUTHORIZED` | missing session |
+| 403 | `PLATFORM_FORBIDDEN` | support publish / insufficient role |
+| 404 | `NOT_FOUND` | unknown definition or version |
+| 409 | `PLATFORM_DEFINITION_CONFLICT` | duplicate definition id on create |
+| 422 | `PLATFORM_VALIDATION` | Zod / SDK validation fail |
+| 422 | `PLATFORM_RENDERER_NOT_ALLOWED` | composite id not in allowlist |
+
+---
+
+## Repository extensions (N-001)
+
+Add to `WorkspaceDefinitionRepository`:
+
+```typescript
+async createDefinition(input: {
+  id: string;
+  displayName: string;
+}): Promise<{ id: string; displayName: string; status: string }>;
+
+async getNextVersionNumber(definitionId: string): Promise<number>;
+// max(version)+1 or 1 if none
+```
+
+Publish service `publish-platform-workspace-definition-version.ts`:
+
+```text
+txn:
+  1. getNextVersionNumber
+  2. createPublishedVersion(...)
+  3. update workspace_definitions.status = "published"
+  4. appendPlatformAuditEvent(WORKSPACE_DEFINITION_PUBLISHED)
+```
+
+---
+
+## Route registrar (N-001)
+
+Add to `platform-route-registrar.ts`:
+
+```typescript
+const WORKSPACE_DEFINITIONS_POST_PATTERN = /^\/platform\/v1\/workspace-definitions$/;
+const WORKSPACE_DEFINITION_VERSION_GET_PATTERN =
+  /^\/platform\/v1\/workspace-definitions\/([^/]+)\/versions\/(\d+)$/;
+const WORKSPACE_DEFINITION_VERSIONS_POST_PATTERN =
+  /^\/platform\/v1\/workspace-definitions\/([^/]+)\/versions$/;
+```
+
+Dispatch before 404 handler — mirror existing lazy import pattern for `workspace-definitions-list.ts`.
+
+### N-001 implementation (2026-06-21)
+
+| Module | Responsibility |
+|--------|----------------|
+| `create-platform-workspace-definition.ts` | INSERT `workspace_definitions` row (`status: draft`); `409` on duplicate id |
+| `publish-platform-workspace-definition-version.ts` | Validate → allowlist → checksum → txn INSERT version + status `published` + audit |
+| `assert-workspace-definition-renderer-allowlist.ts` | Reject `denali.*`, unknown `platform.*`, and non-allowlisted composite ids |
+| `workspace-definitions-post.ts` | `assertPlatformOpsWriteRole` gate |
+| `workspace-definitions-versions-post.ts` | `assertPlatformOpsOwnerRole` gate |
+| `workspace-definitions-version-get.ts` | Authenticated read of immutable snapshot |
+
+Version numbers are **server-assigned** via `getNextVersionNumber` (`max(version)+1`). Client `payload.version` is validated by SDK shape but ignored for persistence. Each publish INSERT creates a new row; prior rows are never UPDATEd.
+
+---
+
+## Publish validation pipeline
+
+```text
+JSON body
+  → parsePublishWorkspaceDefinitionVersionBody (Zod)
+  → validateWorkspaceDefinitionPayload (SDK)
+  → assertWorkspaceDefinitionRendererAllowlist (P3-B isAllowedPlatformRendererId)
+  → computeWorkspaceDefinitionPayloadChecksum
+  → txn: createPublishedVersion + status published
+  → appendPlatformAuditEvent(WORKSPACE_DEFINITION_PUBLISHED)
+```
+
+Allowlist logic (`assert-workspace-definition-renderer-allowlist.ts`):
+
+```typescript
+for (const field of payload.fieldRegistry.fields) {
+  if (field.kind !== "composite" && field.id === field.canonicalPath) continue;
+  if (isAllowedPlatformRendererId(field.id)) continue;
+  throw new PlatformValidation("PLATFORM_RENDERER_NOT_ALLOWED");
+}
+```
+
+Audit metadata: `{ definitionId, version, checksum, fieldCount, actorId }`.
+
+---
+
+## BFF routes (apps/web)
+
+Browser → `/api/platform/*` only. Template (from `subscription/mark-paid/route.ts`):
+
+```typescript
+export async function POST(req: Request, context: RouteContext): Promise<NextResponse> {
+  const { id } = await context.params;
+  const upstream = await proxyPlatformApi(
+    req,
+    `/platform/v1/workspace-definitions/${id}/versions`,
+    { method: "POST", body: await req.text() }
+  );
+  return NextResponse.json(await upstream.json().catch(() => ({})), { status: upstream.status });
+}
+```
+
+| BFF file | Upstream |
+|----------|----------|
+| `app/api/platform/workspace-definitions/route.ts` | GET list + POST create |
+| `app/api/platform/workspace-definitions/[id]/versions/route.ts` | POST publish |
+| `app/api/platform/workspace-definitions/[id]/versions/[version]/route.ts` | GET version |
+| `app/api/platform/tenants/[id]/workspace-definition/route.ts` | ✅ PATCH assign |
+
+`proxyPlatformApi` adds `Authorization` + `X-Platform-Ops-Phone` from `platform_session`.
+
+---
+
+## Builder UI
+
+Route group: `apps/web/app/(platform)/workspace-definitions/` — **PATTERN-C** (no `denali/ui`).
+
+### Route map (add to platform nav)
+
+| URL | Page |
+|-----|------|
+| `/platform/workspace-definitions` | Definition list |
+| `/platform/workspace-definitions/[id]` | Builder editor |
+
+Nav (`platform-nav.ts`) — insert after Team:
+
+```typescript
+{ id: "definitions", label: "Workspaces", href: "/platform/workspace-definitions" }
+```
+
+Route table synced in [`platform-control-center-ui.mdoc`](../phase-15/platform-control-center-ui.mdoc) (P3-C routes + BFF).
+
+### Layout
+
+```text
+┌──────────────────┬─────────────────────────────┬──────────────────┐
+│ Field palette    │ Wizard canvas               │ Field inspector  │
+│ · primitives     │ · steps (wizard.roots)      │ · id, kind       │
+│ · platform.*     │ · fields per step           │ · canonicalPath  │
+└──────────────────┴─────────────────────────────┴──────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│ Preview — validateWorkspaceDefinitionPayload + buildRenderPlan      │
+│ Publish bar — owner only when violations === 0                      │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+Reuse:
+
+| Pattern | Source |
+|---------|--------|
+| Multi-step errors | `create-club-wizard-client.tsx` |
+| Owner gating | `tab-billing.tsx` → `isOwner` |
+| Async UI | `platform-async-states.tsx` |
+| Fetch | `fetchPlatformApi` |
+
+Markers: `data-platform-workspace-definitions-page`, `data-platform-builder`, `data-platform-field-palette`, `data-platform-wizard-canvas`, `data-platform-builder-preview`, `data-publish-disabled`.
+
+### N-003…N-012 implementation (2026-06-21)
+
+| Module | Path |
+|--------|------|
+| Draft reducer + sessionStorage | `apps/web/src/platform/workspace-builder/builder-draft-state.ts` |
+| Palette / canvas / inspector | `field-palette.tsx`, `wizard-canvas.tsx`, `field-inspector.tsx` |
+| Rules (client-only `simpleRules`, max 20) | `rule-matrix-editor.tsx` |
+| Headless preview | `preview-builder-draft.ts`, `build-preview-plugin-from-draft.ts`, `preview-panel.tsx` |
+| Publish bar (owner + zero violations) | `publish-bar.tsx` |
+| Shell composition | `builder-shell.tsx` |
+| Pages | `app/(platform)/platform/workspace-definitions/**` |
+| BFF | `app/api/platform/workspace-definitions/**`, `tenants/[id]/workspace-definition` |
+| Nav | `platform-nav.ts` → Workspaces item |
+| Club assign tab | `tab-workspace-definition.tsx` + `PlatformClubDetail.workspaceDefinition` |
+
+Preview merges `getStarterWorkspacePlugin()` hooks with draft metadata (same semantics as API `adaptMetadataPayloadToWorkspacePlugin`) then runs `PlatformWizardEngine.tryFromPlugin` + `buildRenderPlan`.
+
+---
+
+## Builder state machine
+
+```mermaid
+stateDiagram-v2
+  [*] --> LoadPublished: open editor
+  LoadPublished --> Editing: merge sessionStorage if newer
+  Editing --> Editing: palette/canvas/inspector/rules
+  Editing --> Validating: preview refresh
+  Validating --> Editing: fix violations
+  Validating --> Publishing: owner + zero violations
+  Publishing --> Published: 201 response
+  Published --> Editing: continue from new version
+  Editing --> Discarded: clear sessionStorage
+  Discarded --> LoadPublished: reload GET
+```
+
+---
+
+## Draft state (client v1)
+
+| Concern | Decision |
+|---------|----------|
+| Storage | React state + `sessionStorage` key `platform-builder:{definitionId}` |
+| Server draft | **No** |
+| Schema | `{ payload, meta: { basedOnVersion, editedAt } }` |
+| Reload | GET latest version; prefer sessionStorage if `editedAt` newer |
+| Discard | Clear storage + GET |
+
+Default field on palette add:
+
+```typescript
+{
+  id: "platform.photos",
+  kind: "composite",
+  canonicalPath: "photos",
+  stepId: activeStepId,
+  required: false,
+}
+```
+
+Primitives: `id === canonicalPath`, kind from palette.
+
+---
+
+## Preview panel (headless)
+
+No operator iframe. Client-side only:
+
+```typescript
+import { PlatformWizardEngine } from "@app-tour/platform-core";
+import { validateWorkspaceDefinitionPayload } from "@app-tour/workspace-sdk/metadata";
+import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
+```
+
+Steps:
+
+1. `validateWorkspaceDefinitionPayload(draft)` → violation list
+2. Build preview plugin: spread `getStarterWorkspacePlugin()` hooks + overwrite data fields from draft (same semantics as `adaptMetadataPayloadToWorkspacePlugin` — implement `buildPreviewPluginFromDraft(draft)` in `preview-panel.tsx`)
+3. `PlatformWizardEngine.create(plugin).buildRenderPlan(...)` → step/field counts
+4. Render `data-preview-violation-count={n}`
+
+**Do not** import `@app-tour/workspace-denali` in platform tree.
+
+---
+
+## Rule matrix editor (v1)
+
+Edit `ruleSet.rules` as list (max **20**):
+
+```typescript
+{
+  id: string;
+  when: { fieldId: string; operator: "eq" | "neq"; value: string };
+  effect: { type: "hidden" | "required" | "disabled"; targetFieldId: string };
+}
+```
+
+Evaluation stays in `platform-core` RuleEngine — builder only edits JSON.
+
+---
+
+## Club assign tab (N-013)
+
+API returns `workspaceDefinition` on `GET /platform/v1/tenants/:id` via `toPlatformTenantDetailDto`. Web `PlatformClubDetail.workspaceDefinition` + `tab-workspace-definition.tsx` wired (N-013).
+
+`tab-workspace-definition.tsx`:
+
+- Load definitions: `GET /api/platform/workspace-definitions`
+- Current binding from `detail.workspaceDefinition`
+- Save: `PATCH /api/platform/tenants/:id/workspace-definition`
+- `isWriteRole = opsRole === "owner" || opsRole === "admin"`
+- Publish **not** on this tab — builder only
+- Marker: `data-tab="workspace-definition"`
+
+Add tab to `PLATFORM_CLUB_DETAIL_TABS` + client tab strip (between billing and owner suggested).
+
+---
+
+## Audit events
+
+Add to `platform-audit-logger.ts`:
+
+```typescript
+export const PLATFORM_AUDIT_ACTION_WORKSPACE_DEFINITION_PUBLISHED =
+  "WORKSPACE_DEFINITION_PUBLISHED";
+```
+
+Existing: `TENANT_DEFINITION_ASSIGNED`, `TENANT_DEFINITION_CLEARED`.
+
+Audit UI `/platform/audit` lists new action without UI change.
+
+---
+
+## File layout
+
+```text
+docs/phase-16/platform-workspace-builder.mdoc
+apps/api/src/platform/
+  publish-platform-workspace-definition-version.ts
+  create-platform-workspace-definition.schema.ts
+  publish-platform-workspace-definition-version.schema.ts
+  assert-workspace-definition-renderer-allowlist.ts
+apps/api/src/routes/platform/
+  workspace-definitions-post.ts
+  workspace-definitions-version-get.ts
+  workspace-definitions-versions-post.ts
+apps/api/src/http/platform-route-registrar.ts
+apps/api/src/platform/platform-audit-logger.ts
+apps/api/test/platform-workspace-definition-publish.spec.ts
+apps/web/app/(platform)/workspace-definitions/page.tsx
+apps/web/app/(platform)/workspace-definitions/[id]/page.tsx
+apps/web/app/api/platform/workspace-definitions/route.ts
+apps/web/app/api/platform/workspace-definitions/[id]/versions/route.ts
+apps/web/app/api/platform/workspace-definitions/[id]/versions/[version]/route.ts
+apps/web/app/api/platform/tenants/[id]/workspace-definition/route.ts  # if missing
+apps/web/src/platform/workspace-builder/
+  builder-shell.tsx
+  builder-draft-state.ts
+  field-palette.tsx
+  wizard-canvas.tsx
+  field-inspector.tsx
+  rule-matrix-editor.tsx
+  preview-panel.tsx
+  publish-bar.tsx
+  build-preview-plugin-from-draft.ts
+apps/web/src/platform/club-detail/tab-workspace-definition.tsx
+apps/web/src/platform/club-detail/platform-club-detail.types.ts  # edit
+apps/web/src/platform/platform-nav.ts                            # edit
+apps/web/test/platform-workspace-builder.spec.ts
+apps/web/test/platform-workspace-definition-tab.spec.ts
+```
+
+**Forbidden:** `packages/workspaces/denali/**`, `@app-tour/workspace-denali/ui` under `apps/web/src/platform/**`
+
+---
+
+## Testing matrix
+
+| Spec | IDs | Asserts |
+|------|-----|---------|
+| `platform-workspace-definition-publish.spec.ts` | PB-01…PB-07 | immutable versions; checksum; hooks; allowlist; owner 403; create conflict |
+| `platform-workspace-builder.spec.ts` | BU-01…BU-06 | palette; draft reducer; canvas; duplicate id; preview helper |
+| `platform-workspace-definition-tab.spec.ts` | TA-01…TA-03 | tab marker; PATCH path; write role gate |
+| `platform-epic-c-boundary.spec.ts` | RT-02 | no denali/ui under platform |
+| Rule matrix unit | RM-01…RM-02 | add rule; 20 cap |
+| Preview / publish | PV-01…PV-03 | violations; role disabled; preview plugin builds |
+| Routes static | RT-01, RT-03, RT-04 | nav; builder shell; BFF proxy path |
+| EPIC gate | EX-01…EX-03 | all specs green; scoped denali covenant |
+
+Future E2E (post-v1): owner publishes → assigns on club tab → operator wizard with metadata binding (requires P3-A ingress + P3-B widgets + flag).
+
+---
+
+## Verification
+
+```bash
+pnpm run guard:import-boundary
+pnpm run guard:p3-denali-covenant
+
+pnpm --filter @apps/api exec node --import tsx --test \
+  test/platform-workspace-definition-publish.spec.ts
+
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/platform-workspace-builder.spec.ts \
+  test/platform-workspace-definition-tab.spec.ts \
+  test/platform-epic-c-boundary.spec.ts
+```
+
+---
+
+## Implementation status
+
+```text
+Publish API + audit     ✅  N-001 N-002
+Builder palette/canvas  ✅  N-003…N-008
+Preview + publish bar   ✅  N-009 N-010
+Routes + nav + list     ✅  N-011 N-012
+Club assign tab         ✅  N-013 N-014
+```
+
+---
+
+## STOP table
+
+| Symptom | Action |
+|---------|--------|
+| UPDATE version `payload` column | **STOP** — INSERT only |
+| Support POST publish succeeds | **STOP** |
+| `denali.*` in builder palette | **STOP** |
+| `@app-tour/workspace-denali/ui` under `src/platform` | **STOP** |
+| Publish without P3-B allowlist | **STOP** |
+| Skip N-001 and build UI first | **STOP** — API before UI |
+
+---
+
+## Dependency graph
+
+```text
+P3-B-N-014 (allowlist + platform surface)
+  → P3-C-N-001 publish API
+  → … builder UI …
+  → P3-C-N-014 EPIC gate
+  → P3-D-N-001 optional parity
+```
+
+---
+
+## References
+
+- [`platform-workspace-definitions.mdoc`](platform-workspace-definitions.mdoc) — data model + loader
+- [`platform-generic-widgets.mdoc`](platform-generic-widgets.mdoc) — allowlist prerequisite
+- [`platform-workspace-cutover.mdoc`](platform-workspace-cutover.mdoc) — P3-D parity
+- [`platform-control-center-ui.mdoc`](../phase-15/platform-control-center-ui.mdoc) — BFF + host patterns
+- [Lineo — immutable funnel versions](https://github.com/NicolaiSchmid/lineo)
+- [Form.io Form Revisions](https://form.io/features/form-revisions-form-json-schema/)
+- `TEMP/p3/p3-c-workspace-builder.md` — nano execution spec v1.3

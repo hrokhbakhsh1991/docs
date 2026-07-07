@@ -13,7 +13,7 @@ import {
   assertFinanceReceiptSubmitAccess,
   assertFinanceWorkspaceGate,
 } from "./assert-finance-access";
-import { compileRegistrationInvoice } from "./compile-invoice-balances";
+import { compileRegistrationInvoice } from "../workspace-finance/compile-invoice-balances.ts";
 import type {
   CreateManualPaymentBody,
   GenerateScheduleBody,
@@ -32,8 +32,8 @@ import {
   listAllSchedules,
   putSchedule,
   type PrepaymentRecord,
-} from "./finance-schedule-store";
-import { createPrismaDenaliOutboxWriter } from "./prisma-denali-outbox-writer";
+} from "../workspace-finance/finance-schedule-store.ts";
+import { createPrismaWorkspaceOutboxWriter as createPrismaDenaliOutboxWriter } from "../workspace-finance/prisma-workspace-outbox-writer.ts";
 
 function assertManualPaymentDebtAllowed(statuses: readonly string[]): void {
   if (statuses.some((status) => status === "Paid")) {

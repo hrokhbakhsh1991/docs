@@ -22,6 +22,8 @@ export const DENALI_COMPOSITE_BY_CANONICAL_PATH: Readonly<
   leaderUserIds: "denali.leader-user-ids",
   socialMediaLink: "denali.social-media-link",
   "tripDetails.metrics.elevationGain": "denali.elevation-gain",
+  "tripDetails.overview.peakHeight": "denali.destination-catalog-metric.peak-height",
+  "tripDetails.overview.trailDistanceKm": "denali.destination-catalog-metric.trail-distance",
   "participants.minimumAge": "denali.pricing-participants",
   "pricing.requiresPayment": "denali.pricing-payment",
 };
@@ -62,6 +64,34 @@ function enumOptionsForZodKind(zodKind: DenaliZodFieldKind): readonly string[] |
     default:
       return undefined;
   }
+}
+
+/** Canonical ingress stores JSON arrays for these zod kinds (Phase 11.10). */
+export const DENALI_ARRAY_CANONICAL_ZOD_KINDS = new Set<DenaliZodFieldKind>([
+  "stringArrayDefault",
+  "photos",
+  "itinerary",
+  "gatheringPoints",
+  "gearItems",
+]);
+
+export function isDenaliArrayCanonicalZodKind(zodKind: DenaliZodFieldKind | undefined): boolean {
+  return zodKind != null && DENALI_ARRAY_CANONICAL_ZOD_KINDS.has(zodKind);
+}
+
+/**
+ * Engine field-registry kind — authoritative for {@link assertCanonicalValueMatchesKind}
+ * during validateCanonical. SDUI render plan uses `field.id` / `uiHints.compositeId`, not `kind`.
+ * Scalar composite widgets use semantic storage kind; array ingress keeps `composite`.
+ */
+export function resolveDenaliWorkspaceFieldRegistryKind(
+  def: DenaliFieldDefinition,
+  resolution: DenaliFieldRendererResolution
+): WorkspaceFieldKind {
+  if (isDenaliArrayCanonicalZodKind(def.zodKind)) {
+    return "composite";
+  }
+  return resolution.kind;
 }
 
 function primitiveKindForZodKind(zodKind: DenaliZodFieldKind): WorkspaceFieldKind {

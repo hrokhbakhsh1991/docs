@@ -1,0 +1,274 @@
+---
+title: Workspace registry codegen modularization (Phase G)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/architecture/platform-architecture-v2.md
+  - docs/phase-10/subphases/10.2-manifest-codegen.md
+---
+
+# Workspace registry codegen modularization (Phase G)
+
+Phase G splits the monolithic `scripts/generate-workspace-registry.mjs` (~4,100 lines, 50+ output keys) into **domain modules** under `scripts/codegen/workspace-registry/` while preserving **byte-identical** generated artifacts until each slice is verified.
+
+**Authority:** [platform-architecture-v2.md § Phase G](../architecture/platform-architecture-v2.md#phase-g--codegen-modularization) · **Baseline outputs:** [10.2-manifest-codegen.md](../phase-10/subphases/10.2-manifest-codegen.md)
+
+## Problem
+
+| Symptom | Risk at 100 workspaces |
+| ------- | ---------------------- |
+| Single file owns discovery, validation, 50+ emitters, path map, CLI | Merge conflicts, slow review, opaque ownership |
+| One global `--check` compares all outputs | CI cannot pin failures to a domain |
+| Member portal presets live in sibling script | Parallel registry pattern (Phase B debt) |
+
+The generator **works** and is **manifest-driven**; the monolith is a **scale and maintainability** bottleneck, not a correctness bug.
+
+## Non-goals (Phase G)
+
+- Changing manifest schema or generated TypeScript shapes
+- Merging `member-portal-contract-codegen.mjs` (adjacent; optional G4+)
+- DTCG C1–C3 admin dark palette gating ([dtcg-pipeline-spec.mdoc § C1–C3](dtcg-pipeline-spec.mdoc)) — optional later slice
+
+## Target layout
+
+```text
+scripts/
+  generate-workspace-registry.mjs     # thin entry + re-exports (G3 ✅)
+  member-portal-contract-codegen.mjs  # G4 — re-export shim → domains/member-portal.mjs
+  codegen/
+    workspace-registry/
+      constants.mjs                   # REPO_ROOT, BANNER, locales
+      manifest-loader.mjs             # discoverManifests
+      validation.mjs                  # assert* pre-emit gates
+      utils.mjs                       # importSpecifier, const prefixes
+      orchestrator.mjs                # generateAllOutputs, OUTPUT_PATHS, CLI (G3 ✅)
+      domains/
+        core-registry.mjs             # sdk, api, web loaders (G2)
+        tour-api.mjs                  # tour write, canonical, outbox (G2)
+        wizard-admin.mjs              # wizard surfaces, media, chrome, rules (G2)
+        theme.mjs                     # admin + guest theme loaders (G2)
+        guest-catalog.mjs             # catalog paths, presentation, SEO, landing (G2)
+        registration.mjs              # catalog registration + intake (G2)
+        member.mjs                    # profile capabilities (G2)
+        member-portal.mjs             # portal contracts, surfaces, presets (G4)
+        http-routes.mjs               # routes, handler loaders, error map (G2)
+        settings-api.mjs              # enrichers, dev bootstrap (G2)
+        dev.mjs                       # dev plugin tenant map (G2)
+        operator.mjs                  # operator capabilities (G2)
+```
+
+**Import rule:** Domain modules may import `constants`, `manifest-loader`, `validation`, `utils`, and L3 types only via string templates — **no** imports from `packages/workspaces/*` or `apps/*`.
+
+## Slice plan
+
+| Slice | Scope | Exit criteria |
+| ----- | ----- | ------------- |
+| **G0 (doc)** | This document + 10.2 cross-link + architecture § Phase G detail | Architect review |
+| **G1** | `constants`, `manifest-loader`, `validation`, `utils`; orchestrator imports them; **re-export** public API from entry script | `generate:workspace-registry` + `--check` PASS; drop-in spec green |
+| **G2** | Move emitters into `domains/*.mjs` one domain at a time | Per-domain unit assertions in drop-in spec; no diff in `*.generated.ts` |
+| **G3** | `orchestrator.mjs` owns `OUTPUT_PATHS`, `generateAllOutputs`, `runWorkspaceRegistryCli()`; per-domain `--check` | ✅ `guard:workspace-registry-fresh` + `guard:workspace-registry-domain-*` scripts |
+| **G4** | Fold member-portal into `domains/member-portal.mjs`; shim at legacy path | ✅ |
+
+## Domain → output map
+
+Each row is one future `--check --domain=<id>` boundary. Keys match `generateAllOutputs()` return properties.
+
+| Domain id | Output keys | Primary consumers |
+| --------- | ----------- | ------------------- |
+| `core-registry` | `sdk`, `api`, `web` | workspace-sdk bindings, API plugin registry, web plugin loaders |
+| `tour-api` | `tourWrite`, `canonicalTour`, `outbox` | apps/api tours + workspace outbox |
+| `wizard-admin` | `wizardMedia`, `wizardMediaRoutes`, `wizardMediaBackendRoutes`, `wizardSurfaces`, `wizardLabels`, `wizardI18nTranslators`, `workspaceWizardMessages`, `wizardCloneRemint`, `wizardCreate`, `wizardTemplateEditorBindings`, `marketingCatalogBindings`, `settingsDestinationBindings`, `settingsEquipmentUiBindings`, `tourActionSubmitBindings`, `photoUploadErrorsBindings`, `tourListCategoryBindings`, `operatorUiComponentsBindings`, `wizardDraftUnificationBindings`, `wizardRulesBindings`, `wizardTemplatePresetBindings`, `wizardDraftShellBindings`, `wizardCreateChromeBindings`, `wizardFlatEditChromeBindings`, `wizardFlatEditFormBindings`, `wizardFlatEditPageBindings`, `wizardCreateViewBindings`, `wizardCompositeRegistryBindings`, `settingsHubFallbackBindings` | apps/web bootstrap |
+| `theme` | `themeStylesheets`, `guestThemeStylesheetsPortal`, `guestThemeStylesheetsMarketing` | web / portal / marketing theme loaders |
+| `guest-catalog` | `catalogPaths`, `catalogListFeatures`, `catalogDetailSections`, `guestConformance`, `productionCertification`, `guestSeo`, `guestLanding`, `guestCrossSurfaceNav` | workspace-sdk catalog + guest-surface-host |
+| `registration` | `workspaceIntakePlugins`, `registrationFlowPlugins`, `registrationTransportInitializers` | workspace-plugin-host |
+| `member` | `memberProfileCapabilities`, `memberPortalContracts`, `memberPortalSurfaces` | workspace-sdk portal (contracts via sibling script) |
+| `http` | `httpRoutes`, `httpHandlerLoaders`, `httpErrorMap` | apps/api http + middleware |
+| `settings-api` | `settingsEnrichers`, `devBootstrap` | apps/api settings |
+| `dev` | `devPluginIds` | guest-surface-host dev map |
+| `operator` | `operatorCapabilities` | workspace-sdk operator |
+
+## Pre-emit validation (shared)
+
+These run in orchestrator **before** any domain emit (order preserved):
+
+1. `discoverManifests()` — required manifest fields
+2. `assertMemberPortalL4ReferenceWorkspaces()` — sibling script
+3. `assertWizardI18nAssets()` — wizard.json locale files
+4. `assertManifestWebModules()` — package export paths for wizard surfaces
+5. Per-manifest in `generateAllOutputs`: `assertGuestExtensionsManifest`, `assertHttpRoutesManifest`
+
+Domain-specific `assert*` functions stay co-located with their emitters in G2 (e.g. `assertCatalogPresentationManifest` → `guest-catalog.mjs`).
+
+## Per-domain `--check` (G3)
+
+Full check (all 50+ output keys):
+
+```bash
+pnpm run guard:workspace-registry-fresh   # node scripts/generate-workspace-registry.mjs --check
+```
+
+Scoped check (subset via `DOMAIN_OUTPUT_KEYS` in `orchestrator.mjs`):
+
+```bash
+node scripts/generate-workspace-registry.mjs --check --domain=wizard-admin
+node scripts/generate-workspace-registry.mjs --check --domain=guest-catalog
+pnpm run guard:workspace-registry-domain-guest-catalog   # npm alias
+```
+
+Check mode still runs **all** pre-emit validation (`discoverManifests`, member-portal L4 gate, wizard i18n, web modules) and calls `generateAllOutputs()` once; only the **on-disk comparison** is scoped to the domain’s output keys. Unknown `--domain=` values throw with the sorted valid id list.
+
+Write mode honors `--domain=` the same way (regenerates only that domain’s files).
+
+```javascript
+// orchestrator.mjs — resolveOutputKeys(domainId) → OUTPUT_KEYS | DOMAIN_OUTPUT_KEYS[id]
+for (const key of keysToSync) {
+  if (onDisk[key] !== generated[key]) mismatches.push(OUTPUT_PATHS[key]);
+}
+```
+
+CI wiring:
+
+| Script | When |
+| ------ | ---- |
+| `guard:workspace-registry-fresh` | pre-commit fast-track, phase-6 guard (unchanged alias) |
+| `guard:workspace-registry-domain-<id>` | optional parallel CI / local iteration per domain |
+
+Valid domain ids: `core-registry`, `tour-api`, `wizard-admin`, `theme`, `guest-catalog`, `registration`, `member`, `http`, `settings-api`, `dev`, `operator`.
+
+## Backward compatibility
+
+- **Entry point** remains `scripts/generate-workspace-registry.mjs` (~207 lines: imports + re-exports + CLI delegate)
+- **Orchestrator** `scripts/codegen/workspace-registry/orchestrator.mjs` (~568 lines): `OUTPUT_PATHS`, `OUTPUT_KEYS`, `DOMAIN_OUTPUT_KEYS`, `generateAllOutputs`, `runWorkspaceRegistryCli`
+- **Public exports** used by `scripts/test/workspace-registry-drop-in.spec.mjs` remain on the entry re-export surface
+- **Banner** string unchanged: `AUTO-GENERATED by scripts/generate-workspace-registry.mjs` (cosmetic subpath comment deferred)
+
+## Verification (each slice)
+
+```bash
+pnpm run generate:workspace-registry
+pnpm run guard:workspace-registry-fresh
+node --test scripts/test/workspace-registry-drop-in.spec.mjs
+pnpm run phase-6:fast-track
+pnpm run test:changed
+```
+
+Full monorepo gate (`ci:integrity`) deferred until Phase G+H merge PR — same policy as Phase F.
+
+## G1 status (2026-07-07)
+
+| Module | Exports | Status |
+| ------ | ------- | ------ |
+| `constants.mjs` | `REPO_ROOT`, `DEFAULT_WORKSPACES_DIR`, `BANNER`, `WIZARD_I18N_LOCALES` | ✅ |
+| `manifest-loader.mjs` | `discoverManifests` | ✅ |
+| `validation.mjs` | `assertNoDottedKeysInWizardJson`, `assertWizardI18nAssets`, `assertPackageWebModule`, `assertManifestWebModules` | ✅ |
+| `utils.mjs` | `importSpecifier`, `workspaceManifestConstPrefix` | ✅ |
+
+Orchestrator imports the above; entry script re-exports test-facing symbols. **~124 lines** moved out of the monolith; entry script **~4,003 lines** (was ~4,127).
+
+### G1 verification
+
+| Check | Result |
+| ----- | ------ |
+| `generate:workspace-registry --check` | PASS (4 manifests, zero `*.generated.ts` drift) |
+| `guard:import-boundary` | PASS |
+| `guard:architecture` | PASS (0 depcruise violations) |
+| `workspace-registry-drop-in.spec.mjs` | 28/28 pass |
+
+## G2 progress (2026-07-07)
+
+| Domain module | Emitters | Status |
+| ------------- | -------- | ------ |
+| `domains/core-registry.mjs` | `generateSdkBindings`, `generateApiRegistry`, `generateWebLoaders` | ✅ |
+| `domains/http-routes.mjs` | `generateWorkspaceHttpRoutes`, `generateWorkspaceHttpHandlerLoaders`, `generateWorkspaceHttpErrorMap`, `assertHttpRoutesManifest` | ✅ |
+| `domains/guest-catalog.mjs` | catalog paths, presentation, conformance, SEO, landing, cross-surface nav, `assertGuestExtensionsManifest` | ✅ |
+| `domains/tour-api.mjs` | `generateTourWriteBindings`, `generateCanonicalTourBindings`, `generateOutboxSideEffects` | ✅ |
+| `domains/settings-api.mjs` | `generateSettingsEnrichers`, `generateDevBootstrapBindings` | ✅ |
+| `domains/dev.mjs` | `generateWorkspaceDevPluginIds`, `assertDevBootstrapPluginTenantIds` | ✅ |
+| `domains/operator.mjs` | `generateWorkspaceOperatorCapabilities` | ✅ |
+| `domains/member.mjs` | `assertMemberProfileManifest`, `generateWorkspaceMemberProfileCapabilities` | ✅ |
+| `domains/theme.mjs` | admin + guest theme loaders | ✅ |
+| `domains/registration.mjs` | catalog registration flow + intake + transport | ✅ |
+| `domains/wizard-admin.mjs` | wizard surfaces, media, chrome, settings UI bindings | ✅ |
+
+**G2 complete (2026-07-07).** Domain modules ~3,570 lines.
+
+## G3 status (2026-07-07)
+
+| Artifact | Role | Lines (approx.) |
+| -------- | ---- | --------------- |
+| `orchestrator.mjs` | `generateAllOutputs`, `OUTPUT_PATHS`, `DOMAIN_OUTPUT_KEYS`, `runWorkspaceRegistryCli` | ~568 |
+| `generate-workspace-registry.mjs` | CLI entry + test re-exports | ~207 |
+| `build-orchestrator.mjs` | **Removed** — one-time G3 extraction aid; orchestrator is source of truth |
+
+### G3 verification
+
+| Check | Result |
+| ----- | ------ |
+| `generate:workspace-registry --check` | PASS (4 manifests, zero drift) |
+| `--check --domain=<id>` (all 11 domains) | PASS |
+| unknown `--domain=invalid` | throws with valid id list |
+| `guard:import-boundary` | PASS |
+| `guard:architecture` | PASS |
+| `workspace-registry-drop-in.spec.mjs` | 28/28 pass |
+
+**G3 complete.** **G4 complete (2026-07-07)** — member portal fold below.
+
+## G4 — member portal fold (2026-07-07)
+
+Moved `scripts/member-portal-contract-codegen.mjs` into `scripts/codegen/workspace-registry/domains/member-portal.mjs`. The sibling path becomes a **re-export shim** so guards and external imports keep working.
+
+| Export | Role |
+| ------ | ---- |
+| `MEMBER_PORTAL_*` constants | nav tiers, reserved ids, preset catalog |
+| `normalizeMemberPortalAvailability`, `resolveEffectiveMemberPortalConfig` | manifest → effective config |
+| `assertMemberPortalManifest`, `assertMemberPortalL4ReferenceWorkspaces` | pre-emit gates (orchestrator) |
+| `generateWorkspaceMemberPortalContracts`, `generateWorkspaceMemberPortalSurfaces` | `member` domain outputs |
+
+**Non-goal (G4):** removing `MEMBER_PORTAL_PRESETS` — presets remain generic (`guest-minimal-v1`, `guest-full-v1`); workspace-id branching stays forbidden (`guard-no-workspace-ids-in-codegen` scans `domains/member-portal.mjs`).
+
+### G4 verification
+
+| Check | Result |
+| ----- | ------ |
+| `--check` (global) | PASS |
+| `--check --domain=member` | PASS |
+| `guard:no-workspace-ids-in-codegen` | PASS (target path updated) |
+| `guard:member-portal-registry` | PASS |
+
+**Phase G closure (G0–G4):** monolith fully modularized; drop-in spec green (28/28 incl. Phase I2 codegen test). Optional future work: preset manifest-only admission (remove `MEMBER_PORTAL_PRESETS` object when all workspaces inline modules).
+
+**Phase H (closed):** [workspace-certification.mdoc](./workspace-certification.mdoc) — H0–H4 on `DEV` (`productionTier`, provision gates, guard, Super Admin UX).
+
+**Next platform phase:** [workspace-scale-hardening.mdoc](./workspace-scale-hardening.mdoc) — Phase I **I0–I2 closed** on `DEV`; I3 optional.
+
+### Phase G closure verification (2026-07-07)
+
+| Check | Result |
+| ----- | ------ |
+| `generate:workspace-registry --check` | PASS |
+| All 11 `guard:workspace-registry-domain-*` | PASS |
+| `guard:architecture` / `guard:import-boundary` | PASS |
+| `guard:no-workspace-ids-in-codegen` | PASS |
+| `guard:member-portal-registry` | PASS |
+| `workspace-registry-drop-in.spec.mjs` | 28/28 |
+| `phase-6:guard` | PASS |
+| `phase-10:guard` | PASS (11/11) |
+| `guard-guest-plugin-conformance` | PASS |
+| `phase-i:closure` | PASS |
+
+### Merge readiness (`origin/DEV`)
+
+| Commit | Scope |
+| ------ | ----- |
+| `d7d5d6a5` | Phase G modularization (G0–G4) |
+| `f5a7eab8` | Architecture v2 Phase G notes |
+| `373b2d7c` | Gate fixes (marketing starter, finance allowlist) |
+| `8d18c446`–`5edb6eb3` | Phase H H0–H4 |
+| `46f688dd`–`07308630` | Gap closure, CI YAML, `phase-g-h:fast-track` |
+| `1d12cbb3` | Phase I I1+I2 (theme budget + plugin load cache) |
+| `cbb36841` | Doc gap closure (MASTER surfaces, CERT-05, TEMP gitignore) |
+| `958044b2` | GHA green + Phase C `wizardTemplateGate` |
+
+**PR:** `pnpm run phase-g-h:create-pr` or [compare main...DEV](https://github.com/hrokhbakhsh1991/docs/compare/main...DEV?expand=1)
+
+**Pre-merge verify:** `pnpm run phase-i:closure` (required). GHA `phase-10-guard` green on `DEV` @ `958044b2`. Handoff: `pnpm run phase-g-h:handoff`. `ci:integrity` — Architect YES only.

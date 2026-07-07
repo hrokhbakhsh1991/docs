@@ -1,7 +1,12 @@
 import { cookies, headers } from "next/headers";
 
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
 import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
+import {
+  guardSettingsModulesAgainstBackend,
+  logSettingsModuleUiDesync,
+} from "@/features/settings/settings-module-consistency-guard";
 
 import type { SettingsModulesListResponse } from "./settings-module-types";
 
@@ -28,7 +33,17 @@ export async function fetchSettingsModulesServer(): Promise<SettingsModulesListR
     if (!backendRes.ok) {
       return null;
     }
-    return (await backendRes.json()) as SettingsModulesListResponse;
+    const payload = (await backendRes.json()) as SettingsModulesListResponse;
+    const session = await readOperatorSessionFromCookies();
+    const pluginId = session?.pluginId ?? "starter";
+    const guarded = guardSettingsModulesAgainstBackend(payload.items, pluginId);
+    if (guarded.desyncDetected) {
+      logSettingsModuleUiDesync({
+        pluginId,
+        missingFromBackend: guarded.missingFromBackend,
+      });
+    }
+    return { items: guarded.modules };
   } catch {
     return null;
   }

@@ -49,7 +49,10 @@ export function assertCanonicalValueMatchesKind(
       assertScalarCanonicalValue(value, kind, canonicalPath, options);
       return;
     case "composite": {
-      if (value == null || typeof value !== "object" || Array.isArray(value)) {
+      if (Array.isArray(value)) {
+        return;
+      }
+      if (value == null || typeof value !== "object") {
         throw typeMismatch(canonicalPath, kind, typeof value);
       }
       if (Object.keys(value as object).length === 0) {
@@ -84,6 +87,10 @@ export function isEmptyCanonicalValue(
 
   if (kind === "enum" && typeof value === "string" && value.trim() === "") {
     return true;
+  }
+
+  if (kind === "composite" && Array.isArray(value)) {
+    return value.length === 0;
   }
 
   if (kind === "composite" && typeof value === "object" && value != null && !Array.isArray(value)) {

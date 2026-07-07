@@ -13,6 +13,7 @@ import {
   type FinanceOpsManifest,
 } from "./finance/finance-ops-manifest";
 import { toDenaliCatalogCard } from "./catalog/denali-catalog-card";
+import { denaliCatalogIntakeSurface } from "./catalog/denali-catalog-intake";
 import { isDenaliTourPublished } from "./catalog/denali-publish-status";
 import { extractDenaliTourListProjection } from "./list/tour-list-projection";
 import {
@@ -20,12 +21,19 @@ import {
   getDenaliOperatorSettingsSurface,
 } from "./settings/denali-settings.manifest";
 import {
+  denaliIntegrationSurface,
+  getDenaliIntegrationSurface,
+} from "./integrations/denali-integration.surface";
+import { denaliExposureSurface, getDenaliExposureSurface } from "./exposure/denali-exposure.surface";
+import { denaliFieldPolicyManifest } from "./integrations/denali-field-policy.manifest";
+import {
   buildDenaliWizardRoots,
   buildDenaliWorkspaceFieldRegistry,
   buildDenaliWorkspaceRuleSet,
 } from "./denali-plugin-adapter";
 import { denaliHydrateTourCloneDraft, prepareDenaliServerCloneCanonical } from "./clone";
 import { denaliWizardHostHooks } from "./wizard/denali-wizard-host-hooks";
+import { denaliDraftTombstoneBinding } from "./draft/denali-draft-tombstone-binding";
 import { denaliRuleSet } from "./rules/denaliRuleModel";
 
 /** Relative to workspace package root — published via package exports. */
@@ -38,12 +46,20 @@ export const DENALI_WORKSPACE_PLUGIN_ID = "denali" as const;
 export const DENALI_WORKSPACE_TYPE = "denali" as const;
 
 export type DenaliRegistrationPayload = {
+  readonly registrantTarget?: "self" | "other";
   readonly contact: {
-    readonly email: string;
+    readonly email?: string;
     readonly fullName: string;
     readonly phone?: string;
+    readonly nationalId?: string;
+    readonly fatherName?: string;
+    readonly birthDate?: string;
   };
   readonly partySize: number;
+  readonly transport?: {
+    readonly kind: "primary" | "personal_car" | "no_car_dong" | "no_car_acquaintance";
+    readonly personalCarOccupants?: 1 | 2 | 3;
+  };
 };
 
 const DENALI_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,10 +67,21 @@ const DENALI_PHONE_PATTERN = /^[\d+\-().\s]*$/;
 
 export function validateDenaliRegistrationPayload(
   payload: DenaliRegistrationPayload,
-  context: { readonly capacity: number | null }
+  context: {
+    readonly capacity: number | null;
+    readonly nationalIdRequired?: boolean;
+    readonly fatherNameRequired?: boolean;
+    readonly birthDateRequired?: boolean;
+    readonly profileNationalId?: string | null;
+    readonly profileFatherName?: string | null;
+    readonly profileBirthDate?: string | null;
+  }
 ): void {
-  const email = payload.contact.email.trim();
-  if (email.length < 3 || email.length > 320 || !DENALI_EMAIL_PATTERN.test(email)) {
+  const email = payload.contact.email?.trim() ?? "";
+  if (
+    email.length > 0 &&
+    (email.length < 3 || email.length > 320 || !DENALI_EMAIL_PATTERN.test(email))
+  ) {
     throw new Error("DENALI_REGISTRATION_INVALID");
   }
   const fullName = payload.contact.fullName.trim();
@@ -72,6 +99,39 @@ export function validateDenaliRegistrationPayload(
   }
   if (context.capacity !== null && payload.partySize > context.capacity) {
     throw new Error("DENALI_REGISTRATION_INVALID");
+  }
+
+  if (context.nationalIdRequired === true) {
+    const profileNationalId = context.profileNationalId?.trim() ?? "";
+    const intakeNationalId = payload.contact.nationalId?.trim() ?? "";
+    const registrantForSelf = payload.registrantTarget !== "other";
+    const effectiveNationalId =
+      registrantForSelf && profileNationalId.length > 0 ? profileNationalId : intakeNationalId;
+    if (!/^\d{10}$/.test(effectiveNationalId)) {
+      throw new Error("DENALI_REGISTRATION_INVALID");
+    }
+  }
+
+  if (context.fatherNameRequired === true) {
+    const profileFatherName = context.profileFatherName?.trim() ?? "";
+    const intakeFatherName = payload.contact.fatherName?.trim() ?? "";
+    const registrantForSelf = payload.registrantTarget !== "other";
+    const effectiveFatherName =
+      registrantForSelf && profileFatherName.length > 0 ? profileFatherName : intakeFatherName;
+    if (effectiveFatherName.length < 1 || effectiveFatherName.length > 200) {
+      throw new Error("DENALI_REGISTRATION_INVALID");
+    }
+  }
+
+  if (context.birthDateRequired === true) {
+    const profileBirthDate = context.profileBirthDate?.trim() ?? "";
+    const intakeBirthDate = payload.contact.birthDate?.trim() ?? "";
+    const registrantForSelf = payload.registrantTarget !== "other";
+    const effectiveBirthDate =
+      registrantForSelf && profileBirthDate.length > 0 ? profileBirthDate : intakeBirthDate;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveBirthDate)) {
+      throw new Error("DENALI_REGISTRATION_INVALID");
+    }
   }
 }
 
@@ -130,6 +190,9 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
       manifest: denaliRegistrationOpsManifest,
     }),
     operatorSettings: deepFreeze({ ...denaliOperatorSettingsSurface }),
+    integrationSurface: deepFreeze({ ...denaliIntegrationSurface }),
+    exposureSurface: deepFreeze({ ...denaliExposureSurface }),
+    fieldPolicy: deepFreeze({ ...denaliFieldPolicyManifest }),
     tourList: deepFreeze({
       extractTourListProjection: extractDenaliTourListProjection,
     }),
@@ -137,6 +200,7 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
       isPublished: isDenaliTourPublished,
       toCatalogCard: toDenaliCatalogCard,
     }),
+    catalogIntake: denaliCatalogIntakeSurface,
     tourClone: deepFreeze({
       hydrateWizardDraft: ({
         canonicalData,
@@ -167,6 +231,7 @@ export function createDenaliWorkspacePlugin(): WorkspacePlugin {
       }),
     }),
     wizardHost: deepFreeze({ ...denaliWizardHostHooks }),
+    draftTombstone: denaliDraftTombstoneBinding,
   });
 }
 
@@ -190,6 +255,12 @@ export { getDenaliRegistrationOpsManifest };
 
 /** Phase 9.6 — settings module registry surface (Denali-only). */
 export { getDenaliOperatorSettingsSurface };
+
+/** Integration platform surface (Denali-only). */
+export { getDenaliIntegrationSurface };
+
+/** Field exposure surface defaults (Denali-only). */
+export { getDenaliExposureSurface };
 
 /** Phase 9.3 — operator list projection extractor (Denali-only). */
 export { extractDenaliTourListProjection } from "./list/tour-list-projection";

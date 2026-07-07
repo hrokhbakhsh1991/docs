@@ -1,0 +1,199 @@
+---
+title: Portal Member Entitlements BFF (Contract)
+standard_id: MPS-ENT-001
+version: 1.0.0
+status: pending_sign_off
+phase: 19-post-p6
+app: apps/portal
+extends:
+  - platform-portal-member.mdoc
+  - platform-portal-member-shell-architecture.mdoc
+  - member-portal-shell/decision-log.mdoc
+mandatory_for:
+  - apps/portal
+  - apps/api
+code_sot: []
+implementation_status: bootstrap
+---
+
+# Portal Member Entitlements BFF — Contract
+
+**Decision:** DL-09, DL-17, DL-21  
+**Phase:** PS-5 / BP-5  
+**Route:** `GET /api/me/entitlements`  
+**Implementation status:** **PS-6 partial (2026-07-05)** — tier-based default grants, membership `portalModuleGrants`, BFF 30s private cache (DL-17); plan tables / webhooks deferred to BP-7.
+
+---
+
+## 1. API ownership
+
+| Layer | Owner | Responsibility |
+| ----- | ----- | -------------- |
+| Portal BFF | `apps/portal` | Session cookie → headers; JSON shape; cache headers |
+| API upstream | `apps/api` | Authoritative entitlement computation; RLS |
+| Shell SSR | Platform portal shell | `navModules = registry ∩ entitlements.granted` |
+| Workspace | Manifest only | Declares entitlement keys — never evaluates |
+
+**Not chosen (DL-09):** JWT embed; client-only gating.
+
+---
+
+## 2. Request
+
+```http
+GET /api/me/entitlements HTTP/1.1
+Host: {club}.portal.{root}
+Cookie: atour_mb_session=...
+```
+
+**Headers (BFF → API):** Same as existing `/api/me/profile` — `Authorization`, `x-tenant-id`, `x-workspace-id` per [platform-portal-member.mdoc](./platform-portal-member.mdoc).
+
+---
+
+## 3. Response schema (conceptual)
+
+```typescript
+/** Documentation types — not shipped code */
+type MemberEntitlementsResponse = {
+  ok: true;
+  tenantId: string;
+  workspaceId: string;
+  evaluatedAt: string; // ISO-8601
+  granted: string[];   // e.g. ["member.module.trips", "member.module.profile"]
+  denied: Array<{
+    key: string;
+    reason: "not_entitled" | "module_disabled" | "plan_limit";
+  }>;
+};
+```
+
+### 3.1 Entitlement key format
+
+| Pattern | Example | Source |
+| ------- | ------- | ------ |
+| `member.module.{moduleId}` | `member.module.trips` | Registry module id |
+| Platform-owned modules | `member.module.home` | Platform grants — workspace cannot declare `home` (DL-30) |
+
+**Shell rule:** Module appears in nav iff registry lists it **and** `member.module.{id}` ∈ `granted`.
+
+### 3.2 Default grant policy (PS-6 / DL-09)
+
+Authoritative evaluation lives in `@app-tour/workspace-sdk` — **`evaluateMemberPortalEntitlements(pluginId, { explicitModuleIds })`**.
+
+| `nav.tier` | Default grant | Denial reason when absent from `granted` |
+| ---------- | ------------- | ---------------------------------------- |
+| `primary` | yes | `not_entitled` |
+| `secondary` | yes | `not_entitled` |
+| `user_menu` | yes | `not_entitled` |
+| `hidden` | **no** — requires explicit grant | `plan_limit` |
+
+**Explicit grants:** API reads optional `membershipMetadata.portalModuleGrants` (module ids, e.g. `["wallet"]`). Keys are merged: `defaultGranted ∪ explicitModuleIds→keys`. **Denali reference (PS-6):** manifest declares hidden `wallet` at `/me/wallet` — default members receive `denied: [{ key: "member.module.wallet", reason: "plan_limit" }]` until `portalModuleGrants` includes `"wallet"`.
+
+```mermaid
+flowchart LR
+  Registry["resolveMemberPortalModules"]
+  Meta["membershipMetadata.portalModuleGrants"]
+  Eval["evaluateMemberPortalEntitlements"]
+  Registry --> Eval
+  Meta --> Eval
+  Eval --> Granted["granted[]"]
+  Eval --> Denied["denied[]"]
+```
+
+### 3.3 Runtime wiring (2026-07-05)
+
+**Portal BFF** proxies `GET /identity/me/entitlements` when API upstream is reachable; falls back to local evaluator (same SDK function, empty explicit grants) when upstream unreachable.
+
+| Layer | Behavior |
+| ----- | -------- |
+| API upstream | Loads membership metadata → `evaluateMemberPortalEntitlements` |
+| Portal BFF | `fetchMemberEntitlementsUpstream` → cache → `resolveMemberEntitlementsPayload` |
+| `denied` | `registry − granted` with tier-aware reasons |
+| Cache | In-memory private TTL **30s max** (`MEMBER_ENTITLEMENTS_BFF_CACHE_TTL_MS`; `0` disables) |
+| Shell SSR | **`resolveMemberEntitlementsForShell`** — same payload path as BFF GET |
+
+**Paths:** `packages/workspace-sdk/src/portal/evaluate-member-portal-entitlements.ts`, `apps/api/src/identity/me.entitlements.service.ts`, `apps/portal/src/me/member-entitlements-bff.server.ts`, `apps/portal/src/me/member-entitlements-cache.server.ts`, `apps/portal/app/api/me/entitlements/route.ts`.
+
+### 3.4 Home aggregate bootstrap (DL-19)
+
+`buildMemberHomePayload` composes entitled module cards from effective registry + entitlements `granted`. Consumed by `/me/home` SSR and `GET /api/me/home`.
+
+**Paths:** `apps/portal/src/me/member-home-bff.server.ts`, `apps/portal/app/api/me/home/route.ts`.
+
+---
+
+## 4. Error responses
+
+| Status | When | Body |
+| ------ | ---- | ---- |
+| 401 | No session | `{ ok: false, code: "unauthorized" }` |
+| 403 | Session tenant mismatch | `{ ok: false, code: "tenant_mismatch" }` |
+| 502 | API upstream failure | `{ ok: false, code: "upstream_error" }` |
+
+Deep link to unauthorized module (DL-21): in-portal 403 page — not marketing redirect.
+
+**PS-6 (2026-07-05):** Static module pages (`/me/home`, `/me/registrations`, `/me/profile`, registration detail) wrap content in `MemberModuleEntitlementGate`; `/me/more` uses `MemberMoreHubEntitlementGate` (requires entitled secondary modules).
+
+---
+
+## 5. Cache policy (DL-17)
+
+| Phase | BFF cache | Invalidation |
+| ----- | --------- | ------------ |
+| PS-5 / BP-5 launch | **TTL = 0** (no cache) | N/A |
+| **PS-6 (shipped)** | Private **30s max** (`MEMBER_ENTITLEMENTS_BFF_CACHE_TTL_MS`) | Logout + profile PATCH clear session-scoped key; membership webhooks (BP-7) |
+| BP-7 | Same TTL cap | Membership mutation webhooks |
+
+**Rule:** API re-checks on mutation regardless of BFF cache. Response `Cache-Control`: `private, max-age={ttlSeconds}` when TTL &gt; 0; `no-store` when disabled.
+
+### 5.1 Cache invalidation routes (PS-6)
+
+| Route | Auth | Behavior |
+| ----- | ---- | -------- |
+| Logout | Session cookie clear | `invalidateMemberEntitlementsCacheForMember` |
+| Profile PATCH | Member session | Same helper after successful upstream patch |
+| `POST /api/me/entitlements/invalidate` | Member session (PCMS-SEC-01) | Explicit BFF cache bust — bootstrap for BP-7 billing webhooks |
+
+BP-7 billing may call the same invalidation helper server-side after updating `portalModuleGrants`; external service auth is out of scope for PS-6 bootstrap.
+
+---
+
+## 6. Security assumptions
+
+| Assumption | Enforcement |
+| ---------- | ----------- |
+| Decorative nav forbidden | SSR uses same entitlements fetch as client hydration |
+| Operator finance never exposed | No `operator.*` keys in member entitlements |
+| Tenant bind | PCMS-SEC-01 on all `/api/me/*` |
+| M17 allowlist | `guard-public-catalog-m17` extended (DL-31) |
+
+---
+
+## 7. Future extensions
+
+| Extension | Phase | Notes |
+| --------- | ----- | ----- |
+| Per-module capability flags | BP-7 | Sub-keys under `member.module.{id}.*` |
+| Webhook invalidation | BP-7 | Membership plan changes |
+| Plan tables / billing webhooks | BP-7 | Populate `portalModuleGrants` from subscription service |
+| Membership mutation webhooks | BP-7 | `POST /api/me/entitlements/invalidate` (session-scoped, PS-6 bootstrap) |
+
+### 7.1 Home aggregate (shipped bootstrap)
+
+See §3.3 — `GET /api/me/home` live at `apps/portal/app/api/me/home/route.ts`.
+
+---
+
+## 8. Traceability
+
+| Artifact | Link |
+| -------- | ---- |
+| Blueprint | v9 §6 entitlements |
+| DL | DL-09, DL-17, DL-21, DL-31 |
+| Guard | M17 extension; `guard-member-portal-registry` |
+| Gate | Phase 5 prerequisites |
+| Smoke | SMK-PTL-09 — entitlements BFF + primary nav (home, trips) |
+
+---
+
+*Entitlements contract v1.0.0 · bootstrap shipped 2026-07-05 · API upstream pending*

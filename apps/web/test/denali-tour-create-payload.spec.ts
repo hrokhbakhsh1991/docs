@@ -6,17 +6,17 @@ import { describe, it } from "node:test";
 
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
 
-import { loadDenaliWizardRulesModule } from "../src/bootstrap/denali-wizard-rules";
+import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/wizard/rules-loader";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { setCanonicalStringValue, setCanonicalValue } from "../src/tours/tour-wizard-draft-path";
-import { buildDenaliWizardRuleEvalContext } from "../src/wizard/denali/denali-wizard-ui-context";
-import { tourWizardDraftToDenaliForm } from "../src/wizard/denali/denali-draft-form-adapter";
+import { buildDenaliWizardRuleEvalContext } from "@app-tour/workspace-denali/wizard/submit";
+import { tourWizardDraftToDenaliForm } from "@app-tour/workspace-denali/ui/chrome/draft-form-adapter";
 import {
   sanitizeLeaderUserIdsOnDraft,
   sanitizeThemeIdsOnDraft,
-} from "../src/wizard/denali/denali-catalog-sanitize";
-import { sanitizeDenaliWizardDraft } from "../src/wizard/denali/denali-draft-form-adapter";
-import { prepareDenaliTourCreatePayload } from "../src/wizard/denali/denali-tour-create-payload";
+} from "@app-tour/workspace-denali/wizard/catalog-sanitize";
+import { sanitizeDenaliWizardDraft } from "@app-tour/workspace-denali/ui/chrome/draft-form-adapter";
+import { prepareDenaliTourCreatePayload } from "@app-tour/workspace-denali/ui/chrome/tour-create-payload";
 
 describe("denali-tour-create-payload.spec.ts", () => {
   it("WEB-11.8-SUBMIT-01 builds canonical payload with roots and schemaVersion", async () => {

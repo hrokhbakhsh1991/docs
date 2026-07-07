@@ -14,6 +14,10 @@ export const DENALI_DEV_OWNER_USER_ID = "00000000-0000-4000-8000-000000000101" a
 export const DENALI_DEV_OWNER_MOBILE = "+15550001001" as const;
 export const DENALI_DEV_WORKSPACE_ID = "ws-denali-dev" as const;
 
+/** SMK-P9-03 / P1 owner handoff — user row only; no membership until invite accept. */
+export const OPERATOR_SMOKE_INVITEE_USER_ID = "00000000-0000-4000-8000-000000000195" as const;
+export const OPERATOR_SMOKE_INVITEE_MOBILE = "+15550008803" as const;
+
 function resolveOperatorOwnerSeed(): {
   readonly userId: string;
   readonly mobile: string;
@@ -80,5 +84,25 @@ export async function seedDenaliOperatorIdentity(): Promise<void> {
       displayName: owner.displayName,
     },
     "denali operator identity seeded"
+  );
+
+  await prisma.user.upsert({
+    where: { id: OPERATOR_SMOKE_INVITEE_USER_ID },
+    create: {
+      id: OPERATOR_SMOKE_INVITEE_USER_ID,
+      mobile: OPERATOR_SMOKE_INVITEE_MOBILE,
+    },
+    update: {
+      mobile: OPERATOR_SMOKE_INVITEE_MOBILE,
+    },
+  });
+
+  logger.info(
+    {
+      event: "db.seed.operator_smoke_invitee_identity",
+      userId: OPERATOR_SMOKE_INVITEE_USER_ID,
+      mobile: OPERATOR_SMOKE_INVITEE_MOBILE,
+    },
+    "operator smoke invitee user seeded (membership-free until invite accept)"
   );
 }

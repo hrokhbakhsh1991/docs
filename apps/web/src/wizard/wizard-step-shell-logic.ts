@@ -47,3 +47,30 @@ export function clampWizardStepIndex(index: number, stepCount: number): number {
   }
   return Math.min(Math.max(index, 0), stepCount - 1);
 }
+
+type WizardStepRef = {
+  readonly stepId: string;
+};
+
+/**
+ * When the visible step plan changes (matrix reload / contextual filter), prefer the same
+ * {@link stepId} over keeping a numeric index that may now point at different content.
+ */
+export function resolveWizardStepIndexAfterPlanChange(
+  activeStepIndex: number,
+  anchoredStepId: string | null,
+  steps: readonly WizardStepRef[]
+): number {
+  if (steps.length === 0) {
+    return 0;
+  }
+
+  if (anchoredStepId != null) {
+    const mapped = steps.findIndex((step) => step.stepId === anchoredStepId);
+    if (mapped >= 0) {
+      return mapped;
+    }
+  }
+
+  return clampWizardStepIndex(activeStepIndex, steps.length);
+}

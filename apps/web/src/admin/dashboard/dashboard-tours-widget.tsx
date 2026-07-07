@@ -6,9 +6,17 @@ import { useEffect, useMemo, useState } from "react";
 
 import { DenaliEmptyState } from "@/admin/patterns/denali-empty-state";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
+import {
+  DashboardTourListRow,
+  DashboardWidgetCard,
+  DashboardWidgetError,
+  DashboardWidgetFooterLink,
+  DashboardWidgetList,
+  DashboardWidgetListEmptyItem,
+  DashboardWidgetRowStack,
+} from "@/admin/patterns/dashboard-widget-card";
 import { OPERATOR_WIZARD_PATH } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DASHBOARD_WIDGETS_TEST_IDS,
   dashboardTourWorkspaceHref,
@@ -75,64 +83,50 @@ export function DashboardToursWidget({ initialTours = null }: DashboardToursWidg
   const recentTours = useMemo(() => selectRecentToursForDashboard(data.items), [data.items]);
 
   return (
-    <Card data-denali-surface="card" data-testid={DASHBOARD_WIDGETS_TEST_IDS.tours} className="flex flex-col shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t("tours.title")}</CardTitle>
-        <CardDescription>
-          {loading ? t("tours.loading") : t("tours.count", { count: data.total, brandName })}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="mt-auto space-y-4">
-        {loading ? (
-          <div className="space-y-2">
-            <DenaliSkeleton className="h-10 w-full" />
-            <DenaliSkeleton className="h-10 w-full" />
-          </div>
-        ) : null}
-        {!loading && error ? (
-          <p className="text-sm text-destructive" role="alert">
-            {resolveDashboardErrorMessage(tErrors, error)}
-          </p>
-        ) : null}
-        {!loading && !error ? (
-          <ul
-            className="space-y-2"
-            data-testid={DASHBOARD_WIDGETS_TEST_IDS.toursList}
-          >
-            {recentTours.length === 0 ? (
-              <li>
-                <DenaliEmptyState
-                  description={t("tours.empty")}
-                  action={
-                    <Button asChild size="sm">
-                      <Link href={OPERATOR_WIZARD_PATH}>{t("quickActions.newTour")}</Link>
-                    </Button>
-                  }
-                />
-              </li>
-            ) : (
-              recentTours.map((tour) => (
-                <li key={tour.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
-                  <div className="min-w-0">
-                    <Link
-                      href={dashboardTourWorkspaceHref(tour.id)}
-                      className="truncate text-sm font-medium text-primary hover:underline"
-                    >
-                      {tour.title}
-                    </Link>
-                  </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {t(`tourStatus.${tour.uiStatus}`)}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        ) : null}
-        <Link href={dashboardToursHref()} className="text-sm text-primary hover:underline">
+    <DashboardWidgetCard
+      testId={DASHBOARD_WIDGETS_TEST_IDS.tours}
+      title={t("tours.title")}
+      description={loading ? t("tours.loading") : t("tours.count", { count: data.total, brandName })}
+      footer={
+        <DashboardWidgetFooterLink href={dashboardToursHref()}>
           {t("tours.viewAll")}
-        </Link>
-      </CardContent>
-    </Card>
+        </DashboardWidgetFooterLink>
+      }
+    >
+      {loading ? (
+        <DashboardWidgetRowStack>
+          <DenaliSkeleton size="row" />
+          <DenaliSkeleton size="row" />
+        </DashboardWidgetRowStack>
+      ) : null}
+      {!loading && error ? (
+        <DashboardWidgetError>{resolveDashboardErrorMessage(tErrors, error)}</DashboardWidgetError>
+      ) : null}
+      {!loading && !error ? (
+        <DashboardWidgetList testId={DASHBOARD_WIDGETS_TEST_IDS.toursList}>
+          {recentTours.length === 0 ? (
+            <DashboardWidgetListEmptyItem>
+              <DenaliEmptyState
+                description={t("tours.empty")}
+                action={
+                  <Button asChild size="sm">
+                    <Link href={OPERATOR_WIZARD_PATH}>{t("quickActions.newTour")}</Link>
+                  </Button>
+                }
+              />
+            </DashboardWidgetListEmptyItem>
+          ) : (
+            recentTours.map((tour) => (
+              <DashboardTourListRow
+                key={tour.id}
+                href={dashboardTourWorkspaceHref(tour.id)}
+                title={tour.title}
+                statusLabel={t(`tourStatus.${tour.uiStatus}`)}
+              />
+            ))
+          )}
+        </DashboardWidgetList>
+      ) : null}
+    </DashboardWidgetCard>
   );
 }

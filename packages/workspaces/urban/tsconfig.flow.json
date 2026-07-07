@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": [
+    "src/catalog/registration-flow/**/*.tsx",
+    "src/catalog/registration-flow/react.ts"
+  ],
+  "exclude": ["src/**/*.spec.ts", "test/**/*.spec.ts"]
+}

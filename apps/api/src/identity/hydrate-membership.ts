@@ -6,6 +6,7 @@ import {
 } from "@app-tour/workspace-sdk";
 
 import { AuthTokenRevokedError } from "./identity.errors";
+import { assertTenantActiveForOperatorLogin } from "./assert-tenant-active-for-login";
 import {
   getIdentityRepository,
   type IdentityRepository,
@@ -29,8 +30,13 @@ export async function hydrateMembershipFromDb(
   userId: string,
   tenantId: string,
   sessionVersionClaim: number | undefined,
-  repo: IdentityRepository = getIdentityRepository()
+  repo: IdentityRepository = getIdentityRepository(),
+  deps: { resolveTenantStatus?: import("./assert-tenant-active-for-login.ts").TenantLoginStatusResolver } = {}
 ): Promise<TenantAuthContext> {
+  await assertTenantActiveForOperatorLogin(tenantId, {
+    resolveStatus: deps.resolveTenantStatus,
+  });
+
   const membership = await repo.findMembership(userId, tenantId);
   if (membership === null || membership.status !== "ACTIVE") {
     throw new AuthTokenRevokedError();

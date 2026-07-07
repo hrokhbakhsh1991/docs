@@ -1,9 +1,6 @@
 import type { WorkspacePluginId } from "../plugin/workspace-plugin-id";
 
-const CATALOG_LIST_PATHS: Readonly<Record<string, string>> = {
-  denali: "/denali/catalog",
-  urban: "/urban/catalog",
-};
+import { WORKSPACE_CATALOG_LIST_PATHS } from "./workspace-catalog-paths.generated";
 
 export class UnknownCatalogPluginError extends Error {
   readonly code = "UNKNOWN_CATALOG_PLUGIN" as const;
@@ -16,7 +13,7 @@ export class UnknownCatalogPluginError extends Error {
 
 /** Resolve workspace HTTP list path for marketing BFF (ADR-MKT-004). */
 export function resolveCatalogListApiPath(pluginId: WorkspacePluginId | string): string {
-  const path = CATALOG_LIST_PATHS[pluginId];
+  const path = WORKSPACE_CATALOG_LIST_PATHS[pluginId];
   if (path === undefined) {
     throw new UnknownCatalogPluginError(pluginId);
   }

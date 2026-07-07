@@ -1,0 +1,210 @@
+---
+title: P8 — Platform surface hardening
+phase: 21
+format: markdoc
+pack: P8
+status: PLANNED
+prerequisite: P7 customer sign-off
+audit: p8-ingress-session-env-audit.md
+app_fit: p8-app-fit.md
+---
+
+# P8 — Platform surface hardening
+
+## North star (اصلاح — fit با اپ)
+
+**یک stack مشترک** (api + web + marketing + portal): هر club با **host → tenantId** درست resolve شود؛ session operator و member ** قاطی نشود**؛ env چهارپروسه **یکسان** باشد.
+
+**Scope P8:** Profile **A** (dev `*.localhost`) + Profile **B** (VPS IP HTTP).  
+**خارج از P8:** TLS · custom apex · `__Host-` cookies · dedup packages → **P9/P10**.
+
+**Not acceptable at P8 exit:** silent tenant fallback · shared `session` cookie name on IP · prod JWT↔host fail-open · bootstrap فقط 2 env.
+
+→ جزئیات fit: [p8-app-fit.md](p8-app-fit.md)
+
+---
+
+## Strict scores today (2026-06-22)
+
+| Axis | Score | Blocker for |
+| ---- | ----: | ----------- |
+| Ingress | **3.5/10** | Profile B IP |
+| Session | **2.5/10** | IP cross-port |
+| Env | **3.5/10** | four-process deploy |
+| **Composite** | **3.2/10** | — |
+
+**Exit targets (fit-aligned):** Profile A **≥9** each axis · Profile B session **≥8** (IP cap) · env **≥9**.
+
+---
+
+## EPIC map (fit-aligned)
+
+### P8-0 — Ingress (M+P + API)
+
+| Nano | Deliverable | Fit |
+| ---- | ----------- | --- |
+| P8-0-N-001 | Wire IP fallback → tenant-context | ✅ Profile B |
+| P8-0-N-002 | Remove marketing silent fallback | ✅ |
+| P8-0-N-003 | Enforce **subdomain parser** surface (`club_portal` vs `club_apex`) | ✅ partial |
+| P8-0-N-004 | Doc: API loopback-only on VPS (not edge signing) | ✅ |
+| P8-0-N-005 | Smoke Profile A + B hosts | ✅ |
+
+#### P8-0-N-003 — parser surface kinds (G-ING-04a)
+
+`resolvePublicIngressSurfaceKind(host)` returns `club_admin` · `club_portal` · `club_apex` (or `ip_fallback` / `custom_domain`). Exposed on `GET /public/tenant-context` as `data.ingressSurface` so BFFs can distinguish admin vs portal vs marketing apex hosts with the same subdomain label.
+
+#### P8-0-N-004 — API loopback doc (G-ING-05a)
+
+See [runbooks/p8-api-loopback-vps.md](runbooks/p8-api-loopback-vps.md) — BFF `:3000–3003` public · API `127.0.0.1:3001` only.
+
+#### P8-0-N-005 — M+P bootstrap parity (G-ING-03)
+
+Marketing and portal share: `resolveTenantIdFromDevHost` → `fetchPublicTenantContextForHost` → `isDevWebSessionAllowed` dev fallback → surface-specific throw (`MARKETING_TENANT_UNRESOLVED` / `PORTAL_TENANT_UNRESOLVED`).
+
+#### P8-2-N-002 — env contract in verify (G-ENV-03)
+
+`verify-env-coherence.sh --all` checks four files · `MARKETING_REVALIDATE_SECRET` match · `SESSION_COOKIE_SECURE` on web+portal · `PUBLIC_TENANT_FALLBACK_LABEL` on api. Contract: [p8-env-contract.yaml](p8-env-contract.yaml).
+
+#### P8-2-N-004 — BFF fail-fast (G-ENV-04)
+
+`assertGuestBffProductionConfig()` in marketing/portal `env.ts` — throws when `NODE_ENV=production` and `AUTH_JWT_PUBLIC_KEY` or `TOUR_OPS_API_URL` missing (before tenant-context fetch).
+
+#### P8-0-N-001 — IP fallback wiring (G-ING-01)
+
+`GET /public/tenant-context` and `GET /public/tenant-branding` resolve tenant label via `resolvePublicIngressSubdomain(host)`:
+
+```text
+readIngressHost(req)
+  → resolveSubdomainFromPlatformHost     # club_admin | club_portal | club_apex | apex label
+  → resolveTenantFromCustomDomainHost  # tenant_domains row (skipped for bare IP/loopback)
+  → resolvePublicTenantLabelFromIngressHost  # PUBLIC_TENANT_FALLBACK_* on bare IP/loopback
+  → null → 404 TENANT_HOST_UNKNOWN
+```
+
+**Env contract (api.env):**
+
+| Variable | Role |
+| -------- | ---- |
+| `PUBLIC_TENANT_FALLBACK_LABEL` | Workspace label when host is bare IP/loopback (e.g. `operator`) |
+| `PUBLIC_TENANT_FALLBACK_HOSTS` | Optional CSV allowlist; when unset, any bare IPv4/127.0.0.1/localhost qualifies |
+
+Profile B staging sets both on VPS so `curl -H "x-forwarded-host: 89.45.89.206:23001" …/tenant-context` returns the same `tenantId` as `operator.localhost` — **no web-only hardcode**.
+
+#### P8-0-N-002 — marketing fail-closed (G-ING-02)
+
+`resolveMarketingBootstrapForHost` mirrors portal parity:
+
+```text
+resolveTenantIdFromDevHost        # dev host map only when ALLOW_DEV_WEB_SESSION
+  → fetchPublicTenantContextForHost  # API /public/tenant-context (P8-0-N-001 chain)
+  → isDevWebSessionAllowed ? fallbackTenantId() : throw MARKETING_TENANT_UNRESOLVED
+```
+
+**Production (`NODE_ENV=production`):** no silent `OPERATOR_SMOKE_TENANT_ID` when API returns 404/null — page errors instead of wrong tenant catalog.
+
+**Moved to P10:** full `tenant_domains` custom apex surface enforce.
+
+### P8-1 — Session (web operator + portal member only)
+
+| Nano | Deliverable | Fit |
+| ---- | ----------- | --- |
+| P8-1-N-001 | **Distinct cookie names** (not `__Host-` on HTTP) | ✅ IP |
+| P8-1-N-002 | Prod JWT↔host fail-closed | ✅ |
+| P8-1-N-003 | `apps/portal/middleware.ts` | ✅ |
+| P8-1-N-004 | SESSION_COOKIE_SECURE parity | ✅ VPS HTTP |
+
+#### P8-1-N-001 — distinct session cookies (G-SES-01/02)
+
+| App | Constant | Cookie name |
+| --- | -------- | ----------- |
+| web (operator) | `SESSION_TOKEN_COOKIE` | `atour_op_session` |
+| portal (member) | `SESSION_TOKEN_COOKIE` | `atour_mb_session` |
+
+Same bare IP hostname on `:3000` vs `:3003` no longer overwrites the other surface's JWT — browser stores two cookies because **names differ**. No `__Host-` prefix (Profile B HTTP).
+
+#### P8-1-N-002 — JWT↔host fail-closed (G-SES-03/05)
+
+**web:** `resolveExpectedTenantIdForHost` uses `resolveProductionIngressLabelFromHost` in production (multi-level host + `PUBLIC_TENANT_FALLBACK_*`) → mapped tenant UUID. `sessionTenantMatchesHost` rejects JWT when expected tenant is known and mismatched (no fail-open on resolved hosts).
+
+**portal:** `/me` layout compares `session.tenantId` to `resolvePortalBootstrapForHost(host).tenantId` before rendering member shell.
+
+#### P8-1-N-003 — portal middleware (G-SES-04)
+
+`apps/portal/middleware.ts` gates `/me/*` and `/api/me/*` before layout:
+
+```text
+no session → redirect / (pages) or 401 (BFF)
+session + tenant mismatch → clear atour_mb_session + redirect / or 403 BFF
+```
+
+#### P8-1-N-004 — SESSION_COOKIE_SECURE parity (G-SES-06)
+
+Portal `resolveSessionCookieSecure()` matches web: reads `SESSION_COOKIE_SECURE` env — `false` on Profile B HTTP VPS (`portal.env.example`).
+
+**Not in P8:** marketing session middleware · `__Host-` prefix (P10 HTTPS).
+
+### P8-2 — Env (four-process VPS)
+
+| Nano | Deliverable |
+| ---- | ----------- |
+| P8-2-N-001 | bootstrap 4 env templates + verify `--all` |
+| P8-2-N-002 | p8-env-contract in verify script |
+| P8-2-N-004 | fail-fast startup |
+
+#### P8-2-N-001 — four env bootstrap (G-ENV-01/02)
+
+`bootstrap-server.sh` copies `api.env` · `web.env` · `marketing.env` · `portal.env` from `deploy/vps/env/*.example`.
+
+`verify-env-coherence.sh --all` asserts each BFF `TOUR_OPS_API_URL` port matches `api.env` PORT.
+
+### P8-3 — Gate
+
+| Nano | Deliverable |
+| ---- | ----------- |
+| P8-3-N-001 | `p8:gate` + README four-process (G-ENV-07) |
+| P8-3-N-002 | `remote-deploy.sh` → `verify-env-coherence.sh --all` |
+
+#### P8-3-N-001 — `p8:gate` + production README (G-ENV-07)
+
+`pnpm run p8:gate` → `scripts/p8-platform-surface-gate.sh`:
+
+1. `pnpm run p7:gate` (omit with `P8_SKIP_P7=1` for fast P8-only iteration)
+2. P8 surface unit bundle: pack integrity + ingress + bootstrap + session specs across api · marketing · portal
+
+`deploy/vps/README.md` documents four-process layout, bootstrap, and `verify-env-coherence.sh --all`.
+
+**Profile A smoke** (API on loopback): `TOUR_OPS_API_URL=http://127.0.0.1:3001 node scripts/smoke-p6-host-bind.mjs`
+
+**Profile B smoke** (VPS IP): `pnpm run p8:staging-remote-smoke` or [runbooks/p8-profile-b-vps-smoke.md](runbooks/p8-profile-b-vps-smoke.md). Set `PUBLIC_TENANT_FALLBACK_LABEL` + `PUBLIC_TENANT_FALLBACK_HOSTS` in `api.env` per `p8-env-contract.yaml`.
+
+#### P8-3-N-002 — deploy verify-env
+
+`scripts/vps-deploy/remote-deploy.sh` runs `verify-env-coherence.sh --all` when both `marketing.env` and `portal.env` exist under `ENV_DIR` (default `/etc/app-tour`).
+
+**CI:** `.github/workflows/p8-platform-surface-gate.yml` runs `pnpm run p8:gate` on PR/push to `main`.
+
+---
+
+## Explicitly NOT P8
+
+| Item | Owner |
+| ---- | ----- |
+| `guest-surface-host` package | P9 |
+| Remove web `public-auth` | P9 |
+| pluginId hostname heuristic removal | P9 |
+| TLS · Caddy · cert renewal | P10 |
+| `__Host-` cookies | P10 |
+
+---
+
+## P7 overlap
+
+Wave A (IP fallback · 4 env) may run in **P7-0** for first customer — still P8 scope.
+
+---
+
+## References
+
+- [p8-app-fit.md](p8-app-fit.md)
+- [p8-gap-registry.md](p8-gap-registry.md)
+- [p8-exit-checklist.md](p8-exit-checklist.md)

@@ -6,7 +6,7 @@ import {
   formatDifficultyLevelStorage,
   parseDifficultyLevel,
   snapDifficultyLevel,
-} from "../src/wizard/denali/denali-difficulty-level-logic";
+} from "@app-tour/workspace-denali/ui/logic/denali-difficulty-level-logic";
 
 describe("denali-difficulty-level-logic.spec.ts", () => {
   it("DN-DIFF-01 snaps to half steps between 1 and 10", () => {

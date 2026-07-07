@@ -8,7 +8,7 @@ import { handleHttpError, sendHttpError } from "../middleware/error-interceptor"
 import { requireOperatorSession } from "../identity/require-operator-session";
 import { readIdentityRequestBody } from "../identity/read-identity-request-body";
 import { SettingsModuleNotSupportedError, SettingsMutationForbiddenError } from "../settings/settings.service";
-import { SettingsWorkspaceForbiddenError } from "../settings/settings-workspace-guard";
+import { SettingsWorkspaceForbiddenError } from "../settings/settings-workspace-errors";
 import { SettingsModuleUnknownError } from "../settings/settings-registry";
 
 import {
@@ -20,9 +20,9 @@ import {
   resolveTenantBrandLogoUrl,
   uploadTenantBrandLogo,
 } from "./tenant-branding.service";
-import { resolvePublicTenantLabelFromIngressHost } from "./resolve-public-tenant-label-from-host";
 import { assertTenantBrandLogoUploadContentType } from "./tenant-branding-storage";
 import { TENANT_BRAND_LOGO_MAX_BYTES } from "@app-tour/workspace-sdk";
+import { resolvePublicIngressSubdomain, resolvePublicIngressSurfaceKind } from "./resolve-public-ingress-subdomain";
 
 function mapBrandingError(res: ServerResponse, error: unknown): void {
   if (error instanceof SettingsMutationForbiddenError) {
@@ -187,12 +187,12 @@ export async function handlePublicTenantBranding(
 ): Promise<void> {
   try {
     const host = readIngressHost(req);
-    const labelOutcome = resolvePublicTenantLabelFromIngressHost(host);
-    if (labelOutcome.kind !== "label") {
+    const subdomain = await resolvePublicIngressSubdomain(host);
+    if (subdomain === null) {
       sendHttpError(res, 404, { error: "not_found", code: "TENANT_HOST_UNKNOWN" });
       return;
     }
-    const branding = await resolvePublicTenantBrandingBySubdomain(labelOutcome.label);
+    const branding = await resolvePublicTenantBrandingBySubdomain(subdomain);
     sendJson(res, 200, branding);
   } catch (error) {
     mapBrandingError(res, error);
@@ -205,13 +205,14 @@ export async function handlePublicTenantContext(
 ): Promise<void> {
   try {
     const host = readIngressHost(req);
-    const labelOutcome = resolvePublicTenantLabelFromIngressHost(host);
-    if (labelOutcome.kind !== "label") {
+    const subdomain = await resolvePublicIngressSubdomain(host);
+    if (subdomain === null) {
       sendHttpError(res, 404, { error: "not_found", code: "TENANT_HOST_UNKNOWN" });
       return;
     }
-    const context = await resolvePublicTenantContextBySubdomain(labelOutcome.label);
-    sendJson(res, 200, { success: true, data: context });
+    const context = await resolvePublicTenantContextBySubdomain(subdomain);
+    const ingressSurface = resolvePublicIngressSurfaceKind(host);
+    sendJson(res, 200, { success: true, data: { ...context, ingressSurface } });
   } catch (error) {
     mapBrandingError(res, error);
   }

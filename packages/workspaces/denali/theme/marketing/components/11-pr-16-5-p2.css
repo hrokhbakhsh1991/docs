@@ -1,0 +1,428 @@
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-home-testimonials-row]::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card] {
+  flex: 0 0 min(85vw, 20rem);
+  scroll-snap-align: start;
+  position: relative;
+  margin: 0;
+  padding: var(--space-5);
+  border: var(--mkt-border-width) solid var(--border);
+  border-radius: var(--catalog-card-radius);
+  background: linear-gradient(
+    165deg,
+    var(--card) 0%,
+    color-mix(in srgb, var(--color-primary) 6%, var(--card)) 100%
+  );
+  box-shadow: var(--mkt-shadow-card);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]::before {
+  content: "\201C";
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  top: var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+  pointer-events: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  blockquote {
+  margin: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  blockquote
+  p {
+  margin: 0;
+  padding-block-start: var(--space-4);
+  font-size: var(--mkt-text-body);
+  line-height: 1.65;
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-testimonial-card]
+  figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-3);
+  border-top: var(--mkt-border-width) solid var(--border);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-home-testimonial-name] {
+  font-size: var(--mkt-text-small);
+  font-weight: 600;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  span[data-marketing-home-testimonial-role] {
+  font-size: var(--mkt-text-meta);
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-home-gallery-grid] {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-gallery-item] {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--catalog-cover-radius);
+  border: var(--mkt-border-width) solid var(--border);
+  box-shadow: var(--mkt-shadow-card);
+  transition:
+    transform var(--mkt-motion-fast) ease,
+    box-shadow var(--mkt-motion-fast) ease;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-gallery-item]:hover {
+  transform: translateY(var(--mkt-lift-sm));
+  box-shadow: var(--mkt-shadow-card-hover);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-gallery-item]
+  img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s var(--mkt-ease-out);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  figure[data-marketing-home-gallery-item]:hover
+  img {
+  transform: scale(1.05);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  ul[data-marketing-home-equipment-list] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 1fr;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-equipment-item] {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  font-size: var(--mkt-text-body);
+  line-height: 1.5;
+  border: var(--mkt-border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    135deg,
+    var(--card) 0%,
+    color-mix(in srgb, var(--color-primary) 6%, var(--card)) 100%
+  );
+  box-shadow: var(--mkt-shadow-card);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  li[data-marketing-home-equipment-item]::before {
+  content: "";
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  box-shadow: inset 0 0 0 0.125rem var(--color-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 8.5L6.5 11.5L12.5 4.5' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 0.75rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  p[data-marketing-home-blog-stub] {
+  margin: 0;
+  padding: var(--space-5);
+  border: 0.125rem dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  font-size: var(--mkt-text-meta);
+  line-height: 1.6;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-home-faq-list] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item] {
+  border: var(--mkt-border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: var(--mkt-shadow-card);
+  overflow: hidden;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item]
+  summary[data-marketing-home-faq-question] {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--mkt-text-small);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item]
+  summary[data-marketing-home-faq-question]::-webkit-details-marker {
+  display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  details[data-marketing-home-faq-item][open]
+  summary[data-marketing-home-faq-question] {
+  border-bottom: var(--mkt-border-width) solid var(--border);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--card));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  p[data-marketing-home-faq-answer] {
+  margin: 0;
+  padding: var(--space-4);
+  font-size: var(--mkt-text-meta);
+  line-height: 1.65;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  div[data-marketing-footer-newsletter]
+  h3 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--mkt-text-h2);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-footer]
+  p[data-marketing-footer-newsletter-stub] {
+  margin: 0;
+  font-size: var(--mkt-text-meta);
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+@media (min-width: 640px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-why-grid] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-why-tile]:first-child {
+    grid-column: span 2;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-primary) 12%, var(--card)) 0%,
+      var(--card) 55%
+    );
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-destinations-row] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ul[data-marketing-home-equipment-list] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-latest-row] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-latest-card] {
+    flex: initial;
+  }
+}
+
+@media (min-width: 1024px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-latest-row] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-featured-bento] {
+    grid-template-columns: 1.15fr 1fr;
+    grid-template-rows: auto auto;
+    align-items: stretch;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary] {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary]
+    figure[data-marketing-home-featured-cover] {
+    aspect-ratio: auto;
+    flex: 1;
+    min-height: 14rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-destinations-row] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-gallery-grid] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-home-journey-steps] {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-3);
+    position: relative;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-home-journey-steps]::before {
+    content: "";
+    position: absolute;
+    top: 1.75rem;
+    inset-inline: 8%;
+    height: 0.125rem;
+    background: linear-gradient(
+      90deg,
+      var(--color-primary) 0%,
+      color-mix(in srgb, var(--color-primary) 40%, var(--border)) 100%
+    );
+    z-index: 0;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-home-journey-step] {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+    justify-items: center;
+    text-align: center;
+    border-inline-start: none;
+    border-block-start: 0.1875rem solid var(--color-primary);
+    padding-block-start: var(--space-5);
+    position: relative;
+    z-index: 1;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-home-journey-step]
+    svg {
+    grid-row: auto;
+    margin-top: 0;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-home-journey-step]
+    p {
+    grid-column: auto;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-testimonials-row] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    figure[data-marketing-home-testimonial-card] {
+    flex: initial;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-latest-row],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-testimonials-row] {
+    scroll-behavior: auto;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-latest-card]:hover
+    figure[data-marketing-home-latest-cover]
+    img,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-featured-card]:hover
+    figure[data-marketing-home-featured-cover]
+    img,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    figure[data-marketing-home-gallery-item]:hover
+    img {
+    transform: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    > section
+    > header
+    a:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    a[data-marketing-home-category-chip]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-why-tile]:hover,
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-home-final-cta]
+    a[data-marketing-home-cta]:hover {
+    transform: none;
+  }
+}

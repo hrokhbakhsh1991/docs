@@ -10,6 +10,17 @@ export const TENANT_SCOPED_METRIC_NAMES = new Set<string>([
   "tour_write_concurrency_shed_total",
   "outbox_relay_tenant_deferred_total",
   "outbox_projection_lag_seconds",
+  "workspace_metadata_validation_errors_total",
+  "integration_connection_created_total",
+  "integration_connection_create_failed_total",
+  "integration_delivery_success_total",
+  "integration_delivery_failed_total",
+  "field_exposure_engine_shadow_mismatch_total",
+  "field_exposure_engine_selector_failure_total",
+  "field_exposure_runtime_selection_total",
+  "field_exposure_shadow_parity_mismatch_total",
+  "field_exposure_cutover_selection_total",
+  "field_exposure_decision_audited_total",
 ]);
 
 function labelKey(labels: MetricLabels | undefined): string {
@@ -99,4 +110,169 @@ export function resetMetricsRegistryForTests(): void {
 /** tour_creation_count{tenant_id} — successful canonical tour persist. */
 export function recordTourCreated(tenantId: string): void {
   metricsRegistry.increment("tour_creation_count", { tenant_id: tenantId });
+}
+
+/** workspace_metadata_validation_errors_total{tenant_id,workspace_type} — metadata-path canonical validation fail. */
+export function recordWorkspaceMetadataValidationError(
+  tenantId: string,
+  workspaceType: string
+): void {
+  metricsRegistry.increment("workspace_metadata_validation_errors_total", {
+    tenant_id: tenantId,
+    workspace_type: workspaceType,
+  });
+}
+
+function workspaceTypeLabel(workspaceType: string | null | undefined): string {
+  const normalized = workspaceType?.trim();
+  return normalized !== undefined && normalized.length > 0 ? normalized : "global";
+}
+
+export function recordIntegrationConnectionCreated(input: {
+  readonly tenantId: string;
+  readonly provider: string;
+  readonly workspaceType: string | null;
+}): void {
+  metricsRegistry.increment("integration_connection_created_total", {
+    tenant_id: input.tenantId,
+    provider: input.provider,
+    workspace_type: workspaceTypeLabel(input.workspaceType),
+  });
+}
+
+export function recordIntegrationConnectionCreateFailed(input: {
+  readonly tenantId: string;
+  readonly provider: string;
+  readonly workspaceType: string | null;
+  readonly reason: string;
+}): void {
+  metricsRegistry.increment("integration_connection_create_failed_total", {
+    tenant_id: input.tenantId,
+    provider: input.provider,
+    workspace_type: workspaceTypeLabel(input.workspaceType),
+    reason: input.reason,
+  });
+}
+
+export function recordIntegrationDeliverySuccess(input: {
+  readonly tenantId: string;
+  readonly provider: string;
+  readonly capability: string;
+}): void {
+  metricsRegistry.increment("integration_delivery_success_total", {
+    tenant_id: input.tenantId,
+    provider: input.provider,
+    capability: input.capability,
+  });
+}
+
+export function recordIntegrationDeliveryFailed(input: {
+  readonly tenantId: string;
+  readonly provider: string;
+  readonly capability: string;
+  readonly reason: string;
+}): void {
+  metricsRegistry.increment("integration_delivery_failed_total", {
+    tenant_id: input.tenantId,
+    provider: input.provider,
+    capability: input.capability,
+    reason: input.reason,
+  });
+}
+
+export function recordFieldExposureShadowParityMismatch(input: {
+  readonly tenantId: string;
+  readonly eventType: string;
+  readonly provider: string;
+  readonly mismatchCount: number;
+}): void {
+  metricsRegistry.increment("field_exposure_shadow_parity_mismatch_total", {
+    tenant_id: input.tenantId,
+    event_type: input.eventType,
+    provider: input.provider,
+    mismatch_count: String(Math.max(1, input.mismatchCount)),
+  });
+}
+
+export function recordFieldExposureEngineShadowMismatch(input: {
+  readonly tenantId: string;
+  readonly eventType: string;
+  readonly surface: string;
+  readonly mismatchCount: number;
+}): void {
+  metricsRegistry.increment(
+    "field_exposure_engine_shadow_mismatch_total",
+    {
+      tenant_id: input.tenantId,
+      event_type: input.eventType,
+      surface: input.surface,
+    },
+    Math.max(1, input.mismatchCount),
+  );
+}
+
+/** Phase 9.10 — forward engine selector could not produce engineSelectedFieldIds. */
+export function recordFieldExposureEngineSelectorFailure(input: {
+  readonly tenantId: string;
+  readonly eventType: string;
+  readonly surface: string;
+}): void {
+  metricsRegistry.increment("field_exposure_engine_selector_failure_total", {
+    tenant_id: input.tenantId,
+    event_type: input.eventType,
+    surface: input.surface,
+  });
+}
+
+type FieldExposureSelectionMetricInput = {
+  readonly tenantId: string;
+  readonly eventType: string;
+  readonly provider: string;
+  readonly runtimeMode: "shadow" | "cutover";
+  readonly selectionSource: "native_exposure_intent" | "exposure_profile_defaults";
+  readonly nativeIntentMissing: boolean;
+};
+
+/** Phase 13 — auditable runtime selection decisions in every diagnostic runtime mode. */
+export function recordFieldExposureRuntimeSelection(
+  input: FieldExposureSelectionMetricInput,
+): void {
+  metricsRegistry.increment("field_exposure_runtime_selection_total", {
+    tenant_id: input.tenantId,
+    event_type: input.eventType,
+    provider: input.provider,
+    runtime_mode: input.runtimeMode,
+    selection_source: input.selectionSource,
+    native_intent_missing: input.nativeIntentMissing ? "true" : "false",
+  });
+}
+
+/** Phase 6 compatibility — cutover-only selection counter retained for existing dashboards. */
+export function recordFieldExposureCutoverSelection(
+  input: Omit<FieldExposureSelectionMetricInput, "runtimeMode">,
+): void {
+  metricsRegistry.increment("field_exposure_cutover_selection_total", {
+    tenant_id: input.tenantId,
+    event_type: input.eventType,
+    provider: input.provider,
+    selection_source: input.selectionSource,
+    native_intent_missing: input.nativeIntentMissing ? "true" : "false",
+  });
+}
+
+/** Phase 8 — authoritative exposure decision audit trail per emitted job. */
+export function recordFieldExposureDecisionAudited(input: {
+  readonly tenantId: string;
+  readonly eventType: string;
+  readonly provider: string;
+  readonly selectionSource: "native_exposure_intent" | "exposure_profile_defaults";
+  readonly resolverVersion: string;
+}): void {
+  metricsRegistry.increment("field_exposure_decision_audited_total", {
+    tenant_id: input.tenantId,
+    event_type: input.eventType,
+    provider: input.provider,
+    selection_source: input.selectionSource,
+    resolver_version: input.resolverVersion,
+  });
 }

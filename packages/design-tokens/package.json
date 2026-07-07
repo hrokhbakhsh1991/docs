@@ -12,6 +12,16 @@
       "default": "./dist/index.js"
     },
     "./styles.css": "./dist/index.css",
+    "./guest-shell.css": "./dist/guest-shell.css",
+    "./portal-bootstrap.css": "./dist/portal-bootstrap.css",
+    "./marketing-bootstrap.css": "./dist/marketing-bootstrap.css",
+    "./admin-bootstrap.css": "./dist/admin-bootstrap.css",
+    "./guest-body-reset.css": "./dist/guest-body-reset.css",
+    "./platform-infra-shell.css": "./dist/platform-infra-shell.css",
+    "./operator-admin-appearance.css": "./dist/operator-admin-appearance.css",
+    "./fallback-guest-marketing-shell.css": "./dist/fallback-guest-marketing-shell.css",
+    "./shell-bridge.css": "./dist/shell-bridge.css",
+    "./operator-shell-structure.css": "./dist/operator-shell-structure.css",
     "./semantic": {
       "types": "./dist/generated/semantic-tokens.d.ts",
       "default": "./dist/generated/semantic-tokens.js"
@@ -25,7 +35,7 @@
   "scripts": {
     "build": "node ./scripts/generate-tokens.mjs && node ./scripts/build.mjs && tsc -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test test/tokens-meta.contract.spec.mjs"
+    "test": "node --test test/tokens-meta.contract.spec.mjs test/shell-bridge-decomposition.spec.mjs test/bootstrap-surface-parity.spec.mjs test/dtcg-light-generation.spec.mjs test/dtcg-dark-generation.spec.mjs test/dtcg-e3-workspace-slices.spec.mjs test/dtcg-e4-skin-semantic.spec.mjs test/dtcg-e5-marketing-components.spec.mjs test/dtcg-f1-admin-skin.spec.mjs test/dtcg-f2-admin-hooks.spec.mjs test/dtcg-f3-wizard-fields.spec.mjs test/dtcg-f4-primitives.spec.mjs test/dtcg-f5-semantics.spec.mjs test/dtcg-f6-admin-appearance.spec.mjs test/dtcg-f-closure.spec.mjs test/dtcg-f9-admin-dark-primary.spec.mjs"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",

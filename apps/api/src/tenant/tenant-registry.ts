@@ -51,6 +51,16 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     workspaceType: "denali",
     theme: { primaryColor: "#0f766e", cssVariables: { "--color-primary": "#0f766e" } },
   },
+  {
+    id: "00000000-0000-4000-8000-000000000406",
+    subdomain: "urban-silo-enterprise",
+    workspaceType: "urban",
+    theme: {
+      primaryColor: "#0d9488",
+      cssVariables: { "--color-primary": "#0d9488" },
+      defaultLocale: "en",
+    },
+  },
 ];
 
 /**

@@ -6,7 +6,8 @@
   "sortLabel": "Sort:",
   "empty": "No tours in the catalog yet.",
   "sort": {
-    "created_at": "Date",
+    "created_at": "Created",
+    "departure_at": "Departure",
     "title": "Title",
     "price": "Price"
   },
@@ -16,7 +17,8 @@
     "all": "All",
     "draft": "Draft",
     "active": "Active",
-    "archived": "Archived"
+    "archived": "Archived",
+    "archivedHint": "Archive filter will be enabled when tour lifecycle FSM ships."
   },
   "errors": {
     "TOURS_LIST_HTTP_ERROR": "Failed to load tours (HTTP {status}).",
@@ -24,9 +26,11 @@
   },
   "emptyCatalog": "No tours yet. Create your first tour to get started.",
   "emptyFilter": "No tours match your filters. Try adjusting search or status.",
+  "createdNotice": "Tour created successfully.",
   "pagination": "Page {page, number} of {totalPages, number} · {total, number} tours",
   "card": {
     "noDescription": "No description",
+    "noCover": "No cover image",
     "view": "View",
     "workspace": "Workspace",
     "duplicate": "Duplicate (wizard)",
@@ -149,6 +153,7 @@
     "table": {
       "guest": "Guest",
       "party": "Party",
+      "transportIntake": "Transport choice",
       "departure": "Departure",
       "submitted": "Submitted",
       "actions": "Actions",

@@ -1,0 +1,91 @@
+{
+  "ctl_status": "ACTIVE",
+  "ctl_state": "GOVERNING",
+  "governing": true,
+  "completed": false,
+  "policy": "failure-first",
+  "global_state": "BLOCKED",
+  "execution_allowed": false,
+  "execution_decision": "BLOCKED",
+  "blockers": [
+    {
+      "risk": "R-04",
+      "pack": "marketing-control-pack",
+      "step": "marketing_critical_r04",
+      "reason": "guard-marketing-critical-risks: BLOCKED R-04"
+    },
+    {
+      "risk": "R-01",
+      "pack": "portal-control-pack",
+      "step": "guest_theme_loader",
+      "reason": "guard-portal-guest-theme-loader: BLOCKED R-01"
+    },
+    {
+      "risk": "R-02",
+      "pack": "admin-control-pack",
+      "step": "admin_shell_r02",
+      "reason": "guard-admin-shell-r02: BLOCKED R-02"
+    },
+    {
+      "risk": "R-03",
+      "pack": "admin-control-pack",
+      "step": "admin_globals_r03",
+      "reason": "guard-admin-globals-r03: BLOCKED R-03"
+    }
+  ],
+  "coverage": {
+    "control_coverage_pct": 71,
+    "enforced_invariants": 9,
+    "total_invariants": 19,
+    "ci_authority_wired": true,
+    "critical_detectors_active": 5,
+    "critical_detectors_total": 5
+  },
+  "packs": [
+    {
+      "pack": "marketing-control-pack",
+      "status": "BLOCKED",
+      "ctl_state": "GOVERNING",
+      "execution_allowed": false,
+      "blockers": [
+        {
+          "risk": "R-04",
+          "step": "marketing_critical_r04",
+          "reason": "guard-marketing-critical-risks: BLOCKED R-04"
+        }
+      ]
+    },
+    {
+      "pack": "portal-control-pack",
+      "status": "BLOCKED",
+      "ctl_state": "GOVERNING",
+      "execution_allowed": false,
+      "blockers": [
+        {
+          "risk": "R-01",
+          "step": "guest_theme_loader",
+          "reason": "guard-portal-guest-theme-loader: BLOCKED R-01"
+        }
+      ]
+    },
+    {
+      "pack": "admin-control-pack",
+      "status": "BLOCKED",
+      "ctl_state": "GOVERNING",
+      "execution_allowed": false,
+      "blockers": [
+        {
+          "risk": "R-02",
+          "step": "admin_shell_r02",
+          "reason": "guard-admin-shell-r02: BLOCKED R-02"
+        },
+        {
+          "risk": "R-03",
+          "step": "admin_globals_r03",
+          "reason": "guard-admin-globals-r03: BLOCKED R-03"
+        }
+      ]
+    }
+  ],
+  "date": "2026-07-05"
+}

@@ -25,6 +25,10 @@ export {
   DENALI_SMOKE_TENANT_ID,
 } from "./smoke/phase-6-denali-smoke-tenant";
 export {
+  buildDenaliFieldPolicyDefinitions,
+  DENALI_FIELD_POLICY_WORKSPACE_TYPE,
+} from "./field-policy/denali-field-policy-definitions";
+export {
   resolveDenaliWizardDimensions,
   resolveDenaliWizardDimensionsFromTourKind,
 } from "./wizard-dimensions";
@@ -33,6 +37,22 @@ export {
   buildDenaliFullWizardTemplateSteps,
   buildDenaliTenantWizardTemplatePayload,
 } from "./settings/denaliFullWizardTemplate";
+export {
+  DENALI_TOUR_KIND_CANONICAL_PATH,
+  DENALI_FROZEN_TEMPLATE_FIELDS,
+  assertDenaliFrozenWizardTemplateFieldsPresent,
+  DenaliWizardTemplateFrozenFieldMissingError,
+  ensureDenaliTourKindAllowedPaths,
+  ensureDenaliTourKindTemplateSteps,
+  ensureDenaliFrozenAllowedPaths,
+  ensureDenaliFrozenTemplateSteps,
+  ensureDenaliMatrixRequiredAllowedPaths,
+  ensureDenaliMatrixRequiredTemplateSteps,
+  isDenaliFrozenTemplateCanonicalPath,
+  listDenaliFrozenTemplateCanonicalPaths,
+  normalizeDenaliWizardTemplatePayloadSteps,
+} from "./wizard/ensure-tour-kind-template-field";
+export { normalizeDenaliWizardTemplateGate } from "./wizard/normalize-denali-wizard-template-gate";
 export {
   DENALI_CREATE_TOUR_DRAFT_KEY,
   DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
@@ -61,6 +81,8 @@ export {
   createDenaliWizardDraftSessionId,
   DENALI_WIZARD_DRAFT_SESSION_ID_PATTERN,
   isDenaliWizardDraftSessionId,
+  isDenaliWizardDraftPhotoReadKeyAllowed,
+  isDenaliOperatorTourPhotoReadKeyAllowed,
   putDenaliWizardDraftPhoto,
   assertDenaliPhotoUploadContentType,
   DENALI_MAX_PHOTO_UPLOAD_BYTES,
@@ -77,6 +99,10 @@ export {
   assertDenaliWizardDraftDestKey,
 } from "./photos";
 export { isDenaliHttpsImageUrl } from "./schemas/denaliFileAssetSchema";
+export {
+  readDenaliFirstPhotoHttpsUrl,
+  readDenaliFirstPhotoStorageKey,
+} from "./list/read-denali-first-photo";
 export type { MinioPhotoConfig } from "./photos";
 export {
   DENALI_CURRENT_CANONICAL_SCHEMA_VERSION,

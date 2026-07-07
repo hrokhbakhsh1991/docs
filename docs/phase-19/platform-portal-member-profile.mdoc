@@ -1,0 +1,514 @@
+---
+title: Platform — portal member profile architecture (freeze)
+phase: 19
+format: markdoc
+doc_role: architecture_sot
+doc_id: PLATFORM-PORTAL-MEMBER-PROFILE
+version: "2026-07-01-v1"
+status: FROZEN_CONTRACT
+extends:
+  - docs/phase-19/platform-portal-member.mdoc
+  - docs/phase-19/platform-portal-registration-intake.mdoc
+prerequisite: P6-3-N-010
+app: apps/portal
+---
+
+# Platform — portal member profile & `/me` area (architecture freeze)
+
+**Status:** 2026-07-02 · **Contract frozen** · **M6 aligned** — `GET/PATCH /api/me/profile`, SDK capabilities, Denali skin + DEN-PROF E2E (roadmap fields deferred)
+
+**Related:**
+
+- [platform-portal-member.mdoc](./platform-portal-member.mdoc) — session + `/me/registrations`
+- [platform-portal-registration-intake.mdoc](./platform-portal-registration-intake.mdoc) — intake capability pattern (template)
+- [portal-registration-ui.md](../workspaces/denali/portal-registration-ui.md) — current minimal `/me/profile` hooks
+- [IDENTITY-PORT-SCOPE.md](../phase-9/appendices/IDENTITY-PORT-SCOPE.md) — `/identity/me` (requires amendment)
+
+This document is the **single source of truth** for aligning:
+
+`/me/profile` · `/me/registrations` · `identity/me` (BFF upstream only) · `public-auth` (OTP/onboarding) · workspace-sdk capabilities
+
+---
+
+## A) Frozen invariants (non-negotiable)
+
+| ID | Invariant |
+| -- | --------- |
+| **INV-MP-01** | **Profile BFF family** — text fields via `GET/PATCH /api/me/profile`; avatar via `POST/DELETE/GET /api/me/avatar*`; mobile change via `POST /api/me/mobile/*`. Portal must not call upstream `identity/me` except through these BFF routes. **Exception (PCMS-REG-01):** `fetch-member-profile-from-session.server.ts` is allowlisted — same upstream as profile BFF GET for catalog registration SSR resume only. |
+| **INV-MP-02** | **No workspace imports in portal** — `apps/portal` must not static-import `packages/workspaces/*` or `@app-tour/workspace-{id}`. |
+| **INV-MP-03** | **Identity owns persistence** — `GET/PATCH /identity/me` is the only API persistence surface; storage = `UserTenant.membershipMetadata` via `me.service` / repository. |
+| **INV-MP-04** | **Single canonical contract** — `MemberProfileView` / `MemberProfilePatch` in `@app-tour/workspace-sdk`; portal BFF maps to/from `identity/me` internally. |
+| **INV-MP-05** | **No plugin branching in portal** — portal uses `bootstrap.pluginId` only to call SDK resolvers; no `pluginId === "denali"` (or similar) in `apps/portal`. |
+| **INV-MP-06** | **Capability-driven UI only** — profile field visibility and editability come from `resolveMemberProfileCapabilities(pluginId)`; forms render slots, not hardcoded field lists. |
+| **INV-MP-07** | **No validation in UI layer** — portal components must not contain regex or business validation; SDK + API return coded errors; UI displays them. |
+| **INV-MP-08** | **Workspace extends profile only via SDK** — workspace-specific rules live in `packages/workspaces/{id}` and are invoked from API layer, never from portal. |
+| **INV-MP-09** | **Portal owns presentation** — layout, i18n, theming, accessibility; not business rules. |
+| **INV-MP-10** | **Registrations stay on `/api/me/registrations`** — member bookings/receipt BFF is separate from profile BFF; both share session headers via `buildMemberApiHeaders`. |
+
+**Session (aligned with code, supersedes stale doc text):**
+
+| Item | Frozen value |
+| ---- | ------------ |
+| Member cookie | `atour_mb_session` (`SESSION_COOKIE_NAMES.member` in `@app-tour/session-client`) |
+| Operator cookie | `atour_op_session` — not used by portal member flows |
+| JWT validation | `validateSessionTokenAsync` in portal middleware + BFF (RS256 when `AUTH_JWT_*` set) |
+| Tenant binding | `sessionTenantMatchesHost` on `/me/*` and `/api/me/*` |
+
+---
+
+## B) Current state mapping (repo truth · post-M6)
+
+### Layer diagram (as implemented today)
+
+```text
+apps/portal/app/me/profile/page.tsx
+  SSR fetchMemberProfile() ──► GET /api/me/profile (same-origin BFF)
+       │
+       └──► MemberProfileForm (client, capability-driven)
+              PATCH ──► /api/me/profile
+
+apps/portal/app/catalog/.../public-catalog-registration-flow.tsx
+  GET ──► /api/me/profile  (registration pre-fill when session exists)
+
+apps/portal/app/api/me/profile/route.ts  (ONLY portal identity/me entry)
+  GET/PATCH ──► apps/api/identity/me  (internal upstream)
+
+apps/api/src/identity/me.routes.ts
+  handleGetIdentityMe / handlePatchIdentityMe
+
+apps/api/src/identity/me.service.ts
+  getOperatorProfile / patchOperatorProfile
+  └── membership-metadata.ts → UserTenant.membershipMetadata
+
+packages/workspace-sdk
+  resolveCatalogIntakeCapabilities(pluginId)  ✅
+  resolveMemberProfileCapabilities(pluginId)  ✅ M1
+```
+
+### Historical note (pre-M4 — removed)
+
+Legacy `session-profile` BFF and direct portal `identity/me` SSR were removed in M4. See migration plan M1–M4 below.
+
+### File map
+
+| Path | Role today | Freeze alignment |
+| ---- | ---------- | ---------------- |
+| `apps/portal/app/me/layout.tsx` | Session guards + `PortalMemberShell` wrapper (PS-1) | KEEP — presentation |
+| `apps/portal/src/shell/*` | Platform member shell frame (header, bottom nav, user menu) | **PS-1** |
+| `apps/portal/app/me/profile/page.tsx` | SSR profile load | **M3** — `fetchMemberProfile` → `/api/me/profile` |
+| `apps/portal/app/me/profile/member-profile-form.tsx` | Capability-driven form | **M3** — `PATCH /api/me/profile` |
+| `apps/portal/app/api/public-auth/session-profile/route.ts` | Legacy profile GET/PATCH | **REMOVED M4** |
+| `apps/portal/app/api/me/profile/route.ts` | Canonical profile BFF | **M2** |
+| `apps/portal/src/me/member-profile-bff.server.ts` | SDK mapping + patch validation | **M2** |
+| `apps/portal/src/me/fetch-member-profile.server.ts` | SSR same-origin profile fetch | **M3** |
+| `apps/portal/src/me/fetch-member-profile-from-session.server.ts` | PCMS catalog resume SSR (allowlisted `identity/me`) | **PCMS-REG-01** |
+| `apps/portal/src/catalog/build-registration-resume-initial-state.server.ts` | Skip OTP when member session valid | **PCMS-REG-01** |
+| `apps/portal/src/me/member-profile-contract.server.ts` | Contract v1 + unified errors | **M5** |
+| `apps/portal/src/me/member-profile-cache.server.ts` | GET cache + PATCH invalidation | **M5** |
+| `apps/portal/src/me/member-profile-observability.server.ts` | PII-free BFF telemetry | **M5** |
+| `apps/portal/src/me/member-profile-contract-v1.snapshot.json` | Frozen v1 contract snapshot | **M6** |
+| `apps/portal/src/me/member-profile-cache-store.server.ts` | Cache store abstraction | **M6** |
+| `apps/portal/src/me/member-profile-trace.server.ts` | traceId propagation | **M6** |
+| `apps/portal/src/me/member-profile-contract-alignment.server.ts` | Snapshot vs SDK alignment | **M6** |
+| `apps/portal/app/me/registrations/page.tsx` | List bookings | KEEP pattern |
+| `apps/portal/app/api/me/registrations/route.ts` | BFF `view=mine` | KEEP |
+| `apps/portal/app/api/me/registrations/[id]/receipt/route.ts` | Receipt upload BFF | KEEP |
+| `apps/portal/src/me/build-member-api-headers.server.ts` | Session → API headers | KEEP |
+| `apps/portal/middleware.ts` | Protect `/me/*` | KEEP |
+| `apps/api/src/identity/me.service.ts` | Persistence + validation | KEEP as authority |
+| `apps/api/src/identity/me.routes.ts` | HTTP adapter | KEEP |
+| `packages/workspace-sdk/.../resolve-member-profile-capabilities.ts` | Profile registry | **LANDED M1** |
+
+### `public-auth` vs profile (current)
+
+| Route | Purpose today | Status |
+| ----- | ------------- | ------ |
+| `POST /api/public-auth/phone-preflight` | OTP preflight | KEEP |
+| `POST /api/public-auth/request-otp` | OTP issue | KEEP |
+| `POST /api/public-auth/verify-otp` | OTP verify + cookie | KEEP |
+| `POST /api/public-auth/register-complete` | Onboarding profile | KEEP (onboarding only) |
+| `GET/PATCH /api/public-auth/session-profile` | Legacy profile BFF | **REMOVED M4** — use `/api/me/profile` |
+
+### Session handling (actual)
+
+1. `verify-otp` / `register-complete` BFF sets `atour_mb_session` via `setSessionCookieOnResponse`.
+2. `readPublicCatalogSessionFromCookies` decodes JWT; accepts `owner | admin | member | viewer`.
+3. `buildMemberApiHeaders` adds `Authorization: Bearer` + `x-user-id` + `x-actor-role` for member BFF calls.
+4. `me/profile/page.tsx` uses `fetchMemberProfile()` → same-origin `GET /api/me/profile` only.
+
+---
+
+## C) Target architecture
+
+### Layering (frozen target)
+
+```text
+apps/portal (presentation)
+  /me/profile UI slots ← resolveMemberProfileCapabilities(pluginId)
+  GET/PATCH /api/me/profile  (ONLY profile BFF)
+       │
+       ▼
+@app-tour/workspace-sdk (contracts + registry)
+  MemberProfileView
+  MemberProfilePatch
+  resolveMemberProfileCapabilities(pluginId)
+  buildMemberProfileUpstreamPatch(pluginId, patch)   // maps portal → identity/me body
+  validateMemberProfilePatch(pluginId, patch)         // coded errors; no UI regex
+       │
+       ▼
+apps/api/identity (persistence)
+  GET/PATCH /identity/me
+  me.service → membershipMetadata
+  (optional future: workspace validation hook inside API — not portal)
+       │
+       ▼
+packages/workspaces/{id} (business rules — API-invoked only)
+  workspace-specific validation adapters when needed
+```
+
+### Canonical contract (SDK · frozen names)
+
+**`MemberProfileView`** — portal BFF `GET /api/me/profile` response body:
+
+```typescript
+type MemberProfileFieldId =
+  | "displayName"
+  | "mobile"
+  | "email"
+  | "nationalId"
+  | "fatherName"
+  | "birthDate"
+  | "gender"
+  | "avatarUrl";
+
+type MemberProfileView = {
+  readonly ok: true;
+  readonly contractVersion: "v1";
+  readonly profile: {
+    readonly userId: string;
+    readonly tenantId: string;
+    readonly role: string;
+    readonly fields: Readonly<Partial<Record<MemberProfileFieldId, string | null>>>;
+    readonly capabilities: MemberProfileCapabilities; // echo for client hydration
+  };
+};
+```
+
+**`MemberProfilePatch`** — portal BFF `PATCH /api/me/profile` request body:
+
+```typescript
+type MemberProfilePatch = {
+  readonly contractVersion?: "v1";
+  readonly fields: Partial<Record<MemberProfileFieldId, string | null>>;
+};
+```
+
+**`MemberProfileApiError`** — unified BFF failure body (`ok: false`):
+
+```typescript
+type MemberProfileApiError = {
+  readonly code: string;
+  readonly message: string;
+  readonly fieldErrors?: Partial<Record<MemberProfileFieldId, string>>;
+};
+```
+
+**Rules:**
+
+- **camelCase only** at portal BFF boundary (fixes current snake_case split).
+- BFF translates to `PatchOperatorProfileRequest` (identity internal) on upstream `PATCH /identity/me`.
+- Read-only fields in capabilities must be rejected with `PROFILE_FIELD_READ_ONLY` if present in patch.
+- Unknown fields for plugin → `PROFILE_FIELD_NOT_SUPPORTED`.
+
+### SDK capability registry (frozen API · M1 landed)
+
+Module: `packages/workspace-sdk/src/profile/resolve-member-profile-capabilities.ts`
+
+```typescript
+type MemberProfileCapabilities = {
+  readonly editableFields: readonly MemberProfileFieldId[];
+  readonly readOnlyFields: readonly MemberProfileFieldId[];
+  readonly sections?: readonly { readonly id: string; readonly fields: readonly MemberProfileFieldId[] }[];
+  readonly validators: Readonly<Partial<Record<MemberProfileFieldId, MemberProfileFieldValidator>>>;
+};
+
+function resolveMemberProfileCapabilities(pluginId: string): MemberProfileCapabilities;
+```
+
+Validators live in `member-profile-validators.ts` — **BFF/API only**; portal UI must not call them (INV-MP-07).
+
+**Initial registry (v1 · frozen):**
+
+| pluginId | editableFields | readOnlyFields |
+| -------- | -------------- | -------------- |
+| `denali` | `displayName`, `email`, `nationalId`, `fatherName`, `birthDate` | `mobile` (+ avatar via `/api/me/avatar` · mobile change via `/api/me/mobile/*` when `mobileChangeViaOtp`) |
+| `urban` | `displayName` | `email` |
+
+Rows are **manifest-generated** (`workspace-member-profile-capabilities.generated.ts`). Unknown `pluginId` → `MemberProfileNotConfiguredError` (fail-closed; no silent default).
+
+Workspace deltas documented in `docs/workspaces/{id}/portal-member-profile.md` (Denali first).
+
+### Single profile BFF (frozen routes)
+
+| Method | Path | Auth | Upstream |
+| ------ | ---- | ---- | -------- |
+| `GET` | `/api/me/profile` | `atour_mb_session` | `GET /identity/me` → map to `MemberProfileView` |
+| `PATCH` | `/api/me/profile` | `atour_mb_session` | SDK patch build → `PATCH /identity/me` |
+| `POST` | `/api/me/avatar` | `atour_mb_session` | `POST /identity/me/avatar` |
+| `DELETE` | `/api/me/avatar` | `atour_mb_session` | `DELETE /identity/me/avatar` |
+| `GET` | `/api/me/avatar/url` | `atour_mb_session` | `GET /identity/me/avatar/url` |
+| `POST` | `/api/me/mobile/request-otp` | `atour_mb_session` | `POST /identity/me/mobile/request-otp` |
+| `POST` | `/api/me/mobile/verify` | `atour_mb_session` | `POST /identity/me/mobile/verify` (+ session cookie refresh) |
+
+**Not profile BFF:** all `public-auth/*` except onboarding (`register-complete`).
+
+### Identity persistence (unchanged authority)
+
+| Field | Storage key in `membershipMetadata` |
+| ----- | ----------------------------------- |
+| `displayName` | `displayName` |
+| `email` | `email` |
+| `nationalId` | `nationalId` |
+| `fatherName` | `fatherName` |
+| `birthDate` | `birthDate` |
+| `gender` | `gender` |
+| `avatar` | `avatar.storageKey` |
+
+Source: `apps/api/src/identity/membership-metadata.ts` · `me.service.ts`.
+
+---
+
+## D) Explicit anti-patterns (resolved vs open)
+
+| Anti-pattern | Status (2026-07-01) | Rule |
+| ------------ | ------------------- | ---- |
+| Portal SSR `fetch(…/identity/me)` | **RESOLVED M3** | INV-MP-01, INV-MP-07 |
+| Profile PATCH under public-auth namespace | **RESOLVED M4** | INV-MP-01 |
+| Regex validation in `member-profile-form.tsx` | **RESOLVED M3** | INV-MP-07 |
+| Hardcoded 3-field form (no capabilities) | **RESOLVED M3** | INV-MP-06 |
+| snake_case profile DTO at portal BFF | **RESOLVED M2/M5** | INV-MP-04 |
+| Doc cookie name `session` | **OPEN** — member doc drift | stale vs `atour_mb_session` |
+| Documented logout route missing | **RESOLVED** (2026-07-02) — `POST /api/public-auth/logout` |
+| `fetchMemberRegistrations` returns `[]` on error | **OPEN** | observability debt |
+| `if (pluginId === "denali")` in portal profile | **Not present** | INV-MP-05 — guarded |
+
+---
+
+## CURRENT → TARGET MIGRATION PLAN
+
+**Constraint:** migration steps are **sequenced**; no step skips doc freeze (this file).
+
+### Phase M1 — Contract & registry (SDK + docs only)
+
+1. Add `MemberProfileView` / `MemberProfilePatch` types to `workspace-sdk`. *(deferred — M1 ships capabilities only)*
+2. Add `resolveMemberProfileCapabilities(pluginId)` with denali/urban/default rows. **✅ Landed** — `packages/workspace-sdk/src/profile/resolve-member-profile-capabilities.ts`
+3. Add `buildMemberProfileUpstreamPatch` + `validateMemberProfilePatch` (SDK validators — single source). *(M4 — validators exist as field functions in `member-profile-validators.ts`)*
+4. Publish `docs/workspaces/denali/portal-member-profile.md` (workspace delta). **✅**
+5. Amend `IDENTITY-PORT-SCOPE.md` field table + `platform-portal-member.mdoc` cookie/session text. **✅**
+
+### Phase M2 — BFF consolidation
+
+1. Introduce `apps/portal/app/api/me/profile/route.ts` (`GET` + `PATCH`). **✅ Landed** — `apps/portal/src/me/member-profile-bff.server.ts`
+2. BFF uses `buildMemberApiHeaders` + `resolvePortalBootstrapForHost` for `pluginId`. **✅**
+3. BFF calls SDK to filter patch + map response to `MemberProfileView`. **✅**
+4. Mark `session-profile` GET/PATCH as **deprecated** in code comments; keep temporarily for registration flow. **✅ PATCH deprecated · GET retained for M3 registration**
+5. Registration pre-fill (`public-catalog-registration-flow`) switches to `GET /api/me/profile` when session exists. *(M3)*
+
+### Phase M3 — UI migration
+
+1. `me/profile/page.tsx` — remove `fetchSessionProfile`; load via `GET /api/me/profile` (server-side fetch to **same-origin BFF**, not direct API). **✅ M3**
+2. `MemberProfileForm` — render fields from `capabilities.editableFields`; remove hardcoded three fields. **✅ M3**
+3. Remove client-side regex; map API `code` to i18n via `resolve-member-profile-error`. **✅ M3**
+4. Add `data-portal-member-profile` + per-field `data-member-profile-field="{id}"` hooks. **✅ M3**
+5. Registration pre-fill (`public-catalog-registration-flow`) uses `GET /api/me/profile`. **✅ M3**
+
+### Phase M4 — Legacy elimination + boundary enforcement
+
+1. Remove `apps/portal/app/api/public-auth/session-profile/route.ts` entirely. **✅ M4**
+2. `identity/me` allowed only in `apps/portal/app/api/me/profile/route.ts`. **✅ M4**
+3. Add `guard:portal-member-profile-boundary` (static): no `identity/me` outside profile BFF; no `session-profile`; no workspace imports in profile domain. **✅ M4**
+4. Wire guard into portal `prebuild` / `prelint`. **✅ M4**
+
+### Phase M5 — System hardening (post-legacy stabilization)
+
+1. Contract version tag `v1` on `MemberProfileView` / error payloads (`member-profile-contract.server.ts`). **✅ M5**
+2. In-memory GET cache keyed by `tenantId` + `userId` + `pluginId`; invalidate on PATCH (`member-profile-cache.server.ts`). **✅ M5**
+3. Unified error shape `{ code, message, fieldErrors? }` on all `/api/me/profile` failures. **✅ M5**
+4. Structured observability hooks — capability resolve, GET/PATCH, validation, cache events; no PII (`member-profile-observability.server.ts`). **✅ M5**
+
+### Phase M6 — Final architecture lock (production freeze)
+
+1. Contract snapshot `member-profile-contract-v1.snapshot.json` — guard blocks SDK/BFF field drift. **✅ M6**
+2. Cache store abstraction (`MemberProfileCacheStore`) — in-memory default; distributed-ready interface. **✅ M6**
+3. Unified `traceId` on all profile BFF observability events + response header. **✅ M6**
+4. Guard upgrade — identity URL patterns, contract snapshot alignment, profile domain boundaries. **✅ M6**
+
+### Phase M7 — Architecture governance (truth consistency)
+
+1. `scripts/guards/lib/member-profile-architecture-truth.mjs` — shared drift collector. **✅ M7**
+2. `scripts/guards/architecture-truth-guard.mjs` — CI/build fail on HIGH drift. **✅ M7**
+3. `scripts/docs/check-architecture-doc-sync.mjs` — doc-only drift report. **✅ M7**
+4. `docs/phase-19/architecture-truth-drift-report.json` — generated drift artifact. **✅ M7**
+5. Runtime self-check: `member-profile-runtime-truth.server.ts` (non-blocking WARNING). **✅ M7**
+
+### Truth priority (enforced)
+
+1. Runtime behavior (highest)
+2. API/BFF implementation
+3. SDK contracts
+4. Snapshot schema
+5. Documentation (lowest — cannot override code)
+
+### Phase M8 — Closed-loop enforcement (runtime + semantic CI)
+
+1. Runtime modes `warn` (default) / `strict` via `MEMBER_PROFILE_ENFORCEMENT_MODE`. **✅ M8**
+2. Per-request `enforceMemberProfileRuntimeTruth` on `/api/me/profile` before success response. **✅ M8**
+3. Strict mode returns `PROFILE_ARCHITECTURE_DRIFT_DETECTED` (no PII). **✅ M8**
+4. Semantic drift simulation in `architecture-truth-guard.mjs` (capabilities ↔ BFF ↔ UI ↔ snapshot). **✅ M8**
+5. Enforcement matrix: `docs/phase-19/member-profile-enforcement-matrix.md`. **✅ M8**
+
+### Phase M9 — `/me/registrations` alignment (no contract change)
+
+- Keep existing BFF; ensure shared session header builder documented in this freeze.
+- Optional: amend `platform-portal-member.mdoc` routes table to include `/me/profile` + `/api/me/profile`.
+
+---
+
+## GAP ANALYSIS TABLE (post-M6)
+
+| Area | Docs | Code | Status | Risk |
+| ---- | ---- | ---- | ------ | ---- |
+| Profile capability registry | This freeze + SDK | `resolveMemberProfileCapabilities` | **ALIGNED** | Low |
+| Single profile BFF | This freeze | `/api/me/profile` only | **ALIGNED** | Low |
+| Canonical contract v1 | Snapshot + portal types | `contractVersion: v1` | **ALIGNED** | Low |
+| SSR profile load | BFF-only | `fetchMemberProfile` | **ALIGNED** | Low |
+| Legacy session-profile | Marked REMOVED M4 | File deleted | **ALIGNED** | Low |
+| `MemberProfileView` in SDK package export | Deferred | Portal-local types | **DEFERRED** | Low |
+| Logout BFF | Documented | Not implemented | **GAP** | Low (out of profile freeze) |
+| Operator session rejection on `/me` | Doc says reject | Middleware allows all roles | **DRIFT** | Medium |
+| Avatar on portal profile | Not specified | API exists; web only | **GAP** | Medium (future) |
+
+---
+
+## CODEBASE REALITY AUDIT (post-M6 · 2026-07-01)
+
+### `/me/profile/page.tsx` SSR behavior
+
+- Calls `fetchMemberProfile(host)` → same-origin `GET /api/me/profile`.
+- Does **not** call `identity/me` or legacy session-profile paths.
+- On failure shows `loadFailed` message (no silent empty form).
+
+### BFF vs direct API usage
+
+| Consumer | Read path | Write path |
+| -------- | --------- | ---------- |
+| `me/profile/page.tsx` (SSR) | `GET /api/me/profile` via `fetchMemberProfile` | — |
+| `member-profile-form.tsx` | — | `PATCH /api/me/profile` |
+| `public-catalog-registration-flow.tsx` | `GET /api/me/profile` | — |
+| `apps/portal/app/api/me/profile/route.ts` | upstream `GET /identity/me` | upstream `PATCH /identity/me` |
+
+### Workspace SDK usage in portal (profile)
+
+| Feature | SDK function | Used in portal? |
+| ------- | ------------ | --------------- |
+| Member profile capabilities | `resolveMemberProfileCapabilities` | **Yes** — BFF + form via capabilities echo |
+| Member profile validators | `validateMemberProfile*` | **Yes** — BFF only (not UI) |
+
+---
+
+## ARCHITECTURAL RULES (FREEZE GUARDRAILS)
+
+Enforceable static rules (target: `guard:portal-member-profile-boundary`):
+
+| ID | Rule | Detection |
+| -- | ---- | --------- |
+| **GR-MP-01** | Portal MUST NOT import `packages/workspaces/*` or `@app-tour/workspace-*` | import-boundary / grep |
+| **GR-MP-02** | Portal MUST NOT contain business validation (regex for nationalId, birthDate, email) | grep in `apps/portal/app/me` |
+| **GR-MP-03** | Only SDK may expose profile capabilities | no `editableFields` arrays in portal |
+| **GR-MP-04** | Only identity may persist profile | portal never writes `membershipMetadata` |
+| **GR-MP-05** | Only ONE profile BFF: `/api/me/profile` | legacy public-auth profile route removed (M4) |
+| **GR-MP-06** | No `pluginId ===` / `workspace ===` in portal profile code | grep |
+| **GR-MP-07** | No upstream identity URL in portal UI routes | boundary guard scans `app/me` + `src` |
+| **GR-MP-08** | Profile UI fields must be driven by `resolveMemberProfileCapabilities` | contract test |
+
+---
+
+## DEFINITION OF DONE (architecture complete)
+
+Architecture freeze is **implemented** (not just documented) when:
+
+- [ ] `MemberProfileView` / `MemberProfilePatch` exported from `workspace-sdk` *(M1 deferred — capabilities only)*
+- [x] `resolveMemberProfileCapabilities(pluginId)` manifest-generated rows (denali + urban) **(M1 + PF-2.1 · 2026-07-02)**
+- [x] `GET/PATCH /api/me/profile` is the only profile BFF *(M2 · 2026-07-01)*
+- [x] `apps/portal/app/me/profile` uses BFF only (no direct API URL) *(M3 · 2026-07-01)*
+- [x] No regex business validation in portal profile UI *(M3 · 2026-07-01)*
+- [x] `session-profile` route removed *(M4 · 2026-07-01)*
+- [x] Registration pre-fill uses `/api/me/profile` or shared SDK mapper *(M3 · 2026-07-01)*
+- [x] `IDENTITY-PORT-SCOPE` + `platform-portal-member.mdoc` amended to match freeze doc
+- [x] `docs/workspaces/denali/portal-member-profile.md` published
+- [x] `guard:portal-member-profile-boundary` green in CI *(M4 · 2026-07-01)*
+- [x] `SDK-MP-CAP-*` / `SDK-MP-VAL-*` specs in `resolve-member-profile-capabilities.spec.ts`
+- [x] `MP-M6-*` architecture lock specs — snapshot, cache store, traceId, guard *(M6 · 2026-07-01)*
+- [x] `MP-M7-*` truth governance — architecture-truth-guard, drift report, runtime self-check *(M7 · 2026-07-01)*
+- [x] `MP-M8-*` closed-loop enforcement — strict mode, semantic CI drift, enforcement matrix *(M8 · 2026-07-01)*
+- [x] `MP-M5-*` hardening specs — contract v1, cache, unified errors *(M5 · 2026-07-01)*
+- [x] `MP-BFF-*` portal BFF specs in `portal-member-profile-bff.spec.ts` *(M2 · 2026-07-01)*
+
+**This document alone does not complete the checklist** — it freezes the contract for implementation phases M1–M8.
+
+---
+
+## Cross-reference: `/me/registrations` (frozen scope · no migration)
+
+| Route | BFF | API | Status |
+| ----- | --- | --- | ------ |
+| `/me/registrations` | via server `fetchMemberRegistrations` | `GET /bookings?view=mine` | Aligned |
+| `/api/me/registrations` | GET proxy | same | Aligned |
+| `/api/me/registrations/[id]/receipt` | POST | `POST /bookings/{id}/receipts` | Aligned |
+
+Session headers: `buildMemberApiHeaders` → `mergeCatalogRegistrationHeaders` (shared with catalog registration POST).
+
+---
+
+## KEEP / CHANGE / REMOVE / AVOID
+
+### KEEP
+
+- Portal does not import workspace packages (today compliant)
+- `identity/me` as persistence API authority
+- `membershipMetadata` storage model
+- `atour_mb_session` / `session-client` separation from operator
+- Intake capability pattern (`resolveCatalogIntakeCapabilities`) as template
+- `/api/me/registrations` + receipt BFF pattern
+- `buildMemberApiHeaders` for authenticated member upstream calls
+- P6 `/me` middleware + tenant host binding
+
+### CHANGE (completed M1–M7)
+
+- `/api/me/profile` is the sole profile BFF ✅
+- SDK profile capability registry + portal BFF mapping ✅
+- Capability-driven profile UI ✅
+- Truth governance guards + drift report ✅
+
+### REMOVE (completed)
+
+- Legacy `session-profile` route ✅ M4
+- Direct `identity/me` from portal UI/SSR ✅ M3
+- Client-side regex validation in profile form ✅ M3
+- snake_case profile DTO at portal boundary ✅ M2/M5
+
+### AVOID
+
+- `pluginId === "denali"` (or any workspace id) in portal profile code
+- Static-importing workspace packages into portal
+- Duplicating validation in UI, BFF, and workspace
+- New profile fields without SDK capability + identity metadata doc
+- Using exposure profiles as member profile storage
+- Copying `apps/web` operator profile UI into portal without SDK contract
+- SSR bypass of BFF for member profile reads
+
+---
+
+**Authority chain:** This doc → SDK types/registry → portal BFF → `identity/me` → workspace validation hooks (API-only) → Denali delta doc.
+
+**Next workspace doc (not in this freeze):** `docs/workspaces/denali/portal-member-profile.md`

@@ -12,9 +12,12 @@ import React, { type ReactNode } from "react";
 import { LocalizedDatePicker } from "@/components/i18n/localized-date-picker";
 import { PrimitiveLocalizedNumericInput } from "@/components/i18n/localized-numeric-input";
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
-import { resolveWizardTemplateFieldLabel } from "@/tours/wizard-template-field-labels";
 
 import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
+import {
+  resolveWizardEnumOptionLabel,
+  resolveWizardFieldLabel,
+} from "./wizard-label-surface-registry";
 
 /** Kinds wired to ui-primitives subpaths in the Phase 3 shell. */
 export const SUPPORTED_WIZARD_FIELD_KINDS = [
@@ -43,7 +46,10 @@ type WizardFieldRendererProps = {
   readonly selectPlaceholder: string;
 };
 
-export function parseEnumOptions(field: RenderFieldPlan): readonly SelectOption[] {
+export function parseEnumOptions(
+  field: RenderFieldPlan,
+  resolveOptionLabel?: (value: string) => string
+): readonly SelectOption[] {
   const raw = field.uiHints?.enumOptions;
   if (!raw) {
     return [];
@@ -55,7 +61,10 @@ export function parseEnumOptions(field: RenderFieldPlan): readonly SelectOption[
     }
     return parsed.map((entry) => {
       const value = String(entry);
-      return { value, label: value };
+      return {
+        value,
+        label: resolveOptionLabel?.(value) ?? value,
+      };
     });
   } catch {
     return [];
@@ -91,8 +100,11 @@ function renderEnumField({
   onChange,
   label,
   selectPlaceholder,
-}: WizardFieldRendererProps): ReactNode {
-  const options = parseEnumOptions(field);
+  resolveOptionLabel,
+}: WizardFieldRendererProps & {
+  readonly resolveOptionLabel?: (value: string) => string;
+}): ReactNode {
+  const options = parseEnumOptions(field, resolveOptionLabel);
   return (
     <label {...fieldMarkerProps(field)}>
       <span>{label}</span>
@@ -216,8 +228,10 @@ export function WizardField({
   onDraftChange,
   wizardSessionId,
   workspaceFormProfile,
+  wizardRuleEvalContext,
   compositeSurfaceId,
   fieldLabelSurfaceId,
+  translateWorkspaceMessage,
 }: {
   readonly field: RenderFieldPlan;
   readonly value: string;
@@ -228,24 +242,31 @@ export function WizardField({
   readonly onDraftChange?: (draft: TourWizardDraft) => void;
   readonly wizardSessionId?: string;
   readonly workspaceFormProfile?: string;
+  readonly wizardRuleEvalContext?: unknown;
   readonly compositeSurfaceId?: string;
   readonly fieldLabelSurfaceId?: string;
+  readonly translateWorkspaceMessage?: (key: string) => string;
 }) {
-  const tDenali = useTranslations("denali");
   const tField = useTranslations("wizard.field");
-  const labelSurface = resolveWizardCompositeSurface(fieldLabelSurfaceId);
-  const label =
-    labelSurface != null
-      ? labelSurface.resolveFieldLabel((key) => tDenali(key), field.canonicalPath)
-      : resolveWizardTemplateFieldLabel(field.canonicalPath, pluginId);
+  const translate = translateWorkspaceMessage ?? ((key: string) => key);
+  const label = resolveWizardFieldLabel(fieldLabelSurfaceId, translate, field.canonicalPath);
+  const resolveOptionLabel =
+    translateWorkspaceMessage != null
+      ? (optionValue: string) =>
+          resolveWizardEnumOptionLabel(
+            fieldLabelSurfaceId,
+            translateWorkspaceMessage,
+            field.canonicalPath,
+            optionValue
+          )
+      : undefined;
 
   if (field.hidden) {
     return null;
   }
 
-  const compositeId =
-    field.uiHints?.compositeId ??
-    (field.fieldId.startsWith("denali.") ? field.fieldId : undefined);
+  // Composite routing is authoritative from platform-core render plan (field.id ≠ canonicalPath).
+  const compositeId = field.uiHints?.compositeId;
   if (compositeId != null && compositeId.length > 0 && draft !== undefined && onDraftChange) {
     const compositeSurface = resolveWizardCompositeSurface(compositeSurfaceId);
     if (compositeSurface != null) {
@@ -256,23 +277,34 @@ export function WizardField({
         onDraftChange,
         wizardSessionId,
         workspaceFormProfile,
+        wizardRuleEvalContext,
       });
     }
-    if (field.kind === "composite" || field.fieldId.startsWith("denali.")) {
-      return <p data-denali-wizard-composite-loading aria-busy="true" />;
+    if (field.kind === "composite") {
+      return <p data-wizard-composite-loading aria-busy="true" />;
     }
   }
 
   const render = WIZARD_FIELD_RENDERERS[field.kind];
   if (render) {
-    return render({
-      field,
-      value,
-      onChange,
-      label,
-      dataTestId,
-      selectPlaceholder: tField("selectPlaceholder"),
-    });
+    return field.kind === "enum"
+      ? renderEnumField({
+          field,
+          value,
+          onChange,
+          label,
+          dataTestId,
+          selectPlaceholder: tField("selectPlaceholder"),
+          resolveOptionLabel,
+        })
+      : render({
+          field,
+          value,
+          onChange,
+          label,
+          dataTestId,
+          selectPlaceholder: tField("selectPlaceholder"),
+        });
   }
 
   return (

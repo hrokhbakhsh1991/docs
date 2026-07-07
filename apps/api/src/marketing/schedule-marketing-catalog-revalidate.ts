@@ -1,6 +1,8 @@
 import { logger } from "../observability/logger";
 
-function resolveMarketingRevalidateEndpoint(): { url: string; secret: string } | null {
+import { scheduleMarketingSitemapPing } from "./schedule-marketing-sitemap-ping";
+
+function resolveMarketingRevalidateEndpoint(): { url: string; secret: string; sitemapUrl?: string } | null {
   const baseUrl = process.env.MARKETING_REVALIDATE_URL?.trim();
   const secret = process.env.MARKETING_REVALIDATE_SECRET?.trim();
   if (baseUrl === undefined || baseUrl.length === 0) {
@@ -12,6 +14,7 @@ function resolveMarketingRevalidateEndpoint(): { url: string; secret: string } |
   return {
     url: `${baseUrl.replace(/\/$/, "")}/api/revalidate`,
     secret,
+    sitemapUrl: process.env.MARKETING_SITEMAP_URL?.trim(),
   };
 }
 
@@ -49,6 +52,11 @@ export function scheduleMarketingCatalogRevalidate(tenantId: string): void {
           },
           "marketing catalog revalidate returned non-OK status"
         );
+        return;
+      }
+
+      if (endpoint.sitemapUrl !== undefined && endpoint.sitemapUrl.length > 0) {
+        scheduleMarketingSitemapPing(endpoint.sitemapUrl);
       }
     })
     .catch((error: unknown) => {

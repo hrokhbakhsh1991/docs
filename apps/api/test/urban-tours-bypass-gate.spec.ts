@@ -8,7 +8,7 @@ import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
 import { encodeDevBearerToken } from "../src/tenant-kernel/parse-bearer";
-import { urbanTourPatchTouchesPublishFields } from "../src/urban/urban-tour-publish-field-gate";
+import { urbanTourPatchTouchesPublishFields } from "@app-tour/workspace-urban/http";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 const URBAN_TENANT_ID = "00000000-0000-4000-8000-000000000004";

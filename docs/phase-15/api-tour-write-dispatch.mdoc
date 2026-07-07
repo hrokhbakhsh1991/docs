@@ -1,0 +1,51 @@
+---
+title: Phase 15 — API tour write dispatch (P-B4)
+phase: 15
+format: markdoc
+---
+
+# Tour PATCH publish-owner dispatch (P15-P-B4)
+
+## Problem
+
+`apps/api/src/tours/` still hard-coded workspace branches for:
+
+- publish-field owner assertion (`assert-tour-publish-field-owner.ts`)
+- operator **member** PATCH denial (`tours.routes.ts` — Denali-only enterprise policy)
+
+Patch merge/gates already use `workspace-tour-write-bindings.generated.ts` (Phase 10.3); P-B4 closes the remaining tour-write host branches.
+
+## Manifest contract (`tourWrite` extensions)
+
+| Field | Denali | Urban |
+|-------|--------|-------|
+| `publishOwnerAssertModule` | `./http` | `./http` |
+| `publishOwnerAssertExport` | `assertDenaliWorkspaceOwner` | `assertWorkspaceOwner` |
+| `forbidOperatorMemberTourPatch` | `true` | omitted |
+
+Codegen extends `WORKSPACE_TOUR_WRITE_BINDINGS` with `assertPublishFieldOwner` and optional `forbidOperatorMemberTourPatch`.
+
+## Host dispatch
+
+[`workspace-tour-write-dispatch.ts`](../../apps/api/src/tours/workspace-tour-write-dispatch.ts):
+
+| Function | Route usage |
+|----------|-------------|
+| `assertTourPublishFieldOwner({ auth, workspaceType, surface })` | PATCH `/tours/:id` when publish gate fires |
+| `operatorMemberTourPatchForbidden(workspaceType)` | PATCH `/tours/:id` before service call |
+
+[`assert-tour-publish-field-owner.ts`](../../apps/api/src/tours/assert-tour-publish-field-owner.ts) re-exports dispatch (legacy import path preserved).
+
+## Out of scope (P-B4)
+
+[`bridge-denali-operator-create-body.ts`](../../apps/api/src/tours/bridge-denali-operator-create-body.ts) — operator-smoke starter ingress bridge (SMK-P9-02); remains Denali-named until Phase 11.7 neutral create ingress lands.
+
+## Verify
+
+```bash
+pnpm run generate:workspace-registry --check
+pnpm run phase-15:platform-fast-gate
+node --test apps/api/test/workspace-tour-write-dispatch.spec.ts
+! rg -q 'workspaceType === "denali"' apps/api/src/tours/tours.routes.ts
+! rg -q 'workspaceType === "denali"' apps/api/src/tours/assert-tour-publish-field-owner.ts
+```

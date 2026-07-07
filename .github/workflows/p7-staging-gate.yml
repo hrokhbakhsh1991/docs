@@ -1,0 +1,50 @@
+name: P7 Staging Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_path:
+        description: "Path on VPS (default /opt/app-tour)"
+        required: false
+        default: "/opt/app-tour"
+
+concurrency:
+  group: p7-staging-gate
+  cancel-in-progress: false
+
+jobs:
+  staging-gate:
+    name: Remote p7:staging-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.repository == 'hrokhbakhsh1991/docs'
+    steps:
+      - name: Check VPS secrets
+        id: vps
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -n "$VPS_HOST" ] && [ -n "$VPS_SSH_KEY" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Skipped: VPS_HOST or VPS_SSH_KEY not configured."
+          fi
+
+      - name: Checkout (scripts only)
+        if: steps.vps.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Run remote staging gate
+        if: steps.vps.outputs.ready == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_DEPLOY_PATH: ${{ inputs.deploy_path }}
+        run: bash scripts/p7-staging-remote-gate.sh
+
+      - name: Skip notice
+        if: steps.vps.outputs.ready != 'true'
+        run: echo "Configure VPS secrets to enable remote P7 staging gate."

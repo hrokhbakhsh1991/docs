@@ -1,0 +1,443 @@
+---
+title: Phase 15 — Platform Control Center API (P1 EPIC A)
+phase: 15
+format: markdoc
+---
+
+# Platform Control Center — read API (P1 EPIC A)
+
+## Scope
+
+Platform ops HTTP surface under **`/platform/v1/*`**. Production provisioning uses **`POST /platform/v1/tenants`** (not `/internal/tenants/provision`).
+
+EPIC A adds **read** endpoints for workspace catalog and tenant directory. All routes require platform ops auth headers:
+
+| Header | Purpose |
+|--------|---------|
+| `Authorization: Bearer …` | Must match `PLATFORM_OPS_BEARER_TOKEN` (dev default `platform-ops`) |
+| `X-Platform-Ops-Phone` | Ops phone; role from `platform_ops_users` when present, else env whitelist |
+
+Authenticated ops context from `assertPlatformOpsAuth`: `{ actorId: phone, roles: [dbRole \| "owner"] }`.
+
+### Platform ops auth (P0)
+
+| Surface | Mechanism |
+|---------|-----------|
+| API `/platform/v1/*` | Bearer + phone headers; role from DB |
+| API `/platform/v1/auth/request-otp` | Phone in `platform_ops_users` or `PLATFORM_OPS_PHONES` |
+| API `/platform/v1/auth/verify-otp` | OTP + phone access → **`platformSessionToken`** (RS256 JWT) |
+| Web cookie `platform_session` | JWT (`kind=platform_ops`, `sub=phone`, `platform_role`) — not forgeable JSON |
+
+Signing: `signPlatformOpsSessionToken` (`apps/api/src/platform/sign-platform-ops-session-token.ts`) — same `AUTH_JWT_*` keys as operator sessions.
+
+Env:
+
+| Variable | Purpose |
+|----------|---------|
+| `PLATFORM_OPS_BEARER_TOKEN` | Expected Bearer secret for BFF → API |
+| `PLATFORM_OPS_PHONES` | CSV fallback when phone absent from DB |
+
+## Route inventory
+
+| Method | Path | Handler | Auth |
+|--------|------|---------|------|
+| `GET` | `/platform/v1/workspaces` | `handlePlatformWorkspaces` | read |
+| `GET` | `/platform/v1/tenants` | `handlePlatformTenantsList` | read |
+| `GET` | `/platform/v1/tenants/{tenantId}` | `handlePlatformTenantsGet` | read |
+| `POST` | `/platform/v1/tenants` | `handlePlatformTenantsCreate` | write |
+
+`handlePlatformTenantsGet` accepts optional test deps `{ repository, subscriptionRepository, auth }` so unit specs can mock `PlatformTenantRepository`, `PlatformSubscriptionRepository` (P2-C billing on detail DTO), and `PlatformOpsUserRepository` (avoids `PLATFORM_OPS_PHONES` races under parallel `node --test`).
+
+### P1 gate
+
+| Command | Scope |
+|---------|--------|
+| `pnpm run p1:gate` | Fast subset: core platform unit specs + structural smokes (`<~2min`, no Postgres) |
+| `pnpm run p1:gate:full` | All `platform*.spec.ts` (API + web) + structural smokes |
+| `pnpm run p1:live-smoke` | Opt-in: live `POST /platform/v1/tenants` → assert **201** + `tenant`/`sites`/`invite` (requires `DATABASE_URL` + `DATABASE_URL_ADMIN` + running API) |
+| `pnpm run p1:e2e-gate` | Playwright platform E2E (Postgres + migrate) |
+
+```bash
+pnpm run p1:gate
+pnpm run p1:gate:full
+pnpm run p1:e2e-gate
+# optional when Postgres + API available:
+pnpm run p1:live-smoke
+```
+
+Handler behavioral coverage: `platform-provision.spec.ts` calls `handlePlatformTenantsCreate` for **401** / **403** / **400** (idempotency); **201** runs only when `DATABASE_URL` and `DATABASE_URL_ADMIN` are set.
+
+Dispatch: `apps/api/src/http/platform-route-registrar.ts` → `tryDispatchPlatformRoutes` from `app.ts`.
+
+OpenAPI SoT: `apps/api/src/openapi/dispatch-routes.ts` (`DISPATCH_ROUTES`).
+
+## Tenant directory
+
+### Repository
+
+`PlatformTenantRepository` (`apps/api/src/platform/platform-tenant.repository.ts`) uses **`getPrismaAdmin()`** only — no tenant RLS context. Queries `tenants` with a fixed select:
+
+`id`, `subdomain`, `workspaceType`, `status`, `createdAt`.
+
+| Method | Behavior |
+|--------|----------|
+| `listPaginated(limit, offset)` | `findMany` ordered by `createdAt desc` + `count()` |
+| `getById(id)` | `findUnique` by UUID; `null` when missing |
+
+Defaults: `limit=50` (max 100), `offset=0`.
+
+### DTO
+
+`toPlatformTenantDto` (`platform-tenant.dto.ts`) maps a repository row to JSON-safe shape:
+
+```json
+{
+  "id": "uuid",
+  "subdomain": "my-club",
+  "workspaceType": "denali",
+  "status": "active",
+  "createdAt": "2026-06-21T12:00:00.000Z"
+}
+```
+
+No Prisma internals or `theme` blob in list/get responses.
+
+### List response
+
+`GET /platform/v1/tenants?limit=50&offset=0`:
+
+```json
+{
+  "items": [ /* PlatformTenantDto[] */ ],
+  "total": 42,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+### Get response
+
+- `200` — `PlatformTenantDetailDto`:
+
+```json
+{
+  "tenant": { "id", "subdomain", "workspaceType", "status", "createdAt" },
+  "sites": { "marketing", "portal", "admin" },
+  "ownerInvite": { "inviteId", "phone", "status" }
+}
+```
+
+`ownerInvite` is `null` when no pending owner invite exists.
+
+- `404` — `{ "error": "not_found", "code": "NOT_FOUND" }`
+
+## Workspaces catalog
+
+`GET /platform/v1/workspaces` returns `{ "workspaces": [{ "id", "types", "displayName", "productionTier", "productionOnboardingAllowed" }] }` from `listPlatformWorkspaces()` (registry-backed certification map; `starter` excluded).
+
+## P2-B — Support impersonation
+
+Detail: [`platform-impersonation.mdoc`](platform-impersonation.mdoc).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `POST` | `/platform/v1/tenants/{tenantId}/impersonate` | `assertPlatformOpsImpersonateRole` · audit `IMPERSONATE_START` |
+| `POST` | `/platform/v1/tenants/{tenantId}/impersonate/end` | audit `IMPERSONATE_END` |
+| `POST` | `/auth/accept-platform-impersonation` | exchange impersonation JWT → operator session cookie (web BFF) |
+
+## P2-C — Billing & plans
+
+Detail: [`platform-billing-plans.mdoc`](platform-billing-plans.mdoc).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/platform/v1/plans` | plan catalog |
+| PATCH | `/platform/v1/tenants/{tenantId}/subscription` | write role |
+| POST | `/platform/v1/tenants/{tenantId}/subscription/mark-paid` | owner only |
+| POST | `/platform/v1/billing/run-past-due-check` | owner only |
+
+## P2-D — Domains & SSL
+
+Detail: [`platform-domains-ssl.mdoc`](platform-domains-ssl.mdoc).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/platform/v1/tenants/{tenantId}/domains/{domainId}/verify` | live DNS + SSL provision |
+| GET | `/platform/v1/domains/ssl-summary` | ops auth · `{ expiringWithin14Days }` |
+| POST | `/platform/v1/domains/run-ssl-expiry-check` | owner only · audit `DOMAIN_SSL_EXPIRING` |
+
+## P2-E — Offboard & compliance
+
+Detail: [`platform-offboard-compliance.mdoc`](platform-offboard-compliance.mdoc).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/platform/v1/tenants/{id}/offboard` | owner only |
+| POST | `/platform/v1/tenants/{id}/cancel-offboard` | owner only |
+| POST | `/platform/v1/tenants/{id}/export` | owner · GDPR zip |
+| POST | `/platform/v1/tenants/{id}/purge` | owner · after retention |
+| GET | `/platform/v1/audit/export` | owner · CSV |
+
+## P3-A — Workspace definitions (metadata)
+
+Detail: [`../phase-16/platform-workspace-definitions.mdoc`](../phase-16/platform-workspace-definitions.mdoc).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/platform/v1/workspace-definitions` | list + latest published version |
+| PATCH | `/platform/v1/tenants/{tenantId}/workspace-definition` | `{ definitionId, definitionVersion? }` · null clears · audit `TENANT_DEFINITION_ASSIGNED` |
+
+`GET /platform/v1/tenants/{tenantId}` detail includes `workspaceDefinition` when bound. Runtime loader: `resolveWorkspacePluginForTenantById` (gated by `WORKSPACE_METADATA_ENABLED`).
+
+## Errors
+
+Platform module errors map via `mapPlatformErrorToStatus`:
+
+| Error | HTTP |
+|-------|------|
+| `PLATFORM_UNAUTHORIZED` | 401 |
+| `PLATFORM_FORBIDDEN` | 403 |
+| `PLATFORM_VALIDATION` | 422 |
+
+### Create tenant body (EPIC B)
+
+`create-platform-tenant.schema.ts` validates `POST /platform/v1/tenants` with Zod (strict):
+
+| Field | Required |
+|-------|----------|
+| `subdomain` | yes — `[a-z0-9-]` slug |
+| `workspaceType` | yes |
+| `ownerPhone` | yes — min 8 chars |
+| `ownerNameNote` | optional |
+| `displayName` | optional |
+| `theme` | optional record |
+| `ownerEmail` | optional email |
+
+Failures throw `PlatformValidation` → HTTP **422**.
+
+### Create tenant response (EPIC B)
+
+`toCreateTenantResponse` (`create-tenant-response.dto.ts`) shapes **`POST /platform/v1/tenants`** success body only:
+
+```json
+{
+  "tenant": { "id", "subdomain", "workspaceType" },
+  "sites": { "marketing", "portal", "admin" },
+  "invite": { "inviteId", "inviteToken" }
+}
+```
+
+Invite token is **never** included in list/get tenant DTOs.
+
+### Provision saga transaction (EPIC B)
+
+`runProvisionTenantSaga` runs inside `runProvisionTransaction` (`getPrismaAdmin().$transaction`). All rows that reference `tenants.id` **must** use the same `tx: Prisma.TransactionClient` passed to the saga callback — not a separate connection via `withTenantRls` or `getSettingsConfigRepository()`.
+
+| Step | Module | Client |
+|------|--------|--------|
+| Create tenant | `tx.tenant.create` | `tx` |
+| Branding config | `seedTenantBrandingConfig(tx, …)` | `tx` |
+| Site surfaces | `seedTenantSiteSurfacesConfig(tx, …)` | `tx` |
+| Wizard template | `seedWorkspaceWizardTemplateInTransaction(tx, …)` | `tx` |
+| Audit + owner invite | `appendPlatformAuditEvent` / `inviteTenantOwner` | `tx` |
+
+Calling `repo.seed()` (settings repository) mid-transaction opens a **new** connection where the uncommitted tenant row is invisible → PostgreSQL rejects `tenant_config.tenant_id` FK. Production club creation therefore seeds `wizard_template` with `tx.tenantConfig.upsert`, matching branding/site surfaces.
+
+After saga commit, `invalidateTenantRegistryCache(tenantId, subdomain)` evicts stale registry cache (DEC-074).
+
+### Internal provision deprecation
+
+`POST /internal/tenants/provision` remains for MAP 4.3 dev seeds but is **deprecated** — JSDoc points operators to **`POST /platform/v1/tenants`** for production club creation.
+
+## Verify (EPIC A gate)
+
+```bash
+pnpm --filter @apps/api exec node --test \
+  test/platform-ops-auth.spec.ts \
+  test/platform-workspaces.spec.ts \
+  test/platform-tenants-list.spec.ts
+```
+
+Additional unit specs: `platform-tenant-repository.spec.ts`, `platform-tenant-dto.spec.ts`, `platform-tenants-get.spec.ts`.
+
+## Verify (EPIC B gate)
+
+```bash
+pnpm --filter @apps/api exec node --test \
+  test/platform-provision.spec.ts \
+  test/platform-subdomain-guard.spec.ts \
+  test/platform-owner-invite.spec.ts \
+  test/create-platform-tenant-schema.spec.ts \
+  test/create-tenant-response-dto.spec.ts \
+  test/platform-internal-deprecation.spec.ts \
+  test/platform-registry-cache.spec.ts \
+  test/platform-saga-rollback.spec.ts \
+  test/platform-denali-wizard-seed.spec.ts
+```
+
+## Tenant detail (EPIC D)
+
+### Detail response
+
+`GET /platform/v1/tenants/{tenantId}` returns enriched body (list DTO fields plus):
+
+```json
+{
+  "tenant": { "id", "subdomain", "workspaceType", "status", "createdAt" },
+  "sites": { "marketing", "portal", "admin" },
+  "ownerInvite": { "inviteId", "phone", "status" } | null
+}
+```
+
+`sites` from `buildClubSiteUrls(subdomain)`. `ownerInvite` is latest `operator_pending_invites` row with `role=owner` when status is `INVITED`; **no** `inviteToken` in GET.
+
+### Status mutation
+
+| Method | Path | Body | Auth |
+|--------|------|------|------|
+| `PATCH` | `/platform/v1/tenants/{tenantId}/status` | `{ "status": "active" \| "suspended" }` | write |
+
+- Validates with Zod (`update-platform-tenant-status.schema.ts`)
+- Updates `tenants.status`, appends `platform_audit_events` (`TENANT_UPDATED`), calls `invalidateTenantRegistryCache(id, subdomain)`
+- Response: `{ "tenant": PlatformTenantDto }`
+
+**Suspend semantics:** when `status === "suspended"`:
+
+1. Operator OTP routes reject with **403** `AUTH_TENANT_SUSPENDED` (`assertTenantActiveForOperatorLogin`).
+2. **`user_tenants.session_version`** incremented for all memberships on that tenant (revokes existing operator JWTs).
+3. `hydrateMembershipFromDb` calls `assertTenantActiveForOperatorLogin` so active API requests fail closed.
+
+Platform ops and marketing/portal surfaces are unchanged — only `{club}.admin.*` operator panel is blocked.
+
+### Verify (suspend login)
+
+```bash
+pnpm --filter @apps/api exec node --test test/platform-tenant-suspend-login.spec.ts
+pnpm --filter @apps/web run test:e2e:platform   # includes platform-suspend-blocks-login.spec.ts
+```
+
+### Owner invite resend
+
+| Method | Path | Body | Auth |
+|--------|------|------|------|
+| `POST` | `/platform/v1/tenants/{tenantId}/owner-invite` | optional `{ "phone" }` | write |
+
+Replaces pending owner invite (if any) and creates a fresh invite via `inviteTenantOwner`. Response:
+
+```json
+{ "invite": { "inviteId", "inviteToken" } }
+```
+
+## Verify (EPIC D gate)
+
+```bash
+pnpm --filter @apps/api exec node --test \
+  test/platform-tenants-get.spec.ts \
+  test/platform-tenant-detail.spec.ts \
+  test/platform-tenant-status.spec.ts \
+  test/platform-owner-invite-resend.spec.ts
+```
+
+## Host parsing (EPIC E)
+
+Multi-level host SoT: `@app-tour/tenant-kernel` — `parseMultiLevelTenantHost`, `isPlatformAdminHost`. API ingress helper: `apps/api/src/middleware/resolve-tenant-from-host.ts`.
+
+See [`platform-host-multilevel.mdoc`](platform-host-multilevel.mdoc).
+
+### Verify (EPIC E gate)
+
+```bash
+pnpm --filter @app-tour/tenant-kernel test
+cd apps/web && NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-force-exit \
+  test/platform-host-isolation.spec.ts \
+  test/resolve-multi-level-host.spec.ts
+```
+
+## Audit actor (EPIC F — P1-T-117)
+
+All platform mutators pass **`ctx.actorId`** (ops phone from auth) into saga / lifecycle services. `appendPlatformAuditEvent` stores non-null `actorId` on `TENANT_CREATED`, `TENANT_UPDATED`, and invite actions — never anonymous platform audit rows.
+
+`POST /platform/v1/tenants` uses the authenticated phone, not a hard-coded stub.
+
+### Owner invite actor id (EPIC H fix)
+
+`operator_pending_invites.invited_by_user_id` is a **UUID column** (tenant membership schema). Platform ops auth exposes **`actorId` as the ops phone** for audit rows only.
+
+Provisioning and owner-invite resend therefore map platform actions to a fixed sentinel:
+
+| Field | Value |
+|-------|-------|
+| `appendPlatformAuditEvent.actorId` | authenticated ops phone |
+| `operatorPendingInvite.invitedByUserId` | `00000000-0000-4000-8000-000000000201` (`PLATFORM_PROVISION_INVITE_ACTOR_USER_ID`) |
+
+Invite accept still keys off `inviteToken` + invitee phone match; the sentinel id is not validated as a tenant user.
+
+## Site health timeout (EPIC F — P1-T-118)
+
+`checkTenantSitesHealth` HEAD probes use **`AbortSignal.timeout(5000)`** per URL. Slow or unreachable hosts return `{ ok: false, status: null }` instead of hanging the request thread.
+
+## Platform ops team & RBAC (EPIC G)
+
+### PlatformOpsUser schema
+
+Prisma model `platform_ops_users`:
+
+| Column | Notes |
+|--------|-------|
+| `phone` | unique E.164-ish string |
+| `role` | `owner` \| `admin` \| `support` |
+
+No password column — auth remains header + OTP session stub in P1.
+
+### Auth resolution
+
+`assertPlatformOpsAuth` (async):
+
+1. Require `Authorization` + `X-Platform-Ops-Phone`.
+2. If phone exists in **`platform_ops_users`** → `{ actorId: phone, roles: [dbRole] }` (**DB overrides env default**).
+3. Else if `PLATFORM_OPS_PHONES` CSV is non-empty and phone not listed → **403**.
+4. Else → legacy env path `{ roles: ["owner"] }`.
+
+Write guard: `assertPlatformOpsWriteRole` — `owner` and `admin` only; `support` read-only.
+
+Owner-only guard: `assertPlatformOpsOwnerRole` — team membership mutations.
+
+### Seed script
+
+`apps/api/scripts/seed-platform-ops.ts` — idempotent upsert from **`PLATFORM_OPS_SEED`** CSV (`phone:role` pairs, e.g. `+10000000001:owner,+10000000002:support`). No real phones committed to git.
+
+Run: `pnpm --filter @apps/api exec node --import tsx scripts/seed-platform-ops.ts`
+
+### Team API
+
+| Method | Path | Auth | Body |
+|--------|------|------|------|
+| `GET` | `/platform/v1/team` | read | — |
+| `POST` | `/platform/v1/team` | **owner** | `{ "phone", "role": "owner" \| "admin" \| "support" }` |
+
+Responses:
+
+```json
+{ "items": [{ "phone", "role", "createdAt" }] }
+```
+
+```json
+{ "member": { "phone", "role", "createdAt" } }
+```
+
+Support role cannot POST team members (403).
+
+### RBAC coverage
+
+Every platform **mutator** (`POST`, `PATCH`, `DELETE` under `/platform/v1/*`) calls `assertPlatformOpsWriteRole` after auth. Team POST additionally requires `assertPlatformOpsOwnerRole`.
+
+### Verify (EPIC G gate)
+
+```bash
+pnpm --filter @apps/api exec node --test \
+  test/platform-rbac.spec.ts \
+  test/platform-team.spec.ts \
+  test/platform-auth-db-role.spec.ts \
+  test/platform-audit-actor.spec.ts \
+  test/platform-sites-check-timeout.spec.ts
+```

@@ -9,11 +9,12 @@ import { loadAppMessages } from "../src/i18n/load-messages";
 import {
   DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS,
   DenaliItinerarySegmentDestinationField,
-} from "../src/wizard/denali/denali-itinerary-segment-destination-field";
+} from "@app-tour/workspace-denali/ui/components/denali-itinerary-segment-destination-field";
+import { DENALI_SEARCHABLE_SELECT_TEST_IDS } from "@app-tour/workspace-denali/ui/components/denali-searchable-select";
 import {
   DENALI_ITINERARY_SEGMENT_PHOTO_TEST_IDS,
   DenaliItinerarySegmentPhotoPicker,
-} from "../src/wizard/denali/denali-itinerary-segment-photo-picker";
+} from "@app-tour/workspace-denali/ui/components/denali-itinerary-segment-photo-picker";
 
 let testMessages: AbstractIntlMessages;
 let originalFetch: typeof globalThis.fetch;
@@ -85,31 +86,27 @@ describe("denali-itinerary-segment-pickers.spec.tsx", () => {
 
     try {
       const changes: Array<{ destinationId?: string; locationLabel?: string }> = [];
-      const { container } = renderPicker(
+      const { getByTestId } = renderPicker(
         <DenaliItinerarySegmentDestinationField
           onChange={(selection) => changes.push(selection)}
         />
       );
 
       await waitFor(() => {
-        const select = container.querySelector("select");
-        assert.ok(select);
-        assert.ok(select?.options.length > 1);
+        assert.ok(getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.trigger));
       });
 
-      const select = container.querySelector("select");
-      assert.ok(select);
-      fireEvent.change(select!, { target: { value: "dest-1" } });
+      fireEvent.click(getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.trigger));
+      fireEvent.change(getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.search), {
+        target: { value: "Dam" },
+      });
+      fireEvent.pointerDown(getByTestId(DENALI_SEARCHABLE_SELECT_TEST_IDS.option("dest-1")));
 
       assert.deepEqual(changes.at(-1), {
         destinationId: "dest-1",
         locationLabel: "Damavand",
       });
-      assert.ok(
-        container.querySelector(
-          `[data-testid="${DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS.select}"]`
-        )
-      );
+      assert.ok(getByTestId(DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS.select));
     } finally {
       globalThis.fetch = prevFetch;
     }

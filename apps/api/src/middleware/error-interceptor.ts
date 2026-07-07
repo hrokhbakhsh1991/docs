@@ -42,7 +42,7 @@ import {
   TOUR_WRITE_CONCURRENCY_EXCEEDED,
 } from "../http/tour-write-concurrency-budget";
 import { ProvisioningDevOnlyError } from "../internal/provisioning-guard";
-import { TenantProvisionConflictError } from "../internal/provisioning.errors";
+import { TenantProvisionConflictError, WorkspaceNotCertifiedForProductionError } from "../internal/provisioning.errors";
 import {
   OutboxReplayNotFailedError,
   OutboxReplayNotFoundError,
@@ -64,26 +64,33 @@ import {
   TenantRateLimitExceededError,
 } from "./tenant-rate-limiter";
 import {
-  isUrbanOwnerRequiredError,
-  isUrbanRegistrationClosedError,
-  isUrbanRegistrationDuplicateError,
-  isUrbanWorkspaceRequiredError,
-  URBAN_OWNER_REQUIRED,
-  URBAN_REGISTRATION_CLOSED,
-  URBAN_REGISTRATION_DUPLICATE,
-  URBAN_WORKSPACE_REQUIRED,
-} from "@app-tour/workspace-urban/http";
-import {
-  DENALI_OWNER_REQUIRED,
-  DENALI_REGISTRATION_DUPLICATE,
-  isDenaliOwnerRequiredError,
-  isDenaliRegistrationDuplicateError,
-} from "@app-tour/workspace-denali/http";
+  resolveWorkspaceHttpErrorCodeStatus,
+  WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS,
+} from "./workspace-http-error-map.generated";
 import {
   isAuthTokenRevokedError,
   isIdentityRequiredError,
   isOtpInvalidError,
 } from "../identity/identity.errors";
+import { ImpersonationReadOnlyError } from "../identity/impersonation-read-only.error";
+import { isWorkspaceCommerceGatewayBlockedError } from "../workspace-metadata/assert-workspace-commerce-gateway-blocked.ts";
+import {
+  isPaymentsWebhookSignatureInvalidError,
+  isPaymentsWebhookSignatureMissingError,
+  isPaymentsWebhookSigningSecretNotConfiguredError,
+  isPaymentsWebhookSourceIpBlockedError,
+  isPaymentsWebhookTimestampSkewError,
+} from "../integrations/webhooks/webhook.errors.ts";
+import { isPaymentsWebhookEventIdRequiredError } from "../integrations/webhooks/payments-webhook-event-id-required.error.ts";
+import {
+  isPaidTourOpenGateBlockedError,
+} from "../registrations/assert-paid-tour-open-gate.ts";
+import {
+  isPublicRegistrationThrottleExceededError,
+} from "../registrations/public-registration-throttle.ts";
+import {
+  isRegistrationCapacityExceededError,
+} from "../registrations/registration-capacity.service.ts";
 import { DbCircuitOpenError } from "../db/transient-db-error";
 import { ProxyCircuitOpenError } from "../proxy/proxy-upstream-circuit";
 import {
@@ -178,8 +185,10 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("URBAN_REGISTRATION_INVALID")) return 400;
   if (message.startsWith("URBAN_REGISTRATION_INVALID")) return 400;
   if (message.startsWith("CANONICAL_VALIDATION_FAILED")) return 400;
+  if (message.startsWith("TOUR_LIFECYCLE_")) return 400;
   if (message.startsWith("SCHEMA_VERSION_MISMATCH")) return 400;
   if (message.startsWith("WORKSPACE_PLUGIN_NOT_BOUND")) return 400;
+  if (message.startsWith("WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION")) return 422;
   if (message.startsWith("WORKSPACE_PLUGIN_NOT_FOUND")) return 500;
   if (message.startsWith("CANONICAL_SYNC_VALIDATION_FAILED")) return 409;
   if (message.startsWith("TOUR_VERSION_CONFLICT")) return 409;
@@ -206,9 +215,10 @@ function mapErrorMessageToStatus(message: string): number {
     return 409;
   }
   if (message === IDEMPOTENCY_KEY_REQUIRED) return 400;
-  if (message === URBAN_REGISTRATION_DUPLICATE) return 409;
-  if (message === URBAN_REGISTRATION_CLOSED) return 403;
-  if (message === DENALI_REGISTRATION_DUPLICATE) return 409;
+  const workspaceCodeStatus = resolveWorkspaceHttpErrorCodeStatus(message);
+  if (workspaceCodeStatus !== undefined) {
+    return workspaceCodeStatus;
+  }
   if (message === HTTP_IDEMPOTENCY_TENANT_MISMATCH) {
     return 403;
   }
@@ -453,64 +463,80 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
     return;
   }
 
-  if (isUrbanOwnerRequiredError(error)) {
+  if (error instanceof ImpersonationReadOnlyError) {
     sendHttpError(
       res,
       403,
-      { error: URBAN_OWNER_REQUIRED, code: URBAN_OWNER_REQUIRED },
+      { error: "forbidden", code: "IMPERSONATION_READ_ONLY" },
       correlationId
     );
     return;
   }
 
-  if (isDenaliOwnerRequiredError(error)) {
+  if (isWorkspaceCommerceGatewayBlockedError(error)) {
     sendHttpError(
       res,
-      403,
-      { error: DENALI_OWNER_REQUIRED, code: DENALI_OWNER_REQUIRED },
+      error.statusCode,
+      { error: "service_unavailable", code: error.code },
       correlationId
     );
     return;
   }
 
-  if (isUrbanWorkspaceRequiredError(error)) {
+  if (
+    isPaymentsWebhookSignatureMissingError(error) ||
+    isPaymentsWebhookTimestampSkewError(error) ||
+    isPaymentsWebhookSignatureInvalidError(error)
+  ) {
+    sendHttpError(res, error.statusCode, { error: "unauthorized", code: error.code }, correlationId);
+    return;
+  }
+
+  if (isPaymentsWebhookSourceIpBlockedError(error)) {
+    sendHttpError(res, error.statusCode, { error: "forbidden", code: error.code }, correlationId);
+    return;
+  }
+
+  if (isPaymentsWebhookSigningSecretNotConfiguredError(error)) {
     sendHttpError(
       res,
-      404,
-      { error: URBAN_WORKSPACE_REQUIRED, code: URBAN_WORKSPACE_REQUIRED },
+      error.statusCode,
+      { error: "service_unavailable", code: error.code },
       correlationId
     );
     return;
   }
 
-  if (isUrbanRegistrationDuplicateError(error)) {
-    sendHttpError(
-      res,
-      409,
-      { error: URBAN_REGISTRATION_DUPLICATE, code: URBAN_REGISTRATION_DUPLICATE },
-      correlationId
-    );
+  if (isPaymentsWebhookEventIdRequiredError(error)) {
+    sendHttpError(res, error.statusCode, { error: "bad_request", code: error.code }, correlationId);
     return;
   }
 
-  if (isUrbanRegistrationClosedError(error)) {
-    sendHttpError(
-      res,
-      403,
-      { error: URBAN_REGISTRATION_CLOSED, code: URBAN_REGISTRATION_CLOSED },
-      correlationId
-    );
+  if (isRegistrationCapacityExceededError(error)) {
+    sendHttpError(res, error.statusCode, { error: "conflict", code: error.code }, correlationId);
     return;
   }
 
-  if (isDenaliRegistrationDuplicateError(error)) {
-    sendHttpError(
-      res,
-      409,
-      { error: DENALI_REGISTRATION_DUPLICATE, code: DENALI_REGISTRATION_DUPLICATE },
-      correlationId
-    );
+  if (isPublicRegistrationThrottleExceededError(error)) {
+    sendHttpError(res, error.statusCode, { error: "rate_limit_exceeded", code: error.code }, correlationId);
     return;
+  }
+
+  if (isPaidTourOpenGateBlockedError(error)) {
+    sendHttpError(res, error.statusCode, { error: "forbidden", code: error.code }, correlationId);
+    return;
+  }
+
+  for (const binding of WORKSPACE_HTTP_ERROR_RESPONSE_BINDINGS) {
+    if (binding.isError(error)) {
+      sendHttpError(
+        res,
+        binding.status,
+        { error: binding.code, code: binding.code },
+        correlationId
+      );
+      return;
+    }
   }
 
   if (error instanceof Error && error.message === "INTERNAL_SERVER_ERROR") {
@@ -526,6 +552,21 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
 
   if (error instanceof TenantProvisionConflictError) {
     sendHttpError(res, 409, { error: error.code, code: error.code }, correlationId);
+    return;
+  }
+
+  if (error instanceof WorkspaceNotCertifiedForProductionError) {
+    sendHttpError(
+      res,
+      422,
+      {
+        error: "workspace_not_certified_for_production",
+        code: error.code,
+        workspaceType: error.workspaceType,
+        pluginId: error.pluginId,
+      },
+      correlationId
+    );
     return;
   }
 

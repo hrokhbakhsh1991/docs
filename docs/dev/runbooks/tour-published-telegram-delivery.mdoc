@@ -1,0 +1,232 @@
+---
+title: Runbook — TourPublished Telegram delivery
+format: markdoc
+doc_role: operations
+runbook_version: "2026-06-30-v2"
+---
+
+# Runbook — TourPublished Telegram delivery
+
+```yaml
+runbook_version: "2026-06-30-v2"
+plan_ref: docs/dev/tour-published-telegram-rollout-plan.mdoc
+adr_ref: docs/architecture/adr/ADR-INT-001-tour-published-telegram.mdoc
+implementation:
+  - apps/api/src/canonical/atomic-canonical-tour-persist.ts
+  - apps/api/src/integrations/application/dispatch-integration-domain-event.ts
+  - packages/workspaces/denali/src/integrations/denali-integration.surface.ts
+  - apps/api/src/integrations/migration/run-tour-published-exposure-remap.ts
+  - apps/api/src/health/tour-published-policy-drift.ts
+```
+
+## When to use
+
+Operators expect a Telegram channel message when a Denali tour is **published** (`draft → active` or create-with-publish). Use this runbook after [INT-002 rollout](../tour-published-telegram-rollout-plan.mdoc) or when delivery fails post-publish.
+
+**Admin UI paths:**
+
+| Surface | Path | What to check |
+| ------- | ---- | ------------- |
+| Connections | Settings → Integrations | Telegram enabled, test connection OK |
+| Field exposure | Settings → Exposure | `TourPublished` route, field checklist |
+| Drift banner | Integrations or Exposure detail | Amber banner when `TOUR_PUBLISHED_POLICY_DRIFT` in `loadWarnings` |
+| Deprecated notice | Exposure → Telegram panel | `TourCreated` deprecated → configure `TourPublished` |
+
+## Preconditions
+
+| Check | Command / signal |
+| ----- | ---------------- |
+| Integration gate open | `GET /health` — integration subsystem ready |
+| Migrations applied | `pnpm --filter @apps/api run db:migrate:deploy` |
+| Denali package built | `pnpm --filter @app-tour/workspace-denali build` |
+| Policy drift zero | consistency report — no `TOUR_PUBLISHED_POLICY_DRIFT` |
+| Intent remap clean | `integrations:verify-tour-published-exposure` exit 0 |
+| Flags enabled | see Env matrix below |
+
+## Env matrix
+
+| Variable | Required value | Role |
+| -------- | -------------- | ---- |
+| `OUTBOX_RELAY_ENABLED` | `true` | Relay publishes outbox → dispatcher |
+| `INTEGRATION_DELIVERY_ENABLED` | `true` | Dispatcher enqueues delivery jobs |
+| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `true` | Worker sends Telegram HTTP |
+| `STORAGE_DRIVER` | `prisma` | Persisted tours + outbox |
+| `TOUR_PUBLISHED_ROLLOUT_GATE_FATAL` | `true` (staging only) | Block integration mutations if policy backfill missing |
+
+See also [integration gate blocked](./integration-gate-blocked.mdoc).
+
+## Deploy checklist (per environment)
+
+Execute in order on **each** target database (staging, then production):
+
+```text
+1. Deploy API + web (INT-002a catalog + UI)
+2. pnpm --filter @app-tour/workspace-denali build
+3. pnpm --filter @apps/api run db:migrate:deploy
+   → applies 20260704100000_backfill_tour_published_event_policies
+4. Verify policy drift (SQL below) — count must be 0
+5. Exposure intent remap:
+     pnpm --filter @apps/api run integrations:remap-tour-published-exposure -- --dry-run
+     pnpm --filter @apps/api run integrations:remap-tour-published-exposure -- --apply
+     pnpm --filter @apps/api run integrations:verify-tour-published-exposure
+6. Set OUTBOX_RELAY_ENABLED, INTEGRATION_DELIVERY_ENABLED,
+   INTEGRATION_DELIVERY_WORKER_ENABLED=true on API + worker pods
+7. Restart API and integration delivery worker
+8. Run smoke test (below)
+9. Optional staging: TOUR_PUBLISHED_ROLLOUT_GATE_FATAL=true until drift verified
+```
+
+## Policy drift verification
+
+**SQL — connections missing enabled TourPublished policy:**
+
+```sql
+SELECT ic.id, ic.tenant_id, ic.workspace_type, ic.provider
+FROM integration_connections ic
+WHERE ic.provider = 'telegram'
+  AND ic.workspace_type = 'denali'
+  AND ic.enabled = true
+  AND ic.status = 'enabled'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM integration_event_policies ep
+    WHERE ep.integration_connection_id = ic.id
+      AND ep.event_type = 'TourPublished'
+      AND ep.enabled = true
+  );
+```
+
+Expected: **zero rows** after migration deploy.
+
+**API signal:** migration consistency report `tourPublishedPolicyDriftCount = 0`, signal not `CONSISTENCY_TOUR_PUBLISHED_POLICY_DRIFT` when fatal gate enabled.
+
+## Exposure intent remap (INT-002c)
+
+Remaps `denali` / `telegram` exposure intents from `TourCreated` → `TourPublished` (scope hash safe — uses repository upsert).
+
+```bash
+# Preview
+pnpm --filter @apps/api run integrations:remap-tour-published-exposure -- --dry-run
+
+# Apply (requires DATABASE_URL_ADMIN)
+pnpm --filter @apps/api run integrations:remap-tour-published-exposure -- --apply
+
+# Verify zero remaining candidates
+pnpm --filter @apps/api run integrations:verify-tour-published-exposure
+```
+
+Optional single-tenant repair: append `-- --tenant-id <uuid>` to dry-run/apply.
+
+## Local dev / CI database
+
+Phase 4 Postgres (see [phase-4/ci.md](../../phase-4/ci.md)):
+
+```bash
+docker compose -f docs/phase-4/dev/docker-compose.yml up -d   # if not running
+export DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev'
+export DATABASE_URL_ADMIN="$DATABASE_URL"
+pnpm --filter @apps/api run db:migrate:deploy
+```
+
+### Dev API — automatic Telegram pipeline
+
+`pnpm --filter @apps/api run dev` loads `scripts/bootstrap-dev-env.ts` **before** `main.ts`. When `NODE_ENV=development` and `DATABASE_URL` is set (via `.env.local` or shell), unset flags default to:
+
+| Variable | Dev default |
+| -------- | ----------- |
+| `STORAGE_DRIVER` | `prisma` |
+| `OUTBOX_RELAY_ENABLED` | `true` |
+| `INTEGRATION_DELIVERY_ENABLED` | `true` |
+| `INTEGRATION_DELIVERY_WORKER_ENABLED` | `true` |
+
+Explicit env values always win — set `OUTBOX_RELAY_ENABLED=false` to debug without relay. **Merge** new vars into existing `apps/api/.env.local`; never replace the file wholesale (JWT keys + custom domain env would be lost). Copy [`apps/api/.env.example`](../../../apps/api/.env.example) lines you need, or run `pnpm --filter @apps/api run bootstrap:dev-jwt >> apps/api/.env.local`.
+
+**Symptom:** `outbox_events` rows stay `pending` and `integration_delivery_jobs` is empty → relay/worker flags off or API not restarted after env change.
+
+Integration spec (L2/L3):
+
+```bash
+STORAGE_DRIVER=prisma NODE_ENV=test \
+  pnpm --filter @apps/api exec node --import tsx --test \
+  test/4-integration/tour-published-outbox.spec.ts
+```
+
+## Smoke test (happy path)
+
+1. Confirm Telegram connection **enabled** and `TourPublished` policy **on** (Settings → Integrations; field overrides on Settings → Exposure).
+2. Publish a Denali tour: wizard or PATCH with `publishStatus` → `active`.
+3. Verify outbox row:
+
+```sql
+SELECT event_type, domain_event_id, payload->>'schemaVersion' AS schema_version,
+       payload->'deliverySnapshot'->>'title' AS snapshot_title
+FROM outbox_events
+WHERE aggregate_type = 'tour'
+  AND event_type = 'TourPublished'
+ORDER BY created_at DESC
+LIMIT 5;
+```
+
+4. Verify delivery job:
+
+```sql
+SELECT status, event_type, domain_event_id, attempt_count
+FROM integration_delivery_jobs
+WHERE event_type = 'TourPublished'
+ORDER BY created_at DESC
+LIMIT 5;
+```
+
+5. Confirm Telegram channel received message (or worker log `integration.delivery.done`).
+
+**Stuck `processing` jobs (dev / crash recovery):**
+
+```sql
+-- Jobs claimed but never completed (e.g. API killed during HMR)
+SELECT id, event_type, status, created_at, processed_at
+FROM integration_delivery_jobs
+WHERE status = 'processing'
+ORDER BY created_at DESC;
+
+-- Manual unblock (worker auto-reclaims after INTEGRATION_DELIVERY_PROCESSING_RECLAIM_MS, default 120s)
+UPDATE integration_delivery_jobs
+SET status = 'pending', processed_at = NULL
+WHERE status = 'processing';
+```
+
+**Idempotency check:** replaying the same outbox `domainEventId` through dispatch must not create a second job (unique constraint on idempotency key).
+
+## Failure matrix
+
+| Symptom | Likely cause | Fix |
+| ------- | ------------ | --- |
+| Outbox row missing | Publish transition not detected; wrong workspace context | Denali `canonicalTour` in manifest; tenant `workspaceType=denali`; validation gate before persist |
+| Outbox OK, no job | Policy drift; `TourPublished` disabled | Run migration backfill; enable policy in UI; check drift SQL |
+| Amber drift banner in UI | Missing enabled `TourPublished` policy row | `db:migrate:deploy`; manual INSERT if restore gap |
+| Job `processing` forever | API restart/HMR mid-worker tick | Restart API (reclaim each tick); SQL in smoke section; `INTEGRATION_DELIVERY_PROCESSING_RECLAIM_MS` (default 120s) |
+| Job pending forever | Worker off or flag false | `INTEGRATION_DELIVERY_WORKER_ENABLED=true`; restart API |
+| Job dead | Telegram token/channel | Test connection; check `last_error` on job |
+| Wrong message fields | Exposure intent still on `TourCreated` | Run intent remap CLI (INT-002c) |
+| UI shows TourCreated tab | Legacy intent before remap | Run remap; web hides deprecated routes after policy marks `TourCreated` deprecated |
+| Duplicate on republish | Expected | Each publish transition = new `rowVersion` = new message |
+| Replay duplicate job | Should not happen | Same `domainEventId` → idempotent enqueue skip (count 0) |
+
+## Republish semantics
+
+Each transition to `active` emits `TourPublished:{tourId}:{rowVersion}`. Unpublish then republish sends **two** Telegram messages over time. This matches Stripe-style event facts.
+
+## Denali payload note
+
+Outbox `deliverySnapshot` uses Denali canonical paths (e.g. `title` at root of `canonical.data`, not `basics.title`). Dispatch merges snapshot into job payload for enrichment — see `resolveIntegrationDispatchPayload`.
+
+## Rollback
+
+- Migrations are forward-only.
+- Do not delete `TourPublished` policy rows in panic.
+- Emergency: Architect YES + ADR amend to temporarily restore dual surface mapping (last resort).
+
+## Related docs
+
+- [Rollout plan § Deploy order](../tour-published-telegram-rollout-plan.mdoc)
+- [Integration event catalog](../integration-event-catalog.mdoc)
+- [Integration gate blocked](./integration-gate-blocked.mdoc)

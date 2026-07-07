@@ -1,33 +1,7 @@
-/** Egress-safe card — workspace APIs extend fields beyond a shared minimum. */
-export type MarketingCatalogItinerarySegment = {
-  readonly title: string;
-  readonly kind?: string;
-  readonly startTime?: string;
-  readonly locationLabel?: string;
-  readonly photoUrls?: readonly string[];
-};
+import type { PublicCatalogCard } from "@app-tour/workspace-sdk";
 
-export type MarketingCatalogItineraryDay = {
-  readonly dayNumber: number;
-  readonly title: string;
-  readonly summary?: string;
-  readonly segments: readonly MarketingCatalogItinerarySegment[];
-};
-
-export type MarketingCatalogCard = {
-  readonly id: string;
-  readonly title?: string | null;
-  readonly shortDescription?: string | null;
-  readonly category?: string | null;
-  readonly departureAt?: string | null;
-  readonly endAt?: string | null;
-  readonly priceAmount?: number | null;
-  readonly priceCurrency?: string;
-  readonly coverImageUrl?: string | null;
-  readonly totalCapacity?: number | null;
-  readonly spotsRemaining?: number | null;
-  readonly difficultyLevel?: number | null;
-  readonly fitnessLevel?: string | null;
+/** Urban-only egress fields on marketing JSON (legacy + M2b). */
+export type UrbanCatalogCardExtensions = {
   readonly city?: string | null;
   readonly venueName?: string | null;
   readonly catalogSummary?: string | null;
@@ -35,9 +9,16 @@ export type MarketingCatalogCard = {
   readonly endDate?: string | null;
   readonly publishedAt?: string | null;
   readonly publishStatus?: string | null;
-  readonly itineraryDays?: readonly MarketingCatalogItineraryDay[];
-  readonly structuredData?: Readonly<Record<string, unknown>>;
 };
+
+/**
+ * Marketing catalog card — SDK `PublicCatalogCard` + Urban extensions.
+ * `title` optional for partial upstream payloads before strict validation.
+ */
+export type MarketingCatalogCard = Omit<PublicCatalogCard, "title"> &
+  UrbanCatalogCardExtensions & {
+    readonly title?: string | null;
+  };
 
 export type MarketingCatalogListResponse = {
   readonly success: boolean;

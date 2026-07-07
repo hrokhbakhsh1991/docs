@@ -28,6 +28,33 @@ describe("InMemoryTourRepository (tenant-scoped storage)", () => {
     assert.equal(correctTenant?.id, tour.id);
   });
 
+  it("indexes the same tour id on different tenants (Prisma @@unique([tenantId, id]))", async () => {
+    const repo = new InMemoryTourRepository();
+    const sharedId = "00000000-0000-4000-8000-000000000210";
+
+    await repo.save({
+      id: sharedId,
+      tenantId: "00000000-0000-4000-8000-000000000014",
+      rowVersion: 1,
+      createdAt: new Date(0).toISOString(),
+      canonical: sampleCanonical,
+    });
+    await repo.save({
+      id: sharedId,
+      tenantId: "00000000-0000-4000-8000-000000000003",
+      rowVersion: 1,
+      createdAt: new Date(1).toISOString(),
+      canonical: sampleCanonical,
+    });
+
+    const operator = await repo.getById(sharedId, "00000000-0000-4000-8000-000000000014");
+    const denali = await repo.getById(sharedId, "00000000-0000-4000-8000-000000000003");
+    assert.ok(operator);
+    assert.ok(denali);
+    assert.equal(operator.tenantId, "00000000-0000-4000-8000-000000000014");
+    assert.equal(denali.tenantId, "00000000-0000-4000-8000-000000000003");
+  });
+
   it("listByTenantPage paginates with cursor", async () => {
     const repo = new InMemoryTourRepository();
     await repo.createTour({ tenantId: "t1", canonical: sampleCanonical });
@@ -74,22 +101,18 @@ describe("InMemoryTourRepository (tenant-scoped storage)", () => {
     assert.equal(t2[0]?.tenantId, "t2");
   });
 
-  it("save rejects changing tenantId for an existing id", async () => {
+  it("save upserts within the same tenant+id composite key", async () => {
     const repo = new InMemoryTourRepository();
     const created = await repo.createTour({ tenantId: "t1", canonical: sampleCanonical });
 
-    await assert.rejects(
-      () =>
-        repo.save({
-          ...created,
-          tenantId: "t2",
-        }),
-      (error: unknown) => {
-        assert.ok(error instanceof Error);
-        assert.equal(error.message, "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT");
-        return true;
-      }
-    );
+    const updated = {
+      ...created,
+      canonical: { ...sampleCanonical, data: { basics: { title: "updated" } } },
+    };
+    await repo.save(updated);
+
+    const loaded = await repo.getById(created.id, "t1");
+    assert.equal(loaded?.canonical.data.basics.title, "updated");
   });
 
   it("rejects save when tenant cap exceeded", async () => {

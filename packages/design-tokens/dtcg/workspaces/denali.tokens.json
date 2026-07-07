@@ -1,0 +1,12 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "denali",
+  "scopeSelector": "[data-workspace-theme]",
+  "ws": {
+    "color-accent": {
+      "$type": "color",
+      "$value": "{color.primary}",
+      "$description": "Denali workspace accent references platform primary (skin maps brand primary)"
+    }
+  }
+}

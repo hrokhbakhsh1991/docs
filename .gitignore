@@ -10,6 +10,7 @@ coverage/
 .env
 .env.*
 !.env.example
+!.env.local.example
 *.log
 
 legacy/node_modules/
@@ -22,11 +23,21 @@ legacy/.aider.*
 legacy/apps/web/.next/
 apps/*/.next/
 apps/*/test-results/
+apps/marketing/.lighthouseci/
 legacy/apps/web/playwright-report/
 legacy/apps/web/test-results/
 legacy/apps/web/storybook-static/
 legacy/apps/web/.memlab/
+
+# Local scratch (never commit)
+TEMP/
 legacy/reports/phase-0-environment-*
 
 # Local planning scratch (optional — uncomment to keep TEMP out of git)
 # TEMP/
+# Lowercase scratch dir: git-ignored but Cursor-readable (not in .cursorignore)
+.tmp/
+temp/
+.aider*
+.venv/
+**/.venv*/

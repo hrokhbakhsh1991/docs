@@ -1,3 +1,8 @@
+export {
+  buildUrbanMinimalWizardTemplatePayload,
+  buildUrbanMinimalWizardTemplateSteps,
+  type UrbanMinimalWizardTemplatePayload,
+} from "./settings/urbanMinimalWizardTemplate";
 export { URBAN_SMOKE_SUBDOMAIN, URBAN_SMOKE_TENANT_ID } from "./smoke/phase-7-urban-smoke-tenant";
 export {
   createUrbanValidationHooks,

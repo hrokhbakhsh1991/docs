@@ -1,0 +1,460 @@
+---
+title: TourPublished Telegram rollout plan (INT-002)
+format: markdoc
+doc_role: architecture_sot
+status: active
+date: 2026-06-30
+parent_adr: ../architecture/adr/ADR-INT-001-tour-published-telegram.mdoc
+last_verified: 2026-06-30
+---
+
+# TourPublished Telegram rollout plan (INT-002)
+
+Closes operational gaps after [ADR-INT-001](../architecture/adr/ADR-INT-001-tour-published-telegram.mdoc) domain emit and Denali surface mapping. **No runtime alias** from `TourCreated` → `TourPublished`; rollout uses catalog + policy + intent migration (Stripe product / subscription model).
+
+## Implementation status (2026-06-30)
+
+| Layer | Status | Notes |
+| ----- | ------ | ----- |
+| **INT-002a** effective catalog | **Shipped** | API DTO + web event list + deprecated UX |
+| **INT-002b** policy SQL + drift | **Shipped** | Migration `20260704100000_backfill_tour_published_event_policies` |
+| **INT-002c** intent remap CLI | **Shipped** | `pnpm --filter @apps/api run integrations:remap-tour-published-exposure` |
+| **INT-002d** specs L0–L3 | **Shipped** | L2 green with `DATABASE_URL` + Denali golden fixture |
+| **Per-environment ops** | **Pending** | migrate deploy, remap `--apply`, flags, Telegram smoke on each target DB |
+
+Optional **deferred:** per-tenant policy backfill CLI (`run-tour-published-policy-backfill.ts`) — SQL migration is the primary path; add CLI only if partial-restore repair is needed.
+
+## Problem statement
+
+| Gap | Symptom |
+| --- | ------- |
+| Persisted policies | DB rows still `TourCreated` → publish emits `TourPublished` but dispatcher skips connection |
+| Read model split | API DTO / web merge / synthetic legacy hardcode different event lists |
+| Exposure intents | `scope.eventType` / `profileId` still `TourCreated` → field overrides not applied on publish |
+| Deploy order | API deployed before backfill → silent no Telegram |
+| Verification | No drift detector; doc references missing spec paths |
+
+## Architecture model (authority)
+
+```text
+Surface (product catalog)     → declared events + defaults (SSOT for “what exists”)
+integration_event_policies    → tenant enablement (SSOT for “is it on”)
+outbox TourPublished          → domain fact at publish
+integration_delivery_jobs     → async delivery (idempotent on domainEventId)
+exposure_intents              → field/template overrides per route
+```
+
+```mermaid
+flowchart TB
+  subgraph done [INT-001 — shipped]
+    E[atomic-canonical-tour-persist]
+    S[denali-integration.surface TourPublished]
+    D[resolveIntegrationDispatchPayload]
+  end
+
+  subgraph p1 [INT-002a — Effective catalog]
+    C[resolveEffectiveIntegrationEventCatalog]
+    W[web buildExposureEventTypeList SSOT]
+  end
+
+  subgraph p2 [INT-002b — Policy migration]
+    M[Prisma SQL backfill]
+    G[drift detector warn/fatal]
+  end
+
+  subgraph p2c [INT-002c — Intent remap CLI]
+    R[run-tour-published-exposure-remap]
+  end
+
+  subgraph p3 [INT-002d — Verify + ops]
+    T[4-integration spec chain]
+    RB[runbook tour-published-telegram-delivery]
+  end
+
+  done --> p1 --> p2 --> p2c --> p3
+```
+
+## PR train (merge order)
+
+| PR | ID | Scope | Risk |
+| -- | -- | ----- | ---- |
+| 1 | **INT-002a** | Effective event catalog (API + web read model) | Low — read-only |
+| 2 | **INT-002b** | SQL policy backfill + health drift detector (warn default) | Low — additive SQL |
+| 3 | **INT-002c** | Exposure intent remap CLI (`--dry-run` / `--apply`) | Medium — data transform |
+| 4 | **INT-002d** | Integration specs L0–L3 + operator runbook + optional fatal gate | Low |
+
+Do **not** merge INT-002b/c before INT-002a (operators need truthful UI during migration).
+
+---
+
+## INT-002a — Effective integration event catalog
+
+### Goal
+
+Single read-model helper for “what events does this connection expose in admin UI and DTOs?”
+
+### New module
+
+`apps/api/src/integrations/platform/resolve-effective-integration-event-catalog.ts`
+
+**Input:**
+
+- `workspaceType`, `providerId`
+- `persistedPolicies[]` (from DB)
+- `persistedIntents[]` (optional — for deprecated detection)
+
+**Output per event:**
+
+| Field | Meaning |
+| ----- | ------- |
+| `eventType` | e.g. `TourPublished` |
+| `declaredOnSurface` | in `defaultEventPolicies` |
+| `enabled` | persisted policy if row exists, else surface default |
+| `deprecated` | `true` for superseded types (denali telegram `TourCreated`) |
+| `supersededBy` | `TourPublished` when deprecated |
+| `routingActive` | `integrationMappingsForEvent` non-empty today |
+
+**Deprecated rule (v1):**
+
+```text
+deprecated := eventType === "TourCreated"
+  && workspaceType === "denali"
+  && providerId === "telegram"
+  && surface no longer maps TourCreated
+```
+
+### Wire-up
+
+| Consumer | Change |
+| -------- | ------ |
+| `integrations.service.ts` `toPublicDto` | `eventPolicies` from effective catalog (not raw DB only) |
+| `integrations.service.ts` legacy synthetic mapper | remove hardcoded `[{ TourCreated }]` |
+| `apps/web/.../build-exposure-event-type-list.ts` | primary list = surface declared events; skip deprecated policies **and** legacy intents |
+| `integration-event-delivery-policy-panel.tsx` | deprecated migration callout when policy `deprecated: true` |
+| `IntegrationConnectionLoadWarningsBanner` | `TOUR_PUBLISHED_POLICY_DRIFT` banner on Integrations + Exposure settings |
+
+### DTO extension (backward compatible)
+
+Add optional on public policy entries:
+
+```typescript
+readonly deprecated?: boolean;
+readonly supersededBy?: string;
+```
+
+Web ignores unknown fields until wired.
+
+### Tests
+
+| Spec | Assert |
+| ---- | ------ |
+| `resolve-effective-integration-event-catalog.spec.ts` | denali telegram: TourPublished enabled by default; TourCreated deprecated |
+| `apps/web/test/build-exposure-event-type-list.spec.ts` | `TourPublished` not `TourCreated` fallback |
+| `integrations-verification.spec.ts` | legacy synthetic lists TourPublished |
+
+### Acceptance
+
+- Admin UI event tabs match surface catalog for new connections.
+- Old DB-only `TourCreated` row visible as deprecated, not as active delivery route.
+
+---
+
+## INT-002b — Policy backfill + drift detector
+
+### SQL migration
+
+`apps/api/prisma/migrations/YYYYMMDD_backfill_tour_published_event_policies/migration.sql`
+
+**Scope:**
+
+```sql
+integration_connections ic
+WHERE ic.provider = 'telegram'
+  AND ic.workspace_type = 'denali'
+  AND ic.enabled = true
+  AND ic.status = 'enabled'
+```
+
+**Steps (single migration, idempotent):**
+
+1. **INSERT** `event_type = 'TourPublished', enabled = true` — `ON CONFLICT (integration_connection_id, event_type) DO NOTHING`
+2. **UPDATE** `event_type = 'TourCreated' SET enabled = false` where step 1 row exists for same connection
+3. SQL comment referencing this doc + ADR-INT-001
+
+**Out of scope:** `workspace_telegram_bot` synthetic path (routing uses surface defaults).
+
+### Drift detector
+
+Extend `apps/api/src/health/migration-consistency-check.ts` (or sibling report):
+
+**Signal:** `TOUR_PUBLISHED_POLICY_DRIFT`
+
+**Query:** count denali/telegram enabled connections missing `TourPublished` enabled policy.
+
+| Env | Behavior |
+| --- | -------- |
+| default | log warn + expose in consistency report |
+| `TOUR_PUBLISHED_ROLLOUT_GATE_FATAL=true` | `report.ok = false` → integration subsystem gate blocks mutations |
+
+**Connection DTO:** optional `loadWarnings: ["TOUR_PUBLISHED_POLICY_DRIFT"]` when this connection is in drift set.
+
+### CLI (optional parity with telegram backfill)
+
+**Deferred** — use SQL migration `20260704100000_backfill_tour_published_event_policies` on each environment. If partial restore prevents SQL replay, add `run-tour-published-policy-backfill.ts` (planned shape):
+
+- `--dry-run` / `--apply`
+- `--tenant-id`
+- Output: `planned / applied / skipped / mismatches`
+
+Drift repair without new CLI: re-run migrate deploy, or manually `INSERT` `TourPublished enabled=true` per connection (see runbook SQL).
+
+### Tests
+
+| Spec | Assert |
+| ---- | ------ |
+| `tour-published-policy-backfill-plan.spec.ts` | pure plan builder |
+| `migration-consistency-check.spec.ts` | drift signal when policy missing |
+| contract | migration file exists + SQL contains scoped WHERE |
+
+### Acceptance
+
+- After migrate deploy: drift count = 0 for all denali telegram enabled connections.
+
+---
+
+## INT-002c — Exposure intent remap CLI
+
+### Why CLI not SQL
+
+`exposure_intents.scope_hash` must match `exposureIntentScopeHash(normalizeExposureIntentScope(scope))` — reuse repository upsert.
+
+### Module layout
+
+```text
+apps/api/src/integrations/migration/
+  tour-published-exposure-remap-plan.ts    # pure
+  run-tour-published-exposure-remap.ts       # CLI entry
+```
+
+### Selection filter
+
+```text
+workspace_type = 'denali'
+AND surface = 'telegram'
+AND (profile_id LIKE '%.TourCreated' OR trigger = 'TourCreated')
+```
+
+### Per-intent algorithm
+
+```text
+1. Build target: profileId *.TourPublished, trigger TourPublished,
+   scope.eventType TourPublished, scopeHash recomputed
+2. IF target unique key exists:
+     MERGE selectedFieldIds (union), prefer non-null templateOverrideId on target
+     DELETE source TourCreated row
+   ELSE:
+     UPSERT via prisma-exposure-intent.repository
+3. source = 'tour_published_trigger_migration_v1'
+4. IF templateOverrideId equals seeded TourCreated template exactly:
+     rewrite to TourPublished seeded template (optional cosmetic)
+```
+
+### Conflict report
+
+| Kind | Action |
+| ---- | ------ |
+| `TARGET_EXISTS_MERGED` | applied |
+| `UNIQUE_VIOLATION` | skip + mismatch entry |
+| `NO_SOURCE` | skip |
+
+### Tests
+
+| Spec | Assert |
+| ---- | ------ |
+| `tour-published-exposure-remap-plan.spec.ts` | merge + hash |
+| `4-integration/tour-published-exposure-remap.spec.ts` | optional — not required for closure; use `--verify` CLI on target DB |
+
+**Operator verify after apply:**
+
+```bash
+pnpm --filter @apps/api run integrations:verify-tour-published-exposure
+# exit 0 when remainingCandidates === 0
+```
+
+### Acceptance
+
+- Zero active remap candidates in dry-run after apply.
+- Dispatch integration test: custom field intent on TourPublished route applies after remap.
+
+---
+
+## INT-002d — Verification + operator runbook
+
+### Test pyramid
+
+| Level | File | Requires DB |
+| ----- | ---- | ----------- |
+| L0 | `test/tour-published-rollout-closure.contract.spec.ts` | no |
+| L1 | existing unit specs (payload, dispatch payload) | no |
+| L2 | `test/4-integration/tour-published-outbox.spec.ts` | yes |
+| L3 | same file (`second dispatch → 0`, single job row) | yes |
+
+**L2 flow:**
+
+```text
+denali tenant + integration connection (seedDefaultEventPolicies → TourPublished)
+→ runPreTransactionValidation (golden publish-ready + catalogRefAllowlists)
+→ persistTourUpdateAtomically (draft → active)
+→ assert outbox eventType TourPublished, schemaVersion 1, deliverySnapshot.title
+```
+
+**L3 flow:**
+
+```text
+→ dispatchIntegrationDomainEvent(row) → enqueued count 1
+→ replay same domainEventId → enqueued count 0 (idempotent skip)
+→ assert integration_delivery_jobs row count 1, status pending
+```
+
+**L0 contract asserts:**
+
+- This plan doc exists
+- Policy migration glob exists
+- Runbook exists
+- Web fallback not `TourCreated` for telegram
+- Drift detector symbol wired
+
+### Runbook
+
+`docs/dev/runbooks/tour-published-telegram-delivery.mdoc`
+
+Sections: preconditions, env flags, deploy order, smoke SQL/queries, failure matrix, republish semantics, rollback notes.
+
+Cross-link from [integration-event-catalog](./integration-event-catalog.mdoc).
+
+### i18n (web)
+
+Add `settings.integrations.eventNames.TourPublished` and `eventHints.TourPublished` in message bundles.
+
+---
+
+## Deploy order (mandatory)
+
+```text
+1. Merge INT-002a → deploy API + web (catalog clarity)
+2. pnpm --filter @app-tour/workspace-denali build
+3. Merge INT-002b → pnpm --filter @apps/api run db:migrate:deploy
+4. Verify drift report = 0 (or run CLI repair)
+5. Merge INT-002c → run remap --dry-run → --apply
+6. Set env (staging/prod):
+     OUTBOX_RELAY_ENABLED=true
+     INTEGRATION_DELIVERY_ENABLED=true
+     INTEGRATION_DELIVERY_WORKER_ENABLED=true
+7. Restart API + worker processes
+8. Runbook smoke: publish tour → Telegram channel
+9. Optional: TOUR_PUBLISHED_ROLLOUT_GATE_FATAL=true on staging
+```
+
+**Failure mode if order violated:** steps 3–4 skipped while domain emit active → publish works, Telegram silent. Drift detector + runbook exist to catch this.
+
+---
+
+## Republish semantics (documented — no code suppress)
+
+Each `draft → active` transition emits new `TourPublished:{tourId}:{rowVersion}` → new delivery job. Relay replay of same `domainEventId` is idempotent via `uq_integration_delivery_jobs_idempotency`.
+
+Product choice: **notify on every publish transition** (Stripe-style). Not suppressed in INT-002.
+
+---
+
+## Rollback
+
+| Layer | Strategy |
+| ----- | -------- |
+| SQL migration | Forward-only; do not DELETE TourPublished rows in rollback |
+| Emergency | Architect-approved hotfix only: temporarily re-add surface `TourCreated` mapping (ADR amend required) |
+| Normal | Fix forward: run policy backfill + intent remap |
+
+---
+
+## Definition of Done (INT-002 complete)
+
+**Code / repo (done):**
+
+- [x] Effective catalog wired API + web; no telegram `TourCreated` fallback
+- [x] L0–L3 specs green (`DATABASE_URL` for integration tier — verified 2026-06-30)
+- [x] Runbook published and linked from catalog + ADR
+- [x] Web i18n `TourPublished` + drift / deprecated operator copy (en/fa)
+- [x] `guard-docs.sh` passes for touched protected paths
+
+**Per environment (operator — each staging/prod DB):**
+
+- [ ] Policy migration applied; drift count 0 (`TOUR_PUBLISHED_POLICY_DRIFT` absent)
+- [ ] Intent remap `--dry-run` clean → `--apply` → `integrations:verify-tour-published-exposure`
+- [ ] Delivery flags enabled + worker running
+- [ ] Smoke: publish tour → outbox → job → Telegram (or worker log)
+
+---
+
+## File map (as built)
+
+```text
+docs/dev/tour-published-telegram-rollout-plan.mdoc          ← this doc
+docs/dev/runbooks/tour-published-telegram-delivery.mdoc     ← INT-002d operator runbook
+docs/architecture/adr/ADR-INT-001-tour-published-telegram.mdoc
+
+apps/api/src/integrations/platform/
+  resolve-effective-integration-event-catalog.ts
+  resolve-effective-integration-event-catalog.spec.ts
+
+apps/api/src/integrations/migration/
+  tour-published-exposure-remap-plan.ts
+  run-tour-published-exposure-remap.ts
+  run-tour-published-exposure-remap-cli.ts
+apps/api/scripts/remap-tour-published-exposure-intents.mjs
+
+apps/api/prisma/migrations/20260704100000_backfill_tour_published_event_policies/
+
+apps/api/src/health/
+  tour-published-policy-drift.ts
+  migration-consistency-check.ts                            ← drift extension
+
+apps/web/src/exposure/build-exposure-event-type-list.ts
+apps/web/src/integrations/integration-connection-load-warnings.ts
+apps/web/src/integrations/IntegrationConnectionLoadWarningsBanner.tsx
+
+apps/api/test/
+  tour-published-rollout-closure.contract.spec.ts
+  4-integration/tour-published-outbox.spec.ts
+apps/web/test/
+  build-exposure-event-type-list.spec.ts
+  integration-connection-load-warnings.spec.ts
+```
+
+---
+
+## Verification commands (fast-track)
+
+```bash
+# After each PR — no full monorepo gate
+pnpm run guard-docs
+pnpm --filter @app-tour/workspace-denali build   # when surface touched
+
+# Targeted specs (examples)
+pnpm --filter @apps/api exec node --import tsx --test \
+  src/integrations/platform/resolve-effective-integration-event-catalog.spec.ts \
+  test/tour-published-rollout-closure.contract.spec.ts
+
+# Integration tier (DATABASE_URL required — local example)
+export DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/app_tour_dev'
+export DATABASE_URL_ADMIN="$DATABASE_URL"
+pnpm --filter @apps/api run db:migrate:deploy
+STORAGE_DRIVER=prisma NODE_ENV=test \
+  pnpm --filter @apps/api exec node --import tsx --test \
+  test/4-integration/tour-published-outbox.spec.ts
+
+# Web operator UX
+pnpm --filter @apps/web exec node --import tsx --test \
+  test/build-exposure-event-type-list.spec.ts \
+  test/integration-connection-load-warnings.spec.ts
+```

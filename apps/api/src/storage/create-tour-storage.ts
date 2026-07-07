@@ -24,6 +24,7 @@ export type TourStorageImplementation = TourStorageRepository & {
 
 let urbanSmokeMemoryStore: InMemoryTourRepository | undefined;
 let operatorSmokeMemoryStore: InMemoryTourRepository | undefined;
+let dualSmokeMemoryStore: InMemoryTourRepository | undefined;
 let defaultMemoryTourStore: InMemoryTourRepository | undefined;
 
 /**
@@ -40,6 +41,20 @@ export function createTourStorageRepository(): TourStorageImplementation {
     }
     return new PrismaTourRepository();
   }
+  if (
+    process.env.URBAN_SMOKE_E2E_SEED === "1" &&
+    process.env.OPERATOR_SMOKE_E2E_SEED === "1"
+  ) {
+    if (dualSmokeMemoryStore === undefined) {
+      dualSmokeMemoryStore = new InMemoryTourRepository();
+      dualSmokeMemoryStore.ensureUrbanPhase81PublishedTour();
+      dualSmokeMemoryStore.ensureOperatorSmokeSeedTour();
+      if (!isProductionAuthMode()) {
+        dualSmokeMemoryStore.ensureDenaliDevSmokeSeedTour();
+      }
+    }
+    return dualSmokeMemoryStore;
+  }
   if (process.env.URBAN_SMOKE_E2E_SEED === "1") {
     if (urbanSmokeMemoryStore === undefined) {
       urbanSmokeMemoryStore = new InMemoryTourRepository();
@@ -51,6 +66,9 @@ export function createTourStorageRepository(): TourStorageImplementation {
     if (operatorSmokeMemoryStore === undefined) {
       operatorSmokeMemoryStore = new InMemoryTourRepository();
       operatorSmokeMemoryStore.ensureOperatorSmokeSeedTour();
+      if (!isProductionAuthMode()) {
+        operatorSmokeMemoryStore.ensureDenaliDevSmokeSeedTour();
+      }
     }
     return operatorSmokeMemoryStore;
   }
