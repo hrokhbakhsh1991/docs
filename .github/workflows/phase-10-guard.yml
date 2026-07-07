@@ -81,7 +81,7 @@ on:
       - "docs/dev/workspace-scale-hardening.mdoc"
       - "apps/web/app/layout.tsx"
       - "apps/web/src/bootstrap/workspace-theme-stylesheets.generated.ts"
-      - "apps/portal/app/layout.tsx"
+      - "apps/portal/package.json"
       - "apps/portal/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
       - "apps/marketing/app/layout.tsx"
       - "apps/marketing/src/bootstrap/workspace-guest-theme-stylesheets.generated.ts"
@@ -104,7 +104,6 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @app-tour/workspace-sdk run build
       - run: pnpm run phase-10:guard
       - run: pnpm run guard:theme-import-budget
       - run: node --test scripts/test/theme-import-budget-guard.spec.mjs
@@ -116,6 +115,7 @@ jobs:
       - run: node --test scripts/test/workspace-production-certification.spec.mjs
       - run: pnpm run guard:workspace-certification
       - run: node --test scripts/test/workspace-certification-guard.spec.mjs
+      - run: pnpm --filter @app-tour/workspace-sdk run build
       - run: pnpm --filter @apps/api exec node --import tsx --test test/provision-tenant-production.spec.ts
       - run: pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
       - run: pnpm --filter @apps/api exec node --import tsx --test test/workspace-not-certified-error-interceptor.spec.ts
