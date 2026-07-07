@@ -17,8 +17,7 @@ pnpm run phase-i:closure   # G+H regression + I1/I2 guards
 | Codegen | `guard:workspace-registry-fresh`, drop-in 28/28 |
 | Guards | `phase-10:guard` **11/11**, `guard:guest-plugin-conformance`, `guard:workspace-certification`, `guard:theme-import-budget`, `guard:workspace-plugin-load-cache` |
 | H1–H3 | production-certification spec 4/4, certification-guard spec 5/5 |
-| H2 API | provision-tenant-production 7/7, error-interceptor 422 |
-| H4 | list-platform-workspaces 4/4, Super Admin specs, smoke-platform-create-club |
+| H2/H4 integration | provision/list-platform-workspaces/error-interceptor + Super Admin specs — **`phase-i:closure` local** (GHA fast path = guards only) |
 | OpenAPI | `guard:openapi-dispatch-parity` |
 
 ## Deferred (explicit)
