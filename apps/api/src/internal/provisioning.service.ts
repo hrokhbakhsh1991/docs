@@ -16,6 +16,7 @@ import { findTenantBySubdomain, isStaticTenantRegistryAllowed } from "../tenant/
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { TenantProvisionConflictError } from "./provisioning.errors";
 import { assertProvisioningDevelopmentOnly } from "./provisioning-guard";
+import { assertProductionCertifiedWorkspaceType } from "./assert-production-certified-workspace";
 
 /** MAP 4.3 — canonical dev seed labels (subphase 4.3). */
 export const PHASE_43_SEED_SUBDOMAINS = ["tenant-a", "tenant-b"] as const;
@@ -130,6 +131,7 @@ export class ProvisioningService {
    */
   async provisionTenantProduction(input: ProvisionTenantInput): Promise<ProvisionedTenant> {
     const identity = resolveTenantIdentity(input);
+    assertProductionCertifiedWorkspaceType(identity.workspaceType);
     await assertTenantNotAlreadyPresent(identity.tenantId, identity.subdomain);
     return createTenantRow(identity);
   }

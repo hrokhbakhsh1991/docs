@@ -158,7 +158,7 @@ Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace 
 | ----- | ----- | ------------- |
 | **H0 (doc)** | This document + architecture § Phase H + guest-conformance cross-link | Architect review |
 | **H1** | Schema + codegen + SDK resolver | ✅ |
-| **H2** | `provisionTenantProduction` fail-closed | ⏳ |
+| **H2** | `provisionTenantProduction` fail-closed | ✅ |
 | **H3** | `guard:workspace-certification` + proof matrix rows + drop-in spec | CI via `phase-10-guard` or dedicated workflow path |
 | **H4 (optional)** | Super Admin badge + disabled prod create for stub | UX spec + smoke |
 
@@ -196,4 +196,14 @@ Full monorepo gate (`ci:integrity`) deferred until Phase H closure PR — same p
 | `workspace-production-certification.spec.mjs` | ✅ 4/4 |
 | SDK `resolve-production-certification.spec.ts` | ✅ 2/2 |
 
-**Next slice:** **H2** — `provisionTenantProduction` fail-closed for `stub` tier.
+## H2 status (2026-07-07)
+
+| Artifact | Status |
+| -------- | ------ |
+| `WorkspaceNotCertifiedForProductionError` (`WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION`) | ✅ |
+| `assertProductionCertifiedWorkspaceType()` | ✅ |
+| `provisionTenantProduction()` calls assert before DB insert | ✅ |
+| Dev `provisionTenant()` / seeds unchanged | ✅ |
+| `provision-tenant-production.spec.ts` (H2 cases) | ✅ 7/7 |
+
+**Next slice:** **H3** — `guard:workspace-certification` + proof matrix rows + drop-in spec.

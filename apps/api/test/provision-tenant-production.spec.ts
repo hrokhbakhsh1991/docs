@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
+
+import { assertProductionCertifiedWorkspaceType } from "../src/internal/assert-production-certified-workspace.ts";
 import { ProvisioningDevOnlyError } from "../src/internal/provisioning-guard.ts";
+import {
+  WorkspaceNotCertifiedForProductionError,
+} from "../src/internal/provisioning.errors.ts";
 import { ProvisioningService } from "../src/internal/provisioning.service.ts";
 
 describe("P1-N-044: provisionTenantProduction", () => {
@@ -29,17 +34,52 @@ describe("P1-N-044: provisionTenantProduction", () => {
     );
   });
 
-  it("production method succeeds without dev guard", () => {
+  it("production method exists without dev guard on the class", () => {
     process.env.NODE_ENV = "production";
-
-    // The production method should not throw ProvisioningDevOnlyError
-    // Note: This will fail with DATABASE_URL error in test env, but that's expected
-    // The key is it doesn't throw ProvisioningDevOnlyError
-    assert.doesNotThrow(() => {
-      // Just verify the method exists and can be called
-      assert.ok(typeof service.provisionTenantProduction === "function");
-    });
+    assert.ok(typeof service.provisionTenantProduction === "function");
   });
 });
 
-// Made with Bob
+describe("Phase H2: assertProductionCertifiedWorkspaceType", () => {
+  it("allows denali (certified reference workspace)", () => {
+    assert.doesNotThrow(() => assertProductionCertifiedWorkspaceType("denali"));
+  });
+
+  it("rejects urban stub workspace", () => {
+    assert.throws(
+      () => assertProductionCertifiedWorkspaceType("urban"),
+      (err: Error) => {
+        assert.ok(err instanceof WorkspaceNotCertifiedForProductionError);
+        assert.equal(err.code, "WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION");
+        assert.equal(err.workspaceType, "urban");
+        assert.equal(err.pluginId, "urban");
+        return true;
+      }
+    );
+  });
+
+  it("rejects starter stub workspace", () => {
+    assert.throws(
+      () => assertProductionCertifiedWorkspaceType("starter"),
+      WorkspaceNotCertifiedForProductionError
+    );
+  });
+
+  it("rejects guest-club stub workspace", () => {
+    assert.throws(
+      () => assertProductionCertifiedWorkspaceType("guest-club"),
+      (err: Error) => {
+        assert.ok(err instanceof WorkspaceNotCertifiedForProductionError);
+        assert.equal(err.pluginId, "guest-club");
+        return true;
+      }
+    );
+  });
+
+  it("rejects unknown workspace type before certification lookup", () => {
+    assert.throws(
+      () => assertProductionCertifiedWorkspaceType("unknown-workspace"),
+      /WORKSPACE_PLUGIN_NOT_BOUND:unknown-workspace/
+    );
+  });
+});
