@@ -167,9 +167,9 @@ Certification is **runtime proof**, not manifest-only (MAP §12.6). A workspace 
 | Prerequisite | Status |
 | ------------ | ------ |
 | Phase G on `DEV` (codegen modular) | ✅ |
-| Phase G PR merged to `main` | ⏳ |
-| H0 Architect review | ⏳ |
-| Trunk baseline table approved | ⏳ |
+| Phase G + H merge PR to `main` | ⏳ |
+| H0 Architect review | ✅ (DEV closure) |
+| Trunk baseline table (`denali` certified; others stub) | ✅ |
 
 ## Verification (each slice)
 
@@ -234,8 +234,6 @@ Per `pluginId` with `productionTier: certified` in the generated registry, the p
 | Drop-in spec H3 cases | ✅ 2/2 |
 | CI `phase-10-guard.yml` | ✅ |
 
-**Next slice:** **H4 (optional)** — Super Admin stub/certified badge + disabled prod create for stub.
-
 ## Super Admin UX (H4)
 
 **Surfaces:** `apps/web/src/platform/` — create-club wizard + club detail overview.
@@ -268,4 +266,19 @@ node apps/web/scripts/smoke-platform-create-club.mjs
 | `workspace-production-certification-badge.spec.ts` | ✅ 3/3 |
 | `smoke-platform-create-club.mjs` structural H4 checks | ✅ |
 
-**Phase H closure:** H0–H4 complete on `DEV` — full `ci:integrity` deferred per Architect YES policy.
+**Phase H closure (H0–H4 on `DEV`):** complete — merge PR pending. Full `ci:integrity` deferred per Architect YES policy.
+
+### Phase H closure verification (2026-07-07)
+
+| Check | Result |
+| ----- | ------ |
+| `guard:workspace-certification` | PASS |
+| `phase-10:guard` | PASS |
+| `workspace-certification-guard.spec.mjs` | 5/5 |
+| `workspace-production-certification.spec.mjs` | 4/4 |
+| `provision-tenant-production.spec.ts` (H2) | 7/7 |
+| `list-platform-workspaces.spec.ts` (H4 API) | 4/4 |
+| `workspace-production-certification-badge.spec.ts` (H4 UI) | 3/3 |
+| Drop-in spec H3 cases | 2/2 |
+
+**Commits (DEV):** `8d18c446` H0 · `4f76d31a` H1 · `4590d09e` H2 · `e7ef0181` H3 · `5edb6eb3` H4

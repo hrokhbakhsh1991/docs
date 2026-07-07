@@ -12,6 +12,22 @@ on:
       - "packages/workspaces/**"
       - "packages/workspace-sdk/**"
       - "apps/api/src/workspace/**"
+      - "apps/api/src/internal/assert-production-certified-workspace.ts"
+      - "apps/api/src/internal/provisioning.errors.ts"
+      - "apps/api/src/internal/provisioning.service.ts"
+      - "apps/api/src/platform/list-platform-workspaces.ts"
+      - "apps/api/src/platform/provision-tenant-saga.ts"
+      - "apps/api/src/routes/platform/tenants-create.ts"
+      - "apps/api/test/list-platform-workspaces.spec.ts"
+      - "apps/api/test/provision-tenant-production.spec.ts"
+      - "apps/web/src/platform/create-club/**"
+      - "apps/web/src/platform/workspace-production-certification-badge.tsx"
+      - "apps/web/src/platform/resolve-workspace-production-tier.ts"
+      - "apps/web/src/platform/club-detail/platform-club-detail-client.tsx"
+      - "apps/web/src/platform/platform-clubs-table.tsx"
+      - "apps/web/test/workspace-production-certification-badge.spec.ts"
+      - "apps/web/test/use-create-club-wizard.spec.ts"
+      - "apps/web/scripts/smoke-platform-create-club.mjs"
       - "apps/api/src/outbox/**"
       - "apps/api/src/app.ts"
       - "apps/api/src/boot/**"
@@ -64,4 +80,6 @@ jobs:
       - run: node --test scripts/test/workspace-registry-drop-in.spec.mjs
       - run: node --test scripts/test/workspace-production-certification.spec.mjs
       - run: pnpm run guard:workspace-certification
-      - run: node --test scripts/test/workspace-certification-guard.spec.mjs
+      - run: pnpm --filter @apps/api exec node --import tsx --test test/provision-tenant-production.spec.ts
+      - run: pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
+      - run: pnpm --filter @apps/web exec node --import tsx --test test/workspace-production-certification-badge.spec.ts

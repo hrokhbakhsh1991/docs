@@ -771,7 +771,7 @@ Full conflict inventory, C4 mitigation (F9-4), and guards: [dtcg-pipeline-spec.m
 | R7 | MASTER.md parallel SSOT | **Medium** | Designer/dev drift | **High** | Wrong brand in workspace | Generate or demote |
 | R8 | shell-bridge scope creep | **Medium** | Bridge changes break admin+guest | **Medium** | Fragile theming | Split bridge vs operator CSS |
 | R9 | Urban API guards | **Medium** | Workspace #5 needs API patch | **Medium** | API not plugin-generic | Manifest-driven capability flags |
-| R10 | Stub workspaces in prod matrix | **Low** | False confidence in equality | **High** | Visual/regression gaps | **Phase H** — `productionTier` + prod provision gate ([workspace-certification.mdoc](../dev/workspace-certification.mdoc)) |
+| R10 | Stub workspaces in prod matrix | **Low** | False confidence in equality | **Mitigated** | Phase H — `productionTier` + provision gate + Super Admin UX ([workspace-certification.mdoc](../dev/workspace-certification.mdoc)) |
 | R11 | DTCG `accent`→`warning` mapping | **Low** | Wrong semantic generation | **Medium** | Broken CTA colors | Fix schema before generate |
 | R12 | 69 guards without admin coverage | **Medium** | Green CI, red admin debt | **High** | Security/brand inconsistency | Extend appearance AST to admin |
 | R13 | Over-engineered guard surface | **Low** | Maintenance cost | **Medium** | Slower iteration | Consolidate to schema-driven guards |
@@ -973,7 +973,7 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 - **Invariant preserved:** generated `*.generated.ts` byte-identical through Phase G closure.
 - Legacy `scripts/member-portal-contract-codegen.mjs` is a re-export shim only.
 
-### Phase H — Workspace certification (H0 in progress)
+### Phase H — Workspace certification (closed 2026-07-07)
 
 **Spec:** [workspace-certification.mdoc](../dev/workspace-certification.mdoc)
 
@@ -987,9 +987,21 @@ Spec: [dtcg-pipeline-spec.mdoc](../dev/dtcg-pipeline-spec.mdoc).
 
 - **Technical L0–L4** (guest conformance) exists — Phase H adds **productionTier: stub \| certified**.
 - **certified** required for `provisionTenantProduction`; dev provisioning unchanged.
-- Closes risk **R10** (stub workspaces in prod matrix).
+- Closes risk **R10** (stub workspaces in prod matrix) — `productionTier` + provision gates + Super Admin UX.
 
-**Prerequisite:** Phase G PR merge recommended before H1 codegen.
+**Closure verification (fast-track):**
+
+```bash
+pnpm run guard:workspace-certification
+pnpm run phase-10:guard
+node --test scripts/test/workspace-certification-guard.spec.mjs
+node --test scripts/test/workspace-production-certification.spec.mjs
+pnpm --filter @apps/api exec node --import tsx --test test/provision-tenant-production.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test test/list-platform-workspaces.spec.ts
+pnpm --filter @apps/web exec node --import tsx --test test/workspace-production-certification-badge.spec.ts
+```
+
+Full `ci:integrity` deferred until merge PR — Architect YES only.
 
 ### Phase I — Scale hardening
 
