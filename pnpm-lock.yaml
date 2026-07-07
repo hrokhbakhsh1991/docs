@@ -132,6 +132,9 @@ importers:
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk
+      '@app-tour/workspace-starter':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/starter
       '@app-tour/workspace-urban':
         specifier: workspace:*
         version: link:../../packages/workspaces/urban
