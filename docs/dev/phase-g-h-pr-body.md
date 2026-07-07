@@ -35,8 +35,8 @@ pnpm run phase-i:closure   # G+H regression + I1/I2 guards
 
 - [x] `pnpm run phase-i:closure` green locally
 - [x] GHA `phase-10-guard` green on `DEV` (`61954281`)
-- [x] PR [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) open (DEV → main)
-- [ ] CI `phase-10-guard` green on merge PR to `main`
+- [x] PR [#19](https://github.com/hrokhbakhsh1991/docs/pull/19) merged to `main` (`6b27d9f6`)
+- [x] GHA `phase-10-guard` green on PR
 - [ ] Proof matrix: `docs/dev/workspace-certification-proof-matrix.yaml` (denali certified)
 - [ ] Super Admin `/platform/clubs/new` — urban/guest-club disabled; denali certified badge
 - [ ] `POST /platform/v1/tenants` with `workspaceType: urban` returns 422 `WORKSPACE_NOT_CERTIFIED_FOR_PRODUCTION`
