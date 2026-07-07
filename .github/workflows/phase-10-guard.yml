@@ -72,6 +72,8 @@ on:
       - "apps/web/src/platform/create-club/submit-create-club.ts"
       - "scripts/phase-g-h-fast-track.sh"
       - "scripts/phase-i-closure-fast-track.sh"
+      - "scripts/ci/build-workspace-sdk-for-guards.sh"
+      - "scripts/ci/guest-conformance-each.sh"
       - "scripts/create-phase-i-pr.sh"
       - "docs/dev/phase-i-pr-body.md"
       - "package.json"
