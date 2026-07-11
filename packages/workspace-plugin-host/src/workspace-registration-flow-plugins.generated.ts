@@ -6,12 +6,12 @@
 
 import { registerWorkspaceRegistrationFlowPlugin } from "@app-tour/workspace-sdk";
 import { CatalogRegistrationOtpStep, CatalogRegistrationPhoneStep, CatalogRegistrationProfileStep } from "@app-tour/catalog-registration-flow-ui/react";
-import { GuestClubIntakeStep, GuestClubDoneStep } from "@app-tour/workspace-guest-club/catalog-registration-flow/react";
-import { UrbanIntakeStep, UrbanDoneStep } from "@app-tour/workspace-urban/catalog-registration-flow/react";
-import { denaliCatalogRegistrationFlowSurface } from "@app-tour/workspace-denali/catalog-registration-flow";
-import { denaliRegistrationFlowSteps } from "@app-tour/workspace-denali/catalog-registration-flow/react";
-import { guestClubCatalogRegistrationFlowSurface } from "@app-tour/workspace-guest-club/catalog-registration-flow";
-import { urbanCatalogRegistrationFlowSurface } from "@app-tour/workspace-urban/catalog-registration-flow";
+import { GuestClubIntakeStep, GuestClubDoneStep } from "@app-tour/workspace-guest-club/host/catalog-registration-flow/react";
+import { UrbanIntakeStep, UrbanDoneStep } from "@app-tour/workspace-urban/host/catalog-registration-flow/react";
+import { denaliCatalogRegistrationFlowSurface } from "@app-tour/workspace-denali/host/catalog-registration-flow";
+import { denaliRegistrationFlowSteps } from "@app-tour/workspace-denali/host/catalog-registration-flow/react";
+import { guestClubCatalogRegistrationFlowSurface } from "@app-tour/workspace-guest-club/host/catalog-registration-flow";
+import { urbanCatalogRegistrationFlowSurface } from "@app-tour/workspace-urban/host/catalog-registration-flow";
 
 import { registerWorkspaceRegistrationFlowSteps } from "./registration-flow";
 

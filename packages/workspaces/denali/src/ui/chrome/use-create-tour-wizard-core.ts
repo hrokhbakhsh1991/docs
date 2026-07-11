@@ -2,7 +2,7 @@
 
 import type { CreateTourPayload, WorkspacePlugin } from "@app-tour/workspace-sdk";
 import type { ValidationIssue } from "@app-tour/wizard-navigation";
-import type { DraftSchemaGate } from "@app-tour/draft-engine";
+import type { DraftSchemaGate, DraftSchemaIssue, DraftStatus } from "@app-tour/draft-engine";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
@@ -58,10 +58,26 @@ export type DenaliCreateTourWizardSession = {
 
 export type DenaliCreateTourDraftSync = {
   readonly data: DenaliCreateTourWizardDraftEnvelope | null;
-  readonly status: string;
+  readonly status: DraftStatus;
   readonly navLocked: boolean;
-  readonly setData: (envelope: DenaliCreateTourWizardDraftEnvelope) => void;
+  readonly setData: (
+    envelope: DenaliCreateTourWizardDraftEnvelope,
+    options?: { readonly source?: string }
+  ) => void;
   readonly clearDraft: () => Promise<void>;
+  readonly schemaIssues: readonly DraftSchemaIssue[];
+  readonly pendingDraft: { readonly data: DenaliCreateTourWizardDraftEnvelope } | null;
+  readonly conflictReloadNotice: boolean;
+  readonly retry: () => Promise<void>;
+  readonly flush: () => Promise<void>;
+  readonly applyDraft: () => void;
+  readonly canRevertQuarantine: boolean;
+  readonly revertToLastValid: () => void;
+};
+
+export type DenaliCreateTourDraftIndex = {
+  readonly loading: boolean;
+  readonly items: readonly unknown[];
 };
 
 export type DenaliWizardClearDraftHandle = {
@@ -85,7 +101,7 @@ export type DenaliCreateTourWizardCoreInput = {
   readonly runtimeGates?: DenaliWizardRuntimeGates;
   readonly denaliPlugin: WorkspacePlugin;
   readonly draftSync: DenaliCreateTourDraftSync;
-  readonly draftIndex: unknown;
+  readonly draftIndex: DenaliCreateTourDraftIndex;
   readonly clearDraft: DenaliWizardClearDraftHandle;
   readonly wizardSessionId: string;
   readonly prepareEnvelope: (

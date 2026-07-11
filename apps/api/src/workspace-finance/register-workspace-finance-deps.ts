@@ -1,4 +1,4 @@
-import { registerTourCreatedFinanceSideEffectDeps } from "@app-tour/workspace-denali/finance/api-tour-created-adapter";
+import { registerTourCreatedFinanceSideEffectDeps } from "@app-tour/workspace-denali/host/finance/api-tour-created-adapter";
 
 import { tryClaimWorkspaceFinanceProcessedEvent } from "./workspace-finance-processed-log";
 import { createPrismaWorkspaceOutboxWriter } from "./prisma-workspace-outbox-writer";

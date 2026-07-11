@@ -1,0 +1,33 @@
+{
+  "flat": {
+    "focus-ring-color": { "$type": "color", "$value": "rgb(15 118 110 / 0.35)" },
+    "focus-ring-offset": { "$type": "color", "$value": "#ffffff" },
+    "background": { "$type": "color", "$value": "{color.bg-page}" },
+    "foreground": { "$type": "color", "$value": "{color.text-primary}" },
+    "card": { "$type": "color", "$value": "{color.bg-surface}" },
+    "card-foreground": { "$type": "color", "$value": "{color.text-primary}" },
+    "popover": { "$type": "color", "$value": "{color.bg-surface}" },
+    "popover-foreground": { "$type": "color", "$value": "{color.text-primary}" },
+    "primary": { "$type": "color", "$value": "{color.primary}" },
+    "primary-foreground": { "$type": "color", "$value": "{color.primary-fg}" },
+    "secondary": { "$type": "color", "$value": "{color.bg-muted}" },
+    "secondary-foreground": { "$type": "color", "$value": "{color.text-primary}" },
+    "muted": { "$type": "color", "$value": "{color.bg-muted}" },
+    "muted-foreground": { "$type": "color", "$value": "{color.text-muted}" },
+    "accent": { "$type": "color", "$value": "{denali.mist-100}" },
+    "accent-foreground": { "$type": "color", "$value": "{denali.forest-700}" },
+    "border": { "$type": "color", "$value": "{color.border-default}" },
+    "input": { "$type": "color", "$value": "{color.border-subtle}" },
+    "ring": { "$type": "color", "$value": "{flat.focus-ring-color}" },
+    "ring-offset-background": { "$type": "color", "$value": "{color.bg-surface}" },
+    "sidebar": { "$type": "color", "$value": "#ffffff" },
+    "sidebar-foreground": { "$type": "color", "$value": "#1a1f26" },
+    "sidebar-primary": { "$type": "color", "$value": "{denali.forest-600}" },
+    "sidebar-primary-foreground": { "$type": "color", "$value": "#ffffff" },
+    "sidebar-accent": { "$type": "color", "$value": "{denali.mist-100}" },
+    "sidebar-accent-foreground": { "$type": "color", "$value": "{denali.forest-700}" },
+    "sidebar-border": { "$type": "color", "$value": "#dce5dc" },
+    "shell-sidebar-width": { "$type": "dimension", "$value": "16.5rem" },
+    "shadow-card": { "$type": "shadow", "$value": "{denali.shadow-card}" }
+  }
+}

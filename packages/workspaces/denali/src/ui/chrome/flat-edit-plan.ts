@@ -15,5 +15,5 @@ export function filterFlatEditTemplateSteps(
   sectionIds: readonly string[]
 ): readonly WizardTemplateStepRef[] {
   const allowed = new Set(sectionIds);
-  return templateSteps.filter((step) => step.enabled && allowed.has(step.stepId));
+  return templateSteps.filter((step) => step.enabled !== false && allowed.has(step.stepId));
 }

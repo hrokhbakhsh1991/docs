@@ -5,7 +5,7 @@
  */
 
 import type { SettingsEquipmentUiSurface } from "@/features/settings/settings-equipment-ui-types";
-import { denaliSettingsEquipmentUiSurface as equipment_ui_denali } from "@app-tour/workspace-denali/ui/settings/settings-equipment-ui-surface";
+import { denaliSettingsEquipmentUiSurface as equipment_ui_denali } from "@app-tour/workspace-denali/host/ui/settings/settings-equipment-ui-surface";
 
 const SETTINGS_EQUIPMENT_UI_SURFACES: Readonly<Record<string, SettingsEquipmentUiSurface>> = Object.freeze({
   "denali": equipment_ui_denali,

@@ -10,7 +10,7 @@ import {
   invalidateWorkspacePluginLoadCache,
 } from "./workspace-plugin-load-cache";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
-import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/guest-club.plugin";
+import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/plugin";
 import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
 import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
 
@@ -49,7 +49,7 @@ export async function loadWorkspacePluginByIdFromRegistry(
       return mod.getDenaliWorkspacePlugin();
     }
     case "guest-club": {
-      const mod = await import("@app-tour/workspace-guest-club/guest-club.plugin");
+      const mod = await import("@app-tour/workspace-guest-club/plugin");
       return mod.getGuestClubWorkspacePlugin();
     }
     case "starter": {

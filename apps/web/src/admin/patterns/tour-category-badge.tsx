@@ -14,7 +14,7 @@ type TourCategoryBadgeProps = {
 export function TourCategoryBadge({ pluginId, category }: TourCategoryBadgeProps) {
   const t = useTranslations("denali");
 
-  if (!isTourKindSlug(pluginId, category)) {
+  if (category == null || !isTourKindSlug(pluginId, category)) {
     return null;
   }
 

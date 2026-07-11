@@ -140,6 +140,7 @@ export async function resolveLegacyTelegramConnectionRecord(
   if (legacy === null) {
     return null;
   }
+  const legacyNow = new Date();
   return {
     id: legacy.connectionId,
     tenantId: legacy.tenantId,
@@ -151,5 +152,7 @@ export async function resolveLegacyTelegramConnectionRecord(
     config: legacy.config,
     secretRef: legacy.secretRef,
     credentials: legacy.credentials,
+    createdAt: legacyNow,
+    updatedAt: legacyNow,
   };
 }

@@ -384,8 +384,8 @@ export function generateWorkspaceWizardMessageLoads(manifests) {
     const ns = m.wizardI18n.messageNamespace;
     const pkg = m.package;
     return `  ${JSON.stringify(ns)}: {
-    fa: () => import(${JSON.stringify(`${pkg}/messages/fa/wizard.json`)}),
-    en: () => import(${JSON.stringify(`${pkg}/messages/en/wizard.json`)}),
+    fa: () => import(${JSON.stringify(`${pkg}/host/messages/fa/wizard.json`)}),
+    en: () => import(${JSON.stringify(`${pkg}/host/messages/en/wizard.json`)}),
   },`;
   });
 
@@ -662,7 +662,7 @@ export function decodeTourActionSubmitError(
   const firstAlias = `codec_${withCodec[0].id.replace(/-/g, "_")}`;
 
   return `${BANNER}
-import type { TourActionSubmitErrorPayload } from "@app-tour/workspace-denali/ui/logic/tour-action-submit-error-codec";
+import type { TourActionSubmitErrorPayload } from "${importSpecifier(withCodec[0].package, "./ui/logic/tour-action-submit-codec-surface")}";
 ${[...importLines].join("\n")}
 
 const TOUR_ACTION_SUBMIT_CODECS = Object.freeze({
@@ -758,7 +758,7 @@ export const ensureLeafletDefaultIcon = ${alias}.ensureLeafletDefaultIcon;
 export type {
   DenaliMapCoordinates,
   DenaliLocationPickerMapInnerProps,
-} from "${importSpecifier(m.package, "./ui/components/map/denali-location-picker-map")}";
+} from "${importSpecifier(m.package, "./ui/components/location-picker-map")}";
 
 export const DenaliWizardDatetimePicker = ${alias}.WizardDatetimePicker;
 `;
@@ -842,7 +842,7 @@ export type WizardRulesModule = {
   readonly evaluateFormFieldRule: typeof ${alias}.evaluateFormFieldRule;
   readonly applyDenaliInvariantState: typeof ${alias}.applyDenaliInvariantState;
   readonly resolveDenaliRuleSetFromTemplate: typeof ${alias}.resolveDenaliRuleSetFromTemplate;
-  readonly buildDefaultForm: () => Record<string, unknown>;
+  readonly buildDefaultForm: typeof ${alias}.buildDenaliTourCreateDefaultValues;
   readonly readCanonicalBasics: typeof ${alias}.readDenaliCanonicalBasics;
   readonly canonicalToFormPathMap: typeof ${alias}.canonicalToFormPathMap;
   readonly tourKindValues: typeof ${alias}.tourKindValues;
@@ -956,10 +956,10 @@ export function generateWizardCreateChromeBindings(manifests) {
     "denaliWizardCreateChromeSurface",
     {
       empty: "",
-      withSurface: (alias) => `
+      withSurface: (alias, m) => `
 export const useDenaliCreateTourWizardCore = ${alias}.useCreateTourWizardCore;
 export const isDraftEssentiallyEmpty = ${alias}.isDraftEssentiallyEmpty;
-export type { DenaliCreateTourWizardScreen } from "@app-tour/workspace-denali/ui/chrome/wizard-create-chrome-surface";
+export type { DenaliCreateTourWizardScreen } from "${importSpecifier(m.package, "./ui/chrome/wizard-create-chrome-surface")}";
 `,
     }
   );

@@ -5,10 +5,10 @@
  */
 
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
-import { readDenaliTourPublishStatusFromCanonical, detectDenaliTourPublishTransition } from "@app-tour/workspace-denali/tours";
-import { migrateDenaliCanonical } from "@app-tour/workspace-denali/acl";
+import { readDenaliTourPublishStatusFromCanonical, detectDenaliTourPublishTransition } from "@app-tour/workspace-denali/host/tours";
+import { migrateDenaliCanonical } from "@app-tour/workspace-denali/host/acl";
 import { URBAN_WORKSPACE_TYPE } from "@app-tour/workspace-urban";
-import { readUrbanTourPublishStatusFromCanonical, detectUrbanTourPublishTransition } from "@app-tour/workspace-urban/tours";
+import { readUrbanTourPublishStatusFromCanonical, detectUrbanTourPublishTransition } from "@app-tour/workspace-urban/host/tours";
 
 export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [
   {

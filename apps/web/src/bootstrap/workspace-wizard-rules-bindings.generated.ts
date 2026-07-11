@@ -4,13 +4,13 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardRulesSurface as wizard_rules_denali } from "@app-tour/workspace-denali/wizard/wizard-rules-surface";
+import { denaliWizardRulesSurface as wizard_rules_denali } from "@app-tour/workspace-denali/host/wizard/wizard-rules-surface";
 
 export type WizardRulesModule = {
   readonly evaluateFormFieldRule: typeof wizard_rules_denali.evaluateFormFieldRule;
   readonly applyDenaliInvariantState: typeof wizard_rules_denali.applyDenaliInvariantState;
   readonly resolveDenaliRuleSetFromTemplate: typeof wizard_rules_denali.resolveDenaliRuleSetFromTemplate;
-  readonly buildDefaultForm: () => Record<string, unknown>;
+  readonly buildDefaultForm: typeof wizard_rules_denali.buildDenaliTourCreateDefaultValues;
   readonly readCanonicalBasics: typeof wizard_rules_denali.readDenaliCanonicalBasics;
   readonly canonicalToFormPathMap: typeof wizard_rules_denali.canonicalToFormPathMap;
   readonly tourKindValues: typeof wizard_rules_denali.tourKindValues;

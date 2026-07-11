@@ -234,7 +234,7 @@ export class FinanceService {
     auth: TenantAuthContext,
     input: { readonly registrationId: string; readonly fileKey: string; readonly note?: string }
   ) {
-    const booking = await getBookingsRepository().getById(input.registrationId);
+    const booking = await getBookingsRepository().getById(input.registrationId, auth.tenantId);
     if (
       booking === null ||
       booking.tenantId !== auth.tenantId ||

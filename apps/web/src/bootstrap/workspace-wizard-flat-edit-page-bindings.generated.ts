@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardFlatEditPageSurface as wizard_flat_edit_page_denali } from "@app-tour/workspace-denali/ui/chrome/wizard-flat-edit-page-surface";
+import { denaliWizardFlatEditPageSurface as wizard_flat_edit_page_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-page-surface";
 
 export const DenaliFlatEditPageView = wizard_flat_edit_page_denali.FlatEditPageView;
 export const DenaliFlatEditValidationList = wizard_flat_edit_page_denali.FlatEditValidationList;

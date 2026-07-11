@@ -4,12 +4,12 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { isDenaliOwnerRequiredError, DENALI_OWNER_REQUIRED } from "@app-tour/workspace-denali/http";
-import { isDenaliRegistrationDuplicateError, DENALI_REGISTRATION_DUPLICATE } from "@app-tour/workspace-denali/http";
-import { isUrbanOwnerRequiredError, URBAN_OWNER_REQUIRED } from "@app-tour/workspace-urban/http";
-import { isUrbanRegistrationClosedError, URBAN_REGISTRATION_CLOSED } from "@app-tour/workspace-urban/http";
-import { isUrbanRegistrationDuplicateError, URBAN_REGISTRATION_DUPLICATE } from "@app-tour/workspace-urban/http";
-import { isUrbanWorkspaceRequiredError, URBAN_WORKSPACE_REQUIRED } from "@app-tour/workspace-urban/http";
+import { isDenaliOwnerRequiredError, DENALI_OWNER_REQUIRED } from "@app-tour/workspace-denali/host/http";
+import { isDenaliRegistrationDuplicateError, DENALI_REGISTRATION_DUPLICATE } from "@app-tour/workspace-denali/host/http";
+import { isUrbanOwnerRequiredError, URBAN_OWNER_REQUIRED } from "@app-tour/workspace-urban/host/http";
+import { isUrbanRegistrationClosedError, URBAN_REGISTRATION_CLOSED } from "@app-tour/workspace-urban/host/http";
+import { isUrbanRegistrationDuplicateError, URBAN_REGISTRATION_DUPLICATE } from "@app-tour/workspace-urban/host/http";
+import { isUrbanWorkspaceRequiredError, URBAN_WORKSPACE_REQUIRED } from "@app-tour/workspace-urban/host/http";
 
 type WorkspaceHttpErrorBinding = {
   readonly workspaceId: string;

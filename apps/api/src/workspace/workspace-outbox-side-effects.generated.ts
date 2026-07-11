@@ -5,7 +5,7 @@
  */
 
 import type { WorkspaceOutboxPublishedRow } from "./workspace-outbox-row-context";
-import { runTourCreatedFinanceSideEffect } from "@app-tour/workspace-denali/finance/api-tour-created-adapter";
+import { runTourCreatedFinanceSideEffect } from "@app-tour/workspace-denali/host/finance/api-tour-created-adapter";
 
 export type WorkspaceOutboxSideEffectRunner = (
   row: WorkspaceOutboxPublishedRow

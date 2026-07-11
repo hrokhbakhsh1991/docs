@@ -6,7 +6,7 @@
 
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
-import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/guest-club.plugin";
+import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/plugin";
 import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
 import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
 

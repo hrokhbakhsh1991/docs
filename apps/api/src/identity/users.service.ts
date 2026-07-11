@@ -295,7 +295,7 @@ export async function resendPendingInvite(
   repo: IdentityRepository = getIdentityRepository()
 ): Promise<ResendPendingInviteResponse> {
   await assertUsersDirectoryAccess(auth);
-  const row = await repo.findPendingInvite(inviteId);
+  const row = await repo.findPendingInvite(auth.tenantId, inviteId);
   if (row === null || row.tenantId !== auth.tenantId) {
     throw new InviteNotFoundError(inviteId);
   }

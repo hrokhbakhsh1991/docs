@@ -44,7 +44,7 @@ export type WorkspaceHttpPackageHandlers = Pick<
 export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpPackageHandlers> {
   /** @type {Partial<WorkspaceRouteHandlers>} */
   const handlers = {};
-  const mod0 = await import("@app-tour/workspace-denali/http");
+  const mod0 = await import("@app-tour/workspace-denali/host/http");
   Object.assign(handlers, {
     handleFinanceCreateManualPayment: mod0.handleFinanceCreateManualPayment,
     handleFinanceGenerateSchedule: mod0.handleFinanceGenerateSchedule,
@@ -67,13 +67,13 @@ export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpP
     handleGetDenaliReminderFeed: mod0.handleGetDenaliReminderFeed,
     handlePostDenaliRegistration: mod0.handlePostDenaliRegistration,
   });
-  const mod1 = await import("@app-tour/workspace-guest-club/http");
+  const mod1 = await import("@app-tour/workspace-guest-club/host/http");
   Object.assign(handlers, {
     handleGetGuestClubCatalog: mod1.handleGetGuestClubCatalog,
     handleGetGuestClubCatalogTour: mod1.handleGetGuestClubCatalogTour,
     handlePostGuestClubRegistration: mod1.handlePostGuestClubRegistration,
   });
-  const mod2 = await import("@app-tour/workspace-urban/http");
+  const mod2 = await import("@app-tour/workspace-urban/host/http");
   Object.assign(handlers, {
     handleGetUrbanCatalog: mod2.handleGetUrbanCatalog,
     handleGetUrbanCatalogTour: mod2.handleGetUrbanCatalogTour,

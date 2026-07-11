@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 
+import type { DenaliWizardRuleEvalContext } from "../../wizard/denali-wizard-rule-eval-context";
 import type { WizardCompositeFieldRenderProps, WizardCompositeSurface } from "./wizard-surface-types";
 
 const DenaliCompositeField = dynamic(
@@ -24,7 +25,9 @@ export function createDenaliCompositeSurface(): WizardCompositeSurface {
         onDraftChange={props.onDraftChange}
         wizardSessionId={props.wizardSessionId}
         workspaceFormProfile={props.workspaceFormProfile}
-        wizardRuleEvalContext={props.wizardRuleEvalContext}
+        wizardRuleEvalContext={
+          props.wizardRuleEvalContext as Pick<DenaliWizardRuleEvalContext, "ruleSet"> | undefined
+        }
       />
     ),
   });

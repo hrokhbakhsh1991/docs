@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliPhotoUploadErrorsSurface as photo_errors_denali } from "@app-tour/workspace-denali/ui/adapters/photo-upload-errors-surface";
+import { denaliPhotoUploadErrorsSurface as photo_errors_denali } from "@app-tour/workspace-denali/host/ui/adapters/photo-upload-errors-surface";
 
 export const PHOTO_UPLOAD_ERROR_MESSAGE_KEYS = photo_errors_denali.messageKeys;
 

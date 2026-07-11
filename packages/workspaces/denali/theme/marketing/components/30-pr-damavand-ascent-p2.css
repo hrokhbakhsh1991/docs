@@ -1,0 +1,324 @@
+/* PR-30b — Damavand ascent visual, waypoint card, responsive */
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-visual] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24rem;
+  padding: var(--space-4);
+  border: 1px solid var(--mkt-ascent-border);
+  border-radius: var(--radius-lg);
+  background: var(--mkt-ascent-surface);
+  box-shadow: var(--denali-shadow-card);
+  overflow: hidden;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-visual]::before {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--color-primary) 18%, var(--color-border-subtle)) 1px,
+    transparent 1px
+  );
+  background-size: 1rem 1rem;
+  opacity: 0.35;
+  content: "";
+  pointer-events: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-mountain-frame] {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 42rem);
+  aspect-ratio: 4 / 3;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-mountain] {
+  width: 100%;
+  height: 100%;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  svg[data-marketing-home-ascent-mountain-svg] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1rem 1.5rem color-mix(in srgb, var(--denali-alpine-600) 18%, transparent));
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  .mkt-ascent-pin-pulse {
+  transform-origin: center;
+  animation: mkt-ascent-pin-pulse 2s ease-in-out infinite;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  .mkt-ascent-summit-active {
+  transform: scale(1.15) translateY(-2px);
+  transform-origin: center;
+  transition: transform 300ms ease;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  path[data-marketing-home-ascent-route] {
+  opacity: calc(0.35 + var(--mkt-ascent-progress, 0) * 0.65);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-waypoint-card] {
+  position: absolute;
+  inset-block-start: 2.5rem;
+  inset-inline-end: 1.5rem;
+  z-index: 3;
+  width: min(20rem, calc(100% - 3rem));
+  padding: var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--mkt-ascent-border));
+  border-radius: var(--radius-lg);
+  background: var(--mkt-ascent-surface);
+  box-shadow: var(--denali-shadow-card);
+  opacity: 0;
+  transform: translateY(1rem);
+  pointer-events: none;
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-waypoint-card][data-marketing-home-ascent-waypoint-card-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-waypoint-card-header] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--color-border-subtle);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-waypoint-card]
+  h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-waypoint-card]
+  span {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-surface));
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.68rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-waypoint-card]
+  p {
+  margin: var(--space-3) 0 0;
+  color: var(--mkt-ascent-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.65;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-waypoint-warning] {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+  padding: var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
+  border-radius: var(--radius);
+  background: var(--color-warning-bg);
+  color: var(--mkt-ascent-warning);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-waypoint-warning]
+  svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  margin-block-start: 0.1rem;
+}
+
+@media (min-width: 1024px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-layout] {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    gap: var(--space-10);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-sidebar] {
+    min-height: 37.5rem;
+    padding-block: var(--space-4);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-visual] {
+    min-height: 37.5rem;
+  }
+}
+
+@media (max-width: 1023px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
+    --mkt-ascent-scroll-distance: 1400px;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-layout] {
+    grid-template-rows: auto minmax(15rem, 38svh);
+    gap: var(--space-4);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-visual] {
+    min-height: 15rem;
+    height: 38svh;
+    max-height: 22rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-sidebar] {
+    gap: var(--space-4);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-mountain-frame] {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    p[data-marketing-home-ascent-lead] {
+    display: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-pin] {
+    align-items: center;
+    padding-block: calc(var(--mkt-header-height, 4rem) + var(--space-2)) var(--space-2);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-waypoint-card] {
+    inset-block-start: var(--space-3);
+    inset-inline-end: var(--space-3);
+    width: min(14rem, calc(100% - 1.5rem));
+    padding: var(--space-3);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    aside[data-marketing-home-ascent-hud] {
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent] {
+    height: auto;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-pin] {
+    position: relative;
+    height: auto;
+    min-height: auto;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    .mkt-ascent-pin-pulse {
+    animation: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    path[data-marketing-home-ascent-route],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-home]
+    section[data-marketing-home-ascent]
+    div[data-marketing-home-ascent-hud-progress-fill] {
+    transition: none;
+  }
+}

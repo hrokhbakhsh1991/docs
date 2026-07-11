@@ -1,0 +1,38 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "denali",
+  "sharedDir": ".",
+  "outputs": [
+    {
+      "sliceFile": "denali.admin.tokens.json",
+      "format": "blocks",
+      "blocks": [
+        {
+          "scopeSelector": "body[data-workspace-plugin=\"denali\"]",
+          "merge": ["palette.json", "semantics.light.json", "contexts/admin.light-flat.json"]
+        },
+        {
+          "scopeSelector": "html.dark:has(body[data-workspace-plugin=\"denali\"]), .dark body[data-workspace-plugin=\"denali\"], body[data-workspace-plugin=\"denali\"] .theme-dark",
+          "merge": ["semantics.dark.json", "contexts/admin.dark-flat.json"]
+        }
+      ]
+    },
+    {
+      "sliceFile": "denali.portal.tokens.json",
+      "format": "scoped",
+      "scopeSelector": "body[data-app-surface=\"portal\"][data-workspace-plugin=\"denali\"]",
+      "merge": ["palette.json", "semantics.light.json", "contexts/portal.flat.json"]
+    },
+    {
+      "sliceFile": "denali.marketing.tokens.json",
+      "format": "scoped",
+      "scopeSelector": "body[data-app-surface=\"marketing\"][data-workspace-plugin=\"denali\"]",
+      "merge": [
+        "palette.json",
+        "semantics.light.json",
+        "contexts/portal.flat.json",
+        "contexts/marketing.overlay.json"
+      ]
+    }
+  ]
+}

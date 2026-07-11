@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliOperatorUiComponentsSurface as ui_denali } from "@app-tour/workspace-denali/ui/operator-ui-components-surface";
+import { denaliOperatorUiComponentsSurface as ui_denali } from "@app-tour/workspace-denali/host/ui/operator-ui-components-surface";
 import type { ComponentProps } from "react";
 
 const OPERATOR_UI_COMPONENTS = Object.freeze({
@@ -28,6 +28,6 @@ export const ensureLeafletDefaultIcon = ui_denali.ensureLeafletDefaultIcon;
 export type {
   DenaliMapCoordinates,
   DenaliLocationPickerMapInnerProps,
-} from "@app-tour/workspace-denali/ui/components/map/denali-location-picker-map";
+} from "@app-tour/workspace-denali/host/ui/components/location-picker-map";
 
 export const DenaliWizardDatetimePicker = ui_denali.WizardDatetimePicker;

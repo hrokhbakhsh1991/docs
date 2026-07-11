@@ -49,9 +49,10 @@ export function getBookingsRepository(): BookingsRepository {
 
 export function resetBookingsRepositoryForTests(): InMemoryBookingsRepository {
   resetBookingsStoresForTests();
-  singleton = new InMemoryBookingsRepository();
+  const repo = new InMemoryBookingsRepository();
+  singleton = repo;
   singletonDriver = "memory";
-  return singleton;
+  return repo;
 }
 
 export function resetBookingsRepositorySingletonForTests(): void {

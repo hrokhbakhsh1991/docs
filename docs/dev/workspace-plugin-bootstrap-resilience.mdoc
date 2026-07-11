@@ -1,0 +1,66 @@
+---
+title: Workspace plugin bootstrap resilience
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/workspace-registry-runtime.mdoc
+  - docs/phase-15/public-tenant-branding.mdoc
+---
+
+# Workspace plugin bootstrap resilience
+
+Portal catalog registration must survive **per-workspace plugin load failures** without crashing the host shell.
+
+## Problem (pre-refactor)
+
+`@app-tour/workspace-plugin-host/register` executed `ensureWorkspacePluginsRegistered()` at **module import** time. Codegen registrars statically imported all trunk workspace packages; one broken package prevented portal boot.
+
+## Target model
+
+| Rule | Enforcement |
+| ---- | ----------- |
+| No side effects on `import` | `register.ts` exports functions only |
+| Per-plugin isolation | `registerWorkspacePluginSafe(pluginId)` wraps dynamic `import()` in try/catch |
+| Idempotent registration | SDK registries (`registerWorkspaceIntakePlugin`, etc.) tolerate repeat calls |
+| `catalogIntake` skip | Workspaces without `catalogIntake` on `WorkspacePlugin` omit intake registration |
+| Degraded boot | Portal layout registers **active** `pluginId` only; instrumentation warms all plugins inside error boundary |
+
+## Codegen outputs
+
+| File | Role |
+| ---- | ---- |
+| `register-{id}.generated.ts` | Async registrar for one workspace: `registerWorkspaceIntake*` (plugin entry only) + `registerWorkspacePlugin*` (full flow) |
+| `workspace-plugin-register-manifest.generated.ts` | `invokeWorkspacePluginRegister` + `invokeWorkspaceIntakeRegister` |
+
+Legacy monolithic `workspace-*-plugins.generated.ts` files are **removed**.
+
+## Portal wiring
+
+```text
+instrumentation.ts → registerAllWorkspacePluginsSafe() (try/catch, non-fatal)
+register page      → await registerWorkspacePluginSafe(workspace)  // full flow
+intake API route   → await registerWorkspaceIntakeSafe(pluginId)   // plugin entry only
+```
+
+## Status API
+
+`registerWorkspacePluginSafe` returns `{ status: "ready" | "failed" | "pending", pluginId, error? }` and never throws.
+
+`listHealthyWorkspacePluginIds()` returns plugin ids whose full registration completed with `ready`.
+
+## Telemetry
+
+Per-plugin terminal states emit `workspacePluginBootstrapStatus` events via `setWorkspacePluginBootstrapTelemetrySink` (mirrors `workspace-registry-telemetry.ts`):
+
+```typescript
+import {
+  setWorkspacePluginBootstrapTelemetrySink,
+  type WorkspacePluginBootstrapTelemetryEvent,
+} from "@app-tour/workspace-plugin-host";
+
+setWorkspacePluginBootstrapTelemetrySink((event: WorkspacePluginBootstrapTelemetryEvent) => {
+  // forward to metrics / tracing — event.kind === "workspacePluginBootstrapStatus"
+});
+```
+
+Failed loads use code `WORKSPACE_PLUGIN_LOAD_FAILED`; unknown plugin ids use `WORKSPACE_PLUGIN_REGISTER_UNKNOWN`.

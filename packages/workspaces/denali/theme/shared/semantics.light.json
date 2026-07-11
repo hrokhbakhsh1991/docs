@@ -1,0 +1,28 @@
+{
+  "color": {
+    "primary": { "$type": "color", "$value": "{denali.forest-600}" },
+    "primary-hover": { "$type": "color", "$value": "{denali.forest-700}" },
+    "primary-fg": { "$type": "color", "$value": "#ffffff" },
+    "bg-page": { "$type": "color", "$value": "{denali.mist-50}" },
+    "bg-surface": { "$type": "color", "$value": "#ffffff" },
+    "bg-muted": { "$type": "color", "$value": "{denali.mist-100}" },
+    "text-primary": { "$type": "color", "$value": "#1a1f26" },
+    "text-secondary": { "$type": "color", "$value": "#4a5244" },
+    "text-muted": { "$type": "color", "$value": "#6f7768" },
+    "text-link": { "$type": "color", "$value": "{denali.forest-600}" },
+    "border-default": { "$type": "color", "$value": "#dce5dc" },
+    "border-subtle": { "$type": "color", "$value": "#e8efe8" },
+    "focus-ring": { "$type": "color", "$value": "rgb(15 118 110 / 0.35)" },
+    "info": { "$type": "color", "$value": "{denali.alpine-600}" },
+    "info-bg": { "$type": "color", "$value": "#e8f0f8" },
+    "success": { "$type": "color", "$value": "#166534" },
+    "success-bg": { "$type": "color", "$value": "#dcfce7" },
+    "warning": { "$type": "color", "$value": "#b45309" },
+    "warning-bg": { "$type": "color", "$value": "#fff7ed" }
+  },
+  "flat": {
+    "destructive": { "$type": "color", "$value": "#dc2626" },
+    "destructive-foreground": { "$type": "color", "$value": "#ffffff" },
+    "radius": { "$type": "dimension", "$value": "0.625rem" }
+  }
+}

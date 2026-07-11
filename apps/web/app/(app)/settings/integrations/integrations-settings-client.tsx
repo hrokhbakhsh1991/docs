@@ -65,6 +65,7 @@ export const INTEGRATIONS_SETTINGS_TEST_IDS = {
   scenario: "integrations-settings-scenario",
   workspaceScope: "integrations-settings-workspace-scope",
   addForm: "integrations-settings-add-form",
+  editForm: "integrations-settings-edit-form",
   catalogError: "integrations-settings-catalog-error",
 } as const;
 

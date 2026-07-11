@@ -5,8 +5,8 @@
  */
 
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
-import { executeDenaliWizardPhotoRemintPlan, assertDenaliWizardDraftDestKey, readMinioPhotoConfigFromEnv, executeDenaliTourPhotoRemintPlan } from "@app-tour/workspace-denali/photos";
-import { remintDenaliClonePhotosInCanonical } from "@app-tour/workspace-denali/clone";
+import { executeDenaliWizardPhotoRemintPlan, assertDenaliWizardDraftDestKey, readMinioPhotoConfigFromEnv, executeDenaliTourPhotoRemintPlan } from "@app-tour/workspace-denali/host/photos";
+import { remintDenaliClonePhotosInCanonical } from "@app-tour/workspace-denali/host/clone";
 
 export const WORKSPACE_WIZARD_CLONE_REMINT_BINDINGS = [
   {

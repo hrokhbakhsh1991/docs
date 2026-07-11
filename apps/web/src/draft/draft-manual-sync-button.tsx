@@ -48,8 +48,7 @@ export function DraftManualSyncButton({
   return (
     <Button
       type="button"
-      variant="outline"
-      size="sm"
+      variant="secondary"
       className={cn("draft-manual-sync-button", className)}
       data-testid={testId}
       data-draft-sync-action={view.action}

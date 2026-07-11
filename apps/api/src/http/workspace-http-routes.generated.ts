@@ -10,10 +10,10 @@ import {
 } from "./workspace-route-manifest-bridge";
 import type { WorkspaceHttpMethod } from "./workspace-http-method";
 
-import { CATALOG_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/http";
-import { FINANCE_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/http";
-import { GUEST_CLUB_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-guest-club/http";
-import { URBAN_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-urban/http";
+import { CATALOG_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/host/http";
+import { FINANCE_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/host/http";
+import { GUEST_CLUB_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-guest-club/host/http";
+import { URBAN_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-urban/host/http";
 
 export type WorkspaceHttpHandlerKey =
   | "handleFinanceCreateManualPayment"

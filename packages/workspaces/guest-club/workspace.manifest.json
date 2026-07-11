@@ -11,11 +11,11 @@
     "guest-club"
   ],
   "plugin": {
-    "entry": "./guest-club.plugin",
+    "entry": "./plugin",
     "export": "getGuestClubWorkspacePlugin"
   },
   "web": {
-    "entry": "./guest-club.plugin",
+    "entry": "./plugin",
     "export": "getGuestClubWorkspacePlugin"
   },
   "http": {
@@ -23,7 +23,7 @@
     "module": "./http/routes"
   },
   "httpRoutes": {
-    "handlerPackage": "@app-tour/workspace-guest-club/http",
+    "handlerPackage": "@app-tour/workspace-guest-club/host/http",
     "loadHandlersFromPackage": true,
     "groups": [
       {

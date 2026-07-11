@@ -4,8 +4,8 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import type { TourActionSubmitErrorPayload } from "@app-tour/workspace-denali/ui/logic/tour-action-submit-error-codec";
-import { denaliTourActionSubmitCodec as codec_denali } from "@app-tour/workspace-denali/ui/logic/tour-action-submit-codec-surface";
+import type { TourActionSubmitErrorPayload } from "@app-tour/workspace-denali/host/ui/logic/tour-action-submit-codec-surface";
+import { denaliTourActionSubmitCodec as codec_denali } from "@app-tour/workspace-denali/host/ui/logic/tour-action-submit-codec-surface";
 
 const TOUR_ACTION_SUBMIT_CODECS = Object.freeze({
   "denali": codec_denali,

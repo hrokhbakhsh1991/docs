@@ -1,0 +1,19 @@
+{
+  "denali": {
+    "forest-700": { "$type": "color", "$value": "#0f5c4a" },
+    "forest-600": { "$type": "color", "$value": "#0f766e" },
+    "forest-500": { "$type": "color", "$value": "#14b8a6" },
+    "alpine-600": { "$type": "color", "$value": "#31547e" },
+    "bark-600": { "$type": "color", "$value": "#765832" },
+    "mist-50": { "$type": "color", "$value": "#f4f7f4" },
+    "mist-100": { "$type": "color", "$value": "#e8efe8" },
+    "shadow-card": {
+      "$type": "shadow",
+      "$value": "0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06)"
+    },
+    "shadow-card-hover": {
+      "$type": "shadow",
+      "$value": "0 2px 4px rgb(15 23 42 / 0.06), 0 8px 20px rgb(15 23 42 / 0.08)"
+    }
+  }
+}

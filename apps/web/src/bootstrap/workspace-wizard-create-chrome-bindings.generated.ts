@@ -4,9 +4,9 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardCreateChromeSurface as wizard_create_chrome_denali } from "@app-tour/workspace-denali/ui/chrome/wizard-create-chrome-surface";
+import { denaliWizardCreateChromeSurface as wizard_create_chrome_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-create-chrome-surface";
 
 export const useDenaliCreateTourWizardCore = wizard_create_chrome_denali.useCreateTourWizardCore;
 export const isDraftEssentiallyEmpty = wizard_create_chrome_denali.isDraftEssentiallyEmpty;
-export type { DenaliCreateTourWizardScreen } from "@app-tour/workspace-denali/ui/chrome/wizard-create-chrome-surface";
+export type { DenaliCreateTourWizardScreen } from "@app-tour/workspace-denali/host/ui/chrome/wizard-create-chrome-surface";
 

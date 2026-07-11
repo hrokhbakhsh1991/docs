@@ -1,0 +1,44 @@
+{
+  "mkt": {
+    "on-overlay": {
+      "$type": "color",
+      "$value": "#ffffff",
+      "$description": "Text/icons on dark marketing overlays"
+    },
+    "overlay-icon": {
+      "$type": "color",
+      "$value": "#fbbf24",
+      "$description": "Hero overlay brand icon accent"
+    },
+    "hero-ink": {
+      "$type": "color",
+      "$value": "#0b1220",
+      "$description": "Dark hero section ink"
+    },
+    "mask-ink": {
+      "$type": "color",
+      "$value": "#000000",
+      "$description": "Mask gradient ink (technical)"
+    },
+    "accent-mid": {
+      "$type": "color",
+      "$value": "#b45309",
+      "$description": "Accent gradient mid-stop"
+    },
+    "accent-deep": {
+      "$type": "color",
+      "$value": "#92400e",
+      "$description": "Accent gradient deep-stop"
+    },
+    "destructive": {
+      "$type": "color",
+      "$value": "#dc2626",
+      "$description": "Marketing destructive surface"
+    },
+    "destructive-strong": {
+      "$type": "color",
+      "$value": "#b91c1c",
+      "$description": "Marketing destructive emphasis"
+    }
+  }
+}

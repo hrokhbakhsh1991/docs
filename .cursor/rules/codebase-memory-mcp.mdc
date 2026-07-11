@@ -1,0 +1,35 @@
+---
+description: Default to codebase-memory-mcp for code exploration, architecture, and call-chain analysis
+alwaysApply: true
+---
+
+# Codebase Memory MCP (default)
+
+Use the `user-codebase-memory-mcp` MCP server before grep/file-by-file reads when exploring **this** codebase.
+
+## Session start
+
+1. If the workspace is not indexed yet, call `index_repository` with the repo root path (or rely on `auto_index`).
+2. Use the indexed `project` name in every tool call that accepts `project`.
+
+## Tool selection
+
+| Task | Tool |
+|------|------|
+| Find definitions, classes, routes, symbols | `search_graph` |
+| Text search enriched with graph context | `search_code` |
+| Callers / callees / data flow | `trace_path` |
+| Architecture, modules, hotspots, layers | `get_architecture` |
+| Uncommitted change impact | `detect_changes` |
+| Read a known symbol body | `get_code_snippet` (after `search_graph`) |
+| Multi-hop graph patterns | `query_graph` |
+
+## When NOT to use graph tools
+
+- Editing a file the user already pointed to
+- Config/docs-only questions with no code structure
+- One-off string search in a known file path
+
+## Fallback
+
+If MCP is disconnected or returns empty results, fall back to `Grep` / `Read` and mention that indexing may be pending.

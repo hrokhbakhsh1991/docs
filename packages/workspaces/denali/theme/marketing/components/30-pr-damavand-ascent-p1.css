@@ -1,0 +1,310 @@
+/* PR-30a — Damavand ascent shell, HUD, layout (replaces destinations filmstrip) */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
+  --mkt-ascent-bg: var(--color-bg-muted);
+  --mkt-ascent-bg-muted: var(--color-bg-page);
+  --mkt-ascent-surface: var(--color-bg-surface);
+  --mkt-ascent-border: var(--color-border-default);
+  --mkt-ascent-route-color: var(--color-primary);
+  --mkt-ascent-route-glow: var(--denali-forest-500);
+  --mkt-ascent-ridge-far: color-mix(in srgb, var(--denali-alpine-600) 22%, var(--color-bg-muted));
+  --mkt-ascent-ridge-mid: color-mix(in srgb, var(--denali-alpine-600) 38%, var(--denali-mist-100));
+  --mkt-ascent-ridge-near: color-mix(in srgb, var(--denali-alpine-600) 55%, #e8f0f8);
+  --mkt-ascent-ridge-stroke: color-mix(in srgb, var(--denali-alpine-600) 35%, white);
+  --mkt-ascent-snow-highlight: #ffffff;
+  --mkt-ascent-snow-shadow: #dbeafe;
+  --mkt-ascent-pin-stroke: #ffffff;
+  --mkt-ascent-pin-muted: var(--color-border-subtle);
+  --mkt-ascent-summit-idle: var(--mkt-accent-mid);
+  --mkt-ascent-text: var(--color-text-primary);
+  --mkt-ascent-text-muted: var(--color-text-muted);
+  --mkt-ascent-warning: var(--color-warning);
+  --mkt-ascent-scroll-distance: 2000px;
+}
+
+@keyframes mkt-ascent-pin-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 35%, transparent);
+  }
+
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-primary) 0%, transparent);
+  }
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent] {
+  position: relative;
+  width: 100%;
+  min-height: calc(100svh + var(--mkt-ascent-scroll-distance, 2000px));
+  padding: 0;
+  overflow: clip;
+  scroll-margin-top: var(--mkt-header-height, 4rem);
+  color: var(--mkt-ascent-text);
+  background: var(--mkt-ascent-bg);
+  border-block: 1px solid var(--mkt-ascent-border);
+  isolation: isolate;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-pin] {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100svh;
+  padding-block: calc(var(--mkt-header-height, 4rem) + var(--space-4)) var(--space-4);
+  padding-inline: var(--catalog-page-padding-x);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-shell] {
+  width: min(100%, 80rem);
+  margin-inline: auto;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-layout] {
+  display: grid;
+  gap: var(--space-6);
+  align-items: stretch;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-sidebar] {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-8);
+  min-height: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-intro] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  p[data-marketing-home-ascent-eyebrow] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  p[data-marketing-home-ascent-eyebrow]
+  svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  h2[data-marketing-home-ascent-title] {
+  margin: 0;
+  color: var(--mkt-ascent-text);
+  font-family: var(--font-heading, inherit);
+  font-size: clamp(1.875rem, 4vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  p[data-marketing-home-ascent-lead] {
+  margin: 0;
+  max-width: 34rem;
+  color: var(--mkt-ascent-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  aside[data-marketing-home-ascent-hud] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--mkt-ascent-border);
+  border-radius: var(--radius-lg);
+  background: var(--mkt-ascent-surface);
+  box-shadow: var(--denali-shadow-card);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-hud-header] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block-end: var(--space-4);
+  border-block-end: 1px solid var(--color-border-subtle);
+  color: var(--mkt-ascent-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  span[data-marketing-home-ascent-hud-badge] {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-surface));
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-hud-altitude-row] {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--mkt-ascent-text-muted);
+  font-size: 0.75rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  span[data-marketing-home-ascent-hud-altitude-value] {
+  color: var(--mkt-ascent-text);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: clamp(2rem, 5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  span[data-marketing-home-ascent-hud-altitude-unit] {
+  margin-inline-start: var(--space-1);
+  color: var(--mkt-ascent-text-muted);
+  font-size: 0.875rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-hud-progress-track] {
+  overflow: hidden;
+  height: 0.375rem;
+  margin-block-start: var(--space-2);
+  border-radius: 999px;
+  background: var(--color-border-subtle);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-hud-progress-fill] {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--mkt-ascent-route-color), var(--mkt-ascent-route-glow));
+  transition: width 100ms linear;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-hud-metrics] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-hud-metric] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  background: var(--color-bg-page);
+  color: var(--mkt-ascent-text-muted);
+  font-size: 0.75rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  div[data-marketing-home-ascent-hud-metric]
+  > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-1);
+  color: var(--mkt-ascent-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  svg[data-marketing-home-ascent-icon-oxygen] {
+  width: 1rem;
+  height: 1rem;
+  color: var(--denali-alpine-600);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  svg[data-marketing-home-ascent-icon-temp][data-marketing-home-ascent-temp-positive="true"] {
+  width: 1rem;
+  height: 1rem;
+  color: var(--mkt-accent-mid);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  main[data-marketing-home]
+  section[data-marketing-home-ascent]
+  svg[data-marketing-home-ascent-icon-temp][data-marketing-home-ascent-temp-positive="false"] {
+  width: 1rem;
+  height: 1rem;
+  color: var(--denali-alpine-600);
+}

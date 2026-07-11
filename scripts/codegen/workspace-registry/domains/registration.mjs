@@ -71,13 +71,13 @@ export function generateWorkspaceRegistrationFlowPlugins(manifests) {
 
   for (const manifest of configured) {
     const cfg = manifest.catalogRegistrationFlow;
-    const surfaceSpec = `${manifest.package}/catalog-registration-flow`;
+    const surfaceSpec = importSpecifier(manifest.package, "./catalog-registration-flow");
     importLines.add(
       `import { ${cfg.surfaceExport} } from "${surfaceSpec}";`
     );
 
     if (cfg.steps.mode === "bundle") {
-      const stepsSpec = `${manifest.package}/catalog-registration-flow/react`;
+      const stepsSpec = importSpecifier(manifest.package, "./catalog-registration-flow/react");
       importLines.add(`import { ${cfg.steps.export} } from "${stepsSpec}";`);
       registerBlocks.push(`  registerWorkspaceRegistrationFlowPlugin({
     id: ${JSON.stringify(manifest.id)},
@@ -88,7 +88,7 @@ export function generateWorkspaceRegistrationFlowPlugins(manifests) {
     }
 
     const authSource = cfg.steps.reuseAuthStepsFrom ?? cfg.steps.reuseFrom;
-    const localSpec = `${manifest.package}/catalog-registration-flow/react`;
+    const localSpec = importSpecifier(manifest.package, "./catalog-registration-flow/react");
     importLines.add(
       `import { ${cfg.steps.components.intake}, ${cfg.steps.components.done} } from "${localSpec}";`
     );
@@ -115,7 +115,7 @@ export function generateWorkspaceRegistrationFlowPlugins(manifests) {
     if (source === undefined) {
       throw new Error(`${manifest.id}: internal error resolving auth step reuse source`);
     }
-    const reuseSpec = `${source.package}/catalog-registration-flow/react`;
+    const reuseSpec = importSpecifier(source.package, "./catalog-registration-flow/react");
     importLines.add(
       `import { DenaliOtpStep, DenaliPhoneStep, DenaliProfileStep } from "${reuseSpec}";`
     );
@@ -175,7 +175,7 @@ export function generateWorkspaceRegistrationTransportInitializers(manifests) {
     if (exportName === undefined) {
       continue;
     }
-    const spec = `${manifest.package}/catalog-registration-flow`;
+    const spec = importSpecifier(manifest.package, "./catalog-registration-flow");
     importLines.add(`import { ${exportName} } from "${spec}";`);
     callLines.push(`  ${exportName}();`);
   }

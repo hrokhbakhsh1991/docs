@@ -1,0 +1,288 @@
+# Denali Unified Semantic Token Schema
+
+**Status:** Proposed (Phase U — token unification)  
+**Authority:** Resolves drift documented in `TOKEN_DRIFT_ANALYSIS.md`  
+**Prerequisite:** [dtcg-pipeline-spec.mdoc](../../dev/dtcg-pipeline-spec.mdoc) Phase F slice model
+
+---
+
+## Problem
+
+Denali Admin and Portal each have a hand-maintained DTCG slice (`denali.admin.tokens.json`, `denali.portal.tokens.json`) with **duplicated semantic keys** and **divergent values** (e.g. primary `#0f766e` vs `#059669`). Editing one surface does not update the other.
+
+## Goal
+
+One **workspace-owned shared core** under `packages/workspaces/denali/theme/shared/` that composes into per-surface DTCG slices. Changing `color.primary` once propagates to Admin, Portal, and Marketing CSS on the next `design-tokens` build.
+
+---
+
+## Directory layout
+
+```text
+packages/workspaces/denali/theme/shared/
+├── compose.manifest.json          # Compose config — surfaces, blocks, layer merge order
+├── palette.json                   # Brand primitives (denali.forest-*, mist-*, alpine-*, bark-*)
+├── semantics.light.json           # Shared color.* + flat.* (light) — THE cross-surface contract
+├── semantics.dark.json            # Shared color.* (dark) — consumed by admin dark block only
+├── contexts/
+│   ├── admin.light-flat.json      # shadcn flat aliases, sidebar-*, shell-sidebar-width, shadows
+│   ├── admin.dark-flat.json       # Dark flat + sidebar re-bind
+│   ├── portal.flat.json           # Portal-only flat overrides (minimal — no sidebar)
+│   └── marketing.overlay.json     # mkt.* marketing-only tokens
+└── generated/                     # @generated — do not edit (gitignored or committed with --check)
+    └── (optional snapshot for diff review)
+
+packages/design-tokens/dtcg/workspaces/   # @generated from shared — input to CSS pipeline
+├── denali.admin.tokens.json
+├── denali.portal.tokens.json
+└── denali.marketing.tokens.json
+
+packages/workspaces/denali/theme/         # @generated CSS (existing pipeline)
+├── admin-semantic-tokens.css
+├── portal-semantic-tokens.css
+└── marketing/semantic-tokens.css
+```
+
+### Layer responsibilities
+
+| File | Editable? | Contains |
+| ---- | --------- | -------- |
+| `palette.json` | **Yes** | Raw brand palette — `denali.forest-600`, `denali.mist-50`, shadows |
+| `semantics.light.json` | **Yes** | `color.primary` → `{denali.forest-600}`, bg/text/border, status colors, `flat.radius`, `flat.destructive` |
+| `semantics.dark.json` | **Yes** | Admin dark `color.*` (portal does not consume today) |
+| `contexts/admin.*.json` | **Yes** | Operator chrome: `--sidebar-*`, `--shell-sidebar-width`, flat→shadcn bridge |
+| `contexts/portal.flat.json` | **Yes** | Portal scope-only extras (empty or radius confirm) — **no sidebar** |
+| `contexts/marketing.overlay.json` | **Yes** | `mkt.*` hero/overlay tokens — marketing surface only |
+| `denali.*.tokens.json` | **No** | Composed DTCG slices — `generate:denali-semantic-slices` |
+| `*-semantic-tokens.css` | **No** | `generate-workspace-dtcg-css.mjs` (existing) |
+
+---
+
+## Compose pipeline
+
+```mermaid
+flowchart LR
+  subgraph shared["theme/shared/ (human edit)"]
+    P[palette.json]
+    SL[semantics.light.json]
+    SD[semantics.dark.json]
+    CA[contexts/admin.*]
+    CP[contexts/portal.flat]
+    CM[contexts/marketing.overlay]
+    M[compose.manifest.json]
+  end
+  subgraph compose["generate:denali-semantic-slices"]
+    S[denali-semantic-slices.mjs]
+  end
+  subgraph dtcg["design-tokens/dtcg/workspaces"]
+    A[denali.admin.tokens.json]
+    PO[denali.portal.tokens.json]
+    MK[denali.marketing.tokens.json]
+  end
+  subgraph css["design-tokens build"]
+    G[generate-workspace-dtcg-css.mjs]
+    ACSS[admin-semantic-tokens.css]
+    PCSS[portal-semantic-tokens.css]
+  end
+  M --> S
+  P --> S
+  SL --> S
+  SD --> S
+  CA --> S
+  CP --> S
+  CM --> S
+  S --> A
+  S --> PO
+  S --> MK
+  A --> G
+  PO --> G
+  MK --> G
+  G --> ACSS
+  G --> PCSS
+```
+
+### Merge rules
+
+1. **Deep merge** token groups left-to-right per `compose.manifest.json` `merge` array.
+2. Later layers override earlier keys only at the **leaf** (`$value`) level.
+3. DTCG references (`{denali.forest-600}`) are preserved as strings — resolution happens at CSS generation (existing `resolveDtcgReferenceValue`).
+4. **Blocks format** (admin): each block gets its own merged object + `scopeSelector`.
+5. **Single format** (portal, marketing): top-level `scopeSelector` + merged groups.
+
+---
+
+## Context model — what differs per surface
+
+| Concern | Admin | Portal | Marketing |
+| ------- | ----- | ------ | --------- |
+| `scopeSelector` | `body[data-workspace-plugin="denali"]` | `body[data-app-surface="portal"][…]` | `body[data-app-surface="marketing"][…]` |
+| Light `color.*` | From `semantics.light.json` | **Same merge** | **Same merge** |
+| Dark mode block | `semantics.dark.json` + `admin.dark-flat.json` | **None** | **None** |
+| `flat.sidebar-*` | `admin.light-flat.json` | **Excluded** | **Excluded** |
+| `shell-sidebar-width` | Admin only | **Excluded** | **Excluded** |
+| `mkt.*` overlay | **Excluded** | **Excluded** | `marketing.overlay.json` |
+| `denali.shadow-card` | `palette.json` | Optional inherit | Optional inherit |
+
+Portal and Marketing **inherit the same primary** because they include `palette.json` + `semantics.light.json` in their merge list. They do not include admin context files.
+
+---
+
+## Primary color — single edit, dual (triple) inheritance
+
+### Edit surface (one place)
+
+Developers change primary in **either**:
+
+```json
+// palette.json
+"forest-600": { "$type": "color", "$value": "#0f766e" }
+```
+
+or (preferred — indirect):
+
+```json
+// semantics.light.json
+"primary": { "$type": "color", "$value": "{denali.forest-600}" }
+```
+
+### Propagation chain
+
+```text
+1. Edit palette.json or semantics.light.json
+2. pnpm run generate:denali-semantic-slices
+   → rewrites denali.admin.tokens.json, denali.portal.tokens.json, denali.marketing.tokens.json
+3. pnpm --filter @app-tour/design-tokens run build
+   → generate-workspace-dtcg-css.mjs writes *-semantic-tokens.css
+4. Apps load skin CSS on next deploy / dev HMR
+```
+
+### CI enforcement (no drift)
+
+| Guard | When | What |
+| ----- | ---- | ---- |
+| `generate:denali-semantic-slices --check` | pre-commit / `guard-dtcg-css-sync` | Shared sources ↔ DTCG slices in sync |
+| `generate-workspace-dtcg-css --check` | design-tokens build | DTCG slices ↔ committed CSS |
+| `guard-denali-cross-surface-primary` (new) | phase-2 guard | Resolved `color.primary` identical in admin/portal/marketing slices |
+| `guard-denali-manifest-theme-parity` (new) | phase-0 manifest guard | `workspace.manifest.json` `theme` `--ws-color-primary` matches `{denali.forest-600}` |
+
+### Optional: manifest codegen
+
+Extend compose to emit `workspace.manifest.json` `theme` block and `denali.plugin.ts` `cssVariables` from `semantics.light.json` + mapping table — eliminates fourth authority identified in TOKEN_DRIFT_ANALYSIS.
+
+---
+
+## compose.manifest.json schema
+
+```json
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "workspaceId": "denali",
+  "sharedDir": ".",
+  "outputs": [
+    {
+      "sliceFile": "denali.admin.tokens.json",
+      "format": "blocks",
+      "blocks": [
+        {
+          "scopeSelector": "body[data-workspace-plugin=\"denali\"]",
+          "merge": [
+            "palette.json",
+            "semantics.light.json",
+            "contexts/admin.light-flat.json"
+          ]
+        },
+        {
+          "scopeSelector": "html.dark:has(body[data-workspace-plugin=\"denali\"]), .dark body[data-workspace-plugin=\"denali\"], body[data-workspace-plugin=\"denali\"] .theme-dark",
+          "merge": ["semantics.dark.json", "contexts/admin.dark-flat.json"]
+        }
+      ]
+    },
+    {
+      "sliceFile": "denali.portal.tokens.json",
+      "format": "scoped",
+      "scopeSelector": "body[data-app-surface=\"portal\"][data-workspace-plugin=\"denali\"]",
+      "merge": ["palette.json", "semantics.light.json", "contexts/portal.flat.json"]
+    },
+    {
+      "sliceFile": "denali.marketing.tokens.json",
+      "format": "scoped",
+      "scopeSelector": "body[data-app-surface=\"marketing\"][data-workspace-plugin=\"denali\"]",
+      "merge": [
+        "palette.json",
+        "semantics.light.json",
+        "contexts/portal.flat.json",
+        "contexts/marketing.overlay.json"
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Commands
+
+```bash
+# Compose DTCG slices from shared (repo root)
+pnpm run generate:denali-semantic-slices
+
+# Drift check (CI)
+pnpm run generate:denali-semantic-slices -- --check
+
+# Full CSS regeneration (includes compose when wired)
+pnpm --filter @app-tour/design-tokens run build
+```
+
+---
+
+## Migration phases
+
+| Phase | Work | Risk |
+| ----- | ---- | ---- |
+| **U0** | Add `theme/shared/` + compose script + docs (this spec) | None — slices unchanged until first compose run |
+| **U1** | Run compose; portal/marketing primary aligns to forest-600 | Visual change on portal — intentional |
+| **U2** | Wire compose into `generate-tokens.mjs` before `generateWorkspaceDtcgCss` | CI fails if shared edited without regen |
+| **U3** | Add `guard-denali-cross-surface-primary` | Prevents future fork |
+| **U4** | Codegen manifest `theme` + plugin `cssVariables` from shared | Removes manifest authority drift |
+| **U5** | Replicate pattern for `urban`, `guest-club` | Workspace template in `workspace:create` |
+
+---
+
+## Extension to other workspaces
+
+`scripts/codegen/workspace-semantic-slices.mjs` generalizes compose:
+
+```text
+packages/workspaces/<id>/theme/shared/compose.manifest.json
+  → packages/design-tokens/dtcg/workspaces/<id>.{admin,portal,marketing}.tokens.json
+```
+
+Denali is the reference implementation; stub workspaces adopt the same `shared/` + `contexts/` split.
+
+---
+
+## Token Bridge (implemented)
+
+Runtime and CSS bridge from `theme/shared/` into operator and guest surfaces.
+
+| Layer | Module / file | Role |
+| ----- | ------------- | ---- |
+| **Shared resolver** | `packages/workspaces/denali/src/theme/denali-token-bridge.ts` | Reads `palette.json` + `semantics.light.json`; builds `--ws-*` maps |
+| **Admin ingress** | `denali.plugin.ts` → `theme.cssVariables` | Admin context + sidebar tokens via `buildDenaliTokenBridgeContexts().admin` |
+| **Guest ingress** | `DENALI_GUEST_SURFACE_CSS_VARIABLES` | Portal/marketing manifest `theme` contract (shared brand only) |
+| **Portal CSS bridge** | `theme/denali-portal.css` | `--color-*: var(--ws-color-*, var(--color-*))` on `body` |
+| **CI parity** | `pnpm run guard:token-parity` | Fails when `denali.admin.tokens.json` and `denali.portal.tokens.json` diverge on shared semantics |
+
+```bash
+pnpm run guard:token-parity
+pnpm run generate:denali-semantic-slices   # sync DTCG slices from shared
+```
+
+---
+
+## Related documents
+
+- `TOKEN_DRIFT_ANALYSIS.md` — drift inventory and authoritative values
+- `docs/dev/dtcg-pipeline-spec.mdoc` — CSS generation and hex-ban guards
+- `docs/architecture/platform-architecture-v2.md` — L0 token authority
+- `SYSTEM_HEALTH_REPORT.md` §7 — UX impact of current drift

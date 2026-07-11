@@ -5,7 +5,7 @@
  */
 
 import type { MarketingCatalogSurface } from "@/catalog/marketing-catalog-surface-types";
-import { denaliMarketingCatalogSurface as catalog_denali } from "@app-tour/workspace-denali/marketing/marketing-catalog-surface";
+import { denaliMarketingCatalogSurface as catalog_denali } from "@app-tour/workspace-denali/host/marketing/marketing-catalog-surface";
 
 const MARKETING_CATALOG_SURFACES: Readonly<Record<string, MarketingCatalogSurface>> = Object.freeze({
   "denali": catalog_denali,

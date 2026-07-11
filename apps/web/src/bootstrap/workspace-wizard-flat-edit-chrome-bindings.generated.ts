@@ -4,12 +4,12 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardFlatEditChromeSurface as wizard_flat_edit_chrome_denali } from "@app-tour/workspace-denali/ui/chrome/wizard-flat-edit-chrome-surface";
+import { denaliWizardFlatEditChromeSurface as wizard_flat_edit_chrome_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-chrome-surface";
 
 export const useDenaliFlatEditPageCore = wizard_flat_edit_chrome_denali.useFlatEditPageCore;
 export const loadDenaliSubmitCatalogIds = wizard_flat_edit_chrome_denali.loadSubmitCatalog;
 export type {
   DenaliFlatEditTourDetail,
   DenaliFlatEditTourLoadResult,
-} from "@app-tour/workspace-denali/ui/chrome/wizard-flat-edit-chrome-surface";
+} from "@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-chrome-surface";
 

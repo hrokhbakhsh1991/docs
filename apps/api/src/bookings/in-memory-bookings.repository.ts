@@ -213,11 +213,11 @@ export class InMemoryBookingsRepository implements BookingsRepository {
   }
 
   async listByTenant(tenantId: string): Promise<BookingRecord[]> {
-    const page = await this.listByTenantPage({
-      tenantId,
-      limit: MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
-    });
-    return [...page.items];
+    return [...bookingsStore.values()]
+      .filter((row) => row.tenantId === tenantId)
+      .sort(compareBookingsBySubmittedAtDesc)
+      .slice(0, MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED)
+      .map(cloneBooking);
   }
 
   private memberBookingsForUser(tenantId: string, submittedByUserId: string): BookingRecord[] {

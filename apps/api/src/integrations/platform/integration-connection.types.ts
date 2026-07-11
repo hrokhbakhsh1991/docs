@@ -31,6 +31,8 @@ export type IntegrationConnectionRecord = {
   readonly secretRef: string | null;
   /** Internal delivery only — never exposed via HTTP. */
   readonly credentials: Record<string, unknown>;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 };
 
 export type IntegrationConnectionPublicDto = {

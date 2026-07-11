@@ -5,7 +5,7 @@
  */
 
 import type { TourListCategorySurface } from "@/features/tours/tour-list-category-surface-types";
-import { denaliTourListCategorySurface as tour_list_category_denali } from "@app-tour/workspace-denali/tours/tour-list-category-surface";
+import { denaliTourListCategorySurface as tour_list_category_denali } from "@app-tour/workspace-denali/host/tours/tour-list-category-surface";
 
 const TOUR_LIST_CATEGORY_SURFACES: Readonly<Record<string, TourListCategorySurface>> = Object.freeze({
   "denali": tour_list_category_denali,

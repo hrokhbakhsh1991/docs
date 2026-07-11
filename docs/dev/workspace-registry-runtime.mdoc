@@ -1,0 +1,113 @@
+---
+title: Runtime workspace registry
+status: active
+package: "@app-tour/workspace-sdk/workspace-registry"
+---
+
+# Runtime workspace registry
+
+Replaces static `WORKSPACE_*` codegen maps over time with a **runtime manifest index** discovered from `workspace.manifest.json` files.
+
+## API
+
+| Export | Role |
+|--------|------|
+| `WorkspaceRegistry` | Pure index — `load(discoverer?)`, `get(id)`, `list()` |
+| `workspaceRegistry` | Process singleton (empty until `load()`) |
+| `parseWorkspaceManifestGlobModules` | Pure glob-result parser (unit tests) |
+| `createViteWorkspaceManifestDiscoverer` | `import.meta.glob` discoverer for Vite/Next hosts |
+| `WorkspaceManifestSchema` | Zod authority — types via `z.infer` |
+
+### Server-only subpath (`@app-tour/workspace-sdk/workspace-registry/server`)
+
+Node filesystem discovery and bootstrap **must not** import from the browser-safe barrel — Webpack cannot bundle `node:fs`.
+
+| Export | Role |
+|--------|------|
+| `ensureWorkspaceRegistryLoaded` | Idempotent Node bootstrap (instrumentation + layouts) |
+| `createNodeWorkspaceManifestDiscoverer` | `fs.readdir` + `readFile` manifest scan |
+| `discoverWorkspaceManifestsFromDirectory` | Direct directory scan (tests, scripts) |
+| `resolveDefaultWorkspacesDir` | Repo-relative `packages/workspaces` resolver |
+
+### Guest Next apps (marketing / portal)
+
+Manifest `theme` tokens are **codegen’d** at build time — guest shells must not call `ensureWorkspaceRegistryLoaded()` (Webpack cannot bundle `node:fs`).
+
+| Output | Consumer |
+|--------|----------|
+| `workspace-guest-manifest-themes.generated.ts` | `resolveGuestManifestThemeForPlugin(pluginId)` in layout |
+| `workspace-guest-theme-stylesheets.generated.ts` | `importGuest*ThemeForPlugin(pluginId)` |
+
+Regenerate: `pnpm run generate:workspace-registry`.
+
+### Node API / admin (runtime registry)
+
+```typescript
+// instrumentation.ts (server startup — API / admin when needed)
+import { ensureWorkspaceRegistryLoaded } from "@app-tour/workspace-sdk/workspace-registry/server";
+
+await ensureWorkspaceRegistryLoaded();
+```
+
+`readWorkspaceManifestTheme(manifest)` extracts the optional `theme` object from a parsed manifest record.
+
+## CI manifest validation
+
+Malformed `workspace.manifest.json` files are blocked before production via **`guard:workspace-manifests`**.
+
+| Piece | Location |
+|-------|----------|
+| Zod authority | `packages/workspace-sdk/src/manifest.schema.ts` |
+| Guard runner | `packages/workspace-sdk/scripts/validate-manifests.ts` |
+| Root command | `pnpm run guard:workspace-manifests` |
+
+**Strict checks (when present):**
+
+- `id` — lowercase slug (`^[a-z][a-z0-9-]{0,31}$`); must match parent directory under `packages/workspaces/`.
+- `guestCrossSurfaceNav.links[].surface` — enum `marketing` \| `portal_egress` plus semantic GCSN rules.
+- `theme` — CSS custom property map: valid `--*` / bare keys, safe string values (shared theme ingress rules), max 64 entries.
+
+Extension blocks (`http`, `wizardSurfaces`, …) pass through via `.passthrough()`; only the guarded fields above are strictly typed.
+
+```bash
+pnpm run guard:workspace-manifests
+```
+
+Wired into **Phase 0 foundation gate** (`phase-0:foundation-gate`) so CI fails immediately on schema violations.
+
+**Node API:** pass a filesystem discoverer (future `node-manifest-discoverer`) — do not rely on `import.meta.glob` in CJS.
+
+## Invariants
+
+- No side effects on import — `load()` is explicit.
+- Manifest `id` must match parent directory name under `packages/workspaces/`.
+- Invalid manifests fail closed at `load()` via Zod.
+- Duplicate `workspaceId` entries throw `WORKSPACE_REGISTRY_DUPLICATE_ID` — **no silent overwrite**.
+- Load failures emit structured telemetry via `setWorkspaceRegistryTelemetrySink` (hosts wire to observability); the error is **rethrown** so the host does not fail silently.
+
+## Failure handling (chaos / resilience)
+
+| Failure | Error prefix | Registry `loaded`? | Host impact |
+|---------|--------------|-------------------|-------------|
+| Missing `id` (or other required field) | `WORKSPACE_MANIFEST_INVALID:` | `false` | `load()` / `ensureWorkspaceRegistryLoaded()` reject |
+| Manifest `id` ≠ parent directory | `WORKSPACE_MANIFEST_ID_MISMATCH:` | `false` | Same |
+| Duplicate workspace index id | `WORKSPACE_REGISTRY_DUPLICATE_ID:` | `false` | Same — second entry never overwrites |
+| Unknown id on `getOrThrow` | `WORKSPACE_REGISTRY_UNKNOWN:` | `true` | Lookup-only; load already succeeded |
+
+```typescript
+import {
+  setWorkspaceRegistryTelemetrySink,
+  type WorkspaceRegistryTelemetryEvent,
+} from "@app-tour/workspace-sdk/workspace-registry";
+
+setWorkspaceRegistryTelemetrySink((event: WorkspaceRegistryTelemetryEvent) => {
+  // Forward to host logger / metrics (PII-free structured fields only).
+  hostLogger.error({ code: event.code, context: event.context, message: event.message });
+});
+```
+
+`ensureWorkspaceRegistryLoaded()` dedupes concurrent loads; a failed load leaves `loaded === false` and the shared promise rejected until process restart (or test reset).
+
+## Migration
+
+Phase **R1:** SDK capability resolvers delegate to `workspaceRegistry.get(id).manifest`. Codegen remains for web wizard bindings until **R4**.

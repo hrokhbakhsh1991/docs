@@ -1,7 +1,7 @@
 import {
   isDenaliFrozenTemplateCanonicalPath,
   normalizeDenaliWizardTemplatePayloadSteps,
-} from "../index";
+} from "../wizard/ensure-tour-kind-template-field";
 import {
   DENALI_WIZARD_PHOTOS_STEP_ID,
   isDenaliWizardTemplateLongDescriptionVisible,

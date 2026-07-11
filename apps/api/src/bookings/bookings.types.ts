@@ -74,6 +74,43 @@ export type BookingsListResponse = {
   readonly nextCursor: string | null;
 };
 
+export type BookingListPageInput = {
+  readonly tenantId: string;
+  readonly submittedByUserId?: string;
+  readonly status?: BookingStatus;
+  readonly tourId?: string;
+  readonly paymentStatus?: BookingPaymentStatus;
+  readonly q?: string;
+  readonly cursor?: string;
+  readonly limit: number;
+};
+
+export type BookingListPageOutput = {
+  readonly items: readonly BookingListItem[];
+  readonly nextCursor: string | null;
+};
+
+export type ActiveDuplicateLookupInput = {
+  readonly tenantId: string;
+  readonly tourId: string;
+};
+
+export type ActiveDuplicateByUserInput = ActiveDuplicateLookupInput & {
+  readonly submittedByUserId: string;
+};
+
+export type ActiveDuplicateByGuestLabelInput = ActiveDuplicateLookupInput & {
+  readonly guestLabel: string;
+};
+
+export type ActiveDuplicateByEmailInput = ActiveDuplicateLookupInput & {
+  readonly email: string;
+};
+
+export type ActiveDuplicateByNationalIdInput = ActiveDuplicateLookupInput & {
+  readonly nationalId: string;
+};
+
 export type BookingsSummaryResponse = {
   readonly pending: number;
   readonly approvedToday: number;
@@ -81,6 +118,9 @@ export type BookingsSummaryResponse = {
   readonly waitlist: number;
   readonly tourChips: readonly BookingTourChip[];
 };
+
+/** Counts-only slice for repository summary aggregation. */
+export type BookingsSummaryCounts = Omit<BookingsSummaryResponse, "tourChips">;
 
 export type BulkApproveBookingsRequest = {
   readonly ids: readonly string[];

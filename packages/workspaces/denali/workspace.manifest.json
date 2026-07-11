@@ -33,7 +33,7 @@
     "module": "./http/routes"
   },
   "httpRoutes": {
-    "handlerPackage": "@app-tour/workspace-denali/http",
+    "handlerPackage": "@app-tour/workspace-denali/host/http",
     "loadHandlersFromPackage": true,
     "groups": [
       {
@@ -119,18 +119,18 @@
   "wizardSurfaces": {
     "surfaceId": "denali",
     "composite": {
-      "webModule": "@app-tour/workspace-denali/ui/composite-surface",
+      "webModule": "@app-tour/workspace-denali/host/ui/composite-surface",
       "export": "createDenaliCompositeSurface"
     },
     "review": {
-      "webModule": "@app-tour/workspace-denali/ui/review-surface",
+      "webModule": "@app-tour/workspace-denali/host/ui/review-surface",
       "export": "createDenaliReviewSurface"
     }
   },
   "wizardI18n": {
     "messageNamespace": "denali",
     "labelResolver": {
-      "webModule": "@app-tour/workspace-denali/ui/field-label-resolver",
+      "webModule": "@app-tour/workspace-denali/host/ui/field-label-resolver",
       "export": "createDenaliFieldLabelResolver"
     }
   },

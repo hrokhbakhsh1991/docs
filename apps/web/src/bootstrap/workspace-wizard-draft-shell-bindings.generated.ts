@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardDraftShellSurface as wizard_draft_shell_denali } from "@app-tour/workspace-denali/ui/chrome/wizard-draft-shell-surface";
+import { denaliWizardDraftShellSurface as wizard_draft_shell_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-draft-shell-surface";
 
 export const createDenaliWizardDraftSessionId = wizard_draft_shell_denali.createWizardDraftSessionId;
 export const DENALI_CREATE_TOUR_DRAFT_KEY = wizard_draft_shell_denali.createTourDraftKey;
@@ -19,5 +19,5 @@ export const emptyDenaliTourWizardDraft = wizard_draft_shell_denali.emptyTourWiz
 export const applyDenaliDefaultTourKind = wizard_draft_shell_denali.applyDefaultTourKind;
 export const buildDenaliCreatePrefilledFormCore = wizard_draft_shell_denali.buildCreatePrefilledFormCore;
 export const getDenaliWorkspacePluginFromDraftShell = wizard_draft_shell_denali.getWorkspacePlugin;
-export type { DenaliWizardDraftMeta } from "@app-tour/workspace-denali/draft";
+export type { DenaliWizardDraftMeta } from "@app-tour/workspace-denali/host/draft";
 

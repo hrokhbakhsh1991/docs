@@ -53,7 +53,7 @@ type ExposureSimulationConsoleProps = {
 
 function initialEventState(
   connection: IntegrationConnectionPublic,
-  providerSurface: IntegrationProviderSurfaceMeta | null,
+  _providerSurface: IntegrationProviderSurfaceMeta | null,
   eventType: string,
 ): SimulationEventState {
   const persistedIntent =
@@ -146,7 +146,7 @@ export function ExposureSimulationConsole({
         ? undefined
         : { surface: eventState.surface, audience: eventState.audience, trigger: eventState.trigger },
     persistedIntent:
-      persistedIntent === undefined
+      persistedIntent == null
         ? null
         : {
             surface: persistedIntent.surface,
@@ -230,9 +230,9 @@ export function ExposureSimulationConsole({
               <div>
                 <dt className="text-xs text-muted-foreground">{t("effectiveContext")}</dt>
                 <dd className="font-mono text-xs">
-                  {coordinateHonesty.effectiveContext.surface} /{" "}
-                  {coordinateHonesty.effectiveContext.audience} /{" "}
-                  {coordinateHonesty.effectiveContext.trigger}
+                  {coordinateHonesty.effective.surface} /{" "}
+                  {coordinateHonesty.effective.audience} /{" "}
+                  {coordinateHonesty.effective.trigger}
                 </dd>
               </div>
               <div>

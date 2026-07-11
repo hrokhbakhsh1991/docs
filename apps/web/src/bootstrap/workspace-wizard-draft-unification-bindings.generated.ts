@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardDraftUnificationSurface as draft_unification_denali } from "@app-tour/workspace-denali/draft/wizard-draft-unification-surface";
+import { denaliWizardDraftUnificationSurface as draft_unification_denali } from "@app-tour/workspace-denali/host/draft/wizard-draft-unification-surface";
 
 export function logWizardDraftTombstoneShadowMismatch(
   ...args: Parameters<typeof draft_unification_denali.logTombstoneShadowMismatch>

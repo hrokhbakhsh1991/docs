@@ -1,0 +1,49 @@
+---
+title: Semantic color contract (apps/web)
+format: markdoc
+doc_role: architecture_sot
+extends:
+  - docs/dev/dtcg-pipeline-spec.mdoc
+---
+
+# Semantic color contract (apps/web)
+
+Phase 7 closes the gap between DTCG-guarded workspace/theme CSS and **apps/web** operator UI.
+
+## Authority
+
+Semantic tokens come from `@app-tour/design-tokens` light/dark themes:
+
+| Token | Usage |
+| ----- | ----- |
+| `--color-primary` | Brand accent, links, focus |
+| `--color-success` / `--color-success-bg` | Published, connected, OK states |
+| `--color-warning` / `--color-warning-bg` | Caution banners, pending certification |
+| `--color-danger` / `--color-danger-bg` | Errors, destructive emphasis |
+| `--color-text-muted` | Secondary copy |
+| `--color-border-subtle` | Dividers, card borders |
+| `--color-bg-surface` | Elevated panels |
+
+## Rules (apps/web)
+
+1. **No hex fallbacks** in CSS modules — use `var(--color-*)` only (no `#2563eb` tail in `var(..., #hex)`).
+2. **No Tailwind palette scales** (`emerald-500`, `amber-200`, `text-green-600`) in production TSX — use semantic vars or `Badge` variants (`success`, `warning`, `destructive`).
+3. **Status pills** — prefer `@/components/ui/badge` with `variant="success" | "warning" | "destructive"` or arbitrary semantic vars: `text-[var(--color-success)]`, `bg-[var(--color-success-bg)]`.
+4. **Callout banners** — shared module `apps/web/src/components/semantic-callout.module.css` (optional) or inline semantic var classes matching badge token map.
+
+## Guards
+
+| Guard | Scope |
+| ----- | ----- |
+| `guard-dtcg-hex-ban` | Workspace/theme DTCG outputs + skin hooks |
+| `guard-admin-feature-appearance-ast` | `apps/web/src/admin/{patterns,dashboard,onboarding}` — palette/hex AST ban |
+
+Extend scan dirs to `apps/web/app/(app)/settings/**` and `apps/web/src/platform/**` when stabilizing Phase 7.
+
+## Verify
+
+```bash
+rg '#[0-9a-fA-F]{3,8}' apps/web/src/admin apps/web/app --glob '*.css'
+rg 'emerald-|amber-|text-green-' apps/web --glob '*.tsx'
+pnpm run guard:admin-feature-appearance-ast
+```

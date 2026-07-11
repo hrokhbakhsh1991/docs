@@ -1,0 +1,16 @@
+{
+  "color": {
+    "primary": { "$type": "color", "$value": "#5eead4" },
+    "primary-hover": { "$type": "color", "$value": "#99f6e4" },
+    "primary-fg": { "$type": "color", "$value": "#0f140f" },
+    "bg-page": { "$type": "color", "$value": "#161b13" },
+    "bg-surface": { "$type": "color", "$value": "#1f2620" },
+    "bg-muted": { "$type": "color", "$value": "#242c24" },
+    "text-primary": { "$type": "color", "$value": "#e8ebe6" },
+    "text-secondary": { "$type": "color", "$value": "#b0b8aa" },
+    "text-muted": { "$type": "color", "$value": "#7d8778" },
+    "text-link": { "$type": "color", "$value": "#5eead4" },
+    "border-default": { "$type": "color", "$value": "#2f382f" },
+    "border-subtle": { "$type": "color", "$value": "#1f261f" }
+  }
+}

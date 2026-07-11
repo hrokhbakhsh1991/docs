@@ -21,6 +21,22 @@
     "./registration-flow": {
       "types": "./dist/registration-flow.d.ts",
       "default": "./dist/registration-flow.js"
+    },
+    "./register-denali": {
+      "types": "./dist/register-denali.generated.d.ts",
+      "default": "./dist/register-denali.generated.js"
+    },
+    "./register-guest-club": {
+      "types": "./dist/register-guest-club.generated.d.ts",
+      "default": "./dist/register-guest-club.generated.js"
+    },
+    "./register-starter": {
+      "types": "./dist/register-starter.generated.d.ts",
+      "default": "./dist/register-starter.generated.js"
+    },
+    "./register-urban": {
+      "types": "./dist/register-urban.generated.d.ts",
+      "default": "./dist/register-urban.generated.js"
     }
   },
   "scripts": {

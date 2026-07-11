@@ -95,7 +95,7 @@ export type WizardTemplateFieldRef = {
 
 export type WizardTemplateStepRef = {
   readonly stepId: string;
-  readonly label: string;
-  readonly enabled: boolean;
+  readonly label?: string;
+  readonly enabled?: boolean;
   readonly fields: readonly WizardTemplateFieldRef[];
 };

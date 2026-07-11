@@ -29,6 +29,8 @@ function mapRow(row: {
   config: Prisma.JsonValue;
   credentials: Prisma.JsonValue;
   secretRef: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }): IntegrationConnectionRecord {
   return {
     id: row.id,
@@ -47,6 +49,8 @@ function mapRow(row: {
         ? (row.credentials as Record<string, unknown>)
         : {},
     secretRef: row.secretRef,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }
 

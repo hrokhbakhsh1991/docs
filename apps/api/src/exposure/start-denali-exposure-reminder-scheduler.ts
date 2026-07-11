@@ -1,5 +1,5 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
-import { DENALI_REMINDER_OFFSETS } from "@app-tour/workspace-denali/exposure";
+import { DENALI_REMINDER_OFFSETS } from "@app-tour/workspace-denali/host/exposure";
 
 import { getPrisma } from "../db/prisma";
 import { logger } from "../observability/logger";

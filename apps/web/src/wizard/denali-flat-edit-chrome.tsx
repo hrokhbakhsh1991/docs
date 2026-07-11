@@ -6,11 +6,12 @@ import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
+import type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
 import type { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types";
 
 type DenaliFlatEditDraftSync = Pick<
-  ReturnType<typeof useWorkspaceDraft<unknown>>,
+  ReturnType<typeof useWorkspaceDraft<NewTourWizardDraftEnvelope>>,
   | "status"
   | "schemaIssues"
   | "navLocked"

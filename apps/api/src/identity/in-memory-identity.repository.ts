@@ -14,6 +14,7 @@ import {
   matchesDirectoryPair,
   sortDirectoryPairs,
 } from "./users-directory-query";
+import type { UsersDirectoryListFilters } from "./users-directory-list-projection";
 
 export type IdentityUserRecord = {
   readonly id: string;

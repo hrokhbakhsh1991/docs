@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { denaliWizardCreateViewSurface as wizard_create_view_denali } from "@app-tour/workspace-denali/ui/chrome/wizard-create-view-surface";
+import { denaliWizardCreateViewSurface as wizard_create_view_denali } from "@app-tour/workspace-denali/host/ui/chrome/wizard-create-view-surface";
 
 export const DenaliCreateTourWizardView = wizard_create_view_denali.CreateTourWizardView;
 

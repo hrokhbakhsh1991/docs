@@ -5,8 +5,8 @@
  */
 
 import type { WizardCompositeSurface, WizardReviewSurface } from "@/wizard/wizard-surface-types";
-import { createDenaliCompositeSurface as composite_denali } from "@app-tour/workspace-denali/ui/composite-surface";
-import { createDenaliReviewSurface as review_denali } from "@app-tour/workspace-denali/ui/review-surface";
+import { createDenaliCompositeSurface as composite_denali } from "@app-tour/workspace-denali/host/ui/composite-surface";
+import { createDenaliReviewSurface as review_denali } from "@app-tour/workspace-denali/host/ui/review-surface";
 import { createPlatformCompositeSurface as composite_platform } from "@/wizard/platform/platform-composite-surface";
 import { createPlatformReviewSurface as review_platform } from "@/wizard/platform/platform-review-surface";
 

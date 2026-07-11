@@ -5,7 +5,7 @@
  */
 
 import type { WizardLabelResolver } from "@/wizard/wizard-surface-types";
-import { createDenaliFieldLabelResolver as label_denali } from "@app-tour/workspace-denali/ui/field-label-resolver";
+import { createDenaliFieldLabelResolver as label_denali } from "@app-tour/workspace-denali/host/ui/field-label-resolver";
 
 export const WORKSPACE_WIZARD_I18N_NAMESPACES = ["wizard","denali","urban"] as const;
 
