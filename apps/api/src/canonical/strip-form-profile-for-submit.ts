@@ -2,7 +2,7 @@ import {
   createCanonicalDocument,
   type CanonicalDocument,
 } from "@app-tour/workspace-sdk";
-import { DENALI_FORM_PROFILE_GHOST_PATHS } from "@app-tour/workspace-denali/composites";
+import { DENALI_FORM_PROFILE_GHOST_PATHS } from "@app-tour/workspace-denali/host/composites";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);

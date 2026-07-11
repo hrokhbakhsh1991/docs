@@ -65,6 +65,12 @@ describe("catalog-list-query.spec.ts — PR-21.1", () => {
     );
   });
 
+  it("treats category=all as no category filter (reset chip)", () => {
+    const filters = parseCatalogListFilters({ category: "all" });
+    assert.equal(filters.category, undefined);
+    assert.equal(buildCatalogListHref("/tours", filters), "/tours");
+  });
+
   it("parses repeated searchParams values", () => {
     const filters = parseCatalogListFilters({
       category: ["mountain", "nature"],

@@ -78,7 +78,9 @@ export function parseCatalogListFilters(
   const fitness = readCatalogListQueryValue(input.fitness);
   const availability = readCatalogListQueryValue(input.availability) === "open" ? "open" : undefined;
   const q = readCatalogListQueryValue(input.q);
-  const category = readCatalogListQueryValue(input.category);
+  const categoryRaw = readCatalogListQueryValue(input.category);
+  const category =
+    categoryRaw != null && categoryRaw.toLowerCase() === "all" ? undefined : categoryRaw;
   const cursor = readCatalogListQueryValue(input.cursor);
   const city = readCatalogListQueryValue(input.city);
 
