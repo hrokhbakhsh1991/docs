@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createDenaliFieldLabelResolver } from "@app-tour/workspace-denali/ui/field-label-resolver";
+import { createDenaliFieldLabelResolver } from "@app-tour/workspace-denali/host/ui/field-label-resolver";
 
 const messages: Record<string, string> = {
   "composites.pricingParticipants.sectionTitle": "Participant requirements",

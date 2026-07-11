@@ -135,12 +135,10 @@ export function resolveWizardTemplateAllowedPaths(
 
 export function buildDefaultPublishedWizardSteps(
   pluginId: string,
-  plugin?: Pick<WorkspacePlugin, "wizard" | "fieldRegistry">
+  plugin?: Pick<WorkspacePlugin, "fieldRegistry">
 ): readonly WizardTemplateStepRef[] {
   const titlePath = resolveWizardTemplateSeedCanonicalPath(pluginId, plugin);
-  const stepId =
-    plugin?.wizard?.steps?.[0]?.stepId?.trim() ||
-    resolveWizardTemplateGateDefaultPublishedStepId(pluginId);
+  const stepId = resolveWizardTemplateGateDefaultPublishedStepId(pluginId);
   return [
     {
       stepId,
@@ -154,7 +152,7 @@ export function buildDefaultPublishedWizardSteps(
 export function ensureWizardTemplatePublishablePayload(
   payload: WizardTemplatePayload,
   pluginId: string,
-  plugin?: Pick<WorkspacePlugin, "wizard" | "fieldRegistry">
+  plugin?: Pick<WorkspacePlugin, "fieldRegistry">
 ): WizardTemplatePayload {
   if (!payload.published) {
     return payload;
@@ -189,7 +187,7 @@ export function resolveInitialWorkspaceFormProfile(
 export function resolveWizardTemplateGateState(
   response: unknown,
   pluginId: string,
-  plugin?: Pick<WorkspacePlugin, "wizardHost">
+  plugin?: Pick<WorkspacePlugin, "wizardHost" | "fieldRegistry">
 ): WizardTemplateGateState {
   const payload = parseWizardTemplatePayloadRecord(response);
   const published = isWizardTemplatePublished(payload);

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { DraftSchemaGate } from "@app-tour/draft-engine";
+import type { WorkspaceWizardDraftMeta } from "@app-tour/workspace-sdk";
 
 import { resolveSyncWorkspacePluginFromRegistry } from "@/bootstrap/workspace-plugin-loaders.generated";
 import {
@@ -55,6 +56,7 @@ import {
   type NewTourWizardDraftEnvelope,
 } from "./denali-wizard-draft-shell";
 import { useWorkspaceIntegrationRuntimeState } from "@/integrations/use-workspace-integration-runtime-state";
+import type { DenaliCreateTourWizardCoreState } from "@app-tour/workspace-denali/host/ui/chrome/use-create-tour-wizard-core";
 
 export type { DenaliCreateTourWizardScreen };
 
@@ -63,7 +65,7 @@ const DENALI_PLUGIN_ID = "denali";
 /** Phase 15.2 P15-W-B1e — Denali create wizard orchestration hook (shell wiring). */
 export function useDenaliCreateTourWizard(options: {
   readonly initialTemplateResponse?: unknown | null;
-} = {}) {
+} = {}): DenaliCreateTourWizardCoreState {
   const router = useRouter();
   const searchParams = useSearchParams();
   const session = useAppSession();
@@ -94,13 +96,19 @@ export function useDenaliCreateTourWizard(options: {
   );
   const prepareEnvelope = useCallback(
     (form: ReturnType<typeof buildDenaliCreatePrefilledForm>, meta: DenaliWizardDraftMeta) =>
-      prepareWizardDraftEnvelope(denaliPlugin, form, meta, denaliPrepareDraftEnvelope),
+      prepareWizardDraftEnvelope(denaliPlugin, form, meta, (nextForm, nextMeta) =>
+        denaliPrepareDraftEnvelope(nextForm, nextMeta as DenaliWizardDraftMeta)
+      ),
     [denaliPlugin]
   );
   const normalizeRemoteEnvelope = useCallback(
     (envelope: NewTourWizardDraftEnvelope) =>
       normalizeWizardRemoteEnvelope(denaliPlugin, envelope, (remote) =>
-        denaliHydrateDraftEnvelope(remote, remote.form, remote.meta)
+        denaliHydrateDraftEnvelope(
+          remote as unknown as Parameters<typeof denaliHydrateDraftEnvelope>[0],
+          remote.form,
+          remote.meta as DenaliWizardDraftMeta
+        ) as NewTourWizardDraftEnvelope
       ),
     [denaliPlugin]
   );
@@ -116,12 +124,19 @@ export function useDenaliCreateTourWizard(options: {
     []
   );
 
+  const denaliMergeFn = resolveDenaliDraftMerge(
+    resolveDraftUnificationV3Mode() as "off" | "shadow" | "on"
+  );
+
   const draftSync = useWorkspaceDraft<NewTourWizardDraftEnvelope>({
     workspaceId: session.workspaceId,
     namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
     draftKey: DENALI_CREATE_TOUR_DRAFT_KEY,
     conflictStrategy: resolveDenaliDraftConflictStrategy(),
-    merge: resolveDenaliDraftMerge(resolveDraftUnificationV3Mode()),
+    merge: denaliMergeFn
+      ? (local, server) =>
+          denaliMergeFn(local as never, server as never) as NewTourWizardDraftEnvelope
+      : undefined,
     onPushSuccess: createDenaliDraftOnPushSuccess(),
     hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, true),
     schemaGate: denaliSchemaGate,
@@ -165,12 +180,18 @@ export function useDenaliCreateTourWizard(options: {
     [wizardSessionId]
   );
 
+  const prepareEnvelopeForPrefill = useCallback(
+    (form: ReturnType<typeof buildDenaliCreatePrefilledForm>, meta: WorkspaceWizardDraftMeta) =>
+      prepareEnvelope(form, meta as DenaliWizardDraftMeta),
+    [prepareEnvelope]
+  );
+
   useWizardCreateSeedPrefill({
     gate,
     cloneTourId,
     supportsTourClone: true,
     draftSync,
-    prepareEnvelope,
+    prepareEnvelope: prepareEnvelopeForPrefill,
     buildPrefilledForm: buildPrefilled,
     buildSeedMeta,
     shouldSkipSeed: () => clearDraft.clearDraftPending,
@@ -182,7 +203,7 @@ export function useDenaliCreateTourWizard(options: {
     cloneTourId,
     draftSync,
     draftSyncDataRef,
-    prepareEnvelope,
+    prepareEnvelope: prepareEnvelopeForPrefill,
     buildPrefilledForm: buildPrefilled,
     buildPresetMeta,
     onPresetAppliedChange: setPresetApplied,
@@ -226,7 +247,7 @@ export function useDenaliCreateTourWizard(options: {
     isDraftEssentiallyEmpty,
     draftResumeEpoch,
     onCreateSuccess,
-  });
+  } as unknown as Parameters<typeof useDenaliCreateTourWizardCore>[0]);
 }
 
 export { createDenaliDraftSchemaGate };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import type React from "react";
 import { useCallback } from "react";
 
 import { DenaliCreateTourWizardView } from "@/bootstrap/workspace-wizard-create-view-bindings.generated";
@@ -62,8 +63,21 @@ function DenaliCreateTourWizardClientInner({
         renderNotConfigured: () => <CreateTourWizardNotConfigured />,
         renderHeader: (props) => (
           <CreateTourWizardDenaliHeader
-            {...props}
             currentDraftKey={platformCreateTourDraftKey("denali")}
+            draftSync={
+              props.draftSync as unknown as React.ComponentProps<
+                typeof CreateTourWizardDenaliHeader
+              >["draftSync"]
+            }
+            draftIndex={
+              props.draftIndex as React.ComponentProps<
+                typeof CreateTourWizardDenaliHeader
+              >["draftIndex"]
+            }
+            clearDraftPending={props.clearDraftPending}
+            clearDraftError={props.clearDraftError}
+            requestClearDraft={props.requestClearDraft}
+            clearDraftConfirmDialog={props.clearDraftConfirmDialog}
           />
         ),
         renderSeedBanner: (props) => <CreateTourWizardSeedBanner {...props} />,

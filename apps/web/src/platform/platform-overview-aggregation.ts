@@ -1,4 +1,5 @@
 import { countUnhealthyFromSitesCheckBody } from "@/platform/count-unhealthy-from-sites-check";
+import type { TenantSitesCheckResults } from "@/platform/count-unhealthy-from-sites-check";
 
 const DEFAULT_HEALTH_CHECK_LIMIT = 25;
 
@@ -8,7 +9,7 @@ export type PlatformOverviewTenantItem = {
 };
 
 export type SitesCheckBody = {
-  readonly results?: unknown;
+  readonly results?: TenantSitesCheckResults;
 };
 
 export function readOverviewHealthCheckLimit(input?: string): number {

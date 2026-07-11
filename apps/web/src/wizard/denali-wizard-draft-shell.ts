@@ -1,8 +1,3 @@
-import type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
-import {
-  createDenaliDraftOnPushSuccess,
-  resolveDenaliDraftConflictStrategy,
-} from "@/draft/draft-unification-v3-options";
 import {
   applyDenaliDefaultTourKind,
   buildDenaliCreatePrefilledFormCore,
@@ -18,6 +13,7 @@ import {
   type DenaliWizardDraftMeta,
 } from "@/bootstrap/workspace-wizard-draft-shell-bindings.generated";
 import type { WizardTemplateGateState } from "@/tours/wizard-template-gate-logic";
+import type { WizardTemplateFieldRef } from "@/features/settings/wizard-template-types";
 import { applyWizardTemplatePrefillToDraft } from "@/tours/wizard-template-prefill-logic";
 
 export {
@@ -32,7 +28,7 @@ export {
   type DenaliWizardDraftMeta,
 };
 
-export type { NewTourWizardDraftEnvelope };
+export type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
 
 export {
   createDenaliDraftOnPushSuccess,
@@ -49,7 +45,7 @@ export function buildDenaliCreatePrefilledForm(
     applyWizardTemplatePrefillToDraft(
       draft,
       prefillGate.seedLabel,
-      prefillGate.fieldOverlays,
+      prefillGate.fieldOverlays as ReadonlyMap<string, WizardTemplateFieldRef>,
       "denali",
       getDenaliWorkspacePluginFromDraftShell()
     )

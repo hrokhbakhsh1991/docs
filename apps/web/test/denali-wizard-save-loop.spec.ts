@@ -9,8 +9,8 @@ import { patchDenaliCanonicalBasics } from "@app-tour/workspace-denali/plugin";
 
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
-import { persistDenaliWizardDraftChange } from "@app-tour/workspace-denali/ui/chrome/draft-persist";
-import { rebaseCategoryDraftChange } from "@app-tour/workspace-denali/ui/logic/denali-tour-kind-field-logic";
+import { persistDenaliWizardDraftChange } from "@app-tour/workspace-denali/host/ui/chrome/draft-persist";
+import { rebaseCategoryDraftChange } from "@app-tour/workspace-denali/host/ui/logic/denali-tour-kind-field-logic";
 import {
   createDenaliWizardDraftTestEngine,
   denaliFreshStartEnvelope,

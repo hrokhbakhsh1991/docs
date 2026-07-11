@@ -4,7 +4,7 @@ import {
   type WorkspaceDefinitionPayload,
 } from "@app-tour/workspace-sdk/metadata";
 
-import { buildPreviewPluginFromDraft } from "./build-preview-plugin-from-draft.ts";
+import { buildPreviewPluginFromDraft } from "./build-preview-plugin-from-draft";
 
 export type BuilderPreviewSummary = {
   readonly violationCount: number;

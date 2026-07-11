@@ -11,9 +11,9 @@ import {
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
   createDenaliDraftSchemaGate,
-} from "@app-tour/workspace-denali/draft";
+} from "@app-tour/workspace-denali/host/draft";
 
-import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/draft";
+import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft";
 import { normalizeDenaliRemoteEnvelope } from "../src/draft/denali-draft-normalize-remote";
 import { DraftEngine } from "@app-tour/draft-engine";
 import type { DraftSyncPayload } from "@app-tour/draft-engine";

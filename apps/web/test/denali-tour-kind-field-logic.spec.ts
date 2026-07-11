@@ -6,7 +6,7 @@ import { describe, it } from "node:test";
 
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
-import { applyDenaliDefaultTourKind } from "@app-tour/workspace-denali/ui/logic/denali-default-tour-kind";
+import { applyDenaliDefaultTourKind } from "@app-tour/workspace-denali/host/ui/logic/denali-default-tour-kind";
 import {
   isDenaliTourKindChoiceActive,
   isDenaliTourKindSelectionComplete,
@@ -15,10 +15,10 @@ import {
   resolveDenaliTourKindPickerOpen,
   resolveDenaliTourKindSummaryParts,
   resolveDenaliTourKindUiBasics,
-} from "@app-tour/workspace-denali/ui/logic/denali-tour-kind-field-logic";
-import { sanitizeDenaliWizardDraft } from "@app-tour/workspace-denali/ui/chrome/draft-form-adapter";
-import { buildDenaliWizardRuleEvalContext } from "@app-tour/workspace-denali/wizard/submit";
-import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/wizard/rules-loader";
+} from "@app-tour/workspace-denali/host/ui/logic/denali-tour-kind-field-logic";
+import { sanitizeDenaliWizardDraft } from "@app-tour/workspace-denali/host/ui/chrome/draft-form-adapter";
+import { buildDenaliWizardRuleEvalContext } from "@app-tour/workspace-denali/host/wizard/submit";
+import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/host/wizard/rules-loader";
 
 describe("denali-tour-kind-field-logic.spec.ts", () => {
   it("DWC-TK-01 empty draft has no tour kind selection (no fake mountain/single_day)", () => {

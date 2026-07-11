@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
 import { mapValidationResultToIssues } from "@app-tour/wizard-navigation";
 
-import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/wizard/host-hooks";
+import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/host/wizard/host-hooks";
 
 import { PlatformWizardEngine } from "@app-tour/platform-core";
 import {
@@ -19,7 +19,7 @@ import { applyWizardTemplateToRenderPlan } from "../src/tours/wizard-template-ga
 import {
   buildFieldStepResolverFromTemplate,
   validateDenaliWizardDraftSync,
-} from "@app-tour/workspace-denali/ui/chrome/wizard-validation";
+} from "@app-tour/workspace-denali/host/ui/chrome/wizard-validation";
 import { groupValidationIssuesByStep } from "../src/wizard/group-validation-issues-by-step";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 

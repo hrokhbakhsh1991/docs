@@ -1,5 +1,5 @@
 import { computePlatformOverviewStats } from "@/platform/platform-overview-stats";
-import { aggregateUnhealthySiteCount } from "@/platform/platform-overview-aggregation";
+import { aggregateUnhealthySiteCount, type SitesCheckBody } from "@/platform/platform-overview-aggregation";
 import { proxyPlatformApi } from "@/platform/proxy-platform-api.server";
 
 type TenantListResponse = {
@@ -18,7 +18,7 @@ export async function loadPlatformOverviewStats(req: Request) {
     if (!check.ok) {
       return null;
     }
-    return (await check.json().catch(() => ({}))) as { results?: unknown };
+    return (await check.json().catch(() => ({}))) as SitesCheckBody;
   });
   const sslUpstream = await proxyPlatformApi(req, "/platform/v1/domains/ssl-summary");
   const sslBody = sslUpstream.ok

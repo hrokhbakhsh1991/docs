@@ -14,8 +14,8 @@ import {
   resolveMainThemeFormProfileFromCatalog,
   sanitizeLeaderUserIdsOnDraft,
   sanitizeThemeIdsOnDraft,
-} from "@app-tour/workspace-denali/wizard/catalog-sanitize";
-import { loadDenaliSubmitCatalogIds } from "@app-tour/workspace-denali/ui/adapters/submit-catalog-fetch";
+} from "@app-tour/workspace-denali/host/wizard/catalog-sanitize";
+import { loadDenaliSubmitCatalogIds } from "@app-tour/workspace-denali/host/ui/adapters/submit-catalog-fetch";
 
 describe("denali-catalog-sanitize.spec.ts", () => {
   it("WEB-11.8-CAT-01 resolves mainThemeFormProfile from first theme", () => {

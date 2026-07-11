@@ -1,6 +1,6 @@
-import type { IntegrationsPlaneStatus } from "./integrations-plane-status.ts";
+import type { IntegrationsPlaneStatus } from "./integrations-plane-status";
 
-export type { IntegrationsPlaneStatus } from "./integrations-plane-status.ts";
+export type { IntegrationsPlaneStatus } from "./integrations-plane-status";
 
 export function resolveIntegrationsPlaneStatusFromEnv(
   env: NodeJS.ProcessEnv = process.env

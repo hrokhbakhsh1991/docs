@@ -3,8 +3,61 @@
 set -euo pipefail
 
 ENV_DIR="${ENV_DIR:-/etc/app-tour}"
-SMOKE_PHONE="${SMOKE_OPERATOR_PHONE:-${OPERATOR_OWNER_MOBILE:-+15550001001}}"
-ADMIN_HOST="${SMOKE_OPERATOR_ADMIN_HOST:-operator.admin.localhost}"
+
+read_env_value() {
+  local file="$1" key="$2"
+  if [[ -f "$file" ]]; then
+    grep -E "^${key}=" "$file" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r' || true
+  fi
+}
+
+resolve_smoke_phone() {
+  if [[ -n "${SMOKE_OPERATOR_PHONE:-}" ]]; then
+    printf '%s' "$SMOKE_OPERATOR_PHONE"
+    return
+  fi
+  local from_api
+  from_api="$(read_env_value "${ENV_DIR}/api.env" OPERATOR_OWNER_MOBILE)"
+  if [[ -n "$from_api" ]]; then
+    printf '%s' "$from_api"
+    return
+  fi
+  printf '%s' "+15550001001"
+}
+
+SMOKE_PHONE="$(resolve_smoke_phone)"
+
+resolve_smoke_admin_host() {
+  if [[ -n "${SMOKE_OPERATOR_ADMIN_HOST:-}" ]]; then
+    printf '%s' "$SMOKE_OPERATOR_ADMIN_HOST"
+    return
+  fi
+
+  local api_env="${ENV_DIR}/api.env"
+  local label
+  label="$(read_env_value "$api_env" PUBLIC_TENANT_FALLBACK_LABEL)"
+  label="${label,,}"
+  if [[ -n "$label" && "$label" != "operator" ]]; then
+    printf '%s.admin.localhost' "$label"
+    return
+  fi
+
+  local fallback_hosts
+  fallback_hosts="$(read_env_value "$api_env" PUBLIC_TENANT_FALLBACK_HOSTS)"
+  if [[ -n "$fallback_hosts" ]]; then
+    local first_host="${fallback_hosts%%,*}"
+    first_host="${first_host// /}"
+    first_host="${first_host%%:*}"
+    if [[ -n "$first_host" && "$first_host" != "127.0.0.1" && "$first_host" != "localhost" ]]; then
+      printf '%s' "$first_host"
+      return
+    fi
+  fi
+
+  printf '%s' "operator.admin.localhost"
+}
+
+ADMIN_HOST="$(resolve_smoke_admin_host)"
 
 read_env_port() {
   local file="$1" key="$2" default="$3"
@@ -23,6 +76,9 @@ api_port=$(read_env_port "${ENV_DIR}/api.env" PORT 3001)
 web_port=$(read_env_port "${ENV_DIR}/web.env" PORT 3000)
 api_health_url="http://127.0.0.1:${api_port}/health"
 otp_url="http://127.0.0.1:${web_port}/api/auth/request-otp"
+
+echo "[smoke] operator phone: ${SMOKE_PHONE}"
+echo "[smoke] admin Host header: ${ADMIN_HOST}:${web_port}"
 
 assert_health_ok() {
   local body="$1"

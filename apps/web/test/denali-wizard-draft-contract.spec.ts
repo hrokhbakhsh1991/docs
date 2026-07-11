@@ -15,28 +15,28 @@ import { afterEach, describe, it } from "node:test";
 import { DraftEngine } from "@app-tour/draft-engine";
 import { denaliPrepareDraftEnvelope } from "@app-tour/workspace-denali";
 
-import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/wizard/rules-loader";
-import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/draft";
+import { loadDenaliWizardRulesModule } from "@app-tour/workspace-denali/host/wizard/rules-loader";
+import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft";
 import {
   hasNonEmptyCanonicalValue,
   isDraftEssentiallyEmpty,
   readDenaliDraftFieldValue,
   resolveDenaliInitialStepIndex,
   resolveDenaliWizardResumeStepIndex,
-} from "@app-tour/workspace-denali/wizard/resolve-initial-step-index";
+} from "@app-tour/workspace-denali/host/wizard/resolve-initial-step-index";
 import { runDenaliWizardClearDraftSequence } from "../src/draft/run-denali-wizard-clear-draft-sequence";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
-import { sanitizeDenaliWizardDraft } from "@app-tour/workspace-denali/ui/chrome/draft-form-adapter";
-import { buildDenaliWizardRuleEvalContext } from "@app-tour/workspace-denali/wizard/submit";
+import { sanitizeDenaliWizardDraft } from "@app-tour/workspace-denali/host/ui/chrome/draft-form-adapter";
+import { buildDenaliWizardRuleEvalContext } from "@app-tour/workspace-denali/host/wizard/submit";
 import {
   applyDenaliDefaultTourKind,
   DENALI_DEFAULT_TOUR_KIND,
-} from "@app-tour/workspace-denali/ui/logic/denali-default-tour-kind";
+} from "@app-tour/workspace-denali/host/ui/logic/denali-default-tour-kind";
 import {
   isDenaliTourKindChoiceActive,
   resolveDenaliTourKindUiBasics,
-} from "@app-tour/workspace-denali/ui/logic/denali-tour-kind-field-logic";
+} from "@app-tour/workspace-denali/host/ui/logic/denali-tour-kind-field-logic";
 import {
   createDenaliWizardDraftMergeAdapter,
   createDenaliWizardDraftTestEngine,

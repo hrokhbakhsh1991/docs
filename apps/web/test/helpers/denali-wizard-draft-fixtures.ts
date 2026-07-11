@@ -1,9 +1,9 @@
 import { DraftEngine } from "@app-tour/draft-engine";
-import { denaliPrepareDraftEnvelope } from "@app-tour/workspace-denali/draft";
+import { denaliPrepareDraftEnvelope } from "@app-tour/workspace-denali/host/draft";
 
 import { createWorkspaceDraftAdapter } from "../../src/draft/create-workspace-draft-adapter";
-import { isDenaliFreshStartEnvelope, mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/draft";
-import { applyDenaliDefaultTourKind } from "@app-tour/workspace-denali/ui/logic/denali-default-tour-kind";
+import { isDenaliFreshStartEnvelope, mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft";
+import { applyDenaliDefaultTourKind } from "@app-tour/workspace-denali/host/ui/logic/denali-default-tour-kind";
 import { emptyTourWizardDraft } from "../../src/tours/tour-wizard-draft";
 
 import { createMockWorkspaceDraftServer, createSlowPatchGate } from "./mock-workspace-draft-server";

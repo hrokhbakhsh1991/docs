@@ -11,8 +11,8 @@ import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/t
 import {
   applyDenaliConditionalFieldRules,
   resolveDenaliDimensionsFromDraft,
-} from "@app-tour/workspace-denali/wizard/contextual";
-import { isDenaliMultiDayTourKind } from "@app-tour/workspace-denali/ui/logic/denali-photo-types";
+} from "@app-tour/workspace-denali/host/wizard/contextual";
+import { isDenaliMultiDayTourKind } from "@app-tour/workspace-denali/host/ui/logic/denali-photo-types";
 
 const MOCK_RULES = {
   evaluateFormFieldRule: (

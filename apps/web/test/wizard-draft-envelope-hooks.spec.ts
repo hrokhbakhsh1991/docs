@@ -5,7 +5,7 @@ import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 import {
   denaliHydrateDraftEnvelope,
   denaliPrepareDraftEnvelope,
-} from "@app-tour/workspace-denali/draft";
+} from "@app-tour/workspace-denali/host/draft";
 
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import {

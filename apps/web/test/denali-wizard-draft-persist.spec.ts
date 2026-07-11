@@ -6,7 +6,7 @@ import { denaliPrepareDraftEnvelope } from "@app-tour/workspace-denali";
 import type { NewTourWizardDraftEnvelope } from "../src/draft/denali-wizard-draft-types";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 import { getCanonicalStringValue, setCanonicalStringValue } from "../src/tours/tour-wizard-draft-path";
-import { persistDenaliWizardDraftChange } from "@app-tour/workspace-denali/ui/chrome/draft-persist";
+import { persistDenaliWizardDraftChange } from "@app-tour/workspace-denali/host/ui/chrome/draft-persist";
 
 function freshEnvelope(sessionId = "sess-persist"): NewTourWizardDraftEnvelope {
   return denaliPrepareDraftEnvelope(emptyTourWizardDraft(), {

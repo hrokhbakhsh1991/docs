@@ -154,7 +154,10 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
     namespace: PLATFORM_OPERATOR_WIZARD_DRAFT_NAMESPACE,
     draftKey: platformCreateTourDraftKey(pluginId),
     conflictStrategy: "REFETCH_REAPPLY",
-    merge: mergeEnvelope,
+    merge: mergeEnvelope
+      ? (local, server) =>
+          mergeEnvelope(local, server) as PlatformCreateTourDraftEnvelope
+      : undefined,
     hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, supportsTourClone),
     normalizeRemote,
   });

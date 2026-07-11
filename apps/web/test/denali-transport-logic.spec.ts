@@ -5,7 +5,7 @@ import {
   isDenaliDongAmountVisible,
   isDenaliPersonalCarOptionVisible,
   isDenaliTransportCostVisible,
-} from "@app-tour/workspace-denali/ui/logic/denali-transport-logic";
+} from "@app-tour/workspace-denali/host/ui/logic/denali-transport-logic";
 
 describe("denali-transport-logic.spec.ts", () => {
   it("WEB-DENALI-TR-01 shows transport cost for organized modes", () => {

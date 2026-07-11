@@ -13,7 +13,7 @@ import {
   normalizeExternalSocialLink,
   normalizeSocialMediaLinkForKind,
   normalizeTelegramSocialLink,
-} from "@app-tour/workspace-denali/ui/logic/denali-social-media-link-logic";
+} from "@app-tour/workspace-denali/host/ui/logic/denali-social-media-link-logic";
 
 describe("denali-social-media-link-logic.spec.ts", () => {
   it("WEB-DENALI-SOCIAL-01 detects telegram vs other links", () => {

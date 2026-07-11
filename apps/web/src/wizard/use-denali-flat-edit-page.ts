@@ -23,6 +23,7 @@ import {
 } from "@/bootstrap/workspace-wizard-flat-edit-chrome-bindings.generated";
 import { normalizeDenaliRemoteEnvelope } from "@/draft/denali-draft-normalize-remote";
 import type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
+import type { DenaliFlatEditPageCoreState } from "@app-tour/workspace-denali/host/ui/chrome/use-flat-edit-page-core";
 import { resolveDraftUnificationV3Mode } from "@/draft/draft-unification-v3";
 import {
   createDenaliDraftOnPushSuccess,
@@ -63,8 +64,8 @@ function toFlatEditTourDetail(detail: OperatorTourDetailResponse): DenaliFlatEdi
       priceAmount: detail.projection.priceAmount,
       priceCurrency: detail.projection.priceCurrency,
       departureAt: detail.projection.departureAt,
-      acceptedSeats: detail.projection.acceptedSeats,
-      capacity: detail.projection.capacity,
+      acceptedSeats: detail.projection.acceptedCount,
+      capacity: detail.projection.totalCapacity,
     },
   };
 }
@@ -75,7 +76,9 @@ export type UseDenaliFlatEditPageInput = {
 };
 
 /** Phase 15.2 P15-W-B1f — Denali flat-edit page orchestration hook (shell wiring). */
-export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPageInput) {
+export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPageInput): DenaliFlatEditPageCoreState & {
+  readonly draftSyncEngine: ReturnType<typeof useWorkspaceDraft<NewTourWizardDraftEnvelope>>;
+} {
   const appSession = useAppSession();
   const router = useRouter();
   const plugin = useMemo(() => resolveSyncWorkspacePluginFromRegistry("denali"), []);
@@ -94,12 +97,19 @@ export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPage
     []
   );
 
+  const denaliMergeFn = resolveDenaliDraftMerge(
+    resolveDraftUnificationV3Mode() as "off" | "shadow" | "on"
+  );
+
   const draftSync = useWorkspaceDraft<NewTourWizardDraftEnvelope>({
     workspaceId: appSession.workspaceId,
     namespace: DENALI_OPERATOR_WIZARD_DRAFT_NAMESPACE,
     draftKey: editDraftKey,
     conflictStrategy: resolveDenaliDraftConflictStrategy(),
-    merge: resolveDenaliDraftMerge(resolveDraftUnificationV3Mode()),
+    merge: denaliMergeFn
+      ? (local, server) =>
+          denaliMergeFn(local as never, server as never) as NewTourWizardDraftEnvelope
+      : undefined,
     onPushSuccess: createDenaliDraftOnPushSuccess(),
     schemaGate: denaliSchemaGate,
     normalizeRemote: normalizeDenaliRemoteEnvelope,
@@ -205,7 +215,7 @@ export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPage
     updateTour,
     loadSubmitCatalog: loadDenaliSubmitCatalogIds,
     onAfterPatchSuccess,
-  });
+  } as unknown as Parameters<typeof useDenaliFlatEditPageCore>[0]);
 
   return { ...core, draftSyncEngine: draftSync };
 }

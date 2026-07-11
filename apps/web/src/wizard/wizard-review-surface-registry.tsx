@@ -14,7 +14,7 @@ function renderPlatformValidationSummary(props: WizardValidationSurfaceRenderPro
   return <WorkspaceWizardValidationSummary {...props} />;
 }
 
-const platformValidationSurface: WizardReviewSurface = Object.freeze({
+const platformValidationSurface: WizardValidationSurface = Object.freeze({
   renderValidationSummary: renderPlatformValidationSummary,
 });
 

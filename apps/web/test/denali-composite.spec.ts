@@ -12,12 +12,12 @@ import {
 import {
   isDenaliCompositeImplemented,
   DENALI_IMPLEMENTED_COMPOSITE_IDS,
-} from "@app-tour/workspace-denali/ui/composite-ids";
-import { parseDenaliGearItems } from "@app-tour/workspace-denali/ui/logic/denali-gear-types";
+} from "@app-tour/workspace-denali/host/ui/composite-ids";
+import { parseDenaliGearItems } from "@app-tour/workspace-denali/host/ui/logic/denali-gear-types";
 import {
   parseDenaliGatheringPoints,
   parseDenaliLocationData,
-} from "@app-tour/workspace-denali/ui/logic/denali-location-types";
+} from "@app-tour/workspace-denali/host/ui/logic/denali-location-types";
 
 describe("denali-composite.spec.ts", () => {
   it("WEB-DENALI-COMP-01 exposes implemented location composite ids", () => {

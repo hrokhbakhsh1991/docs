@@ -7,7 +7,7 @@ import {
   buildDenaliReviewSectionsFromVisibleSteps,
   type DenaliReviewCatalog,
   type DenaliReviewFormatLabels,
-} from "@app-tour/workspace-denali/ui/logic/denali-review-format-logic";
+} from "@app-tour/workspace-denali/host/ui/logic/denali-review-format-logic";
 
 const EMPTY_CATALOG: DenaliReviewCatalog = {
   destinationNameById: new Map([["dest-1", "Damavand"]]),

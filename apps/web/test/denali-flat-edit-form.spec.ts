@@ -8,14 +8,14 @@ import { describe, it } from "node:test";
 import {
   DENALI_FLAT_EDIT_SECTIONS_12_4A,
   DENALI_FLAT_EDIT_SECTIONS_FULL,
-} from "@app-tour/workspace-denali/edit";
+} from "@app-tour/workspace-denali/host/edit";
 
 import { TOUR_EDIT_TEST_IDS } from "../src/features/tours/operator-tour-detail-types";
-import { DENALI_FLAT_EDIT_TEST_IDS } from "@app-tour/workspace-denali/ui/test-ids/denali-flat-edit-test-ids";
+import { DENALI_FLAT_EDIT_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-flat-edit-test-ids";
 import {
   filterFlatEditRenderSteps,
   filterFlatEditTemplateSteps,
-} from "@app-tour/workspace-denali/ui/chrome/flat-edit-plan";
+} from "@app-tour/workspace-denali/host/ui/chrome/flat-edit-plan";
 
 describe("denali-flat-edit-form.spec.ts — Phase 12.4 Web", () => {
   it("WEB-12.4-01 flat edit test ids align with operator tour edit landmarks", () => {

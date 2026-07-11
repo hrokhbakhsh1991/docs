@@ -145,8 +145,8 @@ export function buildIntegrationPatchInput(
   for (const field of provider.configFields) {
     const key = integrationEditFieldKey("config", field.id);
     const next = (editValues[key] ?? "").trim();
-    const previous =
-      typeof currentConfig[field.id] === "string" ? currentConfig[field.id].trim() : "";
+    const currentValue = currentConfig[field.id];
+    const previous = typeof currentValue === "string" ? currentValue.trim() : "";
     if (next !== previous) {
       configChanged = true;
     }
@@ -168,12 +168,8 @@ export function buildIntegrationPatchInput(
     return null;
   }
 
-  const payload: IntegrationPatchInput = {};
-  if (configChanged) {
-    payload.config = config;
-  }
-  if (Object.keys(credentials).length > 0) {
-    payload.credentials = credentials;
-  }
-  return payload;
+  return {
+    ...(configChanged ? { config } : {}),
+    ...(Object.keys(credentials).length > 0 ? { credentials } : {}),
+  };
 }

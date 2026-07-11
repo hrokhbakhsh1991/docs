@@ -5,12 +5,13 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
+import type { DraftSchemaIssue, DraftStatus, DraftSyncPayload } from "@app-tour/draft-engine";
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
+import type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
 import type { WizardSubmitErrorPresentation } from "@/wizard/resolve-wizard-submit-error-message";
 import { WizardSubmitErrorAlert } from "@/wizard/wizard-submit-error-alert";
-import type { useWorkspaceDraft } from "@/draft/use-workspace-draft";
-import type { useWorkspaceDraftIndex } from "@/draft/use-workspace-draft-index";
 import { WorkspaceDraftIndexSummary } from "@/draft/workspace-draft-index-summary";
+import type { WorkspaceDraftIndexItem } from "@/draft/workspace-draft-types";
 import {
   TOUR_PRESET_PREFILL_TEST_IDS,
 } from "@/tours/tour-preset-prefill-logic";
@@ -146,25 +147,30 @@ export function CreateTourWizardSubmitFooter(props: {
   );
 }
 
-type DenaliDraftSyncChrome = Pick<
-  ReturnType<typeof useWorkspaceDraft<unknown>>,
-  | "status"
-  | "schemaIssues"
-  | "navLocked"
-  | "pendingDraft"
-  | "conflictReloadNotice"
-  | "retry"
-  | "flush"
-  | "applyDraft"
-  | "setData"
-  | "canRevertQuarantine"
-  | "revertToLastValid"
->;
+type DenaliDraftSyncChrome = {
+  readonly status: DraftStatus;
+  readonly schemaIssues: readonly DraftSchemaIssue[];
+  readonly navLocked: boolean;
+  readonly pendingDraft: DraftSyncPayload<NewTourWizardDraftEnvelope> | null | undefined;
+  readonly conflictReloadNotice: boolean;
+  readonly retry: () => Promise<void>;
+  readonly flush: () => Promise<void>;
+  readonly applyDraft: () => void;
+  readonly setData: (
+    data: NewTourWizardDraftEnvelope,
+    options?: { readonly source?: string }
+  ) => void;
+  readonly canRevertQuarantine: boolean;
+  readonly revertToLastValid: () => void;
+};
 
 export function CreateTourWizardDenaliHeader(props: {
   readonly currentDraftKey: string;
   readonly draftSync: DenaliDraftSyncChrome;
-  readonly draftIndex: Pick<ReturnType<typeof useWorkspaceDraftIndex>, "items" | "loading">;
+  readonly draftIndex: {
+    readonly loading: boolean;
+    readonly items: readonly WorkspaceDraftIndexItem[];
+  };
   readonly clearDraftPending: boolean;
   readonly clearDraftError: string | null;
   readonly requestClearDraft: () => void;

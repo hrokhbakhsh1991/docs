@@ -5,7 +5,7 @@ import {
   themeDisplayInitials,
   themeSwatchToneClass,
   themeSwatchToneIndex,
-} from "@app-tour/workspace-denali/ui/logic/denali-theme-picker-logic";
+} from "@app-tour/workspace-denali/host/ui/logic/denali-theme-picker-logic";
 
 describe("denali-theme-picker-logic.spec.ts", () => {
   it("DN-THEME-PICKER-01 derives initials from theme name", () => {

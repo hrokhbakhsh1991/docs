@@ -127,7 +127,10 @@ export function useWizardCreatePresetPrefill<TEnvelope, TForm extends TourWizard
           applyTourPresetToDraft(base, resolved.preset, resolved.activeThemeIds) as TForm;
         const currentEnvelope = input.draftSyncDataRef.current;
         if (currentEnvelope != null) {
-          const envelope = currentEnvelope as { form: TForm; meta: WorkspaceWizardDraftMeta };
+          const envelope = currentEnvelope as unknown as {
+            form: TForm;
+            meta: WorkspaceWizardDraftMeta;
+          };
           input.draftSync.setData(
             input.prepareEnvelope(applyPreset(envelope.form), envelope.meta)
           );

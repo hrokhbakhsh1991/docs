@@ -223,7 +223,7 @@ export function WizardField({
   value,
   onChange,
   dataTestId,
-  pluginId,
+  pluginId: _pluginId,
   draft,
   onDraftChange,
   wizardSessionId,

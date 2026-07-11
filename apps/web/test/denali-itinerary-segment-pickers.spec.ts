@@ -5,14 +5,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { DestinationResource } from "../src/features/settings/settings-module-types";
-import { buildItinerarySegmentDestinationSelection } from "@app-tour/workspace-denali/ui/logic/denali-itinerary-segment-destination-logic";
+import { buildItinerarySegmentDestinationSelection } from "@app-tour/workspace-denali/host/ui/logic/denali-itinerary-segment-destination-logic";
 import {
   DENALI_ITINERARY_PHOTO_DAY_IS_PICKER_HINT_ONLY,
   filterSelectableItineraryPhotos,
   readItineraryPhotoLabel,
   toggleItinerarySegmentPhotoSelection,
-} from "@app-tour/workspace-denali/ui/logic/denali-itinerary-segment-photo-logic";
-import { readDenaliDestinationLabel } from "@app-tour/workspace-denali/ui/hooks/use-destination-catalog";
+} from "@app-tour/workspace-denali/host/ui/logic/denali-itinerary-segment-photo-logic";
+import { readDenaliDestinationLabel } from "@app-tour/workspace-denali/host/ui/hooks/use-destination-catalog";
 
 const DESTINATION_CATALOG = new Map<string, DestinationResource>([
   [

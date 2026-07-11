@@ -9,12 +9,12 @@ import { getCanonicalValue, setCanonicalValue } from "../src/tours/tour-wizard-d
 import {
   isDenaliCompositeImplemented,
   DENALI_IMPLEMENTED_COMPOSITE_IDS,
-} from "@app-tour/workspace-denali/ui/composite-ids";
-import { DENALI_GUIDE_LANGUAGES_TEST_IDS } from "@app-tour/workspace-denali/ui/test-ids/denali-guide-languages-test-ids";
+} from "@app-tour/workspace-denali/host/ui/composite-ids";
+import { DENALI_GUIDE_LANGUAGES_TEST_IDS } from "@app-tour/workspace-denali/host/ui/test-ids/denali-guide-languages-test-ids";
 import {
   readActiveGuideLanguageIds,
   sanitizeGuideLanguageIdsOnDraft,
-} from "@app-tour/workspace-denali/wizard/catalog-sanitize";
+} from "@app-tour/workspace-denali/host/wizard/catalog-sanitize";
 
 describe("denali-guide-language-ids.spec.ts", () => {
   it("WEB-12.5-01 composite id is registered and exposed for render", () => {

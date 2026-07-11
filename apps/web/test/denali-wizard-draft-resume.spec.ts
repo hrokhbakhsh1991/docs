@@ -6,7 +6,7 @@ import { describe, it } from "node:test";
 
 import { denaliPrepareDraftEnvelope } from "@app-tour/workspace-denali";
 
-import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/draft";
+import { mergeDenaliWizardDraftEnvelope } from "@app-tour/workspace-denali/host/draft";
 import { emptyTourWizardDraft } from "../src/tours/tour-wizard-draft";
 
 describe("denali-wizard-draft-resume.spec.ts — Phase 11.5", () => {

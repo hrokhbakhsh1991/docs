@@ -257,18 +257,18 @@ export function parseWorkspaceExposureControlPlaneResponse(
       parityInstrumentation,
     },
     connections: Array.isArray(record.connections)
-      ? record.connections
-          .map((entry) => {
-            if (typeof entry !== "object" || entry === null) {
-              return null;
-            }
-            const connection = entry as Record<string, unknown>;
-            const connectionId =
-              typeof connection.connectionId === "string" ? connection.connectionId : "";
-            if (connectionId === "") {
-              return null;
-            }
-            return {
+      ? record.connections.flatMap((entry): ExposureControlPlaneConnection[] => {
+          if (typeof entry !== "object" || entry === null) {
+            return [];
+          }
+          const connection = entry as Record<string, unknown>;
+          const connectionId =
+            typeof connection.connectionId === "string" ? connection.connectionId : "";
+          if (connectionId === "") {
+            return [];
+          }
+          return [
+            {
               connectionId,
               provider: typeof connection.provider === "string" ? connection.provider : "",
               enabled: connection.enabled === true,
@@ -279,9 +279,9 @@ export function parseWorkspaceExposureControlPlaneResponse(
                     .map(parseEventContext)
                     .filter((ctx): ctx is ExposureControlPlaneEventContext => ctx !== null)
                 : [],
-            };
-          })
-          .filter((entry): entry is ExposureControlPlaneConnection => entry !== null)
+            },
+          ];
+        })
       : [],
   };
 }

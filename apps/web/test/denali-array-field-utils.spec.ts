@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { parseStringArray } from "@app-tour/workspace-denali/ui/logic/denali-array-field-utils";
-import { normalizeApproximateReturnTime } from "@app-tour/workspace-denali/ui/logic/denali-datetime-utils";
+import { parseStringArray } from "@app-tour/workspace-denali/host/ui/logic/denali-array-field-utils";
+import { normalizeApproximateReturnTime } from "@app-tour/workspace-denali/host/ui/logic/denali-datetime-utils";
 
 describe("denali-array-field-utils.spec.ts", () => {
   it("WEB-DENALI-ARR-01 parses string arrays from draft values", () => {

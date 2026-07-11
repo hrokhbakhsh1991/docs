@@ -7,13 +7,13 @@ import { describe, it } from "node:test";
 import {
   extractDenaliPhotoApiErrorCode,
   parseDenaliPhotoApiErrorCode,
-} from "@app-tour/workspace-denali/ui/adapters/photo-upload-errors";
+} from "@app-tour/workspace-denali/host/ui/adapters/photo-upload-errors";
 import {
   DENALI_PHOTO_ALLOWED_CONTENT_TYPES,
   resolveDenaliWizardPhotoPreviewUrl,
   validateDenaliPhotoFile,
-} from "@app-tour/workspace-denali/ui/adapters/photo-upload-client";
-import { parseDenaliTourPhotos } from "@app-tour/workspace-denali/ui/logic/denali-photo-types";
+} from "@app-tour/workspace-denali/host/ui/adapters/photo-upload-client";
+import { parseDenaliTourPhotos } from "@app-tour/workspace-denali/host/ui/logic/denali-photo-types";
 
 describe("denali-photo-upload.spec.ts", () => {
   it("WEB-6.7-PHOTO-01 parses storageKey on draft photos", () => {

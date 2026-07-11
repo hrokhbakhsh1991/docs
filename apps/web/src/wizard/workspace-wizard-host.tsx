@@ -39,7 +39,6 @@ import {
 import { WizardStepShell } from "./wizard-step-shell";
 
 import { WizardField } from "./wizard-field";
-import { resolveWizardCompositeSurface } from "./wizard-composite-surface-registry";
 import {
   buildWizardValidationSurfaceProps,
   resolveWizardReviewSurface,
@@ -80,6 +79,7 @@ export type WorkspaceWizardHostProps = {
   /** Increment after explicit clear-draft to suppress resume re-inference (Denali create). */
   readonly draftResumeEpoch?: number;
   /** When true, host uses saved step only — no furthest-field inference (e.g. freshStart). */
+  readonly suppressDraftStepInference?: boolean;
   /** When set with metadata flag, resolves plugin from tenant binding (P5-B-N-009). */
   readonly metadataBinding?: OperatorWorkspaceMetadataBinding | null;
 };

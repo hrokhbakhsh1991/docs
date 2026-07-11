@@ -83,15 +83,20 @@ export async function resolveOperatorWorkspacePlugin(
     return packagePlugin;
   }
 
+  const metadataBinding = input.metadataBinding;
+  if (!metadataBinding) {
+    return packagePlugin;
+  }
+
   const loadMetadata =
     input.loadMetadataPayload ??
     (async () => {
       throw new Error("OPERATOR_METADATA_LOADER_NOT_CONFIGURED");
     });
 
-  const payload = await loadMetadata(input.metadataBinding);
+  const payload = await loadMetadata(metadataBinding);
   if (!payload) {
-    throw new Error(`WORKSPACE_DEFINITION_NOT_FOUND:${input.metadataBinding.definitionId}`);
+    throw new Error(`WORKSPACE_DEFINITION_NOT_FOUND:${metadataBinding.definitionId}`);
   }
 
   const adapt = input.adaptMetadata ?? adaptMetadataPayloadToWorkspacePlugin;

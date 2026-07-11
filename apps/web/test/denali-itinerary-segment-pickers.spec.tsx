@@ -9,12 +9,12 @@ import { loadAppMessages } from "../src/i18n/load-messages";
 import {
   DENALI_ITINERARY_SEGMENT_DESTINATION_TEST_IDS,
   DenaliItinerarySegmentDestinationField,
-} from "@app-tour/workspace-denali/ui/components/denali-itinerary-segment-destination-field";
-import { DENALI_SEARCHABLE_SELECT_TEST_IDS } from "@app-tour/workspace-denali/ui/components/denali-searchable-select";
+} from "@app-tour/workspace-denali/host/ui/components/denali-itinerary-segment-destination-field";
+import { DENALI_SEARCHABLE_SELECT_TEST_IDS } from "@app-tour/workspace-denali/host/ui/components/denali-searchable-select";
 import {
   DENALI_ITINERARY_SEGMENT_PHOTO_TEST_IDS,
   DenaliItinerarySegmentPhotoPicker,
-} from "@app-tour/workspace-denali/ui/components/denali-itinerary-segment-photo-picker";
+} from "@app-tour/workspace-denali/host/ui/components/denali-itinerary-segment-photo-picker";
 
 let testMessages: AbstractIntlMessages;
 let originalFetch: typeof globalThis.fetch;

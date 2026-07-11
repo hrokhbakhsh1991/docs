@@ -57,6 +57,14 @@
     "./metadata/checksum": {
       "types": "./dist/metadata/workspace-definition-payload-checksum.d.ts",
       "default": "./dist/metadata/workspace-definition-payload-checksum.js"
+    },
+    "./wizard": {
+      "types": "./dist/wizard/index.d.ts",
+      "default": "./dist/wizard/index.js"
+    },
+    "./workspace-registry": {
+      "types": "./dist/workspace-registry/index.d.ts",
+      "default": "./dist/workspace-registry/index.js"
     }
   },
   "scripts": {
