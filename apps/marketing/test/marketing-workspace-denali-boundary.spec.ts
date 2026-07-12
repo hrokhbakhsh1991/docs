@@ -49,7 +49,7 @@ describe("marketing-workspace-denali-boundary.spec.ts — MKT-6", () => {
     );
     assert.match(bindings, /resolveMarketingCatalogSurface/);
     assert.match(bindings, /denaliMarketingCatalogSurface/);
-    assert.match(bindings, /@app-tour\/workspace-denali\/marketing\/marketing-catalog-surface/);
+    assert.match(bindings, /@app-tour\/workspace-denali\/(?:host\/)?marketing\/marketing-catalog-surface/);
   });
 
   it("MKT-C3-01 derive and filter catalog helpers delegate to marketing catalog surface", () => {

@@ -31,6 +31,9 @@ export const PR8_SECTIONS_ON = {
 
 export const FULL_LANDING: GuestLandingFeatures = {
   variant: "full",
+  whySectionAnchor: "why-us",
+  destinationSlugs: ["alborz", "damavand", "zardkuh"],
+  destinationImageStems: { zardkuh: "zardkooh" },
   sections: {
     hero: true,
     latestTours: true,
@@ -50,6 +53,9 @@ export const FULL_LANDING: GuestLandingFeatures = {
 
 export const MINIMAL_LANDING: GuestLandingFeatures = {
   variant: "minimal",
+  whySectionAnchor: "why-us",
+  destinationSlugs: [],
+  destinationImageStems: {},
   sections: {
     hero: false,
     latestTours: false,
@@ -69,6 +75,9 @@ export const MINIMAL_LANDING: GuestLandingFeatures = {
 
 export const DISCOVERY_LANDING: GuestLandingFeatures = {
   variant: "full",
+  whySectionAnchor: "why-us",
+  destinationSlugs: ["alborz", "damavand", "zardkuh"],
+  destinationImageStems: { zardkuh: "zardkooh" },
   sections: {
     hero: true,
     latestTours: true,
@@ -88,6 +97,9 @@ export const DISCOVERY_LANDING: GuestLandingFeatures = {
 
 export const PREMIUM_LANDING: GuestLandingFeatures = {
   variant: "full",
+  whySectionAnchor: "why-us",
+  destinationSlugs: ["alborz", "damavand", "zardkuh"],
+  destinationImageStems: { zardkuh: "zardkooh" },
   sections: {
     hero: true,
     latestTours: true,

@@ -58,9 +58,13 @@ Existing smokes: **SMK-PTL-02** (list) · **SMK-PTL-04** (receipt) · **SMK-PTL-
 | ---- | ------ |
 | Scope | `body[data-app-surface="portal"][data-workspace-plugin="denali"]` |
 | Skin file | `packages/workspaces/denali/theme/denali-portal.css` |
-| List | `main[data-portal-member-registrations]` — card rows, tour title links |
+| List | `main[data-portal-member-registrations]` — card rows, tour title links, status badge (PS-M2 · 2026-07-12) |
 | Detail | `main[data-portal-member-registration-detail]` — metadata + receipt panel |
 | Receipt | `[data-portal-member-receipt-upload]` — file input + primary submit |
+| Status badge | `[data-portal-member-registration-status-badge][data-status]` — `approved` · `pending` · `waitlisted` · `rejected` · `cancelled` |
+| Row meta | `[data-portal-member-registration-meta]` — payment + departure |
+| Empty state | `[data-portal-member-registrations-empty-state]` — message + CTA (PS-M2 · 2026-07-12) |
+| Empty CTA | `[data-portal-member-registrations-empty-cta]` — egress to marketing `/tours` via `resolveMarketingToursUrl` |
 
 Design SoT: `design-system/denali-club/MASTER.md` (primary `#059669`).
 

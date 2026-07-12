@@ -1,7 +1,7 @@
 {
   "denali": {
-    "forest-700": { "$type": "color", "$value": "#0f5c4a" },
-    "forest-600": { "$type": "color", "$value": "#0f766e" },
+    "forest-700": { "$type": "color", "$value": "#047857" },
+    "forest-600": { "$type": "color", "$value": "#059669" },
     "forest-500": { "$type": "color", "$value": "#14b8a6" },
     "alpine-600": { "$type": "color", "$value": "#31547e" },
     "bark-600": { "$type": "color", "$value": "#765832" },

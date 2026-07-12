@@ -8,8 +8,8 @@
   "wiz": {
     "tone": {
       "forest": {
-        "source": { "$type": "color", "$value": "#0f766e" },
-        "fg": { "$type": "color", "$value": "#0f5c4a" },
+        "source": { "$type": "color", "$value": "#059669" },
+        "fg": { "$type": "color", "$value": "#047857" },
         "dark-source": { "$type": "color", "$value": "#5eead4" },
         "dark-fg": { "$type": "color", "$value": "#99f6e4" }
       },

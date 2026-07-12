@@ -1,4 +1,7 @@
-import { resolveGuestSurfaceBootstrapForHost } from "@app-tour/guest-surface-host";
+import {
+  resolveGuestBootstrapRevalidateSeconds,
+  resolveGuestSurfaceBootstrapForHost,
+} from "@app-tour/guest-surface-host";
 
 import { assertGuestBffProductionConfig, resolveTourOpsApiBaseUrl } from "../env";
 
@@ -14,7 +17,7 @@ export async function resolveMarketingBootstrapForHost(host: string): Promise<Ma
     resolveFetch: () => ({
       apiBaseUrl: resolveTourOpsApiBaseUrl(),
       onBeforeFetch: assertGuestBffProductionConfig,
-      nextRevalidate: 300,
+      nextRevalidate: resolveGuestBootstrapRevalidateSeconds(),
     }),
     unresolvedError: "MARKETING_TENANT_UNRESOLVED",
   });

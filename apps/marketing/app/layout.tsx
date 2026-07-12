@@ -105,7 +105,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const fontClassName = resolveAppFontClassName(locale);
   const fontFamilyBase = resolveAppFontFamilyCss(locale);
   const portalMemberModuleUrl = resolvePortalMemberModuleUrl(host);
-  const primaryNavLinks = resolveMarketingShellNavLinks(host, bootstrap.pluginId);
+  const primaryNavLinks = resolveMarketingShellNavLinks(host, bootstrap.pluginId, locale);
   const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
 
   return (

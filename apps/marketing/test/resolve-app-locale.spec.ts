@@ -6,7 +6,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { resolveAppLocale } from "../src/i18n/resolve-app-locale";
-import { resolveMarketingLocalePath } from "../src/i18n/routing";
+import {
+  isMarketingLocaleExternalPath,
+  resolveMarketingLocalePath,
+  resolveMarketingTourDetailPath,
+  resolveMarketingToursListPath,
+} from "../src/i18n/routing";
 
 describe("resolveAppLocale", () => {
   it("MKT-19 cookie wins over tenant default", () => {
@@ -37,5 +42,34 @@ describe("resolveMarketingLocalePath", () => {
     assert.equal(resolveMarketingLocalePath("/tours", "en"), "/en/tours");
     assert.equal(resolveMarketingLocalePath("/en/tours", "fa"), "/tours");
     assert.equal(resolveMarketingLocalePath("/en/tours/tour-1", "en"), "/en/tours/tour-1");
+  });
+
+  it("MKT-GX-01 passes through absolute portal egress URLs unchanged", () => {
+    const portalTrips = "http://denali.portal.localhost:3003/me/registrations";
+    assert.equal(isMarketingLocaleExternalPath(portalTrips), true);
+    assert.equal(resolveMarketingLocalePath(portalTrips, "fa"), portalTrips);
+    assert.equal(resolveMarketingLocalePath(portalTrips, "en"), portalTrips);
+  });
+});
+
+describe("resolveMarketingToursListPath", () => {
+  it("MKT-LOCALE-02 preserves locale on list paths and query strings", () => {
+    assert.equal(resolveMarketingToursListPath("fa"), "/tours");
+    assert.equal(resolveMarketingToursListPath("en"), "/en/tours");
+    assert.equal(
+      resolveMarketingToursListPath("en", { category: "trek" }),
+      "/en/tours?category=trek"
+    );
+    assert.equal(
+      resolveMarketingToursListPath("fa", { q: "damavand" }),
+      "/tours?q=damavand"
+    );
+  });
+});
+
+describe("resolveMarketingTourDetailPath", () => {
+  it("MKT-LOCALE-02 preserves locale on detail paths", () => {
+    assert.equal(resolveMarketingTourDetailPath("tour-1", "fa"), "/tours/tour-1");
+    assert.equal(resolveMarketingTourDetailPath("tour-1", "en"), "/en/tours/tour-1");
   });
 });

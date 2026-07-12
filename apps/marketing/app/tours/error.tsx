@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+
+import { isAppLocale, resolveMarketingToursListPath, routing } from "@/i18n/routing";
 
 type ErrorPageProps = {
   readonly error: Error & { readonly digest?: string };
@@ -10,6 +12,9 @@ type ErrorPageProps = {
 
 export default function MarketingCatalogError({ reset }: ErrorPageProps) {
   const t = useTranslations("catalog.error");
+  const localeRaw = useLocale();
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+  const toursHref = resolveMarketingToursListPath(locale);
 
   return (
     <div data-marketing-catalog-error>
@@ -21,7 +26,7 @@ export default function MarketingCatalogError({ reset }: ErrorPageProps) {
         </button>
       </p>
       <p>
-        <Link href="/tours">{t("backToTours")}</Link>
+        <Link href={toursHref}>{t("backToTours")}</Link>
       </p>
     </div>
   );

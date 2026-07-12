@@ -29,4 +29,33 @@ describe("marketing-shell-nav.spec.ts — PS-4", () => {
     assert.match(nav, /resolvePortalMemberModuleUrl/);
     assert.match(nav, /link\.memberModuleId/);
   });
+
+  it("MKT-GX-02 shell nav preserves absolute portal egress hrefs", () => {
+    const nav = readFileSync(
+      join(marketingRoot, "src/shell/resolve-marketing-shell-nav.server.ts"),
+      "utf8"
+    );
+    assert.match(nav, /resolveMarketingLocalePath\(resolveCrossSurfaceHref/);
+    const routing = readFileSync(join(marketingRoot, "src/i18n/routing.ts"), "utf8");
+    assert.match(routing, /isMarketingLocaleExternalPath/);
+  });
+
+  it("MKT-GX-03 portal + marketing guest manifest themes stay in sync", () => {
+    const portal = readFileSync(
+      join(marketingRoot, "../portal/src/bootstrap/workspace-guest-manifest-themes.generated.ts"),
+      "utf8"
+    );
+    const marketing = readFileSync(
+      join(marketingRoot, "src/bootstrap/workspace-guest-manifest-themes.generated.ts"),
+      "utf8"
+    );
+    for (const needle of [
+      '"--ws-color-primary": "#059669"',
+      '"--ws-color-primary-hover": "#047857"',
+      '"--ws-sidebar-primary": "#059669"',
+    ]) {
+      assert.match(portal, new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      assert.match(marketing, new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    }
+  });
 });

@@ -51,7 +51,7 @@ describe("marketing-skin-split.spec.ts — MKT-3", () => {
   it("MKT-SKIN-03 denali bundle preserves MASTER token selectors", () => {
     const entryPath = join(repoRoot, "packages/workspaces/denali/theme/denali-marketing.css");
     const bundle = readMarketingSkinBundle(entryPath);
-    assert.match(bundle, /--color-primary: #059669/);
+    assert.match(bundle, /--color-primary: (?:#059669|var\(--denali-forest-600\))/);
     assert.match(bundle, /header\[data-marketing-header\]/);
     assert.match(bundle, /section\[data-marketing-home-hero\]/);
   });

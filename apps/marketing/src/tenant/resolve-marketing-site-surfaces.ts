@@ -1,5 +1,6 @@
 import {
   fetchPublicTenantContextForHost,
+  resolveGuestBootstrapRevalidateSeconds,
   resolveTenantIdFromDevHost,
 } from "@app-tour/guest-surface-host";
 
@@ -22,7 +23,7 @@ export async function resolveMarketingSiteSurfacesForHost(
   const publicContext = await fetchPublicTenantContextForHost(host, {
     apiBaseUrl: resolveTourOpsApiBaseUrl(),
     onBeforeFetch: assertGuestBffProductionConfig,
-    nextRevalidate: 300,
+    nextRevalidate: resolveGuestBootstrapRevalidateSeconds(),
   });
   if (publicContext?.siteSurfaces !== undefined) {
     return normalizeMarketingSiteSurfaces(publicContext.siteSurfaces);

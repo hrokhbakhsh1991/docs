@@ -318,6 +318,15 @@ When `ALLOW_DEV_WEB_SESSION !== true`, marketing resolves tenant from host via *
 
 Ingress uses `x-forwarded-host` with `shop.` prefix stripped (same as branding). Dev host map (M2) takes precedence when allowed.
 
+**Bootstrap + branding fetch cache (M7.1):** Marketing and portal share guest-surface-host helpers so TTL policy stays aligned.
+
+| Fetch | Env (preferred) | Legacy alias | Default | Cap |
+|-------|-----------------|--------------|---------|-----|
+| `GET /public/tenant-context` | `GUEST_BOOTSTRAP_REVALIDATE_SECONDS` | — | **60** | — |
+| `GET /public/tenant-branding` | `GUEST_BRANDING_REVALIDATE_SECONDS` | `MARKETING_BRANDING_REVALIDATE_SECONDS` | **60** | half presign TTL (1800 when API TTL = 3600) |
+
+Implementation: `packages/guest-surface-host/src/resolve-guest-fetch-revalidate.ts` · `fetch-public-tenant-branding.ts`. Apps pass `resolveTourOpsApiBaseUrl()` — no duplicate branding fetch in M+P.
+
 Playwright smoke: **SMK-MKT-01** (`operator.localhost:3002/tours` · legacy `shop.operator.localhost:3002`); **SMK-MKT-05** (`urban.localhost:3002/tours` · urban skin + city filter); **SMK-MKT-03** marketing CTA → **portal** (`operator.portal.localhost:3003`) OTP → Denali intake → `[data-public-registration-success]`; Urban **SMK-P8-02** on `urban.portal.localhost:3003`; Denali **SMK-PTL-01** on `operator.portal.localhost:3003`.
 
 List catalog HTTP applies exposure redaction **sequentially** per page (not `Promise.all`) so Postgres dev hosts (`denali.localhost:3002`, `urban.localhost:3002`) stay under per-tenant DB budget (`TENANT_DB_BUDGET_EXCEEDED` / 503).
@@ -406,6 +415,8 @@ Default Persian routes stay unprefixed (`/tours`); English routes use `/en/...` 
 | RTL | `<html dir="rtl">` when `fa` |
 | Copy | `apps/marketing/messages/{fa,en}/catalog.json` |
 | Switcher | Header locale toggle (`MarketingLocaleSwitcher`) |
+| Nav hrefs | Shell nav, brand, CTA, footer, catalog cards, **home** (hero, categories, destinations, featured/latest cards, view-all, final CTA, minimal landing), and catalog detail back/clear/error links use `resolveMarketingLocalePath` (or `resolveMarketingToursListPath` / `resolveMarketingTourDetailPath`) so `/en/*` survives navigation. **GX-1 (2026-07-12):** absolute portal egress URLs (`http://…portal…`) pass through unchanged — no `/http://…` prefix. |
+| Guard | `guard-marketing-locale-home-hrefs.mjs` — no raw `href="/tours"` or `action="/tours"` under `src/home` or locale-sensitive catalog surfaces |
 | SEO | metadata emits reciprocal `alternates.languages` (`fa-IR`, `en-US`, `x-default`) |
 
 Date/price formatters accept active locale (`fa-IR` / `en-US`).
@@ -478,6 +489,19 @@ Workspace guest skin: `packages/workspaces/denali/theme/denali-marketing.css` (s
 
 **Track B (fallback, not implemented):** `catalogUi` block in `workspace.manifest.json`, emitted by `generate:workspace-registry`.
 
+**Home content neutrality (ADR-MKT-001 · Phase 3):** Workspace-specific home copy and destination cards come from manifest + i18n keys — not hardcoded IDs in `apps/marketing`.
+
+| Manifest field | Role |
+|----------------|------|
+| `guestLanding.whySectionAnchor` | Fragment id for why section + hero secondary CTA (default `why-us`) |
+| `guestLanding.destinationSlugs` | Slugs driving destination cards when `sections.destinations` is true |
+| `guestLanding.destinationImageStems` | Optional slug → static asset stem map for `/home/destinations/{stem}.webp` (hero carousel + theme parity) |
+| `sections.whyDenali` | Legacy gate name — boolean only; anchor text is tenant-driven via i18n |
+
+Denali declares `destinationSlugs: ["alborz", "damavand", "zardkuh"]` with `destinationImageStems.zardkuh: "zardkooh"`; urban/guest-club minimal variants omit slugs.
+
+Hero carousel frames derive from `destinationSlugs` + stems via `resolveHomeHeroCarouselSlides` — no hardcoded Denali paths in marketing src.
+
 ### Adding a workspace to public catalog
 
 Checklist for workspace `{id}` (e.g. third plugin after Denali/Urban):
@@ -524,6 +548,19 @@ Urban list supports `?city=` filter (passthrough to `GET /urban/catalog?city=`).
 
 List cards render thumbnail covers when `coverImageUrl` is set (`data-marketing-catalog-card-cover`).
 
+### Public tenant branding logo (M14.1)
+
+`GET /public/tenant-branding` returns `logoUrl` as a **presigned MinIO read URL** when the tenant theme stores a logo `storageKey`. Marketing renders it in the shell header and trust band via plain `<img>` (not `next/image`).
+
+| Layer | Rule |
+|-------|------|
+| API presign TTL | `PUBLIC_TENANT_BRAND_LOGO_SIGNED_URL_TTL_SECONDS` = **3600** (same order of magnitude as catalog cover presign) |
+| Guest branding fetch cache | `GUEST_BRANDING_REVALIDATE_SECONDS` default **60** (alias: `MARKETING_BRANDING_REVALIDATE_SECONDS`), capped at **half** the presign TTL so HTML never embeds an expired signature |
+| Marketing-only catalog cache | `MARKETING_CATALOG_REVALIDATE_SECONDS` default **60** — independent of branding/bootstrap |
+| Dev MinIO host | Set `MARKETING_IMAGE_REMOTE_HOSTS=127.0.0.1:9002` when catalog covers also use MinIO presigns and should run through the Next optimizer |
+
+Operator settings logo refresh (`GET /settings/branding/logo/url`) keeps the shorter 300s TTL — authenticated, on-demand.
+
 ### Publish → cache invalidation (M11)
 
 When a canonical tour write affects public catalog visibility or content, `@apps/api` schedules a **best-effort** `POST` to marketing `/api/revalidate` with body `{ "tenantId": "<uuid>" }`.
@@ -543,6 +580,18 @@ Both must be set; otherwise the notifier is a no-op (local dev without marketing
 Marketing tag invalidated: `marketing-catalog-{tenantId}` (see `buildMarketingCatalogCacheTag`).
 
 **Phase doc:** [P4-A catalog publish sync](../../phase-17/platform-club-catalog-publish.mdoc) — RV/CP/RR assertion IDs · `p4:gate` chain.
+
+### Denali club dev catalog seed (M12.1)
+
+`denali.localhost:3002` resolves tenant `00000000-0000-4000-8000-000000000003`. Operator smoke tenant `…000014` owns tour id `…0210` globally in Prisma — the club dev tenant uses a **separate** published tour id `00000000-0000-4000-8000-000000000220` (`seedDenaliClubDevPublishedTour`).
+
+| Command | When |
+|---------|------|
+| `pnpm --filter @apps/api run seed:wrs-denali-club-domains` | WRS host rows |
+| `NODE_ENV=development pnpm exec tsx scripts/seed-denali-dev-catalog-staging.ts` | Settings + published tour for …000003 |
+| API boot | `bootstrapDenaliDevSmokeFixturesIfNeeded` (idempotent) |
+
+Without this seed, `/tours` on `denali.localhost` shows `list.empty` — not a marketing fetch bug.
 
 ### Error boundary (M12)
 
@@ -641,7 +690,12 @@ sequenceDiagram
 | Guest BFF API base | `packages/guest-surface-host/src/resolve-tour-ops-api-base-url.ts` (`resolveTourOpsApiBaseUrl`) |
 | Guest BFF env tests | `packages/guest-surface-host/test/resolve-tour-ops-api-base-url.spec.ts` (G-ENV-01..03) |
 | Public tenant context API | `apps/api/src/tenant/tenant-branding.routes.ts` (`GET /public/tenant-context`) |
-| Production bootstrap | `apps/marketing/src/tenant/fetch-public-tenant-context.ts` |
+| Production bootstrap | `packages/guest-surface-host/src/fetch-public-tenant-context.ts` |
+| Guest branding fetch | `packages/guest-surface-host/src/fetch-public-tenant-branding.ts` |
+| Guest fetch revalidate | `packages/guest-surface-host/src/resolve-guest-fetch-revalidate.ts` |
+| Guest revalidate guard | `scripts/guards/guard-guest-fetch-revalidate-parity.mjs` |
+| Home manifest content guard | `scripts/guards/guard-marketing-home-manifest-content.mjs` |
+| Dead Damavand ascent guard | `scripts/guards/guard-marketing-dead-damavand-ascent.mjs` |
 | SEO metadata builders | `apps/marketing/src/seo/build-marketing-metadata.ts` |
 | Playwright smoke config | `apps/marketing/playwright.marketing.config.ts` |
 | CI guard | `.github/workflows/marketing-guard.yml` |
@@ -653,6 +707,10 @@ sequenceDiagram
 | Publish gate helper | `apps/api/src/marketing/should-invalidate-marketing-catalog.ts` |
 | Error boundaries | `apps/marketing/app/error.tsx` · `app/tours/error.tsx` |
 | Locale resolution | `apps/marketing/src/i18n/resolve-app-locale.ts` |
+| Locale path helpers | `apps/marketing/src/i18n/routing.ts` (`resolveMarketingLocalePath`, `resolveMarketingToursListPath`, `resolveMarketingTourDetailPath`) |
+| Destination image path | `apps/marketing/src/home/resolve-marketing-destination-image-path.ts` |
+| Hero carousel slides | `apps/marketing/src/home/resolve-home-hero-carousel-slides.ts` |
+| Locale home href guard | `scripts/guards/guard-marketing-locale-home-hrefs.mjs` |
 | Tenant default locale | `packages/workspace-sdk/src/theme/tenant-theme.contract.ts` (`defaultLocale`) |
 | Denali registration API | `packages/workspaces/denali/src/http/registration.service.ts` |
 | Public OTP portal flow | `apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx` |
@@ -665,7 +723,7 @@ sequenceDiagram
 | Public-auth BFF tests | `apps/portal/test/portal-public-auth-bff.spec.ts` · PR-09 |
 | Urban intake idempotency | `apps/portal` registration BFF (Urban idempotency header) |
 | M17 static guard | `scripts/guards/guard-public-catalog-m17.mjs` · `pnpm run guard:public-catalog-m17` |
-| Marketing register smoke | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts` · SMK-MKT-03 (full OTP + intake) |
+| Marketing register smoke | `apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts` · SMK-MKT-03 (full OTP + intake) · **GX-2 (2026-07-12):** `fixtures/smoke-published-tour.ts` resolves `…220` on `denali.localhost` / `…210` on operator; override via `SMOKE_PUBLISHED_TOUR_ID` |
 | Portal registration smoke | `apps/portal/tests/e2e/portal-registration-smoke.spec.ts` · SMK-PTL-01 · `pnpm --filter @apps/portal run test:smoke` (14 tests) |
 | Portal member smoke | `apps/portal/tests/e2e/portal-member-smoke.spec.ts` · SMK-PTL-02/04/05/06 |
 | Portal transport intake smoke | `apps/portal/tests/e2e/portal-registration-transport-smoke.spec.ts` · DEN-TRANS-01/02/03 |

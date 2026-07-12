@@ -16,6 +16,9 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const STORY_DISABLED: GuestLandingFeatures = {
   variant: "full",
+  whySectionAnchor: "why-us",
+  destinationSlugs: [],
+  destinationImageStems: {},
   sections: {
     hero: true,
     latestTours: true,
@@ -35,6 +38,9 @@ const STORY_DISABLED: GuestLandingFeatures = {
 
 const STORY_ENABLED: GuestLandingFeatures = {
   variant: "full",
+  whySectionAnchor: "why-us",
+  destinationSlugs: [],
+  destinationImageStems: {},
   sections: {
     hero: true,
     latestTours: true,
@@ -97,6 +103,8 @@ describe("home-section-gates-v2.spec.ts — HOME-UNIT-05", () => {
       "utf8"
     );
     assert.match(fullSource, /sections\.whyDenali/);
+    assert.match(fullSource, /landing\.destinationSlugs/);
+    assert.match(fullSource, /whySectionAnchor/);
     assert.match(
       readFileSync(join(repoRoot, "apps/marketing/src/home/home-why.tsx"), "utf8"),
       /home\.full\.why\.title.*siteName|siteName.*home\.full\.why\.title/s

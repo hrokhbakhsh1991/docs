@@ -11,6 +11,8 @@ import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server"
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 import { resolvePortalMemberModuleUrl } from "@app-tour/guest-surface-host";
 
+import { PortalRegistrationChrome } from "@/catalog/portal-registration-chrome";
+import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
 import { PublicCatalogRegistrationFlow } from "./public-catalog-registration-flow";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +49,7 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
   const bootstrap = await resolvePortalBootstrapForHost(host);
   const backHref = resolvePortalRegistrationBackHref(host, tourId);
   const memberModuleHref = resolvePortalMemberModuleUrl(host);
+  const branding = await fetchPublicTenantBrandingForHost(host);
   const t = await getTranslations("catalogRegistration");
 
   if (!supportsCatalogRegistration(bootstrap.pluginId)) {
@@ -94,6 +97,7 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
       data-workspace={workspace}
       {...(resumeInitialState !== null ? { "data-registration-resume": "intake" } : {})}
     >
+      <PortalRegistrationChrome branding={branding} backHref={backHref} />
       <h1>{t("pageTitle", { tourTitle })}</h1>
       <PublicCatalogRegistrationFlow
         workspace={workspace}
@@ -110,9 +114,6 @@ export default async function CatalogRegisterPage({ params }: PageProps) {
         memberModuleHref={memberModuleHref}
         initialRuntimeState={resumeInitialState ?? undefined}
       />
-      <p>
-        <a href={backHref}>{t("backToTour")}</a>
-      </p>
     </main>
   );
 }

@@ -41,4 +41,27 @@ describe("guest bootstrap parity — P8-0-N-005 / P9-0-N-001 / P9-2-N-001", () =
       assert.match(env, /assertGuestBffProductionConfig/);
     }
   });
+
+  it("marketing and portal bootstrap use shared guest revalidate helper", () => {
+    for (const rel of [
+      "apps/marketing/src/tenant/resolve-marketing-bootstrap.ts",
+      "apps/portal/src/tenant/resolve-portal-bootstrap.ts",
+    ]) {
+      const source = readFileSync(join(repoRoot, rel), "utf8");
+      assert.match(source, /resolveGuestBootstrapRevalidateSeconds/);
+      assert.doesNotMatch(source, /nextRevalidate:\s*300/);
+    }
+  });
+
+  it("marketing and portal branding fetch delegate to guest-surface-host", () => {
+    for (const rel of [
+      "apps/marketing/src/tenant/fetch-public-tenant-branding.ts",
+      "apps/portal/src/tenant/fetch-public-tenant-branding.ts",
+    ]) {
+      const source = readFileSync(join(repoRoot, rel), "utf8");
+      assert.match(source, /@app-tour\/guest-surface-host/);
+      assert.match(source, /fetchGuestPublicTenantBrandingForHost/);
+      assert.doesNotMatch(source, /nextRevalidate:\s*300/);
+    }
+  });
 });

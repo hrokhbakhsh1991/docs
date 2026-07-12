@@ -461,7 +461,7 @@ These are **not** function hooks on the plugin object but manifest-driven capabi
 |--------------|-------------------|----------|
 | `workspaceTypes` | `WORKSPACE_MANIFEST_BINDINGS` | `resolveWorkspacePluginIdForType` |
 | `guestConformance` | `WORKSPACE_GUEST_CONFORMANCE_LEVELS` | `resolveGuestConformanceLevelForPlugin` |
-| `guestLanding` | `WORKSPACE_GUEST_LANDING` | `resolveGuestLandingFeatures` |
+| `guestLanding` | `WORKSPACE_GUEST_LANDING` | `resolveGuestLandingFeatures` — includes `whySectionAnchor`, `destinationSlugs`, `destinationImageStems`, and section gates |
 | `guestSeo` | `WORKSPACE_GUEST_SEO` | `resolveGuestSeoForPlugin` |
 | `catalogListFeatures` | `WORKSPACE_CATALOG_LIST_FEATURES` | `resolveCatalogListFeatures` |
 | `catalogDetailSections` | `WORKSPACE_CATALOG_DETAIL_SECTIONS` | `resolveCatalogDetailSections` |

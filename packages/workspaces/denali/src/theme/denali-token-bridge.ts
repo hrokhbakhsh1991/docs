@@ -123,7 +123,7 @@ function buildSharedWorkspaceCssVariables(
   resolved: Readonly<Record<string, string>>,
 ): Readonly<Record<string, string>> {
   const cssVariables: Record<string, string> = {
-    [WORKSPACE_THEME_CSS_VARIABLE.colorAccent]: resolved["flat.accent"] ?? resolved["color.primary"] ?? "#0f766e",
+    [WORKSPACE_THEME_CSS_VARIABLE.colorAccent]: resolved["flat.accent"] ?? resolved["color.primary"] ?? "#059669",
   };
 
   const colorKeys = [

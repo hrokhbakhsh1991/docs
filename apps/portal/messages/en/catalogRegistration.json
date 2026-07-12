@@ -85,5 +85,12 @@
     "URBAN_REGISTRATION_CLOSED": "Registration is closed for this workspace.",
     "DENALI_REGISTRATION_DUPLICATE": "You already registered for this tour.",
     "network": "Something went wrong. Try again."
+  },
+  "stepper": {
+    "ariaLabel": "Registration steps",
+    "phone": "Phone",
+    "otp": "Code",
+    "profile": "Profile",
+    "intake": "Register"
   }
 }

@@ -5,6 +5,7 @@ import {
   buildCatalogListHref,
   buildCatalogListQueryWithoutFilters,
   catalogFiltersToQueryInput,
+  catalogListHasActiveFilters,
   catalogListHasClientFilters,
   parseCatalogListFilters,
   resolveCatalogListFetchLimit,
@@ -78,6 +79,29 @@ describe("catalog-list-query.spec.ts — PR-21.1", () => {
     });
     assert.equal(filters.category, "mountain");
     assert.equal(filters.difficulty, 4);
+  });
+
+  it("detects active filters for pills even when server-backed", () => {
+    const denaliServerFilters = [
+      "q",
+      "category",
+      "difficulty",
+      "fitness",
+      "availability",
+      "sort",
+    ] as const;
+    assert.equal(
+      catalogListHasActiveFilters(parseCatalogListFilters({ category: "mountain" }), [
+        ...denaliServerFilters,
+      ]),
+      true
+    );
+    assert.equal(
+      catalogListHasActiveFilters(parseCatalogListFilters({ sort: "price_asc" }), [
+        ...denaliServerFilters,
+      ]),
+      true
+    );
   });
 
   it("detects client filters separately from server-backed params", () => {

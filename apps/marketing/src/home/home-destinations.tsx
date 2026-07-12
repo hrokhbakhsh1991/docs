@@ -1,15 +1,20 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
-import { HOME_DESTINATION_IDS } from "./home-destination-ids";
+import { isAppLocale, resolveMarketingToursListPath, type AppLocale } from "@/i18n/routing";
 
-function buildDestinationHref(query: string): string {
-  const params = new URLSearchParams({ q: query });
-  return `/tours?${params.toString()}`;
-}
+export type HomeDestinationsProps = {
+  readonly destinationSlugs: readonly string[];
+};
 
-export async function HomeDestinations() {
+export async function HomeDestinations({ destinationSlugs }: HomeDestinationsProps) {
+  if (destinationSlugs.length === 0) {
+    return null;
+  }
+
   const t = await getTranslations("catalog");
+  const localeRaw = await getLocale();
+  const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
 
   return (
     <section data-marketing-home-destinations id="destinations">
@@ -18,7 +23,7 @@ export async function HomeDestinations() {
         <p>{t("home.full.destinations.lead")}</p>
       </header>
       <div data-marketing-home-destinations-row>
-        {HOME_DESTINATION_IDS.map((id) => {
+        {destinationSlugs.map((id) => {
           const name = t(`home.full.destinations.${id}.name`);
           const tagline = t(`home.full.hero.spotlight.${id}.tagline`);
           const elevation = t(`home.full.hero.spotlight.${id}.elevationValue`);
@@ -44,7 +49,10 @@ export async function HomeDestinations() {
                   </span>
                   <span data-marketing-home-destination-region>{region}</span>
                 </p>
-                <Link href={buildDestinationHref(name)} data-marketing-home-destination-link>
+                <Link
+                  href={resolveMarketingToursListPath(locale, { q: name })}
+                  data-marketing-home-destination-link
+                >
                   {t("home.full.destinations.explore")}
                 </Link>
               </div>

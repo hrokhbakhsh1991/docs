@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
+import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
 
 export type MarketingFooterProps = {
@@ -15,6 +16,10 @@ export async function MarketingFooter({
   showFaqLink,
 }: MarketingFooterProps) {
   const t = await getTranslations("catalog");
+  const localeRaw = await getLocale();
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+  const toursHref = resolveMarketingLocalePath("/tours", locale);
+  const faqHref = resolveMarketingLocalePath("/#faq", locale);
   const siteName = branding.displayName ?? t("nav.defaultSiteName");
   const year = new Date().getFullYear();
 
@@ -29,7 +34,7 @@ export async function MarketingFooter({
           <h3>{t("home.full.footer.toursTitle")}</h3>
           <ul>
             <li>
-              <Link href="/tours">{t("home.full.footer.toursBrowse")}</Link>
+              <Link href={toursHref}>{t("home.full.footer.toursBrowse")}</Link>
             </li>
           </ul>
         </div>
@@ -38,7 +43,7 @@ export async function MarketingFooter({
           <ul>
             {showFaqLink ? (
               <li>
-                <Link href="/#faq">{t("home.full.footer.resourcesFaq")}</Link>
+                <Link href={faqHref}>{t("home.full.footer.resourcesFaq")}</Link>
               </li>
             ) : null}
             {portalMemberModuleUrl !== null ? (

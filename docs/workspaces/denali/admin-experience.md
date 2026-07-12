@@ -109,7 +109,7 @@ Visual language (Denali only): mist gradient surface, forest `--sidebar-primary`
 
 ## Primary palette
 
-- Tenant default: `#0f766e` (`workspace-default-tenant-branding.ts`)
+- Tenant default: `#059669` (`palette.json` `forest-600` · D1 Wave 3 · 2026-07-12)
 - Surfaces: mist `#f4f7f4` page, `#e8efe8` muted
 - Dark mode accent: `#5eead4` on forest surfaces `#161b13` / `#1f2620`
 
@@ -151,7 +151,7 @@ cd apps/web && PW_EXTERNAL_SERVERS=1 PLAYWRIGHT_BASE_URL=http://denali.localhost
 
 Unit contracts: `apps/web/test/denali-admin-theme.spec.ts` (bootstrap + CSS bundle incl. `WEB-DENALI-THEME-14` F9-2), `denali-wizard-theme.spec.ts` (wizard bridge).
 
-Dev DB branding must match `#0f766e` — re-run `pnpm --filter @apps/api run db:seed` if tenant-config still returns legacy `#059669`.
+Dev DB tenant branding should resolve to `#059669` after D1 — re-run `pnpm --filter @apps/api run db:seed` if tenant-config still returns legacy `#0f766e`.
 
 ## Closure (phase 7)
 

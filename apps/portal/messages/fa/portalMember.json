@@ -10,9 +10,14 @@
     "primaryNav": "ناوبری اصلی",
     "more": "بیشتر"
   },
+  "locale": {
+    "fa": "FA",
+    "en": "EN"
+  },
   "registrations": {
     "title": "ثبت‌نام‌های من",
     "empty": "هنوز ثبت‌نامی ندارید.",
+    "emptyCta": "مشاهده تورها",
     "statusLine": "{status} · {paymentStatus} · {departureAt}",
     "statusLabels": {
       "pending": "در انتظار",
@@ -118,6 +123,7 @@
   },
   "moduleStub": {
     "lede": "این ماژول ثبت شده اما هنوز کامل نشده است.",
+    "walletLede": "کیف پول عضو به‌زودی فعال می‌شود. تا آن زمان از بخش سفرها و پروفایل استفاده کنید.",
     "backToHome": "بازگشت به خانه"
   },
   "detail": {

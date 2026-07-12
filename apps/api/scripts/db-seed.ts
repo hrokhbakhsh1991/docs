@@ -9,7 +9,12 @@ import { ProvisioningService } from "../src/internal/provisioning.service";
 import { logger } from "../src/observability/logger";
 import { getSettingsResourcesRepository } from "../src/settings/create-settings-resources-repository";
 import { seedOperatorSmokeCatalog } from "../src/settings/seed-operator-smoke-catalog";
-import { seedOperatorSmokePublishedTour } from "../src/settings/seed-operator-smoke-published-tour";
+import {
+  seedDenaliClubDevPublishedTour,
+  seedOperatorSmokeParticipantRequirementsTour,
+  seedOperatorSmokePublishedTour,
+  seedOperatorSmokeTransportTours,
+} from "../src/settings/seed-operator-smoke-published-tour";
 import { seedDenaliOperatorIdentity } from "./seed-denali-operator-identity";
 import { seedWorkspaceWizardTemplateForTenant } from "../src/settings/seed-workspace-wizard-template";
 
@@ -24,9 +29,10 @@ async function main(): Promise<void> {
   await seedWorkspaceWizardTemplateForTenant(denali.id);
   logger.info({ event: "db.seed.denali_wizard_template", tenantId: denali.id }, "denali wizard template seeded");
   await seedOperatorSmokeCatalog(getSettingsResourcesRepository(), { tenantId: DENALI_SMOKE_TENANT_ID });
+  await seedDenaliClubDevPublishedTour(DENALI_SMOKE_TENANT_ID);
   logger.info(
     { event: "db.seed.denali_dev_smoke_catalog", tenantId: DENALI_SMOKE_TENANT_ID },
-    "denali dev smoke catalog seeded (tour lives on operator tenant only)"
+    "denali dev smoke catalog and published tour seeded"
   );
   const urban = await service.seedUrbanSmokeTenant();
   logger.info({ event: "db.seed.tenant", subdomain: urban.subdomain }, "dev tenant seeded");
@@ -37,6 +43,8 @@ async function main(): Promise<void> {
   await seedWorkspaceWizardTemplateForTenant(operator.id);
   await seedOperatorSmokeCatalog(getSettingsResourcesRepository());
   await seedOperatorSmokePublishedTour(operator.id);
+  await seedOperatorSmokeParticipantRequirementsTour(operator.id);
+  await seedOperatorSmokeTransportTours(operator.id);
   logger.info(
     { event: "db.seed.operator_smoke_catalog", tenantId: operator.id },
     "operator smoke reference catalog seeded"

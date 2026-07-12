@@ -45,7 +45,11 @@ assertMatch(
 assertMatch("denali hook passes discardRemoteDraft", denaliHook, /discardRemoteDraft/);
 assertNoMatch("denali hook does not call draftSync.clearDraft on create success", denaliHook, /clearDraft:\s*\(\)\s*=>\s*draftSync\.clearDraft\(\)/);
 
-assertMatch("photo bindings delegate to denali codec surface", photoBindings, /@app-tour\/workspace-denali\/ui\/adapters\/photo-upload-errors-surface/);
+assertMatch(
+  "photo bindings delegate to denali codec surface",
+  photoBindings,
+  /@app-tour\/workspace-denali\/(?:host\/)?ui\/adapters\/photo-upload-errors-surface/
+);
 assertNoMatch("photo bindings have no duplicated alias table", photoBindings, /PHOTO_ERROR_CODE_ALIASES/);
 
 assertMatch("workspace client uses runCreateTourPostSubmitSuccess", workspaceClient, /runCreateTourPostSubmitSuccess/);

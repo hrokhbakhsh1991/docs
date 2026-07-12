@@ -277,10 +277,48 @@ describe("workspace registry drop-in (P7-T06)", () => {
     const manifests = discoverManifests();
     const generated = generateWorkspaceGuestLanding(manifests);
     assert.match(generated, /"denali": Object.freeze\(\{\s+variant: "full"/);
+    assert.match(generated, /whySectionAnchor: "why-us"/);
+    assert.match(generated, /destinationSlugs: Object.freeze\(\["alborz","damavand","zardkuh"\]\)/);
+    assert.match(generated, /destinationImageStems: Object.freeze\(\{"zardkuh":"zardkooh"\}\)/);
     assert.match(generated, /latestToursLimit: 6/);
     assert.match(generated, /"urban": Object.freeze\(\{\s+variant: "minimal"/);
     assert.match(generated, /"guest-club": Object.freeze\(\{\s+variant: "minimal"/);
     assert.doesNotMatch(generated, /"starter":/);
+  });
+
+  it("PR-0 assertGuestLandingManifest requires destinationSlugs when destinations enabled", () => {
+    assert.throws(
+      () =>
+        assertGuestLandingManifest({
+          id: "bad",
+          catalogPresentation: { listFeatures: { cityFilter: false }, detailSections: {} },
+          guestLanding: {
+            variant: "full",
+            i18nProfile: "full",
+            sections: {
+              hero: true,
+              latestTours: true,
+              latestToursLimit: 6,
+              trust: true,
+              finalCta: true,
+              faq: true,
+              footer: true,
+              whyDenali: true,
+              journey: false,
+              testimonials: false,
+              featuredTours: false,
+              featuredToursLimit: 0,
+              categories: false,
+              destinations: true,
+              heroSearch: false,
+              gallery: false,
+              equipment: false,
+              blogTeaser: false,
+            },
+          },
+        }),
+      /destinationSlugs required/
+    );
   });
 
   it("PR-0 assertGuestLandingManifest rejects minimal variant with full i18nProfile", () => {

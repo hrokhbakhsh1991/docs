@@ -156,11 +156,12 @@ export function catalogListHasClientFilters(
 
 export function catalogListHasActiveFilters(
   filters: CatalogListFilters,
-  serverListFilters: readonly string[] = []
+  _serverListFilters: readonly string[] = []
 ): boolean {
+  void _serverListFilters;
   return (
-    catalogListHasClientFilters(filters, serverListFilters) ||
-    (filters.sort !== "newest" && !serverListFilters.includes("sort")) ||
+    catalogListHasNarrowingFilters(filters) ||
+    filters.sort !== "newest" ||
     (filters.city != null && filters.city.length > 0)
   );
 }

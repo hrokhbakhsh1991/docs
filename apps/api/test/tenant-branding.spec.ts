@@ -248,7 +248,7 @@ describe("tenant-branding.spec.ts", () => {
       headers: { host: "denali.localhost" },
     });
     assert.equal(response.status, 200);
-    assert.equal((response.body as { primaryColor?: string }).primaryColor, "#0f766e");
+    assert.equal((response.body as { primaryColor?: string }).primaryColor, "#059669");
   });
 
   it("API-TB-14 GET /public/tenant-branding resolves x-forwarded-host (BFF loopback)", async () => {
@@ -256,7 +256,7 @@ describe("tenant-branding.spec.ts", () => {
       headers: { host: "127.0.0.1:3001", "x-forwarded-host": "denali.localhost" },
     });
     assert.equal(response.status, 200);
-    assert.equal((response.body as { primaryColor?: string }).primaryColor, "#0f766e");
+    assert.equal((response.body as { primaryColor?: string }).primaryColor, "#059669");
   });
 
   it("API-TB-15 GET /public/tenant-branding exposes defaultLocale", async () => {

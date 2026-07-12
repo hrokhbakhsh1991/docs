@@ -5,6 +5,10 @@ import type { Tour } from "../storage/tour-storage.interface";
 /** Phase 9.8 smoke — published multi-day tour (SMK-P9-ITIN-01, SMK-P9-07, DCAT-05). */
 export const OPERATOR_SMOKE_SEED_TOUR_ID = "00000000-0000-4000-8000-000000000210" as const;
 
+/** Denali club dev host (…000003) — separate PK from operator smoke tour …0210 on …014. */
+export const DENALI_CLUB_DEV_PUBLISHED_TOUR_ID =
+  "00000000-0000-4000-8000-000000000220" as const;
+
 export const OPERATOR_SMOKE_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211" as const;
 
 /** Participant-requirements smoke — DEN-INTAKE E2E (nationalId + fatherName + birthDate). */
@@ -93,6 +97,17 @@ export function buildOperatorSmokePublishedTour(input: {
     rowVersion: 1,
     createdAt: input.createdAt ?? new Date(0).toISOString(),
     canonical: buildOperatorSmokePublishedTourCanonical(),
+  };
+}
+
+/** Denali club dev catalog — same canonical as operator smoke, tenant-scoped tour id. */
+export function buildDenaliClubDevPublishedTour(input: {
+  readonly tenantId: string;
+  readonly createdAt?: string;
+}): Tour {
+  return {
+    ...buildOperatorSmokePublishedTour(input),
+    id: DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
   };
 }
 

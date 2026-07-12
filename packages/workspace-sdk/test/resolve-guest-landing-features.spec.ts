@@ -31,6 +31,9 @@ describe("resolve-guest-landing-features", () => {
   it("SDK-HOME-01 denali full landing with latest limit 6", () => {
     assert.deepEqual(resolveGuestLandingFeatures("denali"), {
       variant: "full",
+      whySectionAnchor: "why-us",
+      destinationSlugs: ["alborz", "damavand", "zardkuh"],
+      destinationImageStems: { zardkuh: "zardkooh" },
       sections: {
         hero: true,
         latestTours: true,
@@ -58,6 +61,9 @@ describe("resolve-guest-landing-features", () => {
   it("SDK-HOME-02 urban minimal landing", () => {
     assert.deepEqual(resolveGuestLandingFeatures("urban"), {
       variant: "minimal",
+      whySectionAnchor: "why-us",
+      destinationSlugs: [],
+      destinationImageStems: {},
       sections: {
         hero: false,
         latestTours: false,
@@ -94,6 +100,12 @@ describe("resolve-guest-landing-features", () => {
     const resolved = resolveGuestLandingFeatures("denali");
     assert.equal(resolved.variant, manifest.guestLanding?.variant);
     assert.equal(resolved.i18nProfile, manifest.guestLanding?.i18nProfile);
+    assert.equal(resolved.whySectionAnchor, manifest.guestLanding?.whySectionAnchor ?? "why-us");
+    assert.deepEqual(resolved.destinationSlugs, manifest.guestLanding?.destinationSlugs ?? []);
+    assert.deepEqual(
+      resolved.destinationImageStems,
+      manifest.guestLanding?.destinationImageStems ?? {}
+    );
     assert.deepEqual(resolved.sections, manifest.guestLanding?.sections);
   });
 
@@ -101,6 +113,9 @@ describe("resolve-guest-landing-features", () => {
     const manifest = readManifest("guest-club");
     assert.deepEqual(resolveGuestLandingFeatures("guest-club"), {
       variant: "minimal",
+      whySectionAnchor: "why-us",
+      destinationSlugs: [],
+      destinationImageStems: {},
       sections: {
         hero: false,
         latestTours: false,

@@ -24,6 +24,7 @@ import { resolveHomeSectionVisibility } from "./home-section-gates";
 import { HomeTestimonials } from "./home-testimonials";
 import { HomeTrust } from "./home-trust";
 import { HomeWhy } from "./home-why";
+import { resolveHomeWhySectionAnchor, resolveHomeWhySectionHref } from "./resolve-home-why-section-anchor";
 
 export type GuestHomeFullProps = {
   readonly landing: GuestLandingFeatures;
@@ -56,6 +57,8 @@ export async function GuestHomeFull({
     ? catalogItems.slice(0, landing.sections.featuredToursLimit)
     : [];
   const heroImageUrl = resolveMarketingHeroImageUrl(branding);
+  const whySectionAnchor = resolveHomeWhySectionAnchor(landing);
+  const whySectionHref = resolveHomeWhySectionHref(landing);
   const jsonLdItems = latestItems.map((item) => ({
     tourId: item.id,
     title: item.title?.trim() || t("detail.defaultTourTitle"),
@@ -68,6 +71,9 @@ export async function GuestHomeFull({
           branding={branding}
           showSearch={sections.heroSearch}
           heroImageUrl={heroImageUrl}
+          whySectionHref={sections.whyDenali ? whySectionHref : undefined}
+          destinationSlugs={landing.destinationSlugs}
+          destinationImageStems={landing.destinationImageStems}
         />
       ) : null}
       {sections.featured ? (
@@ -75,9 +81,13 @@ export async function GuestHomeFull({
       ) : null}
       {sections.latest ? <HomeLatestTours items={latestItems} pluginId={pluginId} /> : null}
       {sections.categories ? <HomeCategories categories={categories} /> : null}
-      {sections.destinations ? <HomeDestinations /> : null}
+      {sections.destinations ? (
+        <HomeDestinations destinationSlugs={landing.destinationSlugs} />
+      ) : null}
       {sections.trust ? <HomeTrust branding={branding} /> : null}
-      {sections.whyDenali ? <HomeWhy branding={branding} /> : null}
+      {sections.whyDenali ? (
+        <HomeWhy branding={branding} whySectionAnchor={whySectionAnchor} />
+      ) : null}
       {sections.journey ? <HomeJourney /> : null}
       {sections.testimonials ? <HomeTestimonials /> : null}
       {sections.gallery ? <HomeGallery photos={galleryPhotos} /> : null}

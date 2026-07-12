@@ -12,7 +12,7 @@
     "text-link": { "$type": "color", "$value": "{denali.forest-600}" },
     "border-default": { "$type": "color", "$value": "#dce5dc" },
     "border-subtle": { "$type": "color", "$value": "#e8efe8" },
-    "focus-ring": { "$type": "color", "$value": "rgb(15 118 110 / 0.35)" },
+    "focus-ring": { "$type": "color", "$value": "rgb(5 150 105 / 0.35)" },
     "info": { "$type": "color", "$value": "{denali.alpine-600}" },
     "info-bg": { "$type": "color", "$value": "#e8f0f8" },
     "success": { "$type": "color", "$value": "#166534" },

@@ -19,6 +19,7 @@ export async function MemberModuleStub({
   const tNav = await getTranslations("portalMember.nav");
   const tStub = await getTranslations("portalMember.moduleStub");
   const backHref = resolveMemberPortalBackTargetPath(pluginId);
+  const ledeKey = moduleId === "wallet" ? "walletLede" : "lede";
 
   return (
     <main
@@ -27,7 +28,7 @@ export async function MemberModuleStub({
       data-portal-member-module-route={routePath}
     >
       <h1>{tNav(labelKey)}</h1>
-      <p>{tStub("lede")}</p>
+      <p data-portal-member-module-stub-lede>{tStub(ledeKey)}</p>
       {backHref !== null ? <Link href={backHref}>{tStub("backToHome")}</Link> : null}
     </main>
   );

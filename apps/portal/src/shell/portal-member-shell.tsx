@@ -10,6 +10,7 @@ import { PORTAL_MEMBER_SHELL_TEST_IDS } from "./portal-member-nav.types";
 
 export type PortalMemberShellProps = {
   readonly workspaceLabel: string;
+  readonly logoUrl: string | null;
   readonly primaryNav: readonly PortalMemberNavItem[];
   readonly userMenuNav: readonly PortalMemberNavItem[];
   readonly embeddedHost?: EmbeddedMemberPortalHost | null;
@@ -18,6 +19,7 @@ export type PortalMemberShellProps = {
 
 export async function PortalMemberShell({
   workspaceLabel,
+  logoUrl,
   primaryNav,
   userMenuNav,
   embeddedHost = null,
@@ -41,7 +43,11 @@ export async function PortalMemberShell({
         {t("skipToMain")}
       </a>
 
-      <PortalMemberHeader workspaceLabel={workspaceLabel} userMenuNav={userMenuNav} />
+      <PortalMemberHeader
+        workspaceLabel={workspaceLabel}
+        logoUrl={logoUrl}
+        userMenuNav={userMenuNav}
+      />
 
       <div
         id={PORTAL_MEMBER_SHELL_TEST_IDS.main}

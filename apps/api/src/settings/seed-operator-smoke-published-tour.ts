@@ -5,19 +5,50 @@ import {
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
   OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
+  buildDenaliClubDevPublishedTour,
   buildOperatorSmokeDraftTour,
   buildOperatorSmokeParticipantRequirementsTour,
   buildOperatorSmokePublishedTour,
   buildOperatorSmokeTransportBusTour,
   buildOperatorSmokeTransportSharedCarsTour,
+  DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
 } from "../fixtures/operator-smoke-published-tour.fixture";
+import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
 import { OPERATOR_SMOKE_TENANT_ID } from "./seed-operator-smoke-catalog";
 import { getPrismaAdmin } from "../db/prisma";
 import { logger } from "../observability/logger";
 import { PrismaTourRepository } from "../storage/prisma-tour.repository";
 
+/** Idempotent Prisma seed — published tour for denali.club dev tenant (…000003). */
+export async function seedDenaliClubDevPublishedTour(tenantId: string): Promise<void> {
+  if (tenantId !== DENALI_SMOKE_TENANT_ID) {
+    throw new Error("DENALI_CLUB_DEV_TOUR_SEED_TENANT_MISMATCH");
+  }
+
+  const repo = new PrismaTourRepository();
+  const existing = await repo.getById(DENALI_CLUB_DEV_PUBLISHED_TOUR_ID, tenantId);
+  if (existing !== null) {
+    return;
+  }
+
+  await repo.save(buildDenaliClubDevPublishedTour({ tenantId }));
+  logger.info(
+    {
+      event: "db.seed.denali_club_dev_published_tour",
+      tenantId,
+      tourId: DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
+    },
+    "denali club dev published tour seeded"
+  );
+}
+
 /** Idempotent Prisma seed — multi-day published tour for operator/denali dev smoke. */
 export async function seedOperatorSmokePublishedTour(tenantId: string): Promise<void> {
+  if (tenantId === DENALI_SMOKE_TENANT_ID) {
+    await seedDenaliClubDevPublishedTour(tenantId);
+    return;
+  }
+
   const repo = new PrismaTourRepository();
   const existing = await repo.getById(OPERATOR_SMOKE_SEED_TOUR_ID, tenantId);
   if (existing !== null) {

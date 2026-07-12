@@ -86,9 +86,9 @@ export async function openRegistrationIntakeForAuthenticatedMember(
   tourId: string = OPERATOR_PUBLISHED_TOUR_ID
 ): Promise<void> {
   await page.goto(`/catalog/${tourId}/register`, { waitUntil: "domcontentloaded" });
-  await expect(
-    page.locator('[data-catalog-registration-page][data-registration-resume="intake"]')
-  ).toBeVisible({ timeout: 120_000 });
+  await expect(page.locator('[data-registration-resume="intake"]').first()).toBeVisible({
+    timeout: 120_000,
+  });
   await expect(page.locator("[data-public-registration-phone]")).toHaveCount(0);
   await expect(page.locator("[data-public-registration-otp]")).toHaveCount(0);
   await expect(page.locator("[data-public-registration-intake]")).toBeVisible({

@@ -3,23 +3,36 @@
  * denali portal semantic colors (DTCG authority).
  */
 body[data-app-surface="portal"][data-workspace-plugin="denali"] {
-  --color-accent: #d97706;
-  --color-accent-fg: #ffffff;
-  --color-bg-muted: #f0f8f6;
-  --color-bg-page: #ecfdf5;
+  --color-bg-muted: var(--denali-mist-100);
+  --color-bg-page: var(--denali-mist-50);
   --color-bg-surface: #ffffff;
-  --color-border-default: #e1f2ed;
-  --color-border-subtle: #e1f2ed;
+  --color-border-default: #dce5dc;
+  --color-border-subtle: #e8efe8;
   --color-focus-ring: rgb(5 150 105 / 0.35);
-  --color-primary: #059669;
+  --color-info: var(--denali-alpine-600);
+  --color-info-bg: #e8f0f8;
+  --color-primary: var(--denali-forest-600);
   --color-primary-fg: #ffffff;
-  --color-primary-hover: #047857;
-  --color-secondary: #10b981;
-  --color-text-link: var(--color-primary);
-  --color-text-muted: #64748b;
-  --color-text-primary: #0f172a;
+  --color-primary-hover: var(--denali-forest-700);
+  --color-success: #166534;
+  --color-success-bg: #dcfce7;
+  --color-text-link: var(--denali-forest-600);
+  --color-text-muted: #6f7768;
+  --color-text-primary: #1a1f26;
+  --color-text-secondary: #4a5244;
+  --color-warning: #b45309;
+  --color-warning-bg: #fff7ed;
+  --denali-alpine-600: #31547e;
+  --denali-bark-600: #765832;
+  --denali-forest-500: #14b8a6;
+  --denali-forest-600: #059669;
+  --denali-forest-700: #047857;
+  --denali-mist-100: #e8efe8;
+  --denali-mist-50: #f4f7f4;
+  --denali-shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
+  --denali-shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.06), 0 8px 20px rgb(15 23 42 / 0.08);
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 }
 

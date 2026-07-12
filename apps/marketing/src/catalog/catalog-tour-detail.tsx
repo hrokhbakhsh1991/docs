@@ -32,7 +32,7 @@ import { resolveMarketingCatalogCardCategoryLabel } from "./resolve-marketing-ca
 import type { MarketingCatalogCard } from "./catalog-types";
 import { formatCatalogCardDescription } from "./format-catalog-display";
 import { resolveCatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
-import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
+import { isAppLocale, resolveIntlDateLocale, resolveMarketingToursListPath, type AppLocale } from "@/i18n/routing";
 import { buildValidatedMarketingTourStructuredData } from "@/seo/build-validated-marketing-structured-data";
 import { buildTourDetailBreadcrumbJsonLd } from "@/seo/build-breadcrumb-jsonld";
 import { buildMarketingTourDetailJsonLdGraph } from "@/seo/build-marketing-tour-detail-jsonld-graph";
@@ -78,6 +78,7 @@ export async function CatalogTourDetail({
   const t = await getTranslations("catalog");
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
+  const toursHref = resolveMarketingToursListPath(locale);
   const dateLocale = resolveIntlDateLocale(locale);
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3002";
@@ -124,7 +125,7 @@ export async function CatalogTourDetail({
         <div data-marketing-catalog-detail-layout>
           <div data-marketing-catalog-detail-main>
             <div data-marketing-catalog-detail-intro>
-              <Link href="/tours" data-marketing-catalog-detail-back>
+              <Link href={toursHref} data-marketing-catalog-detail-back>
                 {t("detail.backToTours")}
               </Link>
 

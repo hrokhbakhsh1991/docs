@@ -16,6 +16,16 @@ export {
   type FetchPublicTenantContextOptions,
 } from "./fetch-public-tenant-context";
 export {
+  fetchPublicTenantBrandingForHost,
+  type PublicTenantBrandingSnapshot,
+  type FetchPublicTenantBrandingOptions,
+} from "./fetch-public-tenant-branding";
+export {
+  PUBLIC_TENANT_BRAND_LOGO_SIGNED_URL_TTL_SECONDS,
+  resolveGuestBootstrapRevalidateSeconds,
+  resolveGuestBrandingRevalidateSeconds,
+} from "./resolve-guest-fetch-revalidate";
+export {
   resolveGuestSurfaceBootstrapForHost,
   type GuestSurfaceBootstrap,
   type GuestSurfaceUnresolvedError,

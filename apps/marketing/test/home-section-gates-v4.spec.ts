@@ -70,12 +70,17 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     assert.equal(resolveHomeTourCoverUrl("https://cdn/cover.jpg"), "https://cdn/cover.jpg");
   });
 
-  it("resolveHomeHeroCarouselSlides dedupes and caps static hero frames", () => {
-    const slides = resolveHomeHeroCarouselSlides("/home/hero.webp");
+  it("resolveHomeHeroCarouselSlides dedupes and caps manifest destination frames", () => {
+    const slides = resolveHomeHeroCarouselSlides(
+      "/home/hero.webp",
+      ["alborz", "damavand", "zardkuh"],
+      { zardkuh: "zardkooh" }
+    );
     assert.equal(slides.length, 4);
     assert.equal(slides[0], "/home/hero.webp");
+    assert.equal(slides[3], "/home/destinations/zardkooh.webp");
     assert.equal(
-      resolveHomeHeroCarouselSlides("https://cdn/custom-hero.jpg")[0],
+      resolveHomeHeroCarouselSlides("https://cdn/custom-hero.jpg", [], {})[0],
       "https://cdn/custom-hero.jpg"
     );
   });

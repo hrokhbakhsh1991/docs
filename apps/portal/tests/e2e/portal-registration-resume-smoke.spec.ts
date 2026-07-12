@@ -39,9 +39,9 @@ test("SMK-PTL-07 second tour registration resumes at intake without OTP", async 
     waitUntil: "domcontentloaded",
   });
 
-  await expect(
-    page.locator('[data-catalog-registration-page][data-registration-resume="intake"]')
-  ).toBeVisible({ timeout: 120_000 });
+  await expect(page.locator('[data-registration-resume="intake"]').first()).toBeVisible({
+    timeout: 120_000,
+  });
   await expect(page.locator("[data-public-registration-phone]")).toHaveCount(0);
   await expect(page.locator("[data-public-registration-otp]")).toHaveCount(0);
   await expect(page.locator("[data-public-registration-intake]")).toBeVisible({

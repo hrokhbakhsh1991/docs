@@ -163,6 +163,6 @@ LOCK §16.2 in spec — ignore conflicting fonts/colors from skill output.
 | Fallback cover | `/home/fallback-tour-cover.webp` |
 | Gallery fallbacks | `/home/gallery/01–03.webp` |
 
-Hero markup: `[data-marketing-home-hero-content]` wraps title/lead/actions/search; secondary CTA links `#why-denali` on `[data-marketing-home-why]`.
+Hero markup: `[data-marketing-home-hero-content]` wraps title/lead/actions/search; secondary CTA links `#why-us` (manifest `whySectionAnchor`) on `[data-marketing-home-why]`.
 
 **PR-9 closure:** scroll reveal via `animation-timeline: view()`; equipment checklist grid; featured bento 2-row primary @1024px; cropped destination/gallery assets under `public/home/`.

@@ -49,9 +49,9 @@ test("SMK-PTL-08 custom apex cookie domain + registration resume without OTP", a
     waitUntil: "domcontentloaded",
   });
 
-  await expect(
-    page.locator('[data-catalog-registration-page][data-registration-resume="intake"]')
-  ).toBeVisible({ timeout: 120_000 });
+  await expect(page.locator('[data-registration-resume="intake"]').first()).toBeVisible({
+    timeout: 120_000,
+  });
   await expect(page.locator("[data-public-registration-phone]")).toHaveCount(0);
   await expect(page.locator("[data-public-registration-intake]")).toBeVisible({
     timeout: 60_000,

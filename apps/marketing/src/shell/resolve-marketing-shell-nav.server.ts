@@ -2,6 +2,8 @@ import {
   resolveGuestCrossSurfaceNav,
   type GuestCrossSurfaceNavLink,
 } from "@app-tour/workspace-sdk";
+import type { AppLocale } from "@/i18n/routing";
+import { resolveMarketingLocalePath } from "@/i18n/routing";
 import { resolvePortalMemberModuleUrl } from "@app-tour/guest-surface-host";
 
 import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
@@ -48,11 +50,19 @@ function resolveCrossSurfaceHref(host: string, link: GuestCrossSurfaceNavLink): 
 /** Manifest-driven primary nav for marketing shell (PS-4 / PS-6 memberModuleId). */
 export function resolveMarketingShellNavLinks(
   host: string,
-  pluginId: string
+  pluginId: string,
+  locale: AppLocale
 ): readonly MarketingShellNavItem[] {
   const surface = resolveGuestCrossSurfaceNav(pluginId);
   if (surface === null) {
-    return CLUB_FALLBACK_NAV;
+    return Object.freeze(
+      CLUB_FALLBACK_NAV.map((item) =>
+        Object.freeze({
+          ...item,
+          href: resolveMarketingLocalePath(item.href, locale),
+        })
+      )
+    );
   }
 
   return Object.freeze(
@@ -62,7 +72,7 @@ export function resolveMarketingShellNavLinks(
         Object.freeze({
           id: link.id,
           labelKey: link.labelKey,
-          href: resolveCrossSurfaceHref(host, link),
+          href: resolveMarketingLocalePath(resolveCrossSurfaceHref(host, link), locale),
         })
       )
   );

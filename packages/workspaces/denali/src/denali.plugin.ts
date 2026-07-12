@@ -31,6 +31,7 @@ import {
   buildDenaliWorkspaceFieldRegistry,
   buildDenaliWorkspaceRuleSet,
 } from "./denali-plugin-adapter";
+import { DENALI_ADMIN_SURFACE_CSS_VARIABLES } from "./theme/denali-token-bridge";
 import { denaliHydrateTourCloneDraft, prepareDenaliServerCloneCanonical } from "./clone";
 import { denaliWizardHostHooks } from "./wizard/denali-wizard-host-hooks";
 import { denaliDraftTombstoneBinding } from "./draft/denali-draft-tombstone-binding";
@@ -166,6 +167,7 @@ const denaliTheme = {
   ...workspaceThemePresets["platform-primary"],
   optionalStylesheet: DENALI_THEME_ADMIN_STYLESHEET,
   cssVariables: {
+    ...DENALI_ADMIN_SURFACE_CSS_VARIABLES,
     [WORKSPACE_THEME_CSS_VARIABLE.colorAccent]: "var(--color-primary)",
   },
 } as const;

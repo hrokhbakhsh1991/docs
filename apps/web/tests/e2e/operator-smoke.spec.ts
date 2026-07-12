@@ -60,7 +60,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     const primary = await page.locator("body").evaluate((el) =>
       getComputedStyle(el).getPropertyValue("--primary").trim().toLowerCase()
     );
-    expect(primary).toBe("#0f766e");
+    expect(primary).toBe("#059669");
 
     const cta = page.getByTestId("operator-new-tour-cta");
     await expect(cta).toBeVisible();
@@ -114,7 +114,7 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     const primary = await page.locator("body").evaluate((el) =>
       getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
     );
-    expect(primary).toBe("#0f766e");
+    expect(primary).toBe("#059669");
 
     const continueBtn = page.getByTestId("workspace-wizard-step-next");
     await expect(continueBtn).toBeVisible();

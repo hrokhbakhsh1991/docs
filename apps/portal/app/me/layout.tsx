@@ -35,6 +35,7 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
 
   const branding = await fetchPublicTenantBrandingForHost(host);
   const workspaceLabel = branding.displayName?.trim() || bootstrap.pluginId;
+  const logoUrl = branding.logoUrl ?? null;
   const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
   const grantedEntitlementKeys = entitlements?.granted ?? [];
   const { primaryNav, userMenuNav } = resolvePortalMemberNavForPlugin(
@@ -49,6 +50,7 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   return (
     <PortalMemberShell
       workspaceLabel={workspaceLabel}
+      logoUrl={logoUrl}
       primaryNav={primaryNav}
       userMenuNav={userMenuNav}
       embeddedHost={embeddedHost}

@@ -7,12 +7,14 @@ import {
 } from "@app-tour/workspace-sdk";
 
 export type PortalMemberNavItem = {
+  readonly id: string;
   readonly href: string;
   readonly labelKey: string;
   readonly testId: string;
 };
 
 const PLATFORM_MORE_NAV_ITEM = Object.freeze({
+  id: "more",
   href: MEMBER_PORTAL_MORE_ROUTE_PATH,
   labelKey: "more",
   testId: "portal-shell-nav-more",
@@ -27,6 +29,7 @@ function memberNavTestId(module: MemberModuleManifest): string {
 
 function toNavItem(module: MemberModuleManifest): PortalMemberNavItem {
   return {
+    id: module.id,
     href: module.routePath,
     labelKey: module.nav.labelKey,
     testId: memberNavTestId(module),

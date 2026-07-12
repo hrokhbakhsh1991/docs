@@ -8,7 +8,7 @@
 
 ## Problem
 
-Denali Admin and Portal each have a hand-maintained DTCG slice (`denali.admin.tokens.json`, `denali.portal.tokens.json`) with **duplicated semantic keys** and **divergent values** (e.g. primary `#0f766e` vs `#059669`). Editing one surface does not update the other.
+Denali Admin and Portal each had hand-maintained DTCG slices with **divergent primary values** (`#0f766e` admin bridge vs `#059669` guest MASTER). **Wave 3 (D1 · 2026-07-12):** `palette.json` `forest-600` → `#059669`; shared semantics + token bridge + admin/portal/marketing CSS regenerate to one primary. Guest manifest themes (`workspace-guest-manifest-themes.generated.ts` in portal/marketing) must stay aligned with `buildDenaliTokenBridgeContexts().admin.cssVariables` — enforced by `denali-token-bridge.spec.ts` + `MKT-GX-03`.
 
 ## Goal
 
@@ -135,7 +135,7 @@ Developers change primary in **either**:
 
 ```json
 // palette.json
-"forest-600": { "$type": "color", "$value": "#0f766e" }
+"forest-600": { "$type": "color", "$value": "#059669" }
 ```
 
 or (preferred — indirect):

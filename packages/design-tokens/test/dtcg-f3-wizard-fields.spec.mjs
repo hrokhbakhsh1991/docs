@@ -40,7 +40,7 @@ describe("dtcg-f3-wizard-fields.spec.mjs", () => {
 
   it("F3-03 wizard semantic CSS defines tone palette vars", () => {
     const css = readWorkspaceFile("denali", "theme/wizard-semantic-tokens.css");
-    assert.match(css, /--wiz-tone-forest-source:\s*#0f766e/);
+    assert.match(css, /--wiz-tone-forest-source:\s*#059669/);
     assert.match(css, /--wiz-tone-sky-fg-gear:\s*#0c4a6e/);
     assert.match(css, /--color-danger:\s*#dc2626/);
   });

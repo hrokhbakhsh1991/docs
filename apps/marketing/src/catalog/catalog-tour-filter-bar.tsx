@@ -265,7 +265,7 @@ export async function CatalogTourFilterBar({
           <div data-marketing-catalog-active-filter-row>
             {filters.q != null && filters.q.length > 0 ? (
               <Link
-                href={buildCatalogListQueryWithoutFilters(filters, ["q"])}
+                href={`${listPath}${buildCatalogListQueryWithoutFilters(filters, ["q"])}`}
                 data-marketing-catalog-active-filter
                 data-marketing-catalog-active-filter-id="q"
               >
@@ -274,7 +274,7 @@ export async function CatalogTourFilterBar({
             ) : null}
             {activeCategoryGroup.length > 0 ? (
               <Link
-                href={buildCatalogListQueryWithoutFilters(filters, ["category"])}
+                href={`${listPath}${buildCatalogListQueryWithoutFilters(filters, ["category"])}`}
                 data-marketing-catalog-active-filter
                 data-marketing-catalog-active-filter-id="category"
               >
@@ -285,7 +285,7 @@ export async function CatalogTourFilterBar({
             ) : null}
             {filters.difficulty != null ? (
               <Link
-                href={buildCatalogListQueryWithoutFilters(filters, ["difficulty"])}
+                href={`${listPath}${buildCatalogListQueryWithoutFilters(filters, ["difficulty"])}`}
                 data-marketing-catalog-active-filter
                 data-marketing-catalog-active-filter-id="difficulty"
               >
@@ -294,7 +294,7 @@ export async function CatalogTourFilterBar({
             ) : null}
             {filters.fitness != null && filters.fitness.length > 0 ? (
               <Link
-                href={buildCatalogListQueryWithoutFilters(filters, ["fitness"])}
+                href={`${listPath}${buildCatalogListQueryWithoutFilters(filters, ["fitness"])}`}
                 data-marketing-catalog-active-filter
                 data-marketing-catalog-active-filter-id="fitness"
               >
@@ -309,7 +309,7 @@ export async function CatalogTourFilterBar({
             ) : null}
             {filters.availability === "open" ? (
               <Link
-                href={buildCatalogListQueryWithoutFilters(filters, ["availability"])}
+                href={`${listPath}${buildCatalogListQueryWithoutFilters(filters, ["availability"])}`}
                 data-marketing-catalog-active-filter
                 data-marketing-catalog-active-filter-id="availability"
               >
@@ -318,7 +318,7 @@ export async function CatalogTourFilterBar({
             ) : null}
             {filters.sort !== "newest" ? (
               <Link
-                href={buildCatalogListQueryWithoutFilters(filters, ["sort"])}
+                href={`${listPath}${buildCatalogListQueryWithoutFilters(filters, ["sort"])}`}
                 data-marketing-catalog-active-filter
                 data-marketing-catalog-active-filter-id="sort"
               >
@@ -327,7 +327,7 @@ export async function CatalogTourFilterBar({
             ) : null}
             {filters.city != null && filters.city.length > 0 ? (
               <Link
-                href={buildCatalogListQueryWithoutFilters(filters, ["city"])}
+                href={`${listPath}${buildCatalogListQueryWithoutFilters(filters, ["city"])}`}
                 data-marketing-catalog-active-filter
                 data-marketing-catalog-active-filter-id="city"
               >

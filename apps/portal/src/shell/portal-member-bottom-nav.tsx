@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import type { PortalMemberNavItem } from "./portal-member-nav.types";
 import { PORTAL_MEMBER_SHELL_TEST_IDS } from "./portal-member-nav.types";
+import { PortalNavIcon } from "./portal-nav-icon";
 
 export type PortalMemberBottomNavProps = {
   readonly items: readonly PortalMemberNavItem[];
@@ -31,11 +32,15 @@ export function PortalMemberBottomNav({ items }: PortalMemberBottomNavProps) {
               <Link
                 href={item.href}
                 data-portal-shell-nav-link
+                data-portal-shell-nav-module-id={item.id}
                 data-active={active ? "true" : undefined}
                 data-testid={item.testId}
                 aria-current={active ? "page" : undefined}
               >
-                {t(item.labelKey)}
+                <span data-portal-shell-nav-icon>
+                  <PortalNavIcon moduleId={item.id} />
+                </span>
+                <span data-portal-shell-nav-label>{t(item.labelKey)}</span>
               </Link>
             </li>
           );

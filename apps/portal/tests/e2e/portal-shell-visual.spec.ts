@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-import { completePortalCatalogRegistration } from "./fixtures/complete-portal-registration";
+import {
+  completePortalCatalogRegistration,
+  DENALI_SMOKE_PUBLISHED_TOUR_ID,
+} from "./fixtures/complete-portal-registration";
 
 const SCREENSHOT_OPTS = {
   animations: "disabled" as const,
@@ -13,6 +16,7 @@ test.describe("portal shell visual — denali @member-portal:full", () => {
     const phone = `+1555${String(Date.now()).slice(-7)}`;
 
     await completePortalCatalogRegistration(page, {
+      tourId: DENALI_SMOKE_PUBLISHED_TOUR_ID,
       email,
       fullName: "Portal Visual Denali",
       phone,

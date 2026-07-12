@@ -8,7 +8,7 @@ import {
   formatCatalogPrice,
   shouldShowCatalogPrice,
 } from "@/catalog/format-catalog-display";
-import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
+import { isAppLocale, resolveIntlDateLocale, resolveMarketingTourDetailPath, type AppLocale } from "@/i18n/routing";
 
 import { resolveHomeTourCoverUrl } from "./resolve-home-tour-cover-url";
 
@@ -22,7 +22,7 @@ export async function HomeLatestTourCard({ tour, pluginId: _pluginId }: HomeLate
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const dateLocale = resolveIntlDateLocale(locale);
-  const detailHref = `/tours/${tour.id}`;
+  const detailHref = resolveMarketingTourDetailPath(tour.id, locale);
   const title = tour.title?.trim() || t("detail.untitled");
   const datesLine = formatCatalogCardDates(tour, dateLocale, t("detail.datesTba"));
   const showPrice = shouldShowCatalogPrice(tour);

@@ -8,6 +8,9 @@ export type GuestLandingVariant = "full" | "minimal";
 
 export type GuestLandingFeatures = Readonly<{
   readonly variant: GuestLandingVariant;
+  readonly whySectionAnchor: string;
+  readonly destinationSlugs: readonly string[];
+  readonly destinationImageStems: Readonly<Record<string, string>>;
   readonly sections: Readonly<{
     readonly hero: boolean;
     readonly latestTours: boolean;
@@ -37,6 +40,9 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
 > = Object.freeze({
   "denali": Object.freeze({
     variant: "full",
+    whySectionAnchor: "why-us",
+    destinationSlugs: Object.freeze(["alborz","damavand","zardkuh"]),
+    destinationImageStems: Object.freeze({"zardkuh":"zardkooh"}),
     sections: Object.freeze({
       hero: true,
       latestTours: true,
@@ -61,6 +67,9 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
   }),
   "guest-club": Object.freeze({
     variant: "minimal",
+    whySectionAnchor: "why-us",
+    destinationSlugs: Object.freeze([]),
+    destinationImageStems: Object.freeze({}),
     sections: Object.freeze({
       hero: false,
       latestTours: false,
@@ -85,6 +94,9 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
   }),
   "urban": Object.freeze({
     variant: "minimal",
+    whySectionAnchor: "why-us",
+    destinationSlugs: Object.freeze([]),
+    destinationImageStems: Object.freeze({}),
     sections: Object.freeze({
       hero: false,
       latestTours: false,

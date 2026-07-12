@@ -109,3 +109,17 @@ test("SMK-MKT-HOME-08 mobile drawer opens nav panel", async ({ page }) => {
   await expect(drawer).toHaveAttribute("open", "");
   await expect(page.locator("[data-marketing-nav-drawer-panel] a[href='/tours']").first()).toBeVisible();
 });
+
+test("SMK-MKT-HOME-09 English home CTA keeps locale on tours navigation", async ({ page }) => {
+  await page.goto("/en/");
+  await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
+  await page.locator("[data-marketing-home-cta]").first().click();
+  await expect(page).toHaveURL(/\/en\/tours(?:\?|$|\/)/);
+});
+
+test("SMK-MKT-HOME-10 hero secondary CTA uses manifest why anchor", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("[data-marketing-home-hero]")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("[data-marketing-home-cta-secondary]")).toHaveAttribute("href", "#why-us");
+  await expect(page.locator("[data-marketing-home-why]#why-us")).toBeVisible();
+});

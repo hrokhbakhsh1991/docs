@@ -75,6 +75,8 @@ describe("home-section-gates-v3.spec.ts — HOME-UNIT-06", () => {
       /resolveMarketingCategoryLabel/
     );
     assert.match(fullSource, /sections\.destinations/);
+    assert.match(fullSource, /landing\.destinationSlugs/);
+    assert.match(fullSource, /landing\.destinationImageStems/);
     assert.match(fullSource, /showSearch={sections\.heroSearch}/);
   });
 });

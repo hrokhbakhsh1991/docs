@@ -14,6 +14,7 @@ body[data-workspace-plugin="denali"] {
   --color-bg-surface: #ffffff;
   --color-border-default: #dce5dc;
   --color-border-subtle: #e8efe8;
+  --color-focus-ring: rgb(5 150 105 / 0.35);
   --color-info: var(--denali-alpine-600);
   --color-info-bg: #e8f0f8;
   --color-primary: var(--denali-forest-600);
@@ -30,8 +31,8 @@ body[data-workspace-plugin="denali"] {
   --denali-alpine-600: #31547e;
   --denali-bark-600: #765832;
   --denali-forest-500: #14b8a6;
-  --denali-forest-600: #0f766e;
-  --denali-forest-700: #0f5c4a;
+  --denali-forest-600: #059669;
+  --denali-forest-700: #047857;
   --denali-mist-100: #e8efe8;
   --denali-mist-50: #f4f7f4;
   --denali-shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);

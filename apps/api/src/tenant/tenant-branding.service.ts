@@ -26,6 +26,9 @@ import {
   putTenantBrandLogo,
 } from "./tenant-branding-storage";
 
+/** Public marketing/portal shell — align with catalog cover presign (public-catalog.md M14.1). */
+export const PUBLIC_TENANT_BRAND_LOGO_SIGNED_URL_TTL_SECONDS = 3600;
+
 function themeRecordFromJson(theme: unknown): Record<string, unknown> {
   if (theme === null || typeof theme !== "object" || Array.isArray(theme)) {
     return {};
@@ -199,6 +202,7 @@ export async function resolvePublicTenantBrandingBySubdomain(subdomain: string):
       logoUrl = await getTenantBrandLogoSignedReadUrl({
         tenantId: tenant.id,
         storageKey,
+        expiresInSeconds: PUBLIC_TENANT_BRAND_LOGO_SIGNED_URL_TTL_SECONDS,
       });
     } catch {
       logoUrl = null;

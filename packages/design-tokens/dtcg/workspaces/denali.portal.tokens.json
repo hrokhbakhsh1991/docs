@@ -2,26 +2,134 @@
   "$schema": "https://design-tokens.github.io/community-group/format/",
   "workspaceId": "denali",
   "scopeSelector": "body[data-app-surface=\"portal\"][data-workspace-plugin=\"denali\"]",
+  "denali": {
+    "forest-700": {
+      "$type": "color",
+      "$value": "#047857"
+    },
+    "forest-600": {
+      "$type": "color",
+      "$value": "#059669"
+    },
+    "forest-500": {
+      "$type": "color",
+      "$value": "#14b8a6"
+    },
+    "alpine-600": {
+      "$type": "color",
+      "$value": "#31547e"
+    },
+    "bark-600": {
+      "$type": "color",
+      "$value": "#765832"
+    },
+    "mist-50": {
+      "$type": "color",
+      "$value": "#f4f7f4"
+    },
+    "mist-100": {
+      "$type": "color",
+      "$value": "#e8efe8"
+    },
+    "shadow-card": {
+      "$type": "shadow",
+      "$value": "0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06)"
+    },
+    "shadow-card-hover": {
+      "$type": "shadow",
+      "$value": "0 2px 4px rgb(15 23 42 / 0.06), 0 8px 20px rgb(15 23 42 / 0.08)"
+    }
+  },
   "color": {
-    "primary": { "$type": "color", "$value": "#059669" },
-    "primary-hover": { "$type": "color", "$value": "#047857" },
-    "primary-fg": { "$type": "color", "$value": "#ffffff" },
-    "secondary": { "$type": "color", "$value": "#10b981" },
-    "accent": { "$type": "color", "$value": "#d97706" },
-    "accent-fg": { "$type": "color", "$value": "#ffffff" },
-    "bg-page": { "$type": "color", "$value": "#ecfdf5" },
-    "bg-surface": { "$type": "color", "$value": "#ffffff" },
-    "bg-muted": { "$type": "color", "$value": "#f0f8f6" },
-    "text-primary": { "$type": "color", "$value": "#0f172a" },
-    "text-muted": { "$type": "color", "$value": "#64748b" },
-    "text-link": { "$type": "color", "$value": "{color.primary}" },
-    "border-default": { "$type": "color", "$value": "#e1f2ed" },
-    "border-subtle": { "$type": "color", "$value": "#e1f2ed" },
-    "focus-ring": { "$type": "color", "$value": "rgb(5 150 105 / 0.35)" }
+    "primary": {
+      "$type": "color",
+      "$value": "{denali.forest-600}"
+    },
+    "primary-hover": {
+      "$type": "color",
+      "$value": "{denali.forest-700}"
+    },
+    "primary-fg": {
+      "$type": "color",
+      "$value": "#ffffff"
+    },
+    "bg-page": {
+      "$type": "color",
+      "$value": "{denali.mist-50}"
+    },
+    "bg-surface": {
+      "$type": "color",
+      "$value": "#ffffff"
+    },
+    "bg-muted": {
+      "$type": "color",
+      "$value": "{denali.mist-100}"
+    },
+    "text-primary": {
+      "$type": "color",
+      "$value": "#1a1f26"
+    },
+    "text-secondary": {
+      "$type": "color",
+      "$value": "#4a5244"
+    },
+    "text-muted": {
+      "$type": "color",
+      "$value": "#6f7768"
+    },
+    "text-link": {
+      "$type": "color",
+      "$value": "{denali.forest-600}"
+    },
+    "border-default": {
+      "$type": "color",
+      "$value": "#dce5dc"
+    },
+    "border-subtle": {
+      "$type": "color",
+      "$value": "#e8efe8"
+    },
+    "focus-ring": {
+      "$type": "color",
+      "$value": "rgb(5 150 105 / 0.35)"
+    },
+    "info": {
+      "$type": "color",
+      "$value": "{denali.alpine-600}"
+    },
+    "info-bg": {
+      "$type": "color",
+      "$value": "#e8f0f8"
+    },
+    "success": {
+      "$type": "color",
+      "$value": "#166534"
+    },
+    "success-bg": {
+      "$type": "color",
+      "$value": "#dcfce7"
+    },
+    "warning": {
+      "$type": "color",
+      "$value": "#b45309"
+    },
+    "warning-bg": {
+      "$type": "color",
+      "$value": "#fff7ed"
+    }
   },
   "flat": {
-    "destructive": { "$type": "color", "$value": "#dc2626" },
-    "destructive-foreground": { "$type": "color", "$value": "#ffffff" },
-    "radius": { "$type": "dimension", "$value": "0.5rem" }
+    "destructive": {
+      "$type": "color",
+      "$value": "#dc2626"
+    },
+    "destructive-foreground": {
+      "$type": "color",
+      "$value": "#ffffff"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "0.625rem"
+    }
   }
 }

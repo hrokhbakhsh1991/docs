@@ -29,6 +29,17 @@ function assertCheck(name, ok, detail) {
   console.log(`PASS ${name}`);
 }
 
+/** D1 — guest semantic CSS may bind primary via literal or forest-600 alias. */
+function denaliGuestSemanticUsesEmeraldPrimary(css) {
+  if (!css.includes("@generated")) {
+    return false;
+  }
+  if (css.includes("--color-primary: #059669")) {
+    return true;
+  }
+  return css.includes("--denali-forest-600: #059669") && css.includes("var(--denali-forest-600)");
+}
+
 const REQUIRED_FILES = [
   "apps/api/src/identity/public-auth.routes.ts",
   "apps/api/src/openapi/public-auth-openapi.ts",
@@ -196,18 +207,23 @@ assertCheck(
 
 assertCheck(
   "m17_denali_marketing_skin_master_tokens",
-  read("packages/workspaces/denali/theme/marketing/semantic-tokens.css").includes("@generated") &&
-    read("packages/workspaces/denali/theme/marketing/semantic-tokens.css").includes("#059669") &&
+  denaliGuestSemanticUsesEmeraldPrimary(
+    read("packages/workspaces/denali/theme/marketing/semantic-tokens.css")
+  ) &&
     read("packages/workspaces/denali/theme/denali-marketing.css").includes(
-      "packages/workspaces/denali/design-language/MASTER.md"
+      "./marketing/tokens.css"
+    ) &&
+    read("packages/workspaces/denali/theme/marketing/tokens.css").includes(
+      "./semantic-tokens.css"
     ),
   "denali marketing skin must use DTCG semantic-tokens.css",
 );
 
 assertCheck(
   "m17_denali_portal_skin_master_tokens",
-  read("packages/workspaces/denali/theme/portal-semantic-tokens.css").includes("@generated") &&
-    read("packages/workspaces/denali/theme/portal-semantic-tokens.css").includes("#059669") &&
+  denaliGuestSemanticUsesEmeraldPrimary(
+    read("packages/workspaces/denali/theme/portal-semantic-tokens.css")
+  ) &&
     read("packages/workspaces/denali/theme/denali-portal.css").includes("portal-semantic-tokens.css"),
   "denali-portal.css must import DTCG portal-semantic-tokens.css",
 );

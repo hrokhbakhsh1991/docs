@@ -56,6 +56,8 @@ describe("portal-member-registrations", () => {
     );
     assert.match(page, /main data-portal-member-registrations/);
     assert.match(page, /data-portal-member-registration-row/);
+    assert.match(page, /data-portal-member-registration-status-badge/);
+    assert.match(page, /data-portal-member-registrations-empty-cta/);
     assert.match(page, /fetchMemberRegistrations/);
   });
 
@@ -81,6 +83,11 @@ describe("portal-member-registrations", () => {
       "utf8"
     );
     assert.match(skin, /main\[data-portal-member-registrations\]/);
+    assert.match(skin, /\[data-portal-member-registration-status-badge\]/);
+    assert.match(skin, /\[data-portal-member-registrations-empty-cta\]/);
+    assert.match(skin, /main\[data-portal-member-home\]/);
+    assert.match(skin, /\[data-portal-member-home-quick-links\]/);
+    assert.match(skin, /main\[data-portal-member-module-stub\]/);
     assert.match(skin, /main\[data-portal-member-registration-detail\]/);
     assert.match(skin, /\[data-portal-member-receipt-upload\]/);
     assert.match(skin, /\[data-public-auth-logout\]/);

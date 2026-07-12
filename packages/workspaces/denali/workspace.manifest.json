@@ -175,6 +175,11 @@
   },
   "guestLanding": {
     "variant": "full",
+    "whySectionAnchor": "why-us",
+    "destinationSlugs": ["alborz", "damavand", "zardkuh"],
+    "destinationImageStems": {
+      "zardkuh": "zardkooh"
+    },
     "sections": {
       "hero": true,
       "latestTours": true,

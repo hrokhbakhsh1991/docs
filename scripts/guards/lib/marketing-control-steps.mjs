@@ -11,6 +11,16 @@ export const MARKETING_CONTROL_STEPS = [
     closes: "MKT-0",
   },
   {
+    name: "marketing_dead_damavand_ascent",
+    cmd: ["node", "scripts/guards/guard-marketing-dead-damavand-ascent.mjs"],
+    closes: "MKT-DEAD-02",
+  },
+  {
+    name: "marketing_home_manifest_content",
+    cmd: ["node", "scripts/guards/guard-marketing-home-manifest-content.mjs"],
+    closes: "ADR-MKT-001-HOME",
+  },
+  {
     name: "marketing_critical_r04",
     cmd: ["node", "scripts/guards/guard-marketing-critical-risks.mjs"],
     criticalRisk: "R-04",
@@ -34,6 +44,16 @@ export const MARKETING_CONTROL_STEPS = [
     name: "marketing_locale",
     cmd: ["node", "scripts/guards/guard-marketing-locale.mjs"],
     closes: "MKT-14",
+  },
+  {
+    name: "marketing_locale_home_hrefs",
+    cmd: ["node", "scripts/guards/guard-marketing-locale-home-hrefs.mjs"],
+    closes: "MKT-LOCALE-02",
+  },
+  {
+    name: "guest_fetch_revalidate_parity",
+    cmd: ["node", "scripts/guards/guard-guest-fetch-revalidate-parity.mjs"],
+    closes: "G-BOOT-05",
   },
   {
     name: "marketing_nav_manifest",

@@ -11,12 +11,14 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 import { HOME_CATEGORY_SLUGS } from "../src/home/home-category-slugs";
-import { HOME_DESTINATION_IDS } from "../src/home/home-destination-ids";
 import { HOME_EQUIPMENT_ITEM_IDS } from "../src/home/home-equipment-item-ids";
 import { HOME_FAQ_ITEM_IDS } from "../src/home/home-faq-item-ids";
 import { HOME_JOURNEY_STEP_IDS } from "../src/home/home-journey-step-ids";
 import { HOME_TESTIMONIAL_IDS } from "../src/home/home-testimonial-ids";
 import { HOME_WHY_TILE_IDS } from "../src/home/home-why-tile-ids";
+import { resolveGuestLandingFeatures } from "@app-tour/workspace-sdk";
+
+const DENALI_DESTINATION_SLUGS = resolveGuestLandingFeatures("denali").destinationSlugs;
 
 const REQUIRED_HOME_KEYS = [
   "home.full.hero.eyebrow",
@@ -114,7 +116,7 @@ const REQUIRED_HOME_KEYS = [
     `home.full.faq.${id}.question`,
     `home.full.faq.${id}.answer`,
   ]),
-  ...HOME_DESTINATION_IDS.flatMap((id) => [
+  ...DENALI_DESTINATION_SLUGS.flatMap((id) => [
     `home.full.destinations.${id}.name`,
     `home.full.destinations.${id}.description`,
   ]),

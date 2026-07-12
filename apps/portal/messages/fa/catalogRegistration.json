@@ -85,5 +85,12 @@
     "URBAN_REGISTRATION_CLOSED": "ثبت‌نام در این workspace بسته است.",
     "DENALI_REGISTRATION_DUPLICATE": "قبلاً برای این تور ثبت‌نام کرده‌اید.",
     "network": "خطایی رخ داد. دوباره تلاش کنید."
+  },
+  "stepper": {
+    "ariaLabel": "مراحل ثبت‌نام",
+    "phone": "موبایل",
+    "otp": "کد",
+    "profile": "پروفایل",
+    "intake": "ثبت‌نام"
   }
 }

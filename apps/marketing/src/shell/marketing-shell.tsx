@@ -1,7 +1,7 @@
 import { LogIn, Menu, Mountain } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
@@ -9,6 +9,7 @@ import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
 
 import { MarketingFooter } from "./marketing-footer";
 import { MarketingLocaleSwitcher } from "@/i18n/marketing-locale-switcher";
+import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
 import { MARKETING_HEADER_OVERLAY_REQUEST_HEADER } from "./resolve-marketing-header-overlay";
 import type { MarketingShellNavItem } from "./resolve-marketing-shell-nav.server";
 
@@ -28,6 +29,10 @@ export async function MarketingShell({
   children,
 }: MarketingShellProps) {
   const t = await getTranslations("catalog");
+  const localeRaw = await getLocale();
+  const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
+  const homeHref = resolveMarketingLocalePath("/", locale);
+  const toursHref = resolveMarketingLocalePath("/tours", locale);
   const headerList = await headers();
   const title = branding.displayName ?? t("nav.defaultSiteName");
   const isFullLanding = landing.variant === "full";
@@ -45,7 +50,7 @@ export async function MarketingShell({
         {...(useHeaderOverlay ? { "data-marketing-header-overlay": true } : {})}
       >
         <div data-marketing-header-inner data-slot="shell-header-inner">
-          <Link href="/" data-marketing-brand data-slot="shell-brand">
+          <Link href={homeHref} data-marketing-brand data-slot="shell-brand">
             {branding.logoUrl ? (
               <img src={branding.logoUrl} alt="" data-marketing-logo height={36} width={36} />
             ) : (
@@ -57,7 +62,7 @@ export async function MarketingShell({
           <nav data-marketing-header-nav data-slot="shell-nav" aria-label={t("nav.primary")}>
             {(isFullLanding
               ? primaryNavLinks
-              : [{ id: "tours", href: "/tours", labelKey: "nav.tours" as const }]
+              : [{ id: "tours", href: toursHref, labelKey: "nav.tours" as const }]
             ).map((item) => (
               <Link
                 key={item.id}
@@ -85,7 +90,7 @@ export async function MarketingShell({
                 </a>
               ) : null}
               {isFullLanding ? (
-                <Link href="/tours" data-marketing-header-cta>
+                <Link href={toursHref} data-marketing-header-cta>
                   {t("home.full.hero.ctaPrimary")}
                 </Link>
               ) : null}
@@ -117,12 +122,12 @@ export async function MarketingShell({
                       </Link>
                     ))
                   : (
-                    <Link href="/tours" data-marketing-nav-link data-marketing-nav-link-id="tours">
+                    <Link href={toursHref} data-marketing-nav-link data-marketing-nav-link-id="tours">
                       {t("nav.tours")}
                     </Link>
                   )}
                 {isFullLanding ? (
-                  <Link href="/tours" data-marketing-header-cta>
+                  <Link href={toursHref} data-marketing-header-cta>
                     {t("home.full.hero.ctaPrimary")}
                   </Link>
                 ) : null}

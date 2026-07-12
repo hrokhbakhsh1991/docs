@@ -33,7 +33,7 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     id: "00000000-0000-4000-8000-000000000003",
     subdomain: "denali",
     workspaceType: "denali",
-    theme: { primaryColor: "#0f766e", cssVariables: { "--color-primary": "#0f766e" } },
+    theme: { primaryColor: "#059669", cssVariables: { "--color-primary": "#059669" } },
   },
   {
     id: "00000000-0000-4000-8000-000000000004",
@@ -49,7 +49,7 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     id: "00000000-0000-4000-8000-000000000014",
     subdomain: "operator",
     workspaceType: "denali",
-    theme: { primaryColor: "#0f766e", cssVariables: { "--color-primary": "#0f766e" } },
+    theme: { primaryColor: "#059669", cssVariables: { "--color-primary": "#059669" } },
   },
   {
     id: "00000000-0000-4000-8000-000000000406",

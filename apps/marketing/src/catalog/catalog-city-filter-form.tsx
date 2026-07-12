@@ -10,6 +10,8 @@ export type CatalogCityFilterFormProps = {
   readonly applyLabel: string;
   readonly clearLabel: string;
   readonly showClear: boolean;
+  /** Locale-aware tours list path (M9) — e.g. from `resolveMarketingToursListPath`. */
+  readonly listPath: string;
 };
 
 export function CatalogCityFilterForm({
@@ -19,6 +21,7 @@ export function CatalogCityFilterForm({
   applyLabel,
   clearLabel,
   showClear,
+  listPath,
 }: CatalogCityFilterFormProps) {
   return (
     <form method="get" data-marketing-city-filter>
@@ -32,7 +35,7 @@ export function CatalogCityFilterForm({
       />
       <Button type="submit">{applyLabel}</Button>
       {showClear ? (
-        <Link href="/tours" data-marketing-city-clear>
+        <Link href={listPath} data-marketing-city-clear>
           {clearLabel}
         </Link>
       ) : null}

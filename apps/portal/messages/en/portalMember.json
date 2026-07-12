@@ -10,9 +10,14 @@
     "primaryNav": "Primary navigation",
     "more": "More"
   },
+  "locale": {
+    "fa": "FA",
+    "en": "EN"
+  },
   "registrations": {
     "title": "My registrations",
     "empty": "No registrations yet.",
+    "emptyCta": "Browse tours",
     "statusLine": "{status} · {paymentStatus} · {departureAt}",
     "statusLabels": {
       "pending": "Pending",
@@ -118,6 +123,7 @@
   },
   "moduleStub": {
     "lede": "This module is registered but not fully built yet.",
+    "walletLede": "Member wallet is coming soon. Use Trips and Profile in the meantime.",
     "backToHome": "Back to home"
   },
   "detail": {

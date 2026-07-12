@@ -714,6 +714,66 @@ export function assertGuestLandingManifest(manifest) {
       throw new Error(`${manifest.id}: guestLanding full variant requires i18nProfile "full"`);
     }
   }
+  if (landing.whySectionAnchor !== undefined) {
+    assertGuestLandingContentSlug(
+      landing.whySectionAnchor,
+      `${manifest.id}: guestLanding.whySectionAnchor`
+    );
+  }
+  if (landing.destinationSlugs !== undefined) {
+    if (!Array.isArray(landing.destinationSlugs)) {
+      throw new Error(`${manifest.id}: guestLanding.destinationSlugs must be an array`);
+    }
+    for (const [index, slug] of landing.destinationSlugs.entries()) {
+      assertGuestLandingContentSlug(
+        slug,
+        `${manifest.id}: guestLanding.destinationSlugs[${index}]`
+      );
+    }
+  }
+  if (landing.destinationImageStems !== undefined) {
+    if (
+      typeof landing.destinationImageStems !== "object" ||
+      landing.destinationImageStems === null ||
+      Array.isArray(landing.destinationImageStems)
+    ) {
+      throw new Error(`${manifest.id}: guestLanding.destinationImageStems must be an object`);
+    }
+    const slugs = Array.isArray(landing.destinationSlugs) ? landing.destinationSlugs : [];
+    for (const [key, value] of Object.entries(landing.destinationImageStems)) {
+      assertGuestLandingContentSlug(
+        key,
+        `${manifest.id}: guestLanding.destinationImageStems key ${JSON.stringify(key)}`
+      );
+      assertGuestLandingContentSlug(
+        value,
+        `${manifest.id}: guestLanding.destinationImageStems.${key}`
+      );
+      if (slugs.length > 0 && !slugs.includes(key)) {
+        throw new Error(
+          `${manifest.id}: guestLanding.destinationImageStems.${key} must reference a destinationSlugs entry`
+        );
+      }
+    }
+  }
+  if (variant === "full" && sections.destinations) {
+    const slugs = landing.destinationSlugs ?? [];
+    if (!Array.isArray(slugs) || slugs.length === 0) {
+      throw new Error(
+        `${manifest.id}: guestLanding.destinationSlugs required when sections.destinations is true on full variant`
+      );
+    }
+  }
+}
+
+/**
+ * @param {unknown} value
+ * @param {string} path
+ */
+function assertGuestLandingContentSlug(value, path) {
+  if (typeof value !== "string" || !/^[a-z][a-z0-9-]*$/.test(value.trim())) {
+    throw new Error(`${path} must be a lowercase slug (a-z, 0-9, hyphen)`);
+  }
 }
 
 /**
@@ -965,6 +1025,40 @@ ${entries}
 `;
 }
 
+/** @param {ReturnType<typeof discoverManifests>[number]["guestLanding"]} landing */
+function normalizeGuestLandingContent(landing) {
+  const whySectionAnchor =
+    typeof landing.whySectionAnchor === "string" && landing.whySectionAnchor.trim().length > 0
+      ? landing.whySectionAnchor.trim()
+      : "why-us";
+  const destinationSlugs = Object.freeze(
+    (Array.isArray(landing.destinationSlugs) ? landing.destinationSlugs : [])
+      .filter((slug) => typeof slug === "string" && slug.trim().length > 0)
+      .map((slug) => slug.trim())
+  );
+  const destinationImageStems = Object.freeze(
+    Object.fromEntries(
+      Object.entries(
+        landing.destinationImageStems !== undefined &&
+          typeof landing.destinationImageStems === "object" &&
+          landing.destinationImageStems !== null &&
+          !Array.isArray(landing.destinationImageStems)
+          ? landing.destinationImageStems
+          : {}
+      )
+        .filter(
+          ([key, value]) =>
+            typeof key === "string" &&
+            key.trim().length > 0 &&
+            typeof value === "string" &&
+            value.trim().length > 0
+        )
+        .map(([key, value]) => [key.trim(), value.trim()])
+    )
+  );
+  return { whySectionAnchor, destinationSlugs, destinationImageStems };
+}
+
 /** @param {ReturnType<typeof discoverManifests>} manifests */
 export function generateWorkspaceGuestLanding(manifests) {
   /** @type {Record<string, object>} */
@@ -975,8 +1069,12 @@ export function generateWorkspaceGuestLanding(manifests) {
     }
     assertGuestLandingManifest(manifest);
     const landing = manifest.guestLanding;
+    const content = normalizeGuestLandingContent(landing);
     landingByPlugin[manifest.id] = Object.freeze({
       variant: landing.variant,
+      whySectionAnchor: content.whySectionAnchor,
+      destinationSlugs: content.destinationSlugs,
+      destinationImageStems: content.destinationImageStems,
       sections: Object.freeze({
         hero: landing.sections.hero,
         latestTours: landing.sections.latestTours,
@@ -1007,6 +1105,9 @@ export function generateWorkspaceGuestLanding(manifests) {
       ([pluginId, value]) =>
         `  ${JSON.stringify(pluginId)}: Object.freeze({
     variant: ${JSON.stringify(value.variant)},
+    whySectionAnchor: ${JSON.stringify(value.whySectionAnchor)},
+    destinationSlugs: Object.freeze(${JSON.stringify([...value.destinationSlugs])}),
+    destinationImageStems: Object.freeze(${JSON.stringify({ ...value.destinationImageStems })}),
     sections: Object.freeze({
       hero: ${value.sections.hero},
       latestTours: ${value.sections.latestTours},
@@ -1037,6 +1138,9 @@ export type GuestLandingVariant = "full" | "minimal";
 
 export type GuestLandingFeatures = Readonly<{
   readonly variant: GuestLandingVariant;
+  readonly whySectionAnchor: string;
+  readonly destinationSlugs: readonly string[];
+  readonly destinationImageStems: Readonly<Record<string, string>>;
   readonly sections: Readonly<{
     readonly hero: boolean;
     readonly latestTours: boolean;

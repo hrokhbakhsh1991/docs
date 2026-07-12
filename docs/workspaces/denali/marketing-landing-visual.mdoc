@@ -365,7 +365,7 @@ All §7 checklist items complete. OG wired to `hero-og.webp`. Final CTA reuses `
 
 - Ken Burns on `::before` pseudo (`mkt-hero-ken-burns`, 22s)
 - Glass search form (`backdrop-filter` + fallback)
-- Dual CTA: primary + ghost `#why-denali`
+- Dual CTA: primary + ghost `#why-us` (manifest `guestLanding.whySectionAnchor`)
 - Staggered `mkt-hero-enter` on content children
 - Scroll hint chevron (hidden under `prefers-reduced-motion`)
 
@@ -674,7 +674,7 @@ Browser QA: desktop ≥1024 · tablet 768 · mobile 375 · RTL fa · `prefers-re
 | Categories   | `-categories`        | `-categories-row`, `-category-chip`                                                         |
 | Destinations | `-destinations`      | `-destinations-row`, `-destination-card`, `-destination-card-body`, `-destination-link`     |
 | Trust        | `-trust`             | logo / ShieldCheck · tagline                                                                |
-| Why          | `-why` `#why-denali` | `-why-grid`, `-why-tile`                                                                    |
+| Why          | `-why` `#why-us` (manifest anchor) | `-why-grid`, `-why-tile`                                                                    |
 | Journey      | `-journey`           | `-journey-steps`, `-journey-step`                                                           |
 | Testimonials | `-testimonials`      | `-testimonials-row`, `-testimonial-card`                                                    |
 | Gallery      | `-gallery`           | `-gallery-grid`, `-gallery-item`, `-gallery-item-primary`, `-gallery-support`               |
@@ -924,7 +924,7 @@ Visual on 375 / 768 / 1280 — no horizontal rules between quotes; `pnpm run gua
 | Hero CTA secondary | `چرا {siteName}؟`                          |
 | Why section `h2`   | same pattern                               |
 
-**Note:** Fragment anchor `#why-denali` unchanged (stable hook); visible text is tenant-driven.
+**Note:** Fragment anchor comes from `guestLanding.whySectionAnchor` (Denali default `why-us`); visible text is tenant-driven via i18n.
 
 ### Verify
 

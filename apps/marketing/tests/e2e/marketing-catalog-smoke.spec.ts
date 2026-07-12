@@ -6,13 +6,17 @@ import {
   fillCatalogOtp,
   submitCatalogPhoneForOtp,
 } from "./fixtures/catalog-registration-otp";
+import {
+  resolveSmokePublishedTourId,
+  SMOKE_PUBLISHED_TOUR_TITLE,
+} from "./fixtures/smoke-published-tour";
 
-const OPERATOR_PUBLISHED_TOUR_TITLE = "North Ridge Trek";
-const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+const SMOKE_PUBLISHED_TOUR_ID = resolveSmokePublishedTourId();
 const REGISTRATION_EMAIL = `smk-mkt-03-${Date.now()}@denali-smoke.local`;
 
-async function openOperatorTourDetail(page: import("@playwright/test").Page): Promise<void> {
-  await page.locator(`a[href="/tours/${OPERATOR_PUBLISHED_TOUR_ID}"]`).first().click();
+async function openSmokeTourDetail(page: import("@playwright/test").Page): Promise<void> {
+  const detailLink = page.locator(`a[href="/tours/${SMOKE_PUBLISHED_TOUR_ID}"]`).first();
+  await detailLink.click();
 }
 
 test("SMK-MKT-01 denali operator public catalog browse", async ({ page, context }) => {
@@ -24,19 +28,19 @@ test("SMK-MKT-01 denali operator public catalog browse", async ({ page, context 
   await expect(page.locator("[data-marketing-header]")).toBeVisible();
   await expect(page.locator("[data-marketing-catalog-toolbar]")).toBeVisible();
   await expect(page.locator("[data-marketing-catalog-filters]")).toBeVisible();
-  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
+  await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible();
 });
 
 test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({ page }) => {
   const devPhone = `+1555${String(Date.now()).slice(-7)}`;
   await page.goto("/tours", { waitUntil: "domcontentloaded" });
-  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible({ timeout: 60_000 });
-  await openOperatorTourDetail(page);
+  await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible({ timeout: 60_000 });
+  await openSmokeTourDetail(page);
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
   });
 
-  const registerLink = page.locator("[data-marketing-register]");
+  const registerLink = page.locator("[data-marketing-register]").first();
   await expect(registerLink).toBeVisible();
   await Promise.all([
     page.waitForURL(/\/catalog\/[^/]+\/register/, { timeout: 60_000 }),
@@ -66,8 +70,8 @@ test("SMK-MKT-03 marketing register CTA completes OTP + Denali intake", async ({
 
 test("SMK-MKT-02 tour detail and back navigation", async ({ page }) => {
   await page.goto("/tours", { waitUntil: "domcontentloaded" });
-  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible({ timeout: 60_000 });
-  await openOperatorTourDetail(page);
+  await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible({ timeout: 60_000 });
+  await openSmokeTourDetail(page);
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
   });
@@ -78,7 +82,7 @@ test("SMK-MKT-02 tour detail and back navigation", async ({ page }) => {
 });
 
 test("SMK-MKT-04 tour detail renders multi-day itinerary and segment photos", async ({ page }) => {
-  await page.goto(`/tours/${OPERATOR_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
+  await page.goto(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
   });
@@ -91,11 +95,11 @@ test("SMK-MKT-04 tour detail renders multi-day itinerary and segment photos", as
 test("SMK-MKT-16 denali catalog server filter shows active pill and dismisses", async ({ page }) => {
   await page.goto("/tours?category=mountain", { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
+  await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible();
   await expect(page.locator('[data-marketing-catalog-active-filter-id="category"]')).toBeVisible();
 
   await page.locator('[data-marketing-catalog-active-filter-id="category"]').click();
   await expect(page).toHaveURL(/\/tours(?:\?|$)/);
   await expect(page).not.toHaveURL(/category=/);
-  await expect(page.getByText(OPERATOR_PUBLISHED_TOUR_TITLE)).toBeVisible();
+  await expect(page.getByText(SMOKE_PUBLISHED_TOUR_TITLE)).toBeVisible();
 });

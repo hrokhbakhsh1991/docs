@@ -1,4 +1,4 @@
-import { Backpack, ShieldCheck, UserRound, Users } from "lucide-react";
+import { UserRound, ShieldCheck, Backpack, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-branding";
@@ -14,15 +14,16 @@ const WHY_TILE_ICONS: Record<HomeWhyTileId, typeof UserRound> = {
 
 export type HomeWhyProps = {
   readonly branding: PublicTenantBrandingSnapshot;
+  readonly whySectionAnchor: string;
 };
 
-export async function HomeWhy({ branding }: HomeWhyProps) {
+export async function HomeWhy({ branding, whySectionAnchor }: HomeWhyProps) {
   const t = await getTranslations("catalog");
   const siteName = branding.displayName ?? t("nav.defaultSiteName");
   const copy = { siteName };
 
   return (
-    <section data-marketing-home-why id="why-denali">
+    <section data-marketing-home-why id={whySectionAnchor}>
       <header>
         <h2>{t("home.full.why.title", copy)}</h2>
         <p>{t("home.full.why.lead")}</p>

@@ -15,7 +15,7 @@ import {
   formatCatalogPrice,
   shouldShowCatalogPrice,
 } from "./format-catalog-display";
-import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
+import { isAppLocale, resolveIntlDateLocale, resolveMarketingLocalePath, type AppLocale } from "@/i18n/routing";
 
 export type CatalogTourCardProps = {
   readonly tour: MarketingCatalogCard;
@@ -27,7 +27,7 @@ export async function CatalogTourCard({ tour, pluginId }: CatalogTourCardProps) 
   const localeRaw = await getLocale();
   const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
   const dateLocale = resolveIntlDateLocale(locale);
-  const detailHref = `/tours/${tour.id}`;
+  const detailHref = resolveMarketingLocalePath(`/tours/${tour.id}`, locale);
   const title = tour.title?.trim() || t("detail.untitled");
   const hasExtendedCatalogLayout = hasMarketingCatalogSurface(pluginId);
   const summaryLine = buildCatalogListCardSummary(tour, t, { pluginId });

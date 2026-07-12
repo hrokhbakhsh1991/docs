@@ -175,6 +175,31 @@ Stable selectors — **do not rename** without updating smoke specs.
 | `/me/registrations/{id}` | Detail + receipt upload |
 | `/me/profile` | Edit profile fields used at intake — **see** [portal-member-profile.md](./portal-member-profile.md) |
 
+### Registration chrome (PS-VIS-1 · 2026-07-12)
+
+Minimal shell on `/catalog/{tourId}/register` (DL-01 — still **no** bottom nav):
+
+| Hook | Location |
+|------|----------|
+| `data-portal-registration-chrome` | Brand bar header above flow |
+| `data-portal-registration-back` | Link to marketing tour detail (`backHref`) |
+| `data-portal-registration-logo` | Tenant logo from public branding API |
+| `data-portal-registration-workspace-label` | `displayName` fallback |
+
+Component: `apps/portal/src/catalog/portal-registration-chrome.tsx` · skin: `starter-portal.css` (L2 structure) + `denali-portal.css` link color.
+
+Member shell (PS-VIS-2): `data-portal-shell-logo` + `data-portal-locale-switcher` on `[data-portal-shell-header]`.
+
+Registration stepper (PS-VIS-3 · 2026-07-12):
+
+| Hook | Location |
+|------|----------|
+| `data-registration-stepper` | Ordered list above active flow step |
+| `data-registration-step` | Step id (`phone` · `otp` · `profile` · `intake`) |
+| `data-registration-step-state` | `upcoming` · `current` · `complete` |
+
+Component: `apps/portal/src/catalog/catalog-registration-stepper.tsx` · i18n: `catalogRegistration.stepper.*`.
+
 **Architecture freeze:** [platform-portal-member-profile.mdoc](../../phase-19/platform-portal-member-profile.mdoc). Profile reads/writes use `GET/PATCH /api/me/profile` only (M4).
 
 | Hook | Location |

@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+
+import { isAppLocale, resolveMarketingToursListPath, type AppLocale } from "@/i18n/routing";
 
 import { resolveMarketingCategoryLabel } from "./resolve-marketing-category-label";
 
@@ -7,17 +9,14 @@ export type HomeCategoriesProps = {
   readonly categories: readonly string[];
 };
 
-function buildCategoryHref(category: string): string {
-  const params = new URLSearchParams({ category });
-  return `/tours?${params.toString()}`;
-}
-
 export async function HomeCategories({ categories }: HomeCategoriesProps) {
   if (categories.length === 0) {
     return null;
   }
 
   const t = await getTranslations("catalog");
+  const localeRaw = await getLocale();
+  const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
 
   return (
     <section data-marketing-home-categories>
@@ -29,7 +28,7 @@ export async function HomeCategories({ categories }: HomeCategoriesProps) {
         {categories.map((category) => (
           <Link
             key={category}
-            href={buildCategoryHref(category)}
+            href={resolveMarketingToursListPath(locale, { category })}
             data-marketing-home-category-chip
             data-marketing-home-category-chip-id={category}
           >

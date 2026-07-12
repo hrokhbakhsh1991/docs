@@ -85,8 +85,11 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     assert.match(skin, /\[data-portal-shell\]/);
     assert.match(skin, /\[data-portal-shell-bottom-nav\]/);
     assert.match(skin, /\[data-portal-shell-nav-link\]\[data-active="true"\]/);
-    assert.match(skin, /#059669/);
-    assert.match(skin, /design-language\/MASTER\.md/);
+    assert.match(skin, /portal-semantic-tokens\.css/);
+    assert.match(skin, /var\(--color-primary\)/);
+    assert.match(skin, /\[data-portal-member-registrations-empty-cta\]/);
+    assert.match(skin, /\[data-portal-member-home-quick-links\]/);
+    assert.match(skin, /main\[data-portal-member-module-stub\]/);
   });
 
   it("G-P6-UI-07 portal layout loads Calistoga heading font", () => {

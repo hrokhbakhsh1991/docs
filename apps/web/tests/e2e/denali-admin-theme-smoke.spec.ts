@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const DENALI_PRIMARY = "#0f766e";
+const DENALI_PRIMARY = "#059669";
 
 /**
  * Denali operator skin — body-scoped shadcn bridge (portal-safe).

@@ -12,8 +12,11 @@ export const DEFAULT_TENANT_BRANDING_BY_WORKSPACE_TYPE = Object.freeze({
     cssVariables: Object.freeze({ "--color-primary": "#2563eb" }),
   }),
   denali: Object.freeze({
-    primaryColor: "#0f766e",
-    cssVariables: Object.freeze({ "--color-primary": "#0f766e" }),
+    primaryColor: "#059669",
+    cssVariables: Object.freeze({
+      "--color-primary": "#059669",
+      "--color-primary-hover": "#047857",
+    }),
   }),
   urban: Object.freeze({
     primaryColor: "#0d9488",

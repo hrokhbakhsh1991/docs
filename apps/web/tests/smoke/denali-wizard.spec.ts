@@ -64,7 +64,7 @@ test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
     const primary = await page.locator("body").evaluate((el) =>
       getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
     );
-    expect(primary).toBe("#0f766e");
+    expect(primary).toBe("#059669");
 
     const continueBtn = page.getByTestId("workspace-wizard-step-next");
     if (await continueBtn.isVisible().catch(() => false)) {

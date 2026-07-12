@@ -1,5 +1,6 @@
 import {
   fetchPublicTenantContextForHost as fetchGuestPublicTenantContextForHost,
+  resolveGuestBootstrapRevalidateSeconds,
   type PublicTenantContextSnapshot,
 } from "@app-tour/guest-surface-host";
 
@@ -20,6 +21,6 @@ export async function fetchPublicTenantContextForHost(
 ): Promise<PublicTenantContextSnapshot | null> {
   return fetchGuestPublicTenantContextForHost(host, {
     apiBaseUrl: apiBaseUrl(),
-    nextRevalidate: 300,
+    nextRevalidate: resolveGuestBootstrapRevalidateSeconds(),
   });
 }

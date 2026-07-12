@@ -11,6 +11,7 @@ import { MemberModuleEntitlementGate } from "@/me/member-module-entitlement-gate
 import {
   resolveMemberPortalTripsDetailPath,
 } from "@/me/resolve-member-portal-routes.server";
+import { resolveMarketingToursUrl } from "@/marketing/resolve-marketing-public-url";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
@@ -33,26 +34,39 @@ export default async function MeRegistrationsPage() {
       departureLabel: await formatMemberRegistrationDeparture(item.departureAt),
     }))
   );
+  const browseToursUrl = resolveMarketingToursUrl(host);
 
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
       <main data-portal-member-registrations>
         <h1>{t("title")}</h1>
         {rows.length === 0 ? (
-          <p data-portal-member-registrations-empty>{t("empty")}</p>
+          <div data-portal-member-registrations-empty-state>
+            <p data-portal-member-registrations-empty>{t("empty")}</p>
+            <a href={browseToursUrl} data-portal-member-registrations-empty-cta>
+              {t("emptyCta")}
+            </a>
+          </div>
         ) : (
           <ul>
             {rows.map(({ item, statusLabel, paymentStatusLabel, departureLabel }) => (
               <li key={item.id} data-portal-member-registration-row>
-                <a href={resolveMemberPortalTripsDetailPath(bootstrap.pluginId, item.id)}>
-                  {item.tourTitle}
-                </a>
-                <p>
-                  {t("statusLine", {
-                    status: statusLabel,
-                    paymentStatus: paymentStatusLabel,
-                    departureAt: departureLabel,
-                  })}
+                <div data-portal-member-registration-row-header>
+                  <a href={resolveMemberPortalTripsDetailPath(bootstrap.pluginId, item.id)}>
+                    {item.tourTitle}
+                  </a>
+                  <span
+                    data-portal-member-registration-status-badge
+                    data-status={item.status}
+                  >
+                    {statusLabel}
+                  </span>
+                </div>
+                <p data-portal-member-registration-meta>
+                  <span data-portal-member-registration-payment-status>
+                    {paymentStatusLabel}
+                  </span>
+                  <span data-portal-member-registration-departure>{departureLabel}</span>
                 </p>
               </li>
             ))}

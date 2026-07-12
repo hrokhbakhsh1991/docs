@@ -20,6 +20,87 @@ body[data-app-surface="portal"] [data-slot="shell-header"] {
   backdrop-filter: blur(12px);
 }
 
+body[data-app-surface="portal"] [data-portal-shell-brand],
+body[data-app-surface="portal"] [data-slot="shell-brand"] {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+body[data-app-surface="portal"] [data-portal-shell-logo] {
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+body[data-app-surface="portal"] [data-portal-shell-header-end],
+body[data-app-surface="portal"] [data-slot="shell-header-end"] {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"] [data-portal-locale-switcher],
+body[data-app-surface="portal"] [data-slot="shell-locale-switcher"] {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+body[data-app-surface="portal"] [data-portal-locale-switcher] button {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+body[data-app-surface="portal"] [data-portal-locale-switcher] button[disabled] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  opacity: 1;
+  cursor: default;
+}
+
+body[data-app-surface="portal"] [data-portal-registration-chrome],
+body[data-app-surface="portal"] [data-slot="registration-chrome"] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+}
+
+body[data-app-surface="portal"] [data-portal-registration-back] {
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+body[data-app-surface="portal"] [data-portal-registration-brand] {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="portal"] [data-portal-registration-logo] {
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+body[data-app-surface="portal"] [data-portal-registration-workspace-label] {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
 body[data-app-surface="portal"] [data-portal-shell-workspace-label] {
   font-size: 0.875rem;
   font-weight: 600;
@@ -59,6 +140,107 @@ body[data-app-surface="portal"] [data-portal-shell-nav-link] {
   font-size: 0.875rem;
   font-weight: 500;
   color: color-mix(in oklab, var(--foreground) 80%, transparent);
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
+  min-height: 3.25rem;
+}
+
+body[data-app-surface="portal"] [data-portal-shell-nav-icon] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+body[data-app-surface="portal"] [data-portal-shell-nav-label] {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+body[data-app-surface="portal"] [data-registration-stepper] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+}
+
+body[data-app-surface="portal"] [data-registration-stepper] li {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+body[data-app-surface="portal"] [data-registration-step-index] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="portal"] [data-registration-step-state="current"] [data-registration-step-index] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+body[data-app-surface="portal"] [data-registration-step-state="complete"] [data-registration-step-index] {
+  background: color-mix(in oklab, var(--primary) 15%, transparent);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+body[data-app-surface="portal"] [data-registration-step-label] {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="portal"] [data-registration-step-state="current"] [data-registration-step-label] {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+body[data-app-surface="portal"] main[data-portal-member-home] [data-portal-member-home-lede] {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="portal"] main[data-portal-member-home] [data-portal-member-home-quick-links] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"] main[data-portal-member-registrations] [data-portal-member-registrations-empty-state] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"] main[data-portal-member-module-stub] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 body[data-app-surface="portal"] [data-portal-shell-nav-link]:hover {

@@ -158,7 +158,7 @@ Authority: [`docs/phase-12/subphases/12.4-denali-flat-edit-form.md`](../../phase
 | `ui-primitives`           | `--color-primary`, `--color-bg-page`, `--color-surface`, … |
 | Legacy stepper in globals | `--primary`, `--border`, …                                 |
 
-Denali wizard CSS sets **both** under `[data-new-tour-wizard]` so primitives and stepper share teal `#0f766e` (light) / `#5eead4` (dark).
+Denali wizard CSS sets **both** under `[data-new-tour-wizard]` so primitives and stepper share emerald `#059669` (light) / `#5eead4` (dark).
 
 Explicit primitive aliases on page root (phase 2): `--color-surface`, `--color-border`, `--color-focus-ring` re-bound alongside shadcn `--primary` / `--card` bridge.
 
@@ -169,7 +169,7 @@ Same pattern as admin shell — platform `.theme-dark` in `globals.css` would in
 1. `html.dark:has(body[data-workspace-plugin="denali"]) [data-new-tour-wizard]`
 2. `body[data-workspace-plugin="denali"] .theme-dark [data-new-tour-wizard]`
 
-**Tenant inline override:** `[data-tenant-theme]` ships API `--color-primary` (often `#0f766e`) as an inline style. That value wins over `body` for descendants and would freeze `ui-primitives` primary buttons in dark mode. Denali wizard skin therefore **re-binds** `--color-primary` / `--color-primary-fg` on `[data-new-tour-wizard]` in dark selectors so step nav + primitive CTAs track teal `#5eead4`.
+**Tenant inline override:** `[data-tenant-theme]` ships API `--color-primary` (often `#059669`) as an inline style. That value wins over `body` for descendants and would freeze `ui-primitives` primary buttons in dark mode. Denali wizard skin therefore **re-binds** `--color-primary` / `--color-primary-fg` on `[data-new-tour-wizard]` in dark selectors so step nav + primitive CTAs track teal `#5eead4`.
 
 ## Theme bundle
 

@@ -20,6 +20,8 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
 import { resolveCatalogRegistrationErrorMessage } from "@/features/catalog/resolve-catalog-registration-error";
 
+import { CatalogRegistrationStepper } from "@/catalog/catalog-registration-stepper";
+
 type PublicCatalogRegistrationFlowProps = {
   readonly workspace: string;
   readonly tenantId: string;
@@ -160,6 +162,7 @@ export function PublicCatalogRegistrationFlow({
       data-public-registration-flow
       {...(resumeAtIntake ? { "data-registration-resume": "intake" } : {})}
     >
+      <CatalogRegistrationStepper currentStep={state.currentStep} />
       <Step context={context} state={state} dispatch={dispatch} resolveError={resolveError} />
     </div>
   );

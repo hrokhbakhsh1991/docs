@@ -114,10 +114,9 @@ test("SMK-PTL-06 member logout clears session and blocks /me area", async ({ pag
     ),
     logoutButton.first().click(),
   ]);
-  const logoutBody = await logoutResponse.text();
   expect(
     logoutResponse.ok(),
-    `logout failed (${logoutResponse.status()}): ${logoutBody.slice(0, 240)}`
+    `logout failed (${logoutResponse.status()})`
   ).toBeTruthy();
 
   await page.waitForURL((url) => !url.pathname.startsWith("/me"), { timeout: 60_000 });

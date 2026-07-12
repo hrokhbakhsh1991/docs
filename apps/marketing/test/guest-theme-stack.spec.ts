@@ -112,11 +112,11 @@ describe("guest-theme-stack.spec.ts — marketing", () => {
     );
   });
 
-  it("G-P6-UI-07 denali marketing skin aligns with denali-club MASTER tokens", () => {
+  it("G-P6-UI-07 denali marketing skin aligns with denali-club DTCG tokens", () => {
     const skin = readMarketingSkinBundle(denaliMarketingSkinPath);
-    assert.match(skin, /--color-primary: #059669/);
-    assert.match(skin, /--color-accent: #d97706/);
-    assert.match(skin, /packages\/workspaces\/denali\/design-language\/MASTER\.md/);
+    assert.match(skin, /--color-primary: (?:#059669|var\(--denali-forest-600\))/);
+    assert.match(skin, /--denali-forest-600: #059669/);
+    assert.match(skin, /--mkt-accent-mid: #b45309/);
     assert.match(skin, /background: var\(--color-accent\)/);
     assert.match(skin, /--font-heading: var\(--font-heading-en/);
     assert.match(skin, /--mkt-text-h1:/);
