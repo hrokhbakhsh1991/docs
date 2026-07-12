@@ -7,6 +7,7 @@ import {
   validateMemberProfileDisplayName,
   validateMemberProfileEmail,
   validateMemberProfileFatherName,
+  validateMemberProfileGender,
   validateMemberProfileNationalId,
 } from "./member-profile-validators";
 import { WORKSPACE_MEMBER_PROFILE_CAPABILITIES } from "./workspace-member-profile-capabilities.generated";
@@ -41,6 +42,7 @@ const FIELD_VALIDATORS: Readonly<Partial<Record<MemberProfileFieldId, MemberProf
     nationalId: validateMemberProfileNationalId,
     fatherName: validateMemberProfileFatherName,
     birthDate: validateMemberProfileBirthDate,
+    gender: validateMemberProfileGender,
   });
 
 function attachValidators(

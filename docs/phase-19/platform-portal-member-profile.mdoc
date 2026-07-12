@@ -241,7 +241,7 @@ Validators live in `member-profile-validators.ts` — **BFF/API only**; portal U
 
 | pluginId | editableFields | readOnlyFields |
 | -------- | -------------- | -------------- |
-| `denali` | `displayName`, `email`, `nationalId`, `fatherName`, `birthDate` | `mobile` (+ avatar via `/api/me/avatar` · mobile change via `/api/me/mobile/*` when `mobileChangeViaOtp`) |
+| `denali` | `displayName`, `email`, `gender`, `nationalId`, `fatherName`, `birthDate` | `mobile` (+ avatar via `/api/me/avatar` · mobile change via `/api/me/mobile/*` when `mobileChangeViaOtp`) |
 | `urban` | `displayName` | `email` |
 
 Rows are **manifest-generated** (`workspace-member-profile-capabilities.generated.ts`). Unknown `pluginId` → `MemberProfileNotConfiguredError` (fail-closed; no silent default).

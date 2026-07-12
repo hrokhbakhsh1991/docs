@@ -21,12 +21,12 @@ export const WORKSPACE_MEMBER_PROFILE_CAPABILITIES: Readonly<
   Record<string, GeneratedMemberProfileCapabilities>
 > = Object.freeze({
   "denali": Object.freeze({
-    editableFields: Object.freeze(["displayName","email","nationalId","fatherName","birthDate"] as const satisfies readonly MemberProfileFieldId[]),
+    editableFields: Object.freeze(["displayName","email","gender","nationalId","fatherName","birthDate"] as const satisfies readonly MemberProfileFieldId[]),
     readOnlyFields: Object.freeze(["mobile"] as const satisfies readonly MemberProfileFieldId[]),
     sections: Object.freeze([
       Object.freeze({
         id: "identity",
-        fields: Object.freeze(["displayName","mobile","email"] as const satisfies readonly MemberProfileFieldId[]),
+        fields: Object.freeze(["displayName","mobile","email","gender"] as const satisfies readonly MemberProfileFieldId[]),
       }),
       Object.freeze({
         id: "participant",

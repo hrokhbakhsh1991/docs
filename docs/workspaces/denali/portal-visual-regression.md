@@ -29,6 +29,7 @@
 | MEM-TRIP-02 | `[data-portal-member-registrations-empty-cta]` | Empty → marketing `/tours` | 3 |
 | MEM-WALLET-01 | `main[data-portal-member-module-stub][data-portal-member-module-id="wallet"]` | Hidden wallet stub | 3 |
 | MEM-PROF-01 | `main[data-portal-member-profile]` | Profile form | — |
+| MEM-PROF-02 | `[data-member-profile-field="gender"] select` | Gender select (SDK enum) | — |
 
 ## Token parity (D1)
 
@@ -58,4 +59,5 @@
 | `apps/marketing/test/resolve-app-locale.spec.ts` | GX-1 (`MKT-GX-01`) |
 | `apps/marketing/test/marketing-shell-nav.spec.ts` | GX-1 shell wiring (`MKT-GX-02`) |
 | `apps/portal/tests/e2e/portal-shell-visual.spec.ts` | SH-01 baseline (`SMK-PTL-VIS-01`, tour `…0220` on `denali.portal`) |
+| `apps/portal/tests/e2e/portal-member-profile-smoke.spec.ts` | DEN-PROF-01..05, MEM-PROF-02 |
 | `scripts/guards/guard-public-catalog-m17.mjs` | TOK-01/02 DTCG guest semantic primary |

@@ -1,3 +1,5 @@
+import { isOperatorProfileGender } from "../operator/identity/operator-profile-gender";
+
 import type { MemberProfileFieldId } from "./member-profile-field-id";
 
 /** Coded error when invalid; `null` when value is acceptable (including empty clear). */
@@ -53,6 +55,14 @@ export function validateMemberProfileEmail(value: string): string | null {
   return trimmed.length <= 320 && EMAIL_PATTERN.test(trimmed) ? null : "PROFILE_EMAIL_INVALID";
 }
 
+export function validateMemberProfileGender(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  return isOperatorProfileGender(trimmed) ? null : "PROFILE_GENDER_INVALID";
+}
+
 const MEMBER_PROFILE_FIELD_VALIDATORS: Readonly<
   Partial<Record<MemberProfileFieldId, MemberProfileFieldValidator>>
 > = Object.freeze({
@@ -61,6 +71,7 @@ const MEMBER_PROFILE_FIELD_VALIDATORS: Readonly<
   nationalId: validateMemberProfileNationalId,
   fatherName: validateMemberProfileFatherName,
   birthDate: validateMemberProfileBirthDate,
+  gender: validateMemberProfileGender,
 });
 
 export function resolveMemberProfileFieldValidator(

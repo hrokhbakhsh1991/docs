@@ -54,6 +54,12 @@
       "identity": "Identity",
       "participant": "Additional details"
     },
+    "genderOptions": {
+      "unset": "Not selected",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
     "mobileReadOnlyHint": "Mobile number cannot be edited directly on this page.",
     "mobileChange": {
       "start": "Change mobile number",
@@ -101,6 +107,7 @@
       "PROFILE_DISPLAY_NAME_INVALID": "Enter a valid display name.",
       "PROFILE_FATHER_NAME_INVALID": "Enter a valid father's name.",
       "PROFILE_EMAIL_INVALID": "Enter a valid email address.",
+      "PROFILE_GENDER_INVALID": "Selected gender is not valid.",
       "PROFILE_FIELD_READ_ONLY": "This field cannot be edited.",
       "PROFILE_FIELD_NOT_SUPPORTED": "This field is not supported.",
       "EMPTY_PATCH": "No changes to save.",

@@ -34,6 +34,7 @@ test("DEN-PROF-01 Denali /me/profile shows identity and participant fields", asy
   await expect(page.locator('[data-member-profile-field="nationalId"] input')).toBeVisible();
   await expect(page.locator('[data-member-profile-field="fatherName"] input')).toBeVisible();
   await expect(page.locator('[data-member-profile-field="birthDate"] input')).toBeVisible();
+  await expect(page.locator('[data-member-profile-field="gender"] select')).toBeVisible();
   await expect(page.locator("[data-member-profile-mobile-change]")).toBeVisible();
   await expect(page.locator("[data-member-profile-save]")).toBeVisible();
 });
@@ -113,4 +114,17 @@ test("DEN-PROF-03 intake hides nationalId when profile already has it", async ({
     OPERATOR_SMOKE_PARTICIPANT_TOUR_ID
   );
   await expect(page.locator('[data-intake-field="nationalId"]')).toHaveCount(0);
+});
+
+test("DEN-PROF-05 gender select PATCH persists after reload", async ({ page }) => {
+  await gotoMemberProfile(page);
+  await saveMemberProfileFields(page, {
+    gender: "female",
+  });
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("main[data-portal-member-profile]")).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.locator('[data-member-profile-field="gender"] select')).toHaveValue("female");
 });

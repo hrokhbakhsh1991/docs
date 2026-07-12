@@ -135,6 +135,7 @@ describe("portal-member-registrations", () => {
     assert.match(page, /<main[^>]*data-portal-member-profile/);
     assert.match(form, /data-portal-member-profile/);
     assert.match(form, /data-member-profile-ready/);
+    assert.match(form, /MemberProfileGenderField/);
     assert.match(form, /data-member-profile-save/);
     assert.match(form, /type="button"/);
     assert.match(form, /\/api\/me\/profile/);

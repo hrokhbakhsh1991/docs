@@ -333,6 +333,7 @@ export {
   validateMemberProfileBirthDate,
   validateMemberProfileDisplayName,
   validateMemberProfileFatherName,
+  validateMemberProfileGender,
   validateMemberProfileNationalId,
   resolveMemberProfileFieldValidator,
   type MemberProfileFieldValidator,

@@ -8,6 +8,7 @@ import type { MemberProfileFieldId, MemberProfileViewProfile } from "@/me/member
 import { resolveMemberProfileErrorMessage } from "@/me/resolve-member-profile-error";
 
 import { MemberProfileAvatar } from "./member-profile-avatar";
+import { MemberProfileGenderField } from "./member-profile-gender-field";
 import { MemberProfileMobileChange } from "./member-profile-mobile-change";
 
 type MemberProfileFormProps = {
@@ -171,21 +172,43 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
 
             return (
               <div key={fieldId} data-member-profile-field={fieldId}>
-                <label htmlFor={`profile-${fieldId}`}>{label}</label>
-                <Input
-                  id={`profile-${fieldId}`}
-                  name={fieldId}
-                  type={fieldInputType(fieldId)}
-                  inputMode={fieldInputMode(fieldId)}
-                  value={fieldValues[fieldId] ?? ""}
-                  onChange={(event) =>
-                    setFieldValues((current) => ({
-                      ...current,
-                      [fieldId]: event.target.value,
-                    }))
-                  }
-                  autoComplete={fieldId === "email" ? "email" : fieldId === "displayName" ? "name" : "off"}
-                />
+                {fieldId === "gender" ? (
+                  <MemberProfileGenderField
+                    id={`profile-${fieldId}`}
+                    label={label}
+                    value={fieldValues[fieldId] ?? ""}
+                    onChange={(nextValue) =>
+                      setFieldValues((current) => ({
+                        ...current,
+                        gender: nextValue,
+                      }))
+                    }
+                  />
+                ) : (
+                  <>
+                    <label htmlFor={`profile-${fieldId}`}>{label}</label>
+                    <Input
+                      id={`profile-${fieldId}`}
+                      name={fieldId}
+                      type={fieldInputType(fieldId)}
+                      inputMode={fieldInputMode(fieldId)}
+                      value={fieldValues[fieldId] ?? ""}
+                      onChange={(event) =>
+                        setFieldValues((current) => ({
+                          ...current,
+                          [fieldId]: event.target.value,
+                        }))
+                      }
+                      autoComplete={
+                        fieldId === "email"
+                          ? "email"
+                          : fieldId === "displayName"
+                            ? "name"
+                            : "off"
+                      }
+                    />
+                  </>
+                )}
               </div>
             );
           })}

@@ -28,10 +28,10 @@ Registered in `resolveMemberProfileCapabilities("denali")` (manifest-generated):
 
 | Capability | Value |
 | ---------- | ----- |
-| `editableFields` | `displayName`, `email`, `nationalId`, `fatherName`, `birthDate` |
+| `editableFields` | `displayName`, `email`, `gender`, `nationalId`, `fatherName`, `birthDate` |
 | `readOnlyFields` | `mobile` (display + OTP change flow — not PATCH) |
 | `mobileChangeViaOtp` | `true` |
-| `sections` | `identity` → displayName · mobile · email · `participant` → nationalId · fatherName · birthDate |
+| `sections` | `identity` → displayName · mobile · email · **gender** · `participant` → nationalId · fatherName · birthDate |
 
 **Avatar (enterprise):** separate upload surface — `POST/DELETE /api/me/avatar` portal BFF → `identity/me/avatar` (same storage as operator admin). UI shows preview + upload/remove; not a text `avatarUrl` field in the PATCH form.
 
@@ -60,6 +60,7 @@ Denali intake (`resolveCatalogIntakeCapabilities`) shares participant fields wit
 | `nationalId` | editable | shown if tour `nationalIdRequired` **and** profile empty | shown when tour requires |
 | `fatherName` | editable | same pattern with `fatherNameRequired` | same |
 | `birthDate` | editable | same pattern with `birthDateRequired` | same |
+| `gender` | **editable** (select · SDK enum) | not at intake | — |
 | `avatarUrl` | upload surface (not PATCH text) | — | — |
 
 **Persist rule (unchanged):** intake may patch profile fields **only when** `registrantTarget=self` after `POST /denali/registrations` (see `registration.service.ts`).
@@ -89,6 +90,19 @@ app/me/layout.tsx
 
 Direct URL: `/me/profile`.
 
+## Cross-surface parity (portal · admin · marketing)
+
+| Field | Portal `/me/profile` | Admin `/settings/me` | Marketing |
+| ----- | -------------------- | -------------------- | --------- |
+| `displayName` | PATCH (BFF) | PATCH (`/api/identity/me`) | onboarding step only |
+| `email` | PATCH (Denali) | — | onboarding step |
+| `mobile` | read-only + OTP BFF | read-only | registration OTP |
+| `gender` | PATCH · `OPERATOR_PROFILE_GENDERS` | PATCH · same enum | — |
+| `nationalId` / `fatherName` / `birthDate` | PATCH (Denali manifest) | — | intake when required |
+| `avatar` | `/api/me/avatar*` | `/api/identity/me/avatar*` | — |
+
+Shared storage: `GET/PATCH /identity/me` · `membershipMetadata`. Portal must use `/api/me/profile` BFF only (INV-MP-01). Marketing has no settings page (PCMS-001).
+
 ### Current implementation (post-M6 · repo truth)
 
 | Piece | Today | Governance |
@@ -116,6 +130,7 @@ Direct URL: `/me/profile`.
 | `data-member-profile-avatar` | Avatar preview + upload/remove |
 | `data-member-profile-avatar-upload` | File input trigger |
 | `data-member-profile-avatar-remove` | Remove avatar button |
+| `data-member-profile-field="gender"` | Gender select (`OPERATOR_PROFILE_GENDERS`) |
 | `data-member-profile-save` | Save button (`type="button"` · `PATCH /api/me/profile`) |
 
 Smoke warmup: `apps/portal/tests/e2e/portal-smoke-global-setup.ts` pre-compiles `/catalog/{210,212}/register` before Playwright navigation (first dev compile can exceed 90s).
@@ -159,10 +174,11 @@ Requires: SDK capability extension · `membershipMetadata` schema doc · PII egr
 | DEN-PROF-02 | PATCH persists participant fields · intake pre-fill reflects saved nationalId |
 | DEN-PROF-03 | Tour with `nationalIdRequired` hides intake field when profile already has nationalId |
 | DEN-PROF-04 | Mobile change via OTP updates `User.mobile` and refreshes session |
+| DEN-PROF-05 | Gender select PATCH persists · reload shows saved value |
 | MEM-AUTH-01 | `POST /api/public-auth/logout` clears `atour_mb_session` |
 | MEM-AUTH-02 | `/me` nav exposes `data-public-auth-logout` → portal home |
 
-Specs: `packages/workspace-sdk/test/resolve-member-profile-capabilities.spec.ts` (**SDK-MP-CAP-01..04**) · `apps/portal/test/portal-member-profile-bff.spec.ts` (**MP-BFF-01..14**) · `apps/portal/test/portal-public-auth-logout.spec.ts` (**MEM-AUTH-01**) · `apps/portal/tests/e2e/portal-member-profile-smoke.spec.ts` (**DEN-PROF-01..04**) · `apps/api/test/identity-me-mobile-change.spec.ts` (**API-ME-MOB-01..06**).
+Specs: `packages/workspace-sdk/test/resolve-member-profile-capabilities.spec.ts` (**SDK-MP-CAP-01..04**) · `apps/portal/test/portal-member-profile-bff.spec.ts` (**MP-BFF-01..14**) · `apps/portal/test/portal-public-auth-logout.spec.ts` (**MEM-AUTH-01**) · `apps/portal/tests/e2e/portal-member-profile-smoke.spec.ts` (**DEN-PROF-01..05**) · `apps/api/test/identity-me-mobile-change.spec.ts` (**API-ME-MOB-01..06**).
 
 ---
 

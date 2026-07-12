@@ -28,6 +28,7 @@ export async function saveMemberProfileFields(
   input: {
     readonly displayName?: string;
     readonly email?: string;
+    readonly gender?: string;
     readonly nationalId?: string;
     readonly fatherName?: string;
     readonly birthDate?: string;
@@ -45,6 +46,11 @@ export async function saveMemberProfileFields(
   }
   if (input.email !== undefined) {
     await fillProfileField("email", input.email);
+  }
+  if (input.gender !== undefined) {
+    const select = page.locator('[data-member-profile-field="gender"] select');
+    await select.selectOption(input.gender);
+    await expect(select).toHaveValue(input.gender);
   }
   if (input.nationalId !== undefined) {
     await fillProfileField("nationalId", input.nationalId);

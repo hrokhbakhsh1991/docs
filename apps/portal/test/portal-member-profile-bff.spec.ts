@@ -28,6 +28,7 @@ describe("member-profile-bff.server (M2)", () => {
     fatherName: "Father",
     birthDate: "1990-05-15",
     email: "hidden@example.com",
+    gender: "female",
   };
 
   it("MP-BFF-01 denali GET view exposes only capability fields", () => {
@@ -42,15 +43,18 @@ describe("member-profile-bff.server (M2)", () => {
       "displayName",
       "email",
       "fatherName",
+      "gender",
       "mobile",
       "nationalId",
     ]);
     assert.equal(view.profile.fields.email, "hidden@example.com");
     assert.equal(view.profile.fields.displayName, "Portal Member");
     assert.equal(view.profile.fields.nationalId, "1234567890");
+    assert.equal(view.profile.fields.gender, "female");
     assert.deepEqual(view.profile.capabilities.editableFields, [
       "displayName",
       "email",
+      "gender",
       "nationalId",
       "fatherName",
       "birthDate",
@@ -85,7 +89,16 @@ describe("member-profile-bff.server (M2)", () => {
     const fields = pickExposedMemberProfileFields(denaliIdentity, caps);
     assert.equal(fields.email, "hidden@example.com");
     assert.equal(fields.mobile, null);
-    assert.equal((fields as { gender?: string }).gender, undefined);
+    assert.equal(fields.gender, "female");
+  });
+
+  it("MP-BFF-03b pickExposedMemberProfileFields returns null gender when unset", () => {
+    const caps = resolveMemberProfileCapabilities("denali");
+    const fields = pickExposedMemberProfileFields(
+      { displayName: "Member", gender: undefined },
+      caps
+    );
+    assert.equal(fields.gender, null);
   });
 
   it("MP-BFF-06 PATCH accepts editable displayName on denali", () => {
@@ -110,6 +123,23 @@ describe("member-profile-bff.server (M2)", () => {
       return;
     }
     assert.deepEqual(ok.patch, { email: "member@example.com" });
+  });
+
+  it("MP-BFF-07c PATCH accepts editable gender on denali", () => {
+    const ok = parseMemberProfilePatchBody({ fields: { gender: "female" } }, "denali");
+    assert.ok("patch" in ok);
+    if (!("patch" in ok)) {
+      return;
+    }
+    assert.deepEqual(ok.patch, { gender: "female" });
+  });
+
+  it("MP-BFF-07d PATCH rejects invalid gender on denali", () => {
+    const err = parseMemberProfilePatchBody({ fields: { gender: "invalid" } }, "denali");
+    assert.equal("code" in err && err.code, "PROFILE_GENDER_INVALID");
+    assert.deepEqual("fieldErrors" in err && err.fieldErrors, {
+      gender: "PROFILE_GENDER_INVALID",
+    });
   });
 
   it("MP-BFF-04 serializeMemberProfileCapabilities strips validators", () => {

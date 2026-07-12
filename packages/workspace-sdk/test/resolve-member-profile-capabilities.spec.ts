@@ -17,6 +17,7 @@ describe("resolve-member-profile-capabilities", () => {
     assert.deepEqual(caps.editableFields, [
       "displayName",
       "email",
+      "gender",
       "nationalId",
       "fatherName",
       "birthDate",
@@ -34,6 +35,7 @@ describe("resolve-member-profile-capabilities", () => {
     assert.equal(typeof caps.validators.birthDate, "function");
     assert.equal(typeof caps.validators.displayName, "function");
     assert.equal(typeof caps.validators.email, "function");
+    assert.equal(typeof caps.validators.gender, "function");
     assert.equal(caps.validators.nationalId!("1234567890"), null);
     assert.equal(caps.validators.nationalId!("bad"), "PROFILE_NATIONAL_ID_INVALID");
   });
@@ -74,5 +76,14 @@ describe("member-profile-validators", () => {
   it("SDK-MP-VAL-03 displayName requires non-empty within max length", () => {
     assert.equal(validateMemberProfileDisplayName(""), "PROFILE_DISPLAY_NAME_INVALID");
     assert.equal(validateMemberProfileDisplayName("Member"), null);
+  });
+
+  it("SDK-MP-VAL-04 gender accepts empty or enum values", async () => {
+    const { validateMemberProfileGender } = await import("../src/profile/member-profile-validators");
+    assert.equal(validateMemberProfileGender(""), null);
+    assert.equal(validateMemberProfileGender("male"), null);
+    assert.equal(validateMemberProfileGender("female"), null);
+    assert.equal(validateMemberProfileGender("other"), null);
+    assert.equal(validateMemberProfileGender("invalid"), "PROFILE_GENDER_INVALID");
   });
 });

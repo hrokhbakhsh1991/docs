@@ -159,13 +159,13 @@
     }
   },
   "memberProfile": {
-    "editableFields": ["displayName", "email", "nationalId", "fatherName", "birthDate"],
+    "editableFields": ["displayName", "email", "gender", "nationalId", "fatherName", "birthDate"],
     "readOnlyFields": ["mobile"],
     "mobileChangeViaOtp": true,
     "sections": [
       {
         "id": "identity",
-        "fields": ["displayName", "mobile", "email"]
+        "fields": ["displayName", "mobile", "email", "gender"]
       },
       {
         "id": "participant",

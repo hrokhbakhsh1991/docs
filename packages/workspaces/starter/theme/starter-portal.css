@@ -301,6 +301,25 @@ body[data-app-surface="portal"] main[data-portal-member-profile] [data-member-pr
   margin-bottom: var(--space-1);
 }
 
+body[data-app-surface="portal"] main[data-portal-member-profile] [data-member-profile-field] select {
+  min-height: var(--layout-min-tap-target);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: var(--border-width-default) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+body[data-app-surface="portal"] main[data-portal-member-profile] [data-member-profile-field] select:focus-visible {
+  outline: var(--focus-outline-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-outline-offset);
+  border-color: var(--color-primary);
+}
+
 body[data-app-surface="portal"] main[data-portal-member-profile] [data-member-profile-field] > p:nth-child(2) {
   font-size: 0.875rem;
   color: var(--muted-foreground);

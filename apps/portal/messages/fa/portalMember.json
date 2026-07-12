@@ -54,6 +54,12 @@
       "identity": "اطلاعات هویتی",
       "participant": "اطلاعات تکمیلی"
     },
+    "genderOptions": {
+      "unset": "انتخاب نشده",
+      "male": "مرد",
+      "female": "زن",
+      "other": "سایر"
+    },
     "mobileReadOnlyHint": "شماره موبایل را نمی‌توان مستقیماً در این صفحه ویرایش کرد.",
     "mobileChange": {
       "start": "تغییر شماره موبایل",
@@ -101,6 +107,7 @@
       "PROFILE_DISPLAY_NAME_INVALID": "نام نمایشی معتبر وارد کنید.",
       "PROFILE_FATHER_NAME_INVALID": "نام پدر معتبر وارد کنید.",
       "PROFILE_EMAIL_INVALID": "ایمیل معتبر وارد کنید.",
+      "PROFILE_GENDER_INVALID": "جنسیت انتخاب‌شده معتبر نیست.",
       "PROFILE_FIELD_READ_ONLY": "این فیلد قابل ویرایش نیست.",
       "PROFILE_FIELD_NOT_SUPPORTED": "این فیلد پشتیبانی نمی‌شود.",
       "EMPTY_PATCH": "تغییری برای ذخیره وجود ندارد.",
