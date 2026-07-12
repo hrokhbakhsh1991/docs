@@ -26,6 +26,7 @@ describe("member-home-bff — PS-5", () => {
     assert.equal(payload.ok, true);
     assert.ok(payload.modules.some((module) => module.id === "home" && module.entitled));
     assert.ok(payload.modules.some((module) => module.id === "trips" && module.entitled));
+    assert.ok(payload.modules.some((module) => module.id === "profile" && module.entitled));
   });
 
   it("PS5-HOME-04 isMemberModuleEntitled checks entitlement key", () => {

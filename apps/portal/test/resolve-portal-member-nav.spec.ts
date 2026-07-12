@@ -14,8 +14,10 @@ describe("resolve-portal-member-nav.server — PS-5 entitlements", () => {
       "member.module.profile",
     ]);
     assert.equal(nav.primaryNav.length, 2);
+    assert.equal(nav.bottomNav.length, 3);
     assert.ok(nav.primaryNav.some((item) => item.testId === "portal-shell-nav-home"));
     assert.ok(nav.primaryNav.some((item) => item.testId === "portal-shell-nav-trips"));
+    assert.ok(nav.bottomNav.some((item) => item.testId === "portal-shell-nav-profile"));
     assert.equal(nav.userMenuNav.length, 1);
     assert.equal(nav.userMenuNav[0]?.testId, "portal-shell-user-menu-profile");
   });

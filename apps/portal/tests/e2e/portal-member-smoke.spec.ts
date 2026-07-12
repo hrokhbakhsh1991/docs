@@ -157,4 +157,5 @@ test("SMK-PTL-09 entitled modules appear in shell nav (PS-5)", async ({ page }) 
 
   await expect(page.getByTestId("portal-shell-nav-home")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByTestId("portal-shell-nav-trips")).toBeVisible();
+  await expect(page.getByTestId("portal-shell-nav-profile")).toBeVisible();
 });

@@ -88,7 +88,7 @@ describe("portal-member-shell.spec.ts — PS-2 registry nav", () => {
   it("PS2-SHELL-01 me layout resolves registry nav for pluginId", () => {
     const layout = readPortal("app/me/layout.tsx");
     assert.match(layout, /resolvePortalMemberNavForPlugin/);
-    assert.match(layout, /primaryNav=/);
+    assert.match(layout, /bottomNav=/);
     assert.match(layout, /userMenuNav=/);
     assert.doesNotMatch(layout, /href="\/me\/registrations"/);
     assert.doesNotMatch(layout, /href="\/me\/profile"/);

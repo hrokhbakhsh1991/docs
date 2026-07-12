@@ -79,6 +79,16 @@ app/me/layout.tsx
           PATCH /api/me/profile
 ```
 
+### Discoverability (2026-07-12)
+
+| Entry | Location |
+| ----- | -------- |
+| Header | `user_menu` link «پروفایل» |
+| Bottom nav | Profile tab with User icon (when entitled) |
+| Home | Quick-link card on `/me/home` |
+
+Direct URL: `/me/profile`.
+
 ### Current implementation (post-M6 · repo truth)
 
 | Piece | Today | Governance |

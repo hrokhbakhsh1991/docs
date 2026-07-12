@@ -22,7 +22,7 @@ export type MemberHomePayload = {
   readonly modules: readonly MemberHomeModuleCard[];
 };
 
-/** PS-5 bootstrap — home hub cards from registry ∩ entitlements (DL-19). */
+/** PS-5 bootstrap — home hub cards from registry ∩ entitlements (DL-19). Includes primary + user_menu tiers. */
 export function buildMemberHomePayload(input: {
   readonly tenantId: string;
   readonly pluginId: string;
@@ -30,9 +30,10 @@ export function buildMemberHomePayload(input: {
 }): MemberHomePayload {
   const surface = resolveMemberPortalModules(input.pluginId);
   const granted = new Set(input.grantedEntitlementKeys);
+  const homeShortcutTiers = new Set(["primary", "user_menu"]);
   const modules = Object.freeze(
     surface.modules
-      .filter((module) => module.nav.tier === "primary")
+      .filter((module) => homeShortcutTiers.has(module.nav.tier))
       .map((module) =>
         Object.freeze({
           id: module.id,

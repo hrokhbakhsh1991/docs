@@ -15,6 +15,13 @@ function readPortal(relativePath: string): string {
 }
 
 describe("portal-visual-wave3.spec.ts", () => {
+  it("MEM-HOME-02 home BFF includes profile shortcut for user_menu tier", () => {
+    const bff = readPortal("src/me/member-home-bff.server.ts");
+    assert.match(bff, /user_menu/);
+    const homePage = readPortal("app/me/home/page.tsx");
+    assert.match(homePage, /portal-home-link-/);
+  });
+
   it("MEM-TRIP-02 registrations empty state links to marketing tours", () => {
     const page = readPortal("app/me/registrations/page.tsx");
     assert.match(page, /data-portal-member-registrations-empty-state/);

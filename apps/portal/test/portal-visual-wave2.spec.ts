@@ -39,6 +39,13 @@ describe("portal-visual-wave2.spec.ts", () => {
     const resolver = readPortal("src/shell/resolve-portal-member-nav.server.ts");
     assert.match(resolver, /readonly id: string/);
     assert.match(resolver, /id: module\.id/);
+    assert.match(resolver, /buildBottomNavWithUserMenu/);
+  });
+
+  it("VIS-NAV-03 profile icon mapped in PortalNavIcon", () => {
+    const icons = readPortal("src/shell/portal-nav-icon.tsx");
+    assert.match(icons, /case "profile"/);
+    assert.match(icons, /User/);
   });
 
   it("VIS-REG-03 starter-portal.css styles registration stepper", () => {

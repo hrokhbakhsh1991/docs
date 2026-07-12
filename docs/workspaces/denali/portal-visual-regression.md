@@ -9,7 +9,7 @@
 |----|-----------------|---------|------|
 | SH-01 | `[data-portal-shell-header]` + `[data-portal-shell-logo]` | Member shell | 1 |
 | SH-02 | `[data-portal-locale-switcher]` | Member shell | 1 |
-| SH-03 | `[data-portal-shell-bottom-nav]` + `[data-portal-shell-nav-icon]` | Bottom nav icons | 2 |
+| SH-03 | `[data-portal-shell-bottom-nav]` + `[data-portal-shell-nav-icon]` | Bottom nav icons (incl. profile when entitled) | 2 |
 | SH-04 | `[data-portal-shell-nav-link][data-active="true"]` | Active tab tint | 2 |
 
 ## Registration (guest)

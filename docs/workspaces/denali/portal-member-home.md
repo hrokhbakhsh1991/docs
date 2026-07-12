@@ -18,12 +18,20 @@
 |------|---------|
 | `main[data-portal-member-home]` | Page root |
 | `data-portal-member-home-lede` | Welcome subtitle |
-| `data-portal-member-home-quick-links` | Entitled module shortcuts (excludes `home`) |
+| `data-portal-member-home-quick-links` | Entitled shortcuts — **primary** + **user_menu** modules (excludes `home`; e.g. trips + profile) |
 | `data-testid="portal-home-link-{moduleId}"` | Per-module quick link |
 
 ## BFF
 
-`buildMemberHomePayload` (`apps/portal/src/me/member-home-bff.server.ts`) — welcome copy keys + entitled modules from registry ∩ entitlements.
+`buildMemberHomePayload` (`apps/portal/src/me/member-home-bff.server.ts`) — welcome copy keys + entitled **primary** and **user_menu** modules from registry ∩ entitlements (PS-5 · 2026-07-12: profile shortcut on home).
+
+## Discoverability (profile)
+
+| Surface | Profile link |
+| ------- | ------------- |
+| Header user menu | `user_menu` tier — always when entitled |
+| Bottom nav | Appended after primary tabs when combined count ≤ 5 (same `user_menu` modules) |
+| Home quick links | Entitled `user_menu` modules (e.g. profile card) |
 
 ## Visual (PS-VIS)
 

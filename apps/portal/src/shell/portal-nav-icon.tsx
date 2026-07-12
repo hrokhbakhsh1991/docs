@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, LayoutGrid, MapPin, MoreHorizontal, Wallet } from "lucide-react";
+import { Home, LayoutGrid, MapPin, MoreHorizontal, User, Wallet } from "lucide-react";
 import type { ReactElement } from "react";
 
 const ICON_SIZE = 20;
@@ -14,6 +14,8 @@ export function PortalNavIcon({ moduleId }: { readonly moduleId: string }): Reac
       return <MapPin {...props} />;
     case "wallet":
       return <Wallet {...props} />;
+    case "profile":
+      return <User {...props} />;
     case "more":
       return <MoreHorizontal {...props} />;
     default:

@@ -64,12 +64,40 @@ function buildPrimaryNavWithHubSlot(
   return Object.freeze([...primaryNav, PLATFORM_MORE_NAV_ITEM]);
 }
 
+function buildBottomNavWithUserMenu(
+  primaryNav: readonly PortalMemberNavItem[],
+  userMenuNav: readonly PortalMemberNavItem[]
+): readonly PortalMemberNavItem[] {
+  const primaryHrefs = new Set(primaryNav.map((item) => item.href));
+  const accountItems = userMenuNav
+    .filter((item) => !primaryHrefs.has(item.href))
+    .map((item) =>
+      Object.freeze({
+        ...item,
+        testId: `portal-shell-nav-${item.id}`,
+      })
+    );
+  if (accountItems.length === 0) {
+    return primaryNav;
+  }
+  const moreIndex = primaryNav.findIndex((item) => item.id === "more");
+  if (moreIndex === -1) {
+    return Object.freeze([...primaryNav, ...accountItems]);
+  }
+  return Object.freeze([
+    ...primaryNav.slice(0, moreIndex),
+    ...accountItems,
+    ...primaryNav.slice(moreIndex),
+  ]);
+}
+
 /** Registry-driven primary + hub + user-menu nav intersected with entitlements (PS-5 / DL-09). */
 export function resolvePortalMemberNavForPlugin(
   pluginId: string,
   grantedEntitlementKeys: readonly string[]
 ): {
   readonly primaryNav: readonly PortalMemberNavItem[];
+  readonly bottomNav: readonly PortalMemberNavItem[];
   readonly hubNav: readonly PortalMemberNavItem[];
   readonly userMenuNav: readonly PortalMemberNavItem[];
 } {
@@ -78,12 +106,15 @@ export function resolvePortalMemberNavForPlugin(
   const entitledModules = filterEntitledModules(surface.modules, granted);
   const hubModules = entitledModules.filter((module) => module.nav.tier === "secondary");
   const primaryModules = entitledModules.filter((module) => module.nav.tier === "primary");
+  const userMenuModules = entitledModules.filter((module) => module.nav.tier === "user_menu");
+
+  const primaryNav = buildPrimaryNavWithHubSlot(primaryModules, hubModules.length);
+  const userMenuNav = Object.freeze(userMenuModules.map(toNavItem));
 
   return Object.freeze({
-    primaryNav: buildPrimaryNavWithHubSlot(primaryModules, hubModules.length),
+    primaryNav,
+    bottomNav: buildBottomNavWithUserMenu(primaryNav, userMenuNav),
     hubNav: Object.freeze(hubModules.map(toNavItem)),
-    userMenuNav: Object.freeze(
-      entitledModules.filter((module) => module.nav.tier === "user_menu").map(toNavItem)
-    ),
+    userMenuNav,
   });
 }
