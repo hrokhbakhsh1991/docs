@@ -14,7 +14,7 @@ describe("denali-wizard-step-validation.spec.ts", () => {
         category: "mountain_day",
         title: "Tour",
         destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-        startDateTime: "2026-07-01T08:00:00.000Z",
+        startDateTime: "2027-07-01T08:00:00.000Z",
         capacityMax: "20",
         leaderUserIds: [],
         tripDetails: { overview: { peakHeight: "4000" } },
@@ -48,7 +48,7 @@ describe("denali-wizard-step-validation.spec.ts", () => {
         category: "mountain_day",
         title: "Tour",
         destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-        startDateTime: "2026-07-01T08:00:00.000Z",
+        startDateTime: "2027-07-01T08:00:00.000Z",
         capacityMax: "20",
         tripDetails: { overview: { peakHeight: "4000" } },
         program: {

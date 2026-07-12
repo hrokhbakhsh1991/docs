@@ -893,8 +893,33 @@ export function generateWizardTemplateGateBindings(manifests) {
     return `  ${JSON.stringify(m.id)}: ${JSON.stringify(stepId)},`;
   });
 
+  /** @type {string[]} */
+  const importLines = [];
+  /** @type {string[]} */
+  const augmentCases = [];
+  for (const m of manifests) {
+    const augment = m.wizardTemplateGate?.fieldOverlaysAugment;
+    if (augment === undefined) {
+      continue;
+    }
+    if (typeof augment.module !== "string" || typeof augment.export !== "string") {
+      throw new Error(`${m.id}: wizardTemplateGate.fieldOverlaysAugment requires module and export`);
+    }
+    const alias = `field_overlays_${m.id.replace(/-/g, "_")}`;
+    importLines.push(
+      `import { ${augment.export} as ${alias} } from "${importSpecifier(m.package, augment.module)}";`
+    );
+    augmentCases.push(`  if (pluginId === ${JSON.stringify(m.id)}) {
+    return ${alias}(templateSteps, baseOverlays);
+  }`);
+  }
+
+  const preferTemplateDefaultsPluginIds = manifests
+    .filter((m) => m.wizardTemplateGate?.preferTemplateDefaultsOnPrefill === true)
+    .map((m) => m.id);
+
   return `${BANNER}
-/** Manifest-derived default step id when publishing an empty wizard template. */
+${importLines.length > 0 ? `${importLines.join("\n")}\n` : ""}/** Manifest-derived default step id when publishing an empty wizard template. */
 export const WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID: Readonly<
   Record<string, string>
 > = Object.freeze({
@@ -903,6 +928,26 @@ ${entries.join("\n")}
 
 export function resolveWizardTemplateGateDefaultPublishedStepId(pluginId: string): string {
   return WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID[pluginId] ?? ${JSON.stringify(platformDefault)};
+}
+
+/** Manifest-bound workspace augment for hidden composite template defaults (WEB-WIZ-013). */
+export function augmentWizardTemplateFieldOverlays<
+  T extends { readonly canonicalPath: string; readonly hidden?: boolean; readonly defaultValue?: string },
+>(
+  pluginId: string,
+  templateSteps: readonly { readonly enabled?: boolean; readonly fields: readonly T[] }[],
+  baseOverlays: ReadonlyMap<string, T>,
+): ReadonlyMap<string, T> {
+${augmentCases.length > 0 ? augmentCases.join("\n") : "  void pluginId;\n  void templateSteps;"}
+  return baseOverlays;
+}
+
+const WIZARD_TEMPLATE_PREFER_TEMPLATE_DEFAULTS = new Set<string>(
+  ${JSON.stringify(preferTemplateDefaultsPluginIds)},
+);
+
+export function resolveWizardTemplatePreferTemplateDefaults(pluginId: string): boolean {
+  return WIZARD_TEMPLATE_PREFER_TEMPLATE_DEFAULTS.has(pluginId);
 }
 `;
 }

@@ -6,6 +6,10 @@ import { isIntegrationCapability } from "../platform/integration-capability";
 import type { IntegrationConnectionRecord } from "../platform/integration-connection.types";
 import type { IntegrationProviderId } from "../platform/integration-provider.types";
 import type { IntegrationConnectionRepository } from "./integration-connection.repository";
+import {
+  INTEGRATION_CONNECTION_LIST_SELECT,
+  MAX_INTEGRATION_CONNECTIONS_PER_WORKSPACE,
+} from "./integration-list-projection";
 import { resolveLegacyTelegramConnectionRecord } from "./resolve-legacy-telegram-connection";
 
 function parseCapabilities(raw: unknown): IntegrationCapability[] {
@@ -123,7 +127,9 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
             ...(input.workspaceType !== null ? [{ workspaceType: null }] : []),
           ],
         },
+        select: INTEGRATION_CONNECTION_LIST_SELECT,
         orderBy: { createdAt: "asc" },
+        take: MAX_INTEGRATION_CONNECTIONS_PER_WORKSPACE,
       });
     });
     return rows.map(mapRow);

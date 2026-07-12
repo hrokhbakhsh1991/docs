@@ -75,32 +75,72 @@ export class PrismaExposureProfileRepository implements ExposureProfileRepositor
   }
 
   async ensureSeededProfile(input: EnsureSeededExposureProfileInput): Promise<ExposureProfile> {
-    const existing = await this.findByProfileId({
+    const batch = await this.ensureSeededProfiles({
       tenantId: input.tenantId,
-      profileId: input.seed.id,
+      seeds: [input.seed],
     });
-    if (existing !== null) {
-      return existing;
+    const profile = batch.get(input.seed.id);
+    if (profile === undefined) {
+      throw new Error(`EXPOSURE_PROFILE_SEED_FAILED:${input.seed.id}`);
+    }
+    return profile;
+  }
+
+  async ensureSeededProfiles(input: {
+    readonly tenantId: string;
+    readonly seeds: readonly ExposureProfile[];
+  }): Promise<ReadonlyMap<string, ExposureProfile>> {
+    const uniqueSeeds = [...new Map(input.seeds.map((seed) => [seed.id, seed])).values()];
+    if (uniqueSeeds.length === 0) {
+      return new Map();
     }
 
-    return withTenantRls(input.tenantId, async (tx) => {
-      const row = await tx.exposureProfile.create({
-        data: {
+    const existingRows = await withTenantRls(input.tenantId, async (tx) =>
+      tx.exposureProfile.findMany({
+        where: {
           tenantId: input.tenantId,
-          workspaceType: input.seed.workspaceType,
-          profileId: input.seed.id,
-          entityType: input.seed.entityType,
-          surface: input.seed.surface,
-          audience: input.seed.audience,
-          trigger: input.seed.trigger,
-          defaultFieldIds: [...input.seed.defaultFieldIds],
-          defaultTemplateId: input.seed.defaultTemplateId ?? null,
-          source: input.seed.source,
-          version: 1,
+          profileId: { in: uniqueSeeds.map((seed) => seed.id) },
         },
+      }),
+    );
+
+    const profiles = new Map(existingRows.map((row) => [row.profileId, mapRow(row)]));
+    const missingSeeds = uniqueSeeds.filter((seed) => !profiles.has(seed.id));
+
+    if (missingSeeds.length > 0) {
+      await withTenantRls(input.tenantId, async (tx) => {
+        await tx.exposureProfile.createMany({
+          data: missingSeeds.map((seed) => ({
+            tenantId: input.tenantId,
+            workspaceType: seed.workspaceType,
+            profileId: seed.id,
+            entityType: seed.entityType,
+            surface: seed.surface,
+            audience: seed.audience,
+            trigger: seed.trigger,
+            defaultFieldIds: [...seed.defaultFieldIds],
+            defaultTemplateId: seed.defaultTemplateId ?? null,
+            source: seed.source,
+            version: 1,
+          })),
+          skipDuplicates: true,
+        });
       });
-      return mapRow(row);
-    });
+
+      const createdRows = await withTenantRls(input.tenantId, async (tx) =>
+        tx.exposureProfile.findMany({
+          where: {
+            tenantId: input.tenantId,
+            profileId: { in: missingSeeds.map((seed) => seed.id) },
+          },
+        }),
+      );
+      for (const row of createdRows) {
+        profiles.set(row.profileId, mapRow(row));
+      }
+    }
+
+    return profiles;
   }
 }
 

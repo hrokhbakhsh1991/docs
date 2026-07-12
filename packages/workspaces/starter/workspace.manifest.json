@@ -13,5 +13,9 @@
     "export": "getStarterWorkspacePlugin"
   },
   "wizardCreate": {},
-  "themeStylesheets": ["theme/tokens.css"]
+  "themeStylesheets": ["theme/tokens.css"],
+  "wizardTemplate": {
+    "pathAliases": ["title"],
+    "aliasCatalogWorkspaceType": "denali"
+  }
 }

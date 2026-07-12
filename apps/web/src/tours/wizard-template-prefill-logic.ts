@@ -5,6 +5,8 @@ import type {
   WizardTemplateFieldRef,
 } from "@/features/settings/wizard-template-types";
 
+import { resolveWizardTemplatePreferTemplateDefaults } from "@/bootstrap/workspace-wizard-template-gate-bindings.generated";
+
 import { getCanonicalStringValue, setCanonicalStringValue } from "./tour-wizard-draft-path";
 import type { TourWizardDraft } from "./tour-wizard-draft";
 
@@ -64,16 +66,18 @@ export function parseWizardTemplateSeedForPrefill(payload: unknown): string {
 
 export function applyWizardTemplateDefaultsToDraft(
   draft: TourWizardDraft,
-  fieldOverlays: ReadonlyMap<string, WizardTemplateFieldRef>
+  fieldOverlays: ReadonlyMap<string, WizardTemplateFieldRef>,
+  options?: { readonly preferTemplateDefaults?: boolean }
 ): TourWizardDraft {
   let next = draft;
+  const preferTemplateDefaults = options?.preferTemplateDefaults === true;
   for (const [canonicalPath, overlay] of fieldOverlays) {
     const defaultValue = overlay.defaultValue?.trim() ?? "";
     if (defaultValue.length === 0) {
       continue;
     }
     const current = getCanonicalStringValue(next, canonicalPath);
-    if (current.trim().length > 0) {
+    if (!preferTemplateDefaults && current.trim().length > 0) {
       continue;
     }
     next = setCanonicalStringValue(next, canonicalPath, defaultValue);
@@ -127,7 +131,9 @@ export function applyWizardTemplatePrefillToDraft(
   pluginId: string,
   plugin?: Pick<WorkspacePlugin, "fieldRegistry">
 ): TourWizardDraft {
-  const withDefaults = applyWizardTemplateDefaultsToDraft(draft, fieldOverlays);
+  const withDefaults = applyWizardTemplateDefaultsToDraft(draft, fieldOverlays, {
+    preferTemplateDefaults: resolveWizardTemplatePreferTemplateDefaults(pluginId),
+  });
   const withPublishDefault = applyPublishStatusDraftDefault(withDefaults, fieldOverlays);
   const seedPath = resolveWizardTemplateSeedCanonicalPath(pluginId, plugin);
   const overlayDefault = fieldOverlays.get(seedPath)?.defaultValue;

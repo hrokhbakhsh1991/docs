@@ -8,9 +8,9 @@ import {
   DENALI_EXPOSURE_SURFACE,
   DENALI_EXPOSURE_SURFACE_DEFINITIONS,
   mapDenaliExposureSurfaceToFieldPolicySurface,
-} from "@app-tour/workspace-denali/exposure";
+} from "@app-tour/workspace-denali/host/exposure";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
-import { CATALOG_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/http";
+import { CATALOG_HTTP_ROUTE_MANIFEST } from "@app-tour/workspace-denali/host/http";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 

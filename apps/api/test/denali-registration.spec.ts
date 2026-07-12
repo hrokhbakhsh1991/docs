@@ -256,7 +256,7 @@ describe("denali-registration (M16)", () => {
     const bookingId = (response.body as { data?: { id?: string } }).data?.id;
     assert.ok(bookingId);
 
-    const booking = await getBookingsRepository().getById(bookingId!);
+    const booking = await getBookingsRepository().getById(bookingId!, OPERATOR_SMOKE_TENANT_ID);
     assert.ok(booking);
     const intake = booking!.registrationIntake as Record<string, unknown> | undefined;
     assert.ok(intake);

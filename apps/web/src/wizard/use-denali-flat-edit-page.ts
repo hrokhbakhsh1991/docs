@@ -23,7 +23,6 @@ import {
 } from "@/bootstrap/workspace-wizard-flat-edit-chrome-bindings.generated";
 import { normalizeDenaliRemoteEnvelope } from "@/draft/denali-draft-normalize-remote";
 import type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
-import type { DenaliFlatEditPageCoreState } from "@app-tour/workspace-denali/host/ui/chrome/use-flat-edit-page-core";
 import { resolveDraftUnificationV3Mode } from "@/draft/draft-unification-v3";
 import {
   createDenaliDraftOnPushSuccess,
@@ -42,6 +41,8 @@ import {
 } from "@/tours/wizard-template-gate-logic";
 import { useAppSession } from "@/providers/app-session-context";
 import { useWorkspaceIntegrationRuntimeState } from "@/integrations/use-workspace-integration-runtime-state";
+
+type DenaliFlatEditPageCoreState = ReturnType<typeof useDenaliFlatEditPageCore>;
 
 const INITIAL_GATE: WizardTemplateGateState = {
   loading: true,
@@ -97,9 +98,7 @@ export function useDenaliFlatEditPage({ session, tourId }: UseDenaliFlatEditPage
     []
   );
 
-  const denaliMergeFn = resolveDenaliDraftMerge(
-    resolveDraftUnificationV3Mode() as "off" | "shadow" | "on"
-  );
+  const denaliMergeFn = resolveDenaliDraftMerge(resolveDraftUnificationV3Mode());
 
   const draftSync = useWorkspaceDraft<NewTourWizardDraftEnvelope>({
     workspaceId: appSession.workspaceId,

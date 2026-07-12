@@ -56,10 +56,17 @@ import {
 import {
   generateDevBootstrapBindings,
   generateSettingsEnrichers,
+  generateWizardTemplateEnforcementBindings,
+  generateWizardTemplatePathAliasBindings,
 } from "./domains/settings-api.mjs";
 import { generateWorkspaceOperatorCapabilities } from "./domains/operator.mjs";
+import { generateWorkspaceFinanceBindings } from "./domains/finance.mjs";
+import { generateExposureHostBindings } from "./domains/exposure.mjs";
+import { generateWorkspaceIntegrationCapabilities } from "./domains/integration.mjs";
 import {
+  generateApiWizardRulesBindings,
   generateCanonicalTourBindings,
+  generateCatalogRefAllowlistResolvers,
   generateOutboxSideEffects,
   generateTourWriteBindings,
 } from "./domains/tour-api.mjs";
@@ -115,7 +122,8 @@ import {
 /** @type {Record<string, readonly string[]>} */
 export const DOMAIN_OUTPUT_KEYS = {
   "core-registry": ["sdk", "api", "web"],
-  "tour-api": ["tourWrite", "canonicalTour", "outbox"],
+  "tour-api": ["tourWrite", "canonicalTour", "outbox", "catalogRefResolvers", "apiWizardRules"],
+  "integration": ["integrationCapabilities"],
   "wizard-admin": [
     "wizardMedia",
     "wizardMediaRoutes",
@@ -165,9 +173,11 @@ export const DOMAIN_OUTPUT_KEYS = {
   ],
   member: ["memberProfileCapabilities", "memberPortalContracts", "memberPortalSurfaces"],
   http: ["httpRoutes", "httpHandlerLoaders", "httpErrorMap"],
-  "settings-api": ["settingsEnrichers", "devBootstrap"],
+  "settings-api": ["settingsEnrichers", "devBootstrap", "wizardTemplateEnforcement", "wizardTemplatePathAliases"],
   dev: ["devPluginIds"],
   operator: ["operatorCapabilities"],
+  finance: ["workspaceFinance"],
+  exposure: ["exposureHost"],
 };
 
 export const OUTPUT_KEYS = Object.freeze([
@@ -195,6 +205,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "catalogListFeatures",
   "catalogDetailSections",
   "operatorCapabilities",
+  "workspaceFinance",
   "wizardTemplateEditorBindings",
   "marketingCatalogBindings",
   "settingsDestinationBindings",
@@ -225,6 +236,12 @@ export const OUTPUT_KEYS = Object.freeze([
   "guestSeo",
   "guestLanding",
   "outbox",
+  "catalogRefResolvers",
+  "apiWizardRules",
+  "integrationCapabilities",
+  "exposureHostBindings",
+  "wizardTemplateEnforcement",
+  "wizardTemplatePathAliases",
   "settingsEnrichers",
   "devBootstrap",
   "httpRoutes",
@@ -263,6 +280,7 @@ export function generateAllOutputs(manifests) {
     catalogListFeatures: generateWorkspaceCatalogListFeatures(manifests),
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
+    workspaceFinance: generateWorkspaceFinanceBindings(manifests),
     wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
     marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
     settingsDestinationBindings: generateSettingsDestinationBindings(manifests),
@@ -293,8 +311,14 @@ export function generateAllOutputs(manifests) {
     guestSeo: generateWorkspaceGuestSeo(manifests),
     guestLanding: generateWorkspaceGuestLanding(manifests),
     outbox: generateOutboxSideEffects(manifests),
+    catalogRefResolvers: generateCatalogRefAllowlistResolvers(manifests),
+    apiWizardRules: generateApiWizardRulesBindings(manifests),
+    integrationCapabilities: generateWorkspaceIntegrationCapabilities(manifests),
+    exposureHostBindings: generateExposureHostBindings(manifests),
     settingsEnrichers: generateSettingsEnrichers(manifests),
     devBootstrap: generateDevBootstrapBindings(manifests),
+    wizardTemplateEnforcement: generateWizardTemplateEnforcementBindings(manifests),
+    wizardTemplatePathAliases: generateWizardTemplatePathAliasBindings(manifests),
     httpRoutes: generateWorkspaceHttpRoutes(manifests),
     httpHandlerLoaders: generateWorkspaceHttpHandlerLoaders(manifests),
     httpErrorMap: generateWorkspaceHttpErrorMap(manifests),
@@ -373,6 +397,10 @@ export const OUTPUT_PATHS = {
   operatorCapabilities: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/operator/workspace-operator-capabilities.generated.ts"
+  ),
+  workspaceFinance: join(
+    REPO_ROOT,
+    "apps/api/src/workspace-finance/workspace-finance-bindings.generated.ts"
   ),
   wizardTemplateEditorBindings: join(
     REPO_ROOT,
@@ -491,6 +519,30 @@ export const OUTPUT_PATHS = {
     "packages/workspace-sdk/src/catalog/workspace-guest-landing.generated.ts"
   ),
   outbox: join(REPO_ROOT, "apps/api/src/workspace/workspace-outbox-side-effects.generated.ts"),
+  catalogRefResolvers: join(
+    REPO_ROOT,
+    "apps/api/src/canonical/workspace-catalog-ref-allowlist-resolvers.generated.ts"
+  ),
+  apiWizardRules: join(
+    REPO_ROOT,
+    "apps/api/src/tours/workspace-wizard-rules-bindings.generated.ts"
+  ),
+  integrationCapabilities: join(
+    REPO_ROOT,
+    "apps/api/src/integrations/platform/workspace-integration-capabilities.generated.ts"
+  ),
+  exposureHostBindings: join(
+    REPO_ROOT,
+    "apps/api/src/exposure/workspace-exposure-host-bindings.generated.ts"
+  ),
+  wizardTemplateEnforcement: join(
+    REPO_ROOT,
+    "apps/api/src/settings/workspace-wizard-template-enforcement-bindings.generated.ts"
+  ),
+  wizardTemplatePathAliases: join(
+    REPO_ROOT,
+    "apps/api/src/settings/workspace-wizard-template-path-alias-bindings.generated.ts"
+  ),
   settingsEnrichers: join(
     REPO_ROOT,
     "apps/api/src/settings/workspace-settings-enrichers.generated.ts"

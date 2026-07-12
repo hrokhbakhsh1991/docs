@@ -187,26 +187,17 @@ export async function listToursOperator(
     plugin.tourList?.extractTourListProjection ?? defaultExtractTourListProjection;
 
   const scopedRepo = new ScopedTourRepository(store, ability);
-  const records = await scopedRepo.findMany(undefined);
+  const pageResult = await scopedRepo.listOperatorToursPage(tenantId, query);
+  const records = pageResult.items;
 
   const projected = records.map((record) =>
     buildTourListProjection(toRowMeta(record), record.canonical, extract)
   );
 
-  const filtered = projected.filter(
-    (row) =>
-      matchesSearch(row, query.search) &&
-      matchesStatusFilter(row, query.status) &&
-      matchesCategoryFilter(row, query.category)
-  );
-  filtered.sort((left, right) => compareProjections(left, right, query.sortBy, query.sortDir));
-
-  const total = filtered.length;
-  const offset = (query.page - 1) * query.limit;
-  const pageItems = filtered.slice(offset, offset + query.limit);
+  const filtered = projected.filter((row) => matchesCategoryFilter(row, query.category));
   const recordsById = new Map(records.map((record) => [record.id, record] as const));
   const pageItemsWithCover = await enrichTourListProjectionsCoverImageUrls(
-    pageItems,
+    filtered,
     recordsById,
     tenantId,
     workspaceType
@@ -215,7 +206,7 @@ export async function listToursOperator(
 
   return {
     items,
-    total: query.includeTotal ? total : items.length,
+    total: query.includeTotal ? pageResult.total : items.length,
     page: query.page,
     limit: query.limit,
   };

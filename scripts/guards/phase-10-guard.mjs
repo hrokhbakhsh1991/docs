@@ -115,7 +115,6 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "prisma-workspace-outbox-writer.ts",
   "process-workspace-finance-outbox.ts",
   "register-workspace-finance-deps.ts",
-  "tour-created-finance-side-effect.ts",
   "workspace-finance-processed-log.ts",
   "in-memory-finance.repository.ts",
 ]);

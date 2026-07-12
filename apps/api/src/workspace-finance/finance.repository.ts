@@ -1,4 +1,6 @@
 import { withTenantRls } from "../db/with-tenant-rls";
+import { loadRegistrationInvoiceFacts } from "../finance/load-registration-invoice-facts";
+import { MAX_PAYMENTS_PER_REGISTRATION } from "./finance-list-projection";
 
 export type FinanceSummaryRow = {
   readonly pendingManualPayments: number;
@@ -162,6 +164,7 @@ export class FinanceRepository {
       const rows = await tx.payment.findMany({
         where: { tenantId, registrationId },
         select: { status: true },
+        take: MAX_PAYMENTS_PER_REGISTRATION,
       });
       return rows.map((row) => row.status);
     });
@@ -487,61 +490,8 @@ export class FinanceRepository {
     readonly paymentAmountsMinor: readonly string[];
     readonly currency: string;
   }> {
-    return withTenantRls(tenantId, async (tx) => {
-      const prepaymentRows = await tx.outboxEvent.findMany({
-        where: {
-          tenantId,
-          eventType: "finance.prepayment.recorded",
-          aggregateId: registrationId,
-        },
-        select: { payload: true },
-      });
-
-      let prepaymentMinor = BigInt(0);
-      let currency = "IRR";
-      for (const row of prepaymentRows) {
-        const payload =
-          row.payload !== null && typeof row.payload === "object"
-            ? (row.payload as Record<string, unknown>)
-            : null;
-        if (payload === null) {
-          continue;
-        }
-        if (typeof payload.amountMinor === "string") {
-          const digits = payload.amountMinor.replace(/\D/g, "");
-          if (digits.length > 0) {
-            prepaymentMinor += BigInt(digits);
-          }
-        }
-        if (typeof payload.currency === "string" && payload.currency.length > 0) {
-          currency = payload.currency;
-        }
-      }
-
-      const payments = await tx.payment.findMany({
-        where: { tenantId, registrationId },
-        select: { amount: true, currency: true, status: true },
-      });
-
-      let paidPaymentsMinor = BigInt(0);
-      const paymentAmountsMinor: string[] = [];
-      for (const payment of payments) {
-        const digits = payment.amount.replace(/\D/g, "") || "0";
-        paymentAmountsMinor.push(digits);
-        if (payment.currency.length > 0) {
-          currency = payment.currency;
-        }
-        if (payment.status === "Paid") {
-          paidPaymentsMinor += BigInt(digits);
-        }
-      }
-
-      return {
-        prepaymentMinor: prepaymentMinor.toString(),
-        paidPaymentsMinor: paidPaymentsMinor.toString(),
-        paymentAmountsMinor,
-        currency,
-      };
-    });
+    return withTenantRls(tenantId, (tx) =>
+      loadRegistrationInvoiceFacts(tx, tenantId, registrationId)
+    );
   }
 }

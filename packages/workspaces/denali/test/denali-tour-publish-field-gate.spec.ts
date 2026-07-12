@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import {
   denaliTourPatchTouchesPublishFields,
   mergeDenaliCanonicalPatchData,
-} from "@app-tour/workspace-denali/tours";
+} from "../src/tours";
 
 describe("denali tour publish field gate — Phase 12.3", () => {
   it("DEN-12.3-01 detects flat publishStatus in PATCH data", () => {

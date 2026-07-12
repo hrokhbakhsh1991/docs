@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { resolveDenaliCatalogDetailPdpGates } from "@app-tour/workspace-denali/marketing";
+import { resolveDenaliCatalogDetailPdpGates } from "../src/marketing/catalog-detail-pdp-gates";
 
 const baseTour = {
   id: "tour-1",

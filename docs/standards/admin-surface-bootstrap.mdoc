@@ -1,0 +1,47 @@
+---
+title: Admin surface bootstrap (ASB-001)
+format: markdoc
+doc_role: standard
+extends: docs/standards/platform-surface-cohesion.mdoc
+---
+
+# ASB-001 — Admin surface bootstrap
+
+**Authority:** EPH Track III · complements [platform-surface-cohesion.mdoc](./platform-surface-cohesion.mdoc) § 2b.
+
+Admin (`apps/web`) resolves tenant context through the same guest-surface-host chain as marketing and portal, with operator session overlay.
+
+## Contract
+
+```text
+resolveAdminBootstrapForWebHost(host)
+  → resolveAdminBootstrapForHost (packages/guest-surface-host)
+       ├─ resolveTenantIdFromDevHost(host, "admin")
+       ├─ fetchPublicTenantContextForHost
+       └─ dev allowed ? devFallbackTenantId() : throw ADMIN_TENANT_UNRESOLVED
+```
+
+## Implementation map
+
+| Layer | Module |
+| ----- | ------ |
+| GSH | `packages/guest-surface-host/src/resolve-admin-surface-bootstrap.ts` |
+| Web wrapper | `apps/web/src/tenant/resolve-admin-bootstrap.server.ts` |
+| Layout kernel | `apps/web/src/tenant/tenant-kernel.server.ts` |
+| Identity BFF | `apps/web/src/auth/identity-bff-headers.ts` |
+
+## Forbidden
+
+- Direct `fetchPublicTenantContextForHost` in web kernel with env fallback when API returns null (fail-soft).
+- Duplicate tenant resolution logic outside GSH + thin web wrapper.
+
+## Guards + specs
+
+- `guard:surface-cohesion` — kernel + identity BFF import ASB wrapper.
+- `apps/web/test/admin-bootstrap-parity.spec.ts`
+- `apps/web/test/identity-bff-asb.spec.ts`
+- `apps/web/test/session-host-binding-multilevel.spec.ts`
+
+## Branding
+
+Unchanged — `fetchPublicTenantBrandingForHost` on login/settings; bootstrap supplies `tenantId` + `pluginId` only.

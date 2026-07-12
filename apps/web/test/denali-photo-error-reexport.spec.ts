@@ -17,7 +17,7 @@ describe("denali-photo-error-reexport.spec.ts", () => {
     );
     assert.match(
       source,
-      /from "@app-tour\/workspace-denali\/ui\/adapters\/photo-upload-errors-surface"/
+      /from "@app-tour\/workspace-denali\/host\/ui\/adapters\/photo-upload-errors-surface"/
     );
     assert.doesNotMatch(source, /PHOTO_ERROR_CODE_ALIASES/);
     assert.doesNotMatch(source, /function extractDenaliPhotoApiErrorCode/);

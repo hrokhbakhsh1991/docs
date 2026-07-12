@@ -10,6 +10,12 @@ import type {
   IntegrationPolicyRepository,
   IntegrationPolicyTarget,
 } from "./integration-policy.repository";
+import {
+  INTEGRATION_CONNECTION_LIST_SELECT,
+  INTEGRATION_EVENT_POLICY_LIST_SELECT,
+  MAX_INTEGRATION_CONNECTIONS_PER_WORKSPACE,
+  MAX_INTEGRATION_EVENT_POLICIES_PER_CONNECTION,
+} from "./integration-list-projection";
 import { resolveLegacyTelegramConnection } from "./resolve-legacy-telegram-connection";
 
 function parseCapabilities(raw: unknown): IntegrationCapability[] {
@@ -82,6 +88,8 @@ export class PrismaIntegrationPolicyRepository implements IntegrationPolicyRepos
             ...(input.workspaceType !== null ? [{ workspaceType: null }] : []),
           ],
         },
+        select: INTEGRATION_CONNECTION_LIST_SELECT,
+        take: MAX_INTEGRATION_CONNECTIONS_PER_WORKSPACE,
       });
       return rows.map(mapConnectionRow);
     });
@@ -104,6 +112,8 @@ export class PrismaIntegrationPolicyRepository implements IntegrationPolicyRepos
           tenantId: input.tenantId,
           integrationConnectionId: input.integrationConnectionId,
         },
+        select: INTEGRATION_EVENT_POLICY_LIST_SELECT,
+        take: MAX_INTEGRATION_EVENT_POLICIES_PER_CONNECTION,
       });
       return rows.map(mapEventPolicyRow);
     });

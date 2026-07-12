@@ -161,7 +161,7 @@ existing.canonical + merged patch
 | LC-05 | Rejected transition → `TourLifecycleTransitionError` → HTTP 400 |
 | LC-06 | Golden Denali draft→active publish passes on package path |
 
-Implementation: `assert-tour-publish-lifecycle-gate.ts` maps canonical `publishStatus` (`draft`/`active`) to plugin lifecycle states (`DRAFT`/`OPEN`) via `readDenaliTourPublishStatusFromCanonical` when urban-style bindings are absent.
+Implementation: `assert-tour-publish-lifecycle-gate.ts` maps canonical `publishStatus` (`draft`/`active`) to plugin lifecycle states (`DRAFT`/`OPEN`) via `readTourPublishStatusLabel` → codegen bindings (WAC-001). No direct Denali imports or `workspaceType === "denali"` branches.
 
 Spec: `apps/api/test/tour-publish-transition.spec.ts`.
 
@@ -176,7 +176,7 @@ Spec: `apps/api/test/tour-publish-transition.spec.ts`.
 | `draft` | Skips publish-readiness matrix | VAL-01 |
 | `publish` | Runs `wizardHost.validatePublishReadiness` with `publishTransition: true` | VAL-02 |
 
-When omitted, mode is inferred from canonical `publishStatus` (`active`/`published` → `publish`, else `draft`).
+When omitted, mode is inferred from canonical `publishStatus` via `readTourPublishStatusLabel` (`active`/`published` → `publish`, else `draft`) — WAC-001 binding dispatch, not identity branches.
 
 Implementation: `resolve-validation-mode.ts` · `denali-wizard-rules-module-sync.ts` · wired in `canonical-validation-sync.ts`.
 

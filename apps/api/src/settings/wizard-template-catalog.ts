@@ -1,13 +1,13 @@
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
 import {
-  assertDenaliFrozenWizardTemplateFieldsPresent,
   DenaliWizardTemplateFrozenFieldMissingError,
-  normalizeDenaliWizardTemplatePayloadSteps,
 } from "@app-tour/workspace-denali";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForTenantContext } from "../workspace/resolve-workspace-plugin-for-tenant-context";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
+import { resolveWizardTemplateEnforcementBinding } from "./workspace-wizard-template-enforcement-bindings.generated.ts";
+import { resolveWizardTemplatePathAliasBinding } from "./workspace-wizard-template-path-alias-bindings.generated.ts";
 
 import type { WizardTemplatePayloadV1 } from "./settings.types";
 
@@ -49,9 +49,6 @@ export class SettingsWizardUnknownFieldError extends Error {
   }
 }
 
-/** Thin-shell bridge until Denali full-create lands — web may save `title` while API workspace is starter. */
-const STARTER_WIZARD_TEMPLATE_PATH_ALIASES = new Set(["title"]);
-
 export class SettingsWizardRoadmapFieldError extends Error {
   readonly code = "SETTINGS_WIZARD_ROADMAP_FIELD" as const;
 
@@ -80,6 +77,7 @@ export function listWizardTemplateCatalogPaths(plugin: WorkspacePlugin): Readonl
   );
 }
 
+/** Manifest `wizardTemplate.pathAliases` — starter may alias paths against another workspace catalog. */
 function isKnownWizardTemplatePath(
   canonicalPath: string,
   workspaceType: string,
@@ -88,11 +86,12 @@ function isKnownWizardTemplatePath(
   if (primaryCatalog.has(canonicalPath)) {
     return true;
   }
-  if (workspaceType === "starter" && STARTER_WIZARD_TEMPLATE_PATH_ALIASES.has(canonicalPath)) {
-    const denaliPlugin = resolveWorkspacePluginForType("denali");
-    return listWizardTemplateCatalogPaths(denaliPlugin).has(canonicalPath);
+  const aliasBinding = resolveWizardTemplatePathAliasBinding(workspaceType);
+  if (aliasBinding === undefined || !aliasBinding.pathAliases.has(canonicalPath)) {
+    return false;
   }
-  return false;
+  const aliasPlugin = resolveWorkspacePluginForType(aliasBinding.aliasCatalogWorkspaceType);
+  return listWizardTemplateCatalogPaths(aliasPlugin).has(canonicalPath);
 }
 
 export async function assertWizardTemplateFieldsKnown(
@@ -137,11 +136,12 @@ export async function assertDenaliWizardTemplateFrozenFieldsForTenant(
     return;
   }
   const workspaceType = await resolveWorkspaceTypeForTenant(tenantId);
-  if (workspaceType !== "denali") {
+  const binding = resolveWizardTemplateEnforcementBinding(workspaceType);
+  if (binding === undefined) {
     return;
   }
   try {
-    assertDenaliFrozenWizardTemplateFieldsPresent(payload);
+    binding.assertFrozenFields(payload);
   } catch (error) {
     if (error instanceof DenaliWizardTemplateFrozenFieldMissingError) {
       throw new SettingsWizardFrozenFieldMissingError(error.canonicalPath);
@@ -154,8 +154,9 @@ export function normalizeDenaliWizardTemplatePayloadForTenant(
   workspaceType: string,
   payload: WizardTemplatePayloadV1
 ): WizardTemplatePayloadV1 {
-  if (workspaceType !== "denali") {
+  const binding = resolveWizardTemplateEnforcementBinding(workspaceType);
+  if (binding === undefined) {
     return payload;
   }
-  return normalizeDenaliWizardTemplatePayloadSteps(payload) as WizardTemplatePayloadV1;
+  return binding.normalizeSteps(payload) as WizardTemplatePayloadV1;
 }

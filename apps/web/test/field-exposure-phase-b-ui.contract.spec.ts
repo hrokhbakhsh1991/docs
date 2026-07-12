@@ -38,7 +38,8 @@ describe("field exposure phase B UI contract", () => {
       assert.match(source, /storedDiffersFromEffective/);
       assert.match(source, /coordinateControlsRuntimeEffective/);
     }
-    assert.match(api, /resolveConnectionExposureIntentForRoute/);
+    assert.match(api, /resolveConnectionIntentForEventSync/);
+    assert.match(api, /buildConnectionContextsFromPrefetch/);
     assert.match(api, /coordinateControlsRuntimeEffective: intentResolution\.coordinateControlsRuntimeEffective/);
     assert.match(api, /legacyShadowDiagnosticsEnabled/);
     assert.doesNotMatch(api, /runtimeMode === "shadow"\s*\?\s*"legacy_mirror_shadow"/);

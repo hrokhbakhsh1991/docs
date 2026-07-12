@@ -96,7 +96,7 @@ function pushRow(
   value: string,
   multiline = false
 ): void {
-  if (value.trim().length === 0) {
+  if ((value ?? "").trim().length === 0) {
     return;
   }
   rows.push({

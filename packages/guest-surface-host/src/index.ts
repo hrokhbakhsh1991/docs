@@ -26,6 +26,12 @@ export {
   resolveGuestBrandingRevalidateSeconds,
 } from "./resolve-guest-fetch-revalidate";
 export {
+  resolveAdminBootstrapForHost,
+  type AdminSurfaceBootstrap,
+  type AdminSurfaceUnresolvedError,
+  type ResolveAdminSurfaceBootstrapOptions,
+} from "./resolve-admin-surface-bootstrap";
+export {
   resolveGuestSurfaceBootstrapForHost,
   type GuestSurfaceBootstrap,
   type GuestSurfaceUnresolvedError,

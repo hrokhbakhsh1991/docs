@@ -328,8 +328,36 @@ export function assertGuestExtensionsManifest(manifest) {
         `${manifest.id}: wizardTemplateGate.defaultPublishedStepId must be a non-empty string`
       );
     }
+    if (gate.fieldOverlaysAugment !== undefined) {
+      const augment = gate.fieldOverlaysAugment;
+      if (typeof augment !== "object" || Array.isArray(augment)) {
+        throw new Error(`${manifest.id}: wizardTemplateGate.fieldOverlaysAugment must be an object`);
+      }
+      if (typeof augment.module !== "string" || augment.module.length === 0) {
+        throw new Error(
+          `${manifest.id}: wizardTemplateGate.fieldOverlaysAugment.module must be a non-empty string`
+        );
+      }
+      if (typeof augment.export !== "string" || augment.export.length === 0) {
+        throw new Error(
+          `${manifest.id}: wizardTemplateGate.fieldOverlaysAugment.export must be a non-empty string`
+        );
+      }
+    }
+    if (
+      gate.preferTemplateDefaultsOnPrefill !== undefined &&
+      typeof gate.preferTemplateDefaultsOnPrefill !== "boolean"
+    ) {
+      throw new Error(
+        `${manifest.id}: wizardTemplateGate.preferTemplateDefaultsOnPrefill must be a boolean when set`
+      );
+    }
     for (const key of Object.keys(gate)) {
-      if (key !== "defaultPublishedStepId") {
+      if (
+        key !== "defaultPublishedStepId" &&
+        key !== "fieldOverlaysAugment" &&
+        key !== "preferTemplateDefaultsOnPrefill"
+      ) {
         throw new Error(`${manifest.id}: unknown wizardTemplateGate key "${key}"`);
       }
     }

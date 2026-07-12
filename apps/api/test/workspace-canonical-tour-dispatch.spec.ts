@@ -6,7 +6,7 @@ import { describe, it } from "node:test";
 
 import { createCanonicalDocument } from "@app-tour/workspace-sdk";
 import { DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
-import { migrateDenaliCanonical } from "@app-tour/workspace-denali/acl";
+import { migrateDenaliCanonical } from "@app-tour/workspace-denali/host/acl";
 
 import {
   detectTourPublishTransition,

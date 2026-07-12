@@ -12,11 +12,15 @@ import {
 const ENV_SNAPSHOT = {
   NODE_ENV: process.env.NODE_ENV,
   ALLOW_DEV_WEB_SESSION: process.env.ALLOW_DEV_WEB_SESSION,
+  TOUR_OPS_API_URL: process.env.TOUR_OPS_API_URL,
+  AUTH_JWT_PUBLIC_KEY: process.env.AUTH_JWT_PUBLIC_KEY,
 };
 
 afterEach(() => {
   process.env.NODE_ENV = ENV_SNAPSHOT.NODE_ENV;
   process.env.ALLOW_DEV_WEB_SESSION = ENV_SNAPSHOT.ALLOW_DEV_WEB_SESSION;
+  process.env.TOUR_OPS_API_URL = ENV_SNAPSHOT.TOUR_OPS_API_URL;
+  process.env.AUTH_JWT_PUBLIC_KEY = ENV_SNAPSHOT.AUTH_JWT_PUBLIC_KEY;
 });
 
 describe("identity-bff-headers.spec.ts — M17.2", () => {
@@ -30,6 +34,8 @@ describe("identity-bff-headers.spec.ts — M17.2", () => {
   it("OP-BFF-02 unresolved production host throws", async () => {
     process.env.NODE_ENV = "production";
     delete process.env.ALLOW_DEV_WEB_SESSION;
+    process.env.TOUR_OPS_API_URL = "http://127.0.0.1:9";
+    process.env.AUTH_JWT_PUBLIC_KEY = "test-public-key";
     await assert.rejects(
       () => resolveOperatorBffTenantId("unknown-operator.example.com"),
       new RegExp(OPERATOR_BFF_TENANT_UNRESOLVED)

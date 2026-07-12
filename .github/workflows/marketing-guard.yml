@@ -15,6 +15,7 @@ on:
       - "apps/portal/tests/e2e/fixtures/catalog-registration-otp.ts"
       - "apps/portal/app/catalog/**"
       - "apps/portal/app/api/catalog/registrations/**"
+      - "apps/portal/test/portal-catalog-registration-bff.spec.ts"
       - "apps/portal/test/catalog-registration-intake-form-contract.spec.ts"
       - "apps/portal/test/portal-catalog-registrations-dispatch.spec.ts"
       - "apps/portal/test/portal-catalog-registrations-bff.spec.ts"

@@ -126,9 +126,10 @@ describe("catalog-ref-integrity (P5-B VAL-03)", () => {
     assert.match(source, /catalogRefAllowlists/);
   });
 
-  it("VAL-03f validateCanonicalBeforePersist enriches denali catalog allowlists", () => {
+  it("VAL-03f validateCanonicalBeforePersist enriches catalog allowlists via dispatch", () => {
     const source = readFileSync(join(apiRoot, "src/tours/canonical-validation.ts"), "utf8");
-    assert.match(source, /resolveDenaliCatalogRefAllowlists/);
+    assert.match(source, /resolveCatalogRefAllowlistsForWorkspace/);
     assert.match(source, /catalogRefAllowlists/);
+    assert.doesNotMatch(source, /workspaceType !== "denali"/);
   });
 });

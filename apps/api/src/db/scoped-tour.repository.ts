@@ -35,6 +35,17 @@ export class ScopedTourRepository implements TourRepository {
     return this.inner.listPage(mergeWhere(this.ability, "read", extra), page);
   }
 
+  listOperatorToursPage(
+    tenantId: string,
+    query: import("../storage/tour-storage.interface").TourOperatorListPageInput["query"]
+  ): Promise<import("../storage/tour-storage.interface").TourOperatorListPageOutput> {
+    const scoped = accessibleByTourWhere(this.ability, "read");
+    if (tenantId !== scoped.tenantId) {
+      throw new Error("FORBIDDEN_TOUR_LIST_CROSS_TENANT");
+    }
+    return this.inner.listOperatorToursPage(tenantId, query);
+  }
+
   async findFirst(extra?: Partial<TourWhere>): Promise<TourRecord | null> {
     const scoped = accessibleByTourWhere(this.ability, "read");
 

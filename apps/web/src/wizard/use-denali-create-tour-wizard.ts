@@ -56,7 +56,8 @@ import {
   type NewTourWizardDraftEnvelope,
 } from "./denali-wizard-draft-shell";
 import { useWorkspaceIntegrationRuntimeState } from "@/integrations/use-workspace-integration-runtime-state";
-import type { DenaliCreateTourWizardCoreState } from "@app-tour/workspace-denali/host/ui/chrome/use-create-tour-wizard-core";
+
+type DenaliCreateTourWizardCoreState = ReturnType<typeof useDenaliCreateTourWizardCore>;
 
 export type { DenaliCreateTourWizardScreen };
 
@@ -124,9 +125,7 @@ export function useDenaliCreateTourWizard(options: {
     []
   );
 
-  const denaliMergeFn = resolveDenaliDraftMerge(
-    resolveDraftUnificationV3Mode() as "off" | "shadow" | "on"
-  );
+  const denaliMergeFn = resolveDenaliDraftMerge(resolveDraftUnificationV3Mode());
 
   const draftSync = useWorkspaceDraft<NewTourWizardDraftEnvelope>({
     workspaceId: session.workspaceId,

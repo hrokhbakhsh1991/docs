@@ -13,7 +13,6 @@ import {
   type DenaliWizardDraftMeta,
 } from "@/bootstrap/workspace-wizard-draft-shell-bindings.generated";
 import type { WizardTemplateGateState } from "@/tours/wizard-template-gate-logic";
-import type { WizardTemplateFieldRef } from "@/features/settings/wizard-template-types";
 import { applyWizardTemplatePrefillToDraft } from "@/tours/wizard-template-prefill-logic";
 
 export {
@@ -45,7 +44,7 @@ export function buildDenaliCreatePrefilledForm(
     applyWizardTemplatePrefillToDraft(
       draft,
       prefillGate.seedLabel,
-      prefillGate.fieldOverlays as ReadonlyMap<string, WizardTemplateFieldRef>,
+      prefillGate.fieldOverlays,
       "denali",
       getDenaliWorkspacePluginFromDraftShell()
     )

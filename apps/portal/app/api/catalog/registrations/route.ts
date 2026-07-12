@@ -84,7 +84,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (error instanceof IntakePluginNotRegisteredError) {
       return NextResponse.json({ ok: false, code: error.code }, { status: 503 });
     }
-    return NextResponse.json({ ok: false, code: "REGISTRATION_CLOSED" }, { status: 404 });
+    console.error("[portal/catalog/registrations] buildCatalogRegistrationUpstreamRequest failed", error);
+    return NextResponse.json(
+      { ok: false, code: "REGISTRATION_UPSTREAM_BUILD_FAILED" },
+      { status: 500 }
+    );
   }
 
   const apiBase = resolveTourOpsApiBaseUrl();

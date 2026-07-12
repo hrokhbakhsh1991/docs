@@ -203,14 +203,11 @@ function assertTenantId(tenantId: string): void {
 export class PrismaBookingsRepository implements BookingsRepository {
   /** @deprecated Test/perf baseline — delegates to listByTenantPage (cap 500). */
   async listByTenant(tenantId: string): Promise<BookingRecord[]> {
-    const rows = await withTenantRls(tenantId, (tx) =>
-      tx.operatorRegistration.findMany({
-        where: { tenantId },
-        orderBy: [{ submittedAt: "desc" }, { id: "desc" }],
-        take: MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
-      })
-    );
-    return rows.map((row) => toBookingRecord(row));
+    const page = await this.listByTenantPage({
+      tenantId,
+      limit: MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
+    });
+    return page.items;
   }
 
   async listBySubmittedUser(

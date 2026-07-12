@@ -17,6 +17,7 @@ export const WORKSPACE_TOUR_WRITE_BINDINGS = [
     publishFieldGate: denaliTourPatchRequiresOwner,
     publishOwnerSurface: DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE,
     forbidOperatorMemberTourPatch: true as const,
+    starterCreateBridgeOperatorTenantId: "00000000-0000-4000-8000-000000000014" as const,
   },
   {
     workspaceType: URBAN_WORKSPACE_TYPE,

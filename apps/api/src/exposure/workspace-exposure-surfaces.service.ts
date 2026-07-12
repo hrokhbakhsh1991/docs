@@ -9,8 +9,10 @@ import {
   exposureSelectableCatalogFieldIdsForTenant,
   ExposureWorkspaceForbiddenError,
 } from "./exposure-catalog.service";
-import type { ExposureIntentMode } from "./exposure-intent";
+import type { ExposureIntentMode, ExposureIntent } from "./exposure-intent";
 import { createExposureIntentRepository } from "./prisma-exposure-intent.repository";
+import { exposureIntentContextLookupKey } from "./exposure-intent.repository";
+import type { ExposureIntentContextKey } from "./exposure-intent.repository";
 import { resolveSeededExposureProfile } from "./exposure-profile";
 import {
   findWorkspaceExposureSurfaceDefinition,
@@ -49,40 +51,68 @@ async function resolveWorkspaceTypeForRoute(
   throw new ExposureWorkspaceForbiddenError();
 }
 
-export async function getWorkspaceExposureSurfaces(
-  auth: TenantAuthContext,
-  workspaceId: string,
-): Promise<WorkspaceExposureSurfacesResponse> {
-  await assertWorkspaceExposureModuleAccess(auth, "read");
-  const workspaceType = await resolveWorkspaceTypeForRoute(auth, workspaceId);
-  if (!workspaceSupportsExposureSurfaces(workspaceType)) {
-    return { workspaceType, surfaces: Object.freeze([]) };
-  }
+function buildExposureSurfaceIntentPrefetch(input: {
+  readonly tenantId: string;
+  readonly workspaceType: string;
+  readonly definitions: ReturnType<typeof listOperatorVisibleExposureSurfaceDefinitions>;
+}): {
+  readonly contextKeys: ExposureIntentContextKey[];
+  readonly profilesByIndex: Array<ReturnType<typeof resolveSeededExposureProfile>>;
+} {
+  const contextKeys: ExposureIntentContextKey[] = [];
+  const profilesByIndex: Array<ReturnType<typeof resolveSeededExposureProfile>> = [];
 
-  const repository = createExposureIntentRepository();
-  const surfaces: WorkspaceExposureSurfaceDefinition[] = [];
-
-  for (const definition of listOperatorVisibleExposureSurfaceDefinitions(workspaceType)) {
+  for (const definition of input.definitions) {
     const trigger = definition.triggerStorageKey;
     const profile = resolveSeededExposureProfile({
-      workspaceType,
+      workspaceType: input.workspaceType,
       entityType: "tour",
       surface: definition.surface,
       audience: definition.audience,
       trigger,
       defaultFieldIds: definition.defaultFieldIds,
     });
+    profilesByIndex.push(profile);
+    if (profile !== null) {
+      contextKeys.push({
+        tenantId: input.tenantId,
+        profileId: profile.id,
+        surface: definition.surface,
+        audience: definition.audience,
+        trigger,
+        scope: { tourSurface: definition.surface },
+      });
+    }
+  }
+
+  return { contextKeys, profilesByIndex };
+}
+
+function assembleWorkspaceExposureSurfaces(input: {
+  readonly tenantId: string;
+  readonly definitions: ReturnType<typeof listOperatorVisibleExposureSurfaceDefinitions>;
+  readonly profilesByIndex: Array<ReturnType<typeof resolveSeededExposureProfile>>;
+  readonly intentLookup: ReadonlyMap<string, ExposureIntent>;
+}): WorkspaceExposureSurfaceDefinition[] {
+  const surfaces: WorkspaceExposureSurfaceDefinition[] = [];
+
+  for (let index = 0; index < input.definitions.length; index += 1) {
+    const definition = input.definitions[index]!;
+    const trigger = definition.triggerStorageKey;
+    const profile = input.profilesByIndex[index] ?? null;
     const intent =
       profile === null
         ? null
-        : await repository.findForContext({
-            tenantId: auth.tenantId,
-            profileId: profile.id,
-            surface: definition.surface,
-            audience: definition.audience,
-            trigger,
-            scope: { tourSurface: definition.surface },
-          });
+        : (input.intentLookup.get(
+            exposureIntentContextLookupKey({
+              tenantId: input.tenantId,
+              profileId: profile.id,
+              surface: definition.surface,
+              audience: definition.audience,
+              trigger,
+              scope: { tourSurface: definition.surface },
+            }),
+          ) ?? null);
 
     surfaces.push(
       Object.freeze({
@@ -101,6 +131,34 @@ export async function getWorkspaceExposureSurfaces(
       }),
     );
   }
+
+  return surfaces;
+}
+
+export async function getWorkspaceExposureSurfaces(
+  auth: TenantAuthContext,
+  workspaceId: string,
+): Promise<WorkspaceExposureSurfacesResponse> {
+  await assertWorkspaceExposureModuleAccess(auth, "read");
+  const workspaceType = await resolveWorkspaceTypeForRoute(auth, workspaceId);
+  if (!workspaceSupportsExposureSurfaces(workspaceType)) {
+    return { workspaceType, surfaces: Object.freeze([]) };
+  }
+
+  const repository = createExposureIntentRepository();
+  const definitions = listOperatorVisibleExposureSurfaceDefinitions(workspaceType);
+  const { contextKeys, profilesByIndex } = buildExposureSurfaceIntentPrefetch({
+    tenantId: auth.tenantId,
+    workspaceType,
+    definitions,
+  });
+  const intentLookup = await repository.findForContexts(contextKeys);
+  const surfaces = assembleWorkspaceExposureSurfaces({
+    tenantId: auth.tenantId,
+    definitions,
+    profilesByIndex,
+    intentLookup,
+  });
 
   return {
     workspaceType,

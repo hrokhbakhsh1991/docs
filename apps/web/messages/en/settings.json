@@ -199,6 +199,10 @@
     "empty": "No equipment items yet.",
     "deleteItem": "Delete {name}"
   },
+  "equipmentPage": {
+    "title": "Equipment",
+    "subtitle": "Generic CRUD pilot (SMK-P9-08)"
+  },
   "guideLanguages": {
     "title": "Guide languages",
     "subtitle": "Workspace guide language catalog (Phase 9.6 R5)",
@@ -330,7 +334,8 @@
       "loadFailed": "Could not load the wizard template. Refresh and try again.",
       "saveFailed": "Could not save the wizard template. Try again.",
       "loadHttp": "Could not load settings (server responded {status}). Refresh and try again.",
-      "saveHttp": "Could not save the template (server responded {status}). Try again."
+      "saveHttp": "Could not save the template (server responded {status}). Try again.",
+      "enginePlanGap": "Field \"{path}\" on step \"{stepId}\" is not available in the wizard engine plan."
     }
   },
   "auditTrail": {

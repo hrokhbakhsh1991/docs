@@ -9,13 +9,13 @@ import {
 } from "@app-tour/workspace-denali/host/ui/logic/denali-default-tour-kind";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 
-import { buildWizardTemplateFieldOverlays } from "../src/tours/wizard-template-gate-logic";
-import { applyWizardTemplateDefaultsToDraft } from "../src/tours/wizard-template-prefill-logic";
+import { buildDenaliWizardTemplateFieldOverlays } from "../src/tours/wizard-template-gate-logic";
+import { applyWizardTemplatePrefillToDraft } from "../src/tours/wizard-template-prefill-logic";
 
 describe("denali template prefill precedence (WEB-WIZ-010)", () => {
   it("template category and fitness beat bootstrap fallback", () => {
     const denali = getDenaliWorkspacePlugin();
-    const overlays = buildWizardTemplateFieldOverlays([
+    const overlays = buildDenaliWizardTemplateFieldOverlays([
       {
         stepId: "denali_basic",
         label: "Basic",
@@ -28,7 +28,13 @@ describe("denali template prefill precedence (WEB-WIZ-010)", () => {
     ]);
     const gate = { seedLabel: "", fieldOverlays: overlays };
     const result = buildDenaliCreatePrefilledForm(gate, (draft, prefillGate) =>
-      applyWizardTemplateDefaultsToDraft(draft, prefillGate.fieldOverlays, denali)
+      applyWizardTemplatePrefillToDraft(
+        draft,
+        prefillGate.seedLabel,
+        prefillGate.fieldOverlays,
+        "denali",
+        denali
+      )
     );
     assert.equal(getCanonicalValue(result, "category"), "nature_day");
     assert.equal(getCanonicalValue(result, "participants.fitnessLevel"), "high");
@@ -43,7 +49,7 @@ describe("denali template prefill precedence (WEB-WIZ-010)", () => {
 
   it("WEB-WIZ-013 hidden composite child default beats bootstrap fitness fallback", () => {
     const denali = getDenaliWorkspacePlugin();
-    const overlays = buildWizardTemplateFieldOverlays([
+    const overlays = buildDenaliWizardTemplateFieldOverlays([
       {
         stepId: "denali_pricing",
         label: "Pricing",
@@ -60,7 +66,13 @@ describe("denali template prefill precedence (WEB-WIZ-010)", () => {
     ]);
     const gate = { seedLabel: "", fieldOverlays: overlays };
     const result = buildDenaliCreatePrefilledForm(gate, (draft, prefillGate) =>
-      applyWizardTemplateDefaultsToDraft(draft, prefillGate.fieldOverlays, denali, "denali")
+      applyWizardTemplatePrefillToDraft(
+        draft,
+        prefillGate.seedLabel,
+        prefillGate.fieldOverlays,
+        "denali",
+        denali
+      )
     );
     assert.equal(getCanonicalValue(result, "participants.fitnessLevel"), "high");
   });

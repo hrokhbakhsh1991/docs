@@ -74,6 +74,9 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "settings/bootstrap-denali-dev-smoke-fixtures.ts",
   "settings/seed-operator-smoke-published-tour.ts",
   "settings/seed-workspace-wizard-template.ts",
+  "finance/load-registration-invoice-facts.ts",
+  "identity/users-directory-list-projection.ts",
+  "tours/operator-tour-list-db-query.ts",
   "routes/platform/",
   "workspace-drafts/",
 ];

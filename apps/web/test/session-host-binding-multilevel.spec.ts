@@ -54,7 +54,8 @@ describe("session-host-binding multilevel", () => {
     );
     const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
     assert.match(kernel, /resolveBootstrapAppSessionForHostAsync/);
-    assert.match(kernel, /fetchPublicTenantContextForHost/);
+    assert.match(kernel, /resolveAdminBootstrapForWebHost/);
+    assert.doesNotMatch(kernel, /fetchPublicTenantContextForHost/);
     assert.match(layout, /resolveBootstrapAppSessionForHostAsync/);
   });
 });

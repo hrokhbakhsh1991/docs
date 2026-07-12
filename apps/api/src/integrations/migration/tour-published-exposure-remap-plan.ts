@@ -1,6 +1,7 @@
 import type { ExposureFieldDecorations, ExposureIntentMode } from "../../exposure/exposure-intent";
 import type { ExposureIntentScope, UpsertExposureIntentInput } from "../../exposure/exposure-intent.repository";
 import { exposureIntentScopeHash } from "../../exposure/exposure-intent.repository";
+import { supportsTourPublishedExposureRemap } from "../../integrations/platform/workspace-integration-capabilities.generated.ts";
 
 export const TOUR_PUBLISHED_EXPOSURE_REMAP_SOURCE =
   "tour_published_trigger_migration_v1" as const;
@@ -46,7 +47,7 @@ export function isTourPublishedExposureRemapCandidate(
     "workspaceType" | "surface" | "profileId" | "trigger"
   >,
 ): boolean {
-  if (row.workspaceType !== "denali" || row.surface !== "telegram") {
+  if (!supportsTourPublishedExposureRemap(row.workspaceType, row.surface)) {
     return false;
   }
   return row.trigger === "TourCreated" || row.profileId.endsWith(".TourCreated");

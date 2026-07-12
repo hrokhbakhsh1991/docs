@@ -81,6 +81,7 @@ const REVIEW_LABELS = {
   photoCount: (count: number) => String(count),
   dayLabel: (day: number) => String(day),
   primaryGathering: "primary",
+  socialMediaTelegramAutoLabel: "telegram-auto",
 } as const;
 
 describe("destination-catalog-metric-tour-visibility.spec.ts", () => {

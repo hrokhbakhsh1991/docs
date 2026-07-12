@@ -5,6 +5,11 @@ import { Prisma } from "@prisma/client";
 
 import { deriveTourProjections } from "../canonical/projection-sync";
 import { TourVersionConflictError } from "../tours/tour-version-conflict";
+import {
+  buildOperatorTourOrderBy,
+  buildOperatorTourWhere,
+  OPERATOR_TOUR_LIST_SELECT,
+} from "../tours/operator-tour-list-db-query";
 import { readTourCapLimits } from "../db/tour-cap-config";
 import { TourCapacityExceededError, tourCapacityErrorMessage } from "../db/tour-capacity.error";
 import { withTenantRls } from "../db/with-tenant-rls";
@@ -13,8 +18,18 @@ import type {
   Tour,
   TourListByTenantPageInput,
   TourListByTenantPageOutput,
+  TourOperatorListPageInput,
+  TourOperatorListPageOutput,
   TourStorageRepository,
 } from "./tour-storage.interface";
+
+export const TOUR_LIST_PAGE_SELECT = {
+  id: true,
+  tenantId: true,
+  canonical: true,
+  createdAt: true,
+  rowVersion: true,
+} as const satisfies Prisma.TourSelect;
 
 const CROSS_TENANT_SAVE = "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT";
 
@@ -206,6 +221,7 @@ export class PrismaTourRepository implements TourStorageRepository {
 
       const rows = await tx.tour.findMany({
         where: keysetWhere,
+        select: TOUR_LIST_PAGE_SELECT,
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         take: input.limit + 1,
       });
@@ -214,6 +230,32 @@ export class PrismaTourRepository implements TourStorageRepository {
       return {
         items: pageRows.map(toTour),
         nextCursor: hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.id : null,
+      };
+    });
+  }
+
+  async listOperatorToursPage(input: TourOperatorListPageInput): Promise<TourOperatorListPageOutput> {
+    assertTenantId(input.tenantId);
+    const { query } = input;
+    return withTenantRls(input.tenantId, async (tx) => {
+      const where = buildOperatorTourWhere({
+        tenantId: input.tenantId,
+        search: query.search,
+        status: query.status,
+      });
+      const total = query.includeTotal ? await tx.tour.count({ where }) : 0;
+      const rows = await tx.tour.findMany({
+        where,
+        select: OPERATOR_TOUR_LIST_SELECT,
+        orderBy: buildOperatorTourOrderBy(query.sortBy, query.sortDir),
+        skip: (input.query.page - 1) * input.query.limit,
+        take: input.query.limit,
+      });
+      return {
+        items: rows.map(toTour),
+        total: query.includeTotal ? total : rows.length,
+        page: query.page,
+        limit: query.limit,
       };
     });
   }

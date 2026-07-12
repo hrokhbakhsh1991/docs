@@ -1,5 +1,6 @@
 import type { CreateTourBody } from "./create-tour.schema";
-import { OPERATOR_SMOKE_TENANT_ID } from "../settings/seed-operator-smoke-catalog";
+
+import { resolveStarterCreateBridgeOperatorTenantId } from "./workspace-tour-write-dispatch";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -56,10 +57,13 @@ export function shouldUseStarterValidationForDenaliCreate(
   tenantId: string,
   body: CreateTourBody
 ): boolean {
+  const bridgeTenantId = resolveStarterCreateBridgeOperatorTenantId(workspaceType);
+  if (bridgeTenantId === undefined) {
+    return false;
+  }
   const data = body.data;
   return (
-    workspaceType === "denali" &&
-    tenantId.trim() === OPERATOR_SMOKE_TENANT_ID &&
+    tenantId.trim() === bridgeTenantId &&
     isStarterShapedDenaliCreateBody(body) &&
     isRecord(data) &&
     hasOperatorMinimalCreateShape(data)

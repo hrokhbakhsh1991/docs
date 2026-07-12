@@ -7,6 +7,7 @@
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
 import { readDenaliTourPublishStatusFromCanonical, detectDenaliTourPublishTransition } from "@app-tour/workspace-denali/host/tours";
 import { migrateDenaliCanonical } from "@app-tour/workspace-denali/host/acl";
+import { DENALI_FORM_PROFILE_GHOST_PATHS } from "@app-tour/workspace-denali/host/composites";
 import { URBAN_WORKSPACE_TYPE } from "@app-tour/workspace-urban";
 import { readUrbanTourPublishStatusFromCanonical, detectUrbanTourPublishTransition } from "@app-tour/workspace-urban/host/tours";
 
@@ -16,6 +17,9 @@ export const WORKSPACE_CANONICAL_TOUR_BINDINGS = [
     readPublishStatusFromCanonical: readDenaliTourPublishStatusFromCanonical,
     detectPublishTransition: detectDenaliTourPublishTransition,
     migrateCanonical: migrateDenaliCanonical,
+    formProfileGhostPaths: DENALI_FORM_PROFILE_GHOST_PATHS,
+    validationSyncOnly: true as const,
+    catalogRefEnrichment: true as const,
   },
   {
     workspaceType: URBAN_WORKSPACE_TYPE,

@@ -17,6 +17,7 @@ import {
   validateCanonicalBeforePersistSync,
   type ValidateBeforePersistInput,
 } from "../tours/canonical-validation-sync";
+import { requiresValidationSync } from "./workspace-canonical-tour-dispatch.ts";
 import { metricsRegistry } from "../observability/metrics";
 
 type WorkerRequest = {
@@ -272,7 +273,7 @@ function getValidationWorkerPool(): ValidationWorkerPool {
 export async function runValidationOffThread(
   input: ValidateBeforePersistInput
 ): Promise<CanonicalDocument> {
-  if (!isValidationWorkersEnabled() || input.workspaceType === "denali") {
+  if (!isValidationWorkersEnabled() || requiresValidationSync(input.workspaceType)) {
     return validateCanonicalBeforePersistSync(input);
   }
   return getValidationWorkerPool().run(input);

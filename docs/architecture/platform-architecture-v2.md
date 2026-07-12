@@ -46,7 +46,7 @@ Platform apps (`apps/web`, `apps/portal`, `apps/marketing`, `apps/api`) and plat
 
 Workspace-specific behavior is reached **only** through generated bindings keyed by resolved `pluginId` at runtime.
 
-**Phase C closed (2026-07-06):** production `pluginId === "denali"` / `workspaceType === "urban"` branches eliminated outside generated loaders + test-only paths. `guard-no-workspace-type-branches` enforces C1–C4. **2026-07-07:** `wizardTemplateGate.defaultPublishedStepId` manifest → codegen — last `wizard-template-gate-logic.ts` branch removed.
+**Phase C closed (2026-07-06):** production `pluginId === "denali"` / `workspaceType === "urban"` branches eliminated outside generated loaders + test-only paths. `guard-no-workspace-type-branches` enforces C1–C4. **2026-07-07:** `wizardTemplateGate.defaultPublishedStepId` manifest → codegen — last `wizard-template-gate-logic.ts` branch removed. **2026-07-12:** `wizardTemplateGate.fieldOverlaysAugment` + `preferTemplateDefaultsOnPrefill` → `workspace-wizard-template-gate-bindings.generated.ts` (WEB-WIZ-013 hidden composite defaults + denali prefill precedence without hand imports in `apps/web/src/tours/`).
 
 ### P3 — Codegen derives everything discoverable
 

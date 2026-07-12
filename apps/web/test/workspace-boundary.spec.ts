@@ -40,6 +40,7 @@ const WORKSPACE_LAZY_LOAD_ALLOWLIST = new Set([
   join(SRC_DIR, "bootstrap", "workspace-wizard-flat-edit-page-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-create-view-bindings.generated.ts"),
   join(SRC_DIR, "bootstrap", "workspace-wizard-composite-registry-bindings.generated.ts"),
+  join(SRC_DIR, "bootstrap", "workspace-wizard-template-gate-bindings.generated.ts"),
 ]);
 
 function isWorkspaceProductImportAllowed(file: string): boolean {
@@ -193,12 +194,20 @@ describe("Phase 3.3 workspace boundary", () => {
     );
     assert.match(flatEditHook, /workspace-wizard-flat-edit-chrome-bindings\.generated/);
     assert.match(flatEditHook, /loadDenaliSubmitCatalogIds/);
-    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-catalog-sanitize.ts")));
+    assert.ok(
+      existsSync(
+        join(REPO_ROOT, "packages/workspaces/denali/src/wizard/denali-wizard-catalog-sanitize.ts")
+      )
+    );
   });
 
   it("P15-W-C2 denali web adapters live under wizard/denali", () => {
     assert.ok(existsSync(join(SRC_DIR, "wizard/denali")));
-    assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-catalog-sanitize.ts")));
+    assert.ok(
+      existsSync(
+        join(REPO_ROOT, "packages/workspaces/denali/src/wizard/denali-wizard-catalog-sanitize.ts")
+      )
+    );
     assert.ok(existsSync(join(SRC_DIR, "wizard/denali/denali-localize-validation-message.ts")));
   });
 

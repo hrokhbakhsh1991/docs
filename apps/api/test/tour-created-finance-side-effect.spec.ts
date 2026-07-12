@@ -9,7 +9,7 @@ import { beforeEach, describe, it } from "node:test";
 import {
   registerTourCreatedFinanceSideEffectDeps,
   runTourCreatedFinanceSideEffect,
-} from "@app-tour/workspace-denali/finance/api-tour-created-adapter";
+} from "../src/workspace/workspace-outbox-side-effects.generated.ts";
 
 describe("tour-created-finance-side-effect (P5-E FIN-02)", () => {
   const tenantId = randomUUID();

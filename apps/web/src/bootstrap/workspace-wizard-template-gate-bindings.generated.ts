@@ -4,6 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
+import { augmentDenaliWizardTemplateFieldOverlays as field_overlays_denali } from "@app-tour/workspace-denali/host/wizard/template-field-overlays";
 /** Manifest-derived default step id when publishing an empty wizard template. */
 export const WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID: Readonly<
   Record<string, string>
@@ -16,4 +17,26 @@ export const WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID: Readonly<
 
 export function resolveWizardTemplateGateDefaultPublishedStepId(pluginId: string): string {
   return WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID[pluginId] ?? "basics";
+}
+
+/** Manifest-bound workspace augment for hidden composite template defaults (WEB-WIZ-013). */
+export function augmentWizardTemplateFieldOverlays<
+  T extends { readonly canonicalPath: string; readonly hidden?: boolean; readonly defaultValue?: string },
+>(
+  pluginId: string,
+  templateSteps: readonly { readonly enabled?: boolean; readonly fields: readonly T[] }[],
+  baseOverlays: ReadonlyMap<string, T>,
+): ReadonlyMap<string, T> {
+  if (pluginId === "denali") {
+    return field_overlays_denali(templateSteps, baseOverlays);
+  }
+  return baseOverlays;
+}
+
+const WIZARD_TEMPLATE_PREFER_TEMPLATE_DEFAULTS = new Set<string>(
+  ["denali"],
+);
+
+export function resolveWizardTemplatePreferTemplateDefaults(pluginId: string): boolean {
+  return WIZARD_TEMPLATE_PREFER_TEMPLATE_DEFAULTS.has(pluginId);
 }

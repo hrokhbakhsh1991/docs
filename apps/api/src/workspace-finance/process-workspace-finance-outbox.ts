@@ -10,7 +10,7 @@ import { createPrismaWorkspaceOutboxWriter } from "./prisma-workspace-outbox-wri
 import {
   runTourCreatedFinanceSideEffect,
   type TourCreatedFinanceSideEffectRow,
-} from "./tour-created-finance-side-effect";
+} from "../workspace/workspace-outbox-side-effects.generated.ts";
 
 export type WorkspaceFinanceTourCreatedRow = TourCreatedFinanceSideEffectRow;
 

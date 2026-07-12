@@ -148,6 +148,7 @@ export type IdentityRepository = {
     tenantId: string,
     inviteToken: string
   ): Promise<PendingInviteRecord | null>;
+  findPendingInviteForAccept(inviteToken: string): Promise<PendingInviteRecord | null>;
   acceptPendingInvite(
     tenantId: string,
     inviteToken: string,
@@ -469,6 +470,18 @@ export class InMemoryIdentityRepository implements IdentityRepository {
       return null;
     }
     return this.findPendingInvite(tenantId, inviteId);
+  }
+
+  async findPendingInviteForAccept(inviteToken: string): Promise<PendingInviteRecord | null> {
+    const inviteId = this.invitesByToken.get(inviteToken.trim());
+    if (inviteId === undefined) {
+      return null;
+    }
+    const row = this.invites.get(inviteId);
+    if (row === undefined || row.status !== "INVITED") {
+      return null;
+    }
+    return { ...row };
   }
 
   async acceptPendingInvite(

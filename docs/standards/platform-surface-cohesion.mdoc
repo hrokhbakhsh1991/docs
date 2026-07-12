@@ -15,7 +15,8 @@ code_sot:
   - packages/workspace-sdk/src/catalog/resolve-catalog-api-path.ts
   - apps/marketing/src/tenant/resolve-marketing-bootstrap.ts
   - apps/portal/src/tenant/resolve-portal-bootstrap.ts
-  - apps/web/src/tenant/tenant-kernel.server.ts
+  - packages/guest-surface-host/src/resolve-admin-surface-bootstrap.ts
+  - apps/web/src/tenant/resolve-admin-bootstrap.server.ts
   - scripts/guards/guard-surface-cohesion.mjs
   - docs/dev/platform-surface-cohesion-smoke-matrix.yaml
 mandatory_for:
@@ -44,7 +45,7 @@ mandatory_for:
 ├─────────────┼──────────────────┼─────────────────────────────────────────┤
 │ Host parse  │ tenant-kernel    │ all surfaces                            │
 │ Guest boot  │ guest-surface-host │ marketing + portal                  │
-│ Admin boot  │ guest-surface-host + tenant-kernel │ web (converging)    │
+│ Admin boot  │ guest-surface-host │ web via `resolveAdminBootstrapForWebHost` (ASB-001) │
 │ API base URL│ guest-surface-host │ all BFF surfaces                    │
 │ Branding    │ guest-surface-host │ all surfaces                        │
 │ pluginId    │ API tenant-context + DEV_PLUGIN_ID map │ never hostname  │
@@ -61,7 +62,7 @@ mandatory_for:
 
 | Decision | Marketing | Portal | Admin (web) | SoT |
 | -------- | --------- | ------ | ----------- | --- |
-| Bootstrap | `resolveMarketingBootstrapForHost` | `resolvePortalBootstrapForHost` | `resolveBootstrapAppSessionForHostAsync` | GSH `resolveGuestSurfaceBootstrapForHost` (M+P); web async uses `fetchPublicTenantContextForHost` |
+| Bootstrap | `resolveMarketingBootstrapForHost` | `resolvePortalBootstrapForHost` | `resolveAdminBootstrapForWebHost` → GSH `resolveAdminBootstrapForHost` | GSH guest + admin bootstrap (ASB-001) |
 | API base | `resolveTourOpsApiBaseUrl` from GSH | same | re-export GSH via `urban-api-base.ts` shim ✅ Phase 1a | `packages/guest-surface-host/src/resolve-tour-ops-api-base-url.ts` |
 | Prod BFF fail-fast | `assertGuestBffProductionConfig` | same | `onBeforeFetch` in all branding paths (server + `/api/public/tenant-branding` BFF) ✅ Phase 1b | GSH |
 | Branding fetch | delegate `fetchGuestPublicTenantBrandingForHost` | same | server helper + public BFF route delegate same helper ✅ Phase 1b | GSH `fetch-public-tenant-branding.ts` |
@@ -73,7 +74,21 @@ mandatory_for:
 
 ---
 
-## 3. Intentional divergences (do NOT converge)
+## 2b. ASB-001 — Admin surface bootstrap (EPH Track III)
+
+Admin (`apps/web`) **must** delegate async tenant resolution to `resolveAdminBootstrapForHost` (GSH) via thin wrapper `resolveAdminBootstrapForWebHost`. Full standard: [admin-surface-bootstrap.mdoc](./admin-surface-bootstrap.mdoc).
+
+```text
+resolveTenantIdFromDevHost(host, "admin")  → static PHASE_43 map
+  → fetchPublicTenantContextForHost
+  → isDevGuestHostAllowed ? devFallbackTenantId() : throw ADMIN_TENANT_UNRESOLVED
+```
+
+**Forbidden:** direct `fetchPublicTenantContextForHost` in `tenant-kernel.server.ts` with env fallback when API returns null (fail-soft). Production unmapped hosts must throw like marketing/portal.
+
+**Branding:** unchanged — `fetchPublicTenantBrandingForHost` (GSH) on login/settings paths; bootstrap supplies `tenantId` + `pluginId` only.
+
+---
 
 | Divergence | Rationale | Standard |
 | ---------- | --------- | -------- |
@@ -82,7 +97,7 @@ mandatory_for:
 | Portal async JWT verify | Edge middleware | PCMS-SEC-02 |
 | Admin BFF surface area larger | Operator features | platform-architecture-v2 |
 | `workspace-plugin-host` portal-only | Registration flow composition | platform-portal-registration |
-| Admin session bind fail-open for unmapped dev clubs | Operator velocity (review in Phase 4 — prod ingress-bound only) | PSC-C-05 |
+| Admin session bind fail-open for unmapped dev clubs | Removed for layout + identity BFF — ASB-001 fail-closed in prod | PSC-C-05 ✅ |
 | `starter` on guest surfaces | Admin-only scaffold — no `guestExtensionsVersion` | PSC-C-06 |
 
 ---
@@ -97,7 +112,7 @@ Tracked in [`workspace-routing-risk-register.md`](./workspace-routing-risk-regis
 | PSC-C-02 | P1 | Web hostname plugin heuristics | 1c ✅ |
 | PSC-C-03 | P1 | Web branding bypass GSH (server + BFF route) | 1b ✅ |
 | PSC-C-04 | P2 | guest-club missing explicit `operatorCapabilities` row | 2 ✅ |
-| PSC-C-05 | P2 | Admin session bind fail-open vs portal fail-closed | 4 doc — prod-only |
+| PSC-C-05 | P2 | Admin layout bootstrap fail-closed (ASB-001); BFF identity headers aligned | 4 ✅ |
 | PSC-C-06 | P2 | starter unsupported on guest surfaces | 4 doc ✅ |
 | PSC-C-07 | P2 | SDK/GSH dist stale in CI | process ✅ |
 | PSC-C-08 | P2 | Cross-surface smoke matrix incomplete | 3 ✅ |

@@ -20,32 +20,6 @@ const HOST_IMPORT_RE = /@app-tour\/workspace-[a-z0-9-]+\/host\//;
  * Paths relative to apps/api/src.
  */
 const HOST_IMPORT_LEGACY_ALLOWLIST = new Set([
-  "app.ts",
-  "canonical/assert-tour-publish-lifecycle-gate.ts",
-  "canonical/migrate-canonical-workspace.service.ts",
-  "canonical/strip-form-profile-for-submit.ts",
-  "denali-finance/assert-finance-access.ts",
-  "denali-finance/finance.service.ts",
-  "exposure/resolve-denali-surface-exposure.ts",
-  "exposure/resolve-urban-surface-exposure.ts",
-  "exposure/start-denali-exposure-reminder-scheduler.ts",
-  "http/configure-urban-http-host.ts",
-  "http/configure-workspace-denali-product-http-host.ts",
-  "http/configure-workspace-finance-http-host.ts",
-  "settings/bootstrap-denali-dev-smoke-fixtures.ts",
-  "settings/seed-operator-smoke-catalog.ts",
-  "settings/wizard-template-catalog.ts",
-  "tours/apply-denali-server-clone-photo-remint.ts",
-  "tours/denali-wizard-rules-module-sync.ts",
-  "tours/resolve-validation-mode.ts",
-  "tours/tour-wizard-photos.routes.ts",
-  "tours/workspace-tour-write-dispatch.ts",
-  "workspace-finance/finance.service.ts",
-  "workspace-finance/prisma-workspace-outbox-reader.ts",
-  "workspace-finance/prisma-workspace-outbox-writer.ts",
-  "workspace-finance/process-workspace-finance-outbox.ts",
-  "workspace-finance/register-workspace-finance-deps.ts",
-  "workspace-finance/tour-created-finance-side-effect.ts",
 ]);
 
 /** @type {string[]} */

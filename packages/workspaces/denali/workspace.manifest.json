@@ -24,7 +24,9 @@
       "workspaceTypes": ["denali"],
       "hostSideEffect": {
         "adapterModule": "./finance/api-tour-created-adapter",
-        "export": "runTourCreatedFinanceSideEffect"
+        "export": "runTourCreatedFinanceSideEffect",
+        "registerExport": "registerTourCreatedFinanceSideEffectDeps",
+        "rowTypeExport": "TourCreatedFinanceSideEffectRow"
       }
     }
   ],
@@ -78,14 +80,45 @@
     "mergeExport": "mergeDenaliCanonicalPatchData",
     "publishGateExport": "denaliTourPatchRequiresOwner",
     "publishSurfaceExport": "DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE",
-    "forbidOperatorMemberTourPatch": true
+    "forbidOperatorMemberTourPatch": true,
+    "starterCreateBridgeOperatorTenantId": "00000000-0000-4000-8000-000000000014"
   },
   "canonicalTour": {
     "publishStatusModule": "./tours",
     "publishStatusReadExport": "readDenaliTourPublishStatusFromCanonical",
     "publishTransitionExport": "detectDenaliTourPublishTransition",
     "migrateModule": "./acl",
-    "migrateExport": "migrateDenaliCanonical"
+    "migrateExport": "migrateDenaliCanonical",
+    "formProfileGhostPathsModule": "./composites",
+    "formProfileGhostPathsExport": "DENALI_FORM_PROFILE_GHOST_PATHS",
+    "validationSyncOnly": true,
+    "catalogRefEnrichment": true
+  },
+  "workspaceFinance": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true
+  },
+  "integrationCapabilities": {
+    "telegram": {
+      "tourPublishedPolicyDriftCheck": true,
+      "tourPublishedExposureRemap": true,
+      "deprecatedEventTypes": [
+        { "eventType": "TourCreated", "supersededBy": "TourPublished" }
+      ],
+      "deliveryReferenceDisplayFieldIds": ["denali.destination"]
+    }
+  },
+  "wizardTemplateEnforcement": {
+    "module": "./wizard/template-invariants",
+    "assertFrozenFieldsExport": "assertDenaliFrozenWizardTemplateFieldsPresent",
+    "normalizeStepsExport": "normalizeDenaliWizardTemplatePayloadSteps"
+  },
+  "exposureHost": {
+    "module": "./exposure",
+    "surfaceDefaultFieldIdsExport": "resolveDenaliSurfaceDefaultFieldIds",
+    "mapSurfaceToFieldPolicyExport": "mapDenaliExposureSurfaceToFieldPolicySurface",
+    "reminderOffsetsExport": "DENALI_REMINDER_OFFSETS",
+    "exposureCoordinateTypeExport": "DenaliExposureCoordinate"
   },
   "wizardMedia": {
     "module": "./photos",
@@ -355,7 +388,12 @@
     "export": "denaliWizardTemplatePresetSurface"
   },
   "wizardTemplateGate": {
-    "defaultPublishedStepId": "denali_basic"
+    "defaultPublishedStepId": "denali_basic",
+    "fieldOverlaysAugment": {
+      "module": "./wizard/template-field-overlays",
+      "export": "augmentDenaliWizardTemplateFieldOverlays"
+    },
+    "preferTemplateDefaultsOnPrefill": true
   },
   "wizardDraftShell": {
     "module": "./ui/chrome/wizard-draft-shell-surface",

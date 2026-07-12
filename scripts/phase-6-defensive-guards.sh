@@ -13,6 +13,7 @@ pnpm run guard:denali-plugin-surface
 pnpm run guard:urban-plugin-surface
 pnpm run guard:workspace-export-surface
 pnpm run guard:api-workspace-isolation
+bash scripts/guards/phase-eph-identity-ratchet.sh
 pnpm run guard:field-policy-boundary
 pnpm run guard:unbounded-list
 pnpm run guard:repository-n-plus-one
