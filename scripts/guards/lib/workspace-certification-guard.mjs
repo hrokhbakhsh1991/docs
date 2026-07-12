@@ -247,3 +247,84 @@ export function collectCertificationViolations(input) {
 
   return violations;
 }
+
+/**
+ * PSC-001 Phase 2 — guest-capable manifests must declare explicit operatorCapabilities;
+ * generated registry must stay in sync (extends certification guard — PSC-C-17).
+ *
+ * @param {{
+ *   manifests: Array<{ id: string; guestExtensionsVersion?: number; http?: unknown; httpRoutes?: unknown; operatorCapabilities?: Record<string, boolean> }>;
+ *   generatedCaps: Record<string, { usersDirectory: boolean; reconciliationTriage: boolean; fieldExposureSurfaces: boolean }>;
+ * }} input
+ * @returns {string[]}
+ */
+export function collectOperatorCapabilitiesViolations(input) {
+  const { manifests, generatedCaps } = input;
+  /** @type {string[]} */
+  const violations = [];
+
+  /** @param {typeof manifests[number]} manifest */
+  function requiresOperatorCapabilities(manifest) {
+    if (manifest.guestExtensionsVersion !== 1) {
+      return false;
+    }
+    return manifest.httpRoutes !== undefined || manifest.http !== undefined;
+  }
+
+  for (const manifest of manifests) {
+    if (!requiresOperatorCapabilities(manifest)) {
+      continue;
+    }
+    if (manifest.operatorCapabilities === undefined) {
+      violations.push(
+        `PSC-C-04: ${manifest.id} guest-capable manifest must declare operatorCapabilities`
+      );
+      continue;
+    }
+    const generated = generatedCaps[manifest.id];
+    if (generated === undefined) {
+      violations.push(`PSC-C-04: ${manifest.id} missing from WORKSPACE_OPERATOR_CAPABILITIES`);
+      continue;
+    }
+    for (const key of ["usersDirectory", "reconciliationTriage", "fieldExposureSurfaces"]) {
+      const manifestValue = manifest.operatorCapabilities[key] === true;
+      if (generated[key] !== manifestValue) {
+        violations.push(
+          `PSC-C-04: ${manifest.id} operatorCapabilities.${key} manifest=${manifestValue} generated=${generated[key]}`
+        );
+      }
+    }
+  }
+
+  const manifestCapIds = manifests
+    .filter((m) => m.operatorCapabilities !== undefined)
+    .map((m) => m.id)
+    .sort();
+  const generatedIds = Object.keys(generatedCaps).sort();
+  if (manifestCapIds.join(",") !== generatedIds.join(",")) {
+    violations.push(
+      `PSC-C-04: operator capability plugin ids [${manifestCapIds.join(", ")}] != generated [${generatedIds.join(", ")}]`
+    );
+  }
+
+  return violations;
+}
+
+/**
+ * @param {string} generatedSource
+ * @returns {Record<string, { usersDirectory: boolean; reconciliationTriage: boolean; fieldExposureSurfaces: boolean }>}
+ */
+export function parseOperatorCapabilitiesFromGenerated(generatedSource) {
+  /** @type {Record<string, { usersDirectory: boolean; reconciliationTriage: boolean; fieldExposureSurfaces: boolean }>} */
+  const out = {};
+  for (const match of generatedSource.matchAll(
+    /"([^"]+)": Object\.freeze\(\{ usersDirectory: (true|false), reconciliationTriage: (true|false), fieldExposureSurfaces: (true|false) \}\)/g
+  )) {
+    out[match[1]] = {
+      usersDirectory: match[2] === "true",
+      reconciliationTriage: match[3] === "true",
+      fieldExposureSurfaces: match[4] === "true",
+    };
+  }
+  return out;
+}

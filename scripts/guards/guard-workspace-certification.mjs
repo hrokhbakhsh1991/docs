@@ -11,6 +11,8 @@ import { fileURLToPath } from "node:url";
 import { discoverManifests, resolveProductionCertificationTier } from "../generate-workspace-registry.mjs";
 import {
   collectCertificationViolations,
+  collectOperatorCapabilitiesViolations,
+  parseOperatorCapabilitiesFromGenerated,
   parseProductionCertificationFromGenerated,
   parseProofMatrixYaml,
 } from "./lib/workspace-certification-guard.mjs";
@@ -19,6 +21,10 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const GENERATED_PATH = path.join(
   REPO_ROOT,
   "packages/workspace-sdk/src/catalog/workspace-production-certification.generated.ts"
+);
+const OPERATOR_CAPS_PATH = path.join(
+  REPO_ROOT,
+  "packages/workspace-sdk/src/operator/workspace-operator-capabilities.generated.ts"
 );
 const PROOF_MATRIX_PATH = path.join(REPO_ROOT, "docs/dev/workspace-certification-proof-matrix.yaml");
 const E2E_HOOKS_PATH = path.join(REPO_ROOT, "docs/dev/guest-registration-e2e-hooks.yaml");
@@ -42,6 +48,11 @@ if (!fs.existsSync(PROOF_MATRIX_PATH)) {
 
 if (!fs.existsSync(GENERATED_PATH)) {
   console.error("guard-workspace-certification: FAIL — generated certification registry missing");
+  process.exit(1);
+}
+
+if (!fs.existsSync(OPERATOR_CAPS_PATH)) {
+  console.error("guard-workspace-certification: FAIL — generated operator capabilities missing");
   process.exit(1);
 }
 
@@ -70,6 +81,20 @@ if (logicViolations.length === 0) {
   pass("proof_matrix_complete");
 } else {
   for (const violation of logicViolations) {
+    fail(violation);
+  }
+}
+
+const operatorCapsSource = fs.readFileSync(OPERATOR_CAPS_PATH, "utf8");
+const operatorViolations = collectOperatorCapabilitiesViolations({
+  manifests,
+  generatedCaps: parseOperatorCapabilitiesFromGenerated(operatorCapsSource),
+});
+
+if (operatorViolations.length === 0) {
+  pass("operator_capabilities_manifest_sync");
+} else {
+  for (const violation of operatorViolations) {
     fail(violation);
   }
 }

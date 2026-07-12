@@ -45,22 +45,22 @@ describe("tenant-branding-contract.spec.ts", () => {
     assert.match(bridge, /TenantBrandMark/);
   });
 
-  it("WEB-TENANT-BRANDING-04 public BFF forwards x-forwarded-host to API", () => {
+  it("WEB-TENANT-BRANDING-04 public BFF delegates server branding helper (GSH chain)", () => {
     const route = readFileSync(
       join(WEB_ROOT, "app/api/public/tenant-branding/route.ts"),
       "utf8"
     );
-    assert.match(route, /x-forwarded-host/);
+    assert.match(route, /fetchPublicTenantBrandingForHost/);
+    assert.doesNotMatch(route, /backendRes\.ok/);
   });
 
-  it("WEB-P15-A1a public BFF soft-fails backend errors with 200 null branding", () => {
+  it("WEB-P15-A1a public BFF soft-fails via GSH empty branding snapshot", () => {
     const route = readFileSync(
       join(WEB_ROOT, "app/api/public/tenant-branding/route.ts"),
       "utf8"
     );
-    assert.match(route, /!backendRes\.ok/);
-    assert.match(route, /defaultLocale: null/);
-    assert.match(route, /EMPTY_PUBLIC_TENANT_BRANDING/);
+    assert.match(route, /fetchPublicTenantBrandingForHost/);
+    assert.match(route, /status: 200/);
     assert.doesNotMatch(route, /status: backendRes\.status/);
   });
 

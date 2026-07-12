@@ -9,6 +9,7 @@ import type { AppSession } from "@/session/app-session";
 
 import { isDevWebSessionAllowed } from "./auth-env";
 import { fetchPublicTenantContextForHost } from "./fetch-public-tenant-context.server";
+import { resolveDevSessionProfileFromHost } from "./dev-host-session-profiles";
 import { resolveTenantIdFromDevHost } from "./resolve-host-tenant";
 import {
   bootstrapPlugin,
@@ -35,46 +36,17 @@ export {
   resolveTenantContext,
 };
 
-const URBAN_SMOKE_E2E_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";
-const URBAN_SMOKE_E2E_OWNER_USER_ID = "00000000-0000-4000-8000-000000000401";
-const URBAN_SMOKE_E2E_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000402";
-
-const DEV_HOST_SESSION_PROFILES: Readonly<Record<string, Partial<TenantKernelResolveInput>>> = {
-  "deny-theme": {
-    userId: "deny-theme-user",
-    role: "member",
-    status: "SUSPENDED",
-  },
-  "urban-owner": {
-    userId: URBAN_SMOKE_E2E_OWNER_USER_ID,
-    workspaceId: URBAN_SMOKE_E2E_WORKSPACE_ID,
-    role: "owner",
-    status: "ACTIVE",
-  },
-  "urban-member": {
-    userId: URBAN_SMOKE_E2E_MEMBER_USER_ID,
-    workspaceId: URBAN_SMOKE_E2E_WORKSPACE_ID,
-    role: "member",
-    status: "ACTIVE",
-  },
-};
-
-function resolveDevSessionProfileFromHost(host: string): Partial<TenantKernelResolveInput> | null {
+function resolveDevSessionProfileForHost(host: string) {
   if (!isDevWebSessionAllowed()) {
     return null;
   }
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
-  const match = /^([a-z0-9-]+)\.localhost$/.exec(hostname);
-  if (!match?.[1]) {
-    return null;
-  }
-  return DEV_HOST_SESSION_PROFILES[match[1]] ?? null;
+  return resolveDevSessionProfileFromHost(host);
 }
 
 /** Per-request bootstrap with optional Host-based tenant override (dev e2e / TH-1). */
 export function resolveBootstrapAppSessionForHost(host: string): ResolvedBootstrapSession {
   const base = resolveContextFromEnv();
-  const profile = resolveDevSessionProfileFromHost(host);
+  const profile = resolveDevSessionProfileForHost(host);
   const withProfile = profile ? { ...base, ...profile } : base;
   const hostTenantId = resolveTenantIdFromDevHost(host);
   if (hostTenantId) {
@@ -98,7 +70,7 @@ export async function resolveBootstrapAppSessionForHostAsync(
   const publicContext = await fetchPublicTenantContextForHost(host);
   if (publicContext !== null) {
     const base = resolveContextFromEnv();
-    const profile = resolveDevSessionProfileFromHost(host);
+    const profile = resolveDevSessionProfileForHost(host);
     const withProfile = profile ? { ...base, ...profile } : base;
     return resolveBootstrapAppSession(
       { ...withProfile, tenantId: publicContext.tenantId },

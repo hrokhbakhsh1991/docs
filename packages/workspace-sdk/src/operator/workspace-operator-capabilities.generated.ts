@@ -8,9 +8,14 @@
 export const WORKSPACE_OPERATOR_CAPABILITIES: Readonly<
   Record<
     string,
-    Readonly<{ readonly usersDirectory: boolean; readonly reconciliationTriage: boolean }>
+    Readonly<{
+      readonly usersDirectory: boolean;
+      readonly reconciliationTriage: boolean;
+      readonly fieldExposureSurfaces: boolean;
+    }>
   >
 > = Object.freeze({
-  "denali": Object.freeze({ usersDirectory: true, reconciliationTriage: true }),
-  "urban": Object.freeze({ usersDirectory: false, reconciliationTriage: false }),
+  "denali": Object.freeze({ usersDirectory: true, reconciliationTriage: true, fieldExposureSurfaces: true }),
+  "guest-club": Object.freeze({ usersDirectory: false, reconciliationTriage: false, fieldExposureSurfaces: false }),
+  "urban": Object.freeze({ usersDirectory: false, reconciliationTriage: false, fieldExposureSurfaces: false }),
 });

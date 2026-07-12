@@ -14,6 +14,8 @@ import {
 } from "../generate-workspace-registry.mjs";
 import {
   collectCertificationViolations,
+  collectOperatorCapabilitiesViolations,
+  parseOperatorCapabilitiesFromGenerated,
   parseProductionCertificationFromGenerated,
   parseProofMatrixYaml,
   proofStatusOf,
@@ -24,6 +26,10 @@ const PROOF_MATRIX = join(REPO_ROOT, "docs/dev/workspace-certification-proof-mat
 const GENERATED = join(
   REPO_ROOT,
   "packages/workspace-sdk/src/catalog/workspace-production-certification.generated.ts"
+);
+const OPERATOR_CAPS = join(
+  REPO_ROOT,
+  "packages/workspace-sdk/src/operator/workspace-operator-capabilities.generated.ts"
 );
 const E2E_HOOKS = join(REPO_ROOT, "docs/dev/guest-registration-e2e-hooks.yaml");
 
@@ -61,6 +67,19 @@ describe("workspace certification guard (Phase H3)", () => {
       repoRoot: REPO_ROOT,
     });
     assert.deepEqual(violations, []);
+  });
+
+  it("guest-capable manifests sync operatorCapabilities with generated registry (PSC-C-04)", () => {
+    const manifests = discoverManifests();
+    const operatorCaps = readFileSync(OPERATOR_CAPS, "utf8");
+    const violations = collectOperatorCapabilitiesViolations({
+      manifests,
+      generatedCaps: parseOperatorCapabilitiesFromGenerated(operatorCaps),
+    });
+    assert.deepEqual(violations, []);
+    const caps = parseOperatorCapabilitiesFromGenerated(operatorCaps);
+    assert.ok(caps["guest-club"]);
+    assert.equal(caps.denali.fieldExposureSurfaces, true);
   });
 
   it("generateWorkspaceProductionCertification matches on-disk generated file", () => {

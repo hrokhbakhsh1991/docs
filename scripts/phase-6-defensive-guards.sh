@@ -33,6 +33,7 @@ pnpm --filter @apps/api exec node --import tsx --test \
 
 pnpm run guard:wrs-stale-docs
 pnpm run guard:pcms-authority
+pnpm run guard:surface-cohesion
 pnpm run guard:guest-plugin-conformance
 pnpm run guard:workspace-onboard-contract
 pnpm run guard:workspace-certification

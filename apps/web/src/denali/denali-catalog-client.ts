@@ -1,4 +1,8 @@
+import { resolveCatalogTourApiPath } from "@app-tour/workspace-sdk";
+
 import { buildUrbanPublicTenantHeaders, resolveTourOpsApiBaseUrl } from "../urban/urban-api-base";
+
+const DENALI_PLUGIN_ID = "denali" as const;
 
 export type DenaliCatalogCard = {
   readonly id: string;
@@ -17,7 +21,7 @@ export async function fetchDenaliCatalogTour(
   tourId: string
 ): Promise<DenaliCatalogCard | null> {
   const res = await fetch(
-    `${resolveTourOpsApiBaseUrl()}/denali/catalog/${encodeURIComponent(tourId)}`,
+    `${resolveTourOpsApiBaseUrl()}${resolveCatalogTourApiPath(DENALI_PLUGIN_ID, tourId)}`,
     {
       method: "GET",
       headers: buildUrbanPublicTenantHeaders(tenantId),

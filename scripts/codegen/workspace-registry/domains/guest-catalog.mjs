@@ -284,7 +284,7 @@ export function assertGuestExtensionsManifest(manifest) {
     if (typeof capabilities !== "object" || Array.isArray(capabilities)) {
       throw new Error(`${manifest.id}: operatorCapabilities must be an object`);
     }
-    for (const key of ["usersDirectory", "reconciliationTriage"]) {
+    for (const key of ["usersDirectory", "reconciliationTriage", "fieldExposureSurfaces"]) {
       if (capabilities[key] !== undefined && typeof capabilities[key] !== "boolean") {
         throw new Error(`${manifest.id}: operatorCapabilities.${key} must be boolean`);
       }

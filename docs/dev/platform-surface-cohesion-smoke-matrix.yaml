@@ -1,0 +1,49 @@
+# PSC-001 Phase 3 — cross-surface cohesion smoke matrix (extends SMK-*; no duplicate Playwright suite)
+# Consumed by scripts/guards/guard-surface-cohesion-smoke.mjs
+version: 1
+static:
+  - id: SMK-PSC-01
+    description: Marketing + portal bootstrap/branding delegate guest-surface-host
+    spec: apps/marketing/test/guest-bootstrap-parity.spec.ts
+    command: pnpm --filter @apps/marketing exec node --import tsx --test test/guest-bootstrap-parity.spec.ts
+  - id: SMK-PSC-02
+    description: Web admin GSH parity (API URL, branding, pluginId, catalog paths)
+    spec: apps/web/test/guest-api-base-parity.spec.ts
+    command: pnpm --filter @apps/web exec node --import tsx --test test/guest-api-base-parity.spec.ts
+  - id: SMK-PSC-03
+    description: Cross-surface codegen + GSH dev pluginId map
+    spec: scripts/test/surface-cohesion-cross-surface.spec.mjs
+    command: node --test scripts/test/surface-cohesion-cross-surface.spec.mjs
+  - id: SMK-PSC-04
+    description: GSH resolveDevPluginIdForTenantId — UUID map not hostname
+    spec: packages/guest-surface-host/test/guest-surface-host.spec.ts
+    command: pnpm --filter @app-tour/guest-surface-host exec node --import tsx --test test/guest-surface-host.spec.ts
+  - id: SMK-PSC-05
+    description: Operator capabilities codegen (guest-club explicit row)
+    spec: packages/workspace-sdk/test/resolve-operator-capabilities.spec.ts
+    command: pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/resolve-operator-capabilities.spec.ts
+  - id: SMK-PSC-06
+    description: Surface cohesion static guard
+    spec: scripts/guards/guard-surface-cohesion.mjs
+    command: pnpm run guard:surface-cohesion
+# E2E hooks — reference existing SMK-* / WRS smoke (run manually or in CI matrix; not duplicated here)
+e2e:
+  - id: SMK-WRS-CUSTOM-APEX
+    description: Custom apex host → tenant-context (marketing · portal · admin)
+    spec: scripts/smoke-wrs-custom-apex.mjs
+    command: pnpm run smoke:wrs-custom-apex
+    requires: API running + tenant_domains seed
+  - id: SMK-MKT-03
+    description: Marketing CTA → portal registration chain (cross-surface)
+    spec: apps/marketing/tests/e2e/marketing-catalog-smoke.spec.ts
+    command: pnpm --filter @apps/marketing run test:smoke
+    extends: guest-registration-e2e-hooks.yaml
+  - id: SMK-PTL-01
+    description: Portal registration smoke (guest bootstrap path)
+    spec: apps/portal/tests/e2e/portal-registration-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke
+    extends: guest-registration-e2e-hooks.yaml
+  - id: SMK-PTL-08
+    description: Portal custom apex PCMS smoke
+    spec: apps/portal/tests/e2e/portal-custom-apex-pcms-smoke.spec.ts
+    command: pnpm --filter @apps/portal run test:smoke:custom-apex

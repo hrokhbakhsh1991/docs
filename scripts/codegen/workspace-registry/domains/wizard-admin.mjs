@@ -800,6 +800,17 @@ export function resolveWizardDraftCreateTourDraftKey(pluginId: string): string |
   }
   return null;
 }
+
+export function readWizardDraftFieldValueFromRegistry(
+  pluginId: string,
+  draft: Record<string, unknown>,
+  canonicalPath: string
+): unknown | null {
+  if (pluginId === ${JSON.stringify(m.id)}) {
+    return ${alias}.readDraftFieldValue(draft, canonicalPath);
+  }
+  return null;
+}
 `;
 }
 

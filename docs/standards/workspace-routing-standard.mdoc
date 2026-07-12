@@ -108,6 +108,8 @@ WRS-D-ASYM-01: Platform wildcard TLS uses `{club}.portal.{root}` in dev; custome
 
 **Member portal shell extension (mandatory companion):** Portal member routes, module registry, URL freeze, reserved module ids, and GSH [Builder Migration Contract](../phase-19/member-portal-shell/builder-migration-contract.mdoc) are documented in [wrs-portal-member-routing-addendum.mdoc](./wrs-portal-member-routing-addendum.mdoc). Phase 3 cross-surface work is blocked until that addendum is merged (DL-41).
 
+**Surface cohesion (mandatory companion):** Cross-surface bootstrap, API URL, branding, and pluginId convergence — [platform-surface-cohesion.mdoc](./platform-surface-cohesion.mdoc) (PSC-001). Phase 1 admin tenant PRs blocked until Phase 0 guard baseline is on branch.
+
 ### 4.1 Marketing (public)
 
 | Path | Purpose |
@@ -238,6 +240,8 @@ pnpm run smoke:pcms-custom-apex
 pnpm run guard:wrs-routing
 pnpm run guard:wrs-stale-docs
 pnpm run guard:pcms-authority
+pnpm run guard:surface-cohesion
+pnpm run phase-psc:fast-track   # PSC-001 closure — guard + smoke + strict
 pnpm run test:changed
 ```
 

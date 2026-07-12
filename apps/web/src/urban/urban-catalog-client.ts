@@ -1,4 +1,8 @@
+import { resolveCatalogListApiPath, resolveCatalogTourApiPath } from "@app-tour/workspace-sdk";
+
 import { buildUrbanPublicTenantHeaders, resolveTourOpsApiBaseUrl } from "./urban-api-base";
+
+const URBAN_PLUGIN_ID = "urban" as const;
 
 export const URBAN_CATALOG_PAGE_PATH = "/catalog" as const;
 
@@ -29,7 +33,7 @@ export type UrbanCatalogDetailResponse = {
 export async function fetchUrbanCatalogList(
   tenantId: string
 ): Promise<readonly UrbanCatalogCard[]> {
-  const res = await fetch(`${resolveTourOpsApiBaseUrl()}/urban/catalog`, {
+  const res = await fetch(`${resolveTourOpsApiBaseUrl()}${resolveCatalogListApiPath(URBAN_PLUGIN_ID)}`, {
     method: "GET",
     headers: buildUrbanPublicTenantHeaders(tenantId),
     cache: "no-store",
@@ -46,7 +50,7 @@ export async function fetchUrbanCatalogTour(
   tourId: string
 ): Promise<UrbanCatalogCard | null> {
   const res = await fetch(
-    `${resolveTourOpsApiBaseUrl()}/urban/catalog/${encodeURIComponent(tourId)}`,
+    `${resolveTourOpsApiBaseUrl()}${resolveCatalogTourApiPath(URBAN_PLUGIN_ID, tourId)}`,
     {
       method: "GET",
       headers: buildUrbanPublicTenantHeaders(tenantId),

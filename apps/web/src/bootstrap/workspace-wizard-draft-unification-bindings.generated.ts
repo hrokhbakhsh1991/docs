@@ -18,3 +18,14 @@ export function resolveWizardDraftCreateTourDraftKey(pluginId: string): string |
   }
   return null;
 }
+
+export function readWizardDraftFieldValueFromRegistry(
+  pluginId: string,
+  draft: Record<string, unknown>,
+  canonicalPath: string
+): unknown | null {
+  if (pluginId === "denali") {
+    return draft_unification_denali.readDraftFieldValue(draft, canonicalPath);
+  }
+  return null;
+}

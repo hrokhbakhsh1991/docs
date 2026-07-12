@@ -1,4 +1,4 @@
-/** Phase 8.4 urban smoke hosts — sync `tenant-kernel.server.ts` DEV_HOST_SESSION_PROFILES. */
+/** Phase 8.4 urban smoke hosts — sync `dev-host-session-profiles.ts` DEV_HOST_SESSION_PROFILES. */
 const DEV_E2E_MIDDLEWARE_BYPASS_HOSTS = new Set(["urban-owner", "urban-member"]);
 
 /**

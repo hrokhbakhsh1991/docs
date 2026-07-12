@@ -7,3 +7,7 @@ export function operatorCapabilitySupportsUsersDirectory(workspaceType: string):
 export function operatorCapabilitySupportsReconciliationTriage(workspaceType: string): boolean {
   return WORKSPACE_OPERATOR_CAPABILITIES[workspaceType]?.reconciliationTriage === true;
 }
+
+export function operatorCapabilitySupportsFieldExposureSurfaces(workspaceType: string): boolean {
+  return WORKSPACE_OPERATOR_CAPABILITIES[workspaceType]?.fieldExposureSurfaces === true;
+}
