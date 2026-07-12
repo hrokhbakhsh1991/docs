@@ -1,6 +1,7 @@
 import { getPrisma } from "../db/prisma";
 
 import type { PersistedIntegrationEventPolicy } from "../integrations/platform/resolve-effective-integration-event-catalog";
+import { requiresTourPublishedPolicyDriftCheck } from "../integrations/platform/workspace-integration-capabilities.generated.ts";
 
 export const TOUR_PUBLISHED_ROLLOUT_GATE_FATAL_ENV =
   "TOUR_PUBLISHED_ROLLOUT_GATE_FATAL" as const;
@@ -18,7 +19,7 @@ export function shouldWarnTourPublishedPolicyDrift(input: {
   readonly status: string;
   readonly persistedPolicies: readonly PersistedIntegrationEventPolicy[];
 }): boolean {
-  if (input.workspaceType !== "denali" || input.provider !== "telegram") {
+  if (!requiresTourPublishedPolicyDriftCheck(input.workspaceType, input.provider)) {
     return false;
   }
   if (!input.enabled || input.status !== "enabled") {

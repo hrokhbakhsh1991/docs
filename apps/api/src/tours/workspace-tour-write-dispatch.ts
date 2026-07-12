@@ -120,3 +120,17 @@ export function assertTourPublishFieldOwner(input: {
 export function operatorMemberTourPatchForbidden(workspaceType: string): boolean {
   return memberPatchForbidden.has(workspaceType);
 }
+
+export function resolveStarterCreateBridgeOperatorTenantId(
+  workspaceType: string
+): string | undefined {
+  for (const binding of WORKSPACE_TOUR_WRITE_BINDINGS) {
+    if (binding.workspaceType !== workspaceType) {
+      continue;
+    }
+    if ("starterCreateBridgeOperatorTenantId" in binding) {
+      return binding.starterCreateBridgeOperatorTenantId as string;
+    }
+  }
+  return undefined;
+}

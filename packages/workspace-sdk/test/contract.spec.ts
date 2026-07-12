@@ -195,6 +195,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "validateMemberProfileBirthDate",
   "validateMemberProfileDisplayName",
   "validateMemberProfileFatherName",
+  "validateMemberProfileGender",
   "validateMemberProfileNationalId",
   "validateStructuredData",
   "WORKSPACE_GUEST_CONFORMANCE_LEVELS",

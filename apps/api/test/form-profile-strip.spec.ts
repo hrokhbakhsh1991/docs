@@ -12,7 +12,7 @@ import { createCanonicalDocument } from "@app-tour/workspace-sdk";
 
 import { resolveWorkspacePluginForType } from "../src/workspace/resolve-workspace-plugin.ts";
 import {
-  filterDenaliRootsAfterProfileStrip,
+  filterRootsAfterProfileStrip,
   stripFormProfileFieldsFromCanonicalData,
   stripFormProfileForSubmit,
 } from "../src/canonical/strip-form-profile-for-submit.ts";
@@ -92,7 +92,7 @@ describe("form-profile-strip (P5-B VAL-02b)", () => {
       publishStatus: "draft",
     };
     const stripped = stripFormProfileFieldsFromCanonicalData("denali", raw);
-    const roots = filterDenaliRootsAfterProfileStrip(plugin.wizard.roots, stripped);
+    const roots = filterRootsAfterProfileStrip("denali", plugin.wizard.roots, stripped);
 
     assert.equal(stripped.duration, undefined);
     assert.equal(stripped.eventVariant, undefined);
@@ -106,6 +106,6 @@ describe("form-profile-strip (P5-B VAL-02b)", () => {
       "utf8"
     );
     assert.match(source, /stripFormProfileFieldsFromCanonicalData/);
-    assert.match(source, /filterDenaliRootsAfterProfileStrip/);
+    assert.match(source, /filterRootsAfterProfileStrip/);
   });
 });

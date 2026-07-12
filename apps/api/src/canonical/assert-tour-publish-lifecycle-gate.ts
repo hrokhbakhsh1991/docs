@@ -1,39 +1,17 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 import type { WorkspaceLifecycleContract } from "@app-tour/workspace-sdk";
-import {
-  DENALI_TOUR_PUBLISH_ACTIVE_STATUS,
-  readDenaliTourPublishStatusFromCanonical,
-} from "@app-tour/workspace-denali/tours";
 
 import {
   assertTourLifecycleTransition,
 } from "./assert-tour-lifecycle-transition.ts";
 import { readTourPublishStatusLabel } from "./workspace-canonical-tour-dispatch.ts";
 
-function readEffectiveTourPublishStatusLabel(
-  workspaceType: string,
-  canonical: CanonicalDocument
-): string | undefined {
-  const bound = readTourPublishStatusLabel(workspaceType, canonical);
-  if (bound !== undefined) {
-    return bound;
-  }
-  if (workspaceType === "denali") {
-    return readDenaliTourPublishStatusFromCanonical(canonical);
-  }
-  return undefined;
-}
-
 function isPublishedPublishStatusLabel(
-  workspaceType: string,
   lifecycle: WorkspaceLifecycleContract,
   label: string | undefined
 ): boolean {
   if (label === undefined) {
     return false;
-  }
-  if (workspaceType === "denali") {
-    return label === DENALI_TOUR_PUBLISH_ACTIVE_STATUS;
   }
   if (label === lifecycle.publishStatus) {
     return true;
@@ -49,8 +27,8 @@ function resolveLifecycleStatusFromCanonical(input: {
   lifecycle: WorkspaceLifecycleContract;
   canonical: CanonicalDocument;
 }): string {
-  const label = readEffectiveTourPublishStatusLabel(input.workspaceType, input.canonical);
-  if (isPublishedPublishStatusLabel(input.workspaceType, input.lifecycle, label)) {
+  const label = readTourPublishStatusLabel(input.workspaceType, input.canonical);
+  if (isPublishedPublishStatusLabel(input.lifecycle, label)) {
     return input.lifecycle.publishStatus;
   }
   return input.lifecycle.initialStatus;

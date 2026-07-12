@@ -26,7 +26,12 @@ if (process.env.PATH) {
   env.PATH = process.env.PATH;
 }
 
-const r = spawnSync(process.execPath, ["--import", "tsx", "--test", specPath], {
+const stubPath = path.join(sdkRoot, "test/register-server-only-stub.mjs");
+
+const r = spawnSync(
+  process.execPath,
+  ["--import", stubPath, "--import", "tsx", "--test", specPath],
+  {
   cwd: sdkRoot,
   encoding: "utf8",
   maxBuffer: 16 * 1024 * 1024,

@@ -16,6 +16,15 @@ export type SettingsMetadataSection =
   | "reconciliation"
   | "integrations";
 
+export function resolveSettingsMetadataNamespace(
+  section: SettingsMetadataSection
+): string {
+  if (section === "equipment") {
+    return "equipmentPage";
+  }
+  return section;
+}
+
 export async function buildSettingsPageMetadata(
   section: SettingsMetadataSection
 ): Promise<Metadata> {
@@ -27,7 +36,8 @@ export async function buildSettingsPageMetadata(
     };
   }
 
-  const t = await getTranslations(`settings.${section}`);
+  const namespace = resolveSettingsMetadataNamespace(section);
+  const t = await getTranslations(`settings.${namespace}`);
   return {
     title: t("title"),
     description: t("subtitle"),

@@ -8,7 +8,7 @@ import { resolveBootstrapWorkspacePlugin } from "@/bootstrap/resolve-bootstrap-w
 import type { AppSession } from "@/session/app-session";
 
 import { isDevWebSessionAllowed } from "./auth-env";
-import { fetchPublicTenantContextForHost } from "./fetch-public-tenant-context.server";
+import { resolveAdminBootstrapForWebHost } from "./resolve-admin-bootstrap.server";
 import { resolveDevSessionProfileFromHost } from "./dev-host-session-profiles";
 import { resolveTenantIdFromDevHost } from "./resolve-host-tenant";
 import {
@@ -56,8 +56,8 @@ export function resolveBootstrapAppSessionForHost(host: string): ResolvedBootstr
 }
 
 /**
- * Root layout bootstrap — static dev map, then public tenant-context for provisioned club hosts.
- * @see docs/phase-15/platform-host-multilevel.mdoc § Session bind vs BFF tenant resolution
+ * Root layout bootstrap — static dev map, then ASB-001 admin bootstrap (fail-closed in prod).
+ * @see docs/standards/platform-surface-cohesion.mdoc § ASB-001
  */
 export async function resolveBootstrapAppSessionForHostAsync(
   host: string
@@ -67,19 +67,15 @@ export async function resolveBootstrapAppSessionForHostAsync(
     return resolveBootstrapAppSessionForHost(host);
   }
 
-  const publicContext = await fetchPublicTenantContextForHost(host);
-  if (publicContext !== null) {
-    const base = resolveContextFromEnv();
-    const profile = resolveDevSessionProfileForHost(host);
-    const withProfile = profile ? { ...base, ...profile } : base;
-    return resolveBootstrapAppSession(
-      { ...withProfile, tenantId: publicContext.tenantId },
-      host,
-      { pluginId: publicContext.pluginId }
-    );
-  }
-
-  return resolveBootstrapAppSessionForHost(host);
+  const adminBootstrap = await resolveAdminBootstrapForWebHost(host);
+  const base = resolveContextFromEnv();
+  const profile = resolveDevSessionProfileForHost(host);
+  const withProfile = profile ? { ...base, ...profile } : base;
+  return resolveBootstrapAppSession(
+    { ...withProfile, tenantId: adminBootstrap.tenantId },
+    host,
+    { pluginId: adminBootstrap.pluginId }
+  );
 }
 
 /** Per-request bootstrap (call from Server Components only). */

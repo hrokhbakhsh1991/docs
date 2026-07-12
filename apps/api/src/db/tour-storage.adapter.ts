@@ -1,8 +1,11 @@
 import type { TourListPageInput, TourListPageResult, TourRecord, TourWhere } from "./tour-record";
 import type { TourStorageRepository as DbTourStorageRepository } from "./tour.repository";
 import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
+import { TOUR_LIST_PAGE_CHUNK_SIZE } from "./load-all-tour-records-via-list-page";
 import type {
   Tour,
+  TourOperatorListPageInput,
+  TourOperatorListPageOutput,
   TourStorageRepository as StorageTourRepository,
 } from "../storage/tour-storage.interface";
 
@@ -39,12 +42,24 @@ export class TourStorageDbAdapter implements DbTourStorageRepository {
   }
 
   async findMany(where: TourWhere): Promise<readonly TourRecord[]> {
-    const rows = await this.store.listByTenant(where.tenantId);
-    if (where.id === undefined) {
-      return rows.map(toRecord);
+    if (where.id !== undefined) {
+      const hit = await this.store.getById(where.id, where.tenantId);
+      return hit === null ? [] : [toRecord(hit)];
     }
-    const hit = rows.find((row) => row.id === where.id);
-    return hit === undefined ? [] : [toRecord(hit)];
+    const items: TourRecord[] = [];
+    let cursor: string | undefined;
+    for (;;) {
+      const result = await this.store.listByTenantPage({
+        tenantId: where.tenantId,
+        limit: TOUR_LIST_PAGE_CHUNK_SIZE,
+        ...(cursor !== undefined ? { cursor } : {}),
+      });
+      items.push(...result.items.map(toRecord));
+      if (result.nextCursor === null) {
+        return items;
+      }
+      cursor = result.nextCursor;
+    }
   }
 
   async listPage(where: TourWhere, page: TourListPageInput): Promise<TourListPageResult> {
@@ -56,6 +71,19 @@ export class TourStorageDbAdapter implements DbTourStorageRepository {
     return {
       items: result.items.map(toRecord),
       nextCursor: result.nextCursor,
+    };
+  }
+
+  async listOperatorToursPage(
+    tenantId: string,
+    query: TourOperatorListPageInput["query"]
+  ): Promise<TourOperatorListPageOutput> {
+    const result = await this.store.listOperatorToursPage({ tenantId, query });
+    return {
+      items: result.items.map(toRecord),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
     };
   }
 

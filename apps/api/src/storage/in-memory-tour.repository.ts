@@ -19,11 +19,38 @@ import type {
   Tour,
   TourListByTenantPageInput,
   TourListByTenantPageOutput,
+  TourOperatorListPageInput,
+  TourOperatorListPageOutput,
   TourStorageRepository,
 } from "./tour-storage.interface";
+import type { OperatorListSortBy, OperatorListSortDir } from "../tours/list-tours-operator";
+import { publishStatusesForOperatorFilter } from "../tours/operator-tour-list-db-query";
 
 function tourStorageKey(tenantId: string, id: string): string {
   return `${tenantId}\u0000${id}`;
+}
+
+function compareInMemoryOperatorTours(
+  left: Tour,
+  right: Tour,
+  sortBy: OperatorListSortBy,
+  sortDir: OperatorListSortDir
+): number {
+  const leftProj = deriveTourProjections(left.canonical);
+  const rightProj = deriveTourProjections(right.canonical);
+  let delta = 0;
+  if (sortBy === "title") {
+    delta = leftProj.title.localeCompare(rightProj.title);
+  } else if (sortBy === "departure_at") {
+    const leftDate =
+      typeof left.canonical.data?.startDateTime === "string" ? left.canonical.data.startDateTime : "";
+    const rightDate =
+      typeof right.canonical.data?.startDateTime === "string" ? right.canonical.data.startDateTime : "";
+    delta = leftDate.localeCompare(rightDate);
+  } else {
+    delta = left.createdAt.localeCompare(right.createdAt);
+  }
+  return sortDir === "asc" ? delta : -delta;
 }
 
 const URBAN_PHASE81_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
@@ -365,6 +392,43 @@ export class InMemoryTourRepository implements TourStorageRepository {
     return {
       items: page,
       nextCursor: hasMore && page.length > 0 ? page[page.length - 1]!.id : null,
+    };
+  }
+
+  async listOperatorToursPage(input: TourOperatorListPageInput): Promise<TourOperatorListPageOutput> {
+    assertTenantId(input.tenantId);
+    const { query } = input;
+    const allPage = await this.listByTenantPage({
+      tenantId: input.tenantId,
+      limit: Number.MAX_SAFE_INTEGER,
+    });
+    let items = [...allPage.items];
+    const search = query.search?.trim().toLocaleLowerCase();
+    if (search !== undefined && search.length > 0) {
+      items = items.filter((tour) => {
+        const title = deriveTourProjections(tour.canonical).title.toLocaleLowerCase();
+        return title.includes(search);
+      });
+    }
+    if (query.status !== undefined) {
+      const allowed = new Set(publishStatusesForOperatorFilter(query.status));
+      items = items.filter((tour) => {
+        const publishStatus =
+          typeof tour.canonical.data?.publishStatus === "string"
+            ? tour.canonical.data.publishStatus
+            : "";
+        return allowed.has(publishStatus);
+      });
+    }
+    items.sort((left, right) => compareInMemoryOperatorTours(left, right, query.sortBy, query.sortDir));
+    const total = items.length;
+    const offset = (query.page - 1) * query.limit;
+    const pageItems = items.slice(offset, offset + query.limit);
+    return {
+      items: pageItems,
+      total: query.includeTotal ? total : pageItems.length,
+      page: query.page,
+      limit: query.limit,
     };
   }
 

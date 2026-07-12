@@ -1,7 +1,5 @@
-import { fetchPublicTenantContextForHost } from "@/tenant/fetch-public-tenant-context.server";
-import { isDevWebSessionAllowed } from "@/tenant/auth-env";
+import { resolveAdminBootstrapForWebHost } from "@/tenant/resolve-admin-bootstrap.server";
 import { resolveTenantIdFromDevHost } from "@/tenant/resolve-host-tenant";
-import { resolvePublicFallbackTenantId } from "@/tenant/resolve-public-host-fallback";
 
 import { resolveRequestHost } from "./resolve-request-host";
 
@@ -9,35 +7,21 @@ const ANONYMOUS_OTP_USER_ID = "00000000-0000-4000-8000-000000000099";
 
 export const OPERATOR_BFF_TENANT_UNRESOLVED = "OPERATOR_BFF_TENANT_UNRESOLVED";
 
-function fallbackOperatorTenantId(): string {
-  return (
-    process.env.TOUR_OPS_DEV_TENANT_ID?.trim() ??
-    process.env.NEXT_PUBLIC_DEV_TENANT_ID?.trim() ??
-    "00000000-0000-4000-8000-000000000003"
-  );
-}
-
 export async function resolveOperatorBffTenantId(host: string): Promise<string> {
   const devTenantId = resolveTenantIdFromDevHost(host);
   if (devTenantId !== null) {
     return devTenantId;
   }
 
-  const publicContext = await fetchPublicTenantContextForHost(host);
-  if (publicContext !== null) {
-    return publicContext.tenantId;
+  try {
+    const bootstrap = await resolveAdminBootstrapForWebHost(host);
+    return bootstrap.tenantId;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("ADMIN_TENANT_UNRESOLVED")) {
+      throw new Error(OPERATOR_BFF_TENANT_UNRESOLVED);
+    }
+    throw error;
   }
-
-  if (isDevWebSessionAllowed()) {
-    return fallbackOperatorTenantId();
-  }
-
-  const fallbackTenantId = resolvePublicFallbackTenantId(host);
-  if (fallbackTenantId !== null) {
-    return fallbackTenantId;
-  }
-
-  throw new Error(OPERATOR_BFF_TENANT_UNRESOLVED);
 }
 
 export function buildIdentityBffHeadersForTenant(
@@ -58,7 +42,7 @@ export function buildIdentityBffHeadersForTenant(
   };
 }
 
-/** Operator login BFF — dev host map → tenant-context → dev env (M17.2). */
+/** Operator login BFF — dev host map → ASB-001 admin bootstrap (fail-closed in prod). */
 export async function buildIdentityBffHeadersAsync(req: Request): Promise<Record<string, string>> {
   const host = resolveRequestHost(req);
   const tenantId = await resolveOperatorBffTenantId(host);
@@ -68,6 +52,10 @@ export async function buildIdentityBffHeadersAsync(req: Request): Promise<Record
 /** @deprecated Prefer `buildIdentityBffHeadersAsync` for production host resolution. */
 export function buildIdentityBffHeaders(req: Request): Record<string, string> {
   const host = resolveRequestHost(req);
-  const tenantId = resolveTenantIdFromDevHost(host) ?? fallbackOperatorTenantId();
+  const tenantId =
+    resolveTenantIdFromDevHost(host) ??
+    process.env.TOUR_OPS_DEV_TENANT_ID?.trim() ??
+    process.env.NEXT_PUBLIC_DEV_TENANT_ID?.trim() ??
+    "00000000-0000-4000-8000-000000000003";
   return buildIdentityBffHeadersForTenant(host, tenantId);
 }

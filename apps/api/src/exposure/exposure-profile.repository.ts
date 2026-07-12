@@ -11,4 +11,8 @@ export type ExposureProfileRepository = {
     readonly profileId: string;
   }): Promise<ExposureProfile | null>;
   ensureSeededProfile(input: EnsureSeededExposureProfileInput): Promise<ExposureProfile>;
+  ensureSeededProfiles(input: {
+    readonly tenantId: string;
+    readonly seeds: readonly ExposureProfile[];
+  }): Promise<ReadonlyMap<string, ExposureProfile>>;
 };

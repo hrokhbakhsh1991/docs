@@ -29,8 +29,23 @@ export const WIZARD_TEMPLATE_MESSAGE_KEYS = {
     saveFailed: "errors.saveFailed",
     loadHttp: "errors.loadHttp",
     saveHttp: "errors.saveHttp",
+    enginePlanGap: "errors.enginePlanGap",
   },
 } as const;
+
+export class WizardTemplateSaveError extends Error {
+  constructor(
+    readonly payload: {
+      readonly code: string;
+      readonly stepId?: string;
+      readonly canonicalPath?: string;
+    },
+    readonly status: number
+  ) {
+    super(payload.code);
+    this.name = "WizardTemplateSaveError";
+  }
+}
 
 /** @deprecated Use `settings.wizardTemplate` via next-intl. */
 export const WIZARD_TEMPLATE_COPY = WIZARD_TEMPLATE_MESSAGE_KEYS;
@@ -40,6 +55,24 @@ export type WizardTemplateErrorResolution =
   | { type: "raw"; message: string };
 
 export function resolveWizardTemplateUserError(error: unknown): WizardTemplateErrorResolution {
+  if (error instanceof WizardTemplateSaveError) {
+    if (error.payload.code === "SETTINGS_WIZARD_ENGINE_PLAN_GAP") {
+      return {
+        type: "key",
+        key: WIZARD_TEMPLATE_MESSAGE_KEYS.errors.enginePlanGap,
+        values: {
+          path: error.payload.canonicalPath ?? "",
+          stepId: error.payload.stepId ?? "",
+        },
+      };
+    }
+    return {
+      type: "key",
+      key: WIZARD_TEMPLATE_MESSAGE_KEYS.errors.saveHttp,
+      values: { status: String(error.status) },
+    };
+  }
+
   if (!(error instanceof Error)) {
     return { type: "key", key: WIZARD_TEMPLATE_MESSAGE_KEYS.errors.saveFailed };
   }

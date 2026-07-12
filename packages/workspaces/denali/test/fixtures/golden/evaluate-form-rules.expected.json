@@ -330,6 +330,22 @@
     ],
     "denali_pricing": [
       {
+        "canonicalPath": "participants.birthDateRequired",
+        "formPath": "participantRequirements.birthDateRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.fatherNameRequired",
+        "formPath": "participantRequirements.fatherNameRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "participants.fitnessLevel",
         "formPath": "participantRequirements.fitnessLevel",
         "visible": true,
@@ -776,6 +792,22 @@
     ],
     "denali_pricing": [
       {
+        "canonicalPath": "participants.birthDateRequired",
+        "formPath": "participantRequirements.birthDateRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.fatherNameRequired",
+        "formPath": "participantRequirements.fatherNameRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
         "canonicalPath": "participants.fitnessLevel",
         "formPath": "participantRequirements.fitnessLevel",
         "visible": true,
@@ -1221,6 +1253,22 @@
       }
     ],
     "denali_pricing": [
+      {
+        "canonicalPath": "participants.birthDateRequired",
+        "formPath": "participantRequirements.birthDateRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.fatherNameRequired",
+        "formPath": "participantRequirements.fatherNameRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
       {
         "canonicalPath": "participants.fitnessLevel",
         "formPath": "participantRequirements.fitnessLevel",

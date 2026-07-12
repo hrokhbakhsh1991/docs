@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { denaliHydrateTourCloneDraft, denaliHydrateTourEditDraft } from "@app-tour/workspace-denali/clone/hydration";
+import { denaliHydrateTourCloneDraft, denaliHydrateTourEditDraft } from "../src/clone/denali-tour-clone-hydration";
 
 describe("denali tour edit hydrate — Phase 12.2b", () => {
   it("DEN-12.2b-01 edit hydrate preserves title (no copy suffix)", () => {

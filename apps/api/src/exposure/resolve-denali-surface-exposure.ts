@@ -3,7 +3,7 @@ import {
   mapDenaliExposureSurfaceToFieldPolicySurface,
   resolveDenaliSurfaceDefaultFieldIds,
   type DenaliExposureCoordinate,
-} from "@app-tour/workspace-denali/host/exposure";
+} from "./workspace-exposure-host-bindings.generated.ts";
 
 import { buildFieldExposureEngineDecisionMap } from "./build-field-exposure-engine-input";
 import { resolveSeededExposureProfile } from "./exposure-profile";

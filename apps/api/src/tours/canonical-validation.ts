@@ -1,5 +1,6 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
+import { resolveCatalogRefAllowlistsForWorkspace } from "../canonical/resolve-catalog-ref-allowlists-dispatch.ts";
 import { isWorkspaceMetadataEnabled } from "../workspace-metadata/is-workspace-metadata-enabled.ts";
 import { runValidationOffThread } from "../canonical/validation-worker-pool";
 import type { CreateTourBody } from "./create-tour.schema";
@@ -7,17 +8,23 @@ import type { ValidateBeforePersistInput } from "./canonical-validation-sync.typ
 import {
   validateCanonicalBeforePersistAsync,
 } from "./canonical-validation-sync";
-import { resolveDenaliCatalogRefAllowlists } from "../canonical/resolve-denali-catalog-ref-allowlists.ts";
 
 async function enrichValidateBeforePersistInput(
   input: ValidateBeforePersistInput
 ): Promise<ValidateBeforePersistInput> {
-  if (input.workspaceType !== "denali" || input.catalogRefAllowlists !== undefined) {
+  if (input.catalogRefAllowlists !== undefined) {
+    return input;
+  }
+  const catalogRefAllowlists = await resolveCatalogRefAllowlistsForWorkspace(
+    input.workspaceType,
+    input.tenantId
+  );
+  if (catalogRefAllowlists === undefined) {
     return input;
   }
   return {
     ...input,
-    catalogRefAllowlists: await resolveDenaliCatalogRefAllowlists(input.tenantId),
+    catalogRefAllowlists,
   };
 }
 

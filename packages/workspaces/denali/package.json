@@ -110,6 +110,10 @@
       "types": "./dist/wizard/build-field-step-resolver.d.ts",
       "default": "./dist/wizard/build-field-step-resolver.js"
     },
+    "./host/wizard/template-field-overlays": {
+      "types": "./dist/wizard/denali-wizard-template-field-overlays.d.ts",
+      "default": "./dist/wizard/denali-wizard-template-field-overlays.js"
+    },
     "./host/wizard/validation": {
       "types": "./dist/wizard/denali-wizard-validation.d.ts",
       "default": "./dist/wizard/denali-wizard-validation.js"

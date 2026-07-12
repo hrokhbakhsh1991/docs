@@ -230,7 +230,7 @@ export async function handleResendInvite(
       return;
     }
     if (error instanceof OtpRateLimitedError) {
-      sendHttpError(res, 429, { error: error.message, code: error.code });
+      sendHttpError(res, 429, { error: error.code, code: error.code });
       return;
     }
     handleHttpError(res, error);

@@ -81,6 +81,19 @@ Adding workspace `{id}`:
 
 Portal BFF **never** branches on `pluginId === "denali"` inline — it calls `buildCatalogRegistrationUpstreamRequest`.
 
+### BFF error taxonomy (EPH Track VI — observability)
+
+`POST /api/catalog/registrations` returns typed `code` values — **must not** mask SDK/build failures as `REGISTRATION_CLOSED`:
+
+| HTTP | `code` | When |
+| ---- | ------ | ---- |
+| 400 | `INVALID_PAYLOAD` · `PARTY_SIZE_INVALID` · SDK payload codes | Client / schema |
+| 503 | `INTAKE_PLUGIN_NOT_REGISTERED` | Workspace intake plugin missing at boot |
+| 500 | `REGISTRATION_UPSTREAM_BUILD_FAILED` | Unexpected `buildCatalogRegistrationUpstreamRequest` failure (logged server-side) |
+| 4xx/5xx | upstream `code` | API workspace HTTP response proxied |
+
+Spec: `apps/portal/test/portal-catalog-registration-bff.spec.ts` (REG-BFF-01).
+
 ---
 
 ## Intake capabilities matrix

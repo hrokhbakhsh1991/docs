@@ -77,3 +77,24 @@ export function resolveMigrateCanonicalHook(workspaceType: string): MigrateCanon
   }
   return binding.migrateCanonical as MigrateCanonicalHook;
 }
+
+export function resolveFormProfileGhostPaths(
+  workspaceType: string | undefined
+): ReadonlySet<string> | undefined {
+  const binding = resolveBinding(workspaceType);
+  if (binding === undefined || !("formProfileGhostPaths" in binding)) {
+    return undefined;
+  }
+  return binding.formProfileGhostPaths;
+}
+
+/** Workspaces that must run canonical validation on the request thread (worker IPC cannot load host rules). */
+export function requiresValidationSync(workspaceType: string | undefined): boolean {
+  const binding = resolveBinding(workspaceType);
+  return binding !== undefined && "validationSyncOnly" in binding && binding.validationSyncOnly === true;
+}
+
+export function requiresCatalogRefEnrichment(workspaceType: string | undefined): boolean {
+  const binding = resolveBinding(workspaceType);
+  return binding !== undefined && "catalogRefEnrichment" in binding && binding.catalogRefEnrichment === true;
+}

@@ -428,6 +428,13 @@ export class PrismaIdentityRepository implements IdentityRepository {
     return row === null ? null : toPendingInviteRecord(row);
   }
 
+  async findPendingInviteForAccept(inviteToken: string): Promise<PendingInviteRecord | null> {
+    const row = await getPrismaAdmin().operatorPendingInvite.findFirst({
+      where: { inviteToken: inviteToken.trim(), status: "INVITED" },
+    });
+    return row === null ? null : toPendingInviteRecord(row);
+  }
+
   async acceptPendingInvite(
     tenantId: string,
     inviteToken: string,

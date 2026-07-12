@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+import { resolveSmokePublishedTourId } from "./fixtures/smoke-published-tour";
+
+const SMOKE_PUBLISHED_TOUR_ID = resolveSmokePublishedTourId();
 
 test("SMK-MKT-07 tour detail exposes title, og:title, and twitter:card", async ({ page }) => {
-  await page.goto(`/tours/${OPERATOR_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
+  await page.goto(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-marketing-catalog-tour-detail]")).toBeVisible({
     timeout: 60_000,
   });

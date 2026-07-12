@@ -27,7 +27,7 @@ export async function acceptWorkspaceInvite(
   inviteToken: string,
   repo: IdentityRepository = getIdentityRepository()
 ): Promise<AcceptInviteResponse> {
-  const invite = await repo.findPendingInviteByToken(auth.tenantId, inviteToken);
+  const invite = await repo.findPendingInviteForAccept(inviteToken);
   if (invite === null) {
     throw new InviteNotFoundError(inviteToken);
   }
@@ -41,7 +41,7 @@ export async function acceptWorkspaceInvite(
     throw new InvitePhoneMismatchError();
   }
 
-  const membership = await repo.acceptPendingInvite(auth.tenantId, inviteToken, auth.userId);
+  const membership = await repo.acceptPendingInvite(invite.tenantId, inviteToken, auth.userId);
   if (membership === null) {
     throw new InviteNotFoundError(inviteToken);
   }

@@ -1,6 +1,9 @@
 import { integrationMappingsForEvent } from "./integration-event-mapping";
 import type { IntegrationProviderId } from "./integration-provider.types";
 import {
+  resolveIntegrationDeprecatedEventSupersededBy,
+} from "./workspace-integration-capabilities.generated.ts";
+import {
   resolveIntegrationProviderSurface,
 } from "./resolve-integration-surface";
 
@@ -25,19 +28,16 @@ export type IntegrationConnectionPublicEventPolicy = {
   readonly supersededBy?: string;
 };
 
-const DENALI_TELEGRAM_DEPRECATED_EVENT_TYPES = new Map<string, string>([
-  ["TourCreated", "TourPublished"],
-]);
-
 function isDeprecatedIntegrationEvent(input: {
   readonly eventType: string;
   readonly workspaceType: string | null;
   readonly providerId: string;
 }): string | undefined {
-  if (input.workspaceType !== "denali" || input.providerId !== "telegram") {
-    return undefined;
-  }
-  const supersededBy = DENALI_TELEGRAM_DEPRECATED_EVENT_TYPES.get(input.eventType);
+  const supersededBy = resolveIntegrationDeprecatedEventSupersededBy(
+    input.workspaceType,
+    input.providerId,
+    input.eventType
+  );
   if (supersededBy === undefined) {
     return undefined;
   }

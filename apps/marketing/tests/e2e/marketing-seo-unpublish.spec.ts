@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-const OPERATOR_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000210";
+import { resolveSmokePublishedTourId } from "./fixtures/smoke-published-tour";
+
+const SMOKE_PUBLISHED_TOUR_ID = resolveSmokePublishedTourId();
 const OPERATOR_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000211";
 
 test("SMK-MKT-14 draft tour detail returns 404 with noindex", async ({ page, request }) => {
@@ -16,6 +18,6 @@ test("SMK-MKT-14 draft tour detail returns 404 with noindex", async ({ page, req
   const sitemapResponse = await request.get("/sitemap.xml");
   expect(sitemapResponse.status()).toBe(200);
   const sitemapBody = await sitemapResponse.text();
-  expect(sitemapBody).toContain(`/tours/${OPERATOR_PUBLISHED_TOUR_ID}`);
+  expect(sitemapBody).toContain(`/tours/${SMOKE_PUBLISHED_TOUR_ID}`);
   expect(sitemapBody).not.toContain(`/tours/${OPERATOR_DRAFT_TOUR_ID}`);
 });

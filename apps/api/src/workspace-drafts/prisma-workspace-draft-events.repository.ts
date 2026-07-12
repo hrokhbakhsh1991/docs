@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { withTenantRls } from "../db/with-tenant-rls";
 import type { WorkspaceDraftEventsRepository } from "./in-memory-workspace-draft-events.repository";
-import { compareWorkspaceDraftEventsNewestFirst } from "./workspace-draft-events-order";
+import { WORKSPACE_DRAFT_EVENT_LIST_SELECT } from "./workspace-draft-events-list-projection";
 import type {
   AppendWorkspaceDraftEventInput,
   WorkspaceDraftEventRecord,
@@ -62,6 +62,7 @@ export class PrismaWorkspaceDraftEventsRepository implements WorkspaceDraftEvent
     key: WorkspaceDraftKey,
     limit: number
   ): Promise<readonly WorkspaceDraftEventRecord[]> {
+    const boundedLimit = Math.min(Math.max(limit, 1), 100);
     const rows = await withTenantRls(key.tenantId, (tx) =>
       tx.workspaceDraftEvent.findMany({
         where: {
@@ -71,11 +72,11 @@ export class PrismaWorkspaceDraftEventsRepository implements WorkspaceDraftEvent
           draftNamespace: key.draftNamespace,
           draftKey: key.draftKey,
         },
+        select: WORKSPACE_DRAFT_EVENT_LIST_SELECT,
+        orderBy: [{ occurredAt: "desc" }],
+        take: boundedLimit,
       })
     );
-    return rows
-      .map(toRecord)
-      .sort(compareWorkspaceDraftEventsNewestFirst)
-      .slice(0, limit);
+    return rows.map(toRecord);
   }
 }

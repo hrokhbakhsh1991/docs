@@ -24,8 +24,6 @@ const HOST_IMPORT_LEGACY_ALLOWLIST = new Set([
   "canonical/assert-tour-publish-lifecycle-gate.ts",
   "canonical/migrate-canonical-workspace.service.ts",
   "canonical/strip-form-profile-for-submit.ts",
-  "denali-finance/assert-finance-access.ts",
-  "denali-finance/finance.service.ts",
   "exposure/resolve-denali-surface-exposure.ts",
   "exposure/resolve-urban-surface-exposure.ts",
   "exposure/start-denali-exposure-reminder-scheduler.ts",

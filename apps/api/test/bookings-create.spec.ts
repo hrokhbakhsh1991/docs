@@ -51,7 +51,7 @@ describe("bookings-create.spec.ts — Phase 9.5 API", () => {
     assert.equal(typeof response.body.id, "string");
 
     const repo = getBookingsRepository();
-    const created = await repo.getById(response.body.id ?? "");
+    const created = await repo.getById(response.body.id ?? "", OPERATOR_SMOKE.tenantId);
     assert.ok(created !== null);
     assert.equal(created?.status, "pending");
     assert.equal(created?.guestLabel, "New Guest");

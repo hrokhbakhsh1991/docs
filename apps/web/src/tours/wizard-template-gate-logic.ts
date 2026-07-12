@@ -1,6 +1,9 @@
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
 
-import { resolveWizardTemplateGateDefaultPublishedStepId } from "@/bootstrap/workspace-wizard-template-gate-bindings.generated";
+import {
+  augmentWizardTemplateFieldOverlays,
+  resolveWizardTemplateGateDefaultPublishedStepId,
+} from "@/bootstrap/workspace-wizard-template-gate-bindings.generated";
 
 import { parseWizardTemplateResponse } from "@/features/settings/wizard-template-logic";
 import type {
@@ -49,6 +52,16 @@ export function buildWizardTemplateFieldOverlays(
     }
   }
   return overlays;
+}
+
+export function buildDenaliWizardTemplateFieldOverlays(
+  templateSteps: readonly WizardTemplateStepRef[]
+): ReadonlyMap<string, WizardTemplateFieldRef> {
+  return augmentWizardTemplateFieldOverlays(
+    "denali",
+    templateSteps,
+    buildWizardTemplateFieldOverlays(templateSteps)
+  );
 }
 
 export function resolvePublishedWizardTemplateSteps(
@@ -230,7 +243,11 @@ export function resolveWizardTemplateGateState(
     published,
     allowedCanonicalPaths,
     templateSteps,
-    fieldOverlays: buildWizardTemplateFieldOverlays(templateSteps),
+    fieldOverlays: augmentWizardTemplateFieldOverlays(
+      pluginId,
+      templateSteps,
+      buildWizardTemplateFieldOverlays(templateSteps)
+    ),
     seedLabel: effective.seedLabel.trim(),
     fieldRulesOverlay,
     workspaceFormProfile,

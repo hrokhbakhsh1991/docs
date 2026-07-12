@@ -251,7 +251,7 @@ describe("denali-wizard-theme.spec.ts", () => {
       join(import.meta.dirname, "../src/bootstrap/wizard-surface-bindings.generated.ts"),
       "utf8"
     );
-    assert.match(generatedSurfaces, /@app-tour\/workspace-denali\/ui\/composite-surface/);
+    assert.match(generatedSurfaces, /@app-tour\/workspace-denali\/host\/ui\/composite-surface/);
     const wizardField = readFileSync(
       join(import.meta.dirname, "../src/wizard/wizard-field.tsx"),
       "utf8"
@@ -419,7 +419,7 @@ describe("denali-wizard-theme.spec.ts", () => {
       join(import.meta.dirname, "../src/bootstrap/wizard-surface-bindings.generated.ts"),
       "utf8"
     );
-    assert.match(generatedSurfaces, /@app-tour\/workspace-denali\/ui\/review-surface/);
+    assert.match(generatedSurfaces, /@app-tour\/workspace-denali\/host\/ui\/review-surface/);
   });
 
   it("WEB-DENALI-WIZARD-08 composites avoid tailwind utility classes", () => {

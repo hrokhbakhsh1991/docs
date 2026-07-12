@@ -1,7 +1,10 @@
 import type { Prisma } from "@prisma/client";
 
 import type { ExposureIntent } from "./exposure-intent";
-import type { ExposureIntentRepository } from "./exposure-intent.repository";
+import {
+  exposureIntentContextLookupKey,
+  type ExposureIntentRepository,
+} from "./exposure-intent.repository";
 import type { FieldExposureRuntimeCoordinate } from "./resolve-runtime-truth-source";
 
 import type { ExposureIntentScope } from "./exposure-intent.repository";
@@ -65,7 +68,7 @@ export async function findConnectionExposureIntentForEvent(
 export const findConnectionExposureIntentWithLegacyScopeFallback =
   findConnectionExposureIntentForEvent;
 
-function coordinateFromIntent(
+export function coordinateFromIntent(
   intent: ExposureIntent,
   fallback: FieldExposureRuntimeCoordinate,
 ): FieldExposureRuntimeCoordinate {
@@ -123,6 +126,59 @@ export async function resolveConnectionExposureIntentForRoute(
       connectionId: input.connectionId,
       eventType: input.eventType,
     });
+    if (routed !== null) {
+      return {
+        exposureIntent: routed,
+        effectiveContext: input.defaultCoordinate,
+        coordinateControlsRuntimeEffective: false,
+      };
+    }
+  }
+
+  return {
+    exposureIntent: null,
+    effectiveContext: input.defaultCoordinate,
+    coordinateControlsRuntimeEffective: false,
+  };
+}
+
+export function resolveConnectionIntentForEventSync(input: {
+  readonly tenantId: string;
+  readonly connectionId: string;
+  readonly eventType: string;
+  readonly defaultCoordinate: FieldExposureRuntimeCoordinate;
+  readonly legacyProfileId?: string;
+  readonly connectionIntents: readonly ExposureIntent[];
+  readonly legacyIntentLookup: ReadonlyMap<string, ExposureIntent>;
+}): {
+  readonly exposureIntent: ExposureIntent | null;
+  readonly effectiveContext: FieldExposureRuntimeCoordinate;
+  readonly coordinateControlsRuntimeEffective: boolean;
+} {
+  const routeScoped = input.connectionIntents.find(
+    (intent) => intent.scope.eventType === input.eventType,
+  );
+  if (routeScoped !== undefined) {
+    return {
+      exposureIntent: routeScoped,
+      effectiveContext: coordinateFromIntent(routeScoped, input.defaultCoordinate),
+      coordinateControlsRuntimeEffective: true,
+    };
+  }
+
+  if (input.legacyProfileId !== undefined) {
+    const lookupKey = exposureIntentContextLookupKey({
+      tenantId: input.tenantId,
+      profileId: input.legacyProfileId,
+      surface: input.defaultCoordinate.surface,
+      audience: input.defaultCoordinate.audience,
+      trigger: input.defaultCoordinate.trigger,
+      scope: buildConnectionExposureIntentScope({
+        connectionId: input.connectionId,
+        eventType: input.eventType,
+      }),
+    });
+    const routed = input.legacyIntentLookup.get(lookupKey) ?? null;
     if (routed !== null) {
       return {
         exposureIntent: routed,

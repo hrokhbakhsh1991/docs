@@ -1,5 +1,7 @@
 import type { ServerResponse } from "node:http";
 
+import { Prisma } from "@prisma/client";
+
 import { isCanonicalSyncValidationError } from "../canonical/canonical-sync-validation-error";
 import { isSchemaVersionMismatchError } from "../canonical/schema-version-mismatch";
 import {
@@ -141,6 +143,51 @@ function isInvalidTenantAuthContextError(error: unknown): error is AuthContextEr
 /** Active trace ALS id — fail-closed when trace was not bound (DEC-126 / TRACE-REGEN-02). */
 export function resolveCorrelationId(): string {
   return requireActiveTraceId();
+}
+
+export type MappedAppError = {
+  readonly status: number;
+  readonly error: string;
+  readonly code: string;
+};
+
+/** AP14 — opaque domain tokens only (no engine text, no spaces). */
+export function isClientSafeErrorToken(message: string): boolean {
+  const trimmed = message.trim();
+  if (trimmed.length === 0 || trimmed.length > 64) {
+    return false;
+  }
+  if (/\s/.test(trimmed)) {
+    return false;
+  }
+  return /^[A-Za-z0-9_]+$/.test(trimmed);
+}
+
+/** AP14 — normalize known Prisma request errors before generic message fallback. */
+export function mapPrismaErrorToAppError(error: unknown): MappedAppError | null {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return null;
+  }
+  switch (error.code) {
+    case "P2002":
+      return { status: 409, error: "conflict", code: "UNIQUE_CONSTRAINT_VIOLATION" };
+    case "P2003":
+      return { status: 422, error: "foreign_key_violation", code: "FOREIGN_KEY_VIOLATION" };
+    case "P2025":
+      return { status: 404, error: "not_found", code: "RECORD_NOT_FOUND" };
+    default:
+      return null;
+  }
+}
+
+function resolvePrefixedValidationCode(message: string): string | undefined {
+  if (message.startsWith("ZOD_VALIDATION_FAILED")) {
+    return "ZOD_VALIDATION_FAILED";
+  }
+  if (message.startsWith("CANONICAL_VALIDATION_FAILED")) {
+    return "CANONICAL_VALIDATION_FAILED";
+  }
+  return undefined;
 }
 
 export type HttpErrorInput = {
@@ -651,6 +698,17 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
     return;
   }
 
+  const prismaMapped = mapPrismaErrorToAppError(error);
+  if (prismaMapped !== null) {
+    sendHttpError(
+      res,
+      prismaMapped.status,
+      { error: prismaMapped.error, code: prismaMapped.code },
+      correlationId
+    );
+    return;
+  }
+
   const message = error instanceof Error ? error.message : "unknown_error";
   const status = mapErrorMessageToStatus(message);
 
@@ -679,8 +737,20 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
     return;
   }
 
+  const prefixedValidationCode = resolvePrefixedValidationCode(message);
+  if (status === 400 && prefixedValidationCode !== undefined) {
+    sendHttpError(res, 400, { error: message, code: prefixedValidationCode }, correlationId);
+    return;
+  }
+
   if (status === 409 && !message.startsWith("CANONICAL_SYNC_VALIDATION_FAILED")) {
     sendHttpError(res, 409, { error: message, code: message }, correlationId);
+    return;
+  }
+
+  if (!isClientSafeErrorToken(message)) {
+    logInternalServerError(error, correlationId);
+    sendHttpError(res, 500, { error: "internal_error" }, correlationId);
     return;
   }
 

@@ -1,8 +1,10 @@
 import { getCanonicalValue, type FieldDefinition } from "@app-tour/platform-core";
 
 import { getSettingsResourcesRepository } from "../../settings/create-settings-resources-repository";
-
-const DENALI_DESTINATION_FIELD_ID = "denali.destination";
+import {
+  listDeliveryReferenceDisplayFieldIds,
+  supportsDeliveryReferenceDisplay,
+} from "../../integrations/platform/workspace-integration-capabilities.generated.ts";
 
 function readTenantId(payload: Readonly<Record<string, unknown>>): string | null {
   const raw = payload.tenantId;
@@ -42,16 +44,21 @@ export async function resolveDeliveryReferenceDisplayValues(input: {
   readonly eligibleFieldIds: readonly string[];
   readonly definitions: readonly FieldDefinition[];
 }): Promise<Readonly<Record<string, string>>> {
-  if (input.workspaceType !== "denali") {
+  if (!supportsDeliveryReferenceDisplay(input.workspaceType)) {
     return {};
   }
 
+  const eligibleFieldIds = listDeliveryReferenceDisplayFieldIds(input.workspaceType);
   const tenantId = readTenantId(input.payload) ?? input.tenantId;
   const canonicalPathById = readCanonicalPathByFieldId(input.definitions);
   const values: Record<string, string> = {};
 
-  if (input.eligibleFieldIds.includes(DENALI_DESTINATION_FIELD_ID)) {
-    const destinationPath = canonicalPathById.get(DENALI_DESTINATION_FIELD_ID) ?? "destinationId";
+  const destinationFieldId = eligibleFieldIds.find((fieldId) => fieldId.endsWith(".destination"));
+  if (
+    destinationFieldId !== undefined &&
+    input.eligibleFieldIds.includes(destinationFieldId)
+  ) {
+    const destinationPath = canonicalPathById.get(destinationFieldId) ?? "destinationId";
     const destinationId = readReferenceId(input.payload, destinationPath);
     if (destinationId !== null) {
       const destinations = await getSettingsResourcesRepository().listDestinations(tenantId);

@@ -2,6 +2,10 @@ import {
   DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR,
   DENALI_COMPOSITE_DEPENDENT_PATHS,
 } from "../composites/denali-composite-anchors";
+import {
+  DENALI_COMPOSITE_TEMPLATE_ANCHOR_OVERLAY,
+  listDenaliCompositeTemplateDependentsForAnchor,
+} from "../wizard/denali-composite-template-anchor-overlay";
 import type { DenaliZodFieldKind } from "../field-registry/denaliFieldRegistryData";
 import { findDenaliFieldDefinition } from "./denali-wizard-template-catalog-meta";
 
@@ -50,11 +54,16 @@ export function resolveDenaliCompositeAnchorForDependent(canonicalPath: string):
       return anchor;
     }
   }
+  for (const [anchor, dependents] of Object.entries(DENALI_COMPOSITE_TEMPLATE_ANCHOR_OVERLAY)) {
+    if (dependents.includes(canonicalPath)) {
+      return anchor;
+    }
+  }
   return null;
 }
 
 export function listDenaliCompositeDependentPathsForAnchor(anchorPath: string): readonly string[] {
-  return DENALI_COMPOSITE_DEPENDENTS_BY_ANCHOR[anchorPath] ?? [];
+  return listDenaliCompositeTemplateDependentsForAnchor(anchorPath);
 }
 
 export function isDenaliTemplateCompositeDependentPath(canonicalPath: string): boolean {

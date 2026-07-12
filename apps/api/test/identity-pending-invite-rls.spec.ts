@@ -85,7 +85,7 @@ describe("identity-pending-invite-rls.spec.ts", () => {
     const source = fs.readFileSync(usersService, "utf8");
     const body = source.match(/export async function listUsersDirectory\([\s\S]*?\n\}/)?.[0];
     assert.ok(body !== undefined);
-    assert.match(body, /listMembershipsWithUsersByTenant/);
+    assert.match(body, /listMembershipsWithUsersDirectoryPage/);
     assert.doesNotMatch(body, /findUserById\s*\(\s*membership\.userId/);
   });
 });

@@ -1,0 +1,140 @@
+---
+title: Workspace API Capabilities (WAC-001)
+standard_id: WAC-001
+version: 1.0.0
+status: active
+extends:
+  - docs/dev/denali-plugin-encapsulation.mdoc
+  - docs/phase-18/platform-denali-operator-parity.mdoc
+code_sot:
+  - apps/api/src/canonical/workspace-canonical-tour-dispatch.ts
+  - apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
+  - apps/api/src/tours/workspace-tour-write-dispatch.ts
+  - scripts/codegen/workspace-registry/domains/tour-api.mjs
+  - apps/api/src/canonical/workspace-catalog-ref-allowlist-resolvers.generated.ts
+  - apps/api/src/tours/workspace-wizard-rules-bindings.generated.ts
+  - apps/api/src/integrations/platform/workspace-integration-capabilities.generated.ts
+  - apps/api/src/settings/workspace-wizard-template-enforcement-bindings.generated.ts
+  - apps/api/src/settings/workspace-wizard-template-path-alias-bindings.generated.ts
+  - apps/api/src/exposure/workspace-exposure-host-bindings.generated.ts
+  - scripts/codegen/workspace-registry/domains/exposure.mjs
+mandatory_for:
+  - apps/api
+---
+
+# Workspace API Capabilities (WAC-001)
+
+**Purpose:** Keep `apps/api` **workspace-type agnostic** at call sites. Tenant context supplies `workspaceType`; behavior resolves through **codegen bindings** — not `workspaceType === "<pluginId>"` branches or direct workspace package imports in platform handlers.
+
+**Principle:** If a workspace needs different canonical tour semantics, expose it on the manifest → `tour-api.mjs` codegen surface (`readPublishStatusFromCanonical`, `detectPublishTransition`, `tourWrite.*`) and consume via dispatch modules.
+
+---
+
+## 1. Capability dispatch (canonical tours)
+
+| Concern | Dispatch module | Codegen SoT |
+| ------- | --------------- | ----------- |
+| Read publish label | `readTourPublishStatusLabel` | `workspace-canonical-tour-bindings.generated.ts` |
+| Detect publish transition | `detectTourPublishTransition` | same |
+| Migrate canonical | `resolveMigrateCanonicalHook` | same |
+| Tour write side effects | `workspace-tour-write-dispatch.ts` | `tour-api.mjs` |
+
+**Forbidden in platform handlers:**
+
+```typescript
+// ❌ identity branch
+if (workspaceType === "denali") { ... }
+
+// ❌ direct workspace tour helper when binding exists
+import { readDenaliTourPublishStatusFromCanonical } from "@app-tour/workspace-denali/tours";
+```
+
+**Required pattern:**
+
+```typescript
+import { readTourPublishStatusLabel } from "./workspace-canonical-tour-dispatch.ts";
+
+const label = readTourPublishStatusLabel(workspaceType, canonical);
+```
+
+Published vs draft inference uses **lifecycle contract + canonical labels** (`published`, `active`, or `lifecycle.publishStatus`) — never a hard-coded plugin id.
+
+### Form profile ghost paths (manifest → binding)
+
+Workspaces that strip wizard composite alias fields before persist declare on `canonicalTour`:
+
+| Manifest field | Example (Denali) |
+| -------------- | ---------------- |
+| `formProfileGhostPathsModule` | `./composites` |
+| `formProfileGhostPathsExport` | `DENALI_FORM_PROFILE_GHOST_PATHS` |
+
+Platform code calls `resolveFormProfileGhostPaths(workspaceType)` — no `workspaceType === "denali"` in `strip-form-profile-for-submit.ts`.
+
+### Validation sync-only workspaces
+
+When worker IPC cannot load host wizard rules (`validationSyncOnly: true` on `canonicalTour`), `requiresValidationSync(workspaceType)` keeps validation on the request thread instead of `validation-worker-pool`.
+
+### Catalog ref enrichment
+
+`catalogRefEnrichment: true` on `canonicalTour` → `requiresCatalogRefEnrichment(workspaceType)` → `resolveCatalogRefAllowlistsForWorkspace` before publish validation.
+
+### Starter create bridge (operator smoke)
+
+Manifest `tourWrite.starterCreateBridgeOperatorTenantId` → `resolveStarterCreateBridgeOperatorTenantId(workspaceType)` in `bridge-denali-operator-create-body.ts` (no identity branch).
+
+### Finance module defaults
+
+Manifest `workspaceFinance.defaultModuleEnabledWhenUnset` → `isFinanceDefaultEnabledWhenModulesUnset(workspaceType)` in `finance-module-enabled.ts`.
+
+### Integration capabilities (telegram rollout)
+
+Manifest `integrationCapabilities.<providerId>` codegen → `workspace-integration-capabilities.generated.ts` for deprecated event types, tour-published drift checks, exposure remap, and delivery reference display fields.
+
+### Wizard template enforcement
+
+Manifest `wizardTemplateEnforcement` → `resolveWizardTemplateEnforcementBinding(workspaceType)` replaces `workspaceType !== "denali"` in settings wizard template catalog paths.
+
+Manifest `wizardTemplate.pathAliases` + `aliasCatalogWorkspaceType` → `resolveWizardTemplatePathAliasBinding(workspaceType)` (starter `title` alias against denali catalog).
+
+Manifest `exposureHost` → `workspace-exposure-host-bindings.generated.ts` re-exports scheduler + surface resolver host surface (allowlist **0**).
+
+---
+
+## 2. Lifecycle gate (EPH II-A)
+
+`assert-tour-publish-lifecycle-gate.ts` maps canonical publish labels to plugin lifecycle states exclusively via:
+
+1. `readTourPublishStatusLabel(workspaceType, canonical)` (binding)
+2. `WorkspaceLifecycleContract` from the resolved workspace plugin
+
+No redundant Denali fallback after bindings register `readDenaliTourPublishStatusFromCanonical` in the generated manifest row.
+
+Spec: `apps/api/test/tour-publish-transition.spec.ts` (LC-04..06).
+
+---
+
+## 3. Validation mode inference (EPH II-A)
+
+`resolve-validation-mode.ts` infers `draft` vs `publish` from `readTourPublishStatusLabel` (binding dispatch). Publish-readiness uses `plugin.wizardHost.validatePublishReadiness` with rules module from `getWizardRulesModuleSyncForWorkspace` (codegen binding — no identity branch).
+
+Spec: `apps/api/test/canonical-validation-draft-vs-publish.spec.ts`.
+
+---
+
+## 4. Guards and ratchet
+
+| Guard | Role |
+| ----- | ---- |
+| `guard:api-workspace-isolation` | Blocks new `@app-tour/workspace-*/host/*` imports; monotonic allowlist shrink |
+| `phase-eph:fast-track` | `guard:api-workspace-isolation` + zero identity branches in `apps/api/src` |
+| `phase-psc:fast-track` | PSC strict surface cohesion + smoke matrix hooks |
+| CI | `phase-6-gate` job `eph-static-guards` runs both fast-tracks + `guard:catch-error-leak` + registry `--check` |
+| `phase-15-platform-fast-gate` | Zero `workspaceType === "denali"` in `apps/api/src/canonical/` (selected tour paths) |
+
+**EPH-88 closure (2026-07-12):** zero identity branches; `HOST_IMPORT_LEGACY_ALLOWLIST` = **0** files (exposure host surface via `workspace-exposure-host-bindings.generated.ts`). Finance host adapters flow through `workspace-outbox-side-effects.generated.ts`.
+
+---
+
+## 5. Smoke parity (marketing)
+
+Peer SEO specs must resolve published tour ids via `resolveSmokePublishedTourId()` (`apps/marketing/tests/e2e/fixtures/smoke-published-tour.ts`) so operator vs denali.club hosts stay aligned with the smoke catalog matrix.

@@ -157,3 +157,110 @@ ${smokeBlocks.length > 0 ? smokeBlocks.join("\n") : ""}
 ] as const;
 `;
 }
+
+export function generateWizardTemplatePathAliasBindings(manifests) {
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of manifests) {
+    const wizardTemplate = m.wizardTemplate;
+    if (wizardTemplate === undefined) {
+      continue;
+    }
+    if (
+      !Array.isArray(wizardTemplate.pathAliases) ||
+      typeof wizardTemplate.aliasCatalogWorkspaceType !== "string"
+    ) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: wizardTemplate requires pathAliases[] and aliasCatalogWorkspaceType`
+      );
+    }
+    const workspaceType = m.workspaceTypes?.[0];
+    if (typeof workspaceType !== "string" || workspaceType.length === 0) {
+      throw new Error(`workspace.manifest.json ${m.id}: wizardTemplate requires workspaceTypes[0]`);
+    }
+    bindingBlocks.push(`  {
+    workspaceType: ${JSON.stringify(workspaceType)},
+    pathAliases: new Set(${JSON.stringify(wizardTemplate.pathAliases)}),
+    aliasCatalogWorkspaceType: ${JSON.stringify(wizardTemplate.aliasCatalogWorkspaceType)},
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS = [] as const;
+
+export function resolveWizardTemplatePathAliasBinding(_workspaceType: string) {
+  return undefined;
+}
+`;
+  }
+
+  return `${BANNER}
+export const WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+
+export function resolveWizardTemplatePathAliasBinding(workspaceType: string) {
+  return WORKSPACE_WIZARD_TEMPLATE_PATH_ALIAS_BINDINGS.find(
+    (entry) => entry.workspaceType === workspaceType
+  );
+}
+`;
+}
+
+export function generateWizardTemplateEnforcementBindings(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const bindingBlocks = [];
+
+  for (const m of manifests) {
+    const enforcement = m.wizardTemplateEnforcement;
+    const tw = m.tourWrite;
+    if (enforcement === undefined || tw === undefined) {
+      continue;
+    }
+    const { module: modulePath, assertFrozenFieldsExport, normalizeStepsExport } = enforcement;
+    for (const key of ["module", "assertFrozenFieldsExport", "normalizeStepsExport"]) {
+      if (typeof enforcement[key] !== "string" || enforcement[key].trim().length === 0) {
+        throw new Error(`workspace.manifest.json ${m.id}: wizardTemplateEnforcement.${key} is required`);
+      }
+    }
+    const alias = `${m.id.replace(/-/g, "_")}_wizard_template_enforcement`;
+    const spec = importSpecifier(m.package, modulePath);
+    importLines.add(`import { ${tw.workspaceTypeExport} } from "${m.package}";`);
+    importLines.add(
+      `import { ${assertFrozenFieldsExport}, ${normalizeStepsExport} } from "${spec}";`
+    );
+    bindingBlocks.push(`  {
+    workspaceType: ${tw.workspaceTypeExport},
+    assertFrozenFields: ${assertFrozenFieldsExport},
+    normalizeSteps: ${normalizeStepsExport},
+  },`);
+  }
+
+  if (bindingBlocks.length === 0) {
+    return `${BANNER}
+export const WORKSPACE_WIZARD_TEMPLATE_ENFORCEMENT_BINDINGS = [] as const;
+
+export function resolveWizardTemplateEnforcementBinding(_workspaceType: string) {
+  return undefined;
+}
+`;
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export const WORKSPACE_WIZARD_TEMPLATE_ENFORCEMENT_BINDINGS = [
+${bindingBlocks.join("\n")}
+] as const;
+
+export function resolveWizardTemplateEnforcementBinding(workspaceType: string) {
+  return WORKSPACE_WIZARD_TEMPLATE_ENFORCEMENT_BINDINGS.find(
+    (entry) => entry.workspaceType === workspaceType
+  );
+}
+`;
+}

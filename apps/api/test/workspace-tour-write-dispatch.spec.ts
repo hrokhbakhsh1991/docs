@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-denali/tours";
+import { DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-denali/host/tours";
 import { URBAN_TOUR_PUBLISH_FIELDS_OWNER_SURFACE } from "@app-tour/workspace-urban/tours";
 
 import {

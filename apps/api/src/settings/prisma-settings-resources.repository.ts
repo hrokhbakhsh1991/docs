@@ -1,4 +1,13 @@
 import { withTenantRls } from "../db/with-tenant-rls";
+import {
+  DESTINATION_LIST_SELECT,
+  EQUIPMENT_LIST_SELECT,
+  GUIDE_LANGUAGE_LIST_SELECT,
+  MAX_SETTINGS_CATALOG,
+  REGION_LIST_SELECT,
+  TOUR_PRESET_LIST_SELECT,
+  TOUR_THEME_LIST_SELECT,
+} from "./settings-catalog-list-projection";
 import { slugifyName, uniqueCatalogSlug } from "./settings-catalog-slug";
 import type {
   DestinationResource,
@@ -209,7 +218,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     const rows = await withTenantRls(tenantId, (tx) =>
       tx.workspaceEquipment.findMany({
         where: { tenantId },
+        select: EQUIPMENT_LIST_SELECT,
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        take: MAX_SETTINGS_CATALOG,
       })
     );
     return rows.map((row) => toEquipment(row));
@@ -306,7 +317,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     const rows = await withTenantRls(tenantId, (tx) =>
       tx.workspaceTourTheme.findMany({
         where: { tenantId },
+        select: TOUR_THEME_LIST_SELECT,
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        take: MAX_SETTINGS_CATALOG,
       })
     );
     return rows.map((row) => toTourTheme(row));
@@ -420,7 +433,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     const rows = await withTenantRls(tenantId, (tx) =>
       tx.workspaceGuideLanguage.findMany({
         where: { tenantId },
+        select: GUIDE_LANGUAGE_LIST_SELECT,
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        take: MAX_SETTINGS_CATALOG,
       })
     );
     return rows.map((row) => toGuideLanguage(row));
@@ -531,7 +546,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     const rows = await withTenantRls(tenantId, (tx) =>
       tx.workspaceTourPreset.findMany({
         where: { tenantId },
+        select: TOUR_PRESET_LIST_SELECT,
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        take: MAX_SETTINGS_CATALOG,
       })
     );
     return rows.map((row) => toTourPreset(row));
@@ -652,7 +669,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     const rows = await withTenantRls(tenantId, (tx) =>
       tx.workspaceRegion.findMany({
         where: { tenantId },
+        select: REGION_LIST_SELECT,
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        take: MAX_SETTINGS_CATALOG,
       })
     );
     return rows.map((row) => toRegion(row));
@@ -662,7 +681,9 @@ export class PrismaSettingsResourcesRepository implements SettingsResourcesRepos
     const rows = await withTenantRls(tenantId, (tx) =>
       tx.workspaceDestination.findMany({
         where: { tenantId },
+        select: DESTINATION_LIST_SELECT,
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        take: MAX_SETTINGS_CATALOG,
       })
     );
     return rows.map((row) => toDestination(row));

@@ -27,6 +27,26 @@ export type TourListByTenantPageOutput = {
   readonly nextCursor: string | null;
 };
 
+export type TourOperatorListPageInput = {
+  readonly tenantId: string;
+  readonly query: {
+    readonly search?: string;
+    readonly status?: "active" | "completed" | "archived";
+    readonly page: number;
+    readonly limit: number;
+    readonly sortBy: "created_at" | "title" | "price" | "departure_at";
+    readonly sortDir: "asc" | "desc";
+    readonly includeTotal: boolean;
+  };
+};
+
+export type TourOperatorListPageOutput = {
+  readonly items: readonly Tour[];
+  readonly total: number;
+  readonly page: number;
+  readonly limit: number;
+};
+
 export interface TourStorageRepository {
   getById(id: string, tenantId: string): Promise<Tour | null>;
 
@@ -35,6 +55,8 @@ export interface TourStorageRepository {
   listByTenant(tenantId: string): Promise<Tour[]>;
 
   listByTenantPage(input: TourListByTenantPageInput): Promise<TourListByTenantPageOutput>;
+
+  listOperatorToursPage(input: TourOperatorListPageInput): Promise<TourOperatorListPageOutput>;
 
   /**
    * Updates canonical when `expectedRowVersion` matches — increments row_version.

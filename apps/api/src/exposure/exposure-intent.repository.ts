@@ -31,12 +31,23 @@ export type UpsertExposureIntentInput = ExposureIntentContextKey & {
 
 export type ExposureIntentRepository = {
   findForContext(input: ExposureIntentContextKey): Promise<ExposureIntent | null>;
+  findForContexts(
+    contexts: readonly ExposureIntentContextKey[],
+  ): Promise<ReadonlyMap<string, ExposureIntent>>;
   listForConnectionScope(input: {
     readonly tenantId: string;
     readonly connectionId: string;
   }): Promise<readonly ExposureIntent[]>;
+  listForConnectionScopes(input: {
+    readonly tenantId: string;
+    readonly connectionIds: readonly string[];
+  }): Promise<ReadonlyMap<string, readonly ExposureIntent[]>>;
   upsert(input: UpsertExposureIntentInput): Promise<ExposureIntent>;
 };
+
+export function exposureIntentContextLookupKey(input: ExposureIntentContextKey): string {
+  return `${input.profileId}|${input.surface}|${input.audience}|${input.trigger}|${exposureIntentScopeHash(input.scope)}`;
+}
 
 function stableScopeValue(value: ExposureIntentScopeValue): unknown {
   if (Array.isArray(value)) {

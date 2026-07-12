@@ -14,7 +14,10 @@ export type GuestSurfaceBootstrap = {
   readonly pluginId: string;
 };
 
-export type GuestSurfaceUnresolvedError = "MARKETING_TENANT_UNRESOLVED" | "PORTAL_TENANT_UNRESOLVED";
+export type GuestSurfaceUnresolvedError =
+  | "MARKETING_TENANT_UNRESOLVED"
+  | "PORTAL_TENANT_UNRESOLVED"
+  | "ADMIN_TENANT_UNRESOLVED";
 
 export type ResolveGuestSurfaceBootstrapOptions = {
   readonly surface: GuestDevHostSurface;

@@ -23,6 +23,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  eph-static-guards:
+    name: EPH + PSC static guards (no Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install ripgrep (phase-eph identity ratchet)
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Workspace registry codegen check
+        run: pnpm run generate:workspace-registry -- --check
+
+      - name: EPH + PSC fast-track
+        run: pnpm run phase-eph:fast-track && pnpm run phase-psc:fast-track
+
+      - name: AP14 catch-error-leak guard
+        run: pnpm run guard:catch-error-leak
+
   fast-closure:
     name: Phase 6 fast-closure (Postgres)
     runs-on: ubuntu-latest

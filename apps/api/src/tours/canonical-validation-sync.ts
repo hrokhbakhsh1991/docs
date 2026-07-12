@@ -13,7 +13,7 @@ import { isValidationFailure, throwValidationFailure } from "../canonical/valida
 import { assertCatalogRefIntegrity } from "../canonical/assert-catalog-ref-integrity.ts";
 import {
   stripFormProfileFieldsFromCanonicalData,
-  filterDenaliRootsAfterProfileStrip,
+  filterRootsAfterProfileStrip,
 } from "../canonical/strip-form-profile-for-submit.ts";
 import { recordWorkspaceMetadataValidationError } from "../observability/metrics.ts";
 import { isWorkspaceMetadataEnabled } from "../workspace-metadata/is-workspace-metadata-enabled.ts";
@@ -248,17 +248,16 @@ function validateCanonicalDocumentWithEngine(
         ? pickStarterCreateDataForValidation(rawCreateData)
         : undefined;
     const createData = starterPick?.createData ?? rawCreateData;
-    const profileStrippedCreateData =
-      input.workspaceType === "denali" && isRecord(createData)
-        ? stripFormProfileFieldsFromCanonicalData(input.workspaceType, createData)
-        : createData;
-    const documentRoots =
-      input.workspaceType === "denali" && isRecord(profileStrippedCreateData)
-        ? filterDenaliRootsAfterProfileStrip(
-            input.body.roots ?? [...validationPlugin.wizard.roots],
-            profileStrippedCreateData
-          )
-        : (input.body.roots ?? [...validationPlugin.wizard.roots]);
+    const profileStrippedCreateData = isRecord(createData)
+      ? stripFormProfileFieldsFromCanonicalData(input.workspaceType, createData)
+      : createData;
+    const documentRoots = isRecord(profileStrippedCreateData)
+      ? filterRootsAfterProfileStrip(
+          input.workspaceType,
+          input.body.roots ?? [...validationPlugin.wizard.roots],
+          profileStrippedCreateData
+        )
+      : (input.body.roots ?? [...validationPlugin.wizard.roots]);
 
     document = createCanonicalDocument({
       schemaVersion: requestedSchemaVersion,
@@ -306,7 +305,8 @@ function validateCanonicalDocumentWithEngine(
   const publishViolation = runValidationModePublishGate(
     validationPlugin,
     document,
-    validationMode
+    validationMode,
+    input.workspaceType
   );
   if (publishViolation != null) {
     throwValidationFailure(
@@ -314,11 +314,7 @@ function validateCanonicalDocumentWithEngine(
     );
   }
 
-  if (
-    input.workspaceType === "denali" &&
-    validationMode === "publish" &&
-    input.catalogRefAllowlists != null
-  ) {
+  if (validationMode === "publish" && input.catalogRefAllowlists != null) {
     const catalogViolation = assertCatalogRefIntegrity(document, input.catalogRefAllowlists);
     if (catalogViolation != null) {
       throwValidationFailure(

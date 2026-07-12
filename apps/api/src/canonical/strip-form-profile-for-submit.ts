@@ -2,7 +2,8 @@ import {
   createCanonicalDocument,
   type CanonicalDocument,
 } from "@app-tour/workspace-sdk";
-import { DENALI_FORM_PROFILE_GHOST_PATHS } from "@app-tour/workspace-denali/host/composites";
+
+import { resolveFormProfileGhostPaths } from "./workspace-canonical-tour-dispatch.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -32,23 +33,29 @@ export function stripFormProfileFieldsFromCanonicalData(
   workspaceType: string,
   data: Record<string, unknown>
 ): Record<string, unknown> {
-  if (workspaceType !== "denali") {
+  const ghostPaths = resolveFormProfileGhostPaths(workspaceType);
+  if (ghostPaths === undefined || ghostPaths.size === 0) {
     return data;
   }
 
   const next = structuredClone(data);
-  for (const path of DENALI_FORM_PROFILE_GHOST_PATHS) {
+  for (const path of ghostPaths) {
     deleteCanonicalPath(next, path);
   }
   return next;
 }
 
 /** Drop ghost wizard roots after data strip (INV-DENALI-WIZ-003). */
-export function filterDenaliRootsAfterProfileStrip(
+export function filterRootsAfterProfileStrip(
+  workspaceType: string,
   roots: readonly string[],
   data: Record<string, unknown>
 ): readonly string[] {
-  return roots.filter((root) => !DENALI_FORM_PROFILE_GHOST_PATHS.has(root) && root in data);
+  const ghostPaths = resolveFormProfileGhostPaths(workspaceType);
+  if (ghostPaths === undefined || ghostPaths.size === 0) {
+    return roots;
+  }
+  return roots.filter((root) => !ghostPaths.has(root) && root in data);
 }
 
 /** Strip non-persistable profile fields before canonical document assembly / persist. */
@@ -61,10 +68,7 @@ export function stripFormProfileForSubmit(
   if (stripped === data) {
     return document;
   }
-  const roots =
-    workspaceType === "denali"
-      ? filterDenaliRootsAfterProfileStrip(document.roots, stripped)
-      : document.roots;
+  const roots = filterRootsAfterProfileStrip(workspaceType, document.roots, stripped);
   return createCanonicalDocument({
     schemaVersion: document.schemaVersion,
     roots: [...roots],

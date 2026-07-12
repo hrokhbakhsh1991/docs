@@ -164,6 +164,36 @@ assertNoMatch(
   "web public tenant-branding BFF must not duplicate raw API fetch"
 );
 
+assertMatch(
+  "apps/web/src/tenant/resolve-admin-bootstrap.server.ts",
+  /resolveAdminBootstrapForHost/,
+  "web admin bootstrap wrapper must delegate guest-surface-host ASB-001"
+);
+
+assertMatch(
+  "apps/web/src/tenant/tenant-kernel.server.ts",
+  /resolveAdminBootstrapForWebHost/,
+  "web tenant-kernel async bootstrap must delegate ASB-001"
+);
+
+assertNoMatch(
+  "apps/web/src/tenant/tenant-kernel.server.ts",
+  /fetchPublicTenantContextForHost/,
+  "web tenant-kernel must not use legacy fetchPublicTenantContextForHost after ASB-001"
+);
+
+assertMatch(
+  "apps/web/src/auth/identity-bff-headers.ts",
+  /resolveAdminBootstrapForWebHost/,
+  "operator identity BFF must delegate ASB-001 admin bootstrap"
+);
+
+assertNoMatch(
+  "apps/web/src/auth/identity-bff-headers.ts",
+  /fetchPublicTenantContextForHost/,
+  "operator identity BFF must not use legacy fetchPublicTenantContextForHost after ASB-001"
+);
+
 // --- Web Phase 1c (must pass — no hostname plugin heuristics) ---
 
 assertNoMatch(

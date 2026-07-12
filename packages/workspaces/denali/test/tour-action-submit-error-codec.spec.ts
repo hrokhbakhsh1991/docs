@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import {
   encodeTourActionSubmitError,
   decodeTourActionSubmitError,
-} from "@app-tour/workspace-denali/ui/logic/tour-action-submit-error-codec";
+} from "../src/ui/logic/tour-action-submit-error-codec";
 
 describe("tour-action-submit-error-codec.spec.ts", () => {
   it("round-trips structured submit errors", () => {
