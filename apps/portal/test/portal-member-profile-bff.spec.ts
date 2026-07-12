@@ -183,6 +183,27 @@ describe("member-profile-bff.server (M2)", () => {
     assert.equal(ok.patch.nationalId, "");
   });
 
+  it("MP-BFF-10b PATCH maps cleared gender to null upstream", () => {
+    const ok = parseMemberProfilePatchBody({ fields: { gender: null } }, "denali");
+    assert.ok("patch" in ok);
+    if (!("patch" in ok)) {
+      return;
+    }
+    assert.equal(ok.patch.gender, null);
+  });
+
+  it("MP-BFF-10c PATCH maps empty gender to null upstream", () => {
+    const ok = parseMemberProfilePatchBody(
+      { fields: { nationalId: "1234567890", gender: "" } },
+      "denali"
+    );
+    assert.ok("patch" in ok);
+    if (!("patch" in ok)) {
+      return;
+    }
+    assert.deepEqual(ok.patch, { nationalId: "1234567890", gender: null });
+  });
+
   it("MP-BFF-11 identity missing userId returns PROFILE_FETCH_FAILED", () => {
     const err = buildMemberProfileView({ tenantId: "t", role: "member" }, "denali");
     assert.equal("code" in err && err.code, "PROFILE_FETCH_FAILED");

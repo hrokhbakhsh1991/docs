@@ -144,11 +144,13 @@ function isMemberProfileFieldId(
   );
 }
 
+export type IdentityMePatchBody = Record<string, string | null>;
+
 export function parseMemberProfilePatchBody(
   body: unknown,
   pluginId: string,
   options?: { readonly traceId?: string }
-): { readonly patch: Record<string, string> } | MemberProfileBffError {
+): { readonly patch: IdentityMePatchBody } | MemberProfileBffError {
   if (body === null || typeof body !== "object" || Array.isArray(body)) {
     return { code: "INVALID_JSON", status: 400 };
   }
@@ -162,7 +164,7 @@ export function parseMemberProfilePatchBody(
   }
 
   const capabilities = resolveMemberProfileCapabilities(pluginId);
-  const patch: Record<string, string> = {};
+  const patch: IdentityMePatchBody = {};
   const fieldRecord = fields as Record<string, unknown>;
 
   for (const [rawKey, rawValue] of Object.entries(fieldRecord)) {
@@ -201,7 +203,8 @@ export function parseMemberProfilePatchBody(
       }
     }
     const upstreamKey = IDENTITY_PATCH_KEYS[rawKey];
-    patch[upstreamKey] = normalized;
+    patch[upstreamKey] =
+      rawKey === "gender" && normalized.length === 0 ? null : normalized;
   }
 
   if (Object.keys(patch).length === 0) {

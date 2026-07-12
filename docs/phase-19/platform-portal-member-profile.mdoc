@@ -271,7 +271,7 @@ Workspace deltas documented in `docs/workspaces/{id}/portal-member-profile.md` (
 | `nationalId` | `nationalId` |
 | `fatherName` | `fatherName` |
 | `birthDate` | `birthDate` |
-| `gender` | `gender` |
+| `gender` | `gender` (cleared/unset → upstream `null`, not `""`) |
 | `avatar` | `avatar.storageKey` |
 
 Source: `apps/api/src/identity/membership-metadata.ts` · `me.service.ts`.
