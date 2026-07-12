@@ -240,6 +240,7 @@ export {
 export {
   operatorCapabilitySupportsUsersDirectory,
   operatorCapabilitySupportsReconciliationTriage,
+  operatorCapabilitySupportsFieldExposureSurfaces,
 } from "./operator/resolve-operator-capabilities";
 export { WORKSPACE_OPERATOR_CAPABILITIES } from "./operator/workspace-operator-capabilities.generated";
 export {

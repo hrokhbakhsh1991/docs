@@ -1,4 +1,4 @@
-import { readDenaliDraftFieldValue } from "@app-tour/workspace-denali/host/wizard/resolve-initial-step-index";
+import { readWizardDraftFieldValueFromRegistry } from "@/bootstrap/workspace-wizard-draft-unification-bindings.generated";
 
 import type { TourWizardDraft } from "./tour-wizard-draft";
 import { getCanonicalValue } from "./tour-wizard-draft-path";
@@ -24,8 +24,15 @@ export function readWizardDraftFieldValue(
   canonicalPath: string,
   pluginId?: string
 ): unknown {
-  if (pluginId === "denali") {
-    return readDenaliDraftFieldValue(draft as Record<string, unknown>, canonicalPath);
+  if (pluginId !== undefined) {
+    const fromRegistry = readWizardDraftFieldValueFromRegistry(
+      pluginId,
+      draft as Record<string, unknown>,
+      canonicalPath
+    );
+    if (fromRegistry !== null) {
+      return fromRegistry;
+    }
   }
 
   const primary = getCanonicalValue(draft, canonicalPath);

@@ -172,6 +172,7 @@
   },
   "operatorCapabilities": {
     "usersDirectory": false,
-    "reconciliationTriage": false
+    "reconciliationTriage": false,
+    "fieldExposureSurfaces": false
   }
 }

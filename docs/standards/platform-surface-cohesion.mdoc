@@ -1,0 +1,220 @@
+---
+title: Platform Surface Cohesion (PSC-001)
+standard_id: PSC-001
+version: 1.0.0
+status: active
+extends:
+  - docs/standards/workspace-routing-standard.mdoc
+  - docs/standards/member-session-portal-authority.mdoc
+  - docs/architecture/platform-architecture-v2.md
+code_sot:
+  - packages/guest-surface-host/src/resolve-guest-surface-bootstrap.ts
+  - packages/guest-surface-host/src/resolve-tour-ops-api-base-url.ts
+  - packages/guest-surface-host/src/fetch-public-tenant-branding.ts
+  - packages/guest-surface-host/src/resolve-dev-plugin-id.ts
+  - packages/workspace-sdk/src/catalog/resolve-catalog-api-path.ts
+  - apps/marketing/src/tenant/resolve-marketing-bootstrap.ts
+  - apps/portal/src/tenant/resolve-portal-bootstrap.ts
+  - apps/web/src/tenant/tenant-kernel.server.ts
+  - scripts/guards/guard-surface-cohesion.mjs
+  - docs/dev/platform-surface-cohesion-smoke-matrix.yaml
+mandatory_for:
+  - apps/marketing
+  - apps/portal
+  - apps/web
+  - packages/guest-surface-host
+  - packages/workspace-sdk
+---
+
+# Platform Surface Cohesion (PSC-001)
+
+**Purpose:** Single enterprise contract for **cross-surface bootstrap, API egress, branding, and plugin resolution** across marketing · portal · admin — without breaking workspace isolation (L4 plugins mount via manifest codegen only).
+
+**Principle:** Host resolves **tenantId** (WRS-001). **pluginId** comes from tenant registry / dev UUID map — never from hostname prefix heuristics in platform apps.
+
+**Companion (execution):** [`temp/platform-surface-cohesion-roadmap.md`](../../temp/platform-surface-cohesion-roadmap.md) — phased convergence plan (temporary execution tracker).
+
+---
+
+## 1. Cohesion model
+
+```text
+┌─────────────┬──────────────────┬─────────────────────────────────────────┐
+│ Concern     │ SoT package      │ Apps delegate (thin wrappers only)      │
+├─────────────┼──────────────────┼─────────────────────────────────────────┤
+│ Host parse  │ tenant-kernel    │ all surfaces                            │
+│ Guest boot  │ guest-surface-host │ marketing + portal                  │
+│ Admin boot  │ guest-surface-host + tenant-kernel │ web (converging)    │
+│ API base URL│ guest-surface-host │ all BFF surfaces                    │
+│ Branding    │ guest-surface-host │ all surfaces                        │
+│ pluginId    │ API tenant-context + DEV_PLUGIN_ID map │ never hostname  │
+│ Catalog path│ workspace-sdk    │ BFF uses resolveCatalog*ApiPath       │
+│ Workspace UI│ manifest codegen │ never static-import workspace pkg     │
+└─────────────┴──────────────────┴─────────────────────────────────────────┘
+```
+
+**Workspace isolation invariant (unchanged):** Apps **must not** import `@app-tour/workspace-*` or `packages/workspaces/*`. Plugins load through `generate:workspace-registry` artifacts only (`import-boundary-ast`).
+
+---
+
+## 2. SoT matrix (normative)
+
+| Decision | Marketing | Portal | Admin (web) | SoT |
+| -------- | --------- | ------ | ----------- | --- |
+| Bootstrap | `resolveMarketingBootstrapForHost` | `resolvePortalBootstrapForHost` | `resolveBootstrapAppSessionForHostAsync` | GSH `resolveGuestSurfaceBootstrapForHost` (M+P); web async uses `fetchPublicTenantContextForHost` |
+| API base | `resolveTourOpsApiBaseUrl` from GSH | same | re-export GSH via `urban-api-base.ts` shim ✅ Phase 1a | `packages/guest-surface-host/src/resolve-tour-ops-api-base-url.ts` |
+| Prod BFF fail-fast | `assertGuestBffProductionConfig` | same | `onBeforeFetch` in all branding paths (server + `/api/public/tenant-branding` BFF) ✅ Phase 1b | GSH |
+| Branding fetch | delegate `fetchGuestPublicTenantBrandingForHost` | same | server helper + public BFF route delegate same helper ✅ Phase 1b | GSH `fetch-public-tenant-branding.ts` |
+| pluginId (prod) | API `public/tenant-context` | same | API `public/tenant-context` | registry |
+| pluginId (dev) | `resolveDevPluginIdForTenantId` | same | codegen map only ✅ Phase 1c | GSH `workspace-dev-plugin-ids.generated.ts` |
+| Member session | none (PCMS) | `atour_mb_session` | `atour_op_session` | PCMS-001 |
+| Catalog HTTP path | SDK `resolveCatalogListApiPath(pluginId)` | workspace-plugin-host | SDK paths ✅ Phase 1d | workspace-sdk |
+| Operator capabilities | manifest `operatorCapabilities` → codegen | same | `fieldExposureSurfaces` etc. ✅ Phase 2 | workspace-sdk `WORKSPACE_OPERATOR_CAPABILITIES` |
+
+---
+
+## 3. Intentional divergences (do NOT converge)
+
+| Divergence | Rationale | Standard |
+| ---------- | --------- | -------- |
+| Marketing anonymous | No member cookie probe | PCMS-001 |
+| Portal fail-closed tenant bind | Security | PCMS-SEC-01 |
+| Portal async JWT verify | Edge middleware | PCMS-SEC-02 |
+| Admin BFF surface area larger | Operator features | platform-architecture-v2 |
+| `workspace-plugin-host` portal-only | Registration flow composition | platform-portal-registration |
+| Admin session bind fail-open for unmapped dev clubs | Operator velocity (review in Phase 4 — prod ingress-bound only) | PSC-C-05 |
+| `starter` on guest surfaces | Admin-only scaffold — no `guestExtensionsVersion` | PSC-C-06 |
+
+---
+
+## 4. Gap register (PSC-C-*)
+
+Tracked in [`workspace-routing-risk-register.md`](./workspace-routing-risk-register.md) § Surface cohesion.
+
+| ID | Priority | Summary | Target phase |
+| -- | -------- | ------- | ------------ |
+| PSC-C-01 | P1 | Web `urban-api-base.ts` ≠ GSH API chain | 1a ✅ |
+| PSC-C-02 | P1 | Web hostname plugin heuristics | 1c ✅ |
+| PSC-C-03 | P1 | Web branding bypass GSH (server + BFF route) | 1b ✅ |
+| PSC-C-04 | P2 | guest-club missing explicit `operatorCapabilities` row | 2 ✅ |
+| PSC-C-05 | P2 | Admin session bind fail-open vs portal fail-closed | 4 doc — prod-only |
+| PSC-C-06 | P2 | starter unsupported on guest surfaces | 4 doc ✅ |
+| PSC-C-07 | P2 | SDK/GSH dist stale in CI | process ✅ |
+| PSC-C-08 | P2 | Cross-surface smoke matrix incomplete | 3 ✅ |
+| PSC-C-09 | P1 | Web duplicate `apiBaseUrl()` in tenant-context | 1a ✅ |
+| PSC-C-10 | P1 | 50+ imports of `@/urban/urban-api-base` — shim not mass-rename | 1a ✅ |
+| PSC-C-11 | P2 | `denali-wizard-labels.ts` composite id prefix (`denali.`) — not hostname; intentional | N/A |
+| PSC-C-12 | P1 | Web hardcoded `/denali/catalog` paths | 1d ✅ |
+| PSC-C-13 | P2 | `DEV_HOST_SESSION_PROFILES` hardcoded | 2 ✅ |
+| PSC-C-14 | P1 | `WEB-8.2-04` test encodes stricter API policy | 1a ✅ |
+| PSC-C-15 | P1 | Web missing `assertGuestBffProductionConfig` before branding fetch | 1b ✅ |
+| PSC-C-16 | P2 | UI `workspaceType === "denali"` checks; wizard draft reader via codegen surface | 2 ✅ |
+| PSC-C-17 | process | Extend `guard-workspace-certification` — no duplicate guard | 2 ✅ |
+| PSC-C-18 | process | SMK-COHESION extends existing smoke — no duplicate suite | 3 ✅ |
+
+---
+
+## 5. Phased execution (normative order)
+
+| Phase | Scope | Blocks |
+| ----- | ----- | ------ |
+| **0** | This doc + risk register + `guard-surface-cohesion` (warn mode) | — | ✅ |
+| **1a** | Web API URL shim → GSH; tenant-context uses shared resolver | 0 | ✅ |
+| **1b** | Web branding delegate; prod BFF assert | 1a | ✅ |
+| **1c** | Remove hostname plugin heuristics; strict guard | 1a | ✅ |
+| **1d** | Web catalog clients → SDK paths | 1a | ✅ |
+| **2** | Manifest/codegen parity; extend certification guard | 1c | ✅ |
+| **3** | Cross-surface smoke matrix (extend SMK-*) | 2 | ✅ |
+| **4** | Closure — KPI met; platform-core extraction **deferred** (Architect charter) | 3 | ✅ doc |
+
+**Phase 4 KPI (2026-07-12):** strict guard 0 baseline warnings · all P1 PSC-C-* closed · smoke matrix SMK-PSC-01..06 static green · guest-capable manifests have explicit `operatorCapabilities`. E2E hooks (SMK-WRS/MKT/PTL) run on demand with API+seed — not part of `phase-psc:fast-track`. **Deferred:** moving tenant bootstrap into `platform-core` — separate phase doc required (doc-first covenant).
+
+**Rule:** No Phase 1 app code merge without Phase 0 doc + guard baseline on branch.
+
+---
+
+## 6. Guard modes (PSC-GUARD-01)
+
+```bash
+# Baseline — reports known debt, exit 0 (default)
+pnpm run guard:surface-cohesion
+
+# Fail-closed — Phase 1 admin debt cleared (1c+1d)
+SURFACE_COHESION_GUARD_MODE=strict pnpm run guard:surface-cohesion
+```
+
+Guard checks:
+
+1. M+P bootstrap delegates GSH
+2. M+P branding delegates GSH
+3. Web `urban-api-base.ts` re-exports GSH ✅ (Phase 1a closed)
+4. Web tenant-context free of duplicate `apiBaseUrl()` ✅ (Phase 1a closed)
+5. Web tenant-kernel free of hostname plugin heuristics ✅ (Phase 1c closed)
+6. Web free of hardcoded workspace catalog paths ✅ (Phase 1d closed)
+7. Web server branding delegates GSH ✅ (Phase 1b closed)
+8. Web public BFF `/api/public/tenant-branding` delegates same server helper (no raw API fetch) ✅ (Phase 1b closure)
+9. Web branding wires `assertGuestBffProductionConfig` via `onBeforeFetch` on all branding paths ✅ (Phase 1b closed)
+10. Guest-capable manifests declare explicit `operatorCapabilities` — enforced by `guard:workspace-certification` (Phase 2, PSC-C-17; not duplicated in `guard:surface-cohesion`)
+11. Cross-surface smoke matrix YAML + hook specs exist — `guard:surface-cohesion-smoke` (Phase 3; extends SMK-* — no duplicate Playwright suite)
+
+---
+
+## 7. Smoke matrix (Phase 3 — PSC-SMK-01)
+
+**Authority:** [`docs/dev/platform-surface-cohesion-smoke-matrix.yaml`](../dev/platform-surface-cohesion-smoke-matrix.yaml)
+
+| Tier | IDs | When to run |
+| ---- | --- | ----------- |
+| **Static (CI default)** | SMK-PSC-01..06 | `pnpm run test:surface-cohesion-smoke` + `pnpm run guard:surface-cohesion` |
+| **E2E (manual / CI matrix)** | SMK-WRS-CUSTOM-APEX, SMK-MKT-03, SMK-PTL-01, SMK-PTL-08 | Existing commands in matrix YAML — **not** a new Playwright project |
+
+```bash
+# Fast static cross-surface closure
+pnpm run test:surface-cohesion-smoke
+pnpm run guard:surface-cohesion   # includes guard-surface-cohesion-smoke
+
+# E2E (requires servers + seed — same as existing SMK-*)
+pnpm run smoke:wrs-custom-apex
+pnpm --filter @apps/marketing run test:smoke    # SMK-MKT-03
+pnpm --filter @apps/portal run test:smoke       # SMK-PTL-01
+pnpm --filter @apps/portal run test:smoke:custom-apex  # SMK-PTL-08
+```
+
+---
+
+## 8. Verification
+
+```bash
+pnpm run guard:surface-cohesion
+pnpm run test:surface-cohesion-smoke
+pnpm run guard:wrs-routing
+pnpm run guard:pcms-authority
+pnpm run guard:import-boundary
+pnpm run guard:guest-fetch-revalidate-parity
+pnpm run guard:workspace-certification
+pnpm run doc-gate
+```
+
+Phase 1+ adds `@apps/web` specs `guest-api-base-parity.spec.ts`, `urban-catalog-access.spec.ts` (WEB-PSC-1a-*, WEB-8.2-04). Phase 3 adds `scripts/test/surface-cohesion-cross-surface.spec.mjs` (SMK-PSC-03) and smoke matrix YAML.
+
+**Fast-track (PSC closure — no full monorepo gate):**
+
+```bash
+pnpm run phase-psc:fast-track
+```
+
+**CI / fresh checkout:** build SDK before app tests when generated artifacts may be stale (`PSC-C-07`):
+
+```bash
+pnpm run build:workspace-sdk-for-guards
+pnpm --filter @app-tour/guest-surface-host build   # when GSH TS sources changed
+```
+
+---
+
+## 9. References
+
+- [workspace-routing-standard.mdoc](./workspace-routing-standard.mdoc) (WRS-001)
+- [member-session-portal-authority.mdoc](./member-session-portal-authority.mdoc) (PCMS-001)
+- [platform-architecture-v2.md](../architecture/platform-architecture-v2.md)
+- [workspace-certification.mdoc](../dev/workspace-certification.mdoc) (Phase H)

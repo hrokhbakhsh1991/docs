@@ -1,3 +1,4 @@
+import { resolveDevPluginIdForTenantId } from "@app-tour/guest-surface-host";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { listBootstrapWorkspacePlugins } from "@/bootstrap/workspace-plugins";
@@ -5,38 +6,23 @@ import { listBootstrapWorkspacePlugins } from "@/bootstrap/workspace-plugins";
 import { isDevWebSessionAllowed } from "./auth-env";
 import type { TenantKernelResolveInput } from "./tenant-kernel.types";
 
-const DENALI_WORKSPACE_PLUGIN_ID = "denali" as const;
-const URBAN_WORKSPACE_PLUGIN_ID = "urban" as const;
-
-const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
-const OPERATOR_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000014";
-const URBAN_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000004";
-
 const bootstrapPlugin = listBootstrapWorkspacePlugins()[0];
 
 if (!bootstrapPlugin) {
   throw new Error("BOOTSTRAP_WORKSPACE_PLUGIN_MISSING");
 }
 
-function resolveBootstrapPluginId(tenantId: string, host?: string): string {
-  if (tenantId === DENALI_SMOKE_TENANT_ID || tenantId === OPERATOR_SMOKE_TENANT_ID) {
-    return DENALI_WORKSPACE_PLUGIN_ID;
+/** Dev/provisioned tenant UUID → pluginId via codegen map (PSC-001 Phase 1c — no hostname heuristics). */
+function resolveBootstrapPluginId(tenantId: string): string {
+  try {
+    return resolveDevPluginIdForTenantId(tenantId);
+  } catch {
+    return bootstrapPlugin.id;
   }
-  if (tenantId === URBAN_SMOKE_TENANT_ID) {
-    return URBAN_WORKSPACE_PLUGIN_ID;
-  }
-  const hostname = host?.split(":")[0]?.trim().toLowerCase() ?? "";
-  if (hostname.startsWith("denali.")) {
-    return DENALI_WORKSPACE_PLUGIN_ID;
-  }
-  if (hostname.startsWith("urban.")) {
-    return URBAN_WORKSPACE_PLUGIN_ID;
-  }
-  return bootstrapPlugin.id;
 }
 
-export function resolveBootstrapPluginIdForTenant(tenantId: string, host?: string): string {
-  return resolveBootstrapPluginId(tenantId, host);
+export function resolveBootstrapPluginIdForTenant(tenantId: string, _host?: string): string {
+  return resolveBootstrapPluginId(tenantId);
 }
 
 export function resolveContextFromEnv(): TenantKernelResolveInput {

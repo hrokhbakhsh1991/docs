@@ -28,6 +28,8 @@ pnpm run pre-commit:fast            # same as Husky fast path (<60s target)
 pnpm run guard:wrs-routing          # WRS-001 — no shop.* egress in app src
 pnpm run guard:wrs-stale-docs       # WRS-001 — docs/playwright must not regress to shop.operator canonical
 pnpm run guard:pcms-authority       # PCMS-001 — portal owns member session; marketing anonymous
+pnpm run guard:surface-cohesion     # PSC-001 — cross-surface bootstrap/branding cohesion (warn default)
+pnpm run phase-psc:fast-track       # PSC-001 closure — guard + smoke + strict mode
 pnpm run smoke:wrs-custom-apex      # Phase 5 — custom apex host bind (needs tenant_domains + API)
 pnpm run seed:wrs-denali-club-domains  # dev seed denali.club + portal + admin.denali.club rows
 pnpm run smoke:pcms-custom-apex      # PCMS — denali.club + portal + admin tenant-context smoke

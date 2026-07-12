@@ -13,7 +13,8 @@ describe("Denali workspace surfaces UI contract", () => {
       "utf8",
     );
     assert.match(client, /DenaliWorkspaceSurfacesPanel/);
-    assert.match(client, /catalog\?\.workspaceType === "denali"/);
+    assert.match(client, /operatorCapabilitySupportsFieldExposureSurfaces/);
+    assert.doesNotMatch(client, /workspaceType === "denali"/);
   });
 
   it("proxies workspace surface exposure routes through the web BFF", () => {

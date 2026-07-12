@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+import { operatorCapabilitySupportsFieldExposureSurfaces } from "@app-tour/workspace-sdk";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -435,7 +436,8 @@ export function ExposureSettingsClient({
             </div>
           )}
 
-          {!catalogError && catalog?.workspaceType === "denali" ? (
+          {!catalogError &&
+          operatorCapabilitySupportsFieldExposureSurfaces(session.pluginId) ? (
             <>
               <Separator />
               <DenaliWorkspaceSurfacesPanel

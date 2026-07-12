@@ -56,6 +56,11 @@ export const MARKETING_CONTROL_STEPS = [
     closes: "G-BOOT-05",
   },
   {
+    name: "surface_cohesion",
+    cmd: ["node", "scripts/guards/guard-surface-cohesion.mjs"],
+    closes: "PSC-001",
+  },
+  {
     name: "marketing_nav_manifest",
     cmd: ["node", "scripts/guards/guard-marketing-nav-manifest.mjs"],
     closes: "MKT-22",

@@ -91,6 +91,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "noopWorkspaceDraftTombstoneBinding",
   "noopWorkspaceValidationHooks",
   "normalizeTenantCssKey",
+  "operatorCapabilitySupportsFieldExposureSurfaces",
   "operatorCapabilitySupportsReconciliationTriage",
   "operatorCapabilitySupportsUsersDirectory",
   "normalizeThemeCssKey",

@@ -16,7 +16,7 @@ rg -q 'extractUrbanTourListProjection' packages/workspaces/urban/src/urban.plugi
 ! test -f apps/api/src/settings/settings-workspace-guard.ts
 rg -q 'resolveSettingsModuleByConfigKeyForTenant' apps/api/src/settings/settings-config.service.ts
 rg -q 'operatorCapabilitySupportsUsersDirectory' apps/api/src/identity/users-workspace-guard.ts
-rg -q 'EMPTY_PUBLIC_TENANT_BRANDING' apps/web/app/api/public/tenant-branding/route.ts
+rg -q 'fetchPublicTenantBrandingForHost' apps/web/app/api/public/tenant-branding/route.ts
 ! rg -q 'getDenaliWorkspacePlugin' apps/api/src/settings/settings-registry.ts
 rg -q 'WORKSPACE_CANONICAL_TOUR_BINDINGS' apps/api/src/canonical/workspace-canonical-tour-bindings.generated.ts
 ! rg -q 'workspaceType === "denali"' apps/api/src/canonical/

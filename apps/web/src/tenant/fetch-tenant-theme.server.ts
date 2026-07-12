@@ -1,12 +1,6 @@
 import type { TenantAuthContext, TenantThemeConfig } from "@app-tour/workspace-sdk";
 
-function apiBaseUrl(): string {
-  return (
-    process.env.API_INTERNAL_URL ??
-    process.env.API_BASE_URL ??
-    `http://127.0.0.1:${process.env.API_PORT ?? "3001"}`
-  );
-}
+import { resolveTourOpsApiBaseUrl } from "@/urban/urban-api-base";
 
 /**
  * Phase 4.4 — load tenant branding from API (server-only, header auth).
@@ -15,7 +9,7 @@ export async function fetchTenantThemeForContext(
   context: TenantAuthContext,
   host: string,
 ): Promise<TenantThemeConfig | null> {
-  const url = `${apiBaseUrl().replace(/\/$/, "")}/api/v2/tenant-config`;
+  const url = `${resolveTourOpsApiBaseUrl()}/api/v2/tenant-config`;
 
   const headers: Record<string, string> = {
     host,

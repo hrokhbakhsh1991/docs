@@ -474,7 +474,8 @@
   },
   "operatorCapabilities": {
     "usersDirectory": true,
-    "reconciliationTriage": true
+    "reconciliationTriage": true,
+    "fieldExposureSurfaces": true
   },
   "wizardTemplateEditor": {
     "module": "./settings/wizard-template-editor",
