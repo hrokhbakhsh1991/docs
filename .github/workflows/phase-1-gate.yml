@@ -8,6 +8,16 @@ on:
     branches:
       - main
   pull_request:
+    paths:
+      - "packages/workspace-sdk/**"
+      - "packages/platform-core/**"
+      - "packages/tenant-kernel/**"
+      - "packages/platform-events/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "scripts/guards/**"
+      - "scripts/monorepo-build.sh"
+      - ".github/workflows/phase-1-gate.yml"
 
 concurrency:
   group: phase-1-gate-${{ github.ref }}

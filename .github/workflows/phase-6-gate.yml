@@ -14,6 +14,23 @@ on:
         type: boolean
         default: true
   pull_request:
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - "apps/portal/**"
+      - "apps/marketing/**"
+      - "packages/workspaces/denali/**"
+      - "scripts/phase-6*"
+      - "scripts/phase-eph*"
+      - "scripts/phase-psc*"
+      - "scripts/guards/guard-denali*"
+      - "scripts/guards/guard-surface-cohesion*"
+      - "scripts/guards/guard-wrs*"
+      - "scripts/guards/guard-pcms*"
+      - "scripts/guards/phase-6-guard.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/phase-6-gate.yml"
   push:
     branches:
       - main
