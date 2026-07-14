@@ -3,9 +3,10 @@ import { randomUUID } from "node:crypto";
 import {
   buildOperatorSmokeDraftTour,
   buildOperatorSmokeParticipantRequirementsTour,
-  buildOperatorSmokePublishedTour,
+  buildDenaliClubDevPublishedTour,
   buildOperatorSmokeTransportBusTour,
   buildOperatorSmokeTransportSharedCarsTour,
+  DENALI_CLUB_DEV_PUBLISHED_TOUR_ID,
   OPERATOR_SMOKE_PUBLISHED_TOUR_POLICIES_TEXT,
   OPERATOR_SMOKE_TRANSPORT_BUS_TOUR_ID,
   OPERATOR_SMOKE_TRANSPORT_SHARED_TOUR_ID,
@@ -203,8 +204,8 @@ export class InMemoryTourRepository implements TourStorageRepository {
   /** Denali dev host tenant (…000003) — FE-14 / TR-09 memory seed. */
   ensureDenaliDevSmokeSeedTour(): void {
     const tenantId = OPERATOR_DENALI_SMOKE_TENANT_ID;
-    if (!this.hasTour(tenantId, OPERATOR_SMOKE_SEED_TOUR_ID)) {
-      this.indexTour(buildOperatorSmokePublishedTour({ tenantId }));
+    if (!this.hasTour(tenantId, DENALI_CLUB_DEV_PUBLISHED_TOUR_ID)) {
+      this.indexTour(buildDenaliClubDevPublishedTour({ tenantId }));
     }
     if (!this.hasTour(tenantId, OPERATOR_SMOKE_DRAFT_TOUR_ID)) {
       this.indexTour(buildOperatorSmokeDraftTour({ tenantId }));

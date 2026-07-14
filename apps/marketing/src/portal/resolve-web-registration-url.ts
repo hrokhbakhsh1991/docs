@@ -2,13 +2,19 @@ import { supportsCatalogRegistration } from "@app-tour/workspace-sdk";
 
 import {
   resolvePortalPublicBaseUrl,
+  resolvePortalRegistrationLoginUrl,
   resolvePortalRegistrationUrl,
   resolvePortalMemberModuleUrl,
 } from "@app-tour/guest-surface-host";
 
 export { supportsCatalogRegistration };
 
-export { resolvePortalPublicBaseUrl, resolvePortalRegistrationUrl, resolvePortalMemberModuleUrl };
+export {
+  resolvePortalPublicBaseUrl,
+  resolvePortalRegistrationLoginUrl,
+  resolvePortalRegistrationUrl,
+  resolvePortalMemberModuleUrl,
+};
 
 /** @deprecated Use `resolvePortalPublicBaseUrl` — kept for transitional imports. */
 export const resolveWebPublicBaseUrl = resolvePortalPublicBaseUrl;
@@ -27,4 +33,20 @@ export function resolveWebRegistrationUrl(
     return null;
   }
   return resolvePortalRegistrationUrl(host, id);
+}
+
+/** Tour PDP sign-in — login then resume register at intake (PCMS tour intent). */
+export function resolveWebRegistrationLoginUrl(
+  host: string,
+  tourId: string,
+  pluginId: string
+): string | null {
+  if (!supportsCatalogRegistration(pluginId)) {
+    return null;
+  }
+  const id = tourId.trim();
+  if (id.length === 0) {
+    return null;
+  }
+  return resolvePortalRegistrationLoginUrl(host, id);
 }

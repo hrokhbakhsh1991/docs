@@ -101,6 +101,7 @@
     "defaultTourTitle": "Tour",
     "backToTours": "Back to tours",
     "register": "Register",
+    "signInToRegister": "Already registered? Sign in",
     "capacity": "Capacity: {count}",
     "spotsRemaining": "{count} spots remaining",
     "difficulty": "Difficulty: {level, number} of {max, number}",

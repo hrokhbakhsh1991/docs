@@ -15,3 +15,11 @@ export {
   type CatalogRegistrationTransportInitializer,
 } from "./transport-initializer-registry";
 export { hydrateCatalogRegistrationIntakeAfterSession } from "./hydrate-intake-after-session";
+export {
+  completeMemberLoginEgress,
+  completeMemberLoginEgressIfPresent,
+  isMemberLoginEgressFromLocation,
+  isSafePortalReturnPath,
+  readPortalReturnFromLocation,
+  resolveMemberLoginEgressPath,
+} from "./read-portal-return";

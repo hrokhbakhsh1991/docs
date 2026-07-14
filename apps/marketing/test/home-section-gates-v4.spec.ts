@@ -68,6 +68,10 @@ describe("home-section-gates-v4.spec.ts — HOME-UNIT-08", () => {
     assert.equal(resolveHomeTourCoverUrl(null), MARKETING_FALLBACK_TOUR_COVER_PATH);
     assert.equal(resolveHomeTourCoverUrl("  "), MARKETING_FALLBACK_TOUR_COVER_PATH);
     assert.equal(resolveHomeTourCoverUrl("https://cdn/cover.jpg"), "https://cdn/cover.jpg");
+    assert.equal(
+      resolveHomeTourCoverUrl("https://cdn.example/north-ridge.jpg"),
+      MARKETING_FALLBACK_TOUR_COVER_PATH
+    );
   });
 
   it("resolveHomeHeroCarouselSlides dedupes and caps manifest destination frames", () => {

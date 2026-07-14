@@ -10,7 +10,13 @@
 | SH-01 | `[data-portal-shell-header]` + `[data-portal-shell-logo]` | Member shell | 1 |
 | SH-02 | `[data-portal-locale-switcher]` | Member shell | 1 |
 | SH-03 | `[data-portal-shell-bottom-nav]` + `[data-portal-shell-nav-icon]` | Bottom nav icons (incl. profile when entitled) | 2 |
-| SH-04 | `[data-portal-shell-nav-link][data-active="true"]` | Active tab tint | 2 |
+| SH-05 | `[data-portal-shell-main]` alpine canvas | Member shell page bg | 4 |
+| SH-06 | `[data-portal-shell-user-menu]` profile chip + icon | Header user cluster | 4 |
+| DESK-01 | `member-shell-desktop.css` `@media (min-width: 48rem)` body `:has([data-portal-shell])` | Desktop backdrop | 5 |
+| DESK-02 | `[data-portal-shell]:not([data-embedded-host])` frame + shadow | Centered app card | 5 |
+| DESK-03 | Bottom nav `position: absolute` inside shell (desktop) | Nav not full-bleed | 5 |
+| DESK-04 | Home 3-col / trips 2-col `@media (min-width: 64rem)` | Page grids | 5 |
+| DESK-05 | Shell `max-height` + main `overflow-y: auto` | In-frame scroll | 5 |
 
 ## Registration (guest)
 
@@ -18,16 +24,23 @@
 |----|-----------------|---------|------|
 | REG-01 | `[data-portal-registration-chrome]` | Logo + back bar | 1 |
 | REG-02 | `[data-registration-stepper]` + `[data-registration-step-state]` | Step indicator | 2 |
+| REG-RES-01 | `[data-registration-stepper-mode="intake-only"]` | Member resume — single intake step | 4 |
 | REG-03 | `[data-public-registration-flow]` | Active step body | — |
+| LOGIN-01 | `[data-portal-auth-backdrop]` + `[data-portal-auth-card]` + `[data-portal-auth-hero]` | Login + catalog register auth shell | 4 |
 
 ## Member modules
 
 | ID | Hook / selector | Surface | Wave |
 |----|-----------------|---------|------|
-| MEM-HOME-01 | `main[data-portal-member-home]` + quick-link cards | Home | 3 |
+| MEM-HOME-01 | `main[data-portal-member-home]` + `[data-portal-member-home-quick-links]` grid | Home | 4 |
+| MEM-HOME-02 | `[data-portal-member-home-quick-link-icon]` | Quick link cards | 4 |
 | MEM-TRIP-01 | `[data-portal-member-registration-row]` + status badge | Trips list | 2 |
+| MEM-TRIP-03 | `[data-portal-member-registrations-list]` + `[data-portal-member-row-chevron]` | Trips list affordance | 4 |
+| MEM-TRIP-04 | `[data-portal-member-detail-app-bar]` + `[data-portal-member-detail-hero]` | Trip detail | 4 |
 | MEM-TRIP-02 | `[data-portal-member-registrations-empty-cta]` | Empty → marketing `/tours` | 3 |
 | MEM-WALLET-01 | `main[data-portal-member-module-stub][data-portal-member-module-id="wallet"]` | Hidden wallet stub | 3 |
+| MEM-MORE-01 | `main[data-portal-member-more]` + `[data-portal-member-hub-link-icon]` | More hub list | 5 |
+| MEM-STUB-01 | `[data-portal-member-stub-back]` | Module stub back CTA | 5 |
 | MEM-PROF-01 | `main[data-portal-member-profile]` | Profile form | — |
 | MEM-PROF-02 | `[data-member-profile-field="gender"] select` | Gender select (SDK enum) | — |
 
@@ -44,6 +57,7 @@
 | Page | URL |
 |------|-----|
 | Register | `http://denali.portal.localhost:3003/catalog/00000000-0000-4000-8000-000000000220/register` |
+| Login | `http://denali.portal.localhost:3003/login` |
 | Home | `http://denali.portal.localhost:3003/me/home` |
 | Trips | `http://denali.portal.localhost:3003/me/registrations` |
 | Wallet (grant required) | `http://denali.portal.localhost:3003/me/wallet` |
@@ -55,9 +69,11 @@
 | `apps/portal/test/portal-visual-wave1.spec.ts` | REG-01, SH-01, SH-02 |
 | `apps/portal/test/portal-visual-wave2.spec.ts` | REG-02, SH-03 |
 | `apps/portal/test/portal-visual-wave3.spec.ts` | MEM-TRIP-02, MEM-WALLET-01, TOK hooks |
+| `apps/portal/test/portal-visual-wave4.spec.ts` | SH-05/06, MEM-HOME-02, MEM-TRIP-03/04, VIS-FORM-01, MEM-MORE-01, MEM-STUB-01 |
+| `apps/portal/test/portal-visual-wave5.spec.ts` | DESK-01..04 desktop frame + auth layout |
 | `apps/portal/test/guest-theme-stack.spec.ts` | TOK-01 skin import |
 | `apps/marketing/test/resolve-app-locale.spec.ts` | GX-1 (`MKT-GX-01`) |
 | `apps/marketing/test/marketing-shell-nav.spec.ts` | GX-1 shell wiring (`MKT-GX-02`) |
-| `apps/portal/tests/e2e/portal-shell-visual.spec.ts` | SH-01 baseline (`SMK-PTL-VIS-01`, tour `…0220` on `denali.portal`) |
+| `apps/portal/tests/e2e/portal-shell-visual.spec.ts` | SH-01 baseline · DESK-02 desktop frame (`SMK-PTL-VIS-02`, 1280×800) |
 | `apps/portal/tests/e2e/portal-member-profile-smoke.spec.ts` | DEN-PROF-01..05, MEM-PROF-02 |
 | `scripts/guards/guard-public-catalog-m17.mjs` | TOK-01/02 DTCG guest semantic primary |

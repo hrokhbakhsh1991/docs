@@ -24,7 +24,7 @@ const baseTour: MarketingCatalogCard = {
   endAt: null,
   priceAmount: null,
   priceCurrency: "IRR",
-  coverImageUrl: "https://cdn.example/cover.jpg",
+  coverImageUrl: "https://cdn.example.com/cover.jpg",
   totalCapacity: null,
 };
 
@@ -39,18 +39,18 @@ describe("buildCatalogTourPhotoSet", () => {
     const photos = buildCatalogTourPhotoSet({
       ...baseTour,
       photoUrls: [
-        "https://cdn.example/cover.jpg",
-        "https://cdn.example/2.jpg",
-        "https://cdn.example/3.jpg",
-        "https://cdn.example/4.jpg",
+        "https://cdn.example.com/cover.jpg",
+        "https://cdn.example.com/2.jpg",
+        "https://cdn.example.com/3.jpg",
+        "https://cdn.example.com/4.jpg",
       ],
     });
 
     assert.deepEqual(photos, [
-      "https://cdn.example/cover.jpg",
-      "https://cdn.example/2.jpg",
-      "https://cdn.example/3.jpg",
-      "https://cdn.example/4.jpg",
+      "https://cdn.example.com/cover.jpg",
+      "https://cdn.example.com/2.jpg",
+      "https://cdn.example.com/3.jpg",
+      "https://cdn.example.com/4.jpg",
     ]);
     assert.equal(tourUsesCatalogDetailPhotoFallbacks({ ...baseTour, photoUrls: photos.slice(1) }), false);
   });
@@ -59,10 +59,10 @@ describe("buildCatalogTourPhotoSet", () => {
     const photos = buildCatalogTourPhotoSet({
       ...baseTour,
       photoUrls: [
-        "https://cdn.example/2.jpg",
-        "https://cdn.example/3.jpg",
-        "https://cdn.example/4.jpg",
-        "https://cdn.example/5.jpg",
+        "https://cdn.example.com/2.jpg",
+        "https://cdn.example.com/3.jpg",
+        "https://cdn.example.com/4.jpg",
+        "https://cdn.example.com/5.jpg",
       ],
     });
 
@@ -101,7 +101,20 @@ describe("buildCatalogTourPhotoSet", () => {
     const photos = buildCatalogTourPhotoSet(baseTour);
 
     assert.equal(tourUsesCatalogDetailPhotoFallbacks(baseTour), true);
-    assert.equal(photos[0], "https://cdn.example/cover.jpg");
+    assert.equal(photos[0], "https://cdn.example.com/cover.jpg");
+    assert.equal(photos.length, CATALOG_TOUR_DETAIL_GALLERY_MIN);
+  });
+
+  it("PR-D-GLR-06 ignores smoke placeholder URLs and pads with PR-9 assets", () => {
+    const smokeTour: MarketingCatalogCard = {
+      ...baseTour,
+      coverImageUrl: "https://cdn.example/north-ridge.jpg",
+      photoUrls: ["https://cdn.example/north-ridge.jpg"],
+    };
+    const photos = buildCatalogTourPhotoSet(smokeTour);
+
+    assert.equal(tourUsesCatalogDetailPhotoFallbacks(smokeTour), true);
+    assert.equal(photos[0], MARKETING_FALLBACK_TOUR_COVER_PATH);
     assert.equal(photos.length, CATALOG_TOUR_DETAIL_GALLERY_MIN);
   });
 });

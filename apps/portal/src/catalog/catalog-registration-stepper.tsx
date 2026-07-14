@@ -10,33 +10,68 @@ export const CATALOG_REGISTRATION_STEPPER_IDS = [
   "intake",
 ] as const;
 
+/** Member login egress — OTP shell only (no tour intake). */
+export const MEMBER_LOGIN_STEPPER_IDS = ["phone", "otp", "profile"] as const;
+
+/** Session resume at tour intake — hide auth steps (PCMS-REG-01). */
+export const INTAKE_ONLY_STEPPER_IDS = ["intake"] as const;
+
 export type CatalogRegistrationStepperId =
   (typeof CATALOG_REGISTRATION_STEPPER_IDS)[number];
 
-function resolveStepperIndex(currentStep: string): number {
-  if (currentStep === "success") {
-    return CATALOG_REGISTRATION_STEPPER_IDS.length;
+export type CatalogRegistrationStepperMode = "registration" | "login" | "intake-only";
+
+function resolveStepIds(mode: CatalogRegistrationStepperMode): readonly string[] {
+  if (mode === "login") {
+    return MEMBER_LOGIN_STEPPER_IDS;
   }
-  const index = CATALOG_REGISTRATION_STEPPER_IDS.indexOf(
-    currentStep as CatalogRegistrationStepperId
-  );
+  if (mode === "intake-only") {
+    return INTAKE_ONLY_STEPPER_IDS;
+  }
+  return CATALOG_REGISTRATION_STEPPER_IDS;
+}
+
+function resolveStepperAriaLabel(
+  mode: CatalogRegistrationStepperMode,
+  t: (key: string) => string
+): string {
+  if (mode === "login") {
+    return t("loginAriaLabel");
+  }
+  if (mode === "intake-only") {
+    return t("intakeOnlyAriaLabel");
+  }
+  return t("ariaLabel");
+}
+
+function resolveStepperIndex(currentStep: string, stepIds: readonly string[]): number {
+  if (currentStep === "success") {
+    return stepIds.length;
+  }
+  const index = stepIds.indexOf(currentStep);
   return index >= 0 ? index : 0;
 }
 
 export type CatalogRegistrationStepperProps = {
   readonly currentStep: string;
+  readonly mode?: CatalogRegistrationStepperMode;
 };
 
-export function CatalogRegistrationStepper({ currentStep }: CatalogRegistrationStepperProps) {
+export function CatalogRegistrationStepper({
+  currentStep,
+  mode = "registration",
+}: CatalogRegistrationStepperProps) {
   const t = useTranslations("catalogRegistration.stepper");
-  const activeIndex = resolveStepperIndex(currentStep);
+  const stepIds = resolveStepIds(mode);
+  const activeIndex = resolveStepperIndex(currentStep, stepIds);
 
   return (
     <ol
       data-registration-stepper
-      aria-label={t("ariaLabel")}
+      data-registration-stepper-mode={mode}
+      aria-label={resolveStepperAriaLabel(mode, t)}
     >
-      {CATALOG_REGISTRATION_STEPPER_IDS.map((stepId, index) => {
+      {stepIds.map((stepId, index) => {
         const isComplete = index < activeIndex;
         const isCurrent = index === activeIndex && currentStep !== "success";
         return (

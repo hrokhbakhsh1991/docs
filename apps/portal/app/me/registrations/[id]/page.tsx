@@ -45,16 +45,20 @@ export default async function MeRegistrationDetailPage({ params }: PageProps) {
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
       <main data-portal-member-registration-detail>
-        <p>
-          <Link href={resolveMemberPortalTripsListPath(bootstrap.pluginId)}>{t("backToList")}</Link>
-        </p>
-        <h1>{row.tourTitle}</h1>
-        <p data-portal-member-registration-status>
-          {t("statusLine", { status: statusLabel, paymentStatus: paymentStatusLabel })}
-        </p>
-        <p data-portal-member-registration-departure>
-          {t("departure", { departureAt: departureLabel })}
-        </p>
+        <header data-portal-member-detail-app-bar>
+          <Link href={resolveMemberPortalTripsListPath(bootstrap.pluginId)} data-portal-member-back>
+            ← {t("backToList")}
+          </Link>
+        </header>
+        <section data-portal-member-detail-hero>
+          <h1>{row.tourTitle}</h1>
+          <p data-portal-member-registration-status>
+            {t("statusLine", { status: statusLabel, paymentStatus: paymentStatusLabel })}
+          </p>
+          <p data-portal-member-registration-departure>
+            {t("departure", { departureAt: departureLabel })}
+          </p>
+        </section>
         <MemberReceiptUploadForm registrationId={row.id} />
       </main>
     </MemberModuleEntitlementGate>

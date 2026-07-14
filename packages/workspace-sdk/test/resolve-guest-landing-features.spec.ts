@@ -55,6 +55,10 @@ describe("resolve-guest-landing-features", () => {
         blogTeaser: false,
       },
       i18nProfile: "full",
+      shellChrome: Object.freeze({
+        localeSwitcher: false,
+        headerToursCta: false,
+      }),
     });
   });
 
@@ -85,6 +89,10 @@ describe("resolve-guest-landing-features", () => {
         blogTeaser: false,
       },
       i18nProfile: "minimal",
+      shellChrome: Object.freeze({
+        localeSwitcher: false,
+        headerToursCta: false,
+      }),
     });
   });
 
@@ -137,6 +145,10 @@ describe("resolve-guest-landing-features", () => {
         blogTeaser: false,
       },
       i18nProfile: "minimal",
+      shellChrome: Object.freeze({
+        localeSwitcher: false,
+        headerToursCta: false,
+      }),
     });
     assert.equal(
       resolveGuestLandingFeatures("guest-club").variant,

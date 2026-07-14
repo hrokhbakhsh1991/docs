@@ -33,3 +33,4 @@ export {
   type SessionCookieOptions,
   type SessionCookieWriteOptions,
 } from "./session-cookie";
+export { readSessionTokenFromCookieHeader } from "./read-session-cookie-token";

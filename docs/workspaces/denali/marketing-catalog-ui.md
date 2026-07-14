@@ -31,7 +31,7 @@ Workspace-agnostic **presentation shell** for public tour catalog in `apps/marke
 | End (multi-day)       | `endDateTime`                | `endAt`                               | Date range                  |
 | Capacity              | `capacityMax`                | `totalCapacity`, `spotsRemaining`     | Spots pill / sold-out badge |
 | Short description     | `program.shortDescription`   | `listDescription`, `shortDescription` | Body copy (clamp)           |
-| Cover                 | `photos[0]`                  | `coverImageUrl`                       | 16:9 media + fallback       |
+| Cover                 | `photos[0]`                  | `coverImageUrl`                       | 16:9 media + fallback (`/home/fallback-tour-cover.webp`; smoke `cdn.example` URLs ignored — [public-catalog.md](./public-catalog.md) § Photo egress) |
 | Price                 | `pricing.basePricePerPerson` | `priceAmount`, `showListPrice`        | Price chip on cover         |
 | Difficulty            | `program.difficultyLevel`    | `difficultyLevel`                     | Stat pill + filter          |
 | Fitness               | `participants.fitnessLevel`  | `fitnessLevel`                        | Stat pill + filter          |
@@ -175,7 +175,15 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | `data-marketing-header`          | `marketing-shell.tsx` |
 | `data-marketing-brand`           | brand link → `/`      |
 | `data-marketing-logo`            | tenant logo img       |
-| `data-marketing-locale-switcher` | header locale toggle  |
+| `data-marketing-locale-switcher` | header locale toggle (only when `guestLanding.shellChrome.localeSwitcher === true`) |
+| `data-marketing-header-sign-in`  | portal member OTP login via `resolvePortalMemberLoginUrl` |
+| `data-marketing-header-member`   | authenticated profile chip → portal `/me/profile` |
+| `data-marketing-header-member-meta` | name + account hint stack |
+| `data-marketing-header-member-avatar-wrap` | avatar ring container |
+| `data-marketing-member-authenticated` | shell root when member session matches tenant |
+| `data-marketing-header-cta`      | sticky header tours CTA (only when `shellChrome.headerToursCta` and nav has no `tours` link) |
+
+**Denali club header chrome (2026-07-14):** Persian-only public surface — `shellChrome.localeSwitcher: false`. Primary nav already includes `nav.tours` via `guestCrossSurfaceNav`; redundant `data-marketing-header-cta` is off (`headerToursCta: false`). Toolbar keeps `data-marketing-header-sign-in` → `resolvePortalMemberLoginUrl` (OTP on portal catalog register).
 
 ### Home (`/`)
 
@@ -188,8 +196,10 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | `data-marketing-home-cta`                       | primary CTA → `/tours`                                 |
 | `data-marketing-home-search`                    | hero GET search form → `/tours?q=`                     |
 | `data-marketing-home-featured`                  | featured bento (same catalog sort as latest)           |
-| `data-marketing-home-featured-header-row`       | title + view-all row (PR-20N)                          |
-| `data-marketing-home-featured-view-all`         | «همه تورها» link                                       |
+| `data-marketing-home-section-header-row`        | shared PR-25 title + view-all grid row (featured/latest/gallery) |
+| `data-marketing-home-section-view-all`          | shared «همه تورها» pill (`HomeSectionViewAllLink`)     |
+| `data-marketing-home-featured-header-row`       | title + view-all row (PR-20N; also `section-header-row`) |
+| `data-marketing-home-featured-view-all`         | «همه تورها» link (also `section-view-all`)             |
 | `data-marketing-home-featured-lead`             | section lead under header                              |
 | `data-marketing-home-featured-bento`            | bento grid container (card sheet)                      |
 | `data-marketing-home-featured-card`             | per-tour card in featured bento                        |
@@ -197,6 +207,9 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | `data-marketing-home-featured-cta`              | flagship «مشاهده برنامه»                               |
 | `data-marketing-home-featured-picks-list`       | supporting picks stack                                 |
 | `data-marketing-home-latest`                    | latest published tours block                           |
+| `data-marketing-home-latest-header-row`       | title + view-all row (PR-25)                           |
+| `data-marketing-home-latest-view-all`         | «همه تورها» link                                       |
+| `data-marketing-home-latest-lead`             | section lead under header row                          |
 | `data-marketing-home-latest-row`                | horizontal scroll (mobile) / grid (≥640px) container   |
 | `data-marketing-home-latest-card`               | per-tour card in latest row                            |
 | `data-marketing-home-latest-cover`              | 16:9 cover figure (`CatalogCoverImage` or placeholder) |
@@ -213,6 +226,9 @@ Stable selectors for Playwright — **do not rename** without updating smoke spe
 | `data-marketing-home-testimonials`              | participant quote cards                                |
 | `data-marketing-home-testimonial-card-featured` | first quote — hero pull-quote span (PR-20K)            |
 | `data-marketing-home-gallery`                   | cinematic bento mosaic (PR-20L)                        |
+| `data-marketing-home-gallery-header-row`        | title + view-all row (PR-25)                           |
+| `data-marketing-home-gallery-view-all`          | «همه تورها» link                                       |
+| `data-marketing-home-gallery-lead`              | section lead under header row                          |
 | `data-marketing-home-gallery-item-primary`      | dominant hero tile                                     |
 | `data-marketing-home-gallery-support`           | supporting bento cluster                               |
 | `data-marketing-home-gallery-link` / `-caption` | overlay link + title/CTA                               |
@@ -234,7 +250,7 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 
 | Hook                                      | Location                                                     |
 | ----------------------------------------- | ------------------------------------------------------------ |
-| `data-marketing-catalog`                  | page main                                                    |
+| `data-marketing-catalog`                  | `<main>` list page root (`/tours`) — `--catalog-page-padding-*`, max-width 72rem |
 | `data-marketing-catalog-header`           | list header                                                  |
 | `data-marketing-catalog-title`            | h1                                                           |
 | `data-marketing-catalog-lead`             | list lead (PR-21)                                            |
@@ -280,9 +296,14 @@ Spec: [`marketing-landing.mdoc`](./marketing-landing.mdoc) v7 · smoke: SMK-MKT-
 
 | Hook                                         | Location                                                                                              |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `data-marketing-catalog-detail-page`         | page main wrapper                                                                                     |
+| `data-marketing-catalog-detail-page`         | `<main>` detail page root — `--catalog-page-padding-*`, max-width 64rem |
 | `data-marketing-catalog-tour-detail`         | detail article                                                                                        |
-| `data-marketing-catalog-detail-back`         | back to list                                                                                          |
+| `data-marketing-catalog-breadcrumb-nav`      | breadcrumb `<nav>` (`catalog-tour-breadcrumb.tsx`)                                                    |
+| `data-marketing-catalog-breadcrumb-list`     | breadcrumb `<ol>`                                                                                     |
+| `data-marketing-catalog-breadcrumb-home`     | home crumb link                                                                                       |
+| `data-marketing-catalog-breadcrumb-tours`    | list crumb link                                                                                       |
+| `data-marketing-catalog-breadcrumb-current`  | current tour title (`aria-current="page"`)                                                            |
+| `data-marketing-catalog-detail-back`         | back to list (hidden ≤767px — breadcrumb + shell nav cover exit)                                      |
 | `data-marketing-catalog-detail-title`        | h1                                                                                                    |
 | `data-marketing-catalog-detail-cover`        | cover figure                                                                                          |
 | `data-marketing-catalog-detail-description`  | body description                                                                                      |
@@ -358,7 +379,24 @@ Linear stack: breadcrumb → back → title → cover → shortDescription → m
 
 **Mobile fold order (critical):** cover → title → bento → CTA — **not** title-before-cover (AtlasPerk / Viator mobile stack).
 
+**PR-D mobile closure (`32-pr-d-mobile-detail-closure.css`, ≤767px):**
+
+| Rule | Behavior |
+| ---- | -------- |
+| Gutter parity | Same tokens as `/tours`: `--catalog-page-padding-x` (16px + safe-area), `--catalog-page-padding-y: var(--space-4)` on mobile; **no** negative-margin full-bleed (hero stays inset with `border-radius`) |
+| Hero-first | CSS `order` on intro: gallery/cover `1`, title `2`, breadcrumb `3`; `data-marketing-catalog-detail-back` hidden (breadcrumb + shell nav) |
+| Vertical rhythm | `detail-layout` / `detail-main` / `detail-body` gaps tightened to `--space-3`–`4`; section cards `--space-3` inner padding |
+| Breadcrumb | Compact flex trail with `›` separators; current title ellipsis on one line |
+| Jump nav | In-gutter horizontal scroll (`flex-wrap: nowrap`); first pill aligns with title/facts |
+| Sticky bar | `padding-inline: max(--catalog-page-padding-x, safe-area insets)` — matches header inner gutter |
+| Typography | Detail `h1` clamp `1.375rem–2rem` on mobile |
+
+Detail `<main>` base (all viewports): `padding-block-end: max(--catalog-page-padding-y, safe-area-inset-bottom)` — mirrors list page (`01-block-p2.css`).
+
+Desktop (≥768px) keeps doc target order: breadcrumb → back → hero → title.
+
 **Desktop (≥1024px):** two-column grid — main column (§1–13) + sticky booking rail (price, capacity, CTA duplicate of §5).
+
 
 ---
 

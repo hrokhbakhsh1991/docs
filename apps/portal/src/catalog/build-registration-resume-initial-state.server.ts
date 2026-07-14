@@ -22,12 +22,17 @@ function emptyTransportState(): PublicCatalogTransportIntakeState {
   };
 }
 
+export type RegistrationResumeInitialState = Readonly<{
+  initialState: FlowRuntimeState;
+  memberMobile: string | null;
+}>;
+
 /** Server-only — resume catalog registration at intake when member session is valid. */
 export async function buildRegistrationResumeInitialState(
   host: string,
   portalTenantId: string,
   _context: RegistrationFlowContext
-): Promise<FlowRuntimeState | null> {
+): Promise<RegistrationResumeInitialState | null> {
   const session = await readPublicCatalogSessionFromCookies();
   if (session === null || !sessionMemberMatchesPortalTenant(session.tenantId, portalTenantId)) {
     return null;
@@ -56,10 +61,16 @@ export async function buildRegistrationResumeInitialState(
     registrantTarget: "self",
   });
   const resolvedEmail = sessionEmailValue?.trim() ?? "";
+  const memberMobile =
+    typeof fields.mobile === "string" && fields.mobile.trim().length > 0
+      ? fields.mobile.trim()
+      : null;
 
   return Object.freeze({
-    currentStep: "intake",
-    data: Object.freeze({
+    memberMobile,
+    initialState: Object.freeze({
+      currentStep: "intake",
+      data: Object.freeze({
       phone: initialPublicRegistrationPhone(),
       otp: initialPublicRegistrationOtp(),
       challengeId: "",
@@ -80,6 +91,7 @@ export async function buildRegistrationResumeInitialState(
       notes: "",
       registrantTarget: "self",
       transportState: emptyTransportState(),
+      }),
     }),
   });
 }

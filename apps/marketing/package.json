@@ -33,6 +33,7 @@
   "dependencies": {
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/guest-surface-host": "workspace:*",
+    "@app-tour/session-client": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
     "@app-tour/theme-react": "workspace:*",
     "@app-tour/ui-primitives": "workspace:*",

@@ -30,4 +30,27 @@ test.describe("portal shell visual — denali @member-portal:full", () => {
     await page.waitForLoadState("networkidle");
     await expect(header).toHaveScreenshot("denali-portal-shell-header.png", SCREENSHOT_OPTS);
   });
+
+  test("SMK-PTL-VIS-02 denali member shell desktop frame", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+
+    const email = `ptl-vis-desk-${Date.now()}@denali-smoke.local`;
+    const phone = `+1555${String(Date.now()).slice(-7)}`;
+
+    await completePortalCatalogRegistration(page, {
+      tourId: DENALI_SMOKE_PUBLISHED_TOUR_ID,
+      email,
+      fullName: "Portal Visual Desktop",
+      phone,
+    });
+
+    await page.locator('[data-public-registration-success] a[href*="/me"]').first().click();
+    await expect(page).toHaveURL(/\/me\//, { timeout: 60_000 });
+    await expect(page.locator("[data-portal-shell]")).toBeVisible({ timeout: 60_000 });
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("[data-portal-shell]")).toHaveScreenshot(
+      "denali-portal-shell-desktop-frame.png",
+      SCREENSHOT_OPTS
+    );
+  });
 });

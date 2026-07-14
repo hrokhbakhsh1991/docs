@@ -27,9 +27,17 @@ export async function MemberModuleStub({
       data-portal-member-module-id={moduleId}
       data-portal-member-module-route={routePath}
     >
-      <h1>{tNav(labelKey)}</h1>
-      <p data-portal-member-module-stub-lede>{tStub(ledeKey)}</p>
-      {backHref !== null ? <Link href={backHref}>{tStub("backToHome")}</Link> : null}
+      <header data-portal-member-page-header>
+        <h1>{tNav(labelKey)}</h1>
+      </header>
+      <section data-portal-member-module-stub-card>
+        <p data-portal-member-module-stub-lede>{tStub(ledeKey)}</p>
+        {backHref !== null ? (
+          <Link href={backHref} data-portal-member-stub-back>
+            {tStub("backToHome")}
+          </Link>
+        ) : null}
+      </section>
     </main>
   );
 }

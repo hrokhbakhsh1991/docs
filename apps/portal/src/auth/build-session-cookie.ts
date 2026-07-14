@@ -1,3 +1,4 @@
+import { isLocalhostIngressHost } from "@app-tour/guest-surface-host";
 import {
   createSessionCookieHelpers,
   SESSION_COOKIE_NAMES,
@@ -17,11 +18,21 @@ function resolveCookieWriteOptions(host?: string): SessionCookieWriteOptions | u
   if (!host?.trim()) {
     return undefined;
   }
-  const domain = resolveMemberSessionCookieDomain(
-    host,
-    process.env.PLATFORM_ROOT_DOMAIN?.trim() || "localhost"
-  );
-  return domain ? { domain } : undefined;
+  const rootDomain = process.env.PLATFORM_ROOT_DOMAIN?.trim() || "localhost";
+  const domain = resolveMemberSessionCookieDomain(host, rootDomain);
+  if (domain !== undefined) {
+    return { domain };
+  }
+  // PCMS-COOK-02 — localhost ingress always shares via Domain=localhost (not NODE_ENV-gated).
+  // Safe for production: real prod hosts never use *.localhost (WRS §3.3).
+  if (isLocalhostIngressHost(host)) {
+    return { domain: "localhost" };
+  }
+  return undefined;
+}
+
+export function shouldRefreshDevMemberSessionCookieDomain(host: string): boolean {
+  return isLocalhostIngressHost(host);
 }
 
 export function setSessionCookieOnResponse(
@@ -33,7 +44,12 @@ export function setSessionCookieOnResponse(
 }
 
 export function clearSessionCookieOnResponse(headers: Headers, host?: string): void {
-  helpers.clearSessionCookieOnResponse(headers, resolveCookieWriteOptions(host));
+  // Host-only clear — legacy cookies written before Domain= was applied.
+  helpers.clearSessionCookieOnResponse(headers, undefined);
+  const domainOptions = resolveCookieWriteOptions(host);
+  if (domainOptions?.domain !== undefined && domainOptions.domain.length > 0) {
+    helpers.clearSessionCookieOnResponse(headers, domainOptions);
+  }
 }
 
 export function resolveMemberSessionCookieDomainForHost(host: string): string | undefined {

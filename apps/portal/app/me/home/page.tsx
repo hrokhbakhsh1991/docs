@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
@@ -13,6 +12,8 @@ import { resolveMemberEntitlementsForShell } from "@/me/resolve-member-entitleme
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
+import { MemberHomeQuickLinks } from "./member-home-quick-links";
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("portalMember.home");
   return { title: t("title") };
@@ -20,7 +21,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MeHomePage() {
   const t = await getTranslations("portalMember.home");
-  const tNav = await getTranslations("portalMember.nav");
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
 
@@ -42,19 +42,18 @@ export default async function MeHomePage() {
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="home">
       <main data-portal-member-home>
-        <h1>{t(homePayload.welcome.titleKey)}</h1>
-        <p data-portal-member-home-lede>{t(homePayload.welcome.ledeKey)}</p>
-        {quickLinks.length > 0 ? (
-          <ul data-portal-member-home-quick-links>
-            {quickLinks.map((module) => (
-              <li key={module.id}>
-                <Link href={module.routePath} data-testid={`portal-home-link-${module.id}`}>
-                  {tNav(module.labelKey)}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        <header data-portal-member-page-header>
+          <h1>{t(homePayload.welcome.titleKey)}</h1>
+          <p data-portal-member-home-lede>{t(homePayload.welcome.ledeKey)}</p>
+        </header>
+        <MemberHomeQuickLinks
+          items={quickLinks.map((module) => ({
+            id: module.id,
+            href: module.routePath,
+            labelKey: module.labelKey,
+            testId: `portal-home-link-${module.id}`,
+          }))}
+        />
       </main>
     </MemberModuleEntitlementGate>
   );

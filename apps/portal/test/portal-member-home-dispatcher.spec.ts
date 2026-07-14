@@ -61,7 +61,12 @@ describe("member-module-dispatcher — PS-5", () => {
 
   it("PS5-DISP-03 home page consumes aggregate payload", () => {
     const page = readFileSync(join(repoRoot, "apps/portal/app/me/home/page.tsx"), "utf8");
+    const quickLinks = readFileSync(
+      join(repoRoot, "apps/portal/app/me/home/member-home-quick-links.tsx"),
+      "utf8"
+    );
     assert.match(page, /buildMemberHomePayload/);
-    assert.match(page, /data-portal-member-home-quick-links/);
+    assert.match(page, /MemberHomeQuickLinks/);
+    assert.match(quickLinks, /data-portal-member-home-quick-links/);
   });
 });

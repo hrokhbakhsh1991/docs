@@ -8,11 +8,13 @@ import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routi
 export type CatalogTourDetailStickyBarProps = {
   readonly tour: MarketingCatalogCard;
   readonly registration: CatalogTourRegistrationState;
+  readonly tourSignInUrl?: string | null;
 };
 
 export async function CatalogTourDetailStickyBar({
   tour,
   registration,
+  tourSignInUrl = null,
 }: CatalogTourDetailStickyBarProps) {
   if (!registration.canRegister && !registration.isSoldOut) {
     return null;
@@ -39,9 +41,16 @@ export async function CatalogTourDetailStickyBar({
       {registration.isSoldOut ? (
         <p data-marketing-catalog-detail-sold-out>{t("detail.soldOut")}</p>
       ) : registration.registrationUrl != null ? (
-        <a href={registration.registrationUrl} data-marketing-register>
-          {t("detail.register")}
-        </a>
+        <>
+          <a href={registration.registrationUrl} data-marketing-register>
+            {t("detail.register")}
+          </a>
+          {tourSignInUrl != null && tourSignInUrl.trim().length > 0 ? (
+            <a href={tourSignInUrl} data-marketing-tour-sign-in>
+              {t("detail.signInToRegister")}
+            </a>
+          ) : null}
+        </>
       ) : null}
     </div>
   );

@@ -15,15 +15,22 @@ function readPortal(relativePath: string): string {
 }
 
 describe("portal-visual-wave2.spec.ts", () => {
-  it("VIS-REG-01 registration flow renders stepper before active step", () => {
+  it("VIS-REG-01 registration flow renders stepper with resume-aware mode", () => {
     const flow = readPortal("app/catalog/[tourId]/register/public-catalog-registration-flow.tsx");
     assert.match(flow, /CatalogRegistrationStepper/);
+    assert.match(flow, /isResumeAtIntake/);
+    assert.match(flow, /intake-only/);
     assert.match(flow, /data-public-registration-flow/);
+    assert.match(flow, /data-registration-resume-pending/);
   });
 
   it("VIS-REG-02 stepper exposes stable data hooks", () => {
     const stepper = readPortal("src/catalog/catalog-registration-stepper.tsx");
     assert.match(stepper, /data-registration-stepper/);
+    assert.match(stepper, /data-registration-stepper-mode/);
+    assert.match(stepper, /MEMBER_LOGIN_STEPPER_IDS/);
+    assert.match(stepper, /INTAKE_ONLY_STEPPER_IDS/);
+    assert.match(stepper, /intake-only/);
     assert.match(stepper, /data-registration-step-state/);
     assert.match(stepper, /catalogRegistration\.stepper/);
   });
@@ -55,5 +62,16 @@ describe("portal-visual-wave2.spec.ts", () => {
     );
     assert.match(skin, /\[data-registration-stepper\]/);
     assert.match(skin, /\[data-registration-step-state="current"\]/);
+  });
+
+  it("VIS-REG-04 denali login-page.css styles intake + session chip in auth card", () => {
+    const skin = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/portal/login-page.css"),
+      "utf8"
+    );
+    assert.match(skin, /\[data-public-registration-intake\]/);
+    assert.match(skin, /\[data-public-registration-success\]/);
+    assert.match(skin, /\[data-portal-auth-session-chip\]/);
+    assert.match(skin, /\[data-registration-target-tabs\]/);
   });
 });

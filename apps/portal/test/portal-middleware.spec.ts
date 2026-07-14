@@ -19,6 +19,10 @@ describe("portal middleware — P8-1-N-003", () => {
     assert.match(source, /resolvePortalIngressHost/);
     assert.match(source, /failClosedWhenUnresolved/);
     assert.match(source, /\/api\/me\//);
+    assert.match(source, /redirectToMemberLogin/);
+    assert.match(source, /resolvePortalMemberLoginPath/);
     assert.match(source, /\/me\//);
+    assert.match(source, /shouldRefreshDevMemberSessionCookieDomain/);
+    assert.match(source, /setSessionCookieOnResponse/);
   });
 });

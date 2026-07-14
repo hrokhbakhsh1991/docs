@@ -34,7 +34,7 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
     assert.match(header, /data-portal-shell-header/);
     assert.match(header, /data-slot="shell-header"/);
     assert.match(header, /data-portal-shell-brand/);
-    assert.match(header, /PortalLocaleSwitcher/);
+    assert.doesNotMatch(header, /PortalLocaleSwitcher/);
     assert.match(bottomNav, /data-portal-shell-bottom-nav/);
     assert.match(bottomNav, /data-portal-shell-nav-link/);
     assert.match(bottomNav, /data-portal-shell-nav-icon/);
@@ -69,8 +69,8 @@ describe("portal-member-shell.spec.ts — PS-1", () => {
 
   it("PS1-SHELL-04 registration page is outside member shell layout", () => {
     const registerPage = readPortal("app/catalog/[tourId]/register/page.tsx");
-    assert.match(registerPage, /data-catalog-registration-page/);
-    assert.match(registerPage, /PortalRegistrationChrome/);
+    assert.match(registerPage, /PortalAuthExperienceShell/);
+    assert.match(registerPage, /pageKind="registration"/);
     assert.doesNotMatch(registerPage, /PortalMemberShell/);
     assert.doesNotMatch(registerPage, /data-portal-shell-bottom-nav/);
   });

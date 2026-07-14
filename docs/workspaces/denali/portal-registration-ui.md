@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-06-30-v3"
+version: "2026-07-14-v4"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
@@ -26,11 +26,69 @@ Workspace-agnostic **guest registration shell** in `apps/portal`. Business rules
 ```text
 app/layout.tsx
   PortalProviders (tenant theme from branding API)
+  └── app/login/page.tsx  (PCMS-03 member sign-in)
   └── app/catalog/[tourId]/register/page.tsx
-        fetchCatalogTour (SDK path + bootstrap)
+        PortalAuthExperienceShell (shared auth backdrop + card)
         PublicCatalogRegistrationFlow (client)
           phone → OTP → profile (new) → intake → success
 ```
+
+### Auth experience shell (Denali — login + registration)
+
+| Hook | Purpose |
+| ---- | ------- |
+| `[data-portal-auth-experience]` | Root marker on login + catalog register routes |
+| `[data-portal-auth-backdrop]` | Full-viewport alpine gradient + mountain silhouette |
+| `[data-portal-auth-layout]` | Centered column (28rem; 36rem on intake resume) |
+| `[data-portal-auth-card]` | Glass card wrapping stepper + OTP/intake form |
+| `[data-portal-auth-hero]` | Page `<h1>` + lede |
+| `[data-portal-auth-session-chip]` | Member resume badge (mobile) when session skips auth steps |
+| `[data-portal-auth-lede]` | Secondary hero copy |
+
+Component: `apps/portal/src/catalog/portal-auth-experience-shell.tsx`. Skin: `packages/workspaces/denali/theme/portal/login-page.css`.
+
+**Resume at intake:** `buildRegistrationResumeInitialState` returns `{ initialState, memberMobile }`. Register page sets `heroLede` to `intake.resumeLede`, optional `sessionBadge` from `intake.signedInBadge`, and `data-registration-resume="intake"` on `<main>`.
+
+**Intake / success styling:** `[data-public-registration-intake]` and `[data-public-registration-success]` inherit auth-card form controls (inputs, full-width submit, alerts). Intake `<h2>` is hidden inside the card (hero `<h1>` is canonical). Registrant tabs use segmented control styling; transport blocks use muted inset panels.
+
+Smoke URLs: `http://denali.portal.localhost:3003/login` · `/catalog/{tourId}/register`
+
+### Login vs register invariants (PCMS-UX-01)
+
+| Route | User intent | Post-auth destination | Intake |
+| ----- | ----------- | --------------------- | ------ |
+| `/login?portalReturn=/me/registrations` | Member sign-in (header) | Member module | **Never** |
+| `/login?portalReturn=/catalog/{id}/register` | Sign-in then continue tour registration | Register page → intake-only resume | On register page only |
+| `/catalog/{id}/register` (guest) | Register for tour | Same page → intake step | Yes |
+| `/catalog/{id}/register` (session) | Resume registration | intake-only | Yes |
+
+Hooks:
+
+| Hook | When |
+| ---- | ---- |
+| `[data-portal-return]` | Login `<main>` — client egress fallback |
+| `[data-portal-register-sign-in-link]` | Guest register — link to `/login?portalReturn=…` |
+| `[data-marketing-tour-sign-in]` | Marketing PDP secondary sign-in |
+
+Example tour sign-in URL: `/login?portalReturn=%2Fcatalog%2F{tourId}%2Fregister`
+
+### Phase 2 polish (PCMS-UX-05 — 2026-07-14)
+
+| Hook / behavior | Purpose |
+| --------------- | ------- |
+| `[data-registration-resume-pending]` | Client session probe before phone step — avoids flash of guest auth when cookie exists but SSR resume missed |
+| `[data-phone-hint="existing"]` | Returning member on register — copy switches to «تأیید موبایل برای ادامه» (preflight on blur + after send) |
+| `[data-marketing-tour-sign-in]` | Secondary PDP link — text CTA below primary register button |
+
+### Registration stepper modes
+
+| Mode | When | Steps shown |
+| ---- | ---- | ----------- |
+| `registration` | Guest (no session resume) | phone → otp → profile → intake |
+| `intake-only` | Member resume at intake (PCMS-REG-02) | intake only — auth steps hidden |
+| `login` | `/login` egress | phone → otp → profile |
+
+Hook: `[data-registration-stepper-mode="intake-only"]`. Wired in `public-catalog-registration-flow.tsx` when `initialRuntimeState.currentStep === "intake"` or client `data-registration-resume="intake"`.
 
 ### BFF (server)
 

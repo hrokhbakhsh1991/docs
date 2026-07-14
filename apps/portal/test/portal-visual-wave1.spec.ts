@@ -15,9 +15,10 @@ function readPortal(relativePath: string): string {
 }
 
 describe("portal-visual-wave1.spec.ts", () => {
-  it("VIS-CHROME-01 registration page uses PortalRegistrationChrome", () => {
+  it("VIS-CHROME-01 registration page uses PortalAuthExperienceShell", () => {
     const page = readPortal("app/catalog/[tourId]/register/page.tsx");
-    assert.match(page, /PortalRegistrationChrome/);
+    assert.match(page, /PortalAuthExperienceShell/);
+    assert.match(page, /pageKind="registration"/);
     assert.doesNotMatch(page, /PortalMemberShell/);
   });
 
@@ -38,12 +39,12 @@ describe("portal-visual-wave1.spec.ts", () => {
     assert.match(skin, /\[data-portal-registration-back\]/);
   });
 
-  it("VIS-SHELL-01 member header wires logo + locale switcher", () => {
+  it("VIS-SHELL-01 member header wires logo without locale switcher", () => {
     const layout = readPortal("app/me/layout.tsx");
     assert.match(layout, /logoUrl=/);
     const header = readPortal("src/shell/portal-member-header.tsx");
     assert.match(header, /data-portal-shell-logo/);
-    assert.match(header, /PortalLocaleSwitcher/);
+    assert.doesNotMatch(header, /PortalLocaleSwitcher/);
   });
 
   it("VIS-SHELL-02 locale switcher uses cookie + refresh", () => {

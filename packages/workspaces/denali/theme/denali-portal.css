@@ -18,7 +18,8 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"] {
   --font-heading: var(--font-heading-en, var(--font-sans-en, inherit));
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] {
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page]) {
   max-width: 32rem;
   margin: 0 auto;
   padding: var(--space-6) var(--space-4) var(--space-12);
@@ -34,35 +35,41 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   text-decoration: underline;
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] h1 {
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  h1 {
   font-family: var(--font-heading, inherit);
   font-size: 1.375rem;
   font-weight: 400;
   margin: 0 0 var(--space-4);
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] form,
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  form,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   [data-public-registration-phone],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   [data-public-registration-otp] {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] label {
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  label {
   font-size: 0.875rem;
   font-weight: 500;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   button[type="button"],
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   button[type="submit"] {
   align-self: flex-start;
   border-radius: var(--radius-md);
@@ -75,14 +82,14 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   [role="alert"] {
   color: var(--destructive);
   font-size: 0.875rem;
@@ -90,7 +97,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   [data-registration-target-tabs] {
   display: flex;
   gap: var(--space-2);
@@ -98,7 +105,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   [data-registration-target-tabs]
   button {
   border-radius: var(--radius-md);
@@ -111,7 +118,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   [data-registration-target-tabs]
   button[aria-selected="true"] {
   background: var(--primary);
@@ -120,7 +127,7 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   [data-public-registration-transport] {
   display: flex;
   flex-direction: column;
@@ -133,14 +140,16 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  main[data-catalog-registration-page]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
   [data-registration-price-hint] {
   font-size: 0.875rem;
   color: var(--muted-foreground);
   margin: 0 0 var(--space-2);
 }
 
-body[data-app-surface="portal"][data-workspace-plugin="denali"] main[data-catalog-registration-page] a {
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  a {
   color: var(--color-text-link, var(--primary));
 }
 
@@ -701,3 +710,10 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   font-size: 0.875rem;
   margin: 0;
 }
+
+@import "./portal/login-page.css";
+@import "./portal/member-shell.css";
+@import "./portal/member-shell-desktop.css";
+@import "./portal/member-pages.css";
+@import "./portal/member-pages-desktop.css";
+@import "./portal/member-profile.css";

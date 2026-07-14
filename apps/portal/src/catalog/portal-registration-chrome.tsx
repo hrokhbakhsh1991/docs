@@ -5,20 +5,26 @@ import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-
 export type PortalRegistrationChromeProps = {
   readonly branding: PublicTenantBrandingSnapshot;
   readonly backHref: string;
+  readonly memberLoginEgress?: boolean;
 };
 
 /** PS-VIS-1 — minimal registration shell (DL-01): brand bar + back, no bottom nav. */
 export async function PortalRegistrationChrome({
   branding,
   backHref,
+  memberLoginEgress = false,
 }: PortalRegistrationChromeProps) {
   const t = await getTranslations("catalogRegistration");
   const workspaceLabel = branding.displayName?.trim() || "Portal";
 
   return (
-    <header data-portal-registration-chrome data-slot="registration-chrome">
+    <header
+      data-portal-registration-chrome
+      data-slot="registration-chrome"
+      {...(memberLoginEgress ? { "data-member-login-egress": "" } : {})}
+    >
       <a href={backHref} data-portal-registration-back>
-        {t("backToTour")}
+        {memberLoginEgress ? t("backToMarketing") : t("backToTour")}
       </a>
       <div data-portal-registration-brand>
         {branding.logoUrl ? (

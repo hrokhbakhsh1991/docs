@@ -49,6 +49,7 @@ export const FULL_LANDING: GuestLandingFeatures = {
     ...PR8_SECTIONS_OFF,
   },
   i18nProfile: "full",
+  shellChrome: { localeSwitcher: false, headerToursCta: false },
 };
 
 export const MINIMAL_LANDING: GuestLandingFeatures = {
@@ -71,6 +72,7 @@ export const MINIMAL_LANDING: GuestLandingFeatures = {
     ...PR8_SECTIONS_OFF,
   },
   i18nProfile: "minimal",
+  shellChrome: { localeSwitcher: false, headerToursCta: false },
 };
 
 export const DISCOVERY_LANDING: GuestLandingFeatures = {
@@ -93,6 +95,7 @@ export const DISCOVERY_LANDING: GuestLandingFeatures = {
     ...PR8_SECTIONS_OFF,
   },
   i18nProfile: "full",
+  shellChrome: { localeSwitcher: false, headerToursCta: false },
 };
 
 export const PREMIUM_LANDING: GuestLandingFeatures = {
@@ -115,4 +118,5 @@ export const PREMIUM_LANDING: GuestLandingFeatures = {
     ...PR8_SECTIONS_ON,
   },
   i18nProfile: "full",
+  shellChrome: { localeSwitcher: false, headerToursCta: false },
 };

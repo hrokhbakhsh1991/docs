@@ -14,12 +14,21 @@ function readMarketing(relativePath: string): string {
 }
 
 describe("marketing-page-landmarks.spec.ts — MKT-20", () => {
-  it("MKT-20-01 catalog routes expose page data-slot", () => {
-    assert.match(readMarketing("app/tours/page.tsx"), /data-slot="page-catalog"/);
-    assert.match(readMarketing("app/tours/[tourId]/page.tsx"), /data-slot="page-catalog-detail"/);
+  it("MKT-20-01 catalog routes expose page data-slot on main landmark", () => {
+    const listSource = readMarketing("app/tours/page.tsx");
+    assert.match(listSource, /data-slot="page-catalog"/);
+    assert.match(listSource, /<main data-marketing-catalog data-slot="page-catalog">/);
+    const detailSource = readMarketing("app/tours/[tourId]/page.tsx");
+    assert.match(detailSource, /data-slot="page-catalog-detail"/);
+    assert.match(
+      detailSource,
+      /<main data-marketing-catalog-detail-page data-slot="page-catalog-detail">/
+    );
   });
 
-  it("MKT-20-02 home full exposes page-home data-slot", () => {
-    assert.match(readMarketing("src/home/guest-home-full.tsx"), /data-slot="page-home"/);
+  it("MKT-20-02 home full exposes page-home data-slot on main landmark", () => {
+    const source = readMarketing("src/home/guest-home-full.tsx");
+    assert.match(source, /data-slot="page-home"/);
+    assert.match(source, /<main data-marketing-home data-slot="page-home">/);
   });
 });

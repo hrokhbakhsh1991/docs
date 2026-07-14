@@ -18,6 +18,10 @@ import {
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
+import {
+  completeMemberLoginEgress,
+  isMemberLoginEgressFromLocation,
+} from "./read-portal-return";
 import { readCatalogRegistrationFlowData } from "./flow-data";
 import { hydrateCatalogRegistrationIntakeAfterSession } from "./hydrate-intake-after-session";
 
@@ -42,6 +46,30 @@ export function CatalogRegistrationPhoneStep({
   useEffect(() => {
     setClientReady(true);
   }, []);
+
+  async function refreshPhoneHint(): Promise<void> {
+    if (isMemberLoginEgressFromLocation()) {
+      return;
+    }
+    const effectivePhone = normalizePhone(data.phone);
+    if (!isPublicRegistrationMobileValid(effectivePhone)) {
+      setPhoneHint(null);
+      return;
+    }
+    try {
+      const preflight = await fetch("/api/public-auth/phone-preflight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: effectivePhone }),
+      });
+      const preflightData = (await preflight.json()) as { exists?: boolean };
+      if (preflight.ok) {
+        setPhoneHint(preflightData.exists === true ? "existing" : "new");
+      }
+    } catch {
+      // ignore hint refresh errors
+    }
+  }
 
   async function requestOtp(): Promise<void> {
     const effectivePhone = normalizePhone(data.phone);
@@ -89,29 +117,44 @@ export function CatalogRegistrationPhoneStep({
   }
 
   const policiesBlock =
-    context.tourPoliciesText != null && context.tourPoliciesText.trim().length > 0 ? (
+    !isMemberLoginEgressFromLocation() &&
+    context.tourPoliciesText != null &&
+    context.tourPoliciesText.trim().length > 0 ? (
       <section data-tour-policies data-tour-policies-text aria-label={t("intake.termsHeading")}>
         <h3>{t("intake.termsHeading")}</h3>
         <p>{context.tourPoliciesText}</p>
       </section>
     ) : null;
 
+  const loginEgress = isMemberLoginEgressFromLocation();
+
   return (
     <div
       data-public-registration-phone
       data-registration-ready={clientReady ? "" : undefined}
       data-tour-id={context.tourId}
+      {...(loginEgress ? { "data-member-login-egress": "" } : {})}
+      {...(phoneHint !== null ? { "data-phone-hint": phoneHint } : {})}
     >
       {policiesBlock}
-      <h2>{t("phone.title")}</h2>
-      <p>{t("phone.description")}</p>
-      {phoneHint === "existing" ? <p>{t("phone.existingHint")}</p> : null}
+      {loginEgress ? null : phoneHint === "existing" ? (
+        <>
+          <h2>{t("phone.existingMemberTitle")}</h2>
+          <p>{t("phone.existingMemberDescription")}</p>
+        </>
+      ) : (
+        <>
+          <h2>{t("phone.title")}</h2>
+          <p>{t("phone.description")}</p>
+        </>
+      )}
       {phoneHint === "new" ? <p>{t("phone.newHint")}</p> : null}
       <label htmlFor="phone">{t("phone.label")}</label>
       <Input
         id="phone"
         value={data.phone}
         onChange={(event) => mergeFlowState(state, dispatch, { phone: event.target.value })}
+        onBlur={() => void refreshPhoneHint()}
         aria-invalid={error !== null}
         aria-describedby={error !== null ? errorId : undefined}
       />
@@ -184,6 +227,10 @@ export function CatalogRegistrationOtpStep({
         transitionFlowStep(dispatch, "profile");
         return;
       }
+      if (isMemberLoginEgressFromLocation()) {
+        completeMemberLoginEgress();
+        return;
+      }
       await hydrateCatalogRegistrationIntakeAfterSession(context, state, dispatch);
     } catch {
       setError(resolveError("network"));
@@ -212,8 +259,14 @@ export function CatalogRegistrationOtpStep({
   }
 
   return (
-    <div data-public-registration-otp data-tour-id={context.tourId}>
-      <h2>{t("otp.title")}</h2>
+    <div
+      data-public-registration-otp
+      data-tour-id={context.tourId}
+      {...(isMemberLoginEgressFromLocation() ? { "data-member-login-egress": "" } : {})}
+    >
+      <h2>
+        {isMemberLoginEgressFromLocation() ? t("otp.loginTitle") : t("otp.title")}
+      </h2>
       <p>{t("otp.sentTo", { phone: data.phone })}</p>
       <label htmlFor="otp">{t("otp.title")}</label>
       <Input
@@ -299,6 +352,10 @@ export function CatalogRegistrationProfileStep({
         setError(resolveError(code));
         return;
       }
+      if (isMemberLoginEgressFromLocation()) {
+        completeMemberLoginEgress();
+        return;
+      }
       await hydrateCatalogRegistrationIntakeAfterSession(
         context,
         state,
@@ -313,10 +370,17 @@ export function CatalogRegistrationProfileStep({
     }
   }
 
+  const loginEgress = isMemberLoginEgressFromLocation();
+
   return (
-    <form onSubmit={completeProfile} data-public-registration-profile data-tour-id={context.tourId}>
-      <h2>{t("profile.title")}</h2>
-      <p>{t("profile.description")}</p>
+    <form
+      onSubmit={completeProfile}
+      data-public-registration-profile
+      data-tour-id={context.tourId}
+      {...(loginEgress ? { "data-member-login-egress": "" } : {})}
+    >
+      <h2>{loginEgress ? t("profile.loginTitle") : t("profile.title")}</h2>
+      <p>{loginEgress ? t("profile.loginDescription") : t("profile.description")}</p>
       <label htmlFor="displayName">
         {t("profile.nameLabel")} <span aria-hidden="true">*</span>
       </label>
@@ -341,7 +405,11 @@ export function CatalogRegistrationProfileStep({
         </p>
       ) : null}
       <button type="submit" disabled={loading} data-action="profile-continue">
-        {loading ? t("profile.saving") : t("profile.continue")}
+        {loading
+          ? t("profile.saving")
+          : loginEgress
+            ? t("profile.loginContinue")
+            : t("profile.continue")}
       </button>
     </form>
   );

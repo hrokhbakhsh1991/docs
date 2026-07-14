@@ -15,6 +15,8 @@ describe("portal registration resume — PCMS-REG-01", () => {
     assert.match(page, /buildRegistrationResumeInitialState/);
     assert.match(page, /data-registration-resume/);
     assert.match(page, /initialRuntimeState/);
+    assert.match(page, /intake\.resumeLede/);
+    assert.match(page, /sessionBadge/);
   });
 
   it("PCMS-REG-02 flow accepts initialRuntimeState from server", () => {
@@ -26,7 +28,34 @@ describe("portal registration resume — PCMS-REG-01", () => {
       "utf8"
     );
     assert.match(flow, /initialRuntimeState/);
+    assert.match(flow, /isMemberLoginEgressFromLocation/);
     assert.doesNotMatch(flow, /request-otp/);
+  });
+
+  it("PCMS-REG-02 flow uses intake-only stepper when resuming at intake", () => {
+    const flow = readFileSync(
+      join(
+        repoRoot,
+        "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(flow, /initialRuntimeState\?\.currentStep === "intake"/);
+    assert.match(flow, /intake-only/);
+    assert.match(flow, /isResumeAtIntake/);
+  });
+
+  it("PCMS-UX-05 client session probe shows pending state before phone step", () => {
+    const flow = readFileSync(
+      join(
+        repoRoot,
+        "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx"
+      ),
+      "utf8"
+    );
+    assert.match(flow, /data-registration-resume-pending/);
+    assert.match(flow, /sessionResume\.pending/);
+    assert.match(flow, /sessionResumeStatus === "checking"/);
   });
 
   it("PCMS-REG-03 resume helper lives in portal catalog server module", () => {
@@ -36,7 +65,8 @@ describe("portal registration resume — PCMS-REG-01", () => {
     );
     assert.match(helper, /currentStep: "intake"/);
     assert.match(helper, /readPublicCatalogSessionFromCookies/);
-    assert.match(helper, /fetchMemberProfileFromSession/);
+    assert.match(helper, /memberMobile/);
+    assert.match(helper, /RegistrationResumeInitialState/);
   });
 
   it("PCMS-REG-04 middleware uses async bootstrap tenant bind", () => {

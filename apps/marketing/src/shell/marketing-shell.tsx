@@ -1,4 +1,4 @@
-import { LogIn, Menu, Mountain } from "lucide-react";
+import { LogIn, Menu, Mountain, User } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -11,10 +11,13 @@ import { MarketingFooter } from "./marketing-footer";
 import { MarketingLocaleSwitcher } from "@/i18n/marketing-locale-switcher";
 import { isAppLocale, resolveMarketingLocalePath, routing } from "@/i18n/routing";
 import { MARKETING_HEADER_OVERLAY_REQUEST_HEADER } from "./resolve-marketing-header-overlay";
+import type { MarketingMemberHeader } from "./resolve-marketing-member-header.server";
 import type { MarketingShellNavItem } from "./resolve-marketing-shell-nav.server";
 
 export type MarketingShellProps = {
   readonly branding: PublicTenantBrandingSnapshot;
+  readonly memberHeader: MarketingMemberHeader | null;
+  readonly portalMemberLoginUrl: string | null;
   readonly portalMemberModuleUrl: string | null;
   readonly primaryNavLinks: readonly MarketingShellNavItem[];
   readonly landing: GuestLandingFeatures;
@@ -23,6 +26,8 @@ export type MarketingShellProps = {
 
 export async function MarketingShell({
   branding,
+  memberHeader,
+  portalMemberLoginUrl,
   portalMemberModuleUrl,
   primaryNavLinks,
   landing,
@@ -36,11 +41,21 @@ export async function MarketingShell({
   const headerList = await headers();
   const title = branding.displayName ?? t("nav.defaultSiteName");
   const isFullLanding = landing.variant === "full";
+  const navHasToursLink = (isFullLanding ? primaryNavLinks : [{ id: "tours" }]).some(
+    (item) => item.id === "tours"
+  );
+  const showLocaleSwitcher = landing.shellChrome.localeSwitcher;
+  const showHeaderToursCta =
+    isFullLanding && landing.shellChrome.headerToursCta && !navHasToursLink;
   const useHeaderOverlay =
     isFullLanding && headerList.get(MARKETING_HEADER_OVERLAY_REQUEST_HEADER) === "1";
 
   return (
-    <div data-marketing-shell data-slot="shell">
+    <div
+      data-marketing-shell
+      data-slot="shell"
+      {...(memberHeader !== null ? { "data-marketing-member-authenticated": "" } : {})}
+    >
       <a href="#main-content" data-marketing-skip-link data-slot="shell-skip-link">
         {t("nav.skipToContent")}
       </a>
@@ -77,10 +92,36 @@ export async function MarketingShell({
 
           <div data-marketing-header-end data-slot="shell-header-end">
             <div data-marketing-header-toolbar data-slot="shell-toolbar">
-              <MarketingLocaleSwitcher />
-              {portalMemberModuleUrl !== null ? (
+              {showLocaleSwitcher ? <MarketingLocaleSwitcher /> : null}
+              {memberHeader !== null ? (
                 <a
-                  href={portalMemberModuleUrl}
+                  href={memberHeader.profileHref}
+                  data-marketing-portal-member
+                  data-marketing-header-member
+                  data-marketing-header-account
+                  aria-label={t("nav.account")}
+                >
+                  <span data-marketing-header-member-avatar-wrap>
+                    {memberHeader.avatarUrl !== null ? (
+                      <img
+                        src={memberHeader.avatarUrl}
+                        alt=""
+                        data-marketing-header-member-avatar
+                        height={32}
+                        width={32}
+                      />
+                    ) : (
+                      <User aria-hidden="true" data-marketing-header-member-icon />
+                    )}
+                  </span>
+                  <span data-marketing-header-member-meta>
+                    <span data-marketing-header-member-label>{memberHeader.displayName}</span>
+                    <span data-marketing-header-member-hint>{t("nav.account")}</span>
+                  </span>
+                </a>
+              ) : portalMemberLoginUrl !== null ? (
+                <a
+                  href={portalMemberLoginUrl}
                   data-marketing-portal-member
                   data-marketing-header-sign-in
                   aria-label={t("nav.signIn")}
@@ -89,7 +130,7 @@ export async function MarketingShell({
                   <span data-marketing-header-sign-in-label>{t("nav.signIn")}</span>
                 </a>
               ) : null}
-              {isFullLanding ? (
+              {showHeaderToursCta ? (
                 <Link href={toursHref} data-marketing-header-cta>
                   {t("home.full.hero.ctaPrimary")}
                 </Link>
@@ -126,14 +167,34 @@ export async function MarketingShell({
                       {t("nav.tours")}
                     </Link>
                   )}
-                {isFullLanding ? (
-                  <Link href={toursHref} data-marketing-header-cta>
-                    {t("home.full.hero.ctaPrimary")}
-                  </Link>
-                ) : null}
-                {portalMemberModuleUrl !== null ? (
+                {memberHeader !== null ? (
                   <a
-                    href={portalMemberModuleUrl}
+                    href={memberHeader.profileHref}
+                    data-marketing-portal-member
+                    data-marketing-header-member
+                    data-marketing-header-account
+                  >
+                    <span data-marketing-header-member-avatar-wrap>
+                      {memberHeader.avatarUrl !== null ? (
+                        <img
+                          src={memberHeader.avatarUrl}
+                          alt=""
+                          data-marketing-header-member-avatar
+                          height={32}
+                          width={32}
+                        />
+                      ) : (
+                        <User aria-hidden="true" data-marketing-header-member-icon />
+                      )}
+                    </span>
+                    <span data-marketing-header-member-meta>
+                      <span data-marketing-header-member-label>{memberHeader.displayName}</span>
+                      <span data-marketing-header-member-hint>{t("nav.account")}</span>
+                    </span>
+                  </a>
+                ) : portalMemberLoginUrl !== null ? (
+                  <a
+                    href={portalMemberLoginUrl}
                     data-marketing-portal-member
                     data-marketing-header-sign-in
                   >

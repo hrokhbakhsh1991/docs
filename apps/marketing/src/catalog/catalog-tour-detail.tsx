@@ -34,6 +34,7 @@ import type { MarketingCatalogCard } from "./catalog-types";
 import { formatCatalogCardDescription } from "./format-catalog-display";
 import { resolveCatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
 import { isAppLocale, resolveIntlDateLocale, resolveMarketingToursListPath, type AppLocale } from "@/i18n/routing";
+import { resolveHomeTourCoverUrl } from "@/home/resolve-home-tour-cover-url";
 import { buildValidatedMarketingTourStructuredData } from "@/seo/build-validated-marketing-structured-data";
 import { buildTourDetailBreadcrumbJsonLd } from "@/seo/build-breadcrumb-jsonld";
 import { buildMarketingTourDetailJsonLdGraph } from "@/seo/build-marketing-tour-detail-jsonld-graph";
@@ -42,6 +43,7 @@ import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
 export type CatalogTourDetailProps = {
   readonly tour: MarketingCatalogCard;
   readonly registrationUrl: string | null;
+  readonly tourSignInUrl?: string | null;
   readonly pluginId: string;
 };
 
@@ -57,6 +59,7 @@ function tourHasPolicies(tour: MarketingCatalogCard): boolean {
 export async function CatalogTourDetail({
   tour,
   registrationUrl,
+  tourSignInUrl = null,
   pluginId,
 }: CatalogTourDetailProps) {
   const sections = resolveCatalogDetailSections(pluginId);
@@ -138,21 +141,21 @@ export async function CatalogTourDetail({
 
               {detailPdpGates.showHeroGallery ? (
                 <CatalogTourDetailHeroGallery tour={tour} title={title} />
-              ) : tour.coverImageUrl ? (
+              ) : (
                 <figure data-marketing-catalog-detail-cover data-marketing-catalog-detail-hero>
                   <CatalogTourDetailPhotoLightboxTrigger
                     index={0}
                     ariaLabel={t("detail.gallery.openPhoto", { index: 1 })}
                   >
                     <CatalogCoverImage
-                      src={tour.coverImageUrl}
+                      src={resolveHomeTourCoverUrl(tour.coverImageUrl)}
                       alt={title}
                       width={960}
                       height={540}
                     />
                   </CatalogTourDetailPhotoLightboxTrigger>
                 </figure>
-              ) : null}
+              )}
 
               <header data-marketing-catalog-detail-header>
                 <h1 data-marketing-catalog-detail-title>{title}</h1>
@@ -218,10 +221,18 @@ export async function CatalogTourDetail({
             </div>
           </div>
 
-          <CatalogTourDetailBookingRail tour={tour} registration={registration} />
+          <CatalogTourDetailBookingRail
+            tour={tour}
+            registration={registration}
+            tourSignInUrl={tourSignInUrl}
+          />
         </div>
 
-        <CatalogTourDetailStickyBar tour={tour} registration={registration} />
+        <CatalogTourDetailStickyBar
+          tour={tour}
+          registration={registration}
+          tourSignInUrl={tourSignInUrl}
+        />
 
         {detailJsonLdGraph != null ? (
           <script
