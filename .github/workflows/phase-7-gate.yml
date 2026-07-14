@@ -9,6 +9,18 @@ on:
       - main
       - phase-7/entry-gate
   pull_request:
+    paths:
+      - "apps/api/**"
+      - "packages/workspaces/urban/**"
+      - "packages/platform-core/**"
+      - "scripts/verify-phase-7-genericity-proof-rev.mjs"
+      - "scripts/guards/phase-7-guard.mjs"
+      - "scripts/phase-7-adversarial-gate.mjs"
+      - "scripts/phase-7-platform-gate.mjs"
+      - "scripts/ci-integrity-check.sh"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/phase-7-gate.yml"
   workflow_dispatch:
     inputs:
       run_ci_integrity:
