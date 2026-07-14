@@ -1,0 +1,44 @@
+/**
+ * MKT-36 — tour PDP secondary sign-in + CTA stack layout.
+ * Split from 02-pr-d6-p1.css (MKT-SKIN-01 ≤500 lines).
+ */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-booking-rail-cta],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-cta-primary],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  footer[data-marketing-catalog-detail-actions] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-tour-sign-in] {
+  display: block;
+  text-align: center;
+  font-size: var(--mkt-text-small);
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-tour-sign-in]:hover {
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  div[data-marketing-catalog-detail-sticky-bar]
+  a[data-marketing-tour-sign-in] {
+  flex: 0 0 auto;
+  min-width: 0;
+  font-size: var(--mkt-text-small);
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  white-space: nowrap;
+}
