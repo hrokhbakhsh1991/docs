@@ -117,6 +117,9 @@ importers:
       '@app-tour/guest-surface-host':
         specifier: workspace:*
         version: link:../../packages/guest-surface-host
+      '@app-tour/session-client':
+        specifier: workspace:*
+        version: link:../../packages/session-client
       '@app-tour/tenant-kernel':
         specifier: workspace:*
         version: link:../../packages/tenant-kernel

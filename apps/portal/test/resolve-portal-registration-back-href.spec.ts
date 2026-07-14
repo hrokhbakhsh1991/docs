@@ -21,4 +21,24 @@ describe("resolve-portal-registration-back-href", () => {
       }
     }
   });
+
+  it("login back href uses marketing base when marketing app exists", async () => {
+    const previous = process.env.MARKETING_PUBLIC_BASE_URL;
+    delete process.env.MARKETING_PUBLIC_BASE_URL;
+    try {
+      const { resolvePortalLoginBackHref } = await import(
+        "../src/marketing/resolve-portal-registration-back-href.server.ts"
+      );
+      assert.equal(
+        resolvePortalLoginBackHref("denali.portal.localhost:3003"),
+        "http://denali.localhost:3002"
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.MARKETING_PUBLIC_BASE_URL;
+      } else {
+        process.env.MARKETING_PUBLIC_BASE_URL = previous;
+      }
+    }
+  });
 });

@@ -1,9 +1,16 @@
 {
   "pageTitle": "Register — {tourTitle}",
+  "loginPageTitle": "Sign in",
+  "signInToRegister": "Already registered? Sign in",
   "backToTour": "Back to tour",
+  "backToMarketing": "Back",
   "phone": {
     "title": "Sign in or register",
+    "loginTitle": "Sign in",
     "description": "Enter your mobile number to continue.",
+    "existingMemberTitle": "Confirm mobile",
+    "existingMemberDescription": "Confirm your mobile number to continue registering for this tour.",
+    "loginDescription": "Enter your mobile number to sign in to your account.",
     "label": "Mobile",
     "existingHint": "Welcome back — we will send you a code.",
     "newHint": "New here — we will ask for your name after verification.",
@@ -12,6 +19,7 @@
   },
   "otp": {
     "title": "Enter verification code",
+    "loginTitle": "Verify to sign in",
     "sentTo": "Code sent to {phone}",
     "verify": "Verify",
     "verifying": "Verifying…",
@@ -22,14 +30,19 @@
   },
   "profile": {
     "title": "Complete your profile",
+    "loginTitle": "Create your account",
     "description": "Name is required. Email is optional.",
+    "loginDescription": "Enter your name to finish signing in. Email is optional.",
     "nameLabel": "Name",
     "emailLabel": "Email (optional)",
     "continue": "Continue",
+    "loginContinue": "Sign in",
     "saving": "Saving…"
   },
   "intake": {
     "title": "Register for this tour",
+    "resumeLede": "Complete your registration details for this tour.",
+    "signedInBadge": "Signed in as {mobile}",
     "termsHeading": "Policies & terms",
     "registrantTabsLabel": "Who is this registration for?",
     "forSelfTab": "For myself",
@@ -86,8 +99,13 @@
     "DENALI_REGISTRATION_DUPLICATE": "You already registered for this tour.",
     "network": "Something went wrong. Try again."
   },
+  "sessionResume": {
+    "pending": "Checking your sign-in…"
+  },
   "stepper": {
     "ariaLabel": "Registration steps",
+    "loginAriaLabel": "Sign-in steps",
+    "intakeOnlyAriaLabel": "Tour registration step",
     "phone": "Phone",
     "otp": "Code",
     "profile": "Profile",

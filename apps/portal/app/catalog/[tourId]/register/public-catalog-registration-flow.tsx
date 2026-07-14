@@ -10,7 +10,10 @@ import {
   type RegistrationFlowContext,
 } from "@app-tour/workspace-sdk";
 import { getWorkspaceRegistrationFlowSteps } from "@app-tour/workspace-plugin-host/registration-flow";
-import { hydrateCatalogRegistrationIntakeAfterSession } from "@app-tour/catalog-registration-flow-ui";
+import {
+  hydrateCatalogRegistrationIntakeAfterSession,
+  isMemberLoginEgressFromLocation,
+} from "@app-tour/catalog-registration-flow-ui";
 import {
   assertCatalogRegistrationFlowState,
   createCatalogRegistrationFlowRuntimeState,
@@ -37,6 +40,8 @@ type PublicCatalogRegistrationFlowProps = {
   readonly memberModuleHref: string | null;
   readonly initialRuntimeState?: FlowRuntimeState;
 };
+
+type SessionResumeStatus = "checking" | "ready";
 
 export function PublicCatalogRegistrationFlow({
   workspace,
@@ -108,12 +113,20 @@ export function PublicCatalogRegistrationFlow({
   );
 
   const [resumedWithoutServer, setResumedWithoutServer] = useState(false);
+  const [sessionResumeStatus, setSessionResumeStatus] = useState<SessionResumeStatus>(() =>
+    initialRuntimeState?.currentStep === "intake" ? "ready" : "checking"
+  );
 
   useEffect(() => {
     if (initialRuntimeState !== undefined || flowPlugin === null) {
+      setSessionResumeStatus("ready");
       return;
     }
     if (state.currentStep !== "phone") {
+      return;
+    }
+    if (isMemberLoginEgressFromLocation()) {
+      setSessionResumeStatus("ready");
       return;
     }
     let cancelled = false;
@@ -131,6 +144,10 @@ export function PublicCatalogRegistrationFlow({
         await hydrateCatalogRegistrationIntakeAfterSession(context, state, dispatch);
       } catch {
         // guest flow — stay on phone
+      } finally {
+        if (!cancelled) {
+          setSessionResumeStatus("ready");
+        }
       }
     })();
     return () => {
@@ -152,6 +169,31 @@ export function PublicCatalogRegistrationFlow({
     return <p role="alert">{resolveError("REGISTRATION_CLOSED")}</p>;
   }
 
+  const memberLoginEgress = isMemberLoginEgressFromLocation();
+  const isResumeAtIntake =
+    initialRuntimeState?.currentStep === "intake" || resumeAtIntake;
+  const stepperMode = memberLoginEgress
+    ? "login"
+    : isResumeAtIntake
+      ? "intake-only"
+      : "registration";
+
+  if (
+    sessionResumeStatus === "checking" &&
+    state.currentStep === "phone" &&
+    !memberLoginEgress
+  ) {
+    return (
+      <div
+        data-public-registration-flow
+        data-registration-resume-pending
+        aria-busy="true"
+      >
+        <p role="status">{t("sessionResume.pending")}</p>
+      </div>
+    );
+  }
+
   const Step = steps[state.currentStep];
   if (Step === undefined) {
     return <p role="alert">{resolveError("network")}</p>;
@@ -160,9 +202,12 @@ export function PublicCatalogRegistrationFlow({
   return (
     <div
       data-public-registration-flow
-      {...(resumeAtIntake ? { "data-registration-resume": "intake" } : {})}
+      {...(memberLoginEgress ? { "data-member-login-egress": "" } : {})}
+      {...(resumeAtIntake || initialRuntimeState?.currentStep === "intake"
+        ? { "data-registration-resume": "intake" }
+        : {})}
     >
-      <CatalogRegistrationStepper currentStep={state.currentStep} />
+      <CatalogRegistrationStepper currentStep={state.currentStep} mode={stepperMode} />
       <Step context={context} state={state} dispatch={dispatch} resolveError={resolveError} />
     </div>
   );

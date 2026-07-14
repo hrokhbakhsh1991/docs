@@ -215,6 +215,20 @@ body[data-app-surface="portal"] [data-registration-step-state="current"] [data-r
   font-weight: 600;
 }
 
+/* PCMS-03 login page — compact OTP shell */
+body[data-app-surface="portal"] main[data-portal-member-login-page] h1 {
+  margin-bottom: var(--space-5);
+}
+
+body[data-app-surface="portal"]
+  main[data-portal-member-login-page]
+  [data-public-registration-phone]
+  > p:first-of-type {
+  margin-top: 0;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+}
+
 body[data-app-surface="portal"] main[data-portal-member-home] [data-portal-member-home-lede] {
   margin: 0;
   font-size: 0.875rem;
@@ -369,6 +383,7 @@ body[data-app-surface="portal"] main[data-portal-member-profile] [data-member-pr
   gap: var(--space-3);
 }
 
+body[data-app-surface="portal"] main[data-portal-member-profile] [data-member-profile-avatar-preview],
 body[data-app-surface="portal"] main[data-portal-member-profile] .member-profile-avatar__preview {
   width: 5rem;
   height: 5rem;
@@ -381,18 +396,21 @@ body[data-app-surface="portal"] main[data-portal-member-profile] .member-profile
   border: 1px solid var(--border);
 }
 
+body[data-app-surface="portal"] main[data-portal-member-profile] [data-member-profile-avatar-image],
 body[data-app-surface="portal"] main[data-portal-member-profile] .member-profile-avatar__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+body[data-app-surface="portal"] main[data-portal-member-profile] [data-member-profile-avatar-initials],
 body[data-app-surface="portal"] main[data-portal-member-profile] .member-profile-avatar__initials {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--muted-foreground);
 }
 
+body[data-app-surface="portal"] main[data-portal-member-profile] [data-member-profile-avatar-actions],
 body[data-app-surface="portal"] main[data-portal-member-profile] .member-profile-avatar__actions {
   display: flex;
   flex-wrap: wrap;

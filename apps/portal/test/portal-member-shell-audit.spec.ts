@@ -69,7 +69,11 @@ describe("member-portal-shell-audit — PS-1..PS-5 closure", () => {
   });
 
   it("AUDIT-08 PS-6 hub route + embedded host shell wiring", () => {
-    assert.match(read("apps/portal/app/me/more/page.tsx"), /data-portal-member-hub-list/);
+    assert.match(read("apps/portal/app/me/more/page.tsx"), /MemberMoreHubList/);
+    assert.match(
+      read("apps/portal/app/me/more/member-more-hub-list.tsx"),
+      /data-portal-member-hub-list/
+    );
     assert.match(read("apps/portal/app/me/layout.tsx"), /resolveEmbeddedMemberPortalHost/);
     assert.match(read("apps/portal/src/shell/portal-member-shell.tsx"), /data-embedded-host/);
     assert.match(read("scripts/generate-workspace-registry.mjs"), /assertMemberPortalL4ReferenceWorkspaces/);

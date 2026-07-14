@@ -6,12 +6,14 @@ export type CatalogTourDetailRegisterCtaProps = {
   readonly registration: CatalogTourRegistrationState;
   readonly variant: "primary" | "secondary" | "rail";
   readonly assignRegisterAnchor?: boolean;
+  readonly tourSignInUrl?: string | null;
 };
 
 export async function CatalogTourDetailRegisterCta({
   registration,
   variant,
   assignRegisterAnchor = false,
+  tourSignInUrl = null,
 }: CatalogTourDetailRegisterCtaProps) {
   const t = await getTranslations("catalog");
 
@@ -28,6 +30,13 @@ export async function CatalogTourDetailRegisterCta({
   }
 
   const registerLabel = t("detail.register");
+  const signInLink =
+    tourSignInUrl != null && tourSignInUrl.trim().length > 0 ? (
+      <a href={tourSignInUrl} data-marketing-tour-sign-in>
+        {t("detail.signInToRegister")}
+      </a>
+    ) : null;
+
   const link = (
     <a href={registration.registrationUrl} data-marketing-register>
       {registerLabel}
@@ -42,12 +51,23 @@ export async function CatalogTourDetailRegisterCta({
           {...(assignRegisterAnchor ? { id: "catalog-detail-register" } : {})}
         >
           {link}
+          {signInLink}
         </div>
       );
     case "secondary":
-      return <footer data-marketing-catalog-detail-actions>{link}</footer>;
+      return (
+        <footer data-marketing-catalog-detail-actions>
+          {link}
+          {signInLink}
+        </footer>
+      );
     case "rail":
-      return <div data-marketing-catalog-detail-booking-rail-cta>{link}</div>;
+      return (
+        <div data-marketing-catalog-detail-booking-rail-cta>
+          {link}
+          {signInLink}
+        </div>
+      );
     default:
       return null;
   }

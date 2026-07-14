@@ -15,8 +15,12 @@ import {
   buildMarketingSurfaceNoindexMetadata,
 } from "@/seo/build-marketing-metadata";
 import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
-import { resolvePortalMemberModuleUrl } from "@app-tour/guest-surface-host";
+import {
+  resolvePortalMemberLoginUrl,
+  resolvePortalMemberModuleUrl,
+} from "@app-tour/guest-surface-host";
 import { resolveGuestLandingFeatures } from "@app-tour/workspace-sdk";
+import { resolveMarketingMemberHeader } from "@/shell/resolve-marketing-member-header.server";
 import { MarketingProviders } from "@/shell/marketing-providers";
 import { MarketingShell } from "@/shell/marketing-shell";
 import { resolveMarketingShellNavLinks } from "@/shell/resolve-marketing-shell-nav.server";
@@ -105,6 +109,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const fontClassName = resolveAppFontClassName(locale);
   const fontFamilyBase = resolveAppFontFamilyCss(locale);
   const portalMemberModuleUrl = resolvePortalMemberModuleUrl(host);
+  const portalMemberLoginUrl = resolvePortalMemberLoginUrl(host);
+  const memberHeader = await resolveMarketingMemberHeader(host, bootstrap.tenantId);
   const primaryNavLinks = resolveMarketingShellNavLinks(host, bootstrap.pluginId, locale);
   const landing = resolveGuestLandingFeatures(bootstrap.pluginId);
 
@@ -124,7 +130,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <MarketingProviders>
             <MarketingShell
               branding={branding}
+              portalMemberLoginUrl={portalMemberLoginUrl}
               portalMemberModuleUrl={portalMemberModuleUrl}
+              memberHeader={memberHeader}
               primaryNavLinks={primaryNavLinks}
               landing={landing}
             >

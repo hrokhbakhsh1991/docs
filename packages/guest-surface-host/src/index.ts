@@ -5,6 +5,8 @@ export {
   CANONICAL_SMOKE_URBAN_MARKETING_BASE_URL,
 } from "./canonical-smoke-urls";
 export { isDevGuestHostAllowed, isDevWebSessionAllowed } from "./is-dev-guest-host-allowed";
+export { isLocalhostIngressHost } from "./is-localhost-ingress-host";
+export { sessionTenantMatchesDevCrossSurfaceHost } from "./session-tenant-matches-dev-cross-surface-host";
 export { resolvePublicBrandingHost } from "./resolve-public-branding-host";
 export {
   resolveTenantIdFromDevHost,
@@ -53,6 +55,15 @@ export {
 export {
   resolvePortalMemberModuleUrl,
 } from "./resolve-portal-member-module-url";
+export { resolveMemberLoginCatalogTourId } from "./resolve-member-login-catalog-tour-id";
+export {
+  resolvePortalRegistrationLoginPath,
+  resolvePortalRegistrationLoginUrl,
+} from "./resolve-portal-registration-login-url";
+export {
+  resolvePortalMemberLoginPath,
+  resolvePortalMemberLoginUrl,
+} from "./resolve-portal-member-login-url";
 export { resolvePluginIdFromIngressHost } from "./resolve-plugin-id-from-ingress-host";
 export {
   isEmbeddedMemberPortalHost,

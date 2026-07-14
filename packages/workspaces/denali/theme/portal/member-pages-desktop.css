@@ -1,0 +1,37 @@
+/**
+ * Denali portal — member page desktop grids (PS-VIS-5).
+ */
+
+@media (min-width: 64rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-home]
+    [data-portal-member-home-quick-links] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-registrations]
+    [data-portal-member-registrations-list] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-registrations]
+    [data-portal-member-registration-row] {
+    height: 100%;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-profile]
+    [data-member-profile-save] {
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-portal-member-registrations]
+    [data-portal-member-registrations-empty-state] {
+    grid-column: 1 / -1;
+  }
+}

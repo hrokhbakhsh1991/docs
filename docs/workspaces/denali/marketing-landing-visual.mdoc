@@ -357,7 +357,7 @@ All §7 checklist items complete. OG wired to `hero-og.webp`. Final CTA reuses `
 
 ### P0 — Data fallbacks
 
-- `resolveHomeTourCoverUrl` → `/home/fallback-tour-cover.webp` when catalog lacks photos
+- `resolveHomeTourCoverUrl` → `/home/fallback-tour-cover.webp` when catalog lacks photos or URL host is IANA `.example` smoke placeholder (`cdn.example`)
 - `deriveHomeGalleryPhotos` appends 3 static gallery images when &lt;3 tour covers
 - Destination cards use `/home/destinations/{id}.webp`
 
@@ -864,7 +864,7 @@ Static analysis · `guard:marketing-home-hooks` · home i18n keys · 375px carou
 | Shape      | 2.5rem min-height outline pill — not underline text                               |
 | Layout     | CSS grid `1fr auto` — title / pill on one row, vertically centered                |
 | Latest fix | Lead moved outside header-row (matches Featured/Gallery)                          |
-| Closure    | PR-25b at stylesheet end overrides PR-20 featured/latest/gallery legacy           |
+| Closure    | PR-25b pill styles in `28-pr-d6b.css`; **PR-25c** (`31-pr-25c-section-header-closure.css`) loads last — full-width header column + grid alignment overrides PR-20 featured `max-width` / `header:has(a)` flex |
 
 ### Verify
 
@@ -1249,3 +1249,23 @@ pnpm run guard:marketing-home-hooks
 **Catalog main:** same gutter token + safe-area bottom on `/tours`.
 
 **Verify:** DevTools → `footer[data-marketing-footer]` computed padding ≠ `0`; scroll to page bottom on `/` and `/tours` at 375px.
+
+## PR-home-mobile-gutter-closure — landing `/` (2026-07-14)
+
+**Symptom:** On mobile, landing sections felt misaligned vs header and `/tours` — carousels broke out to screen edges while titles stayed inset; gallery filmstrip had double horizontal padding.
+
+**Root cause:** `main[data-marketing-home]` uses `padding: 0` (PR-15 cinematic hero). Horizontal gutters come from per-section rules, but carousel rows used `margin-inline: calc(-1 * var(--catalog-page-padding-x))` breakout (featured, latest, destinations, gallery filmstrip). Gallery `div[data-marketing-home-gallery-support]` added a **second** `padding-inline` inside an already-padded section.
+
+**Fix (`33-pr-home-mobile-gutter-closure.css`, ≤767px):**
+
+| Rule | Behavior |
+| ---- | -------- |
+| Tokens | `--catalog-page-padding-y: space-4`; tighter `--mkt-section-pad-y` / `--mkt-section-header-gap` on mobile |
+| Sections | All non-hero sections: explicit `padding-inline: var(--catalog-page-padding-x)` |
+| Carousels | Remove negative-margin breakout; scroll rows stay in-gutter (`margin/padding-inline: 0`) |
+| Card widths | `--mkt-home-scroll-card-width: calc(100% - space-6)` — cards sized to padded section, not `85vw` viewport |
+| Hero | `data-marketing-home-hero-layout` uses same `--catalog-page-padding-x` as shell header |
+| Gallery | Filmstrip/support: no double padding; scroll buttons inset `space-2` from card edge |
+| Footer | `padding-inline: max(--catalog-page-padding-x, safe-area insets)` |
+
+**Verify:** 375px RTL — section headers, featured/latest cards, destinations row, and footer links share the same left/right inset as `[data-marketing-header-inner]`.

@@ -1,7 +1,11 @@
 import { cookies, headers } from "next/headers";
 
+import {
+  readSessionTokenFromCookieHeader as parseSessionTokenFromCookieHeader,
+  validateSessionTokenAsync,
+} from "@app-tour/session-client";
+
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
-import { validateSessionTokenAsync } from "@app-tour/session-client";
 
 export type PublicCatalogSession = {
   readonly userId: string;
@@ -24,18 +28,6 @@ function normalizeCatalogRole(
   return null;
 }
 
-function readSessionTokenFromCookieHeader(raw: string): string | undefined {
-  const match = raw.match(/(?:^|;\s*)atour_mb_session=([^;]*)/);
-  if (match?.[1] === undefined) {
-    return undefined;
-  }
-  try {
-    return decodeURIComponent(match[1]).trim();
-  } catch {
-    return match[1].trim();
-  }
-}
-
 async function readSessionTokenFromRequest(): Promise<string | undefined> {
   const cookieStore = await cookies();
   const fromStore = cookieStore.get(SESSION_TOKEN_COOKIE)?.value?.trim();
@@ -45,7 +37,7 @@ async function readSessionTokenFromRequest(): Promise<string | undefined> {
 
   const headerStore = await headers();
   const raw = headerStore.get("cookie") ?? "";
-  return readSessionTokenFromCookieHeader(raw);
+  return parseSessionTokenFromCookieHeader(raw, SESSION_TOKEN_COOKIE);
 }
 
 /** M17 public catalog session — any ACTIVE membership role (not operator-owner-only). */

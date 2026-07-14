@@ -23,8 +23,10 @@ export default async function MeProfilePage() {
     return (
       <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="profile">
         <main data-portal-member-profile>
-          <h1>{t("title")}</h1>
-          <p role="alert">{t("loadFailed")}</p>
+          <header data-portal-member-page-header>
+            <h1>{t("title")}</h1>
+            <p role="alert">{t("loadFailed")}</p>
+          </header>
         </main>
       </MemberModuleEntitlementGate>
     );
@@ -33,8 +35,10 @@ export default async function MeProfilePage() {
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="profile">
       <main data-portal-member-profile>
-        <h1>{t("title")}</h1>
-        <p>{t("description")}</p>
+        <header data-portal-member-page-header>
+          <h1>{t("title")}</h1>
+          <p>{t("description")}</p>
+        </header>
         <MemberProfileForm profile={profilePayload.profile} />
       </main>
     </MemberModuleEntitlementGate>

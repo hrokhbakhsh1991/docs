@@ -1,0 +1,203 @@
+/**
+ * MKT-34 — authenticated member profile chip (marketing header).
+ * Scoped to login state via [data-marketing-member-authenticated].
+ */
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  a[data-marketing-header-member] {
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+  min-width: auto;
+  max-width: min(100%, 14rem);
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border));
+  background: color-mix(in srgb, var(--card) 88%, var(--primary) 12%);
+  box-shadow:
+    0 0.0625rem 0 rgba(15, 23, 42, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  a[data-marketing-header-member]:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background: color-mix(in srgb, var(--card) 82%, var(--primary) 18%);
+  transform: translateY(-1px);
+  box-shadow:
+    0 0.35rem 0.85rem rgba(15, 23, 42, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  a[data-marketing-header-member]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-avatar-wrap] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, white);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 55%, white);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  img[data-marketing-header-member-avatar] {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  svg[data-marketing-header-member-icon] {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--primary);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-meta] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.0625rem;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-label] {
+  display: block;
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--mkt-text-meta);
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-hint] {
+  display: block;
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--muted-foreground);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  a[data-marketing-header-member] {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--mkt-on-overlay);
+  box-shadow:
+    0 0.35rem 1rem rgba(15, 23, 42, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  a[data-marketing-header-member]:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.42);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-label] {
+  color: var(--mkt-on-overlay);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-hint] {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  span[data-marketing-header-member-avatar-wrap] {
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  [data-marketing-member-authenticated]
+  svg[data-marketing-header-member-icon] {
+  color: var(--mkt-on-overlay);
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  nav[data-marketing-nav-drawer-panel]
+  a[data-marketing-header-member]
+  span[data-marketing-header-member-meta] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  nav[data-marketing-nav-drawer-panel]
+  a[data-marketing-header-member]
+  span[data-marketing-header-member-hint] {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 1023px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-member-authenticated]
+    a[data-marketing-header-member] {
+    max-width: min(100%, 10.5rem);
+    padding-inline-end: var(--space-2);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-member-authenticated]
+    span[data-marketing-header-member-hint] {
+    display: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-member-authenticated]
+    span[data-marketing-header-member-label] {
+    max-width: 5.5rem;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    [data-marketing-member-authenticated]
+    a[data-marketing-header-member] {
+    padding-block: var(--space-2);
+    padding-inline-start: var(--space-1);
+    padding-inline-end: var(--space-4);
+  }
+}

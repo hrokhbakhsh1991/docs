@@ -11,15 +11,19 @@ import { fileURLToPath } from "node:url";
 const marketingRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("marketing shell — PCMS-03", () => {
-  it("MKT-PCMS-01 shell exposes static portal member area link", () => {
+  it("MKT-PCMS-01 shell sign-in uses portal login URL", () => {
     const shell = readFileSync(path.join(marketingRoot, "src/shell/marketing-shell.tsx"), "utf8");
     assert.match(shell, /data-marketing-portal-member/);
-    assert.match(shell, /portalMemberModuleUrl/);
+    assert.match(shell, /data-marketing-header-sign-in/);
+    assert.match(shell, /portalMemberLoginUrl/);
+    assert.match(shell, /href=\{portalMemberLoginUrl\}/);
     assert.doesNotMatch(shell, /resolvePortalMemberAreaUrl/);
   });
 
-  it("MKT-PCMS-02 layout resolves portal member module URL", () => {
+  it("MKT-PCMS-02 layout resolves portal login + member module URLs", () => {
     const layout = readFileSync(path.join(marketingRoot, "app/layout.tsx"), "utf8");
+    assert.match(layout, /resolvePortalMemberLoginUrl/);
+    assert.match(layout, /portalMemberLoginUrl=/);
     assert.match(layout, /resolvePortalMemberModuleUrl/);
     assert.match(layout, /portalMemberModuleUrl=/);
     assert.doesNotMatch(layout, /resolvePortalMemberAreaUrl/);

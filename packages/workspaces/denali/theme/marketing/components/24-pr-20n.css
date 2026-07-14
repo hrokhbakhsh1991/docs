@@ -49,6 +49,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border-radius: 0;
   box-shadow: none;
   background: transparent;
+  flex: unset;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
@@ -369,7 +370,19 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     padding: var(--space-5);
   }
 
+  /* Flagship-only catalog: single column — avoid empty picks track + collapsed % height */
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-featured-bento]:not(:has(aside[data-marketing-home-featured-picks])) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary] {
+    min-height: clamp(18rem, 42vw, 28rem);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-featured-bento]:has(aside[data-marketing-home-featured-picks])
     article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary] {
     min-height: 100%;
   }
@@ -393,7 +406,25 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     div[data-marketing-home-featured-bento] {
     grid-template-columns: minmax(0, 1.62fr) minmax(0, 0.88fr);
-    min-height: calc(var(--space-8) + var(--space-8) + var(--space-8));
+    min-height: 0;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-featured-bento]:not(:has(aside[data-marketing-home-featured-picks])) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Reset PR-20A full-span when PR-20N side-by-side bento is active */
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary] {
+    grid-column: auto;
+    min-height: clamp(20rem, 36vw, 30rem);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-home-featured-bento]:has(aside[data-marketing-home-featured-picks])
+    article[data-marketing-home-featured-card][data-marketing-home-featured-card-primary] {
+    min-height: 100%;
   }
 
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]

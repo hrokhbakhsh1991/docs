@@ -233,7 +233,11 @@
     "equipment": true,
     "blogTeaser": false
     },
-    "i18nProfile": "full"
+    "i18nProfile": "full",
+    "shellChrome": {
+      "localeSwitcher": false,
+      "headerToursCta": false
+    }
   },
   "guestSeo": {
     "marketing": {

@@ -14,10 +14,16 @@ code_sot:
   - apps/portal/src/auth/build-session-cookie.ts
   - apps/portal/app/catalog/[tourId]/register/page.tsx
   - apps/marketing/src/shell/marketing-shell.tsx
+  - apps/marketing/src/auth/read-marketing-member-session.server.ts
+  - apps/marketing/src/shell/resolve-marketing-member-header.server.ts
   - packages/session-client/src/validate-session-token-async.ts
   - packages/session-client/src/verify-session-jwt-signature.ts
   - packages/tenant-kernel/src/host/resolve-member-session-cookie-domain.ts
   - packages/guest-surface-host/src/resolve-portal-public-base-url.ts
+  - packages/guest-surface-host/src/resolve-portal-member-login-url.ts
+  - packages/guest-surface-host/src/resolve-member-login-catalog-tour-id.ts
+  - packages/guest-surface-host/src/is-localhost-ingress-host.ts
+  - packages/guest-surface-host/src/session-tenant-matches-dev-cross-surface-host.ts
 mandatory_for:
   - apps/portal
   - apps/marketing
@@ -25,7 +31,7 @@ mandatory_for:
 
 # Member Session Portal Authority (PCMS-001)
 
-**Principle:** Member identity (`atour_mb_session`) is owned by **`apps/portal` only**. Marketing remains anonymous. Operator uses `atour_op_session` on `apps/web` — separate actor.
+**Principle:** Member identity (`atour_mb_session`) is owned by **`apps/portal` only** (cookie write). Marketing may **read** the shared cookie for header chrome only. Operator uses `atour_op_session` on `apps/web` — separate actor.
 
 ---
 
@@ -33,8 +39,8 @@ mandatory_for:
 
 | Surface | Session | Registration auth |
 | ------- | ------- | ----------------- |
-| Marketing | None | N/A — static CTA links to portal `/me/registrations` (no session probe) |
-| Portal | `atour_mb_session` | OTP inline on `/catalog/{id}/register` OR existing cookie |
+| Marketing | Read-only probe (`readMarketingMemberSessionFromCookies`) | Header Sign in → `resolvePortalMemberLoginUrl`; authenticated → profile chip via `resolveMarketingMemberHeader` |
+| Portal | `atour_mb_session` read/write | OTP on **`/login`** OR existing cookie; tour registration on `/catalog/{id}/register` |
 | Web admin | `atour_op_session` | Operator invite login — never member cookie |
 
 ---
@@ -46,8 +52,9 @@ When a member with valid portal cookie opens `/catalog/{tourId}/register`:
 1. Server reads `readPublicCatalogSessionFromCookies()`
 2. Session `tenantId` must match `resolvePortalBootstrapForHost(host).tenantId`
 3. Server prefetches member profile via allowlisted `fetchMemberProfileFromSession` (same upstream as profile BFF) when session cookie is present → initial flow step **`intake`**
-4. When SSR cannot read `Domain=<apex>` cookies (dev Playwright custom apex), client flow hydrates from `/api/me/profile` and sets `data-registration-resume="intake"` on the flow root
-5. No marketing changes required
+4. **Stepper (PCMS-REG-02):** Resume at intake uses stepper mode **`intake-only`** — single «ثبت‌نام» step; auth steps (phone/otp/profile) are **not** shown as complete (they were skipped via session, not traversed in this flow).
+5. When SSR cannot read `Domain=<apex>` cookies (dev Playwright custom apex), client flow hydrates from `/api/me/profile` and sets `data-registration-resume="intake"` on the flow root
+6. No marketing changes required
 
 Custom apex dev smoke (`portal.denali.club`) does not resolve in Node DNS — SSR profile prefetch must not call `http://portal.denali.club:3003/...` directly. Use `PORTAL_INTERNAL_URL` (default dev `http://127.0.0.1:3003`) and forward ingress via **`x-forwarded-host`** (not HTTP `Host` — undici overwrites loopback Host) so tenant bind resolves tenant `…000003`.
 
@@ -81,6 +88,16 @@ When `AUTH_JWT_*` unset (unit tests / legacy dev), decode-only fallback remains 
 
 Default: **host-only** (no `Domain=` attribute) on platform `{club}.{root}` ingress (e.g. `denali.portal.localhost`).
 
+**PCMS-COOK-02 (dev):** When ingress host is `localhost` or `*.localhost` (see `isLocalhostIngressHost`), portal sets `Domain=localhost` on member cookie so `denali.localhost:3002` (marketing) and `denali.portal.localhost:3003` (portal) share session without extra env. **Not gated on `NODE_ENV`** — `next start` locally sets `NODE_ENV=production` while hosts remain `*.localhost`; domain derivation follows ingress TLD only (production FQDNs never match).
+
+**PCMS-COOK-03 (dev refresh):** Portal middleware re-issues `atour_mb_session` with `Domain=localhost` on every valid session request when ingress is `*.localhost` (via `shouldRefreshDevMemberSessionCookieDomain` / `isLocalhostIngressHost`), upgrading legacy host-only cookies after login without forcing re-OTP.
+
+**PCMS-COOK-04 (logout clear):** `clearSessionCookieOnResponse` emits **two** `Set-Cookie` clears when a shared domain applies — host-only **and** `Domain=<shared>` (e.g. `localhost` in dev, `denali.club` on custom apex) — so marketing loses the session when portal logout runs.
+
+**Marketing probe (PCMS-03-READ):** `readMarketingMemberSessionFromCookies` mirrors portal cookie read — `cookies()` first, then raw `Cookie` header via `readSessionTokenFromCookieHeader`. `resolveMarketingMemberHeader` binds session `tenant_id` to marketing bootstrap **or** dev host map (`marketing` / `portal` surface) before rendering the profile chip.
+
+**PCMS-03-DEV (cross-surface tenant bind):** When `ALLOW_DEV_WEB_SESSION=true` and ingress is `*.localhost`, `sessionTenantMatchesDevCrossSurfaceHost` accepts a valid member session when its `tenant_id` matches the paired M+P dev host map for the session's club label — even if marketing bootstrap fell back to `TOUR_OPS_DEV_TENANT_ID` on an unmapped host (e.g. bare `localhost:3002`). Production remains strict: widened branch is gated by `isDevGuestHostAllowed()`.
+
 When ingress host resolves as **custom apex** via `tryParseCustomApexHost` (e.g. `portal.denali.club`, `denali.club`), portal sets `Domain=<registrable-apex>` (`denali.club`) on `Set-Cookie` / clear so member session is shared across marketing apex and portal subdomain for that tenant only.
 
 Cookie write points: `verify-otp` (returning member), `register-complete` (new guest after profile), `/api/me/mobile/verify`, logout clear.
@@ -91,7 +108,52 @@ Cookie write points: `verify-otp` (returning member), `register-complete` (new g
 
 ## 5. Marketing portal link (PCMS-03)
 
-Marketing header exposes a static link to the member default module via `resolvePortalMemberModuleUrl(host)` (PS-3+). **PS-7 (2026-07-05):** deprecated `resolvePortalMemberAreaUrl` removed from GSH — use `resolvePortalMemberModuleUrl` only. No session probe on marketing — portal middleware handles auth redirect.
+Marketing header **Sign in** (`data-marketing-header-sign-in`) must target member **OTP login**, not a protected `/me/*` route directly. Guests hitting `/me/*` without `atour_mb_session` previously bounced to portal `/` then marketing — a redirect loop.
+
+### 5.0 Sign-in egress (PCMS-03 login — 2026-07-14)
+
+| Actor | Builder | Target |
+| ----- | ------- | ------ |
+| Marketing header Sign in | `resolvePortalMemberLoginUrl(host)` | Portal `/login?portalReturn=/me/registrations` |
+| Marketing tour PDP «ورود برای ادامه ثبت‌نام» | `resolvePortalRegistrationLoginUrl(host, tourId)` | Portal `/login?portalReturn=/catalog/{tourId}/register` |
+| Portal register «حساب دارید؟ ورود» | `resolvePortalMemberLoginPath(host, /catalog/{id}/register)` | Same register URL after OTP (intake-only resume) |
+| Marketing footer «ثبت‌نام‌های من» | `resolvePortalMemberModuleUrl(host)` | Portal `/me/registrations` (middleware redirects guests to login with `portalReturn`) |
+| Portal middleware (unauthenticated `/me/*`) | `resolvePortalMemberLoginPath(host, returnPath)` | `/login?portalReturn=<requested /me/* path>` |
+
+**Login route (PCMS-03-LOGIN — 2026-07-14):** Member sign-in uses dedicated **`/login`** on portal — not `/catalog/{tourId}/register`. OTP UI is shared with catalog registration auth steps; an internal smoke tour id (`resolveMemberLoginCatalogTourId`) bootstraps the workspace flow plugin server-side only — never exposed in the sign-in URL. Legacy `/catalog/{id}/register?portalReturn=…` redirects to `/login?portalReturn=…` (301-style via Next `redirect`).
+
+**Login tour id:** `resolveMemberLoginCatalogTourId(pluginId)` — workspace smoke map (Denali dev `…0220`, operator `…0210`, …). Override: `PORTAL_MEMBER_LOGIN_TOUR_ID` / `PORTAL_DEV_GUEST_TOUR_ID`.
+
+**Post-OTP return (login egress — PCMS-UX-01):** Dedicated **`/login`** route — **never** tour intake, regardless of smoke tour id used server-side to bootstrap the flow plugin.
+
+| Invariant | Rule |
+| --------- | ---- |
+| **PCMS-UX-01** | `GET /login` without safe `portalReturn` → SSR redirect to canonical `/login?portalReturn=<default member module>` (`resolvePortalMemberLoginPath`). |
+| **PCMS-UX-02** | Valid member session on `/login` → SSR redirect to `portalReturn` (or default module) — no OTP replay. |
+| **PCMS-UX-03** | After `verify-otp` (returning member) or `register-complete` (new member) on login egress: `completeMemberLoginEgress()` → `location.assign(resolved portalReturn)` — **`hydrateCatalogRegistrationIntakeAfterSession` is forbidden** on `/login`. |
+| **PCMS-UX-04** | `<main data-portal-return="…">` mirrors query for client fallback when query is stripped. |
+
+**Login chrome (PCMS-03-UX):** `data-member-login-egress` on login `<main>` — not tour registration chrome:
+
+1. `<title>` + `<h1>` → `loginPageTitle` (not `pageTitle` with tour name).
+2. Back link → marketing public base (`resolvePortalLoginBackHref`) with `backToMarketing` copy.
+3. Stepper **phone → otp → profile** only; `stepper.loginAriaLabel`.
+4. Phone step: no duplicate `<h2>`; hero lede is canonical (no repeated `phone.loginDescription` in step body).
+5. Tour policies block hidden on phone step.
+
+**Register route (tour registration):** `/catalog/{tourId}/register` without `portalReturn` — full phone → OTP → (profile) → intake (4-step stepper, tour back link, policies when present). Legacy `?portalReturn=` on register redirects to `/login?portalReturn=…`.
+
+**Cross-intent after login:** When `portalReturn=/catalog/{tourId}/register`, post-OTP lands on register page; SSR `buildRegistrationResumeInitialState` resumes at **intake-only** (PCMS-REG-01).
+
+### 5.2 Marketing authenticated header (PCMS-03 — 2026-07-14)
+
+When marketing SSR reads a valid member cookie for the resolved `tenantId`:
+
+1. `resolveMarketingMemberHeader(host, tenantId)` fetches display label + avatar from `GET /identity/me` (Bearer session token).
+2. Shell renders **profile chip** (`data-marketing-header-member`) linking to portal `/me/profile` — replaces Sign in (`data-marketing-header-sign-in`).
+3. Root shell sets `data-marketing-member-authenticated` for styling/tests.
+
+Marketing must **not** write member cookies or expose member BFF routes — read-only header probe only (`read-marketing-member-session.server.ts`).
 
 **Default module route:** Resolved from workspace `memberPortal.defaultPrimaryModuleId` (Denali Phase 2: `trips` → `/me/registrations`). The path `/me/registrations` remains a **permanent alias** independent of default (DL-03).
 
@@ -100,7 +162,7 @@ Marketing header exposes a static link to the member default module via `resolve
 | Field | Value |
 | ----- | ----- |
 | **Trigger** | `resolvePortalMemberModuleUrl` merged in GSH + delegation live |
-| **PCMS-003 update** | Marketing egress uses registry default module URL; frozen alias documented above |
+| **PCMS-003 update** | Marketing footer / nav member-module links use registry default module URL; header Sign in uses `resolvePortalMemberLoginUrl` (2026-07-14) |
 | **Traceability** | DL-22 · DL-26 · [builder-migration-contract.mdoc](../phase-19/member-portal-shell/builder-migration-contract.mdoc) · `guard-member-url-builder` |
 | **Cleanup** | Marketing migrated to `resolvePortalMemberModuleUrl` (PS-7 prep); remove deprecated export in BP-8 |
 

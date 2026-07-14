@@ -792,6 +792,27 @@ export function assertGuestLandingManifest(manifest) {
       );
     }
   }
+  if (landing.shellChrome !== undefined) {
+    if (
+      typeof landing.shellChrome !== "object" ||
+      landing.shellChrome === null ||
+      Array.isArray(landing.shellChrome)
+    ) {
+      throw new Error(`${manifest.id}: guestLanding.shellChrome must be an object`);
+    }
+    if (
+      landing.shellChrome.localeSwitcher !== undefined &&
+      typeof landing.shellChrome.localeSwitcher !== "boolean"
+    ) {
+      throw new Error(`${manifest.id}: guestLanding.shellChrome.localeSwitcher must be boolean`);
+    }
+    if (
+      landing.shellChrome.headerToursCta !== undefined &&
+      typeof landing.shellChrome.headerToursCta !== "boolean"
+    ) {
+      throw new Error(`${manifest.id}: guestLanding.shellChrome.headerToursCta must be boolean`);
+    }
+  }
 }
 
 /**
@@ -1053,6 +1074,20 @@ ${entries}
 `;
 }
 
+function normalizeGuestLandingShellChrome(landing) {
+  const chrome =
+    landing.shellChrome !== undefined &&
+    typeof landing.shellChrome === "object" &&
+    landing.shellChrome !== null &&
+    !Array.isArray(landing.shellChrome)
+      ? landing.shellChrome
+      : {};
+  return {
+    localeSwitcher: chrome.localeSwitcher === true,
+    headerToursCta: chrome.headerToursCta === true,
+  };
+}
+
 /** @param {ReturnType<typeof discoverManifests>[number]["guestLanding"]} landing */
 function normalizeGuestLandingContent(landing) {
   const whySectionAnchor =
@@ -1098,6 +1133,7 @@ export function generateWorkspaceGuestLanding(manifests) {
     assertGuestLandingManifest(manifest);
     const landing = manifest.guestLanding;
     const content = normalizeGuestLandingContent(landing);
+    const shellChrome = normalizeGuestLandingShellChrome(landing);
     landingByPlugin[manifest.id] = Object.freeze({
       variant: landing.variant,
       whySectionAnchor: content.whySectionAnchor,
@@ -1124,6 +1160,10 @@ export function generateWorkspaceGuestLanding(manifests) {
         blogTeaser: landing.sections.blogTeaser,
       }),
       i18nProfile: landing.i18nProfile,
+      shellChrome: Object.freeze({
+        localeSwitcher: shellChrome.localeSwitcher,
+        headerToursCta: shellChrome.headerToursCta,
+      }),
     });
   }
 
@@ -1157,6 +1197,10 @@ export function generateWorkspaceGuestLanding(manifests) {
       blogTeaser: ${value.sections.blogTeaser},
     }),
     i18nProfile: ${JSON.stringify(value.i18nProfile)},
+    shellChrome: Object.freeze({
+      localeSwitcher: ${value.shellChrome.localeSwitcher},
+      headerToursCta: ${value.shellChrome.headerToursCta},
+    }),
   }),`
     )
     .join("\n");
@@ -1190,6 +1234,10 @@ export type GuestLandingFeatures = Readonly<{
     readonly blogTeaser: boolean;
   }>;
   readonly i18nProfile: "full" | "minimal";
+  readonly shellChrome: Readonly<{
+    readonly localeSwitcher: boolean;
+    readonly headerToursCta: boolean;
+  }>;
 }>;
 
 /** Guest marketing landing gates — derived from workspace.manifest.json guestLanding. */

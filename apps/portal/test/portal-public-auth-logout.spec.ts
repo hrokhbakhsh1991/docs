@@ -18,9 +18,10 @@ describe("portal public-auth logout — MEM-AUTH-01", () => {
     assert.equal(res.status, 200);
     const body = (await res.json()) as { ok?: boolean };
     assert.equal(body.ok, true);
-    const setCookie = res.headers.get("set-cookie") ?? "";
-    assert.match(setCookie, new RegExp(`${SESSION_TOKEN_COOKIE}=`));
-    assert.match(setCookie, /Max-Age=0/i);
-    assert.match(setCookie, /HttpOnly/i);
+    const setCookies = res.headers.getSetCookie();
+    assert.ok(setCookies.length >= 1);
+    assert.ok(setCookies.every((value) => new RegExp(`${SESSION_TOKEN_COOKIE}=`).test(value)));
+    assert.ok(setCookies.every((value) => /Max-Age=0/i.test(value)));
+    assert.ok(setCookies.every((value) => /HttpOnly/i.test(value)));
   });
 });

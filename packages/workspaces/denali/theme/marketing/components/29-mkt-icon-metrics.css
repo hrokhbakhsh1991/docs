@@ -17,6 +17,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  [data-marketing-member-authenticated]
+  svg[data-marketing-header-member-icon] {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   summary[data-marketing-nav-drawer-toggle]
   svg[data-marketing-nav-drawer-toggle-icon] {
   width: 1.375rem;

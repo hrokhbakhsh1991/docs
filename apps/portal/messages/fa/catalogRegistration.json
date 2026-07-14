@@ -1,9 +1,16 @@
 {
   "pageTitle": "ثبت‌نام — {tourTitle}",
+  "loginPageTitle": "ورود",
+  "signInToRegister": "قبلاً ثبت‌نام کرده‌اید؟ ورود",
   "backToTour": "بازگشت به تور",
+  "backToMarketing": "بازگشت",
   "phone": {
     "title": "ورود یا ثبت‌نام",
+    "loginTitle": "ورود",
     "description": "شماره موبایل خود را وارد کنید.",
+    "existingMemberTitle": "تأیید موبایل",
+    "existingMemberDescription": "برای ادامه ثبت‌نام این تور، شماره موبایل خود را تأیید کنید.",
+    "loginDescription": "برای ورود به حساب کاربری، شماره موبایل خود را وارد کنید.",
     "label": "موبایل",
     "existingHint": "خوش آمدید — کد تأیید برای شما ارسال می‌شود.",
     "newHint": "کاربر جدید هستید — بعد از تأیید نام شما پرسیده می‌شود.",
@@ -12,6 +19,7 @@
   },
   "otp": {
     "title": "کد تأیید را وارد کنید",
+    "loginTitle": "تأیید برای ورود",
     "sentTo": "کد به {phone} ارسال شد",
     "verify": "تأیید",
     "verifying": "در حال تأیید…",
@@ -22,14 +30,19 @@
   },
   "profile": {
     "title": "تکمیل پروفایل",
+    "loginTitle": "ساخت حساب کاربری",
     "description": "نام اجباری است. ایمیل اختیاری.",
+    "loginDescription": "برای تکمیل ورود، نام خود را وارد کنید. ایمیل اختیاری است.",
     "nameLabel": "نام",
     "emailLabel": "ایمیل (اختیاری)",
     "continue": "ادامه",
+    "loginContinue": "ورود",
     "saving": "در حال ذخیره…"
   },
   "intake": {
     "title": "ثبت‌نام برای این تور",
+    "resumeLede": "اطلاعات ثبت‌نام این تور را تکمیل کنید.",
+    "signedInBadge": "ورود با {mobile}",
     "termsHeading": "قوانین و شرایط",
     "registrantTabsLabel": "این ثبت‌نام برای چه کسی است؟",
     "forSelfTab": "برای خودم",
@@ -86,8 +99,13 @@
     "DENALI_REGISTRATION_DUPLICATE": "قبلاً برای این تور ثبت‌نام کرده‌اید.",
     "network": "خطایی رخ داد. دوباره تلاش کنید."
   },
+  "sessionResume": {
+    "pending": "در حال بررسی ورود شما…"
+  },
   "stepper": {
     "ariaLabel": "مراحل ثبت‌نام",
+    "loginAriaLabel": "مراحل ورود",
+    "intakeOnlyAriaLabel": "مرحله ثبت‌نام تور",
     "phone": "موبایل",
     "otp": "کد",
     "profile": "پروفایل",

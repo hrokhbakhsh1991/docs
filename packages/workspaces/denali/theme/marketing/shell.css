@@ -185,7 +185,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-portal-member],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  a[data-marketing-header-sign-in] {
+  a[data-marketing-header-sign-in],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-header-member] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -210,7 +212,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   a[data-marketing-portal-member],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
-  a[data-marketing-header-sign-in] {
+  a[data-marketing-header-sign-in],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header][data-marketing-header-overlay]
+  a[data-marketing-header-member] {
   border-color: rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.06);
 }
@@ -218,13 +223,21 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   a[data-marketing-portal-member]:hover,
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
-  a[data-marketing-header-sign-in]:hover {
+  a[data-marketing-header-sign-in]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  a[data-marketing-header-member]:hover {
   background: rgba(255, 255, 255, 0.12);
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   span[data-marketing-header-sign-in-label] {
   display: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  img[data-marketing-header-member-avatar] {
+  border-radius: 999px;
+  object-fit: cover;
 }
 
 body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-header-cta] {
@@ -356,7 +369,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   a[data-marketing-portal-member],
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
-  a[data-marketing-header-sign-in] {
+  a[data-marketing-header-sign-in],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  nav[data-marketing-nav-drawer-panel]
+  a[data-marketing-header-member] {
   min-height: 2.75rem;
   display: inline-flex;
   align-items: center;
@@ -379,7 +395,10 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   a[data-marketing-portal-member]:hover,
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
-  a[data-marketing-header-sign-in]:hover {
+  a[data-marketing-header-sign-in]:hover,
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  nav[data-marketing-nav-drawer-panel]
+  a[data-marketing-header-member]:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -419,7 +438,11 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   header[data-marketing-header]:not([data-marketing-header-overlay])
   nav[data-marketing-nav-drawer-panel]
-  a[data-marketing-header-sign-in] {
+  a[data-marketing-header-sign-in],
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  header[data-marketing-header]:not([data-marketing-header-overlay])
+  nav[data-marketing-nav-drawer-panel]
+  a[data-marketing-header-member] {
   color: var(--color-text-link, var(--primary));
 }
 

@@ -9,11 +9,13 @@ import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routi
 export type CatalogTourDetailBookingRailProps = {
   readonly tour: MarketingCatalogCard;
   readonly registration: CatalogTourRegistrationState;
+  readonly tourSignInUrl?: string | null;
 };
 
 export async function CatalogTourDetailBookingRail({
   tour,
   registration,
+  tourSignInUrl = null,
 }: CatalogTourDetailBookingRailProps) {
   if (!registration.canRegister && !registration.isSoldOut) {
     return null;
@@ -50,7 +52,11 @@ export async function CatalogTourDetailBookingRail({
       {capacityLine != null ? (
         <p data-marketing-catalog-detail-rail-capacity>{capacityLine}</p>
       ) : null}
-      <CatalogTourDetailRegisterCta registration={registration} variant="rail" />
+      <CatalogTourDetailRegisterCta
+        registration={registration}
+        variant="rail"
+        tourSignInUrl={tourSignInUrl}
+      />
     </aside>
   );
 }

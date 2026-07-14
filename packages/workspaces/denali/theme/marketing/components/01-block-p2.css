@@ -1,7 +1,8 @@
 @media (max-width: 1023px) {
   body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     div[data-marketing-header-toolbar]
-    a[data-marketing-header-sign-in] {
+    a[data-marketing-header-sign-in],
+    a[data-marketing-header-member] {
     display: inline-flex;
   }
 
@@ -102,7 +103,9 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   width: 100%;
   max-width: var(--catalog-detail-max-width);
   margin-inline: auto;
-  padding: var(--catalog-page-padding-y) var(--catalog-page-padding-x);
+  padding-block: var(--catalog-page-padding-y);
+  padding-block-end: max(var(--catalog-page-padding-y), env(safe-area-inset-bottom, 0px));
+  padding-inline: var(--catalog-page-padding-x);
   scroll-behavior: smooth;
 }
 

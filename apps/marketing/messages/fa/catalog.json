@@ -101,6 +101,7 @@
     "defaultTourTitle": "تور",
     "backToTours": "بازگشت به تورها",
     "register": "ثبت‌نام",
+    "signInToRegister": "قبلاً ثبت‌نام کرده‌اید؟ ورود",
     "capacity": "ظرفیت: {count, number}",
     "spotsRemaining": "{count, number} جای خالی",
     "difficulty": "سطح سختی: {level, number} از {max, number}",

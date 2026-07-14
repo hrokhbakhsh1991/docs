@@ -39,7 +39,9 @@ export default async function MeRegistrationsPage() {
   return (
     <MemberModuleEntitlementGate host={host} bootstrap={bootstrap} moduleId="trips">
       <main data-portal-member-registrations>
-        <h1>{t("title")}</h1>
+        <header data-portal-member-page-header>
+          <h1>{t("title")}</h1>
+        </header>
         {rows.length === 0 ? (
           <div data-portal-member-registrations-empty-state>
             <p data-portal-member-registrations-empty>{t("empty")}</p>
@@ -48,7 +50,7 @@ export default async function MeRegistrationsPage() {
             </a>
           </div>
         ) : (
-          <ul>
+          <ul data-portal-member-registrations-list>
             {rows.map(({ item, statusLabel, paymentStatusLabel, departureLabel }) => (
               <li key={item.id} data-portal-member-registration-row>
                 <div data-portal-member-registration-row-header>
@@ -68,6 +70,9 @@ export default async function MeRegistrationsPage() {
                   </span>
                   <span data-portal-member-registration-departure>{departureLabel}</span>
                 </p>
+                <span data-portal-member-row-chevron aria-hidden="true">
+                  ›
+                </span>
               </li>
             ))}
           </ul>

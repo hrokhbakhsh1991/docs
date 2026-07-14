@@ -32,6 +32,10 @@ export type GuestLandingFeatures = Readonly<{
     readonly blogTeaser: boolean;
   }>;
   readonly i18nProfile: "full" | "minimal";
+  readonly shellChrome: Readonly<{
+    readonly localeSwitcher: boolean;
+    readonly headerToursCta: boolean;
+  }>;
 }>;
 
 /** Guest marketing landing gates — derived from workspace.manifest.json guestLanding. */
@@ -64,6 +68,10 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
       blogTeaser: false,
     }),
     i18nProfile: "full",
+    shellChrome: Object.freeze({
+      localeSwitcher: false,
+      headerToursCta: false,
+    }),
   }),
   "guest-club": Object.freeze({
     variant: "minimal",
@@ -91,6 +99,10 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
       blogTeaser: false,
     }),
     i18nProfile: "minimal",
+    shellChrome: Object.freeze({
+      localeSwitcher: false,
+      headerToursCta: false,
+    }),
   }),
   "urban": Object.freeze({
     variant: "minimal",
@@ -118,5 +130,9 @@ export const WORKSPACE_GUEST_LANDING: Readonly<
       blogTeaser: false,
     }),
     i18nProfile: "minimal",
+    shellChrome: Object.freeze({
+      localeSwitcher: false,
+      headerToursCta: false,
+    }),
   }),
 });

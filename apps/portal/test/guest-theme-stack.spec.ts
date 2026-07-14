@@ -78,7 +78,16 @@ describe("guest-theme-stack.spec.ts — portal", () => {
       skin,
       /body\[data-app-surface="portal"\]\[data-workspace-plugin="denali"\]/
     );
-    assert.match(skin, /main\[data-catalog-registration-page\]/);
+    assert.match(
+      skin,
+      /main:is\(\[data-catalog-registration-page\], \[data-portal-member-login-page\]\)/
+    );
+    assert.match(skin, /portal\/login-page\.css/);
+    assert.match(skin, /portal\/member-shell\.css/);
+    assert.match(skin, /portal\/member-shell-desktop\.css/);
+    assert.match(skin, /portal\/member-pages\.css/);
+    assert.match(skin, /portal\/member-pages-desktop\.css/);
+    assert.match(skin, /portal\/member-profile\.css/);
     assert.match(skin, /main\[data-portal-member-registrations\]/);
     assert.match(skin, /main\[data-portal-member-home\]/);
     assert.match(skin, /main\[data-portal-member-profile\]/);

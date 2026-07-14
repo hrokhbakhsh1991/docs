@@ -1,5 +1,4 @@
 import { PortalMemberUserMenu } from "./portal-member-user-menu";
-import { PortalLocaleSwitcher } from "@/i18n/portal-locale-switcher";
 import type { PortalMemberNavItem } from "./portal-member-nav.types";
 import { PORTAL_MEMBER_SHELL_TEST_IDS } from "./portal-member-nav.types";
 
@@ -27,7 +26,6 @@ export function PortalMemberHeader({
         <span data-portal-shell-workspace-label>{workspaceLabel}</span>
       </div>
       <div data-portal-shell-header-end data-slot="shell-header-end">
-        <PortalLocaleSwitcher />
         <PortalMemberUserMenu items={userMenuNav} />
       </div>
     </header>

@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  resolvePortalMemberLoginPath,
+  resolvePortalMemberLoginUrl,
   resolvePortalMemberModuleUrl,
   resolvePortalPublicBaseUrl,
+  resolvePortalRegistrationLoginPath,
+  resolvePortalRegistrationLoginUrl,
   resolvePortalRegistrationUrl,
 } from "../src/index";
 
@@ -59,5 +63,32 @@ describe("resolve-portal-member-module-url — PS-3", () => {
 
   it("GSH-PS3-05 unknown host returns null when member portal cannot resolve", () => {
     assert.equal(resolvePortalMemberModuleUrl("unknown.example"), null);
+  });
+});
+
+describe("resolve-portal-member-login-url — PCMS-03", () => {
+  it("GSH-PCMS-01 sign-in URL targets /login with portalReturn on custom apex", () => {
+    assert.equal(
+      resolvePortalMemberLoginUrl("denali.club"),
+      "http://portal.denali.club:3003/login?portalReturn=%2Fme%2Fregistrations"
+    );
+  });
+
+  it("GSH-PCMS-02 login path preserves safe portalReturn override", () => {
+    assert.equal(
+      resolvePortalMemberLoginPath("denali.club", "/me/profile"),
+      "/login?portalReturn=%2Fme%2Fprofile"
+    );
+  });
+
+  it("GSH-PCMS-03 tour sign-in path returns to catalog register", () => {
+    assert.equal(
+      resolvePortalRegistrationLoginPath("denali.club", "tour-abc"),
+      "/login?portalReturn=%2Fcatalog%2Ftour-abc%2Fregister"
+    );
+    assert.equal(
+      resolvePortalRegistrationLoginUrl("denali.club", "tour-abc"),
+      "http://portal.denali.club:3003/login?portalReturn=%2Fcatalog%2Ftour-abc%2Fregister"
+    );
   });
 });

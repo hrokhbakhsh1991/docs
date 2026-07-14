@@ -47,6 +47,17 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     assert.match(page, /buildRegistrationResumeInitialState/);
   });
 
+  it("PCMS-REG-LINK-01 register page exposes guest sign-in link with portalReturn", () => {
+    const pagePath = join(
+      repoRoot,
+      "apps/portal/app/catalog/[tourId]/register/page.tsx"
+    );
+    const page = readFileSync(pagePath, "utf8");
+    assert.match(page, /data-portal-register-sign-in-link/);
+    assert.match(page, /resolvePortalMemberLoginPath/);
+    assert.match(page, /signInToRegister/);
+  });
+
   it("P8-03 OTP orchestration lives in shared catalog-registration-flow-ui", () => {
     const authStepsPath = join(
       repoRoot,
@@ -55,6 +66,16 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     const authSteps = readFileSync(authStepsPath, "utf8");
     assert.match(authSteps, /request-otp/);
     assert.match(authSteps, /verify-otp/);
+    assert.match(authSteps, /completeMemberLoginEgress/);
+    assert.match(authSteps, /isMemberLoginEgressFromLocation/);
+    assert.doesNotMatch(
+      authSteps,
+      /completeMemberLoginEgressIfPresent\(\)[\s\S]*hydrateCatalogRegistrationIntakeAfterSession/
+    );
+    assert.match(
+      authSteps,
+      /if \(isMemberLoginEgressFromLocation\(\)\) \{[\s\S]*completeMemberLoginEgress\(\);[\s\S]*return;[\s\S]*\}[\s\S]*await hydrateCatalogRegistrationIntakeAfterSession/
+    );
     assert.doesNotMatch(denaliIntake, /request-otp/);
   });
 });

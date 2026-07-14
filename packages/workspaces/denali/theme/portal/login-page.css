@@ -1,0 +1,659 @@
+/**
+ * Denali portal — auth experience shell (login + catalog registration OTP).
+ * Hooks: data-portal-auth-* · page markers data-portal-member-login-page | data-catalog-registration-page
+ */
+@import "./denali-form-controls.css";
+
+/* ── Page shell (login + registration) ────────────────────────────────────── */
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page]) {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: clip;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-auth-backdrop] {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 90% 55% at 50% -8%,
+      color-mix(in oklab, var(--color-primary) 16%, transparent),
+      transparent 68%
+    ),
+    linear-gradient(
+      168deg,
+      var(--color-bg-page) 0%,
+      color-mix(in oklab, var(--denali-alpine-600) 7%, var(--color-bg-page)) 52%,
+      var(--color-bg-muted) 100%
+    );
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-auth-backdrop]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: min(38vh, 16rem);
+  opacity: 0.42;
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--denali-alpine-600) 22%, transparent),
+    transparent 72%
+  );
+  clip-path: polygon(
+    0% 100%,
+    0% 58%,
+    12% 72%,
+    24% 52%,
+    36% 68%,
+    48% 44%,
+    60% 62%,
+    72% 40%,
+    84% 56%,
+    100% 38%,
+    100% 100%
+  );
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-auth-layout] {
+  width: min(100%, 28rem);
+  margin-inline: auto;
+  padding: var(--space-4) var(--space-4) var(--space-12);
+  box-sizing: border-box;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page][data-registration-resume="intake"]
+  [data-portal-auth-layout] {
+  width: min(100%, 36rem);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-registration-chrome] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-registration-back] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid color-mix(in oklab, var(--color-border-default) 80%, transparent);
+  background: color-mix(in srgb, var(--color-bg-surface) 88%, transparent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--denali-shadow-card);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-registration-back]:hover {
+  text-decoration: none;
+  background: var(--color-bg-surface);
+  border-color: var(--color-border-default);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-registration-brand] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-registration-logo] {
+  border-radius: var(--radius-md);
+  box-shadow: var(--denali-shadow-card);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-auth-card] {
+  padding: var(--space-6);
+  border: 1px solid color-mix(in oklab, var(--color-border-subtle) 90%, white);
+  border-radius: calc(var(--radius) * 1.75);
+  background: color-mix(in srgb, var(--color-bg-surface) 96%, transparent);
+  box-shadow: var(--denali-shadow-card-hover);
+}
+
+@supports (backdrop-filter: blur(0.75rem)) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-auth-card] {
+    backdrop-filter: blur(0.5rem) saturate(120%);
+    background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  }
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-auth-hero] {
+  margin-bottom: var(--space-5);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-hero]
+  h1 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading, inherit);
+  font-size: clamp(1.75rem, 4.5vw, 2.125rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-auth-lede] {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-register-sign-in-link] {
+  margin: 0 0 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-register-sign-in-link] a {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-portal-register-sign-in-link] a:hover {
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-registration-resume-pending] {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] [data-registration-resume-pending] p {
+  margin: 0;
+}
+
+/* Hero replaces duplicate step intros inside auth card. */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-auth-card]
+  [data-public-registration-phone]
+  > h2,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-portal-member-login-page]
+  [data-public-registration-phone]
+  > p:first-of-type {
+  display: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-auth-card]
+  [data-public-registration-phone]
+  > h2
+  + p {
+  display: none;
+}
+
+/* ── Auth stepper ─────────────────────────────────────────────────────────── */
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-stepper] {
+  display: flex;
+  gap: 0;
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-stepper]
+  li {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-inline: var(--space-1);
+  text-align: center;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-stepper][data-registration-stepper-mode="intake-only"] {
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-stepper][data-registration-stepper-mode="intake-only"]
+  li {
+  flex: 0 1 auto;
+  min-width: 6rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-stepper]
+  li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 0.875rem;
+  inset-inline-start: calc(50% + 0.875rem);
+  width: calc(100% - 1.75rem);
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--color-border-subtle);
+  z-index: 0;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-step-state="complete"]:not(:last-child)::after {
+  background: color-mix(in oklab, var(--color-primary) 55%, var(--color-border-subtle));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-step-index] {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full, 9999px);
+  border: 2px solid var(--color-border-default);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  box-shadow: var(--denali-shadow-card);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-step-state="current"]
+  [data-registration-step-index] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-primary) 18%, transparent);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-step-state="complete"]
+  [data-registration-step-index] {
+  border-color: var(--color-primary);
+  background: color-mix(in oklab, var(--color-primary) 12%, var(--color-bg-surface));
+  color: var(--color-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-step-label] {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-text-muted);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-catalog-registration-page], [data-portal-member-login-page])
+  [data-registration-step-state="current"]
+  [data-registration-step-label] {
+  color: var(--color-text-primary);
+}
+
+/* ── Auth form step layout (phone / OTP / profile) ────────────────────────── */
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-phone],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-otp],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-profile] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-otp]
+  button[type="button"]:not([data-action="verify-otp"]) {
+  width: auto;
+  align-self: flex-start;
+  min-height: auto;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  color: var(--color-text-link, var(--color-primary));
+  font-weight: 600;
+  box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-phone]
+  p:not([role="alert"]) {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  [data-tour-policies] {
+  padding: var(--space-4);
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: color-mix(in oklab, var(--color-bg-muted) 70%, var(--color-bg-surface));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  [data-tour-policies]
+  h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  [data-tour-policies]
+  p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* ── Session chip (member resume at intake) ───────────────────────────────── */
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main[data-catalog-registration-page]
+  [data-portal-auth-session-chip] {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 28%, transparent);
+  background: color-mix(in oklab, var(--color-primary) 10%, var(--color-bg-surface));
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ── Intake + success steps inside auth card ──────────────────────────────── */
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-intake],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-success] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-public-registration-intake]
+  > h2 {
+  display: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-schema-intake-form] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-schema-intake-form]
+  > label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-intake]
+  [data-registration-price-hint],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-intake]
+  [data-intake-known-name] {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: color-mix(in oklab, var(--color-bg-muted) 65%, var(--color-bg-surface));
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-registration-target-tabs] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1);
+  border-radius: calc(var(--radius) * 1.1);
+  border: 1px solid var(--color-border-subtle);
+  background: color-mix(in oklab, var(--color-bg-muted) 55%, var(--color-bg-surface));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-registration-target-tabs]
+  button[type="button"] {
+  width: auto;
+  align-self: stretch;
+  min-height: 2.5rem;
+  margin-top: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) * 0.95);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-registration-target-tabs]
+  button[type="button"][aria-selected="true"] {
+  border-color: color-mix(in oklab, var(--color-primary) 35%, transparent);
+  background: var(--color-bg-surface);
+  color: var(--color-primary);
+  box-shadow: var(--denali-shadow-card);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-public-registration-transport],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  .portal-registration-transport-opt-in {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: color-mix(in oklab, var(--color-bg-muted) 60%, var(--color-bg-surface));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-public-registration-transport]
+  legend {
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-public-registration-transport]
+  p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  [data-public-registration-transport]
+  label,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-portal-auth-card]
+  .portal-registration-transport-opt-in {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 500;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-success]
+  p[role="status"] {
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 30%, transparent);
+  background: color-mix(in oklab, var(--color-primary) 10%, var(--color-bg-surface));
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-success]
+  a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  border-radius: calc(var(--radius) * 1.1);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  color: var(--color-text-link, var(--color-primary));
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  main:is([data-portal-member-login-page], [data-catalog-registration-page])
+  [data-public-registration-success]
+  a:hover {
+  border-color: color-mix(in oklab, var(--color-primary) 35%, transparent);
+  background: color-mix(in oklab, var(--color-primary) 6%, var(--color-bg-surface));
+}
+
+/* ── Desktop auth frame (PS-VIS-5) ─────────────────────────────────────────── */
+
+@media (min-width: 48rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main:is([data-portal-member-login-page], [data-catalog-registration-page]) {
+    justify-content: center;
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-auth-layout] {
+    width: min(100%, 32rem);
+    padding: var(--space-8) var(--space-5) var(--space-10);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main:is([data-portal-member-login-page], [data-catalog-registration-page])
+    [data-portal-auth-card] {
+    padding: var(--space-6);
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--color-primary) 5%, transparent),
+      0 20px 40px rgb(4 47 46 / 0.1),
+      0 6px 14px rgb(4 47 46 / 0.06);
+  }
+}
+
+@media (min-width: 64rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    main[data-catalog-registration-page][data-registration-resume="intake"]
+    [data-portal-auth-layout] {
+    width: min(100%, 40rem);
+  }
+}

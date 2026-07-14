@@ -34,6 +34,7 @@ const STORY_DISABLED: GuestLandingFeatures = {
     ...PR8_SECTIONS_OFF,
   },
   i18nProfile: "full",
+  shellChrome: { localeSwitcher: false, headerToursCta: false },
 };
 
 const STORY_ENABLED: GuestLandingFeatures = {
@@ -56,6 +57,7 @@ const STORY_ENABLED: GuestLandingFeatures = {
     ...PR8_SECTIONS_OFF,
   },
   i18nProfile: "full",
+  shellChrome: { localeSwitcher: false, headerToursCta: false },
 };
 
 describe("home-section-gates-v2.spec.ts — HOME-UNIT-05", () => {

@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import {
   resolvePortalMemberModuleUrl,
   resolvePortalPublicBaseUrl,
+  resolveWebRegistrationLoginUrl,
   resolveWebRegistrationUrl,
   supportsCatalogRegistration,
 } from "../src/portal/resolve-web-registration-url";
@@ -66,6 +67,14 @@ describe("resolve-web-registration-url", () => {
       resolveWebRegistrationUrl("denali.club", "tour-abc", "denali"),
       "http://portal.denali.club:3003/catalog/tour-abc/register"
     );
+  });
+
+  it("MKT-PCMS-02 tour sign-in URL returns to catalog register after login", () => {
+    assert.equal(
+      resolveWebRegistrationLoginUrl("denali.club", "tour-abc", "denali"),
+      "http://portal.denali.club:3003/login?portalReturn=%2Fcatalog%2Ftour-abc%2Fregister"
+    );
+    assert.equal(resolveWebRegistrationLoginUrl("denali.club", "tour-abc", "starter"), null);
   });
 
   it("MKT-13 static member module link to portal (PCMS-03)", () => {

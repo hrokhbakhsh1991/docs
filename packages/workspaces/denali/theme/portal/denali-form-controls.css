@@ -1,0 +1,180 @@
+/**
+ * Denali portal — shared form controls (auth card + member profile + receipt).
+ * Imported by login-page.css and member-profile.css.
+ */
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
+  label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    main[data-portal-member-profile] [data-portal-member-profile]
+  )
+  select {
+  width: 100%;
+  min-height: 3rem;
+  border-radius: calc(var(--radius) * 1.1);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus-visible,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    main[data-portal-member-profile] [data-portal-member-profile]
+  )
+  select:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  outline: none;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
+  :is(
+    button[type="submit"],
+    [data-member-profile-save],
+    [data-portal-member-receipt-submit]
+  ) {
+  align-self: stretch;
+  width: 100%;
+  min-height: 3rem;
+  margin-top: var(--space-1);
+  border: none;
+  border-radius: calc(var(--radius) * 1.1);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-primary) 92%, white),
+    var(--color-primary)
+  );
+  color: var(--color-primary-fg);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 1px 2px rgb(4 120 87 / 0.24),
+    0 6px 16px rgb(5 150 105 / 0.18);
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
+  :is(
+    button[type="submit"],
+    [data-member-profile-save],
+    [data-portal-member-receipt-submit]
+  ):not(:disabled):hover {
+  filter: brightness(1.03);
+  box-shadow:
+    0 2px 4px rgb(4 120 87 / 0.26),
+    0 10px 22px rgb(5 150 105 / 0.22);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
+  :is(
+    button[type="submit"],
+    [data-member-profile-save],
+    [data-portal-member-receipt-submit]
+  ):not(:disabled):active {
+  transform: translateY(1px);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  :is(
+    [data-portal-auth-card],
+    main[data-portal-member-profile] [data-portal-member-profile],
+    [data-portal-member-receipt-upload]
+  )
+  :is(
+    button[type="submit"],
+    [data-member-profile-save],
+    [data-portal-member-receipt-submit]
+  ):disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-auth-card]
+  button[type="button"] {
+  align-self: stretch;
+  width: 100%;
+  min-height: 3rem;
+  margin-top: var(--space-1);
+  border: none;
+  border-radius: calc(var(--radius) * 1.1);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-primary) 92%, white),
+    var(--color-primary)
+  );
+  color: var(--color-primary-fg);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 1px 2px rgb(4 120 87 / 0.24),
+    0 6px 16px rgb(5 150 105 / 0.18);
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-auth-card]
+  [role="alert"] {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklab, var(--destructive) 35%, transparent);
+  background: color-mix(in oklab, var(--destructive) 8%, var(--color-bg-surface));
+  color: var(--destructive);
+  font-size: 0.875rem;
+  margin: 0;
+}

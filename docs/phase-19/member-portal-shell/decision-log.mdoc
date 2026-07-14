@@ -156,12 +156,12 @@ extends:
 
 | Field | Value |
 | ----- | ----- |
-| **Status** | **PENDING SIGN-OFF** |
+| **Status** | **IMPLEMENTED (subset — 2026-07-14)** |
 | **Context** | MAP §3.6 intent; prevents open redirect. |
-| **Decision** | Query `portalReturn` on register egress; allowlist relative paths on marketing host only. |
-| **Consequences** | Not implemented in repo today. |
-| **Dependencies** | PCMS; MIGRATION-MAP §3.6 |
-| **Open questions** | Implementation phase for portalReturn. |
+| **Decision** | Query `portalReturn` on portal `/login` egress; safe relative paths only (`isSafePortalReturnPath` — leading `/`, no `//`). Targets: `/me/*`, `/catalog/{tourId}/register`. |
+| **Consequences** | `completeMemberLoginEgress()` resolves query → `data-portal-return` → default module. Login never enters tour intake. |
+| **Dependencies** | PCMS §5.0 PCMS-UX-01..04; `packages/catalog-registration-flow-ui/src/read-portal-return.ts` |
+| **Open questions** | Strict prefix allowlist (marketing-only builders) deferred. |
 
 ### DL-13 — Telegram / embedded host adapter
 

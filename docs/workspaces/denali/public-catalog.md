@@ -136,6 +136,7 @@ Wizard uploads persist canonical photo rows with **`storageKey`** (tenant-scoped
 2. **Itinerary segment photos** — `buildDenaliCatalogPhotoUrlById` presigns each referenced photo id; `projectDenaliCatalogItinerary` merges into segment `photoUrls`.
 3. **Exposure** — when `denali.photos` is hidden, `coverImageUrl` is redacted after enrichment (unchanged).
 4. **Dev** — presign requires MinIO env (`readMinioPhotoConfigFromEnv`); without config, `coverImageUrl` stays `null` and marketing falls back to placeholder.
+5. **Smoke placeholder URLs** — operator/denali dev seeds may emit `https://cdn.example/...` (IANA `.example` reserved host). Marketing `resolveHomeTourCoverUrl` treats these as unreachable and serves `/home/fallback-tour-cover.webp` on list cards, home blocks, and detail hero when no real CDN/MinIO URL is configured.
 
 Marketing `CatalogCoverImage` uses `unoptimized` for hosts outside `MARKETING_IMAGE_REMOTE_HOSTS` (typical for presigned MinIO URLs).
 
@@ -583,7 +584,7 @@ Marketing tag invalidated: `marketing-catalog-{tenantId}` (see `buildMarketingCa
 
 ### Denali club dev catalog seed (M12.1)
 
-`denali.localhost:3002` resolves tenant `00000000-0000-4000-8000-000000000003`. Operator smoke tenant `…000014` owns tour id `…0210` globally in Prisma — the club dev tenant uses a **separate** published tour id `00000000-0000-4000-8000-000000000220` (`seedDenaliClubDevPublishedTour`).
+`denali.localhost:3002` resolves tenant `00000000-0000-4000-8000-000000000003`. Operator smoke tenant `…000014` owns tour id `…0210` globally in Prisma — the club dev tenant uses a **separate** published tour id `00000000-0000-4000-8000-000000000220` (`seedDenaliClubDevPublishedTour`). In-memory dev storage seeds the same canonical tour under id `…0220` for tenant `…000003` (not `…0210`) so marketing smokes and `denali.localhost` agree on tour PK.
 
 | Command | When |
 |---------|------|

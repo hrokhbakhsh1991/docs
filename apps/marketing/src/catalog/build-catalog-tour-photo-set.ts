@@ -2,6 +2,7 @@ import {
   MARKETING_FALLBACK_TOUR_COVER_PATH,
   MARKETING_GALLERY_FALLBACK_PATHS,
 } from "../home/home-marketing-assets";
+import { resolveMarketingCatalogPhotoUrl } from "../home/resolve-home-tour-cover-url";
 
 import type { MarketingCatalogCard } from "./catalog-types";
 
@@ -18,12 +19,12 @@ function collectTourApiPhotoUrls(tour: MarketingCatalogCard): string[] {
   const seen = new Set<string>();
 
   const add = (value: string | null | undefined): void => {
-    const trimmed = value?.trim() ?? "";
-    if (trimmed.length === 0 || seen.has(trimmed)) {
+    const resolved = resolveMarketingCatalogPhotoUrl(value);
+    if (resolved == null || seen.has(resolved)) {
       return;
     }
-    seen.add(trimmed);
-    urls.push(trimmed);
+    seen.add(resolved);
+    urls.push(resolved);
   };
 
   add(tour.coverImageUrl);

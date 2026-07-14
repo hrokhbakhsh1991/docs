@@ -71,18 +71,15 @@ export function MemberProfileAvatar({
   }
 
   return (
-    <div className="member-profile-avatar" data-member-profile-avatar>
-      <div
-        className="member-profile-avatar__preview"
-        aria-hidden={avatarUrl === null}
-      >
+    <div data-member-profile-avatar>
+      <div data-member-profile-avatar-preview aria-hidden={avatarUrl === null}>
         {avatarUrl !== null && avatarUrl.length > 0 ? (
-          <img src={avatarUrl} alt="" className="member-profile-avatar__image" />
+          <img src={avatarUrl} alt="" data-member-profile-avatar-image />
         ) : (
-          <span className="member-profile-avatar__initials">{initials}</span>
+          <span data-member-profile-avatar-initials>{initials}</span>
         )}
       </div>
-      <div className="member-profile-avatar__actions">
+      <div data-member-profile-avatar-actions>
         <input
           ref={inputRef}
           type="file"

@@ -1,36 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
-import { buildMemberHubPayload, type MemberHubPayload } from "@/me/member-hub-bff.server";
+import { buildMemberHubPayload } from "@/me/member-hub-bff.server";
 import { MemberMoreHubEntitlementGate } from "@/me/member-module-entitlement-gate";
 import { resolveMemberEntitlementsForShell } from "@/me/resolve-member-entitlements-for-shell.server";
 import { resolvePortalMemberNavForPlugin } from "@/shell/resolve-portal-member-nav.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
-function HubModuleList({
-  payload,
-  labelForKey,
-}: {
-  readonly payload: MemberHubPayload;
-  readonly labelForKey: (labelKey: string) => string;
-}) {
-  return (
-    <ul
-      data-portal-member-hub-list
-      data-portal-member-hub-mode={payload.presentation.mode}
-    >
-      {payload.modules.map((module) => (
-        <li key={module.id}>
-          <Link href={module.routePath} data-testid={`portal-hub-link-${module.id}`}>
-            {labelForKey(module.labelKey)}
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
+import { MemberMoreHubList } from "./member-more-hub-list";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("portalMember.hub");
@@ -39,7 +17,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MeMorePage() {
   const t = await getTranslations("portalMember.hub");
-  const tNav = await getTranslations("portalMember.nav");
   const host = await readPortalIngressHost();
   const bootstrap = await resolvePortalBootstrapForHost(host);
   const entitlements = await resolveMemberEntitlementsForShell(host, bootstrap);
@@ -54,11 +31,21 @@ export default async function MeMorePage() {
   return (
     <MemberMoreHubEntitlementGate host={host} bootstrap={bootstrap}>
       <main data-portal-member-more>
-        <h1>{t("title")}</h1>
+        <header data-portal-member-page-header>
+          <h1>{t("title")}</h1>
+        </header>
         {hubPayload.modules.length === 0 ? (
           <p data-portal-member-hub-empty>{t("empty")}</p>
         ) : (
-          <HubModuleList payload={hubPayload} labelForKey={(key) => tNav(key)} />
+          <MemberMoreHubList
+            mode={hubPayload.presentation.mode}
+            items={hubPayload.modules.map((module) => ({
+              id: module.id,
+              href: module.routePath,
+              labelKey: module.labelKey,
+              testId: `portal-hub-link-${module.id}`,
+            }))}
+          />
         )}
       </main>
     </MemberMoreHubEntitlementGate>

@@ -1,0 +1,238 @@
+/* PR-D mobile detail closure — gutter parity with /tours, hero-first fold, jump nav (≤767px) */
+
+@media (max-width: 47.99rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
+    --catalog-page-padding-y: var(--space-4);
+    --catalog-detail-section-gap: var(--space-4);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    main[data-marketing-catalog-detail-page] {
+    /* Same gutter contract as main[data-marketing-catalog] — no full-bleed breakout */
+    padding-block: var(--catalog-page-padding-y);
+    padding-block-end: max(var(--catalog-page-padding-y), env(safe-area-inset-bottom, 0px));
+    padding-inline: var(--catalog-page-padding-x);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-layout] {
+    gap: var(--space-4);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-main] {
+    gap: var(--space-3);
+  }
+
+  /* R-D02 — cover → title → breadcrumb (not nav chrome above hero) */
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-intro] {
+    gap: var(--space-3);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-hero-gallery],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    figure[data-marketing-catalog-detail-cover][data-marketing-catalog-detail-hero]:not(
+      [data-marketing-catalog-detail-hero-gallery-primary]
+    ) {
+    order: 1;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    border-radius: var(--catalog-card-radius);
+    border-inline: 1px solid var(--border);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    header[data-marketing-catalog-detail-header] {
+    order: 2;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    nav[data-marketing-catalog-breadcrumb-nav] {
+    order: 3;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    a[data-marketing-catalog-detail-back] {
+    display: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    h1[data-marketing-catalog-detail-title] {
+    font-size: clamp(1.375rem, 5.5vw, 2rem);
+    line-height: 1.3;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    p[data-marketing-catalog-detail-destination],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    p[data-marketing-catalog-detail-meta] {
+    font-size: 0.9375rem;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    nav[data-marketing-catalog-breadcrumb-nav] {
+    font-size: var(--mkt-text-small);
+    color: var(--muted-foreground);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-catalog-breadcrumb-list] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-catalog-breadcrumb-list]
+    > li:not([data-marketing-catalog-breadcrumb-current]):not(:last-child)::after {
+    content: "›";
+    margin-inline: var(--space-1);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-catalog-breadcrumb-list]
+    a {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-catalog-breadcrumb-current] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1 1 auto;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    dl[data-marketing-catalog-detail-facts] {
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    nav[data-marketing-catalog-detail-jump-nav] {
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-inline: 0;
+    scrollbar-width: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    nav[data-marketing-catalog-detail-jump-nav]::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    nav[data-marketing-catalog-detail-jump-nav]
+    ul {
+    flex-wrap: nowrap;
+    width: max-content;
+    max-width: none;
+    padding-bottom: var(--space-1);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    nav[data-marketing-catalog-detail-jump-nav]
+    a {
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-body] {
+    gap: var(--space-3);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-catalog-detail-readiness],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-catalog-detail-logistics],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-catalog-detail-gear],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-catalog-detail-services],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-catalog-detail-gallery],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-catalog-detail-register-preview],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-catalog-detail-faq],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-catalog-itinerary],
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    section[data-marketing-catalog-detail-policies] {
+    padding: var(--space-3);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    div[data-marketing-catalog-detail-sticky-bar]
+    p[data-marketing-catalog-detail-sold-out] {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    text-align: center;
+  }
+}
+
+/* Breadcrumb base (all viewports — was unstyled) */
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  nav[data-marketing-catalog-breadcrumb-nav] {
+  margin: 0;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  ol[data-marketing-catalog-breadcrumb-list] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  ol[data-marketing-catalog-breadcrumb-list]
+  a {
+  text-decoration: none;
+  color: var(--color-text-link, var(--primary));
+}
+
+@media (min-width: 48rem) {
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-catalog-breadcrumb-list] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--mkt-text-small);
+    color: var(--muted-foreground);
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    ol[data-marketing-catalog-breadcrumb-list]
+    > li:not([data-marketing-catalog-breadcrumb-current]):not(:last-child)::after {
+    content: "›";
+    margin-inline: var(--space-1);
+    opacity: 0.55;
+  }
+
+  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+    li[data-marketing-catalog-breadcrumb-current] {
+    font-weight: 600;
+    color: var(--foreground);
+  }
+}
