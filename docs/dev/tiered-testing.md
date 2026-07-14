@@ -4,19 +4,19 @@
 
 ## Tiers
 
-| Tier                             | Command                              | When                                        | What runs                                                                                                                                              |
-| -------------------------------- | ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Fast (default)**               | Husky → `scripts/pre-commit-fast.sh` | Every `git commit`                          | `guard-docs`, Node engine, eslint on changed TS (root + `apps/web`), optional prettier (if installed + config), `test-changed` for affected workspaces |
-| **Changed tests**                | `pnpm run test:changed`              | Manual / CI selective                       | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                          |
-| **Pre-commit dry-run**           | `pnpm run pre-commit:fast`           | Before commit                               | Same as Husky fast path                                                                                                                                |
-| **Full**                         | `pnpm run test:full`                 | Before PR / Phase 4 closure                 | `phase-3:gate` + `phase-4:gate` (includes build, full `pnpm test`, guards, doc-gate, `p4_rls_integration_tests` when env set)                          |
-| **CI integrity**                 | `pnpm run ci:integrity`              | GitHub / explicit local                     | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — **not** Husky default                                                                           |
-| **Phase 8 guard (fast)**         | `pnpm run phase-8:guard`             | PR / local                                  | 25 doc + boundary charter gates — under 10s                                                                                                              |
-| **Phase 8 urban regression**     | GHA job `urban-regression`           | GitHub PR (`phase-8-gate.yml`)              | Contract + urban proof bundle (memory driver)                                                                                                          |
-| **Phase 8 urban E2E**            | `pnpm --filter @apps/web run test:e2e:urban` | GHA job `urban-e2e`                 | Playwright SMK-P8-01..04                                                                                                                               |
-| **Phase 8 full closure**         | `pnpm run phase-8:gate`              | GHA `phase-8-gate-full` on **main** or `workflow_dispatch` | build + full `pnpm test` + nested `phase-7:gate` + `phase-8:guard` (~90–150 min)                                                          |
-| **Nightly (API probes)**         | `pnpm run test:nightly`              | Scheduled / pre-release                     | `APPS_API_TEST_TIER=nightly` — backlog 1000-row, noise-neighbor HTTP, 10k relay leak; includes `test:nightly:soak` when `RUN_SOAK=1`                   |
-| **Nightly (cold-start enforce)** | `pnpm run test:nightly:cold-start`   | Scheduled (`api-nightly.yml`) / pre-release | `build` + `cold-start-readiness-gate` with `COLD_START_READINESS_ENFORCE=true` — hard-fail when compiled p95 > 500 ms                                  |
+| Tier                             | Command                                      | When                                                       | What runs                                                                                                                                                                            |
+| -------------------------------- | -------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Fast (default)**               | Husky → `scripts/pre-commit-fast.sh`         | Every `git commit` (when hooks not suspended)              | Path-gated guards, `lint-staged` (batched eslint + prettier), `test-changed --mode pre-commit` (direct packages, API spec-level) — see [Pre-commit fast path](#pre-commit-fast-path) |
+| **Changed tests**                | `pnpm run test:changed`                      | Manual / CI selective                                      | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                                                        |
+| **Pre-commit dry-run**           | `pnpm run pre-commit:fast`                   | Before commit                                              | Same as Husky fast path                                                                                                                                                              |
+| **Full**                         | `pnpm run test:full`                         | Before PR / Phase 4 closure                                | `phase-3:gate` + `phase-4:gate` (includes build, full `pnpm test`, guards, doc-gate, `p4_rls_integration_tests` when env set)                                                        |
+| **CI integrity**                 | `pnpm run ci:integrity`                      | GitHub / explicit local                                    | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — **not** Husky default                                                                                                         |
+| **Phase 8 guard (fast)**         | `pnpm run phase-8:guard`                     | PR / local                                                 | 25 doc + boundary charter gates — under 10s                                                                                                                                          |
+| **Phase 8 urban regression**     | GHA job `urban-regression`                   | GitHub PR (`phase-8-gate.yml`)                             | Contract + urban proof bundle (memory driver)                                                                                                                                        |
+| **Phase 8 urban E2E**            | `pnpm --filter @apps/web run test:e2e:urban` | GHA job `urban-e2e`                                        | Playwright SMK-P8-01..04                                                                                                                                                             |
+| **Phase 8 full closure**         | `pnpm run phase-8:gate`                      | GHA `phase-8-gate-full` on **main** or `workflow_dispatch` | build + full `pnpm test` + nested `phase-7:gate` + `phase-8:guard` (~90–150 min)                                                                                                     |
+| **Nightly (API probes)**         | `pnpm run test:nightly`                      | Scheduled / pre-release                                    | `APPS_API_TEST_TIER=nightly` — backlog 1000-row, noise-neighbor HTTP, 10k relay leak; includes `test:nightly:soak` when `RUN_SOAK=1`                                                 |
+| **Nightly (cold-start enforce)** | `pnpm run test:nightly:cold-start`           | Scheduled (`api-nightly.yml`) / pre-release                | `build` + `cold-start-readiness-gate` with `COLD_START_READINESS_ENFORCE=true` — hard-fail when compiled p95 > 500 ms                                                                |
 
 Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the new default; full path is **on demand**.
 
@@ -24,16 +24,16 @@ Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the n
 
 While a phase marker has `active: true`, Husky **pre-commit exits immediately** (no `guard-docs`, eslint, prettier, or `test-changed`). This is the **only** supported suspend path — not `HUSKY=0` or `--no-verify`.
 
-| Phase | Marker | Re-enable at |
-| ----- | ------ | ------------ |
+| Phase           | Marker                                                                                                         | Re-enable at             |
+| --------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | **9** (current) | [`docs/phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml`](../phase-9/appendices/PHASE-9-HOOKS-SUSPENSION.yaml) | **9.8** — `phase-9:gate` |
-| 8 (closed) | `docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml` (deleted at 8.5) | — |
+| 8 (closed)      | `docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml` (deleted at 8.5)                                       | —                        |
 
-| Action | Phase 9 dev loop |
-| ------ | ---------------- |
-| **Suspended** | Marker `active: true` — commit is instant |
-| **Manual verify** (subphase closure only) | Targeted specs + `phase-9:guard` when stabilizing |
-| **Re-enable** (mandatory at **9.8**) | Delete marker; `pre-commit:fast` → `phase-9:guard` → `test:full` → `phase-9:gate` |
+| Action                                    | Phase 9 dev loop                                                                  |
+| ----------------------------------------- | --------------------------------------------------------------------------------- |
+| **Suspended**                             | Marker `active: true` — commit is instant                                         |
+| **Manual verify** (subphase closure only) | Targeted specs + `phase-9:guard` when stabilizing                                 |
+| **Re-enable** (mandatory at **9.8**)      | Delete marker; `pre-commit:fast` → `phase-9:guard` → `test:full` → `phase-9:gate` |
 
 Detector: `bash scripts/phase-hooks-suspended.sh` (exit 0 = suspended).
 
@@ -102,13 +102,13 @@ cd apps/api && node --import tsx --test --test-force-exit --test-concurrency=1 \
 
 Heavy verification runs on **ubuntu-latest** with service containers — not on the developer laptop.
 
-| Job | When | Services | Command |
-| --- | ---- | -------- | ------- |
-| `guard` | Every PR / push (path filter) | — | `phase-8:guard` + `guard:p8-boundary-diff` |
-| `urban-regression` | After guard green | — | `phase-8.contract` + urban API proof specs + `workspace-urban` test |
-| `urban-e2e` | After guard green | — | Playwright `test:e2e:urban` |
-| `ci-integrity` | **main** push or `workflow_dispatch` | Postgres 16 | `pnpm run ci:integrity` |
-| `phase-8-gate-full` | **main** push or manual `run_full_phase_8_gate` | Postgres + Redis | `pnpm run phase-8:gate` |
+| Job                 | When                                            | Services         | Command                                                             |
+| ------------------- | ----------------------------------------------- | ---------------- | ------------------------------------------------------------------- |
+| `guard`             | Every PR / push (path filter)                   | —                | `phase-8:guard` + `guard:p8-boundary-diff`                          |
+| `urban-regression`  | After guard green                               | —                | `phase-8.contract` + urban API proof specs + `workspace-urban` test |
+| `urban-e2e`         | After guard green                               | —                | Playwright `test:e2e:urban`                                         |
+| `ci-integrity`      | **main** push or `workflow_dispatch`            | Postgres 16      | `pnpm run ci:integrity`                                             |
+| `phase-8-gate-full` | **main** push or manual `run_full_phase_8_gate` | Postgres + Redis | `pnpm run phase-8:gate`                                             |
 
 **PR fast path (typical):** guard → urban-regression → urban-e2e (~15–45 min on GHA).
 
@@ -116,18 +116,75 @@ Heavy verification runs on **ubuntu-latest** with service containers — not on 
 
 Postgres bootstrap in CI always uses `DATABASE_URL_ADMIN` (postgres role) for `pnpm run db:migrate:deploy` — never migrate with `app_tour` alone (DEC-124).
 
+## Pre-commit fast path
+
+`scripts/pre-commit-fast.sh` runs in order:
+
+1. **`guard-docs`** — always (no-op unless protected core paths staged without `docs/`).
+2. **Path-gated static guards** — only when staged paths match:
+   - **Field exposure (phases 0–11):** `apps/api/`, `packages/platform-core/`, `packages/workspace-sdk/`, `packages/workspaces/`, `apps/web/src/exposure/`, exposure settings pages, exposure docs, `scripts/guards/field-exposure-*`, `scripts/pre-commit-fast.sh`. A manifest comment block lists all `field-exposure-phase-N-guard.mjs` filenames for guard contract checks.
+   - **Wizard post-submit:** `apps/web/src/wizard/`, `apps/web/src/tours/`, `packages/workspaces/denali/src/ui/chrome/`, wizard bootstrap bindings.
+   - **CSS globals:** `apps/{portal,marketing,web}/app/globals.css` or any staged `globals.css`.
+3. **`check-node-engine`** — always.
+4. **`lint-staged`** — batched eslint + prettier on staged files (see root `package.json` `lint-staged` key). `@apps/api` gets **prettier only** (no eslint on commit).
+5. **`test-changed --mode pre-commit`** — always last.
+
+### lint-staged coverage
+
+| Glob                                                     | eslint                  | prettier |
+| -------------------------------------------------------- | ----------------------- | -------- |
+| `packages/workspace-sdk/**`, `packages/platform-core/**` | root `.eslintrc.cjs`    | yes      |
+| `apps/web/**`, `apps/portal/**`, `apps/marketing/**`     | per-app `.eslintrc.cjs` | yes      |
+| `apps/api/**`                                            | —                       | yes      |
+| `*.{json,md,mdoc,yml,yaml}`                              | —                       | yes      |
+
 ## `test-changed` behavior
 
 ```bash
 pnpm run test:changed                              # CI mode: origin/main...HEAD
-bash scripts/test-changed.sh --mode pre-commit     # + staged + unstaged (Husky)
+bash scripts/test-changed.sh --mode pre-commit     # staged files only (Husky)
 ```
 
-1. **Base ref:** `origin/main` → else `main` → else `HEAD~1`.
-2. **Path → workspace:** longest-prefix map (`packages/platform-core` → `@app-tour/platform-core`, etc.).
-3. **Expansion:** static dependents (e.g. `@app-tour/workspace-sdk` → `platform-core`, `apps/api`, …).
-4. **Cache:** `.cache/test-changed/<filter-slug>.sha` stores SHA-256 of `base + changed paths in package`. Cache hit skips `pnpm --filter <name> test`.
-5. **Exit:** non-zero on any test failure.
+### CI mode (`--mode ci` or default)
+
+1. **Diff:** `origin/main...HEAD` (fallback: `main`, `HEAD~1`).
+2. **Path → workspace:** longest-prefix map includes `@apps/portal`, `@apps/marketing`, workspaces, apps, packages.
+3. **Expansion:** static dependents (e.g. `@app-tour/workspace-sdk` → `platform-core`, `apps/api`, `apps/web`).
+4. **`__scripts__` blast:** changes under `scripts/`, `docs/`, `.github/`, etc. seed sdk + platform-core + api + web.
+5. **Tests:** full `pnpm --filter <pkg> test` per target.
+6. **Cache:** `.cache/test-changed/<filter-slug>.sha`.
+
+### Pre-commit mode (`--mode pre-commit`)
+
+1. **Diff:** **staged files only** — validates what is being committed, not the whole dirty worktree.
+2. **Early exit:** no staged files → skip (no tests).
+3. **Direct packages only** — no `expand_pkg` fan-out (e.g. sdk edit runs sdk tests only, not api + web).
+4. **`docs/` / `scripts/` changes** — **no tests** on commit (guards/doc-gate handle policy).
+5. **`@apps/api`:** spec-level via `scripts/lib/resolve-api-test-specs.mjs` → `pnpm --filter @apps/api run test:file <specs>`. Paths under `apps/api/scripts/` and `apps/api/docs/` are ignored. Fallback to full `@apps/api test` only when resolvable production paths yield **zero** specs.
+6. **Workspaces:** includes `@apps/portal`, `@apps/marketing`, urban, guest-club, and other mapped packages.
+7. **Cache:** `.cache/test-changed/@apps___api-specs.sha` for spec lists; package-level `.sha` for other workspaces.
+
+### API spec resolver (`scripts/lib/resolve-api-test-specs.mjs`)
+
+| Changed path prefix                                      | Specs run                                                                       |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `apps/api/test/*.spec.ts` or `apps/api/src/**/*.spec.ts` | that file                                                                       |
+| `apps/api/src/identity/`                                 | `test/identity-*.spec.ts`                                                       |
+| `apps/api/src/settings/`                                 | `test/settings-*.spec.ts`                                                       |
+| `apps/api/src/bookings/`                                 | `test/bookings-*.spec.ts`                                                       |
+| `apps/api/src/tours/`                                    | `test/tours-*.spec.ts`                                                          |
+| `apps/api/src/finance/`                                  | `test/finance-*.spec.ts`                                                        |
+| `apps/api/src/exposure/`                                 | `test/field-exposure-*.spec.ts`, `test/4-integration/field-exposure-*.spec.ts`  |
+| `apps/api/src/integrations/`                             | `test/integrations-*.spec.ts`, `test/field-exposure-*.spec.ts`                  |
+| `apps/api/prisma/`                                       | `test/phase-9-persistence.integration.spec.ts`                                  |
+| other `apps/api/**` (production)                         | **fallback:** full trunk `pnpm --filter @apps/api test` when zero specs resolve |
+| `apps/api/scripts/**`, `apps/api/docs/**`                | ignored (no tests, no fallback)                                                 |
+
+Dry-run resolver:
+
+```bash
+git diff --cached --name-only | node scripts/lib/resolve-api-test-specs.mjs
+```
 
 ## Database fast reset (RLS loops)
 
