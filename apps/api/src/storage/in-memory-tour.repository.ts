@@ -23,7 +23,7 @@ import type {
   TourOperatorListPageOutput,
   TourStorageRepository,
 } from "./tour-storage.interface";
-import type { OperatorListSortBy, OperatorListSortDir } from "../tours/list-tours-operator";
+import type { OperatorListSortBy, OperatorListSortDir } from "../tours/operator-tour-list-types";
 import { publishStatusesForOperatorFilter } from "../tours/operator-tour-list-db-query";
 
 function tourStorageKey(tenantId: string, id: string): string {
@@ -40,7 +40,7 @@ function compareInMemoryOperatorTours(
   const rightProj = deriveTourProjections(right.canonical);
   let delta = 0;
   if (sortBy === "title") {
-    delta = leftProj.title.localeCompare(rightProj.title);
+    delta = (leftProj.title ?? "").localeCompare(rightProj.title ?? "");
   } else if (sortBy === "departure_at") {
     const leftDate =
       typeof left.canonical.data?.startDateTime === "string" ? left.canonical.data.startDateTime : "";
@@ -406,7 +406,7 @@ export class InMemoryTourRepository implements TourStorageRepository {
     const search = query.search?.trim().toLocaleLowerCase();
     if (search !== undefined && search.length > 0) {
       items = items.filter((tour) => {
-        const title = deriveTourProjections(tour.canonical).title.toLocaleLowerCase();
+        const title = (deriveTourProjections(tour.canonical).title ?? "").toLocaleLowerCase();
         return title.includes(search);
       });
     }

@@ -58,6 +58,12 @@ function mapRow(row: {
   };
 }
 
+function mapListRow(
+  row: Prisma.IntegrationConnectionGetPayload<{ select: typeof INTEGRATION_CONNECTION_LIST_SELECT }>
+): IntegrationConnectionRecord {
+  return mapRow({ ...row, credentials: {} });
+}
+
 export class PrismaIntegrationConnectionRepository implements IntegrationConnectionRepository {
   async findEnabledForTenant(input: {
     readonly tenantId: string;
@@ -132,7 +138,7 @@ export class PrismaIntegrationConnectionRepository implements IntegrationConnect
         take: MAX_INTEGRATION_CONNECTIONS_PER_WORKSPACE,
       });
     });
-    return rows.map(mapRow);
+    return rows.map(mapListRow);
   }
 }
 

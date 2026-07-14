@@ -72,6 +72,12 @@ function mapEventPolicyRow(row: {
   };
 }
 
+function mapPolicyListRow(
+  row: Prisma.IntegrationConnectionGetPayload<{ select: typeof INTEGRATION_CONNECTION_LIST_SELECT }>
+): IntegrationPolicyTarget {
+  return mapConnectionRow({ ...row, credentials: {} });
+}
+
 export class PrismaIntegrationPolicyRepository implements IntegrationPolicyRepository {
   async listEnabledConnectionsForScope(input: {
     readonly tenantId: string;
@@ -91,7 +97,7 @@ export class PrismaIntegrationPolicyRepository implements IntegrationPolicyRepos
         select: INTEGRATION_CONNECTION_LIST_SELECT,
         take: MAX_INTEGRATION_CONNECTIONS_PER_WORKSPACE,
       });
-      return rows.map(mapConnectionRow);
+      return rows.map(mapPolicyListRow);
     });
 
     if (fromDb.length > 0) {

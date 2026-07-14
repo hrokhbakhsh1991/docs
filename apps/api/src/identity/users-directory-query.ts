@@ -1,5 +1,5 @@
 import type { UsersListQuery } from "./users.types";
-import type { MembershipWithUserRecord } from "./in-memory-identity.repository";
+import type { MembershipWithUserRecord } from "./identity-membership-records.types";
 import type { UsersDirectoryListFilters } from "./users-directory-list-projection";
 
 function displayNameForPair(pair: MembershipWithUserRecord): string {

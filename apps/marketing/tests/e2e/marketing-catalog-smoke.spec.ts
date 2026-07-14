@@ -77,7 +77,7 @@ test("SMK-MKT-02 tour detail and back navigation", async ({ page }) => {
   });
   await expect(page.locator("[data-marketing-catalog-detail-jump-nav]")).toBeVisible();
   await expect(page.locator("[data-marketing-catalog-detail-faq]")).toBeVisible();
-  await page.locator("[data-marketing-catalog-tour-detail] a[href='/tours']").click();
+  await page.locator("[data-marketing-catalog-detail-back]").click();
   await expect(page.locator("[data-marketing-catalog]")).toBeVisible({ timeout: 60_000 });
 });
 

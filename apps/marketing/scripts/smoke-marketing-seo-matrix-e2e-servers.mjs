@@ -9,6 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { resolveSmokeApiJwtEnv } from "../../api/scripts/smoke-api-jwt-env.mjs";
+import { cleanNextDevCache } from "./smoke-next-dev-cache.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const marketingDir = path.join(repoRoot, "apps/marketing");
@@ -188,6 +189,7 @@ try {
   }
 
   if (!marketingListening) {
+    cleanNextDevCache(marketingDir);
     marketing = spawn("pnpm", ["exec", "next", "dev", "--port", "3002"], {
       cwd: marketingDir,
       env: marketingEnv,

@@ -450,9 +450,9 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
   main[data-portal-member-registrations]
   [data-portal-member-registration-status-badge][data-status="waitlisted"] {
-  background: color-mix(in oklab, var(--color-accent, #d97706) 12%, transparent);
-  border-color: color-mix(in oklab, var(--color-accent, #d97706) 35%, transparent);
-  color: var(--color-accent, #d97706);
+  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+  border-color: color-mix(in oklab, var(--color-accent) 35%, transparent);
+  color: var(--color-accent);
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]

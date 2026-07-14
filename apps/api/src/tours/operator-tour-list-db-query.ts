@@ -4,7 +4,7 @@ import type {
   OperatorListSortBy,
   OperatorListSortDir,
   OperatorListStatusFilter,
-} from "./list-tours-operator";
+} from "./operator-tour-list-types";
 
 export const OPERATOR_TOUR_LIST_SELECT = {
   id: true,

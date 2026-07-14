@@ -133,6 +133,7 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "finance-ws3-onboarding.spec.ts",
   "finance-ws4-onboarding.spec.ts",
   "in-memory-finance.repository.ts",
+<<<<<<< HEAD
   "infrastructure",
   "ports",
   "prisma-workspace-outbox-reader.ts",
@@ -144,6 +145,12 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "workspace-finance-dependency-bindings.generated.ts",
   "workspace-finance-event-reaction-bindings.generated.ts",
   "workspace-finance-processed-log.ts",
+||||||| parent of dcc347b6 (feat(platform): PSC surface cohesion follow-up — API, marketing, and build pipeline)
+=======
+  "finance-list-projection.ts",
+  "finance-module-enabled.ts",
+  "workspace-finance-bindings.generated.ts",
+>>>>>>> dcc347b6 (feat(platform): PSC surface cohesion follow-up — API, marketing, and build pipeline)
 ]);
 const workspaceFinanceDir = path.join(REPO_ROOT, "apps/api/src/workspace-finance");
 const workspaceFinanceUnexpected = fs.existsSync(workspaceFinanceDir)

@@ -71,6 +71,6 @@ export type BookingListPageInput = {
 };
 
 export type BookingListPageOutput = {
-  readonly items: readonly BookingListItem[];
+  readonly items: readonly BookingRecord[];
   readonly nextCursor: string | null;
 };
