@@ -285,6 +285,30 @@
     "p5:gate": "bash scripts/p5-enterprise-evolution-gate.sh",
     "ops:wait-required-checks": "node scripts/ops/wait-for-required-checks.mjs"
   },
+  "lint-staged": {
+    "packages/workspace-sdk/**/*.{ts,tsx}": [
+      "eslint --max-warnings 0 -c .eslintrc.cjs",
+      "prettier --check"
+    ],
+    "packages/platform-core/**/*.{ts,tsx}": [
+      "eslint --max-warnings 0 -c .eslintrc.cjs",
+      "prettier --check"
+    ],
+    "apps/web/**/*.{ts,tsx}": [
+      "eslint --max-warnings 0 -c apps/web/.eslintrc.cjs",
+      "prettier --check"
+    ],
+    "apps/portal/**/*.{ts,tsx}": [
+      "eslint --max-warnings 0 -c apps/portal/.eslintrc.cjs",
+      "prettier --check"
+    ],
+    "apps/marketing/**/*.{ts,tsx}": [
+      "eslint --max-warnings 0 -c apps/marketing/.eslintrc.cjs",
+      "prettier --check"
+    ],
+    "apps/api/**/*.{ts,tsx}": ["prettier --check"],
+    "*.{json,md,mdoc,yml,yaml}": ["prettier --check"]
+  },
   "devDependencies": {
     "@markdoc/markdoc": "^0.5.7",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
@@ -293,6 +317,7 @@
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
     "prettier": "^3.6.2",
     "typescript": "5.9.3"
   }

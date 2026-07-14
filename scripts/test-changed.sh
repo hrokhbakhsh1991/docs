@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Git-aware workspace tests — only packages touched (and dependents) since base ref.
+# Pre-commit: staged + unstaged only (not full branch vs main).
+# Pre-commit mode uses staged files only — validates what is being committed.
+# CI: origin/main...HEAD, full dependency expansion, full workspace test scripts.
 # Cache: .cache/test-changed/<filter>.sha — skip when diff hash unchanged.
 set -euo pipefail
 
@@ -45,14 +48,14 @@ collect_diff() {
 }
 
 if [ "$MODE" = "pre-commit" ]; then
-  MB="$(git merge-base HEAD "$BASE" 2>/dev/null || echo "$BASE")"
-  CHANGED="$( {
-    git diff --name-only "$MB"...HEAD 2>/dev/null || true
-    git diff --cached --name-only 2>/dev/null || true
-    git diff --name-only 2>/dev/null || true
-  } | sort -u)"
+  CHANGED="$(git diff --cached --name-only 2>/dev/null | sort -u)"
 else
   CHANGED="$(collect_diff "$BASE" | sort -u)"
+fi
+
+if [ "$MODE" = "pre-commit" ] && [ -z "$(echo "$CHANGED" | tr -d '[:space:]')" ]; then
+  echo "test-changed: no staged files (mode=$MODE) — skip"
+  exit 0
 fi
 
 if [ -z "$(echo "$CHANGED" | tr -d '[:space:]')" ]; then
@@ -74,8 +77,12 @@ pkg_for_path() {
     packages/draft-engine/*) echo "@app-tour/draft-engine" ;;
     packages/wizard-navigation/*) echo "@app-tour/wizard-navigation" ;;
     packages/workspaces/denali/*) echo "@app-tour/workspace-denali" ;;
+    packages/workspaces/urban/*) echo "@app-tour/workspace-urban" ;;
+    packages/workspaces/guest-club/*) echo "@app-tour/workspace-guest-club" ;;
     apps/api/*) echo "@apps/api" ;;
     apps/web/*) echo "@apps/web" ;;
+    apps/portal/*) echo "@apps/portal" ;;
+    apps/marketing/*) echo "@apps/marketing" ;;
     scripts/* | infra/* | docs/* | reports/* | .github/* | .husky/*)
       echo "__scripts__"
       ;;
@@ -83,7 +90,7 @@ pkg_for_path() {
   esac
 }
 
-# When package P changes, also run tests for these dependents (transitive closure applied below)
+# When package P changes, also run tests for these dependents (CI mode only)
 expand_pkg() {
   case "$1" in
     @app-tour/workspace-sdk)
@@ -121,6 +128,10 @@ expand_pkg() {
       ;;
     @apps/api) echo "@apps/api" ;;
     @apps/web) echo "@apps/web" ;;
+    @apps/portal) echo "@apps/portal" ;;
+    @apps/marketing) echo "@apps/marketing" ;;
+    @app-tour/workspace-urban) echo "@app-tour/workspace-urban" ;;
+    @app-tour/workspace-guest-club) echo "@app-tour/workspace-guest-club" ;;
     @app-tour/workspace-starter|@app-tour/draft-engine|@app-tour/wizard-navigation|@app-tour/workspace-denali|@app-tour/workspace-sdk|@app-tour/platform-core|@app-tour/design-tokens|@app-tour/ui-primitives|@app-tour/theme-react|@app-tour/tenant-kernel|@app-tour/platform-events)
       echo "$1"
       ;;
@@ -133,10 +144,17 @@ while IFS= read -r path; do
   [ -z "$path" ] && continue
   p="$(pkg_for_path "$path")"
   [ -z "$p" ] && continue
-  if [ "$p" = "__scripts__" ]; then
-    SEED="${SEED} @app-tour/workspace-sdk @app-tour/platform-core @apps/api @apps/web"
+  if [ "$MODE" = "pre-commit" ]; then
+    if [ "$p" = "__scripts__" ]; then
+      continue
+    fi
+    SEED="${SEED} ${p}"
   else
-    SEED="${SEED} $(expand_pkg "$p")"
+    if [ "$p" = "__scripts__" ]; then
+      SEED="${SEED} @app-tour/workspace-sdk @app-tour/platform-core @apps/api @apps/web"
+    else
+      SEED="${SEED} $(expand_pkg "$p")"
+    fi
   fi
 done <<< "$CHANGED"
 
@@ -169,8 +187,12 @@ hash_pkg() {
     @app-tour/draft-engine) prefix="packages/draft-engine" ;;
     @app-tour/wizard-navigation) prefix="packages/wizard-navigation" ;;
     @app-tour/workspace-denali) prefix="packages/workspaces/denali" ;;
+    @app-tour/workspace-urban) prefix="packages/workspaces/urban" ;;
+    @app-tour/workspace-guest-club) prefix="packages/workspaces/guest-club" ;;
     @apps/api) prefix="apps/api" ;;
     @apps/web) prefix="apps/web" ;;
+    @apps/portal) prefix="apps/portal" ;;
+    @apps/marketing) prefix="apps/marketing" ;;
     *) return 1 ;;
   esac
   {
@@ -179,6 +201,19 @@ hash_pkg() {
     echo "pkg=$pkg"
     git rev-parse HEAD 2>/dev/null || true
     echo "$CHANGED" | grep "^${prefix}/" || true
+  } | sha256sum | awk '{print $1}'
+}
+
+hash_api_specs() {
+  local specs_json="$1"
+  {
+    echo "base=$BASE"
+    echo "mode=$MODE"
+    echo "pkg=@apps/api"
+    echo "spec-level"
+    git rev-parse HEAD 2>/dev/null || true
+    echo "$specs_json"
+    echo "$CHANGED" | grep '^apps/api/' || true
   } | sha256sum | awk '{print $1}'
 }
 
@@ -204,10 +239,42 @@ pkg_dir() {
     @app-tour/draft-engine) echo "packages/draft-engine" ;;
     @app-tour/wizard-navigation) echo "packages/wizard-navigation" ;;
     @app-tour/workspace-denali) echo "packages/workspaces/denali" ;;
+    @app-tour/workspace-urban) echo "packages/workspaces/urban" ;;
+    @app-tour/workspace-guest-club) echo "packages/workspaces/guest-club" ;;
     @apps/api) echo "apps/api" ;;
     @apps/web) echo "apps/web" ;;
+    @apps/portal) echo "apps/portal" ;;
+    @apps/marketing) echo "apps/marketing" ;;
     *) echo "" ;;
   esac
+}
+
+run_api_tests() {
+  if [ "$MODE" = "pre-commit" ]; then
+    local resolve_json specs_list fallback safe_specs
+    resolve_json="$(printf '%s\n' "$CHANGED" | node "$ROOT/scripts/lib/resolve-api-test-specs.mjs")"
+    fallback="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).fallbackFullSuite?'yes':'no')" "$resolve_json")"
+    if [ "$fallback" = "yes" ]; then
+      echo "test-changed: RUN pnpm --filter @apps/api test (spec map fallback)"
+      pnpm --filter @apps/api test
+      return $?
+    fi
+    specs_list="$(node -e "
+      const specs = JSON.parse(process.argv[1]).specs;
+      if (!specs.length) process.exit(2);
+      process.stdout.write(specs.join(' '));
+    " "$resolve_json")" || {
+      echo "test-changed: RUN pnpm --filter @apps/api test (no specs resolved)"
+      pnpm --filter @apps/api test
+      return $?
+    }
+    echo "test-changed: RUN pnpm --filter @apps/api run test:file ${specs_list}"
+    # shellcheck disable=SC2086
+    pnpm --filter @apps/api run test:file ${specs_list}
+    return $?
+  fi
+  echo "test-changed: RUN pnpm --filter @apps/api test"
+  pnpm --filter @apps/api test
 }
 
 FAILED=0
@@ -218,17 +285,40 @@ for pkg in $TARGETS; do
     continue
   fi
   safe_name="$(echo "$pkg" | tr '/:@' '___')"
-  digest="$(hash_pkg "$pkg" || echo "none")"
-  cache_file="$CACHE_DIR/${safe_name}.sha"
+
+  if [ "$pkg" = "@apps/api" ] && [ "$MODE" = "pre-commit" ]; then
+    resolve_json="$(printf '%s\n' "$CHANGED" | node "$ROOT/scripts/lib/resolve-api-test-specs.mjs")"
+    fallback="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).fallbackFullSuite?'yes':'no')" "$resolve_json")"
+    if [ "$fallback" = "yes" ]; then
+      digest="$(hash_pkg "$pkg" || echo "none")"
+      cache_file="$CACHE_DIR/${safe_name}.sha"
+    else
+      digest="$(hash_api_specs "$resolve_json" || echo "none")"
+      cache_file="$CACHE_DIR/${safe_name}-specs.sha"
+    fi
+  else
+    digest="$(hash_pkg "$pkg" || echo "none")"
+    cache_file="$CACHE_DIR/${safe_name}.sha"
+  fi
+
   if [ -f "$cache_file" ] && [ "$(cat "$cache_file")" = "$digest" ]; then
     echo "test-changed: cache HIT $pkg"
     continue
   fi
-  echo "test-changed: RUN pnpm --filter $pkg test"
-  if pnpm --filter "$pkg" test; then
-    echo "$digest" >"$cache_file"
+
+  if [ "$pkg" = "@apps/api" ]; then
+    if run_api_tests; then
+      echo "$digest" >"$cache_file"
+    else
+      FAILED=1
+    fi
   else
-    FAILED=1
+    echo "test-changed: RUN pnpm --filter $pkg test"
+    if pnpm --filter "$pkg" test; then
+      echo "$digest" >"$cache_file"
+    else
+      FAILED=1
+    fi
   fi
 done
 

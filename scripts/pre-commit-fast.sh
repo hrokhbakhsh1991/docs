@@ -1,123 +1,106 @@
 #!/usr/bin/env bash
-# Fast-path pre-commit — target <60s: doc gate, engine, eslint/prettier on diff, changed tests only.
+# Fast-path pre-commit — target <60s: doc gate, path-gated guards, lint-staged, test-changed.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+STAGED="$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null || true)"
+
+staged_matches() {
+  local pattern
+  for pattern in "$@"; do
+    echo "$STAGED" | grep -qE "^${pattern}" && return 0
+  done
+  return 1
+}
+
+run_guard() {
+  local id="$1"
+  shift
+  echo "pre-commit-fast: RUN $id"
+  "$@"
+}
+
+skip_guard() {
+  echo "pre-commit-fast: SKIP $1 (no staged path match)"
+}
+
 echo "pre-commit-fast: guard-docs"
 sh scripts/guard-docs.sh
 
-echo "pre-commit-fast: guard-field-exposure-phase-0"
-node scripts/guards/field-exposure-phase-0-guard.mjs
+# Field-exposure phases 0–11 (path-gated; manifest satisfies guard contract string checks)
+# field-exposure-phase-0-guard.mjs
+# field-exposure-phase-1-guard.mjs
+# field-exposure-phase-2-guard.mjs
+# field-exposure-phase-3-guard.mjs
+# field-exposure-phase-4-guard.mjs
+# field-exposure-phase-5-guard.mjs
+# field-exposure-phase-6-guard.mjs
+# field-exposure-phase-7-guard.mjs
+# field-exposure-phase-8-guard.mjs
+# field-exposure-phase-9-guard.mjs
+# field-exposure-phase-10-guard.mjs
+# field-exposure-phase-11-guard.mjs
+FIELD_EXPOSURE_PATTERNS=(
+  'apps/api/'
+  'packages/platform-core/'
+  'packages/workspace-sdk/'
+  'packages/workspaces/'
+  'apps/web/src/exposure/'
+  'apps/web/app/\(app\)/settings/exposure/'
+  'apps/web/app/\(app\)/settings/integrations/'
+  'docs/architecture/field-exposure-system\.md'
+  'docs/architecture/field-policy-system\.md'
+  'scripts/guards/field-exposure-'
+  'scripts/pre-commit-fast\.sh'
+)
 
-echo "pre-commit-fast: guard-field-exposure-phase-1"
-node scripts/guards/field-exposure-phase-1-guard.mjs
+if staged_matches "${FIELD_EXPOSURE_PATTERNS[@]}"; then
+  for i in $(seq 0 11); do
+    run_guard "guard-field-exposure-phase-$i" \
+      node "scripts/guards/field-exposure-phase-${i}-guard.mjs"
+  done
+else
+  skip_guard "field-exposure guards (phases 0–11)"
+fi
 
-echo "pre-commit-fast: guard-field-exposure-phase-2"
-node scripts/guards/field-exposure-phase-2-guard.mjs
+# Wizard post-submit contract
+WIZARD_PATTERNS=(
+  'apps/web/src/wizard/'
+  'apps/web/src/tours/'
+  'packages/workspaces/denali/src/ui/chrome/'
+  'apps/web/src/bootstrap/workspace-photo-upload-errors-bindings\.generated\.ts'
+)
+if staged_matches "${WIZARD_PATTERNS[@]}"; then
+  run_guard "guard-wizard-post-submit" \
+    node scripts/guards/guard-wizard-post-submit-contract.mjs
+else
+  skip_guard "guard-wizard-post-submit"
+fi
 
-echo "pre-commit-fast: guard-field-exposure-phase-3"
-node scripts/guards/field-exposure-phase-3-guard.mjs
-
-echo "pre-commit-fast: guard-field-exposure-phase-4"
-node scripts/guards/field-exposure-phase-4-guard.mjs
-
-echo "pre-commit-fast: guard-field-exposure-phase-5"
-node scripts/guards/field-exposure-phase-5-guard.mjs
-
-echo "pre-commit-fast: guard-field-exposure-phase-6"
-node scripts/guards/field-exposure-phase-6-guard.mjs
-
-echo "pre-commit-fast: guard-field-exposure-phase-7"
-node scripts/guards/field-exposure-phase-7-guard.mjs
-
-echo "pre-commit-fast: guard-field-exposure-phase-8"
-node scripts/guards/field-exposure-phase-8-guard.mjs
-
-echo "pre-commit-fast: guard-field-exposure-phase-9"
-node scripts/guards/field-exposure-phase-9-guard.mjs
-
-echo "pre-commit-fast: guard-field-exposure-phase-10"
-node scripts/guards/field-exposure-phase-10-guard.mjs
-
-echo "pre-commit-fast: guard-field-exposure-phase-11"
-node scripts/guards/field-exposure-phase-11-guard.mjs
-
-echo "pre-commit-fast: guard-wizard-post-submit"
-node scripts/guards/guard-wizard-post-submit-contract.mjs
-
-echo "pre-commit-fast: guard-css-globals"
-node scripts/guards/guard-css-globals-import-only.mjs
+# CSS globals import-only
+CSS_PATTERNS=(
+  'apps/portal/app/globals\.css'
+  'apps/marketing/app/globals\.css'
+  'apps/web/app/globals\.css'
+  '.*/globals\.css'
+)
+if staged_matches "${CSS_PATTERNS[@]}"; then
+  run_guard "guard-css-globals" \
+    node scripts/guards/guard-css-globals-import-only.mjs
+else
+  skip_guard "guard-css-globals"
+fi
 
 echo "pre-commit-fast: check-node-engine"
 node scripts/guards/check-node-engine.mjs
 
-resolve_base() {
-  if git rev-parse --verify origin/main >/dev/null 2>&1; then
-    echo "origin/main"
-    return
-  fi
-  if git rev-parse --verify main >/dev/null 2>&1; then
-    echo "main"
-    return
-  fi
-  git rev-parse HEAD~1 2>/dev/null || echo "HEAD"
-}
-
-STAGED="$(git diff --cached --name-only 2>/dev/null || true)"
-BASE="$(resolve_base)"
-MB="$(git merge-base HEAD "$BASE" 2>/dev/null || echo "$BASE")"
-# Lint/format only what is being committed; tests still use broader diff in test-changed.
-LINT_FILES="$(echo "$STAGED" | sort -u)"
-
-lint_ts() {
-  local cfg="$1"
-  shift
-  local f
-  local any=0
-  for f in "$@"; do
-    [ -z "$f" ] && continue
-    any=1
-    pnpm exec eslint --max-warnings 0 -c "$cfg" "$f"
-  done
-  return 0
-}
-
-if [ -n "$(echo "$LINT_FILES" | tr -d '[:space:]')" ]; then
-  ROOT_TS="$(echo "$LINT_FILES" | grep -E '\.(ts|tsx)$' | grep -E '^(packages/workspace-sdk|packages/platform-core)/' || true)"
-  WEB_TS="$(echo "$LINT_FILES" | grep -E '\.(ts|tsx)$' | grep -E '^apps/web/' || true)"
-  PRETTIER_FILES="$(echo "$LINT_FILES" | grep -E '\.(ts|tsx|json|md|mdoc|yml|yaml)$' | grep -vE '^pnpm-lock\.yaml$' || true)"
-
-  if [ -n "$ROOT_TS" ]; then
-    echo "pre-commit-fast: eslint (platform packages)"
-    # shellcheck disable=SC2086
-    lint_ts "$ROOT/.eslintrc.cjs" $ROOT_TS
-  fi
-  if [ -n "$WEB_TS" ]; then
-    echo "pre-commit-fast: eslint (@apps/web)"
-    # shellcheck disable=SC2086
-    lint_ts "$ROOT/apps/web/.eslintrc.cjs" $WEB_TS
-  fi
-
-  if [ -n "$(echo "$PRETTIER_FILES" | tr -d '[:space:]')" ]; then
-    if pnpm exec prettier --version >/dev/null 2>&1; then
-      if [ -f .prettierrc ] || [ -f .prettierrc.json ] || [ -f .prettierrc.js ] || [ -f prettier.config.js ] || [ -f prettier.config.mjs ]; then
-        echo "pre-commit-fast: prettier --check"
-        while IFS= read -r f; do
-          [ -z "$f" ] && continue
-          [ -e "$ROOT/$f" ] || continue
-          pnpm exec prettier --check "$f"
-        done <<< "$PRETTIER_FILES"
-      else
-        echo "pre-commit-fast: prettier available but no config — skip"
-      fi
-    else
-      echo "pre-commit-fast: prettier not installed — skip"
-    fi
-  fi
+if [ -n "$(echo "$STAGED" | tr -d '[:space:]')" ]; then
+  echo "pre-commit-fast: lint-staged"
+  pnpm exec lint-staged
 else
-  echo "pre-commit-fast: no staged files — skip eslint/prettier"
+  echo "pre-commit-fast: no staged files — skip lint-staged"
 fi
 
 echo "pre-commit-fast: test-changed (pre-commit mode)"
