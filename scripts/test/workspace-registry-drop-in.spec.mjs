@@ -127,7 +127,7 @@ describe("workspace registry drop-in (P7-T06)", () => {
     const generated = generateOutboxSideEffects(manifests);
     assert.match(
       generated,
-      /@app-tour\/workspace-denali\/finance\/api-tour-created-adapter/
+      /@app-tour\/workspace-denali\/host\/finance\/api-tour-created-adapter/
     );
     assert.match(generated, /runTourCreatedFinanceSideEffect/);
     assert.throws(

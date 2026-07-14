@@ -7,7 +7,7 @@
     "node": ">=24.0.0 <25"
   },
   "scripts": {
-    "build": "pnpm --filter @app-tour/workspace-sdk run build && pnpm --filter @app-tour/platform-core run build && pnpm --filter @app-tour/design-tokens run build && pnpm --filter @app-tour/workspace-starter run build && pnpm --filter @app-tour/workspace-denali run build && pnpm --filter @app-tour/workspace-urban run build && pnpm --filter @app-tour/workspace-guest-club run build && pnpm --filter @app-tour/ui-primitives run build && pnpm --filter @app-tour/theme-react run build && pnpm --filter @app-tour/tenant-kernel run build && pnpm --filter @app-tour/platform-events run build && pnpm --filter @app-tour/draft-engine run build && pnpm --filter @app-tour/wizard-navigation run build && pnpm --filter @apps/api run build && pnpm --filter @apps/marketing run build && pnpm --filter @apps/portal run build",
+    "build": "bash scripts/monorepo-build.sh",
     "postbuild": "pnpm run guard:artifact-surface",
     "validate-design-tokens": "node scripts/guards/validate-design-tokens.mjs",
     "lint": "pnpm --filter @app-tour/workspace-sdk run lint && pnpm --filter @app-tour/platform-core run lint && eslint \"packages/workspace-sdk/src/**/*.ts\" \"packages/platform-core/src/**/*.ts\" --ignore-pattern \"**/*.spec.ts\"",
@@ -62,8 +62,8 @@
     "test:contract:monorepo": "pnpm --filter @app-tour/workspace-sdk run test:contract:monorepo",
     "phase-0:covenant-gate": "pnpm run test:phase-0",
     "phase-0:trunk-gate": "pnpm run phase-0:integration-gate",
-    "phase-0:foundation-gate": "pnpm run guard:workspace-manifests && pnpm run test:phase-0",
-    "phase-0:integration-gate": "pnpm build && pnpm test && pnpm run test:contract:monorepo && pnpm run test:adversarial && DOC_SYNC_SCOPE=foundation pnpm run guard:doc-sync && PHASE_0_GUARD_REPORT=integration node scripts/guards/phase-0-guard.mjs && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run baseline:metrics",
+    "phase-0:foundation-gate": "pnpm run test:phase-0",
+    "phase-0:integration-gate": "pnpm run guard:workspace-manifests && pnpm build && pnpm test && pnpm run test:contract:monorepo && pnpm run test:adversarial && DOC_SYNC_SCOPE=foundation pnpm run guard:doc-sync && PHASE_0_GUARD_REPORT=integration node scripts/guards/phase-0-guard.mjs && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run baseline:metrics",
     "baseline:metrics": "node scripts/guards/baseline-metrics.mjs",
     "phase-0:gate": "pnpm run phase-0:foundation-gate && pnpm run phase-0:integration-gate",
     "phase-1:guard": "node scripts/guards/phase-1-guard.mjs",

@@ -35,8 +35,10 @@ export async function HomeGallery({ photos }: HomeGalleryProps) {
             close: t("detail.gallery.lightboxClose"),
             prev: t("detail.gallery.lightboxPrev"),
             next: t("detail.gallery.lightboxNext"),
+            // Placeholder index — HomeGalleryShowcase builds per-photo labels client-side.
             openPhoto: t("detail.gallery.openPhoto", { index: 1 }),
-            counter: t("detail.gallery.lightboxCounter"),
+            // Note: counter is formatted client-side via string replacement.
+            counter: t.raw("detail.gallery.lightboxCounter"),
           },
         }}
       />

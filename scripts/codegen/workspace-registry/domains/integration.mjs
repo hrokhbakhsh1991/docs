@@ -12,7 +12,7 @@ export function generateWorkspaceIntegrationCapabilities(manifests) {
     if (capabilities === undefined || tw === undefined) {
       continue;
     }
-    importLines.push(`import { ${tw.workspaceTypeExport} } from "${m.package}";`);
+    importLines.push(`import { ${tw.workspaceTypeExport} } from "${m.package}/plugin";`);
 
     for (const [providerId, config] of Object.entries(capabilities)) {
       if (config === undefined || typeof config !== "object") {
@@ -110,7 +110,8 @@ export function resolveIntegrationDeprecatedEventSupersededBy(
   eventType: string
 ): string | undefined {
   const binding = resolveBinding(workspaceType, providerId);
-  return binding?.deprecatedEventTypes?.[eventType];
+  const deprecated = binding?.deprecatedEventTypes as Readonly<Record<string, string>> | undefined;
+  return deprecated?.[eventType];
 }
 
 export function requiresTourPublishedPolicyDriftCheck(

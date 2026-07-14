@@ -9,11 +9,11 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] {
   --mkt-ascent-route-glow: var(--denali-forest-500);
   --mkt-ascent-ridge-far: color-mix(in srgb, var(--denali-alpine-600) 22%, var(--color-bg-muted));
   --mkt-ascent-ridge-mid: color-mix(in srgb, var(--denali-alpine-600) 38%, var(--denali-mist-100));
-  --mkt-ascent-ridge-near: color-mix(in srgb, var(--denali-alpine-600) 55%, #e8f0f8);
+  --mkt-ascent-ridge-near: color-mix(in srgb, var(--denali-alpine-600) 55%, var(--denali-mist-100));
   --mkt-ascent-ridge-stroke: color-mix(in srgb, var(--denali-alpine-600) 35%, white);
-  --mkt-ascent-snow-highlight: #ffffff;
-  --mkt-ascent-snow-shadow: #dbeafe;
-  --mkt-ascent-pin-stroke: #ffffff;
+  --mkt-ascent-snow-highlight: white;
+  --mkt-ascent-snow-shadow: var(--denali-mist-200);
+  --mkt-ascent-pin-stroke: white;
   --mkt-ascent-pin-muted: var(--color-border-subtle);
   --mkt-ascent-summit-idle: var(--mkt-accent-mid);
   --mkt-ascent-text: var(--color-text-primary);

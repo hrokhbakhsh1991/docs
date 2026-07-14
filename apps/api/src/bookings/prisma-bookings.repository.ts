@@ -207,7 +207,7 @@ export class PrismaBookingsRepository implements BookingsRepository {
       tenantId,
       limit: MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
     });
-    return page.items;
+    return [...page.items];
   }
 
   async listBySubmittedUser(

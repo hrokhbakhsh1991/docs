@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
+import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali/plugin";
 
 export const WORKSPACE_INTEGRATION_CAPABILITY_BINDINGS = [
   {
@@ -41,7 +41,8 @@ export function resolveIntegrationDeprecatedEventSupersededBy(
   eventType: string
 ): string | undefined {
   const binding = resolveBinding(workspaceType, providerId);
-  return binding?.deprecatedEventTypes?.[eventType];
+  const deprecated = binding?.deprecatedEventTypes as Readonly<Record<string, string>> | undefined;
+  return deprecated?.[eventType];
 }
 
 export function requiresTourPublishedPolicyDriftCheck(

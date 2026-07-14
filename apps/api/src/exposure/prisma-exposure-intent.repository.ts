@@ -147,13 +147,20 @@ export class PrismaExposureIntentRepository implements ExposureIntentRepository 
     const lookup = new Map<string, ExposureIntent>();
     for (const row of rows) {
       const intent = mapRow(row);
+      const profileId = intent.profileId?.trim() ?? "";
+      const surface = intent.surface?.trim() ?? "";
+      const audience = intent.audience?.trim() ?? "";
+      const trigger = intent.trigger?.trim() ?? "";
+      if (profileId.length === 0 || surface.length === 0 || audience.length === 0 || trigger.length === 0) {
+        continue;
+      }
       const key = exposureIntentContextLookupKey({
         tenantId,
-        profileId: intent.profileId,
-        surface: intent.surface,
-        audience: intent.audience,
-        trigger: intent.trigger,
-        scope: intent.scope,
+        profileId,
+        surface,
+        audience,
+        trigger,
+        scope: intent.scope as ExposureIntentContextKey["scope"],
       });
       if (!lookup.has(key)) {
         lookup.set(key, intent);

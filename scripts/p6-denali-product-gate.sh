@@ -18,7 +18,8 @@ pnpm --filter @app-tour/tenant-kernel exec node --import tsx --test \
   test/multi-level-host-parse.spec.ts
 
 echo "== p6:gate — API P6 specs =="
-pnpm --filter @apps/api exec node --import tsx --test \
+pnpm --filter @apps/api exec env STORAGE_DRIVER=memory NODE_ENV=test \
+  node --import tsx --test --test-force-exit --test-concurrency=1 \
   test/p6-host-tenant-parity.spec.ts \
   test/p6-guest-slice.spec.ts \
   test/p6-offline-receipt-gate.spec.ts \
@@ -51,7 +52,8 @@ pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test \
   test/product-neutral-core.contract.spec.ts
 
 echo "== p6:gate — API Denali registration (M16/M17 intake) =="
-pnpm --filter @apps/api exec node --import tsx --test \
+pnpm --filter @apps/api exec env STORAGE_DRIVER=memory NODE_ENV=test \
+  node --import tsx --test --test-force-exit --test-concurrency=1 \
   test/denali-registration.spec.ts \
   test/identity-me.spec.ts
 

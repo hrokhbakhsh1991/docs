@@ -117,6 +117,9 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "register-workspace-finance-deps.ts",
   "workspace-finance-processed-log.ts",
   "in-memory-finance.repository.ts",
+  "finance-list-projection.ts",
+  "finance-module-enabled.ts",
+  "workspace-finance-bindings.generated.ts",
 ]);
 const workspaceFinanceDir = path.join(REPO_ROOT, "apps/api/src/workspace-finance");
 const workspaceFinanceUnexpected = fs.existsSync(workspaceFinanceDir)

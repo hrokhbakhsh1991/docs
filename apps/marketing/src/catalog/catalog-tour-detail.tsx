@@ -6,6 +6,7 @@ import { resolveCatalogDetailSections } from "@app-tour/workspace-sdk";
 
 import { CatalogTourDetailPhotoLightboxShell } from "./catalog-tour-detail-photo-lightbox-shell";
 import { CatalogTourDetailPhotoLightboxTrigger } from "./catalog-tour-detail-photo-lightbox";
+import { CatalogTourBreadcrumb } from "./catalog-tour-breadcrumb";
 import { CatalogCoverImage } from "./catalog-cover-image";
 import { CatalogTourDetailBookingRail } from "./catalog-tour-detail-booking-rail";
 import { CatalogTourDetailFacts } from "./catalog-tour-detail-facts";
@@ -125,6 +126,12 @@ export async function CatalogTourDetail({
         <div data-marketing-catalog-detail-layout>
           <div data-marketing-catalog-detail-main>
             <div data-marketing-catalog-detail-intro>
+              <CatalogTourBreadcrumb
+                locale={locale}
+                homeLabel={t("home.title")}
+                toursLabel={t("nav.tours")}
+                tourTitle={title}
+              />
               <Link href={toursHref} data-marketing-catalog-detail-back>
                 {t("detail.backToTours")}
               </Link>

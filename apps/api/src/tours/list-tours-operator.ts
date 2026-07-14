@@ -2,8 +2,6 @@ import {
   buildTourListProjection,
   type TourListProjection,
   type TourListProjectionFields,
-  type TourListStatus,
-  type TourUiStatus,
 } from "@app-tour/workspace-sdk";
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 
@@ -17,9 +15,13 @@ import { ensureDevMemoryTourSeedForTenant } from "../storage/create-tour-storage
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 
-export type OperatorListSortBy = "created_at" | "title" | "price" | "departure_at";
-export type OperatorListSortDir = "asc" | "desc";
-export type OperatorListStatusFilter = "active" | "completed" | "archived";
+import type {
+  OperatorListSortBy,
+  OperatorListSortDir,
+  OperatorListStatusFilter,
+} from "./operator-tour-list-types";
+
+export type { OperatorListSortBy, OperatorListSortDir, OperatorListStatusFilter } from "./operator-tour-list-types";
 
 export type OperatorListToursQuery = {
   readonly search?: string;
@@ -37,22 +39,6 @@ export type OperatorTourListResult = {
   readonly total: number;
   readonly page: number;
   readonly limit: number;
-};
-
-const STATUS_BUCKET: Record<
-  OperatorListStatusFilter,
-  readonly { listStatus: TourListStatus; uiStatus?: TourUiStatus }[]
-> = {
-  active: [{ listStatus: "draft", uiStatus: "draft" }],
-  completed: [
-    { listStatus: "open", uiStatus: "active" },
-    { listStatus: "published", uiStatus: "active" },
-  ],
-  archived: [
-    { listStatus: "closed" },
-    { listStatus: "cancelled" },
-    { listStatus: "archived", uiStatus: "archived" },
-  ],
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -101,31 +87,6 @@ function toRowMeta(record: TourRecord) {
   };
 }
 
-function matchesStatusFilter(
-  projection: TourListProjectionFields,
-  status: OperatorListStatusFilter | undefined
-): boolean {
-  if (status === undefined) {
-    return true;
-  }
-  const buckets = STATUS_BUCKET[status];
-  return buckets.some((bucket) => {
-    if (bucket.uiStatus !== undefined) {
-      return projection.listStatus === bucket.listStatus && projection.uiStatus === bucket.uiStatus;
-    }
-    return projection.listStatus === bucket.listStatus;
-  });
-}
-
-function matchesSearch(projection: TourListProjectionFields, search: string | undefined): boolean {
-  if (search === undefined || search.length === 0) {
-    return true;
-  }
-  const needle = search.toLocaleLowerCase();
-  const haystacks = [projection.title, projection.shortDescription ?? ""];
-  return haystacks.some((value) => value.toLocaleLowerCase().includes(needle));
-}
-
 function matchesCategoryFilter(
   projection: TourListProjectionFields,
   category: string | undefined
@@ -134,44 +95,6 @@ function matchesCategoryFilter(
     return true;
   }
   return projection.category === category;
-}
-
-function compareNullableIso(left: string | null, right: string | null): number {
-  const leftVal = left?.trim() ?? "";
-  const rightVal = right?.trim() ?? "";
-  const leftEmpty = leftVal.length === 0;
-  const rightEmpty = rightVal.length === 0;
-  if (leftEmpty && rightEmpty) {
-    return 0;
-  }
-  if (leftEmpty) {
-    return 1;
-  }
-  if (rightEmpty) {
-    return -1;
-  }
-  return leftVal.localeCompare(rightVal);
-}
-
-function compareProjections(
-  left: TourListProjection,
-  right: TourListProjection,
-  sortBy: OperatorListSortBy,
-  sortDir: OperatorListSortDir
-): number {
-  let delta = 0;
-  if (sortBy === "title") {
-    delta = left.title.localeCompare(right.title);
-  } else if (sortBy === "price") {
-    const leftPrice = left.priceAmount ?? Number.NEGATIVE_INFINITY;
-    const rightPrice = right.priceAmount ?? Number.NEGATIVE_INFINITY;
-    delta = leftPrice - rightPrice;
-  } else if (sortBy === "departure_at") {
-    delta = compareNullableIso(left.departureAt, right.departureAt);
-  } else {
-    delta = left.createdAt.localeCompare(right.createdAt);
-  }
-  return sortDir === "asc" ? delta : -delta;
 }
 
 export async function listToursOperator(

@@ -38,7 +38,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: "node scripts/smoke-marketing-e2e-servers.mjs",
+          command: "node scripts/smoke-marketing-seo-matrix-e2e-servers.mjs",
           url: `${marketingSmokeBaseUrl}/health`,
           reuseExistingServer: !process.env.CI && process.env.PW_NO_REUSE_SERVER !== "1",
           timeout: 360_000,
