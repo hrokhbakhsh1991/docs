@@ -26,5 +26,6 @@ export type FinanceLedgerOutboxEnqueueInput = {
 };
 
 export interface OutboxWriter {
-  addEvent(event: FinanceLedgerOutboxEnqueueInput): Promise<void>;
+  /** @returns true when a new row was inserted; false on duplicate domainEventId. */
+  addEvent(event: FinanceLedgerOutboxEnqueueInput): Promise<boolean>;
 }

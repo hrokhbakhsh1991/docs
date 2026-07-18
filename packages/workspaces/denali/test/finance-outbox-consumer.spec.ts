@@ -53,6 +53,7 @@ function createRecordingWriter(): {
     writer: {
       async addEvent(event) {
         events.push(event);
+        return true;
       },
     },
   };
@@ -110,6 +111,7 @@ describe("finance-outbox-consumer.spec.ts (REQ-P6-011, REQ-P6-012, REQ-P6-028)",
     const writer: OutboxWriter = {
       async addEvent() {
         addCalls += 1;
+        return true;
       },
     };
 
