@@ -60,7 +60,7 @@ import {
   generateWizardTemplatePathAliasBindings,
 } from "./domains/settings-api.mjs";
 import { generateWorkspaceOperatorCapabilities } from "./domains/operator.mjs";
-import { generateWorkspaceFinanceBindings } from "./domains/finance.mjs";
+import { generateWorkspaceFinanceBindings, generateWorkspaceFinanceNavBindings } from "./domains/finance.mjs";
 import { generateExposureHostBindings } from "./domains/exposure.mjs";
 import { generateWorkspaceIntegrationCapabilities } from "./domains/integration.mjs";
 import {
@@ -176,7 +176,7 @@ export const DOMAIN_OUTPUT_KEYS = {
   "settings-api": ["settingsEnrichers", "devBootstrap", "wizardTemplateEnforcement", "wizardTemplatePathAliases"],
   dev: ["devPluginIds"],
   operator: ["operatorCapabilities"],
-  finance: ["workspaceFinance"],
+  finance: ["workspaceFinance", "workspaceFinanceNav"],
   exposure: ["exposureHost"],
 };
 
@@ -206,6 +206,7 @@ export const OUTPUT_KEYS = Object.freeze([
   "catalogDetailSections",
   "operatorCapabilities",
   "workspaceFinance",
+  "workspaceFinanceNav",
   "wizardTemplateEditorBindings",
   "marketingCatalogBindings",
   "settingsDestinationBindings",
@@ -281,6 +282,7 @@ export function generateAllOutputs(manifests) {
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
     workspaceFinance: generateWorkspaceFinanceBindings(manifests),
+    workspaceFinanceNav: generateWorkspaceFinanceNavBindings(manifests),
     wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
     marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
     settingsDestinationBindings: generateSettingsDestinationBindings(manifests),
@@ -401,6 +403,10 @@ export const OUTPUT_PATHS = {
   workspaceFinance: join(
     REPO_ROOT,
     "apps/api/src/workspace-finance/workspace-finance-bindings.generated.ts"
+  ),
+  workspaceFinanceNav: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts"
   ),
   wizardTemplateEditorBindings: join(
     REPO_ROOT,

@@ -66,5 +66,37 @@ export function isFinanceDefaultEnabledWhenModulesUnset(workspaceType: string): 
   return defaultEnabledWhenUnset.has(workspaceType);
 }
 `;
-
 }
+
+/**
+ * Web operator nav — plugin ids with workspaceFinance.supported (Phase 1.2).
+ * Replaces wizardCreate.extendedChrome as the finance hub visibility gate.
+ *
+ * Architecture-proof ids are merged so generated bindings remain the sole runtime
+ * SoT for hub visibility without a full `packages/workspaces/finance-ws2` onboard
+ * in this slice (API policy/registry stays Phase 1.1 Denali-only).
+ */
+const FINANCE_NAV_ARCHITECTURE_PROOF_PLUGIN_IDS = Object.freeze(["finance-ws2"]);
+
+export function generateWorkspaceFinanceNavBindings(manifests) {
+  /** @type {Set<string>} */
+  const ids = new Set(
+    manifests.filter((m) => m.workspaceFinance?.supported === true).map((m) => m.id)
+  );
+  for (const id of FINANCE_NAV_ARCHITECTURE_PROOF_PLUGIN_IDS) {
+    ids.add(id);
+  }
+  const pluginIds = [...ids].sort().map((id) => `  ${JSON.stringify(id)},`);
+
+  return `${BANNER}
+/** Plugin ids with workspaceFinance.supported (+ architecture-proof) — finance hub enablement (Phase 1.2). */
+export const WORKSPACE_FINANCE_NAV_PLUGIN_IDS = new Set<string>([
+${pluginIds.join("\n")}
+]);
+
+export function isFinanceNavPlugin(pluginId: string): boolean {
+  return WORKSPACE_FINANCE_NAV_PLUGIN_IDS.has(pluginId);
+}
+`;
+}
+

@@ -2,21 +2,15 @@ import {
   DEFAULT_FINANCE_OPS_MANIFEST,
   resolveFinanceOpsManifestFromTheme,
   type FinanceOpsManifest,
-} from "@app-tour/workspace-denali/host/finance/manifest";
+} from "@app-cloud/workspace-denali/host/finance/manifest";
 
-import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
+export {
+  isFinanceRouteAllowed,
+  shouldShowFinanceNav,
+} from "@/finance/finance-nav-enablement";
 
 export { DEFAULT_FINANCE_OPS_MANIFEST, resolveFinanceOpsManifestFromTheme };
 export type { FinanceOpsManifest };
-
-/** Phase 9.7 — finance hub visible only on extended operator workspaces (INV-P9-006). */
-export function shouldShowFinanceNav(pluginId: string): boolean {
-  return isExtendedOperatorWorkspace(pluginId);
-}
-
-export function isFinanceRouteAllowed(pluginId: string): boolean {
-  return shouldShowFinanceNav(pluginId);
-}
 
 export type FinanceCommandCenterTab =
   | "overview"

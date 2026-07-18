@@ -4,7 +4,7 @@ import {
   parseFinanceSummary,
   type FinanceSummary,
 } from "@/finance/finance-reports-logic";
-import { shouldShowFinanceNav } from "@/finance/finance-nav-access";
+import { shouldShowFinanceNav } from "@/finance/finance-nav-enablement";
 
 export const FINANCE_DASHBOARD_WIDGET_TEST_IDS = {
   widget: "dashboard-widget-finance",

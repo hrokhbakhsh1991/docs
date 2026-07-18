@@ -290,17 +290,17 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | **Codegen** | `generateWorkspaceFinanceNavBindings` in `scripts/codegen/workspace-registry/domains/finance.mjs` → `apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts` |
 | **Runtime** | `finance-nav-enablement.ts` (`shouldShowFinanceNav` / `isFinanceRouteAllowed`) is the only enablement gate; operator nav, dashboard widget, and `/finance` page import it |
 | **Preserved** | Denali still `supported: true` → nav visible; Denali `financeOps` panels stay on `@app-cloud/workspace-denali/host/finance/manifest` via `finance-nav-access.ts` (ops UI only — not enablement) |
-| **Must NOT** | Redesign UI; change approve/ledger/workflows; register WS2; change users/welcome chrome gates |
-| **Verify** | Denali → true; urban/starter/unknown → false; enablement module has zero `isExtendedOperatorWorkspace` / wizard-create imports |
+| **Must NOT** | Redesign UI; change approve/ledger/workflows; full WS2 workspace package/API registry; change users/welcome chrome gates |
+| **Verify** | Denali → true; `finance-ws2` → true (architecture-proof nav id); urban/starter/unknown → false; enablement module has zero `isExtendedOperatorWorkspace` / wizard-create imports |
 
 **Phase 1.2 checklist:**
 
 | Item | State |
 | ---- | ----- |
-| Generated finance nav bindings are source of truth for hub visibility | Pending |
-| `shouldShowFinanceNav` independent of wizard `extendedChrome` | Pending |
-| Denali UI behavior preserved (nav on; ops panels unchanged) | Pending |
-| WS2 / composition registry / approve path untouched by this slice | Pending |
+| Generated finance nav bindings are source of truth for hub visibility | Done |
+| `shouldShowFinanceNav` independent of wizard `extendedChrome` | Done |
+| Denali UI behavior preserved (nav on; ops panels unchanged) | Done |
+| Denali + finance-ws2 see finance; unsupported workspaces do not | Done |
 
 ### Phase 1 — Multi-workspace readiness
 

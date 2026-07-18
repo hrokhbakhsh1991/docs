@@ -149,9 +149,9 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
     assert.match(source, /loadWorkspaceWizardMessagesForLocale/);
   });
 
-  it("P14-3-04c operator feature gates use extended workspace binding", () => {
+  it("P14-3-04c finance nav uses workspaceFinance binding; users/welcome keep extended chrome", () => {
     const finance = readFileSync(
-      join(import.meta.dirname, "../src/finance/finance-nav-access.ts"),
+      join(import.meta.dirname, "../src/finance/finance-nav-enablement.ts"),
       "utf8"
     );
     const users = readFileSync(
@@ -162,10 +162,13 @@ describe("wizard-host-boundary.spec.ts — Phase 12 host decouple", () => {
       join(import.meta.dirname, "../src/admin/onboarding/resolve-operator-welcome.ts"),
       "utf8"
     );
-    assert.doesNotMatch(finance, /@app-tour\/workspace-denali/);
-    assert.doesNotMatch(users, /@app-tour\/workspace-denali/);
-    assert.doesNotMatch(welcome, /@app-tour\/workspace-denali/);
-    assert.match(finance, /isExtendedOperatorWorkspace/);
+    assert.match(finance, /workspace-finance-nav-bindings/);
+    assert.doesNotMatch(finance, /isExtendedOperatorWorkspace/);
+    assert.doesNotMatch(finance, /wizard-create-bindings/);
+    assert.doesNotMatch(users, /@app-cloud\/workspace-denali/);
+    assert.doesNotMatch(welcome, /@app-cloud\/workspace-denali/);
+    assert.match(users, /isExtendedOperatorWorkspace/);
+    assert.match(welcome, /isExtendedOperatorWorkspace/);
   });
 
   it("P14-0b-05 template field labels use neutral canonical path formatter", () => {
