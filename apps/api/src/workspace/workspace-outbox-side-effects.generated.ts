@@ -16,5 +16,3 @@ export const WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS: readonly {
   readonly eventType: string;
   readonly run: WorkspaceOutboxSideEffectRunner;
 }[] = [];
-
-export { registerTourCreatedFinanceSideEffectDeps, runTourCreatedFinanceSideEffect, type TourCreatedFinanceSideEffectRow } from "@app-tour/workspace-denali/host/finance/api-tour-created-adapter";

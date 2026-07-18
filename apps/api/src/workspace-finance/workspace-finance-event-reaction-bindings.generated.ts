@@ -6,10 +6,16 @@
 
 import { DenaliTourCreatedFinanceReactionAdapter as denali_EventReaction } from "@app-tour/workspace-denali/host/finance";
 
+import { FinanceWs2TourCreatedFinanceReactionAdapter as finance_ws2_EventReaction } from "@app-tour/workspace-finance-ws2/host/finance";
+
 export const WORKSPACE_FINANCE_EVENT_REACTION_BINDINGS = {
   "denali": {
     requiresHostIo: true as const,
     create: (hostIo: ConstructorParameters<typeof denali_EventReaction>[0]) => new denali_EventReaction(hostIo),
+  },
+  "finance-ws2": {
+    requiresHostIo: false as const,
+    create: () => new finance_ws2_EventReaction(),
   },
 } as const;
 

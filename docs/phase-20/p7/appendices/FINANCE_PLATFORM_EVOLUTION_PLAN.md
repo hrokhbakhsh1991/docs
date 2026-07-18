@@ -495,7 +495,7 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | **Goal** | Remove duplicate TourCreated finance ownership: production relay must enter **one** finance event reaction contract; workspace adapters own Denali (or future WS) composition; unknown workspace types **fail closed** on resolve |
 | **Contract** | `WorkspaceFinanceEventReactionPort` + `resolveWorkspaceFinanceEventReaction(workspaceType)` |
 | **Production path** | Outbox relay → `dispatchTourCreatedOutboxSideEffects` → `processWorkspaceFinanceTourCreatedRow` → reaction registry → workspace adapter |
-| **Codegen** | Manifest `events[].hostSideEffect.dispatchVia: "financeEventReaction"` — **no** Denali `run*` in `WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS`; register/reexport deps remain for adapter IO injection |
+| **Codegen** | Manifest `events[].hostSideEffect.dispatchVia: "financeEventReaction"` — **no** Denali `run*` in `WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS` |
 | **Fail closed** | Unregistered workspaceType on `resolveWorkspaceFinanceEventReaction` throws `FINANCE_EVENT_REACTION_UNSUPPORTED` (no silent no-op). Dispatcher skips invoke when reaction not registered (non-finance tenants unchanged) |
 | **Unchanged** | Payment formulas; approve TX; ledger capture IDs; idempotency claim keys; `FinanceService`; `handleTourCreatedLedgerEvent` journal math |
 | **Must NOT** | Dual invoke (bindings + port); request-scoped service; finance-core extract; silent Denali fallback |
@@ -519,6 +519,28 @@ Outbox Relay
 | Generated bindings do not dispatch Denali finance `run*` when `dispatchVia: financeEventReaction` | Done |
 | Reaction registry fail-closed (no NOOP resolve) | Done |
 | `FinanceService` / approve / identity formulas untouched | Done |
+
+### Phase 1.9 Event Ownership Closure — no Denali façade in platform event codegen
+
+| | |
+| -- | -- |
+| **Goal** | Generic finance event infrastructure must not re-export or type against Denali implementation details |
+| **Generated outbox** | `workspace-outbox-side-effects.generated.ts` has **zero** Denali exports when events use `dispatchVia: financeEventReaction` |
+| **Reaction registry** | Host IO uses platform `FinanceWorkspaceOutboxReader` / `FinanceOutboxWriter` — **no** `@app-tour/workspace-denali` type imports |
+| **Boot register** | `register-workspace-finance-deps` imports `registerTourCreatedFinanceSideEffectDeps` from **workspace package** (not generated outbox) |
+| **WS2** | Fixture may declare independent `eventReaction` via manifest/codegen |
+| **Preserved** | Payment IDs; ledger capture IDs; approve TX order; RLS |
+| **Commit** | `feat(finance): remove workspace-specific event facade leakage` |
+
+**Phase 1.9 Event Ownership Closure checklist:**
+
+| Item | State |
+| ---- | ----- |
+| Generated outbox has no `runTourCreated*` / `registerTourCreated*` / `workspace-denali` | Done |
+| Reaction registry has no Denali package imports | Done |
+| Denali reaction resolves via capability registry | Done |
+| WS2 reaction registers independently (manifest) | Done |
+| Unknown workspaceType fails closed | Done |
 
 ### Phase 1.9 — Workspace finance adapters leave `apps/api` infrastructure
 

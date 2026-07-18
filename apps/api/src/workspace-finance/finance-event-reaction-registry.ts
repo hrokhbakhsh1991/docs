@@ -1,46 +1,39 @@
 /**
- * Workspace type → TourCreated finance event reaction (Phase 1.10).
+ * Workspace type → TourCreated finance event reaction (Phase 1.9 Event Ownership Closure).
  * Adapter classes come from generated manifest bindings; Prisma outbox IO stays platform-owned.
  * Resolve is fail-closed: unregistered workspace types throw (no silent no-op).
+ * Host IO types are platform ports — no workspace package type imports.
  */
-
-import type { DenaliOutboxDomainEvent, OutboxReader, OutboxWriter } from "@app-tour/workspace-denali";
 
 import {
   isFinanceEventReactionBindingRegistered,
   WORKSPACE_FINANCE_EVENT_REACTION_BINDINGS,
 } from "./workspace-finance-event-reaction-bindings.generated";
+import type { FinanceOutboxWriter } from "./ports/finance-outbox-writer.port";
+import type {
+  FinanceWorkspaceOutboxReader,
+} from "./ports/finance-workspace-outbox-reader.port";
 import type { WorkspaceFinanceEventReactionPort } from "./ports/workspace-finance-event-reaction.port";
 import { createWorkspaceOutboxReader } from "./prisma-workspace-outbox-reader";
 import { createPrismaWorkspaceOutboxWriter } from "./prisma-workspace-outbox-writer";
 import { createWorkspaceFinanceProcessedStore } from "./workspace-finance-processed-log";
 
-function createPlatformTourCreatedFinanceHostIo(): {
-  readonly createOutboxReader: (tenantId: string) => OutboxReader;
-  readonly createOutboxWriter: () => OutboxWriter;
+/** Platform host IO for workspace reaction adapters that declare `requiresHostIo: true`. */
+export type PlatformTourCreatedFinanceHostIo = {
+  readonly createOutboxReader: (tenantId: string) => FinanceWorkspaceOutboxReader;
+  readonly createOutboxWriter: () => FinanceOutboxWriter;
   readonly createProcessedStore: (tenantId: string) => ReturnType<
     typeof createWorkspaceFinanceProcessedStore
   >;
-} {
+};
+
+function createPlatformTourCreatedFinanceHostIo(): PlatformTourCreatedFinanceHostIo {
   return {
-    createOutboxReader(tenantId: string): OutboxReader {
-      const reader = createWorkspaceOutboxReader(tenantId);
-      return {
-        async readPending(): Promise<readonly DenaliOutboxDomainEvent[]> {
-          const rows = await reader.readPending();
-          return rows.map((row) => ({
-            tenantId: row.tenantId,
-            domainEventId: row.domainEventId,
-            eventType: row.eventType,
-            aggregateType: row.aggregateType,
-            aggregateId: row.aggregateId,
-            payload: row.payload,
-          }));
-        },
-      };
+    createOutboxReader(tenantId: string): FinanceWorkspaceOutboxReader {
+      return createWorkspaceOutboxReader(tenantId);
     },
-    createOutboxWriter(): OutboxWriter {
-      return createPrismaWorkspaceOutboxWriter() as OutboxWriter;
+    createOutboxWriter(): FinanceOutboxWriter {
+      return createPrismaWorkspaceOutboxWriter();
     },
     createProcessedStore(tenantId: string) {
       return createWorkspaceFinanceProcessedStore(tenantId);
@@ -81,7 +74,8 @@ export function resolveWorkspaceFinanceEventReaction(
     );
   }
   if (binding.requiresHostIo === true) {
-    return binding.create(createPlatformTourCreatedFinanceHostIo());
+    // Structural: workspace HostIo ports accept platform reader/writer shapes.
+    return binding.create(createPlatformTourCreatedFinanceHostIo() as never);
   }
   return binding.create();
 }
