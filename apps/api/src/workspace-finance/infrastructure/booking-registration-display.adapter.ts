@@ -1,0 +1,37 @@
+import { getBookingsRepository } from "../../bookings/create-bookings-repository";
+import type { BookingsRepository } from "../../bookings/in-memory-bookings.repository";
+import type {
+  FinanceRegistrationDisplay,
+  RegistrationDisplayPort,
+} from "../ports/registration-display.port";
+
+/**
+ * Infrastructure adapter — maps Booking list identity fields into finance display DTO.
+ * `guestLabel` → `memberDisplayName` (API contract unchanged).
+ */
+export class BookingRegistrationDisplayAdapter implements RegistrationDisplayPort {
+  constructor(private readonly bookings: BookingsRepository = getBookingsRepository()) {}
+
+  async getByRegistrationIds(
+    tenantId: string,
+    registrationIds: readonly string[]
+  ): Promise<ReadonlyMap<string, FinanceRegistrationDisplay>> {
+    const unique = [
+      ...new Set(registrationIds.map((id) => id.trim()).filter((id) => id.length > 0)),
+    ];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const rows = await this.bookings.getByIds(unique, tenantId.trim());
+    const map = new Map<string, FinanceRegistrationDisplay>();
+    for (const booking of rows) {
+      map.set(booking.id, {
+        registrationId: booking.id,
+        tourId: booking.tourId,
+        tourTitle: booking.tourTitle,
+        memberDisplayName: booking.guestLabel,
+      });
+    }
+    return map;
+  }
+}

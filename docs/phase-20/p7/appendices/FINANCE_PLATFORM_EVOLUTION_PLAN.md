@@ -432,6 +432,25 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | Bookings finance call sites use tenant-aware resolve | Done |
 | Denali tenant still shares cached instance with boot lazy (parity) | Done |
 
+### Phase 1.6 Commit 1 — Registration display port
+
+| | |
+| -- | -- |
+| **Goal** | Finance application layer must not Service-Locate `getBookingsRepository()` for list identity enrichment |
+| **Port** | `RegistrationDisplayPort.getByRegistrationIds` — finance-owned DTO (`registrationId`, `tourId`, `tourTitle`, `memberDisplayName`) |
+| **Adapter** | `BookingRegistrationDisplayAdapter` — maps Booking `guestLabel` → `memberDisplayName` via batch `getByIds` |
+| **Unchanged** | API `registrationContext` JSON; `IBookingPaymentPort`; approve TX Option C; ledger/payment identities; web hrefs |
+| **Must NOT** | Events; schema; payment-port changes; N+1 fetches |
+
+**Phase 1.6 Commit 1 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| `finance-registration-context.ts` has no Booking imports | Done |
+| `FinanceService` loads display via injected port | Done |
+| Composition injects shared display adapter | Done |
+| Approve / booking payment port untouched | Done |
+
 ### Phase 2 — Finance core extraction
 
 | | |
