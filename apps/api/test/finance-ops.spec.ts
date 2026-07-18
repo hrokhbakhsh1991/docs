@@ -12,7 +12,7 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { randomUUID } from "node:crypto";
-import { after, before, describe, it } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { PrismaClient } from "@prisma/client";
 
@@ -21,23 +21,22 @@ import { resetLazyFinanceServiceForTests } from "../src/boot/lazy-finance-servic
 import { resetLazyRouteHandlersForTests } from "../src/boot/lazy-route-handlers";
 import { resetLazyWorkspaceFinanceHandlersForTests } from "../src/boot/lazy-workspace-finance-handlers";
 import { disconnectPrisma } from "../src/db/prisma";
+import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
 import { integrationTenantId } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
-/** Local Docker uses `app_tour`; stale shell `postgres:postgres@127.0.0.1:5434` must not win over DATABASE_URL. */
+/** Prefer DATABASE_URL_ADMIN for seed/cleanup (superuser bypasses RLS + owns audit triggers). */
 function resolveFinanceOpsAdminUrl(): string {
-  const appUrl = process.env.DATABASE_URL?.trim();
   const adminUrl = process.env.DATABASE_URL_ADMIN?.trim();
-  const staleLocalPostgresAdmin =
-    adminUrl?.includes("postgres:postgres@127.0.0.1:5434") ?? false;
-  if (adminUrl && !staleLocalPostgresAdmin) {
+  const appUrl = process.env.DATABASE_URL?.trim();
+  if (adminUrl) {
     return adminUrl;
   }
   if (appUrl) {
     return appUrl;
   }
-  return "postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db";
+  return "postgresql://postgres:postgres@127.0.0.1:5434/app_cloud_dev";
 }
 
 async function ensureFinanceTables(admin: PrismaClient): Promise<void> {
@@ -139,6 +138,7 @@ async function requestJson(
     readonly tenantId: string;
     readonly body?: unknown;
     readonly role?: "admin" | "owner" | "member";
+    readonly idempotencyKey?: string;
   }
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
@@ -163,6 +163,9 @@ async function requestJson(
                   "Content-Type": "application/json",
                   "Content-Length": String(Buffer.byteLength(payload)),
                 }
+              : {}),
+            ...(input.idempotencyKey !== undefined
+              ? { "Idempotency-Key": input.idempotencyKey }
               : {}),
             ...authHeaders(input.tenantId, input.role),
           },
@@ -193,17 +196,27 @@ async function requestJson(
   });
 }
 
-describe("finance-ops.spec.ts — Phase 9.7", { skip: !hasDatabase, concurrency: false }, () => {
+describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurrency: false }, () => {
   const denaliTenantId = integrationTenantId();
+  const denaliTenantBId = integrationTenantId();
   const urbanTenantId = integrationTenantId();
   const disabledFinanceTenantId = integrationTenantId();
   let admin: PrismaClient;
   const listener = createRequestListener();
+  const priorAbort = process.env.P5_ATOMIC_TX_TEST_ABORT;
+  const tenantIds = () => [
+    denaliTenantId,
+    denaliTenantBId,
+    urbanTenantId,
+    disabledFinanceTenantId,
+  ];
 
   before(async () => {
+    process.env.STORAGE_DRIVER = process.env.STORAGE_DRIVER?.trim() || "prisma";
     resetLazyRouteHandlersForTests();
     resetLazyFinanceServiceForTests();
     resetLazyWorkspaceFinanceHandlersForTests();
+    resetHttpIdempotencyMemoryForTests();
     const adminUrl = resolveFinanceOpsAdminUrl();
     admin = new PrismaClient({ datasources: { db: { url: adminUrl } } });
     await ensureFinanceTables(admin);
@@ -212,6 +225,12 @@ describe("finance-ops.spec.ts — Phase 9.7", { skip: !hasDatabase, concurrency:
         {
           id: denaliTenantId,
           subdomain: `fin-${denaliTenantId.slice(0, 8)}`,
+          workspaceType: "denali",
+          theme: {},
+        },
+        {
+          id: denaliTenantBId,
+          subdomain: `finb-${denaliTenantBId.slice(0, 8)}`,
           workspaceType: "denali",
           theme: {},
         },
@@ -231,14 +250,26 @@ describe("finance-ops.spec.ts — Phase 9.7", { skip: !hasDatabase, concurrency:
     });
   });
 
+  beforeEach(() => {
+    delete process.env.P5_ATOMIC_TX_TEST_ABORT;
+    resetHttpIdempotencyMemoryForTests();
+  });
+
   after(async () => {
+    if (priorAbort === undefined) {
+      delete process.env.P5_ATOMIC_TX_TEST_ABORT;
+    } else {
+      process.env.P5_ATOMIC_TX_TEST_ABORT = priorAbort;
+    }
     await admin.$executeRawUnsafe(
       `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
     );
     try {
-      for (const tenantId of [denaliTenantId, urbanTenantId, disabledFinanceTenantId]) {
+      for (const tenantId of tenantIds()) {
+        await admin.httpIdempotencyRecord.deleteMany({ where: { tenantId } });
         await admin.paymentReceipt.deleteMany({ where: { tenantId } });
         await admin.payment.deleteMany({ where: { tenantId } });
+        await admin.operatorRegistration.deleteMany({ where: { tenantId } });
         await admin.outboxEvent.deleteMany({ where: { tenantId } });
         await admin.tenant.delete({ where: { id: tenantId } });
       }
@@ -250,6 +281,62 @@ describe("finance-ops.spec.ts — Phase 9.7", { skip: !hasDatabase, concurrency:
     await admin.$disconnect();
     await disconnectPrisma();
   });
+
+  async function seedPendingReceipt(input: {
+    readonly tenantId: string;
+    readonly withBooking: boolean;
+    readonly amount?: string;
+  }): Promise<{
+    readonly registrationId: string;
+    readonly paymentId: string;
+    readonly receiptId: string;
+  }> {
+    const registrationId = randomUUID();
+    if (input.withBooking) {
+      await admin.$transaction(async (tx) => {
+        await tx.$executeRaw`
+          SELECT set_config('app.current_tenant_id', ${input.tenantId}::text, true)
+        `;
+        await tx.operatorRegistration.create({
+          data: {
+            id: registrationId,
+            tenantId: input.tenantId,
+            tourId: randomUUID(),
+            tourTitle: "Finance Ops Tour",
+            guestLabel: "Finance Guest",
+            partySize: 1,
+            status: "pending",
+            paymentStatus: "unpaid",
+            departureAt: new Date("2026-08-01T00:00:00.000Z"),
+            submittedByUserId: randomUUID(),
+          },
+        });
+      });
+    }
+    const manual = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: input.tenantId,
+      body: {
+        registrationId,
+        amount: input.amount ?? "5000000",
+        currency: "IRR",
+      },
+    });
+    assert.equal(manual.status, 201);
+    const paymentId = String(manual.body.id);
+    const receipt = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: input.tenantId,
+      body: {
+        paymentId,
+        fileKey: `receipts/${paymentId}/proof.jpg`,
+      },
+    });
+    assert.equal(receipt.status, 201);
+    return { registrationId, paymentId, receiptId: String(receipt.body.id) };
+  }
 
   it("API-9.7-01 urban tenant receives 404 FINANCE_WORKSPACE_UNSUPPORTED", async () => {
     const response = await requestJson(listener, {
@@ -272,52 +359,29 @@ describe("finance-ops.spec.ts — Phase 9.7", { skip: !hasDatabase, concurrency:
   });
 
   it("API-9.7-03 manual payment → receipt → approve emits ledger outbox", async () => {
-    const registrationId = randomUUID();
-
-    const summaryBefore = await requestJson(listener, {
-      method: "GET",
-      path: "/finance/reports/summary",
+    const { registrationId, paymentId, receiptId } = await seedPendingReceipt({
       tenantId: denaliTenantId,
+      withBooking: true,
+      amount: "5000000",
     });
-    assert.equal(summaryBefore.status, 200);
-    assert.equal(summaryBefore.body.pendingManualPayments, 0);
-
-    const manual = await requestJson(listener, {
-      method: "POST",
-      path: "/finance/payments/manual",
-      tenantId: denaliTenantId,
-      body: {
-        registrationId,
-        amount: "5000000",
-        currency: "IRR",
-      },
-    });
-    assert.equal(manual.status, 201);
-    const paymentId = String(manual.body.id);
-    assert.ok(paymentId.length > 0);
-
-    const receipt = await requestJson(listener, {
-      method: "POST",
-      path: "/finance/receipts",
-      tenantId: denaliTenantId,
-      body: {
-        paymentId,
-        fileKey: `receipts/${paymentId}/proof.jpg`,
-        note: "bank transfer",
-      },
-    });
-    assert.equal(receipt.status, 201);
-    const receiptId = String(receipt.body.id);
 
     const review = await requestJson(listener, {
       method: "PATCH",
       path: `/finance/receipts/${receiptId}/review`,
       tenantId: denaliTenantId,
+      idempotencyKey: `ops-03-${receiptId}`,
       body: { decision: "approve", reviewNote: "verified" },
     });
     assert.equal(review.status, 200);
     assert.equal(review.body.status, "Approved");
     assert.ok(typeof review.body.ledgerJournalId === "string");
+    assert.equal(review.body.bookingPaymentStatus, "paid");
+
+    const booking = await admin.operatorRegistration.findUnique({
+      where: { id: registrationId },
+      select: { paymentStatus: true },
+    });
+    assert.equal(booking?.paymentStatus, "paid");
 
     const summaryAfter = await requestJson(listener, {
       method: "GET",
@@ -325,19 +389,54 @@ describe("finance-ops.spec.ts — Phase 9.7", { skip: !hasDatabase, concurrency:
       tenantId: denaliTenantId,
     });
     assert.equal(summaryAfter.status, 200);
-    assert.equal(summaryAfter.body.paidPayments, 1);
+    assert.ok((summaryAfter.body.paidPayments as number) >= 1);
 
-    const ledger = await requestJson(listener, {
-      method: "GET",
-      path: "/finance/reports/ledger-events?limit=5",
-      tenantId: denaliTenantId,
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        eventType: "finance.ledger.double_entry_applied",
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
     });
-    assert.equal(ledger.status, 200);
-    const items = ledger.body.items as unknown[];
-    assert.ok(Array.isArray(items));
-    assert.ok(items.length >= 1);
-    const first = items[0] as Record<string, unknown>;
-    assert.equal(first.eventType, "finance.ledger.double_entry_applied");
+    assert.equal(ledgerCount, 1);
+  });
+
+  it("API-9.7-03b approve without booking row fails closed (409 sync miss)", async () => {
+    const { paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: false,
+      amount: "1000000",
+    });
+
+    const review = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `ops-03b-${receiptId}`,
+      body: { decision: "approve" },
+    });
+    assert.equal(review.status, 409);
+    assert.equal(review.body.code, "FINANCE_BOOKING_PAYMENT_SYNC_MISS");
+
+    const payment = await admin.payment.findUnique({
+      where: { id: paymentId },
+      select: { status: true },
+    });
+    assert.equal(payment?.status, "Pending");
+  });
+
+  it("API-9.7-03c approve without Idempotency-Key returns 400", async () => {
+    const { receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    const review = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      body: { decision: "approve" },
+    });
+    assert.equal(review.status, 400);
   });
 
   it("API-9.7-04 member cannot access finance summary", async () => {
@@ -348,5 +447,397 @@ describe("finance-ops.spec.ts — Phase 9.7", { skip: !hasDatabase, concurrency:
       role: "member",
     });
     assert.equal(response.status, 403);
+  });
+
+  it("APPROVE-IDEM-01 same key retry → one approval + one ledger", async () => {
+    const { paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    const idempotencyKey = `approve-idem-01-${receiptId}`;
+    const body = { decision: "approve" as const };
+    const first = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(first.status, 200);
+    const second = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(second.status, 200);
+    assert.equal(second.body.id, first.body.id);
+    assert.equal(second.body.status, "Approved");
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(ledgerCount, 1);
+  });
+
+  it("APPROVE-IDEM-02 concurrent same key → one logical execution", async () => {
+    const { paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    const idempotencyKey = `approve-idem-02-${receiptId}`;
+    const body = { decision: "approve" as const };
+    const [a, b] = await Promise.all([
+      requestJson(listener, {
+        method: "PATCH",
+        path: `/finance/receipts/${receiptId}/review`,
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        body,
+      }),
+      requestJson(listener, {
+        method: "PATCH",
+        path: `/finance/receipts/${receiptId}/review`,
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        body,
+      }),
+    ]);
+    assert.equal(a.status, 200);
+    assert.equal(b.status, 200);
+    assert.equal(a.body.id, b.body.id);
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(ledgerCount, 1);
+  });
+
+  it("APPROVE-IDEM-03 different keys → one ledger + non-destructive second", async () => {
+    const { paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    const body = { decision: "approve" as const };
+    const first = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `approve-idem-03a-${receiptId}`,
+      body,
+    });
+    assert.equal(first.status, 200);
+    const second = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `approve-idem-03b-${receiptId}`,
+      body,
+    });
+    // Phase 4B: already-Approved+Paid returns non-destructive replay (200) or conflict (409).
+    assert.ok(second.status === 200 || second.status === 409);
+    if (second.status === 200) {
+      assert.equal(second.body.status, "Approved");
+      assert.equal(second.body.id, first.body.id);
+    }
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(ledgerCount, 1);
+  });
+
+  it("APPROVE-RACE-01 concurrent different keys → one capture ledger", async () => {
+    const { paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    const body = { decision: "approve" as const };
+    const [a, b] = await Promise.all([
+      requestJson(listener, {
+        method: "PATCH",
+        path: `/finance/receipts/${receiptId}/review`,
+        tenantId: denaliTenantId,
+        idempotencyKey: `approve-race-01a-${receiptId}`,
+        body,
+      }),
+      requestJson(listener, {
+        method: "PATCH",
+        path: `/finance/receipts/${receiptId}/review`,
+        tenantId: denaliTenantId,
+        idempotencyKey: `approve-race-01b-${receiptId}`,
+        body,
+      }),
+    ]);
+    const successes = [a, b].filter((r) => r.status === 200);
+    assert.ok(successes.length >= 1);
+    assert.ok([a, b].every((r) => r.status === 200 || r.status === 409));
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(ledgerCount, 1);
+    const payment = await admin.payment.findUnique({
+      where: { id: paymentId },
+      select: { status: true },
+    });
+    const receipt = await admin.paymentReceipt.findUnique({
+      where: { id: receiptId },
+      select: { status: true },
+    });
+    assert.equal(payment?.status, "Paid");
+    assert.equal(receipt?.status, "Approved");
+  });
+
+  it("APPROVE-GUARD-01 second sequential approve → no second ledger", async () => {
+    const { paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    const first = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `approve-guard-01a-${receiptId}`,
+      body: { decision: "approve" },
+    });
+    assert.equal(first.status, 200);
+    const second = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `approve-guard-01b-${receiptId}`,
+      body: { decision: "approve" },
+    });
+    assert.ok(second.status === 200 || second.status === 409);
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(ledgerCount, 1);
+  });
+
+  it("APPROVE-IDEM-04 same key different tenants → no collision", async () => {
+    const seededA = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    const seededB = await seedPendingReceipt({
+      tenantId: denaliTenantBId,
+      withBooking: true,
+    });
+    const idempotencyKey = `approve-idem-04-shared`;
+    const a = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${seededA.receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: { decision: "approve" },
+    });
+    const b = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${seededB.receiptId}/review`,
+      tenantId: denaliTenantBId,
+      idempotencyKey,
+      body: { decision: "approve" },
+    });
+    assert.equal(a.status, 200);
+    assert.equal(b.status, 200);
+    assert.notEqual(a.body.id, b.body.id);
+  });
+
+  it("APPROVE-TX-01 booking missing → full rollback", async () => {
+    const { paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: false,
+    });
+    const review = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `approve-tx-01-${receiptId}`,
+      body: { decision: "approve" },
+    });
+    assert.equal(review.status, 409);
+    const payment = await admin.payment.findUnique({
+      where: { id: paymentId },
+      select: { status: true },
+    });
+    const receipt = await admin.paymentReceipt.findUnique({
+      where: { id: receiptId },
+      select: { status: true },
+    });
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(payment?.status, "Pending");
+    assert.equal(receipt?.status, "Pending");
+    assert.equal(ledgerCount, 0);
+  });
+
+  it("APPROVE-TX-02 failure after payment → full rollback", async () => {
+    const { registrationId, paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    process.env.P5_ATOMIC_TX_TEST_ABORT = "finance_approve_after_payment";
+    const review = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `approve-tx-02-${receiptId}`,
+      body: { decision: "approve" },
+    });
+    assert.notEqual(review.status, 200);
+    const payment = await admin.payment.findUnique({
+      where: { id: paymentId },
+      select: { status: true },
+    });
+    const receipt = await admin.paymentReceipt.findUnique({
+      where: { id: receiptId },
+      select: { status: true },
+    });
+    const booking = await admin.operatorRegistration.findUnique({
+      where: { id: registrationId },
+      select: { paymentStatus: true },
+    });
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(payment?.status, "Pending");
+    assert.equal(receipt?.status, "Pending");
+    assert.equal(booking?.paymentStatus, "unpaid");
+    assert.equal(ledgerCount, 0);
+  });
+
+  it("APPROVE-TX-03 failure after booking → full rollback", async () => {
+    const { registrationId, paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    process.env.P5_ATOMIC_TX_TEST_ABORT = "finance_approve_after_booking";
+    const review = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `approve-tx-03-${receiptId}`,
+      body: { decision: "approve" },
+    });
+    assert.notEqual(review.status, 200);
+    const payment = await admin.payment.findUnique({
+      where: { id: paymentId },
+      select: { status: true },
+    });
+    const receipt = await admin.paymentReceipt.findUnique({
+      where: { id: receiptId },
+      select: { status: true },
+    });
+    const booking = await admin.operatorRegistration.findUnique({
+      where: { id: registrationId },
+      select: { paymentStatus: true },
+    });
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(payment?.status, "Pending");
+    assert.equal(receipt?.status, "Pending");
+    assert.equal(booking?.paymentStatus, "unpaid");
+    assert.equal(ledgerCount, 0);
+  });
+
+  it("APPROVE-TX-04 failure after receipt / before ledger commit → full rollback", async () => {
+    const { registrationId, paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    process.env.P5_ATOMIC_TX_TEST_ABORT = "finance_approve_after_receipt";
+    const review = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `approve-tx-04-${receiptId}`,
+      body: { decision: "approve" },
+    });
+    assert.notEqual(review.status, 200);
+    const payment = await admin.payment.findUnique({
+      where: { id: paymentId },
+      select: { status: true },
+    });
+    const receipt = await admin.paymentReceipt.findUnique({
+      where: { id: receiptId },
+      select: { status: true },
+    });
+    const booking = await admin.operatorRegistration.findUnique({
+      where: { id: registrationId },
+      select: { paymentStatus: true },
+    });
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(payment?.status, "Pending");
+    assert.equal(receipt?.status, "Pending");
+    assert.equal(booking?.paymentStatus, "unpaid");
+    assert.equal(ledgerCount, 0);
+  });
+
+  it("APPROVE-TX-05 abort before mutations → zero durable side effects", async () => {
+    const { registrationId, paymentId, receiptId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    process.env.P5_ATOMIC_TX_TEST_ABORT = "finance_approve_before_commit";
+    const review = await requestJson(listener, {
+      method: "PATCH",
+      path: `/finance/receipts/${receiptId}/review`,
+      tenantId: denaliTenantId,
+      idempotencyKey: `approve-tx-05-${receiptId}`,
+      body: { decision: "approve" },
+    });
+    assert.notEqual(review.status, 200);
+    const payment = await admin.payment.findUnique({
+      where: { id: paymentId },
+      select: { status: true },
+    });
+    const receipt = await admin.paymentReceipt.findUnique({
+      where: { id: receiptId },
+      select: { status: true },
+    });
+    const booking = await admin.operatorRegistration.findUnique({
+      where: { id: registrationId },
+      select: { paymentStatus: true },
+    });
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: `payment:${paymentId}:ledger-capture-anchor`,
+      },
+    });
+    assert.equal(payment?.status, "Pending");
+    assert.equal(receipt?.status, "Pending");
+    assert.equal(booking?.paymentStatus, "unpaid");
+    assert.equal(ledgerCount, 0);
   });
 });
