@@ -202,26 +202,74 @@ Existing `finance-prepayments.spec.ts` (13) + `finance-ops.spec.ts` (15) remain 
 change_id: FINANCE-PROD-HARDENING-4B
 date: "2026-07-18"
 authority: Phase 4B inspection — H0/H1
+amendment: FINANCE-PROD-HARDENING-4B-LEASE-IDEM
+amendment_date: "2026-07-18"
 ```
 
 ### H0 — must fix before production
 
 | ID | Defect | Fix |
 | -- | ------ | --- |
-| H0.1 | `HttpIdempotencyRecord` stuck in `processing` after crash (business may already be committed) | TTL reclaim **deletes** stale `processing` rows (`HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS`, default 120s); piggybacked on outbox relay tick + waiter poll |
+| H0.1 | `HttpIdempotencyRecord` stuck in `processing` after crash (business may already be committed) | Lease-based reclaim: `leaseUntil` + `leaseOwner`; reclaim only expired leases (legacy NULL lease → `createdAt` TTL fallback); owner heartbeats; waiter re-claims after delete |
 | H0.2 | Approve atomic path lacked in-TX `Pending` guards; silent ledger unique no-op | Conditional payment/receipt updates; required ledger insert must succeed or TX aborts |
 | H0.3 | `P5_ATOMIC_TX_TEST_ABORT` active in any env | Abort hooks only when `NODE_ENV=test` (or test tier) |
 
-**Stuck-key failure mode:** owner inserts `processing` → business TX commits → process dies before `completed` + `response_body`. Waiters hit `IDEMPOTENCY_IN_PROGRESS`. Reclaim deletes the stale row so the client may retry. **Finance mutations must be retry-safe** after reclaim (prepay domain ids; approve returns existing Approved+Paid DTO).
+#### H0.1 — HTTP idempotency lease (normative)
+
+| Field | Role |
+| ----- | ---- |
+| `leaseOwner` | Opaque owner token (UUID) written on claim; heartbeats and complete/delete must match |
+| `leaseUntil` | Absolute expiry; reclaim deletes `processing` only when `leaseUntil < now()` |
+
+**Invariants**
+
+- **I-LEASE-01:** A `processing` row with `leaseUntil >= now()` must not be reclaimed.
+- **I-LEASE-02:** Owner extends `leaseUntil` while `execute()` runs (heartbeat); lost lease → no forged `completed` row.
+- **I-LEASE-03:** Failure cleanup deletes only rows still owned by this `leaseOwner` (must not delete a successor owner).
+- **I-LEASE-04:** After reclaim removes a key, waiter/client may re-claim (bounded retries) instead of a permanent 409 from a single null read.
+
+**Env:** `HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS` (default 120000) = lease duration and legacy `createdAt` fallback TTL.
+
+**Stuck-key failure mode:** owner inserts `processing` + lease → business TX commits → process dies before `completed`. Lease expires → reclaim deletes → client retry. **Finance mutations must be business-idempotent** after reclaim.
 
 **Approve already-Approved:** `reviewReceipt(approve)` returns the current approval DTO when receipt is already `Approved` and payment is `Paid` (non-destructive). Ledger identity remains `payment:{paymentId}:ledger-capture-anchor` (at most one capture).
+
+#### Rollout compatibility (old + new pods)
+
+| Phase | Behavior |
+| ----- | -------- |
+| Migration | Add nullable `lease_until` / `lease_owner`; backfill live `processing` rows to `lease_until = created_at + reclaim interval`, `lease_owner = 'legacy-backfill'` |
+| New pods | Always set lease on claim; reclaim prefers `lease_until < now()` |
+| Legacy rows (`lease_until IS NULL`) | Reclaim uses `created_at < now() - TTL` so old pods that omit lease fields still recover stuck keys |
+| Mixed fleet | New reclaim never murders a heartbeating new owner; old-pod in-flight keys remain on createdAt TTL until those pods are upgraded |
+
+Deploy order: **migrate schema → roll new API pods → drain old pods**. Do not reclaim-only-on-lease without the NULL/`createdAt` fallback while old writers exist.
 
 ### H1 — strongly recommended
 
 | ID | Change |
 | -- | ------ |
-| H1.1 | Durable `finance.prepayment.booking_sync.degraded` + `…recovered`; list `GET /finance/prepayments/booking-sync-degraded`; retry `POST /finance/prepayments/booking-sync-retry` (sync stays post-commit) |
-| H1.2 | `Idempotency-Key` on manual payment create + receipt submit |
+| H1.1 | Durable `finance.prepayment.booking_sync.degraded` + `…recovered`; list/retry APIs; **finance commit stays ahead of operational notification**; degraded persist uses bounded retries + metric/ERROR (never silent swallow) |
+| H1.2 | `Idempotency-Key` on manual payment create + receipt submit **and** business unique keys so reclaim retries do not duplicate rows |
+
+#### H1.2 — business creation idempotency (normative)
+
+| Mutation | Durable key | Unique |
+| -------- | ------------ | ------ |
+| Manual payment create | `payments.creation_idempotency_key` = SHA-256 hex of HTTP Idempotency-Key | `@@unique([tenantId, creationIdempotencyKey])` (NULLs allowed for non-HTTP creates) |
+| Receipt submit | `payment_receipts.idempotency_key_hash` = SHA-256 hex of HTTP Idempotency-Key | `@@unique([tenantId, idempotencyKeyHash])` |
+
+**Invariants**
+
+- **I-PAY-IDEM-01 / I-RCPT-IDEM-01:** Same tenant + same Idempotency-Key → at most one payment / receipt row for that logical create/submit.
+- **I-HTTP-BIZ-01:** HTTP reclaim is safe because create/submit/prepay/approve are retry-safe at the business layer.
+- Do **not** overload `providerPaymentId` for HTTP create identity.
+
+#### H1.1 — degraded persist ordering
+
+1. Prepayment atomic TX commits (money + outbox).
+2. Best-effort booking sync runs **after** commit.
+3. On sync failure: retry durable degraded outbox enqueue (bounded); on permanent failure emit metric + ERROR log; **do not** fail the HTTP prepay response and **do not** roll back finance.
 
 ### Non-goals (4B)
 
@@ -232,7 +280,7 @@ authority: Phase 4B inspection — H0/H1
 
 ### Proof
 
-`IDEM-RECLAIM-*`, `APPROVE-RACE-*`, `ABORT-PROD-01`, `PREPAY-SYNC-*`, `PAY-CREATE-IDEM-*` / `RECEIPT-SUBMIT-IDEM-*` under `STORAGE_DRIVER=prisma`.
+`IDEM-RECLAIM-*`, `IDEM-LEASE-*`, `APPROVE-RACE-*`, `ABORT-PROD-01`, `PREPAY-SYNC-*`, `PREPAY-SYNC-DEG-PERSIST-*`, `PAY-CREATE-IDEM-*`, `PAY-CREATE-RECLAIM-*`, `RECEIPT-SUBMIT-IDEM-*`, `RECEIPT-SUBMIT-RECLAIM-*` under `STORAGE_DRIVER=prisma`.
 
 ---
 
