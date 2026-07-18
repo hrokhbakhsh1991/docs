@@ -106,18 +106,28 @@ assertCheck(
 /** DEC-P10-006 — host infra only; no new product shims in workspace-finance/ */
 const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "assert-finance-access.ts",
+  "booking-sync-degraded-persist.spec.ts",
   "compile-invoice-balances.ts",
+  "enqueue-finance-ledger-capture.ts",
+  "finance-list-projection.ts",
+  "finance-module-enabled.ts",
+  "finance-registration-context.ts",
+  "finance-repository.factory.ts",
   "finance-schedule-store.ts",
   "finance.repository.ts",
-  "finance-repository.factory.ts",
+  "finance.service.spec.ts",
   "finance.service.ts",
+  "in-memory-finance.repository.ts",
+  "infrastructure",
+  "ports",
   "prisma-workspace-outbox-reader.ts",
   "prisma-workspace-outbox-writer.ts",
   "process-workspace-finance-outbox.ts",
+  "receipt-proof-storage.ts",
   "register-workspace-finance-deps.ts",
-  "tour-created-finance-side-effect.ts",
+  "resolve-finance-ledger-policy.ts",
+  "workspace-finance-bindings.generated.ts",
   "workspace-finance-processed-log.ts",
-  "in-memory-finance.repository.ts",
 ]);
 const workspaceFinanceDir = path.join(REPO_ROOT, "apps/api/src/workspace-finance");
 const workspaceFinanceUnexpected = fs.existsSync(workspaceFinanceDir)

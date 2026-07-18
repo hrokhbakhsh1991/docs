@@ -57,32 +57,38 @@ Implementation: `apps/api/src/workspace-finance/finance.service.ts` → `reviewR
 
 ### Finance ↔ bookings dependency (hexagonal — locked)
 
-`FinanceService` must not Service-Locate the bookings repository.
+`FinanceService` must not Service-Locate the bookings repository. **Option C (Phase 0):** Prisma approve keeps booking raise **inside** the same `withTenantRls` TX, but Booking owns the Prisma mutation via a TX-aware port method — FinanceRepository must not import `operatorRegistration` or `raiseBookingPaymentStatus`.
 
 | Layer | Artifact | Role |
 | ----- | -------- | ---- |
-| **Port** | `IBookingPaymentPort` (`ports/booking-payment.port.ts`) | Application contract — at minimum `syncStatus({ tenantId, registrationId, paymentStatus })` |
-| **Adapter** | `BookingPaymentAdapter` (`infrastructure/booking-payment.adapter.ts`) | Calls `BookingsRepository.updatePaymentStatus` / member ownership reads |
-| **Composition** | `createFinanceService` + `resolveLazyFinanceService` (boot) | Construct adapter and inject via `FinanceService` constructor |
-| **Approve wiring** | `reviewReceipt` → `approveManualReceiptAtomic({ syncBookingPayment })` | Memory driver **must** call `bookingPayments.syncStatus` via the callback (DIP). Prisma driver keeps booking raise **inside** the same `withTenantRls` TX (atomicity > out-of-band port call). |
+| **Port** | `IBookingPaymentPort` (`ports/booking-payment.port.ts`) | Application contract — `syncStatus` (non-TX), `raisePaidInTx(tx, …)` (approve TX), ownership/read helpers |
+| **Adapter** | `BookingPaymentAdapter` (`infrastructure/booking-payment.adapter.ts`) | Non-TX: `BookingsRepository.updatePaymentStatus`. TX: `tx.operatorRegistration` find/update + `raiseBookingPaymentStatus` |
+| **Composition** | `createFinanceService` + `createFinanceRepository` + `resolveLazyFinanceService` (boot) | Same adapter instance injected into service **and** Prisma/memory finance repositories |
+| **Approve wiring** | `reviewReceipt` → `approveManualReceiptAtomic` | Memory: `syncStatus` (Phase 3B norm, not TX-equivalent). Prisma: `raisePaidInTx` inside the ambient RLS TX (atomicity preserved; MISS still rolls back) |
 
 ```mermaid
 flowchart LR
   boot[resolveLazyFinanceService] --> svc[FinanceService]
   boot --> adapter[BookingPaymentAdapter]
+  boot --> repo[FinanceRepository]
   adapter --> svc
-  svc -->|"syncStatus"| adapter
-  adapter --> repo[BookingsRepository]
+  adapter --> repo
+  svc -->|"syncStatus / ownership"| adapter
+  repo -->|"raisePaidInTx(tx)"| adapter
+  adapter --> bookingsRepo[BookingsRepository]
+  adapter --> prismaTx["tx.operatorRegistration"]
 ```
 
 **`reviewReceipt` approve consistency:**
 
 | Driver | Payment + receipt + ledger | Booking `paid` |
 | ------ | -------------------------- | -------------- |
-| **Prisma** | One `withTenantRls` / `$transaction`; outbox last | Same TX on `operator_registrations` |
+| **Prisma** | One `withTenantRls` / `$transaction`; order: Paid → booking raise → Approved → outbox last | Same TX via `IBookingPaymentPort.raisePaidInTx(tx, …)` — **not** direct FinanceRepository booking writes |
 | **Memory** | Fail-closed compensate (revert payment if sync fails) | Via injected `IBookingPaymentPort.syncStatus` — **no** `getBookingsRepository` in service or memory finance repo |
 
-**Forbidden in `FinanceService`:** `import { getBookingsRepository }` or any direct bookings repository call. Soft-fail prepayment sync and fail-closed approve errors still map from `syncStatus` results (`null` → `FINANCE_BOOKING_PAYMENT_SYNC_MISS`; thrown infra errors → `FINANCE_BOOKING_PAYMENT_SYNC_FAILED`). Member receipt ownership checks go through the same port (`memberOwnsRegistration`) so the Service Locator stays only inside Infrastructure.
+**Forbidden in `FinanceService`:** `import { getBookingsRepository }` or any direct bookings repository call. Soft-fail prepayment sync and fail-closed approve errors still map from port results (`null` / MISS → `FINANCE_BOOKING_PAYMENT_SYNC_MISS`; thrown infra errors → `FINANCE_BOOKING_PAYMENT_SYNC_FAILED`). Member receipt ownership checks go through the same port (`memberOwnsRegistration`) so the Service Locator stays only inside Infrastructure.
+
+**Forbidden in `FinanceRepository` (Prisma):** `tx.operatorRegistration` and `raiseBookingPaymentStatus` imports — booking projection mutations belong on the TX-capable booking port (Option C).
 
 ---
 
