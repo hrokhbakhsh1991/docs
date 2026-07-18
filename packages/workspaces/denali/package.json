@@ -595,6 +595,7 @@
     "@app-tour/catalog-registration-auth": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/draft-engine": "workspace:*",
+    "@app-tour/finance-http-contracts": "workspace:*",
     "@app-tour/platform-core": "workspace:*",
     "@app-tour/theme-react": "workspace:*",
     "@app-tour/ui-primitives": "workspace:*",
