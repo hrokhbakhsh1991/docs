@@ -28,6 +28,8 @@ export const FINANCE_HTTP_ROUTE_MANIFEST: readonly {
   { method: "GET", path: "/finance/receipts/:receiptId/url" },
   { method: "GET", path: "/finance/prepayments" },
   { method: "POST", path: "/finance/prepayments" },
+  { method: "GET", path: "/finance/prepayments/booking-sync-degraded" },
+  { method: "POST", path: "/finance/prepayments/booking-sync-retry" },
   { method: "GET", path: "/finance/invoices/:registrationId" },
   { method: "GET", path: "/finance/schedules" },
   { method: "GET", path: "/finance/schedules/:registrationId" },

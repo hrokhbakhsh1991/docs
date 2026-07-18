@@ -7,6 +7,7 @@ import {
   parseGenerateScheduleBody,
   parseLedgerEventsLimit,
   parseOpenPaymentsLimit,
+  parseOptionalRegistrationId,
   parseRecordPrepaymentBody,
   parseReviewReceiptBody,
   parseSubmitReceiptBody,
@@ -47,12 +48,13 @@ export async function handleFinanceOpenPayments(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
+    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
     const financeService = await host.resolveFinanceService(deps);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listOpenPayments(auth, limit);
+        const rows = await financeService.listOpenPayments(auth, limit, registrationId);
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -72,12 +74,13 @@ export async function handleFinanceLedgerEvents(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseLedgerEventsLimit(url.searchParams.get("limit"));
+    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
     const financeService = await host.resolveFinanceService(deps);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listLedgerEvents(auth, limit);
+        const rows = await financeService.listLedgerEvents(auth, limit, registrationId);
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -97,12 +100,13 @@ export async function handleFinanceListPayments(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
+    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
     const financeService = await host.resolveFinanceService(deps);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listPayments(auth, limit);
+        const rows = await financeService.listPayments(auth, limit, registrationId);
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -170,7 +174,7 @@ export async function handleFinanceReviewReceipt(
 ): Promise<void> {
   const host = getDenaliFinanceHttpHost();
   try {
-    const { parsedBody } = await host.readFinanceRequestBody(req);
+    const { parsedBody, rawBody } = await host.readFinanceRequestBody(req);
     const body = parseReviewReceiptBody(parsedBody);
     const auth = await host.resolveTenantContextFromRequest(req);
     const financeService = await host.resolveFinanceService(deps);
@@ -178,6 +182,25 @@ export async function handleFinanceReviewReceipt(
       req,
       auth,
       async () => {
+        if (body.decision === "approve") {
+          const idempotencyKey = host.readIdempotencyKey(req);
+          if (idempotencyKey === undefined) {
+            throw new Error(host.idempotencyKeyRequiredCode);
+          }
+          const requestHash = host.hashIdempotentRequest(
+            req.method ?? "PATCH",
+            `/finance/receipts/${receiptId}/review`,
+            rawBody
+          );
+          const receipt = await host.runIdempotentHttpMutation(
+            auth.tenantId,
+            idempotencyKey,
+            requestHash,
+            async () => financeService.reviewReceipt(auth, receiptId, body)
+          );
+          host.sendJson(res, 200, receipt);
+          return;
+        }
         const receipt = await financeService.reviewReceipt(auth, receiptId, body);
         host.sendJson(res, 200, receipt);
       },
@@ -222,12 +245,13 @@ export async function handleFinancePendingReceipts(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
+    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
     const financeService = await host.resolveFinanceService(deps);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listPendingReceipts(auth, limit);
+        const rows = await financeService.listPendingReceipts(auth, limit, registrationId);
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -247,12 +271,13 @@ export async function handleFinanceListPrepayments(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
+    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
     const financeService = await host.resolveFinanceService(deps);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const rows = await financeService.listPrepayments(auth, limit);
+        const rows = await financeService.listPrepayments(auth, limit, registrationId);
         host.sendJson(res, 200, { items: rows });
       },
       { rateLimit: "read" }
@@ -269,16 +294,88 @@ export async function handleFinanceRecordPrepayment(
 ): Promise<void> {
   const host = getDenaliFinanceHttpHost();
   try {
-    const { parsedBody } = await host.readFinanceRequestBody(req);
+    const idempotencyKey = host.readIdempotencyKey(req);
+    if (idempotencyKey === undefined) {
+      throw new Error(host.idempotencyKeyRequiredCode);
+    }
+    const { parsedBody, rawBody } = await host.readFinanceRequestBody(req);
     const body = parseRecordPrepaymentBody(parsedBody);
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const financeService = await host.resolveFinanceService(deps);
+    const requestHash = host.hashIdempotentRequest(
+      req.method ?? "POST",
+      "/finance/prepayments",
+      rawBody
+    );
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const record = await host.runIdempotentHttpMutation(
+          auth.tenantId,
+          idempotencyKey,
+          requestHash,
+          async () => financeService.recordPrepayment(auth, body, idempotencyKey)
+        );
+        host.sendJson(res, 201, record);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handleFinanceListBookingSyncDegraded(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: FinanceRouteDeps
+): Promise<void> {
+  const host = getDenaliFinanceHttpHost();
+  try {
+    const auth = await host.resolveTenantContextFromRequest(req);
+    const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
+    const financeService = await host.resolveFinanceService(deps);
+    await host.runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const rows = await financeService.listPrepaymentBookingSyncDegraded(auth, limit);
+        host.sendJson(res, 200, { items: rows });
+      },
+      { rateLimit: "read" }
+    );
+  } catch (error) {
+    host.handleHttpError(res, error);
+  }
+}
+
+export async function handleFinanceRetryBookingSync(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: FinanceRouteDeps
+): Promise<void> {
+  const host = getDenaliFinanceHttpHost();
+  try {
+    const { parsedBody } = await host.readFinanceRequestBody(req);
+    const registrationId =
+      parsedBody !== null &&
+      typeof parsedBody === "object" &&
+      typeof (parsedBody as { registrationId?: unknown }).registrationId === "string"
+        ? (parsedBody as { registrationId: string }).registrationId.trim()
+        : "";
+    if (registrationId.length === 0) {
+      throw new Error("ZOD_VALIDATION_FAILED: registrationId is required");
+    }
     const auth = await host.resolveTenantContextFromRequest(req);
     const financeService = await host.resolveFinanceService(deps);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const record = await financeService.recordPrepayment(auth, body);
-        host.sendJson(res, 201, record);
+        const result = await financeService.retryPrepaymentBookingSync(auth, registrationId);
+        host.sendJson(res, 200, result);
       },
       { rateLimit: "write" }
     );
@@ -295,12 +392,14 @@ export async function handleFinanceListSchedules(
   const host = getDenaliFinanceHttpHost();
   try {
     const auth = await host.resolveTenantContextFromRequest(req);
+    const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
     const financeService = await host.resolveFinanceService(deps);
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const items = await financeService.listPaymentSchedules(auth);
+        const items = await financeService.listPaymentSchedules(auth, registrationId);
         host.sendJson(res, 200, { items });
       },
       { rateLimit: "read" }

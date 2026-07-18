@@ -11,9 +11,21 @@ import type {
 /** Finance domain port — implemented by API `FinanceService` (Prisma adapters stay in host). */
 export type FinanceServicePort = {
   readonly getSummary: (auth: TenantAuthContext) => Promise<unknown>;
-  readonly listOpenPayments: (auth: TenantAuthContext, limit: number) => Promise<readonly unknown[]>;
-  readonly listLedgerEvents: (auth: TenantAuthContext, limit: number) => Promise<readonly unknown[]>;
-  readonly listPayments: (auth: TenantAuthContext, limit: number) => Promise<readonly unknown[]>;
+  readonly listOpenPayments: (
+    auth: TenantAuthContext,
+    limit: number,
+    registrationId?: string
+  ) => Promise<readonly unknown[]>;
+  readonly listLedgerEvents: (
+    auth: TenantAuthContext,
+    limit: number,
+    registrationId?: string
+  ) => Promise<readonly unknown[]>;
+  readonly listPayments: (
+    auth: TenantAuthContext,
+    limit: number,
+    registrationId?: string
+  ) => Promise<readonly unknown[]>;
   readonly createManualPayment: (
     auth: TenantAuthContext,
     body: CreateManualPaymentBody
@@ -23,18 +35,35 @@ export type FinanceServicePort = {
     auth: TenantAuthContext,
     receiptId: string,
     body: ReviewReceiptBody
-  ) => Promise<unknown>;
+  ) => Promise<Record<string, unknown>>;
   readonly getReceiptUrl: (auth: TenantAuthContext, receiptId: string) => Promise<unknown>;
   readonly listPendingReceipts: (
     auth: TenantAuthContext,
-    limit: number
+    limit: number,
+    registrationId?: string
   ) => Promise<readonly unknown[]>;
-  readonly listPrepayments: (auth: TenantAuthContext, limit: number) => Promise<readonly unknown[]>;
+  readonly listPrepayments: (
+    auth: TenantAuthContext,
+    limit: number,
+    registrationId?: string
+  ) => Promise<readonly unknown[]>;
   readonly recordPrepayment: (
     auth: TenantAuthContext,
-    body: RecordPrepaymentBody
-  ) => Promise<unknown>;
-  readonly listPaymentSchedules: (auth: TenantAuthContext) => Promise<readonly unknown[]>;
+    body: RecordPrepaymentBody,
+    idempotencyKey: string
+  ) => Promise<Record<string, unknown>>;
+  readonly listPrepaymentBookingSyncDegraded: (
+    auth: TenantAuthContext,
+    limit: number
+  ) => Promise<readonly unknown[]>;
+  readonly retryPrepaymentBookingSync: (
+    auth: TenantAuthContext,
+    registrationId: string
+  ) => Promise<Record<string, unknown>>;
+  readonly listPaymentSchedules: (
+    auth: TenantAuthContext,
+    registrationId?: string
+  ) => Promise<readonly unknown[]>;
   readonly getPaymentSchedule: (
     auth: TenantAuthContext,
     registrationId: string
