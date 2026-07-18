@@ -63,7 +63,7 @@ P7 path boundary: edit **`apps/api/src/workspace-finance/`** only; `apps/api/src
 | Ops UI manifest | `finance-ops-manifest.ts`; web imports `@app-tour/workspace-denali/host/finance/manifest` | Workspace UI config owned by Denali |
 | TourCreated → ledger side-effect | `workspace.manifest.json` `events[]` + `api-tour-created-adapter.ts` | Valid workspace event; Denali-only binding today |
 | Finance support binding | Only Denali in `WORKSPACE_FINANCE_BINDINGS` | Manifest `workspaceFinance.supported` |
-| Nav gate | `shouldShowFinanceNav` → `wizardCreate.extendedChrome` → `{ "denali" }` | Accidental coupling to wizard chrome |
+| Nav gate | **Phase 1.2:** `shouldShowFinanceNav` → `workspaceFinance.supported` codegen (`denali`); was wizard `extendedChrome` | Enablement ownership fixed; ops panels still Denali |
 | Offline receipt defaults | `OFFLINE_RECEIPT_DEFAULT_* = IRR / 2500000` in `FinanceService` | Workspace defaults in host core |
 
 ### 1.3 What is reusable today (without copying Finance)
@@ -280,16 +280,74 @@ Boot: `resolveLazyFinanceService` selects policy + defaults by tenant `workspace
 
 Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace policy registry + HTTP/nav extraction.
 
+### Phase 1.2 — Finance capability enablement boundary
+
+| | |
+| -- | -- |
+| **Goal** | Finance hub / route visibility owned by finance capability codegen — **not** wizard chrome |
+| **Before** | `pluginId` → `isExtendedOperatorWorkspace` (`wizardCreate.extendedChrome`) → finance nav |
+| **After** | `pluginId` → `WORKSPACE_FINANCE_NAV_PLUGIN_IDS` (`workspaceFinance.supported`) → finance nav |
+| **Codegen** | `generateWorkspaceFinanceNavBindings` in `scripts/codegen/workspace-registry/domains/finance.mjs` → `apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts` |
+| **Runtime** | `finance-nav-enablement.ts` (`shouldShowFinanceNav` / `isFinanceRouteAllowed`) is the only enablement gate; operator nav, dashboard widget, and `/finance` page import it |
+| **Preserved** | Denali still `supported: true` → nav visible; Denali `financeOps` panels stay on `@app-cloud/workspace-denali/host/finance/manifest` via `finance-nav-access.ts` (ops UI only — not enablement) |
+| **Must NOT** | Redesign UI; change approve/ledger/workflows; register WS2; change users/welcome chrome gates |
+| **Verify** | Denali → true; urban/starter/unknown → false; enablement module has zero `isExtendedOperatorWorkspace` / wizard-create imports |
+
+**Phase 1.2 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| Generated finance nav bindings are source of truth for hub visibility | Pending |
+| `shouldShowFinanceNav` independent of wizard `extendedChrome` | Pending |
+| Denali UI behavior preserved (nav on; ops panels unchanged) | Pending |
+| WS2 / composition registry / approve path untouched by this slice | Pending |
+
 ### Phase 1 — Multi-workspace readiness
 
 | | |
 | -- | -- |
 | **Goal** | WS2 can enable finance with **workspace package + manifest + codegen**, same HTTP API, own CoA/defaults; Denali behavior unchanged |
-| **Files affected (planned)** | `scripts/codegen/.../finance.mjs`; `workspace-finance-bindings.generated.ts`; WS2 `workspace.manifest.json` + `src/finance/*`; `lazy-finance-service.ts`; `finance.service.ts` (defaults port); Denali HTTP schemas → finance-owned module (re-export shim); `configure-workspace-finance-http-host.ts` rename; `finance-nav-access.ts` + wizard binding; `finance.repository.ts` approve booking write → TX port; `booking-payment.port.ts` / adapter; `finance-registration-context.ts` optional display port |
-| **Risks** | HTTP import path churn; approve TX regression; nav showing for wrong workspaces; wrong CoA if registry mis-wired |
-| **Rollback** | Feature-flag registry; keep Denali-only binding; revert HTTP moves behind re-exports |
-| **Tests required** | Phase 3A/3B suites; unit test fake second policy selected by workspaceType; approve MISS/concurrency; nav unit tests; codegen golden for two finance bindings |
-| **Must NOT** | Async Option B; durable GL; fork FinanceService; change `domainEventId` formulas; Prisma models in workspace packages |
+| **Step 1 (this slice)** | **Dependency registry only** — `workspaceType` → ledger policy + receipt defaults; boot never imports Denali adapter classes; no WS2 enablement, no HTTP move, no GL |
+| **Files affected (Step 1)** | `finance-dependency-registry.ts` (replaces thin `resolve-finance-ledger-policy.ts`); `lazy-finance-service.ts`; `finance.service.ts` (drop Denali receipt default ctor); phase-10 allowlist; registry unit tests |
+| **Files affected (later Phase 1)** | codegen finance bindings; WS2 adapters; HTTP/DTO move; nav bindings |
+| **Risks** | Wrong CoA if registry mis-keyed; boot singleton still Denali-only until per-tenant resolve; approve TX regression if composition broken |
+| **Rollback** | Revert registry commit; restore Phase 0 resolver + boot Denali receipt import |
+| **Tests required (Step 1)** | Registry: denali → same adapter classes/values; unknown/empty workspaceType fails clearly; FIN-SVC-* + APPROVE-* unchanged |
+| **Must NOT (Step 1)** | WS2 enablement; HTTP/DTO moves; durable GL; async booking; `packages/finance-core`; change Phase 3A/3B identities |
+
+**Phase 1 Step 1 checklist (finance dependency registry):**
+
+| Item | State |
+| ---- | ----- |
+| Composition registry owns `resolveFinanceLedgerPolicy(workspaceType)` + `resolveFinanceReceiptDefaults(workspaceType)` | Done |
+| Only Denali registered (Phase 1.1) | Done |
+| Boot wires via registry — no `DenaliFinance*Adapter` imports | Done |
+| `FinanceService` has no workspaceType knowledge and no Denali adapter default import | Done |
+| Missing / unregistered workspaceType fails with clear error codes | Done |
+
+### Phase 1.3 — Workspace #2 architecture proof
+
+| | |
+| -- | -- |
+| **Goal** | Prove Finance is **configurable via registry + workspace-owned policy**, not copied per workspace |
+| **Kind** | Architecture fixture (`finance-ws2`) under `apps/api/.../infrastructure/` — **not** production workspace onboarding |
+| **Shared (unchanged)** | `FinanceService`, `FinanceRepository`, approve/prepay workflows, Phase 3A/3B identity formulas |
+| **WS2 owns** | Chart of accounts (`finance-ws2-chart-of-accounts.ts`); ledger policy adapter; offline receipt defaults |
+| **WS2 does not own (yet)** | HTTP routes, nav `workspaceFinance.supported`, finance events consumer, ops UI manifest, real `packages/workspaces/*` package |
+| **Composition** | `finance-dependency-registry.ts` maps `denali` → Denali adapters, `finance-ws2` → WS2 adapters; boot default remains Denali |
+| **Must NOT** | Duplicate `FinanceService`/Repository; workspace-specific approve workflows; bypass registry; import `@app-cloud/workspace-denali` from WS2 modules |
+| **Verify** | Registry policy/defaults selection; dual-engine approve under both policies; WS2 sources free of Denali imports; FinanceService has no workspaceType / adapter class imports |
+
+**Phase 1.3 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| Registry resolves Denali vs `finance-ws2` policies and defaults | Pending |
+| Same `FinanceService` works with either injected policy | Pending |
+| WS2 CoA distinct; no Denali account leakage | Pending |
+| No Denali package import in WS2 modules | Pending |
+| No copied FinanceService / forked repository | Pending |
+| Production WS2 nav/HTTP/events/ops manifest deferred | Pending |
 
 ### Phase 2 — Finance core extraction
 

@@ -6,7 +6,9 @@ import { describe, it } from "node:test";
 
 import { metricsRegistry, resetMetricsRegistryForTests } from "../observability/metrics.ts";
 import { FinanceService } from "./finance.service.ts";
+import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 import { DenaliFinanceLedgerPolicyAdapter } from "./infrastructure/denali-finance-ledger-policy.adapter.ts";
+import { DenaliFinanceReceiptDefaultsAdapter } from "./infrastructure/denali-finance-receipt-defaults.adapter.ts";
 import { InMemoryFinanceRepository } from "./in-memory-finance.repository.ts";
 
 describe("finance booking-sync degraded persist", { concurrency: false }, () => {
@@ -17,7 +19,12 @@ describe("finance booking-sync degraded persist", { concurrency: false }, () => 
     repo.recordPrepaymentBookingSyncDegraded = async () => {
       throw new Error("forced-persist-failure");
     };
-    const service = new FinanceService(new DenaliFinanceLedgerPolicyAdapter(), repo);
+    const service = new FinanceService(
+      new DenaliFinanceLedgerPolicyAdapter(),
+      repo,
+      new BookingPaymentAdapter(),
+      new DenaliFinanceReceiptDefaultsAdapter()
+    );
     const persist = (
       service as unknown as {
         persistBookingSyncDegradedWithRetries: (input: {

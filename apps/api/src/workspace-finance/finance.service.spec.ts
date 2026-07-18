@@ -16,6 +16,7 @@ import { OPERATOR_SMOKE } from "../../test/fixtures/operator-smoke-e2e-tenant.ts
 import { FinanceService } from "./finance.service.ts";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 import { DenaliFinanceLedgerPolicyAdapter } from "./infrastructure/denali-finance-ledger-policy.adapter.ts";
+import { DenaliFinanceReceiptDefaultsAdapter } from "./infrastructure/denali-finance-receipt-defaults.adapter.ts";
 import {
   InMemoryFinanceRepository,
   resetInMemoryFinanceRepositoryForTests,
@@ -96,7 +97,8 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     const finance = new FinanceService(
       new DenaliFinanceLedgerPolicyAdapter(),
       financeRepo,
-      input.bookingPayments ?? new BookingPaymentAdapter()
+      input.bookingPayments ?? new BookingPaymentAdapter(),
+      new DenaliFinanceReceiptDefaultsAdapter()
     );
 
     if (input.withBooking) {
