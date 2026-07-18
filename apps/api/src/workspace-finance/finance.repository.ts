@@ -11,6 +11,7 @@ import type {
   FinanceLedgerJournalLine,
 } from "./ports/finance-ledger-policy.port";
 import { createTxScopedOutboxWriter } from "./prisma-workspace-outbox-writer";
+import { shouldAbortAtomicTx } from "../test-hooks/atomic-tx-test-abort";
 
 export type FinanceSummaryRow = {
   readonly pendingManualPayments: number;
@@ -505,7 +506,7 @@ export class FinanceRepository {
     input: ApproveManualReceiptAtomicInput
   ): Promise<ApproveManualReceiptAtomicResult> {
     return withTenantRls(input.tenantId, async (tx) => {
-      if (process.env.P5_ATOMIC_TX_TEST_ABORT === "finance_approve_before_commit") {
+      if (shouldAbortAtomicTx("finance_approve_before_commit")) {
         throw new Error("P5_ATOMIC_TX_TEST_ABORT");
       }
 
@@ -525,7 +526,7 @@ export class FinanceRepository {
         throw new Error("FINANCE_APPROVE_CONFLICT");
       }
 
-      if (process.env.P5_ATOMIC_TX_TEST_ABORT === "finance_approve_after_payment") {
+      if (shouldAbortAtomicTx("finance_approve_after_payment")) {
         throw new Error("P5_ATOMIC_TX_TEST_ABORT");
       }
 
@@ -557,7 +558,7 @@ export class FinanceRepository {
         throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_FAILED");
       }
 
-      if (process.env.P5_ATOMIC_TX_TEST_ABORT === "finance_approve_after_booking") {
+      if (shouldAbortAtomicTx("finance_approve_after_booking")) {
         throw new Error("P5_ATOMIC_TX_TEST_ABORT");
       }
 
@@ -589,7 +590,7 @@ export class FinanceRepository {
         },
       });
 
-      if (process.env.P5_ATOMIC_TX_TEST_ABORT === "finance_approve_after_receipt") {
+      if (shouldAbortAtomicTx("finance_approve_after_receipt")) {
         throw new Error("P5_ATOMIC_TX_TEST_ABORT");
       }
 
@@ -737,7 +738,7 @@ export class FinanceRepository {
           return mapExistingRow(existing);
         }
 
-        if (process.env.P5_ATOMIC_TX_TEST_ABORT === "finance_prepayment_before_commit") {
+        if (shouldAbortAtomicTx("finance_prepayment_before_commit")) {
           throw new Error("P5_ATOMIC_TX_TEST_ABORT");
         }
 
@@ -752,7 +753,7 @@ export class FinanceRepository {
           },
         });
 
-        if (process.env.P5_ATOMIC_TX_TEST_ABORT === "finance_prepayment_after_ledger") {
+        if (shouldAbortAtomicTx("finance_prepayment_after_ledger")) {
           throw new Error("P5_ATOMIC_TX_TEST_ABORT");
         }
 
