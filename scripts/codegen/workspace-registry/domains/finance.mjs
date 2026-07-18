@@ -148,7 +148,7 @@ export function generateWorkspaceFinanceOpsBindings(manifests) {
 
   if (bindingEntries.length === 0) {
     return `${BANNER}
-import type { FinanceOpsManifest } from "@/finance/finance-ops-manifest-contract";
+import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
 
 export const WORKSPACE_FINANCE_OPS_PLUGIN_IDS = new Set<string>([]);
 
@@ -159,14 +159,14 @@ export function hasFinanceOpsManifest(pluginId: string): boolean {
 export function resolveWorkspaceFinanceOpsManifest(
   pluginId: string,
   _theme: unknown = null
-): FinanceOpsManifest {
-  throw new Error(\`Finance ops manifest not registered for pluginId=\${pluginId}\`);
+): FinanceOpsCapability {
+  throw new Error(\`Finance ops capability not registered for pluginId=\${pluginId}\`);
 }
 `;
   }
 
   return `${BANNER}
-import type { FinanceOpsManifest } from "@/finance/finance-ops-manifest-contract";
+import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
 
 ${importLines.join("\n\n")}
 
@@ -185,10 +185,10 @@ export function hasFinanceOpsManifest(pluginId: string): boolean {
 export function resolveWorkspaceFinanceOpsManifest(
   pluginId: string,
   theme: unknown = null
-): FinanceOpsManifest {
+): FinanceOpsCapability {
   const binding = WORKSPACE_FINANCE_OPS_BINDINGS[pluginId as keyof typeof WORKSPACE_FINANCE_OPS_BINDINGS];
   if (binding === undefined) {
-    throw new Error(\`Finance ops manifest not registered for pluginId=\${pluginId}\`);
+    throw new Error(\`Finance ops capability not registered for pluginId=\${pluginId}\`);
   }
   if (theme === null || theme === undefined) {
     return binding.defaultManifest;

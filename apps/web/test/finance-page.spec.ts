@@ -12,11 +12,12 @@ import {
   FINANCE_COMMAND_CENTER_TABS,
   listVisibleFinanceTabs,
   parseFinanceTab,
-  resolveFinanceOpsManifestForHub,
+  resolveFinanceOpsCapabilityForHub,
 } from "../src/finance/finance-nav-access";
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const DENALI_OPS = resolveFinanceOpsManifestForHub(null, "denali");
+const DENALI_OPS = resolveFinanceOpsCapabilityForHub(null, "denali");
+assert.ok(DENALI_OPS !== null, "denali must expose finance ops capability");
 const DENALI_VISIBLE = listVisibleFinanceTabs(DENALI_OPS);
 
 describe("finance-page.spec.ts — Phase 9.7", () => {
@@ -170,8 +171,12 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.match(reportsLogic, /finance-attention-samples/);
   });
 
-  it("WEB-9.7-12 ops panels resolve via generated bindings; no Denali hard-import", () => {
+  it("WEB-9.7-12 / P1.10.1 ops panels use FinanceOpsCapability; no Denali hard-import", () => {
     const ops = readFileSync(resolve(WEB_ROOT, "src/finance/finance-ops-panels.ts"), "utf8");
+    const contract = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-ops-capability-contract.ts"),
+      "utf8"
+    );
     const enablement = readFileSync(resolve(WEB_ROOT, "src/finance/finance-nav-enablement.ts"), "utf8");
     const access = readFileSync(resolve(WEB_ROOT, "src/finance/finance-nav-access.ts"), "utf8");
     const dashboard = readFileSync(
@@ -183,10 +188,15 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
       resolve(WEB_ROOT, "app/(app)/finance/finance-command-center.tsx"),
       "utf8"
     );
+    assert.match(contract, /export type FinanceOpsCapability/);
     assert.doesNotMatch(ops, /@app-tour\/workspace-denali/);
     assert.match(ops, /workspace-finance-ops-bindings/);
-    assert.match(ops, /resolveFinanceOpsManifestForHub/);
+    assert.match(ops, /resolveFinanceOpsCapabilityForHub/);
+    assert.match(ops, /FinanceOpsCapability \| null/);
     assert.match(commandCenter, /session\.pluginId/);
+    assert.match(commandCenter, /resolveFinanceOpsCapabilityForHub/);
+    assert.match(commandCenter, /capability === null/);
+    assert.match(commandCenter, /return null/);
     assert.doesNotMatch(enablement, /workspace-denali/);
     assert.match(enablement, /workspace-finance-nav-bindings/);
     assert.doesNotMatch(access, /workspace-denali/);
@@ -195,5 +205,13 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.doesNotMatch(dashboard, /workspace-denali|finance-ops-panels|finance-nav-access/);
     assert.match(operatorNav, /finance-nav-enablement/);
     assert.doesNotMatch(operatorNav, /workspace-denali|finance-ops-panels/);
+  });
+
+  it("WEB-P1.10.1-01 workspace without finance ops capability resolves to null (render nothing)", () => {
+    assert.equal(resolveFinanceOpsCapabilityForHub(null, "urban"), null);
+    assert.equal(resolveFinanceOpsCapabilityForHub(null, "starter"), null);
+    assert.equal(resolveFinanceOpsCapabilityForHub(null, "finance-ws2"), null);
+    assert.equal(resolveFinanceOpsCapabilityForHub(null, ""), null);
+    assert.ok(resolveFinanceOpsCapabilityForHub(null, "denali") !== null);
   });
 });

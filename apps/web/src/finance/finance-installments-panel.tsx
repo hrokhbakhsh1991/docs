@@ -25,7 +25,7 @@ import {
   type PaymentScheduleItem,
 } from "@/finance/finance-installments-logic";
 import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
-import { resolveFinanceOpsManifestForHub } from "@/finance/finance-ops-panels";
+import { resolveFinanceOpsCapabilityForHub } from "@/finance/finance-ops-panels";
 import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
@@ -121,7 +121,7 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
   const scheduleGenerateEnabled =
-    resolveFinanceOpsManifestForHub(null, session.pluginId).installmentDefaults?.enabled ===
+    resolveFinanceOpsCapabilityForHub(null, session.pluginId)?.installmentDefaults?.enabled ===
     true;
   const canGenerateSchedule = canManage && scheduleGenerateEnabled;
   const searchParams = useSearchParams();

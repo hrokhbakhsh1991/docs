@@ -12,7 +12,7 @@ import { FinanceLedgerPanel } from "@/finance/finance-ledger-panel";
 import {
   listVisibleFinanceTabs,
   parseFinanceTab,
-  resolveFinanceOpsManifestForHub,
+  resolveFinanceOpsCapabilityForHub,
   type FinanceCommandCenterTab,
 } from "@/finance/finance-nav-access";
 import { FinanceOverviewPanel } from "@/finance/finance-overview-panel";
@@ -32,11 +32,15 @@ export function FinanceCommandCenter({ session, theme = null }: FinanceCommandCe
   const pathname = usePathname();
   const router = useRouter();
 
-  const manifest = useMemo(
-    () => resolveFinanceOpsManifestForHub(theme, session.pluginId),
+  const capability = useMemo(
+    () => resolveFinanceOpsCapabilityForHub(theme, session.pluginId),
     [theme, session.pluginId]
   );
-  const visibleTabs = useMemo(() => listVisibleFinanceTabs(manifest), [manifest]);
+
+  const visibleTabs = useMemo(
+    () => (capability === null ? [] : listVisibleFinanceTabs(capability)),
+    [capability]
+  );
   const activeTab = useMemo(
     () => parseFinanceTab(searchParams.get("tab"), visibleTabs),
     [searchParams, visibleTabs]
@@ -55,6 +59,10 @@ export function FinanceCommandCenter({ session, theme = null }: FinanceCommandCe
     },
     [pathname, router, searchParams]
   );
+
+  if (capability === null) {
+    return null;
+  }
 
   return (
     <div className="space-y-6" data-testid="finance-command-center">

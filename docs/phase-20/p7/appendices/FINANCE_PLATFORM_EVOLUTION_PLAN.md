@@ -631,7 +631,27 @@ FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, regis
 | ---- | ----- |
 | `finance-ops-panels.ts` has no `@app-tour/workspace-denali` import | Done |
 | Ops defaults resolved by pluginId via generated bindings | Done |
-| WS without `opsManifest` cannot resolve ops panels (fail closed) | Done |
+| WS without `opsManifest` cannot resolve ops panels (fail closed) | Superseded by **1.10.1** (render nothing) |
+
+### Phase 1.10.1 — Finance ops capability ownership
+
+| | |
+| -- | -- |
+| **Goal** | Generic web depends on **`FinanceOpsCapability`**, never on Denali finance manifest types/imports. Missing ops capability → **render nothing** (no throw, no Denali fallback) |
+| **Contract** | `apps/web/src/finance/finance-ops-capability-contract.ts` — `FinanceOpsCapability` |
+| **Codegen** | `workspace-finance-ops-bindings.generated.ts` (only place that may import workspace packages) |
+| **Host** | `resolveFinanceOpsCapabilityForHub(theme, pluginId) → FinanceOpsCapability \| null`; command center returns `null` when unbound |
+| **Unchanged** | Denali panel layout/values when `opsManifest` is bound; payment/approve/IDs untouched |
+| **Commit** | `feat(finance): decouple ops panels from workspace implementation` |
+
+**Phase 1.10.1 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| Hand-written `apps/web/src/finance/**` + finance app routes have zero `@app-tour/workspace-denali` | Done |
+| Platform type is `FinanceOpsCapability` (not Denali-named) | Done |
+| Unbound pluginId → `null` capability → command center renders nothing | Done |
+| Denali bound → same panels/tabs as before | Done |
 
 ### Phase 1.10 — Declarative finance capability registration
 
@@ -653,7 +673,7 @@ FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, regis
 | Receipt defaults | `receiptDefaults` | dependency bindings | `resolveFinanceReceiptDefaults` |
 | Chart of accounts | `chartOfAccounts` | CoA bindings | `resolveFinanceChartOfAccounts` |
 | Event reaction | `eventReaction` | event-reaction bindings | `resolveWorkspaceFinanceEventReaction` |
-| Ops UI | `opsManifest` | web ops bindings | `resolveFinanceOpsManifestForHub(pluginId)` |
+| Ops UI | `opsManifest` | web ops bindings | `resolveFinanceOpsCapabilityForHub(pluginId)` → `null` when unbound |
 | Nav / enablement | `supported` | finance + nav bindings | `isFinanceSupportedWorkspace` / `shouldShowFinanceNav` |
 
 **Phase 1.10 checklist:**

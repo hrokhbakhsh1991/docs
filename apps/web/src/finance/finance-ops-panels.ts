@@ -1,22 +1,40 @@
 /**
- * Finance **ops panel** layout resolution — not hub availability.
+ * Finance **ops panel** capability resolution — not hub availability.
  * Availability SoT: `@/finance/finance-nav-enablement` → workspaceFinance nav bindings.
- * Ops defaults SoT: workspace `workspaceFinance.opsManifest` → generated bindings (Phase 1.9.2).
+ * Ops SoT: workspace `workspaceFinance.opsManifest` → generated bindings (Phase 1.10.1).
+ *
+ * Generic web depends on {@link FinanceOpsCapability} only — never imports workspace packages.
  */
 import {
+  hasFinanceOpsManifest,
   resolveWorkspaceFinanceOpsManifest,
 } from "@/bootstrap/workspace-finance-ops-bindings.generated";
-import type { FinanceOpsManifest } from "@/finance/finance-ops-manifest-contract";
+import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
 
-export type { FinanceOpsManifest };
+export type { FinanceOpsCapability, FinanceOpsManifest } from "@/finance/finance-ops-capability-contract";
 
 /**
- * Resolve ops panel manifest for the finance command center.
- * Fail-closed: unknown / unbound pluginId throws (no silent Denali fallback).
+ * Resolve finance ops capability for the command center.
+ * Unbound / missing `opsManifest` → `null` (host renders nothing — no Denali fallback).
+ */
+export function resolveFinanceOpsCapabilityForHub(
+  theme: unknown = null,
+  pluginId: string
+): FinanceOpsCapability | null {
+  const id = pluginId.trim();
+  if (id.length === 0 || !hasFinanceOpsManifest(id)) {
+    return null;
+  }
+  return resolveWorkspaceFinanceOpsManifest(id, theme);
+}
+
+/**
+ * @deprecated Prefer {@link resolveFinanceOpsCapabilityForHub}.
+ * Same soft-resolve semantics (`null` when unbound).
  */
 export function resolveFinanceOpsManifestForHub(
   theme: unknown = null,
   pluginId: string
-): FinanceOpsManifest {
-  return resolveWorkspaceFinanceOpsManifest(pluginId, theme);
+): FinanceOpsCapability | null {
+  return resolveFinanceOpsCapabilityForHub(theme, pluginId);
 }
