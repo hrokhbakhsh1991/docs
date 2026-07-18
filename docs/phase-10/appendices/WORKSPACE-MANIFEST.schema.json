@@ -126,6 +126,114 @@
         "publishSurfaceExport": {
           "type": "string",
           "description": "CASL surface id string export for owner gate"
+        },
+        "forbidOperatorMemberTourPatch": { "type": "boolean" },
+        "starterCreateBridgeOperatorTenantId": {
+          "type": "string",
+          "description": "Operator smoke tenant UUID for starter-shaped create bridge (WAC-001)"
+        },
+        "publishOwnerAssertModule": { "type": "string" },
+        "publishOwnerAssertExport": { "type": "string" }
+      }
+    },
+    "canonicalTour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "publishStatusModule": { "type": "string" },
+        "publishStatusReadExport": { "type": "string" },
+        "publishTransitionExport": { "type": "string" },
+        "migrateModule": { "type": "string" },
+        "migrateExport": { "type": "string" },
+        "formProfileGhostPathsModule": { "type": "string" },
+        "formProfileGhostPathsExport": { "type": "string" },
+        "validationSyncOnly": { "type": "boolean" },
+        "catalogRefEnrichment": { "type": "boolean" }
+      }
+    },
+    "workspaceFinance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "supported": { "type": "boolean" },
+        "defaultModuleEnabledWhenUnset": { "type": "boolean" },
+        "registryOnly": {
+          "type": "boolean",
+          "description": "When true, emit finance dependency bindings only — exclude from plugin/SDK/web registries and nav/gate (fixture packages)."
+        },
+        "ledgerPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "export"],
+          "properties": {
+            "module": { "type": "string" },
+            "export": { "type": "string" }
+          }
+        },
+        "receiptDefaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "export"],
+          "properties": {
+            "module": { "type": "string" },
+            "export": { "type": "string" }
+          }
+        },
+        "chartOfAccounts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "export"],
+          "description": "Workspace chart-of-accounts constant (required with ledgerPolicy). Consumed by policy adapters; codegen emits audit/resolve bindings.",
+          "properties": {
+            "module": { "type": "string" },
+            "export": { "type": "string" }
+          }
+        },
+        "eventReaction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "export"],
+          "properties": {
+            "module": { "type": "string" },
+            "export": { "type": "string" },
+            "requiresHostIo": { "type": "boolean" }
+          }
+        },
+        "opsManifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "defaultExport", "resolveFromThemeExport"],
+          "properties": {
+            "module": { "type": "string" },
+            "defaultExport": { "type": "string" },
+            "resolveFromThemeExport": { "type": "string" }
+          }
+        }
+      }
+    },
+    "integrationCapabilities": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tourPublishedPolicyDriftCheck": { "type": "boolean" },
+          "tourPublishedExposureRemap": { "type": "boolean" },
+          "deprecatedEventTypes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["eventType", "supersededBy"],
+              "properties": {
+                "eventType": { "type": "string" },
+                "supersededBy": { "type": "string" }
+              }
+            }
+          },
+          "deliveryReferenceDisplayFieldIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         }
       }
     },

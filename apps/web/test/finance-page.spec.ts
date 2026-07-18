@@ -12,9 +12,12 @@ import {
   FINANCE_COMMAND_CENTER_TABS,
   listVisibleFinanceTabs,
   parseFinanceTab,
+  resolveFinanceOpsManifestForHub,
 } from "../src/finance/finance-nav-access";
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const DENALI_OPS = resolveFinanceOpsManifestForHub(null, "denali");
+const DENALI_VISIBLE = listVisibleFinanceTabs(DENALI_OPS);
 
 describe("finance-page.spec.ts — Phase 9.7", () => {
   it("WEB-9.7-03 command center exposes R1 + R2 tab catalog", () => {
@@ -26,10 +29,10 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
       "installments",
       "ledger",
     ]);
-    assert.equal(parseFinanceTab(undefined), "overview");
-    assert.equal(parseFinanceTab("receipts"), "receipts");
-    assert.equal(parseFinanceTab("prepayments"), "prepayments");
-    assert.equal(parseFinanceTab("unknown"), "overview");
+    assert.equal(parseFinanceTab(undefined, DENALI_VISIBLE), "overview");
+    assert.equal(parseFinanceTab("receipts", DENALI_VISIBLE), "receipts");
+    assert.equal(parseFinanceTab("prepayments", DENALI_VISIBLE), "prepayments");
+    assert.equal(parseFinanceTab("unknown", DENALI_VISIBLE), "overview");
   });
 
   it("WEB-9.7-04 tab shell uses client router.replace (no hard <a href>)", () => {
@@ -44,11 +47,11 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
   });
 
   it("WEB-9.7-05 default manifest shows installments tab (Phase D)", () => {
-    const visible = listVisibleFinanceTabs();
+    const visible = DENALI_VISIBLE;
     assert.ok(visible.includes("installments"));
     assert.ok(visible.includes("payments"));
     assert.ok(visible.includes("ledger"));
-    assert.equal(parseFinanceTab("installments"), "installments");
+    assert.equal(parseFinanceTab("installments", visible), "installments");
   });
 
   it("WEB-9.7-06 financeBookingHref deep-links command center bookingId", () => {
@@ -167,7 +170,7 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.match(reportsLogic, /finance-attention-samples/);
   });
 
-  it("WEB-9.7-12 ops panels import Denali manifest; availability does not", () => {
+  it("WEB-9.7-12 ops panels resolve via generated bindings; no Denali hard-import", () => {
     const ops = readFileSync(resolve(WEB_ROOT, "src/finance/finance-ops-panels.ts"), "utf8");
     const enablement = readFileSync(resolve(WEB_ROOT, "src/finance/finance-nav-enablement.ts"), "utf8");
     const access = readFileSync(resolve(WEB_ROOT, "src/finance/finance-nav-access.ts"), "utf8");
@@ -176,8 +179,14 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
       "utf8"
     );
     const operatorNav = readFileSync(resolve(WEB_ROOT, "src/admin/shell/resolve-operator-nav.ts"), "utf8");
-    assert.match(ops, /@app-tour\/workspace-denali\/host\/finance\/manifest/);
-    assert.doesNotMatch(ops, /@app-tour\/workspace-denali\/host\/finance["']/);
+    const commandCenter = readFileSync(
+      resolve(WEB_ROOT, "app/(app)/finance/finance-command-center.tsx"),
+      "utf8"
+    );
+    assert.doesNotMatch(ops, /@app-tour\/workspace-denali/);
+    assert.match(ops, /workspace-finance-ops-bindings/);
+    assert.match(ops, /resolveFinanceOpsManifestForHub/);
+    assert.match(commandCenter, /session\.pluginId/);
     assert.doesNotMatch(enablement, /workspace-denali/);
     assert.match(enablement, /workspace-finance-nav-bindings/);
     assert.doesNotMatch(access, /workspace-denali/);

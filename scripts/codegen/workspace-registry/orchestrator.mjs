@@ -58,7 +58,14 @@ import {
   generateSettingsEnrichers,
 } from "./domains/settings-api.mjs";
 import { generateWorkspaceOperatorCapabilities } from "./domains/operator.mjs";
-import { generateWorkspaceFinanceBindings, generateWorkspaceFinanceNavBindings } from "./domains/finance.mjs";
+import {
+  generateWorkspaceFinanceBindings,
+  generateWorkspaceFinanceNavBindings,
+  generateWorkspaceFinanceOpsBindings,
+  generateWorkspaceFinanceDependencyBindings,
+  generateWorkspaceFinanceEventReactionBindings,
+  generateWorkspaceFinanceChartOfAccountsBindings,
+} from "./domains/finance.mjs";
 import { generateExposureHostBindings } from "./domains/exposure.mjs";
 import { generateWorkspaceIntegrationCapabilities } from "./domains/integration.mjs";
 import {
@@ -171,7 +178,14 @@ export const DOMAIN_OUTPUT_KEYS = {
   "settings-api": ["settingsEnrichers", "devBootstrap"],
   dev: ["devPluginIds"],
   operator: ["operatorCapabilities"],
-  finance: ["workspaceFinance", "workspaceFinanceNav"],
+  finance: [
+    "workspaceFinance",
+    "workspaceFinanceNav",
+    "workspaceFinanceOps",
+    "workspaceFinanceDependencies",
+    "workspaceFinanceEventReactions",
+    "workspaceFinanceChartOfAccounts",
+  ],
   exposure: ["exposureHost"],
 };
 
@@ -202,6 +216,10 @@ export const OUTPUT_KEYS = Object.freeze([
   "operatorCapabilities",
   "workspaceFinance",
   "workspaceFinanceNav",
+  "workspaceFinanceOps",
+  "workspaceFinanceDependencies",
+  "workspaceFinanceEventReactions",
+  "workspaceFinanceChartOfAccounts",
   "wizardTemplateEditorBindings",
   "marketingCatalogBindings",
   "settingsDestinationBindings",
@@ -272,6 +290,10 @@ export function generateAllOutputs(manifests) {
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
     workspaceFinance: generateWorkspaceFinanceBindings(manifests),
     workspaceFinanceNav: generateWorkspaceFinanceNavBindings(manifests),
+    workspaceFinanceOps: generateWorkspaceFinanceOpsBindings(manifests),
+    workspaceFinanceDependencies: generateWorkspaceFinanceDependencyBindings(manifests),
+    workspaceFinanceEventReactions: generateWorkspaceFinanceEventReactionBindings(manifests),
+    workspaceFinanceChartOfAccounts: generateWorkspaceFinanceChartOfAccountsBindings(manifests),
     wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
     marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
     settingsDestinationBindings: generateSettingsDestinationBindings(manifests),
@@ -390,6 +412,22 @@ export const OUTPUT_PATHS = {
   workspaceFinanceNav: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts"
+  ),
+  workspaceFinanceOps: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-finance-ops-bindings.generated.ts"
+  ),
+  workspaceFinanceDependencies: join(
+    REPO_ROOT,
+    "apps/api/src/workspace-finance/workspace-finance-dependency-bindings.generated.ts"
+  ),
+  workspaceFinanceEventReactions: join(
+    REPO_ROOT,
+    "apps/api/src/workspace-finance/workspace-finance-event-reaction-bindings.generated.ts"
+  ),
+  workspaceFinanceChartOfAccounts: join(
+    REPO_ROOT,
+    "apps/api/src/workspace-finance/workspace-finance-chart-of-accounts-bindings.generated.ts"
   ),
   wizardTemplateEditorBindings: join(
     REPO_ROOT,

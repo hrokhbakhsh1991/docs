@@ -1,6 +1,7 @@
 /**
- * Fake Workspace #2 chart of accounts — architecture proof only (Phase 1.3).
+ * Fake Workspace #2 chart of accounts — architecture proof (Phase 1.3 / 1.9 / 1.10).
  * Account codes and wallet prefix must never collide with Denali LEDGER_ACCOUNTS.
+ * Manifest: registryOnly — dependency bindings only (no product gate/nav).
  */
 
 export const FINANCE_WS2_WORKSPACE_TYPE = "finance-ws2";

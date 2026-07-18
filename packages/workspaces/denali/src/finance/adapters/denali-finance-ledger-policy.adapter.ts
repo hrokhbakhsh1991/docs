@@ -1,21 +1,18 @@
 import { createHash } from "node:crypto";
 
-import {
-  bookingWalletId,
-  LEDGER_ACCOUNTS,
-  postDoubleEntryJournal,
-} from "@app-tour/workspace-denali";
-
 import type {
   BuildPaymentCaptureJournalInput,
   BuildPrepaymentJournalInput,
   FinanceLedgerCapturePlan,
   FinanceLedgerPolicyPort,
-} from "../ports/finance-ledger-policy.port";
+} from "@app-tour/finance-http-contracts";
+
+import { bookingWalletId, LEDGER_ACCOUNTS } from "../ledger-accounts";
+import { postDoubleEntryJournal } from "../post-double-entry-journal";
 
 /**
- * Denali workspace ledger policy adapter — sole workspace-finance importer of
- * LEDGER_ACCOUNTS / bookingWalletId / postDoubleEntryJournal.
+ * Denali workspace ledger policy adapter — owns CoA posting via Denali ledger helpers.
+ * Capture domainEventId formulas are platform-stable (unchanged from API-hosted adapter).
  */
 export class DenaliFinanceLedgerPolicyAdapter implements FinanceLedgerPolicyPort {
   buildPaymentCaptureJournal(input: BuildPaymentCaptureJournalInput): FinanceLedgerCapturePlan {

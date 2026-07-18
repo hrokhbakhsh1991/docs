@@ -51,6 +51,7 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
       }),
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
+  "finance-ws2": Object.freeze({ availability: "off" as const }),
   "guest-club": Object.freeze({
     availability: "minimal",
     includePlatformHome: false,

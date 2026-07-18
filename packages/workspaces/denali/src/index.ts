@@ -119,6 +119,9 @@ export {
   consumeDenaliTourCreatedFinanceOutbox,
   createDenaliFinanceOutboxConsumer,
   DEFAULT_FINANCE_OPS_MANIFEST,
+  DenaliFinanceLedgerPolicyAdapter,
+  DenaliFinanceReceiptDefaultsAdapter,
+  DenaliTourCreatedFinanceReactionAdapter,
   emitFinanceLedgerDoubleEntryAppliedOutbox,
   handleTourCreatedLedgerEvent,
   LEDGER_ACCOUNTS,
@@ -130,6 +133,7 @@ export { resolveThemeCompatibleCategories } from "./settings/theme-compatible-ca
 export type {
   DenaliFinanceOutboxConsumer,
   DenaliOutboxDomainEvent,
+  DenaliTourCreatedFinanceReactionHostIo,
   FinanceLedgerOutboxEnqueueInput,
   FinanceOpsManifest,
   FinanceOutboxConsumerResult,

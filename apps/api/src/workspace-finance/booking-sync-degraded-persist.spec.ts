@@ -8,8 +8,8 @@ import { metricsRegistry, resetMetricsRegistryForTests } from "../observability/
 import { FinanceService } from "./finance.service.ts";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 import { BookingRegistrationDisplayAdapter } from "./infrastructure/booking-registration-display.adapter.ts";
-import { DenaliFinanceLedgerPolicyAdapter } from "./infrastructure/denali-finance-ledger-policy.adapter.ts";
-import { DenaliFinanceReceiptDefaultsAdapter } from "./infrastructure/denali-finance-receipt-defaults.adapter.ts";
+import { DenaliFinanceLedgerPolicyAdapter } from "@app-tour/workspace-denali";
+import { DenaliFinanceReceiptDefaultsAdapter } from "@app-tour/workspace-denali";
 import { InMemoryFinanceRepository } from "./in-memory-finance.repository.ts";
 
 describe("finance booking-sync degraded persist", { concurrency: false }, () => {

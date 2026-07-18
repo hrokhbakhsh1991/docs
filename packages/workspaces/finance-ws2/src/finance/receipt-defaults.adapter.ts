@@ -1,7 +1,7 @@
 import type {
   FinanceOfflineReceiptDefaults,
   FinanceReceiptDefaultsPort,
-} from "../ports/finance-receipt-defaults.port";
+} from "@app-tour/finance-http-contracts";
 
 /**
  * Fake WS2 offline receipt defaults — deliberately distinct from Denali IRR / 2500000.
