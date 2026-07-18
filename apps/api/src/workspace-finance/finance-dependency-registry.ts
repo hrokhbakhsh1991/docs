@@ -1,26 +1,28 @@
 /**
  * Finance dependency registry — apps/api composition layer.
  *
- * Maps workspaceType → ledger policy + offline receipt defaults.
- * Phase 1.3: Denali (production boot default) + finance-ws2 (architecture fixture).
- * Boot and FinanceService must not construct workspace adapter classes; resolve via this module.
+ * Maps workspaceType → ledger policy + offline receipt defaults + booking projection.
+ * Phase 1.5 Commit 1: tenant-aware resolution selects these factories by workspaceType.
+ * Boot lazy path still uses {@link BOOT_FINANCE_WORKSPACE_TYPE} (Denali) for backward compatibility.
  *
  * Registration keys are literal workspace type ids (avoid importing workspace packages here).
  */
 
+import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
 import { DenaliFinanceLedgerPolicyAdapter } from "./infrastructure/denali-finance-ledger-policy.adapter";
 import { DenaliFinanceReceiptDefaultsAdapter } from "./infrastructure/denali-finance-receipt-defaults.adapter";
 import { FINANCE_WS2_WORKSPACE_TYPE } from "./infrastructure/finance-ws2-chart-of-accounts";
 import { FinanceWs2LedgerPolicyAdapter } from "./infrastructure/finance-ws2-ledger-policy.adapter";
 import { FinanceWs2ReceiptDefaultsAdapter } from "./infrastructure/finance-ws2-receipt-defaults.adapter";
+import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
 import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
 
-/** Must match `@app-cloud/workspace-denali` DENALI_WORKSPACE_TYPE — avoid importing the package here. */
+/** Must match Denali workspace type id — avoid importing the Denali package here. */
 const DENALI_WORKSPACE_TYPE = "denali";
 
 /**
- * Production boot singleton workspace type until per-tenant resolution lands.
+ * Production boot / lazy-finance default workspace type (Denali behavior preserved).
  * Multi-registration is allowed; boot must not use “sole registered” semantics.
  */
 export const BOOT_FINANCE_WORKSPACE_TYPE = DENALI_WORKSPACE_TYPE;
@@ -28,6 +30,14 @@ export const BOOT_FINANCE_WORKSPACE_TYPE = DENALI_WORKSPACE_TYPE;
 export type FinanceWorkspaceDependencyFactories = {
   readonly createLedgerPolicy: () => FinanceLedgerPolicyPort;
   readonly createReceiptDefaults: () => FinanceReceiptDefaultsPort;
+  readonly createBookingPayments: () => IBookingPaymentPort;
+};
+
+export type FinanceWorkspaceDependencies = {
+  readonly workspaceType: string;
+  readonly ledgerPolicy: FinanceLedgerPolicyPort;
+  readonly receiptDefaults: FinanceReceiptDefaultsPort;
+  readonly bookingPayments: IBookingPaymentPort;
 };
 
 const FINANCE_DEPENDENCY_REGISTRY: ReadonlyMap<string, FinanceWorkspaceDependencyFactories> =
@@ -37,6 +47,7 @@ const FINANCE_DEPENDENCY_REGISTRY: ReadonlyMap<string, FinanceWorkspaceDependenc
       {
         createLedgerPolicy: () => new DenaliFinanceLedgerPolicyAdapter(),
         createReceiptDefaults: () => new DenaliFinanceReceiptDefaultsAdapter(),
+        createBookingPayments: () => new BookingPaymentAdapter(),
       },
     ],
     [
@@ -44,6 +55,7 @@ const FINANCE_DEPENDENCY_REGISTRY: ReadonlyMap<string, FinanceWorkspaceDependenc
       {
         createLedgerPolicy: () => new FinanceWs2LedgerPolicyAdapter(),
         createReceiptDefaults: () => new FinanceWs2ReceiptDefaultsAdapter(),
+        createBookingPayments: () => new BookingPaymentAdapter(),
       },
     ],
   ]);
@@ -52,9 +64,20 @@ function normalizeWorkspaceType(workspaceType: string): string {
   return workspaceType.trim().toLowerCase();
 }
 
+export function isFinanceDependencyWorkspaceRegistered(workspaceType: string): boolean {
+  const normalized = normalizeWorkspaceType(workspaceType);
+  return normalized.length > 0 && FINANCE_DEPENDENCY_REGISTRY.has(normalized);
+}
+
+type UnsupportedCode =
+  | "FINANCE_LEDGER_POLICY_UNSUPPORTED"
+  | "FINANCE_RECEIPT_DEFAULTS_UNSUPPORTED"
+  | "FINANCE_BOOKING_PAYMENT_UNSUPPORTED"
+  | "FINANCE_WORKSPACE_DEPENDENCIES_UNSUPPORTED";
+
 function requireRegisteredFactories(
   workspaceType: string,
-  unsupportedCode: "FINANCE_LEDGER_POLICY_UNSUPPORTED" | "FINANCE_RECEIPT_DEFAULTS_UNSUPPORTED"
+  unsupportedCode: UnsupportedCode
 ): FinanceWorkspaceDependencyFactories {
   const normalized = normalizeWorkspaceType(workspaceType);
   if (normalized.length === 0) {
@@ -101,4 +124,27 @@ export function resolveFinanceReceiptDefaults(workspaceType: string): FinanceRec
     workspaceType,
     "FINANCE_RECEIPT_DEFAULTS_UNSUPPORTED"
   ).createReceiptDefaults();
+}
+
+export function resolveFinanceBookingPayments(workspaceType: string): IBookingPaymentPort {
+  return requireRegisteredFactories(
+    workspaceType,
+    "FINANCE_BOOKING_PAYMENT_UNSUPPORTED"
+  ).createBookingPayments();
+}
+
+/** Resolve all workspace finance ports for composition (fail closed if unregistered). */
+export function resolveFinanceWorkspaceDependencies(
+  workspaceType: string
+): FinanceWorkspaceDependencies {
+  const factories = requireRegisteredFactories(
+    workspaceType,
+    "FINANCE_WORKSPACE_DEPENDENCIES_UNSUPPORTED"
+  );
+  return {
+    workspaceType: normalizeWorkspaceType(workspaceType),
+    ledgerPolicy: factories.createLedgerPolicy(),
+    receiptDefaults: factories.createReceiptDefaults(),
+    bookingPayments: factories.createBookingPayments(),
+  };
 }

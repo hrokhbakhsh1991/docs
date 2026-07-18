@@ -40,6 +40,7 @@ Switching workspace `paymentMode` (future, non-Denali) changes **ingress only**.
 | API SoT | `apps/api/src/workspace-finance/` |
 | HTTP request contracts | `@app-tour/finance-http-contracts` (Phase 1.4) — Denali `http/schemas` re-exports only |
 | HTTP handlers | `@app-tour/finance-http` (Phase 1.4 C2) — Denali re-exports; codegen `handlerPackage` |
+| Tenant-aware composition | `resolveFinanceWorkspaceTypeForTenant` + registry booking/policy/defaults (Phase 1.5 C1); boot lazy path still Denali |
 | Legacy forbidden | `apps/api/src/denali-finance/` — tombstone only (`README.md`); do not resurrect adapters |
 | Booking projection port | `IBookingPaymentPort.syncStatus` — Finance must not call `getBookingsRepository()`; infra `BookingPaymentAdapter` is injected at boot |
 

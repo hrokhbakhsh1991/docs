@@ -390,6 +390,26 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | Denali no longer implements finance route bodies | Done |
 | API paths + idempotency host wiring unchanged | Done |
 
+### Phase 1.5 Commit 1 — Tenant-aware Finance dependency resolution
+
+| | |
+| -- | -- |
+| **Goal** | Resolve finance deps (ledger policy, receipt defaults, booking projection) by tenant → workspaceType; fail closed when unregistered |
+| **SoT for type** | `resolveFinanceWorkspaceTypeForTenant(tenantId)` — same tenant row lookup as the finance gate (Prisma / registered fallback) |
+| **Registry** | `workspaceType` → ledger + defaults + booking factories; Denali + finance-ws2 registered |
+| **Composition** | `Map<workspaceType, FinanceService>` cache; shared repo + booking adapter instance (same adapter class today); `resolveLazyFinanceService` remains Denali via boot type (behavior preserved) |
+| **Unchanged** | FinanceService workflows, DB schema, payment/prepay identities, ledger model, approve TX |
+| **Must NOT** | Request-scoped FinanceService; JWT-as-type SoT; finance-core; GL |
+
+**Phase 1.5 Commit 1 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| Booking projection resolved via registry by workspaceType | Done |
+| Tenant → workspaceType resolver shared with gate lookup | Done |
+| Unsupported workspaceType fail-closed | Done |
+| Denali boot/`resolveLazyFinanceService` behavior preserved | Done |
+
 ### Phase 2 — Finance core extraction
 
 | | |
