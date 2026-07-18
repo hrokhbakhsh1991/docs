@@ -22,6 +22,7 @@ import {
 } from "./finance-dependency-registry.ts";
 import { FinanceService } from "./finance.service.ts";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
+import { BookingRegistrationDisplayAdapter } from "./infrastructure/booking-registration-display.adapter.ts";
 import {
   FINANCE_WS2_LEDGER_ACCOUNTS,
   FINANCE_WS2_WORKSPACE_TYPE,
@@ -83,7 +84,8 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
       resolveFinanceLedgerPolicy(workspaceType),
       financeRepo,
       bookingPayments,
-      resolveFinanceReceiptDefaults(workspaceType)
+      resolveFinanceReceiptDefaults(workspaceType),
+      new BookingRegistrationDisplayAdapter()
     );
     return { finance, financeRepo };
   }
