@@ -2,15 +2,17 @@
  * Finance dependency registry — apps/api composition layer.
  *
  * Maps workspaceType → ledger policy + offline receipt defaults.
- * Phase 1.1: Denali is the only registered workspace. Boot and FinanceService must not
- * construct Denali adapters; resolve via this module.
+ * Phase 1.3: Denali (production boot default) + finance-ws2 (architecture fixture).
+ * Boot and FinanceService must not construct workspace adapter classes; resolve via this module.
  *
- * Registration key is the literal workspace type id (same as DENALI_WORKSPACE_TYPE).
- * Adapters remain the sole importers of Denali CoA helpers.
+ * Registration keys are literal workspace type ids (avoid importing workspace packages here).
  */
 
 import { DenaliFinanceLedgerPolicyAdapter } from "./infrastructure/denali-finance-ledger-policy.adapter";
 import { DenaliFinanceReceiptDefaultsAdapter } from "./infrastructure/denali-finance-receipt-defaults.adapter";
+import { FINANCE_WS2_WORKSPACE_TYPE } from "./infrastructure/finance-ws2-chart-of-accounts";
+import { FinanceWs2LedgerPolicyAdapter } from "./infrastructure/finance-ws2-ledger-policy.adapter";
+import { FinanceWs2ReceiptDefaultsAdapter } from "./infrastructure/finance-ws2-receipt-defaults.adapter";
 import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
 import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
 
@@ -19,6 +21,7 @@ const DENALI_WORKSPACE_TYPE = "denali";
 
 /**
  * Production boot singleton workspace type until per-tenant resolution lands.
+ * Multi-registration is allowed; boot must not use “sole registered” semantics.
  */
 export const BOOT_FINANCE_WORKSPACE_TYPE = DENALI_WORKSPACE_TYPE;
 
@@ -34,6 +37,13 @@ const FINANCE_DEPENDENCY_REGISTRY: ReadonlyMap<string, FinanceWorkspaceDependenc
       {
         createLedgerPolicy: () => new DenaliFinanceLedgerPolicyAdapter(),
         createReceiptDefaults: () => new DenaliFinanceReceiptDefaultsAdapter(),
+      },
+    ],
+    [
+      FINANCE_WS2_WORKSPACE_TYPE,
+      {
+        createLedgerPolicy: () => new FinanceWs2LedgerPolicyAdapter(),
+        createReceiptDefaults: () => new FinanceWs2ReceiptDefaultsAdapter(),
       },
     ],
   ]);
@@ -62,7 +72,7 @@ function requireRegisteredFactories(
 }
 
 /**
- * Boot singleton workspace type (Denali).
+ * Boot singleton workspace type (Denali). Not “sole registered” — registry also holds finance-ws2.
  */
 export function resolveBootFinanceWorkspaceType(): string {
   if (!FINANCE_DEPENDENCY_REGISTRY.has(BOOT_FINANCE_WORKSPACE_TYPE)) {
