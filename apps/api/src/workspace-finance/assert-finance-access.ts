@@ -1,7 +1,13 @@
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
-import { getPrismaAdmin } from "../db/prisma";
-import { resolveRegisteredTenantById } from "../tenant/resolve-registered-tenant";
+import {
+  isFinanceModuleEnabled,
+  parseEnabledModulesFromTheme,
+} from "./finance-module-enabled.ts";
+import { resolveFinanceTenantWorkspaceRow } from "./resolve-finance-workspace-type-for-tenant.ts";
+import { isFinanceSupportedWorkspace } from "./workspace-finance-bindings.generated.ts";
+
+export { parseEnabledModulesFromTheme, isFinanceModuleEnabled };
 
 function isAdminOrOwner(context: TenantAuthContext): boolean {
   return context.role === "admin" || context.role === "owner";
@@ -42,7 +48,7 @@ export async function assertFinanceWorkspaceGate(tenantId: string): Promise<{
   readonly workspaceType: string;
   readonly theme: unknown;
 }> {
-  const row = await resolveFinanceTenantGateRow(tenantId);
+  const row = await resolveFinanceTenantWorkspaceRow(tenantId);
   if (row === null) {
     throw new Error("FINANCE_WORKSPACE_UNSUPPORTED");
   }
@@ -54,34 +60,6 @@ export async function assertFinanceWorkspaceGate(tenantId: string): Promise<{
     throw new Error("FORBIDDEN_FINANCE_MODULE_DISABLED");
   }
   return row;
-}
-
-async function resolveFinanceTenantGateRow(
-  tenantId: string
-): Promise<{ readonly workspaceType: string; readonly theme: unknown } | null> {
-  const databaseUrl = process.env.DATABASE_URL?.trim();
-  if (databaseUrl) {
-    try {
-      const row = await getPrismaAdmin().tenant.findUnique({
-        where: { id: tenantId },
-        select: { workspaceType: true, theme: true },
-      });
-      if (row !== null) {
-        return row;
-      }
-    } catch {
-      // Postgres unavailable — fall back to static registry (dev/test smoke).
-    }
-  }
-
-  const registered = await resolveRegisteredTenantById(tenantId);
-  if (registered === null) {
-    return null;
-  }
-  return {
-    workspaceType: registered.workspaceType,
-    theme: registered.theme,
-  };
 }
 
 export function assertFinanceOperatorAccess(auth: TenantAuthContext): void {

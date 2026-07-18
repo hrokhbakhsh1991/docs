@@ -7,9 +7,11 @@ import { describe, it } from "node:test";
 import {
   listRegisteredFinanceWorkspaceTypes,
   resolveBootFinanceWorkspaceType,
+  resolveFinanceBookingPayments,
   resolveFinanceLedgerPolicy,
   resolveFinanceReceiptDefaults,
 } from "./finance-dependency-registry.ts";
+import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 import { DenaliFinanceLedgerPolicyAdapter } from "./infrastructure/denali-finance-ledger-policy.adapter.ts";
 import { DenaliFinanceReceiptDefaultsAdapter } from "./infrastructure/denali-finance-receipt-defaults.adapter.ts";
 import {
@@ -126,5 +128,18 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
 
   it("FIN-REG-11 registered workspace types include denali and finance-ws2", () => {
     assert.deepEqual(listRegisteredFinanceWorkspaceTypes(), [DENALI, WS2].sort());
+  });
+
+  it("FIN-REG-12 booking projection resolves BookingPaymentAdapter for denali and finance-ws2", () => {
+    assert.ok(resolveFinanceBookingPayments(DENALI) instanceof BookingPaymentAdapter);
+    assert.ok(resolveFinanceBookingPayments(WS2) instanceof BookingPaymentAdapter);
+  });
+
+  it("FIN-REG-13 booking projection fails closed for unsupported workspaceType", () => {
+    assert.throws(
+      () => resolveFinanceBookingPayments("urban"),
+      (error: unknown) =>
+        error instanceof Error && error.message.startsWith("FINANCE_BOOKING_PAYMENT_UNSUPPORTED:")
+    );
   });
 });

@@ -118,6 +118,7 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "finance-registration-context.ts",
   "finance-repository.factory.ts",
   "finance-schedule-store.ts",
+  "finance-tenant-dependency-resolution.spec.ts",
   "finance.repository.ts",
   "finance.service.spec.ts",
   "finance.service.ts",
@@ -130,6 +131,7 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "process-workspace-finance-outbox.ts",
   "receipt-proof-storage.ts",
   "register-workspace-finance-deps.ts",
+  "resolve-finance-workspace-type-for-tenant.ts",
   "workspace-finance-bindings.generated.ts",
   "workspace-finance-processed-log.ts",
 ]);

@@ -1,23 +1,59 @@
-import { createFinanceRepository } from "../workspace-finance/finance-repository.factory";
+import {
+  createFinanceRepository,
+  resetFinanceRepositoryForTests,
+  type FinanceRepositoryPort,
+} from "../workspace-finance/finance-repository.factory";
 import type { FinanceService } from "../workspace-finance/finance.service";
 import { createFinanceService } from "../workspace-finance/finance.service";
-import { BookingPaymentAdapter } from "../workspace-finance/infrastructure/booking-payment.adapter";
 import {
   resolveBootFinanceWorkspaceType,
-  resolveFinanceLedgerPolicy,
-  resolveFinanceReceiptDefaults,
+  resolveFinanceWorkspaceDependencies,
 } from "../workspace-finance/finance-dependency-registry";
+import type { IBookingPaymentPort } from "../workspace-finance/ports/booking-payment.port";
+import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
 
-let financeServicePromise: Promise<FinanceService> | null = null;
+/** workspaceType → FinanceService (Phase 1.5 Commit 1). */
+const financeServiceByWorkspaceType = new Map<string, FinanceService>();
+
+/**
+ * Shared booking + repository across workspaceType service instances.
+ * Today all registered types use BookingPaymentAdapter; repo singleton requires one port.
+ */
+let sharedBookingPayments: IBookingPaymentPort | null = null;
+let sharedFinanceRepository: FinanceRepositoryPort | null = null;
 
 export function resetLazyFinanceServiceForTests(): void {
-  financeServicePromise = null;
+  financeServiceByWorkspaceType.clear();
+  sharedBookingPayments = null;
+  sharedFinanceRepository = null;
+  resetFinanceRepositoryForTests();
+}
+
+function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string): FinanceService {
+  const existing = financeServiceByWorkspaceType.get(workspaceType);
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const deps = resolveFinanceWorkspaceDependencies(workspaceType);
+  if (sharedBookingPayments === null || sharedFinanceRepository === null) {
+    sharedBookingPayments = deps.bookingPayments;
+    sharedFinanceRepository = createFinanceRepository(sharedBookingPayments);
+  }
+
+  const service = createFinanceService(
+    deps.ledgerPolicy,
+    sharedFinanceRepository,
+    sharedBookingPayments,
+    deps.receiptDefaults
+  );
+  financeServiceByWorkspaceType.set(workspaceType, service);
+  return service;
 }
 
 /**
- * Boot composition root — wires booking + registry-resolved ledger policy + receipt defaults
- * into {@link FinanceService}. Does not import Denali adapter classes.
- * Tests may pass a fully constructed service to bypass the singleton.
+ * Boot / legacy composition root — Denali workspace type (behavior preserved).
+ * Prefer {@link resolveFinanceServiceForTenant} when tenantId is known.
  */
 export async function resolveLazyFinanceService(
   injected?: FinanceService
@@ -25,17 +61,20 @@ export async function resolveLazyFinanceService(
   if (injected !== undefined) {
     return injected;
   }
-  if (financeServicePromise === null) {
-    const workspaceType = resolveBootFinanceWorkspaceType();
-    const bookingPayments = new BookingPaymentAdapter();
-    financeServicePromise = Promise.resolve(
-      createFinanceService(
-        resolveFinanceLedgerPolicy(workspaceType),
-        createFinanceRepository(bookingPayments),
-        bookingPayments,
-        resolveFinanceReceiptDefaults(workspaceType)
-      )
-    );
+  return getOrCreateFinanceServiceForWorkspaceType(resolveBootFinanceWorkspaceType());
+}
+
+/**
+ * Phase 1.5 Commit 1 — tenant-aware composition.
+ * Resolves tenant → workspaceType → registry ports → cached FinanceService.
+ */
+export async function resolveFinanceServiceForTenant(
+  tenantId: string,
+  injected?: FinanceService
+): Promise<FinanceService> {
+  if (injected !== undefined) {
+    return injected;
   }
-  return financeServicePromise;
+  const workspaceType = await resolveFinanceWorkspaceTypeForTenant(tenantId);
+  return getOrCreateFinanceServiceForWorkspaceType(workspaceType);
 }
