@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { metricsRegistry } from "../observability/metrics";
 import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
 
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
@@ -39,6 +40,11 @@ import {
 
 function hashClientIdempotencyKey(idempotencyKey: string): string {
   return createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 40);
+}
+
+/** Full SHA-256 hex — durable business keys for manual payment create / receipt submit. */
+export function hashFinanceHttpIdempotencyKey(idempotencyKey: string): string {
+  return createHash("sha256").update(idempotencyKey, "utf8").digest("hex");
 }
 
 /** Stable outbox/business identity — never uses timestamps or amount-only keys. */
@@ -244,9 +250,38 @@ export class FinanceService {
     });
   }
 
-  async createManualPayment(auth: TenantAuthContext, body: CreateManualPaymentBody) {
+  async createManualPayment(
+    auth: TenantAuthContext,
+    body: CreateManualPaymentBody,
+    idempotencyKey: string
+  ) {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
+    const trimmedKey = typeof idempotencyKey === "string" ? idempotencyKey.trim() : "";
+    if (trimmedKey.length === 0) {
+      throw new Error("IDEMPOTENCY_KEY_REQUIRED");
+    }
+    const creationIdempotencyKey = hashFinanceHttpIdempotencyKey(trimmedKey);
+    // Repository find-before-create replays existing keyed payments before insert.
+    // Debt gate only applies to fresh inserts (no prior row for this key).
+    const existing = await this.repository.findPaymentByCreationIdempotencyKey(
+      auth.tenantId,
+      creationIdempotencyKey
+    );
+    if (existing !== null) {
+      if (
+        existing.registrationId !== body.registrationId ||
+        existing.amount !== body.amount ||
+        existing.currency !== body.currency.toUpperCase()
+      ) {
+        throw new Error("FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT");
+      }
+      return {
+        ...existing,
+        createdAt: existing.createdAt.toISOString(),
+        paidAt: existing.paidAt?.toISOString() ?? null,
+      };
+    }
     const statuses = await this.repository.findPaymentStatusesByRegistration(
       auth.tenantId,
       body.registrationId
@@ -260,6 +295,7 @@ export class FinanceService {
       method: "Manual",
       provider: "manual",
       status: "Pending",
+      creationIdempotencyKey,
     });
     return {
       ...payment,
@@ -268,9 +304,16 @@ export class FinanceService {
     };
   }
 
-  async submitReceipt(auth: TenantAuthContext, body: SubmitReceiptBody) {
+  async submitReceipt(
+    auth: TenantAuthContext,
+    body: SubmitReceiptBody,
+    idempotencyKey?: string
+  ) {
     await this.gate(auth);
     assertFinanceReceiptSubmitAccess(auth);
+    const trimmedKey = idempotencyKey?.trim() ?? "";
+    const idempotencyKeyHash =
+      trimmedKey.length > 0 ? hashFinanceHttpIdempotencyKey(trimmedKey) : undefined;
     const payment = await this.repository.findPaymentById(auth.tenantId, body.paymentId);
     if (payment === null) {
       throw new Error("FINANCE_PAYMENT_NOT_FOUND");
@@ -283,18 +326,12 @@ export class FinanceService {
         `ZOD_VALIDATION_FAILED: cannot submit receipt for payment with status ${payment.status}`
       );
     }
-    const pendingCount = await this.repository.countPendingReceiptsForPayment(
-      auth.tenantId,
-      payment.id
-    );
-    if (pendingCount > 0) {
-      throw new Error("ZOD_VALIDATION_FAILED: payment already has a pending receipt");
-    }
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
       fileKey: body.fileKey,
       note: body.note,
+      ...(idempotencyKeyHash !== undefined ? { idempotencyKeyHash } : {}),
     });
     return {
       id: receipt.id,
@@ -453,16 +490,40 @@ export class FinanceService {
 
     // Single RLS transaction (Prisma SoT): payment Paid → booking paid → receipt Approved → ledger.
     // Memory fake: fail-closed simulate via repository (not production-equivalent).
-    return this.repository.approveManualReceiptAtomic({
-      tenantId: auth.tenantId,
-      paymentId: payment.id,
-      receiptId,
-      registrationId: payment.registrationId,
-      journalId: ledgerCapture.journalId,
-      reviewedByUserId: auth.userId,
-      ...(body.reviewNote !== undefined ? { reviewNote: body.reviewNote } : {}),
-      ...(resolveStorageDriver() !== "memory" ? { ledgerCapture } : {}),
-    });
+    try {
+      return await this.repository.approveManualReceiptAtomic({
+        tenantId: auth.tenantId,
+        paymentId: payment.id,
+        receiptId,
+        registrationId: payment.registrationId,
+        journalId: ledgerCapture.journalId,
+        reviewedByUserId: auth.userId,
+        ...(body.reviewNote !== undefined ? { reviewNote: body.reviewNote } : {}),
+        ...(resolveStorageDriver() !== "memory" ? { ledgerCapture } : {}),
+      });
+    } catch (error: unknown) {
+      // Concurrent approve: loser may lose Pending guards; if winner already committed, replay.
+      if (!(error instanceof Error) || error.message !== "FINANCE_APPROVE_CONFLICT") {
+        throw error;
+      }
+      const latest = await this.repository.findReceiptById(auth.tenantId, receiptId);
+      if (
+        latest !== null &&
+        latest.status === "Approved" &&
+        latest.payment !== null &&
+        latest.payment.status === "Paid"
+      ) {
+        return {
+          id: latest.id,
+          status: latest.status,
+          reviewNote: latest.reviewNote,
+          reviewedAt: latest.reviewedAt?.toISOString() ?? null,
+          ledgerJournalId: latest.ledgerJournalId ?? "",
+          bookingPaymentStatus: "paid" as const,
+        };
+      }
+      throw error;
+    }
   }
 
   async getReceiptUrl(auth: TenantAuthContext, receiptId: string) {
@@ -706,17 +767,56 @@ export class FinanceService {
         })
       );
       if (resolveStorageDriver() !== "memory") {
-        await this.repository
-          .recordPrepaymentBookingSyncDegraded({
-            tenantId,
-            registrationId,
-            paymentStatus,
-            error: message,
-            prepaymentDomainEventId: prepaymentDomainEventId ?? "",
-          })
-          .catch(() => undefined);
+        await this.persistBookingSyncDegradedWithRetries({
+          tenantId,
+          registrationId,
+          paymentStatus,
+          error: message,
+          prepaymentDomainEventId: prepaymentDomainEventId ?? "",
+        });
       }
     }
+  }
+
+  /**
+   * Operational notification only — runs after finance commit. Bounded retries;
+   * permanent failure is observable and must not fail the HTTP prepay response.
+   */
+  private async persistBookingSyncDegradedWithRetries(input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+    readonly paymentStatus: string;
+    readonly error: string;
+    readonly prepaymentDomainEventId: string;
+  }): Promise<void> {
+    const maxAttempts = 3;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.repository.recordPrepaymentBookingSyncDegraded(input);
+        return;
+      } catch (error: unknown) {
+        lastError = error;
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 25 * attempt));
+        }
+      }
+    }
+    metricsRegistry.increment(
+      "finance_prepayment_booking_sync_degraded_persist_failed_total",
+      { tenant_id: input.tenantId },
+      1
+    );
+    console.error(
+      JSON.stringify({
+        event: "finance.prepayment.booking_sync.degraded_persist_failed",
+        tenantId: input.tenantId,
+        registrationId: input.registrationId,
+        paymentStatus: input.paymentStatus,
+        prepaymentDomainEventId: input.prepaymentDomainEventId,
+        error: lastError instanceof Error ? lastError.message : String(lastError),
+      })
+    );
   }
 }
 

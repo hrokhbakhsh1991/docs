@@ -28,9 +28,14 @@ export type FinanceServicePort = {
   ) => Promise<readonly unknown[]>;
   readonly createManualPayment: (
     auth: TenantAuthContext,
-    body: CreateManualPaymentBody
+    body: CreateManualPaymentBody,
+    idempotencyKey: string
   ) => Promise<unknown>;
-  readonly submitReceipt: (auth: TenantAuthContext, body: SubmitReceiptBody) => Promise<unknown>;
+  readonly submitReceipt: (
+    auth: TenantAuthContext,
+    body: SubmitReceiptBody,
+    idempotencyKey?: string
+  ) => Promise<unknown>;
   readonly reviewReceipt: (
     auth: TenantAuthContext,
     receiptId: string,

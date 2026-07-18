@@ -14,8 +14,14 @@ import type {
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 
-type StoredPayment = FinancePaymentRow & { readonly tenantId: string };
-type StoredReceipt = FinanceReceiptRow & { readonly tenantId: string };
+type StoredPayment = FinancePaymentRow & {
+  readonly tenantId: string;
+  readonly creationIdempotencyKey?: string;
+};
+type StoredReceipt = FinanceReceiptRow & {
+  readonly tenantId: string;
+  readonly idempotencyKeyHash?: string;
+};
 
 let paymentsById = new Map<string, StoredPayment>();
 let receiptsById = new Map<string, StoredReceipt>();
@@ -99,18 +105,38 @@ export class InMemoryFinanceRepository {
   }
 
   async createManualPayment(input: CreatePaymentInput): Promise<FinancePaymentRow> {
+    if (input.creationIdempotencyKey !== undefined) {
+      for (const existing of paymentsById.values()) {
+        if (
+          existing.tenantId === input.tenantId &&
+          existing.creationIdempotencyKey === input.creationIdempotencyKey
+        ) {
+          if (
+            existing.registrationId !== input.registrationId ||
+            existing.amount !== input.amount ||
+            existing.currency !== input.currency.toUpperCase()
+          ) {
+            throw new Error("FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT");
+          }
+          return existing;
+        }
+      }
+    }
     const now = new Date();
     const row: StoredPayment = {
       id: randomUUID(),
       tenantId: input.tenantId,
       registrationId: input.registrationId,
       amount: input.amount,
-      currency: input.currency,
+      currency: input.currency.toUpperCase(),
       method: input.method,
       provider: input.provider,
       status: input.status,
       paidAt: null,
       createdAt: now,
+      ...(input.creationIdempotencyKey !== undefined
+        ? { creationIdempotencyKey: input.creationIdempotencyKey }
+        : {}),
     };
     paymentsById.set(row.id, row);
     return row;
@@ -122,6 +148,21 @@ export class InMemoryFinanceRepository {
       return null;
     }
     return row;
+  }
+
+  async findPaymentByCreationIdempotencyKey(
+    tenantId: string,
+    creationIdempotencyKey: string
+  ): Promise<FinancePaymentRow | null> {
+    for (const row of paymentsById.values()) {
+      if (
+        row.tenantId === tenantId &&
+        row.creationIdempotencyKey === creationIdempotencyKey
+      ) {
+        return row;
+      }
+    }
+    return null;
   }
 
   async countPendingReceiptsForPayment(tenantId: string, paymentId: string): Promise<number> {
@@ -152,9 +193,33 @@ export class InMemoryFinanceRepository {
   }
 
   async createReceipt(input: CreateReceiptInput): Promise<FinanceReceiptRow> {
+    if (input.idempotencyKeyHash !== undefined) {
+      for (const existing of receiptsById.values()) {
+        if (
+          existing.tenantId === input.tenantId &&
+          existing.idempotencyKeyHash === input.idempotencyKeyHash
+        ) {
+          if (
+            existing.paymentId !== input.paymentId ||
+            existing.fileKey !== input.fileKey ||
+            (input.note !== undefined && existing.note !== (input.note ?? null))
+          ) {
+            throw new Error("FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT");
+          }
+          return existing;
+        }
+      }
+    }
     const payment = await this.findPaymentById(input.tenantId, input.paymentId);
     if (payment === null) {
       throw new Error("FINANCE_PAYMENT_NOT_FOUND");
+    }
+    const pendingCount = await this.countPendingReceiptsForPayment(
+      input.tenantId,
+      input.paymentId
+    );
+    if (pendingCount > 0) {
+      throw new Error("ZOD_VALIDATION_FAILED: payment already has a pending receipt");
     }
     const now = new Date();
     const receipt: StoredReceipt = {
@@ -169,6 +234,9 @@ export class InMemoryFinanceRepository {
       ledgerJournalId: null,
       createdAt: now,
       payment,
+      ...(input.idempotencyKeyHash !== undefined
+        ? { idempotencyKeyHash: input.idempotencyKeyHash }
+        : {}),
     };
     receiptsById.set(receipt.id, receipt);
     return receipt;

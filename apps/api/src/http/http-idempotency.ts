@@ -1,10 +1,13 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
-import { reclaimStaleProcessingHttpIdempotencyRecords } from "./http-idempotency-reclaim";
+import {
+  reclaimStaleProcessingHttpIdempotencyRecords,
+  resolveHttpIdempotencyProcessingReclaimMs,
+} from "./http-idempotency-reclaim";
 import {
   computeRelayBackoff,
   readHttpIdempotencyPollBaseMs,
@@ -13,6 +16,13 @@ import {
 } from "../resilience/compute-relay-backoff";
 import { resolveStorageDriver } from "../storage/create-tour-storage";
 import { requireActiveTenantId } from "../tenant/tenant-request-context";
+
+const PRISMA_CLAIM_ATTEMPTS = 3;
+
+function resolveLeaseHeartbeatMs(reclaimMs: number): number {
+  // Must stay strictly inside the lease window (reclaim suite uses short TTLs).
+  return Math.max(10, Math.floor(reclaimMs / 3));
+}
 
 export const IDEMPOTENCY_PAYLOAD_MISMATCH = "IDEMPOTENCY_PAYLOAD_MISMATCH";
 export const IDEMPOTENCY_IN_PROGRESS = "IDEMPOTENCY_IN_PROGRESS";
@@ -209,11 +219,16 @@ async function runWithMemoryIdempotency(
   }
 }
 
+type WaitOutcome =
+  | { readonly kind: "replay"; readonly response: StoredResponse }
+  | { readonly kind: "reclaim_retry" }
+  | { readonly kind: "in_progress" };
+
 async function waitForPrismaCompletion(
   tenantId: string,
   idempotencyKey: string,
   requestHash: string
-): Promise<StoredResponse> {
+): Promise<WaitOutcome> {
   const deadline = Date.now() + POLL_DEADLINE_MS;
   let attempt = 0;
   while (Date.now() < deadline) {
@@ -228,79 +243,81 @@ async function waitForPrismaCompletion(
       })
     );
     if (row === null) {
-      // Stale processing reclaimed — caller should re-enter as owner on next attempt.
-      throw new Error(IDEMPOTENCY_IN_PROGRESS);
+      // Lease expired and row reclaimed — outer loop may re-claim as owner.
+      return { kind: "reclaim_retry" };
     }
     if (row.status === "completed" && row.responseBody !== null) {
       if (row.requestHash !== requestHash) {
         throw new Error(IDEMPOTENCY_PAYLOAD_MISMATCH);
       }
-      return row.responseBody as StoredResponse;
+      return { kind: "replay", response: row.responseBody as StoredResponse };
     }
     attempt += 1;
     await sleepIdempotencyPollBackoff(attempt);
   }
-  throw new Error(IDEMPOTENCY_IN_PROGRESS);
+  return { kind: "in_progress" };
 }
 
-async function runWithPrismaIdempotency(
+async function extendHttpIdempotencyLease(
   tenantId: string,
   idempotencyKey: string,
-  requestHash: string,
+  leaseOwner: string,
+  leaseUntil: Date
+): Promise<boolean> {
+  const affected = await withTenantRls(tenantId, (tx) =>
+    tx.$executeRaw`
+      UPDATE http_idempotency_records
+      SET lease_until = ${leaseUntil}
+      WHERE tenant_id = ${tenantId}::uuid
+        AND idempotency_key = ${idempotencyKey}
+        AND status = 'processing'
+        AND lease_owner = ${leaseOwner}
+    `
+  );
+  return Number(affected) === 1;
+}
+
+async function runAsPrismaOwner(
+  tenantId: string,
+  idempotencyKey: string,
+  leaseOwner: string,
   execute: () => Promise<StoredResponse>
 ): Promise<StoredResponse> {
-  const claimed = await withTenantRls(tenantId, async (tx) => {
-    const existing = await tx.httpIdempotencyRecord.findUnique({
-      where: {
-        tenantId_idempotencyKey: { tenantId, idempotencyKey },
-      },
-    });
-    if (existing?.status === "completed" && existing.responseBody !== null) {
-      if (existing.requestHash !== requestHash) {
-        throw new Error(IDEMPOTENCY_PAYLOAD_MISMATCH);
-      }
-      return { kind: "replay" as const, response: existing.responseBody as StoredResponse };
-    }
-    if (existing?.status === "processing") {
-      return { kind: "wait" as const };
-    }
-    try {
-      await tx.httpIdempotencyRecord.create({
-        data: {
-          tenantId,
-          idempotencyKey,
-          requestHash,
-          status: "processing",
-        },
-      });
-      return { kind: "owner" as const };
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        return { kind: "wait" as const };
-      }
-      throw error;
-    }
-  });
+  const reclaimMs = resolveHttpIdempotencyProcessingReclaimMs();
+  const heartbeatMs = resolveLeaseHeartbeatMs(reclaimMs);
+  let leaseLost = false;
 
-  if (claimed.kind === "replay") {
-    return claimed.response;
-  }
-  if (claimed.kind === "wait") {
-    return waitForPrismaCompletion(tenantId, idempotencyKey, requestHash);
-  }
+  const touchLease = (): void => {
+    const nextUntil = new Date(Date.now() + reclaimMs);
+    void extendHttpIdempotencyLease(tenantId, idempotencyKey, leaseOwner, nextUntil).then((ok) => {
+      if (!ok) {
+        leaseLost = true;
+      }
+    });
+  };
+
+  // Immediate renew so short TTLs survive until the first interval tick.
+  touchLease();
+  const heartbeat = setInterval(touchLease, heartbeatMs);
+  heartbeat.unref?.();
 
   try {
     const response = await execute();
+    if (leaseLost) {
+      throw new Error(IDEMPOTENCY_IN_PROGRESS);
+    }
     await withTenantRls(tenantId, async (tx) => {
       const affected = await tx.$executeRaw`
         UPDATE http_idempotency_records
         SET status = 'completed',
             status_code = 201,
             response_body = ${JSON.stringify(response)}::jsonb,
-            completed_at = now()
+            completed_at = now(),
+            lease_until = NULL
         WHERE tenant_id = ${tenantId}::uuid
           AND idempotency_key = ${idempotencyKey}
           AND status = 'processing'
+          AND lease_owner = ${leaseOwner}
       `;
       if (Number(affected) !== 1) {
         throw new Error(IDEMPOTENCY_IN_PROGRESS);
@@ -310,11 +327,79 @@ async function runWithPrismaIdempotency(
   } catch (error) {
     await withTenantRls(tenantId, (tx) =>
       tx.httpIdempotencyRecord.deleteMany({
-        where: { tenantId, idempotencyKey },
+        where: { tenantId, idempotencyKey, leaseOwner },
       })
     ).catch(() => undefined);
     throw error;
+  } finally {
+    clearInterval(heartbeat);
   }
+}
+
+async function runWithPrismaIdempotency(
+  tenantId: string,
+  idempotencyKey: string,
+  requestHash: string,
+  execute: () => Promise<StoredResponse>
+): Promise<StoredResponse> {
+  for (let claimAttempt = 0; claimAttempt < PRISMA_CLAIM_ATTEMPTS; claimAttempt += 1) {
+    const reclaimMs = resolveHttpIdempotencyProcessingReclaimMs();
+    const leaseOwner = randomUUID();
+    const leaseUntil = new Date(Date.now() + reclaimMs);
+
+    const claimed = await withTenantRls(tenantId, async (tx) => {
+      const existing = await tx.httpIdempotencyRecord.findUnique({
+        where: {
+          tenantId_idempotencyKey: { tenantId, idempotencyKey },
+        },
+      });
+      if (existing?.status === "completed" && existing.responseBody !== null) {
+        if (existing.requestHash !== requestHash) {
+          throw new Error(IDEMPOTENCY_PAYLOAD_MISMATCH);
+        }
+        return { kind: "replay" as const, response: existing.responseBody as StoredResponse };
+      }
+      if (existing?.status === "processing") {
+        return { kind: "wait" as const };
+      }
+      try {
+        await tx.httpIdempotencyRecord.create({
+          data: {
+            tenantId,
+            idempotencyKey,
+            requestHash,
+            status: "processing",
+            leaseUntil,
+            leaseOwner,
+          },
+        });
+        return { kind: "owner" as const, leaseOwner };
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          return { kind: "wait" as const };
+        }
+        throw error;
+      }
+    });
+
+    if (claimed.kind === "replay") {
+      return claimed.response;
+    }
+    if (claimed.kind === "owner") {
+      return runAsPrismaOwner(tenantId, idempotencyKey, claimed.leaseOwner, execute);
+    }
+
+    const waited = await waitForPrismaCompletion(tenantId, idempotencyKey, requestHash);
+    if (waited.kind === "replay") {
+      return waited.response;
+    }
+    if (waited.kind === "reclaim_retry") {
+      continue;
+    }
+    throw new Error(IDEMPOTENCY_IN_PROGRESS);
+  }
+
+  throw new Error(IDEMPOTENCY_IN_PROGRESS);
 }
 
 function assertIdempotentCreateTenantAllowed(tenantId: string): void {
