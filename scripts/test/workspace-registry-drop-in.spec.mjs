@@ -122,15 +122,16 @@ describe("workspace registry drop-in (P7-T06)", () => {
     );
   });
 
-  it("P0-PR-1 generateOutboxSideEffects reexports hostSideEffect; financeEventReaction skips binding run", () => {
+  it("P0-PR-1 generateOutboxSideEffects: financeEventReaction skips binding run AND Denali reexports", () => {
     const manifests = discoverManifests();
     const generated = generateOutboxSideEffects(manifests);
-    assert.match(
+    assert.doesNotMatch(
       generated,
       /@app-tour\/workspace-denali\/host\/finance\/api-tour-created-adapter/
     );
-    assert.match(generated, /registerTourCreatedFinanceSideEffectDeps/);
-    assert.match(generated, /runTourCreatedFinanceSideEffect/);
+    assert.doesNotMatch(generated, /registerTourCreatedFinanceSideEffectDeps/);
+    assert.doesNotMatch(generated, /runTourCreatedFinanceSideEffect/);
+    assert.doesNotMatch(generated, /workspace-denali/);
     assert.match(generated, /WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS[\s\S]*=\s*\[\]/);
     assert.doesNotMatch(generated, /run:\s*runTourCreatedFinanceSideEffect/);
     assert.throws(

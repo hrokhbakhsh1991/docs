@@ -146,7 +146,12 @@ export function generateOutboxSideEffects(manifests) {
       const spec = importSpecifier(m.package, hostSideEffect.adapterModule);
       const routeViaFinanceReaction = hostSideEffect.dispatchVia === "financeEventReaction";
 
-      // Re-exports keep register/run symbols for adapter IO injection + backward-compat tests.
+      // Phase 1.9 Event Ownership Closure: financeEventReaction is owned by the finance
+      // reaction registry + workspace package — never re-exported from platform outbox codegen.
+      if (routeViaFinanceReaction) {
+        continue;
+      }
+
       if (!reexportsBySpecifier.has(spec)) {
         reexportsBySpecifier.set(spec, new Set());
       }
@@ -156,11 +161,6 @@ export function generateOutboxSideEffects(manifests) {
       }
       if (typeof hostSideEffect.rowTypeExport === "string") {
         reexportsBySpecifier.get(spec).add(`type ${hostSideEffect.rowTypeExport}`);
-      }
-
-      // Phase 1.8: financeEventReaction is dispatched via finance registry — not binding.run.
-      if (routeViaFinanceReaction) {
-        continue;
       }
 
       if (!importsBySpecifier.has(spec)) {
