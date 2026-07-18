@@ -246,6 +246,11 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("FINANCE_WORKSPACE_UNSUPPORTED")) return 404;
   if (message.startsWith("FINANCE_PAYMENT_NOT_FOUND")) return 404;
   if (message.startsWith("FINANCE_RECEIPT_NOT_FOUND")) return 404;
+  if (message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS") return 409;
+  if (message === "FINANCE_BOOKING_PAYMENT_SYNC_FAILED") return 409;
+  if (message === "FINANCE_BOOKING_PAYMENT_SYNC_COMPENSATE_FAILED") return 500;
+  if (message === "FINANCE_PREPAYMENT_CONFLICT") return 409;
+  if (message === "FINANCE_APPROVE_CONFLICT") return 409;
   if (message.startsWith("TOUR_CAPACITY_EXCEEDED")) return 429;
   if (message === VALIDATION_QUEUE_SATURATED) return 429;
   if (message === TOUR_WRITE_CONCURRENCY_EXCEEDED) return 429;
@@ -645,6 +650,20 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
 
   const message = error instanceof Error ? error.message : "unknown_error";
   const status = mapErrorMessageToStatus(message);
+
+  if (message === "FINANCE_BOOKING_PAYMENT_SYNC_COMPENSATE_FAILED") {
+    logInternalServerError(error, correlationId);
+    sendHttpError(
+      res,
+      500,
+      {
+        error: "FINANCE_BOOKING_PAYMENT_SYNC_COMPENSATE_FAILED",
+        code: "FINANCE_BOOKING_PAYMENT_SYNC_COMPENSATE_FAILED",
+      },
+      correlationId
+    );
+    return;
+  }
 
   if (status === 503) {
     sendServiceUnavailable(res, correlationId, 1);
