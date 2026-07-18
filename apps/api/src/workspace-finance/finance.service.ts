@@ -451,7 +451,10 @@ export class FinanceService {
         reviewNote: receipt.reviewNote,
         reviewedAt: receipt.reviewedAt?.toISOString() ?? null,
         ledgerJournalId: receipt.ledgerJournalId ?? "",
-        bookingPaymentStatus: "paid" as const,
+        bookingPaymentStatus: await this.resolveApproveReplayBookingStatus(
+          auth.tenantId,
+          payment.registrationId
+        ),
       };
     }
 
@@ -519,7 +522,10 @@ export class FinanceService {
           reviewNote: latest.reviewNote,
           reviewedAt: latest.reviewedAt?.toISOString() ?? null,
           ledgerJournalId: latest.ledgerJournalId ?? "",
-          bookingPaymentStatus: "paid" as const,
+          bookingPaymentStatus: await this.resolveApproveReplayBookingStatus(
+            auth.tenantId,
+            latest.payment.registrationId
+          ),
         };
       }
       throw error;
@@ -743,6 +749,21 @@ export class FinanceService {
       );
       throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_FAILED");
     }
+  }
+
+  /**
+   * Approve replay: prefer live booking projection; fall back to paid only when the
+   * booking row is missing (Approved+Paid finance facts remain authoritative).
+   */
+  private async resolveApproveReplayBookingStatus(
+    tenantId: string,
+    registrationId: string
+  ): Promise<"unpaid" | "partial" | "paid"> {
+    const status = await this.bookingPayments.getPaymentStatus({
+      tenantId,
+      registrationId,
+    });
+    return status ?? "paid";
   }
 
   /** Soft-fail: missing booking must not roll back prepayment mutate. */
