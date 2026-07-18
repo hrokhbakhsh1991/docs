@@ -34,7 +34,13 @@ function authHeaders(tenantId: string): Record<string, string> {
 
 async function requestJson(
   listener: ReturnType<typeof createRequestListener>,
-  input: { readonly method: string; readonly path: string; readonly tenantId: string; readonly body?: unknown }
+  input: {
+    readonly method: string;
+    readonly path: string;
+    readonly tenantId: string;
+    readonly body?: unknown;
+    readonly idempotencyKey?: string;
+  }
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -58,6 +64,9 @@ async function requestJson(
                   "Content-Type": "application/json",
                   "Content-Length": String(Buffer.byteLength(payload)),
                 }
+              : {}),
+            ...(input.idempotencyKey !== undefined
+              ? { "Idempotency-Key": input.idempotencyKey }
               : {}),
             ...authHeaders(input.tenantId),
           },
@@ -134,6 +143,7 @@ describe("finance-invoice.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, concu
       method: "POST",
       path: "/finance/payments/manual",
       tenantId: denaliTenantId,
+      idempotencyKey: `inv-manual-${registrationId}`,
       body: {
         registrationId,
         amount: "10000000",
@@ -145,6 +155,7 @@ describe("finance-invoice.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, concu
       method: "POST",
       path: "/finance/prepayments",
       tenantId: denaliTenantId,
+      idempotencyKey: `inv-prepay-${registrationId}`,
       body: {
         registrationId,
         amountMinor: "3000000",

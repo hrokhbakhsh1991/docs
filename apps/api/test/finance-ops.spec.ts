@@ -317,6 +317,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       method: "POST",
       path: "/finance/payments/manual",
       tenantId: input.tenantId,
+      idempotencyKey: `manual-${registrationId}`,
       body: {
         registrationId,
         amount: input.amount ?? "5000000",
@@ -329,6 +330,7 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       method: "POST",
       path: "/finance/receipts",
       tenantId: input.tenantId,
+      idempotencyKey: `receipt-${paymentId}`,
       body: {
         paymentId,
         fileKey: `receipts/${paymentId}/proof.jpg`,
@@ -839,5 +841,72 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
     assert.equal(receipt?.status, "Pending");
     assert.equal(booking?.paymentStatus, "unpaid");
     assert.equal(ledgerCount, 0);
+  });
+
+  it("PAY-CREATE-IDEM-01 same key → one payment", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `pay-create-idem-01-${registrationId}`;
+    const body = {
+      registrationId,
+      amount: "3000000",
+      currency: "IRR",
+    };
+    const first = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(first.status, 201);
+    const second = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(second.status, 201);
+    assert.equal(second.body.id, first.body.id);
+    const count = await admin.payment.count({
+      where: { tenantId: denaliTenantId, registrationId },
+    });
+    assert.equal(count, 1);
+  });
+
+  it("RECEIPT-SUBMIT-IDEM-01 same key → one receipt", async () => {
+    const registrationId = randomUUID();
+    const manual = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey: `receipt-submit-pay-${registrationId}`,
+      body: { registrationId, amount: "4000000", currency: "IRR" },
+    });
+    assert.equal(manual.status, 201);
+    const paymentId = String(manual.body.id);
+    const idempotencyKey = `receipt-submit-idem-01-${paymentId}`;
+    const body = { paymentId, fileKey: `receipts/${paymentId}/idem.jpg` };
+    const first = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(first.status, 201);
+    const second = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(second.status, 201);
+    assert.equal(second.body.id, first.body.id);
+    const count = await admin.paymentReceipt.count({
+      where: { tenantId: denaliTenantId, paymentId },
+    });
+    assert.equal(count, 1);
   });
 });
