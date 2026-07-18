@@ -164,6 +164,9 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       async syncStatus() {
         throw new Error("BOOKINGS_DB_UNAVAILABLE");
       },
+      async raisePaidInTx() {
+        throw new Error("BOOKINGS_DB_UNAVAILABLE");
+      },
       async memberOwnsRegistration() {
         return true;
       },
@@ -196,6 +199,9 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       async syncStatus(input) {
         syncCalls.push(input);
         return new BookingPaymentAdapter().syncStatus(input);
+      },
+      async raisePaidInTx(tx, input) {
+        return new BookingPaymentAdapter().raisePaidInTx(tx, input);
       },
       async memberOwnsRegistration(input) {
         return new BookingPaymentAdapter().memberOwnsRegistration(input);
