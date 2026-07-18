@@ -21,6 +21,7 @@ export type WorkspaceHttpHandlerKey =
   | "handleFinanceGetRegistrationInvoice"
   | "handleFinanceGetSchedule"
   | "handleFinanceLedgerEvents"
+  | "handleFinanceListBookingSyncDegraded"
   | "handleFinanceListPayments"
   | "handleFinanceListPrepayments"
   | "handleFinanceListSchedules"
@@ -28,6 +29,7 @@ export type WorkspaceHttpHandlerKey =
   | "handleFinancePendingReceipts"
   | "handleFinanceReceiptUrl"
   | "handleFinanceRecordPrepayment"
+  | "handleFinanceRetryBookingSync"
   | "handleFinanceReviewReceipt"
   | "handleFinanceSubmitReceipt"
   | "handleFinanceSummary"
@@ -96,6 +98,8 @@ const DENALI_FINANCE_HTTP_ROUTE_MANIFEST_STATIC_HANDLERS = {
   "GET /finance/receipts/pending": "handleFinancePendingReceipts",
   "GET /finance/prepayments": "handleFinanceListPrepayments",
   "POST /finance/prepayments": "handleFinanceRecordPrepayment",
+  "GET /finance/prepayments/booking-sync-degraded": "handleFinanceListBookingSyncDegraded",
+  "POST /finance/prepayments/booking-sync-retry": "handleFinanceRetryBookingSync",
   "GET /finance/schedules": "handleFinanceListSchedules",
   "POST /finance/schedules/generate": "handleFinanceGenerateSchedule"
 } as const satisfies Record<string, WorkspaceHttpHandlerKey>;

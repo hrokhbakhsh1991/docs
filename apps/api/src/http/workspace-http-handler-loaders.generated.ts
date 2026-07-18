@@ -12,6 +12,7 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleFinanceGetRegistrationInvoice"
   | "handleFinanceGetSchedule"
   | "handleFinanceLedgerEvents"
+  | "handleFinanceListBookingSyncDegraded"
   | "handleFinanceListPayments"
   | "handleFinanceListPrepayments"
   | "handleFinanceListSchedules"
@@ -19,6 +20,7 @@ export type WorkspaceHttpPackageHandlerKey =
   | "handleFinancePendingReceipts"
   | "handleFinanceReceiptUrl"
   | "handleFinanceRecordPrepayment"
+  | "handleFinanceRetryBookingSync"
   | "handleFinanceReviewReceipt"
   | "handleFinanceSubmitReceipt"
   | "handleFinanceSummary"
@@ -51,6 +53,7 @@ export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpP
     handleFinanceGetRegistrationInvoice: mod0.handleFinanceGetRegistrationInvoice,
     handleFinanceGetSchedule: mod0.handleFinanceGetSchedule,
     handleFinanceLedgerEvents: mod0.handleFinanceLedgerEvents,
+    handleFinanceListBookingSyncDegraded: mod0.handleFinanceListBookingSyncDegraded,
     handleFinanceListPayments: mod0.handleFinanceListPayments,
     handleFinanceListPrepayments: mod0.handleFinanceListPrepayments,
     handleFinanceListSchedules: mod0.handleFinanceListSchedules,
@@ -58,6 +61,7 @@ export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpP
     handleFinancePendingReceipts: mod0.handleFinancePendingReceipts,
     handleFinanceReceiptUrl: mod0.handleFinanceReceiptUrl,
     handleFinanceRecordPrepayment: mod0.handleFinanceRecordPrepayment,
+    handleFinanceRetryBookingSync: mod0.handleFinanceRetryBookingSync,
     handleFinanceReviewReceipt: mod0.handleFinanceReviewReceipt,
     handleFinanceSubmitReceipt: mod0.handleFinanceSubmitReceipt,
     handleFinanceSummary: mod0.handleFinanceSummary,
