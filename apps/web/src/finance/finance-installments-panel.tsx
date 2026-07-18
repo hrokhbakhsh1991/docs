@@ -121,7 +121,8 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
   const scheduleGenerateEnabled =
-    resolveFinanceOpsManifestForHub().installmentDefaults?.enabled === true;
+    resolveFinanceOpsManifestForHub(null, session.pluginId).installmentDefaults?.enabled ===
+    true;
   const canGenerateSchedule = canManage && scheduleGenerateEnabled;
   const searchParams = useSearchParams();
   const registrationFilter = searchParams.get("registrationId");

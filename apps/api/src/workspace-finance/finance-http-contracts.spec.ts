@@ -40,7 +40,7 @@ import {
 import { FinanceService } from "./finance.service.ts";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 import { BookingRegistrationDisplayAdapter } from "./infrastructure/booking-registration-display.adapter.ts";
-import { FINANCE_WS2_WORKSPACE_TYPE } from "./infrastructure/finance-ws2-chart-of-accounts.ts";
+import { FINANCE_WS2_WORKSPACE_TYPE } from "@app-tour/workspace-finance-ws2";
 import {
   InMemoryFinanceRepository,
   resetInMemoryFinanceRepositoryForTests,

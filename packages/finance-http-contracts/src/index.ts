@@ -22,3 +22,17 @@ export {
   type RecordPrepaymentBody,
   type GenerateScheduleBody,
 } from "./finance-request.schemas";
+
+export type {
+  FinanceLedgerPostingSide,
+  FinanceLedgerJournalLine,
+  FinanceLedgerCapturePlan,
+  BuildPaymentCaptureJournalInput,
+  BuildPrepaymentJournalInput,
+  FinanceLedgerPolicyPort,
+  FinanceOfflineReceiptDefaults,
+  FinanceReceiptDefaultsPort,
+  WorkspaceFinanceReactionBatchResult,
+  WorkspaceFinancePublishedOutboxRow,
+  WorkspaceFinanceEventReactionPort,
+} from "./workspace-finance-ports";

@@ -104,7 +104,29 @@
   },
   "workspaceFinance": {
     "supported": true,
-    "defaultModuleEnabledWhenUnset": true
+    "defaultModuleEnabledWhenUnset": true,
+    "ledgerPolicy": {
+      "module": "./finance",
+      "export": "DenaliFinanceLedgerPolicyAdapter"
+    },
+    "receiptDefaults": {
+      "module": "./finance",
+      "export": "DenaliFinanceReceiptDefaultsAdapter"
+    },
+    "eventReaction": {
+      "module": "./finance",
+      "export": "DenaliTourCreatedFinanceReactionAdapter",
+      "requiresHostIo": true
+    },
+    "opsManifest": {
+      "module": "./finance/manifest",
+      "defaultExport": "DEFAULT_FINANCE_OPS_MANIFEST",
+      "resolveFromThemeExport": "resolveFinanceOpsManifestFromTheme"
+    },
+    "chartOfAccounts": {
+      "module": "./finance",
+      "export": "LEDGER_ACCOUNTS"
+    }
   },
   "integrationCapabilities": {
     "telegram": {

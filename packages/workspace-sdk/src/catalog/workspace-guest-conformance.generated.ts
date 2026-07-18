@@ -9,6 +9,7 @@ export const WORKSPACE_GUEST_CONFORMANCE_LEVELS: Readonly<
   Record<string, "L0" | "L1" | "L2" | "L3" | "L4">
 > = Object.freeze({
   "denali": "L4",
+  "finance-ws2": "L0",
   "guest-club": "L3",
   "starter": "L0",
   "urban": "L3",

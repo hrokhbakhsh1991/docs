@@ -637,12 +637,24 @@ FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, regis
 
 | | |
 | -- | -- |
-| **Goal** | Adding workspace finance (ledger policy + receipt defaults + optional event reaction) does **not** require editing hand Maps in `apps/api` finance registries |
-| **Manifest** | `workspaceFinance.ledgerPolicy` / `receiptDefaults` / optional `eventReaction` (`module` + `export`); `supported: true` requires ledger+defaults; optional `registryOnly: true` for fixture packages (dependency bindings only — no nav/gate/plugin registry) |
-| **Codegen** | `workspace-finance-dependency-bindings.generated.ts`; `workspace-finance-event-reaction-bindings.generated.ts` |
-| **Runtime** | Thin `finance-dependency-registry` / `finance-event-reaction-registry` resolve via generated maps; unknown workspaceType **fail-closed** |
+| **Goal** | Adding workspace finance capabilities does **not** require editing hand Maps in `apps/api` finance registries |
+| **Manifest** | `workspaceFinance.ledgerPolicy` / `receiptDefaults` / `chartOfAccounts` / optional `eventReaction` / optional `opsManifest`; `supported: true` requires ledger+defaults (+ chart); optional `registryOnly: true` for fixture packages (dependency + CoA bindings only — no nav/gate/plugin registry) |
+| **Codegen** | `workspace-finance-dependency-bindings.generated.ts`; `workspace-finance-chart-of-accounts-bindings.generated.ts`; `workspace-finance-event-reaction-bindings.generated.ts`; `workspace-finance-ops-bindings.generated.ts` (web) |
+| **Runtime** | Thin `finance-dependency-registry` / `finance-chart-of-accounts-registry` / `finance-event-reaction-registry` / web ops resolve via generated maps; unknown workspaceType / pluginId **fail-closed** |
 | **Platform-owned** | `BookingPaymentAdapter`, repo, Prisma outbox IO injection, `BOOT_FINANCE_WORKSPACE_TYPE`, FinanceService |
-| **Unchanged** | Payment invariants, approve TX, RLS, identity formulas; no finance-core |
+| **Unchanged** | Payment invariants, approve TX, RLS, identity formulas; **no finance-core** |
+| **Commit** | `feat(finance): make capabilities manifest-driven` |
+
+**Capability map (SoT = workspace.manifest.json → codegen):**
+
+| Capability | Manifest field | Generated artifact | Runtime |
+| --- | --- | --- | --- |
+| Ledger policy | `ledgerPolicy` | dependency bindings | `resolveFinanceLedgerPolicy` |
+| Receipt defaults | `receiptDefaults` | dependency bindings | `resolveFinanceReceiptDefaults` |
+| Chart of accounts | `chartOfAccounts` | CoA bindings | `resolveFinanceChartOfAccounts` |
+| Event reaction | `eventReaction` | event-reaction bindings | `resolveWorkspaceFinanceEventReaction` |
+| Ops UI | `opsManifest` | web ops bindings | `resolveFinanceOpsManifestForHub(pluginId)` |
+| Nav / enablement | `supported` | finance + nav bindings | `isFinanceSupportedWorkspace` / `shouldShowFinanceNav` |
 
 **Phase 1.10 checklist:**
 
@@ -650,8 +662,11 @@ FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, regis
 | ---- | ----- |
 | Hand Maps do not list Denali/WS2 concrete adapter imports | Done |
 | Registries resolve from generated bindings | Done |
-| Unknown workspaceType fail-closed | Done |
+| Unknown workspaceType / capability fails closed | Done |
 | `supported` without ledger+defaults fails codegen | Done |
+| `ledgerPolicy` without `chartOfAccounts` fails codegen | Done |
+| finance-ws2 `registryOnly` fixture (deps+CoA, no nav) | Done |
+| Denali behavior preserved (IRR/2500000, capture IDs) | Done |
 
 ### Phase 2 — Finance core extraction
 

@@ -1,16 +1,17 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import {
-  FINANCE_WS2_LEDGER_ACCOUNTS,
-  financeWs2BookingWalletId,
-} from "./finance-ws2-chart-of-accounts";
 import type {
   BuildPaymentCaptureJournalInput,
   BuildPrepaymentJournalInput,
   FinanceLedgerCapturePlan,
   FinanceLedgerJournalLine,
   FinanceLedgerPolicyPort,
-} from "../ports/finance-ledger-policy.port";
+} from "@app-tour/finance-http-contracts";
+
+import {
+  FINANCE_WS2_LEDGER_ACCOUNTS,
+  financeWs2BookingWalletId,
+} from "./chart-of-accounts";
 
 /**
  * Fake WS2 ledger policy — owns CoA posting; does not import Denali finance helpers.

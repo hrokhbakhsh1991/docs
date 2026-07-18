@@ -1,11 +1,17 @@
 import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
 
+/** Manifests that participate in product plugin/SDK/web registries (exclude finance fixtures). */
+export function productWorkspaceManifests(manifests) {
+  return manifests.filter((m) => m.workspaceFinance?.registryOnly !== true);
+}
+
 /**
- * @param {import("./manifest-loader.mjs").discoverManifests extends (...args: any) => infer R ? R : never} manifests
+ * @param {ReturnType<import("../manifest-loader.mjs").discoverManifests>} manifests
  */
 export function generateSdkBindings(manifests) {
-  const lines = manifests.flatMap((m) =>
+  const product = productWorkspaceManifests(manifests);
+  const lines = product.flatMap((m) =>
     m.workspaceTypes.map(
       (wt) => `  { workspaceType: ${JSON.stringify(wt)}, pluginId: ${JSON.stringify(m.id)} },`
     )
@@ -25,15 +31,16 @@ ${lines.join("\n")}
 }
 
 /**
- * @param {import("./manifest-loader.mjs").discoverManifests extends (...args: any) => infer R ? R : never} manifests
+ * @param {ReturnType<import("../manifest-loader.mjs").discoverManifests>} manifests
  */
 export function generateApiRegistry(manifests) {
-  const importLines = manifests.map((m) => {
+  const product = productWorkspaceManifests(manifests);
+  const importLines = product.map((m) => {
     const spec = importSpecifier(m.package, m.plugin.entry);
     return `import { ${m.plugin.export} } from "${spec}";`;
   });
 
-  const pluginCalls = manifests.map((m) => `    ${m.plugin.export}(),`).join("\n");
+  const pluginCalls = product.map((m) => `    ${m.plugin.export}(),`).join("\n");
 
   return `${BANNER}
 import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
@@ -48,22 +55,23 @@ ${pluginCalls}
 }
 
 /**
- * @param {import("./manifest-loader.mjs").discoverManifests extends (...args: any) => infer R ? R : never} manifests
+ * @param {ReturnType<import("../manifest-loader.mjs").discoverManifests>} manifests
  */
 export function generateWebLoaders(manifests) {
-  const syncImports = manifests.map((m) => {
+  const product = productWorkspaceManifests(manifests);
+  const syncImports = product.map((m) => {
     const web = m.web ?? m.plugin;
     const spec = importSpecifier(m.package, web.entry);
     return `import { ${web.export} } from "${spec}";`;
   });
-  const syncEntries = manifests
+  const syncEntries = product
     .map((m) => {
       const web = m.web ?? m.plugin;
       return `  ${JSON.stringify(m.id)}: ${web.export}(),`;
     })
     .join("\n");
 
-  const cases = manifests
+  const cases = product
     .map((m) => {
       const web = m.web ?? m.plugin;
       const spec = importSpecifier(m.package, web.entry);
@@ -74,7 +82,7 @@ export function generateWebLoaders(manifests) {
     })
     .join("\n");
 
-  const sortedIds = manifests.map((m) => m.id).sort();
+  const sortedIds = product.map((m) => m.id).sort();
   const registryRevision = sortedIds.join(",");
   const maxEntries = sortedIds.length;
 

@@ -27,15 +27,16 @@ import {
   FINANCE_WS2_LEDGER_ACCOUNTS,
   FINANCE_WS2_WORKSPACE_TYPE,
   financeWs2BookingWalletId,
-} from "./infrastructure/finance-ws2-chart-of-accounts.ts";
-import { DenaliFinanceLedgerPolicyAdapter } from "./infrastructure/denali-finance-ledger-policy.adapter.ts";
-import { FinanceWs2LedgerPolicyAdapter } from "./infrastructure/finance-ws2-ledger-policy.adapter.ts";
+} from "@app-tour/workspace-finance-ws2";
+import { DenaliFinanceLedgerPolicyAdapter } from "@app-tour/workspace-denali";
+import { FinanceWs2LedgerPolicyAdapter } from "@app-tour/workspace-finance-ws2";
 import {
   InMemoryFinanceRepository,
   resetInMemoryFinanceRepositoryForTests,
 } from "./in-memory-finance.repository.ts";
 
 const FINANCE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
+const REPO_ROOT = resolve(FINANCE_ROOT, "../../../../");
 const DENALI = "denali";
 const WS2 = FINANCE_WS2_WORKSPACE_TYPE;
 
@@ -109,7 +110,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
     });
   }
 
-  it("FIN-P1.3-01 no-copy architecture: one FinanceService; WS2 has no engine/repo fork", () => {
+  it("FIN-P1.3-01 / P1.10 no-copy architecture: one FinanceService; WS2 lives in workspace package", () => {
     const serviceSrc = readFileSync(resolve(FINANCE_ROOT, "finance.service.ts"), "utf8");
     assert.doesNotMatch(serviceSrc, /\bworkspaceType\b/);
     assert.doesNotMatch(serviceSrc, /FinanceWs2|finance-ws2-chart|finance-ws2-ledger|finance-ws2-receipt/);
@@ -122,22 +123,27 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
     assert.equal(topLevel.filter((name) => /^finance\.service/.test(name)).length, 2); // .ts + .spec.ts
 
     const infra = readdirSync(resolve(FINANCE_ROOT, "infrastructure"));
-    assert.ok(infra.includes("finance-ws2-ledger-policy.adapter.ts"));
-    assert.ok(infra.includes("finance-ws2-receipt-defaults.adapter.ts"));
-    assert.ok(infra.includes("finance-ws2-chart-of-accounts.ts"));
-    assert.ok(!infra.some((name) => /finance-ws2\.(service|repository)/.test(name)));
+    assert.deepEqual(
+      [...infra].filter((n) => n.endsWith(".ts")).sort(),
+      ["booking-payment.adapter.ts", "booking-registration-display.adapter.ts"].sort()
+    );
+
+    const depRegistry = readFileSync(resolve(FINANCE_ROOT, "finance-dependency-registry.ts"), "utf8");
+    assert.match(depRegistry, /workspace-finance-dependency-bindings\.generated/);
+    assert.doesNotMatch(depRegistry, /DenaliFinanceLedgerPolicyAdapter|FinanceWs2LedgerPolicyAdapter/);
   });
 
-  it("FIN-P1.3-02 no Denali import leaks into WS2 modules", () => {
+  it("FIN-P1.3-02 / P1.10 WS2 modules live in workspace package without Denali imports", () => {
+    const ws2Root = resolve(REPO_ROOT, "packages/workspaces/finance-ws2/src/finance");
     const ws2Files = [
-      "infrastructure/finance-ws2-chart-of-accounts.ts",
-      "infrastructure/finance-ws2-ledger-policy.adapter.ts",
-      "infrastructure/finance-ws2-receipt-defaults.adapter.ts",
-    ].map((rel) => resolve(FINANCE_ROOT, rel));
+      "chart-of-accounts.ts",
+      "ledger-policy.adapter.ts",
+      "receipt-defaults.adapter.ts",
+    ].map((rel) => resolve(ws2Root, rel));
 
     for (const file of ws2Files) {
       const src = readFileSync(file, "utf8");
-      assert.doesNotMatch(src, /@app-cloud\/workspace-denali/);
+      assert.doesNotMatch(src, /@app-tour\/workspace-denali/);
       assert.doesNotMatch(src, /DenaliFinance/);
       assert.doesNotMatch(src, /from ["'].*denali-finance/);
     }

@@ -1,0 +1,28 @@
+{
+  "id": "finance-ws2",
+  "version": 1,
+  "package": "@app-tour/workspace-finance-ws2",
+  "workspaceTypes": [
+    "finance-ws2"
+  ],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getFinanceWs2WorkspacePlugin"
+  },
+  "workspaceFinance": {
+    "supported": false,
+    "registryOnly": true,
+    "ledgerPolicy": {
+      "module": "./finance",
+      "export": "FinanceWs2LedgerPolicyAdapter"
+    },
+    "receiptDefaults": {
+      "module": "./finance",
+      "export": "FinanceWs2ReceiptDefaultsAdapter"
+    },
+    "chartOfAccounts": {
+      "module": "./finance",
+      "export": "FINANCE_WS2_LEDGER_ACCOUNTS"
+    }
+  }
+}

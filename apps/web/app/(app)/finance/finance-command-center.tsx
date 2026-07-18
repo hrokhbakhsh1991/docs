@@ -22,7 +22,7 @@ import { FinanceReceiptsPanel } from "@/finance/finance-receipts-panel";
 
 type FinanceCommandCenterProps = {
   readonly session: OperatorSessionContext;
-  /** Optional tenant theme for financeOps panel overrides; defaults to Denali manifest. */
+  /** Optional tenant theme for financeOps panel overrides (workspace ops binding + theme merge). */
   readonly theme?: unknown;
 };
 
@@ -32,7 +32,10 @@ export function FinanceCommandCenter({ session, theme = null }: FinanceCommandCe
   const pathname = usePathname();
   const router = useRouter();
 
-  const manifest = useMemo(() => resolveFinanceOpsManifestForHub(theme), [theme]);
+  const manifest = useMemo(
+    () => resolveFinanceOpsManifestForHub(theme, session.pluginId),
+    [theme, session.pluginId]
+  );
   const visibleTabs = useMemo(() => listVisibleFinanceTabs(manifest), [manifest]);
   const activeTab = useMemo(
     () => parseFinanceTab(searchParams.get("tab"), visibleTabs),

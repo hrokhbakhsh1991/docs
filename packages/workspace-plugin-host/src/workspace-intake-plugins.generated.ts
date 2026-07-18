@@ -6,6 +6,7 @@
 
 import { registerWorkspaceIntakePlugin } from "@app-tour/workspace-sdk";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
+import { getFinanceWs2WorkspacePlugin } from "@app-tour/workspace-finance-ws2/plugin";
 import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/plugin";
 import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
 import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
@@ -13,6 +14,7 @@ import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
 export function registerWorkspaceIntakePluginsFromManifest(): void {
   for (const plugin of [
     getDenaliWorkspacePlugin(),
+    getFinanceWs2WorkspacePlugin(),
     getGuestClubWorkspacePlugin(),
     getStarterWorkspacePlugin(),
     getUrbanWorkspacePlugin(),

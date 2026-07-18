@@ -1,7 +1,7 @@
 import type {
   FinanceOfflineReceiptDefaults,
   FinanceReceiptDefaultsPort,
-} from "../ports/finance-receipt-defaults.port";
+} from "@app-tour/finance-http-contracts";
 
 /**
  * Denali offline receipt defaults — values preserved from prior FinanceService literals.

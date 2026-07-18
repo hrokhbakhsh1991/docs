@@ -59,6 +59,9 @@ importers:
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../../packages/workspaces/denali
+      '@app-tour/workspace-finance-ws2':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/finance-ws2
       '@app-tour/workspace-guest-club':
         specifier: workspace:*
         version: link:../../packages/workspaces/guest-club
@@ -975,6 +978,28 @@ importers:
       next-intl:
         specifier: ^4.11.1
         version: 4.13.0(next@15.5.19(@playwright/test@1.60.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/finance-ws2:
+    dependencies:
+      '@app-tour/finance-http-contracts':
+        specifier: workspace:*
+        version: link:../../finance-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
       tsx:
         specifier: ^4.20.6
         version: 4.22.4

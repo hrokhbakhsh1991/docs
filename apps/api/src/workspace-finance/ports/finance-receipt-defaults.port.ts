@@ -1,12 +1,7 @@
 /**
- * Workspace-supplied defaults for member offline receipt auto-created payments.
- * Wired at boot — FinanceService must not hardcode currency/amount by workspace.
+ * Re-export receipt defaults port (Phase 1.9 SoT: finance-http-contracts).
  */
-export type FinanceOfflineReceiptDefaults = {
-  readonly amountMinor: string;
-  readonly currency: string;
-};
-
-export interface FinanceReceiptDefaultsPort {
-  offlineReceiptPaymentDefaults(): FinanceOfflineReceiptDefaults;
-}
+export type {
+  FinanceOfflineReceiptDefaults,
+  FinanceReceiptDefaultsPort,
+} from "@app-tour/finance-http-contracts";

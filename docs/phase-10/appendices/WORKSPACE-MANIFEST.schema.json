@@ -179,7 +179,59 @@
       "additionalProperties": false,
       "properties": {
         "supported": { "type": "boolean" },
-        "defaultModuleEnabledWhenUnset": { "type": "boolean" }
+        "defaultModuleEnabledWhenUnset": { "type": "boolean" },
+        "registryOnly": {
+          "type": "boolean",
+          "description": "When true, emit finance dependency bindings only — exclude from plugin/SDK/web registries and nav/gate (fixture packages)."
+        },
+        "ledgerPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "export"],
+          "properties": {
+            "module": { "type": "string" },
+            "export": { "type": "string" }
+          }
+        },
+        "receiptDefaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "export"],
+          "properties": {
+            "module": { "type": "string" },
+            "export": { "type": "string" }
+          }
+        },
+        "chartOfAccounts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "export"],
+          "description": "Workspace chart-of-accounts constant (required with ledgerPolicy). Consumed by policy adapters; codegen emits audit/resolve bindings.",
+          "properties": {
+            "module": { "type": "string" },
+            "export": { "type": "string" }
+          }
+        },
+        "eventReaction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "export"],
+          "properties": {
+            "module": { "type": "string" },
+            "export": { "type": "string" },
+            "requiresHostIo": { "type": "boolean" }
+          }
+        },
+        "opsManifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["module", "defaultExport", "resolveFromThemeExport"],
+          "properties": {
+            "module": { "type": "string" },
+            "defaultExport": { "type": "string" },
+            "resolveFromThemeExport": { "type": "string" }
+          }
+        }
       }
     },
     "integrationCapabilities": {

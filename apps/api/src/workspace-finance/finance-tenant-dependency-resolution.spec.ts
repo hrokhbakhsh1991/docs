@@ -20,14 +20,14 @@ import {
   resolveFinanceLedgerPolicy,
   resolveFinanceWorkspaceDependencies,
 } from "./finance-dependency-registry.ts";
-import { DenaliFinanceLedgerPolicyAdapter } from "./infrastructure/denali-finance-ledger-policy.adapter.ts";
-import { DenaliFinanceReceiptDefaultsAdapter } from "./infrastructure/denali-finance-receipt-defaults.adapter.ts";
+import { DenaliFinanceLedgerPolicyAdapter } from "@app-tour/workspace-denali";
+import { DenaliFinanceReceiptDefaultsAdapter } from "@app-tour/workspace-denali";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
 import {
   FINANCE_WS2_WORKSPACE_TYPE,
-} from "./infrastructure/finance-ws2-chart-of-accounts.ts";
-import { FinanceWs2LedgerPolicyAdapter } from "./infrastructure/finance-ws2-ledger-policy.adapter.ts";
-import { FinanceWs2ReceiptDefaultsAdapter } from "./infrastructure/finance-ws2-receipt-defaults.adapter.ts";
+} from "@app-tour/workspace-finance-ws2";
+import { FinanceWs2LedgerPolicyAdapter } from "@app-tour/workspace-finance-ws2";
+import { FinanceWs2ReceiptDefaultsAdapter } from "@app-tour/workspace-finance-ws2";
 import { resolveFinanceWorkspaceTypeForTenant } from "./resolve-finance-workspace-type-for-tenant.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
