@@ -19,6 +19,7 @@ import {
 import { classifyOutboxPublishError } from "./outbox-publish-error-classifier";
 import { metricsRegistry } from "../observability/metrics";
 import { refreshOutboxQueueGaugesFromDb } from "./outbox-pending-metrics";
+import { reclaimStaleProcessingHttpIdempotencyRecords } from "../http/http-idempotency-reclaim";
 import { reclaimStaleProcessingOutboxRows } from "./outbox-processing-reclaim";
 import {
   releaseOutboxRelayTenantSlot,
@@ -377,6 +378,7 @@ export async function processOutboxRelayOnce(
   batchSize = readOutboxRelayBatchSize()
 ): Promise<OutboxRelayProcessResult> {
   await reclaimStaleProcessingOutboxRows();
+  await reclaimStaleProcessingHttpIdempotencyRecords().catch(() => undefined);
   const claimed = await claimPendingOutboxBatch(batchSize);
   const result = await publishClaimedBatch(claimed);
   recordOutboxRelayTickResult(result);

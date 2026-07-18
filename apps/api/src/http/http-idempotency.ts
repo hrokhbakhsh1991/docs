@@ -4,6 +4,7 @@ import type { IncomingMessage } from "node:http";
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
+import { reclaimStaleProcessingHttpIdempotencyRecords } from "./http-idempotency-reclaim";
 import {
   computeRelayBackoff,
   readHttpIdempotencyPollBaseMs,
@@ -216,6 +217,9 @@ async function waitForPrismaCompletion(
   const deadline = Date.now() + POLL_DEADLINE_MS;
   let attempt = 0;
   while (Date.now() < deadline) {
+    if (attempt === 0 || attempt % 3 === 0) {
+      await reclaimStaleProcessingHttpIdempotencyRecords().catch(() => undefined);
+    }
     const row = await withTenantRls(tenantId, (tx) =>
       tx.httpIdempotencyRecord.findUnique({
         where: {
@@ -223,7 +227,11 @@ async function waitForPrismaCompletion(
         },
       })
     );
-    if (row?.status === "completed" && row.responseBody !== null) {
+    if (row === null) {
+      // Stale processing reclaimed — caller should re-enter as owner on next attempt.
+      throw new Error(IDEMPOTENCY_IN_PROGRESS);
+    }
+    if (row.status === "completed" && row.responseBody !== null) {
       if (row.requestHash !== requestHash) {
         throw new Error(IDEMPOTENCY_PAYLOAD_MISMATCH);
       }

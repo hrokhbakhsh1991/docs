@@ -3,19 +3,6 @@ import { createHash } from "node:crypto";
 import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
 
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
-import {
-  bookingWalletId,
-  emitFinanceLedgerDoubleEntryAppliedOutbox,
-  LEDGER_ACCOUNTS,
-  postDoubleEntryJournal,
-} from "@app-tour/workspace-denali";
-
-import {
-  assertFinanceOperatorAccess,
-  assertFinanceReceiptSubmitAccess,
-  assertFinanceWorkspaceGate,
-} from "./assert-finance-access";
-import { compileRegistrationInvoice } from "./compile-invoice-balances";
 import type {
   CreateManualPaymentBody,
   GenerateScheduleBody,
@@ -23,20 +10,56 @@ import type {
   ReviewReceiptBody,
   SubmitReceiptBody,
 } from "@app-tour/workspace-denali/http";
+
+import {
+  assertFinanceOperatorAccess,
+  assertFinanceReceiptSubmitAccess,
+  assertFinanceWorkspaceGate,
+} from "./assert-finance-access";
+import { compileRegistrationInvoice } from "./compile-invoice-balances";
 import type { FinanceLedgerOutboxRow, FinanceSummaryRow } from "./finance.repository";
 import {
   createFinanceRepository,
   type FinanceRepositoryPort,
 } from "./finance-repository.factory";
-import { getBookingsRepository } from "../bookings/create-bookings-repository";
+import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
+import type { IBookingPaymentPort } from "./ports/booking-payment.port";
+import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
 import {
   buildPaymentScheduleItems,
   getSchedule,
   listAllSchedules,
   putSchedule,
-  type PrepaymentRecord,
 } from "./finance-schedule-store";
-import { createPrismaWorkspaceOutboxWriter } from "./prisma-workspace-outbox-writer";
+import {
+  attachFinanceRegistrationContext,
+  filterRowsByRegistrationId,
+  loadFinanceRegistrationContextMap,
+} from "./finance-registration-context";
+
+function hashClientIdempotencyKey(idempotencyKey: string): string {
+  return createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 40);
+}
+
+/** Stable outbox/business identity — never uses timestamps or amount-only keys. */
+export function buildPrepaymentDomainEventIds(
+  registrationId: string,
+  idempotencyKey: string
+): {
+  readonly keyHash: string;
+  readonly prepaymentDomainEventId: string;
+  readonly ledgerDomainEventId: string;
+  readonly journalSeed: string;
+} {
+  const keyHash = hashClientIdempotencyKey(idempotencyKey);
+  const prepaymentDomainEventId = `prepayment:${registrationId}:${keyHash}`;
+  return {
+    keyHash,
+    prepaymentDomainEventId,
+    ledgerDomainEventId: `${prepaymentDomainEventId}:ledger`,
+    journalSeed: `prepay:${registrationId}:${keyHash}`,
+  };
+}
 
 function assertManualPaymentDebtAllowed(statuses: readonly string[]): void {
   if (statuses.some((status) => status === "Paid")) {
@@ -44,29 +67,6 @@ function assertManualPaymentDebtAllowed(statuses: readonly string[]): void {
       "ZOD_VALIDATION_FAILED: registration already has a successful payment; additional manual debt is not allowed"
     );
   }
-}
-
-function deterministicUuidFromSeed(seed: string): string {
-  const hash = createHash("sha256").update(seed, "utf8").digest();
-  const buf = Buffer.alloc(16);
-  hash.copy(buf, 0, 0, 16);
-  buf[6] = (buf[6]! & 0x0f) | 0x40;
-  buf[8] = (buf[8]! & 0x3f) | 0x80;
-  const hex = buf.toString("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-}
-
-function stablePaymentCaptureLedgerIdentifiers(paymentId: string): {
-  journalId: string;
-  debitLineId: string;
-  creditLineId: string;
-} {
-  const id = paymentId.trim();
-  return {
-    journalId: deterministicUuidFromSeed(`payment-ledger:journal:${id}`),
-    debitLineId: deterministicUuidFromSeed(`payment-ledger:debit:${id}`),
-    creditLineId: deterministicUuidFromSeed(`payment-ledger:credit:${id}`),
-  };
 }
 
 function mapLedgerEventRow(row: FinanceLedgerOutboxRow): Record<string, unknown> {
@@ -95,7 +95,11 @@ const OFFLINE_RECEIPT_DEFAULT_AMOUNT = "2500000";
 const OFFLINE_RECEIPT_DEFAULT_CURRENCY = "IRR";
 
 export class FinanceService {
-  constructor(private readonly repository: FinanceRepositoryPort = createFinanceRepository()) {}
+  constructor(
+    private readonly ledgerPolicy: FinanceLedgerPolicyPort,
+    private readonly repository: FinanceRepositoryPort = createFinanceRepository(),
+    private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter()
+  ) {}
 
   private async gate(auth: TenantAuthContext): Promise<void> {
     await assertFinanceWorkspaceGate(auth.tenantId);
@@ -119,45 +123,94 @@ export class FinanceService {
     return this.repository.getSummary(auth.tenantId);
   }
 
-  async listOpenPayments(auth: TenantAuthContext, limit: number) {
+  async listOpenPayments(auth: TenantAuthContext, limit: number, registrationId?: string) {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
-    const rows = await this.repository.listOpenPayments(auth.tenantId, limit);
-    return rows.map((row) => ({
-      ...row,
-      createdAt: row.createdAt.toISOString(),
-    }));
+    const rows = filterRowsByRegistrationId(
+      await this.repository.listOpenPayments(auth.tenantId, limit),
+      registrationId
+    );
+    const contexts = await loadFinanceRegistrationContextMap(
+      auth.tenantId,
+      rows.map((row) => row.registrationId)
+    );
+    return rows.map((row) =>
+      attachFinanceRegistrationContext(
+        {
+          ...row,
+          createdAt: row.createdAt.toISOString(),
+        },
+        contexts
+      )
+    );
   }
 
-  async listPayments(auth: TenantAuthContext, limit: number) {
+  async listPayments(auth: TenantAuthContext, limit: number, registrationId?: string) {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
-    const rows = await this.repository.listPayments(auth.tenantId, limit);
-    return rows.map((row) => ({
-      ...row,
-      createdAt: row.createdAt.toISOString(),
-      paidAt: row.paidAt?.toISOString() ?? null,
-    }));
+    const rows = filterRowsByRegistrationId(
+      await this.repository.listPayments(auth.tenantId, limit),
+      registrationId
+    );
+    const contexts = await loadFinanceRegistrationContextMap(
+      auth.tenantId,
+      rows.map((row) => row.registrationId)
+    );
+    return rows.map((row) =>
+      attachFinanceRegistrationContext(
+        {
+          ...row,
+          createdAt: row.createdAt.toISOString(),
+          paidAt: row.paidAt?.toISOString() ?? null,
+        },
+        contexts
+      )
+    );
   }
 
-  async listLedgerEvents(auth: TenantAuthContext, limit: number) {
+  async listLedgerEvents(auth: TenantAuthContext, limit: number, registrationId?: string) {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
-    const rows = await this.repository.listLedgerEvents(auth.tenantId, limit);
-    return rows.map(mapLedgerEventRow);
+    const mapped = (await this.repository.listLedgerEvents(auth.tenantId, limit)).map(
+      mapLedgerEventRow
+    );
+    const withRegistration = mapped.filter(
+      (row): row is typeof row & { registrationId: string } =>
+        typeof row.registrationId === "string" && row.registrationId.length > 0
+    );
+    const filtered =
+      registrationId === undefined
+        ? mapped
+        : mapped.filter((row) => row.registrationId === registrationId);
+    const contexts = await loadFinanceRegistrationContextMap(
+      auth.tenantId,
+      withRegistration.map((row) => row.registrationId)
+    );
+    return filtered.map((row) => {
+      const registrationIdValue =
+        typeof row.registrationId === "string" ? row.registrationId : "";
+      if (registrationIdValue.length === 0) {
+        return { ...row, registrationContext: null };
+      }
+      return attachFinanceRegistrationContext(
+        { ...row, registrationId: registrationIdValue },
+        contexts
+      );
+    });
   }
 
-  async listPendingReceipts(auth: TenantAuthContext, limit: number) {
+  async listPendingReceipts(auth: TenantAuthContext, limit: number, registrationId?: string) {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
     const rows = await this.repository.listPendingReceipts(auth.tenantId, limit);
-    return rows.map((row) => ({
+    const mapped = rows.map((row) => ({
       id: row.id,
       paymentId: row.paymentId,
       fileKey: row.fileKey,
       status: row.status,
       note: row.note,
       createdAt: row.createdAt.toISOString(),
+      registrationId: row.payment?.registrationId ?? "",
       payment: row.payment
         ? {
             ...row.payment,
@@ -166,6 +219,29 @@ export class FinanceService {
           }
         : null,
     }));
+    const filtered = filterRowsByRegistrationId(
+      mapped.filter((row) => row.registrationId.length > 0),
+      registrationId
+    );
+    // Keep receipts without payment when no registration filter (edge); when filtering, only matched.
+    const list =
+      registrationId === undefined
+        ? mapped
+        : filtered;
+    const contexts = await loadFinanceRegistrationContextMap(
+      auth.tenantId,
+      list.map((row) => row.registrationId).filter((id) => id.length > 0)
+    );
+    return list.map((row) => {
+      const { registrationId: _drop, ...rest } = row;
+      if (row.registrationId.length === 0) {
+        return { ...rest, registrationContext: null };
+      }
+      return attachFinanceRegistrationContext(
+        { ...rest, registrationId: row.registrationId },
+        contexts
+      );
+    });
   }
 
   async createManualPayment(auth: TenantAuthContext, body: CreateManualPaymentBody) {
@@ -234,12 +310,12 @@ export class FinanceService {
     auth: TenantAuthContext,
     input: { readonly registrationId: string; readonly fileKey: string; readonly note?: string }
   ) {
-    const booking = await getBookingsRepository().getById(input.registrationId, auth.tenantId);
-    if (
-      booking === null ||
-      booking.tenantId !== auth.tenantId ||
-      booking.submittedByUserId !== auth.userId
-    ) {
+    const owns = await this.bookingPayments.memberOwnsRegistration({
+      tenantId: auth.tenantId,
+      registrationId: input.registrationId,
+      userId: auth.userId,
+    });
+    if (!owns) {
       throw new Error("BOOKINGS_FORBIDDEN");
     }
 
@@ -271,6 +347,49 @@ export class FinanceService {
     });
   }
 
+  async getMemberReceiptStatusForRegistration(
+    auth: TenantAuthContext,
+    registrationId: string
+  ): Promise<{ readonly status: "none" | "pending" | "rejected" | "paid" }> {
+    await this.gate(auth);
+    assertFinanceReceiptSubmitAccess(auth);
+
+    const owns = await this.bookingPayments.memberOwnsRegistration({
+      tenantId: auth.tenantId,
+      registrationId,
+      userId: auth.userId,
+    });
+    if (!owns) {
+      throw new Error("BOOKINGS_FORBIDDEN");
+    }
+
+    const paymentStatuses = await this.repository.findPaymentStatusesByRegistration(
+      auth.tenantId,
+      registrationId
+    );
+    if (paymentStatuses.some((status) => status === "Paid")) {
+      return { status: "paid" };
+    }
+
+    const latest = await this.repository.findLatestReceiptForRegistration(
+      auth.tenantId,
+      registrationId
+    );
+    if (latest === null) {
+      return { status: "none" };
+    }
+    if (latest.status === "Pending") {
+      return { status: "pending" };
+    }
+    if (latest.status === "Rejected") {
+      return { status: "rejected" };
+    }
+    if (latest.status === "Approved") {
+      return { status: "paid" };
+    }
+    return { status: "none" };
+  }
+
   async reviewReceipt(auth: TenantAuthContext, receiptId: string, body: ReviewReceiptBody) {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
@@ -278,12 +397,29 @@ export class FinanceService {
     if (receipt === null) {
       throw new Error("FINANCE_RECEIPT_NOT_FOUND");
     }
-    if (receipt.status !== "Pending") {
-      throw new Error(`ZOD_VALIDATION_FAILED: receipt already ${receipt.status}`);
-    }
     const payment = receipt.payment;
     if (payment === null) {
       throw new Error("FINANCE_PAYMENT_NOT_FOUND");
+    }
+
+    // Phase 4B H0.1 — approve retry-safe after idempotency reclaim (non-destructive replay).
+    if (
+      body.decision === "approve" &&
+      receipt.status === "Approved" &&
+      payment.status === "Paid"
+    ) {
+      return {
+        id: receipt.id,
+        status: receipt.status,
+        reviewNote: receipt.reviewNote,
+        reviewedAt: receipt.reviewedAt?.toISOString() ?? null,
+        ledgerJournalId: receipt.ledgerJournalId ?? "",
+        bookingPaymentStatus: "paid" as const,
+      };
+    }
+
+    if (receipt.status !== "Pending") {
+      throw new Error(`ZOD_VALIDATION_FAILED: receipt already ${receipt.status}`);
     }
     if (payment.status !== "Pending") {
       throw new Error(
@@ -305,52 +441,28 @@ export class FinanceService {
       };
     }
 
-    const stableIds = stablePaymentCaptureLedgerIdentifiers(payment.id);
     const paidAtIso = new Date().toISOString();
-    const { journalId, lines } = postDoubleEntryJournal({
+    const ledgerCapture = this.ledgerPolicy.buildPaymentCaptureJournal({
       tenantId: auth.tenantId,
-      debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
-      creditAccount: bookingWalletId(payment.registrationId),
-      amount_minor: payment.amount,
+      paymentId: payment.id,
+      registrationId: payment.registrationId,
+      amountMinor: payment.amount,
       currency: payment.currency,
-      correlationId: `payment:${payment.id}:capture`,
-      idempotencyKey: `payment:${payment.id}:capture-anchor`,
-      stableJournalAndLineIds: stableIds,
-      journalLinesCreatedAtIso: paidAtIso,
-      metadata: {
-        kind: "payment_capture_at_paid",
-        source: "manual_receipt_approve",
-        paymentId: payment.id,
-        registrationId: payment.registrationId,
-      },
+      capturedAtIso: paidAtIso,
     });
 
-    const outboxWriter = createPrismaWorkspaceOutboxWriter();
-    if (resolveStorageDriver() !== "memory") {
-      await emitFinanceLedgerDoubleEntryAppliedOutbox({
-        outboxWriter,
-        tenantId: auth.tenantId,
-        registrationId: payment.registrationId,
-        lines,
-        domainEventIdOverride: `payment:${payment.id}:ledger-capture-anchor`,
-      });
-    }
-
-    await this.repository.markPaymentPaid(auth.tenantId, payment.id, journalId);
-    const updated = await this.repository.updateReceiptReview(auth.tenantId, receiptId, {
-      status: "Approved",
+    // Single RLS transaction (Prisma SoT): payment Paid → booking paid → receipt Approved → ledger.
+    // Memory fake: fail-closed simulate via repository (not production-equivalent).
+    return this.repository.approveManualReceiptAtomic({
+      tenantId: auth.tenantId,
+      paymentId: payment.id,
+      receiptId,
+      registrationId: payment.registrationId,
+      journalId: ledgerCapture.journalId,
       reviewedByUserId: auth.userId,
-      reviewNote: body.reviewNote,
-      ledgerJournalId: journalId,
+      ...(body.reviewNote !== undefined ? { reviewNote: body.reviewNote } : {}),
+      ...(resolveStorageDriver() !== "memory" ? { ledgerCapture } : {}),
     });
-
-    return {
-      id: updated.id,
-      status: updated.status,
-      reviewNote: updated.reviewNote,
-      reviewedAt: updated.reviewedAt?.toISOString() ?? null,
-      ledgerJournalId: journalId,
-    };
   }
 
   async getReceiptUrl(auth: TenantAuthContext, receiptId: string) {
@@ -360,69 +472,107 @@ export class FinanceService {
     if (receipt === null) {
       throw new Error("FINANCE_RECEIPT_NOT_FOUND");
     }
-    return {
-      receiptId: receipt.id,
-      fileKey: receipt.fileKey,
-      url: `/internal/finance/receipts/${receipt.id}/file?key=${encodeURIComponent(receipt.fileKey)}`,
-    };
+    const { getMemberReceiptProofSignedReadUrl } = await import("./receipt-proof-storage");
+    try {
+      const url = await getMemberReceiptProofSignedReadUrl({
+        tenantId: auth.tenantId,
+        storageKey: receipt.fileKey,
+      });
+      return {
+        receiptId: receipt.id,
+        fileKey: receipt.fileKey,
+        url,
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === "MINIO_NOT_CONFIGURED" || message === "RECEIPT_PROOF_KEY_SCOPE_INVALID") {
+        return {
+          receiptId: receipt.id,
+          fileKey: receipt.fileKey,
+          url: `/internal/finance/receipts/${receipt.id}/file?key=${encodeURIComponent(receipt.fileKey)}`,
+        };
+      }
+      throw error;
+    }
   }
 
-  async listPrepayments(auth: TenantAuthContext, limit: number): Promise<readonly PrepaymentRecord[]> {
+  async listPrepayments(auth: TenantAuthContext, limit: number, registrationId?: string) {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
-    return this.repository.listPrepayments(auth.tenantId, limit);
-  }
-
-  async recordPrepayment(auth: TenantAuthContext, body: RecordPrepaymentBody) {
-    await this.gate(auth);
-    assertFinanceOperatorAccess(auth);
-    const method = body.method.trim().length > 0 ? body.method.trim() : "Manual";
-    const stableIds = stablePaymentCaptureLedgerIdentifiers(
-      `prepay:${body.registrationId}:${body.amountMinor}`
+    const rows = filterRowsByRegistrationId(
+      await this.repository.listPrepayments(auth.tenantId, limit),
+      registrationId
     );
-    const recordedAtIso = new Date().toISOString();
-    const { journalId, lines } = postDoubleEntryJournal({
-      tenantId: auth.tenantId,
-      debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
-      creditAccount: bookingWalletId(body.registrationId),
-      amount_minor: body.amountMinor,
-      currency: body.currency,
-      correlationId: `prepayment:${body.registrationId}:${body.amountMinor}`,
-      idempotencyKey: `prepayment:${body.registrationId}:${body.amountMinor}`,
-      stableJournalAndLineIds: stableIds,
-      journalLinesCreatedAtIso: recordedAtIso,
-      metadata: {
-        kind: "registration_prepayment_received",
-        registrationId: body.registrationId,
-        method,
-      },
-    });
+    const contexts = await loadFinanceRegistrationContextMap(
+      auth.tenantId,
+      rows.map((row) => row.registrationId)
+    );
+    return rows.map((row) => attachFinanceRegistrationContext(row, contexts));
+  }
 
-    const outboxWriter = createPrismaWorkspaceOutboxWriter();
-    await emitFinanceLedgerDoubleEntryAppliedOutbox({
-      outboxWriter,
+  async recordPrepayment(
+    auth: TenantAuthContext,
+    body: RecordPrepaymentBody,
+    idempotencyKey: string
+  ): Promise<Record<string, unknown>> {
+    await this.gate(auth);
+    assertFinanceOperatorAccess(auth);
+    const trimmedKey = idempotencyKey.trim();
+    if (trimmedKey.length === 0) {
+      throw new Error("IDEMPOTENCY_KEY_REQUIRED");
+    }
+    const method = body.method.trim().length > 0 ? body.method.trim() : "Manual";
+    const ids = buildPrepaymentDomainEventIds(body.registrationId, trimmedKey);
+    const recordedAtIso = new Date().toISOString();
+    const ledgerCapture = this.ledgerPolicy.buildPrepaymentJournal({
       tenantId: auth.tenantId,
       registrationId: body.registrationId,
-      lines,
-      domainEventIdOverride: `prepayment:${body.registrationId}:${body.amountMinor}:ledger`,
+      amountMinor: body.amountMinor,
+      currency: body.currency,
+      method,
+      recordedAtIso,
+      keyHash: ids.keyHash,
+      prepaymentDomainEventId: ids.prepaymentDomainEventId,
+      ledgerDomainEventId: ids.ledgerDomainEventId,
+      journalSeed: ids.journalSeed,
     });
 
-    return this.repository.recordPrepayment({
+    const recorded = await this.repository.recordPrepaymentAtomic({
       tenantId: auth.tenantId,
       registrationId: body.registrationId,
       amountMinor: body.amountMinor,
       currency: body.currency.toUpperCase(),
       method,
       note: body.note ?? null,
-      journalId,
+      journalId: ledgerCapture.journalId,
       recordedAt: recordedAtIso,
+      lines: ledgerCapture.lines,
+      ledgerDomainEventId: ids.ledgerDomainEventId,
+      prepaymentDomainEventId: ids.prepaymentDomainEventId,
+      clientOperationKeyHash: ids.keyHash,
     });
+
+    await this.trySyncBookingPaymentStatus(auth.tenantId, body.registrationId, "partial");
+    return {
+      id: recorded.id,
+      registrationId: recorded.registrationId,
+      amountMinor: recorded.amountMinor,
+      currency: recorded.currency,
+      method: recorded.method,
+      note: recorded.note,
+      recordedAt: recorded.recordedAt,
+    };
   }
 
-  async listPaymentSchedules(auth: TenantAuthContext) {
+  async listPaymentSchedules(auth: TenantAuthContext, registrationId?: string) {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
-    return listAllSchedules(auth.tenantId);
+    const rows = filterRowsByRegistrationId(await listAllSchedules(auth.tenantId), registrationId);
+    const contexts = await loadFinanceRegistrationContextMap(
+      auth.tenantId,
+      rows.map((row) => row.registrationId)
+    );
+    return rows.map((row) => attachFinanceRegistrationContext(row, contexts));
   }
 
   async getPaymentSchedule(auth: TenantAuthContext, registrationId: string) {
@@ -438,7 +588,7 @@ export class FinanceService {
       registrationId: body.registrationId,
       template: body.template,
     });
-    putSchedule(auth.tenantId, body.registrationId, items);
+    await putSchedule(auth.tenantId, body.registrationId, items);
     return { registrationId: body.registrationId, items };
   }
 
@@ -450,7 +600,7 @@ export class FinanceService {
       auth.tenantId,
       normalizedRegistrationId
     );
-    const scheduleItems = getSchedule(auth.tenantId, normalizedRegistrationId);
+    const scheduleItems = await getSchedule(auth.tenantId, normalizedRegistrationId);
     return compileRegistrationInvoice({
       registrationId: normalizedRegistrationId,
       currency: facts.currency,
@@ -460,10 +610,77 @@ export class FinanceService {
       scheduleAmountsMinor: scheduleItems.map((item) => item.amountMinor),
     });
   }
+
+  /**
+   * Fail-closed booking projection for receipt approve / prepayment raise path.
+   * Throws FINANCE_BOOKING_PAYMENT_SYNC_MISS | FINANCE_BOOKING_PAYMENT_SYNC_FAILED.
+   */
+  private async raiseBookingPaymentStatus(
+    tenantId: string,
+    registrationId: string,
+    paymentStatus: "unpaid" | "partial" | "paid"
+  ): Promise<"unpaid" | "partial" | "paid"> {
+    try {
+      const updated = await this.bookingPayments.syncStatus({
+        tenantId,
+        registrationId,
+        paymentStatus,
+      });
+      if (updated === null) {
+        console.warn(
+          JSON.stringify({
+            event: "finance.booking_payment_sync.miss",
+            tenantId,
+            registrationId,
+            paymentStatus,
+          })
+        );
+        throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
+      }
+      return updated;
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS") {
+        throw error;
+      }
+      console.warn(
+        JSON.stringify({
+          event: "finance.booking_payment_sync.failed",
+          tenantId,
+          registrationId,
+          paymentStatus,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      );
+      throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_FAILED");
+    }
+  }
+
+  /** Soft-fail: missing booking must not roll back prepayment mutate. */
+  private async trySyncBookingPaymentStatus(
+    tenantId: string,
+    registrationId: string,
+    paymentStatus: "unpaid" | "partial" | "paid"
+  ): Promise<void> {
+    try {
+      await this.raiseBookingPaymentStatus(tenantId, registrationId, paymentStatus);
+    } catch (error: unknown) {
+      console.warn(
+        JSON.stringify({
+          event: "finance.prepayment.booking_sync.degraded",
+          tenantId,
+          registrationId,
+          paymentStatus,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
+  }
 }
 
 export function createFinanceService(
-  repository: FinanceRepositoryPort = createFinanceRepository()
+  ledgerPolicy: FinanceLedgerPolicyPort,
+  repository: FinanceRepositoryPort = createFinanceRepository(),
+  bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter()
 ): FinanceService {
-  return new FinanceService(repository);
+  return new FinanceService(ledgerPolicy, repository, bookingPayments);
 }

@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 
 import type {
+  ApproveManualReceiptAtomicInput,
+  ApproveManualReceiptAtomicResult,
   CreatePaymentInput,
   CreateReceiptInput,
   FinanceLedgerOutboxRow,
@@ -9,6 +11,8 @@ import type {
   FinanceReceiptRow,
   FinanceSummaryRow,
 } from "./finance.repository";
+import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
+import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 
 type StoredPayment = FinancePaymentRow & { readonly tenantId: string };
 type StoredReceipt = FinanceReceiptRow & { readonly tenantId: string };
@@ -23,7 +27,14 @@ export function resetInMemoryFinanceRepositoryForTests(): void {
   ledgerEvents = [];
 }
 
+/**
+ * Unit-test fake only — not production-equivalent to Prisma `approveManualReceiptAtomic`.
+ * Atomicity / concurrency / HTTP idempotency proofs require STORAGE_DRIVER=prisma.
+ */
 export class InMemoryFinanceRepository {
+  constructor(
+    private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter()
+  ) {}
   async getSummary(tenantId: string): Promise<FinanceSummaryRow> {
     const tenantPayments = [...paymentsById.values()].filter((row) => row.tenantId === tenantId);
     const tenantReceipts = [...receiptsById.values()].filter((row) => row.tenantId === tenantId);
@@ -123,6 +134,23 @@ export class InMemoryFinanceRepository {
     return count;
   }
 
+  async findLatestReceiptForRegistration(
+    tenantId: string,
+    registrationId: string
+  ): Promise<FinanceReceiptRow | null> {
+    const matching = [...receiptsById.values()].filter(
+      (row) =>
+        row.tenantId === tenantId &&
+        row.payment !== null &&
+        row.payment.registrationId === registrationId
+    );
+    if (matching.length === 0) {
+      return null;
+    }
+    matching.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return matching[0] ?? null;
+  }
+
   async createReceipt(input: CreateReceiptInput): Promise<FinanceReceiptRow> {
     const payment = await this.findPaymentById(input.tenantId, input.paymentId);
     if (payment === null) {
@@ -138,6 +166,7 @@ export class InMemoryFinanceRepository {
       note: input.note ?? null,
       reviewNote: null,
       reviewedAt: null,
+      ledgerJournalId: null,
       createdAt: now,
       payment,
     };
@@ -180,6 +209,7 @@ export class InMemoryFinanceRepository {
       status: input.status,
       reviewNote: input.reviewNote ?? row.reviewNote,
       reviewedAt: now,
+      ledgerJournalId: input.ledgerJournalId ?? row.ledgerJournalId,
       payment:
         payment !== null
           ? {
@@ -200,7 +230,6 @@ export class InMemoryFinanceRepository {
         });
       }
     }
-    void input.ledgerJournalId;
     return updated;
   }
 
@@ -240,11 +269,87 @@ export class InMemoryFinanceRepository {
     return updated;
   }
 
+  async revertPaymentToPending(tenantId: string, paymentId: string): Promise<FinancePaymentRow> {
+    const row = paymentsById.get(paymentId);
+    if (row === undefined || row.tenantId !== tenantId) {
+      throw new Error("FINANCE_PAYMENT_NOT_FOUND");
+    }
+    const updated: StoredPayment = {
+      ...row,
+      status: "Pending",
+      paidAt: null,
+    };
+    paymentsById.set(paymentId, updated);
+    for (const [receiptId, receipt] of receiptsById.entries()) {
+      if (receipt.paymentId === paymentId) {
+        receiptsById.set(receiptId, { ...receipt, payment: updated });
+      }
+    }
+    // Fake-only: drop the provisional capture row so compensate does not leave orphan ledger facts.
+    const captureDomainEventId = `payment:${paymentId}:ledger-capture-anchor`;
+    ledgerEvents = ledgerEvents.filter((event) => event.domainEventId !== captureDomainEventId);
+    return updated;
+  }
+
+  /**
+   * Memory fail-closed simulation of Prisma approve (not a real transaction).
+   * Booking projection via constructor-injected {@link IBookingPaymentPort}.
+   */
+  async approveManualReceiptAtomic(
+    input: ApproveManualReceiptAtomicInput
+  ): Promise<ApproveManualReceiptAtomicResult> {
+    await this.markPaymentPaid(input.tenantId, input.paymentId, input.journalId);
+
+    let bookingPaymentStatus: ApproveManualReceiptAtomicResult["bookingPaymentStatus"];
+    try {
+      const updatedStatus = await this.bookingPayments.syncStatus({
+        tenantId: input.tenantId,
+        registrationId: input.registrationId,
+        paymentStatus: "paid",
+      });
+      if (updatedStatus === null) {
+        throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
+      }
+      bookingPaymentStatus = updatedStatus;
+    } catch (error: unknown) {
+      await this.revertPaymentToPending(input.tenantId, input.paymentId);
+      if (error instanceof Error && error.message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS") {
+        throw error;
+      }
+      console.warn(
+        JSON.stringify({
+          event: "finance.booking_payment_sync.failed",
+          tenantId: input.tenantId,
+          registrationId: input.registrationId,
+          paymentStatus: "paid",
+          error: error instanceof Error ? error.message : String(error),
+        })
+      );
+      throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_FAILED");
+    }
+
+    const updated = await this.updateReceiptReview(input.tenantId, input.receiptId, {
+      status: "Approved",
+      reviewedByUserId: input.reviewedByUserId,
+      reviewNote: input.reviewNote,
+      ledgerJournalId: input.journalId,
+    });
+
+    return {
+      id: updated.id,
+      status: updated.status,
+      reviewNote: updated.reviewNote,
+      reviewedAt: updated.reviewedAt?.toISOString() ?? null,
+      ledgerJournalId: input.journalId,
+      bookingPaymentStatus,
+    };
+  }
+
   async listPrepayments(): Promise<readonly never[]> {
     return [];
   }
 
-  async recordPrepayment(): Promise<never> {
+  async recordPrepaymentAtomic(): Promise<never> {
     throw new Error("FINANCE_MEMORY_DRIVER_READ_ONLY_PREPAYMENT");
   }
 
