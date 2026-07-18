@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -12,12 +13,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
+import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
+import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
+import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
+import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
 import {
   FINANCE_INVOICE_TEST_IDS,
-  buildInvoiceLookupPath,
-  parseRegistrationInvoice,
-  validateInvoiceLookupRegistrationId,
-  type RegistrationInvoice,
 } from "@/finance/finance-invoice-logic";
 import {
   FINANCE_PREPAYMENTS_TEST_IDS,
@@ -56,6 +57,8 @@ export function FinancePrepaymentsPanel({
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
+  const searchParams = useSearchParams();
+  const registrationFilter = searchParams.get("registrationId");
   const [items, setItems] = useState<readonly PrepaymentRecord[]>(initialPrepayments?.items ?? []);
   const [loading, setLoading] = useState(initialPrepayments === null);
   const [error, setError] = useState<string | null>(null);
@@ -65,9 +68,6 @@ export function FinancePrepaymentsPanel({
   const [fetchNonce, setFetchNonce] = useState(0);
   const skipInitialFetchRef = useRef(initialPrepayments !== null);
   const [invoiceLookupId, setInvoiceLookupId] = useState("");
-  const [invoiceLookupError, setInvoiceLookupError] = useState<string | null>(null);
-  const [invoiceLookupBusy, setInvoiceLookupBusy] = useState(false);
-  const [invoice, setInvoice] = useState<RegistrationInvoice | null>(null);
 
   useEffect(() => {
     if (skipInitialFetchRef.current) {
@@ -77,7 +77,11 @@ export function FinancePrepaymentsPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    void fetch("/api/finance/prepayments?limit=50", { cache: "no-store" })
+    const path = withFinanceRegistrationQuery(
+      "/api/finance/prepayments?limit=50",
+      registrationFilter
+    );
+    void fetch(path, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`PREPAYMENTS_LIST_HTTP_${response.status}`);
@@ -102,38 +106,9 @@ export function FinancePrepaymentsPanel({
     return () => {
       cancelled = true;
     };
-  }, [fetchNonce]);
+  }, [fetchNonce, registrationFilter]);
 
   const refresh = () => setFetchNonce((value) => value + 1);
-
-  const handleInvoiceLookup = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setInvoiceLookupError(null);
-    setInvoice(null);
-    const validated = validateInvoiceLookupRegistrationId(invoiceLookupId);
-    if (!validated.ok) {
-      setInvoiceLookupError(validated.error);
-      return;
-    }
-    setInvoiceLookupBusy(true);
-    try {
-      const response = await fetch(buildInvoiceLookupPath(validated.value), { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error(`INVOICE_LOOKUP_HTTP_${response.status}`);
-      }
-      const parsed = parseRegistrationInvoice(await response.json());
-      if (parsed === null) {
-        throw new Error("INVOICE_LOOKUP_PARSE_FAILED");
-      }
-      setInvoice(parsed);
-    } catch (lookupError: unknown) {
-      setInvoiceLookupError(
-        lookupError instanceof Error ? lookupError.message : "INVOICE_LOOKUP_FAILED"
-      );
-    } finally {
-      setInvoiceLookupBusy(false);
-    }
-  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -173,55 +148,20 @@ export function FinancePrepaymentsPanel({
         <CardHeader>
           <CardTitle className="text-base">{t("invoiceBalance")}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form
-            className="flex flex-col gap-3 sm:flex-row sm:items-end"
-            data-testid={FINANCE_INVOICE_TEST_IDS.lookupForm}
-            onSubmit={handleInvoiceLookup}
-          >
-            <div className="grow space-y-2">
-              <Label htmlFor="invoice-registration-id">{tCommon("registrationId")}</Label>
-              <Input
-                id="invoice-registration-id"
-                value={invoiceLookupId}
-                onChange={(event) => setInvoiceLookupId(event.target.value)}
-                autoComplete="off"
-              />
-            </div>
-            <Button type="submit" disabled={invoiceLookupBusy}>
-              {invoiceLookupBusy ? tCommon("loading") : t("lookupBalance")}
-            </Button>
-          </form>
-          {invoiceLookupError ? (
-            <p className="text-sm text-destructive" role="alert">
-              {localizeFinanceMessage(tValidation, tErrors, invoiceLookupError)}
-            </p>
-          ) : null}
-          {invoice ? (
-            <div
-              className="grid gap-3 rounded-md border bg-muted/30 p-4 sm:grid-cols-3"
-              data-testid={FINANCE_INVOICE_TEST_IDS.balancePanel}
-            >
-              <div>
-                <p className="text-xs text-muted-foreground">{t("invoiceTotal")}</p>
-                <p className="font-medium">
-                  {formatMinorAmount(invoice.invoiceTotalMinor, invoice.currency, locale)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{t("paid")}</p>
-                <p className="font-medium">
-                  {formatMinorAmount(invoice.paidAmountMinor, invoice.currency, locale)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{t("balanceDue")}</p>
-                <p className="font-medium">
-                  {formatMinorAmount(invoice.balanceDueMinor, invoice.currency, locale)}
-                </p>
-              </div>
-            </div>
-          ) : null}
+        <CardContent className="space-y-4" data-testid={FINANCE_INVOICE_TEST_IDS.lookupForm}>
+          <FinanceRegistrationPicker
+            id="invoice-registration-id"
+            value={invoiceLookupId}
+            onChange={(registrationId) => {
+              setInvoiceLookupId(registrationId);
+              setForm((current) =>
+                current.registrationId.length === 0
+                  ? { ...current, registrationId }
+                  : current
+              );
+            }}
+          />
+          <FinanceInvoiceBalanceCard registrationId={invoiceLookupId} />
         </CardContent>
       </Card>
 
@@ -237,19 +177,17 @@ export function FinancePrepaymentsPanel({
               onSubmit={handleSubmit}
             >
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="prepay-registration-id">{tCommon("registrationId")}</Label>
-                <Input
+                <FinanceRegistrationPicker
                   id="prepay-registration-id"
                   value={form.registrationId}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, registrationId: event.target.value }))
+                  onChange={(registrationId) =>
+                    setForm((current) => ({ ...current, registrationId }))
                   }
-                  placeholder="00000000-0000-4000-8000-000000000001"
-                  autoComplete="off"
                 />
+                <FinanceInvoiceBalanceCard registrationId={form.registrationId} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="prepay-amount">{tCommon("amountMinor")}</Label>
+                <Label htmlFor="prepay-amount">{tCommon("amountDisplay")}</Label>
                 <LocalizedNumericInput
                   id="prepay-amount"
                   mode="digits"
@@ -347,9 +285,10 @@ export function FinancePrepaymentsPanel({
                     <p className="font-medium">
                       {formatMinorAmount(item.amountMinor, item.currency, locale)}
                     </p>
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {item.registrationId}
-                    </p>
+                    <FinanceRegistrationIdentity
+                      registrationId={item.registrationId}
+                      context={item.registrationContext}
+                    />
                     {item.note ? (
                       <p className="text-sm text-muted-foreground">{item.note}</p>
                     ) : null}

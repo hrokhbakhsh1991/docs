@@ -2,27 +2,29 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { isSafePortalReturnPath } from "@app-tour/catalog-registration-flow-ui";
-import { supportsCatalogRegistration } from "@app-tour/workspace-sdk";
+import { isSafePortalReturnPath } from "@app-cloud/catalog-registration-flow-ui";
+import { supportsCatalogRegistration } from "@app-cloud/workspace-sdk";
+import {
+  resolveMemberLoginCatalogTourId,
+  resolvePortalMemberModuleUrl,
+} from "@app-cloud/guest-surface-host";
+
+import { PortalLoginModalOpener } from "@/auth/portal-login-modal-opener";
+import { PortalRegisterSignInLink } from "@/auth/portal-register-sign-in-link";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
 import { buildRegistrationResumeInitialState } from "@/catalog/build-registration-resume-initial-state.server";
+import { PublicCatalogRegistrationFlow } from "@/catalog/public-catalog-registration-flow";
 import { resolvePortalRegistrationBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
-import {
-  resolvePortalMemberLoginPath,
-  resolvePortalMemberModuleUrl,
-} from "@app-tour/guest-surface-host";
-
 import { PortalAuthExperienceShell } from "@/catalog/portal-auth-experience-shell";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
-import { PublicCatalogRegistrationFlow } from "./public-catalog-registration-flow";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   readonly params: Promise<{ readonly tourId: string }>;
-  readonly searchParams: Promise<{ readonly portalReturn?: string }>;
+  readonly searchParams: Promise<{ readonly portalReturn?: string; readonly auth?: string }>;
 };
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
@@ -109,9 +111,17 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
     registrationResume !== null && registrationResume.memberMobile !== null
       ? t("intake.signedInBadge", { mobile: registrationResume.memberMobile })
       : null;
-  const signInHref = resumeAtIntake
-    ? null
-    : resolvePortalMemberLoginPath(host, `/catalog/${encodeURIComponent(tourId)}/register`);
+
+  const openAuthLogin = !resumeAtIntake && query.auth === "login";
+
+  const loginFlow = {
+    workspace,
+    tenantId: bootstrap.tenantId,
+    tourId: resolveMemberLoginCatalogTourId(bootstrap.pluginId),
+    tourTitle,
+    backHref,
+    memberModuleHref,
+  };
 
   return (
     <PortalAuthExperienceShell
@@ -124,10 +134,9 @@ export default async function CatalogRegisterPage({ params, searchParams }: Page
       workspace={workspace}
       mainAttributes={resumeAtIntake ? { "data-registration-resume": "intake" } : undefined}
     >
-      {signInHref !== null ? (
-        <p data-portal-register-sign-in-link>
-          <a href={signInHref}>{t("signInToRegister")}</a>
-        </p>
+      {!resumeAtIntake ? <PortalRegisterSignInLink flow={loginFlow} /> : null}
+      {openAuthLogin ? (
+        <PortalLoginModalOpener host="register" flow={loginFlow} />
       ) : null}
       <PublicCatalogRegistrationFlow
         workspace={workspace}

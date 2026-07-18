@@ -23,12 +23,13 @@ describe("portal registration resume — PCMS-REG-01", () => {
     const flow = readFileSync(
       join(
         repoRoot,
-        "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx"
+        "apps/portal/src/catalog/public-catalog-registration-flow.tsx"
       ),
       "utf8"
     );
     assert.match(flow, /initialRuntimeState/);
-    assert.match(flow, /isMemberLoginEgressFromLocation/);
+    assert.match(flow, /memberLoginEgress/);
+    assert.doesNotMatch(flow, /isMemberLoginEgressFromLocation/);
     assert.doesNotMatch(flow, /request-otp/);
   });
 
@@ -36,7 +37,7 @@ describe("portal registration resume — PCMS-REG-01", () => {
     const flow = readFileSync(
       join(
         repoRoot,
-        "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx"
+        "apps/portal/src/catalog/public-catalog-registration-flow.tsx"
       ),
       "utf8"
     );
@@ -49,7 +50,7 @@ describe("portal registration resume — PCMS-REG-01", () => {
     const flow = readFileSync(
       join(
         repoRoot,
-        "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx"
+        "apps/portal/src/catalog/public-catalog-registration-flow.tsx"
       ),
       "utf8"
     );

@@ -16,6 +16,7 @@ import type {
   BookingListPageInput,
   BookingListPageOutput,
   BookingOutboxRecord,
+  BookingPaymentStatus,
   BookingRecord,
   BookingStatus,
   BookingTourChip,
@@ -23,6 +24,7 @@ import type {
   CreateBookingRequest,
 } from "./bookings.types";
 import { INACTIVE_DUPLICATE_STATUSES } from "./booking-active-duplicate";
+import { raiseBookingPaymentStatus } from "./booking-payment-status";
 import {
   CANCELLED_BOOKING_STATUSES,
   MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
@@ -501,6 +503,49 @@ export class PrismaBookingsRepository implements BookingsRepository {
         where: { id, tenantId },
       });
       return row === null ? null : toBookingRecord(row);
+    });
+  }
+
+  async getByIds(ids: readonly string[], tenantId: string): Promise<BookingRecord[]> {
+    assertTenantId(tenantId);
+    const unique = [...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0))];
+    if (unique.length === 0) {
+      return [];
+    }
+    return withTenantRls(tenantId, async (tx) => {
+      const rows = await tx.operatorRegistration.findMany({
+        where: { tenantId, id: { in: unique } },
+        select: BOOKING_LIST_SELECT,
+      });
+      return rows.map(toBookingListRecord);
+    });
+  }
+
+  async updatePaymentStatus(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly paymentStatus: BookingPaymentStatus;
+  }): Promise<BookingRecord | null> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      const existing = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
+        select: BOOKING_LIST_SELECT,
+      });
+      if (existing === null) {
+        return null;
+      }
+      const current = existing.paymentStatus as BookingPaymentStatus;
+      const next = raiseBookingPaymentStatus(current, input.paymentStatus);
+      if (next === current) {
+        return toBookingListRecord(existing);
+      }
+      const updated = await tx.operatorRegistration.update({
+        where: { id: input.bookingId },
+        data: { paymentStatus: next },
+        select: BOOKING_LIST_SELECT,
+      });
+      return toBookingListRecord(updated);
     });
   }
 

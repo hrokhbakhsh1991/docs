@@ -36,6 +36,7 @@ describe("resolvePublicIngressSurfaceKind — P8-0-N-003", () => {
     process.env.TENANT_ROOT_DOMAIN = "localhost";
     assert.equal(resolvePublicIngressSurfaceKind("operator.admin.localhost"), "club_admin");
     assert.equal(resolvePublicIngressSurfaceKind("operator.portal.localhost"), "club_portal");
+    assert.equal(resolvePublicIngressSurfaceKind("portal.operator.localhost"), "club_portal");
     assert.equal(resolvePublicIngressSurfaceKind("operator.localhost"), "club_apex");
     assert.equal(resolvePublicIngressSurfaceKind("shop.operator.localhost"), "club_apex");
   });

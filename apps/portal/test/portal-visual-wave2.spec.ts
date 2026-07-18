@@ -16,7 +16,7 @@ function readPortal(relativePath: string): string {
 
 describe("portal-visual-wave2.spec.ts", () => {
   it("VIS-REG-01 registration flow renders stepper with resume-aware mode", () => {
-    const flow = readPortal("app/catalog/[tourId]/register/public-catalog-registration-flow.tsx");
+    const flow = readPortal("src/catalog/public-catalog-registration-flow.tsx");
     assert.match(flow, /CatalogRegistrationStepper/);
     assert.match(flow, /isResumeAtIntake/);
     assert.match(flow, /intake-only/);

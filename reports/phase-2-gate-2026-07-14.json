@@ -1,0 +1,123 @@
+{
+  "generatedAt": "2026-07-14T12:06:41.054Z",
+  "gitSha": "dcc347b6",
+  "phase": "2.5",
+  "checks": [
+    {
+      "id": "p2_design_tokens_dist",
+      "description": "design-tokens dist/index.css exists",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p2_validate_design_tokens",
+      "description": "pnpm run validate-design-tokens",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p2_design_tokens_tests",
+      "description": "design-tokens tests ≥ 3 (tokens.meta.json contract)",
+      "required": true,
+      "ok": true,
+      "detail": "67 tests"
+    },
+    {
+      "id": "p2_ui_primitives_dist",
+      "description": "ui-primitives dist/Button/Button.js exists (subpath build; no barrel)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p2_ui_primitives_no_barrel",
+      "description": "ui-primitives: no barrel export; apps use subpaths only (audit-boundary)",
+      "required": true,
+      "ok": true,
+      "detail": "subpaths: ./button, ./input, ./field-shell, ./alert, ./badge, ./select, ./checkbox, ./otp-segment-input-logic"
+    },
+    {
+      "id": "p2_artifact_surface_guard",
+      "description": "theme-react + ui-primitives dist matches files/exports allowlist",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p2_theme_react_dist",
+      "description": "theme-react dist/index.js exists (build in phase-2:gate)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p2_workspace_sdk_tests",
+      "description": "workspace-sdk tests ≥ 50 (enforced count)",
+      "required": true,
+      "ok": true,
+      "detail": "355 tests"
+    },
+    {
+      "id": "p2_ui_primitives_tests",
+      "description": "ui-primitives tests ≥ 12 (enforced count)",
+      "required": true,
+      "ok": true,
+      "detail": "38 tests"
+    },
+    {
+      "id": "p2_theme_react_tests",
+      "description": "theme-react tests ≥ 4 (includes theme ingress guard) (enforced count)",
+      "required": true,
+      "ok": true,
+      "detail": "27 tests"
+    },
+    {
+      "id": "p2_visual_regression",
+      "description": "ui-primitives test:visual ≥ 4 (enforced count)",
+      "required": true,
+      "ok": true,
+      "detail": "5 visual tests"
+    },
+    {
+      "id": "p2_no_denali",
+      "description": "rg -i denali phase-2 package src/ → 0",
+      "required": true,
+      "ok": false,
+      "detail": "/home/hamed/Music/docs/packages/theme-react/src/tenant/build-tenant-theme-style.ts:  /** When true, skip tenant primaryColor inline vars so CSS dark cascade (e.g. Denali admin) wins. @see docs/dev/dtcg-pipeline-spec.mdoc § F9-4 */\n/home/hamed/Music/docs/packages/design-tokens/src/admin-bootstrap.css: * Workspace brand: static/dynamic L3 admin skin (denali-admin.css, tokens.css).\n/home/hamed/Music/docs/packages/design-tokens/src/operator-admin-appearance.css: * Denali enhanced stepper (scroll rail, teal pills): wizard-stepper.css under [data-new-tour-wizard]."
+    },
+    {
+      "id": "p2_theme_react_export_allowlist_l01",
+      "description": "theme-react strict exports (.) + files whitelist + blocked subpaths (L-01)",
+      "required": true,
+      "ok": true,
+      "detail": "exports: ."
+    },
+    {
+      "id": "p2_theme_react_no_internal_export",
+      "description": "no @app-tour/theme-react/internal export or imports",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p2_platform_core_no_tokens",
+      "description": "platform-core must not depend on design-tokens",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p2_phase2_contract_behaviors",
+      "description": "phase-2.contract.spec.ts ≥ 8 behavioral rows",
+      "required": true,
+      "ok": true,
+      "detail": "10 contract tests (packages/platform-core/test/phase-2.contract.spec.ts)"
+    }
+  ],
+  "exit": {
+    "pass": false,
+    "note": "design-tokens + ui-primitives + theme-react + theme ingress + visual tests"
+  }
+}

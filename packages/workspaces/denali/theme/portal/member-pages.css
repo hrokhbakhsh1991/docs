@@ -316,7 +316,11 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
 }
 
 body[data-app-surface="portal"][data-workspace-plugin="denali"]
-  [data-portal-member-receipt-upload] {
+  [data-portal-member-receipt-upload],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-waiting],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-paid] {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -325,6 +329,36 @@ body[data-app-surface="portal"][data-workspace-plugin="denali"]
   border: 1px solid var(--color-border-subtle);
   background: var(--color-bg-surface);
   box-shadow: var(--denali-shadow-card, 0 1px 3px rgb(0 0 0 / 0.06));
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-waiting]
+  p,
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-paid]
+  p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-waiting]
+  p[role="status"],
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-paid]
+  p[role="status"] {
+  color: var(--color-text-primary);
+  font-size: 1rem;
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-member-receipt-actions]
+  a {
+  color: var(--color-accent, var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 /* ── More hub + module stubs ────────────────────────────────────────────────── */

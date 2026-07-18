@@ -1,0 +1,119 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+
+import {
+  FINANCE_INVOICE_TEST_IDS,
+  buildInvoiceLookupPath,
+  parseRegistrationInvoice,
+  type RegistrationInvoice,
+} from "@/finance/finance-invoice-logic";
+import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
+import type { AppLocale } from "@/i18n/routing";
+import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+
+type FinanceInvoiceBalanceCardProps = {
+  readonly registrationId: string;
+  /** When true, fetch whenever registrationId is a non-empty UUID-like string. */
+  readonly autoLoad?: boolean;
+};
+
+/**
+ * Phase C — invoice read model only (R-ARCH-08). No local paid/due math.
+ */
+export function FinanceInvoiceBalanceCard({
+  registrationId,
+  autoLoad = true,
+}: FinanceInvoiceBalanceCardProps) {
+  const locale = useLocale() as AppLocale;
+  const t = useTranslations("finance.prepayments");
+  const tValidation = useTranslations("finance.validation");
+  const tErrors = useTranslations("finance.errors");
+  const [invoice, setInvoice] = useState<RegistrationInvoice | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!autoLoad) {
+      return;
+    }
+    const id = registrationId.trim();
+    if (id.length < 32) {
+      setInvoice(null);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    void fetch(buildInvoiceLookupPath(id), { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`INVOICE_HTTP_${response.status}`);
+        }
+        return parseRegistrationInvoice(await response.json());
+      })
+      .then((payload) => {
+        if (!cancelled) {
+          setInvoice(payload);
+          if (payload === null) {
+            setError("INVOICE_PARSE_FAILED");
+          }
+        }
+      })
+      .catch((fetchError: unknown) => {
+        if (!cancelled) {
+          setInvoice(null);
+          setError(fetchError instanceof Error ? fetchError.message : "INVOICE_FETCH_FAILED");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [autoLoad, registrationId]);
+
+  if (registrationId.trim().length < 32 && !loading) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2" data-testid={FINANCE_INVOICE_TEST_IDS.balancePanel}>
+      {loading ? (
+        <p className="text-sm text-muted-foreground">{t("invoiceLoading")}</p>
+      ) : null}
+      {error !== null ? (
+        <p className="text-sm text-destructive" role="alert">
+          {localizeFinanceMessage(tValidation, tErrors, error)}
+        </p>
+      ) : null}
+      {invoice !== null ? (
+        <div className="grid gap-3 rounded-md border bg-muted/30 p-4 sm:grid-cols-3">
+          <div>
+            <p className="text-xs text-muted-foreground">{t("invoiceTotal")}</p>
+            <p className="font-medium">
+              {formatMinorAmount(invoice.invoiceTotalMinor, invoice.currency, locale)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">{t("paid")}</p>
+            <p className="font-medium">
+              {formatMinorAmount(invoice.paidAmountMinor, invoice.currency, locale)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">{t("balanceDue")}</p>
+            <p className="font-medium">
+              {formatMinorAmount(invoice.balanceDueMinor, invoice.currency, locale)}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

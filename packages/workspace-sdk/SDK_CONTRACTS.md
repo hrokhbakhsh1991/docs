@@ -258,6 +258,9 @@ type RegistrationFlowContext = {
   readonly tourRequirements?: RegistrationFlowTourRequirements;
   readonly backHref: string;
   readonly memberModuleHref: string | null;  // GSH-resolved — use for done steps
+  readonly memberLoginEgress?: boolean;  // SSR-stable — portal login host / modal (PCMS-UX-HYDRATE)
+  readonly memberLoginStayOnPage?: boolean; // register-host modal: probe cookie then callback (PCMS-UX-MODAL-03)
+  readonly onMemberLoginSessionReady?: () => void | Promise<void>;
 };
 
 type IntakeFlowDefinition = {

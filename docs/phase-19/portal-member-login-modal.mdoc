@@ -1,0 +1,229 @@
+---
+title: Portal Member Login Modal
+doc_id: PCMS-LOGIN-MODAL
+version: "2026-07-16-v1"
+status: design
+authority: docs/standards/member-session-portal-authority.mdoc
+apps: [portal, marketing]
+phase: P6-UX
+decision: DL-40
+---
+
+# Portal member login modal — design (doc-first)
+
+```yaml
+goal: Present member OTP login as a modal/sheet on portal; keep tour registration as full-page
+non_goals:
+  - Modalizing /catalog/{tourId}/register intake or submit
+  - Writing atour_mb_session from apps/marketing
+  - Deleting /login deep-link host (required for /me/* middleware gate)
+  - Operator /auth/login
+```
+
+## 1. Product contract (locked)
+
+| Rule | Behavior |
+| ---- | -------- |
+| Same-page auth | Wherever the user clicks Sign in / ورود on a **portal** page, open login UI on that page — do not navigate away mid-OTP |
+| Tour registration | Remains full-page `/catalog/{tourId}/register` (phone→otp→profile→intake→done or intake-only resume) |
+| Login content | phone → otp → (profile if `requires_registration`) only — **never** tour intake |
+| Desktop | Centered dialog (`aria-modal`, focus trap, Esc closes) |
+| Mobile | Bottom sheet |
+| Close without success | Stay on host URL |
+| Marketing | Cannot host OTP; one navigation to portal, then modal/host |
+
+## 2. Why marketing SSR already detects portal members
+
+PCMS-001 already requires marketing **read-only** detection of `atour_mb_session` for header chrome:
+
+| Layer | File | Role |
+| ----- | ---- | ---- |
+| Cookie read | `apps/marketing/src/auth/read-marketing-member-session.server.ts` | `cookies()` + raw `Cookie` → `validateSessionTokenAsync` |
+| Header resolve | `apps/marketing/src/shell/resolve-marketing-member-header.server.ts` | Tenant bind + `GET /identity/me` for display/avatar |
+| Shell | `apps/marketing/src/shell/marketing-shell.tsx` | Guest: `data-marketing-header-sign-in` · Member: `data-marketing-header-member` |
+
+**Cross-surface cookie sharing (must remain true after modal):**
+
+1. Auth BFF writes **host-only** cookie on portal ingress (PCMS-COOK-02).
+2. Next portal request (including `waitForMemberSessionCookie` → `GET /api/me/profile`) commits the session; on **custom apex**, middleware refreshes `Domain=<registrable-apex>` (PCMS-COOK-03 / COOK-01).
+3. Cross-surface marketing header chrome requires apex hosts (`denali.club` ↔ `portal.denali.club`). `*.localhost` stays host-only — marketing cannot read the portal cookie.
+4. Marketing SSR on next page load (apex) shows profile chip instead of Sign in.
+
+**Design invariant PCMS-UX-MODAL-COOKIE:** Modal success paths **must** run `waitForMemberSessionCookie()` (or equivalent same-origin authenticated probe) before considering login complete — even when staying on the register page — so the cookie is committed and apex COOK-03 can share with marketing SSR.
+
+## 3. Host matrix
+
+| Host page | How modal opens | After OTP success |
+| --------- | --------------- | ----------------- |
+| `/catalog/{id}/register` | «ورود» click **or** `?auth=login` | Close modal · **stay** · resume/hydrate **intake-only** (PCMS-REG-01) |
+| `/login` (thin public host) | Auto-open on load | `waitForMemberSessionCookie` then `location.assign(portalReturn)` |
+| Protected `/me/*` | **Cannot** host modal for guests | Middleware → `/login?portalReturn=<path>` (unchanged) |
+
+```mermaid
+flowchart TD
+  subgraph marketing [Marketing SSR]
+    MKT_READ[readMarketingMemberSessionFromCookies]
+    MKT_GUEST[Sign in link]
+    MKT_MEMBER[Profile chip]
+    MKT_READ -->|null| MKT_GUEST
+    MKT_READ -->|valid + tenant bind| MKT_MEMBER
+  end
+
+  subgraph portal [Portal]
+    REG["/catalog/id/register PAGE"]
+    LOGIN["/login thin host"]
+    MODAL[Login modal dialog/sheet]
+    ME["/me/*"]
+    REG -->|ورود or auth=login| MODAL
+    LOGIN --> MODAL
+    ME -->|guest middleware| LOGIN
+    MODAL -->|success on register| INTAKE[intake-only on REG]
+    MODAL -->|success on /login| ME
+  end
+
+  MKT_GUEST -->|header| LOGIN
+  MKT_GUEST -->|tour sign-in| REG
+```
+
+## 4. URL builders (target contract)
+
+| Actor | Builder (keep / adjust) | Target URL after this design |
+| ----- | ----------------------- | ---------------------------- |
+| Marketing header Sign in | `resolvePortalMemberLoginUrl` | `{portal}/login?portalReturn=/me/registrations` |
+| Marketing tour «ورود» | `resolvePortalRegistrationLoginUrl` | `{portal}/catalog/{tourId}/register?auth=login` (**change from** `/login?portalReturn=…`) |
+| Portal register «ورود» | client open modal | Same URL; optional `?auth=login` for shareable deep link |
+| Middleware `/me` guest | `resolvePortalMemberLoginPath` | `/login?portalReturn=<requested path>` |
+
+**Query `auth=login`:**
+
+- Allowed only on **public** portal routes that may host the modal (register; optionally future public hubs).
+- Ignored when session already valid → SSR/client goes intake-only / no modal (PCMS-UX-02 spirit).
+- Safe parsing: exact `auth=login` (no open redirect). `portalReturn` remains the return contract for `/login` host only (DL-12).
+
+## 5. Component architecture
+
+```text
+apps/portal
+  PortalProviders
+    PortalLoginModalProvider          ← client context: open/close, portalReturn?, presentation
+      PortalLoginModalChrome          ← dialog (md+) | bottom sheet (sm); Denali skin hooks
+        PortalMemberLoginFlow         ← extracted from today’s /login body
+          PublicCatalogRegistrationFlow
+            memberLoginEgress=true
+            smokeTourId from SSR/bootstrap props
+```
+
+| Piece | Responsibility |
+| ----- | -------------- |
+| `PortalLoginModalProvider` | Imperative `openLoginModal({ portalReturn?, mode })` · URL `?auth=login` sync · focus restore |
+| `PortalMemberLoginFlow` | SSR-stable `memberLoginEgress` · smoke tour bootstrap · shared with `/login` page |
+| `/login/page.tsx` | Thin host: PCMS-UX-01/02 SSR gates · render backdrop + auto-open modal · `data-portal-return` |
+| Register page | Full registration chrome unchanged · «ورود» calls `openLoginModal` · reads `auth=login` |
+| Marketing | **No** modal component · only href targets + existing SSR session probe |
+
+**Presentation hooks (stable for smoke/CSS):**
+
+| Hook | Meaning |
+| ---- | ------- |
+| `data-portal-login-modal` | Modal root |
+| `data-portal-login-modal-open` | Open state |
+| `data-portal-login-modal-presentation="dialog"\|"sheet"` | Desktop vs mobile |
+| `data-portal-login-modal-host="login"\|"register"` | Which page hosts |
+| Keep | `data-member-login-egress`, `data-portal-return`, phone/otp hooks |
+
+## 6. Egress modes (unchanged semantics, new presentation)
+
+| Mode | When | Post-cookie |
+| ---- | ---- | ----------- |
+| **Login host egress** | Modal on `/login` | `completeMemberLoginEgressAfterSession` → `location.assign(portalReturn)` |
+| **Register-host login** | Modal on register | `waitForMemberSessionCookie` → close modal → `hydrateCatalogRegistrationIntakeAfterSession` / SSR resume — **forbid** intake inside modal |
+| **Full register guest** | No modal | Existing page flow |
+
+`memberLoginEgress` prop remains SSR-stable for modal body. Register-host login uses a distinct success handler (not intake-inside-modal).
+
+## 7. Marketing SSR after portal login — sequence
+
+```text
+1. Guest on marketing → Sign in / tour ورود
+2. Land on portal (/login or register?auth=login) → modal
+3. OTP success → Set-Cookie (host-only) → waitForMemberSessionCookie
+4. On custom apex, middleware COOK-03 refreshes Domain=<apex>; on *.localhost cookie stays host-only
+5. User later opens marketing on the **same apex** → SSR readMarketingMemberSessionFromCookies
+6. Header shows profile chip (data-marketing-header-member)
+```
+
+**Failure modes to design against:**
+
+| Failure | Symptom | Guard |
+| ------- | ------- | ----- |
+| Skip cookie probe | Marketing still shows Sign in | PCMS-UX-MODAL-COOKIE + UX-03 |
+| Tenant mismatch | Header null | `sessionTenantMatchesDevCrossSurfaceHost` |
+| Host-only on *.localhost / missing apex Domain | Marketing still Sign in | Use custom apex hosts; COOK-03 apex refresh |
+
+## 8. `/login` retention rationale
+
+| Question | Answer |
+| -------- | ------ |
+| Can we delete `/login`? | **No** — `/me/*` is middleware-gated; guests never get a React tree to mount a modal on |
+| Is `/login` still a “big page”? | **No** — thin public host that auto-opens the same modal component |
+| Standalone bookmark login? | Yes — `/login` with default `portalReturn` |
+
+## 9. Accessibility & responsive
+
+| Viewport | Pattern | Notes |
+| -------- | ------- | ----- |
+| `min-width` desktop breakpoint (align Denali portal shell) | Centered dialog | Focus trap · Esc · backdrop click optional (product: prefer Esc + close button) |
+| Below breakpoint | Bottom sheet | Drag/close control · `env(safe-area-inset-bottom)` |
+| Both | `aria-modal="true"` · labelled by login title · restore focus to trigger |
+
+## 10. Theme / CSS
+
+- Extend `packages/workspaces/denali/theme/portal/login-page.css` with `[data-portal-login-modal]` — do **not** reuse `main[data-portal-member-login-page] { min-height: 100dvh }` on the modal panel.
+- Register page full-viewport auth experience **unchanged** when modal closed.
+- Thin `/login` host may keep muted backdrop behind modal for brand continuity.
+
+## 11. Implementation phases (code later)
+
+| Phase | Work | Gate |
+| ----- | ---- | ---- |
+| **D0** | This design + PCMS + portal-registration-ui + DL-40 | Doc review |
+| **I1** | Dialog/sheet primitive + `PortalLoginModalProvider` | Unit a11y markers |
+| **I2** | Extract `PortalMemberLoginFlow`; `/login` thin host | `portal-member-login-page.spec.ts` |
+| **I3** | Register «ورود» + `?auth=login` | Contract + SMK |
+| **I4** | GSH: `resolvePortalRegistrationLoginUrl` → register?auth=login | Marketing URL specs |
+| **I5** | COOK-03 path via modal probe; marketing header still green | `marketing-member-header.spec.ts` + manual M↔P |
+| **I6** | SMK-PTL-10 login modal · visual wave | Smoke |
+
+## 12. Test / hook matrix
+
+| ID | Assert |
+| -- | ------ |
+| MEM-LOGIN-MODAL-01 | Modal markers + presentation attr |
+| MEM-LOGIN-MODAL-02 | `/login` auto-opens; session → redirect UX-02 |
+| MEM-LOGIN-MODAL-03 | Register `?auth=login` opens modal; intake not in modal |
+| MKT-PCMS-03 | Unchanged — SSR header from cookie |
+| SMK-PTL-10 | Modal OTP → cookie probe → expected host behavior |
+| PCMS-UX-MODAL-COOKIE | Success path always probes before complete |
+
+## 13. Explicit non-goals (repeat)
+
+- Tour intake/submit inside modal
+- Marketing-owned OTP or cookie write
+- Iframe login on marketing
+- Changing operator session
+
+## 14. Open follow-ups (non-blocking)
+
+- Whether portal home `/` should also host `?auth=login` (optional)
+- Exact desktop breakpoint token (reuse existing Denali media query)
+- Backdrop click dismiss vs commit-only close
+
+## 15. Doc index
+
+| Doc | Role |
+| --- | ---- |
+| This file | Design SoT for modal |
+| [member-session-portal-authority.mdoc](../standards/member-session-portal-authority.mdoc) §5.0 | PCMS-UX-MODAL invariants + marketing SSR |
+| [portal-registration-ui.md](../workspaces/denali/portal-registration-ui.md) | Denali hooks / smoke |
+| [decision-log.mdoc](./member-portal-shell/decision-log.mdoc) DL-40 | Decision record |
+| `apps/marketing/.../read-marketing-member-session.server.ts` | Existing SSR member probe (do not re-invent) |

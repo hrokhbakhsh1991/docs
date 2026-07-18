@@ -14,11 +14,11 @@ describe("portal-registration-redirect", () => {
   it("PR-05 / PTL-03 web host maps to portal registration URL", () => {
     assert.equal(
       resolvePortalPublicBaseUrl("operator.localhost:3000"),
-      "http://operator.portal.localhost:3003"
+      "http://portal.operator.localhost:3003"
     );
     assert.equal(
       resolvePortalRegistrationRedirectUrl("operator.localhost:3000", "tour-abc"),
-      "http://operator.portal.localhost:3003/catalog/tour-abc/register"
+      "http://portal.operator.localhost:3003/catalog/tour-abc/register"
     );
   });
 });

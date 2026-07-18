@@ -23,21 +23,21 @@ describe("resolve-web-registration-url", () => {
   it("MKT-08 marketing host maps to portal base", () => {
     assert.equal(
       resolvePortalPublicBaseUrl("shop.urban.localhost:3002"),
-      "http://urban.portal.localhost:3003"
+      "http://portal.urban.localhost:3003"
     );
   });
 
   it("MKT-09 urban registration path on portal shell", () => {
     assert.equal(
       resolveWebRegistrationUrl("shop.urban.localhost:3002", "tour-abc", "urban"),
-      "http://urban.portal.localhost:3003/catalog/tour-abc/register"
+      "http://portal.urban.localhost:3003/catalog/tour-abc/register"
     );
   });
 
   it("MKT-10 denali registration path on portal shell", () => {
     assert.equal(
       resolveWebRegistrationUrl("shop.operator.localhost:3002", "tour-abc", "denali"),
-      "http://operator.portal.localhost:3003/catalog/tour-abc/register"
+      "http://portal.operator.localhost:3003/catalog/tour-abc/register"
     );
   });
 
@@ -69,10 +69,10 @@ describe("resolve-web-registration-url", () => {
     );
   });
 
-  it("MKT-PCMS-02 tour sign-in URL returns to catalog register after login", () => {
+  it("MKT-PCMS-02 tour sign-in URL opens register with auth=login modal", () => {
     assert.equal(
       resolveWebRegistrationLoginUrl("denali.club", "tour-abc", "denali"),
-      "http://portal.denali.club:3003/login?portalReturn=%2Fcatalog%2Ftour-abc%2Fregister"
+      "http://portal.denali.club:3003/catalog/tour-abc/register?auth=login"
     );
     assert.equal(resolveWebRegistrationLoginUrl("denali.club", "tour-abc", "starter"), null);
   });
@@ -84,7 +84,7 @@ describe("resolve-web-registration-url", () => {
     );
     assert.equal(
       resolvePortalMemberModuleUrl("shop.urban.localhost:3002"),
-      "http://urban.portal.localhost:3003/me/registrations"
+      "http://portal.urban.localhost:3003/me/registrations"
     );
   });
 });

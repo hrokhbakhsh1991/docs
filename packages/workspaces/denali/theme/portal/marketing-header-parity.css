@@ -1,0 +1,90 @@
+/**
+ * Portal member header skin (PS-VIS-5e minimal).
+ * Reuses Denali marketing brand + member-chip tokens; forces always-visible
+ * toolbar (brand | chip + logout). No center nav / drawer / locale.
+ */
+@import "../marketing/shell.css";
+@import "../marketing/components/34-mkt-header-member.css";
+@import "../marketing/components/35-mkt-header-desktop.css";
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"] {
+  --catalog-page-max-width: 72rem;
+  --catalog-page-padding-x: max(
+    var(--space-4),
+    env(safe-area-inset-left, 0px),
+    env(safe-area-inset-right, 0px)
+  );
+  --mkt-header-height: 4rem;
+  --mkt-text-h2: clamp(1.125rem, 2vw, 1.375rem);
+  --mkt-text-meta: 0.8125rem;
+  --mkt-text-small: 0.875rem;
+  --mkt-border-width: 0.0625rem;
+  --mkt-motion-fast: 150ms;
+  --card: var(--color-bg-surface);
+  --foreground: var(--color-text-primary);
+  --border: var(--color-border-default);
+  --primary: var(--color-primary);
+}
+
+/* Minimal header: always 2 columns — brand | actions */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-member-header-minimal]
+  div[data-marketing-header-inner] {
+  max-width: none;
+  padding-inline: var(--space-4);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+}
+
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-member-header-minimal]
+  div[data-marketing-header-end] {
+  grid-column: 2;
+  justify-self: end;
+}
+
+/* Toolbar always visible (marketing hides it below 1024px) */
+body[data-app-surface="portal"][data-workspace-plugin="denali"]
+  [data-portal-shell]
+  header[data-portal-member-header-minimal]
+  div[data-marketing-header-toolbar] {
+  display: flex;
+}
+
+@media (min-width: 48rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]:not([data-embedded-host])
+    header[data-portal-member-header-minimal]
+    div[data-marketing-header-inner] {
+    padding-inline: var(--space-5);
+  }
+}
+
+/* Defeat marketing ≥1024px 3-column / nav layout — stay brand | actions */
+@media (min-width: 1024px) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    header[data-portal-member-header-minimal]
+    div[data-marketing-header-inner] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-4);
+  }
+
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    [data-portal-shell]
+    header[data-portal-member-header-minimal]
+    div[data-marketing-header-end] {
+    grid-column: 2;
+  }
+}
+
+/* Compact chip on narrow viewports — hide secondary hint text */
+@media (max-width: 47.99rem) {
+  body[data-app-surface="portal"][data-workspace-plugin="denali"]
+    header[data-portal-member-header-minimal]
+    span[data-marketing-header-member-hint] {
+    display: none;
+  }
+}

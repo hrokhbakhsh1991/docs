@@ -4,7 +4,10 @@ import type { ReactNode } from "react";
 import type { EmbeddedMemberPortalHost } from "@app-tour/guest-surface-host";
 
 import { PortalMemberBottomNav } from "./portal-member-bottom-nav";
-import { PortalMemberHeader } from "./portal-member-header";
+import {
+  PortalMemberHeader,
+  type PortalMemberHeaderChrome,
+} from "./portal-member-header";
 import type { PortalMemberNavItem } from "./portal-member-nav.types";
 import { PORTAL_MEMBER_SHELL_TEST_IDS } from "./portal-member-nav.types";
 
@@ -12,7 +15,8 @@ export type PortalMemberShellProps = {
   readonly workspaceLabel: string;
   readonly logoUrl: string | null;
   readonly bottomNav: readonly PortalMemberNavItem[];
-  readonly userMenuNav: readonly PortalMemberNavItem[];
+  readonly marketingHomeUrl: string;
+  readonly memberHeader: PortalMemberHeaderChrome;
   readonly embeddedHost?: EmbeddedMemberPortalHost | null;
   readonly children: ReactNode;
 };
@@ -21,7 +25,8 @@ export async function PortalMemberShell({
   workspaceLabel,
   logoUrl,
   bottomNav,
-  userMenuNav,
+  marketingHomeUrl,
+  memberHeader,
   embeddedHost = null,
   children,
 }: PortalMemberShellProps) {
@@ -31,6 +36,7 @@ export async function PortalMemberShell({
     <div
       data-portal-shell
       data-slot="shell"
+      data-marketing-member-authenticated=""
       {...(embeddedHost !== null && embeddedHost !== undefined
         ? { "data-embedded-host": embeddedHost }
         : {})}
@@ -46,7 +52,8 @@ export async function PortalMemberShell({
       <PortalMemberHeader
         workspaceLabel={workspaceLabel}
         logoUrl={logoUrl}
-        userMenuNav={userMenuNav}
+        marketingHomeUrl={marketingHomeUrl}
+        member={memberHeader}
       />
 
       <div

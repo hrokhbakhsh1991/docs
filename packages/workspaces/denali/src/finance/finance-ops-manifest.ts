@@ -28,11 +28,11 @@ export const DEFAULT_FINANCE_OPS_MANIFEST: FinanceOpsManifest = Object.freeze({
     payments: true,
     receipts: true,
     prepayments: true,
-    installments: false,
+    installments: true,
     ledger: true,
   }),
   installmentDefaults: Object.freeze({
-    enabled: false,
+    enabled: true,
     depositPercent: 30,
     installmentCount: 3,
     graceDays: 7,

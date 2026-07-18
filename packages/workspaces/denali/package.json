@@ -178,6 +178,10 @@
       "types": "./dist/finance/index.d.ts",
       "default": "./dist/finance/index.js"
     },
+    "./host/finance/manifest": {
+      "types": "./dist/finance/finance-ops-manifest.d.ts",
+      "default": "./dist/finance/finance-ops-manifest.js"
+    },
     "./host/finance/api-tour-created-adapter": {
       "types": "./dist/finance/api-tour-created-adapter.d.ts",
       "default": "./dist/finance/api-tour-created-adapter.js"

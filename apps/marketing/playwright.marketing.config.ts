@@ -16,6 +16,7 @@ function stagingLaunchOptions(): { args: string[] } | undefined {
   const rules = [
     `MAP operator.admin.localhost ${vpsIp}`,
     `MAP operator.portal.localhost ${vpsIp}`,
+    `MAP portal.operator.localhost ${vpsIp}`,
     `MAP operator.localhost ${vpsIp}`,
   ].join(", ");
   return { args: [`--host-resolver-rules=${rules}`] };

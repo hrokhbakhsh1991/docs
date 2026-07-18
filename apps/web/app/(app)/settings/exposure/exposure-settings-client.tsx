@@ -437,6 +437,7 @@ export function ExposureSettingsClient({
           )}
 
           {!catalogError &&
+          catalog !== null &&
           operatorCapabilitySupportsFieldExposureSurfaces(session.pluginId) ? (
             <>
               <Separator />

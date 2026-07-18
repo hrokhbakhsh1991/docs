@@ -32,6 +32,8 @@ export {
   readCatalogRegistrationFlowState,
 } from "./registration-flow-state";
 
+export { normalizePublicRegistrationMobile } from "./normalize-public-registration-mobile";
+
 export function isPublicRegistrationMobileValid(mobile: string): boolean {
   const digits = mobile.replace(/\D/g, "");
   return digits.length >= PUBLIC_REGISTRATION_MIN_MOBILE_DIGITS;

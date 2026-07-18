@@ -159,9 +159,13 @@ Phases 1–7 are implemented and covered by automated specs above. Phase 8 manua
 | CASL + registry + OpenAPI | closed — `phase-9:guard` + `guard-openapi-dispatch-parity` |
 | Manual QA on `denali.localhost` | pending Architect run |
 
-## Login chrome (single-owner tone)
+## Marketing chrome (guest surfaces)
 
 - Public branding via `GET /public/tenant-branding` — logo + `displayName` only (no workspace jargon).
+- **Display name:** Admin must click **Save** on `/settings/branding` after editing the name — logo upload alone does not persist `displayName`.
+- **Header vs nav:** `data-marketing-brand-title` uses `displayName` (fallback `nav.defaultSiteName`, not `nav.tours`). The nav link «تورها» / «Tours» is the catalog route label — it stays fixed even when the club name is customized.
+- **Marketing refresh:** Production caches branding ~60s (`GUEST_BRANDING_REVALIDATE_SECONDS`). Development uses `cache: no-store` — hard refresh marketing after admin save.
+- **Logo URL:** Presigned MinIO URLs use `MINIO_ENDPOINT` — the browser must reach that host (e.g. `127.0.0.1:9002` locally). If marketing loads but the logo is broken, check MinIO is running and the presigned URL returns 200 in Network tab.
 - **BFF host forwarding:** Next.js server fetch to `127.0.0.1:3001` cannot override the HTTP `Host` header; web BFF and SSR login branding send `x-forwarded-host: {label}.localhost`. API `readIngressHost` prefers that header for subdomain resolution.
 - Login shows **organization name** when set in settings; no generic «workspace شما» fallback.
 - Card title is «ورود» / «Sign in» — not «operator» or multi-tenant copy.

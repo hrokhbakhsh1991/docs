@@ -2,23 +2,22 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { isSafePortalReturnPath } from "@app-tour/catalog-registration-flow-ui";
-import { isMemberPortalEnabled } from "@app-tour/workspace-sdk";
+import { isSafePortalReturnPath } from "@app-cloud/catalog-registration-flow-ui";
+import { isMemberPortalEnabled } from "@app-cloud/workspace-sdk";
 import {
   resolveMemberLoginCatalogTourId,
   resolvePortalMemberLoginPath,
   resolvePortalMemberModuleUrl,
-} from "@app-tour/guest-surface-host";
+} from "@app-cloud/guest-surface-host";
 
+import { PortalLoginModalOpener } from "@/auth/portal-login-modal-opener";
 import { readPublicCatalogSessionFromCookies } from "@/auth/read-public-catalog-session.server";
 import { fetchCatalogTour } from "@/catalog/fetch-catalog-tour";
-import { PortalAuthExperienceShell } from "@/catalog/portal-auth-experience-shell";
 import { resolvePortalLoginBackHref } from "@/marketing/resolve-portal-registration-back-href.server";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding";
 import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
-
-import { PublicCatalogRegistrationFlow } from "../catalog/[tourId]/register/public-catalog-registration-flow";
+import { sessionMemberMatchesPortalTenant } from "@/tenant/session-host-binding";
 
 export const dynamic = "force-dynamic";
 
@@ -40,20 +39,24 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
     notFound();
   }
 
-  if (!isSafePortalReturnPath(query.portalReturn)) {
+  const portalReturnRaw = query.portalReturn;
+  if (!isSafePortalReturnPath(portalReturnRaw)) {
     const canonical =
       resolvePortalMemberLoginPath(host) ?? "/login?portalReturn=%2Fme%2Fregistrations";
     redirect(canonical);
   }
 
-  const portalReturn = query.portalReturn.trim();
+  const portalReturn = portalReturnRaw.trim();
 
   const session = await readPublicCatalogSessionFromCookies();
-  if (session !== null) {
+  if (
+    session !== null &&
+    sessionMemberMatchesPortalTenant(session.tenantId, bootstrap.tenantId)
+  ) {
     redirect(portalReturn);
   }
 
-  const branding = await fetchPublicTenantBrandingForHost(host);
+  await fetchPublicTenantBrandingForHost(host);
   const backHref = resolvePortalLoginBackHref(host);
   const memberModuleHref = resolvePortalMemberModuleUrl(host);
   const t = await getTranslations("catalogRegistration");
@@ -72,30 +75,28 @@ export default async function PortalMemberLoginPage({ searchParams }: PageProps)
   const workspace = bootstrap.pluginId;
 
   return (
-    <PortalAuthExperienceShell
-      branding={branding}
-      backHref={backHref}
-      heroTitle={t("loginPageTitle")}
-      heroLede={t("phone.loginDescription")}
-      memberLoginEgress
-      pageKind="login"
-      workspace={workspace}
-      mainAttributes={{ "data-portal-return": portalReturn }}
+    <main
+      data-portal-member-login-page
+      data-member-login-egress
+      data-portal-return={portalReturn}
+      data-portal-auth-experience
     >
-      <PublicCatalogRegistrationFlow
-        workspace={workspace}
-        tenantId={bootstrap.tenantId}
-        tourId={tourId}
-        tourTitle={tourTitle}
-        tourPoliciesText={null}
-        tourPriceAmount={null}
-        tourTransport={tour.transport}
-        tourNationalIdRequired={false}
-        tourFatherNameRequired={false}
-        tourBirthDateRequired={false}
-        backHref={backHref}
-        memberModuleHref={memberModuleHref}
+      <div data-portal-auth-backdrop aria-hidden="true" />
+      <div data-portal-login-host-lede>
+        <p>{t("phone.loginDescription")}</p>
+      </div>
+      <PortalLoginModalOpener
+        host="login"
+        portalReturn={portalReturn}
+        flow={{
+          workspace,
+          tenantId: bootstrap.tenantId,
+          tourId,
+          tourTitle,
+          backHref,
+          memberModuleHref,
+        }}
       />
-    </PortalAuthExperienceShell>
+    </main>
   );
 }

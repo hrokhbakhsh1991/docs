@@ -73,7 +73,7 @@ forbidden:
 | Manual payment + receipts              | ✅ + [`finance-ops.spec.ts`](../../../../apps/api/test/finance-ops.spec.ts)                        | MinIO file upload (R1 uses `fileKey` body)         |
 | `(app)/settings/reconciliation-triage` | ✅ R1 findings board (summary + schedules)                                                         | Ledger adjust + legacy findings adapter (R4)       |
 | Booking wallet / prepayment UI         | ❌                                                                                                 | registration financial panel (R2)                  |
-| Installment schedules                  | ❌                                                                                                 | contract only — R2–R3                              |
+| Installment schedules                  | ✅ Prisma `FinanceSchedule` + RLS (`finance_schedules`) · generate/list/invoice read              | waive / mutate item APIs (R3 stretch)              |
 | Phase 6 outbox consumer                | ✅                                                                                                 | TourCreated → ledger hook                          |
 | Dashboard finance widget               | ✅ [`finance-dashboard-widget.tsx`](../../../../apps/web/src/finance/finance-dashboard-widget.tsx) | —                                                  |
 | `finance.schemas.ts` (legacy)          | reference                                                                                          | Port to trunk contracts when wiring                |
@@ -145,7 +145,7 @@ Port: `compile-invoice-balances.ts` · `booking-ledger-authority.service.ts` (le
 Legacy has **no** first-class installment UI; product requires it in Phase 9 stretch goals.
 
 ```typescript
-/** Locked contract — implement storage in 9.7-R2, UX in 9.7-R3 */
+/** Locked contract — rows persist as Prisma FinanceSchedule (finance_schedules) under withTenantRls */
 export type InstallmentItemStatus =
   | "scheduled" // future due date
   | "due" // due date reached · unpaid
@@ -220,14 +220,71 @@ Schema: [`schemas/PAYMENT-SCHEDULE-ITEM.schema.json`](schemas/PAYMENT-SCHEDULE-I
 (app)/bookings/[id]                    ← financial strip embed (9.5 integration)
 ```
 
+### 5.0 Tab shell — client URL sync (no full reload)
+
+Finance hub tabs must **not** remount the RSC page on every tab click.
+
+| Concern | Rule |
+| ------- | ---- |
+| **Server `page.tsx`** | Session + workspace gate only. No `searchParams`-driven prefetch; panels load via BFF on the client. |
+| **Active tab** | `useSearchParams().get("tab")` → `parseFinanceTab` inside `finance-command-center.tsx`. |
+| **Tab control** | `<button type="button">` + `router.replace(pathname + ?tab=, { scroll: false })` — never raw `<a href="/finance?tab=…">` (that forces a full App Router navigation + `force-dynamic` re-render). |
+| **Default** | Omit `tab` (or unknown value) → `overview`; `replace` deletes `tab` when selecting overview. |
+| **Deep links** | Overview / reports / triage may still use `Link`/`href` to `?tab=…`; soft nav is fine because the server page no longer blocks on tab-scoped fetches. |
+| **Panel data** | Each panel self-fetches when mounted (`initial*` optional). Tab switch = client remount of that panel only, not a document refresh. |
+| **Manifest panels (Phase A/D)** | Visible tabs = `FinanceOpsManifest.panels` (`DEFAULT_FINANCE_OPS_MANIFEST` until theme merge lands). Phase D Denali default **shows** `installments` (board + generate only; no waive/record stubs). Deep-link to a disabled tab falls back to `overview`. |
+| **Client import boundary** | Operator web must import `@app-tour/workspace-denali/host/finance/manifest` only. The full `host/finance` barrel includes `postDoubleEntryJournal` (`node:crypto`) and must stay server/outbox-side — otherwise Next webpack fails with `UnhandledSchemeError: node:crypto`. |
+| **Booking deep link (Phase A)** | `registrationId` === booking id → `financeBookingHref` → `/bookings?bookingId=` (DEC-P9-011 alias). |
+| **Admin receipt fileKey (Phase A)** | Operator submit-by-`fileKey` is **advanced/hidden**; members upload in portal; admin reviews on Receipts tab. |
+
+```mermaid
+flowchart LR
+  click[Tab button click] --> replace["router.replace ?tab="]
+  replace --> searchParams[useSearchParams update]
+  searchParams --> panel[Mount active panel]
+  panel --> bff[Client fetch /api/finance/*]
+```
+
+### 5.0b Registration context projection (Phase B)
+
+Operator list rows must show **human identity** without embedding Denali tour schema into `Payment`.
+
+| Concern | Rule |
+| ------- | ---- |
+| **Shape** | Optional `registrationContext` on list items: `{ registrationId, tourId, tourTitle, memberDisplayName }` |
+| **Source** | Batch load from bookings/`operator_registration` via `getByIds(tenantId, ids)` — fields already on booking (`tourTitle`, `guestLabel`) |
+| **Tenant** | Lookup **only** inside bookings RLS (`withTenantRls`). Missing/cross-tenant id → omit context (never leak other tenant titles) |
+| **Canonical service** | Enrich in `apps/api/src/workspace-finance` only (not dual-write `denali-finance`) |
+| **HTTP** | Denali handlers stay thin; optional query `registrationId` (UUID) filters list to that booking after tenant-scoped read |
+| **Backward compatible** | Clients must accept items **without** `registrationContext` |
+| **UI** | Show `tourTitle` + `memberDisplayName` primary; UUID + booking deep-link secondary |
+
+```typescript
+export type FinanceRegistrationContext = {
+  readonly registrationId: string;
+  readonly tourId: string;
+  readonly tourTitle: string;
+  readonly memberDisplayName: string; // booking.guestLabel
+};
+```
+
+### 5.0c Operator workflow without raw UUID (Phase C)
+
+| Concern | Rule |
+| ------- | ---- |
+| **Registration picker** | Forms use search against existing `GET /api/bookings` (ops view, same session). **No** new search endpoint. |
+| **Invoice card** | Balance from `GET /api/finance/invoices/{registrationId}` only — UI must not recompute paid/due. |
+| **Payments list scope** | Hub list remains **manual payments** (API `method: Manual`); UI label + optional client status filter. Expanding to all methods needs separate API/doc change. |
+| **Decision guide** | Short copy on hub: when to use manual payment vs prepayment vs installments. |
+
 ### 5.1 Tab: Overview
 
 | Zone          | Content                                                                         |
 | ------------- | ------------------------------------------------------------------------------- |
-| KPI strip     | pending manual · pending receipts · overdue installments (R3) · balance at risk |
-| Alert cards   | deep-link to receipts / overdue / reconciliation open findings                  |
+| KPI strip     | pending manual · pending receipts · overdue installments (R3) · paid payments   |
+| Attention samples (Phase E) | Up to **3** enriched rows (tour/member via `registrationContext`) drawn from overdue installments → pending receipts → pending manual — deep-link to the matching tab |
 | Recent ledger | last 5 `finance.ledger.*` events                                                |
-| Quick actions | create manual payment · open triage                                             |
+| Quick actions | create manual payment · **link** to `/settings/reconciliation-triage` (Phase E1 — triage stays in Settings; do **not** relocate without Architect + outbox-backed adjust) |
 
 ### 5.2 Tab: Payments
 
@@ -239,7 +296,24 @@ Schema: [`schemas/PAYMENT-SCHEDULE-ITEM.schema.json`](schemas/PAYMENT-SCHEDULE-I
 
 ### 5.3 Tab: Receipts (review queue)
 
-Port `AdminReceiptReviewPanel` — approve/reject with note · image preview · ledger confirmation toast.
+Port `AdminReceiptReviewPanel` — approve/reject with note · **image/PDF proof preview** · submitted-at timestamp · ledger confirmation toast.
+
+**Operator review row (2026-07-17):**
+
+| Element | Source |
+| ------- | ------ |
+| Amount · registrationId | `payment` on pending receipt |
+| **زمان ارسال فیش** | `receipt.createdAt` (labeled; when member posted the proof) |
+| **پیش‌نمایش فیش** | `GET /api/finance/receipts/{id}/url` → image `<img>` when URL is browser-reachable + image `fileKey`; else filename + unavailable hint |
+| Open proof | Same-origin `/api/finance/receipts/{id}/file` (proxies MinIO presigned bytes) |
+| Approve / Reject | existing `PATCH …/review` |
+| **Booking payment projection (locked)** | On **approve**, **one** tenant RLS Prisma transaction (`withTenantRls` → `prisma.$transaction`) must atomically: (1) mark finance payment `Paid`, (2) raise booking `paymentStatus` → `paid` on `operator_registrations`, (3) set receipt `Approved`, (4) **last** enqueue `finance.ledger.double_entry_applied` via `enqueueOutboxEvent(tx, …)` (**transactional outbox**). If step 2 misses/fails, the TX **rolls back** — payment stays `Pending`, receipt stays `Pending`, no outbox row. Map miss → `409` `FINANCE_BOOKING_PAYMENT_SYNC_MISS`; other booking errors → `409` `FINANCE_BOOKING_PAYMENT_SYNC_FAILED`. Soft-fail/`console.warn`-only sync and multi-step compensate-after-commit are **forbidden** on the Prisma approve path. Memory-driver tests may simulate the same fail-closed order without a real SQL TX. Reject does not change booking payment. Prepayment soft-sync uses injected `IBookingPaymentPort.syncStatus` (never `getBookingsRepository()` inside `FinanceService`). |
+| **Review response contract** | Successful approve JSON includes `bookingPaymentStatus: "paid"` (plus existing receipt fields). BFF `PATCH /api/finance/receipts/{id}/review` passes this through; operator receipts UI calls `router.refresh()` after success so Bookings Command Center / linked surfaces re-read `paid`. |
+
+**Registration link labels (locked):** Finance rows must not present a raw UUID as the primary affordance. Prefer `registrationContext` (tour title + member). Link text = localized “Open booking” (or member · tour); UUID may appear only as `title`/tooltip for ops.
+**Upload (member):** Portal BFF forwards **file bytes** to `POST /bookings/{id}/receipts` → MinIO `receipts/{tenantId}/{registrationId}/…`. Receipts created before this change (JSON `fileKey` only) have no object — member must **re-upload** to see a preview.
+
+BFF: `apps/web/app/api/finance/receipts/[id]/url/route.ts` · `…/[id]/file/route.ts`.
 
 ### 5.4 Tab: Prepayments (R2)
 
@@ -254,9 +328,38 @@ Port `AdminReceiptReviewPanel` — approve/reject with note · image preview · 
 | Feature | Detail                                                                |
 | ------- | --------------------------------------------------------------------- |
 | Board   | columns: overdue · due this week · upcoming · paid                    |
-| Row     | participant · tour · installment label · due date · amount · paid bar |
-| Actions | record payment · waive (audit) · reschedule (owner/admin)             |
-| Mobile  | swipe cards per status column                                         |
+| Row     | tour · member · installment label · due date · amount · paid/total · progress bar |
+| Generate | admin/owner · registration picker · `POST /finance/schedules/generate` (server BigInt split) |
+| Actions (trunk) | **Deferred** — no waive / record-payment / reschedule UI until dedicated mutate + outbox APIs exist (R-ARCH-10 · R-P9-F01). Do **not** ship stub buttons. |
+| Semantics | `partial` = installment row underpaid vs its `amountMinor` — **not** the same as wallet **prepayment** (see hub decision guide) |
+| Mobile  | column board scrolls; card queue progressive |
+
+**Manifest:** `FinanceOpsManifest.panels.installments` gates the tab (Phase A5). Phase D sets Denali default `panels.installments: true` so the board is reachable; mutate actions remain out of scope. Generate form additionally requires `installmentDefaults.enabled === true` (admin/owner).
+
+#### Durable schedule persistence (locked)
+
+Installment rows are **not** allowed to live in an in-process `Map`. Every schedule read/write goes through PostgreSQL under tenant RLS.
+
+| Concern | Rule |
+| ------- | ---- |
+| **Model** | Prisma `FinanceSchedule` → table `finance_schedules` (one row per installment / deposit slot) |
+| **Keys** | `tenantId` + `registrationId` (UUID, same soft-FK style as `payments`); unique `(tenantId, registrationId, sequence)` |
+| **API surface** | `finance-schedule-store.ts`: `getSchedule` / `listAllSchedules` / `putSchedule` are **async** and use `withTenantRls` for **every** query (findMany / deleteMany / createMany) |
+| **Replace semantics** | `putSchedule` replaces the full schedule for a registration inside **one** RLS transaction: `deleteMany` then `createMany` |
+| **Invoice compile** | `getRegistrationInvoice` loads schedule items from the same store (DB), never a process-local cache |
+| **Forbidden** | Module-level `Map` / singleton memory buckets for schedules; queries that omit `withTenantRls` |
+
+```mermaid
+flowchart TD
+  gen[POST /finance/schedules/generate] --> build[buildPaymentScheduleItems]
+  build --> put[putSchedule]
+  put --> rls["withTenantRls(tenantId)"]
+  rls --> del[deleteMany registration schedule]
+  rls --> ins[createMany FinanceSchedule rows]
+  list[GET /finance/schedules] --> get[listAllSchedules / getSchedule]
+  get --> rlsRead["withTenantRls findMany"]
+  inv[GET /finance/invoices/:id] --> get
+```
 
 ### 5.6 Tab: Ledger
 
@@ -290,6 +393,8 @@ R1 ships a **findings board** composed from existing finance read APIs — no de
 
 Admin/owner only (`isAdminOrOwnerRole`). Each finding deep-links to the matching Finance tab. Empty state when all counts are zero.
 
+**Phase E1 (locked):** Reconciliation triage remains under Settings. Finance overview only **links** to it. Relocating the surface into the Finance hub requires Architect approval and must preserve any future adjust → outbox path (R-P9-F05 · R-ARCH-11).
+
 ---
 
 ## 6. API catalog (summary)
@@ -322,7 +427,7 @@ export type FinanceOpsManifest = {
     payments: boolean;
     receipts: boolean;
     prepayments: boolean; // default true when finance module on
-    installments: boolean; // default false until R3 tenant flag
+    installments: boolean; // Phase D Denali default true (board + generate; mutate actions deferred)
     ledger: boolean;
   };
   installmentDefaults?: {
@@ -364,8 +469,8 @@ CASL subjects: `FinanceManualPayment` · `FinanceReceipt` · `FinanceReceiptRevi
 
 ```text
 apps/web/app/(app)/finance/
-  page.tsx                         # server gate · session → client
-  finance-command-center.tsx       # tab shell (overview · payments · receipts · ledger · R2/R3)
+  page.tsx                         # server gate · session → client (no tab SSR prefetch)
+  finance-command-center.tsx       # tab shell · client URL sync (router.replace)
 
 apps/web/src/finance/
   finance-nav-access.ts            # shouldShowFinanceNav · parseFinanceTab
@@ -537,3 +642,19 @@ Session bearer forwarded via `readSessionTokenFromRequest` — same pattern as `
 ## 14. Risk reference
 
 See [`FINANCE-RISK-REGISTER-P9.md`](FINANCE-RISK-REGISTER-P9.md) — ledger drift, installment rounding, reconciliation adjust authority, urban bleed.
+
+---
+
+## 15. Admin UX remediation rounds (closed 2026-07-18)
+
+Promoted from temporary scratch pad (deleted after merge). Constraints remain: Denali-only finance, `workspace-finance` canonical, no Nest `modules/finance/**`, no money math in UI, no stub mutate buttons, RLS enrich only.
+
+| Round | Outcome |
+| ----- | ------- |
+| **A** | Tab shell soft-nav; registration booking deep-link; receipt fileKey advanced; ledger audit framing; manifest-driven tabs |
+| **B** | `FinanceRegistrationContext` enrich under RLS; optional `?registrationId=` list filter; identity UI |
+| **C** | Bookings-backed picker; invoice balance card; manual-only payments hint + status filter; hub decision guide |
+| **D** | Installments panel visible by default; paid/total + progress; `partial` ≠ prepayment copy; generate schedule only — no waive/record stubs |
+| **E** | Triage stays linked under Settings (E1); overview attention samples ≤3 enriched rows (E2); this section replaces TMP (E3) |
+
+**Explicit out-of-scope (unchanged):** Redis summary staleness (R-P9-F12), outbox relay workspace gate (R-P9-F13), relocating reconciliation triage into the Finance hub without Architect + adjust→outbox (R-ARCH-11 · R-P9-F05).

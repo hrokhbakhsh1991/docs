@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
-import { fetchFinanceOverviewServer } from "@/finance/fetch-finance-overview.server";
-import { fetchFinancePaymentsServer } from "@/finance/fetch-finance-payments.server";
-import { fetchFinanceLedgerServer } from "@/finance/fetch-finance-ledger.server";
-import { fetchFinancePrepaymentsServer } from "@/finance/fetch-finance-prepayments.server";
-import { fetchFinanceReceiptsServer } from "@/finance/fetch-finance-receipts.server";
-import { isFinanceRouteAllowed, parseFinanceTab } from "@/finance/finance-nav-access";
+import { isFinanceRouteAllowed } from "@/finance/finance-nav-access";
 import { buildFinancePageMetadata } from "@/i18n/finance-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 
@@ -20,11 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = "force-dynamic";
 
-type FinancePageProps = {
-  readonly searchParams: Promise<{ tab?: string }>;
-};
-
-export default async function FinancePage({ searchParams }: FinancePageProps) {
+export default async function FinancePage() {
   const session = await readOperatorSessionFromCookies();
   if (session === null) {
     return null;
@@ -37,24 +29,9 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
     notFound();
   }
 
-  const params = await searchParams;
-  const activeTab = parseFinanceTab(params.tab);
-  const initialOverview = activeTab === "overview" ? await fetchFinanceOverviewServer() : null;
-  const initialPayments = activeTab === "payments" ? await fetchFinancePaymentsServer() : null;
-  const initialReceipts = activeTab === "receipts" ? await fetchFinanceReceiptsServer() : null;
-  const initialLedger = activeTab === "ledger" ? await fetchFinanceLedgerServer() : null;
-  const initialPrepayments =
-    activeTab === "prepayments" ? await fetchFinancePrepaymentsServer() : null;
-
   return (
-    <FinanceCommandCenter
-      session={session}
-      initialTab={params.tab}
-      initialOverview={initialOverview}
-      initialPayments={initialPayments}
-      initialReceipts={initialReceipts}
-      initialLedger={initialLedger}
-      initialPrepayments={initialPrepayments}
-    />
+    <Suspense fallback={null}>
+      <FinanceCommandCenter session={session} />
+    </Suspense>
   );
 }

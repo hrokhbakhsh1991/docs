@@ -18,23 +18,26 @@ describe("p6-offline-receipt-gate", () => {
     assert.match(financeRoutes, /POST.*\/finance\/receipts/);
   });
 
-  it("P6-OR-02 portal member receipt BFF posts fileKey to bookings receipts", () => {
+  it("P6-OR-02 portal member receipt BFF posts file bytes to bookings receipts", () => {
     const bff = readFileSync(
       join(repoRoot, "apps/portal/app/api/me/registrations/[id]/receipt/route.ts"),
       "utf8"
     );
     assert.match(bff, /\/bookings\//);
-    assert.match(bff, /fileKey/);
+    assert.match(bff, /x-receipt-file-name/);
+    assert.match(bff, /arrayBuffer/);
   });
 
-  it("P6-OR-03 API dispatches POST /bookings/{id}/receipts", () => {
+  it("P6-OR-03 API dispatches POST+GET /bookings/{id}/receipts", () => {
     const app = readFileSync(join(repoRoot, "apps/api/src/app.ts"), "utf8");
     const routes = readFileSync(
       join(repoRoot, "apps/api/src/bookings/bookings.routes.ts"),
       "utf8"
     );
     assert.match(app, /handlePostBookingReceipt/);
+    assert.match(app, /handleGetBookingReceiptStatus/);
     assert.match(routes, /submitMemberReceiptForRegistration/);
+    assert.match(routes, /getMemberReceiptStatusForRegistration/);
   });
 
   it("P6-OR-04 offline receipt chain proven in p6 gate", () => {

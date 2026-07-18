@@ -1,5 +1,5 @@
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-skip-link] {
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] a[data-marketing-skip-link] {
   position: absolute;
   inset-inline-start: var(--space-4);
   top: var(--space-2);
@@ -14,12 +14,12 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-market
   transition: transform var(--mkt-motion-fast) ease;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-skip-link]:focus-visible {
   transform: translateY(0);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] header[data-marketing-header] {
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] header[data-marketing-header] {
   position: sticky;
   top: 0;
   z-index: 40;
@@ -32,12 +32,12 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] header[data-m
 }
 
 @supports (backdrop-filter: blur(0.75rem)) {
-  body[data-app-surface="marketing"][data-workspace-plugin="denali"] header[data-marketing-header] {
+  :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] header[data-marketing-header] {
     backdrop-filter: blur(0.75rem);
   }
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay] {
   position: fixed;
   inset-inline: 0;
@@ -49,14 +49,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 @supports (backdrop-filter: blur(0.75rem)) {
-  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
     header[data-marketing-header][data-marketing-header-overlay] {
     backdrop-filter: blur(0.75rem) saturate(140%);
     background: rgba(8, 12, 20, 0.38);
   }
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   div[data-marketing-header-inner] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -70,7 +70,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   box-sizing: border-box;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-brand] {
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] a[data-marketing-brand] {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -84,7 +84,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-market
   cursor: pointer;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-brand]
   span[data-marketing-brand-title] {
   font-family: var(--font-heading);
@@ -98,28 +98,28 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   text-overflow: ellipsis;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-brand]
   svg[data-marketing-brand-icon] {
   flex-shrink: 0;
   color: var(--color-accent);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-brand]
   svg[data-marketing-brand-icon] {
   color: var(--mkt-overlay-icon);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] img[data-marketing-logo] {
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] img[data-marketing-logo] {
   display: block;
   width: auto;
   max-height: 2.25rem;
   border-radius: var(--radius-sm);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] nav[data-marketing-header-nav] {
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] nav[data-marketing-header-nav] {
   display: none;
   align-items: center;
   justify-content: center;
@@ -128,7 +128,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] nav[data-mark
   justify-self: center;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-header-nav]
   a[data-marketing-nav-link] {
   display: inline-flex;
@@ -148,21 +148,21 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     color var(--mkt-motion-fast) ease;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-header-nav]
   a[data-marketing-nav-link-id="tours"] {
   opacity: 1;
   font-weight: 600;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-header-nav]
   a[data-marketing-nav-link]:hover {
   opacity: 1;
   background: rgba(255, 255, 255, 0.08);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] div[data-marketing-header-end] {
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] div[data-marketing-header-end] {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -170,23 +170,23 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] div[data-mark
   justify-self: end;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   div[data-marketing-header-toolbar] {
   display: none;
   align-items: center;
   gap: var(--space-2);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   div[data-marketing-header-locale] {
   display: flex;
   align-items: center;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-portal-member],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] a[data-marketing-portal-member],
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-header-sign-in],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-header-member] {
   display: inline-flex;
   align-items: center;
@@ -207,40 +207,40 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     border-color var(--mkt-motion-fast) ease;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-portal-member],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-header-sign-in],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-header-member] {
   border-color: rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.06);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-portal-member]:hover,
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-header-sign-in]:hover,
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-header-member]:hover {
   background: rgba(255, 255, 255, 0.12);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   span[data-marketing-header-sign-in-label] {
   display: none;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   img[data-marketing-header-member-avatar] {
   border-radius: 999px;
   object-fit: cover;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-marketing-header-cta] {
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"] a[data-marketing-header-cta] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -259,23 +259,23 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"] a[data-market
     box-shadow var(--mkt-motion-fast) ease;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   a[data-marketing-header-cta]:hover {
   transform: translateY(var(--mkt-lift-sm));
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   a[data-marketing-header-cta] {
   box-shadow: 0 0.25rem 1rem rgba(217, 119, 6, 0.35);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   details[data-marketing-nav-drawer] {
   position: relative;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   details[data-marketing-nav-drawer]
   > summary[data-marketing-nav-drawer-toggle] {
   display: inline-flex;
@@ -298,7 +298,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
     border-color var(--mkt-motion-fast) ease;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   details[data-marketing-nav-drawer]
   > summary[data-marketing-nav-drawer-toggle] {
@@ -307,7 +307,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   color: var(--mkt-on-overlay);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   details[data-marketing-nav-drawer]
   > summary[data-marketing-nav-drawer-toggle]
   span[data-marketing-nav-drawer-toggle-label] {
@@ -322,13 +322,13 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   border: 0;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   details[data-marketing-nav-drawer]
   > summary[data-marketing-nav-drawer-toggle]::-webkit-details-marker {
   display: none;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel] {
   display: none;
   flex-direction: column;
@@ -336,7 +336,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   gap: var(--space-1);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   details[data-marketing-nav-drawer][open]
   nav[data-marketing-nav-drawer-panel] {
   position: fixed;
@@ -353,7 +353,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
 }
 
 @supports (backdrop-filter: blur(1rem)) {
-  body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+  :is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
     details[data-marketing-nav-drawer][open]
     nav[data-marketing-nav-drawer-panel] {
     backdrop-filter: blur(1.25rem) saturate(140%);
@@ -361,16 +361,16 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   }
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-nav-link],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-portal-member],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-header-sign-in],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-header-member] {
   min-height: 2.75rem;
@@ -387,22 +387,22 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   transition: background-color var(--mkt-motion-fast) ease;
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-nav-link]:hover,
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-portal-member]:hover,
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-header-sign-in]:hover,
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-header-member]:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-header-cta] {
   width: 100%;
@@ -410,14 +410,14 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   margin-block: var(--space-2);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   div[data-marketing-header-drawer-locale] {
   margin-block-start: var(--space-2);
   padding-block-start: var(--space-3);
   border-top: var(--mkt-border-width) solid rgba(255, 255, 255, 0.12);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header]:not([data-marketing-header-overlay])
   details[data-marketing-nav-drawer][open]
   nav[data-marketing-nav-drawer-panel] {
@@ -427,26 +427,26 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   box-shadow: var(--mkt-shadow-card-hover);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header]:not([data-marketing-header-overlay])
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-nav-link],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header]:not([data-marketing-header-overlay])
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-portal-member],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header]:not([data-marketing-header-overlay])
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-header-sign-in],
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header]:not([data-marketing-header-overlay])
   nav[data-marketing-nav-drawer-panel]
   a[data-marketing-header-member] {
   color: var(--color-text-link, var(--primary));
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   div[data-marketing-locale-switcher]
   button {
@@ -454,7 +454,7 @@ body[data-app-surface="marketing"][data-workspace-plugin="denali"]
   color: rgba(255, 255, 255, 0.9);
 }
 
-body[data-app-surface="marketing"][data-workspace-plugin="denali"]
+:is(body[data-app-surface="marketing"], body[data-app-surface="portal"])[data-workspace-plugin="denali"]
   header[data-marketing-header][data-marketing-header-overlay]
   div[data-marketing-locale-switcher]
   button[aria-pressed="true"] {

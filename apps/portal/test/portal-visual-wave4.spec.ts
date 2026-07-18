@@ -74,11 +74,17 @@ describe("portal-visual-wave4.spec.ts", () => {
     assert.doesNotMatch(avatar, /member-profile-avatar__preview/);
   });
 
-  it("VIS-PROF-04 member-profile.css styles sticky save", () => {
+  it("VIS-PROF-04 member-profile.css sticky actions (mobile) + sectioned desktop", () => {
     const css = readFileSync(join(denaliThemeRoot, "portal/member-profile.css"), "utf8");
     assert.match(css, /\[data-member-profile-save\]/);
+    assert.match(css, /\[data-member-profile-actions\]/);
     assert.match(css, /position:\s*sticky/);
-    assert.doesNotMatch(css, /linear-gradient/);
+    assert.match(css, /Desktop settings \(PS-VIS-5g\)/);
+    assert.match(css, /\[data-member-profile-card\]/);
+    assert.match(css, /data-member-profile-layout="sectioned"/);
+    const controls = readFileSync(join(denaliThemeRoot, "portal/denali-form-controls.css"), "utf8");
+    assert.match(controls, /linear-gradient/);
+    assert.match(controls, /\[data-member-profile-save\]/);
   });
 
   it("VIS-MORE-01 more hub uses icon list component", () => {

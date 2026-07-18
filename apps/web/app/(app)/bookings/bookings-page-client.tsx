@@ -453,7 +453,11 @@ export function BookingsPageClient({
                     <dt className="text-muted-foreground">{t("fields.departure")}</dt>
                     <dd>{formatBookingDeparture(selectedBooking.departureAt, locale)}</dd>
                     <dt className="text-muted-foreground">{t("fields.payment")}</dt>
-                    <dd>{t(`payment.${selectedBooking.paymentStatus}`)}</dd>
+                    <dd>
+                      <Badge variant={bookingPaymentBadgeVariant(selectedBooking.paymentStatus)}>
+                        {t(`payment.${selectedBooking.paymentStatus}`)}
+                      </Badge>
+                    </dd>
                     <dt className="text-muted-foreground">{t("fields.status")}</dt>
                     <dd>
                       <Badge variant={bookingStatusBadgeVariant(selectedBooking.status)}>
@@ -515,6 +519,23 @@ function bookingStatusBadgeVariant(status: BookingListItem["status"]): BadgeVari
   }
 }
 
+function bookingPaymentBadgeVariant(
+  paymentStatus: BookingListItem["paymentStatus"]
+): BadgeVariant {
+  switch (paymentStatus) {
+    case "paid":
+      return "success";
+    case "partial":
+      return "warning";
+    case "unpaid":
+      return "outline";
+    default: {
+      const exhaustive: never = paymentStatus;
+      return exhaustive;
+    }
+  }
+}
+
 function KpiCard({
   label,
   value,
@@ -569,7 +590,7 @@ function BookingRow({
         </label>
       ) : null}
       <button type="button" onClick={onSelect} className="flex-1 p-3 text-left">
-        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
           <div>
             <p className="font-medium">{item.guestLabel}</p>
             <p className="text-xs text-muted-foreground">
@@ -577,7 +598,14 @@ function BookingRow({
               {formatBookingDeparture(item.departureAt, locale)}
             </p>
           </div>
-          <Badge variant={bookingStatusBadgeVariant(item.status)}>{t(`status.${item.status}`)}</Badge>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <Badge variant={bookingStatusBadgeVariant(item.status)}>
+              {t(`status.${item.status}`)}
+            </Badge>
+            <Badge variant={bookingPaymentBadgeVariant(item.paymentStatus)}>
+              {t(`payment.${item.paymentStatus}`)}
+            </Badge>
+          </div>
         </div>
       </button>
     </div>

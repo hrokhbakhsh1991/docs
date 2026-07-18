@@ -20,6 +20,7 @@ describe("portal-member-registrations", () => {
     assert.match(fetchModule, /\/api\/me\/registrations/);
     assert.match(fetchModule, /cookieHeader\.length === 0/);
     assert.match(fetchModule, /return \[\]/);
+    assert.match(fetchModule, /readonly tourId: string/);
     assert.doesNotMatch(fetchModule, /bookings\?view=mine/);
     assert.doesNotMatch(fetchModule, /resolveTourOpsApiBaseUrl/);
   });
@@ -72,9 +73,15 @@ describe("portal-member-registrations", () => {
     );
     assert.match(page, /main data-portal-member-registration-detail/);
     assert.match(page, /resolveMemberPortalTripsListPath/);
+    assert.match(page, /fetchMemberReceiptStatus/);
+    assert.match(page, /resolveMarketingTourDetailUrl/);
     assert.match(form, /data-portal-member-receipt-upload/);
     assert.match(form, /data-portal-member-receipt-submit/);
-    assert.match(form, /disabled=\{status === "uploading"\}/);
+    assert.match(form, /data-portal-member-receipt-waiting/);
+    assert.match(form, /data-portal-member-receipt-paid/);
+    assert.match(form, /data-portal-member-receipt-view-tour/);
+    assert.match(form, /data-portal-member-receipt-back-trips/);
+    assert.match(form, /disabled=\{uploadPhase === "uploading"\}/);
   });
 
   it("MEM-SKIN-01 denali-portal.css covers member registrations surfaces", () => {
@@ -90,6 +97,8 @@ describe("portal-member-registrations", () => {
     assert.match(skin, /main\[data-portal-member-module-stub\]/);
     assert.match(skin, /main\[data-portal-member-registration-detail\]/);
     assert.match(skin, /\[data-portal-member-receipt-upload\]/);
+    assert.match(skin, /\[data-portal-member-receipt-waiting\]/);
+    assert.match(skin, /\[data-portal-member-receipt-paid\]/);
     assert.match(skin, /\[data-public-auth-logout\]/);
   });
 
@@ -123,6 +132,10 @@ describe("portal-member-registrations", () => {
     const en = readFileSync(join(repoRoot, "apps/portal/messages/en/portalMember.json"), "utf8");
     assert.match(fa, /"trips"/);
     assert.match(en, /"trips"/);
+    assert.match(fa, /"waitingTitle"/);
+    assert.match(en, /"waitingTitle"/);
+    assert.match(fa, /"viewTour"/);
+    assert.match(en, /"viewTour"/);
   });
 
   it("MEM-PROF-01 profile page uses canonical profile BFF", () => {

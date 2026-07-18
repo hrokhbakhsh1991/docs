@@ -7,6 +7,7 @@ import {
   gotoPortalRegistration,
   requestRegistrationOtp,
 } from "./fixtures/catalog-registration-otp";
+import { gotoMemberProfile } from "./fixtures/portal-member-profile";
 import {
   OPERATOR_PUBLISHED_TOUR_ID,
   OPERATOR_SMOKE_PARTICIPANT_TOUR_ID,
@@ -78,4 +79,39 @@ test("DEN-INTAKE-03 other registrant tab shows participant fields on gated tour"
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({
     timeout: 60_000,
   });
+});
+
+test("DEN-INTAKE-04 self intake persists participant fields to member profile", async ({
+  page,
+}) => {
+  const phone = `+1555${String(Date.now()).slice(-7)}`;
+  const nationalId = "3344556677";
+  const fatherName = "Intake Persist Father";
+  const birthDate = "1993-04-10";
+
+  await reachIntakeStep(page, OPERATOR_SMOKE_PARTICIPANT_TOUR_ID, phone);
+
+  await completeCatalogRegistrationIntake(page, {
+    fullName: "Intake Persist Guest",
+    nationalId,
+    fatherName,
+    birthDate,
+    partySize: "1",
+    registrantTarget: "self",
+  });
+
+  await expect(page.locator("[data-public-registration-success]")).toBeVisible({
+    timeout: 60_000,
+  });
+
+  await gotoMemberProfile(page);
+  await expect(page.locator('[data-member-profile-field="nationalId"] input')).toHaveValue(
+    nationalId
+  );
+  await expect(page.locator('[data-member-profile-field="fatherName"] input')).toHaveValue(
+    fatherName
+  );
+  await expect(page.locator('[data-member-profile-field="birthDate"] input')).toHaveValue(
+    birthDate
+  );
 });

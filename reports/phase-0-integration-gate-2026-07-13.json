@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-07-13T23:32:17.557Z",
+  "gitSha": "d6d4f8e1",
+  "phase": "0.5",
+  "gateScope": {
+    "script": "phase-0-guard.mjs",
+    "scope": "integration-guard",
+    "foundationGate": "pnpm run phase-0:foundation-gate — workspace-sdk + config only (Phase 0 closure)",
+    "integrationGate": "pnpm run phase-0:integration-gate — full monorepo build/test + trunk guards (REM-013)",
+    "phase0ClosureContract": "pnpm run test:phase-0 — phase-0.contract.spec.ts (dist + denali + legacy + invariant manifest; H-06)",
+    "importBoundaryScanRoots": [
+      "packages/workspace-sdk",
+      "packages/platform-core",
+      "packages/theme-react",
+      "packages/design-tokens",
+      "packages/ui-primitives",
+      "packages/workspaces/starter",
+      "apps"
+    ],
+    "countThresholdsRetired": false
+  },
+  "checks": [
+    {
+      "id": "g4_depcruise_architecture",
+      "description": "pnpm run guard:architecture",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g4b_import_boundary",
+      "description": "pnpm run guard:import-boundary",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g6_runtime_deps_honesty",
+      "description": "@app-tour/ui-primitives: react/react-dom/@app-tour/* used in src/ must be package.json dependencies",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g7_doc_sync",
+      "description": "pnpm run guard:doc-sync",
+      "required": true,
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "exit05": {
+    "pass": true,
+    "note": "phase-0 guard: full import-boundary scope + ui-primitives runtime deps"
+  }
+}

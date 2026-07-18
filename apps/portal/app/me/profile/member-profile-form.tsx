@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState, useEffect } from "react";
 
 import type { MemberProfileFieldId, MemberProfileViewProfile } from "@/me/member-profile-types";
+import { MemberLogoutButton } from "@/me/member-logout-button";
 import { resolveMemberProfileErrorMessage } from "@/me/resolve-member-profile-error";
 
 import { MemberProfileAvatar } from "./member-profile-avatar";
@@ -70,6 +71,7 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     initialProfile.fields.avatarUrl ?? null
   );
+  const [avatarEpoch, setAvatarEpoch] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +125,14 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
     }
   }
 
+  function handleDiscard(): void {
+    setFieldValues(initialEditableValues(profile));
+    setAvatarUrl(profile.fields.avatarUrl ?? null);
+    setAvatarEpoch((current) => current + 1);
+    setMessage(null);
+    setError(null);
+  }
+
   return (
     <form
       onSubmit={(event) => {
@@ -130,17 +140,21 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
         void handleSubmit();
       }}
       data-portal-member-profile
+      data-member-profile-layout="sectioned"
       data-member-profile-ready={ready ? "true" : undefined}
     >
-      <MemberProfileAvatar
-        userId={profile.userId}
-        displayName={fieldValues.displayName ?? profile.fields.displayName}
-        initialAvatarUrl={avatarUrl}
-        onAvatarChange={setAvatarUrl}
-      />
+      <section data-member-profile-card="photo">
+        <MemberProfileAvatar
+          key={avatarEpoch}
+          userId={profile.userId}
+          displayName={fieldValues.displayName ?? profile.fields.displayName}
+          initialAvatarUrl={avatarUrl}
+          onAvatarChange={setAvatarUrl}
+        />
+      </section>
 
       {sections.map((section) => (
-        <fieldset key={section.id}>
+        <fieldset key={section.id} data-member-profile-card={section.id}>
           <legend>{t(sectionLegendKey(section.id))}</legend>
           {section.fields.map((fieldId) => {
             const label = t(`fieldLabels.${fieldId}`);
@@ -227,15 +241,31 @@ export function MemberProfileForm({ profile: initialProfile }: MemberProfileForm
       ) : null}
 
       {editableFields.length > 0 ? (
-        <button
-          type="button"
-          disabled={loading}
-          data-member-profile-save
-          onClick={() => void handleSubmit()}
-        >
-          {loading ? t("saving") : t("save")}
-        </button>
+        <div data-member-profile-actions>
+          <button
+            type="button"
+            disabled={loading}
+            data-member-profile-discard
+            onClick={handleDiscard}
+          >
+            {t("discard")}
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            data-member-profile-save
+            onClick={() => void handleSubmit()}
+          >
+            {loading ? t("saving") : t("save")}
+          </button>
+        </div>
       ) : null}
+
+      <section data-member-profile-session data-member-profile-card="session">
+        <h2 data-member-profile-session-title>{t("sessionTitle")}</h2>
+        <p data-member-profile-session-hint>{t("sessionHint")}</p>
+        <MemberLogoutButton />
+      </section>
     </form>
   );
 }

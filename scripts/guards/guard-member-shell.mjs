@@ -35,7 +35,7 @@ if (/data-portal-member-shell/.test(shell)) {
 
 const registerFlowPath = path.join(
   REPO_ROOT,
-  "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx"
+  "apps/portal/src/catalog/public-catalog-registration-flow.tsx"
 );
 const registerFlow = fs.readFileSync(registerFlowPath, "utf8");
 if (/PortalMemberBottomNav|data-portal-shell-bottom-nav/.test(registerFlow)) {

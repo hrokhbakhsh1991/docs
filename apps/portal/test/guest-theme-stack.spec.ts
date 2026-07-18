@@ -83,6 +83,12 @@ describe("guest-theme-stack.spec.ts — portal", () => {
       /main:is\(\[data-catalog-registration-page\], \[data-portal-member-login-page\]\)/
     );
     assert.match(skin, /portal\/login-page\.css/);
+    const loginPageCss = readFileSync(
+      join(repoRoot, "packages/workspaces/denali/theme/portal/login-page.css"),
+      "utf8"
+    );
+    assert.match(loginPageCss, /\[data-portal-login-modal\]/);
+    assert.match(loginPageCss, /data-portal-login-modal-presentation/);
     assert.match(skin, /portal\/member-shell\.css/);
     assert.match(skin, /portal\/member-shell-desktop\.css/);
     assert.match(skin, /portal\/member-pages\.css/);
@@ -106,9 +112,10 @@ describe("guest-theme-stack.spec.ts — portal", () => {
     assert.match(layout, /calistoga\.variable/);
   });
 
-  it("G-P6-UI-08 portal allows *.portal.localhost dev origins", () => {
+  it("G-P6-UI-08 portal allows portal.{club}.localhost and legacy *.portal.localhost", () => {
     const config = readFileSync(nextConfigPath, "utf8");
     assert.match(config, /allowedDevOrigins/);
     assert.match(config, /\*\.portal\.localhost/);
+    assert.match(config, /portal\.denali\.localhost/);
   });
 });

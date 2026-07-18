@@ -2,20 +2,32 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DenaliSkeleton } from "@/admin/patterns/denali-skeleton";
-import { groupInstallmentsByBoardColumn, parseSchedulesListResponse } from "@/finance/finance-installments-logic";
+import {
+  groupInstallmentsByBoardColumn,
+  parseSchedulesListResponse,
+  type PaymentScheduleItem,
+} from "@/finance/finance-installments-logic";
+import { parseFinancePaymentsListResponse } from "@/finance/finance-payments-logic";
+import { parseFinancePendingReceiptsResponse } from "@/finance/finance-receipts-logic";
+import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import {
   FINANCE_OVERVIEW_TEST_IDS,
+  buildFinanceAttentionSamples,
   buildFinanceKpiCards,
   formatFinanceTimestamp,
   formatLedgerEventLabel,
   parseFinanceLedgerListResponse,
   parseFinanceSummary,
+  type FinanceAttentionKind,
+  type FinanceAttentionSample,
+  type FinanceLedgerEvent,
+  type FinanceSummary,
 } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
 import { formatLocalizedNumber } from "@/i18n/format-localized-digits";
@@ -25,6 +37,13 @@ import type { FinanceOverviewServerPrefetch } from "./fetch-finance-overview.ser
 type FinanceOverviewPanelProps = {
   readonly initialOverview?: FinanceOverviewServerPrefetch | null;
 };
+
+function attentionKindLabel(
+  kind: FinanceAttentionKind,
+  labels: Record<FinanceAttentionKind, string>
+): string {
+  return labels[kind];
+}
 
 export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverviewPanelProps) {
   const locale = useLocale() as AppLocale;
@@ -36,22 +55,18 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
   const [loading, setLoading] = useState(initialOverview === null);
   const [error, setError] = useState<string | null>(null);
   const [fetchNonce, setFetchNonce] = useState(0);
-  const [summary, setSummary] = useState(
+  const [summary, setSummary] = useState<FinanceSummary>(
     initialOverview?.summary ?? parseFinanceSummary(null)
   );
-  const [ledgerItems, setLedgerItems] = useState(
+  const [ledgerItems, setLedgerItems] = useState<readonly FinanceLedgerEvent[]>(
     initialOverview?.ledgerItems ?? parseFinanceLedgerListResponse(null).items
   );
   const [overdueInstallments, setOverdueInstallments] = useState(
     initialOverview?.overdueInstallments ?? 0
   );
-  const skipInitialFetchRef = useRef(initialOverview !== null);
+  const [attentionSamples, setAttentionSamples] = useState<readonly FinanceAttentionSample[]>([]);
 
   useEffect(() => {
-    if (skipInitialFetchRef.current) {
-      skipInitialFetchRef.current = false;
-      return;
-    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -60,8 +75,10 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
       fetch("/api/finance/reports/summary", { cache: "no-store" }),
       fetch("/api/finance/reports/ledger-events?limit=5", { cache: "no-store" }),
       fetch("/api/finance/schedules", { cache: "no-store" }),
+      fetch("/api/finance/payments?limit=20", { cache: "no-store" }),
+      fetch("/api/finance/receipts/pending?limit=20", { cache: "no-store" }),
     ])
-      .then(async ([summaryRes, ledgerRes, schedulesRes]) => {
+      .then(async ([summaryRes, ledgerRes, schedulesRes, paymentsRes, receiptsRes]) => {
         if (!summaryRes.ok) {
           throw new Error(`SUMMARY_HTTP_${summaryRes.status}`);
         }
@@ -70,15 +87,31 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
         }
         const summaryPayload = parseFinanceSummary(await summaryRes.json());
         const ledgerPayload = parseFinanceLedgerListResponse(await ledgerRes.json());
-        let overdue = 0;
+        let overdueRows: PaymentScheduleItem[] = [];
         if (schedulesRes.ok) {
           const schedules = parseSchedulesListResponse(await schedulesRes.json());
-          overdue = groupInstallmentsByBoardColumn(schedules.items).overdue.length;
+          overdueRows = [...groupInstallmentsByBoardColumn(schedules.items).overdue];
         }
+        const payments = paymentsRes.ok
+          ? parseFinancePaymentsListResponse(await paymentsRes.json()).items
+          : [];
+        const receipts = receiptsRes.ok
+          ? parseFinancePendingReceiptsResponse(await receiptsRes.json()).items
+          : [];
+        const samples = buildFinanceAttentionSamples({
+          overdueInstallments: overdueRows,
+          pendingReceipts: receipts.map((row) => ({
+            id: row.id,
+            registrationId: row.payment?.registrationId ?? row.registrationContext?.registrationId ?? "",
+            registrationContext: row.registrationContext,
+          })),
+          pendingManualPayments: payments,
+        });
         if (!cancelled) {
           setSummary(summaryPayload);
           setLedgerItems(ledgerPayload.items);
-          setOverdueInstallments(overdue);
+          setOverdueInstallments(overdueRows.length);
+          setAttentionSamples(samples);
         }
       })
       .catch((fetchError: unknown) => {
@@ -100,6 +133,16 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
   const kpiCards = useMemo(
     () => buildFinanceKpiCards(summary, overdueInstallments),
     [summary, overdueInstallments]
+  );
+
+  const attentionLabels = useMemo(
+    () =>
+      ({
+        "overdue-installment": t("attentionKindOverdue"),
+        "pending-receipt": t("attentionKindReceipt"),
+        "pending-manual": t("attentionKindManual"),
+      }) satisfies Record<FinanceAttentionKind, string>,
+    [t]
   );
 
   return (
@@ -161,9 +204,54 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
               <Link href="/finance?tab=payments">{t("createManualPayment")}</Link>
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link href="/settings/reconciliation-triage">{t("openReconciliation")}</Link>
+              <Link
+                href="/settings/reconciliation-triage"
+                data-testid={FINANCE_OVERVIEW_TEST_IDS.triageLink}
+              >
+                {t("openReconciliation")}
+              </Link>
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">{t("triageStaysInSettings")}</p>
+
+          <Card data-denali-surface="card" className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">{t("attentionTitle")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {attentionSamples.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("attentionEmpty")}</p>
+              ) : (
+                <ul
+                  className="divide-y rounded-md border"
+                  data-testid={FINANCE_OVERVIEW_TEST_IDS.attentionList}
+                >
+                  {attentionSamples.map((sample) => (
+                    <li
+                      key={sample.id}
+                      className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">{attentionKindLabel(sample.kind, attentionLabels)}</Badge>
+                          {sample.secondaryLabel ? (
+                            <span className="text-sm font-medium">{sample.secondaryLabel}</span>
+                          ) : null}
+                        </div>
+                        <FinanceRegistrationIdentity
+                          registrationId={sample.registrationId}
+                          context={sample.registrationContext}
+                        />
+                      </div>
+                      <Link href={sample.href} className="text-sm text-primary hover:underline">
+                        {t("viewDetails")}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
           <Card data-denali-surface="card" className="shadow-sm">
             <CardHeader>
@@ -179,9 +267,10 @@ export function FinanceOverviewPanel({ initialOverview = null }: FinanceOverview
                       <div>
                         <p className="font-medium">{formatLedgerEventLabel(event.eventType)}</p>
                         {event.registrationId ? (
-                          <p className="font-mono text-xs text-muted-foreground">
-                            {event.registrationId}
-                          </p>
+                          <FinanceRegistrationIdentity
+                            registrationId={event.registrationId}
+                            context={event.registrationContext}
+                          />
                         ) : null}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">

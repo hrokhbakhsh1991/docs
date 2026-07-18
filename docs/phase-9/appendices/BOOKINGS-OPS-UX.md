@@ -216,6 +216,7 @@ type BookingRecord = {
   partySize: number;
   status: "pending" | "approved" | "waitlisted" | "rejected" | "cancelled";
   paymentStatus: "unpaid" | "partial" | "paid";
+  // … finance receipt approve → paid; prepayment → partial (see FINANCE-OPS-UX §5.3)
   departureAt: string; // ISO
   submittedAt: string; // ISO
   submittedByUserId: string; // mine-view filter
@@ -267,6 +268,8 @@ Chips derive from tenant booking rows (not a second tours query). Clicking a chi
 **Bulk approve (R3):** inbox rows with `status=pending|waitlisted` expose checkboxes; **Approve selected** calls `POST /bookings/bulk-approve` with `ids[]` capped at manifest `maxBatch` (25). Each id writes its own outbox row inside one repository transaction.
 
 **List filters added in R3:** `paymentStatus=unpaid|partial|paid` (query param).
+
+**Finance sync:** Approving a manual payment receipt in Finance Command Center must update this booking field to `paid` so the inspection panel / filters reflect settlement (see FINANCE-OPS-UX §5.3).
 
 ### 5.5 Trunk implementation (S9.5-R5 — manual create UI)
 

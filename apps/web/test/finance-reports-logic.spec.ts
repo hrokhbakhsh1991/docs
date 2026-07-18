@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 
 import {
   FINANCE_LEDGER_TEST_IDS,
+  buildFinanceAttentionSamples,
   buildFinanceKpiCards,
   buildFinanceLedgerCsvContent,
   buildFinanceLedgerCsvFilename,
@@ -83,5 +84,51 @@ describe("finance-reports-logic.spec.ts — Phase 9.7 R1", () => {
       buildFinanceLedgerCsvFilename("00000000", new Date("2026-06-09T12:00:00.000Z")),
       "finance-ledger-00000000-2026-06-09.csv"
     );
+  });
+
+  it("WEB-9.7-R1-05 Phase E buildFinanceAttentionSamples prioritizes overdue then receipts then manual", () => {
+    const samples = buildFinanceAttentionSamples({
+      overdueInstallments: [
+        {
+          id: "sch-1",
+          registrationId: "reg-a",
+          label: "Installment 1",
+          registrationContext: {
+            registrationId: "reg-a",
+            tourId: "tour-1",
+            tourTitle: "Alborz",
+            memberDisplayName: "Ada",
+          },
+        },
+      ],
+      pendingReceipts: [
+        {
+          id: "rcpt-1",
+          registrationId: "reg-b",
+          registrationContext: null,
+        },
+      ],
+      pendingManualPayments: [
+        {
+          id: "pay-1",
+          registrationId: "reg-c",
+          status: "Pending",
+          registrationContext: null,
+        },
+        {
+          id: "pay-2",
+          registrationId: "reg-d",
+          status: "Paid",
+          registrationContext: null,
+        },
+      ],
+      limit: 3,
+    });
+    assert.equal(samples.length, 3);
+    assert.equal(samples[0]?.kind, "overdue-installment");
+    assert.equal(samples[0]?.registrationContext?.tourTitle, "Alborz");
+    assert.equal(samples[1]?.kind, "pending-receipt");
+    assert.equal(samples[2]?.kind, "pending-manual");
+    assert.equal(samples[2]?.registrationId, "reg-c");
   });
 });

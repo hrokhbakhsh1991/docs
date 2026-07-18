@@ -31,6 +31,12 @@ export async function proxyFinanceApiRequest(
         Authorization: `Bearer ${sessionToken}`,
         host: incoming.host.split(":")[0] ?? "localhost",
         ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(() => {
+          const idempotencyKey = req.headers.get("idempotency-key");
+          return idempotencyKey !== null && idempotencyKey.trim().length > 0
+            ? { "Idempotency-Key": idempotencyKey.trim() }
+            : {};
+        })(),
       },
       ...(options.body !== undefined ? { body: options.body } : {}),
       cache: "no-store",

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const flowPath = join(
   repoRoot,
-  "apps/portal/app/catalog/[tourId]/register/public-catalog-registration-flow.tsx"
+  "apps/portal/src/catalog/public-catalog-registration-flow.tsx"
 );
 const denaliIntakeStepPath = join(
   repoRoot,
@@ -47,15 +47,21 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     assert.match(page, /buildRegistrationResumeInitialState/);
   });
 
-  it("PCMS-REG-LINK-01 register page exposes guest sign-in link with portalReturn", () => {
+  it("PCMS-REG-LINK-01 register page opens same-page login modal", () => {
     const pagePath = join(
       repoRoot,
       "apps/portal/app/catalog/[tourId]/register/page.tsx"
     );
     const page = readFileSync(pagePath, "utf8");
-    assert.match(page, /data-portal-register-sign-in-link/);
-    assert.match(page, /resolvePortalMemberLoginPath/);
-    assert.match(page, /signInToRegister/);
+    const signIn = readFileSync(
+      join(repoRoot, "apps/portal/src/auth/portal-register-sign-in-link.tsx"),
+      "utf8"
+    );
+    assert.match(page, /PortalRegisterSignInLink/);
+    assert.match(page, /auth === "login"/);
+    assert.match(signIn, /data-portal-register-sign-in-link/);
+    assert.match(signIn, /openLoginModal/);
+    assert.match(signIn, /host: "register"/);
   });
 
   it("P8-03 OTP orchestration lives in shared catalog-registration-flow-ui", () => {
@@ -66,16 +72,13 @@ describe("public-catalog-registration-flow-contract — P8 plugin runtime", () =
     const authSteps = readFileSync(authStepsPath, "utf8");
     assert.match(authSteps, /request-otp/);
     assert.match(authSteps, /verify-otp/);
-    assert.match(authSteps, /completeMemberLoginEgress/);
-    assert.match(authSteps, /isMemberLoginEgressFromLocation/);
-    assert.doesNotMatch(
-      authSteps,
-      /completeMemberLoginEgressIfPresent\(\)[\s\S]*hydrateCatalogRegistrationIntakeAfterSession/
-    );
-    assert.match(
-      authSteps,
-      /if \(isMemberLoginEgressFromLocation\(\)\) \{[\s\S]*completeMemberLoginEgress\(\);[\s\S]*return;[\s\S]*\}[\s\S]*await hydrateCatalogRegistrationIntakeAfterSession/
-    );
+    assert.match(authSteps, /readMemberLoginEgress/);
+    assert.match(authSteps, /finishMemberLoginEgress/);
+    assert.match(authSteps, /completeMemberLoginEgressAfterSession/);
+    assert.match(authSteps, /memberLoginStayOnPage/);
+    assert.match(authSteps, /waitForMemberSessionCookie/);
+    assert.match(authSteps, /credentials: "include"/);
+    assert.doesNotMatch(authSteps, /isMemberLoginEgressFromLocation/);
     assert.doesNotMatch(denaliIntake, /request-otp/);
   });
 });

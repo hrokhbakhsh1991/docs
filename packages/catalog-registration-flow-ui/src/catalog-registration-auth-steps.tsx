@@ -5,6 +5,7 @@ import {
   buildPublicRegistrationProfilePayload,
   initialPublicRegistrationPhone,
   isPublicRegistrationMobileValid,
+  normalizePublicRegistrationMobile,
   PUBLIC_REGISTRATION_DEV_OTP,
   PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC,
   readPublicRegistrationErrorCode,
@@ -13,20 +14,44 @@ import {
 import {
   mergeFlowState,
   transitionFlowStep,
+  type RegistrationFlowContext,
   type RegistrationFlowStepProps,
 } from "@app-tour/workspace-sdk";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import {
-  completeMemberLoginEgress,
-  isMemberLoginEgressFromLocation,
+  completeMemberLoginEgressAfterSession,
+  waitForMemberSessionCookie,
 } from "./read-portal-return";
 import { readCatalogRegistrationFlowData } from "./flow-data";
 import { hydrateCatalogRegistrationIntakeAfterSession } from "./hydrate-intake-after-session";
 
-function normalizePhone(value: string): string {
-  return value.replace(/\D/g, "");
+/** SSR-stable login egress from flow context — never `window` during render. */
+function readMemberLoginEgress(context: RegistrationFlowContext): boolean {
+  return context.memberLoginEgress === true;
+}
+
+async function finishMemberLoginEgress(
+  context: RegistrationFlowContext,
+  setError: (message: string) => void,
+  resolveError: (code: string) => string
+): Promise<void> {
+  if (context.memberLoginStayOnPage === true) {
+    const ready = await waitForMemberSessionCookie();
+    if (!ready) {
+      setError(resolveError("network"));
+      return;
+    }
+    await context.onMemberLoginSessionReady?.();
+    return;
+  }
+  const egressStarted = await completeMemberLoginEgressAfterSession({
+    memberLoginEgress: true,
+  });
+  if (!egressStarted) {
+    setError(resolveError("network"));
+  }
 }
 
 export function CatalogRegistrationPhoneStep({
@@ -48,10 +73,10 @@ export function CatalogRegistrationPhoneStep({
   }, []);
 
   async function refreshPhoneHint(): Promise<void> {
-    if (isMemberLoginEgressFromLocation()) {
+    if (readMemberLoginEgress(context)) {
       return;
     }
-    const effectivePhone = normalizePhone(data.phone);
+    const effectivePhone = normalizePublicRegistrationMobile(data.phone);
     if (!isPublicRegistrationMobileValid(effectivePhone)) {
       setPhoneHint(null);
       return;
@@ -60,6 +85,7 @@ export function CatalogRegistrationPhoneStep({
       const preflight = await fetch("/api/public-auth/phone-preflight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phone: effectivePhone }),
       });
       const preflightData = (await preflight.json()) as { exists?: boolean };
@@ -72,7 +98,7 @@ export function CatalogRegistrationPhoneStep({
   }
 
   async function requestOtp(): Promise<void> {
-    const effectivePhone = normalizePhone(data.phone);
+    const effectivePhone = normalizePublicRegistrationMobile(data.phone);
     if (effectivePhone.length === 0) {
       setError(resolveError("MOBILE_REQUIRED"));
       return;
@@ -87,6 +113,7 @@ export function CatalogRegistrationPhoneStep({
       const preflight = await fetch("/api/public-auth/phone-preflight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phone: effectivePhone }),
       });
       const preflightData = (await preflight.json()) as { exists?: boolean };
@@ -96,6 +123,7 @@ export function CatalogRegistrationPhoneStep({
       const res = await fetch("/api/public-auth/request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phone: effectivePhone }),
       });
       const body = (await res.json()) as PublicRegistrationApiError;
@@ -117,7 +145,7 @@ export function CatalogRegistrationPhoneStep({
   }
 
   const policiesBlock =
-    !isMemberLoginEgressFromLocation() &&
+    !readMemberLoginEgress(context) &&
     context.tourPoliciesText != null &&
     context.tourPoliciesText.trim().length > 0 ? (
       <section data-tour-policies data-tour-policies-text aria-label={t("intake.termsHeading")}>
@@ -126,7 +154,7 @@ export function CatalogRegistrationPhoneStep({
       </section>
     ) : null;
 
-  const loginEgress = isMemberLoginEgressFromLocation();
+  const loginEgress = readMemberLoginEgress(context);
 
   return (
     <div
@@ -206,6 +234,7 @@ export function CatalogRegistrationOtpStep({
       const res = await fetch("/api/public-auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           phone: data.phone,
           otp: code,
@@ -227,8 +256,8 @@ export function CatalogRegistrationOtpStep({
         transitionFlowStep(dispatch, "profile");
         return;
       }
-      if (isMemberLoginEgressFromLocation()) {
-        completeMemberLoginEgress();
+      if (readMemberLoginEgress(context)) {
+        await finishMemberLoginEgress(context, setError, resolveError);
         return;
       }
       await hydrateCatalogRegistrationIntakeAfterSession(context, state, dispatch);
@@ -246,6 +275,7 @@ export function CatalogRegistrationOtpStep({
       const res = await fetch("/api/public-auth/request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phone: data.phone }),
       });
       const body = (await res.json()) as PublicRegistrationApiError;
@@ -262,10 +292,10 @@ export function CatalogRegistrationOtpStep({
     <div
       data-public-registration-otp
       data-tour-id={context.tourId}
-      {...(isMemberLoginEgressFromLocation() ? { "data-member-login-egress": "" } : {})}
+      {...(readMemberLoginEgress(context) ? { "data-member-login-egress": "" } : {})}
     >
       <h2>
-        {isMemberLoginEgressFromLocation() ? t("otp.loginTitle") : t("otp.title")}
+        {readMemberLoginEgress(context) ? t("otp.loginTitle") : t("otp.title")}
       </h2>
       <p>{t("otp.sentTo", { phone: data.phone })}</p>
       <label htmlFor="otp">{t("otp.title")}</label>
@@ -335,6 +365,7 @@ export function CatalogRegistrationProfileStep({
       const res = await fetch("/api/public-auth/register-complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(
           buildPublicRegistrationProfilePayload({
             onboardingToken: data.onboardingToken,
@@ -352,8 +383,8 @@ export function CatalogRegistrationProfileStep({
         setError(resolveError(code));
         return;
       }
-      if (isMemberLoginEgressFromLocation()) {
-        completeMemberLoginEgress();
+      if (readMemberLoginEgress(context)) {
+        await finishMemberLoginEgress(context, setError, resolveError);
         return;
       }
       await hydrateCatalogRegistrationIntakeAfterSession(
@@ -370,7 +401,7 @@ export function CatalogRegistrationProfileStep({
     }
   }
 
-  const loginEgress = isMemberLoginEgressFromLocation();
+  const loginEgress = readMemberLoginEgress(context);
 
   return (
     <form

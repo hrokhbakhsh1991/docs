@@ -111,6 +111,7 @@ async function approveReceiptViaOperatorBff(
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
       const response = await page.request.patch(`/api/finance/receipts/${receiptId}/review`, {
+        headers: { "Idempotency-Key": `smoke-approve-${receiptId}-${attempt}` },
         data: { decision: "approve", reviewNote: "smoke" },
       });
       lastStatus = response.status();

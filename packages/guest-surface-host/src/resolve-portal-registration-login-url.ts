@@ -1,20 +1,26 @@
 import { resolvePortalMemberLoginPath } from "./resolve-portal-member-login-url";
 import { resolvePortalPublicBaseUrl } from "./resolve-portal-public-base-url";
 
-/** Relative login path with portalReturn to catalog register (PCMS tour sign-in intent). */
+/**
+ * Relative register path that auto-opens login modal (PCMS-UX-MODAL · DL-40).
+ * Gates on member portal the same way as {@link resolvePortalMemberLoginPath}.
+ */
 export function resolvePortalRegistrationLoginPath(host: string, tourId: string): string | null {
+  if (resolvePortalMemberLoginPath(host) === null) {
+    return null;
+  }
   const id = tourId.trim();
   if (id.length === 0) {
     return null;
   }
-  return resolvePortalMemberLoginPath(host, `/catalog/${encodeURIComponent(id)}/register`);
+  return `/catalog/${encodeURIComponent(id)}/register?auth=login`;
 }
 
-/** Cross-host tour sign-in URL — login then resume register at intake (PCMS-UX tour intent). */
+/** Cross-host tour sign-in URL — register page + login modal (stay on tour context). */
 export function resolvePortalRegistrationLoginUrl(host: string, tourId: string): string | null {
-  const loginPath = resolvePortalRegistrationLoginPath(host, tourId);
-  if (loginPath === null) {
+  const path = resolvePortalRegistrationLoginPath(host, tourId);
+  if (path === null) {
     return null;
   }
-  return `${resolvePortalPublicBaseUrl(host)}${loginPath}`;
+  return `${resolvePortalPublicBaseUrl(host)}${path}`;
 }

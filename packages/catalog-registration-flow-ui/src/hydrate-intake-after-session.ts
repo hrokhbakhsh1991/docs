@@ -22,7 +22,10 @@ export async function hydrateCatalogRegistrationIntakeAfterSession(
   let sessionFatherNameValue: string | null = null;
   let sessionBirthDateValue: string | null = null;
   try {
-    const res = await fetch("/api/me/profile");
+    const res = await fetch("/api/me/profile", {
+      credentials: "include",
+      cache: "no-store",
+    });
     const profile = (await res.json()) as {
       ok?: boolean;
       profile?: { fields?: Record<string, string | null> };

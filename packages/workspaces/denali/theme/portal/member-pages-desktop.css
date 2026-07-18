@@ -24,12 +24,6 @@
   }
 
   body[data-app-surface="portal"][data-workspace-plugin="denali"]
-    main[data-portal-member-profile]
-    [data-member-profile-save] {
-    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  body[data-app-surface="portal"][data-workspace-plugin="denali"]
     main[data-portal-member-registrations]
     [data-portal-member-registrations-empty-state] {
     grid-column: 1 / -1;

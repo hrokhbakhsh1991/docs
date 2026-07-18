@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 
 export type MemberRegistrationItem = {
   readonly id: string;
+  readonly tourId: string;
   readonly tourTitle: string;
   readonly status: string;
   readonly paymentStatus: string;

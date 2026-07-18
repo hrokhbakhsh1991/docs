@@ -42,7 +42,6 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "canonical/migrate-canonical-workspace.service.ts",
   "outbox/",
   "workspace-finance/",
-  "denali-finance/",
   "exposure/",
   "health/",
   "integrations/",

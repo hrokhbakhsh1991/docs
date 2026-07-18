@@ -14,6 +14,7 @@ import type {
   BookingListPageInput,
   BookingListPageOutput,
   BookingOutboxRecord,
+  BookingPaymentStatus,
   BookingRecord,
   BookingStatus,
   BookingTourChip,
@@ -30,6 +31,7 @@ import {
   MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
   MAX_MEMBER_BOOKINGS_LIST_CAP,
 } from "./bookings-member-summary-projection";
+import { raiseBookingPaymentStatus } from "./booking-payment-status";
 
 type RepositorySnapshot = {
   readonly bookings: Map<string, BookingRecord>;
@@ -176,6 +178,17 @@ export type BookingsRepository = {
     tourIds: readonly string[]
   ): Promise<Readonly<Record<string, number>>>;
   getById(id: string, tenantId: string): Promise<BookingRecord | null>;
+  /** Batch identity projection for finance lists — same tenant scope as getById. */
+  getByIds(ids: readonly string[], tenantId: string): Promise<BookingRecord[]>;
+  /**
+   * Finance → bookings projection. Raises payment status only (unpaid→partial→paid);
+   * never downgrades. Missing booking returns null without throwing.
+   */
+  updatePaymentStatus(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly paymentStatus: BookingPaymentStatus;
+  }): Promise<BookingRecord | null>;
   listOutboxByAggregate(aggregateId: string): Promise<BookingOutboxRecord[]>;
   createBooking(input: {
     tenantId: string;
@@ -465,6 +478,36 @@ export class InMemoryBookingsRepository implements BookingsRepository {
       return null;
     }
     return cloneBooking(row);
+  }
+
+  async getByIds(ids: readonly string[], tenantId: string): Promise<BookingRecord[]> {
+    const unique = [...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0))];
+    const out: BookingRecord[] = [];
+    for (const id of unique) {
+      const row = await this.getById(id, tenantId);
+      if (row !== null) {
+        out.push(row);
+      }
+    }
+    return out;
+  }
+
+  async updatePaymentStatus(input: {
+    readonly bookingId: string;
+    readonly tenantId: string;
+    readonly paymentStatus: BookingPaymentStatus;
+  }): Promise<BookingRecord | null> {
+    const row = bookingsStore.get(input.bookingId);
+    if (row === undefined || row.tenantId !== input.tenantId) {
+      return null;
+    }
+    const next = raiseBookingPaymentStatus(row.paymentStatus, input.paymentStatus);
+    if (next === row.paymentStatus) {
+      return cloneBooking(row);
+    }
+    const updated: BookingRecord = { ...row, paymentStatus: next };
+    bookingsStore.set(input.bookingId, updated);
+    return cloneBooking(updated);
   }
 
   async listOutboxByAggregate(aggregateId: string): Promise<BookingOutboxRecord[]> {

@@ -77,6 +77,25 @@ export function parseMultiLevelTenantHost(
     return { kind: "club_portal", subdomain };
   }
 
+  // portal.{club}.{root} — canonical local (PCMS-COOK-03) + prod-shaped platform portal
+  const portalPrefix = "portal.";
+  const rootSuffix = `.${root}`;
+  if (
+    host.startsWith(portalPrefix) &&
+    host.endsWith(rootSuffix) &&
+    host !== `portal.${root}`
+  ) {
+    const subdomain = host.slice(portalPrefix.length, -rootSuffix.length);
+    if (!subdomain || subdomain.includes(".")) {
+      return { kind: "outside_workspace" };
+    }
+    const invalid = validateClubSubdomain(subdomain, reservedLabels);
+    if (invalid) {
+      return invalid;
+    }
+    return { kind: "club_portal", subdomain };
+  }
+
   const singleLevel = parseWorkspaceTenantLabelFromHost(host, root, reservedLabels);
   switch (singleLevel.kind) {
     case "label":

@@ -57,7 +57,7 @@ describe("resolve-portal-member-module-url — PS-3", () => {
     );
     assert.equal(
       resolvePortalMemberModuleUrl("shop.urban.localhost:3002"),
-      "http://urban.portal.localhost:3003/me/registrations"
+      "http://portal.urban.localhost:3003/me/registrations"
     );
   });
 
@@ -81,14 +81,14 @@ describe("resolve-portal-member-login-url — PCMS-03", () => {
     );
   });
 
-  it("GSH-PCMS-03 tour sign-in path returns to catalog register", () => {
+  it("GSH-PCMS-03 tour sign-in path opens register with auth=login modal", () => {
     assert.equal(
       resolvePortalRegistrationLoginPath("denali.club", "tour-abc"),
-      "/login?portalReturn=%2Fcatalog%2Ftour-abc%2Fregister"
+      "/catalog/tour-abc/register?auth=login"
     );
     assert.equal(
       resolvePortalRegistrationLoginUrl("denali.club", "tour-abc"),
-      "http://portal.denali.club:3003/login?portalReturn=%2Fcatalog%2Ftour-abc%2Fregister"
+      "http://portal.denali.club:3003/catalog/tour-abc/register?auth=login"
     );
   });
 });

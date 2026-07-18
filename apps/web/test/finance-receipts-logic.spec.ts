@@ -7,7 +7,12 @@ import { describe, it } from "node:test";
 
 import {
   buildReviewReceiptRequestBody,
+  isBrowserReachableReceiptUrl,
+  isReceiptImageFileKey,
+  isReceiptPdfFileKey,
   parseFinancePendingReceiptsResponse,
+  parseFinanceReceiptReviewResponse,
+  parseFinanceReceiptUrlPayload,
   receiptFileLabel,
   validateReviewReceiptForm,
 } from "../src/finance/finance-receipts-logic";
@@ -52,6 +57,20 @@ describe("finance-receipts-logic.spec.ts — Phase 9.7 R1", () => {
     }
   });
 
+  it("WEB-9.7-REC-02b parseFinanceReceiptReviewResponse surfaces bookingPaymentStatus", () => {
+    const parsed = parseFinanceReceiptReviewResponse({
+      id: "rcpt-1",
+      status: "Approved",
+      reviewNote: null,
+      reviewedAt: "2026-07-18T12:00:00.000Z",
+      ledgerJournalId: randomUUID(),
+      bookingPaymentStatus: "paid",
+    });
+    assert.ok(parsed !== null);
+    assert.equal(parsed?.bookingPaymentStatus, "paid");
+    assert.equal(parsed?.status, "Approved");
+  });
+
   it("WEB-9.7-REC-03 validateReviewReceiptForm omits empty review note", () => {
     const result = validateReviewReceiptForm({ decision: "reject", reviewNote: "  " });
     assert.equal(result.ok, true);
@@ -63,5 +82,27 @@ describe("finance-receipts-logic.spec.ts — Phase 9.7 R1", () => {
 
   it("WEB-9.7-REC-04 receiptFileLabel returns basename", () => {
     assert.equal(receiptFileLabel("receipts/pay/proof.jpg"), "proof.jpg");
+  });
+
+  it("WEB-9.7-REC-05 image/pdf detection and reachable URL", () => {
+    assert.equal(isReceiptImageFileKey("receipts/x/proof.JPG"), true);
+    assert.equal(isReceiptImageFileKey("receipts/x/proof.pdf"), false);
+    assert.equal(isReceiptPdfFileKey("receipts/x/proof.pdf"), true);
+    assert.equal(isBrowserReachableReceiptUrl("https://cdn.example/proof.jpg"), true);
+    assert.equal(isBrowserReachableReceiptUrl("/api/finance/receipts/r1/file"), true);
+    assert.equal(
+      isBrowserReachableReceiptUrl("/internal/finance/receipts/1/file?key=a"),
+      false
+    );
+  });
+
+  it("WEB-9.7-REC-06 parseFinanceReceiptUrlPayload", () => {
+    const parsed = parseFinanceReceiptUrlPayload({
+      receiptId: "r1",
+      fileKey: "receipts/r1/a.jpg",
+      url: "https://cdn.example/a.jpg",
+    });
+    assert.equal(parsed?.url, "https://cdn.example/a.jpg");
+    assert.equal(parseFinanceReceiptUrlPayload({}), null);
   });
 });

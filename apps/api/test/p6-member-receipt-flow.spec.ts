@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
+import { getBookingsRepository } from "../src/bookings/create-bookings-repository";
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
 import { installHttpTestClient } from "./http-test-client";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
@@ -54,6 +55,18 @@ describe("p6-member-receipt-flow", () => {
     assert.ok(registrationId.length > 0);
   });
 
+  it("P6-MR-00 GET /bookings/{id}/receipts returns none before upload", async () => {
+    const response = await client.requestJson<{ status?: string }>(
+      "GET",
+      `/bookings/${registrationId}/receipts`,
+      {
+        headers: memberHeaders(memberUserId, memberWorkspaceId),
+      }
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.body.status, "none");
+  });
+
   it("P6-MR-01 POST /bookings/{id}/receipts creates pending receipt for member owner", async () => {
     const response = await client.requestJson<Record<string, unknown>>(
       "POST",
@@ -66,6 +79,18 @@ describe("p6-member-receipt-flow", () => {
     assert.equal(response.status, 201);
     assert.equal(response.body.status, "Pending");
     assert.equal(response.body.fileKey, `receipts/${registrationId}/proof.jpg`);
+  });
+
+  it("P6-MR-01b GET /bookings/{id}/receipts returns pending after upload", async () => {
+    const response = await client.requestJson<{ status?: string }>(
+      "GET",
+      `/bookings/${registrationId}/receipts`,
+      {
+        headers: memberHeaders(memberUserId, memberWorkspaceId),
+      }
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.body.status, "pending");
   });
 
   it("P6-MR-02 foreign member cannot upload receipt for another registration", async () => {
@@ -81,6 +106,24 @@ describe("p6-member-receipt-flow", () => {
       {
         headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-stranger"),
         body: { fileKey: `receipts/${registrationId}/stolen.jpg` },
+      }
+    );
+    assert.equal(response.status, 403);
+    assert.equal(response.body.code, "BOOKINGS_FORBIDDEN");
+  });
+
+  it("P6-MR-02b foreign member cannot read receipt status for another registration", async () => {
+    const idRepo = getIdentityRepository();
+    const { user, membership } = await idRepo.registerPublicGuest({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      mobile: "+15559001125",
+      displayName: "P6 Receipt Status Stranger",
+    });
+    const response = await client.requestJson<{ code?: string }>(
+      "GET",
+      `/bookings/${registrationId}/receipts`,
+      {
+        headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-status-stranger"),
       }
     );
     assert.equal(response.status, 403);
@@ -129,6 +172,7 @@ describe("p6-member-receipt-flow", () => {
         headers: {
           ...operatorAuthHeaders(),
           "content-type": "application/json",
+          "Idempotency-Key": `p6-mr-approve-${receiptId}`,
         },
         body: { decision: "approve" },
       }
@@ -136,6 +180,23 @@ describe("p6-member-receipt-flow", () => {
     assert.equal(review.status, 200);
     assert.equal(review.body.status, "Approved");
     assert.ok(typeof review.body.ledgerJournalId === "string");
+    assert.equal(
+      (review.body as { bookingPaymentStatus?: string }).bookingPaymentStatus,
+      "paid"
+    );
+
+    const booking = await getBookingsRepository().getById(bookingId, OPERATOR_SMOKE.tenantId);
+    assert.equal(booking?.paymentStatus, "paid");
+
+    const status = await client.requestJson<{ status?: string }>(
+      "GET",
+      `/bookings/${bookingId}/receipts`,
+      {
+        headers: memberHeaders(user.id, membership.workspaceId ?? "ws-public-approve"),
+      }
+    );
+    assert.equal(status.status, 200);
+    assert.equal(status.body.status, "paid");
   });
 });
 

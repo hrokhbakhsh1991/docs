@@ -556,7 +556,7 @@ List cards render thumbnail covers when `coverImageUrl` is set (`data-marketing-
 | Layer | Rule |
 |-------|------|
 | API presign TTL | `PUBLIC_TENANT_BRAND_LOGO_SIGNED_URL_TTL_SECONDS` = **3600** (same order of magnitude as catalog cover presign) |
-| Guest branding fetch cache | `GUEST_BRANDING_REVALIDATE_SECONDS` default **60** (alias: `MARKETING_BRANDING_REVALIDATE_SECONDS`), capped at **half** the presign TTL so HTML never embeds an expired signature |
+| Guest branding fetch cache | `GUEST_BRANDING_REVALIDATE_SECONDS` default **60** (alias: `MARKETING_BRANDING_REVALIDATE_SECONDS`), capped at **half** the presign TTL so HTML never embeds an expired signature. **Dev:** marketing/portal use `cache: no-store` for branding fetch so admin `/settings/branding` changes appear on next page load without waiting for revalidate. |
 | Marketing-only catalog cache | `MARKETING_CATALOG_REVALIDATE_SECONDS` default **60** — independent of branding/bootstrap |
 | Dev MinIO host | Set `MARKETING_IMAGE_REMOTE_HOSTS=127.0.0.1:9002` when catalog covers also use MinIO presigns and should run through the Next optimizer |
 

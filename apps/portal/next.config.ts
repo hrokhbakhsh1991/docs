@@ -4,8 +4,20 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  /** Playwright + local dev: browser on `{club}.portal.localhost:3003`, Next on `localhost:3003`. */
-  allowedDevOrigins: ["portal.localhost", "*.portal.localhost", "portal.denali.club", "denali.club"],
+  /**
+   * Playwright + local dev: browser on `portal.{club}.localhost` (canonical) or
+   * legacy `{club}.portal.localhost`; Next may bind `localhost:3003`.
+   */
+  allowedDevOrigins: [
+    "portal.localhost",
+    "*.portal.localhost",
+    "portal.denali.localhost",
+    "portal.operator.localhost",
+    "portal.urban.localhost",
+    "portal.guest-club.localhost",
+    "portal.denali.club",
+    "denali.club",
+  ],
   transpilePackages: [
     "@app-tour/design-tokens",
     "@app-tour/theme-react",

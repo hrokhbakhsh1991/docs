@@ -156,12 +156,23 @@ extends:
 
 | Field | Value |
 | ----- | ----- |
-| **Status** | **IMPLEMENTED (subset — 2026-07-14)** |
+| **Status** | **IMPLEMENTED (subset — 2026-07-14)** · **EXTENDED by DL-40 (design)** |
 | **Context** | MAP §3.6 intent; prevents open redirect. |
-| **Decision** | Query `portalReturn` on portal `/login` egress; safe relative paths only (`isSafePortalReturnPath` — leading `/`, no `//`). Targets: `/me/*`, `/catalog/{tourId}/register`. |
-| **Consequences** | `completeMemberLoginEgress()` resolves query → `data-portal-return` → default module. Login never enters tour intake. |
-| **Dependencies** | PCMS §5.0 PCMS-UX-01..04; `packages/catalog-registration-flow-ui/src/read-portal-return.ts` |
+| **Decision** | Query `portalReturn` on portal `/login` egress; safe relative paths only (`isSafePortalReturnPath` — leading `/`, no `//`). Targets: `/me/*`, `/catalog/{tourId}/register`. Register-host login uses same-page modal + `?auth=login` (no `portalReturn` hop). |
+| **Consequences** | `completeMemberLoginEgress()` resolves query → `data-portal-return` → default module on **login host**. Login never enters tour intake. |
+| **Dependencies** | PCMS §5.0 PCMS-UX-01..04 · MODAL; `packages/catalog-registration-flow-ui/src/read-portal-return.ts` |
 | **Open questions** | Strict prefix allowlist (marketing-only builders) deferred. |
+
+### DL-40 — Member login modal presentation
+
+| Field | Value |
+| ----- | ----- |
+| **Status** | **IMPLEMENTED (2026-07-16)** |
+| **Context** | Full-page `/login` alpine experience vs same-page auth for tour guests; marketing SSR must still detect portal members (PCMS-03-READ). |
+| **Decision** | Portal-hosted login **modal** (desktop dialog · mobile bottom sheet). Thin `/login` retained for `/me/*` middleware gate. Tour registration stays full-page. Marketing tour «ورود» → `/catalog/{id}/register?auth=login`. Header Sign in → `/login?portalReturn=/me/registrations`. Every modal success path runs cookie probe (PCMS-UX-MODAL-COOKIE); cross-surface marketing header requires **custom apex** cookie Domain (PCMS-COOK-01/03) — not `Domain=.localhost`. |
+| **Consequences** | Shared `PortalLoginModalProvider` + `PortalMemberLoginFlow`; GSH URL builder change for registration login; Denali modal CSS hooks; SMK-PTL-10. |
+| **Dependencies** | PCMS-001 §5.0 · [portal-member-login-modal.mdoc](../portal-member-login-modal.mdoc) · DL-12 |
+| **Open questions** | Backdrop-click dismiss; optional `?auth=login` on portal home. |
 
 ### DL-13 — Telegram / embedded host adapter
 

@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { resolvePortalMemberLoginPath } from "@app-tour/guest-surface-host";
+import { toCanonicalClubPortalHost } from "@app-tour/tenant-kernel";
+import { validateSessionTokenAsync } from "@app-tour/session-client";
 
 import {
   SESSION_TOKEN_COOKIE,
@@ -9,7 +11,6 @@ import {
   setSessionCookieOnResponse,
   shouldRefreshDevMemberSessionCookieDomain,
 } from "@/auth/build-session-cookie";
-import { validateSessionTokenAsync } from "@app-tour/session-client";
 import { isDevWebSessionAllowed } from "@/tenant/auth-env";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
@@ -70,7 +71,26 @@ async function resolvePortalTenantIdForHost(host: string): Promise<string | null
   }
 }
 
+/** PCMS-COOK-05 — 308 legacy `{club}.portal.localhost` → `portal.{club}.localhost` before auth. */
+function redirectLegacyClubPortalHostIfNeeded(request: NextRequest): NextResponse | null {
+  const host = resolvePortalIngressHost(request);
+  const rootDomain = process.env.PLATFORM_ROOT_DOMAIN?.trim() || "localhost";
+  const canonical = toCanonicalClubPortalHost(host, rootDomain);
+  if (canonical === null) {
+    return null;
+  }
+
+  const target = request.nextUrl.clone();
+  target.host = canonical;
+  return NextResponse.redirect(target, 308);
+}
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
+  const legacyRedirect = redirectLegacyClubPortalHostIfNeeded(request);
+  if (legacyRedirect !== null) {
+    return legacyRedirect;
+  }
+
   const { pathname } = request.nextUrl;
   const host = resolvePortalIngressHost(request);
 
@@ -126,7 +146,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     token.trim().length > 0 &&
     shouldRefreshDevMemberSessionCookieDomain(host)
   ) {
-    setSessionCookieOnResponse(response.headers, token.trim(), host);
+    setSessionCookieOnResponse(response.headers, token.trim(), host, "shared");
   }
 
   return response;

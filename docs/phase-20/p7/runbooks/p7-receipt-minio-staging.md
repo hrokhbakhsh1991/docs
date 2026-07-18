@@ -12,9 +12,14 @@ authority: PAYMENT-LEDGER-BOUNDARY.md · finance-ops.spec.ts
 ## Chain
 
 ```text
-Portal multipart → BFF fileKey → POST /bookings/{id}/receipts
-  → MinIO object store
-  → finance pending tab → operator PATCH review → ledger outbox (Postgres T3)
+Portal multipart file
+  → BFF forwards raw bytes + Content-Type + x-receipt-file-name
+  → POST /bookings/{id}/receipts
+  → MinIO putObject (receipts/{tenantId}/{registrationId}/…)
+  → finance pending tab
+  → GET /finance/receipts/{id}/url (presigned)
+  → Admin /api/finance/receipts/{id}/file proxy → <img>
+  → operator PATCH review → ledger outbox (Postgres T3)
 ```
 
 Payment ingress only — ledger spine unchanged per [PAYMENT-LEDGER-BOUNDARY.md](../appendices/PAYMENT-LEDGER-BOUNDARY.md).

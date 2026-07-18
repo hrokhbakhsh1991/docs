@@ -2,11 +2,11 @@
 
 ```yaml
 doc_id: DENALI-PORTAL-REGISTRATION-UI
-version: "2026-07-14-v4"
+version: "2026-07-16-v5"
 extends: public-catalog.md
 apps: [portal]
 phase: P6-1
-authority: platform-portal-otp-flow.mdoc · platform-portal-registration.mdoc · platform-portal-registration-intake.mdoc · platform-portal-member-profile.mdoc
+authority: platform-portal-otp-flow.mdoc · platform-portal-registration.mdoc · platform-portal-registration-intake.mdoc · platform-portal-member-profile.mdoc · portal-member-login-modal.mdoc · member-session-portal-authority.mdoc
 ```
 
 ## Scope
@@ -25,19 +25,24 @@ Workspace-agnostic **guest registration shell** in `apps/portal`. Business rules
 
 ```text
 app/layout.tsx
-  PortalProviders (tenant theme from branding API)
-  └── app/login/page.tsx  (PCMS-03 member sign-in)
+  PortalProviders
+    PortalLoginModalProvider          ← design PCMS-UX-MODAL (dialog/sheet)
+  └── app/login/page.tsx              ← thin host · auto-open login modal
   └── app/catalog/[tourId]/register/page.tsx
-        PortalAuthExperienceShell (shared auth backdrop + card)
-        PublicCatalogRegistrationFlow (client)
-          phone → OTP → profile (new) → intake → success
+        PortalAuthExperienceShell     ← FULL PAGE tour registration (unchanged)
+        PublicCatalogRegistrationFlow
+          guest: phone → OTP → profile → intake → success
+          session: intake-only
+        «ورود» / ?auth=login → openLoginModal (overlay · not intake)
 ```
 
-### Auth experience shell (Denali — login + registration)
+**Design SoT (login modal):** [portal-member-login-modal.mdoc](../../phase-19/portal-member-login-modal.mdoc) · PCMS §5.0 · DL-40.
+
+### Auth experience shell (Denali — registration page)
 
 | Hook | Purpose |
 | ---- | ------- |
-| `[data-portal-auth-experience]` | Root marker on login + catalog register routes |
+| `[data-portal-auth-experience]` | Root marker on catalog register route (+ thin login host backdrop) |
 | `[data-portal-auth-backdrop]` | Full-viewport alpine gradient + mountain silhouette |
 | `[data-portal-auth-layout]` | Centered column (28rem; 36rem on intake resume) |
 | `[data-portal-auth-card]` | Glass card wrapping stepper + OTP/intake form |
@@ -45,32 +50,42 @@ app/layout.tsx
 | `[data-portal-auth-session-chip]` | Member resume badge (mobile) when session skips auth steps |
 | `[data-portal-auth-lede]` | Secondary hero copy |
 
-Component: `apps/portal/src/catalog/portal-auth-experience-shell.tsx`. Skin: `packages/workspaces/denali/theme/portal/login-page.css`.
+**Login modal hooks (PCMS-UX-MODAL):**
+
+| Hook | Purpose |
+| ---- | ------- |
+| `[data-portal-login-modal]` | Modal root |
+| `[data-portal-login-modal-open]` | Open |
+| `[data-portal-login-modal-presentation="dialog"\|"sheet"]` | Desktop dialog · mobile sheet |
+| `[data-portal-login-modal-host="login"\|"register"]` | Host page |
+
+Component: `apps/portal/src/catalog/portal-auth-experience-shell.tsx` (register page). Modal chrome TBD under portal shell per design doc. Skin: `packages/workspaces/denali/theme/portal/login-page.css` (+ modal selectors).
 
 **Resume at intake:** `buildRegistrationResumeInitialState` returns `{ initialState, memberMobile }`. Register page sets `heroLede` to `intake.resumeLede`, optional `sessionBadge` from `intake.signedInBadge`, and `data-registration-resume="intake"` on `<main>`.
 
 **Intake / success styling:** `[data-public-registration-intake]` and `[data-public-registration-success]` inherit auth-card form controls (inputs, full-width submit, alerts). Intake `<h2>` is hidden inside the card (hero `<h1>` is canonical). Registrant tabs use segmented control styling; transport blocks use muted inset panels.
 
-Smoke URLs: `http://denali.portal.localhost:3003/login` · `/catalog/{tourId}/register`
+Smoke URLs: `http://denali.portal.localhost:3003/login` · `/catalog/{tourId}/register` · `/catalog/{tourId}/register?auth=login`
 
-### Login vs register invariants (PCMS-UX-01)
+### Login vs register invariants (PCMS-UX-01 + MODAL)
 
-| Route | User intent | Post-auth destination | Intake |
-| ----- | ----------- | --------------------- | ------ |
-| `/login?portalReturn=/me/registrations` | Member sign-in (header) | Member module | **Never** |
-| `/login?portalReturn=/catalog/{id}/register` | Sign-in then continue tour registration | Register page → intake-only resume | On register page only |
-| `/catalog/{id}/register` (guest) | Register for tour | Same page → intake step | Yes |
-| `/catalog/{id}/register` (session) | Resume registration | intake-only | Yes |
+| Route / trigger | User intent | UI | Intake |
+| --------------- | ----------- | -- | ------ |
+| `/login?portalReturn=/me/registrations` | Header / standalone sign-in | Thin host + **login modal** | **Never** |
+| `/catalog/{id}/register?auth=login` | Sign-in then continue tour | Register **page** + **login modal** | After OTP on **page** (intake-only) |
+| Register «ورود» (same page) | Sign-in without leaving tour context | Modal overlay | After OTP on **page** |
+| `/catalog/{id}/register` (guest) | Register for tour | Full page flow | Yes |
+| `/catalog/{id}/register` (session) | Resume registration | intake-only page | Yes |
 
 Hooks:
 
 | Hook | When |
 | ---- | ---- |
-| `[data-portal-return]` | Login `<main>` — client egress fallback |
-| `[data-portal-register-sign-in-link]` | Guest register — link to `/login?portalReturn=…` |
-| `[data-marketing-tour-sign-in]` | Marketing PDP secondary sign-in |
+| `[data-portal-return]` | Login host / modal — client egress fallback |
+| `[data-portal-register-sign-in-link]` | Guest register — opens login modal (same page) |
+| `[data-marketing-tour-sign-in]` | Marketing PDP → `register?auth=login` |
 
-Example tour sign-in URL: `/login?portalReturn=%2Fcatalog%2F{tourId}%2Fregister`
+Example tour sign-in URL: `/catalog/{tourId}/register?auth=login`
 
 ### Phase 2 polish (PCMS-UX-05 — 2026-07-14)
 
@@ -79,6 +94,8 @@ Example tour sign-in URL: `/login?portalReturn=%2Fcatalog%2F{tourId}%2Fregister`
 | `[data-registration-resume-pending]` | Client session probe before phone step — avoids flash of guest auth when cookie exists but SSR resume missed |
 | `[data-phone-hint="existing"]` | Returning member on register — copy switches to «تأیید موبایل برای ادامه» (preflight on blur + after send) |
 | `[data-marketing-tour-sign-in]` | Secondary PDP link — text CTA below primary register button |
+
+**Hydration (PCMS-UX-HYDRATE):** Login egress mode is **never** derived from `window.location` during React render. `apps/portal/app/login/page.tsx` passes `memberLoginEgress` into `PublicCatalogRegistrationFlow`, which forwards `RegistrationFlowContext.memberLoginEgress` to shared auth steps. Client-only `isMemberLoginEgressFromLocation()` remains for redirect target resolution (`portalReturn` query / `data-portal-return`) after OTP — not for SSR markup.
 
 ### Registration stepper modes
 
@@ -104,12 +121,14 @@ Intake dispatch: `apps/portal/app/api/catalog/registrations/route.ts` calls SDK 
 
 ### Intake field rules (2026-06-30)
 
-| Field | Profile step (new user) | Tour intake |
-|-------|-------------------------|-------------|
-| Name | Required | Hidden when session/profile already has `displayName` |
-| Email | Optional | **Not shown** — never collected at tour intake |
-| Party size | — | Required |
-| National ID | — | Shown only when catalog tour has `nationalIdRequired: true` **and** member profile has no saved `nationalId` |
+| Field | Profile step (new user) | Tour intake | Persist to profile (`self`) |
+|-------|-------------------------|-------------|------------------------------|
+| Name (`fullName` / `displayName`) | Required | Hidden when profile/session already has name | Yes when `displayName` empty |
+| Email | Optional | **Not shown** — never collected at tour intake | — |
+| Party size | — | Fixed `1` (no UI field) | — |
+| National ID | — | When `nationalIdRequired` and profile empty | Yes |
+| Father's name | — | When `fatherNameRequired` and profile empty | Yes |
+| Birth date | — | When `birthDateRequired` and profile empty | Yes |
 
 Session defaults: `GET /api/me/profile` hydrates name (+ email for upstream only, not UI). Catalog detail exposes `nationalIdRequired` / `fatherNameRequired` / `birthDateRequired` from Denali canonical `participantRequirements.*`.
 
@@ -150,7 +169,7 @@ OTP/session still identifies the **booker**; `registrantTarget` only controls in
 
 Member profile stores egress-safe fields: `displayName`, `email`, `nationalId`, `fatherName`, `birthDate`, `mobile`.
 
-When tour canonical flags a field required (e.g. `participantRequirements.nationalIdRequired`) **and** profile lacks it → show once at intake → persist to profile **only when** `registrantTarget=self`.
+When tour canonical flags a field required (e.g. `participantRequirements.nationalIdRequired`) **and** profile lacks it → show once at intake → persist to profile **only when** `registrantTarget=self`. **`displayName`** follows the same rule: intake `fullName` patches membership when `displayName` is empty (returning members who skipped the auth profile step).
 
 ### Transport intake — default primary, minimal UI (2026-06-30)
 
@@ -246,7 +265,7 @@ Minimal shell on `/catalog/{tourId}/register` (DL-01 — still **no** bottom nav
 
 Component: `apps/portal/src/catalog/portal-registration-chrome.tsx` · skin: `starter-portal.css` (L2 structure) + `denali-portal.css` link color.
 
-Member shell (PS-VIS-2): `data-portal-shell-logo` + `data-portal-locale-switcher` on `[data-portal-shell-header]`.
+Member shell (PS-VIS-5e/5f): `[data-portal-member-header-minimal]` — brand → marketing · member chip → profile. Logout: side-rail footer (desktop) or profile session card (mobile).
 
 Registration stepper (PS-VIS-3 · 2026-07-12):
 
@@ -275,7 +294,7 @@ Component: `apps/portal/src/catalog/catalog-registration-stepper.tsx` · i18n: `
 | SMK-PTL-05 | `/` redirects authenticated member to `/me/registrations` |
 | SMK-PTL-06 | Logout clears session · middleware blocks `/me/*` + `/api/me/*` after `data-public-auth-logout` |
 
-Profile BFF: `GET/PATCH /api/me/profile` → `PATCH /identity/me` (`nationalId`, `fatherName`, `birthDate`). API contract: `identity-me.spec.ts` · `API-9.6-ME-04d` · [platform-portal-member-profile.mdoc](../../phase-19/platform-portal-member-profile.mdoc).
+Profile BFF: `GET/PATCH /api/me/profile` → `PATCH /identity/me` (`displayName`, `nationalId`, `fatherName`, `birthDate`). Intake self-submit also patches membership via `createDenaliRegistration` → `saveGuestProfileFields`. API contract: `identity-me.spec.ts` · `API-9.6-ME-04d` · [platform-portal-member-profile.mdoc](../../phase-19/platform-portal-member-profile.mdoc).
 
 ### Operator visibility (2026-06-30)
 
@@ -295,7 +314,7 @@ Bookings command center inspection panel and tour transport roster read `registr
 | ID | Spec | Host |
 |----|------|------|
 | SMK-PTL-01 | `portal-registration-smoke.spec.ts` | `operator.portal.localhost:3003` |
-| DEN-INTAKE-01 · 02 · 03 | `portal-registration-intake-smoke.spec.ts` | tour-flag gating · participant tour · self/other |
+| DEN-INTAKE-01 · 02 · 03 · 04 | `portal-registration-intake-smoke.spec.ts` | tour-flag gating · participant tour · self/other · intake→profile persist |
 | DEN-TRANS-01 · 02 · 03 | `portal-registration-transport-smoke.spec.ts` | bus default (no UI) · personal-car opt-in · shared_cars dong |
 | SMK-PTL-02 · 04 · 05 · 06 | `portal-member-smoke.spec.ts` | member list · receipt · home redirect · logout |
 | DEN-PROF-01 · 02 · 03 | `portal-member-profile-smoke.spec.ts` | profile fields · PATCH persist · intake hide |
@@ -355,6 +374,12 @@ Marketing back-link: `resolveMarketingTourDetailUrl` → `{club}.localhost:3002/
 
 Dev OTP: `1234` when API runs with `AUTH_ALLOW_DEV_STATIC_OTP=true`.
 
+**Login loop (OTP → phone again):** Portal consumes `@app-tour/catalog-registration-flow-ui` **dist** — after auth-step changes run `pnpm --filter @app-tour/catalog-registration-flow-ui build` (or restart `pnpm --filter @apps/portal dev`; `predev` builds automatically). Stale dist used `completeMemberLoginEgressIfPresent()` (redirect before session cookie) instead of `completeMemberLoginEgressAfterSession()` (probe `GET /api/me/profile` then redirect). Hard refresh after rebuild.
+
+**New member on `/login`:** API may return `requires_registration` — OTP → **profile** step (display name), not immediate redirect. Complete profile then egress runs.
+
+**Phone canonicalization (PCMS-UX-MOBILE):** UI and portal BFF run `normalizePublicRegistrationMobile()` before every public-auth call. Never strip the leading `+` to digits-only — that breaks lookup against seeded E.164 rows (e.g. `15550001001` ≠ `+15550001001` in identity). US 11-digit numbers without `+` are promoted to `+1…`; Iranian `09…` → `+98…`.
+
 **Dev origin:** Playwright smokes hit `{club}.portal.localhost:3003` while Next dev serves `localhost:3003`. `apps/portal/next.config.ts` sets `allowedDevOrigins: ["*.portal.localhost"]` (parity with `apps/web` `*.admin.localhost`).
 
 ---
@@ -390,6 +415,7 @@ Enterprise hardening **complete** for Denali registration shell (2026-06-30):
 | Wizard `fatherNameRequired` / `birthDateRequired` codegen | Done — `pnpm --filter @app-tour/workspace-denali run denali:codegen` |
 | `/me/profile` Denali skin + DEN-PROF E2E | Done 2026-07-02 — [portal-member-profile.md](./portal-member-profile.md) |
 | Tour-flag intake gating + DEN-INTAKE E2E | Done 2026-07-02 — `denali-catalog-intake.ts` · tour `…000212` |
+| DEN-INTAKE-04 intake → profile persist E2E | Done 2026-07-16 — `registration.service.ts` + `DEN-INTAKE-04` |
 | `/me/registrations` + receipt Denali skin | Done 2026-07-02 — [portal-member-registrations.md](./portal-member-registrations.md) |
 
 Deferred (non-blocker):

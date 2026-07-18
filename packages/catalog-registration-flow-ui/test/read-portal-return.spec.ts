@@ -44,4 +44,18 @@ describe("read-portal-return — PCMS login egress", () => {
     assert.match(source, /readPortalReturnFromDocument/);
     assert.match(source, /DEFAULT_MEMBER_LOGIN_EGRESS_PATH/);
   });
+
+  it("PCMS-LG-06 completeMemberLoginEgressAfterSession waits for session probe", () => {
+    const egressSource = readFileSync(
+      new URL("../src/read-portal-return.ts", import.meta.url),
+      "utf8"
+    );
+    const waitSource = readFileSync(
+      new URL("../src/wait-member-session-cookie.ts", import.meta.url),
+      "utf8"
+    );
+    assert.match(egressSource, /waitForMemberSessionCookie/);
+    assert.match(egressSource, /completeMemberLoginEgressAfterSession/);
+    assert.match(waitSource, /credentials: "include"/);
+  });
 });

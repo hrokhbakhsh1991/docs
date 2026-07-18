@@ -35,7 +35,7 @@ export function resolveWebRegistrationUrl(
   return resolvePortalRegistrationUrl(host, id);
 }
 
-/** Tour PDP sign-in — login then resume register at intake (PCMS tour intent). */
+/** Tour PDP sign-in — register page with auth=login modal (PCMS-UX-MODAL). */
 export function resolveWebRegistrationLoginUrl(
   host: string,
   tourId: string,

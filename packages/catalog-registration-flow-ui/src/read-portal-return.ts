@@ -1,3 +1,5 @@
+import { waitForMemberSessionCookie } from "./wait-member-session-cookie";
+
 /** DL-12 subset — allowlisted relative portalReturn only (no open redirect). */
 export function isSafePortalReturnPath(value: string | undefined | null): value is string {
   if (value === undefined || value === null) {
@@ -59,15 +61,33 @@ export function resolveMemberLoginEgressPath(fallbackPath?: string): string {
 
 export type CompleteMemberLoginEgressOptions = {
   readonly fallbackPath?: string;
+  /** When true, skip client location probe (SSR context already confirmed login egress). */
+  readonly memberLoginEgress?: boolean;
 };
 
 /** Redirect after member login auth on login egress; returns true when navigation started. */
 export function completeMemberLoginEgress(options?: CompleteMemberLoginEgressOptions): boolean {
-  if (!isMemberLoginEgressFromLocation()) {
+  if (options?.memberLoginEgress !== true && !isMemberLoginEgressFromLocation()) {
     return false;
   }
   window.location.assign(resolveMemberLoginEgressPath(options?.fallbackPath));
   return true;
+}
+
+export { waitForMemberSessionCookie } from "./wait-member-session-cookie";
+
+/** PCMS-UX-03 — probe session cookie before navigation to avoid login redirect loop. */
+export async function completeMemberLoginEgressAfterSession(
+  options?: CompleteMemberLoginEgressOptions
+): Promise<boolean> {
+  if (options?.memberLoginEgress !== true && !isMemberLoginEgressFromLocation()) {
+    return false;
+  }
+  const ready = await waitForMemberSessionCookie();
+  if (!ready) {
+    return false;
+  }
+  return completeMemberLoginEgress(options);
 }
 
 /** Redirect to portalReturn query when present; returns true when navigation started. */

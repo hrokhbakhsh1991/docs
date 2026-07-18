@@ -1,9 +1,13 @@
 {
   "nav": {
     "home": "Home",
+    "tours": "Tours",
+    "myTrips": "My trips",
     "trips": "Trips",
     "registrations": "My registrations",
     "profile": "Profile",
+    "account": "Account",
+    "openMenu": "Menu",
     "logout": "Log out",
     "loggingOut": "Logging out…",
     "skipToMain": "Skip to main content",
@@ -46,10 +50,13 @@
       "avatarUrl": "Avatar"
     },
     "save": "Save",
+    "discard": "Discard",
     "saving": "Saving…",
     "saved": "Profile saved.",
     "failed": "Save failed.",
     "loadFailed": "Could not load profile.",
+    "sessionTitle": "Session",
+    "sessionHint": "Sign out of your account on this device.",
     "sectionLabels": {
       "identity": "Identity",
       "participant": "Additional details"
@@ -143,6 +150,13 @@
     "submit": "Submit receipt",
     "uploading": "Uploading…",
     "uploaded": "Receipt uploaded.",
-    "failed": "Upload failed."
+    "failed": "Upload failed.",
+    "waitingTitle": "Receipt submitted",
+    "waitingBody": "Waiting for admin approval of your payment receipt.",
+    "rejectedHint": "Your previous receipt was rejected. Please upload a new one.",
+    "paidTitle": "Payment confirmed",
+    "paidBody": "Your receipt was approved. You're all set for this trip.",
+    "viewTour": "View tour",
+    "backToTrips": "Back to my trips"
   }
 }
