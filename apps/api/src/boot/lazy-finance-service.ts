@@ -2,7 +2,7 @@ import { createFinanceRepository } from "../workspace-finance/finance-repository
 import type { FinanceService } from "../workspace-finance/finance.service";
 import { createFinanceService } from "../workspace-finance/finance.service";
 import { BookingPaymentAdapter } from "../workspace-finance/infrastructure/booking-payment.adapter";
-import { DenaliFinanceLedgerPolicyAdapter } from "../workspace-finance/infrastructure/denali-finance-ledger-policy.adapter";
+import { resolveFinanceLedgerPolicy } from "../workspace-finance/resolve-finance-ledger-policy";
 
 let financeServicePromise: Promise<FinanceService> | null = null;
 
@@ -11,7 +11,7 @@ export function resetLazyFinanceServiceForTests(): void {
 }
 
 /**
- * Boot composition root — wires booking + Denali ledger policy into {@link FinanceService}.
+ * Boot composition root — wires booking + ledger policy (via resolver) into {@link FinanceService}.
  * Tests may pass a fully constructed service to bypass the singleton.
  */
 export async function resolveLazyFinanceService(
@@ -23,7 +23,7 @@ export async function resolveLazyFinanceService(
   if (financeServicePromise === null) {
     financeServicePromise = Promise.resolve(
       createFinanceService(
-        new DenaliFinanceLedgerPolicyAdapter(),
+        resolveFinanceLedgerPolicy(),
         createFinanceRepository(),
         new BookingPaymentAdapter()
       )
