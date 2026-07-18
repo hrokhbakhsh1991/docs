@@ -1,3 +1,4 @@
+import { shouldAbortAtomicTx } from "../test-hooks/atomic-tx-test-abort";
 import { Prisma, type Prisma as PrismaTypes } from "@prisma/client";
 
 function isUniqueViolation(error: unknown): boolean {
@@ -26,7 +27,7 @@ export async function enqueueOutboxEvent(
   tx: PrismaTypes.TransactionClient,
   input: EnqueueOutboxEventInput
 ): Promise<boolean> {
-  if (process.env.P5_ATOMIC_TX_TEST_ABORT === "outbox") {
+  if (shouldAbortAtomicTx("outbox")) {
     throw new Error("P5_ATOMIC_TX_TEST_ABORT");
   }
 
