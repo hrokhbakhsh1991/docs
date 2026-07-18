@@ -24,8 +24,10 @@ import {
   type FinanceRepositoryPort,
 } from "./finance-repository.factory";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
+import { DenaliFinanceReceiptDefaultsAdapter } from "./infrastructure/denali-finance-receipt-defaults.adapter";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
+import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
 import {
   buildPaymentScheduleItems,
   getSchedule,
@@ -97,14 +99,12 @@ function mapLedgerEventRow(row: FinanceLedgerOutboxRow): Record<string, unknown>
   };
 }
 
-const OFFLINE_RECEIPT_DEFAULT_AMOUNT = "2500000";
-const OFFLINE_RECEIPT_DEFAULT_CURRENCY = "IRR";
-
 export class FinanceService {
   constructor(
     private readonly ledgerPolicy: FinanceLedgerPolicyPort,
     private readonly repository: FinanceRepositoryPort = createFinanceRepository(),
-    private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter()
+    private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter(),
+    private readonly receiptDefaults: FinanceReceiptDefaultsPort = new DenaliFinanceReceiptDefaultsAdapter()
   ) {}
 
   private async gate(auth: TenantAuthContext): Promise<void> {
@@ -366,11 +366,12 @@ export class FinanceService {
         input.registrationId
       );
       assertManualPaymentDebtAllowed(statuses);
+      const offlineDefaults = this.receiptDefaults.offlineReceiptPaymentDefaults();
       payment = await this.repository.createManualPayment({
         tenantId: auth.tenantId,
         registrationId: input.registrationId,
-        amount: OFFLINE_RECEIPT_DEFAULT_AMOUNT,
-        currency: OFFLINE_RECEIPT_DEFAULT_CURRENCY,
+        amount: offlineDefaults.amountMinor,
+        currency: offlineDefaults.currency,
         method: "Manual",
         provider: "manual",
         status: "Pending",
@@ -844,7 +845,8 @@ export class FinanceService {
 export function createFinanceService(
   ledgerPolicy: FinanceLedgerPolicyPort,
   repository: FinanceRepositoryPort = createFinanceRepository(),
-  bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter()
+  bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter(),
+  receiptDefaults: FinanceReceiptDefaultsPort = new DenaliFinanceReceiptDefaultsAdapter()
 ): FinanceService {
-  return new FinanceService(ledgerPolicy, repository, bookingPayments);
+  return new FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults);
 }
