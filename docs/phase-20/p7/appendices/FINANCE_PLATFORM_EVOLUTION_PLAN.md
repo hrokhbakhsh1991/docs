@@ -488,6 +488,38 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | Reader has no `@app-tour/workspace-denali` imports | Done |
 | Denali adapter owns Denali reaction composition | Done |
 
+### Phase 1.8 Step 1 — Single TourCreated finance reaction driver
+
+| | |
+| -- | -- |
+| **Goal** | Remove duplicate TourCreated finance ownership: production relay must enter **one** finance event reaction contract; workspace adapters own Denali (or future WS) composition; unknown workspace types **fail closed** on resolve |
+| **Contract** | `WorkspaceFinanceEventReactionPort` + `resolveWorkspaceFinanceEventReaction(workspaceType)` |
+| **Production path** | Outbox relay → `dispatchTourCreatedOutboxSideEffects` → `processWorkspaceFinanceTourCreatedRow` → reaction registry → workspace adapter |
+| **Codegen** | Manifest `events[].hostSideEffect.dispatchVia: "financeEventReaction"` — **no** Denali `run*` in `WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS`; register/reexport deps remain for adapter IO injection |
+| **Fail closed** | Unregistered workspaceType on `resolveWorkspaceFinanceEventReaction` throws `FINANCE_EVENT_REACTION_UNSUPPORTED` (no silent no-op). Dispatcher skips invoke when reaction not registered (non-finance tenants unchanged) |
+| **Unchanged** | Payment formulas; approve TX; ledger capture IDs; idempotency claim keys; `FinanceService`; `handleTourCreatedLedgerEvent` journal math |
+| **Must NOT** | Dual invoke (bindings + port); request-scoped service; finance-core extract; silent Denali fallback |
+
+**Target graph (Step 1):**
+
+```text
+Outbox Relay
+  → dispatchTourCreatedOutboxSideEffects
+       → processWorkspaceFinanceTourCreatedRow   (finance capability)
+            → finance-event-reaction-registry
+                 → WorkspaceFinanceEventReactionPort (Denali adapter)
+                      → runTourCreatedFinanceSideEffect / consumeDenali* (workspace-owned)
+```
+
+**Phase 1.8 Step 1 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| Dispatcher does not call Denali `runTourCreatedFinanceSideEffect` directly | Done |
+| Generated bindings do not dispatch Denali finance `run*` when `dispatchVia: financeEventReaction` | Done |
+| Reaction registry fail-closed (no NOOP resolve) | Done |
+| `FinanceService` / approve / identity formulas untouched | Done |
+
 ### Phase 2 — Finance core extraction
 
 | | |

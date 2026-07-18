@@ -122,14 +122,17 @@ describe("workspace registry drop-in (P7-T06)", () => {
     );
   });
 
-  it("P0-PR-1 generateOutboxSideEffects imports manifest hostSideEffect adapter", () => {
+  it("P0-PR-1 generateOutboxSideEffects reexports hostSideEffect; financeEventReaction skips binding run", () => {
     const manifests = discoverManifests();
     const generated = generateOutboxSideEffects(manifests);
     assert.match(
       generated,
       /@app-tour\/workspace-denali\/host\/finance\/api-tour-created-adapter/
     );
+    assert.match(generated, /registerTourCreatedFinanceSideEffectDeps/);
     assert.match(generated, /runTourCreatedFinanceSideEffect/);
+    assert.match(generated, /WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS[\s\S]*=\s*\[\]/);
+    assert.doesNotMatch(generated, /run:\s*runTourCreatedFinanceSideEffect/);
     assert.throws(
       () =>
         generateOutboxSideEffects([
@@ -140,6 +143,26 @@ describe("workspace registry drop-in (P7-T06)", () => {
           },
         ]),
       /hostSideEffect is required/
+    );
+    assert.throws(
+      () =>
+        generateOutboxSideEffects([
+          {
+            id: "bad-dispatch",
+            package: "@app-tour/workspace-bad",
+            events: [
+              {
+                eventType: "TourCreated",
+                hostSideEffect: {
+                  adapterModule: "./finance/x",
+                  export: "runX",
+                  dispatchVia: "other",
+                },
+              },
+            ],
+          },
+        ]),
+      /dispatchVia must be "financeEventReaction"/
     );
   });
 

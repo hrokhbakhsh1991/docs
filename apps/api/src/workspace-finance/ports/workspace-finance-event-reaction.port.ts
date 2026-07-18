@@ -1,6 +1,8 @@
 /**
  * Application port — workspace reactions that produce finance ledger facts from product events.
- * Phase 1.7 Commit 2: finance host calls this port only (no Denali consumer names).
+ * Phase 1.7 Commit 2 / Phase 1.8 Step 1: single finance event reaction contract.
+ * Production relay enters via process-workspace-finance-outbox → registry → adapter
+ * (no Denali consumer names in host process/dispatcher).
  */
 
 export type WorkspaceFinanceReactionBatchResult = {

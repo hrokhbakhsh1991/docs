@@ -30,7 +30,8 @@
         "adapterModule": "./finance/api-tour-created-adapter",
         "export": "runTourCreatedFinanceSideEffect",
         "registerExport": "registerTourCreatedFinanceSideEffectDeps",
-        "rowTypeExport": "TourCreatedFinanceSideEffectRow"
+        "rowTypeExport": "TourCreatedFinanceSideEffectRow",
+        "dispatchVia": "financeEventReaction"
       }
     }
   ],
