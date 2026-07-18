@@ -109,11 +109,15 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
   let admin: PrismaClient;
   const listener = createRequestListener();
   const priorReclaimMs = process.env.HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS;
-  const reclaimMs = 50;
+  const priorOutboxRelay = process.env.OUTBOX_RELAY_ENABLED;
+  /** Short enough for explicit stale fixtures; long enough for live owner heartbeats under load. */
+  const reclaimMs = 2_000;
 
   before(async () => {
     process.env.STORAGE_DRIVER = process.env.STORAGE_DRIVER?.trim() || "prisma";
     process.env.HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS = String(reclaimMs);
+    // Relay tick also reclaims HTTP leases — disable so short TTL fixtures stay deterministic.
+    process.env.OUTBOX_RELAY_ENABLED = "false";
     resetLazyRouteHandlersForTests();
     resetLazyFinanceServiceForTests();
     resetLazyWorkspaceFinanceHandlersForTests();
@@ -131,6 +135,7 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
 
   beforeEach(() => {
     process.env.HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS = String(reclaimMs);
+    process.env.OUTBOX_RELAY_ENABLED = "false";
     resetHttpIdempotencyMemoryForTests();
   });
 
@@ -139,6 +144,11 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
       delete process.env.HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS;
     } else {
       process.env.HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS = priorReclaimMs;
+    }
+    if (priorOutboxRelay === undefined) {
+      delete process.env.OUTBOX_RELAY_ENABLED;
+    } else {
+      process.env.OUTBOX_RELAY_ENABLED = priorOutboxRelay;
     }
     await admin.$executeRawUnsafe(
       `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
@@ -167,6 +177,7 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
         requestHash: "hash-reclaim-01",
         status: "processing",
         createdAt: staleAt,
+        // legacy NULL lease → createdAt TTL path
       },
     });
 
@@ -178,6 +189,85 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
       },
     });
     assert.equal(row, null);
+  });
+
+  it("IDEM-LEASE-01 fresh leaseUntil not reclaimed despite old createdAt", async () => {
+    const idempotencyKey = `lease-01-${randomUUID()}`;
+    await admin.httpIdempotencyRecord.create({
+      data: {
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        requestHash: "hash-lease-01",
+        status: "processing",
+        createdAt: new Date(Date.now() - reclaimMs - 60_000),
+        leaseUntil: new Date(Date.now() + reclaimMs),
+        leaseOwner: "owner-lease-01",
+      },
+    });
+    await reclaimStaleProcessingHttpIdempotencyRecords(reclaimMs);
+    const row = await admin.httpIdempotencyRecord.findUnique({
+      where: {
+        tenantId_idempotencyKey: { tenantId: denaliTenantId, idempotencyKey },
+      },
+    });
+    assert.ok(row);
+    assert.equal(row?.status, "processing");
+    assert.equal(row?.leaseOwner, "owner-lease-01");
+  });
+
+  it("IDEM-LEASE-02 expired leaseUntil is reclaimed", async () => {
+    const idempotencyKey = `lease-02-${randomUUID()}`;
+    await admin.httpIdempotencyRecord.create({
+      data: {
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        requestHash: "hash-lease-02",
+        status: "processing",
+        createdAt: new Date(),
+        leaseUntil: new Date(Date.now() - 1_000),
+        leaseOwner: "owner-lease-02",
+      },
+    });
+    const reclaimed = await reclaimStaleProcessingHttpIdempotencyRecords(reclaimMs);
+    assert.ok(reclaimed >= 1);
+    const row = await admin.httpIdempotencyRecord.findUnique({
+      where: {
+        tenantId_idempotencyKey: { tenantId: denaliTenantId, idempotencyKey },
+      },
+    });
+    assert.equal(row, null);
+  });
+
+  it("IDEM-LEASE-03 heartbeating owner survives reclaim during execute window", async () => {
+    const idempotencyKey = `lease-03-${randomUUID()}`;
+    const leaseOwner = "owner-lease-03";
+    await admin.httpIdempotencyRecord.create({
+      data: {
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        requestHash: "hash-lease-03",
+        status: "processing",
+        createdAt: new Date(Date.now() - reclaimMs - 60_000),
+        leaseUntil: new Date(Date.now() + reclaimMs),
+        leaseOwner,
+      },
+    });
+    // Simulate heartbeat renew while reclaim runs.
+    await admin.httpIdempotencyRecord.update({
+      where: {
+        tenantId_idempotencyKey: { tenantId: denaliTenantId, idempotencyKey },
+      },
+      data: { leaseUntil: new Date(Date.now() + reclaimMs) },
+    });
+    await reclaimStaleProcessingHttpIdempotencyRecords(reclaimMs);
+    const row = await admin.httpIdempotencyRecord.findUnique({
+      where: {
+        tenantId_idempotencyKey: { tenantId: denaliTenantId, idempotencyKey },
+      },
+    });
+    assert.ok(row);
+    assert.equal(row?.leaseOwner, leaseOwner);
+    assert.equal(row?.status, "processing");
   });
 
   it("IDEM-RECLAIM-02 prepay stuck processing → reclaim → same key retry (one logical)", async () => {
@@ -208,6 +298,8 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
         statusCode: null,
         completedAt: null,
         createdAt: new Date(Date.now() - reclaimMs - 5_000),
+        leaseUntil: new Date(Date.now() - 1_000),
+        leaseOwner: "stale-reclaim-02",
       },
     });
 
@@ -332,6 +424,8 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
         statusCode: null,
         completedAt: null,
         createdAt: new Date(Date.now() - reclaimMs - 5_000),
+        leaseUntil: new Date(Date.now() - 1_000),
+        leaseOwner: "stale-reclaim-04",
       },
     });
     await reclaimStaleProcessingHttpIdempotencyRecords(reclaimMs);

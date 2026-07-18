@@ -22,6 +22,7 @@ import { resetLazyRouteHandlersForTests } from "../src/boot/lazy-route-handlers"
 import { resetLazyWorkspaceFinanceHandlersForTests } from "../src/boot/lazy-workspace-finance-handlers";
 import { disconnectPrisma } from "../src/db/prisma";
 import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
+import { reclaimStaleProcessingHttpIdempotencyRecords } from "../src/http/http-idempotency-reclaim";
 import { integrationTenantId } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
@@ -874,6 +875,32 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
     assert.equal(count, 1);
   });
 
+  it("PAY-CREATE-IDEM-02 same key different body → payload mismatch", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `pay-create-idem-02-${registrationId}`;
+    const first = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: { registrationId, amount: "3000000", currency: "IRR" },
+    });
+    assert.equal(first.status, 201);
+    const second = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: { registrationId, amount: "3000001", currency: "IRR" },
+    });
+    assert.equal(second.status, 409);
+    assert.equal(second.body.code, "IDEMPOTENCY_PAYLOAD_MISMATCH");
+    const count = await admin.payment.count({
+      where: { tenantId: denaliTenantId, registrationId },
+    });
+    assert.equal(count, 1);
+  });
+
   it("RECEIPT-SUBMIT-IDEM-01 same key → one receipt", async () => {
     const registrationId = randomUUID();
     const manual = await requestJson(listener, {
@@ -904,6 +931,138 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
     });
     assert.equal(second.status, 201);
     assert.equal(second.body.id, first.body.id);
+    const count = await admin.paymentReceipt.count({
+      where: { tenantId: denaliTenantId, paymentId },
+    });
+    assert.equal(count, 1);
+  });
+
+  it("RECEIPT-SUBMIT-IDEM-02 same key different fileKey → payload mismatch", async () => {
+    const registrationId = randomUUID();
+    const manual = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey: `receipt-submit-pay-02-${registrationId}`,
+      body: { registrationId, amount: "4000000", currency: "IRR" },
+    });
+    assert.equal(manual.status, 201);
+    const paymentId = String(manual.body.id);
+    const idempotencyKey = `receipt-submit-idem-02-${paymentId}`;
+    const first = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: { paymentId, fileKey: `receipts/${paymentId}/a.jpg` },
+    });
+    assert.equal(first.status, 201);
+    const second = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: { paymentId, fileKey: `receipts/${paymentId}/b.jpg` },
+    });
+    assert.equal(second.status, 409);
+    assert.equal(second.body.code, "IDEMPOTENCY_PAYLOAD_MISMATCH");
+    const count = await admin.paymentReceipt.count({
+      where: { tenantId: denaliTenantId, paymentId },
+    });
+    assert.equal(count, 1);
+  });
+
+  it("PAY-CREATE-RECLAIM-01 reclaim + retry → same payment id", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `pay-create-reclaim-01-${registrationId}`;
+    const body = { registrationId, amount: "3100000", currency: "IRR" };
+    const first = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(first.status, 201);
+    const paymentId = String(first.body.id);
+
+    await admin.httpIdempotencyRecord.update({
+      where: {
+        tenantId_idempotencyKey: { tenantId: denaliTenantId, idempotencyKey },
+      },
+      data: {
+        status: "processing",
+        responseBody: null,
+        statusCode: null,
+        completedAt: null,
+        leaseUntil: new Date(Date.now() - 1_000),
+        leaseOwner: "stale-pay-reclaim",
+      },
+    });
+    await reclaimStaleProcessingHttpIdempotencyRecords(2_000);
+
+    const retry = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(retry.status, 201);
+    assert.equal(retry.body.id, paymentId);
+    const count = await admin.payment.count({
+      where: { tenantId: denaliTenantId, registrationId },
+    });
+    assert.equal(count, 1);
+  });
+
+  it("RECEIPT-SUBMIT-RECLAIM-01 reclaim + retry → same receipt id", async () => {
+    const registrationId = randomUUID();
+    const manual = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey: `receipt-reclaim-pay-${registrationId}`,
+      body: { registrationId, amount: "4100000", currency: "IRR" },
+    });
+    assert.equal(manual.status, 201);
+    const paymentId = String(manual.body.id);
+    const idempotencyKey = `receipt-submit-reclaim-01-${paymentId}`;
+    const body = { paymentId, fileKey: `receipts/${paymentId}/reclaim.jpg` };
+    const first = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(first.status, 201);
+    const receiptId = String(first.body.id);
+
+    await admin.httpIdempotencyRecord.update({
+      where: {
+        tenantId_idempotencyKey: { tenantId: denaliTenantId, idempotencyKey },
+      },
+      data: {
+        status: "processing",
+        responseBody: null,
+        statusCode: null,
+        completedAt: null,
+        leaseUntil: new Date(Date.now() - 1_000),
+        leaseOwner: "stale-receipt-reclaim",
+      },
+    });
+    await reclaimStaleProcessingHttpIdempotencyRecords(2_000);
+
+    const retry = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(retry.status, 201);
+    assert.equal(retry.body.id, receiptId);
     const count = await admin.paymentReceipt.count({
       where: { tenantId: denaliTenantId, paymentId },
     });
