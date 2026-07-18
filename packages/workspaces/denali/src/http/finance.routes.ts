@@ -145,7 +145,7 @@ export async function handleFinanceCreateManualPayment(
           idempotencyKey,
           requestHash,
           async () => {
-            const created = await financeService.createManualPayment(auth, body);
+            const created = await financeService.createManualPayment(auth, body, idempotencyKey);
             return created as Record<string, unknown>;
           }
         );
@@ -187,7 +187,7 @@ export async function handleFinanceSubmitReceipt(
           idempotencyKey,
           requestHash,
           async () => {
-            const created = await financeService.submitReceipt(auth, body);
+            const created = await financeService.submitReceipt(auth, body, idempotencyKey);
             return created as Record<string, unknown>;
           }
         );

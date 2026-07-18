@@ -66,6 +66,8 @@ export type CreatePaymentInput = {
   readonly method: string;
   readonly provider: string;
   readonly status: string;
+  /** SHA-256 hex of HTTP Idempotency-Key; omit for non-HTTP creates. */
+  readonly creationIdempotencyKey?: string;
 };
 
 export type CreateReceiptInput = {
@@ -73,6 +75,8 @@ export type CreateReceiptInput = {
   readonly paymentId: string;
   readonly fileKey: string;
   readonly note?: string;
+  /** SHA-256 hex of HTTP Idempotency-Key; omit for non-HTTP submits. */
+  readonly idempotencyKeyHash?: string;
 };
 
 export type ApproveManualReceiptAtomicInput = {
@@ -218,16 +222,106 @@ export class FinanceRepository {
 
   async createManualPayment(input: CreatePaymentInput): Promise<FinancePaymentRow> {
     return withTenantRls(input.tenantId, async (tx) => {
-      const row = await tx.payment.create({
-        data: {
-          tenantId: input.tenantId,
-          registrationId: input.registrationId,
-          amount: input.amount,
-          currency: input.currency.toUpperCase(),
-          method: input.method,
-          provider: input.provider,
-          status: input.status,
-        },
+      if (input.creationIdempotencyKey !== undefined) {
+        const existingByKey = await tx.payment.findFirst({
+          where: {
+            tenantId: input.tenantId,
+            creationIdempotencyKey: input.creationIdempotencyKey,
+          },
+          select: {
+            id: true,
+            registrationId: true,
+            amount: true,
+            currency: true,
+            method: true,
+            status: true,
+            provider: true,
+            paidAt: true,
+            createdAt: true,
+          },
+        });
+        if (existingByKey !== null) {
+          if (
+            existingByKey.registrationId !== input.registrationId ||
+            existingByKey.amount !== input.amount ||
+            existingByKey.currency !== input.currency.toUpperCase()
+          ) {
+            throw new Error("FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT");
+          }
+          return existingByKey;
+        }
+      }
+      try {
+        const row = await tx.payment.create({
+          data: {
+            tenantId: input.tenantId,
+            registrationId: input.registrationId,
+            amount: input.amount,
+            currency: input.currency.toUpperCase(),
+            method: input.method,
+            provider: input.provider,
+            status: input.status,
+            ...(input.creationIdempotencyKey !== undefined
+              ? { creationIdempotencyKey: input.creationIdempotencyKey }
+              : {}),
+          },
+          select: {
+            id: true,
+            registrationId: true,
+            amount: true,
+            currency: true,
+            method: true,
+            status: true,
+            provider: true,
+            paidAt: true,
+            createdAt: true,
+          },
+        });
+        return row;
+      } catch (error) {
+        if (
+          input.creationIdempotencyKey !== undefined &&
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          const existing = await tx.payment.findFirst({
+            where: {
+              tenantId: input.tenantId,
+              creationIdempotencyKey: input.creationIdempotencyKey,
+            },
+            select: {
+              id: true,
+              registrationId: true,
+              amount: true,
+              currency: true,
+              method: true,
+              status: true,
+              provider: true,
+              paidAt: true,
+              createdAt: true,
+            },
+          });
+          if (existing === null) {
+            throw error;
+          }
+          if (
+            existing.registrationId !== input.registrationId ||
+            existing.amount !== input.amount ||
+            existing.currency !== input.currency.toUpperCase()
+          ) {
+            throw new Error("FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT");
+          }
+          return existing;
+        }
+        throw error;
+      }
+    });
+  }
+
+  async findPaymentById(tenantId: string, paymentId: string): Promise<FinancePaymentRow | null> {
+    return withTenantRls(tenantId, async (tx) => {
+      return tx.payment.findFirst({
+        where: { tenantId, id: paymentId },
         select: {
           id: true,
           registrationId: true,
@@ -240,14 +334,16 @@ export class FinanceRepository {
           createdAt: true,
         },
       });
-      return row;
     });
   }
 
-  async findPaymentById(tenantId: string, paymentId: string): Promise<FinancePaymentRow | null> {
+  async findPaymentByCreationIdempotencyKey(
+    tenantId: string,
+    creationIdempotencyKey: string
+  ): Promise<FinancePaymentRow | null> {
     return withTenantRls(tenantId, async (tx) => {
       return tx.payment.findFirst({
-        where: { tenantId, id: paymentId },
+        where: { tenantId, creationIdempotencyKey },
         select: {
           id: true,
           registrationId: true,
@@ -331,31 +427,121 @@ export class FinanceRepository {
 
   async createReceipt(input: CreateReceiptInput): Promise<FinanceReceiptRow> {
     return withTenantRls(input.tenantId, async (tx) => {
-      const row = await tx.paymentReceipt.create({
-        data: {
-          tenantId: input.tenantId,
-          paymentId: input.paymentId,
-          fileKey: input.fileKey,
-          status: "Pending",
-          note: input.note ?? null,
-        },
-        include: {
-          payment: {
-            select: {
-              id: true,
-              registrationId: true,
-              amount: true,
-              currency: true,
-              method: true,
-              status: true,
-              provider: true,
-              paidAt: true,
-              createdAt: true,
+      if (input.idempotencyKeyHash !== undefined) {
+        const byHash = await tx.paymentReceipt.findFirst({
+          where: {
+            tenantId: input.tenantId,
+            idempotencyKeyHash: input.idempotencyKeyHash,
+          },
+          include: {
+            payment: {
+              select: {
+                id: true,
+                registrationId: true,
+                amount: true,
+                currency: true,
+                method: true,
+                status: true,
+                provider: true,
+                paidAt: true,
+                createdAt: true,
+              },
             },
           },
+        });
+        if (byHash !== null) {
+          if (
+            byHash.paymentId !== input.paymentId ||
+            byHash.fileKey !== input.fileKey ||
+            (input.note !== undefined && byHash.note !== (input.note ?? null))
+          ) {
+            throw new Error("FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT");
+          }
+          return byHash;
+        }
+      }
+
+      const pendingCount = await tx.paymentReceipt.count({
+        where: {
+          tenantId: input.tenantId,
+          paymentId: input.paymentId,
+          status: "Pending",
         },
       });
-      return row;
+      if (pendingCount > 0) {
+        throw new Error("ZOD_VALIDATION_FAILED: payment already has a pending receipt");
+      }
+
+      try {
+        const row = await tx.paymentReceipt.create({
+          data: {
+            tenantId: input.tenantId,
+            paymentId: input.paymentId,
+            fileKey: input.fileKey,
+            status: "Pending",
+            note: input.note ?? null,
+            ...(input.idempotencyKeyHash !== undefined
+              ? { idempotencyKeyHash: input.idempotencyKeyHash }
+              : {}),
+          },
+          include: {
+            payment: {
+              select: {
+                id: true,
+                registrationId: true,
+                amount: true,
+                currency: true,
+                method: true,
+                status: true,
+                provider: true,
+                paidAt: true,
+                createdAt: true,
+              },
+            },
+          },
+        });
+        return row;
+      } catch (error) {
+        if (
+          input.idempotencyKeyHash !== undefined &&
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          const existing = await tx.paymentReceipt.findFirst({
+            where: {
+              tenantId: input.tenantId,
+              idempotencyKeyHash: input.idempotencyKeyHash,
+            },
+            include: {
+              payment: {
+                select: {
+                  id: true,
+                  registrationId: true,
+                  amount: true,
+                  currency: true,
+                  method: true,
+                  status: true,
+                  provider: true,
+                  paidAt: true,
+                  createdAt: true,
+                },
+              },
+            },
+          });
+          if (existing === null) {
+            throw error;
+          }
+          if (
+            existing.paymentId !== input.paymentId ||
+            existing.fileKey !== input.fileKey ||
+            (input.note !== undefined && existing.note !== (input.note ?? null))
+          ) {
+            throw new Error("FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT");
+          }
+          return existing;
+        }
+        throw error;
+      }
     });
   }
 

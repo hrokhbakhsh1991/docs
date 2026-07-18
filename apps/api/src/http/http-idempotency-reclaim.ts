@@ -3,7 +3,7 @@ import { metricsRegistry } from "../observability/metrics";
 
 const DEFAULT_RECLAIM_MS = 120_000;
 
-/** `HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS` — stale `processing` TTL for HTTP idempotency rows. */
+/** `HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS` — lease duration + legacy createdAt fallback TTL. */
 export function resolveHttpIdempotencyProcessingReclaimMs(): number {
   const raw = process.env.HTTP_IDEMPOTENCY_PROCESSING_RECLAIM_MS?.trim();
   if (!raw) {
@@ -14,18 +14,26 @@ export function resolveHttpIdempotencyProcessingReclaimMs(): number {
 }
 
 /**
- * Deletes stale `processing` HttpIdempotencyRecord rows so clients can retry.
+ * Deletes expired `processing` HttpIdempotencyRecord rows so clients can retry.
+ *
+ * New writers: reclaim when `lease_until < now()`.
+ * Legacy rows (`lease_until IS NULL`, old pods): reclaim when `created_at < now() - TTL`.
+ *
  * Finance (and other) mutations under runIdempotentHttpMutation must be retry-safe after reclaim.
  */
 export async function reclaimStaleProcessingHttpIdempotencyRecords(
   reclaimMs = resolveHttpIdempotencyProcessingReclaimMs()
 ): Promise<number> {
-  const cutoff = new Date(Date.now() - reclaimMs);
+  const now = new Date();
+  const legacyCutoff = new Date(Date.now() - reclaimMs);
   const admin = getPrismaAdmin();
   const result = await admin.httpIdempotencyRecord.deleteMany({
     where: {
       status: "processing",
-      createdAt: { lt: cutoff },
+      OR: [
+        { leaseUntil: { lt: now } },
+        { AND: [{ leaseUntil: null }, { createdAt: { lt: legacyCutoff } }] },
+      ],
     },
   });
 
