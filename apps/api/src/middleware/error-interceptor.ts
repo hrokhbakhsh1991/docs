@@ -204,6 +204,12 @@ function mapErrorMessageToStatus(message: string): number {
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_COMPENSATE_FAILED") return 500;
   if (message === "FINANCE_PREPAYMENT_CONFLICT") return 409;
   if (message === "FINANCE_APPROVE_CONFLICT") return 409;
+  if (
+    message === "FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT" ||
+    message === "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT"
+  ) {
+    return 409;
+  }
   if (message.startsWith("TOUR_CAPACITY_EXCEEDED")) return 429;
   if (message === VALIDATION_QUEUE_SATURATED) return 429;
   if (message === TOUR_WRITE_CONCURRENCY_EXCEEDED) return 429;
