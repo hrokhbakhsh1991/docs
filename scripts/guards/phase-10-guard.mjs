@@ -112,6 +112,7 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "finance-dependency-registry.spec.ts",
   "finance-dependency-registry.ts",
   "finance-http-contracts.spec.ts",
+  "finance-http-handlers-ownership.spec.ts",
   "finance-list-projection.ts",
   "finance-module-enabled.ts",
   "finance-registration-context.ts",

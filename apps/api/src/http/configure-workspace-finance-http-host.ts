@@ -1,4 +1,4 @@
-import { configureDenaliFinanceHttpHost } from "@app-tour/workspace-denali/http";
+import { configureFinanceHttpHost } from "@app-tour/finance-http";
 
 import { resolveLazyFinanceService } from "../boot/lazy-finance-service";
 import type { FinanceService } from "../workspace-finance/finance.service";
@@ -13,7 +13,7 @@ import {
 } from "./http-idempotency";
 import { parseJsonBody, readRequestBodyRaw, sendJson } from "./json";
 
-configureDenaliFinanceHttpHost({
+configureFinanceHttpHost({
   runWithHttpRequestContext,
   sendJson,
   handleHttpError,

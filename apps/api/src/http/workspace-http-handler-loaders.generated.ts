@@ -48,42 +48,45 @@ export async function loadWorkspaceHttpPackageHandlers(): Promise<WorkspaceHttpP
   const handlers = {};
   const mod0 = await import("@app-tour/workspace-denali/host/http");
   Object.assign(handlers, {
-    handleFinanceCreateManualPayment: mod0.handleFinanceCreateManualPayment,
-    handleFinanceGenerateSchedule: mod0.handleFinanceGenerateSchedule,
-    handleFinanceGetRegistrationInvoice: mod0.handleFinanceGetRegistrationInvoice,
-    handleFinanceGetSchedule: mod0.handleFinanceGetSchedule,
-    handleFinanceLedgerEvents: mod0.handleFinanceLedgerEvents,
-    handleFinanceListBookingSyncDegraded: mod0.handleFinanceListBookingSyncDegraded,
-    handleFinanceListPayments: mod0.handleFinanceListPayments,
-    handleFinanceListPrepayments: mod0.handleFinanceListPrepayments,
-    handleFinanceListSchedules: mod0.handleFinanceListSchedules,
-    handleFinanceOpenPayments: mod0.handleFinanceOpenPayments,
-    handleFinancePendingReceipts: mod0.handleFinancePendingReceipts,
-    handleFinanceReceiptUrl: mod0.handleFinanceReceiptUrl,
-    handleFinanceRecordPrepayment: mod0.handleFinanceRecordPrepayment,
-    handleFinanceRetryBookingSync: mod0.handleFinanceRetryBookingSync,
-    handleFinanceReviewReceipt: mod0.handleFinanceReviewReceipt,
-    handleFinanceSubmitReceipt: mod0.handleFinanceSubmitReceipt,
-    handleFinanceSummary: mod0.handleFinanceSummary,
     handleGetDenaliCatalog: mod0.handleGetDenaliCatalog,
     handleGetDenaliCatalogTour: mod0.handleGetDenaliCatalogTour,
     handleGetDenaliDashboardTour: mod0.handleGetDenaliDashboardTour,
     handleGetDenaliReminderFeed: mod0.handleGetDenaliReminderFeed,
     handlePostDenaliRegistration: mod0.handlePostDenaliRegistration,
   });
-  const mod1 = await import("@app-tour/workspace-guest-club/host/http");
+  const mod1 = await import("@app-tour/finance-http");
   Object.assign(handlers, {
-    handleGetGuestClubCatalog: mod1.handleGetGuestClubCatalog,
-    handleGetGuestClubCatalogTour: mod1.handleGetGuestClubCatalogTour,
-    handlePostGuestClubRegistration: mod1.handlePostGuestClubRegistration,
+    handleFinanceCreateManualPayment: mod1.handleFinanceCreateManualPayment,
+    handleFinanceGenerateSchedule: mod1.handleFinanceGenerateSchedule,
+    handleFinanceGetRegistrationInvoice: mod1.handleFinanceGetRegistrationInvoice,
+    handleFinanceGetSchedule: mod1.handleFinanceGetSchedule,
+    handleFinanceLedgerEvents: mod1.handleFinanceLedgerEvents,
+    handleFinanceListBookingSyncDegraded: mod1.handleFinanceListBookingSyncDegraded,
+    handleFinanceListPayments: mod1.handleFinanceListPayments,
+    handleFinanceListPrepayments: mod1.handleFinanceListPrepayments,
+    handleFinanceListSchedules: mod1.handleFinanceListSchedules,
+    handleFinanceOpenPayments: mod1.handleFinanceOpenPayments,
+    handleFinancePendingReceipts: mod1.handleFinancePendingReceipts,
+    handleFinanceReceiptUrl: mod1.handleFinanceReceiptUrl,
+    handleFinanceRecordPrepayment: mod1.handleFinanceRecordPrepayment,
+    handleFinanceRetryBookingSync: mod1.handleFinanceRetryBookingSync,
+    handleFinanceReviewReceipt: mod1.handleFinanceReviewReceipt,
+    handleFinanceSubmitReceipt: mod1.handleFinanceSubmitReceipt,
+    handleFinanceSummary: mod1.handleFinanceSummary,
   });
-  const mod2 = await import("@app-tour/workspace-urban/host/http");
+  const mod2 = await import("@app-tour/workspace-guest-club/host/http");
   Object.assign(handlers, {
-    handleGetUrbanCatalog: mod2.handleGetUrbanCatalog,
-    handleGetUrbanCatalogTour: mod2.handleGetUrbanCatalogTour,
-    handleGetUrbanSettings: mod2.handleGetUrbanSettings,
-    handlePatchUrbanSettings: mod2.handlePatchUrbanSettings,
-    handlePostUrbanRegistration: mod2.handlePostUrbanRegistration,
+    handleGetGuestClubCatalog: mod2.handleGetGuestClubCatalog,
+    handleGetGuestClubCatalogTour: mod2.handleGetGuestClubCatalogTour,
+    handlePostGuestClubRegistration: mod2.handlePostGuestClubRegistration,
+  });
+  const mod3 = await import("@app-tour/workspace-urban/host/http");
+  Object.assign(handlers, {
+    handleGetUrbanCatalog: mod3.handleGetUrbanCatalog,
+    handleGetUrbanCatalogTour: mod3.handleGetUrbanCatalogTour,
+    handleGetUrbanSettings: mod3.handleGetUrbanSettings,
+    handlePatchUrbanSettings: mod3.handlePatchUrbanSettings,
+    handlePostUrbanRegistration: mod3.handlePostUrbanRegistration,
   });
   return handlers as WorkspaceHttpPackageHandlers;
 }
