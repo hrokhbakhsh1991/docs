@@ -19,12 +19,7 @@ import {
 } from "./assert-finance-access";
 import { compileRegistrationInvoice } from "./compile-invoice-balances";
 import type { FinanceLedgerOutboxRow, FinanceSummaryRow } from "./finance.repository";
-import {
-  createFinanceRepository,
-  type FinanceRepositoryPort,
-} from "./finance-repository.factory";
-import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
-import { BookingRegistrationDisplayAdapter } from "./infrastructure/booking-registration-display.adapter";
+import type { FinanceRepositoryPort } from "./finance-repository.factory";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
 import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
@@ -99,14 +94,28 @@ function mapLedgerEventRow(row: FinanceLedgerOutboxRow): Record<string, unknown>
   };
 }
 
+function assertCompositionDep(name: string, value: unknown): void {
+  if (value === null || value === undefined) {
+    throw new Error(
+      `FINANCE_SERVICE_DEP_REQUIRED: ${name} must be provided by the composition root`
+    );
+  }
+}
+
 export class FinanceService {
   constructor(
     private readonly ledgerPolicy: FinanceLedgerPolicyPort,
-    private readonly repository: FinanceRepositoryPort = createFinanceRepository(),
-    private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter(),
+    private readonly repository: FinanceRepositoryPort,
+    private readonly bookingPayments: IBookingPaymentPort,
     private readonly receiptDefaults: FinanceReceiptDefaultsPort,
-    private readonly registrationDisplay: RegistrationDisplayPort = new BookingRegistrationDisplayAdapter()
-  ) {}
+    private readonly registrationDisplay: RegistrationDisplayPort
+  ) {
+    assertCompositionDep("ledgerPolicy", ledgerPolicy);
+    assertCompositionDep("repository", repository);
+    assertCompositionDep("bookingPayments", bookingPayments);
+    assertCompositionDep("receiptDefaults", receiptDefaults);
+    assertCompositionDep("registrationDisplay", registrationDisplay);
+  }
 
   private async gate(auth: TenantAuthContext): Promise<void> {
     await assertFinanceWorkspaceGate(auth.tenantId);
@@ -845,10 +854,10 @@ export class FinanceService {
 
 export function createFinanceService(
   ledgerPolicy: FinanceLedgerPolicyPort,
-  repository: FinanceRepositoryPort = createFinanceRepository(),
-  bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter(),
+  repository: FinanceRepositoryPort,
+  bookingPayments: IBookingPaymentPort,
   receiptDefaults: FinanceReceiptDefaultsPort,
-  registrationDisplay: RegistrationDisplayPort = new BookingRegistrationDisplayAdapter()
+  registrationDisplay: RegistrationDisplayPort
 ): FinanceService {
   return new FinanceService(
     ledgerPolicy,

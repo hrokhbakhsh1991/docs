@@ -61,10 +61,10 @@ P7 path boundary: edit **`apps/api/src/workspace-finance/`** only; `apps/api/src
 | HTTP request contracts | `@app-tour/finance-http-contracts`; Denali schemas re-export | **P1.4 Done** — finance-owned SoT |
 | HTTP host naming | `configureDenaliFinanceHttpHost` / `getDenaliFinanceHttpHost` | Naming/ownership leak (handlers still Denali) |
 | FinanceService DTO imports | `finance.service.ts` ← `@app-tour/finance-http-contracts` | **P1.4 Done** — no Denali HTTP import |
-| Ops UI manifest | `finance-ops-manifest.ts`; web imports `@app-tour/workspace-denali/host/finance/manifest` | Workspace UI config owned by Denali |
+| Ops UI manifest | Workspace `finance-ops-manifest` + `workspaceFinance.opsManifest` → generated web bindings | **P1.9.2** — generic web must not import Denali |
 | TourCreated → ledger side-effect | `workspace.manifest.json` `events[]` + `api-tour-created-adapter.ts` | Valid workspace event; Denali-only binding today |
 | Finance support binding | Only Denali in `WORKSPACE_FINANCE_BINDINGS` | Manifest `workspaceFinance.supported` |
-| Nav gate | **Phase 1.2:** `shouldShowFinanceNav` → `workspaceFinance.supported` codegen (`denali`); was wizard `extendedChrome` | Enablement ownership fixed; ops panels still Denali |
+| Nav gate | **Phase 1.2:** `shouldShowFinanceNav` → `workspaceFinance.supported` codegen | Enablement fixed; **P1.9.2** ops panels via `opsManifest` bindings |
 | Offline receipt defaults | `OFFLINE_RECEIPT_DEFAULT_* = IRR / 2500000` in `FinanceService` | Workspace defaults in host core |
 
 ### 1.3 What is reusable today (without copying Finance)
@@ -520,7 +520,141 @@ Outbox Relay
 | Reaction registry fail-closed (no NOOP resolve) | Done |
 | `FinanceService` / approve / identity formulas untouched | Done |
 
+### Phase 1.9 — Workspace finance adapters leave `apps/api` infrastructure
+
+| | |
+| -- | -- |
+| **Goal** | Workspace-specific finance behavior (ledger policy, receipt defaults, CoA, TourCreated reaction) leaves `apps/api` ownership |
+| **Package map** | **denali-finance** ≡ `packages/workspaces/denali/src/finance/` (`ledger-accounts` CoA, `adapters/*` policy/defaults/reaction). **ws2-finance** ≡ `packages/workspaces/finance-ws2/` (`@app-tour/workspace-finance-ws2`, fixture — no `workspace.manifest.json`) |
+| **Shared contracts** | Port types in `@app-tour/finance-http-contracts` (`workspace-finance-ports.ts`); API `ports/*.ts` re-export — workspaces never import `apps/api` |
+| **Denali reaction** | Adapter in workspace; Prisma outbox IO injected by API reaction registry (host factories) |
+| **Registries** | `finance-dependency-registry` / `finance-event-reaction-registry` import workspace packages only for policy/defaults/reaction |
+| **Stays in finance platform** | `FinanceService`, `FinanceRepository`, ports, HTTP contracts, payment workflows, approve TX, idempotency, ledger identity formulas, booking payment/display adapters |
+| **Must NOT** | finance-core extract; money-logic edits; Denali/WS2 adapters under API `infrastructure/` |
+
+**Dependency graph — before (HEAD `0ff3131e`):**
+
+```text
+apps/api FinanceService
+    → apps/api infrastructure Denali* / FinanceWs2* adapters
+        → @app-tour/workspace-denali (CoA helpers only for Denali policy)
+apps/api ports (SoT) ← adapters import relative ports
+```
+
+**Dependency graph — after (Phase 1.9):**
+
+```text
+apps/api registries / lazy-finance-service
+    → @app-tour/workspace-denali (ledger-policy, receipt-defaults, event-reaction + CoA)
+    → @app-tour/workspace-finance-ws2 (CoA, ledger-policy, receipt-defaults)
+    → apps/api infrastructure (BookingPayment*, BookingRegistrationDisplay* only)
+workspace packages → @app-tour/finance-http-contracts (ports)
+apps/api ports/*.ts → re-export finance-http-contracts
+(no workspace → apps/api; no finance-core)
+```
+
+**Phase 1.9 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| No Denali/WS2 policy/CoA/reaction under `apps/api/.../infrastructure` | Done |
+| Registries import `@app-tour/workspace-denali` / `@app-tour/workspace-finance-ws2` | Done |
+| Booking payment + registration display remain API host adapters | Done |
+| Denali capture/prepay identity formulas unchanged | Done |
+| Port SoT in finance-http-contracts (no API←workspace cycle) | Done |
+
+### Phase 1.9.1 — FinanceService dependency purity (composition root mandatory)
+
+| | |
+| -- | -- |
+| **Goal** | Composition root owns construction. `FinanceService` / `createFinanceService` receive **interfaces only** — no silent `new BookingPaymentAdapter()`, `new BookingRegistrationDisplayAdapter()`, or `createFinanceRepository()` defaults |
+| **Composition root** | HTTP: tenant → workspace resolver → registry → `createFinanceService(all deps)`. Boot: `lazy-finance-service.ts` constructs booking/repo/display + registry policy/defaults |
+| **Fail-fast** | Constructor / `createFinanceRepository` throw `FINANCE_SERVICE_DEP_REQUIRED` / `FINANCE_REPOSITORY_BOOKING_PAYMENTS_REQUIRED` when a required dep is null/undefined (no silent infrastructure) |
+| **Unchanged** | Business rules, payment flow, approve TX, repository behavior, identity formulas |
+| **Must NOT** | Request-scoped service; money-logic edits; finance-core extract |
+| **Commit** | `feat(finance): make finance composition root mandatory` |
+
+**Dependency graph — before (silent defaults):**
+
+```text
+createFinanceService(ledgerPolicy?) 
+  └─ FinanceService
+        repository ??= createFinanceRepository()
+                              └─ new BookingPaymentAdapter()   ★ hidden
+        bookingPayments ??= new BookingPaymentAdapter()      ★ hidden
+        registrationDisplay ??= new BookingRegistrationDisplayAdapter()  ★ hidden
+```
+
+**Dependency graph — after (composition owns construction):**
+
+```text
+HTTP / runtime
+  tenantId
+    → resolveFinanceWorkspaceTypeForTenant
+    → resolveFinanceWorkspaceDependencies(workspaceType)   # registry: policy + defaults + booking
+    → lazy-finance-service
+         createFinanceRepository(bookingPayments)          # explicit
+         new BookingRegistrationDisplayAdapter()           # explicit at root only
+         createFinanceService(ledger, repo, booking, defaults, display)
+
+FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, registrationDisplay)
+  # ports / interfaces only — no infrastructure imports
+```
+
+**Phase 1.9.1 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| `finance.service.ts` has no infrastructure adapter imports | Done |
+| All five constructor deps required (no defaults) | Done |
+| `createFinanceRepository(bookingPayments)` required arg | Done |
+| `FinanceRepository` / `InMemoryFinanceRepository` require bookingPayments | Done |
+| Specs compose adapters at call site | Done |
+| `FIN-DI-01` missing dep fails fast | Done |
+| `FIN-DI-02` registry / lazy composition root works | Done |
+| `FIN-DI-03` Denali receipt defaults + policy class unchanged | Done |
+
+### Phase 1.9.2 — Finance ops UI capability (no Denali hard-import)
+
+| | |
+| -- | -- |
+| **Goal** | Generic `apps/web` finance UI must not import `@app-tour/workspace-denali`. Ops panel defaults/theme merge are workspace-owned; host resolves via generated bindings + `pluginId` |
+| **Manifest** | `workspaceFinance.opsManifest` (`module`, `defaultExport`, `resolveFromThemeExport`) |
+| **Codegen** | `apps/web/src/bootstrap/workspace-finance-ops-bindings.generated.ts` |
+| **Host** | `finance-ops-panels.ts` → bindings only; `resolveFinanceOpsManifestForHub(theme, pluginId)` |
+| **Unchanged** | Panel components, tab UX, Denali default panel values |
+| **Must NOT** | Redesign UI; silent Denali default without pluginId |
+
+**Phase 1.9.2 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| `finance-ops-panels.ts` has no `@app-tour/workspace-denali` import | Done |
+| Ops defaults resolved by pluginId via generated bindings | Done |
+| WS without `opsManifest` cannot resolve ops panels (fail closed) | Done |
+
+### Phase 1.10 — Declarative finance capability registration
+
+| | |
+| -- | -- |
+| **Goal** | Adding workspace finance (ledger policy + receipt defaults + optional event reaction) does **not** require editing hand Maps in `apps/api` finance registries |
+| **Manifest** | `workspaceFinance.ledgerPolicy` / `receiptDefaults` / optional `eventReaction` (`module` + `export`); `supported: true` requires ledger+defaults; optional `registryOnly: true` for fixture packages (dependency bindings only — no nav/gate/plugin registry) |
+| **Codegen** | `workspace-finance-dependency-bindings.generated.ts`; `workspace-finance-event-reaction-bindings.generated.ts` |
+| **Runtime** | Thin `finance-dependency-registry` / `finance-event-reaction-registry` resolve via generated maps; unknown workspaceType **fail-closed** |
+| **Platform-owned** | `BookingPaymentAdapter`, repo, Prisma outbox IO injection, `BOOT_FINANCE_WORKSPACE_TYPE`, FinanceService |
+| **Unchanged** | Payment invariants, approve TX, RLS, identity formulas; no finance-core |
+
+**Phase 1.10 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| Hand Maps do not list Denali/WS2 concrete adapter imports | Done |
+| Registries resolve from generated bindings | Done |
+| Unknown workspaceType fail-closed | Done |
+| `supported` without ledger+defaults fails codegen | Done |
+
 ### Phase 2 — Finance core extraction
+
 
 | | |
 | -- | -- |

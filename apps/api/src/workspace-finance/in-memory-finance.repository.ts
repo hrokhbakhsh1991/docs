@@ -11,7 +11,6 @@ import type {
   FinanceReceiptRow,
   FinanceSummaryRow,
 } from "./finance.repository";
-import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 
 type StoredPayment = FinancePaymentRow & {
@@ -38,9 +37,7 @@ export function resetInMemoryFinanceRepositoryForTests(): void {
  * Atomicity / concurrency / HTTP idempotency proofs require STORAGE_DRIVER=prisma.
  */
 export class InMemoryFinanceRepository {
-  constructor(
-    private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter()
-  ) {}
+  constructor(private readonly bookingPayments: IBookingPaymentPort) {}
   async getSummary(tenantId: string): Promise<FinanceSummaryRow> {
     const tenantPayments = [...paymentsById.values()].filter((row) => row.tenantId === tenantId);
     const tenantReceipts = [...receiptsById.values()].filter((row) => row.tenantId === tenantId);

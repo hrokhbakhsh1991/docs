@@ -6,7 +6,6 @@ import { loadRegistrationInvoiceFacts } from "../finance/load-registration-invoi
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import { enqueueFinanceLedgerCaptureOutbox } from "./enqueue-finance-ledger-capture";
 import { MAX_PAYMENTS_PER_REGISTRATION } from "./finance-list-projection";
-import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
 import type {
   FinanceLedgerCapturePlan,
   FinanceLedgerJournalLine,
@@ -114,9 +113,7 @@ const PAYMENT_ROW_SELECT = {
 } as const;
 
 export class FinanceRepository {
-  constructor(
-    private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter()
-  ) {}
+  constructor(private readonly bookingPayments: IBookingPaymentPort) {}
 
   async getSummary(tenantId: string): Promise<FinanceSummaryRow> {
     return withTenantRls(tenantId, async (tx) => {

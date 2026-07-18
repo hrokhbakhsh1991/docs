@@ -39,6 +39,7 @@ import {
 } from "./finance-dependency-registry.ts";
 import { FinanceService } from "./finance.service.ts";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter.ts";
+import { BookingRegistrationDisplayAdapter } from "./infrastructure/booking-registration-display.adapter.ts";
 import { FINANCE_WS2_WORKSPACE_TYPE } from "./infrastructure/finance-ws2-chart-of-accounts.ts";
 import {
   InMemoryFinanceRepository,
@@ -184,7 +185,8 @@ describe("finance-http-contracts.spec.ts — Phase 1.4", { concurrency: false },
       resolveFinanceLedgerPolicy(FINANCE_WS2_WORKSPACE_TYPE),
       financeRepo,
       bookingPayments,
-      resolveFinanceReceiptDefaults(FINANCE_WS2_WORKSPACE_TYPE)
+      resolveFinanceReceiptDefaults(FINANCE_WS2_WORKSPACE_TYPE),
+      new BookingRegistrationDisplayAdapter()
     );
 
     const body: CreateManualPaymentBody = parseCreateManualPaymentBody({
