@@ -320,7 +320,7 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | Item | State |
 | ---- | ----- |
 | Composition registry owns `resolveFinanceLedgerPolicy(workspaceType)` + `resolveFinanceReceiptDefaults(workspaceType)` | Done |
-| Only Denali registered (Phase 1.1) | Done |
+| Only Denali registered at Phase 1.1; `finance-ws2` added in Phase 1.3 | Done |
 | Boot wires via registry — no `DenaliFinance*Adapter` imports | Done |
 | `FinanceService` has no workspaceType knowledge and no Denali adapter default import | Done |
 | Missing / unregistered workspaceType fails with clear error codes | Done |
@@ -342,12 +342,12 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 
 | Item | State |
 | ---- | ----- |
-| Registry resolves Denali vs `finance-ws2` policies and defaults | Pending |
-| Same `FinanceService` works with either injected policy | Pending |
-| WS2 CoA distinct; no Denali account leakage | Pending |
-| No Denali package import in WS2 modules | Pending |
-| No copied FinanceService / forked repository | Pending |
-| Production WS2 nav/HTTP/events/ops manifest deferred | Pending |
+| Registry resolves Denali vs `finance-ws2` policies and defaults | Done |
+| Same `FinanceService` works with either injected policy | Done |
+| WS2 CoA distinct; no Denali account leakage | Done |
+| No Denali package import in WS2 modules | Done |
+| No copied FinanceService / forked repository | Done |
+| Production WS2 nav/HTTP/events/ops manifest deferred | Done |
 
 ### Phase 2 — Finance core extraction
 

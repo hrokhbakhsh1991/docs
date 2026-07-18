@@ -63,7 +63,7 @@ Implementation: `apps/api/src/workspace-finance/finance.service.ts` → `reviewR
 | ----- | -------- | ---- |
 | **Port** | `IBookingPaymentPort` (`ports/booking-payment.port.ts`) | Application contract — `syncStatus` (non-TX), `raisePaidInTx(tx, …)` (approve TX), ownership/read helpers |
 | **Adapter** | `BookingPaymentAdapter` (`infrastructure/booking-payment.adapter.ts`) | Non-TX: `BookingsRepository.updatePaymentStatus`. TX: `tx.operatorRegistration` find/update + `raiseBookingPaymentStatus` |
-| **Composition** | `finance-dependency-registry` + `createFinanceService` + `createFinanceRepository` + `resolveLazyFinanceService` (boot) | Registry selects ledger policy + receipt defaults by `workspaceType` (Denali only today). Same booking adapter instance injected into service **and** Prisma/memory finance repositories. Boot must not import Denali adapter classes. |
+| **Composition** | `finance-dependency-registry` + `createFinanceService` + `createFinanceRepository` + `resolveLazyFinanceService` (boot) | Registry selects ledger policy + receipt defaults by `workspaceType` (`denali` + architecture-fixture `finance-ws2`). Same booking adapter instance injected into service **and** Prisma/memory finance repositories. Boot default remains Denali; boot must not import Denali adapter classes. |
 | **Approve wiring** | `reviewReceipt` → `approveManualReceiptAtomic` | Memory: `syncStatus` (Phase 3B norm, not TX-equivalent). Prisma: `raisePaidInTx` inside the ambient RLS TX (atomicity preserved; MISS still rolls back) |
 
 ```mermaid
@@ -88,7 +88,7 @@ flowchart LR
 
 **Forbidden in `FinanceService`:** `import { getBookingsRepository }` or any direct bookings repository call; constructing Denali (or any workspace) ledger/receipt adapters; reading `workspaceType`. Soft-fail prepayment sync and fail-closed approve errors still map from port results (`null` / MISS → `FINANCE_BOOKING_PAYMENT_SYNC_MISS`; thrown infra errors → `FINANCE_BOOKING_PAYMENT_SYNC_FAILED`). Member receipt ownership checks go through the same port (`memberOwnsRegistration`) so the Service Locator stays only inside Infrastructure.
 
-**Composition registry (Phase 1.1):** `apps/api/src/workspace-finance/finance-dependency-registry.ts` is the only place that maps `workspaceType` → `FinanceLedgerPolicyPort` / `FinanceReceiptDefaultsPort`. Registered today: **`denali` only**. Unregistered `workspaceType` fails closed (`FINANCE_LEDGER_POLICY_UNSUPPORTED` / `FINANCE_RECEIPT_DEFAULTS_UNSUPPORTED`); empty type → `FINANCE_WORKSPACE_TYPE_REQUIRED`. Boot wires via `resolveBootFinanceWorkspaceType()` → Denali; boot must not import Denali adapter classes. `FinanceService` must not construct workspace ledger/receipt adapters.
+**Composition registry (Phase 1.1 + 1.3):** `apps/api/src/workspace-finance/finance-dependency-registry.ts` is the only place that maps `workspaceType` → `FinanceLedgerPolicyPort` / `FinanceReceiptDefaultsPort`. Registered: **`denali`** (production boot default) and architecture-fixture **`finance-ws2`**. Unregistered `workspaceType` fails closed (`FINANCE_LEDGER_POLICY_UNSUPPORTED` / `FINANCE_RECEIPT_DEFAULTS_UNSUPPORTED`); empty type → `FINANCE_WORKSPACE_TYPE_REQUIRED`. Boot wires via `resolveBootFinanceWorkspaceType()` → Denali until per-tenant resolution. `FinanceService` must not construct workspace ledger/receipt adapters.
 
 **Forbidden in `FinanceRepository` (Prisma):** `tx.operatorRegistration` and `raiseBookingPaymentStatus` imports — booking projection mutations belong on the TX-capable booking port (Option C).
 
