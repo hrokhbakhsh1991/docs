@@ -1,16 +1,18 @@
+/**
+ * Finance command-center tab helpers (panel visibility within an allowed hub).
+ * Hub **availability** is `@/finance/finance-nav-enablement` (capability bindings) — not Denali.
+ */
 import {
   DEFAULT_FINANCE_OPS_MANIFEST,
-  resolveFinanceOpsManifestFromTheme,
   type FinanceOpsManifest,
-} from "@app-cloud/workspace-denali/host/finance/manifest";
+} from "@/finance/finance-ops-panels";
 
 export {
-  isFinanceRouteAllowed,
-  shouldShowFinanceNav,
-} from "@/finance/finance-nav-enablement";
-
-export { DEFAULT_FINANCE_OPS_MANIFEST, resolveFinanceOpsManifestFromTheme };
-export type { FinanceOpsManifest };
+  DEFAULT_FINANCE_OPS_MANIFEST,
+  resolveFinanceOpsManifestForHub,
+  resolveFinanceOpsManifestFromTheme,
+  type FinanceOpsManifest,
+} from "@/finance/finance-ops-panels";
 
 export type FinanceCommandCenterTab =
   | "overview"
@@ -20,7 +22,7 @@ export type FinanceCommandCenterTab =
   | "installments"
   | "ledger";
 
-/** Full tab catalog (type + deep-link vocabulary). Visibility is manifest-driven. */
+/** Full tab catalog (type + deep-link vocabulary). Visibility is ops-manifest-driven. */
 export const FINANCE_COMMAND_CENTER_TABS: readonly FinanceCommandCenterTab[] = [
   "overview",
   "payments",
@@ -29,13 +31,6 @@ export const FINANCE_COMMAND_CENTER_TABS: readonly FinanceCommandCenterTab[] = [
   "installments",
   "ledger",
 ] as const;
-
-export function resolveFinanceOpsManifestForHub(theme: unknown = null): FinanceOpsManifest {
-  if (theme === null || theme === undefined) {
-    return DEFAULT_FINANCE_OPS_MANIFEST;
-  }
-  return resolveFinanceOpsManifestFromTheme(theme);
-}
 
 export function listVisibleFinanceTabs(
   manifest: FinanceOpsManifest = DEFAULT_FINANCE_OPS_MANIFEST

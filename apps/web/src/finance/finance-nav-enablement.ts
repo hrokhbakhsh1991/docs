@@ -1,6 +1,7 @@
 /**
- * Phase 1.2 — finance hub enablement from `workspaceFinance` codegen bindings.
- * Independent of wizard extended-create chrome. Ops panels stay in finance-nav-access.
+ * Phase 1.2 — finance hub **availability** from `workspaceFinance` codegen bindings.
+ * Independent of wizard extended-create chrome and Denali ops panel manifests.
+ * Ops panel layout: `@/finance/finance-ops-panels`.
  */
 import { isFinanceNavPlugin } from "@/bootstrap/workspace-finance-nav-bindings.generated";
 

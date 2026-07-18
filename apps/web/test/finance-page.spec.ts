@@ -167,9 +167,24 @@ describe("finance-page.spec.ts — Phase 9.7", () => {
     assert.match(reportsLogic, /finance-attention-samples/);
   });
 
-  it("WEB-9.7-12 client finance nav imports manifest-only export (no node:crypto barrel)", () => {
-    const nav = readFileSync(resolve(WEB_ROOT, "src/finance/finance-nav-access.ts"), "utf8");
-    assert.match(nav, /@app-tour\/workspace-denali\/host\/finance\/manifest/);
-    assert.doesNotMatch(nav, /@app-tour\/workspace-denali\/host\/finance["']/);
+  it("WEB-9.7-12 ops panels import Denali manifest; availability does not", () => {
+    const ops = readFileSync(resolve(WEB_ROOT, "src/finance/finance-ops-panels.ts"), "utf8");
+    const enablement = readFileSync(resolve(WEB_ROOT, "src/finance/finance-nav-enablement.ts"), "utf8");
+    const access = readFileSync(resolve(WEB_ROOT, "src/finance/finance-nav-access.ts"), "utf8");
+    const dashboard = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-dashboard-widget-logic.ts"),
+      "utf8"
+    );
+    const operatorNav = readFileSync(resolve(WEB_ROOT, "src/admin/shell/resolve-operator-nav.ts"), "utf8");
+    assert.match(ops, /@app-tour\/workspace-denali\/host\/finance\/manifest/);
+    assert.doesNotMatch(ops, /@app-tour\/workspace-denali\/host\/finance["']/);
+    assert.doesNotMatch(enablement, /workspace-denali/);
+    assert.match(enablement, /workspace-finance-nav-bindings/);
+    assert.doesNotMatch(access, /workspace-denali/);
+    assert.match(access, /finance-ops-panels/);
+    assert.match(dashboard, /finance-nav-enablement/);
+    assert.doesNotMatch(dashboard, /workspace-denali|finance-ops-panels|finance-nav-access/);
+    assert.match(operatorNav, /finance-nav-enablement/);
+    assert.doesNotMatch(operatorNav, /workspace-denali|finance-ops-panels/);
   });
 });

@@ -290,7 +290,7 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | **After** | `pluginId` → `WORKSPACE_FINANCE_NAV_PLUGIN_IDS` (`workspaceFinance.supported`) → finance nav |
 | **Codegen** | `generateWorkspaceFinanceNavBindings` in `scripts/codegen/workspace-registry/domains/finance.mjs` → `apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts` |
 | **Runtime** | `finance-nav-enablement.ts` (`shouldShowFinanceNav` / `isFinanceRouteAllowed`) is the only enablement gate; operator nav, dashboard widget, and `/finance` page import it |
-| **Preserved** | Denali still `supported: true` → nav visible; Denali `financeOps` panels stay on `@app-cloud/workspace-denali/host/finance/manifest` via `finance-nav-access.ts` (ops UI only — not enablement) |
+| **Preserved** | Denali still `supported: true` → nav visible; Denali `financeOps` panels via `finance-ops-panels.ts` → `@app-tour/workspace-denali/host/finance/manifest` (ops layout only — **not** hub availability) |
 | **Must NOT** | Redesign UI; change approve/ledger/workflows; full WS2 workspace package/API registry; change users/welcome chrome gates |
 | **Verify** | Denali → true; urban/starter/`finance-ws2` (fixture, no manifest) → false; enablement module has zero `isExtendedOperatorWorkspace` / wizard-create imports |
 
