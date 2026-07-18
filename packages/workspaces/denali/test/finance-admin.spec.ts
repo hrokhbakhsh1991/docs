@@ -26,12 +26,13 @@ describe("finance-admin.spec.ts — Phase 9.7", () => {
     );
   });
 
-  it("SDK-9.7-02 default manifest exposes R1 panels and hides installments", () => {
+  it("SDK-9.7-02 default manifest exposes R1–R3 panels including installments (Phase D)", () => {
     const manifest = getDenaliFinanceOpsManifest();
     assert.deepEqual(manifest, DEFAULT_FINANCE_OPS_MANIFEST);
     assert.equal(manifest.panels.overview, true);
     assert.equal(manifest.panels.receipts, true);
-    assert.equal(manifest.panels.installments, false);
+    assert.equal(manifest.panels.installments, true);
+    assert.equal(manifest.installmentDefaults?.enabled, true);
     assert.ok(manifest.currencies.includes("IRR"));
   });
 

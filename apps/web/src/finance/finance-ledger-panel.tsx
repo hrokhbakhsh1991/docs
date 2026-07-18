@@ -2,6 +2,7 @@
 
 import { Download } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -9,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
+import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
 import {
   FINANCE_LEDGER_TEST_IDS,
   buildFinanceLedgerCsvContent,
@@ -37,6 +40,8 @@ export function FinanceLedgerPanel({
   const tCommon = useTranslations("finance.common");
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
+  const searchParams = useSearchParams();
+  const registrationFilter = searchParams.get("registrationId");
   const [items, setItems] = useState<readonly FinanceLedgerEvent[]>(initialLedger?.items ?? []);
   const [loading, setLoading] = useState(initialLedger === null);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +56,11 @@ export function FinanceLedgerPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    void fetch("/api/finance/reports/ledger-events?limit=100", { cache: "no-store" })
+    const path = withFinanceRegistrationQuery(
+      "/api/finance/reports/ledger-events?limit=100",
+      registrationFilter
+    );
+    void fetch(path, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`LEDGER_HTTP_${response.status}`);
@@ -76,7 +85,7 @@ export function FinanceLedgerPanel({
     return () => {
       cancelled = true;
     };
-  }, [fetchNonce]);
+  }, [fetchNonce, registrationFilter]);
 
   const handleExportCsv = () => {
     const csv = buildFinanceLedgerCsvContent(toFinanceLedgerCsvRows(items));
@@ -90,9 +99,12 @@ export function FinanceLedgerPanel({
   };
 
   return (
-    <div className="space-y-6" data-testid={FINANCE_LEDGER_TEST_IDS.panel}>
+    <div className="space-y-6" data-testid={FINANCE_LEDGER_TEST_IDS.panel} data-finance-audit-panel>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">{t("title")}</h2>
+        <div>
+          <h2 className="text-base font-semibold">{t("title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("auditSubtitle")}</p>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -147,9 +159,10 @@ export function FinanceLedgerPanel({
                     <p className="font-medium">{formatLedgerEventLabel(event.eventType)}</p>
                     <p className="font-mono text-xs text-muted-foreground">{event.eventType}</p>
                     {event.registrationId ? (
-                      <p className="font-mono text-xs text-muted-foreground">
-                        {event.registrationId}
-                      </p>
+                      <FinanceRegistrationIdentity
+                        registrationId={event.registrationId}
+                        context={event.registrationContext}
+                      />
                     ) : null}
                     {event.journalId ? (
                       <p className="font-mono text-xs text-muted-foreground">

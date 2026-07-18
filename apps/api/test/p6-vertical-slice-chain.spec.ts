@@ -86,7 +86,11 @@ describe("p6-vertical-slice-chain", () => {
       "PATCH",
       `/finance/receipts/${receiptId}/review`,
       {
-        headers: { ...operatorAuthHeaders(), "content-type": "application/json" },
+        headers: {
+          ...operatorAuthHeaders(),
+          "content-type": "application/json",
+          "Idempotency-Key": `p6-vs-approve-${receiptId}`,
+        },
         body: { decision: "approve" },
       }
     );

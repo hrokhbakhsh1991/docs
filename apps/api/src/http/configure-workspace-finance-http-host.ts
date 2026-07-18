@@ -5,6 +5,12 @@ import type { FinanceService } from "../workspace-finance/finance.service";
 import { handleHttpError } from "../middleware/error-interceptor";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { runWithHttpRequestContext } from "./bind-request-context";
+import {
+  hashIdempotentRequest,
+  IDEMPOTENCY_KEY_REQUIRED,
+  readIdempotencyKey,
+  runIdempotentHttpMutation,
+} from "./http-idempotency";
 import { parseJsonBody, readRequestBodyRaw, sendJson } from "./json";
 
 configureDenaliFinanceHttpHost({
@@ -15,7 +21,7 @@ configureDenaliFinanceHttpHost({
   readFinanceRequestBody: async (req) => {
     const rawBody = await readRequestBodyRaw(req);
     const parsedBody = parseJsonBody(rawBody);
-    return { parsedBody };
+    return { parsedBody, rawBody };
   },
   resolveFinanceService: async (deps) => {
     const service = await resolveLazyFinanceService(
@@ -23,4 +29,8 @@ configureDenaliFinanceHttpHost({
     );
     return service;
   },
+  readIdempotencyKey,
+  hashIdempotentRequest,
+  runIdempotentHttpMutation,
+  idempotencyKeyRequiredCode: IDEMPOTENCY_KEY_REQUIRED,
 });

@@ -3,6 +3,14 @@
     "title": "Finance Command Center",
     "subtitle": "Payments, receipts, prepayments, and ledger audit for Denali operators",
     "tabsAria": "Finance tabs",
+    "tabGuidance": "Manual payment = open debt on a booking. Prepayment = wallet credit before full settlement. Receipts = review member proof (portal upload). Ledger = audit journal only.",
+    "ledgerAuditHint": "audit",
+    "filteredByRegistration": "Filtered by registration:",
+    "clearRegistrationFilter": "Clear filter",
+    "decisionGuideTitle": "Which action should I use?",
+    "decisionGuideManual": "Manual payment — open a pending debt when the member will pay offline / transfer; then review the receipt.",
+    "decisionGuidePrepayment": "Prepayment — credit the booking wallet before the invoice is fully settled (partial progress toward total).",
+    "decisionGuideInstallment": "Installments — only when a payment schedule is enabled for the workspace; splits the invoice across due dates.",
     "tabs": {
       "overview": "Overview",
       "payments": "Payments",
@@ -24,10 +32,12 @@
     "optionalNote": "Note (optional)",
     "reviewNote": "Review note (optional)",
     "amountMinor": "Amount (minor units)",
+    "amountDisplay": "Amount (rials)",
     "due": "Due {date}",
     "paidPercent": "{percent, number}% paid",
     "exportCsv": "Export CSV",
-    "journal": "Journal {id}"
+    "journal": "Journal {id}",
+    "openBooking": "Open booking"
   },
   "kpi": {
     "pending-manual": "Pending manual payments",
@@ -40,6 +50,12 @@
     "viewDetails": "View details",
     "createManualPayment": "Create manual payment",
     "openReconciliation": "Open reconciliation triage",
+    "triageStaysInSettings": "Reconciliation triage stays under Settings — Finance only links here (no relocate without Architect).",
+    "attentionTitle": "Needs attention",
+    "attentionEmpty": "Nothing queued for attention right now.",
+    "attentionKindOverdue": "Overdue installment",
+    "attentionKindReceipt": "Receipt review",
+    "attentionKindManual": "Pending manual payment",
     "recentLedger": "Recent ledger events",
     "noLedger": "No ledger events yet.",
     "viewFullLedger": "View full ledger"
@@ -47,6 +63,9 @@
   "payments": {
     "createManual": "Create manual payment",
     "submitReceipt": "Submit payment receipt",
+    "submitReceiptAdvanced": "Advanced: operator receipt by file key",
+    "submitReceiptHint": "Members upload proof in the portal. Use Receipts to approve or reject. This form is for ops/debug only.",
+    "submitReceiptShowAdvanced": "Show advanced file-key form",
     "paymentId": "Payment ID",
     "fileKey": "File key",
     "fileKeyPlaceholder": "receipts/{paymentId}/proof.jpg",
@@ -55,6 +74,9 @@
     "submitting": "Submitting…",
     "submitButton": "Submit receipt",
     "listTitle": "Manual payments",
+    "listScopeHint": "This list shows Manual method rows only (not online gateway payments).",
+    "statusFilter": "Status filter",
+    "statusFilterAll": "All statuses",
     "empty": "No manual payments yet.",
     "status": {
       "Paid": "Paid",
@@ -65,8 +87,15 @@
   },
   "receipts": {
     "listTitle": "Receipt review queue",
+    "reviewRoleHint": "Review member-submitted proof. Open the booking link to see tour context.",
     "empty": "No receipts awaiting review.",
     "reviewPlaceholder": "Verified bank transfer",
+    "submittedAt": "Receipt submitted at",
+    "previewTitle": "Receipt proof",
+    "fileName": "File name",
+    "openProof": "Open file",
+    "previewUnavailable": "Preview unavailable. Once file storage is connected, the receipt image appears here.",
+    "previewLoading": "Loading preview…",
     "status": {
       "Pending": "Pending",
       "Approved": "Approved",
@@ -76,6 +105,7 @@
   "prepayments": {
     "invoiceBalance": "Registration invoice balance",
     "lookupBalance": "Look up balance",
+    "invoiceLoading": "Loading invoice…",
     "invoiceTotal": "Invoice total",
     "paid": "Paid",
     "balanceDue": "Balance due",
@@ -86,15 +116,27 @@
     "recentTitle": "Recent prepayments",
     "empty": "No prepayments recorded yet."
   },
+  "picker": {
+    "label": "Booking / registration",
+    "searchPlaceholder": "Search by tour title or guest name…",
+    "advancedUuid": "Paste registration UUID (advanced)",
+    "uuidPlaceholder": "00000000-0000-4000-8000-000000000001"
+  },
   "installments": {
     "generateTitle": "Generate schedule",
-    "invoiceTotalMinor": "Invoice total (minor)",
+    "invoiceTotalMinor": "Invoice total (rials)",
     "depositPercent": "Deposit %",
     "installmentCount": "Installments",
     "firstDue": "First due",
     "generating": "Generating…",
     "generateButton": "Generate schedule",
     "boardTitle": "Installment board",
+    "semanticsTitle": "Installments vs other money actions",
+    "semanticsPartial": "Partial — this installment row is only partly paid toward its own amount (paidMinor < amountMinor).",
+    "semanticsPrepayment": "Prepayment — wallet credit on the booking (Prepayments tab); it is not the same as a partial installment.",
+    "actionsDeferred": "Record payment / waive / reschedule are not available yet — no stub buttons until outbox-backed APIs land.",
+    "paidOfTotal": "Paid {paid} of {total}",
+    "partialHint": "This installment is partially paid. Use Prepayments or Manual payment for money movement until installment capture ships.",
     "board": {
       "overdue": "Overdue",
       "due_this_week": "Due this week",
@@ -112,18 +154,19 @@
   },
   "ledger": {
     "title": "Ledger",
+    "auditSubtitle": "Read-only outbox journal for audit — not day-to-day payment ops.",
     "eventsTitle": "Outbox journal events",
     "empty": "No ledger events yet."
   },
   "validation": {
     "REGISTRATION_ID_INVALID": "Registration ID must be a valid UUID.",
     "PAYMENT_ID_INVALID": "Payment ID must be a valid UUID.",
-    "AMOUNT_POSITIVE_INTEGER": "Amount must be a positive integer (minor units).",
+    "AMOUNT_POSITIVE_INTEGER": "Amount must be a positive integer (rials / minor units).",
     "CURRENCY_LENGTH": "Currency must be 3–8 characters.",
     "FILE_KEY_REQUIRED": "File key is required (max 512 chars).",
     "NOTE_MAX_LENGTH": "Note must be at most 2000 characters.",
     "PAYMENT_METHOD_REQUIRED": "Payment method is required (max 64 chars).",
-    "INVOICE_TOTAL_POSITIVE": "Invoice total must be a positive integer (minor units).",
+    "INVOICE_TOTAL_POSITIVE": "Invoice total must be a positive integer (rials / minor units).",
     "DEPOSIT_PERCENT_RANGE": "Deposit percent must be between 0 and 100.",
     "INSTALLMENT_COUNT_RANGE": "Installment count must be 1–24.",
     "FIRST_DUE_INVALID": "First due date is invalid.",
@@ -138,6 +181,8 @@
     "RECORD_PREPAYMENT_FAILED": "Prepayment record failed.",
     "GENERATE_SCHEDULE_FAILED": "Schedule generation failed.",
     "REVIEW_RECEIPT_FAILED": "Receipt review failed.",
-    "LEDGER_FETCH_FAILED": "Failed to load ledger."
+    "LEDGER_FETCH_FAILED": "Failed to load ledger.",
+    "INVOICE_FETCH_FAILED": "Failed to load invoice balance.",
+    "INVOICE_PARSE_FAILED": "Invoice response was invalid."
   }
 }

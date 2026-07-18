@@ -1,3 +1,6 @@
+import type { FinanceRegistrationContext } from "@/finance/finance-registration-context";
+import { parseFinanceRegistrationContext } from "@/finance/finance-registration-context";
+
 export const FINANCE_PAYMENTS_TEST_IDS = {
   panel: "finance-payments-panel",
   list: "finance-payments-list",
@@ -15,6 +18,7 @@ export type FinancePaymentRow = {
   readonly provider: string;
   readonly paidAt: string | null;
   readonly createdAt: string;
+  readonly registrationContext: FinanceRegistrationContext | null;
 };
 
 export type FinancePaymentsListResponse = {
@@ -50,6 +54,7 @@ export function parseFinancePaymentsListResponse(raw: unknown): FinancePaymentsL
       provider: String(entry.provider ?? ""),
       paidAt: typeof entry.paidAt === "string" ? entry.paidAt : null,
       createdAt: String(entry.createdAt ?? ""),
+      registrationContext: parseFinanceRegistrationContext(entry.registrationContext),
     }))
     .filter((entry) => entry.id.length > 0);
   return { items };

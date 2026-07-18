@@ -7,10 +7,11 @@ import { describe, it } from "node:test";
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("finance-prepayments-server-prefetch.spec.ts", () => {
-  it("PREPAYMENTS-01 finance page prefetches prepayments on the server", () => {
+  it("PREPAYMENTS-01 finance page is a thin server gate (no prepayments SSR prefetch)", () => {
     const pageSource = readFileSync(resolve(WEB_ROOT, "app/(app)/finance/page.tsx"), "utf8");
-    assert.match(pageSource, /fetchFinancePrepaymentsServer/);
-    assert.match(pageSource, /initialPrepayments/);
+    assert.doesNotMatch(pageSource, /fetchFinancePrepaymentsServer/);
+    assert.doesNotMatch(pageSource, /initialPrepayments/);
+    assert.match(pageSource, /FinanceCommandCenter/);
   });
 
   it("PREPAYMENTS-02 prepayments panel skips first fetch when initialPrepayments is provided", () => {

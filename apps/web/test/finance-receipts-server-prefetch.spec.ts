@@ -7,10 +7,11 @@ import { describe, it } from "node:test";
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("finance-receipts-server-prefetch.spec.ts", () => {
-  it("RECEIPTS-01 finance page prefetches receipts on the server", () => {
+  it("RECEIPTS-01 finance page is a thin server gate (no receipts SSR prefetch)", () => {
     const pageSource = readFileSync(resolve(WEB_ROOT, "app/(app)/finance/page.tsx"), "utf8");
-    assert.match(pageSource, /fetchFinanceReceiptsServer/);
-    assert.match(pageSource, /initialReceipts/);
+    assert.doesNotMatch(pageSource, /fetchFinanceReceiptsServer/);
+    assert.doesNotMatch(pageSource, /initialReceipts/);
+    assert.match(pageSource, /FinanceCommandCenter/);
   });
 
   it("RECEIPTS-02 receipts panel skips first fetch when initialReceipts is provided", () => {
@@ -20,5 +21,32 @@ describe("finance-receipts-server-prefetch.spec.ts", () => {
     );
     assert.match(panelSource, /initialReceipts/);
     assert.match(panelSource, /skipInitialFetchRef/);
+  });
+
+  it("RECEIPTS-03 receipts panel shows submittedAt + proof preview hooks", () => {
+    const panelSource = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-receipts-panel.tsx"),
+      "utf8"
+    );
+    assert.match(panelSource, /FINANCE_RECEIPTS_TEST_IDS\.submittedAt/);
+    assert.match(panelSource, /FINANCE_RECEIPTS_TEST_IDS\.preview/);
+    assert.match(panelSource, /\/api\/finance\/receipts\/.*\/url/);
+    const logicSource = readFileSync(
+      resolve(WEB_ROOT, "src/finance/finance-receipts-logic.ts"),
+      "utf8"
+    );
+    assert.match(logicSource, /submittedAt:\s*"finance-receipt-submitted-at"/);
+    assert.match(logicSource, /preview:\s*"finance-receipt-preview"/);
+    const urlRoute = readFileSync(
+      resolve(WEB_ROOT, "app/api/finance/receipts/[id]/url/route.ts"),
+      "utf8"
+    );
+    assert.match(urlRoute, /proxyFinanceApiGet/);
+    assert.match(urlRoute, /\/file/);
+    const fileRoute = readFileSync(
+      resolve(WEB_ROOT, "app/api/finance/receipts/[id]/file/route.ts"),
+      "utf8"
+    );
+    assert.match(fileRoute, /presigned|sourceUrl|finance\/receipts/);
   });
 });

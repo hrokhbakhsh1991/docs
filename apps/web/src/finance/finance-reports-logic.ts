@@ -1,10 +1,14 @@
 import type { AppLocale } from "@/i18n/routing";
 import { toLocalizedDigits } from "@/i18n/format-localized-digits";
+import type { FinanceRegistrationContext } from "@/finance/finance-registration-context";
+import { parseFinanceRegistrationContext } from "@/finance/finance-registration-context";
 
 export const FINANCE_OVERVIEW_TEST_IDS = {
   panel: "finance-overview-panel",
   kpiStrip: "finance-kpi-strip",
   recentLedger: "finance-recent-ledger",
+  attentionList: "finance-attention-samples",
+  triageLink: "finance-open-reconciliation-triage",
 } as const;
 
 export const FINANCE_LEDGER_TEST_IDS = {
@@ -38,6 +42,7 @@ export type FinanceLedgerEvent = {
   readonly domainEventId: string | null;
   readonly lineCount: number;
   readonly createdAt: string;
+  readonly registrationContext: FinanceRegistrationContext | null;
 };
 
 export type FinanceLedgerListResponse = {
@@ -84,6 +89,7 @@ export function parseFinanceLedgerListResponse(raw: unknown): FinanceLedgerListR
       domainEventId: typeof entry.domainEventId === "string" ? entry.domainEventId : null,
       lineCount: typeof entry.lineCount === "number" ? entry.lineCount : 0,
       createdAt: String(entry.createdAt ?? ""),
+      registrationContext: parseFinanceRegistrationContext(entry.registrationContext),
     }))
     .filter((entry) => entry.outboxEventId.length > 0);
   return { items };
@@ -202,4 +208,92 @@ export function buildFinanceKpiCards(
       tone: "success",
     },
   ];
+}
+
+/** Phase E — up to 3 operator attention rows with registration identity (no money math). */
+export const FINANCE_ATTENTION_SAMPLE_LIMIT = 3;
+
+export type FinanceAttentionKind =
+  | "overdue-installment"
+  | "pending-receipt"
+  | "pending-manual";
+
+export type FinanceAttentionSample = {
+  readonly id: string;
+  readonly kind: FinanceAttentionKind;
+  readonly registrationId: string;
+  readonly registrationContext: FinanceRegistrationContext | null;
+  readonly href: string;
+  readonly secondaryLabel: string | null;
+};
+
+export type FinanceAttentionSampleInput = {
+  readonly overdueInstallments: ReadonlyArray<{
+    readonly id: string;
+    readonly registrationId: string;
+    readonly label: string;
+    readonly registrationContext: FinanceRegistrationContext | null;
+  }>;
+  readonly pendingReceipts: ReadonlyArray<{
+    readonly id: string;
+    readonly registrationId: string;
+    readonly registrationContext: FinanceRegistrationContext | null;
+  }>;
+  readonly pendingManualPayments: ReadonlyArray<{
+    readonly id: string;
+    readonly registrationId: string;
+    readonly status: string;
+    readonly registrationContext: FinanceRegistrationContext | null;
+  }>;
+  readonly limit?: number;
+};
+
+export function buildFinanceAttentionSamples(
+  input: FinanceAttentionSampleInput
+): readonly FinanceAttentionSample[] {
+  const limit = input.limit ?? FINANCE_ATTENTION_SAMPLE_LIMIT;
+  const samples: FinanceAttentionSample[] = [];
+
+  for (const row of input.overdueInstallments) {
+    if (samples.length >= limit) break;
+    if (!row.registrationId) continue;
+    samples.push({
+      id: `overdue:${row.id}`,
+      kind: "overdue-installment",
+      registrationId: row.registrationId,
+      registrationContext: row.registrationContext,
+      href: "/finance?tab=installments",
+      secondaryLabel: row.label || null,
+    });
+  }
+
+  for (const row of input.pendingReceipts) {
+    if (samples.length >= limit) break;
+    if (!row.registrationId) continue;
+    samples.push({
+      id: `receipt:${row.id}`,
+      kind: "pending-receipt",
+      registrationId: row.registrationId,
+      registrationContext: row.registrationContext,
+      href: "/finance?tab=receipts",
+      secondaryLabel: null,
+    });
+  }
+
+  for (const row of input.pendingManualPayments) {
+    if (samples.length >= limit) break;
+    if (!row.registrationId) continue;
+    const status = row.status.trim().toLowerCase();
+    if (status !== "pending" && status !== "manual") continue;
+    samples.push({
+      id: `payment:${row.id}`,
+      kind: "pending-manual",
+      registrationId: row.registrationId,
+      registrationContext: row.registrationContext,
+      href: "/finance?tab=payments",
+      secondaryLabel: null,
+    });
+  }
+
+  return samples;
 }

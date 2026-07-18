@@ -38,7 +38,8 @@ Switching workspace `paymentMode` (future, non-Denali) changes **ingress only**.
 | Member path | Portal BFF → `POST /bookings/{id}/receipts` |
 | Operator path | `GET /finance/receipts/pending` · `PATCH .../review` approve |
 | API SoT | `apps/api/src/workspace-finance/` |
-| Legacy forbidden | `apps/api/src/denali-finance/` — do not resurrect |
+| Legacy forbidden | `apps/api/src/denali-finance/` — tombstone only (`README.md`); do not resurrect adapters |
+| Booking projection port | `IBookingPaymentPort.syncStatus` — Finance must not call `getBookingsRepository()`; infra `BookingPaymentAdapter` is injected at boot |
 
 ---
 
@@ -48,11 +49,40 @@ Switching workspace `paymentMode` (future, non-Denali) changes **ingress only**.
 | ---- | -------- |
 | 1 | Manual `PaymentIntent` status `Pending` |
 | 2 | `PaymentReceipt` submitted with `fileKey` |
-| 3 | Operator approve → `postDoubleEntryJournal` |
-| 4 | `emitFinanceLedgerDoubleEntryAppliedOutbox` |
-| 5 | Payment → `Paid` · summary KPI updated |
+| 3 | Operator approve → **one** `withTenantRls` TX: payment `Paid` · booking `paid` · receipt `Approved` · outbox last |
+| 4 | Outbox: `finance.ledger.double_entry_applied` (`enqueueOutboxEvent` on same `tx`) |
+| 5 | Relay consumes outbox; summary KPI reflects `Paid` |
 
 Implementation: `apps/api/src/workspace-finance/finance.service.ts` → `reviewReceipt()`.
+
+### Finance ↔ bookings dependency (hexagonal — locked)
+
+`FinanceService` must not Service-Locate the bookings repository.
+
+| Layer | Artifact | Role |
+| ----- | -------- | ---- |
+| **Port** | `IBookingPaymentPort` (`ports/booking-payment.port.ts`) | Application contract — at minimum `syncStatus({ tenantId, registrationId, paymentStatus })` |
+| **Adapter** | `BookingPaymentAdapter` (`infrastructure/booking-payment.adapter.ts`) | Calls `BookingsRepository.updatePaymentStatus` / member ownership reads |
+| **Composition** | `createFinanceService` + `resolveLazyFinanceService` (boot) | Construct adapter and inject via `FinanceService` constructor |
+| **Approve wiring** | `reviewReceipt` → `approveManualReceiptAtomic({ syncBookingPayment })` | Memory driver **must** call `bookingPayments.syncStatus` via the callback (DIP). Prisma driver keeps booking raise **inside** the same `withTenantRls` TX (atomicity > out-of-band port call). |
+
+```mermaid
+flowchart LR
+  boot[resolveLazyFinanceService] --> svc[FinanceService]
+  boot --> adapter[BookingPaymentAdapter]
+  adapter --> svc
+  svc -->|"syncStatus"| adapter
+  adapter --> repo[BookingsRepository]
+```
+
+**`reviewReceipt` approve consistency:**
+
+| Driver | Payment + receipt + ledger | Booking `paid` |
+| ------ | -------------------------- | -------------- |
+| **Prisma** | One `withTenantRls` / `$transaction`; outbox last | Same TX on `operator_registrations` |
+| **Memory** | Fail-closed compensate (revert payment if sync fails) | Via injected `IBookingPaymentPort.syncStatus` — **no** `getBookingsRepository` in service or memory finance repo |
+
+**Forbidden in `FinanceService`:** `import { getBookingsRepository }` or any direct bookings repository call. Soft-fail prepayment sync and fail-closed approve errors still map from `syncStatus` results (`null` → `FINANCE_BOOKING_PAYMENT_SYNC_MISS`; thrown infra errors → `FINANCE_BOOKING_PAYMENT_SYNC_FAILED`). Member receipt ownership checks go through the same port (`memberOwnsRegistration`) so the Service Locator stays only inside Infrastructure.
 
 ---
 

@@ -7,10 +7,11 @@ import { describe, it } from "node:test";
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("finance-overview-server-prefetch.spec.ts", () => {
-  it("FINANCE-01 finance page prefetches overview on the server", () => {
+  it("FINANCE-01 finance page is a thin server gate (no overview SSR prefetch)", () => {
     const pageSource = readFileSync(resolve(WEB_ROOT, "app/(app)/finance/page.tsx"), "utf8");
-    assert.match(pageSource, /fetchFinanceOverviewServer/);
-    assert.match(pageSource, /initialOverview/);
+    assert.doesNotMatch(pageSource, /fetchFinanceOverviewServer/);
+    assert.doesNotMatch(pageSource, /initialOverview/);
+    assert.match(pageSource, /FinanceCommandCenter/);
   });
 
   it("FINANCE-02 finance overview client skips first fetch when initialOverview is provided", () => {

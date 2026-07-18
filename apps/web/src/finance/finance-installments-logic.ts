@@ -1,3 +1,6 @@
+import type { FinanceRegistrationContext } from "@/finance/finance-registration-context";
+import { parseFinanceRegistrationContext } from "@/finance/finance-registration-context";
+
 export const FINANCE_INSTALLMENTS_TEST_IDS = {
   panel: "finance-installments-panel",
   board: "finance-installments-board",
@@ -24,6 +27,7 @@ export type PaymentScheduleItem = {
   readonly status: InstallmentItemStatus;
   readonly linkedPaymentId?: string;
   readonly graceDays?: number;
+  readonly registrationContext: FinanceRegistrationContext | null;
 };
 
 export type InstallmentBoardColumn = "overdue" | "due_this_week" | "upcoming" | "paid";
@@ -92,6 +96,7 @@ function parseScheduleItem(entry: Record<string, unknown>): PaymentScheduleItem 
     amountMinor: String(entry.amountMinor ?? "0"),
     paidMinor: String(entry.paidMinor ?? "0"),
     status,
+    registrationContext: parseFinanceRegistrationContext(entry.registrationContext),
     ...(typeof entry.linkedPaymentId === "string"
       ? { linkedPaymentId: entry.linkedPaymentId }
       : {}),

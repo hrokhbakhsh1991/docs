@@ -2,10 +2,16 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { runWithHttpRequestContext } from "../http/bind-request-context";
 import { sendJson } from "../http/json";
+import { readBinaryRequestBody } from "../http/read-binary-body";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { readIdentityRequestBody } from "../identity/read-identity-request-body";
 import { requireOperatorSession } from "../identity/require-operator-session";
 import { resolveLazyFinanceService } from "../boot/lazy-finance-service";
+import {
+  MEMBER_RECEIPT_PROOF_MAX_BYTES,
+  putMemberReceiptProof,
+  sanitizeReceiptProofFileName,
+} from "../workspace-finance/receipt-proof-storage";
 import {
   approveBooking,
   BookingNotFoundError,
@@ -302,6 +308,37 @@ function parseMemberReceiptBody(body: unknown): { fileKey: string; note?: string
   return note !== undefined && note.length > 0 ? { fileKey, note } : { fileKey };
 }
 
+function readHeader(req: IncomingMessage, name: string): string {
+  const raw = req.headers[name.toLowerCase()];
+  if (raw === undefined) {
+    return "";
+  }
+  return (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? "";
+}
+
+function isJsonReceiptContentType(contentType: string): boolean {
+  const normalized = contentType.trim().toLowerCase();
+  return normalized.includes("application/json") || normalized.length === 0;
+}
+
+function mapMemberReceiptUploadError(res: ServerResponse, error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message === "MINIO_NOT_CONFIGURED") {
+    sendHttpError(res, 503, { error: "service_unavailable", code: "MINIO_NOT_CONFIGURED" });
+    return true;
+  }
+  if (
+    message === "RECEIPT_PROOF_EMPTY" ||
+    message === "RECEIPT_PROOF_TOO_LARGE" ||
+    message === "RECEIPT_PROOF_CONTENT_TYPE_INVALID" ||
+    message === "RECEIPT_PROOF_KEY_SCOPE_INVALID"
+  ) {
+    sendHttpError(res, 400, { error: "invalid_body", code: message });
+    return true;
+  }
+  return false;
+}
+
 export async function handlePostBookingReceipt(
   req: IncomingMessage,
   res: ServerResponse,
@@ -309,11 +346,43 @@ export async function handlePostBookingReceipt(
 ): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
-    const body = parseMemberReceiptBody(await readIdentityRequestBody(req));
-    if (body === null) {
-      sendHttpError(res, 400, { error: "invalid_payload", code: "FILE_KEY_REQUIRED" });
+    const contentType = readHeader(req, "content-type");
+
+    if (isJsonReceiptContentType(contentType)) {
+      const body = parseMemberReceiptBody(await readIdentityRequestBody(req));
+      if (body === null) {
+        sendHttpError(res, 400, { error: "invalid_payload", code: "FILE_KEY_REQUIRED" });
+        return;
+      }
+
+      await runWithHttpRequestContext(
+        req,
+        auth,
+        async () => {
+          const financeService = await resolveLazyFinanceService();
+          const receipt = await financeService.submitMemberReceiptForRegistration(auth, {
+            registrationId: bookingId,
+            fileKey: body.fileKey,
+            ...(body.note !== undefined ? { note: body.note } : {}),
+          });
+          sendJson(res, 201, receipt);
+        },
+        { rateLimit: "write" }
+      );
       return;
     }
+
+    const fileNameHeader = readHeader(req, "x-receipt-file-name");
+    const fileName =
+      fileNameHeader.length > 0 ? sanitizeReceiptProofFileName(fileNameHeader) : "receipt.bin";
+    const body = await readBinaryRequestBody(req, MEMBER_RECEIPT_PROOF_MAX_BYTES);
+    const stored = await putMemberReceiptProof({
+      tenantId: auth.tenantId,
+      registrationId: bookingId,
+      body,
+      contentType,
+      fileName,
+    });
 
     await runWithHttpRequestContext(
       req,
@@ -322,12 +391,40 @@ export async function handlePostBookingReceipt(
         const financeService = await resolveLazyFinanceService();
         const receipt = await financeService.submitMemberReceiptForRegistration(auth, {
           registrationId: bookingId,
-          fileKey: body.fileKey,
-          ...(body.note !== undefined ? { note: body.note } : {}),
+          fileKey: stored.storageKey,
         });
         sendJson(res, 201, receipt);
       },
       { rateLimit: "write" }
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "BOOKINGS_FORBIDDEN") {
+      sendHttpError(res, 403, { error: "forbidden", code: "BOOKINGS_FORBIDDEN" });
+      return;
+    }
+    if (mapMemberReceiptUploadError(res, error)) {
+      return;
+    }
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleGetBookingReceiptStatus(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const financeService = await resolveLazyFinanceService();
+        const status = await financeService.getMemberReceiptStatusForRegistration(auth, bookingId);
+        sendJson(res, 200, status);
+      },
+      { rateLimit: "read" }
     );
   } catch (error) {
     if (error instanceof Error && error.message === "BOOKINGS_FORBIDDEN") {

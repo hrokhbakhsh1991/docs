@@ -3,6 +3,14 @@
     "title": "مرکز مالی",
     "subtitle": "پرداخت‌ها، رسیدها، پیش‌پرداخت‌ها و حسابرسی دفتر برای اپراتورهای Denali",
     "tabsAria": "تب‌های مالی",
+    "tabGuidance": "پرداخت دستی = بدهی باز روی رزرو. پیش‌پرداخت = اعتبار کیف‌پول قبل از تسویه کامل. رسیدها = بررسی فیش عضو (آپلود در پورتال). دفتر = فقط حسابرسی ژورنال.",
+    "ledgerAuditHint": "حسابرسی",
+    "filteredByRegistration": "فیلتر ثبت‌نام:",
+    "clearRegistrationFilter": "حذف فیلتر",
+    "decisionGuideTitle": "کدام اقدام را بزنم؟",
+    "decisionGuideManual": "پرداخت دستی — وقتی عضو آفلاین/کارت‌به‌کارت می‌پردازد بدهی باز کنید؛ بعد فیش را در رسیدها بررسی کنید.",
+    "decisionGuidePrepayment": "پیش‌پرداخت — اعتبار کیف‌پول رزرو قبل از تسویه کامل فاکتور (پیشرفت جزئی به‌سمت جمع).",
+    "decisionGuideInstallment": "اقساط — فقط وقتی برنامه اقساط برای ورک‌اسپیس فعال است؛ فاکتور را روی سررسیدها خرد می‌کند.",
     "tabs": {
       "overview": "خلاصه",
       "payments": "پرداخت‌ها",
@@ -24,10 +32,12 @@
     "optionalNote": "یادداشت (اختیاری)",
     "reviewNote": "یادداشت بررسی (اختیاری)",
     "amountMinor": "مبلغ (واحد جزئی)",
+    "amountDisplay": "مبلغ (ریال)",
     "due": "سررسید {date}",
     "paidPercent": "{percent, number}٪ پرداخت‌شده",
     "exportCsv": "خروجی CSV",
-    "journal": "دفتر {id}"
+    "journal": "دفتر {id}",
+    "openBooking": "باز کردن رزرو"
   },
   "kpi": {
     "pending-manual": "پرداخت‌های دستی در انتظار",
@@ -40,6 +50,12 @@
     "viewDetails": "مشاهده جزئیات",
     "createManualPayment": "ثبت پرداخت دستی",
     "openReconciliation": "باز کردن اولویت‌بندی تطبیق",
+    "triageStaysInSettings": "اولویت‌بندی تطبیق در Settings می‌ماند — Finance فقط لینک می‌دهد (جابه‌جایی بدون Architect ممنوع).",
+    "attentionTitle": "نیازمند توجه",
+    "attentionEmpty": "الان موردی در صف توجه نیست.",
+    "attentionKindOverdue": "قسط معوق",
+    "attentionKindReceipt": "بازبینی فیش",
+    "attentionKindManual": "پرداخت دستی در انتظار",
     "recentLedger": "رویدادهای اخیر دفتر",
     "noLedger": "هنوز رویداد دفتری ثبت نشده است.",
     "viewFullLedger": "مشاهده دفتر کامل"
@@ -47,6 +63,9 @@
   "payments": {
     "createManual": "ثبت پرداخت دستی",
     "submitReceipt": "ارسال رسید پرداخت",
+    "submitReceiptAdvanced": "پیشرفته: رسید اپراتور با کلید فایل",
+    "submitReceiptHint": "عضو فیش را در پورتال می‌فرستد. برای تأیید/رد از تب رسیدها استفاده کنید. این فرم فقط برای عملیات/دیباگ است.",
+    "submitReceiptShowAdvanced": "نمایش فرم پیشرفته کلید فایل",
     "paymentId": "شناسه پرداخت",
     "fileKey": "کلید فایل",
     "fileKeyPlaceholder": "receipts/{paymentId}/proof.jpg",
@@ -55,6 +74,9 @@
     "submitting": "در حال ارسال…",
     "submitButton": "ارسال رسید",
     "listTitle": "پرداخت‌های دستی",
+    "listScopeHint": "این فهرست فقط ردیف‌های روش Manual را نشان می‌دهد (نه پرداخت درگاه آنلاین).",
+    "statusFilter": "فیلتر وضعیت",
+    "statusFilterAll": "همه وضعیت‌ها",
     "empty": "هنوز پرداخت دستی ثبت نشده است.",
     "status": {
       "Paid": "پرداخت‌شده",
@@ -65,8 +87,15 @@
   },
   "receipts": {
     "listTitle": "صف بررسی رسید",
+    "reviewRoleHint": "فیش ارسال‌شده توسط عضو را بررسی کنید. برای زمینهٔ تور، لینک رزرو را باز کنید.",
     "empty": "رسیدی در انتظار بررسی نیست.",
     "reviewPlaceholder": "انتقال بانکی تأییدشده",
+    "submittedAt": "زمان ارسال فیش",
+    "previewTitle": "پیش‌نمایش فیش",
+    "fileName": "نام فایل",
+    "openProof": "باز کردن فایل",
+    "previewUnavailable": "پیش‌نمایش در دسترس نیست. پس از اتصال ذخیره‌سازی فایل، تصویر فیش اینجا دیده می‌شود.",
+    "previewLoading": "در حال بارگذاری پیش‌نمایش…",
     "status": {
       "Pending": "در انتظار",
       "Approved": "تأییدشده",
@@ -76,6 +105,7 @@
   "prepayments": {
     "invoiceBalance": "مانده فاکتور ثبت‌نام",
     "lookupBalance": "استعلام مانده",
+    "invoiceLoading": "در حال بارگذاری فاکتور…",
     "invoiceTotal": "جمع فاکتور",
     "paid": "پرداخت‌شده",
     "balanceDue": "مانده بدهی",
@@ -86,15 +116,27 @@
     "recentTitle": "پیش‌پرداخت‌های اخیر",
     "empty": "هنوز پیش‌پرداختی ثبت نشده است."
   },
+  "picker": {
+    "label": "رزرو / ثبت‌نام",
+    "searchPlaceholder": "جستجو با عنوان تور یا نام مهمان…",
+    "advancedUuid": "چسباندن UUID ثبت‌نام (پیشرفته)",
+    "uuidPlaceholder": "00000000-0000-4000-8000-000000000001"
+  },
   "installments": {
     "generateTitle": "تولید برنامه اقساط",
-    "invoiceTotalMinor": "جمع فاکتور (جزئی)",
+    "invoiceTotalMinor": "جمع فاکتور (ریال)",
     "depositPercent": "درصد پیش‌پرداخت",
     "installmentCount": "تعداد اقساط",
     "firstDue": "اولین سررسید",
     "generating": "در حال تولید…",
     "generateButton": "تولید برنامه",
     "boardTitle": "تابلوی اقساط",
+    "semanticsTitle": "اقساط در برابر سایر اقدام‌های مالی",
+    "semanticsPartial": "جزئی — فقط همین قسط نسبت به مبلغ خودش ناقص پرداخت شده (paidMinor < amountMinor).",
+    "semanticsPrepayment": "پیش‌پرداخت — اعتبار کیف‌پول رزرو (تب پیش‌پرداخت‌ها)؛ با «قسط جزئی» یکی نیست.",
+    "actionsDeferred": "ثبت پرداخت روی قسط / بخشودگی / تغییر سررسید هنوز فعال نیست — تا API با outbox نیاید دکمهٔ جعلی نشان داده نمی‌شود.",
+    "paidOfTotal": "پرداخت‌شده {paid} از {total}",
+    "partialHint": "این قسط جزئی پرداخت شده. تا زمان capture اقساط، جابه‌جایی پول از تب پیش‌پرداخت یا پرداخت دستی انجام شود.",
     "board": {
       "overdue": "معوق",
       "due_this_week": "سررسید این هفته",
@@ -112,18 +154,19 @@
   },
   "ledger": {
     "title": "دفتر",
+    "auditSubtitle": "ژورنال فقط‌خواندنی outbox برای حسابرسی — کار روزمرهٔ پرداخت نیست.",
     "eventsTitle": "رویدادهای روزنامه outbox",
     "empty": "هنوز رویداد دفتری ثبت نشده است."
   },
   "validation": {
     "REGISTRATION_ID_INVALID": "شناسه ثبت‌نام باید UUID معتبر باشد.",
     "PAYMENT_ID_INVALID": "شناسه پرداخت باید UUID معتبر باشد.",
-    "AMOUNT_POSITIVE_INTEGER": "مبلغ باید عدد صحیح مثبت (واحد جزئی) باشد.",
+    "AMOUNT_POSITIVE_INTEGER": "مبلغ باید عدد صحیح مثبت (ریال / واحد جزئی) باشد.",
     "CURRENCY_LENGTH": "ارز باید ۳ تا ۸ کاراکتر باشد.",
     "FILE_KEY_REQUIRED": "کلید فایل الزامی است (حداکثر ۵۱۲ کاراکتر).",
     "NOTE_MAX_LENGTH": "یادداشت حداکثر ۲۰۰۰ کاراکتر مجاز است.",
     "PAYMENT_METHOD_REQUIRED": "روش پرداخت الزامی است (حداکثر ۶۴ کاراکتر).",
-    "INVOICE_TOTAL_POSITIVE": "جمع فاکتور باید عدد صحیح مثبت (واحد جزئی) باشد.",
+    "INVOICE_TOTAL_POSITIVE": "جمع فاکتور باید عدد صحیح مثبت (ریال / واحد جزئی) باشد.",
     "DEPOSIT_PERCENT_RANGE": "درصد پیش‌پرداخت باید بین ۰ تا ۱۰۰ باشد.",
     "INSTALLMENT_COUNT_RANGE": "تعداد اقساط باید ۱ تا ۲۴ باشد.",
     "FIRST_DUE_INVALID": "تاریخ اولین سررسید نامعتبر است.",
@@ -138,6 +181,8 @@
     "RECORD_PREPAYMENT_FAILED": "ثبت پیش‌پرداخت ناموفق بود.",
     "GENERATE_SCHEDULE_FAILED": "تولید برنامه اقساط ناموفق بود.",
     "REVIEW_RECEIPT_FAILED": "بررسی رسید ناموفق بود.",
-    "LEDGER_FETCH_FAILED": "بارگذاری دفتر ناموفق بود."
+    "LEDGER_FETCH_FAILED": "بارگذاری دفتر ناموفق بود.",
+    "INVOICE_FETCH_FAILED": "بارگذاری مانده فاکتور ناموفق بود.",
+    "INVOICE_PARSE_FAILED": "پاسخ فاکتور نامعتبر بود."
   }
 }

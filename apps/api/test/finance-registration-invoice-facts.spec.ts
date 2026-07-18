@@ -9,25 +9,20 @@ import { describe, it } from "node:test";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const FINANCE_REPO = path.join(REPO_ROOT, "src/workspace-finance/finance.repository.ts");
-const DENALI_FINANCE_REPO = path.join(REPO_ROOT, "src/denali-finance/finance.repository.ts");
 const INVOICE_FACTS = path.join(REPO_ROOT, "src/finance/load-registration-invoice-facts.ts");
 
 describe("finance-registration-invoice-facts.spec.ts", () => {
   it("FIN-INV-01 getRegistrationInvoiceFacts delegates to loadRegistrationInvoiceFacts", () => {
-    for (const repoPath of [FINANCE_REPO, DENALI_FINANCE_REPO]) {
-      const source = fs.readFileSync(repoPath, "utf8");
-      assert.match(source, /loadRegistrationInvoiceFacts\s*\(/, repoPath);
-      assert.match(source, /async getRegistrationInvoiceFacts\(/, repoPath);
-    }
+    const source = fs.readFileSync(FINANCE_REPO, "utf8");
+    assert.match(source, /loadRegistrationInvoiceFacts\s*\(/, FINANCE_REPO);
+    assert.match(source, /async getRegistrationInvoiceFacts\(/, FINANCE_REPO);
   });
 
   it("FIN-INV-02 findPaymentStatusesByRegistration uses take cap", () => {
-    for (const repoPath of [FINANCE_REPO, DENALI_FINANCE_REPO]) {
-      const source = fs.readFileSync(repoPath, "utf8");
-      const body = source.match(/async findPaymentStatusesByRegistration\([\s\S]*?\n  \}/)?.[0];
-      assert.ok(body !== undefined, repoPath);
-      assert.match(body, /take:\s*MAX_PAYMENTS_PER_REGISTRATION/, repoPath);
-    }
+    const source = fs.readFileSync(FINANCE_REPO, "utf8");
+    const body = source.match(/async findPaymentStatusesByRegistration\([\s\S]*?\n  \}/)?.[0];
+    assert.ok(body !== undefined, FINANCE_REPO);
+    assert.match(body, /take:\s*MAX_PAYMENTS_PER_REGISTRATION/, FINANCE_REPO);
   });
 
   it("FIN-INV-03 loadRegistrationInvoiceFacts uses SQL aggregate and bounded payment list", () => {

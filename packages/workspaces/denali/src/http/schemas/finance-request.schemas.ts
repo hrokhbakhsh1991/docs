@@ -85,6 +85,18 @@ export function parseOpenPaymentsLimit(raw: string | null): number {
   return Math.min(Math.max(parsed, 1), 200);
 }
 
+/** Optional UUID filter for finance list endpoints (Phase B). Empty → undefined. */
+export function parseOptionalRegistrationId(raw: string | null): string | undefined {
+  if (raw === null || raw.trim() === "") {
+    return undefined;
+  }
+  const result = uuidSchema.safeParse(raw.trim());
+  if (!result.success) {
+    throw new Error(`ZOD_VALIDATION_FAILED: registrationId: ${result.error.issues[0]?.message ?? "invalid"}`);
+  }
+  return result.data;
+}
+
 export const recordPrepaymentBodySchema = z
   .object({
     registrationId: uuidSchema,

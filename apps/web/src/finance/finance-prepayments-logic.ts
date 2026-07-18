@@ -5,6 +5,8 @@ import {
   INTL_LOCALE,
   toLocalizedDigits,
 } from "@/i18n/format-localized-digits";
+import type { FinanceRegistrationContext } from "@/finance/finance-registration-context";
+import { parseFinanceRegistrationContext } from "@/finance/finance-registration-context";
 
 export const FINANCE_PREPAYMENTS_TEST_IDS = {
   panel: "finance-prepayments-panel",
@@ -21,6 +23,7 @@ export type PrepaymentRecord = {
   readonly method: string;
   readonly note: string | null;
   readonly recordedAt: string;
+  readonly registrationContext: FinanceRegistrationContext | null;
 };
 
 export type PrepaymentsListResponse = {
@@ -61,6 +64,7 @@ export function parsePrepaymentsListResponse(raw: unknown): PrepaymentsListRespo
       method: String(entry.method ?? "Manual"),
       note: typeof entry.note === "string" ? entry.note : null,
       recordedAt: String(entry.recordedAt ?? ""),
+      registrationContext: parseFinanceRegistrationContext(entry.registrationContext),
     }))
     .filter((entry) => entry.id.length > 0);
   return { items };

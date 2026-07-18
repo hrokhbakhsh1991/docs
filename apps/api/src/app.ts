@@ -4,6 +4,7 @@ import {
   handleApproveBooking,
   handleBulkApproveBookings,
   handleCreateBooking,
+  handleGetBookingReceiptStatus,
   handleGetBookingsSummary,
   handleListBookings,
   handlePostBookingReceipt,
@@ -388,6 +389,10 @@ async function dispatchRequest(
   const bookingReceiptMatch = url.pathname.match(/^\/bookings\/([^/]+)\/receipts$/);
   if (method === "POST" && bookingReceiptMatch) {
     await handlePostBookingReceipt(req, res, bookingReceiptMatch[1]!);
+    return;
+  }
+  if (method === "GET" && bookingReceiptMatch) {
+    await handleGetBookingReceiptStatus(req, res, bookingReceiptMatch[1]!);
     return;
   }
 

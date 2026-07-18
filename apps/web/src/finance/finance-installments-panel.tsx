@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
@@ -23,6 +24,11 @@ import {
   type GenerateScheduleFormState,
   type PaymentScheduleItem,
 } from "@/finance/finance-installments-logic";
+import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
+import { resolveFinanceOpsManifestForHub } from "@/finance/finance-nav-access";
+import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
+import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
+import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import type { AppLocale } from "@/i18n/routing";
 import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
@@ -48,7 +54,13 @@ function resolveInstallmentStatusLabel(t: (key: string) => string, status: strin
   }
 }
 
-function ScheduleCard({ item }: { readonly item: PaymentScheduleItem }) {
+function ScheduleCard({
+  item,
+  currency,
+}: {
+  readonly item: PaymentScheduleItem;
+  readonly currency: string;
+}) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("finance.installments");
   const tCommon = useTranslations("finance.common");
@@ -57,22 +69,43 @@ function ScheduleCard({ item }: { readonly item: PaymentScheduleItem }) {
     locale === "fa" ? "fa-IR" : "en-US"
   );
   return (
-    <div className="rounded-md border bg-background p-3 text-sm shadow-sm">
+    <div
+      className="rounded-md border bg-background p-3 text-sm shadow-sm"
+      data-testid="finance-installment-card"
+      data-status={item.status}
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-medium">{item.label}</p>
-          <p className="font-mono text-xs text-muted-foreground">{item.registrationId.slice(0, 8)}…</p>
+          <FinanceRegistrationIdentity
+            registrationId={item.registrationId}
+            context={item.registrationContext}
+            truncateLink
+          />
         </div>
         <Badge variant="outline">{resolveInstallmentStatusLabel(t, item.status)}</Badge>
       </div>
-      <p className="mt-2 font-medium">{formatMinorAmount(item.amountMinor, "IRR", locale)}</p>
+      <p className="mt-2 font-medium">
+        {formatMinorAmount(item.amountMinor, currency, locale)}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {t("paidOfTotal", {
+          paid: formatMinorAmount(item.paidMinor, currency, locale),
+          total: formatMinorAmount(item.amountMinor, currency, locale),
+        })}
+      </p>
       <p className="text-xs text-muted-foreground">{tCommon("due", { date: dueDate })}</p>
+      {item.status === "partial" ? (
+        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400" data-testid="finance-installment-partial-hint">
+          {t("partialHint")}
+        </p>
+      ) : null}
       <div
         className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
         data-denali-finance-progress
       >
         <div
-          className="h-full transition-all"
+          className="h-full bg-primary/80 transition-all"
           style={{ width: `${progress}%` }}
           aria-label={tCommon("paidPercent", { percent: progress })}
         />
@@ -87,6 +120,11 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
+  const scheduleGenerateEnabled =
+    resolveFinanceOpsManifestForHub().installmentDefaults?.enabled === true;
+  const canGenerateSchedule = canManage && scheduleGenerateEnabled;
+  const searchParams = useSearchParams();
+  const registrationFilter = searchParams.get("registrationId");
   const [items, setItems] = useState<readonly PaymentScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +137,8 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
     let cancelled = false;
     setLoading(true);
     setError(null);
-    void fetch("/api/finance/schedules", { cache: "no-store" })
+    const path = withFinanceRegistrationQuery("/api/finance/schedules", registrationFilter);
+    void fetch(path, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`SCHEDULES_LIST_HTTP_${response.status}`);
@@ -124,14 +163,16 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
     return () => {
       cancelled = true;
     };
-  }, [fetchNonce]);
+  }, [fetchNonce, registrationFilter]);
 
   const board = useMemo(() => groupInstallmentsByBoardColumn(items), [items]);
   const refresh = () => setFetchNonce((value) => value + 1);
+  const boardCurrency =
+    form.currency.trim().length >= 3 ? form.currency.trim().toUpperCase() : "IRR";
 
   const handleGenerate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!canManage) {
+    if (!canGenerateSchedule) {
       return;
     }
     setFormError(null);
@@ -163,7 +204,19 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
 
   return (
     <div className="space-y-6" data-testid={FINANCE_INSTALLMENTS_TEST_IDS.panel}>
-      {canManage ? (
+      <div
+        className="space-y-2 rounded-md border px-3 py-3 text-sm"
+        data-testid="finance-installments-semantics"
+      >
+        <p className="font-medium text-foreground">{t("semanticsTitle")}</p>
+        <ul className="list-disc space-y-1 ps-5 text-muted-foreground">
+          <li>{t("semanticsPartial")}</li>
+          <li>{t("semanticsPrepayment")}</li>
+          <li>{t("actionsDeferred")}</li>
+        </ul>
+      </div>
+
+      {canGenerateSchedule ? (
         <Card data-denali-surface="card" className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">{t("generateTitle")}</CardTitle>
@@ -175,15 +228,14 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
               onSubmit={handleGenerate}
             >
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="schedule-registration-id">{tCommon("registrationId")}</Label>
-                <Input
+                <FinanceRegistrationPicker
                   id="schedule-registration-id"
                   value={form.registrationId}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, registrationId: event.target.value }))
+                  onChange={(registrationId) =>
+                    setForm((current) => ({ ...current, registrationId }))
                   }
-                  autoComplete="off"
                 />
+                <FinanceInvoiceBalanceCard registrationId={form.registrationId} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="schedule-invoice-total">{t("invoiceTotalMinor")}</Label>
@@ -299,7 +351,9 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
                 {board[column].length === 0 ? (
                   <p className="text-xs text-muted-foreground">{tCommon("noItems")}</p>
                 ) : (
-                  board[column].map((item) => <ScheduleCard key={item.id} item={item} />)
+                  board[column].map((item) => (
+                    <ScheduleCard key={item.id} item={item} currency={boardCurrency} />
+                  ))
                 )}
               </CardContent>
             </Card>
