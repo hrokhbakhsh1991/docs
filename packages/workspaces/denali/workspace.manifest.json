@@ -60,6 +60,8 @@
           "GET /finance/receipts/pending": "handleFinancePendingReceipts",
           "GET /finance/prepayments": "handleFinanceListPrepayments",
           "POST /finance/prepayments": "handleFinanceRecordPrepayment",
+          "GET /finance/prepayments/booking-sync-degraded": "handleFinanceListBookingSyncDegraded",
+          "POST /finance/prepayments/booking-sync-retry": "handleFinanceRetryBookingSync",
           "GET /finance/schedules": "handleFinanceListSchedules",
           "POST /finance/schedules/generate": "handleFinanceGenerateSchedule"
         },

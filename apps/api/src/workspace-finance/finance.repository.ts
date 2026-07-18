@@ -4,6 +4,7 @@ import { withTenantRls } from "../db/with-tenant-rls";
 import { raiseBookingPaymentStatus } from "../bookings/booking-payment-status";
 import type { BookingPaymentStatus } from "../bookings/bookings.types";
 import { loadRegistrationInvoiceFacts } from "../finance/load-registration-invoice-facts";
+import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import { enqueueFinanceLedgerCaptureOutbox } from "./enqueue-finance-ledger-capture";
 import { MAX_PAYMENTS_PER_REGISTRATION } from "./finance-list-projection";
 import type {
@@ -801,6 +802,122 @@ export class FinanceRepository {
       }
       throw error;
     }
+  }
+
+  async recordPrepaymentBookingSyncDegraded(input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+    readonly paymentStatus: string;
+    readonly error: string;
+    readonly prepaymentDomainEventId: string;
+  }): Promise<void> {
+    const domainEventId = `prepay-booking-sync-degraded:${input.registrationId}`.slice(0, 128);
+    await withTenantRls(input.tenantId, async (tx) => {
+      await enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: input.registrationId,
+        eventType: "finance.prepayment.booking_sync.degraded",
+        domainEventId,
+        payload: {
+          registrationId: input.registrationId,
+          paymentStatus: input.paymentStatus,
+          error: input.error,
+          prepaymentDomainEventId: input.prepaymentDomainEventId,
+          degradedAt: new Date().toISOString(),
+        },
+      });
+    });
+  }
+
+  async listOpenPrepaymentBookingSyncDegraded(
+    tenantId: string,
+    limit: number
+  ): Promise<
+    readonly {
+      readonly registrationId: string;
+      readonly paymentStatus: string;
+      readonly error: string;
+      readonly prepaymentDomainEventId: string | null;
+      readonly degradedAt: string;
+    }[]
+  > {
+    return withTenantRls(tenantId, async (tx) => {
+      const recovered = await tx.outboxEvent.findMany({
+        where: {
+          tenantId,
+          eventType: "finance.prepayment.booking_sync.recovered",
+        },
+        select: { aggregateId: true },
+      });
+      const recoveredIds = new Set(recovered.map((row) => row.aggregateId));
+      const rows = await tx.outboxEvent.findMany({
+        where: {
+          tenantId,
+          eventType: "finance.prepayment.booking_sync.degraded",
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit * 2,
+        select: {
+          aggregateId: true,
+          payload: true,
+          createdAt: true,
+        },
+      });
+      const out: {
+        registrationId: string;
+        paymentStatus: string;
+        error: string;
+        prepaymentDomainEventId: string | null;
+        degradedAt: string;
+      }[] = [];
+      for (const row of rows) {
+        if (recoveredIds.has(row.aggregateId)) {
+          continue;
+        }
+        const payload =
+          row.payload !== null && typeof row.payload === "object"
+            ? (row.payload as Record<string, unknown>)
+            : {};
+        out.push({
+          registrationId: row.aggregateId,
+          paymentStatus: String(payload.paymentStatus ?? "partial"),
+          error: String(payload.error ?? ""),
+          prepaymentDomainEventId:
+            typeof payload.prepaymentDomainEventId === "string"
+              ? payload.prepaymentDomainEventId
+              : null,
+          degradedAt:
+            typeof payload.degradedAt === "string"
+              ? payload.degradedAt
+              : row.createdAt.toISOString(),
+        });
+        if (out.length >= limit) {
+          break;
+        }
+      }
+      return out;
+    });
+  }
+
+  async markPrepaymentBookingSyncRecovered(input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+  }): Promise<void> {
+    const domainEventId = `prepay-booking-sync-recovered:${input.registrationId}`.slice(0, 128);
+    await withTenantRls(input.tenantId, async (tx) => {
+      await enqueueOutboxEvent(tx, {
+        tenantId: input.tenantId,
+        aggregateType: "registration",
+        aggregateId: input.registrationId,
+        eventType: "finance.prepayment.booking_sync.recovered",
+        domainEventId,
+        payload: {
+          registrationId: input.registrationId,
+          recoveredAt: new Date().toISOString(),
+        },
+      });
+    });
   }
 
   async getRegistrationInvoiceFacts(

@@ -552,7 +552,12 @@ export class FinanceService {
       clientOperationKeyHash: ids.keyHash,
     });
 
-    await this.trySyncBookingPaymentStatus(auth.tenantId, body.registrationId, "partial");
+    await this.trySyncBookingPaymentStatus(
+      auth.tenantId,
+      body.registrationId,
+      "partial",
+      ids.prepaymentDomainEventId
+    );
     return {
       id: recorded.id,
       registrationId: recorded.registrationId,
@@ -562,6 +567,30 @@ export class FinanceService {
       note: recorded.note,
       recordedAt: recorded.recordedAt,
     };
+  }
+
+  async listPrepaymentBookingSyncDegraded(auth: TenantAuthContext, limit: number) {
+    await this.gate(auth);
+    assertFinanceOperatorAccess(auth);
+    return this.repository.listOpenPrepaymentBookingSyncDegraded(auth.tenantId, limit);
+  }
+
+  async retryPrepaymentBookingSync(
+    auth: TenantAuthContext,
+    registrationId: string
+  ): Promise<Record<string, unknown>> {
+    await this.gate(auth);
+    assertFinanceOperatorAccess(auth);
+    const paymentStatus = await this.raiseBookingPaymentStatus(
+      auth.tenantId,
+      registrationId,
+      "partial"
+    );
+    await this.repository.markPrepaymentBookingSyncRecovered({
+      tenantId: auth.tenantId,
+      registrationId,
+    });
+    return { registrationId, paymentStatus, recovered: true };
   }
 
   async listPaymentSchedules(auth: TenantAuthContext, registrationId?: string) {
@@ -659,20 +688,34 @@ export class FinanceService {
   private async trySyncBookingPaymentStatus(
     tenantId: string,
     registrationId: string,
-    paymentStatus: "unpaid" | "partial" | "paid"
+    paymentStatus: "unpaid" | "partial" | "paid",
+    prepaymentDomainEventId?: string
   ): Promise<void> {
     try {
       await this.raiseBookingPaymentStatus(tenantId, registrationId, paymentStatus);
     } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       console.warn(
         JSON.stringify({
           event: "finance.prepayment.booking_sync.degraded",
           tenantId,
           registrationId,
           paymentStatus,
-          error: error instanceof Error ? error.message : String(error),
+          error: message,
+          prepaymentDomainEventId: prepaymentDomainEventId ?? null,
         })
       );
+      if (resolveStorageDriver() !== "memory") {
+        await this.repository
+          .recordPrepaymentBookingSyncDegraded({
+            tenantId,
+            registrationId,
+            paymentStatus,
+            error: message,
+            prepaymentDomainEventId: prepaymentDomainEventId ?? "",
+          })
+          .catch(() => undefined);
+      }
     }
   }
 }

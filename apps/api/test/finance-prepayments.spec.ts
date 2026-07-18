@@ -1,10 +1,10 @@
 /**
- * Phase 9.7 R2 — prepayment record + list (REQ-P9-073 · CP-9.7-10).
+ * Phase 9.7 R2 + Phase 3A — prepayment record/list + TX/idempotency (F-01 · F-02).
  */
 import assert from "node:assert/strict";
 import http from "node:http";
 import { randomUUID } from "node:crypto";
-import { after, before, describe, it } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { PrismaClient } from "@prisma/client";
 
@@ -13,6 +13,8 @@ import { resetLazyFinanceServiceForTests } from "../src/boot/lazy-finance-servic
 import { resetLazyRouteHandlersForTests } from "../src/boot/lazy-route-handlers";
 import { resetLazyWorkspaceFinanceHandlersForTests } from "../src/boot/lazy-workspace-finance-handlers";
 import { disconnectPrisma } from "../src/db/prisma";
+import { resetHttpIdempotencyMemoryForTests } from "../src/http/http-idempotency";
+import { buildPrepaymentDomainEventIds } from "../src/workspace-finance/finance.service";
 import { integrationTenantId } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
@@ -42,6 +44,7 @@ async function requestJson(
     readonly tenantId: string;
     readonly body?: unknown;
     readonly role?: "admin" | "owner" | "member";
+    readonly idempotencyKey?: string;
   }
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
@@ -66,6 +69,9 @@ async function requestJson(
                   "Content-Type": "application/json",
                   "Content-Length": String(Buffer.byteLength(payload)),
                 }
+              : {}),
+            ...(input.idempotencyKey !== undefined
+              ? { "Idempotency-Key": input.idempotencyKey }
               : {}),
             ...authHeaders(input.tenantId, input.role),
           },
@@ -96,15 +102,19 @@ async function requestJson(
   });
 }
 
-describe("finance-prepayments.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, concurrency: false }, () => {
+describe("finance-prepayments.spec.ts — Phase 9.7 R2 + 3A", { skip: !hasDatabase, concurrency: false }, () => {
   const denaliTenantId = integrationTenantId();
+  const denaliTenantBId = integrationTenantId();
   let admin: PrismaClient;
   const listener = createRequestListener();
+  const priorAbort = process.env.P5_ATOMIC_TX_TEST_ABORT;
 
   before(async () => {
+    process.env.STORAGE_DRIVER = process.env.STORAGE_DRIVER?.trim() || "prisma";
     resetLazyRouteHandlersForTests();
     resetLazyFinanceServiceForTests();
     resetLazyWorkspaceFinanceHandlersForTests();
+    resetHttpIdempotencyMemoryForTests();
     admin = new PrismaClient({ datasources: { db: { url: ADMIN_URL } } });
     await admin.tenant.create({
       data: {
@@ -114,15 +124,40 @@ describe("finance-prepayments.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, c
         theme: {},
       },
     });
+    await admin.tenant.create({
+      data: {
+        id: denaliTenantBId,
+        subdomain: `prepayb-${denaliTenantBId.slice(0, 8)}`,
+        workspaceType: "denali",
+        theme: {},
+      },
+    });
+  });
+
+  beforeEach(() => {
+    delete process.env.P5_ATOMIC_TX_TEST_ABORT;
+    resetHttpIdempotencyMemoryForTests();
   });
 
   after(async () => {
+    if (priorAbort === undefined) {
+      delete process.env.P5_ATOMIC_TX_TEST_ABORT;
+    } else {
+      process.env.P5_ATOMIC_TX_TEST_ABORT = priorAbort;
+    }
     await admin.$executeRawUnsafe(
       `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
     );
     try {
-      await admin.outboxEvent.deleteMany({ where: { tenantId: denaliTenantId } });
-      await admin.tenant.delete({ where: { id: denaliTenantId } });
+      await admin.httpIdempotencyRecord.deleteMany({
+        where: { tenantId: { in: [denaliTenantId, denaliTenantBId] } },
+      });
+      await admin.outboxEvent.deleteMany({
+        where: { tenantId: { in: [denaliTenantId, denaliTenantBId] } },
+      });
+      await admin.tenant.deleteMany({
+        where: { id: { in: [denaliTenantId, denaliTenantBId] } },
+      });
     } finally {
       await admin.$executeRawUnsafe(
         `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
@@ -138,6 +173,7 @@ describe("finance-prepayments.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, c
       method: "POST",
       path: "/finance/prepayments",
       tenantId: denaliTenantId,
+      idempotencyKey: `r2-01-${registrationId}`,
       body: {
         registrationId,
         amountMinor: "2500000",
@@ -159,6 +195,7 @@ describe("finance-prepayments.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, c
       method: "POST",
       path: "/finance/prepayments",
       tenantId: denaliTenantId,
+      idempotencyKey: `r2-02-${registrationId}`,
       body: {
         registrationId,
         amountMinor: "1000000",
@@ -192,6 +229,7 @@ describe("finance-prepayments.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, c
       method: "POST",
       path: "/finance/prepayments",
       tenantId: denaliTenantId,
+      idempotencyKey: `r2-03-${registrationId}`,
       body: {
         registrationId,
         amountMinor: "750000",
@@ -227,6 +265,7 @@ describe("finance-prepayments.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, c
       path: "/finance/prepayments",
       tenantId: denaliTenantId,
       role: "member",
+      idempotencyKey: `r2-04-${randomUUID()}`,
       body: {
         registrationId: randomUUID(),
         amountMinor: "500000",
@@ -235,5 +274,428 @@ describe("finance-prepayments.spec.ts — Phase 9.7 R2", { skip: !hasDatabase, c
       },
     });
     assert.equal(response.status, 403);
+  });
+
+  it("API-9.7-R2-05 missing Idempotency-Key returns 400", async () => {
+    const response = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      body: {
+        registrationId: randomUUID(),
+        amountMinor: "100",
+        currency: "IRR",
+        method: "Manual",
+      },
+    });
+    assert.equal(response.status, 400);
+  });
+
+  it("PREPAY-IDEM-01 same key retry → one finance.prepayment.recorded", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `idem-01-${registrationId}`;
+    const body = {
+      registrationId,
+      amountMinor: "2500000",
+      currency: "IRR",
+      method: "Manual",
+    };
+    const first = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(first.status, 201);
+    const second = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(second.status, 201);
+    assert.equal(second.body.id, first.body.id);
+
+    const ids = buildPrepaymentDomainEventIds(registrationId, idempotencyKey);
+    const count = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        eventType: "finance.prepayment.recorded",
+        domainEventId: ids.prepaymentDomainEventId,
+      },
+    });
+    assert.equal(count, 1);
+  });
+
+  it("PREPAY-IDEM-02 same key → one ledger business identity", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `idem-02-${registrationId}`;
+    const body = {
+      registrationId,
+      amountMinor: "1100000",
+      currency: "IRR",
+      method: "Manual",
+    };
+    await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    const ids = buildPrepaymentDomainEventIds(registrationId, idempotencyKey);
+    const count = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        eventType: "finance.ledger.double_entry_applied",
+        domainEventId: ids.ledgerDomainEventId,
+      },
+    });
+    assert.equal(count, 1);
+  });
+
+  it("PREPAY-IDEM-03 different keys same amount → two logical prepayments", async () => {
+    const registrationId = randomUUID();
+    const body = {
+      registrationId,
+      amountMinor: "2500000",
+      currency: "IRR",
+      method: "Manual",
+    };
+    const a = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey: `idem-03a-${registrationId}`,
+      body,
+    });
+    const b = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey: `idem-03b-${registrationId}`,
+      body,
+    });
+    assert.equal(a.status, 201);
+    assert.equal(b.status, 201);
+    assert.notEqual(a.body.id, b.body.id);
+
+    const idsA = buildPrepaymentDomainEventIds(registrationId, `idem-03a-${registrationId}`);
+    const idsB = buildPrepaymentDomainEventIds(registrationId, `idem-03b-${registrationId}`);
+    assert.notEqual(idsA.prepaymentDomainEventId, idsB.prepaymentDomainEventId);
+    assert.notEqual(idsA.ledgerDomainEventId, idsB.ledgerDomainEventId);
+
+    const prepayCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        eventType: "finance.prepayment.recorded",
+        domainEventId: {
+          in: [idsA.prepaymentDomainEventId, idsB.prepaymentDomainEventId],
+        },
+      },
+    });
+    const ledgerCount = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        eventType: "finance.ledger.double_entry_applied",
+        domainEventId: { in: [idsA.ledgerDomainEventId, idsB.ledgerDomainEventId] },
+      },
+    });
+    assert.equal(prepayCount, 2);
+    assert.equal(ledgerCount, 2);
+  });
+
+  it("PREPAY-IDEM-04 same key different tenants → no collision", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `idem-04-shared-${registrationId}`;
+    const body = {
+      registrationId,
+      amountMinor: "900000",
+      currency: "IRR",
+      method: "Manual",
+    };
+    const a = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body,
+    });
+    const b = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantBId,
+      idempotencyKey,
+      body,
+    });
+    assert.equal(a.status, 201);
+    assert.equal(b.status, 201);
+    assert.notEqual(a.body.id, b.body.id);
+
+    const ids = buildPrepaymentDomainEventIds(registrationId, idempotencyKey);
+    const countA = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        domainEventId: ids.prepaymentDomainEventId,
+      },
+    });
+    const countB = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantBId,
+        domainEventId: ids.prepaymentDomainEventId,
+      },
+    });
+    assert.equal(countA, 1);
+    assert.equal(countB, 1);
+  });
+
+  it("PREPAY-TX-01 abort before ledger → zero durable events", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `tx-01-${registrationId}`;
+    process.env.P5_ATOMIC_TX_TEST_ABORT = "finance_prepayment_before_commit";
+    const response = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: {
+        registrationId,
+        amountMinor: "100",
+        currency: "IRR",
+        method: "Manual",
+      },
+    });
+    assert.notEqual(response.status, 201);
+    const ids = buildPrepaymentDomainEventIds(registrationId, idempotencyKey);
+    const prepay = await admin.outboxEvent.count({
+      where: { tenantId: denaliTenantId, domainEventId: ids.prepaymentDomainEventId },
+    });
+    const ledger = await admin.outboxEvent.count({
+      where: { tenantId: denaliTenantId, domainEventId: ids.ledgerDomainEventId },
+    });
+    assert.equal(prepay, 0);
+    assert.equal(ledger, 0);
+  });
+
+  it("PREPAY-TX-02 abort after ledger write → zero durable events", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `tx-02-${registrationId}`;
+    process.env.P5_ATOMIC_TX_TEST_ABORT = "finance_prepayment_after_ledger";
+    const response = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: {
+        registrationId,
+        amountMinor: "200",
+        currency: "IRR",
+        method: "Manual",
+      },
+    });
+    assert.notEqual(response.status, 201);
+    const ids = buildPrepaymentDomainEventIds(registrationId, idempotencyKey);
+    const prepay = await admin.outboxEvent.count({
+      where: { tenantId: denaliTenantId, domainEventId: ids.prepaymentDomainEventId },
+    });
+    const ledger = await admin.outboxEvent.count({
+      where: { tenantId: denaliTenantId, domainEventId: ids.ledgerDomainEventId },
+    });
+    assert.equal(prepay, 0);
+    assert.equal(ledger, 0);
+  });
+
+  it("PREPAY-BOOK-01 booking sync miss → prepayment remains durable", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `book-01-${registrationId}`;
+    const response = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: {
+        registrationId,
+        amountMinor: "333000",
+        currency: "IRR",
+        method: "Manual",
+      },
+    });
+    assert.equal(response.status, 201);
+    const ids = buildPrepaymentDomainEventIds(registrationId, idempotencyKey);
+    const count = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        eventType: "finance.prepayment.recorded",
+        domainEventId: ids.prepaymentDomainEventId,
+      },
+    });
+    assert.equal(count, 1);
+    const list = await requestJson(listener, {
+      method: "GET",
+      path: `/finance/prepayments?limit=50`,
+      tenantId: denaliTenantId,
+    });
+    const items = list.body.items as unknown[];
+    assert.ok(
+      items.some(
+        (row) =>
+          typeof row === "object" &&
+          row !== null &&
+          (row as Record<string, unknown>).registrationId === registrationId
+      )
+    );
+  });
+
+  it("PREPAY-CONC-01 concurrent same key → one logical prepayment", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `conc-01-${registrationId}`;
+    const body = {
+      registrationId,
+      amountMinor: "444000",
+      currency: "IRR",
+      method: "Manual",
+    };
+    const [a, b] = await Promise.all([
+      requestJson(listener, {
+        method: "POST",
+        path: "/finance/prepayments",
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        body,
+      }),
+      requestJson(listener, {
+        method: "POST",
+        path: "/finance/prepayments",
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        body,
+      }),
+    ]);
+    assert.equal(a.status, 201);
+    assert.equal(b.status, 201);
+    assert.equal(a.body.id, b.body.id);
+    const ids = buildPrepaymentDomainEventIds(registrationId, idempotencyKey);
+    const prepay = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        eventType: "finance.prepayment.recorded",
+        domainEventId: ids.prepaymentDomainEventId,
+      },
+    });
+    const ledger = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        eventType: "finance.ledger.double_entry_applied",
+        domainEventId: ids.ledgerDomainEventId,
+      },
+    });
+    assert.equal(prepay, 1);
+    assert.equal(ledger, 1);
+  });
+
+  it("PREPAY-SYNC-DEG-01 booking miss → durable degraded outbox", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `sync-deg-01-${registrationId}`;
+    const recorded = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: {
+        registrationId,
+        amountMinor: "111000",
+        currency: "IRR",
+        method: "Manual",
+      },
+    });
+    assert.equal(recorded.status, 201);
+    const degraded = await admin.outboxEvent.count({
+      where: {
+        tenantId: denaliTenantId,
+        eventType: "finance.prepayment.booking_sync.degraded",
+        aggregateId: registrationId,
+      },
+    });
+    assert.equal(degraded, 1);
+    const listed = await requestJson(listener, {
+      method: "GET",
+      path: "/finance/prepayments/booking-sync-degraded",
+      tenantId: denaliTenantId,
+    });
+    assert.equal(listed.status, 200);
+    const items = listed.body.items as Array<{ registrationId: string }>;
+    assert.ok(items.some((row) => row.registrationId === registrationId));
+  });
+
+  it("PREPAY-SYNC-RETRY-01 retry after booking exists → partial + recovered", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `sync-retry-01-${registrationId}`;
+    const recorded = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: {
+        registrationId,
+        amountMinor: "222000",
+        currency: "IRR",
+        method: "Manual",
+      },
+    });
+    assert.equal(recorded.status, 201);
+
+    await admin.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        SELECT set_config('app.current_tenant_id', ${denaliTenantId}::text, true)
+      `;
+      await tx.operatorRegistration.create({
+        data: {
+          id: registrationId,
+          tenantId: denaliTenantId,
+          tourId: randomUUID(),
+          tourTitle: "Prepay Sync Retry Tour",
+          guestLabel: "Guest",
+          partySize: 1,
+          status: "pending",
+          paymentStatus: "unpaid",
+          departureAt: new Date("2026-08-01T00:00:00.000Z"),
+          submittedByUserId: randomUUID(),
+        },
+      });
+    });
+
+    const retry = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments/booking-sync-retry",
+      tenantId: denaliTenantId,
+      body: { registrationId },
+    });
+    assert.equal(retry.status, 200);
+    assert.equal(retry.body.paymentStatus, "partial");
+    assert.equal(retry.body.recovered, true);
+
+    const booking = await admin.operatorRegistration.findUnique({
+      where: { id: registrationId },
+      select: { paymentStatus: true },
+    });
+    assert.equal(booking?.paymentStatus, "partial");
+
+    const listed = await requestJson(listener, {
+      method: "GET",
+      path: "/finance/prepayments/booking-sync-degraded",
+      tenantId: denaliTenantId,
+    });
+    assert.equal(listed.status, 200);
+    const items = listed.body.items as Array<{ registrationId: string }>;
+    assert.ok(!items.some((row) => row.registrationId === registrationId));
   });
 });

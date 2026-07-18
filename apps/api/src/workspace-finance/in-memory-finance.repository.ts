@@ -353,6 +353,18 @@ export class InMemoryFinanceRepository {
     throw new Error("FINANCE_MEMORY_DRIVER_READ_ONLY_PREPAYMENT");
   }
 
+  async recordPrepaymentBookingSyncDegraded(): Promise<void> {
+    /* memory fake — no durable degraded signal */
+  }
+
+  async listOpenPrepaymentBookingSyncDegraded(): Promise<readonly never[]> {
+    return [];
+  }
+
+  async markPrepaymentBookingSyncRecovered(): Promise<void> {
+    /* memory fake */
+  }
+
   async getRegistrationInvoiceFacts(
     _tenantId: string,
     _registrationId: string

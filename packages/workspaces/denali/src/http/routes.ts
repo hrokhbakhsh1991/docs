@@ -40,6 +40,8 @@ export {
   handleFinancePendingReceipts,
   handleFinanceListPrepayments,
   handleFinanceRecordPrepayment,
+  handleFinanceListBookingSyncDegraded,
+  handleFinanceRetryBookingSync,
   handleFinanceListSchedules,
   handleFinanceGetSchedule,
   handleFinanceGenerateSchedule,

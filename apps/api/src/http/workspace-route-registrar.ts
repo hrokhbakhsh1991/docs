@@ -32,6 +32,7 @@ type WorkspaceProductRouteDeps = {
     tenantId: string,
     userId: string
   ) => Promise<{
+    readonly displayName?: string | null;
     readonly nationalId?: string | null;
     readonly fatherName?: string | null;
     readonly birthDate?: string | null;
@@ -40,6 +41,7 @@ type WorkspaceProductRouteDeps = {
     tenantId: string,
     userId: string,
     patch: {
+      readonly displayName?: string;
       readonly nationalId?: string;
       readonly fatherName?: string;
       readonly birthDate?: string;
@@ -62,11 +64,13 @@ const HANDLER_DISPATCH_KIND = {
   handleFinanceLedgerEvents: "finance",
   handleFinanceListPayments: "finance",
   handleFinanceListPrepayments: "finance",
+  handleFinanceListBookingSyncDegraded: "finance",
   handleFinanceListSchedules: "finance",
   handleFinanceOpenPayments: "finance",
   handleFinancePendingReceipts: "finance",
   handleFinanceReceiptUrl: "finance-param",
   handleFinanceRecordPrepayment: "finance",
+  handleFinanceRetryBookingSync: "finance",
   handleFinanceReviewReceipt: "finance-param",
   handleFinanceSubmitReceipt: "finance",
   handleFinanceSummary: "finance",
@@ -98,7 +102,9 @@ function workspaceProductDeps(deps: WorkspaceRouteRegistrarDeps): WorkspaceProdu
         const nationalId = membership.nationalId?.trim() ?? "";
         const fatherName = membership.fatherName?.trim() ?? "";
         const birthDate = membership.birthDate?.trim() ?? "";
+        const displayName = membership.displayName?.trim() ?? "";
         return {
+          displayName: displayName.length > 0 ? displayName : null,
           nationalId: nationalId.length > 0 ? nationalId : null,
           fatherName: fatherName.length > 0 ? fatherName : null,
           birthDate: birthDate.length > 0 ? birthDate : null,

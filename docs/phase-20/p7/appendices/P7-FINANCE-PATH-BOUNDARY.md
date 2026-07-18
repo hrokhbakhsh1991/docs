@@ -220,7 +220,7 @@ authority: Phase 4B inspection — H0/H1
 
 | ID | Change |
 | -- | ------ |
-| H1.1 | Durable `finance.prepayment.booking_sync.degraded` + operator retry (sync stays post-commit) |
+| H1.1 | Durable `finance.prepayment.booking_sync.degraded` + `…recovered`; list `GET /finance/prepayments/booking-sync-degraded`; retry `POST /finance/prepayments/booking-sync-retry` (sync stays post-commit) |
 | H1.2 | `Idempotency-Key` on manual payment create + receipt submit |
 
 ### Non-goals (4B)
