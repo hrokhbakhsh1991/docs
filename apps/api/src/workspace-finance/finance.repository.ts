@@ -1,16 +1,17 @@
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
-import { raiseBookingPaymentStatus } from "../bookings/booking-payment-status";
 import type { BookingPaymentStatus } from "../bookings/bookings.types";
 import { loadRegistrationInvoiceFacts } from "../finance/load-registration-invoice-facts";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
 import { enqueueFinanceLedgerCaptureOutbox } from "./enqueue-finance-ledger-capture";
 import { MAX_PAYMENTS_PER_REGISTRATION } from "./finance-list-projection";
+import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
 import type {
   FinanceLedgerCapturePlan,
   FinanceLedgerJournalLine,
 } from "./ports/finance-ledger-policy.port";
+import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import { createTxScopedOutboxWriter } from "./prisma-workspace-outbox-writer";
 import { shouldAbortAtomicTx } from "../test-hooks/atomic-tx-test-abort";
 
@@ -113,6 +114,10 @@ const PAYMENT_ROW_SELECT = {
 } as const;
 
 export class FinanceRepository {
+  constructor(
+    private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter()
+  ) {}
+
   async getSummary(tenantId: string): Promise<FinanceSummaryRow> {
     return withTenantRls(tenantId, async (tx) => {
       const [pendingManualPayments, pendingReceiptReviews, paidPayments, failedPayments] =
@@ -720,25 +725,15 @@ export class FinanceRepository {
 
       let bookingPaymentStatus: BookingPaymentStatus;
       try {
-        const booking = await tx.operatorRegistration.findFirst({
-          where: { id: input.registrationId, tenantId: input.tenantId },
-          select: { id: true, paymentStatus: true },
+        bookingPaymentStatus = await this.bookingPayments.raisePaidInTx(tx, {
+          tenantId: input.tenantId,
+          registrationId: input.registrationId,
         });
-        if (booking === null) {
-          throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
-        }
-        const current = booking.paymentStatus as BookingPaymentStatus;
-        bookingPaymentStatus = raiseBookingPaymentStatus(current, "paid");
-        if (bookingPaymentStatus !== current) {
-          await tx.operatorRegistration.update({
-            where: { id: input.registrationId },
-            data: { paymentStatus: bookingPaymentStatus },
-          });
-        }
       } catch (error: unknown) {
         if (
           error instanceof Error &&
           (error.message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS" ||
+            error.message === "FINANCE_BOOKING_PAYMENT_SYNC_FAILED" ||
             error.message === "P5_ATOMIC_TX_TEST_ABORT")
         ) {
           throw error;
