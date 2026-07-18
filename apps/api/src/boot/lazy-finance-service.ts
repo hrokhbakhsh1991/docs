@@ -52,8 +52,8 @@ function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string): Finan
 }
 
 /**
- * Boot / legacy composition root — Denali workspace type (behavior preserved).
- * Prefer {@link resolveFinanceServiceForTenant} when tenantId is known.
+ * Boot / legacy composition root — Denali workspace type.
+ * HTTP and authenticated call sites must use {@link resolveFinanceServiceForTenant}.
  */
 export async function resolveLazyFinanceService(
   injected?: FinanceService
@@ -65,7 +65,7 @@ export async function resolveLazyFinanceService(
 }
 
 /**
- * Phase 1.5 Commit 1 — tenant-aware composition.
+ * Phase 1.5 — tenant-aware composition (HTTP SoT as of Commit 2A).
  * Resolves tenant → workspaceType → registry ports → cached FinanceService.
  */
 export async function resolveFinanceServiceForTenant(

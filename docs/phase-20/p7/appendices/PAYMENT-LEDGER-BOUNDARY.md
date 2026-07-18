@@ -40,7 +40,7 @@ Switching workspace `paymentMode` (future, non-Denali) changes **ingress only**.
 | API SoT | `apps/api/src/workspace-finance/` |
 | HTTP request contracts | `@app-tour/finance-http-contracts` (Phase 1.4) — Denali `http/schemas` re-exports only |
 | HTTP handlers | `@app-tour/finance-http` (Phase 1.4 C2) — Denali re-exports; codegen `handlerPackage` |
-| Tenant-aware composition | `resolveFinanceWorkspaceTypeForTenant` + registry booking/policy/defaults (Phase 1.5 C1); boot lazy path still Denali |
+| Tenant-aware composition | HTTP → `resolveFinanceServiceForTenant` (Phase 1.5 C2A); registry + tenant→workspaceType (C1); `resolveLazyFinanceService` = boot/non-HTTP only |
 | Legacy forbidden | `apps/api/src/denali-finance/` — tombstone only (`README.md`); do not resurrect adapters |
 | Booking projection port | `IBookingPaymentPort.syncStatus` — Finance must not call `getBookingsRepository()`; infra `BookingPaymentAdapter` is injected at boot |
 
@@ -66,16 +66,19 @@ Implementation: `apps/api/src/workspace-finance/finance.service.ts` → `reviewR
 | ----- | -------- | ---- |
 | **Port** | `IBookingPaymentPort` (`ports/booking-payment.port.ts`) | Application contract — `syncStatus` (non-TX), `raisePaidInTx(tx, …)` (approve TX), ownership/read helpers |
 | **Adapter** | `BookingPaymentAdapter` (`infrastructure/booking-payment.adapter.ts`) | Non-TX: `BookingsRepository.updatePaymentStatus`. TX: `tx.operatorRegistration` find/update + `raiseBookingPaymentStatus` |
-| **Composition** | `finance-dependency-registry` + `createFinanceService` + `createFinanceRepository` + `resolveLazyFinanceService` (boot) | Registry selects ledger policy + receipt defaults by `workspaceType` (`denali` + architecture-fixture `finance-ws2`). Same booking adapter instance injected into service **and** Prisma/memory finance repositories. Boot default remains Denali; boot must not import Denali adapter classes. |
+| **Composition** | `finance-dependency-registry` + `createFinanceService` + `createFinanceRepository` + `resolveFinanceServiceForTenant` (HTTP) / `resolveLazyFinanceService` (boot only) | Registry selects ledger policy + receipt defaults by `workspaceType` (`denali` + architecture-fixture `finance-ws2`). Same booking adapter instance injected into service **and** Prisma/memory finance repositories. HTTP must not use boot type as SoT; boot must not import Denali adapter classes. |
 | **Approve wiring** | `reviewReceipt` → `approveManualReceiptAtomic` | Memory: `syncStatus` (Phase 3B norm, not TX-equivalent). Prisma: `raisePaidInTx` inside the ambient RLS TX (atomicity preserved; MISS still rolls back) |
 
 ```mermaid
 flowchart LR
-  boot[resolveLazyFinanceService] --> svc[FinanceService]
-  boot --> adapter[BookingPaymentAdapter]
-  boot --> repo[FinanceRepository]
-  adapter --> svc
-  adapter --> repo
+  http[HTTP auth.tenantId] --> tenantResolve[resolveFinanceServiceForTenant]
+  tenantResolve --> registry[finance-dependency-registry]
+  tenantResolve --> svc[FinanceService]
+  registry --> policy[ledgerPolicy + receiptDefaults]
+  policy --> svc
+  boot[resolveLazyFinanceService boot only] --> svc
+  adapter[BookingPaymentAdapter shared] --> svc
+  adapter --> repo[FinanceRepository]
   svc -->|"syncStatus / ownership"| adapter
   repo -->|"raisePaidInTx(tx)"| adapter
   adapter --> bookingsRepo[BookingsRepository]

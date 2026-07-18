@@ -410,6 +410,28 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | Unsupported workspaceType fail-closed | Done |
 | Denali boot/`resolveLazyFinanceService` behavior preserved | Done |
 
+### Phase 1.5 Commit 2A — Wire tenant-aware Finance HTTP runtime
+
+| | |
+| -- | -- |
+| **Goal** | Production finance HTTP (and bookings finance call sites) resolve `FinanceService` via tenant → workspaceType → registry cache — not `BOOT_FINANCE_WORKSPACE_TYPE` |
+| **Host port** | `resolveFinanceService(deps, auth)` — `auth.tenantId` is SoT for composition |
+| **API wire** | `configure-workspace-finance-http-host` → `resolveFinanceServiceForTenant`; registrar must **not** eager-inject lazy Denali service |
+| **Lifetime** | Existing `Map<workspaceType, FinanceService>` + shared repo/booking adapter (unchanged) |
+| **Fail closed** | Unregistered / unknown tenant → `FINANCE_WORKSPACE_UNSUPPORTED` (HTTP 404) |
+| **Unchanged** | Same `FinanceService` class, repository factory, approve TX / RLS / idempotency / payment identities |
+| **Must NOT** | Request-scoped service; outbox move; finance-core; WS3; schema / payment ID changes; silent Denali fallback |
+
+**Phase 1.5 Commit 2A checklist:**
+
+| Item | State |
+| ---- | ----- |
+| Finance HTTP handlers pass `auth` into `resolveFinanceService` | Done |
+| Host wires `resolveFinanceServiceForTenant` | Done |
+| Registrar does not pre-resolve via `resolveLazyFinanceService` | Done |
+| Bookings finance call sites use tenant-aware resolve | Done |
+| Denali tenant still shares cached instance with boot lazy (parity) | Done |
+
 ### Phase 2 — Finance core extraction
 
 | | |

@@ -6,7 +6,7 @@ import { readBinaryRequestBody } from "../http/read-binary-body";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { readIdentityRequestBody } from "../identity/read-identity-request-body";
 import { requireOperatorSession } from "../identity/require-operator-session";
-import { resolveLazyFinanceService } from "../boot/lazy-finance-service";
+import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service";
 import {
   MEMBER_RECEIPT_PROOF_MAX_BYTES,
   putMemberReceiptProof,
@@ -359,7 +359,7 @@ export async function handlePostBookingReceipt(
         req,
         auth,
         async () => {
-          const financeService = await resolveLazyFinanceService();
+          const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
           const receipt = await financeService.submitMemberReceiptForRegistration(auth, {
             registrationId: bookingId,
             fileKey: body.fileKey,
@@ -388,7 +388,7 @@ export async function handlePostBookingReceipt(
       req,
       auth,
       async () => {
-        const financeService = await resolveLazyFinanceService();
+        const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
         const receipt = await financeService.submitMemberReceiptForRegistration(auth, {
           registrationId: bookingId,
           fileKey: stored.storageKey,
@@ -420,7 +420,7 @@ export async function handleGetBookingReceiptStatus(
       req,
       auth,
       async () => {
-        const financeService = await resolveLazyFinanceService();
+        const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
         const status = await financeService.getMemberReceiptStatusForRegistration(auth, bookingId);
         sendJson(res, 200, status);
       },

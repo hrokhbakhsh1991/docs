@@ -27,7 +27,7 @@ export async function handleFinanceSummary(
   const host = getFinanceHttpHost();
   try {
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -53,7 +53,7 @@ export async function handleFinanceOpenPayments(
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
     const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -79,7 +79,7 @@ export async function handleFinanceLedgerEvents(
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseLedgerEventsLimit(url.searchParams.get("limit"));
     const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -105,7 +105,7 @@ export async function handleFinanceListPayments(
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
     const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -134,7 +134,7 @@ export async function handleFinanceCreateManualPayment(
     const { parsedBody, rawBody } = await host.readFinanceRequestBody(req);
     const body = parseCreateManualPaymentBody(parsedBody);
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     const requestHash = host.hashIdempotentRequest(
       req.method ?? "POST",
       "/finance/payments/manual",
@@ -176,7 +176,7 @@ export async function handleFinanceSubmitReceipt(
     const { parsedBody, rawBody } = await host.readFinanceRequestBody(req);
     const body = parseSubmitReceiptBody(parsedBody);
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     const requestHash = host.hashIdempotentRequest(
       req.method ?? "POST",
       "/finance/receipts",
@@ -215,7 +215,7 @@ export async function handleFinanceReviewReceipt(
     const { parsedBody, rawBody } = await host.readFinanceRequestBody(req);
     const body = parseReviewReceiptBody(parsedBody);
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -259,7 +259,7 @@ export async function handleFinanceReceiptUrl(
   const host = getFinanceHttpHost();
   try {
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -285,7 +285,7 @@ export async function handleFinancePendingReceipts(
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
     const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -311,7 +311,7 @@ export async function handleFinanceListPrepayments(
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
     const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -340,7 +340,7 @@ export async function handleFinanceRecordPrepayment(
     const { parsedBody, rawBody } = await host.readFinanceRequestBody(req);
     const body = parseRecordPrepaymentBody(parsedBody);
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     const requestHash = host.hashIdempotentRequest(
       req.method ?? "POST",
       "/finance/prepayments",
@@ -375,7 +375,7 @@ export async function handleFinanceListBookingSyncDegraded(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const limit = parseOpenPaymentsLimit(url.searchParams.get("limit"));
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -408,7 +408,7 @@ export async function handleFinanceRetryBookingSync(
       throw new Error("ZOD_VALIDATION_FAILED: registrationId is required");
     }
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -433,7 +433,7 @@ export async function handleFinanceListSchedules(
     const auth = await host.resolveTenantContextFromRequest(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const registrationId = parseOptionalRegistrationId(url.searchParams.get("registrationId"));
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -457,7 +457,7 @@ export async function handleFinanceGetSchedule(
   const host = getFinanceHttpHost();
   try {
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -482,7 +482,7 @@ export async function handleFinanceGenerateSchedule(
     const { parsedBody } = await host.readFinanceRequestBody(req);
     const body = parseGenerateScheduleBody(parsedBody);
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
@@ -506,7 +506,7 @@ export async function handleFinanceGetRegistrationInvoice(
   const host = getFinanceHttpHost();
   try {
     const auth = await host.resolveTenantContextFromRequest(req);
-    const financeService = await host.resolveFinanceService(deps);
+    const financeService = await host.resolveFinanceService(deps, auth);
     await host.runWithHttpRequestContext(
       req,
       auth,
