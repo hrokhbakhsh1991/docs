@@ -117,8 +117,35 @@ export function generateOutboxSideEffects(manifests) {
           `workspace.manifest.json ${m.id} event ${ev.eventType}: hostSideEffect.adapterModule and export are required`
         );
       }
+      if (
+        hostSideEffect.dispatchVia !== undefined &&
+        hostSideEffect.dispatchVia !== "financeEventReaction"
+      ) {
+        throw new Error(
+          `workspace.manifest.json ${m.id} event ${ev.eventType}: hostSideEffect.dispatchVia must be "financeEventReaction" when set`
+        );
+      }
       const workspaceTypes = ev.workspaceTypes ?? m.workspaceTypes;
       const spec = importSpecifier(m.package, hostSideEffect.adapterModule);
+      const routeViaFinanceReaction = hostSideEffect.dispatchVia === "financeEventReaction";
+
+      // Re-exports keep register/run symbols for adapter IO injection + backward-compat tests.
+      if (!reexportsBySpecifier.has(spec)) {
+        reexportsBySpecifier.set(spec, new Set());
+      }
+      reexportsBySpecifier.get(spec).add(hostSideEffect.export);
+      if (typeof hostSideEffect.registerExport === "string") {
+        reexportsBySpecifier.get(spec).add(hostSideEffect.registerExport);
+      }
+      if (typeof hostSideEffect.rowTypeExport === "string") {
+        reexportsBySpecifier.get(spec).add(`type ${hostSideEffect.rowTypeExport}`);
+      }
+
+      // Phase 1.8: financeEventReaction is dispatched via finance registry — not binding.run.
+      if (routeViaFinanceReaction) {
+        continue;
+      }
+
       if (!importsBySpecifier.has(spec)) {
         importsBySpecifier.set(spec, new Set());
       }
@@ -132,12 +159,26 @@ export function generateOutboxSideEffects(manifests) {
     }
   }
 
+  const reexportLines = [...reexportsBySpecifier.entries()].map(([spec, exports]) => {
+    return `export { ${[...exports].sort((a, b) => a.localeCompare(b)).join(", ")} } from "${spec}";`;
+  });
+
   if (rows.length === 0) {
+    const reexportBlock = reexportLines.length > 0 ? `\n${reexportLines.join("\n")}\n` : "";
     return `${BANNER}
 import type { WorkspaceOutboxPublishedRow } from "./workspace-outbox-row-context";
 
-export const WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS = [] as const;
-`;
+export type WorkspaceOutboxSideEffectRunner = (
+  row: WorkspaceOutboxPublishedRow
+) => Promise<void | boolean>;
+
+/** Non–financeEventReaction host side effects only. Finance TourCreated uses the reaction registry. */
+export const WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS: readonly {
+  readonly workspaceTypes: readonly string[];
+  readonly eventType: string;
+  readonly run: WorkspaceOutboxSideEffectRunner;
+}[] = [];
+${reexportBlock}`;
   }
 
   const importLines = [...importsBySpecifier.entries()].map(([spec, exports]) => {

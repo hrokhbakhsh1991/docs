@@ -28,7 +28,10 @@
       ],
       "hostSideEffect": {
         "adapterModule": "./finance/api-tour-created-adapter",
-        "export": "runTourCreatedFinanceSideEffect"
+        "export": "runTourCreatedFinanceSideEffect",
+        "registerExport": "registerTourCreatedFinanceSideEffectDeps",
+        "rowTypeExport": "TourCreatedFinanceSideEffectRow",
+        "dispatchVia": "financeEventReaction"
       }
     }
   ],

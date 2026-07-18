@@ -5,20 +5,16 @@
  */
 
 import type { WorkspaceOutboxPublishedRow } from "./workspace-outbox-row-context";
-import { runTourCreatedFinanceSideEffect } from "@app-tour/workspace-denali/host/finance/api-tour-created-adapter";
 
 export type WorkspaceOutboxSideEffectRunner = (
   row: WorkspaceOutboxPublishedRow
 ) => Promise<void | boolean>;
 
+/** Non–financeEventReaction host side effects only. Finance TourCreated uses the reaction registry. */
 export const WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS: readonly {
   readonly workspaceTypes: readonly string[];
   readonly eventType: string;
   readonly run: WorkspaceOutboxSideEffectRunner;
-}[] = [
-  {
-    workspaceTypes: ["denali"],
-    eventType: "TourCreated",
-    run: runTourCreatedFinanceSideEffect,
-  },
-];
+}[] = [];
+
+export { registerTourCreatedFinanceSideEffectDeps, runTourCreatedFinanceSideEffect, type TourCreatedFinanceSideEffectRow } from "@app-tour/workspace-denali/host/finance/api-tour-created-adapter";
