@@ -22,11 +22,12 @@ export async function resolveLazyFinanceService(
     return injected;
   }
   if (financeServicePromise === null) {
+    const bookingPayments = new BookingPaymentAdapter();
     financeServicePromise = Promise.resolve(
       createFinanceService(
         resolveFinanceLedgerPolicy(),
-        createFinanceRepository(),
-        new BookingPaymentAdapter(),
+        createFinanceRepository(bookingPayments),
+        bookingPayments,
         new DenaliFinanceReceiptDefaultsAdapter()
       )
     );
