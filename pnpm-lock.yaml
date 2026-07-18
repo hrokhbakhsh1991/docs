@@ -41,6 +41,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@app-tour/finance-http':
+        specifier: workspace:*
+        version: link:../../packages/finance-http
       '@app-tour/finance-http-contracts':
         specifier: workspace:*
         version: link:../../packages/finance-http-contracts
@@ -575,6 +578,28 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/finance-http:
+    dependencies:
+      '@app-tour/finance-http-contracts':
+        specifier: workspace:*
+        version: link:../finance-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/finance-http-contracts:
     dependencies:
       zod:
@@ -889,6 +914,9 @@ importers:
       '@app-tour/draft-engine':
         specifier: workspace:*
         version: link:../../draft-engine
+      '@app-tour/finance-http':
+        specifier: workspace:*
+        version: link:../../finance-http
       '@app-tour/finance-http-contracts':
         specifier: workspace:*
         version: link:../../finance-http-contracts

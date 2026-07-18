@@ -57,7 +57,7 @@ P7 path boundary: edit **`apps/api/src/workspace-finance/`** only; `apps/api/src
 | Chart of accounts / wallet id | `packages/workspaces/denali/src/finance/ledger-accounts.ts` | Workspace policy |
 | Double-entry helper | `post-double-entry-journal.ts` | Workspace (usable as shared later) |
 | Ledger policy adapter | `infrastructure/denali-finance-ledger-policy.adapter.ts` | Correct as Denali adapter; **incorrect as sole boot wiring** |
-| HTTP routes | `packages/workspaces/denali/src/http/finance.routes.ts` (codegen handlerPackage) | Handlers still Denali-packaged; DTOs moved (**P1.4**) |
+| HTTP routes | `@app-tour/finance-http` handlers; Denali re-exports | **P1.4 C2 Done** |
 | HTTP request contracts | `@app-tour/finance-http-contracts`; Denali schemas re-export | **P1.4 Done** — finance-owned SoT |
 | HTTP host naming | `configureDenaliFinanceHttpHost` / `getDenaliFinanceHttpHost` | Naming/ownership leak (handlers still Denali) |
 | FinanceService DTO imports | `finance.service.ts` ← `@app-tour/finance-http-contracts` | **P1.4 Done** — no Denali HTTP import |
@@ -368,8 +368,27 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | Request schemas/types/parsers live in `@app-tour/finance-http-contracts` | Done |
 | `FinanceService` imports contracts package only (not Denali HTTP) | Done |
 | Denali HTTP schemas file is a compatibility re-export | Done |
-| Finance HTTP handlers remain Denali-packaged for codegen | Done (deferred move) |
+| Finance HTTP handlers remain Denali-packaged for codegen | Superseded — **P1.4 C2** moved to `@app-tour/finance-http` |
 | No ledger / booking / GL / identity changes | Done |
+
+### Phase 1.4 Commit 2 — Finance HTTP handler ownership
+
+| | |
+| -- | -- |
+| **Goal** | Move finance HTTP handlers/routes out of `workspace-denali` into `@app-tour/finance-http` |
+| **Unchanged** | API paths, auth/middleware/idempotency host ports, `FinanceService` logic, DTO shapes (contracts package) |
+| **Registration** | Denali manifest finance group `handlerPackage: @app-tour/finance-http`; catalog remains Denali |
+| **Denali** | Thin re-exports only (`configureDenaliFinanceHttpHost` aliases, handler re-exports for clients) |
+| **Must NOT** | Workspace-specific route branching; ledger/booking/GL; service workflow edits |
+
+**Phase 1.4 Commit 2 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| Handlers live in `@app-tour/finance-http` | Done |
+| Codegen loads finance handlers from finance-http | Done |
+| Denali no longer implements finance route bodies | Done |
+| API paths + idempotency host wiring unchanged | Done |
 
 ### Phase 2 — Finance core extraction
 
@@ -444,7 +463,7 @@ P = probability, I = impact under hostile production review.
 | **Hard dependencies** | HTTP DTO/routes package; boot→Denali adapter; generated finance HTTP loaders; bindings import |
 | **Soft dependencies** | financeOps manifest for panel toggles; TourCreated side-effect (Denali-only event); IRR defaults (no import, still Denali-shaped) |
 | **Safe to treat as extracted already** | Pure invoice compile; port interfaces; outbox enqueue helper; Phase 3A/3B identity helpers in service; receipt defaults port; Option C TX booking port |
-| **Required interfaces** | `FinanceLedgerPolicyPort` (exists); TX-aware `raisePaidInTx` on `IBookingPaymentPort` (**Phase 0 Done**); `FinanceReceiptDefaultsPort` (**Phase 0 Done**); `@app-tour/finance-http-contracts` (**P1.4 Done** — handlers still Denali-packaged); nav codegen (**P1.2 Done**) |
+| **Required interfaces** | `FinanceLedgerPolicyPort` (exists); TX-aware `raisePaidInTx` on `IBookingPaymentPort` (**Phase 0 Done**); `FinanceReceiptDefaultsPort` (**Phase 0 Done**); `@app-tour/finance-http-contracts` + `@app-tour/finance-http` (**P1.4 C1+C2 Done**); nav codegen (**P1.2 Done**) |
 
 ---
 
@@ -471,7 +490,7 @@ Phases 1+ planning only — **do not implement from this table without a nano-sp
 | `workspace-finance-bindings.generated.ts` | Supported workspaces | Denali-only | Multi-WS + policy loaders | P1 |
 | `scripts/codegen/.../finance.mjs` | Generate bindings | Enablement only | policy/defaults/nav exports | P1 |
 | `http/configure-workspace-finance-http-host.ts` | Host port injection | Denali-named API | Neutral finance HTTP host | P1 |
-| `packages/.../denali/http/finance.routes.ts` | HTTP handlers | Package ownership | Move/share in finance-owned module; Denali re-export | P1 |
+| `packages/.../denali/http/finance.routes.ts` | Compat re-export | Was owner | Re-exports `@app-tour/finance-http` | **P1.4 C2 Done** |
 | `packages/.../denali/http/schemas/finance-request.schemas.ts` | Compat re-export | Was SoT | Re-exports `@app-tour/finance-http-contracts` | **P1.4 Done** |
 | `packages/.../denali/finance/ledger-accounts.ts` | CoA | OK | Stay workspace-owned | — |
 | `packages/.../denali/finance/finance-ops-manifest.ts` | UI panels | Web imports Denali | Workspace export; shared type | P1 |

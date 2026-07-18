@@ -34,7 +34,7 @@ export function generateWorkspaceHttpRoutes(manifests) {
   for (const m of manifests) {
     const httpRoutes = m.httpRoutes;
     if (httpRoutes === undefined) continue;
-    const handlerPackage =
+    const defaultHandlerPackage =
       typeof httpRoutes.handlerPackage === "string" && httpRoutes.handlerPackage.length > 0
         ? httpRoutes.handlerPackage
         : `${m.package}/http`;
@@ -54,6 +54,10 @@ export function generateWorkspaceHttpRoutes(manifests) {
           `workspace.manifest.json ${m.id}: httpRoutes.groups[${i}].staticHandlers is required`
         );
       }
+      const handlerPackage =
+        typeof group.handlerPackage === "string" && group.handlerPackage.length > 0
+          ? group.handlerPackage
+          : defaultHandlerPackage;
       importLines.add(`import { ${group.manifestExport} } from "${handlerPackage}";`);
       const staticConst = `${workspaceManifestConstPrefix(m.id)}_${group.manifestExport}_STATIC_HANDLERS`;
       staticManifestBlocks.push(
@@ -155,20 +159,24 @@ export function generateWorkspaceHttpHandlerLoaders(manifests) {
   for (const m of manifests) {
     const httpRoutes = m.httpRoutes;
     if (httpRoutes === undefined || httpRoutes.loadHandlersFromPackage !== true) continue;
-    const handlerPackage =
+    const defaultHandlerPackage =
       typeof httpRoutes.handlerPackage === "string" && httpRoutes.handlerPackage.length > 0
         ? httpRoutes.handlerPackage
         : `${m.package}/http`;
-    const keys = packageHandlers.get(handlerPackage) ?? new Set();
     for (const group of httpRoutes.groups) {
+      const handlerPackage =
+        typeof group.handlerPackage === "string" && group.handlerPackage.length > 0
+          ? group.handlerPackage
+          : defaultHandlerPackage;
+      const keys = packageHandlers.get(handlerPackage) ?? new Set();
       for (const handlerKey of Object.values(group.staticHandlers ?? {})) {
         keys.add(String(handlerKey));
       }
       for (const handlerKey of Object.values(group.paramHandlers ?? {})) {
         keys.add(String(handlerKey));
       }
+      packageHandlers.set(handlerPackage, keys);
     }
-    packageHandlers.set(handlerPackage, keys);
   }
 
   if (packageHandlers.size === 0) {

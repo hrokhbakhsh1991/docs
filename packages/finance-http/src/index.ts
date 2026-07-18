@@ -1,6 +1,18 @@
-/**
- * Compatibility re-export — SoT is `@app-tour/finance-http` (Phase 1.4 Commit 2).
- */
+export type { FinanceServicePort } from "./finance-service.port";
+export type {
+  FinanceRouteDeps,
+  FinanceHttpHostPorts,
+  DenaliFinanceHttpHostPorts,
+} from "./host-ports";
+export {
+  configureFinanceHttpHost,
+  resetFinanceHttpHostForTests,
+  getFinanceHttpHost,
+  configureDenaliFinanceHttpHost,
+  resetDenaliFinanceHttpHostForTests,
+  getDenaliFinanceHttpHost,
+} from "./host-runtime";
+export { FINANCE_HTTP_ROUTE_MANIFEST, type WorkspaceHttpMethod } from "./routes-manifest";
 export {
   handleFinanceSummary,
   handleFinanceOpenPayments,
@@ -19,5 +31,4 @@ export {
   handleFinanceGetSchedule,
   handleFinanceGenerateSchedule,
   handleFinanceGetRegistrationInvoice,
-  type FinanceRouteDeps,
-} from "@app-tour/finance-http";
+} from "./finance.routes";
