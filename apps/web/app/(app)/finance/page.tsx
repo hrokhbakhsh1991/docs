@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { readOperatorSessionFromCookies } from "@/auth/read-operator-session.server";
-import { isFinanceRouteAllowed } from "@/finance/finance-nav-access";
+import { isFinanceRouteAllowed } from "@/finance/finance-nav-enablement";
 import { buildFinancePageMetadata } from "@/i18n/finance-page-metadata";
 import { resolveBootstrapAppSessionForHost } from "@/tenant/tenant-kernel";
 

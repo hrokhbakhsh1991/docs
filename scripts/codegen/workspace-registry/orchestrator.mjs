@@ -58,6 +58,9 @@ import {
   generateSettingsEnrichers,
 } from "./domains/settings-api.mjs";
 import { generateWorkspaceOperatorCapabilities } from "./domains/operator.mjs";
+import { generateWorkspaceFinanceBindings, generateWorkspaceFinanceNavBindings } from "./domains/finance.mjs";
+import { generateExposureHostBindings } from "./domains/exposure.mjs";
+import { generateWorkspaceIntegrationCapabilities } from "./domains/integration.mjs";
 import {
   generateCanonicalTourBindings,
   generateOutboxSideEffects,
@@ -168,6 +171,8 @@ export const DOMAIN_OUTPUT_KEYS = {
   "settings-api": ["settingsEnrichers", "devBootstrap"],
   dev: ["devPluginIds"],
   operator: ["operatorCapabilities"],
+  finance: ["workspaceFinance", "workspaceFinanceNav"],
+  exposure: ["exposureHost"],
 };
 
 export const OUTPUT_KEYS = Object.freeze([
@@ -195,6 +200,8 @@ export const OUTPUT_KEYS = Object.freeze([
   "catalogListFeatures",
   "catalogDetailSections",
   "operatorCapabilities",
+  "workspaceFinance",
+  "workspaceFinanceNav",
   "wizardTemplateEditorBindings",
   "marketingCatalogBindings",
   "settingsDestinationBindings",
@@ -263,6 +270,8 @@ export function generateAllOutputs(manifests) {
     catalogListFeatures: generateWorkspaceCatalogListFeatures(manifests),
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
+    workspaceFinance: generateWorkspaceFinanceBindings(manifests),
+    workspaceFinanceNav: generateWorkspaceFinanceNavBindings(manifests),
     wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
     marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
     settingsDestinationBindings: generateSettingsDestinationBindings(manifests),
@@ -373,6 +382,14 @@ export const OUTPUT_PATHS = {
   operatorCapabilities: join(
     REPO_ROOT,
     "packages/workspace-sdk/src/operator/workspace-operator-capabilities.generated.ts"
+  ),
+  workspaceFinance: join(
+    REPO_ROOT,
+    "apps/api/src/workspace-finance/workspace-finance-bindings.generated.ts"
+  ),
+  workspaceFinanceNav: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts"
   ),
   wizardTemplateEditorBindings: join(
     REPO_ROOT,

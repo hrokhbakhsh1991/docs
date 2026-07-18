@@ -1,6 +1,6 @@
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { isOwnerRole } from "@/admin/require-operator-session";
-import { shouldShowFinanceNav } from "@/finance/finance-nav-access";
+import { shouldShowFinanceNav } from "@/finance/finance-nav-enablement";
 import { shouldShowUsersNav } from "@/features/users/users-nav-access";
 
 import type { OperatorNavItem } from "./operator-nav.types";
