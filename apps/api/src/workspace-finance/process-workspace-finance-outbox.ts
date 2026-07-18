@@ -1,38 +1,30 @@
 import "./register-workspace-finance-deps";
-import {
-  consumeDenaliTourCreatedFinanceOutbox,
-  type FinanceOutboxConsumerResult,
-} from "@app-tour/workspace-denali";
 
-import { createWorkspaceFinanceProcessedStore } from "./workspace-finance-processed-log";
-import { createWorkspaceOutboxReader } from "./prisma-workspace-outbox-reader";
-import { createPrismaWorkspaceOutboxWriter } from "./prisma-workspace-outbox-writer";
-import {
-  runTourCreatedFinanceSideEffect,
-  type TourCreatedFinanceSideEffectRow,
-} from "../workspace/workspace-outbox-side-effects.generated.ts";
+import { resolveFinanceWorkspaceTypeForTenant } from "./resolve-finance-workspace-type-for-tenant";
+import { resolveWorkspaceFinanceEventReaction } from "./finance-event-reaction-registry";
+import type {
+  WorkspaceFinancePublishedOutboxRow,
+  WorkspaceFinanceReactionBatchResult,
+} from "./ports/workspace-finance-event-reaction.port";
 
-export type WorkspaceFinanceTourCreatedRow = TourCreatedFinanceSideEffectRow;
+export type WorkspaceFinanceTourCreatedRow = WorkspaceFinancePublishedOutboxRow;
 
 /**
- * Processes one relayed TourCreated row — enqueues finance.ledger outbox when payload qualifies.
- * Workspace reaction runner (generated binding); finance host does not own Denali consumer composition.
+ * Single published TourCreated row — delegates to workspace reaction port (Phase 1.7 C2).
  */
 export async function processWorkspaceFinanceTourCreatedRow(
   row: WorkspaceFinanceTourCreatedRow
 ): Promise<boolean> {
-  return runTourCreatedFinanceSideEffect(row);
+  const workspaceType = await resolveFinanceWorkspaceTypeForTenant(row.tenantId);
+  return resolveWorkspaceFinanceEventReaction(workspaceType).reactToPublishedRow(row);
 }
 
 /**
- * Batch tick — host supplies Prisma IO; Denali owns TourCreated→ledger consumer composition (Phase 1.7 C1).
+ * Batch tick — host resolves workspace reaction port; no Denali consumer names (Phase 1.7 C2).
  */
 export async function processWorkspaceFinanceOutboxForTenant(
   tenantId: string
-): Promise<FinanceOutboxConsumerResult> {
-  return consumeDenaliTourCreatedFinanceOutbox({
-    reader: createWorkspaceOutboxReader(tenantId),
-    writer: createPrismaWorkspaceOutboxWriter(),
-    processedStore: createWorkspaceFinanceProcessedStore(tenantId),
-  });
+): Promise<WorkspaceFinanceReactionBatchResult> {
+  const workspaceType = await resolveFinanceWorkspaceTypeForTenant(tenantId);
+  return resolveWorkspaceFinanceEventReaction(workspaceType).consumePendingForTenant(tenantId);
 }

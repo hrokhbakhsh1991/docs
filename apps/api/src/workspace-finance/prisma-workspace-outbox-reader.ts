@@ -1,25 +1,30 @@
-import type {
-  DenaliOutboxDomainEvent,
-  OutboxReader,
-  TourCreatedLedgerPayload,
-} from "@app-tour/workspace-denali";
-
+/**
+ * Host Prisma OutboxReader for TourCreated → finance batch reactions.
+ * Types are host-owned (Phase 1.7 C2) — no Denali package imports.
+ */
 import { withTenantRls } from "../db/with-tenant-rls";
+import type {
+  FinanceWorkspaceOutboxEvent,
+  FinanceWorkspaceOutboxReader,
+} from "./ports/finance-workspace-outbox-reader.port";
 import { hasWorkspaceFinanceProcessedEvent } from "./workspace-finance-processed-log";
 
 function tourCreatedHasFinancePayload(payload: Record<string, unknown>): boolean {
-  const finance = payload as TourCreatedLedgerPayload;
-  return Boolean(finance.registrationId?.trim() && finance.paidAmountMinor?.trim());
+  const registrationId =
+    typeof payload.registrationId === "string" ? payload.registrationId.trim() : "";
+  const paidAmountMinor =
+    typeof payload.paidAmountMinor === "string" ? payload.paidAmountMinor.trim() : "";
+  return registrationId.length > 0 && paidAmountMinor.length > 0;
 }
 
-function mapOutboxRowToDenaliEvent(row: {
+function mapOutboxRowToFinanceEvent(row: {
   tenantId: string;
   domainEventId: string | null;
   eventType: string;
   aggregateType: string;
   aggregateId: string;
   payload: unknown;
-}): DenaliOutboxDomainEvent | null {
+}): FinanceWorkspaceOutboxEvent | null {
   const domainEventId = row.domainEventId?.trim();
   if (!domainEventId) {
     return null;
@@ -38,9 +43,9 @@ function mapOutboxRowToDenaliEvent(row: {
   };
 }
 
-export function createWorkspaceOutboxReader(tenantId: string): OutboxReader {
+export function createWorkspaceOutboxReader(tenantId: string): FinanceWorkspaceOutboxReader {
   return {
-    async readPending(): Promise<readonly DenaliOutboxDomainEvent[]> {
+    async readPending(): Promise<readonly FinanceWorkspaceOutboxEvent[]> {
       const rows = await withTenantRls(tenantId, (tx) =>
         tx.outboxEvent.findMany({
           where: {
@@ -53,9 +58,9 @@ export function createWorkspaceOutboxReader(tenantId: string): OutboxReader {
         })
       );
 
-      const events: DenaliOutboxDomainEvent[] = [];
+      const events: FinanceWorkspaceOutboxEvent[] = [];
       for (const row of rows) {
-        const mapped = mapOutboxRowToDenaliEvent(row);
+        const mapped = mapOutboxRowToFinanceEvent(row);
         if (mapped === null) {
           continue;
         }
