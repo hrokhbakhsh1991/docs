@@ -270,6 +270,70 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
     assert.equal(row?.status, "processing");
   });
 
+  it("IDEM-LEASE-04 expired lease reclaim then same-key claim succeeds", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `lease-04-${registrationId}`;
+    await admin.httpIdempotencyRecord.create({
+      data: {
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        requestHash: "stale-will-reclaim",
+        status: "processing",
+        leaseUntil: new Date(Date.now() - 1_000),
+        leaseOwner: "dead-owner",
+      },
+    });
+    await reclaimStaleProcessingHttpIdempotencyRecords(reclaimMs);
+    const created = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/prepayments",
+      tenantId: denaliTenantId,
+      idempotencyKey,
+      body: {
+        registrationId,
+        amountMinor: "150000",
+        currency: "IRR",
+        method: "Manual",
+      },
+    });
+    assert.equal(created.status, 201);
+    const row = await admin.httpIdempotencyRecord.findUnique({
+      where: {
+        tenantId_idempotencyKey: { tenantId: denaliTenantId, idempotencyKey },
+      },
+    });
+    assert.equal(row?.status, "completed");
+    assert.equal(row?.leaseOwner !== "dead-owner", true);
+  });
+
+  it("IDEM-LEASE-05 failure cleanup does not delete successor owner row", async () => {
+    const idempotencyKey = `lease-05-${randomUUID()}`;
+    const deadOwner = "dead-owner-05";
+    const liveOwner = "live-owner-05";
+    await admin.httpIdempotencyRecord.create({
+      data: {
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        requestHash: "hash-lease-05",
+        status: "processing",
+        leaseUntil: new Date(Date.now() + reclaimMs),
+        leaseOwner: liveOwner,
+      },
+    });
+    // Simulate failed former owner cleanup scoped by leaseOwner — must not delete live row.
+    const deleted = await admin.httpIdempotencyRecord.deleteMany({
+      where: { tenantId: denaliTenantId, idempotencyKey, leaseOwner: deadOwner },
+    });
+    assert.equal(deleted.count, 0);
+    const row = await admin.httpIdempotencyRecord.findUnique({
+      where: {
+        tenantId_idempotencyKey: { tenantId: denaliTenantId, idempotencyKey },
+      },
+    });
+    assert.ok(row);
+    assert.equal(row?.leaseOwner, liveOwner);
+  });
+
   it("IDEM-RECLAIM-02 prepay stuck processing → reclaim → same key retry (one logical)", async () => {
     const registrationId = randomUUID();
     const idempotencyKey = `reclaim-02-${registrationId}`;

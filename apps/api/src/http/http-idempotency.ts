@@ -38,6 +38,10 @@ export type IdempotentCreateTourResponse = {
 
 type StoredResponse = Record<string, unknown>;
 
+export type HttpIdempotencyMutationOptions = {
+  readonly statusCode?: number;
+};
+
 type MemoryEntry = {
   readonly requestHash: string;
   status: "processing" | "completed";
@@ -177,7 +181,8 @@ async function runWithMemoryIdempotency(
   tenantId: string,
   idempotencyKey: string,
   requestHash: string,
-  execute: () => Promise<StoredResponse>
+  execute: () => Promise<StoredResponse>,
+  statusCode = 201
 ): Promise<StoredResponse> {
   enforceMemoryIdempotencyBounds();
   const key = memoryKey(tenantId, idempotencyKey);
@@ -202,7 +207,7 @@ async function runWithMemoryIdempotency(
   try {
     const response = await execute();
     entry.status = "completed";
-    entry.statusCode = 201;
+    entry.statusCode = statusCode;
     entry.response = response;
     markMemoryEntryCompleted(key, entry);
     for (const resolve of entry.waiters) {
@@ -281,7 +286,8 @@ async function runAsPrismaOwner(
   tenantId: string,
   idempotencyKey: string,
   leaseOwner: string,
-  execute: () => Promise<StoredResponse>
+  execute: () => Promise<StoredResponse>,
+  statusCode = 201
 ): Promise<StoredResponse> {
   const reclaimMs = resolveHttpIdempotencyProcessingReclaimMs();
   const heartbeatMs = resolveLeaseHeartbeatMs(reclaimMs);
@@ -310,7 +316,7 @@ async function runAsPrismaOwner(
       const affected = await tx.$executeRaw`
         UPDATE http_idempotency_records
         SET status = 'completed',
-            status_code = 201,
+            status_code = ${statusCode},
             response_body = ${JSON.stringify(response)}::jsonb,
             completed_at = now(),
             lease_until = NULL
@@ -340,7 +346,8 @@ async function runWithPrismaIdempotency(
   tenantId: string,
   idempotencyKey: string,
   requestHash: string,
-  execute: () => Promise<StoredResponse>
+  execute: () => Promise<StoredResponse>,
+  statusCode = 201
 ): Promise<StoredResponse> {
   for (let claimAttempt = 0; claimAttempt < PRISMA_CLAIM_ATTEMPTS; claimAttempt += 1) {
     const reclaimMs = resolveHttpIdempotencyProcessingReclaimMs();
@@ -386,7 +393,7 @@ async function runWithPrismaIdempotency(
       return claimed.response;
     }
     if (claimed.kind === "owner") {
-      return runAsPrismaOwner(tenantId, idempotencyKey, claimed.leaseOwner, execute);
+      return runAsPrismaOwner(tenantId, idempotencyKey, claimed.leaseOwner, execute, statusCode);
     }
 
     const waited = await waitForPrismaCompletion(tenantId, idempotencyKey, requestHash);
@@ -416,13 +423,27 @@ export async function runIdempotentHttpMutation<T extends StoredResponse>(
   tenantId: string,
   idempotencyKey: string,
   requestHash: string,
-  execute: () => Promise<T>
+  execute: () => Promise<T>,
+  options?: HttpIdempotencyMutationOptions
 ): Promise<T> {
   assertIdempotentCreateTenantAllowed(tenantId);
+  const statusCode = options?.statusCode ?? 201;
   if (resolveStorageDriver() !== "prisma") {
-    return runWithMemoryIdempotency(tenantId, idempotencyKey, requestHash, execute) as Promise<T>;
+    return runWithMemoryIdempotency(
+      tenantId,
+      idempotencyKey,
+      requestHash,
+      execute,
+      statusCode
+    ) as Promise<T>;
   }
-  return runWithPrismaIdempotency(tenantId, idempotencyKey, requestHash, execute) as Promise<T>;
+  return runWithPrismaIdempotency(
+    tenantId,
+    idempotencyKey,
+    requestHash,
+    execute,
+    statusCode
+  ) as Promise<T>;
 }
 
 /**

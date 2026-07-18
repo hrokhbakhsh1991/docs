@@ -28,7 +28,8 @@ export type DenaliFinanceHttpHostPorts = {
     tenantId: string,
     idempotencyKey: string,
     requestHash: string,
-    execute: () => Promise<T>
+    execute: () => Promise<T>,
+    options?: { readonly statusCode?: number }
   ) => Promise<T>;
   readonly idempotencyKeyRequiredCode: string;
 };
