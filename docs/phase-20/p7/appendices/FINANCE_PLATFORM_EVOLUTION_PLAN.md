@@ -292,7 +292,7 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | **Runtime** | `finance-nav-enablement.ts` (`shouldShowFinanceNav` / `isFinanceRouteAllowed`) is the only enablement gate; operator nav, dashboard widget, and `/finance` page import it |
 | **Preserved** | Denali still `supported: true` → nav visible; Denali `financeOps` panels stay on `@app-cloud/workspace-denali/host/finance/manifest` via `finance-nav-access.ts` (ops UI only — not enablement) |
 | **Must NOT** | Redesign UI; change approve/ledger/workflows; full WS2 workspace package/API registry; change users/welcome chrome gates |
-| **Verify** | Denali → true; `finance-ws2` → true (architecture-proof nav id); urban/starter/unknown → false; enablement module has zero `isExtendedOperatorWorkspace` / wizard-create imports |
+| **Verify** | Denali → true; urban/starter/`finance-ws2` (fixture, no manifest) → false; enablement module has zero `isExtendedOperatorWorkspace` / wizard-create imports |
 
 **Phase 1.2 checklist:**
 
@@ -301,7 +301,7 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | Generated finance nav bindings are source of truth for hub visibility | Done |
 | `shouldShowFinanceNav` independent of wizard `extendedChrome` | Done |
 | Denali UI behavior preserved (nav on; ops panels unchanged) | Done |
-| Denali + finance-ws2 see finance; unsupported workspaces do not | Done |
+| Denali sees finance; unsupported workspaces (incl. fixture `finance-ws2`) do not | Done |
 
 ### Phase 1 — Multi-workspace readiness
 
@@ -332,12 +332,13 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | -- | -- |
 | **Goal** | Prove Finance is **configurable via registry + workspace-owned policy**, not copied per workspace |
 | **Kind** | Architecture fixture (`finance-ws2`) under `apps/api/.../infrastructure/` — **not** production workspace onboarding |
+| **Production enablement** | **Denied** — no workspace package, no `workspaceFinance.supported`, no nav/API gate exposure |
 | **Shared (unchanged)** | `FinanceService`, `FinanceRepository`, approve/prepay workflows, Phase 3A/3B identity formulas |
 | **WS2 owns** | Chart of accounts (`finance-ws2-chart-of-accounts.ts`); ledger policy adapter; offline receipt defaults |
-| **WS2 does not own (yet)** | HTTP routes, nav `workspaceFinance.supported`, finance events consumer, ops UI manifest, real `packages/workspaces/*` package |
-| **Composition** | `finance-dependency-registry.ts` maps `denali` → Denali adapters, `finance-ws2` → WS2 adapters; boot default remains Denali |
-| **Must NOT** | Duplicate `FinanceService`/Repository; workspace-specific approve workflows; bypass registry; import `@app-cloud/workspace-denali` from WS2 modules |
-| **Verify** | Registry policy/defaults selection; dual-engine approve under both policies; WS2 sources free of Denali imports; FinanceService has no workspaceType / adapter class imports |
+| **WS2 does not own** | HTTP routes, nav, finance events consumer, ops UI manifest, real `packages/workspaces/*` package |
+| **Composition** | Registry maps `finance-ws2` for **unit/architecture proofs only**; HTTP/nav/gate SoT remains manifest Denali bindings |
+| **Must NOT** | Fake nav architecture-proof plugin ids; duplicate `FinanceService`; treat registry presence as product enablement |
+| **Verify** | Registry dual-policy proofs; nav bindings exclude `finance-ws2`; FinanceService has no workspaceType / adapter class imports |
 
 **Phase 1.3 checklist:**
 

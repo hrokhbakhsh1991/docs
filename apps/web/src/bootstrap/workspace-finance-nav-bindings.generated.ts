@@ -4,10 +4,9 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-/** Plugin ids with workspaceFinance.supported (+ architecture-proof) — finance hub enablement (Phase 1.2). */
+/** Plugin ids with workspaceFinance.supported — finance hub enablement (Phase 1.2). */
 export const WORKSPACE_FINANCE_NAV_PLUGIN_IDS = new Set<string>([
   "denali",
-  "finance-ws2",
 ]);
 
 export function isFinanceNavPlugin(pluginId: string): boolean {
