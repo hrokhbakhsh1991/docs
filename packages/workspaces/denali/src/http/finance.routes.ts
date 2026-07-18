@@ -123,15 +123,32 @@ export async function handleFinanceCreateManualPayment(
 ): Promise<void> {
   const host = getDenaliFinanceHttpHost();
   try {
-    const { parsedBody } = await host.readFinanceRequestBody(req);
+    const idempotencyKey = host.readIdempotencyKey(req);
+    if (idempotencyKey === undefined) {
+      throw new Error(host.idempotencyKeyRequiredCode);
+    }
+    const { parsedBody, rawBody } = await host.readFinanceRequestBody(req);
     const body = parseCreateManualPaymentBody(parsedBody);
     const auth = await host.resolveTenantContextFromRequest(req);
     const financeService = await host.resolveFinanceService(deps);
+    const requestHash = host.hashIdempotentRequest(
+      req.method ?? "POST",
+      "/finance/payments/manual",
+      rawBody
+    );
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const payment = await financeService.createManualPayment(auth, body);
+        const payment = await host.runIdempotentHttpMutation(
+          auth.tenantId,
+          idempotencyKey,
+          requestHash,
+          async () => {
+            const created = await financeService.createManualPayment(auth, body);
+            return created as Record<string, unknown>;
+          }
+        );
         host.sendJson(res, 201, payment);
       },
       { rateLimit: "write" }
@@ -148,15 +165,32 @@ export async function handleFinanceSubmitReceipt(
 ): Promise<void> {
   const host = getDenaliFinanceHttpHost();
   try {
-    const { parsedBody } = await host.readFinanceRequestBody(req);
+    const idempotencyKey = host.readIdempotencyKey(req);
+    if (idempotencyKey === undefined) {
+      throw new Error(host.idempotencyKeyRequiredCode);
+    }
+    const { parsedBody, rawBody } = await host.readFinanceRequestBody(req);
     const body = parseSubmitReceiptBody(parsedBody);
     const auth = await host.resolveTenantContextFromRequest(req);
     const financeService = await host.resolveFinanceService(deps);
+    const requestHash = host.hashIdempotentRequest(
+      req.method ?? "POST",
+      "/finance/receipts",
+      rawBody
+    );
     await host.runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const receipt = await financeService.submitReceipt(auth, body);
+        const receipt = await host.runIdempotentHttpMutation(
+          auth.tenantId,
+          idempotencyKey,
+          requestHash,
+          async () => {
+            const created = await financeService.submitReceipt(auth, body);
+            return created as Record<string, unknown>;
+          }
+        );
         host.sendJson(res, 201, receipt);
       },
       { rateLimit: "write" }

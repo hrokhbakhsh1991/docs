@@ -19,6 +19,16 @@ export type DenaliFinanceHttpHostPorts = {
   readonly resolveTenantContextFromRequest: (req: IncomingMessage) => Promise<TenantAuthContext>;
   readonly readFinanceRequestBody: (
     req: IncomingMessage
-  ) => Promise<{ readonly parsedBody: unknown }>;
+  ) => Promise<{ readonly parsedBody: unknown; readonly rawBody: string }>;
   readonly resolveFinanceService: (deps: FinanceRouteDeps) => Promise<FinanceServicePort>;
+  /** Phase 4B — Idempotency-Key required for prepay, approve, create payment, submit receipt. */
+  readonly readIdempotencyKey: (req: IncomingMessage) => string | undefined;
+  readonly hashIdempotentRequest: (method: string, path: string, rawBody: string) => string;
+  readonly runIdempotentHttpMutation: <T extends Record<string, unknown>>(
+    tenantId: string,
+    idempotencyKey: string,
+    requestHash: string,
+    execute: () => Promise<T>
+  ) => Promise<T>;
+  readonly idempotencyKeyRequiredCode: string;
 };

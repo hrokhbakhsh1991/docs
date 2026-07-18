@@ -2,7 +2,7 @@
 
 import type { VariantProps } from "class-variance-authority";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge, badgeVariants } from "@/components/ui/badge";
@@ -26,10 +26,15 @@ import {
   type SubmitReceiptFormState,
   type FinancePaymentsListResponse,
 } from "@/finance/finance-payments-logic";
+import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
+import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
+import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";
+import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
 import { formatMinorAmount } from "@/finance/finance-prepayments-logic";
 import { formatFinanceTimestamp } from "@/finance/finance-reports-logic";
 import type { AppLocale } from "@/i18n/routing";
 import { localizeFinanceMessage } from "@/i18n/resolve-finance-error-message";
+import { useSearchParams } from "next/navigation";
 
 type FinancePaymentsPanelProps = {
   readonly session: OperatorSessionContext;
@@ -84,7 +89,10 @@ function PaymentRow({
     <li className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1">
         <p className="font-medium">{formatMinorAmount(row.amount, row.currency, locale)}</p>
-        <p className="font-mono text-xs text-muted-foreground">{row.registrationId}</p>
+        <FinanceRegistrationIdentity
+          registrationId={row.registrationId}
+          context={row.registrationContext}
+        />
       </div>
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <Badge variant={statusVariant(paymentStatusTone(row.status))}>{statusLabel}</Badge>
@@ -105,6 +113,8 @@ export function FinancePaymentsPanel({
   const tValidation = useTranslations("finance.validation");
   const tErrors = useTranslations("finance.errors");
   const canManage = isAdminOrOwnerRole(session.role);
+  const searchParams = useSearchParams();
+  const registrationFilter = searchParams.get("registrationId");
   const [items, setItems] = useState<readonly FinancePaymentRow[]>(initialPayments?.items ?? []);
   const [loading, setLoading] = useState(initialPayments === null);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +125,7 @@ export function FinancePaymentsPanel({
   const [saving, setSaving] = useState(false);
   const [receiptSaving, setReceiptSaving] = useState(false);
   const [fetchNonce, setFetchNonce] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<"all" | "Pending" | "Paid" | "Failed">("all");
   const skipInitialFetchRef = useRef(initialPayments !== null);
 
   useEffect(() => {
@@ -125,7 +136,11 @@ export function FinancePaymentsPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    void fetch("/api/finance/payments?limit=50", { cache: "no-store" })
+    const path = withFinanceRegistrationQuery(
+      "/api/finance/payments?limit=50",
+      registrationFilter
+    );
+    void fetch(path, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`PAYMENTS_LIST_HTTP_${response.status}`);
@@ -150,9 +165,16 @@ export function FinancePaymentsPanel({
     return () => {
       cancelled = true;
     };
-  }, [fetchNonce]);
+  }, [fetchNonce, registrationFilter]);
 
   const refresh = () => setFetchNonce((value) => value + 1);
+
+  const visibleItems = useMemo(() => {
+    if (statusFilter === "all") {
+      return items;
+    }
+    return items.filter((row) => row.status === statusFilter);
+  }, [items, statusFilter]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -167,9 +189,16 @@ export function FinancePaymentsPanel({
     }
     setSaving(true);
     try {
+      const idempotencyKey =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `manual-pay-${Date.now()}`;
       const response = await fetch("/api/finance/payments/manual", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify(buildCreateManualPaymentRequestBody(validated.value)),
       });
       if (!response.ok) {
@@ -199,9 +228,16 @@ export function FinancePaymentsPanel({
     }
     setReceiptSaving(true);
     try {
+      const idempotencyKey =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `receipt-submit-${Date.now()}`;
       const response = await fetch("/api/finance/receipts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify(buildSubmitReceiptRequestBody(validated.value)),
       });
       if (!response.ok) {
@@ -232,18 +268,17 @@ export function FinancePaymentsPanel({
               onSubmit={handleSubmit}
             >
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="payment-registration-id">{tCommon("registrationId")}</Label>
-                <Input
+                <FinanceRegistrationPicker
                   id="payment-registration-id"
                   value={form.registrationId}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, registrationId: event.target.value }))
+                  onChange={(registrationId) =>
+                    setForm((current) => ({ ...current, registrationId }))
                   }
-                  autoComplete="off"
                 />
+                <FinanceInvoiceBalanceCard registrationId={form.registrationId} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="payment-amount">{tCommon("amountMinor")}</Label>
+                <Label htmlFor="payment-amount">{tCommon("amountDisplay")}</Label>
                 <LocalizedNumericInput
                   id="payment-amount"
                   mode="digits"
@@ -279,69 +314,97 @@ export function FinancePaymentsPanel({
       ) : null}
 
       {canManage ? (
-        <Card data-denali-surface="card" className="shadow-sm">
+        <Card data-denali-surface="card" className="shadow-sm border-dashed">
           <CardHeader>
-            <CardTitle className="text-base">{t("submitReceipt")}</CardTitle>
+            <CardTitle className="text-base">{t("submitReceiptAdvanced")}</CardTitle>
+            <p className="text-sm font-normal text-muted-foreground">{t("submitReceiptHint")}</p>
           </CardHeader>
           <CardContent>
-            <form
-              className="grid gap-4 sm:grid-cols-2"
-              data-testid={FINANCE_PAYMENTS_TEST_IDS.receiptForm}
-              onSubmit={handleReceiptSubmit}
-            >
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="receipt-payment-id">{t("paymentId")}</Label>
-                <Input
-                  id="receipt-payment-id"
-                  value={receiptForm.paymentId}
-                  onChange={(event) =>
-                    setReceiptForm((current) => ({ ...current, paymentId: event.target.value }))
-                  }
-                  autoComplete="off"
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="receipt-file-key">{t("fileKey")}</Label>
-                <Input
-                  id="receipt-file-key"
-                  value={receiptForm.fileKey}
-                  onChange={(event) =>
-                    setReceiptForm((current) => ({ ...current, fileKey: event.target.value }))
-                  }
-                  placeholder={t("fileKeyPlaceholder")}
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="receipt-note">{tCommon("optionalNote")}</Label>
-                <Input
-                  id="receipt-note"
-                  value={receiptForm.note}
-                  onChange={(event) =>
-                    setReceiptForm((current) => ({ ...current, note: event.target.value }))
-                  }
-                />
-              </div>
-              {receiptFormError ? (
-                <p className="text-sm text-destructive sm:col-span-2" role="alert">
-                  {localizeFinanceMessage(tValidation, tErrors, receiptFormError)}
-                </p>
-              ) : null}
-              <div className="sm:col-span-2">
-                <Button type="submit" disabled={receiptSaving}>
-                  {receiptSaving ? t("submitting") : t("submitButton")}
-                </Button>
-              </div>
-            </form>
+            <details data-testid="finance-submit-receipt-advanced">
+              <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                {t("submitReceiptShowAdvanced")}
+              </summary>
+              <form
+                className="mt-4 grid gap-4 sm:grid-cols-2"
+                data-testid={FINANCE_PAYMENTS_TEST_IDS.receiptForm}
+                onSubmit={handleReceiptSubmit}
+              >
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="receipt-payment-id">{t("paymentId")}</Label>
+                  <Input
+                    id="receipt-payment-id"
+                    value={receiptForm.paymentId}
+                    onChange={(event) =>
+                      setReceiptForm((current) => ({ ...current, paymentId: event.target.value }))
+                    }
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="receipt-file-key">{t("fileKey")}</Label>
+                  <Input
+                    id="receipt-file-key"
+                    value={receiptForm.fileKey}
+                    onChange={(event) =>
+                      setReceiptForm((current) => ({ ...current, fileKey: event.target.value }))
+                    }
+                    placeholder={t("fileKeyPlaceholder")}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="receipt-note">{tCommon("optionalNote")}</Label>
+                  <Input
+                    id="receipt-note"
+                    value={receiptForm.note}
+                    onChange={(event) =>
+                      setReceiptForm((current) => ({ ...current, note: event.target.value }))
+                    }
+                  />
+                </div>
+                {receiptFormError ? (
+                  <p className="text-sm text-destructive sm:col-span-2" role="alert">
+                    {localizeFinanceMessage(tValidation, tErrors, receiptFormError)}
+                  </p>
+                ) : null}
+                <div className="sm:col-span-2">
+                  <Button type="submit" disabled={receiptSaving} variant="secondary">
+                    {receiptSaving ? t("submitting") : t("submitButton")}
+                  </Button>
+                </div>
+              </form>
+            </details>
           </CardContent>
         </Card>
       ) : null}
 
       <Card data-denali-surface="card" className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">{t("listTitle")}</CardTitle>
-          <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
-            {tCommon("refresh")}
-          </Button>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-base">{t("listTitle")}</CardTitle>
+            <p className="text-sm font-normal text-muted-foreground">{t("listScopeHint")}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Label htmlFor="payments-status-filter" className="sr-only">
+              {t("statusFilter")}
+            </Label>
+            <select
+              id="payments-status-filter"
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as "all" | "Pending" | "Paid" | "Failed")
+              }
+              data-testid="finance-payments-status-filter"
+            >
+              <option value="all">{t("statusFilterAll")}</option>
+              <option value="Pending">{resolveFinancePaymentStatusLabel(t, "Pending")}</option>
+              <option value="Paid">{resolveFinancePaymentStatusLabel(t, "Paid")}</option>
+              <option value="Failed">{resolveFinancePaymentStatusLabel(t, "Failed")}</option>
+            </select>
+            <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
+              {tCommon("refresh")}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -355,12 +418,12 @@ export function FinancePaymentsPanel({
               {localizeFinanceMessage(tValidation, tErrors, error)}
             </p>
           ) : null}
-          {!loading && !error && items.length === 0 ? (
+          {!loading && !error && visibleItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("empty")}</p>
           ) : null}
-          {!loading && !error && items.length > 0 ? (
+          {!loading && !error && visibleItems.length > 0 ? (
             <ul className="divide-y rounded-md border" data-testid={FINANCE_PAYMENTS_TEST_IDS.list}>
-              {items.map((row) => (
+              {visibleItems.map((row) => (
                 <PaymentRow
                   key={row.id}
                   row={row}
