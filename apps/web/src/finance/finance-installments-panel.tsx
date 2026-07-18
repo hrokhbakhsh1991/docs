@@ -25,7 +25,7 @@ import {
   type PaymentScheduleItem,
 } from "@/finance/finance-installments-logic";
 import { FinanceInvoiceBalanceCard } from "@/finance/finance-invoice-balance-card";
-import { resolveFinanceOpsManifestForHub } from "@/finance/finance-nav-access";
+import { resolveFinanceOpsManifestForHub } from "@/finance/finance-ops-panels";
 import { withFinanceRegistrationQuery } from "@/finance/finance-registration-context";
 import { FinanceRegistrationIdentity } from "@/finance/finance-registration-identity";
 import { FinanceRegistrationPicker } from "@/finance/finance-registration-picker";

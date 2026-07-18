@@ -44,7 +44,7 @@ Switching workspace `paymentMode` (future, non-Denali) changes **ingress only**.
 | Legacy forbidden | `apps/api/src/denali-finance/` — tombstone only (`README.md`); do not resurrect adapters |
 | Booking projection port | `IBookingPaymentPort` — Finance must not call `getBookingsRepository()`; infra `BookingPaymentAdapter` injected at boot |
 | Registration display port | `RegistrationDisplayPort` (Phase 1.6) — list `registrationContext` enrichment; `BookingRegistrationDisplayAdapter` only touches Booking repo |
-| TourCreated finance reaction | `WorkspaceFinanceEventReactionPort` (Phase 1.7 C2); Denali adapter wraps legacy consumer; host process/reader must not import Denali consumer names or Denali outbox types |
+| Ops UI finance manifest | `finance-ops-panels.ts` may import Denali **panel** manifest for Denali hub layout; **availability** SoT is `finance-nav-enablement` → generated nav bindings only (no Denali) |
 
 ---
 
