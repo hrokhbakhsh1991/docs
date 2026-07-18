@@ -1,5 +1,6 @@
 /**
  * Phase 1.2 — finance nav enablement from workspaceFinance bindings.
+ * Fixture `finance-ws2` must not appear in nav (registry-only architecture proof).
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -28,10 +29,10 @@ describe("finance-nav-enablement.spec.ts — Phase 1.2", () => {
     assert.equal(isFinanceNavPlugin(DENALI_PLUGIN_ID), true);
   });
 
-  it("WEB-P1.2-02 WS2 sees finance", () => {
-    assert.equal(WORKSPACE_FINANCE_NAV_PLUGIN_IDS.has(WS2_PLUGIN_ID), true);
-    assert.equal(shouldShowFinanceNav(WS2_PLUGIN_ID), true);
-    assert.equal(isFinanceRouteAllowed(WS2_PLUGIN_ID), true);
+  it("WEB-P1.2-02 finance-ws2 fixture does not see finance nav/gate", () => {
+    assert.equal(WORKSPACE_FINANCE_NAV_PLUGIN_IDS.has(WS2_PLUGIN_ID), false);
+    assert.equal(shouldShowFinanceNav(WS2_PLUGIN_ID), false);
+    assert.equal(isFinanceRouteAllowed(WS2_PLUGIN_ID), false);
   });
 
   it("WEB-P1.2-03 unsupported workspace does not see finance", () => {
@@ -47,12 +48,19 @@ describe("finance-nav-enablement.spec.ts — Phase 1.2", () => {
       resolve(WEB_ROOT, "src/bootstrap/workspace-finance-nav-bindings.generated.ts"),
       "utf8"
     );
+    const codegen = readFileSync(
+      resolve(WEB_ROOT, "../../scripts/codegen/workspace-registry/domains/finance.mjs"),
+      "utf8"
+    );
     assert.match(nav, /workspace-finance-nav-bindings/);
     assert.doesNotMatch(nav, /isExtendedOperatorWorkspace/);
     assert.doesNotMatch(nav, /wizard-create-bindings/);
     assert.match(bindings, /WORKSPACE_FINANCE_NAV_PLUGIN_IDS/);
     assert.match(bindings, /"denali"/);
-    assert.match(bindings, /"finance-ws2"/);
+    assert.doesNotMatch(bindings, /"finance-ws2"/);
     assert.doesNotMatch(bindings, /"urban"/);
+    assert.doesNotMatch(codegen, /FINANCE_NAV_ARCHITECTURE_PROOF/);
+    assert.doesNotMatch(codegen, /FINANCE_NAV_ARCHITECTURE_PROOF_PLUGIN_IDS/);
+    assert.doesNotMatch(codegen, /Object\.freeze\(\[\"finance-ws2\"\]\)/);
   });
 });
