@@ -1,6 +1,6 @@
 import "./register-workspace-finance-deps";
 import {
-  createDenaliFinanceOutboxConsumer,
+  consumeDenaliTourCreatedFinanceOutbox,
   type FinanceOutboxConsumerResult,
 } from "@app-tour/workspace-denali";
 
@@ -16,6 +16,7 @@ export type WorkspaceFinanceTourCreatedRow = TourCreatedFinanceSideEffectRow;
 
 /**
  * Processes one relayed TourCreated row — enqueues finance.ledger outbox when payload qualifies.
+ * Workspace reaction runner (generated binding); finance host does not own Denali consumer composition.
  */
 export async function processWorkspaceFinanceTourCreatedRow(
   row: WorkspaceFinanceTourCreatedRow
@@ -23,14 +24,15 @@ export async function processWorkspaceFinanceTourCreatedRow(
   return runTourCreatedFinanceSideEffect(row);
 }
 
-/** Batch tick — reads unprocessed TourCreated rows for a tenant via Prisma OutboxReader. */
+/**
+ * Batch tick — host supplies Prisma IO; Denali owns TourCreated→ledger consumer composition (Phase 1.7 C1).
+ */
 export async function processWorkspaceFinanceOutboxForTenant(
   tenantId: string
 ): Promise<FinanceOutboxConsumerResult> {
-  const consumer = createDenaliFinanceOutboxConsumer({
+  return consumeDenaliTourCreatedFinanceOutbox({
     reader: createWorkspaceOutboxReader(tenantId),
     writer: createPrismaWorkspaceOutboxWriter(),
     processedStore: createWorkspaceFinanceProcessedStore(tenantId),
   });
-  return consumer.consumePending();
 }

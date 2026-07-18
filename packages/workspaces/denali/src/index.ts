@@ -116,6 +116,7 @@ export {
 } from "./acl/migrateDenaliCanonical";
 export {
   assertDenaliFinanceWorkspace,
+  consumeDenaliTourCreatedFinanceOutbox,
   createDenaliFinanceOutboxConsumer,
   DEFAULT_FINANCE_OPS_MANIFEST,
   emitFinanceLedgerDoubleEntryAppliedOutbox,

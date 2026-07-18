@@ -451,6 +451,23 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | Composition injects shared display adapter | Done |
 | Approve / booking payment port untouched | Done |
 
+### Phase 1.7 Commit 1 — Remove Denali outbox consumer ownership from finance host
+
+| | |
+| -- | -- |
+| **Goal** | Finance host must not instantiate `createDenaliFinanceOutboxConsumer`; Denali owns consumer composition |
+| **Host** | Supplies Prisma reader / writer / processed-store IO only; calls Denali `consumeDenaliTourCreatedFinanceOutbox` |
+| **Unchanged** | TourCreated side-effect bindings; relay; event types; ledger capture IDs; approve enqueue path |
+| **Must NOT** | New event architecture; ID changes; dual-driver deletion (batch still exists via Denali entry) |
+
+**Phase 1.7 Commit 1 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| `process-workspace-finance-outbox.ts` does not import `createDenaliFinanceOutboxConsumer` | Done |
+| Denali owns `createDenaliFinanceOutboxConsumer` call site for batch tick | Done |
+| Behavior / events / IDs unchanged | Done |
+
 ### Phase 2 — Finance core extraction
 
 | | |

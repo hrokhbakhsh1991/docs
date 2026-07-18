@@ -95,3 +95,15 @@ export function createDenaliFinanceOutboxConsumer(deps: {
     },
   };
 }
+
+/**
+ * Phase 1.7 Commit 1 — Denali-owned composition entry for TourCreated → finance ledger batch.
+ * Host supplies IO ports only; must not call {@link createDenaliFinanceOutboxConsumer} directly.
+ */
+export async function consumeDenaliTourCreatedFinanceOutbox(deps: {
+  reader: OutboxReader;
+  writer: OutboxWriter;
+  processedStore?: DenaliFinanceProcessedStore;
+}): Promise<FinanceOutboxConsumerResult> {
+  return createDenaliFinanceOutboxConsumer(deps).consumePending();
+}

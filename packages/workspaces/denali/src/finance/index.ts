@@ -10,7 +10,7 @@ export {
   resolveFinanceOpsManifestFromTheme,
 } from "./finance-ops-manifest";
 export type { FinanceOpsManifest } from "./finance-ops-manifest";
-export { createDenaliFinanceOutboxConsumer } from "./finance-outbox-consumer";
+export { createDenaliFinanceOutboxConsumer, consumeDenaliTourCreatedFinanceOutbox } from "./finance-outbox-consumer";
 export type {
   DenaliFinanceOutboxConsumer,
   FinanceOutboxConsumerResult,

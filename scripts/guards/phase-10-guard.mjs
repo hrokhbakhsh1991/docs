@@ -115,6 +115,7 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "finance-http-handlers-ownership.spec.ts",
   "finance-list-projection.ts",
   "finance-module-enabled.ts",
+  "finance-outbox-ownership.spec.ts",
   "finance-registration-context.ts",
   "finance-repository.factory.ts",
   "finance-schedule-store.ts",
