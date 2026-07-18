@@ -278,9 +278,23 @@ Deploy order: **migrate schema → roll new API pods → drain old pods**. Do no
 - No full ledger reconciliation engine
 - Memory remains unit-test fake only
 
-### Proof
+## Phase 4B residual closure (post lease/idem remediation)
 
-`IDEM-RECLAIM-*`, `IDEM-LEASE-*`, `APPROVE-RACE-*`, `ABORT-PROD-01`, `PREPAY-SYNC-*`, `PREPAY-SYNC-DEG-PERSIST-*`, `PAY-CREATE-IDEM-*`, `PAY-CREATE-RECLAIM-*`, `RECEIPT-SUBMIT-IDEM-*`, `RECEIPT-SUBMIT-RECLAIM-*` under `STORAGE_DRIVER=prisma`.
+```yaml
+change_id: FINANCE-PROD-HARDENING-4B-RESIDUAL
+date: "2026-07-18"
+authority: Hostile review leftovers after lease/idem remediation
+```
+
+| ID | Gap | Closure |
+| -- | --- | ------- |
+| H0.3-complete | `atomic-canonical-tour-persist` still read raw `P5_ATOMIC_TX_TEST_ABORT` | All abort hooks go through `shouldAbortAtomicTx` (NODE_ENV=test only) |
+| IDEM-STATUS | Complete path always stored `status_code=201` | `runIdempotentHttpMutation` accepts optional `statusCode` (approve stores 200) |
+| APPROVE-REPLAY-BOOKING | Replay hardcoded `bookingPaymentStatus: "paid"` | Replay reads booking projection via `IBookingPaymentPort.getPaymentStatus` (fallback `paid` only if row missing after Approved+Paid) |
+
+### Proof (additional)
+
+`ABORT-PROD-02` (canonical persist gated), `IDEM-LEASE-04` / `IDEM-LEASE-05`, `PAY-CREATE-CONCUR-01`, approve replay booking status assertion.
 
 ---
 

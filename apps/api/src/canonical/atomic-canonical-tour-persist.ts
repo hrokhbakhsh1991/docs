@@ -18,6 +18,7 @@ import {
   isPublicPublishStatusLabel,
 } from "./build-tour-published-outbox-payload";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
+import { shouldAbortAtomicTx } from "../test-hooks/atomic-tx-test-abort";
 import { TourVersionConflictError } from "../tours/tour-version-conflict";
 import {
   getActiveActorId,
@@ -110,11 +111,11 @@ async function persistNewTourAtomicallyInContext(
       createdAt: txNow,
     });
 
-    if (process.env.P5_ATOMIC_TX_TEST_ABORT === "before_outbox") {
+    if (shouldAbortAtomicTx("before_outbox")) {
       throw new Error("P5_ATOMIC_TX_TEST_ABORT");
     }
 
-    if (process.env.P5_ATOMIC_TX_TEST_ABORT === "process_exit") {
+    if (shouldAbortAtomicTx("process_exit")) {
       process.exit(1);
     }
 
@@ -138,7 +139,7 @@ async function persistNewTourAtomicallyInContext(
       createdAt: txNow,
     });
 
-    if (process.env.P5_ATOMIC_TX_TEST_ABORT === "pre_commit") {
+    if (shouldAbortAtomicTx("pre_commit")) {
       throw new Error("P5_ATOMIC_TX_TEST_ABORT");
     }
 
@@ -219,7 +220,7 @@ async function persistTourUpdateAtomicallyInContext(
       throw new TourVersionConflictError();
     }
 
-    if (process.env.P5_ATOMIC_TX_TEST_ABORT === "before_update_audit") {
+    if (shouldAbortAtomicTx("before_update_audit")) {
       throw new Error("P5_ATOMIC_TX_TEST_ABORT");
     }
 
@@ -253,7 +254,7 @@ async function persistTourUpdateAtomicallyInContext(
       }
     }
 
-    if (process.env.P5_ATOMIC_TX_TEST_ABORT === "pre_commit") {
+    if (shouldAbortAtomicTx("pre_commit")) {
       throw new Error("P5_ATOMIC_TX_TEST_ABORT");
     }
 

@@ -230,7 +230,8 @@ export async function handleFinanceReviewReceipt(
             auth.tenantId,
             idempotencyKey,
             requestHash,
-            async () => financeService.reviewReceipt(auth, receiptId, body)
+            async () => financeService.reviewReceipt(auth, receiptId, body),
+            { statusCode: 200 }
           );
           host.sendJson(res, 200, receipt);
           return;

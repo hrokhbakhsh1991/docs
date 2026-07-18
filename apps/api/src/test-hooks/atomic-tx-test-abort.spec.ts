@@ -47,4 +47,17 @@ describe("atomic-tx-test-abort — Phase 4B H0.3", () => {
     assert.equal(shouldAbortAtomicTx("finance_approve_before_commit"), true);
     assert.equal(shouldAbortAtomicTx("other"), false);
   });
+
+  it("ABORT-PROD-02 production ignores canonical persist abort hooks", () => {
+    process.env.NODE_ENV = "production";
+    for (const hook of [
+      "before_outbox",
+      "process_exit",
+      "pre_commit",
+      "before_update_audit",
+    ] as const) {
+      process.env.P5_ATOMIC_TX_TEST_ABORT = hook;
+      assert.equal(shouldAbortAtomicTx(hook), false);
+    }
+  });
 });

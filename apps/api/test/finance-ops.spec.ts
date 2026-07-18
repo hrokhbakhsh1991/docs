@@ -901,6 +901,35 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
     assert.equal(count, 1);
   });
 
+  it("PAY-CREATE-CONCUR-01 concurrent same key → one payment", async () => {
+    const registrationId = randomUUID();
+    const idempotencyKey = `pay-create-concur-01-${registrationId}`;
+    const body = { registrationId, amount: "3200000", currency: "IRR" };
+    const [a, b] = await Promise.all([
+      requestJson(listener, {
+        method: "POST",
+        path: "/finance/payments/manual",
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        body,
+      }),
+      requestJson(listener, {
+        method: "POST",
+        path: "/finance/payments/manual",
+        tenantId: denaliTenantId,
+        idempotencyKey,
+        body,
+      }),
+    ]);
+    assert.equal(a.status, 201);
+    assert.equal(b.status, 201);
+    assert.equal(a.body.id, b.body.id);
+    const count = await admin.payment.count({
+      where: { tenantId: denaliTenantId, registrationId },
+    });
+    assert.equal(count, 1);
+  });
+
   it("RECEIPT-SUBMIT-IDEM-01 same key → one receipt", async () => {
     const registrationId = randomUUID();
     const manual = await requestJson(listener, {
