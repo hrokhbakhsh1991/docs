@@ -24,7 +24,6 @@ import {
   type FinanceRepositoryPort,
 } from "./finance-repository.factory";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
-import { DenaliFinanceReceiptDefaultsAdapter } from "./infrastructure/denali-finance-receipt-defaults.adapter";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
 import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
@@ -104,7 +103,7 @@ export class FinanceService {
     private readonly ledgerPolicy: FinanceLedgerPolicyPort,
     private readonly repository: FinanceRepositoryPort = createFinanceRepository(),
     private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter(),
-    private readonly receiptDefaults: FinanceReceiptDefaultsPort = new DenaliFinanceReceiptDefaultsAdapter()
+    private readonly receiptDefaults: FinanceReceiptDefaultsPort
   ) {}
 
   private async gate(auth: TenantAuthContext): Promise<void> {
@@ -846,7 +845,7 @@ export function createFinanceService(
   ledgerPolicy: FinanceLedgerPolicyPort,
   repository: FinanceRepositoryPort = createFinanceRepository(),
   bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter(),
-  receiptDefaults: FinanceReceiptDefaultsPort = new DenaliFinanceReceiptDefaultsAdapter()
+  receiptDefaults: FinanceReceiptDefaultsPort
 ): FinanceService {
   return new FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults);
 }
