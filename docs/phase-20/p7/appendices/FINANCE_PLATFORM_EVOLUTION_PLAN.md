@@ -710,6 +710,17 @@ FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, regis
 | finance-ws2 `registryOnly` fixture (deps+CoA, no nav) | Done |
 | Denali behavior preserved (IRR/2500000, capture IDs) | Done |
 
+### Phase 1.18 — Workspace registry codegen integrity
+
+| | |
+| -- | -- |
+| **Goal** | Fresh clone / CI can run `pnpm run generate:workspace-registry` and `--check` without missing domain modules or undeclared codegen symbols |
+| **Root cause** | Orchestrator imported `domains/exposure.mjs` + `domains/integration.mjs` but files were absent on tip; `generateOutboxSideEffects` referenced undeclared `reexportsBySpecifier`; `workspace-finance-bindings.generated.ts` listed in outputs/allowlist but never committed |
+| **Fix** | Restore exposure + integration domain generators; wire `exposureHostBindings` / `integrationCapabilities` into `OUTPUT_KEYS` / `OUTPUT_PATHS` / `generateAllOutputs`; declare `reexportsBySpecifier`; emit missing generated artifacts |
+| **Unchanged** | Manifest schema; Denali package export map (`./host/exposure`, `./plugin`); finance capability semantics |
+| **Acceptance** | Detached worktree at tip + codegen fix → `generate` then `--check` PASS; no reliance on untracked workspace packages |
+| **Commit** | `fix(codegen): restore workspace-registry exposure/integration integrity` |
+
 ### Phase 2 — Finance core extraction
 
 

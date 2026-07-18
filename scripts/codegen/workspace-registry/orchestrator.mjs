@@ -186,7 +186,8 @@ export const DOMAIN_OUTPUT_KEYS = {
     "workspaceFinanceEventReactions",
     "workspaceFinanceChartOfAccounts",
   ],
-  exposure: ["exposureHost"],
+  exposure: ["exposureHostBindings"],
+  integration: ["integrationCapabilities"],
 };
 
 export const OUTPUT_KEYS = Object.freeze([
@@ -220,6 +221,8 @@ export const OUTPUT_KEYS = Object.freeze([
   "workspaceFinanceDependencies",
   "workspaceFinanceEventReactions",
   "workspaceFinanceChartOfAccounts",
+  "integrationCapabilities",
+  "exposureHostBindings",
   "wizardTemplateEditorBindings",
   "marketingCatalogBindings",
   "settingsDestinationBindings",
@@ -294,6 +297,8 @@ export function generateAllOutputs(manifests) {
     workspaceFinanceDependencies: generateWorkspaceFinanceDependencyBindings(manifests),
     workspaceFinanceEventReactions: generateWorkspaceFinanceEventReactionBindings(manifests),
     workspaceFinanceChartOfAccounts: generateWorkspaceFinanceChartOfAccountsBindings(manifests),
+    integrationCapabilities: generateWorkspaceIntegrationCapabilities(manifests),
+    exposureHostBindings: generateExposureHostBindings(manifests),
     wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
     marketingCatalogBindings: generateMarketingCatalogBindings(manifests),
     settingsDestinationBindings: generateSettingsDestinationBindings(manifests),
@@ -428,6 +433,14 @@ export const OUTPUT_PATHS = {
   workspaceFinanceChartOfAccounts: join(
     REPO_ROOT,
     "apps/api/src/workspace-finance/workspace-finance-chart-of-accounts-bindings.generated.ts"
+  ),
+  integrationCapabilities: join(
+    REPO_ROOT,
+    "apps/api/src/integrations/platform/workspace-integration-capabilities.generated.ts"
+  ),
+  exposureHostBindings: join(
+    REPO_ROOT,
+    "apps/api/src/exposure/workspace-exposure-host-bindings.generated.ts"
   ),
   wizardTemplateEditorBindings: join(
     REPO_ROOT,
