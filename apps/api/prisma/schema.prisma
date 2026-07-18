@@ -25,6 +25,7 @@ model Tenant {
   tenantRoute                 TenantRoute?
   payments                    Payment[]
   paymentReceipts             PaymentReceipt[]
+  financeSchedules            FinanceSchedule[]
   urbanRegistrations          UrbanRegistration[]
   userTenants                 UserTenant[]
   operatorPendingInvites      OperatorPendingInvite[]
@@ -194,10 +195,15 @@ model HttpIdempotencyRecord {
   responseBody   Json?     @map("response_body")
   createdAt      DateTime  @default(now()) @map("created_at")
   completedAt    DateTime? @map("completed_at")
+  /// Absolute lease expiry for in-flight owners (Phase 4B lease reclaim).
+  leaseUntil     DateTime? @map("lease_until") @db.Timestamptz
+  /// Opaque owner token; heartbeats / complete / failure cleanup must match.
+  leaseOwner     String?   @map("lease_owner")
   tenant         Tenant    @relation(fields: [tenantId], references: [id])
 
   @@id([tenantId, idempotencyKey])
   @@index([tenantId, status])
+  @@index([status, leaseUntil])
   @@map("http_idempotency_records")
 }
 
@@ -216,24 +222,27 @@ model ProcessedDomainEvent {
 
 /// Phase 9.7 — manual/online payment intents (R1 legacy parity).
 model Payment {
-  id                String           @id @default(uuid()) @db.Uuid
-  tenantId          String           @map("tenant_id") @db.Uuid
-  registrationId    String           @map("registration_id") @db.Uuid
-  amount            String
-  currency          String           @db.VarChar(8)
-  method            String           @default("Manual")
-  provider          String           @default("manual")
-  providerPaymentId String?          @map("provider_payment_id")
-  status            String           @default("Pending")
-  paidAt            DateTime?        @map("paid_at")
-  failedAt          DateTime?        @map("failed_at")
-  refundedAt        DateTime?        @map("refunded_at")
-  ledgerJournalId   String?          @map("ledger_journal_id") @db.Uuid
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
-  tenant            Tenant           @relation(fields: [tenantId], references: [id])
-  receipts          PaymentReceipt[]
+  id                      String           @id @default(uuid()) @db.Uuid
+  tenantId                String           @map("tenant_id") @db.Uuid
+  registrationId          String           @map("registration_id") @db.Uuid
+  amount                  String
+  currency                String           @db.VarChar(8)
+  method                  String           @default("Manual")
+  provider                String           @default("manual")
+  providerPaymentId       String?          @map("provider_payment_id")
+  /// SHA-256 hex of HTTP Idempotency-Key for manual create (business retry-safety).
+  creationIdempotencyKey  String?          @map("creation_idempotency_key")
+  status                  String           @default("Pending")
+  paidAt                  DateTime?        @map("paid_at")
+  failedAt                DateTime?        @map("failed_at")
+  refundedAt              DateTime?        @map("refunded_at")
+  ledgerJournalId         String?          @map("ledger_journal_id") @db.Uuid
+  createdAt               DateTime         @default(now()) @map("created_at")
+  updatedAt               DateTime         @updatedAt @map("updated_at")
+  tenant                  Tenant           @relation(fields: [tenantId], references: [id])
+  receipts                PaymentReceipt[]
 
+  @@unique([tenantId, creationIdempotencyKey])
   @@index([tenantId, status])
   @@index([tenantId, registrationId])
   @@map("payments")
@@ -241,24 +250,50 @@ model Payment {
 
 /// Phase 9.7 — manual payment proof + operator review queue.
 model PaymentReceipt {
-  id               String    @id @default(uuid()) @db.Uuid
-  tenantId         String    @map("tenant_id") @db.Uuid
-  paymentId        String    @map("payment_id") @db.Uuid
-  fileKey          String    @map("file_key")
-  status           String    @default("Pending")
-  note             String?
-  reviewedByUserId String?   @map("reviewed_by_user_id")
-  reviewedAt       DateTime? @map("reviewed_at")
-  reviewNote       String?   @map("review_note")
-  ledgerJournalId  String?   @map("ledger_journal_id") @db.Uuid
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  tenant           Tenant    @relation(fields: [tenantId], references: [id])
-  payment          Payment   @relation(fields: [paymentId], references: [id])
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  paymentId          String    @map("payment_id") @db.Uuid
+  fileKey            String    @map("file_key")
+  status             String    @default("Pending")
+  note               String?
+  reviewedByUserId   String?   @map("reviewed_by_user_id")
+  reviewedAt         DateTime? @map("reviewed_at")
+  reviewNote         String?   @map("review_note")
+  ledgerJournalId    String?   @map("ledger_journal_id") @db.Uuid
+  /// SHA-256 hex of HTTP Idempotency-Key for receipt submit (business retry-safety).
+  idempotencyKeyHash String?   @map("idempotency_key_hash")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  tenant             Tenant    @relation(fields: [tenantId], references: [id])
+  payment            Payment   @relation(fields: [paymentId], references: [id])
 
+  @@unique([tenantId, idempotencyKeyHash])
   @@index([tenantId, status])
   @@index([tenantId, paymentId])
   @@map("payment_receipts")
+}
+
+/// Phase 9.7 R3 — installment / deposit schedule rows (one per sequence slot).
+model FinanceSchedule {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  registrationId   String   @map("registration_id") @db.Uuid
+  sequence         Int
+  label            String
+  dueAt            DateTime @map("due_at")
+  amountMinor      String   @map("amount_minor")
+  paidMinor        String   @default("0") @map("paid_minor")
+  status           String
+  linkedPaymentId  String?  @map("linked_payment_id") @db.Uuid
+  graceDays        Int?     @map("grace_days")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, registrationId, sequence])
+  @@index([tenantId, registrationId])
+  @@index([tenantId, status])
+  @@map("finance_schedules")
 }
 
 /// Phase 9.1 — global operator identity (mobile login).
