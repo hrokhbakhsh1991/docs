@@ -32,6 +32,7 @@ describe("tour-created-finance-side-effect (P5-E FIN-02)", () => {
       createOutboxWriter: () => ({
         addEvent: async (event) => {
           enqueued.push(event);
+          return true;
         },
       }),
       logTourCreatedFailed: () => {},

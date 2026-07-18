@@ -510,15 +510,21 @@ export class FinanceRepository {
         throw new Error("P5_ATOMIC_TX_TEST_ABORT");
       }
 
-      await tx.payment.update({
-        where: { id: input.paymentId },
+      const paymentUpdated = await tx.payment.updateMany({
+        where: {
+          id: input.paymentId,
+          tenantId: input.tenantId,
+          status: "Pending",
+        },
         data: {
           status: "Paid",
           paidAt: new Date(),
           ledgerJournalId: input.journalId,
         },
-        select: PAYMENT_ROW_SELECT,
       });
+      if (paymentUpdated.count !== 1) {
+        throw new Error("FINANCE_APPROVE_CONFLICT");
+      }
 
       if (process.env.P5_ATOMIC_TX_TEST_ABORT === "finance_approve_after_payment") {
         throw new Error("P5_ATOMIC_TX_TEST_ABORT");
@@ -556,8 +562,12 @@ export class FinanceRepository {
         throw new Error("P5_ATOMIC_TX_TEST_ABORT");
       }
 
-      const updated = await tx.paymentReceipt.update({
-        where: { id: input.receiptId },
+      const receiptUpdated = await tx.paymentReceipt.updateMany({
+        where: {
+          id: input.receiptId,
+          tenantId: input.tenantId,
+          status: "Pending",
+        },
         data: {
           status: "Approved",
           reviewedByUserId: input.reviewedByUserId,
@@ -565,6 +575,13 @@ export class FinanceRepository {
           reviewNote: input.reviewNote ?? null,
           ledgerJournalId: input.journalId,
         },
+      });
+      if (receiptUpdated.count !== 1) {
+        throw new Error("FINANCE_APPROVE_CONFLICT");
+      }
+
+      const updated = await tx.paymentReceipt.findFirstOrThrow({
+        where: { id: input.receiptId, tenantId: input.tenantId },
         select: {
           id: true,
           status: true,
@@ -578,12 +595,15 @@ export class FinanceRepository {
       }
 
       if (input.ledgerCapture !== undefined && input.ledgerCapture.lines.length > 0) {
-        await enqueueFinanceLedgerCaptureOutbox({
+        const inserted = await enqueueFinanceLedgerCaptureOutbox({
           outboxWriter: createTxScopedOutboxWriter(tx),
           tenantId: input.tenantId,
           registrationId: input.registrationId,
           capture: input.ledgerCapture,
         });
+        if (!inserted) {
+          throw new Error("FINANCE_APPROVE_CONFLICT");
+        }
       }
 
       return {
