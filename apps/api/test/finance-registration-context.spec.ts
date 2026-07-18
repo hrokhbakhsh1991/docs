@@ -1,7 +1,10 @@
 /**
- * Phase B — finance registration context helpers (tenant filter + attach).
+ * Phase B / 1.6 — finance registration context helpers + display port ownership.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import {
@@ -9,6 +12,14 @@ import {
   filterRowsByRegistrationId,
   type FinanceRegistrationContext,
 } from "../src/workspace-finance/finance-registration-context.ts";
+import { BookingRegistrationDisplayAdapter } from "../src/workspace-finance/infrastructure/booking-registration-display.adapter.ts";
+import {
+  getBookingsRepository,
+  resetBookingsRepositoryForTests,
+} from "../src/bookings/create-bookings-repository.ts";
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+const WF = "apps/api/src/workspace-finance";
 
 describe("finance-registration-context.spec.ts", () => {
   it("B-01 filterRowsByRegistrationId keeps only matching rows", () => {
@@ -48,5 +59,60 @@ describe("finance-registration-context.spec.ts", () => {
       contexts
     );
     assert.deepEqual(attached.registrationContext, ctx);
+  });
+
+  it("FIN-P1.6-01 finance-registration-context.ts has no Booking repository imports", () => {
+    const src = readFileSync(resolve(REPO_ROOT, `${WF}/finance-registration-context.ts`), "utf8");
+    assert.doesNotMatch(src, /getBookingsRepository/);
+    assert.doesNotMatch(src, /create-bookings-repository/);
+    assert.doesNotMatch(src, /from ["'].*bookings\//);
+  });
+
+  it("FIN-P1.6-02 FinanceService loads display via registrationDisplay port", () => {
+    const src = readFileSync(resolve(REPO_ROOT, `${WF}/finance.service.ts`), "utf8");
+    assert.match(src, /registrationDisplay\.getByRegistrationIds/);
+    assert.doesNotMatch(src, /loadFinanceRegistrationContextMap/);
+    assert.doesNotMatch(src, /getBookingsRepository/);
+  });
+
+  it("FIN-P1.6-03 BookingRegistrationDisplayAdapter maps guestLabel → memberDisplayName", async () => {
+    const prior = process.env.STORAGE_DRIVER;
+    process.env.STORAGE_DRIVER = "memory";
+    resetBookingsRepositoryForTests();
+    try {
+      const registrationId = "00000000-0000-4000-8000-000000000161";
+      const tenantId = "00000000-0000-4000-8000-000000000001";
+      getBookingsRepository().seedBooking({
+        id: registrationId,
+        tenantId,
+        tourId: "tour-display",
+        tourTitle: "Display Tour",
+        guestLabel: "Display Guest",
+        guestEmail: null,
+        guestPhone: null,
+        partySize: 1,
+        status: "approved",
+        paymentStatus: "unpaid",
+        departureAt: "2026-08-01T00:00:00.000Z",
+        submittedAt: "2026-07-01T00:00:00.000Z",
+        submittedByUserId: "user-1",
+        approvedAt: null,
+      });
+      const adapter = new BookingRegistrationDisplayAdapter();
+      const map = await adapter.getByRegistrationIds(tenantId, [registrationId]);
+      assert.deepEqual(map.get(registrationId), {
+        registrationId,
+        tourId: "tour-display",
+        tourTitle: "Display Tour",
+        memberDisplayName: "Display Guest",
+      });
+    } finally {
+      if (prior === undefined) {
+        delete process.env.STORAGE_DRIVER;
+      } else {
+        process.env.STORAGE_DRIVER = prior;
+      }
+      resetBookingsRepositoryForTests();
+    }
   });
 });

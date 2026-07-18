@@ -10,22 +10,26 @@ import {
   resolveFinanceWorkspaceDependencies,
 } from "../workspace-finance/finance-dependency-registry";
 import type { IBookingPaymentPort } from "../workspace-finance/ports/booking-payment.port";
+import type { RegistrationDisplayPort } from "../workspace-finance/ports/registration-display.port";
+import { BookingRegistrationDisplayAdapter } from "../workspace-finance/infrastructure/booking-registration-display.adapter";
 import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
 
 /** workspaceType → FinanceService (Phase 1.5 Commit 1). */
 const financeServiceByWorkspaceType = new Map<string, FinanceService>();
 
 /**
- * Shared booking + repository across workspaceType service instances.
- * Today all registered types use BookingPaymentAdapter; repo singleton requires one port.
+ * Shared booking + repository + registration display across workspaceType service instances.
+ * Today all registered types use BookingPaymentAdapter; repo singleton requires one payment port.
  */
 let sharedBookingPayments: IBookingPaymentPort | null = null;
 let sharedFinanceRepository: FinanceRepositoryPort | null = null;
+let sharedRegistrationDisplay: RegistrationDisplayPort | null = null;
 
 export function resetLazyFinanceServiceForTests(): void {
   financeServiceByWorkspaceType.clear();
   sharedBookingPayments = null;
   sharedFinanceRepository = null;
+  sharedRegistrationDisplay = null;
   resetFinanceRepositoryForTests();
 }
 
@@ -40,12 +44,16 @@ function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string): Finan
     sharedBookingPayments = deps.bookingPayments;
     sharedFinanceRepository = createFinanceRepository(sharedBookingPayments);
   }
+  if (sharedRegistrationDisplay === null) {
+    sharedRegistrationDisplay = new BookingRegistrationDisplayAdapter();
+  }
 
   const service = createFinanceService(
     deps.ledgerPolicy,
     sharedFinanceRepository,
     sharedBookingPayments,
-    deps.receiptDefaults
+    deps.receiptDefaults,
+    sharedRegistrationDisplay
   );
   financeServiceByWorkspaceType.set(workspaceType, service);
   return service;

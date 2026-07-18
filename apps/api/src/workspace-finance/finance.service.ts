@@ -24,9 +24,11 @@ import {
   type FinanceRepositoryPort,
 } from "./finance-repository.factory";
 import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
+import { BookingRegistrationDisplayAdapter } from "./infrastructure/booking-registration-display.adapter";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
 import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
+import type { RegistrationDisplayPort } from "./ports/registration-display.port";
 import {
   buildPaymentScheduleItems,
   getSchedule,
@@ -36,7 +38,6 @@ import {
 import {
   attachFinanceRegistrationContext,
   filterRowsByRegistrationId,
-  loadFinanceRegistrationContextMap,
 } from "./finance-registration-context";
 
 function hashClientIdempotencyKey(idempotencyKey: string): string {
@@ -103,7 +104,8 @@ export class FinanceService {
     private readonly ledgerPolicy: FinanceLedgerPolicyPort,
     private readonly repository: FinanceRepositoryPort = createFinanceRepository(),
     private readonly bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter(),
-    private readonly receiptDefaults: FinanceReceiptDefaultsPort
+    private readonly receiptDefaults: FinanceReceiptDefaultsPort,
+    private readonly registrationDisplay: RegistrationDisplayPort = new BookingRegistrationDisplayAdapter()
   ) {}
 
   private async gate(auth: TenantAuthContext): Promise<void> {
@@ -135,7 +137,7 @@ export class FinanceService {
       await this.repository.listOpenPayments(auth.tenantId, limit),
       registrationId
     );
-    const contexts = await loadFinanceRegistrationContextMap(
+    const contexts = await this.registrationDisplay.getByRegistrationIds(
       auth.tenantId,
       rows.map((row) => row.registrationId)
     );
@@ -157,7 +159,7 @@ export class FinanceService {
       await this.repository.listPayments(auth.tenantId, limit),
       registrationId
     );
-    const contexts = await loadFinanceRegistrationContextMap(
+    const contexts = await this.registrationDisplay.getByRegistrationIds(
       auth.tenantId,
       rows.map((row) => row.registrationId)
     );
@@ -187,7 +189,7 @@ export class FinanceService {
       registrationId === undefined
         ? mapped
         : mapped.filter((row) => row.registrationId === registrationId);
-    const contexts = await loadFinanceRegistrationContextMap(
+    const contexts = await this.registrationDisplay.getByRegistrationIds(
       auth.tenantId,
       withRegistration.map((row) => row.registrationId)
     );
@@ -233,7 +235,7 @@ export class FinanceService {
       registrationId === undefined
         ? mapped
         : filtered;
-    const contexts = await loadFinanceRegistrationContextMap(
+    const contexts = await this.registrationDisplay.getByRegistrationIds(
       auth.tenantId,
       list.map((row) => row.registrationId).filter((id) => id.length > 0)
     );
@@ -570,7 +572,7 @@ export class FinanceService {
       await this.repository.listPrepayments(auth.tenantId, limit),
       registrationId
     );
-    const contexts = await loadFinanceRegistrationContextMap(
+    const contexts = await this.registrationDisplay.getByRegistrationIds(
       auth.tenantId,
       rows.map((row) => row.registrationId)
     );
@@ -664,7 +666,7 @@ export class FinanceService {
     await this.gate(auth);
     assertFinanceOperatorAccess(auth);
     const rows = filterRowsByRegistrationId(await listAllSchedules(auth.tenantId), registrationId);
-    const contexts = await loadFinanceRegistrationContextMap(
+    const contexts = await this.registrationDisplay.getByRegistrationIds(
       auth.tenantId,
       rows.map((row) => row.registrationId)
     );
@@ -845,7 +847,14 @@ export function createFinanceService(
   ledgerPolicy: FinanceLedgerPolicyPort,
   repository: FinanceRepositoryPort = createFinanceRepository(),
   bookingPayments: IBookingPaymentPort = new BookingPaymentAdapter(),
-  receiptDefaults: FinanceReceiptDefaultsPort
+  receiptDefaults: FinanceReceiptDefaultsPort,
+  registrationDisplay: RegistrationDisplayPort = new BookingRegistrationDisplayAdapter()
 ): FinanceService {
-  return new FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults);
+  return new FinanceService(
+    ledgerPolicy,
+    repository,
+    bookingPayments,
+    receiptDefaults,
+    registrationDisplay
+  );
 }
