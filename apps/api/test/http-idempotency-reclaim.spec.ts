@@ -297,6 +297,7 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
       method: "POST",
       path: "/finance/payments/manual",
       tenantId: denaliTenantId,
+      idempotencyKey: `manual-${registrationId}`,
       body: { registrationId, amount: "5000000", currency: "IRR" },
     });
     assert.equal(manual.status, 201);
@@ -305,6 +306,7 @@ describe("http-idempotency-reclaim.spec.ts — Phase 4B H0.1", { skip: !hasDatab
       method: "POST",
       path: "/finance/receipts",
       tenantId: denaliTenantId,
+      idempotencyKey: `receipt-${paymentId}`,
       body: { paymentId, fileKey: `receipts/${paymentId}/proof.jpg` },
     });
     assert.equal(receipt.status, 201);

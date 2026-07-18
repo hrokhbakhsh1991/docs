@@ -70,12 +70,34 @@ Response schema (summary): [`schemas/FINANCE-SUMMARY.schema.json`](schemas/FINAN
 | operationId             | Method | Path                                   | Handler                                                  | Actor                |
 | ----------------------- | ------ | -------------------------------------- | -------------------------------------------------------- | -------------------- |
 | `listFinancePayments`   | GET    | `/finance/payments`                    | `finance.routes.ts` → `handleFinanceListPayments`        | admin/owner          |
-| `createManualPayment`   | POST   | `/finance/payments/manual`             | `finance.routes.ts` → `handleFinanceCreateManualPayment` | admin/owner          |
-| `submitPaymentReceipt`  | POST   | `/finance/receipts`                    | `finance.routes.ts` → `handleFinanceSubmitReceipt`       | admin/owner/member\* |
-| `reviewPaymentReceipt`  | PATCH  | `/finance/receipts/{receiptId}/review` | `finance.routes.ts` → `handleFinanceReviewReceipt`       | admin/owner          |
+| `createManualPayment`   | POST   | `/finance/payments/manual`             | `finance.routes.ts` → `handleFinanceCreateManualPayment` | admin/owner · **`Idempotency-Key` required** (Phase 4B H1.2) |
+| `submitPaymentReceipt`  | POST   | `/finance/receipts`                    | `finance.routes.ts` → `handleFinanceSubmitReceipt`       | admin/owner/member\* · **`Idempotency-Key` required** (Phase 4B H1.2) |
+| `reviewPaymentReceipt`  | PATCH  | `/finance/receipts/{receiptId}/review` | `finance.routes.ts` → `handleFinanceReviewReceipt`       | admin/owner · **`Idempotency-Key` required when `decision=approve`** (400 `IDEMPOTENCY_KEY_REQUIRED`); Prisma single RLS TX — see [P7-FINANCE-PATH-BOUNDARY.md](../../phase-20/p7/appendices/P7-FINANCE-PATH-BOUNDARY.md) Phase 3B |
 | `getReceiptDownloadUrl` | GET    | `/finance/receipts/{receiptId}/url`    | `finance.routes.ts` → `handleFinanceReceiptUrl`          | admin/owner          |
 
 \* Member scoped to own registration manual payment (legacy parity).
+
+### List query + registration context (Phase B)
+
+| Query | Applies to | Behavior |
+| ----- | ---------- | -------- |
+| `limit` | list endpoints (existing) | unchanged caps |
+| `registrationId` | `GET /finance/payments` · `…/receipts/pending` · `…/prepayments` · `…/reports/ledger-events` · `…/schedules` | Optional UUID. After **tenant-scoped** list, keep only matching `registrationId`. Invalid UUID → `ZOD_VALIDATION_FAILED`. |
+
+List item enrichment (optional, backward compatible):
+
+```json
+{
+  "registrationContext": {
+    "registrationId": "uuid",
+    "tourId": "uuid",
+    "tourTitle": "North Ridge",
+    "memberDisplayName": "Guest label"
+  }
+}
+```
+
+Loaded via bookings `getByIds` under RLS in `workspace-finance` — see FINANCE-OPS-UX §5.0b.
 
 ---
 
@@ -84,7 +106,7 @@ Response schema (summary): [`schemas/FINANCE-SUMMARY.schema.json`](schemas/FINAN
 | operationId              | Method | Path                                 | Handler                                        | Actor       |
 | ------------------------ | ------ | ------------------------------------ | ---------------------------------------------- | ----------- |
 | `getRegistrationInvoice` | GET    | `/finance/invoices/{registrationId}` | `finance.routes.ts` → `handleFinanceGetRegistrationInvoice` | admin/owner |
-| `recordPrepayment`       | POST   | `/finance/prepayments`               | `finance.routes.ts` → `handleFinanceRecordPrepayment`         | admin/owner |
+| `recordPrepayment`       | POST   | `/finance/prepayments`               | `finance.routes.ts` → `handleFinanceRecordPrepayment`         | admin/owner · **`Idempotency-Key` required** (400 `IDEMPOTENCY_KEY_REQUIRED`); single RLS TX for ledger + `finance.prepayment.recorded` — see [P7-FINANCE-PATH-BOUNDARY.md](../../phase-20/p7/appendices/P7-FINANCE-PATH-BOUNDARY.md) Phase 3A |
 | `listPrepayments`        | GET    | `/finance/prepayments`               | `finance.routes.ts` → `handleFinanceListPrepayments`          | admin/owner |
 
 Invoice response (derived read model — trunk compiles from schedule sum + wallet credits):
