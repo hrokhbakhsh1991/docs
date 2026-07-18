@@ -1,7 +1,10 @@
 /**
- * Phase 1.5 Commit 1 — tenant-aware finance dependency resolution proofs.
+ * Phase 1.5 — tenant-aware finance dependency resolution proofs (C1 + C2A).
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { after, before, beforeEach, describe, it } from "node:test";
 
 import {
@@ -15,7 +18,6 @@ import {
   resolveBootFinanceWorkspaceType,
   resolveFinanceBookingPayments,
   resolveFinanceLedgerPolicy,
-  resolveFinanceReceiptDefaults,
   resolveFinanceWorkspaceDependencies,
 } from "./finance-dependency-registry.ts";
 import { DenaliFinanceLedgerPolicyAdapter } from "./infrastructure/denali-finance-ledger-policy.adapter.ts";
@@ -27,6 +29,8 @@ import {
 import { FinanceWs2LedgerPolicyAdapter } from "./infrastructure/finance-ws2-ledger-policy.adapter.ts";
 import { FinanceWs2ReceiptDefaultsAdapter } from "./infrastructure/finance-ws2-receipt-defaults.adapter.ts";
 import { resolveFinanceWorkspaceTypeForTenant } from "./resolve-finance-workspace-type-for-tenant.ts";
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
 const DENALI = "denali";
 const WS2 = FINANCE_WS2_WORKSPACE_TYPE;
@@ -137,5 +141,42 @@ describe("finance-tenant-dependency-resolution.spec.ts — Phase 1.5 C1", { conc
       (error: unknown) =>
         error instanceof Error && error.message.startsWith("FINANCE_WORKSPACE_UNSUPPORTED")
     );
+  });
+
+  it("FIN-P1.5-C2A-01 finance HTTP host wires resolveFinanceServiceForTenant", () => {
+    const host = readFileSync(
+      resolve(REPO_ROOT, "apps/api/src/http/configure-workspace-finance-http-host.ts"),
+      "utf8"
+    );
+    assert.match(host, /resolveFinanceServiceForTenant/);
+    assert.doesNotMatch(host, /resolveLazyFinanceService/);
+    assert.match(host, /resolveFinanceService:\s*async\s*\(deps,\s*auth\)/);
+  });
+
+  it("FIN-P1.5-C2A-02 registrar does not eager-resolve via resolveLazyFinanceService", () => {
+    const registrar = readFileSync(
+      resolve(REPO_ROOT, "apps/api/src/http/workspace-route-registrar.ts"),
+      "utf8"
+    );
+    assert.doesNotMatch(registrar, /resolveLazyFinanceService/);
+    assert.match(registrar, /financeRouteDeps/);
+  });
+
+  it("FIN-P1.5-C2A-03 finance-http handlers pass auth into resolveFinanceService", () => {
+    const routes = readFileSync(
+      resolve(REPO_ROOT, "packages/finance-http/src/finance.routes.ts"),
+      "utf8"
+    );
+    assert.match(routes, /resolveFinanceService\(deps,\s*auth\)/);
+    assert.doesNotMatch(routes, /resolveFinanceService\(deps\)/);
+  });
+
+  it("FIN-P1.5-C2A-04 bookings finance call sites use tenant-aware resolve", () => {
+    const bookings = readFileSync(
+      resolve(REPO_ROOT, "apps/api/src/bookings/bookings.routes.ts"),
+      "utf8"
+    );
+    assert.match(bookings, /resolveFinanceServiceForTenant\(auth\.tenantId\)/);
+    assert.doesNotMatch(bookings, /resolveLazyFinanceService/);
   });
 });

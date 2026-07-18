@@ -1,6 +1,6 @@
 import { configureFinanceHttpHost } from "@app-tour/finance-http";
 
-import { resolveLazyFinanceService } from "../boot/lazy-finance-service";
+import { resolveFinanceServiceForTenant } from "../boot/lazy-finance-service";
 import type { FinanceService } from "../workspace-finance/finance.service";
 import { handleHttpError } from "../middleware/error-interceptor";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
@@ -23,11 +23,11 @@ configureFinanceHttpHost({
     const parsedBody = parseJsonBody(rawBody);
     return { parsedBody, rawBody };
   },
-  resolveFinanceService: async (deps) => {
-    const service = await resolveLazyFinanceService(
+  resolveFinanceService: async (deps, auth) => {
+    return resolveFinanceServiceForTenant(
+      auth.tenantId,
       deps.financeService as FinanceService | undefined
     );
-    return service;
   },
   readIdempotencyKey,
   hashIdempotentRequest,

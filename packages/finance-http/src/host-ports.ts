@@ -21,7 +21,11 @@ export type FinanceHttpHostPorts = {
   readonly readFinanceRequestBody: (
     req: IncomingMessage
   ) => Promise<{ readonly parsedBody: unknown; readonly rawBody: string }>;
-  readonly resolveFinanceService: (deps: FinanceRouteDeps) => Promise<FinanceServicePort>;
+  /** Phase 1.5 C2A — compose from `auth.tenantId` (not boot workspace type). */
+  readonly resolveFinanceService: (
+    deps: FinanceRouteDeps,
+    auth: TenantAuthContext
+  ) => Promise<FinanceServicePort>;
   /** Phase 4B — Idempotency-Key required for prepay, approve, create payment, submit receipt. */
   readonly readIdempotencyKey: (req: IncomingMessage) => string | undefined;
   readonly hashIdempotentRequest: (method: string, path: string, rawBody: string) => string;

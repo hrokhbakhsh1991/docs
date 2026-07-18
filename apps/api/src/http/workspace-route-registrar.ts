@@ -1,6 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import { resolveLazyFinanceService } from "../boot/lazy-finance-service";
 import type { FinanceService } from "../workspace-finance/finance.service";
 import type { TourStorageRepository } from "../db/tour.repository";
 import { getIdentityRepository } from "../identity/create-identity-repository";
@@ -123,10 +122,17 @@ function workspaceProductDeps(deps: WorkspaceRouteRegistrarDeps): WorkspaceProdu
   };
 }
 
-async function financeRouteDeps(
+/**
+ * Phase 1.5 C2A — do not eager-resolve FinanceService (that forced Denali boot type).
+ * Optional inject remains for tests; production handlers resolve via auth.tenantId.
+ */
+function financeRouteDeps(
   deps: WorkspaceRouteRegistrarDeps
-): Promise<{ financeService: FinanceService }> {
-  return { financeService: await resolveLazyFinanceService(deps.financeService) };
+): { financeService?: FinanceService } {
+  if (deps.financeService !== undefined) {
+    return { financeService: deps.financeService };
+  }
+  return {};
 }
 
 async function dispatchWorkspaceHandler(
@@ -151,10 +157,10 @@ async function dispatchWorkspaceHandler(
       await handler(req, res, pathParam!, workspaceProductDeps(deps));
       return;
     case "finance":
-      await handler(req, res, await financeRouteDeps(deps));
+      await handler(req, res, financeRouteDeps(deps));
       return;
     case "finance-param":
-      await handler(req, res, await financeRouteDeps(deps), pathParam!);
+      await handler(req, res, financeRouteDeps(deps), pathParam!);
       return;
     default: {
       const _exhaustive: never = kind;
