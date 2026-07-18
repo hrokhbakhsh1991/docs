@@ -4,7 +4,7 @@
  * Regenerate: pnpm run generate:workspace-registry
  */
 
-import type { FinanceOpsManifest } from "@/finance/finance-ops-manifest-contract";
+import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
 
 import {
   DEFAULT_FINANCE_OPS_MANIFEST as denali_opsDefault,
@@ -29,10 +29,10 @@ export function hasFinanceOpsManifest(pluginId: string): boolean {
 export function resolveWorkspaceFinanceOpsManifest(
   pluginId: string,
   theme: unknown = null
-): FinanceOpsManifest {
+): FinanceOpsCapability {
   const binding = WORKSPACE_FINANCE_OPS_BINDINGS[pluginId as keyof typeof WORKSPACE_FINANCE_OPS_BINDINGS];
   if (binding === undefined) {
-    throw new Error(`Finance ops manifest not registered for pluginId=${pluginId}`);
+    throw new Error(`Finance ops capability not registered for pluginId=${pluginId}`);
   }
   if (theme === null || theme === undefined) {
     return binding.defaultManifest;

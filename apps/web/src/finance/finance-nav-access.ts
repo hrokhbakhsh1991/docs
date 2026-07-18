@@ -3,10 +3,12 @@
  * Hub **availability** is `@/finance/finance-nav-enablement` (capability bindings) — not Denali.
  * Ops panel layout: `@/finance/finance-ops-panels` → generated workspace ops bindings.
  */
-import type { FinanceOpsManifest } from "@/finance/finance-ops-manifest-contract";
+import type { FinanceOpsCapability } from "@/finance/finance-ops-capability-contract";
 
 export {
+  resolveFinanceOpsCapabilityForHub,
   resolveFinanceOpsManifestForHub,
+  type FinanceOpsCapability,
   type FinanceOpsManifest,
 } from "@/finance/finance-ops-panels";
 
@@ -18,7 +20,7 @@ export type FinanceCommandCenterTab =
   | "installments"
   | "ledger";
 
-/** Full tab catalog (type + deep-link vocabulary). Visibility is ops-manifest-driven. */
+/** Full tab catalog (type + deep-link vocabulary). Visibility is ops-capability-driven. */
 export const FINANCE_COMMAND_CENTER_TABS: readonly FinanceCommandCenterTab[] = [
   "overview",
   "payments",
@@ -29,9 +31,9 @@ export const FINANCE_COMMAND_CENTER_TABS: readonly FinanceCommandCenterTab[] = [
 ] as const;
 
 export function listVisibleFinanceTabs(
-  manifest: FinanceOpsManifest
+  capability: FinanceOpsCapability
 ): readonly FinanceCommandCenterTab[] {
-  return FINANCE_COMMAND_CENTER_TABS.filter((tab) => manifest.panels[tab] === true);
+  return FINANCE_COMMAND_CENTER_TABS.filter((tab) => capability.panels[tab] === true);
 }
 
 export function parseFinanceTab(
