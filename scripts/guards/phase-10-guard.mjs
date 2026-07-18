@@ -111,6 +111,7 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "enqueue-finance-ledger-capture.ts",
   "finance-dependency-registry.spec.ts",
   "finance-dependency-registry.ts",
+  "finance-event-reaction-registry.ts",
   "finance-http-contracts.spec.ts",
   "finance-http-handlers-ownership.spec.ts",
   "finance-list-projection.ts",

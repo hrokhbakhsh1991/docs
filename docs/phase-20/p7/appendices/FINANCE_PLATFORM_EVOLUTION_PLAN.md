@@ -468,6 +468,25 @@ Manifest-driven **enablement** already exists; Phase 1 owns multi-workspace poli
 | Denali owns `createDenaliFinanceOutboxConsumer` call site for batch tick | Done |
 | Behavior / events / IDs unchanged | Done |
 
+### Phase 1.7 Commit 2 — Neutral workspace finance event reaction port
+
+| | |
+| -- | -- |
+| **Goal** | Finance host batch/single TourCreated finance processing calls `WorkspaceFinanceEventReactionPort` only — no Denali consumer names or Denali outbox types in process/reader modules |
+| **Port** | `consumePendingForTenant` + `reactToPublishedRow` |
+| **Adapter** | `DenaliTourCreatedFinanceReactionAdapter` — wraps existing `consumeDenaliTourCreatedFinanceOutbox` / `runTourCreatedFinanceSideEffect` (behavior identical) |
+| **Reader** | Host-owned `FinanceWorkspaceOutboxEvent` types (no Denali imports in `prisma-workspace-outbox-reader`) |
+| **Unchanged** | Event schemas, domainEventId formulas, ledger capture, relay bindings, approve/prepay |
+| **Must NOT** | finance-core; async redesign; DB migration; TourCreated semantic changes |
+
+**Phase 1.7 Commit 2 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| `process-workspace-finance-outbox.ts` has no `consumeDenali*` / `createDenali*` / `runTourCreated*` | Done |
+| Reader has no `@app-tour/workspace-denali` imports | Done |
+| Denali adapter owns Denali reaction composition | Done |
+
 ### Phase 2 — Finance core extraction
 
 | | |
