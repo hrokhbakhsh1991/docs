@@ -10,7 +10,7 @@ import type {
   RecordPrepaymentBody,
   ReviewReceiptBody,
   SubmitReceiptBody,
-} from "@app-tour/workspace-denali/http";
+} from "@app-tour/finance-http-contracts";
 
 import {
   assertFinanceOperatorAccess,

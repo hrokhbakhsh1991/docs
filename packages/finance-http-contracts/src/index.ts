@@ -1,6 +1,6 @@
 /**
- * Compatibility re-export — SoT is `@app-tour/finance-http-contracts` (Phase 1.4).
- * Denali finance routes keep importing this path; do not reintroduce local zod schemas here.
+ * Finance-owned HTTP request contracts (Phase 1.4).
+ * Workspace packages may re-export for compatibility; SoT lives here.
  */
 export {
   createManualPaymentBodySchema,
@@ -21,4 +21,4 @@ export {
   type ReviewReceiptBody,
   type RecordPrepaymentBody,
   type GenerateScheduleBody,
-} from "@app-tour/finance-http-contracts";
+} from "./finance-request.schemas";

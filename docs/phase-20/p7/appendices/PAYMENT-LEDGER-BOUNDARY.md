@@ -38,6 +38,7 @@ Switching workspace `paymentMode` (future, non-Denali) changes **ingress only**.
 | Member path | Portal BFF → `POST /bookings/{id}/receipts` |
 | Operator path | `GET /finance/receipts/pending` · `PATCH .../review` approve |
 | API SoT | `apps/api/src/workspace-finance/` |
+| HTTP request contracts | `@app-tour/finance-http-contracts` (Phase 1.4) — Denali `http/schemas` re-exports only |
 | Legacy forbidden | `apps/api/src/denali-finance/` — tombstone only (`README.md`); do not resurrect adapters |
 | Booking projection port | `IBookingPaymentPort.syncStatus` — Finance must not call `getBookingsRepository()`; infra `BookingPaymentAdapter` is injected at boot |
 

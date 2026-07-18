@@ -1,0 +1,28 @@
+{
+  "name": "@app-tour/finance-http-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Finance-owned HTTP request schemas/types/parsers — Phase 1.4 (not finance-core)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}
