@@ -27,4 +27,5 @@ CREATE INDEX IF NOT EXISTS idx_outbox_replay_runs_tenant
   ON outbox_replay_runs (tenant_id, created_at DESC)
   WHERE tenant_id IS NOT NULL;
 
-GRANT SELECT, INSERT ON TABLE outbox_replay_runs TO app_cloud;
+-- App runtime role is `app_tour` (historical SoT across migrations). Not `app_cloud`.
+GRANT SELECT, INSERT ON TABLE outbox_replay_runs TO app_tour;

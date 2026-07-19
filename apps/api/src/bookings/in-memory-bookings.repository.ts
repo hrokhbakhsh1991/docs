@@ -4,26 +4,15 @@ import {
   compareBookingsBySubmittedAtDesc,
   isBookingAfterKeysetCursor,
   matchesBookingListFilters,
-  startOfUtcDay,
 } from "./booking-list-query";
 import type {
-  ActiveDuplicateByEmailInput,
-  ActiveDuplicateByGuestLabelInput,
-  ActiveDuplicateByNationalIdInput,
-  ActiveDuplicateByUserInput,
   BookingListPageInput,
   BookingListPageOutput,
   BookingOutboxRecord,
   BookingPaymentStatus,
   BookingRecord,
-  BookingTourChip,
-  BookingsSummaryCounts,
   CreateBookingRequest,
 } from "./bookings.types";
-import {
-  isActiveDuplicateBookingStatus,
-  readRegistrationIntakeNationalId,
-} from "./booking-active-duplicate";
 import { MAX_OUTBOX_EVENTS_PER_AGGREGATE } from "./bookings-outbox-projection";
 import {
   CANCELLED_BOOKING_STATUSES,
@@ -52,6 +41,17 @@ type RepositorySnapshot = {
 
 let bookingsStore = new Map<string, BookingRecord>();
 let outboxStore: BookingOutboxRecord[] = [];
+/** Serialize memory approve TX so occupancy re-read is race-safe under parallel awaits. */
+let approveTxChain: Promise<void> = Promise.resolve();
+
+async function withMemoryApproveTx<T>(fn: () => Promise<T>): Promise<T> {
+  const run = approveTxChain.then(fn, fn);
+  approveTxChain = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
 let _devFixtureSeeded = false;
 
 /** Phase 9.8 smoke — mirrors `operator-bookings-fixture.ts` for memory API boot. */
@@ -149,8 +149,28 @@ function restoreState(snapshot: RepositorySnapshot): void {
 export function resetBookingsStoresForTests(): void {
   bookingsStore = new Map();
   outboxStore = [];
+  approveTxChain = Promise.resolve();
   _devFixtureSeeded = false;
 }
+
+
+/** Test-only outbox peek — not part of BookingRepositoryPort. */
+export function peekOutboxByAggregateForTests(input: {
+  readonly tenantId: string;
+  readonly aggregateId: string;
+}): BookingOutboxRecord[] {
+  const tenantId = input.tenantId.trim();
+  const aggregateId = input.aggregateId.trim();
+  if (tenantId.length === 0 || aggregateId.length === 0) {
+    return [];
+  }
+  return outboxStore
+    .filter((row) => row.tenantId === tenantId && row.aggregateId === aggregateId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .slice(0, MAX_OUTBOX_EVENTS_PER_AGGREGATE)
+    .map((row) => ({ ...row }));
+}
+
 
 export class InMemoryBookingsRepository implements BookingRepositoryPort {
   static createWithDevSeed(): InMemoryBookingsRepository {
@@ -174,20 +194,6 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     return [...bookingsStore.values()].filter(
       (row) => row.tenantId === tenantId && row.submittedByUserId === submittedByUserId
     );
-  }
-
-  async listBySubmittedUser(
-    tenantId: string,
-    submittedByUserId: string
-  ): Promise<BookingRecord[]> {
-    return this.memberBookingsForUser(tenantId, submittedByUserId)
-      .sort(
-        (left, right) =>
-          new Date(right.departureAt).getTime() - new Date(left.departureAt).getTime() ||
-          right.id.localeCompare(left.id)
-      )
-      .slice(0, MAX_MEMBER_BOOKINGS_LIST_CAP)
-      .map(toBookingListRecord);
   }
 
   async countBookingsBySubmittedUser(
@@ -238,74 +244,6 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       .map(toBookingListRecord);
   }
 
-  async findActiveDuplicateByUser(
-    input: ActiveDuplicateByUserInput
-  ): Promise<BookingRecord | null> {
-    const normalizedUserId = input.submittedByUserId.trim();
-    if (normalizedUserId.length === 0) {
-      return null;
-    }
-    const hit = [...bookingsStore.values()].find(
-      (row) =>
-        row.tenantId === input.tenantId &&
-        row.tourId === input.tourId &&
-        isActiveDuplicateBookingStatus(row.status) &&
-        row.submittedByUserId === normalizedUserId
-    );
-    return hit === undefined ? null : cloneBooking(hit);
-  }
-
-  async findActiveDuplicateByGuestLabel(
-    input: ActiveDuplicateByGuestLabelInput
-  ): Promise<BookingRecord | null> {
-    const normalizedLabel = input.guestLabel.trim().toLocaleLowerCase();
-    if (normalizedLabel.length === 0) {
-      return null;
-    }
-    const hit = [...bookingsStore.values()].find(
-      (row) =>
-        row.tenantId === input.tenantId &&
-        row.tourId === input.tourId &&
-        isActiveDuplicateBookingStatus(row.status) &&
-        row.guestLabel.trim().toLocaleLowerCase() === normalizedLabel
-    );
-    return hit === undefined ? null : cloneBooking(hit);
-  }
-
-  async findActiveDuplicateByEmail(
-    input: ActiveDuplicateByEmailInput
-  ): Promise<BookingRecord | null> {
-    const normalizedEmail = input.email.trim().toLowerCase();
-    if (normalizedEmail.length === 0) {
-      return null;
-    }
-    const hit = [...bookingsStore.values()].find(
-      (row) =>
-        row.tenantId === input.tenantId &&
-        row.tourId === input.tourId &&
-        isActiveDuplicateBookingStatus(row.status) &&
-        (row.guestEmail?.trim().toLowerCase() ?? "") === normalizedEmail
-    );
-    return hit === undefined ? null : cloneBooking(hit);
-  }
-
-  async findActiveDuplicateByNationalId(
-    input: ActiveDuplicateByNationalIdInput
-  ): Promise<BookingRecord | null> {
-    const normalizedNationalId = input.nationalId.trim();
-    if (normalizedNationalId.length === 0) {
-      return null;
-    }
-    const hit = [...bookingsStore.values()].find(
-      (row) =>
-        row.tenantId === input.tenantId &&
-        row.tourId === input.tourId &&
-        isActiveDuplicateBookingStatus(row.status) &&
-        readRegistrationIntakeNationalId(row.registrationIntake) === normalizedNationalId
-    );
-    return hit === undefined ? null : cloneBooking(hit);
-  }
-
   async listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput> {
     let rows = [...bookingsStore.values()].filter((row) => row.tenantId === input.tenantId);
     rows = rows.filter((row) => matchesBookingListFilters(row, input));
@@ -332,59 +270,6 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       items,
       nextCursor: hasMore && items.length > 0 ? items[items.length - 1]!.id : null,
     };
-  }
-
-  async countByListFilters(
-    input: Omit<BookingListPageInput, "limit" | "cursor">
-  ): Promise<number> {
-    return [...bookingsStore.values()].filter(
-      (row) => row.tenantId === input.tenantId && matchesBookingListFilters(row, input)
-    ).length;
-  }
-
-  async getBookingsSummaryCounts(tenantId: string, now: Date): Promise<BookingsSummaryCounts> {
-    const rows = [...bookingsStore.values()].filter((row) => row.tenantId === tenantId);
-    const dayStart = startOfUtcDay(now);
-    const departuresEnd = new Date(now);
-    departuresEnd.setUTCDate(departuresEnd.getUTCDate() + 7);
-
-    return {
-      pending: rows.filter((row) => row.status === "pending").length,
-      waitlist: rows.filter((row) => row.status === "waitlisted").length,
-      approvedToday: rows.filter((row) => {
-        if (row.status !== "approved" || row.approvedAt === null) {
-          return false;
-        }
-        return new Date(row.approvedAt) >= dayStart;
-      }).length,
-      departures7d: rows.filter((row) => {
-        const departure = new Date(row.departureAt);
-        return departure >= now && departure <= departuresEnd;
-      }).length,
-    };
-  }
-
-  async listTourChipsByTenant(tenantId: string): Promise<readonly BookingTourChip[]> {
-    const rows = [...bookingsStore.values()].filter((row) => row.tenantId === tenantId);
-    const byTour = new Map<string, BookingTourChip>();
-    for (const row of rows) {
-      const existing = byTour.get(row.tourId);
-      if (existing === undefined) {
-        byTour.set(row.tourId, {
-          tourId: row.tourId,
-          tourTitle: row.tourTitle,
-          pendingCount: row.status === "pending" ? 1 : 0,
-          totalCount: 1,
-        });
-        continue;
-      }
-      byTour.set(row.tourId, {
-        ...existing,
-        pendingCount: existing.pendingCount + (row.status === "pending" ? 1 : 0),
-        totalCount: existing.totalCount + 1,
-      });
-    }
-    return [...byTour.values()].sort((left, right) => right.pendingCount - left.pendingCount);
   }
 
   async sumApprovedPartySizeByTourIds(
@@ -447,18 +332,33 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     return cloneBooking(updated);
   }
 
-  async listOutboxByAggregate(aggregateId: string): Promise<BookingOutboxRecord[]> {
-    const rows = outboxStore
-      .filter((row) => row.aggregateId === aggregateId)
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-    return rows.slice(0, MAX_OUTBOX_EVENTS_PER_AGGREGATE).map((row) => ({ ...row }));
-  }
-
   async createBooking(input: {
     tenantId: string;
     submittedByUserId: string;
     body: CreateBookingRequest;
+    assertCapacityInTx?: (ctx: {
+      readonly tourId: string;
+      readonly partySize: number;
+      readonly occupiedApprovedPartySize: number;
+    }) => void;
   }): Promise<BookingRecord> {
+    let occupiedApprovedPartySize = 0;
+    for (const row of bookingsStore.values()) {
+      if (
+        row.tenantId === input.tenantId &&
+        row.tourId === input.body.tourId &&
+        row.status === "approved"
+      ) {
+        occupiedApprovedPartySize += row.partySize;
+      }
+    }
+    if (input.assertCapacityInTx !== undefined) {
+      input.assertCapacityInTx({
+        tourId: input.body.tourId,
+        partySize: input.body.partySize,
+        occupiedApprovedPartySize,
+      });
+    }
     const now = new Date().toISOString();
     const record: BookingRecord = {
       id: randomUUID(),
@@ -488,70 +388,37 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     tenantId: string;
     outboxEvent: string;
     correlationId?: string;
+    assertCapacityInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+    }) => void;
   }): Promise<BookingRecord> {
-    const before = snapshotState();
-    try {
-      const current = bookingsStore.get(input.bookingId);
-      if (current === undefined || current.tenantId !== input.tenantId) {
-        throw new BookingNotFoundError();
-      }
-      if (current.status !== "pending" && current.status !== "waitlisted") {
-        throw new BookingStatusConflictError(current.status);
-      }
-
-      const approvedAt = new Date().toISOString();
-      const updated: BookingRecord = {
-        ...current,
-        status: "approved",
-        approvedAt,
-      };
-      bookingsStore.set(updated.id, updated);
-
-      const domainEventId = `registration.approved:${updated.id}:${approvedAt}`;
-      outboxStore.push({
-        id: randomUUID(),
-        tenantId: input.tenantId,
-        aggregateType: "registration",
-        aggregateId: updated.id,
-        eventType: input.outboxEvent,
-        payload: {
-          bookingId: updated.id,
-          tourId: updated.tourId,
-          status: updated.status,
-          approvedAt,
-          ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
-        },
-        domainEventId,
-        createdAt: approvedAt,
-      });
-
-      return cloneBooking(updated);
-    } catch (error) {
-      restoreState(before);
-      throw error;
-    }
-  }
-
-  async bulkApproveWithOutbox(input: {
-    ids: readonly string[];
-    tenantId: string;
-    outboxEvent: string;
-    maxBatch: number;
-  }): Promise<BookingRecord[]> {
-    if (input.ids.length > input.maxBatch) {
-      throw new BulkApproveBatchLimitError(input.maxBatch);
-    }
-
-    const before = snapshotState();
-    try {
-      const approved: BookingRecord[] = [];
-      for (const bookingId of input.ids) {
-        const current = bookingsStore.get(bookingId);
+    return withMemoryApproveTx(async () => {
+      const before = snapshotState();
+      try {
+        const current = bookingsStore.get(input.bookingId);
         if (current === undefined || current.tenantId !== input.tenantId) {
-          continue;
+          throw new BookingNotFoundError();
         }
         if (current.status !== "pending" && current.status !== "waitlisted") {
-          continue;
+          throw new BookingStatusConflictError(current.status);
+        }
+
+        let occupiedApprovedPartySize = 0;
+        for (const row of bookingsStore.values()) {
+          if (
+            row.tenantId === input.tenantId &&
+            row.tourId === current.tourId &&
+            row.status === "approved"
+          ) {
+            occupiedApprovedPartySize += row.partySize;
+          }
+        }
+        if (input.assertCapacityInTx !== undefined) {
+          input.assertCapacityInTx({
+            booking: cloneBooking(current),
+            occupiedApprovedPartySize,
+          });
         }
 
         const approvedAt = new Date().toISOString();
@@ -561,6 +428,8 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
           approvedAt,
         };
         bookingsStore.set(updated.id, updated);
+
+        const domainEventId = `registration.approved:${updated.id}:${approvedAt}`;
         outboxStore.push({
           id: randomUUID(),
           tenantId: input.tenantId,
@@ -572,19 +441,106 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
             tourId: updated.tourId,
             status: updated.status,
             approvedAt,
+            ...(input.correlationId !== undefined ? { correlationId: input.correlationId } : {}),
           },
-          domainEventId: `registration.approved:${updated.id}:${approvedAt}`,
+          domainEventId,
           createdAt: approvedAt,
         });
-        approved.push(cloneBooking(updated));
+
+        return cloneBooking(updated);
+      } catch (error) {
+        restoreState(before);
+        throw error;
       }
-      return approved;
-    } catch (error) {
-      restoreState(before);
-      throw error;
-    }
+    });
   }
 
+  async bulkApproveWithOutbox(input: {
+    ids: readonly string[];
+    tenantId: string;
+    outboxEvent: string;
+    maxBatch: number;
+    assertCapacityInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+    }) => void;
+  }): Promise<BookingRecord[]> {
+    if (input.ids.length > input.maxBatch) {
+      throw new BulkApproveBatchLimitError(input.maxBatch);
+    }
+
+    return withMemoryApproveTx(async () => {
+      const before = snapshotState();
+      try {
+        const approved: BookingRecord[] = [];
+        for (const bookingId of input.ids) {
+          const current = bookingsStore.get(bookingId);
+          if (current === undefined || current.tenantId !== input.tenantId) {
+            continue;
+          }
+          if (current.status !== "pending" && current.status !== "waitlisted") {
+            continue;
+          }
+
+          let occupiedApprovedPartySize = 0;
+          for (const row of bookingsStore.values()) {
+            if (
+              row.tenantId === input.tenantId &&
+              row.tourId === current.tourId &&
+              row.status === "approved"
+            ) {
+              occupiedApprovedPartySize += row.partySize;
+            }
+          }
+          // Count earlier approvals in this same bulk TX.
+          for (const row of approved) {
+            if (row.tourId === current.tourId) {
+              occupiedApprovedPartySize += row.partySize;
+            }
+          }
+
+          if (input.assertCapacityInTx !== undefined) {
+            input.assertCapacityInTx({
+              booking: cloneBooking(current),
+              occupiedApprovedPartySize,
+            });
+          }
+
+          const approvedAt = new Date().toISOString();
+          const updated: BookingRecord = {
+            ...current,
+            status: "approved",
+            approvedAt,
+          };
+          bookingsStore.set(updated.id, updated);
+          outboxStore.push({
+            id: randomUUID(),
+            tenantId: input.tenantId,
+            aggregateType: "registration",
+            aggregateId: updated.id,
+            eventType: input.outboxEvent,
+            payload: {
+              bookingId: updated.id,
+              tourId: updated.tourId,
+              status: updated.status,
+              approvedAt,
+            },
+            domainEventId: `registration.approved:${updated.id}:${approvedAt}`,
+            createdAt: approvedAt,
+          });
+          approved.push(cloneBooking(updated));
+        }
+        return approved;
+      } catch (error) {
+        restoreState(before);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * pending|waitlisted → rejected. Persist status + optional rejectReason — no outbox (decision B).
+   */
   async rejectBooking(input: {
     bookingId: string;
     tenantId: string;
@@ -597,12 +553,96 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     if (current.status !== "pending" && current.status !== "waitlisted") {
       throw new BookingStatusConflictError(current.status);
     }
+    const rejectReason =
+      input.reason !== undefined && input.reason.trim().length > 0
+        ? input.reason.trim()
+        : undefined;
     const updated: BookingRecord = {
       ...current,
       status: "rejected",
       approvedAt: null,
+      ...(rejectReason !== undefined ? { rejectReason } : {}),
     };
     bookingsStore.set(updated.id, updated);
+    return cloneBooking(updated);
+  }
+
+  async waitlistBooking(input: {
+    bookingId: string;
+    tenantId: string;
+    outboxEvent: string;
+  }): Promise<BookingRecord> {
+    const current = bookingsStore.get(input.bookingId);
+    if (current === undefined || current.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (current.status !== "pending") {
+      throw new BookingStatusConflictError(current.status);
+    }
+    const waitlistedAt = new Date().toISOString();
+    const updated: BookingRecord = {
+      ...current,
+      status: "waitlisted",
+      approvedAt: null,
+    };
+    bookingsStore.set(updated.id, updated);
+    outboxStore.push({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      aggregateType: "registration",
+      aggregateId: updated.id,
+      eventType: input.outboxEvent,
+      payload: {
+        bookingId: updated.id,
+        tourId: updated.tourId,
+        status: updated.status,
+        waitlistedAt,
+      },
+      domainEventId: `registration.waitlisted:${updated.id}:${waitlistedAt}`,
+      createdAt: waitlistedAt,
+    });
+    return cloneBooking(updated);
+  }
+
+  async cancelBooking(input: {
+    bookingId: string;
+    tenantId: string;
+    outboxEvent: string;
+  }): Promise<BookingRecord> {
+    const current = bookingsStore.get(input.bookingId);
+    if (current === undefined || current.tenantId !== input.tenantId) {
+      throw new BookingNotFoundError();
+    }
+    if (
+      current.status !== "pending" &&
+      current.status !== "waitlisted" &&
+      current.status !== "approved"
+    ) {
+      throw new BookingStatusConflictError(current.status);
+    }
+    const cancelledAt = new Date().toISOString();
+    const updated: BookingRecord = {
+      ...current,
+      status: "cancelled",
+      approvedAt: null,
+    };
+    bookingsStore.set(updated.id, updated);
+    outboxStore.push({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      aggregateType: "registration",
+      aggregateId: updated.id,
+      eventType: input.outboxEvent,
+      payload: {
+        bookingId: updated.id,
+        tourId: updated.tourId,
+        status: updated.status,
+        cancelledAt,
+        previousStatus: current.status,
+      },
+      domainEventId: `registration.cancelled:${updated.id}:${cancelledAt}`,
+      createdAt: cancelledAt,
+    });
     return cloneBooking(updated);
   }
 }

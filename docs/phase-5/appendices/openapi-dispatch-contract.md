@@ -27,6 +27,10 @@ Route inventory is the **single SoT** for shadow count; `app.ts` must wire every
 
 Inventory includes `/urban/settings`, `/urban/catalog`, `/urban/catalog/{tourId}`, `/urban/registrations`. Regenerate `openapi/openapi.json` in the same PR that adds dispatch wiring.
 
+### Booking routes (Phase 20)
+
+Inventory includes all `/bookings*` paths wired in `app.ts` (list/create/summary/bulk-approve/approve/reject/waitlist/cancel/receipts). See [`BOOKING_OPENAPI_CERTIFICATION`](../../phase-20/p7/appendices/BOOKING_OPENAPI_CERTIFICATION.md). Regenerate OpenAPI when adding Booking HTTP surfaces — do not leave shadow routes.
+
 ### Finance routes (Phase 9 — not in trunk inventory)
 
 `/finance/*` handlers live in WIP `denali-finance/` and are **excluded** from `DISPATCH_ROUTES` until Phase 9 lands wired routes in `app.ts`. Adding finance rows to the inventory before dispatch wiring breaks `guard:openapi-dispatch-parity`.

@@ -104,15 +104,6 @@ describe("bookings-safety.spec.ts", () => {
     assert.equal(wrongTenant, null);
   });
 
-  it("BK-SAFE-07 listOutboxByAggregate is bounded with select under withTenantRls", () => {
-    const source = fs.readFileSync(PRISMA_BOOKINGS_REPO, "utf8");
-    const methodBody = source.match(/async listOutboxByAggregate\([\s\S]*?\n  \}/)?.[0];
-    assert.ok(methodBody !== undefined, "listOutboxByAggregate must exist");
-    assert.match(methodBody, /select:\s*\{\s*tenantId:\s*true\s*\}/);
-    assert.match(methodBody, /select:\s*OUTBOX_EVENT_LIST_SELECT/);
-    assert.match(methodBody, /take:\s*MAX_OUTBOX_EVENTS_PER_AGGREGATE/);
-    assert.match(methodBody, /withTenantRls\s*\(/);
-  });
 
   it("BK-SAFE-04 new pagination types stay off package root exports", () => {
     const packageJson = JSON.parse(
@@ -127,35 +118,11 @@ describe("bookings-safety.spec.ts", () => {
     );
     assert.match(typesSource, /export type BookingListPageInput/);
     assert.match(typesSource, /export type BookingListPageOutput/);
-    assert.match(typesSource, /export type BookingsSummaryCounts/);
-
     const repoInterface = fs.readFileSync(
       path.join(REPO_ROOT, "src", "bookings", "in-memory-bookings.repository.ts"),
       "utf8"
     );
     assert.match(repoInterface, /listByTenantPage\(input: BookingListPageInput\)/);
-    assert.match(repoInterface, /getBookingsSummaryCounts\([^)]*\): Promise<BookingsSummaryCounts>/);
   });
 
-  it("BK-SAFE-05 prisma duplicate finders use findFirst under withTenantRls", () => {
-    const source = fs.readFileSync(PRISMA_BOOKINGS_REPO, "utf8");
-    for (const methodName of [
-      "findActiveDuplicateByUser",
-      "findActiveDuplicateByGuestLabel",
-      "findActiveDuplicateByEmail",
-      "findActiveDuplicateByNationalId",
-    ]) {
-      const methodBody = source.match(
-        new RegExp(`async ${methodName}\\([\\s\\S]*?\\n  \\}`)
-      )?.[0];
-      assert.ok(methodBody !== undefined, `${methodName} must exist`);
-      assert.match(methodBody, /withTenantRls\s*\(/, `${methodName} must run inside withTenantRls`);
-      assert.match(methodBody, /findFirst/, `${methodName} must use findFirst`);
-      assert.doesNotMatch(
-        methodBody,
-        /listByTenant\s*\(/,
-        `${methodName} must not call listByTenant`
-      );
-    }
-  });
 });

@@ -62,6 +62,13 @@ describe("tenant-registry static gate (DI-REG-01 / DEC-039)", () => {
     assert.equal(denali.workspaceType, "denali");
   });
 
+  it("DEV_TENANTS includes booking-ws2 smoke tenant for B1.5 composition", () => {
+    const ws2 = findTenantById("00000000-0000-4000-8000-000000000015");
+    assert.ok(ws2);
+    assert.equal(ws2.subdomain, "booking-ws2");
+    assert.equal(ws2.workspaceType, "booking-ws2");
+  });
+
   it("canResolveDevTenantRegistryFallback is enabled in development", () => {
     process.env.NODE_ENV = "development";
     assert.equal(canResolveDevTenantRegistryFallback(), true);

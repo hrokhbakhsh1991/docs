@@ -52,6 +52,12 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     theme: { primaryColor: "#059669", cssVariables: { "--color-primary": "#059669" } },
   },
   {
+    id: "00000000-0000-4000-8000-000000000015",
+    subdomain: "booking-ws2",
+    workspaceType: "booking-ws2",
+    theme: { primaryColor: "#7c3aed", cssVariables: { "--color-primary": "#7c3aed" } },
+  },
+  {
     id: "00000000-0000-4000-8000-000000000406",
     subdomain: "urban-silo-enterprise",
     workspaceType: "urban",

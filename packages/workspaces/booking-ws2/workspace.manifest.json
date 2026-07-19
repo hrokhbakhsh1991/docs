@@ -2,15 +2,44 @@
   "id": "booking-ws2",
   "version": 1,
   "package": "@app-tour/workspace-booking-ws2",
-  "workspaceTypes": ["booking-ws2"],
+  "workspaceTypes": [
+    "booking-ws2"
+  ],
   "plugin": {
     "entry": "./plugin",
     "export": "getBookingWs2WorkspacePlugin"
   },
   "workspaceBooking": {
     "supported": true,
-    "registryOnly": true,
+    "defaultModuleEnabledWhenUnset": true,
     "workspaceTypeExport": "BOOKING_WS2_WORKSPACE_TYPE",
+    "capabilities": {
+      "enabled": true,
+      "publicCreate": {
+        "enabled": true,
+        "mode": "create-pipeline"
+      },
+      "operatorCreate": {
+        "enabled": true,
+        "mode": "create-pipeline"
+      },
+      "validation": {
+        "enabled": true,
+        "mode": "base-shape"
+      },
+      "capacity": {
+        "enabled": true,
+        "mode": "booking-owned"
+      },
+      "approval": {
+        "enabled": true,
+        "mode": "host-lifecycle"
+      },
+      "eventReaction": {
+        "enabled": true,
+        "mode": "in-process"
+      }
+    },
     "publicBooking": {
       "module": "./booking",
       "export": "BookingWs2PublicAdapter"
@@ -23,14 +52,9 @@
       "module": "./booking",
       "export": "BookingWs2ValidationPolicyAdapter"
     },
-    "opsCapability": {
-      "module": "./booking",
-      "export": "BookingWs2OpsCapabilityAdapter"
-    },
     "eventReaction": {
       "module": "./booking",
-      "export": "BookingWs2EventReactionAdapter",
-      "requiresHostIo": false
+      "export": "BookingWs2EventReactionAdapter"
     },
     "opsManifest": {
       "module": "./bookings",

@@ -7,10 +7,7 @@
 /** Plugin ids with workspaceFinance.supported — finance hub enablement (Phase 1.2). */
 export const WORKSPACE_FINANCE_NAV_PLUGIN_IDS = new Set<string>([
   "denali",
-  "finance-ws3",
-  "finance-ws4",
   "finance-ws5",
-  "finance-ws6",
 ]);
 
 export function isFinanceNavPlugin(pluginId: string): boolean {

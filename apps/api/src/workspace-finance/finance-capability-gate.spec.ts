@@ -16,12 +16,17 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 
 describe("FIN-P1.17 finance capability gate", () => {
-  it("generated bindings support denali + finance-ws3; reject urban", () => {
+  it("generated bindings support denali + finance-ws5 only; reject demoted / urban", () => {
     assert.equal(isFinanceSupportedWorkspace("denali"), true);
-    assert.equal(isFinanceSupportedWorkspace("finance-ws3"), true);
+    assert.equal(isFinanceSupportedWorkspace("finance-ws5"), true);
+    assert.equal(isFinanceSupportedWorkspace("finance-ws3"), false);
+    assert.equal(isFinanceSupportedWorkspace("finance-ws4"), false);
+    assert.equal(isFinanceSupportedWorkspace("finance-ws6"), false);
+    assert.equal(isFinanceSupportedWorkspace("finance-ws2"), false);
     assert.equal(isFinanceSupportedWorkspace("urban"), false);
     assert.equal(isFinanceDefaultEnabledWhenModulesUnset("denali"), true);
-    assert.equal(isFinanceDefaultEnabledWhenModulesUnset("finance-ws3"), true);
+    assert.equal(isFinanceDefaultEnabledWhenModulesUnset("finance-ws5"), true);
+    assert.equal(isFinanceDefaultEnabledWhenModulesUnset("finance-ws3"), false);
     assert.equal(isFinanceDefaultEnabledWhenModulesUnset("urban"), false);
   });
 

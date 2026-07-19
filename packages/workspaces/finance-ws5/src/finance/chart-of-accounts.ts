@@ -1,6 +1,5 @@
 /**
- * Fake Workspace #5 chart of accounts — reusable consumer proof.
- * Must never collide with Denali / ws2 / ws3 / ws4 account prefixes.
+ * Finance-ws5 chart of accounts — production-capable CoA (ws5: prefix; no Denali collision).
  */
 
 export const FINANCE_WS5_WORKSPACE_TYPE = "finance-ws5";

@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import {
+  isBookingJsonReceiptContentType,
   parseBookingMemberReceiptJsonBody,
   parseBookingsListQuery,
   parseBulkApproveBookingsBody,
@@ -21,18 +22,14 @@ import {
   sanitizeReceiptProofFileName,
 } from "../workspace-finance/receipt-proof-storage";
 import {
-  BookingNotFoundError,
-  BookingStatusConflictError,
-  BookingsOpsForbiddenError,
-  BulkApproveBatchLimitError,
-} from "./bookings.errors";
-import {
   approveBooking,
   bulkApproveBookings,
+  cancelBooking,
   createBooking,
   getBookingsSummary,
   listBookings,
   rejectBooking,
+  waitlistBooking,
 } from "./create-bookings-service";
 
 export async function handleListBookings(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -51,10 +48,6 @@ export async function handleListBookings(req: IncomingMessage, res: ServerRespon
       { rateLimit: "read" }
     );
   } catch (error) {
-    if (error instanceof BookingsOpsForbiddenError) {
-      sendHttpError(res, 403, { error: "forbidden", code: error.code });
-      return;
-    }
     handleHttpError(res, error);
   }
 }
@@ -75,10 +68,6 @@ export async function handleGetBookingsSummary(
       { rateLimit: "read" }
     );
   } catch (error) {
-    if (error instanceof BookingsOpsForbiddenError) {
-      sendHttpError(res, 403, { error: "forbidden", code: error.code });
-      return;
-    }
     handleHttpError(res, error);
   }
 }
@@ -103,10 +92,6 @@ export async function handleCreateBooking(req: IncomingMessage, res: ServerRespo
       { rateLimit: "write" }
     );
   } catch (error) {
-    if (error instanceof BookingsOpsForbiddenError) {
-      sendHttpError(res, 403, { error: "forbidden", code: error.code });
-      return;
-    }
     handleHttpError(res, error);
   }
 }
@@ -128,18 +113,6 @@ export async function handleApproveBooking(
       { rateLimit: "write" }
     );
   } catch (error) {
-    if (error instanceof BookingsOpsForbiddenError) {
-      sendHttpError(res, 403, { error: "forbidden", code: error.code });
-      return;
-    }
-    if (error instanceof BookingNotFoundError) {
-      sendHttpError(res, 404, { error: "not_found", code: error.code });
-      return;
-    }
-    if (error instanceof BookingStatusConflictError) {
-      sendHttpError(res, 409, { error: "conflict", code: error.code });
-      return;
-    }
     handleHttpError(res, error);
   }
 }
@@ -171,14 +144,6 @@ export async function handleBulkApproveBookings(
       { rateLimit: "write" }
     );
   } catch (error) {
-    if (error instanceof BookingsOpsForbiddenError) {
-      sendHttpError(res, 403, { error: "forbidden", code: error.code });
-      return;
-    }
-    if (error instanceof BulkApproveBatchLimitError) {
-      sendHttpError(res, 400, { error: "batch_limit", code: error.code, maxBatch: error.maxBatch });
-      return;
-    }
     handleHttpError(res, error);
   }
 }
@@ -205,25 +170,50 @@ export async function handleRejectBooking(
       { rateLimit: "write" }
     );
   } catch (error) {
-    if (error instanceof BookingsOpsForbiddenError) {
-      sendHttpError(res, 403, { error: "forbidden", code: error.code });
-      return;
-    }
-    if (error instanceof BookingNotFoundError) {
-      sendHttpError(res, 404, { error: "not_found", code: error.code });
-      return;
-    }
-    if (error instanceof BookingStatusConflictError) {
-      sendHttpError(res, 409, { error: "conflict", code: error.code });
-      return;
-    }
     handleHttpError(res, error);
   }
 }
 
-function isJsonReceiptContentType(contentType: string): boolean {
-  const normalized = contentType.trim().toLowerCase();
-  return normalized.includes("application/json") || normalized.length === 0;
+export async function handleWaitlistBooking(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await waitlistBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleCancelBooking(
+  req: IncomingMessage,
+  res: ServerResponse,
+  bookingId: string
+): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await cancelBooking(auth, bookingId);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
 }
 
 function mapMemberReceiptUploadError(res: ServerResponse, error: unknown): boolean {
@@ -253,7 +243,7 @@ export async function handlePostBookingReceipt(
     const auth = await requireOperatorSession(req);
     const contentType = readHeader(req, "content-type");
 
-    if (isJsonReceiptContentType(contentType)) {
+    if (isBookingJsonReceiptContentType(contentType)) {
       const body = parseBookingMemberReceiptJsonBody(await readIdentityRequestBody(req));
       if (body === null) {
         sendHttpError(res, 400, { error: "invalid_payload", code: "FILE_KEY_REQUIRED" });
@@ -303,10 +293,6 @@ export async function handlePostBookingReceipt(
       { rateLimit: "write" }
     );
   } catch (error) {
-    if (error instanceof Error && error.message === "BOOKINGS_FORBIDDEN") {
-      sendHttpError(res, 403, { error: "forbidden", code: "BOOKINGS_FORBIDDEN" });
-      return;
-    }
     if (mapMemberReceiptUploadError(res, error)) {
       return;
     }
@@ -332,10 +318,6 @@ export async function handleGetBookingReceiptStatus(
       { rateLimit: "read" }
     );
   } catch (error) {
-    if (error instanceof Error && error.message === "BOOKINGS_FORBIDDEN") {
-      sendHttpError(res, 403, { error: "forbidden", code: "BOOKINGS_FORBIDDEN" });
-      return;
-    }
     handleHttpError(res, error);
   }
 }

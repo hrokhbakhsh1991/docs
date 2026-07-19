@@ -1,13 +1,12 @@
 /**
  * Booking domain / persistence types (apps/api).
- * HTTP wire DTOs SoT: `@app-tour/booking-http-contracts` (Phase B1.2).
+ * HTTP wire DTOs SoT: `@app-cloud/booking-http-contracts` (Phase B1.2).
  */
 import type {
   BookingListItem,
   BookingPaymentStatus,
   BookingStatus,
-  BookingsSummaryResponse,
-} from "@app-tour/booking-http-contracts";
+} from "@app-cloud/booking-http-contracts";
 
 export type {
   ApproveBookingResponse,
@@ -21,11 +20,13 @@ export type {
   BookingsSummaryResponse,
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
+  CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
-} from "@app-tour/booking-http-contracts";
+  WaitlistBookingResponse,
+} from "@app-cloud/booking-http-contracts";
 
 export type BookingRecord = {
   readonly id: string;
@@ -43,6 +44,8 @@ export type BookingRecord = {
   readonly submittedByUserId: string;
   readonly approvedAt: string | null;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
+  /** Ops reject reason when status=rejected; omitted when unset (BC). */
+  readonly rejectReason?: string;
 };
 
 export type BookingOutboxRecord = {
@@ -71,27 +74,3 @@ export type BookingListPageOutput = {
   readonly items: readonly BookingListItem[];
   readonly nextCursor: string | null;
 };
-
-export type ActiveDuplicateLookupInput = {
-  readonly tenantId: string;
-  readonly tourId: string;
-};
-
-export type ActiveDuplicateByUserInput = ActiveDuplicateLookupInput & {
-  readonly submittedByUserId: string;
-};
-
-export type ActiveDuplicateByGuestLabelInput = ActiveDuplicateLookupInput & {
-  readonly guestLabel: string;
-};
-
-export type ActiveDuplicateByEmailInput = ActiveDuplicateLookupInput & {
-  readonly email: string;
-};
-
-export type ActiveDuplicateByNationalIdInput = ActiveDuplicateLookupInput & {
-  readonly nationalId: string;
-};
-
-/** Counts-only slice for repository summary aggregation. */
-export type BookingsSummaryCounts = Omit<BookingsSummaryResponse, "tourChips">;

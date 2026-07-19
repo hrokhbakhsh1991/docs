@@ -2637,6 +2637,1414 @@
         }
       }
     },
+    "/bookings": {
+      "get": {
+        "operationId": "listBookings",
+        "summary": "List bookings for tenant (ops)",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BookingsListView"
+            },
+            "examples": {
+              "default": {
+                "value": "ops"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BookingStatus"
+            },
+            "examples": {
+              "default": {
+                "value": "pending"
+              }
+            }
+          },
+          {
+            "name": "tourId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BookingTourId"
+            },
+            "examples": {
+              "default": {
+                "value": "00000000-0000-4000-8000-000000000880"
+              }
+            }
+          },
+          {
+            "name": "paymentStatus",
+            "in": "query",
+            "required": false,
+            "description": "Filter by booking payment status (payment status surface).",
+            "schema": {
+              "$ref": "#/components/schemas/BookingPaymentStatus"
+            },
+            "examples": {
+              "default": {
+                "value": "unpaid"
+              }
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BookingListSearchQuery"
+            },
+            "examples": {
+              "default": {
+                "value": "Ada"
+              }
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BookingListCursor"
+            },
+            "examples": {
+              "default": {
+                "value": "opaque-cursor"
+              }
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BookingListLimit"
+            },
+            "examples": {
+              "default": {
+                "value": 25
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bookings list page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingsListResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingsListResponse",
+                    "value": {
+                      "items": [
+                        {
+                          "id": "00000000-0000-4000-8000-000000000891",
+                          "tourId": "00000000-0000-4000-8000-000000000880",
+                          "tourTitle": "Alborz Day Hike",
+                          "guestLabel": "Ada Lovelace",
+                          "partySize": 2,
+                          "status": "pending",
+                          "paymentStatus": "unpaid",
+                          "departureAt": "2031-08-01T10:00:00.000Z",
+                          "submittedAt": "2026-07-20T08:00:00.000Z"
+                        }
+                      ],
+                      "total": 1,
+                      "nextCursor": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createBooking",
+        "summary": "Create booking (ops / operatorCreate)",
+        "tags": [
+          "Bookings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingRequest"
+              },
+              "examples": {
+                "default": {
+                  "summary": "CreateBookingRequest",
+                  "value": {
+                    "tourId": "00000000-0000-4000-8000-000000000880",
+                    "tourTitle": "Alborz Day Hike",
+                    "guestLabel": "Ada Lovelace",
+                    "guestEmail": "ada@example.com",
+                    "partySize": 2,
+                    "departureAt": "2031-08-01T10:00:00.000Z",
+                    "paymentStatus": "unpaid",
+                    "registrationIntake": {
+                      "tourCapacityMax": 10
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Booking created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "CreateBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "status": "pending"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "invalid_body",
+                      "code": "BOOKING_CREATE_INVALID"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unsupported workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "BOOKING_WORKSPACE_UNSUPPORTED",
+                      "code": "BOOKING_WORKSPACE_UNSUPPORTED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Capacity rejected (BOOKING_CAPACITY_REJECTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "BOOKING_CAPACITY_REJECTED: tourCapacityMax required",
+                      "code": "BOOKING_CAPACITY_REJECTED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/summary": {
+      "get": {
+        "operationId": "getBookingsSummary",
+        "summary": "Bookings ops summary counts",
+        "tags": [
+          "Bookings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Ops summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingsSummaryResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingsSummaryResponse",
+                    "value": {
+                      "pending": 4,
+                      "approvedToday": 2,
+                      "departures7d": 5,
+                      "waitlist": 1,
+                      "tourChips": [
+                        {
+                          "tourId": "00000000-0000-4000-8000-000000000880",
+                          "tourTitle": "Alborz Day Hike",
+                          "pendingCount": 3,
+                          "totalCount": 12
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/bulk-approve": {
+      "post": {
+        "operationId": "bulkApproveBookings",
+        "summary": "Bulk approve bookings",
+        "tags": [
+          "Bookings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkApproveBookingsRequest"
+              },
+              "examples": {
+                "default": {
+                  "summary": "BulkApproveBookingsRequest",
+                  "value": {
+                    "ids": [
+                      "00000000-0000-4000-8000-000000000891"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bulk approve result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkApproveBookingsResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BulkApproveBookingsResponse",
+                    "value": {
+                      "approvedIds": [
+                        "00000000-0000-4000-8000-000000000891"
+                      ],
+                      "skippedIds": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Batch limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "batch_limit",
+                      "code": "BULK_APPROVE_BATCH_LIMIT"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Capacity rejected (BOOKING_CAPACITY_REJECTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "BOOKING_CAPACITY_REJECTED: tourCapacityMax required",
+                      "code": "BOOKING_CAPACITY_REJECTED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}/approve": {
+      "post": {
+        "operationId": "approveBooking",
+        "summary": "Approve booking (emits registration.approved)",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved (emits registration.approved)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApproveBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "ApproveBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "status": "approved",
+                      "approvedAt": "2026-07-20T12:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Capacity rejected (BOOKING_CAPACITY_REJECTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "BOOKING_CAPACITY_REJECTED: tourCapacityMax required",
+                      "code": "BOOKING_CAPACITY_REJECTED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}/reject": {
+      "post": {
+        "operationId": "rejectBooking",
+        "summary": "Reject booking (intentionally silent — no outbox)",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectBookingRequest"
+              },
+              "examples": {
+                "default": {
+                  "summary": "RejectBookingRequest",
+                  "value": {
+                    "reason": "capacity"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rejected (intentionally silent — no outbox)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RejectBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "RejectBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "status": "rejected"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Status conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_STATUS_CONFLICT"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}/waitlist": {
+      "post": {
+        "operationId": "waitlistBooking",
+        "summary": "Waitlist booking (emits registration.waitlisted)",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Waitlisted (emits registration.waitlisted)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "WaitlistBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "status": "waitlisted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Status conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_STATUS_CONFLICT"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}/cancel": {
+      "post": {
+        "operationId": "cancelBooking",
+        "summary": "Cancel booking (emits registration.cancelled)",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled (emits registration.cancelled)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelBookingResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "CancelBookingResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000891",
+                      "status": "cancelled"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "not_found",
+                      "code": "BOOKING_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Status conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "conflict",
+                      "code": "BOOKING_STATUS_CONFLICT"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}/receipts": {
+      "post": {
+        "operationId": "postBookingReceipt",
+        "summary": "Submit member receipt proof for booking registration",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingMemberReceiptJsonBody"
+              },
+              "examples": {
+                "default": {
+                  "summary": "BookingMemberReceiptJsonBody",
+                  "value": {
+                    "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
+                    "note": "bank transfer"
+                  }
+                }
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingReceiptBinaryBody"
+              },
+              "examples": {
+                "default": {
+                  "summary": "BookingReceiptBinaryBody",
+                  "value": "<binary>"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Receipt submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingReceiptCreatedResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingReceiptCreatedResponse",
+                    "value": {
+                      "id": "00000000-0000-4000-8000-000000000701",
+                      "paymentId": "00000000-0000-4000-8000-000000000702",
+                      "status": "Pending",
+                      "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid receipt payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "invalid_payload",
+                      "code": "FILE_KEY_REQUIRED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Object storage unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "service_unavailable",
+                      "code": "MINIO_NOT_CONFIGURED"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getBookingReceiptStatus",
+        "summary": "Get member receipt status for booking registration",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "examples": {
+              "default": {
+                "summary": "BookingId",
+                "value": "00000000-0000-4000-8000-000000000891"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member receipt / payment progress for booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingMemberReceiptStatusResponse"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingMemberReceiptStatusResponse",
+                    "value": {
+                      "status": "pending"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "unauthorized",
+                      "code": "UNAUTHORIZED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (ops / ownership)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHttpError"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "BookingHttpError",
+                    "value": {
+                      "error": "forbidden",
+                      "code": "BOOKINGS_OPS_FORBIDDEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
     "/urban/settings": {
       "get": {
         "operationId": "getUrbanSettings",
@@ -3513,6 +4921,754 @@
             "description": "Unavailable (pool, shutdown, circuit)"
           }
         }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BookingStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "approved",
+          "waitlisted",
+          "rejected",
+          "cancelled"
+        ],
+        "description": "Booking lifecycle status (booking-http-contracts).",
+        "examples": [
+          "pending"
+        ]
+      },
+      "BookingPaymentStatus": {
+        "type": "string",
+        "enum": [
+          "unpaid",
+          "partial",
+          "paid"
+        ],
+        "description": "Payment projection on booking list/create (booking-http-contracts).",
+        "examples": [
+          "unpaid"
+        ]
+      },
+      "BookingsListView": {
+        "type": "string",
+        "enum": [
+          "ops",
+          "mine"
+        ],
+        "description": "List view discriminator.",
+        "examples": [
+          "ops"
+        ]
+      },
+      "BookingId": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Booking / operator registration id.",
+        "examples": [
+          "00000000-0000-4000-8000-000000000891"
+        ]
+      },
+      "BookingTourId": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Tour id.",
+        "examples": [
+          "00000000-0000-4000-8000-000000000880"
+        ]
+      },
+      "BookingHttpError": {
+        "type": "object",
+        "required": [
+          "error",
+          "code"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "error": {
+            "type": "string",
+            "examples": [
+              "forbidden"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "examples": [
+              "BOOKINGS_OPS_FORBIDDEN"
+            ]
+          },
+          "maxBatch": {
+            "type": "integer",
+            "description": "Present on bulk approve batch limit."
+          }
+        },
+        "examples": [
+          {
+            "error": "forbidden",
+            "code": "BOOKINGS_OPS_FORBIDDEN"
+          }
+        ]
+      },
+      "BookingRegistrationIntake": {
+        "type": "object",
+        "description": "Opaque product intake JSON; Booking requires tourCapacityMax for capacity.",
+        "additionalProperties": true,
+        "properties": {
+          "tourCapacityMax": {
+            "type": "integer",
+            "minimum": 1,
+            "examples": [
+              10
+            ]
+          }
+        },
+        "examples": [
+          {
+            "tourCapacityMax": 10
+          }
+        ]
+      },
+      "BookingListItem": {
+        "type": "object",
+        "description": "List/detail projection (DTO BookingListItem). No dedicated GET-by-id route.",
+        "required": [
+          "id",
+          "tourId",
+          "tourTitle",
+          "guestLabel",
+          "partySize",
+          "status",
+          "paymentStatus",
+          "departureAt",
+          "submittedAt"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "tourId": {
+            "$ref": "#/components/schemas/BookingTourId"
+          },
+          "tourTitle": {
+            "type": "string",
+            "examples": [
+              "Alborz Day Hike"
+            ]
+          },
+          "guestLabel": {
+            "type": "string",
+            "examples": [
+              "Ada Lovelace"
+            ]
+          },
+          "partySize": {
+            "type": "integer",
+            "minimum": 1,
+            "examples": [
+              2
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "paymentStatus": {
+            "$ref": "#/components/schemas/BookingPaymentStatus"
+          },
+          "departureAt": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2031-08-01T10:00:00.000Z"
+            ]
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2026-07-20T08:00:00.000Z"
+            ]
+          },
+          "registrationIntake": {
+            "$ref": "#/components/schemas/BookingRegistrationIntake"
+          },
+          "rejectReason": {
+            "type": "string",
+            "description": "Ops reject reason when status=rejected (optional / additive).",
+            "examples": [
+              "capacity"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000891",
+            "tourId": "00000000-0000-4000-8000-000000000880",
+            "tourTitle": "Alborz Day Hike",
+            "guestLabel": "Ada Lovelace",
+            "partySize": 2,
+            "status": "pending",
+            "paymentStatus": "unpaid",
+            "departureAt": "2031-08-01T10:00:00.000Z",
+            "submittedAt": "2026-07-20T08:00:00.000Z",
+            "registrationIntake": {
+              "tourCapacityMax": 10
+            }
+          }
+        ]
+      },
+      "BookingsListResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookingListItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "examples": [
+              1
+            ]
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "examples": [
+              null
+            ]
+          }
+        },
+        "examples": [
+          {
+            "items": [
+              {
+                "id": "00000000-0000-4000-8000-000000000891",
+                "tourId": "00000000-0000-4000-8000-000000000880",
+                "tourTitle": "Alborz Day Hike",
+                "guestLabel": "Ada Lovelace",
+                "partySize": 2,
+                "status": "pending",
+                "paymentStatus": "unpaid",
+                "departureAt": "2031-08-01T10:00:00.000Z",
+                "submittedAt": "2026-07-20T08:00:00.000Z"
+              }
+            ],
+            "total": 1,
+            "nextCursor": null
+          }
+        ]
+      },
+      "BookingTourChip": {
+        "type": "object",
+        "required": [
+          "tourId",
+          "tourTitle",
+          "pendingCount",
+          "totalCount"
+        ],
+        "properties": {
+          "tourId": {
+            "$ref": "#/components/schemas/BookingTourId"
+          },
+          "tourTitle": {
+            "type": "string",
+            "examples": [
+              "Alborz Day Hike"
+            ]
+          },
+          "pendingCount": {
+            "type": "integer",
+            "minimum": 0,
+            "examples": [
+              3
+            ]
+          },
+          "totalCount": {
+            "type": "integer",
+            "minimum": 0,
+            "examples": [
+              12
+            ]
+          }
+        },
+        "examples": [
+          {
+            "tourId": "00000000-0000-4000-8000-000000000880",
+            "tourTitle": "Alborz Day Hike",
+            "pendingCount": 3,
+            "totalCount": 12
+          }
+        ]
+      },
+      "BookingsSummaryResponse": {
+        "type": "object",
+        "required": [
+          "pending",
+          "approvedToday",
+          "departures7d",
+          "waitlist",
+          "tourChips"
+        ],
+        "properties": {
+          "pending": {
+            "type": "integer",
+            "minimum": 0,
+            "examples": [
+              4
+            ]
+          },
+          "approvedToday": {
+            "type": "integer",
+            "minimum": 0,
+            "examples": [
+              2
+            ]
+          },
+          "departures7d": {
+            "type": "integer",
+            "minimum": 0,
+            "examples": [
+              5
+            ]
+          },
+          "waitlist": {
+            "type": "integer",
+            "minimum": 0,
+            "examples": [
+              1
+            ]
+          },
+          "tourChips": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookingTourChip"
+            }
+          }
+        },
+        "examples": [
+          {
+            "pending": 4,
+            "approvedToday": 2,
+            "departures7d": 5,
+            "waitlist": 1,
+            "tourChips": [
+              {
+                "tourId": "00000000-0000-4000-8000-000000000880",
+                "tourTitle": "Alborz Day Hike",
+                "pendingCount": 3,
+                "totalCount": 12
+              }
+            ]
+          }
+        ]
+      },
+      "CreateBookingRequest": {
+        "type": "object",
+        "required": [
+          "tourId",
+          "tourTitle",
+          "guestLabel",
+          "partySize",
+          "departureAt"
+        ],
+        "properties": {
+          "tourId": {
+            "$ref": "#/components/schemas/BookingTourId"
+          },
+          "tourTitle": {
+            "type": "string",
+            "minLength": 1,
+            "examples": [
+              "Alborz Day Hike"
+            ]
+          },
+          "guestLabel": {
+            "type": "string",
+            "minLength": 1,
+            "examples": [
+              "Ada Lovelace"
+            ]
+          },
+          "guestEmail": {
+            "type": "string",
+            "format": "email",
+            "examples": [
+              "ada@example.com"
+            ]
+          },
+          "guestPhone": {
+            "type": "string",
+            "examples": [
+              "+15550001111"
+            ]
+          },
+          "partySize": {
+            "type": "integer",
+            "minimum": 1,
+            "examples": [
+              2
+            ]
+          },
+          "departureAt": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2031-08-01T10:00:00.000Z"
+            ]
+          },
+          "paymentStatus": {
+            "$ref": "#/components/schemas/BookingPaymentStatus"
+          },
+          "registrationIntake": {
+            "$ref": "#/components/schemas/BookingRegistrationIntake"
+          }
+        },
+        "examples": [
+          {
+            "tourId": "00000000-0000-4000-8000-000000000880",
+            "tourTitle": "Alborz Day Hike",
+            "guestLabel": "Ada Lovelace",
+            "guestEmail": "ada@example.com",
+            "partySize": 2,
+            "departureAt": "2031-08-01T10:00:00.000Z",
+            "paymentStatus": "unpaid",
+            "registrationIntake": {
+              "tourCapacityMax": 10
+            }
+          }
+        ]
+      },
+      "CreateBookingResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          }
+        },
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000891",
+            "status": "pending"
+          }
+        ]
+      },
+      "ApproveBookingResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "approvedAt"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2026-07-20T12:00:00.000Z"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000891",
+            "status": "approved",
+            "approvedAt": "2026-07-20T12:00:00.000Z"
+          }
+        ]
+      },
+      "RejectBookingRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Optional ops reject reason; persisted as rejectReason when non-empty.",
+            "examples": [
+              "capacity"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "reason": "capacity"
+          }
+        ]
+      },
+      "RejectBookingResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          },
+          "rejectReason": {
+            "type": "string",
+            "description": "Persisted reject reason when provided (additive / optional).",
+            "examples": [
+              "capacity"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000891",
+            "status": "rejected",
+            "rejectReason": "capacity"
+          }
+        ]
+      },
+      "WaitlistBookingResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          }
+        },
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000891",
+            "status": "waitlisted"
+          }
+        ]
+      },
+      "CancelBookingResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BookingId"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus"
+          }
+        },
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000891",
+            "status": "cancelled"
+          }
+        ]
+      },
+      "BulkApproveBookingsRequest": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookingId"
+            },
+            "minItems": 1,
+            "examples": [
+              [
+                "00000000-0000-4000-8000-000000000891"
+              ]
+            ]
+          }
+        },
+        "examples": [
+          {
+            "ids": [
+              "00000000-0000-4000-8000-000000000891"
+            ]
+          }
+        ]
+      },
+      "BulkApproveBookingsResponse": {
+        "type": "object",
+        "required": [
+          "approvedIds",
+          "skippedIds"
+        ],
+        "properties": {
+          "approvedIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookingId"
+            }
+          },
+          "skippedIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookingId"
+            }
+          }
+        },
+        "examples": [
+          {
+            "approvedIds": [
+              "00000000-0000-4000-8000-000000000891"
+            ],
+            "skippedIds": []
+          }
+        ]
+      },
+      "BookingMemberReceiptJsonBody": {
+        "type": "object",
+        "required": [
+          "fileKey"
+        ],
+        "properties": {
+          "fileKey": {
+            "type": "string",
+            "minLength": 1,
+            "examples": [
+              "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "examples": [
+              "bank transfer"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin",
+            "note": "bank transfer"
+          }
+        ]
+      },
+      "BookingMemberReceiptStatusResponse": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "description": "Finance member receipt status for a booking registration.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "none",
+              "pending",
+              "rejected",
+              "paid"
+            ],
+            "examples": [
+              "pending"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "status": "pending"
+          }
+        ]
+      },
+      "BookingListSearchQuery": {
+        "type": "string",
+        "description": "Free-text guest/tour search.",
+        "examples": [
+          "Ada"
+        ]
+      },
+      "BookingListCursor": {
+        "type": "string",
+        "description": "Opaque pagination cursor.",
+        "examples": [
+          "opaque-cursor"
+        ]
+      },
+      "BookingListLimit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 25,
+        "description": "Page size.",
+        "examples": [
+          25
+        ]
+      },
+      "BookingReceiptCreatedResponse": {
+        "type": "object",
+        "description": "Finance receipt row returned after POST /bookings/{bookingId}/receipts.",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "examples": [
+              "00000000-0000-4000-8000-000000000701"
+            ]
+          },
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "examples": [
+              "00000000-0000-4000-8000-000000000702"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "examples": [
+              "Pending"
+            ]
+          },
+          "fileKey": {
+            "type": "string",
+            "examples": [
+              "tenants/…/receipts/proof.bin"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "id": "00000000-0000-4000-8000-000000000701",
+            "paymentId": "00000000-0000-4000-8000-000000000702",
+            "status": "Pending",
+            "fileKey": "tenants/00000000-0000-4000-8000-000000000014/receipts/proof.bin"
+          }
+        ]
+      },
+      "BookingReceiptBinaryBody": {
+        "type": "string",
+        "format": "binary",
+        "description": "Raw receipt upload body (Content-Type not application/json).",
+        "examples": [
+          "<binary>"
+        ]
       }
     }
   }

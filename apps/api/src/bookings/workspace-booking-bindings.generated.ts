@@ -10,6 +10,7 @@ import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
 export const WORKSPACE_BOOKING_BINDINGS = [
   {
     workspaceType: BOOKING_WS2_WORKSPACE_TYPE,
+    defaultModuleEnabledWhenUnset: true as const,
   },
   {
     workspaceType: DENALI_WORKSPACE_TYPE,

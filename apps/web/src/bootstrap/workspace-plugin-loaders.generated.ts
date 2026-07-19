@@ -9,29 +9,25 @@ import {
   getOrCreateWorkspacePluginLoad,
   invalidateWorkspacePluginLoadCache,
 } from "./workspace-plugin-load-cache";
+import { getBookingWs2WorkspacePlugin } from "@app-tour/workspace-booking-ws2/plugin";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
-import { getFinanceWs3WorkspacePlugin } from "@app-tour/workspace-finance-ws3/plugin";
-import { getFinanceWs4WorkspacePlugin } from "@app-tour/workspace-finance-ws4/plugin";
 import { getFinanceWs5WorkspacePlugin } from "@app-tour/workspace-finance-ws5/plugin";
-import { getFinanceWs6WorkspacePlugin } from "@app-tour/workspace-finance-ws6/plugin";
 import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/plugin";
 import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
 import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
 
 /** Sorted trunk plugin ids — cache bust when codegen regen changes membership. */
-export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "denali,finance-ws3,finance-ws4,finance-ws5,finance-ws6,guest-club,starter,urban";
+export const WORKSPACE_PLUGIN_REGISTRY_REVISION = "booking-ws2,denali,finance-ws5,guest-club,starter,urban";
 
 /** Upper bound for per-process plugin load cache (= trunk plugin count). */
-export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 8;
+export const WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 6;
 
 export { invalidateWorkspacePluginLoadCache };
 
 const SYNC_WORKSPACE_PLUGINS: Readonly<Record<string, WorkspacePlugin>> = Object.freeze({
+  "booking-ws2": getBookingWs2WorkspacePlugin(),
   "denali": getDenaliWorkspacePlugin(),
-  "finance-ws3": getFinanceWs3WorkspacePlugin(),
-  "finance-ws4": getFinanceWs4WorkspacePlugin(),
   "finance-ws5": getFinanceWs5WorkspacePlugin(),
-  "finance-ws6": getFinanceWs6WorkspacePlugin(),
   "guest-club": getGuestClubWorkspacePlugin(),
   "starter": getStarterWorkspacePlugin(),
   "urban": getUrbanWorkspacePlugin(),
@@ -52,25 +48,17 @@ export async function loadWorkspacePluginByIdFromRegistry(
     pluginId,
     async () => {
       switch (pluginId) {
+    case "booking-ws2": {
+      const mod = await import("@app-tour/workspace-booking-ws2/plugin");
+      return mod.getBookingWs2WorkspacePlugin();
+    }
     case "denali": {
       const mod = await import("@app-tour/workspace-denali/plugin");
       return mod.getDenaliWorkspacePlugin();
     }
-    case "finance-ws3": {
-      const mod = await import("@app-tour/workspace-finance-ws3/plugin");
-      return mod.getFinanceWs3WorkspacePlugin();
-    }
-    case "finance-ws4": {
-      const mod = await import("@app-tour/workspace-finance-ws4/plugin");
-      return mod.getFinanceWs4WorkspacePlugin();
-    }
     case "finance-ws5": {
       const mod = await import("@app-tour/workspace-finance-ws5/plugin");
       return mod.getFinanceWs5WorkspacePlugin();
-    }
-    case "finance-ws6": {
-      const mod = await import("@app-tour/workspace-finance-ws6/plugin");
-      return mod.getFinanceWs6WorkspacePlugin();
     }
     case "guest-club": {
       const mod = await import("@app-tour/workspace-guest-club/plugin");

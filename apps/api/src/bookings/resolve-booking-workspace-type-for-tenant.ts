@@ -1,27 +1,29 @@
 /**
- * Phase B1.5 — tenant → workspaceType for Booking composition.
- * Unregistered workspace types fall back to denali (preserve pre-B1.5 behavior).
+ * Phase B1.5 / B2.1 — tenant → workspaceType for Booking composition.
+ * Fail-closed on unsupported / unknown workspace types (no Denali silent fallback).
  */
 
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
-import { isBookingDependencyBindingRegistered } from "./booking-dependency-registry";
-
-/** Boot / fallback when tenant workspace is not booking-registered. */
-export const BOOT_BOOKING_WORKSPACE_TYPE = "denali";
+import { BookingWorkspaceUnsupportedError } from "./bookings.errors";
+import { isBookingSupportedWorkspace } from "./workspace-booking-bindings.generated";
 
 /**
- * Resolve workspaceType for Booking dependency composition.
- * @throws `BOOKING_WORKSPACE_UNSUPPORTED` when tenantId is empty.
+ * Resolve workspaceType for Booking capability composition.
+ * @throws {@link BookingWorkspaceUnsupportedError} when tenantId is empty,
+ *   workspaceType is empty/unknown, or workspaceType is not booking-supported.
  */
 export async function resolveBookingWorkspaceTypeForTenant(tenantId: string): Promise<string> {
   const trimmed = tenantId.trim();
   if (trimmed.length === 0) {
-    throw new Error("BOOKING_WORKSPACE_UNSUPPORTED: tenantId is required");
+    throw new BookingWorkspaceUnsupportedError("tenantId is required");
   }
   const raw = await resolveWorkspaceTypeForTenant(trimmed);
   const workspaceType = raw.trim().toLowerCase();
-  if (workspaceType.length > 0 && isBookingDependencyBindingRegistered(workspaceType)) {
-    return workspaceType;
+  if (workspaceType.length === 0) {
+    throw new BookingWorkspaceUnsupportedError("workspaceType is empty");
   }
-  return BOOT_BOOKING_WORKSPACE_TYPE;
+  if (!isBookingSupportedWorkspace(workspaceType)) {
+    throw new BookingWorkspaceUnsupportedError(`workspaceType=${workspaceType}`);
+  }
+  return workspaceType;
 }

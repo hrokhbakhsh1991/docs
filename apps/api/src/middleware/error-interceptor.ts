@@ -78,6 +78,7 @@ import {
 } from "../identity/identity.errors";
 import { ImpersonationReadOnlyError } from "../identity/impersonation-read-only.error";
 import { isWorkspaceCommerceGatewayBlockedError } from "../workspace-metadata/assert-workspace-commerce-gateway-blocked.ts";
+import { resolveBookingHttpError } from "../bookings/booking-http-error-map";
 import {
   isPaymentsWebhookSignatureInvalidError,
   isPaymentsWebhookSignatureMissingError,
@@ -202,6 +203,27 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("TOUR_CLONE_UNSUPPORTED")) return 422;
   if (message.startsWith("DENALI_PHOTO_REMINT_DEST_FORBIDDEN")) return 403;
   if (message.startsWith("FINANCE_WORKSPACE_UNSUPPORTED")) return 404;
+  if (message.startsWith("BOOKING_WORKSPACE_UNSUPPORTED")) return 404;
+  if (message.startsWith("BOOKING_VALIDATION_REJECTED")) return 400;
+  if (message.startsWith("BOOKING_VALIDATION_FAILED")) return 400;
+  if (message.startsWith("BOOKING_CAPACITY_REJECTED")) return 409;
+  if (message.startsWith("BOOKING_WORKSPACE_TENANT_MISMATCH")) return 403;
+  if (message.startsWith("BOOKING_CAPABILITY_VIOLATION")) return 422;
+  if (message.startsWith("BOOKING_PUBLIC_CREATE_UNSUPPORTED")) return 403;
+  if (message.startsWith("BOOKING_WAITLIST_REQUIRED")) return 409;
+  if (message.startsWith("BOOKING_ALREADY_APPROVED")) return 409;
+  if (message.startsWith("BOOKING_ALREADY_CANCELLED")) return 409;
+  if (message.startsWith("BOOKING_STATUS_CONFLICT")) return 409;
+  if (message === "BOOKING_NOT_FOUND" || message.startsWith("BOOKING_NOT_FOUND:")) return 404;
+  if (
+    message === "BOOKING_FORBIDDEN" ||
+    message.startsWith("BOOKING_FORBIDDEN:") ||
+    message === "BOOKINGS_OPS_FORBIDDEN" ||
+    message === "BOOKINGS_FORBIDDEN"
+  ) {
+    return 403;
+  }
+  if (message.startsWith("BULK_APPROVE_BATCH_LIMIT")) return 400;
   if (message.startsWith("FINANCE_PAYMENT_NOT_FOUND")) return 404;
   if (message.startsWith("FINANCE_RECEIPT_NOT_FOUND")) return 404;
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS") return 409;
@@ -274,6 +296,21 @@ function logInternalServerError(error: unknown, correlationId: string): void {
  */
 export function handleHttpError(res: ServerResponse, error: unknown): void {
   const correlationId = resolveCorrelationId();
+
+  const bookingHttp = resolveBookingHttpError(error);
+  if (bookingHttp !== null) {
+    sendHttpError(
+      res,
+      bookingHttp.status,
+      {
+        error: bookingHttp.error,
+        code: bookingHttp.code,
+        ...(bookingHttp.maxBatch !== undefined ? { maxBatch: bookingHttp.maxBatch } : {}),
+      },
+      correlationId
+    );
+    return;
+  }
 
   if (isCanonicalSyncValidationError(error)) {
     sendHttpError(res, 409, { error: error.message, code: error.code }, correlationId);

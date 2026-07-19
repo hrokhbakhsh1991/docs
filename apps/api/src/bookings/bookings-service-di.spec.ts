@@ -9,43 +9,68 @@ import type { BookingAuthorizationPort } from "./ports/booking-authorization.por
 import type { BookingClockPort } from "./ports/booking-clock.port.ts";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port.ts";
 import type { WorkspaceBookingEventReactionPort } from "@app-tour/booking-http-contracts";
+import { getBookingWorkspaceCapabilities } from "./workspace-booking-capabilities.generated.ts";
+import { toBookingRuntimeCapabilities } from "./map-booking-runtime-capabilities.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
+
+function denaliCaps() {
+  const caps = getBookingWorkspaceCapabilities("denali");
+  assert.ok(caps);
+  return toBookingRuntimeCapabilities(caps);
+}
 
 function read(rel: string): string {
   return readFileSync(join(here, rel), "utf8");
 }
 
 function stubEventReaction(): WorkspaceBookingEventReactionPort {
-  return { approveOutboxEventType: "registration.approved" };
+  return {
+    kind: "test-event-reaction",
+    approveOutboxEventType: "registration.approved",
+    reactAfterApprove: async () => undefined,
+  };
+}
+
+function stubPublicBooking(): import("@app-tour/booking-http-contracts").BookingPublicCapabilityPort {
+  return {
+    kind: "test-public-booking",
+    supportsPublicCreate: () => true,
+  };
+}
+
+function stubTenantBinding(): import("./ports/booking-tenant-workspace-binding.port.ts").BookingTenantWorkspaceBindingPort {
+  return {
+    assertTenantBoundToRuntime: async () => undefined,
+  };
+}
+
+function stubValidation(): import("@app-tour/booking-http-contracts").BookingValidationPolicyPort {
+  return {
+    kind: "test-validation",
+    assertCreateValid: () => undefined,
+  };
+}
+
+function stubCapacity(): import("@app-tour/booking-http-contracts").BookingCapacityPolicyPort {
+  return {
+    kind: "test-capacity",
+    assertCreateCapacity: () => undefined,
+  };
 }
 
 function fakeRepo(): BookingRepositoryPort {
   return {
     listByTenant: async () => [],
     listByTenantPage: async () => ({ items: [], nextCursor: null }),
-    listBySubmittedUser: async () => [],
     countBookingsBySubmittedUser: async () => 0,
     countCancelledBookingsBySubmittedUser: async () => 0,
     countCompletedTripsBySubmittedUser: async () => 0,
     listRecentBySubmittedUser: async () => [],
-    findActiveDuplicateByUser: async () => null,
-    findActiveDuplicateByGuestLabel: async () => null,
-    findActiveDuplicateByEmail: async () => null,
-    findActiveDuplicateByNationalId: async () => null,
-    countByListFilters: async () => 0,
-    getBookingsSummaryCounts: async () => ({
-      pending: 0,
-      approvedToday: 0,
-      departures7d: 0,
-      waitlist: 0,
-    }),
-    listTourChipsByTenant: async () => [],
     sumApprovedPartySizeByTourIds: async () => ({}),
     getById: async () => null,
     getByIds: async () => [],
     updatePaymentStatus: async () => null,
-    listOutboxByAggregate: async () => [],
     createBooking: async () => {
       throw new Error("not used");
     },
@@ -54,6 +79,12 @@ function fakeRepo(): BookingRepositoryPort {
     },
     bulkApproveWithOutbox: async () => [],
     rejectBooking: async () => {
+      throw new Error("not used");
+    },
+    waitlistBooking: async () => {
+      throw new Error("not used");
+    },
+    cancelBooking: async () => {
       throw new Error("not used");
     },
     seedBooking: () => undefined,
@@ -70,7 +101,6 @@ describe("bookings-service-di (B0.5)", () => {
     assert.doesNotMatch(src, /in-memory-bookings/);
     assert.doesNotMatch(src, /prisma-bookings/);
     assert.doesNotMatch(src, /infrastructure\//);
-    assert.doesNotMatch(src, /bookings\.errors/);
     assert.match(src, /this\.clock\.now\(\)/);
     assert.match(src, /this\.authorization\.assertOpsAccess/);
     assert.match(src, /this\.repository\./);
@@ -83,11 +113,14 @@ describe("bookings-service-di (B0.5)", () => {
     for (const from of fromSpecs) {
       const allowed =
         from === "./bookings.types" ||
+        from === "./bookings.errors" ||
+        from === "./ports/booking-runtime-capabilities.port" ||
         from === "@app-tour/booking-http-contracts" ||
         from === "./ports/booking-actor-context" ||
         from === "./ports/booking-authorization.port" ||
         from === "./ports/booking-clock.port" ||
-        from === "./ports/booking-repository.port";
+        from === "./ports/booking-repository.port" ||
+        from === "./ports/booking-tenant-workspace-binding.port";
       assert.ok(allowed, `illegal BookingsService import from ${from}`);
     }
   });
@@ -102,6 +135,12 @@ describe("bookings-service-di (B0.5)", () => {
           authorization,
           clock,
           eventReaction: stubEventReaction(),
+          publicBooking: stubPublicBooking(),
+          validationPolicy: stubValidation(),
+          capacityPolicy: stubCapacity(),
+          workspaceType: "denali",
+          tenantWorkspaceBinding: stubTenantBinding(),
+          capabilities: denaliCaps(),
         }),
       /BOOKINGS_SERVICE_DEP_REQUIRED:repository/
     );
@@ -115,7 +154,14 @@ describe("bookings-service-di (B0.5)", () => {
       authorization,
       clock,
       eventReaction: stubEventReaction(),
+      publicBooking: stubPublicBooking(),
+      validationPolicy: stubValidation(),
+      capacityPolicy: stubCapacity(),
+      workspaceType: "denali",
+      tenantWorkspaceBinding: stubTenantBinding(),
+      capabilities: denaliCaps(),
     });
     assert.equal(typeof service.listBookings, "function");
+    assert.equal(service.boundWorkspaceType, "denali");
   });
 });

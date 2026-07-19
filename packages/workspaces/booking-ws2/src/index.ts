@@ -1,7 +1,7 @@
 export { BOOKING_WS2_WORKSPACE_TYPE } from "./workspace-type";
 export {
   BookingWs2CapacityPolicyAdapter,
-  BookingWs2OpsCapabilityAdapter,
+  BookingWs2EventReactionAdapter,
   BookingWs2PublicAdapter,
   BookingWs2ValidationPolicyAdapter,
 } from "./booking";

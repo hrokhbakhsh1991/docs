@@ -2,21 +2,38 @@ import type { BookingActorContext } from "./ports/booking-actor-context";
 import type { BookingAuthorizationPort } from "./ports/booking-authorization.port";
 import type { BookingClockPort } from "./ports/booking-clock.port";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
+import type { BookingRuntimeCapabilities } from "./ports/booking-runtime-capabilities.port";
+import type { BookingTenantWorkspaceBindingPort } from "./ports/booking-tenant-workspace-binding.port";
 import type {
   ApproveBookingResponse,
+  BookingCapacityPolicyPort,
+  BookingCreatePolicyContext,
   BookingListItem,
   BookingsListQuery,
   BookingsListResponse,
   BookingsSummaryResponse,
+  BookingPublicCapabilityPort,
+  BookingValidationPolicyPort,
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
+  CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
+  WaitlistBookingResponse,
   WorkspaceBookingEventReactionPort,
 } from "@app-tour/booking-http-contracts";
+import {
+  BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
+  BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE,
+  BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
+  readTourCapacityMaxFromIntake,
+} from "@app-tour/booking-http-contracts";
 import type { BookingRecord, BookingTourChip } from "./bookings.types";
+import {
+  BookingCapabilityViolationError,
+} from "./bookings.errors";
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
@@ -25,7 +42,27 @@ export type BookingsServiceDeps = {
   readonly authorization: BookingAuthorizationPort;
   readonly clock: BookingClockPort;
   readonly eventReaction: WorkspaceBookingEventReactionPort;
+  readonly publicBooking: BookingPublicCapabilityPort;
+  readonly validationPolicy: BookingValidationPolicyPort;
+  readonly capacityPolicy: BookingCapacityPolicyPort;
+  /** Bound workspaceType for this runtime — must match tenant-owned type (B2.0). */
+  readonly workspaceType: string;
+  readonly tenantWorkspaceBinding: BookingTenantWorkspaceBindingPort;
+  /** Composition-resolved capability decisions (not generated matrix). */
+  readonly capabilities: BookingRuntimeCapabilities;
 };
+
+
+/** Booking-owned capacity: missing max is never a silent allow. */
+function requireTourCapacityMax(
+  intake: Readonly<Record<string, unknown>> | undefined
+): number {
+  const max = readTourCapacityMaxFromIntake(intake);
+  if (max === null) {
+    throw new Error(BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE);
+  }
+  return max;
+}
 
 function toListItem(record: BookingRecord): BookingListItem {
   return {
@@ -41,6 +78,7 @@ function toListItem(record: BookingRecord): BookingListItem {
     ...(record.registrationIntake !== undefined
       ? { registrationIntake: record.registrationIntake }
       : {}),
+    ...(record.rejectReason !== undefined ? { rejectReason: record.rejectReason } : {}),
   };
 }
 
@@ -109,14 +147,22 @@ function buildTourChips(rows: readonly BookingRecord[]): readonly BookingTourChi
 }
 
 /**
- * Booking application service — constructor DI only (Phase B0.5).
+ * Booking application service — constructor DI only (Phase B0.5 + B2.0 binding).
  * Dependencies are injected; persistence is not resolved inside this class.
+ * Runtime workspaceType is fixed at construction; every tenant-scoped call
+ * asserts tenantId → workspaceType matches this runtime.
  */
 export class BookingsService {
   private readonly repository: BookingRepositoryPort;
   private readonly authorization: BookingAuthorizationPort;
   private readonly clock: BookingClockPort;
   private readonly eventReaction: WorkspaceBookingEventReactionPort;
+  private readonly publicBooking: BookingPublicCapabilityPort;
+  private readonly validationPolicy: BookingValidationPolicyPort;
+  private readonly capacityPolicy: BookingCapacityPolicyPort;
+  private readonly workspaceType: string;
+  private readonly tenantWorkspaceBinding: BookingTenantWorkspaceBindingPort;
+  private readonly capabilities: BookingRuntimeCapabilities;
 
   constructor(deps: BookingsServiceDeps) {
     if (deps.repository == null) {
@@ -131,16 +177,124 @@ export class BookingsService {
     if (deps.eventReaction == null) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:eventReaction");
     }
+    if (deps.publicBooking == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:publicBooking");
+    }
+    if (deps.validationPolicy == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:validationPolicy");
+    }
+    if (deps.capacityPolicy == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:capacityPolicy");
+    }
+    if (deps.tenantWorkspaceBinding == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:tenantWorkspaceBinding");
+    }
+    if (deps.capabilities == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:capabilities");
+    }
+    const workspaceType = deps.workspaceType.trim().toLowerCase();
+    if (workspaceType.length === 0) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:workspaceType");
+    }
     this.repository = deps.repository;
     this.authorization = deps.authorization;
     this.clock = deps.clock;
     this.eventReaction = deps.eventReaction;
+    this.publicBooking = deps.publicBooking;
+    this.validationPolicy = deps.validationPolicy;
+    this.capacityPolicy = deps.capacityPolicy;
+    this.workspaceType = workspaceType;
+    this.tenantWorkspaceBinding = deps.tenantWorkspaceBinding;
+    this.capabilities = deps.capabilities;
+  }
+
+  /** Bound workspaceType for this runtime (capability composition key). */
+  get boundWorkspaceType(): string {
+    return this.workspaceType;
+  }
+
+  private async assertTenantBound(tenantId: string): Promise<void> {
+    await this.tenantWorkspaceBinding.assertTenantBoundToRuntime(tenantId, this.workspaceType);
+  }
+
+  private assertPublicCreateCapability(): void {
+    const claim = this.capabilities.publicCreate;
+    if (!claim.enabled || claim.mode !== "create-pipeline") {
+      throw new BookingCapabilityViolationError({
+        workspaceType: this.workspaceType,
+        capability: "publicCreate",
+        detail: `required mode=create-pipeline; claimed enabled=${claim.enabled} mode=${claim.mode}`,
+      });
+    }
+    if (!this.publicBooking.supportsPublicCreate()) {
+      throw new BookingCapabilityViolationError({
+        workspaceType: this.workspaceType,
+        capability: "publicCreate",
+        detail: "adapter.supportsPublicCreate()=false (required behavior missing)",
+      });
+    }
+  }
+
+  private assertOperatorCreateCapability(): void {
+    const claim = this.capabilities.operatorCreate;
+    if (!claim.enabled || claim.mode !== "create-pipeline") {
+      throw new BookingCapabilityViolationError({
+        workspaceType: this.workspaceType,
+        capability: "operatorCreate",
+        detail: `required mode=create-pipeline; claimed enabled=${claim.enabled} mode=${claim.mode}`,
+      });
+    }
+  }
+
+  private assertCapacityCapabilityLevel(): void {
+    const capacity = this.capabilities.capacity;
+    if (!capacity.enabled || capacity.mode !== "booking-owned") {
+      throw new BookingCapabilityViolationError({
+        workspaceType: this.workspaceType,
+        capability: "capacityMode",
+        detail: `lifecycle requires capacityMode=booking-owned; claimed mode=${capacity.mode}`,
+      });
+    }
+  }
+
+  private assertCreatePolicyCapabilityLevels(): void {
+    const validation = this.capabilities.validation;
+    if (!validation.enabled || validation.mode === "none") {
+      throw new BookingCapabilityViolationError({
+        workspaceType: this.workspaceType,
+        capability: "validationMode",
+        detail: `create requires validationMode != none; claimed mode=${validation.mode}`,
+      });
+    }
+    this.assertCapacityCapabilityLevel();
+  }
+
+  private assertApprovalCapability(): void {
+    const approval = this.capabilities.approval;
+    if (!approval.enabled || approval.mode !== "host-lifecycle") {
+      throw new BookingCapabilityViolationError({
+        workspaceType: this.workspaceType,
+        capability: "approval",
+        detail: `approve requires host-lifecycle; claimed mode=${approval.mode}`,
+      });
+    }
+    const reaction = this.capabilities.eventReaction;
+    if (!reaction.enabled || reaction.mode === "none") {
+      throw new BookingCapabilityViolationError({
+        workspaceType: this.workspaceType,
+        capability: "eventReactionMode",
+        detail: `approve requires eventReactionMode != none; claimed mode=${reaction.mode}`,
+      });
+    }
+    // Same capacityMode resolution as create — approve must not bypass graded capacity.
+    this.assertCapacityCapabilityLevel();
   }
 
   async listBookings(
     auth: BookingActorContext,
     query: BookingsListQuery
   ): Promise<BookingsListResponse> {
+    await this.assertTenantBound(auth.tenantId);
     if (query.view === "ops") {
       this.authorization.assertOpsAccess(auth);
     }
@@ -187,6 +341,7 @@ export class BookingsService {
   }
 
   async getBookingsSummary(auth: BookingActorContext): Promise<BookingsSummaryResponse> {
+    await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
     const now = this.clock.now();
     const rows = await this.repository.listByTenant(auth.tenantId);
@@ -204,130 +359,208 @@ export class BookingsService {
     auth: BookingActorContext,
     body: CreateBookingRequest
   ): Promise<CreateBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
-    const created = await this.repository.createBooking({
-      tenantId: auth.tenantId,
-      submittedByUserId: auth.userId,
-      body,
-    });
-    return { id: created.id, status: created.status };
+    this.assertOperatorCreateCapability();
+    return this.executeCreatePipeline(auth, body);
   }
 
   async sumApprovedPartySizeByTourIds(
     tenantId: string,
     tourIds: readonly string[]
   ): Promise<Readonly<Record<string, number>>> {
+    await this.assertTenantBound(tenantId);
     if (tourIds.length === 0) {
       return {};
     }
     return this.repository.sumApprovedPartySizeByTourIds(tenantId, tourIds);
   }
 
-  async findGuestBookingDuplicateByUser(
+  /**
+   * Single guest-duplicate rule for public registration (all match kinds).
+   * Active = not cancelled/rejected; one listByTenant scan.
+   */
+  async findGuestBookingDuplicateMatch(
     tenantId: string,
     tourId: string,
-    guestUserId: string
+    match:
+      | { readonly kind: "user"; readonly value: string }
+      | { readonly kind: "label"; readonly value: string }
+      | { readonly kind: "email"; readonly value: string }
+      | { readonly kind: "nationalId"; readonly value: string }
   ): Promise<BookingRecord | null> {
-    const normalizedUserId = guestUserId.trim();
-    if (normalizedUserId.length === 0) {
+    await this.assertTenantBound(tenantId);
+    const raw = match.value.trim();
+    if (raw.length === 0) {
       return null;
     }
-    const rows = await this.repository.listByTenant(tenantId);
-    return (
-      rows.find(
-        (row) =>
-          row.tourId === tourId &&
-          row.status !== "cancelled" &&
-          row.status !== "rejected" &&
-          row.submittedByUserId === normalizedUserId
-      ) ?? null
-    );
-  }
-
-  async findGuestBookingDuplicateByGuestLabel(
-    tenantId: string,
-    tourId: string,
-    guestLabel: string
-  ): Promise<BookingRecord | null> {
-    const normalizedLabel = guestLabel.trim().toLocaleLowerCase();
-    if (normalizedLabel.length === 0) {
-      return null;
-    }
-    const rows = await this.repository.listByTenant(tenantId);
-    return (
-      rows.find(
-        (row) =>
-          row.tourId === tourId &&
-          row.status !== "cancelled" &&
-          row.status !== "rejected" &&
-          row.guestLabel.trim().toLocaleLowerCase() === normalizedLabel
-      ) ?? null
-    );
-  }
-
-  async findGuestBookingDuplicateByTourNationalId(
-    tenantId: string,
-    tourId: string,
-    nationalId: string
-  ): Promise<BookingRecord | null> {
-    const normalizedNationalId = nationalId.trim();
-    if (normalizedNationalId.length === 0) {
-      return null;
-    }
+    const normalized =
+      match.kind === "label" || match.kind === "email" ? raw.toLocaleLowerCase() : raw;
     const rows = await this.repository.listByTenant(tenantId);
     return (
       rows.find((row) => {
-        if (row.tourId !== tourId || row.status === "cancelled" || row.status === "rejected") {
+        if (
+          row.tourId !== tourId ||
+          row.status === "cancelled" ||
+          row.status === "rejected"
+        ) {
           return false;
         }
-        return readRegistrationIntakeNationalId(row.registrationIntake) === normalizedNationalId;
+        switch (match.kind) {
+          case "user":
+            return row.submittedByUserId === normalized;
+          case "label":
+            return row.guestLabel.trim().toLocaleLowerCase() === normalized;
+          case "email":
+            return (row.guestEmail?.trim().toLowerCase() ?? "") === normalized;
+          case "nationalId":
+            return readRegistrationIntakeNationalId(row.registrationIntake) === normalized;
+          default: {
+            const _exhaustive: never = match;
+            return _exhaustive;
+          }
+        }
       }) ?? null
     );
   }
 
-  async findGuestBookingDuplicate(
-    tenantId: string,
-    tourId: string,
-    email: string
-  ): Promise<BookingRecord | null> {
-    const normalizedEmail = email.trim().toLowerCase();
-    if (normalizedEmail.length === 0) {
-      return null;
-    }
-    const rows = await this.repository.listByTenant(tenantId);
-    return (
-      rows.find(
-        (row) =>
-          row.tourId === tourId &&
-          row.status !== "cancelled" &&
-          row.status !== "rejected" &&
-          (row.guestEmail?.trim().toLowerCase() ?? "") === normalizedEmail
-      ) ?? null
-    );
-  }
-
+  /**
+   * Public guest create — graded publicCreate + adapter supportsPublicCreate, then same
+   * workspace policy boundary as operator create (validationPolicy + capacityPolicy).
+   */
   async createPublicGuestBooking(
     auth: BookingActorContext,
     body: CreateBookingRequest
   ): Promise<CreateBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.assertPublicCreateCapability();
+    return this.executeCreatePipeline(auth, body);
+  }
+
+  /**
+   * Single application create pipeline — all pending-booking writes share this boundary.
+   * Occupancy is loaded from the shared repository; workspace policies decide accept/reject.
+   */
+  private async executeCreatePipeline(
+    auth: BookingActorContext,
+    body: CreateBookingRequest
+  ): Promise<CreateBookingResponse> {
+    this.assertCreatePolicyCapabilityLevels();
+    const baseCtx = this.buildCapacityPolicyContext(
+      auth.tenantId,
+      {
+        tourId: body.tourId,
+        tourTitle: body.tourTitle,
+        guestLabel: body.guestLabel,
+        guestEmail: body.guestEmail ?? null,
+        guestPhone: body.guestPhone ?? null,
+        partySize: body.partySize,
+        departureAt: body.departureAt,
+        registrationIntake: body.registrationIntake,
+      },
+      0
+    );
+    // Shape validation does not need the tour lock; capacity re-checks under lock in createBooking.
+    this.validationPolicy.assertCreateValid(baseCtx);
+
     const created = await this.repository.createBooking({
       tenantId: auth.tenantId,
       submittedByUserId: auth.userId,
       body,
+      assertCapacityInTx: (ctx) => {
+        this.capacityPolicy.assertCreateCapacity({
+          ...baseCtx,
+          occupiedApprovedPartySize: ctx.occupiedApprovedPartySize,
+        });
+      },
     });
     return { id: created.id, status: created.status };
+  }
+
+  /** One capacity policy context builder for create + approve (same business fields). */
+  private buildCapacityPolicyContext(
+    tenantId: string,
+    source: {
+      readonly tourId: string;
+      readonly tourTitle: string;
+      readonly guestLabel: string;
+      readonly guestEmail: string | null | undefined;
+      readonly guestPhone: string | null | undefined;
+      readonly partySize: number;
+      readonly departureAt: string;
+      readonly registrationIntake: Readonly<Record<string, unknown>> | undefined;
+    },
+    occupiedApprovedPartySize: number
+  ): BookingCreatePolicyContext {
+    const tourCapacityMax = requireTourCapacityMax(source.registrationIntake);
+    const guestEmail =
+      source.guestEmail !== undefined && source.guestEmail !== null && source.guestEmail.length > 0
+        ? source.guestEmail
+        : undefined;
+    const guestPhone =
+      source.guestPhone !== undefined && source.guestPhone !== null && source.guestPhone.length > 0
+        ? source.guestPhone
+        : undefined;
+    return {
+      tenantId,
+      tourId: source.tourId,
+      tourTitle: source.tourTitle,
+      guestLabel: source.guestLabel,
+      ...(guestEmail !== undefined ? { guestEmail } : {}),
+      ...(guestPhone !== undefined ? { guestPhone } : {}),
+      partySize: source.partySize,
+      departureAt: source.departureAt,
+      ...(source.registrationIntake !== undefined
+        ? { registrationIntake: source.registrationIntake }
+        : {}),
+      occupiedApprovedPartySize,
+      tourCapacityMax,
+    };
+  }
+
+  /**
+   * Capacity assert used inside approve TX — same policy builder as create.
+   */
+  private buildApproveCapacityAssert(tenantId: string) {
+    return (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+    }): void => {
+      const booking = ctx.booking;
+      this.capacityPolicy.assertCreateCapacity(
+        this.buildCapacityPolicyContext(
+          tenantId,
+          {
+            tourId: booking.tourId,
+            tourTitle: booking.tourTitle,
+            guestLabel: booking.guestLabel,
+            guestEmail: booking.guestEmail,
+            guestPhone: booking.guestPhone,
+            partySize: booking.partySize,
+            departureAt: booking.departureAt,
+            registrationIntake: booking.registrationIntake,
+          },
+          ctx.occupiedApprovedPartySize
+        )
+      );
+    };
   }
 
   async approveBooking(
     auth: BookingActorContext,
     bookingId: string
   ): Promise<ApproveBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
+    this.assertApprovalCapability();
+    // Capacity runs inside approveWithOutbox TX (re-read occupancy; no check-then-act gap).
     const updated = await this.repository.approveWithOutbox({
       bookingId,
       tenantId: auth.tenantId,
       outboxEvent: this.eventReaction.approveOutboxEventType,
+      assertCapacityInTx: this.buildApproveCapacityAssert(auth.tenantId),
     });
+    await this.invokeApproveReaction(auth.tenantId, updated.id);
     return {
       id: updated.id,
       status: updated.status,
@@ -335,16 +568,53 @@ export class BookingsService {
     };
   }
 
+  /**
+   * Ops reject — status + optional rejectReason. No outbox (decision B: intentionally silent).
+   * Cancel remains the observable terminal path (`registration.cancelled`).
+   */
   async rejectBooking(
     auth: BookingActorContext,
     bookingId: string,
     body: RejectBookingRequest
   ): Promise<RejectBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
     const updated = await this.repository.rejectBooking({
       bookingId,
       tenantId: auth.tenantId,
       ...(body.reason !== undefined ? { reason: body.reason } : {}),
+    });
+    return {
+      id: updated.id,
+      status: updated.status,
+      ...(updated.rejectReason !== undefined ? { rejectReason: updated.rejectReason } : {}),
+    };
+  }
+
+  async waitlistBooking(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<WaitlistBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.waitlistBooking({
+      bookingId,
+      tenantId: auth.tenantId,
+      outboxEvent: BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
+    });
+    return { id: updated.id, status: updated.status };
+  }
+
+  async cancelBooking(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<CancelBookingResponse> {
+    await this.assertTenantBound(auth.tenantId);
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.cancelBooking({
+      bookingId,
+      tenantId: auth.tenantId,
+      outboxEvent: BOOKING_CANCEL_OUTBOX_EVENT_TYPE,
     });
     return { id: updated.id, status: updated.status };
   }
@@ -353,7 +623,9 @@ export class BookingsService {
     auth: BookingActorContext,
     body: BulkApproveBookingsRequest
   ): Promise<BulkApproveBookingsResponse> {
+    await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
+    this.assertApprovalCapability();
     const uniqueIds = [...new Set(body.ids.filter((id) => id.trim().length > 0))];
     if (uniqueIds.length === 0) {
       return { approvedIds: [], skippedIds: [] };
@@ -364,11 +636,31 @@ export class BookingsService {
       tenantId: auth.tenantId,
       outboxEvent: this.eventReaction.approveOutboxEventType,
       maxBatch: BULK_APPROVE_MAX_BATCH,
+      assertCapacityInTx: this.buildApproveCapacityAssert(auth.tenantId),
     });
+    // WHEN: after bulk approve TX — one reaction per approved id (adapter enforces idempotency).
+    for (const row of approved) {
+      await this.invokeApproveReaction(auth.tenantId, row.id);
+    }
     const approvedIds = approved.map((row) => row.id);
     const approvedSet = new Set(approvedIds);
     const skippedIds = uniqueIds.filter((id) => !approvedSet.has(id));
     return { approvedIds, skippedIds };
+  }
+
+  /**
+   * Application-owned WHEN for approve reactions.
+   * Adapter-owned WHAT via injected {@link WorkspaceBookingEventReactionPort.reactAfterApprove}.
+   *
+   * Delivery: in-process best-effort after outbox TX commit — not durable, not on outbox replay.
+   * @see BOOKING_APPROVE_REACTION_DELIVERY
+   */
+  private async invokeApproveReaction(tenantId: string, bookingId: string): Promise<void> {
+    await this.eventReaction.reactAfterApprove({
+      tenantId,
+      bookingId,
+      outboxEventType: this.eventReaction.approveOutboxEventType,
+    });
   }
 }
 

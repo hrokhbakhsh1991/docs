@@ -9,9 +9,12 @@ export type { FinanceRepositoryPort } from "./ports/finance-repository.port";
 let financeRepositorySingleton: FinanceRepositoryPort | null = null;
 
 /**
- * Composition factory — inject the same {@link IBookingPaymentPort} instance used by FinanceService
- * so Option C approve-atomic and non-TX sync share one adapter.
- * Callers must supply bookingPayments (no default concrete adapter).
+ * Process-wide finance repository (intentional).
+ *
+ * Shared across all workspaceType FinanceService instances: persistence is tenant-scoped
+ * (Prisma `withTenantRls` / memory filters by tenantId), not workspace-scoped.
+ * Callers must supply the same platform {@link IBookingPaymentPort} used by FinanceService.
+ * Do not create per-workspace repositories.
  */
 export function createFinanceRepository(
   bookingPayments: IBookingPaymentPort

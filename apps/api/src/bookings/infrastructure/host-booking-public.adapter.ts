@@ -1,37 +1,42 @@
 /**
  * Host adapter — BookingPublicPort → BookingsService composition façades.
- * Behavior identical to the former inline object in configure-workspace-denali-product-http-host.
+ * One guest-duplicate rule; port methods are match-kind projections only.
  */
 import type { BookingPublicPort } from "../ports/booking-public.port";
 import {
   createPublicGuestBooking,
-  findGuestBookingDuplicate,
-  findGuestBookingDuplicateByGuestLabel,
-  findGuestBookingDuplicateByTourNationalId,
-  findGuestBookingDuplicateByUser,
+  findGuestBookingDuplicateMatch,
   sumApprovedPartySizeByTourIds,
 } from "../create-bookings-service";
 
 export function createHostBookingPublicAdapter(): BookingPublicPort {
   return {
     async findDuplicateByTourGuest(tenantId, tourId, guestUserId) {
-      const duplicate = await findGuestBookingDuplicateByUser(tenantId, tourId, guestUserId);
+      const duplicate = await findGuestBookingDuplicateMatch(tenantId, tourId, {
+        kind: "user",
+        value: guestUserId,
+      });
       return duplicate === null ? null : { id: duplicate.id };
     },
     async findDuplicateByTourGuestLabel(tenantId, tourId, guestLabel) {
-      const duplicate = await findGuestBookingDuplicateByGuestLabel(tenantId, tourId, guestLabel);
+      const duplicate = await findGuestBookingDuplicateMatch(tenantId, tourId, {
+        kind: "label",
+        value: guestLabel,
+      });
       return duplicate === null ? null : { id: duplicate.id };
     },
     async findDuplicateByTourGuestNationalId(tenantId, tourId, nationalId) {
-      const duplicate = await findGuestBookingDuplicateByTourNationalId(
-        tenantId,
-        tourId,
-        nationalId
-      );
+      const duplicate = await findGuestBookingDuplicateMatch(tenantId, tourId, {
+        kind: "nationalId",
+        value: nationalId,
+      });
       return duplicate === null ? null : { id: duplicate.id };
     },
     async findDuplicateByTourEmail(tenantId, tourId, email) {
-      const duplicate = await findGuestBookingDuplicate(tenantId, tourId, email);
+      const duplicate = await findGuestBookingDuplicateMatch(tenantId, tourId, {
+        kind: "email",
+        value: email,
+      });
       return duplicate === null ? null : { id: duplicate.id };
     },
     async createPendingBooking(input) {

@@ -2,7 +2,9 @@
   "id": "finance-ws3",
   "version": 1,
   "package": "@app-tour/workspace-finance-ws3",
-  "workspaceTypes": ["finance-ws3"],
+  "workspaceTypes": [
+    "finance-ws3"
+  ],
   "plugin": {
     "entry": "./plugin",
     "export": "getFinanceWs3WorkspacePlugin"
@@ -15,8 +17,7 @@
     "publishSurfaceExport": "FINANCE_WS3_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
   },
   "workspaceFinance": {
-    "supported": true,
-    "defaultModuleEnabledWhenUnset": true,
+    "supported": false,
     "ledgerPolicy": {
       "module": "./finance",
       "export": "FinanceWs3LedgerPolicyAdapter"
@@ -29,10 +30,6 @@
       "module": "./finance",
       "export": "FINANCE_WS3_LEDGER_ACCOUNTS"
     },
-    "eventReaction": {
-      "module": "./finance",
-      "export": "FinanceWs3TourCreatedFinanceReactionAdapter",
-      "requiresHostIo": false
-    }
+    "registryOnly": true
   }
 }

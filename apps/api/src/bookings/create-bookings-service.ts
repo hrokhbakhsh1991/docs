@@ -1,21 +1,27 @@
 /**
- * Host composition root for BookingsService (Phase B0.5 + B1.5 tenant resolve).
+ * Host composition root for BookingsService (B0.5 + B1.5 tenant resolve + B2.0 binding).
  * Routes / Denali host keep calling façade functions — those resolve here.
+ *
+ * Invariant (B2.0): tenantId → workspaceType. Callers must not pick a workspaceType
+ * for a tenant; façades always resolve type from tenant, then bind the runtime.
  */
 
 import { getBookingsRepository } from "./create-bookings-repository";
 import { createBookingsService, type BookingsService } from "./bookings.service";
 import { HostBookingAuthorizationAdapter } from "./infrastructure/host-booking-authorization.adapter";
 import { HostBookingClockAdapter } from "./infrastructure/host-booking-clock.adapter";
+import { HostBookingTenantWorkspaceBindingAdapter } from "./infrastructure/host-booking-tenant-workspace-binding.adapter";
 import type { BookingAuthorizationPort } from "./ports/booking-authorization.port";
 import type { BookingClockPort } from "./ports/booking-clock.port";
+import type { BookingTenantWorkspaceBindingPort } from "./ports/booking-tenant-workspace-binding.port";
 import type { BookingActorContext } from "./ports/booking-actor-context";
-import {
-  BOOT_BOOKING_WORKSPACE_TYPE,
-  resolveBookingWorkspaceTypeForTenant,
-} from "./resolve-booking-workspace-type-for-tenant";
+import { BookingWorkspaceUnsupportedError } from "./bookings.errors";
+import { assertBookingRuntimeCapabilityLevels } from "./assert-booking-runtime-capabilities";
+import { toBookingRuntimeCapabilities } from "./map-booking-runtime-capabilities";
+import { resolveBookingWorkspaceTypeForTenant } from "./resolve-booking-workspace-type-for-tenant";
 import { resolveWorkspaceBookingEventReaction } from "./booking-event-reaction-registry";
 import { resolveBookingWorkspaceDependencies } from "./booking-dependency-registry";
+import { isBookingSupportedWorkspace } from "./workspace-booking-bindings.generated";
 import type {
   ApproveBookingResponse,
   BookingRecord,
@@ -24,26 +30,31 @@ import type {
   BookingsSummaryResponse,
   BulkApproveBookingsRequest,
   BulkApproveBookingsResponse,
+  CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
+  WaitlistBookingResponse,
 } from "./bookings.types";
+import type { WorkspaceBookingEventReactionPort } from "@app-tour/booking-http-contracts";
 
 export type BookingWorkspaceDependencies = ReturnType<typeof resolveBookingWorkspaceDependencies>;
 
-/** Per-workspaceType runtime — service + capability deps; shared repo/authz/clock. */
+/** Per-workspaceType runtime — service + event reaction; shared repo/authz/clock/binding. */
 export type BookingRuntime = {
   readonly workspaceType: string;
   readonly service: BookingsService;
-  readonly dependencies: BookingWorkspaceDependencies;
+  /** Injected approve reaction — same instance the service invokes. */
+  readonly eventReaction: WorkspaceBookingEventReactionPort;
 };
 
-/** workspaceType → BookingRuntime (Phase B1.5). Never keyed by tenantId. */
+/** workspaceType → BookingRuntime (capability cache). Never keyed by tenantId. */
 const bookingRuntimeByWorkspaceType = new Map<string, BookingRuntime>();
 
 let sharedAuthorization: BookingAuthorizationPort | null = null;
 let sharedClock: BookingClockPort | null = null;
+let sharedTenantWorkspaceBinding: BookingTenantWorkspaceBindingPort | null = null;
 
 function getSharedAuthorization(): BookingAuthorizationPort {
   if (sharedAuthorization === null) {
@@ -59,14 +70,25 @@ function getSharedClock(): BookingClockPort {
   return sharedClock;
 }
 
+function getSharedTenantWorkspaceBinding(): BookingTenantWorkspaceBindingPort {
+  if (sharedTenantWorkspaceBinding === null) {
+    sharedTenantWorkspaceBinding = new HostBookingTenantWorkspaceBindingAdapter();
+  }
+  return sharedTenantWorkspaceBinding;
+}
+
 /**
- * Create or reuse BookingRuntime for a registry-registered workspaceType.
- * Repository / authz / clock are process singletons (not duplicated per type).
+ * Capability cache: create or reuse BookingRuntime for a registry-registered workspaceType.
+ * Not a tenant entry point — tenant operations must use resolve*ForTenant.
+ * Service methods still enforce tenantId → workspaceType (B2.0).
  */
 export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string): BookingRuntime {
   const normalized = workspaceType.trim().toLowerCase();
   if (normalized.length === 0) {
     throw new Error("BOOKING_WORKSPACE_TYPE_REQUIRED: workspaceType is required");
+  }
+  if (!isBookingSupportedWorkspace(normalized)) {
+    throw new BookingWorkspaceUnsupportedError(`workspaceType=${normalized}`);
   }
   const existing = bookingRuntimeByWorkspaceType.get(normalized);
   if (existing !== undefined) {
@@ -74,28 +96,35 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
   }
   const dependencies = resolveBookingWorkspaceDependencies(normalized);
   const eventReaction = resolveWorkspaceBookingEventReaction(normalized);
+  const capabilities = assertBookingRuntimeCapabilityLevels(normalized, {
+    publicBooking: dependencies.publicBooking,
+    validationPolicy: dependencies.validationPolicy,
+    capacityPolicy: dependencies.capacityPolicy,
+    eventReaction,
+  });
   const service = createBookingsService({
     repository: getBookingsRepository(),
     authorization: getSharedAuthorization(),
     clock: getSharedClock(),
     eventReaction,
+    publicBooking: dependencies.publicBooking,
+    validationPolicy: dependencies.validationPolicy,
+    capacityPolicy: dependencies.capacityPolicy,
+    workspaceType: normalized,
+    tenantWorkspaceBinding: getSharedTenantWorkspaceBinding(),
+    capabilities: toBookingRuntimeCapabilities(capabilities),
   });
   const runtime: BookingRuntime = {
     workspaceType: normalized,
     service,
-    dependencies,
+    eventReaction,
   };
   bookingRuntimeByWorkspaceType.set(normalized, runtime);
   return runtime;
 }
 
-/** Boot / legacy composition — Denali workspace type. */
-export function resolveBookingsService(): BookingsService {
-  return getOrCreateBookingRuntimeForWorkspaceType(BOOT_BOOKING_WORKSPACE_TYPE).service;
-}
-
 /**
- * Phase B1.5 — tenant-aware composition.
+ * Tenant-aware composition — only supported entry for tenant operations.
  * tenantId → workspaceType → cached BookingsService.
  */
 export async function resolveBookingsServiceForTenant(tenantId: string): Promise<BookingsService> {
@@ -103,20 +132,11 @@ export async function resolveBookingsServiceForTenant(tenantId: string): Promise
   return getOrCreateBookingRuntimeForWorkspaceType(workspaceType).service;
 }
 
-/**
- * Phase B1.5 — tenant → Booking workspace dependency bag (policies / public registration tokens).
- */
-export async function resolveBookingDependenciesForTenant(
-  tenantId: string
-): Promise<BookingWorkspaceDependencies> {
-  const workspaceType = await resolveBookingWorkspaceTypeForTenant(tenantId);
-  return getOrCreateBookingRuntimeForWorkspaceType(workspaceType).dependencies;
-}
-
 export function resetBookingsServiceCompositionForTests(): void {
   bookingRuntimeByWorkspaceType.clear();
   sharedAuthorization = null;
   sharedClock = null;
+  sharedTenantWorkspaceBinding = null;
 }
 
 /** HTTP / host façades — tenant-aware service selection (B1.5). */
@@ -150,49 +170,22 @@ export async function sumApprovedPartySizeByTourIds(
   );
 }
 
-export async function findGuestBookingDuplicateByUser(
+export type GuestBookingDuplicateMatch =
+  | { readonly kind: "user"; readonly value: string }
+  | { readonly kind: "label"; readonly value: string }
+  | { readonly kind: "email"; readonly value: string }
+  | { readonly kind: "nationalId"; readonly value: string };
+
+/** Single guest-duplicate façade — all public match kinds. */
+export async function findGuestBookingDuplicateMatch(
   tenantId: string,
   tourId: string,
-  guestUserId: string
+  match: GuestBookingDuplicateMatch
 ): Promise<BookingRecord | null> {
-  return (await resolveBookingsServiceForTenant(tenantId)).findGuestBookingDuplicateByUser(
+  return (await resolveBookingsServiceForTenant(tenantId)).findGuestBookingDuplicateMatch(
     tenantId,
     tourId,
-    guestUserId
-  );
-}
-
-export async function findGuestBookingDuplicateByGuestLabel(
-  tenantId: string,
-  tourId: string,
-  guestLabel: string
-): Promise<BookingRecord | null> {
-  return (await resolveBookingsServiceForTenant(tenantId)).findGuestBookingDuplicateByGuestLabel(
-    tenantId,
-    tourId,
-    guestLabel
-  );
-}
-
-export async function findGuestBookingDuplicateByTourNationalId(
-  tenantId: string,
-  tourId: string,
-  nationalId: string
-): Promise<BookingRecord | null> {
-  return (
-    await resolveBookingsServiceForTenant(tenantId)
-  ).findGuestBookingDuplicateByTourNationalId(tenantId, tourId, nationalId);
-}
-
-export async function findGuestBookingDuplicate(
-  tenantId: string,
-  tourId: string,
-  email: string
-): Promise<BookingRecord | null> {
-  return (await resolveBookingsServiceForTenant(tenantId)).findGuestBookingDuplicate(
-    tenantId,
-    tourId,
-    email
+    match
   );
 }
 
@@ -225,6 +218,20 @@ export async function rejectBooking(
   );
 }
 
+export async function waitlistBooking(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<WaitlistBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).waitlistBooking(auth, bookingId);
+}
+
+export async function cancelBooking(
+  auth: BookingActorContext,
+  bookingId: string
+): Promise<CancelBookingResponse> {
+  return (await resolveBookingsServiceForTenant(auth.tenantId)).cancelBooking(auth, bookingId);
+}
+
 export async function bulkApproveBookings(
   auth: BookingActorContext,
   body: BulkApproveBookingsRequest
@@ -236,11 +243,10 @@ export {
   BookingNotFoundError,
   BookingStatusConflictError,
   BookingsOpsForbiddenError,
+  BookingWorkspaceTenantMismatchError,
+  BookingWorkspaceUnsupportedError,
   BulkApproveBatchLimitError,
 } from "./bookings.errors";
 export { BookingsService, createBookingsService } from "./bookings.service";
 export type { BookingsServiceDeps } from "./bookings.service";
-export {
-  BOOT_BOOKING_WORKSPACE_TYPE,
-  resolveBookingWorkspaceTypeForTenant,
-} from "./resolve-booking-workspace-type-for-tenant";
+export { resolveBookingWorkspaceTypeForTenant } from "./resolve-booking-workspace-type-for-tenant";

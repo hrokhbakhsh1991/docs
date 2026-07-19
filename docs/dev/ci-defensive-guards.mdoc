@@ -28,7 +28,6 @@ App pool role (`app_tour`) uses `NOBYPASSRLS`; queries without `withTenantRls` r
 | Pattern | When | Example |
 |---------|------|---------|
 | **`withTenantRls(tenantId, tx => …)`** | Tenant known at call site | `listPendingInvitesByTenant`, `createPendingInvite` |
-| **Admin probe + RLS fetch** | PK-only lookup; tenant unknown at repo boundary | `listOutboxByAggregate` — admin `select: { tenantId }` then `withTenantRls` outbox read |
 | **Tenant-scoped PK read** | Tenant known at call site | `getById(id, tenantId)` — `withTenantRls` only (no admin probe) |
 | **Global / non-tenant tables** | Exempt from guard | `users`, `mobile_otp_challenges`, platform registry |
 
@@ -77,7 +76,7 @@ Included in `phase-6:fast-track` after `guard:catch-error-leak`.
 
 1. `getById` signature includes `tenantId: string`.
 2. `getById` body uses `withTenantRls` and does **not** call `getPrismaAdmin()`.
-3. Any `getPrismaAdmin().operatorRegistration` probe in the file uses `select: { tenantId: true }` only (today: `listOutboxByAggregate`).
+3. The Prisma bookings repository must not call `getPrismaAdmin()` (no admin PK probes on this file).
 
 **Run:**
 

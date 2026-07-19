@@ -4,7 +4,7 @@ import type {
 } from "@app-tour/finance-http-contracts";
 
 /**
- * Fake WS5 offline receipt defaults — distinct from Denali/WS2/WS3/WS4.
+ * Finance-ws5 offline receipt defaults — CAD product defaults (distinct from Denali IRR).
  */
 export class FinanceWs5ReceiptDefaultsAdapter implements FinanceReceiptDefaultsPort {
   offlineReceiptPaymentDefaults(): FinanceOfflineReceiptDefaults {

@@ -17,6 +17,11 @@
   "workspaceFinance": {
     "supported": true,
     "defaultModuleEnabledWhenUnset": true,
+    "capabilities": {
+      "ledgerCapture": true,
+      "eventReactions": "ack-only",
+      "ops": true
+    },
     "ledgerPolicy": {
       "module": "./finance",
       "export": "FinanceWs5LedgerPolicyAdapter"

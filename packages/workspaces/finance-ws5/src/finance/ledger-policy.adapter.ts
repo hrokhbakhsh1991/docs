@@ -14,8 +14,8 @@ import {
 } from "./chart-of-accounts";
 
 /**
- * Fake WS5 ledger policy — owns CoA posting; does not import Denali finance helpers.
- * Phase 3B capture domainEventId formula stays host-stable.
+ * Finance-ws5 ledger policy — WS5 CoA posting (distinct accounts from Denali).
+ * Capture domainEventId formula stays host-stable.
  */
 export class FinanceWs5LedgerPolicyAdapter implements FinanceLedgerPolicyPort {
   buildPaymentCaptureJournal(input: BuildPaymentCaptureJournalInput): FinanceLedgerCapturePlan {

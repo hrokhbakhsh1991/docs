@@ -29,12 +29,14 @@ Bring the Booking **application** layer to Finance-core-style purity **without**
 | `bookings.types.ts` | Domain / DTO types |
 | `bookings.errors.ts` | Domain errors |
 | `booking-payment-status.ts` | Payment status raise helper |
-| `booking-active-duplicate.ts` | Duplicate activity rules |
 | `booking-list-query.ts` | List filter / keyset helpers |
 | `bookings-member-summary-projection.ts` | Member summary caps |
-| `ports/*.ts` | Application ports |
+| `ports/*.ts` | Application ports (incl. runtime capability decisions) |
 
 `createBookingsService(deps)` on the service module is allowed (Finance `createFinanceService` mirror).
+
+Composition maps generated graded matrix → `BookingRuntimeCapabilities` via
+`map-booking-runtime-capabilities.ts` (host-owned; not application).
 
 ## Explicitly out of application (not scanned)
 

@@ -1,5 +1,10 @@
 /**
  * Phase B1.2 — Booking HTTP contracts ownership boundary.
+ *
+ * Proves:
+ * - BookingsService has no HTTP imports
+ * - contracts have no Prisma / workspace / node:http imports
+ * - routes only compose HTTP → service (parsers live in contracts)
  */
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -8,6 +13,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  isBookingJsonReceiptContentType,
   parseBookingsListQuery,
   parseBulkApproveBookingsBody,
   parseCreateBookingBody,
@@ -36,16 +42,47 @@ function walkTsFiles(dir: string): string[] {
 }
 
 describe("BK-B1.2 booking-http-contracts boundary", () => {
-  it("contracts package has no apps/api or Prisma imports", () => {
+  it("contracts have no Prisma, workspace, apps/api, or node:http imports", () => {
     for (const file of walkTsFiles(contractsSrc)) {
       const src = readFileSync(file, "utf8");
       assert.doesNotMatch(src, /from ["'][^"']*apps\/api/);
       assert.doesNotMatch(src, /@apps\/api/);
       assert.doesNotMatch(src, /@prisma\/client/);
       assert.doesNotMatch(src, /from ["']prisma/);
+      assert.doesNotMatch(src, /@app-tour\/workspace-/);
+      assert.doesNotMatch(src, /workspace-sdk/);
       assert.doesNotMatch(src, /from ["']node:http["']/);
       assert.doesNotMatch(src, /require\(["'][^"']*apps\/api/);
     }
+  });
+
+  it("BookingsService has no HTTP imports (framework-free)", () => {
+    const src = read("bookings.service.ts");
+    assert.match(src, /@app-tour\/booking-http-contracts/);
+    assert.doesNotMatch(src, /node:http/);
+    assert.doesNotMatch(src, /IncomingMessage|ServerResponse/);
+    assert.doesNotMatch(src, /bookings\.routes/);
+    assert.doesNotMatch(src, /sendJson|sendHttpError|requireOperatorSession/);
+    assert.doesNotMatch(src, /parseCreateBookingBody/);
+    assert.doesNotMatch(src, /parseBookingsListQuery/);
+    assert.doesNotMatch(src, /express|fastify|koa/);
+  });
+
+  it("routes only compose HTTP → service (no local parsers / no Prisma)", () => {
+    const src = read("bookings.routes.ts");
+    assert.match(src, /@app-tour\/booking-http-contracts/);
+    assert.match(src, /parseBookingsListQuery/);
+    assert.match(src, /parseCreateBookingBody/);
+    assert.match(src, /isBookingJsonReceiptContentType/);
+    assert.match(src, /from ["']\.\/create-bookings-service["']/);
+    assert.match(src, /listBookings|createBooking|approveBooking|rejectBooking|waitlistBooking|cancelBooking|bulkApproveBookings/);
+    assert.doesNotMatch(src, /const BOOKING_STATUSES/);
+    assert.doesNotMatch(src, /function parseListQuery/);
+    assert.doesNotMatch(src, /function parseCreateBody/);
+    assert.doesNotMatch(src, /function isJsonReceiptContentType/);
+    assert.doesNotMatch(src, /@prisma\/client/);
+    assert.doesNotMatch(src, /BookingsService/);
+    assert.doesNotMatch(src, /prisma-bookings\.repository|in-memory-bookings\.repository/);
   });
 
   it("parsers preserve prior route semantics", () => {
@@ -83,25 +120,9 @@ describe("BK-B1.2 booking-http-contracts boundary", () => {
     assert.deepEqual(parseBulkApproveBookingsBody({ ids: ["a", 1, "b"] }), ["a", "b"]);
     assert.deepEqual(parseRejectBookingBody({ reason: " no " }), { reason: "no" });
     assert.deepEqual(parseRejectBookingBody({}), {});
-  });
-
-  it("BookingsService imports contracts DTOs; never node:http or routes", () => {
-    const src = read("bookings.service.ts");
-    assert.match(src, /@app-tour\/booking-http-contracts/);
-    assert.doesNotMatch(src, /node:http/);
-    assert.doesNotMatch(src, /bookings\.routes/);
-    assert.doesNotMatch(src, /parseCreateBookingBody/);
-    assert.doesNotMatch(src, /parseBookingsListQuery/);
-  });
-
-  it("routes consume contracts parsers; no local BOOKING_STATUSES table", () => {
-    const src = read("bookings.routes.ts");
-    assert.match(src, /@app-tour\/booking-http-contracts/);
-    assert.match(src, /parseBookingsListQuery/);
-    assert.match(src, /parseCreateBookingBody/);
-    assert.doesNotMatch(src, /const BOOKING_STATUSES/);
-    assert.doesNotMatch(src, /function parseListQuery/);
-    assert.doesNotMatch(src, /function parseCreateBody/);
+    assert.equal(isBookingJsonReceiptContentType("application/json"), true);
+    assert.equal(isBookingJsonReceiptContentType(""), true);
+    assert.equal(isBookingJsonReceiptContentType("multipart/form-data"), false);
   });
 
   it("repositories do not import booking-http-contracts (domain types only)", () => {

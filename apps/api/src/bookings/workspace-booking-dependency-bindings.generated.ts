@@ -8,14 +8,12 @@ import {
   BookingWs2PublicAdapter as booking_ws2_PublicBooking,
   BookingWs2CapacityPolicyAdapter as booking_ws2_CapacityPolicy,
   BookingWs2ValidationPolicyAdapter as booking_ws2_ValidationPolicy,
-  BookingWs2OpsCapabilityAdapter as booking_ws2_OpsCapability,
 } from "@app-tour/workspace-booking-ws2/host/booking";
 
 import {
   DenaliBookingPublicAdapter as denali_PublicBooking,
   DenaliBookingCapacityPolicyAdapter as denali_CapacityPolicy,
   DenaliBookingValidationPolicyAdapter as denali_ValidationPolicy,
-  DenaliBookingOpsCapabilityAdapter as denali_OpsCapability,
 } from "@app-tour/workspace-denali/host/booking";
 
 export const WORKSPACE_BOOKING_DEPENDENCY_BINDINGS = {
@@ -23,23 +21,13 @@ export const WORKSPACE_BOOKING_DEPENDENCY_BINDINGS = {
     createPublicBooking: () => new booking_ws2_PublicBooking(),
     createCapacityPolicy: () => new booking_ws2_CapacityPolicy(),
     createValidationPolicy: () => new booking_ws2_ValidationPolicy(),
-    createOpsCapability: () => new booking_ws2_OpsCapability(),
   },
   "denali": {
     createPublicBooking: () => new denali_PublicBooking(),
     createCapacityPolicy: () => new denali_CapacityPolicy(),
     createValidationPolicy: () => new denali_ValidationPolicy(),
-    createOpsCapability: () => new denali_OpsCapability(),
   },
 } as const;
-
-export function isBookingDependencyBindingRegistered(workspaceType: string): boolean {
-  return workspaceType.trim().toLowerCase() in WORKSPACE_BOOKING_DEPENDENCY_BINDINGS;
-}
-
-export function listBookingDependencyWorkspaceTypes(): readonly string[] {
-  return Object.keys(WORKSPACE_BOOKING_DEPENDENCY_BINDINGS).sort();
-}
 
 export function resolveBookingWorkspaceDependencies(workspaceType: string) {
   const normalized = workspaceType.trim().toLowerCase();
@@ -62,6 +50,5 @@ export function resolveBookingWorkspaceDependencies(workspaceType: string) {
     publicBooking: binding.createPublicBooking(),
     capacityPolicy: binding.createCapacityPolicy(),
     validationPolicy: binding.createValidationPolicy(),
-    opsCapability: binding.createOpsCapability(),
   };
 }

@@ -1,5 +1,6 @@
 /**
  * Denali workspace adapter — TourCreated → finance.ledger reaction (Phase 1.13).
+ * Capability: `eventReactions: "durable-outbox"` (host IO, claim/idempotency, ledger side effects).
  * Host injects outbox IO; this module must not import apps/api Prisma helpers.
  * Production never uses the module-level side-effect deps registrar.
  */

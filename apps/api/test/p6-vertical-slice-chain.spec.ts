@@ -7,6 +7,7 @@ import { before, describe, it } from "node:test";
 
 import { createRequestListener } from "../src/app";
 import { getBookingsRepository } from "../src/bookings/create-bookings-repository";
+import { peekOutboxByAggregateForTests } from "../src/bookings/in-memory-bookings.repository";
 import { getIdentityRepository } from "../src/identity/create-identity-repository";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
@@ -64,7 +65,10 @@ describe("p6-vertical-slice-chain", () => {
     assert.equal(approve.body.status, "approved");
 
     const bookingsRepo = getBookingsRepository();
-    const outboxRows = await bookingsRepo.listOutboxByAggregate(bookingId);
+    const outboxRows = await peekOutboxByAggregateForTests({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      aggregateId: bookingId,
+    });
     assert.equal(outboxRows.length, 1);
     assert.equal(outboxRows[0]?.eventType, "registration.approved");
 

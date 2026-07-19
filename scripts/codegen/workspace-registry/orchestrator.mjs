@@ -60,13 +60,14 @@ import {
 import { generateWorkspaceOperatorCapabilities } from "./domains/operator.mjs";
 import {
   generateWorkspaceFinanceBindings,
+  generateWorkspaceFinanceCapabilities,
   generateWorkspaceFinanceNavBindings,
   generateWorkspaceFinanceOpsBindings,
   generateWorkspaceFinanceDependencyBindings,
   generateWorkspaceFinanceEventReactionBindings,
   generateWorkspaceFinanceChartOfAccountsBindings,
 } from "./domains/finance.mjs";
-import { generateWorkspaceBookingBindings, generateWorkspaceBookingDependencyBindings, generateWorkspaceBookingOpsBindings, generateWorkspaceBookingEventReactionBindings } from "./domains/booking.mjs";
+import { generateWorkspaceBookingBindings, generateWorkspaceBookingCapabilities, generateWorkspaceBookingDependencyBindings, generateWorkspaceBookingOpsBindings, generateWorkspaceBookingEventReactionBindings } from "./domains/booking.mjs";
 import { generateExposureHostBindings } from "./domains/exposure.mjs";
 import { generateWorkspaceIntegrationCapabilities } from "./domains/integration.mjs";
 import {
@@ -181,13 +182,14 @@ export const DOMAIN_OUTPUT_KEYS = {
   operator: ["operatorCapabilities"],
   finance: [
     "workspaceFinance",
+    "workspaceFinanceCapabilities",
     "workspaceFinanceNav",
     "workspaceFinanceOps",
     "workspaceFinanceDependencies",
     "workspaceFinanceEventReactions",
     "workspaceFinanceChartOfAccounts",
   ],
-  booking: ["workspaceBooking", "workspaceBookingDependencies", "workspaceBookingOps", "workspaceBookingEventReactions"],
+  booking: ["workspaceBooking", "workspaceBookingCapabilities", "workspaceBookingDependencies", "workspaceBookingOps", "workspaceBookingEventReactions"],
   exposure: ["exposureHostBindings"],
   integration: ["integrationCapabilities"],
 };
@@ -218,12 +220,14 @@ export const OUTPUT_KEYS = Object.freeze([
   "catalogDetailSections",
   "operatorCapabilities",
   "workspaceFinance",
+  "workspaceFinanceCapabilities",
   "workspaceFinanceNav",
   "workspaceFinanceOps",
   "workspaceFinanceDependencies",
   "workspaceFinanceEventReactions",
   "workspaceFinanceChartOfAccounts",
   "workspaceBooking",
+  "workspaceBookingCapabilities",
   "workspaceBookingDependencies",
   "workspaceBookingOps",
   "workspaceBookingEventReactions",
@@ -298,12 +302,14 @@ export function generateAllOutputs(manifests) {
     catalogDetailSections: generateWorkspaceCatalogDetailSections(manifests),
     operatorCapabilities: generateWorkspaceOperatorCapabilities(manifests),
     workspaceFinance: generateWorkspaceFinanceBindings(manifests),
+    workspaceFinanceCapabilities: generateWorkspaceFinanceCapabilities(manifests),
     workspaceFinanceNav: generateWorkspaceFinanceNavBindings(manifests),
     workspaceFinanceOps: generateWorkspaceFinanceOpsBindings(manifests),
     workspaceFinanceDependencies: generateWorkspaceFinanceDependencyBindings(manifests),
     workspaceFinanceEventReactions: generateWorkspaceFinanceEventReactionBindings(manifests),
     workspaceFinanceChartOfAccounts: generateWorkspaceFinanceChartOfAccountsBindings(manifests),
     workspaceBooking: generateWorkspaceBookingBindings(manifests),
+    workspaceBookingCapabilities: generateWorkspaceBookingCapabilities(manifests),
     workspaceBookingDependencies: generateWorkspaceBookingDependencyBindings(manifests),
     workspaceBookingOps: generateWorkspaceBookingOpsBindings(manifests),
     workspaceBookingEventReactions: generateWorkspaceBookingEventReactionBindings(manifests),
@@ -424,6 +430,10 @@ export const OUTPUT_PATHS = {
     REPO_ROOT,
     "apps/api/src/workspace-finance/workspace-finance-bindings.generated.ts"
   ),
+  workspaceFinanceCapabilities: join(
+    REPO_ROOT,
+    "apps/api/src/workspace-finance/workspace-finance-capabilities.generated.ts"
+  ),
   workspaceFinanceNav: join(
     REPO_ROOT,
     "apps/web/src/bootstrap/workspace-finance-nav-bindings.generated.ts"
@@ -447,6 +457,10 @@ export const OUTPUT_PATHS = {
   workspaceBooking: join(
     REPO_ROOT,
     "apps/api/src/bookings/workspace-booking-bindings.generated.ts"
+  ),
+  workspaceBookingCapabilities: join(
+    REPO_ROOT,
+    "apps/api/src/bookings/workspace-booking-capabilities.generated.ts"
   ),
   workspaceBookingDependencies: join(
     REPO_ROOT,

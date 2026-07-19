@@ -427,6 +427,67 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     summary: "Copy MinIO blobs for wizard clone photo remint plan",
     operationId: "clonePhotoRemint",
   },
+  // Booking modular capability — operator HTTP (BOOKING_OPENAPI_CERTIFICATION)
+  {
+    method: "GET",
+    path: "/bookings",
+    summary: "List bookings for tenant (ops)",
+    operationId: "listBookings",
+  },
+  {
+    method: "POST",
+    path: "/bookings",
+    summary: "Create booking (ops / operatorCreate)",
+    operationId: "createBooking",
+  },
+  {
+    method: "GET",
+    path: "/bookings/summary",
+    summary: "Bookings ops summary counts",
+    operationId: "getBookingsSummary",
+  },
+  {
+    method: "POST",
+    path: "/bookings/bulk-approve",
+    summary: "Bulk approve bookings",
+    operationId: "bulkApproveBookings",
+  },
+  {
+    method: "POST",
+    path: "/bookings/{bookingId}/approve",
+    summary: "Approve booking (emits registration.approved)",
+    operationId: "approveBooking",
+  },
+  {
+    method: "POST",
+    path: "/bookings/{bookingId}/reject",
+    summary: "Reject booking (intentionally silent — no outbox)",
+    operationId: "rejectBooking",
+  },
+  {
+    method: "POST",
+    path: "/bookings/{bookingId}/waitlist",
+    summary: "Waitlist booking (emits registration.waitlisted)",
+    operationId: "waitlistBooking",
+  },
+  {
+    method: "POST",
+    path: "/bookings/{bookingId}/cancel",
+    summary: "Cancel booking (emits registration.cancelled)",
+    operationId: "cancelBooking",
+  },
+  {
+    method: "POST",
+    path: "/bookings/{bookingId}/receipts",
+    summary: "Submit member receipt proof for booking registration",
+    operationId: "postBookingReceipt",
+  },
+  {
+    method: "GET",
+    path: "/bookings/{bookingId}/receipts",
+    summary: "Get member receipt status for booking registration",
+    operationId: "getBookingReceiptStatus",
+  },
   // Phase 8.1 — urban owner settings (INV-P8-007)
   {
     method: "GET",

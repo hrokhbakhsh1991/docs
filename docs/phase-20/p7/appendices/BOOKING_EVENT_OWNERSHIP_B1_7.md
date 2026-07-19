@@ -9,46 +9,40 @@ authority:
   - Finance Phase 1.8 / 1.9 / 1.13 — workspaceFinance.eventReaction
   - ADR-004 HostIo for finance event reactions
   - Booking Evolution Plan B1.7
-  - docs/phase-20/p7/appendices/BOOKING_BOUNDARY_B0_1.md §7
+  - Hostile finding — eventReaction injected but reactAfterApprove never executed
 constraints:
   - outbox persistence stays host (enqueueOutboxEvent / Prisma OutboxEvent)
   - approve/bulkApprove transaction ownership stays in BookingRepositoryPort
   - NO Prisma / relay / outbox infrastructure moves into workspace packages
   - domainEventId formula registration.approved:{id}:{ts} frozen (no product YES)
   - generic event runtime must not hard-import workspace packages
+  - reactAfterApprove must be idempotent; must not enqueue a second outbox row
 ```
 
-## Audit (pre-B1.7)
+## Delivery guarantees (honest)
 
-| Concern | Finding | Owner (correct) |
-| ------- | ------- | --------------- |
-| Outbox persistence | `enqueueOutboxEvent(tx, …)` inside Prisma approve TX; memory store push in in-memory repo | **Host / Infrastructure** |
-| Event name | Hardcoded `APPROVE_OUTBOX_EVENT = "registration.approved"` in `bookings.service.ts` | **Workspace capability** (via registry) |
-| `domainEventId` | Hardcoded `registration.approved:{id}:{iso}` in repositories | **Host** (frozen formula) |
-| Consumers | Integrations / relay dispatch published rows; Finance Option C payment sync is separate | **Host** |
-| Workspace reactions | None declared for Booking — Finance owns TourCreated → ledger via `workspaceFinance.eventReaction` | **Workspace** (optional Booking reaction hooks) |
+See [`BOOKING_APPROVE_REACTION_DELIVERY`](BOOKING_APPROVE_REACTION_DELIVERY.md).
 
-## Goal
+| Channel | Durable | Delivery | Exactly once |
+| ------- | ------- | -------- | ------------ |
+| Outbox `registration.approved` | yes (same TX) | insert at-most-once / relay at-least-once | **no** |
+| `reactAfterApprove` | **no** (in-process) | **best-effort** after commit | **no**; not on outbox replay |
 
-Make Booking lifecycle event **names + reaction hooks** capability-owned like Finance:
+## Ownership split (closed)
 
-`workspaceBooking.eventReaction` → generated bindings → thin host registry →
-`BookingsService` injects `WorkspaceBookingEventReactionPort` (approve outbox event type).
+| Concern | Owner |
+| ------- | ----- |
+| **WHEN** approve reaction runs | **Booking application** (`BookingsService.invokeApproveReaction`) — after `approveWithOutbox` / `bulkApproveWithOutbox` commits |
+| **WHAT** the reaction does | **Workspace adapter** (`reactAfterApprove`) |
+| Outbox persistence + approve TX | **Host / repository** (unchanged) |
+| Outbox relay / brokers | **Host** (unchanged — no message broker added) |
 
-## Manifest
-
-```yaml
-workspaceBooking:
-  eventReaction:
-    module: "./booking"
-    export: "DenaliBookingEventReactionAdapter" # or BookingWs2…
-    requiresHostIo: false # Booking emit path needs no HostIo today
+```text
+approveBooking / bulkApproveBookings
+  ├─ assertOpsAccess
+  ├─ repository.approve*WithOutbox  ← TX: status + outbox (host)
+  └─ eventReaction.reactAfterApprove ← AFTER commit (workspace WHAT)
 ```
-
-| Workspace | Adapter | `approveOutboxEventType` |
-| --------- | ------- | ------------------------ |
-| Denali | `DenaliBookingEventReactionAdapter` | `registration.approved` |
-| booking-ws2 | `BookingWs2EventReactionAdapter` | `registration.approved` (behavior-stable; independent class) |
 
 ## Capability port
 
@@ -56,28 +50,20 @@ SoT: `@app-tour/booking-http-contracts` → `WorkspaceBookingEventReactionPort`
 
 | Member | Role |
 | ------ | ---- |
+| `kind` | Adapter discriminator |
 | `approveOutboxEventType` | Outbox `eventType` for approve / bulkApprove |
-| `reactAfterApprove?` | Optional post-approve hook (no-op in B1.7; host may call later) |
+| `reactAfterApprove` | **Required** post-approve hook (idempotent per `bookingId`) |
 
-## Generated
+Dead optional `reactAfterApprove?` binding removed — service always invokes.
 
-`apps/api/src/bookings/workspace-booking-event-reaction-bindings.generated.ts`
+## Workspace WHAT (in-process acknowledgements)
 
-| Export | Role |
-| ------ | ---- |
-| `WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS` | workspaceType → `{ requiresHostIo, create }` |
-| `isBookingEventReactionBindingRegistered` | presence |
+| Workspace | Adapter | `reactionToken` |
+| --------- | ------- | --------------- |
+| Denali | `DenaliBookingEventReactionAdapter` | `denali-approve-ack` |
+| booking-ws2 | `BookingWs2EventReactionAdapter` | `booking-ws2-approve-ack` |
 
-Thin registry (hand-written, **no workspace package imports**):
-
-`apps/api/src/bookings/booking-event-reaction-registry.ts` →
-`resolveWorkspaceBookingEventReaction(workspaceType)` (fail-closed).
-
-## Runtime wiring
-
-`getOrCreateBookingRuntimeForWorkspaceType` resolves the reaction and passes it into
-`createBookingsService({ …, eventReaction })`. Service uses
-`eventReaction.approveOutboxEventType` instead of a module-level constant.
+Both share `approveOutboxEventType = registration.approved`. Adapters record reacted booking IDs in-process and no-op on repeat — they do **not** write outbox.
 
 ## Explicitly NOT moved
 
@@ -85,17 +71,19 @@ Thin registry (hand-written, **no workspace package imports**):
 | --------- | ----- |
 | Prisma `OutboxEvent` / `enqueueOutboxEvent` | Persistence |
 | Approve TX in repository | Atomic status + outbox |
-| Outbox relay / `processOutboxRelayOnce` | Event infrastructure |
+| Outbox relay | Event infrastructure |
 | `domainEventId` formula | Frozen until product YES |
 
 ## Proof
 
 `apps/api/src/bookings/booking-event-ownership.spec.ts`
 
-- Denali + booking-ws2 both registered; distinct adapter classes; same stable event type
-- Hand-written event runtime (`bookings.service`, repositories, `enqueue-domain-event`, `outbox-relay`) has **zero** `@app-tour/workspace-*` imports
-- Only generated bindings + workspace packages declare adapters
-- Registry imports generated bindings only
+- Registry + generated bindings (Denali / ws2; urban fail-closed)
+- Hand-written event runtime has **zero** `@app-tour/workspace-*` imports
+- Denali approve → Denali reaction + single outbox row
+- ws2 approve → ws2 reaction (distinct token)
+- Repeated `reactAfterApprove` does not duplicate effect / outbox
+- Unsupported workspace cannot approve
 
 ## Codegen
 

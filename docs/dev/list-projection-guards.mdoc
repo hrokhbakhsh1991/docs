@@ -21,22 +21,11 @@ Codifies performance standards for **operator bookings** and **tour** list paths
 
 ## Bookings duplicate-finder paths (AP15 — Faz 2)
 
-Guest registration duplicate checks must **not** call unbounded `listByTenant`. Each rule maps to a repository method under `withTenantRls`:
-
-| Service helper | Repository method | Query shape |
-|----------------|-------------------|-------------|
-| `findGuestBookingDuplicateByUser` | `findActiveDuplicateByUser` | `findFirst` + `submittedByUserId` |
-| `findGuestBookingDuplicateByGuestLabel` | `findActiveDuplicateByGuestLabel` | `findFirst` + `guestLabel` insensitive |
-| `findGuestBookingDuplicate` | `findActiveDuplicateByEmail` | `findFirst` + normalized email |
-| `findGuestBookingDuplicateByTourNationalId` | `findActiveDuplicateByNationalId` | `findFirst` + JSON path `registrationIntake.nationalId` |
-
-Shared filter: `status NOT IN ('cancelled', 'rejected')` — see `booking-active-duplicate.ts`.
+Guest duplicate checks run in `BookingsService` over bounded `listByTenant` (status ≠ cancelled|rejected). Dedicated `findActiveDuplicateBy*` repository methods were **removed** (no production callers on the Booking port).
 
 User directory summary (`getWorkspaceUserBookingSummary`) uses **SQL counts** plus `listRecentBySubmittedUser(tenantId, userId, MAX_MEMBER_BOOKINGS_RECENT_TRIPS)` — not a full member booking scan.
 
-`listBySubmittedUser` is capped at `MAX_MEMBER_BOOKINGS_LIST_CAP` (500) with `BOOKING_LIST_SELECT` for legacy/test callers.
-
-`listByTenant` is **deprecated** — delegates to `listByTenantPage` with `MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED` (500), not an unbounded scan.
+`listByTenant` is **deprecated** — delegates to `listByTenantPage` with `MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED` (500), not an unbounded scan. `listRecentBySubmittedUser` is capped at `MAX_MEMBER_BOOKINGS_LIST_CAP` (500).
 
 Constants: `bookings-member-summary-projection.ts`.
 
@@ -111,13 +100,9 @@ Constants: `integration-list-projection.ts`.
 
 ## Bookings outbox by aggregate (AP15 — P1)
 
-| Method | Bound | Notes |
-|--------|-------|-------|
-| `listOutboxByAggregate` | `take: MAX_OUTBOX_EVENTS_PER_AGGREGATE` (100) | admin `tenantId` probe only; RLS fetch with `orderBy: createdAt asc` |
+`listOutboxByAggregate` was **removed** from `BookingRepositoryPort` (no production callers). Mutate paths still enqueue outbox rows under tenant TX. Memory tests may use `peekOutboxByAggregateForTests` (not on the port). Cap constant retained in `bookings-outbox-projection.ts` for that helper / future platform reads.
 
-Constants: `bookings-outbox-projection.ts`.
-
-**Static checks:** `test/bookings-safety.spec.ts` BK-SAFE-07
+**Static checks:** `booking-outbox-tenant-boundary.spec.ts`
 
 ## Settings catalogs (AP15 — P3)
 
@@ -232,7 +217,7 @@ Do **not** add admin PK probes to `getById` — tenant scope is mandatory at the
 
 ### Admin probe (tenant unknown at repo boundary)
 
-When the caller truly lacks `tenantId`, use a **separate** method — not `getById`. Today only `listOutboxByAggregate(aggregateId)` admin-probes `select: { tenantId: true }` then loads outbox rows under `withTenantRls`. Never fetch full `operatorRegistration` rows via `getPrismaAdmin()`.
+When the caller truly lacks `tenantId`, use a **separate** method — not `getById`. Booking outbox reads are no longer on the Booking port; platform outbox tools must carry `tenantId`. Never fetch full `operatorRegistration` rows via `getPrismaAdmin()`.
 
 Reference mutation pattern: `approveWithOutbox` — `findFirst({ id, tenantId })` inside `withTenantRls` in `prisma-bookings.repository.ts`.
 
@@ -244,7 +229,7 @@ Caller authz remains mandatory: `finance.service.ts` passes `auth.tenantId` into
 |---------|------|
 | Bookings list projection | `BOOKING_LIST_SELECT` in `prisma-bookings.repository.ts` |
 | Bookings keyset | `listByTenantPage` — `(submittedAt desc, id desc)` |
-| Bookings duplicate finders | `findActiveDuplicateBy*` in `prisma-bookings.repository.ts` |
+| Bookings duplicate checks | `BookingsService` over `listByTenant` (port finders removed) |
 | User booking summary | count + `listRecentBySubmittedUser` — `bookings-member-summary-projection.ts` |
 | Deprecated listByTenant | `listByTenantPage` cap 500 |
 | Bookings detail RLS | `getById(id, tenantId)` — `withTenantRls` + `findFirst({ id, tenantId })` |
@@ -252,7 +237,7 @@ Caller authz remains mandatory: `finance.service.ts` passes `auth.tenantId` into
 | Tours list projection | `TOUR_LIST_PAGE_SELECT` in `prisma-tour.repository.ts` |
 | Operator tour list load | `listOperatorToursPage` — one bounded page per request (`operator-tour-list-db-query.ts`) |
 | Tours keyset index | `idx_tours_tenant_created_id` on `(tenant_id, created_at, id)` |
-| Bookings outbox cap | `listOutboxByAggregate` — `MAX_OUTBOX_EVENTS_PER_AGGREGATE` |
+| Bookings outbox | enqueue on mutate only; port read removed (`MAX_OUTBOX_EVENTS_PER_AGGREGATE` for test peek) |
 | Settings audit keyset | `listByTenantPage` in `prisma-settings-audit.repository.ts` |
 | Integration list (no credentials) | `integration-list-projection.ts` |
 | Draft events SQL bound | `listByDraft` — `take` + `orderBy` in Prisma |

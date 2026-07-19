@@ -19,7 +19,6 @@ const APPLICATION_REL_PATHS = Object.freeze([
   "bookings.types.ts",
   "bookings.errors.ts",
   "booking-payment-status.ts",
-  "booking-active-duplicate.ts",
   "booking-list-query.ts",
   "bookings-member-summary-projection.ts",
   "ports/booking-actor-context.ts",
@@ -27,6 +26,8 @@ const APPLICATION_REL_PATHS = Object.freeze([
   "ports/booking-clock.port.ts",
   "ports/booking-public.port.ts",
   "ports/booking-repository.port.ts",
+  "ports/booking-runtime-capabilities.port.ts",
+  "ports/booking-tenant-workspace-binding.port.ts",
 ]);
 
 /**

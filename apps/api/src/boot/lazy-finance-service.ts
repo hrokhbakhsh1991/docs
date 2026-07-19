@@ -9,6 +9,7 @@ import {
   resolveBootFinanceWorkspaceType,
   resolveFinanceWorkspaceDependencies,
 } from "../workspace-finance/finance-dependency-registry";
+import { BookingPaymentAdapter } from "../workspace-finance/infrastructure/booking-payment.adapter";
 import type { FinanceAuthorizationPort } from "../workspace-finance/ports/finance-access.port";
 import type { FinanceCapabilityPort } from "../workspace-finance/ports/finance-capability.port";
 import type { IBookingPaymentPort } from "../workspace-finance/ports/booking-payment.port";
@@ -30,15 +31,20 @@ import { HostFinanceReceiptProofUrlAdapter } from "../workspace-finance/infrastr
 import { HostFinanceScheduleAdapter } from "../workspace-finance/infrastructure/host-finance-schedule.adapter";
 import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
 
-/** workspaceType → FinanceService (Phase 1.5 Commit 1). */
+/** workspaceType → FinanceService (workspace policies differ; platform I/O is shared). */
 const financeServiceByWorkspaceType = new Map<string, FinanceService>();
 
 /**
- * Shared booking + repository + registration display across workspaceType service instances.
- * Today all registered types use BookingPaymentAdapter; repo singleton requires one payment port.
+ * Platform-owned persistence + booking projection — intentionally process-wide.
+ *
+ * Not workspace-scoped: Prisma/memory repos enforce tenant isolation (RLS / tenantId).
+ * Workspace differentiation is ledgerPolicy + receiptDefaults on each FinanceService.
+ * Never taken from the first-composed workspace (B2.2 — no first-wins).
  */
-let sharedBookingPayments: IBookingPaymentPort | null = null;
-let sharedFinanceRepository: FinanceRepositoryPort | null = null;
+let platformBookingPayments: IBookingPaymentPort | null = null;
+let platformFinanceRepository: FinanceRepositoryPort | null = null;
+
+/** Stateless host adapters — safe to share across workspaceType service instances. */
 let sharedRegistrationDisplay: RegistrationDisplayPort | null = null;
 let sharedMetrics: FinanceMetricsPort | null = null;
 let sharedStorageDriver: FinanceStorageDriverPort | null = null;
@@ -49,10 +55,24 @@ let sharedSchedules: FinanceSchedulePort | null = null;
 let sharedLogger: FinanceLoggerPort | null = null;
 let sharedClock: FinanceClockPort | null = null;
 
+function getPlatformBookingPayments(): IBookingPaymentPort {
+  if (platformBookingPayments === null) {
+    platformBookingPayments = new BookingPaymentAdapter();
+  }
+  return platformBookingPayments;
+}
+
+function getPlatformFinanceRepository(): FinanceRepositoryPort {
+  if (platformFinanceRepository === null) {
+    platformFinanceRepository = createFinanceRepository(getPlatformBookingPayments());
+  }
+  return platformFinanceRepository;
+}
+
 export function resetLazyFinanceServiceForTests(): void {
   financeServiceByWorkspaceType.clear();
-  sharedBookingPayments = null;
-  sharedFinanceRepository = null;
+  platformBookingPayments = null;
+  platformFinanceRepository = null;
   sharedRegistrationDisplay = null;
   sharedMetrics = null;
   sharedStorageDriver = null;
@@ -65,17 +85,43 @@ export function resetLazyFinanceServiceForTests(): void {
   resetFinanceRepositoryForTests();
 }
 
-function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string): FinanceService {
-  const existing = financeServiceByWorkspaceType.get(workspaceType);
+/** B2.2 — inspect intentional platform sharing (tests / diagnostics). */
+export type PlatformFinanceCompositionSnapshot = {
+  readonly bookingPayments: IBookingPaymentPort;
+  readonly repository: FinanceRepositoryPort;
+  readonly cachedWorkspaceTypes: readonly string[];
+};
+
+export function getPlatformFinanceCompositionSnapshot(): PlatformFinanceCompositionSnapshot | null {
+  if (platformBookingPayments === null || platformFinanceRepository === null) {
+    return null;
+  }
+  return {
+    bookingPayments: platformBookingPayments,
+    repository: platformFinanceRepository,
+    cachedWorkspaceTypes: [...financeServiceByWorkspaceType.keys()].sort(),
+  };
+}
+
+/**
+ * Create or reuse FinanceService for a registry-registered workspaceType.
+ * Platform booking + repository are process singletons; policies come from the workspace registry.
+ */
+export function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string): FinanceService {
+  const normalized = workspaceType.trim().toLowerCase();
+  if (normalized.length === 0) {
+    throw new Error("FINANCE_WORKSPACE_TYPE_REQUIRED: workspaceType is required");
+  }
+  const existing = financeServiceByWorkspaceType.get(normalized);
   if (existing !== undefined) {
     return existing;
   }
 
-  const deps = resolveFinanceWorkspaceDependencies(workspaceType);
-  if (sharedBookingPayments === null || sharedFinanceRepository === null) {
-    sharedBookingPayments = deps.bookingPayments;
-    sharedFinanceRepository = createFinanceRepository(sharedBookingPayments);
-  }
+  const deps = resolveFinanceWorkspaceDependencies(normalized);
+  // Explicit platform ports — ignore deps.bookingPayments (avoids first-wins / per-call instances).
+  const bookingPayments = getPlatformBookingPayments();
+  const repository = getPlatformFinanceRepository();
+
   if (sharedRegistrationDisplay === null) {
     sharedRegistrationDisplay = new BookingRegistrationDisplayAdapter();
   }
@@ -106,8 +152,8 @@ function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string): Finan
 
   const service = createFinanceService(
     deps.ledgerPolicy,
-    sharedFinanceRepository,
-    sharedBookingPayments,
+    repository,
+    bookingPayments,
     deps.receiptDefaults,
     sharedRegistrationDisplay,
     sharedMetrics,
@@ -119,7 +165,7 @@ function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string): Finan
     sharedLogger,
     sharedClock
   );
-  financeServiceByWorkspaceType.set(workspaceType, service);
+  financeServiceByWorkspaceType.set(normalized, service);
   return service;
 }
 

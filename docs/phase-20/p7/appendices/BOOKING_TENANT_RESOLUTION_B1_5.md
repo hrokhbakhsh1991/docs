@@ -7,20 +7,22 @@ status: LANDED
 date: "2026-07-19"
 authority:
   - Finance Phase 1.5 — resolveFinanceServiceForTenant / Map<workspaceType, FinanceService>
-  - BOOKING_DEPENDENCY_REGISTRY_B1_1 / BOOKING_PUBLIC_PORT_B1_4
+  - BOOKING_DEPENDENCY_REGISTRY_B1_1 / BOOKING_CAPABILITY_GATE_B2_1
 constraints:
-  - preserve Denali default behavior for tenants whose workspaceType is not booking-registered
-  - NO lifecycle / repository / Prisma schema changes
+  - capability registry is live (injected into BookingsService)
+  - unsupported / unknown workspaceType FAILS CLOSED (no Denali silent fallback)
   - cache keyed by workspaceType only (never tenantId)
   - single shared BookingRepositoryPort + host authz/clock across runtimes
+  - do not split repository / do not create booking-core
 ```
 
 ## Composition chain
 
 ```text
 tenantId
-  → resolveBookingWorkspaceTypeForTenant
+  → resolveBookingWorkspaceTypeForTenant   # fail-closed if not booking-supported
   → resolveBookingWorkspaceDependencies(workspaceType)   # generated SoT
+  → inject validationPolicy + capacityPolicy (+ eventReaction)
   → BookingRuntime { service, dependencies }
   → Map<workspaceType, BookingRuntime> cache
 ```
@@ -29,54 +31,59 @@ tenantId
 
 | API | Role |
 | --- | ---- |
-| `resolveBookingWorkspaceTypeForTenant(tenantId)` | Tenant → type; **unregistered types fall back to `denali`** |
+| `resolveBookingWorkspaceTypeForTenant(tenantId)` | Tenant → type; **unsupported → `BookingWorkspaceUnsupportedError`** |
 | `resolveBookingDependenciesForTenant(tenantId)` | Tenant → workspace dependency bag (cached via runtime) |
-| `resolveBookingsServiceForTenant(tenantId)` | Tenant → cached `BookingsService` |
-| `resolveBookingsService()` | Boot path → denali runtime (legacy façades / tests) |
-| `getOrCreateBookingRuntimeForWorkspaceType(type)` | Direct A/B / registry proof |
+| `resolveBookingsServiceForTenant(tenantId)` | **Only** public service entry — tenant → cached `BookingsService` |
+| `getOrCreateBookingRuntimeForWorkspaceType(type)` | Internal/cache helper for A/B proofs (not a tenant entry) |
+
+`resolveBookingsService()` (tenant-less Denali boot) was **removed**. HTTP façades
+(`createBooking`, `createPublicGuestBooking`, …) all resolve via
+`resolveBookingsServiceForTenant`.
 
 ## Cache policy
 
 - Key: `workspaceType` (normalized lower-case)
 - Value: `BookingRuntime` = `{ workspaceType, service, dependencies }`
 - Shared across types: `getBookingsRepository()`, host authorization, host clock
-- **Not** keyed by `tenantId`; **no** per-tenant repo or DB pool
+- **Not** keyed by `tenantId`; policies are distinct adapter instances per workspaceType
 
-## Denali default
+## Fail-closed
 
-When `resolveWorkspaceTypeForTenant` yields a type absent from booking dependency
-bindings (e.g. `starter`, `urban`), composition uses **`denali`**. Existing call sites
-that never checked workspace type keep working.
+| Input | Result |
+| ----- | ------ |
+| empty `tenantId` | `BOOKING_WORKSPACE_UNSUPPORTED` |
+| `urban` / `starter` / unknown | `BOOKING_WORKSPACE_UNSUPPORTED` (never silent Denali) |
+| `denali` / `booking-ws2` | supported runtime |
 
-Empty `tenantId` → `BOOKING_WORKSPACE_UNSUPPORTED`.
+## DEV tenants (static registry)
 
-## HTTP façades
-
-Operator / public façades in `create-bookings-service.ts` resolve via
-`resolveBookingsServiceForTenant(auth.tenantId)` (or explicit `tenantId` for guest helpers).
+| Tenant | workspaceType |
+| ------ | ------------- |
+| `…000014` (operator) | denali |
+| `…000015` (booking-ws2) | booking-ws2 |
 
 ## Proof
 
-`booking-tenant-resolution.spec.ts` — A/B denali vs booking-ws2 cache reuse + policy isolation + shared repo.
+`booking-tenant-resolution.spec.ts`
+
+- Tenant A Denali policy / Tenant B ws2 policy (same process)
+- CASE_A accept vs reject via tenant-resolved public create
+- No shared mutable policy state
+- Unsupported fail-closed
 
 ## Architecture report (B1.5)
 
-### Files changed
+### Files
 
 | Area | Files |
 | ---- | ----- |
-| Doc | `BOOKING_TENANT_RESOLUTION_B1_5.md` |
 | Resolve | `resolve-booking-workspace-type-for-tenant.ts` |
-| Composition | `create-bookings-service.ts` (`BookingRuntime` cache, tenant façades) |
+| Composition | `create-bookings-service.ts` |
+| Tenants | `tenant-registry.ts` (`…000015` booking-ws2) |
 | Tests | `booking-tenant-resolution.spec.ts` |
+| Doc | this file |
 
-### Runtime impact
+### Remaining gaps
 
-- Denali tenants: same cached service as boot (behavior preserved)
-- Unregistered workspace types: fall back to denali deps/service
-- booking-ws2: available when workspaceType resolves to `booking-ws2` (no product tenant yet)
-- Repository / DB connections: still one singleton
-
-### Gap to B1.6
-
-Ops UI capability bindings (`opsManifest` / hub) — not tenant service cache.
+- Shared repository across workspace types (intentional; tenant isolation via tenantId)
+- Ops create may still under-use policies relative to public create (separate follow-up)

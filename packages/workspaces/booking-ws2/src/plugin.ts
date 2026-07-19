@@ -1,6 +1,6 @@
 /**
- * Minimal plugin stub — registryOnly booking fixture (not product-gated).
- * Excluded from API/web plugin registries via workspaceBooking.registryOnly.
+ * Booking-ws2 workspace plugin — product-capable Booking second workspace (B1.3).
+ * Distinct capacity policy (CASE_A reject); included in API/web plugin registries.
  */
 import {
   createStarterWorkspacePlugin,

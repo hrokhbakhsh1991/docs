@@ -63,7 +63,6 @@ describe("BK-B1.9 booking application purity", () => {
       "bookings.types.ts",
       "bookings.errors.ts",
       "booking-payment-status.ts",
-      "booking-active-duplicate.ts",
       "booking-list-query.ts",
       "bookings-member-summary-projection.ts",
     ];

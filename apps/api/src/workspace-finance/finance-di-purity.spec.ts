@@ -265,25 +265,6 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
     assert.ok(deps.receiptDefaults instanceof DenaliFinanceReceiptDefaultsAdapter);
     assert.ok(deps.bookingPayments instanceof BookingPaymentAdapter);
 
-    const repository = createFinanceRepository(deps.bookingPayments);
-    const display = new BookingRegistrationDisplayAdapter();
-    const service = createFinanceService(
-      deps.ledgerPolicy,
-      repository,
-      deps.bookingPayments,
-      deps.receiptDefaults,
-      display,
-      new HostFinanceMetricsAdapter(),
-      new HostFinancePersistenceModeAdapter(),
-      new HostFinanceReceiptProofUrlAdapter(),
-      new HostFinanceCapabilityAdapter(),
-      new HostFinanceAccessAdapter(),
-      new HostFinanceScheduleAdapter(),
-      new HostFinanceLogAdapter(),
-      new HostFinanceClockAdapter()
-    );
-    assert.equal(typeof service.getSummary, "function");
-
     const fromTenant = await resolveFinanceServiceForTenant(DENALI_TENANT_ID);
     assert.equal(typeof fromTenant.getSummary, "function");
     const lazy = await resolveLazyFinanceService();

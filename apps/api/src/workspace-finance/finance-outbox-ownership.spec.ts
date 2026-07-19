@@ -76,9 +76,10 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
     assert.doesNotMatch(src, /workspace-denali/);
   });
 
-  it("FIN-P1.8-S1-03 / P1.9 reaction registry: Denali + WS2 via capability; unknown fails closed", () => {
+  it("FIN-P1.8-S1-03 / P1.9 reaction registry: Denali + finance-ws5; demoted/unknown fail closed", () => {
     assert.equal(isWorkspaceFinanceEventReactionRegistered("denali"), true);
-    assert.equal(isWorkspaceFinanceEventReactionRegistered("finance-ws2"), true);
+    assert.equal(isWorkspaceFinanceEventReactionRegistered("finance-ws5"), true);
+    assert.equal(isWorkspaceFinanceEventReactionRegistered("finance-ws2"), false);
     assert.equal(isWorkspaceFinanceEventReactionRegistered("starter"), false);
     assert.throws(
       () => resolveWorkspaceFinanceEventReaction("starter"),
@@ -95,9 +96,9 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
     const denali = resolveWorkspaceFinanceEventReaction("denali");
     assert.equal(typeof denali.reactToPublishedRow, "function");
     assert.equal(typeof denali.consumePendingForTenant, "function");
-    const ws2 = resolveWorkspaceFinanceEventReaction("finance-ws2");
-    assert.equal(typeof ws2.reactToPublishedRow, "function");
-    assert.notEqual(denali.constructor, ws2.constructor);
+    const ws5 = resolveWorkspaceFinanceEventReaction("finance-ws5");
+    assert.equal(typeof ws5.reactToPublishedRow, "function");
+    assert.notEqual(denali.constructor, ws5.constructor);
   });
 
   it("FIN-P1.9-01 API infrastructure keeps booking + host finance adapters (no workspace policy)", () => {
@@ -174,7 +175,7 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
     assert.match(gen, /FinanceWs2LedgerPolicyAdapter|finance_ws2_LedgerPolicy/);
   });
 
-  it("FIN-P1.10-02 / P1.9 generated event reaction bindings include denali and finance-ws2", () => {
+  it("FIN-P1.10-02 / P1.9 generated event reaction bindings include denali and finance-ws5 only", () => {
     const gen = readFileSync(
       resolve(
         REPO_ROOT,
@@ -183,7 +184,9 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
       "utf8"
     );
     assert.match(gen, /"denali"/);
-    assert.match(gen, /"finance-ws2"/);
+    assert.match(gen, /"finance-ws5"/);
+    assert.doesNotMatch(gen, /"finance-ws2"/);
+    assert.doesNotMatch(gen, /"finance-ws3"/);
     assert.match(gen, /requiresHostIo:\s*true/);
     assert.match(gen, /requiresHostIo:\s*false/);
   });
@@ -224,20 +227,14 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
     assert.doesNotMatch(adapter, /registerTourCreatedFinanceSideEffectDeps/);
   });
 
-  it("FIN-P1.9-EO-03 WS2 reaction capability registers independently (fixture no-op)", async () => {
-    const port = resolveWorkspaceFinanceEventReaction("finance-ws2");
-    const batch = await port.consumePendingForTenant("00000000-0000-4000-8000-000000000099");
-    assert.deepEqual(batch, { handled: 0, skipped: 0 });
-    assert.equal(
-      await port.reactToPublishedRow({
-        tenantId: "00000000-0000-4000-8000-000000000099",
-        domainEventId: "ws2-noop",
-        eventType: "TourCreated",
-        aggregateType: "tour",
-        aggregateId: "00000000-0000-4000-8000-000000000098",
-        payload: {},
-      }),
-      false
+  it("FIN-P1.9-EO-03 demoted registry fixtures have no TourCreated reaction (fail-closed)", () => {
+    assert.equal(isWorkspaceFinanceEventReactionRegistered("finance-ws2"), false);
+    assert.equal(isWorkspaceFinanceEventReactionRegistered("finance-ws3"), false);
+    assert.equal(isWorkspaceFinanceEventReactionRegistered("finance-ws4"), false);
+    assert.equal(isWorkspaceFinanceEventReactionRegistered("finance-ws6"), false);
+    assert.throws(
+      () => resolveWorkspaceFinanceEventReaction("finance-ws2"),
+      /FINANCE_EVENT_REACTION_UNSUPPORTED|unsupported/i
     );
   });
 

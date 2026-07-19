@@ -50,9 +50,7 @@ export function validateDenaliRegistrationPayload(
   if (!Number.isInteger(payload.partySize) || payload.partySize < 1) {
     throw new Error("DENALI_REGISTRATION_INVALID");
   }
-  if (context.capacity !== null && payload.partySize > context.capacity) {
-    throw new Error("DENALI_REGISTRATION_INVALID");
-  }
+  // Capacity / occupancy SoT is Booking capacityPolicy (hybrid: Denali supplies max only).
 
   if (context.nationalIdRequired === true) {
     const profileNationalId = context.profileNationalId?.trim() ?? "";

@@ -10,15 +10,9 @@ import { DenaliBookingEventReactionAdapter as denali_BookingEventReaction } from
 
 export const WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS = {
   "booking-ws2": {
-    requiresHostIo: false as const,
     create: () => new booking_ws2_BookingEventReaction(),
   },
   "denali": {
-    requiresHostIo: false as const,
     create: () => new denali_BookingEventReaction(),
   },
 } as const;
-
-export function isBookingEventReactionBindingRegistered(workspaceType: string): boolean {
-  return workspaceType.trim().toLowerCase() in WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS;
-}

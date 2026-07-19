@@ -27,10 +27,15 @@ const { PLATFORM_WORKSPACE_CERTIFICATION_OPENAPI_OVERRIDES } = await import(
   pathToFileURL(path.join(ROOT, "src/openapi/platform-workspace-certification-openapi.ts")).href
 );
 
+const { BOOKING_OPENAPI_OVERRIDES, BOOKING_OPENAPI_SCHEMAS } = await import(
+  pathToFileURL(path.join(ROOT, "src/openapi/booking-openapi.ts")).href
+);
+
 const OPENAPI_OVERRIDES = {
   ...PUBLIC_AUTH_OPENAPI_OVERRIDES,
   ...DENALI_CATALOG_OPENAPI_OVERRIDES,
   ...PLATFORM_WORKSPACE_CERTIFICATION_OPENAPI_OVERRIDES,
+  ...BOOKING_OPENAPI_OVERRIDES,
 };
 
 const DEFAULT_RESPONSES = {
@@ -83,6 +88,11 @@ const spec = {
   },
   servers: [{ url: "http://127.0.0.1:3001" }],
   paths,
+  components: {
+    schemas: {
+      ...BOOKING_OPENAPI_SCHEMAS,
+    },
+  },
 };
 
 fs.mkdirSync(OUT_DIR, { recursive: true });

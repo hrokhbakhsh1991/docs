@@ -95,6 +95,38 @@ function appWiresRoute(route) {
   if (route.path === "/tours/clone-photo-remint") {
     return app.includes('"/tours/clone-photo-remint"') && app.includes("handleClonePhotoRemint");
   }
+  if (route.path === "/bookings") {
+    if (route.method === "GET") {
+      return app.includes('"/bookings"') && app.includes("handleListBookings");
+    }
+    return app.includes('"/bookings"') && app.includes("handleCreateBooking");
+  }
+  if (route.path === "/bookings/summary") {
+    return app.includes('"/bookings/summary"') && app.includes("handleGetBookingsSummary");
+  }
+  if (route.path === "/bookings/bulk-approve") {
+    return app.includes('"/bookings/bulk-approve"') && app.includes("handleBulkApproveBookings");
+  }
+  if (route.path === "/bookings/{bookingId}/approve") {
+    return app.includes("bookingApproveMatch") && app.includes("handleApproveBooking");
+  }
+  if (route.path === "/bookings/{bookingId}/reject") {
+    return app.includes("bookingRejectMatch") && app.includes("handleRejectBooking");
+  }
+  if (route.path === "/bookings/{bookingId}/waitlist") {
+    return app.includes("bookingWaitlistMatch") && app.includes("handleWaitlistBooking");
+  }
+  if (route.path === "/bookings/{bookingId}/cancel") {
+    return app.includes("bookingCancelMatch") && app.includes("handleCancelBooking");
+  }
+  if (route.path === "/bookings/{bookingId}/receipts") {
+    return (
+      app.includes("bookingReceiptMatch") &&
+      (route.method === "POST"
+        ? app.includes("handlePostBookingReceipt")
+        : app.includes("handleGetBookingReceiptStatus"))
+    );
+  }
   if (route.path.startsWith("/auth/") || route.path.startsWith("/public/auth/")) {
     return app.includes(`"${route.path}"`);
   }

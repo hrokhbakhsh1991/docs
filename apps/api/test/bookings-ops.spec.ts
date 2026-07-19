@@ -9,6 +9,7 @@ import { createRequestListener } from "../src/app";
 import {
   getBookingsRepository,
 } from "../src/bookings/create-bookings-repository";
+import { peekOutboxByAggregateForTests } from "../src/bookings/in-memory-bookings.repository";
 import { OPERATOR_SMOKE } from "./fixtures/operator-smoke-e2e-tenant";
 import { seedOperatorBookingsFixture } from "./fixtures/operator-bookings-fixture";
 import {
@@ -56,7 +57,10 @@ describe("bookings-ops.spec.ts — Phase 9.5 API", () => {
     assert.equal(typeof response.body.approvedAt, "string");
 
     const bookingsRepo = getBookingsRepository();
-    const outboxRows = await bookingsRepo.listOutboxByAggregate(OPERATOR_SMOKE.pendingBookingId);
+    const outboxRows = await peekOutboxByAggregateForTests({
+      tenantId: OPERATOR_SMOKE.tenantId,
+      aggregateId: OPERATOR_SMOKE.pendingBookingId,
+    });
     assert.equal(outboxRows.length, 1);
     assert.equal(outboxRows[0]?.eventType, "registration.approved");
     assert.equal(outboxRows[0]?.aggregateType, "registration");
@@ -125,7 +129,10 @@ describe("bookings-ops.spec.ts — Phase 9.5 API", () => {
     assert.equal(approvedIds.length, 2);
 
     for (const id of approvedIds) {
-      const outboxRows = await bookingsRepo.listOutboxByAggregate(id);
+      const outboxRows = await peekOutboxByAggregateForTests({
+        tenantId: OPERATOR_SMOKE.tenantId,
+        aggregateId: id,
+      });
       assert.equal(outboxRows.length, 1);
       assert.equal(outboxRows[0]?.eventType, "registration.approved");
     }

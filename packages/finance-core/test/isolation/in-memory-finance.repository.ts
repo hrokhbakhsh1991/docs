@@ -32,10 +32,13 @@ type StoredReceipt = FinanceReceiptRow & {
   readonly tenantId: string;
   readonly idempotencyKeyHash?: string;
 };
+type StoredLedgerEvent = FinanceLedgerOutboxRow & {
+  readonly tenantId: string;
+};
 
 let paymentsById = new Map<string, StoredPayment>();
 let receiptsById = new Map<string, StoredReceipt>();
-let ledgerEvents: FinanceLedgerOutboxRow[] = [];
+let ledgerEvents: StoredLedgerEvent[] = [];
 let prepaymentsByDomainEventId = new Map<string, FinancePrepaymentListRow & { readonly tenantId: string }>();
 
 
@@ -44,6 +47,17 @@ export function resetInMemoryFinanceRepositoryForTests(): void {
   receiptsById = new Map();
   ledgerEvents = [];
   prepaymentsByDomainEventId = new Map();
+}
+
+function toLedgerOutboxRow(row: StoredLedgerEvent): FinanceLedgerOutboxRow {
+  return {
+    id: row.id,
+    eventType: row.eventType,
+    payload: row.payload,
+    createdAt: row.createdAt,
+    domainEventId: row.domainEventId,
+    aggregateId: row.aggregateId,
+  };
 }
 
 /**
@@ -85,8 +99,10 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
   }
 
   async listLedgerEvents(tenantId: string, limit: number): Promise<FinanceLedgerOutboxRow[]> {
-    void tenantId;
-    return ledgerEvents.slice(0, limit);
+    return ledgerEvents
+      .filter((row) => row.tenantId === tenantId)
+      .slice(0, limit)
+      .map(toLedgerOutboxRow);
   }
 
   async findPaymentStatusesByRegistration(
@@ -296,7 +312,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     receiptsById.set(receiptId, updated);
     if (payment !== null && input.status === "Approved") {
       const paidPayment = paymentsById.get(payment.id);
-      if (paidPayment !== undefined) {
+      if (paidPayment !== undefined && paidPayment.tenantId === tenantId) {
         paymentsById.set(payment.id, {
           ...paidPayment,
           status: "Paid",
@@ -324,12 +340,13 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     };
     paymentsById.set(paymentId, updated);
     for (const [receiptId, receipt] of receiptsById.entries()) {
-      if (receipt.paymentId === paymentId) {
+      if (receipt.tenantId === tenantId && receipt.paymentId === paymentId) {
         receiptsById.set(receiptId, { ...receipt, payment: updated });
       }
     }
     ledgerEvents.push({
       id: randomUUID(),
+      tenantId,
       eventType: "finance.ledger.double_entry_applied",
       payload: {
         journalId: ledgerJournalId,
@@ -355,13 +372,16 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     };
     paymentsById.set(paymentId, updated);
     for (const [receiptId, receipt] of receiptsById.entries()) {
-      if (receipt.paymentId === paymentId) {
+      if (receipt.tenantId === tenantId && receipt.paymentId === paymentId) {
         receiptsById.set(receiptId, { ...receipt, payment: updated });
       }
     }
     // Fake-only: drop the provisional capture row so compensate does not leave orphan ledger facts.
     const captureDomainEventId = `payment:${paymentId}:ledger-capture-anchor`;
-    ledgerEvents = ledgerEvents.filter((event) => event.domainEventId !== captureDomainEventId);
+    ledgerEvents = ledgerEvents.filter(
+      (event) =>
+        !(event.tenantId === tenantId && event.domainEventId === captureDomainEventId)
+    );
     return updated;
   }
 
@@ -406,6 +426,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
       const now = new Date();
       ledgerEvents.push({
         id: randomUUID(),
+        tenantId: input.tenantId,
         eventType: "finance.ledger.capture",
         payload: {
           journalId: input.ledgerCapture.journalId,
@@ -483,6 +504,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     const now = new Date();
     ledgerEvents.push({
       id: randomUUID(),
+      tenantId: input.tenantId,
       eventType: "finance.ledger.capture",
       payload: {
         journalId: input.journalId,
@@ -496,6 +518,7 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     });
     ledgerEvents.push({
       id: randomUUID(),
+      tenantId: input.tenantId,
       eventType: "finance.prepayment.recorded",
       payload: {
         registrationId: input.registrationId,

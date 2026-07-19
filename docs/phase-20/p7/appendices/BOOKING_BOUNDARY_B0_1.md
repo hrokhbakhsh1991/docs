@@ -80,7 +80,6 @@ constraints:
 | `bookings.types.ts` | Domain / DTO types |
 | `bookings.service.ts` | Application use-cases + authz + Service Locator |
 | `booking-payment-status.ts` | Domain helper (raise-only paymentStatus) |
-| `booking-active-duplicate.ts` | Domain helpers (active status + intake nationalId) |
 | `booking-list-query.ts` | Domain / projection helpers (filters, keyset, day) |
 | `bookings-member-summary-projection.ts` | Projection caps / cancelled status constants |
 | `bookings-outbox-projection.ts` | Outbox read bound + Prisma-shaped select |
@@ -128,7 +127,6 @@ Columns: **Current file** · **Current owner** · **Correct owner** · **Migrati
 | `bookings.types.ts` | Mixed folder (de facto App) | **Application** (domain/DTO types). Split later: strip `BookingOutboxRecord` persistence shape if kept only for infra | **B0** (keep); optional type split **B1.9** |
 | `bookings.service.ts` | Application + Host authz + Infrastructure Service Locator | **Application** use-cases only. Authz via Host port; repository via injected port; outbox event name via capability/registry later | **B0** DI + actor port; **B1.1** event/policy injection; **B1.9** purity |
 | `booking-payment-status.ts` | Application (pure) | **Application** domain helper | **B0** keep |
-| `booking-active-duplicate.ts` | Application (pure) | **Application** domain helper | **B0** keep |
 | `booking-list-query.ts` | Application (pure) | **Application** projection helpers | **B0** keep |
 | `bookings-member-summary-projection.ts` | Application constants | **Application** projection constants | **B0** keep |
 | `enrich-tour-accepted-counts.ts` | Application projection; imports `@app-tour/workspace-sdk` `TourListProjection` | **Application** projection; tour DTO type should be Host/SDK adapter input — not hard SDK dep long-term | **B0** keep behavior; **B1.9** decouple SDK type |
@@ -242,14 +240,15 @@ Confirmed application-eligible symbols/files:
 
 1. `bookings.types.ts` — status, paymentStatus, records, list/create/approve/reject DTOs  
 2. `booking-payment-status.ts` — `raiseBookingPaymentStatus`  
-3. `booking-active-duplicate.ts` — inactive statuses, nationalId helper  
-4. `booking-list-query.ts` — search/filter/keyset/day helpers  
-5. `bookings-member-summary-projection.ts` — caps + cancelled statuses  
-6. `bookings.service.ts` — lifecycle use-cases (list/summary/create/public create/duplicates/approve/reject/bulk/sumApproved) — **minus** Locator/SDK auth type  
-7. `enrich-tour-accepted-counts.ts` — acceptedCount projection  
-8. Domain errors currently in memory file — Application  
-9. `BookingRepositoryPort` (**B0.4**) — Application port (`BookingsRepository` alias)  
-10. `identity/compile-user-booking-summary.ts` — pure projection (Application-adjacent)
+3. `booking-list-query.ts` — search/filter/keyset/day helpers  
+4. `bookings-member-summary-projection.ts` — caps + cancelled statuses  
+5. `bookings.service.ts` — lifecycle use-cases (list/summary/create/public create/duplicates/approve/reject/bulk/sumApproved) — **minus** Locator/SDK auth type  
+6. `enrich-tour-accepted-counts.ts` — acceptedCount projection  
+7. Domain errors currently in memory file — Application  
+8. `BookingRepositoryPort` (**B0.4**) — Application port (`BookingsRepository` alias)  
+9. `identity/compile-user-booking-summary.ts` — pure projection (Application-adjacent)
+
+Note: `booking-active-duplicate.ts` and port methods `findActiveDuplicateBy*` / `listOutboxByAggregate` / summary aggregation helpers were removed (no production callers; service uses `listByTenant` / counts).
 
 ---
 

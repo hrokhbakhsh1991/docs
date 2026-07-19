@@ -188,6 +188,8 @@ export async function createDenaliRegistration(params: {
       registrantTarget,
       transport: normalizedTransport,
       ...(intakeNationalId.length > 0 ? { nationalId: intakeNationalId } : {}),
+      // Booking-owned capacity: Denali supplies tour max when known; Booking fails closed if missing.
+      ...(capacity !== null ? { tourCapacityMax: capacity } : {}),
     },
   });
 }

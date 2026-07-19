@@ -104,6 +104,11 @@
   "workspaceFinance": {
     "supported": true,
     "defaultModuleEnabledWhenUnset": true,
+    "capabilities": {
+      "ledgerCapture": true,
+      "eventReactions": "durable-outbox",
+      "ops": true
+    },
     "ledgerPolicy": {
       "module": "./finance",
       "export": "DenaliFinanceLedgerPolicyAdapter"
@@ -130,6 +135,33 @@
   "workspaceBooking": {
     "supported": true,
     "defaultModuleEnabledWhenUnset": true,
+    "capabilities": {
+      "enabled": true,
+      "publicCreate": {
+        "enabled": true,
+        "mode": "create-pipeline"
+      },
+      "operatorCreate": {
+        "enabled": true,
+        "mode": "create-pipeline"
+      },
+      "validation": {
+        "enabled": true,
+        "mode": "base-shape"
+      },
+      "capacity": {
+        "enabled": true,
+        "mode": "booking-owned"
+      },
+      "approval": {
+        "enabled": true,
+        "mode": "host-lifecycle"
+      },
+      "eventReaction": {
+        "enabled": true,
+        "mode": "in-process"
+      }
+    },
     "publicBooking": {
       "module": "./booking",
       "export": "DenaliBookingPublicAdapter"
@@ -142,14 +174,9 @@
       "module": "./booking",
       "export": "DenaliBookingValidationPolicyAdapter"
     },
-    "opsCapability": {
-      "module": "./booking",
-      "export": "DenaliBookingOpsCapabilityAdapter"
-    },
     "eventReaction": {
       "module": "./booking",
-      "export": "DenaliBookingEventReactionAdapter",
-      "requiresHostIo": false
+      "export": "DenaliBookingEventReactionAdapter"
     },
     "opsManifest": {
       "module": "./bookings",

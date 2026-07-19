@@ -1,15 +1,8 @@
 import type {
-  ActiveDuplicateByEmailInput,
-  ActiveDuplicateByGuestLabelInput,
-  ActiveDuplicateByNationalIdInput,
-  ActiveDuplicateByUserInput,
   BookingListPageInput,
   BookingListPageOutput,
-  BookingOutboxRecord,
   BookingPaymentStatus,
   BookingRecord,
-  BookingTourChip,
-  BookingsSummaryCounts,
   CreateBookingRequest,
 } from "../bookings.types";
 
@@ -23,7 +16,6 @@ export interface BookingRepositoryPort {
   /** @deprecated Test/perf baseline only — delegates to listByTenantPage (cap 500). */
   listByTenant(tenantId: string): Promise<BookingRecord[]>;
   listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput>;
-  listBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<BookingRecord[]>;
   countBookingsBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<number>;
   countCancelledBookingsBySubmittedUser(
     tenantId: string,
@@ -39,17 +31,6 @@ export interface BookingRepositoryPort {
     submittedByUserId: string,
     limit: number
   ): Promise<BookingRecord[]>;
-  findActiveDuplicateByUser(input: ActiveDuplicateByUserInput): Promise<BookingRecord | null>;
-  findActiveDuplicateByGuestLabel(
-    input: ActiveDuplicateByGuestLabelInput
-  ): Promise<BookingRecord | null>;
-  findActiveDuplicateByEmail(input: ActiveDuplicateByEmailInput): Promise<BookingRecord | null>;
-  findActiveDuplicateByNationalId(
-    input: ActiveDuplicateByNationalIdInput
-  ): Promise<BookingRecord | null>;
-  countByListFilters(input: Omit<BookingListPageInput, "limit" | "cursor">): Promise<number>;
-  getBookingsSummaryCounts(tenantId: string, now: Date): Promise<BookingsSummaryCounts>;
-  listTourChipsByTenant(tenantId: string): Promise<readonly BookingTourChip[]>;
   sumApprovedPartySizeByTourIds(
     tenantId: string,
     tourIds: readonly string[]
@@ -66,28 +47,71 @@ export interface BookingRepositoryPort {
     readonly tenantId: string;
     readonly paymentStatus: BookingPaymentStatus;
   }): Promise<BookingRecord | null>;
-  listOutboxByAggregate(aggregateId: string): Promise<BookingOutboxRecord[]>;
+  /**
+   * Create pending in one tenant TX: tour advisory lock → re-sum approved → optional
+   * capacity assert → INSERT. Soft gate vs approved occupancy (pending does not consume seats).
+   */
   createBooking(input: {
     tenantId: string;
     submittedByUserId: string;
     body: CreateBookingRequest;
+    assertCapacityInTx?: (ctx: {
+      readonly tourId: string;
+      readonly partySize: number;
+      readonly occupiedApprovedPartySize: number;
+    }) => void;
   }): Promise<BookingRecord>;
+  /**
+   * Approve in one tenant TX: load → occupancy sum → optional capacity assert → status + outbox.
+   * {@link assertCapacityInTx} runs inside the TX after occupancy is re-read (fail-closed).
+   */
   approveWithOutbox(input: {
     bookingId: string;
     tenantId: string;
     outboxEvent: string;
     correlationId?: string;
+    assertCapacityInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+    }) => void;
   }): Promise<BookingRecord>;
   bulkApproveWithOutbox(input: {
     ids: readonly string[];
     tenantId: string;
     outboxEvent: string;
     maxBatch: number;
+    assertCapacityInTx?: (ctx: {
+      readonly booking: BookingRecord;
+      readonly occupiedApprovedPartySize: number;
+    }) => void;
   }): Promise<BookingRecord[]>;
+  /**
+   * pending|waitlisted → rejected. Persist status + optional rejectReason — **no outbox** (decision B).
+   * Intentionally silent; do not compare with cancel observability.
+   * @see docs/phase-20/p7/appendices/BOOKING_REJECT_LIFECYCLE_OWNERSHIP.md
+   */
   rejectBooking(input: {
     bookingId: string;
     tenantId: string;
     reason?: string;
+  }): Promise<BookingRecord>;
+  /**
+   * pending → waitlisted in one tenant TX + outbox (`registration.waitlisted`).
+   */
+  waitlistBooking(input: {
+    bookingId: string;
+    tenantId: string;
+    outboxEvent: string;
+  }): Promise<BookingRecord>;
+  /**
+   * pending|waitlisted|approved → cancelled in one tenant TX + outbox (`registration.cancelled`).
+   * Takes the same tour advisory lock as approve (occupancy-safe vs concurrent approve).
+   * Terminal sources (rejected|cancelled) → BookingStatusConflictError.
+   */
+  cancelBooking(input: {
+    bookingId: string;
+    tenantId: string;
+    outboxEvent: string;
   }): Promise<BookingRecord>;
   seedBooking(record: BookingRecord): void;
 }

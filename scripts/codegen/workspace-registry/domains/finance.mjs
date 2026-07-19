@@ -1,6 +1,237 @@
 import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
 
+/** @type {ReadonlySet<string>} */
+const FINANCE_EVENT_REACTION_CAPABILITIES = new Set(["durable-outbox", "ack-only", "none"]);
+
+/**
+ * Finance B2.3 — `supported` is product enablement only; money guarantees live in capabilities.
+ *
+ * - ledgerCapture: HTTP payment/receipt → durable journals via FinanceService + CoA policy
+ * - eventReactions: TourCreated reaction grade
+ *   - durable-outbox: host IO, claim/idempotency, ledger side effects
+ *   - ack-only: observable handler (returns true); no durable outbox/ledger claim
+ *   - none: no TourCreated finance reaction
+ * - ops: operator finance panels
+ *
+ * @param {object} m
+ */
+export function assertFinanceCapabilities(m) {
+  const finance = m.workspaceFinance;
+  if (finance === undefined || finance.supported !== true) {
+    return;
+  }
+  const caps = finance.capabilities;
+  if (caps === undefined || typeof caps !== "object") {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: workspaceFinance.supported requires capabilities { ledgerCapture, eventReactions, ops }`
+    );
+  }
+  if (typeof caps.ledgerCapture !== "boolean") {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: workspaceFinance.capabilities.ledgerCapture must be boolean`
+    );
+  }
+  if (!FINANCE_EVENT_REACTION_CAPABILITIES.has(caps.eventReactions)) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: workspaceFinance.capabilities.eventReactions must be durable-outbox|ack-only|none`
+    );
+  }
+  if (typeof caps.ops !== "boolean") {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: workspaceFinance.capabilities.ops must be boolean`
+    );
+  }
+
+  if (caps.ledgerCapture === true) {
+    if (finance.ledgerPolicy === undefined || finance.receiptDefaults === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.ledgerCapture=true requires ledgerPolicy and receiptDefaults`
+      );
+    }
+    if (finance.chartOfAccounts === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.ledgerCapture=true requires chartOfAccounts`
+      );
+    }
+  } else if (
+    finance.ledgerPolicy !== undefined ||
+    finance.receiptDefaults !== undefined ||
+    finance.chartOfAccounts !== undefined
+  ) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: ledgerPolicy/receiptDefaults/chartOfAccounts require capabilities.ledgerCapture=true`
+    );
+  }
+
+  const reaction = finance.eventReaction;
+  const requiresHostIo = reaction?.requiresHostIo === true;
+  if (caps.eventReactions === "durable-outbox") {
+    if (reaction === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.eventReactions=durable-outbox requires eventReaction`
+      );
+    }
+    if (!requiresHostIo) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.eventReactions=durable-outbox requires eventReaction.requiresHostIo=true`
+      );
+    }
+  } else if (caps.eventReactions === "ack-only") {
+    if (reaction === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.eventReactions=ack-only requires eventReaction`
+      );
+    }
+    if (requiresHostIo) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.eventReactions=ack-only forbids eventReaction.requiresHostIo=true (would hide weaker money path)`
+      );
+    }
+  } else if (reaction !== undefined) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: eventReaction declared but capabilities.eventReactions=none`
+    );
+  }
+
+  if (caps.ops === true) {
+    if (finance.opsManifest === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.ops=true requires opsManifest`
+      );
+    }
+  } else if (finance.opsManifest !== undefined) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: opsManifest requires capabilities.ops=true`
+    );
+  }
+}
+
+/**
+ * Explicit capability matrix for supported finance workspaces (Finance B2.3).
+ * `supported` alone must not be read as Denali-equivalent TourCreated money semantics.
+ */
+export function generateWorkspaceFinanceCapabilities(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const capabilityEntries = [];
+
+  for (const m of manifests) {
+    const finance = m.workspaceFinance;
+    if (finance === undefined || finance.supported !== true) {
+      continue;
+    }
+    assertFinanceCapabilities(m);
+    const tw = m.tourWrite;
+    if (tw === undefined || typeof tw.workspaceTypeExport !== "string") {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceFinance.supported requires tourWrite.workspaceTypeExport`
+      );
+    }
+    const caps = finance.capabilities;
+    importLines.add(`import { ${tw.workspaceTypeExport} } from "${m.package}";`);
+    capabilityEntries.push(`  [${tw.workspaceTypeExport}]: {
+    supported: true as const,
+    ledgerCapture: ${caps.ledgerCapture === true ? "true" : "false"} as const,
+    eventReactions: ${JSON.stringify(caps.eventReactions)} as const,
+    ops: ${caps.ops === true ? "true" : "false"} as const,
+  },`);
+  }
+
+  if (capabilityEntries.length === 0) {
+    return `${BANNER}
+export type FinanceEventReactionCapability = "durable-outbox" | "ack-only" | "none";
+
+export type FinanceWorkspaceCapabilities = {
+  readonly supported: true;
+  readonly ledgerCapture: boolean;
+  readonly eventReactions: FinanceEventReactionCapability;
+  readonly ops: boolean;
+};
+
+export const WORKSPACE_FINANCE_CAPABILITIES = {} as const;
+
+export function getFinanceWorkspaceCapabilities(
+  _workspaceType: string
+): FinanceWorkspaceCapabilities | null {
+  return null;
+}
+
+export function listFinanceCapableWorkspaceTypes(): readonly string[] {
+  return [];
+}
+
+export function financeWorkspaceHasCapability(
+  _workspaceType: string,
+  _capability: "ledgerCapture" | "ops"
+): boolean {
+  return false;
+}
+
+export function financeWorkspaceEventReactionCapability(
+  _workspaceType: string
+): FinanceEventReactionCapability | null {
+  return null;
+}
+`;
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export type FinanceEventReactionCapability = "durable-outbox" | "ack-only" | "none";
+
+export type FinanceWorkspaceCapabilities = {
+  readonly supported: true;
+  readonly ledgerCapture: boolean;
+  readonly eventReactions: FinanceEventReactionCapability;
+  readonly ops: boolean;
+};
+
+/**
+ * Capability matrix — product gate (\`supported\`) vs money-path grades.
+ * Denali: durable-outbox TourCreated. finance-ws5: ack-only TourCreated.
+ * Both may claim ledgerCapture for HTTP receipt/payment journals.
+ */
+export const WORKSPACE_FINANCE_CAPABILITIES = {
+${capabilityEntries.join("\n")}
+} as const satisfies Record<string, FinanceWorkspaceCapabilities>;
+
+export function getFinanceWorkspaceCapabilities(
+  workspaceType: string
+): FinanceWorkspaceCapabilities | null {
+  const key = workspaceType.trim();
+  if (key.length === 0) {
+    return null;
+  }
+  const caps = (WORKSPACE_FINANCE_CAPABILITIES as Record<string, FinanceWorkspaceCapabilities>)[key];
+  return caps ?? null;
+}
+
+export function listFinanceCapableWorkspaceTypes(): readonly string[] {
+  return Object.keys(WORKSPACE_FINANCE_CAPABILITIES).sort();
+}
+
+export function financeWorkspaceHasCapability(
+  workspaceType: string,
+  capability: "ledgerCapture" | "ops"
+): boolean {
+  const caps = getFinanceWorkspaceCapabilities(workspaceType);
+  if (caps === null) {
+    return false;
+  }
+  return caps[capability] === true;
+}
+
+export function financeWorkspaceEventReactionCapability(
+  workspaceType: string
+): FinanceEventReactionCapability | null {
+  return getFinanceWorkspaceCapabilities(workspaceType)?.eventReactions ?? null;
+}
+`;
+}
+
 export function generateWorkspaceFinanceBindings(manifests) {
   /** @type {Set<string>} */
   const importLines = new Set();
@@ -17,9 +248,25 @@ export function generateWorkspaceFinanceBindings(manifests) {
         `workspace.manifest.json ${m.id}: workspaceFinance.supported cannot be true when registryOnly is true`
       );
     }
+    assertFinanceCapabilities(m);
     if (finance.ledgerPolicy === undefined || finance.receiptDefaults === undefined) {
       throw new Error(
         `workspace.manifest.json ${m.id}: workspaceFinance.supported requires ledgerPolicy and receiptDefaults (Phase 1.10)`
+      );
+    }
+    if (finance.chartOfAccounts === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceFinance.supported requires chartOfAccounts`
+      );
+    }
+    if (finance.eventReaction === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceFinance.supported requires eventReaction (capability-graded TourCreated)`
+      );
+    }
+    if (finance.opsManifest === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceFinance.supported requires opsManifest`
       );
     }
     const tw = m.tourWrite;
@@ -117,7 +364,11 @@ export function generateWorkspaceFinanceOpsBindings(manifests) {
   const bindingEntries = [];
 
   for (const m of manifests) {
-    const ops = m.workspaceFinance?.opsManifest;
+    const finance = m.workspaceFinance;
+    if (finance === undefined || finance.supported !== true) {
+      continue;
+    }
+    const ops = finance.opsManifest;
     if (ops === undefined) {
       continue;
     }
@@ -318,6 +569,9 @@ export function generateWorkspaceFinanceEventReactionBindings(manifests) {
   const bindingEntries = [];
 
   for (const m of manifests) {
+    if (m.workspaceFinance?.supported === true) {
+      assertFinanceCapabilities(m);
+    }
     const reaction = m.workspaceFinance?.eventReaction;
     if (reaction === undefined) {
       continue;

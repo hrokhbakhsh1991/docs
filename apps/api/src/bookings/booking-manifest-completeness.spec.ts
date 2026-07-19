@@ -12,10 +12,10 @@ import {
   WORKSPACE_BOOKING_BINDINGS,
 } from "./workspace-booking-bindings.generated.ts";
 import {
-  isBookingDependencyBindingRegistered,
-  listBookingDependencyWorkspaceTypes,
+  resolveBookingWorkspaceDependencies,
+  WORKSPACE_BOOKING_DEPENDENCY_BINDINGS,
 } from "./booking-dependency-registry.ts";
-import { isBookingEventReactionBindingRegistered } from "./workspace-booking-event-reaction-bindings.generated.ts";
+import { WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS } from "./workspace-booking-event-reaction-bindings.generated.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(here, "../../../..");
@@ -42,7 +42,6 @@ type BookingManifestSlice = {
     readonly publicBooking?: ModuleExport;
     readonly capacityPolicy?: ModuleExport;
     readonly validationPolicy?: ModuleExport;
-    readonly opsCapability?: ModuleExport;
     readonly eventReaction?: ModuleExport & { readonly requiresHostIo?: boolean };
     readonly opsManifest?: OpsManifest;
   };
@@ -74,6 +73,10 @@ describe("BK-B1.8 booking manifest completeness", () => {
     const supported = manifests.filter((m) => m.workspaceBooking?.supported === true);
     assert.equal(supported.length, WORKSPACE_BOOKING_BINDINGS.length);
 
+    const expectedTypes = supported
+      .flatMap((m) => m.workspaceTypes.map((wt) => wt.trim().toLowerCase()))
+      .sort();
+
     for (const m of supported) {
       for (const wt of m.workspaceTypes) {
         assert.equal(
@@ -81,20 +84,15 @@ describe("BK-B1.8 booking manifest completeness", () => {
           true,
           `${m.id} workspaceType ${wt} should be booking-supported`
         );
-        assert.equal(
-          isBookingDependencyBindingRegistered(wt),
-          true,
+        assert.ok(
+          wt.trim().toLowerCase() in WORKSPACE_BOOKING_DEPENDENCY_BINDINGS,
           `${m.id} workspaceType ${wt} should have dependency bindings`
         );
+        assert.equal(resolveBookingWorkspaceDependencies(wt).workspaceType, wt.trim().toLowerCase());
       }
     }
 
-    assert.deepEqual(
-      listBookingDependencyWorkspaceTypes(),
-      supported
-        .flatMap((m) => m.workspaceTypes.map((wt) => wt.trim().toLowerCase()))
-        .sort()
-    );
+    assert.deepEqual(Object.keys(WORKSPACE_BOOKING_DEPENDENCY_BINDINGS).sort(), expectedTypes);
   });
 
   it("generated dependency / eventReaction / ops artifacts contain manifest export names", () => {
@@ -112,12 +110,7 @@ describe("BK-B1.8 booking manifest completeness", () => {
       const booking = m.workspaceBooking;
       if (booking === undefined) continue;
 
-      for (const field of [
-        "publicBooking",
-        "capacityPolicy",
-        "validationPolicy",
-        "opsCapability",
-      ] as const) {
+      for (const field of ["publicBooking", "capacityPolicy", "validationPolicy"] as const) {
         const block = booking[field];
         if (block?.export !== undefined) {
           assert.match(
@@ -127,6 +120,11 @@ describe("BK-B1.8 booking manifest completeness", () => {
           );
         }
       }
+      assert.doesNotMatch(
+        depsSrc,
+        /OpsCapability|createOpsCapability|opsCapability/,
+        "dependency bag must not carry hollow opsCapability tokens"
+      );
 
       if (booking.eventReaction?.export !== undefined) {
         assert.match(
@@ -135,7 +133,10 @@ describe("BK-B1.8 booking manifest completeness", () => {
           `${m.id}.eventReaction.export missing from event-reaction bindings`
         );
         for (const wt of m.workspaceTypes) {
-          assert.equal(isBookingEventReactionBindingRegistered(wt), true);
+          assert.ok(
+            wt.trim().toLowerCase() in WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS,
+            `${m.id} workspaceType ${wt} missing event reaction binding`
+          );
         }
       }
 

@@ -1,12 +1,299 @@
 import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
 
+/** Runtime-owned dependency bag (ops UI is opsManifest → web bindings, not this bag). */
 const BOOKING_DEPENDENCY_FIELDS = [
   "publicBooking",
   "capacityPolicy",
   "validationPolicy",
-  "opsCapability",
 ];
+
+/** @type {Readonly<Record<string, ReadonlySet<string>>>} */
+const BOOKING_CAPABILITY_MODES = {
+  publicCreate: new Set(["none", "create-pipeline"]),
+  operatorCreate: new Set(["none", "create-pipeline"]),
+  validation: new Set(["none", "base-shape"]),
+  capacity: new Set(["none", "booking-owned"]),
+  approval: new Set(["none", "host-lifecycle"]),
+  eventReaction: new Set(["none", "in-process"]),
+};
+
+const BOOKING_GRADED_CAPABILITY_KEYS = [
+  "publicCreate",
+  "operatorCreate",
+  "validation",
+  "capacity",
+  "approval",
+  "eventReaction",
+];
+
+/**
+ * Graded capability = executable `{ enabled, mode }` only.
+ * `owner` metadata is forbidden (decorative — never consumed at runtime).
+ *
+ * @param {unknown} entry
+ * @param {string} workspaceId
+ * @param {string} key
+ */
+function assertGradedCapabilityEntry(entry, workspaceId, key) {
+  if (entry === undefined || typeof entry !== "object" || entry === null) {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: workspaceBooking.capabilities.${key} must be { enabled, mode }`
+    );
+  }
+  const rec = /** @type {Record<string, unknown>} */ (entry);
+  if ("owner" in rec) {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: capabilities.${key}.owner is removed — declare only enabled+mode (no decorative ownership metadata)`
+    );
+  }
+  if ("level" in rec) {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: capabilities.${key}.level is not a capability field`
+    );
+  }
+  if (typeof rec.enabled !== "boolean") {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: workspaceBooking.capabilities.${key}.enabled must be boolean`
+    );
+  }
+  const modes = BOOKING_CAPABILITY_MODES[key];
+  if (typeof rec.mode !== "string" || !modes.has(rec.mode)) {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: workspaceBooking.capabilities.${key}.mode must be ${[...modes].join("|")}`
+    );
+  }
+  if (rec.enabled === true && rec.mode === "none") {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: capabilities.${key}.enabled=true forbids mode=none`
+    );
+  }
+  if (rec.enabled === false && rec.mode !== "none") {
+    throw new Error(
+      `workspace.manifest.json ${workspaceId}: capabilities.${key}.enabled=false requires mode=none`
+    );
+  }
+  return {
+    enabled: rec.enabled,
+    mode: /** @type {string} */ (rec.mode),
+  };
+}
+
+/**
+ * Booking B3.0 — `supported` is product enablement only; graded honesty lives in capabilities.
+ * Fails generation when claims exceed declared implementation bindings.
+ *
+ * @param {object} m
+ */
+export function assertBookingCapabilities(m) {
+  const booking = m.workspaceBooking;
+  if (booking === undefined || booking.supported !== true) {
+    return;
+  }
+  const caps = booking.capabilities;
+  if (caps === undefined || typeof caps !== "object" || caps === null) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: workspaceBooking.supported requires capabilities { enabled, publicCreate, operatorCreate, validation, capacity, approval, eventReaction }`
+    );
+  }
+  if (typeof caps.enabled !== "boolean") {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: workspaceBooking.capabilities.enabled must be boolean`
+    );
+  }
+  if (caps.enabled !== true) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: workspaceBooking.supported requires capabilities.enabled=true`
+    );
+  }
+  if ("ops" in caps) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: capabilities.ops removed — ops UI is opsManifest (web), not API graded matrix`
+    );
+  }
+
+  /** @type {Record<string, { enabled: boolean, mode: string }>} */
+  const graded = {};
+  for (const key of BOOKING_GRADED_CAPABILITY_KEYS) {
+    graded[key] = assertGradedCapabilityEntry(caps[key], m.id, key);
+  }
+
+  // --- anti-overclaim vs implementation evidence ---
+
+  const needsDepBag =
+    graded.publicCreate.enabled ||
+    graded.operatorCreate.enabled ||
+    graded.validation.enabled ||
+    (graded.capacity.enabled && graded.capacity.mode === "booking-owned");
+
+  if (needsDepBag) {
+    const missingDeps = BOOKING_DEPENDENCY_FIELDS.filter((field) => booking[field] === undefined);
+    if (missingDeps.length > 0) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: graded create/validation/capacity claims require ${BOOKING_DEPENDENCY_FIELDS.join(", ")} (missing: ${missingDeps.join(", ")})`
+      );
+    }
+  }
+
+  if (
+    graded.capacity.enabled &&
+    graded.capacity.mode === "booking-owned" &&
+    booking.capacityPolicy === undefined
+  ) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: capabilities.capacity.mode=booking-owned requires capacityPolicy`
+    );
+  }
+
+  if (graded.publicCreate.enabled && booking.publicBooking === undefined) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: capabilities.publicCreate requires publicBooking`
+    );
+  }
+  if (graded.validation.enabled && booking.validationPolicy === undefined) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: capabilities.validation requires validationPolicy`
+    );
+  }
+
+  const reaction = booking.eventReaction;
+  if (graded.eventReaction.mode === "in-process") {
+    if (reaction === undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.eventReaction.mode=in-process requires eventReaction`
+      );
+    }
+    if (reaction.requiresHostIo === true) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: in-process eventReaction forbids requiresHostIo=true`
+      );
+    }
+  } else if (reaction !== undefined) {
+    throw new Error(
+      `workspace.manifest.json ${m.id}: eventReaction declared but capabilities.eventReaction.mode=none`
+    );
+  }
+
+  // opsManifest is web-only (optional). No API graded ops capability.
+}
+
+/**
+ * Explicit capability matrix for supported booking workspaces (Booking B3.0).
+ * `supported` alone must not be read as Denali-equivalent booking depth.
+ */
+export function generateWorkspaceBookingCapabilities(manifests) {
+  /** @type {Set<string>} */
+  const importLines = new Set();
+  /** @type {string[]} */
+  const capabilityEntries = [];
+
+  for (const m of manifests) {
+    const booking = m.workspaceBooking;
+    if (booking === undefined || booking.supported !== true) {
+      continue;
+    }
+    assertBookingCapabilities(m);
+    const typeExport =
+      typeof booking.workspaceTypeExport === "string" && booking.workspaceTypeExport.length > 0
+        ? booking.workspaceTypeExport
+        : m.tourWrite?.workspaceTypeExport;
+    if (typeof typeExport !== "string" || typeExport.length === 0) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceBooking.supported requires workspaceBooking.workspaceTypeExport or tourWrite.workspaceTypeExport`
+      );
+    }
+    const caps = booking.capabilities;
+    importLines.add(`import { ${typeExport} } from "${m.package}";`);
+    const lines = BOOKING_GRADED_CAPABILITY_KEYS.map((key) => {
+      const entry = caps[key];
+      return `    ${key}: {
+      enabled: ${entry.enabled === true ? "true" : "false"} as const,
+      mode: ${JSON.stringify(entry.mode)} as const,
+    },`;
+    });
+    capabilityEntries.push(`  [${typeExport}]: {
+    enabled: true as const,
+${lines.join("\n")}
+  },`);
+  }
+
+  if (capabilityEntries.length === 0) {
+    return `${BANNER}
+export type BookingCreateCapabilityMode = "none" | "create-pipeline";
+export type BookingValidationCapabilityMode = "none" | "base-shape";
+export type BookingCapacityCapabilityMode = "none" | "booking-owned";
+export type BookingApprovalCapabilityMode = "none" | "host-lifecycle";
+export type BookingEventReactionCapabilityMode = "none" | "in-process";
+
+export type BookingGradedCapability<TMode extends string> = {
+  readonly enabled: boolean;
+  readonly mode: TMode;
+};
+
+export type BookingWorkspaceCapabilities = {
+  readonly enabled: true;
+  readonly publicCreate: BookingGradedCapability<BookingCreateCapabilityMode>;
+  readonly operatorCreate: BookingGradedCapability<BookingCreateCapabilityMode>;
+  readonly validation: BookingGradedCapability<BookingValidationCapabilityMode>;
+  readonly capacity: BookingGradedCapability<BookingCapacityCapabilityMode>;
+  readonly approval: BookingGradedCapability<BookingApprovalCapabilityMode>;
+  readonly eventReaction: BookingGradedCapability<BookingEventReactionCapabilityMode>;
+};
+
+export const WORKSPACE_BOOKING_CAPABILITIES = {} as const;
+
+export function getBookingWorkspaceCapabilities(
+  _workspaceType: string
+): BookingWorkspaceCapabilities | null {
+  return null;
+}
+`;
+  }
+
+  return `${BANNER}
+${[...importLines].join("\n")}
+
+export type BookingCreateCapabilityMode = "none" | "create-pipeline";
+export type BookingValidationCapabilityMode = "none" | "base-shape";
+export type BookingCapacityCapabilityMode = "none" | "booking-owned";
+export type BookingApprovalCapabilityMode = "none" | "host-lifecycle";
+export type BookingEventReactionCapabilityMode = "none" | "in-process";
+
+export type BookingGradedCapability<TMode extends string> = {
+  readonly enabled: boolean;
+  readonly mode: TMode;
+};
+
+export type BookingWorkspaceCapabilities = {
+  readonly enabled: true;
+  readonly publicCreate: BookingGradedCapability<BookingCreateCapabilityMode>;
+  readonly operatorCreate: BookingGradedCapability<BookingCreateCapabilityMode>;
+  readonly validation: BookingGradedCapability<BookingValidationCapabilityMode>;
+  readonly capacity: BookingGradedCapability<BookingCapacityCapabilityMode>;
+  readonly approval: BookingGradedCapability<BookingApprovalCapabilityMode>;
+  readonly eventReaction: BookingGradedCapability<BookingEventReactionCapabilityMode>;
+};
+
+/**
+ * Capability matrix — product gate (\`supported\`) vs graded booking depth.
+ * Graded entries are enabled+mode only (API runtime; ops UI is opsManifest → web).
+ */
+export const WORKSPACE_BOOKING_CAPABILITIES = {
+${capabilityEntries.join("\n")}
+} as const satisfies Record<string, BookingWorkspaceCapabilities>;
+
+export function getBookingWorkspaceCapabilities(
+  workspaceType: string
+): BookingWorkspaceCapabilities | null {
+  const key = workspaceType.trim();
+  if (key.length === 0) {
+    return null;
+  }
+  const caps = (WORKSPACE_BOOKING_CAPABILITIES as Record<string, BookingWorkspaceCapabilities>)[key];
+  return caps ?? null;
+}
+`;
+}
 
 /**
  * Phase B1.0 / B1.8 — Booking capability enablement bindings (Finance workspaceFinance mirror).
@@ -23,8 +310,12 @@ export function generateWorkspaceBookingBindings(manifests) {
     if (booking === undefined || booking.supported !== true) {
       continue;
     }
-    // registryOnly + supported: architecture fixtures (B1.3) — in capability bindings,
-    // excluded from product plugin loaders via productWorkspaceManifests.
+    assertBookingCapabilities(m);
+    if (booking.registryOnly === true) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceBooking.supported cannot be true when registryOnly is true (B1.3 — no decorative support claims)`
+      );
+    }
     const missingDeps = BOOKING_DEPENDENCY_FIELDS.filter((field) => booking[field] === undefined);
     if (missingDeps.length > 0) {
       throw new Error(
@@ -125,20 +416,27 @@ export function generateWorkspaceBookingDependencyBindings(manifests) {
     if (booking === undefined) {
       continue;
     }
+    if (booking.supported === true) {
+      assertBookingCapabilities(m);
+    }
     const present = BOOKING_DEPENDENCY_FIELDS.filter((field) => booking[field] !== undefined);
     if (present.length === 0) {
       continue;
     }
     if (present.length !== BOOKING_DEPENDENCY_FIELDS.length) {
       throw new Error(
-        `workspace.manifest.json ${m.id}: workspaceBooking publicBooking, capacityPolicy, validationPolicy, and opsCapability must be declared together (got: ${present.join(", ") || "none"})`
+        `workspace.manifest.json ${m.id}: workspaceBooking publicBooking, capacityPolicy, and validationPolicy must be declared together (got: ${present.join(", ") || "none"})`
+      );
+    }
+    if (booking.opsCapability !== undefined) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: workspaceBooking.opsCapability is removed — ops UI ownership is workspaceBooking.opsManifest (web bindings), not the API dependency bag`
       );
     }
 
     const publicBooking = assertBookingModuleExport(booking.publicBooking, m.id, "publicBooking");
     const capacity = assertBookingModuleExport(booking.capacityPolicy, m.id, "capacityPolicy");
     const validation = assertBookingModuleExport(booking.validationPolicy, m.id, "validationPolicy");
-    const ops = assertBookingModuleExport(booking.opsCapability, m.id, "opsCapability");
 
     const workspaceTypes = Array.isArray(m.workspaceTypes) ? m.workspaceTypes : [];
     if (workspaceTypes.length === 0) {
@@ -150,13 +448,11 @@ export function generateWorkspaceBookingDependencyBindings(manifests) {
       publicBooking: `${safeId}_PublicBooking`,
       capacityPolicy: `${safeId}_CapacityPolicy`,
       validationPolicy: `${safeId}_ValidationPolicy`,
-      opsCapability: `${safeId}_OpsCapability`,
     };
     const declared = [
       { field: "publicBooking", ...publicBooking, alias: aliases.publicBooking },
       { field: "capacityPolicy", ...capacity, alias: aliases.capacityPolicy },
       { field: "validationPolicy", ...validation, alias: aliases.validationPolicy },
-      { field: "opsCapability", ...ops, alias: aliases.opsCapability },
     ];
 
     /** @type {Map<string, { export: string, alias: string }[]>} */
@@ -184,7 +480,6 @@ export function generateWorkspaceBookingDependencyBindings(manifests) {
     createPublicBooking: () => new ${aliases.publicBooking}(),
     createCapacityPolicy: () => new ${aliases.capacityPolicy}(),
     createValidationPolicy: () => new ${aliases.validationPolicy}(),
-    createOpsCapability: () => new ${aliases.opsCapability}(),
   },`);
     }
   }
@@ -192,14 +487,6 @@ export function generateWorkspaceBookingDependencyBindings(manifests) {
   if (bindingEntries.length === 0) {
     return `${BANNER}
 export const WORKSPACE_BOOKING_DEPENDENCY_BINDINGS = {} as const;
-
-export function isBookingDependencyBindingRegistered(_workspaceType: string): boolean {
-  return false;
-}
-
-export function listBookingDependencyWorkspaceTypes(): readonly string[] {
-  return [];
-}
 
 export function resolveBookingWorkspaceDependencies(workspaceType: string): never {
   throw new Error(
@@ -215,14 +502,6 @@ ${[...new Set(importLines)].join("\n\n")}
 export const WORKSPACE_BOOKING_DEPENDENCY_BINDINGS = {
 ${bindingEntries.join("\n")}
 } as const;
-
-export function isBookingDependencyBindingRegistered(workspaceType: string): boolean {
-  return workspaceType.trim().toLowerCase() in WORKSPACE_BOOKING_DEPENDENCY_BINDINGS;
-}
-
-export function listBookingDependencyWorkspaceTypes(): readonly string[] {
-  return Object.keys(WORKSPACE_BOOKING_DEPENDENCY_BINDINGS).sort();
-}
 
 export function resolveBookingWorkspaceDependencies(workspaceType: string) {
   const normalized = workspaceType.trim().toLowerCase();
@@ -245,7 +524,6 @@ export function resolveBookingWorkspaceDependencies(workspaceType: string) {
     publicBooking: binding.createPublicBooking(),
     capacityPolicy: binding.createCapacityPolicy(),
     validationPolicy: binding.createValidationPolicy(),
-    opsCapability: binding.createOpsCapability(),
   };
 }
 `;
@@ -359,7 +637,6 @@ export function generateWorkspaceBookingEventReactionBindings(manifests) {
       continue;
     }
     const declared = assertBookingModuleExport(reaction, m.id, "eventReaction");
-    const requiresHostIo = reaction.requiresHostIo === true;
     const workspaceTypes = Array.isArray(m.workspaceTypes) ? m.workspaceTypes : [];
     if (workspaceTypes.length === 0) {
       throw new Error(`workspace.manifest.json ${m.id}: workspaceTypes required for eventReaction`);
@@ -374,27 +651,15 @@ export function generateWorkspaceBookingEventReactionBindings(manifests) {
         continue;
       }
       const key = JSON.stringify(wt.trim().toLowerCase());
-      if (requiresHostIo) {
-        bindingEntries.push(`  ${key}: {
-    requiresHostIo: true as const,
-    create: (hostIo: ConstructorParameters<typeof ${alias}>[0]) => new ${alias}(hostIo),
-  },`);
-      } else {
-        bindingEntries.push(`  ${key}: {
-    requiresHostIo: false as const,
+      bindingEntries.push(`  ${key}: {
     create: () => new ${alias}(),
   },`);
-      }
     }
   }
 
   if (bindingEntries.length === 0) {
     return `${BANNER}
 export const WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS = {} as const;
-
-export function isBookingEventReactionBindingRegistered(_workspaceType: string): boolean {
-  return false;
-}
 `;
   }
 
@@ -404,9 +669,5 @@ ${[...new Set(importLines)].join("\n\n")}
 export const WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS = {
 ${bindingEntries.join("\n")}
 } as const;
-
-export function isBookingEventReactionBindingRegistered(workspaceType: string): boolean {
-  return workspaceType.trim().toLowerCase() in WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS;
-}
 `;
 }

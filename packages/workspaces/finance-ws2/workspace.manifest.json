@@ -23,11 +23,6 @@
     "chartOfAccounts": {
       "module": "./finance",
       "export": "FINANCE_WS2_LEDGER_ACCOUNTS"
-    },
-    "eventReaction": {
-      "module": "./finance",
-      "export": "FinanceWs2TourCreatedFinanceReactionAdapter",
-      "requiresHostIo": false
     }
   }
 }

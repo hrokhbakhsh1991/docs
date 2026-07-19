@@ -5,4 +5,3 @@ export {
 } from "./chart-of-accounts";
 export { FinanceWs2LedgerPolicyAdapter } from "./ledger-policy.adapter";
 export { FinanceWs2ReceiptDefaultsAdapter } from "./receipt-defaults.adapter";
-export { FinanceWs2TourCreatedFinanceReactionAdapter } from "./tour-created-finance-reaction.adapter";

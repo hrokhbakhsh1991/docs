@@ -33,6 +33,8 @@ export type BookingListItem = {
   readonly departureAt: string;
   readonly submittedAt: string;
   readonly registrationIntake?: Readonly<Record<string, unknown>>;
+  /** Present when status=rejected and an ops reason was persisted (additive / optional). */
+  readonly rejectReason?: string;
 };
 
 export type BookingsListResponse = {
@@ -82,10 +84,23 @@ export type ApproveBookingResponse = {
 };
 
 export type RejectBookingRequest = {
+  /** Optional ops reject reason — persisted as `rejectReason` when non-empty after trim. */
   readonly reason?: string;
 };
 
 export type RejectBookingResponse = {
+  readonly id: string;
+  readonly status: BookingStatus;
+  /** Echo of persisted reject reason when provided (additive / optional). */
+  readonly rejectReason?: string;
+};
+
+export type WaitlistBookingResponse = {
+  readonly id: string;
+  readonly status: BookingStatus;
+};
+
+export type CancelBookingResponse = {
   readonly id: string;
   readonly status: BookingStatus;
 };

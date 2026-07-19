@@ -65,10 +65,21 @@ if (!resolved) {
   process.exit(1);
 }
 
+/**
+ * P0 — Production DB integrity:
+ * Runtime app role (`app_tour`) is NOSUPERUSER / NOBYPASSRLS and lacks CREATE on
+ * schema public. DDL migrations (CREATE TABLE / ALTER owner-owned tables) must run
+ * as the table owner (postgres) via DATABASE_URL_ADMIN.
+ * Falling back to DATABASE_URL previously left a failed migration row that blocked
+ * all later deploys (including Booking reject_reason).
+ */
 if (resolved.source === "DATABASE_URL") {
-  console.warn(
-    "db:migrate:deploy: WARN — DATABASE_URL_ADMIN unset; using DATABASE_URL (owner role required for RLS DDL)"
+  console.error(
+    "db:migrate:deploy: FAIL — DATABASE_URL_ADMIN is required for migrate deploy.\n" +
+      "  App role cannot CREATE/ALTER owner-owned tables (permission denied for schema public).\n" +
+      "  Set DATABASE_URL_ADMIN to the Postgres owner URL (see .env.local.example)."
   );
+  process.exit(1);
 }
 
 console.log(

@@ -12,7 +12,6 @@ authority:
 constraints:
   - NO runtime behavior change
   - Replace only where safe (codegen completeness + thin registries + proofs)
-  - Keep BOOT_BOOKING_WORKSPACE_TYPE and denali tenant fallback (platform-owned)
   - Do not remove Denali plugin registrationOps (same SoT object as opsManifest)
 ```
 
@@ -22,8 +21,7 @@ constraints:
 
 | Location | Finding | Action |
 | -------- | ------- | ------ |
-| `BOOT_BOOKING_WORKSPACE_TYPE = "denali"` | Boot / legacy composition default | **Keep** — Finance keeps `BOOT_FINANCE_WORKSPACE_TYPE` |
-| Tenant unregistered type → denali fallback (B1.5) | Product safety net | **Keep** — not a capability registry |
+| ~~`BOOT_BOOKING_WORKSPACE_TYPE`~~ | Removed with tenant-less `resolveBookingsService()` | **Deleted** — public entry is tenant-only |
 | Specs naming `"denali"` / `"booking-ws2"` | Fixture assertions | **Keep** — tests may hardcode expected ids |
 
 ### Manual registries
@@ -36,27 +34,28 @@ constraints:
 
 ### Duplicated capability declarations
 
-| Pair | Why both exist | Action |
-| ---- | -------------- | ------ |
-| `opsCapability` (deps) vs `opsManifest` (web UI) | Registration token vs UI metadata (Finance ledger vs opsManifest) | **Keep both** — different consumers |
+| Pair | Why both existed | Action |
+| ---- | ---------------- | ------ |
+| `opsCapability` (deps) vs `opsManifest` (web UI) | Hollow API token vs real UI metadata | **Removed `opsCapability`** — see `BOOKING_DEPENDENCY_REGISTRY_AUDIT` |
 | Plugin `registrationOps.manifest` vs `workspaceBooking.opsManifest` | Same object (`DEFAULT_BOOKING_OPS_MANIFEST === denaliRegistrationOpsManifest`) | **Keep** — removing plugin surface is unsafe (SDK contract) |
 
 ## Capability map (SoT = `workspace.manifest.json` → codegen)
 
 | Capability | Manifest field | Generated artifact | Runtime |
 | ---------- | -------------- | ------------------ | ------- |
-| Enablement | `supported` (+ optional `defaultModuleEnabledWhenUnset`, `registryOnly`) | `workspace-booking-bindings.generated.ts` | `isBookingSupportedWorkspace` |
-| Public / capacity / validation / ops token | `publicBooking`, `capacityPolicy`, `validationPolicy`, `opsCapability` | `workspace-booking-dependency-bindings.generated.ts` | `resolveBookingWorkspaceDependencies` via thin registry |
-| Event names / hooks | optional `eventReaction` | `workspace-booking-event-reaction-bindings.generated.ts` | `resolveWorkspaceBookingEventReaction` |
-| Ops UI | optional `opsManifest` | `workspace-booking-ops-bindings.generated.ts` (web) | `resolveBookingOpsCapabilityForHub` |
+| Enablement | `supported` (+ optional `defaultModuleEnabledWhenUnset`) | `workspace-booking-bindings.generated.ts` | `isBookingSupportedWorkspace` |
+| Public / capacity / validation | `publicBooking`, `capacityPolicy`, `validationPolicy` | `workspace-booking-dependency-bindings.generated.ts` | Injected into `BookingsService` via composition |
+| Event names / hooks | `eventReaction` | `workspace-booking-event-reaction-bindings.generated.ts` | `resolveWorkspaceBookingEventReaction` → approve path |
+| Ops UI | `opsManifest` | `workspace-booking-ops-bindings.generated.ts` (web) | `resolveBookingOpsCapabilityForHub` |
 
-## Codegen completeness (Phase B1.8)
+## Codegen completeness (Phase B1.8 + audit)
 
 When `workspaceBooking.supported === true`:
 
-- Require **all four** dependency fields (`publicBooking`, `capacityPolicy`, `validationPolicy`, `opsCapability`) — Finance `supported` → ledger+defaults mirror.
-- `registryOnly: true` **may** combine with `supported: true` (Booking fixtures; unlike Finance gate).
-- `eventReaction` / `opsManifest` remain **optional**.
+- Require **three** dependency fields (`publicBooking`, `capacityPolicy`, `validationPolicy`).
+- `workspaceBooking.opsCapability` is **rejected** by codegen (dead token).
+- `eventReaction` / `opsManifest` remain optional at manifest level but required in practice for product workspaces.
+- `registryOnly: true` cannot combine with `supported: true` (B1.3).
 
 ## Explicitly NOT changed (runtime)
 

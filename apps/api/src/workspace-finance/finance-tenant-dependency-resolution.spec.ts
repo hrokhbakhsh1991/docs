@@ -125,7 +125,14 @@ describe("finance-tenant-dependency-resolution.spec.ts — Phase 1.5 C1", { conc
     assert.equal(resolveBootFinanceWorkspaceType(), DENALI);
     assert.ok(resolveFinanceLedgerPolicy(DENALI) instanceof DenaliFinanceLedgerPolicyAdapter);
     assert.equal(typeof service.getSummary, "function");
-    assert.deepEqual(listRegisteredFinanceWorkspaceTypes(), [DENALI, WS2].sort());
+    assert.deepEqual(listRegisteredFinanceWorkspaceTypes(), [
+      DENALI,
+      WS2,
+      "finance-ws3",
+      "finance-ws4",
+      "finance-ws5",
+      "finance-ws6",
+    ].sort());
   });
 
   it("FIN-P1.5-07 resolveLazyFinanceService preserves Denali boot composition", async () => {

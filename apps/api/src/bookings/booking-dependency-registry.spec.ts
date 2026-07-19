@@ -9,8 +9,6 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
-  isBookingDependencyBindingRegistered,
-  listBookingDependencyWorkspaceTypes,
   resolveBookingWorkspaceDependencies,
   WORKSPACE_BOOKING_DEPENDENCY_BINDINGS,
 } from "./booking-dependency-registry.ts";
@@ -23,25 +21,41 @@ function read(rel: string): string {
 
 describe("BK-B1.1 booking dependency registry", () => {
   it("generated bindings register denali and booking-ws2", () => {
-    assert.equal(isBookingDependencyBindingRegistered("denali"), true);
-    assert.equal(isBookingDependencyBindingRegistered("DENALI"), true);
-    assert.equal(isBookingDependencyBindingRegistered("booking-ws2"), true);
-    assert.equal(isBookingDependencyBindingRegistered("urban"), false);
-    assert.deepEqual(listBookingDependencyWorkspaceTypes(), ["booking-ws2", "denali"]);
-    assert.equal(Object.keys(WORKSPACE_BOOKING_DEPENDENCY_BINDINGS).length, 2);
+    assert.deepEqual(Object.keys(WORKSPACE_BOOKING_DEPENDENCY_BINDINGS).sort(), [
+      "booking-ws2",
+      "denali",
+    ]);
+    assert.equal(resolveBookingWorkspaceDependencies("denali").workspaceType, "denali");
+    assert.equal(resolveBookingWorkspaceDependencies("DENALI").workspaceType, "denali");
+    assert.equal(
+      resolveBookingWorkspaceDependencies("booking-ws2").workspaceType,
+      "booking-ws2"
+    );
+    assert.throws(
+      () => resolveBookingWorkspaceDependencies("urban"),
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message.startsWith("BOOKING_WORKSPACE_DEPENDENCIES_UNSUPPORTED:")
+    );
   });
 
-  it("resolveBookingWorkspaceDependencies returns Denali registration adapters", () => {
+  it("resolveBookingWorkspaceDependencies returns runtime-owned adapters (no opsCapability)", () => {
     const deps = resolveBookingWorkspaceDependencies("denali");
     assert.equal(deps.workspaceType, "denali");
     assert.equal(deps.publicBooking.constructor.name, "DenaliBookingPublicAdapter");
     assert.equal(deps.capacityPolicy.constructor.name, "DenaliBookingCapacityPolicyAdapter");
     assert.equal(deps.validationPolicy.constructor.name, "DenaliBookingValidationPolicyAdapter");
-    assert.equal(deps.opsCapability.constructor.name, "DenaliBookingOpsCapabilityAdapter");
     assert.equal(deps.publicBooking.kind, "denali-booking-public");
     assert.equal(deps.capacityPolicy.kind, "denali-booking-capacity-policy");
     assert.equal(deps.validationPolicy.kind, "denali-booking-validation-policy");
-    assert.equal(deps.opsCapability.kind, "denali-booking-ops-capability");
+    assert.equal(typeof deps.validationPolicy.assertCreateValid, "function");
+    assert.equal(typeof deps.capacityPolicy.assertCreateCapacity, "function");
+    assert.equal(deps.publicBooking.supportsPublicCreate(), true);
+    assert.equal(
+      "opsCapability" in deps,
+      false,
+      "opsCapability must not appear in dependency bag (opsManifest owns ops UI)"
+    );
   });
 
   it("unknown / empty workspaceType fails closed", () => {
@@ -66,7 +80,7 @@ describe("BK-B1.1 booking dependency registry", () => {
     assert.match(src, /DenaliBookingPublicAdapter/);
     assert.match(src, /DenaliBookingCapacityPolicyAdapter/);
     assert.match(src, /DenaliBookingValidationPolicyAdapter/);
-    assert.match(src, /DenaliBookingOpsCapabilityAdapter/);
+    assert.doesNotMatch(src, /OpsCapability/);
     assert.match(src, /@app-tour\/workspace-denali\/host\/booking/);
     assert.doesNotMatch(src, /workspaceType === ["']denali["']/);
   });
@@ -77,7 +91,7 @@ describe("BK-B1.1 booking dependency registry", () => {
     assert.match(src, /workspace-booking-dependency-bindings\.generated/);
   });
 
-  it("BookingsService has no dependency registry / adapter imports", () => {
+  it("BookingsService uses policy ports only (no registry / workspace adapter imports)", () => {
     const src = read("bookings.service.ts");
     assert.doesNotMatch(src, /workspace-booking-dependency-bindings/);
     assert.doesNotMatch(src, /booking-dependency-registry/);
@@ -85,6 +99,12 @@ describe("BK-B1.1 booking dependency registry", () => {
     assert.doesNotMatch(src, /WORKSPACE_BOOKING_DEPENDENCY_BINDINGS/);
     assert.doesNotMatch(src, /DenaliBookingCapacityPolicyAdapter/);
     assert.doesNotMatch(src, /DenaliBookingValidationPolicyAdapter/);
+    assert.match(src, /validationPolicy/);
+    assert.match(src, /capacityPolicy/);
+    assert.match(src, /publicBooking/);
+    assert.match(src, /assertCreateValid/);
+    assert.match(src, /assertCreateCapacity/);
+    assert.match(src, /supportsPublicCreate/);
   });
 
   it("repositories have no dependency registry wiring", () => {

@@ -29,12 +29,24 @@ function walkTsFiles(dir: string): string[] {
 }
 
 describe("BK-B1.4 BookingPublicPort neutrality", () => {
-  it("Booking application sources have no DenaliPublicBookingPort or workspace-denali imports", () => {
+  it("Booking application sources have no DenaliPublicBookingPort or denali imports", () => {
     for (const file of walkTsFiles(here)) {
       const src = readFileSync(file, "utf8");
       assert.doesNotMatch(src, /DenaliPublicBookingPort/);
       assert.doesNotMatch(src, /DenaliPublicBookingCreate/);
       assert.doesNotMatch(src, /@app-tour\/workspace-denali/);
+      // Import statements must not pull Denali packages/types (workspace type ids elsewhere OK).
+      for (const line of src.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("import ")) {
+          continue;
+        }
+        assert.doesNotMatch(
+          trimmed,
+          /denali/i,
+          `${file} import must not reference denali: ${trimmed}`
+        );
+      }
     }
   });
 
@@ -48,16 +60,28 @@ describe("BK-B1.4 BookingPublicPort neutrality", () => {
     assert.equal(typeof port.sumApprovedPartySizeByTourIds, "function");
   });
 
-  it("contracts package exports BookingPublicPort (SoT)", () => {
+  it("contracts package exports BookingPublicPort (SoT); Denali re-exports contracts", () => {
     const contractsPort = readFileSync(
       join(here, "../../../../packages/booking-http-contracts/src/booking-public.port.ts"),
       "utf8"
     );
     assert.match(contractsPort, /export interface BookingPublicPort/);
     assert.doesNotMatch(contractsPort, /DenaliPublicBookingPort/);
+
+    const denaliPort = readFileSync(
+      join(
+        here,
+        "../../../../packages/workspaces/denali/src/http/ports/public-booking.port.ts"
+      ),
+      "utf8"
+    );
+    assert.match(denaliPort, /@app-tour\/booking-http-contracts/);
+    assert.match(denaliPort, /BookingPublicPort/);
+    assert.doesNotMatch(denaliPort, /DenaliPublicBookingPort/);
+    assert.doesNotMatch(denaliPort, /export interface BookingPublicPort/);
   });
 
-  it("Denali product host resolves via createHostBookingPublicAdapter", () => {
+  it("host composition owns adapter selection; Denali is consumer not port owner", () => {
     const host = readFileSync(
       join(here, "../http/configure-workspace-denali-product-http-host.ts"),
       "utf8"
@@ -65,5 +89,22 @@ describe("BK-B1.4 BookingPublicPort neutrality", () => {
     assert.match(host, /createHostBookingPublicAdapter/);
     assert.match(host, /BookingPublicPort/);
     assert.doesNotMatch(host, /DenaliPublicBookingPort/);
+    assert.match(host, /function resolvePublicBookingPort/);
+
+    const adapterSrc = readFileSync(
+      join(here, "infrastructure/host-booking-public.adapter.ts"),
+      "utf8"
+    );
+    assert.match(adapterSrc, /export function createHostBookingPublicAdapter/);
+    assert.match(adapterSrc, /BookingPublicPort/);
+    // Single host implementation — no second BookingPublicPort factory in bookings/.
+    let factoryCount = 0;
+    for (const file of walkTsFiles(here)) {
+      const src = readFileSync(file, "utf8");
+      if (/createHostBookingPublicAdapter|implements BookingPublicPort/.test(src)) {
+        factoryCount += 1;
+      }
+    }
+    assert.equal(factoryCount, 1, "exactly one BookingPublicPort host adapter factory");
   });
 });

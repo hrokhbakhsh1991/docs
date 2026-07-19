@@ -19,7 +19,7 @@ constraints:
 | Layer | Responsibility |
 | ----- | -------------- |
 | Application | `BookingsService` — constructor deps only; no Service Locator |
-| Host composition | `resolveBookingsService()` wires repo factory + Host authz/clock adapters |
+| Host composition | `resolveBookingsServiceForTenant(tenantId)` wires repo + Host adapters + workspace policies |
 | HTTP / Denali host | Unchanged imports of façade functions (`listBookings`, …) |
 
 ## Injected ports
@@ -30,7 +30,9 @@ constraints:
 
 ## Host composition
 
-`resolveBookingsService()` in `create-bookings-service.ts` wires `getBookingsRepository()` + `HostBookingAuthorizationAdapter` + `HostBookingClockAdapter`. HTTP façades call the composed service; the application class does not.
+`create-bookings-service.ts` resolves `tenantId → workspaceType → BookingRuntime` via
+`resolveBookingsServiceForTenant`. There is **no** tenant-less `resolveBookingsService()` boot path.
+HTTP façades call the composed service; the application class does not.
 
 ## Explicitly unchanged
 

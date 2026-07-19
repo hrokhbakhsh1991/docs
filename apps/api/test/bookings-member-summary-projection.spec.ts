@@ -28,17 +28,12 @@ describe("bookings-member-summary-projection.spec.ts", () => {
     assert.equal(MAX_MEMBER_BOOKINGS_RECENT_TRIPS, 10);
   });
 
-  it("BK-MEM-02 prisma listByTenant and listBySubmittedUser are bounded", () => {
+  it("BK-MEM-02 prisma listByTenant is bounded", () => {
     const source = fs.readFileSync(PRISMA_BOOKINGS, "utf8");
     const listByTenant = source.match(/async listByTenant\([\s\S]*?\n  \}/)?.[0];
     assert.ok(listByTenant !== undefined);
     assert.match(listByTenant, /listByTenantPage\s*\(/);
     assert.match(listByTenant, /MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED/);
-
-    const listByUser = source.match(/async listBySubmittedUser\([\s\S]*?\n  \}/)?.[0];
-    assert.ok(listByUser !== undefined);
-    assert.match(listByUser, /take:\s*MAX_MEMBER_BOOKINGS_LIST_CAP/);
-    assert.match(listByUser, /orderBy:\s*\[\{\s*departureAt:\s*"desc"\s*\}/);
   });
 
   it("BK-MEM-03 getWorkspaceUserBookingSummary uses counts + recent list", () => {

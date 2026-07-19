@@ -4,6 +4,7 @@ export {
   financeWs5BookingWalletId,
   FinanceWs5LedgerPolicyAdapter,
   FinanceWs5ReceiptDefaultsAdapter,
+  FinanceWs5TourCreatedFinanceReactionAdapter,
   DEFAULT_FINANCE_OPS_MANIFEST,
   resolveFinanceOpsManifestFromTheme,
 } from "./finance";

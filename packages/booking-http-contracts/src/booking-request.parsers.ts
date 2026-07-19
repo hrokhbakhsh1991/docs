@@ -106,3 +106,12 @@ export function parseBookingMemberReceiptJsonBody(
   const note = typeof record.note === "string" ? record.note.trim() : undefined;
   return note !== undefined && note.length > 0 ? { fileKey, note } : { fileKey };
 }
+
+/**
+ * Member receipt POST content-type gate (bit-identical to prior routes helper).
+ * Empty Content-Type is treated as JSON (legacy clients).
+ */
+export function isBookingJsonReceiptContentType(contentType: string): boolean {
+  const normalized = contentType.trim().toLowerCase();
+  return normalized.includes("application/json") || normalized.length === 0;
+}

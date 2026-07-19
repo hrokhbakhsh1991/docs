@@ -1,82 +1,168 @@
 /**
- * Phase B1.0 — Booking capability gate uses generated bindings only.
- * Gate APIs exist; not wired into service / routes / repositories (runtime unchanged).
+ * Phase B2.1 — Booking capability gate is wired into composition entry points.
+ * Behavioral: unsupported / unknown fail closed; supported Denali still works.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { after, before, beforeEach, describe, it } from "node:test";
 
+import { OPERATOR_SMOKE } from "../../test/fixtures/operator-smoke-e2e-tenant.ts";
+import { BookingWorkspaceUnsupportedError } from "./bookings.errors.ts";
+import { resetBookingsRepositoryForTests } from "./create-bookings-repository.ts";
 import {
-  defaultBookingEnabledWhenModulesUnset,
+  createBooking,
+  createPublicGuestBooking,
+  getOrCreateBookingRuntimeForWorkspaceType,
+  resetBookingsServiceCompositionForTests,
+  resolveBookingsServiceForTenant,
+} from "./create-bookings-service.ts";
+import { resolveBookingWorkspaceTypeForTenant } from "./resolve-booking-workspace-type-for-tenant.ts";
+import {
   isBookingSupportedWorkspace,
   WORKSPACE_BOOKING_BINDINGS,
 } from "./workspace-booking-bindings.generated.ts";
 
-const here = dirname(fileURLToPath(import.meta.url));
+const DENALI = "denali";
+const DENALI_TENANT_ID = OPERATOR_SMOKE.tenantId;
+const URBAN_TENANT_ID = "00000000-0000-4000-8000-000000000004";
+const UNKNOWN_TENANT_ID = "00000000-0000-4000-8000-000000009999";
 
-function read(rel: string): string {
-  return readFileSync(join(here, rel), "utf8");
-}
+const denaliOpsAuth = {
+  tenantId: DENALI_TENANT_ID,
+  userId: OPERATOR_SMOKE.adminUserId,
+  role: "admin" as const,
+  status: "ACTIVE" as const,
+};
 
-describe("BK-B1.0 booking capability gate", () => {
-  it("generated bindings support denali + booking-ws2; reject urban / unknown", () => {
+const urbanOpsAuth = {
+  tenantId: URBAN_TENANT_ID,
+  userId: "00000000-0000-4000-8000-000000000201",
+  role: "admin" as const,
+  status: "ACTIVE" as const,
+};
+
+const sampleCreateBody = {
+  tourId: OPERATOR_SMOKE.seedTourId,
+  tourTitle: "B2.1 gate tour",
+  guestLabel: "Gate Guest",
+  guestEmail: "gate-guest@example.com",
+  guestPhone: "+15550009999",
+  partySize: 1,
+  departureAt: "2026-08-01T10:00:00.000Z",
+  registrationIntake: { tourCapacityMax: 10 },
+};
+
+describe("BK-B2.1 booking capability gate (runtime)", { concurrency: false }, () => {
+  const priorStorageDriver = process.env.STORAGE_DRIVER;
+  const priorDatabaseUrl = process.env.DATABASE_URL;
+
+  before(() => {
+    process.env.STORAGE_DRIVER = "memory";
+    delete process.env.DATABASE_URL;
+  });
+
+  after(() => {
+    if (priorStorageDriver === undefined) {
+      delete process.env.STORAGE_DRIVER;
+    } else {
+      process.env.STORAGE_DRIVER = priorStorageDriver;
+    }
+    if (priorDatabaseUrl === undefined) {
+      delete process.env.DATABASE_URL;
+    } else {
+      process.env.DATABASE_URL = priorDatabaseUrl;
+    }
+  });
+
+  beforeEach(() => {
+    resetBookingsRepositoryForTests();
+    resetBookingsServiceCompositionForTests();
+  });
+
+  it("generated bindings support denali + booking-ws2; reject urban", () => {
     assert.equal(isBookingSupportedWorkspace("denali"), true);
     assert.equal(isBookingSupportedWorkspace("booking-ws2"), true);
     assert.equal(isBookingSupportedWorkspace("urban"), false);
-    assert.equal(isBookingSupportedWorkspace("finance-ws3"), false);
-    assert.equal(defaultBookingEnabledWhenModulesUnset("denali"), true);
-    assert.equal(defaultBookingEnabledWhenModulesUnset("booking-ws2"), false);
-    assert.equal(defaultBookingEnabledWhenModulesUnset("urban"), false);
-  });
-
-  it("WORKSPACE_BOOKING_BINDINGS lists denali + booking-ws2", () => {
+    assert.equal(isBookingSupportedWorkspace("starter"), false);
     const types = WORKSPACE_BOOKING_BINDINGS.map((b) => b.workspaceType).sort();
     assert.deepEqual(types, ["booking-ws2", "denali"]);
-    const denali = WORKSPACE_BOOKING_BINDINGS.find((b) => b.workspaceType === "denali");
-    assert.equal(denali?.defaultModuleEnabledWhenUnset, true);
   });
 
-  it("generated file is marked AUTO-GENERATED and exports gate APIs", () => {
-    const src = read("workspace-booking-bindings.generated.ts");
-    assert.match(src, /AUTO-GENERATED/);
-    assert.match(src, /export function isBookingSupportedWorkspace/);
-    assert.match(src, /export function defaultBookingEnabledWhenModulesUnset/);
-    assert.doesNotMatch(src, /\[["']denali["']\]/);
-    assert.doesNotMatch(src, /workspaceType === ["']denali["']/);
+  it("A) unsupported workspace cannot create booking (ops + public)", async () => {
+    await assert.rejects(
+      () => createBooking(urbanOpsAuth, sampleCreateBody),
+      (error: unknown) =>
+        error instanceof BookingWorkspaceUnsupportedError &&
+        error.message.includes("workspaceType=urban")
+    );
+    await assert.rejects(
+      () =>
+        createPublicGuestBooking(
+          {
+            tenantId: URBAN_TENANT_ID,
+            userId: urbanOpsAuth.userId,
+            role: "none",
+            status: "ACTIVE",
+          },
+          sampleCreateBody
+        ),
+      (error: unknown) => error instanceof BookingWorkspaceUnsupportedError
+    );
   });
 
-  it("BookingsService has no capability-gate wiring (runtime unchanged)", () => {
-    const src = read("bookings.service.ts");
-    assert.doesNotMatch(src, /workspace-booking-bindings/);
-    assert.doesNotMatch(src, /isBookingSupportedWorkspace/);
-    assert.doesNotMatch(src, /defaultBookingEnabledWhenModulesUnset/);
-    assert.doesNotMatch(src, /WORKSPACE_BOOKING_BINDINGS/);
-    assert.doesNotMatch(src, /validBookingWorkspaces/);
-    assert.doesNotMatch(src, /workspaceType === ["']denali["']/);
+  it("B) unknown / unregistered workspace cannot fallback to Denali", async () => {
+    await assert.rejects(
+      () => resolveBookingWorkspaceTypeForTenant(URBAN_TENANT_ID),
+      (error: unknown) =>
+        error instanceof BookingWorkspaceUnsupportedError &&
+        error.message.includes("workspaceType=urban")
+    );
+    await assert.rejects(
+      () => resolveBookingsServiceForTenant(URBAN_TENANT_ID),
+      (error: unknown) => error instanceof BookingWorkspaceUnsupportedError
+    );
+    assert.throws(
+      () => getOrCreateBookingRuntimeForWorkspaceType("urban"),
+      (error: unknown) =>
+        error instanceof BookingWorkspaceUnsupportedError &&
+        error.message.includes("workspaceType=urban")
+    );
+    assert.throws(
+      () => getOrCreateBookingRuntimeForWorkspaceType("starter"),
+      (error: unknown) =>
+        error instanceof BookingWorkspaceUnsupportedError &&
+        error.message.includes("workspaceType=starter")
+    );
+    // Unknown tenant resolves to starter (tenant registry miss) — still fail-closed, never denali.
+    await assert.rejects(
+      () => resolveBookingWorkspaceTypeForTenant(UNKNOWN_TENANT_ID),
+      (error: unknown) =>
+        error instanceof BookingWorkspaceUnsupportedError &&
+        !error.message.includes("denali") &&
+        error.message.includes("workspaceType=starter")
+    );
   });
 
-  it("repositories have no capability-gate wiring", () => {
-    for (const rel of [
-      "prisma-bookings.repository.ts",
-      "in-memory-bookings.repository.ts",
-      "create-bookings-repository.ts",
-      "ports/booking-repository.port.ts",
-    ]) {
-      const src = read(rel);
-      assert.doesNotMatch(src, /workspace-booking-bindings/);
-      assert.doesNotMatch(src, /isBookingSupportedWorkspace/);
-      assert.doesNotMatch(src, /defaultBookingEnabledWhenModulesUnset/);
-    }
-  });
-
-  it("routes / composition façades have no capability-gate wiring", () => {
-    for (const rel of ["bookings.routes.ts", "create-bookings-service.ts"]) {
-      const src = read(rel);
-      assert.doesNotMatch(src, /workspace-booking-bindings/);
-      assert.doesNotMatch(src, /isBookingSupportedWorkspace/);
-      assert.doesNotMatch(src, /defaultBookingEnabledWhenModulesUnset/);
-    }
+  it("C) supported Denali behavior remains unchanged", async () => {
+    assert.equal(await resolveBookingWorkspaceTypeForTenant(DENALI_TENANT_ID), DENALI);
+    const service = await resolveBookingsServiceForTenant(DENALI_TENANT_ID);
+    assert.equal(typeof service.createBooking, "function");
+    const created = await createBooking(denaliOpsAuth, sampleCreateBody);
+    assert.ok(typeof created.id === "string" && created.id.length > 0);
+    assert.equal(created.status, "pending");
+    const publicCreated = await createPublicGuestBooking(
+      {
+        tenantId: DENALI_TENANT_ID,
+        userId: OPERATOR_SMOKE.memberUserId,
+        role: "none",
+        status: "ACTIVE",
+      },
+      {
+        ...sampleCreateBody,
+        guestEmail: "denali-public-gate@example.com",
+        guestLabel: "Denali Public Gate",
+      }
+    );
+    assert.ok(publicCreated.id.length > 0);
+    assert.equal(publicCreated.status, "pending");
   });
 });

@@ -3,12 +3,14 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   handleApproveBooking,
   handleBulkApproveBookings,
+  handleCancelBooking,
   handleCreateBooking,
   handleGetBookingReceiptStatus,
   handleGetBookingsSummary,
   handleListBookings,
   handlePostBookingReceipt,
   handleRejectBooking,
+  handleWaitlistBooking,
 } from "./bookings/bookings.routes";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
@@ -402,6 +404,18 @@ async function dispatchRequest(
   const bookingRejectMatch = url.pathname.match(/^\/bookings\/([^/]+)\/reject$/);
   if (method === "POST" && bookingRejectMatch) {
     await handleRejectBooking(req, res, bookingRejectMatch[1]!);
+    return;
+  }
+
+  const bookingWaitlistMatch = url.pathname.match(/^\/bookings\/([^/]+)\/waitlist$/);
+  if (method === "POST" && bookingWaitlistMatch) {
+    await handleWaitlistBooking(req, res, bookingWaitlistMatch[1]!);
+    return;
+  }
+
+  const bookingCancelMatch = url.pathname.match(/^\/bookings\/([^/]+)\/cancel$/);
+  if (method === "POST" && bookingCancelMatch) {
+    await handleCancelBooking(req, res, bookingCancelMatch[1]!);
     return;
   }
 

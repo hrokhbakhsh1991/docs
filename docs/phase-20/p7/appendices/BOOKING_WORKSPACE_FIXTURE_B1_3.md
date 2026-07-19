@@ -1,4 +1,4 @@
-# Booking Workspace Fixture Proof (Phase B1.3)
+# Booking Second Workspace Hostile Proof (Phase B1.3)
 
 ```yaml
 doc_id: BOOKING_WORKSPACE_FIXTURE_B1_3
@@ -6,79 +6,72 @@ phase: B1.3
 status: LANDED
 date: "2026-07-19"
 authority:
-  - Finance Phase 1.3 finance-ws2 (registryOnly fixture)
   - BOOKING_CAPABILITY_GATE_B1_0 / BOOKING_DEPENDENCY_REGISTRY_B1_1
+  - Booking Evolution Plan B1.3 (hostile-proof second workspace)
 constraints:
-  - architecture fixture only
-  - NO BookingsService / repository / routes / Prisma / Denali changes
-  - NO real capacity / validation / HTTP / persistence / lifecycle
-  - package + manifest + codegen must be sufficient for registration
+  - one observable policy difference (capacity CASE_A)
+  - no kind-only / empty-success adapters for the claimed difference
+  - no registryOnly + supported (decorative support forbidden)
+  - capability gate + runtime fail-closed for unsupported workspaceType
 ```
 
 ## Goal
 
-Prove a second workspace can register Booking capability deps via **manifest → codegen**
-without copying `BookingsService` or shipping product HTTP/nav.
+Prove Booking capability is **real** across two product workspaces — not decorative
+registration — via a minimal, observable create-policy difference.
+
+## Classification
+
+**Product capability** (`supported: true`, **not** `registryOnly`).
+
+| Workspace | Capacity CASE_A (`guestLabel=CASE_A`) |
+| --------- | ------------------------------------- |
+| denali | **accept** |
+| booking-ws2 | **reject** (`BOOKING_CAPACITY_REJECTED`) |
+
+Shared: base validation (partySize / guestLabel), standard occupancy vs `tourCapacityMax`.
 
 ## Package
 
 `packages/workspaces/booking-ws2` → `@app-tour/workspace-booking-ws2`
 
-| Piece | Role |
-| ----- | ---- |
-| `workspace.manifest.json` | `workspaceBooking.supported: true`, `registryOnly: true`, four dependency module exports |
-| `BOOKING_WS2_WORKSPACE_TYPE` | `"booking-ws2"` |
-| `src/booking/*` | No-op registration adapters (distinct `kind` from Denali) |
-| Minimal plugin stub | Required by manifest `plugin`; excluded from product registries |
+Included in API/web product plugin registries (minimal starter-based plugin stub).
 
-## Manifest rules (B1.3)
+## Enforcement
 
-```yaml
-workspaceBooking:
-  supported: true
-  registryOnly: true          # exclude from API/web product plugin loaders
-  workspaceTypeExport: BOOKING_WS2_WORKSPACE_TYPE  # no tourWrite required
-  publicBooking / capacityPolicy / validationPolicy / opsCapability: module+export
-```
-
-Codegen updates:
-
-- Enablement allows `supported + registryOnly` (fixture gate registration ≠ product enablement).
-- `productWorkspaceManifests` excludes `workspaceBooking.registryOnly` (and finance fixtures).
+1. `isBookingSupportedWorkspace` — codegen from `workspaceBooking.supported`
+2. `getOrCreateBookingRuntimeForWorkspaceType` — throws `BookingWorkspaceUnsupportedError`
+3. `resolveBookingWorkspaceTypeForTenant` — fail-closed (no Denali fallback)
+4. Codegen refuses `supported: true` + `registryOnly: true`
 
 ## Proof
 
 `apps/api/src/bookings/booking-ws2-fixture.spec.ts`
 
-1. `isBookingSupportedWorkspace("booking-ws2") === true`
-2. `resolveBookingWorkspaceDependencies("booking-ws2")` returns WS2 adapters
-3. Service / repos / routes / composition sources unchanged (no ws2 imports)
+- **A)** Denali accepts CASE_A public create
+- **B)** booking-ws2 rejects CASE_A; still accepts normal guest
+- **C)** same process, both workspaceTypes, divergent CASE_A outcome
+- **D)** unsupported/unknown workspaceType rejected
 
-## Explicitly NOT implemented
+## Explicitly NOT claimed as product differences
 
-Real capacity/validation, new HTTP, new persistence, lifecycle changes, Denali edits.
+- Distinct `reactAfterApprove` tokens (`denali-approve-ack` vs `booking-ws2-approve-ack`); host invokes after approve TX (B1.7)
+- Ops panel ids empty (both)
+- Full tourWrite / Denali clone (forbidden)
 
 ## Architecture report (B1.3)
 
-### Files changed
+### Files
 
 | Area | Files |
 | ---- | ----- |
-| Doc | `BOOKING_WORKSPACE_FIXTURE_B1_3.md` |
-| Fixture | `packages/workspaces/booking-ws2/**` |
-| Codegen | `domains/booking.mjs` (supported+registryOnly + workspaceTypeExport), `core-registry.mjs` (product filter) |
-| Generated | `workspace-booking-bindings.generated.ts`, `workspace-booking-dependency-bindings.generated.ts` (+ sibling registry stubs) |
-| Tests | `booking-ws2-fixture.spec.ts`; B1.0/B1.1 expectations updated |
-| Host dep | `apps/api/package.json`, `dependency-cruiser.config.js` |
+| Manifest / adapters | `packages/workspaces/booking-ws2/**`, Denali booking adapters import fix |
+| Codegen | `domains/booking.mjs` (forbid supported+registryOnly) |
+| Generated | booking + core-registry product plugin lists include booking-ws2 |
+| Tests | `booking-ws2-fixture.spec.ts` (A/B/C/D) |
 
-### Forbidden / untouched
+### Remaining gaps
 
-`bookings.service.ts`, repositories, `bookings.routes.ts`, `create-bookings-service.ts`, Denali package, Prisma.
-
-### Runtime impact
-
-**NONE** for production Booking paths. Fixture is `registryOnly` (not in API/web plugin loaders). Gate/deps remain unwired.
-
-### Gap to B1.4
-
-B1.4 = public registration host neutrality (`BookingPublicPort` / host inject) — not ws2 product enablement.
+- Ops create path may still skip validation/capacity (public create is the proof surface)
+- Shared bookings repository across workspace types
+- Post-approve reactions still no-op
