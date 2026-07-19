@@ -158,8 +158,8 @@
         "mode": "host-lifecycle"
       },
       "eventReaction": {
-        "enabled": true,
-        "mode": "in-process"
+        "enabled": false,
+        "mode": "none"
       }
     },
     "publicBooking": {

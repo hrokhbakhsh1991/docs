@@ -1,0 +1,212 @@
+# Booking PostgreSQL certification — mandatory production-path proofs.
+# Memory repositories are forbidden. Fast unit / memory HTTP suites stay outside this workflow.
+#
+# Docs: docs/phase-20/p7/appendices/BOOKING_CAPACITY_CONCURRENCY_CERT.md
+
+name: booking-postgres-gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: booking-postgres-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+  DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+  STORAGE_DRIVER: prisma
+  NODE_ENV: test
+  OUTBOX_RELAY_ENABLED: "false"
+  PROJECTION_AUTO_RECONCILE_ENABLED: "false"
+
+jobs:
+  booking-postgres-capacity:
+    name: Booking PostgreSQL capacity
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Assert Prisma certification driver
+        run: |
+          test "$STORAGE_DRIVER" = "prisma"
+          echo "STORAGE_DRIVER=$STORAGE_DRIVER"
+
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - name: Prisma migrate deploy
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: Generate Prisma client
+        run: pnpm --filter @apps/api run prisma:generate
+
+      - name: Build Booking contract packages
+        run: |
+          pnpm --filter @app-tour/booking-http-contracts run build
+          pnpm --filter @app-tour/platform-core run build
+          pnpm --filter @app-tour/platform-events run build
+          pnpm --filter @app-tour/tenant-kernel run build
+          pnpm --filter @app-tour/workspace-sdk run build
+          pnpm --filter @app-tour/workspace-booking-ws2 run build
+
+      - name: Touch optional env files for node --env-file
+        run: |
+          touch apps/api/.env apps/api/.env.local
+
+      - name: test:booking-capacity-postgres
+        working-directory: apps/api
+        env:
+          TENANT_MAX_CONCURRENT_DB_OPS: "32"
+          PRISMA_TRANSACTION_TIMEOUT_MS: "60000"
+          PRISMA_TRANSACTION_MAX_WAIT_MS: "30000"
+        run: pnpm run test:booking-capacity-postgres
+
+      - name: test:booking-approve-concurrency
+        working-directory: apps/api
+        env:
+          TENANT_MAX_CONCURRENT_DB_OPS: "32"
+        run: pnpm run test:booking-approve-concurrency
+
+      - name: test:booking-capacity-stress
+        working-directory: apps/api
+        env:
+          TENANT_MAX_CONCURRENT_DB_OPS: "64"
+          PRISMA_TRANSACTION_TIMEOUT_MS: "120000"
+          PRISMA_TRANSACTION_MAX_WAIT_MS: "60000"
+        run: pnpm run test:booking-capacity-stress
+
+  booking-http-postgres:
+    name: Booking HTTP PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Assert Prisma certification driver
+        run: |
+          test "$STORAGE_DRIVER" = "prisma"
+          echo "STORAGE_DRIVER=$STORAGE_DRIVER"
+
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - name: Prisma migrate deploy
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: Generate Prisma client
+        run: pnpm --filter @apps/api run prisma:generate
+
+      - name: Build runtime packages for createRequestListener
+        run: |
+          pnpm --filter @app-tour/booking-http-contracts run build
+          pnpm --filter @app-tour/finance-http-contracts run build
+          pnpm --filter @app-tour/finance-core run build
+          pnpm --filter @app-tour/platform-core run build
+          pnpm --filter @app-tour/platform-events run build
+          pnpm --filter @app-tour/tenant-kernel run build
+          pnpm --filter @app-tour/design-tokens run build
+          pnpm --filter @app-tour/workspace-sdk run build
+          pnpm --filter @app-tour/workspace-starter run build
+          pnpm --filter @app-tour/workspace-booking-ws2 run build
+          pnpm --filter @app-tour/workspace-finance-ws2 run build
+          pnpm --filter @app-tour/workspace-finance-ws3 run build
+          pnpm --filter @app-tour/workspace-finance-ws4 run build
+          pnpm --filter @app-tour/workspace-finance-ws5 run build
+          pnpm --filter @app-tour/workspace-finance-ws6 run build
+          pnpm --filter @app-tour/workspace-denali run build
+          pnpm --filter @app-tour/workspace-urban run build
+          pnpm --filter @app-tour/workspace-guest-club run build
+
+      - name: Touch optional env files for node --env-file
+        run: |
+          touch apps/api/.env apps/api/.env.local
+
+      - name: test:booking-http-postgres
+        working-directory: apps/api
+        env:
+          TENANT_MAX_CONCURRENT_DB_OPS: "32"
+          PRISMA_TRANSACTION_TIMEOUT_MS: "60000"
+          PRISMA_TRANSACTION_MAX_WAIT_MS: "30000"
+        run: pnpm run test:booking-http-postgres

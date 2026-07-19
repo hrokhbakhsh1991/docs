@@ -75,3 +75,38 @@ Requirements: PostgreSQL only, hundreds of concurrent ops, random schedules, ≥
 ## Outbox grants (2026-07-20)
 
 Fresh empty `migrate deploy` must GRANT `outbox_events` to `app_tour` or Booking approve fails with Postgres 42501.
+
+## Mandatory CI gate (Booking PostgreSQL)
+
+**Workflow:** [`.github/workflows/booking-postgres-gate.yml`](../../../../.github/workflows/booking-postgres-gate.yml)
+
+**Invariant:** certification jobs pin `STORAGE_DRIVER=prisma`. Memory repositories are forbidden — merge must fail if any production-path proof fails.
+
+| Job | Commands | Approx runtime |
+| --- | -------- | -------------- |
+| Booking PostgreSQL capacity | `test:booking-capacity-postgres`, `test:booking-capacity-stress`, `test:booking-approve-concurrency` | 8–15 min (stress dominates) |
+| Booking HTTP PostgreSQL | `test:booking-http-postgres` (create / approve / reject / waitlist / cancel / bulk-approve / receipts) | 3–6 min |
+
+**Bootstrap (both jobs):**
+
+1. Postgres 16 service (`:5434`)
+2. `psql $DATABASE_URL_ADMIN -f docs/phase-4/dev/init/01-app-role.sql`
+3. `DATABASE_URL=$DATABASE_URL_ADMIN pnpm --filter @apps/api run db:migrate:deploy`
+4. `pnpm --filter @apps/api run prisma:generate` + Booking/Finance contract package builds
+
+**Required env:**
+
+| Variable | Role |
+| -------- | ---- |
+| `DATABASE_URL` | `app_tour` role (RLS) — runtime proof driver |
+| `DATABASE_URL_ADMIN` | owner — migrate + seed/cleanup |
+| `STORAGE_DRIVER` | must be `prisma` |
+| `NODE_ENV` | `test` (header auth bypass) |
+| `TENANT_MAX_CONCURRENT_DB_OPS` | raised for concurrency / stress |
+| `PRISMA_TRANSACTION_TIMEOUT_MS` / `PRISMA_TRANSACTION_MAX_WAIT_MS` | stress TX wait budget |
+
+Fast unit / memory HTTP suites (`bookings-ops.spec.ts`, etc.) stay outside this workflow.
+
+**HTTP route matrix:** [`BOOKING_HTTP_POSTGRES_CERT.md`](./BOOKING_HTTP_POSTGRES_CERT.md) — create/approve/reject/waitlist/cancel/bulk/list/summary + tenant isolation + RLS.
+
+**Branch protection:** job names `Booking PostgreSQL capacity` and `Booking HTTP PostgreSQL` must be required on `main` (see `scripts/ops/configure-main-branch-protection.mjs`).

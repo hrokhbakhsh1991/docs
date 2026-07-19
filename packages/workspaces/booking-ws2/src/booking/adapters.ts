@@ -50,6 +50,6 @@ export class BookingWs2EventReactionAdapter implements WorkspaceBookingEventReac
   readonly approveOutboxEventType = BOOKING_APPROVE_OUTBOX_EVENT_TYPE;
 
   async reactAfterApprove(_input: BookingApproveReactionInput): Promise<void> {
-    // Intentionally empty — durable fact is outbox `registration.approved`.
+    // Capability mode=none — hook retained for DI; BookingsService does not invoke it.
   }
 }

@@ -12,10 +12,47 @@ import type {
  *
  * @remarks Compatibility alias {@link BookingsRepository} preserves existing imports.
  */
+export type BookingGuestDuplicateMatch =
+  | { readonly kind: "user"; readonly value: string }
+  | { readonly kind: "label"; readonly value: string }
+  | { readonly kind: "email"; readonly value: string }
+  | { readonly kind: "nationalId"; readonly value: string };
+
+export type BookingsSummaryStats = {
+  readonly pending: number;
+  readonly approvedToday: number;
+  readonly departures7d: number;
+  readonly waitlist: number;
+  readonly tourChips: readonly {
+    readonly tourId: string;
+    readonly tourTitle: string;
+    readonly pendingCount: number;
+    readonly totalCount: number;
+  }[];
+};
+
 export interface BookingRepositoryPort {
-  /** @deprecated Test/perf baseline only — delegates to listByTenantPage (cap 500). */
+  /** @deprecated Test/perf baseline only — delegates to listByTenantPage (cap 500). Never use for product correctness. */
   listByTenant(tenantId: string): Promise<BookingRecord[]>;
   listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput>;
+  /** Exact COUNT for the same filters as {@link listByTenantPage} (no row cap). */
+  countByTenantFilters(
+    input: Omit<BookingListPageInput, "limit" | "cursor">
+  ): Promise<number>;
+  /**
+   * Active guest duplicate on a tour (not cancelled/rejected). Uncapped SQL/filter lookup.
+   * @see docs/phase-20/p7/appendices/BOOKING_LIST_CORRECTNESS.md
+   */
+  findActiveGuestDuplicate(input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly match: BookingGuestDuplicateMatch;
+  }): Promise<BookingRecord | null>;
+  /** Ops summary KPIs — SQL aggregates; not a capped list scan. */
+  getBookingsSummaryStats(input: {
+    readonly tenantId: string;
+    readonly now: Date;
+  }): Promise<BookingsSummaryStats>;
   countBookingsBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<number>;
   countCancelledBookingsBySubmittedUser(
     tenantId: string,

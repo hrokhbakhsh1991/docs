@@ -45,6 +45,20 @@ export function parseBookingsListQuery(url: URL): BookingsListQuery {
   };
 }
 
+/** Parse optional `registrationIntake` object (booking-owned capacity lives here). */
+export function readBookingRegistrationIntake(
+  body: unknown
+): Readonly<Record<string, unknown>> | undefined {
+  if (typeof body !== "object" || body === null) {
+    return undefined;
+  }
+  const value = (body as Record<string, unknown>).registrationIntake;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Readonly<Record<string, unknown>>;
+}
+
 /** Parse POST /bookings JSON body. Returns null when required fields are missing/invalid. */
 export function parseCreateBookingBody(body: unknown): CreateBookingRequest | null {
   const tourId = readBookingStringField(body, "tourId");
@@ -54,6 +68,7 @@ export function parseCreateBookingBody(body: unknown): CreateBookingRequest | nu
   const departureAt = readBookingStringField(body, "departureAt");
   const guestEmail = readBookingStringField(body, "guestEmail");
   const guestPhone = readBookingStringField(body, "guestPhone");
+  const registrationIntake = readBookingRegistrationIntake(body);
 
   if (
     tourId.length === 0 ||
@@ -73,6 +88,7 @@ export function parseCreateBookingBody(body: unknown): CreateBookingRequest | nu
     departureAt,
     ...(guestEmail.length > 0 ? { guestEmail } : {}),
     ...(guestPhone.length > 0 ? { guestPhone } : {}),
+    ...(registrationIntake !== undefined ? { registrationIntake } : {}),
   };
 }
 

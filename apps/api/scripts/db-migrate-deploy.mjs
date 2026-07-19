@@ -45,8 +45,6 @@ loadOptionalEnvFile(".env.local");
 function resolveMigrateUrl() {
   const admin = process.env.DATABASE_URL_ADMIN?.trim();
   if (admin) return { url: admin, source: "DATABASE_URL_ADMIN" };
-  const app = process.env.DATABASE_URL?.trim();
-  if (app) return { url: app, source: "DATABASE_URL" };
   return null;
 }
 
@@ -61,26 +59,20 @@ function redactDatabaseUrl(url) {
 
 const resolved = resolveMigrateUrl();
 if (!resolved) {
-  console.error("db:migrate:deploy: FAIL — set DATABASE_URL_ADMIN (preferred) or DATABASE_URL");
+  console.error(
+    "db:migrate:deploy: FAIL — DATABASE_URL_ADMIN is required for migrate deploy.\n" +
+      "  App role cannot CREATE/ALTER owner-owned tables (permission denied for schema public).\n" +
+      "  Set DATABASE_URL_ADMIN to the Postgres owner URL (see .env.local.example).\n" +
+      "  DATABASE_URL alone is never accepted."
+  );
   process.exit(1);
 }
 
 /**
  * P0 — Production DB integrity:
  * Runtime app role (`app_tour`) is NOSUPERUSER / NOBYPASSRLS and lacks CREATE on
- * schema public. DDL migrations (CREATE TABLE / ALTER owner-owned tables) must run
- * as the table owner (postgres) via DATABASE_URL_ADMIN.
- * Falling back to DATABASE_URL previously left a failed migration row that blocked
- * all later deploys (including Booking reject_reason).
+ * schema public. DDL migrations must run as the table owner via DATABASE_URL_ADMIN.
  */
-if (resolved.source === "DATABASE_URL") {
-  console.error(
-    "db:migrate:deploy: FAIL — DATABASE_URL_ADMIN is required for migrate deploy.\n" +
-      "  App role cannot CREATE/ALTER owner-owned tables (permission denied for schema public).\n" +
-      "  Set DATABASE_URL_ADMIN to the Postgres owner URL (see .env.local.example)."
-  );
-  process.exit(1);
-}
 
 console.log(
   `db:migrate:deploy: using ${resolved.source} (${redactDatabaseUrl(resolved.url)})`

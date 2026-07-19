@@ -272,6 +272,148 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
     };
   }
 
+  async countByTenantFilters(
+    input: Omit<BookingListPageInput, "limit" | "cursor">
+  ): Promise<number> {
+    let rows = [...bookingsStore.values()].filter((row) => row.tenantId === input.tenantId);
+    rows = rows.filter((row) => matchesBookingListFilters(row, input));
+    return rows.length;
+  }
+
+  async findActiveGuestDuplicate(input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly match: {
+      readonly kind: "user" | "label" | "email" | "nationalId";
+      readonly value: string;
+    };
+  }): Promise<BookingRecord | null> {
+    const raw = input.match.value.trim();
+    if (raw.length === 0) {
+      return null;
+    }
+    const normalized =
+      input.match.kind === "label" || input.match.kind === "email"
+        ? raw.toLocaleLowerCase()
+        : raw;
+    for (const row of bookingsStore.values()) {
+      if (
+        row.tenantId !== input.tenantId ||
+        row.tourId !== input.tourId ||
+        row.status === "cancelled" ||
+        row.status === "rejected"
+      ) {
+        continue;
+      }
+      switch (input.match.kind) {
+        case "user":
+          if (row.submittedByUserId === normalized) {
+            return cloneBooking(row);
+          }
+          break;
+        case "label":
+          if (row.guestLabel.trim().toLocaleLowerCase() === normalized) {
+            return cloneBooking(row);
+          }
+          break;
+        case "email":
+          if ((row.guestEmail?.trim().toLowerCase() ?? "") === normalized) {
+            return cloneBooking(row);
+          }
+          break;
+        case "nationalId": {
+          const intake = row.registrationIntake;
+          const nationalId =
+            intake !== undefined && typeof intake.nationalId === "string"
+              ? intake.nationalId.trim()
+              : "";
+          if (nationalId.length > 0 && nationalId === normalized) {
+            return cloneBooking(row);
+          }
+          break;
+        }
+        default: {
+          const _exhaustive: never = input.match.kind;
+          return _exhaustive;
+        }
+      }
+    }
+    return null;
+  }
+
+  async getBookingsSummaryStats(input: {
+    readonly tenantId: string;
+    readonly now: Date;
+  }): Promise<{
+    readonly pending: number;
+    readonly approvedToday: number;
+    readonly departures7d: number;
+    readonly waitlist: number;
+    readonly tourChips: readonly {
+      readonly tourId: string;
+      readonly tourTitle: string;
+      readonly pendingCount: number;
+      readonly totalCount: number;
+    }[];
+  }> {
+    const rows = [...bookingsStore.values()].filter((row) => row.tenantId === input.tenantId);
+    const dayStart = new Date(
+      Date.UTC(input.now.getUTCFullYear(), input.now.getUTCMonth(), input.now.getUTCDate())
+    );
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const departuresEnd = new Date(input.now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    let pending = 0;
+    let approvedToday = 0;
+    let departures7d = 0;
+    let waitlist = 0;
+    const chipMap = new Map<
+      string,
+      { tourId: string; tourTitle: string; pendingCount: number; totalCount: number }
+    >();
+
+    for (const row of rows) {
+      if (row.status === "pending") {
+        pending += 1;
+      }
+      if (row.status === "waitlisted") {
+        waitlist += 1;
+      }
+      if (
+        row.status === "approved" &&
+        row.approvedAt !== null &&
+        new Date(row.approvedAt) >= dayStart &&
+        new Date(row.approvedAt) < dayEnd
+      ) {
+        approvedToday += 1;
+      }
+      const departure = new Date(row.departureAt);
+      if (departure >= input.now && departure < departuresEnd) {
+        departures7d += 1;
+      }
+      const chip = chipMap.get(row.tourId) ?? {
+        tourId: row.tourId,
+        tourTitle: row.tourTitle,
+        pendingCount: 0,
+        totalCount: 0,
+      };
+      chip.totalCount += 1;
+      if (row.status === "pending") {
+        chip.pendingCount += 1;
+      }
+      chipMap.set(row.tourId, chip);
+    }
+
+    const tourChips = [...chipMap.values()].sort(
+      (a, b) =>
+        b.pendingCount - a.pendingCount ||
+        b.totalCount - a.totalCount ||
+        a.tourTitle.localeCompare(b.tourTitle)
+    );
+
+    return { pending, approvedToday, departures7d, waitlist, tourChips };
+  }
+
   async sumApprovedPartySizeByTourIds(
     tenantId: string,
     tourIds: readonly string[]

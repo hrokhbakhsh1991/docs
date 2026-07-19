@@ -104,6 +104,15 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
     const repository = {
       listByTenant: async () => [],
       listByTenantPage: async () => ({ items: [], nextCursor: null }),
+      countByTenantFilters: async () => 0,
+      findActiveGuestDuplicate: async () => null,
+      getBookingsSummaryStats: async () => ({
+        pending: 0,
+        approvedToday: 0,
+        departures7d: 0,
+        waitlist: 0,
+        tourChips: [],
+      }),
       countBookingsBySubmittedUser: async () => 0,
       countCancelledBookingsBySubmittedUser: async () => 0,
       countCompletedTripsBySubmittedUser: async () => 0,

@@ -313,6 +313,174 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     };
   }
 
+  async countByTenantFilters(
+    input: Omit<BookingListPageInput, "limit" | "cursor">
+  ): Promise<number> {
+    assertTenantId(input.tenantId);
+    const where = buildBookingListWhere(input);
+    return withTenantRls(input.tenantId, (tx) => tx.operatorRegistration.count({ where }));
+  }
+
+  async findActiveGuestDuplicate(input: {
+    readonly tenantId: string;
+    readonly tourId: string;
+    readonly match: {
+      readonly kind: "user" | "label" | "email" | "nationalId";
+      readonly value: string;
+    };
+  }): Promise<BookingRecord | null> {
+    assertTenantId(input.tenantId);
+    const raw = input.match.value.trim();
+    if (raw.length === 0 || input.tourId.trim().length === 0) {
+      return null;
+    }
+    const activeStatus = { notIn: ["cancelled", "rejected"] as const };
+
+    return withTenantRls(input.tenantId, async (tx) => {
+      let where: Prisma.OperatorRegistrationWhereInput;
+      switch (input.match.kind) {
+        case "user":
+          where = {
+            tenantId: input.tenantId,
+            tourId: input.tourId,
+            status: activeStatus,
+            submittedByUserId: raw,
+          };
+          break;
+        case "label":
+          where = {
+            tenantId: input.tenantId,
+            tourId: input.tourId,
+            status: activeStatus,
+            guestLabel: { equals: raw, mode: "insensitive" },
+          };
+          break;
+        case "email":
+          where = {
+            tenantId: input.tenantId,
+            tourId: input.tourId,
+            status: activeStatus,
+            guestEmail: { equals: raw, mode: "insensitive" },
+          };
+          break;
+        case "nationalId":
+          where = {
+            tenantId: input.tenantId,
+            tourId: input.tourId,
+            status: activeStatus,
+            registrationIntake: {
+              path: ["nationalId"],
+              equals: raw,
+            },
+          };
+          break;
+        default: {
+          const _exhaustive: never = input.match.kind;
+          return _exhaustive;
+        }
+      }
+
+      const row = await tx.operatorRegistration.findFirst({
+        where,
+        select: { ...BOOKING_LIST_SELECT, registrationIntake: true },
+        orderBy: [{ submittedAt: "desc" }, { id: "desc" }],
+      });
+      if (row === null) {
+        return null;
+      }
+      const base = toBookingListRecord(row);
+      const intake =
+        row.registrationIntake !== null &&
+        row.registrationIntake !== undefined &&
+        typeof row.registrationIntake === "object" &&
+        !Array.isArray(row.registrationIntake)
+          ? (row.registrationIntake as Readonly<Record<string, unknown>>)
+          : undefined;
+      return intake !== undefined ? { ...base, registrationIntake: intake } : base;
+    });
+  }
+
+  async getBookingsSummaryStats(input: {
+    readonly tenantId: string;
+    readonly now: Date;
+  }): Promise<{
+    readonly pending: number;
+    readonly approvedToday: number;
+    readonly departures7d: number;
+    readonly waitlist: number;
+    readonly tourChips: readonly {
+      readonly tourId: string;
+      readonly tourTitle: string;
+      readonly pendingCount: number;
+      readonly totalCount: number;
+    }[];
+  }> {
+    assertTenantId(input.tenantId);
+    const dayStart = new Date(
+      Date.UTC(
+        input.now.getUTCFullYear(),
+        input.now.getUTCMonth(),
+        input.now.getUTCDate()
+      )
+    );
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const departuresEnd = new Date(input.now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    return withTenantRls(input.tenantId, async (tx) => {
+      const [pending, approvedToday, departures7d, waitlist, chipRows] = await Promise.all([
+        tx.operatorRegistration.count({
+          where: { tenantId: input.tenantId, status: "pending" },
+        }),
+        tx.operatorRegistration.count({
+          where: {
+            tenantId: input.tenantId,
+            status: "approved",
+            approvedAt: { gte: dayStart, lt: dayEnd },
+          },
+        }),
+        tx.operatorRegistration.count({
+          where: {
+            tenantId: input.tenantId,
+            departureAt: { gte: input.now, lt: departuresEnd },
+          },
+        }),
+        tx.operatorRegistration.count({
+          where: { tenantId: input.tenantId, status: "waitlisted" },
+        }),
+        tx.operatorRegistration.groupBy({
+          by: ["tourId", "tourTitle"],
+          where: { tenantId: input.tenantId },
+          _count: { _all: true },
+        }),
+      ]);
+
+      const pendingByTour = await tx.operatorRegistration.groupBy({
+        by: ["tourId"],
+        where: { tenantId: input.tenantId, status: "pending" },
+        _count: { _all: true },
+      });
+      const pendingMap = new Map(
+        pendingByTour.map((row) => [row.tourId, row._count._all] as const)
+      );
+
+      const tourChips = chipRows
+        .map((row) => ({
+          tourId: row.tourId,
+          tourTitle: row.tourTitle,
+          pendingCount: pendingMap.get(row.tourId) ?? 0,
+          totalCount: row._count._all,
+        }))
+        .sort(
+          (a, b) =>
+            b.pendingCount - a.pendingCount ||
+            b.totalCount - a.totalCount ||
+            a.tourTitle.localeCompare(b.tourTitle)
+        );
+
+      return { pending, approvedToday, departures7d, waitlist, tourChips };
+    });
+  }
+
   async sumApprovedPartySizeByTourIds(
     tenantId: string,
     tourIds: readonly string[]

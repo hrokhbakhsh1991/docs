@@ -38,12 +38,12 @@ export class DenaliBookingValidationPolicyAdapter implements BookingValidationPo
   }
 }
 
-/** In-process approve ack — no durable side effects (outbox is host-owned). */
+/** Durable approve fact is host outbox — in-process reaction not claimed (Option A). */
 export class DenaliBookingEventReactionAdapter implements WorkspaceBookingEventReactionPort {
   readonly kind = "denali-booking-event-reaction" as const;
   readonly approveOutboxEventType = BOOKING_APPROVE_OUTBOX_EVENT_TYPE;
 
   async reactAfterApprove(_input: BookingApproveReactionInput): Promise<void> {
-    // Intentionally empty — durable fact is outbox `registration.approved`.
+    // Capability mode=none — hook retained for DI; BookingsService does not invoke it.
   }
 }

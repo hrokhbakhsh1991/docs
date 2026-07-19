@@ -117,6 +117,24 @@ describe("BK-B1.2 booking-http-contracts boundary", () => {
         guestEmail: "a@b.c",
       }
     );
+    assert.deepEqual(
+      parseCreateBookingBody({
+        tourId: "t1",
+        tourTitle: "Trip",
+        guestLabel: "Guest",
+        partySize: 2,
+        departureAt: "2026-08-01T00:00:00.000Z",
+        registrationIntake: { tourCapacityMax: 10 },
+      }),
+      {
+        tourId: "t1",
+        tourTitle: "Trip",
+        guestLabel: "Guest",
+        partySize: 2,
+        departureAt: "2026-08-01T00:00:00.000Z",
+        registrationIntake: { tourCapacityMax: 10 },
+      }
+    );
     assert.deepEqual(parseBulkApproveBookingsBody({ ids: ["a", 1, "b"] }), ["a", "b"]);
     assert.deepEqual(parseRejectBookingBody({ reason: " no " }), { reason: "no" });
     assert.deepEqual(parseRejectBookingBody({}), {});

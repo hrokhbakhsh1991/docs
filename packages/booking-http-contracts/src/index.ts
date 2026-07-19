@@ -36,6 +36,7 @@ export {
   parseCreateBookingBody,
   parseRejectBookingBody,
   readBookingNumberField,
+  readBookingRegistrationIntake,
   readBookingStringField,
 } from "./booking-request.parsers";
 

@@ -18,6 +18,7 @@ constraints:
 | Capability | Module |
 | ---------- | ------ |
 | Findings + actions tables | `finance_recon_findings`, `finance_recon_actions` (+ Prisma models) |
+| **Tenant RLS** | ENABLE+FORCE + isolation policies — [`FINANCE_RECON_RLS.md`](./FINANCE_RECON_RLS.md) (`20260720140000_finance_recon_rls`) |
 | Detection rules R1–R6 | `apps/api/src/workspace-finance/recon/detect.ts` |
 | Job runner (batched lookback) | `finance-recon-runner.ts` — R1 includes no-ledger + amt mismatch + dup capture |
 | Interval starter | `start-finance-recon.ts` (`FINANCE_RECON_ENABLED`; default on with prisma+`DATABASE_URL`) |

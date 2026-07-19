@@ -121,28 +121,28 @@ export function assertBookingRuntimeCapabilitiesMatchAdapters(
   }
 
   // --- eventReactionMode vs generated binding ---
+  // Option A: mode=none means no in-process reaction claim. Binding + adapter may still
+  // exist to supply approveOutboxEventType for the durable host outbox channel.
   const reactionKey = normalized as keyof typeof WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS;
   const binding = WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS[reactionKey];
   const mode = caps.eventReaction.mode;
 
   if (mode === "none") {
-    if (binding !== undefined) {
+    if (caps.eventReaction.enabled) {
       throw new BookingCapabilityViolationError({
         workspaceType: normalized,
         capability: "eventReactionMode",
-        detail: "mode=none but event reaction binding is registered",
+        detail: "mode=none requires eventReaction.enabled=false",
       });
     }
-    if (typeof adapters.eventReaction.reactAfterApprove === "function") {
-      if (caps.approval.enabled) {
-        throw new BookingCapabilityViolationError({
-          workspaceType: normalized,
-          capability: "eventReactionMode",
-          detail: "mode=none but eventReaction adapter present while approval enabled",
-        });
-      }
-    }
   } else if (mode === "in-process") {
+    if (!caps.eventReaction.enabled) {
+      throw new BookingCapabilityViolationError({
+        workspaceType: normalized,
+        capability: "eventReactionMode",
+        detail: "in-process claimed but eventReaction.enabled=false",
+      });
+    }
     if (binding === undefined) {
       throw new BookingCapabilityViolationError({
         workspaceType: normalized,

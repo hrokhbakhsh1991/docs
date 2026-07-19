@@ -56,8 +56,8 @@ export const WORKSPACE_BOOKING_CAPABILITIES = {
       mode: "host-lifecycle" as const,
     },
     eventReaction: {
-      enabled: true as const,
-      mode: "in-process" as const,
+      enabled: false as const,
+      mode: "none" as const,
     },
   },
   [DENALI_WORKSPACE_TYPE]: {
@@ -83,8 +83,8 @@ export const WORKSPACE_BOOKING_CAPABILITIES = {
       mode: "host-lifecycle" as const,
     },
     eventReaction: {
-      enabled: true as const,
-      mode: "in-process" as const,
+      enabled: false as const,
+      mode: "none" as const,
     },
   },
 } as const satisfies Record<string, BookingWorkspaceCapabilities>;

@@ -30,7 +30,7 @@ import {
   BOOKING_WAITLIST_OUTBOX_EVENT_TYPE,
   readTourCapacityMaxFromIntake,
 } from "@app-tour/booking-http-contracts";
-import type { BookingRecord, BookingTourChip } from "./bookings.types";
+import type { BookingRecord } from "./bookings.types";
 import {
   BookingCapabilityViolationError,
 } from "./bookings.errors";
@@ -80,70 +80,6 @@ function toListItem(record: BookingRecord): BookingListItem {
       : {}),
     ...(record.rejectReason !== undefined ? { rejectReason: record.rejectReason } : {}),
   };
-}
-
-function readRegistrationIntakeNationalId(
-  intake: Readonly<Record<string, unknown>> | undefined
-): string | null {
-  if (intake === undefined) {
-    return null;
-  }
-  const nationalId = intake.nationalId;
-  if (typeof nationalId !== "string") {
-    return null;
-  }
-  const trimmed = nationalId.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function matchesSearch(record: BookingRecord, q: string | undefined): boolean {
-  if (q === undefined || q.trim().length === 0) {
-    return true;
-  }
-  const needle = q.trim().toLocaleLowerCase();
-  const haystacks = [record.guestLabel, record.guestEmail ?? "", record.guestPhone ?? ""];
-  return haystacks.some((value) => value.toLocaleLowerCase().includes(needle));
-}
-
-function startOfUtcDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-}
-
-function isApprovedToday(record: BookingRecord, now: Date): boolean {
-  if (record.status !== "approved" || record.approvedAt === null) {
-    return false;
-  }
-  const approvedAt = new Date(record.approvedAt);
-  return approvedAt >= startOfUtcDay(now);
-}
-
-function isDepartureWithin7Days(record: BookingRecord, now: Date): boolean {
-  const departure = new Date(record.departureAt);
-  const end = new Date(now);
-  end.setUTCDate(end.getUTCDate() + 7);
-  return departure >= now && departure <= end;
-}
-
-function buildTourChips(rows: readonly BookingRecord[]): readonly BookingTourChip[] {
-  const byTour = new Map<string, BookingTourChip>();
-  for (const row of rows) {
-    const existing = byTour.get(row.tourId);
-    if (existing === undefined) {
-      byTour.set(row.tourId, {
-        tourId: row.tourId,
-        tourTitle: row.tourTitle,
-        pendingCount: row.status === "pending" ? 1 : 0,
-        totalCount: 1,
-      });
-      continue;
-    }
-    byTour.set(row.tourId, {
-      ...existing,
-      pendingCount: existing.pendingCount + (row.status === "pending" ? 1 : 0),
-      totalCount: existing.totalCount + 1,
-    });
-  }
-  return [...byTour.values()].sort((a, b) => b.pendingCount - a.pendingCount);
 }
 
 /**
@@ -278,14 +214,6 @@ export class BookingsService {
         detail: `approve requires host-lifecycle; claimed mode=${approval.mode}`,
       });
     }
-    const reaction = this.capabilities.eventReaction;
-    if (!reaction.enabled || reaction.mode === "none") {
-      throw new BookingCapabilityViolationError({
-        workspaceType: this.workspaceType,
-        capability: "eventReactionMode",
-        detail: `approve requires eventReactionMode != none; claimed mode=${reaction.mode}`,
-      });
-    }
     // Same capacityMode resolution as create — approve must not bypass graded capacity.
     this.assertCapacityCapabilityLevel();
   }
@@ -299,60 +227,40 @@ export class BookingsService {
       this.authorization.assertOpsAccess(auth);
     }
 
-    let rows = await this.repository.listByTenant(auth.tenantId);
+    const filters = {
+      tenantId: auth.tenantId,
+      ...(query.view === "mine" ? { submittedByUserId: auth.userId } : {}),
+      ...(query.status !== undefined ? { status: query.status } : {}),
+      ...(query.tourId !== undefined && query.tourId.length > 0 ? { tourId: query.tourId } : {}),
+      ...(query.paymentStatus !== undefined ? { paymentStatus: query.paymentStatus } : {}),
+      ...(query.q !== undefined && query.q.length > 0 ? { q: query.q } : {}),
+    };
 
-    if (query.view === "mine") {
-      rows = rows.filter((row) => row.submittedByUserId === auth.userId);
-    }
-
-    if (query.status !== undefined) {
-      rows = rows.filter((row) => row.status === query.status);
-    }
-
-    if (query.tourId !== undefined && query.tourId.length > 0) {
-      rows = rows.filter((row) => row.tourId === query.tourId);
-    }
-
-    if (query.paymentStatus !== undefined) {
-      rows = rows.filter((row) => row.paymentStatus === query.paymentStatus);
-    }
-
-    rows = rows.filter((row) => matchesSearch(row, query.q));
-    rows.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-
-    const total = rows.length;
-    let startIndex = 0;
-    if (query.cursor !== undefined && query.cursor.length > 0) {
-      const cursorIndex = rows.findIndex((row) => row.id === query.cursor);
-      startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0;
-    }
-
-    const page = rows.slice(startIndex, startIndex + query.limit);
-    const nextCursor =
-      startIndex + query.limit < total && page.length > 0
-        ? (page[page.length - 1]?.id ?? null)
-        : null;
+    const [page, total] = await Promise.all([
+      this.repository.listByTenantPage({
+        ...filters,
+        limit: query.limit,
+        ...(query.cursor !== undefined && query.cursor.length > 0
+          ? { cursor: query.cursor }
+          : {}),
+      }),
+      this.repository.countByTenantFilters(filters),
+    ]);
 
     return {
-      items: page.map(toListItem),
+      items: page.items.map((row) => toListItem(row as BookingRecord)),
       total,
-      nextCursor,
+      nextCursor: page.nextCursor,
     };
   }
 
   async getBookingsSummary(auth: BookingActorContext): Promise<BookingsSummaryResponse> {
     await this.assertTenantBound(auth.tenantId);
     this.authorization.assertOpsAccess(auth);
-    const now = this.clock.now();
-    const rows = await this.repository.listByTenant(auth.tenantId);
-
-    return {
-      pending: rows.filter((row) => row.status === "pending").length,
-      approvedToday: rows.filter((row) => isApprovedToday(row, now)).length,
-      departures7d: rows.filter((row) => isDepartureWithin7Days(row, now)).length,
-      waitlist: rows.filter((row) => row.status === "waitlisted").length,
-      tourChips: buildTourChips(rows),
-    };
+    return this.repository.getBookingsSummaryStats({
+      tenantId: auth.tenantId,
+      now: this.clock.now(),
+    });
   }
 
   async createBooking(
@@ -378,7 +286,7 @@ export class BookingsService {
 
   /**
    * Single guest-duplicate rule for public registration (all match kinds).
-   * Active = not cancelled/rejected; one listByTenant scan.
+   * Active = not cancelled/rejected; dedicated repository lookup (uncapped).
    */
   async findGuestBookingDuplicateMatch(
     tenantId: string,
@@ -394,34 +302,11 @@ export class BookingsService {
     if (raw.length === 0) {
       return null;
     }
-    const normalized =
-      match.kind === "label" || match.kind === "email" ? raw.toLocaleLowerCase() : raw;
-    const rows = await this.repository.listByTenant(tenantId);
-    return (
-      rows.find((row) => {
-        if (
-          row.tourId !== tourId ||
-          row.status === "cancelled" ||
-          row.status === "rejected"
-        ) {
-          return false;
-        }
-        switch (match.kind) {
-          case "user":
-            return row.submittedByUserId === normalized;
-          case "label":
-            return row.guestLabel.trim().toLocaleLowerCase() === normalized;
-          case "email":
-            return (row.guestEmail?.trim().toLowerCase() ?? "") === normalized;
-          case "nationalId":
-            return readRegistrationIntakeNationalId(row.registrationIntake) === normalized;
-          default: {
-            const _exhaustive: never = match;
-            return _exhaustive;
-          }
-        }
-      }) ?? null
-    );
+    return this.repository.findActiveGuestDuplicate({
+      tenantId,
+      tourId,
+      match: { kind: match.kind, value: raw },
+    });
   }
 
   /**
@@ -649,13 +534,15 @@ export class BookingsService {
   }
 
   /**
-   * Application-owned WHEN for approve reactions.
-   * Adapter-owned WHAT via injected {@link WorkspaceBookingEventReactionPort.reactAfterApprove}.
-   *
-   * Delivery: in-process best-effort after outbox TX commit — not durable, not on outbox replay.
-   * @see BOOKING_APPROVE_REACTION_DELIVERY
+   * Optional in-process reaction — only when capability claims `in-process`.
+   * Durable approve fact is always the host outbox (Option A: no hollow claim).
+   * @see docs/phase-20/p7/appendices/BOOKING_EVENT_REACTION_OPTION_A.md
    */
   private async invokeApproveReaction(tenantId: string, bookingId: string): Promise<void> {
+    const reaction = this.capabilities.eventReaction;
+    if (!reaction.enabled || reaction.mode !== "in-process") {
+      return;
+    }
     await this.eventReaction.reactAfterApprove({
       tenantId,
       bookingId,

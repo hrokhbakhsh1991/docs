@@ -23,8 +23,8 @@ describe("booking supported workspace capability matrix", () => {
     assert.equal(ws2.enabled, true);
     assert.deepEqual(denali.capacity, { enabled: true, mode: "booking-owned" });
     assert.deepEqual(ws2.capacity, { enabled: true, mode: "booking-owned" });
-    assert.deepEqual(denali.eventReaction, { enabled: true, mode: "in-process" });
-    assert.deepEqual(ws2.eventReaction, { enabled: true, mode: "in-process" });
+    assert.deepEqual(denali.eventReaction, { enabled: false, mode: "none" });
+    assert.deepEqual(ws2.eventReaction, { enabled: false, mode: "none" });
     assert.equal(denali.validation.mode, "base-shape");
     assert.equal(ws2.validation.mode, "base-shape");
     assert.equal(denali.publicCreate.mode, "create-pipeline");

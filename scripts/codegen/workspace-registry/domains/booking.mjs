@@ -158,6 +158,11 @@ export function assertBookingCapabilities(m) {
 
   const reaction = booking.eventReaction;
   if (graded.eventReaction.mode === "in-process") {
+    if (!graded.eventReaction.enabled) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.eventReaction.mode=in-process requires enabled=true`
+      );
+    }
     if (reaction === undefined) {
       throw new Error(
         `workspace.manifest.json ${m.id}: capabilities.eventReaction.mode=in-process requires eventReaction`
@@ -168,9 +173,17 @@ export function assertBookingCapabilities(m) {
         `workspace.manifest.json ${m.id}: in-process eventReaction forbids requiresHostIo=true`
       );
     }
+  } else if (graded.eventReaction.mode === "none") {
+    if (graded.eventReaction.enabled) {
+      throw new Error(
+        `workspace.manifest.json ${m.id}: capabilities.eventReaction.mode=none requires enabled=false`
+      );
+    }
+    // Adapter may still be declared to supply approveOutboxEventType (durable host outbox).
+    // Hollow in-process reactions are forbidden — mode must not claim in-process.
   } else if (reaction !== undefined) {
     throw new Error(
-      `workspace.manifest.json ${m.id}: eventReaction declared but capabilities.eventReaction.mode=none`
+      `workspace.manifest.json ${m.id}: eventReaction declared but capabilities.eventReaction.mode is unsupported`
     );
   }
 

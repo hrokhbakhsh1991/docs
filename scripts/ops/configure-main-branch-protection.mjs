@@ -14,6 +14,8 @@ export const MAIN_BRANCH_REQUIRED_CHECKS = [
   "Phase 0 foundation gate",
   "Phase 0 integration gate",
   "Phase 1 platform-core gate",
+  "Booking PostgreSQL capacity",
+  "Booking HTTP PostgreSQL",
 ];
 
 function ghJson(args) {
