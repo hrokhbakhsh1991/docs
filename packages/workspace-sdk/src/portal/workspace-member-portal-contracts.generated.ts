@@ -20,6 +20,7 @@ export type MemberPortalContractRow =
 export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
   Record<string, MemberPortalContractRow>
 > = Object.freeze({
+  "booking-ws2": Object.freeze({ availability: "off" as const }),
   "denali": Object.freeze({
     availability: "full",
     includePlatformHome: true,
@@ -52,6 +53,10 @@ export const WORKSPACE_MEMBER_PORTAL_CONTRACTS: Readonly<
     ] as const satisfies readonly MemberModuleManifest[]),
   }),
   "finance-ws2": Object.freeze({ availability: "off" as const }),
+  "finance-ws3": Object.freeze({ availability: "off" as const }),
+  "finance-ws4": Object.freeze({ availability: "off" as const }),
+  "finance-ws5": Object.freeze({ availability: "off" as const }),
+  "finance-ws6": Object.freeze({ availability: "off" as const }),
   "guest-club": Object.freeze({
     availability: "minimal",
     includePlatformHome: false,

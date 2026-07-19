@@ -1,0 +1,41 @@
+{
+  "id": "booking-ws2",
+  "version": 1,
+  "package": "@app-tour/workspace-booking-ws2",
+  "workspaceTypes": ["booking-ws2"],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getBookingWs2WorkspacePlugin"
+  },
+  "workspaceBooking": {
+    "supported": true,
+    "registryOnly": true,
+    "workspaceTypeExport": "BOOKING_WS2_WORKSPACE_TYPE",
+    "publicBooking": {
+      "module": "./booking",
+      "export": "BookingWs2PublicAdapter"
+    },
+    "capacityPolicy": {
+      "module": "./booking",
+      "export": "BookingWs2CapacityPolicyAdapter"
+    },
+    "validationPolicy": {
+      "module": "./booking",
+      "export": "BookingWs2ValidationPolicyAdapter"
+    },
+    "opsCapability": {
+      "module": "./booking",
+      "export": "BookingWs2OpsCapabilityAdapter"
+    },
+    "eventReaction": {
+      "module": "./booking",
+      "export": "BookingWs2EventReactionAdapter",
+      "requiresHostIo": false
+    },
+    "opsManifest": {
+      "module": "./bookings",
+      "defaultExport": "DEFAULT_BOOKING_OPS_MANIFEST",
+      "resolveFromThemeExport": "resolveBookingOpsManifestFromTheme"
+    }
+  }
+}

@@ -12,6 +12,10 @@ export const WORKSPACE_MANIFEST_BINDINGS: readonly {
   readonly pluginId: WorkspacePluginId;
 }[] = [
   { workspaceType: "denali", pluginId: "denali" },
+  { workspaceType: "finance-ws3", pluginId: "finance-ws3" },
+  { workspaceType: "finance-ws4", pluginId: "finance-ws4" },
+  { workspaceType: "finance-ws5", pluginId: "finance-ws5" },
+  { workspaceType: "finance-ws6", pluginId: "finance-ws6" },
   { workspaceType: "guest-club", pluginId: "guest-club" },
   { workspaceType: "starter", pluginId: "starter" },
   { workspaceType: "urban", pluginId: "urban" },

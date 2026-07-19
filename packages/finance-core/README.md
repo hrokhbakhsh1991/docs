@@ -68,7 +68,7 @@ Inside `src/` this package must **not** import:
 
 Allowed: relative imports within the package, `node:crypto`, `@app-tour/finance-http-contracts`.
 
-Enforced by `pnpm run guard:boundary`, `guard:portability`, `guard:public-api`.
+Enforced by `pnpm run guard:boundary`, `guard:portability`, `guard:public-api`, and monorepo **`pnpm run guard:finance-golden`** (G1–G7).
 
 ## Scripts
 
@@ -83,3 +83,6 @@ pnpm -C packages/finance-core run guard:public-api
 ## Versioning
 
 `0.1.0` — pre-1.0 internal. Public API is allowlist-frozen; expanding exports requires an intentional semver decision. **Not published** in this phase.
+
+Full policy (stable vs experimental ports, breaking rules, release order, checklist):  
+[`docs/phase-20/p7/appendices/FINANCE_SEMVER_POLICY.md`](../../docs/phase-20/p7/appendices/FINANCE_SEMVER_POLICY.md) · [`CHANGELOG.md`](./CHANGELOG.md)

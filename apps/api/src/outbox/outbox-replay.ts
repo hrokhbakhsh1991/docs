@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 
 import { getPrismaAdmin } from "../db/prisma";
-import { assertProvisioningDevelopmentOnly } from "../internal/provisioning-guard";
 
 export class OutboxReplayNotFailedError extends Error {
   readonly code = "OUTBOX_REPLAY_NOT_FAILED";
@@ -30,19 +29,20 @@ export class OutboxReplayNotFoundError extends Error {
   }
 }
 
+export type ReplayFailedOutboxResult = "replayed" | "already_pending_equivalent";
+
 /**
- * Admin replay — failed → pending. Payload is immutable; fix poison in DB before replay.
+ * Core DEC-086 mutation — failed → pending. Payload immutable.
+ * Auth / dry-run / confirm live at the HTTP/orchestration edge (Phase 3.17).
  * @see docs/phase-5/appendices/outbox-failed-replay.md
+ * @see docs/phase-20/p7/appendices/OUTBOX_PRODUCTION_REPLAY.md
  */
 export async function replayFailedOutboxEvent(args: {
   readonly tenantId: string;
   readonly outboxId: string;
+  /** @deprecated No longer used — gate moved to HTTP edge. Kept for call-site compat. */
   readonly skipDevOnlyGate?: boolean;
 }): Promise<void> {
-  if (!args.skipDevOnlyGate) {
-    assertProvisioningDevelopmentOnly();
-  }
-
   const admin = getPrismaAdmin();
   const row = await admin.outboxEvent.findUnique({ where: { id: args.outboxId } });
   if (row === null) {
@@ -63,4 +63,27 @@ export async function replayFailedOutboxEvent(args: {
       lastError: Prisma.JsonNull,
     },
   });
+}
+
+/**
+ * Idempotent apply for batch paths — non-failed → skipped (no throw).
+ */
+export async function tryReplayFailedOutboxEvent(args: {
+  readonly tenantId: string;
+  readonly outboxId: string;
+}): Promise<"replayed" | "skipped"> {
+  const admin = getPrismaAdmin();
+  const updated = await admin.outboxEvent.updateMany({
+    where: {
+      id: args.outboxId,
+      tenantId: args.tenantId,
+      status: "failed",
+    },
+    data: {
+      status: "pending",
+      processedAt: null,
+      lastError: Prisma.JsonNull,
+    },
+  });
+  return updated.count === 1 ? "replayed" : "skipped";
 }

@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import type {
   BuildPaymentCaptureJournalInput,
   BuildPrepaymentJournalInput,
@@ -8,7 +6,10 @@ import type {
 } from "@app-tour/finance-http-contracts";
 
 import { bookingWalletId, LEDGER_ACCOUNTS } from "../ledger-accounts";
-import { postDoubleEntryJournal } from "../post-double-entry-journal";
+import {
+  postDoubleEntryJournal,
+  stableLedgerIdentifiersFromSeed,
+} from "../post-double-entry-journal";
 
 /**
  * Denali workspace ledger policy adapter — owns CoA posting via Denali ledger helpers.
@@ -16,7 +17,7 @@ import { postDoubleEntryJournal } from "../post-double-entry-journal";
  */
 export class DenaliFinanceLedgerPolicyAdapter implements FinanceLedgerPolicyPort {
   buildPaymentCaptureJournal(input: BuildPaymentCaptureJournalInput): FinanceLedgerCapturePlan {
-    const stableIds = stableLedgerIdentifiers(input.paymentId);
+    const stableIds = stableLedgerIdentifiersFromSeed(input.paymentId, "payment-ledger");
     const { journalId, lines } = postDoubleEntryJournal({
       tenantId: input.tenantId,
       debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
@@ -42,7 +43,7 @@ export class DenaliFinanceLedgerPolicyAdapter implements FinanceLedgerPolicyPort
   }
 
   buildPrepaymentJournal(input: BuildPrepaymentJournalInput): FinanceLedgerCapturePlan {
-    const stableIds = stableLedgerIdentifiers(input.journalSeed);
+    const stableIds = stableLedgerIdentifiersFromSeed(input.journalSeed, "payment-ledger");
     const { journalId, lines } = postDoubleEntryJournal({
       tenantId: input.tenantId,
       debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
@@ -66,28 +67,4 @@ export class DenaliFinanceLedgerPolicyAdapter implements FinanceLedgerPolicyPort
       lines,
     };
   }
-}
-
-function deterministicUuidFromSeed(seed: string): string {
-  const hash = createHash("sha256").update(seed, "utf8").digest();
-  const buf = Buffer.alloc(16);
-  hash.copy(buf, 0, 0, 16);
-  buf[6] = (buf[6]! & 0x0f) | 0x40;
-  buf[8] = (buf[8]! & 0x3f) | 0x80;
-  const hex = buf.toString("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-}
-
-/** Preserves prior FinanceService stablePaymentCaptureLedgerIdentifiers seeding. */
-function stableLedgerIdentifiers(seed: string): {
-  journalId: string;
-  debitLineId: string;
-  creditLineId: string;
-} {
-  const id = seed.trim();
-  return {
-    journalId: deterministicUuidFromSeed(`payment-ledger:journal:${id}`),
-    debitLineId: deterministicUuidFromSeed(`payment-ledger:debit:${id}`),
-    creditLineId: deterministicUuidFromSeed(`payment-ledger:credit:${id}`),
-  };
 }

@@ -1,0 +1,43 @@
+{
+  "id": "finance-ws5",
+  "version": 1,
+  "package": "@app-tour/workspace-finance-ws5",
+  "workspaceTypes": ["finance-ws5"],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getFinanceWs5WorkspacePlugin"
+  },
+  "tourWrite": {
+    "module": "./tours",
+    "workspaceTypeExport": "FINANCE_WS5_WORKSPACE_TYPE",
+    "mergeExport": "mergeFinanceWs5CanonicalPatchData",
+    "publishGateExport": "financeWs5TourPatchRequiresOwner",
+    "publishSurfaceExport": "FINANCE_WS5_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
+  },
+  "workspaceFinance": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true,
+    "ledgerPolicy": {
+      "module": "./finance",
+      "export": "FinanceWs5LedgerPolicyAdapter"
+    },
+    "receiptDefaults": {
+      "module": "./finance",
+      "export": "FinanceWs5ReceiptDefaultsAdapter"
+    },
+    "chartOfAccounts": {
+      "module": "./finance",
+      "export": "FINANCE_WS5_LEDGER_ACCOUNTS"
+    },
+    "eventReaction": {
+      "module": "./finance",
+      "export": "FinanceWs5TourCreatedFinanceReactionAdapter",
+      "requiresHostIo": false
+    },
+    "opsManifest": {
+      "module": "./finance/manifest",
+      "defaultExport": "DEFAULT_FINANCE_OPS_MANIFEST",
+      "resolveFromThemeExport": "resolveFinanceOpsManifestFromTheme"
+    }
+  }
+}

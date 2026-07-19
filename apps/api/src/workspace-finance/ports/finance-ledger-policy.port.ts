@@ -1,11 +1,11 @@
 /**
- * Re-export ledger policy port (Phase 1.9 SoT: finance-http-contracts).
+ * Compatibility re-export — SoT: `@app-tour/finance-core` → contracts (Phase 1.25).
  */
 export type {
-  FinanceLedgerPostingSide,
-  FinanceLedgerJournalLine,
-  FinanceLedgerCapturePlan,
   BuildPaymentCaptureJournalInput,
   BuildPrepaymentJournalInput,
+  FinanceLedgerCapturePlan,
+  FinanceLedgerJournalLine,
   FinanceLedgerPolicyPort,
-} from "@app-tour/finance-http-contracts";
+  FinanceLedgerPostingSide,
+} from "@app-tour/finance-core";

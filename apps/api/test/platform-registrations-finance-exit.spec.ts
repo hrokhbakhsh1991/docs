@@ -34,7 +34,8 @@ describe("platform-registrations-finance-exit (P5-E optional)", () => {
     assert.match(mdoc, /registration-capacity\.service\.ts/);
     assert.match(mdoc, /public-registration-throttle\.ts/);
     assert.match(mdoc, /assert-paid-tour-open-gate\.ts/);
-    assert.match(mdoc, /tour-created-finance-side-effect\.ts/);
+    assert.match(mdoc, /process-workspace-finance-outbox\.ts/);
+    assert.match(mdoc, /resolveWorkspaceFinanceEventReaction|eventReaction/);
     assert.match(gate, /registration-capacity\.spec\.ts/);
     assert.match(gate, /paid-tour-open-gate\.spec\.ts/);
     assert.match(gate, /tour-created-finance-side-effect\.spec\.ts/);

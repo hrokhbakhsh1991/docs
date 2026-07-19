@@ -5,14 +5,16 @@ import {
 import {
   InMemoryBookingsRepository,
   resetBookingsStoresForTests,
-  type BookingsRepository,
 } from "./in-memory-bookings.repository";
+import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import { PrismaBookingsRepository } from "./prisma-bookings.repository";
 
-let singleton: BookingsRepository | null = null;
+export type { BookingRepositoryPort, BookingsRepository } from "./ports/booking-repository.port";
+
+let singleton: BookingRepositoryPort | null = null;
 let singletonDriver: ReturnType<typeof resolveStorageDriver> | null = null;
 
-export function getBookingsRepository(): BookingsRepository {
+export function getBookingsRepository(): BookingRepositoryPort {
   assertProductionStorageDriver();
 
   const driver = resolveStorageDriver();

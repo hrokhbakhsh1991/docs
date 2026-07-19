@@ -127,6 +127,36 @@
       "export": "LEDGER_ACCOUNTS"
     }
   },
+  "workspaceBooking": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true,
+    "publicBooking": {
+      "module": "./booking",
+      "export": "DenaliBookingPublicAdapter"
+    },
+    "capacityPolicy": {
+      "module": "./booking",
+      "export": "DenaliBookingCapacityPolicyAdapter"
+    },
+    "validationPolicy": {
+      "module": "./booking",
+      "export": "DenaliBookingValidationPolicyAdapter"
+    },
+    "opsCapability": {
+      "module": "./booking",
+      "export": "DenaliBookingOpsCapabilityAdapter"
+    },
+    "eventReaction": {
+      "module": "./booking",
+      "export": "DenaliBookingEventReactionAdapter",
+      "requiresHostIo": false
+    },
+    "opsManifest": {
+      "module": "./bookings",
+      "defaultExport": "DEFAULT_BOOKING_OPS_MANIFEST",
+      "resolveFromThemeExport": "resolveBookingOpsManifestFromTheme"
+    }
+  },
   "integrationCapabilities": {
     "telegram": {
       "tourPublishedPolicyDriftCheck": true,

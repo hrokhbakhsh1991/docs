@@ -24,7 +24,7 @@ export {
 } from "./ledger-tenant-scope";
 export type { DenaliOutboxDomainEvent, OutboxReader } from "./outbox-reader.port";
 export type { FinanceLedgerOutboxEnqueueInput, OutboxWriter } from "./outbox-writer.port";
-export { postDoubleEntryJournal } from "./post-double-entry-journal";
+export { postDoubleEntryJournal, stableLedgerIdentifiersFromSeed } from "./post-double-entry-journal";
 export {
   handleTourCreatedLedgerEvent,
   type TourCreatedLedgerPayload,

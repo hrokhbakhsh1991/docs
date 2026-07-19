@@ -10,6 +10,7 @@ import { isProductionAuthMode } from "../../tenant-kernel/auth-env";
 import { handleHttpError } from "../../middleware/error-interceptor";
 import { formatPrometheusMetrics } from "../../observability/prometheus-format";
 import { refreshOutboxQueueGaugesFromDb } from "../../outbox/outbox-pending-metrics";
+import { refreshFinanceOpsGaugesFromDb } from "../../workspace-finance/finance-ops-metrics";
 
 async function assertMetricsScrapeAllowed(req: IncomingMessage): Promise<void> {
   if (isProductionAuthMode()) {
@@ -26,6 +27,7 @@ export async function handleInternalMetrics(
   try {
     await assertMetricsScrapeAllowed(req);
     await refreshOutboxQueueGaugesFromDb();
+    await refreshFinanceOpsGaugesFromDb();
     res.setHeader("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
     res.statusCode = 200;
     res.end(formatPrometheusMetrics());

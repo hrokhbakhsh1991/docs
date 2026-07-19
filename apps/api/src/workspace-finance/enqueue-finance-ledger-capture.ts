@@ -6,7 +6,9 @@ import type {
 
 /**
  * Enqueue finance.ledger.double_entry_applied inside an open host TX.
- * @returns true when inserted; false on duplicate domainEventId; true if lines empty (no-op).
+ * Fail closed: empty lines throw (must not commit Paid/prepay without books).
+ * Fail closed: blank domainEventId / journal / line ids (adapter identity stability).
+ * @returns true when inserted; false on duplicate domainEventId.
  */
 export async function enqueueFinanceLedgerCaptureOutbox(input: {
   readonly outboxWriter: FinanceOutboxWriter;
@@ -16,8 +18,9 @@ export async function enqueueFinanceLedgerCaptureOutbox(input: {
 }): Promise<boolean> {
   const { capture } = input;
   if (capture.lines.length === 0) {
-    return true;
+    throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
   }
+  assertStableCaptureIdentities(capture);
   const tenantIdNorm = normalizeFinanceTenantId(input.tenantId);
   assertLedgerLinesFinanceTenantScope(tenantIdNorm, capture.lines);
   const primary = capture.lines[0]!;
@@ -55,6 +58,36 @@ export async function enqueueFinanceLedgerCaptureOutbox(input: {
       })),
     },
   });
+}
+
+/** Reject blank / malformed adapter identities before outbox insert. */
+export function assertStableCaptureIdentities(capture: FinanceLedgerCapturePlan): void {
+  if (capture.domainEventId.trim().length === 0) {
+    throw new Error("FINANCE_LEDGER_IDENTITY_UNSTABLE: domainEventId required");
+  }
+  if (capture.journalId.trim().length === 0) {
+    throw new Error("FINANCE_LEDGER_IDENTITY_UNSTABLE: journalId required");
+  }
+  for (let i = 0; i < capture.lines.length; i++) {
+    const line = capture.lines[i]!;
+    if (line.id.trim().length === 0 || line.journalId.trim().length === 0) {
+      throw new Error(`FINANCE_LEDGER_IDENTITY_UNSTABLE: line[${i}] ids required`);
+    }
+  }
+  const paymentCapture = /^payment:([0-9a-f-]{36}):ledger-capture-anchor$/i.exec(
+    capture.domainEventId.trim()
+  );
+  if (paymentCapture) {
+    const paymentId = paymentCapture[1]!;
+    const meta = capture.lines[0]?.metadata;
+    const metaPaymentId =
+      meta !== undefined && typeof meta === "object" && typeof (meta as { paymentId?: unknown }).paymentId === "string"
+        ? (meta as { paymentId: string }).paymentId
+        : null;
+    if (metaPaymentId !== null && metaPaymentId !== paymentId) {
+      throw new Error("FINANCE_LEDGER_IDENTITY_UNSTABLE: paymentId metadata mismatch");
+    }
+  }
 }
 
 function normalizeFinanceTenantId(raw: string): string {

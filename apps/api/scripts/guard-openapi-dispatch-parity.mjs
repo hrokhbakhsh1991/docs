@@ -46,6 +46,11 @@ function appWiresRoute(route) {
   if (route.path === "/internal/metrics") {
     return app.includes('"/internal/metrics"') && app.includes("handleInternalMetrics");
   }
+  if (route.path.startsWith("/internal/finance/recon")) {
+    return (
+      app.includes('"/internal/finance/recon/') && app.includes("handleInternalFinanceRecon")
+    );
+  }
   if (route.path === "/internal/cache/invalidate") {
     return app.includes('"/internal/cache/invalidate"') && app.includes("handleCacheInvalidate");
   }
@@ -66,6 +71,12 @@ function appWiresRoute(route) {
       app.includes("outboxReplayMatch") ||
       (app.includes("/internal/outbox/") && app.includes("handleReplayOutbox"))
     );
+  }
+  if (
+    route.path === "/internal/outbox/replay" ||
+    route.path === "/internal/outbox/replay/runs/{runId}"
+  ) {
+    return app.includes("handleInternalOutboxReplay");
   }
   if (route.path === "/tours") {
     if (route.method === "GET") {

@@ -1,6 +1,6 @@
 /**
  * Host-owned outbox writer contract for finance ledger capture events.
- * Structurally compatible with Denali OutboxWriter; implementation is Prisma TX-scoped.
+ * Structurally compatible with Denali OutboxWriter; host implementation is TX-scoped.
  * @returns true when a new outbox row was inserted; false on duplicate domainEventId.
  */
 export type FinanceLedgerOutboxEnqueueInput = {

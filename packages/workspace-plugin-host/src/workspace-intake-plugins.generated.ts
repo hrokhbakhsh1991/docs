@@ -5,16 +5,26 @@
  */
 
 import { registerWorkspaceIntakePlugin } from "@app-tour/workspace-sdk";
+import { getBookingWs2WorkspacePlugin } from "@app-tour/workspace-booking-ws2/plugin";
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali/plugin";
 import { getFinanceWs2WorkspacePlugin } from "@app-tour/workspace-finance-ws2/plugin";
+import { getFinanceWs3WorkspacePlugin } from "@app-tour/workspace-finance-ws3/plugin";
+import { getFinanceWs4WorkspacePlugin } from "@app-tour/workspace-finance-ws4/plugin";
+import { getFinanceWs5WorkspacePlugin } from "@app-tour/workspace-finance-ws5/plugin";
+import { getFinanceWs6WorkspacePlugin } from "@app-tour/workspace-finance-ws6/plugin";
 import { getGuestClubWorkspacePlugin } from "@app-tour/workspace-guest-club/plugin";
 import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
 import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban/plugin";
 
 export function registerWorkspaceIntakePluginsFromManifest(): void {
   for (const plugin of [
+    getBookingWs2WorkspacePlugin(),
     getDenaliWorkspacePlugin(),
     getFinanceWs2WorkspacePlugin(),
+    getFinanceWs3WorkspacePlugin(),
+    getFinanceWs4WorkspacePlugin(),
+    getFinanceWs5WorkspacePlugin(),
+    getFinanceWs6WorkspacePlugin(),
     getGuestClubWorkspacePlugin(),
     getStarterWorkspacePlugin(),
     getUrbanWorkspacePlugin(),

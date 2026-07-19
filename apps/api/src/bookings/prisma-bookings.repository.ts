@@ -30,12 +30,12 @@ import {
   MAX_BOOKINGS_LIST_BY_TENANT_DEPRECATED,
   MAX_MEMBER_BOOKINGS_LIST_CAP,
 } from "./bookings-member-summary-projection";
-import type { BookingsRepository } from "./in-memory-bookings.repository";
+import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import {
   BookingNotFoundError,
   BookingStatusConflictError,
   BulkApproveBatchLimitError,
-} from "./in-memory-bookings.repository";
+} from "./bookings.errors";
 
 /** List projection — excludes `registrationIntake` JSON (detail path uses `getById`). */
 export const BOOKING_LIST_SELECT = {
@@ -202,7 +202,7 @@ function assertTenantId(tenantId: string): void {
   }
 }
 
-export class PrismaBookingsRepository implements BookingsRepository {
+export class PrismaBookingsRepository implements BookingRepositoryPort {
   /** @deprecated Test/perf baseline — delegates to listByTenantPage (cap 500). */
   async listByTenant(tenantId: string): Promise<BookingRecord[]> {
     const page = await this.listByTenantPage({

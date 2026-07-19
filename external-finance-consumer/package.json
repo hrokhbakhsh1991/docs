@@ -1,0 +1,25 @@
+{
+  "name": "@example/external-finance-consumer",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Second-repository simulation — consumes finance-core via public packages only (Phase 2.3.4). Not part of the monorepo workspace graph.",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "prepare:local": "node ./scripts/prepare-local-packages.mjs",
+    "build": "tsc -p tsconfig.json",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\"",
+    "guard:imports": "node ./scripts/guard-imports.mjs"
+  },
+  "dependencies": {
+    "@app-tour/finance-core": "file:./.local-packages/finance-core",
+    "@app-tour/finance-http-contracts": "file:./.local-packages/finance-http-contracts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

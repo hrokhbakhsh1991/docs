@@ -42,10 +42,8 @@ const HOST_IMPORT_LEGACY_ALLOWLIST = new Set([
   "tours/workspace-tour-write-dispatch.ts",
   "workspace-finance/finance.service.ts",
   "workspace-finance/prisma-workspace-outbox-reader.ts",
-  "workspace-finance/prisma-workspace-outbox-writer.ts",
+  "workspace-finance/infrastructure/prisma-workspace-outbox-writer.ts",
   "workspace-finance/process-workspace-finance-outbox.ts",
-  "workspace-finance/register-workspace-finance-deps.ts",
-  "workspace-finance/tour-created-finance-side-effect.ts",
 ]);
 
 /** @type {string[]} */

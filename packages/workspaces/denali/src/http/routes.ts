@@ -9,9 +9,9 @@ export {
 export type { DenaliFinanceHttpHostPorts, FinanceRouteDeps } from "./host-ports";
 export type { DenaliProductHttpHostPorts, DenaliProductRouteDeps } from "./product-host-ports";
 export type {
-  DenaliPublicBookingPort,
-  DenaliPublicBookingCreateInput,
-  DenaliPublicBookingCreateResult,
+  BookingPublicPort,
+  BookingPublicCreateInput,
+  BookingPublicCreateResult,
 } from "./ports/public-booking.port";
 export type { DenaliPublicDestinationPort } from "./ports/public-destination.port";
 export { CATALOG_HTTP_ROUTE_MANIFEST, FINANCE_HTTP_ROUTE_MANIFEST } from "./routes-manifest";

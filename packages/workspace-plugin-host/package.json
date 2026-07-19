@@ -47,6 +47,7 @@
   "dependencies": {
     "@app-tour/catalog-registration-flow-ui": "workspace:*",
     "@app-tour/workspace-denali": "workspace:*",
+    "@app-tour/workspace-finance-ws4": "workspace:*",
     "@app-tour/workspace-guest-club": "workspace:*",
     "@app-tour/workspace-sdk": "workspace:*",
     "@app-tour/workspace-starter": "workspace:*",

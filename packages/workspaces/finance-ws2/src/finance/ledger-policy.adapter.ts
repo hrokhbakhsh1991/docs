@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 
 import type {
   BuildPaymentCaptureJournalInput,
@@ -127,11 +127,19 @@ function postWs2DoubleEntry(input: {
   }
   const amountStr = input.amount_minor.trim();
   const currency = input.currency.trim();
-  const journalId = input.stableJournalAndLineIds.journalId || randomUUID();
+  const journalId = input.stableJournalAndLineIds.journalId.trim();
+  if (journalId.length === 0) {
+    throw new Error("FINANCE_LEDGER_STABLE_ID_REQUIRED: journalId must be non-empty");
+  }
+  const debitLineId = input.stableJournalAndLineIds.debitLineId.trim();
+  const creditLineId = input.stableJournalAndLineIds.creditLineId.trim();
+  if (!debitLineId || !creditLineId) {
+    throw new Error("FINANCE_LEDGER_STABLE_ID_REQUIRED: line ids must be non-empty");
+  }
   const createdAt = input.journalLinesCreatedAtIso;
 
   const debitLine: FinanceLedgerJournalLine = {
-    id: input.stableJournalAndLineIds.debitLineId,
+    id: debitLineId,
     journalId,
     tenantId,
     account: debitAccount,
@@ -144,7 +152,7 @@ function postWs2DoubleEntry(input: {
     metadata: input.metadata,
   };
   const creditLine: FinanceLedgerJournalLine = {
-    id: input.stableJournalAndLineIds.creditLineId,
+    id: creditLineId,
     journalId,
     tenantId,
     account: creditAccount,

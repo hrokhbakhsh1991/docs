@@ -1,4 +1,3 @@
-import "../workspace-finance/register-workspace-finance-deps";
 import {
   isWorkspaceFinanceEventReactionRegistered,
 } from "../workspace-finance/finance-event-reaction-registry";
@@ -8,7 +7,7 @@ import { WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS } from "./workspace-outbox-side-e
 import type { WorkspaceOutboxPublishedRow } from "./workspace-outbox-row-context";
 
 /**
- * Post-publish outbox side effects (DEC-P10-002 / Phase 1.8 Step 1).
+ * Post-publish outbox side effects (DEC-P10-002 / Phase 1.13).
  * Relay calls this only.
  *
  * Finance TourCreated reactions: finance event reaction registry (single driver).

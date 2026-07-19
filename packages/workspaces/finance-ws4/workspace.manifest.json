@@ -1,0 +1,38 @@
+{
+  "id": "finance-ws4",
+  "version": 1,
+  "package": "@app-tour/workspace-finance-ws4",
+  "workspaceTypes": ["finance-ws4"],
+  "plugin": {
+    "entry": "./plugin",
+    "export": "getFinanceWs4WorkspacePlugin"
+  },
+  "tourWrite": {
+    "module": "./tours",
+    "workspaceTypeExport": "FINANCE_WS4_WORKSPACE_TYPE",
+    "mergeExport": "mergeFinanceWs4CanonicalPatchData",
+    "publishGateExport": "financeWs4TourPatchRequiresOwner",
+    "publishSurfaceExport": "FINANCE_WS4_TOUR_PUBLISH_FIELDS_OWNER_SURFACE"
+  },
+  "workspaceFinance": {
+    "supported": true,
+    "defaultModuleEnabledWhenUnset": true,
+    "ledgerPolicy": {
+      "module": "./finance",
+      "export": "FinanceWs4LedgerPolicyAdapter"
+    },
+    "receiptDefaults": {
+      "module": "./finance",
+      "export": "FinanceWs4ReceiptDefaultsAdapter"
+    },
+    "chartOfAccounts": {
+      "module": "./finance",
+      "export": "FINANCE_WS4_LEDGER_ACCOUNTS"
+    },
+    "eventReaction": {
+      "module": "./finance",
+      "export": "FinanceWs4TourCreatedFinanceReactionAdapter",
+      "requiresHostIo": false
+    }
+  }
+}

@@ -8,6 +8,14 @@ import { DenaliTourCreatedFinanceReactionAdapter as denali_EventReaction } from 
 
 import { FinanceWs2TourCreatedFinanceReactionAdapter as finance_ws2_EventReaction } from "@app-tour/workspace-finance-ws2/host/finance";
 
+import { FinanceWs3TourCreatedFinanceReactionAdapter as finance_ws3_EventReaction } from "@app-tour/workspace-finance-ws3/host/finance";
+
+import { FinanceWs4TourCreatedFinanceReactionAdapter as finance_ws4_EventReaction } from "@app-tour/workspace-finance-ws4/host/finance";
+
+import { FinanceWs5TourCreatedFinanceReactionAdapter as finance_ws5_EventReaction } from "@app-tour/workspace-finance-ws5/host/finance";
+
+import { FinanceWs6TourCreatedFinanceReactionAdapter as finance_ws6_EventReaction } from "@app-tour/workspace-finance-ws6/host/finance";
+
 export const WORKSPACE_FINANCE_EVENT_REACTION_BINDINGS = {
   "denali": {
     requiresHostIo: true as const,
@@ -16,6 +24,22 @@ export const WORKSPACE_FINANCE_EVENT_REACTION_BINDINGS = {
   "finance-ws2": {
     requiresHostIo: false as const,
     create: () => new finance_ws2_EventReaction(),
+  },
+  "finance-ws3": {
+    requiresHostIo: false as const,
+    create: () => new finance_ws3_EventReaction(),
+  },
+  "finance-ws4": {
+    requiresHostIo: false as const,
+    create: () => new finance_ws4_EventReaction(),
+  },
+  "finance-ws5": {
+    requiresHostIo: false as const,
+    create: () => new finance_ws5_EventReaction(),
+  },
+  "finance-ws6": {
+    requiresHostIo: false as const,
+    create: () => new finance_ws6_EventReaction(),
   },
 } as const;
 

@@ -23,27 +23,6 @@ function isAuthzGranted(context: TenantAuthContext): boolean {
   return true;
 }
 
-export function parseEnabledModulesFromTheme(theme: unknown): readonly string[] {
-  if (theme === null || typeof theme !== "object") {
-    return [];
-  }
-  const record = theme as Record<string, unknown>;
-  const modules = record.enabledModules ?? record.enabled_modules;
-  if (!Array.isArray(modules)) {
-    return [];
-  }
-  return modules.filter((entry): entry is string => typeof entry === "string");
-}
-
-export function isFinanceModuleEnabled(theme: unknown, workspaceType: string): boolean {
-  const modules = parseEnabledModulesFromTheme(theme);
-  if (modules.includes("finance")) {
-    return true;
-  }
-  // Denali default: finance on when module list unset (legacy parity).
-  return workspaceType === "denali" && modules.length === 0;
-}
-
 export async function assertFinanceWorkspaceGate(tenantId: string): Promise<{
   readonly workspaceType: string;
   readonly theme: unknown;
@@ -52,11 +31,11 @@ export async function assertFinanceWorkspaceGate(tenantId: string): Promise<{
   if (row === null) {
     throw new Error("FINANCE_WORKSPACE_UNSUPPORTED");
   }
-  const validFinanceWorkspaces = ["denali"];
-  if (!validFinanceWorkspaces.includes(row.workspaceType)) {
+  const workspaceType = row.workspaceType.trim().toLowerCase();
+  if (workspaceType.length === 0 || !isFinanceSupportedWorkspace(workspaceType)) {
     throw new Error("FINANCE_WORKSPACE_UNSUPPORTED");
   }
-  if (!isFinanceModuleEnabled(row.theme, row.workspaceType)) {
+  if (!isFinanceModuleEnabled(row.theme, workspaceType)) {
     throw new Error("FORBIDDEN_FINANCE_MODULE_DISABLED");
   }
   return row;

@@ -45,6 +45,16 @@ import {
   InMemoryFinanceRepository,
   resetInMemoryFinanceRepositoryForTests,
 } from "./in-memory-finance.repository.ts";
+import {
+  fakeEmptySchedules,
+  fakeMemoryPersistenceMode,
+  fakeFixedClock,
+  fakeNoopLog,
+  fakeNoopMetrics,
+  fakePermissiveCapability,
+  fakePermissiveAccess,
+  fakeReceiptProofUrl,
+} from "./finance-service-host-fakes.ts";
 
 const FINANCE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
 const REGISTRATION_ID = "11111111-1111-4111-8111-111111111111";
@@ -155,7 +165,10 @@ describe("finance-http-contracts.spec.ts — Phase 1.4", { concurrency: false },
   });
 
   it("FIN-P1.4-02 FinanceService source does not import workspace-denali HTTP", () => {
-    const serviceSrc = readFileSync(resolve(FINANCE_ROOT, "finance.service.ts"), "utf8");
+    const serviceSrc = readFileSync(
+      resolve(FINANCE_ROOT, "../../../../packages/finance-core/src/application/finance.service.ts"),
+      "utf8"
+    );
     assert.doesNotMatch(serviceSrc, /@app-tour\/workspace-denali\/http/);
     assert.match(serviceSrc, /@app-tour\/finance-http-contracts/);
   });
@@ -186,7 +199,15 @@ describe("finance-http-contracts.spec.ts — Phase 1.4", { concurrency: false },
       financeRepo,
       bookingPayments,
       resolveFinanceReceiptDefaults(FINANCE_WS2_WORKSPACE_TYPE),
-      new BookingRegistrationDisplayAdapter()
+      new BookingRegistrationDisplayAdapter(),
+      fakeNoopMetrics,
+      fakeMemoryPersistenceMode,
+      fakeReceiptProofUrl,
+      fakePermissiveCapability,
+      fakePermissiveAccess,
+      fakeEmptySchedules,
+      fakeNoopLog,
+      fakeFixedClock
     );
 
     const body: CreateManualPaymentBody = parseCreateManualPaymentBody({

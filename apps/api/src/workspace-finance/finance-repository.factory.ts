@@ -1,9 +1,10 @@
 import { resolveStorageDriver } from "../storage/production-storage-driver-assert";
-import { FinanceRepository } from "./finance.repository";
+import { PrismaFinanceRepository } from "./infrastructure/prisma-finance.repository";
 import { InMemoryFinanceRepository } from "./in-memory-finance.repository";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
+import type { FinanceRepositoryPort } from "./ports/finance-repository.port";
 
-export type FinanceRepositoryPort = FinanceRepository | InMemoryFinanceRepository;
+export type { FinanceRepositoryPort } from "./ports/finance-repository.port";
 
 let financeRepositorySingleton: FinanceRepositoryPort | null = null;
 
@@ -26,7 +27,7 @@ export function createFinanceRepository(
   if (resolveStorageDriver() === "memory") {
     financeRepositorySingleton = new InMemoryFinanceRepository(bookingPayments);
   } else {
-    financeRepositorySingleton = new FinanceRepository(bookingPayments);
+    financeRepositorySingleton = new PrismaFinanceRepository(bookingPayments);
   }
   return financeRepositorySingleton;
 }

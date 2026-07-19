@@ -84,16 +84,17 @@ P7 path boundary: edit **`apps/api/src/workspace-finance/`** only; `apps/api/src
 ### 1.4 Current architecture boundaries
 
 ```text
-HTTP /finance/*     ← Denali package (routes, schemas, host ports)
+HTTP /finance/*     ← @app-cloud/finance-http (+ Denali re-export façade)
         ↓
-apps/api boot       ← lazy-finance-service hardcodes DenaliFinanceLedgerPolicyAdapter
+apps/api boot       ← lazy-finance-service + capability registries
         ↓
-FinanceService      ← Denali DTOs; ports for ledger + booking (partial)
+FinanceService      ← ports only (ledger, booking, defaults, display, **FinanceRepositoryPort**)
         ↓
-FinanceRepository   ← Prisma Payment/Receipt/Schedule/Outbox
-                    ← ALSO mutates OperatorRegistration in approve TX ★
+FinanceRepositoryPort
+  ├─ PrismaFinanceRepository (infrastructure) ← Prisma Payment/Receipt/Outbox + RLS TX
+  └─ InMemoryFinanceRepository (tests)
         ↓
-Outbox → Relay → TourCreated Denali side-effect → more finance.ledger.* rows
+Outbox → Relay → TourCreated workspace side-effect → more finance.ledger.* rows
 ```
 
 | Layer | Intended owner | Actual |
@@ -527,7 +528,7 @@ Outbox Relay
 | **Goal** | Generic finance event infrastructure must not re-export or type against Denali implementation details |
 | **Generated outbox** | `workspace-outbox-side-effects.generated.ts` has **zero** Denali exports when events use `dispatchVia: financeEventReaction` |
 | **Reaction registry** | Host IO uses platform `FinanceWorkspaceOutboxReader` / `FinanceOutboxWriter` — **no** `@app-tour/workspace-denali` type imports |
-| **Boot register** | `register-workspace-finance-deps` imports `registerTourCreatedFinanceSideEffectDeps` from **workspace package** (not generated outbox) |
+| **Boot register** | **Removed in 1.13** — HostIo injects claim/log at resolve; no `register-workspace-finance-deps` |
 | **WS2** | Fixture may declare independent `eventReaction` via manifest/codegen |
 | **Preserved** | Payment IDs; ledger capture IDs; approve TX order; RLS |
 | **Commit** | `feat(finance): remove workspace-specific event facade leakage` |
@@ -541,6 +542,28 @@ Outbox Relay
 | Denali reaction resolves via capability registry | Done |
 | WS2 reaction registers independently (manifest) | Done |
 | Unknown workspaceType fails closed | Done |
+
+### Phase 1.13 — Finance event HostIo closes Denali boot registrar
+
+| | |
+| -- | -- |
+| **Goal** | Generic finance runtime (`process-workspace-finance-outbox`, `workspace-tour-created-dispatcher`, `app` boot) has **zero** `@app-cloud/workspace-denali` imports and **no** `register-workspace-finance-deps` side-effect boot |
+| **Mechanism** | `PlatformFinanceEventReactionHostIo` injects claim + outbox writer + processed store + failure log at `resolveWorkspaceFinanceEventReaction` time |
+| **Denali adapter** | `DenaliTourCreatedFinanceReactionAdapter` passes HostIo deps into `runTourCreatedFinanceSideEffect(row, deps)` — no module singleton in production |
+| **Deleted** | `apps/api/src/workspace-finance/register-workspace-finance-deps.ts`; Denali re-export façade `tour-created-finance-side-effect.ts` |
+| **Unchanged** | TourCreated finance payload gate; claim-then-ledger semantics; ledger identity formulas; WS2 no-op reaction |
+| **Must NOT** | Change event payload shape; dual-dispatch via generated outbox + registry |
+| **Acceptance** | `rg workspace-denali` on hand-written `apps/api/src/workspace-finance/**` + dispatcher (exclude `*.generated.ts` / `*.spec.ts`) = **zero** |
+| **Commit** | `refactor(finance): inject TourCreated HostIo; drop Denali boot registrar` |
+
+**Phase 1.13 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| No `register-workspace-finance-deps` in process/dispatcher/app | Done |
+| Reaction registry HostIo includes `tryClaimProcessedEvent` + `logReactionFailed` | Done |
+| Denali adapter production path uses explicit deps | Done |
+| Hand-written generic finance runtime: zero `workspace-denali` | Done |
 
 ### Phase 1.9 — Workspace finance adapters leave `apps/api` infrastructure
 
@@ -710,6 +733,207 @@ FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, regis
 | finance-ws2 `registryOnly` fixture (deps+CoA, no nav) | Done |
 | Denali behavior preserved (IRR/2500000, capture IDs) | Done |
 
+### Phase 1.11 — FinanceRepository real port (persistence boundary)
+
+| | |
+| -- | -- |
+| **Goal** | `FinanceService` depends on a **real** `FinanceRepositoryPort` interface + domain DTOs — never on Prisma class unions, `withTenantRls`, outbox helpers, or `@prisma/client` |
+| **Why now** | Prior `FinanceRepositoryPort = FinanceRepository \| InMemoryFinanceRepository` was not an abstraction; domain row types lived in the Prisma module, so memory tests still statically coupled to the Prisma file |
+| **Contract** | `apps/api/src/workspace-finance/ports/finance-repository.port.ts` — row/input DTOs + `FinanceRepositoryPort` |
+| **Prisma impl** | `apps/api/src/workspace-finance/infrastructure/prisma-finance.repository.ts` (`PrismaFinanceRepository`) — sole owner of RLS TX, outbox enqueue, Prisma error mapping |
+| **Memory impl** | `in-memory-finance.repository.ts` implements the same interface; imports types **only** from the port |
+| **Factory** | `createFinanceRepository` returns `FinanceRepositoryPort` (interface); composition root still picks memory vs Prisma via `STORAGE_DRIVER` |
+| **Compatibility** | `finance.repository.ts` re-exports types + `FinanceRepository` alias → Prisma class (no behavior change for existing imports) |
+| **Unchanged** | Approve TX order (Paid → booking raise → Approved → ledger outbox); Phase 3A/3B identity formulas; RLS tenant scoping; atomic abort hooks |
+| **Must NOT** | Extract `packages/finance-core`; change approve/ledger IDs; weaken atomicity; move `withTenantRls` into the service |
+| **Acceptance** | `finance.service.ts` + memory-backed service specs have **zero** `@prisma/client` / `finance.repository` Prisma-module value imports; service imports repository types from the port only |
+| **Commit** | `refactor(finance): real FinanceRepositoryPort behind infrastructure` |
+
+**Dependency graphs (1.11):**
+
+```text
+OLD:
+  FinanceService ──type──▶ finance.repository.ts (Prisma + RLS + outbox)
+  FinanceService ──ctor──▶ FinanceRepository | InMemoryFinanceRepository  (union, not interface)
+  InMemoryFinanceRepository ──type──▶ finance.repository.ts
+  createFinanceRepository ──▶ new FinanceRepository | new InMemory…
+
+NEW:
+  FinanceService ──type+ctor──▶ ports/finance-repository.port.ts (interface + DTOs)
+  createFinanceRepository ──▶ FinanceRepositoryPort
+       ├─ infrastructure/prisma-finance.repository.ts  (Prisma + RLS + outbox)
+       └─ in-memory-finance.repository.ts
+  finance.repository.ts ──re-export only──▶ port types + PrismaFinanceRepository
+```
+
+**Remaining host coupling after 1.11 (superseded in part by 1.12):**
+
+| Coupling | Owner | Notes |
+| -------- | ----- | ----- |
+| ~~`metricsRegistry` / `resolveStorageDriver` in `FinanceService`~~ | **Closed in 1.12** | Ports + host adapters |
+| ~~`receipt-proof-storage` dynamic import~~ | **Closed in 1.12** | `FinanceReceiptProofUrlPort` |
+| ~~`IBookingPaymentPort.raisePaidInTx(tx: Prisma.TransactionClient)`~~ | **Closed in 1.15** | Opaque `AmbientTenantTx`; Prisma cast only in booking adapter + Prisma repository |
+| Schedule store / workspace gate | host modules | Unrelated to persistence port |
+| Event Denali boot registrar | process-workspace-finance-outbox | Out of scope for 1.11 |
+
+**Phase 1.11 checklist:**
+
+| Item | State |
+| ---- | ----- |
+| `FinanceRepositoryPort` is an `interface` (not concrete union) | Done |
+| Domain DTOs live in `ports/finance-repository.port.ts` | Done |
+| Prisma class under `infrastructure/` | Done |
+| `FinanceService` imports repository types from port only | Done |
+| Approve / prepay / RLS semantics unchanged | Done |
+| Memory service specs do not import `@prisma/client` | Done |
+
+### Phase 1.12 — FinanceService host infrastructure ports
+
+| | |
+| -- | -- |
+| **Goal** | Remove hard imports of metrics, storage-driver assert, and receipt-proof storage from `FinanceService`. Host owns infra decisions; service owns business decisions only |
+| **Leaks closed** | `../observability/metrics`; `../storage/production-storage-driver-assert`; dynamic `./receipt-proof-storage` |
+| **Ports** | `FinanceMetricsPort` · `FinancePersistenceModePort` · `FinanceReceiptProofUrlPort` under `ports/` |
+| **Adapters** | `infrastructure/host-finance-metrics.adapter.ts` · `host-finance-persistence-mode.adapter.ts` · `host-finance-receipt-proof-url.adapter.ts` |
+| **Wiring** | `createFinanceService` + `lazy-finance-service` inject host adapters; unit specs inject fakes |
+| **Behavior** | Unchanged: durable mode ≡ `resolveStorageDriver() !== "memory"` (ledgerCapture on approve; booking-sync degraded persist); metrics counter name/labels identical; receipt URL signed-read + same error soft-fail |
+| **Must NOT** | Change approve/prepay identities; change RLS; extract finance-core |
+| **Acceptance** | `finance.service.ts` has zero imports of metrics / storage-driver / receipt-proof-storage; service executes with fake ports in unit specs |
+| **Commit** | `refactor(finance): port metrics storage and receipt proof out of FinanceService` |
+
+**Still outside pure application ports (deferred / reclassified):**
+
+| Import | Role | Classification after 1.14 |
+| ------ | ---- | ------------------------- |
+| `finance-registration-context` | Pure list identity helpers | Domain / Application (kept) |
+| `compile-invoice-balances` | Pure domain calculator | Domain (kept) |
+| `@app-cloud/finance-http-contracts` | HTTP DTO types | Application (kept) |
+| `node:crypto` | Idempotency hashing | External (kept) |
+| Host adapters (composition root only) | metrics · storage · receipt proof · access · schedules · log · DB configured | Host Infrastructure — **not** imported by `FinanceService` |
+
+### Phase 1.14 — FinanceService: remaining host infra behind ports
+
+| | |
+| -- | -- |
+| **Goal** | Every **Host Infrastructure** import leaves `FinanceService`; only Domain / Application / External (stdlib) remain |
+| **Classified Host (must port)** | `assert-finance-access` (gate/authz); `finance-schedule-store` RLS I/O; `console.*` logging; `process.env.DATABASE_URL` empty-summary gate |
+| **Already ported (1.12)** | metrics · persistence durable mode · receipt proof URLs |
+| **Ports** | `FinanceAccessPort` · `FinanceSchedulePort` · `FinanceLogPort`; extend `FinancePersistenceModePort.isDatabaseConfigured()` |
+| **Domain kept in-tree** | `buildPaymentScheduleItems` + schedule item types (no Prisma); `compile-invoice-balances`; `finance-registration-context` pure helpers |
+| **Unchanged** | Approve / prepay / identities / RLS semantics / error codes |
+| **Acceptance** | `finance.service.ts` imports zero of: `assert-finance-access`, `finance-schedule-store`, `receipt-proof-storage`, `observability/metrics`, `production-storage-driver-assert`, `process.env`, `console.` |
+| **Commit** | `refactor(finance): port access schedule log and db-config out of FinanceService` |
+
+### Phase 1.15 — Application ports: zero Prisma types
+
+| | |
+| -- | -- |
+| **Goal** | Finance application ports (`ports/**`) import **zero** `@prisma/client` types — including `Prisma.TransactionClient` |
+| **Before** | `IBookingPaymentPort.raisePaidInTx(tx: Prisma.TransactionClient, …)` forced every consumer of the booking port to typecheck against Prisma |
+| **After** | Canonical opaque `FinanceTransactionPort` on `IBookingPaymentPort.raisePaidInTx`; adapter casts to `Prisma.TransactionClient`; repository passes ambient RLS `tx` as `FinanceTransactionPort` |
+| **Unchanged** | Approve atomicity / Option C order (Paid → booking raise → Approved → ledger); error codes; RLS scoping |
+| **Must NOT** | Change who opens `withTenantRls`; invent a UnitOfWork framework; extract finance-core |
+| **Acceptance** | Application layer (`ports/**` + `finance.service.ts` + domain helpers) has **zero** `@prisma/client` / `Prisma.*` imports; approve/prepay unit specs green |
+| **Commit** | `refactor(finance): opaque FinanceTransactionPort on booking payment port` |
+
+**Dependency graphs (1.15):**
+
+```text
+BEFORE:
+  ports/booking-payment.port ──import type──▶ @prisma/client (Prisma.TransactionClient)
+  IBookingPaymentPort.raisePaidInTx(tx: Prisma.TransactionClient, …)
+  PrismaFinanceRepository ──raisePaidInTx(tx)──▶ IBookingPaymentPort
+  BookingPaymentAdapter.raisePaidInTx(tx: Prisma.TransactionClient)
+
+AFTER:
+  ports/booking-payment.port ── FinanceTransactionPort (opaque object; no @prisma)
+  IBookingPaymentPort.raisePaidInTx(tx: FinanceTransactionPort, …)
+  PrismaFinanceRepository ──raisePaidInTx(tx as FinanceTransactionPort)──▶ IBookingPaymentPort
+  BookingPaymentAdapter.raisePaidInTx(tx: FinanceTransactionPort)
+        └── cast ──▶ Prisma.TransactionClient  (infrastructure only)
+```
+
+### Phase 1.16 — FinanceService application boundary (named host ports)
+
+| | |
+| -- | -- |
+| **Goal** | `FinanceService` depends only on domain helpers, HTTP contract DTOs, and **ports** — zero host modules, env, console, Prisma, or `workspace-*` imports |
+| **Ports (canonical names)** | `FinanceMetricsPort` · `FinanceStorageDriverPort` · `FinanceAuthorizationPort` · `FinanceSchedulePort` · `ReceiptProofStoragePort` · `FinanceLoggerPort` (+ ledger/receipt-defaults/booking/display/repository) |
+| **Auth type** | `FinanceActorContext` in application ports (structurally compatible with host `TenantAuthContext`; service must not import `@app-cloud/workspace-sdk`) |
+| **Composition** | `lazy-finance-service.ts` wires host adapters |
+| **Unchanged** | Approve/prepay identities, RLS TX ownership, error codes |
+| **Acceptance** | `rg 'apps/api\|Prisma\|workspace-\|process\\.env\|console' finance.service.ts` → empty |
+| **Commit** | `refactor(finance): FinanceService application boundary named host ports` |
+
+**Dependency graph — before (host-coupled `FinanceService`):**
+
+```text
+FinanceService
+  ├── metricsRegistry                    (apps/api observability)
+  ├── resolveStorageDriver()             (apps/api storage + process.env)
+  ├── process.env.DATABASE_URL           (host env)
+  ├── console.warn / console.error       (host I/O)
+  ├── assertFinanceWorkspaceGate / auth  (host gate + @app-cloud/workspace-sdk TenantAuthContext)
+  ├── finance-schedule-store             (Prisma/RLS)
+  ├── receipt-proof-storage              (MinIO/storage)
+  ├── FinanceRepositoryPort / booking / ledger / receiptDefaults / display
+  └── domain helpers + HTTP DTOs
+```
+
+**Dependency graph — after (application boundary):**
+
+```text
+lazy-finance-service (composition root)
+  ├── HostFinanceMetricsAdapter          ──▶ metricsRegistry
+  ├── HostFinancePersistenceModeAdapter  ──▶ resolveStorageDriver / DATABASE_URL
+  ├── HostFinanceReceiptProofUrlAdapter  ──▶ receipt-proof-storage
+  ├── HostFinanceScheduleAdapter         ──▶ finance-schedule-store
+  ├── HostFinanceAccessAdapter           ──▶ assert-finance-access + TenantAuthContext
+  ├── HostFinanceLogAdapter              ──▶ platform pino logger
+  └── createFinanceService(...)
+
+FinanceService (pure application)
+  ├── FinanceMetricsPort
+  ├── FinanceStorageDriverPort
+  ├── ReceiptProofStoragePort
+  ├── FinanceSchedulePort
+  ├── FinanceAuthorizationPort
+  ├── FinanceLoggerPort
+  ├── FinanceRepositoryPort
+  ├── IBookingPaymentPort
+  ├── FinanceLedgerPolicyPort
+  ├── FinanceReceiptDefaultsPort
+  ├── RegistrationDisplayPort
+  ├── FinanceActorContext                (ports — not workspace-sdk)
+  └── domain helpers + @app-cloud/finance-http-contracts DTOs
+```
+
+### Phase 1.17 — Finance gate from generated workspace capability
+
+| | |
+| -- | -- |
+| **Goal** | Runtime finance gate uses **manifest → codegen → capability**, never `validFinanceWorkspaces = ["denali"]` or `workspaceType === "denali"` |
+| **Flow** | `workspace.manifest.json` `workspaceFinance.supported` / `defaultModuleEnabledWhenUnset` → `workspace-finance-bindings.generated.ts` → `assertFinanceWorkspaceGate` / `isFinanceModuleEnabled` |
+| **APIs** | `isFinanceSupportedWorkspace(workspaceType)` · `isFinanceDefaultEnabledWhenModulesUnset(workspaceType)` |
+| **Unchanged** | Error codes (`FINANCE_WORKSPACE_UNSUPPORTED`, `FORBIDDEN_FINANCE_MODULE_DISABLED`); authz helpers; Denali still supported via manifest |
+| **Acceptance** | Gate source has zero hardcoded workspace id arrays / `=== "denali"`; adding a workspace with `supported: true` + codegen enables the gate without editing gate files |
+| **Commit** | `refactor(finance): capability-driven finance workspace gate` |
+
+```text
+workspace.manifest.json
+  workspaceFinance.supported
+  workspaceFinance.defaultModuleEnabledWhenUnset
+        │
+        ▼  pnpm generate:workspace-registry
+workspace-finance-bindings.generated.ts
+  isFinanceSupportedWorkspace(workspaceType)
+  isFinanceDefaultEnabledWhenModulesUnset(workspaceType)
+        │
+        ▼
+assertFinanceWorkspaceGate / isFinanceModuleEnabled
+  (no validFinanceWorkspaces arrays, no workspaceType === "denali")
+```
+
 ### Phase 1.18 — Workspace registry codegen integrity
 
 | | |
@@ -718,20 +942,355 @@ FinanceService(ledgerPolicy, repository, bookingPayments, receiptDefaults, regis
 | **Root cause** | Orchestrator imported `domains/exposure.mjs` + `domains/integration.mjs` but files were absent on tip; `generateOutboxSideEffects` referenced undeclared `reexportsBySpecifier`; `workspace-finance-bindings.generated.ts` listed in outputs/allowlist but never committed |
 | **Fix** | Restore exposure + integration domain generators; wire `exposureHostBindings` / `integrationCapabilities` into `OUTPUT_KEYS` / `OUTPUT_PATHS` / `generateAllOutputs`; declare `reexportsBySpecifier`; emit missing generated artifacts |
 | **Unchanged** | Manifest schema; Denali package export map (`./host/exposure`, `./plugin`); finance capability semantics |
-| **Acceptance** | Detached worktree at tip + codegen fix → `generate` then `--check` PASS; no reliance on untracked workspace packages |
+| **Acceptance** | Detached worktree at tip + codegen fix → `generate` then `--check` PASS; no reliance on untracked workspace packages (e.g. local WIP `finance-ws3`) |
 | **Commit** | `fix(codegen): restore workspace-registry exposure/integration integrity` |
 
-### Phase 2 — Finance core extraction
-
+### Phase 1.19 — Finance onboarding proof (finance-ws3)
 
 | | |
 | -- | -- |
-| **Goal** | Move pure engine + ports + HTTP contract into `packages/finance-core`; `apps/api` keeps Prisma/outbox/storage/boot |
-| **Files affected (planned)** | New package; move `finance.service.ts` (sans infra), ports, compile-invoice, enqueue helpers, HTTP schemas/handlers; update imports; Denali thin re-exports |
-| **Risks** | Circular deps; guard/boundary violations; slow PR churn |
-| **Rollback** | Keep package as re-export façade back to `apps/api` paths |
-| **Tests required** | Package unit tests; full finance-ops/prepayments under prisma; import-boundary guard |
-| **Must NOT** | Move Prisma schema or `OperatorRegistration` into finance-core; put finance into `platform-core` dump; change identities |
+| **Goal** | Prove a third finance workspace enables via **package + manifest + adapters + codegen only** |
+| **Package** | `packages/workspaces/finance-ws3` (`@app-tour/workspace-finance-ws3`) |
+| **Manifest** | `workspaceFinance.supported: true`, `defaultModuleEnabledWhenUnset: true`, ledger/receipt/CoA/reaction + minimal `tourWrite.workspaceTypeExport` |
+| **Forbidden edits** | `finance.service.ts`, finance repositories, `assert-finance-access.ts` / gate sources, hand-written `finance-dependency-registry.ts`, host runtime beyond consumer `apps/api` package dep for generated imports |
+| **Success** | After `pnpm generate:workspace-registry`: `isFinanceSupportedWorkspace("finance-ws3")`, dependency/CoA/reaction bindings resolve WS3 adapters; engine uses injected ports unchanged |
+| **Commit** | `test(finance): prove finance-ws3 drop-in onboarding via manifest codegen` |
+
+### Phase 1.20 — Host runtime boundary closure
+
+| | |
+| -- | -- |
+| **Goal** | `FinanceService` depends only on ports — no host metrics, storage-driver, env, console, schedule store, receipt-proof, auth modules, or wall-clock `new Date()` |
+| **Ports** | `FinanceMetricsPort` · `FinanceStorageDriverPort` · `ReceiptProofStoragePort` · `FinanceSchedulePort` · `FinanceAuthorizationPort` · `FinanceLoggerPort` · **`FinanceClockPort`** (+ ledger/receipt-defaults/booking/display/repository) |
+| **Adapters** | `HostFinance*Adapter` under `infrastructure/`; composition in `lazy-finance-service.ts` |
+| **Unchanged** | Payment/prepay identities; Option C approve order; ledger capture payload shape; RLS TX ownership; event semantics |
+| **Acceptance** | `rg 'apps/api\|Prisma\|process\\.env\|console\|workspace-\|new Date\\(' finance.service.ts` → empty; finance + DI purity + ownership specs green |
+| **Commit** | `refactor(finance): Phase 1.20 host runtime ports including clock` |
+
+### Phase 1.21 — Repository boundary cleanup
+
+| | |
+| -- | -- |
+| **Goal** | Close residual persistence leaks after 1.11: `FinanceRepositoryPort` is the **only** upward repository contract; Prisma / RLS / TX-scoped outbox stay behind infrastructure |
+| **Problems closed** | Concrete class union as “port”; Prisma types in application ports; `withTenantRls` / `Prisma.TransactionClient` visible above adapters; `finance.repository.ts` re-exporting the Prisma class upward |
+| **Contract** | `ports/finance-repository.port.ts` — use-case methods + plain DTOs (no `@prisma/client`) |
+| **TX opacity** | `FinanceTransactionPort` on booking port; Prisma cast only in `BookingPaymentAdapter` + Prisma repository / TX-scoped outbox writer |
+| **Prisma impl** | `infrastructure/prisma-finance.repository.ts` — sole owner of `withTenantRls`, approve/prepay atomics, ledger outbox ordering |
+| **Outbox writer** | `infrastructure/prisma-workspace-outbox-writer.ts` — TX-scoped writer takes opaque `FinanceTransactionPort`, casts at boundary |
+| **Façade** | `finance.repository.ts` — **types-only** re-export from the port (no Prisma class / no `FinanceRepository` alias) |
+| **Factory** | `createFinanceRepository` returns `FinanceRepositoryPort`; picks memory vs Prisma at composition only |
+| **Unchanged** | Approve atomicity (Paid → booking raise → Approved → outbox last); RLS tenant scoping; outbox ordering; payment/ledger IDs; event semantics |
+| **Must NOT** | Redesign persistence; extract `finance-core`; weaken atomics; move RLS into `FinanceService` |
+| **Acceptance** | `finance.service.ts` + `ports/**` have **zero** Prisma / `withTenantRls` / `TransactionClient`; DI purity + ownership + finance service specs green |
+| **Commit** | `refactor(finance): Phase 1.21 repository port cleanup` |
+
+```text
+FinanceService ──▶ FinanceRepositoryPort (interface + DTOs)
+createFinanceRepository ──▶ FinanceRepositoryPort
+     ├─ infrastructure/prisma-finance.repository.ts   (withTenantRls + outbox)
+     │     └─ infrastructure/prisma-workspace-outbox-writer.ts
+     └─ in-memory-finance.repository.ts               (test fake)
+finance.repository.ts ──types only──▶ ports/finance-repository.port.ts
+```
+
+### Phase 1.22 — Finance onboarding proof (finance-ws4)
+
+| | |
+| -- | -- |
+| **Goal** | Re-prove platform contract: a **fourth** finance workspace enables via **package + manifest + adapters + codegen only** |
+| **Package** | `packages/workspaces/finance-ws4` (`@app-tour/workspace-finance-ws4`) |
+| **Manifest** | `workspaceFinance.supported: true`, ledger/receipt/CoA/reaction + minimal `tourWrite` |
+| **Forbidden edits** | `finance.service.ts`, finance repositories, `assert-finance-access.ts` / gate sources, hand-written `finance-dependency-registry.ts` / reaction registry Maps |
+| **Allowed** | New workspace package; consumer `apps/api` package dep; regenerate `*.generated.ts`; proof spec |
+| **Success** | After `pnpm generate:workspace-registry`: `isFinanceSupportedWorkspace("finance-ws4")`; dependency/CoA/reaction bindings resolve WS4 adapters; gate/service/hand-registry sources contain zero `finance-ws4` |
+| **Commit** | `test(finance): prove finance-ws4 drop-in onboarding via manifest codegen` |
+
+### Phase 1.24 — Port ownership audit (finance-core boundary prep)
+
+| | |
+| -- | -- |
+| **Goal** | Freeze **where each finance port SoT lives** before Phase 2 extraction — no code move |
+| **Classes** | **finance-core** (application ports FinanceService depends on) · **host adapter** (apps/api binds infra) · **workspace package** (policy/reaction/CoA) |
+| **Findings** | Ledger/receipt/reaction SoT already in `@app-tour/finance-http-contracts`; all other application ports are **apps/api-only**; alias drift (`FinanceAccessPort`/`FinanceAuthorizationPort`, etc.); `FinanceServicePort` still types auth as `TenantAuthContext` (workspace-sdk) |
+| **Must NOT** | Extract `finance-core`; change approve/TX; relocate adapters in this phase |
+| **Next** | Consolidate application port SoT into finance-core (or contracts); keep host/workspace **implementations** where they are |
+| **Commit** | `docs(finance): Phase 1.24 port ownership audit for finance-core` |
+
+**Target ownership tree (1.24):**
+
+```text
+packages/finance-core                    # Phase 2 home (ports SoT + FinanceService)
+├── ports/
+│   ├── FinanceRepositoryPort            # core SoT; host implements
+│   ├── IBookingPaymentPort              # core SoT; host implements
+│   ├── FinanceTransactionPort           # core SoT (opaque); host casts
+│   ├── RegistrationDisplayPort          # core SoT; host implements
+│   ├── FinanceMetricsPort               # core SoT; host implements
+│   ├── FinanceLoggerPort                # core SoT; host implements
+│   ├── FinanceStorageDriverPort         # core SoT; host implements
+│   ├── FinanceAuthorizationPort         # core SoT; host implements
+│   ├── FinanceClockPort                 # core SoT; host implements
+│   ├── FinanceSchedulePort              # core SoT; host implements
+│   ├── ReceiptProofStoragePort          # core SoT; host implements
+│   └── FinanceActorContext              # core SoT (not workspace-sdk)
+│
+packages/finance-http-contracts          # already shared (workspace-safe)
+├── FinanceLedgerPolicyPort              # workspace implements
+├── FinanceReceiptDefaultsPort           # workspace implements
+└── WorkspaceFinanceEventReactionPort    # workspace implements
+
+apps/api (host)                          # stays forever for infra
+├── infrastructure/HostFinance*Adapter
+├── infrastructure/BookingPaymentAdapter
+├── infrastructure/PrismaFinanceRepository
+├── FinanceOutboxWriter / OutboxReader   # host event IO (not core engine)
+└── composition / codegen bindings
+
+packages/workspaces/<id>                 # policy + reaction + CoA only
+├── *LedgerPolicyAdapter
+├── *ReceiptDefaultsAdapter
+├── *TourCreatedFinanceReactionAdapter
+└── *_LEDGER_ACCOUNTS
+```
+
+### Phase 1.25 — finance-core skeleton (ports / domain / application)
+
+| | |
+| -- | -- |
+| **Goal** | Create `packages/finance-core` boundary shell — **move pure interfaces/DTOs/types only**; do **not** move `FinanceService` |
+| **Layout** | `ports/` · `domain/` · `application/` (application empty until Phase 2) |
+| **Moved** | Application ports (repository, booking+TX, display, metrics, log, storage, authz, clock, schedule, proof) + schedule domain **types**; ledger/receipt/reaction SoT stays in `finance-http-contracts` (re-exported) |
+| **Stays in apps/api** | `FinanceService`, Prisma/host adapters, outbox writer/reader ports + runtime, generated bindings, schedule **generation** functions |
+| **Guard** | `guard:finance-core-boundary` — finance-core must not import `apps/api`, `@prisma/client`, or workspace packages |
+| **Must NOT** | Move service; import Prisma/outbox runtime into core |
+| **Commit** | `feat(finance): scaffold finance-core ports/domain skeleton with boundary guard` |
+
+### Phase 2 — Finance core extraction (engine move)
+
+| | |
+| -- | -- |
+| **Goal** | Move `FinanceService` + pure application/domain helpers into `packages/finance-core`; `apps/api` keeps composition, Prisma repos, HostIo, event processing |
+| **Moved** | `FinanceService` / `createFinanceService`; invoice compile; registration-context helpers; schedule installment generation; identity hash helpers |
+| **Stays in apps/api** | `lazy-finance-service`, repository factory, Prisma/memory repos, host adapters, outbox process/registry, gates, codegen |
+| **Forbidden in finance-core** | Prisma, `apps/api`, workspace packages, `process.env`, filesystem, outbox runtime |
+| **Unchanged** | Approve order (Paid → raisePaidInTx → Approved → outbox); payment/ledger IDs; capture payloads; RLS ownership |
+| **Façade** | `apps/api/.../finance.service.ts` re-exports from `@app-tour/finance-core` |
+| **Commit** | `feat(finance): move FinanceService into finance-core application layer` |
+
+### Phase 2.1 — Finalize repository adapter boundary
+
+| | |
+| -- | -- |
+| **Goal** | Freeze ownership: **finance-core** knows only `interface FinanceRepositoryPort` (+ plain DTOs); **apps/api** owns `PrismaFinanceRepository implements FinanceRepositoryPort` |
+| **Remove** | Prisma DTO leakage across the port (raw `findMany` / `include` shapes returned as domain rows); concrete repository unions; `Prisma.TransactionClient` visible above infrastructure |
+| **Keep** | Tenant RLS (`withTenantRls`); approve/prepay atomic transactions; ledger outbox **last** in approve TX; payment/ledger IDs; Option C booking raise |
+| **Mapping** | `PrismaFinanceRepository` projects Prisma selects/`include` through explicit `toFinance*Row` mappers before crossing the port |
+| **TX opacity** | Host casts `tx as FinanceTransactionPort` only inside infrastructure (booking adapter + TX-scoped outbox writer + Prisma approve path) |
+| **Architecture proofs** | `packages/finance-core/test/finance-repository-port-boundary.spec.ts` — core → port only; `apps/api/.../finance-repository-adapter-boundary.spec.ts` — api → Prisma implementation |
+| **Must NOT** | Change approve order; move RLS into FinanceService; put Prisma in finance-core |
+| **Commit** | `refactor(finance): finalize FinanceRepositoryPort vs PrismaFinanceRepository boundary` |
+
+```text
+packages/finance-core
+  FinanceService ──▶ FinanceRepositoryPort (interface + DTOs only)
+
+apps/api
+  createFinanceRepository ──▶ FinanceRepositoryPort
+       ├─ PrismaFinanceRepository (withTenantRls + atomics + outbox order)
+       └─ InMemoryFinanceRepository (test fake)
+  finance.repository.ts / ports/* ──types-only──▶ @app-cloud/finance-core
+```
+
+### Phase 2.2.1 — finance-core boundary enforcement
+
+| | |
+| -- | -- |
+| **Goal** | Make `packages/finance-core` a **hard** isolated application package — static guard fails CI on forbidden deps |
+| **Allowed imports** | Relative self; `node:crypto`; `@app-tour/finance-http-contracts` |
+| **Forbidden** | `apps/api`; `@prisma/*`; `@app-tour/workspace-*`; `packages/workspaces/*`; `*.generated.*`; `node:fs` / `fs`; `process.env`; dynamic `import()` of forbidden specs; DB infra symbols (`withTenantRls`, `enqueueOutboxEvent`, `HostIo`, `Prisma.TransactionClient`, `PrismaFinanceRepository`) |
+| **Tool** | `scripts/guards/guard-finance-core-boundary.mjs` — per-violation: file, line, dependency, reason |
+| **Must NOT** | Change FinanceService business logic; move repository / adapters / events |
+| **Acceptance** | `pnpm run guard:finance-core-boundary` PASS; existing finance tests unchanged |
+| **Commit** | `chore(finance): Phase 2.2.1 harden finance-core boundary guard` |
+
+### Phase 2.2.2 — finance-core dependency-cruiser
+
+| | |
+| -- | -- |
+| **Goal** | Graph-level enforcement: `packages/finance-core` cannot depend on apps, workspaces, workspace packages, generated bindings, db infra, or Prisma |
+| **Allowed** | self; `@app-tour/finance-http-contracts`; pure npm (non-forbidden) |
+| **Rules** | `finance-core-no-apps`, `finance-core-no-workspaces`, `finance-core-no-workspace-packages`, `finance-core-no-generated`, `finance-core-no-db-infra`, `finance-core-no-prisma`, `finance-core-allowed-package-deps` in `dependency-cruiser.config.js` |
+| **Negative proof** | `packages/finance-core/test/fixtures/illegal-prisma-import.ts` — excluded from monorepo crawl; scoped cruise must fail |
+| **Must NOT** | Production/business logic changes |
+| **Acceptance** | `pnpm run guard:architecture` PASS; fixture cruise proves detection |
+| **Commit** | `test(finance): Phase 2.2.2 finance-core depcruise rules + prisma breach fixture` |
+
+### Phase 2.2.3 — finance-core CI boundary enforcement
+
+| | |
+| -- | -- |
+| **Goal** | PRs that touch finance-core / finance contracts fail CI on boundary breaches without a full monorepo build |
+| **Workflow** | `.github/workflows/finance-core-boundary.yml` |
+| **Required steps** | `pnpm run guard:finance-core-boundary`; `pnpm --filter @app-tour/finance-core test`; `pnpm --filter @app-tour/finance-core build` |
+| **Path filter** | `packages/finance-core/**`, `packages/finance-http-contracts/**`, guard script, workflow file |
+| **Build scope** | Only `finance-http-contracts` (dep) + `finance-core` — **not** full monorepo `pnpm build` |
+| **Acceptance** | `import { PrismaClient } from "@prisma/client"` in finance-core src → guard FAIL → CI red |
+| **Commit** | `ci(finance): Phase 2.2.3 finance-core boundary PR workflow` |
+
+### Phase 2.2.5 — remaining pure application ports in finance-core
+
+| | |
+| -- | -- |
+| **Goal** | Confirm SoT for pure application ports in `packages/finance-core`; apps/api keeps adapters only |
+| **Ports (SoT)** | `FinanceMetricsPort`, `FinanceLoggerPort`, `FinanceClockPort`, `FinanceStorageDriverPort` (+ alias `FinanceStoragePort`), `FinanceAuthorizationPort` (+ alias `FinanceAuthzPort`), `FinanceSchedulePort` |
+| **Also already in core** | actor context, repository, booking, display, receipt-proof, ledger/receipt re-exports |
+| **apps/api** | Type re-exports + `HostFinance*Adapter` / schedule / Prisma repository injection via composition |
+| **Forbidden in core** | Prisma, DB, env, filesystem, HTTP runtime, workspace packages |
+| **Must NOT** | Behavior changes; move adapters |
+| **Acceptance** | `guard:finance-core-boundary` PASS; finance-core test + build green |
+| **Commit** | `refactor(finance): Phase 2.2.5 confirm pure ports SoT in finance-core` |
+
+### Phase 2.2.6 — finance-core extraction simulation (isolated tests)
+
+| | |
+| -- | -- |
+| **Goal** | Prove finance-core runs payment / prepay / ledger-capture / idempotency / approve with **zero** `apps/api` imports |
+| **Harness** | `packages/finance-core/test/isolation/` — InMemory repo + FakeClock/Logger/Metrics/Storage + fake ledger/booking ports |
+| **Not published** | Package remains private workspace; no npm publish |
+| **Acceptance** | `pnpm --filter @app-tour/finance-core test` includes FIN-EXTRACTION-SIM suite green |
+| **Commit** | `test(finance): Phase 2.2.6 isolated extraction simulation harness` |
+
+### Phase 2.3 — finance-core portability preparation (no extract)
+
+| | |
+| -- | -- |
+| **Goal** | Make `@app-tour/finance-core` **behave** like an independently consumable package **without** leaving the monorepo or publishing |
+| **Must NOT** | Move Prisma / repositories / outbox / workspace adapters; change payment formulas, TX ordering, IDs, or invariants |
+| **Packaging** | Standalone `tsconfig.json` (no `extends` → `packages/config`); drop `@app-tour/config` workspace dep; production `exports` / `types` / `files` / `main` |
+| **Allowed runtime deps** | Self; `@app-tour/finance-http-contracts`; Node builtins used in engine (`node:crypto` only today) |
+| **Boundary guard** | Package-local `packages/finance-core/scripts/guard-boundary.mjs`; monorepo `scripts/guards/guard-finance-core-boundary.mjs` is a thin delegate |
+| **Portability guard** | `packages/finance-core/scripts/guard-portability.mjs` — forbids config extend, `../../scripts` package scripts, non-allowlisted package.json deps |
+| **Contracts peer** | `@app-tour/finance-http-contracts` likewise standalone tsconfig + `files: ["dist"]` (publish-shaped; still `private`) |
+| **External consumer fixture** | `packages/finance-core/test/external-consumer/` — second-repo simulation: import **only** package public surface (`@app-tour/finance-core` → `dist`), local adapters, no `apps/api` / Prisma / src path imports |
+| **Acceptance** | `pnpm --filter @app-tour/finance-core run guard:boundary`; `guard:portability`; `test` (incl. FIN-EXTERNAL-CONSUMER); `build` — all green |
+| **Commit** | `chore(finance): Phase 2.3 finance-core portability preparation` |
+
+**Still host-owned after 2.3:** PrismaFinanceRepository, RLS, outbox writer/reader, Host\* adapters, `lazy-finance-service`, workspace registry/codegen, HTTP runtime.
+
+**Still not done after 2.3:** npm publish, replacing `workspace:*` with registry semver, extracting to a second git repository.
+
+### Phase 2.3.1 — application boundary fixes (ports only)
+
+| | |
+| -- | -- |
+| **Goal** | Finance **application** layer (`FinanceService`) depends only on domain + application ports + contracts |
+| **Capability** | Extract `FinanceCapabilityPort.assertEnabled` — workspace support + module enablement leave `FinanceAuthorizationPort` (roles only) |
+| **Host** | `HostFinanceCapabilityAdapter` → existing `assertFinanceWorkspaceGate` (same errors); `HostFinanceAccessAdapter` roles only |
+| **Cleanup** | Drop unused `WorkspaceFinanceEventReactionPort` re-export from finance-core (SoT remains `finance-http-contracts`; apps/api re-exports contracts) |
+| **Must NOT** | Change payment/approve/prepay formulas, TX ordering, IDs, Prisma, or payment-safety suites |
+| **Acceptance** | `guard:boundary` + `guard:portability`; finance-core package tests (incl. FIN-EXTRACTION-SIM) green |
+| **Commit** | `refactor(finance): Phase 2.3.1 capability port + application boundary cleanup` |
+
+### Phase 2.3.2 — finance-ws5 reusable consumer proof
+
+| | |
+| -- | -- |
+| **Goal** | Prove finance-core is **reusable** via a new workspace package — not only extractable |
+| **Deliverable** | `packages/workspaces/finance-ws5` — manifest + ledger policy + receipt defaults + event reaction + ops capability |
+| **Onboarding path** | package + `workspace.manifest.json` + `pnpm run generate:workspace-registry` (+ host package.json workspace deps for install) |
+| **Forbidden** | FinanceService / repository / gate / payment-engine / hand-registry edits |
+| **Proof** | `apps/api/src/workspace-finance/finance-ws5-onboarding.spec.ts` |
+| **Commit** | `feat(finance): Phase 2.3.2 finance-ws5 drop-in consumer proof` |
+
+### Phase 2.3.3 — freeze finance-core public API
+
+| | |
+| -- | -- |
+| **Goal** | Stable public contract for `@app-tour/finance-core` before external extraction — no behavior change |
+| **Allow** | `FinanceService` / `createFinanceService` / identity helpers; domain pure helpers + types; application ports + DTOs required by host/workspace adapters |
+| **Forbid on public surface** | Prisma / apps/api / workspace impls / generated bindings / Host\* adapters / test utilities |
+| **Mechanism** | Explicit root barrel (no `export *`); package `exports` map limited to `.` / `./ports` / `./domain` / `./application`; `test/public-api.spec.ts` allowlist |
+| **Deprecated aliases** | Remain public for host façades (`FinanceAccessPort`, `AmbientTenantTx`, …) — frozen, not expanded |
+| **Acceptance** | finance-core build + public-api + boundary/portability + package tests green |
+| **Commit** | `chore(finance): Phase 2.3.3 freeze finance-core public API` |
+
+### Phase 2.3.4 — true external consumer simulation
+
+| | |
+| -- | -- |
+| **Goal** | Prove another repository could consume finance-core — fixture **outside** pnpm workspace packages |
+| **Fixture** | `external-finance-consumer/` (not in `pnpm-workspace.yaml`) |
+| **Allowed imports** | `@app-tour/finance-core`, `@app-tour/finance-http-contracts` only |
+| **Forbidden** | `apps/api`, workspace packages, generated bindings, Prisma, `finance-core/src` |
+| **Flows** | create payment, prepayment, approve, ledger capture, idempotency |
+| **Deps** | Staged `.local-packages/` (dist + `workspace:*` → semver rewrite) then `pnpm install --ignore-workspace` |
+| **Acceptance** | fixture `pnpm test` green; import boundary self-check |
+| **Blockers documented** | `workspace:*`, `private: true`, no registry publish, dist-only, host ports consumer-owned |
+| **Commit** | `test(finance): Phase 2.3.4 external-finance-consumer simulation` |
+
+### Phase 2.3.5 — finance event architecture neutrality audit
+
+| | |
+| -- | -- |
+| **Goal** | Generic finance event runtime knows **nothing** about workspace packages |
+| **Guard** | `FIN-EVENT-NEUTRAL-01` in `finance-outbox-ownership.spec.ts` |
+
+### Phase 2.3.6 — Finance Host Integration Kit (pre-extraction)
+
+| | |
+| -- | -- |
+| **Goal** | Stable host adoption checklist **without** extracting Prisma/RLS/outbox into finance-core |
+| **Doc** | [`FINANCE_HOST_INTEGRATION_KIT.md`](./FINANCE_HOST_INTEGRATION_KIT.md) **v2.0** |
+| **Covers** | Ownership map · 13 adapters · lifecycle · Option C TX · full repository catalog · events · workspace capabilities · error codes · conformance — runnable **without** reading `apps/api` |
+| **Must NOT** | Change payment/approve semantics; move persistence into core; publish cut |
+| **Code SoT** | `packages/finance-core` + `packages/finance-http-contracts` (optional fixtures only for proofs) |
+
+### Phase 2.3.7 — decoupling debt triage (A only)
+
+| | |
+| -- | -- |
+| **A fixed** | Boot via `FINANCE_BOOT_WORKSPACE_TYPE` (default denali); `HostFinanceLogAdapter` → platform pino logger |
+| **B kept** | Shared booking/repository singleton; HostIo structural cast; manual workspace package.json deps |
+| **C kept** | apps/api port re-export façades |
+| **Must NOT** | FinanceService / approve / ledger formulas / event payloads |
+
+### Phase 2.3.7b — post-core debt audit (P0/P1/P2)
+
+| | |
+| -- | -- |
+| **Doc** | [`FINANCE_PLATFORM_DEBT_AUDIT.md`](./FINANCE_PLATFORM_DEBT_AUDIT.md) |
+| **P0 open** | **None** (HostFinanceLog console → pino already cleared) |
+| **P1** | HostIo nominal typing; skip façades for external hosts; registry pack path |
+| **P2 kept** | Boot default `denali`; shared repo/booking singletons; port façades; HostIo `as never`; manual workspace deps |
+| **Implemented this pass** | Audit + stale diagram fix only — **no** behavior change |
+
+### Phase 2.3.8 — finance-core extraction readiness (no publish / no move)
+
+| | |
+| -- | -- |
+| **Doc** | [`FINANCE_CORE_EXTRACTION_READINESS.md`](./FINANCE_CORE_EXTRACTION_READINESS.md) |
+| **Score** | 62 / 100 — tracked; `workspace:*` / `private` block external install |
+| **Must NOT** | Publish; move Prisma/RLS/outbox; code movement in this phase |
+
+### Phase 2.3.10 — Semver policy for contracts + core (no publish)
+
+| | |
+| -- | -- |
+| **Doc** | [`FINANCE_SEMVER_POLICY.md`](./FINANCE_SEMVER_POLICY.md) |
+| **CHANGELOGs** | `packages/finance-http-contracts/CHANGELOG.md`, `packages/finance-core/CHANGELOG.md` (baseline `0.1.0`) |
+| **Defines** | API contract SoT · breaking rules · stable vs experimental ports · versioning order · release checklist · migration/compat policy |
+| **Must NOT** | `npm publish`; finance behavior change |
+
+### Phase 2.3.9 — Dependency chain: workspace → published (plan only)
+
+| | |
+| -- | -- |
+| **Doc** | [`FINANCE_DEPS_WORKSPACE_TO_REGISTRY.md`](./FINANCE_DEPS_WORKSPACE_TO_REGISTRY.md) |
+| **Scope** | `@app-tour/finance-http-contracts` + `@app-tour/finance-core` only |
+| **Audit** | `workspace:*`, names, semver lockstep `0.1.0`, build order (contracts→core), no in-package codegen, `pnpm pack` rewrite of core→contracts to `0.1.0` |
+| **Done** | Migration plan Current monorepo → Target registry; no publish; no finance logic change |
+| **Still blocked** | Source `workspace:*`; both `private: true`; no registry CI |
+| **Must NOT** | `npm publish`; rewrite finance behavior; move Prisma/RLS/outbox |
 
 ### Phase 3 — Enterprise accounting
 

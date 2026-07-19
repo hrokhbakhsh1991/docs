@@ -2,7 +2,10 @@ import { emitFinanceLedgerDoubleEntryAppliedOutbox } from "../emit-finance-ledge
 import { LEDGER_ACCOUNTS, bookingWalletId } from "../ledger-accounts";
 import type { DenaliOutboxDomainEvent } from "../outbox-reader.port";
 import type { OutboxWriter } from "../outbox-writer.port";
-import { postDoubleEntryJournal } from "../post-double-entry-journal";
+import {
+  postDoubleEntryJournal,
+  stableLedgerIdentifiersFromSeed,
+} from "../post-double-entry-journal";
 
 export type TourCreatedLedgerPayload = {
   tourId?: string;
@@ -28,6 +31,10 @@ export async function handleTourCreatedLedgerEvent(input: {
   }
 
   const currency = payload.currency?.trim() || "USD";
+  const stableIds = stableLedgerIdentifiersFromSeed(
+    input.event.domainEventId,
+    "tour-created-ledger"
+  );
   const { lines } = postDoubleEntryJournal({
     tenantId: input.tenantId,
     debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
@@ -36,6 +43,12 @@ export async function handleTourCreatedLedgerEvent(input: {
     currency,
     correlationId: input.event.domainEventId,
     idempotencyKey: `tour-created:${input.event.domainEventId}`,
+    stableJournalAndLineIds: stableIds,
+    metadata: {
+      kind: "tour_created_paid_settlement",
+      registrationId,
+      source: "tour_created",
+    },
   });
 
   await emitFinanceLedgerDoubleEntryAppliedOutbox({

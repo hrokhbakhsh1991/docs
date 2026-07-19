@@ -84,7 +84,11 @@ Spec: `apps/api/test/paid-tour-open-gate.spec.ts`
 
 ## Tour-created finance outbox (frozen — P5-E-N-005 FIN-02)
 
-Implementation: `apps/api/src/workspace-finance/tour-created-finance-side-effect.ts` (re-export) · deps in `register-workspace-finance-deps.ts`
+Implementation (Phase 1.13): capability registry + HostIo —
+`process-workspace-finance-outbox.ts` → `resolveWorkspaceFinanceEventReaction` →
+workspace `eventReaction` adapter (`DenaliTourCreatedFinanceReactionAdapter`).
+Denali ledger runner: `@app-cloud/workspace-denali/host/finance/api-tour-created-adapter`
+(`runTourCreatedFinanceSideEffect(row, deps)`). No apps/api Denali boot registrar.
 
 | Assert | Behavior |
 |--------|----------|

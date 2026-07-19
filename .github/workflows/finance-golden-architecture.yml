@@ -1,0 +1,67 @@
+# Finance golden architecture — fail-build forever invariants (G1–G7).
+#
+# Authority: docs/phase-20/p7/appendices/FINANCE_GOLDEN_ARCHITECTURE_TESTS.md
+
+name: finance-golden-architecture
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/finance-core/**"
+      - "packages/finance-http-contracts/**"
+      - "apps/api/src/workspace-finance/**"
+      - "apps/api/src/workspace/workspace-tour-created-dispatcher.ts"
+      - "scripts/guards/guard-finance-golden-architecture.mjs"
+      - "scripts/guards/guard-finance-core-boundary.mjs"
+      - "dependency-cruiser.config.js"
+      - "docs/phase-20/p7/appendices/FINANCE_GOLDEN_ARCHITECTURE_TESTS.md"
+      - ".github/workflows/finance-golden-architecture.yml"
+  pull_request:
+    paths:
+      - "packages/finance-core/**"
+      - "packages/finance-http-contracts/**"
+      - "apps/api/src/workspace-finance/**"
+      - "apps/api/src/workspace/workspace-tour-created-dispatcher.ts"
+      - "scripts/guards/guard-finance-golden-architecture.mjs"
+      - "scripts/guards/guard-finance-core-boundary.mjs"
+      - "dependency-cruiser.config.js"
+      - "docs/phase-20/p7/appendices/FINANCE_GOLDEN_ARCHITECTURE_TESTS.md"
+      - ".github/workflows/finance-golden-architecture.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: finance-golden-architecture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  finance-golden:
+    name: Finance golden architecture (G1–G7)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Golden architecture guard (fail-build)
+        run: pnpm run guard:finance-golden
+
+      - name: Golden architecture node:test mirror
+        run: pnpm --filter @apps/api exec node --import tsx --test src/workspace-finance/finance-golden-architecture.spec.ts

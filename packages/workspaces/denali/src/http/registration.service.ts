@@ -6,7 +6,7 @@ import { toDenaliCatalogCard } from "../catalog/denali-catalog-card";
 
 import { DenaliRegistrationDuplicateError } from "./errors/denali-registration-conflict.error";
 import { DenaliWorkspaceRequiredError } from "./errors/denali-workspace-required.error";
-import type { DenaliPublicBookingPort } from "./ports/public-booking.port";
+import type { BookingPublicPort } from "./ports/public-booking.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
 import type { DenaliRegistrationPostBody } from "./schemas/denali-registration-post.schema";
 import { normalizeDenaliRegistrationTransportIntake } from "./resolve-denali-registration-transport";
@@ -42,7 +42,7 @@ export async function createDenaliRegistration(params: {
   readonly guestUserId: string;
   readonly body: DenaliRegistrationPostBody;
   readonly store: DenaliTourStorePort;
-  readonly bookingPort: DenaliPublicBookingPort;
+  readonly bookingPort: BookingPublicPort;
   readonly resolveGuestMembership?: (
     tenantId: string,
     userId: string

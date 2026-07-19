@@ -8,8 +8,13 @@
 export const WORKSPACE_WIZARD_TEMPLATE_GATE_DEFAULT_STEP_ID: Readonly<
   Record<string, string>
 > = Object.freeze({
+  "booking-ws2": "basics",
   "denali": "denali_basic",
   "finance-ws2": "basics",
+  "finance-ws3": "basics",
+  "finance-ws4": "basics",
+  "finance-ws5": "basics",
+  "finance-ws6": "basics",
   "guest-club": "basics",
   "starter": "basics",
   "urban": "basics",

@@ -1,6 +1,6 @@
 import type { TourListProjection } from "@app-tour/workspace-sdk";
 
-import { sumApprovedPartySizeByTourIds } from "./bookings.service";
+import { sumApprovedPartySizeByTourIds } from "./create-bookings-service";
 
 /** Operator list/detail — approved `partySize` sum per tour (no guest PII). */
 export async function enrichTourListProjectionsWithAcceptedCount(

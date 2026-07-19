@@ -8,9 +8,15 @@ import type {
   FinanceLedgerOutboxRow,
   FinanceOpenPaymentRow,
   FinancePaymentRow,
+  FinancePrepaymentListRow,
   FinanceReceiptRow,
+  FinanceRepositoryPort,
   FinanceSummaryRow,
-} from "./finance.repository";
+  PrepaymentBookingSyncDegradedRow,
+  RecordPrepaymentAtomicInput,
+  RegistrationInvoiceFacts,
+  UpdateReceiptReviewInput,
+} from "./ports/finance-repository.port";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 
 type StoredPayment = FinancePaymentRow & {
@@ -36,7 +42,7 @@ export function resetInMemoryFinanceRepositoryForTests(): void {
  * Unit-test fake only — not production-equivalent to Prisma `approveManualReceiptAtomic`.
  * Atomicity / concurrency / HTTP idempotency proofs require STORAGE_DRIVER=prisma.
  */
-export class InMemoryFinanceRepository {
+export class InMemoryFinanceRepository implements FinanceRepositoryPort {
   constructor(private readonly bookingPayments: IBookingPaymentPort) {}
   async getSummary(tenantId: string): Promise<FinanceSummaryRow> {
     const tenantPayments = [...paymentsById.values()].filter((row) => row.tenantId === tenantId);
@@ -256,12 +262,7 @@ export class InMemoryFinanceRepository {
   async updateReceiptReview(
     tenantId: string,
     receiptId: string,
-    input: {
-      readonly status: "Approved" | "Rejected";
-      readonly reviewedByUserId: string;
-      readonly reviewNote?: string;
-      readonly ledgerJournalId?: string;
-    }
+    input: UpdateReceiptReviewInput
   ): Promise<FinanceReceiptRow> {
     const row = receiptsById.get(receiptId);
     if (row === undefined || row.tenantId !== tenantId) {
@@ -410,35 +411,47 @@ export class InMemoryFinanceRepository {
     };
   }
 
-  async listPrepayments(): Promise<readonly never[]> {
+  async listPrepayments(
+    _tenantId: string,
+    _limit: number
+  ): Promise<readonly FinancePrepaymentListRow[]> {
     return [];
   }
 
-  async recordPrepaymentAtomic(): Promise<never> {
+  async recordPrepaymentAtomic(
+    _input: RecordPrepaymentAtomicInput
+  ): Promise<never> {
     throw new Error("FINANCE_MEMORY_DRIVER_READ_ONLY_PREPAYMENT");
   }
 
-  async recordPrepaymentBookingSyncDegraded(): Promise<void> {
+  async recordPrepaymentBookingSyncDegraded(_input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+    readonly paymentStatus: string;
+    readonly error: string;
+    readonly prepaymentDomainEventId: string;
+  }): Promise<void> {
     /* memory fake — no durable degraded signal */
   }
 
-  async listOpenPrepaymentBookingSyncDegraded(): Promise<readonly never[]> {
+  async listOpenPrepaymentBookingSyncDegraded(
+    _tenantId: string,
+    _limit: number
+  ): Promise<readonly PrepaymentBookingSyncDegradedRow[]> {
     return [];
   }
 
-  async markPrepaymentBookingSyncRecovered(): Promise<void> {
+  async markPrepaymentBookingSyncRecovered(_input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+  }): Promise<void> {
     /* memory fake */
   }
 
   async getRegistrationInvoiceFacts(
     _tenantId: string,
     _registrationId: string
-  ): Promise<{
-    readonly prepaymentMinor: string;
-    readonly paidPaymentsMinor: string;
-    readonly paymentAmountsMinor: readonly string[];
-    readonly currency: string;
-  }> {
+  ): Promise<RegistrationInvoiceFacts> {
     return {
       prepaymentMinor: "0",
       paidPaymentsMinor: "0",

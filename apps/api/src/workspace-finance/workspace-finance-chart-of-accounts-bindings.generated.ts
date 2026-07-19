@@ -8,12 +8,32 @@ import { LEDGER_ACCOUNTS as denali_ChartOfAccounts } from "@app-tour/workspace-d
 
 import { FINANCE_WS2_LEDGER_ACCOUNTS as finance_ws2_ChartOfAccounts } from "@app-tour/workspace-finance-ws2/host/finance";
 
+import { FINANCE_WS3_LEDGER_ACCOUNTS as finance_ws3_ChartOfAccounts } from "@app-tour/workspace-finance-ws3/host/finance";
+
+import { FINANCE_WS4_LEDGER_ACCOUNTS as finance_ws4_ChartOfAccounts } from "@app-tour/workspace-finance-ws4/host/finance";
+
+import { FINANCE_WS5_LEDGER_ACCOUNTS as finance_ws5_ChartOfAccounts } from "@app-tour/workspace-finance-ws5/host/finance";
+
+import { FINANCE_WS6_LEDGER_ACCOUNTS as finance_ws6_ChartOfAccounts } from "@app-tour/workspace-finance-ws6/host/finance";
+
 export const WORKSPACE_FINANCE_CHART_OF_ACCOUNTS_BINDINGS = {
   "denali": {
     getAccounts: () => denali_ChartOfAccounts,
   },
   "finance-ws2": {
     getAccounts: () => finance_ws2_ChartOfAccounts,
+  },
+  "finance-ws3": {
+    getAccounts: () => finance_ws3_ChartOfAccounts,
+  },
+  "finance-ws4": {
+    getAccounts: () => finance_ws4_ChartOfAccounts,
+  },
+  "finance-ws5": {
+    getAccounts: () => finance_ws5_ChartOfAccounts,
+  },
+  "finance-ws6": {
+    getAccounts: () => finance_ws6_ChartOfAccounts,
   },
 } as const;
 

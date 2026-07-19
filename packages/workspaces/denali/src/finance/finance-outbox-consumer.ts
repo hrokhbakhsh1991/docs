@@ -47,10 +47,33 @@ export function createDenaliFinanceOutboxConsumer(deps: {
   reader: OutboxReader;
   writer: OutboxWriter;
   processedStore?: DenaliFinanceProcessedStore;
+  emitPaidLedgerExclusive?: (input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+    readonly paidAmountMinor: string;
+    readonly currency: string;
+    readonly tourCreatedDomainEventId: string;
+  }) => Promise<"emitted" | "skipped">;
 }): DenaliFinanceOutboxConsumer {
   const memoryProcessed = new Set<string>();
 
   async function dispatchEvent(event: DenaliOutboxDomainEvent): Promise<boolean> {
+    if (deps.emitPaidLedgerExclusive !== undefined && event.eventType === "TourCreated") {
+      const payload = event.payload as TourCreatedLedgerPayload;
+      const registrationId = payload.registrationId?.trim() ?? "";
+      const paidAmountMinor = payload.paidAmountMinor?.trim() ?? "";
+      if (!registrationId || !paidAmountMinor) {
+        return false;
+      }
+      const exclusive = await deps.emitPaidLedgerExclusive({
+        tenantId: event.tenantId,
+        registrationId,
+        paidAmountMinor,
+        currency: payload.currency?.trim() || "USD",
+        tourCreatedDomainEventId: event.domainEventId,
+      });
+      return exclusive === "emitted" || exclusive === "skipped";
+    }
     return handleTourCreatedLedgerEvent({
       tenantId: event.tenantId,
       event,
@@ -104,6 +127,13 @@ export async function consumeDenaliTourCreatedFinanceOutbox(deps: {
   reader: OutboxReader;
   writer: OutboxWriter;
   processedStore?: DenaliFinanceProcessedStore;
+  emitPaidLedgerExclusive?: (input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+    readonly paidAmountMinor: string;
+    readonly currency: string;
+    readonly tourCreatedDomainEventId: string;
+  }) => Promise<"emitted" | "skipped">;
 }): Promise<FinanceOutboxConsumerResult> {
   return createDenaliFinanceOutboxConsumer(deps).consumePending();
 }

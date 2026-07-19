@@ -1,5 +1,3 @@
-import "./register-workspace-finance-deps";
-
 import { resolveFinanceWorkspaceTypeForTenant } from "./resolve-finance-workspace-type-for-tenant";
 import { resolveWorkspaceFinanceEventReaction } from "./finance-event-reaction-registry";
 import type {
@@ -10,8 +8,9 @@ import type {
 export type WorkspaceFinanceTourCreatedRow = WorkspaceFinancePublishedOutboxRow;
 
 /**
- * Single published TourCreated row — finance capability entry (Phase 1.8 Step 1).
+ * Single published TourCreated row — finance capability entry (Phase 1.13).
  * Relay dispatcher and tests call this; registry is fail-closed for unknown workspace types.
+ * No workspace package boot registration — HostIo is injected at resolve time.
  */
 export async function processWorkspaceFinanceTourCreatedRow(
   row: WorkspaceFinanceTourCreatedRow
@@ -21,7 +20,7 @@ export async function processWorkspaceFinanceTourCreatedRow(
 }
 
 /**
- * Batch tick — host resolves workspace reaction port; no Denali consumer names (Phase 1.8 Step 1).
+ * Batch tick — host resolves workspace reaction port; no Denali consumer names.
  */
 export async function processWorkspaceFinanceOutboxForTenant(
   tenantId: string

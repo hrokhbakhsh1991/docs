@@ -1,9 +1,12 @@
 import { BANNER } from "../constants.mjs";
 import { importSpecifier } from "../utils.mjs";
 
-/** Manifests that participate in product plugin/SDK/web registries (exclude finance fixtures). */
+/** Manifests that participate in product plugin/SDK/web registries (exclude finance/booking fixtures). */
 export function productWorkspaceManifests(manifests) {
-  return manifests.filter((m) => m.workspaceFinance?.registryOnly !== true);
+  return manifests.filter(
+    (m) =>
+      m.workspaceFinance?.registryOnly !== true && m.workspaceBooking?.registryOnly !== true
+  );
 }
 
 /**

@@ -3,22 +3,23 @@ import type { Prisma } from "@prisma/client";
 import { raiseBookingPaymentStatus } from "../../bookings/booking-payment-status";
 import type { BookingPaymentStatus } from "../../bookings/bookings.types";
 import { getBookingsRepository } from "../../bookings/create-bookings-repository";
-import type { BookingsRepository } from "../../bookings/in-memory-bookings.repository";
+import type { BookingRepositoryPort } from "../../bookings/ports/booking-repository.port";
 import type {
   BookingPaymentMemberOwnershipInput,
   BookingPaymentRaisePaidInTxInput,
   BookingPaymentSyncStatus,
   BookingPaymentSyncStatusInput,
+  FinanceTransactionPort,
   IBookingPaymentPort,
 } from "../ports/booking-payment.port";
 
 /**
- * Infrastructure adapter — bridges {@link IBookingPaymentPort} to {@link BookingsRepository}
- * and (Option C) ambient Prisma TX for approve-atomic booking projection.
- * Constructed at boot and injected into {@link FinanceService} / FinanceRepository.
+ * Infrastructure adapter — bridges {@link IBookingPaymentPort} to {@link BookingRepositoryPort}
+ * and (Option C) ambient tenant TX for approve-atomic booking projection.
+ * Constructed at boot and injected into {@link FinanceService} / PrismaFinanceRepository.
  */
 export class BookingPaymentAdapter implements IBookingPaymentPort {
-  constructor(private readonly bookings: BookingsRepository = getBookingsRepository()) {}
+  constructor(private readonly bookings: BookingRepositoryPort = getBookingsRepository()) {}
 
   async syncStatus(
     input: BookingPaymentSyncStatusInput
@@ -35,13 +36,14 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
   }
 
   async raisePaidInTx(
-    tx: Prisma.TransactionClient,
+    tx: FinanceTransactionPort,
     input: BookingPaymentRaisePaidInTxInput
   ): Promise<BookingPaymentSyncStatus> {
+    const prismaTx = tx as Prisma.TransactionClient;
     const tenantId = input.tenantId.trim();
     const registrationId = input.registrationId.trim();
     try {
-      const booking = await tx.operatorRegistration.findFirst({
+      const booking = await prismaTx.operatorRegistration.findFirst({
         where: { id: registrationId, tenantId },
         select: { id: true, paymentStatus: true },
       });
@@ -51,7 +53,7 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
       const current = booking.paymentStatus as BookingPaymentStatus;
       const next = raiseBookingPaymentStatus(current, "paid");
       if (next !== current) {
-        await tx.operatorRegistration.update({
+        await prismaTx.operatorRegistration.update({
           where: { id: registrationId },
           data: { paymentStatus: next },
         });

@@ -1665,11 +1665,11 @@ Pass criteria: exit `0`; artifact `test/reliability/phase-3-regression-gate.last
 | Column   | `outbox_events.last_error JSONB`                                 |
 | Terminal | `failed` + `processed_at` + `last_error` — relay never re-claims |
 | Replay   | `replayFailedOutboxEvent` → `pending`; payload immutable         |
-| HTTP     | `POST /internal/outbox/:id/replay` — dev/test only               |
-| CLI      | `outbox:replay-failed`                                           |
-| Spec     | `outbox-failed-replay.spec.ts` — INT-SAGA-03 heal                |
+| HTTP     | `POST /internal/outbox/:id/replay` + bulk `/internal/outbox/replay` — Phase 3.17 prod ops JWT `outbox:replay` |
+| CLI      | `outbox:replay-failed` (dry-run default; `--apply` confirms)                 |
+| Spec     | `outbox-failed-replay.spec.ts` — INT-SAGA-03 heal; `outbox-prod-replay.spec.ts` |
 
-**Verification:** [`outbox-failed-replay.md`](outbox-failed-replay.md) · `guard:outbox-failed-replay`.
+**Verification:** [`outbox-failed-replay.md`](outbox-failed-replay.md) · [`OUTBOX_PRODUCTION_REPLAY.md`](../../phase-20/p7/appendices/OUTBOX_PRODUCTION_REPLAY.md) · `guard:outbox-failed-replay`.
 
 ---
 

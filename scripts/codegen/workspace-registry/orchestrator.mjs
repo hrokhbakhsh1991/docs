@@ -66,6 +66,7 @@ import {
   generateWorkspaceFinanceEventReactionBindings,
   generateWorkspaceFinanceChartOfAccountsBindings,
 } from "./domains/finance.mjs";
+import { generateWorkspaceBookingBindings, generateWorkspaceBookingDependencyBindings, generateWorkspaceBookingOpsBindings, generateWorkspaceBookingEventReactionBindings } from "./domains/booking.mjs";
 import { generateExposureHostBindings } from "./domains/exposure.mjs";
 import { generateWorkspaceIntegrationCapabilities } from "./domains/integration.mjs";
 import {
@@ -186,6 +187,7 @@ export const DOMAIN_OUTPUT_KEYS = {
     "workspaceFinanceEventReactions",
     "workspaceFinanceChartOfAccounts",
   ],
+  booking: ["workspaceBooking", "workspaceBookingDependencies", "workspaceBookingOps", "workspaceBookingEventReactions"],
   exposure: ["exposureHostBindings"],
   integration: ["integrationCapabilities"],
 };
@@ -221,6 +223,10 @@ export const OUTPUT_KEYS = Object.freeze([
   "workspaceFinanceDependencies",
   "workspaceFinanceEventReactions",
   "workspaceFinanceChartOfAccounts",
+  "workspaceBooking",
+  "workspaceBookingDependencies",
+  "workspaceBookingOps",
+  "workspaceBookingEventReactions",
   "integrationCapabilities",
   "exposureHostBindings",
   "wizardTemplateEditorBindings",
@@ -297,6 +303,10 @@ export function generateAllOutputs(manifests) {
     workspaceFinanceDependencies: generateWorkspaceFinanceDependencyBindings(manifests),
     workspaceFinanceEventReactions: generateWorkspaceFinanceEventReactionBindings(manifests),
     workspaceFinanceChartOfAccounts: generateWorkspaceFinanceChartOfAccountsBindings(manifests),
+    workspaceBooking: generateWorkspaceBookingBindings(manifests),
+    workspaceBookingDependencies: generateWorkspaceBookingDependencyBindings(manifests),
+    workspaceBookingOps: generateWorkspaceBookingOpsBindings(manifests),
+    workspaceBookingEventReactions: generateWorkspaceBookingEventReactionBindings(manifests),
     integrationCapabilities: generateWorkspaceIntegrationCapabilities(manifests),
     exposureHostBindings: generateExposureHostBindings(manifests),
     wizardTemplateEditorBindings: generateWizardTemplateEditorBindings(manifests),
@@ -433,6 +443,22 @@ export const OUTPUT_PATHS = {
   workspaceFinanceChartOfAccounts: join(
     REPO_ROOT,
     "apps/api/src/workspace-finance/workspace-finance-chart-of-accounts-bindings.generated.ts"
+  ),
+  workspaceBooking: join(
+    REPO_ROOT,
+    "apps/api/src/bookings/workspace-booking-bindings.generated.ts"
+  ),
+  workspaceBookingDependencies: join(
+    REPO_ROOT,
+    "apps/api/src/bookings/workspace-booking-dependency-bindings.generated.ts"
+  ),
+  workspaceBookingOps: join(
+    REPO_ROOT,
+    "apps/web/src/bootstrap/workspace-booking-ops-bindings.generated.ts"
+  ),
+  workspaceBookingEventReactions: join(
+    REPO_ROOT,
+    "apps/api/src/bookings/workspace-booking-event-reaction-bindings.generated.ts"
   ),
   integrationCapabilities: join(
     REPO_ROOT,

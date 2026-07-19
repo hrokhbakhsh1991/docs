@@ -8,7 +8,10 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const FINANCE_REPO = path.join(REPO_ROOT, "src/workspace-finance/finance.repository.ts");
+const FINANCE_REPO = path.join(
+  REPO_ROOT,
+  "src/workspace-finance/infrastructure/prisma-finance.repository.ts"
+);
 const INVOICE_FACTS = path.join(REPO_ROOT, "src/finance/load-registration-invoice-facts.ts");
 
 describe("finance-registration-invoice-facts.spec.ts", () => {

@@ -82,6 +82,186 @@
         }
       }
     },
+    "/internal/finance/recon/findings": {
+      "get": {
+        "operationId": "listFinanceReconFindings",
+        "summary": "List open finance reconciliation findings",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/finance/recon/findings/{findingId}": {
+      "get": {
+        "operationId": "getFinanceReconFinding",
+        "summary": "Get finance reconciliation finding",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/finance/recon/findings/{findingId}/repair": {
+      "post": {
+        "operationId": "repairFinanceReconFinding",
+        "summary": "Dry-run or apply allowlisted finance recon repair",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/finance/recon/run": {
+      "post": {
+        "operationId": "runFinanceRecon",
+        "summary": "Trigger finance reconciliation detection job",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/finance/recon/repair-matrix": {
+      "get": {
+        "operationId": "getFinanceReconRepairMatrix",
+        "summary": "Finance recon repair allowlist matrix",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
     "/internal/cache/invalidate": {
       "post": {
         "operationId": "invalidateCache",
@@ -1382,7 +1562,79 @@
     "/internal/outbox/{outboxId}/replay": {
       "post": {
         "operationId": "replayOutbox",
-        "summary": "Replay failed outbox row",
+        "summary": "Replay single failed outbox row (dry-run default; confirm to apply)",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/outbox/replay": {
+      "post": {
+        "operationId": "replayOutboxBulk",
+        "summary": "Production outbox replay (batch/tenant/workspace/date_range)",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/outbox/replay/runs/{runId}": {
+      "get": {
+        "operationId": "getOutboxReplayRun",
+        "summary": "Get outbox replay audit run",
         "x-internal": true,
         "responses": {
           "200": {

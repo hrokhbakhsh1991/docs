@@ -1,0 +1,122 @@
+# Phase 3.7 — Finance operations PrometheusRule
+# Requires: ServiceMonitor scraping /internal/metrics (DEC-121).
+# Apply: kubectl apply -f deploy/alerts/finance-ops.yaml -n app-cloud
+# Runbook: docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: app-cloud-finance-ops
+  namespace: app-cloud
+  labels:
+    app: api
+    app.kubernetes.io/component: finance-ops
+    prometheus: app-cloud
+    release: prometheus
+spec:
+  groups:
+    - name: app-cloud.finance.ops
+      interval: 30s
+      rules:
+        - alert: FinanceLedgerCaptureFailure
+          expr: |
+            sum(increase(finance_ledger_capture_total{namespace="app-cloud",result=~"failure|skipped_empty"}[15m])) > 0
+          for: 5m
+          labels:
+            severity: critical
+            slo: finance_ledger
+            team: host-api
+          annotations:
+            summary: Finance ledger capture failed or skipped empty lines
+            description: >-
+              Ledger capture reported failure or skipped_empty for 5m.
+              Investigate Paid-without-ledger and workspace ledger adapters.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceOutboxBacklog
+          expr: finance_outbox_oldest_pending_age_seconds{namespace="app-cloud"} > 300
+          for: 10m
+          labels:
+            severity: warning
+            slo: finance_outbox
+            team: host-api
+          annotations:
+            summary: Finance outbox pending age elevated
+            description: >-
+              Oldest pending finance.* outbox row older than 5m for 10m.
+              Check relay health and finance reaction failures.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceApproveFailureSpike
+          expr: |
+            sum(increase(finance_approve_total{namespace="app-cloud",result="failure"}[15m])) > 5
+          for: 5m
+          labels:
+            severity: critical
+            slo: finance_approve
+            team: host-api
+          annotations:
+            summary: Finance approve failure spike
+            description: >-
+              More than 5 approve failures in 15m. Check booking sync miss,
+              DB circuit, and workspace_type breakdown.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceStuckPayments
+          expr: finance_stuck_payments{namespace="app-cloud"} > 0
+          for: 30m
+          labels:
+            severity: warning
+            slo: finance_stuck_payments
+            team: host-api
+          annotations:
+            summary: Stuck Pending payments detected
+            description: >-
+              One or more payments Pending longer than 24h. Use runbook SQL
+              to investigate receipts and operator queues.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceReconciliationMismatch
+          expr: finance_reconciliation_mismatch{namespace="app-cloud"} > 0
+          for: 15m
+          labels:
+            severity: critical
+            slo: finance_consistency
+            team: host-api
+          annotations:
+            summary: Paid payments missing ledger capture outbox
+            description: >-
+              Reconciliation gauge > 0 for 15m (7d lookback). Repair via
+              runbook failed-ledger retry — do not silently rewrite Paid.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceDbOrStorageFailure
+          expr: |
+            max(db_circuit_open{namespace="app-cloud"}) == 1
+            or sum(increase(finance_approve_total{namespace="app-cloud",result="failure"}[10m])) > 20
+          for: 2m
+          labels:
+            severity: critical
+            slo: finance_resilience
+            team: platform
+          annotations:
+            summary: Finance path database/storage failure pressure
+            description: >-
+              DB circuit open and/or extreme approve failure rate.
+              Escalate platform infra for Postgres/pool; check MinIO for proof storage.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceReactionFailures
+          expr: |
+            sum(increase(finance_reaction_failed_total{namespace="app-cloud"}[15m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+            slo: finance_reaction
+            team: host-api
+          annotations:
+            summary: Workspace finance TourCreated reaction failures
+            description: >-
+              finance_reaction_failed_total increasing. Check workspace
+              reaction adapters and HostIo outbox writer.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md

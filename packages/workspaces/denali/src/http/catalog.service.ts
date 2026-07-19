@@ -18,7 +18,7 @@ import {
 import { collectItinerarySegmentDestinationIds } from "../catalog/project-denali-catalog-itinerary";
 import { DenaliWorkspaceRequiredError } from "./errors/denali-workspace-required.error";
 import type { DenaliExposureResolverPort } from "./ports/exposure-resolver.port";
-import type { DenaliPublicBookingPort } from "./ports/public-booking.port";
+import type { BookingPublicPort } from "./ports/public-booking.port";
 import type { DenaliPublicDestinationPort } from "./ports/public-destination.port";
 import type { DenaliTourStorePort } from "./ports/tour-store.port";
 
@@ -114,7 +114,7 @@ async function mapTourToExposureAwareCard(params: {
 async function enrichCatalogCardsWithSpots(params: {
   readonly tenantId: string;
   readonly cards: ReturnType<typeof toDenaliCatalogCard>[];
-  readonly bookingPort?: DenaliPublicBookingPort;
+  readonly bookingPort?: BookingPublicPort;
 }): Promise<ReturnType<typeof toDenaliCatalogCard>[]> {
   if (params.cards.length === 0) {
     return params.cards;
@@ -140,7 +140,7 @@ export async function listDenaliCatalog(params: {
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly store: DenaliTourStorePort;
-  readonly bookingPort?: DenaliPublicBookingPort;
+  readonly bookingPort?: BookingPublicPort;
   readonly destinationPort?: DenaliPublicDestinationPort;
   readonly exposurePort?: DenaliExposureResolverPort;
   readonly limit?: number;
@@ -211,7 +211,7 @@ export async function getDenaliCatalogTour(params: {
   readonly tenantId: string;
   readonly workspaceType: string;
   readonly store: DenaliTourStorePort;
-  readonly bookingPort?: DenaliPublicBookingPort;
+  readonly bookingPort?: BookingPublicPort;
   readonly destinationPort?: DenaliPublicDestinationPort;
   readonly exposurePort?: DenaliExposureResolverPort;
   readonly tourId: string;

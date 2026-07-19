@@ -372,6 +372,10 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
   async approveManualReceiptAtomic(
     input: ApproveManualReceiptAtomicInput
   ): Promise<ApproveManualReceiptAtomicResult> {
+    if (input.ledgerCapture !== undefined && input.ledgerCapture.lines.length === 0) {
+      throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
+    }
+
     await this.markPaymentPaid(input.tenantId, input.paymentId, input.journalId);
 
     let bookingPaymentStatus: ApproveManualReceiptAtomicResult["bookingPaymentStatus"];
@@ -448,6 +452,9 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
     readonly note: string | null;
     readonly recordedAt: string;
   }> {
+    if (input.lines.length === 0) {
+      throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
+    }
     const existing = prepaymentsByDomainEventId.get(input.prepaymentDomainEventId);
     if (existing !== undefined && existing.tenantId === input.tenantId) {
       return {

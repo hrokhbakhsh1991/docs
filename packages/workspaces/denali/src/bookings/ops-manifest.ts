@@ -1,5 +1,6 @@
 /**
  * Phase 9.5 — Denali Registration Command Center default manifest (DEC-P9-011).
+ * Phase B1.6 — also exposed as workspaceBooking.opsManifest (Finance ops mirror).
  * @see docs/phase-9/appendices/BOOKINGS-OPS-UX.md §5
  */
 import {
@@ -67,6 +68,16 @@ export const denaliRegistrationOpsManifest = Object.freeze({
 }) satisfies RegistrationOpsManifest;
 
 validateRegistrationOpsManifest(denaliRegistrationOpsManifest);
+
+/** B1.6 — workspaceBooking.opsManifest.defaultExport */
+export const DEFAULT_BOOKING_OPS_MANIFEST = denaliRegistrationOpsManifest;
+
+/** B1.6 — theme overlay hook (Denali: theme does not alter registration ops today). */
+export function resolveBookingOpsManifestFromTheme(
+  _theme: unknown = null
+): RegistrationOpsManifest {
+  return denaliRegistrationOpsManifest;
+}
 
 export function getDenaliRegistrationOpsManifest(): RegistrationOpsManifest {
   return denaliRegistrationOpsManifest;

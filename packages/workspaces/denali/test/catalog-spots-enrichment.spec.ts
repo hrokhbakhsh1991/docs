@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { getDenaliCatalogTour } from "../src/http/catalog.service";
-import type { DenaliPublicBookingPort } from "../src/http/ports/public-booking.port";
+import type { BookingPublicPort } from "../src/http/ports/public-booking.port";
 import type { DenaliTourStorePort } from "../src/http/ports/tour-store.port";
 
 const TOUR_ID = "00000000-0000-4000-8000-000000000210";
@@ -28,7 +28,7 @@ const store: DenaliTourStorePort = {
   },
 };
 
-function bookingPort(approvedByTour: Record<string, number>): DenaliPublicBookingPort {
+function bookingPort(approvedByTour: Record<string, number>): BookingPublicPort {
   return {
     async findDuplicateByTourGuest() {
       return null;

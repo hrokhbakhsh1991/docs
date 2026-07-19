@@ -25,6 +25,8 @@ const REQUIRED_RUNTIME = [
   "compileRegistrationInvoice",
   "attachFinanceRegistrationContext",
   "filterRowsByRegistrationId",
+  "FINANCE_METRIC",
+  "FINANCE_LATENCY_BUDGET_MS",
 ] as const;
 
 const FORBIDDEN_IN_INDEX =

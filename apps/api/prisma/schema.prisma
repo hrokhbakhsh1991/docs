@@ -54,6 +54,9 @@ model Tenant {
   workspaceDefinitionId       String?                      @map("workspace_definition_id")
   workspaceDefinitionVersion  Int?                         @map("workspace_definition_version")
   workspaceDefinition         WorkspaceDefinition?         @relation(fields: [workspaceDefinitionId], references: [id], onDelete: SetNull)
+  financeReconFindings        FinanceReconFinding[]
+  financeReconActions         FinanceReconAction[]
+  outboxReplayRuns            OutboxReplayRun[]
 
   @@map("tenants")
 }
@@ -169,6 +172,32 @@ model OutboxEvent {
   @@map("outbox_events")
 }
 
+/// Phase 3.17 — append-only production outbox replay audit (ops).
+model OutboxReplayRun {
+  id              String    @id @default(uuid()) @db.Uuid
+  mode            String
+  dryRun          Boolean   @default(true) @map("dry_run")
+  confirmed       Boolean   @default(false)
+  actorUserId     String?   @map("actor_user_id")
+  tenantId        String?   @map("tenant_id") @db.Uuid
+  workspaceType   String?   @map("workspace_type")
+  fromCreatedAt   DateTime? @map("from_created_at") @db.Timestamptz
+  toCreatedAt     DateTime? @map("to_created_at") @db.Timestamptz
+  eventTypePrefix String?   @map("event_type_prefix")
+  requestedIds    Json      @default("[]") @map("requested_ids")
+  replayed        Int       @default(0)
+  skipped         Int       @default(0)
+  failed          Int       @default(0)
+  durationMs      Int       @default(0) @map("duration_ms")
+  details         Json      @default("{}")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  tenant          Tenant?   @relation(fields: [tenantId], references: [id])
+
+  @@index([createdAt(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("outbox_replay_runs")
+}
+
 model AuditEvent {
   id         String   @id @default(uuid()) @db.Uuid
   tenantId   String   @map("tenant_id") @db.Uuid
@@ -246,6 +275,52 @@ model Payment {
   @@index([tenantId, status])
   @@index([tenantId, registrationId])
   @@map("payments")
+}
+
+/// Finance recon — open/resolved mismatch findings (ops; admin Prisma).
+model FinanceReconFinding {
+  id             String               @id @default(uuid()) @db.Uuid
+  tenantId       String               @map("tenant_id") @db.Uuid
+  code           String
+  severity       String
+  status         String               @default("open")
+  fingerprint    String
+  paymentId      String?              @map("payment_id") @db.Uuid
+  registrationId String?              @map("registration_id") @db.Uuid
+  outboxEventId  String?              @map("outbox_event_id") @db.Uuid
+  details        Json                 @default("{}")
+  detectedAt     DateTime             @default(now()) @map("detected_at") @db.Timestamptz
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+  resolvedAt     DateTime?            @map("resolved_at") @db.Timestamptz
+  resolvedBy     String?              @map("resolved_by")
+  tenant         Tenant               @relation(fields: [tenantId], references: [id])
+  actions        FinanceReconAction[]
+
+  @@unique([tenantId, code, fingerprint])
+  @@index([tenantId, status, code])
+  @@map("finance_recon_findings")
+}
+
+/// Append-only recon repair / ignore audit.
+model FinanceReconAction {
+  id                String              @id @default(uuid()) @db.Uuid
+  findingId         String              @map("finding_id") @db.Uuid
+  tenantId          String              @map("tenant_id") @db.Uuid
+  action            String
+  actorUserId       String?             @map("actor_user_id")
+  dryRun            Boolean             @default(true) @map("dry_run")
+  mode              String              @default("preview")
+  reason            String?
+  rollbackStrategy  String              @default("ticket_only") @map("rollback_strategy")
+  result            String
+  payload           Json                @default("{}")
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  finding           FinanceReconFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  tenant            Tenant              @relation(fields: [tenantId], references: [id])
+
+  @@index([findingId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("finance_recon_actions")
 }
 
 /// Phase 9.7 — manual payment proof + operator review queue.

@@ -100,11 +100,24 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
     assert.notEqual(denali.constructor, ws2.constructor);
   });
 
-  it("FIN-P1.9-01 API infrastructure keeps only booking host adapters", () => {
+  it("FIN-P1.9-01 API infrastructure keeps booking + host finance adapters (no workspace policy)", () => {
     const infra = readdirSync(resolve(REPO_ROOT, INFRA));
     assert.deepEqual(
       [...infra].filter((n) => n.endsWith(".ts")).sort(),
-      ["booking-payment.adapter.ts", "booking-registration-display.adapter.ts"].sort()
+      [
+        "booking-payment.adapter.ts",
+        "booking-registration-display.adapter.ts",
+        "host-finance-access.adapter.ts",
+        "host-finance-capability.adapter.ts",
+        "host-finance-clock.adapter.ts",
+        "host-finance-log.adapter.ts",
+        "host-finance-metrics.adapter.ts",
+        "host-finance-persistence-mode.adapter.ts",
+        "host-finance-receipt-proof-url.adapter.ts",
+        "host-finance-schedule.adapter.ts",
+        "prisma-finance.repository.ts",
+        "prisma-workspace-outbox-writer.ts",
+      ].sort()
     );
   });
 
@@ -121,6 +134,33 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
     assert.doesNotMatch(reaction, /new Map\(\[\[/);
     assert.doesNotMatch(reaction, /@app-tour\/workspace-denali/);
     assert.doesNotMatch(reaction, /DenaliOutboxDomainEvent/);
+  });
+
+  it("FIN-EVENT-NEUTRAL-01 generic finance event runtime has zero workspace package imports", () => {
+    const runtimeFiles = [
+      PROCESS,
+      READER,
+      DISPATCHER,
+      REACTION_REGISTRY,
+      "apps/api/src/workspace-finance/infrastructure/prisma-workspace-outbox-writer.ts",
+      "apps/api/src/workspace-finance/workspace-finance-processed-log.ts",
+      "apps/api/src/workspace-finance/enqueue-finance-ledger-capture.ts",
+    ];
+    for (const rel of runtimeFiles) {
+      const src = readFileSync(resolve(REPO_ROOT, rel), "utf8");
+      assert.doesNotMatch(
+        src,
+        /from ["']@app-tour\/workspace-denali/,
+        `${rel} must not import workspace-denali`
+      );
+      assert.doesNotMatch(
+        src,
+        /from ["']@app-tour\/workspace-finance-ws/,
+        `${rel} must not import workspace-finance-ws*`
+      );
+      assert.doesNotMatch(src, /runTourCreatedFinanceSideEffect/);
+      assert.doesNotMatch(src, /consumeDenaliTourCreatedFinanceOutbox/);
+    }
   });
 
   it("FIN-P1.10-01 generated dependency bindings include denali and finance-ws2", () => {
@@ -148,17 +188,22 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
     assert.match(gen, /requiresHostIo:\s*false/);
   });
 
-  it("FIN-P1.9-EO-01 register-workspace-finance-deps imports Denali package, not outbox generated façade", () => {
-    const register = readFileSync(
-      resolve(REPO_ROOT, "apps/api/src/workspace-finance/register-workspace-finance-deps.ts"),
-      "utf8"
-    );
-    assert.match(register, /@app-tour\/workspace-denali\/host\/finance\/api-tour-created-adapter/);
-    assert.doesNotMatch(register, /workspace-outbox-side-effects\.generated/);
+  it("FIN-P1.9-EO-01 / P1.13 apps/api has no Denali finance side-effect boot registrar", () => {
+    const processSrc = readFileSync(resolve(REPO_ROOT, PROCESS), "utf8");
+    const dispatcherSrc = readFileSync(resolve(REPO_ROOT, DISPATCHER), "utf8");
+    const reactionSrc = readFileSync(resolve(REPO_ROOT, REACTION_REGISTRY), "utf8");
+    const appSrc = readFileSync(resolve(REPO_ROOT, "apps/api/src/app.ts"), "utf8");
+    for (const src of [processSrc, dispatcherSrc, reactionSrc, appSrc]) {
+      assert.doesNotMatch(src, /register-workspace-finance-deps/);
+      assert.doesNotMatch(src, /registerTourCreatedFinanceSideEffectDeps/);
+      assert.doesNotMatch(src, /@app-tour\/workspace-denali/);
+      assert.doesNotMatch(src, /api-tour-created-adapter/);
+    }
+    assert.match(reactionSrc, /tryClaimWorkspaceFinanceProcessedEvent|tryClaimProcessedEvent/);
+    assert.match(reactionSrc, /PlatformFinanceEventReactionHostIo/);
   });
 
-  it("FIN-P1.9-EO-02 Denali reaction capability works through registry (port surface)", async () => {
-    await import("./register-workspace-finance-deps.ts");
+  it("FIN-P1.9-EO-02 / P1.13 Denali reaction works through registry HostIo (no boot register)", async () => {
     const port = resolveWorkspaceFinanceEventReaction("denali");
     const skipped = await port.reactToPublishedRow({
       tenantId: "00000000-0000-4000-8000-000000000014",
@@ -169,6 +214,14 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
       payload: { tenantId: "00000000-0000-4000-8000-000000000014" },
     });
     assert.equal(skipped, false);
+  });
+
+  it("FIN-P1.13-01 Denali HostIo includes claim + log; adapter does not use module singleton for production path", () => {
+    const adapter = readFileSync(resolve(REPO_ROOT, ADAPTER), "utf8");
+    assert.match(adapter, /tryClaimProcessedEvent/);
+    assert.match(adapter, /logReactionFailed/);
+    assert.match(adapter, /sideEffectDeps/);
+    assert.doesNotMatch(adapter, /registerTourCreatedFinanceSideEffectDeps/);
   });
 
   it("FIN-P1.9-EO-03 WS2 reaction capability registers independently (fixture no-op)", async () => {
@@ -203,7 +256,10 @@ describe("finance-outbox-ownership.spec.ts — Phase 1.7 / 1.8 / 1.9 / 1.10", ()
   });
 
   it("FIN-P1.9.1-01 FinanceService has no infrastructure adapter imports or concrete defaults", () => {
-    const src = readFileSync(resolve(REPO_ROOT, "apps/api/src/workspace-finance/finance.service.ts"), "utf8");
+    const src = readFileSync(
+      resolve(REPO_ROOT, "packages/finance-core/src/application/finance.service.ts"),
+      "utf8"
+    );
     assert.doesNotMatch(src, /BookingPaymentAdapter|BookingRegistrationDisplayAdapter|createFinanceRepository/);
     assert.doesNotMatch(src, /infrastructure\//);
     assert.match(src, /registrationDisplay: RegistrationDisplayPort/);

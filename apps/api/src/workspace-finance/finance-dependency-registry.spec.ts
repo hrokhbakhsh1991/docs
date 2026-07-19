@@ -40,7 +40,19 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
     });
   });
 
-  it("FIN-REG-03 boot finance workspace type remains denali", () => {
+  it("FIN-REG-03 boot finance workspace type defaults to denali; env override honored", () => {
+    assert.equal(resolveBootFinanceWorkspaceType(), DENALI);
+    const prev = process.env.FINANCE_BOOT_WORKSPACE_TYPE;
+    process.env.FINANCE_BOOT_WORKSPACE_TYPE = WS2;
+    try {
+      assert.equal(resolveBootFinanceWorkspaceType(), WS2);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.FINANCE_BOOT_WORKSPACE_TYPE;
+      } else {
+        process.env.FINANCE_BOOT_WORKSPACE_TYPE = prev;
+      }
+    }
     assert.equal(resolveBootFinanceWorkspaceType(), DENALI);
   });
 

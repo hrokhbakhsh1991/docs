@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { after, before, beforeEach, describe, it } from "node:test";
 
-import type { TenantAuthContext } from "@app-cloud/workspace-sdk";
+import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import {
   getBookingsRepository,
@@ -34,6 +34,16 @@ import {
   InMemoryFinanceRepository,
   resetInMemoryFinanceRepositoryForTests,
 } from "./in-memory-finance.repository.ts";
+import {
+  fakeEmptySchedules,
+  fakeMemoryPersistenceMode,
+  fakeFixedClock,
+  fakeNoopLog,
+  fakeNoopMetrics,
+  fakePermissiveCapability,
+  fakePermissiveAccess,
+  fakeReceiptProofUrl,
+} from "./finance-service-host-fakes.ts";
 
 const FINANCE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
 const REPO_ROOT = resolve(FINANCE_ROOT, "../../../../");
@@ -86,7 +96,15 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
       financeRepo,
       bookingPayments,
       resolveFinanceReceiptDefaults(workspaceType),
-      new BookingRegistrationDisplayAdapter()
+      new BookingRegistrationDisplayAdapter(),
+      fakeNoopMetrics,
+      fakeMemoryPersistenceMode,
+      fakeReceiptProofUrl,
+      fakePermissiveCapability,
+      fakePermissiveAccess,
+      fakeEmptySchedules,
+      fakeNoopLog,
+      fakeFixedClock
     );
     return { finance, financeRepo };
   }
@@ -111,7 +129,10 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
   }
 
   it("FIN-P1.3-01 / P1.10 no-copy architecture: one FinanceService; WS2 lives in workspace package", () => {
-    const serviceSrc = readFileSync(resolve(FINANCE_ROOT, "finance.service.ts"), "utf8");
+    const serviceSrc = readFileSync(
+      resolve(FINANCE_ROOT, "../../../../packages/finance-core/src/application/finance.service.ts"),
+      "utf8"
+    );
     assert.doesNotMatch(serviceSrc, /\bworkspaceType\b/);
     assert.doesNotMatch(serviceSrc, /FinanceWs2|finance-ws2-chart|finance-ws2-ledger|finance-ws2-receipt/);
     assert.doesNotMatch(serviceSrc, /DenaliFinanceLedgerPolicyAdapter|DenaliFinanceReceiptDefaultsAdapter/);
@@ -125,7 +146,19 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
     const infra = readdirSync(resolve(FINANCE_ROOT, "infrastructure"));
     assert.deepEqual(
       [...infra].filter((n) => n.endsWith(".ts")).sort(),
-      ["booking-payment.adapter.ts", "booking-registration-display.adapter.ts"].sort()
+      [
+        "booking-payment.adapter.ts",
+        "booking-registration-display.adapter.ts",
+        "host-finance-access.adapter.ts",
+        "host-finance-clock.adapter.ts",
+        "host-finance-log.adapter.ts",
+        "host-finance-metrics.adapter.ts",
+        "host-finance-persistence-mode.adapter.ts",
+        "host-finance-receipt-proof-url.adapter.ts",
+        "host-finance-schedule.adapter.ts",
+        "prisma-finance.repository.ts",
+        "prisma-workspace-outbox-writer.ts",
+      ].sort()
     );
 
     const depRegistry = readFileSync(resolve(FINANCE_ROOT, "finance-dependency-registry.ts"), "utf8");

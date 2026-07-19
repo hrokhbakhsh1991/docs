@@ -22,11 +22,22 @@ export type TourCreatedFinanceSideEffectDeps = {
     readonly domainEventId: string;
     readonly message: string;
   }) => void;
+  /**
+   * Host exclusive Path B emit (advisory lock + skip if Path A/B already credited).
+   * When set, replaces direct outboxWriter emit inside handleTourCreatedLedgerEvent.
+   */
+  readonly emitPaidLedgerExclusive?: (input: {
+    readonly tenantId: string;
+    readonly registrationId: string;
+    readonly paidAmountMinor: string;
+    readonly currency: string;
+    readonly tourCreatedDomainEventId: string;
+  }) => Promise<"emitted" | "skipped">;
 };
 
 let registeredDeps: TourCreatedFinanceSideEffectDeps | undefined;
 
-/** API host registers Prisma claim/outbox adapters once at boot (P0 PR-1). */
+/** Test-only: optional module singleton for unit tests without a reaction HostIo. */
 export function registerTourCreatedFinanceSideEffectDeps(
   deps: TourCreatedFinanceSideEffectDeps
 ): void {
@@ -60,11 +71,16 @@ function mapTourCreatedRow(row: TourCreatedFinanceSideEffectRow): DenaliOutboxDo
   };
 }
 
-/** Manifest-driven host outbox runner — plugin ledger + injected API adapters. */
+/**
+ * TourCreated → ledger side effect.
+ * Prefer explicit `deps` from the reaction adapter HostIo (production).
+ * Module singleton via {@link registerTourCreatedFinanceSideEffectDeps} is test-only.
+ */
 export async function runTourCreatedFinanceSideEffect(
-  row: TourCreatedFinanceSideEffectRow
+  row: TourCreatedFinanceSideEffectRow,
+  deps?: TourCreatedFinanceSideEffectDeps
 ): Promise<boolean> {
-  const deps = requireDeps();
+  const resolved = deps ?? requireDeps();
 
   if (row.eventType !== "TourCreated" || !row.domainEventId.trim()) {
     return false;
@@ -75,19 +91,33 @@ export async function runTourCreatedFinanceSideEffect(
     return false;
   }
 
-  const claimed = await deps.tryClaimProcessedEvent(row.tenantId, row.domainEventId);
+  const claimed = await resolved.tryClaimProcessedEvent(row.tenantId, row.domainEventId);
   if (!claimed) {
     return false;
   }
 
   try {
+    if (resolved.emitPaidLedgerExclusive !== undefined) {
+      const payload = event.payload as TourCreatedLedgerPayload;
+      const registrationId = payload.registrationId?.trim() ?? "";
+      const paidAmountMinor = payload.paidAmountMinor?.trim() ?? "";
+      const currency = payload.currency?.trim() || "USD";
+      const exclusive = await resolved.emitPaidLedgerExclusive({
+        tenantId: row.tenantId,
+        registrationId,
+        paidAmountMinor,
+        currency,
+        tourCreatedDomainEventId: row.domainEventId,
+      });
+      return exclusive === "emitted" || exclusive === "skipped";
+    }
     return await handleTourCreatedLedgerEvent({
       tenantId: row.tenantId,
       event,
-      outboxWriter: deps.createOutboxWriter(),
+      outboxWriter: resolved.createOutboxWriter(),
     });
   } catch (error: unknown) {
-    deps.logTourCreatedFailed({
+    resolved.logTourCreatedFailed({
       tenantId: row.tenantId,
       domainEventId: row.domainEventId,
       message: error instanceof Error ? error.message : "unknown",

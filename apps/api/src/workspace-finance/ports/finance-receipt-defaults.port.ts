@@ -1,7 +1,7 @@
 /**
- * Re-export receipt defaults port (Phase 1.9 SoT: finance-http-contracts).
+ * Compatibility re-export — SoT: `@app-tour/finance-core` → contracts (Phase 1.25).
  */
 export type {
   FinanceOfflineReceiptDefaults,
   FinanceReceiptDefaultsPort,
-} from "@app-tour/finance-http-contracts";
+} from "@app-tour/finance-core";

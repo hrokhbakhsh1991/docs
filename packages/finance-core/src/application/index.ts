@@ -9,3 +9,11 @@ export {
   FinanceService,
   hashFinanceHttpIdempotencyKey,
 } from "./finance.service";
+export {
+  FINANCE_LATENCY_BUDGET_MS,
+  FINANCE_METRIC,
+  type FinanceApproveMetricResult,
+  type FinanceLatencyOperation,
+  type FinanceLedgerCaptureMetricResult,
+  type FinanceMetricName,
+} from "./finance-metrics-catalog";

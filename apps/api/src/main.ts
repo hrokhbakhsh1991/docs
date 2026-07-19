@@ -26,6 +26,7 @@ async function warmPostListen(): Promise<WarmPostListenHandles> {
     { bootstrapIntegrationProviders },
     { startIntegrationDeliveryWorkerIfEnabled },
     { startDenaliExposureReminderSchedulerIfEnabled },
+    { startFinanceReconIfEnabled },
   ] = await Promise.all([
     import("./outbox/start-outbox-relay"),
     import("./outbox/start-projection-auto-reconcile"),
@@ -35,11 +36,13 @@ async function warmPostListen(): Promise<WarmPostListenHandles> {
     import("./integrations/platform/bootstrap-integration-providers"),
     import("./integrations/worker/start-integration-delivery-worker"),
     import("./exposure/start-denali-exposure-reminder-scheduler"),
+    import("./workspace-finance/recon/start-finance-recon"),
   ]);
   bootstrapIntegrationProviders();
   startOutboxRelayIfEnabled();
   startProjectionAutoReconcileIfEnabled();
   startIntegrationDeliveryWorkerIfEnabled();
+  startFinanceReconIfEnabled();
   const denaliReminderScheduler = startDenaliExposureReminderSchedulerIfEnabled();
   await bootstrapWorkspaceWizardTemplatesIfNeeded();
   await bootstrapOperatorSmokeCatalogIfNeeded();

@@ -1,0 +1,5 @@
+# Staged by scripts/prepare-local-packages.mjs — not committed
+.local-packages/
+node_modules/
+pnpm-lock.yaml
+*.log

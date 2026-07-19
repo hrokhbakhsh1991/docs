@@ -16,7 +16,6 @@ import type {
   BookingOutboxRecord,
   BookingPaymentStatus,
   BookingRecord,
-  BookingStatus,
   BookingTourChip,
   BookingsSummaryCounts,
   CreateBookingRequest,
@@ -32,6 +31,19 @@ import {
   MAX_MEMBER_BOOKINGS_LIST_CAP,
 } from "./bookings-member-summary-projection";
 import { raiseBookingPaymentStatus } from "./booking-payment-status";
+import type { BookingRepositoryPort } from "./ports/booking-repository.port";
+import {
+  BookingNotFoundError,
+  BookingStatusConflictError,
+  BulkApproveBatchLimitError,
+} from "./bookings.errors";
+
+export type { BookingRepositoryPort, BookingsRepository } from "./ports/booking-repository.port";
+export {
+  BookingNotFoundError,
+  BookingStatusConflictError,
+  BulkApproveBatchLimitError,
+} from "./bookings.errors";
 
 type RepositorySnapshot = {
   readonly bookings: Map<string, BookingRecord>;
@@ -140,82 +152,7 @@ export function resetBookingsStoresForTests(): void {
   _devFixtureSeeded = false;
 }
 
-export type BookingsRepository = {
-  /** @deprecated Test/perf baseline only — delegates to listByTenantPage (cap 500). */
-  listByTenant(tenantId: string): Promise<BookingRecord[]>;
-  listByTenantPage(input: BookingListPageInput): Promise<BookingListPageOutput>;
-  listBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<BookingRecord[]>;
-  countBookingsBySubmittedUser(tenantId: string, submittedByUserId: string): Promise<number>;
-  countCancelledBookingsBySubmittedUser(
-    tenantId: string,
-    submittedByUserId: string
-  ): Promise<number>;
-  countCompletedTripsBySubmittedUser(
-    tenantId: string,
-    submittedByUserId: string,
-    now: Date
-  ): Promise<number>;
-  listRecentBySubmittedUser(
-    tenantId: string,
-    submittedByUserId: string,
-    limit: number
-  ): Promise<BookingRecord[]>;
-  findActiveDuplicateByUser(input: ActiveDuplicateByUserInput): Promise<BookingRecord | null>;
-  findActiveDuplicateByGuestLabel(
-    input: ActiveDuplicateByGuestLabelInput
-  ): Promise<BookingRecord | null>;
-  findActiveDuplicateByEmail(input: ActiveDuplicateByEmailInput): Promise<BookingRecord | null>;
-  findActiveDuplicateByNationalId(
-    input: ActiveDuplicateByNationalIdInput
-  ): Promise<BookingRecord | null>;
-  countByListFilters(
-    input: Omit<BookingListPageInput, "limit" | "cursor">
-  ): Promise<number>;
-  getBookingsSummaryCounts(tenantId: string, now: Date): Promise<BookingsSummaryCounts>;
-  listTourChipsByTenant(tenantId: string): Promise<readonly BookingTourChip[]>;
-  sumApprovedPartySizeByTourIds(
-    tenantId: string,
-    tourIds: readonly string[]
-  ): Promise<Readonly<Record<string, number>>>;
-  getById(id: string, tenantId: string): Promise<BookingRecord | null>;
-  /** Batch identity projection for finance lists — same tenant scope as getById. */
-  getByIds(ids: readonly string[], tenantId: string): Promise<BookingRecord[]>;
-  /**
-   * Finance → bookings projection. Raises payment status only (unpaid→partial→paid);
-   * never downgrades. Missing booking returns null without throwing.
-   */
-  updatePaymentStatus(input: {
-    readonly bookingId: string;
-    readonly tenantId: string;
-    readonly paymentStatus: BookingPaymentStatus;
-  }): Promise<BookingRecord | null>;
-  listOutboxByAggregate(aggregateId: string): Promise<BookingOutboxRecord[]>;
-  createBooking(input: {
-    tenantId: string;
-    submittedByUserId: string;
-    body: CreateBookingRequest;
-  }): Promise<BookingRecord>;
-  approveWithOutbox(input: {
-    bookingId: string;
-    tenantId: string;
-    outboxEvent: string;
-    correlationId?: string;
-  }): Promise<BookingRecord>;
-  bulkApproveWithOutbox(input: {
-    ids: readonly string[];
-    tenantId: string;
-    outboxEvent: string;
-    maxBatch: number;
-  }): Promise<BookingRecord[]>;
-  rejectBooking(input: {
-    bookingId: string;
-    tenantId: string;
-    reason?: string;
-  }): Promise<BookingRecord>;
-  seedBooking(record: BookingRecord): void;
-};
-
-export class InMemoryBookingsRepository implements BookingsRepository {
+export class InMemoryBookingsRepository implements BookingRepositoryPort {
   static createWithDevSeed(): InMemoryBookingsRepository {
     seedOperatorSmokeDevBookingsFixture();
     return new InMemoryBookingsRepository();
@@ -667,32 +604,5 @@ export class InMemoryBookingsRepository implements BookingsRepository {
     };
     bookingsStore.set(updated.id, updated);
     return cloneBooking(updated);
-  }
-}
-
-export class BookingNotFoundError extends Error {
-  readonly code = "BOOKING_NOT_FOUND" as const;
-
-  constructor() {
-    super("BOOKING_NOT_FOUND");
-    this.name = "BookingNotFoundError";
-  }
-}
-
-export class BulkApproveBatchLimitError extends Error {
-  readonly code = "BULK_APPROVE_BATCH_LIMIT" as const;
-
-  constructor(readonly maxBatch: number) {
-    super(`BULK_APPROVE_BATCH_LIMIT:${maxBatch}`);
-    this.name = "BulkApproveBatchLimitError";
-  }
-}
-
-export class BookingStatusConflictError extends Error {
-  readonly code = "BOOKING_STATUS_CONFLICT" as const;
-
-  constructor(readonly status: BookingStatus) {
-    super(`BOOKING_STATUS_CONFLICT:${status}`);
-    this.name = "BookingStatusConflictError";
   }
 }

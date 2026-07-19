@@ -21,6 +21,8 @@ function exists(rel) {
 for (const rel of [
   "src/outbox/outbox-failed.ts",
   "src/outbox/outbox-replay.ts",
+  "src/outbox/outbox-prod-replay.ts",
+  "src/outbox/outbox-replay-audit.ts",
   "src/routes/internal/outbox-replay.ts",
   "scripts/outbox-replay-failed.mjs",
   "test/4-integration/outbox-failed-replay.spec.ts",
@@ -41,6 +43,28 @@ if (!failed.includes("lastError")) {
 const replay = read("src/outbox/outbox-replay.ts");
 if (!replay.includes("replayFailedOutboxEvent")) {
   violations.push("outbox-replay.ts must export replayFailedOutboxEvent");
+}
+if (!replay.includes("tryReplayFailedOutboxEvent")) {
+  violations.push("outbox-replay.ts must export tryReplayFailedOutboxEvent");
+}
+if (replay.includes("assertProvisioningDevelopmentOnly")) {
+  violations.push("outbox-replay core must not embed provisioning gate (Phase 3.17 edge auth)");
+}
+
+const prod = read("src/outbox/outbox-prod-replay.ts");
+if (!prod.includes("runOutboxProdReplay")) {
+  violations.push("outbox-prod-replay.ts must export runOutboxProdReplay");
+}
+if (!prod.includes("OUTBOX_REPLAY_CONFIRM_PHRASE")) {
+  violations.push("outbox-prod-replay.ts must define confirm phrase");
+}
+
+const route = read("src/routes/internal/outbox-replay.ts");
+if (!route.includes("OPS_SCOPE_OUTBOX_REPLAY")) {
+  violations.push("outbox-replay route must define OPS_SCOPE_OUTBOX_REPLAY");
+}
+if (!route.includes("handleInternalOutboxReplay")) {
+  violations.push("outbox-replay route must export handleInternalOutboxReplay");
 }
 
 const relay = read("src/outbox/outbox-relay.ts");

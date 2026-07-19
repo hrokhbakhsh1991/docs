@@ -1,5 +1,5 @@
 import { getBookingsRepository } from "../../bookings/create-bookings-repository";
-import type { BookingsRepository } from "../../bookings/in-memory-bookings.repository";
+import type { BookingRepositoryPort } from "../../bookings/ports/booking-repository.port";
 import type {
   FinanceRegistrationDisplay,
   RegistrationDisplayPort,
@@ -10,7 +10,7 @@ import type {
  * `guestLabel` → `memberDisplayName` (API contract unchanged).
  */
 export class BookingRegistrationDisplayAdapter implements RegistrationDisplayPort {
-  constructor(private readonly bookings: BookingsRepository = getBookingsRepository()) {}
+  constructor(private readonly bookings: BookingRepositoryPort = getBookingsRepository()) {}
 
   async getByRegistrationIds(
     tenantId: string,

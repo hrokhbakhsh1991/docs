@@ -1,8 +1,8 @@
-/** Monorepo guard (g5) excludes H-01 negative-proof fixture from the crawl graph. */
+/** Monorepo guard (g5) excludes intentional negative-proof fixtures from the crawl graph. */
 const monorepoGuardExclude =
   process.env.DEPCRUISE_MONOREPO_GUARD === "1"
     ? {
-        path: "^packages/workspace-sdk/test/__fixtures__/denali-breach\\.ts$",
+        path: "^(packages/workspace-sdk/test/__fixtures__/denali-breach\\.ts|packages/finance-core/test/fixtures/illegal-prisma-import\\.ts)$",
       }
     : undefined;
 
@@ -215,7 +215,7 @@ module.exports = {
       severity: "error",
       from: { path: "^apps/api" },
       to: {
-        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|workspaces/starter|workspaces/denali|workspaces/urban|workspaces/guest-club|config)",
+        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|finance-core|finance-http|finance-http-contracts|booking-http-contracts|workspaces/starter|workspaces/denali|workspaces/urban|workspaces/guest-club|workspaces/finance-ws2|workspaces/finance-ws3|workspaces/finance-ws4|workspaces/booking-ws2|config)",
       },
     },
     {
@@ -225,6 +225,81 @@ module.exports = {
       severity: "error",
       from: { path: "^apps/" },
       to: { path: "^packages/platform-core/src" },
+    },
+    {
+      name: "finance-core-no-apps",
+      comment: "Phase 2.2.2 — finance-core must not depend on application layers",
+      severity: "error",
+      from: {
+        path: "^packages/finance-core",
+        pathNot: "^packages/finance-core/test/fixtures/",
+      },
+      to: { path: "^apps/" },
+    },
+    {
+      name: "finance-core-no-workspaces",
+      comment: "Phase 2.2.2 — finance-core must not depend on packages/workspaces/**",
+      severity: "error",
+      from: {
+        path: "^packages/finance-core",
+        pathNot: "^packages/finance-core/test/fixtures/",
+      },
+      to: { path: "^packages/workspaces" },
+    },
+    {
+      name: "finance-core-no-workspace-packages",
+      comment: "Phase 2.2.2 — finance-core must not depend on @app-tour/workspace-* packages",
+      severity: "error",
+      from: {
+        path: "^packages/finance-core",
+        pathNot: "^packages/finance-core/test/fixtures/",
+      },
+      to: {
+        path: "(node_modules/@app-tour/workspace-|@app-tour/workspace-)",
+      },
+    },
+    {
+      name: "finance-core-no-generated",
+      comment: "Phase 2.2.2 — finance-core must not depend on generated workspace bindings",
+      severity: "error",
+      from: {
+        path: "^packages/finance-core",
+        pathNot: "^packages/finance-core/test/fixtures/",
+      },
+      to: { path: "\\.generated(\\.|$)" },
+    },
+    {
+      name: "finance-core-no-db-infra",
+      comment:
+        "Phase 2.2.2 — finance-core must not depend on apps/api database / outbox infrastructure",
+      severity: "error",
+      from: {
+        path: "^packages/finance-core",
+        pathNot: "^packages/finance-core/test/fixtures/",
+      },
+      to: {
+        path: "(^apps/.*/(db|outbox)/|with-tenant-rls|enqueue-domain-event|prisma-workspace-outbox)",
+      },
+    },
+    {
+      name: "finance-core-no-prisma",
+      comment: "Phase 2.2.2 — finance-core must not depend on Prisma packages",
+      severity: "error",
+      from: { path: "^packages/finance-core" },
+      to: { path: "(node_modules/@prisma/|@prisma/)" },
+    },
+    {
+      name: "finance-core-allowed-package-deps",
+      comment:
+        "Phase 2.2.2 — among monorepo packages, finance-core may only depend on itself and finance-http-contracts",
+      severity: "error",
+      from: {
+        path: "^packages/finance-core",
+        pathNot: "^packages/finance-core/test/fixtures/",
+      },
+      to: {
+        path: "^packages/(?!finance-core|finance-http-contracts)(/|$)",
+      },
     },
   ],
   options: {

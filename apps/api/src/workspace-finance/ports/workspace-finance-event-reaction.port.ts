@@ -1,8 +1,9 @@
 /**
- * Re-export TourCreated finance reaction port (Phase 1.9 SoT: finance-http-contracts).
+ * Compatibility re-export — SoT: `@app-tour/finance-http-contracts` (Phase 2.3.1).
+ * Reaction ports are host/workspace concerns — not finance-core application ports.
  */
 export type {
-  WorkspaceFinanceReactionBatchResult,
-  WorkspaceFinancePublishedOutboxRow,
   WorkspaceFinanceEventReactionPort,
+  WorkspaceFinancePublishedOutboxRow,
+  WorkspaceFinanceReactionBatchResult,
 } from "@app-tour/finance-http-contracts";

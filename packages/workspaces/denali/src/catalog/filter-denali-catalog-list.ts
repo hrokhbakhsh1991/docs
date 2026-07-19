@@ -1,5 +1,5 @@
 import type { DenaliTourRecord } from "../http/ports/tour-store.port";
-import type { DenaliPublicBookingPort } from "../http/ports/public-booking.port";
+import type { BookingPublicPort } from "../http/ports/public-booking.port";
 import { matchesDenaliCatalogCategoryFilter } from "../marketing/catalog-filter-config";
 import {
   readDenaliCatalogDifficultyLevel,
@@ -181,7 +181,7 @@ export async function filterDenaliCatalogTourAvailability(
   params: {
     readonly tenantId: string;
     readonly availability: DenaliCatalogListQuery["availability"];
-    readonly bookingPort?: DenaliPublicBookingPort;
+    readonly bookingPort?: BookingPublicPort;
   }
 ): Promise<readonly DenaliTourRecord[]> {
   if (params.availability !== "open") {

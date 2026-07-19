@@ -20,6 +20,8 @@ import {
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const WF = "apps/api/src/workspace-finance";
+const CORE_APP = "packages/finance-core/src/application";
+const CORE_DOMAIN = "packages/finance-core/src/domain";
 
 describe("finance-registration-context.spec.ts", () => {
   it("B-01 filterRowsByRegistrationId keeps only matching rows", () => {
@@ -62,14 +64,14 @@ describe("finance-registration-context.spec.ts", () => {
   });
 
   it("FIN-P1.6-01 finance-registration-context.ts has no Booking repository imports", () => {
-    const src = readFileSync(resolve(REPO_ROOT, `${WF}/finance-registration-context.ts`), "utf8");
+    const src = readFileSync(resolve(REPO_ROOT, `${CORE_DOMAIN}/finance-registration-context.ts`), "utf8");
     assert.doesNotMatch(src, /getBookingsRepository/);
     assert.doesNotMatch(src, /create-bookings-repository/);
     assert.doesNotMatch(src, /from ["'].*bookings\//);
   });
 
   it("FIN-P1.6-02 FinanceService loads display via registrationDisplay port", () => {
-    const src = readFileSync(resolve(REPO_ROOT, `${WF}/finance.service.ts`), "utf8");
+    const src = readFileSync(resolve(REPO_ROOT, `${CORE_APP}/finance.service.ts`), "utf8");
     assert.match(src, /registrationDisplay\.getByRegistrationIds/);
     assert.doesNotMatch(src, /loadFinanceRegistrationContextMap/);
     assert.doesNotMatch(src, /getBookingsRepository/);

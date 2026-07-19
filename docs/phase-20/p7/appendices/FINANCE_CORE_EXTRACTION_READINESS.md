@@ -125,6 +125,8 @@ Extraction must **not** move host generated bindings into finance-core.
 
 ## 9. Migration path: `workspace:*` → registry package
 
+**Full audit + phased plan:** [`FINANCE_DEPS_WORKSPACE_TO_REGISTRY.md`](./FINANCE_DEPS_WORKSPACE_TO_REGISTRY.md) (Phase 2.3.9).
+
 **Do not publish in this phase.** Ordered path when packaging is approved:
 
 ```text

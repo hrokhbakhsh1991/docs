@@ -1,6 +1,5 @@
-import { randomUUID } from "node:crypto";
-
 import type { LedgerJournalLine, LedgerPostingSide } from "./ledger-journal-line";
+import { createHash } from "node:crypto";
 
 export type PostDoubleEntryJournalInput = {
   tenantId: string;
@@ -11,7 +10,8 @@ export type PostDoubleEntryJournalInput = {
   correlationId: string;
   idempotencyKey: string;
   metadata?: Record<string, unknown>;
-  stableJournalAndLineIds?: {
+  /** Required — finance money path must not mint random journal/line ids. */
+  stableJournalAndLineIds: {
     journalId: string;
     debitLineId: string;
     creditLineId: string;
@@ -23,6 +23,40 @@ export type PostDoubleEntryJournalResult = {
   journalId: string;
   lines: readonly LedgerJournalLine[];
 };
+
+/** Deterministic UUID v4-shaped id from seed (SHA-256). */
+export function deterministicUuidFromSeed(seed: string): string {
+  const hash = createHash("sha256").update(seed, "utf8").digest();
+  const buf = Buffer.alloc(16);
+  hash.copy(buf, 0, 0, 16);
+  buf[6] = (buf[6]! & 0x0f) | 0x40;
+  buf[8] = (buf[8]! & 0x3f) | 0x80;
+  const hex = buf.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+/**
+ * Stable journal + line ids for a seed (payment id, journalSeed, or tour-created event id).
+ * Namespace prefixes isolate payment vs tour-created collisions without changing domainEventId formulas.
+ */
+export function stableLedgerIdentifiersFromSeed(
+  seed: string,
+  namespace: "payment-ledger" | "tour-created-ledger" | "ws-payment-ledger" = "payment-ledger"
+): {
+  journalId: string;
+  debitLineId: string;
+  creditLineId: string;
+} {
+  const id = seed.trim();
+  if (id.length === 0) {
+    throw new Error("LEDGER_STABLE_SEED_REQUIRED: stable ledger seed must be non-empty");
+  }
+  return {
+    journalId: deterministicUuidFromSeed(`${namespace}:journal:${id}`),
+    debitLineId: deterministicUuidFromSeed(`${namespace}:debit:${id}`),
+    creditLineId: deterministicUuidFromSeed(`${namespace}:credit:${id}`),
+  };
+}
 
 function trimNonEmpty(name: string, value: string): string {
   const t = value.trim();
@@ -46,6 +80,16 @@ function assertPositiveMinorAmount(amount_minor: string): bigint {
   return n;
 }
 
+function requireStableId(label: string, value: string | undefined): string {
+  const t = value?.trim() ?? "";
+  if (t.length === 0) {
+    throw new Error(
+      `LEDGER_STABLE_ID_REQUIRED: postDoubleEntryJournal requires stableJournalAndLineIds.${label}`
+    );
+  }
+  return t;
+}
+
 function materializeLine(input: {
   journalId: string;
   tenantId: string;
@@ -56,11 +100,11 @@ function materializeLine(input: {
   correlationId: string;
   idempotencyKey: string;
   metadata?: Record<string, unknown>;
-  lineId?: string;
+  lineId: string;
   createdAtIso?: string;
 }): LedgerJournalLine {
   return {
-    id: input.lineId ?? randomUUID(),
+    id: input.lineId,
     journalId: input.journalId,
     tenantId: input.tenantId,
     account: input.account,
@@ -116,8 +160,12 @@ export function postDoubleEntryJournal(
   const baseKey = trimNonEmpty("IDEMPOTENCY_KEY", input.idempotencyKey);
   const amountStr = assertPositiveMinorAmount(input.amount_minor).toString();
 
-  const stable = input.stableJournalAndLineIds;
-  const journalId = stable?.journalId ?? randomUUID();
+  const journalId = requireStableId("journalId", input.stableJournalAndLineIds?.journalId);
+  const debitLineId = requireStableId("debitLineId", input.stableJournalAndLineIds?.debitLineId);
+  const creditLineId = requireStableId(
+    "creditLineId",
+    input.stableJournalAndLineIds?.creditLineId
+  );
   const createdAtIso = input.journalLinesCreatedAtIso?.trim();
 
   const debitLine = materializeLine({
@@ -130,7 +178,7 @@ export function postDoubleEntryJournal(
     correlationId: `${correlationId}:debit`,
     idempotencyKey: `${baseKey}:debit`,
     metadata: input.metadata,
-    lineId: stable?.debitLineId,
+    lineId: debitLineId,
     ...(createdAtIso ? { createdAtIso } : {}),
   });
 
@@ -144,7 +192,7 @@ export function postDoubleEntryJournal(
     correlationId: `${correlationId}:credit`,
     idempotencyKey: `${baseKey}:credit`,
     metadata: input.metadata,
-    lineId: stable?.creditLineId,
+    lineId: creditLineId,
     ...(createdAtIso ? { createdAtIso } : {}),
   });
 

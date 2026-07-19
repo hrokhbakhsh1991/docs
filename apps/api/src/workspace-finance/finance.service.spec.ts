@@ -26,6 +26,16 @@ import type {
   BookingPaymentSyncStatusInput,
   IBookingPaymentPort,
 } from "./ports/booking-payment.port.ts";
+import {
+  fakeEmptySchedules,
+  fakeMemoryPersistenceMode,
+  fakeFixedClock,
+  fakeNoopLog,
+  fakeNoopMetrics,
+  fakePermissiveCapability,
+  fakePermissiveAccess,
+  fakeReceiptProofUrl,
+} from "./finance-service-host-fakes.ts";
 
 describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency: false }, () => {
   const priorStorageDriver = process.env.STORAGE_DRIVER;
@@ -99,7 +109,15 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
       financeRepo,
       bookingPayments,
       new DenaliFinanceReceiptDefaultsAdapter(),
-      new BookingRegistrationDisplayAdapter()
+      new BookingRegistrationDisplayAdapter(),
+      fakeNoopMetrics,
+      fakeMemoryPersistenceMode,
+      fakeReceiptProofUrl,
+      fakePermissiveCapability,
+      fakePermissiveAccess,
+      fakeEmptySchedules,
+      fakeNoopLog,
+      fakeFixedClock
     );
 
     if (input.withBooking) {

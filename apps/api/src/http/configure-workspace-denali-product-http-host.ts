@@ -3,18 +3,11 @@ import { buildDenaliExposureResolverPort } from "../exposure/resolve-denali-surf
 import { buildDenaliReminderFeedPort } from "../exposure/denali-reminder-activation.repository";
 import type {
   DenaliProductRouteDeps,
-  DenaliPublicBookingPort,
+  BookingPublicPort,
   DenaliPublicDestinationPort,
 } from "@app-tour/workspace-denali/http";
 
-import {
-  createPublicGuestBooking,
-  findGuestBookingDuplicate,
-  findGuestBookingDuplicateByGuestLabel,
-  findGuestBookingDuplicateByTourNationalId,
-  findGuestBookingDuplicateByUser,
-  sumApprovedPartySizeByTourIds,
-} from "../bookings/bookings.service";
+import { createHostBookingPublicAdapter } from "../bookings/infrastructure/host-booking-public.adapter";
 import type { TourStorageRepository as DbTourStorageRepository } from "../db/tour.repository";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { getSettingsResourcesRepository } from "../settings/create-settings-resources-repository";
@@ -26,58 +19,11 @@ import type {
 import { runWithHttpRequestContext } from "./bind-request-context";
 import { readJsonBody, sendJson } from "./json";
 
-function resolvePublicBookingPort(deps: DenaliProductRouteDeps): DenaliPublicBookingPort {
+function resolvePublicBookingPort(deps: DenaliProductRouteDeps): BookingPublicPort {
   if (deps.publicBookingPort !== undefined) {
     return deps.publicBookingPort;
   }
-  return {
-    async findDuplicateByTourGuest(tenantId, tourId, guestUserId) {
-      const duplicate = await findGuestBookingDuplicateByUser(tenantId, tourId, guestUserId);
-      return duplicate === null ? null : { id: duplicate.id };
-    },
-    async findDuplicateByTourGuestLabel(tenantId, tourId, guestLabel) {
-      const duplicate = await findGuestBookingDuplicateByGuestLabel(tenantId, tourId, guestLabel);
-      return duplicate === null ? null : { id: duplicate.id };
-    },
-    async findDuplicateByTourGuestNationalId(tenantId, tourId, nationalId) {
-      const duplicate = await findGuestBookingDuplicateByTourNationalId(
-        tenantId,
-        tourId,
-        nationalId
-      );
-      return duplicate === null ? null : { id: duplicate.id };
-    },
-    async findDuplicateByTourEmail(tenantId, tourId, email) {
-      const duplicate = await findGuestBookingDuplicate(tenantId, tourId, email);
-      return duplicate === null ? null : { id: duplicate.id };
-    },
-    async createPendingBooking(input) {
-      const created = await createPublicGuestBooking(
-        {
-          tenantId: input.tenantId,
-          userId: input.guestUserId,
-          role: "none",
-          status: "ACTIVE",
-        },
-        {
-          tourId: input.tourId,
-          tourTitle: input.tourTitle,
-          guestLabel: input.guestLabel,
-          guestEmail: input.guestEmail,
-          guestPhone: input.guestPhone,
-          partySize: input.partySize,
-          departureAt: input.departureAt,
-          ...(input.registrationIntake !== undefined
-            ? { registrationIntake: input.registrationIntake }
-            : {}),
-        }
-      );
-      return { id: created.id, status: created.status };
-    },
-    async sumApprovedPartySizeByTourIds(tenantId, tourIds) {
-      return sumApprovedPartySizeByTourIds(tenantId, tourIds);
-    },
-  };
+  return createHostBookingPublicAdapter();
 }
 
 function resolvePublicDestinationPort(

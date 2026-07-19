@@ -15,7 +15,7 @@ import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
 import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
 
-/** Production boot / lazy-finance default workspace type (Denali behavior preserved). */
+/** Default boot workspace when `FINANCE_BOOT_WORKSPACE_TYPE` is unset (legacy Denali path). */
 export const BOOT_FINANCE_WORKSPACE_TYPE = "denali";
 
 export type FinanceWorkspaceDependencyFactories = {
@@ -33,6 +33,14 @@ export type FinanceWorkspaceDependencies = {
 
 function normalizeWorkspaceType(workspaceType: string): string {
   return workspaceType.trim().toLowerCase();
+}
+
+function resolveConfiguredBootFinanceWorkspaceType(): string {
+  const fromEnv = process.env.FINANCE_BOOT_WORKSPACE_TYPE?.trim().toLowerCase();
+  if (fromEnv !== undefined && fromEnv.length > 0) {
+    return fromEnv;
+  }
+  return BOOT_FINANCE_WORKSPACE_TYPE;
 }
 
 function createPlatformBookingPayments(): IBookingPaymentPort {
@@ -77,15 +85,18 @@ function requireRegisteredFactories(
 }
 
 /**
- * Boot singleton workspace type (Denali). Fail-closed if Denali missing from generated bindings.
+ * Boot / legacy composition workspace type.
+ * Override with `FINANCE_BOOT_WORKSPACE_TYPE` (must be registry-registered).
+ * HTTP SoT remains {@link resolveFinanceServiceForTenant} — not this boot path.
  */
 export function resolveBootFinanceWorkspaceType(): string {
-  if (!isFinanceDependencyBindingRegistered(BOOT_FINANCE_WORKSPACE_TYPE)) {
+  const bootType = resolveConfiguredBootFinanceWorkspaceType();
+  if (!isFinanceDependencyBindingRegistered(bootType)) {
     throw new Error(
-      `FINANCE_BOOT_WORKSPACE_UNREGISTERED: boot workspaceType=${BOOT_FINANCE_WORKSPACE_TYPE} missing from registry`
+      `FINANCE_BOOT_WORKSPACE_UNREGISTERED: boot workspaceType=${bootType} missing from registry`
     );
   }
-  return BOOT_FINANCE_WORKSPACE_TYPE;
+  return bootType;
 }
 
 /** @deprecated Use {@link resolveBootFinanceWorkspaceType}. */

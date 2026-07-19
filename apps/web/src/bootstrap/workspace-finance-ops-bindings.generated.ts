@@ -11,10 +11,19 @@ import {
   resolveFinanceOpsManifestFromTheme as denali_opsResolveFromTheme,
 } from "@app-tour/workspace-denali/host/finance/manifest";
 
+import {
+  DEFAULT_FINANCE_OPS_MANIFEST as finance_ws5_opsDefault,
+  resolveFinanceOpsManifestFromTheme as finance_ws5_opsResolveFromTheme,
+} from "@app-tour/workspace-finance-ws5/host/finance/manifest";
+
 export const WORKSPACE_FINANCE_OPS_BINDINGS = {
   "denali": {
     defaultManifest: denali_opsDefault,
     resolveFromTheme: denali_opsResolveFromTheme,
+  },
+  "finance-ws5": {
+    defaultManifest: finance_ws5_opsDefault,
+    resolveFromTheme: finance_ws5_opsResolveFromTheme,
   },
 } as const;
 

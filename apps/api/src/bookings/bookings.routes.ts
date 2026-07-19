@@ -1,5 +1,13 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+import {
+  parseBookingMemberReceiptJsonBody,
+  parseBookingsListQuery,
+  parseBulkApproveBookingsBody,
+  parseCreateBookingBody,
+  parseRejectBookingBody,
+} from "@app-tour/booking-http-contracts";
+
 import { runWithHttpRequestContext } from "../http/bind-request-context";
 import { sendJson } from "../http/json";
 import { readBinaryRequestBody } from "../http/read-binary-body";
@@ -13,104 +21,25 @@ import {
   sanitizeReceiptProofFileName,
 } from "../workspace-finance/receipt-proof-storage";
 import {
-  approveBooking,
   BookingNotFoundError,
   BookingStatusConflictError,
   BookingsOpsForbiddenError,
   BulkApproveBatchLimitError,
+} from "./bookings.errors";
+import {
+  approveBooking,
   bulkApproveBookings,
   createBooking,
   getBookingsSummary,
   listBookings,
   rejectBooking,
-} from "./bookings.service";
-import type {
-  BookingPaymentStatus,
-  BookingStatus,
-  BookingsListView,
-  CreateBookingRequest,
-} from "./bookings.types";
-
-const BOOKING_STATUSES: readonly BookingStatus[] = [
-  "pending",
-  "approved",
-  "waitlisted",
-  "rejected",
-  "cancelled",
-];
-
-const PAYMENT_STATUSES: readonly BookingPaymentStatus[] = ["unpaid", "partial", "paid"];
-
-function readStringField(body: unknown, key: string): string {
-  if (typeof body !== "object" || body === null) return "";
-  const value = (body as Record<string, unknown>)[key];
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function readNumberField(body: unknown, key: string): number {
-  if (typeof body !== "object" || body === null) return 0;
-  const value = (body as Record<string, unknown>)[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function parseListQuery(url: URL) {
-  const viewRaw = url.searchParams.get("view");
-  const view: BookingsListView = viewRaw === "mine" ? "mine" : "ops";
-  const statusRaw = url.searchParams.get("status");
-  const status = BOOKING_STATUSES.find((value) => value === statusRaw);
-  const tourId = url.searchParams.get("tourId")?.trim();
-  const paymentStatusRaw = url.searchParams.get("paymentStatus");
-  const paymentStatus = PAYMENT_STATUSES.find((value) => value === paymentStatusRaw);
-  const q = url.searchParams.get("q")?.trim();
-  const cursor = url.searchParams.get("cursor")?.trim();
-  const limitRaw = Number(url.searchParams.get("limit") ?? "50");
-
-  return {
-    view,
-    ...(status !== undefined ? { status } : {}),
-    ...(tourId !== undefined && tourId.length > 0 ? { tourId } : {}),
-    ...(paymentStatus !== undefined ? { paymentStatus } : {}),
-    ...(q !== undefined && q.length > 0 ? { q } : {}),
-    ...(cursor !== undefined && cursor.length > 0 ? { cursor } : {}),
-    limit: Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.floor(limitRaw), 100) : 50,
-  };
-}
-
-function parseCreateBody(body: unknown): CreateBookingRequest | null {
-  const tourId = readStringField(body, "tourId");
-  const tourTitle = readStringField(body, "tourTitle");
-  const guestLabel = readStringField(body, "guestLabel");
-  const partySize = readNumberField(body, "partySize");
-  const departureAt = readStringField(body, "departureAt");
-  const guestEmail = readStringField(body, "guestEmail");
-  const guestPhone = readStringField(body, "guestPhone");
-
-  if (
-    tourId.length === 0 ||
-    tourTitle.length === 0 ||
-    guestLabel.length === 0 ||
-    partySize <= 0 ||
-    departureAt.length === 0
-  ) {
-    return null;
-  }
-
-  return {
-    tourId,
-    tourTitle,
-    guestLabel,
-    partySize,
-    departureAt,
-    ...(guestEmail.length > 0 ? { guestEmail } : {}),
-    ...(guestPhone.length > 0 ? { guestPhone } : {}),
-  };
-}
+} from "./create-bookings-service";
 
 export async function handleListBookings(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const auth = await requireOperatorSession(req);
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
-    const query = parseListQuery(url);
+    const query = parseBookingsListQuery(url);
 
     await runWithHttpRequestContext(
       req,
@@ -158,7 +87,7 @@ export async function handleCreateBooking(req: IncomingMessage, res: ServerRespo
   try {
     const auth = await requireOperatorSession(req);
     const body = await readIdentityRequestBody(req);
-    const parsed = parseCreateBody(body);
+    const parsed = parseCreateBookingBody(body);
     if (parsed === null) {
       sendHttpError(res, 400, { error: "invalid_body", code: "BOOKING_CREATE_INVALID" });
       return;
@@ -215,15 +144,12 @@ export async function handleApproveBooking(
   }
 }
 
-function parseBulkApproveBody(body: unknown): string[] {
-  if (typeof body !== "object" || body === null) {
-    return [];
+function readHeader(req: IncomingMessage, name: string): string {
+  const raw = req.headers[name.toLowerCase()];
+  if (raw === undefined) {
+    return "";
   }
-  const ids = (body as Record<string, unknown>).ids;
-  if (!Array.isArray(ids)) {
-    return [];
-  }
-  return ids.filter((value): value is string => typeof value === "string");
+  return (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? "";
 }
 
 export async function handleBulkApproveBookings(
@@ -233,7 +159,7 @@ export async function handleBulkApproveBookings(
   try {
     const auth = await requireOperatorSession(req);
     const body = await readIdentityRequestBody(req);
-    const ids = parseBulkApproveBody(body);
+    const ids = parseBulkApproveBookingsBody(body);
 
     await runWithHttpRequestContext(
       req,
@@ -265,14 +191,14 @@ export async function handleRejectBooking(
   try {
     const auth = await requireOperatorSession(req);
     const body = await readIdentityRequestBody(req);
-    const reason = readStringField(body, "reason");
+    const { reason } = parseRejectBookingBody(body);
 
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
         const result = await rejectBooking(auth, bookingId, {
-          ...(reason.length > 0 ? { reason } : {}),
+          ...(reason !== undefined ? { reason } : {}),
         });
         sendJson(res, 200, result);
       },
@@ -293,27 +219,6 @@ export async function handleRejectBooking(
     }
     handleHttpError(res, error);
   }
-}
-
-function parseMemberReceiptBody(body: unknown): { fileKey: string; note?: string } | null {
-  if (typeof body !== "object" || body === null) {
-    return null;
-  }
-  const record = body as Record<string, unknown>;
-  const fileKey = typeof record.fileKey === "string" ? record.fileKey.trim() : "";
-  if (fileKey.length === 0) {
-    return null;
-  }
-  const note = typeof record.note === "string" ? record.note.trim() : undefined;
-  return note !== undefined && note.length > 0 ? { fileKey, note } : { fileKey };
-}
-
-function readHeader(req: IncomingMessage, name: string): string {
-  const raw = req.headers[name.toLowerCase()];
-  if (raw === undefined) {
-    return "";
-  }
-  return (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? "";
 }
 
 function isJsonReceiptContentType(contentType: string): boolean {
@@ -349,7 +254,7 @@ export async function handlePostBookingReceipt(
     const contentType = readHeader(req, "content-type");
 
     if (isJsonReceiptContentType(contentType)) {
-      const body = parseMemberReceiptBody(await readIdentityRequestBody(req));
+      const body = parseBookingMemberReceiptJsonBody(await readIdentityRequestBody(req));
       if (body === null) {
         sendHttpError(res, 400, { error: "invalid_payload", code: "FILE_KEY_REQUIRED" });
         return;

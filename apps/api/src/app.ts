@@ -86,7 +86,6 @@ import {
   handlePatchWorkspaceDraft,
 } from "./workspace-drafts/workspace-drafts.routes";
 import type { FinanceService } from "./workspace-finance/finance.service";
-import "./workspace-finance/register-workspace-finance-deps";
 
 export type AppDeps = Partial<ToursRouteDeps> &
   Partial<UrbanProductRouteDeps> &
@@ -113,6 +112,17 @@ async function dispatchRequest(
 
   if (method === "GET" && url.pathname === "/internal/metrics") {
     await handlers.handleInternalMetrics(req, res);
+    return;
+  }
+
+  if (
+    url.pathname === "/internal/finance/recon/run" ||
+    url.pathname === "/internal/finance/recon/findings" ||
+    url.pathname === "/internal/finance/recon/repair-matrix" ||
+    url.pathname.startsWith("/internal/finance/recon/findings/")
+  ) {
+    const { handleInternalFinanceRecon } = await import("./routes/internal/finance-recon");
+    await handleInternalFinanceRecon(req, res);
     return;
   }
 
@@ -147,6 +157,15 @@ async function dispatchRequest(
 
   if (method === "GET" && url.pathname === "/internal/test/db-pool-hold") {
     await handlers.handleDbPoolHold(req, res);
+    return;
+  }
+
+  if (
+    (method === "POST" && url.pathname === "/internal/outbox/replay") ||
+    (method === "GET" && url.pathname.startsWith("/internal/outbox/replay/runs/"))
+  ) {
+    const { handleInternalOutboxReplay } = await import("./routes/internal/outbox-replay");
+    await handleInternalOutboxReplay(req, res);
     return;
   }
 

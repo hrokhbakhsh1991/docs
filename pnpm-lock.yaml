@@ -38,6 +38,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@app-tour/booking-http-contracts':
+        specifier: workspace:*
+        version: link:../../packages/booking-http-contracts
+      '@app-tour/finance-core':
+        specifier: workspace:*
+        version: link:../../packages/finance-core
       '@app-tour/finance-http':
         specifier: workspace:*
         version: link:../../packages/finance-http
@@ -53,12 +59,27 @@ importers:
       '@app-tour/tenant-kernel':
         specifier: workspace:*
         version: link:../../packages/tenant-kernel
+      '@app-tour/workspace-booking-ws2':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/booking-ws2
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../../packages/workspaces/denali
       '@app-tour/workspace-finance-ws2':
         specifier: workspace:*
         version: link:../../packages/workspaces/finance-ws2
+      '@app-tour/workspace-finance-ws3':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/finance-ws3
+      '@app-tour/workspace-finance-ws4':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/finance-ws4
+      '@app-tour/workspace-finance-ws5':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/finance-ws5
+      '@app-tour/workspace-finance-ws6':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/finance-ws6
       '@app-tour/workspace-guest-club':
         specifier: workspace:*
         version: link:../../packages/workspaces/guest-club
@@ -423,9 +444,18 @@ importers:
       '@app-tour/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@app-tour/workspace-booking-ws2':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/booking-ws2
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../../packages/workspaces/denali
+      '@app-tour/workspace-finance-ws4':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/finance-ws4
+      '@app-tour/workspace-finance-ws5':
+        specifier: workspace:*
+        version: link:../../packages/workspaces/finance-ws5
       '@app-tour/workspace-guest-club':
         specifier: workspace:*
         version: link:../../packages/workspaces/guest-club
@@ -465,6 +495,18 @@ importers:
       happy-dom:
         specifier: ^17.4.4
         version: 17.6.3
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/booking-http-contracts:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
       tsx:
         specifier: ^4.20.6
         version: 4.22.4
@@ -575,6 +617,22 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/finance-core:
+    dependencies:
+      '@app-tour/finance-http-contracts':
+        specifier: workspace:*
+        version: link:../finance-http-contracts
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/finance-http:
     dependencies:
       '@app-tour/finance-http-contracts':
@@ -603,9 +661,6 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
-      '@app-tour/config':
-        specifier: workspace:*
-        version: link:../config
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.4
@@ -828,6 +883,9 @@ importers:
       '@app-tour/workspace-denali':
         specifier: workspace:*
         version: link:../workspaces/denali
+      '@app-tour/workspace-finance-ws4':
+        specifier: workspace:*
+        version: link:../workspaces/finance-ws4
       '@app-tour/workspace-guest-club':
         specifier: workspace:*
         version: link:../workspaces/guest-club
@@ -891,8 +949,33 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/workspaces/booking-ws2:
+    dependencies:
+      '@app-tour/booking-http-contracts':
+        specifier: workspace:*
+        version: link:../../booking-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/workspaces/denali:
     dependencies:
+      '@app-tour/booking-http-contracts':
+        specifier: workspace:*
+        version: link:../../booking-http-contracts
       '@app-tour/catalog-intake-ui':
         specifier: workspace:*
         version: link:../../catalog-intake-ui
@@ -977,6 +1060,94 @@ importers:
         version: 5.9.3
 
   packages/workspaces/finance-ws2:
+    dependencies:
+      '@app-tour/finance-http-contracts':
+        specifier: workspace:*
+        version: link:../../finance-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/finance-ws3:
+    dependencies:
+      '@app-tour/finance-http-contracts':
+        specifier: workspace:*
+        version: link:../../finance-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/finance-ws4:
+    dependencies:
+      '@app-tour/finance-http-contracts':
+        specifier: workspace:*
+        version: link:../../finance-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/finance-ws5:
+    dependencies:
+      '@app-tour/finance-http-contracts':
+        specifier: workspace:*
+        version: link:../../finance-http-contracts
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/workspaces/finance-ws6:
     dependencies:
       '@app-tour/finance-http-contracts':
         specifier: workspace:*

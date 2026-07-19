@@ -48,6 +48,10 @@ import {
   OutboxReplayNotFoundError,
   OutboxReplayTenantMismatchError,
 } from "../outbox/outbox-replay";
+import {
+  OutboxReplayConfirmRequiredError,
+  OutboxReplayInputError,
+} from "../outbox/outbox-prod-replay";
 import { logger } from "../observability/logger";
 import {
   acquireInternalErrorLogSlot,
@@ -180,6 +184,7 @@ function clientSafeValidationMessage(failure: ValidationFailure): string {
 function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("UNAUTHORIZED_")) return 401;
   if (message.startsWith("FORBIDDEN_")) return 403;
+  if (message === "BOOKINGS_FORBIDDEN") return 403;
   if (message.startsWith("INVALID_TENANT_AUTH_CONTEXT")) return 401;
   if (message.startsWith("ZOD_VALIDATION_FAILED")) return 400;
   if (message.startsWith("URBAN_REGISTRATION_INVALID")) return 400;
@@ -204,6 +209,8 @@ function mapErrorMessageToStatus(message: string): number {
   if (message === "FINANCE_BOOKING_PAYMENT_SYNC_COMPENSATE_FAILED") return 500;
   if (message === "FINANCE_PREPAYMENT_CONFLICT") return 409;
   if (message === "FINANCE_APPROVE_CONFLICT") return 409;
+  if (message === "FINANCE_DUPLICATE_OBLIGATION_CREDIT") return 409;
+  if (message === "FINANCE_LEDGER_CAPTURE_EMPTY") return 422;
   if (
     message === "FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT" ||
     message === "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT"
@@ -578,6 +585,16 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
       },
       correlationId
     );
+    return;
+  }
+
+  if (error instanceof OutboxReplayConfirmRequiredError) {
+    sendHttpError(res, 400, { error: error.code, code: error.code }, correlationId);
+    return;
+  }
+
+  if (error instanceof OutboxReplayInputError) {
+    sendHttpError(res, 400, { error: error.message, code: error.code }, correlationId);
     return;
   }
 

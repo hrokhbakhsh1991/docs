@@ -14,6 +14,16 @@ export {
   FinanceService,
   hashFinanceHttpIdempotencyKey,
 } from "./application/finance.service";
+export {
+  FINANCE_LATENCY_BUDGET_MS,
+  FINANCE_METRIC,
+} from "./application/finance-metrics-catalog";
+export type {
+  FinanceApproveMetricResult,
+  FinanceLatencyOperation,
+  FinanceLedgerCaptureMetricResult,
+  FinanceMetricName,
+} from "./application/finance-metrics-catalog";
 
 /* ─── Domain (pure) ────────────────────────────────────────────────────── */
 export {

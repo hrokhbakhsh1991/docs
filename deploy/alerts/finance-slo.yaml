@@ -1,0 +1,176 @@
+# Phase 3.18 — Finance SLO PrometheusRule
+# Complements deploy/alerts/finance-ops.yaml (Phase 3.7).
+# Requires: ServiceMonitor scraping /internal/metrics (DEC-121).
+# Apply: kubectl apply -f deploy/alerts/finance-slo.yaml -n app-cloud
+# Docs: docs/phase-20/p7/appendices/FINANCE_SLO_FRAMEWORK.md
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: app-cloud-finance-slo
+  namespace: app-cloud
+  labels:
+    app: api
+    app.kubernetes.io/component: finance-slo
+    prometheus: app-cloud
+    release: prometheus
+spec:
+  groups:
+    - name: app-cloud.finance.slo
+      interval: 30s
+      rules:
+        - alert: FinanceApproveAvailabilityBurnFast
+          expr: |
+            (
+              sum(increase(finance_approve_total{namespace="app-cloud",result="failure"}[1h]))
+              /
+              clamp_min(sum(increase(finance_approve_total{namespace="app-cloud",result=~"success|failure"}[1h])), 1)
+            ) > 0.02
+            and
+            (
+              sum(increase(finance_approve_total{namespace="app-cloud",result="failure"}[5m]))
+              /
+              clamp_min(sum(increase(finance_approve_total{namespace="app-cloud",result=~"success|failure"}[5m])), 1)
+            ) > 0.10
+          for: 2m
+          labels:
+            severity: critical
+            slo: finance_availability
+            team: host-api
+          annotations:
+            summary: Finance approve availability fast error-budget burn
+            description: >-
+              Approve failure ratio elevated on short windows (SLO-F1 99.9%).
+              Investigate booking sync, DB circuit, and workspace_type breakdown.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceApproveAvailabilityBurnSlow
+          expr: |
+            (
+              sum(increase(finance_approve_total{namespace="app-cloud",result="failure"}[6h]))
+              /
+              clamp_min(sum(increase(finance_approve_total{namespace="app-cloud",result=~"success|failure"}[6h])), 1)
+            ) > 0.005
+          for: 15m
+          labels:
+            severity: warning
+            slo: finance_availability
+            team: host-api
+          annotations:
+            summary: Finance approve availability slow error-budget burn
+            description: >-
+              Sustained approve failure ratio above 0.5% over 6h — schedule reliability work.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinancePaymentLatencyBudget
+          expr: |
+            sum(increase(finance_latency_budget_exceeded_total{namespace="app-cloud",operation="payment"}[15m])) > 0
+          for: 15m
+          labels:
+            severity: warning
+            slo: finance_latency_payment
+            team: host-api
+          annotations:
+            summary: Payment create latency exceeded 2s budget
+            description: SLO-F2 — investigate Prisma/RLS latency for createManualPayment.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceApproveLatencyBudget
+          expr: |
+            sum(increase(finance_latency_budget_exceeded_total{namespace="app-cloud",operation="approve"}[15m])) > 0
+          for: 15m
+          labels:
+            severity: warning
+            slo: finance_latency_approve
+            team: host-api
+          annotations:
+            summary: Approve path latency exceeded 5s budget
+            description: SLO-F3 — check booking sync, ledger build, and DB pool.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceLedgerLatencyBudget
+          expr: |
+            sum(increase(finance_latency_budget_exceeded_total{namespace="app-cloud",operation="ledger"}[15m])) > 0
+          for: 15m
+          labels:
+            severity: warning
+            slo: finance_latency_ledger
+            team: host-api
+          annotations:
+            summary: Ledger capture plan latency exceeded 1s budget
+            description: SLO-F4 — workspace ledgerPolicy.buildPaymentCaptureJournal slow or failing.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceOutboxLagSloWarn
+          expr: finance_outbox_oldest_pending_age_seconds{namespace="app-cloud"} > 60
+          for: 10m
+          labels:
+            severity: warning
+            slo: finance_outbox
+            team: host-api
+          annotations:
+            summary: Finance outbox lag above SLO target (60s)
+            description: >-
+              SLO-F5 target breached. Page threshold remains 300s (FinanceOutboxBacklog).
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE-OPS-RUNBOOK.md
+
+        - alert: FinanceReplayDurationHigh
+          expr: |
+            max(outbox_replay_duration_ms{namespace="app-cloud"}) > 120000
+          for: 5m
+          labels:
+            severity: warning
+            slo: finance_replay
+            team: host-api
+          annotations:
+            summary: Outbox replay run duration exceeded 120s
+            description: SLO-F6 — shrink batch/date range; check DB load during apply.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/OUTBOX_PRODUCTION_REPLAY.md
+
+        - alert: FinanceReplayFailureSpike
+          expr: |
+            sum(increase(outbox_replay_events_total{namespace="app-cloud",outcome="error"}[15m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+            slo: finance_replay
+            team: host-api
+          annotations:
+            summary: Outbox replay event errors
+            description: Replay apply reported errors — inspect outbox_replay_runs audit.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/OUTBOX_PRODUCTION_REPLAY.md
+
+        - alert: FinanceReconFindingsOpen
+          expr: finance_recon_findings_open{namespace="app-cloud"} > 0
+          for: 30m
+          labels:
+            severity: warning
+            slo: finance_consistency
+            team: host-api
+          annotations:
+            summary: Open finance reconciliation findings
+            description: SLO-F7 supporting — list /internal/finance/recon/findings and dry-run repair.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE_RECONCILIATION_FOUNDATION.md
+
+        - alert: FinanceErrorBudgetExhaustedProxy
+          expr: |
+            (
+              1
+              -
+              (
+                sum(increase(finance_approve_total{namespace="app-cloud",result="success"}[30d]))
+                /
+                clamp_min(sum(increase(finance_approve_total{namespace="app-cloud",result=~"success|failure"}[30d])), 1)
+              )
+            ) > 0.001
+          for: 1h
+          labels:
+            severity: critical
+            slo: finance_error_budget
+            team: host-api
+          annotations:
+            summary: Finance approve 30d error budget exhausted (proxy)
+            description: >-
+              30d availability below 99.9% (SLO-F1). Freeze non-critical money-path changes;
+              open reliability incident.
+            runbook_url: https://github.com/app-cloud/docs/blob/main/docs/phase-20/p7/appendices/FINANCE_SLO_FRAMEWORK.md

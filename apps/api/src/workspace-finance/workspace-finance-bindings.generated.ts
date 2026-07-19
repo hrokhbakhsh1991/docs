@@ -5,10 +5,30 @@
  */
 
 import { DENALI_WORKSPACE_TYPE } from "@app-tour/workspace-denali";
+import { FINANCE_WS3_WORKSPACE_TYPE } from "@app-tour/workspace-finance-ws3";
+import { FINANCE_WS4_WORKSPACE_TYPE } from "@app-tour/workspace-finance-ws4";
+import { FINANCE_WS5_WORKSPACE_TYPE } from "@app-tour/workspace-finance-ws5";
+import { FINANCE_WS6_WORKSPACE_TYPE } from "@app-tour/workspace-finance-ws6";
 
 export const WORKSPACE_FINANCE_BINDINGS = [
   {
     workspaceType: DENALI_WORKSPACE_TYPE,
+    defaultModuleEnabledWhenUnset: true as const,
+  },
+  {
+    workspaceType: FINANCE_WS3_WORKSPACE_TYPE,
+    defaultModuleEnabledWhenUnset: true as const,
+  },
+  {
+    workspaceType: FINANCE_WS4_WORKSPACE_TYPE,
+    defaultModuleEnabledWhenUnset: true as const,
+  },
+  {
+    workspaceType: FINANCE_WS5_WORKSPACE_TYPE,
+    defaultModuleEnabledWhenUnset: true as const,
+  },
+  {
+    workspaceType: FINANCE_WS6_WORKSPACE_TYPE,
     defaultModuleEnabledWhenUnset: true as const,
   },
 ] as const;

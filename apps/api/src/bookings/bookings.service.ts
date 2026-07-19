@@ -1,16 +1,10 @@
-import type { TenantAuthContext } from "@app-tour/workspace-sdk";
-
-import { getBookingsRepository } from "./create-bookings-repository";
-import {
-  BookingNotFoundError,
-  BookingStatusConflictError,
-  BulkApproveBatchLimitError,
-} from "./in-memory-bookings.repository";
+import type { BookingActorContext } from "./ports/booking-actor-context";
+import type { BookingAuthorizationPort } from "./ports/booking-authorization.port";
+import type { BookingClockPort } from "./ports/booking-clock.port";
+import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import type {
   ApproveBookingResponse,
   BookingListItem,
-  BookingRecord,
-  BookingTourChip,
   BookingsListQuery,
   BookingsListResponse,
   BookingsSummaryResponse,
@@ -20,29 +14,18 @@ import type {
   CreateBookingResponse,
   RejectBookingRequest,
   RejectBookingResponse,
-} from "./bookings.types";
+  WorkspaceBookingEventReactionPort,
+} from "@app-tour/booking-http-contracts";
+import type { BookingRecord, BookingTourChip } from "./bookings.types";
 
-const APPROVE_OUTBOX_EVENT = "registration.approved";
 const BULK_APPROVE_MAX_BATCH = 25;
 
-export class BookingsOpsForbiddenError extends Error {
-  readonly code = "BOOKINGS_OPS_FORBIDDEN" as const;
-
-  constructor() {
-    super("BOOKINGS_OPS_FORBIDDEN");
-    this.name = "BookingsOpsForbiddenError";
-  }
-}
-
-function isAdminOrOwner(auth: TenantAuthContext): boolean {
-  return auth.role === "admin" || auth.role === "owner";
-}
-
-function assertAdminOrOwner(auth: TenantAuthContext): void {
-  if (!isAdminOrOwner(auth)) {
-    throw new BookingsOpsForbiddenError();
-  }
-}
+export type BookingsServiceDeps = {
+  readonly repository: BookingRepositoryPort;
+  readonly authorization: BookingAuthorizationPort;
+  readonly clock: BookingClockPort;
+  readonly eventReaction: WorkspaceBookingEventReactionPort;
+};
 
 function toListItem(record: BookingRecord): BookingListItem {
   return {
@@ -125,252 +108,270 @@ function buildTourChips(rows: readonly BookingRecord[]): readonly BookingTourChi
   return [...byTour.values()].sort((a, b) => b.pendingCount - a.pendingCount);
 }
 
-export async function listBookings(
-  auth: TenantAuthContext,
-  query: BookingsListQuery
-): Promise<BookingsListResponse> {
-  if (query.view === "ops") {
-    assertAdminOrOwner(auth);
+/**
+ * Booking application service — constructor DI only (Phase B0.5).
+ * Dependencies are injected; persistence is not resolved inside this class.
+ */
+export class BookingsService {
+  private readonly repository: BookingRepositoryPort;
+  private readonly authorization: BookingAuthorizationPort;
+  private readonly clock: BookingClockPort;
+  private readonly eventReaction: WorkspaceBookingEventReactionPort;
+
+  constructor(deps: BookingsServiceDeps) {
+    if (deps.repository == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:repository");
+    }
+    if (deps.authorization == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:authorization");
+    }
+    if (deps.clock == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:clock");
+    }
+    if (deps.eventReaction == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:eventReaction");
+    }
+    this.repository = deps.repository;
+    this.authorization = deps.authorization;
+    this.clock = deps.clock;
+    this.eventReaction = deps.eventReaction;
   }
 
-  const repo = getBookingsRepository();
-  let rows = await repo.listByTenant(auth.tenantId);
+  async listBookings(
+    auth: BookingActorContext,
+    query: BookingsListQuery
+  ): Promise<BookingsListResponse> {
+    if (query.view === "ops") {
+      this.authorization.assertOpsAccess(auth);
+    }
 
-  if (query.view === "mine") {
-    rows = rows.filter((row) => row.submittedByUserId === auth.userId);
+    let rows = await this.repository.listByTenant(auth.tenantId);
+
+    if (query.view === "mine") {
+      rows = rows.filter((row) => row.submittedByUserId === auth.userId);
+    }
+
+    if (query.status !== undefined) {
+      rows = rows.filter((row) => row.status === query.status);
+    }
+
+    if (query.tourId !== undefined && query.tourId.length > 0) {
+      rows = rows.filter((row) => row.tourId === query.tourId);
+    }
+
+    if (query.paymentStatus !== undefined) {
+      rows = rows.filter((row) => row.paymentStatus === query.paymentStatus);
+    }
+
+    rows = rows.filter((row) => matchesSearch(row, query.q));
+    rows.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+
+    const total = rows.length;
+    let startIndex = 0;
+    if (query.cursor !== undefined && query.cursor.length > 0) {
+      const cursorIndex = rows.findIndex((row) => row.id === query.cursor);
+      startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0;
+    }
+
+    const page = rows.slice(startIndex, startIndex + query.limit);
+    const nextCursor =
+      startIndex + query.limit < total && page.length > 0
+        ? (page[page.length - 1]?.id ?? null)
+        : null;
+
+    return {
+      items: page.map(toListItem),
+      total,
+      nextCursor,
+    };
   }
 
-  if (query.status !== undefined) {
-    rows = rows.filter((row) => row.status === query.status);
+  async getBookingsSummary(auth: BookingActorContext): Promise<BookingsSummaryResponse> {
+    this.authorization.assertOpsAccess(auth);
+    const now = this.clock.now();
+    const rows = await this.repository.listByTenant(auth.tenantId);
+
+    return {
+      pending: rows.filter((row) => row.status === "pending").length,
+      approvedToday: rows.filter((row) => isApprovedToday(row, now)).length,
+      departures7d: rows.filter((row) => isDepartureWithin7Days(row, now)).length,
+      waitlist: rows.filter((row) => row.status === "waitlisted").length,
+      tourChips: buildTourChips(rows),
+    };
   }
 
-  if (query.tourId !== undefined && query.tourId.length > 0) {
-    rows = rows.filter((row) => row.tourId === query.tourId);
+  async createBooking(
+    auth: BookingActorContext,
+    body: CreateBookingRequest
+  ): Promise<CreateBookingResponse> {
+    this.authorization.assertOpsAccess(auth);
+    const created = await this.repository.createBooking({
+      tenantId: auth.tenantId,
+      submittedByUserId: auth.userId,
+      body,
+    });
+    return { id: created.id, status: created.status };
   }
 
-  if (query.paymentStatus !== undefined) {
-    rows = rows.filter((row) => row.paymentStatus === query.paymentStatus);
+  async sumApprovedPartySizeByTourIds(
+    tenantId: string,
+    tourIds: readonly string[]
+  ): Promise<Readonly<Record<string, number>>> {
+    if (tourIds.length === 0) {
+      return {};
+    }
+    return this.repository.sumApprovedPartySizeByTourIds(tenantId, tourIds);
   }
 
-  rows = rows.filter((row) => matchesSearch(row, query.q));
-  rows.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-
-  const total = rows.length;
-  let startIndex = 0;
-  if (query.cursor !== undefined && query.cursor.length > 0) {
-    const cursorIndex = rows.findIndex((row) => row.id === query.cursor);
-    startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0;
+  async findGuestBookingDuplicateByUser(
+    tenantId: string,
+    tourId: string,
+    guestUserId: string
+  ): Promise<BookingRecord | null> {
+    const normalizedUserId = guestUserId.trim();
+    if (normalizedUserId.length === 0) {
+      return null;
+    }
+    const rows = await this.repository.listByTenant(tenantId);
+    return (
+      rows.find(
+        (row) =>
+          row.tourId === tourId &&
+          row.status !== "cancelled" &&
+          row.status !== "rejected" &&
+          row.submittedByUserId === normalizedUserId
+      ) ?? null
+    );
   }
 
-  const page = rows.slice(startIndex, startIndex + query.limit);
-  const nextCursor =
-    startIndex + query.limit < total && page.length > 0 ? (page[page.length - 1]?.id ?? null) : null;
-
-  return {
-    items: page.map(toListItem),
-    total,
-    nextCursor,
-  };
-}
-
-export async function getBookingsSummary(auth: TenantAuthContext): Promise<BookingsSummaryResponse> {
-  assertAdminOrOwner(auth);
-  const now = new Date();
-  const repo = getBookingsRepository();
-  const rows = await repo.listByTenant(auth.tenantId);
-
-  return {
-    pending: rows.filter((row) => row.status === "pending").length,
-    approvedToday: rows.filter((row) => isApprovedToday(row, now)).length,
-    departures7d: rows.filter((row) => isDepartureWithin7Days(row, now)).length,
-    waitlist: rows.filter((row) => row.status === "waitlisted").length,
-    tourChips: buildTourChips(rows),
-  };
-}
-
-export async function createBooking(
-  auth: TenantAuthContext,
-  body: CreateBookingRequest
-): Promise<CreateBookingResponse> {
-  assertAdminOrOwner(auth);
-  const repo = getBookingsRepository();
-  const created = await repo.createBooking({
-    tenantId: auth.tenantId,
-    submittedByUserId: auth.userId,
-    body,
-  });
-  return { id: created.id, status: created.status };
-}
-
-export async function sumApprovedPartySizeByTourIds(
-  tenantId: string,
-  tourIds: readonly string[]
-): Promise<Readonly<Record<string, number>>> {
-  if (tourIds.length === 0) {
-    return {};
-  }
-  const repo = getBookingsRepository();
-  return repo.sumApprovedPartySizeByTourIds(tenantId, tourIds);
-}
-
-export async function findGuestBookingDuplicateByUser(
-  tenantId: string,
-  tourId: string,
-  guestUserId: string
-): Promise<BookingRecord | null> {
-  const normalizedUserId = guestUserId.trim();
-  if (normalizedUserId.length === 0) {
-    return null;
-  }
-  const repo = getBookingsRepository();
-  const rows = await repo.listByTenant(tenantId);
-  return (
-    rows.find(
-      (row) =>
-        row.tourId === tourId &&
-        row.status !== "cancelled" &&
-        row.status !== "rejected" &&
-        row.submittedByUserId === normalizedUserId
-    ) ?? null
-  );
-}
-
-export async function findGuestBookingDuplicateByGuestLabel(
-  tenantId: string,
-  tourId: string,
-  guestLabel: string
-): Promise<BookingRecord | null> {
-  const normalizedLabel = guestLabel.trim().toLocaleLowerCase();
-  if (normalizedLabel.length === 0) {
-    return null;
-  }
-  const repo = getBookingsRepository();
-  const rows = await repo.listByTenant(tenantId);
-  return (
-    rows.find(
-      (row) =>
-        row.tourId === tourId &&
-        row.status !== "cancelled" &&
-        row.status !== "rejected" &&
-        row.guestLabel.trim().toLocaleLowerCase() === normalizedLabel
-    ) ?? null
-  );
-}
-
-export async function findGuestBookingDuplicateByTourNationalId(
-  tenantId: string,
-  tourId: string,
-  nationalId: string
-): Promise<BookingRecord | null> {
-  const normalizedNationalId = nationalId.trim();
-  if (normalizedNationalId.length === 0) {
-    return null;
-  }
-  const repo = getBookingsRepository();
-  const rows = await repo.listByTenant(tenantId);
-  return (
-    rows.find((row) => {
-      if (row.tourId !== tourId || row.status === "cancelled" || row.status === "rejected") {
-        return false;
-      }
-      return readRegistrationIntakeNationalId(row.registrationIntake) === normalizedNationalId;
-    }) ?? null
-  );
-}
-
-export async function findGuestBookingDuplicate(
-  tenantId: string,
-  tourId: string,
-  email: string
-): Promise<BookingRecord | null> {
-  const normalizedEmail = email.trim().toLowerCase();
-  if (normalizedEmail.length === 0) {
-    return null;
-  }
-  const repo = getBookingsRepository();
-  const rows = await repo.listByTenant(tenantId);
-  return (
-    rows.find(
-      (row) =>
-        row.tourId === tourId &&
-        row.status !== "cancelled" &&
-        row.status !== "rejected" &&
-        (row.guestEmail?.trim().toLowerCase() ?? "") === normalizedEmail
-    ) ?? null
-  );
-}
-
-export async function createPublicGuestBooking(
-  auth: TenantAuthContext,
-  body: CreateBookingRequest
-): Promise<CreateBookingResponse> {
-  const repo = getBookingsRepository();
-  const created = await repo.createBooking({
-    tenantId: auth.tenantId,
-    submittedByUserId: auth.userId,
-    body,
-  });
-  return { id: created.id, status: created.status };
-}
-
-export async function approveBooking(
-  auth: TenantAuthContext,
-  bookingId: string
-): Promise<ApproveBookingResponse> {
-  assertAdminOrOwner(auth);
-  const repo = getBookingsRepository();
-  const updated = await repo.approveWithOutbox({
-    bookingId,
-    tenantId: auth.tenantId,
-    outboxEvent: APPROVE_OUTBOX_EVENT,
-  });
-  return {
-    id: updated.id,
-    status: updated.status,
-    approvedAt: updated.approvedAt ?? new Date().toISOString(),
-  };
-}
-
-export async function rejectBooking(
-  auth: TenantAuthContext,
-  bookingId: string,
-  body: RejectBookingRequest
-): Promise<RejectBookingResponse> {
-  assertAdminOrOwner(auth);
-  const repo = getBookingsRepository();
-  const updated = await repo.rejectBooking({
-    bookingId,
-    tenantId: auth.tenantId,
-    ...(body.reason !== undefined ? { reason: body.reason } : {}),
-  });
-  return { id: updated.id, status: updated.status };
-}
-
-export async function bulkApproveBookings(
-  auth: TenantAuthContext,
-  body: BulkApproveBookingsRequest
-): Promise<BulkApproveBookingsResponse> {
-  assertAdminOrOwner(auth);
-  const uniqueIds = [...new Set(body.ids.filter((id) => id.trim().length > 0))];
-  if (uniqueIds.length === 0) {
-    return { approvedIds: [], skippedIds: [] };
+  async findGuestBookingDuplicateByGuestLabel(
+    tenantId: string,
+    tourId: string,
+    guestLabel: string
+  ): Promise<BookingRecord | null> {
+    const normalizedLabel = guestLabel.trim().toLocaleLowerCase();
+    if (normalizedLabel.length === 0) {
+      return null;
+    }
+    const rows = await this.repository.listByTenant(tenantId);
+    return (
+      rows.find(
+        (row) =>
+          row.tourId === tourId &&
+          row.status !== "cancelled" &&
+          row.status !== "rejected" &&
+          row.guestLabel.trim().toLocaleLowerCase() === normalizedLabel
+      ) ?? null
+    );
   }
 
-  const repo = getBookingsRepository();
-  const approved = await repo.bulkApproveWithOutbox({
-    ids: uniqueIds,
-    tenantId: auth.tenantId,
-    outboxEvent: APPROVE_OUTBOX_EVENT,
-    maxBatch: BULK_APPROVE_MAX_BATCH,
-  });
-  const approvedIds = approved.map((row) => row.id);
-  const approvedSet = new Set(approvedIds);
-  const skippedIds = uniqueIds.filter((id) => !approvedSet.has(id));
-  return { approvedIds, skippedIds };
+  async findGuestBookingDuplicateByTourNationalId(
+    tenantId: string,
+    tourId: string,
+    nationalId: string
+  ): Promise<BookingRecord | null> {
+    const normalizedNationalId = nationalId.trim();
+    if (normalizedNationalId.length === 0) {
+      return null;
+    }
+    const rows = await this.repository.listByTenant(tenantId);
+    return (
+      rows.find((row) => {
+        if (row.tourId !== tourId || row.status === "cancelled" || row.status === "rejected") {
+          return false;
+        }
+        return readRegistrationIntakeNationalId(row.registrationIntake) === normalizedNationalId;
+      }) ?? null
+    );
+  }
+
+  async findGuestBookingDuplicate(
+    tenantId: string,
+    tourId: string,
+    email: string
+  ): Promise<BookingRecord | null> {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.length === 0) {
+      return null;
+    }
+    const rows = await this.repository.listByTenant(tenantId);
+    return (
+      rows.find(
+        (row) =>
+          row.tourId === tourId &&
+          row.status !== "cancelled" &&
+          row.status !== "rejected" &&
+          (row.guestEmail?.trim().toLowerCase() ?? "") === normalizedEmail
+      ) ?? null
+    );
+  }
+
+  async createPublicGuestBooking(
+    auth: BookingActorContext,
+    body: CreateBookingRequest
+  ): Promise<CreateBookingResponse> {
+    const created = await this.repository.createBooking({
+      tenantId: auth.tenantId,
+      submittedByUserId: auth.userId,
+      body,
+    });
+    return { id: created.id, status: created.status };
+  }
+
+  async approveBooking(
+    auth: BookingActorContext,
+    bookingId: string
+  ): Promise<ApproveBookingResponse> {
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.approveWithOutbox({
+      bookingId,
+      tenantId: auth.tenantId,
+      outboxEvent: this.eventReaction.approveOutboxEventType,
+    });
+    return {
+      id: updated.id,
+      status: updated.status,
+      approvedAt: updated.approvedAt ?? this.clock.now().toISOString(),
+    };
+  }
+
+  async rejectBooking(
+    auth: BookingActorContext,
+    bookingId: string,
+    body: RejectBookingRequest
+  ): Promise<RejectBookingResponse> {
+    this.authorization.assertOpsAccess(auth);
+    const updated = await this.repository.rejectBooking({
+      bookingId,
+      tenantId: auth.tenantId,
+      ...(body.reason !== undefined ? { reason: body.reason } : {}),
+    });
+    return { id: updated.id, status: updated.status };
+  }
+
+  async bulkApproveBookings(
+    auth: BookingActorContext,
+    body: BulkApproveBookingsRequest
+  ): Promise<BulkApproveBookingsResponse> {
+    this.authorization.assertOpsAccess(auth);
+    const uniqueIds = [...new Set(body.ids.filter((id) => id.trim().length > 0))];
+    if (uniqueIds.length === 0) {
+      return { approvedIds: [], skippedIds: [] };
+    }
+
+    const approved = await this.repository.bulkApproveWithOutbox({
+      ids: uniqueIds,
+      tenantId: auth.tenantId,
+      outboxEvent: this.eventReaction.approveOutboxEventType,
+      maxBatch: BULK_APPROVE_MAX_BATCH,
+    });
+    const approvedIds = approved.map((row) => row.id);
+    const approvedSet = new Set(approvedIds);
+    const skippedIds = uniqueIds.filter((id) => !approvedSet.has(id));
+    return { approvedIds, skippedIds };
+  }
 }
 
-export {
-  BookingNotFoundError,
-  BookingStatusConflictError,
-  BulkApproveBatchLimitError,
-};
+export function createBookingsService(deps: BookingsServiceDeps): BookingsService {
+  return new BookingsService(deps);
+}

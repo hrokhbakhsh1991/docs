@@ -21,6 +21,17 @@ export const TENANT_SCOPED_METRIC_NAMES = new Set<string>([
   "field_exposure_shadow_parity_mismatch_total",
   "field_exposure_cutover_selection_total",
   "field_exposure_decision_audited_total",
+  // Phase 3.7 finance ops (tenant_id required; workspace_type also set by engine)
+  "finance_payment_created_total",
+  "finance_receipt_submitted_total",
+  "finance_approve_total",
+  "finance_ledger_capture_total",
+  "finance_reaction_failed_total",
+  "finance_prepayment_booking_sync_degraded_persist_failed_total",
+  "finance_latency_budget_exceeded_total",
+  "finance_payment_latency_ms",
+  "finance_approve_latency_ms",
+  "finance_ledger_latency_ms",
 ]);
 
 function labelKey(labels: MetricLabels | undefined): string {

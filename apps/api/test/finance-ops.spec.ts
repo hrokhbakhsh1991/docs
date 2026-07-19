@@ -119,12 +119,13 @@ async function ensureFinanceTables(admin: PrismaClient): Promise<void> {
 
 function authHeaders(
   tenantId: string,
-  role: "admin" | "owner" | "member" = "admin"
+  role: "admin" | "owner" | "member" = "admin",
+  userId = "finance-ops-user"
 ): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
     "x-authenticated-tenant-id": tenantId,
-    "x-user-id": "finance-ops-user",
+    "x-user-id": userId,
     "x-actor-role": role,
     "x-membership-status": "ACTIVE",
     "x-workspace-id": "ws-finance-ops",
@@ -139,7 +140,9 @@ async function requestJson(
     readonly tenantId: string;
     readonly body?: unknown;
     readonly role?: "admin" | "owner" | "member";
+    readonly userId?: string;
     readonly idempotencyKey?: string;
+    readonly omitAuth?: boolean;
   }
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
@@ -168,7 +171,9 @@ async function requestJson(
             ...(input.idempotencyKey !== undefined
               ? { "Idempotency-Key": input.idempotencyKey }
               : {}),
-            ...authHeaders(input.tenantId, input.role),
+            ...(input.omitAuth === true
+              ? {}
+              : authHeaders(input.tenantId, input.role, input.userId)),
           },
         },
         (res) => {
@@ -450,6 +455,128 @@ describe("finance-ops.spec.ts — Phase 9.7 + 3B", { skip: !hasDatabase, concurr
       role: "member",
     });
     assert.equal(response.status, 403);
+  });
+
+  it("AUTHZ-RECEIPT-01 member can POST /finance/receipts for own registration payment", async () => {
+    const ownerUserId = randomUUID();
+    const registrationId = randomUUID();
+    await admin.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        SELECT set_config('app.current_tenant_id', ${denaliTenantId}::text, true)
+      `;
+      await tx.operatorRegistration.create({
+        data: {
+          id: registrationId,
+          tenantId: denaliTenantId,
+          tourId: randomUUID(),
+          tourTitle: "Authz Own Receipt Tour",
+          guestLabel: "Owner Guest",
+          partySize: 1,
+          status: "pending",
+          paymentStatus: "unpaid",
+          departureAt: new Date("2026-08-01T00:00:00.000Z"),
+          submittedByUserId: ownerUserId,
+        },
+      });
+    });
+    const manual = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey: `authz-own-pay-${registrationId}`,
+      body: { registrationId, amount: "1500000", currency: "IRR" },
+    });
+    assert.equal(manual.status, 201);
+    const paymentId = String(manual.body.id);
+    const receipt = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      role: "member",
+      userId: ownerUserId,
+      idempotencyKey: `authz-own-rcpt-${paymentId}`,
+      body: { paymentId, fileKey: `receipts/${denaliTenantId}/${registrationId}/own.pdf` },
+    });
+    assert.equal(receipt.status, 201);
+    assert.equal(receipt.body.paymentId, paymentId);
+  });
+
+  it("AUTHZ-RECEIPT-02 IDOR — member cannot POST /finance/receipts for another payment", async () => {
+    const ownerUserId = randomUUID();
+    const strangerUserId = randomUUID();
+    const registrationId = randomUUID();
+    await admin.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        SELECT set_config('app.current_tenant_id', ${denaliTenantId}::text, true)
+      `;
+      await tx.operatorRegistration.create({
+        data: {
+          id: registrationId,
+          tenantId: denaliTenantId,
+          tourId: randomUUID(),
+          tourTitle: "Authz IDOR Tour",
+          guestLabel: "Owner Guest",
+          partySize: 1,
+          status: "pending",
+          paymentStatus: "unpaid",
+          departureAt: new Date("2026-08-01T00:00:00.000Z"),
+          submittedByUserId: ownerUserId,
+        },
+      });
+    });
+    const manual = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/payments/manual",
+      tenantId: denaliTenantId,
+      idempotencyKey: `authz-idor-pay-${registrationId}`,
+      body: { registrationId, amount: "1500000", currency: "IRR" },
+    });
+    assert.equal(manual.status, 201);
+    const paymentId = String(manual.body.id);
+    const stolen = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      role: "member",
+      userId: strangerUserId,
+      idempotencyKey: `authz-idor-rcpt-${paymentId}`,
+      body: { paymentId, fileKey: `receipts/${denaliTenantId}/stolen.pdf` },
+    });
+    assert.equal(stolen.status, 403);
+    assert.equal(stolen.body.code, "BOOKINGS_FORBIDDEN");
+  });
+
+  it("AUTHZ-RECEIPT-03 cross-tenant paymentId yields not found", async () => {
+    const { paymentId } = await seedPendingReceipt({
+      tenantId: denaliTenantId,
+      withBooking: true,
+    });
+    const cross = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantBId,
+      role: "member",
+      userId: randomUUID(),
+      idempotencyKey: `authz-xtenant-${paymentId}`,
+      body: { paymentId, fileKey: `receipts/cross.pdf` },
+    });
+    assert.equal(cross.status, 404);
+    assert.equal(cross.body.code, "FINANCE_PAYMENT_NOT_FOUND");
+  });
+
+  it("AUTHZ-RECEIPT-04 missing identity is rejected", async () => {
+    const response = await requestJson(listener, {
+      method: "POST",
+      path: "/finance/receipts",
+      tenantId: denaliTenantId,
+      omitAuth: true,
+      idempotencyKey: "authz-missing-identity",
+      body: {
+        paymentId: randomUUID(),
+        fileKey: "receipts/x.pdf",
+      },
+    });
+    assert.ok(response.status === 401 || response.status === 403);
   });
 
   it("APPROVE-IDEM-01 same key retry → one approval + one ledger", async () => {

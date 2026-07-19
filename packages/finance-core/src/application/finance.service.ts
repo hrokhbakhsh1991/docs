@@ -15,9 +15,12 @@ import {
   filterRowsByRegistrationId,
 } from "../domain/finance-registration-context";
 import type { IBookingPaymentPort } from "../ports/booking-payment.port";
-import type { FinanceActorContext } from "../ports/finance-actor-context";
+import type { FinanceActorContext, FinanceActorRole } from "../ports/finance-actor-context";
 import type { FinanceAuthorizationPort } from "../ports/finance-access.port";
-import type { FinanceCapabilityPort } from "../ports/finance-capability.port";
+import type {
+  FinanceCapabilityPort,
+  FinanceWorkspaceGateResult,
+} from "../ports/finance-capability.port";
 import type { FinanceClockPort } from "../ports/finance-clock.port";
 import type { FinanceLedgerPolicyPort } from "../ports/finance-ledger-policy.port";
 import type { FinanceLoggerPort } from "../ports/finance-log.port";
@@ -29,7 +32,17 @@ import type { FinanceLedgerOutboxRow, FinanceSummaryRow } from "../ports/finance
 import type { FinanceRepositoryPort } from "../ports/finance-repository.port";
 import type { FinanceSchedulePort } from "../ports/finance-schedule.port";
 import type { RegistrationDisplayPort } from "../ports/registration-display.port";
+import {
+  FINANCE_LATENCY_BUDGET_MS,
+  FINANCE_METRIC,
+  type FinanceApproveMetricResult,
+  type FinanceLatencyOperation,
+  type FinanceLedgerCaptureMetricResult,
+} from "./finance-metrics-catalog";
 
+function isFinanceOperatorRole(role: FinanceActorRole): boolean {
+  return role === "admin" || role === "owner";
+}
 
 function hashClientIdempotencyKey(idempotencyKey: string): string {
   return createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 40);
@@ -129,8 +142,63 @@ export class FinanceService {
     assertCompositionDep("clock", clock);
   }
 
-  private async gate(auth: FinanceActorContext): Promise<void> {
-    await this.capability.assertEnabled(auth.tenantId);
+  private async gate(auth: FinanceActorContext): Promise<FinanceWorkspaceGateResult> {
+    return this.capability.assertEnabled(auth.tenantId);
+  }
+
+  private metricLabels(
+    auth: FinanceActorContext,
+    workspaceType: string
+  ): Readonly<Record<string, string>> {
+    return {
+      tenant_id: auth.tenantId,
+      workspace_type: workspaceType,
+    };
+  }
+
+  private recordApprove(
+    auth: FinanceActorContext,
+    workspaceType: string,
+    result: FinanceApproveMetricResult
+  ): void {
+    this.metrics.increment(FINANCE_METRIC.approve, {
+      ...this.metricLabels(auth, workspaceType),
+      result,
+    });
+  }
+
+  private recordLedgerCapture(
+    auth: FinanceActorContext,
+    workspaceType: string,
+    result: FinanceLedgerCaptureMetricResult
+  ): void {
+    this.metrics.increment(FINANCE_METRIC.ledgerCapture, {
+      ...this.metricLabels(auth, workspaceType),
+      result,
+    });
+  }
+
+  private recordLatency(
+    auth: FinanceActorContext,
+    workspaceType: string,
+    operation: FinanceLatencyOperation,
+    startedAtMs: number
+  ): void {
+    const elapsed = Math.max(0, Date.now() - startedAtMs);
+    const labels = this.metricLabels(auth, workspaceType);
+    const gaugeName =
+      operation === "payment"
+        ? FINANCE_METRIC.paymentLatencyMs
+        : operation === "approve"
+          ? FINANCE_METRIC.approveLatencyMs
+          : FINANCE_METRIC.ledgerLatencyMs;
+    this.metrics.observe?.(gaugeName, elapsed, labels);
+    if (elapsed > FINANCE_LATENCY_BUDGET_MS[operation]) {
+      this.metrics.increment(FINANCE_METRIC.latencyBudgetExceeded, {
+        ...labels,
+        operation,
+      });
+    }
   }
 
   private static emptySummary(): FinanceSummaryRow {
@@ -277,7 +345,8 @@ export class FinanceService {
     body: CreateManualPaymentBody,
     idempotencyKey: string
   ) {
-    await this.gate(auth);
+    const startedAtMs = Date.now();
+    const gate = await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const trimmedKey = typeof idempotencyKey === "string" ? idempotencyKey.trim() : "";
     if (trimmedKey.length === 0) {
@@ -298,6 +367,11 @@ export class FinanceService {
       ) {
         throw new Error("FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT");
       }
+      this.metrics.increment(
+        FINANCE_METRIC.paymentCreated,
+        this.metricLabels(auth, gate.workspaceType)
+      );
+      this.recordLatency(auth, gate.workspaceType, "payment", startedAtMs);
       return {
         ...existing,
         createdAt: existing.createdAt.toISOString(),
@@ -319,6 +393,11 @@ export class FinanceService {
       status: "Pending",
       creationIdempotencyKey,
     });
+    this.metrics.increment(
+      FINANCE_METRIC.paymentCreated,
+      this.metricLabels(auth, gate.workspaceType)
+    );
+    this.recordLatency(auth, gate.workspaceType, "payment", startedAtMs);
     return {
       ...payment,
       createdAt: payment.createdAt.toISOString(),
@@ -331,7 +410,7 @@ export class FinanceService {
     body: SubmitReceiptBody,
     idempotencyKey?: string
   ) {
-    await this.gate(auth);
+    const gate = await this.gate(auth);
     this.authorization.assertReceiptSubmitAccess(auth);
     const trimmedKey = idempotencyKey?.trim() ?? "";
     const idempotencyKeyHash =
@@ -348,6 +427,18 @@ export class FinanceService {
         `ZOD_VALIDATION_FAILED: cannot submit receipt for payment with status ${payment.status}`
       );
     }
+    // Members may only attach proofs to payments for registrations they own.
+    // Operators (admin/owner) retain in-tenant submit without per-registration ownership.
+    if (!isFinanceOperatorRole(auth.role)) {
+      const owns = await this.bookingPayments.memberOwnsRegistration({
+        tenantId: auth.tenantId,
+        registrationId: payment.registrationId,
+        userId: auth.userId,
+      });
+      if (!owns) {
+        throw new Error("BOOKINGS_FORBIDDEN");
+      }
+    }
     const receipt = await this.repository.createReceipt({
       tenantId: auth.tenantId,
       paymentId: payment.id,
@@ -355,6 +446,10 @@ export class FinanceService {
       note: body.note,
       ...(idempotencyKeyHash !== undefined ? { idempotencyKeyHash } : {}),
     });
+    this.metrics.increment(
+      FINANCE_METRIC.receiptSubmitted,
+      this.metricLabels(auth, gate.workspaceType)
+    );
     return {
       id: receipt.id,
       paymentId: receipt.paymentId,
@@ -451,7 +546,7 @@ export class FinanceService {
   }
 
   async reviewReceipt(auth: FinanceActorContext, receiptId: string, body: ReviewReceiptBody) {
-    await this.gate(auth);
+    const gate = await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const receipt = await this.repository.findReceiptById(auth.tenantId, receiptId);
     if (receipt === null) {
@@ -468,6 +563,7 @@ export class FinanceService {
       receipt.status === "Approved" &&
       payment.status === "Paid"
     ) {
+      this.recordApprove(auth, gate.workspaceType, "replay");
       return {
         id: receipt.id,
         status: receipt.status,
@@ -504,20 +600,40 @@ export class FinanceService {
       };
     }
 
+    const approveStartedAtMs = Date.now();
     const paidAtIso = this.clock.nowIso();
-    const ledgerCapture = this.ledgerPolicy.buildPaymentCaptureJournal({
-      tenantId: auth.tenantId,
-      paymentId: payment.id,
-      registrationId: payment.registrationId,
-      amountMinor: payment.amount,
-      currency: payment.currency,
-      capturedAtIso: paidAtIso,
-    });
+    let ledgerCapture;
+    const ledgerStartedAtMs = Date.now();
+    try {
+      ledgerCapture = this.ledgerPolicy.buildPaymentCaptureJournal({
+        tenantId: auth.tenantId,
+        paymentId: payment.id,
+        registrationId: payment.registrationId,
+        amountMinor: payment.amount,
+        currency: payment.currency,
+        capturedAtIso: paidAtIso,
+      });
+      this.recordLatency(auth, gate.workspaceType, "ledger", ledgerStartedAtMs);
+    } catch (error: unknown) {
+      this.recordLatency(auth, gate.workspaceType, "ledger", ledgerStartedAtMs);
+      this.recordApprove(auth, gate.workspaceType, "failure");
+      this.recordLedgerCapture(auth, gate.workspaceType, "failure");
+      this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
+      throw error;
+    }
+
+    // Durable path: refuse empty journals before any Paid/Approved mutation.
+    if (this.storageDriver.isDurablePersistence() && ledgerCapture.lines.length === 0) {
+      this.recordApprove(auth, gate.workspaceType, "failure");
+      this.recordLedgerCapture(auth, gate.workspaceType, "skipped_empty");
+      this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
+      throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
+    }
 
     // Single RLS transaction: payment Paid → booking paid → receipt Approved → ledger.
     // Memory fake: fail-closed simulate via repository (not production-equivalent).
     try {
-      return await this.repository.approveManualReceiptAtomic({
+      const approved = await this.repository.approveManualReceiptAtomic({
         tenantId: auth.tenantId,
         paymentId: payment.id,
         receiptId,
@@ -527,9 +643,20 @@ export class FinanceService {
         ...(body.reviewNote !== undefined ? { reviewNote: body.reviewNote } : {}),
         ...(this.storageDriver.isDurablePersistence() ? { ledgerCapture } : {}),
       });
+      this.recordApprove(auth, gate.workspaceType, "success");
+      if (!this.storageDriver.isDurablePersistence()) {
+        this.recordLedgerCapture(auth, gate.workspaceType, "omitted_non_durable");
+      } else {
+        this.recordLedgerCapture(auth, gate.workspaceType, "success");
+      }
+      this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
+      return approved;
     } catch (error: unknown) {
       // Concurrent approve: loser may lose Pending guards; if winner already committed, replay.
       if (!(error instanceof Error) || error.message !== "FINANCE_APPROVE_CONFLICT") {
+        this.recordApprove(auth, gate.workspaceType, "failure");
+        this.recordLedgerCapture(auth, gate.workspaceType, "failure");
+        this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
         throw error;
       }
       const latest = await this.repository.findReceiptById(auth.tenantId, receiptId);
@@ -539,6 +666,8 @@ export class FinanceService {
         latest.payment !== null &&
         latest.payment.status === "Paid"
       ) {
+        this.recordApprove(auth, gate.workspaceType, "replay");
+        this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
         return {
           id: latest.id,
           status: latest.status,
@@ -551,6 +680,9 @@ export class FinanceService {
           ),
         };
       }
+      this.recordApprove(auth, gate.workspaceType, "failure");
+      this.recordLedgerCapture(auth, gate.workspaceType, "failure");
+      this.recordLatency(auth, gate.workspaceType, "approve", approveStartedAtMs);
       throw error;
     }
   }
@@ -604,7 +736,7 @@ export class FinanceService {
     body: RecordPrepaymentBody,
     idempotencyKey: string
   ): Promise<Record<string, unknown>> {
-    await this.gate(auth);
+    const gate = await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
     const trimmedKey = idempotencyKey.trim();
     if (trimmedKey.length === 0) {
@@ -613,49 +745,67 @@ export class FinanceService {
     const method = body.method.trim().length > 0 ? body.method.trim() : "Manual";
     const ids = buildPrepaymentDomainEventIds(body.registrationId, trimmedKey);
     const recordedAtIso = this.clock.nowIso();
-    const ledgerCapture = this.ledgerPolicy.buildPrepaymentJournal({
-      tenantId: auth.tenantId,
-      registrationId: body.registrationId,
-      amountMinor: body.amountMinor,
-      currency: body.currency,
-      method,
-      recordedAtIso,
-      keyHash: ids.keyHash,
-      prepaymentDomainEventId: ids.prepaymentDomainEventId,
-      ledgerDomainEventId: ids.ledgerDomainEventId,
-      journalSeed: ids.journalSeed,
-    });
+    let ledgerCapture;
+    try {
+      ledgerCapture = this.ledgerPolicy.buildPrepaymentJournal({
+        tenantId: auth.tenantId,
+        registrationId: body.registrationId,
+        amountMinor: body.amountMinor,
+        currency: body.currency,
+        method,
+        recordedAtIso,
+        keyHash: ids.keyHash,
+        prepaymentDomainEventId: ids.prepaymentDomainEventId,
+        ledgerDomainEventId: ids.ledgerDomainEventId,
+        journalSeed: ids.journalSeed,
+      });
+    } catch (error: unknown) {
+      this.recordLedgerCapture(auth, gate.workspaceType, "failure");
+      throw error;
+    }
 
-    const recorded = await this.repository.recordPrepaymentAtomic({
-      tenantId: auth.tenantId,
-      registrationId: body.registrationId,
-      amountMinor: body.amountMinor,
-      currency: body.currency.toUpperCase(),
-      method,
-      note: body.note ?? null,
-      journalId: ledgerCapture.journalId,
-      recordedAt: recordedAtIso,
-      lines: ledgerCapture.lines,
-      ledgerDomainEventId: ids.ledgerDomainEventId,
-      prepaymentDomainEventId: ids.prepaymentDomainEventId,
-      clientOperationKeyHash: ids.keyHash,
-    });
+    if (ledgerCapture.lines.length === 0) {
+      this.recordLedgerCapture(auth, gate.workspaceType, "skipped_empty");
+      throw new Error("FINANCE_LEDGER_CAPTURE_EMPTY");
+    }
 
-    await this.trySyncBookingPaymentStatus(
-      auth.tenantId,
-      body.registrationId,
-      "partial",
-      ids.prepaymentDomainEventId
-    );
-    return {
-      id: recorded.id,
-      registrationId: recorded.registrationId,
-      amountMinor: recorded.amountMinor,
-      currency: recorded.currency,
-      method: recorded.method,
-      note: recorded.note,
-      recordedAt: recorded.recordedAt,
-    };
+    try {
+      const recorded = await this.repository.recordPrepaymentAtomic({
+        tenantId: auth.tenantId,
+        registrationId: body.registrationId,
+        amountMinor: body.amountMinor,
+        currency: body.currency.toUpperCase(),
+        method,
+        note: body.note ?? null,
+        journalId: ledgerCapture.journalId,
+        recordedAt: recordedAtIso,
+        lines: ledgerCapture.lines,
+        ledgerDomainEventId: ids.ledgerDomainEventId,
+        prepaymentDomainEventId: ids.prepaymentDomainEventId,
+        clientOperationKeyHash: ids.keyHash,
+      });
+
+      this.recordLedgerCapture(auth, gate.workspaceType, "success");
+
+      await this.trySyncBookingPaymentStatus(
+        auth.tenantId,
+        body.registrationId,
+        "partial",
+        ids.prepaymentDomainEventId
+      );
+      return {
+        id: recorded.id,
+        registrationId: recorded.registrationId,
+        amountMinor: recorded.amountMinor,
+        currency: recorded.currency,
+        method: recorded.method,
+        note: recorded.note,
+        recordedAt: recorded.recordedAt,
+      };
+    } catch (error: unknown) {
+      this.recordLedgerCapture(auth, gate.workspaceType, "failure");
+      throw error;
+    }
   }
 
   async listPrepaymentBookingSyncDegraded(auth: FinanceActorContext, limit: number) {
@@ -840,7 +990,7 @@ export class FinanceService {
       }
     }
     this.metrics.increment(
-      "finance_prepayment_booking_sync_degraded_persist_failed_total",
+      FINANCE_METRIC.prepaymentDegradedPersistFailed,
       { tenant_id: input.tenantId },
       1
     );

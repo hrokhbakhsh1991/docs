@@ -67,6 +67,7 @@ export const IMPORT_BOUNDARY_SCAN_ROOTS = [
   "packages/theme-react",
   "packages/design-tokens",
   "packages/ui-primitives",
+  "packages/finance-core",
   "packages/workspaces/starter",
   "apps",
 ];

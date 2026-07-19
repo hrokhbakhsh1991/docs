@@ -20,14 +20,17 @@ Enterprise pattern: **DLQ + immutable payload + explicit admin replay** — not 
 | Terminal state     | `status = failed`, `processed_at` set, `last_error` JSON                                                                                            |
 | `last_error` shape | `{ code: string, at: ISO8601 }` from caught publish error                                                                                           |
 | Replay             | `pending` + clear `processed_at` + `last_error` — **payload unchanged**                                                                             |
-| HTTP               | `POST /internal/outbox/:id/replay` body `{ tenantId }` — dev/test only                                                                              |
+| HTTP (legacy)      | `POST /internal/outbox/:id/replay` — **Phase 3.17:** prod ops JWT `outbox:replay` + dry-run/confirm (was dev/test only)                           |
+| HTTP (bulk)        | `POST /internal/outbox/replay` — batch / tenant / workspace / date_range — see [`OUTBOX_PRODUCTION_REPLAY.md`](../../phase-20/p7/appendices/OUTBOX_PRODUCTION_REPLAY.md) |
 | CLI                | `pnpm run outbox:replay-failed -- --tenant=<uuid> [--id=<uuid>]`                                                                                    |
 | Guard              | `guard:outbox-failed-replay`                                                                                                                        |
 | Auto-retry         | **Forbidden on `failed`** — relay must not claim terminal `failed` (DEC-086). **Transient retry before `failed`:** DEC-110 returns row to `pending` |
 
-### Dev-only gate
+### Auth gate (Phase 3.17)
 
-Same policy as provisioning (`assertProvisioningDevelopmentOnly`): `NODE_ENV` ∈ `{ development, test }` and not production auth mode. Production uses CLI with break-glass credentials (future) — HTTP route returns **403** outside dev/test.
+- **Production auth mode:** ops service JWT with scope `outbox:replay`.
+- **Non-prod:** provisioning development gate (same family as finance recon).
+- Core mutation no longer embeds `assertProvisioningDevelopmentOnly` — callers auth at the edge.
 
 ## Flow
 

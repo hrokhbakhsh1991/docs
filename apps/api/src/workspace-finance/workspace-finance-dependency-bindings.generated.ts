@@ -14,6 +14,26 @@ import {
   FinanceWs2ReceiptDefaultsAdapter as finance_ws2_ReceiptDefaults,
 } from "@app-tour/workspace-finance-ws2/host/finance";
 
+import {
+  FinanceWs3LedgerPolicyAdapter as finance_ws3_LedgerPolicy,
+  FinanceWs3ReceiptDefaultsAdapter as finance_ws3_ReceiptDefaults,
+} from "@app-tour/workspace-finance-ws3/host/finance";
+
+import {
+  FinanceWs4LedgerPolicyAdapter as finance_ws4_LedgerPolicy,
+  FinanceWs4ReceiptDefaultsAdapter as finance_ws4_ReceiptDefaults,
+} from "@app-tour/workspace-finance-ws4/host/finance";
+
+import {
+  FinanceWs5LedgerPolicyAdapter as finance_ws5_LedgerPolicy,
+  FinanceWs5ReceiptDefaultsAdapter as finance_ws5_ReceiptDefaults,
+} from "@app-tour/workspace-finance-ws5/host/finance";
+
+import {
+  FinanceWs6LedgerPolicyAdapter as finance_ws6_LedgerPolicy,
+  FinanceWs6ReceiptDefaultsAdapter as finance_ws6_ReceiptDefaults,
+} from "@app-tour/workspace-finance-ws6/host/finance";
+
 export const WORKSPACE_FINANCE_DEPENDENCY_BINDINGS = {
   "denali": {
     createLedgerPolicy: () => new denali_LedgerPolicy(),
@@ -22,6 +42,22 @@ export const WORKSPACE_FINANCE_DEPENDENCY_BINDINGS = {
   "finance-ws2": {
     createLedgerPolicy: () => new finance_ws2_LedgerPolicy(),
     createReceiptDefaults: () => new finance_ws2_ReceiptDefaults(),
+  },
+  "finance-ws3": {
+    createLedgerPolicy: () => new finance_ws3_LedgerPolicy(),
+    createReceiptDefaults: () => new finance_ws3_ReceiptDefaults(),
+  },
+  "finance-ws4": {
+    createLedgerPolicy: () => new finance_ws4_LedgerPolicy(),
+    createReceiptDefaults: () => new finance_ws4_ReceiptDefaults(),
+  },
+  "finance-ws5": {
+    createLedgerPolicy: () => new finance_ws5_LedgerPolicy(),
+    createReceiptDefaults: () => new finance_ws5_ReceiptDefaults(),
+  },
+  "finance-ws6": {
+    createLedgerPolicy: () => new finance_ws6_LedgerPolicy(),
+    createReceiptDefaults: () => new finance_ws6_ReceiptDefaults(),
   },
 } as const;
 
