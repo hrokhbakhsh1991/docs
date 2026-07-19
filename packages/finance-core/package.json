@@ -1,0 +1,56 @@
+{
+  "name": "@app-tour/finance-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Finance application engine — frozen public API (Phase 2.3.3); host adapters stay in apps/api",
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./ports": {
+      "types": "./dist/ports/index.d.ts",
+      "require": "./dist/ports/index.js",
+      "default": "./dist/ports/index.js"
+    },
+    "./domain": {
+      "types": "./dist/domain/index.d.ts",
+      "require": "./dist/domain/index.js",
+      "default": "./dist/domain/index.js"
+    },
+    "./application": {
+      "types": "./dist/application/index.d.ts",
+      "require": "./dist/application/index.js",
+      "default": "./dist/application/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\"",
+    "guard:boundary": "node ./scripts/guard-boundary.mjs",
+    "guard:portability": "node ./scripts/guard-portability.mjs",
+    "guard:public-api": "node ./scripts/guard-public-api.mjs"
+  },
+  "dependencies": {
+    "@app-tour/finance-http-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

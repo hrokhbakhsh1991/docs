@@ -1,0 +1,11 @@
+{
+  "name": "@example/second-app-finance-host",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fixture manifest — how a second repository would declare finance-core (Phase 2.3). Not an installable workspace package.",
+  "dependencies": {
+    "@app-tour/finance-core": "0.1.0",
+    "@app-tour/finance-http-contracts": "0.1.0"
+  },
+  "comment": "In this monorepo, finance-core still uses workspace:*; published consumers would use semver as above."
+}
