@@ -71,3 +71,7 @@ pnpm --filter @apps/api run test:booking-capacity-stress
 ```
 
 Requirements: PostgreSQL only, hundreds of concurrent ops, random schedules, ≥100 iterations, assert invariant after every wave. No “exactly one winner” scheduling assertions (those are flaky under READ COMMITTED + lock wait order).
+
+## Outbox grants (2026-07-20)
+
+Fresh empty `migrate deploy` must GRANT `outbox_events` to `app_tour` or Booking approve fails with Postgres 42501.
