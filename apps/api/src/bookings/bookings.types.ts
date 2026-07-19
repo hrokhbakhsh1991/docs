@@ -1,12 +1,12 @@
 /**
  * Booking domain / persistence types (apps/api).
- * HTTP wire DTOs SoT: `@app-cloud/booking-http-contracts` (Phase B1.2).
+ * HTTP wire DTOs SoT: `@app-tour/booking-http-contracts` (Phase B1.2).
  */
 import type {
   BookingListItem,
   BookingPaymentStatus,
   BookingStatus,
-} from "@app-cloud/booking-http-contracts";
+} from "@app-tour/booking-http-contracts";
 
 export type {
   ApproveBookingResponse,
@@ -26,7 +26,7 @@ export type {
   RejectBookingRequest,
   RejectBookingResponse,
   WaitlistBookingResponse,
-} from "@app-cloud/booking-http-contracts";
+} from "@app-tour/booking-http-contracts";
 
 export type BookingRecord = {
   readonly id: string;

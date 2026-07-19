@@ -4,7 +4,7 @@
  * Resolve is fail-closed: unregistered workspace types throw (no silent no-op).
  */
 
-import type { WorkspaceBookingEventReactionPort } from "@app-cloud/booking-http-contracts";
+import type { WorkspaceBookingEventReactionPort } from "@app-tour/booking-http-contracts";
 
 import { WORKSPACE_BOOKING_EVENT_REACTION_BINDINGS } from "./workspace-booking-event-reaction-bindings.generated";
 

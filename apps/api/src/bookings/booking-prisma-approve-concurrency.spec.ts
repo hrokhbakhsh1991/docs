@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 import { after, before, beforeEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-cloud/booking-http-contracts";
+import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-tour/booking-http-contracts";
 
 import { disconnectPrisma, getPrismaAdmin } from "../db/prisma.ts";
 import { resetTenantConnectionBudgetForTests } from "../db/tenant-connection-budget.ts";

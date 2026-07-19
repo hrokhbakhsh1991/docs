@@ -1,6 +1,6 @@
 /**
  * Production-grade OpenAPI for Booking HTTP (named components only).
- * Mirrors @app-cloud/booking-http-contracts DTOs — no anonymous Booking schemas.
+ * Mirrors @app-tour/booking-http-contracts DTOs — no anonymous Booking schemas.
  *
  * @see docs/phase-20/p7/appendices/BOOKING_OPENAPI_CERTIFICATION.md
  */
