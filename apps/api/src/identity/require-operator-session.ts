@@ -3,7 +3,6 @@ import type { TenantAuthContext } from "@app-cloud/workspace-sdk";
 
 import { readRequestAuthHeaders } from "../auth/read-request-headers";
 import { assertRequiredAuthHeaders } from "../tenant-kernel/assert-required-headers";
-import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 import { UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST } from "../tenant-kernel/auth-errors";
 import { readRequestJwtSessionVersion } from "../tenant-kernel/jwt-session-claim";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
