@@ -30,6 +30,7 @@ Use this checklist before exposing `@apps/api` on a public ingress. Boot fails c
 | `DATABASE_URL`        | Postgres URL (**app role**, `NOBYPASSRLS`)      | Tour SoT + tenant-scoped queries — must **not** use superuser or `BYPASSRLS` role     |
 | `DATABASE_URL_ADMIN`  | **Distinct** Postgres URL (owner / bypass role) | Registry reads, outbox relay claim, CASL id probe — must **not** equal `DATABASE_URL` |
 | `STORAGE_DRIVER`      | **`prisma`** (explicit recommended)             | Memory driver has no RLS Postgres SoT                                                 |
+| `OUTBOX_RELAY_ENABLED` | **`true`** (or external worker — see below)    | MR-P0-008 — durable outbox rows must be published; boot throws `PRODUCTION_OUTBOX_RELAY_REQUIRED` if neither in-process nor `OUTBOX_RELAY_EXTERNAL_WORKER=true` |
 
 ## Forbidden in production
 
@@ -37,6 +38,7 @@ Use this checklist before exposing `@apps/api` on a public ingress. Boot fails c
 | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
 | `AUTH_ALLOW_DEV_BEARER=true`         | Throws `AUTH_DEV_BEARER_FORBIDDEN_OUTSIDE_TEST`                                                |
 | `STORAGE_DRIVER=memory`              | Throws `PRODUCTION_STORAGE_DRIVER_FORBIDDEN`                                                   |
+| `OUTBOX_RELAY_ENABLED` unset/false without `OUTBOX_RELAY_EXTERNAL_WORKER=true` | Throws `PRODUCTION_OUTBOX_RELAY_REQUIRED` (MR-P0-008) |
 | Missing `DATABASE_URL`               | Throws `PRODUCTION_DATABASE_URL_REQUIRED`                                                      |
 | Missing or equal admin URL           | Throws `PRODUCTION_DATABASE_URL_ADMIN_REQUIRED` or `PRODUCTION_DATABASE_URL_ADMIN_MUST_DIFFER` |
 | `DATABASE_URL` role with `BYPASSRLS` | Throws `PRODUCTION_DATABASE_APP_ROLE_BYPASSRLS` (live Postgres probe at boot)                  |

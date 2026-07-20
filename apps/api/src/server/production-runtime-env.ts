@@ -1,5 +1,6 @@
 import { assertProductionRedisUrl } from "../middleware/tenant-rate-limit-config";
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
+import { assertProductionOutboxRelayPosture } from "../outbox/assert-production-outbox-relay-posture";
 import { assertProductionStorageDriver } from "../storage/production-storage-driver-assert";
 import { assertProductionAuthHarnessAbsent } from "../test/production-auth-harness";
 import { assertStaticTenantRegistryRuntime } from "../tenant/tenant-registry";
@@ -14,6 +15,7 @@ export {
 } from "../storage/production-storage-driver-assert";
 
 export { PRODUCTION_AUTH_HARNESS_FORBIDDEN } from "../test/production-auth-harness";
+export { PRODUCTION_OUTBOX_RELAY_REQUIRED } from "../outbox/assert-production-outbox-relay-posture";
 
 export {
   PRODUCTION_DATABASE_URL_ADMIN_REQUIRED,
@@ -21,7 +23,7 @@ export {
 } from "./production-env-codes";
 
 /**
- * Fail-closed production boot checks (DEC-GAP-03, V-004, V-009).
+ * Fail-closed production boot checks (DEC-GAP-03, V-004, V-009, MR-P0-008).
  * @see docs/phase-4/production-deploy-checklist.md
  * @see docs/phase-20/p7/appendices/BOOKING_REMEDIATION_TODO_001_HARNESS.md
  */
@@ -35,6 +37,7 @@ export function assertProductionRuntimeIntegrity(): void {
   assertProductionAuthHarnessAbsent();
   assertProductionStorageDriver();
   assertProductionRedisUrl();
+  assertProductionOutboxRelayPosture();
 
   const databaseUrl = process.env.DATABASE_URL?.trim();
   const adminUrl = process.env.DATABASE_URL_ADMIN?.trim();

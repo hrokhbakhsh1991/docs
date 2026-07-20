@@ -22,6 +22,7 @@ progress:
   MR-P0-006: done (sess_ver hydrate + header auth test-only; 15/15 specs)
   MR-P0-010: done (ownership before putMemberReceiptProof; 3/3 specs)
   MR-P0-009: done (composite id+tenantId writes; adapter requires injected repo)
+  MR-P0-008: done (PRODUCTION_OUTBOX_RELAY_REQUIRED; api.env.example true)
 ```
 
 

@@ -8,6 +8,8 @@ const ENV_SNAPSHOT = {
   STORAGE_DRIVER: process.env.STORAGE_DRIVER,
   REDIS_URL: process.env.REDIS_URL,
   TENANT_RATE_LIMIT_ENABLED: process.env.TENANT_RATE_LIMIT_ENABLED,
+  OUTBOX_RELAY_ENABLED: process.env.OUTBOX_RELAY_ENABLED,
+  OUTBOX_RELAY_EXTERNAL_WORKER: process.env.OUTBOX_RELAY_EXTERNAL_WORKER,
 };
 
 afterEach(() => {
@@ -17,6 +19,10 @@ afterEach(() => {
   process.env.STORAGE_DRIVER = ENV_SNAPSHOT.STORAGE_DRIVER;
   process.env.REDIS_URL = ENV_SNAPSHOT.REDIS_URL;
   process.env.TENANT_RATE_LIMIT_ENABLED = ENV_SNAPSHOT.TENANT_RATE_LIMIT_ENABLED;
+  if (ENV_SNAPSHOT.OUTBOX_RELAY_ENABLED === undefined) delete process.env.OUTBOX_RELAY_ENABLED;
+  else process.env.OUTBOX_RELAY_ENABLED = ENV_SNAPSHOT.OUTBOX_RELAY_ENABLED;
+  if (ENV_SNAPSHOT.OUTBOX_RELAY_EXTERNAL_WORKER === undefined) delete process.env.OUTBOX_RELAY_EXTERNAL_WORKER;
+  else process.env.OUTBOX_RELAY_EXTERNAL_WORKER = ENV_SNAPSHOT.OUTBOX_RELAY_EXTERNAL_WORKER;
 });
 
 describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", { concurrency: false }, () => {
@@ -30,6 +36,7 @@ describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", { concurrency: false }
 
   it("requires DATABASE_URL in production", async () => {
     process.env.NODE_ENV = "production";
+    process.env.OUTBOX_RELAY_ENABLED = "true";
     delete process.env.DATABASE_URL;
     process.env.DATABASE_URL_ADMIN = "postgresql://admin/db";
     process.env.STORAGE_DRIVER = "prisma";
@@ -47,6 +54,7 @@ describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", { concurrency: false }
 
   it("requires distinct DATABASE_URL_ADMIN in production", async () => {
     process.env.NODE_ENV = "production";
+    process.env.OUTBOX_RELAY_ENABLED = "true";
     process.env.DATABASE_URL = "postgresql://app/db";
     delete process.env.DATABASE_URL_ADMIN;
     process.env.STORAGE_DRIVER = "prisma";
@@ -64,6 +72,7 @@ describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", { concurrency: false }
 
   it("rejects equal app and admin URLs in production", async () => {
     process.env.NODE_ENV = "production";
+    process.env.OUTBOX_RELAY_ENABLED = "true";
     process.env.DATABASE_URL = "postgresql://same/db";
     process.env.DATABASE_URL_ADMIN = "postgresql://same/db";
     process.env.STORAGE_DRIVER = "prisma";
@@ -81,6 +90,7 @@ describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", { concurrency: false }
 
   it("forbids memory storage driver in production", async () => {
     process.env.NODE_ENV = "production";
+    process.env.OUTBOX_RELAY_ENABLED = "true";
     process.env.DATABASE_URL = "postgresql://app/db";
     process.env.DATABASE_URL_ADMIN = "postgresql://admin/db";
     process.env.STORAGE_DRIVER = "memory";
@@ -98,6 +108,7 @@ describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", { concurrency: false }
 
   it("requires REDIS_URL in production when rate limiting is enabled", async () => {
     process.env.NODE_ENV = "production";
+    process.env.OUTBOX_RELAY_ENABLED = "true";
     process.env.DATABASE_URL = "postgresql://app/db";
     process.env.DATABASE_URL_ADMIN = "postgresql://admin/db";
     process.env.STORAGE_DRIVER = "prisma";
@@ -118,6 +129,7 @@ describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", { concurrency: false }
 
   it("allows missing REDIS_URL in production when rate limiting is disabled", async () => {
     process.env.NODE_ENV = "production";
+    process.env.OUTBOX_RELAY_ENABLED = "true";
     process.env.DATABASE_URL = "postgresql://app/db";
     process.env.DATABASE_URL_ADMIN = "postgresql://admin/db";
     process.env.STORAGE_DRIVER = "prisma";
@@ -129,12 +141,33 @@ describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", { concurrency: false }
 
   it("passes when production env is correctly configured", async () => {
     process.env.NODE_ENV = "production";
+    process.env.OUTBOX_RELAY_ENABLED = "true";
     process.env.DATABASE_URL = "postgresql://app/db";
     process.env.DATABASE_URL_ADMIN = "postgresql://admin/db";
     process.env.STORAGE_DRIVER = "prisma";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     const { assertProductionRuntimeIntegrity } = await import("./production-runtime-env.js");
     assert.doesNotThrow(() => assertProductionRuntimeIntegrity());
+  });
+
+  it("MR-P0-008: requires outbox relay or external worker in production", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.DATABASE_URL = "postgresql://app/db";
+    process.env.DATABASE_URL_ADMIN = "postgresql://admin/db";
+    process.env.STORAGE_DRIVER = "prisma";
+    process.env.TENANT_RATE_LIMIT_ENABLED = "false";
+    process.env.OUTBOX_RELAY_ENABLED = "false";
+    delete process.env.OUTBOX_RELAY_EXTERNAL_WORKER;
+    const { assertProductionRuntimeIntegrity, PRODUCTION_OUTBOX_RELAY_REQUIRED } =
+      await import("./production-runtime-env.js");
+    assert.throws(
+      () => assertProductionRuntimeIntegrity(),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, PRODUCTION_OUTBOX_RELAY_REQUIRED);
+        return true;
+      }
+    );
   });
 
   it("rejects prod-like NODE_ENV without DATABASE_URL for static registry policy", async () => {
