@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { describe, it } from "node:test";
 
@@ -50,7 +50,7 @@ describe("FIN-P2.3.3 finance-core public API freeze", () => {
     assert.equal(pkg.types, "./dist/index.d.ts");
   });
 
-  it("dist runtime surface has required entry points and no host/prisma names", async () => {
+  it("dist runtime surface has required entry points and no host/prisma names", () => {
     if (!existsSync(DIST_INDEX)) {
       const build = spawnSync("pnpm", ["run", "build"], {
         cwd: PKG,
@@ -59,14 +59,19 @@ describe("FIN-P2.3.3 finance-core public API freeze", () => {
       });
       assert.equal(build.status, 0, build.stdout + build.stderr);
     }
-    // Load built dist via file URL (exercises runtime surface without package-name self-resolve).
-    const mod = (await import(pathToFileURL(DIST_INDEX).href)) as Record<string, unknown>;
+    // Read built CJS surface as text — avoids createRequire/dynamic import (import-boundary).
+    const js = readFileSync(DIST_INDEX, "utf8");
     for (const name of REQUIRED_RUNTIME) {
-      assert.notEqual(mod[name], undefined, `missing runtime export ${name}`);
+      assert.match(
+        js,
+        new RegExp(String.raw`Object\.defineProperty\(exports,\s*"${name}"`),
+        `missing runtime export ${name}`,
+      );
     }
-    for (const name of Object.keys(mod)) {
-      assert.doesNotMatch(name, /Prisma|HostFinance|Generated|InMemoryFinance/);
-    }
+    assert.doesNotMatch(
+      js,
+      /Object\.defineProperty\(exports,\s*"[^"]*(?:Prisma|HostFinance|Generated|InMemoryFinance)[^"]*"/,
+    );
   });
 
   it("package-local public-api guard passes", () => {
