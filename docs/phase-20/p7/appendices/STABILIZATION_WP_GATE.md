@@ -2,9 +2,9 @@
 
 ```yaml
 doc_id: STABILIZATION_WP_GATE
-status: READY_FOR_ARCHITECT_SIGN_OFF
+status: ACCEPTED
 branch: booking/capacity-concurrency-cert
-tip_at_gate: 105dd8c8
+tip_at_gate: 2eb69516
 reverified_at: 2026-07-20
 kernel_design_draft: TEMP/SAAS_SHARED_KERNEL_DESIGN_DRAFT.md
 created: 2026-07-20
@@ -27,8 +27,8 @@ Companion: [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCIL
 | 4 | WP3 all four P0 models evidenced | **PASS** | [HOSTILE_AUDIT_REMEDIATION.md](./HOSTILE_AUDIT_REMEDIATION.md): capacity port, `finance:recon`, outbox worker role, codegen unique symbols — commit `f1956621` |
 | 5 | WP4 no open build blockers (or explicit deferral) | **PASS (deferred)** | No build blocker after land; reopen only on evidence. Owner: Stabilization train / Architect |
 | 6 | WP5 import-boundary green; residual P1s listed | **PASS** | `guard:import-boundary` PASS @ `105dd8c8` (re-verified). Residuals in HOSTILE remediation: portal modal WIP, package-boundary allowlist rubber-stamp, tours without `capacityMax` fixture path |
-| 7 | Working tree clean or parked with ticket | **PASS** | `git status --porcelain` empty @ gate snapshot; tip ahead of origin by **4** commits (unpushed) |
-| 8 | Charter COMPLETE + Kernel charter opened under `docs/` | **PENDING** | Requires **Architect YES** — this doc is the sign-off surface |
+| 7 | Working tree clean or parked with ticket | **PASS** | `git status --porcelain` empty @ gate snapshot; tip ahead of origin by **5** commits at accept (unpushed until explicit push) |
+| 8 | Charter COMPLETE + Kernel charter opened under `docs/` | **PASS** | Kernel pack opened: [`docs/phase-saas-kernel/`](../../phase-saas-kernel/README.md) — Architect continue 2026-07-20 |
 
 ---
 
@@ -40,6 +40,7 @@ Companion: [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCIL
 | `6cfb7e21` | WP0 DEV reconcile docs |
 | `3ae0481e` | finance-core public-api boundary-safe dist assert |
 | `105dd8c8` | WP-GATE evidence pack |
+| `2eb69516` | WP-GATE re-verify + Kernel draft link |
 
 Branch: `booking/capacity-concurrency-cert` — **4 commits ahead of origin** (push not part of this gate).
 
@@ -55,15 +56,15 @@ Branch: `booking/capacity-concurrency-cert` — **4 commits ahead of origin** (p
 
 ---
 
-## Kernel design draft (TEMP only)
+## Kernel charter (opened)
 
-Careful continuation produced a **non-authoritative** design draft — not an ACCEPTED Kernel charter:
+WP-GATE **ACCEPTED**. Production Kernel pack:
 
-- `TEMP/SAAS_SHARED_KERNEL_DESIGN_DRAFT.md`
+- [`docs/phase-saas-kernel/README.md`](../../phase-saas-kernel/README.md)
+- [`docs/phase-saas-kernel/CHARTER.md`](../../phase-saas-kernel/CHARTER.md)
+- [`docs/phase-saas-kernel/appendices/MATURITY_INVENTORY.md`](../../phase-saas-kernel/appendices/MATURITY_INVENTORY.md) (SK0)
 
-Key finding: Tenant Kernel / outbox / identity / flags already substantial; Kernel phase must **inventory + gap-close**, not reinvent Phase 4 (`docs/phase-4-tenant-kernel.md`).
-
-**Do not** promote that draft under `docs/` until `architect_decision: ACCEPTED`.
+TEMP draft retained as historical: `TEMP/SAAS_SHARED_KERNEL_DESIGN_DRAFT.md` (superseded as SoT).
 
 ## Architect sign-off block
 
@@ -75,11 +76,10 @@ When accepting, Architect should:
 4. Optionally schedule moving `origin/DEV` → tip (separate process decision).
 
 ```yaml
-architect_decision: PENDING
-# architect_decision: ACCEPTED
-# accepted_at: YYYY-MM-DD
-# accepted_by:
-# kernel_charter_path:
+architect_decision: ACCEPTED
+accepted_at: 2026-07-20
+accepted_by: Architect (continue authorization after Stabilization evidence)
+kernel_charter_path: docs/phase-saas-kernel/CHARTER.md
 ```
 
 ---

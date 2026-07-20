@@ -39,6 +39,7 @@ source: hostile production review of HEAD f607c376 + dirty WT
 - [workspace-registry-codegen-modularization.mdoc](../../../dev/workspace-registry-codegen-modularization.mdoc)
 - [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCILE.md)
 - [STABILIZATION_WP_GATE.md](./STABILIZATION_WP_GATE.md)
+- [SaaS Shared Kernel charter](../../phase-saas-kernel/CHARTER.md)
 
 ## Residual (not code-fixed this train)
 
