@@ -207,6 +207,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("BOOKING_VALIDATION_REJECTED")) return 400;
   if (message.startsWith("BOOKING_VALIDATION_FAILED")) return 400;
   if (message.startsWith("BOOKING_CAPACITY_REJECTED")) return 409;
+  if (message === "BOOKING_GUEST_DUPLICATE" || message.startsWith("BOOKING_GUEST_DUPLICATE:")) return 409;
   if (message.startsWith("BOOKING_WORKSPACE_TENANT_MISMATCH")) return 403;
   if (message.startsWith("BOOKING_CAPABILITY_VIOLATION")) return 422;
   if (message.startsWith("BOOKING_PUBLIC_CREATE_UNSUPPORTED")) return 403;

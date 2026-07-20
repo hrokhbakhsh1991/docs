@@ -59,6 +59,12 @@ export const BOOKING_HTTP_ERROR_MATRIX: readonly BookingHttpErrorMatrixRow[] = [
     clientAction: "Adjust party size or capacity; do not treat as rate-limit",
   },
   {
+    domainError: "BOOKING_GUEST_DUPLICATE",
+    status: 409,
+    reason: "Active guest already registered on this tour (MR-P0-011 unique index)",
+    clientAction: "Reuse existing registration or cancel before re-registering",
+  },
+  {
     domainError: "BOOKING_ALREADY_APPROVED",
     status: 409,
     reason: "Booking is already approved",
@@ -203,6 +209,9 @@ export function resolveBookingHttpError(error: unknown): BookingHttpErrorResolut
 
   if (message.startsWith("BOOKING_CAPACITY_REJECTED")) {
     return resolutionFromCode("BOOKING_CAPACITY_REJECTED", message);
+  }
+  if (message === "BOOKING_GUEST_DUPLICATE" || message.startsWith("BOOKING_GUEST_DUPLICATE:")) {
+    return resolutionFromCode("BOOKING_GUEST_DUPLICATE", message);
   }
   if (message.startsWith("BOOKING_VALIDATION_FAILED")) {
     return resolutionFromCode("BOOKING_VALIDATION_FAILED", message);

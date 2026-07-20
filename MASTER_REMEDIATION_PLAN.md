@@ -24,6 +24,7 @@ progress:
   MR-P0-009: done (composite id+tenantId writes; adapter requires injected repo)
   MR-P0-008: done (PRODUCTION_OUTBOX_RELAY_REQUIRED; api.env.example true)
   MR-P0-013: done (no tsx fallback; FORCE_BOOTSTRAP; SSH yes; secrets fail-closed from 004)
+  MR-P0-011: done (partial unique indexes + P2002→BOOKING_GUEST_DUPLICATE)
 ```
 
 

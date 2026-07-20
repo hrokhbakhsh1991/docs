@@ -37,7 +37,7 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 | `20260706130000_app_cloud_nosuperuser` | Phase 5/ops | App role NOSUPERUSER hardening |
 | `20260720140000_finance_recon_rls` | MR-P0-003 | Finance recon findings RLS + tip head sync |
 
-Current head: **`20260720140000_finance_recon_rls`** — must move in lockstep with `prisma/migrations/`.
+Current head: **`20260720150000_operator_registration_active_guest_uniques`** — must move in lockstep with `prisma/migrations/`.
 
 **CI:** `booking-postgres-gate` runs `guard:migration-head-preflight` before migrate so a stale constant fails the release path (MASTER `MR-P0-003`).
 

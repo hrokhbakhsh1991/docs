@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
@@ -606,6 +606,14 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
             ? { registrationIntake: input.body.registrationIntake as Prisma.InputJsonValue }
             : {}),
         },
+      }).catch((error: unknown) => {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          throw new Error("BOOKING_GUEST_DUPLICATE");
+        }
+        throw error;
       });
       return toBookingRecord(row);
     });
