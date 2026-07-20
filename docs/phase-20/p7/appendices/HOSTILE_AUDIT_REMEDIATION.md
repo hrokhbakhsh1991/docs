@@ -11,7 +11,7 @@ source: hostile production review of HEAD f607c376 + dirty WT
 
 **Problem:** `tourCapacityMax` accepted from client `registrationIntake` on create; approve reused stored intake. Public/operator clients could inflate the ceiling while advisory locks still succeeded.
 
-**Model (updated):** Booking still owns occupancy SoT and fail-closed enforcement. **Tour canonical `capacityMax` is the capacity ceiling authority** when present. Client `registrationIntake.tourCapacityMax` is never allowed to raise the ceiling above the tour SoT (server max always wins when resolved). When tour SoT is missing, intake remains last-resort for fixture/workspaces without the field — production Denali tours publish `capacityMax` and close the inflation path.
+**Model (updated):** Booking still owns occupancy SoT and fail-closed enforcement. **Tour canonical `capacityMax` is the capacity ceiling authority** when present. Client `registrationIntake.tourCapacityMax` is never allowed to raise the ceiling above the tour SoT (server max always wins when resolved). When tour SoT is missing: under `requiresProductionGradeIntegrity()` (production / `APP_RUNTIME_PROFILE=prodlike`) create/approve **fail-closed** — client intake is not a ceiling; in test/dev, intake remains last-resort for fixtures / workspaces without the field.
 
 **Port:** `BookingTourCapacityPort.resolveTourCapacityMax(tenantId, tourId)` — host adapter reads `Tour.canonical.data.capacityMax` via `createTourStorageRepository().getById`.
 
@@ -41,11 +41,12 @@ source: hostile production review of HEAD f607c376 + dirty WT
 - [STABILIZATION_WP_GATE.md](./STABILIZATION_WP_GATE.md)
 - [SaaS Shared Kernel charter](../../phase-saas-kernel/CHARTER.md)
 
-## Residual (not code-fixed this train)
+## Residual tracking
 
-| Item | Severity | Notes |
-| ---- | -------- | ----- |
-| 19 commits behind `origin/DEV` | P1 process (closed for Stabilization WP0) | Reconcile filed: [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCILE.md) — **no blind merge**; all 19 have tip twins |
-| Portal login modal on WIP only | P1 product | Lives on `wip/portal-psc-20260718`, not this tip |
-| Package-boundary allowlist includes finance/booking workspaces | P1 rubber-stamp | Required by codegen bindings; isolation enforced by import-boundary AST + workspace isolation guards, not package.json set equality |
-| Tours without `capacityMax` still fall back to intake | P1 residual | Closed when tour SoT present; booking-ws2 without field remains fixture-compat path |
+| Item | Severity | Status | Notes |
+| ---- | -------- | ------ | ----- |
+| 19 commits behind `origin/DEV` | P1 process | **DECIDED (B6)** | [STABILIZATION_B6_DEV_ASYMMETRY_DECISION.md](./STABILIZATION_B6_DEV_ASYMMETRY_DECISION.md) — no merge; tip canonical |
+| Stash inventory (10) | P1 process | **QUARANTINED (B7)** | [STABILIZATION_B7_STASH_QUARANTINE.md](./STABILIZATION_B7_STASH_QUARANTINE.md) |
+| Portal login modal on WIP only | P1 product | **PARKED (C9)** | [STABILIZATION_C9_C10_PARKED.md](./STABILIZATION_C9_C10_PARKED.md) |
+| Package-boundary allowlist rubber-stamp | P1 process | **PARKED (C10)** | Isolation via import-boundary AST, not package.json equality |
+| Tours without `capacityMax` intake fallback | P1 residual | **CLOSED (C8)** | Prodlike/production fail-closed; test/dev fixture path retained |

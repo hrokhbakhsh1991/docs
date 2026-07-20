@@ -103,7 +103,7 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
     assert.equal(ok.status, "pending");
   });
 
-  it("façade path still accepts intake when tour SoT absent (fixture compat)", async () => {
+  it("façade path still accepts intake when tour SoT absent (fixture compat in test)", async () => {
     const created = await createPublicGuestBooking(publicAuth(TENANT_DENALI), {
       tourId: TOUR_ID,
       tourTitle: "Fixture Tour",
@@ -115,5 +115,60 @@ describe("booking tour capacity authority (hostile client inflation)", () => {
       registrationIntake: { tourCapacityMax: 10 },
     });
     assert.equal(created.status, "pending");
+  });
+
+  it("P1: prodlike rejects create when tour SoT lacks capacityMax (no client ceiling)", async () => {
+    const previous = process.env.APP_RUNTIME_PROFILE;
+    // Resolve memory repo before prodlike — prodlike forbids memory storage driver boot.
+    const repository = getBookingsRepository();
+    process.env.APP_RUNTIME_PROFILE = "prodlike";
+    try {
+      const tourCapacity: BookingTourCapacityPort = {
+        kind: "fixture-tour-capacity-missing",
+        resolveTourCapacityMax: async () => null,
+      };
+      const dependencies = resolveBookingWorkspaceDependencies("denali");
+      const eventReaction = resolveWorkspaceBookingEventReaction("denali");
+      const capabilities = assertBookingRuntimeCapabilityLevels("denali", {
+        publicBooking: dependencies.publicBooking,
+        validationPolicy: dependencies.validationPolicy,
+        capacityPolicy: dependencies.capacityPolicy,
+        eventReaction,
+      });
+      const service = createBookingsService({
+        repository,
+        authorization: new HostBookingAuthorizationAdapter(),
+        clock: new HostBookingClockAdapter(),
+        eventReaction,
+        publicBooking: dependencies.publicBooking,
+        validationPolicy: dependencies.validationPolicy,
+        capacityPolicy: dependencies.capacityPolicy,
+        tourCapacity,
+        workspaceType: "denali",
+        tenantWorkspaceBinding: new HostBookingTenantWorkspaceBindingAdapter(),
+        capabilities: toBookingRuntimeCapabilities(capabilities),
+      });
+
+      await assert.rejects(
+        () =>
+          service.createPublicGuestBooking(publicAuth(TENANT_DENALI), {
+            tourId: TOUR_ID,
+            tourTitle: "No SoT Tour",
+            guestLabel: "Prodlike Guest",
+            guestEmail: "prodlike@example.com",
+            guestPhone: "+15550004444",
+            partySize: 1,
+            departureAt: "2030-08-01T09:00:00.000Z",
+            registrationIntake: { tourCapacityMax: 99 },
+          }),
+        /BOOKING_CAPACITY_REJECTED: tourCapacityMax required/
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.APP_RUNTIME_PROFILE;
+      } else {
+        process.env.APP_RUNTIME_PROFILE = previous;
+      }
+    }
   });
 });

@@ -2,14 +2,18 @@
 
 ```yaml
 doc_id: STABILIZATION_KERNEL_TRAIN_CLOSURE
-as_of: 2026-07-20
-tip_at_authoring: 1dc4b46f
+as_of: 2026-07-21
+tip_at_authoring: pending_next_commit
 ```
 
 ## Stabilization
 
 - [x] WP0 DEV reconcile filed (no blind merge)
+- [x] B6 DEV asymmetry **DECIDED** (no merge; tip canonical)
+- [x] B7 stash quarantine ledger filed (10 stashes)
 - [x] WP1–WP3 hostile P0 train landed
+- [x] C8 capacityMax prodlike fail-closed (intake not ceiling)
+- [x] C9/C10 parked residuals filed
 - [x] WP4 deferred_clear (no blocker)
 - [x] WP5 import-boundary green
 - [x] WP-GATE ACCEPTED
@@ -37,8 +41,11 @@ tip_at_authoring: 1dc4b46f
 
 | Item | Why parked |
 | ---- | ---------- |
-| Push tip | **Done** — synced @ `1dc4b46f` (truth-sync 2026-07-21) |
-| Portal login modal WIP | Product ticket on `wip/portal-psc-20260718` |
+| Push tip | Refresh after B6–C10 commit |
+| Portal login modal WIP (C9) | [STABILIZATION_C9_C10_PARKED.md](../../phase-20/p7/appendices/STABILIZATION_C9_C10_PARKED.md) |
+| Package-boundary allowlist (C10) | Same — AST isolation, not package.json equality |
+| `origin/DEV` pointer → tip | Needs Architect `YES — DEV-POINTER` |
+| Stash reclaim (B7) | Needs `YES — STASH-RECLAIM-{n}` |
 | API `tenant-kernel` rename | High churn; SK1 deferred |
 | Empty `packages/notification-*` | Forbidden until SK2.C |
 
@@ -53,7 +60,11 @@ tip_at_authoring: 1dc4b46f
 ## Truth sync (2026-07-21)
 
 - [x] TEMP roadmap §2.2 corrected (was stale at `f607c376` / dirty WT)
-- [x] This checklist tip SHA updated to `1dc4b46f`
 - [x] B4 targeted build evidence (`tenant-kernel`/`finance-core` build + `@apps/api` tsc --noEmit PASS)
 - [x] B5 capacity-stress evidence (3/3 PASS)
+- [x] B6 DEV asymmetry decision filed
+- [x] B7 stash quarantine ledger filed
+- [x] C8 prodlike fail-closed for missing tour `capacityMax`
+- [x] C9/C10 parked residuals filed
+- [ ] Tip SHA on this checklist — set after commit lands
 

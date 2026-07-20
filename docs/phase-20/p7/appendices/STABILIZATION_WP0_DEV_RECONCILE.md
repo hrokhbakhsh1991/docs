@@ -107,9 +107,10 @@ These are **not** “missing features.” Each has a tip twin with the same subj
 
 ## 7. Recommended follow-ups (not blocking WP0)
 
-1. After Stabilization WP-GATE: optionally move `origin/DEV` pointer to tip (or open PR tip→DEV) so dual tips die — **Architect YES**.  
+1. After Stabilization WP-GATE: optionally move `origin/DEV` pointer to tip (or open PR tip→DEV) so dual tips die — **Architect YES — DEV-POINTER** (see [STABILIZATION_B6_DEV_ASYMMETRY_DECISION.md](./STABILIZATION_B6_DEV_ASYMMETRY_DECISION.md)).  
 2. WP4/WP5 only if build/boundary blockers appear (tip currently clean after `f1956621`).  
-3. Portal modal reclaim = separate product ticket off `wip/portal-psc-20260718`.
+3. Portal modal reclaim = separate product ticket off `wip/portal-psc-20260718` (C9 parked).  
+4. Stash reclaim = [STABILIZATION_B7_STASH_QUARANTINE.md](./STABILIZATION_B7_STASH_QUARANTINE.md).
 
 ---
 

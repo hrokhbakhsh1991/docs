@@ -35,6 +35,7 @@ import type { BookingRecord } from "./bookings.types";
 import {
   BookingCapabilityViolationError,
 } from "./bookings.errors";
+import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 
 const BULK_APPROVE_MAX_BATCH = 25;
 
@@ -336,7 +337,9 @@ export class BookingsService {
    */
   /**
    * Prefer tour canonical capacityMax when present; never let client intake raise the ceiling.
-   * Intake remains last-resort only when tour SoT has no capacityMax (fixtures / workspaces without field).
+   * When tour SoT has no capacityMax:
+   * - prodlike/production → fail-closed (never trust client intake as ceiling)
+   * - test/dev → intake last-resort for fixtures / workspaces without the field
    */
   private async resolveEffectiveTourCapacityMax(
     tenantId: string,
@@ -346,6 +349,9 @@ export class BookingsService {
     const serverMax = await this.tourCapacity.resolveTourCapacityMax(tenantId, tourId);
     if (serverMax !== null) {
       return serverMax;
+    }
+    if (requiresProductionGradeIntegrity()) {
+      throw new Error(BOOKING_CAPACITY_MAX_REQUIRED_MESSAGE);
     }
     return requireTourCapacityMax(intake);
   }
