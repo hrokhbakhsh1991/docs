@@ -4,7 +4,7 @@
 doc_role: temporary_work_ledger
 created: 2026-07-21
 updated: 2026-07-21
-tip: pending_next_commit
+tip: e28933c5
 canonical_branch: booking/capacity-concurrency-cert
 ```
 
