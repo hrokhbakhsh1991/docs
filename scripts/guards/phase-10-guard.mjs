@@ -146,7 +146,6 @@ const WORKSPACE_FINANCE_HOST_INFRA_ALLOWLIST = new Set([
   "workspace-finance-dependency-bindings.generated.ts",
   "workspace-finance-event-reaction-bindings.generated.ts",
   "workspace-finance-processed-log.ts",
-||||||| parent of dcc347b6 (feat(platform): PSC surface cohesion follow-up — API, marketing, and build pipeline)
 ]);
 const workspaceFinanceDir = path.join(REPO_ROOT, "apps/api/src/workspace-finance");
 const workspaceFinanceUnexpected = fs.existsSync(workspaceFinanceDir)
