@@ -31,6 +31,7 @@ import {
   rejectBooking,
   waitlistBooking,
 } from "./create-bookings-service";
+import { submitBinaryMemberReceiptAfterOwnership } from "./submit-binary-member-receipt-after-ownership";
 
 export async function handleListBookings(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
@@ -271,22 +272,30 @@ export async function handlePostBookingReceipt(
     const fileName =
       fileNameHeader.length > 0 ? sanitizeReceiptProofFileName(fileNameHeader) : "receipt.bin";
     const body = await readBinaryRequestBody(req, MEMBER_RECEIPT_PROOF_MAX_BYTES);
-    const stored = await putMemberReceiptProof({
-      tenantId: auth.tenantId,
-      registrationId: bookingId,
-      body,
-      contentType,
-      fileName,
-    });
 
+    // MR-P0-010: ownership/authz before object-storage put (no orphan proofs / DoS on foreign ids).
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
         const financeService = await resolveFinanceServiceForTenant(auth.tenantId);
-        const receipt = await financeService.submitMemberReceiptForRegistration(auth, {
-          registrationId: bookingId,
-          fileKey: stored.storageKey,
+        const receipt = await submitBinaryMemberReceiptAfterOwnership({
+          assertOwns: async () => {
+            await financeService.getMemberReceiptStatusForRegistration(auth, bookingId);
+          },
+          putProof: async () =>
+            putMemberReceiptProof({
+              tenantId: auth.tenantId,
+              registrationId: bookingId,
+              body,
+              contentType,
+              fileName,
+            }),
+          submit: async (fileKey) =>
+            financeService.submitMemberReceiptForRegistration(auth, {
+              registrationId: bookingId,
+              fileKey,
+            }),
         });
         sendJson(res, 201, receipt);
       },

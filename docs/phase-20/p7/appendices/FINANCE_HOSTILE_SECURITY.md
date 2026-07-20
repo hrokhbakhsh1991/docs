@@ -13,7 +13,7 @@ method: code evidence (not architecture narrative)
 | Area | Verdict |
 | ---- | ------- |
 | Operator vs member role split | **Mostly solid** for reports / approve / create payment |
-| Member receipt paths | **Mitigated** — booking upload OK; `POST /finance/receipts` requires `memberOwnsRegistration` for members |
+| Member receipt paths | **Mitigated** — booking binary upload checks ownership **before** `putMemberReceiptProof` (MR-P0-010); `POST /finance/receipts` requires `memberOwnsRegistration` for members |
 | Cross-tenant data | **PASS** on Prisma+RLS (known caveats) |
 | Idempotency / replay | **Strong** for create/approve/submit; **reject gap** |
 | Admin audit trail | **Weak** — reviewer id only; no immutable finance audit log |
