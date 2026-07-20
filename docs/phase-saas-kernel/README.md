@@ -20,7 +20,8 @@ Reusable SaaS operating-system kernels consumed by every customer and workspace 
 | --- | ---- |
 | [CHARTER.md](./CHARTER.md) | Executable phase charter (SoT) |
 | [appendices/MATURITY_INVENTORY.md](./appendices/MATURITY_INVENTORY.md) | SK0 maturity matrix (exists vs gap) |
-| [appendices/SK1_TENANT_AUTHZ_CONTRACTS.md](./appendices/SK1_TENANT_AUTHZ_CONTRACTS.md) | SK1 Tenant + Authz design (dual-surface freeze) |
+| [appendices/SK1_TENANT_AUTHZ_CONTRACTS.md](./appendices/SK1_TENANT_AUTHZ_CONTRACTS.md) | SK1 Tenant + Authz (**CLOSED**) |
+| [appendices/SK2_NOTIFICATION_OUTBOX.md](./appendices/SK2_NOTIFICATION_OUTBOX.md) | SK2 Notification/outbox (**design filed**) |
 | Stabilization WP-GATE | [`../phase-20/p7/appendices/STABILIZATION_WP_GATE.md`](../phase-20/p7/appendices/STABILIZATION_WP_GATE.md) |
 | Phase 4 Tenant Kernel (do not reinvent) | [`../phase-4-tenant-kernel.md`](../phase-4-tenant-kernel.md) · [`../phase-4/phase-4-ai-exec.md`](../phase-4/phase-4-ai-exec.md) |
 
@@ -28,7 +29,7 @@ Reusable SaaS operating-system kernels consumed by every customer and workspace 
 
 1. **SK0** — Inventory freeze (filed)  
 2. **SK1** — Tenant + Authz contract hardening (**CLOSED**)  
-3. **SK2** — Notification on outbox  
+3. **SK2** — Notification on outbox (**design filed**; impl demand-driven)  
 4. **SK3** — Entitlement + Feature Flags contracts  
 5. **SK4** — Audit + File (demand-driven)
 

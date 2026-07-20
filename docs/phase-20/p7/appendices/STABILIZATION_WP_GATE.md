@@ -23,7 +23,7 @@ Companion: [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCIL
 | - | --------- | ------ | -------- |
 | 1 | WP0 lost-work / DEV asymmetry report filed (merge not required) | **PASS** | [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCILE.md) — 19 DEV commits have tip twins; no blind merge; stash policy locked |
 | 2 | WP1 codegen `--check` green on landed tip | **PASS** | `pnpm run generate:workspace-registry -- --check` → PASS (10 manifests) @ `105dd8c8` (re-verified) |
-| 3 | WP2 fixture integrity accepted (no weaken-to-pass) | **PASS** | Guest phone unique migration + capacity authority specs landed in `f1956621`; uniqueness docs updated; postgres stress suites deferred (not weakened) |
+| 3 | WP2 fixture integrity accepted (no weaken-to-pass) | **PASS** | Guest phone unique migration + capacity authority specs landed in `f1956621`; `test:booking-capacity-postgres` re-verified PASS on close train |
 | 4 | WP3 all four P0 models evidenced | **PASS** | [HOSTILE_AUDIT_REMEDIATION.md](./HOSTILE_AUDIT_REMEDIATION.md): capacity port, `finance:recon`, outbox worker role, codegen unique symbols — commit `f1956621` |
 | 5 | WP4 no open build blockers (or explicit deferral) | **PASS (deferred)** | No build blocker after land; reopen only on evidence. Owner: Stabilization train / Architect |
 | 6 | WP5 import-boundary green; residual P1s listed | **PASS** | `guard:import-boundary` PASS @ `105dd8c8` (re-verified). Residuals in HOSTILE remediation: portal modal WIP, package-boundary allowlist rubber-stamp, tours without `capacityMax` fixture path |

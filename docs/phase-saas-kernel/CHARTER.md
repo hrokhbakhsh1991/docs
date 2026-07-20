@@ -38,7 +38,7 @@ Engineering Stabilization (WP0–WP5) is closed for gate purposes. Residual P1s 
 | -- | ---- | ------ | --------- |
 | **SK0** | Inventory freeze | Maturity matrix with file evidence | Docs only |
 | **SK1** | Tenant + Authz contracts | Consumable contracts; no second member-session SoT (PCMS) | **CLOSED** |
-| **SK2** | Notification on outbox | Provider port on existing outbox/relay | After SK1 or parallel if scoped |
+| **SK2** | Notification on outbox | Provider port on existing outbox/relay | **DESIGNED** (impl = first adapter PR) |
 | **SK3** | Entitlement + Flags | Unify module access contracts | After SK1 |
 | **SK4** | Audit + File | Only when a second consumer needs them | Demand-driven |
 
@@ -62,9 +62,9 @@ Apply Entitlements → Provision Shared Services → Activate Workspace
 
 ## 7. Immediate next action
 
-SK0 filed. **SK1 CLOSED** (design + README + export freeze + pcms/import-boundary PASS).
+SK0 filed. **SK1 CLOSED**. **SK2 design filed** ([appendices/SK2_NOTIFICATION_OUTBOX.md](./appendices/SK2_NOTIFICATION_OUTBOX.md)) + outbox README.
 
-Next: **SK2** design-first (Notification on outbox). **No JWT extraction into package.**
+Next: SK2.C first notification adapter **when a real consumer exists**; or SK3 Entitlement/Flags design. **No empty notification package.**
 
 ## 8. Explicit non-goals now
 
