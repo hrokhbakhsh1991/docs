@@ -42,7 +42,7 @@ source: hostile production review of HEAD f607c376 + dirty WT
 
 | Item | Severity | Notes |
 | ---- | -------- | ----- |
-| 19 commits behind `origin/DEV` | P1 process | Cherry-equivalent for most portal/4B; asymmetric merge still hostile — schedule explicit DEV reconcile |
+| 19 commits behind `origin/DEV` | P1 process (closed for Stabilization WP0) | Reconcile filed: [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCILE.md) — **no blind merge**; all 19 have tip twins |
 | Portal login modal on WIP only | P1 product | Lives on `wip/portal-psc-20260718`, not this tip |
 | Package-boundary allowlist includes finance/booking workspaces | P1 rubber-stamp | Required by codegen bindings; isolation enforced by import-boundary AST + workspace isolation guards, not package.json set equality |
 | Tours without `capacityMax` still fall back to intake | P1 residual | Closed when tour SoT present; booking-ws2 without field remains fixture-compat path |
