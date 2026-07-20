@@ -89,6 +89,7 @@ Optional honesty gap only — full `pnpm build` never run on this train; WP4 rem
 | C8 prodlike capacityMax fail-closed | DONE |
 | C9 / C10 | PARKED with tickets |
 | Kernel design SK0–SK4 | DESIGN_COMPLETE |
+| **IMPL-SK2.C** | **DONE** (`registration.approved` / `in_app`) |
 
 ## Forbidden without unlock
 
