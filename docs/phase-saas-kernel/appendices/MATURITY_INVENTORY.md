@@ -15,6 +15,7 @@ date: 2026-07-20
 | Target | Current reality | Maturity | Posture |
 | ------ | --------------- | -------- | ------- |
 | Tenant Kernel | `packages/tenant-kernel` (host/RLS/route); Phase 4 docs + Postgres RLS; provision/smoke | **High** | Reuse Phase 4; no parallel package |
+| Tenant request ingress | `apps/api/src/tenant-kernel/` (JWT/dev-bearer/headers) — **not** the npm package | **High (host)** | Keep split; rename deferred (see SK1) |
 | Authorization | `apps/api` identity + CASL patterns; operator session; PCMS (`docs/standards/member-session-portal-authority.mdoc`) | **Medium–High** | Extract contracts where duplication hurts; portal remains member-session SoT |
 | Entitlement | `workspace-sdk` portal entitlements; `me.entitlements.routes` | **Low–Medium** | Contract later; no plans UI in first tranche |
 | Notification | Outbox + relay (Stabilization P0 hardened); no unified Email/SMS/in-app platform | **Medium transport / Low product** | Build on outbox; providers in SK2 |
@@ -37,8 +38,8 @@ date: 2026-07-20
 ## SK0 Done
 
 - [x] Matrix filed under `docs/phase-saas-kernel/`  
+- [x] SK1 kickoff design opened: [SK1_TENANT_AUTHZ_CONTRACTS.md](./SK1_TENANT_AUTHZ_CONTRACTS.md)  
 - [ ] Architect/engineer review notes (optional comments)  
-- [ ] SK1 kickoff doc or ticket opened  
 
 ## Residuals (not Kernel blockers)
 

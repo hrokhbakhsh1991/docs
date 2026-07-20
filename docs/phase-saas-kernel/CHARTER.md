@@ -62,7 +62,9 @@ Apply Entitlements → Provision Shared Services → Activate Workspace
 
 ## 7. Immediate next action
 
-Complete **SK0** review of [MATURITY_INVENTORY.md](./appendices/MATURITY_INVENTORY.md), then open SK1 implementation tickets/docs before code.
+SK0 filed. SK1 **design** filed: [appendices/SK1_TENANT_AUTHZ_CONTRACTS.md](./appendices/SK1_TENANT_AUTHZ_CONTRACTS.md).
+
+Next: accept SK1 design, then micro-PRs in §7 of that doc (API tenant-kernel README → package export freeze test). **No JWT extraction into package in SK1.**
 
 ## 8. Explicit non-goals now
 
