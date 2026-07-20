@@ -7,6 +7,7 @@ import { exportSPKI, generateKeyPair, SignJWT } from "jose";
 import {
   UNAUTHORIZED_BEARER_AUTH_REQUIRED_IN_PRODUCTION,
   UNAUTHORIZED_DEV_BEARER_DISABLED,
+  UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST,
   UNAUTHORIZED_MISSING_WORKSPACE_ID,
 } from "./auth-errors";
 import { encodeDevBearerToken } from "./parse-bearer";
@@ -54,6 +55,7 @@ function mockRequest(headers: Record<string, string>): IncomingMessage {
 
 describe("TenantKernel.resolveTenantContextFromRequest", () => {
   it("rejects missing x-workspace-id with 401 code", async () => {
+    process.env.NODE_ENV = "test";
     await assert.rejects(
       () =>
         resolveTenantContextFromRequest(
@@ -87,6 +89,27 @@ describe("TenantKernel.resolveTenantContextFromRequest", () => {
       (error: unknown) => {
         assert.ok(error instanceof Error);
         assert.equal(error.message, UNAUTHORIZED_DEV_BEARER_DISABLED);
+        return true;
+      }
+    );
+  });
+
+  it("rejects header-only auth in development (MR-P0-006)", async () => {
+    process.env.NODE_ENV = "development";
+    await assert.rejects(
+      () =>
+        resolveTenantContextFromRequest(
+          mockRequest({
+            "x-authenticated-tenant-id": "tenant-a",
+            "x-user-id": "u1",
+            "x-actor-role": "admin",
+            "x-membership-status": "ACTIVE",
+            "x-workspace-id": "ws-1",
+          })
+        ),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST);
         return true;
       }
     );

@@ -301,7 +301,7 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
 
       t.mock.timers.setTime(BASE_INSTANT_MS + 63_000);
       const ctx = await tryResolveJwtBearerAsync(`Bearer ${token}`);
-      assert.equal(ctx?.tenantId, jwtClaims.tenant_id);
+      assert.equal(ctx?.context.tenantId, jwtClaims.tenant_id);
 
       restoreAppClock(t);
     });
@@ -313,7 +313,7 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
 
       t.mock.timers.setTime(BASE_INSTANT_MS + 64_900);
       const ctx = await tryResolveJwtBearerAsync(`Bearer ${token}`);
-      assert.equal(ctx?.tenantId, jwtClaims.tenant_id);
+      assert.equal(ctx?.context.tenantId, jwtClaims.tenant_id);
 
       restoreAppClock(t);
     });
@@ -343,7 +343,7 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
 
       t.mock.timers.setTime(BASE_INSTANT_MS + 55_000);
       const ctx = await tryResolveJwtBearerAsync(`Bearer ${token}`);
-      assert.equal(ctx?.tenantId, jwtClaims.tenant_id);
+      assert.equal(ctx?.context.tenantId, jwtClaims.tenant_id);
 
       restoreAppClock(t);
     });

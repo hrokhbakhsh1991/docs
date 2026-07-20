@@ -1,8 +1,9 @@
-import type { ActorRole, MembershipStatus, TenantAuthContext } from "@app-tour/workspace-sdk";
-import { parseTenantAuthContext } from "@app-tour/workspace-sdk";
+import type { ActorRole, MembershipStatus, TenantAuthContext } from "@app-cloud/workspace-sdk";
+import { parseTenantAuthContext } from "@app-cloud/workspace-sdk";
 import { jwtVerify, type JWTPayload } from "jose";
 
 import { UNAUTHORIZED_INVALID_BEARER_TOKEN } from "./auth-errors";
+import { parseSessVerClaim } from "./jwt-session-claim";
 import { DEV_BEARER_PREFIX } from "./parse-bearer";
 import { isJwtVerifyConfigured, readJwtVerifyConfig } from "./jwt-env";
 import { loadPublicKey, type JwtPublicKey } from "./jwt-key.util";
@@ -11,6 +12,11 @@ let cachedPublicKey: JwtPublicKey | null = null;
 let cachedPublicKeyPem: string | null = null;
 let cachedPreviousPublicKey: JwtPublicKey | null = null;
 let cachedPreviousPublicKeyPem: string | null = null;
+
+export type JwtResolvedAuth = {
+  readonly context: TenantAuthContext;
+  readonly sessionVersion: number | undefined;
+};
 
 function bearerToken(authorization: string): string | null {
   const trimmed = authorization.trim();
@@ -54,7 +60,7 @@ async function verifyWithKey(
   issuer: string,
   audience: string,
   slot: "primary" | "previous"
-): Promise<TenantAuthContext> {
+): Promise<JwtResolvedAuth> {
   const key = await loadVerifyKey(pem, slot);
   const verified = await jwtVerify(token, key, {
     algorithms: ["RS256"],
@@ -79,20 +85,23 @@ function readCanonicalClaim(payload: JWTPayload, snakeKey: string, camelKey: str
   return snake.length > 0 ? snake : camel;
 }
 
-function mapJwtPayload(payload: JWTPayload): TenantAuthContext {
+function mapJwtPayload(payload: JWTPayload): JwtResolvedAuth {
   const userId = typeof payload.sub === "string" ? payload.sub.trim() : "";
   const tenantId = readCanonicalClaim(payload, "tenant_id", "tenantId");
   const role = (typeof payload.role === "string" ? payload.role.trim() : "") as ActorRole;
   const status = readCanonicalClaim(payload, "membership_status", "status") as MembershipStatus;
   const workspaceId = readCanonicalClaim(payload, "workspace_id", "workspaceId");
 
-  return parseTenantAuthContext({
-    userId,
-    tenantId,
-    role,
-    status: status.length > 0 ? status : "ACTIVE",
-    ...(workspaceId.length > 0 ? { workspaceId } : {}),
-  });
+  return {
+    context: parseTenantAuthContext({
+      userId,
+      tenantId,
+      role,
+      status: status.length > 0 ? status : "ACTIVE",
+      ...(workspaceId.length > 0 ? { workspaceId } : {}),
+    }),
+    sessionVersion: parseSessVerClaim(payload),
+  };
 }
 
 /**
@@ -101,7 +110,7 @@ function mapJwtPayload(payload: JWTPayload): TenantAuthContext {
  */
 export async function tryResolveJwtBearerAsync(
   authorization: string
-): Promise<TenantAuthContext | null> {
+): Promise<JwtResolvedAuth | null> {
   if (!isJwtShapedBearer(authorization)) {
     return null;
   }

@@ -57,9 +57,26 @@ describe("tryResolveJwtBearerAsync", () => {
       membership_status: "ACTIVE",
       workspace_id: "ws-jwt",
     });
-    const ctx = await tryResolveJwtBearerAsync(`Bearer ${token}`);
-    assert.equal(ctx?.tenantId, "tenant-jwt");
-    assert.equal(ctx?.workspaceId, "ws-jwt");
+    const resolved = await tryResolveJwtBearerAsync(`Bearer ${token}`);
+    assert.equal(resolved?.context.tenantId, "tenant-jwt");
+    assert.equal(resolved?.context.workspaceId, "ws-jwt");
+    assert.equal(resolved?.sessionVersion, undefined);
+  });
+
+  it("MR-P0-006: parses sess_ver claim from JWT", async () => {
+    process.env.AUTH_JWT_PUBLIC_KEY = publicKeyPem;
+    process.env.AUTH_JWT_ISSUER = "tour-ops";
+    process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
+    const token = await signTestJwt({
+      sub: "user-jwt",
+      tenant_id: "tenant-jwt",
+      role: "admin",
+      membership_status: "ACTIVE",
+      workspace_id: "ws-jwt",
+      sess_ver: "3",
+    });
+    const resolved = await tryResolveJwtBearerAsync(`Bearer ${token}`);
+    assert.equal(resolved?.sessionVersion, 3);
   });
 
   it("rejects conflicting tenant_id and tenantId aliases", async () => {

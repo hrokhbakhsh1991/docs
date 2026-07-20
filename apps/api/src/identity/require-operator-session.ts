@@ -1,8 +1,11 @@
 import type { IncomingMessage } from "node:http";
-import type { TenantAuthContext } from "@app-tour/workspace-sdk";
+import type { TenantAuthContext } from "@app-cloud/workspace-sdk";
 
 import { readRequestAuthHeaders } from "../auth/read-request-headers";
 import { assertRequiredAuthHeaders } from "../tenant-kernel/assert-required-headers";
+import { isProductionAuthMode } from "../tenant-kernel/auth-env";
+import { UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST } from "../tenant-kernel/auth-errors";
+import { readRequestJwtSessionVersion } from "../tenant-kernel/jwt-session-claim";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import { AuthTokenRevokedError, IdentityRequiredError } from "./identity.errors";
 import { hydrateMembershipFromDb } from "./hydrate-membership";
@@ -34,6 +37,9 @@ function assertOperatorAuthIngress(req: IncomingMessage): void {
   }
   const headers = readRequestAuthHeaders(req);
   if (hasPartialHeaderIngress(headers)) {
+    if (process.env.NODE_ENV !== "test") {
+      throw new Error(UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST);
+    }
     assertRequiredAuthHeaders(headers);
     return;
   }
@@ -54,18 +60,24 @@ export async function requireOperatorSession(
 ): Promise<TenantAuthContext> {
   assertOperatorAuthIngress(req);
 
-  // Header-only ingress (integration tests, dev shim) matches POST /tours: trust parsed
+  // Header-only ingress (NODE_ENV=test only) matches POST /tours: trust parsed
   // headers without a pre-ALS membership lookup that can race under concurrent load.
   const headerOnlyIngress =
     readAuthorizationHeader(req).length === 0 && readSessionCookieToken(req) === null;
 
-  const auth = await resolveTenantContextFromRequest(withSessionCookieBearer(req));
+  const authReq = withSessionCookieBearer(req);
+  const auth = await resolveTenantContextFromRequest(authReq);
   if (headerOnlyIngress) {
     return auth;
   }
 
+  const sessionVersionClaim = readRequestJwtSessionVersion(authReq);
+  if (isProductionAuthMode() && sessionVersionClaim === undefined) {
+    throw new AuthTokenRevokedError();
+  }
+
   try {
-    return await hydrateMembershipFromDb(auth.userId, auth.tenantId, undefined);
+    return await hydrateMembershipFromDb(auth.userId, auth.tenantId, sessionVersionClaim);
   } catch (error) {
     if (error instanceof AuthTokenRevokedError) {
       const pendingInviteAuth = await resolvePendingInviteAuth(auth.userId, auth.tenantId);

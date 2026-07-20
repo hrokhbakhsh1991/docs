@@ -15,15 +15,16 @@ tests:
 | Environment   | Bearer `Authorization`           | Unsigned `dev.*` bearer                   | Header-only (`x-authenticated-*`) |
 | ------------- | -------------------------------- | ----------------------------------------- | --------------------------------- |
 | `production`  | **Required** — RS256 JWT only    | **Forbidden** (startup + ingress)         | **Forbidden**                     |
-| `development` | Optional JWT if `AUTH_JWT_*` set | Forbidden unless misconfigured flag       | Allowed (local / integration)     |
+| `development` | Optional JWT if `AUTH_JWT_*` set | Forbidden unless misconfigured flag       | **Forbidden** (MR-P0-006)         |
 | `test`        | JWT when configured              | Allowed when `AUTH_ALLOW_DEV_BEARER=true` | Allowed                           |
 
 ### Production fail-closed
 
 1. **Boot:** `assertAuthEnvironmentIntegrity()` requires `AUTH_JWT_PUBLIC_KEY`, `AUTH_JWT_ISSUER`, and `AUTH_JWT_AUDIENCE` when `NODE_ENV=production`. Missing config throws `AUTH_JWT_REQUIRED_IN_PRODUCTION` before the server listens.
-2. **Ingress:** `resolveTenantContextFromRequest` rejects requests **without** a non-empty `Authorization` header in production (`UNAUTHORIZED_BEARER_AUTH_REQUIRED_IN_PRODUCTION`). Verified JWT is the only production identity path.
+2. **Ingress:** `resolveTenantContextFromRequest` rejects requests **without** a non-empty `Authorization` header in production (`UNAUTHORIZED_BEARER_AUTH_REQUIRED_IN_PRODUCTION`). Verified JWT is the only production identity path. Header-only is also rejected in `development` (`UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST`) — only `NODE_ENV=test` may use `x-*` auth headers (MR-P0-006).
 3. **Dev bearer:** `AUTH_ALLOW_DEV_BEARER=true` remains illegal outside `NODE_ENV=test` (`AUTH_DEV_BEARER_FORBIDDEN_OUTSIDE_TEST`).
 4. **Test harness (fail-closed):** `APPS_API_PRODUCTION_AUTH_HARNESS=1` is permitted **only** when `NODE_ENV=test`. Under `NODE_ENV=production`, the flag is **rejected at boot** (`PRODUCTION_AUTH_HARNESS_FORBIDDEN`) — not ignored. See `apps/api/src/test/production-auth-harness.ts`.
+5. **Session version (MR-P0-006):** Operator JWT/cookie sessions must carry `sess_ver`. `requireOperatorSession` passes the claim into `hydrateMembershipFromDb`; mismatch or missing claim under production → `AuthTokenRevokedError` (revoked admins cannot keep operating).
 
 ### Dev bearer TTL (test only)
 
@@ -60,7 +61,7 @@ Treat **staging** like production for auth — not like local development:
 | Setting                    | Staging                                           | Development              |
 | -------------------------- | ------------------------------------------------- | ------------------------ |
 | `NODE_ENV`                 | `production` (recommended) or enforce gateway JWT | `development`            |
-| Header-only tenant headers | **Forbidden** on public ingress                   | Allowed for local wizard |
+| Header-only tenant headers | **Forbidden** on public ingress                   | **Forbidden** (use JWT or `NODE_ENV=test` harness) |
 | `AUTH_ALLOW_DEV_BEARER`    | **Forbidden**                                     | N/A in prod-like stacks  |
 | `AUTH_JWT_*`               | **Required**                                      | Optional                 |
 
