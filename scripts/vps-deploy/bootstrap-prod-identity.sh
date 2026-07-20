@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # One-time / idempotent prod bootstrap: Denali tenant row + operator owner identity.
 # ProvisioningService is dev-gated — seed runs with NODE_ENV=development override only here.
+#
+# MR-P0-013: do NOT run on every deploy. Require FORCE_BOOTSTRAP=1 explicitly.
 set -euo pipefail
 
-ENV_FILE="${1:-/etc/app-tour/api.env}"
-DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-tour}"
+if [[ "${FORCE_BOOTSTRAP:-}" != "1" ]]; then
+  echo "bootstrap-prod-identity: skipped (set FORCE_BOOTSTRAP=1 for one-time seed)" >&2
+  exit 0
+fi
+
+ENV_FILE="${1:-/etc/app-cloud/api.env}"
+DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-cloud}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "bootstrap-prod-identity: missing $ENV_FILE" >&2

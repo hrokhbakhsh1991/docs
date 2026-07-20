@@ -57,11 +57,16 @@ run_as_app "
 
 bash "$DEPLOY_PATH/scripts/vps-deploy/sync-db-app-role-grants.sh" "$ENV_DIR/api.env"
 
-run_as_app "
-  set -euo pipefail
-  cd '$DEPLOY_PATH'
-  bash scripts/vps-deploy/bootstrap-prod-identity.sh '$ENV_DIR/api.env'
-"
+# MR-P0-013: identity bootstrap is opt-in (FORCE_BOOTSTRAP=1), not every deploy.
+if [[ "${FORCE_BOOTSTRAP:-}" == "1" ]]; then
+  run_as_app "
+    set -euo pipefail
+    cd '$DEPLOY_PATH'
+    FORCE_BOOTSTRAP=1 bash scripts/vps-deploy/bootstrap-prod-identity.sh '$ENV_DIR/api.env'
+  "
+else
+  log "skip bootstrap-prod-identity (set FORCE_BOOTSTRAP=1 for one-time seed)"
+fi
 
 log "sync web BFF upstream port with api.env"
 bash "$DEPLOY_PATH/scripts/vps-deploy/ensure-p8-profile-b-fallback.sh"

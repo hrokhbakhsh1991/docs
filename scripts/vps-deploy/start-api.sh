@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# systemd ExecStart — API runtime (tsx) until @apps/api production tsc is green.
+# systemd ExecStart — production API must run compiled dist (MR-P0-013).
 set -euo pipefail
 
-DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-tour}"
-ENV_DIR="${ENV_DIR:-/etc/app-tour}"
+DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-cloud}"
+ENV_DIR="${ENV_DIR:-/etc/app-cloud}"
 
 cd "${DEPLOY_PATH}/apps/api"
 set -a
@@ -11,9 +11,9 @@ set -a
 source "${ENV_DIR}/api.env"
 set +a
 
-if [[ -f dist/main.js ]]; then
-  exec node dist/main.js
+if [[ ! -f dist/main.js ]]; then
+  echo "[start-api] ERROR: dist/main.js missing — refuse tsx fallback in production (MR-P0-013)" >&2
+  exit 1
 fi
 
-echo "[start-api] dist/main.js missing — falling back to tsx runtime" >&2
-exec node --import tsx src/main.ts
+exec node dist/main.js

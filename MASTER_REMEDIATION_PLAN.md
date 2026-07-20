@@ -23,6 +23,7 @@ progress:
   MR-P0-010: done (ownership before putMemberReceiptProof; 3/3 specs)
   MR-P0-009: done (composite id+tenantId writes; adapter requires injected repo)
   MR-P0-008: done (PRODUCTION_OUTBOX_RELAY_REQUIRED; api.env.example true)
+  MR-P0-013: done (no tsx fallback; FORCE_BOOTSTRAP; SSH yes; secrets fail-closed from 004)
 ```
 
 

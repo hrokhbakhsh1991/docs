@@ -125,6 +125,23 @@ Prisma is **forward-only** — there is no `migrate down`. Coordinated revert sp
 - `prisma migrate reset` or manual `DROP` on production tenant tables.
 - `pnpm run db:test-reset` against production URLs (DEC-095).
 
+## VPS deploy hardening (MR-P0-013 / MR-P0-004)
+
+| Rule | Enforcement |
+| ---- | ----------- |
+| No silent skip without VPS secrets | `deploy-vps.yml` fails if `VPS_HOST` / `VPS_SSH_KEY` missing |
+| No cancel mid-flight | `cancel-in-progress: false` on deploy concurrency group |
+| Required checks before deploy | `wait-for-required-checks.mjs` job |
+| API runtime = compiled `dist/main.js` | `start-api.sh` exits 1 if dist missing (no tsx fallback) |
+| Identity bootstrap not every deploy | `FORCE_BOOTSTRAP=1` required for `bootstrap-prod-identity.sh` |
+| SSH host keys | `StrictHostKeyChecking=yes` after `ssh-keyscan` |
+
+One-time seed on a new VPS:
+
+```bash
+FORCE_BOOTSTRAP=1 DEPLOY_PATH=/opt/app-cloud bash scripts/vps-deploy/bootstrap-prod-identity.sh /etc/app-cloud/api.env
+```
+
 ## Backup / RPO / RTO (DEC-125 / CAE-GAP-14)
 
 | Objective | Target       | Notes                                                       |

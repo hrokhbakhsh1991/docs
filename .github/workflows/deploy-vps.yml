@@ -82,7 +82,7 @@ jobs:
         run: |
           USER="${VPS_USER:-root}"
           PATH_ON_SERVER="${DEPLOY_PATH:-/opt/app-cloud}"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
             "${USER}@${VPS_HOST}" \
             "DEPLOY_PATH='${PATH_ON_SERVER}' bash '${PATH_ON_SERVER}/scripts/vps-deploy/remote-deploy.sh'"
 
