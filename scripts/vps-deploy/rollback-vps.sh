@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# P10-3-N-003 — Idempotent VPS rollback to a known git SHA + four-process smoke
-# Usage: ROLLBACK_SHA=<sha> DEPLOY_PATH=/opt/app-tour ENV_DIR=/etc/app-tour bash rollback-vps.sh
+# P10-3-N-003 / MR-P0-014 — VPS rollback: code SHA + optional DB restore
+# Usage:
+#   ROLLBACK_SHA=<sha> ROLLBACK_DB_DUMP=/path/to.dump \
+#     DEPLOY_PATH=/opt/app-cloud ENV_DIR=/etc/app-cloud bash rollback-vps.sh
+# Code-only (schema stays forward — explicit opt-in):
+#   ROLLBACK_SHA=<sha> ROLLBACK_CODE_ONLY=1 bash rollback-vps.sh
 set -euo pipefail
 
-DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-tour}"
-ENV_DIR="${ENV_DIR:-/etc/app-tour}"
-APP_USER="${APP_USER:-app-tour}"
+DEPLOY_PATH="${DEPLOY_PATH:-/opt/app-cloud}"
+ENV_DIR="${ENV_DIR:-/etc/app-cloud}"
+APP_USER="${APP_USER:-app-cloud}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 TARGET_SHA="${ROLLBACK_SHA:-}"
 
@@ -25,22 +29,48 @@ if [[ "${ROLLBACK_DRY_RUN:-}" == "1" ]]; then
   exec bash "$(dirname "$0")/rollback-vps-dry-run.sh"
 fi
 
+CODE_ONLY="${ROLLBACK_CODE_ONLY:-0}"
+DB_DUMP="${ROLLBACK_DB_DUMP:-}"
+if [[ "$CODE_ONLY" != "1" && -z "$DB_DUMP" ]]; then
+  die "MR-P0-014: set ROLLBACK_DB_DUMP=/path/to.pre-migrate.dump (or ROLLBACK_CODE_ONLY=1 to leave DB forward)"
+fi
+if [[ "$CODE_ONLY" == "1" ]]; then
+  log "WARNING: ROLLBACK_CODE_ONLY=1 — git resets; Postgres schema/data stay at forward tip"
+elif [[ ! -f "$DB_DUMP" ]]; then
+  die "ROLLBACK_DB_DUMP not found: $DB_DUMP"
+fi
+
 if [[ -z "${UNIT_PREFIX:-}" ]]; then
   if [[ "$ENV_DIR" == *staging* || "$DEPLOY_PATH" == *staging* ]]; then
-    UNIT_PREFIX="app-tour-staging"
+    UNIT_PREFIX="app-cloud-staging"
   else
-    UNIT_PREFIX="app-tour"
+    UNIT_PREFIX="app-cloud"
   fi
 fi
 
-log "rollback $DEPLOY_PATH → ${TARGET_SHA}"
+log "stop API before rollback"
+systemctl stop "${UNIT_PREFIX}-api.service" || true
+
+if [[ "$CODE_ONLY" != "1" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${ENV_DIR}/api.env"
+  set +a
+  ADMIN_URL="${DATABASE_URL_ADMIN:-}"
+  [[ -n "$ADMIN_URL" ]] || die "DATABASE_URL_ADMIN required to restore dump"
+  log "restore DB from $DB_DUMP"
+  pg_restore --clean --if-exists --no-owner --dbname="$ADMIN_URL" "$DB_DUMP" \
+    || die "pg_restore failed — refuse code rollback with half-restored DB"
+fi
+
+log "rollback code $DEPLOY_PATH → ${TARGET_SHA}"
 cd "$DEPLOY_PATH"
 git fetch origin "$BRANCH"
 git reset --hard "$TARGET_SHA"
 chown -R "$APP_USER:$APP_USER" "$DEPLOY_PATH"
 
 log "restart four processes"
-systemctl restart "${UNIT_PREFIX}-api.service"
+systemctl start "${UNIT_PREFIX}-api.service"
 systemctl restart "${UNIT_PREFIX}-web.service"
 if [[ -f "$ENV_DIR/marketing.env" ]]; then
   systemctl restart "${UNIT_PREFIX}-marketing.service"

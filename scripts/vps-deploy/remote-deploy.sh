@@ -43,6 +43,9 @@ run_as_app() {
   sudo -u "$APP_USER" env HOME="$DEPLOY_PATH" PATH="/usr/local/bin:/usr/bin:/bin" bash -lc "$1"
 }
 
+log "pre-migrate Postgres dump (MR-P0-014 restore point)"
+bash "$DEPLOY_PATH/scripts/vps-deploy/pre-migrate-pg-dump.sh" || die "pre-migrate dump failed — refuse migrate without restore point"
+
 run_as_app "
   set -euo pipefail
   cd '$DEPLOY_PATH'

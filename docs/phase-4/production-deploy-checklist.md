@@ -135,11 +135,20 @@ Prisma is **forward-only** — there is no `migrate down`. Coordinated revert sp
 | API runtime = compiled `dist/main.js` | `start-api.sh` exits 1 if dist missing (no tsx fallback) |
 | Identity bootstrap not every deploy | `FORCE_BOOTSTRAP=1` required for `bootstrap-prod-identity.sh` |
 | SSH host keys | `StrictHostKeyChecking=yes` after `ssh-keyscan` |
+| Pre-migrate dump | `pre-migrate-pg-dump.sh` before `db:migrate:deploy` (MR-P0-014) |
+| Rollback = code + DB | `rollback-vps.sh` requires `ROLLBACK_DB_DUMP` (or explicit `ROLLBACK_CODE_ONLY=1`) |
 
 One-time seed on a new VPS:
 
 ```bash
 FORCE_BOOTSTRAP=1 DEPLOY_PATH=/opt/app-cloud bash scripts/vps-deploy/bootstrap-prod-identity.sh /etc/app-cloud/api.env
+```
+
+Paired rollback after a bad migrate:
+
+```bash
+ROLLBACK_SHA=<pre-deploy-sha> ROLLBACK_DB_DUMP=/var/backups/app-cloud/pre-migrate-….dump \
+  bash scripts/vps-deploy/rollback-vps.sh
 ```
 
 ## Backup / RPO / RTO (DEC-125 / CAE-GAP-14)

@@ -26,6 +26,7 @@ progress:
   MR-P0-013: done (no tsx fallback; FORCE_BOOTSTRAP; SSH yes; secrets fail-closed from 004)
   MR-P0-011: done (partial unique indexes + P2002→BOOKING_GUEST_DUPLICATE)
   MR-P0-015: done (HTTP-PG cert fail-closed; no silent skip)
+  MR-P0-014: done (pre-migrate dump + rollback requires DB dump or CODE_ONLY)
 ```
 
 
