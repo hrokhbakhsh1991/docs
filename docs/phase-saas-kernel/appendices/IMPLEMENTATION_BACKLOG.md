@@ -22,7 +22,7 @@ Companion designs: [SK2](./SK2_NOTIFICATION_OUTBOX.md) · [SK3](./SK3_ENTITLEMEN
 | ----- | ------ |
 | Stabilization WP0–WP5 + WP-GATE | **DONE** (pushed) |
 | Kernel design SK0–SK4 | **DONE** |
-| Kernel implementation | **WAITING on triggers below** |
+| Kernel implementation | **PARTIAL** — SK2.C **DONE**; other IMPL rows waiting |
 
 ---
 
@@ -30,7 +30,7 @@ Companion designs: [SK2](./SK2_NOTIFICATION_OUTBOX.md) · [SK3](./SK3_ENTITLEMEN
 
 | ID | Work | Trigger (must be true) | Forbidden without trigger |
 | -- | ---- | ---------------------- | ------------------------- |
-| **IMPL-SK2.C** | `NotificationDeliveryPort` + first real adapter (email/SMS/in-app or prod-shaped provider) wired from outbox/relay | Named product/event that must notify users **and** owner assigned | Log-only port with zero call sites; empty `packages/notification-*` |
+| **IMPL-SK2.C** | `NotificationDeliveryPort` + first real adapter wired from outbox/relay | **DONE** — `registration.approved` + `in_app` (2026-07-21) | Empty `packages/notification-*`; log-only with zero call sites |
 | **IMPL-SK3-FLAGS** | Add field(s) to `TenantFeatureFlags` | Product need + theme JSON migration plan in same PR | Flag keys “for later” |
 | **IMPL-SK3-BP7** | Plan tables / webhooks for portal entitlements | Phase-19 BP-7 / MPS-ENT sign-off | Fake plan SKUs |
 | **IMPL-SK4-OBJ** | `TenantObjectStoragePort` wrapping MinIO | New ACL/lifecycle policy shared by ≥2 blob families **beyond** today’s shared client | Second MinIO stack; touch tour aggregate storage |

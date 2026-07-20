@@ -364,6 +364,10 @@ export async function publishClaimedOutboxRow(row: ClaimedOutboxRow): Promise<vo
     await import("../integrations/application/dispatch-integration-domain-event");
   await dispatchIntegrationDomainEvent(toWorkspaceOutboxPublishedRow(row));
 
+  const { dispatchRegistrationApprovedNotification } =
+    await import("../notifications/dispatch-registration-approved-notification");
+  await dispatchRegistrationApprovedNotification(toWorkspaceOutboxPublishedRow(row));
+
   await markOutboxDoneWithRetry(row);
 }
 

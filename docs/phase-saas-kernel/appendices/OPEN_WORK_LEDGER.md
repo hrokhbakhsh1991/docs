@@ -40,9 +40,10 @@ Status legend: `DONE` · `PARTIAL` · `OPEN` · `BLOCKED_ON_ARCHITECT` · `PARKE
 
 ## D — Kernel implementation
 
-| ID | Item | Status |
-| -- | ---- | ------ |
-| D-* | All `IMPL-SK*` rows | BLOCKED_ON_ARCHITECT | Paste from unlock menu |
+| ID | Item | Status | Notes |
+| -- | ---- | ------ | ----- |
+| D-SK2.C | NotificationDeliveryPort + first adapter | **DONE** | `registration.approved` / `in_app` — [SK2_C_IMPLEMENTATION.md](./SK2_C_IMPLEMENTATION.md) |
+| D-* (rest) | Other `IMPL-SK*` rows | BLOCKED_ON_ARCHITECT | Unlock menu — not this continue |
 
 ## E — Explicit non-work
 

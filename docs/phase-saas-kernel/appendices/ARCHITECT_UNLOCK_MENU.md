@@ -8,10 +8,13 @@ branch: booking/capacity-concurrency-cert
 as_of: 2026-07-21
 ```
 
-Stabilization B4–C10 and Kernel **design** (SK0–SK4) are closed on tip.  
-Saying «ادامه بده» alone does **not** unlock implementation — paste one block below.
+## Active unlocks
 
-Stop gate: [AGENT_STOP_GATE.md](./AGENT_STOP_GATE.md) · Backlog: [IMPLEMENTATION_BACKLOG.md](./IMPLEMENTATION_BACKLOG.md) · Ledger: [OPEN_WORK_LEDGER.md](./OPEN_WORK_LEDGER.md)
+| Unlock | Status |
+| ------ | ------ |
+| `YES — IMPL-SK2.C` | **DONE** — `registration.approved` / `in_app` — [SK2_C_IMPLEMENTATION.md](./SK2_C_IMPLEMENTATION.md) |
+
+All other menu rows remain locked until pasted.
 
 ---
 

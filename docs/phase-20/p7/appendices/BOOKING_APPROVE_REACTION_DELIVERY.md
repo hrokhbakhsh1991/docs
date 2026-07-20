@@ -18,7 +18,8 @@ Approve has **two independent channels**. They are not substitutes.
 | Consumer surface | Channel | Durable? | Delivery | Exactly once? | Triggered by outbox replay? |
 | ---------------- | ------- | -------- | -------- | ------------- | --------------------------- |
 | Host relay / notification / external subscribers | Outbox `registration.approved` | **Yes** (same TX as status) | Write: **at-most-once insert** per `domainEventId`; relay publish: **at-least-once** | **No** (end-to-end) | **Yes** (replay re-queues row for relay only) |
-| Workspace `reactAfterApprove` | In-process callback after TX commit | **No** | **Best-effort** (lost if process dies after commit or before/during callback; adapter state is process-local) | **No** | **No** |
+| `NotificationDeliveryPort` (SK2.C in_app) | Same outbox publish path | Adapter idempotent on correlation | Sink after relay publish | **No** (adapter de-dupes) | **Yes** (re-publish hits adapter; idempotent) |
+| Workspace `reactAfterApprove` | In-process callback after TX commit | **No** | **Best-effort** | **No** | **No** |
 
 ```text
 approveBooking

@@ -4,9 +4,7 @@
 doc_id: SK2_NOTIFICATION_OUTBOX
 tranche: SK2
 status: DESIGN_CLOSED
-as_of_tip: adfd019f
-date: 2026-07-20
-code_scaffold: none_until_first_consumer_port_pr
+code_scaffold: apps/api/src/notifications (SK2.C LANDED)
 ```
 
 **Principle:** Notifications are **effects of durable outbox events**, not a parallel fire-and-forget bus. Reuse Stabilization P0 relay posture. Do not invent a Denali-shaped mailer inside the kernel.
@@ -89,13 +87,23 @@ flowchart LR
 | ------ | ------ |
 | `apps/api/src/outbox/README.md` — outbox = notification transport backbone; link SK2 | **Done** |
 
-### SK2.C — First adapter PR (later, demand-driven)
+### SK2.C — First adapter PR — **LANDED**
 
-| Action | Gate |
-| ------ | ---- |
-| Introduce `NotificationDeliveryPort` next to host composition (or thin package) **with** one real adapter (e.g. log/dev or email) | Same PR — no hollow package |
-| Targeted specs: idempotent deliver + tenant on command | Required |
-| Do not weaken relay posture tests | Required |
+| Field | Value |
+| ----- | ----- |
+| Unlock | Architect `YES — IMPL-SK2.C` (2026-07-21) |
+| `first_event` | `registration.approved` |
+| `channel` | `in_app` |
+| `owner` | Architect (chat unlock) |
+| Implementation notes | [SK2_C_IMPLEMENTATION.md](./SK2_C_IMPLEMENTATION.md) |
+| Evidence | `apps/api/src/notifications/*` + relay wire; `notification-delivery.port.spec.ts` 5/5 PASS |
+
+| Action | Status |
+| ------ | ------ |
+| `NotificationDeliveryPort` + in_app adapter (no hollow package) | **Done** |
+| Specs: idempotent deliver + tenant on command | **Done** |
+| Relay posture tests unchanged | **Done** (posture 5/5 PASS) |
+| Wire from outbox relay for `registration.approved` | **Done** |
 
 ### SK2.D — Explicit non-goals
 
@@ -111,7 +119,7 @@ flowchart LR
 | Tier | Criteria |
 | ---- | -------- |
 | **SK2 design closed** | This doc + outbox README filed; CHARTER points here |
-| **SK2 implementation closed** | SK2.C landed with one real adapter + specs (separate continue) |
+| **SK2 implementation closed** | SK2.C landed — [SK2_C_IMPLEMENTATION.md](./SK2_C_IMPLEMENTATION.md) |
 
 This close of the Stabilization→Kernel train treats **SK2 design** as the required deliverable; implementation waits for an explicit consumer (avoid empty kernel).
 

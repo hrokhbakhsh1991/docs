@@ -18,7 +18,9 @@ PostgreSQL-backed **outbox** enqueue + relay + production posture:
 
 Kernel notifications must ride this transport (see SK2 doc). There is **no** separate fire-and-forget notification bus.
 
-Workspace/finance/booking **reactions** are domain side-effects registered via codegen — they are not a unified Email/SMS platform. A future `NotificationDeliveryPort` adapter plugs in beside relay without Denali templates in core.
+**SK2.C (landing):** `apps/api/src/notifications/` — `NotificationDeliveryPort` + in-app structured adapter, dispatched from `publishClaimedOutboxRow` for `registration.approved`. See [SK2_C_IMPLEMENTATION.md](../../../phase-saas-kernel/appendices/SK2_C_IMPLEMENTATION.md).
+
+Workspace/finance/booking **reactions** remain domain side-effects — not a unified Email/SMS platform.
 
 ## Related
 
