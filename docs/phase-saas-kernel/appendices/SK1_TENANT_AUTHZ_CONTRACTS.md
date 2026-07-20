@@ -3,7 +3,7 @@
 ```yaml
 doc_id: SK1_TENANT_AUTHZ_CONTRACTS
 tranche: SK1
-status: DESIGNED
+status: CLOSED
 as_of_tip: 612fdfcb
 date: 2026-07-20
 code_changes_this_doc: none
@@ -111,14 +111,14 @@ flowchart LR
 | Action | Risk | Decision |
 | ------ | ---- | -------- |
 | Rename `apps/api/src/tenant-kernel/` → e.g. `tenant-ingress/` | High churn | **Defer** — document alias first; rename only with dedicated PR + import-boundary update |
-| Add README in `apps/api/src/tenant-kernel/README.md` pointing to package vs host | Low | **Allowed next micro-PR** |
+| Add README in `apps/api/src/tenant-kernel/README.md` pointing to package vs host | Low | **Done** — `apps/api/src/tenant-kernel/README.md` |
 
 ### SK1.C — Contract tests (package only)
 
 | Action | Verify |
 | ------ | ------ |
-| Assert package public API allowlist matches freeze table | Extend `packages/tenant-kernel` contract / phase-4 tests — **separate code PR after this design accept** |
-| Guard: package src has zero Prisma / Nest / `apps/` imports | Prefer existing phase-4 package tests; add only if gap proven |
+| Assert package public API allowlist matches freeze table | **Done** — `packages/tenant-kernel/test/sk1-public-api-freeze.spec.ts` |
+| Guard: package src has zero Prisma / Nest / `apps/` imports | **Done** — same spec (static src walk) |
 
 ### SK1.D — PCMS / operator boundary smoke (no product UI)
 
@@ -139,24 +139,25 @@ flowchart LR
 
 ## 6. Definition of Done — SK1
 
-SK1 is **complete** when:
+SK1 is **CLOSED** when (all met):
 
-1. This design is accepted (Architect / continue on SK1).  
-2. Package export freeze is enforced by a **targeted** package test or guard (SK1.C) — code PR.  
-3. `apps/api/src/tenant-kernel/README.md` (or equivalent) documents host vs package split (SK1.B micro-PR).  
-4. `guard:pcms-authority` + `guard:import-boundary` PASS on tip.  
-5. No member-session write path added outside portal.
+1. Design accepted (Architect continue) — **yes**  
+2. Package export freeze spec — **done** (`packages/tenant-kernel/test/sk1-public-api-freeze.spec.ts`)  
+3. API host README for dual-surface — **done** (`apps/api/src/tenant-kernel/README.md`)  
+4. `guard:pcms-authority` + `guard:import-boundary` — **both PASS**  
+5. No member-session write path added outside portal — **held**
 
-SK1 is **not** complete merely by filing this doc — items 2–4 remain for the careful code tranche.
+**SK1 CLOSED.** Next tranche: SK2 (Notification on outbox) — design-first before code.
 
 ---
 
 ## 7. Suggested next PR sequence (after design accept)
 
 ```text
-PR-SK1-docs   (this file + README/CHARTER links)     ← current
-PR-SK1-readme (apps/api/src/tenant-kernel/README.md) ← tiny
-PR-SK1-freeze (tenant-kernel export allowlist spec)  ← targeted test
+PR-SK1-docs   (this file + README/CHARTER links)     ← landed
+PR-SK1-readme (apps/api/src/tenant-kernel/README.md) ← landed
+PR-SK1-freeze (tenant-kernel export allowlist spec)  ← landed (this tip)
+PR-SK1-close  (guard:pcms-authority + mark SK1 CLOSED)
 ```
 
 No Shared Kernel package scaffolding in SK1.

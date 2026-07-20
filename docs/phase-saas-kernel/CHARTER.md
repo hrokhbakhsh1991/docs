@@ -37,7 +37,7 @@ Engineering Stabilization (WP0–WP5) is closed for gate purposes. Residual P1s 
 | WP | Name | Intent | Code now? |
 | -- | ---- | ------ | --------- |
 | **SK0** | Inventory freeze | Maturity matrix with file evidence | Docs only |
-| **SK1** | Tenant + Authz contracts | Consumable contracts; no second member-session SoT (PCMS) | Only after SK0 accepted |
+| **SK1** | Tenant + Authz contracts | Consumable contracts; no second member-session SoT (PCMS) | **CLOSED** |
 | **SK2** | Notification on outbox | Provider port on existing outbox/relay | After SK1 or parallel if scoped |
 | **SK3** | Entitlement + Flags | Unify module access contracts | After SK1 |
 | **SK4** | Audit + File | Only when a second consumer needs them | Demand-driven |
@@ -62,9 +62,9 @@ Apply Entitlements → Provision Shared Services → Activate Workspace
 
 ## 7. Immediate next action
 
-SK0 filed. SK1 **design** filed: [appendices/SK1_TENANT_AUTHZ_CONTRACTS.md](./appendices/SK1_TENANT_AUTHZ_CONTRACTS.md).
+SK0 filed. **SK1 CLOSED** (design + README + export freeze + pcms/import-boundary PASS).
 
-Next: accept SK1 design, then micro-PRs in §7 of that doc (API tenant-kernel README → package export freeze test). **No JWT extraction into package in SK1.**
+Next: **SK2** design-first (Notification on outbox). **No JWT extraction into package.**
 
 ## 8. Explicit non-goals now
 

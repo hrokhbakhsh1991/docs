@@ -27,7 +27,7 @@ Reusable SaaS operating-system kernels consumed by every customer and workspace 
 ## First tranche order
 
 1. **SK0** — Inventory freeze (filed)  
-2. **SK1** — Tenant + Authz contract hardening (**design filed**; code PRs pending)  
+2. **SK1** — Tenant + Authz contract hardening (**CLOSED**)  
 3. **SK2** — Notification on outbox  
 4. **SK3** — Entitlement + Feature Flags contracts  
 5. **SK4** — Audit + File (demand-driven)
