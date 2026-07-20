@@ -4,7 +4,9 @@
 doc_id: STABILIZATION_WP_GATE
 status: READY_FOR_ARCHITECT_SIGN_OFF
 branch: booking/capacity-concurrency-cert
-tip_at_gate: 3ae0481e
+tip_at_gate: 105dd8c8
+reverified_at: 2026-07-20
+kernel_design_draft: TEMP/SAAS_SHARED_KERNEL_DESIGN_DRAFT.md
 created: 2026-07-20
 charter: TEMP/STABILIZATION_CHARTER.md §9
 ```
@@ -20,12 +22,12 @@ Companion: [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCIL
 | # | Criterion | Status | Evidence |
 | - | --------- | ------ | -------- |
 | 1 | WP0 lost-work / DEV asymmetry report filed (merge not required) | **PASS** | [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCILE.md) — 19 DEV commits have tip twins; no blind merge; stash policy locked |
-| 2 | WP1 codegen `--check` green on landed tip | **PASS** | `pnpm run generate:workspace-registry -- --check` → PASS (10 manifests) @ `3ae0481e` |
+| 2 | WP1 codegen `--check` green on landed tip | **PASS** | `pnpm run generate:workspace-registry -- --check` → PASS (10 manifests) @ `105dd8c8` (re-verified) |
 | 3 | WP2 fixture integrity accepted (no weaken-to-pass) | **PASS** | Guest phone unique migration + capacity authority specs landed in `f1956621`; uniqueness docs updated; postgres stress suites deferred (not weakened) |
 | 4 | WP3 all four P0 models evidenced | **PASS** | [HOSTILE_AUDIT_REMEDIATION.md](./HOSTILE_AUDIT_REMEDIATION.md): capacity port, `finance:recon`, outbox worker role, codegen unique symbols — commit `f1956621` |
 | 5 | WP4 no open build blockers (or explicit deferral) | **PASS (deferred)** | No build blocker after land; reopen only on evidence. Owner: Stabilization train / Architect |
-| 6 | WP5 import-boundary green; residual P1s listed | **PASS** | `guard:import-boundary` PASS @ `3ae0481e` (public-api dist assert fix). Residuals in HOSTILE remediation: portal modal WIP, package-boundary allowlist rubber-stamp, tours without `capacityMax` fixture path |
-| 7 | Working tree clean or parked with ticket | **PASS** | `git status --porcelain` empty @ gate snapshot; tip ahead of origin by 3 commits (unpushed) |
+| 6 | WP5 import-boundary green; residual P1s listed | **PASS** | `guard:import-boundary` PASS @ `105dd8c8` (re-verified). Residuals in HOSTILE remediation: portal modal WIP, package-boundary allowlist rubber-stamp, tours without `capacityMax` fixture path |
+| 7 | Working tree clean or parked with ticket | **PASS** | `git status --porcelain` empty @ gate snapshot; tip ahead of origin by **4** commits (unpushed) |
 | 8 | Charter COMPLETE + Kernel charter opened under `docs/` | **PENDING** | Requires **Architect YES** — this doc is the sign-off surface |
 
 ---
@@ -37,8 +39,9 @@ Companion: [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCIL
 | `f1956621` | Hostile P0 capacity / recon / outbox / codegen train |
 | `6cfb7e21` | WP0 DEV reconcile docs |
 | `3ae0481e` | finance-core public-api boundary-safe dist assert |
+| `105dd8c8` | WP-GATE evidence pack |
 
-Branch: `booking/capacity-concurrency-cert` — **3 commits ahead of origin** (push not part of this gate).
+Branch: `booking/capacity-concurrency-cert` — **4 commits ahead of origin** (push not part of this gate).
 
 ---
 
@@ -51,6 +54,16 @@ Branch: `booking/capacity-concurrency-cert` — **3 commits ahead of origin** (p
 - Marking TEMP charter `status: COMPLETE` without Architect
 
 ---
+
+## Kernel design draft (TEMP only)
+
+Careful continuation produced a **non-authoritative** design draft — not an ACCEPTED Kernel charter:
+
+- `TEMP/SAAS_SHARED_KERNEL_DESIGN_DRAFT.md`
+
+Key finding: Tenant Kernel / outbox / identity / flags already substantial; Kernel phase must **inventory + gap-close**, not reinvent Phase 4 (`docs/phase-4-tenant-kernel.md`).
+
+**Do not** promote that draft under `docs/` until `architect_decision: ACCEPTED`.
 
 ## Architect sign-off block
 
