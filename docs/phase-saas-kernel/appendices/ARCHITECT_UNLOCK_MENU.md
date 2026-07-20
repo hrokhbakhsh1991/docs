@@ -3,7 +3,7 @@
 ```yaml
 doc_id: ARCHITECT_UNLOCK_MENU
 status: ACTIVE
-tip: 9f442601
+tip: e40dd92a
 branch: booking/capacity-concurrency-cert
 as_of: 2026-07-21
 ```

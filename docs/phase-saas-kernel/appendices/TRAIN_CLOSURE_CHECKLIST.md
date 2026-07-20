@@ -3,7 +3,7 @@
 ```yaml
 doc_id: STABILIZATION_KERNEL_TRAIN_CLOSURE
 as_of: 2026-07-21
-tip_at_authoring: 9f442601
+tip_at_authoring: e40dd92a
 ```
 
 ## Stabilization
