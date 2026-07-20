@@ -4,30 +4,48 @@ import { resolveTenantThemeJsonById } from "./resolve-registered-tenant";
 import { getCachedTenantById, getCachedTenantThemeById } from "./tenant-registry-cache";
 import { isPersistedTenantUuid } from "./tenant-id-format";
 
-/** Per-tenant runtime flags stored in `tenants.theme.featureFlags` (DEC-014). */
+/** Per-tenant runtime flags stored in `tenants.theme.featureFlags` (DEC-014 / SK3). */
 export type TenantFeatureFlags = {
   readonly advancedRuleEngine: boolean;
+  /** When false, SK2.C skips in_app deliver for `registration.approved`. Default true. */
+  readonly inAppRegistrationApprovedNotify: boolean;
 };
 
 const ADVANCED_RULE_ENGINE_DEFAULT = true;
+const IN_APP_REGISTRATION_APPROVED_NOTIFY_DEFAULT = true;
+
+function defaults(): TenantFeatureFlags {
+  return {
+    advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT,
+    inAppRegistrationApprovedNotify: IN_APP_REGISTRATION_APPROVED_NOTIFY_DEFAULT,
+  };
+}
 
 /**
- * Parses `theme.featureFlags.advancedRuleEngine` from tenant theme JSON.
- * Omitted or non-boolean values default to advanced (true).
+ * Parses `theme.featureFlags` from tenant theme JSON.
+ * Omitted or non-boolean values use defaults (advanced rules on; notify on).
+ * Only explicit `false` disables a boolean flag.
  */
 export function parseFeatureFlagsFromTheme(theme: unknown): TenantFeatureFlags {
   if (theme === null || typeof theme !== "object") {
-    return { advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT };
+    return defaults();
   }
 
   const featureFlags = (theme as Record<string, unknown>).featureFlags;
   if (featureFlags === null || typeof featureFlags !== "object") {
-    return { advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT };
+    return defaults();
   }
 
-  const advancedRuleEngine = (featureFlags as Record<string, unknown>).advancedRuleEngine;
+  const raw = featureFlags as Record<string, unknown>;
+  const advancedRuleEngine = raw.advancedRuleEngine;
+  const inAppRegistrationApprovedNotify = raw.inAppRegistrationApprovedNotify;
   return {
-    advancedRuleEngine: advancedRuleEngine === false ? false : ADVANCED_RULE_ENGINE_DEFAULT,
+    advancedRuleEngine:
+      advancedRuleEngine === false ? false : ADVANCED_RULE_ENGINE_DEFAULT,
+    inAppRegistrationApprovedNotify:
+      inAppRegistrationApprovedNotify === false
+        ? false
+        : IN_APP_REGISTRATION_APPROVED_NOTIFY_DEFAULT,
   };
 }
 
@@ -52,11 +70,11 @@ export async function resolveTenantFeatureFlags(tenantId: string): Promise<Tenan
   }
 
   if (!process.env.DATABASE_URL?.trim()) {
-    return { advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT };
+    return defaults();
   }
 
   if (!isPersistedTenantUuid(normalized)) {
-    return { advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT };
+    return defaults();
   }
 
   if (isFeatureFlagFreezeActive()) {
@@ -68,12 +86,12 @@ export async function resolveTenantFeatureFlags(tenantId: string): Promise<Tenan
     if (cachedTenant !== undefined && cachedTenant !== null) {
       return parseFeatureFlagsFromTheme(cachedTenant.theme);
     }
-    return { advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT };
+    return defaults();
   }
 
   const theme = await resolveTenantThemeJsonById(normalized);
   if (theme === null) {
-    return { advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT };
+    return defaults();
   }
 
   return parseFeatureFlagsFromTheme(theme);

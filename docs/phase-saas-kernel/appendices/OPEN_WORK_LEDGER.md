@@ -43,6 +43,7 @@ Status legend: `DONE` · `PARTIAL` · `OPEN` · `BLOCKED_ON_ARCHITECT` · `PARKE
 | ID | Item | Status | Notes |
 | -- | ---- | ------ | ----- |
 | D-SK2.C | NotificationDeliveryPort + first adapter | **DONE** | `registration.approved` / `in_app` — [SK2_C_IMPLEMENTATION.md](./SK2_C_IMPLEMENTATION.md) |
+| D-SK3-FLAGS | `inAppRegistrationApprovedNotify` on TenantFeatureFlags | **DONE** | [SK3_FLAGS_IMPLEMENTATION.md](./SK3_FLAGS_IMPLEMENTATION.md) |
 | D-* (rest) | Other `IMPL-SK*` rows | BLOCKED_ON_ARCHITECT | Unlock menu — not this continue |
 
 ## E — Explicit non-work

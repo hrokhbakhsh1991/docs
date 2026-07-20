@@ -1,9 +1,12 @@
 /**
  * Maps durable outbox `registration.approved` → NotificationDeliveryPort.
+ * Gated by `TenantFeatureFlags.inAppRegistrationApprovedNotify` (SK3).
  */
 
 import { BOOKING_APPROVE_OUTBOX_EVENT_TYPE } from "@app-cloud/booking-http-contracts";
 
+import { resolveTenantFeatureFlags } from "../tenant/resolve-tenant-feature-flags";
+import type { TenantFeatureFlags } from "../tenant/resolve-tenant-feature-flags";
 import type { WorkspaceOutboxPublishedRow } from "../workspace/workspace-outbox-row-context";
 import { getNotificationDeliveryPort } from "./create-notification-delivery";
 import type {
@@ -15,6 +18,7 @@ export const BOOKING_REGISTRATION_APPROVED_TEMPLATE_ID = "booking.registration.a
 
 export type DispatchRegistrationApprovedNotificationDeps = {
   readonly delivery?: NotificationDeliveryPort;
+  readonly resolveFlags?: (tenantId: string) => Promise<TenantFeatureFlags>;
 };
 
 function asRecord(payload: unknown): Readonly<Record<string, unknown>> {
@@ -29,13 +33,19 @@ function optionalString(value: unknown): string | undefined {
 }
 
 /**
- * @returns `null` when event is not handled; otherwise delivery result.
+ * @returns `null` when event is not handled or flag-gated off; otherwise delivery result.
  */
 export async function dispatchRegistrationApprovedNotification(
   row: WorkspaceOutboxPublishedRow,
   deps: DispatchRegistrationApprovedNotificationDeps = {}
 ): Promise<NotificationDeliveryResult | null> {
   if (row.eventType !== BOOKING_APPROVE_OUTBOX_EVENT_TYPE) {
+    return null;
+  }
+
+  const resolveFlags = deps.resolveFlags ?? resolveTenantFeatureFlags;
+  const flags = await resolveFlags(row.tenantId);
+  if (!flags.inAppRegistrationApprovedNotify) {
     return null;
   }
 

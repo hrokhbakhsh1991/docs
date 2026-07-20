@@ -27,7 +27,8 @@ Reusable SaaS operating-system kernels consumed by every customer and workspace 
 | [appendices/SK1_TENANT_AUTHZ_CONTRACTS.md](./appendices/SK1_TENANT_AUTHZ_CONTRACTS.md) | SK1 Tenant + Authz (**CLOSED**) |
 | [appendices/SK2_NOTIFICATION_OUTBOX.md](./appendices/SK2_NOTIFICATION_OUTBOX.md) | SK2 Notification/outbox (**design + SK2.C LANDED**) |
 | [appendices/SK2_C_IMPLEMENTATION.md](./appendices/SK2_C_IMPLEMENTATION.md) | SK2.C first adapter evidence |
-| [appendices/SK3_ENTITLEMENT_FLAGS.md](./appendices/SK3_ENTITLEMENT_FLAGS.md) | SK3 Entitlement + flags (**design closed**) |
+| [appendices/SK3_ENTITLEMENT_FLAGS.md](./appendices/SK3_ENTITLEMENT_FLAGS.md) | SK3 Entitlement + flags (**design closed**; FLAGS field **DONE**) |
+| [appendices/SK3_FLAGS_IMPLEMENTATION.md](./appendices/SK3_FLAGS_IMPLEMENTATION.md) | SK3-FLAGS `inAppRegistrationApprovedNotify` evidence |
 | [appendices/SK4_AUDIT_FILE.md](./appendices/SK4_AUDIT_FILE.md) | SK4 Audit + File (**design closed**) |
 | Stabilization WP-GATE | [`../phase-20/p7/appendices/STABILIZATION_WP_GATE.md`](../phase-20/p7/appendices/STABILIZATION_WP_GATE.md) |
 | Phase 4 Tenant Kernel (do not reinvent) | [`../phase-4-tenant-kernel.md`](../phase-4-tenant-kernel.md) · [`../phase-4/phase-4-ai-exec.md`](../phase-4/phase-4-ai-exec.md) |

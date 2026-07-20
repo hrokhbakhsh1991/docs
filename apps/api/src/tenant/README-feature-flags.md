@@ -3,15 +3,19 @@
 ```yaml
 surface: apps/api/src/tenant/*feature-flag*
 kernel_design: docs/phase-saas-kernel/appendices/SK3_ENTITLEMENT_FLAGS.md
+impl: docs/phase-saas-kernel/appendices/SK3_FLAGS_IMPLEMENTATION.md
 ```
 
 ## What this is
 
 Per-tenant runtime knobs stored under `tenants.theme.featureFlags` (see `resolve-tenant-feature-flags.ts`).
 
-Today the typed surface is essentially:
+Typed surface (`TenantFeatureFlags`):
 
-- `advancedRuleEngine: boolean` — maps to wizard validation variant (`default` vs `basic`)
+| Key | Default | Role |
+| --- | ------- | ---- |
+| `advancedRuleEngine` | `true` | Wizard validation variant (`default` vs `basic`) |
+| `inAppRegistrationApprovedNotify` | `true` | Gate SK2.C in_app notify on `registration.approved` |
 
 Rollback windows use `feature-flag-freeze.ts` (cache-only reads while freeze active).
 
@@ -21,6 +25,7 @@ Rollback windows use `feature-flag-freeze.ts` (cache-only reads while freeze act
 | -------- | ----------- |
 | Member portal module grants | `evaluateMemberPortalEntitlements` / MPS-ENT-001 |
 | Workspace capability modules (`finance`, …) | `theme.enabledModules` + workspace gates (e.g. `finance-module-enabled.ts`) |
-| Notification delivery | SK2 / outbox |
+| Notification **transport** | SK2 / outbox (flags only **gate** delivery) |
+| `rateLimitRps` | Still theme root / nested number — not a boolean `TenantFeatureFlags` field |
 
 Do not add flag keys without updating SK3 docs and targeted specs in the same change.

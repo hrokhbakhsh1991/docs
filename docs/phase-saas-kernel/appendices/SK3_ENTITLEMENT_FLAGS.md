@@ -34,12 +34,12 @@ Workspaces declare keys via manifests; they do not evaluate authority.
 | Piece | Path |
 | ----- | ---- |
 | Resolve | `apps/api/src/tenant/resolve-tenant-feature-flags.ts` |
-| Type | `TenantFeatureFlags` — today `{ advancedRuleEngine: boolean }` |
+| Type | `TenantFeatureFlags` — `{ advancedRuleEngine: boolean; inAppRegistrationApprovedNotify: boolean }` |
 | Storage | `tenants.theme.featureFlags` (DEC-014) |
 | Freeze window | `feature-flag-freeze.ts` (RB-GAP-11 / DEC-120 rollback) |
-| Specs | `feature-flag-freeze.spec.ts`, theme cache specs |
+| Specs | `feature-flag-freeze.spec.ts`, theme cache specs, `tenant-feature-flags-sk3.spec.ts` |
 
-**Consumers:** wizard validation variant (`validationVariantForFeatureFlags`), tenant config paths.
+**Consumers:** wizard validation variant (`validationVariantForFeatureFlags`); SK2.C registration-approved in_app notify gate (`inAppRegistrationApprovedNotify`).
 
 ### B — Theme `enabledModules` (workspace modules)
 
@@ -116,12 +116,12 @@ flowchart TB
 - `apps/api/src/tenant/README-feature-flags.md` (or short README section file)
 - Cross-link from Kernel CHARTER / maturity
 
-### SK3.C — Future implementation (demand-driven)
+### SK3.C — Implementation (demand-driven)
 
-| Action | When |
-| ------ | ---- |
-| Grow `TenantFeatureFlags` fields | Real product need + migration of theme JSON |
-| Plan tables / webhooks (BP-7) | Per phase-19 — not Kernel empty scaffold |
+| Action | Status |
+| ------ | ------ |
+| Grow `TenantFeatureFlags` — `inAppRegistrationApprovedNotify` | **DONE** — [SK3_FLAGS_IMPLEMENTATION.md](./SK3_FLAGS_IMPLEMENTATION.md) |
+| Plan tables / webhooks (BP-7) | Still deferred — needs `YES — IMPL-SK3-BP7` |
 | Export freeze test for entitlement evaluate API | If public surface churns; sdk already has unit specs |
 
 ### SK3.D — Non-goals

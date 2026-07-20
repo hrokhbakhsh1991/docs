@@ -13,6 +13,7 @@ as_of: 2026-07-21
 | Unlock | Status |
 | ------ | ------ |
 | `YES — IMPL-SK2.C` | **DONE** — `registration.approved` / `in_app` — [SK2_C_IMPLEMENTATION.md](./SK2_C_IMPLEMENTATION.md) |
+| `YES — IMPL-SK3-FLAGS` | **DONE** — `inAppRegistrationApprovedNotify` — [SK3_FLAGS_IMPLEMENTATION.md](./SK3_FLAGS_IMPLEMENTATION.md) |
 
 All other menu rows remain locked until pasted.
 
@@ -90,6 +91,7 @@ Optional honesty gap only — full `pnpm build` never run on this train; WP4 rem
 | C9 / C10 | PARKED with tickets |
 | Kernel design SK0–SK4 | DESIGN_COMPLETE |
 | **IMPL-SK2.C** | **DONE** (`registration.approved` / `in_app`) |
+| **IMPL-SK3-FLAGS** | **DONE** (`inAppRegistrationApprovedNotify`) |
 
 ## Forbidden without unlock
 

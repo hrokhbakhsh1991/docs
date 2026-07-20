@@ -89,32 +89,72 @@ describe("SK2.C notification delivery", () => {
     assert.equal(skipped, null);
     assert.equal(adapter.deliveredCountForTests(), 0);
 
-    const delivered = await dispatchRegistrationApprovedNotification({
-      tenantId: "00000000-0000-4000-8000-000000000014",
-      domainEventId: "registration.approved:b1:2026-07-21T00:00:00.000Z",
-      eventType: BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
-      aggregateType: "registration",
-      aggregateId: "b1",
-      payload: {
-        bookingId: "b1",
-        tourId: "tour-1",
-        status: "approved",
-        guestEmail: "guest@example.com",
+    const delivered = await dispatchRegistrationApprovedNotification(
+      {
+        tenantId: "00000000-0000-4000-8000-000000000014",
+        domainEventId: "registration.approved:b1:2026-07-21T00:00:00.000Z",
+        eventType: BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
+        aggregateType: "registration",
+        aggregateId: "b1",
+        payload: {
+          bookingId: "b1",
+          tourId: "tour-1",
+          status: "approved",
+          guestEmail: "guest@example.com",
+        },
       },
-    });
+      {
+        resolveFlags: async () => ({
+          advancedRuleEngine: true,
+          inAppRegistrationApprovedNotify: true,
+        }),
+      }
+    );
     assert.deepEqual(delivered, { ok: true });
     assert.equal(adapter.deliveredCountForTests(), 1);
 
-    const again = await dispatchRegistrationApprovedNotification({
-      tenantId: "00000000-0000-4000-8000-000000000014",
-      domainEventId: "registration.approved:b1:2026-07-21T00:00:00.000Z",
-      eventType: BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
-      aggregateType: "registration",
-      aggregateId: "b1",
-      payload: { bookingId: "b1" },
-    });
+    const again = await dispatchRegistrationApprovedNotification(
+      {
+        tenantId: "00000000-0000-4000-8000-000000000014",
+        domainEventId: "registration.approved:b1:2026-07-21T00:00:00.000Z",
+        eventType: BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
+        aggregateType: "registration",
+        aggregateId: "b1",
+        payload: { bookingId: "b1" },
+      },
+      {
+        resolveFlags: async () => ({
+          advancedRuleEngine: true,
+          inAppRegistrationApprovedNotify: true,
+        }),
+      }
+    );
     assert.deepEqual(again, { ok: true });
     assert.equal(adapter.deliveredCountForTests(), 1);
+  });
+
+  it("SK3 flag inAppRegistrationApprovedNotify=false skips deliver", async () => {
+    const adapter = new InAppStructuredNotificationAdapter();
+    setNotificationDeliveryPortForTests(adapter);
+
+    const gated = await dispatchRegistrationApprovedNotification(
+      {
+        tenantId: "00000000-0000-4000-8000-000000000014",
+        domainEventId: "registration.approved:b2:2026-07-21T00:00:00.000Z",
+        eventType: BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
+        aggregateType: "registration",
+        aggregateId: "b2",
+        payload: { bookingId: "b2" },
+      },
+      {
+        resolveFlags: async () => ({
+          advancedRuleEngine: true,
+          inAppRegistrationApprovedNotify: false,
+        }),
+      }
+    );
+    assert.equal(gated, null);
+    assert.equal(adapter.deliveredCountForTests(), 0);
   });
 
   it("default composition exposes in_app adapter", () => {
