@@ -34,8 +34,12 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 | `20260605200000_outbox_last_error` | Phase 5   | Outbox `last_error` column                                    |
 | `20260607100000_tenant_routes`     | Phase 7.7 | `tenant_routes` DDL for `TenantConnectionRouter` (REQ-P7-021) |
 | `20260608100000_urban_product_delta` | Phase 8.2 | Urban `publish_status` + registration intake columns |
+| `20260706130000_app_cloud_nosuperuser` | Phase 5/ops | App role NOSUPERUSER hardening |
+| `20260720140000_finance_recon_rls` | MR-P0-003 | Finance recon findings RLS + tip head sync |
 
-Current head: **`20260608100000_urban_product_delta`** — must move in lockstep with `prisma/migrations/`.
+Current head: **`20260720140000_finance_recon_rls`** — must move in lockstep with `prisma/migrations/`.
+
+**CI:** `booking-postgres-gate` runs `guard:migration-head-preflight` before migrate so a stale constant fails the release path (MASTER `MR-P0-003`).
 
 ## Verification
 

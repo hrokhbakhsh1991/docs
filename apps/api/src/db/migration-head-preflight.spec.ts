@@ -7,15 +7,24 @@ import {
   formatMigrationHeadMismatch,
 } from "./migration-head-preflight";
 
-describe("migration-head-preflight (DEC-097)", () => {
-  it("expected head matches latest migration folder", () => {
-    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260706130000_app_tour_nosuperuser");
+describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
+  it("expected head matches tip migration folder (finance_recon_rls)", () => {
+    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260720140000_finance_recon_rls");
   });
 
   it("throws on mismatch with structured message", () => {
     assert.throws(
       () => assertMigrationHeadMatches("20260604114237_phase4_schema"),
-      /PRODUCTION_MIGRATION_HEAD_MISMATCH:20260706130000_app_tour_nosuperuser:20260604114237_phase4_schema/
+      new RegExp(
+        `PRODUCTION_MIGRATION_HEAD_MISMATCH:${EXPECTED_PRISMA_MIGRATION_HEAD}:20260604114237_phase4_schema`
+      )
+    );
+  });
+
+  it("throws when actual is ahead of embedded constant", () => {
+    assert.throws(
+      () => assertMigrationHeadMatches("20991231120000_future_migration"),
+      /PRODUCTION_MIGRATION_HEAD_MISMATCH/
     );
   });
 

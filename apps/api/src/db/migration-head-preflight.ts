@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
-/** Must match latest prisma/migrations folder name (DEC-097). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260706130000_app_tour_nosuperuser";
+/** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
+export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260720140000_finance_recon_rls";
 
 export const PRODUCTION_MIGRATION_HEAD_MISMATCH = "PRODUCTION_MIGRATION_HEAD_MISMATCH";
 
