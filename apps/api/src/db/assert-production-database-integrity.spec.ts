@@ -82,6 +82,39 @@ describe("assertTenantTablesHaveRls (DM-CT-02)", () => {
       }
     );
   });
+
+  it("MR-P0-005: missing FORCE RLS on payments fails boot probe", () => {
+    assert.throws(
+      () =>
+        assertTenantTablesHaveRls(
+          TENANT_RLS_TABLES.map((relname) => ({
+            relname,
+            relrowsecurity: true,
+            relforcerowsecurity: relname !== "payments",
+          }))
+        ),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, `${PRODUCTION_DATABASE_RLS_NOT_APPLIED}:payments`);
+        return true;
+      }
+    );
+  });
+
+  it("MR-P0-005: money-path tables are part of the probe set", () => {
+    for (const table of [
+      "operator_registrations",
+      "payments",
+      "payment_receipts",
+      "finance_schedules",
+      "finance_recon_findings",
+      "finance_recon_actions",
+      "operator_pending_invites",
+      "user_tenants",
+    ] as const) {
+      assert.ok((TENANT_RLS_TABLES as readonly string[]).includes(table), table);
+    }
+  });
 });
 
 describe("assertProductionDatabaseIntegrity", () => {

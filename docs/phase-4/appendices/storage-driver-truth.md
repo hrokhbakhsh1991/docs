@@ -27,6 +27,10 @@ corrects_doc_drift: "TOUR_STORAGE env name in older subphase drafts"
 | App role has `BYPASSRLS`       | `PRODUCTION_DATABASE_APP_ROLE_BYPASSRLS` |
 | Tenant table missing RLS       | `PRODUCTION_DATABASE_RLS_NOT_APPLIED`    |
 
+**MR-P0-005 — probed tables (`TENANT_RLS_TABLES`):** kernel (`tours`, `outbox_events`, `audit_events`, `http_idempotency_records`, `processed_domain_events`) plus booking/finance money path (`operator_registrations`, `payments`, `payment_receipts`, `finance_schedules`, `finance_recon_findings`, `finance_recon_actions`, `operator_pending_invites`, `user_tenants`). Each must have **ENABLE + FORCE** RLS or boot throws. SQL probe derives the `IN (...)` list from the same constant (no drift).
+
+Tables still **without** RLS (urban registrations, users, mobile OTP, tenant_domains, …) remain **MR-P0-012** — they are not falsely green via this probe until migrations land.
+
 Memory driver partitions reads by `tenantId` argument but does **not** provide Postgres RLS, audit append-only tables, or outbox SoT — never use on public ingress.
 
 ## Forensic vs non-forensic (AUDIT-GAP-01 / DEC-045)

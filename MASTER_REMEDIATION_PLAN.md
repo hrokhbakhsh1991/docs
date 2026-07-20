@@ -18,6 +18,7 @@ progress:
   MR-P0-002: done (harness fail-closed; storage assert no bypass; 24/24 specs)
   MR-P0-003: done (EXPECTED=20260720140000_finance_recon_rls; guard PASS; booking CI wired)
   MR-P0-004: partial — deploy needs + fail-closed secrets + wait script; LIVE branch protection BLOCKED (gh unauth)
+  MR-P0-005: done (TENANT_RLS_TABLES money-path + finance-recon-rls in booking CI)
 ```
 
 

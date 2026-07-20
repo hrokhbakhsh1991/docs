@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 import { assertProductionMigrationHead } from "./migration-head-preflight";
 import { resolveStorageDriver } from "../storage/create-tour-storage";
@@ -7,13 +7,24 @@ import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 export const PRODUCTION_DATABASE_APP_ROLE_BYPASSRLS = "PRODUCTION_DATABASE_APP_ROLE_BYPASSRLS";
 export const PRODUCTION_DATABASE_RLS_NOT_APPLIED = "PRODUCTION_DATABASE_RLS_NOT_APPLIED";
 
-/** Tenant-scoped tables that must have RLS enabled before production ingress (DEC-024). */
+/**
+ * Tenant-scoped tables that must have RLS enabled+forced before production ingress (DEC-024 / MR-P0-005).
+ * Keep SQL probe in sync — query uses this list only.
+ */
 export const TENANT_RLS_TABLES = [
   "tours",
   "outbox_events",
   "audit_events",
   "http_idempotency_records",
   "processed_domain_events",
+  "operator_registrations",
+  "payments",
+  "payment_receipts",
+  "finance_schedules",
+  "finance_recon_findings",
+  "finance_recon_actions",
+  "operator_pending_invites",
+  "user_tenants",
 ] as const;
 
 export type TenantRlsTableRow = {
@@ -39,7 +50,7 @@ export function assertTenantTablesHaveRls(rows: readonly TenantRlsTableRow[]): v
 }
 
 /**
- * Live Postgres probe at production boot (DM-CT-02 / DI-PRISMA-01).
+ * Live Postgres probe at production boot (DM-CT-02 / DI-PRISMA-01 / MR-P0-005).
  * Verifies the app pool role does not bypass RLS and migrations applied RLS on tenant tables.
  * @see docs/phase-4/appendices/storage-driver-truth.md
  */
@@ -71,13 +82,7 @@ export async function assertProductionDatabaseIntegrity(): Promise<void> {
       FROM pg_class c
       JOIN pg_namespace n ON n.oid = c.relnamespace
       WHERE n.nspname = 'public'
-        AND c.relname IN (
-          'tours',
-          'outbox_events',
-          'audit_events',
-          'http_idempotency_records',
-          'processed_domain_events'
-        )
+        AND c.relname IN (${Prisma.join(TENANT_RLS_TABLES)})
     `;
     assertTenantTablesHaveRls(rlsRows);
     await assertProductionMigrationHead(databaseUrl);

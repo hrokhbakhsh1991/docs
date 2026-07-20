@@ -224,3 +224,9 @@ jobs:
           PRISMA_TRANSACTION_TIMEOUT_MS: "60000"
           PRISMA_TRANSACTION_MAX_WAIT_MS: "30000"
         run: pnpm run test:booking-http-postgres
+
+      - name: test:finance-recon-rls (MR-P0-005)
+        working-directory: apps/api
+        env:
+          TENANT_MAX_CONCURRENT_DB_OPS: "32"
+        run: pnpm run test:finance-recon-rls
