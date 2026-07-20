@@ -36,6 +36,17 @@ pnpm run ops:branch-protection:verify
 Dry-run (no write): `pnpm run ops:branch-protection:dry-run`  
 Print planned names (no network): `pnpm run ops:branch-protection:print`
 
+**MR-P0-004 status (2026-07-20):** in-repo scripts + `guard:required-check-names` + deploy `needs` are landed. **Live** `main` protection apply remains **BLOCKED** until an admin runs `gh auth login` (or `GH_TOKEN` with admin) and `pnpm run ops:branch-protection:main`. Without that, GitHub may still allow merge.
+
+## Deploy gating (independent of branch protection UI)
+
+`.github/workflows/deploy-vps.yml` job **Require release checks** polls the commit until every context in `MAIN_BRANCH_REQUIRED_CHECKS` is `success`, then **Deploy to VPS** runs. Missing VPS secrets **fail** the job (no silent skip). `cancel-in-progress: false` so a new push cannot cancel a mid-flight production deploy.
+
+```bash
+# Local / Actions helper
+node scripts/ops/wait-for-required-checks.mjs
+```
+
 ## Drift guard (no GitHub auth)
 
 ```bash

@@ -1,5 +1,8 @@
 name: Deploy VPS (operator stack)
 
+# MR-P0-004: deploy only after MAIN_BRANCH_REQUIRED_CHECKS succeed on this SHA.
+# Live branch protection still requires: pnpm run ops:branch-protection:main (gh auth).
+
 on:
   push:
     branches:
@@ -8,11 +11,12 @@ on:
 
 concurrency:
   group: deploy-vps-production
-  cancel-in-progress: true
+  # Mid-flight cancel is forbidden for production deploys (also MR-P0-013).
+  cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Deploy to VPS
+  require-release-checks:
+    name: Require release checks
     runs-on: ubuntu-latest
     timeout-minutes: 45
     if: github.repository == 'hrokhbakhsh1991/docs'
@@ -20,21 +24,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check VPS deploy secrets
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Wait for Phase 0/1 + Booking PostgreSQL required checks
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          WAIT_CHECKS_TIMEOUT_SEC: "2400"
+          WAIT_CHECKS_POLL_SEC: "30"
+        run: node scripts/ops/wait-for-required-checks.mjs
+
+  deploy:
+    name: Deploy to VPS
+    needs: [require-release-checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.repository == 'hrokhbakhsh1991/docs'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require VPS deploy secrets (no silent skip)
         id: vps
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
-          if [ -n "$VPS_HOST" ] && [ -n "$VPS_SSH_KEY" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "VPS deploy skipped: VPS_HOST or VPS_SSH_KEY secret not configured."
+          if [ -z "$VPS_HOST" ] || [ -z "$VPS_SSH_KEY" ]; then
+            echo "ERROR: VPS_HOST and VPS_SSH_KEY secrets are required for deploy (MR-P0-004/013)."
+            echo "Configure repository secrets or do not run this workflow."
+            exit 1
           fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - name: Configure SSH
-        if: steps.vps.outputs.ready == 'true'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -47,7 +74,6 @@ jobs:
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Run remote deploy
-        if: steps.vps.outputs.ready == 'true'
         # remote-deploy.sh runs verify-env-coherence.sh (--all when marketing+portal env exist)
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -55,18 +81,17 @@ jobs:
           DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
         run: |
           USER="${VPS_USER:-root}"
-          PATH_ON_SERVER="${DEPLOY_PATH:-/opt/app-tour}"
+          PATH_ON_SERVER="${DEPLOY_PATH:-/opt/app-cloud}"
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
             "${USER}@${VPS_HOST}" \
             "DEPLOY_PATH='${PATH_ON_SERVER}' bash '${PATH_ON_SERVER}/scripts/vps-deploy/remote-deploy.sh'"
 
       - name: Post-deploy four-process smoke
-        if: steps.vps.outputs.ready == 'true'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_DEPLOY_PATH: ${{ secrets.VPS_DEPLOY_PATH }}
-          ENV_DIR: /etc/app-tour
-          UNIT_PREFIX: app-tour
+          ENV_DIR: /etc/app-cloud
+          UNIT_PREFIX: app-cloud
         run: bash scripts/p10-production-remote-gate.sh

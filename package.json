@@ -278,7 +278,8 @@
     "guard:portal-member-profile-boundary": "node scripts/guards/guard-portal-member-profile-boundary.mjs",
     "guard:architecture-truth": "node scripts/guards/architecture-truth-guard.mjs",
     "docs:check-architecture-sync": "node scripts/docs/check-architecture-doc-sync.mjs",
-    "p5:gate": "bash scripts/p5-enterprise-evolution-gate.sh"
+    "p5:gate": "bash scripts/p5-enterprise-evolution-gate.sh",
+    "ops:wait-required-checks": "node scripts/ops/wait-for-required-checks.mjs"
   },
   "devDependencies": {
     "@markdoc/markdoc": "^0.5.7",
