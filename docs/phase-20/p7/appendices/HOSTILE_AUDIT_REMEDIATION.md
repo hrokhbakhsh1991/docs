@@ -37,6 +37,8 @@ source: hostile production review of HEAD f607c376 + dirty WT
 
 - [BOOKING_CAPACITY_OWNERSHIP.md](./BOOKING_CAPACITY_OWNERSHIP.md)
 - [workspace-registry-codegen-modularization.mdoc](../../../dev/workspace-registry-codegen-modularization.mdoc)
+- [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCILE.md)
+- [STABILIZATION_WP_GATE.md](./STABILIZATION_WP_GATE.md)
 
 ## Residual (not code-fixed this train)
 
