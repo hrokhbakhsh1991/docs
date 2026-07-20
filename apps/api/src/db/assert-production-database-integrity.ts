@@ -3,13 +3,14 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { assertProductionMigrationHead } from "./migration-head-preflight";
 import { resolveStorageDriver } from "../storage/create-tour-storage";
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
+import { isProdlikeRuntimeProfile } from "../server/runtime-profile";
 
 export const PRODUCTION_DATABASE_APP_ROLE_BYPASSRLS = "PRODUCTION_DATABASE_APP_ROLE_BYPASSRLS";
 export const PRODUCTION_DATABASE_RLS_NOT_APPLIED = "PRODUCTION_DATABASE_RLS_NOT_APPLIED";
 
 /**
- * Tenant-scoped tables that must have RLS enabled+forced before production ingress (DEC-024 / MR-P0-005).
- * Keep SQL probe in sync — query uses this list only.
+ * Tenant-scoped tables that must have RLS enabled+forced before production ingress.
+ * Keep in sync with ENABLE+FORCE migrations (TODO-003 / PREV-AUD-003).
  */
 export const TENANT_RLS_TABLES = [
   "tours",
@@ -25,6 +26,32 @@ export const TENANT_RLS_TABLES = [
   "finance_recon_actions",
   "operator_pending_invites",
   "user_tenants",
+  "urban_registrations",
+  "tenant_routes",
+  "tenant_subscriptions",
+  "operator_user_role_audit",
+  "outbox_replay_runs",
+  "tenant_config",
+  "workspace_equipment",
+  "workspace_tour_themes",
+  "workspace_guide_languages",
+  "workspace_tour_presets",
+  "workspace_regions",
+  "workspace_destinations",
+  "operator_settings_audit_events",
+  "workspace_draft_snapshots",
+  "workspace_draft_events",
+  "workspace_telegram_bots",
+  "integration_connections",
+  "integration_delivery_jobs",
+  "integration_event_policies",
+  "integration_secrets",
+  "exposure_intents",
+  "exposure_profiles",
+  "denali_exposure_reminder_activations",
+  "users",
+  "mobile_otp_challenges",
+  "tenant_domains",
 ] as const;
 
 export type TenantRlsTableRow = {
@@ -43,19 +70,30 @@ export function assertTenantTablesHaveRls(rows: readonly TenantRlsTableRow[]): v
   const byName = new Map(rows.map((row) => [row.relname, row]));
   for (const table of TENANT_RLS_TABLES) {
     const row = byName.get(table);
-    if (row === undefined || !row.relrowsecurity || !row.relforcerowsecurity) {
+    // Table absent from this database (migration not present) — skip; presence is
+    // enforced by migration head. When present, FORCE RLS is mandatory.
+    if (row === undefined) {
+      continue;
+    }
+    if (!row.relrowsecurity || !row.relforcerowsecurity) {
       throw new Error(`${PRODUCTION_DATABASE_RLS_NOT_APPLIED}:${table}`);
     }
   }
+  const presentForced = [...byName.values()].filter((r) => r.relrowsecurity && r.relforcerowsecurity);
+  if (presentForced.length === 0) {
+    throw new Error(`${PRODUCTION_DATABASE_RLS_NOT_APPLIED}:none`);
+  }
+}
+
+function shouldProbeDatabaseIntegrity(): boolean {
+  return isProductionAuthMode() || isProdlikeRuntimeProfile();
 }
 
 /**
- * Live Postgres probe at production boot (DM-CT-02 / DI-PRISMA-01 / MR-P0-005).
- * Verifies the app pool role does not bypass RLS and migrations applied RLS on tenant tables.
- * @see docs/phase-4/appendices/storage-driver-truth.md
+ * Live Postgres probe at production / prodlike boot (DM-CT-02 / DI-PRISMA-01 / TODO-003).
  */
 export async function assertProductionDatabaseIntegrity(): Promise<void> {
-  if (!isProductionAuthMode()) {
+  if (!shouldProbeDatabaseIntegrity()) {
     return;
   }
   if (resolveStorageDriver() !== "prisma") {

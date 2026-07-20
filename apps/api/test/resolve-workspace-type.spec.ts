@@ -42,11 +42,20 @@ describe("resolve-workspace-type.spec.ts — Phase 11.0", () => {
   });
 
   it("API-11.0-02 URBAN_TEST_WORKSPACE_TYPE does not override operator smoke tenant", async () => {
+    process.env.NODE_ENV = "test";
     process.env.STORAGE_DRIVER = "memory";
     process.env.URBAN_TEST_WORKSPACE_TYPE = "urban";
     const operatorType = await resolveWorkspaceTypeForTenant(OPERATOR_SMOKE.tenantId);
     const urbanType = await resolveWorkspaceTypeForTenant(URBAN_SMOKE_TENANT_ID);
     assert.equal(operatorType, "denali");
     assert.equal(urbanType, "urban");
+  });
+
+  it("TODO-011 unknown tenant fails closed (no starter fallback)", async () => {
+    process.env.STORAGE_DRIVER = "memory";
+    await assert.rejects(
+      () => resolveWorkspaceTypeForTenant("00000000-0000-4000-8000-00000000dead"),
+      /WORKSPACE_TYPE_UNRESOLVED/
+    );
   });
 });

@@ -1,0 +1,19 @@
+[Unit]
+Description=app-cloud outbox relay worker (TODO-006)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=app-cloud
+Group=app-cloud
+WorkingDirectory=/opt/app-cloud/apps/api
+EnvironmentFile=/etc/app-cloud/api.env
+Environment=APPS_API_WORKER_ROLE=outbox-relay
+Environment=OUTBOX_RELAY_ENABLED=true
+ExecStart=/usr/bin/node dist/main.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

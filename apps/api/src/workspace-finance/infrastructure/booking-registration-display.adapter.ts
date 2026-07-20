@@ -1,4 +1,3 @@
-import { getBookingsRepository } from "../../bookings/create-bookings-repository";
 import type { BookingRepositoryPort } from "../../bookings/ports/booking-repository.port";
 import type {
   FinanceRegistrationDisplay,
@@ -8,9 +7,10 @@ import type {
 /**
  * Infrastructure adapter — maps Booking list identity fields into finance display DTO.
  * `guestLabel` → `memberDisplayName` (API contract unchanged).
+ * Bookings port must be injected (no silent getBookingsRepository — TODO-008).
  */
 export class BookingRegistrationDisplayAdapter implements RegistrationDisplayPort {
-  constructor(private readonly bookings: BookingRepositoryPort = getBookingsRepository()) {}
+  constructor(private readonly bookings: BookingRepositoryPort) {}
 
   async getByRegistrationIds(
     tenantId: string,

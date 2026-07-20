@@ -1,4 +1,4 @@
-import { isProductionAuthMode } from "../tenant-kernel/auth-env";
+import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 
 export type TourStorageDriver = "memory" | "prisma";
 
@@ -23,11 +23,11 @@ export function resolveStorageDriver(): TourStorageDriver {
 }
 
 /**
- * Fail-closed production storage guard (DEC-GAP-03 / DM-CT-01 / DI-MEM-01).
+ * Fail-closed production / prodlike storage guard (DEC-GAP-03 / DM-CT-01 / DI-MEM-01).
  * No harness bypass — production never permits memory storage.
  */
 export function assertProductionStorageDriver(): void {
-  if (!isProductionAuthMode()) {
+  if (!requiresProductionGradeIntegrity()) {
     return;
   }
 

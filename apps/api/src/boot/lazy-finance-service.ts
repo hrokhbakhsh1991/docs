@@ -9,7 +9,6 @@ import {
   resolveBootFinanceWorkspaceType,
   resolveFinanceWorkspaceDependencies,
 } from "../workspace-finance/finance-dependency-registry";
-import { BookingPaymentAdapter } from "../workspace-finance/infrastructure/booking-payment.adapter";
 import type { FinanceAuthorizationPort } from "../workspace-finance/ports/finance-access.port";
 import type { FinanceCapabilityPort } from "../workspace-finance/ports/finance-capability.port";
 import type { IBookingPaymentPort } from "../workspace-finance/ports/booking-payment.port";
@@ -30,6 +29,7 @@ import { HostFinancePersistenceModeAdapter } from "../workspace-finance/infrastr
 import { HostFinanceReceiptProofUrlAdapter } from "../workspace-finance/infrastructure/host-finance-receipt-proof-url.adapter";
 import { HostFinanceScheduleAdapter } from "../workspace-finance/infrastructure/host-finance-schedule.adapter";
 import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
+import { createBookingPaymentPort } from "../bookings/create-booking-payment-port";
 import { getBookingsRepository } from "../bookings/create-bookings-repository";
 
 /** workspaceType → FinanceService (workspace policies differ; platform I/O is shared). */
@@ -58,7 +58,7 @@ let sharedClock: FinanceClockPort | null = null;
 
 function getPlatformBookingPayments(): IBookingPaymentPort {
   if (platformBookingPayments === null) {
-    platformBookingPayments = new BookingPaymentAdapter(getBookingsRepository());
+    platformBookingPayments = createBookingPaymentPort();
   }
   return platformBookingPayments;
 }
@@ -124,7 +124,7 @@ export function getOrCreateFinanceServiceForWorkspaceType(workspaceType: string)
   const repository = getPlatformFinanceRepository();
 
   if (sharedRegistrationDisplay === null) {
-    sharedRegistrationDisplay = new BookingRegistrationDisplayAdapter();
+    sharedRegistrationDisplay = new BookingRegistrationDisplayAdapter(getBookingsRepository());
   }
   if (sharedMetrics === null) {
     sharedMetrics = new HostFinanceMetricsAdapter();

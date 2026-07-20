@@ -32,10 +32,13 @@ fi
 CODE_ONLY="${ROLLBACK_CODE_ONLY:-0}"
 DB_DUMP="${ROLLBACK_DB_DUMP:-}"
 if [[ "$CODE_ONLY" != "1" && -z "$DB_DUMP" ]]; then
-  die "MR-P0-014: set ROLLBACK_DB_DUMP=/path/to.pre-migrate.dump (or ROLLBACK_CODE_ONLY=1 to leave DB forward)"
+  die "MR-P0-014/TODO-010: set ROLLBACK_DB_DUMP=/path/to.pre-migrate.dump (or ROLLBACK_CODE_ONLY=1 with I_ACCEPT_SCHEMA_FORWARD=1)"
 fi
 if [[ "$CODE_ONLY" == "1" ]]; then
-  log "WARNING: ROLLBACK_CODE_ONLY=1 — git resets; Postgres schema/data stay at forward tip"
+  if [[ "${I_ACCEPT_SCHEMA_FORWARD:-}" != "1" ]]; then
+    die "TODO-010: ROLLBACK_CODE_ONLY=1 also requires I_ACCEPT_SCHEMA_FORWARD=1 (schema stays forward)"
+  fi
+  log "WARNING: ROLLBACK_CODE_ONLY=1 + I_ACCEPT_SCHEMA_FORWARD=1 — git resets; Postgres schema/data stay at forward tip"
 elif [[ ! -f "$DB_DUMP" ]]; then
   die "ROLLBACK_DB_DUMP not found: $DB_DUMP"
 fi

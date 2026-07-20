@@ -10,11 +10,10 @@ import {
   listFinanceDependencyWorkspaceTypes,
   WORKSPACE_FINANCE_DEPENDENCY_BINDINGS,
 } from "./workspace-finance-dependency-bindings.generated";
-import { BookingPaymentAdapter } from "./infrastructure/booking-payment.adapter";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
 import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port";
 import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
-import { getBookingsRepository } from "../bookings/create-bookings-repository";
+import { createBookingPaymentPort } from "../bookings/create-booking-payment-port";
 
 /** Default boot workspace when `FINANCE_BOOT_WORKSPACE_TYPE` is unset (legacy Denali path). */
 export const BOOT_FINANCE_WORKSPACE_TYPE = "denali";
@@ -45,7 +44,7 @@ function resolveConfiguredBootFinanceWorkspaceType(): string {
 }
 
 function createPlatformBookingPayments(): IBookingPaymentPort {
-  return new BookingPaymentAdapter(getBookingsRepository());
+  return createBookingPaymentPort();
 }
 
 export function isFinanceDependencyWorkspaceRegistered(workspaceType: string): boolean {

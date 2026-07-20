@@ -8,13 +8,12 @@ import { getPrismaAdmin } from "../../db/prisma";
 import { tryReplayFailedOutboxEvent } from "../../outbox/outbox-replay";
 import { resolveFinanceLedgerPolicy } from "../finance-dependency-registry";
 import { enqueueFinanceLedgerCaptureOutbox } from "../enqueue-finance-ledger-capture";
-import { BookingPaymentAdapter } from "../infrastructure/booking-payment.adapter";
 import { createTxScopedOutboxWriter } from "../infrastructure/prisma-workspace-outbox-writer";
 import { paymentLedgerCaptureDomainEventId } from "../paid-without-ledger-detection";
 import { resolveFinanceWorkspaceTypeForTenant } from "../resolve-finance-workspace-type-for-tenant";
 import { FINANCE_RECON_CODE } from "./codes";
 import { markFinanceReconFindingStatus } from "./findings-store";
-import { getBookingsRepository } from "../../bookings/create-bookings-repository";
+import { createBookingPaymentPort } from "../../bookings/create-booking-payment-port";
 
 export type ReconFindingRow = {
   readonly id: string;
@@ -128,7 +127,7 @@ export async function handlePaidBookingDrift(
     };
   }
 
-  const adapter = new BookingPaymentAdapter(getBookingsRepository());
+  const adapter = createBookingPaymentPort();
   const status = await adapter.syncStatus({
     tenantId: finding.tenantId,
     registrationId: finding.registrationId,
@@ -401,7 +400,7 @@ export async function handlePrepayBookingDegraded(
     };
   }
 
-  const adapter = new BookingPaymentAdapter(getBookingsRepository());
+  const adapter = createBookingPaymentPort();
   const status = await adapter.syncStatus({
     tenantId: finding.tenantId,
     registrationId: finding.registrationId,

@@ -8,8 +8,8 @@ import {
 } from "./migration-head-preflight";
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
-  it("expected head matches tip migration folder (operator_registration_active_guest_uniques)", () => {
-    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260720150000_operator_registration_active_guest_uniques");
+  it("expected head matches tip migration folder (hostile_audit_tenant_rls_closure)", () => {
+    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260720160000_hostile_audit_tenant_rls_closure");
   });
 
   it("throws on mismatch with structured message", () => {

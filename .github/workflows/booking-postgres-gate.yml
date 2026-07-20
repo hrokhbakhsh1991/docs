@@ -225,6 +225,28 @@ jobs:
           PRISMA_TRANSACTION_MAX_WAIT_MS: "30000"
         run: pnpm run test:booking-http-postgres
 
+      - name: test:booking-http-postgres-jwt-production (TODO-001)
+        working-directory: apps/api
+        env:
+          TENANT_MAX_CONCURRENT_DB_OPS: "32"
+          PRISMA_TRANSACTION_TIMEOUT_MS: "60000"
+          PRISMA_TRANSACTION_MAX_WAIT_MS: "30000"
+        run: pnpm run test:booking-http-postgres-jwt-production
+
+      - name: test:booking-guest-duplicate-http-race (TODO-007)
+        working-directory: apps/api
+        env:
+          TENANT_MAX_CONCURRENT_DB_OPS: "32"
+          PRISMA_TRANSACTION_TIMEOUT_MS: "60000"
+          PRISMA_TRANSACTION_MAX_WAIT_MS: "30000"
+        run: pnpm run test:booking-guest-duplicate-http-race
+
+      - name: test:tenant-rls-unprotected-tables (TODO-002)
+        working-directory: apps/api
+        env:
+          TENANT_MAX_CONCURRENT_DB_OPS: "32"
+        run: pnpm run test:tenant-rls-unprotected-tables
+
       - name: test:finance-recon-rls (MR-P0-005)
         working-directory: apps/api
         env:

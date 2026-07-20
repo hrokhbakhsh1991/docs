@@ -8,6 +8,7 @@ import {
   PRODUCTION_DATABASE_URL_ADMIN_MUST_DIFFER,
   PRODUCTION_DATABASE_URL_ADMIN_REQUIRED,
 } from "./production-env-codes";
+import { requiresProductionGradeIntegrity } from "./runtime-profile";
 
 export {
   PRODUCTION_DATABASE_URL_REQUIRED,
@@ -23,18 +24,20 @@ export {
 } from "./production-env-codes";
 
 /**
- * Fail-closed production boot checks (DEC-GAP-03, V-004, V-009, MR-P0-008).
+ * Fail-closed production / prodlike boot checks (DEC-GAP-03, V-004, V-009, TODO-003).
  * @see docs/phase-4/production-deploy-checklist.md
- * @see docs/phase-20/p7/appendices/BOOKING_REMEDIATION_TODO_001_HARNESS.md
+ * @see docs/phase-20/p7/appendices/HOSTILE_AUDIT_REMEDIATION_2026-07-20.md
  */
 export function assertProductionRuntimeIntegrity(): void {
   assertStaticTenantRegistryRuntime();
 
-  if (!isProductionAuthMode()) {
+  if (!requiresProductionGradeIntegrity()) {
     return;
   }
 
-  assertProductionAuthHarnessAbsent();
+  if (isProductionAuthMode()) {
+    assertProductionAuthHarnessAbsent();
+  }
   assertProductionStorageDriver();
   assertProductionRedisUrl();
   assertProductionOutboxRelayPosture();

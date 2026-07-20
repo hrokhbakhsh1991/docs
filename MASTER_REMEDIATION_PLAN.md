@@ -14,19 +14,24 @@ sources:
 status: IN PROGRESS — implementation started 2026-07-20
 verdict: NO PRODUCTION until all P0 closed on one clean SHA + proven main protection
 progress:
-  MR-P0-001: done (clean SHA after remediation commit)
-  MR-P0-002: done (harness fail-closed; storage assert no bypass; 24/24 specs)
-  MR-P0-003: done (EXPECTED=20260720140000_finance_recon_rls; guard PASS; booking CI wired)
-  MR-P0-004: partial — deploy needs + fail-closed secrets + wait script; LIVE branch protection BLOCKED (gh unauth)
-  MR-P0-005: done (TENANT_RLS_TABLES money-path + finance-recon-rls in booking CI)
-  MR-P0-006: done (sess_ver hydrate + header auth test-only; 15/15 specs)
-  MR-P0-010: done (ownership before putMemberReceiptProof; 3/3 specs)
-  MR-P0-009: done (composite id+tenantId writes; adapter requires injected repo)
-  MR-P0-008: done (PRODUCTION_OUTBOX_RELAY_REQUIRED; api.env.example true)
-  MR-P0-013: done (no tsx fallback; FORCE_BOOTSTRAP; SSH yes; secrets fail-closed from 004)
-  MR-P0-011: done (partial unique indexes + P2002→BOOKING_GUEST_DUPLICATE)
-  MR-P0-015: done (HTTP-PG cert fail-closed; no silent skip)
-  MR-P0-014: done (pre-migrate dump + rollback requires DB dump or CODE_ONLY)
+  MR-P0-001: done
+  MR-P0-002: done
+  MR-P0-003: done (EXPECTED=20260720160000_hostile_audit_tenant_rls_closure)
+  MR-P0-004: partial — deploy wait script live; LIVE branch protection BLOCKED (gh unauth) [TODO-005]
+  MR-P0-005: done (probe expanded; superseded by TODO-003 inventory)
+  MR-P0-006: done
+  MR-P0-007: done (test:booking-http-postgres-jwt-production — JWT 201 + header 401)
+  MR-P0-008: done (relay assert + VPS outbox-relay unit; effect CI residual on in-process)
+  MR-P0-009: done (createBookingPaymentPort; finance↛create-bookings-repository)
+  MR-P0-010: done
+  MR-P0-011: done (indexes + HTTP race TODO-007)
+  MR-P0-012: done (hostile_audit_tenant_rls_closure + adversarial PG)
+  MR-P0-013: done
+  MR-P0-014: done (dump + CODE_ONLY requires I_ACCEPT_SCHEMA_FORWARD)
+  MR-P0-015: done (fail-closed + JWT prod path)
+  MR-P0-016: done (no default bearer; empty phones fail-closed prod/prodlike)
+  TODO-003: done (full TENANT_RLS_TABLES + APP_RUNTIME_PROFILE=prodlike)
+  TODO-011: done (workspace resolve fail-closed)
 ```
 
 

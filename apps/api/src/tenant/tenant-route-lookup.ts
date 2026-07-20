@@ -1,7 +1,7 @@
-import type { TenantRouteRow, TenantTier } from "@app-tour/tenant-kernel";
+import type { TenantRouteRow, TenantTier } from "@app-cloud/tenant-kernel";
 import { Prisma } from "@prisma/client";
 
-import { getPrisma } from "../db/prisma";
+import { withTenantRls } from "../db/with-tenant-rls";
 import { isPersistedTenantUuid } from "./tenant-id-format";
 
 function isTenantTier(value: string): value is TenantTier {
@@ -33,14 +33,17 @@ async function loadTenantRouteRow(normalized: string): Promise<TenantRouteRow | 
     schemaName: string | null;
   } | null;
   try {
-    row = await getPrisma().tenantRoute.findUnique({
-      where: { tenantId: normalized },
-      select: {
-        tier: true,
-        databaseUrl: true,
-        schemaName: true,
-      },
-    });
+    // tenant_routes is FORCE RLS — must set GUC (TODO-002).
+    row = await withTenantRls(normalized, (tx) =>
+      tx.tenantRoute.findUnique({
+        where: { tenantId: normalized },
+        select: {
+          tier: true,
+          databaseUrl: true,
+          schemaName: true,
+        },
+      })
+    );
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
       tenantRoutesTableMissing = true;

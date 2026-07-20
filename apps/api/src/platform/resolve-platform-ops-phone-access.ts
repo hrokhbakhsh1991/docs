@@ -1,6 +1,7 @@
 import { normalizeLoginMobile } from "../identity/phone-login-authorization.ts";
 import type { PlatformOpsUserRepository } from "./platform-ops-user.repository.ts";
 import { readPlatformOpsPhones } from "./read-platform-ops-phones.ts";
+import { requiresProductionGradeIntegrity } from "../server/runtime-profile.ts";
 
 export type PlatformOpsRole = "owner" | "admin" | "support";
 
@@ -20,7 +21,10 @@ export function normalizePlatformOpsRole(role: string): PlatformOpsRole {
   return "owner";
 }
 
-/** DB role wins; empty PLATFORM_OPS_PHONES allows any phone as owner (dev). */
+/**
+ * DB role wins.
+ * Empty PLATFORM_OPS_PHONES: fail-closed under production/prodlike; owner fallback only in test/dev (TODO-004).
+ */
 export async function resolvePlatformOpsPhoneAccess(
   phone: string,
   deps: { repository?: PlatformOpsUserRepository } = {}
@@ -41,7 +45,13 @@ export async function resolvePlatformOpsPhoneAccess(
   }
 
   const allowed = readPlatformOpsPhones();
-  if (allowed.length === 0 || allowed.includes(normalized)) {
+  if (allowed.length === 0) {
+    if (requiresProductionGradeIntegrity()) {
+      return null;
+    }
+    return { role: "owner" };
+  }
+  if (allowed.includes(normalized)) {
     return { role: "owner" };
   }
   return null;

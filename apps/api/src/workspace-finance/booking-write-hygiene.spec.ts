@@ -37,4 +37,17 @@ describe("MR-P0-009 composite tenant write hygiene", () => {
       assert.match(body, /tenantId/);
     }
   });
+
+  it("finance-dependency-registry runtime does not import create-bookings-repository", () => {
+    const src = readFileSync(join(here, "finance-dependency-registry.ts"), "utf8");
+    assert.doesNotMatch(src, /create-bookings-repository/);
+    assert.match(src, /createBookingPaymentPort/);
+  });
+
+  it("repair-handlers runtime does not import create-bookings-repository", () => {
+    const src = readFileSync(join(here, "recon/repair-handlers.ts"), "utf8");
+    assert.doesNotMatch(src, /create-bookings-repository/);
+    assert.match(src, /createBookingPaymentPort/);
+  });
+
 });

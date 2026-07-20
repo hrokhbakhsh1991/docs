@@ -124,7 +124,7 @@ bash "$DEPLOY_PATH/scripts/vps-deploy/show-infra-profile.sh" "$ENV_DIR/api.env" 
 if [[ -f "$ENV_DIR/marketing.env" && -f "$ENV_DIR/portal.env" ]]; then
   log "smoke four-process (api + web + marketing + portal)"
   if ! ENV_DIR="$ENV_DIR" bash "$DEPLOY_PATH/scripts/vps-deploy/smoke-four-process.sh"; then
-    log "SMOKE FAILED — rollback hint: ROLLBACK_SHA=<prev> DEPLOY_PATH=$DEPLOY_PATH ENV_DIR=$ENV_DIR bash $DEPLOY_PATH/scripts/vps-deploy/rollback-vps.sh"
+    log "SMOKE FAILED — paired rollback: ROLLBACK_SHA=<prev> ROLLBACK_DB_DUMP=\$latest_pre_migrate.dump DEPLOY_PATH=$DEPLOY_PATH ENV_DIR=$ENV_DIR bash $DEPLOY_PATH/scripts/vps-deploy/rollback-vps.sh"
     die "post-deploy smoke-four-process failed"
   fi
 else

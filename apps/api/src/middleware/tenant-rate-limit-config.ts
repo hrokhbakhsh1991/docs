@@ -1,4 +1,4 @@
-import { isProductionAuthMode } from "../tenant-kernel/auth-env";
+import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 import type { TenantConnectionTier } from "../tenant/resolve-tenant-connection-tier";
 
 import type { TenantRateLimitConfig, TenantRateLimitTier } from "./tenant-rate-limiter-types";
@@ -70,7 +70,7 @@ export function resolveTenantRateLimitConfig(
  * Fail-closed: production with rate limiting enabled must use Redis store (DEC-065 / SCAL-DEBT-04).
  */
 export function assertProductionRedisUrl(env: NodeJS.ProcessEnv = process.env): void {
-  if (!isProductionAuthMode()) {
+  if (!requiresProductionGradeIntegrity(env)) {
     return;
   }
   const config = resolveTenantRateLimitConfig(env);

@@ -159,7 +159,8 @@ function buildDirectorySqlConditions(
 
 export class PrismaIdentityRepository implements IdentityRepository {
   async findUserByMobile(mobile: string): Promise<IdentityUserRecord | null> {
-    const row = await getPrisma().user.findUnique({
+    // users: FORCE RLS deny for app_cloud mutations; pre-tenant login has no GUC — admin pool.
+    const row = await getPrismaAdmin().user.findUnique({
       where: { mobile: normalizeMobile(mobile) },
       select: { id: true, mobile: true },
     });
@@ -167,7 +168,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async findUserById(userId: string): Promise<IdentityUserRecord | null> {
-    const row = await getPrisma().user.findUnique({
+    const row = await getPrismaAdmin().user.findUnique({
       where: { id: userId },
       select: { id: true, mobile: true },
     });
@@ -179,7 +180,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
       return new Map();
     }
     const uniqueIds = [...new Set(userIds)];
-    const rows = await getPrisma().user.findMany({
+    const rows = await getPrismaAdmin().user.findMany({
       where: { id: { in: uniqueIds } },
       select: { id: true, mobile: true },
       take: uniqueIds.length,
@@ -314,7 +315,8 @@ export class PrismaIdentityRepository implements IdentityRepository {
 
   async createOtpChallenge(mobile: string, codeHash: string): Promise<{ challengeId: string }> {
     const id = randomUUID();
-    await getPrisma().mobileOtpChallenge.create({
+    // OTP table: FORCE RLS with no app_cloud policies — admin only (TODO-002).
+    await getPrismaAdmin().mobileOtpChallenge.create({
       data: {
         id,
         mobile: normalizeMobile(mobile),
@@ -328,7 +330,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async findOtpChallenge(challengeId: string): Promise<OtpChallengeRecord | null> {
-    const row = await getPrisma().mobileOtpChallenge.findUnique({
+    const row = await getPrismaAdmin().mobileOtpChallenge.findUnique({
       where: { id: challengeId.trim() },
     });
     if (row === null) {
@@ -345,7 +347,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async markOtpChallengeUsed(challengeId: string): Promise<void> {
-    await getPrisma().mobileOtpChallenge.updateMany({
+    await getPrismaAdmin().mobileOtpChallenge.updateMany({
       where: { id: challengeId.trim(), used: false },
       data: { used: true },
     });
@@ -753,9 +755,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
     const displayName = input.displayName.trim();
     const email = input.email?.trim();
 
-    let userRow = await getPrisma().user.findUnique({ where: { mobile } });
+    let userRow = await getPrismaAdmin().user.findUnique({ where: { mobile } });
     if (userRow === null) {
-      userRow = await getPrisma().user.create({ data: { mobile } });
+      userRow = await getPrismaAdmin().user.create({ data: { mobile } });
     }
     const user: IdentityUserRecord = { id: userRow.id, mobile: userRow.mobile };
 
@@ -800,7 +802,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
   async updateUserMobile(userId: string, newMobile: string): Promise<IdentityUserRecord> {
     const normalized = normalizeMobile(newMobile);
     try {
-      await getPrisma().$transaction(async (tx) => {
+      await getPrismaAdmin().$transaction(async (tx) => {
         const existing = await tx.user.findUnique({ where: { mobile: normalized } });
         if (existing !== null && existing.id !== userId) {
           throw new MobileAlreadyRegisteredError();
@@ -825,7 +827,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
       }
       throw error;
     }
-    const row = await getPrisma().user.findUnique({ where: { id: userId } });
+    const row = await getPrismaAdmin().user.findUnique({ where: { id: userId } });
     if (row === null) {
       throw new MembershipNotFoundError(userId);
     }
