@@ -30,6 +30,7 @@ import { HostFinancePersistenceModeAdapter } from "../workspace-finance/infrastr
 import { HostFinanceReceiptProofUrlAdapter } from "../workspace-finance/infrastructure/host-finance-receipt-proof-url.adapter";
 import { HostFinanceScheduleAdapter } from "../workspace-finance/infrastructure/host-finance-schedule.adapter";
 import { resolveFinanceWorkspaceTypeForTenant } from "../workspace-finance/resolve-finance-workspace-type-for-tenant";
+import { getBookingsRepository } from "../bookings/create-bookings-repository";
 
 /** workspaceType → FinanceService (workspace policies differ; platform I/O is shared). */
 const financeServiceByWorkspaceType = new Map<string, FinanceService>();
@@ -57,7 +58,7 @@ let sharedClock: FinanceClockPort | null = null;
 
 function getPlatformBookingPayments(): IBookingPaymentPort {
   if (platformBookingPayments === null) {
-    platformBookingPayments = new BookingPaymentAdapter();
+    platformBookingPayments = new BookingPaymentAdapter(getBookingsRepository());
   }
   return platformBookingPayments;
 }

@@ -646,8 +646,8 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
     input: UpdateReceiptReviewInput
   ): Promise<FinanceReceiptRow> {
     return withTenantRls(tenantId, async (tx) => {
-      const row = await tx.paymentReceipt.update({
-        where: { id: receiptId },
+      const touched = await tx.paymentReceipt.updateMany({
+        where: { id: receiptId, tenantId },
         data: {
           status: input.status,
           reviewedByUserId: input.reviewedByUserId,
@@ -657,6 +657,12 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
             ? { ledgerJournalId: input.ledgerJournalId }
             : {}),
         },
+      });
+      if (touched.count !== 1) {
+        throw new Error("FINANCE_RECEIPT_NOT_FOUND");
+      }
+      const row = await tx.paymentReceipt.findFirst({
+        where: { id: receiptId, tenantId },
         include: {
           payment: {
             select: {
@@ -673,6 +679,9 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           },
         },
       });
+      if (row === null) {
+        throw new Error("FINANCE_RECEIPT_NOT_FOUND");
+      }
       return toFinanceReceiptRow(row);
     });
   }
@@ -683,13 +692,19 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
     ledgerJournalId: string
   ): Promise<FinancePaymentRow> {
     return withTenantRls(tenantId, async (tx) => {
-      const row = await tx.payment.update({
-        where: { id: paymentId },
+      const touched = await tx.payment.updateMany({
+        where: { id: paymentId, tenantId },
         data: {
           status: "Paid",
           paidAt: new Date(),
           ledgerJournalId,
         },
+      });
+      if (touched.count !== 1) {
+        throw new Error("FINANCE_PAYMENT_NOT_FOUND");
+      }
+      const row = await tx.payment.findFirst({
+        where: { id: paymentId, tenantId },
         select: {
           id: true,
           registrationId: true,
@@ -702,6 +717,9 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
           createdAt: true,
         },
       });
+      if (row === null) {
+        throw new Error("FINANCE_PAYMENT_NOT_FOUND");
+      }
       return toFinancePaymentRow(row);
     });
   }
@@ -709,15 +727,24 @@ export class PrismaFinanceRepository implements FinanceRepositoryPort {
   /** Compensating write when booking payment projection fails after markPaymentPaid. */
   async revertPaymentToPending(tenantId: string, paymentId: string): Promise<FinancePaymentRow> {
     return withTenantRls(tenantId, async (tx) => {
-      const row = await tx.payment.update({
-        where: { id: paymentId },
+      const touched = await tx.payment.updateMany({
+        where: { id: paymentId, tenantId },
         data: {
           status: "Pending",
           paidAt: null,
           ledgerJournalId: null,
         },
+      });
+      if (touched.count !== 1) {
+        throw new Error("FINANCE_PAYMENT_NOT_FOUND");
+      }
+      const row = await tx.payment.findFirst({
+        where: { id: paymentId, tenantId },
         select: PAYMENT_ROW_SELECT,
       });
+      if (row === null) {
+        throw new Error("FINANCE_PAYMENT_NOT_FOUND");
+      }
       return toFinancePaymentRow(row);
     });
   }

@@ -100,7 +100,7 @@ function createSharedPlatform(): {
   readonly bookingPayments: BookingPaymentAdapter;
   readonly repository: InMemoryFinanceRepository;
 } {
-  const bookingPayments = new BookingPaymentAdapter();
+  const bookingPayments = new BookingPaymentAdapter(getBookingsRepository());
   const repository = new InMemoryFinanceRepository(bookingPayments);
   return { bookingPayments, repository };
 }
@@ -482,7 +482,7 @@ describe("finance shared infrastructure safety (B2.4)", { concurrency: false }, 
   });
 
   it("BookingPaymentAdapter: tenant boundary on lookup/update; no cross-tenant mutation", async () => {
-    const bookingPayments = new BookingPaymentAdapter();
+    const bookingPayments = new BookingPaymentAdapter(getBookingsRepository());
     const reg = randomUUID();
     seedBooking({ id: reg, tenantId: TENANT_A, paymentStatus: "unpaid" });
 

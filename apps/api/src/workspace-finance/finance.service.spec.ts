@@ -102,7 +102,7 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     readonly receiptId: string;
     readonly paymentId: string;
   }> {
-    const bookingPayments = input.bookingPayments ?? new BookingPaymentAdapter();
+    const bookingPayments = input.bookingPayments ?? new BookingPaymentAdapter(getBookingsRepository());
     const financeRepo = new InMemoryFinanceRepository(bookingPayments);
     const finance = new FinanceService(
       new DenaliFinanceLedgerPolicyAdapter(),
@@ -219,16 +219,16 @@ describe("finance.service.spec.ts — reviewReceipt booking sync", { concurrency
     const trackingPort: IBookingPaymentPort = {
       async syncStatus(input) {
         syncCalls.push(input);
-        return new BookingPaymentAdapter().syncStatus(input);
+        return new BookingPaymentAdapter(getBookingsRepository()).syncStatus(input);
       },
       async raisePaidInTx(tx, input) {
-        return new BookingPaymentAdapter().raisePaidInTx(tx, input);
+        return new BookingPaymentAdapter(getBookingsRepository()).raisePaidInTx(tx, input);
       },
       async memberOwnsRegistration(input) {
-        return new BookingPaymentAdapter().memberOwnsRegistration(input);
+        return new BookingPaymentAdapter(getBookingsRepository()).memberOwnsRegistration(input);
       },
       async getPaymentStatus(input) {
-        return new BookingPaymentAdapter().getPaymentStatus(input);
+        return new BookingPaymentAdapter(getBookingsRepository()).getPaymentStatus(input);
       },
     };
 

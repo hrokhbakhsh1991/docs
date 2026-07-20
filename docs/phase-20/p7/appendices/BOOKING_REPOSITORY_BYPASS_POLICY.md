@@ -10,8 +10,8 @@ date: "2026-07-20"
 
 | Caller | Access | Classification | Rule |
 | ------ | ------ | -------------- | ---- |
-| `BookingPaymentAdapter` | `getById`, `updatePaymentStatus` | **Read / projection write** | Allowed. Payment raise is Finance-owned; never approve/create/cancel. Tenant id required on every call; Prisma path uses `withTenantRls`. |
-| `BookingPaymentAdapter.raisePaidInTx` | ambient Finance TX | **TX-local projection** | Explicit exception — same connection as ledger approve; not a second policy path. |
+| `BookingPaymentAdapter` | `getById`, `updatePaymentStatus` | **Read / projection write** | Allowed. Payment raise is Finance-owned; never approve/create/cancel. **MR-P0-009:** every write uses `id + tenantId` (`updateMany`); adapter requires explicit `BookingRepositoryPort` injection (no silent `getBookingsRepository()` default). |
+| `BookingPaymentAdapter.raisePaidInTx` | ambient Finance TX | **TX-local projection** | Explicit exception — same connection as ledger approve; `updateMany` where `{ id, tenantId }`. |
 | `BookingRegistrationDisplayAdapter` | `getById` / `getByIds` | **Read-only projection** | Allowed. Display labels only. |
 | `users.service` member booking summary | count + recent list by user | **Read-only projection** | Allowed. No lifecycle mutations. |
 | Any **lifecycle** (create/approve/reject/waitlist/cancel/bulk) | — | **Forbidden** | Must go through `resolveBookingsServiceForTenant` façades. |

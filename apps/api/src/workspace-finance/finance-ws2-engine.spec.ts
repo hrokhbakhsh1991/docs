@@ -89,7 +89,7 @@ describe("finance-ws2-engine.spec.ts — Phase 1.3 dual policy", { concurrency: 
     finance: FinanceService;
     financeRepo: InMemoryFinanceRepository;
   } {
-    const bookingPayments = new BookingPaymentAdapter();
+    const bookingPayments = new BookingPaymentAdapter(getBookingsRepository());
     const financeRepo = new InMemoryFinanceRepository(bookingPayments);
     const finance = new FinanceService(
       resolveFinanceLedgerPolicy(workspaceType),

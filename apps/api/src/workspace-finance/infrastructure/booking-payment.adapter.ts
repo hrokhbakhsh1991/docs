@@ -2,7 +2,6 @@ import type { Prisma } from "@prisma/client";
 
 import { raiseBookingPaymentStatus } from "../../bookings/booking-payment-status";
 import type { BookingPaymentStatus } from "../../bookings/bookings.types";
-import { getBookingsRepository } from "../../bookings/create-bookings-repository";
 import type { BookingRepositoryPort } from "../../bookings/ports/booking-repository.port";
 import type {
   BookingPaymentMemberOwnershipInput,
@@ -19,7 +18,8 @@ import type {
  * Constructed at boot and injected into {@link FinanceService} / PrismaFinanceRepository.
  */
 export class BookingPaymentAdapter implements IBookingPaymentPort {
-  constructor(private readonly bookings: BookingRepositoryPort = getBookingsRepository()) {}
+  /** Prefer explicit injection from boot — do not silently bind via module singleton. */
+  constructor(private readonly bookings: BookingRepositoryPort) {}
 
   async syncStatus(
     input: BookingPaymentSyncStatusInput
@@ -53,10 +53,13 @@ export class BookingPaymentAdapter implements IBookingPaymentPort {
       const current = booking.paymentStatus as BookingPaymentStatus;
       const next = raiseBookingPaymentStatus(current, "paid");
       if (next !== current) {
-        await prismaTx.operatorRegistration.update({
-          where: { id: registrationId },
+        const updated = await prismaTx.operatorRegistration.updateMany({
+          where: { id: registrationId, tenantId },
           data: { paymentStatus: next },
         });
+        if (updated.count !== 1) {
+          throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_MISS");
+        }
       }
       return next;
     } catch (error: unknown) {

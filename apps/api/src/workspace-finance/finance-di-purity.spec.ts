@@ -48,6 +48,7 @@ import { HostFinanceCapabilityAdapter } from "./infrastructure/host-finance-capa
 import { HostFinanceScheduleAdapter } from "./infrastructure/host-finance-schedule.adapter.ts";
 import { HostFinanceLogAdapter } from "./infrastructure/host-finance-log.adapter.ts";
 import { HostFinanceClockAdapter } from "./infrastructure/host-finance-clock.adapter.ts";
+import { getBookingsRepository } from "../bookings/create-bookings-repository";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../");
 const DENALI = "denali";
@@ -79,7 +80,7 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
   });
 
   it("FIN-DI-01 missing dependency fails fast (service + repository factory)", () => {
-    const bookingPayments = new BookingPaymentAdapter();
+    const bookingPayments = new BookingPaymentAdapter(getBookingsRepository());
     const repo = new InMemoryFinanceRepository(bookingPayments);
     const ledger = new DenaliFinanceLedgerPolicyAdapter();
     const defaults = new DenaliFinanceReceiptDefaultsAdapter();
@@ -282,7 +283,7 @@ describe("finance-di-purity.spec.ts — composition root mandatory", { concurren
     const deps = resolveFinanceWorkspaceDependencies(DENALI);
     assert.ok(deps.ledgerPolicy instanceof DenaliFinanceLedgerPolicyAdapter);
 
-    const bookingPayments = new BookingPaymentAdapter();
+    const bookingPayments = new BookingPaymentAdapter(getBookingsRepository());
     const service = createFinanceService(
       deps.ledgerPolicy,
       new InMemoryFinanceRepository(bookingPayments),

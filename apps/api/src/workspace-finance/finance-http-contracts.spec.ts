@@ -192,7 +192,7 @@ describe("finance-http-contracts.spec.ts — Phase 1.4", { concurrency: false },
       approvedAt: null,
     });
 
-    const bookingPayments = new BookingPaymentAdapter();
+    const bookingPayments = new BookingPaymentAdapter(getBookingsRepository());
     const financeRepo = new InMemoryFinanceRepository(bookingPayments);
     const finance = new FinanceService(
       resolveFinanceLedgerPolicy(FINANCE_WS2_WORKSPACE_TYPE),

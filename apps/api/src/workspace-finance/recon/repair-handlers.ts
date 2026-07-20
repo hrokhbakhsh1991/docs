@@ -14,6 +14,7 @@ import { paymentLedgerCaptureDomainEventId } from "../paid-without-ledger-detect
 import { resolveFinanceWorkspaceTypeForTenant } from "../resolve-finance-workspace-type-for-tenant";
 import { FINANCE_RECON_CODE } from "./codes";
 import { markFinanceReconFindingStatus } from "./findings-store";
+import { getBookingsRepository } from "../../bookings/create-bookings-repository";
 
 export type ReconFindingRow = {
   readonly id: string;
@@ -127,7 +128,7 @@ export async function handlePaidBookingDrift(
     };
   }
 
-  const adapter = new BookingPaymentAdapter();
+  const adapter = new BookingPaymentAdapter(getBookingsRepository());
   const status = await adapter.syncStatus({
     tenantId: finding.tenantId,
     registrationId: finding.registrationId,
@@ -400,7 +401,7 @@ export async function handlePrepayBookingDegraded(
     };
   }
 
-  const adapter = new BookingPaymentAdapter();
+  const adapter = new BookingPaymentAdapter(getBookingsRepository());
   const status = await adapter.syncStatus({
     tenantId: finding.tenantId,
     registrationId: finding.registrationId,

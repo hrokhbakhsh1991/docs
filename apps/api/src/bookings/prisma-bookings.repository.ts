@@ -550,12 +550,18 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
       if (next === current) {
         return toBookingListRecord(existing);
       }
-      const updated = await tx.operatorRegistration.update({
-        where: { id: input.bookingId },
+      const updated = await tx.operatorRegistration.updateMany({
+        where: { id: input.bookingId, tenantId: input.tenantId },
         data: { paymentStatus: next },
+      });
+      if (updated.count !== 1) {
+        return null;
+      }
+      const row = await tx.operatorRegistration.findFirst({
+        where: { id: input.bookingId, tenantId: input.tenantId },
         select: BOOKING_LIST_SELECT,
       });
-      return toBookingListRecord(updated);
+      return row === null ? null : toBookingListRecord(row);
     });
   }
 
