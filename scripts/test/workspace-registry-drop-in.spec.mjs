@@ -8,6 +8,11 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import {
+  assertExportFunctionsHaveUniqueConstBindings,
+  assertNoDuplicateEmittedSymbols,
+} from "../codegen/workspace-registry/utils.mjs";
+
+import {
   assertPackageWebModule,
   discoverManifests,
   extractCatalogPathsFromManifest,
@@ -42,10 +47,21 @@ const FIXTURE_MANIFEST = join(
 );
 
 describe("workspace registry drop-in (P7-T06)", () => {
-  it("trunk manifests discover starter, denali, urban, guest-club", () => {
+  it("trunk manifests discover all registered workspace packages", () => {
     const manifests = discoverManifests();
     const ids = manifests.map((m) => m.id).sort();
-    assert.deepEqual(ids, ["denali", "guest-club", "starter", "urban"]);
+    assert.deepEqual(ids, [
+      "booking-ws2",
+      "denali",
+      "finance-ws2",
+      "finance-ws3",
+      "finance-ws4",
+      "finance-ws5",
+      "finance-ws6",
+      "guest-club",
+      "starter",
+      "urban",
+    ]);
   });
 
   it("climbing-club fixture merges into generated bindings without packages/workspaces/climbing-club", () => {
@@ -164,6 +180,32 @@ describe("workspace registry drop-in (P7-T06)", () => {
           },
         ]),
       /dispatchVia must be "financeEventReaction"/
+    );
+  });
+
+  it("merge-safe: tour-api.mjs export functions have unique const bindings", () => {
+    const tourApiPath = join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../codegen/workspace-registry/domains/tour-api.mjs"
+    );
+    const source = readFileSync(tourApiPath, "utf8");
+    assertExportFunctionsHaveUniqueConstBindings(source, "domains/tour-api.mjs");
+  });
+
+  it("merge-safe: assertNoDuplicateEmittedSymbols rejects duplicate top-level const", () => {
+    assert.throws(
+      () =>
+        assertNoDuplicateEmittedSymbols(
+          `export const FOO = 1;\nexport const FOO = 2;\n`,
+          "fixture"
+        ),
+      /duplicate emitted symbols.*FOO/
+    );
+    assert.doesNotThrow(() =>
+      assertNoDuplicateEmittedSymbols(
+        `export type Foo = string;\nexport const BAR = 1;\nexport function baz(): void {}\n`,
+        "fixture"
+      )
     );
   });
 
@@ -494,7 +536,7 @@ describe("workspace registry drop-in (P7-T06)", () => {
     assert.match(generated, /workspace-plugin-load-cache/);
     assert.match(generated, /getOrCreateWorkspacePluginLoad/);
     assert.match(generated, /WORKSPACE_PLUGIN_REGISTRY_REVISION/);
-    assert.match(generated, /WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 4/);
+    assert.match(generated, /WORKSPACE_PLUGIN_LOAD_CACHE_MAX_ENTRIES = 6/);
     assert.doesNotMatch(generated, /const pluginLoadCache\s*=\s*new Map/);
   });
 });

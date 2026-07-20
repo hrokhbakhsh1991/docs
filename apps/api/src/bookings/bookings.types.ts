@@ -3,7 +3,6 @@
  * HTTP wire DTOs SoT: `@app-tour/booking-http-contracts` (Phase B1.2).
  */
 import type {
-  BookingListItem,
   BookingPaymentStatus,
   BookingStatus,
 } from "@app-tour/booking-http-contracts";

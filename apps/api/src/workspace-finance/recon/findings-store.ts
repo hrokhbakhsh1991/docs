@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { getPrismaAdmin } from "../../db/prisma";
 import { FINANCE_RECON_SEVERITY, type FinanceReconFindingDraft } from "./codes";
@@ -39,7 +39,7 @@ export async function upsertFinanceReconFindings(
           paymentId: draft.paymentId ?? null,
           registrationId: draft.registrationId ?? null,
           outboxEventId: draft.outboxEventId ?? null,
-          details: draft.details,
+          details: draft.details as Prisma.InputJsonValue,
         },
       });
       upserted += 1;
@@ -55,7 +55,7 @@ export async function upsertFinanceReconFindings(
         paymentId: draft.paymentId ?? null,
         registrationId: draft.registrationId ?? null,
         outboxEventId: draft.outboxEventId ?? null,
-        details: draft.details,
+        details: draft.details as Prisma.InputJsonValue,
         resolvedAt: null,
         resolvedBy: null,
         detectedAt: reopen ? new Date() : undefined,
@@ -86,10 +86,13 @@ export async function listOpenFinanceReconFindings(input: {
   });
 }
 
-export async function getFinanceReconFinding(id: string): Promise<unknown | null> {
+export async function getFinanceReconFinding(input: {
+  readonly id: string;
+  readonly tenantId: string;
+}): Promise<unknown | null> {
   const admin = getPrismaAdmin();
-  return admin.financeReconFinding.findUnique({
-    where: { id },
+  return admin.financeReconFinding.findFirst({
+    where: { id: input.id, tenantId: input.tenantId },
     include: { actions: { orderBy: { createdAt: "desc" }, take: 20 } },
   });
 }
@@ -118,25 +121,29 @@ export async function recordFinanceReconAction(input: {
       reason: input.reason ?? null,
       rollbackStrategy: input.rollbackStrategy ?? "ticket_only",
       result: input.result,
-      payload: input.payload,
+      payload: input.payload as Prisma.InputJsonValue,
     },
   });
 }
 
 export async function markFinanceReconFindingStatus(input: {
   readonly findingId: string;
+  readonly tenantId: string;
   readonly status: "resolved" | "ignored";
   readonly resolvedBy?: string;
 }): Promise<void> {
   const admin = getPrismaAdmin();
-  await admin.financeReconFinding.update({
-    where: { id: input.findingId },
+  const updated = await admin.financeReconFinding.updateMany({
+    where: { id: input.findingId, tenantId: input.tenantId },
     data: {
       status: input.status,
       resolvedAt: new Date(),
       resolvedBy: input.resolvedBy ?? null,
     },
   });
+  if (updated.count !== 1) {
+    throw new Error("FINANCE_RECON_FINDING_TENANT_MISS");
+  }
 }
 
 export async function countOpenFinanceReconFindings(): Promise<number> {

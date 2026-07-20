@@ -110,7 +110,7 @@ export interface BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-    }) => void;
+    }) => void | Promise<void>;
   }): Promise<BookingRecord>;
   bulkApproveWithOutbox(input: {
     ids: readonly string[];
@@ -120,7 +120,7 @@ export interface BookingRepositoryPort {
     assertCapacityInTx?: (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-    }) => void;
+    }) => void | Promise<void>;
   }): Promise<BookingRecord[]>;
   /**
    * pending|waitlisted → rejected. Persist status + optional rejectReason — **no outbox** (decision B).

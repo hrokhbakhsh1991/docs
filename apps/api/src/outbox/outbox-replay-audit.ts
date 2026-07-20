@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { getPrismaAdmin } from "../db/prisma";
 
@@ -58,7 +58,7 @@ export async function persistOutboxReplayRun(
       skipped: input.skipped,
       failed: input.failed,
       durationMs: input.durationMs,
-      details: input.details,
+      details: input.details as Prisma.InputJsonValue,
     },
   });
 }

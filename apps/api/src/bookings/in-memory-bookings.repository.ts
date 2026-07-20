@@ -495,11 +495,11 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
       }
     }
     if (input.assertCapacityInTx !== undefined) {
-      input.assertCapacityInTx({
+      await Promise.resolve(input.assertCapacityInTx({
         tourId: input.body.tourId,
         partySize: input.body.partySize,
         occupiedApprovedPartySize,
-      });
+      }));
     }
     const now = new Date().toISOString();
     const record: BookingRecord = {
@@ -557,10 +557,10 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
           }
         }
         if (input.assertCapacityInTx !== undefined) {
-          input.assertCapacityInTx({
+          await Promise.resolve(input.assertCapacityInTx({
             booking: cloneBooking(current),
             occupiedApprovedPartySize,
-          });
+          }));
         }
 
         const approvedAt = new Date().toISOString();
@@ -642,10 +642,10 @@ export class InMemoryBookingsRepository implements BookingRepositoryPort {
           }
 
           if (input.assertCapacityInTx !== undefined) {
-            input.assertCapacityInTx({
+            await Promise.resolve(input.assertCapacityInTx({
               booking: cloneBooking(current),
               occupiedApprovedPartySize,
-            });
+            }));
           }
 
           const approvedAt = new Date().toISOString();

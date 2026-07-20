@@ -334,7 +334,9 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
     if (raw.length === 0 || input.tourId.trim().length === 0) {
       return null;
     }
-    const activeStatus = { notIn: ["cancelled", "rejected"] as const };
+    const activeStatus: Prisma.StringFilter<"OperatorRegistration"> = {
+      notIn: ["cancelled", "rejected"],
+    };
 
     return withTenantRls(input.tenantId, async (tx) => {
       let where: Prisma.OperatorRegistrationWhereInput;
@@ -583,11 +585,11 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         input.body.tourId
       );
       if (input.assertCapacityInTx !== undefined) {
-        input.assertCapacityInTx({
+        await Promise.resolve(input.assertCapacityInTx({
           tourId: input.body.tourId,
           partySize: input.body.partySize,
           occupiedApprovedPartySize,
-        });
+        }));
       }
       const row = await tx.operatorRegistration.create({
         data: {
@@ -655,10 +657,10 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         current.tourId
       );
       if (input.assertCapacityInTx !== undefined) {
-        input.assertCapacityInTx({
+        await Promise.resolve(input.assertCapacityInTx({
           booking: toBookingRecord(current),
           occupiedApprovedPartySize,
-        });
+        }));
       }
 
       const approvedAt = new Date();
@@ -758,10 +760,10 @@ export class PrismaBookingsRepository implements BookingRepositoryPort {
         }
         if (input.assertCapacityInTx !== undefined) {
           try {
-            input.assertCapacityInTx({
+            await Promise.resolve(input.assertCapacityInTx({
               booking: toBookingRecord(row),
               occupiedApprovedPartySize: occupied,
-            });
+            }));
           } catch (error) {
             // Bulk must fill up to capacity then skip — throwing would ROLLBACK winners.
             if (

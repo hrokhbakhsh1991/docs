@@ -9,12 +9,22 @@ const PACKAGE_JSON = join(PACKAGE_ROOT, "package.json");
 const SRC_DIR = join(PACKAGE_ROOT, "src");
 
 const ALLOWED_RUNTIME_DEPS = new Set([
+  "@app-tour/booking-http-contracts",
+  "@app-tour/finance-core",
+  "@app-tour/finance-http",
+  "@app-tour/finance-http-contracts",
   "@app-tour/platform-core",
   "@app-tour/platform-events",
   "@app-tour/tenant-kernel",
-  "@app-tour/workspace-sdk",
+  "@app-tour/workspace-booking-ws2",
   "@app-tour/workspace-denali",
+  "@app-tour/workspace-finance-ws2",
+  "@app-tour/workspace-finance-ws3",
+  "@app-tour/workspace-finance-ws4",
+  "@app-tour/workspace-finance-ws5",
+  "@app-tour/workspace-finance-ws6",
   "@app-tour/workspace-guest-club",
+  "@app-tour/workspace-sdk",
   "@app-tour/workspace-starter",
   "@app-tour/workspace-urban",
   "@casl/ability",

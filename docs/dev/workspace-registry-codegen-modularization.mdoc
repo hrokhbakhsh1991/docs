@@ -59,6 +59,17 @@ scripts/
 
 **Import rule:** Domain modules may import `constants`, `manifest-loader`, `validation`, `utils`, and L3 types only via string templates — **no** imports from `packages/workspaces/*` or `apps/*`.
 
+## Merge-safe emitter invariants (post-consolidation)
+
+Cherry-pick / conflict resolution on domain emitters can leave **duplicate local bindings** in the same function (e.g. two `const reexportsBySpecifier = new Map()` in `generateOutboxSideEffects`). That fails at module load (`SyntaxError: Identifier has already been declared`) and blocks `--check`, `guard:member-portal-contract`, and any consumer that imports `tour-api.mjs`.
+
+| Layer | Guard | Failure mode |
+| ----- | ----- | ------------ |
+| Generator source | Drop-in spec: unique `const` names inside each `export function` body in `domains/tour-api.mjs` | Catches merge fallout before emit |
+| Emitted TypeScript | `assertNoDuplicateEmittedSymbols()` in `utils.mjs` — called from `generateOutboxSideEffects` before return | Catches duplicate top-level `const` / `function` / `class` / `type` names in the string written to `*.generated.ts` |
+
+Determinism: reexport / import lines still sort by specifier and export name (`localeCompare` / default sort) so `--check` remains byte-stable when inputs are unchanged.
+
 ## Slice plan
 
 | Slice | Scope | Exit criteria |

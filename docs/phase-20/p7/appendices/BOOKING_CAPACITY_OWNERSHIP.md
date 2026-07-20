@@ -8,7 +8,8 @@ model: booking-owned
 constraints:
   - Booking owns occupancy SoT + fail-closed max + approve-in-TX enforcement
   - Workspace adapters supply product markers only (e.g. CASE_A)
-  - Denali registration supplies tourCapacityMax when known; never enforces occupancy
+  - Denali registration supplies tourCapacityMax from tour SoT when known; never enforces occupancy
+  - Client registrationIntake.tourCapacityMax must not raise ceiling above tour SoT
   - no second capacity authority / no hybrid ambiguity
 ```
 
@@ -18,9 +19,11 @@ constraints:
 | ------- | ----- |
 | Occupancy sum (approved seats) | **Booking** repository |
 | Fail-closed when `tourCapacityMax` missing | **Booking** application (create + approve) |
+| **Ceiling authority** | **Tour canonical `data.capacityMax`** via `BookingTourCapacityPort` when present |
+| Client `registrationIntake.tourCapacityMax` | **Never raises** ceiling above tour SoT; ignored when tour SoT present |
 | Product markers (CASE_A, etc.) | **Workspace** `capacityPolicy` |
 | Final admit/reject on create & approve | **Booking** invokes `capacityPolicy` |
-| Approve capacity vs race | **Inside** `approveWithOutbox` TX (same RLS + outbox TX) |
+| Approve capacity vs race | **Inside** `approveWithOutbox` TX (same RLS + outbox TX); ceiling re-resolved from tour SoT when available |
 
 Capability claim: `capacity.mode = booking-owned` for denali and booking-ws2 (hybrid removed from product claims).
 

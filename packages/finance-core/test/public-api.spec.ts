@@ -3,9 +3,8 @@
  */
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { describe, it } from "node:test";
 
@@ -51,7 +50,7 @@ describe("FIN-P2.3.3 finance-core public API freeze", () => {
     assert.equal(pkg.types, "./dist/index.d.ts");
   });
 
-  it("dist runtime surface has required entry points and no host/prisma names", () => {
+  it("dist runtime surface has required entry points and no host/prisma names", async () => {
     if (!existsSync(DIST_INDEX)) {
       const build = spawnSync("pnpm", ["run", "build"], {
         cwd: PKG,
@@ -60,8 +59,8 @@ describe("FIN-P2.3.3 finance-core public API freeze", () => {
       });
       assert.equal(build.status, 0, build.stdout + build.stderr);
     }
-    const require = createRequire(import.meta.url);
-    const mod = require(DIST_INDEX) as Record<string, unknown>;
+    // Load built dist via file URL (exercises runtime surface without package-name self-resolve).
+    const mod = (await import(pathToFileURL(DIST_INDEX).href)) as Record<string, unknown>;
     for (const name of REQUIRED_RUNTIME) {
       assert.notEqual(mod[name], undefined, `missing runtime export ${name}`);
     }

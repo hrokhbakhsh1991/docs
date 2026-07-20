@@ -7,6 +7,7 @@ import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 import { UNAUTHORIZED_HEADER_AUTH_FORBIDDEN_OUTSIDE_TEST } from "../tenant-kernel/auth-errors";
 import { readRequestJwtSessionVersion } from "../tenant-kernel/jwt-session-claim";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
+import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 import { AuthTokenRevokedError, IdentityRequiredError } from "./identity.errors";
 import { hydrateMembershipFromDb } from "./hydrate-membership";
 import { readSessionCookieToken } from "./parse-session-cookie";
@@ -72,7 +73,7 @@ export async function requireOperatorSession(
   }
 
   const sessionVersionClaim = readRequestJwtSessionVersion(authReq);
-  if (isProductionAuthMode() && sessionVersionClaim === undefined) {
+  if (requiresProductionGradeIntegrity() && sessionVersionClaim === undefined) {
     throw new AuthTokenRevokedError();
   }
 

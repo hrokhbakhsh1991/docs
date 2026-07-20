@@ -157,6 +157,7 @@ describe("BK dependency registry audit", { concurrency: false }, () => {
       },
       validationPolicy: { kind: "test", assertCreateValid: () => undefined },
       capacityPolicy: { kind: "test", assertCreateCapacity: () => undefined },
+      tourCapacity: { kind: "test-tour-capacity", resolveTourCapacityMax: async () => null },
       workspaceType: "denali",
       tenantWorkspaceBinding: {
         assertTenantBoundToRuntime: async () => undefined,

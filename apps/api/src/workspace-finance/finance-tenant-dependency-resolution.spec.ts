@@ -45,6 +45,7 @@ describe("finance-tenant-dependency-resolution.spec.ts — Phase 1.5 C1", { conc
   before(() => {
     process.env.STORAGE_DRIVER = "memory";
     delete process.env.DATABASE_URL;
+    process.env.FINANCE_BOOT_WORKSPACE_TYPE = DENALI;
   });
 
   after(() => {
@@ -58,6 +59,7 @@ describe("finance-tenant-dependency-resolution.spec.ts — Phase 1.5 C1", { conc
     } else {
       process.env.DATABASE_URL = priorDatabaseUrl;
     }
+    delete process.env.FINANCE_BOOT_WORKSPACE_TYPE;
   });
 
   beforeEach(() => {

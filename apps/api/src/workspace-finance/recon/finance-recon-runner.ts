@@ -114,11 +114,12 @@ export async function runFinanceReconJob(input: {
         ...(input.tenantId !== undefined ? { tenantId: input.tenantId } : {}),
       },
       take: 50,
-      select: { id: true },
+      select: { id: true, tenantId: true },
     });
     for (const row of openPaid) {
       const repair = await repairFinanceReconFinding({
         findingId: row.id,
+        tenantId: row.tenantId,
         dryRun: false,
         mode: "automatic",
         reason: "automatic_safe_repair",

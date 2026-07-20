@@ -226,7 +226,8 @@ export async function runOutboxProdReplay(
     assertConfirmForApply(input, dryRun);
 
     const candidates = await selectOutboxReplayCandidates(input);
-    const outcomes: OutboxProdReplayResult["candidates"] = [];
+    type CandidateOutcome = OutboxProdReplayResult["candidates"][number];
+    const outcomes: CandidateOutcome[] = [];
     let replayed = 0;
     let skipped = 0;
     let failed = 0;

@@ -235,7 +235,6 @@ describe("booking prisma approve concurrency", { concurrency: false }, () => {
 
   const tenantDenali = integrationTenantId();
   const tenantWs2 = integrationTenantId();
-  const userId = randomUUID();
   const priorStorageDriver = process.env.STORAGE_DRIVER;
   let repo: PrismaBookingsRepository;
 
@@ -330,14 +329,14 @@ describe("booking prisma approve concurrency", { concurrency: false }, () => {
       tourId,
       partySize: 1,
       guestLabel: "Race A",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const b = await seedPending({
       tenantId: tenantDenali,
       tourId,
       partySize: 1,
       guestLabel: "Race B",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
 
     const raced = await raceApproves({
@@ -372,7 +371,7 @@ describe("booking prisma approve concurrency", { concurrency: false }, () => {
           tourId,
           partySize: 1,
           guestLabel: `TenRace ${i}`,
-          submittedByUserId: userId,
+          submittedByUserId: randomUUID(),
         })
       );
     }
@@ -411,21 +410,21 @@ describe("booking prisma approve concurrency", { concurrency: false }, () => {
       tourId,
       partySize: 1,
       guestLabel: "Already In",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const p1 = await seedPending({
       tenantId: tenantDenali,
       tourId,
       partySize: 1,
       guestLabel: "Fill A",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const p2 = await seedPending({
       tenantId: tenantDenali,
       tourId,
       partySize: 1,
       guestLabel: "Fill B",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
 
     const raced = await raceApproves({
@@ -453,14 +452,14 @@ describe("booking prisma approve concurrency", { concurrency: false }, () => {
       tourId,
       partySize: 1,
       guestLabel: "Retry A",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const b = await seedPending({
       tenantId: tenantDenali,
       tourId,
       partySize: 1,
       guestLabel: "Retry B",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
 
     const first = await raceApproves({
@@ -520,21 +519,21 @@ describe("booking prisma approve concurrency", { concurrency: false }, () => {
       tourId,
       partySize: 4,
       guestLabel: "Near Full",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const p1 = await seedPending({
       tenantId: tenantDenali,
       tourId,
       partySize: 2,
       guestLabel: "Too Big A",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const p2 = await seedPending({
       tenantId: tenantDenali,
       tourId,
       partySize: 2,
       guestLabel: "Too Big B",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
 
     const raced = await raceApproves({
@@ -559,14 +558,14 @@ describe("booking prisma approve concurrency", { concurrency: false }, () => {
       tourId: tourDenali,
       partySize: 1,
       guestLabel: "Denali Seat",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const w = await seedPending({
       tenantId: tenantWs2,
       tourId: tourWs2,
       partySize: 1,
       guestLabel: "Ws2 Seat",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
 
     const t0 = Date.now();

@@ -88,7 +88,8 @@
     "mergeExport": "mergeDenaliCanonicalPatchData",
     "publishGateExport": "denaliTourPatchRequiresOwner",
     "publishSurfaceExport": "DENALI_TOUR_PUBLISH_FIELDS_OWNER_SURFACE",
-    "forbidOperatorMemberTourPatch": true
+    "forbidOperatorMemberTourPatch": true,
+    "starterCreateBridgeOperatorTenantId": "00000000-0000-4000-8000-000000000014"
   },
   "canonicalTour": {
     "publishStatusModule": "./tours",
@@ -526,7 +527,12 @@
     "export": "denaliWizardTemplatePresetSurface"
   },
   "wizardTemplateGate": {
-    "defaultPublishedStepId": "denali_basic"
+    "defaultPublishedStepId": "denali_basic",
+    "fieldOverlaysAugment": {
+      "module": "./wizard/template-field-overlays",
+      "export": "augmentDenaliWizardTemplateFieldOverlays"
+    },
+    "preferTemplateDefaultsOnPrefill": true
   },
   "wizardDraftShell": {
     "module": "./ui/chrome/wizard-draft-shell-surface",

@@ -3,12 +3,12 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertProvisioningDevelopmentOnly } from "../../internal/provisioning-guard";
 import {
   assertOpsServiceJwt,
-  OPS_SCOPE_METRICS_READ,
+  OPS_SCOPE_FINANCE_RECON,
   readAuthorizationHeader,
 } from "../../internal/verify-ops-service-jwt";
 import { handleHttpError } from "../../middleware/error-interceptor";
 import { parseJsonBody, readRequestBodyRaw, sendJson } from "../../http/json";
-import { isProductionAuthMode } from "../../tenant-kernel/auth-env";
+import { requiresProductionGradeIntegrity } from "../../server/runtime-profile";
 import type { FinanceReconJobId } from "../../workspace-finance/recon/codes";
 import { runFinanceReconJob } from "../../workspace-finance/recon/finance-recon-runner";
 import {
@@ -22,11 +22,8 @@ import {
 } from "../../workspace-finance/recon/repair-engine";
 import type { FinanceReconRepairMode } from "../../workspace-finance/recon/repair-matrix";
 
-/** Reuse metrics:read scope for recon ops (same scrape identity). */
-export const OPS_SCOPE_FINANCE_RECON = OPS_SCOPE_METRICS_READ;
-
 async function assertFinanceReconAllowed(req: IncomingMessage): Promise<void> {
-  if (isProductionAuthMode()) {
+  if (requiresProductionGradeIntegrity()) {
     await assertOpsServiceJwt(readAuthorizationHeader(req), OPS_SCOPE_FINANCE_RECON);
     return;
   }
@@ -79,7 +76,15 @@ export async function handleInternalFinanceRecon(
 
     const findingMatch = /^\/internal\/finance\/recon\/findings\/([^/]+)$/.exec(path);
     if (method === "GET" && findingMatch) {
-      const finding = await getFinanceReconFinding(findingMatch[1]!);
+      const tenantId = url.searchParams.get("tenantId")?.trim() ?? "";
+      if (tenantId.length === 0) {
+        sendJson(res, 400, { error: "tenant_id_required" });
+        return;
+      }
+      const finding = await getFinanceReconFinding({
+        id: findingMatch[1]!,
+        tenantId,
+      });
       if (finding === null) {
         sendJson(res, 404, { error: "not_found" });
         return;
@@ -98,12 +103,19 @@ export async function handleInternalFinanceRecon(
         action?: unknown;
         actorUserId?: unknown;
         approvedConfirm?: unknown;
+        tenantId?: unknown;
       };
+      const tenantId = typeof body.tenantId === "string" ? body.tenantId.trim() : "";
+      if (tenantId.length === 0) {
+        sendJson(res, 400, { error: "tenant_id_required" });
+        return;
+      }
       const legacyDryRun = body.dryRun !== false;
       const mode = parseRepairMode(body.mode, legacyDryRun);
       const action = body.action === "ignore" ? "ignore" : "repair";
       const input: FinanceReconRepairEngineInput = {
         findingId: repairMatch[1]!,
+        tenantId,
         mode,
         dryRun: mode === "preview",
         action,

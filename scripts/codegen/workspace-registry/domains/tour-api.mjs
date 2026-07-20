@@ -1,5 +1,5 @@
 import { BANNER } from "../constants.mjs";
-import { importSpecifier } from "../utils.mjs";
+import { assertNoDuplicateEmittedSymbols, importSpecifier } from "../utils.mjs";
 
 export function generateCanonicalTourBindings(manifests) {
   const withCanonicalTour = manifests.filter((m) => m.canonicalTour !== undefined);
@@ -116,9 +116,6 @@ export function generateOutboxSideEffects(manifests) {
   /** @type {Map<string, Set<string>>} */
   const reexportsBySpecifier = new Map();
 
-  /** @type {Map<string, Set<string>>} */
-  const reexportsBySpecifier = new Map();
-
   for (const m of manifests) {
     if (!Array.isArray(m.events) || m.events.length === 0) continue;
     for (const ev of m.events) {
@@ -154,6 +151,11 @@ export function generateOutboxSideEffects(manifests) {
         continue;
       }
 
+      if (!importsBySpecifier.has(spec)) {
+        importsBySpecifier.set(spec, new Set());
+      }
+      importsBySpecifier.get(spec).add(hostSideEffect.export);
+
       if (!reexportsBySpecifier.has(spec)) {
         reexportsBySpecifier.set(spec, new Set());
       }
@@ -165,20 +167,6 @@ export function generateOutboxSideEffects(manifests) {
         reexportsBySpecifier.get(spec).add(`type ${hostSideEffect.rowTypeExport}`);
       }
 
-      if (!importsBySpecifier.has(spec)) {
-        importsBySpecifier.set(spec, new Set());
-      }
-      importsBySpecifier.get(spec).add(hostSideEffect.export);
-      if (!reexportsBySpecifier.has(spec)) {
-        reexportsBySpecifier.set(spec, new Set());
-      }
-      reexportsBySpecifier.get(spec).add(hostSideEffect.export);
-      if (typeof hostSideEffect.registerExport === "string") {
-        reexportsBySpecifier.get(spec).add(hostSideEffect.registerExport);
-      }
-      if (typeof hostSideEffect.rowTypeExport === "string") {
-        reexportsBySpecifier.get(spec).add(`type ${hostSideEffect.rowTypeExport}`);
-      }
       rows.push({
         workspaceTypes,
         eventType: ev.eventType,
@@ -188,13 +176,15 @@ export function generateOutboxSideEffects(manifests) {
     }
   }
 
-  const reexportLines = [...reexportsBySpecifier.entries()].map(([spec, exports]) => {
-    return `export { ${[...exports].sort((a, b) => a.localeCompare(b)).join(", ")} } from "${spec}";`;
-  });
+  const reexportLines = [...reexportsBySpecifier.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([spec, exports]) => {
+      return `export { ${[...exports].sort((a, b) => a.localeCompare(b)).join(", ")} } from "${spec}";`;
+    });
 
   if (rows.length === 0) {
     const reexportBlock = reexportLines.length > 0 ? `\n${reexportLines.join("\n")}\n` : "";
-    return `${BANNER}
+    const empty = `${BANNER}
 import type { WorkspaceOutboxPublishedRow } from "./workspace-outbox-row-context";
 
 export type WorkspaceOutboxSideEffectRunner = (
@@ -208,11 +198,15 @@ export const WORKSPACE_OUTBOX_SIDE_EFFECT_BINDINGS: readonly {
   readonly run: WorkspaceOutboxSideEffectRunner;
 }[] = [];
 ${reexportBlock}`;
+    assertNoDuplicateEmittedSymbols(empty, "generateOutboxSideEffects");
+    return empty;
   }
 
-  const importLines = [...importsBySpecifier.entries()].map(([spec, exports]) => {
-    return `import { ${[...exports].sort().join(", ")} } from "${spec}";`;
-  });
+  const importLines = [...importsBySpecifier.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([spec, exports]) => {
+      return `import { ${[...exports].sort((a, b) => a.localeCompare(b)).join(", ")} } from "${spec}";`;
+    });
 
   const bindingBlocks = rows.map(
     (row) => `  {
@@ -222,11 +216,7 @@ ${reexportBlock}`;
   },`
   );
 
-  const reexportLines = [...reexportsBySpecifier.entries()].map(([spec, exports]) => {
-    return `export { ${[...exports].sort((a, b) => a.localeCompare(b)).join(", ")} } from "${spec}";`;
-  });
-
-  return `${BANNER}
+  const populated = `${BANNER}
 import type { WorkspaceOutboxPublishedRow } from "./workspace-outbox-row-context";
 ${importLines.join("\n")}
 
@@ -244,6 +234,8 @@ ${bindingBlocks.join("\n")}
 
 ${reexportLines.join("\n")}
 `;
+  assertNoDuplicateEmittedSymbols(populated, "generateOutboxSideEffects");
+  return populated;
 }
 
 export function generateCatalogRefAllowlistResolvers(manifests) {

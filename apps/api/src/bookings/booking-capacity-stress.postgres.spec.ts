@@ -152,7 +152,7 @@ describe("booking capacity stress (PostgreSQL)", { concurrency: false }, () => {
             status: "pending",
             paymentStatus: "unpaid",
             departureAt: new Date("2033-01-01T00:00:00.000Z"),
-            submittedByUserId,
+            submittedByUserId: randomUUID(),
             registrationIntake: { tourCapacityMax: CAPACITY_MAX },
           },
         });
@@ -223,7 +223,7 @@ describe("booking capacity stress (PostgreSQL)", { concurrency: false }, () => {
             case "create":
               return repo.createBooking({
                 tenantId,
-                submittedByUserId,
+                submittedByUserId: randomUUID(),
                 body: {
                   tourId,
                   tourTitle: "Stress Tour",
@@ -340,7 +340,7 @@ describe("booking capacity stress (PostgreSQL)", { concurrency: false }, () => {
           status: "approved",
           paymentStatus: "unpaid",
           departureAt: new Date("2033-03-01T00:00:00.000Z"),
-          submittedByUserId,
+          submittedByUserId: randomUUID(),
           approvedAt: new Date(),
           registrationIntake: { tourCapacityMax: CAPACITY_MAX },
         },
@@ -351,7 +351,7 @@ describe("booking capacity stress (PostgreSQL)", { concurrency: false }, () => {
       Array.from({ length: 80 }, (_, index) =>
         repos[index % repos.length]!.createBooking({
           tenantId,
-          submittedByUserId,
+          submittedByUserId: randomUUID(),
           body: {
             tourId,
             tourTitle: "Full Tour",

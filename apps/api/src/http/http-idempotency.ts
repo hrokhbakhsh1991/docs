@@ -16,6 +16,7 @@ import {
 } from "../resilience/compute-relay-backoff";
 import { resolveStorageDriver } from "../storage/create-tour-storage";
 import { requireActiveTenantId } from "../tenant/tenant-request-context";
+import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 
 const PRISMA_CLAIM_ATTEMPTS = 3;
 
@@ -429,6 +430,9 @@ export async function runIdempotentHttpMutation<T extends StoredResponse>(
   assertIdempotentCreateTenantAllowed(tenantId);
   const statusCode = options?.statusCode ?? 201;
   if (resolveStorageDriver() !== "prisma") {
+    if (requiresProductionGradeIntegrity()) {
+      throw new Error("HTTP_IDEMPOTENCY_MEMORY_FORBIDDEN");
+    }
     return runWithMemoryIdempotency(
       tenantId,
       idempotencyKey,

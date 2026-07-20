@@ -19,7 +19,9 @@ export function resolveStorageDriver(): TourStorageDriver {
   if (process.env.DATABASE_URL?.trim()) {
     return "prisma";
   }
-  return process.env.NODE_ENV === "production" ? "prisma" : "memory";
+  return requiresProductionGradeIntegrity() || process.env.NODE_ENV === "production"
+    ? "prisma"
+    : "memory";
 }
 
 /**

@@ -10,6 +10,7 @@ const SNAPSHOT = {
   NODE_ENV: process.env.NODE_ENV,
   OUTBOX_RELAY_ENABLED: process.env.OUTBOX_RELAY_ENABLED,
   OUTBOX_RELAY_EXTERNAL_WORKER: process.env.OUTBOX_RELAY_EXTERNAL_WORKER,
+  APPS_API_WORKER_ROLE: process.env.APPS_API_WORKER_ROLE,
 };
 
 afterEach(() => {
@@ -23,6 +24,11 @@ afterEach(() => {
     delete process.env.OUTBOX_RELAY_EXTERNAL_WORKER;
   } else {
     process.env.OUTBOX_RELAY_EXTERNAL_WORKER = SNAPSHOT.OUTBOX_RELAY_EXTERNAL_WORKER;
+  }
+  if (SNAPSHOT.APPS_API_WORKER_ROLE === undefined) {
+    delete process.env.APPS_API_WORKER_ROLE;
+  } else {
+    process.env.APPS_API_WORKER_ROLE = SNAPSHOT.APPS_API_WORKER_ROLE;
   }
 });
 
@@ -51,10 +57,23 @@ describe("assertProductionOutboxRelayPosture (MR-P0-008)", () => {
     assert.doesNotThrow(() => assertProductionOutboxRelayPosture());
   });
 
-  it("allows production with external worker flag when in-process is off", () => {
+  it("rejects production with external worker flag alone (no worker role)", () => {
     process.env.NODE_ENV = "production";
     process.env.OUTBOX_RELAY_ENABLED = "false";
     process.env.OUTBOX_RELAY_EXTERNAL_WORKER = "true";
+    delete process.env.APPS_API_WORKER_ROLE;
+    assert.throws(
+      () => assertProductionOutboxRelayPosture(),
+      (error: unknown) =>
+        error instanceof Error && error.message === PRODUCTION_OUTBOX_RELAY_REQUIRED
+    );
+  });
+
+  it("allows production with external worker flag and outbox-relay worker role", () => {
+    process.env.NODE_ENV = "production";
+    process.env.OUTBOX_RELAY_ENABLED = "false";
+    process.env.OUTBOX_RELAY_EXTERNAL_WORKER = "true";
+    process.env.APPS_API_WORKER_ROLE = "outbox-relay";
     assert.doesNotThrow(() => assertProductionOutboxRelayPosture());
   });
 });

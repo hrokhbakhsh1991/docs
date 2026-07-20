@@ -15,8 +15,8 @@ import type { FinanceLedgerPolicyPort } from "./ports/finance-ledger-policy.port
 import type { FinanceReceiptDefaultsPort } from "./ports/finance-receipt-defaults.port";
 import { createBookingPaymentPort } from "../bookings/create-booking-payment-port";
 
-/** Default boot workspace when `FINANCE_BOOT_WORKSPACE_TYPE` is unset (legacy Denali path). */
-export const BOOT_FINANCE_WORKSPACE_TYPE = "denali";
+/** Fail-closed: boot must set `FINANCE_BOOT_WORKSPACE_TYPE` explicitly (no denali default). */
+export const FINANCE_BOOT_WORKSPACE_TYPE_REQUIRED = "FINANCE_BOOT_WORKSPACE_TYPE_REQUIRED";
 
 export type FinanceWorkspaceDependencyFactories = {
   readonly createLedgerPolicy: () => FinanceLedgerPolicyPort;
@@ -40,7 +40,7 @@ function resolveConfiguredBootFinanceWorkspaceType(): string {
   if (fromEnv !== undefined && fromEnv.length > 0) {
     return fromEnv;
   }
-  return BOOT_FINANCE_WORKSPACE_TYPE;
+  throw new Error(FINANCE_BOOT_WORKSPACE_TYPE_REQUIRED);
 }
 
 function createPlatformBookingPayments(): IBookingPaymentPort {

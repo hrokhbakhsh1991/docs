@@ -129,7 +129,8 @@ describe("bookings-service-di (B0.5)", () => {
         from === "./ports/booking-authorization.port" ||
         from === "./ports/booking-clock.port" ||
         from === "./ports/booking-repository.port" ||
-        from === "./ports/booking-tenant-workspace-binding.port";
+        from === "./ports/booking-tenant-workspace-binding.port" ||
+        from === "./ports/booking-tour-capacity.port";
       assert.ok(allowed, `illegal BookingsService import from ${from}`);
     }
   });
@@ -147,6 +148,7 @@ describe("bookings-service-di (B0.5)", () => {
           publicBooking: stubPublicBooking(),
           validationPolicy: stubValidation(),
           capacityPolicy: stubCapacity(),
+          tourCapacity: { kind: "test-tour-capacity", resolveTourCapacityMax: async () => null },
           workspaceType: "denali",
           tenantWorkspaceBinding: stubTenantBinding(),
           capabilities: denaliCaps(),
@@ -166,6 +168,7 @@ describe("bookings-service-di (B0.5)", () => {
       publicBooking: stubPublicBooking(),
       validationPolicy: stubValidation(),
       capacityPolicy: stubCapacity(),
+      tourCapacity: { kind: "test-tour-capacity", resolveTourCapacityMax: async () => null },
       workspaceType: "denali",
       tenantWorkspaceBinding: stubTenantBinding(),
       capabilities: denaliCaps(),

@@ -23,6 +23,8 @@ const REPAIR_TOTAL = "finance_recon_repair_total";
 
 export type FinanceReconRepairEngineInput = {
   readonly findingId: string;
+  /** Required — finding load/mark are tenant-scoped (no cross-tenant IDOR). */
+  readonly tenantId: string;
   readonly mode?: FinanceReconRepairMode;
   /** @deprecated prefer mode; dryRun true → preview */
   readonly dryRun?: boolean;
@@ -105,7 +107,10 @@ export async function runFinanceReconRepairEngine(
     (mode === "automatic" ? "automatic_safe_repair" : null) ||
     (mode === "preview" ? "preview" : null);
 
-  const findingRaw = await getFinanceReconFinding(input.findingId);
+  const findingRaw = await getFinanceReconFinding({
+    id: input.findingId,
+    tenantId: input.tenantId,
+  });
   if (findingRaw === null) {
     return {
       result: "error",
@@ -145,6 +150,7 @@ export async function runFinanceReconRepairEngine(
         }
         await markFinanceReconFindingStatus({
           findingId: finding.id,
+          tenantId: input.tenantId,
           status: "ignored",
           resolvedBy: operator ?? "recon-ignore",
         });
@@ -181,6 +187,7 @@ export async function runFinanceReconRepairEngine(
     if (!preview && outcome.resolveFinding === true) {
       await markFinanceReconFindingStatus({
         findingId: finding.id,
+        tenantId: input.tenantId,
         status: "resolved",
         resolvedBy: operator ?? "recon-repair",
       });
@@ -286,6 +293,7 @@ export async function runFinanceReconRepairEngine(
 /** Back-compat wrapper used by HTTP / auto-repair. */
 export async function repairFinanceReconFinding(input: {
   readonly findingId: string;
+  readonly tenantId: string;
   readonly dryRun: boolean;
   readonly actorUserId?: string;
   readonly action?: "repair" | "ignore";
@@ -299,6 +307,7 @@ export async function repairFinanceReconFinding(input: {
 }> {
   const engine = await runFinanceReconRepairEngine({
     findingId: input.findingId,
+    tenantId: input.tenantId,
     dryRun: input.dryRun,
     mode: input.mode,
     actorUserId: input.actorUserId,

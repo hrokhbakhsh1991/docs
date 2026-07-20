@@ -18,6 +18,7 @@ import type {
   UpdateReceiptReviewInput,
 } from "./ports/finance-repository.port";
 import type { IBookingPaymentPort } from "./ports/booking-payment.port";
+import { logger } from "../observability/logger";
 
 type StoredPayment = FinancePaymentRow & {
   readonly tenantId: string;
@@ -403,14 +404,15 @@ export class InMemoryFinanceRepository implements FinanceRepositoryPort {
       if (error instanceof Error && error.message === "FINANCE_BOOKING_PAYMENT_SYNC_MISS") {
         throw error;
       }
-      console.warn(
-        JSON.stringify({
+      logger.warn(
+        {
           event: "finance.booking_payment_sync.failed",
           tenantId: input.tenantId,
           registrationId: input.registrationId,
           paymentStatus: "paid",
           error: error instanceof Error ? error.message : String(error),
-        })
+        },
+        "finance booking payment sync failed"
       );
       throw new Error("FINANCE_BOOKING_PAYMENT_SYNC_FAILED");
     }

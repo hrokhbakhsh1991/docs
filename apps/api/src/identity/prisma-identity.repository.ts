@@ -7,7 +7,7 @@ import type {
 } from "@app-tour/workspace-sdk";
 import { Prisma } from "@prisma/client";
 import type { InvitableWorkspaceRole } from "./users.types";
-import { getPrisma, getPrismaAdmin } from "../db/prisma";
+import { getPrismaAdmin } from "../db/prisma";
 import { withTenantRls } from "../db/with-tenant-rls";
 import type {
   CreatePendingInviteInput,

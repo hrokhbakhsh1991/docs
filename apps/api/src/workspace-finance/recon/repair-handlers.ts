@@ -41,7 +41,7 @@ function detailsOf(finding: ReconFindingRow): Record<string, unknown> {
 export async function handlePaidNoLedger(
   finding: ReconFindingRow,
   preview: boolean,
-  actorUserId?: string
+  _actorUserId?: string
 ): Promise<HandlerResult> {
   if (finding.paymentId === null) {
     return { result: "error", preview, payload: { error: "missing_payment_id" } };

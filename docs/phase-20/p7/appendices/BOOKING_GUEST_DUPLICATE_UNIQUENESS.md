@@ -25,6 +25,10 @@ PostgreSQL **partial unique indexes** enforce uniqueness for rows that are not `
 
 Application layer still pre-checks for friendly UX. On race, Prisma `P2002` maps to `BOOKING_GUEST_DUPLICATE` (HTTP 409).
 
+## Harness note (capacity / concurrency specs)
+
+Fixtures that seed **multiple active** rows on the same tour (pending or approved) must use a **distinct** `submitted_by_user_id` (and distinct `guest_label`) per row. Reusing one user across pendings violates `uq_operator_reg_active_user` and is not a valid domain scenario — capacity races model distinct guests competing for seats.
+
 ## Verification
 
 ```bash

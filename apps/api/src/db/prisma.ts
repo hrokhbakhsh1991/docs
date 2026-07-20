@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 import { PRODUCTION_DATABASE_URL_ADMIN_REQUIRED } from "../server/production-env-codes";
+import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 
 let client: PrismaClient | undefined;
 let adminClient: PrismaClient | undefined;
@@ -16,13 +17,13 @@ export function getPrisma(): PrismaClient {
 
 /**
  * Admin / owner pool — `DATABASE_URL_ADMIN` only.
- * Production: throws when admin URL missing (DI-PRISMA-01).
- * Non-production: falls back to app pool only for local dev without admin URL.
+ * Production/prodlike: throws when admin URL missing (DI-PRISMA-01 / hostile audit P2).
+ * Non-integrity: falls back to app pool only for local dev without admin URL.
  */
 export function getPrismaAdmin(): PrismaClient {
   const adminUrl = process.env.DATABASE_URL_ADMIN?.trim();
   if (!adminUrl) {
-    if (isProductionAuthMode()) {
+    if (requiresProductionGradeIntegrity() || isProductionAuthMode()) {
       throw new Error(PRODUCTION_DATABASE_URL_ADMIN_REQUIRED);
     }
     return getPrisma();

@@ -11,9 +11,11 @@ import { createBookingsService, type BookingsService } from "./bookings.service"
 import { HostBookingAuthorizationAdapter } from "./infrastructure/host-booking-authorization.adapter";
 import { HostBookingClockAdapter } from "./infrastructure/host-booking-clock.adapter";
 import { HostBookingTenantWorkspaceBindingAdapter } from "./infrastructure/host-booking-tenant-workspace-binding.adapter";
+import { HostBookingTourCapacityAdapter } from "./infrastructure/host-booking-tour-capacity.adapter";
 import type { BookingAuthorizationPort } from "./ports/booking-authorization.port";
 import type { BookingClockPort } from "./ports/booking-clock.port";
 import type { BookingTenantWorkspaceBindingPort } from "./ports/booking-tenant-workspace-binding.port";
+import type { BookingTourCapacityPort } from "./ports/booking-tour-capacity.port";
 import type { BookingActorContext } from "./ports/booking-actor-context";
 import { BookingWorkspaceUnsupportedError } from "./bookings.errors";
 import { assertBookingRuntimeCapabilityLevels } from "./assert-booking-runtime-capabilities";
@@ -55,6 +57,7 @@ const bookingRuntimeByWorkspaceType = new Map<string, BookingRuntime>();
 let sharedAuthorization: BookingAuthorizationPort | null = null;
 let sharedClock: BookingClockPort | null = null;
 let sharedTenantWorkspaceBinding: BookingTenantWorkspaceBindingPort | null = null;
+let sharedTourCapacity: BookingTourCapacityPort | null = null;
 
 function getSharedAuthorization(): BookingAuthorizationPort {
   if (sharedAuthorization === null) {
@@ -75,6 +78,13 @@ function getSharedTenantWorkspaceBinding(): BookingTenantWorkspaceBindingPort {
     sharedTenantWorkspaceBinding = new HostBookingTenantWorkspaceBindingAdapter();
   }
   return sharedTenantWorkspaceBinding;
+}
+
+function getSharedTourCapacity(): BookingTourCapacityPort {
+  if (sharedTourCapacity === null) {
+    sharedTourCapacity = new HostBookingTourCapacityAdapter();
+  }
+  return sharedTourCapacity;
 }
 
 /**
@@ -110,6 +120,7 @@ export function getOrCreateBookingRuntimeForWorkspaceType(workspaceType: string)
     publicBooking: dependencies.publicBooking,
     validationPolicy: dependencies.validationPolicy,
     capacityPolicy: dependencies.capacityPolicy,
+    tourCapacity: getSharedTourCapacity(),
     workspaceType: normalized,
     tenantWorkspaceBinding: getSharedTenantWorkspaceBinding(),
     capabilities: toBookingRuntimeCapabilities(capabilities),
@@ -137,6 +148,7 @@ export function resetBookingsServiceCompositionForTests(): void {
   sharedAuthorization = null;
   sharedClock = null;
   sharedTenantWorkspaceBinding = null;
+  sharedTourCapacity = null;
 }
 
 /** HTTP / host façades — tenant-aware service selection (B1.5). */

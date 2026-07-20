@@ -11,10 +11,15 @@ on:
   pull_request:
     paths:
       - "apps/api/**"
-      - "packages/workspaces/urban/**"
+      - "packages/workspaces/**"
+      - "packages/workspace-sdk/**"
+      - "packages/finance-core/**"
+      - "packages/finance-http/**"
+      - "packages/finance-http-contracts/**"
+      - "packages/booking-http-contracts/**"
       - "packages/platform-core/**"
       - "scripts/verify-phase-7-genericity-proof-rev.mjs"
-      - "scripts/guards/phase-7-guard.mjs"
+      - "scripts/guards/**"
       - "scripts/phase-7-adversarial-gate.mjs"
       - "scripts/phase-7-platform-gate.mjs"
       - "scripts/ci-integrity-check.sh"

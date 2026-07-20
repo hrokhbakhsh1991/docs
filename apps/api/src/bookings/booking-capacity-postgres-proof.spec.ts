@@ -231,7 +231,6 @@ describe("booking capacity correctness (PostgreSQL)", { concurrency: false }, ()
   requireDatabaseEnv();
 
   const tenantId = integrationTenantId();
-  const userId = randomUUID();
   const priorStorage = process.env.STORAGE_DRIVER;
   let workerA: PrismaBookingsRepository;
   let workerB: PrismaBookingsRepository;
@@ -379,14 +378,14 @@ describe("booking capacity correctness (PostgreSQL)", { concurrency: false }, ()
       tourId,
       partySize: 1,
       guestLabel: "A1",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const b = await seedPending({
       tenantId,
       tourId,
       partySize: 1,
       guestLabel: "A2",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
 
     printSection(
@@ -438,21 +437,21 @@ describe("booking capacity correctness (PostgreSQL)", { concurrency: false }, ()
         tourId,
         partySize: 1,
         guestLabel: "B1",
-        submittedByUserId: userId,
+        submittedByUserId: randomUUID(),
       }),
       await seedPending({
         tenantId,
         tourId,
         partySize: 1,
         guestLabel: "B2",
-        submittedByUserId: userId,
+        submittedByUserId: randomUUID(),
       }),
       await seedPending({
         tenantId,
         tourId,
         partySize: 1,
         guestLabel: "B3",
-        submittedByUserId: userId,
+        submittedByUserId: randomUUID(),
       }),
     ];
 
@@ -492,21 +491,21 @@ describe("booking capacity correctness (PostgreSQL)", { concurrency: false }, ()
         tourId,
         partySize: 1,
         guestLabel: "C1",
-        submittedByUserId: userId,
+        submittedByUserId: randomUUID(),
       }),
       await seedPending({
         tenantId,
         tourId,
         partySize: 1,
         guestLabel: "C2",
-        submittedByUserId: userId,
+        submittedByUserId: randomUUID(),
       }),
       await seedPending({
         tenantId,
         tourId,
         partySize: 1,
         guestLabel: "C3",
-        submittedByUserId: userId,
+        submittedByUserId: randomUUID(),
       }),
     ];
 
@@ -558,21 +557,21 @@ describe("booking capacity correctness (PostgreSQL)", { concurrency: false }, ()
       tourId,
       partySize: 1,
       guestLabel: "D-seated",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const p1 = await seedPending({
       tenantId,
       tourId,
       partySize: 1,
       guestLabel: "D-p1",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
     const p2 = await seedPending({
       tenantId,
       tourId,
       partySize: 1,
       guestLabel: "D-p2",
-      submittedByUserId: userId,
+      submittedByUserId: randomUUID(),
     });
 
     const t0 = Date.now();
@@ -685,21 +684,21 @@ describe("booking capacity correctness (PostgreSQL)", { concurrency: false }, ()
         tourId,
         partySize: 1,
         guestLabel: "E1",
-        submittedByUserId: userId,
+        submittedByUserId: randomUUID(),
       }),
       await seedPending({
         tenantId,
         tourId,
         partySize: 1,
         guestLabel: "E2",
-        submittedByUserId: userId,
+        submittedByUserId: randomUUID(),
       }),
       await seedPending({
         tenantId,
         tourId,
         partySize: 1,
         guestLabel: "E3",
-        submittedByUserId: userId,
+        submittedByUserId: randomUUID(),
       }),
     ];
 

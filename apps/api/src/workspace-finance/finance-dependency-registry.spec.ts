@@ -40,11 +40,16 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
     });
   });
 
-  it("FIN-REG-03 boot finance workspace type defaults to denali; env override honored", () => {
-    assert.equal(resolveBootFinanceWorkspaceType(), DENALI);
+  it("FIN-REG-03 boot finance workspace type requires env; override honored", () => {
     const prev = process.env.FINANCE_BOOT_WORKSPACE_TYPE;
-    process.env.FINANCE_BOOT_WORKSPACE_TYPE = WS2;
+    delete process.env.FINANCE_BOOT_WORKSPACE_TYPE;
     try {
+      assert.throws(
+        () => resolveBootFinanceWorkspaceType(),
+        (error: unknown) =>
+          error instanceof Error && error.message === "FINANCE_BOOT_WORKSPACE_TYPE_REQUIRED"
+      );
+      process.env.FINANCE_BOOT_WORKSPACE_TYPE = WS2;
       assert.equal(resolveBootFinanceWorkspaceType(), WS2);
     } finally {
       if (prev === undefined) {
@@ -53,7 +58,6 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
         process.env.FINANCE_BOOT_WORKSPACE_TYPE = prev;
       }
     }
-    assert.equal(resolveBootFinanceWorkspaceType(), DENALI);
   });
 
   it("FIN-REG-04 unknown workspaceType fails clearly for ledger policy", () => {
@@ -138,8 +142,15 @@ describe("finance-dependency-registry", { concurrency: false }, () => {
     assert.equal(capture.domainEventId, `payment:${paymentId}:ledger-capture-anchor`);
   });
 
-  it("FIN-REG-11 registered workspace types include denali and finance-ws2", () => {
-    assert.deepEqual(listRegisteredFinanceWorkspaceTypes(), [DENALI, WS2].sort());
+  it("FIN-REG-11 registered workspace types include denali and finance-ws*", () => {
+    assert.deepEqual(listRegisteredFinanceWorkspaceTypes(), [
+      DENALI,
+      WS2,
+      "finance-ws3",
+      "finance-ws4",
+      "finance-ws5",
+      "finance-ws6",
+    ]);
   });
 
   it("FIN-REG-12 booking projection resolves BookingPaymentAdapter for denali and finance-ws2", () => {

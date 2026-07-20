@@ -4,6 +4,7 @@ import type { BookingClockPort } from "./ports/booking-clock.port";
 import type { BookingRepositoryPort } from "./ports/booking-repository.port";
 import type { BookingRuntimeCapabilities } from "./ports/booking-runtime-capabilities.port";
 import type { BookingTenantWorkspaceBindingPort } from "./ports/booking-tenant-workspace-binding.port";
+import type { BookingTourCapacityPort } from "./ports/booking-tour-capacity.port";
 import type {
   ApproveBookingResponse,
   BookingCapacityPolicyPort,
@@ -45,6 +46,8 @@ export type BookingsServiceDeps = {
   readonly publicBooking: BookingPublicCapabilityPort;
   readonly validationPolicy: BookingValidationPolicyPort;
   readonly capacityPolicy: BookingCapacityPolicyPort;
+  /** Tour SoT capacity ceiling — preferred over client registrationIntake.tourCapacityMax. */
+  readonly tourCapacity: BookingTourCapacityPort;
   /** Bound workspaceType for this runtime — must match tenant-owned type (B2.0). */
   readonly workspaceType: string;
   readonly tenantWorkspaceBinding: BookingTenantWorkspaceBindingPort;
@@ -96,6 +99,7 @@ export class BookingsService {
   private readonly publicBooking: BookingPublicCapabilityPort;
   private readonly validationPolicy: BookingValidationPolicyPort;
   private readonly capacityPolicy: BookingCapacityPolicyPort;
+  private readonly tourCapacity: BookingTourCapacityPort;
   private readonly workspaceType: string;
   private readonly tenantWorkspaceBinding: BookingTenantWorkspaceBindingPort;
   private readonly capabilities: BookingRuntimeCapabilities;
@@ -122,6 +126,9 @@ export class BookingsService {
     if (deps.capacityPolicy == null) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:capacityPolicy");
     }
+    if (deps.tourCapacity == null) {
+      throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:tourCapacity");
+    }
     if (deps.tenantWorkspaceBinding == null) {
       throw new Error("BOOKINGS_SERVICE_DEP_REQUIRED:tenantWorkspaceBinding");
     }
@@ -139,6 +146,7 @@ export class BookingsService {
     this.publicBooking = deps.publicBooking;
     this.validationPolicy = deps.validationPolicy;
     this.capacityPolicy = deps.capacityPolicy;
+    this.tourCapacity = deps.tourCapacity;
     this.workspaceType = workspaceType;
     this.tenantWorkspaceBinding = deps.tenantWorkspaceBinding;
     this.capabilities = deps.capabilities;
@@ -326,24 +334,61 @@ export class BookingsService {
    * Single application create pipeline — all pending-booking writes share this boundary.
    * Occupancy is loaded from the shared repository; workspace policies decide accept/reject.
    */
+  /**
+   * Prefer tour canonical capacityMax when present; never let client intake raise the ceiling.
+   * Intake remains last-resort only when tour SoT has no capacityMax (fixtures / workspaces without field).
+   */
+  private async resolveEffectiveTourCapacityMax(
+    tenantId: string,
+    tourId: string,
+    intake: Readonly<Record<string, unknown>> | undefined
+  ): Promise<number> {
+    const serverMax = await this.tourCapacity.resolveTourCapacityMax(tenantId, tourId);
+    if (serverMax !== null) {
+      return serverMax;
+    }
+    return requireTourCapacityMax(intake);
+  }
+
+  private withServerTourCapacityMax(
+    intake: Readonly<Record<string, unknown>> | undefined,
+    tourCapacityMax: number
+  ): Readonly<Record<string, unknown>> {
+    return { ...(intake ?? {}), tourCapacityMax };
+  }
+
   private async executeCreatePipeline(
     auth: BookingActorContext,
     body: CreateBookingRequest
   ): Promise<CreateBookingResponse> {
     this.assertCreatePolicyCapabilityLevels();
+    const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(
+      auth.tenantId,
+      body.tourId,
+      body.registrationIntake
+    );
+    const registrationIntake = this.withServerTourCapacityMax(
+      body.registrationIntake,
+      tourCapacityMax
+    );
+    const securedBody: CreateBookingRequest = {
+      ...body,
+      registrationIntake,
+    };
     const baseCtx = this.buildCapacityPolicyContext(
       auth.tenantId,
       {
-        tourId: body.tourId,
-        tourTitle: body.tourTitle,
-        guestLabel: body.guestLabel,
-        guestEmail: body.guestEmail ?? null,
-        guestPhone: body.guestPhone ?? null,
-        partySize: body.partySize,
-        departureAt: body.departureAt,
-        registrationIntake: body.registrationIntake,
+        tourId: securedBody.tourId,
+        tourTitle: securedBody.tourTitle,
+        guestLabel: securedBody.guestLabel,
+        guestEmail: securedBody.guestEmail ?? null,
+        guestPhone: securedBody.guestPhone ?? null,
+        partySize: securedBody.partySize,
+        departureAt: securedBody.departureAt,
+        registrationIntake,
       },
-      0
+      0,
+      tourCapacityMax
     );
     // Shape validation does not need the tour lock; capacity re-checks under lock in createBooking.
     this.validationPolicy.assertCreateValid(baseCtx);
@@ -351,7 +396,7 @@ export class BookingsService {
     const created = await this.repository.createBooking({
       tenantId: auth.tenantId,
       submittedByUserId: auth.userId,
-      body,
+      body: securedBody,
       assertCapacityInTx: (ctx) => {
         this.capacityPolicy.assertCreateCapacity({
           ...baseCtx,
@@ -375,9 +420,9 @@ export class BookingsService {
       readonly departureAt: string;
       readonly registrationIntake: Readonly<Record<string, unknown>> | undefined;
     },
-    occupiedApprovedPartySize: number
+    occupiedApprovedPartySize: number,
+    tourCapacityMax: number
   ): BookingCreatePolicyContext {
-    const tourCapacityMax = requireTourCapacityMax(source.registrationIntake);
     const guestEmail =
       source.guestEmail !== undefined && source.guestEmail !== null && source.guestEmail.length > 0
         ? source.guestEmail
@@ -405,13 +450,19 @@ export class BookingsService {
 
   /**
    * Capacity assert used inside approve TX — same policy builder as create.
+   * Resolves tour SoT asynchronously before the TX callback runs synchronously.
    */
   private buildApproveCapacityAssert(tenantId: string) {
-    return (ctx: {
+    return async (ctx: {
       readonly booking: BookingRecord;
       readonly occupiedApprovedPartySize: number;
-    }): void => {
+    }): Promise<void> => {
       const booking = ctx.booking;
+      const tourCapacityMax = await this.resolveEffectiveTourCapacityMax(
+        tenantId,
+        booking.tourId,
+        booking.registrationIntake
+      );
       this.capacityPolicy.assertCreateCapacity(
         this.buildCapacityPolicyContext(
           tenantId,
@@ -423,9 +474,13 @@ export class BookingsService {
             guestPhone: booking.guestPhone,
             partySize: booking.partySize,
             departureAt: booking.departureAt,
-            registrationIntake: booking.registrationIntake,
+            registrationIntake: this.withServerTourCapacityMax(
+              booking.registrationIntake,
+              tourCapacityMax
+            ),
           },
-          ctx.occupiedApprovedPartySize
+          ctx.occupiedApprovedPartySize,
+          tourCapacityMax
         )
       );
     };

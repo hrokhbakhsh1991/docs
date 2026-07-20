@@ -1,14 +1,16 @@
 import type { IncomingMessage } from "node:http";
 import { jwtVerify, type JWTPayload } from "jose";
 
-import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 import { readJwtVerifyConfig } from "../tenant-kernel/jwt-env";
 import { loadPublicKey, type JwtPublicKey } from "../tenant-kernel/jwt-key.util";
+import { requiresProductionGradeIntegrity } from "../server/runtime-profile";
 
 export const UNAUTHORIZED_OPS_SERVICE_JWT = "UNAUTHORIZED_OPS_SERVICE_JWT";
 
 export const OPS_SCOPE_CACHE_INVALIDATE = "cache:invalidate";
 export const OPS_SCOPE_METRICS_READ = "metrics:read";
+/** Finance recon/repair — must not equal metrics:read (hostile audit P0). */
+export const OPS_SCOPE_FINANCE_RECON = "finance:recon";
 
 /** @deprecated Use {@link UNAUTHORIZED_OPS_SERVICE_JWT} */
 export const UNAUTHORIZED_CACHE_INVALIDATE_SERVICE_JWT = UNAUTHORIZED_OPS_SERVICE_JWT;
@@ -86,13 +88,13 @@ async function verifyWithKey(
 }
 
 /**
- * Production internal-ops JWT gate (DEC-120 / DEC-121).
+ * Internal-ops JWT gate — required under production-grade integrity (production + prodlike).
  */
 export async function assertOpsServiceJwt(
   authorization: string | undefined,
   requiredScope: string
 ): Promise<void> {
-  if (!isProductionAuthMode()) {
+  if (!requiresProductionGradeIntegrity()) {
     return;
   }
 
