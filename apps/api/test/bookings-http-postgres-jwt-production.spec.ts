@@ -274,7 +274,7 @@ describe(
       assert.ok(response.status === 401 || response.status === 403, JSON.stringify(response.body));
     });
 
-    it("TODO-009 sess_ver mismatch after bump → 401 on approve path create", async () => {
+    it("TODO-009 sess_ver mismatch after bump → 401 on create", async () => {
       await withTenantRls(tenantId, (tx) =>
         tx.userTenant.update({
           where: { userId_tenantId: { userId, tenantId } },
@@ -289,13 +289,75 @@ describe(
         body: createBody("Stale Sess"),
       });
       assert.equal(response.status, 401, JSON.stringify(response.body));
-      // restore for cleanliness
       await withTenantRls(tenantId, (tx) =>
         tx.userTenant.update({
           where: { userId_tenantId: { userId, tenantId } },
           data: { sessionVersion: 1 },
         })
       );
+    });
+
+    it("TODO-009 binary receipt on unknown booking fails before MinIO put", async () => {
+      // Ownership/status check must reject before putMemberReceiptProof (MINIO_NOT_CONFIGURED).
+      const token = await signJwt(1);
+      const foreignBookingId = randomUUID();
+      const body = Buffer.from("%PDF-1.4 foreign-receipt");
+      const response = await new Promise<{ status: number; body: Record<string, unknown> }>(
+        (resolve, reject) => {
+          const server = http.createServer(listener);
+          server.listen(0, () => {
+            const addr = server.address();
+            if (!addr || typeof addr === "string") {
+              server.close();
+              reject(new Error("no listen address"));
+              return;
+            }
+            const req = http.request(
+              {
+                hostname: "127.0.0.1",
+                port: addr.port,
+                path: `/bookings/${foreignBookingId}/receipt`,
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/pdf",
+                  "Content-Length": String(body.length),
+                  "x-receipt-file-name": "foreign.pdf",
+                },
+              },
+              (res) => {
+                const chunks: Buffer[] = [];
+                res.on("data", (chunk) => chunks.push(chunk as Buffer));
+                res.on("end", () => {
+                  server.close();
+                  const text = Buffer.concat(chunks).toString("utf8");
+                  let parsed: Record<string, unknown> = {};
+                  if (text.length > 0) {
+                    try {
+                      parsed = JSON.parse(text) as Record<string, unknown>;
+                    } catch {
+                      parsed = { raw: text };
+                    }
+                  }
+                  resolve({ status: res.statusCode ?? 0, body: parsed });
+                });
+              }
+            );
+            req.on("error", (error) => {
+              server.close();
+              reject(error);
+            });
+            req.write(body);
+            req.end();
+          });
+        }
+      );
+      assert.ok(
+        response.status === 403 || response.status === 404 || response.status === 400,
+        JSON.stringify(response.body)
+      );
+      const blob = JSON.stringify(response.body);
+      assert.doesNotMatch(blob, /MINIO_NOT_CONFIGURED/);
     });
   }
 );

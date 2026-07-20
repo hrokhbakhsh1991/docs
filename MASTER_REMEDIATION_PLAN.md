@@ -17,18 +17,18 @@ progress:
   MR-P0-001: done
   MR-P0-002: done
   MR-P0-003: done (EXPECTED=20260720160000_hostile_audit_tenant_rls_closure)
-  MR-P0-004: partial — deploy wait script live; LIVE branch protection BLOCKED (gh unauth) [TODO-005]
+  MR-P0-004: partial — deploy wait + CI verify-on-main + fail-closed contract; LIVE apply still needs gh auth login [TODO-005]
   MR-P0-005: done (probe expanded; superseded by TODO-003 inventory)
   MR-P0-006: done
   MR-P0-007: done (test:booking-http-postgres-jwt-production — JWT 201 + header 401)
-  MR-P0-008: done (relay assert + VPS outbox-relay unit; effect CI residual on in-process)
+  MR-P0-008: done (relay assert + VPS unit + test:booking-approve-outbox-relay-effect)
   MR-P0-009: done (createBookingPaymentPort; finance↛create-bookings-repository)
   MR-P0-010: done
   MR-P0-011: done (indexes + HTTP race TODO-007)
   MR-P0-012: done (hostile_audit_tenant_rls_closure + adversarial PG)
   MR-P0-013: done
   MR-P0-014: done (dump + CODE_ONLY requires I_ACCEPT_SCHEMA_FORWARD)
-  MR-P0-015: done (fail-closed + JWT prod path)
+  MR-P0-015: done (fail-closed + JWT prod path + receipt-before-MinIO)
   MR-P0-016: done (no default bearer; empty phones fail-closed prod/prodlike)
   TODO-003: done (full TENANT_RLS_TABLES + APP_RUNTIME_PROFILE=prodlike)
   TODO-011: done (workspace resolve fail-closed)

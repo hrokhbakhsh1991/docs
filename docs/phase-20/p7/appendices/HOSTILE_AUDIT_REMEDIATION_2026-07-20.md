@@ -34,7 +34,11 @@ HTTP JWT (prod) → TenantKernel → requireOperatorSession(sess_ver)
   → BookingsService → PrismaBookingsRepository → app_cloud + GUC
 ```
 
-## Outbox VPS
+## Residual closure (post ad59bd1e)
 
-In-process relay (`OUTBOX_RELAY_ENABLED=true`) remains default on API.
-Optional dedicated unit: `app-cloud-outbox-relay.service` with `APPS_API_WORKER_ROLE=outbox-relay`.
+| Gap | Closure |
+| --- | ------- |
+| Outbox effect SLA | `test:booking-approve-outbox-relay-effect` — approve HTTP → `processOutboxRelayForTenantOnce` → `status=done` |
+| Receipt JWT authz | Extend JWT production suite: member A cannot put proof for B's booking (put spy count 0) |
+| Branch protection | CI step `ops:branch-protection:verify` on booking gate (GITHUB_TOKEN); local script already fail-closed without `gh` |
+

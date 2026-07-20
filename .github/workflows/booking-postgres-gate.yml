@@ -241,11 +241,35 @@ jobs:
           PRISMA_TRANSACTION_MAX_WAIT_MS: "30000"
         run: pnpm run test:booking-guest-duplicate-http-race
 
+      - name: test:booking-approve-outbox-relay-effect (TODO-006)
+        working-directory: apps/api
+        env:
+          TENANT_MAX_CONCURRENT_DB_OPS: "32"
+          PRISMA_TRANSACTION_TIMEOUT_MS: "60000"
+          PRISMA_TRANSACTION_MAX_WAIT_MS: "30000"
+        run: pnpm run test:booking-approve-outbox-relay-effect
+
       - name: test:tenant-rls-unprotected-tables (TODO-002)
         working-directory: apps/api
         env:
           TENANT_MAX_CONCURRENT_DB_OPS: "32"
         run: pnpm run test:tenant-rls-unprotected-tables
+
+      - name: Branch protection script fail-closed contract (TODO-005)
+        working-directory: apps/api
+        run: pnpm run test:file -- src/ops/branch-protection-verify-fail-closed.spec.ts
+
+      - name: Verify live main branch protection (TODO-005)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! pnpm run ops:branch-protection:verify; then
+            echo "::error::main branch protection missing required Booking/Phase checks — run: pnpm run ops:branch-protection:main"
+            exit 1
+          fi
 
       - name: test:finance-recon-rls (MR-P0-005)
         working-directory: apps/api
