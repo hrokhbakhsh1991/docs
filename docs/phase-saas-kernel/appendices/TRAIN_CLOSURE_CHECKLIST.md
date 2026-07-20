@@ -28,7 +28,7 @@ tip_at_authoring: 92bf78be
 
 | Item | Why parked |
 | ---- | ---------- |
-| Push tip | Done as part of train close when authorized |
+| Push tip | **Done** — `origin/booking/capacity-concurrency-cert` @ `d66682de`+ |
 | Portal login modal WIP | Product ticket on `wip/portal-psc-20260718` |
 | API `tenant-kernel` rename | High churn; SK1 deferred |
 | Empty `packages/notification-*` | Forbidden until SK2.C |
@@ -36,3 +36,8 @@ tip_at_authoring: 92bf78be
 ---
 
 *Use this as the “nothing left behind” ledger for the Stabilization→Kernel handoff.*
+
+## Remote
+
+- [x] Pushed to `origin/booking/capacity-concurrency-cert`
+
