@@ -39,7 +39,7 @@ Engineering Stabilization (WP0–WP5) is closed for gate purposes. Residual P1s 
 | **SK0** | Inventory freeze | Maturity matrix with file evidence | Docs only |
 | **SK1** | Tenant + Authz contracts | Consumable contracts; no second member-session SoT (PCMS) | **CLOSED** |
 | **SK2** | Notification on outbox | Provider port on existing outbox/relay | **DESIGNED** (impl = first adapter PR) |
-| **SK3** | Entitlement + Flags | Unify module access contracts | After SK1 |
+| **SK3** | Entitlement + Flags | Three-layer ownership freeze (flags / modules / portal entitlements) | **DESIGN_CLOSED** |
 | **SK4** | Audit + File | Only when a second consumer needs them | Demand-driven |
 
 Detail and maturity: [appendices/MATURITY_INVENTORY.md](./appendices/MATURITY_INVENTORY.md).
@@ -62,9 +62,9 @@ Apply Entitlements → Provision Shared Services → Activate Workspace
 
 ## 7. Immediate next action
 
-SK0 filed. **SK1 CLOSED**. **SK2 design filed** ([appendices/SK2_NOTIFICATION_OUTBOX.md](./appendices/SK2_NOTIFICATION_OUTBOX.md)) + outbox README.
+SK0–SK1 closed. SK2 **design** filed. SK3 **design** filed ([appendices/SK3_ENTITLEMENT_FLAGS.md](./appendices/SK3_ENTITLEMENT_FLAGS.md)).
 
-Next: SK2.C first notification adapter **when a real consumer exists**; or SK3 Entitlement/Flags design. **No empty notification package.**
+Next: SK4 Audit+File design **or** demand-driven SK2.C / BP-7 plan entitlements. **No hollow entitlement/notification packages.**
 
 ## 8. Explicit non-goals now
 

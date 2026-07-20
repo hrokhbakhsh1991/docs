@@ -21,8 +21,10 @@ tip_at_authoring: 92bf78be
 - [x] SK0 maturity inventory
 - [x] SK1 CLOSED (design + README + freeze spec + guards)
 - [x] SK2 design filed + outbox README
+- [x] SK3 design filed (flags / modules / portal entitlements)
 - [ ] SK2.C first notification adapter (demand-driven — **not** hollow)
-- [ ] SK3 / SK4 (future)
+- [ ] SK3 implementation (BP-7 plans / new flag fields) — demand-driven
+- [ ] SK4 Audit + File design/impl — demand-driven
 
 ## Explicitly parked (not forgotten)
 
