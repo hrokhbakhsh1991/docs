@@ -3,14 +3,14 @@
 ```yaml
 doc_id: KERNEL_IMPLEMENTATION_BACKLOG
 status: ACTIVE
-as_of_tip: a02b72e1
-date: 2026-07-20
+as_of_tip: fd54e6ca
+date: 2026-07-21
 design_track: COMPLETE (SK0–SK4)
 ```
 
 **Rule:** Do not start a row without its **Trigger**. No hollow packages.
 
-Stop gate: [AGENT_STOP_GATE.md](./AGENT_STOP_GATE.md)
+Stop gate: [AGENT_STOP_GATE.md](./AGENT_STOP_GATE.md) · Unlock menu: [ARCHITECT_UNLOCK_MENU.md](./ARCHITECT_UNLOCK_MENU.md)
 
 Companion designs: [SK2](./SK2_NOTIFICATION_OUTBOX.md) · [SK3](./SK3_ENTITLEMENT_FLAGS.md) · [SK4](./SK4_AUDIT_FILE.md) · [TRAIN_CLOSURE_CHECKLIST.md](./TRAIN_CLOSURE_CHECKLIST.md)
 

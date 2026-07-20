@@ -26,7 +26,7 @@ Companion: [STABILIZATION_WP0_DEV_RECONCILE.md](./STABILIZATION_WP0_DEV_RECONCIL
 | 3 | WP2 fixture integrity accepted (no weaken-to-pass) | **PASS** | Guest phone unique migration + capacity authority specs landed in `f1956621`; `test:booking-capacity-postgres` re-verified PASS on close train |
 | 4 | WP3 all four P0 models evidenced | **PASS** | [HOSTILE_AUDIT_REMEDIATION.md](./HOSTILE_AUDIT_REMEDIATION.md): capacity port, `finance:recon`, outbox worker role, codegen unique symbols — commit `f1956621` |
 | 5 | WP4 no open build blockers (or explicit deferral) | **PASS (deferred)** | No build blocker after land; reopen only on evidence. Owner: Stabilization train / Architect |
-| 6 | WP5 import-boundary green; residual P1s listed | **PASS** | `guard:import-boundary` PASS @ `105dd8c8` (re-verified). Residuals in HOSTILE remediation: portal modal WIP, package-boundary allowlist rubber-stamp, tours without `capacityMax` fixture path |
+| 6 | WP5 import-boundary green; residual P1s listed | **PASS** | `guard:import-boundary` PASS @ `105dd8c8` (re-verified). At gate: portal modal, package-boundary allowlist, capacityMax fixture path listed. **Post-gate (2026-07-21):** C8 closed (prodlike fail-closed); C9/C10 parked — [HOSTILE_AUDIT_REMEDIATION.md](./HOSTILE_AUDIT_REMEDIATION.md) residual table |
 | 7 | Working tree clean or parked with ticket | **PASS** | `git status --porcelain` empty @ gate snapshot; tip ahead of origin by **5** commits at accept (unpushed until explicit push) |
 | 8 | Charter COMPLETE + Kernel charter opened under `docs/` | **PASS** | Kernel pack opened: [`docs/phase-saas-kernel/`](../../phase-saas-kernel/README.md) — Architect continue 2026-07-20 |
 

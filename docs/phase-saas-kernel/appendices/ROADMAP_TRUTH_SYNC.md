@@ -2,30 +2,32 @@
 
 ```yaml
 doc_id: ROADMAP_TRUTH_SYNC
-tip: see git HEAD
+tip: fd54e6ca
 source_temp: TEMP/SAAS_PLATFORM_ROADMAP_CONTEXT.md (gitignored; local handoff)
 ```
 
-`TEMP/SAAS_PLATFORM_ROADMAP_CONTEXT.md` §2.2 was **stale** (claimed tip `f607c376` and dirty WT). Local TEMP was corrected.
+`TEMP/SAAS_PLATFORM_ROADMAP_CONTEXT.md` §2.2 is re-synced with tip `fd54e6ca` (B6–C10 closed; stress PASS; DEV decision locked).
 
-Tracked ledger of remaining work: [OPEN_WORK_LEDGER.md](./OPEN_WORK_LEDGER.md).
+Tracked ledger: [OPEN_WORK_LEDGER.md](./OPEN_WORK_LEDGER.md) · Unlock: [ARCHITECT_UNLOCK_MENU.md](./ARCHITECT_UNLOCK_MENU.md)
 
-## Evidence closed this sync
+## Evidence closed
 
 | ID | Result |
 | -- | ------ |
-| B4 | `@app-cloud/tenant-kernel` build PASS; `@app-cloud/finance-core` build PASS; `@apps/api` `tsc --noEmit` PASS (unused import removed in `require-operator-session.ts`) |
-| B5 | `pnpm --filter @apps/api run test:booking-capacity-stress` — **3/3 PASS** |
-| B6 | DEV asymmetry **DECIDED** — no merge; tip canonical ([STABILIZATION_B6…](../../phase-20/p7/appendices/STABILIZATION_B6_DEV_ASYMMETRY_DECISION.md)) |
-| B7 | 10 stashes **QUARANTINED** ([STABILIZATION_B7…](../../phase-20/p7/appendices/STABILIZATION_B7_STASH_QUARANTINE.md)) |
+| B4 | `@app-cloud/tenant-kernel` / `finance-core` build PASS; `@apps/api` `tsc --noEmit` PASS |
+| B5 | `test:booking-capacity-stress` — **3/3 PASS** |
+| B6 | DEV asymmetry **DECIDED** — no merge |
+| B7 | 10 stashes **QUARANTINED** |
 | C8 | Prodlike fail-closed when tour SoT lacks `capacityMax` |
-| C9/C10 | **PARKED** ([STABILIZATION_C9_C10…](../../phase-20/p7/appendices/STABILIZATION_C9_C10_PARKED.md)) |
+| C9/C10 | **PARKED** with tickets |
+| A4 | Stale residual tables + unlock menu filed |
 
-## Still open / blocked
+## Waiting on Architect (paste unlock)
 
-| ID | Status |
-| -- | ------ |
-| DEV pointer → tip | Needs Architect `YES — DEV-POINTER` |
-| Stash reclaim | Needs `YES — STASH-RECLAIM-{n}` |
-| C9 portal modal product reclaim | Parked on `wip/portal-psc-20260718` |
-| D-* Kernel IMPL | BLOCKED — `YES — IMPL-SK*` |
+| Unlock | Effect |
+| ------ | ------ |
+| `YES — IMPL-SK*` | Kernel demand-driven impl |
+| `YES — DEV-POINTER` | Point `origin/DEV` at tip |
+| `YES — STASH-RECLAIM-{n}` | Selective stash reclaim |
+| `YES — IMPL-PORTAL-MODAL` | Portal modal from WIP |
+| `YES — FULL-MONOREPO-BUILD` | Optional full build honesty check |

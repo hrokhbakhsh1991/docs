@@ -64,7 +64,7 @@ Apply Entitlements → Provision Shared Services → Activate Workspace
 
 SK0–SK1 closed. SK2–SK4 **design** filed ([SK4](./appendices/SK4_AUDIT_FILE.md)).
 
-**Design track complete.** Implementation backlog: [appendices/IMPLEMENTATION_BACKLOG.md](./appendices/IMPLEMENTATION_BACKLOG.md). Start only with Architect `YES — IMPL-*` + trigger. **No hollow packages.**
+**Design track complete.** Paste an unlock from [appendices/ARCHITECT_UNLOCK_MENU.md](./appendices/ARCHITECT_UNLOCK_MENU.md). «ادامه بده» alone is not an unlock — see [appendices/AGENT_STOP_GATE.md](./appendices/AGENT_STOP_GATE.md). **No hollow packages.**
 
 ## 8. Explicit non-goals now
 

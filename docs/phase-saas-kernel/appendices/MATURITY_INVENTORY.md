@@ -49,11 +49,14 @@ date: 2026-07-20
 | Item | Notes |
 | ---- | ----- |
 | Postgres capacity / concurrency / guest-dupe | **PASS** on close train |
-| Portal modal on `wip/portal-psc-20260718` | Separate product ticket — not Kernel |
-| Tours without `capacityMax` fixture path | Hostile residual P1 |
-| SK2.C / SK3 impl / SK4 | Demand-driven per charter |
-| Rename `apps/api/src/tenant-kernel/` | Deferred (SK1) |
+| Capacity stress on tip | **PASS** 3/3 (2026-07-21) |
+| Missing tour `capacityMax` under prodlike | **CLOSED (C8)** — fail-closed; test/dev fixture intake only |
+| Portal modal on `wip/portal-psc-20260718` | **PARKED (C9)** — `YES — IMPL-PORTAL-MODAL` |
+| Package-boundary allowlist misread | **PARKED (C10)** — AST isolation |
+| DEV pointer / stash reclaim | B6 DECIDED / B7 quarantined — need Architect YES phrases |
+| SK2.C / SK3 impl / SK4 ports | Demand-driven — [ARCHITECT_UNLOCK_MENU.md](./ARCHITECT_UNLOCK_MENU.md) |
+| Rename `apps/api/src/tenant-kernel/` | Deferred — `YES — IMPL-INGRESS-RENAME` |
 
 ---
 
-*SK0–SK4 design inventory current. Kernel phase remains OPEN for demand-driven implementation only.*
+*SK0–SK4 design inventory current. Kernel implementation waits on Architect unlock only.*

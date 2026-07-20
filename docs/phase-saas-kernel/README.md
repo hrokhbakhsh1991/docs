@@ -19,6 +19,10 @@ Reusable SaaS operating-system kernels consumed by every customer and workspace 
 | Doc | Role |
 | --- | ---- |
 | [CHARTER.md](./CHARTER.md) | Executable phase charter (SoT) |
+| [appendices/ARCHITECT_UNLOCK_MENU.md](./appendices/ARCHITECT_UNLOCK_MENU.md) | **Copy-paste unlocks** to continue past stop gate |
+| [appendices/AGENT_STOP_GATE.md](./appendices/AGENT_STOP_GATE.md) | Active — «ادامه بده» alone ≠ IMPL |
+| [appendices/IMPLEMENTATION_BACKLOG.md](./appendices/IMPLEMENTATION_BACKLOG.md) | Demand-driven IMPL rows + triggers |
+| [appendices/OPEN_WORK_LEDGER.md](./appendices/OPEN_WORK_LEDGER.md) | Stabilization residual ledger |
 | [appendices/MATURITY_INVENTORY.md](./appendices/MATURITY_INVENTORY.md) | SK0 maturity matrix (exists vs gap) |
 | [appendices/SK1_TENANT_AUTHZ_CONTRACTS.md](./appendices/SK1_TENANT_AUTHZ_CONTRACTS.md) | SK1 Tenant + Authz (**CLOSED**) |
 | [appendices/SK2_NOTIFICATION_OUTBOX.md](./appendices/SK2_NOTIFICATION_OUTBOX.md) | SK2 Notification/outbox (**design filed**) |
