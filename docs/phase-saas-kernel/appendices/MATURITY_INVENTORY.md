@@ -19,9 +19,9 @@ date: 2026-07-20
 | Authorization | `apps/api` identity + CASL patterns; operator session; PCMS (`docs/standards/member-session-portal-authority.mdoc`) | **Medium–High** | Extract contracts where duplication hurts; portal remains member-session SoT |
 | Entitlement | `workspace-sdk` portal entitlements; `me.entitlements.*`; MPS-ENT-001 | **Low–Medium** | **SK3 design** — plan tables still BP-7 |
 | Notification | Outbox + relay (Stabilization P0 hardened); no unified Email/SMS/in-app platform | **Medium transport / Low product** | **SK2 design filed** — providers only with first adapter PR |
-| File Service | Tour/object storage + finance receipt proof ports | **Medium (domain-scoped)** | Generalize only with second consumer (SK4) |
+| File Service | Tour aggregate store ≠ blob media; receipt/branding/avatar/media | **Medium (domain-scoped)** | **SK4 design** — `TenantObjectStoragePort` on demand |
 | Feature Flags | `resolve-tenant-feature-flags` + freeze helpers | **Low–Medium** | **SK3 design** — expand fields only with real need |
-| Audit | Scattered (outbox replay, tour write guards, recon audit) | **Low** | Universal contract after SK1 (SK4) |
+| Audit | Tour/settings/platform/outbox/recon streams | **Low–Medium** | **SK4 design** — unify only with second consumer |
 | Shared Infrastructure | `platform-events`; outbox; metrics; ad hoc jobs | **Medium** | Ownership map; avoid mega-bus rewrite |
 
 ## Key paths (evidence anchors)
@@ -42,6 +42,7 @@ date: 2026-07-20
 - [x] Architect continue / review via execution train (2026-07-20)  
 - [x] SK2 design opened: [SK2_NOTIFICATION_OUTBOX.md](./SK2_NOTIFICATION_OUTBOX.md)  
 - [x] SK3 design opened: [SK3_ENTITLEMENT_FLAGS.md](./SK3_ENTITLEMENT_FLAGS.md)  
+- [x] SK4 design opened: [SK4_AUDIT_FILE.md](./SK4_AUDIT_FILE.md)  
 
 ## Residuals (tracked, not blocking Kernel SK0–SK2 design)
 
@@ -55,4 +56,4 @@ date: 2026-07-20
 
 ---
 
-*SK0 inventory current. Kernel phase remains OPEN for SK2.C+ / SK3 / SK4.*
+*SK0–SK4 design inventory current. Kernel phase remains OPEN for demand-driven implementation only.*

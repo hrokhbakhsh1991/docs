@@ -40,7 +40,7 @@ Engineering Stabilization (WP0–WP5) is closed for gate purposes. Residual P1s 
 | **SK1** | Tenant + Authz contracts | Consumable contracts; no second member-session SoT (PCMS) | **CLOSED** |
 | **SK2** | Notification on outbox | Provider port on existing outbox/relay | **DESIGNED** (impl = first adapter PR) |
 | **SK3** | Entitlement + Flags | Three-layer ownership freeze (flags / modules / portal entitlements) | **DESIGN_CLOSED** |
-| **SK4** | Audit + File | Only when a second consumer needs them | Demand-driven |
+| **SK4** | Audit + File | Inventory + future ports; extract on second consumer | **DESIGN_CLOSED** |
 
 Detail and maturity: [appendices/MATURITY_INVENTORY.md](./appendices/MATURITY_INVENTORY.md).
 
@@ -62,9 +62,9 @@ Apply Entitlements → Provision Shared Services → Activate Workspace
 
 ## 7. Immediate next action
 
-SK0–SK1 closed. SK2 **design** filed. SK3 **design** filed ([appendices/SK3_ENTITLEMENT_FLAGS.md](./appendices/SK3_ENTITLEMENT_FLAGS.md)).
+SK0–SK1 closed. SK2–SK4 **design** filed ([SK4](./appendices/SK4_AUDIT_FILE.md)).
 
-Next: SK4 Audit+File design **or** demand-driven SK2.C / BP-7 plan entitlements. **No hollow entitlement/notification packages.**
+**Design track complete.** Next work is demand-driven implementation only: SK2.C notifier adapter, SK3 BP-7/flag fields, SK4.C/D audit/object ports. **No hollow packages.**
 
 ## 8. Explicit non-goals now
 
