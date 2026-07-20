@@ -2,7 +2,7 @@
 
 ```yaml
 phase_id: saas-shared-kernel
-status: OPEN
+status: DESIGN_COMPLETE — impl demand-driven (see IMPLEMENTATION_BACKLOG)
 opened_from: Stabilization WP-GATE ACCEPTED
 opened_at: 2026-07-20
 stabilization_tip: 2eb69516

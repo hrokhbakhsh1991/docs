@@ -27,6 +27,10 @@ tip_at_authoring: 92bf78be
 - [ ] SK3 implementation (BP-7 plans / new flag fields) — demand-driven
 - [ ] SK4.C/D audit/object port extraction — demand-driven
 
+## Implementation gate
+
+- [x] [IMPLEMENTATION_BACKLOG.md](./IMPLEMENTATION_BACKLOG.md) filed — no impl without trigger
+
 ## Explicitly parked (not forgotten)
 
 | Item | Why parked |

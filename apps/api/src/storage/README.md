@@ -19,3 +19,7 @@ This is **not** the general tenant object/blob file service.
 | Branding / avatar / wizard photos | tenant-branding-storage, operator-avatar-storage, tour-wizard-photos |
 
 Shared `TenantObjectStoragePort` (SK4) is demand-driven when two blob call sites need one ACL/lifecycle policy.
+
+## Shared blob client
+
+Object put/sign for branding/avatar/receipt already share `../tenant/workspace-branding-photo-storage`. See SK4 / IMPLEMENTATION_BACKLOG before extracting another layer.

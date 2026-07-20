@@ -74,6 +74,7 @@ Rules when introduced:
 | Branding blobs | `tenant/tenant-branding-storage.ts` | putObject to bucket |
 | Operator avatar | `identity/operator-avatar-storage.ts` | putObject |
 | Wizard / tour media | `tours/tour-wizard-photos.routes.ts`, cover enrich | Signed read URLs |
+| Shared MinIO client (already) | `tenant/workspace-branding-photo-storage` | Used by branding, avatar, receipt-proof — **do not invent a second client** |
 
 **“File Service” in roadmap §5 ≠ TourStorageRepository.** Tour storage is domain aggregate persistence. Blob/object media is the candidate for a shared file kernel.
 
@@ -95,7 +96,7 @@ export interface TenantObjectStoragePort {
 Rules:
 
 1. Every key is tenant-scoped; no cross-tenant signed URL.  
-2. First extraction should **wrap** existing MinIO/S3 helpers used by branding/receipt/avatar — not a second bucket client.  
+2. First extraction should **wrap** `workspace-branding-photo-storage` (already shared) — not a second bucket client.  
 3. Keep `assertProductionStorageDriver` for aggregate driver; blob config stays env-driven and fail-closed in prodlike.  
 4. No ACL UI product in SK4 design close.
 

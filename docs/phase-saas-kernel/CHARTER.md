@@ -2,7 +2,7 @@
 
 ```yaml
 doc_id: SAAS_SHARED_KERNEL_CHARTER
-status: OPEN
+status: DESIGN_COMPLETE
 location: docs/phase-saas-kernel/
 opened: 2026-07-20
 wp_gate: ACCEPTED
@@ -64,7 +64,7 @@ Apply Entitlements → Provision Shared Services → Activate Workspace
 
 SK0–SK1 closed. SK2–SK4 **design** filed ([SK4](./appendices/SK4_AUDIT_FILE.md)).
 
-**Design track complete.** Next work is demand-driven implementation only: SK2.C notifier adapter, SK3 BP-7/flag fields, SK4.C/D audit/object ports. **No hollow packages.**
+**Design track complete.** Implementation backlog: [appendices/IMPLEMENTATION_BACKLOG.md](./appendices/IMPLEMENTATION_BACKLOG.md). Start only with Architect `YES — IMPL-*` + trigger. **No hollow packages.**
 
 ## 8. Explicit non-goals now
 
