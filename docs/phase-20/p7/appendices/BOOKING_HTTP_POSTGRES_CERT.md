@@ -8,6 +8,7 @@ path: HTTP → route → facade → resolveBookingsServiceForTenant → Bookings
 forbidden: InMemoryBookingsRepository | mocked repositories | direct BookingsService calls
 command: pnpm --filter @apps/api run test:booking-http-postgres
 ci_job: Booking HTTP PostgreSQL
+fail_closed: "MR-P0-015 — missing DATABASE_URL(+ADMIN) throws BOOKING_HTTP_POSTGRES_REQUIRES_DATABASE (no silent skip)"
 ```
 
 ## Path under test

@@ -32,6 +32,13 @@ import { integrationTenantId } from "./test-helpers";
 const hasDatabase =
   Boolean(process.env.DATABASE_URL?.trim()) && Boolean(process.env.DATABASE_URL_ADMIN?.trim());
 
+// MR-P0-015: dedicated PG certification suite must never silently skip green.
+if (!hasDatabase) {
+  throw new Error(
+    "BOOKING_HTTP_POSTGRES_REQUIRES_DATABASE: set DATABASE_URL + DATABASE_URL_ADMIN (MR-P0-015)"
+  );
+}
+
 function resolveAdminUrl(): string {
   const adminUrl = process.env.DATABASE_URL_ADMIN?.trim();
   if (!adminUrl) {
@@ -124,7 +131,7 @@ async function requestJson(
 
 describe(
   "bookings-http-postgres.spec.ts — Booking HTTP PostgreSQL certification matrix",
-  { skip: !hasDatabase, concurrency: false },
+  { concurrency: false },
   () => {
     const tenantA = integrationTenantId();
     const tenantB = integrationTenantId();
