@@ -4,7 +4,7 @@
 doc_role: temporary_work_ledger
 created: 2026-07-21
 updated: 2026-07-21
-tip: fd54e6ca
+tip: 9f442601
 canonical_branch: booking/capacity-concurrency-cert
 ```
 
@@ -16,7 +16,7 @@ Status legend: `DONE` · `PARTIAL` · `OPEN` · `BLOCKED_ON_ARCHITECT` · `PARKE
 
 | ID | Item | Status |
 | -- | ---- | ------ |
-| A1 | TEMP roadmap §2.2 match tip/WT | DONE (re-synced with B6–C10 + tip `fd54e6ca`) |
+| A1 | TEMP roadmap §2.2 match tip/WT | DONE (re-synced with B6–C10 + tip `9f442601`) |
 | A2 | TRAIN_CLOSURE tip SHA | DONE |
 | A3 | This ledger | DONE |
 | A4 | Stale residual tables (maturity / WP-GATE note / stop gate) | DONE (this sync) |

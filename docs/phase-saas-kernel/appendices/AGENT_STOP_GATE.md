@@ -3,7 +3,7 @@
 ```yaml
 doc_id: KERNEL_AGENT_STOP_GATE
 status: ACTIVE
-tip: fd54e6ca
+tip: 9f442601
 branch: booking/capacity-concurrency-cert
 synced_with_origin: true
 as_of: 2026-07-21

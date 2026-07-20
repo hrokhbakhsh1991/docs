@@ -3,7 +3,7 @@
 ```yaml
 doc_id: STABILIZATION_KERNEL_TRAIN_CLOSURE
 as_of: 2026-07-21
-tip_at_authoring: fd54e6ca
+tip_at_authoring: 9f442601
 ```
 
 ## Stabilization
@@ -43,7 +43,7 @@ tip_at_authoring: fd54e6ca
 
 | Item | Why parked |
 | ---- | ---------- |
-| Push tip | **Done** — synced @ `fd54e6ca` |
+| Push tip | **Done** — synced @ `9f442601` |
 | Portal login modal WIP (C9) | Needs `YES — IMPL-PORTAL-MODAL` |
 | Package-boundary allowlist (C10) | AST isolation, not package.json equality |
 | `origin/DEV` pointer → tip | Needs `YES — DEV-POINTER` |
@@ -70,4 +70,4 @@ tip_at_authoring: fd54e6ca
 - [x] C8 prodlike fail-closed for missing tour `capacityMax`
 - [x] C9/C10 parked residuals filed
 - [x] Unlock menu + stop gate expanded
-- [x] Tip SHA on this checklist → `fd54e6ca`
+- [x] Tip SHA on this checklist → `9f442601`

@@ -3,7 +3,7 @@
 ```yaml
 doc_id: KERNEL_IMPLEMENTATION_BACKLOG
 status: ACTIVE
-as_of_tip: fd54e6ca
+as_of_tip: 9f442601
 date: 2026-07-21
 design_track: COMPLETE (SK0–SK4)
 ```

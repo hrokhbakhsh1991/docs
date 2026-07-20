@@ -2,11 +2,11 @@
 
 ```yaml
 doc_id: ROADMAP_TRUTH_SYNC
-tip: fd54e6ca
+tip: 9f442601
 source_temp: TEMP/SAAS_PLATFORM_ROADMAP_CONTEXT.md (gitignored; local handoff)
 ```
 
-`TEMP/SAAS_PLATFORM_ROADMAP_CONTEXT.md` §2.2 is re-synced with tip `fd54e6ca` (B6–C10 closed; stress PASS; DEV decision locked).
+`TEMP/SAAS_PLATFORM_ROADMAP_CONTEXT.md` §2.2 is re-synced with tip `9f442601` (B6–C10 closed; stress PASS; DEV decision locked).
 
 Tracked ledger: [OPEN_WORK_LEDGER.md](./OPEN_WORK_LEDGER.md) · Unlock: [ARCHITECT_UNLOCK_MENU.md](./ARCHITECT_UNLOCK_MENU.md)
 
