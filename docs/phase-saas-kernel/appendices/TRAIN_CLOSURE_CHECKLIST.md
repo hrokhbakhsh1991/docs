@@ -3,7 +3,7 @@
 ```yaml
 doc_id: STABILIZATION_KERNEL_TRAIN_CLOSURE
 as_of: 2026-07-21
-tip_at_authoring: e28933c5
+tip_at_authoring: 3b86258d
 ```
 
 ## Stabilization
@@ -66,5 +66,5 @@ tip_at_authoring: e28933c5
 - [x] B7 stash quarantine ledger filed
 - [x] C8 prodlike fail-closed for missing tour `capacityMax`
 - [x] C9/C10 parked residuals filed
-- [x] Tip SHA on this checklist → e28933c5
+- [x] Tip SHA on this checklist → 3b86258d
 
