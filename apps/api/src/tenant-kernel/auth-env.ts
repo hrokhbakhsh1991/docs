@@ -3,22 +3,21 @@ import {
   AUTH_JWT_REQUIRED_IN_PRODUCTION,
 } from "./auth-errors";
 import { isJwtVerifyConfigured } from "./jwt-env";
-import { isProductionAuthHarnessActive } from "../test/production-auth-harness";
+import { assertProductionAuthHarnessAbsent } from "../test/production-auth-harness";
 
 /**
  * Fail closed: unsigned dev bearer must never be enabled outside automated test runs.
  * Production must have RS256 JWT verify configured (DEC-023).
+ * Production must not set APPS_API_PRODUCTION_AUTH_HARNESS.
  */
 export function assertAuthEnvironmentIntegrity(): void {
   if (process.env.AUTH_ALLOW_DEV_BEARER === "true" && process.env.NODE_ENV !== "test") {
     throw new Error(AUTH_DEV_BEARER_FORBIDDEN_OUTSIDE_TEST);
   }
   if (isProductionAuthMode()) {
+    assertProductionAuthHarnessAbsent();
     if (!isJwtVerifyConfigured()) {
       throw new Error(AUTH_JWT_REQUIRED_IN_PRODUCTION);
-    }
-    if (isProductionAuthHarnessActive()) {
-      return;
     }
     if (process.env.OTP_FIXTURE_CODE?.trim()) {
       throw new Error("OTP_FIXTURE_CODE_FORBIDDEN_IN_PRODUCTION");

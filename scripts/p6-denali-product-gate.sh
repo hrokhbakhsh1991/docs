@@ -23,13 +23,20 @@ pnpm --filter @apps/api exec node --import tsx --test \
   test/p6-guest-slice.spec.ts \
   test/p6-offline-receipt-gate.spec.ts \
   test/p6-preservation-gate.spec.ts \
-  test/bookings-ops.spec.ts \
   test/p6-member-receipt-flow.spec.ts \
   test/p6-vertical-slice-chain.spec.ts \
   test/p6-vs01-admin-publish.spec.ts \
   test/tour-publish-transition.spec.ts \
   test/marketing-catalog-revalidate.spec.ts \
   test/platform-denali-first-customer-exit.spec.ts
+
+echo "== p6:gate — Booking HTTP→Postgres DoD (TODO-008) =="
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  echo "ERROR: DATABASE_URL required for Booking P6 DoD (test:booking-http-postgres)" >&2
+  echo "See docs/phase-20/p7/appendices/BOOKING_REMEDIATION_TODO_008_P6_HTTP_PG.md" >&2
+  exit 1
+fi
+pnpm --filter @apps/api run test:booking-http-postgres
 
 echo "== p6:gate — M17 public catalog guard =="
 pnpm run guard:public-catalog-m17

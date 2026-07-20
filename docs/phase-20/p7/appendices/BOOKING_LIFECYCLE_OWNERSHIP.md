@@ -17,7 +17,7 @@ scope: cancel + waitlist + terminal consistency
 | ---------- | ------- | ---- | ---------- | ------------ | ----- | --------- |
 | → pending (create) | Booking service | ops / publicCreate | validation+capacity | persist | none | yes |
 | pending → waitlisted | Booking `waitlistBooking` | ops | status=pending | persist + outbox | `registration.waitlisted` | yes |
-| pending\|waitlisted → approved | Booking approve | ops | capacity in TX | outbox + reactAfterApprove | `registration.approved` | yes |
+| pending\|waitlisted → approved | Booking approve | ops | capacity in TX | outbox (`registration.approved`); in-process reaction only if capability `mode=in-process` (Option A: off) | `registration.approved` | yes |
 | pending\|waitlisted → rejected | Booking reject | ops | status gate | persist only | **none** (decision B — intentionally silent; see `BOOKING_REJECT_LIFECYCLE_OWNERSHIP`) | yes |
 | pending\|waitlisted\|approved → cancelled | Booking `cancelBooking` | ops | status gate | persist + outbox | `registration.cancelled` | yes |
 | rejected\|cancelled → * | forbidden | — | terminal | — | — | — |

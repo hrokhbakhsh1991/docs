@@ -60,6 +60,10 @@ beforeEach(() => {
   delete process.env.DATABASE_URL;
   delete process.env.DATABASE_URL_ADMIN;
   delete process.env.APPS_API_PRODUCTION_AUTH_HARNESS;
+  // Ambient JWT verify key makes impersonation assert treat `dev.` bearer as Compact JWS.
+  delete process.env.AUTH_JWT_PUBLIC_KEY;
+  delete process.env.AUTH_JWT_ISSUER;
+  delete process.env.AUTH_JWT_AUDIENCE;
 });
 
 afterEach(async () => {
@@ -154,7 +158,7 @@ async function requestJson(
   });
 }
 
-describe("tenant-security (TenantKernel ingress)", () => {
+describe("tenant-security (TenantKernel ingress)", { concurrency: false }, () => {
   let listener: ReturnType<typeof createRequestListener>;
   const tenantA = integrationTenantId();
   const tenantJwt = integrationTenantId();
@@ -222,7 +226,8 @@ describe("tenant-security (TenantKernel ingress)", () => {
 
   it("POST with dev Bearer returns 401 when AUTH_ALLOW_DEV_BEARER is disabled", async () => {
     process.env.NODE_ENV = "production";
-    process.env.APPS_API_PRODUCTION_AUTH_HARNESS = "1";
+    // TODO-001: harness ignored in production; JWT/auth path still enforces fail-closed
+    delete process.env.APPS_API_PRODUCTION_AUTH_HARNESS;
     delete process.env.AUTH_ALLOW_DEV_BEARER;
     const authorization = encodeDevBearerToken({
       userId: "attacker",
@@ -274,26 +279,34 @@ describe("tenant-security (TenantKernel ingress)", () => {
     assert.equal((res.body as { error?: string }).error, "UNAUTHORIZED_INVALID_BEARER_TOKEN");
   });
 
-  it("POST with RS256 JWT in production mode returns 201 (F-17)", async () => {
+  it("POST with RS256 JWT in production mode resolves tenant context (F-17)", async () => {
     process.env.NODE_ENV = "production";
-    process.env.APPS_API_PRODUCTION_AUTH_HARNESS = "1";
+    // TODO-001: harness must not reopen memory/static-registry under production.
+    // Auth acceptance is proven at TenantKernel; HTTP tour create needs Postgres registry.
+    delete process.env.APPS_API_PRODUCTION_AUTH_HARNESS;
     delete process.env.AUTH_ALLOW_DEV_BEARER;
+    delete process.env.AUTH_ALLOW_DEV_STATIC_OTP;
+    delete process.env.OTP_FIXTURE_CODE;
     process.env.AUTH_JWT_PUBLIC_KEY = jwtPublicKeyPem;
     process.env.AUTH_JWT_ISSUER = "tour-ops";
     process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
-    process.env.STORAGE_DRIVER = "memory";
     const productionTenantId = "00000000-0000-4000-8000-000000000001";
     const authorization = `Bearer ${await signProductionJwt(productionTenantId)}`;
 
-    const res = await requestJson(listener, {
+    const { resolveTenantContextFromRequest } = await import("../src/tenant-kernel/tenant-kernel.js");
+    const ctx = await resolveTenantContextFromRequest({
+      headers: { authorization },
+    } as import("node:http").IncomingMessage);
+    assert.equal(ctx.tenantId, productionTenantId);
+    assert.equal(ctx.role, "admin");
+
+    const denied = await requestJson(listener, {
       method: "POST",
       path: "/tours",
-      headers: { Authorization: authorization },
-      body: { data: { basics: { title: "Prod JWT tour" }, details: { summary: "" } } },
+      headers: {},
+      body: { data: { basics: { title: "No auth" }, details: { summary: "" } } },
     });
-
-    assert.equal(res.status, 201);
-    assert.equal((res.body as { tenantId: string }).tenantId, productionTenantId);
+    assert.equal(denied.status, 401);
   });
 
   it("POST without auth headers or Bearer returns 401", async () => {

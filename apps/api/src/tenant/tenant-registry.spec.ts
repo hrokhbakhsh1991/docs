@@ -76,7 +76,8 @@ describe("tenant-registry static gate (DI-REG-01 / DEC-039)", () => {
     delete process.env.APPS_API_TEST_TIER;
     delete process.env.APPS_API_PRODUCTION_AUTH_HARNESS;
     assert.equal(canResolveDevTenantRegistryFallback(), false);
+    // TODO-001: harness flag must not reopen registry fallback under production
     process.env.APPS_API_PRODUCTION_AUTH_HARNESS = "1";
-    assert.equal(canResolveDevTenantRegistryFallback(), true);
+    assert.equal(canResolveDevTenantRegistryFallback(), false);
   });
 });

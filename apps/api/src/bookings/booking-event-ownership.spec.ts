@@ -167,11 +167,12 @@ describe("BK-B1.7 booking event ownership", { concurrency: false }, () => {
     }
   });
 
-  it("BookingsService invokes reactAfterApprove after approve TX (no dead binding)", () => {
+  it("BookingsService gates reactAfterApprove behind capability (Option A)", () => {
     const src = readRel("bookings.service.ts");
     assert.doesNotMatch(src, /APPROVE_OUTBOX_EVENT\s*=/);
     assert.match(src, /this\.eventReaction\.approveOutboxEventType/);
     assert.match(src, /invokeApproveReaction/);
+    assert.match(src, /reaction\.mode !== "in-process"/);
     assert.match(src, /this\.eventReaction\.reactAfterApprove/);
     const approveBlock = src.slice(
       src.indexOf("async approveBooking("),
@@ -191,7 +192,7 @@ describe("BK-B1.7 booking event ownership", { concurrency: false }, () => {
     );
   });
 
-  it("Denali approve triggers Denali reaction (WHAT owned by adapter)", async () => {
+  it("Denali approve writes outbox and skips in-process reaction (Option A)", async () => {
     const runtime = getOrCreateBookingRuntimeForWorkspaceType(DENALI);
     const reaction = runtime.eventReaction;
     assert.equal(reaction.kind, "denali-booking-event-reaction");
@@ -200,7 +201,7 @@ describe("BK-B1.7 booking event ownership", { concurrency: false }, () => {
     const created = await createBooking(opsAuth(TENANT_DENALI), CREATE_BODY);
     const approved = await approveBooking(opsAuth(TENANT_DENALI), created.id);
     assert.equal(approved.status, "approved");
-    assert.equal(probe.getCallCount(), 1);
+    assert.equal(probe.getCallCount(), 0, "mode=none must not invoke reactAfterApprove");
 
     const outbox = await peekOutboxByAggregateForTests({
       tenantId: TENANT_DENALI,
@@ -210,7 +211,7 @@ describe("BK-B1.7 booking event ownership", { concurrency: false }, () => {
     assert.equal(outbox[0]?.eventType, BOOKING_APPROVE_OUTBOX_EVENT_TYPE);
   });
 
-  it("ws2 approve triggers ws2 reaction (distinct WHAT)", async () => {
+  it("ws2 approve writes outbox and skips in-process reaction (Option A)", async () => {
     const runtime = getOrCreateBookingRuntimeForWorkspaceType(WS2);
     const reaction = runtime.eventReaction;
     assert.equal(reaction.kind, "booking-ws2-event-reaction");
@@ -221,11 +222,18 @@ describe("BK-B1.7 booking event ownership", { concurrency: false }, () => {
       guestEmail: "b17-ws2@example.com",
     });
     await approveBooking(opsAuth(TENANT_WS2), created.id);
-    assert.equal(probe.getCallCount(), 1);
+    assert.equal(probe.getCallCount(), 0);
     assert.notEqual(reaction.kind, "denali-booking-event-reaction");
+
+    const outbox = await peekOutboxByAggregateForTests({
+      tenantId: TENANT_WS2,
+      aggregateId: created.id,
+    });
+    assert.equal(outbox.length, 1);
+    assert.equal(outbox[0]?.eventType, BOOKING_APPROVE_OUTBOX_EVENT_TYPE);
   });
 
-  it("repeated reactAfterApprove does not enqueue a second outbox", async () => {
+  it("manual reactAfterApprove does not enqueue a second outbox", async () => {
     const runtime = getOrCreateBookingRuntimeForWorkspaceType(DENALI);
     const reaction = runtime.eventReaction;
     const probe = wrapReactAfterApprove(reaction);
@@ -235,14 +243,14 @@ describe("BK-B1.7 booking event ownership", { concurrency: false }, () => {
       guestEmail: "b17-idempotent@example.com",
     });
     await approveBooking(opsAuth(TENANT_DENALI), created.id);
-    assert.equal(probe.getCallCount(), 1);
+    assert.equal(probe.getCallCount(), 0);
 
     await reaction.reactAfterApprove({
       tenantId: TENANT_DENALI,
       bookingId: created.id,
       outboxEventType: BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
     });
-    assert.equal(probe.getCallCount(), 2);
+    assert.equal(probe.getCallCount(), 1);
 
     const outbox = await peekOutboxByAggregateForTests({
       tenantId: TENANT_DENALI,

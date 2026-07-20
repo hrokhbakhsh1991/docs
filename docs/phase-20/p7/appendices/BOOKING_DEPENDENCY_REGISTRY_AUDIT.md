@@ -20,7 +20,7 @@ constraint: Do not keep capability tokens without runtime ownership.
 | `validationPolicy` | API dependency bag | **ACTIVE** | `BookingsService.executeCreatePipeline` → `assertCreateValid` |
 | `capacityPolicy` | API dependency bag | **ACTIVE** | `BookingsService.executeCreatePipeline` → `assertCreateCapacity` |
 | `publicBooking` | API dependency bag | **ACTIVE** (wired) | `BookingsService.createPublicGuestBooking` → `supportsPublicCreate()` |
-| `eventReaction` | Separate event-reaction bindings | **ACTIVE** | `BookingsService` approve / bulkApprove → outbox type + `reactAfterApprove` |
+| `eventReaction` | Separate event-reaction bindings | **GRADED OFF (Option A)** | Outbox type via adapter; `reactAfterApprove` **not** invoked (`enabled=false`, `mode=none`) |
 | `opsCapability` | *(removed)* | **DEAD → removed** | Ops UI is `opsManifest` → `apps/web` booking-ops bindings — never API bag |
 
 ## Actions taken

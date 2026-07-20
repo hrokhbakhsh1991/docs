@@ -23,6 +23,7 @@ tests:
 1. **Boot:** `assertAuthEnvironmentIntegrity()` requires `AUTH_JWT_PUBLIC_KEY`, `AUTH_JWT_ISSUER`, and `AUTH_JWT_AUDIENCE` when `NODE_ENV=production`. Missing config throws `AUTH_JWT_REQUIRED_IN_PRODUCTION` before the server listens.
 2. **Ingress:** `resolveTenantContextFromRequest` rejects requests **without** a non-empty `Authorization` header in production (`UNAUTHORIZED_BEARER_AUTH_REQUIRED_IN_PRODUCTION`). Verified JWT is the only production identity path.
 3. **Dev bearer:** `AUTH_ALLOW_DEV_BEARER=true` remains illegal outside `NODE_ENV=test` (`AUTH_DEV_BEARER_FORBIDDEN_OUTSIDE_TEST`).
+4. **Test harness (fail-closed):** `APPS_API_PRODUCTION_AUTH_HARNESS=1` is permitted **only** when `NODE_ENV=test`. Under `NODE_ENV=production`, the flag is **rejected at boot** (`PRODUCTION_AUTH_HARNESS_FORBIDDEN`) — not ignored. See `apps/api/src/test/production-auth-harness.ts`.
 
 ### Dev bearer TTL (test only)
 

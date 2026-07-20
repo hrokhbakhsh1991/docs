@@ -10,13 +10,22 @@ const ENV_SNAPSHOT = {
   STORAGE_DRIVER: process.env.STORAGE_DRIVER,
 };
 
+function restoreEnvKey(key: keyof typeof ENV_SNAPSHOT): void {
+  const value = ENV_SNAPSHOT[key];
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
+}
+
 afterEach(() => {
-  process.env.NODE_ENV = ENV_SNAPSHOT.NODE_ENV;
-  process.env.DATABASE_URL = ENV_SNAPSHOT.DATABASE_URL;
-  process.env.STORAGE_DRIVER = ENV_SNAPSHOT.STORAGE_DRIVER;
+  for (const key of Object.keys(ENV_SNAPSHOT) as (keyof typeof ENV_SNAPSHOT)[]) {
+    restoreEnvKey(key);
+  }
 });
 
-describe("createTourStorageRepository (DM-CT-01 / DI-MEM-01)", () => {
+describe("createTourStorageRepository (DM-CT-01 / DI-MEM-01 / TODO-009)", () => {
   it("returns in-memory repository outside production", async () => {
     process.env.NODE_ENV = "test";
     delete process.env.DATABASE_URL;
@@ -25,6 +34,28 @@ describe("createTourStorageRepository (DM-CT-01 / DI-MEM-01)", () => {
     const { createTourStorageRepository } = await import("./create-tour-storage.js");
     const repo = createTourStorageRepository();
     assert.ok(repo instanceof InMemoryTourRepository);
+  });
+
+  it("TODO-009: DATABASE_URL set + STORAGE_DRIVER unset → prisma", async () => {
+    process.env.NODE_ENV = "test";
+    process.env.DATABASE_URL = "postgresql://app/db";
+    delete process.env.STORAGE_DRIVER;
+
+    const { resolveStorageDriver, createTourStorageRepository } =
+      await import("./create-tour-storage.js");
+    assert.equal(resolveStorageDriver(), "prisma");
+    assert.ok(createTourStorageRepository() instanceof PrismaTourRepository);
+  });
+
+  it("TODO-009: explicit STORAGE_DRIVER=memory wins over DATABASE_URL", async () => {
+    process.env.NODE_ENV = "test";
+    process.env.DATABASE_URL = "postgresql://app/db";
+    process.env.STORAGE_DRIVER = "memory";
+
+    const { resolveStorageDriver, createTourStorageRepository } =
+      await import("./create-tour-storage.js");
+    assert.equal(resolveStorageDriver(), "memory");
+    assert.ok(createTourStorageRepository() instanceof InMemoryTourRepository);
   });
 
   it("factory forbids memory driver in production", async () => {

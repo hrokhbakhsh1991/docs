@@ -28,8 +28,9 @@ let dualSmokeMemoryStore: InMemoryTourRepository | undefined;
 let defaultMemoryTourStore: InMemoryTourRepository | undefined;
 
 /**
- * DI factory — `STORAGE_DRIVER=memory|prisma` or NODE_ENV default (test→memory, production→prisma).
+ * DI factory — `STORAGE_DRIVER=memory|prisma`, else prisma when `DATABASE_URL` set, else NODE_ENV default.
  * Production refuses memory driver and missing DATABASE_URL before constructing a repository.
+ * @see docs/phase-20/p7/appendices/BOOKING_REMEDIATION_TODO_009_STORAGE_DEFAULT.md
  */
 export function createTourStorageRepository(): TourStorageImplementation {
   assertProductionStorageDriver();

@@ -109,4 +109,8 @@ Fast unit / memory HTTP suites (`bookings-ops.spec.ts`, etc.) stay outside this 
 
 **HTTP route matrix:** [`BOOKING_HTTP_POSTGRES_CERT.md`](./BOOKING_HTTP_POSTGRES_CERT.md) — create/approve/reject/waitlist/cancel/bulk/list/summary + tenant isolation + RLS.
 
-**Branch protection:** job names `Booking PostgreSQL capacity` and `Booking HTTP PostgreSQL` must be required on `main` (see `scripts/ops/configure-main-branch-protection.mjs`).
+**Branch protection:** job names `Booking PostgreSQL capacity` and `Booking HTTP PostgreSQL` **must** be required on `main`.
+
+- Apply / verify: [`BOOKING_BRANCH_PROTECTION_GATE.md`](./BOOKING_BRANCH_PROTECTION_GATE.md)
+- Script: `pnpm run ops:branch-protection:main` then `pnpm run ops:branch-protection:verify`
+- Name drift guard: `pnpm run guard:required-check-names` (also a step in this workflow)

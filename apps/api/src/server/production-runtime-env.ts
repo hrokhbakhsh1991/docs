@@ -1,6 +1,7 @@
 import { assertProductionRedisUrl } from "../middleware/tenant-rate-limit-config";
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 import { assertProductionStorageDriver } from "../storage/production-storage-driver-assert";
+import { assertProductionAuthHarnessAbsent } from "../test/production-auth-harness";
 import { assertStaticTenantRegistryRuntime } from "../tenant/tenant-registry";
 import {
   PRODUCTION_DATABASE_URL_ADMIN_MUST_DIFFER,
@@ -12,6 +13,8 @@ export {
   PRODUCTION_STORAGE_DRIVER_FORBIDDEN,
 } from "../storage/production-storage-driver-assert";
 
+export { PRODUCTION_AUTH_HARNESS_FORBIDDEN } from "../test/production-auth-harness";
+
 export {
   PRODUCTION_DATABASE_URL_ADMIN_REQUIRED,
   PRODUCTION_DATABASE_URL_ADMIN_MUST_DIFFER,
@@ -20,6 +23,7 @@ export {
 /**
  * Fail-closed production boot checks (DEC-GAP-03, V-004, V-009).
  * @see docs/phase-4/production-deploy-checklist.md
+ * @see docs/phase-20/p7/appendices/BOOKING_REMEDIATION_TODO_001_HARNESS.md
  */
 export function assertProductionRuntimeIntegrity(): void {
   assertStaticTenantRegistryRuntime();
@@ -28,6 +32,7 @@ export function assertProductionRuntimeIntegrity(): void {
     return;
   }
 
+  assertProductionAuthHarnessAbsent();
   assertProductionStorageDriver();
   assertProductionRedisUrl();
 

@@ -40,7 +40,9 @@ pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test \
   test/resolve-catalog-detail-sections.spec.ts \
   test/resolve-catalog-registration-support.spec.ts   # SDK-CAT-*
 # tenant-kernel: build-dev-portal-public-base-url · multi-level-host-parse
-# API: p6-host-tenant-parity · p6-guest-slice · p6-offline-receipt · p6-preservation · bookings-ops · exit
+# API: p6-host-tenant-parity · p6-guest-slice · p6-offline-receipt · p6-preservation · booking-http-postgres · exit
+# Booking DoD (TODO-008): test:booking-http-postgres — not memory bookings-ops
+
 # marketing: resolve-web-registration-url · guest-theme-stack
 # portal: p6-theming-file-tree · guest-theme-stack · portal-host-bind · portal-member · portal-home-redirect
 # web: portal-registration-redirect · finance-page · finance-dashboard-widget

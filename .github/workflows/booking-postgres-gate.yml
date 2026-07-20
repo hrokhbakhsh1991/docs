@@ -75,6 +75,9 @@ jobs:
           test "$STORAGE_DRIVER" = "prisma"
           echo "STORAGE_DRIVER=$STORAGE_DRIVER"
 
+      - name: Assert required check names match branch-protection script
+        run: node scripts/ops/verify-required-check-names.mjs
+
       - name: Bootstrap app_tour role
         run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
 
@@ -168,6 +171,9 @@ jobs:
         run: |
           test "$STORAGE_DRIVER" = "prisma"
           echo "STORAGE_DRIVER=$STORAGE_DRIVER"
+
+      - name: Assert required check names match branch-protection script
+        run: node scripts/ops/verify-required-check-names.mjs
 
       - name: Bootstrap app_tour role
         run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql

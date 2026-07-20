@@ -1,13 +1,14 @@
 /**
- * Booking approve reaction delivery — honest channel guarantees.
+ * Booking approve reaction delivery — honest channel guarantees (Option A).
  *
- * Behavioral proofs (no decorative reactedIds):
- * - repeat approve → conflict; single durable outbox; reactAfterApprove called once
- * - manual duplicate reactAfterApprove does not enqueue second outbox
+ * Behavioral proofs:
+ * - repeat approve → conflict; single durable outbox; **no** in-process reaction when capability off
+ * - manual reactAfterApprove does not enqueue second outbox
  * - outbox replay / relay does not invoke reactAfterApprove
  * - process restart: outbox survives; reaction is not auto-reinvoked
  *
  * @see docs/phase-20/p7/appendices/BOOKING_APPROVE_REACTION_DELIVERY.md
+ * @see docs/phase-20/p7/appendices/BOOKING_EVENT_REACTION_OPTION_A.md
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -107,19 +108,19 @@ describe("booking approve reaction delivery (honest contract)", { concurrency: f
     assert.equal(BOOKING_APPROVE_REACTION_DELIVERY.triggeredByOutboxReplay, false);
   });
 
-  it("repeat approve: conflict; single durable outbox; single reaction call", async () => {
+  it("repeat approve: conflict; single durable outbox; Option A skips in-process reaction", async () => {
     const reaction = getOrCreateBookingRuntimeForWorkspaceType(DENALI).eventReaction;
     const probe = wrapReactAfterApprove(reaction);
 
     const created = await createBooking(opsAuth(), body("repeat-approve@example.com"));
     await approveBooking(opsAuth(), created.id);
-    assert.equal(probe.getCallCount(), 1);
+    assert.equal(probe.getCallCount(), 0, "eventReaction.mode=none must not call reactAfterApprove");
 
     await assert.rejects(
       () => approveBooking(opsAuth(), created.id),
       (err: unknown) => err instanceof BookingStatusConflictError
     );
-    assert.equal(probe.getCallCount(), 1);
+    assert.equal(probe.getCallCount(), 0);
 
     const outbox = await peekOutboxByAggregateForTests({
       tenantId: TENANT,
@@ -129,20 +130,20 @@ describe("booking approve reaction delivery (honest contract)", { concurrency: f
     assert.equal(outbox[0]?.eventType, BOOKING_APPROVE_OUTBOX_EVENT_TYPE);
   });
 
-  it("duplicate reaction: empty adapter; does not enqueue second outbox", async () => {
+  it("manual reactAfterApprove does not enqueue second outbox", async () => {
     const reaction = getOrCreateBookingRuntimeForWorkspaceType(DENALI).eventReaction;
     const probe = wrapReactAfterApprove(reaction);
 
     const created = await createBooking(opsAuth(), body("dup-reaction@example.com"));
     await approveBooking(opsAuth(), created.id);
-    assert.equal(probe.getCallCount(), 1);
+    assert.equal(probe.getCallCount(), 0);
 
     await reaction.reactAfterApprove({
       tenantId: TENANT,
       bookingId: created.id,
       outboxEventType: BOOKING_APPROVE_OUTBOX_EVENT_TYPE,
     });
-    assert.equal(probe.getCallCount(), 2);
+    assert.equal(probe.getCallCount(), 1);
 
     const outbox = await peekOutboxByAggregateForTests({
       tenantId: TENANT,
@@ -166,7 +167,7 @@ describe("booking approve reaction delivery (honest contract)", { concurrency: f
     const probe = wrapReactAfterApprove(reaction);
     const created = await createBooking(opsAuth(), body("replay-path@example.com"));
     await approveBooking(opsAuth(), created.id);
-    assert.equal(probe.getCallCount(), 1);
+    assert.equal(probe.getCallCount(), 0);
 
     const before = probe.getCallCount();
     const rows = await peekOutboxByAggregateForTests({

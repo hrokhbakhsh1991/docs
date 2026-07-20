@@ -83,7 +83,7 @@ workspaceBooking:
 | validation | workspace / base-shape | workspace / base-shape |
 | capacity | hybrid / hybrid | workspace / booking-owned |
 | approval | booking-host / host-lifecycle | booking-host / host-lifecycle |
-| eventReaction | workspace / in-process | workspace / in-process |
+| eventReaction | workspace / none (Option A — off) | workspace / none (Option A — off) |
 | ops | workspace / ui-manifest | workspace / ui-manifest |
 
 ### Old claim vs new claim

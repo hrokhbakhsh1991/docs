@@ -1,25 +1,50 @@
 #!/usr/bin/env node
 /**
- * Configure required status checks on `main` (Phase 0 foundation + integration + Phase 1).
+ * Configure required status checks on `main` (Phase 0 + Phase 1 + Booking PostgreSQL).
  * Preserves any existing required contexts. Requires: gh auth login + repo admin.
  *
+ * Modes:
+ *   (default)     apply protection via GitHub API
+ *   --dry-run     print planned contexts; no API write (still needs gh for current state)
+ *   --verify      fail if Booking / Phase gates missing from current protection
+ *   --print-only  print MAIN_BRANCH_REQUIRED_CHECKS; no network
+ *
  * @see reports/GITHUB_BRANCH_PROTECTION.md
+ * @see docs/phase-20/p7/appendices/BOOKING_BRANCH_PROTECTION_GATE.md
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import {
+  BOOKING_POSTGRES_REQUIRED_CHECKS,
+  MAIN_BRANCH_REQUIRED_CHECKS,
+} from "./main-branch-required-checks.mjs";
+
+export { BOOKING_POSTGRES_REQUIRED_CHECKS, MAIN_BRANCH_REQUIRED_CHECKS };
 
 const BRANCH = "main";
+const args = new Set(process.argv.slice(2));
+const dryRun = args.has("--dry-run");
+const verifyOnly = args.has("--verify");
+const printOnly = args.has("--print-only");
 
-/** Exact GitHub Actions job `name:` values from workflow YAML. */
-export const MAIN_BRANCH_REQUIRED_CHECKS = [
-  "Phase 0 foundation gate",
-  "Phase 0 integration gate",
-  "Phase 1 platform-core gate",
-  "Booking PostgreSQL capacity",
-  "Booking HTTP PostgreSQL",
-];
+const here = dirname(fileURLToPath(import.meta.url));
 
-function ghJson(args) {
-  const out = execFileSync("gh", ["api", ...args], { encoding: "utf8" });
+function assertLocalNameDrift() {
+  const probe = spawnSync(process.execPath, [join(here, "verify-required-check-names.mjs")], {
+    encoding: "utf8",
+  });
+  if (probe.status !== 0) {
+    console.error(probe.stdout || "");
+    console.error(probe.stderr || "");
+    console.error("ERROR: local required-check name drift (workflow vs script).");
+    process.exit(1);
+  }
+}
+
+function ghJson(apiArgs) {
+  const out = execFileSync("gh", ["api", ...apiArgs], { encoding: "utf8" });
   return JSON.parse(out);
 }
 
@@ -30,12 +55,28 @@ function ghPut(path, body) {
   });
 }
 
-try {
-  execFileSync("gh", ["auth", "status"], { stdio: "pipe" });
-} catch {
-  console.error("ERROR: gh not authenticated. Run: gh auth login");
-  process.exit(1);
+function requireGhAuth() {
+  try {
+    execFileSync("gh", ["auth", "status"], { stdio: "pipe" });
+  } catch {
+    console.error("ERROR: gh not authenticated. Run: gh auth login");
+    console.error("Then: pnpm run ops:branch-protection:main");
+    process.exit(1);
+  }
 }
+
+assertLocalNameDrift();
+
+if (printOnly) {
+  console.log("MAIN_BRANCH_REQUIRED_CHECKS:");
+  for (const c of MAIN_BRANCH_REQUIRED_CHECKS) {
+    const booking = BOOKING_POSTGRES_REQUIRED_CHECKS.includes(c) ? " [booking-pg]" : "";
+    console.log(`  - ${c}${booking}`);
+  }
+  process.exit(0);
+}
+
+requireGhAuth();
 
 const { nameWithOwner } = JSON.parse(
   execFileSync("gh", ["repo", "view", "--json", "nameWithOwner"], { encoding: "utf8" })
@@ -53,6 +94,25 @@ try {
     process.exit(1);
   }
   console.log(`No existing protection on ${BRANCH}; creating rule.`);
+}
+
+if (verifyOnly) {
+  const missing = MAIN_BRANCH_REQUIRED_CHECKS.filter((c) => !existing.includes(c));
+  console.log(`Current required contexts on ${nameWithOwner}@${BRANCH} (${existing.length}):`);
+  for (const c of existing.sort()) {
+    const mark = MAIN_BRANCH_REQUIRED_CHECKS.includes(c) ? "✓" : "·";
+    console.log(`  ${mark} ${c}`);
+  }
+  if (missing.length > 0) {
+    console.error("FAIL: missing required checks:");
+    for (const c of missing) {
+      console.error(`  - ${c}`);
+    }
+    console.error("Run: pnpm run ops:branch-protection:main");
+    process.exit(1);
+  }
+  console.log("OK: all Phase 0/1 + Booking PostgreSQL checks are required.");
+  process.exit(0);
 }
 
 const contexts = [...new Set([...existing, ...MAIN_BRANCH_REQUIRED_CHECKS])].sort();
@@ -74,11 +134,29 @@ const body = {
   allow_fork_syncing: false,
 };
 
-console.log(`Updating ${nameWithOwner} branch ${BRANCH} required checks:`);
+console.log(
+  `${dryRun ? "DRY-RUN" : "Updating"} ${nameWithOwner} branch ${BRANCH} required checks:`
+);
 for (const c of contexts) {
-  const tag = MAIN_BRANCH_REQUIRED_CHECKS.includes(c) ? " (phase gate)" : "";
-  console.log(`  - ${c}${tag}`);
+  const tags = [];
+  if (BOOKING_POSTGRES_REQUIRED_CHECKS.includes(c)) tags.push("booking-pg");
+  else if (MAIN_BRANCH_REQUIRED_CHECKS.includes(c)) tags.push("phase-gate");
+  const tag = tags.length ? ` (${tags.join(", ")})` : "";
+  const added = !existing.includes(c) ? " [NEW]" : "";
+  console.log(`  - ${c}${tag}${added}`);
+}
+
+const bookingPresent = BOOKING_POSTGRES_REQUIRED_CHECKS.every((c) => contexts.includes(c));
+if (!bookingPresent) {
+  console.error("ERROR: planned contexts missing Booking PostgreSQL checks — aborting.");
+  process.exit(1);
+}
+
+if (dryRun) {
+  console.log("DRY-RUN: no API write. Re-run without --dry-run to apply.");
+  process.exit(0);
 }
 
 ghPut(`repos/${owner}/${repo}/branches/${BRANCH}/protection`, body);
 console.log("OK: branch protection updated.");
+console.log("Verify: pnpm run ops:branch-protection:verify");
