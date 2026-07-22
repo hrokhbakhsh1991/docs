@@ -7,6 +7,9 @@
     "productionTier": "certified"
   },
   "package": "@app-tour/workspace-denali",
+  "adminWeb": {
+    "clientBundleEnvGate": "ALLOW_DENALI_WEB_PLUGIN"
+  },
   "workspaceTypes": [
     "denali"
   ],

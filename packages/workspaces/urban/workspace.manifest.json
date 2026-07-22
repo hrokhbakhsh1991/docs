@@ -7,6 +7,9 @@
     "productionTier": "stub"
   },
   "package": "@app-tour/workspace-urban",
+  "adminWeb": {
+    "clientBundleEnvGate": "ALLOW_URBAN_WEB_PLUGIN"
+  },
   "workspaceTypes": ["urban"],
   "plugin": {
     "entry": "./plugin",

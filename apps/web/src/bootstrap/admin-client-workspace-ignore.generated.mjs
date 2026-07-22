@@ -16,7 +16,18 @@
 
 /** @type {readonly AdminClientWorkspaceIgnoreRuleDef[]} */
 export const ADMIN_CLIENT_WORKSPACE_IGNORE_RULES = Object.freeze([
-
+  Object.freeze({
+    envKey: "ALLOW_DENALI_WEB_PLUGIN",
+    resourceRegExpSource: "^@app-tour/workspace-denali(\\/|$)",
+    label: "denali",
+    packageName: "@app-tour/workspace-denali",
+  }),
+  Object.freeze({
+    envKey: "ALLOW_URBAN_WEB_PLUGIN",
+    resourceRegExpSource: "^@app-tour/workspace-urban(\\/|$)",
+    label: "urban",
+    packageName: "@app-tour/workspace-urban",
+  }),
 ]);
 
 /**
