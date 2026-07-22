@@ -14,7 +14,8 @@ import {
 export type WorkspaceHttpHandlerFn = (
   req: IncomingMessage,
   res: ServerResponse,
-  ...args: unknown[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- registry loaders bind typed workspace handlers
+  ...args: any[]
 ) => Promise<void>;
 
 /** All workspace-product HTTP handlers keyed by manifest/codegen handler id. */
@@ -139,11 +140,10 @@ async function dispatchWorkspaceHandler(
   handlerKey: WorkspaceHttpHandlerKey,
   req: IncomingMessage,
   res: ServerResponse,
-  handlers: WorkspaceRouteHandlers,
+  handler: WorkspaceHttpHandlerFn,
   deps: WorkspaceRouteRegistrarDeps,
   pathParam?: string
 ): Promise<void> {
-  const handler = handlers[handlerKey];
   const kind = HANDLER_DISPATCH_KIND[handlerKey];
 
   switch (kind) {
@@ -169,20 +169,26 @@ async function dispatchWorkspaceHandler(
   }
 }
 
+export type ResolveWorkspaceHttpHandler = (
+  key: WorkspaceHttpHandlerKey
+) => Promise<WorkspaceHttpHandlerFn>;
+
 /**
- * Dispatches workspace-product HTTP routes (urban + denali finance). Returns true when handled.
+ * Dispatches workspace-product HTTP routes. Resolves handlers lazily per key (Wave G.b).
+ * Returns true when handled.
  */
 export async function tryDispatchWorkspaceRoutes(
   method: string,
   pathname: string,
   req: IncomingMessage,
   res: ServerResponse,
-  handlers: WorkspaceRouteHandlers,
+  resolveHandler: ResolveWorkspaceHttpHandler,
   deps: WorkspaceRouteRegistrarDeps
 ): Promise<boolean> {
   for (const route of WORKSPACE_HTTP_STATIC_ROUTES) {
     if (method === route.method && pathname === route.path) {
-      await dispatchWorkspaceHandler(route.handlerKey, req, res, handlers, deps);
+      const handler = await resolveHandler(route.handlerKey);
+      await dispatchWorkspaceHandler(route.handlerKey, req, res, handler, deps);
       return true;
     }
   }
@@ -193,7 +199,15 @@ export async function tryDispatchWorkspaceRoutes(
     }
     const match = pathname.match(route.pathPattern);
     if (match) {
-      await dispatchWorkspaceHandler(route.handlerKey, req, res, handlers, deps, match[1]!);
+      const handler = await resolveHandler(route.handlerKey);
+      await dispatchWorkspaceHandler(
+        route.handlerKey,
+        req,
+        res,
+        handler,
+        deps,
+        match[1]!
+      );
       return true;
     }
   }

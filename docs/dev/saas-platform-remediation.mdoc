@@ -175,6 +175,7 @@ Reading note: historical **Deferred:** bullets under early Phase B slices were c
 
 - Portal/marketing already register by `bootstrap.pluginId` (request-scoped).
 - Default generate still emits full-trunk guest-runtime deps + transpile lists; image builds filter via APPLY (`apply:deploy-profile`, including C.3c register manifests).
+- **Wave G.b (exit branch):** API hot path resolves workspace HTTP handlers via `ensureWorkspaceHttpHandler` / `resolveWorkspaceHttpHandler` (per-package cache) — not eager `loadWorkspaceHttpPackageHandlers` on every request. `tryDispatchWorkspaceRoutes` takes a `ResolveWorkspaceHttpHandler` callback. Required by `guard-guest-api-shell` / E.4b-b guest onboard. Spec: [`docs/dev/wave-g-http-handler-per-package.mdoc`](wave-g-http-handler-per-package.mdoc).
 
 ### Phase 5 — Manifest-driven rules (mostly present)
 

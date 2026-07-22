@@ -14,7 +14,7 @@ import {
 } from "./bookings/bookings.routes";
 import { loadLazyRouteHandlers } from "./boot/lazy-route-handlers";
 import { resolveLazyToursService } from "./boot/lazy-tours-service";
-import { buildWorkspaceRouteHandlers } from "./boot/lazy-workspace-finance-handlers";
+import { resolveWorkspaceHttpHandler } from "./boot/lazy-workspace-finance-handlers";
 import type { TourStorageRepository } from "./db/tour.repository";
 import { handleHealth } from "./health/health.routes";
 import "./http/configure-urban-http-host";
@@ -640,9 +640,8 @@ async function dispatchRequest(
     }
   }
 
-  const workspaceHandlers = await buildWorkspaceRouteHandlers();
   if (
-    await tryDispatchWorkspaceRoutes(method, url.pathname, req, res, workspaceHandlers, {
+    await tryDispatchWorkspaceRoutes(method, url.pathname, req, res, resolveWorkspaceHttpHandler, {
       tourStore: deps.tourStore,
       financeService: deps.financeService,
     })
