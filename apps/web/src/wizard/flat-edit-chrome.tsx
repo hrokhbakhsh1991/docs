@@ -6,11 +6,11 @@ import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DraftSyncChrome } from "@/draft/draft-sync-chrome";
-import type { NewTourWizardDraftEnvelope } from "@/draft/denali-wizard-draft-types";
+import type { NewTourWizardDraftEnvelope } from "@/draft/tour-wizard-draft-envelope";
 import type { useWorkspaceDraft } from "@/draft/use-workspace-draft";
 import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types";
 
-type DenaliFlatEditDraftSync = Pick<
+type OperatorFlatEditDraftSync = Pick<
   ReturnType<typeof useWorkspaceDraft<NewTourWizardDraftEnvelope>>,
   | "status"
   | "schemaIssues"
@@ -25,7 +25,7 @@ type DenaliFlatEditDraftSync = Pick<
   | "revertToLastValid"
 >;
 
-export function DenaliFlatEditPageShell(props: {
+export function OperatorFlatEditPageShell(props: {
   readonly testId?: string;
   readonly children: ReactNode;
 }) {
@@ -33,7 +33,7 @@ export function DenaliFlatEditPageShell(props: {
     <div
       className="new-tour-wizard-page space-y-6"
       data-new-tour-wizard
-      data-denali-flat-edit-page
+      data-operator-flat-edit-page
       data-testid={props.testId}
     >
       {props.children}
@@ -41,14 +41,14 @@ export function DenaliFlatEditPageShell(props: {
   );
 }
 
-export function DenaliFlatEditPageHeader(props: {
+export function OperatorFlatEditPageHeader(props: {
   readonly tourId: string;
   readonly title: string;
   readonly statusBadge: ReactNode;
   readonly metaLine: string | null;
   readonly toursNavLabel: string;
   readonly workspaceNavLabel: string;
-  readonly draftSync: DenaliFlatEditDraftSync;
+  readonly draftSync: OperatorFlatEditDraftSync;
 }) {
   return (
     <>

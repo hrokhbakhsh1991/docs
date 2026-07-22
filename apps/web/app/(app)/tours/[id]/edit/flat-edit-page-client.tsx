@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import {
-  DenaliFlatEditPageView,
-  DenaliFlatEditValidationList,
-} from "@/bootstrap/workspace-wizard-flat-edit-page-bindings.generated";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk";
+
+import { resolveWizardFlatEditPageSurface } from "@/bootstrap/workspace-wizard-flat-edit-page-bindings.generated";
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
@@ -25,44 +24,71 @@ import {
   CreateTourWizardNotConfigured,
 } from "@/wizard/create-tour-wizard-chrome";
 import {
-  DenaliFlatEditPageHeader,
-  DenaliFlatEditPageShell,
-} from "@/wizard/denali-flat-edit-chrome";
-import { DenaliFlatEditForm } from "@/wizard/denali-flat-edit-form-shell";
+  OperatorFlatEditPageHeader,
+  OperatorFlatEditPageShell,
+} from "@/wizard/flat-edit-chrome";
+import { buildFlatEditMetaLine } from "@/wizard/host-adapter-runtime";
+import { OperatorFlatEditForm } from "@/wizard/flat-edit-form-shell";
 import {
-  createDenaliWizardSubmitFieldLabelResolver,
+  createWizardSubmitFieldLabelResolver,
   resolveWizardSubmitErrorMessage,
 } from "@/wizard/resolve-wizard-submit-error-message";
 import { createWizardSubmitErrorTranslator } from "@/wizard/create-wizard-submit-error-translator";
 import { useWorkspaceWizardTranslator } from "@/wizard/use-workspace-wizard-translator";
 import { WizardSubmitErrorAlert } from "@/wizard/wizard-submit-error-alert";
 import {
-  createDenaliDraftSchemaGate,
-  useDenaliFlatEditPage,
-} from "@/wizard/use-denali-flat-edit-page";
-
+  createOperatorDraftSchemaGate,
+  useOperatorFlatEditPage,
+} from "@/wizard/use-flat-edit-page";
+import { warmOperatorWizardShell } from "@/wizard/warm-operator-wizard-shell";
 import { TourStatusBadge } from "../../tour-status-badge";
 
-type DenaliFlatEditPageClientProps = {
+type OperatorFlatEditPageClientProps = {
   readonly session: OperatorSessionContext;
   readonly tourId: string;
 };
 
-function buildFlatEditMetaLine(parts: readonly (string | null | undefined)[]): string | null {
-  const line = parts.filter((part) => part != null && part.length > 0).join(" · ");
-  return line.length > 0 ? line : null;
+/** Wave B.c / I.6 — load plugin via registry (session.pluginId), then mount orchestration hook. */
+export function OperatorFlatEditPageClient({ session, tourId }: OperatorFlatEditPageClientProps) {
+  const [plugin, setPlugin] = useState<WorkspacePlugin | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void warmOperatorWizardShell(session.pluginId).then((loaded) => {
+      if (!cancelled) {
+        setPlugin(loaded);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session.pluginId]);
+
+  if (plugin == null) {
+    return <CreateTourWizardLoadingMessage testId={TOUR_EDIT_TEST_IDS.page} />;
+  }
+
+  return <OperatorFlatEditPageClientReady session={session} tourId={tourId} plugin={plugin} />;
 }
 
-export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPageClientProps) {
+type OperatorFlatEditPageClientReadyProps = OperatorFlatEditPageClientProps & {
+  readonly plugin: WorkspacePlugin;
+};
+
+function OperatorFlatEditPageClientReady({
+  session,
+  tourId,
+  plugin,
+}: OperatorFlatEditPageClientReadyProps) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.edit");
   const tErrors = useTranslations("tours.edit.errors");
   const tNav = useTranslations("tours.nav");
   const tFormat = useTranslations("tours.format");
   const tWizard = useTranslations("wizard");
-  const tDenali = useWorkspaceWizardTranslator("denali");
+  const tPlugin = useWorkspaceWizardTranslator(session.pluginId);
   const tCommon = useTranslations("common");
-  const core = useDenaliFlatEditPage({ session, tourId });
+  const core = useOperatorFlatEditPage({ session, tourId, plugin });
   const { draftSyncEngine } = core;
 
   const formatSeats = useCallback(
@@ -77,8 +103,15 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
     [tFormat]
   );
 
+  const pageSurface = resolveWizardFlatEditPageSurface(plugin.id);
+  if (pageSurface == null) {
+    return <CreateTourWizardLoadingMessage testId={TOUR_EDIT_TEST_IDS.page} />;
+  }
+  const FlatEditPageView = pageSurface.FlatEditPageView;
+  const FlatEditValidationList = pageSurface.FlatEditValidationList;
+
   return (
-    <DenaliFlatEditPageView
+    <FlatEditPageView
       core={core}
       tourId={tourId}
       slots={{
@@ -87,18 +120,21 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
         ),
         renderNotConfigured: () => <CreateTourWizardNotConfigured />,
         renderNotFound: () => (
-          <DenaliFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
+          <OperatorFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
             <section className="new-tour-wizard-page__empty">
               <p className="new-tour-wizard-page__empty-desc">{t("notFound")}</p>
             </section>
-          </DenaliFlatEditPageShell>
+          </OperatorFlatEditPageShell>
         ),
-        renderReady: ({ core: readyCore, detail, tourId: readyTourId }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- product view slot props
+        renderReady: ({ core: readyCore, detail, tourId: readyTourId }: any) => {
           const loadError = resolveTourErrorMessage(tErrors, readyCore.error);
           const submitPresentation = resolveWizardSubmitErrorMessage({
             raw: readyCore.submitError,
             context: "edit",
-            translateFieldLabel: createDenaliWizardSubmitFieldLabelResolver((key) => tDenali(key)),
+            translateFieldLabel: createWizardSubmitFieldLabelResolver(session.pluginId, (key) =>
+              tPlugin(key)
+            ),
             t: createWizardSubmitErrorTranslator(tWizard),
           });
           const priceLabel = formatTourPrice(
@@ -111,8 +147,8 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
           const metaLine = buildFlatEditMetaLine([departureLabel, priceLabel, seatsLabel]);
 
           return (
-            <DenaliFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
-              <DenaliFlatEditPageHeader
+            <OperatorFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
+              <OperatorFlatEditPageHeader
                 tourId={readyTourId}
                 title={detail.projection.title}
                 statusBadge={
@@ -124,7 +160,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
                 draftSync={draftSyncEngine}
               />
 
-              <DenaliFlatEditForm
+              <OperatorFlatEditForm
                 tenantId={session.tenantId}
                 draft={readyCore.draft}
                 onDraftChange={readyCore.onDraftChange}
@@ -137,7 +173,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
                   <div className="space-y-3 pt-2" data-wizard-footer>
                     {readyCore.submitValidationIssues != null &&
                     readyCore.submitValidationIssues.length > 0 ? (
-                      <DenaliFlatEditValidationList issues={readyCore.submitValidationIssues} />
+                      <FlatEditValidationList issues={readyCore.submitValidationIssues} />
                     ) : null}
                     {loadError ? (
                       <p role="alert" className="text-sm text-destructive">
@@ -208,7 +244,7 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
                   </div>
                 }
               />
-            </DenaliFlatEditPageShell>
+            </OperatorFlatEditPageShell>
           );
         },
       }}
@@ -216,4 +252,4 @@ export function DenaliFlatEditPageClient({ session, tourId }: DenaliFlatEditPage
   );
 }
 
-export { createDenaliDraftSchemaGate };
+export { createOperatorDraftSchemaGate };
